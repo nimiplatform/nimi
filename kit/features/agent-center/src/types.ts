@@ -488,10 +488,7 @@ export type AgentCenterHostCommittedPreviewEvidence =
     };
 
 export interface AgentCenterHostMechanics {
-  readonly selectAvatar?: (
-    kind: 'live2d' | 'vrm',
-    agentHandle: NimiLocalAppAgentHandle,
-  ) => Promise<AgentCenterHostAppearanceSelection>;
+  readonly selectAvatar?: (kind: 'live2d' | 'vrm') => Promise<AgentCenterHostAppearanceSelection>;
   readonly selectBackground?: () => Promise<AgentCenterHostAppearanceSelection>;
   readonly resolveCommittedPreview?: (
     input: AgentCenterHostCommittedPreviewInput,

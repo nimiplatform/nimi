@@ -52,8 +52,6 @@ mod tests {
                 "export_save_file",
                 "artifacts_write",
                 "local_assets_resolve_url",
-                "local_agent_identity",
-                "local_agent_runtime_trusted_caller",
                 "avatar_asset_resolve",
                 "agent_center_avatar_asset_import",
                 "agent_center_background_import",
@@ -109,9 +107,6 @@ mod tests {
             .any(|command| command.boundary == ShellCommandBoundary::LocalAssets));
         assert!(commands
             .iter()
-            .any(|command| command.boundary == ShellCommandBoundary::LocalAgent));
-        assert!(commands
-            .iter()
             .any(|command| command.boundary == ShellCommandBoundary::Avatar));
         assert!(commands
             .iter()
@@ -148,6 +143,8 @@ mod tests {
                 "local_app_shared_agent_ai_config_overwrite",
                 "local_app_shared_agent_ai_config_local_options",
                 "local_app_agent_manager_snapshot",
+                "local_app_embodiment_snapshot",
+                "local_app_embodiment_subscribe",
                 "local_app_agent_autonomy_snapshot",
                 "local_app_agent_update_autonomy",
                 "local_app_agent_presentation_snapshot",
@@ -274,7 +271,6 @@ mod tests {
                 .chain(STANDARD_FILE_COMMANDS)
                 .chain(STANDARD_DIAGNOSTICS_COMMANDS)
                 .chain(STANDARD_LOCAL_ASSET_COMMANDS)
-                .chain(STANDARD_LOCAL_AGENT_COMMANDS)
                 .chain(STANDARD_AVATAR_COMMANDS)
                 .chain(STANDARD_AGENT_CENTER_COMMANDS)
                 .chain(STANDARD_PLATFORM_PROJECTION_COMMANDS)
@@ -345,6 +341,8 @@ mod tests {
                 "local_app_shared_agent_ai_config_overwrite",
                 "local_app_shared_agent_ai_config_local_options",
                 "local_app_agent_manager_snapshot",
+                "local_app_embodiment_snapshot",
+                "local_app_embodiment_subscribe",
                 "local_app_agent_autonomy_snapshot",
                 "local_app_agent_update_autonomy",
                 "local_app_agent_presentation_snapshot",
@@ -397,8 +395,6 @@ mod tests {
             "oauth_listen_for_code",
             "log_renderer_event",
             "diagnostics_renderer_entry_probe",
-            "local_agent_identity",
-            "local_agent_runtime_trusted_caller",
             "avatar_asset_resolve",
             "agent_center_avatar_asset_import",
             "agent_center_background_import",

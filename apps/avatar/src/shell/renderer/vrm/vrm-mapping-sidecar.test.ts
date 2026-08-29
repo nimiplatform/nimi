@@ -26,7 +26,7 @@ function validSidecar(overrides: Record<string, unknown> = {}): Record<string, u
     sidecar_id: 'sidecar-greet-wave-vrm',
     route_id: 'greet_wave',
     backend_kind: 'vrm',
-    profile_id: 'vrm-runtime-probe-v1',
+    profile_id: 'vrm-avatar-capability-profile-v1',
     confidence: 0.94,
     threshold: 0.82,
     manual_confirmation: 'confirmed',
@@ -47,7 +47,7 @@ describe('normalizeAvatarMappingSidecar', () => {
 sidecar_id: sidecar-greet-wave-vrm
 route_id: greet_wave
 backend_kind: vrm
-profile_id: vrm-runtime-probe-v1
+profile_id: vrm-avatar-capability-profile-v1
 confidence: 0.94
 threshold: 0.82
 manual_confirmation: confirmed

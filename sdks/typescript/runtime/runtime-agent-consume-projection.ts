@@ -1,10 +1,8 @@
 import {
-  AvatarDebugEventFamily,
   AgentPresentationEventFamily,
+  AgentVoiceTimingPhase,
   AgentStateEventFamily,
   HookAdmissionState,
-  VoiceOutputMode,
-  VoicePlaybackState,
   type AgentEvent,
   type AppMessageEvent,
 } from '../core-generated/runtime-typed-client';
@@ -20,7 +18,6 @@ import {
 } from './runtime-agent-consume-internal';
 import type {
   NimiRuntimeAgentConsumeEvent,
-  NimiRuntimeAgentAvatarDebugConsumeEvent,
   NimiRuntimeAgentExecutionStateValue,
   NimiRuntimeAgentHookConsumeEvent,
   NimiRuntimeAgentPresentationConsumeEvent,
@@ -48,10 +45,9 @@ const TURN_EVENT_TYPES = new Set([
   'runtime.agent.turn.failed',
   'runtime.agent.turn.interrupted',
   'runtime.agent.turn.interrupt_ack',
-  'runtime.agent.presentation.voice_playback_requested',
-  'runtime.agent.presentation.voice_stream_chunk_available',
-  'runtime.agent.presentation.voice_playback_terminal',
-  'runtime.agent.presentation.lipsync_frame_batch',
+  'runtime.agent.conversation.voice_timing_ready',
+  'runtime.agent.conversation.voice_artifact_available',
+  'runtime.agent.conversation.voice_timing_terminal',
   'runtime.agent.state.status_text_changed',
   'runtime.agent.state.execution_state_changed',
   'runtime.agent.state.emotion_changed',
@@ -151,6 +147,8 @@ export function projectNimiRuntimeAgentAppMessageEvent(
   const streamId = requireText(payload.stream_id ?? payload.streamId, 'streamId');
   const timelinePayload = payload.timeline ?? payload.runtime_timeline ?? payload.runtimeTimeline;
   const timeline = parseOptionalNimiRuntimeAgentTimeline(timelinePayload, messageType, turnId, streamId);
+  const projectedDetail = projectAppMessageDetail(messageType, payload);
+  if (!admitCommonVoiceDetail(messageType, projectedDetail)) return null;
   return {
     eventName: messageType as NimiRuntimeAgentTurnConsumeEvent['eventName'],
     localAgentRef,
@@ -158,8 +156,18 @@ export function projectNimiRuntimeAgentAppMessageEvent(
     turnId,
     streamId,
     ...(timeline ? { timeline } : {}),
-    detail: projectAppMessageDetail(messageType, payload),
+    detail: projectedDetail,
   };
+}
+
+function admitCommonVoiceDetail(messageType: string, detail: JsonObject): boolean {
+  if (messageType !== 'runtime.agent.conversation.voice_timing_ready'
+    && messageType !== 'runtime.agent.conversation.voice_artifact_available') return true;
+  const artifactId = optionalString(detail.audioArtifactId);
+  const mimeType = optionalString(detail.audioMimeType)?.toLowerCase();
+  if (!artifactId || !mimeType?.startsWith('audio/')) return false;
+  return messageType !== 'runtime.agent.conversation.voice_artifact_available'
+    || detail.artifactComplete === true;
 }
 
 function projectAppMessageDetail(messageType: string, payload: JsonObject): JsonObject {
@@ -254,107 +262,38 @@ function projectAppMessageDetail(messageType: string, payload: JsonObject): Json
           structured: structuredPayload,
         };
       }
-    case 'runtime.agent.presentation.voice_playback_requested':
+    case 'runtime.agent.conversation.voice_timing_ready':
       return {
         audioArtifactId: optionalString(detail.audio_artifact_id, detail.audioArtifactId, payload.audio_artifact_id, payload.audioArtifactId) || '',
         audioMimeType: optionalString(detail.audio_mime_type, detail.audioMimeType, payload.audio_mime_type, payload.audioMimeType) || '',
-        voiceStreamId: optionalString(detail.voice_stream_id, detail.voiceStreamId, payload.voice_stream_id, payload.voiceStreamId),
         messageId: optionalString(detail.message_id, detail.messageId, payload.message_id, payload.messageId),
-        playbackState: optionalString(detail.playback_state, detail.playbackState, payload.playback_state, payload.playbackState) || '',
-        voiceOutputMode: optionalString(detail.voice_output_mode, detail.voiceOutputMode, payload.voice_output_mode, payload.voiceOutputMode),
-        voicePlaybackState: optionalString(detail.voice_playback_state, detail.voicePlaybackState, payload.voice_playback_state, payload.voicePlaybackState),
-        playbackTarget: optionalString(detail.playback_target, detail.playbackTarget, payload.playback_target, payload.playbackTarget),
-        finalArtifact: optionalBoolean(detail.final_artifact ?? detail.finalArtifact ?? payload.final_artifact ?? payload.finalArtifact),
+        voiceTimingPhase: optionalString(detail.voice_timing_phase, detail.voiceTimingPhase, payload.voice_timing_phase, payload.voiceTimingPhase),
         durationMs: optionalNumber(detail.duration_ms ?? detail.durationMs ?? payload.duration_ms ?? payload.durationMs),
         deadlineOffsetMs: optionalNumber(detail.deadline_offset_ms ?? detail.deadlineOffsetMs ?? payload.deadline_offset_ms ?? payload.deadlineOffsetMs),
         reason: optionalString(detail.reason, payload.reason),
-        defaultVoiceReference: optionalString(detail.default_voice_reference, detail.defaultVoiceReference, payload.default_voice_reference, payload.defaultVoiceReference),
-        ...(parseVoiceRouteBinding(detail.voice_route_binding ?? detail.voiceRouteBinding ?? payload.voice_route_binding ?? payload.voiceRouteBinding)
-          ? { voiceRouteBinding: parseVoiceRouteBinding(detail.voice_route_binding ?? detail.voiceRouteBinding ?? payload.voice_route_binding ?? payload.voiceRouteBinding) }
-          : {}),
       };
-    case 'runtime.agent.presentation.voice_stream_chunk_available':
+    case 'runtime.agent.conversation.voice_artifact_available':
       return {
         audioArtifactId: optionalString(detail.audio_artifact_id, detail.audioArtifactId, payload.audio_artifact_id, payload.audioArtifactId),
         audioMimeType: optionalString(detail.audio_mime_type, detail.audioMimeType, payload.audio_mime_type, payload.audioMimeType) || '',
-        voiceStreamId: optionalString(detail.voice_stream_id, detail.voiceStreamId, payload.voice_stream_id, payload.voiceStreamId),
-        chunkTransportRef: optionalString(detail.chunk_transport_ref, detail.chunkTransportRef, payload.chunk_transport_ref, payload.chunkTransportRef),
         messageId: optionalString(detail.message_id, detail.messageId, payload.message_id, payload.messageId),
-        chunkSequence: optionalNumber(detail.chunk_sequence ?? detail.chunkSequence ?? payload.chunk_sequence ?? payload.chunkSequence),
-        finalChunk: optionalBoolean(detail.final_chunk ?? detail.finalChunk ?? payload.final_chunk ?? payload.finalChunk),
-        voiceOutputMode: optionalString(detail.voice_output_mode, detail.voiceOutputMode, payload.voice_output_mode, payload.voiceOutputMode),
-        voicePlaybackState: optionalString(detail.voice_playback_state, detail.voicePlaybackState, payload.voice_playback_state, payload.voicePlaybackState),
+        artifactSequence: optionalNumber(detail.artifact_sequence ?? detail.artifactSequence ?? payload.artifact_sequence ?? payload.artifactSequence),
+        artifactComplete: optionalBoolean(detail.artifact_complete ?? detail.artifactComplete ?? payload.artifact_complete ?? payload.artifactComplete),
+        voiceTimingPhase: optionalString(detail.voice_timing_phase, detail.voiceTimingPhase, payload.voice_timing_phase, payload.voiceTimingPhase),
         durationMs: optionalNumber(detail.duration_ms ?? detail.durationMs ?? payload.duration_ms ?? payload.durationMs),
         reason: optionalString(detail.reason, payload.reason),
-        playbackTarget: optionalString(detail.playback_target, detail.playbackTarget, payload.playback_target, payload.playbackTarget),
       };
-    case 'runtime.agent.presentation.voice_playback_terminal':
+    case 'runtime.agent.conversation.voice_timing_terminal':
       return {
-        voiceStreamId: optionalString(detail.voice_stream_id, detail.voiceStreamId, payload.voice_stream_id, payload.voiceStreamId) || '',
-        finalArtifactId: optionalString(detail.final_artifact_id, detail.finalArtifactId, payload.final_artifact_id, payload.finalArtifactId),
+        audioArtifactId: optionalString(detail.audio_artifact_id, detail.audioArtifactId, payload.audio_artifact_id, payload.audioArtifactId),
         audioMimeType: optionalString(detail.audio_mime_type, detail.audioMimeType, payload.audio_mime_type, payload.audioMimeType),
         messageId: optionalString(detail.message_id, detail.messageId, payload.message_id, payload.messageId),
-        voiceOutputMode: optionalString(detail.voice_output_mode, detail.voiceOutputMode, payload.voice_output_mode, payload.voiceOutputMode),
-        voicePlaybackState: optionalString(detail.voice_playback_state, detail.voicePlaybackState, payload.voice_playback_state, payload.voicePlaybackState),
+        voiceTimingPhase: optionalString(detail.voice_timing_phase, detail.voiceTimingPhase, payload.voice_timing_phase, payload.voiceTimingPhase),
         terminalReason: optionalString(detail.terminal_reason, detail.terminalReason, payload.terminal_reason, payload.terminalReason),
-        playbackTarget: optionalString(detail.playback_target, detail.playbackTarget, payload.playback_target, payload.playbackTarget),
-      };
-    case 'runtime.agent.presentation.lipsync_frame_batch':
-      return {
-        audioArtifactId: optionalString(detail.audio_artifact_id, detail.audioArtifactId, payload.audio_artifact_id, payload.audioArtifactId) || '',
-        frames: parseLipsyncFrames(detail.frames ?? payload.frames),
       };
     default:
       return {};
   }
-}
-
-function parseVoiceRouteBinding(value: unknown): JsonObject | null {
-  const payload = asRecord(value);
-  if (!payload) {
-    return null;
-  }
-  const result: JsonObject = {};
-  const fields: Array<[string, unknown]> = [
-    ['capability', payload.capability],
-    ['defaultVoiceReference', payload.default_voice_reference ?? payload.defaultVoiceReference],
-    ['voiceReferenceKind', payload.voice_reference_kind ?? payload.voiceReferenceKind],
-    ['voiceReferenceValue', payload.voice_reference_value ?? payload.voiceReferenceValue],
-    ['modelId', payload.model_id ?? payload.modelId],
-    ['modelResolved', payload.model_resolved ?? payload.modelResolved],
-    ['scenarioJobId', payload.scenario_job_id ?? payload.scenarioJobId],
-    ['boundAudioArtifactId', payload.bound_audio_artifact_id ?? payload.boundAudioArtifactId],
-    ['boundAudioMimeType', payload.bound_audio_mime_type ?? payload.boundAudioMimeType],
-    ['synthesisMode', payload.synthesis_mode ?? payload.synthesisMode],
-    ['status', payload.status],
-    ['reason', payload.reason],
-  ];
-  for (const [key, raw] of fields) {
-    const normalized = optionalString(raw);
-    if (normalized) {
-      result[key] = normalized;
-    }
-  }
-  return Object.keys(result).length > 0 ? result : null;
-}
-
-function parseLipsyncFrames(value: unknown): readonly JsonObject[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.flatMap((item) => {
-    const frame = asRecord(item);
-    if (!frame) {
-      return [];
-    }
-    return [{
-      frameSequence: optionalNumber(frame.frame_sequence ?? frame.frameSequence),
-      offsetMs: optionalNumber(frame.offset_ms ?? frame.offsetMs),
-      durationMs: optionalNumber(frame.duration_ms ?? frame.durationMs),
-      mouthOpenY: optionalNumber(frame.mouth_open_y ?? frame.mouthOpenY),
-      audioLevel: optionalNumber(frame.audio_level ?? frame.audioLevel),
-    }];
-  });
 }
 
 function optionalBoolean(value: unknown): boolean | undefined {
@@ -370,8 +309,6 @@ export function projectNimiRuntimeAgentServiceEvent(event: AgentEvent): NimiRunt
       return projectPresentationEvent(localAgentRef, event.detail.presentation);
     case 'hook':
       return projectHookEvent(localAgentRef, event.detail.hook);
-    case 'avatarDebug':
-      return projectAvatarDebugEvent(localAgentRef, event.detail.avatarDebug);
     default:
       runtimeAgentError(
         'Runtime Agent service event family is not a consume projection event',
@@ -379,53 +316,6 @@ export function projectNimiRuntimeAgentServiceEvent(event: AgentEvent): NimiRunt
         'subscribe_supported_runtime_agent_event_families',
       );
   }
-}
-
-function projectAvatarDebugEvent(
-  localAgentRef: string,
-  avatarDebug: Extract<AgentEvent['detail'], { oneofKind: 'avatarDebug' }>['avatarDebug'],
-): NimiRuntimeAgentAvatarDebugConsumeEvent {
-  const request = avatarDebug.request;
-  const result = avatarDebug.result;
-  const replay = avatarDebug.replay;
-  const conversationAnchorId = optionalString(request?.conversationAnchorId || result?.conversationAnchorId);
-  return {
-    eventName: avatarDebugEventName(avatarDebug.family),
-    localAgentRef,
-    ...(conversationAnchorId ? { conversationAnchorId } : {}),
-    ...(optionalString(request?.turnId) ? { turnId: optionalString(request?.turnId) } : {}),
-    ...(optionalString(request?.streamId) ? { streamId: optionalString(request?.streamId) } : {}),
-    detail: {
-      ...(request ? {
-        probeId: request.probeId,
-        agentId: request.agentId,
-        conversationAnchorId: request.conversationAnchorId,
-        probeKind: request.probeKind,
-        requestedBy: request.requestedBy,
-        turnId: request.turnId,
-        streamId: request.streamId,
-        avatarInstanceId: request.avatarInstanceId,
-        runtimeReplayRef: request.runtimeReplayRef,
-        replayRequested: request.replayRequested,
-      } : {}),
-      ...(result ? {
-        probeId: result.probeId,
-        agentId: result.agentId,
-        conversationAnchorId: result.conversationAnchorId,
-        probeKind: result.probeKind,
-        status: result.status,
-        evidenceRefs: result.evidenceRefs,
-        reasonCode: result.reasonCode,
-        resultId: result.resultId,
-      } : {}),
-      ...(replay ? {
-        replayProbeId: replay.probeId,
-        replayRef: replay.replayRef,
-        redactionState: replay.redactionState,
-        visibility: replay.visibility,
-      } : {}),
-    },
-  };
 }
 
 function projectStateEvent(localAgentRef: string, state: AgentEvent['detail'] & { oneofKind: 'state' } extends never ? never : Extract<AgentEvent['detail'], { oneofKind: 'state' }>['state']): NimiRuntimeAgentStateConsumeEvent {
@@ -487,20 +377,14 @@ function projectPresentationEvent(
       ...(presentation.lookatHasZ ? { z: presentation.lookatZ } : {}),
       audioArtifactId: presentation.audioArtifactId || undefined,
       audioMimeType: presentation.audioMimeType || undefined,
-      voiceStreamId: presentation.voiceStreamId || undefined,
-      chunkTransportRef: presentation.chunkTransportRef || undefined,
       messageId: presentation.messageId || undefined,
-      chunkSequence: optionalNumber(presentation.chunkSequence),
-      finalChunk: presentation.finalChunk,
-      voiceOutputMode: formatGeneratedVoiceOutputMode(presentation.voiceOutputMode),
-      voicePlaybackState: formatGeneratedVoicePlaybackState(presentation.voicePlaybackState),
-      playbackTarget: presentation.playbackTarget || undefined,
-      finalArtifact: presentation.finalArtifact,
+      artifactSequence: optionalNumber(presentation.artifactSequence),
+      artifactComplete: presentation.artifactComplete,
+      voiceTimingPhase: formatGeneratedVoiceTimingPhase(presentation.voiceTimingPhase),
       terminalReason: presentation.terminalReason || undefined,
       reason: presentation.reason || undefined,
       durationMs: optionalNumber(presentation.durationMs),
       deadlineOffsetMs: optionalNumber(presentation.deadlineOffsetMs),
-      finalArtifactId: presentation.finalArtifactId || undefined,
     },
   };
 }
@@ -550,12 +434,12 @@ function presentationEventName(family: AgentPresentationEventFamily): NimiRuntim
       return 'runtime.agent.presentation.pose_cleared';
     case AgentPresentationEventFamily.LOOKAT_REQUESTED:
       return 'runtime.agent.presentation.lookat_requested';
-    case AgentPresentationEventFamily.VOICE_PLAYBACK_REQUESTED:
-      return 'runtime.agent.presentation.voice_playback_requested';
-    case AgentPresentationEventFamily.VOICE_STREAM_CHUNK_AVAILABLE:
-      return 'runtime.agent.presentation.voice_stream_chunk_available';
-    case AgentPresentationEventFamily.VOICE_PLAYBACK_TERMINAL:
-      return 'runtime.agent.presentation.voice_playback_terminal';
+    case AgentPresentationEventFamily.VOICE_TIMING_READY:
+      return 'runtime.agent.conversation.voice_timing_ready';
+    case AgentPresentationEventFamily.VOICE_ARTIFACT_AVAILABLE:
+      return 'runtime.agent.conversation.voice_artifact_available';
+    case AgentPresentationEventFamily.VOICE_TIMING_TERMINAL:
+      return 'runtime.agent.conversation.voice_timing_terminal';
     default:
       runtimeAgentError('Runtime Agent presentation event family is unsupported', 'SDK_RUNTIME_AGENT_EVENT_UNSUPPORTED', 'check_runtime_agent_event_family');
   }
@@ -584,19 +468,6 @@ function hookEventName(family: HookAdmissionState): NimiRuntimeAgentHookConsumeE
   }
 }
 
-function avatarDebugEventName(family: AvatarDebugEventFamily): NimiRuntimeAgentAvatarDebugConsumeEvent['eventName'] {
-  switch (family) {
-    case AvatarDebugEventFamily.PROBE_REQUESTED:
-      return 'runtime.agent.avatar_debug.probe_requested';
-    case AvatarDebugEventFamily.PROBE_RESULT:
-      return 'runtime.agent.avatar_debug.probe_result';
-    case AvatarDebugEventFamily.REPLAY_LINKED:
-      return 'runtime.agent.avatar_debug.replay_linked';
-    default:
-      runtimeAgentError('Runtime Agent avatar debug event family is unsupported', 'SDK_RUNTIME_AGENT_EVENT_UNSUPPORTED', 'check_runtime_agent_event_family');
-  }
-}
-
 function formatGeneratedAgentExecutionState(value: unknown): NimiRuntimeAgentExecutionStateValue | undefined {
   if (value === 1) return 'idle';
   if (value === 2) return 'chat_active';
@@ -606,20 +477,12 @@ function formatGeneratedAgentExecutionState(value: unknown): NimiRuntimeAgentExe
   return undefined;
 }
 
-function formatGeneratedVoiceOutputMode(value: unknown): string | undefined {
-  if (value === VoiceOutputMode.NATIVE_STREAM) return 'native_stream';
-  if (value === VoiceOutputMode.SIMULATED_STREAM) return 'simulated_stream';
-  if (value === VoiceOutputMode.BATCH_FINAL_ARTIFACT) return 'batch_final_artifact';
-  if (value === VoiceOutputMode.TEXT_ONLY) return 'text_only';
-  return undefined;
-}
-
-function formatGeneratedVoicePlaybackState(value: unknown): string | undefined {
-  if (value === VoicePlaybackState.ACTIVE) return 'active';
-  if (value === VoicePlaybackState.COMPLETED) return 'completed';
-  if (value === VoicePlaybackState.FAILED) return 'failed';
-  if (value === VoicePlaybackState.INTERRUPTED) return 'interrupted';
-  if (value === VoicePlaybackState.CANCELED) return 'canceled';
+function formatGeneratedVoiceTimingPhase(value: unknown): string | undefined {
+  if (value === AgentVoiceTimingPhase.ACTIVE) return 'active';
+  if (value === AgentVoiceTimingPhase.COMPLETED) return 'completed';
+  if (value === AgentVoiceTimingPhase.FAILED) return 'failed';
+  if (value === AgentVoiceTimingPhase.INTERRUPTED) return 'interrupted';
+  if (value === AgentVoiceTimingPhase.CANCELED) return 'canceled';
   return undefined;
 }
 
@@ -699,25 +562,22 @@ function timelineChannelForEvent(messageType: string): NimiRuntimeAgentTimelineC
   ) {
     return 'text';
   }
-  if (messageType === 'runtime.agent.presentation.voice_playback_requested') {
+  if (messageType === 'runtime.agent.conversation.voice_timing_ready') {
     return 'voice';
   }
-  if (messageType === 'runtime.agent.presentation.voice_stream_chunk_available') {
+  if (messageType === 'runtime.agent.conversation.voice_artifact_available') {
     return 'voice';
   }
-  if (messageType === 'runtime.agent.presentation.voice_playback_terminal') {
+  if (messageType === 'runtime.agent.conversation.voice_timing_terminal') {
     return 'voice';
-  }
-  if (messageType === 'runtime.agent.presentation.lipsync_frame_batch') {
-    return 'lipsync';
   }
   return 'state';
 }
 
 function projectionRuleIdForEvent(messageType: string): NimiRuntimeAgentTimelineEnvelope['projectionRuleId'] {
   if (
-    messageType === 'runtime.agent.presentation.voice_stream_chunk_available'
-    || messageType === 'runtime.agent.presentation.voice_playback_terminal'
+    messageType === 'runtime.agent.conversation.voice_artifact_available'
+    || messageType === 'runtime.agent.conversation.voice_timing_terminal'
   ) {
     return 'K-AGCORE-133';
   }

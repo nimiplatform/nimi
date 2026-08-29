@@ -22,9 +22,7 @@ fn agent_handle() -> String {
 }
 
 fn agent_center_root(data_root: &Path, _account_id: &str, _local_agent_ref: &str) -> PathBuf {
-    data_root
-        .join("local-app-agent-assets")
-        .join(agent_center_path_segment(&agent_handle()))
+    data_root.join("avatar-assets")
 }
 
 struct TestAvatarDataRootBinding {
@@ -66,7 +64,6 @@ fn resolve_payload_with_package(
     local_avatar_asset_ref: &str,
 ) -> AgentCenterAvatarAssetResolvePayload {
     AgentCenterAvatarAssetResolvePayload {
-        agent_handle: agent_handle(),
         backend_kind: backend_kind.to_string(),
         avatar_asset_ref: local_avatar_asset_ref.to_string(),
     }
@@ -151,8 +148,7 @@ fn write_agent_center_live2d_package(data_root: &Path, entry_content: &str) -> P
 
 fn write_agent_center_vrm_package(data_root: &Path, entry_content: &[u8]) -> PathBuf {
     let package_dir = data_root
-        .join("local-app-agent-assets")
-        .join(agent_center_path_segment(&agent_handle()))
+        .join("avatar-assets")
         .join("packages/vrm/vrm_ab12cd34ef56");
     let files_dir = package_dir.join("files");
     fs::create_dir_all(&files_dir).unwrap();

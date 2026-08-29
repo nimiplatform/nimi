@@ -61,18 +61,12 @@ profiles:
     identity_class: account
     native_profile_marker: desktop-account-product-v1
     methods:
+      # Formal App session mechanics. Product coverage remains release/EAS-owned.
+      - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession
+      - method_id: /nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession
       - method_id: /nimi.runtime.v1.RuntimeAiService/GetAppAIConfig
       - method_id: /nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig
       - method_id: /nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions
-      - method_id: /nimi.runtime.v1.RuntimeAiService/ExecuteScenario
-      - method_id: /nimi.runtime.v1.RuntimeAiService/StreamScenario
-      - method_id: /nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob
-      - method_id: /nimi.runtime.v1.RuntimeAiService/GetScenarioJob
-      - method_id: /nimi.runtime.v1.RuntimeAiService/CancelScenarioJob
-      - method_id: /nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents
-      - method_id: /nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts
-      - method_id: /nimi.runtime.v1.RuntimeAiService/ListPresetVoices
-      - method_id: /nimi.runtime.v1.RuntimeAiService/ListVoiceAssets
       - method_id: /nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgents
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgent
@@ -82,8 +76,6 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact
       - method_id: /nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig
       - method_id: /nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions
@@ -117,6 +109,28 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision
       # Desktop App Product Plane consumes the same canonical agent.configure
       # operation family as every equally covered protected App.
+      # The complete formal App carrier is identical to ordinary protected
+      # Apps; this native profile supplies physical carriage only.
+      - method_id: /nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson
+      - method_id: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson
+      - method_id: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson
+      - method_id: /nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset
+      - method_id: /nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets
+      - method_id: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset
+      - method_id: /nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset
+      - method_id: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset
+      - method_id: /nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset
+      - method_id: /nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset
+      - method_id: /nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact
+      - method_id: /nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate
+      - method_id: /nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn
+      - method_id: /nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario
+      - method_id: /nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob
+      - method_id: /nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob
+      - method_id: /nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents
+      - method_id: /nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob
+      - method_id: /nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact
+      - method_id: /nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact
       - method_id: /nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig
@@ -163,6 +177,8 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents
   - profile_id: bundled_avatar_v1
     identity_class: avatar
     app_id: nimi.avatar
@@ -170,26 +186,67 @@ profiles:
     account_caller:
       app_instance_id: nimi.avatar
       device_id: avatar-native-host
-    realm_operations:
-      - WorldCoreController_listPersonaCharacters
     methods:
-      - method_id: /nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth
-        capability: runtime.health.read
-      - method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus
-        capability: account.session.read
-      - method_id: /nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents
-        capability: account.session.read
+      # Formal App session mechanics carry no Avatar entitlement.
+      - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession
+      - method_id: /nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession
       - method_id: /nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary
-        capability: account.realm.read
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgents
-        capability: runtime.agent.read
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgent
-        capability: runtime.agent.read
+        capability: realm.data
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset
         capability: agent.configure
+      # Complete formal App carriage; declaration/session/EAS remains the only
+      # product authorization source.
+      - method_id: /nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson
+        capability: realm.data
+      - method_id: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson
+        capability: realm.data
+      - method_id: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson
+        capability: realm.data
+      - method_id: /nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset
+        capability: realm.data
+      - method_id: /nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets
+        capability: realm.data
+      - method_id: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset
+        capability: realm.data
+      - method_id: /nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset
+        capability: realm.data
+      - method_id: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset
+        capability: realm.data
+      - method_id: /nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset
+        capability: realm.data
+      - method_id: /nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset
+        capability: realm.data
+      - method_id: /nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiService/GetAppAIConfig
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets
+        capability: runtime.consume
       # Physical Desktop-supervised carriage for the same complete canonical
       # agent.configure family used by every equally covered protected App.
-      # Eligibility and operation authority are decided by the built-in formal
+      # Eligibility and operation authority are decided by the formal
       # App session kernel/EAS, never by this native transport allowlist.
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot
         capability: agent.configure
@@ -217,38 +274,8 @@ profiles:
         capability: agent.configure
       - method_id: /nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory
         capability: agent.configure
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding
-        capability: runtime.agent.read
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding
-        capability: runtime.agent.write
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor
-        capability: runtime.agent.write
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot
-        capability: runtime.agent.read
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot
-        capability: runtime.agent.read
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection
-        capability: runtime.agent.companion_participation.read
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation
-        capability: runtime.agent.companion_participation.write
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation
-        capability: runtime.agent.companion_participation.write
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay
-        capability: runtime.agent.companion_participation.read
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback
-        capability: runtime.agent.turn.write
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot
-        capability: runtime.agent.avatar_debug.read
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe
-        capability: runtime.agent.avatar_debug.write
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult
-        capability: runtime.agent.avatar_debug.write
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults
-        capability: runtime.agent.avatar_debug.read
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay
-        capability: runtime.agent.avatar_debug.read
       # Avatar uses the same canonical App-facing Conversation contract as
-      # every formal App. Raw Agent streams below remain presentation-only.
+      # every formal App.
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
         capability: agent.local
       - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation
@@ -269,23 +296,43 @@ profiles:
         capability: agent.local
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot
         capability: agent.local
-      - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
-        capability: runtime.artifact.read
-      - method_id: /nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob
-        capability: ai.spend.meter
-      - method_id: /nimi.runtime.v1.RuntimeAiService/GetScenarioJob
-        capability: runtime.ai.scenario.read
-      - method_id: /nimi.runtime.v1.RuntimeAiService/CancelScenarioJob
-        capability: runtime.ai.scenario.write
-      - method_id: /nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts
-        capability: runtime.ai.scenario.read
-      - method_id: /nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents
-        capability: runtime.ai.scenario.read
-      - method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage
-        capability: runtime.agent.turn.write
-      - method_id: /nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages
-        capability: runtime.agent.turn.read
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents
-        capability: runtime.agent.read
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream
-        capability: runtime.agent.turn.read
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot
+        capability: agent.local
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents
+        capability: agent.local
+      - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/SubmitRealtimeOwnerControl
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession
+        capability: runtime.consume
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime
+        capability: agent.local
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput
+        capability: agent.local
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents
+        capability: agent.local
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus
+        capability: agent.local
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput
+        capability: agent.local
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime
+        capability: agent.local
+      - method_id: /nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats
+        capability: realm.data
+      - method_id: /nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel
+        capability: realm.data
+      - method_id: /nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents
+        capability: realm.data
+      - method_id: /nimi.runtime.v1.RuntimeRealmRealtimeService/AckRealmRealtimeEvents
+        capability: realm.data
+      - method_id: /nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeSubscription
+        capability: realm.data
+      - method_id: /nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeChannel
+        capability: realm.data

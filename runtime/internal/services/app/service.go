@@ -48,12 +48,12 @@ type subscriber struct {
 
 type InternalConsumer func(context.Context, *runtimev1.AppMessageEvent) error
 
-type builtInLocalAppConnectionKey struct {
+type formalAppConnectionKey struct {
 	desktop *protectedlocal.Connection
 	appID   string
 }
 
-type builtInLocalAppBinding struct {
+type formalAppBinding struct {
 	mu         sync.Mutex
 	connection *protectedlocal.LocalAppConnection
 }
@@ -94,8 +94,8 @@ type Service struct {
 	localAppSessionTTL         time.Duration
 	localAppRuntimeGeneration  uint64
 	installedAppRegistrationMu sync.Mutex
-	builtInLocalAppMu          sync.Mutex
-	builtInLocalApps           map[builtInLocalAppConnectionKey]*builtInLocalAppBinding
+	formalAppMu                sync.Mutex
+	formalApps                 map[formalAppConnectionKey]*formalAppBinding
 }
 
 func WithClock(now func() time.Time) Option {
@@ -185,7 +185,7 @@ func New(logger *slog.Logger, opts ...Option) *Service {
 		rateLimiter:            newAppRateLimiter(),
 		loopDetector:           newAppLoopDetector(),
 		localAppSessions:       make(map[*protectedlocal.LocalAppConnection]localAppRuntimeSession),
-		builtInLocalApps:       make(map[builtInLocalAppConnectionKey]*builtInLocalAppBinding),
+		formalApps:             make(map[formalAppConnectionKey]*formalAppBinding),
 		localAppSessionEntropy: rand.Reader,
 		localAppSessionTTL:     10 * time.Minute,
 	}

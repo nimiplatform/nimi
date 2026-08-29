@@ -37,7 +37,6 @@ function inventory(localAgents) {
     actionHint: 'select_runtime_local_agent',
     source: 'runtime',
     message: 'Runtime LocalAgent inventory was listed through SDK.',
-    ownerUserId: null,
     count: localAgents.length,
     localAgents,
   };
@@ -62,9 +61,9 @@ test('selects a covered Agent without promoting its opaque handle into raw ident
   assert.equal(selected.reasonCode, 'runtime-local-agent-selected');
   assert.equal(selected.source, 'runtime');
   assert.equal(selected.agentHandle, 'opaque-agent-handle-1');
-  assert.equal(selected.ownerUserId, null);
-  assert.equal(selected.runtimeSourceRef, null);
-  assert.equal(selected.localAgentRef, null);
+  assert.deepEqual(Object.keys(selected).sort(), [
+    'actionHint', 'agentHandle', 'message', 'ready', 'reasonCode', 'source', 'transport',
+  ]);
   assert.equal(selected.actionHint, 'open_runtime_agent_home');
 });
 
@@ -78,7 +77,9 @@ test('auto-selects the only active Agent reference', async () => {
   });
 
   assert.equal(selected.agentHandle, 'opaque-agent-handle-2');
-  assert.equal(selected.localAgentRef, null);
+  assert.deepEqual(Object.keys(selected).sort(), [
+    'actionHint', 'agentHandle', 'message', 'ready', 'reasonCode', 'source', 'transport',
+  ]);
   assert.equal(selected.reasonCode, 'runtime-local-agent-selected');
 });
 
@@ -103,9 +104,9 @@ test('promotes an explicitly selected Runtime inventory partner projection witho
   assert.equal(selected.reasonCode, 'runtime-local-agent-selected');
   assert.equal(selected.source, 'runtime');
   assert.equal(selected.agentHandle, 'opaque-agent-handle-yan-zhenqing');
-  assert.equal(selected.ownerUserId, null);
-  assert.equal(selected.runtimeSourceRef, null);
-  assert.equal(selected.localAgentRef, null);
+  assert.deepEqual(Object.keys(selected).sort(), [
+    'actionHint', 'agentHandle', 'message', 'ready', 'reasonCode', 'source', 'transport',
+  ]);
   assert.equal(selected.actionHint, 'open_runtime_agent_home');
   assert.doesNotMatch(selected.message, /create|materialize|profile/i);
 });

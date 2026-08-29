@@ -315,6 +315,13 @@ export type NimiLocalAppConversationSubscription = {
 
 export type NimiLocalAppRealtimeSubscription = NimiLocalAppConversationSubscription;
 
+export type NimiLocalAppEmbodimentShellSurface = {
+  readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
+  readonly subscribe: (input: NimiLocalAppConversationScopeInput & {
+    readonly afterSequence: string;
+  }) => Promise<NimiLocalAppConversationSubscription>;
+};
+
 export type NimiLocalAppAgentConfigureShellSurface = {
   readonly manager: {
     readonly snapshot: (input: {
@@ -474,6 +481,7 @@ export type NimiLocalAppStandardShellSurface = {
     readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
     readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<JsonObject>;
   };
+  readonly embodiment: NimiLocalAppEmbodimentShellSurface;
   readonly agentRealtime: {
     readonly open: (input: JsonObject) => Promise<JsonObject>;
     readonly appendInput: (input: JsonObject) => Promise<JsonObject>;
@@ -589,6 +597,10 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       interruptTurn: interruptNimiLocalAppConversationTurn,
       subscribe: subscribeNimiLocalAppConversation,
       snapshot: getNimiLocalAppConversationSnapshot,
+    },
+    embodiment: {
+      snapshot: getNimiLocalAppEmbodimentSnapshot,
+      subscribe: subscribeNimiLocalAppEmbodiment,
     },
     agentRealtime: {
       open: openNimiLocalAppAgentRealtime,
@@ -1452,6 +1464,36 @@ export function getNimiLocalAppConversationSnapshot(
     { payload: identifiers(input, ['agentHandle', 'conversationAnchorId'], command) },
     (value) => parseConversationSnapshot(value, command),
   );
+}
+
+export function getNimiLocalAppEmbodimentSnapshot(
+  input: NimiLocalAppConversationScopeInput,
+): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSnapshot'];
+  return invokeChecked(
+    command,
+    { payload: identifiers(input, ['agentHandle', 'conversationAnchorId'], command) },
+    (value) => parseSafeProjection(value, command),
+  );
+}
+
+export function subscribeNimiLocalAppEmbodiment(
+  input: NimiLocalAppConversationScopeInput & { readonly afterSequence: string },
+): Promise<NimiLocalAppConversationSubscription> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSubscribe'];
+  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'afterSequence'], command);
+  return invokeChecked(command, { payload: {
+    agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
+    conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
+    afterSequence: decimalUint64(input.afterSequence, 'afterSequence', command, true),
+  } }, (value) => {
+    const record = assertRecord(value, `${command}: subscription open is invalid`);
+    assertProjectionKeys(record, ['subscriptionId'], command, 'embodiment subscription');
+    return new LocalAppEmbodimentPullSubscription(
+      command,
+      requiredText(record.subscriptionId, 'subscriptionId', command, MAX_IDENTIFIER_LENGTH),
+    );
+  });
 }
 
 export function openNimiLocalAppAiRealtime(input: JsonObject): Promise<JsonObject> {
@@ -2556,6 +2598,67 @@ class LocalAppRealtimeEventSubscription implements NimiLocalAppRealtimeSubscript
   private fail(error: unknown): void { if (this.done) return; this.terminalError = error; this.done = true; this.unlisten?.(); this.unlisten = undefined; for (const waiter of this.waiting.splice(0)) waiter.reject(error); }
 }
 
+class LocalAppEmbodimentPullSubscription implements NimiLocalAppConversationSubscription {
+  readonly events: AsyncIterable<unknown> = this;
+  private done = false;
+  private cancelPromise: Promise<void> | undefined;
+
+  constructor(private readonly command: string, private readonly subscriptionId: string) {}
+
+  [Symbol.asyncIterator](): AsyncIterator<unknown> {
+    return {
+      next: () => this.next(),
+      return: async () => {
+        await this.cancel();
+        return { done: true, value: undefined };
+      },
+    };
+  }
+
+  cancel(): Promise<void> {
+    if (this.cancelPromise) return this.cancelPromise;
+    this.done = true;
+    this.cancelPromise = invokeChecked(
+      this.command,
+      { payload: { action: 'cancel', subscriptionId: this.subscriptionId } },
+      (value) => {
+        const record = assertRecord(value, `${this.command}: cancel result is invalid`);
+        assertProjectionKeys(record, ['subscriptionId', 'closed'], this.command, 'embodiment cancel');
+        if (record.subscriptionId !== this.subscriptionId || typeof record.closed !== 'boolean') {
+          throw new Error(`${this.command}: cancel result is invalid`);
+        }
+      },
+    );
+    return this.cancelPromise;
+  }
+
+  private async next(): Promise<IteratorResult<unknown>> {
+    if (this.done) return { done: true, value: undefined };
+    const result = await invokeChecked(
+      this.command,
+      { payload: { action: 'next', subscriptionId: this.subscriptionId } },
+      (value) => {
+        const record = assertRecord(value, `${this.command}: next result is invalid`);
+        if (record.completed === true) {
+          assertProjectionKeys(record, ['subscriptionId', 'completed'], this.command, 'embodiment completion');
+          if (record.subscriptionId !== this.subscriptionId) throw new Error(`${this.command}: subscription binding is invalid`);
+          return { completed: true as const };
+        }
+        assertProjectionKeys(record, ['subscriptionId', 'completed', 'event'], this.command, 'embodiment event');
+        if (record.subscriptionId !== this.subscriptionId || record.completed !== false) {
+          throw new Error(`${this.command}: subscription binding is invalid`);
+        }
+        return { completed: false as const, event: parseSafeProjection(record.event, this.command) };
+      },
+    );
+    if (result.completed) {
+      this.done = true;
+      return { done: true, value: undefined };
+    }
+    return { done: false, value: result.event };
+  }
+}
+
 function parseConversationStreamError(value: unknown, command: string): BridgeError {
   const envelope = assertRecord(value, `${command} emitted invalid error`);
   if (!isNimiStandardShellErrorEnvelope(envelope)) {
@@ -3404,6 +3507,19 @@ function decimalRevision(
     throw invalidInput(command, `${field} is invalid`);
   }
   return value;
+}
+
+function decimalUint64(
+  value: unknown,
+  field: string,
+  command: string,
+  allowZero: boolean,
+): string {
+  const normalized = decimalRevision(value, field, command, allowZero);
+  if (BigInt(normalized) > 18_446_744_073_709_551_615n) {
+    throw invalidInput(command, `${field} is invalid`);
+  }
+  return normalized;
 }
 
 function assertExactInput<T extends object>(input: T, keys: readonly (keyof T & string)[], command: string): void {

@@ -1,21 +1,3 @@
-export type AgentCenterLocalAvatarAssetReference = {
-  accountId: string;
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  localAgentRef: string;
-  localAvatarAssetRef: string;
-  backendKind: 'live2d' | 'vrm';
-  backendCapabilityProfileRef: string;
-  materializationRef: string;
-};
-
-export type LocalAvatarAssetReference = {
-  accountId: string;
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  localAgentRef: string;
-};
-
 export type Live2DLocalModelManifest = {
   runtimeDir: string;
   modelId: string;

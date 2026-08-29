@@ -31,9 +31,6 @@ export type ZhiyuRuntimeAgentChatTurnResult = {
   readonly source: string;
   readonly message: string;
   readonly agentHandle: NimiLocalAppAgentHandle | null;
-  readonly ownerUserId: string | null;
-  readonly runtimeSourceRef: string | null;
-  readonly localAgentRef: string | null;
   readonly conversationAnchorId: string | null;
   readonly requestId: string | null;
   readonly events: readonly ConversationTurnEvent[];
@@ -101,9 +98,6 @@ export async function runZhiyuAgentChatTurn(
       source: input.conversation.source,
       message: 'Zhiyu requires a Runtime-owned conversation anchor before sending a chat turn.',
       agentHandle: input.conversation.agentHandle,
-      ownerUserId: input.conversation.ownerUserId,
-      runtimeSourceRef: input.conversation.runtimeSourceRef,
-      localAgentRef: input.conversation.localAgentRef,
       conversationAnchorId: input.conversation.conversationAnchorId,
       requestId: stringOr(input.requestId, null),
     });
@@ -151,7 +145,6 @@ export async function runZhiyuAgentChatTurn(
     sessionId: identity.conversationAnchorId,
     targetId: identity.agentHandle,
     conversationAnchorId: identity.conversationAnchorId,
-    localAgentRef: null,
     userMessage: {
       id: `${requestId}:user`,
       text: text || input.attachment?.displayName || 'Attached image',
@@ -247,9 +240,6 @@ function chatSessionRefreshRequired(input: {
       ? 'Runtime accepted the turn before the protected conversation session changed. Reselect the local partner to hydrate current Runtime truth.'
       : 'The protected conversation session changed before Runtime turn admission was observed. Reselect the local partner and send the preserved draft again.',
     agentHandle: input.agentHandle,
-    ownerUserId: null,
-    runtimeSourceRef: null,
-    localAgentRef: null,
     conversationAnchorId: input.conversationAnchorId,
     requestId: input.requestId,
     events: [],
@@ -563,9 +553,6 @@ function chatResultFromProjection(
     source: 'runtime',
     message: projection.message,
     agentHandle: identity.agentHandle,
-    ownerUserId: null,
-    runtimeSourceRef: null,
-    localAgentRef: null,
     conversationAnchorId: identity.conversationAnchorId,
     requestId: identity.requestId,
     events: projection.events,
@@ -582,9 +569,6 @@ function chatUnavailable(input: {
   readonly source: string;
   readonly message: string;
   readonly agentHandle?: NimiLocalAppAgentHandle | null;
-  readonly ownerUserId?: string | null;
-  readonly runtimeSourceRef?: string | null;
-  readonly localAgentRef?: string | null;
   readonly conversationAnchorId?: string | null;
   readonly requestId?: string | null;
   readonly events?: readonly ConversationTurnEvent[];
@@ -599,9 +583,6 @@ function chatUnavailable(input: {
     source: input.source,
     message: input.message,
     agentHandle: input.agentHandle ?? null,
-    ownerUserId: input.ownerUserId ?? null,
-    runtimeSourceRef: input.runtimeSourceRef ?? null,
-    localAgentRef: input.localAgentRef ?? null,
     conversationAnchorId: input.conversationAnchorId ?? null,
     requestId: input.requestId ?? null,
     events: input.events || [],

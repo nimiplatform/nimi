@@ -21,9 +21,6 @@ export async function probeZhiyuRuntimeConversationHome(
       source: localAgent.source,
       message: 'Zhiyu requires a Runtime-inventory Agent before opening a conversation.',
       agentHandle: localAgent.agentHandle,
-      ownerUserId: localAgent.ownerUserId,
-      runtimeSourceRef: localAgent.runtimeSourceRef,
-      localAgentRef: localAgent.localAgentRef,
     });
   }
   if (typeof window === 'undefined' || !hasElectronRuntime()) {
@@ -59,9 +56,6 @@ function conversationReady(
     source: 'runtime',
     message: 'Runtime-owned conversation anchor is open through localApp.conversation.',
     agentHandle: identity.agentHandle,
-    ownerUserId: null,
-    runtimeSourceRef: null,
-    localAgentRef: null,
     conversationAnchorId,
     threadId: conversationAnchorId,
   };
@@ -89,17 +83,11 @@ function conversationUnavailable(input: {
   readonly source: string;
   readonly message: string;
   readonly agentHandle?: NimiLocalAppAgentHandle | null;
-  readonly ownerUserId?: string | null;
-  readonly runtimeSourceRef?: string | null;
-  readonly localAgentRef?: string | null;
 }): ZhiyuConversationHomeStatus {
   return {
     transport: 'electron-ipc', ready: false,
     reasonCode: input.reasonCode, actionHint: input.actionHint, source: input.source, message: input.message,
     agentHandle: input.agentHandle ?? null,
-    ownerUserId: input.ownerUserId ?? null,
-    runtimeSourceRef: input.runtimeSourceRef ?? null,
-    localAgentRef: input.localAgentRef ?? null,
     conversationAnchorId: null,
     threadId: null,
   };

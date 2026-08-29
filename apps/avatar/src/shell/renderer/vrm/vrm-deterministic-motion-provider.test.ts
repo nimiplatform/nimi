@@ -163,7 +163,7 @@ describe('generateDeterministicVrmMotion', () => {
             sidecar_id: 'sidecar-greet-wave-vrm',
             route_id: 'greet_wave',
             backend_kind: 'vrm',
-            profile_id: 'vrm-runtime-probe-v1',
+            profile_id: 'vrm-avatar-capability-profile-v1',
             confidence: 0.5,
             threshold: 0.82,
             manual_confirmation: 'confirmed',

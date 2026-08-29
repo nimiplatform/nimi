@@ -3,7 +3,6 @@
 
 export enum AccountCallerMode {
   UNSPECIFIED = 0,
-  LOCAL_FIRST_PARTY_APP = 1,
   DESKTOP_SHELL = 2,
   AVATAR_NATIVE_HOST = 3,
   WEB_CLOUD = 5,

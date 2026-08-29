@@ -76,30 +76,39 @@ async function renderSurface(
           route: { oneofKind: 'local', local: {} },
         }]}
         revision="1"
-        listOptions={options.listOptions || (async (query) => query.kind === 'local-loadouts' ? ({
-          kind: query.kind, options: [{
-            loadoutRef: 'machine-text',
-            label: 'Machine text model',
-            capabilityContract: 'text.generate',
-            implementation: { implementationId: 'local-text', driverId: 'local', driverDialect: 'test/local/v1' },
-            state: 'ready',
-            supportedFeatures: [],
-            reasons: [],
-          }], truncated: false,
-        }) : query.kind === 'cloud-connectors' ? ({
-          kind: query.kind,
-          options: [{ connectorRef: 'connector-test', label: 'Test account', provider: 'provider-test', state: 'ready', reasons: [] }],
-          truncated: false,
-        }) : ({
-          kind: query.kind,
-          options: [{
-            connectorRef: query.connectorRef, label: 'Cloud Model', capabilityContract: query.capabilityContract,
-            implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'openai' },
-            providerModelTarget: { provider: 'provider-test', providerModelId: 'cloud-model', remoteModelCatalogId: 'rmc-cloud-model' },
-            supportedFeatures: [], state: 'ready', reasons: [],
-          }],
-          truncated: false,
-        }))}
+        listOptions={options.listOptions || (async (query) => {
+          if (query.kind === 'local-loadouts') return {
+            kind: query.kind, options: [{
+              loadoutRef: 'machine-text',
+              label: 'Machine text model',
+              capabilityContract: 'text.generate',
+              implementation: { implementationId: 'local-text', driverId: 'local', driverDialect: 'test/local/v1' },
+              state: 'ready' as const,
+              supportedFeatures: [],
+              reasons: [],
+            }], truncated: false,
+          };
+          if (query.kind === 'cloud-connectors') return {
+            kind: query.kind,
+            options: [{ connectorRef: 'connector-test', label: 'Test account', provider: 'provider-test', state: 'ready' as const, reasons: [] }],
+            truncated: false,
+          };
+          if (query.kind === 'preset-voices') return {
+            kind: query.kind,
+            options: [],
+            truncated: false,
+          };
+          return {
+            kind: query.kind,
+            options: [{
+              connectorRef: query.connectorRef, label: 'Cloud Model', capabilityContract: query.capabilityContract,
+              implementation: { implementationId: 'cloud-test', driverId: 'nimillm', driverDialect: 'openai' },
+              providerModelTarget: { provider: 'provider-test', providerModelId: 'cloud-model', remoteModelCatalogId: 'rmc-cloud-model' },
+              supportedFeatures: [], state: 'ready' as const, reasons: [],
+            }],
+            truncated: false,
+          };
+        })}
         effectiveSelections={options.effectiveSelections === null ? undefined : options.effectiveSelections || [{
           capabilityContract: 'text.generate',
           state: 'ready',
@@ -322,6 +331,23 @@ describe('public Model Config contract', () => {
 
     expect(document.body.textContent).not.toContain('Cloud');
     expect(listOptions).not.toHaveBeenCalled();
+    expect(node.querySelector('[data-testid="model-config-current-machine-local-action"]')).toBeTruthy();
+  });
+
+  it('owns the current-machine Local action and withholds it from a Cloud-only surface', async () => {
+    const local = await renderSurface(committedOverwrite(), vi.fn(), {
+      allowedRoutes: ['local'],
+    });
+    expect(local.querySelector('[data-testid="model-config-current-machine-local-action"]')).toBeTruthy();
+
+    if (root) act(() => root?.unmount());
+    container?.remove();
+    root = null;
+    container = null;
+    const cloud = await renderSurface(committedOverwrite(), vi.fn(), {
+      allowedRoutes: ['cloud'],
+    });
+    expect(cloud.querySelector('[data-testid="model-config-current-machine-local-action"]')).toBeNull();
   });
 
   it('keeps a new Local route neutral until its committed effective projection exists', async () => {
@@ -680,6 +706,11 @@ describe('public Model Config contract', () => {
         options: [{ connectorRef: 'connector-test', label: 'Work account', provider: 'provider-test', state: 'ready', reasons: [] }],
         truncated: false,
       };
+      if (query.kind === 'preset-voices') return {
+        kind: query.kind,
+        options: [],
+        truncated: false,
+      };
       return {
         kind: query.kind,
         options: [{
@@ -724,6 +755,11 @@ describe('public Model Config contract', () => {
       if (query.kind === 'cloud-connectors') return {
         kind: query.kind,
         options: [{ connectorRef: 'connector-dashscope', label: 'DashScope', provider: 'dashscope', state: 'ready', reasons: [] }],
+        truncated: false,
+      };
+      if (query.kind === 'preset-voices') return {
+        kind: query.kind,
+        options: [],
         truncated: false,
       };
       const target = (providerModelId: string) => ({

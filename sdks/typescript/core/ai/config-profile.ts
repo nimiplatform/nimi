@@ -292,7 +292,7 @@ export function runtimeAIConfigStructToJson(value: Struct | undefined): NimiJson
   return normalizeJsonObject(RuntimeStruct.toJson(value), 'Runtime Struct');
 }
 
-export function createNimiAppAIProfileClient(client: NimiAppAIConfigClient): NimiAppAIProfileClient {
+export function createNimiAppAIProfileClient(client: Pick<NimiAppAIConfigClient, 'get'>): NimiAppAIProfileClient {
   const readCurrent = async (): Promise<NimiPortableAppAIConfig | null> => (await client.get()).config;
   const prefill = async (input: NimiPortableAIProfileInput): Promise<NimiAppAIProfilePreview> => Object.freeze({
     source: parseNimiPortableAIProfile(input),

@@ -59,7 +59,6 @@ export function useAiConversationModeHost(
   const queryClient = useQueryClient();
   const chatThinkingPreference = useAppStore((state) => state.chatThinkingPreference);
   const setChatThinkingPreference = useAppStore((state) => state.setChatThinkingPreference);
-  const authUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const appAIConfig = useDesktopNimiAppAIConfig(DESKTOP_NIMI_APP_ID);
   const textIntent = findDesktopNimiTextIntent(appAIConfig.data?.config);
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
@@ -172,11 +171,9 @@ export function useAiConversationModeHost(
   const isBundleLoading = Boolean(activeThreadId) && bundleQuery.isPending && !bundle;
   const composerReady = setupState.status === 'ready' && !isBundleLoading;
   const executeTextCapability = useCallback((text: string) => runDesktopNimiTextCapability({
-    runtime: bindings.sdk.aiExecution(),
-    appId: DESKTOP_NIMI_APP_ID,
+    client: bindings.sdk.appProduct(),
     prompt: text,
-    subjectUserId: authUserId || undefined,
-  }), [authUserId, bindings.sdk]);
+  }), [bindings.sdk]);
 
   const {
     setBundleCache,

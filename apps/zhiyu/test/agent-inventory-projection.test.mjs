@@ -54,7 +54,6 @@ const unavailable = Object.freeze({
   actionHint: 'refresh_app_access',
   source: 'runtime',
   message: 'Agent reference list denied.',
-  ownerUserId: null,
   count: 0,
   localAgents: Object.freeze([]),
 });

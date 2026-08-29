@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -145,5 +147,84 @@ func TestFormalAppReleaseRegistrationFailsClosedWithoutCanonicalInput(t *testing
 	}
 	if _, err := kernel.Registrations().GetActiveByAppID(ctx, "nimi.avatar"); !errors.Is(err, localappkernel.ErrNotFound) {
 		t.Fatalf("unexpected registration after failed canonical input: %v", err)
+	}
+}
+
+func TestManifestFormalAppReleaseResolverUsesManifestDeclarationAndPayload(t *testing.T) {
+	root := t.TempDir()
+	for _, fixture := range []struct {
+		directory string
+		manifest  string
+	}{
+		{directory: "desktop", manifest: "app_id: nimi.desktop\ndisplay_name: Nimi Desktop\napp_access:\n  - runtime.consume\n  - agent.local\n"},
+		{directory: "avatar", manifest: "app_id: nimi.avatar\ndisplay_name: Nimi Avatar\napp_access:\n  - agent.local\n  - agent.configure\n"},
+	} {
+		releaseRoot := filepath.Join(root, fixture.directory)
+		if err := os.MkdirAll(releaseRoot, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(releaseRoot, "nimi.app.yaml"), []byte(fixture.manifest), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(releaseRoot, "payload.txt"), []byte(fixture.directory), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	resolver, err := NewManifestFormalAppReleaseResolver(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	release, err := resolver.ResolveFormalAppRelease(context.Background(), "nimi.avatar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if release.AppID != "nimi.avatar" || release.DisplayName != "Nimi Avatar" ||
+		release.SourceRef != "platform-app:nimi.avatar" || release.ShellKind != 1 ||
+		!containsAll(release.Declaration, "agent.local", "agent.configure") ||
+		strings.TrimSpace(release.SourceDigest) == "" || strings.TrimSpace(release.PayloadRootDigest) == "" ||
+		filepath.Base(release.ManifestRef) != "nimi.app.yaml" || filepath.Base(release.InstallRoot) != "avatar" {
+		t.Fatalf("formal manifest release = %+v", release)
+	}
+	release.Declaration[0] = "mutated"
+	again, err := resolver.ResolveFormalAppRelease(context.Background(), "nimi.avatar")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if again.Declaration[0] != "agent.local" {
+		t.Fatalf("resolver leaked mutable declaration: %+v", again.Declaration)
+	}
+	if _, err := resolver.ResolveFormalAppRelease(context.Background(), "nimi.missing"); !errors.Is(err, errFormalAppReleaseUnavailable) {
+		t.Fatalf("missing formal release error = %v", err)
+	}
+}
+
+func TestManifestFormalAppReleaseResolverRejectsDuplicateOrLegacyDeclaration(t *testing.T) {
+	for _, testCase := range []struct {
+		name      string
+		manifests []string
+	}{
+		{name: "duplicate", manifests: []string{
+			"app_id: nimi.avatar\ndisplay_name: Nimi Avatar\napp_access: [agent.local]\n",
+			"app_id: nimi.avatar\ndisplay_name: Duplicate Avatar\napp_access: [agent.configure]\n",
+		}},
+		{name: "legacy", manifests: []string{
+			"app_id: nimi.avatar\ndisplay_name: Nimi Avatar\npermissions: [agent.local]\napp_access: [agent.local]\n",
+		}},
+	} {
+		t.Run(testCase.name, func(t *testing.T) {
+			root := t.TempDir()
+			for index, manifest := range testCase.manifests {
+				releaseRoot := filepath.Join(root, fmt.Sprintf("release-%d", index))
+				if err := os.MkdirAll(releaseRoot, 0o700); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filepath.Join(releaseRoot, "nimi.app.yaml"), []byte(manifest), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if _, err := NewManifestFormalAppReleaseResolver(root); err == nil {
+				t.Fatal("invalid formal release root was admitted")
+			}
+		})
 	}
 }

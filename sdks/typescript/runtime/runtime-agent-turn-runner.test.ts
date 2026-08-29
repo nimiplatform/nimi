@@ -658,42 +658,32 @@ test('Runtime Agent turn runner preserves voice terminal projection diagnostics'
           },
         } as NimiRuntimeAgentConsumeEvent;
         yield {
-          eventName: 'runtime.agent.presentation.voice_stream_chunk_available',
+          eventName: 'runtime.agent.conversation.voice_artifact_available',
           ...base,
           detail: {
-            voiceStreamId: 'voice-stream-1',
-            chunkTransportRef: 'runtime-agent-voice-stream://voice-stream-1/chunks/000001',
-            audioMimeType: 'audio/wav',
-            finalChunk: false,
-            voiceOutputMode: 'native_stream',
-            voicePlaybackState: 'active',
-            playbackTarget: 'avatar_autoplay',
-          },
-        } as NimiRuntimeAgentConsumeEvent;
-        yield {
-          eventName: 'runtime.agent.presentation.voice_playback_requested',
-          ...base,
-          detail: {
-            voiceStreamId: 'voice-stream-1',
             audioArtifactId: 'artifact-final-1',
             audioMimeType: 'audio/wav',
-            finalArtifact: true,
-            voiceOutputMode: 'native_stream',
-            voicePlaybackState: 'active',
-            playbackTarget: 'avatar_autoplay',
+            artifactComplete: true,
+            voiceTimingPhase: 'active',
           },
         } as NimiRuntimeAgentConsumeEvent;
         yield {
-          eventName: 'runtime.agent.presentation.voice_playback_terminal',
+          eventName: 'runtime.agent.conversation.voice_timing_ready',
           ...base,
           detail: {
-            voiceStreamId: 'voice-stream-1',
-            finalArtifactId: 'artifact-final-1',
+            audioArtifactId: 'artifact-final-1',
+            audioMimeType: 'audio/wav',
+            voiceTimingPhase: 'active',
+          },
+        } as NimiRuntimeAgentConsumeEvent;
+        yield {
+          eventName: 'runtime.agent.conversation.voice_timing_terminal',
+          ...base,
+          detail: {
+            audioArtifactId: 'artifact-final-1',
             audioMimeType: 'audio/wav',
             terminalReason: 'native_stream_completed',
-            voiceOutputMode: 'native_stream',
-            voicePlaybackState: 'completed',
-            playbackTarget: 'avatar_autoplay',
+            voiceTimingPhase: 'completed',
           },
         } as NimiRuntimeAgentConsumeEvent;
         yield {
@@ -735,11 +725,11 @@ test('Runtime Agent turn runner preserves voice terminal projection diagnostics'
   const completed = parts.find((part) => part.type === 'turn-completed');
   const projectionEvents = completed?.diagnostics.runtimeProjectionEvents ?? [];
   assert.deepEqual(projectionEvents.map((event) => event.eventName), [
-    'runtime.agent.presentation.voice_stream_chunk_available',
-    'runtime.agent.presentation.voice_playback_requested',
-    'runtime.agent.presentation.voice_playback_terminal',
+    'runtime.agent.conversation.voice_artifact_available',
+    'runtime.agent.conversation.voice_timing_ready',
+    'runtime.agent.conversation.voice_timing_terminal',
   ]);
-  assert.equal(projectionEvents.at(-1)?.detail.voicePlaybackState, 'completed');
+  assert.equal(projectionEvents.at(-1)?.detail.voiceTimingPhase, 'completed');
   assert.equal(projectionEvents.at(-1)?.detail.terminalReason, 'native_stream_completed');
 });
 

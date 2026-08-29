@@ -6,6 +6,7 @@ import { mkdir, stat } from 'node:fs/promises';
 import {
   BrowserWindow,
   screen,
+  shell,
   type IpcMainInvokeEvent,
 } from 'electron';
 import {
@@ -23,7 +24,11 @@ import {
 import { NIMI_BUNDLED_AVATAR_STANDARD_SHELL_CAPABILITY_SET_ID } from '@nimiplatform/kit/shell/capabilities';
 import { getRuntimeWireCodec } from '@nimiplatform/sdk/runtime/generated';
 import {
+  buildAvatarHostHandoffRequest,
   buildAvatarLaunchHandoffPayload,
+  parseAvatarHostHandoffResult,
+  type AvatarHostHandoffRequest,
+  type AvatarHostHandoffResult,
   type AvatarLaunchHandoffPayload,
 } from '@nimiplatform/kit/features/avatar/headless';
 import { createBundledAvatarWindowOptions } from './bundled-avatar-window-options.js';
@@ -53,12 +58,15 @@ type AvatarPreviewProjectionResult = Readonly<Record<string, unknown>> & {
 type AvatarWindowRecord = {
   readonly window: BrowserWindow;
   readonly launchContext: AvatarLaunchHandoffPayload;
+  committedPresentationRef: string | null;
+  temporaryCustodyRef: string | null;
 };
 
 export type DesktopElectronBundledAvatarHost = {
   readonly desktopCommandHandlers: Readonly<Record<string, NimiElectronCommandHandler>>;
   readonly runtimeBridgeHost: NimiElectronBundledAvatarHost;
   readonly launchInitialAvatar: (payload: AvatarLaunchHandoffPayload) => Promise<BrowserWindow>;
+  readonly hostHandoff: (request: AvatarHostHandoffRequest) => Promise<AvatarHostHandoffResult>;
   readonly shutdown: () => Promise<void>;
 };
 
@@ -187,7 +195,12 @@ export async function createDesktopElectronBundledAvatarHost(
     const avatarInstanceId = launchContext.avatarInstanceId || `desktop-avatar-${randomUUID()}`;
     const canonicalContext = { ...launchContext, avatarInstanceId };
     const window = new BrowserWindow(createBundledAvatarWindowOptions(input.preloadPath));
-    const windowRecord: AvatarWindowRecord = { window, launchContext: canonicalContext };
+    const windowRecord: AvatarWindowRecord = {
+      window,
+      launchContext: canonicalContext,
+      committedPresentationRef: null,
+      temporaryCustodyRef: null,
+    };
     windows.set(avatarInstanceId, windowRecord);
     const sender = window.webContents;
     let senderReleased = false;
@@ -358,13 +371,10 @@ export async function createDesktopElectronBundledAvatarHost(
       );
       assertOnlyKeys(
         request,
-        ['agentHandle', 'avatarAssetRef', 'backendKind'],
+        ['avatarAssetRef', 'backendKind'],
         NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
       );
       const record = recordForSender(asElectronEvent(event));
-      if (requiredAgentHandle(request.agentHandle, 'agentHandle') !== record.launchContext.agentHandle) {
-        throw new Error('desktop-bundled-avatar-agent-handle-mismatch');
-      }
       return assetHost.resolveBoundPresentation({
         avatarAssetRef: request.avatarAssetRef,
         backendKind: request.backendKind,
@@ -443,6 +453,7 @@ export async function createDesktopElectronBundledAvatarHost(
       },
       localAssetRoots,
       localAssetProtocolHost: input.localAssetProtocolHost,
+      revealInOs: (targetPath) => shell.showItemInFolder(targetPath),
       floatingWindow: {
         setBounds: (payload, call) => setFloatingWindowBounds(payload, call),
         setIgnoreCursorEvents: (payload, call) => {
@@ -470,10 +481,66 @@ export async function createDesktopElectronBundledAvatarHost(
     commandHandlers: avatarCommandHandlers,
   };
 
+  // Host mechanics only: this port neither derives product coverage nor
+  // projects Runtime/SDK availability, result, or error semantics.
+  // @nimi-authority: rule.nimi.avatar.embodiment.r023
+  const hostHandoff = async (rawRequest: AvatarHostHandoffRequest): Promise<AvatarHostHandoffResult> => {
+    const request = buildAvatarHostHandoffRequest(rawRequest);
+    const target = request.target;
+    const findRecord = (): AvatarWindowRecord | undefined => {
+      if (target.avatarInstanceId) {
+        const byInstance = windows.get(target.avatarInstanceId);
+        if (byInstance && !byInstance.window.isDestroyed()) return byInstance;
+      }
+      return [...windows.values()].find((candidate) => (
+        !candidate.window.isDestroyed()
+        && candidate.launchContext.agentHandle === target.agentHandle
+        && (!target.conversationAnchorId
+          || candidate.launchContext.conversationAnchorId === target.conversationAnchorId)
+      ));
+    };
+    let record = findRecord();
+    if (request.command === 'launch' && !record) {
+      const window = await createWindow(buildAvatarLaunchHandoffPayload({
+        agentHandle: target.agentHandle,
+        conversationAnchorId: target.conversationAnchorId,
+        avatarInstanceId: target.avatarInstanceId,
+        launchSource: target.launchSource ?? 'app-avatar-host-handoff',
+        sourceSurface: target.launchSource ?? 'app-avatar-host-handoff',
+      }));
+      record = [...windows.values()].find((candidate) => candidate.window === window);
+      if (!record) throw new Error('desktop-avatar-host-handoff-window-registry-missing');
+      record.committedPresentationRef = target.committedPresentationRef;
+      record.temporaryCustodyRef = target.temporaryCustodyRef;
+    }
+    if (!record) {
+      return parseAvatarHostHandoffResult({
+        command: request.command,
+        state: 'absent',
+        avatarInstanceRef: null,
+        committedPresentationRef: null,
+        temporaryCustodyRef: null,
+      }, request.command);
+    }
+    if (request.command === 'launch' || request.command === 'focus') {
+      record.window.show();
+      record.window.moveTop();
+      record.window.focus();
+    }
+    return parseAvatarHostHandoffResult({
+      command: request.command,
+      state: record.window.isFocused() ? 'focused' : 'present',
+      avatarInstanceRef: record.launchContext.avatarInstanceId,
+      committedPresentationRef: record.committedPresentationRef,
+      temporaryCustodyRef: record.temporaryCustodyRef,
+    }, request.command);
+  };
+
   return {
     desktopCommandHandlers,
     runtimeBridgeHost,
     launchInitialAvatar: createWindow,
+    hostHandoff,
     shutdown: async () => {
       if (shuttingDown) return;
       shuttingDown = true;

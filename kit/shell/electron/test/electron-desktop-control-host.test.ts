@@ -15,7 +15,8 @@ const MACHINE_METHOD = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRe
 const ACCOUNT_METHOD = '/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource';
 const SCENARIO_JOB_METHOD = '/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob';
 const SCENARIO_STREAM_METHOD = '/nimi.runtime.v1.RuntimeAiService/StreamScenario';
-const AVATAR_METHOD = '/nimi.runtime.v1.RuntimeAgentService/ListAgents';
+const FORMAL_AGENT_METHOD = '/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory';
+const AVATAR_METHOD = '/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset';
 
 function binding(overrides: Partial<NimiElectronDesktopControlBinding> = {}): NimiElectronDesktopControlBinding {
   const bytesError = async () => ({
@@ -31,6 +32,7 @@ function binding(overrides: Partial<NimiElectronDesktopControlBinding> = {}): Ni
   return {
     desktopMachineProductUnary: bytesError,
     desktopAccountProductUnary: bytesError,
+    desktopAccountProductClientStream: bytesError,
     desktopFirstPartyProductUnaryCancel: async () => ({ status: 'ok' as const, value: { canceled: false } }),
     desktopFirstPartyProductUnaryRelease: async () => ({ status: 'ok' as const, value: { released: false } }),
     desktopMachineProductStreamOpen: jsonError,
@@ -42,6 +44,7 @@ function binding(overrides: Partial<NimiElectronDesktopControlBinding> = {}): Ni
     }),
     desktopFirstPartyProductStreamClose: async () => ({ status: 'ok' as const, value: {} }),
     desktopBundledAvatarUnary: bytesError,
+    desktopBundledAvatarClientStream: bytesError,
     desktopBundledAvatarStreamOpen: jsonError,
     desktopBundledAvatarStreamNext: async () => ({
       status: 'error' as const,
@@ -106,7 +109,7 @@ describe('Electron verified Desktop control host', () => {
     expect(nativeRequestIds).not.toContain('caller-selected-shared-request-id');
   });
 
-  it('routes Desktop ScenarioJob submission through the account product carrier', async () => {
+  it('retires Desktop self ScenarioJob submission from the raw account product carrier', async () => {
     const calls: string[] = [];
     const desktopControlHost = createNimiElectronDesktopControlHostForBinding(binding({
       desktopMachineProductUnary: async () => {
@@ -120,7 +123,7 @@ describe('Electron verified Desktop control host', () => {
     }));
 
     expect(isElectronDesktopMachineProductMethod(SCENARIO_JOB_METHOD, 'unary')).toBe(false);
-    expect(isElectronDesktopAccountProductMethod(SCENARIO_JOB_METHOD, 'unary')).toBe(true);
+    expect(isElectronDesktopAccountProductMethod(SCENARIO_JOB_METHOD, 'unary')).toBe(false);
     await expect(invokeElectronRuntimeUnary({
       client: unusedPublicClient(),
       payload: { methodId: SCENARIO_JOB_METHOD, requestBytesBase64: '' },
@@ -130,8 +133,29 @@ describe('Electron verified Desktop control host', () => {
       command: 'runtime_bridge_unary',
       desktopControlHost,
       desktopSenderAuthorized: true,
-    })).resolves.toEqual({ responseBytesBase64: Buffer.from([2]).toString('base64') });
-    expect(calls).toEqual(['account']);
+    })).rejects.toMatchObject({ reasonCode: 'electron-desktop-runtime-method-not-admitted' });
+    expect(calls).toEqual([]);
+  });
+
+  it('rejects formal App product methods from the renderer raw Runtime bridge', async () => {
+    let nativeCalls = 0;
+    const desktopControlHost = createNimiElectronDesktopControlHostForBinding(binding({
+      desktopAccountProductUnary: async () => {
+        nativeCalls += 1;
+        return { status: 'ok', value: new Uint8Array() };
+      },
+    }));
+    expect(isElectronDesktopAccountProductMethod(FORMAL_AGENT_METHOD, 'unary')).toBe(true);
+    await expect(invokeElectronRuntimeUnary({
+      payload: { methodId: FORMAL_AGENT_METHOD, requestBytesBase64: '' },
+      appId: 'nimi.desktop',
+      event: {},
+      runtimeEndpoint: 'protected-desktop-control',
+      command: 'runtime_bridge_unary',
+      desktopControlHost,
+      desktopSenderAuthorized: true,
+    })).rejects.toMatchObject({ reasonCode: 'electron-desktop-runtime-method-not-admitted' });
+    expect(nativeCalls).toBe(0);
   });
 
   it('cancels an active account unary in the native binding before rejecting its signal', async () => {
@@ -366,7 +390,7 @@ describe('Electron verified Desktop control host', () => {
       '/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages',
       'server_stream',
     )).toBe(true);
-    expect(isElectronDesktopAccountProductMethod(SCENARIO_STREAM_METHOD, 'server_stream')).toBe(true);
+    expect(isElectronDesktopAccountProductMethod(SCENARIO_STREAM_METHOD, 'server_stream')).toBe(false);
     expect(isElectronDesktopMachineProductMethod(ACCOUNT_METHOD, 'unary')).toBe(false);
     expect(isElectronDesktopAccountProductMethod(MACHINE_METHOD, 'unary')).toBe(false);
   });

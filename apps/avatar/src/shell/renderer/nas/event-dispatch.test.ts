@@ -18,7 +18,7 @@ function createBundle(overrides: Partial<AgentDataBundle> = {}): AgentDataBundle
     status_text: '',
     execution_state: 'IDLE',
     active_world_id: 'world-1',
-    active_user_id: 'user-1',
+    active_agent_handle: 'user-1',
     app: {
       namespace: 'avatar',
       surface_id: 'avatar-window',
@@ -94,7 +94,7 @@ function createProjection(): BackendProjection {
 
 function runtimeEnvelopeDetail(): Record<string, string> {
   return {
-    agent_id: 'local-agent:owner-1:agent-1',
+    agent_handle: 'local-agent:owner-1:agent-1',
     conversation_anchor_id: 'anchor-1',
     turn_id: 'turn-1',
     stream_id: 'stream-1',

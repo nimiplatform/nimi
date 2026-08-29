@@ -74,12 +74,12 @@ apps:
     source_rule: P-NAPP-012
 
   - source_root: apps/avatar
-    product_surface: avatar-local-first-party-app
+    product_surface: avatar-formal-app
     canonical_app_id: nimi.avatar
     sdk_app_id: nimi.avatar
     runtime_app_id: nimi.avatar
-    runtime_caller_mode: local-first-party
-    principal_posture: bundled_owner_admitted_first_party
+    runtime_caller_mode: formal-app-session
+    principal_posture: registered_release_eas
     development_integration_profile: null
     native_shell: tauri
     native_bundle_identifier: ai.nimi.apps.nimi.avatar
@@ -106,12 +106,12 @@ apps:
     source_rule: P-NAPP-012
 
   - source_root: apps/zhiyu
-    product_surface: zhiyu-local-agent-companion-app
+    product_surface: zhiyu-formal-companion-app
     canonical_app_id: nimi.zhiyu
     sdk_app_id: nimi.zhiyu
     runtime_app_id: nimi.zhiyu
-    runtime_caller_mode: local-first-party
-    principal_posture: bundled_owner_admitted_first_party
+    runtime_caller_mode: formal-app-session
+    principal_posture: registered_release_eas
     development_integration_profile:
       trust_class: local_development
       principal_posture: isolated_local_development
@@ -120,5 +120,5 @@ apps:
     native_bundle_identifier: null
     native_bundle_identifier_required: false
     npm_package: "@nimiplatform/zhiyu"
-    product_status: bundled-first-party-with-isolated-development-integration
+    product_status: bundled-formal-app-with-isolated-development-integration
     source_rule: P-NAPP-012

@@ -7,38 +7,29 @@ import {
   AgentEventType,
   AgentLifecycleStatus,
   AgentPresentationEventFamily,
+  AgentVoiceTimingPhase,
   CancellableStream,
   LOCAL_AGENT_REF,
   OWNER_USER_ID,
   RUNTIME_SOURCE_REF,
   RuntimeGeneratedReasonCode,
   SdkReasonCode,
-  VoiceOutputMode,
-  VoicePlaybackState,
   agentIdentity,
   buildNimiRuntimeAgentTurnPayload,
   createNimiError,
   createNimiHostRuntimeAgentLifecycleSurface,
   createNimiRuntimeAgentTurnsModule,
-  createNimiRuntimeAgentVoiceModule,
   fromNimiRuntimeProtoStruct,
   protectedAuth,
   toNimiRuntimeProtoStruct,
   toNimiRuntimeTimestamp,
   trackedPendingStream,
-  voicePlaybackRequestedAgentEvent,
   type AgentEvent,
-  type AgentVoiceStreamEvent,
   type AppMessageEvent,
   type GetAgentRequest,
-  type InterruptAgentVoicePlaybackRequest,
-  type InterruptAgentVoicePlaybackResponse,
-  type ReadArtifactBytesRequest,
-  type ReadArtifactBytesResponse,
   type RuntimeTypedCallOptions,
   type SendAppMessageRequest,
   type SubscribeAgentEventsRequest,
-  type SubscribeAgentVoiceStreamRequest,
   type SubscribeAppMessagesRequest,
   type TerminateAgentRequest,
 } from './runtime-agent-helpers.test-helper';
@@ -211,7 +202,7 @@ test('Runtime Agent turn subscription without cursor starts at live boundary', a
     detail: {
       oneofKind: 'presentation',
       presentation: {
-        family: AgentPresentationEventFamily.VOICE_STREAM_CHUNK_AVAILABLE,
+        family: AgentPresentationEventFamily.VOICE_ARTIFACT_AVAILABLE,
         conversationAnchorId: 'anchor-1',
         turnId: 'new-turn',
         streamId: 'new-stream',
@@ -234,22 +225,16 @@ test('Runtime Agent turn subscription without cursor starts at live boundary', a
         lookatHasX: false,
         lookatHasY: false,
         lookatHasZ: false,
-        audioArtifactId: '',
+        audioArtifactId: 'artifact-voice-new',
         audioMimeType: 'audio/wav',
-        voiceStreamId: 'voice-new',
-        chunkTransportRef: 'runtime-agent-voice-stream://voice-new/chunks/000001',
         messageId: 'message-new',
-        chunkSequence: '1',
-        finalChunk: false,
-        voiceOutputMode: VoiceOutputMode.NATIVE_STREAM,
-        voicePlaybackState: VoicePlaybackState.ACTIVE,
-        playbackTarget: 'avatar_autoplay',
-        finalArtifact: false,
+        artifactSequence: '1',
+        artifactComplete: true,
+        voiceTimingPhase: AgentVoiceTimingPhase.ACTIVE,
         terminalReason: '',
-        reason: 'native_stream_chunk_available',
+        reason: 'final_artifact_available',
         durationMs: '0',
         deadlineOffsetMs: '0',
-        finalArtifactId: '',
       },
     },
   } as AgentEvent;
@@ -291,9 +276,9 @@ test('Runtime Agent turn subscription without cursor starts at live boundary', a
   try {
     const next = await iterator.next();
     assert.equal(next.done, false);
-    assert.equal(next.value.eventName, 'runtime.agent.presentation.voice_stream_chunk_available');
+    assert.equal(next.value.eventName, 'runtime.agent.conversation.voice_artifact_available');
     assert.equal(next.value.turnId, 'new-turn');
-    assert.equal(next.value.detail.voiceStreamId, 'voice-new');
+    assert.equal(next.value.detail.audioArtifactId, 'artifact-voice-new');
     assert.equal((agentEventCalls[0] as { cursor?: string }).cursor, '');
     assert.equal((appMessageCalls[0] as { cursor?: string }).cursor, '');
   } finally {
@@ -374,7 +359,7 @@ test('Runtime Agent turn subscription does not treat zero timestamp as stale liv
     }),
   } as AppMessageEvent;
   const zeroTimestampVoiceChunk = {
-    messageType: 'runtime.agent.presentation.voice_stream_chunk_available',
+    messageType: 'runtime.agent.conversation.voice_artifact_available',
     timestamp: toNimiRuntimeTimestamp(0),
     payload: toNimiRuntimeProtoStruct({
       local_agent_ref: LOCAL_AGENT_REF,
@@ -383,14 +368,11 @@ test('Runtime Agent turn subscription does not treat zero timestamp as stale liv
       turn_id: 'new-turn',
       stream_id: 'new-stream',
       detail: {
+        audio_artifact_id: 'artifact-voice-zero-ts',
         audio_mime_type: 'audio/wav',
-        voice_stream_id: 'voice-zero-ts',
-        chunk_transport_ref: 'runtime-agent-voice-stream://voice-zero-ts/chunks/000001',
-        chunk_sequence: 1,
-        final_chunk: false,
-        voice_output_mode: 'native_stream',
-        voice_playback_state: 'active',
-        playback_target: 'avatar_autoplay',
+        artifact_sequence: 1,
+        artifact_complete: true,
+        voice_timing_phase: 'active',
       },
     }),
   } as AppMessageEvent;
@@ -430,9 +412,9 @@ test('Runtime Agent turn subscription does not treat zero timestamp as stale liv
   try {
     const next = await iterator.next();
     assert.equal(next.done, false);
-    assert.equal(next.value.eventName, 'runtime.agent.presentation.voice_stream_chunk_available');
+    assert.equal(next.value.eventName, 'runtime.agent.conversation.voice_artifact_available');
     assert.equal(next.value.turnId, 'new-turn');
-    assert.equal(next.value.detail.voiceStreamId, 'voice-zero-ts');
+    assert.equal(next.value.detail.audioArtifactId, 'artifact-voice-zero-ts');
   } finally {
     await iterator.return?.();
   }

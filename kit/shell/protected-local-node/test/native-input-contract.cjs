@@ -21,6 +21,7 @@ const nativeModule = { exports: {} };
 process.dlopen(nativeModule, addonPath);
 const addon = nativeModule.exports;
 const agentHandle = 'lah_contract_nonexistent';
+const embodimentAgentHandle = `agent_ref_${'A'.repeat(43)}`;
 
 const calls = [
   ['localAppRealmWorldCoreList', { take: 1, visibility: 'private' }],
@@ -52,6 +53,12 @@ const calls = [
   ['localAppConversationInterruptTurn', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppConversationSnapshot', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppConversationSubscribe', { agentHandle, conversationAnchorId: 'contract-anchor' }],
+  ['localAppEmbodimentSnapshot', {
+    agentHandle: embodimentAgentHandle, conversationAnchorId: 'contract-anchor',
+  }],
+  ['localAppEmbodimentSubscribe', {
+    agentHandle: embodimentAgentHandle, conversationAnchorId: 'contract-anchor', afterSequence: '0',
+  }],
   ['localAppAgentManagerSnapshot', { agentHandle, conversationAnchorId: 'contract-anchor' }],
   ['localAppAgentMemoryInspect', { agentHandle, limit: 2, pageToken: 'opaque-page-2' }],
   ['localAppAgentMemoryCorrect', { agentHandle, memoryId: 'memory-contract', correctedContent: 'corrected' }],
@@ -123,6 +130,8 @@ async function main() {
     'localAppSharedAgentAIConfigGet',
     'localAppSharedAgentAIConfigOverwrite',
     'localAppSharedAgentAIConfigLocalOptions',
+    'localAppEmbodimentSnapshot',
+    'localAppEmbodimentSubscribe',
   ]) {
     assert.equal(typeof addon[name], 'function', `${name} export is missing`);
   }

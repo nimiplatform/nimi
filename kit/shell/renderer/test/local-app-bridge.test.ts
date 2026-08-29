@@ -45,6 +45,8 @@ describe('renderer local-app standard-shell surface', () => {
       ['local-app.sharedAgentAIConfigOverwrite', 'local_app_shared_agent_ai_config_overwrite'],
       ['local-app.sharedAgentAIConfigLocalOptions', 'local_app_shared_agent_ai_config_local_options'],
       ['local-app.agentManagerSnapshot', 'local_app_agent_manager_snapshot'],
+      ['local-app.embodimentSnapshot', 'local_app_embodiment_snapshot'],
+      ['local-app.embodimentSubscribe', 'local_app_embodiment_subscribe'],
       ['local-app.agentAutonomySnapshot', 'local_app_agent_autonomy_snapshot'],
       ['local-app.agentUpdateAutonomy', 'local_app_agent_update_autonomy'],
       ['local-app.agentPresentationSnapshot', 'local_app_agent_presentation_snapshot'],
@@ -560,11 +562,58 @@ describe('renderer local-app standard-shell surface', () => {
   it('physically omits the retired access-workflow namespace', () => {
     const surface = createNimiLocalAppStandardShellSurface() as unknown as Record<string, unknown>;
     expect(Object.keys(surface).sort()).toEqual([
-      'session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'agentConfigure', 'conversation', 'agentRealtime',
+      'session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'agentConfigure', 'conversation', 'embodiment', 'agentRealtime',
     ].sort());
     expect(Object.keys(surface.agentConfigure as Record<string, unknown>).sort()).toEqual([
       'sharedAIConfig', 'manager', 'autonomy', 'presentation', 'memory',
     ].sort());
+  });
+
+  it('projects embodiment snapshot and ordered pull subscription through exact commands', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    const snapshot = {
+      sequence: '7', observedAt: { seconds: '1', nanos: 2 }, provenance: 'runtime_agent_owner',
+      activity: null, emotion: null, posture: null, voiceTiming: null,
+    };
+    const event = {
+      sequence: '8', observedAt: { seconds: '2', nanos: 3 }, provenance: 'runtime_agent_owner',
+      kind: 'posture', payload: { actionFamily: 'idle', interruptMode: 'replace' },
+    };
+    let nextCount = 0;
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSnapshot']) return snapshot;
+        const body = (payload as { payload: Record<string, unknown> }).payload;
+        if (!body.action) return { subscriptionId: 'embodiment-1' };
+        if (body.action === 'next') {
+          nextCount += 1;
+          return nextCount === 1
+            ? { subscriptionId: 'embodiment-1', completed: false, event }
+            : { subscriptionId: 'embodiment-1', completed: true };
+        }
+        return { subscriptionId: 'embodiment-1', closed: true };
+      },
+      listen: () => () => {},
+    };
+    const embodiment = createNimiLocalAppStandardShellSurface().embodiment;
+    const scope = {
+      agentHandle: `agent_ref_${'A'.repeat(43)}`,
+      conversationAnchorId: 'anchor-1',
+    };
+    await expect(embodiment.snapshot(scope)).resolves.toEqual(snapshot);
+    const subscription = await embodiment.subscribe({ ...scope, afterSequence: '7' });
+    const iterator = subscription.events[Symbol.asyncIterator]();
+    await expect(iterator.next()).resolves.toEqual({ done: false, value: event });
+    await expect(iterator.next()).resolves.toEqual({ done: true, value: undefined });
+    expect(invocations.map(({ command }) => command)).toEqual([
+      NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSnapshot'],
+      NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSubscribe'],
+      NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSubscribe'],
+      NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSubscribe'],
+    ]);
+    expect(() => embodiment.subscribe({ ...scope, afterSequence: '18446744073709551616' }))
+      .toThrow(/afterSequence is invalid/u);
   });
 
   it('forwards only bounded opaque Memory pagination selectors', async () => {

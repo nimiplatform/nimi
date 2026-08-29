@@ -188,25 +188,6 @@ export function assertNoRendererSensitiveRuntimeBridgePayload(payload: Readonly<
   }
 }
 
-export function assertNoRendererLocalAgentCallerPayload(payload: Readonly<Record<string, unknown>>): void {
-  for (const key of Object.keys(payload)) {
-    const normalized = key.toLowerCase().replace(/[-_]/gu, '');
-    const forbiddenKind = rendererForbiddenMetadataKind(normalized);
-    if (!forbiddenKind) {
-      continue;
-    }
-    throw new NimiElectronShellHostError({
-      code: 'forbidden-renderer-access',
-      message: `Electron local-agent renderer payload cannot provide host-owned ${forbiddenKind} field: ${key}`,
-      reasonCode: 'electron-renderer-local-agent-caller-field-forbidden',
-      actionHint: forbiddenKind === 'identity'
-        ? 'derive_runtime_trusted_caller_from_electron_host'
-        : 'provide_sensitive_runtime_metadata_from_electron_host',
-      details: { field: key },
-    });
-  }
-}
-
 export function assertNoRendererSensitiveMetadata(record: Readonly<Record<string, unknown>>): void {
   for (const key of Object.keys(record)) {
     if (key === 'extra') {

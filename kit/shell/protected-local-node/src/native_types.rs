@@ -36,6 +36,13 @@ pub struct NativeFirstPartyProductUnaryInput {
 }
 
 #[napi(object)]
+pub struct NativeFirstPartyProductClientStreamInput {
+    pub method_id: String,
+    pub request_frames: Vec<Buffer>,
+    pub timeout_ms: Option<u32>,
+}
+
+#[napi(object)]
 pub struct NativeFirstPartyProductUnaryCancelInput {
     pub request_id: String,
 }
@@ -387,6 +394,13 @@ pub struct NativeConversationVoiceRenderInput {
 pub struct NativeConversationScopeInput {
     pub agent_handle: String,
     pub conversation_anchor_id: String,
+}
+
+#[napi(object)]
+pub struct NativeEmbodimentSubscribeInput {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub after_sequence: String,
 }
 
 #[napi(object)]

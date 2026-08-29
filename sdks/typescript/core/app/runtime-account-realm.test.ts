@@ -7,59 +7,12 @@ import {
   ReasonCode as RuntimeWireReasonCode,
 } from '../../core-generated/runtime-typed-client';
 import { ReasonCode } from '../../types';
-import { createNimiAvatarNativeHostRuntimeAccountCaller } from '../../runtime/account-caller';
 import {
-  createRuntimeAccountMediatedBundledAvatarRealmTransport,
   createRuntimeAccountMediatedDesktopProductRealmTransport,
   createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport,
   createRuntimeAccountMediatedRealmTransport,
   NIMI_DESKTOP_SOURCE_READINESS_REALM_OPERATION_IDS,
 } from './runtime-account-realm';
-
-test('bundled Avatar Realm transport fixes caller custody and exact operation admission', async () => {
-  const caller = createNimiAvatarNativeHostRuntimeAccountCaller();
-  const calls: unknown[] = [];
-  const transport = createRuntimeAccountMediatedBundledAvatarRealmTransport({
-    accountCaller: caller,
-    runtime: {
-      account: {
-        invokeRealmUnary: async (request: unknown) => {
-          calls.push(request);
-          return { accepted: true, responseJson: '[]' };
-        },
-      },
-    },
-  });
-
-  assert.deepEqual(await transport.unary({
-    methodId: 'WorldCoreController_listPersonaCharacters',
-    body: { path: {}, query: { scope: 'owned' } },
-  }), []);
-  assert.equal(calls.length, 1);
-  assert.deepEqual((calls[0] as { caller?: unknown }).caller, caller);
-
-  await assert.rejects(
-    () => transport.unary({ methodId: 'WorldPublicController_listWorlds', body: {} }),
-    { reasonCode: 'SDK_RUNTIME_REALM_OPERATION_NOT_ADMITTED' },
-  );
-  assert.equal(calls.length, 1, 'unadmitted Avatar operation must not reach Runtime');
-});
-
-test('bundled Avatar Realm transport rejects renderer-constructed caller variants', () => {
-  assert.throws(() => createRuntimeAccountMediatedBundledAvatarRealmTransport({
-    accountCaller: {
-      ...createNimiAvatarNativeHostRuntimeAccountCaller(),
-      deviceId: 'renderer-selected-device',
-    },
-    runtime: {
-      account: {
-        invokeRealmUnary: async () => ({ accepted: true, responseJson: '[]' }),
-      },
-    },
-  }), {
-    reasonCode: 'SDK_RUNTIME_REALM_BUNDLED_AVATAR_CALLER_REQUIRED',
-  });
-});
 
 test('Desktop source-readiness Realm transport delegates admitted unary calls without renderer token custody', async () => {
   const caller = {
@@ -251,9 +204,9 @@ test('Desktop source-readiness Realm transport rejects bundled caller modes', ()
   assert.throws(() => createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport({
     accountCaller: {
       appId: 'nimi.zhiyu',
-      appInstanceId: 'nimi.zhiyu.local-first-party',
-      deviceId: 'nimi-zhiyu-local-first-party-device',
-      mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
+      appInstanceId: 'nimi.avatar.native-host',
+      deviceId: 'avatar-native-host',
+      mode: AccountCallerMode.AVATAR_NATIVE_HOST,
       scopes: [],
     },
     runtime: {

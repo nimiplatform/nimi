@@ -10,6 +10,7 @@ main processes. The addon exposes exact Local App operations, including:
 - App storage read, write, and remove;
 - session-scoped Agent reference listing; and
 - typed text-only Conversation open, send, interrupt, snapshot, and stream lifecycle;
+- bounded `agent.local` embodiment snapshot and ordered stream lifecycle;
 - shared LocalAgent-subsystem AIConfig read and overwrite; and
 - Agent autonomy snapshot/update and presentation snapshot/commit with independent revision CAS.
 
@@ -19,6 +20,9 @@ session-scoped handles and typed configuration inputs. The shared AIConfig
 surface carries no Agent handle, while presentation commit returns the bounded
 previous profile needed for restore. The addon exposes no AI profile mutation,
 Artifact, or generic messaging surface.
+Embodiment results carry only Runtime-owned activity, emotion, semantic
+posture, provenance, and bounded voice-timing correlation; renderer motion,
+lipsync, audio clock, replay, and backend diagnostics are not native exports.
 
 For Nimi Desktop it additionally exposes the generated first-party product
 families:

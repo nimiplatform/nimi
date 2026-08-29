@@ -2,7 +2,6 @@
 
 package daemon
 
-// Source D2 consumes no installed or machine-wide Platform resource projection.
 func protectedPlatformAppResourceBindings() (string, string, error) {
-	return "", "", nil
+	return sourceLocalDevelopmentPlatformAppResources()
 }

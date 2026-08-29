@@ -67,9 +67,7 @@ export function hydrateZhiyuAgentChatFromLocalAppConversationSnapshot(
 			: 'inspect_runtime_agent_chat_stream',
     source: 'runtime',
     message: 'Runtime Agent conversation snapshot was hydrated through the typed local App projection.',
-    ownerUserId: null,
-    runtimeSourceRef: null,
-    localAgentRef: null,
+    agentHandle: input.agentHandle,
     conversationAnchorId: input.conversationAnchorId,
     requestId: null,
 	runtimeTurnId: projectedTurn?.turnId

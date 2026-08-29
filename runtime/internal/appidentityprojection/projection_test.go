@@ -7,21 +7,16 @@ import (
 	"testing"
 )
 
-func TestLoadRepositoryProjectionSelectsOnlyLocalFirstPartyApps(t *testing.T) {
+func TestLoadRepositoryProjectionContainsNoRetiredLocalFirstPartyApps(t *testing.T) {
 	path := filepath.Join("..", "..", "..", "config", "platform-nimi-app-identity-surfaces.yaml")
 	projection, err := LoadFromFile(path)
 	if err != nil {
 		t.Fatalf("load repository identity projection: %v", err)
 	}
 
-	for _, appID := range []string{"nimi.avatar", "nimi.zhiyu"} {
-		if !projection.IsLocalFirstParty(appID) {
-			t.Fatalf("%s was not projected as local-first-party", appID)
-		}
-	}
-	for _, appID := range []string{"nimi.desktop", "nimi.web", "nimi.lab"} {
+	for _, appID := range []string{"nimi.avatar", "nimi.zhiyu", "nimi.desktop", "nimi.web", "nimi.lab"} {
 		if projection.IsLocalFirstParty(appID) {
-			t.Fatalf("%s must not be projected as local-first-party", appID)
+			t.Fatalf("%s retained retired local-first-party projection", appID)
 		}
 	}
 }

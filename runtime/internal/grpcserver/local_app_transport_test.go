@@ -202,6 +202,47 @@ func TestProtectedLocalAppManagerSnapshotDispatchesAfterAdmission(t *testing.T) 
 	}
 }
 
+func TestProtectedLocalAppEmbodimentOwnersDispatchAfterExactAdmission(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x5d)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x5e), SessionProof: grpcLocalAppIdentifier(0x5f)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+
+	unaryAdmission := &localAppAdmissionStub{}
+	unaryCalled := false
+	_, err := newUnaryProtectedLocalAppTransportInterceptor(unaryAdmission)(
+		ctx,
+		&runtimev1.GetLocalAppEmbodimentSnapshotRequest{},
+		&grpc.UnaryServerInfo{FullMethod: protectedEmbodimentSnapshotMethod},
+		func(context.Context, any) (any, error) {
+			unaryCalled = true
+			return &runtimev1.GetLocalAppEmbodimentSnapshotResponse{}, nil
+		},
+	)
+	if err != nil || !unaryCalled || unaryAdmission.calls != 1 || unaryAdmission.ingress != localappop.IngressAgentEmbodimentSnapshotGet {
+		t.Fatalf("embodiment snapshot = called:%v admission:%+v error:%v", unaryCalled, unaryAdmission, err)
+	}
+
+	streamAdmission := &localAppAdmissionStub{}
+	streamCalled := false
+	err = newStreamProtectedLocalAppTransportInterceptor(streamAdmission)(
+		nil,
+		&localAppTransportTestStream{ctx: ctx},
+		&grpc.StreamServerInfo{FullMethod: protectedSubscribeEmbodimentEventsMethod},
+		func(_ any, stream grpc.ServerStream) error {
+			streamCalled = true
+			if _, ok := protectedlocal.LocalAppConnectionFromContext(stream.Context()); !ok {
+				t.Fatal("authorized embodiment stream lost protected connection")
+			}
+			return nil
+		},
+	)
+	if err != nil || !streamCalled || streamAdmission.calls != 1 || streamAdmission.ingress != localappop.IngressAgentEmbodimentEventsSubscribe {
+		t.Fatalf("embodiment stream = called:%v admission:%+v error:%v", streamCalled, streamAdmission, err)
+	}
+}
+
 func TestProtectedLocalAppMemoryMethodsDispatchAfterAdmission(t *testing.T) {
 	connection := newGRPCLocalAppConnection(t, 0x5d)
 	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x5e), SessionProof: grpcLocalAppIdentifier(0x5f)}); err != nil {

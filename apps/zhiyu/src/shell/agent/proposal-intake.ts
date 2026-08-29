@@ -59,7 +59,7 @@ export function projectZhiyuProposalIntakeStatus(input: {
   if (input.record) {
     return statusFromRecord(input.record);
   }
-  if (!input.conversation.ready || !input.conversation.conversationAnchorId || !input.conversation.ownerUserId) {
+  if (!input.conversation.ready || !input.conversation.conversationAnchorId || !input.conversation.agentHandle) {
     return blockedStatus({
       conversation: input.conversation,
       reasonCode: input.conversation.reasonCode || 'zhiyu-conversation-anchor-required',
@@ -86,7 +86,7 @@ export async function submitZhiyuCapabilityProposal(input: {
   readonly createProposal?: NimiProposalIntakeClientOptions['createProposal'];
   readonly sdk?: ZhiyuProposalIntakeSdk;
 }): Promise<ZhiyuProposalIntakeStatus> {
-  if (!input.conversation.ready || !input.conversation.conversationAnchorId || !input.conversation.ownerUserId) {
+  if (!input.conversation.ready || !input.conversation.conversationAnchorId || !input.conversation.agentHandle) {
     return projectZhiyuProposalIntakeStatus(input);
   }
   const requestedCapabilityRef = input.requestedCapabilityRef ?? DEFAULT_REQUESTED_CAPABILITY_REF;
@@ -98,7 +98,7 @@ export async function submitZhiyuCapabilityProposal(input: {
   try {
     const record = await client.create(sdk.buildNimiCapabilityProposalDraft({
       sourceConversationAnchorId: input.conversation.conversationAnchorId,
-      requesterSubjectRef: input.conversation.ownerUserId,
+      requesterSubjectRef: input.conversation.agentHandle,
       requestedCapabilityRef,
       requiredPermissionRefs,
     }));
@@ -157,7 +157,7 @@ function blockedStatus(input: {
     proposalId: null,
     proposalKind: 'capability_proposal',
     sourceConversationAnchorId: input.conversation.conversationAnchorId,
-    requesterSubjectRef: input.conversation.ownerUserId,
+    requesterSubjectRef: input.conversation.agentHandle,
     ownerDomain: 'Platform',
     requestedCapabilityRef: input.requestedCapabilityRef ?? DEFAULT_REQUESTED_CAPABILITY_REF,
     riskTier: 'medium',

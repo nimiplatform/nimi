@@ -163,16 +163,6 @@ export type NimiElectronHostCommandPolicy = (
   input: NimiElectronHostCommandPolicyInput,
 ) => NimiElectronHostCommandPolicyDecision | Promise<NimiElectronHostCommandPolicyDecision>;
 
-export type NimiElectronLocalAgentIdentityInput = {
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
-};
-
-export type NimiElectronRuntimeTrustedCallerMode =
-  | 'local-first-party-app'
-  | 'desktop-shell';
-
 export type NimiElectronRuntimeDeploymentProfile =
   | 'production'
   | 'local-development';
@@ -180,13 +170,6 @@ export type NimiElectronRuntimeDeploymentProfile =
 export type NimiElectronRuntimeLifecycleProfile =
   | 'fixed'
   | 'source';
-
-export type NimiElectronRuntimeTrustedCallerInput = {
-  readonly mode: NimiElectronRuntimeTrustedCallerMode;
-  readonly appInstanceId?: string;
-  readonly deviceId?: string;
-  readonly scopes?: readonly string[];
-};
 
 export type NimiElectronDesktopOpenFetchResponse = {
   readonly ok?: boolean;
@@ -341,8 +324,6 @@ export type NimiElectronStandardShellHost = {
   ) => Promise<NimiElectronConfirmDialogResult> | NimiElectronConfirmDialogResult;
   readonly startWindowDrag?: (input: NimiElectronShellUiCommandInput) => Promise<void> | void;
   readonly focusMainWindow?: (input: NimiElectronShellUiCommandInput) => Promise<void> | void;
-  readonly localAgentIdentity?: NimiElectronLocalAgentIdentityInput;
-  readonly runtimeTrustedCaller?: NimiElectronRuntimeTrustedCallerInput;
   readonly desktopOpen?: NimiElectronDesktopOpenHost;
 };
 
@@ -392,6 +373,8 @@ export type RegisterNimiElectronRuntimeBridgeInput = {
 
 export type RegisteredNimiElectronRuntimeBridge = {
   readonly invokeChannel: string;
+  /** Main-process-only canonical formal host used for Avatar dev bootstrap. */
+  readonly bundledAvatarLocalAppHost?: import('./local-app-host.js').NimiElectronLocalAppHost;
   readonly unregister: () => void;
 };
 

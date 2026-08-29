@@ -7,14 +7,15 @@ use nimi_shell_protected_local::{
     LocalAppAgentUpdateAutonomyRequest, LocalAppAssetAdoptRequest, LocalAppAssetListRequest,
     LocalAppAssetMoveRequest, LocalAppAssetReadRequest, LocalAppAssetRecord,
     LocalAppAssetRemoveRequest, LocalAppAssetRevealRequest, LocalAppAssetStatRequest,
-    LocalAppAssetWriteRequest, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
-    LocalAppPersonaCharacterDeleteRequest, LocalAppPersonaCharacterGetOwnedRequest,
-    LocalAppPersonaCharacterListOwnedRequest, LocalAppPersonaCharacterReplaceRequest,
-    LocalAppScenarioUploadArtifactRequest, LocalAppSessionStatus,
-    LocalAppSharedAgentAIConfigLocalOptionsRequest, LocalAppSharedAgentAIConfigOverwriteRequest,
-    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest,
-    LocalAppTextCandidateMessage, LocalAppTextCandidateRequest, LocalAppWorldCoreCreateRequest,
-    LocalAppWorldCoreListRequest,
+    LocalAppAssetWriteRequest, LocalAppEmbodimentSnapshotRequest,
+    LocalAppEmbodimentSubscribeRequest, LocalAppOperationError,
+    LocalAppPersonaCharacterCreateRequest, LocalAppPersonaCharacterDeleteRequest,
+    LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
+    LocalAppPersonaCharacterReplaceRequest, LocalAppScenarioUploadArtifactRequest,
+    LocalAppSessionStatus, LocalAppSharedAgentAIConfigLocalOptionsRequest,
+    LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageReadRequest,
+    LocalAppStorageRemoveRequest, LocalAppStorageWriteRequest, LocalAppTextCandidateMessage,
+    LocalAppTextCandidateRequest, LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest,
 };
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -159,6 +160,35 @@ pub struct LocalAppAgentMemoryInspectPayload {
 pub struct LocalAppAgentManagerSnapshotPayload {
     agent_handle: String,
     conversation_anchor_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppEmbodimentSnapshotPayload {
+    agent_handle: String,
+    conversation_anchor_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppEmbodimentSubscribeOpenPayload {
+    agent_handle: String,
+    conversation_anchor_id: String,
+    after_sequence: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppEmbodimentSubscribeControlPayload {
+    action: String,
+    subscription_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+pub enum LocalAppEmbodimentSubscribePayload {
+    Open(LocalAppEmbodimentSubscribeOpenPayload),
+    Control(LocalAppEmbodimentSubscribeControlPayload),
 }
 
 #[derive(Debug, Deserialize)]
@@ -760,6 +790,68 @@ pub async fn agent_manager_snapshot_for_host(
     })
     .await
     .map_err(map_local_app_error)
+}
+
+pub async fn embodiment_snapshot_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppEmbodimentSnapshotPayload =
+        parse_payload(payload, "local_app_embodiment_snapshot")?;
+    host.embodiment_snapshot(LocalAppEmbodimentSnapshotRequest {
+        agent_handle: payload.agent_handle,
+        conversation_anchor_id: payload.conversation_anchor_id,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn embodiment_subscribe_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppEmbodimentSubscribePayload =
+        parse_payload(payload, "local_app_embodiment_subscribe")?;
+    match payload {
+        LocalAppEmbodimentSubscribePayload::Open(payload) => {
+            let after_sequence = decimal_revision(
+                &payload.after_sequence,
+                true,
+                "local_app_embodiment_subscribe",
+            )?;
+            let subscription_id = host
+                .embodiment_subscribe(LocalAppEmbodimentSubscribeRequest {
+                    agent_handle: payload.agent_handle,
+                    conversation_anchor_id: payload.conversation_anchor_id,
+                    after_sequence,
+                })
+                .await
+                .map_err(map_local_app_error)?;
+            Ok(json!({ "subscriptionId": subscription_id }))
+        }
+        LocalAppEmbodimentSubscribePayload::Control(payload) => match payload.action.as_str() {
+            "next" => {
+                let next = host
+                    .embodiment_stream_next(&payload.subscription_id)
+                    .await
+                    .map_err(map_local_app_error)?;
+                if next.completed {
+                    Ok(json!({ "subscriptionId": payload.subscription_id, "completed": true }))
+                } else {
+                    Ok(json!({
+                        "subscriptionId": payload.subscription_id,
+                        "completed": false,
+                        "event": next.event.ok_or_else(|| invalid_payload("local_app_embodiment_subscribe"))?,
+                    }))
+                }
+            }
+            "cancel" => Ok(json!({
+                "subscriptionId": payload.subscription_id,
+                "closed": host.embodiment_stream_close(&payload.subscription_id).await,
+            })),
+            _ => Err(invalid_payload("local_app_embodiment_subscribe")),
+        },
+    }
 }
 
 pub async fn agent_autonomy_snapshot_for_host(

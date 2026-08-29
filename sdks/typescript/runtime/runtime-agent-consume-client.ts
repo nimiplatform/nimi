@@ -1,12 +1,6 @@
 import {
   AgentEventType,
-  AvatarDebugProbeKind,
-  AvatarDebugRequestedBy,
-  CompanionParticipationStatus,
-  CompanionParticipationSurfaceKind,
-  CompanionParticipationTriggerSource,
   ConversationAnchorStatus,
-  type CompanionParticipationProjection,
   type ConversationAnchorSnapshot,
   type AgentConversationSummary,
   type RuntimeTypedCallOptions,
@@ -15,10 +9,7 @@ import {
   buildRuntimeAgentRequestContext,
   projectRuntimeLocalAgentIdentity,
 } from './agent-local-identity';
-import {
-  toNimiRuntimeIsoFromTimestamp,
-  toNimiRuntimeProtoStruct,
-} from './runtime-agent-values';
+import { toNimiRuntimeProtoStruct } from './runtime-agent-values';
 import {
   asRecord,
   normalizeText,
@@ -36,13 +27,11 @@ import {
   projectAppMessageStream,
 } from './runtime-agent-consume-streams';
 import type {
-  NimiRuntimeAgentCompanionParticipationInput,
   NimiRuntimeAgentConsumeClient,
   NimiRuntimeAgentConsumeClientOptions,
   NimiRuntimeAgentConsumeContext,
   NimiRuntimeAgentConsumeContextInput,
   NimiRuntimeAgentConsumeEvent,
-  NimiRuntimeAgentCompanionParticipationProjection,
   NimiRuntimeAgentConversationAnchorSnapshot,
   NimiRuntimeAgentConversationSummary,
 } from './runtime-agent-consume-types';
@@ -137,41 +126,6 @@ export function createNimiRuntimeAgentConsumeClient(
           ...(nextPageToken ? { nextPageToken } : {}),
         };
       },
-      registerAvatarLiveInstance: async (input, callOptions) => {
-        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
-        const response = await runtime.agents.registerAvatarLiveInstanceBinding({
-          context: context.requestContext,
-          avatarInstanceId: requireText(input.avatarInstanceId, 'avatarInstanceId'),
-          conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
-        }, callOptions);
-        return {
-          binding: requireProjection(response.binding, 'Runtime Agent Avatar live instance binding is missing'),
-          snapshot: decodeNimiRuntimeAgentConversationAnchorSnapshot(
-            requireProjection(response.snapshot, 'Runtime Agent Avatar live instance snapshot is missing'),
-            context.localAgentRef,
-            requireText(input.conversationAnchorId, 'conversationAnchorId'),
-          ),
-        };
-      },
-      resolveAvatarLiveInstance: async (input, callOptions) => {
-        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
-        const response = await runtime.agents.resolveAvatarLiveInstanceBinding({
-          context: context.requestContext,
-          avatarInstanceId: requireText(input.avatarInstanceId, 'avatarInstanceId'),
-        }, callOptions);
-        const binding = requireProjection(
-          response.binding,
-          'Runtime Agent Avatar live instance binding is missing',
-        );
-        return {
-          binding,
-          snapshot: decodeNimiRuntimeAgentConversationAnchorSnapshot(
-            requireProjection(response.snapshot, 'Runtime Agent Avatar live instance snapshot is missing'),
-            context.localAgentRef,
-            requireText(binding.conversationAnchorId, 'binding.conversationAnchorId'),
-          ),
-        };
-      },
     },
     turns: {
       getSessionSnapshot: async (input, callOptions) => {
@@ -216,181 +170,12 @@ export function createNimiRuntimeAgentConsumeClient(
               AgentEventType.HOOK,
               AgentEventType.STATE,
               AgentEventType.PRESENTATION,
-              AgentEventType.AVATAR_DEBUG,
             ],
           }, callOptions), conversationAnchorId, liveStartedAtMs));
         }
         return mergeNimiRuntimeAgentStreams(streams);
       },
     },
-    companionParticipation: {
-      getProjection: async (input, callOptions) => {
-        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
-        const getProjection = requireAgentMethod(
-          runtime.agents.getCompanionParticipationProjection,
-          'getCompanionParticipationProjection',
-        );
-        const response = await getProjection(companionParticipationRequest(context, input), callOptions);
-        return decodeNimiRuntimeAgentCompanionParticipationProjection(response.projection);
-      },
-      request: async (input, callOptions) => {
-        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
-        const requestParticipation = requireAgentMethod(
-          runtime.agents.requestCompanionParticipation,
-          'requestCompanionParticipation',
-        );
-        const response = await requestParticipation({
-          ...companionParticipationRequest(context, input),
-          text: requireText(input.text, 'text'),
-          threadId: normalizeText(input.threadId),
-          worldId: normalizeText(input.worldId),
-          maxOutputTokens: nonNegativeInt(input.maxOutputTokens),
-        }, callOptions);
-        return decodeNimiRuntimeAgentCompanionParticipationProjection(response.projection);
-      },
-      cancel: async (input, callOptions) => {
-        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
-        const cancelParticipation = requireAgentMethod(
-          runtime.agents.cancelCompanionParticipation,
-          'cancelCompanionParticipation',
-        );
-        const response = await cancelParticipation({
-          ...companionParticipationRequest(context, input),
-          projectionId: normalizeText(input.projectionId),
-          turnId: normalizeText(input.turnId),
-          reason: normalizeText(input.reason),
-        }, callOptions);
-        return decodeNimiRuntimeAgentCompanionParticipationProjection(response.projection);
-      },
-      openReplay: async (input, callOptions) => {
-        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
-        const openReplay = requireAgentMethod(
-          runtime.agents.openCompanionParticipationReplay,
-          'openCompanionParticipationReplay',
-        );
-        const response = await openReplay({
-          ...companionParticipationRequest(context, input),
-          projectionId: requireText(input.projectionId, 'projectionId'),
-        }, callOptions);
-        return {
-          replayRef: requireText(response.replayRef, 'replayRef'),
-          projection: decodeNimiRuntimeAgentCompanionParticipationProjection(response.projection),
-        };
-      },
-    },
-    avatarDebug: {
-      snapshot: async (input, callOptions) => {
-        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
-        const snapshot = requireAgentMethod(runtime.agents.getAvatarDebugSnapshot, 'getAvatarDebugSnapshot');
-        return snapshot({
-          context: context.requestContext,
-          agentId: context.localAgentRef,
-          conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
-        }, callOptions);
-      },
-      requestProbe: async (input, callOptions) => {
-        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
-        const requestProbe = requireAgentMethod(runtime.agents.requestAvatarDebugProbe, 'requestAvatarDebugProbe');
-        return requestProbe({
-          context: context.requestContext,
-          agentId: context.localAgentRef,
-          conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
-          probeKind: avatarDebugProbeKind(input.probeKind, { allowUnspecified: false }),
-          requestedBy: avatarDebugRequestedBy(input.requestedBy),
-          probeId: normalizeText(input.probeId),
-          turnId: normalizeText(input.turnId),
-          streamId: normalizeText(input.streamId),
-          avatarInstanceId: normalizeText(input.avatarInstanceId),
-          replayRequested: Boolean(input.replayRequested),
-        }, callOptions);
-      },
-      submitProbeResult: async (input, callOptions) => {
-        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
-        const submitProbeResult = requireAgentMethod(
-          runtime.agents.submitAvatarDebugProbeResult,
-          'submitAvatarDebugProbeResult',
-        );
-        return submitProbeResult({
-          context: context.requestContext,
-          agentId: context.localAgentRef,
-          conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
-          result: input.result,
-        }, callOptions);
-      },
-      listProbeResults: async (input, callOptions) => {
-        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
-        const listProbeResults = requireAgentMethod(
-          runtime.agents.listAvatarDebugProbeResults,
-          'listAvatarDebugProbeResults',
-        );
-        return listProbeResults({
-          context: context.requestContext,
-          agentId: context.localAgentRef,
-          conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
-          probeKind: avatarDebugProbeKind(input.probeKind, {
-            allowUnspecified: true,
-            fallback: AvatarDebugProbeKind.UNSPECIFIED,
-          }),
-        }, callOptions);
-      },
-      getReplay: async (input, callOptions) => {
-        const context = buildNimiRuntimeAgentConsumeContext({ ...input, runtimeAppId });
-        const getReplay = requireAgentMethod(runtime.agents.getAvatarDebugReplay, 'getAvatarDebugReplay');
-        return getReplay({
-          context: context.requestContext,
-          agentId: context.localAgentRef,
-          conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
-          probeId: requireText(input.probeId, 'probeId'),
-        }, callOptions);
-      },
-    },
-  };
-}
-
-export function decodeNimiRuntimeAgentCompanionParticipationProjection(
-  projection: CompanionParticipationProjection | undefined,
-): NimiRuntimeAgentCompanionParticipationProjection {
-  if (!projection) {
-    runtimeAgentError(
-      'Runtime Agent companion participation projection is missing',
-      'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
-      'check_runtime_agent_companion_projection',
-    );
-  }
-  const status = companionStatus(projection.status);
-  const candidateRef = normalizeText(projection.candidateRef);
-  const commitRef = normalizeText(projection.commitRef);
-  if (status === 'candidate_ready' && !candidateRef) {
-    runtimeAgentError(
-      'Runtime Agent companion participation candidate_ready projection missing candidateRef',
-      'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
-      'check_runtime_agent_companion_projection',
-    );
-  }
-  if (status === 'committed_by_owner' && !commitRef) {
-    runtimeAgentError(
-      'Runtime Agent companion participation committed_by_owner projection missing commitRef',
-      'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
-      'check_runtime_agent_companion_projection',
-    );
-  }
-  const observedAt = toNimiRuntimeIsoFromTimestamp(projection.observedAt);
-  return {
-    projectionId: requiredProjectionText(projection.projectionId, 'projectionId'),
-    agentId: requiredProjectionText(projection.agentId, 'agentId'),
-    surfaceKind: companionSurfaceKindId(projection.surfaceKind),
-    profileRef: requiredProjectionText(projection.profileRef, 'profileRef'),
-    triggerSource: companionTriggerSourceId(projection.triggerSource),
-    status,
-    ...(candidateRef ? { candidateRef } : {}),
-    ...(commitRef ? { commitRef } : {}),
-    ...(normalizeText(projection.refusalReason) ? { refusalReason: normalizeText(projection.refusalReason) } : {}),
-    ...(normalizeText(projection.presentationRef) ? { presentationRef: normalizeText(projection.presentationRef) } : {}),
-    auditRef: requiredProjectionText(projection.auditRef, 'auditRef'),
-    ...(observedAt ? { observedAt } : {}),
-    conversationAnchorId: requiredProjectionText(projection.conversationAnchorId, 'conversationAnchorId'),
-    ...(normalizeText(projection.turnId) ? { turnId: normalizeText(projection.turnId) } : {}),
-    ...(normalizeText(projection.streamId) ? { streamId: normalizeText(projection.streamId) } : {}),
   };
 }
 
@@ -477,21 +262,6 @@ function requireProjection<T>(value: T | undefined | null, message: string): T {
   return value;
 }
 
-function companionParticipationRequest(
-  context: NimiRuntimeAgentConsumeContext,
-  input: NimiRuntimeAgentCompanionParticipationInput,
-) {
-  return {
-    context: context.requestContext,
-    agentId: context.localAgentRef,
-    conversationAnchorId: requireText(input.conversationAnchorId, 'conversationAnchorId'),
-    surfaceKind: companionSurfaceKind(input.surfaceKind),
-    triggerSource: companionTriggerSource(input.triggerSource),
-    profileRef: normalizeText(input.profileRef),
-    requestId: normalizeText(input.requestId),
-  };
-}
-
 function conversationAnchorStatusFilter(values: unknown): ConversationAnchorStatus[] {
   if (values === undefined || values === null) return [];
   if (!Array.isArray(values)) {
@@ -516,183 +286,6 @@ function conversationAnchorStatus(value: unknown): ConversationAnchorStatus {
     'SDK_RUNTIME_AGENT_INPUT_INVALID',
     'provide_runtime_agent_conversation_status_filter',
   );
-}
-
-function companionSurfaceKind(value: unknown): CompanionParticipationSurfaceKind {
-  if (value === CompanionParticipationSurfaceKind.AVATAR_COMPANION || value === 'avatar_companion') {
-    return CompanionParticipationSurfaceKind.AVATAR_COMPANION;
-  }
-  if (value === CompanionParticipationSurfaceKind.DESKTOP_COMPANION_PANEL || value === 'desktop_companion_panel') {
-    return CompanionParticipationSurfaceKind.DESKTOP_COMPANION_PANEL;
-  }
-  if (value === CompanionParticipationSurfaceKind.AVATAR_DEBUG_WORKBENCH || value === 'avatar_debug_workbench') {
-    return CompanionParticipationSurfaceKind.AVATAR_DEBUG_WORKBENCH;
-  }
-  if (value === undefined || value === null || value === '') {
-    return CompanionParticipationSurfaceKind.AVATAR_COMPANION;
-  }
-  runtimeAgentError(
-    'Runtime Agent companion participation surfaceKind is unsupported',
-    'SDK_RUNTIME_AGENT_INPUT_INVALID',
-    'provide_supported_companion_surface_kind',
-  );
-}
-
-function companionTriggerSource(value: unknown): CompanionParticipationTriggerSource {
-  if (value === CompanionParticipationTriggerSource.USER_EXPLICIT || value === 'user_explicit') {
-    return CompanionParticipationTriggerSource.USER_EXPLICIT;
-  }
-  if (value === CompanionParticipationTriggerSource.SCHEDULED_PROACTIVE || value === 'scheduled_proactive') {
-    return CompanionParticipationTriggerSource.SCHEDULED_PROACTIVE;
-  }
-  if (value === CompanionParticipationTriggerSource.DOMAIN_EVENT || value === 'domain_event') {
-    return CompanionParticipationTriggerSource.DOMAIN_EVENT;
-  }
-  if (value === undefined || value === null || value === '') {
-    return CompanionParticipationTriggerSource.USER_EXPLICIT;
-  }
-  runtimeAgentError(
-    'Runtime Agent companion participation triggerSource is unsupported',
-    'SDK_RUNTIME_AGENT_INPUT_INVALID',
-    'provide_supported_companion_trigger_source',
-  );
-}
-
-function companionSurfaceKindId(value: CompanionParticipationSurfaceKind | string) {
-  if (value === CompanionParticipationSurfaceKind.AVATAR_COMPANION || value === 'avatar_companion') {
-    return 'avatar_companion';
-  }
-  if (value === CompanionParticipationSurfaceKind.DESKTOP_COMPANION_PANEL || value === 'desktop_companion_panel') {
-    return 'desktop_companion_panel';
-  }
-  if (value === CompanionParticipationSurfaceKind.AVATAR_DEBUG_WORKBENCH || value === 'avatar_debug_workbench') {
-    return 'avatar_debug_workbench';
-  }
-  runtimeAgentError(
-    'Runtime Agent companion participation projection has unsupported surfaceKind',
-    'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
-    'check_runtime_agent_companion_projection',
-  );
-}
-
-function companionTriggerSourceId(value: CompanionParticipationTriggerSource | string) {
-  if (value === CompanionParticipationTriggerSource.USER_EXPLICIT || value === 'user_explicit') {
-    return 'user_explicit';
-  }
-  if (value === CompanionParticipationTriggerSource.SCHEDULED_PROACTIVE || value === 'scheduled_proactive') {
-    return 'scheduled_proactive';
-  }
-  if (value === CompanionParticipationTriggerSource.DOMAIN_EVENT || value === 'domain_event') {
-    return 'domain_event';
-  }
-  runtimeAgentError(
-    'Runtime Agent companion participation projection has unsupported triggerSource',
-    'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
-    'check_runtime_agent_companion_projection',
-  );
-}
-
-function companionStatus(value: CompanionParticipationStatus | string) {
-  if (value === CompanionParticipationStatus.IDLE || value === 'idle') {
-    return 'idle';
-  }
-  if (value === CompanionParticipationStatus.ADMISSION_PENDING || value === 'admission_pending') {
-    return 'admission_pending';
-  }
-  if (value === CompanionParticipationStatus.BLOCKED || value === 'blocked') {
-    return 'blocked';
-  }
-  if (value === CompanionParticipationStatus.RUNNING || value === 'running') {
-    return 'running';
-  }
-  if (value === CompanionParticipationStatus.CANDIDATE_READY || value === 'candidate_ready') {
-    return 'candidate_ready';
-  }
-  if (value === CompanionParticipationStatus.COMMITTED_BY_OWNER || value === 'committed_by_owner') {
-    return 'committed_by_owner';
-  }
-  if (value === CompanionParticipationStatus.FAILED || value === 'failed') {
-    return 'failed';
-  }
-  if (value === CompanionParticipationStatus.CANCELED || value === 'canceled') {
-    return 'canceled';
-  }
-  runtimeAgentError(
-    'Runtime Agent companion participation projection has unsupported status',
-    'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
-    'check_runtime_agent_companion_projection',
-  );
-}
-
-function requiredProjectionText(value: unknown, field: string): string {
-  const text = normalizeText(value);
-  if (!text) {
-    runtimeAgentError(
-      `Runtime Agent companion participation projection missing ${field}`,
-      'SDK_RUNTIME_AGENT_RESPONSE_INVALID',
-      'check_runtime_agent_companion_projection',
-    );
-  }
-  return text;
-}
-
-function avatarDebugProbeKind(
-  value: unknown,
-  options: { readonly allowUnspecified: boolean; readonly fallback?: AvatarDebugProbeKind },
-): AvatarDebugProbeKind {
-  if (value === undefined || value === null || value === '') {
-    if (options.fallback !== undefined) return options.fallback;
-    runtimeAgentError(
-      'Runtime Agent avatar debug probeKind is required',
-      'SDK_RUNTIME_AGENT_INPUT_INVALID',
-      'provide_runtime_agent_avatar_debug_probe_kind',
-    );
-  }
-  const parsed = Number(value);
-  if (!Number.isInteger(parsed) || !isAvatarDebugProbeKind(parsed)) {
-    runtimeAgentError(
-      'Runtime Agent avatar debug probeKind is unsupported',
-      'SDK_RUNTIME_AGENT_INPUT_INVALID',
-      'provide_runtime_agent_avatar_debug_probe_kind',
-    );
-  }
-  if (parsed === AvatarDebugProbeKind.UNSPECIFIED && !options.allowUnspecified) {
-    runtimeAgentError(
-      'Runtime Agent avatar debug probeKind must name a concrete probe',
-      'SDK_RUNTIME_AGENT_INPUT_INVALID',
-      'provide_runtime_agent_avatar_debug_probe_kind',
-    );
-  }
-  return parsed as AvatarDebugProbeKind;
-}
-
-function avatarDebugRequestedBy(value: unknown): AvatarDebugRequestedBy {
-  if (value === AvatarDebugRequestedBy.DESKTOP_DEBUG_WORKBENCH || value === AvatarDebugRequestedBy.RUNTIME_POLICY) {
-    return value;
-  }
-  runtimeAgentError(
-    'Runtime Agent avatar debug requestedBy is unsupported',
-    'SDK_RUNTIME_AGENT_INPUT_INVALID',
-    'provide_runtime_agent_avatar_debug_requested_by',
-  );
-}
-
-function isAvatarDebugProbeKind(value: number): value is AvatarDebugProbeKind {
-  switch (value) {
-    case AvatarDebugProbeKind.UNSPECIFIED:
-    case AvatarDebugProbeKind.PACKAGE_VALIDATION:
-    case AvatarDebugProbeKind.LAUNCH_READINESS:
-    case AvatarDebugProbeKind.BACKEND_LOAD:
-    case AvatarDebugProbeKind.CAPABILITY_PROFILE:
-    case AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX:
-    case AvatarDebugProbeKind.GENERATED_MOTION:
-    case AvatarDebugProbeKind.EMOTION_EXPRESSION:
-    case AvatarDebugProbeKind.SPEECH_LIPSYNC:
-    case AvatarDebugProbeKind.WINDOW_HIT_REGION:
-      return true;
-    default:
-      return false;
-  }
 }
 
 function requireAgentMethod<Response>(

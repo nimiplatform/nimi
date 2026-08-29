@@ -1,7 +1,7 @@
 import type { AgentDataBundle } from './driver/types.js';
 
 export type CompanionAnchorBinding = {
-  agentId: string;
+  agentHandle: string;
   conversationAnchorId: string;
 };
 
@@ -67,12 +67,12 @@ function matchesCueBinding(
   if (!custom || typeof custom !== 'object') {
     return false;
   }
-  const bundleAgentId = normalizeText(custom['agent_id']);
+  const bundleAgentHandle = normalizeText(custom['agent_handle']);
   const bundleConversationAnchorId = normalizeText(custom['conversation_anchor_id']);
   return Boolean(
-    bundleAgentId
+    bundleAgentHandle
     && bundleConversationAnchorId
-    && bundleAgentId === normalizeText(binding.agentId)
+    && bundleAgentHandle === normalizeText(binding.agentHandle)
     && bundleConversationAnchorId === normalizeText(binding.conversationAnchorId),
   );
 }
@@ -81,12 +81,12 @@ export function createCompanionAnchorKey(binding: CompanionAnchorBinding | null)
   if (!binding) {
     return null;
   }
-  const agentId = normalizeText(binding.agentId);
+  const agentHandle = normalizeText(binding.agentHandle);
   const conversationAnchorId = normalizeText(binding.conversationAnchorId);
-  if (!agentId || !conversationAnchorId) {
+  if (!agentHandle || !conversationAnchorId) {
     return null;
   }
-  return `${agentId}::${conversationAnchorId}`;
+  return `${agentHandle}::${conversationAnchorId}`;
 }
 
 export function bindCompanionState(

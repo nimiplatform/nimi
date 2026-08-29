@@ -10,11 +10,10 @@ import (
 )
 
 const (
-	publicChatTimelineChannelText    = "text"
-	publicChatTimelineChannelVoice   = "voice"
-	publicChatTimelineChannelAvatar  = "avatar"
-	publicChatTimelineChannelState   = "state"
-	publicChatTimelineChannelLipsync = "lipsync"
+	publicChatTimelineChannelText   = "text"
+	publicChatTimelineChannelVoice  = "voice"
+	publicChatTimelineChannelAvatar = "avatar"
+	publicChatTimelineChannelState  = "state"
 )
 
 func publicChatTimelineChannelForTurnEvent(messageType string) string {
@@ -48,8 +47,7 @@ func publicChatValidateTimelineChannel(channel string) error {
 	case publicChatTimelineChannelText,
 		publicChatTimelineChannelVoice,
 		publicChatTimelineChannelAvatar,
-		publicChatTimelineChannelState,
-		publicChatTimelineChannelLipsync:
+		publicChatTimelineChannelState:
 		return nil
 	default:
 		return status.Error(codes.InvalidArgument, "runtime.agent.timeline channel invalid")

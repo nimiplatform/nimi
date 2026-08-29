@@ -1,43 +1,8 @@
-// Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml and
-// .nimi/spec/avatar/embodiment-surface.authority.yaml.
-//
-// Hard-cut surface:
-//   - The deprecated runtime presentation per-frame mouth-batch consume
-//     path is deleted. Per-frame mouth movement now flows through
-//     `BackendAudioConsumer.snapshot()` in the surface useFrame loop,
-//     written by the wLipSync driver. Avatar app no longer subscribes to
-//     that runtime event; platform-side event ownership remains outside this
-//     app's authority.
-//   - The caller-injected audio-bytes fetcher is removed. Audio
-//     bytes are read directly by AudioPipelineController via
-//     `runtime.artifacts.readArtifactBytes` (S-RUNTIME-111).
-//   - The Live2D-specific mouth bridge instance is dropped; the Live2D
-//     wLipSync driver owns the Cubism `ParamMouthOpenY` / `ParamMouthForm`
-//     write path.
-//
-// What this orchestrator still does:
-//   - Subscribe to `runtime.agent.presentation.voice_playback_requested`,
-//     ordered `voice_stream_chunk_available`, and `voice_playback_terminal`
-//     events.
-//   - Mirror the runtime playback state machine (requested / started /
-//     completed / interrupted / canceled / failed) into the avatar voice
-//     state bus + the audio pipeline controller.
-//   - Stop / interrupt the audio pipeline on Runtime-owned voice terminal
-//     projection. Chat-turn interrupt remains a compatibility stop signal only.
-//
-// Optional `backend?: BackendBranch` argument: when supplied, this
-// orchestrator registers the backend's BackendAudioConsumer with the audio
-// pipeline as its lipsync sink. `avatar-carrier.ts` supplies it for a mounted
-// backend; callers without a backend leave the sink unregistered while audio
-// playback remains available.
+// Avatar-owned playback/lipsync composition. Runtime owns only the common
+// semantic Conversation/Embodiment facts upstream; decoder clock, local
+// playback, backend audio analysis, and mouth parameters remain here.
 
-import type { AgentDataDriver, AgentEvent } from '../driver/types.js';
-import {
-  parseNimiRuntimeAgentTimeline,
-  type NimiRuntimeAgentTimelineEnvelope,
-} from '@nimiplatform/sdk/runtime';
 import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
-import type { BackendBranch } from '../carrier/backend-branch.js';
 import {
   AudioPipelineController,
   getSharedAudioPipelineController,
@@ -45,23 +10,24 @@ import {
   type AudioPlaybackState,
   type VoiceLipsyncStateBus,
 } from '@nimiplatform/kit/features/avatar/headless';
+import type { BackendBranch } from '../carrier/backend-branch.js';
+import type { AgentDataDriver, AgentEvent } from '../driver/types.js';
+import {
+  AVATAR_CONVERSATION_VOICE_AUDIO_CHUNK_EVENT,
+  AVATAR_CONVERSATION_VOICE_FAILED_EVENT,
+  avatarConversationVoiceSourceId,
+} from './avatar-conversation-voice.js';
 
-type RuntimeTimelineDetail = NimiRuntimeAgentTimelineEnvelope;
-type VoicePlaybackInput = {
-  audioArtifactId: string;
-  audioMimeType: string;
-};
 type VoiceBytesInput = {
   audioSourceId: string;
   audioMimeType: string;
   bytes: Uint8Array | ArrayBuffer;
 };
-type NativeVoiceChunkInput = VoiceBytesInput & {
-  voiceStreamId: string;
+
+type ConversationVoiceChunkInput = VoiceBytesInput & {
+  voiceId: string;
   chunkSequence: number;
 };
-
-const AVATAR_AUTOPLAY_TARGET = 'avatar_autoplay';
 
 export type AvatarVoiceLipsyncPipeline = {
   handleEvent(event: AgentEvent): void;
@@ -70,81 +36,13 @@ export type AvatarVoiceLipsyncPipeline = {
 
 function readRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
+    ? value as Record<string, unknown>
     : null;
 }
 
 function readString(record: Record<string, unknown>, key: string): string | null {
   const value = record[key];
   return typeof value === 'string' && value.trim() ? value : null;
-}
-
-function readBoolean(record: Record<string, unknown>, camelKey: string, snakeKey: string): boolean | null {
-  const value = record[camelKey] ?? record[snakeKey];
-  return typeof value === 'boolean' ? value : null;
-}
-
-function readPlaybackTarget(detail: Record<string, unknown>): string | null {
-  return readString(detail, 'playbackTarget') ?? readString(detail, 'playback_target');
-}
-
-function parseRuntimeTimeline(
-  detail: Record<string, unknown>,
-  messageType: string,
-): RuntimeTimelineDetail | null {
-  const turnId = readString(detail, 'turn_id');
-  const streamId = readString(detail, 'stream_id');
-  if (!turnId || !streamId) {
-    return null;
-  }
-  try {
-    return parseNimiRuntimeAgentTimeline(
-      detail['runtime_timeline'],
-      messageType,
-      turnId,
-      streamId,
-    );
-  } catch {
-    return null;
-  }
-}
-
-function timelineIdentity(timeline: RuntimeTimelineDetail): string {
-  return `${timeline.turnId}:${timeline.streamId}`;
-}
-
-function toRuntimeTimelineDetail(timeline: RuntimeTimelineDetail): Record<string, unknown> {
-  return {
-    turn_id: timeline.turnId,
-    stream_id: timeline.streamId,
-    channel: timeline.channel,
-    offset_ms: timeline.offsetMs,
-    sequence: timeline.sequence,
-    started_at_wall: timeline.startedAtWall,
-    observed_at_wall: timeline.observedAtWall,
-    timebase_owner: timeline.timebaseOwner,
-    projection_rule_id: timeline.projectionRuleId,
-    clock_basis: timeline.clockBasis,
-    provider_neutral: timeline.providerNeutral,
-    app_local_authority: timeline.appLocalAuthority,
-  };
-}
-
-function emitDriverEvent(
-  driver: AgentDataDriver,
-  name: string,
-  timeline: RuntimeTimelineDetail,
-  detail: Record<string, unknown> = {},
-): void {
-  driver.emit({
-    name,
-    detail: {
-      ...detail,
-      turn_id: timeline.turnId,
-      stream_id: timeline.streamId,
-      runtime_timeline: toRuntimeTimelineDetail(timeline),
-    },
-  });
 }
 
 export function createAvatarVoiceLipsyncPipeline(input: {
@@ -154,8 +52,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
   backend?: BackendBranch;
 }): AvatarVoiceLipsyncPipeline {
   const canceled = new Set<string>();
-  const streamingPlaybackChains = new Map<string, Promise<void>>();
-  const streamingTimelines = new Set<string>();
+  const playbackChains = new Map<string, Promise<void>>();
   let disposed = false;
   const stateBus = input.stateBus ?? getSharedVoiceLipsyncStateBus();
   const audioPipeline = input.audioPipeline ?? getSharedAudioPipelineController();
@@ -168,44 +65,19 @@ export function createAvatarVoiceLipsyncPipeline(input: {
   }
 
   function handleInterrupt(event: AgentEvent, detail: Record<string, unknown>): void {
-    const timeline = parseRuntimeTimeline(detail, event.name);
-    const streamId = timeline?.streamId ?? readString(detail, 'stream_id');
-    const turnId = timeline?.turnId ?? readString(detail, 'turn_id');
-    if (!streamId || !turnId) return;
-    canceled.add(`${turnId}:${streamId}`);
+    const turnId = readString(detail, 'turn_id');
+    if (!turnId) return;
+    for (const identity of playbackChains.keys()) canceled.add(identity);
     audioPipeline.stop('interrupted');
     stateBus.publish({ kind: 'deactivate' });
     publishPlaybackState('interrupted');
-    if (timeline) {
-      emitDriverEvent(input.driver, 'avatar.speak.interrupt', timeline, {
+    input.driver.emit({
+      name: 'avatar.speak.interrupt',
+      detail: {
+        turn_id: turnId,
+        stream_id: readString(detail, 'stream_id') ?? turnId,
         source_event_name: event.name,
-      });
-    }
-  }
-
-  function playVoiceArtifactAndWait(voiceInput: VoicePlaybackInput): Promise<void> {
-    return new Promise((resolve) => {
-      let settled = false;
-      let unsubscribe: () => void = () => {};
-      const settle = () => {
-        if (settled) return;
-        settled = true;
-        unsubscribe();
-        resolve();
-      };
-      unsubscribe = audioPipeline.subscribe((snapshot) => {
-        if (snapshot.audioArtifactId !== voiceInput.audioArtifactId) return;
-        if (
-          snapshot.state === 'completed' ||
-          snapshot.state === 'failed' ||
-          snapshot.state === 'interrupted'
-        ) {
-          settle();
-        }
-      });
-      void audioPipeline.play(voiceInput).catch(() => {
-        settle();
-      });
+      },
     });
   }
 
@@ -221,49 +93,21 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       };
       unsubscribe = audioPipeline.subscribe((snapshot) => {
         if (snapshot.audioArtifactId !== voiceInput.audioSourceId) return;
-        if (
-          snapshot.state === 'completed' ||
-          snapshot.state === 'failed' ||
-          snapshot.state === 'interrupted'
-        ) {
+        if (snapshot.state === 'completed'
+          || snapshot.state === 'failed'
+          || snapshot.state === 'interrupted') {
           settle(snapshot.state);
         }
       });
-      void audioPipeline.playBytes(voiceInput).catch(() => {
-        settle('failed');
-      });
+      void audioPipeline.playBytes(voiceInput).catch(() => settle('failed'));
     });
   }
 
-  function enqueueStreamingChunk(
-    timeline: RuntimeTimelineDetail,
-    voiceInput: VoicePlaybackInput,
-  ): void {
-    const identity = timelineIdentity(timeline);
-    streamingTimelines.add(identity);
-    const previous = streamingPlaybackChains.get(identity) ?? Promise.resolve();
-    let next: Promise<void>;
-    next = previous
-      .catch(() => undefined)
-      .then(async () => {
-        if (disposed || canceled.has(identity)) return;
-        stateBus.publish({ kind: 'activate', audioArtifactId: voiceInput.audioArtifactId });
-        publishPlaybackState('requested');
-        await playVoiceArtifactAndWait(voiceInput);
-      })
-      .finally(() => {
-        if (streamingPlaybackChains.get(identity) === next) {
-          streamingPlaybackChains.delete(identity);
-        }
-      });
-    streamingPlaybackChains.set(identity, next);
-  }
-
-  function enqueueNativeAudioChunk(
+  function enqueueConversationVoiceChunk(
     identity: string,
-    voiceInput: NativeVoiceChunkInput,
+    voiceInput: ConversationVoiceChunkInput,
   ): void {
-    const previous = streamingPlaybackChains.get(identity) ?? Promise.resolve();
+    const previous = playbackChains.get(identity) ?? Promise.resolve();
     let next: Promise<void>;
     next = previous
       .catch(() => undefined)
@@ -278,197 +122,43 @@ export function createAvatarVoiceLipsyncPipeline(input: {
         });
       })
       .finally(() => {
-        if (streamingPlaybackChains.get(identity) === next) {
-          streamingPlaybackChains.delete(identity);
-        }
+        if (playbackChains.get(identity) === next) playbackChains.delete(identity);
       });
-    streamingPlaybackChains.set(identity, next);
+    playbackChains.set(identity, next);
   }
 
-  function handleNativeAudioChunk(
+  function handleConversationVoiceChunk(
     event: AgentEvent,
     detail: Record<string, unknown>,
   ): boolean {
-    if (event.name !== 'avatar.speak.native_audio_chunk') {
-      return false;
-    }
-    const voiceStreamId = readString(detail, 'voice_stream_id') ?? readString(detail, 'voiceStreamId');
+    if (event.name !== AVATAR_CONVERSATION_VOICE_AUDIO_CHUNK_EVENT) return false;
+    const voiceId = readString(detail, 'voice_id') ?? readString(detail, 'voiceId');
     const audioMimeType = readString(detail, 'audio_mime_type') ?? readString(detail, 'audioMimeType');
     const bytes = readBytes(detail['chunk_bytes'] ?? detail['chunkBytes']);
     const chunkSequence = Number(detail['chunk_sequence'] ?? detail['chunkSequence'] ?? 0);
-    if (!voiceStreamId || !audioMimeType || !bytes || !Number.isFinite(chunkSequence) || chunkSequence <= 0) {
-      return true;
-    }
-    const sourceId = `runtime-agent-voice-stream://${voiceStreamId}/chunks/${String(chunkSequence).padStart(6, '0')}`;
-    enqueueNativeAudioChunk(`native:${voiceStreamId}`, {
-      audioSourceId: sourceId,
+    if (!voiceId || !audioMimeType || !bytes
+      || !Number.isSafeInteger(chunkSequence) || chunkSequence <= 0) return true;
+    enqueueConversationVoiceChunk(`conversation:${voiceId}`, {
+      audioSourceId: avatarConversationVoiceSourceId(voiceId, chunkSequence),
       audioMimeType,
       bytes,
-      voiceStreamId,
+      voiceId,
       chunkSequence,
     });
     return true;
   }
 
-  function handleNativeAudioStreamFailed(
+  function handleConversationVoiceFailure(
     event: AgentEvent,
     detail: Record<string, unknown>,
   ): boolean {
-    if (event.name !== 'avatar.speak.native_audio_stream_failed') {
-      return false;
-    }
-    const voiceStreamId = readString(detail, 'voice_stream_id') ?? readString(detail, 'voiceStreamId');
-    if (!voiceStreamId) {
-      return true;
-    }
+    if (event.name !== AVATAR_CONVERSATION_VOICE_FAILED_EVENT) return false;
+    const voiceId = readString(detail, 'voice_id') ?? readString(detail, 'voiceId');
+    if (!voiceId) return true;
+    canceled.add(`conversation:${voiceId}`);
     console.warn(
-      `[avatar:voice] native audio stream ${voiceStreamId} failed: ${readString(detail, 'reason') ?? 'native_audio_stream_failed'}`,
+      `[avatar:voice] Conversation voice ${voiceId} failed: ${readString(detail, 'reason') ?? 'conversation_voice_failed'}`,
     );
-    return true;
-  }
-
-  function handleVoicePlaybackRequested(
-    event: AgentEvent,
-    detail: Record<string, unknown>,
-  ): boolean {
-    if (event.name !== 'runtime.agent.presentation.voice_playback_requested') {
-      return false;
-    }
-    const state = readString(detail, 'playbackState') ?? readString(detail, 'playback_state');
-    if (state === null) return false;
-    const timeline = parseRuntimeTimeline(detail, event.name);
-    const audioArtifactId =
-      readString(detail, 'audioArtifactId') ?? readString(detail, 'audio_artifact_id');
-    const audioMimeType =
-      readString(detail, 'audioMimeType') ?? readString(detail, 'audio_mime_type');
-    const playbackTarget = readPlaybackTarget(detail);
-    if (playbackTarget !== AVATAR_AUTOPLAY_TARGET) {
-      return true;
-    }
-
-    if (state === 'requested') {
-      if (!timeline || timeline.channel !== 'voice' || !audioArtifactId || !audioMimeType) {
-        return true;
-      }
-      if (streamingTimelines.has(timelineIdentity(timeline))) {
-        return true;
-      }
-      stateBus.publish({ kind: 'activate', audioArtifactId });
-      void audioPipeline.play({ audioArtifactId, audioMimeType });
-      publishPlaybackState('requested');
-      return true;
-    }
-
-    if (state === 'started') {
-      publishPlaybackState('started');
-      return true;
-    }
-
-    if (state === 'completed') {
-      publishPlaybackState('completed');
-      return true;
-    }
-
-    if (state === 'interrupted' || state === 'canceled' || state === 'failed') {
-      if (!timeline || timeline.channel !== 'voice') return true;
-      canceled.add(timelineIdentity(timeline));
-      streamingTimelines.delete(timelineIdentity(timeline));
-      audioPipeline.stop('interrupted');
-      stateBus.publish({ kind: 'deactivate' });
-      publishPlaybackState(state === 'failed' ? 'failed' : 'interrupted');
-      emitDriverEvent(input.driver, 'avatar.speak.interrupt', timeline, {
-        source_event_name: event.name,
-        playback_state: state,
-        audio_artifact_id: audioArtifactId,
-      });
-      return true;
-    }
-
-    return false;
-  }
-
-  function handleVoiceStreamChunkAvailable(
-    event: AgentEvent,
-    detail: Record<string, unknown>,
-  ): boolean {
-    if (event.name !== 'runtime.agent.presentation.voice_stream_chunk_available') {
-      return false;
-    }
-    if (readPlaybackTarget(detail) !== AVATAR_AUTOPLAY_TARGET) {
-      return true;
-    }
-    const finalChunk = readBoolean(detail, 'finalChunk', 'final_chunk') ?? false;
-    if (finalChunk) {
-      return true;
-    }
-    const timeline = parseRuntimeTimeline(detail, event.name);
-    const audioArtifactId =
-      readString(detail, 'audioArtifactId') ?? readString(detail, 'audio_artifact_id');
-    const audioMimeType =
-      readString(detail, 'audioMimeType') ?? readString(detail, 'audio_mime_type');
-    const voiceStreamId =
-      readString(detail, 'voiceStreamId') ?? readString(detail, 'voice_stream_id');
-    const chunkTransportRef =
-      readString(detail, 'chunkTransportRef') ?? readString(detail, 'chunk_transport_ref');
-    if (!timeline || timeline.channel !== 'voice') {
-      return true;
-    }
-    if (!audioArtifactId || !audioMimeType) {
-      if (voiceStreamId && chunkTransportRef) {
-        streamingTimelines.add(timelineIdentity(timeline));
-        publishPlaybackState('requested');
-        emitDriverEvent(input.driver, 'avatar.speak.stream_chunk_available', timeline, {
-          source_event_name: event.name,
-          voice_stream_id: voiceStreamId,
-          chunk_transport_ref: chunkTransportRef,
-        });
-      }
-      return true;
-    }
-    enqueueStreamingChunk(timeline, { audioArtifactId, audioMimeType });
-    return true;
-  }
-
-  function handleVoicePlaybackTerminal(
-    event: AgentEvent,
-    detail: Record<string, unknown>,
-  ): boolean {
-    if (event.name !== 'runtime.agent.presentation.voice_playback_terminal') {
-      return false;
-    }
-    if (readPlaybackTarget(detail) !== AVATAR_AUTOPLAY_TARGET) {
-      return true;
-    }
-    const timeline = parseRuntimeTimeline(detail, event.name);
-    if (!timeline || timeline.channel !== 'voice') {
-      return true;
-    }
-    const identity = timelineIdentity(timeline);
-    streamingTimelines.delete(identity);
-    const state =
-      readString(detail, 'voicePlaybackState') ?? readString(detail, 'voice_playback_state');
-    if (state === 'completed') {
-      publishPlaybackState('completed');
-      return true;
-    }
-    if (state === 'interrupted' || state === 'canceled' || state === 'failed') {
-      canceled.add(identity);
-      const terminalVoiceStreamId =
-        readString(detail, 'voiceStreamId') ?? readString(detail, 'voice_stream_id');
-      if (terminalVoiceStreamId) {
-        canceled.add(`native:${terminalVoiceStreamId}`);
-      }
-      audioPipeline.stop('interrupted');
-      stateBus.publish({ kind: 'deactivate' });
-      publishPlaybackState(state === 'failed' ? 'failed' : 'interrupted');
-      emitDriverEvent(input.driver, 'avatar.speak.interrupt', timeline, {
-        source_event_name: event.name,
-        playback_state: state,
-        voice_stream_id: terminalVoiceStreamId,
-        terminal_reason: readString(detail, 'terminalReason') ?? readString(detail, 'terminal_reason'),
-      });
-      return true;
-    }
     return true;
   }
 
@@ -477,26 +167,12 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       if (disposed) return;
       const detail = readRecord(event.detail);
       if (!detail) return;
-      if (handleNativeAudioChunk(event, detail)) {
-        return;
-      }
-      if (handleNativeAudioStreamFailed(event, detail)) {
-        return;
-      }
-      if (
-        event.name === 'runtime.agent.turn.interrupted' ||
-        event.name === 'runtime.agent.turn.interrupt_ack'
-      ) {
+      if (handleConversationVoiceChunk(event, detail)) return;
+      if (handleConversationVoiceFailure(event, detail)) return;
+      if (event.name === 'runtime.agent.turn.interrupted'
+        || event.name === 'runtime.agent.turn.interrupt_ack') {
         handleInterrupt(event, detail);
-        return;
       }
-      if (handleVoiceStreamChunkAvailable(event, detail)) {
-        return;
-      }
-      if (handleVoicePlaybackTerminal(event, detail)) {
-        return;
-      }
-      handleVoicePlaybackRequested(event, detail);
     },
     dispose() {
       disposed = true;
@@ -504,37 +180,25 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       stateBus.publish({ kind: 'deactivate' });
       publishPlaybackState('idle');
       canceled.clear();
-      streamingPlaybackChains.clear();
-      streamingTimelines.clear();
-      if (unregisterSink) unregisterSink();
+      playbackChains.clear();
+      unregisterSink?.();
     },
   };
 }
 
 function readBytes(value: unknown): Uint8Array | ArrayBuffer | null {
-  if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
-    return value;
-  }
-  if (Array.isArray(value)) {
-    return new Uint8Array(value);
-  }
+  if (value instanceof Uint8Array || value instanceof ArrayBuffer) return value;
+  if (Array.isArray(value)) return new Uint8Array(value);
   return null;
 }
 
-function getBackendAudioConsumer(backend: BackendBranch) {
-  // BackendBranch exposes BackendAudioConsumer through the mounted surface.
-  // This helper reads the consumer
-  // off the backend if the field is present, else throws — never returns
-  // a stub: silent stubs hide wiring drift.
+function getBackendAudioConsumer(backend: BackendBranch): BackendAudioConsumer {
   const consumer = (backend as unknown as { audioConsumer?: unknown }).audioConsumer;
-  if (
-    consumer &&
-    typeof consumer === 'object' &&
-    typeof (consumer as { attachAudioSource?: unknown }).attachAudioSource === 'function' &&
-    typeof (consumer as { detachAudioSource?: unknown }).detachAudioSource === 'function' &&
-    typeof (consumer as { silent?: unknown }).silent === 'function' &&
-    typeof (consumer as { snapshot?: unknown }).snapshot === 'function'
-  ) {
+  if (consumer && typeof consumer === 'object'
+    && typeof (consumer as { attachAudioSource?: unknown }).attachAudioSource === 'function'
+    && typeof (consumer as { detachAudioSource?: unknown }).detachAudioSource === 'function'
+    && typeof (consumer as { silent?: unknown }).silent === 'function'
+    && typeof (consumer as { snapshot?: unknown }).snapshot === 'function') {
     return consumer as BackendAudioConsumer;
   }
   throw new Error(

@@ -139,7 +139,7 @@ describe('bundled Avatar Runtime asset materialization', () => {
         agentHandle: AGENT_HANDLE,
         assetRef: AVATAR_ASSET_REF,
       });
-      expect(resolved.materializationRef).toContain(AGENT_HANDLE);
+      expect(resolved.materializationRef).toBe(`avatar-materialization:vrm:${AVATAR_ASSET_REF}`);
       expect(manifest).toEqual({
         kind: 'vrm',
         runtime_dir: localAssetRoots[0],

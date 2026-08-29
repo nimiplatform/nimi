@@ -149,6 +149,54 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(container.textContent).toContain('图片不可用');
   });
 
+  it('renders the visible text caption of a committed text plus image message', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    const target = {
+      id: 'agent:caption',
+      source: 'agent' as const,
+      canonicalSessionId: 'session-caption',
+      title: 'Caption Agent',
+      avatarFallback: 'C',
+    };
+
+    await act(async () => {
+      root?.render(
+        <CanonicalConversationShell
+          sourceFilter="agent"
+          targets={[target]}
+          selectedTargetId={target.id}
+          selectedTarget={target}
+          onSelectTarget={() => undefined}
+          viewMode="chat"
+          onViewModeChange={() => undefined}
+          hideTargetPane
+          hideCharacterRail
+          messages={[{
+            id: 'image-captioned',
+            sessionId: target.canonicalSessionId,
+            targetId: target.id,
+            source: 'agent',
+            role: 'assistant',
+            text: 'Visible committed caption',
+            createdAt: '',
+            status: 'complete',
+            kind: 'image',
+            metadata: {
+              mediaUrl: 'blob:caption-image',
+              caption: 'Visible committed caption',
+            },
+          }]}
+        />,
+      );
+      await flush();
+    });
+
+    expect(container.querySelector('[data-nimi-conversation-image-caption="true"]')?.textContent)
+      .toBe('Visible committed caption');
+  });
+
   it('renders canonical setup state before target landing', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);

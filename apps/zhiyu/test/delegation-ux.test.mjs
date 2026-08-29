@@ -48,10 +48,9 @@ function conversationReady() {
     actionHint: 'send_runtime_agent_turn',
     source: 'runtime',
     message: 'Runtime-owned conversation anchor is open.',
-    ownerUserId: 'user-1',
-    runtimeSourceRef: 'runtime-source:opaque',
-    localAgentRef: 'runtime-local-agent:opaque',
+    agentHandle: `agent_ref_${'a'.repeat(43)}`,
     conversationAnchorId: 'conversation-anchor:opaque',
+    threadId: 'conversation-anchor:opaque',
   };
 }
 
@@ -61,9 +60,7 @@ function conversationUnavailable() {
     ready: false,
     reasonCode: 'zhiyu-local-agent-required',
     actionHint: 'select_runtime_owned_partner',
-    ownerUserId: null,
-    runtimeSourceRef: null,
-    localAgentRef: null,
+    agentHandle: null,
     conversationAnchorId: null,
   };
 }
@@ -71,7 +68,6 @@ function conversationUnavailable() {
 function pendingApproval(overrides = {}) {
   return {
     approvalRequestId: 'approval-1',
-    agentId: 'runtime-local-agent:opaque',
     conversationAnchorId: 'conversation-anchor:opaque',
     turnId: 'turn-1',
     providerProfileId: 'runtime-provider:opaque',
@@ -92,7 +88,6 @@ function pendingApproval(overrides = {}) {
 function diagnostic(overrides = {}) {
   return {
     diagnosticId: 'deleg-decision-1',
-    agentId: 'runtime-local-agent:opaque',
     conversationAnchorId: 'conversation-anchor:opaque',
     turnId: 'turn-1',
     providerProfileId: 'runtime-provider:opaque',
@@ -109,7 +104,6 @@ function diagnostic(overrides = {}) {
 
 function snapshot(overrides = {}) {
   return {
-    agentId: 'runtime-local-agent:opaque',
     conversationAnchorId: 'conversation-anchor:opaque',
     approvalMode: 1,
     providerProfiles: [{ providerProfileId: 'runtime-provider:opaque', state: 3 }],
@@ -144,7 +138,7 @@ test('projects Runtime pending approval as candidate intent and preview without 
   const status = await probeZhiyuRuntimeDelegationUx(conversationReady(), {
     observedAt: '2026-07-02T00:00:01.000Z',
     loadSnapshot: async (input) => {
-      assert.equal(input.localAgentRef, 'runtime-local-agent:opaque');
+      assert.equal(input.agentHandle, `agent_ref_${'a'.repeat(43)}`);
       assert.equal(input.conversationAnchorId, 'conversation-anchor:opaque');
       return snapshot({
         approvalRequests: [pendingApproval()],

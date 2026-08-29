@@ -47,6 +47,8 @@ const FINAL_LOCAL_APP_COMMANDS = [
   'nimi.shell.localApp.conversationInterruptTurn',
   'nimi.shell.localApp.conversationSubscribe',
   'nimi.shell.localApp.conversationSnapshot',
+  'nimi.shell.localApp.embodimentSnapshot',
+  'nimi.shell.localApp.embodimentSubscribe',
   'nimi.shell.localApp.agentManagerSnapshot',
   'nimi.shell.localApp.agentMemoryInspect',
   'nimi.shell.localApp.agentMemoryCorrect',
@@ -121,7 +123,7 @@ describe('Electron local-app carrier behavior', () => {
     };
     await expect(invokeBridge(ipcMain, exactEvent, {
       command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport'],
-      payload: { backendKind: 'vrm', agentHandle: `agent_ref_${'a'.repeat(43)}` },
+      payload: { backendKind: 'vrm' },
     })).resolves.toBeNull();
     await expect(invokeBridge(ipcMain, exactEvent, {
       command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport'],

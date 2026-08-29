@@ -139,7 +139,7 @@ describe('bootstrapAvatar', () => {
       authority: 'fixture',
       fixtureId: 'default',
       fixturePlaying: true,
-      agentId: 'fixture-agent-default',
+      agentHandle: 'fixture-agent-default',
     });
     expect(useAvatarStore.getState().driver.status).toBe('running');
 

@@ -38,7 +38,9 @@ export function useDesktopNimiAppAIConfig(appId: string) {
   const queryKey = desktopNimiAppAIConfigQueryKey(appId);
   return useQuery({
     queryKey,
-    queryFn: () => readDesktopNimiAppAIConfig(sdk.accountProduct().appAIConfig(appId)),
+    queryFn: () => readDesktopNimiAppAIConfig(
+      appId === sdk.appId() ? sdk.appProduct().aiConfig : sdk.accountProduct().appAIConfig(appId),
+    ),
     retry: false,
     staleTime: 0,
     refetchOnMount: 'always',
@@ -53,7 +55,8 @@ export function useOverwriteDesktopNimiAppAIConfig(appId: string) {
   const queryKey = desktopNimiAppAIConfigQueryKey(appId);
   return useMutation({
     mutationFn: (input: NimiAIConfigOverwriteInput) => (
-      sdk.accountProduct().appAIConfig(appId).overwrite(input)
+      (appId === sdk.appId() ? sdk.appProduct().aiConfig : sdk.accountProduct().appAIConfig(appId))
+        .overwrite(input)
     ),
     onSuccess(result) {
       queryClient.setQueryData(queryKey, {

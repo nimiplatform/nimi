@@ -30,6 +30,8 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'local-app.conversationInterruptTurn',
   'local-app.conversationSubscribe',
   'local-app.conversationSnapshot',
+  'local-app.embodimentSnapshot',
+  'local-app.embodimentSubscribe',
   'local-app.aiRealtimeOpen',
   'local-app.aiRealtimeAppendInput',
   'local-app.aiRealtimeSubmitOwnerControl',
@@ -89,6 +91,7 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'agent-center.avatarAssetImport',
   'agent-center.backgroundImport',
   'desktop-open.openIntent',
+  'avatar.hostHandoff',
 ] as const;
 
 describe('local-app public capability behavior', () => {

@@ -11,7 +11,6 @@ export * from './data.js';
 export * from './storage.js';
 export * from './config.js';
 export * from './local-assets.js';
-export * from './local-agent.js';
 export * from './ai-profile.js';
 export * from './avatar.js';
 export * from './agent-center.js';

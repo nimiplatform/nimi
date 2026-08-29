@@ -8,11 +8,18 @@ import {
   type NimiDesktopOpenIntentEnvelope,
   type NimiDesktopOpenResultReasonCode,
 } from '@nimiplatform/kit/core/desktop-open';
+import {
+  buildAvatarHostHandoffRequest,
+  parseAvatarHostHandoffResult,
+  type AvatarHostHandoffRequest,
+  type AvatarHostHandoffResult,
+} from '@nimiplatform/kit/features/avatar/headless';
 import { writeOwnerPrivateAtomicJson } from './owner-private-atomic-json.js';
 
 export const DESKTOP_OPEN_INTENT_EVENT = 'desktop-open://open-intent';
 
 const DESKTOP_OPEN_INTENT_PATH = '/v1/open-intent';
+export const DESKTOP_AVATAR_HOST_HANDOFF_PATH = '/v1/avatar-handoff';
 const PRESENCE_HEARTBEAT_INTERVAL_MS = 3_000;
 const RENDERER_READY_HEARTBEAT_TTL_MS = 10_000;
 const MAX_REQUEST_BYTES = 32 * 1024;
@@ -44,6 +51,7 @@ export async function createDesktopElectronOpenIntentHost(input: {
   readonly homeDirectory: string;
   readonly focusMainWindow: () => Promise<void>;
   readonly emitIntent: (envelope: NimiDesktopOpenIntentEnvelope) => void;
+  readonly avatarHostHandoff?: (request: AvatarHostHandoffRequest) => Promise<AvatarHostHandoffResult>;
   readonly now?: () => number;
   readonly heartbeatIntervalMs?: number;
   readonly readinessTtlMs?: number;
@@ -78,6 +86,7 @@ class ElectronDesktopOpenIntentHost {
     readonly homeDirectory: string;
     readonly focusMainWindow: () => Promise<void>;
     readonly emitIntent: (envelope: NimiDesktopOpenIntentEnvelope) => void;
+    readonly avatarHostHandoff?: (request: AvatarHostHandoffRequest) => Promise<AvatarHostHandoffResult>;
     readonly now?: () => number;
     readonly heartbeatIntervalMs?: number;
     readonly readinessTtlMs?: number;
@@ -181,7 +190,8 @@ class ElectronDesktopOpenIntentHost {
   }
 
   private async handleHttp(request: IncomingMessage, response: ServerResponse): Promise<void> {
-    if (request.method !== 'POST' || request.url !== DESKTOP_OPEN_INTENT_PATH) {
+    if (request.method !== 'POST'
+      || (request.url !== DESKTOP_OPEN_INTENT_PATH && request.url !== DESKTOP_AVATAR_HOST_HANDOFF_PATH)) {
       writeJson(response, 404, {
         status: 'rejected',
         reasonCode: 'desktop-open-intent-invalid',
@@ -198,6 +208,24 @@ class ElectronDesktopOpenIntentHost {
       return;
     }
     const raw = await readJsonBody(request);
+    if (request.url === DESKTOP_AVATAR_HOST_HANDOFF_PATH) {
+      if (!this.input.avatarHostHandoff) {
+        writeJson(response, 503, { code: 'avatar-host-handoff-unavailable' });
+        return;
+      }
+      try {
+        const envelope = avatarHostHandoffEnvelope(raw);
+        const handoff = envelope.request;
+        const result = await this.input.avatarHostHandoff(handoff);
+        writeJson(response, 200, {
+          bridgeId: this.bridgeId,
+          ...parseAvatarHostHandoffResult(result, handoff.command),
+        });
+      } catch {
+        writeJson(response, 400, { code: 'avatar-host-handoff-invalid' });
+      }
+      return;
+    }
     const parsed = safeParseNimiDesktopOpenIntentEnvelope(raw);
     if (!parsed.ok) {
       const reasonCode = parsed.error.reasonCode === 'desktop-open-target-unsupported'
@@ -262,6 +290,31 @@ class ElectronDesktopOpenIntentHost {
       if (errorCode(error) !== 'ENOENT') throw error;
     }
   }
+}
+
+function avatarHostHandoffEnvelope(value: unknown): {
+  readonly schemaVersion: 1;
+  readonly sourceApp: string;
+  readonly request: AvatarHostHandoffRequest;
+} {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('avatar-host-handoff-envelope-invalid');
+  }
+  const record = value as Record<string, unknown>;
+  const keys = Object.keys(record).sort();
+  if (keys.join(',') !== 'request,schemaVersion,sourceApp' || record.schemaVersion !== 1) {
+    throw new Error('avatar-host-handoff-envelope-invalid');
+  }
+  const sourceApp = typeof record.sourceApp === 'string' ? record.sourceApp.trim() : '';
+  if (!sourceApp || sourceApp !== record.sourceApp || sourceApp.length > 160
+    || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(sourceApp)) {
+    throw new Error('avatar-host-handoff-source-app-invalid');
+  }
+  return {
+    schemaVersion: 1,
+    sourceApp,
+    request: buildAvatarHostHandoffRequest(record.request as AvatarHostHandoffRequest),
+  };
 }
 
 function authorized(value: string | undefined, token: string): boolean {

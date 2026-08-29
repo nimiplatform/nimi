@@ -199,9 +199,11 @@ func authenticatedAppAIConfigCaller(ctx context.Context) (appAIConfigCaller, err
 		if !valid {
 			return appAIConfigCaller{}, unauthorizedAppAIConfigCallerError()
 		}
-		if bound && candidate != caller {
+		if bound && (candidate.accountNamespace != caller.accountNamespace || candidate.appID != caller.appID) {
 			return appAIConfigCaller{}, unauthorizedAppAIConfigCallerError()
 		}
+		// A formal self App decision is authoritative for this operation and
+		// must not inherit Desktop's projected-owner manager privilege.
 		caller = candidate
 		bound = true
 	}

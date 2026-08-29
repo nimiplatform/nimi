@@ -1,10 +1,6 @@
-import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
-import {
-  deriveNimiDataPaths,
-  resolveProductControlDataRoot,
-} from '../../../scripts/lib/product-control-data-root.mjs';
+import { resolveProductControlDataRoot } from '../../../scripts/lib/product-control-data-root.mjs';
 
 function normalize(value) {
   return String(value || '').trim();
@@ -15,18 +11,6 @@ class SmokePreflightError extends Error {
     super(message);
     this.name = 'SmokePreflightError';
   }
-}
-
-function canUseRawPathSegment(value) {
-  const body = value.startsWith('~') ? value.slice(1) : value;
-  if (!body || value.length > 128) return false;
-  if (!/^[a-z0-9]/.test(body)) return false;
-  return /^[a-z0-9_-]+$/.test(body);
-}
-
-function scopePathSegment(value) {
-  if (canUseRawPathSegment(value)) return value;
-  return `id_${createHash('sha256').update(value).digest('hex').slice(0, 24)}`;
 }
 
 function readJson(path) {
@@ -45,29 +29,12 @@ function assertSafeRelativeFileRef(root, ref, label) {
   return resolved;
 }
 
-function accountsRoot(dataRoot) {
-  return deriveNimiDataPaths(dataRoot).accounts;
+function avatarAssetsRoot(dataRoot) {
+  return join(dataRoot, 'avatar-assets');
 }
 
-function agentCenterDir(dataRoot, accountId, localAgentRef) {
-  return join(
-    accountsRoot(dataRoot),
-    scopePathSegment(accountId),
-    'agents',
-    scopePathSegment(localAgentRef),
-    'agent-center',
-  );
-}
-
-function live2dPackageDir(dataRoot, accountId, localAgentRef, avatarAssetRef) {
-  return join(
-    agentCenterDir(dataRoot, accountId, localAgentRef),
-    'modules',
-    'avatar_asset',
-    'packages',
-    'live2d',
-    avatarAssetRef,
-  );
+function live2dPackageDir(dataRoot, avatarAssetRef) {
+  return join(avatarAssetsRoot(dataRoot), 'packages', 'live2d', avatarAssetRef);
 }
 
 function live2dSmokeRepairMessage(root) {
@@ -76,27 +43,18 @@ function live2dSmokeRepairMessage(root) {
     '[avatar-live2d-smoke] Fix one of:',
     '  - complete or repair Product Control in Desktop',
     '  - import a Live2D Avatar asset through Agent Center, then rerun this smoke',
-    '  - set NIMI_AVATAR_SMOKE_ACCOUNT_ID, NIMI_AVATAR_SMOKE_LOCAL_AGENT_REF, and NIMI_AVATAR_SMOKE_AVATAR_ASSET_REF',
+    '  - set NIMI_AVATAR_SMOKE_AVATAR_ASSET_REF to an exact imported asset ref',
   ].join('\n');
 }
 
 function explicitTarget(dataRoot) {
-  const accountId = normalize(process.env.NIMI_AVATAR_SMOKE_ACCOUNT_ID);
-  const localAgentRef = normalize(process.env.NIMI_AVATAR_SMOKE_LOCAL_AGENT_REF || process.env.NIMI_AVATAR_SMOKE_AGENT_ID);
   const avatarAssetRef = normalize(process.env.NIMI_AVATAR_SMOKE_AVATAR_ASSET_REF);
-  if (!accountId && !localAgentRef && !avatarAssetRef) {
+  if (!avatarAssetRef) {
     return null;
   }
-  if (!accountId || !localAgentRef || !avatarAssetRef) {
-    throw new SmokePreflightError('[avatar-live2d-smoke] explicit target requires account, local agent ref, and avatar asset ref env vars.');
-  }
   return {
-    accountId,
-    localAgentRef,
-    accountPathSegment: scopePathSegment(accountId),
-    localAgentPathSegment: scopePathSegment(localAgentRef),
     avatarAssetRef,
-    assetRoot: live2dPackageDir(dataRoot, accountId, localAgentRef, avatarAssetRef),
+    assetRoot: live2dPackageDir(dataRoot, avatarAssetRef),
   };
 }
 
@@ -104,31 +62,16 @@ function findLive2dTarget(dataRoot) {
   const explicit = explicitTarget(dataRoot);
   if (explicit) return explicit;
 
-  const root = accountsRoot(dataRoot);
+  const root = join(avatarAssetsRoot(dataRoot), 'packages', 'live2d');
   if (!existsSync(root) || !statSync(root).isDirectory()) {
     throw new SmokePreflightError(live2dSmokeRepairMessage(root));
   }
 
-  for (const accountSegment of readdirSync(root)) {
-    const agentsRoot = join(root, accountSegment, 'agents');
-    if (!existsSync(agentsRoot) || !statSync(agentsRoot).isDirectory()) continue;
-    for (const agentSegment of readdirSync(agentsRoot)) {
-      const packagesRoot = join(agentsRoot, agentSegment, 'agent-center', 'modules', 'avatar_asset', 'packages', 'live2d');
-      if (!existsSync(packagesRoot) || !statSync(packagesRoot).isDirectory()) continue;
-      for (const avatarAssetRef of readdirSync(packagesRoot)) {
-        if (!/^live2d_[a-f0-9]{12}$/u.test(avatarAssetRef)) continue;
-        const assetRoot = join(packagesRoot, avatarAssetRef);
-        if (existsSync(join(assetRoot, 'manifest.json'))) {
-          return {
-            accountId: accountSegment,
-            localAgentRef: agentSegment,
-            accountPathSegment: accountSegment,
-            localAgentPathSegment: agentSegment,
-            avatarAssetRef,
-            assetRoot,
-          };
-        }
-      }
+  for (const avatarAssetRef of readdirSync(root)) {
+    if (!/^live2d_[a-f0-9]{12}$/u.test(avatarAssetRef)) continue;
+    const assetRoot = join(root, avatarAssetRef);
+    if (existsSync(join(assetRoot, 'manifest.json'))) {
+      return { avatarAssetRef, assetRoot };
     }
   }
 
@@ -171,14 +114,12 @@ function main() {
   console.log(JSON.stringify({
     status: 'ok',
     data_root: dataRoot,
-    account_path_segment: target.accountPathSegment,
-    agent_path_segment: target.localAgentPathSegment,
     avatar_asset_ref: target.avatarAssetRef,
     backend_capability_profile_ref: `avatar.backend_profile:live2d:${target.avatarAssetRef}:import_validated`,
     asset_root: target.assetRoot,
     manifest_path: manifestPath,
     model3_path: model3Path,
-    materialization_ref: `agent-center-avatar-asset:${target.accountPathSegment}:${target.localAgentPathSegment}:live2d:${target.avatarAssetRef}`,
+    materialization_ref: `avatar-materialization:live2d:${target.avatarAssetRef}`,
   }, null, 2));
 }
 

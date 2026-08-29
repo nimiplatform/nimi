@@ -12,7 +12,6 @@ import {
   cloneNimiRuntimeAgentResolvedMessageActionEnvelopeWithCommittedMessage,
   createNimiHostRuntimeAgentDelegatedControlSurface,
   createNimiRuntimeAgentConsumeClient,
-  decodeNimiRuntimeAgentCompanionParticipationProjection,
   isNimiRuntimeAgentProjectionEvent,
   matchesNimiRuntimeAgentProjectionScope,
   nimiRuntimeAgentSnapshotCompletedTurnHasRecoverableContent,
@@ -31,11 +30,6 @@ import {
 } from './index';
 import {
   AgentEventType,
-  AvatarDebugProbeKind,
-  AvatarDebugRequestedBy,
-  CompanionParticipationStatus,
-  CompanionParticipationSurfaceKind,
-  CompanionParticipationTriggerSource,
   ConversationAnchorStatus,
   DelegatedApprovalDecision,
   DelegatedProviderKind,
@@ -56,11 +50,6 @@ export type {
 
 export {
   AgentEventType,
-  AvatarDebugProbeKind,
-  AvatarDebugRequestedBy,
-  CompanionParticipationStatus,
-  CompanionParticipationSurfaceKind,
-  CompanionParticipationTriggerSource,
   ConversationAnchorStatus,
   DelegatedApprovalDecision,
   DelegatedProviderKind,
@@ -77,7 +66,6 @@ export {
   cloneNimiRuntimeAgentResolvedMessageActionEnvelopeWithCommittedMessage,
   createNimiHostRuntimeAgentDelegatedControlSurface,
   createNimiRuntimeAgentConsumeClient,
-  decodeNimiRuntimeAgentCompanionParticipationProjection,
   isNimiRuntimeAgentProjectionEvent,
   matchesNimiRuntimeAgentProjectionScope,
   nimiRuntimeAgentSnapshotCompletedTurnHasRecoverableContent,
@@ -113,22 +101,10 @@ export function createUnexpectedRuntimeAgentConsumeRuntime(
       async getConversationAnchorSnapshot() {
         throw new Error('unexpected');
       },
-      async registerAvatarLiveInstanceBinding() {
-        throw new Error('unexpected');
-      },
-      async resolveAvatarLiveInstanceBinding() {
-        throw new Error('unexpected');
-      },
       async getPublicChatSessionSnapshot() {
         throw new Error('unexpected');
       },
       subscribeAgentEvents() {
-        throw new Error('unexpected');
-      },
-      async requestCompanionParticipation() {
-        throw new Error('unexpected');
-      },
-      async cancelCompanionParticipation() {
         throw new Error('unexpected');
       },
       ...overrides,

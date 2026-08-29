@@ -103,14 +103,6 @@ async function runWindowsDesktopDev() {
       spawnRenderer();
       await waitForUrl(rendererUrl, 45_000);
     }
-    const avatarAgentId = String(
-      process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_ID
-      || process.env.NIMI_AVATAR_AGENT_ID
-      || '',
-    ).trim();
-    if (avatarOnly && !avatarAgentId.startsWith('local-agent:')) {
-      throw new Error('Avatar-only Electron dev requires NIMI_AVATAR_AGENT_ID with a Runtime local-agent ref.');
-    }
     const electron = spawnTracked(electronBin, [
       ...desktopDevObservationArguments,
       `--user-data-dir=${profileRoot}`,
@@ -123,7 +115,8 @@ async function runWindowsDesktopDev() {
         NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_RENDERER_URL: bundledAvatarRendererUrl,
         NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_DEV_ROOT: avatarRoot,
         NIMI_DESKTOP_ELECTRON_AVATAR_ONLY: avatarOnly ? '1' : '0',
-        NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_ID: avatarAgentId,
+        NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_HANDLE:
+          process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_HANDLE || '',
         NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID:
           process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID || '',
         NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: localAssetRoot,
@@ -189,10 +182,8 @@ async function runMacOSDesktopDev() {
         NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_RENDERER_URL: bundledAvatarRendererUrl,
         NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_DEV_ROOT: avatarRoot,
         NIMI_DESKTOP_ELECTRON_AVATAR_ONLY: avatarOnly ? '1' : '0',
-        NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_ID:
-          process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_ID
-          || process.env.NIMI_AVATAR_AGENT_ID
-          || '',
+        NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_HANDLE:
+          process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_HANDLE || '',
         NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID:
           process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID || '',
         NIMI_DESKTOP_ELECTRON_STANDARD_LOCAL_ASSET_ROOTS: localAssetRoot,

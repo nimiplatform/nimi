@@ -167,6 +167,27 @@ describe('canonical Agent Realtime session', () => {
     });
     await session.close();
   });
+
+  it('keeps a Runtime operation failure recoverable and leaves close available', async () => {
+    const stream = createEventStream<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>();
+    const appendInput = vi.fn(async () => {
+      throw new Error('temporary append failure');
+    });
+    const client = createClient({ stream, appendInput });
+    const session = createSession(client, createHost());
+    await session.open();
+
+    await expect(session.sendText({ requestId: 'request-retry', text: 'hello' }))
+      .rejects.toThrow('temporary append failure');
+    expect(session.getState()).toMatchObject({
+      lifecycle: 'ready',
+      error: { message: 'temporary append failure' },
+    });
+
+    await expect(session.close()).resolves.toBeTruthy();
+    expect(client.close).toHaveBeenCalledTimes(1);
+    expect(session.getState().lifecycle).toBe('closed');
+  });
 });
 
 function createSession(

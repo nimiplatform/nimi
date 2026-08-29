@@ -282,7 +282,7 @@ export function AppConversationEntry(props: AppConversationEntryProps) {
     title: reference.displayName,
     avatarUrl: reference.avatarUrl,
     avatarFallback: reference.displayName.slice(0, 1),
-    isOnline: true,
+    isOnline: null,
   };
   const playVoice = (message: ConversationCanonicalMessage) => {
     const session = sessionRef.current;

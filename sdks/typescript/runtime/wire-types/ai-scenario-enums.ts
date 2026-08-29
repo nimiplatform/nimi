@@ -429,15 +429,6 @@ export enum VoiceOutputMode {
   TEXT_ONLY = 4,
 }
 
-export enum VoicePlaybackState {
-  UNSPECIFIED = 0,
-  ACTIVE = 1,
-  COMPLETED = 2,
-  FAILED = 3,
-  INTERRUPTED = 4,
-  CANCELED = 5,
-}
-
 export enum VoiceReferenceKind {
   UNSPECIFIED = 0,
   PRESET = 1,

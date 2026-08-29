@@ -3,7 +3,7 @@ export type InterruptMode = 'welcome' | 'cautious' | 'focused';
 export type ExecutionState = 'IDLE' | 'CHAT_ACTIVE' | 'LIFE_PENDING' | 'LIFE_RUNNING' | 'SUSPENDED';
 export type ActivityCategory = 'emotion' | 'interaction' | 'state';
 export type ActivityIntensity = 'weak' | 'moderate' | 'strong';
-export type ActivitySource = 'apml_output' | 'direct_api' | 'mock';
+export type ActivitySource = 'runtime' | 'apml_output' | 'direct_api' | 'mock';
 export type CurrentEmotion =
   | 'happy'
   | 'sad'
@@ -66,7 +66,7 @@ export type AgentDataBundle = {
   status_text: string;
   execution_state: ExecutionState;
   active_world_id: string;
-  active_user_id: string;
+  active_agent_handle: string;
   history?: AgentBundleHistory;
   event?: {
     event_name: string;

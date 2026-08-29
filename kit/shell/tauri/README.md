@@ -55,7 +55,8 @@ Available macros:
   Local App carrier only, including read-only owner-derived App AIConfig,
   shared LocalAgent AIConfig get/overwrite, Agent autonomy snapshot/update,
   Agent presentation snapshot/commit, and Runtime-selected foreground text
-  candidates)
+  candidates, plus the bounded `agent.local` embodiment snapshot and ordered
+  subscription)
 
 The command catalog is also exposed through
 `nimi_shell_tauri::command_registration` for tests, audits, and apps that need

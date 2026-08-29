@@ -23,7 +23,6 @@ export async function probeZhiyuRuntimeAgentInventory(): Promise<ZhiyuRuntimeAge
       actionHint: localAgents.length > 0 ? 'select_runtime_local_agent' : 'open_desktop_agent_center',
       source: 'runtime',
       message: 'Current-account active Agents are projected through session-scoped handles.',
-      ownerUserId: null,
       count: localAgents.length,
       localAgents,
     };
@@ -57,7 +56,6 @@ function inventoryUnavailable(input: {
     actionHint: input.actionHint,
     source: input.source,
     message: input.message,
-    ownerUserId: null,
     count: 0,
     localAgents: [],
   };

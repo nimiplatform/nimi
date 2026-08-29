@@ -882,10 +882,6 @@ export enum AccountCallerMode {
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP = 1;
-     */
-    LOCAL_FIRST_PARTY_APP = 1,
-    /**
      * @generated from protobuf enum value: ACCOUNT_CALLER_MODE_DESKTOP_SHELL = 2;
      */
     DESKTOP_SHELL = 2,

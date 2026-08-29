@@ -505,7 +505,7 @@ func (r publicChatRuntime) runTurn(
 	// Voice/lipsync projection is policy-gated. Missing avatar autoplay,
 	// speech model, route, voice reference, or audio bytes leaves the turn as
 	// normal text-only output.
-	r.projectCommittedVoiceLipsync(ctx, session, turn, structured)
+	r.projectCommittedConversationVoice(ctx, session, turn, structured)
 	postCommitReasonCode := runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 	postCommitDiagnostic := ""
 	actionErr := r.executeCommittedActions(ctx, session, turn, structured)

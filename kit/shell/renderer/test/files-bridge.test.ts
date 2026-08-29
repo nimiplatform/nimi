@@ -267,8 +267,6 @@ describe('Tauri standard command aliases for file surfaces', () => {
     expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['artifacts.write']]).toBe('artifacts_write');
     expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['diagnostics.rendererEntryProbe']]).toBe('diagnostics_renderer_entry_probe');
     expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl']]).toBe('local_assets_resolve_url');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['local-agent.identity']]).toBe('local_agent_identity');
-    expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']]).toBe('local_agent_runtime_trusted_caller');
     expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve']]).toBe('avatar_asset_resolve');
     expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get']]).toBe('platform_projection_get');
     expect(TAURI_STANDARD_COMMAND_ALIASES[NIMI_STANDARD_SHELL_COMMANDS['floating-window.setBounds']]).toBe('floating_window_set_bounds');

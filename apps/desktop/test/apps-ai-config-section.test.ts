@@ -5,9 +5,7 @@ import { CANONICAL_CAPABILITY_IDS } from '@nimiplatform/kit/core/runtime-capabil
 import {
   APPS_AI_CONFIG_APP_ACCESS_DOMAIN,
   appsAIConfigCapabilityContracts,
-  buildAppsOneClickLocalAIConfig,
 } from '../src/shell/renderer/features/apps/apps-ai-config-section.js';
-import { createNimiCloudAIConfigCapabilityIntent } from '@nimiplatform/kit/core/sdk-contract';
 import { readDesktopLocale } from './helpers/read-desktop-locale.js';
 
 test('Apps AIConfig composes exact canonical capabilities only for runtime consumers', () => {
@@ -45,7 +43,7 @@ test('Apps detail mounts the Nimi-owned first-party surface with the exact app i
   assert.doesNotMatch(sectionSource, /consumer:\s*'nimi-first-party'/u);
   assert.match(sectionSource, /capabilityContracts=\{CANONICAL_CAPABILITY_IDS\}/u);
   assert.match(sectionSource, /allowedRoutes=\{allowedRoutes\}/u);
-  assert.match(sectionSource, /headerSlot=\{allowedRoutes\.includes\('local'\)/u);
+  assert.doesNotMatch(sectionSource, /headerSlot=/u);
   assert.doesNotMatch(sectionSource, /parentos/iu);
   assert.match(sectionSource, /useDesktopNimiAppAIConfig\(appId\)/u);
   assert.match(sectionSource, /useOverwriteDesktopNimiAppAIConfig\(appId\)/u);
@@ -53,43 +51,8 @@ test('Apps detail mounts the Nimi-owned first-party surface with the exact app i
   assert.doesNotMatch(sectionSource, /projectDesktopAIConfigEffectiveSelections/u);
   assert.match(sectionSource, /listOptions\(query\)/u);
   assert.doesNotMatch(sectionSource, /createDesktopCloudAIConfigModule/u);
-  assert.match(sectionSource, /buildAppsOneClickLocalAIConfig/u);
-  assert.match(sectionSource, /apps-ai-config-one-click-local/u);
-  assert.match(sectionSource, /machineSelections\.refetch\(\)/u);
-  assert.match(sectionSource, /appAIConfig\.refetch\(\)/u);
-  assert.match(sectionSource, /staleTime:\s*0/u);
-  assert.match(sectionSource, /refetchOnMount:\s*'always'/u);
-  assert.match(sectionSource, /refetchOnWindowFocus:\s*'always'/u);
-  assert.match(sectionSource, /result\.outcome === 'conflict'[\s\S]*setOneClickFailure\('conflict'\)/u);
+  assert.doesNotMatch(sectionSource, /buildAppsOneClickLocalAIConfig|machineSelections|oneClickFailure/u);
   assert.match(sectionSource, /overwriteAppAIConfig\.mutateAsync\(input\)[\s\S]*onAIConfigChanged\(result\)/u);
-});
-
-test('Apps one-click Local writes route-only intent and preserves capabilities without machine selection', () => {
-  const preservedCloud = createNimiCloudAIConfigCapabilityIntent({
-    capabilityContract: 'audio.transcribe',
-    connectorRef: 'connector:audio',
-    implementation: {
-      implementationId: 'cloud.audio', driverId: 'cloud', driverDialect: 'test/cloud/v1',
-    },
-    providerModelTarget: {
-      provider: 'provider-a', providerModelId: 'audio-1', remoteModelCatalogId: 'catalog-audio-1',
-    },
-  });
-  const current = [{
-    capabilityContract: 'text.generate',
-    requiredFeatures: ['input.image'],
-    defaults: { fields: { maxTokens: { kind: { oneofKind: 'numberValue' as const, numberValue: 256 } } } },
-    route: { oneofKind: 'cloud' as const, cloud: preservedCloud.route.oneofKind === 'cloud' ? preservedCloud.route.cloud : null! },
-  }, preservedCloud];
-
-  const next = buildAppsOneClickLocalAIConfig(current, ['text.generate']);
-  const text = next.find((entry) => entry.capabilityContract === 'text.generate');
-  const audio = next.find((entry) => entry.capabilityContract === 'audio.transcribe');
-  assert.deepEqual(text?.route, { oneofKind: 'local', local: {} });
-  assert.deepEqual(text?.requiredFeatures, ['input.image']);
-  assert.equal(text?.defaults?.fields.maxTokens?.kind.oneofKind, 'numberValue');
-  assert.deepEqual(audio, preservedCloud);
-  assert.doesNotMatch(JSON.stringify(next), /loadoutRef/u);
 });
 
 test('Apps AIConfig mutations refresh the canonical card summary lane', async () => {
@@ -139,10 +102,6 @@ test('Apps AIConfig owner copy covers every canonical capability in both locales
   for (const locale of [en, zh]) {
     assert.equal(typeof locale.title, 'string');
     assert.equal(typeof locale.description, 'string');
-    assert.equal(typeof locale.oneClickLabel, 'string');
-    assert.equal(typeof locale.oneClickHint, 'string');
-    assert.equal(typeof locale.oneClickNoLocalModels, 'string');
-    assert.equal(typeof locale.oneClickFailed, 'string');
     for (const key of capabilityKeys) {
       assert.equal(typeof locale.capability[key].label, 'string');
       assert.equal(typeof locale.capability[key].description, 'string');

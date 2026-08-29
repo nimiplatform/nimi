@@ -104,7 +104,8 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
       setReferences(next);
       setSelectedHandle((current) => {
         if (current && next.some((entry) => entry.agentHandle === current)) return current;
-        return next.length === 1 ? next[0].agentHandle : null;
+        const soleReference = next.length === 1 ? next.at(0) : undefined;
+        return soleReference?.agentHandle ?? null;
       });
     } catch (error) {
       if (loadEpochRef.current !== epoch) return;

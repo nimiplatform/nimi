@@ -27,14 +27,15 @@ use crate::windows_peer_trust::{verify_runtime_peer, VerifiedRuntimePeer};
 #[cfg(feature = "windows-source-local-development")]
 use crate::windows_source_policy::{source_pipe_name, WindowsSourcePipeRole};
 use crate::{
-    BundledAvatarRuntimeError, BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse,
-    BundledAvatarRuntimeStreamReceiver, DesktopAccountActionRequest,
-    DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
+    BundledAvatarRuntimeClientStreamRequest, BundledAvatarRuntimeError,
+    BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
+    DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
-    DesktopAccountProductStreamRequest, DesktopAccountProductUnaryRequest,
-    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
-    DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
-    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopFirstPartyProductError,
+    DesktopAccountProductClientStreamRequest, DesktopAccountProductStreamRequest,
+    DesktopAccountProductUnaryRequest, DesktopAccountRealmUnaryRequest,
+    DesktopAccountRealmUnaryResponse, DesktopAccountSessionEventReceiver,
+    DesktopAccountSessionEventsRequest, DesktopAccountSessionStatus,
+    DesktopAccountSessionStatusRequest, DesktopFirstPartyProductError,
     DesktopFirstPartyProductStreamReceiver, DesktopFirstPartyProductUnaryResponse,
     DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest, DeveloperModeStatus,
     LocalDevelopmentEndRunRequest, LocalDevelopmentLaunchOutcome, LocalDevelopmentLaunchRequest,
@@ -276,6 +277,22 @@ impl NimiDesktopControl for WindowsDesktopControl {
         Box::pin(crate::bundled_avatar::open_stream(self.channel(), request))
     }
 
+    fn invoke_bundled_avatar_client_stream(
+        &self,
+        request: BundledAvatarRuntimeClientStreamRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<BundledAvatarRuntimeResponse, BundledAvatarRuntimeError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(crate::bundled_avatar::invoke_client_stream(
+            self.channel(),
+            request,
+        ))
+    }
+
     fn invoke_machine_product_unary(
         &self,
         request: DesktopMachineProductUnaryRequest,
@@ -351,6 +368,26 @@ impl NimiDesktopControl for WindowsDesktopControl {
         >,
     > {
         Box::pin(crate::first_party_product::open_account_stream(
+            self.channel(),
+            request,
+        ))
+    }
+
+    fn invoke_account_product_client_stream(
+        &self,
+        request: DesktopAccountProductClientStreamRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<
+                        DesktopFirstPartyProductUnaryResponse,
+                        DesktopFirstPartyProductError,
+                    >,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(crate::first_party_product::invoke_account_client_stream(
             self.channel(),
             request,
         ))

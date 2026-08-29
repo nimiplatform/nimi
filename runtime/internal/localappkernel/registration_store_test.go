@@ -94,7 +94,7 @@ func TestDevelopmentRegistrationOwnsRandomNonReusableSubjectAndGenerations(t *te
 	}
 }
 
-func TestBuiltInRegistrationSubjectPersistsAcrossKernelReopen(t *testing.T) {
+func TestInstalledRegistrationSubjectPersistsAcrossReleaseRefresh(t *testing.T) {
 	ctx := context.Background()
 	identity, err := ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1001")
 	if err != nil {
@@ -124,13 +124,26 @@ func TestBuiltInRegistrationSubjectPersistsAcrossKernelReopen(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = secondKernel.Close() }()
-	second, err := secondKernel.Registrations().RegisterInstalled(ctx, input)
+	release := input
+	release.SourceDigest = "source:desktop:next"
+	release.PayloadRootDigest = "payload:desktop:next"
+	second, err := secondKernel.Registrations().RegisterInstalled(ctx, release)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if second.RegisteredAppSubject != first.RegisteredAppSubject || second.RegistrationHandle != first.RegistrationHandle ||
-		second.SourceGeneration != first.SourceGeneration || second.DeclarationGeneration != first.DeclarationGeneration {
-		t.Fatalf("built-in registration identity changed across reopen: first=%+v second=%+v", first, second)
+		second.SourceGeneration != first.SourceGeneration+1 || second.DeclarationGeneration != first.DeclarationGeneration ||
+		second.SourceRef != input.SourceRef {
+		t.Fatalf("installed registration identity changed across release refresh: first=%+v second=%+v", first, second)
+	}
+	stable, err := secondKernel.Registrations().RegisterInstalled(ctx, release)
+	if err != nil || stable.RegisteredAppSubject != second.RegisteredAppSubject || stable.SourceGeneration != second.SourceGeneration {
+		t.Fatalf("refreshed installed registration was not stable: second=%+v stable=%+v err=%v", second, stable, err)
+	}
+	conflicting := release
+	conflicting.SourceRef = "platform-app-release:nimi.desktop"
+	if _, err := secondKernel.Registrations().RegisterInstalled(ctx, conflicting); !errors.Is(err, ErrStateConflict) {
+		t.Fatalf("installed source identity replacement = %v", err)
 	}
 }
 

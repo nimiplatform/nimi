@@ -49,7 +49,6 @@ export enum AgentEventType {
   BUDGET = 4,
   STATE = 6,
   PRESENTATION = 7,
-  AVATAR_DEBUG = 8,
   PROACTIVE = 9,
 }
 
@@ -203,9 +202,9 @@ export enum AgentPresentationEventFamily {
   POSE_REQUESTED = 4,
   POSE_CLEARED = 5,
   LOOKAT_REQUESTED = 6,
-  VOICE_PLAYBACK_REQUESTED = 7,
-  VOICE_STREAM_CHUNK_AVAILABLE = 8,
-  VOICE_PLAYBACK_TERMINAL = 9,
+  VOICE_TIMING_READY = 7,
+  VOICE_ARTIFACT_AVAILABLE = 8,
+  VOICE_TIMING_TERMINAL = 9,
 }
 
 export enum AgentProactiveDeliveryChannel {
@@ -446,4 +445,13 @@ export function assertKnownAgentTurnContextTruncationReason(value: unknown): Age
     throw new TypeError("Unknown AgentTurnContextTruncationReason numeric value" + ': ' + String(value));
   }
   return value;
+}
+
+export enum AgentVoiceTimingPhase {
+  UNSPECIFIED = 0,
+  ACTIVE = 1,
+  COMPLETED = 2,
+  FAILED = 3,
+  INTERRUPTED = 4,
+  CANCELED = 5,
 }

@@ -107,22 +107,6 @@ func TestDecodeChatTrackSidecarIngressPreservesProtoJSONCause(t *testing.T) {
 	}
 }
 
-func TestCompanionParticipationPayloadPreservesStructCause(t *testing.T) {
-	privateValue := make(chan struct{})
-	_, err := newCompanionParticipationPayload(map[string]any{
-		"private": privateValue,
-	}, "companion participation request payload invalid")
-	if err == nil {
-		t.Fatal("expected invalid struct payload error")
-	}
-	if errors.Unwrap(err) == nil {
-		t.Fatalf("structpb cause was discarded: %T: %v", err, err)
-	}
-	if strings.Contains(status.Convert(err).Message(), "chan") {
-		t.Fatalf("public status leaked struct detail: %q", status.Convert(err).Message())
-	}
-}
-
 func TestComposePublicChatTurnContextDoesNotReadFullSourceSnapshot(t *testing.T) {
 	resolverCalls := 0
 	svc := &Service{

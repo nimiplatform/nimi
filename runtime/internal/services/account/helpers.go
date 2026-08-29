@@ -18,8 +18,7 @@ const workspaceMembershipProjectionMaxAge = 15 * time.Minute
 
 func validateProductionCaller(caller *runtimev1.AccountCaller) (runtimev1.AccountReasonCode, bool) {
 	switch caller.GetMode() {
-	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
-		runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL:
+	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL:
 		if strings.TrimSpace(caller.GetAppId()) == "" || strings.TrimSpace(caller.GetAppInstanceId()) == "" {
 			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
 		}
@@ -42,11 +41,6 @@ func (s *Service) validateRuntimeAdmittedCaller(ctx context.Context, caller *run
 		return reason, false
 	}
 	switch caller.GetMode() {
-	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP:
-		if !s.nonProductionHarnessMode || s.registry == nil ||
-			!s.registry.IsInstanceRegistered(caller.GetAppId(), caller.GetAppInstanceId()) {
-			return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED, false
-		}
 	case runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL:
 		if reason, ok := s.validateDesktopAccountHost(ctx, caller); !ok {
 			return reason, false

@@ -89,6 +89,8 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationInterruptTurn'], 'conversationInterruptTurn'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'], 'conversationSubscribe'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'], 'conversationSnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSnapshot'], 'embodimentSnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSubscribe'], 'embodimentSubscribe'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeOpen'], 'aiRealtimeOpen'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeAppendInput'], 'aiRealtimeAppendInput'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeSubmitOwnerControl'], 'aiRealtimeSubmitOwnerControl'],
@@ -214,6 +216,24 @@ export async function dispatchElectronLocalAppCommand(input: {
       }, 0);
       pumpTimer.unref?.();
       return { subscriptionId, eventName };
+    }
+    if (method === 'embodimentSubscribe') {
+      if (payload.action === 'cancel') {
+        const subscriptionId = String(payload.subscriptionId);
+        activeRealtimeStreams(input.host).delete(subscriptionId);
+        const result = await input.host.realtimeStreamClose({ streamId: subscriptionId });
+        return { subscriptionId, closed: result.closed };
+      }
+      if (payload.action === 'next') {
+        const subscriptionId = String(payload.subscriptionId);
+        const result = await input.host.realtimeStreamNext({ streamId: subscriptionId });
+        if (result.completed === true) activeRealtimeStreams(input.host).delete(subscriptionId);
+        return { subscriptionId, ...result };
+      }
+      const opened = await input.host.embodimentSubscribe(payload);
+      const subscriptionId = String(opened.streamId);
+      activeRealtimeStreams(input.host).add(subscriptionId);
+      return { subscriptionId };
     }
     if (method === 'aiRealtimeSubscribe' || method === 'agentRealtimeSubscribe' || method === 'realmRealtimeSubscribe') {
       if (payload.action === 'cancel') {
@@ -479,6 +499,16 @@ function validatePayload(
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
     case 'conversationSnapshot':
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
+    case 'embodimentSnapshot':
+      return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
+    case 'embodimentSubscribe':
+      if (payload.action === 'cancel' || payload.action === 'next') {
+        return { ...identifiers(payload, ['subscriptionId'], command, new Set(), ['action', 'subscriptionId']), action: payload.action };
+      }
+      return {
+        ...identifiers(payload, ['agentHandle', 'conversationAnchorId'], command, new Set(), ['agentHandle', 'conversationAnchorId', 'afterSequence']),
+        afterSequence: decimalUint64(payload.afterSequence, 'afterSequence', command, true),
+      };
     case 'realmChatList': {
       assertAllowedKeys(payload, ['cursor', 'limit'], [], command);
       const cursor = payload.cursor === undefined ? undefined : requiredText(payload.cursor, 'cursor', command, MAX_IDENTIFIER_LENGTH);
@@ -1376,6 +1406,14 @@ function decimalRevision(value: unknown, field: string, command: string, allowZe
     throw invalidPayload(command, `${field} is invalid`);
   }
   return value;
+}
+
+function decimalUint64(value: unknown, field: string, command: string, allowZero: boolean): string {
+  const normalized = decimalRevision(value, field, command, allowZero);
+  if (BigInt(normalized) > 18_446_744_073_709_551_615n) {
+    throw invalidPayload(command, `${field} is invalid`);
+  }
+  return normalized;
 }
 
 function requiredUtf8Text(value: unknown, field: string, command: string, maxBytes: number): string {

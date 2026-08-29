@@ -98,7 +98,7 @@ function normalizedPartnerName(value: string | null | undefined): string | null 
 }
 
 function isTechnicalPartnerDisplayName(value: string): boolean {
-  return /\b(?:Runtime|SDK|LocalAgent|sourceRef|localAgentRef|not_projected)\b/i.test(value);
+  return /\b(?:Runtime|SDK|LocalAgent|sourceRef|not_projected)\b/i.test(value);
 }
 
 export function stateDisplayLabel(value: string | null | undefined): string {

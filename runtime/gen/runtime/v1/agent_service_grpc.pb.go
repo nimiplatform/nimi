@@ -43,20 +43,9 @@ const (
 	RuntimeAgentService_SubscribeLocalAppEmbodimentEvents_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents"
 	RuntimeAgentService_OpenConversationAnchor_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor"
 	RuntimeAgentService_GetConversationAnchorSnapshot_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot"
-	RuntimeAgentService_RegisterAvatarLiveInstanceBinding_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding"
-	RuntimeAgentService_ResolveAvatarLiveInstanceBinding_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding"
 	RuntimeAgentService_GetPublicChatSessionSnapshot_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot"
 	RuntimeAgentService_ReadConversationArtifact_FullMethodName                    = "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact"
 	RuntimeAgentService_ListAgentConversationSummaries_FullMethodName              = "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries"
-	RuntimeAgentService_GetCompanionParticipationProjection_FullMethodName         = "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection"
-	RuntimeAgentService_RequestCompanionParticipation_FullMethodName               = "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation"
-	RuntimeAgentService_CancelCompanionParticipation_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation"
-	RuntimeAgentService_OpenCompanionParticipationReplay_FullMethodName            = "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay"
-	RuntimeAgentService_GetAvatarDebugSnapshot_FullMethodName                      = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot"
-	RuntimeAgentService_RequestAvatarDebugProbe_FullMethodName                     = "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe"
-	RuntimeAgentService_SubmitAvatarDebugProbeResult_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult"
-	RuntimeAgentService_ListAvatarDebugProbeResults_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults"
-	RuntimeAgentService_GetAvatarDebugReplay_FullMethodName                        = "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay"
 	RuntimeAgentService_GetAgentState_FullMethodName                               = "/nimi.runtime.v1.RuntimeAgentService/GetAgentState"
 	RuntimeAgentService_UpdateAgentState_FullMethodName                            = "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState"
 	RuntimeAgentService_SetAgentPresentationProfile_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile"
@@ -73,8 +62,6 @@ const (
 	RuntimeAgentService_GetDelegatedReplayTrace_FullMethodName                     = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace"
 	RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot"
 	RuntimeAgentService_SubscribeAgentEvents_FullMethodName                        = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
-	RuntimeAgentService_SubscribeAgentVoiceStream_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream"
-	RuntimeAgentService_InterruptAgentVoicePlayback_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback"
 	RuntimeAgentService_TranscribeAgentVoiceInput_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput"
 	RuntimeAgentService_GetSharedLocalAgentAIConfig_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig"
 	RuntimeAgentService_OverwriteSharedLocalAgentAIConfig_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig"
@@ -129,20 +116,9 @@ type RuntimeAgentServiceClient interface {
 	SubscribeLocalAppEmbodimentEvents(ctx context.Context, in *SubscribeLocalAppEmbodimentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[LocalAppEmbodimentEvent], error)
 	OpenConversationAnchor(ctx context.Context, in *OpenConversationAnchorRequest, opts ...grpc.CallOption) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(ctx context.Context, in *GetConversationAnchorSnapshotRequest, opts ...grpc.CallOption) (*GetConversationAnchorSnapshotResponse, error)
-	RegisterAvatarLiveInstanceBinding(ctx context.Context, in *RegisterAvatarLiveInstanceBindingRequest, opts ...grpc.CallOption) (*RegisterAvatarLiveInstanceBindingResponse, error)
-	ResolveAvatarLiveInstanceBinding(ctx context.Context, in *ResolveAvatarLiveInstanceBindingRequest, opts ...grpc.CallOption) (*ResolveAvatarLiveInstanceBindingResponse, error)
 	GetPublicChatSessionSnapshot(ctx context.Context, in *GetPublicChatSessionSnapshotRequest, opts ...grpc.CallOption) (*GetPublicChatSessionSnapshotResponse, error)
 	ReadConversationArtifact(ctx context.Context, in *ReadConversationArtifactRequest, opts ...grpc.CallOption) (*ReadConversationArtifactResponse, error)
 	ListAgentConversationSummaries(ctx context.Context, in *ListAgentConversationSummariesRequest, opts ...grpc.CallOption) (*ListAgentConversationSummariesResponse, error)
-	GetCompanionParticipationProjection(ctx context.Context, in *GetCompanionParticipationProjectionRequest, opts ...grpc.CallOption) (*GetCompanionParticipationProjectionResponse, error)
-	RequestCompanionParticipation(ctx context.Context, in *RequestCompanionParticipationRequest, opts ...grpc.CallOption) (*RequestCompanionParticipationResponse, error)
-	CancelCompanionParticipation(ctx context.Context, in *CancelCompanionParticipationRequest, opts ...grpc.CallOption) (*CancelCompanionParticipationResponse, error)
-	OpenCompanionParticipationReplay(ctx context.Context, in *OpenCompanionParticipationReplayRequest, opts ...grpc.CallOption) (*OpenCompanionParticipationReplayResponse, error)
-	GetAvatarDebugSnapshot(ctx context.Context, in *GetAvatarDebugSnapshotRequest, opts ...grpc.CallOption) (*GetAvatarDebugSnapshotResponse, error)
-	RequestAvatarDebugProbe(ctx context.Context, in *RequestAvatarDebugProbeRequest, opts ...grpc.CallOption) (*RequestAvatarDebugProbeResponse, error)
-	SubmitAvatarDebugProbeResult(ctx context.Context, in *SubmitAvatarDebugProbeResultRequest, opts ...grpc.CallOption) (*SubmitAvatarDebugProbeResultResponse, error)
-	ListAvatarDebugProbeResults(ctx context.Context, in *ListAvatarDebugProbeResultsRequest, opts ...grpc.CallOption) (*ListAvatarDebugProbeResultsResponse, error)
-	GetAvatarDebugReplay(ctx context.Context, in *GetAvatarDebugReplayRequest, opts ...grpc.CallOption) (*GetAvatarDebugReplayResponse, error)
 	GetAgentState(ctx context.Context, in *GetAgentStateRequest, opts ...grpc.CallOption) (*GetAgentStateResponse, error)
 	UpdateAgentState(ctx context.Context, in *UpdateAgentStateRequest, opts ...grpc.CallOption) (*UpdateAgentStateResponse, error)
 	SetAgentPresentationProfile(ctx context.Context, in *SetAgentPresentationProfileRequest, opts ...grpc.CallOption) (*SetAgentPresentationProfileResponse, error)
@@ -159,8 +135,6 @@ type RuntimeAgentServiceClient interface {
 	GetDelegatedReplayTrace(ctx context.Context, in *GetDelegatedReplayTraceRequest, opts ...grpc.CallOption) (*GetDelegatedReplayTraceResponse, error)
 	GetDelegatedControlSurfaceSnapshot(ctx context.Context, in *GetDelegatedControlSurfaceSnapshotRequest, opts ...grpc.CallOption) (*GetDelegatedControlSurfaceSnapshotResponse, error)
 	SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error)
-	SubscribeAgentVoiceStream(ctx context.Context, in *SubscribeAgentVoiceStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentVoiceStreamEvent], error)
-	InterruptAgentVoicePlayback(ctx context.Context, in *InterruptAgentVoicePlaybackRequest, opts ...grpc.CallOption) (*InterruptAgentVoicePlaybackResponse, error)
 	TranscribeAgentVoiceInput(ctx context.Context, in *TranscribeAgentVoiceInputRequest, opts ...grpc.CallOption) (*TranscribeAgentVoiceInputResponse, error)
 	// Shared Runtime LocalAgent subsystem AIConfig surface.
 	GetSharedLocalAgentAIConfig(ctx context.Context, in *GetSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*GetSharedLocalAgentAIConfigResponse, error)
@@ -463,26 +437,6 @@ func (c *runtimeAgentServiceClient) GetConversationAnchorSnapshot(ctx context.Co
 	return out, nil
 }
 
-func (c *runtimeAgentServiceClient) RegisterAvatarLiveInstanceBinding(ctx context.Context, in *RegisterAvatarLiveInstanceBindingRequest, opts ...grpc.CallOption) (*RegisterAvatarLiveInstanceBindingResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RegisterAvatarLiveInstanceBindingResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_RegisterAvatarLiveInstanceBinding_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) ResolveAvatarLiveInstanceBinding(ctx context.Context, in *ResolveAvatarLiveInstanceBindingRequest, opts ...grpc.CallOption) (*ResolveAvatarLiveInstanceBindingResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ResolveAvatarLiveInstanceBindingResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_ResolveAvatarLiveInstanceBinding_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *runtimeAgentServiceClient) GetPublicChatSessionSnapshot(ctx context.Context, in *GetPublicChatSessionSnapshotRequest, opts ...grpc.CallOption) (*GetPublicChatSessionSnapshotResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetPublicChatSessionSnapshotResponse)
@@ -507,96 +461,6 @@ func (c *runtimeAgentServiceClient) ListAgentConversationSummaries(ctx context.C
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListAgentConversationSummariesResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_ListAgentConversationSummaries_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) GetCompanionParticipationProjection(ctx context.Context, in *GetCompanionParticipationProjectionRequest, opts ...grpc.CallOption) (*GetCompanionParticipationProjectionResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetCompanionParticipationProjectionResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_GetCompanionParticipationProjection_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) RequestCompanionParticipation(ctx context.Context, in *RequestCompanionParticipationRequest, opts ...grpc.CallOption) (*RequestCompanionParticipationResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RequestCompanionParticipationResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_RequestCompanionParticipation_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) CancelCompanionParticipation(ctx context.Context, in *CancelCompanionParticipationRequest, opts ...grpc.CallOption) (*CancelCompanionParticipationResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CancelCompanionParticipationResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_CancelCompanionParticipation_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) OpenCompanionParticipationReplay(ctx context.Context, in *OpenCompanionParticipationReplayRequest, opts ...grpc.CallOption) (*OpenCompanionParticipationReplayResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(OpenCompanionParticipationReplayResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_OpenCompanionParticipationReplay_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) GetAvatarDebugSnapshot(ctx context.Context, in *GetAvatarDebugSnapshotRequest, opts ...grpc.CallOption) (*GetAvatarDebugSnapshotResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAvatarDebugSnapshotResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_GetAvatarDebugSnapshot_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) RequestAvatarDebugProbe(ctx context.Context, in *RequestAvatarDebugProbeRequest, opts ...grpc.CallOption) (*RequestAvatarDebugProbeResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(RequestAvatarDebugProbeResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_RequestAvatarDebugProbe_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) SubmitAvatarDebugProbeResult(ctx context.Context, in *SubmitAvatarDebugProbeResultRequest, opts ...grpc.CallOption) (*SubmitAvatarDebugProbeResultResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(SubmitAvatarDebugProbeResultResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_SubmitAvatarDebugProbeResult_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) ListAvatarDebugProbeResults(ctx context.Context, in *ListAvatarDebugProbeResultsRequest, opts ...grpc.CallOption) (*ListAvatarDebugProbeResultsResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(ListAvatarDebugProbeResultsResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_ListAvatarDebugProbeResults_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *runtimeAgentServiceClient) GetAvatarDebugReplay(ctx context.Context, in *GetAvatarDebugReplayRequest, opts ...grpc.CallOption) (*GetAvatarDebugReplayResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetAvatarDebugReplayResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_GetAvatarDebugReplay_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -771,35 +635,6 @@ func (c *runtimeAgentServiceClient) SubscribeAgentEvents(ctx context.Context, in
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAgentService_SubscribeAgentEventsClient = grpc.ServerStreamingClient[AgentEvent]
-
-func (c *runtimeAgentServiceClient) SubscribeAgentVoiceStream(ctx context.Context, in *SubscribeAgentVoiceStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentVoiceStreamEvent], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[4], RuntimeAgentService_SubscribeAgentVoiceStream_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[SubscribeAgentVoiceStreamRequest, AgentVoiceStreamEvent]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAgentService_SubscribeAgentVoiceStreamClient = grpc.ServerStreamingClient[AgentVoiceStreamEvent]
-
-func (c *runtimeAgentServiceClient) InterruptAgentVoicePlayback(ctx context.Context, in *InterruptAgentVoicePlaybackRequest, opts ...grpc.CallOption) (*InterruptAgentVoicePlaybackResponse, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(InterruptAgentVoicePlaybackResponse)
-	err := c.cc.Invoke(ctx, RuntimeAgentService_InterruptAgentVoicePlayback_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
 
 func (c *runtimeAgentServiceClient) TranscribeAgentVoiceInput(ctx context.Context, in *TranscribeAgentVoiceInputRequest, opts ...grpc.CallOption) (*TranscribeAgentVoiceInputResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
@@ -1042,20 +877,9 @@ type RuntimeAgentServiceServer interface {
 	SubscribeLocalAppEmbodimentEvents(*SubscribeLocalAppEmbodimentEventsRequest, grpc.ServerStreamingServer[LocalAppEmbodimentEvent]) error
 	OpenConversationAnchor(context.Context, *OpenConversationAnchorRequest) (*OpenConversationAnchorResponse, error)
 	GetConversationAnchorSnapshot(context.Context, *GetConversationAnchorSnapshotRequest) (*GetConversationAnchorSnapshotResponse, error)
-	RegisterAvatarLiveInstanceBinding(context.Context, *RegisterAvatarLiveInstanceBindingRequest) (*RegisterAvatarLiveInstanceBindingResponse, error)
-	ResolveAvatarLiveInstanceBinding(context.Context, *ResolveAvatarLiveInstanceBindingRequest) (*ResolveAvatarLiveInstanceBindingResponse, error)
 	GetPublicChatSessionSnapshot(context.Context, *GetPublicChatSessionSnapshotRequest) (*GetPublicChatSessionSnapshotResponse, error)
 	ReadConversationArtifact(context.Context, *ReadConversationArtifactRequest) (*ReadConversationArtifactResponse, error)
 	ListAgentConversationSummaries(context.Context, *ListAgentConversationSummariesRequest) (*ListAgentConversationSummariesResponse, error)
-	GetCompanionParticipationProjection(context.Context, *GetCompanionParticipationProjectionRequest) (*GetCompanionParticipationProjectionResponse, error)
-	RequestCompanionParticipation(context.Context, *RequestCompanionParticipationRequest) (*RequestCompanionParticipationResponse, error)
-	CancelCompanionParticipation(context.Context, *CancelCompanionParticipationRequest) (*CancelCompanionParticipationResponse, error)
-	OpenCompanionParticipationReplay(context.Context, *OpenCompanionParticipationReplayRequest) (*OpenCompanionParticipationReplayResponse, error)
-	GetAvatarDebugSnapshot(context.Context, *GetAvatarDebugSnapshotRequest) (*GetAvatarDebugSnapshotResponse, error)
-	RequestAvatarDebugProbe(context.Context, *RequestAvatarDebugProbeRequest) (*RequestAvatarDebugProbeResponse, error)
-	SubmitAvatarDebugProbeResult(context.Context, *SubmitAvatarDebugProbeResultRequest) (*SubmitAvatarDebugProbeResultResponse, error)
-	ListAvatarDebugProbeResults(context.Context, *ListAvatarDebugProbeResultsRequest) (*ListAvatarDebugProbeResultsResponse, error)
-	GetAvatarDebugReplay(context.Context, *GetAvatarDebugReplayRequest) (*GetAvatarDebugReplayResponse, error)
 	GetAgentState(context.Context, *GetAgentStateRequest) (*GetAgentStateResponse, error)
 	UpdateAgentState(context.Context, *UpdateAgentStateRequest) (*UpdateAgentStateResponse, error)
 	SetAgentPresentationProfile(context.Context, *SetAgentPresentationProfileRequest) (*SetAgentPresentationProfileResponse, error)
@@ -1072,8 +896,6 @@ type RuntimeAgentServiceServer interface {
 	GetDelegatedReplayTrace(context.Context, *GetDelegatedReplayTraceRequest) (*GetDelegatedReplayTraceResponse, error)
 	GetDelegatedControlSurfaceSnapshot(context.Context, *GetDelegatedControlSurfaceSnapshotRequest) (*GetDelegatedControlSurfaceSnapshotResponse, error)
 	SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error
-	SubscribeAgentVoiceStream(*SubscribeAgentVoiceStreamRequest, grpc.ServerStreamingServer[AgentVoiceStreamEvent]) error
-	InterruptAgentVoicePlayback(context.Context, *InterruptAgentVoicePlaybackRequest) (*InterruptAgentVoicePlaybackResponse, error)
 	TranscribeAgentVoiceInput(context.Context, *TranscribeAgentVoiceInputRequest) (*TranscribeAgentVoiceInputResponse, error)
 	// Shared Runtime LocalAgent subsystem AIConfig surface.
 	GetSharedLocalAgentAIConfig(context.Context, *GetSharedLocalAgentAIConfigRequest) (*GetSharedLocalAgentAIConfigResponse, error)
@@ -1180,12 +1002,6 @@ func (UnimplementedRuntimeAgentServiceServer) OpenConversationAnchor(context.Con
 func (UnimplementedRuntimeAgentServiceServer) GetConversationAnchorSnapshot(context.Context, *GetConversationAnchorSnapshotRequest) (*GetConversationAnchorSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetConversationAnchorSnapshot not implemented")
 }
-func (UnimplementedRuntimeAgentServiceServer) RegisterAvatarLiveInstanceBinding(context.Context, *RegisterAvatarLiveInstanceBindingRequest) (*RegisterAvatarLiveInstanceBindingResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method RegisterAvatarLiveInstanceBinding not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) ResolveAvatarLiveInstanceBinding(context.Context, *ResolveAvatarLiveInstanceBindingRequest) (*ResolveAvatarLiveInstanceBindingResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ResolveAvatarLiveInstanceBinding not implemented")
-}
 func (UnimplementedRuntimeAgentServiceServer) GetPublicChatSessionSnapshot(context.Context, *GetPublicChatSessionSnapshotRequest) (*GetPublicChatSessionSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetPublicChatSessionSnapshot not implemented")
 }
@@ -1194,33 +1010,6 @@ func (UnimplementedRuntimeAgentServiceServer) ReadConversationArtifact(context.C
 }
 func (UnimplementedRuntimeAgentServiceServer) ListAgentConversationSummaries(context.Context, *ListAgentConversationSummariesRequest) (*ListAgentConversationSummariesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListAgentConversationSummaries not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) GetCompanionParticipationProjection(context.Context, *GetCompanionParticipationProjectionRequest) (*GetCompanionParticipationProjectionResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetCompanionParticipationProjection not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) RequestCompanionParticipation(context.Context, *RequestCompanionParticipationRequest) (*RequestCompanionParticipationResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method RequestCompanionParticipation not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) CancelCompanionParticipation(context.Context, *CancelCompanionParticipationRequest) (*CancelCompanionParticipationResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method CancelCompanionParticipation not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) OpenCompanionParticipationReplay(context.Context, *OpenCompanionParticipationReplayRequest) (*OpenCompanionParticipationReplayResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method OpenCompanionParticipationReplay not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) GetAvatarDebugSnapshot(context.Context, *GetAvatarDebugSnapshotRequest) (*GetAvatarDebugSnapshotResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetAvatarDebugSnapshot not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) RequestAvatarDebugProbe(context.Context, *RequestAvatarDebugProbeRequest) (*RequestAvatarDebugProbeResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method RequestAvatarDebugProbe not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) SubmitAvatarDebugProbeResult(context.Context, *SubmitAvatarDebugProbeResultRequest) (*SubmitAvatarDebugProbeResultResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method SubmitAvatarDebugProbeResult not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) ListAvatarDebugProbeResults(context.Context, *ListAvatarDebugProbeResultsRequest) (*ListAvatarDebugProbeResultsResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method ListAvatarDebugProbeResults not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) GetAvatarDebugReplay(context.Context, *GetAvatarDebugReplayRequest) (*GetAvatarDebugReplayResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetAvatarDebugReplay not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) GetAgentState(context.Context, *GetAgentStateRequest) (*GetAgentStateResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAgentState not implemented")
@@ -1269,12 +1058,6 @@ func (UnimplementedRuntimeAgentServiceServer) GetDelegatedControlSurfaceSnapshot
 }
 func (UnimplementedRuntimeAgentServiceServer) SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error {
 	return status.Error(codes.Unimplemented, "method SubscribeAgentEvents not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) SubscribeAgentVoiceStream(*SubscribeAgentVoiceStreamRequest, grpc.ServerStreamingServer[AgentVoiceStreamEvent]) error {
-	return status.Error(codes.Unimplemented, "method SubscribeAgentVoiceStream not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) InterruptAgentVoicePlayback(context.Context, *InterruptAgentVoicePlaybackRequest) (*InterruptAgentVoicePlaybackResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method InterruptAgentVoicePlayback not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) TranscribeAgentVoiceInput(context.Context, *TranscribeAgentVoiceInputRequest) (*TranscribeAgentVoiceInputResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method TranscribeAgentVoiceInput not implemented")
@@ -1770,42 +1553,6 @@ func _RuntimeAgentService_GetConversationAnchorSnapshot_Handler(srv interface{},
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAgentService_RegisterAvatarLiveInstanceBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RegisterAvatarLiveInstanceBindingRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).RegisterAvatarLiveInstanceBinding(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_RegisterAvatarLiveInstanceBinding_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).RegisterAvatarLiveInstanceBinding(ctx, req.(*RegisterAvatarLiveInstanceBindingRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_ResolveAvatarLiveInstanceBinding_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ResolveAvatarLiveInstanceBindingRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).ResolveAvatarLiveInstanceBinding(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_ResolveAvatarLiveInstanceBinding_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).ResolveAvatarLiveInstanceBinding(ctx, req.(*ResolveAvatarLiveInstanceBindingRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _RuntimeAgentService_GetPublicChatSessionSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetPublicChatSessionSnapshotRequest)
 	if err := dec(in); err != nil {
@@ -1856,168 +1603,6 @@ func _RuntimeAgentService_ListAgentConversationSummaries_Handler(srv interface{}
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).ListAgentConversationSummaries(ctx, req.(*ListAgentConversationSummariesRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_GetCompanionParticipationProjection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetCompanionParticipationProjectionRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).GetCompanionParticipationProjection(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_GetCompanionParticipationProjection_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).GetCompanionParticipationProjection(ctx, req.(*GetCompanionParticipationProjectionRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_RequestCompanionParticipation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RequestCompanionParticipationRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).RequestCompanionParticipation(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_RequestCompanionParticipation_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).RequestCompanionParticipation(ctx, req.(*RequestCompanionParticipationRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_CancelCompanionParticipation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CancelCompanionParticipationRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).CancelCompanionParticipation(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_CancelCompanionParticipation_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).CancelCompanionParticipation(ctx, req.(*CancelCompanionParticipationRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_OpenCompanionParticipationReplay_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(OpenCompanionParticipationReplayRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).OpenCompanionParticipationReplay(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_OpenCompanionParticipationReplay_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).OpenCompanionParticipationReplay(ctx, req.(*OpenCompanionParticipationReplayRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_GetAvatarDebugSnapshot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAvatarDebugSnapshotRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).GetAvatarDebugSnapshot(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_GetAvatarDebugSnapshot_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).GetAvatarDebugSnapshot(ctx, req.(*GetAvatarDebugSnapshotRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_RequestAvatarDebugProbe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RequestAvatarDebugProbeRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).RequestAvatarDebugProbe(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_RequestAvatarDebugProbe_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).RequestAvatarDebugProbe(ctx, req.(*RequestAvatarDebugProbeRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_SubmitAvatarDebugProbeResult_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SubmitAvatarDebugProbeResultRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).SubmitAvatarDebugProbeResult(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_SubmitAvatarDebugProbeResult_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).SubmitAvatarDebugProbeResult(ctx, req.(*SubmitAvatarDebugProbeResultRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_ListAvatarDebugProbeResults_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListAvatarDebugProbeResultsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).ListAvatarDebugProbeResults(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_ListAvatarDebugProbeResults_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).ListAvatarDebugProbeResults(ctx, req.(*ListAvatarDebugProbeResultsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RuntimeAgentService_GetAvatarDebugReplay_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetAvatarDebugReplayRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).GetAvatarDebugReplay(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_GetAvatarDebugReplay_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).GetAvatarDebugReplay(ctx, req.(*GetAvatarDebugReplayRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2302,35 +1887,6 @@ func _RuntimeAgentService_SubscribeAgentEvents_Handler(srv interface{}, stream g
 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type RuntimeAgentService_SubscribeAgentEventsServer = grpc.ServerStreamingServer[AgentEvent]
-
-func _RuntimeAgentService_SubscribeAgentVoiceStream_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(SubscribeAgentVoiceStreamRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(RuntimeAgentServiceServer).SubscribeAgentVoiceStream(m, &grpc.GenericServerStream[SubscribeAgentVoiceStreamRequest, AgentVoiceStreamEvent]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAgentService_SubscribeAgentVoiceStreamServer = grpc.ServerStreamingServer[AgentVoiceStreamEvent]
-
-func _RuntimeAgentService_InterruptAgentVoicePlayback_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(InterruptAgentVoicePlaybackRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RuntimeAgentServiceServer).InterruptAgentVoicePlayback(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: RuntimeAgentService_InterruptAgentVoicePlayback_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RuntimeAgentServiceServer).InterruptAgentVoicePlayback(ctx, req.(*InterruptAgentVoicePlaybackRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
 
 func _RuntimeAgentService_TranscribeAgentVoiceInput_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(TranscribeAgentVoiceInputRequest)
@@ -2802,14 +2358,6 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAgentService_GetConversationAnchorSnapshot_Handler,
 		},
 		{
-			MethodName: "RegisterAvatarLiveInstanceBinding",
-			Handler:    _RuntimeAgentService_RegisterAvatarLiveInstanceBinding_Handler,
-		},
-		{
-			MethodName: "ResolveAvatarLiveInstanceBinding",
-			Handler:    _RuntimeAgentService_ResolveAvatarLiveInstanceBinding_Handler,
-		},
-		{
 			MethodName: "GetPublicChatSessionSnapshot",
 			Handler:    _RuntimeAgentService_GetPublicChatSessionSnapshot_Handler,
 		},
@@ -2820,42 +2368,6 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListAgentConversationSummaries",
 			Handler:    _RuntimeAgentService_ListAgentConversationSummaries_Handler,
-		},
-		{
-			MethodName: "GetCompanionParticipationProjection",
-			Handler:    _RuntimeAgentService_GetCompanionParticipationProjection_Handler,
-		},
-		{
-			MethodName: "RequestCompanionParticipation",
-			Handler:    _RuntimeAgentService_RequestCompanionParticipation_Handler,
-		},
-		{
-			MethodName: "CancelCompanionParticipation",
-			Handler:    _RuntimeAgentService_CancelCompanionParticipation_Handler,
-		},
-		{
-			MethodName: "OpenCompanionParticipationReplay",
-			Handler:    _RuntimeAgentService_OpenCompanionParticipationReplay_Handler,
-		},
-		{
-			MethodName: "GetAvatarDebugSnapshot",
-			Handler:    _RuntimeAgentService_GetAvatarDebugSnapshot_Handler,
-		},
-		{
-			MethodName: "RequestAvatarDebugProbe",
-			Handler:    _RuntimeAgentService_RequestAvatarDebugProbe_Handler,
-		},
-		{
-			MethodName: "SubmitAvatarDebugProbeResult",
-			Handler:    _RuntimeAgentService_SubmitAvatarDebugProbeResult_Handler,
-		},
-		{
-			MethodName: "ListAvatarDebugProbeResults",
-			Handler:    _RuntimeAgentService_ListAvatarDebugProbeResults_Handler,
-		},
-		{
-			MethodName: "GetAvatarDebugReplay",
-			Handler:    _RuntimeAgentService_GetAvatarDebugReplay_Handler,
 		},
 		{
 			MethodName: "GetAgentState",
@@ -2916,10 +2428,6 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetDelegatedControlSurfaceSnapshot",
 			Handler:    _RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_Handler,
-		},
-		{
-			MethodName: "InterruptAgentVoicePlayback",
-			Handler:    _RuntimeAgentService_InterruptAgentVoicePlayback_Handler,
 		},
 		{
 			MethodName: "TranscribeAgentVoiceInput",
@@ -3025,11 +2533,6 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "SubscribeAgentEvents",
 			Handler:       _RuntimeAgentService_SubscribeAgentEvents_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "SubscribeAgentVoiceStream",
-			Handler:       _RuntimeAgentService_SubscribeAgentVoiceStream_Handler,
 			ServerStreams: true,
 		},
 	},

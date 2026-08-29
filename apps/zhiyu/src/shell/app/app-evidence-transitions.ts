@@ -25,9 +25,7 @@ export function chatStatusFromSubmitRefreshFailure({
     actionHint: turn.actionHint || 'refresh_runtime_local_agent_inventory',
     source: turn.source,
     message: `The direct local-app conversation became unavailable before submit. ${turn.message}`,
-    ownerUserId: conversation.ownerUserId,
-    runtimeSourceRef: conversation.runtimeSourceRef,
-    localAgentRef: conversation.localAgentRef,
+    agentHandle: conversation.agentHandle,
     conversationAnchorId: conversation.conversationAnchorId,
     requestId: null,
     runtimeTurnId: current.runtimeTurnId,
@@ -52,9 +50,7 @@ export function appendSubmittedUserMessage(
 ): ZhiyuRuntimeAgentChatStatus {
   return ensureSubmittedUserMessageInChat({
     ...current,
-    ownerUserId: conversation.ownerUserId ?? current.ownerUserId,
-    runtimeSourceRef: conversation.runtimeSourceRef ?? current.runtimeSourceRef,
-    localAgentRef: conversation.localAgentRef ?? current.localAgentRef,
+    agentHandle: conversation.agentHandle ?? current.agentHandle,
     conversationAnchorId: conversation.conversationAnchorId ?? current.conversationAnchorId,
     requestId,
     runtimeTurnId: null,
@@ -107,7 +103,7 @@ export function ensureSubmittedUserMessageInChat(
 
 export function chatStatusFromProjection(
   projection: RuntimeAgentConversationProjectionState,
-  identity?: Pick<ZhiyuEvidence['conversation'], 'ownerUserId' | 'runtimeSourceRef' | 'localAgentRef' | 'conversationAnchorId'>,
+  identity?: Pick<ZhiyuEvidence['conversation'], 'agentHandle' | 'conversationAnchorId'>,
 ): ZhiyuRuntimeAgentChatStatus {
   const latestAssistant = latestAssistantMessage(projection.messages);
   const runtimeIdentity = runtimeTurnIdentityFromProjection(projection);
@@ -121,9 +117,7 @@ export function chatStatusFromProjection(
       : 'inspect_runtime_agent_chat_stream',
     source: 'runtime',
     message: projection.message,
-    ownerUserId: identity?.ownerUserId ?? null,
-    runtimeSourceRef: identity?.runtimeSourceRef ?? null,
-    localAgentRef: projection.localAgentRef || identity?.localAgentRef || null,
+    agentHandle: identity?.agentHandle ?? null,
     conversationAnchorId: projection.conversationAnchorId || identity?.conversationAnchorId || null,
     requestId: projection.turnId,
     runtimeTurnId: runtimeIdentity.runtimeTurnId,
@@ -152,9 +146,7 @@ export function chatStatusFromResult(
     actionHint: result.actionHint,
     source: result.source,
     message: result.message,
-    ownerUserId: result.ownerUserId,
-    runtimeSourceRef: result.runtimeSourceRef,
-    localAgentRef: result.localAgentRef,
+    agentHandle: result.agentHandle,
     conversationAnchorId: result.conversationAnchorId,
     requestId: result.requestId,
     runtimeTurnId: runtimeIdentity.runtimeTurnId,
@@ -250,9 +242,7 @@ export function turnStatusFromChat(chat: ZhiyuRuntimeAgentChatStatus): ZhiyuEvid
     actionHint: chat.actionHint,
     source: chat.source,
     message: chat.message,
-    ownerUserId: chat.ownerUserId,
-    runtimeSourceRef: chat.runtimeSourceRef,
-    localAgentRef: chat.localAgentRef,
+    agentHandle: chat.agentHandle,
     conversationAnchorId: chat.conversationAnchorId,
     requestId: chat.requestId,
     runtimeTurnId: chat.runtimeTurnId,

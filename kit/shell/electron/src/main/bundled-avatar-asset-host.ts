@@ -186,12 +186,7 @@ export function createNimiElectronBundledAvatarAssetHost(
       }
       return {
         manifest: await pending,
-        materializationRef: avatarMaterializationRef({
-          accountId: 'built-in-avatar',
-          ownerUserId: 'built-in-avatar',
-          runtimeSourceRef: 'built-in-avatar',
-          localAgentRef: boundAgentHandle,
-        }, kind, avatarAssetRef),
+        materializationRef: avatarMaterializationRef(kind, avatarAssetRef),
       };
     },
     readTextFile: async (value) => {

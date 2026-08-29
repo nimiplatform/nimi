@@ -144,6 +144,9 @@ export {
   openDesktopIntent,
 } from './desktop-open.js';
 export {
+  invokeAvatarHostHandoffMechanic,
+} from './avatar-host-handoff.js';
+export {
   getShellPlatformProjection,
 } from './platform-projection.js';
 export {

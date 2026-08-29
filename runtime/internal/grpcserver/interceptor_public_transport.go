@@ -59,6 +59,7 @@ var publicTransportBlockedMethods = map[string]runtimev1.ReasonCode{
 	"/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot":              runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig":                               runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig":                         runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAiService/ExecuteScenario":                              runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAiService/StreamScenario":                               runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob":                            runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAiService/GetScenarioJob":                               runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
@@ -90,6 +91,9 @@ func newStreamPublicTransportInterceptor() grpc.StreamServerInterceptor {
 }
 
 func publicTransportDenial(fullMethod string) (runtimev1.ReasonCode, bool) {
+	if formalAppSessionMethod(fullMethod) {
+		return publicTransportBlockedMethods[fullMethod], true
+	}
 	if _, bundledAvatarMethod := bundledavatar.Method(fullMethod); bundledAvatarMethod {
 		return runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED, true
 	}

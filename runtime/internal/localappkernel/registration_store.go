@@ -32,10 +32,10 @@ func (store *RegistrationStore) RegisterInstalled(ctx context.Context, input Reg
 	defer store.kernel.mu.Unlock()
 
 	current, err := scanRegistration(store.kernel.db.QueryRowContext(ctx, registrationSelect+`
-		WHERE local_os_user_anchor = ? AND source_class = 'installed' AND source_ref = ? AND state = 'active'`,
-		store.kernel.anchor, input.SourceRef))
+		WHERE local_os_user_anchor = ? AND source_class = 'installed' AND app_id = ? AND state = 'active'`,
+		store.kernel.anchor, input.AppID))
 	if err == nil {
-		if current.AppID != input.AppID {
+		if current.SourceRef != input.SourceRef {
 			return Registration{}, ErrStateConflict
 		}
 		sourceGeneration := current.SourceGeneration

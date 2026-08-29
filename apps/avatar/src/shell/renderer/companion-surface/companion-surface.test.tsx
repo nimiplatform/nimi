@@ -18,7 +18,7 @@ afterEach(() => {
 
 const baseBinding: CompanionAnchorBinding = {
   conversationAnchorId: 'agent_anchor_TEST',
-  agentId: 'agent-test',
+  agentHandle: 'agent-test',
 };
 
 function makeProps(overrides: Partial<Parameters<typeof CompanionSurface>[0]> = {}) {
@@ -50,20 +50,8 @@ function createBootstrapHandle(): BootstrapHandle {
     getVoiceInputAvailability: vi.fn(async () => ({ available: true, reason: null })),
     startVoiceCapture: vi.fn(),
     submitVoiceCaptureTurn: vi.fn(),
-    cancelCompanionParticipation: vi.fn(async () => ({
-      projectionId: 'companion_participation_projection/agent_anchor_TEST/avatar_companion/turn-1',
-      agentId: baseBinding.agentId,
-      surfaceKind: 'avatar_companion',
-      profileRef: 'runtime.agent.profile/agent-test',
-      roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
-      triggerSource: 'user_explicit',
-      status: 'canceled',
-      auditRef: 'runtime.audit.companion_participation/agent_anchor_TEST',
-      conversationAnchorId: baseBinding.conversationAnchorId,
-      turnId: 'turn-1',
-    })),
-    interruptActiveTurn: vi.fn(async () => undefined),
-    requestCompanionParticipation: vi.fn(),
+    interruptConversationTurn: vi.fn(async () => undefined),
+    sendConversationText: vi.fn(async () => ({ turnId: 'turn-1' })),
     shutdown: vi.fn(),
   } as unknown as BootstrapHandle;
 }
@@ -153,11 +141,11 @@ describe('CompanionSurface - stage-first render', () => {
 
 });
 
-describe('CompanionSurface - participation controls', () => {
+describe('CompanionSurface - Conversation controls', () => {
   it('keeps the draft when canonical Conversation send rejects', async () => {
     const bootstrapHandle = {
       ...createBootstrapHandle(),
-      requestCompanionParticipation: vi.fn(async () => {
+      sendConversationText: vi.fn(async () => {
         throw new Error('canonical Conversation send rejected');
       }),
     } as unknown as BootstrapHandle;
@@ -203,8 +191,8 @@ describe('CompanionSurface - participation controls', () => {
     fireEvent.click(screen.getByLabelText('Interrupt current reply'));
 
     await waitFor(() => {
-      expect(bootstrapHandle.interruptActiveTurn).toHaveBeenCalledWith({
-        agentId: 'agent-test',
+      expect(bootstrapHandle.interruptConversationTurn).toHaveBeenCalledWith({
+        agentHandle: 'agent-test',
         conversationAnchorId: 'agent_anchor_TEST',
         turnId: 'turn-1',
         reason: 'avatar_voice_interrupt',

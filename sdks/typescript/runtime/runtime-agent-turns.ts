@@ -44,7 +44,6 @@ import type {
   NimiRuntimeAgentSessionSnapshotRequest,
   NimiRuntimeAgentTurnInterruptRequest,
   NimiRuntimeAgentTurnRequest,
-  NimiRuntimeAgentTurnVoiceRenderResult,
   NimiRuntimeAgentVoiceInputTranscriptionRequest,
   NimiRuntimeAgentTurnsModule,
 } from './runtime-agent-turn-runner-types';
@@ -55,8 +54,6 @@ const TURN_WRITE_SCOPE = 'runtime.agent.turn.write';
 const TURN_READ_SCOPE = 'runtime.agent.turn.read';
 const TURN_REQUEST_TYPE = 'runtime.agent.turn.request';
 const TURN_INTERRUPT_TYPE = 'runtime.agent.turn.interrupt';
-const TURN_VOICE_RENDER_TYPE = 'runtime.agent.turn.voice_render';
-const VOICE_RENDER_TIMEOUT_MS = 15 * 60 * 1000;
 const TURN_REQUEST_FIELDS = new Set([
   'ownerUserId',
   'runtimeSourceRef',
@@ -167,20 +164,6 @@ function normalizeTurnReasoning(value: unknown): JsonObject | undefined {
     ...(mode ? { mode } : {}),
     ...(traceMode ? { trace_mode: traceMode } : {}),
     ...(budgetTokens !== undefined ? { budget_tokens: budgetTokens } : {}),
-  };
-}
-
-function mergeRuntimeAgentTurnCallOptions(
-  left: RuntimeTypedCallOptions | undefined,
-  right: RuntimeTypedCallOptions | undefined,
-): RuntimeTypedCallOptions {
-  return {
-    ...(left ?? {}),
-    ...(right ?? {}),
-    metadata: {
-      ...(left?.metadata ?? {}),
-      ...(right?.metadata ?? {}),
-    },
   };
 }
 
@@ -451,75 +434,6 @@ function eventIsAtOrAfterLiveBoundary(event: unknown, liveStartedAtMs?: number):
   return eventMs >= liveStartedAtMs;
 }
 
-function nonNegativeTimeoutMs(value: unknown, fallback: number): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return fallback;
-  }
-  return Math.max(0, Math.floor(value));
-}
-
-type NimiRuntimeAgentVoicePlaybackConsumeEvent = NimiRuntimeAgentConsumeEvent & {
-  readonly eventName: 'runtime.agent.presentation.voice_playback_requested';
-};
-
-async function waitForVoiceRenderProjection(
-  stream: AsyncIterable<NimiRuntimeAgentConsumeEvent>,
-  input: {
-    readonly conversationAnchorId: string;
-    readonly turnId: string;
-    readonly messageId: string;
-    readonly playbackTarget: 'desktop_manual' | 'replay';
-    readonly timeoutMs: number;
-  },
-): Promise<NimiRuntimeAgentTurnVoiceRenderResult> {
-  const iterator = stream[Symbol.asyncIterator]();
-  let timeout: ReturnType<typeof setTimeout> | null = null;
-  const timeoutPromise = new Promise<'timeout'>((resolve) => {
-    timeout = setTimeout(() => resolve('timeout'), input.timeoutMs);
-  });
-  try {
-    while (true) {
-      const next = await Promise.race([
-        iterator.next(),
-        timeoutPromise,
-      ]);
-      if (next === 'timeout') {
-        return { status: 'text_only', reason: 'voice_projection_unavailable' };
-      }
-      if (next.done) {
-        return { status: 'text_only', reason: 'voice_projection_unavailable' };
-      }
-      const event = next.value;
-      if (
-        event.eventName === 'runtime.agent.presentation.voice_playback_requested'
-        && event.conversationAnchorId === input.conversationAnchorId
-        && event.turnId === input.turnId
-        && event.detail.messageId === input.messageId
-        && event.detail.playbackTarget === input.playbackTarget
-        && typeof event.detail.audioArtifactId === 'string'
-        && event.detail.audioArtifactId.trim()
-        && typeof event.detail.audioMimeType === 'string'
-        && event.detail.audioMimeType.trim().toLowerCase().startsWith('audio/')
-      ) {
-        const voiceEvent = event as NimiRuntimeAgentVoicePlaybackConsumeEvent;
-        const audioArtifactId = event.detail.audioArtifactId;
-        const audioMimeType = event.detail.audioMimeType;
-        return {
-          status: 'ready',
-          event: voiceEvent,
-          audioArtifactId,
-          audioMimeType,
-        };
-      }
-    }
-  } finally {
-    if (timeout) {
-      clearTimeout(timeout);
-    }
-    await Promise.resolve(iterator.return?.()).catch(() => undefined);
-  }
-}
-
 function mergeAsyncIterables<T>(sources: readonly AsyncIterable<T>[]): AsyncIterable<T> {
   type NextState = {
     readonly index: number;
@@ -597,7 +511,6 @@ export function createNimiRuntimeAgentTurnsModule(
               AgentEventType.HOOK,
               AgentEventType.STATE,
               AgentEventType.PRESENTATION,
-              AgentEventType.AVATAR_DEBUG,
             ],
             context: requestContext({
               runtimeAppId: runtime.appId,
@@ -659,83 +572,6 @@ export function createNimiRuntimeAgentTurnsModule(
         )),
       );
       return assertAccepted(response, TURN_INTERRUPT_TYPE);
-    },
-    async renderVoice(request) {
-      const identity = localIdentity(request);
-      const conversationAnchorId = requireConversationAnchorId(request.conversationAnchorId);
-      const turnId = optionalString(request.turnId);
-      const messageId = optionalString(request.messageId);
-      if (!turnId) {
-        runtimeAgentInputError('runtime agent voice render request requires turnId', 'select_committed_runtime_agent_message');
-      }
-      if (!messageId) {
-        runtimeAgentInputError('runtime agent voice render request requires messageId', 'select_committed_runtime_agent_message');
-      }
-      const playbackTarget = request.playbackTarget === 'replay' ? 'replay' : 'desktop_manual';
-      const subjectUserId = await resolveSubjectUserId(options, request.subjectUserId || identity.ownerUserId);
-      const appStream = await withTurnScopes(options, subjectUserId, [TURN_READ_SCOPE], async (callOptions) =>
-        runtime.appMessages.subscribeAppMessages({
-          appId: runtime.appId,
-          subjectUserId,
-          cursor: '',
-          fromAppIds: [RUNTIME_AGENT_APP_ID],
-          localAgentRef: '',
-          conversationAnchorId: '',
-        }, callOptions),
-      );
-      const agentStream = await withTurnScopes(options, subjectUserId, [AGENT_READ_SCOPE], async (callOptions) =>
-        runtime.agents.subscribeAgentEvents({
-          agentId: '',
-          cursor: '',
-          eventFilters: [AgentEventType.PRESENTATION],
-          context: requestContext({
-            runtimeAppId: runtime.appId,
-            subjectUserId,
-            ownerUserId: identity.ownerUserId,
-            runtimeSourceRef: identity.runtimeSourceRef,
-            localAgentRef: identity.localAgentRef,
-          }),
-        }, callOptions),
-      );
-      const payload = toNimiRuntimeProtoStruct({
-        conversation_anchor_id: conversationAnchorId,
-        turn_id: turnId,
-        message_id: messageId,
-        ...(optionalString(request.text) ? { text: optionalString(request.text) } : {}),
-        playback_target: playbackTarget,
-      });
-      const voiceRenderOptions = withNimiRuntimeIdempotencyMetadata(
-        undefined,
-        optionalString(request.idempotencyKey) || createNimiClientId('runtime-agent-voice-render'),
-      );
-      const response = await withTurnScopes(options, subjectUserId, [TURN_WRITE_SCOPE], async (callOptions) =>
-        runtime.appMessages.sendAppMessage({
-          fromAppId: runtime.appId,
-          toAppId: RUNTIME_AGENT_APP_ID,
-          subjectUserId,
-          messageType: TURN_VOICE_RENDER_TYPE,
-          payload,
-          requireAck: false,
-        }, mergeRuntimeAgentTurnCallOptions(voiceRenderOptions, callOptions)),
-      );
-      assertAccepted(response, TURN_VOICE_RENDER_TYPE);
-      const projectionStream = mergeAsyncIterables([
-        appMessageEvents(appStream, {
-          ...identity,
-          conversationAnchorId,
-        }),
-        agentEvents(agentStream, {
-          ...identity,
-          conversationAnchorId,
-        }),
-      ]);
-      return waitForVoiceRenderProjection(projectionStream, {
-        conversationAnchorId,
-        turnId,
-        messageId,
-        playbackTarget,
-        timeoutMs: nonNegativeTimeoutMs(request.timeoutMs, VOICE_RENDER_TIMEOUT_MS),
-      });
     },
     async transcribeVoiceInput(request: NimiRuntimeAgentVoiceInputTranscriptionRequest) {
       const identity = localIdentity(request);

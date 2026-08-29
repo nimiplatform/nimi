@@ -3,13 +3,6 @@ import { NimiElectronShellHostError } from './types.js';
 
 export type AvatarBackendKind = 'live2d' | 'vrm';
 
-export type AgentCenterScope = {
-  readonly accountId: string;
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
-};
-
 export const MAX_AVATAR_ASSET_BYTES = 524_288_000;
 export const MAX_AVATAR_ASSET_FILE_BYTES = 104_857_600;
 export const MAX_AVATAR_ASSET_FILE_COUNT = 2_048;
@@ -32,21 +25,12 @@ export function parseElectronAgentCenterPayload(
   if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport']) {
     return exactPayload(payload, {
       backendKind: parseBackendKind(payload.backendKind, command),
-      agentHandle: parseAgentHandle(payload.agentHandle, command),
     }, command);
   }
   if (command === NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport']) {
     return exactPayload(payload, {}, command);
   }
   throw invalidPayload(command, 'Agent Center command is not admitted');
-}
-
-function parseAgentHandle(value: unknown, command: string): string {
-  const handle = parseRequiredPayloadText(value, 'agentHandle', command);
-  if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(handle)) {
-    throw invalidPayload(command, 'agentHandle must be a canonical opaque Agent handle');
-  }
-  return handle;
 }
 
 function exactPayload(
@@ -60,44 +44,6 @@ function exactPayload(
     throw invalidPayload(command, `payload keys must be exactly: ${expectedKeys.join(', ')}`);
   }
   return canonical;
-}
-
-export function parseLocalAgentScope(payload: Readonly<Record<string, unknown>>, command: string): AgentCenterScope {
-  const hostScope = typeof payload.hostScope === 'string' ? payload.hostScope.trim() : '';
-  if (hostScope !== 'local-agent') {
-    throw invalidPayload(command, 'Agent Center asset custody requires hostScope=local-agent');
-  }
-  const scope = {
-    accountId: validateId(payload.accountId, 'accountId', command),
-    ownerUserId: validateId(payload.ownerUserId, 'ownerUserId', command),
-    runtimeSourceRef: validateId(payload.runtimeSourceRef, 'runtimeSourceRef', command),
-    localAgentRef: validateId(payload.localAgentRef, 'localAgentRef', command),
-  };
-  if (!scope.localAgentRef.startsWith('local-agent:')) {
-    throw invalidPayload(command, 'localAgentRef must start with local-agent:');
-  }
-  if (scope.localAgentRef === scope.runtimeSourceRef) {
-    throw invalidPayload(command, 'localAgentRef must differ from runtimeSourceRef');
-  }
-  return scope;
-}
-
-function validateId(value: unknown, field: string, command: string): string {
-  if (typeof value !== 'string' || !value.trim()) {
-    throw invalidPayload(command, `${field} is required`);
-  }
-  const normalized = value.trim();
-  if (
-    normalized.length > 256
-    || normalized === '.'
-    || normalized === '..'
-    || normalized.includes('://')
-    || !/[A-Za-z0-9]/u.test(normalized)
-    || !/^[A-Za-z0-9_.~:@+-]+$/u.test(normalized)
-  ) {
-    throw invalidPayload(command, `${field} is not an admitted opaque identifier`);
-  }
-  return normalized;
 }
 
 export function parseBackendKind(value: unknown, command: string): AvatarBackendKind {

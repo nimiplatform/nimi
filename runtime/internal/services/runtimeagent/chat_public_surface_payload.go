@@ -165,51 +165,6 @@ func decodePublicChatTurnInterruptPayload(payload any) (publicChatTurnInterruptP
 	return decoded, nil
 }
 
-func decodePublicChatTurnVoiceRenderPayload(payload any) (publicChatTurnVoiceRenderPayload, error) {
-	raw, err := decodePublicChatStructPayload(payload)
-	if err != nil {
-		return publicChatTurnVoiceRenderPayload{}, err
-	}
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.DisallowUnknownFields()
-	var decoded publicChatTurnVoiceRenderPayload
-	if err := decoder.Decode(&decoded); err != nil {
-		return publicChatTurnVoiceRenderPayload{}, grpcerr.WrapWithReasonCode(
-			codes.InvalidArgument,
-			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
-			err,
-			grpcerr.ReasonOptions{Message: "public chat voice render payload invalid"},
-		)
-	}
-	var trailing any
-	if err := decoder.Decode(&trailing); err != io.EOF {
-		if err == nil {
-			return publicChatTurnVoiceRenderPayload{}, status.Error(codes.InvalidArgument, "public chat voice render payload must contain one object")
-		}
-		return publicChatTurnVoiceRenderPayload{}, grpcerr.WrapWithReasonCode(
-			codes.InvalidArgument,
-			runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
-			err,
-			grpcerr.ReasonOptions{Message: "public chat voice render payload invalid"},
-		)
-	}
-	if strings.TrimSpace(decoded.ConversationAnchorID) == "" {
-		return publicChatTurnVoiceRenderPayload{}, status.Error(codes.InvalidArgument, "public chat voice render payload requires conversation_anchor_id")
-	}
-	if strings.TrimSpace(decoded.TurnID) == "" {
-		return publicChatTurnVoiceRenderPayload{}, status.Error(codes.InvalidArgument, "public chat voice render payload requires turn_id")
-	}
-	if strings.TrimSpace(decoded.MessageID) == "" {
-		return publicChatTurnVoiceRenderPayload{}, status.Error(codes.InvalidArgument, "public chat voice render payload requires message_id")
-	}
-	switch strings.TrimSpace(decoded.PlaybackTarget) {
-	case "", "desktop_manual", "replay":
-	default:
-		return publicChatTurnVoiceRenderPayload{}, status.Error(codes.InvalidArgument, "public chat voice render playback_target invalid")
-	}
-	return decoded, nil
-}
-
 func decodePublicChatStructPayload(payload any) ([]byte, error) {
 	structPayload, ok := payload.(interface{ AsMap() map[string]any })
 	if !ok || structPayload == nil {

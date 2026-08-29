@@ -2,8 +2,6 @@ syntax = "proto3";
 package nimi.runtime.v1;
 option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
 
-import "runtime/v1/voice.proto";
-
 // Runtime receives protected-Shell-imported bytes, validates them, and mints
 // official refs. A material is never durable candidate/preview state.
 enum AgentPresentationAssetRole {
@@ -20,13 +18,20 @@ message AgentPresentationAssetMaterial {
   string sha256 = 5;
 }
 
-// K-AGCORE-037 AgentPresentationEventFamily discriminates
-// runtime.agent.presentation.* families. Mapping is 1:1 to
-// runtime.agent.presentation.{activity_requested|motion_requested|
-// expression_requested|pose_requested|pose_cleared|lookat_requested|
-// voice_playback_requested|voice_stream_chunk_available|
-// voice_playback_terminal}.
-enum AgentPresentationEventFamily { AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED = 0; AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED = 1; AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED = 2; AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED = 3; AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED = 4; AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED = 5; AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED = 6; AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED = 7; AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE = 8; AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL = 9; }
+// K-AGCORE-037 AgentPresentationEventFamily discriminates Runtime-owned
+// activity semantics plus common Conversation voice correlation. Renderer
+// motion mapping, audio clocks, mouth/viseme parameters, and playback remain
+// outside this contract.
+enum AgentPresentationEventFamily { AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED = 0; AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED = 1; AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED = 2; AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED = 3; AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED = 4; AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED = 5; AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED = 6; AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY = 7; AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE = 8; AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL = 9; }
+
+enum AgentVoiceTimingPhase {
+  AGENT_VOICE_TIMING_PHASE_UNSPECIFIED = 0;
+  AGENT_VOICE_TIMING_PHASE_ACTIVE = 1;
+  AGENT_VOICE_TIMING_PHASE_COMPLETED = 2;
+  AGENT_VOICE_TIMING_PHASE_FAILED = 3;
+  AGENT_VOICE_TIMING_PHASE_INTERRUPTED = 4;
+  AGENT_VOICE_TIMING_PHASE_CANCELED = 5;
+}
 
 enum AgentPresentationBackendKind {
   AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED = 0;
@@ -66,8 +71,8 @@ message AgentPresentationProfilePatch {
 
 message ClearAgentPresentationProfile {}
 
-// AgentPresentationEventDetail projects runtime.agent.presentation.* events
-// per K-AGCORE-037 / presentation_envelope. `agent_id` is REQUIRED at the
+// AgentPresentationEventDetail projects bounded Runtime presentation and
+// Conversation voice-correlation events. `agent_id` is REQUIRED at the
 // AgentEvent envelope level; `conversation_anchor_id`, `turn_id`, and
 // `stream_id` are ALSO REQUIRED on every presentation event because
 // presentation is stream-scoped transient projection derived from committed
@@ -102,23 +107,19 @@ message AgentPresentationEventDetail {
   bool lookat_has_x = 54;
   bool lookat_has_y = 55;
   bool lookat_has_z = 56;
-  // voice_playback_requested / voice_stream_chunk_available /
-  // voice_playback_terminal. Non-final native stream chunks carry only
-  // transient stream identity; final replay bytes remain Runtime artifacts.
+  // Provider-neutral voice artifact/timing correlation. Decoder clocks,
+  // playback targets, transient transport refs, and lipsync parameters are
+  // Avatar/Host-owned and never enter this common projection.
+  reserved 62, 63, 67, 69, 70, 75;
+  reserved "voice_stream_id", "chunk_transport_ref", "voice_output_mode", "playback_target", "final_artifact", "final_artifact_id";
   string audio_artifact_id = 60;
   string audio_mime_type = 61;
-  string voice_stream_id = 62;
-  string chunk_transport_ref = 63;
   string message_id = 64;
-  uint64 chunk_sequence = 65;
-  bool final_chunk = 66;
-  VoiceOutputMode voice_output_mode = 67;
-  VoicePlaybackState voice_playback_state = 68;
-  string playback_target = 69;
-  bool final_artifact = 70;
+  uint64 artifact_sequence = 65;
+  bool artifact_complete = 66;
+  AgentVoiceTimingPhase voice_timing_phase = 68;
   string terminal_reason = 71;
   string reason = 72;
   int64 duration_ms = 73;
   int64 deadline_offset_ms = 74;
-  string final_artifact_id = 75;
 }

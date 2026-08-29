@@ -1,30 +1,21 @@
 import { AccountCallerMode, type AccountCaller } from '../core-generated/runtime-typed-client.js';
 import { createNimiError } from '../types/index.js';
-import {
-  NIMI_BUNDLED_AVATAR_APP_ID,
-  NIMI_BUNDLED_AVATAR_APP_INSTANCE_ID,
-  NIMI_BUNDLED_AVATAR_DEVICE_ID,
-} from './bundled-avatar-profile.generated.js';
 
 export type NimiRuntimeAccountCaller = AccountCaller;
 
 export type NimiSDKRuntimeAccountCallerProfile =
-  | 'first-party-local-app'
   | 'local-app'
   | 'third-party-nimi-app'
   | 'dev-standalone'
-  | 'desktop-account-ux'
-  | 'avatar-native-host';
+  | 'desktop-account-ux';
 
 export const NIMI_SDK_RUNTIME_ACCOUNT_CALLER_PROFILE_MODE: Readonly<Record<NimiSDKRuntimeAccountCallerProfile, AccountCallerMode | null>> = {
-  'first-party-local-app': AccountCallerMode.LOCAL_FIRST_PARTY_APP,
   // LOCAL_APP identity is inherited from the verified native carrier. It is
   // deliberately not constructible as an AccountCaller in SDK/app code.
   'local-app': null,
   'third-party-nimi-app': null,
   'dev-standalone': null,
   'desktop-account-ux': AccountCallerMode.DESKTOP_SHELL,
-  'avatar-native-host': AccountCallerMode.AVATAR_NATIVE_HOST,
 };
 
 export function resolveNimiSDKRuntimeAccountCallerProfile(
@@ -40,43 +31,6 @@ export type NimiRuntimeAccountCallerInput = {
   readonly scopes?: readonly string[];
 };
 
-export function createNimiLocalFirstPartyRuntimeAccountCaller(
-  input: NimiRuntimeAccountCallerInput,
-): NimiRuntimeAccountCaller {
-  if (input.appInstanceId === undefined || input.deviceId === undefined) {
-    requireText(input.appId, 'appId');
-    throw createNimiError({
-      message: 'Local first-party Runtime account caller identity requires explicit app instance and device identity before Runtime registration.',
-      reasonCode: 'SDK_RUNTIME_ACCOUNT_CALLER_REGISTRATION_REQUIRED',
-      actionHint: 'request_runtime_account_caller_registration',
-      source: 'sdk',
-    });
-  }
-  return createNimiRuntimeAccountCaller(
-    input,
-    AccountCallerMode.LOCAL_FIRST_PARTY_APP,
-    '',
-  );
-}
-
-/**
- * Returns the single Runtime-admitted account caller for the verified
- * independent bundled Avatar native host. No app-owned identity input is
- * accepted; Runtime validates the fixed protected profile.
- */
-export function createNimiAvatarNativeHostRuntimeAccountCaller(): NimiRuntimeAccountCaller {
-  return {
-    appId: NIMI_BUNDLED_AVATAR_APP_ID,
-    appInstanceId: NIMI_BUNDLED_AVATAR_APP_INSTANCE_ID,
-    deviceId: NIMI_BUNDLED_AVATAR_DEVICE_ID,
-    mode: AccountCallerMode.AVATAR_NATIVE_HOST,
-    scopes: [],
-    launchHostId: '',
-    launchNonce: '',
-    releaseDescriptorRef: '',
-  };
-}
-
 export function createNimiDesktopShellRuntimeAccountCaller(
   input: NimiRuntimeAccountCallerInput,
 ): NimiRuntimeAccountCaller {
@@ -84,6 +38,7 @@ export function createNimiDesktopShellRuntimeAccountCaller(
     input,
     AccountCallerMode.DESKTOP_SHELL,
     'desktop-shell',
+	'desktop-shell',
   );
 }
 
@@ -91,10 +46,11 @@ function createNimiRuntimeAccountCaller(
   input: NimiRuntimeAccountCallerInput,
   mode: AccountCallerMode,
   defaultDeviceId: string,
+	defaultInstanceSuffix: string,
 ): NimiRuntimeAccountCaller {
   const appId = requireText(input.appId, 'appId');
   const appInstanceId = requireText(
-    input.appInstanceId === undefined ? `${appId}.local-first-party` : input.appInstanceId,
+	input.appInstanceId === undefined ? `${appId}.${defaultInstanceSuffix}` : input.appInstanceId,
     'appInstanceId',
   );
   const deviceId = requireText(

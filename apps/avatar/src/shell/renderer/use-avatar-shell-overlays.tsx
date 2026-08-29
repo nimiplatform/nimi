@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
-import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/wire-types';
+import { AvatarDebugProbeKind } from './avatar-debug/contract.js';
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
 import type { AvatarAppState } from './app-shell/app-store.js';
 import type { AvatarLaunchContext } from './bridge/launch-context.js';
@@ -93,12 +93,12 @@ export function useAvatarShellOverlays(input: {
       avatar_instance_id: normalizeText(consume.avatarInstanceId)
         ?? normalizeText(launchContext?.avatarInstanceId)
         ?? 'unknown-avatar-instance',
-      agent_id: normalizeText(consume.agentId)
+      agent_handle: normalizeText(consume.agentHandle)
         ?? normalizeText(launchContext?.agentHandle)
         ?? 'unknown-agent',
     };
   }, [
-    consume.agentId,
+    consume.agentHandle,
     consume.avatarInstanceId,
     launchContext?.agentHandle,
     launchContext?.avatarInstanceId,
@@ -243,8 +243,8 @@ export function useAvatarShellOverlays(input: {
   const requestInterruptActiveTurn = useCallback(
     (source: 'context_menu'): void => {
       if (!bootstrapHandle || !companionBinding || !activeTurnCue) return;
-      void bootstrapHandle.interruptActiveTurn({
-        agentId: companionBinding.agentId,
+      void bootstrapHandle.interruptConversationTurn({
+        agentHandle: companionBinding.agentHandle,
         conversationAnchorId: companionBinding.conversationAnchorId,
         turnId: activeTurnCue.turnId,
         reason: 'user_cancel',
@@ -274,8 +274,8 @@ export function useAvatarShellOverlays(input: {
           : current,
       );
       void bootstrapHandle
-        .requestCompanionParticipation({
-          agentId: companionBinding.agentId,
+        .sendConversationText({
+          agentHandle: companionBinding.agentHandle,
           conversationAnchorId: companionBinding.conversationAnchorId,
           text,
         })
@@ -532,8 +532,6 @@ export function useAvatarShellOverlays(input: {
           <AvatarDebugOverlay
             x={debugOverlay.x}
             y={debugOverlay.y}
-            agentId={companionBinding.agentId}
-            conversationAnchorId={companionBinding.conversationAnchorId}
             avatarInstanceId={
               normalizeText(consume.avatarInstanceId)
               ?? normalizeText(launchContext?.avatarInstanceId)

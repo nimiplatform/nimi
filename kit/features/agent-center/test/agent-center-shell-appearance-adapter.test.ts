@@ -10,9 +10,7 @@ const avatarMaterial = {
   sha256: 'a'.repeat(64),
   custodyRef: 'custody:new',
 };
-const handle = `agent_ref_${'a'.repeat(43)}` as never;
-
-describe('Agent Center handle-scoped Host appearance mechanics', () => {
+describe('Agent Center identity-free Host appearance mechanics', () => {
   it('projects avatar and background selections without forwarding raw identity', async () => {
     const avatarCalls: unknown[][] = [];
     const backgroundMaterial = {
@@ -33,7 +31,7 @@ describe('Agent Center handle-scoped Host appearance mechanics', () => {
       },
     });
 
-    await expect(mechanics.selectAvatar?.('vrm', handle)).resolves.toEqual({
+    await expect(mechanics.selectAvatar?.('vrm')).resolves.toEqual({
       intent: { backendKind: 'vrm' },
       importedAssets: [{
         role: 'avatar',
@@ -53,22 +51,22 @@ describe('Agent Center handle-scoped Host appearance mechanics', () => {
         sha256: 'b'.repeat(64),
       }],
     });
-    expect(avatarCalls).toEqual([['vrm', handle]]);
+    expect(avatarCalls).toEqual([['vrm']]);
     expect(JSON.stringify(avatarCalls)).not.toMatch(/accountId|ownerUserId|runtimeSourceRef|localAgentRef/u);
-    expect(Object.keys(await mechanics.selectAvatar!('vrm', handle))).toEqual(['intent', 'importedAssets']);
+    expect(Object.keys(await mechanics.selectAvatar!('vrm'))).toEqual(['intent', 'importedAssets']);
   });
 
   it('fails closed when selection is canceled or the Host returns the wrong backend', async () => {
     const canceled = createAgentCenterShellHostMechanics({
       async pickAvatarAssetMaterial() { return null; },
     });
-    await expect(canceled.selectAvatar?.('vrm', handle)).rejects.toThrow(/canceled/u);
+    await expect(canceled.selectAvatar?.('vrm')).rejects.toThrow(/canceled/u);
 
     const mismatched = createAgentCenterShellHostMechanics({
       async pickAvatarAssetMaterial() {
         return { ...avatarMaterial, backendKind: 'live2d' as const };
       },
     });
-    await expect(mismatched.selectAvatar?.('vrm', handle)).rejects.toThrow(/wrong backend/u);
+    await expect(mismatched.selectAvatar?.('vrm')).rejects.toThrow(/wrong backend/u);
   });
 });

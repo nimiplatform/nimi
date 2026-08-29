@@ -9,7 +9,6 @@ pub enum ShellCommandBoundary {
     Diagnostics,
     Files,
     FloatingWindow,
-    LocalAgent,
     LocalAssets,
     OAuth,
     PlatformProjection,
@@ -99,6 +98,16 @@ pub const LOCAL_APP_COMMANDS: &[ShellCommandDescriptor] = &[
     ShellCommandDescriptor {
         command_name: "local_app_agent_manager_snapshot",
         rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_manager_snapshot",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_embodiment_snapshot",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_embodiment_snapshot",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
+        command_name: "local_app_embodiment_subscribe",
+        rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_embodiment_subscribe",
         boundary: ShellCommandBoundary::LocalApp,
     },
     ShellCommandDescriptor {
@@ -429,20 +438,6 @@ pub const STANDARD_LOCAL_ASSET_COMMANDS: &[ShellCommandDescriptor] = &[ShellComm
     boundary: ShellCommandBoundary::LocalAssets,
 }];
 
-pub const STANDARD_LOCAL_AGENT_COMMANDS: &[ShellCommandDescriptor] = &[
-    ShellCommandDescriptor {
-        command_name: "local_agent_identity",
-        rust_path: "nimi_shell_tauri::capabilities::local_agent::local_agent_identity",
-        boundary: ShellCommandBoundary::LocalAgent,
-    },
-    ShellCommandDescriptor {
-        command_name: "local_agent_runtime_trusted_caller",
-        rust_path:
-            "nimi_shell_tauri::capabilities::local_agent::local_agent_runtime_trusted_caller",
-        boundary: ShellCommandBoundary::LocalAgent,
-    },
-];
-
 pub const STANDARD_AVATAR_COMMANDS: &[ShellCommandDescriptor] = &[ShellCommandDescriptor {
     command_name: "avatar_asset_resolve",
     rust_path: "nimi_shell_tauri::capabilities::avatar::avatar_asset_resolve",
@@ -527,7 +522,6 @@ pub fn all_shell_commands() -> Vec<ShellCommandDescriptor> {
     commands.extend_from_slice(STANDARD_SHELL_UI_COMMANDS);
     commands.extend_from_slice(STANDARD_FILE_COMMANDS);
     commands.extend_from_slice(STANDARD_LOCAL_ASSET_COMMANDS);
-    commands.extend_from_slice(STANDARD_LOCAL_AGENT_COMMANDS);
     commands.extend_from_slice(STANDARD_AVATAR_COMMANDS);
     commands.extend_from_slice(STANDARD_AGENT_CENTER_COMMANDS);
     commands.extend_from_slice(STANDARD_PLATFORM_PROJECTION_COMMANDS);
@@ -558,6 +552,8 @@ macro_rules! nimi_shell_tauri_local_app_standard_shell_handler {
             $crate::capabilities::local_app::local_app_shared_agent_ai_config_overwrite,
             $crate::capabilities::local_app::local_app_shared_agent_ai_config_local_options,
             $crate::capabilities::local_app::local_app_agent_manager_snapshot,
+            $crate::capabilities::local_app::local_app_embodiment_snapshot,
+            $crate::capabilities::local_app::local_app_embodiment_subscribe,
             $crate::capabilities::local_app::local_app_agent_autonomy_snapshot,
             $crate::capabilities::local_app::local_app_agent_update_autonomy,
             $crate::capabilities::local_app::local_app_agent_presentation_snapshot,
@@ -610,8 +606,6 @@ macro_rules! nimi_shell_tauri_runtime_bridge_handler {
             $crate::capabilities::shell_ui::start_window_drag,
             $crate::capabilities::shell_ui::focus_main_window,
             $crate::capabilities::local_assets::local_assets_resolve_url,
-            $crate::capabilities::local_agent::local_agent_identity,
-            $crate::capabilities::local_agent::local_agent_runtime_trusted_caller,
             $crate::capabilities::avatar::avatar_asset_resolve,
             $crate::capabilities::agent_center::agent_center_avatar_asset_import,
             $crate::capabilities::agent_center::agent_center_background_import,
@@ -663,8 +657,6 @@ macro_rules! nimi_shell_tauri_oauth_runtime_bridge_handler {
             $crate::capabilities::shell_ui::start_window_drag,
             $crate::capabilities::shell_ui::focus_main_window,
             $crate::capabilities::local_assets::local_assets_resolve_url,
-            $crate::capabilities::local_agent::local_agent_identity,
-            $crate::capabilities::local_agent::local_agent_runtime_trusted_caller,
             $crate::capabilities::avatar::avatar_asset_resolve,
             $crate::capabilities::agent_center::agent_center_avatar_asset_import,
             $crate::capabilities::agent_center::agent_center_background_import,

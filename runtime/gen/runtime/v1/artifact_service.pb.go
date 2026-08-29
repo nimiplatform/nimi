@@ -24,9 +24,8 @@ const (
 type ReadArtifactBytesRequest struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Runtime-owned, opaque, globally-unique artifact identity. Required.
-	// Sourced from runtime emit events (e.g.
-	// voice_playback_requested.audio_artifact_id,
-	// lipsync_frame_batch.audio_artifact_id).
+	// Sourced from canonical Conversation or other typed Runtime artifact
+	// projections.
 	ArtifactId    string `protobuf:"bytes,1,opt,name=artifact_id,json=artifactId,proto3" json:"artifact_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache

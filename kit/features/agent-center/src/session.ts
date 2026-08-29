@@ -884,7 +884,7 @@ export function createAppAgentCenterSession(
     },
     ...(input.hostMechanics?.selectAvatar ? {
       async replaceAvatar(kind: 'live2d' | 'vrm') {
-        const selection = await input.hostMechanics!.selectAvatar!(kind, handle);
+        const selection = await input.hostMechanics!.selectAvatar!(kind);
         assertHostAppearanceSelection(selection, 'avatar');
         if (selection.intent.backendKind !== kind) {
           throw new Error('Agent Center Host avatar selection backend does not match the requested backend.');

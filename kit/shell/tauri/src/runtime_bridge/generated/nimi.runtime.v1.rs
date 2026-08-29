@@ -2459,7 +2459,6 @@ impl PresenceVerificationMethod {
 #[repr(i32)]
 pub enum AccountCallerMode {
     Unspecified = 0,
-    LocalFirstPartyApp = 1,
     DesktopShell = 2,
     AvatarNativeHost = 3,
     WebCloud = 5,
@@ -2474,7 +2473,6 @@ impl AccountCallerMode {
     pub fn as_str_name(&self) -> &'static str {
         match self {
             Self::Unspecified => "ACCOUNT_CALLER_MODE_UNSPECIFIED",
-            Self::LocalFirstPartyApp => "ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP",
             Self::DesktopShell => "ACCOUNT_CALLER_MODE_DESKTOP_SHELL",
             Self::AvatarNativeHost => "ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST",
             Self::WebCloud => "ACCOUNT_CALLER_MODE_WEB_CLOUD",
@@ -2486,7 +2484,6 @@ impl AccountCallerMode {
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
             "ACCOUNT_CALLER_MODE_UNSPECIFIED" => Some(Self::Unspecified),
-            "ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP" => Some(Self::LocalFirstPartyApp),
             "ACCOUNT_CALLER_MODE_DESKTOP_SHELL" => Some(Self::DesktopShell),
             "ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST" => Some(Self::AvatarNativeHost),
             "ACCOUNT_CALLER_MODE_WEB_CLOUD" => Some(Self::WebCloud),
@@ -4065,7 +4062,7 @@ impl VoiceCreationSource {
 /// VoiceOutputMode is the positive, authoritative selected output-truth axis for
 /// speech execution and agent voice projection (K-VOICE-019, K-STREAM-004,
 /// K-AGCORE-133; tokens: tables/voice-enums.yaml output_modes). It is distinct
-/// from ExecutionMode (sync|stream|async_job) and from voice playback lifecycle.
+/// from ExecutionMode (sync|stream|async_job) and from App/Host-local playback.
 /// NATIVE_STREAM and SIMULATED_STREAM are the only values reachable at the
 /// SPEECH_SYNTHESIZE scenario-stream layer; BATCH_FINAL_ARTIFACT and TEXT_ONLY are
 /// additionally reachable as Runtime Agent orchestration outcomes. Consumers must
@@ -4102,47 +4099,6 @@ impl VoiceOutputMode {
             "VOICE_OUTPUT_MODE_SIMULATED_STREAM" => Some(Self::SimulatedStream),
             "VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT" => Some(Self::BatchFinalArtifact),
             "VOICE_OUTPUT_MODE_TEXT_ONLY" => Some(Self::TextOnly),
-            _ => None,
-        }
-    }
-}
-/// VoicePlaybackState is the runtime-owned lifecycle axis for agent voice
-/// playback (K-VOICE-019). It is deliberately separate from VoiceOutputMode:
-/// failed/interrupted/canceled are terminal outcomes, not output modes.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum VoicePlaybackState {
-    Unspecified = 0,
-    Active = 1,
-    Completed = 2,
-    Failed = 3,
-    Interrupted = 4,
-    Canceled = 5,
-}
-impl VoicePlaybackState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "VOICE_PLAYBACK_STATE_UNSPECIFIED",
-            Self::Active => "VOICE_PLAYBACK_STATE_ACTIVE",
-            Self::Completed => "VOICE_PLAYBACK_STATE_COMPLETED",
-            Self::Failed => "VOICE_PLAYBACK_STATE_FAILED",
-            Self::Interrupted => "VOICE_PLAYBACK_STATE_INTERRUPTED",
-            Self::Canceled => "VOICE_PLAYBACK_STATE_CANCELED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "VOICE_PLAYBACK_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "VOICE_PLAYBACK_STATE_ACTIVE" => Some(Self::Active),
-            "VOICE_PLAYBACK_STATE_COMPLETED" => Some(Self::Completed),
-            "VOICE_PLAYBACK_STATE_FAILED" => Some(Self::Failed),
-            "VOICE_PLAYBACK_STATE_INTERRUPTED" => Some(Self::Interrupted),
-            "VOICE_PLAYBACK_STATE_CANCELED" => Some(Self::Canceled),
             _ => None,
         }
     }
@@ -12934,8 +12890,8 @@ pub struct AgentPresentationProfilePatch {
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ClearAgentPresentationProfile {}
-/// AgentPresentationEventDetail projects runtime.agent.presentation.\* events
-/// per K-AGCORE-037 / presentation_envelope. `agent_id` is REQUIRED at the
+/// AgentPresentationEventDetail projects bounded Runtime presentation and
+/// Conversation voice-correlation events. `agent_id` is REQUIRED at the
 /// AgentEvent envelope level; `conversation_anchor_id`, `turn_id`, and
 /// `stream_id` are ALSO REQUIRED on every presentation event because
 /// presentation is stream-scoped transient projection derived from committed
@@ -12994,31 +12950,18 @@ pub struct AgentPresentationEventDetail {
     pub lookat_has_y: bool,
     #[prost(bool, tag = "56")]
     pub lookat_has_z: bool,
-    /// voice_playback_requested / voice_stream_chunk_available /
-    /// voice_playback_terminal. Non-final native stream chunks carry only
-    /// transient stream identity; final replay bytes remain Runtime artifacts.
     #[prost(string, tag = "60")]
     pub audio_artifact_id: ::prost::alloc::string::String,
     #[prost(string, tag = "61")]
     pub audio_mime_type: ::prost::alloc::string::String,
-    #[prost(string, tag = "62")]
-    pub voice_stream_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "63")]
-    pub chunk_transport_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "64")]
     pub message_id: ::prost::alloc::string::String,
     #[prost(uint64, tag = "65")]
-    pub chunk_sequence: u64,
+    pub artifact_sequence: u64,
     #[prost(bool, tag = "66")]
-    pub final_chunk: bool,
-    #[prost(enumeration = "VoiceOutputMode", tag = "67")]
-    pub voice_output_mode: i32,
-    #[prost(enumeration = "VoicePlaybackState", tag = "68")]
-    pub voice_playback_state: i32,
-    #[prost(string, tag = "69")]
-    pub playback_target: ::prost::alloc::string::String,
-    #[prost(bool, tag = "70")]
-    pub final_artifact: bool,
+    pub artifact_complete: bool,
+    #[prost(enumeration = "AgentVoiceTimingPhase", tag = "68")]
+    pub voice_timing_phase: i32,
     #[prost(string, tag = "71")]
     pub terminal_reason: ::prost::alloc::string::String,
     #[prost(string, tag = "72")]
@@ -13027,8 +12970,6 @@ pub struct AgentPresentationEventDetail {
     pub duration_ms: i64,
     #[prost(int64, tag = "74")]
     pub deadline_offset_ms: i64,
-    #[prost(string, tag = "75")]
-    pub final_artifact_id: ::prost::alloc::string::String,
 }
 /// Runtime receives protected-Shell-imported bytes, validates them, and mints
 /// official refs. A material is never durable candidate/preview state.
@@ -13061,12 +13002,10 @@ impl AgentPresentationAssetRole {
         }
     }
 }
-/// K-AGCORE-037 AgentPresentationEventFamily discriminates
-/// runtime.agent.presentation.\* families. Mapping is 1:1 to
-/// runtime.agent.presentation.{activity_requested|motion_requested|
-/// expression_requested|pose_requested|pose_cleared|lookat_requested|
-/// voice_playback_requested|voice_stream_chunk_available|
-/// voice_playback_terminal}.
+/// K-AGCORE-037 AgentPresentationEventFamily discriminates Runtime-owned
+/// activity semantics plus common Conversation voice correlation. Renderer
+/// motion mapping, audio clocks, mouth/viseme parameters, and playback remain
+/// outside this contract.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AgentPresentationEventFamily {
@@ -13077,9 +13016,9 @@ pub enum AgentPresentationEventFamily {
     PoseRequested = 4,
     PoseCleared = 5,
     LookatRequested = 6,
-    VoicePlaybackRequested = 7,
-    VoiceStreamChunkAvailable = 8,
-    VoicePlaybackTerminal = 9,
+    VoiceTimingReady = 7,
+    VoiceArtifactAvailable = 8,
+    VoiceTimingTerminal = 9,
 }
 impl AgentPresentationEventFamily {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -13099,14 +13038,14 @@ impl AgentPresentationEventFamily {
             Self::PoseRequested => "AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED",
             Self::PoseCleared => "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED",
             Self::LookatRequested => "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED",
-            Self::VoicePlaybackRequested => {
-                "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED"
+            Self::VoiceTimingReady => {
+                "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY"
             }
-            Self::VoiceStreamChunkAvailable => {
-                "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE"
+            Self::VoiceArtifactAvailable => {
+                "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE"
             }
-            Self::VoicePlaybackTerminal => {
-                "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL"
+            Self::VoiceTimingTerminal => {
+                "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL"
             }
         }
     }
@@ -13128,15 +13067,53 @@ impl AgentPresentationEventFamily {
             "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED" => {
                 Some(Self::LookatRequested)
             }
-            "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED" => {
-                Some(Self::VoicePlaybackRequested)
+            "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY" => {
+                Some(Self::VoiceTimingReady)
             }
-            "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE" => {
-                Some(Self::VoiceStreamChunkAvailable)
+            "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE" => {
+                Some(Self::VoiceArtifactAvailable)
             }
-            "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL" => {
-                Some(Self::VoicePlaybackTerminal)
+            "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL" => {
+                Some(Self::VoiceTimingTerminal)
             }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AgentVoiceTimingPhase {
+    Unspecified = 0,
+    Active = 1,
+    Completed = 2,
+    Failed = 3,
+    Interrupted = 4,
+    Canceled = 5,
+}
+impl AgentVoiceTimingPhase {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AGENT_VOICE_TIMING_PHASE_UNSPECIFIED",
+            Self::Active => "AGENT_VOICE_TIMING_PHASE_ACTIVE",
+            Self::Completed => "AGENT_VOICE_TIMING_PHASE_COMPLETED",
+            Self::Failed => "AGENT_VOICE_TIMING_PHASE_FAILED",
+            Self::Interrupted => "AGENT_VOICE_TIMING_PHASE_INTERRUPTED",
+            Self::Canceled => "AGENT_VOICE_TIMING_PHASE_CANCELED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AGENT_VOICE_TIMING_PHASE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AGENT_VOICE_TIMING_PHASE_ACTIVE" => Some(Self::Active),
+            "AGENT_VOICE_TIMING_PHASE_COMPLETED" => Some(Self::Completed),
+            "AGENT_VOICE_TIMING_PHASE_FAILED" => Some(Self::Failed),
+            "AGENT_VOICE_TIMING_PHASE_INTERRUPTED" => Some(Self::Interrupted),
+            "AGENT_VOICE_TIMING_PHASE_CANCELED" => Some(Self::Canceled),
             _ => None,
         }
     }
@@ -14264,284 +14241,6 @@ impl AgentConversationSummaryStatus {
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CompanionParticipationProjection {
-    #[prost(string, tag = "1")]
-    pub projection_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "3")]
-    pub surface_kind: i32,
-    #[prost(string, tag = "4")]
-    pub profile_ref: ::prost::alloc::string::String,
-    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "6")]
-    pub trigger_source: i32,
-    #[prost(enumeration = "CompanionParticipationStatus", tag = "7")]
-    pub status: i32,
-    #[prost(string, tag = "8")]
-    pub candidate_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub commit_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub refusal_reason: ::prost::alloc::string::String,
-    #[prost(string, tag = "11")]
-    pub presentation_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "12")]
-    pub audit_ref: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "13")]
-    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "14")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "15")]
-    pub turn_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "16")]
-    pub stream_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetCompanionParticipationProjectionRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "4")]
-    pub surface_kind: i32,
-    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "5")]
-    pub trigger_source: i32,
-    #[prost(string, tag = "6")]
-    pub profile_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub request_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetCompanionParticipationProjectionResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<CompanionParticipationProjection>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RequestCompanionParticipationRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "4")]
-    pub surface_kind: i32,
-    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "5")]
-    pub trigger_source: i32,
-    #[prost(string, tag = "6")]
-    pub profile_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub request_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub text: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub thread_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "11")]
-    pub world_id: ::prost::alloc::string::String,
-    #[prost(int32, tag = "12")]
-    pub max_output_tokens: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RequestCompanionParticipationResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<CompanionParticipationProjection>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CancelCompanionParticipationRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "4")]
-    pub surface_kind: i32,
-    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "5")]
-    pub trigger_source: i32,
-    #[prost(string, tag = "6")]
-    pub profile_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub projection_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub turn_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub reason: ::prost::alloc::string::String,
-    #[prost(string, tag = "11")]
-    pub request_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct CancelCompanionParticipationResponse {
-    #[prost(message, optional, tag = "1")]
-    pub projection: ::core::option::Option<CompanionParticipationProjection>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct OpenCompanionParticipationReplayRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "CompanionParticipationSurfaceKind", tag = "4")]
-    pub surface_kind: i32,
-    #[prost(enumeration = "CompanionParticipationTriggerSource", tag = "5")]
-    pub trigger_source: i32,
-    #[prost(string, tag = "6")]
-    pub profile_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub projection_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub request_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct OpenCompanionParticipationReplayResponse {
-    #[prost(string, tag = "1")]
-    pub replay_ref: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub projection: ::core::option::Option<CompanionParticipationProjection>,
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum CompanionParticipationSurfaceKind {
-    Unspecified = 0,
-    AvatarCompanion = 1,
-    DesktopCompanionPanel = 2,
-    AvatarDebugWorkbench = 3,
-}
-impl CompanionParticipationSurfaceKind {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "COMPANION_PARTICIPATION_SURFACE_KIND_UNSPECIFIED",
-            Self::AvatarCompanion => {
-                "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION"
-            }
-            Self::DesktopCompanionPanel => {
-                "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL"
-            }
-            Self::AvatarDebugWorkbench => {
-                "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH"
-            }
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "COMPANION_PARTICIPATION_SURFACE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION" => {
-                Some(Self::AvatarCompanion)
-            }
-            "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL" => {
-                Some(Self::DesktopCompanionPanel)
-            }
-            "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH" => {
-                Some(Self::AvatarDebugWorkbench)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum CompanionParticipationTriggerSource {
-    Unspecified = 0,
-    UserExplicit = 1,
-    ScheduledProactive = 2,
-    DomainEvent = 3,
-}
-impl CompanionParticipationTriggerSource {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "COMPANION_PARTICIPATION_TRIGGER_SOURCE_UNSPECIFIED",
-            Self::UserExplicit => "COMPANION_PARTICIPATION_TRIGGER_SOURCE_USER_EXPLICIT",
-            Self::ScheduledProactive => {
-                "COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE"
-            }
-            Self::DomainEvent => "COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "COMPANION_PARTICIPATION_TRIGGER_SOURCE_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "COMPANION_PARTICIPATION_TRIGGER_SOURCE_USER_EXPLICIT" => {
-                Some(Self::UserExplicit)
-            }
-            "COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE" => {
-                Some(Self::ScheduledProactive)
-            }
-            "COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT" => {
-                Some(Self::DomainEvent)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum CompanionParticipationStatus {
-    Unspecified = 0,
-    Idle = 1,
-    AdmissionPending = 2,
-    Blocked = 3,
-    Running = 4,
-    CandidateReady = 5,
-    CommittedByOwner = 6,
-    Failed = 7,
-    Canceled = 8,
-}
-impl CompanionParticipationStatus {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "COMPANION_PARTICIPATION_STATUS_UNSPECIFIED",
-            Self::Idle => "COMPANION_PARTICIPATION_STATUS_IDLE",
-            Self::AdmissionPending => "COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING",
-            Self::Blocked => "COMPANION_PARTICIPATION_STATUS_BLOCKED",
-            Self::Running => "COMPANION_PARTICIPATION_STATUS_RUNNING",
-            Self::CandidateReady => "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY",
-            Self::CommittedByOwner => "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER",
-            Self::Failed => "COMPANION_PARTICIPATION_STATUS_FAILED",
-            Self::Canceled => "COMPANION_PARTICIPATION_STATUS_CANCELED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "COMPANION_PARTICIPATION_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
-            "COMPANION_PARTICIPATION_STATUS_IDLE" => Some(Self::Idle),
-            "COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING" => {
-                Some(Self::AdmissionPending)
-            }
-            "COMPANION_PARTICIPATION_STATUS_BLOCKED" => Some(Self::Blocked),
-            "COMPANION_PARTICIPATION_STATUS_RUNNING" => Some(Self::Running),
-            "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY" => {
-                Some(Self::CandidateReady)
-            }
-            "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER" => {
-                Some(Self::CommittedByOwner)
-            }
-            "COMPANION_PARTICIPATION_STATUS_FAILED" => Some(Self::Failed),
-            "COMPANION_PARTICIPATION_STATUS_CANCELED" => Some(Self::Canceled),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAgentCapabilityParticipation {
     #[prost(enumeration = "LocalAgentCapabilityParticipationRole", tag = "1")]
     pub role: i32,
@@ -14912,7 +14611,7 @@ pub struct LocalAppEmbodimentVoiceTiming {
     #[prost(string, tag = "4")]
     pub turn_ref: ::prost::alloc::string::String,
     #[prost(string, tag = "5")]
-    pub voice_ref: ::prost::alloc::string::String,
+    pub correlation_ref: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppEmbodimentSnapshot {
@@ -17336,76 +17035,6 @@ pub struct AgentProactiveInterruptibilityProjection {
     #[prost(string, repeated, tag = "12")]
     pub unsupported_fields: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AvatarDebugProbeRequestEnvelope {
-    #[prost(string, tag = "1")]
-    pub probe_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "AvatarDebugProbeKind", tag = "4")]
-    pub probe_kind: i32,
-    #[prost(message, optional, tag = "5")]
-    pub requested_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(enumeration = "AvatarDebugRequestedBy", tag = "6")]
-    pub requested_by: i32,
-    #[prost(string, tag = "7")]
-    pub turn_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub stream_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub avatar_instance_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "10")]
-    pub runtime_replay_ref: ::prost::alloc::string::String,
-    #[prost(bool, tag = "11")]
-    pub replay_requested: bool,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AvatarDebugProbeResultEnvelope {
-    #[prost(string, tag = "1")]
-    pub probe_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "AvatarDebugProbeKind", tag = "4")]
-    pub probe_kind: i32,
-    #[prost(enumeration = "AvatarDebugProbeStatus", tag = "5")]
-    pub status: i32,
-    #[prost(message, optional, tag = "6")]
-    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, repeated, tag = "7")]
-    pub evidence_refs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "8")]
-    pub reason_code: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub result_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AvatarDebugReplayRef {
-    #[prost(string, tag = "1")]
-    pub probe_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub replay_ref: ::prost::alloc::string::String,
-    #[prost(enumeration = "AvatarDebugReplayRedactionState", tag = "3")]
-    pub redaction_state: i32,
-    #[prost(enumeration = "AvatarDebugReplayVisibility", tag = "4")]
-    pub visibility: i32,
-    #[prost(message, optional, tag = "5")]
-    pub linked_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AgentAvatarDebugEventDetail {
-    #[prost(enumeration = "AvatarDebugEventFamily", tag = "1")]
-    pub family: i32,
-    #[prost(message, optional, tag = "2")]
-    pub request: ::core::option::Option<AvatarDebugProbeRequestEnvelope>,
-    #[prost(message, optional, tag = "3")]
-    pub result: ::core::option::Option<AvatarDebugProbeResultEnvelope>,
-    #[prost(message, optional, tag = "4")]
-    pub replay: ::core::option::Option<AvatarDebugReplayRef>,
-}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AgentEvent {
     #[prost(enumeration = "AgentEventType", tag = "1")]
@@ -17422,7 +17051,7 @@ pub struct AgentEvent {
     pub owner_user_id: ::prost::alloc::string::String,
     #[prost(string, tag = "22")]
     pub runtime_source_ref: ::prost::alloc::string::String,
-    #[prost(oneof = "agent_event::Detail", tags = "10, 11, 13, 15, 16, 17, 18")]
+    #[prost(oneof = "agent_event::Detail", tags = "10, 11, 13, 15, 16, 18")]
     pub detail: ::core::option::Option<agent_event::Detail>,
 }
 /// Nested message and enum types in `AgentEvent`.
@@ -17439,8 +17068,6 @@ pub mod agent_event {
         State(super::AgentStateEventDetail),
         #[prost(message, tag = "16")]
         Presentation(super::AgentPresentationEventDetail),
-        #[prost(message, tag = "17")]
-        AvatarDebug(super::AgentAvatarDebugEventDetail),
         #[prost(message, tag = "18")]
         Proactive(super::AgentProactiveEventDetail),
     }
@@ -17675,43 +17302,6 @@ pub struct SubscribeAgentEventsRequest {
     #[prost(enumeration = "AgentEventType", repeated, tag = "4")]
     pub event_filters: ::prost::alloc::vec::Vec<i32>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SubscribeAgentVoiceStreamRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub voice_stream_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub turn_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub agent_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct InterruptAgentVoicePlaybackRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub voice_stream_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub turn_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub reason: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct InterruptAgentVoicePlaybackResponse {
-    #[prost(string, tag = "1")]
-    pub voice_stream_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "VoiceOutputMode", tag = "2")]
-    pub voice_output_mode: i32,
-    #[prost(enumeration = "VoicePlaybackState", tag = "3")]
-    pub voice_playback_state: i32,
-    #[prost(string, tag = "4")]
-    pub terminal_reason: ::prost::alloc::string::String,
-}
 /// First-party recorded voice ingress. Runtime validates the selected
 /// LocalAgent Conversation and executes audio.transcribe through the singular
 /// shared LocalAgent AIConfig before returning typed text to the caller. The
@@ -17741,37 +17331,6 @@ pub struct TranscribeAgentVoiceInputResponse {
     pub job_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub trace_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AgentVoiceStreamEvent {
-    #[prost(string, tag = "1")]
-    pub voice_stream_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub turn_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub stream_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub message_id: ::prost::alloc::string::String,
-    #[prost(uint64, tag = "6")]
-    pub chunk_sequence: u64,
-    #[prost(bytes = "vec", tag = "7")]
-    pub chunk: ::prost::alloc::vec::Vec<u8>,
-    #[prost(string, tag = "8")]
-    pub mime_type: ::prost::alloc::string::String,
-    #[prost(enumeration = "VoiceOutputMode", tag = "9")]
-    pub voice_output_mode: i32,
-    #[prost(string, tag = "10")]
-    pub playback_target: ::prost::alloc::string::String,
-    #[prost(bool, tag = "11")]
-    pub terminal: bool,
-    #[prost(enumeration = "VoicePlaybackState", tag = "12")]
-    pub voice_playback_state: i32,
-    #[prost(string, tag = "13")]
-    pub terminal_reason: ::prost::alloc::string::String,
-    #[prost(bool, tag = "14")]
-    pub replay_truncated: bool,
 }
 /// ConversationAnchor is Runtime's continuity token for the one conversation
 /// transcript owned by a LocalAgent. The first authorized open creates it and
@@ -18402,64 +17961,6 @@ pub struct GetConversationAnchorSnapshotResponse {
     #[prost(message, optional, tag = "1")]
     pub snapshot: ::core::option::Option<ConversationAnchorSnapshot>,
 }
-/// K-AGCORE-138 AvatarLiveInstanceBinding boundary: runtime-owned recovery
-/// binding from an Avatar window instance to an already-open ConversationAnchor.
-/// Desktop may register this binding after opening an anchor; Avatar may resolve
-/// it after validating launch `agent_id` through Runtime/SDK. This binding is
-/// not launch payload authority and MUST NOT create anchors.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct AvatarLiveInstanceBinding {
-    #[prost(string, tag = "1")]
-    pub avatar_instance_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub subject_user_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "5")]
-    pub registered_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(message, optional, tag = "6")]
-    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(string, tag = "20")]
-    pub local_agent_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "21")]
-    pub owner_user_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "22")]
-    pub runtime_source_ref: ::prost::alloc::string::String,
-    #[prost(string, tag = "23")]
-    pub caller_app_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RegisterAvatarLiveInstanceBindingRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub avatar_instance_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct RegisterAvatarLiveInstanceBindingResponse {
-    #[prost(message, optional, tag = "1")]
-    pub binding: ::core::option::Option<AvatarLiveInstanceBinding>,
-    #[prost(message, optional, tag = "2")]
-    pub snapshot: ::core::option::Option<ConversationAnchorSnapshot>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ResolveAvatarLiveInstanceBindingRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub avatar_instance_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ResolveAvatarLiveInstanceBindingResponse {
-    #[prost(message, optional, tag = "1")]
-    pub binding: ::core::option::Option<AvatarLiveInstanceBinding>,
-    #[prost(message, optional, tag = "2")]
-    pub snapshot: ::core::option::Option<ConversationAnchorSnapshot>,
-}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetPublicChatSessionSnapshotRequest {
     #[prost(message, optional, tag = "1")]
@@ -18540,112 +18041,6 @@ pub struct ListAgentConversationSummariesResponse {
     pub summaries: ::prost::alloc::vec::Vec<AgentConversationSummary>,
     #[prost(string, tag = "2")]
     pub next_page_token: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAvatarDebugSnapshotRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetAvatarDebugSnapshotResponse {
-    #[prost(string, tag = "1")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "3")]
-    pub probe_results: ::prost::alloc::vec::Vec<AvatarDebugProbeResultEnvelope>,
-    #[prost(message, repeated, tag = "4")]
-    pub replay_refs: ::prost::alloc::vec::Vec<AvatarDebugReplayRef>,
-    #[prost(message, optional, tag = "5")]
-    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RequestAvatarDebugProbeRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "AvatarDebugProbeKind", tag = "4")]
-    pub probe_kind: i32,
-    #[prost(enumeration = "AvatarDebugRequestedBy", tag = "5")]
-    pub requested_by: i32,
-    #[prost(string, tag = "6")]
-    pub probe_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub turn_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub stream_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "9")]
-    pub avatar_instance_id: ::prost::alloc::string::String,
-    #[prost(bool, tag = "10")]
-    pub replay_requested: bool,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct RequestAvatarDebugProbeResponse {
-    #[prost(message, optional, tag = "1")]
-    pub request: ::core::option::Option<AvatarDebugProbeRequestEnvelope>,
-    #[prost(message, optional, tag = "2")]
-    pub result: ::core::option::Option<AvatarDebugProbeResultEnvelope>,
-    #[prost(message, optional, tag = "3")]
-    pub replay_ref: ::core::option::Option<AvatarDebugReplayRef>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SubmitAvatarDebugProbeResultRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub result: ::core::option::Option<AvatarDebugProbeResultEnvelope>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SubmitAvatarDebugProbeResultResponse {
-    #[prost(message, optional, tag = "1")]
-    pub result: ::core::option::Option<AvatarDebugProbeResultEnvelope>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ListAvatarDebugProbeResultsRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "AvatarDebugProbeKind", tag = "4")]
-    pub probe_kind: i32,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ListAvatarDebugProbeResultsResponse {
-    #[prost(message, repeated, tag = "1")]
-    pub probe_results: ::prost::alloc::vec::Vec<AvatarDebugProbeResultEnvelope>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAvatarDebugReplayRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub probe_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub conversation_anchor_id: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetAvatarDebugReplayResponse {
-    #[prost(message, optional, tag = "1")]
-    pub request: ::core::option::Option<AvatarDebugProbeRequestEnvelope>,
-    #[prost(message, optional, tag = "2")]
-    pub result: ::core::option::Option<AvatarDebugProbeResultEnvelope>,
-    #[prost(message, optional, tag = "3")]
-    pub replay_ref: ::core::option::Option<AvatarDebugReplayRef>,
 }
 /// Runtime projects exactly one shared LocalAgent subsystem AIConfig. These
 /// requests carry only authenticated App/account scope; runtime_source_ref and
@@ -19279,7 +18674,6 @@ pub enum AgentEventType {
     Budget = 4,
     State = 6,
     Presentation = 7,
-    AvatarDebug = 8,
     Proactive = 9,
 }
 impl AgentEventType {
@@ -19295,7 +18689,6 @@ impl AgentEventType {
             Self::Budget => "AGENT_EVENT_TYPE_BUDGET",
             Self::State => "AGENT_EVENT_TYPE_STATE",
             Self::Presentation => "AGENT_EVENT_TYPE_PRESENTATION",
-            Self::AvatarDebug => "AGENT_EVENT_TYPE_AVATAR_DEBUG",
             Self::Proactive => "AGENT_EVENT_TYPE_PROACTIVE",
         }
     }
@@ -19308,7 +18701,6 @@ impl AgentEventType {
             "AGENT_EVENT_TYPE_BUDGET" => Some(Self::Budget),
             "AGENT_EVENT_TYPE_STATE" => Some(Self::State),
             "AGENT_EVENT_TYPE_PRESENTATION" => Some(Self::Presentation),
-            "AGENT_EVENT_TYPE_AVATAR_DEBUG" => Some(Self::AvatarDebug),
             "AGENT_EVENT_TYPE_PROACTIVE" => Some(Self::Proactive),
             _ => None,
         }
@@ -19704,233 +19096,6 @@ impl AgentProactiveSuppressionReason {
             }
             "AGENT_PROACTIVE_SUPPRESSION_REASON_MISSING_AUDIT_REF" => {
                 Some(Self::MissingAuditRef)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AvatarDebugProbeKind {
-    Unspecified = 0,
-    PackageValidation = 1,
-    LaunchReadiness = 2,
-    BackendLoad = 3,
-    CapabilityProfile = 4,
-    RouteSupportMatrix = 5,
-    GeneratedMotion = 6,
-    EmotionExpression = 7,
-    SpeechLipsync = 8,
-    WindowHitRegion = 9,
-}
-impl AvatarDebugProbeKind {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AVATAR_DEBUG_PROBE_KIND_UNSPECIFIED",
-            Self::PackageValidation => "AVATAR_DEBUG_PROBE_KIND_PACKAGE_VALIDATION",
-            Self::LaunchReadiness => "AVATAR_DEBUG_PROBE_KIND_LAUNCH_READINESS",
-            Self::BackendLoad => "AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD",
-            Self::CapabilityProfile => "AVATAR_DEBUG_PROBE_KIND_CAPABILITY_PROFILE",
-            Self::RouteSupportMatrix => "AVATAR_DEBUG_PROBE_KIND_ROUTE_SUPPORT_MATRIX",
-            Self::GeneratedMotion => "AVATAR_DEBUG_PROBE_KIND_GENERATED_MOTION",
-            Self::EmotionExpression => "AVATAR_DEBUG_PROBE_KIND_EMOTION_EXPRESSION",
-            Self::SpeechLipsync => "AVATAR_DEBUG_PROBE_KIND_SPEECH_LIPSYNC",
-            Self::WindowHitRegion => "AVATAR_DEBUG_PROBE_KIND_WINDOW_HIT_REGION",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AVATAR_DEBUG_PROBE_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "AVATAR_DEBUG_PROBE_KIND_PACKAGE_VALIDATION" => Some(Self::PackageValidation),
-            "AVATAR_DEBUG_PROBE_KIND_LAUNCH_READINESS" => Some(Self::LaunchReadiness),
-            "AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD" => Some(Self::BackendLoad),
-            "AVATAR_DEBUG_PROBE_KIND_CAPABILITY_PROFILE" => Some(Self::CapabilityProfile),
-            "AVATAR_DEBUG_PROBE_KIND_ROUTE_SUPPORT_MATRIX" => {
-                Some(Self::RouteSupportMatrix)
-            }
-            "AVATAR_DEBUG_PROBE_KIND_GENERATED_MOTION" => Some(Self::GeneratedMotion),
-            "AVATAR_DEBUG_PROBE_KIND_EMOTION_EXPRESSION" => Some(Self::EmotionExpression),
-            "AVATAR_DEBUG_PROBE_KIND_SPEECH_LIPSYNC" => Some(Self::SpeechLipsync),
-            "AVATAR_DEBUG_PROBE_KIND_WINDOW_HIT_REGION" => Some(Self::WindowHitRegion),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AvatarDebugProbeStatus {
-    Unspecified = 0,
-    Passed = 1,
-    Failed = 2,
-    Unsupported = 3,
-    Blocked = 4,
-    Invalid = 5,
-}
-impl AvatarDebugProbeStatus {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AVATAR_DEBUG_PROBE_STATUS_UNSPECIFIED",
-            Self::Passed => "AVATAR_DEBUG_PROBE_STATUS_PASSED",
-            Self::Failed => "AVATAR_DEBUG_PROBE_STATUS_FAILED",
-            Self::Unsupported => "AVATAR_DEBUG_PROBE_STATUS_UNSUPPORTED",
-            Self::Blocked => "AVATAR_DEBUG_PROBE_STATUS_BLOCKED",
-            Self::Invalid => "AVATAR_DEBUG_PROBE_STATUS_INVALID",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AVATAR_DEBUG_PROBE_STATUS_UNSPECIFIED" => Some(Self::Unspecified),
-            "AVATAR_DEBUG_PROBE_STATUS_PASSED" => Some(Self::Passed),
-            "AVATAR_DEBUG_PROBE_STATUS_FAILED" => Some(Self::Failed),
-            "AVATAR_DEBUG_PROBE_STATUS_UNSUPPORTED" => Some(Self::Unsupported),
-            "AVATAR_DEBUG_PROBE_STATUS_BLOCKED" => Some(Self::Blocked),
-            "AVATAR_DEBUG_PROBE_STATUS_INVALID" => Some(Self::Invalid),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AvatarDebugRequestedBy {
-    Unspecified = 0,
-    DesktopDebugWorkbench = 1,
-    RuntimePolicy = 2,
-}
-impl AvatarDebugRequestedBy {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AVATAR_DEBUG_REQUESTED_BY_UNSPECIFIED",
-            Self::DesktopDebugWorkbench => {
-                "AVATAR_DEBUG_REQUESTED_BY_DESKTOP_DEBUG_WORKBENCH"
-            }
-            Self::RuntimePolicy => "AVATAR_DEBUG_REQUESTED_BY_RUNTIME_POLICY",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AVATAR_DEBUG_REQUESTED_BY_UNSPECIFIED" => Some(Self::Unspecified),
-            "AVATAR_DEBUG_REQUESTED_BY_DESKTOP_DEBUG_WORKBENCH" => {
-                Some(Self::DesktopDebugWorkbench)
-            }
-            "AVATAR_DEBUG_REQUESTED_BY_RUNTIME_POLICY" => Some(Self::RuntimePolicy),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AvatarDebugEventFamily {
-    Unspecified = 0,
-    ProbeRequested = 1,
-    ProbeResult = 2,
-    ReplayLinked = 3,
-}
-impl AvatarDebugEventFamily {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AVATAR_DEBUG_EVENT_FAMILY_UNSPECIFIED",
-            Self::ProbeRequested => "AVATAR_DEBUG_EVENT_FAMILY_PROBE_REQUESTED",
-            Self::ProbeResult => "AVATAR_DEBUG_EVENT_FAMILY_PROBE_RESULT",
-            Self::ReplayLinked => "AVATAR_DEBUG_EVENT_FAMILY_REPLAY_LINKED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AVATAR_DEBUG_EVENT_FAMILY_UNSPECIFIED" => Some(Self::Unspecified),
-            "AVATAR_DEBUG_EVENT_FAMILY_PROBE_REQUESTED" => Some(Self::ProbeRequested),
-            "AVATAR_DEBUG_EVENT_FAMILY_PROBE_RESULT" => Some(Self::ProbeResult),
-            "AVATAR_DEBUG_EVENT_FAMILY_REPLAY_LINKED" => Some(Self::ReplayLinked),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AvatarDebugReplayRedactionState {
-    Unspecified = 0,
-    Redacted = 1,
-    Visible = 2,
-    Forbidden = 3,
-}
-impl AvatarDebugReplayRedactionState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AVATAR_DEBUG_REPLAY_REDACTION_STATE_UNSPECIFIED",
-            Self::Redacted => "AVATAR_DEBUG_REPLAY_REDACTION_STATE_REDACTED",
-            Self::Visible => "AVATAR_DEBUG_REPLAY_REDACTION_STATE_VISIBLE",
-            Self::Forbidden => "AVATAR_DEBUG_REPLAY_REDACTION_STATE_FORBIDDEN",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AVATAR_DEBUG_REPLAY_REDACTION_STATE_UNSPECIFIED" => Some(Self::Unspecified),
-            "AVATAR_DEBUG_REPLAY_REDACTION_STATE_REDACTED" => Some(Self::Redacted),
-            "AVATAR_DEBUG_REPLAY_REDACTION_STATE_VISIBLE" => Some(Self::Visible),
-            "AVATAR_DEBUG_REPLAY_REDACTION_STATE_FORBIDDEN" => Some(Self::Forbidden),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum AvatarDebugReplayVisibility {
-    Unspecified = 0,
-    DesktopDebugWorkbench = 1,
-    SdkDiagnostics = 2,
-    RuntimeAuditOnly = 3,
-}
-impl AvatarDebugReplayVisibility {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "AVATAR_DEBUG_REPLAY_VISIBILITY_UNSPECIFIED",
-            Self::DesktopDebugWorkbench => {
-                "AVATAR_DEBUG_REPLAY_VISIBILITY_DESKTOP_DEBUG_WORKBENCH"
-            }
-            Self::SdkDiagnostics => "AVATAR_DEBUG_REPLAY_VISIBILITY_SDK_DIAGNOSTICS",
-            Self::RuntimeAuditOnly => "AVATAR_DEBUG_REPLAY_VISIBILITY_RUNTIME_AUDIT_ONLY",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "AVATAR_DEBUG_REPLAY_VISIBILITY_UNSPECIFIED" => Some(Self::Unspecified),
-            "AVATAR_DEBUG_REPLAY_VISIBILITY_DESKTOP_DEBUG_WORKBENCH" => {
-                Some(Self::DesktopDebugWorkbench)
-            }
-            "AVATAR_DEBUG_REPLAY_VISIBILITY_SDK_DIAGNOSTICS" => {
-                Some(Self::SdkDiagnostics)
-            }
-            "AVATAR_DEBUG_REPLAY_VISIBILITY_RUNTIME_AUDIT_ONLY" => {
-                Some(Self::RuntimeAuditOnly)
             }
             _ => None,
         }
@@ -21269,68 +20434,6 @@ pub mod runtime_agent_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn register_avatar_live_instance_binding(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::RegisterAvatarLiveInstanceBindingRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::RegisterAvatarLiveInstanceBindingResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "RegisterAvatarLiveInstanceBinding",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn resolve_avatar_live_instance_binding(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::ResolveAvatarLiveInstanceBindingRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::ResolveAvatarLiveInstanceBindingResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "ResolveAvatarLiveInstanceBinding",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
         pub async fn get_public_chat_session_snapshot(
             &mut self,
             request: impl tonic::IntoRequest<super::GetPublicChatSessionSnapshotRequest>,
@@ -21416,271 +20519,6 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "ListAgentConversationSummaries",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_companion_participation_projection(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::GetCompanionParticipationProjectionRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::GetCompanionParticipationProjectionResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "GetCompanionParticipationProjection",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn request_companion_participation(
-            &mut self,
-            request: impl tonic::IntoRequest<super::RequestCompanionParticipationRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::RequestCompanionParticipationResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "RequestCompanionParticipation",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn cancel_companion_participation(
-            &mut self,
-            request: impl tonic::IntoRequest<super::CancelCompanionParticipationRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::CancelCompanionParticipationResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "CancelCompanionParticipation",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn open_companion_participation_replay(
-            &mut self,
-            request: impl tonic::IntoRequest<
-                super::OpenCompanionParticipationReplayRequest,
-            >,
-        ) -> std::result::Result<
-            tonic::Response<super::OpenCompanionParticipationReplayResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "OpenCompanionParticipationReplay",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_avatar_debug_snapshot(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GetAvatarDebugSnapshotRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetAvatarDebugSnapshotResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "GetAvatarDebugSnapshot",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn request_avatar_debug_probe(
-            &mut self,
-            request: impl tonic::IntoRequest<super::RequestAvatarDebugProbeRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::RequestAvatarDebugProbeResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "RequestAvatarDebugProbe",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn submit_avatar_debug_probe_result(
-            &mut self,
-            request: impl tonic::IntoRequest<super::SubmitAvatarDebugProbeResultRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::SubmitAvatarDebugProbeResultResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "SubmitAvatarDebugProbeResult",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn list_avatar_debug_probe_results(
-            &mut self,
-            request: impl tonic::IntoRequest<super::ListAvatarDebugProbeResultsRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::ListAvatarDebugProbeResultsResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "ListAvatarDebugProbeResults",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
-        }
-        pub async fn get_avatar_debug_replay(
-            &mut self,
-            request: impl tonic::IntoRequest<super::GetAvatarDebugReplayRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::GetAvatarDebugReplayResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "GetAvatarDebugReplay",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -22149,64 +20987,6 @@ pub mod runtime_agent_service_client {
                     ),
                 );
             self.inner.server_streaming(req, path, codec).await
-        }
-        pub async fn subscribe_agent_voice_stream(
-            &mut self,
-            request: impl tonic::IntoRequest<super::SubscribeAgentVoiceStreamRequest>,
-        ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::AgentVoiceStreamEvent>>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "SubscribeAgentVoiceStream",
-                    ),
-                );
-            self.inner.server_streaming(req, path, codec).await
-        }
-        pub async fn interrupt_agent_voice_playback(
-            &mut self,
-            request: impl tonic::IntoRequest<super::InterruptAgentVoicePlaybackRequest>,
-        ) -> std::result::Result<
-            tonic::Response<super::InterruptAgentVoicePlaybackResponse>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "InterruptAgentVoicePlayback",
-                    ),
-                );
-            self.inner.unary(req, path, codec).await
         }
         pub async fn transcribe_agent_voice_input(
             &mut self,

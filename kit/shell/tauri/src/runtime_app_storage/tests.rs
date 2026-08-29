@@ -188,7 +188,7 @@ fn get_app_storage_binding_uses_trusted_host_metadata() {
                     metadata: Some(RuntimeBridgeMetadata {
                         app_id: Some("nimi.parentos".to_string()),
                         participant_id: Some("nimi.parentos".to_string()),
-                        caller_kind: Some("local-first-party-app".to_string()),
+                        caller_kind: Some("third-party-app".to_string()),
                         caller_id: Some("nimi.parentos.local-first-party".to_string()),
                         ..RuntimeBridgeMetadata::default()
                     }),

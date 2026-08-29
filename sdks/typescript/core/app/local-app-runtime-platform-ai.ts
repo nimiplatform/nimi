@@ -1,5 +1,6 @@
 import {
   ExecutionMode,
+  FinishReason,
   ReasonCode as RuntimeReasonCode,
   RoutePolicy,
   ScenarioJobEventType,
@@ -12,10 +13,20 @@ import {
   VoiceAssetStatus,
   VoiceCreationSource,
   VoiceReferenceKind,
+  type CancelLocalAppScenarioJobRequest,
+  type CancelLocalAppScenarioJobResponse,
+  type ExecuteLocalAppScenarioRequest,
+  type ExecuteLocalAppScenarioResponse,
+  type GetLocalAppScenarioJobRequest,
+  type GetLocalAppScenarioJobResponse,
   type GetScenarioArtifactsResponse,
   type ListLocalAppVoiceAssetsRequest,
   type ListLocalAppVoiceAssetsResponse,
   type LocalAppVoiceAsset,
+  type LocalAppScenarioJob,
+  type LocalAppScenarioJobEvent,
+  type ReadLocalAppArtifactRequest,
+  type ReadLocalAppArtifactResponse,
   type RuntimeTypedCallOptions,
   type ScenarioArtifact,
   type ScenarioJob,
@@ -23,6 +34,14 @@ import {
   type ScenarioOutput,
   type ScenarioSpec,
   type SubmitScenarioJobRequest,
+  type StreamLocalAppTextTurnEvent,
+  type StreamLocalAppTextTurnRequest,
+  type SubmitLocalAppScenarioJobRequest,
+  type SubmitLocalAppScenarioJobResponse,
+  type SubscribeLocalAppScenarioJobEventsRequest,
+  type UploadLocalAppArtifactRequest,
+  type UploadLocalAppArtifactResponse,
+  type VoiceReference,
 } from '../../core-generated/runtime-typed-client.js';
 import type { Timestamp } from '../../core-generated/runtime-protobuf/google/protobuf/timestamp.js';
 import type {
@@ -316,6 +335,42 @@ export type NimiLocalAppAIConsumptionClient = {
   readonly voiceAssets: NimiLocalAppVoiceAssetsClient;
 };
 
+export type NimiLocalAppAIConsumptionRuntime = {
+  readonly streamLocalAppTextTurn: (
+    request: StreamLocalAppTextTurnRequest,
+    options?: RuntimeTypedCallOptions,
+  ) => AsyncIterable<StreamLocalAppTextTurnEvent>;
+  readonly executeLocalAppScenario: (
+    request: ExecuteLocalAppScenarioRequest,
+    options?: RuntimeTypedCallOptions,
+  ) => Promise<ExecuteLocalAppScenarioResponse>;
+  readonly submitLocalAppScenarioJob: (
+    request: SubmitLocalAppScenarioJobRequest,
+    options?: RuntimeTypedCallOptions,
+  ) => Promise<SubmitLocalAppScenarioJobResponse>;
+  readonly getLocalAppScenarioJob: (
+    request: GetLocalAppScenarioJobRequest,
+    options?: RuntimeTypedCallOptions,
+  ) => Promise<GetLocalAppScenarioJobResponse>;
+  readonly subscribeLocalAppScenarioJobEvents: (
+    request: SubscribeLocalAppScenarioJobEventsRequest,
+    options?: RuntimeTypedCallOptions,
+  ) => AsyncIterable<LocalAppScenarioJobEvent>;
+  readonly cancelLocalAppScenarioJob: (
+    request: CancelLocalAppScenarioJobRequest,
+    options?: RuntimeTypedCallOptions,
+  ) => Promise<CancelLocalAppScenarioJobResponse>;
+  readonly readLocalAppArtifact: (
+    request: ReadLocalAppArtifactRequest,
+    options?: RuntimeTypedCallOptions,
+  ) => Promise<ReadLocalAppArtifactResponse>;
+  readonly uploadLocalAppArtifact: (
+    request: UploadLocalAppArtifactRequest,
+    options?: RuntimeTypedCallOptions,
+  ) => Promise<UploadLocalAppArtifactResponse>;
+  readonly listLocalAppVoiceAssets: NimiLocalAppVoiceAssetsRuntime['listLocalAppVoiceAssets'];
+};
+
 const MAX_RESULT_BYTES = 256 * 1024;
 const MAX_ARTIFACT_BYTES = 32 * 1024 * 1024;
 const MAX_IDENTIFIER_BYTES = 128;
@@ -392,6 +447,97 @@ export function createNimiLocalAppAIConsumptionClient(
     voiceAssets,
   };
   return Object.freeze(client);
+}
+
+// Host composition uses this adapter to project the exact Local App Runtime
+// operation family through the same public client as every standard shell.
+// It does not admit Runtime-private Scenario fields or caller-selected routes.
+// @nimi-authority: rule.nimi.sdks.feature-clients.r101
+export function createNimiLocalAppAIConsumptionRuntimeClient(
+  runtime: NimiLocalAppAIConsumptionRuntime,
+): NimiLocalAppAIConsumptionClient {
+  const voiceAssets = createNimiLocalAppVoiceAssetsRuntimeClient(runtime);
+  return createNimiLocalAppAIConsumptionClient({
+    text: {
+      async streamTurn(input) {
+        const controller = new AbortController();
+        const source = runtime.streamLocalAppTextTurn(runtimeTextTurnRequest(input), {
+          signal: controller.signal,
+        });
+        return {
+          events: (async function* () {
+            for await (const event of source) yield projectRuntimeTextTurnEvent(event);
+          })(),
+          cancel: async () => controller.abort(),
+        };
+      },
+    },
+    scenario: {
+      async execute(spec) {
+        const response = await runtime.executeLocalAppScenario(runtimeExecuteRequest(spec));
+        return projectRuntimeScenarioExecuteResponse(response);
+      },
+    },
+    scenarioJobs: {
+      async submit(spec, options = {}) {
+        const response = await runtime.submitLocalAppScenarioJob({
+          spec: runtimeLocalJobSpec(spec),
+          timeoutMs: options.timeoutMs ?? 0,
+        });
+        return { job: projectRuntimeLocalJob(requiredRuntimeValue(response.job, 'scenario Job')) };
+      },
+      async get(jobId) {
+        const response = await runtime.getLocalAppScenarioJob({ jobId });
+        return {
+          job: projectRuntimeLocalJob(requiredRuntimeValue(response.job, 'scenario Job')),
+          asset: response.asset ? projectRuntimeLocalAppVoiceAsset(response.asset) : null,
+          voiceReference: response.voiceReference
+            ? projectRuntimeVoiceReference(response.voiceReference)
+            : null,
+        };
+      },
+      async subscribe(jobId) {
+        const controller = new AbortController();
+        const source = runtime.subscribeLocalAppScenarioJobEvents({ jobId }, {
+          signal: controller.signal,
+        });
+        return {
+          events: (async function* () {
+            for await (const event of source) yield projectRuntimeLocalJobEvent(event);
+          })(),
+          cancel: async () => controller.abort(),
+        };
+      },
+      async cancel(jobId, reason = '') {
+        const response = await runtime.cancelLocalAppScenarioJob({ jobId, reason });
+        return { job: projectRuntimeLocalJob(requiredRuntimeValue(response.job, 'scenario Job')) };
+      },
+    },
+    artifacts: {
+      async read(artifactId) {
+        const response = await runtime.readLocalAppArtifact({ artifactId });
+        return {
+          bytes: Array.from(response.bytes),
+          mimeType: response.mimeType,
+          sizeBytes: runtimeSafeInteger(response.sizeBytes, 'artifact size'),
+        };
+      },
+      async upload(input) {
+        const response = await runtime.uploadLocalAppArtifact({
+          bytes: Uint8Array.from(input.bytes),
+          mimeType: input.mimeType,
+        });
+        return {
+          artifactId: response.artifactId,
+          sizeBytes: runtimeSafeInteger(response.sizeBytes, 'artifact size'),
+          mimeType: response.mimeType,
+        };
+      },
+    },
+    voiceAssets: {
+      list: (input) => voiceAssets.list(input),
+    },
+  });
 }
 
 export function createNimiLocalAppVoiceAssetsClient(
@@ -956,6 +1102,372 @@ function projectRuntimeLocalAppVoiceAsset(asset: LocalAppVoiceAsset): NimiLocalA
     updatedAt: plainRuntimeTimestamp(asset.updatedAt),
     expiresAt: plainRuntimeTimestamp(asset.expiresAt),
   };
+}
+
+function runtimeTextTurnRequest(input: NimiLocalAppTextCandidateInput): StreamLocalAppTextTurnRequest {
+  return {
+    messages: input.messages.map((message) => ({ role: message.role, text: message.text })),
+    ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
+    ...(input.topP === undefined ? {} : { topP: input.topP }),
+    ...(input.maxTokens === undefined ? {} : { maxTokens: input.maxTokens }),
+    ...(input.topK === undefined ? {} : { topK: input.topK }),
+    ...(input.presencePenalty === undefined ? {} : { presencePenalty: input.presencePenalty }),
+    ...(input.frequencyPenalty === undefined ? {} : { frequencyPenalty: input.frequencyPenalty }),
+    stop: input.stop === undefined ? [] : [...input.stop],
+    ...(input.seed === undefined ? {} : { seed: String(input.seed) }),
+  };
+}
+
+function runtimeExecuteRequest(spec: NimiLocalAppScenarioExecuteSpec): ExecuteLocalAppScenarioRequest {
+  if (spec.type === 'text-embed') {
+    return { spec: { oneofKind: 'textEmbed', textEmbed: { inputs: [...spec.inputs] } } };
+  }
+  return { spec: { oneofKind: 'imageGenerate', imageGenerate: runtimeImageSpec(spec) } };
+}
+
+function runtimeLocalJobSpec(
+  spec: NimiLocalAppScenarioJobSpec,
+): SubmitLocalAppScenarioJobRequest['spec'] {
+  switch (spec.type) {
+    case 'image-generate':
+      return { oneofKind: 'imageGenerate', imageGenerate: runtimeImageSpec(spec) };
+    case 'video-generate':
+      return {
+        oneofKind: 'videoGenerate',
+        videoGenerate: {
+          prompt: spec.prompt,
+          negativePrompt: spec.negativePrompt,
+          mode: runtimeVideoMode(spec.mode),
+          content: spec.content.map((entry) => ({
+            type: runtimeVideoContentType(entry.type),
+            role: runtimeVideoRole(entry.role),
+            text: entry.type === 'text' ? entry.text : '',
+            ...(entry.type === 'image-url' ? { imageUrl: { url: entry.url } } : {}),
+            ...(entry.type === 'video-url' ? { videoUrl: { url: entry.url } } : {}),
+            ...(entry.type === 'audio-url' ? { audioUrl: { url: entry.url } } : {}),
+            ...(entry.type === 'artifact-ref' ? { artifactRef: { artifactId: entry.artifactId } } : {}),
+          })),
+          options: {
+            resolution: spec.options.resolution,
+            ratio: spec.options.ratio,
+            ...(spec.options.durationSec === undefined ? {} : { durationSec: spec.options.durationSec }),
+            ...(spec.options.frames === undefined ? {} : { frames: spec.options.frames }),
+            ...(spec.options.fps === undefined ? {} : { fps: spec.options.fps }),
+            ...(spec.options.seed === undefined ? {} : { seed: String(spec.options.seed) }),
+            ...(spec.options.cameraFixed === undefined ? {} : { cameraFixed: spec.options.cameraFixed }),
+            ...(spec.options.watermark === undefined ? {} : { watermark: spec.options.watermark }),
+            ...(spec.options.generateAudio === undefined ? {} : { generateAudio: spec.options.generateAudio }),
+            ...(spec.options.draft === undefined ? {} : { draft: spec.options.draft }),
+            ...(spec.options.returnLastFrame === undefined ? {} : { returnLastFrame: spec.options.returnLastFrame }),
+          },
+        },
+      };
+    case 'speech-synthesize':
+      return {
+        oneofKind: 'speechSynthesize',
+        speechSynthesize: {
+          text: spec.text,
+          language: spec.language,
+          audioFormat: spec.audioFormat,
+          ...(spec.sampleRateHz === undefined ? {} : { sampleRateHz: spec.sampleRateHz }),
+          ...(spec.speed === undefined ? {} : { speed: spec.speed }),
+          ...(spec.pitch === undefined ? {} : { pitch: spec.pitch }),
+          ...(spec.volume === undefined ? {} : { volume: spec.volume }),
+          emotion: spec.emotion,
+          ...(spec.voiceRef === null ? {} : { voiceRef: runtimeVoiceReference(spec.voiceRef) }),
+          timingMode: runtimeSpeechTimingMode(spec.timingMode),
+          ...(spec.voiceRenderHints === null ? {} : { voiceRenderHints: { ...spec.voiceRenderHints } }),
+        },
+      };
+    case 'speech-transcribe':
+      return {
+        oneofKind: 'speechTranscribe',
+        speechTranscribe: {
+          mimeType: spec.mimeType,
+          language: spec.language,
+          ...(spec.timestamps === undefined ? {} : { timestamps: spec.timestamps }),
+          ...(spec.diarization === undefined ? {} : { diarization: spec.diarization }),
+          ...(spec.speakerCount === undefined ? {} : { speakerCount: spec.speakerCount }),
+          prompt: spec.prompt,
+          responseFormat: spec.responseFormat,
+          audioSource: {
+            source: spec.audioSource.type === 'bytes'
+              ? { oneofKind: 'audioBytes', audioBytes: Uint8Array.from(spec.audioSource.bytes) }
+              : { oneofKind: 'audioUri', audioUri: spec.audioSource.uri },
+          },
+        },
+      };
+    case 'voice-create':
+      if (spec.creationSource === 'reference-audio') {
+        return {
+          oneofKind: 'voiceCreate',
+          voiceCreate: {
+            source: {
+              oneofKind: 'referenceAudio',
+              referenceAudio: {
+                referenceAudioBytes: spec.referenceAudio.type === 'bytes'
+                  ? Uint8Array.from(spec.referenceAudio.bytes)
+                  : new Uint8Array(),
+                referenceAudioUri: spec.referenceAudio.type === 'uri' ? spec.referenceAudio.uri : '',
+                referenceAudioMime: spec.referenceAudioMime,
+                languageHints: [...spec.languageHints],
+                preferredName: spec.preferredName,
+                text: spec.text,
+              },
+            },
+          },
+        };
+      }
+      return {
+        oneofKind: 'voiceCreate',
+        voiceCreate: {
+          source: {
+            oneofKind: 'textDescription',
+            textDescription: {
+              instructionText: spec.instructionText,
+              previewText: spec.previewText,
+              language: spec.language,
+              preferredName: spec.preferredName,
+            },
+          },
+        },
+      };
+    case 'music-generate':
+      return {
+        oneofKind: 'musicGenerate',
+        musicGenerate: { prompt: spec.prompt, lyrics: spec.lyrics },
+      };
+  }
+}
+
+function runtimeImageSpec(spec: NimiLocalAppImageGenerateSpec) {
+  return {
+    prompt: spec.prompt,
+    negativePrompt: spec.negativePrompt,
+    ...(spec.n === undefined ? {} : { n: spec.n }),
+    size: spec.size,
+    aspectRatio: spec.aspectRatio,
+    quality: spec.quality,
+    style: spec.style,
+    ...(spec.seed === undefined ? {} : { seed: String(spec.seed) }),
+    referenceImages: [...spec.referenceImages],
+    mask: spec.mask,
+    responseFormat: spec.responseFormat,
+    referenceImageArtifactId: spec.referenceImageArtifactId,
+  };
+}
+
+function runtimeVideoMode(value: Extract<NimiLocalAppScenarioJobSpec, { type: 'video-generate' }>['mode']): VideoMode {
+  return ({
+    't2v': VideoMode.T2V,
+    'i2v-first-frame': VideoMode.I2V_FIRST_FRAME,
+    'i2v-first-last': VideoMode.I2V_FIRST_LAST,
+    'i2v-reference': VideoMode.I2V_REFERENCE,
+  })[value];
+}
+
+function runtimeVideoRole(value: NimiLocalAppVideoContentRole): VideoContentRole {
+  return ({
+    'prompt': VideoContentRole.PROMPT,
+    'first-frame': VideoContentRole.FIRST_FRAME,
+    'last-frame': VideoContentRole.LAST_FRAME,
+    'reference-image': VideoContentRole.REFERENCE_IMAGE,
+    'reference-video': VideoContentRole.REFERENCE_VIDEO,
+    'reference-audio': VideoContentRole.REFERENCE_AUDIO,
+  })[value];
+}
+
+function runtimeVideoContentType(value: NimiLocalAppVideoContent['type']): VideoContentType {
+  return ({
+    'text': VideoContentType.TEXT,
+    'image-url': VideoContentType.IMAGE_URL,
+    'video-url': VideoContentType.VIDEO_URL,
+    'audio-url': VideoContentType.AUDIO_URL,
+    'artifact-ref': VideoContentType.ARTIFACT_REF,
+  })[value];
+}
+
+function runtimeSpeechTimingMode(value: 'none' | 'word' | 'char'): SpeechTimingMode {
+  return ({ none: SpeechTimingMode.NONE, word: SpeechTimingMode.WORD, char: SpeechTimingMode.CHAR })[value];
+}
+
+function runtimeVoiceReference(
+  value: { readonly type: 'preset' | 'voice-asset'; readonly id: string },
+): VoiceReference {
+  return value.type === 'preset'
+    ? {
+        kind: VoiceReferenceKind.PRESET,
+        reference: { oneofKind: 'presetVoiceId', presetVoiceId: value.id },
+      }
+    : {
+        kind: VoiceReferenceKind.VOICE_ASSET,
+        reference: { oneofKind: 'voiceAssetId', voiceAssetId: value.id },
+      };
+}
+
+function projectRuntimeTextTurnEvent(event: StreamLocalAppTextTurnEvent): unknown {
+  const base = { sequence: event.sequence, traceId: event.traceId };
+  switch (event.payload.oneofKind) {
+    case 'delta':
+      return { ...base, type: 'delta', text: event.payload.delta.text };
+    case 'completed':
+      return {
+        ...base,
+        type: 'completed',
+        finishReason: runtimeFinishReason(event.payload.completed.finishReason),
+      };
+    case 'failed':
+      return {
+        ...base,
+        type: 'failed',
+        reasonCode: runtimeReasonToken(event.payload.failed.reasonCode),
+        actionHint: event.payload.failed.actionHint,
+      };
+    default:
+      return localAppProjectionError('text-turn Runtime event');
+  }
+}
+
+function projectRuntimeScenarioExecuteResponse(response: ExecuteLocalAppScenarioResponse): unknown {
+  switch (response.output.oneofKind) {
+    case 'textEmbed':
+      return {
+        output: {
+          type: 'text-embed',
+          vectors: response.output.textEmbed.vectors.map((vector) => [...vector.values]),
+        },
+        traceId: response.traceId,
+      };
+    case 'imageGenerate':
+      return {
+        output: {
+          type: 'image-generate',
+          artifacts: response.output.imageGenerate.artifacts.map(projectRuntimeLocalArtifact),
+        },
+        traceId: response.traceId,
+      };
+    default:
+      return localAppProjectionError('scenario Runtime output');
+  }
+}
+
+function projectRuntimeLocalJob(job: LocalAppScenarioJob): unknown {
+  return {
+    jobId: job.jobId,
+    scenarioType: runtimeScenarioTypeName(job.scenarioType),
+    status: runtimeJobStatusName(job.status),
+    progressPercent: job.progressPercent,
+    progressCurrentStep: job.progressCurrentStep,
+    progressTotalSteps: job.progressTotalSteps,
+    reasonCode: runtimeReasonToken(job.reasonCode),
+    reasonDetail: job.reasonDetail,
+    artifacts: job.artifacts.map(projectRuntimeLocalArtifact),
+    traceId: job.traceId,
+    createdAt: plainRuntimeTimestamp(job.createdAt),
+    updatedAt: plainRuntimeTimestamp(job.updatedAt),
+    transcriptionText: job.transcriptionText,
+  };
+}
+
+function projectRuntimeLocalArtifact(
+  artifact: LocalAppScenarioJob['artifacts'][number],
+): unknown {
+  return {
+    artifactId: artifact.artifactId,
+    mimeType: artifact.mimeType,
+    bytes: Array.from(artifact.bytes),
+    sizeBytes: runtimeSafeInteger(artifact.sizeBytes, 'scenario artifact size'),
+    sha256: artifact.sha256,
+    durationMs: runtimeSafeInteger(artifact.durationMs, 'scenario artifact duration'),
+    width: artifact.width,
+    height: artifact.height,
+    sampleRateHz: artifact.sampleRateHz,
+    channels: artifact.channels,
+  };
+}
+
+function projectRuntimeLocalJobEvent(event: LocalAppScenarioJobEvent): unknown {
+  return {
+    eventType: runtimeJobEventTypeName(event.eventType),
+    sequence: event.sequence,
+    traceId: event.traceId,
+    timestamp: plainRuntimeTimestamp(event.timestamp),
+    job: projectRuntimeLocalJob(requiredRuntimeValue(event.job, 'scenario Job event')),
+  };
+}
+
+function projectRuntimeVoiceReference(reference: VoiceReference): unknown {
+  if (reference.kind !== VoiceReferenceKind.VOICE_ASSET
+    || reference.reference.oneofKind !== 'voiceAssetId') {
+    return localAppProjectionError('voice asset Runtime reference');
+  }
+  return { kind: 'voice_asset_id', voiceAssetId: reference.reference.voiceAssetId };
+}
+
+function runtimeScenarioTypeName(value: ScenarioType): NimiLocalAppScenarioJob['scenarioType'] {
+  const types: Partial<Record<ScenarioType, NimiLocalAppScenarioJob['scenarioType']>> = {
+    [ScenarioType.IMAGE_GENERATE]: 'image-generate',
+    [ScenarioType.VIDEO_GENERATE]: 'video-generate',
+    [ScenarioType.SPEECH_SYNTHESIZE]: 'speech-synthesize',
+    [ScenarioType.SPEECH_TRANSCRIBE]: 'speech-transcribe',
+    [ScenarioType.VOICE_CREATE]: 'voice-create',
+    [ScenarioType.MUSIC_GENERATE]: 'music-generate',
+  };
+  return types[value] ?? localAppProjectionError('scenario Runtime type');
+}
+
+function runtimeJobStatusName(value: ScenarioJobStatus): NimiLocalAppScenarioJob['status'] {
+  const statuses: Partial<Record<ScenarioJobStatus, NimiLocalAppScenarioJob['status']>> = {
+    [ScenarioJobStatus.SUBMITTED]: 'submitted',
+    [ScenarioJobStatus.QUEUED]: 'queued',
+    [ScenarioJobStatus.RUNNING]: 'running',
+    [ScenarioJobStatus.COMPLETED]: 'completed',
+    [ScenarioJobStatus.FAILED]: 'failed',
+    [ScenarioJobStatus.CANCELED]: 'canceled',
+    [ScenarioJobStatus.TIMEOUT]: 'timeout',
+  };
+  return statuses[value] ?? localAppProjectionError('scenario Runtime status');
+}
+
+function runtimeJobEventTypeName(value: ScenarioJobEventType): NimiLocalAppScenarioJobEvent['eventType'] {
+  const types: Partial<Record<ScenarioJobEventType, NimiLocalAppScenarioJobEvent['eventType']>> = {
+    [ScenarioJobEventType.SCENARIO_JOB_EVENT_SUBMITTED]: 'submitted',
+    [ScenarioJobEventType.SCENARIO_JOB_EVENT_QUEUED]: 'queued',
+    [ScenarioJobEventType.SCENARIO_JOB_EVENT_RUNNING]: 'running',
+    [ScenarioJobEventType.SCENARIO_JOB_EVENT_COMPLETED]: 'completed',
+    [ScenarioJobEventType.SCENARIO_JOB_EVENT_FAILED]: 'failed',
+    [ScenarioJobEventType.SCENARIO_JOB_EVENT_CANCELED]: 'canceled',
+    [ScenarioJobEventType.SCENARIO_JOB_EVENT_TIMEOUT]: 'timeout',
+  };
+  return types[value] ?? localAppProjectionError('scenario Runtime event type');
+}
+
+function runtimeFinishReason(value: FinishReason): 'stop' | 'length' | 'content-filter' {
+  if (value === FinishReason.STOP) return 'stop';
+  if (value === FinishReason.LENGTH) return 'length';
+  if (value === FinishReason.CONTENT_FILTER) return 'content-filter';
+  return localAppProjectionError('text-turn Runtime finish reason');
+}
+
+function runtimeReasonToken(value: RuntimeReasonCode): string {
+  if (value === RuntimeReasonCode.REASON_CODE_UNSPECIFIED) return '';
+  const name = RuntimeReasonCode[value];
+  return typeof name === 'string'
+    ? name.toLowerCase().replaceAll('_', '-')
+    : localAppProjectionError('Runtime reason code');
+}
+
+function runtimeSafeInteger(value: unknown, label: string): number {
+  const parsed = typeof value === 'string' && /^(0|[1-9][0-9]*)$/u.test(value)
+    ? Number(value)
+    : value;
+  return typeof parsed === 'number' && Number.isSafeInteger(parsed) && parsed >= 0
+    ? parsed
+    : localAppProjectionError(label);
+}
+
+function requiredRuntimeValue<T>(value: T | undefined, label: string): T {
+  return value ?? localAppProjectionError(label);
 }
 
 function plainRuntimeTimestamp(

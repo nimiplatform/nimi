@@ -10,7 +10,6 @@ export function sameZhiyuRuntimeAgentInventory(
     && left.actionHint === right.actionHint
     && left.source === right.source
     && left.message === right.message
-    && left.ownerUserId === right.ownerUserId
     && left.count === right.count
     && left.localAgents.length === right.localAgents.length
     && left.localAgents.every((agent, index) => {

@@ -68,7 +68,6 @@ fn extract_nested_pairs(raw: &[u8], field_name: &str) -> Option<Vec<u8>> {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AccountCallerMode {
     ACCOUNTCALLERMODEUNSPECIFIED,
-    ACCOUNTCALLERMODELOCALFIRSTPARTYAPP,
     ACCOUNTCALLERMODEDESKTOPSHELL,
     ACCOUNTCALLERMODEAVATARNATIVEHOST,
     ACCOUNTCALLERMODEWEBCLOUD,
@@ -87,8 +86,6 @@ impl AccountCallerMode {
         match value {
             "ACCOUNT_CALLER_MODE_UNSPECIFIED" => Some(Self::ACCOUNTCALLERMODEUNSPECIFIED),
             "ACCOUNTCALLERMODEUNSPECIFIED" => Some(Self::ACCOUNTCALLERMODEUNSPECIFIED),
-            "ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP" => Some(Self::ACCOUNTCALLERMODELOCALFIRSTPARTYAPP),
-            "ACCOUNTCALLERMODELOCALFIRSTPARTYAPP" => Some(Self::ACCOUNTCALLERMODELOCALFIRSTPARTYAPP),
             "ACCOUNT_CALLER_MODE_DESKTOP_SHELL" => Some(Self::ACCOUNTCALLERMODEDESKTOPSHELL),
             "ACCOUNTCALLERMODEDESKTOPSHELL" => Some(Self::ACCOUNTCALLERMODEDESKTOPSHELL),
             "ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST" => Some(Self::ACCOUNTCALLERMODEAVATARNATIVEHOST),
@@ -374,7 +371,6 @@ pub enum AgentEventType {
     AGENTEVENTTYPEBUDGET,
     AGENTEVENTTYPESTATE,
     AGENTEVENTTYPEPRESENTATION,
-    AGENTEVENTTYPEAVATARDEBUG,
     AGENTEVENTTYPEPROACTIVE,
 }
 
@@ -761,6 +757,22 @@ impl Default for AgentTurnContextTruncationReason {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AgentVoiceTimingPhase {
+    AGENTVOICETIMINGPHASEUNSPECIFIED,
+    AGENTVOICETIMINGPHASEACTIVE,
+    AGENTVOICETIMINGPHASECOMPLETED,
+    AGENTVOICETIMINGPHASEFAILED,
+    AGENTVOICETIMINGPHASEINTERRUPTED,
+    AGENTVOICETIMINGPHASECANCELED,
+}
+
+impl Default for AgentVoiceTimingPhase {
+    fn default() -> Self {
+        Self::AGENTVOICETIMINGPHASEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AIConfigEffectiveState {
     AICONFIGEFFECTIVESTATEUNSPECIFIED,
     AICONFIGEFFECTIVESTATEREADY,
@@ -883,75 +895,6 @@ pub enum AppStorageState {
 impl Default for AppStorageState {
     fn default() -> Self {
         Self::APPSTORAGESTATEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AvatarDebugEventFamily {
-    AVATARDEBUGEVENTFAMILYUNSPECIFIED,
-}
-
-impl Default for AvatarDebugEventFamily {
-    fn default() -> Self {
-        Self::AVATARDEBUGEVENTFAMILYUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AvatarDebugProbeKind {
-    AVATARDEBUGPROBEKINDUNSPECIFIED,
-    AVATARDEBUGPROBEKINDBACKENDLOAD,
-    AVATARDEBUGPROBEKINDGENERATEDMOTION,
-}
-
-impl Default for AvatarDebugProbeKind {
-    fn default() -> Self {
-        Self::AVATARDEBUGPROBEKINDUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AvatarDebugProbeStatus {
-    AVATARDEBUGPROBESTATUSUNSPECIFIED,
-    AVATARDEBUGPROBESTATUSUNSUPPORTED,
-}
-
-impl Default for AvatarDebugProbeStatus {
-    fn default() -> Self {
-        Self::AVATARDEBUGPROBESTATUSUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AvatarDebugReplayRedactionState {
-    AVATARDEBUGREPLAYREDACTIONSTATEUNSPECIFIED,
-}
-
-impl Default for AvatarDebugReplayRedactionState {
-    fn default() -> Self {
-        Self::AVATARDEBUGREPLAYREDACTIONSTATEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AvatarDebugReplayVisibility {
-    AVATARDEBUGREPLAYVISIBILITYUNSPECIFIED,
-}
-
-impl Default for AvatarDebugReplayVisibility {
-    fn default() -> Self {
-        Self::AVATARDEBUGREPLAYVISIBILITYUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum AvatarDebugRequestedBy {
-    AVATARDEBUGREQUESTEDBYUNSPECIFIED,
-}
-
-impl Default for AvatarDebugRequestedBy {
-    fn default() -> Self {
-        Self::AVATARDEBUGREQUESTEDBYUNSPECIFIED
     }
 }
 
@@ -1140,53 +1083,6 @@ pub enum CognitionMemoryTerminalState {
 impl Default for CognitionMemoryTerminalState {
     fn default() -> Self {
         Self::COGNITIONMEMORYTERMINALSTATEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum CompanionParticipationStatus {
-    COMPANIONPARTICIPATIONSTATUSUNSPECIFIED,
-    COMPANIONPARTICIPATIONSTATUSIDLE,
-    COMPANIONPARTICIPATIONSTATUSADMISSIONPENDING,
-    COMPANIONPARTICIPATIONSTATUSBLOCKED,
-    COMPANIONPARTICIPATIONSTATUSRUNNING,
-    COMPANIONPARTICIPATIONSTATUSCANDIDATEREADY,
-    COMPANIONPARTICIPATIONSTATUSCOMMITTEDBYOWNER,
-    COMPANIONPARTICIPATIONSTATUSFAILED,
-    COMPANIONPARTICIPATIONSTATUSCANCELED,
-}
-
-impl Default for CompanionParticipationStatus {
-    fn default() -> Self {
-        Self::COMPANIONPARTICIPATIONSTATUSUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum CompanionParticipationSurfaceKind {
-    COMPANIONPARTICIPATIONSURFACEKINDUNSPECIFIED,
-    COMPANIONPARTICIPATIONSURFACEKINDAVATARCOMPANION,
-    COMPANIONPARTICIPATIONSURFACEKINDDESKTOPCOMPANIONPANEL,
-    COMPANIONPARTICIPATIONSURFACEKINDAVATARDEBUGWORKBENCH,
-}
-
-impl Default for CompanionParticipationSurfaceKind {
-    fn default() -> Self {
-        Self::COMPANIONPARTICIPATIONSURFACEKINDUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum CompanionParticipationTriggerSource {
-    COMPANIONPARTICIPATIONTRIGGERSOURCEUNSPECIFIED,
-    COMPANIONPARTICIPATIONTRIGGERSOURCEUSEREXPLICIT,
-    COMPANIONPARTICIPATIONTRIGGERSOURCESCHEDULEDPROACTIVE,
-    COMPANIONPARTICIPATIONTRIGGERSOURCEDOMAINEVENT,
-}
-
-impl Default for CompanionParticipationTriggerSource {
-    fn default() -> Self {
-        Self::COMPANIONPARTICIPATIONTRIGGERSOURCEUNSPECIFIED
     }
 }
 
@@ -3493,22 +3389,6 @@ impl Default for VoiceOutputMode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum VoicePlaybackState {
-    VOICEPLAYBACKSTATEUNSPECIFIED,
-    VOICEPLAYBACKSTATEACTIVE,
-    VOICEPLAYBACKSTATECOMPLETED,
-    VOICEPLAYBACKSTATEFAILED,
-    VOICEPLAYBACKSTATEINTERRUPTED,
-    VOICEPLAYBACKSTATECANCELED,
-}
-
-impl Default for VoicePlaybackState {
-    fn default() -> Self {
-        Self::VOICEPLAYBACKSTATEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum VoiceReferenceKind {
     VOICEREFERENCEKINDUNSPECIFIED,
     VOICEREFERENCEKINDPRESET,
@@ -3830,14 +3710,6 @@ pub struct AgentAutonomyState {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentAvatarDebugEventDetail {
-    pub family: Option<AvatarDebugEventFamily>,
-    pub request: Option<Box<AvatarDebugProbeRequestEnvelope>>,
-    pub result: Option<Box<AvatarDebugProbeResultEnvelope>>,
-    pub replay: Option<Box<AvatarDebugReplayRef>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AgentBudgetEventDetail {
     pub budget_exhausted: Option<bool>,
     pub remaining_tokens: Option<i64>,
@@ -3876,7 +3748,6 @@ pub struct AgentEvent {
     pub budget: Option<Box<AgentBudgetEventDetail>>,
     pub state: Option<Box<AgentStateEventDetail>>,
     pub presentation: Option<Box<AgentPresentationEventDetail>>,
-    pub avatar_debug: Option<Box<AgentAvatarDebugEventDetail>>,
     pub proactive: Option<Box<AgentProactiveEventDetail>>,
     pub local_agent_ref: Option<String>,
     pub owner_user_id: Option<String>,
@@ -3964,20 +3835,14 @@ pub struct AgentPresentationEventDetail {
     pub lookat_has_z: Option<bool>,
     pub audio_artifact_id: Option<String>,
     pub audio_mime_type: Option<String>,
-    pub voice_stream_id: Option<String>,
-    pub chunk_transport_ref: Option<String>,
     pub message_id: Option<String>,
-    pub chunk_sequence: Option<u64>,
-    pub final_chunk: Option<bool>,
-    pub voice_output_mode: Option<VoiceOutputMode>,
-    pub voice_playback_state: Option<VoicePlaybackState>,
-    pub playback_target: Option<String>,
-    pub final_artifact: Option<bool>,
+    pub artifact_sequence: Option<u64>,
+    pub artifact_complete: Option<bool>,
+    pub voice_timing_phase: Option<AgentVoiceTimingPhase>,
     pub terminal_reason: Option<String>,
     pub reason: Option<String>,
     pub duration_ms: Option<i64>,
     pub deadline_offset_ms: Option<i64>,
-    pub final_artifact_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -4202,24 +4067,6 @@ pub struct AgentTurnContextTruncationSummary {
     pub reason: Option<AgentTurnContextTruncationReason>,
     pub omitted_item_count: Option<u32>,
     pub truncated_item_count: Option<u32>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AgentVoiceStreamEvent {
-    pub voice_stream_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub turn_id: Option<String>,
-    pub stream_id: Option<String>,
-    pub message_id: Option<String>,
-    pub chunk_sequence: Option<u64>,
-    pub chunk: Option<Vec<u8>>,
-    pub mime_type: Option<String>,
-    pub voice_output_mode: Option<VoiceOutputMode>,
-    pub playback_target: Option<String>,
-    pub terminal: Option<bool>,
-    pub voice_playback_state: Option<VoicePlaybackState>,
-    pub terminal_reason: Option<String>,
-    pub replay_truncated: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -4527,57 +4374,6 @@ pub struct AuditExportChunk {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct AvatarDebugProbeRequestEnvelope {
-    pub probe_id: Option<String>,
-    pub agent_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub probe_kind: Option<AvatarDebugProbeKind>,
-    pub requested_at: Option<String>,
-    pub requested_by: Option<AvatarDebugRequestedBy>,
-    pub turn_id: Option<String>,
-    pub stream_id: Option<String>,
-    pub avatar_instance_id: Option<String>,
-    pub runtime_replay_ref: Option<String>,
-    pub replay_requested: Option<bool>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AvatarDebugProbeResultEnvelope {
-    pub probe_id: Option<String>,
-    pub agent_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub probe_kind: Option<AvatarDebugProbeKind>,
-    pub status: Option<AvatarDebugProbeStatus>,
-    pub observed_at: Option<String>,
-    pub evidence_refs: Vec<String>,
-    pub reason_code: Option<String>,
-    pub result_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AvatarDebugReplayRef {
-    pub probe_id: Option<String>,
-    pub replay_ref: Option<String>,
-    pub redaction_state: Option<AvatarDebugReplayRedactionState>,
-    pub visibility: Option<AvatarDebugReplayVisibility>,
-    pub linked_at: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct AvatarLiveInstanceBinding {
-    pub avatar_instance_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub agent_id: Option<String>,
-    pub subject_user_id: Option<String>,
-    pub registered_at: Option<String>,
-    pub updated_at: Option<String>,
-    pub local_agent_ref: Option<String>,
-    pub owner_user_id: Option<String>,
-    pub runtime_source_ref: Option<String>,
-    pub caller_app_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct BeginLoginRequest {
     pub caller: Option<Box<AccountCaller>>,
     pub redirect_uri: Option<String>,
@@ -4670,25 +4466,6 @@ pub struct BindLocalAppProcessResponse {
     pub launch_id: Option<Vec<u8>>,
     pub bind_deadline: Option<String>,
     pub reason_code: Option<ReasonCode>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CancelCompanionParticipationRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub surface_kind: Option<CompanionParticipationSurfaceKind>,
-    pub trigger_source: Option<CompanionParticipationTriggerSource>,
-    pub profile_ref: Option<String>,
-    pub projection_id: Option<String>,
-    pub turn_id: Option<String>,
-    pub reason: Option<String>,
-    pub request_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CancelCompanionParticipationResponse {
-    pub projection: Option<Box<CompanionParticipationProjection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5351,25 +5128,6 @@ pub struct CommitLocalAppAgentPresentationRequest {
     pub expected_presentation_revision: Option<u64>,
     pub intent: Option<Box<LocalAppAgentPresentationIntent>>,
     pub imported_assets: Vec<Box<AgentPresentationAssetMaterial>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CompanionParticipationProjection {
-    pub projection_id: Option<String>,
-    pub agent_id: Option<String>,
-    pub surface_kind: Option<CompanionParticipationSurfaceKind>,
-    pub profile_ref: Option<String>,
-    pub trigger_source: Option<CompanionParticipationTriggerSource>,
-    pub status: Option<CompanionParticipationStatus>,
-    pub candidate_ref: Option<String>,
-    pub commit_ref: Option<String>,
-    pub refusal_reason: Option<String>,
-    pub presentation_ref: Option<String>,
-    pub audit_ref: Option<String>,
-    pub observed_at: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub turn_id: Option<String>,
-    pub stream_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6061,37 +5819,6 @@ pub struct GetAppStorageResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAvatarDebugReplayRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub probe_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAvatarDebugReplayResponse {
-    pub request: Option<Box<AvatarDebugProbeRequestEnvelope>>,
-    pub result: Option<Box<AvatarDebugProbeResultEnvelope>>,
-    pub replay_ref: Option<Box<AvatarDebugReplayRef>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAvatarDebugSnapshotRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetAvatarDebugSnapshotResponse {
-    pub agent_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub probe_results: Vec<Box<AvatarDebugProbeResultEnvelope>>,
-    pub replay_refs: Vec<Box<AvatarDebugReplayRef>>,
-    pub observed_at: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetCatalogModelDetailRequest {
     pub provider: Option<String>,
     pub model_id: Option<String>,
@@ -6102,22 +5829,6 @@ pub struct GetCatalogModelDetailResponse {
     pub provider: Option<Box<ModelCatalogProviderEntry>>,
     pub model: Option<Box<CatalogModelDetail>>,
     pub warnings: Vec<Box<CatalogOverlayWarning>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetCompanionParticipationProjectionRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub surface_kind: Option<CompanionParticipationSurfaceKind>,
-    pub trigger_source: Option<CompanionParticipationTriggerSource>,
-    pub profile_ref: Option<String>,
-    pub request_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetCompanionParticipationProjectionResponse {
-    pub projection: Option<Box<CompanionParticipationProjection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6594,23 +6305,6 @@ pub struct InstallModelFromPlanResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct InterruptAgentVoicePlaybackRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub voice_stream_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub turn_id: Option<String>,
-    pub reason: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct InterruptAgentVoicePlaybackResponse {
-    pub voice_stream_id: Option<String>,
-    pub voice_output_mode: Option<VoiceOutputMode>,
-    pub voice_playback_state: Option<VoicePlaybackState>,
-    pub terminal_reason: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct InterruptLocalAppAgentRealtimeOutputRequest {
     pub realtime_session_id: Option<String>,
     pub generation: Option<u64>,
@@ -6817,19 +6511,6 @@ pub struct ListAuditEventsRequest {
 pub struct ListAuditEventsResponse {
     pub events: Vec<Box<AuditEventRecord>>,
     pub next_page_token: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListAvatarDebugProbeResultsRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub probe_kind: Option<AvatarDebugProbeKind>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ListAvatarDebugProbeResultsResponse {
-    pub probe_results: Vec<Box<AvatarDebugProbeResultEnvelope>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7856,7 +7537,7 @@ pub struct LocalAppEmbodimentVoiceTiming {
     pub duration_ms: Option<i64>,
     pub deadline_offset_ms: Option<i64>,
     pub turn_ref: Option<String>,
-    pub voice_ref: Option<String>,
+    pub correlation_ref: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8732,24 +8413,6 @@ pub struct MusicGenerateScenarioSpec {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct OpenCompanionParticipationReplayRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub surface_kind: Option<CompanionParticipationSurfaceKind>,
-    pub trigger_source: Option<CompanionParticipationTriggerSource>,
-    pub profile_ref: Option<String>,
-    pub projection_id: Option<String>,
-    pub request_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct OpenCompanionParticipationReplayResponse {
-    pub replay_ref: Option<String>,
-    pub projection: Option<Box<CompanionParticipationProjection>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct OpenConversationAnchorRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub agent_id: Option<String>,
@@ -9477,19 +9140,6 @@ impl ReconcileProductControlFirstRunSetupStateRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RegisterAvatarLiveInstanceBindingRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub avatar_instance_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RegisterAvatarLiveInstanceBindingResponse {
-    pub binding: Option<Box<AvatarLiveInstanceBinding>>,
-    pub snapshot: Option<Box<ConversationAnchorSnapshot>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RegisterExternalPrincipalRequest {
     pub app_id: Option<String>,
     pub external_principal_id: Option<String>,
@@ -9708,47 +9358,6 @@ pub struct RepairLocalEnvironmentDependencyResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RequestAvatarDebugProbeRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub probe_kind: Option<AvatarDebugProbeKind>,
-    pub requested_by: Option<AvatarDebugRequestedBy>,
-    pub probe_id: Option<String>,
-    pub turn_id: Option<String>,
-    pub stream_id: Option<String>,
-    pub avatar_instance_id: Option<String>,
-    pub replay_requested: Option<bool>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RequestAvatarDebugProbeResponse {
-    pub request: Option<Box<AvatarDebugProbeRequestEnvelope>>,
-    pub result: Option<Box<AvatarDebugProbeResultEnvelope>>,
-    pub replay_ref: Option<Box<AvatarDebugReplayRef>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RequestCompanionParticipationRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub surface_kind: Option<CompanionParticipationSurfaceKind>,
-    pub trigger_source: Option<CompanionParticipationTriggerSource>,
-    pub profile_ref: Option<String>,
-    pub request_id: Option<String>,
-    pub text: Option<String>,
-    pub thread_id: Option<String>,
-    pub world_id: Option<String>,
-    pub max_output_tokens: Option<i32>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RequestCompanionParticipationResponse {
-    pub projection: Option<Box<CompanionParticipationProjection>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RequestPresenceVerificationRequest {
     pub caller: Option<Box<AccountCaller>>,
     pub purpose: Option<String>,
@@ -9804,18 +9413,6 @@ impl RequestRuntimeRestartResponse {
         out.reason_code = pairs.get("reason_code").and_then(|value| ReasonCode::from_transport(value));
         out
     }
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResolveAvatarLiveInstanceBindingRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub avatar_instance_id: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ResolveAvatarLiveInstanceBindingResponse {
-    pub binding: Option<Box<AvatarLiveInstanceBinding>>,
-    pub snapshot: Option<Box<ConversationAnchorSnapshot>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10502,19 +10099,6 @@ pub struct StreamScenarioRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct SubmitAvatarDebugProbeResultRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub result: Option<Box<AvatarDebugProbeResultEnvelope>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SubmitAvatarDebugProbeResultResponse {
-    pub result: Option<Box<AvatarDebugProbeResultEnvelope>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct SubmitDelegatedApprovalDecisionRequest {
     pub context: Option<Box<AgentRequestContext>>,
     pub agent_id: Option<String>,
@@ -10587,15 +10171,6 @@ pub struct SubscribeAgentEventsRequest {
     pub agent_id: Option<String>,
     pub cursor: Option<String>,
     pub event_filters: Vec<AgentEventType>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SubscribeAgentVoiceStreamRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub voice_stream_id: Option<String>,
-    pub conversation_anchor_id: Option<String>,
-    pub turn_id: Option<String>,
-    pub agent_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

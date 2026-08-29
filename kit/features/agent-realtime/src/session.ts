@@ -154,7 +154,7 @@ export function createNimiAgentRealtimeSession(
         return result;
       } catch (cause) {
         const error = runtimeError(cause, 'send Agent Realtime text', 'retry_agent_realtime_input');
-        if (isCurrent(scope)) recordIssue(error, true);
+        if (isCurrent(scope)) recordIssue(error, false);
         throw error;
       }
     },
@@ -184,7 +184,7 @@ export function createNimiAgentRealtimeSession(
           'The Agent Realtime session did not provide a negotiated input audio format.',
           'reopen_agent_realtime_session',
           true,
-        ), true);
+        ), false);
       }
 
       dispatch({ type: 'capture-requested', epoch: scope.epoch });
@@ -409,9 +409,8 @@ export function createNimiAgentRealtimeSession(
           'The Agent Realtime event stream ended without a terminal event.',
           'reopen_agent_realtime_session',
           true,
-        ), true);
+        ), false);
         await releaseTerminalMedia(scope);
-        activeSession = null;
         activeSubscription = null;
       }
     } catch (cause) {
@@ -421,9 +420,8 @@ export function createNimiAgentRealtimeSession(
         'read Agent Realtime events',
         'reopen_agent_realtime_session',
       );
-      recordIssue(error, true);
+      recordIssue(error, false);
       await releaseTerminalMedia(scope);
-      activeSession = null;
       activeSubscription = null;
     }
   }
@@ -471,7 +469,7 @@ export function createNimiAgentRealtimeSession(
         'append Agent Realtime audio',
         'reopen_agent_realtime_session',
       );
-      if (isCurrent(scope)) recordIssue(error, true);
+      if (isCurrent(scope)) recordIssue(error, false);
       await releaseCaptureWithoutObservation(scope, 'stopped');
       throw error;
     } finally {
@@ -550,7 +548,7 @@ export function createNimiAgentRealtimeSession(
         'report Agent Realtime capture stop',
         'reopen_agent_realtime_session',
       );
-      if (isCurrent(scope)) recordIssue(error, true);
+      if (isCurrent(scope)) recordIssue(error, false);
       throw error;
     }
   }

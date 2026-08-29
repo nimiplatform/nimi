@@ -40,7 +40,6 @@ test('compiles all protected Runtime profiles and current generated consumers', 
   for (const relative of [
     'runtime/internal/bundledavatar/profile_generated.go',
     'kit/shell/electron/src/main/bundled-avatar-profile.generated.ts',
-    'sdks/typescript/runtime/bundled-avatar-profile.generated.ts',
   ]) {
     const output = outputs.get(relative);
     assert.match(output, /nimi\.avatar/u);
@@ -49,7 +48,7 @@ test('compiles all protected Runtime profiles and current generated consumers', 
   }
 });
 
-test('routes Desktop account-owned Scenario execution through the account product profile', () => {
+test('retires Desktop self AI consumption from the direct account product profile', () => {
   const { model } = compile();
   const profiles = new Map(model.profiles.map((profile) => [profile.profileId, profile]));
   const accountMethods = new Set(
@@ -66,10 +65,20 @@ test('routes Desktop account-owned Scenario execution through the account produc
     '/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob',
     '/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents',
     '/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts',
+	'/nimi.runtime.v1.RuntimeAiService/ListPresetVoices',
+	'/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets',
   ]) {
-    assert.equal(accountMethods.has(methodId), true, `${methodId} must use the account product profile`);
+	assert.equal(accountMethods.has(methodId), false, `${methodId} must be unreachable from the direct account product profile`);
     assert.equal(machineMethods.has(methodId), false, `${methodId} must not use the machine product profile`);
   }
+	for (const methodId of [
+		'/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario',
+		'/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn',
+		'/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob',
+		'/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets',
+	]) {
+		assert.equal(accountMethods.has(methodId), true, `${methodId} must remain on the formal App carrier`);
+	}
 });
 
 test('rejects duplicate and wildcard methods', () => {
@@ -85,6 +94,12 @@ test('rejects unknown fields and RPCs', () => {
 test('rejects malformed required profiles and Avatar capability closure', () => {
   rejectsMutation((value) => { value.profiles[2].identity_class = 'account'; }, /identity_class must be avatar/u);
   rejectsMutation((value) => { delete value.profiles[2].account_caller; }, /account_caller must be an object/u);
-  rejectsMutation((value) => { delete value.profiles[2].methods[0].capability; }, /capability must be a non-empty/u);
+  rejectsMutation((value) => {
+    const method = value.profiles[2].methods.find((entry) => entry.capability);
+    delete method.capability;
+  }, /capability must be a non-empty/u);
+  rejectsMutation((value) => {
+    value.profiles[2].methods.find((entry) => entry.method_id.endsWith('/OpenLocalAppSession')).capability = 'agent.local';
+  }, /session mechanics must not declare Avatar capability/u);
   rejectsMutation((value) => { value.profiles[0].methods[0].capability = 'text.generate'; }, /must not duplicate non-Avatar capability authority/u);
 });

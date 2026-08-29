@@ -234,7 +234,6 @@ func TestIsWriteMethodScenarioSurface(t *testing.T) {
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput",
 		"/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
 		"/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
-		"/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
 		"/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime",
 		"/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput",
 		"/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput",
@@ -320,9 +319,7 @@ func generatedRuntimeFullMethods() []string {
 
 func isKnownReadOperation(operation string) bool {
 	switch operation {
-	case "OpenCompanionParticipationReplay",
-		"RevealLocalAppAsset",
-		"ResolveAvatarLiveInstanceBinding",
+	case "RevealLocalAppAsset",
 		"ResolveLocalEnvironmentPlan",
 		"ResolveModelInstallPlan":
 		return true

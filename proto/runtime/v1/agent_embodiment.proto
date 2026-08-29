@@ -46,7 +46,7 @@ message LocalAppEmbodimentVoiceTiming {
   int64 duration_ms = 2;
   int64 deadline_offset_ms = 3;
   string turn_ref = 4;
-  string voice_ref = 5;
+  string correlation_ref = 5;
 }
 
 message LocalAppEmbodimentSnapshot {

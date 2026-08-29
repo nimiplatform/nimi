@@ -199,34 +199,10 @@ func protectedCapabilityForUnary(fullMethod string, req any) (string, bool) {
 		return "runtime.agent.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot":
 		return "runtime.agent.read", true
-	case "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding":
-		return "runtime.agent.write", true
-	case "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding":
-		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot":
 		return "runtime.agent.read", true
-	case "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback":
-		return "runtime.agent.turn.write", true
 	case "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput":
 		return "runtime.agent.turn.write", true
-	case "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection":
-		return "runtime.agent.companion_participation.read", true
-	case "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation":
-		return "runtime.agent.companion_participation.write", true
-	case "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation":
-		return "runtime.agent.companion_participation.write", true
-	case "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay":
-		return "runtime.agent.companion_participation.read", true
-	case "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot":
-		return "runtime.agent.avatar_debug.read", true
-	case "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe":
-		return "runtime.agent.avatar_debug.write", true
-	case "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult":
-		return "runtime.agent.avatar_debug.write", true
-	case "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults":
-		return "runtime.agent.avatar_debug.read", true
-	case "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay":
-		return "runtime.agent.avatar_debug.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles":
 		return "runtime.agent.delegation.read", true
 	case "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests":
@@ -302,8 +278,6 @@ func protectedCapabilityForStream(fullMethod string, req any) (string, bool) {
 		return "runtime.audit.export", true
 	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents":
 		return "runtime.agent.read", true
-	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream":
-		return "runtime.agent.turn.read", true
 	case "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages":
 		return deferredStreamCapability, true
 	default:

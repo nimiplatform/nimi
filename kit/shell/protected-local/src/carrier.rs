@@ -1,12 +1,13 @@
 use crate::{
-    BundledAvatarRuntimeError, BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse,
-    BundledAvatarRuntimeStreamReceiver, DesktopAccountActionRequest,
-    DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
+    BundledAvatarRuntimeClientStreamRequest, BundledAvatarRuntimeError,
+    BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
+    DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
-    DesktopAccountProductStreamRequest, DesktopAccountProductUnaryRequest,
-    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
-    DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
-    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopFirstPartyProductError,
+    DesktopAccountProductClientStreamRequest, DesktopAccountProductStreamRequest,
+    DesktopAccountProductUnaryRequest, DesktopAccountRealmUnaryRequest,
+    DesktopAccountRealmUnaryResponse, DesktopAccountSessionEventReceiver,
+    DesktopAccountSessionEventsRequest, DesktopAccountSessionStatus,
+    DesktopAccountSessionStatusRequest, DesktopFirstPartyProductError,
     DesktopFirstPartyProductStreamReceiver, DesktopFirstPartyProductUnaryResponse,
     DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest, DeveloperModeStatus,
     FixedRuntimeServiceControl, LocalDevelopmentEndRunRequest, LocalDevelopmentLaunchOutcome,
@@ -620,6 +621,19 @@ pub struct LocalAppConversationSnapshotRequest {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppEmbodimentSnapshotRequest {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppEmbodimentSubscribeRequest {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub after_sequence: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppAgentHandleRequest {
     pub agent_handle: String,
 }
@@ -953,6 +967,17 @@ pub trait NimiDesktopControl: Send + Sync {
         >,
     >;
 
+    fn invoke_bundled_avatar_client_stream(
+        &self,
+        request: BundledAvatarRuntimeClientStreamRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<BundledAvatarRuntimeResponse, BundledAvatarRuntimeError>>
+                + Send
+                + '_,
+        >,
+    >;
+
     fn invoke_machine_product_unary(
         &self,
         request: DesktopMachineProductUnaryRequest,
@@ -1006,6 +1031,21 @@ pub trait NimiDesktopControl: Send + Sync {
             dyn Future<
                     Output = Result<
                         DesktopFirstPartyProductStreamReceiver,
+                        DesktopFirstPartyProductError,
+                    >,
+                > + Send
+                + '_,
+        >,
+    >;
+
+    fn invoke_account_product_client_stream(
+        &self,
+        request: DesktopAccountProductClientStreamRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<
+                        DesktopFirstPartyProductUnaryResponse,
                         DesktopFirstPartyProductError,
                     >,
                 > + Send
@@ -1497,6 +1537,23 @@ pub trait NimiLocalAppSession: Send + Sync {
         Box<
             dyn Future<Output = Result<LocalAppConversationSnapshot, LocalAppOperationError>>
                 + Send
+                + '_,
+        >,
+    >;
+
+    fn embodiment_snapshot(
+        &self,
+        request: LocalAppEmbodimentSnapshotRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn embodiment_subscribe(
+        &self,
+        request: LocalAppEmbodimentSubscribeRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>,
+                > + Send
                 + '_,
         >,
     >;

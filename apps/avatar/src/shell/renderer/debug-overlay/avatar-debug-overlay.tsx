@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { RefreshCcw, SearchCheck, X } from 'lucide-react';
-import { AvatarDebugProbeKind, AvatarDebugProbeStatus } from '@nimiplatform/sdk/runtime/wire-types';
+import { AvatarDebugProbeKind, AvatarDebugProbeStatus } from '../avatar-debug/contract.js';
 import { useTranslation } from '../i18n/index.js';
 import type { BootstrapHandle } from '../app-shell/app-bootstrap.js';
 
@@ -13,8 +13,6 @@ export type AvatarDebugOverlayDismissReason =
 export type AvatarDebugOverlayProps = {
   x: number;
   y: number;
-  agentId: string;
-  conversationAnchorId: string;
   avatarInstanceId: string | null;
   avatarDebug: NonNullable<BootstrapHandle['avatarDebug']>;
   onRequestFailed(input: {
@@ -131,8 +129,6 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
   const {
     x,
     y,
-    agentId,
-    conversationAnchorId,
     avatarInstanceId,
     avatarDebug,
     onRequestFailed,
@@ -162,10 +158,7 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
     setLoading(true);
     setError(null);
     try {
-      setSnapshot(await avatarDebug.snapshot(
-        { agentId, conversationAnchorId },
-        { signal: controller.signal, timeoutMs: AVATAR_DEBUG_RPC_TIMEOUT_MS },
-      ));
+      setSnapshot(await avatarDebug.snapshot({ signal: controller.signal, timeoutMs: AVATAR_DEBUG_RPC_TIMEOUT_MS }));
     } catch (loadError) {
       setError(controller.signal.aborted
         ? t('Avatar.debug.request_canceled')
@@ -176,7 +169,7 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
       if (operationAbortRef.current === controller) operationAbortRef.current = null;
       setLoading(false);
     }
-  }, [agentId, avatarDebug, conversationAnchorId, t, unknownFailureMessage]);
+  }, [avatarDebug, t, unknownFailureMessage]);
 
   const requestProbes = useCallback(async () => {
     operationAbortRef.current?.abort();
@@ -188,8 +181,6 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
       for (const probeKind of AVATAR_BACKEND_PROBES) {
         try {
           await avatarDebug.requestProbe({
-            agentId,
-            conversationAnchorId,
             probeKind,
             avatarInstanceId,
           }, { signal: controller.signal, timeoutMs: AVATAR_DEBUG_RPC_TIMEOUT_MS });
@@ -202,8 +193,8 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
           onRequestFailed({
             probeKind,
             reasonCode: isTimeoutError(requestError, unknownFailureMessage)
-              ? 'runtime_avatar_debug_request_timeout'
-              : 'runtime_avatar_debug_request_rejected',
+              ? 'avatar_debug_request_timeout'
+              : 'avatar_debug_request_rejected',
             error: message,
           });
           setError(isTimeoutError(requestError, unknownFailureMessage) ? t('Avatar.debug.request_timeout') : message);
@@ -211,10 +202,7 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
         }
       }
       if (!controller.signal.aborted) {
-        setSnapshot(await avatarDebug.snapshot(
-          { agentId, conversationAnchorId },
-          { signal: controller.signal, timeoutMs: AVATAR_DEBUG_RPC_TIMEOUT_MS },
-        ));
+        setSnapshot(await avatarDebug.snapshot({ signal: controller.signal, timeoutMs: AVATAR_DEBUG_RPC_TIMEOUT_MS }));
       }
     } catch (requestError) {
       setError(controller.signal.aborted
@@ -226,7 +214,7 @@ export function AvatarDebugOverlay(props: AvatarDebugOverlayProps) {
       if (operationAbortRef.current === controller) operationAbortRef.current = null;
       setRequesting(false);
     }
-  }, [agentId, avatarDebug, avatarInstanceId, conversationAnchorId, onRequestFailed, t, unknownFailureMessage]);
+  }, [avatarDebug, avatarInstanceId, onRequestFailed, t, unknownFailureMessage]);
 
   const cancelRequest = useCallback(() => {
     operationAbortRef.current?.abort(new DOMException('Avatar diagnostics canceled by user', 'AbortError'));

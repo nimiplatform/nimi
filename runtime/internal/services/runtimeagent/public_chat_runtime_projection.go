@@ -83,15 +83,10 @@ func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorSta
 	}
 }
 
-// projectCommittedVoiceLipsync synthesizes voice/lipsync timeline events from
-// committed assistant text only when Runtime-owned agent policy resolves an
-// Avatar autoplay target and a playable provider audio artifact. Text commit is
-// otherwise complete without voice.
-//
-// Empty text and disabled autoplay skip projection. Once autoplay is requested,
-// policy, route, synthesis, and artifact failures emit a typed terminal voice
-// event without rolling back the committed text turn.
-func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, session publicChatAnchorState, turn publicChatTurnState, structured *publicChatStructuredEnvelope) {
+// projectCommittedConversationVoice synthesizes the provider-neutral Conversation
+// voice sidecar and semantic artifact/timing timeline. Avatar autoplay and
+// renderer lipsync are not Runtime inputs or outputs.
+func (r publicChatRuntime) projectCommittedConversationVoice(ctx context.Context, session publicChatAnchorState, turn publicChatTurnState, structured *publicChatStructuredEnvelope) {
 	if r.svc == nil || r.svc.isClosed() || structured == nil {
 		return
 	}
@@ -102,15 +97,15 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 		return
 	}
 	policy, ok, policyReason := r.agentVoiceOutputPolicyForSession(ctx, session)
-	if !policy.AvatarAutoplay {
-		return
-	}
 	if !ok {
-		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "batch_final_artifact", "avatar_autoplay", policyReason)
+		if strings.TrimSpace(policyReason) == "" {
+			return
+		}
+		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, policyReason)
 		return
 	}
 	if r.svc.voiceLipsync == nil {
-		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "batch_final_artifact", "avatar_autoplay", "VOICE_SYNTHESIS_UNAVAILABLE")
+		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "VOICE_SYNTHESIS_UNAVAILABLE")
 		return
 	}
 	synthesisInput := voiceLipsyncSynthesisInput{
@@ -152,11 +147,11 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 				"error", err,
 			)
 		}
-		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "batch_final_artifact", "avatar_autoplay", voiceProjectionTerminalReason(err, "VOICE_SYNTHESIS_FAILED"))
+		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, voiceProjectionTerminalReason(err, "VOICE_SYNTHESIS_FAILED"))
 		return
 	}
-	if len(out.Frames) == 0 || strings.TrimSpace(out.AudioArtifactID) == "" {
-		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "batch_final_artifact", "avatar_autoplay", "VOICE_OUTPUT_INVALID")
+	if strings.TrimSpace(out.AudioArtifactID) == "" {
+		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "VOICE_OUTPUT_INVALID")
 		return
 	}
 	if err := r.svc.verifyVoiceAudioArtifact(out); err != nil {
@@ -168,7 +163,7 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 				"error", err,
 			)
 		}
-		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "batch_final_artifact", "avatar_autoplay", "VOICE_ARTIFACT_UNAVAILABLE")
+		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "VOICE_ARTIFACT_UNAVAILABLE")
 		return
 	}
 	if err := r.svc.retainGeneratedVoiceArtifact(synthesisInput, out, session); err != nil {
@@ -180,7 +175,7 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 				"error", err,
 			)
 		}
-		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "batch_final_artifact", "avatar_autoplay", "VOICE_ARTIFACT_RETENTION_FAILED")
+		r.emitVoiceProjectionFailedTerminal(session, turn, messageID, "VOICE_ARTIFACT_RETENTION_FAILED")
 		return
 	}
 	if err := r.svc.commitLocalAppConversationVoiceReady(session, turn, messageID, out.AudioArtifactID); err != nil {
@@ -189,19 +184,16 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 		}
 		return
 	}
-	if err := r.emitVoiceStreamChunkTimelineEvent(session, turn, publicChatVoiceStreamChunkProjection{
-		AudioArtifactID:    out.AudioArtifactID,
-		AudioMimeType:      out.AudioMimeType,
-		MessageID:          messageID,
-		ChunkSequence:      1,
-		FinalChunk:         true,
-		VoiceOutputMode:    "batch_final_artifact",
-		VoicePlaybackState: "active",
-		DurationMs:         out.DurationMs,
-		Reason:             "final_artifact_available",
-		PlaybackTarget:     "avatar_autoplay",
+	if err := r.emitVoiceArtifactTimelineEvent(session, turn, publicChatVoiceArtifactProjection{
+		AudioArtifactID:  out.AudioArtifactID,
+		AudioMimeType:    out.AudioMimeType,
+		MessageID:        messageID,
+		ArtifactSequence: 1,
+		ArtifactComplete: true,
+		DurationMs:       out.DurationMs,
+		Reason:           "final_artifact_available",
 	}); err != nil && r.svc.logger != nil {
-		r.svc.logger.Warn("emit voice_stream_chunk_available failed",
+		r.svc.logger.Warn("emit semantic voice artifact failed",
 			"agent_id", session.AgentID,
 			"turn_id", turnID,
 			"audio_artifact_id", out.AudioArtifactID,
@@ -209,38 +201,19 @@ func (r publicChatRuntime) projectCommittedVoiceLipsync(ctx context.Context, ses
 		)
 		return
 	}
-	if err := r.emitVoicePlaybackTimelineEvent(session, turn, publicChatVoicePlaybackProjection{
-		AudioArtifactID:       out.AudioArtifactID,
-		AudioMimeType:         out.AudioMimeType,
-		MessageID:             messageID,
-		DurationMs:            out.DurationMs,
-		DefaultVoiceReference: out.DefaultVoiceReference,
-		VoiceRouteBinding:     out.VoiceRouteBinding,
-		PlaybackState:         "requested",
-		VoiceOutputMode:       "batch_final_artifact",
-		VoicePlaybackState:    "active",
-		PlaybackTarget:        "avatar_autoplay",
-		FinalArtifact:         true,
-	}); err != nil && r.svc.logger != nil {
-		r.svc.logger.Warn("emit voice_playback_requested failed",
-			"agent_id", session.AgentID,
-			"turn_id", turnID,
-			"audio_artifact_id", out.AudioArtifactID,
-			"error", err,
-		)
-		return
-	}
-	if err := r.emitLipsyncFrameBatchTimelineEvent(session, turn, publicChatLipsyncFrameBatchProjection{
+	if err := r.emitVoiceTimingReadyTimelineEvent(session, turn, publicChatVoiceTimingReadyProjection{
 		AudioArtifactID: out.AudioArtifactID,
-		Frames:          out.Frames,
+		AudioMimeType:   out.AudioMimeType,
+		MessageID:       messageID,
+		DurationMs:      out.DurationMs,
 	}); err != nil && r.svc.logger != nil {
-		r.svc.logger.Warn("emit lipsync_frame_batch failed",
+		r.svc.logger.Warn("emit semantic voice timing ready failed",
 			"agent_id", session.AgentID,
 			"turn_id", turnID,
 			"audio_artifact_id", out.AudioArtifactID,
-			"frame_count", len(out.Frames),
 			"error", err,
 		)
+		return
 	}
 }
 
@@ -248,8 +221,6 @@ func (r publicChatRuntime) emitVoiceProjectionFailedTerminal(
 	session publicChatAnchorState,
 	turn publicChatTurnState,
 	messageID string,
-	voiceOutputMode string,
-	playbackTarget string,
 	terminalReason string,
 ) {
 	if r.svc == nil {
@@ -268,14 +239,10 @@ func (r publicChatRuntime) emitVoiceProjectionFailedTerminal(
 		}
 		return
 	}
-	voiceStreamID := runtimeAgentVoiceStreamID(turn.TurnID, messageID)
-	if err := r.emitVoicePlaybackTerminalTimelineEvent(session, turn, publicChatVoicePlaybackTerminalProjection{
-		VoiceStreamID:      voiceStreamID,
-		MessageID:          strings.TrimSpace(messageID),
-		VoiceOutputMode:    voiceOutputMode,
-		VoicePlaybackState: "failed",
-		PlaybackTarget:     playbackTarget,
-		TerminalReason:     reason,
+	if err := r.emitVoiceTimingTerminalTimelineEvent(session, turn, publicChatVoiceTimingTerminalProjection{
+		MessageID:      strings.TrimSpace(messageID),
+		Phase:          "failed",
+		TerminalReason: reason,
 	}); err != nil && r.svc.logger != nil {
 		r.svc.logger.Warn("emit voice failure terminal failed",
 			"agent_id", session.AgentID,
@@ -296,46 +263,16 @@ func (r publicChatRuntime) projectCommittedNativeVoiceStream(session publicChatA
 		return false, nil
 	}
 	messageID := strings.TrimSpace(input.MessageID)
-	voiceStreamID := runtimeAgentVoiceStreamID(input.TurnID, input.MessageID)
 	parentCtx := input.Context
 	if parentCtx == nil {
 		parentCtx = context.Background()
 	}
 	streamCtx, cancel := context.WithCancel(parentCtx)
 	defer cancel()
-	unregisterCancel := r.svc.registerAgentVoiceStreamCancel(voiceStreamID, cancel)
-	defer unregisterCancel()
 	streamInput := input
 	streamInput.Context = streamCtx
 	var emittedChunks uint64
 	out, streamed, err := streamer.synthesizeNativeStream(streamInput, func(chunk voiceLipsyncNativeStreamChunk) error {
-		r.svc.publishAgentVoiceStreamEvent(&runtimev1.AgentVoiceStreamEvent{
-			VoiceStreamId:        voiceStreamID,
-			ConversationAnchorId: session.ConversationAnchorID,
-			TurnId:               turn.TurnID,
-			StreamId:             turn.StreamID,
-			MessageId:            messageID,
-			ChunkSequence:        chunk.Sequence,
-			Chunk:                append([]byte(nil), chunk.Bytes...),
-			MimeType:             chunk.MimeType,
-			VoiceOutputMode:      runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM,
-			PlaybackTarget:       "avatar_autoplay",
-			VoicePlaybackState:   runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_ACTIVE,
-		})
-		if err := r.emitVoiceStreamChunkTimelineEvent(session, turn, publicChatVoiceStreamChunkProjection{
-			AudioMimeType:      chunk.MimeType,
-			VoiceStreamID:      voiceStreamID,
-			ChunkTransportRef:  runtimeAgentVoiceStreamChunkTransportRef(voiceStreamID, chunk.Sequence),
-			MessageID:          messageID,
-			ChunkSequence:      chunk.Sequence,
-			FinalChunk:         false,
-			VoiceOutputMode:    "native_stream",
-			VoicePlaybackState: "active",
-			Reason:             "native_stream_chunk_available",
-			PlaybackTarget:     "avatar_autoplay",
-		}); err != nil {
-			return err
-		}
 		emittedChunks = chunk.Sequence
 		return nil
 	})
@@ -343,18 +280,12 @@ func (r publicChatRuntime) projectCommittedNativeVoiceStream(session publicChatA
 		return false, nil
 	}
 	if err != nil {
-		if r.svc.agentVoiceStreamTerminalState(voiceStreamID) == runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_INTERRUPTED {
-			return true, nil
-		}
-		if terminalErr := r.emitNativeVoiceStreamFailedTerminal(session, turn, input, voiceStreamID, voiceProjectionTerminalReason(err, "VOICE_SYNTHESIS_FAILED")); terminalErr != nil {
+		if terminalErr := r.emitNativeVoiceStreamFailedTerminal(session, turn, input, voiceProjectionTerminalReason(err, "VOICE_SYNTHESIS_FAILED")); terminalErr != nil {
 			return true, terminalErr
 		}
 		return true, err
 	}
 	if emittedChunks == 0 {
-		return true, nil
-	}
-	if r.svc.agentVoiceStreamTerminalState(voiceStreamID) == runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_INTERRUPTED {
 		return true, nil
 	}
 	if err := r.svc.putGeneratedVoiceArtifactBytes(
@@ -373,54 +304,35 @@ func (r publicChatRuntime) projectCommittedNativeVoiceStream(session publicChatA
 	if err := r.svc.commitLocalAppConversationVoiceReady(session, turn, messageID, out.AudioArtifactID); err != nil {
 		return true, err
 	}
-	if err := r.emitVoicePlaybackTimelineEvent(session, turn, publicChatVoicePlaybackProjection{
-		AudioArtifactID:       out.AudioArtifactID,
-		AudioMimeType:         out.AudioMimeType,
-		VoiceStreamID:         voiceStreamID,
-		MessageID:             messageID,
-		DurationMs:            out.DurationMs,
-		DefaultVoiceReference: out.DefaultVoiceReference,
-		VoiceRouteBinding:     out.VoiceRouteBinding,
-		PlaybackState:         "requested",
-		VoiceOutputMode:       "native_stream",
-		VoicePlaybackState:    "active",
-		PlaybackTarget:        "avatar_autoplay",
-		FinalArtifact:         true,
-		Reason:                "native_stream_final_artifact_available",
+	if err := r.emitVoiceArtifactTimelineEvent(session, turn, publicChatVoiceArtifactProjection{
+		AudioArtifactID:  out.AudioArtifactID,
+		AudioMimeType:    out.AudioMimeType,
+		MessageID:        messageID,
+		ArtifactSequence: emittedChunks,
+		ArtifactComplete: true,
+		DurationMs:       out.DurationMs,
+		Reason:           "final_artifact_available",
 	}); err != nil {
 		return true, err
 	}
-	if err := r.emitLipsyncFrameBatchTimelineEvent(session, turn, publicChatLipsyncFrameBatchProjection{
+	if err := r.emitVoiceTimingReadyTimelineEvent(session, turn, publicChatVoiceTimingReadyProjection{
 		AudioArtifactID: out.AudioArtifactID,
-		Frames:          out.Frames,
+		AudioMimeType:   out.AudioMimeType,
+		MessageID:       messageID,
+		DurationMs:      out.DurationMs,
+		Reason:          "final_artifact_available",
 	}); err != nil {
 		return true, err
 	}
-	if err := r.emitVoicePlaybackTerminalTimelineEvent(session, turn, publicChatVoicePlaybackTerminalProjection{
-		VoiceStreamID:      voiceStreamID,
-		AudioArtifactID:    out.AudioArtifactID,
-		AudioMimeType:      out.AudioMimeType,
-		MessageID:          messageID,
-		VoiceOutputMode:    "native_stream",
-		VoicePlaybackState: "completed",
-		PlaybackTarget:     "avatar_autoplay",
-		TerminalReason:     "native_stream_completed",
+	if err := r.emitVoiceTimingTerminalTimelineEvent(session, turn, publicChatVoiceTimingTerminalProjection{
+		AudioArtifactID: out.AudioArtifactID,
+		AudioMimeType:   out.AudioMimeType,
+		MessageID:       messageID,
+		Phase:           "completed",
+		TerminalReason:  "final_artifact_completed",
 	}); err != nil {
 		return true, err
 	}
-	r.svc.publishAgentVoiceStreamEvent(&runtimev1.AgentVoiceStreamEvent{
-		VoiceStreamId:        voiceStreamID,
-		ConversationAnchorId: session.ConversationAnchorID,
-		TurnId:               turn.TurnID,
-		StreamId:             turn.StreamID,
-		MessageId:            messageID,
-		MimeType:             out.AudioMimeType,
-		VoiceOutputMode:      runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM,
-		PlaybackTarget:       "avatar_autoplay",
-		Terminal:             true,
-		VoicePlaybackState:   runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_COMPLETED,
-		TerminalReason:       "native_stream_completed",
-	})
 	return true, nil
 }
 
@@ -428,7 +340,6 @@ func (r publicChatRuntime) emitNativeVoiceStreamFailedTerminal(
 	session publicChatAnchorState,
 	turn publicChatTurnState,
 	input voiceLipsyncSynthesisInput,
-	voiceStreamID string,
 	terminalReason string,
 ) error {
 	terminalReason = strings.TrimSpace(terminalReason)
@@ -439,33 +350,17 @@ func (r publicChatRuntime) emitNativeVoiceStreamFailedTerminal(
 		return err
 	}
 	messageID := strings.TrimSpace(input.MessageID)
-	if err := r.emitVoicePlaybackTerminalTimelineEvent(session, turn, publicChatVoicePlaybackTerminalProjection{
-		VoiceStreamID:      voiceStreamID,
-		MessageID:          messageID,
-		VoiceOutputMode:    "native_stream",
-		VoicePlaybackState: "failed",
-		PlaybackTarget:     "avatar_autoplay",
-		TerminalReason:     terminalReason,
+	if err := r.emitVoiceTimingTerminalTimelineEvent(session, turn, publicChatVoiceTimingTerminalProjection{
+		MessageID:      messageID,
+		Phase:          "failed",
+		TerminalReason: terminalReason,
 	}); err != nil {
 		return err
 	}
-	r.svc.publishAgentVoiceStreamEvent(&runtimev1.AgentVoiceStreamEvent{
-		VoiceStreamId:        voiceStreamID,
-		ConversationAnchorId: session.ConversationAnchorID,
-		TurnId:               turn.TurnID,
-		StreamId:             turn.StreamID,
-		MessageId:            messageID,
-		VoiceOutputMode:      runtimev1.VoiceOutputMode_VOICE_OUTPUT_MODE_NATIVE_STREAM,
-		PlaybackTarget:       "avatar_autoplay",
-		Terminal:             true,
-		VoicePlaybackState:   runtimev1.VoicePlaybackState_VOICE_PLAYBACK_STATE_FAILED,
-		TerminalReason:       terminalReason,
-	})
 	return nil
 }
 
 type agentVoiceOutputPolicy struct {
-	AvatarAutoplay         bool
 	DefaultVoiceReference  string
 	SpeechModelID          string
 	SpeechRoutePolicy      runtimev1.RoutePolicy
@@ -484,7 +379,7 @@ func (r publicChatRuntime) agentVoiceOutputPolicyForSession(ctx context.Context,
 	if profile == nil {
 		return agentVoiceOutputPolicy{}, false, ""
 	}
-	policy := agentVoiceOutputPolicy{AvatarAutoplay: profile.GetAvatarAutoplay()}
+	policy := agentVoiceOutputPolicy{}
 	voiceRef, err := normalizeDefaultVoiceReference(profile.GetDefaultVoiceReference())
 	if err != nil || voiceRef == "" {
 		return policy, false, "VOICE_POLICY_INVALID"
@@ -515,7 +410,6 @@ func (r publicChatRuntime) agentVoiceOutputPolicyForSession(ctx context.Context,
 	}
 	speechIntent := executionintent.Clone(audioBinding.ExecutionIntent)
 	return agentVoiceOutputPolicy{
-		AvatarAutoplay:         profile.GetAvatarAutoplay(),
 		DefaultVoiceReference:  voiceRef,
 		SpeechModelID:          modelID,
 		SpeechRoutePolicy:      routePolicy,

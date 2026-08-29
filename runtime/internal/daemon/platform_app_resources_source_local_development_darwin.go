@@ -35,7 +35,6 @@ func protectedProductControlRoot(stateRoot string, identity localappkernel.Verif
 	return root, nil
 }
 
-// Source D2 does not consume installed Nimi.app resource projections.
 func protectedPlatformAppResourceBindings() (string, string, error) {
-	return "", "", nil
+	return sourceLocalDevelopmentPlatformAppResources()
 }

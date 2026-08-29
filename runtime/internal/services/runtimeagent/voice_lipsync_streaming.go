@@ -212,17 +212,12 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesizeNativeStream(input voiceLips
 	if chunkSeq == 0 || finalBytes.Len() == 0 || finalMimeType == "" {
 		return voiceLipsyncSynthesisOutput{}, true, fmt.Errorf("native voice stream completed without audio chunks")
 	}
-	frames := buildSyntheticLipsyncFrames(text)
-	if len(frames) == 0 {
-		return voiceLipsyncSynthesisOutput{}, true, nil
-	}
-	last := frames[len(frames)-1]
-	finalArtifactID := runtimeAgentVoiceStreamArtifactID("final", turnID, strings.TrimSpace(input.MessageID), 0)
+	finalArtifactID := runtimeConversationVoiceArtifactID("final", turnID, strings.TrimSpace(input.MessageID), 0)
 	return voiceLipsyncSynthesisOutput{
 		AudioArtifactID:       finalArtifactID,
 		AudioMimeType:         finalMimeType,
 		AudioBytes:            finalBytes.Bytes(),
-		DurationMs:            last.OffsetMs + last.DurationMs,
+		DurationMs:            0,
 		DefaultVoiceReference: strings.TrimSpace(input.DefaultVoiceReference),
 		VoiceRouteBinding: providerVoiceRouteBindingWithMode(
 			strings.TrimSpace(input.DefaultVoiceReference),
@@ -231,16 +226,15 @@ func (s *aiBackedVoiceLipsyncSynthesizer) synthesizeNativeStream(input voiceLips
 			"",
 			finalArtifactID,
 			finalMimeType,
-			"provider_native_stream_with_synthetic_lipsync",
+			"provider_native_stream_artifact",
 			"tts_provider_native_stream_route_bound",
 		),
-		Frames: frames,
 	}, true, nil
 }
 
-func runtimeAgentVoiceStreamArtifactID(kind string, turnID string, messageID string, sequence uint64) string {
+func runtimeConversationVoiceArtifactID(kind string, turnID string, messageID string, sequence uint64) string {
 	parts := []string{
-		"runtime-agent-voice",
+		"runtime-conversation-voice-artifact",
 		strings.TrimSpace(kind),
 		strings.TrimSpace(turnID),
 		strings.TrimSpace(messageID),
@@ -250,18 +244,4 @@ func runtimeAgentVoiceStreamArtifactID(kind string, turnID string, messageID str
 	}
 	parts = append(parts, ulid.Make().String())
 	return strings.Join(parts, ":")
-}
-
-func runtimeAgentVoiceStreamID(turnID string, messageID string) string {
-	parts := []string{
-		"runtime-agent-voice-stream",
-		strings.TrimSpace(turnID),
-		strings.TrimSpace(messageID),
-		ulid.Make().String(),
-	}
-	return strings.Join(parts, ":")
-}
-
-func runtimeAgentVoiceStreamChunkTransportRef(voiceStreamID string, sequence uint64) string {
-	return fmt.Sprintf("runtime-agent-voice-stream://%s/chunks/%06d", strings.TrimSpace(voiceStreamID), sequence)
 }

@@ -1,4 +1,4 @@
-import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/wire-types';
+import { AvatarDebugProbeKind } from './avatar-debug/contract.js';
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
 import type { AvatarActionRadialAction } from './action-radial/avatar-action-radial.js';
 import type { AvatarAppearanceSourceAuthority } from './appearance-overlay/avatar-appearance-overlay.js';

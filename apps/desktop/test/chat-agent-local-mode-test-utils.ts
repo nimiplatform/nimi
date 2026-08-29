@@ -14,10 +14,12 @@ import {
   type NimiRuntimeAgentScopeRunner,
   type NimiDesktopAccountProductRuntimeClient,
   type NimiDesktopMachineProductRuntimeClient,
-  type NimiDesktopRuntimeAiExecutionClient,
 } from '@nimiplatform/sdk/runtime';
 import { createNimiError, ReasonCode, type JsonObject } from '@nimiplatform/sdk/types';
-import { createNimiLocalAppConversationRuntimeClient } from '@nimiplatform/sdk/app';
+import {
+  createNimiLocalAppConversationRuntimeClient,
+  type NimiLocalAppClient,
+} from '@nimiplatform/sdk/app';
 import {
   clearDesktopNimiClientSession,
   createDesktopRuntimeAgentDiscoverySurface,
@@ -33,7 +35,7 @@ type DesktopTestRuntime =
   & NimiDesktopMachineProductRuntimeClient
   & NimiDesktopAccountProductRuntimeClient
   & DesktopAccountRuntime
-  & { readonly ai: NimiDesktopRuntimeAiExecutionClient };
+  & { readonly ai: NimiLocalAppClient['ai'] };
 type DesktopTestNimiClientSession = DesktopNimiClientSession & {
   readonly runtime: DesktopTestRuntime;
   readonly accountRuntime: DesktopTestRuntime;
@@ -333,15 +335,19 @@ function createDesktopTestNimiClientSession(input: {
           artifacts: runtime.artifacts,
           materializeRealmSource: runtime.materializeRealmSource,
         },
-        localAppProduct: {
-          conversation: createNimiLocalAppConversationRuntimeClient(
-            runtime.agents as Parameters<typeof createNimiLocalAppConversationRuntimeClient>[0],
-          ),
-        },
         agentPurpose: runtime.agents,
         auth: runtime.auth,
-        aiExecution: runtime.ai,
       };
+    },
+    get localAppClient() {
+      const runtime = currentRuntime as Record<string, unknown>;
+      return {
+        ai: runtime.ai,
+        agents: runtime.agents,
+        conversation: createNimiLocalAppConversationRuntimeClient(
+          runtime.agents as Parameters<typeof createNimiLocalAppConversationRuntimeClient>[0],
+        ),
+      } as never;
     },
     get accountRuntime() {
       return currentRuntime;
@@ -368,7 +374,7 @@ function getDesktopTestRendererSdk(): DesktopRendererSdkPort {
     localEnvironmentRpc: () => runtime.local,
     localAudit: () => runtime.local,
     auditAdmin: () => runtime.audit,
-    aiExecution: () => ({ ai: runtime.ai }),
+    appProduct: () => session.localAppClient as never,
     externalAgent: () => runtime.externalAgents,
     runtimeAgentDiscovery: createDesktopRuntimeAgentDiscoverySurface,
     runtimeAgentTurns: () => ({

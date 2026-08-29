@@ -1,5 +1,4 @@
 use super::*;
-use nimi_shell_tauri::capabilities::avatar::agent_center_path_segment;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -45,6 +44,18 @@ fn avatar_manages_standard_storage_slot_for_kit_bridge_commands() {
     assert!(
         main_source.contains("StandardAppStorageRootSlot::empty()"),
         "Avatar Tauri must manage the standard app storage slot so kit standard storage/file commands fail closed",
+    );
+    assert!(
+        main_source.contains("RuntimeBridgeLocalAppHost::platform_default()"),
+        "Avatar Tauri must use the common formal Local App session host",
+    );
+    assert!(
+        main_source.contains("nimi_shell_tauri_local_app_standard_shell_handler!"),
+        "Avatar Tauri must register the common formal Local App operation family",
+    );
+    assert!(
+        !main_source.contains("nimi_shell_tauri_runtime_bridge_handler!["),
+        "Avatar Tauri must not expose the retired raw Runtime bridge command family",
     );
 }
 

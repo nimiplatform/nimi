@@ -5,8 +5,7 @@ import { projectNimiRuntimeAgentServiceEvent, type AgentEvent } from './index';
 import {
   AgentPresentationEventFamily,
   AgentStateEventFamily,
-  VoiceOutputMode,
-  VoicePlaybackState,
+  AgentVoiceTimingPhase,
 } from '../core-generated/runtime-typed-client';
 
 test('Runtime Agent consume projects AgentService presentation and state events', () => {
@@ -45,20 +44,14 @@ test('Runtime Agent consume projects AgentService presentation and state events'
         lookatHasZ: false,
         audioArtifactId: '',
         audioMimeType: '',
-        voiceStreamId: '',
-        chunkTransportRef: '',
         messageId: '',
-        chunkSequence: '0',
-        finalChunk: false,
-        voiceOutputMode: VoiceOutputMode.UNSPECIFIED,
-        voicePlaybackState: VoicePlaybackState.UNSPECIFIED,
-        playbackTarget: '',
-        finalArtifact: false,
+        artifactSequence: '0',
+        artifactComplete: false,
+        voiceTimingPhase: AgentVoiceTimingPhase.UNSPECIFIED,
         terminalReason: '',
         reason: '',
         durationMs: '0',
         deadlineOffsetMs: '0',
-        finalArtifactId: '',
       },
     },
   };
@@ -97,7 +90,7 @@ test('Runtime Agent consume projects AgentService presentation and state events'
   assert.equal(state.detail.currentEmotion, 'joy');
 });
 
-test('Runtime Agent consume projects AgentService voice stream chunk presentation events', () => {
+test('Runtime Agent consume projects AgentService semantic voice artifact events', () => {
   const event = projectNimiRuntimeAgentServiceEvent({
     eventType: 7,
     sequence: '3',
@@ -108,7 +101,7 @@ test('Runtime Agent consume projects AgentService voice stream chunk presentatio
     detail: {
       oneofKind: 'presentation',
       presentation: {
-        family: AgentPresentationEventFamily.VOICE_STREAM_CHUNK_AVAILABLE,
+        family: AgentPresentationEventFamily.VOICE_ARTIFACT_AVAILABLE,
         conversationAnchorId: 'anchor-1',
         turnId: 'turn-1',
         streamId: 'stream-1',
@@ -131,37 +124,27 @@ test('Runtime Agent consume projects AgentService voice stream chunk presentatio
         lookatHasX: false,
         lookatHasY: false,
         lookatHasZ: false,
-        audioArtifactId: '',
+        audioArtifactId: 'artifact-voice-1',
         audioMimeType: 'audio/wav',
-        voiceStreamId: 'voice-stream-1',
-        chunkTransportRef: 'runtime-agent-voice-stream://voice-stream-1/chunks/000001',
         messageId: 'message-1',
-        chunkSequence: '1',
-        finalChunk: false,
-        voiceOutputMode: VoiceOutputMode.NATIVE_STREAM,
-        voicePlaybackState: VoicePlaybackState.ACTIVE,
-        playbackTarget: 'avatar_autoplay',
-        finalArtifact: false,
+        artifactSequence: '1',
+        artifactComplete: true,
+        voiceTimingPhase: AgentVoiceTimingPhase.ACTIVE,
         terminalReason: '',
-        reason: 'native_stream_chunk_available',
+        reason: 'final_artifact_available',
         durationMs: '0',
         deadlineOffsetMs: '0',
-        finalArtifactId: '',
       },
     },
   });
 
-  assert.equal(event.eventName, 'runtime.agent.presentation.voice_stream_chunk_available');
+  assert.equal(event.eventName, 'runtime.agent.conversation.voice_artifact_available');
   assert.equal(event.conversationAnchorId, 'anchor-1');
   assert.equal(event.turnId, 'turn-1');
   assert.equal(event.streamId, 'stream-1');
-  assert.equal(event.detail.audioArtifactId, undefined);
+  assert.equal(event.detail.audioArtifactId, 'artifact-voice-1');
   assert.equal(event.detail.audioMimeType, 'audio/wav');
-  assert.equal(event.detail.voiceStreamId, 'voice-stream-1');
-  assert.equal(event.detail.chunkTransportRef, 'runtime-agent-voice-stream://voice-stream-1/chunks/000001');
-  assert.equal(event.detail.chunkSequence, 1);
-  assert.equal(event.detail.finalChunk, false);
-  assert.equal(event.detail.voiceOutputMode, 'native_stream');
-  assert.equal(event.detail.voicePlaybackState, 'active');
-  assert.equal(event.detail.playbackTarget, 'avatar_autoplay');
+  assert.equal(event.detail.artifactSequence, 1);
+  assert.equal(event.detail.artifactComplete, true);
+  assert.equal(event.detail.voiceTimingPhase, 'active');
 });

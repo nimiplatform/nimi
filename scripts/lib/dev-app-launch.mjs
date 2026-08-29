@@ -25,9 +25,19 @@ export const DEV_APP_DEFINITIONS = Object.freeze({
   }),
 });
 
-const AVATAR_VALUE_OPTIONS = new Set(['--uri', '--agent-id', '--instance-id']);
+const AVATAR_VALUE_OPTIONS = new Set([
+  '--uri',
+  '--agent-handle',
+  '--conversation-anchor-id',
+  '--instance-id',
+]);
 const AVATAR_FLAG_OPTIONS = new Set(['--no-kill-existing', '--dry-run']);
-const TAURI_ONLY_AVATAR_OPTIONS = new Set(['--uri', '--no-kill-existing', '--dry-run']);
+const TAURI_ONLY_AVATAR_OPTIONS = new Set([
+  '--uri',
+  '--conversation-anchor-id',
+  '--no-kill-existing',
+  '--dry-run',
+]);
 
 export class DevAppLaunchError extends Error {
   constructor(reasonCode, message) {
@@ -49,7 +59,9 @@ export function devAppUsage(appName) {
   if (definition.supportsTauri) {
     lines.push(
       '  --tauri            Use the Avatar Tauri carrier instead of the default Electron carrier.',
-      '  --agent-id <ref>    Select the Avatar local-agent ref.',
+      '  --agent-handle <h>  Select a current-session canonical Agent handle.',
+      '  --conversation-anchor-id <id>',
+      '                     Bind the explicit Tauri carrier to an exact Conversation.',
       '  --instance-id <id>  Select the Avatar instance.',
       '  --uri <uri>         Pass an explicit launch URI to the Tauri carrier.',
       '  --no-kill-existing  Keep an existing Tauri Avatar process.',
@@ -160,8 +172,8 @@ export function parseDevAppArguments(appName, argv = []) {
   }
 
   const envOverrides = {};
-  if (carrier === 'electron' && avatarOptions.has('--agent-id')) {
-    envOverrides.NIMI_AVATAR_AGENT_ID = avatarOptions.get('--agent-id');
+  if (carrier === 'electron' && avatarOptions.has('--agent-handle')) {
+    envOverrides.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_HANDLE = avatarOptions.get('--agent-handle');
   }
   if (carrier === 'electron' && avatarOptions.has('--instance-id')) {
     envOverrides.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID = avatarOptions.get('--instance-id');

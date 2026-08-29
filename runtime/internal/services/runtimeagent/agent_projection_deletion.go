@@ -12,12 +12,11 @@ import (
 // pointers is sufficient to restore the exact pre-transaction in-memory state
 // when the shared SQLite commit fails.
 type agentChatSurfaceDeletionRollback struct {
-	version        uint64
-	anchors        map[string]*publicChatAnchorState
-	turns          map[string]*publicChatTurnState
-	followUps      map[string]*publicChatFollowUpState
-	activeByAgent  map[string]string
-	avatarBindings map[string]*avatarLiveInstanceBindingState
+	version       uint64
+	anchors       map[string]*publicChatAnchorState
+	turns         map[string]*publicChatTurnState
+	followUps     map[string]*publicChatFollowUpState
+	activeByAgent map[string]string
 }
 
 func (s *Service) beginAgentTerminationFence(localAgentRef string) {
@@ -174,16 +173,6 @@ func (s *Service) prepareAgentScopedChatSurfaceDeletionLocked(localAgentRef stri
 		delete(s.chatActiveByAgent, ref)
 		changed = true
 	}
-	for instanceID, binding := range s.avatarLiveInstanceBindings {
-		if binding == nil {
-			continue
-		}
-		if strings.TrimSpace(binding.AgentID) != ref && strings.TrimSpace(binding.LocalAgentRef) != ref {
-			continue
-		}
-		delete(s.avatarLiveInstanceBindings, instanceID)
-		changed = true
-	}
 	if changed {
 		if s.chatSurfaceVersion == math.MaxUint64 {
 			s.restoreAgentChatSurfaceDeletionLocked(rollback)
@@ -202,12 +191,11 @@ func (s *Service) prepareAgentScopedChatSurfaceDeletionLocked(localAgentRef stri
 
 func (s *Service) captureAgentChatSurfaceDeletionRollbackLocked() agentChatSurfaceDeletionRollback {
 	rollback := agentChatSurfaceDeletionRollback{
-		version:        s.chatSurfaceVersion,
-		anchors:        make(map[string]*publicChatAnchorState, len(s.chatAnchors)),
-		turns:          make(map[string]*publicChatTurnState, len(s.chatTurns)),
-		followUps:      make(map[string]*publicChatFollowUpState, len(s.chatFollowUps)),
-		activeByAgent:  make(map[string]string, len(s.chatActiveByAgent)),
-		avatarBindings: make(map[string]*avatarLiveInstanceBindingState, len(s.avatarLiveInstanceBindings)),
+		version:       s.chatSurfaceVersion,
+		anchors:       make(map[string]*publicChatAnchorState, len(s.chatAnchors)),
+		turns:         make(map[string]*publicChatTurnState, len(s.chatTurns)),
+		followUps:     make(map[string]*publicChatFollowUpState, len(s.chatFollowUps)),
+		activeByAgent: make(map[string]string, len(s.chatActiveByAgent)),
 	}
 	for key, value := range s.chatAnchors {
 		rollback.anchors[key] = value
@@ -221,9 +209,6 @@ func (s *Service) captureAgentChatSurfaceDeletionRollbackLocked() agentChatSurfa
 	for key, value := range s.chatActiveByAgent {
 		rollback.activeByAgent[key] = value
 	}
-	for key, value := range s.avatarLiveInstanceBindings {
-		rollback.avatarBindings[key] = value
-	}
 	return rollback
 }
 
@@ -233,5 +218,4 @@ func (s *Service) restoreAgentChatSurfaceDeletionLocked(rollback agentChatSurfac
 	s.chatTurns = rollback.turns
 	s.chatFollowUps = rollback.followUps
 	s.chatActiveByAgent = rollback.activeByAgent
-	s.avatarLiveInstanceBindings = rollback.avatarBindings
 }

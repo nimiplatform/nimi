@@ -4,6 +4,8 @@ import {
   createNimiLocalAIConfigCapabilityIntent,
   runtimeAIConfigStructToJson,
   type NimiAIConfigLocalLoadoutOption,
+  type NimiAIConfigOptionsQuery,
+  type NimiJsonObject,
   type NimiPortableAppAIConfig,
   type NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/kit/core/sdk-contract';
@@ -43,6 +45,11 @@ function optionsFor(selected: ReadonlySet<string>): ModelConfigListOptions {
   });
 }
 
+function localLoadoutCapabilityContract(query: NimiAIConfigOptionsQuery): string {
+  if (query.kind !== 'local-loadouts') throw new Error(`unexpected options query: ${query.kind}`);
+  return query.capabilityContract;
+}
+
 function committedOverwrite(revision = '2'): ModelConfigOverwrite {
   return vi.fn(async (input) => ({
     outcome: 'committed' as const,
@@ -54,7 +61,7 @@ function committedOverwrite(revision = '2'): ModelConfigOverwrite {
 function cloudIntent(
   capabilityContract: string,
   requiredFeatures: readonly string[] = [],
-  defaults?: Readonly<Record<string, unknown>>,
+  defaults?: NimiJsonObject,
 ): NimiPortableAppAIConfigIntent {
   return createNimiCloudAIConfigCapabilityIntent({
     capabilityContract,
@@ -133,8 +140,9 @@ describe('Model Config current-machine Local action', () => {
 
   it('issues all explicit reads and zero mutation when one read rejects', async () => {
     const listOptions = vi.fn<ModelConfigListOptions>(async (query) => {
-      if (query.capabilityContract === 'image.generate') throw new Error('Runtime unavailable');
-      return { kind: 'local-loadouts', options: [localOption(query.capabilityContract)], truncated: false };
+      const capabilityContract = localLoadoutCapabilityContract(query);
+      if (capabilityContract === 'image.generate') throw new Error('Runtime unavailable');
+      return { kind: 'local-loadouts', options: [localOption(capabilityContract)], truncated: false };
     });
     const onOverwrite = committedOverwrite();
     await expect(runModelConfigCurrentMachineLocalAction({
@@ -158,7 +166,7 @@ describe('Model Config current-machine Local action', () => {
 
   it('rejects a truncated result with zero mutation', async () => {
     const listOptions = vi.fn<ModelConfigListOptions>(async (query) => ({
-      kind: 'local-loadouts', options: [localOption(query.capabilityContract)], truncated: true,
+      kind: 'local-loadouts', options: [localOption(localLoadoutCapabilityContract(query))], truncated: true,
     }));
     const onOverwrite = committedOverwrite();
     await expect(runModelConfigCurrentMachineLocalAction({
@@ -170,7 +178,10 @@ describe('Model Config current-machine Local action', () => {
   it('rejects duplicate current selections with zero mutation', async () => {
     const listOptions = vi.fn<ModelConfigListOptions>(async (query) => ({
       kind: 'local-loadouts',
-      options: [localOption(query.capabilityContract), localOption(query.capabilityContract)],
+      options: [
+        localOption(localLoadoutCapabilityContract(query)),
+        localOption(localLoadoutCapabilityContract(query)),
+      ],
       truncated: false,
     }));
     const onOverwrite = committedOverwrite();
@@ -259,7 +270,11 @@ describe('Model Config current-machine Local action', () => {
     const listOptions = vi.fn<ModelConfigListOptions>(async (query) => {
       (current[0] as { requiredFeatures: string[] }).requiredFeatures.push('late-mutation');
       current.push(cloudIntent('audio.synthesize'));
-      return { kind: 'local-loadouts', options: [localOption(query.capabilityContract)], truncated: false };
+      return {
+        kind: 'local-loadouts',
+        options: [localOption(localLoadoutCapabilityContract(query))],
+        truncated: false,
+      };
     });
     const onOverwrite = committedOverwrite();
     await runModelConfigCurrentMachineLocalAction({
@@ -284,7 +299,9 @@ describe('Model Config current-machine Local action', () => {
 
   it('treats a blocked but real machine selection as selected without copying its metadata', async () => {
     const listOptions = vi.fn<ModelConfigListOptions>(async (query) => ({
-      kind: 'local-loadouts', options: [localOption(query.capabilityContract, 'blocked')], truncated: false,
+      kind: 'local-loadouts',
+      options: [localOption(localLoadoutCapabilityContract(query), 'blocked')],
+      truncated: false,
     }));
     const onOverwrite = committedOverwrite();
     await runModelConfigCurrentMachineLocalAction({

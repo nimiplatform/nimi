@@ -461,8 +461,8 @@ pub mod config {
 
 pub mod local_assets {
     pub use crate::agent_center_avatar_asset::{
-        agent_center_path_segment, nimi_avatar_resolve_agent_center_avatar_asset,
-        AgentCenterAvatarAssetResolvePayload, AgentCenterAvatarAssetResolveResult, ModelManifest,
+        nimi_avatar_resolve_agent_center_avatar_asset, AgentCenterAvatarAssetResolvePayload,
+        AgentCenterAvatarAssetResolveResult, ModelManifest,
     };
     pub use crate::standard_local_assets::{
         set_standard_local_assets_host_hooks, StandardLocalAssetRootsHook,
@@ -482,33 +482,6 @@ pub mod local_assets {
     }
 }
 
-pub mod local_agent {
-    pub use crate::runtime_account_caller::local_first_party_runtime_account_caller;
-    pub use crate::runtime_local_agent_identity::{
-        is_runtime_local_agent_ref, project_runtime_local_agent_identity, RuntimeLocalAgentIdentity,
-    };
-    pub use crate::standard_local_agent::{
-        set_standard_local_agent_host_hooks, StandardLocalAgentHostHooks,
-        StandardLocalAgentIdentityHook, StandardRuntimeTrustedCaller,
-        StandardRuntimeTrustedCallerHook,
-    };
-
-    #[tauri::command]
-    pub fn local_agent_identity() -> Result<RuntimeLocalAgentIdentity, String> {
-        crate::standard_local_agent::local_agent_identity("local_agent_identity")
-    }
-
-    #[tauri::command]
-    pub fn local_agent_runtime_trusted_caller(
-        payload: serde_json::Value,
-    ) -> Result<StandardRuntimeTrustedCaller, String> {
-        crate::standard_local_agent::runtime_trusted_caller(
-            payload,
-            "local_agent_runtime_trusted_caller",
-        )
-    }
-}
-
 pub mod desktop_product_local_agent {
     pub use crate::runtime_account_caller::desktop_shell_runtime_account_caller;
 }
@@ -523,8 +496,8 @@ pub mod ai_profile {
 
 pub mod avatar {
     pub use crate::agent_center_avatar_asset::{
-        agent_center_path_segment, nimi_avatar_resolve_agent_center_avatar_asset,
-        AgentCenterAvatarAssetResolvePayload, AgentCenterAvatarAssetResolveResult, ModelManifest,
+        nimi_avatar_resolve_agent_center_avatar_asset, AgentCenterAvatarAssetResolvePayload,
+        AgentCenterAvatarAssetResolveResult, ModelManifest,
     };
     pub use crate::standard_local_assets::{
         StandardLocalAssetUrlPayload, StandardLocalAssetUrlResult,
@@ -749,6 +722,22 @@ pub mod local_app {
         payload: serde_json::Value,
     ) -> Result<serde_json::Value, String> {
         crate::standard_local_app::agent_manager_snapshot_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_embodiment_snapshot(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::embodiment_snapshot_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_embodiment_subscribe(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::embodiment_subscribe_for_host(host.inner(), payload).await
     }
 
     #[tauri::command]

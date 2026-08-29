@@ -39,7 +39,8 @@ use nimi_shell_protected_local::{
     LocalAppConversationOpenRequest, LocalAppConversationSendRequest,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
     LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceRenderRequest,
-    LocalAppConversationVoiceTranscriptionRequest, LocalAppOperationError,
+    LocalAppConversationVoiceTranscriptionRequest, LocalAppEmbodimentSnapshotRequest,
+    LocalAppEmbodimentSubscribeRequest, LocalAppOperationError,
     LocalAppPersonaCharacterCreateRequest, LocalAppPersonaCharacterDeleteRequest,
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppRealmChatListRequest,
@@ -113,12 +114,14 @@ type PlatformLocalAppCarrier = WindowsLocalAppCarrier;
 
 mod account_events;
 mod bundled_avatar_streams;
+mod first_party_client_stream;
 mod first_party_streams;
 mod local_app;
 mod native_types;
 mod projection;
 pub use account_events::*;
 pub use bundled_avatar_streams::*;
+pub use first_party_client_stream::*;
 pub use first_party_streams::*;
 pub use local_app::*;
 pub use native_types::*;

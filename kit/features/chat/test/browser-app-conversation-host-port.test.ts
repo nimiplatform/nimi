@@ -10,7 +10,7 @@ describe('browser App Conversation Host port', () => {
   it('does not invoke picker or microphone APIs until their explicit user actions', async () => {
     const getUserMedia = vi.fn();
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia } });
-    const click = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(function pickerCancel() {
+    const click = vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(function pickerCancel(this: HTMLInputElement) {
       this.dispatchEvent(new Event('cancel'));
     });
     const port = createBrowserAppConversationHostPort();
@@ -29,7 +29,7 @@ describe('browser App Conversation Host port', () => {
   it('returns exact selected image bytes without invoking microphone mechanics', async () => {
     const getUserMedia = vi.fn();
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia } });
-    vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(function pickerSelection() {
+    vi.spyOn(HTMLInputElement.prototype, 'click').mockImplementation(function pickerSelection(this: HTMLInputElement) {
       Object.defineProperty(this, 'files', {
         configurable: true,
         value: [{

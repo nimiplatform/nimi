@@ -33,9 +33,9 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-type recordingBuiltInAppAdmission struct{ calls []string }
+type recordingFormalAppAdmission struct{ calls []string }
 
-func (admission *recordingBuiltInAppAdmission) AuthorizeBuiltInAppIngress(ctx context.Context, appID string, boot protectedlocal.Identifier, ingress localappop.Ingress) (context.Context, error) {
+func (admission *recordingFormalAppAdmission) AuthorizeFormalAppIngress(ctx context.Context, appID string, boot protectedlocal.Identifier, ingress localappop.Ingress) (context.Context, error) {
 	classification, err := localappop.ClassifyIngress(ingress)
 	if err != nil {
 		return nil, err
@@ -49,13 +49,42 @@ func (admission *recordingBuiltInAppAdmission) AuthorizeBuiltInAppIngress(ctx co
 	}), nil
 }
 
+func (admission *recordingFormalAppAdmission) BindFormalAppSession(ctx context.Context, appID string, _ protectedlocal.Identifier) (context.Context, func(), error) {
+	admission.calls = append(admission.calls, appID+":session")
+	return ctx, func() {}, nil
+}
+
+func TestBundledAvatarFormalSessionUsesRequestEmptyMechanicBinding(t *testing.T) {
+	manager, connection := newProtectedRPCFixture(t)
+	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
+		t.Fatalf("open Desktop session: %v", err)
+	}
+	admission := &recordingFormalAppAdmission{}
+	reached := false
+	_, err := newUnaryProtectedDesktopTransportInterceptor(manager, nil, nil, admission)(
+		bundledAvatarProfileTestContext(connection),
+		&runtimev1.OpenLocalAppSessionRequest{},
+		&grpc.UnaryServerInfo{FullMethod: protectedOpenLocalAppSessionMethod},
+		func(context.Context, any) (any, error) {
+			reached = true
+			return &runtimev1.OpenLocalAppSessionResponse{}, nil
+		},
+	)
+	if err != nil || !reached {
+		t.Fatalf("formal session reached=%v err=%v", reached, err)
+	}
+	if len(admission.calls) != 1 || admission.calls[0] != bundledavatar.AppID+":session" {
+		t.Fatalf("formal session calls = %v", admission.calls)
+	}
+}
+
 func TestBundledAvatarUnaryInterceptorInjectsCanonicalConversationDecision(t *testing.T) {
 	manager, connection := newProtectedRPCFixture(t)
 	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
 		t.Fatalf("open Desktop session: %v", err)
 	}
 	provider := &protectedAccountPrincipalTestProvider{invalidated: make(chan struct{})}
-	admission := &recordingBuiltInAppAdmission{}
+	admission := &recordingFormalAppAdmission{}
 	ctx := bundledAvatarProfileTestContext(connection)
 	reached := false
 	_, err := newUnaryProtectedDesktopTransportInterceptor(manager, provider, nil, admission)(ctx, &runtimev1.OpenLocalAppConversationRequest{}, &grpc.UnaryServerInfo{
@@ -83,7 +112,7 @@ func TestBundledAvatarStreamInterceptorInjectsCanonicalConversationDecision(t *t
 		t.Fatalf("open Desktop session: %v", err)
 	}
 	provider := &protectedAccountPrincipalTestProvider{invalidated: make(chan struct{})}
-	admission := &recordingBuiltInAppAdmission{}
+	admission := &recordingFormalAppAdmission{}
 	reached := false
 	err := newStreamProtectedDesktopTransportInterceptor(manager, provider, admission)(nil, &recordingServerStream{ctx: bundledAvatarProfileTestContext(connection)}, &grpc.StreamServerInfo{
 		FullMethod:     "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents",
@@ -99,6 +128,35 @@ func TestBundledAvatarStreamInterceptorInjectsCanonicalConversationDecision(t *t
 	})
 	if err != nil || !reached {
 		t.Fatalf("bundled Avatar stream reached=%v err=%v", reached, err)
+	}
+}
+
+func TestBundledAvatarClientStreamInjectsCanonicalBaseOperationDecision(t *testing.T) {
+	manager, connection := newProtectedRPCFixture(t)
+	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
+		t.Fatalf("open Desktop session: %v", err)
+	}
+	provider := &protectedAccountPrincipalTestProvider{invalidated: make(chan struct{})}
+	admission := &recordingFormalAppAdmission{}
+	reached := false
+	err := newStreamProtectedDesktopTransportInterceptor(manager, provider, admission)(nil, &recordingServerStream{ctx: bundledAvatarProfileTestContext(connection)}, &grpc.StreamServerInfo{
+		FullMethod:     protectedWriteLocalAppAssetMethod,
+		IsClientStream: true,
+	}, func(_ any, protectedStream grpc.ServerStream) error {
+		reached = true
+		decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(protectedStream.Context())
+		if !ok || decision.AppID != bundledavatar.AppID ||
+			decision.Operation != accountservice.LocalAppOperationStorageAssetWrite ||
+			decision.AuthorityClass != localappop.AuthorityClassBase {
+			t.Fatalf("bundled Avatar base operation decision = %+v ok=%v", decision, ok)
+		}
+		return nil
+	})
+	if err != nil || !reached {
+		t.Fatalf("bundled Avatar client stream reached=%v err=%v", reached, err)
+	}
+	if len(admission.calls) != 1 || admission.calls[0] != bundledavatar.AppID+":" {
+		t.Fatalf("bundled Avatar base admission calls = %v", admission.calls)
 	}
 }
 
@@ -177,6 +235,7 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		&runtimev1.UnimplementedRuntimeArtifactServiceServer{},
 		manager,
 		accountService,
+		nil,
 		nil,
 	)
 	for _, serviceName := range []string{
@@ -403,7 +462,7 @@ func TestGeneratedFirstPartyProfilesResolveExactMarkerMethodAndKind(t *testing.T
 	}
 }
 
-func TestDesktopAccountProfileScenarioStreamReachesHandler(t *testing.T) {
+func TestDesktopAccountProfileRetiresDirectScenarioStream(t *testing.T) {
 	manager, connection := newProtectedRPCFixture(t)
 	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
 		t.Fatalf("open Desktop session: %v", err)
@@ -422,18 +481,18 @@ func TestDesktopAccountProfileScenarioStreamReachesHandler(t *testing.T) {
 		}
 		return nil
 	})
-	if err != nil || !reached {
-		t.Fatalf("account Scenario stream handler result = reached=%v error=%v", reached, err)
+	if status.Code(err) != codes.PermissionDenied || reached {
+		t.Fatalf("retired account Scenario stream reached=%v error=%v", reached, err)
 	}
 }
 
-func TestDesktopAgentConfigureUsesFormalBuiltInAppAdmission(t *testing.T) {
+func TestDesktopAgentConfigureUsesFormalAppAdmission(t *testing.T) {
 	manager, connection := newProtectedRPCFixture(t)
 	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
 		t.Fatalf("open Desktop session: %v", err)
 	}
 	provider := &protectedAccountPrincipalTestProvider{invalidated: make(chan struct{})}
-	admission := &recordingBuiltInAppAdmission{}
+	admission := &recordingFormalAppAdmission{}
 	reached := false
 	_, err := newUnaryProtectedDesktopTransportInterceptor(manager, provider, nil, admission)(
 		protectedAccountProfileTestContext(connection),
@@ -577,6 +636,36 @@ func TestDesktopAccountProductAIConfigBindsExactAdmittedAppOwner(t *testing.T) {
 	})
 	if status.Code(err) != codes.PermissionDenied || reached {
 		t.Fatalf("unadmitted App owner reached handler: reached=%v err=%v", reached, err)
+	}
+}
+
+func TestDesktopSelfAIConfigUsesOwnerFreeFormalAppAdmission(t *testing.T) {
+	manager, connection := newProtectedRPCFixture(t)
+	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
+		t.Fatalf("open Desktop session: %v", err)
+	}
+	provider := &protectedAccountPrincipalTestProvider{invalidated: make(chan struct{})}
+	admission := &recordingFormalAppAdmission{}
+	reached := false
+	_, err := newUnaryProtectedDesktopTransportInterceptor(manager, provider, nil, admission)(
+		protectedAccountProfileTestContext(connection),
+		&runtimev1.GetAppAIConfigRequest{},
+		&grpc.UnaryServerInfo{FullMethod: "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig"},
+		func(callContext context.Context, _ any) (any, error) {
+			reached = true
+			decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(callContext)
+			if !ok || decision.AppID != envelope.ProtectedDesktopAppID ||
+				decision.Operation != accountservice.LocalAppOperationAppAIConfigRead {
+				t.Fatalf("Desktop self AIConfig decision = %+v ok=%v", decision, ok)
+			}
+			if _, ok := protectedprincipal.AuthorizedAppOwnerDecisionFromContext(callContext); ok {
+				t.Fatal("Desktop self AIConfig received a projected-owner manager decision")
+			}
+			return &runtimev1.GetAppAIConfigResponse{}, nil
+		},
+	)
+	if err != nil || !reached || len(admission.calls) != 1 {
+		t.Fatalf("Desktop self formal AIConfig reached=%v calls=%v err=%v", reached, admission.calls, err)
 	}
 }
 

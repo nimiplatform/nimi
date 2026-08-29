@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { LoadingSkeleton, StatusBadge } from '@nimiplatform/kit/ui';
-import { Boxes, Cable, Compass } from 'lucide-react';
+import { AudioLines, Bot, Boxes, Cable, Compass, MessagesSquare } from 'lucide-react';
 
 import { useAIStudioWorkspaceController } from '../ai-studio-core/index.js';
 import { useLabRendererHost } from '../renderer/context.js';
@@ -23,6 +23,10 @@ import {
   workbenchNavGroups,
   type WorkbenchView,
 } from './workbench/workbench-context.js';
+import { AgentCenterCapability } from '../product-modules/agent-center/index.js';
+import { AgentConversationCapability } from '../product-modules/agent-conversation/index.js';
+import { AgentRealtimeCapability } from '../product-modules/agent-realtime/index.js';
+import { getLabLocalAppClient } from '../shell/local-app-runtime-platform.js';
 
 const initialCapabilityId: LabCapabilityId = 'text.generate';
 
@@ -43,7 +47,12 @@ const LabAiConfigSettingsPanel = lazy(async () => ({
 }));
 
 type LabWorkbenchProps = { title: string };
-type LabWorkbenchNavigationId = LabCapabilityId | 'app-access' | 'ui-recipes';
+type LabWorkbenchNavigationId = LabCapabilityId
+  | 'agent-center'
+  | 'agent-conversation'
+  | 'agent-realtime'
+  | 'app-access'
+  | 'ui-recipes';
 
 export function LabWorkbench(_props: LabWorkbenchProps) {
   const rendererHost = useLabRendererHost();
@@ -124,6 +133,14 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
       })),
     })),
     {
+      id: 'agents',
+      items: [
+        { id: 'agent-center', label: t('Workbench.agentCenter'), icon: Bot },
+        { id: 'agent-conversation', label: t('Workbench.agentConversation'), icon: MessagesSquare },
+        { id: 'agent-realtime', label: t('Workbench.agentRealtime'), icon: AudioLines },
+      ],
+    },
+    {
       id: 'library',
       items: [{
         id: workbenchLibraryCapabilityId,
@@ -143,9 +160,19 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
   );
   const activeNavigationId: LabWorkbenchNavigationId | null = view.kind === 'capability'
     ? view.capabilityId
-    : view.kind === 'app-access' || view.kind === 'ui-recipes' ? view.kind : null;
+    : view.kind === 'app-access'
+      || view.kind === 'ui-recipes'
+      || view.kind === 'agent-center'
+      || view.kind === 'agent-conversation'
+      || view.kind === 'agent-realtime'
+      ? view.kind
+      : null;
   const selectNavigationView = (id: LabWorkbenchNavigationId) => {
-    if (id === 'app-access' || id === 'ui-recipes') {
+    if (id === 'app-access'
+      || id === 'ui-recipes'
+      || id === 'agent-center'
+      || id === 'agent-conversation'
+      || id === 'agent-realtime') {
       setView({ kind: id });
       return;
     }
@@ -164,6 +191,12 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
     >
       {view.kind === 'settings' ? (
         <Suspense fallback={<LoadingFallback />}><SettingsRoute /></Suspense>
+      ) : view.kind === 'agent-center' ? (
+        <div className="h-full overflow-y-auto p-5"><AgentCenterCapability client={getLabLocalAppClient()} /></div>
+      ) : view.kind === 'agent-conversation' ? (
+        <div className="h-full overflow-y-auto p-5"><AgentConversationCapability client={getLabLocalAppClient()} /></div>
+      ) : view.kind === 'agent-realtime' ? (
+        <div className="h-full overflow-y-auto p-5"><AgentRealtimeCapability client={getLabLocalAppClient()} /></div>
       ) : view.kind === 'app-access' ? (
         <AppAccessPanel />
       ) : view.kind === 'ui-recipes' ? (

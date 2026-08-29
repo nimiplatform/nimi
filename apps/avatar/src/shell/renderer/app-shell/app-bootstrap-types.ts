@@ -1,9 +1,4 @@
-import type {
-  GetAvatarDebugSnapshotResponse,
-  ListAvatarDebugProbeResultsResponse,
-  RequestAvatarDebugProbeResponse,
-} from '@nimiplatform/sdk/runtime';
-import type { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/wire-types';
+import type { AvatarDebugFacade } from '../avatar-debug/contract.js';
 import type { AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import type { AgentDataDriver } from '../driver/types.js';
 import type { AvatarVoiceCaptureSession } from '../voice-capture.js';
@@ -12,19 +7,19 @@ export type BootstrapHandle = {
   driver?: AgentDataDriver | null;
   carrier?: AvatarRuntimeCarrier | null;
   getVoiceInputAvailability(input: {
-    agentId: string;
+    agentHandle: string;
     conversationAnchorId: string;
   }): Promise<{
     available: boolean;
     reason: string | null;
   }>;
   startVoiceCapture(input: {
-    agentId: string;
+    agentHandle: string;
     conversationAnchorId: string;
     onLevelChange?: (amplitude: number) => void;
   }): Promise<AvatarVoiceCaptureSession>;
   submitVoiceCaptureTurn(input: {
-    agentId: string;
+    agentHandle: string;
     conversationAnchorId: string;
     audioBytes: Uint8Array;
     mimeType: string;
@@ -33,45 +28,17 @@ export type BootstrapHandle = {
   }): Promise<{
     transcript: string;
   }>;
-  cancelCompanionParticipation(input: {
-    agentId: string;
-    conversationAnchorId: string;
-    projectionId?: string;
-    turnId?: string;
-    reason?: string;
-  }): Promise<void>;
-  interruptActiveTurn(input: {
-    agentId: string;
+  interruptConversationTurn(input: {
+    agentHandle: string;
     conversationAnchorId: string;
     turnId?: string;
     reason?: string;
   }): Promise<void>;
-  requestCompanionParticipation(input: {
-    agentId: string;
+  sendConversationText(input: {
+    agentHandle: string;
     conversationAnchorId: string;
     text: string;
   }): Promise<{ readonly turnId: string }>;
-  avatarDebug: {
-    snapshot(input: {
-      agentId: string;
-      conversationAnchorId: string;
-    }, options?: AvatarDebugCallOptions): Promise<GetAvatarDebugSnapshotResponse>;
-    requestProbe(input: {
-      agentId: string;
-      conversationAnchorId: string;
-      probeKind: AvatarDebugProbeKind;
-      avatarInstanceId?: string | null;
-    }, options?: AvatarDebugCallOptions): Promise<RequestAvatarDebugProbeResponse>;
-    listProbeResults(input: {
-      agentId: string;
-      conversationAnchorId: string;
-      probeKind?: AvatarDebugProbeKind;
-    }, options?: AvatarDebugCallOptions): Promise<ListAvatarDebugProbeResultsResponse>;
-  } | null;
+  avatarDebug: AvatarDebugFacade | null;
   shutdown(): Promise<void>;
-};
-
-export type AvatarDebugCallOptions = {
-  readonly signal?: AbortSignal;
-  readonly timeoutMs?: number;
 };

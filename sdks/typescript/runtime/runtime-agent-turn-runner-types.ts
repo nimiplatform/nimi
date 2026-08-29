@@ -80,30 +80,6 @@ export type NimiRuntimeAgentTurnInterruptRequest = RuntimeLocalAgentIdentityInpu
   readonly worldId?: string;
 };
 
-export type NimiRuntimeAgentTurnVoiceRenderRequest = RuntimeLocalAgentIdentityInput & {
-  readonly conversationAnchorId: string;
-  readonly turnId: string;
-  readonly messageId: string;
-  readonly text?: string;
-  readonly playbackTarget?: 'desktop_manual' | 'replay';
-  readonly subjectUserId?: string;
-  readonly worldId?: string;
-  readonly timeoutMs?: number;
-  readonly idempotencyKey?: string;
-};
-
-export type NimiRuntimeAgentTurnVoiceRenderResult =
-  | {
-    readonly status: 'ready';
-    readonly event: NimiRuntimeAgentConsumeEvent & { readonly eventName: 'runtime.agent.presentation.voice_playback_requested' };
-    readonly audioArtifactId: string;
-    readonly audioMimeType: string;
-  }
-  | {
-    readonly status: 'text_only';
-    readonly reason: 'voice_projection_unavailable';
-  };
-
 export type NimiRuntimeAgentVoiceInputTranscriptionRequest = RuntimeLocalAgentIdentityInput & {
   readonly conversationAnchorId: string;
   readonly audioBytes: Uint8Array;
@@ -141,9 +117,6 @@ export type NimiRuntimeAgentTurnsModule = {
   interrupt(
     request: NimiRuntimeAgentTurnInterruptRequest,
   ): Promise<SendAppMessageResponse>;
-  renderVoice(
-    request: NimiRuntimeAgentTurnVoiceRenderRequest,
-  ): Promise<NimiRuntimeAgentTurnVoiceRenderResult>;
   transcribeVoiceInput(
     request: NimiRuntimeAgentVoiceInputTranscriptionRequest,
   ): Promise<NimiRuntimeAgentVoiceInputTranscriptionResult>;

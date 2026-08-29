@@ -10,28 +10,21 @@
 
 import {
   fromTauriAvatarModelManifest,
-  type AgentCenterLocalAvatarAssetReference,
   type AvatarModelManifest,
   type TauriAvatarModelManifest,
 } from '@nimiplatform/kit/features/avatar/headless';
-import type { NimiRuntimeAgentPresentationProfileProjection } from '@nimiplatform/sdk/runtime';
+import type { NimiLocalAppAgentPresentationProfile } from '@nimiplatform/sdk/app';
 import { invokeAvatarHostCommand } from '../app-shell/avatar-host-bridge.js';
 
-export async function resolveAgentCenterAvatarAssetManifest(
-  reference: AgentCenterLocalAvatarAssetReference,
-): Promise<AvatarModelManifest> {
-  const raw = await invokeAvatarHostCommand<TauriAvatarModelManifest>('nimi_avatar_resolve_agent_center_avatar_asset', {
-    payload: reference,
-  });
-  return fromTauriAvatarModelManifest(raw);
-}
-
 export async function resolveRuntimePresentationAvatarAsset(input: {
-  readonly agentHandle: string;
-  readonly presentationProfile: NimiRuntimeAgentPresentationProfileProjection | null | undefined;
+  readonly presentationProfile: NimiLocalAppAgentPresentationProfile | null | undefined;
 }): Promise<{
   readonly manifest: AvatarModelManifest;
-  readonly reference: Pick<AgentCenterLocalAvatarAssetReference, 'localAvatarAssetRef' | 'backendKind' | 'materializationRef'>;
+  readonly reference: Readonly<{
+    localAvatarAssetRef: string;
+    backendKind: 'live2d' | 'vrm';
+    materializationRef: string;
+  }>;
 }> {
   const profile = input.presentationProfile;
   const backendKind = profile?.backendKind === 'live2d' || profile?.backendKind === 'vrm'
@@ -49,7 +42,6 @@ export async function resolveRuntimePresentationAvatarAsset(input: {
     readonly materializationRef: string;
   }>('nimi_avatar_resolve_agent_center_avatar_asset', {
     payload: {
-      agentHandle: normalizeRequiredText(input.agentHandle, 'Runtime agentHandle'),
       avatarAssetRef,
       backendKind,
     },
@@ -65,8 +57,7 @@ export async function resolveRuntimePresentationAvatarAsset(input: {
 }
 
 export async function resolveRuntimePresentationAvatarAssetManifest(input: {
-  readonly agentHandle: string;
-  readonly presentationProfile: NimiRuntimeAgentPresentationProfileProjection | null | undefined;
+  readonly presentationProfile: NimiLocalAppAgentPresentationProfile | null | undefined;
 }): Promise<AvatarModelManifest> {
   return (await resolveRuntimePresentationAvatarAsset(input)).manifest;
 }

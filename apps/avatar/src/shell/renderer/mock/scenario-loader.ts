@@ -6,10 +6,9 @@ const EXECUTION_STATES = ['IDLE', 'CHAT_ACTIVE', 'LIFE_PENDING', 'LIFE_RUNNING',
 const FIXTURE_ACTIVITY_EVENT = 'avatar.fixture.presentation.activity_requested';
 const RUNTIME_ACTIVITY_EVENT = 'runtime.agent.presentation.activity_requested';
 const RUNTIME_EXPRESSION_EVENT = 'runtime.agent.presentation.expression_requested';
-const RUNTIME_VOICE_PLAYBACK_EVENT = 'runtime.agent.presentation.voice_playback_requested';
+const AVATAR_CONVERSATION_VOICE_CHUNK_EVENT = 'avatar.conversation.voice.audio_chunk';
 const ACTIVITY_CATEGORIES = ['emotion', 'interaction', 'state'] as const;
 const ACTIVITY_INTENSITIES = ['weak', 'moderate', 'strong'] as const;
-const AVATAR_VOICE_PLAYBACK_TARGET = 'avatar_autoplay';
 
 export class ScenarioValidationError extends Error {
   readonly path: string;
@@ -81,26 +80,23 @@ function assertFixtureActivityDetail(detail: Record<string, unknown>, path: stri
   assertMockSource(detail, path);
 }
 
-function assertRuntimeVoicePlaybackDetail(detail: Record<string, unknown>, path: string): void {
-  assertString(detail['audio_artifact_id'], `${path}.audio_artifact_id`);
+function assertAvatarConversationVoiceDetail(detail: Record<string, unknown>, path: string): void {
+  assertString(detail['voice_id'], `${path}.voice_id`);
   assertString(detail['audio_mime_type'], `${path}.audio_mime_type`);
-  if (!detail['audio_artifact_id'].trim()) {
-    throw new ScenarioValidationError('audio_artifact_id must be non-empty', `${path}.audio_artifact_id`);
+  if (!detail['voice_id'].trim()) {
+    throw new ScenarioValidationError('voice_id must be non-empty', `${path}.voice_id`);
   }
   if (!detail['audio_mime_type'].trim()) {
     throw new ScenarioValidationError('audio_mime_type must be non-empty', `${path}.audio_mime_type`);
   }
-  if (detail['playback_target'] !== AVATAR_VOICE_PLAYBACK_TARGET) {
-    throw new ScenarioValidationError(
-      `playback_target must be ${AVATAR_VOICE_PLAYBACK_TARGET}`,
-      `${path}.playback_target`,
-    );
+  assertNumber(detail['chunk_sequence'], `${path}.chunk_sequence`);
+  if (!Number.isSafeInteger(detail['chunk_sequence']) || Number(detail['chunk_sequence']) <= 0) {
+    throw new ScenarioValidationError('chunk_sequence must be a positive integer', `${path}.chunk_sequence`);
   }
-  if (detail['duration_ms'] !== undefined) {
-    assertNumber(detail['duration_ms'], `${path}.duration_ms`);
-    if ((detail['duration_ms'] as number) < 0) {
-      throw new ScenarioValidationError('duration_ms must be >= 0', `${path}.duration_ms`);
-    }
+  assertArray(detail['chunk_bytes'], `${path}.chunk_bytes`);
+  if ((detail['chunk_bytes'] as unknown[]).length === 0
+    || (detail['chunk_bytes'] as unknown[]).some((value) => !Number.isInteger(value) || Number(value) < 0 || Number(value) > 255)) {
+    throw new ScenarioValidationError('chunk_bytes must contain bytes', `${path}.chunk_bytes`);
   }
   assertMockSource(detail, path);
 }
@@ -110,8 +106,8 @@ function validateEventDetail(type: string, detail: Record<string, unknown>, path
     assertFixtureActivityDetail(detail, path);
     return;
   }
-  if (type === RUNTIME_VOICE_PLAYBACK_EVENT) {
-    assertRuntimeVoicePlaybackDetail(detail, path);
+  if (type === AVATAR_CONVERSATION_VOICE_CHUNK_EVENT) {
+    assertAvatarConversationVoiceDetail(detail, path);
     return;
   }
   if (type === RUNTIME_ACTIVITY_EVENT || type === RUNTIME_EXPRESSION_EVENT) {

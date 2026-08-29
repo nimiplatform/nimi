@@ -1,6 +1,5 @@
 use crate::agent_center_avatar_asset::{
-    agent_center_path_segment, nimi_avatar_resolve_agent_center_avatar_asset,
-    AgentCenterAvatarAssetResolvePayload,
+    nimi_avatar_resolve_agent_center_avatar_asset, AgentCenterAvatarAssetResolvePayload,
 };
 use crate::runtime_bridge::{with_runtime_bridge_host_hooks_async, RuntimeBridgeHostHooks};
 use crate::test_support::test_guard;
@@ -11,10 +10,6 @@ use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
-
-fn agent_handle() -> String {
-    format!("agent_ref_{}", "a".repeat(43))
-}
 
 fn unique_temp_dir(prefix: &str) -> PathBuf {
     let unique = SystemTime::now()
@@ -42,8 +37,7 @@ where
 
 fn package_root(fixture_root: &Path, kind: &str, asset_ref: &str) -> PathBuf {
     fixture_root
-        .join("data-root/local-app-agent-assets")
-        .join(agent_center_path_segment(&agent_handle()))
+        .join("data-root/avatar-assets")
         .join("packages")
         .join(kind)
         .join(asset_ref)
@@ -51,7 +45,6 @@ fn package_root(fixture_root: &Path, kind: &str, asset_ref: &str) -> PathBuf {
 
 fn resolve_payload(kind: &str, avatar_asset_ref: &str) -> AgentCenterAvatarAssetResolvePayload {
     AgentCenterAvatarAssetResolvePayload {
-        agent_handle: agent_handle(),
         backend_kind: kind.to_string(),
         avatar_asset_ref: avatar_asset_ref.to_string(),
     }
@@ -113,7 +106,7 @@ fn write_package(
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn resolves_handle_scoped_live2d_without_directory_scan_or_identity_sideband() {
+async fn resolves_identity_free_live2d_without_directory_scan_or_identity_sideband() {
     let _guard = test_guard();
     let root = unique_temp_dir("handle-live2d");
     fs::create_dir_all(&root).expect("root");
@@ -134,16 +127,13 @@ async fn resolves_handle_scoped_live2d_without_directory_scan_or_identity_sideba
         .await
     })
     .await
-    .expect("resolve handle-scoped Live2D");
+    .expect("resolve identity-free Live2D");
 
     assert_eq!(resolved.manifest.kind, "live2d");
     assert_eq!(resolved.manifest.model_id, "ren");
     assert_eq!(
         resolved.materialization_ref,
-        format!(
-            "agent-center-avatar-asset:local-app:{}:live2d:live2d_ab12cd34ef56",
-            agent_center_path_segment(&agent_handle())
-        )
+        "avatar-materialization:live2d:live2d_ab12cd34ef56"
     );
     assert_eq!(
         resolved.manifest.runtime_dir,
@@ -158,7 +148,7 @@ async fn resolves_handle_scoped_live2d_without_directory_scan_or_identity_sideba
 }
 
 #[tokio::test(flavor = "current_thread")]
-async fn rejects_handle_scoped_entry_digest_mismatch() {
+async fn rejects_identity_free_entry_digest_mismatch() {
     let _guard = test_guard();
     let root = unique_temp_dir("handle-digest");
     fs::create_dir_all(&root).expect("root");
@@ -185,7 +175,6 @@ async fn rejects_handle_scoped_entry_digest_mismatch() {
 #[test]
 fn resolve_payload_rejects_raw_identity_and_parallel_materialization_fields() {
     let base = json!({
-        "agentHandle": agent_handle(),
         "backendKind": "vrm",
         "avatarAssetRef": "vrm_ab12cd34ef56"
     });
@@ -195,6 +184,7 @@ fn resolve_payload_rejects_raw_identity_and_parallel_materialization_fields() {
         "ownerUserId",
         "runtimeSourceRef",
         "localAgentRef",
+        "agentHandle",
         "backendCapabilityProfileRef",
         "materializationRef",
     ] {

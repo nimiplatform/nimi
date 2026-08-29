@@ -114,7 +114,7 @@ export function App() {
     let unlisten: (() => void) | null = null;
     void installAvatarAgentCenterPreviewHandoff({
       getContext: () => ({
-        agentHandle: useAvatarStore.getState().consume.agentId,
+        agentHandle: useAvatarStore.getState().consume.agentHandle,
         carrier: bootstrapHandle?.carrier ?? null,
       }),
     }).then((release) => {
@@ -243,11 +243,11 @@ export function App() {
 
   // ── Anchor binding (companion + voice) ───────────────────────────────────────
   const companionBinding = useMemo<CompanionAnchorBinding | null>(() => {
-    const agentId = normalizeText(consume.agentId);
+    const agentHandle = normalizeText(consume.agentHandle);
     const conversationAnchorId = normalizeText(consume.conversationAnchorId);
-    if (!agentId || !conversationAnchorId) return null;
-    return { agentId, conversationAnchorId };
-  }, [consume.agentId, consume.conversationAnchorId]);
+    if (!agentHandle || !conversationAnchorId) return null;
+    return { agentHandle, conversationAnchorId };
+  }, [consume.agentHandle, consume.conversationAnchorId]);
 
   const companionAnchorKey = createCompanionAnchorKey(companionBinding);
   const activeTurnCue = useMemo(
@@ -276,7 +276,7 @@ export function App() {
     );
     void bootstrapHandle
       .getVoiceInputAvailability({
-        agentId: companionBinding.agentId,
+        agentHandle: companionBinding.agentHandle,
         conversationAnchorId: companionBinding.conversationAnchorId,
       })
       .then((result) => {

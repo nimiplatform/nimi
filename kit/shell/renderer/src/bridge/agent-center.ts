@@ -6,7 +6,6 @@ export type AgentCenterShellAvatarBackendKind = 'live2d' | 'vrm';
 
 export interface AgentCenterAvatarAssetImportPayload {
   readonly backendKind: AgentCenterShellAvatarBackendKind;
-  readonly agentHandle: string;
 }
 
 export interface AgentCenterAvatarAssetImportResult {
@@ -34,7 +33,6 @@ export interface AgentCenterBackgroundImportResult {
 export interface AgentCenterShellBridge {
   readonly pickAvatarAssetMaterial: (
     backendKind: AgentCenterShellAvatarBackendKind,
-    agentHandle: string,
   ) => Promise<AgentCenterAvatarAssetImportResult | null>;
   readonly pickBackgroundAssetMaterial: () => Promise<AgentCenterBackgroundImportResult | null>;
 }
@@ -45,7 +43,6 @@ export async function importAgentCenterAvatarAsset(
   const command = NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport'];
   const canonical = exactPayload(payload, {
     backendKind: requireAvatarBackendKind(payload.backendKind, command),
-    agentHandle: requireAgentHandle(payload.agentHandle, command),
   }, command);
   return invokeChecked(command, { payload: canonical }, (value) => (
     value === null ? null : parseAvatarAssetImportResult(value, command)
@@ -64,8 +61,8 @@ export async function importAgentCenterBackground(
 
 export function createAgentCenterShellBridge(): AgentCenterShellBridge {
   return {
-    async pickAvatarAssetMaterial(backendKind, agentHandle) {
-      return importAgentCenterAvatarAsset({ backendKind, agentHandle });
+    async pickAvatarAssetMaterial(backendKind) {
+      return importAgentCenterAvatarAsset({ backendKind });
     },
     async pickBackgroundAssetMaterial() {
       return importAgentCenterBackground();
@@ -90,14 +87,6 @@ function requireAvatarBackendKind(value: unknown, command: string): AgentCenterS
     throw invalidRendererPayload(command, 'backendKind must be live2d or vrm');
   }
   return value;
-}
-
-function requireAgentHandle(value: unknown, command: string): string {
-  const handle = typeof value === 'string' ? value.trim() : '';
-  if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(handle)) {
-    throw invalidRendererPayload(command, 'agentHandle must be a canonical opaque Agent handle');
-  }
-  return handle;
 }
 
 function parseAvatarAssetImportResult(value: unknown, command: string): AgentCenterAvatarAssetImportResult {

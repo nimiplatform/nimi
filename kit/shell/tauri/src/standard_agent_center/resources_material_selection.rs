@@ -26,7 +26,6 @@ pub(super) fn standard_agent_center_avatar_material_select_blocking(
     let file_name = selected_file_name(&source)?;
     let sha256 = material_digest(&content);
     crate::agent_center_avatar_asset::materialize_agent_center_avatar_asset(
-        &payload.agent_handle,
         avatar_backend_kind_label(payload.backend_kind),
         &file_name,
         &content,

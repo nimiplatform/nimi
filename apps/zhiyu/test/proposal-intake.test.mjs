@@ -94,10 +94,9 @@ function readyConversation() {
     actionHint: 'submit_platform_proposal_intake',
     source: 'runtime-agent-conversation-home',
     message: 'Conversation anchor is projected.',
-    ownerUserId: 'user:1',
-    runtimeSourceRef: 'runtime-source:1',
-    localAgentRef: 'agent:1',
+    agentHandle: `agent_ref_${'a'.repeat(43)}`,
     conversationAnchorId: 'conversation-anchor:zhiyu:1',
+    threadId: 'conversation-anchor:zhiyu:1',
   };
 }
 

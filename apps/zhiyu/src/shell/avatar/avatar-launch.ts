@@ -1,7 +1,6 @@
 import {
-  arbitrateAvatarLaunch,
   buildAvatarLaunchInstanceId,
-  type AvatarLaunchArbitrationResult,
+  type AvatarHostHandoffCommand,
 } from '@nimiplatform/kit/features/avatar/headless';
 import type { ZhiyuEvidence } from '../app/evidence';
 
@@ -21,6 +20,7 @@ export type ZhiyuAvatarLaunchAction =
       readonly reasonCode: 'zhiyu-avatar-launch-ready';
       readonly message: string;
       readonly avatarInstanceId: string;
+      readonly command: Extract<AvatarHostHandoffCommand, 'launch' | 'focus'>;
     };
 
 export function projectZhiyuAvatarLaunchAction(evidence: ZhiyuEvidence): ZhiyuAvatarLaunchAction {
@@ -59,41 +59,14 @@ export function projectZhiyuAvatarLaunchAction(evidence: ZhiyuEvidence): ZhiyuAv
       message: 'Avatar launch requires an admitted Runtime-owned local-agent identity.',
     };
   }
-  const arbitration = arbitrateAvatarLaunch({
-    avatarInstancePolicy: 'reuse_active_instance',
-    trigger: 'explicit_user_action',
-    agentHandle,
-    conversationAnchorId,
-    reuseInstanceId: avatarInstanceId,
-    newInstanceId: `${avatarInstanceId}-new`,
-    liveInstances: [],
-    newInstanceAlreadySpawnedForThisOpenEvent: false,
-  });
-
-  return avatarActionFromArbitration(arbitration);
-}
-
-function avatarActionFromArbitration(
-  arbitration: AvatarLaunchArbitrationResult,
-): ZhiyuAvatarLaunchAction {
-  if (arbitration.decision === 'launch_instance' || arbitration.decision === 'reuse_instance') {
-    return {
-      state: 'ready',
-      reasonCode: 'zhiyu-avatar-launch-ready',
-      message: 'Avatar launch can be requested through the admitted public handoff.',
-      avatarInstanceId: arbitration.avatarInstanceId,
-    };
-  }
-  if (arbitration.decision === 'require_user_selection') {
-    return {
-      state: 'blocked',
-      reasonCode: 'zhiyu-avatar-instance-selection-required',
-      message: 'Choose which Avatar instance should attach to this partner before launching.',
-    };
-  }
   return {
-    state: 'blocked',
-    reasonCode: `zhiyu-avatar-${arbitration.state}`,
-    message: 'Avatar launch arbitration failed closed.',
+    state: 'ready',
+    reasonCode: 'zhiyu-avatar-launch-ready',
+    message: 'Avatar launch can be requested through the common Host handoff port.',
+    avatarInstanceId,
+    command: evidence.avatar.hostHandoff?.state === 'present'
+      || evidence.avatar.hostHandoff?.state === 'focused'
+      ? 'focus'
+      : 'launch',
   };
 }

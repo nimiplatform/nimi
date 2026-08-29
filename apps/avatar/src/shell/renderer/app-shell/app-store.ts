@@ -29,7 +29,7 @@ export type AvatarAppState = {
     fixturePlaying: boolean;
     avatarInstanceId: string | null;
     conversationAnchorId: string | null;
-    agentId: string | null;
+    agentHandle: string | null;
     worldId: string | null;
   };
   launch: {
@@ -70,13 +70,13 @@ export type AvatarAppState = {
   setRuntimeBinding(input: {
     avatarInstanceId: string;
     conversationAnchorId: string;
-    agentId: string;
+    agentHandle: string;
     worldId: string;
   }): void;
   setRuntimeConsumeContext(input: {
     avatarInstanceId: string;
     conversationAnchorId: string;
-    agentId: string;
+    agentHandle: string;
     worldId: string;
   }): void;
   setRuntimeBindingStatus(input: {
@@ -117,7 +117,7 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
     fixturePlaying: false,
     avatarInstanceId: null,
     conversationAnchorId: null,
-    agentId: null,
+    agentHandle: null,
     worldId: null,
   },
   launch: {
@@ -183,7 +183,7 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
         ...state.consume,
         avatarInstanceId: input.avatarInstanceId,
         conversationAnchorId: input.conversationAnchorId,
-        agentId: input.agentId,
+        agentHandle: input.agentHandle,
         worldId: input.worldId,
       },
       runtime: {
@@ -207,7 +207,7 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
         ...state.consume,
         avatarInstanceId: input.avatarInstanceId,
         conversationAnchorId: input.conversationAnchorId,
-        agentId: input.agentId,
+        agentHandle: input.agentHandle,
         worldId: input.worldId,
       },
     }));
@@ -235,7 +235,7 @@ export const useAvatarStore = create<AvatarAppState>((set) => ({
         ...state.consume,
         avatarInstanceId: null,
         conversationAnchorId: null,
-        agentId: null,
+        agentHandle: null,
         worldId: null,
       },
       runtime: {

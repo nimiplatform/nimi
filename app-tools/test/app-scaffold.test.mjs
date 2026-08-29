@@ -408,6 +408,9 @@ test('standalone scaffold base remains empty while the public catalog exposes th
     'studio-media',
     'studio-voice',
     'kit-recipes',
+    'agent-center',
+    'agent-conversation',
+    'agent-realtime',
   ]);
   const generated = scaffold('standalone');
   try {
@@ -446,7 +449,10 @@ test('standalone scaffold base remains empty while the public catalog exposes th
 test('standalone scaffold exposes every admitted feature while keeping internal modules private', () => {
   assert.deepEqual(
     resolveAppScaffoldFeatures('all').directFeatureIds,
-    ['studio-create', 'studio-media', 'studio-voice', 'kit-recipes'],
+    [
+      'studio-create', 'studio-media', 'studio-voice', 'kit-recipes',
+      'agent-center', 'agent-conversation', 'agent-realtime',
+    ],
   );
   for (const featureId of APP_SCAFFOLD_FEATURE_IDS) {
     assert.deepEqual(resolveAppScaffoldFeatures(featureId).directFeatureIds, [featureId]);
@@ -652,14 +658,14 @@ test('cli help projects the current registry lifecycle and honest workflow witho
   assert.equal(result.status, 0, result.stderr);
   const help = result.stdout;
   for (const expected of [
-    'Admitted features: studio-create (Create), studio-media (Media), studio-voice (Voice), kit-recipes (UI Recipes)',
+    'Admitted features: studio-create (Create), studio-media (Media), studio-voice (Voice), kit-recipes (UI Recipes), agent-center (Agent Center), agent-conversation (Agent Conversation), agent-realtime (Agent Realtime)',
     'studio-create (Create)',
     'studio-media (Media)',
     'studio-voice (Voice)',
     'kit-recipes (UI Recipes)',
-    'Candidate features (not public-selectable): agent-center (Agent Center), agent-conversation (Agent Conversation), agent-realtime (Agent Realtime)',
+    'Candidate features (not public-selectable): (none)',
     'Internal modules (dependency-only): ai-studio-core',
-    '--features all expands in order to: studio-create, studio-media, studio-voice, kit-recipes',
+    '--features all expands in order to: studio-create, studio-media, studio-voice, kit-recipes, agent-center, agent-conversation, agent-realtime',
     'nimi-app doctor [--dir path] [--conformance simulator] [--json]',
     '--author person-or-team',
     'identity-neutral Lab-derived workbench-core',
@@ -713,6 +719,9 @@ test('cli standalone scaffold expands all to the admitted ordered set', () => {
       'studio-media',
       'studio-voice',
       'kit-recipes',
+      'agent-center',
+      'agent-conversation',
+      'agent-realtime',
     ]);
     assert.deepEqual(intent.resolvedModules, [
       'ai-studio-core',
@@ -720,6 +729,9 @@ test('cli standalone scaffold expands all to the admitted ordered set', () => {
       'studio-media',
       'studio-voice',
       'kit-recipes',
+      'agent-center',
+      'agent-conversation',
+      'agent-realtime',
     ]);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
@@ -907,7 +919,7 @@ test('standalone scaffold CLI accepts arbitrary repositories and hard-cuts works
     const scaffoldVersions = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8')).nimiScaffoldVersions;
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], scaffoldVersions.sdkVersion);
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], scaffoldVersions.kitVersion);
-    assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], '^0.2.0');
+    assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], scaffoldVersions.appToolsVersion);
     assert.match(readFileSync(path.join(target, 'src-tauri', 'Cargo.toml'), 'utf8'), /nimi-shell-tauri = "0\.1\.0"/);
   } finally {
     rmSync(thirdPartyRepo, { recursive: true, force: true });
@@ -1060,10 +1072,13 @@ test('create rejects unknown and invalid feature selections', () => {
   }
 });
 
-test('create accepts the admitted registry and keeps candidate validation on the same de-duplicating resolver', () => {
+test('create accepts the admitted registry and keeps validation on the same de-duplicating resolver', () => {
   assert.equal(APP_SCAFFOLD_MODULE_REGISTRY['ai-studio-core'].kind, 'internal');
   assert.equal(Object.hasOwn(APP_SCAFFOLD_MODULE_REGISTRY['ai-studio-core'], 'lifecycle'), false);
-  for (const id of ['studio-create', 'studio-media', 'studio-voice', 'kit-recipes']) {
+  for (const id of [
+    'studio-create', 'studio-media', 'studio-voice', 'kit-recipes',
+    'agent-center', 'agent-conversation', 'agent-realtime',
+  ]) {
     assert.equal(APP_SCAFFOLD_MODULE_REGISTRY[id].kind, 'feature');
     assert.equal(APP_SCAFFOLD_MODULE_REGISTRY[id].lifecycle, 'admitted');
   }
@@ -1112,21 +1127,18 @@ test('create accepts the admitted registry and keeps candidate validation on the
   assert.deepEqual(agentCenter.resolvedFeatureIds, ['agent-center']);
   assert.deepEqual(agentCenter.resolvedModuleIds, ['agent-center']);
   assert.deepEqual(agentCenter.appAccessItems, ['agent.local', 'agent.configure']);
-  assert.equal(APP_SCAFFOLD_MODULE_REGISTRY['agent-center'].lifecycle, 'candidate');
-  assert.throws(
-    () => resolveAppScaffoldFeatures('agent-center'),
-    /feature is not admitted: agent-center/,
-  );
+  assert.equal(APP_SCAFFOLD_MODULE_REGISTRY['agent-center'].lifecycle, 'admitted');
+  assert.deepEqual(resolveAppScaffoldFeatures('agent-center'), agentCenter);
 
   const agentRealtime = resolveAppScaffoldCandidateFeatures(['agent-realtime']);
   assert.deepEqual(agentRealtime.resolvedModuleIds, ['agent-realtime']);
   assert.deepEqual(agentRealtime.appAccessItems, ['agent.local']);
-  assert.equal(APP_SCAFFOLD_MODULE_REGISTRY['agent-realtime'].lifecycle, 'candidate');
+  assert.equal(APP_SCAFFOLD_MODULE_REGISTRY['agent-realtime'].lifecycle, 'admitted');
 
   const agentConversation = resolveAppScaffoldCandidateFeatures(['agent-conversation']);
   assert.deepEqual(agentConversation.resolvedModuleIds, ['agent-conversation']);
   assert.deepEqual(agentConversation.appAccessItems, ['agent.local']);
-  assert.equal(APP_SCAFFOLD_MODULE_REGISTRY['agent-conversation'].lifecycle, 'candidate');
+  assert.equal(APP_SCAFFOLD_MODULE_REGISTRY['agent-conversation'].lifecycle, 'admitted');
 
   assert.deepEqual(APP_SCAFFOLD_REFERENCE_APP_FEATURE_IDS, [
     'studio-create', 'studio-media', 'studio-voice',
@@ -1160,8 +1172,14 @@ test('create accepts public post-admission output that exactly matches candidate
     ['studio-media'],
     ['studio-voice'],
     ['kit-recipes'],
+    ['agent-center'],
+    ['agent-conversation'],
+    ['agent-realtime'],
     ['studio-create', 'studio-media'],
-    ['studio-create', 'studio-media', 'studio-voice', 'kit-recipes'],
+    [
+      'studio-create', 'studio-media', 'studio-voice', 'kit-recipes',
+      'agent-center', 'agent-conversation', 'agent-realtime',
+    ],
   ];
   for (const [index, features] of selections.entries()) {
     const input = {
@@ -2230,6 +2248,9 @@ test('app source resolves only scaffoldable slices: neutral skeleton and admitte
     'studio-media',
     'studio-voice',
     'kit-recipes',
+    'agent-center',
+    'agent-conversation',
+    'agent-realtime',
   ]);
   assert.equal(manifest.sourceIdentity.appId, 'nimi.lab');
   assert.equal(manifest.sourceIdentity.packageName, '@nimiplatform/lab');
@@ -2248,6 +2269,9 @@ test('app source resolves only scaffoldable slices: neutral skeleton and admitte
     'src/studio-modules/studio-media/index.ts',
     'src/studio-modules/studio-voice/index.ts',
     'src/product-modules/kit-recipes/index.tsx',
+    'src/product-modules/agent-center/index.tsx',
+    'src/product-modules/agent-conversation/index.tsx',
+    'src/product-modules/agent-realtime/index.tsx',
   ]) {
     assert.ok(manifest.files.some((entry) => entry.path === expected), expected);
   }
@@ -2257,6 +2281,9 @@ test('app source resolves only scaffoldable slices: neutral skeleton and admitte
     'studio-media',
     'studio-voice',
     'kit-recipes',
+    'agent-center',
+    'agent-conversation',
+    'agent-realtime',
   ]);
 
   const candidate = resolveAppScaffoldCandidateFeatures(['studio-create']);

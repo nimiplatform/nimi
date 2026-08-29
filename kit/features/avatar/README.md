@@ -25,12 +25,12 @@ Reusable agent avatar surface for Runtime-adjacent presentation records, voice p
 - Opt into VRM-specific renderer behavior only when a consumer truly needs a 3D avatar backend.
 - Opt into Live2D-specific renderer behavior only when a consumer truly needs a Live2D backend while keeping consumer-local runtime bootstrap separate.
 
-The replacement-first Host handoff candidate keeps launch, focus, and presence
+The canonical Host handoff port keeps launch, focus, and presence
 as native mechanics over the same opaque handle-and-anchor target plus optional
 opaque committed-presentation, temporary-custody, and instance references. It
 does not carry configuration, declaration, coverage, product availability,
 Runtime result/error, raw identity, renderer, backend, motion, lipsync, path, or
-storage truth, and remains internal until the single active cutover.
+storage truth and never determines product availability.
 
 ## Before Building Locally
 - Check `avatar/ui` before building a new avatar stage, idle shell, or reusable agent render container.

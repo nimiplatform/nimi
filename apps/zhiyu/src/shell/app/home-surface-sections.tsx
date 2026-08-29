@@ -122,19 +122,17 @@ export function AvatarPresenceSection({
   surface,
   avatar,
   onLaunch,
-  onManage,
 }: {
   readonly surface: ZhiyuHomeGatedSurface;
   readonly avatar: ZhiyuEvidence['avatar'];
   readonly onLaunch?: () => void;
-  readonly onManage?: () => void;
 }) {
-  const controlState = avatar.launchAvailable || avatar.manageAvailable ? 'authorized' : 'blocked';
-  const resourceState = avatar.ready ? 'avatar-facade-projected' : 'blocked';
-  const avatarStatusLabel = avatar.ready ? '伙伴形象已连接' : '等待形象权限';
+  const controlState = avatar.launchAvailable ? 'authorized' : 'blocked';
+  const resourceState = avatar.ready ? 'avatar-host-target-ready' : 'blocked';
+  const avatarStatusLabel = avatar.ready ? '伙伴形象可启动' : '等待当前会话';
   const avatarMessage = avatar.ready
-    ? '可以启动或管理当前伙伴形象。'
-    : '获得权限后即可启动或管理伙伴形象。';
+    ? '可以通过桌面 Host 启动或聚焦当前伙伴形象。'
+    : '打开当前伙伴会话后即可启动形象。';
   return (
     <Surface
       as="section"
@@ -145,8 +143,6 @@ export function AvatarPresenceSection({
       data-zhiyu-avatar-ready={String(avatar.ready)}
       data-zhiyu-avatar-reason={avatar.reasonCode}
       data-zhiyu-avatar-launch-available={String(avatar.launchAvailable)}
-      data-zhiyu-avatar-manage-available={String(avatar.manageAvailable)}
-      data-zhiyu-avatar-configuration-ref={avatar.configurationRef ?? 'not_projected'}
       data-zhiyu-avatar-control-state={controlState}
       material="glass-thin"
       elevation="base"
@@ -188,49 +184,13 @@ export function AvatarPresenceSection({
                 启动形象
               </Button>
             ) : null}
-            {avatar.manageAvailable ? (
-              <Button
-                type="button"
-                tone="secondary"
-                size="sm"
-                disabled={!onManage}
-                onClick={onManage}
-                data-zhiyu-avatar-manage-action="available"
-              >
-                管理形象
-              </Button>
-            ) : null}
-            {!avatar.launchAvailable && !avatar.manageAvailable ? (
+            {!avatar.launchAvailable ? (
               <span data-zhiyu-avatar-actions-hidden="true" aria-hidden="true" />
             ) : null}
           </div>
         </div>
       </div>
-      {avatar.ready ? (
-        <div className="zhiyu-home__avatar-grid" aria-label="形象状态">
-          <AvatarPresenceField label="配置" value={avatar.configurationRef} />
-        </div>
-      ) : null}
     </Surface>
-  );
-}
-
-function AvatarPresenceField({
-  label,
-  value,
-}: {
-  readonly label: string;
-  readonly value: string | null;
-}) {
-  return (
-    <div
-      className="zhiyu-home__avatar-item"
-      data-zhiyu-avatar-field={label}
-      data-zhiyu-avatar-field-state={value ? 'projected' : 'not_projected'}
-    >
-      <span>{label}</span>
-      <strong>{formatProjectionValue(value)}</strong>
-    </div>
   );
 }
 

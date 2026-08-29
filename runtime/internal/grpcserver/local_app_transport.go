@@ -44,6 +44,8 @@ const (
 	protectedInterruptConversationTurnMethod      = "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn"
 	protectedSubscribeConversationMethod          = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents"
 	protectedConversationSnapshotMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot"
+	protectedEmbodimentSnapshotMethod             = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot"
+	protectedSubscribeEmbodimentEventsMethod      = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents"
 	protectedGetSharedAIConfigMethod              = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig"
 	protectedOverwriteSharedAIConfigMethod        = "/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig"
 	protectedListSharedAIConfigOptionsMethod      = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions"
@@ -127,6 +129,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedRenderConversationVoiceMethod:        localAppSessionMethodPolicy(),
 	protectedInterruptConversationTurnMethod:      localAppSessionMethodPolicy(),
 	protectedConversationSnapshotMethod:           localAppSessionMethodPolicy(),
+	protectedEmbodimentSnapshotMethod:             localAppSessionMethodPolicy(),
 	protectedGetSharedAIConfigMethod:              localAppSessionMethodPolicy(),
 	protectedOverwriteSharedAIConfigMethod:        localAppSessionMethodPolicy(),
 	protectedListSharedAIConfigOptionsMethod:      localAppSessionMethodPolicy(),
@@ -171,6 +174,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 
 var protectedLocalAppStreamMethodPolicies = map[string]protectedLocalAppMethodPolicy{
 	protectedSubscribeConversationMethod:        localAppSessionMethodPolicy(),
+	protectedSubscribeEmbodimentEventsMethod:    localAppSessionMethodPolicy(),
 	protectedStreamTextTurnMethod:               localAppSessionMethodPolicy(),
 	protectedSubscribeScenarioJobMethod:         localAppSessionMethodPolicy(),
 	protectedWriteLocalAppAssetMethod:           localAppSessionMethodPolicy(),
@@ -523,6 +527,8 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressConversationTurnInterrupt
 	case protectedConversationSnapshotMethod:
 		return localappop.IngressConversationSnapshotGet
+	case protectedEmbodimentSnapshotMethod:
+		return localappop.IngressAgentEmbodimentSnapshotGet
 	case protectedGetSharedAIConfigMethod:
 		return localappop.IngressAgentAIConfigGet
 	case protectedOverwriteSharedAIConfigMethod:
@@ -566,6 +572,7 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 		protectedAgentReferenceListMethod, protectedOpenConversationMethod, protectedSendConversationTurnMethod,
 		protectedUploadConversationAttachmentMethod, protectedReadConversationArtifactMethod, protectedTranscribeConversationVoiceMethod, protectedRenderConversationVoiceMethod,
 		protectedInterruptConversationTurnMethod, protectedConversationSnapshotMethod,
+		protectedEmbodimentSnapshotMethod,
 		protectedGetSharedAIConfigMethod, protectedOverwriteSharedAIConfigMethod, protectedListSharedAIConfigOptionsMethod,
 		protectedAgentManagerSnapshotMethod,
 		protectedAutonomySnapshotMethod, protectedUpdateAutonomyMethod,
@@ -616,6 +623,8 @@ func protectedLocalAppStreamIngress(method string) localappop.Ingress {
 	switch method {
 	case protectedSubscribeConversationMethod:
 		return localappop.IngressConversationEventsSubscribe
+	case protectedSubscribeEmbodimentEventsMethod:
+		return localappop.IngressAgentEmbodimentEventsSubscribe
 	case protectedStreamTextTurnMethod:
 		return localappop.IngressTextTurnStream
 	case protectedSubscribeScenarioJobMethod:

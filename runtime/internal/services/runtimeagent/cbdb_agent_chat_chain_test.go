@@ -227,27 +227,18 @@ func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 	_ = capture.waitForMessageType(t, publicChatTurnTextDeltaType)
 	_ = capture.waitForMessageType(t, publicChatTurnStructuredType)
 	_ = capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
-	voicePlayback := capture.waitForMessageType(t, publicChatPresentationVoicePlaybackRequestedType)
-	lipsyncBatch := capture.waitForMessageType(t, publicChatPresentationLipsyncFrameBatchType)
+	voiceTiming := capture.waitForMessageType(t, publicChatConversationVoiceTimingReadyType)
 	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
 
-	voicePayload := publicChatPayloadMap(t, voicePlayback)
+	voicePayload := publicChatPayloadMap(t, voiceTiming)
 	voiceDetail := voicePayload["detail"].(map[string]any)
-	if got := strings.TrimSpace(voiceDetail["default_voice_reference"].(string)); got != "preset_voice_id:zh_narrator" {
-		t.Fatalf("expected reviewed CBDB default voice reference on voice playback, got %q detail=%v", got, voiceDetail)
+	if got := strings.TrimSpace(voiceDetail["audio_artifact_id"].(string)); got == "" {
+		t.Fatalf("expected Runtime-owned semantic voice artifact correlation, detail=%v", voiceDetail)
 	}
-	voiceRouteBinding, ok := voiceDetail["voice_route_binding"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected CBDB voice playback to carry voice_route_binding, got %v", voiceDetail)
-	}
-	if got := strings.TrimSpace(voiceRouteBinding["capability"].(string)); got != "audio.synthesize" {
-		t.Fatalf("expected CBDB voice route capability audio.synthesize, got %q", got)
-	}
-	if got := strings.TrimSpace(voiceRouteBinding["voice_reference_kind"].(string)); got != "preset_voice_id" {
-		t.Fatalf("expected CBDB voice reference kind preset_voice_id, got %q", got)
-	}
-	if got := strings.TrimSpace(voiceRouteBinding["voice_reference_value"].(string)); got != "zh_narrator" {
-		t.Fatalf("expected CBDB voice reference value zh_narrator, got %q", got)
+	for _, forbidden := range []string{"default_voice_reference", "voice_route_binding", "model_id", "model_resolved", "scenario_job_id", "synthesis_mode", "mouth_open_y", "audio_level", "playback_target"} {
+		if _, exists := voiceDetail[forbidden]; exists {
+			t.Fatalf("common voice projection exposed %s: %v", forbidden, voiceDetail)
+		}
 	}
 	if voiceAI.submitReq == nil {
 		t.Fatalf("expected CBDB speech route to submit provider voice synthesis")
@@ -255,18 +246,6 @@ func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 	intent, ok := executionintent.FromContext(voiceAI.submitCtx)
 	if !ok || !intent.IsLocal() || intent.CapabilityContract != "audio.synthesize" {
 		t.Fatalf("expected CBDB private Local speech intent, got %+v, ok=%v", intent, ok)
-	}
-	if got := strings.TrimSpace(voiceRouteBinding["model_id"].(string)); got != "speech/qwen3tts" {
-		t.Fatalf("expected CBDB voice model id speech/qwen3tts, got %q", got)
-	}
-	if got := strings.TrimSpace(voiceRouteBinding["synthesis_mode"].(string)); got != "provider_audio_with_synthetic_lipsync" {
-		t.Fatalf("expected CBDB voice synthesis mode provider_audio_with_synthetic_lipsync, got %q", got)
-	}
-	if got := strings.TrimSpace(voiceRouteBinding["status"].(string)); got != "bound" {
-		t.Fatalf("expected CBDB voice route status bound, got %q", got)
-	}
-	if got := strings.TrimSpace(voiceRouteBinding["reason"].(string)); got != "tts_provider_route_bound" {
-		t.Fatalf("expected CBDB voice route reason tts_provider_route_bound, got %q", got)
 	}
 	audioArtifactID := strings.TrimSpace(voiceDetail["audio_artifact_id"].(string))
 	record, ok := svc.runtimeArtifacts.Get(audioArtifactID)
@@ -278,11 +257,6 @@ func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 	}
 	if got := strings.TrimSpace(record.MimeType); got != "audio/wav" {
 		t.Fatalf("expected stored CBDB audio mime type audio/wav, got %s", got)
-	}
-	lipsyncPayload := publicChatPayloadMap(t, lipsyncBatch)
-	lipsyncDetail := lipsyncPayload["detail"].(map[string]any)
-	if got := strings.TrimSpace(lipsyncDetail["audio_artifact_id"].(string)); got != audioArtifactID {
-		t.Fatalf("expected CBDB lipsync batch to use voice audio artifact %q, got %q", audioArtifactID, got)
 	}
 
 	snapshot := requestPublicChatSessionSnapshot(t, svc, capture, anchorID, "snapshot-cbdb-chain")

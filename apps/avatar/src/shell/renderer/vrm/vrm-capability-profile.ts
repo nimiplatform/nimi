@@ -83,7 +83,7 @@ export function createVrmCapabilityProfile(vrm: VRM): VrmCapabilityProfile {
   const maxRotationDeg = radiansToDegrees(GENERATED_MOTION_MAX_ROTATION_RAD);
 
   return {
-    profileId: 'vrm-runtime-probe-v1',
+    profileId: 'vrm-avatar-capability-profile-v1',
     backendKind: 'vrm',
     modelFingerprint: deriveModelFingerprint(vrm),
     humanoidBones,

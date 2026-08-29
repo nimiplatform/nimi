@@ -74,6 +74,12 @@ pub struct DesktopAccountProductStreamRequest {
     pub timeout: Option<Duration>,
 }
 
+pub struct DesktopAccountProductClientStreamRequest {
+    pub method: DesktopAccountProductStreamMethod,
+    pub request_frames: Vec<Vec<u8>>,
+    pub timeout: Option<Duration>,
+}
+
 #[derive(Debug)]
 pub struct DesktopFirstPartyProductUnaryResponse {
     pub response_bytes: Vec<u8>,
@@ -183,6 +189,28 @@ pub(crate) async fn open_account_stream(
         request.timeout,
     )
     .await
+}
+
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+pub(crate) async fn invoke_account_client_stream(
+    channel: tonic::transport::Channel,
+    request: DesktopAccountProductClientStreamRequest,
+) -> Result<DesktopFirstPartyProductUnaryResponse, DesktopFirstPartyProductError> {
+    if request.method != DesktopAccountProductStreamMethod::WriteLocalAppAsset {
+        return Err(DesktopFirstPartyProductError::new(
+            "runtime-service-untrusted",
+            false,
+        ));
+    }
+    let response_bytes = crate::desktop_client_stream::invoke_first_party(
+        channel,
+        DesktopFirstPartyProfile::Account,
+        request.method.method_id(),
+        request.request_frames,
+        request.timeout,
+    )
+    .await?;
+    Ok(DesktopFirstPartyProductUnaryResponse { response_bytes })
 }
 
 #[cfg(test)]

@@ -197,11 +197,6 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     localDevelopmentHost = await createDesktopElectronLocalDevelopmentHost({
       homeDirectory: app.getPath('home'),
     });
-    desktopOpenIntentHost = await createDesktopElectronOpenIntentHost({
-      homeDirectory: app.getPath('home'),
-      focusMainWindow: focusDesktopMainWindow,
-      emitIntent: emitDesktopOpenIntent,
-    });
     const productControlHost = createDesktopElectronProductControlHost();
     const systemResourcesHost = createDesktopElectronSystemResourcesHost();
     const resolveProductControlDataRoot = createDesktopProductControlDataRootResolver(
@@ -297,6 +292,12 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_DEV_ROOT)
         : undefined,
     });
+    desktopOpenIntentHost = await createDesktopElectronOpenIntentHost({
+      homeDirectory: app.getPath('home'),
+      focusMainWindow: focusDesktopMainWindow,
+      emitIntent: emitDesktopOpenIntent,
+      avatarHostHandoff: bundledAvatarHost.hostHandoff,
+    });
     // @nimi-authority: definition.nimi.desktop.bridge-ipc.command-registration-plane
     // @nimi-authority: definition.nimi.desktop.command-execution.registered-surface
     // @nimi-authority: rule.nimi.desktop.command-execution.r005
@@ -339,20 +340,36 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         localAssetRoots: resolveStandardLocalAssetRoots(),
         localAssetProtocolHost,
         openFileDialog: openDesktopStandardFileDialog,
+        revealInOs: (targetPath) => shell.showItemInFolder(targetPath),
         openExternalUrl: openDesktopExternalUrl,
         confirmDialog: confirmDesktopDialog,
         focusMainWindow: focusDesktopMainWindow,
-        runtimeTrustedCaller: {
-          mode: 'desktop-shell',
-        },
       },
       bundledAvatarHost: bundledAvatarHost.runtimeBridgeHost,
     });
 
     if (AVATAR_ONLY_DEVELOPMENT_MODE) {
+      const localAppHost = registeredRuntimeBridge.bundledAvatarLocalAppHost;
+      if (!localAppHost) throw new Error('Avatar formal App host is unavailable.');
+      await localAppHost.sessionStatus();
+      const references = await localAppHost.agentReferenceList();
+      const requestedHandle = normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_HANDLE);
+      const selected = requestedHandle
+        ? references.find((reference) => reference.agentHandle === requestedHandle)
+        : references.length === 1 ? references[0] : undefined;
+      if (!selected) {
+        throw new Error(requestedHandle
+          ? 'Avatar requested Agent handle is not present in the formal App reference catalog.'
+          : 'Avatar-only Electron dev requires exactly one current formal App Agent reference.');
+      }
+      const selectedAgentHandle = normalizeText(selected.agentHandle);
+      if (!selectedAgentHandle) throw new Error('Avatar formal Agent handle is invalid.');
+      const conversation = await localAppHost.conversationOpen({ agentHandle: selectedAgentHandle });
+      const conversationAnchorId = normalizeText(conversation.conversationAnchorId);
+      if (!conversationAnchorId) throw new Error('Avatar formal Conversation anchor is unavailable.');
       await bundledAvatarHost.launchInitialAvatar(buildAvatarLaunchHandoffPayload({
-        agentHandle: normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_HANDLE),
-        conversationAnchorId: normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_CONVERSATION_ANCHOR_ID),
+        agentHandle: selectedAgentHandle,
+        conversationAnchorId,
         avatarInstanceId: normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID),
         launchSource: 'official-avatar-electron-dev-launcher',
       }));

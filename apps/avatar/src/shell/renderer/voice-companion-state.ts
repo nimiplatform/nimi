@@ -244,7 +244,7 @@ export function interruptVoiceCompanion(
   };
 }
 
-// Lipsync slice helpers (voice_playback_requested driven). All helpers are
+// Lipsync slice helpers (canonical Conversation voice artifact driven). All helpers are
 // pure reducers; consumers MUST set `audioArtifactId` via `activateLipsync`
 // before pushing frames so the state stays internally consistent. Per the
 // backend-branch contract hard cut, mouth_open_y is no

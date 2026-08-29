@@ -1,19 +1,15 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQuery } from '@tanstack/react-query';
 import {
   CANONICAL_CAPABILITY_IDS,
 } from '@nimiplatform/kit/core/runtime-capabilities';
 import {
-  createNimiLocalAIConfigCapabilityIntent,
   type NimiAIConfigOverwriteResult,
-  type NimiPortableAppAIConfigIntent,
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
   ModelConfigAIConfigSurface,
   type ModelConfigCopy,
 } from '@nimiplatform/kit/features/model-config';
-import { Button, InlineAlert } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import {
   useDesktopRendererCommands,
@@ -25,28 +21,6 @@ import {
 } from '../chat/chat-nimi-app-ai-config.js';
 
 export const APPS_AI_CONFIG_APP_ACCESS_DOMAIN = 'runtime.consume';
-
-export function buildAppsOneClickLocalAIConfig(
-  current: readonly NimiPortableAppAIConfigIntent[],
-  machineSelectedCapabilities: readonly string[],
-): readonly NimiPortableAppAIConfigIntent[] {
-  const canonical = new Set<string>(CANONICAL_CAPABILITY_IDS);
-  const selected = new Set(machineSelectedCapabilities.filter((entry) => canonical.has(entry)));
-  const seen = new Set<string>();
-  const next = current.map((intent) => {
-    seen.add(intent.capabilityContract);
-    if (!selected.has(intent.capabilityContract)) return intent;
-    return {
-      ...intent,
-      route: { oneofKind: 'local' as const, local: {} },
-    };
-  });
-  for (const capabilityContract of CANONICAL_CAPABILITY_IDS) {
-    if (!selected.has(capabilityContract) || seen.has(capabilityContract)) continue;
-    next.push(createNimiLocalAIConfigCapabilityIntent({ capabilityContract }));
-  }
-  return next;
-}
 
 const CAPABILITY_COPY_KEYS: Readonly<Record<string, {
   readonly label: string;
@@ -261,14 +235,12 @@ export function AppsAIConfigSection({
   allowedRoutes,
   onAIConfigChanged,
 }: AppsAIConfigSectionProps) {
-  const { t } = useTranslation();
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const sdk = useDesktopRendererSdk();
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const appAIConfig = useDesktopNimiAppAIConfig(appId);
   const overwriteAppAIConfig = useOverwriteDesktopNimiAppAIConfig(appId);
   const copy = useAppsModelConfigCopy(appDisplayName);
-  const [oneClickFailure, setOneClickFailure] = useState<'conflict' | 'failed' | null>(null);
   const overwriteAndRefreshSummary = useCallback(async (
     input: Parameters<typeof overwriteAppAIConfig.mutateAsync>[0],
   ) => {
@@ -276,22 +248,6 @@ export function AppsAIConfigSection({
     onAIConfigChanged(result);
     return result;
   }, [onAIConfigChanged, overwriteAppAIConfig]);
-  const machineSelections = useQuery({
-    queryKey: ['desktop', 'machine-local-ai-config-selections'],
-    queryFn: async () => {
-      const manager = sdk.accountProduct().appAIConfig(appId);
-      const selections = await Promise.all(CANONICAL_CAPABILITY_IDS.map(async (capabilityContract) => {
-        const result = await manager.listOptions({ kind: 'local-loadouts', capabilityContract });
-        if (result.kind !== 'local-loadouts') throw new Error('Runtime returned mismatched Local selection projection.');
-        return result.options.length > 0 ? capabilityContract : null;
-      }));
-      return selections.filter((entry): entry is string => entry !== null);
-    },
-    retry: false,
-    staleTime: 0,
-    refetchOnMount: 'always',
-    refetchOnWindowFocus: 'always',
-  });
   const openMachineLoadout = useCallback(() => {
     setActiveTab('runtime');
     runtimeConfigNavigation.focusAction({
@@ -310,7 +266,9 @@ export function AppsAIConfigSection({
         capabilities={appAIConfig.data?.config?.capabilities ?? (appAIConfig.isPending ? undefined : null)}
         revision={appAIConfig.data?.revision}
         effectiveSelections={appAIConfig.data?.effectiveSelections}
-        listOptions={(query) => sdk.accountProduct().appAIConfig(appId).listOptions(query)}
+        listOptions={(query) => (
+          appId === sdk.appId() ? sdk.appProduct().aiConfig : sdk.accountProduct().appAIConfig(appId)
+        ).listOptions(query)}
         loading={appAIConfig.isPending}
         loadError={appAIConfig.isError ? copy.loadFailed : null}
         onRetry={() => { void appAIConfig.refetch(); }}
@@ -321,58 +279,6 @@ export function AppsAIConfigSection({
           technicalDetail: error instanceof Error ? error.message : String(error || ''),
         })}
         copy={copy}
-        headerSlot={allowedRoutes.includes('local') ? (
-          <div className="space-y-2" data-testid="apps-ai-config-one-click-local">
-            <Button
-              tone="secondary"
-              disabled={machineSelections.isPending || machineSelections.isFetching || machineSelections.isError
-                || (machineSelections.data?.length ?? 0) === 0
-                || appAIConfig.data?.revision === undefined
-                || overwriteAppAIConfig.isPending}
-              loading={machineSelections.isPending || machineSelections.isFetching || overwriteAppAIConfig.isPending}
-              onClick={() => {
-                setOneClickFailure(null);
-                void Promise.all([
-                  machineSelections.refetch(),
-                  appAIConfig.refetch(),
-                ]).then(async ([freshSelections, freshConfig]) => {
-                  if (freshSelections.isError || freshConfig.isError) {
-                    setOneClickFailure('failed');
-                    return;
-                  }
-                  const revision = freshConfig.data?.revision;
-                  const selectedCapabilities = freshSelections.data ?? [];
-                  if (revision === undefined || selectedCapabilities.length === 0) return;
-                  const result = await overwriteAndRefreshSummary({
-                    expectedRevision: revision,
-                    capabilities: buildAppsOneClickLocalAIConfig(
-                      freshConfig.data?.config?.capabilities ?? [],
-                      selectedCapabilities,
-                    ),
-                  });
-                  if (result.outcome === 'conflict') setOneClickFailure('conflict');
-                }).catch(() => setOneClickFailure('failed'));
-              }}
-            >
-              {machineSelections.isPending
-                ? t('Apps.aiConfig.oneClickLoading')
-                : t('Apps.aiConfig.oneClickLabel')}
-            </Button>
-            <p className="m-0 text-xs text-[var(--nimi-text-muted)]">{t('Apps.aiConfig.oneClickHint')}</p>
-            {machineSelections.isError ? (
-              <InlineAlert tone="warning">{t('Apps.aiConfig.oneClickUnavailable')}</InlineAlert>
-            ) : null}
-            {!machineSelections.isPending && !machineSelections.isError && machineSelections.data?.length === 0 ? (
-              <InlineAlert tone="warning">{t('Apps.aiConfig.oneClickNoLocalModels')}</InlineAlert>
-            ) : null}
-            {oneClickFailure === 'conflict' ? (
-              <InlineAlert tone="warning">{copy.conflictLabel}: {copy.conflictDescription}</InlineAlert>
-            ) : null}
-            {oneClickFailure === 'failed' ? (
-              <InlineAlert tone="danger">{t('Apps.aiConfig.oneClickFailed')}</InlineAlert>
-            ) : null}
-          </div>
-        ) : undefined}
       />
     </section>
   );

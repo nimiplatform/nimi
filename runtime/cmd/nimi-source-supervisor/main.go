@@ -213,6 +213,7 @@ func buildSourceRuntime(config supervisorConfig) error {
 
 func sourceRuntimeEnvironment(config supervisorConfig) []string {
 	environment := replaceEnvironment(os.Environ(), "NIMI_REALM_URL", config.realmURL)
+	environment = replaceEnvironment(environment, "NIMI_SOURCE_RUNTIME_REPO_ROOT", config.repoRoot)
 	switch config.platformProfile {
 	case "windows":
 		environment = replaceEnvironment(environment, "NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT", "1")

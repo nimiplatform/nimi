@@ -1,14 +1,15 @@
 import {
-  buildAvatarLaunchHandoffPayload,
-  parseAvatarLaunchHandoffResult,
-  type AvatarLaunchHandoffPayload,
-  type AvatarLaunchHandoffResult,
+  buildAvatarHostHandoffRequest,
+  invokeAvatarHostHandoff,
+  type AvatarHostHandoffPort,
+  type AvatarHostHandoffRequest,
+  type AvatarHostHandoffResult,
 } from '@nimiplatform/kit/features/avatar/headless';
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from './avatar-launch';
 
 export type ZhiyuAvatarLaunchHandoff = {
-  readonly payload: AvatarLaunchHandoffPayload;
+  readonly request: AvatarHostHandoffRequest;
 };
 
 export type ZhiyuAvatarLaunchResult =
@@ -17,7 +18,7 @@ export type ZhiyuAvatarLaunchResult =
       readonly reasonCode: 'zhiyu-avatar-launch-requested';
       readonly actionHint: 'inspect_avatar_window';
       readonly message: string;
-      readonly handoff: AvatarLaunchHandoffResult;
+      readonly handoff: AvatarHostHandoffResult;
     }
   | {
       readonly state: 'blocked';
@@ -26,23 +27,11 @@ export type ZhiyuAvatarLaunchResult =
       readonly message: string;
     };
 
-export type ZhiyuAvatarLaunchHostInvoker = (
-  payload: AvatarLaunchHandoffPayload,
-) => Promise<unknown>;
-
 export type ZhiyuAvatarLaunchOptions = {
   readonly evidence: ZhiyuEvidence;
   readonly action: ZhiyuAvatarLaunchAction;
-  readonly invokeHost?: ZhiyuAvatarLaunchHostInvoker;
+  readonly hostPort?: AvatarHostHandoffPort;
 };
-
-declare global {
-  interface Window {
-    readonly __nimiZhiyuAvatarLaunchHandoff?: {
-      invoke(command: string, payload: Record<string, unknown>): Promise<unknown>;
-    };
-  }
-}
 
 // @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r011
 // @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r012
@@ -54,14 +43,21 @@ export function buildZhiyuAvatarLaunchHandoff(input: {
     throw new Error(`Zhiyu Avatar launch is not ready: ${input.action.reasonCode}`);
   }
   const agentHandle = requireText(input.evidence.conversation.agentHandle, 'agentHandle');
-  const conversationAnchorId = requireText(input.evidence.conversation.conversationAnchorId, 'conversationAnchorId');
-  const avatarInstanceId = input.action.avatarInstanceId;
+  const conversationAnchorId = requireText(
+    input.evidence.conversation.conversationAnchorId,
+    'conversationAnchorId',
+  );
   return {
-    payload: buildAvatarLaunchHandoffPayload({
-      agentHandle,
-      conversationAnchorId,
-      avatarInstanceId,
-      sourceSurface: 'zhiyu',
+    request: buildAvatarHostHandoffRequest({
+      command: input.action.command,
+      target: {
+        agentHandle,
+        conversationAnchorId,
+        avatarInstanceId: input.action.avatarInstanceId,
+        launchSource: 'zhiyu',
+        committedPresentationRef: input.evidence.avatar.hostHandoff?.committedPresentationRef ?? null,
+        temporaryCustodyRef: input.evidence.avatar.hostHandoff?.temporaryCustodyRef ?? null,
+      },
     }),
   };
 }
@@ -70,56 +66,42 @@ export async function launchZhiyuAvatar(
   options: ZhiyuAvatarLaunchOptions,
 ): Promise<ZhiyuAvatarLaunchResult> {
   try {
+    if (!options.hostPort) {
+      throw Object.assign(new Error('Zhiyu Avatar launch requires the common Host handoff port.'), {
+        reasonCode: 'zhiyu-avatar-host-handoff-unavailable',
+        actionHint: 'restart_desktop_supervised_zhiyu',
+        source: 'host',
+      });
+    }
     const handoff = buildZhiyuAvatarLaunchHandoff(options);
-    const rawResult = await (options.invokeHost ?? invokeZhiyuAvatarLaunchHandoff)(handoff.payload);
-    const result = parseAvatarLaunchHandoffResult(rawResult);
+    const result = await invokeAvatarHostHandoff(options.hostPort, handoff.request);
     return {
       state: 'opened',
       reasonCode: 'zhiyu-avatar-launch-requested',
       actionHint: 'inspect_avatar_window',
-      message: 'Avatar launch was requested through the public Runtime live-instance handoff.',
+      message: `Avatar Host ${result.command} completed with ${result.state} state.`,
       handoff: result,
     };
   } catch (error) {
     return {
       state: 'blocked',
       reasonCode: errorField(error, 'reasonCode') || errorField(error, 'code') || 'zhiyu-avatar-launch-failed',
-      actionHint: errorField(error, 'actionHint') || 'check_avatar_launch_handoff',
+      actionHint: errorField(error, 'actionHint') || 'check_avatar_host_handoff',
       message: error instanceof Error && error.message.trim()
         ? error.message.trim()
-        : 'Avatar launch handoff failed closed.',
+        : 'Avatar Host handoff failed closed.',
     };
   }
 }
 
-export async function invokeZhiyuAvatarLaunchHandoff(
-  payload: AvatarLaunchHandoffPayload,
-): Promise<unknown> {
-  if (typeof window === 'undefined' || !window.__nimiZhiyuAvatarLaunchHandoff) {
-    throw Object.assign(new Error('Zhiyu Avatar launch requires the Electron handoff bridge.'), {
-      reasonCode: 'zhiyu-avatar-electron-handoff-unavailable',
-      actionHint: 'restart_zhiyu_electron_shell',
-      source: 'renderer',
-    });
-  }
-  return window.__nimiZhiyuAvatarLaunchHandoff.invoke(
-    'avatar.launch',
-    payload as unknown as Record<string, unknown>,
-  );
-}
-
 function requireText(value: unknown, field: string): string {
   const normalized = typeof value === 'string' ? value.trim() : '';
-  if (!normalized) {
-    throw new Error(`Zhiyu Avatar launch requires ${field}`);
-  }
+  if (!normalized) throw new Error(`Zhiyu Avatar launch requires ${field}`);
   return normalized;
 }
 
 function errorField(error: unknown, key: string): string {
-  if (!error || typeof error !== 'object') {
-    return '';
-  }
+  if (!error || typeof error !== 'object') return '';
   const value = (error as Record<string, unknown>)[key];
   return typeof value === 'string' ? value.trim() : '';
 }

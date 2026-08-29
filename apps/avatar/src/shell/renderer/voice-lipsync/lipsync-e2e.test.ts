@@ -1,12 +1,8 @@
 // Contract test for the avatar audio + lipsync pipeline defined by
 // .nimi/spec/avatar/embodiment-surface.authority.yaml. Exercises:
 //
-//   1. Mock SDK Runtime instance that resolves `runtime.artifacts.readArtifactBytes`
-//      with deterministic .wav-shaped bytes.
-//   2. AudioPipelineController consumes those bytes directly (no caller-
-//      injected byte fetcher).
-//   3. `runtime.agent.presentation.voice_playback_requested` mirrors through
-//      the avatar-voice-lipsync orchestrator.
+//   1. Canonical Conversation voice bytes enter the Avatar-owned playback port.
+//   2. AudioPipelineController consumes those bytes directly.
 //   4. Same fixture is run against TWO mock backends (live2d and vrm). Each
 //      backend's BackendAudioConsumer.attachAudioSource is called once and
 //      both transition through the same playback state machine.
@@ -27,6 +23,7 @@ import type {
   DriverStatus,
 } from '../driver/types.js';
 import { createAvatarVoiceLipsyncPipeline } from './avatar-voice-lipsync.js';
+import { AVATAR_CONVERSATION_VOICE_AUDIO_CHUNK_EVENT } from './avatar-conversation-voice.js';
 import {
   AudioPipelineController,
   SYNTHETIC_AUDIO_MIME_TYPE,
@@ -38,44 +35,21 @@ import type { BackendBranch } from '../carrier/backend-branch.js';
 
 const FIXTURE_TURN_ID = 'turn-e2e';
 const FIXTURE_STREAM_ID = 'stream-e2e';
-const FIXTURE_AUDIO_ARTIFACT = 'artifact-e2e-wav';
-const FIXTURE_STARTED_AT = '2026-04-29T00:00:00.000Z';
-const FIXTURE_OBSERVED_AT = '2026-04-29T00:00:00.020Z';
+const FIXTURE_AUDIO_BYTES = new Uint8Array(256);
 
-function makeRuntimeTimeline(channel: 'voice' | 'lipsync' | 'state', sequence: number): Record<string, unknown> {
-  return {
-    turn_id: FIXTURE_TURN_ID,
-    stream_id: FIXTURE_STREAM_ID,
-    channel,
-    offset_ms: 0,
-    sequence,
-    started_at_wall: FIXTURE_STARTED_AT,
-    observed_at_wall: FIXTURE_OBSERVED_AT,
-    timebase_owner: 'runtime',
-    projection_rule_id: 'K-AGCORE-051',
-    clock_basis: 'monotonic_with_wall_anchor',
-    provider_neutral: true,
-    app_local_authority: false,
-  };
-}
-
-function makeVoicePlaybackEvent(
-  playbackState: 'requested' | 'started' | 'completed' | 'interrupted' | 'canceled' | 'failed',
+function makeConversationVoiceChunkEvent(
   audioMimeType = 'audio/wav',
-  sequence = 1,
 ): AgentEvent {
   return {
-    event_id: `event-voice-${playbackState}`,
-    name: 'runtime.agent.presentation.voice_playback_requested',
+    event_id: 'event-conversation-voice',
+    name: AVATAR_CONVERSATION_VOICE_AUDIO_CHUNK_EVENT,
     timestamp: '2026-04-29T00:00:00.030Z',
     detail: {
       turn_id: FIXTURE_TURN_ID,
-      stream_id: FIXTURE_STREAM_ID,
-      runtime_timeline: makeRuntimeTimeline('voice', sequence),
-      audio_artifact_id: FIXTURE_AUDIO_ARTIFACT,
+      voice_id: 'voice-e2e',
+      chunk_sequence: 1,
       audio_mime_type: audioMimeType,
-      playback_state: playbackState,
-      playback_target: 'avatar_autoplay',
+      chunk_bytes: FIXTURE_AUDIO_BYTES,
     },
   };
 }
@@ -168,17 +142,7 @@ function createBackend(kind: 'live2d' | 'vrm'): BackendBranch & {
   return { kind: 'vrm', ...base } as never;
 }
 
-function createRuntimeMock(): { runtime: unknown; readArtifactBytes: ReturnType<typeof vi.fn> } {
-  // 256-byte deterministic .wav-shaped buffer (header + silent payload).
-  const bytes = new ArrayBuffer(256);
-  const readArtifactBytes = vi.fn(async (input: { artifactId: string }) => {
-    expect(input.artifactId).toBe(FIXTURE_AUDIO_ARTIFACT);
-    return { bytes, mimeType: 'audio/wav', sizeBytes: bytes.byteLength };
-  });
-  return { runtime: { artifacts: { readArtifactBytes } }, readArtifactBytes };
-}
-
-describe('Lipsync e2e — voice_playback_requested → audio-pipeline → backend sink', () => {
+describe('Lipsync e2e — Conversation voice → audio-pipeline → backend sink', () => {
   it('runs the full path against a Live2D mock backend (real-audio mime; sink attached)', async () => {
     const driver = createDriver();
     const stateBus = new VoiceLipsyncStateBus();
@@ -187,9 +151,6 @@ describe('Lipsync e2e — voice_playback_requested → audio-pipeline → backen
       audioContextFactory: () => fake.context,
       logger: { warn: vi.fn(), error: vi.fn() },
     });
-    const { runtime } = createRuntimeMock();
-    audioPipeline.setRuntime(runtime as never);
-
     const backend = createBackend('live2d');
     const busEvents: VoiceLipsyncStateBusEvent[] = [];
     stateBus.subscribe((event) => busEvents.push(event));
@@ -201,7 +162,7 @@ describe('Lipsync e2e — voice_playback_requested → audio-pipeline → backen
       backend,
     });
 
-    pipeline.handleEvent(makeVoicePlaybackEvent('requested'));
+    pipeline.handleEvent(makeConversationVoiceChunkEvent());
     await Promise.resolve();
     await Promise.resolve();
     await Promise.resolve();
@@ -228,9 +189,6 @@ describe('Lipsync e2e — voice_playback_requested → audio-pipeline → backen
       audioContextFactory: () => fake.context,
       logger: { warn: vi.fn(), error: vi.fn() },
     });
-    const { runtime } = createRuntimeMock();
-    audioPipeline.setRuntime(runtime as never);
-
     const backend = createBackend('vrm');
     const pipeline = createAvatarVoiceLipsyncPipeline({
       driver,
@@ -239,7 +197,7 @@ describe('Lipsync e2e — voice_playback_requested → audio-pipeline → backen
       backend,
     });
 
-    pipeline.handleEvent(makeVoicePlaybackEvent('requested'));
+    pipeline.handleEvent(makeConversationVoiceChunkEvent());
     await Promise.resolve();
     await Promise.resolve();
     await Promise.resolve();
@@ -259,9 +217,6 @@ describe('Lipsync e2e — voice_playback_requested → audio-pipeline → backen
       audioContextFactory: () => fake.context,
       logger: { warn: vi.fn(), error: vi.fn() },
     });
-    const { runtime, readArtifactBytes } = createRuntimeMock();
-    audioPipeline.setRuntime(runtime as never);
-
     const backend = createBackend('live2d');
     const pipeline = createAvatarVoiceLipsyncPipeline({
       driver,
@@ -270,10 +225,9 @@ describe('Lipsync e2e — voice_playback_requested → audio-pipeline → backen
       backend,
     });
 
-    pipeline.handleEvent(makeVoicePlaybackEvent('requested', SYNTHETIC_AUDIO_MIME_TYPE));
-    await Promise.resolve();
+    pipeline.handleEvent(makeConversationVoiceChunkEvent(SYNTHETIC_AUDIO_MIME_TYPE));
+    await vi.waitFor(() => expect(audioPipeline.getSnapshot().state).toBe('completed'));
 
-    expect(readArtifactBytes).not.toHaveBeenCalled();
     expect(fake.source.start).not.toHaveBeenCalled();
     expect(backend.audioConsumer.attachAudioSource).not.toHaveBeenCalled();
     expect(backend.audioConsumer.silent).toHaveBeenCalled();
@@ -289,9 +243,6 @@ describe('Lipsync e2e — voice_playback_requested → audio-pipeline → backen
       audioContextFactory: () => fake.context,
       logger: { warn: vi.fn(), error: vi.fn() },
     });
-    const { runtime } = createRuntimeMock();
-    audioPipeline.setRuntime(runtime as never);
-
     const backend = createBackend('live2d');
     const busEvents: VoiceLipsyncStateBusEvent[] = [];
     stateBus.subscribe((event) => busEvents.push(event));
@@ -303,10 +254,8 @@ describe('Lipsync e2e — voice_playback_requested → audio-pipeline → backen
       backend,
     });
 
-    pipeline.handleEvent(makeVoicePlaybackEvent('requested'));
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(fake.source.start).toHaveBeenCalledTimes(1);
+    pipeline.handleEvent(makeConversationVoiceChunkEvent());
+    await vi.waitFor(() => expect(fake.source.start).toHaveBeenCalledTimes(1));
 
     pipeline.handleEvent({
       event_id: 'event-interrupt',
@@ -315,7 +264,6 @@ describe('Lipsync e2e — voice_playback_requested → audio-pipeline → backen
       detail: {
         turn_id: FIXTURE_TURN_ID,
         stream_id: FIXTURE_STREAM_ID,
-        runtime_timeline: makeRuntimeTimeline('state', 2),
       },
     });
 

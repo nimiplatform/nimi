@@ -77,12 +77,6 @@ func (r publicChatRuntime) consumeAppMessage(ctx context.Context, event *runtime
 			}
 		}
 		return r.handleTurnInterrupt(event, req)
-	case publicChatTurnVoiceRenderType:
-		req, err := decodePublicChatTurnVoiceRenderPayload(event.GetPayload())
-		if err != nil {
-			return err
-		}
-		return r.handleTurnVoiceRender(ctx, event, req)
 	default:
 		return status.Error(codes.InvalidArgument, "public chat app message type invalid")
 	}

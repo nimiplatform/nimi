@@ -11,8 +11,6 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { VoicePlaybackState } from "./voice";
-import { VoiceOutputMode } from "./voice";
 /**
  * @generated from protobuf message nimi.runtime.v1.AgentPresentationAssetMaterial
  */
@@ -126,8 +124,8 @@ export interface AgentPresentationProfilePatch {
 export interface ClearAgentPresentationProfile {
 }
 /**
- * AgentPresentationEventDetail projects runtime.agent.presentation.* events
- * per K-AGCORE-037 / presentation_envelope. `agent_id` is REQUIRED at the
+ * AgentPresentationEventDetail projects bounded Runtime presentation and
+ * Conversation voice-correlation events. `agent_id` is REQUIRED at the
  * AgentEvent envelope level; `conversation_anchor_id`, `turn_id`, and
  * `stream_id` are ALSO REQUIRED on every presentation event because
  * presentation is stream-scoped transient projection derived from committed
@@ -240,10 +238,6 @@ export interface AgentPresentationEventDetail {
      */
     lookatHasZ: boolean;
     /**
-     * voice_playback_requested / voice_stream_chunk_available /
-     * voice_playback_terminal. Non-final native stream chunks carry only
-     * transient stream identity; final replay bytes remain Runtime artifacts.
-     *
      * @generated from protobuf field: string audio_artifact_id = 60
      */
     audioArtifactId: string;
@@ -252,41 +246,21 @@ export interface AgentPresentationEventDetail {
      */
     audioMimeType: string;
     /**
-     * @generated from protobuf field: string voice_stream_id = 62
-     */
-    voiceStreamId: string;
-    /**
-     * @generated from protobuf field: string chunk_transport_ref = 63
-     */
-    chunkTransportRef: string;
-    /**
      * @generated from protobuf field: string message_id = 64
      */
     messageId: string;
     /**
-     * @generated from protobuf field: uint64 chunk_sequence = 65
+     * @generated from protobuf field: uint64 artifact_sequence = 65
      */
-    chunkSequence: string;
+    artifactSequence: string;
     /**
-     * @generated from protobuf field: bool final_chunk = 66
+     * @generated from protobuf field: bool artifact_complete = 66
      */
-    finalChunk: boolean;
+    artifactComplete: boolean;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.VoiceOutputMode voice_output_mode = 67
+     * @generated from protobuf field: nimi.runtime.v1.AgentVoiceTimingPhase voice_timing_phase = 68
      */
-    voiceOutputMode: VoiceOutputMode;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.VoicePlaybackState voice_playback_state = 68
-     */
-    voicePlaybackState: VoicePlaybackState;
-    /**
-     * @generated from protobuf field: string playback_target = 69
-     */
-    playbackTarget: string;
-    /**
-     * @generated from protobuf field: bool final_artifact = 70
-     */
-    finalArtifact: boolean;
+    voiceTimingPhase: AgentVoiceTimingPhase;
     /**
      * @generated from protobuf field: string terminal_reason = 71
      */
@@ -303,10 +277,6 @@ export interface AgentPresentationEventDetail {
      * @generated from protobuf field: int64 deadline_offset_ms = 74
      */
     deadlineOffsetMs: string;
-    /**
-     * @generated from protobuf field: string final_artifact_id = 75
-     */
-    finalArtifactId: string;
 }
 /**
  * Runtime receives protected-Shell-imported bytes, validates them, and mints
@@ -329,12 +299,10 @@ export enum AgentPresentationAssetRole {
     BACKGROUND = 2
 }
 /**
- * K-AGCORE-037 AgentPresentationEventFamily discriminates
- * runtime.agent.presentation.* families. Mapping is 1:1 to
- * runtime.agent.presentation.{activity_requested|motion_requested|
- * expression_requested|pose_requested|pose_cleared|lookat_requested|
- * voice_playback_requested|voice_stream_chunk_available|
- * voice_playback_terminal}.
+ * K-AGCORE-037 AgentPresentationEventFamily discriminates Runtime-owned
+ * activity semantics plus common Conversation voice correlation. Renderer
+ * motion mapping, audio clocks, mouth/viseme parameters, and playback remain
+ * outside this contract.
  *
  * @generated from protobuf enum nimi.runtime.v1.AgentPresentationEventFamily
  */
@@ -368,17 +336,46 @@ export enum AgentPresentationEventFamily {
      */
     LOOKAT_REQUESTED = 6,
     /**
-     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED = 7;
+     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY = 7;
      */
-    VOICE_PLAYBACK_REQUESTED = 7,
+    VOICE_TIMING_READY = 7,
     /**
-     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE = 8;
+     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE = 8;
      */
-    VOICE_STREAM_CHUNK_AVAILABLE = 8,
+    VOICE_ARTIFACT_AVAILABLE = 8,
     /**
-     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL = 9;
+     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL = 9;
      */
-    VOICE_PLAYBACK_TERMINAL = 9
+    VOICE_TIMING_TERMINAL = 9
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AgentVoiceTimingPhase
+ */
+export enum AgentVoiceTimingPhase {
+    /**
+     * @generated from protobuf enum value: AGENT_VOICE_TIMING_PHASE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: AGENT_VOICE_TIMING_PHASE_ACTIVE = 1;
+     */
+    ACTIVE = 1,
+    /**
+     * @generated from protobuf enum value: AGENT_VOICE_TIMING_PHASE_COMPLETED = 2;
+     */
+    COMPLETED = 2,
+    /**
+     * @generated from protobuf enum value: AGENT_VOICE_TIMING_PHASE_FAILED = 3;
+     */
+    FAILED = 3,
+    /**
+     * @generated from protobuf enum value: AGENT_VOICE_TIMING_PHASE_INTERRUPTED = 4;
+     */
+    INTERRUPTED = 4,
+    /**
+     * @generated from protobuf enum value: AGENT_VOICE_TIMING_PHASE_CANCELED = 5;
+     */
+    CANCELED = 5
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AgentPresentationBackendKind
@@ -761,20 +758,14 @@ class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEve
             { no: 56, name: "lookat_has_z", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 60, name: "audio_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 61, name: "audio_mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 62, name: "voice_stream_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 63, name: "chunk_transport_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 64, name: "message_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 65, name: "chunk_sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
-            { no: 66, name: "final_chunk", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 67, name: "voice_output_mode", kind: "enum", T: () => ["nimi.runtime.v1.VoiceOutputMode", VoiceOutputMode, "VOICE_OUTPUT_MODE_"] },
-            { no: 68, name: "voice_playback_state", kind: "enum", T: () => ["nimi.runtime.v1.VoicePlaybackState", VoicePlaybackState, "VOICE_PLAYBACK_STATE_"] },
-            { no: 69, name: "playback_target", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 70, name: "final_artifact", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 65, name: "artifact_sequence", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 66, name: "artifact_complete", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 68, name: "voice_timing_phase", kind: "enum", T: () => ["nimi.runtime.v1.AgentVoiceTimingPhase", AgentVoiceTimingPhase, "AGENT_VOICE_TIMING_PHASE_"] },
             { no: 71, name: "terminal_reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 72, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 73, name: "duration_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 74, name: "deadline_offset_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 75, name: "final_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 74, name: "deadline_offset_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
         ]);
     }
     create(value?: PartialMessage<AgentPresentationEventDetail>): AgentPresentationEventDetail {
@@ -804,20 +795,14 @@ class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEve
         message.lookatHasZ = false;
         message.audioArtifactId = "";
         message.audioMimeType = "";
-        message.voiceStreamId = "";
-        message.chunkTransportRef = "";
         message.messageId = "";
-        message.chunkSequence = "0";
-        message.finalChunk = false;
-        message.voiceOutputMode = 0;
-        message.voicePlaybackState = 0;
-        message.playbackTarget = "";
-        message.finalArtifact = false;
+        message.artifactSequence = "0";
+        message.artifactComplete = false;
+        message.voiceTimingPhase = 0;
         message.terminalReason = "";
         message.reason = "";
         message.durationMs = "0";
         message.deadlineOffsetMs = "0";
-        message.finalArtifactId = "";
         if (value !== undefined)
             reflectionMergePartial<AgentPresentationEventDetail>(this, message, value);
         return message;
@@ -902,32 +887,17 @@ class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEve
                 case /* string audio_mime_type */ 61:
                     message.audioMimeType = reader.string();
                     break;
-                case /* string voice_stream_id */ 62:
-                    message.voiceStreamId = reader.string();
-                    break;
-                case /* string chunk_transport_ref */ 63:
-                    message.chunkTransportRef = reader.string();
-                    break;
                 case /* string message_id */ 64:
                     message.messageId = reader.string();
                     break;
-                case /* uint64 chunk_sequence */ 65:
-                    message.chunkSequence = reader.uint64().toString();
+                case /* uint64 artifact_sequence */ 65:
+                    message.artifactSequence = reader.uint64().toString();
                     break;
-                case /* bool final_chunk */ 66:
-                    message.finalChunk = reader.bool();
+                case /* bool artifact_complete */ 66:
+                    message.artifactComplete = reader.bool();
                     break;
-                case /* nimi.runtime.v1.VoiceOutputMode voice_output_mode */ 67:
-                    message.voiceOutputMode = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.VoicePlaybackState voice_playback_state */ 68:
-                    message.voicePlaybackState = reader.int32();
-                    break;
-                case /* string playback_target */ 69:
-                    message.playbackTarget = reader.string();
-                    break;
-                case /* bool final_artifact */ 70:
-                    message.finalArtifact = reader.bool();
+                case /* nimi.runtime.v1.AgentVoiceTimingPhase voice_timing_phase */ 68:
+                    message.voiceTimingPhase = reader.int32();
                     break;
                 case /* string terminal_reason */ 71:
                     message.terminalReason = reader.string();
@@ -940,9 +910,6 @@ class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEve
                     break;
                 case /* int64 deadline_offset_ms */ 74:
                     message.deadlineOffsetMs = reader.int64().toString();
-                    break;
-                case /* string final_artifact_id */ 75:
-                    message.finalArtifactId = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1031,33 +998,18 @@ class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEve
         /* string audio_mime_type = 61; */
         if (message.audioMimeType !== "")
             writer.tag(61, WireType.LengthDelimited).string(message.audioMimeType);
-        /* string voice_stream_id = 62; */
-        if (message.voiceStreamId !== "")
-            writer.tag(62, WireType.LengthDelimited).string(message.voiceStreamId);
-        /* string chunk_transport_ref = 63; */
-        if (message.chunkTransportRef !== "")
-            writer.tag(63, WireType.LengthDelimited).string(message.chunkTransportRef);
         /* string message_id = 64; */
         if (message.messageId !== "")
             writer.tag(64, WireType.LengthDelimited).string(message.messageId);
-        /* uint64 chunk_sequence = 65; */
-        if (message.chunkSequence !== "0")
-            writer.tag(65, WireType.Varint).uint64(message.chunkSequence);
-        /* bool final_chunk = 66; */
-        if (message.finalChunk !== false)
-            writer.tag(66, WireType.Varint).bool(message.finalChunk);
-        /* nimi.runtime.v1.VoiceOutputMode voice_output_mode = 67; */
-        if (message.voiceOutputMode !== 0)
-            writer.tag(67, WireType.Varint).int32(message.voiceOutputMode);
-        /* nimi.runtime.v1.VoicePlaybackState voice_playback_state = 68; */
-        if (message.voicePlaybackState !== 0)
-            writer.tag(68, WireType.Varint).int32(message.voicePlaybackState);
-        /* string playback_target = 69; */
-        if (message.playbackTarget !== "")
-            writer.tag(69, WireType.LengthDelimited).string(message.playbackTarget);
-        /* bool final_artifact = 70; */
-        if (message.finalArtifact !== false)
-            writer.tag(70, WireType.Varint).bool(message.finalArtifact);
+        /* uint64 artifact_sequence = 65; */
+        if (message.artifactSequence !== "0")
+            writer.tag(65, WireType.Varint).uint64(message.artifactSequence);
+        /* bool artifact_complete = 66; */
+        if (message.artifactComplete !== false)
+            writer.tag(66, WireType.Varint).bool(message.artifactComplete);
+        /* nimi.runtime.v1.AgentVoiceTimingPhase voice_timing_phase = 68; */
+        if (message.voiceTimingPhase !== 0)
+            writer.tag(68, WireType.Varint).int32(message.voiceTimingPhase);
         /* string terminal_reason = 71; */
         if (message.terminalReason !== "")
             writer.tag(71, WireType.LengthDelimited).string(message.terminalReason);
@@ -1070,9 +1022,6 @@ class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEve
         /* int64 deadline_offset_ms = 74; */
         if (message.deadlineOffsetMs !== "0")
             writer.tag(74, WireType.Varint).int64(message.deadlineOffsetMs);
-        /* string final_artifact_id = 75; */
-        if (message.finalArtifactId !== "")
-            writer.tag(75, WireType.LengthDelimited).string(message.finalArtifactId);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

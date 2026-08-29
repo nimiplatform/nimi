@@ -295,7 +295,7 @@ function createCanonicalBindings(input: {
       localEnvironmentRpc: sdkUnavailable,
       localAudit: sdkUnavailable,
       auditAdmin: sdkUnavailable,
-      aiExecution: sdkUnavailable,
+      appProduct: sdkUnavailable,
       externalAgent: sdkUnavailable,
       runtimeAgentDiscovery: sdkUnavailable,
       runtimeAgentTurns: sdkUnavailable,

@@ -26,19 +26,21 @@ const runtimeEnvAllowlist = [
 ];
 
 function usage() {
-  return `Usage: pnpm dev:avatar --tauri [--uri <nimi-avatar://launch?...>] [--agent-id <local-agent:owner:agent>] [--instance-id <id>] [--no-kill-existing] [--dry-run]
+  return `Usage: pnpm dev:avatar --tauri [--uri <nimi-avatar://launch?...>] [--agent-handle <agent_ref_...> --conversation-anchor-id <id>] [--instance-id <id>] [--no-kill-existing] [--dry-run]
 
 Environment:
-  NIMI_AVATAR_DEV_URI          explicit launch URI
-  NIMI_AVATAR_DEV_AGENT_ID     fallback local-agent ref when no registry exists
-  NIMI_AVATAR_DEV_INSTANCE_ID  fallback avatar instance id
+  NIMI_AVATAR_DEV_URI                     explicit launch URI
+  NIMI_AVATAR_DEV_AGENT_HANDLE            fallback canonical Agent handle
+  NIMI_AVATAR_DEV_CONVERSATION_ANCHOR_ID  fallback exact Conversation anchor
+  NIMI_AVATAR_DEV_INSTANCE_ID             fallback avatar instance id
 `;
 }
 
 function readArgs(argv) {
   const options = {
     uri: process.env.NIMI_AVATAR_DEV_URI || '',
-    agentId: process.env.NIMI_AVATAR_DEV_AGENT_ID || '',
+    agentHandle: process.env.NIMI_AVATAR_DEV_AGENT_HANDLE || '',
+    conversationAnchorId: process.env.NIMI_AVATAR_DEV_CONVERSATION_ANCHOR_ID || '',
     instanceId: process.env.NIMI_AVATAR_DEV_INSTANCE_ID || '',
     killExisting: process.env.NIMI_AVATAR_DEV_KEEP_EXISTING !== '1',
     dryRun: false,
@@ -53,8 +55,12 @@ function readArgs(argv) {
       options.uri = argv[++index] || '';
       continue;
     }
-    if (arg === '--agent-id') {
-      options.agentId = argv[++index] || '';
+    if (arg === '--agent-handle') {
+      options.agentHandle = argv[++index] || '';
+      continue;
+    }
+    if (arg === '--conversation-anchor-id') {
+      options.conversationAnchorId = argv[++index] || '';
       continue;
     }
     if (arg === '--instance-id') {
@@ -107,7 +113,8 @@ function latestRegistryInstance(appDataRoot) {
 
 function buildLaunchUri(input) {
   const params = new URLSearchParams();
-  params.set('agent_id', input.agentId);
+  params.set('agent_handle', input.agentHandle);
+  params.set('conversation_anchor_id', input.conversationAnchorId);
   if (input.instanceId) params.set('avatar_instance_id', input.instanceId);
   params.set('launch_source', input.launchSource || 'avatar-dev');
   return `nimi-avatar://launch?${params.toString()}`;
@@ -116,14 +123,17 @@ function buildLaunchUri(input) {
 function resolveLaunchUri(options, appDataRoot) {
   if (normalizeNonEmpty(options.uri)) return options.uri.trim();
   const registryInstance = latestRegistryInstance(appDataRoot);
-  const agentId = normalizeNonEmpty(options.agentId) || normalizeNonEmpty(registryInstance?.localAgentRef);
-  if (!agentId) {
+  const agentHandle = normalizeNonEmpty(options.agentHandle) || normalizeNonEmpty(registryInstance?.agentHandle);
+  const conversationAnchorId = normalizeNonEmpty(options.conversationAnchorId)
+    || normalizeNonEmpty(registryInstance?.conversationAnchorId);
+  if (!agentHandle || !conversationAnchorId) {
     throw new Error(
-      'cannot resolve Avatar launch agent. Launch Avatar from Desktop once, or pass --agent-id local-agent:<owner>:<agent>.',
+      'cannot resolve canonical Avatar launch context. Launch Avatar from Desktop once, or pass both --agent-handle and --conversation-anchor-id.',
     );
   }
   return buildLaunchUri({
-    agentId,
+    agentHandle,
+    conversationAnchorId,
     instanceId: normalizeNonEmpty(options.instanceId) || normalizeNonEmpty(registryInstance?.avatarInstanceId),
     launchSource: normalizeNonEmpty(registryInstance?.launchSource) || 'avatar-dev',
   });

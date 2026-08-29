@@ -4,6 +4,7 @@ import {
   type AgentCenterHostMechanics,
   type AgentCenterSession,
 } from '@nimiplatform/kit/features/agent-center';
+import type { AvatarHostHandoffPort } from '@nimiplatform/kit/features/avatar/headless';
 
 import type {
   NimiLocalAppAgentConfigureClient,
@@ -14,6 +15,9 @@ import type {
 } from '@nimiplatform/sdk/app';
 
 import type { ZhiyuCanonicalRendererBindings, ZhiyuHomeProjection } from '../renderer/contract.js';
+import { remintZhiyuConversationSelection } from '../shell/agent/conversation-selection-remint.js';
+import { probeZhiyuAvatarPresence } from '../shell/avatar/avatar-presence.js';
+import { launchZhiyuAvatar } from '../shell/avatar/avatar-launch-handoff.js';
 import type { ZhiyuRuntimeAgentChatTurnResult } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
 import { createInitialZhiyuEvidence, type ZhiyuEvidence } from '../shell/app/evidence.js';
 import type { ZhiyuSimulatorJsonValue, ZhiyuSimulatorPrepareContext } from './protocol.js';
@@ -29,14 +33,12 @@ const SIMULATED_LOCAL_AGENT_PARTICIPATION = Object.freeze([
 
 type JsonRecord = { readonly [key: string]: ZhiyuSimulatorJsonValue };
 type ScenarioAgent = {
-  readonly localAgentRef: string;
-  readonly runtimeSourceRef: string;
+  readonly agentHandle: NimiLocalAppAgentHandle;
   readonly displayName: string;
 };
 type Projection = {
   readonly protocolRevision: 1;
   readonly scenario: {
-    readonly ownerUserId: string;
     readonly agents: readonly ScenarioAgent[];
     readonly responseText: string;
   };
@@ -56,7 +58,6 @@ function projection(context: ZhiyuSimulatorPrepareContext): Projection {
   if (!isRecord(value)
     || value.protocolRevision !== 1
     || !isRecord(value.scenario)
-    || typeof value.scenario.ownerUserId !== 'string'
     || !Array.isArray(value.scenario.agents)
     || typeof value.scenario.responseText !== 'string'
     || !Number.isSafeInteger(value.turnSequence)
@@ -95,25 +96,17 @@ function companionStatusText(value: Projection): string {
   return '等待与你对话';
 }
 
-function simulatedAgentHandle(localAgentRef: string): NimiLocalAppAgentHandle {
-  return `sim-agent-handle:${localAgentRef}` as NimiLocalAppAgentHandle;
-}
-
-function simulatedHome(
+function simulatedHomeProjection(
   context: ZhiyuSimulatorPrepareContext,
   selectedAgentHandle: NimiLocalAppAgentHandle | null,
 ): ZhiyuHomeProjection {
   const scenario = projection(context).scenario;
-  const selected = scenario.agents.find((agent) => simulatedAgentHandle(agent.localAgentRef) === selectedAgentHandle)
-    ?? scenario.agents[0];
+  const selected = selectedAgentHandle
+    ? scenario.agents.find((agent) => agent.agentHandle === selectedAgentHandle)
+    : scenario.agents[0];
   if (!selected) throw new Error('ZHIYU_SIMULATOR_AGENT_REQUIRED');
   const currentProjection = projection(context);
   const initial = createInitialZhiyuEvidence();
-  const identity = {
-    ownerUserId: scenario.ownerUserId,
-    runtimeSourceRef: selected.runtimeSourceRef,
-    localAgentRef: selected.localAgentRef,
-  };
   const simulatedStatus = {
     source: 'simulator',
     message: 'Deterministic Simulator scenario projection is ready.',
@@ -134,7 +127,7 @@ function simulatedHome(
       accountReasonCode: 'OK',
       actionHint: 'continue_runtime_agent_inventory',
       ...simulatedStatus,
-      accountId: scenario.ownerUserId,
+      accountId: null,
       displayName: 'Simulator User',
       productionInert: false,
     },
@@ -152,10 +145,9 @@ function simulatedHome(
       reasonCode: 'runtime-local-agent-inventory-ready',
       actionHint: 'select_runtime_local_agent',
       ...simulatedStatus,
-      ownerUserId: scenario.ownerUserId,
       count: scenario.agents.length,
       localAgents: scenario.agents.map((agent) => ({
-        agentHandle: simulatedAgentHandle(agent.localAgentRef),
+        agentHandle: agent.agentHandle,
         displayName: agent.displayName,
         avatarUrl: null,
       })),
@@ -166,8 +158,7 @@ function simulatedHome(
       reasonCode: 'runtime-local-agent-selected',
       actionHint: 'open_runtime_agent_home',
       ...simulatedStatus,
-      agentHandle: simulatedAgentHandle(selected.localAgentRef),
-      ...identity,
+      agentHandle: selected.agentHandle,
     },
     conversation: {
       transport: 'electron-ipc',
@@ -175,10 +166,9 @@ function simulatedHome(
       reasonCode: 'conversation-anchor-open',
       actionHint: 'send_runtime_agent_turn',
       ...simulatedStatus,
-      agentHandle: simulatedAgentHandle(selected.localAgentRef),
-      ...identity,
-      conversationAnchorId: `sim-conversation:${selected.localAgentRef}`,
-      threadId: `sim-thread:${selected.localAgentRef}`,
+      agentHandle: selected.agentHandle,
+      conversationAnchorId: `sim-conversation:${selected.agentHandle}`,
+      threadId: `sim-thread:${selected.agentHandle}`,
     },
     companion: {
       ...initial.companion,
@@ -187,24 +177,119 @@ function simulatedHome(
       reasonCode: 'runtime-agent-state-projected',
       actionHint: 'inspect_runtime_agent_state_projection',
       ...simulatedStatus,
-      ...identity,
+      agentHandle: selected.agentHandle,
       observedAt: new Date(context.clock.now()).toISOString(),
       stateUpdatedAt: new Date(context.clock.now()).toISOString(),
       executionState: 'idle',
       statusText: companionStatusText(currentProjection),
-      participationMode: 'idle',
-      participationSource: 'simulator-state-engine',
-      projectedFields: ['executionState', 'statusText', 'participationMode'],
+      activityCategory: 'idle',
+      activityIntensity: null,
+      postureActionFamily: 'idle',
+      postureInterruptMode: 'interruptible',
+      projectedFields: ['activity', 'posture'],
     },
     delegation: initial.delegation,
     proposal: initial.proposal,
-    avatar: { ...initial.avatar, ...identity },
+    avatar: {
+      ...initial.avatar,
+      ready: true,
+      state: 'projected',
+      reasonCode: 'zhiyu-avatar-host-absent',
+      actionHint: 'launch_avatar_through_host_port',
+      source: 'simulator',
+      message: 'Simulated Avatar Host target is ready.',
+      agentHandle: selected.agentHandle,
+      conversationAnchorId: `sim-conversation:${selected.agentHandle}`,
+      launchAvailable: true,
+    },
   };
 }
 
+function simulatedSelectorMismatch(): Error {
+  return Object.assign(new Error('Simulator Conversation selector mismatch.'), {
+    reasonCode: 'LOCAL_APP_ACCESS_DENIED',
+  });
+}
+
+async function resolveSimulatedAgentHandle(
+  context: ZhiyuSimulatorPrepareContext,
+  input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadHome']>[0],
+): Promise<NimiLocalAppAgentHandle | null> {
+  const selectedAgentHandle = input.selectedAgentHandle;
+  const scenario = projection(context).scenario;
+  const currentReferences = scenario.agents.map((agent) => Object.freeze({
+    agentHandle: agent.agentHandle,
+    displayName: agent.displayName,
+    avatarUrl: null,
+  }));
+  if (!selectedAgentHandle
+    || !input.previousConversationAnchorId
+    || currentReferences.some((reference) => reference.agentHandle === selectedAgentHandle)) {
+    return selectedAgentHandle;
+  }
+  const reminted = await remintZhiyuConversationSelection({
+    previousConversationAnchorId: input.previousConversationAnchorId,
+    currentReferences,
+    isCurrent: input.isCurrent,
+    conversation: {
+      async snapshot(request) {
+        if (!currentReferences.some((reference) => reference.agentHandle === request.agentHandle)) {
+          throw simulatedSelectorMismatch();
+        }
+        const ownerProjection = simulatedHomeProjection(context, request.agentHandle);
+        if (ownerProjection.conversation.conversationAnchorId !== request.conversationAnchorId) {
+          throw simulatedSelectorMismatch();
+        }
+        return {
+          conversationAnchorId: request.conversationAnchorId,
+          throughSequence: '0',
+          turns: [],
+          messages: [],
+          actions: [],
+          voices: [],
+          truncatedBefore: false,
+        };
+      },
+    },
+  });
+  return reminted.outcome === 'reminted' ? reminted.agentHandle : selectedAgentHandle;
+}
+
+async function simulatedHome(
+  context: ZhiyuSimulatorPrepareContext,
+  input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadHome']>[0],
+): Promise<ZhiyuHomeProjection> {
+  const selectedAgentHandle = await resolveSimulatedAgentHandle(context, input);
+  const home = simulatedHomeProjection(context, selectedAgentHandle);
+  return {
+    ...home,
+    avatar: await probeZhiyuAvatarPresence(home.conversation, {
+      hostPort: simulatedAvatarHostPort(),
+    }),
+  };
+}
+
+function simulatedAvatarHostPort(): AvatarHostHandoffPort {
+  return Object.freeze({
+    async invoke(request) {
+      const state = request.command === 'presence'
+        ? 'absent'
+        : request.command === 'focus'
+          ? 'focused'
+          : 'present';
+      return {
+        command: request.command,
+        state,
+        avatarInstanceRef: state === 'absent' ? null : request.target.avatarInstanceId,
+        committedPresentationRef: state === 'absent' ? null : request.target.committedPresentationRef,
+        temporaryCustodyRef: state === 'absent' ? null : request.target.temporaryCustodyRef,
+      };
+    },
+  });
+}
+
 function simulatedTurnReady(conversation: ZhiyuEvidence['conversation']): ZhiyuEvidence['turn'] {
-  if (!conversation.ready || !conversation.ownerUserId || !conversation.runtimeSourceRef
-    || !conversation.localAgentRef || !conversation.conversationAnchorId) {
+  if (!conversation.ready || !conversation.agentHandle || !conversation.conversationAnchorId) {
     throw new Error('ZHIYU_SIMULATOR_CONVERSATION_IDENTITY_INVALID');
   }
   return {
@@ -214,9 +299,7 @@ function simulatedTurnReady(conversation: ZhiyuEvidence['conversation']): ZhiyuE
     actionHint: 'send_runtime_agent_turn',
     source: 'simulator',
     message: 'Deterministic Simulator turn channel is ready.',
-    ownerUserId: conversation.ownerUserId,
-    runtimeSourceRef: conversation.runtimeSourceRef,
-    localAgentRef: conversation.localAgentRef,
+    agentHandle: conversation.agentHandle,
     conversationAnchorId: conversation.conversationAnchorId,
     requestId: null,
     runtimeTurnId: null,
@@ -243,7 +326,7 @@ function simulatedAgentCenterSession(
   conversationAnchorId: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[1],
 ): AgentCenterSession | null {
   const scenario = projection(context).scenario;
-  const selected = scenario.agents.find((agent) => simulatedAgentHandle(agent.localAgentRef) === agentHandle);
+  const selected = scenario.agents.find((agent) => agent.agentHandle === agentHandle);
   if (!agentHandle || !selected) return null;
 
   type SharedSnapshot = Awaited<ReturnType<NimiLocalAppAgentConfigureClient['sharedAIConfig']['get']>>;
@@ -653,10 +736,10 @@ export function createZhiyuSimulatorBindings(
           agentHandle: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[0],
           conversationAnchorId: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterSession']>[1],
         ) => simulatedAgentCenterSession(context, agentHandle, conversationAnchorId),
-        loadHome: ({ selectedAgentHandle }: { readonly selectedAgentHandle: NimiLocalAppAgentHandle | null }) => (
-          Promise.resolve(simulatedHome(context, selectedAgentHandle))
-        ),
-        loadAgentInventory: async () => simulatedHome(context, null).inventory,
+        loadHome: (
+          input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadHome']>[0],
+        ) => simulatedHome(context, input),
+        loadAgentInventory: async () => simulatedHomeProjection(context, null).inventory,
         projectTurnReadiness: simulatedTurnReady,
         async hydrateConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['hydrateConversation']>[0]) {
           return { source: input.currentSource, chat: input.currentChat };
@@ -716,9 +799,6 @@ export function createZhiyuSimulatorBindings(
             source: 'simulator',
             message: 'Deterministic Simulator response committed.',
             agentHandle,
-            ownerUserId: identity.ownerUserId,
-            runtimeSourceRef: identity.runtimeSourceRef,
-            localAgentRef: identity.localAgentRef,
             conversationAnchorId,
             requestId,
             events: [],
@@ -740,13 +820,10 @@ export function createZhiyuSimulatorBindings(
             message: 'Desktop navigation is unavailable; choose a partner in this simulated instance.',
           };
         },
-        async launchAvatar(): ReturnType<ZhiyuCanonicalRendererBindings['app']['commands']['launchAvatar']> {
-          return {
-            state: 'blocked' as const,
-            reasonCode: 'zhiyu-avatar-simulator-effect-forbidden',
-            actionHint: 'inspect_simulated_companion_state',
-            message: 'Avatar host launch is intentionally unavailable in the Simulator.',
-          };
+        async launchAvatar(
+          input: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['launchAvatar']>[0],
+        ): ReturnType<ZhiyuCanonicalRendererBindings['app']['commands']['launchAvatar']> {
+          return launchZhiyuAvatar({ ...input, hostPort: simulatedAvatarHostPort() });
         },
       }),
       events: Object.freeze({

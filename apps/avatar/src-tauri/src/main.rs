@@ -29,6 +29,7 @@ use avatar_window_commands::*;
 use nimi_shell_tauri::capabilities::avatar::AgentCenterAvatarAssetResolvePayload;
 use nimi_shell_tauri::capabilities::data::StandardAppStorageRootSlot;
 use nimi_shell_tauri::capabilities::runtime as runtime_bridge;
+use nimi_shell_tauri::capabilities::runtime::RuntimeBridgeLocalAppHost;
 #[cfg(test)]
 use sha2::{Digest, Sha256};
 use std::sync::Arc;
@@ -70,10 +71,11 @@ fn main() {
     tauri::Builder::default()
         .manage(AvatarInstanceRegistry::new())
         .manage(NasWatcherRegistry::default())
-        // The shared kit runtime-bridge macro registers standard storage/file
-        // commands. Avatar does not bind app storage roots today, so keep the
-        // slot intentionally empty: those commands fail closed with the
-        // standard binding-missing envelope instead of missing Tauri state.
+        .manage(RuntimeBridgeLocalAppHost::platform_default())
+        // Avatar does not bind the legacy standard storage slot. The formal
+        // Local App host above owns App storage and assets; any remaining
+        // standard storage command fails closed instead of gaining a second
+        // product owner.
         .manage(StandardAppStorageRootSlot::empty())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_fs::init())
@@ -85,7 +87,7 @@ fn main() {
                 emit_avatar_shell_ready_for_webview(webview);
             }
         })
-        .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_runtime_bridge_handler![
+        .invoke_handler(nimi_shell_tauri::nimi_shell_tauri_local_app_standard_shell_handler![
             // Kit standard floating-window commands (window control primitive).
             // These act on the invoking WebviewWindow and replace the retired
             // avatar-local window commands. Passed as extra app commands into

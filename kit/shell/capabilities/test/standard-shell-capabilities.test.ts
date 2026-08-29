@@ -206,6 +206,8 @@ describe('standard shell capabilities', () => {
       'local-app.conversationInterruptTurn',
       'local-app.conversationSubscribe',
       'local-app.conversationSnapshot',
+      'local-app.embodimentSnapshot',
+      'local-app.embodimentSubscribe',
       'local-app.aiRealtimeOpen',
       'local-app.aiRealtimeAppendInput',
       'local-app.aiRealtimeSubmitOwnerControl',
@@ -265,6 +267,7 @@ describe('standard shell capabilities', () => {
       'agent-center.avatarAssetImport',
       'agent-center.backgroundImport',
       'desktop-open.openIntent',
+      'avatar.hostHandoff',
     ]);
     expect(localAppSet?.authorityStatus).toBe('app_access_declarations_with_protected_operations_unavailable_until_admission');
     expect(localAppSet?.plannedOperationsDisposition).toBe('deny_until_separate_operation_admission');
@@ -282,8 +285,6 @@ describe('standard shell capabilities', () => {
       'auth.sessionClear',
       'oauth.openExternalUrl',
       'oauth.listenForCode',
-      'local-agent.identity',
-      'local-agent.runtimeTrustedCaller',
       'electron.raw-ipc',
       'node.raw-fs',
     ]));

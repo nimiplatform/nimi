@@ -25,18 +25,27 @@ function deferred<T>() {
 
 class EventQueue implements AsyncIterable<NimiLocalAppConversationEvent> {
   private values: NimiLocalAppConversationEvent[] = [];
-  private waiters: Array<(result: IteratorResult<NimiLocalAppConversationEvent>) => void> = [];
+  private waiters: Array<{
+    resolve: (result: IteratorResult<NimiLocalAppConversationEvent>) => void;
+    reject: (error: unknown) => void;
+  }> = [];
   private closed = false;
+  private failure: unknown = null;
 
   push(event: NimiLocalAppConversationEvent): void {
     const waiter = this.waiters.shift();
-    if (waiter) waiter({ done: false, value: event });
+    if (waiter) waiter.resolve({ done: false, value: event });
     else this.values.push(event);
   }
 
   close(): void {
     this.closed = true;
-    for (const waiter of this.waiters.splice(0)) waiter({ done: true, value: undefined });
+    for (const waiter of this.waiters.splice(0)) waiter.resolve({ done: true, value: undefined });
+  }
+
+  fail(error: unknown): void {
+    this.failure = error;
+    for (const waiter of this.waiters.splice(0)) waiter.reject(error);
   }
 
   [Symbol.asyncIterator](): AsyncIterator<NimiLocalAppConversationEvent> {
@@ -44,9 +53,10 @@ class EventQueue implements AsyncIterable<NimiLocalAppConversationEvent> {
       next: async () => {
         const value = this.values.shift();
         if (value) return { done: false, value };
+        if (this.failure) throw this.failure;
         if (this.closed) return { done: true, value: undefined };
-        return new Promise<IteratorResult<NimiLocalAppConversationEvent>>((resolve) => {
-          this.waiters.push(resolve);
+        return new Promise<IteratorResult<NimiLocalAppConversationEvent>>((resolve, reject) => {
+          this.waiters.push({ resolve, reject });
         });
       },
     };
@@ -83,9 +93,11 @@ function snapshot(input: {
 function harness(input: {
   snapshot?: () => Promise<NimiLocalAppConversationSnapshot>;
   renderVoice?: NimiLocalAppClient['conversation']['renderVoice'];
+  replacementQueue?: EventQueue;
 } = {}) {
   const calls: Array<{ method: string; input?: unknown }> = [];
   const queue = new EventQueue();
+  let subscriptionCount = 0;
   const hostPort: AppConversationHostPort = {
     playback: {
       play: vi.fn(async (playInput) => {
@@ -134,11 +146,15 @@ function harness(input: {
       }),
       subscribe: vi.fn(async (subscribeInput) => {
         calls.push({ method: 'subscribe', input: subscribeInput });
+        const subscribedQueue = subscriptionCount > 0 && input.replacementQueue
+          ? input.replacementQueue
+          : queue;
+        subscriptionCount += 1;
         return {
-          [Symbol.asyncIterator]: () => queue[Symbol.asyncIterator](),
+          [Symbol.asyncIterator]: () => subscribedQueue[Symbol.asyncIterator](),
           cancel: vi.fn(async () => {
             calls.push({ method: 'cancel' });
-            queue.close();
+            subscribedQueue.close();
           }),
         };
       }),
@@ -243,7 +259,7 @@ describe('App Conversation entry session', () => {
         messageId: 'message-image',
         turnId: 'turn-1',
         role: 'assistant',
-        parts: [{
+        parts: [{ kind: 'text', text: 'Visible image caption' }, {
           kind: 'artifact-ref',
           artifactId: 'artifact-image-1',
           mediaKind: 'image',
@@ -263,13 +279,14 @@ describe('App Conversation entry session', () => {
     expect(state.messages.every((message) => message.createdAt === '')).toBe(true);
     expect(state.messages[1]).toMatchObject({
       kind: 'image',
-      text: 'Result',
+      text: 'Visible image caption',
       metadata: {
         conversationAnchorId: 'anchor-a',
         turnId: 'turn-1',
         artifactId: 'artifact-image-1',
         mimeType: 'image/png',
         mediaUrl: 'blob:host-preview-1',
+        caption: 'Visible image caption',
       },
     });
     expect(testHarness.calls.map((call) => call.method).filter((method) => (
@@ -324,7 +341,7 @@ describe('App Conversation entry session', () => {
     expect(hostInput).not.toHaveProperty('artifactId');
   });
 
-  it('fails closed and clears committed truth on a sequence gap', async () => {
+  it('accepts a strictly increasing public sequence gap without clearing committed truth', async () => {
     const testHarness = harness();
     await readySession(testHarness);
     testHarness.queue.push({
@@ -333,13 +350,51 @@ describe('App Conversation entry session', () => {
       sequence: '4',
       turnId: 'turn-gap',
     });
-    await vi.waitFor(() => expect(testHarness.session.getState().status).toBe('stale'));
+    await vi.waitFor(() => expect(testHarness.session.getState().throughSequence).toBe('4'));
     expect(testHarness.session.getState()).toMatchObject({
-      status: 'stale',
-      conversationAnchorId: null,
-      throughSequence: null,
-      activeTurnId: null,
-      messages: [],
+      status: 'ready',
+      conversationAnchorId: 'anchor-a',
+      throughSequence: '4',
+      activeTurnId: 'turn-gap',
+    });
+    expect(testHarness.session.getState().messages).toHaveLength(1);
+  });
+
+  it('replaces a retryable overflow subscription before rehydrating a fresh snapshot', async () => {
+    const replacementQueue = new EventQueue();
+    let snapshotRead = 0;
+    const testHarness = harness({
+      replacementQueue,
+      snapshot: async () => {
+        snapshotRead += 1;
+        return snapshot({
+          throughSequence: snapshotRead === 1 ? '2' : '5',
+          messages: snapshotRead === 1 ? undefined : [{
+            messageId: 'message-rehydrated',
+            turnId: 'turn-5',
+            role: 'assistant',
+            parts: [{ kind: 'text', text: 'Fresh committed truth' }],
+          }],
+        });
+      },
+    });
+    await readySession(testHarness);
+
+    testHarness.queue.fail(Object.assign(new Error('conversation buffer exhausted'), {
+      code: 'resource-exhausted',
+      reasonCode: 'renderer-local-app-conversation-buffer-exhausted',
+      details: { retryable: true },
+    }));
+
+    await vi.waitFor(() => {
+      expect(testHarness.calls.filter((call) => call.method === 'subscribe')).toHaveLength(2);
+      expect(testHarness.calls.filter((call) => call.method === 'snapshot')).toHaveLength(2);
+      expect(testHarness.session.getState().throughSequence).toBe('5');
+    });
+    expect(testHarness.session.getState()).toMatchObject({
+      status: 'ready',
+      conversationAnchorId: 'anchor-a',
+      messages: [{ id: 'message-rehydrated', text: 'Fresh committed truth' }],
     });
   });
 

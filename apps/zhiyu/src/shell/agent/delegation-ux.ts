@@ -36,9 +36,7 @@ export async function probeZhiyuRuntimeDelegationUx(
       actionHint: 'open_runtime_conversation_anchor',
       source: conversation.source,
       message: 'Zhiyu requires a Runtime-owned conversation anchor before rendering delegated approvals.',
-      ownerUserId: conversation.ownerUserId,
-      runtimeSourceRef: conversation.runtimeSourceRef,
-      localAgentRef: conversation.localAgentRef,
+      agentHandle: conversation.agentHandle,
       conversationAnchorId: conversation.conversationAnchorId,
       observedAt: options.observedAt,
     });
@@ -80,9 +78,7 @@ export async function submitZhiyuRuntimeDelegationApproval(
       message: identity
         ? 'Zhiyu requires a Runtime approval request id before submitting a delegated decision.'
         : 'Zhiyu requires a Runtime-owned conversation anchor before submitting delegated approval.',
-      ownerUserId: input.conversation.ownerUserId,
-      runtimeSourceRef: input.conversation.runtimeSourceRef,
-      localAgentRef: input.conversation.localAgentRef,
+      agentHandle: input.conversation.agentHandle,
       conversationAnchorId: input.conversation.conversationAnchorId,
       observedAt: options.observedAt,
       lastDecision: {

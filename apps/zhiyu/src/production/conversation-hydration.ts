@@ -114,9 +114,7 @@ function hydrationFailure(input: HydrationInput, error: unknown): HydrationInput
     message: error instanceof Error && error.message.trim()
       ? error.message.trim()
       : 'Runtime conversation snapshot hydration failed.',
-    ownerUserId: null,
-    runtimeSourceRef: null,
-    localAgentRef: null,
+    agentHandle: input.agentHandle,
     conversationAnchorId: input.conversationAnchorId,
     messageCount: input.currentChat.messages.length,
   };

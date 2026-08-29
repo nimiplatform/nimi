@@ -198,8 +198,6 @@ capability_sets:
       - auth.sessionClear
       - oauth.openExternalUrl
       - oauth.listenForCode
-      - local-agent.identity
-      - local-agent.runtimeTrustedCaller
       - ai-profile.get
       - agent-center.avatarAssetImport
       - agent-center.backgroundImport
@@ -258,6 +256,8 @@ capability_sets:
       - local-app.conversationInterruptTurn
       - local-app.conversationSubscribe
       - local-app.conversationSnapshot
+      - local-app.embodimentSnapshot
+      - local-app.embodimentSubscribe
       - local-app.aiRealtimeOpen
       - local-app.aiRealtimeAppendInput
       - local-app.aiRealtimeSubmitOwnerControl
@@ -317,6 +317,7 @@ capability_sets:
       - agent-center.avatarAssetImport
       - agent-center.backgroundImport
       - desktop-open.openIntent
+      - avatar.hostHandoff
     planned_operations:
       - data.pathResolve
       - config.get
@@ -340,8 +341,6 @@ capability_sets:
       - oauth.openExternalUrl
       - oauth.listenForCode
       - diagnostics.rendererEntryProbe
-      - local-agent.identity
-      - local-agent.runtimeTrustedCaller
       - ai-profile.get
       - avatar.assetResolve
       - platform-projection.get
@@ -735,6 +734,25 @@ local_app_operation_contract:
       transport_boundary: unary
       effect_boundary: read
       typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
+      owner: runtime_agent_service
+    embodimentSnapshot:
+      command: local-app.embodimentSnapshot
+      operation_id: runtime.agent.embodiment.snapshot.get
+      request_fields: [agentHandle, conversationAnchorId]
+      response_fields: [sequence, observedAt, provenance, activity, emotion, posture, voiceTiming]
+      transport_boundary: unary
+      effect_boundary: read
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
+      owner: runtime_agent_service
+    embodimentSubscribe:
+      command: local-app.embodimentSubscribe
+      operation_id: runtime.agent.embodiment.events.subscribe
+      request_fields: [agentHandle, conversationAnchorId, afterSequence]
+      response_fields: [subscriptionId]
+      event_fields: [sequence, observedAt, provenance, kind, payload]
+      transport_boundary: server_stream
+      effect_boundary: stream_read
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
       owner: runtime_agent_service
     aiRealtimeOpen:
       command: local-app.aiRealtimeOpen
@@ -1273,6 +1291,12 @@ capabilities:
       - id: conversationSnapshot
         command: nimi.shell.localApp.conversationSnapshot
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
+      - id: embodimentSnapshot
+        command: nimi.shell.localApp.embodimentSnapshot
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
+      - id: embodimentSubscribe
+        command: nimi.shell.localApp.embodimentSubscribe
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, not-found, host-internal-error]
       - id: aiRealtimeOpen
         command: nimi.shell.localApp.aiRealtimeOpen
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, resource-exhausted, host-internal-error]
@@ -1348,18 +1372,6 @@ capabilities:
       - id: agentMemoryDelete
         command: nimi.shell.localApp.agentMemoryDelete
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
-  - id: local-agent
-    host_contract: NimiStandardShellCapabilityHost
-    operations:
-      - id: identity
-        command: nimi.shell.localAgent.identity
-        negative_states:
-          - capability-unavailable
-      - id: runtimeTrustedCaller
-        command: nimi.shell.localAgent.runtimeTrustedCaller
-        negative_states:
-          - capability-unavailable
-          - forbidden-renderer-access
   - id: ai-profile
     host_contract: NimiStandardShellCapabilityHost
     operations:
@@ -1371,6 +1383,15 @@ capabilities:
   - id: avatar
     host_contract: NimiStandardShellCapabilityHost
     operations:
+      - id: hostHandoff
+        command: nimi.shell.avatar.hostHandoff
+        payload_owner: kit_avatar_host_handoff_contract
+        result_owner: desktop_host_mechanics
+        negative_states:
+          - capability-unavailable
+          - forbidden-renderer-access
+          - invalid-payload
+          - host-internal-error
       - id: assetResolve
         command: nimi.shell.avatar.assetResolve
         negative_states:

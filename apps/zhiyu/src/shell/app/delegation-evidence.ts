@@ -88,9 +88,7 @@ export type ZhiyuDelegationUxStatus = {
   readonly actionHint: string;
   readonly source: string;
   readonly message: string;
-  readonly ownerUserId: string | null;
-  readonly runtimeSourceRef: string | null;
-  readonly localAgentRef: string | null;
+  readonly agentHandle: import('@nimiplatform/sdk/app').NimiLocalAppAgentHandle | null;
   readonly conversationAnchorId: string | null;
   readonly observedAt: string | null;
   readonly approvalMode: string | null;
@@ -178,9 +176,7 @@ export function createInitialZhiyuDelegationEvidence(): ZhiyuDelegationUxStatus 
     actionHint: 'probe_runtime_delegation_control_surface',
     source: 'renderer',
     message: 'Runtime delegated control surface has not been probed.',
-    ownerUserId: null,
-    runtimeSourceRef: null,
-    localAgentRef: null,
+    agentHandle: null,
     conversationAnchorId: null,
     observedAt: null,
     approvalMode: null,

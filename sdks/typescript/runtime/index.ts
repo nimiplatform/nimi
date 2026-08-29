@@ -17,6 +17,7 @@ import type {
 } from '../core-generated/runtime-typed-client';
 import { createNimiError, ReasonCode } from '../types';
 import { assertRouteOnlyLocalAIConfigIntents } from '../core/ai/capability-configuration-local-intent.js';
+export { createNimiHostRuntimeTypedClient } from './host.js';
 import type {
   CoreMetadata,
   CoreResponseMetadata,
@@ -125,7 +126,6 @@ export type {
   RuntimeTauriIpcTransportOptions,
 } from './tauri-ipc';
 export * from './account-caller';
-export * from './bundled-avatar-runtime';
 export * from './desktop-first-party-runtime';
 export * from './agent-local-identity';
 export * from './audit-projections';
@@ -150,7 +150,6 @@ export * from './product-control-projection';
 export * from './product-control-client';
 export * from './reason-messages';
 export * from './runtime-agent-values';
-export * from './runtime-agent-voice';
 export * from './runtime-agent-client';
 export * from './runtime-agent-context-projections';
 export * from './runtime-agent-consume-types';

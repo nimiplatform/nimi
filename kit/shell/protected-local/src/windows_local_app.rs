@@ -1,6 +1,7 @@
 mod agent_configure;
 mod app_ai_config;
 mod conversation;
+mod embodiment;
 mod realm_persona_character;
 mod realm_realtime;
 mod realm_world_core;
@@ -57,23 +58,24 @@ use crate::{
     LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceRenderRequest,
     LocalAppConversationVoiceRenderResult, LocalAppConversationVoiceTranscriptionRequest,
     LocalAppConversationVoiceTranscriptionResult, LocalAppCurrentUserDisplay,
-    LocalAppCurrentUserStatus, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
-    LocalAppPersonaCharacterDeleteRequest, LocalAppPersonaCharacterGetOwnedRequest,
-    LocalAppPersonaCharacterListOwnedRequest, LocalAppPersonaCharacterReplaceRequest,
-    LocalAppRealmChatListRequest, LocalAppRealmRealtimeAckRequest,
-    LocalAppRealmRealtimeChannelRequest, LocalAppRealmRealtimeOpenRequest,
-    LocalAppRealmRealtimeSubscribeRequest, LocalAppRealmRealtimeSubscriptionRequest,
-    LocalAppRealtimeSubscriptionReceiver, LocalAppReasonCode, LocalAppScenarioCancelRequest,
-    LocalAppScenarioExecuteRequest, LocalAppScenarioGetRequest,
-    LocalAppScenarioJobSubscribeRequest, LocalAppScenarioListVoiceAssetsRequest,
-    LocalAppScenarioReadArtifactRequest, LocalAppScenarioStreamReceiver,
-    LocalAppScenarioSubmitRequest, LocalAppScenarioUploadArtifactRequest, LocalAppSessionState,
-    LocalAppSessionStatus, LocalAppSharedAgentAIConfigLocalOptionsRequest,
-    LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageDocument,
-    LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
-    LocalAppStorageWriteRequest, LocalAppTextCandidateRequest, LocalAppTextCandidateResult,
-    LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest, NimiLocalAppCarrier,
-    NimiLocalAppSession,
+    LocalAppCurrentUserStatus, LocalAppEmbodimentSnapshotRequest,
+    LocalAppEmbodimentSubscribeRequest, LocalAppOperationError,
+    LocalAppPersonaCharacterCreateRequest, LocalAppPersonaCharacterDeleteRequest,
+    LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
+    LocalAppPersonaCharacterReplaceRequest, LocalAppRealmChatListRequest,
+    LocalAppRealmRealtimeAckRequest, LocalAppRealmRealtimeChannelRequest,
+    LocalAppRealmRealtimeOpenRequest, LocalAppRealmRealtimeSubscribeRequest,
+    LocalAppRealmRealtimeSubscriptionRequest, LocalAppRealtimeSubscriptionReceiver,
+    LocalAppReasonCode, LocalAppScenarioCancelRequest, LocalAppScenarioExecuteRequest,
+    LocalAppScenarioGetRequest, LocalAppScenarioJobSubscribeRequest,
+    LocalAppScenarioListVoiceAssetsRequest, LocalAppScenarioReadArtifactRequest,
+    LocalAppScenarioStreamReceiver, LocalAppScenarioSubmitRequest,
+    LocalAppScenarioUploadArtifactRequest, LocalAppSessionState, LocalAppSessionStatus,
+    LocalAppSharedAgentAIConfigLocalOptionsRequest, LocalAppSharedAgentAIConfigOverwriteRequest,
+    LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
+    LocalAppStorageRemoveResult, LocalAppStorageWriteRequest, LocalAppTextCandidateRequest,
+    LocalAppTextCandidateResult, LocalAppWorldCoreCreateRequest, LocalAppWorldCoreListRequest,
+    NimiLocalAppCarrier, NimiLocalAppSession,
 };
 
 #[cfg(all(
@@ -783,6 +785,34 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             conversation::conversation_snapshot(self.checked_channel()?, request).await
+        })
+    }
+
+    fn embodiment_snapshot(
+        &self,
+        request: LocalAppEmbodimentSnapshotRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.write().await;
+            embodiment::snapshot(self.checked_channel()?, request).await
+        })
+    }
+
+    fn embodiment_subscribe(
+        &self,
+        request: LocalAppEmbodimentSubscribeRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppRealtimeSubscriptionReceiver, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            embodiment::subscribe(self.checked_channel()?, request).await
         })
     }
 

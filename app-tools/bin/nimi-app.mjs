@@ -292,7 +292,7 @@ try {
       });
       break;
     case 'doctor':
-      doctorAppScaffold(process.cwd(), {
+      await doctorAppScaffold(process.cwd(), {
         dir,
         conformance,
         json,

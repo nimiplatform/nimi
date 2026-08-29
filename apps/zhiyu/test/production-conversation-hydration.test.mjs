@@ -62,9 +62,7 @@ test('production conversation hydration maps the bounded local App snapshot', as
     { role: 'user', text: 'Shared question', targetId: 'opaque-agent-handle', kind: 'text' },
     { role: 'agent', text: 'Shared answer from Desktop', targetId: 'opaque-agent-handle', kind: 'text' },
   ]);
-  assert.equal(hydrated.chat.ownerUserId, null);
-  assert.equal(hydrated.chat.runtimeSourceRef, null);
-  assert.equal(hydrated.chat.localAgentRef, null);
+  assert.equal(hydrated.chat.agentHandle, 'opaque-agent-handle');
 });
 
 test('production conversation hydration returns typed failure without fabricated messages', async () => {
@@ -237,9 +235,7 @@ function idleChat() {
     actionHint: 'send_runtime_agent_turn',
     source: 'renderer',
     message: 'Runtime Agent chat has not started.',
-    ownerUserId: null,
-    runtimeSourceRef: null,
-    localAgentRef: null,
+    agentHandle: null,
     conversationAnchorId: null,
     requestId: null,
     runtimeTurnId: null,
@@ -262,8 +258,6 @@ function blockedSource() {
     actionHint: 'await_admitted_runtime_source_projection',
     source: 'renderer',
     message: 'Runtime source projection has not been probed.',
-    ownerUserId: null,
-    runtimeSourceRef: null,
     sourceRef: null,
     projectionState: 'unknown',
     sourceContextStatus: null,

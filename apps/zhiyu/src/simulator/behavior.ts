@@ -9,10 +9,8 @@ import type {
 type JsonRecord = { readonly [key: string]: ZhiyuSimulatorJsonValue };
 
 interface ZhiyuScenarioData extends JsonRecord {
-  readonly ownerUserId: string;
   readonly agents: readonly {
-    readonly localAgentRef: string;
-    readonly runtimeSourceRef: string;
+    readonly agentHandle: string;
     readonly displayName: string;
   }[];
   readonly responseText: string;
@@ -49,16 +47,22 @@ function scenarioData(value: ZhiyuSimulatorJsonValue): ZhiyuScenarioData {
   const agents = input.agents.map((entry, index) => {
     const agent = record(entry, `AGENT_${index}`);
     return {
-      localAgentRef: text(agent.localAgentRef, 'LOCAL_AGENT_REF'),
-      runtimeSourceRef: text(agent.runtimeSourceRef, 'RUNTIME_SOURCE_REF'),
+      agentHandle: canonicalAgentHandle(agent.agentHandle),
       displayName: text(agent.displayName, 'DISPLAY_NAME'),
     };
   });
   return {
-    ownerUserId: text(input.ownerUserId, 'OWNER_USER_ID'),
     agents,
     responseText: text(input.responseText, 'RESPONSE_TEXT'),
   };
+}
+
+function canonicalAgentHandle(value: ZhiyuSimulatorJsonValue | undefined): string {
+  const handle = text(value, 'AGENT_HANDLE');
+  if (!/^agent_ref_[A-Za-z0-9_-]{43}$/u.test(handle)) {
+    throw new Error('ZHIYU_SIMULATOR_AGENT_HANDLE_INVALID');
+  }
+  return handle;
 }
 
 function state(value: ZhiyuSimulatorJsonValue): ZhiyuSimulatorState {

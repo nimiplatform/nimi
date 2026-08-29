@@ -2,57 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  createNimiAvatarNativeHostRuntimeAccountCaller,
   createNimiDesktopShellRuntimeAccountCaller,
-  createNimiLocalFirstPartyRuntimeAccountCaller,
   resolveNimiSDKRuntimeAccountCallerProfile,
 } from './index';
 import { AccountCallerMode } from '../core-generated/runtime-typed-client';
-
-test('Runtime account caller projection rejects shape-only local first-party identity', () => {
-  assert.throws(
-    () => createNimiLocalFirstPartyRuntimeAccountCaller({
-      appId: 'app.example',
-      scopes: [' runtime.account ', '', 'runtime.account'],
-    }),
-    (error: unknown) =>
-      (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_ACCOUNT_CALLER_REGISTRATION_REQUIRED',
-  );
-});
-
-test('Runtime account caller projection builds explicit local first-party identity for Runtime registration', () => {
-  assert.deepEqual(
-    createNimiLocalFirstPartyRuntimeAccountCaller({
-      appId: 'app.example',
-      appInstanceId: 'app.example.local-dev',
-      deviceId: 'developer-machine',
-      scopes: [' runtime.account ', '', 'runtime.account'],
-    }),
-    {
-      appId: 'app.example',
-      appInstanceId: 'app.example.local-dev',
-      deviceId: 'developer-machine',
-      mode: AccountCallerMode.LOCAL_FIRST_PARTY_APP,
-      scopes: ['runtime.account'],
-      launchHostId: '',
-      launchNonce: '',
-      releaseDescriptorRef: '',
-    },
-  );
-});
-
-test('Runtime account caller projection fixes the independent bundled Avatar identity', () => {
-  assert.deepEqual(createNimiAvatarNativeHostRuntimeAccountCaller(), {
-    appId: 'nimi.avatar',
-    appInstanceId: 'nimi.avatar',
-    deviceId: 'avatar-native-host',
-    mode: AccountCallerMode.AVATAR_NATIVE_HOST,
-    scopes: [],
-    launchHostId: '',
-    launchNonce: '',
-    releaseDescriptorRef: '',
-  });
-});
 
 test('Runtime account caller projection supports desktop shell caller identity', () => {
   assert.deepEqual(
@@ -76,17 +29,13 @@ test('Runtime account caller projection supports desktop shell caller identity',
 
 test('Runtime account caller projection fails closed on missing identity', () => {
   assert.throws(
-    () => createNimiLocalFirstPartyRuntimeAccountCaller({ appId: '' }),
+    () => createNimiDesktopShellRuntimeAccountCaller({ appId: '' }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_ACCOUNT_CALLER_INVALID',
   );
   assert.throws(
-    () => createNimiLocalFirstPartyRuntimeAccountCaller({ appId: 'app.example', appInstanceId: '' }),
-    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_ACCOUNT_CALLER_REGISTRATION_REQUIRED',
-  );
-  assert.throws(
-    () => createNimiLocalFirstPartyRuntimeAccountCaller({
-      appId: 'app.example',
-      appInstanceId: 'app.example.local-dev',
+    () => createNimiDesktopShellRuntimeAccountCaller({
+      appId: 'nimi.desktop',
+      appInstanceId: 'desktop.instance',
       deviceId: '',
     }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_RUNTIME_ACCOUNT_CALLER_INVALID',
@@ -94,10 +43,8 @@ test('Runtime account caller projection fails closed on missing identity', () =>
 });
 
 test('SDK Runtime account caller profiles map exactly to Runtime caller modes', () => {
-  assert.equal(resolveNimiSDKRuntimeAccountCallerProfile('first-party-local-app'), AccountCallerMode.LOCAL_FIRST_PARTY_APP);
   assert.equal(resolveNimiSDKRuntimeAccountCallerProfile('local-app'), null);
   assert.equal(resolveNimiSDKRuntimeAccountCallerProfile('third-party-nimi-app'), null);
   assert.equal(resolveNimiSDKRuntimeAccountCallerProfile('desktop-account-ux'), AccountCallerMode.DESKTOP_SHELL);
-  assert.equal(resolveNimiSDKRuntimeAccountCallerProfile('avatar-native-host'), AccountCallerMode.AVATAR_NATIVE_HOST);
   assert.equal(resolveNimiSDKRuntimeAccountCallerProfile('dev-standalone'), null);
 });

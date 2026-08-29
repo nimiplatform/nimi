@@ -198,12 +198,6 @@
     },
     "loadFailed": "无法从 Runtime 加载此 App 的 AI 配置。",
     "saveFailed": "Runtime 无法保存此 App 的 AI 配置。",
-    "oneClickLabel": "一键配置",
-    "oneClickHint": "直接采用当前设备已选择的本地模型；没有本地模型的能力保持不变。",
-    "oneClickLoading": "正在读取当前设备的本地模型。",
-    "oneClickUnavailable": "无法读取当前设备的本地模型，未进行配置。",
-    "oneClickNoLocalModels": "当前设备没有可用于一键配置的本地模型。",
-    "oneClickFailed": "无法使用本地模型完成一键配置。",
     "capability": {
       "audioSynthesize": {
         "label": "语音合成",

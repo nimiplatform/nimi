@@ -147,10 +147,11 @@ type ActiveEntrySession = {
   readonly epoch: number;
   readonly reference: NimiLocalAppAgentReference;
   readonly conversationAnchorId: string;
-  readonly subscription: Awaited<ReturnType<NimiLocalAppClient['conversation']['subscribe']>>;
+  subscription: Awaited<ReturnType<NimiLocalAppClient['conversation']['subscribe']>>;
   readonly pendingEvents: NimiLocalAppConversationEvent[];
   readonly previews: Map<string, Extract<AppConversationHostPreviewResult, { status: 'ready' }>>;
   initialized: boolean;
+  recovering: boolean;
   throughSequence: bigint;
 };
 
@@ -171,6 +172,19 @@ const EMPTY_STATE: AppConversationEntryState = Object.freeze({
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message.trim() ? error.message.trim() : fallback;
+}
+
+function retryableConversationOverflow(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const record = error as Record<string, unknown>;
+  const details = record.details && typeof record.details === 'object' && !Array.isArray(record.details)
+    ? record.details as Record<string, unknown>
+    : {};
+  const retryable = record.retryable === true || details.retryable === true;
+  const code = String(record.code || '').trim().toLowerCase();
+  const reasonCode = String(record.reasonCode || '').trim();
+  return retryable && (code === 'resource-exhausted'
+    || reasonCode === 'renderer-local-app-conversation-buffer-exhausted');
 }
 
 function parseSequence(value: string): bigint | null {
@@ -206,6 +220,7 @@ function projectCommittedMessage(input: {
         mediaKind: image.mediaKind,
         mimeType: image.mimeType,
         displayName: image.displayName,
+        ...(text?.text ? { caption: text.text } : {}),
         ...(input.mediaUrl ? { mediaUrl: input.mediaUrl } : {}),
       })
     : Object.freeze({
@@ -382,6 +397,68 @@ export function createAppConversationEntrySession(input: Readonly<{
     });
   };
 
+  const hydrateSession = async (
+    session: ActiveEntrySession,
+    activeTurnFallback: string | null,
+  ): Promise<boolean> => {
+    const snapshot = await input.client.conversation.snapshot({
+      agentHandle: session.reference.agentHandle,
+      conversationAnchorId: session.conversationAnchorId,
+    });
+    if (active !== session || disposed || session.epoch !== epoch) return false;
+    if (snapshot.conversationAnchorId !== session.conversationAnchorId) {
+      markSessionFailure(session, 'stale', 'Conversation snapshot no longer belongs to the active session.');
+      return false;
+    }
+    const throughSequence = parseSequence(snapshot.throughSequence);
+    if (throughSequence === null) {
+      markSessionFailure(session, 'stale', 'Conversation snapshot high-water is invalid.');
+      return false;
+    }
+    let messages: readonly ConversationCanonicalMessage[];
+    try {
+      const messageIds = new Set<string>();
+      const projectedMessages: ConversationCanonicalMessage[] = [];
+      for (const message of snapshot.messages) {
+        if (messageIds.has(message.messageId)) {
+          throw new Error('Canonical Conversation snapshot contains duplicate committed messages.');
+        }
+        messageIds.add(message.messageId);
+        const projected = await materializeCommittedMessage(session, message);
+        if (!projected) return false;
+        projectedMessages.push(projected);
+      }
+      messages = Object.freeze(projectedMessages);
+    } catch (error) {
+      markSessionFailure(session, 'failed', errorMessage(error, 'Conversation snapshot is invalid.'));
+      return false;
+    }
+    session.throughSequence = throughSequence;
+    const snapshotActiveTurn = snapshot.turns.find((turn) => turn.status === 'active')?.turnId
+      ?? activeTurnFallback;
+    publish({
+      status: 'ready',
+      references: state.references,
+      selectedReference: session.reference,
+      conversationAnchorId: session.conversationAnchorId,
+      throughSequence: snapshot.throughSequence,
+      activeTurnId: snapshotActiveTurn,
+      truncatedBefore: snapshot.truncatedBefore,
+      messages,
+      pendingAttachment: null,
+      recording: false,
+      error: null,
+      actionError: null,
+    });
+    for (let index = 0; index < session.pendingEvents.length; index += 1) {
+      const pendingEvent = session.pendingEvents[index];
+      if (!pendingEvent || active !== session || !await applyEvent(session, pendingEvent)) return false;
+    }
+    session.pendingEvents.length = 0;
+    session.initialized = true;
+    return true;
+  };
+
   const applyEvent = async (
     session: ActiveEntrySession,
     event: NimiLocalAppConversationEvent,
@@ -396,10 +473,6 @@ export function createAppConversationEntrySession(input: Readonly<{
       return false;
     }
     if (eventSequence <= session.throughSequence) return true;
-    if (eventSequence !== session.throughSequence + 1n) {
-      markSessionFailure(session, 'stale', 'Conversation event sequence has a gap. Reload the current Agent.');
-      return false;
-    }
     let messages = state.messages;
     let activeTurnId = state.activeTurnId;
     if (event.type === 'message-committed') {
@@ -456,12 +529,48 @@ export function createAppConversationEntrySession(input: Readonly<{
       }
     } catch (error) {
       if (active === session && !disposed) {
+        if (retryableConversationOverflow(error) && !session.recovering) {
+          await recoverConversationOverflow(session);
+          return;
+        }
         markSessionFailure(
           session,
           'failed',
           errorMessage(error, 'Conversation subscription is unavailable.'),
         );
       }
+    }
+  };
+
+  const recoverConversationOverflow = async (session: ActiveEntrySession): Promise<void> => {
+    if (active !== session || disposed || session.recovering) return;
+    session.recovering = true;
+    const previousSubscription = session.subscription;
+    try {
+      await previousSubscription.cancel().catch(() => undefined);
+      const replacement = await input.client.conversation.subscribe({
+        agentHandle: session.reference.agentHandle,
+        conversationAnchorId: session.conversationAnchorId,
+      });
+      if (active !== session || disposed || session.epoch !== epoch) {
+        await replacement.cancel().catch(() => undefined);
+        return;
+      }
+      session.subscription = replacement;
+      session.pendingEvents.length = 0;
+      session.initialized = false;
+      void consumeEvents(session);
+      await hydrateSession(session, state.activeTurnId);
+    } catch (error) {
+      if (active === session && !disposed) {
+        markSessionFailure(
+          session,
+          'failed',
+          errorMessage(error, 'Conversation subscription could not recover from overflow.'),
+        );
+      }
+    } finally {
+      session.recovering = false;
     }
   };
 
@@ -542,61 +651,12 @@ export function createAppConversationEntrySession(input: Readonly<{
         pendingEvents: [],
         previews: new Map(),
         initialized: false,
+        recovering: false,
         throughSequence: 0n,
       };
       active = session;
       void consumeEvents(session);
-      const snapshot = await input.client.conversation.snapshot(scope);
-      if (active !== session || disposed || currentEpoch !== epoch) return;
-      if (snapshot.conversationAnchorId !== session.conversationAnchorId) {
-        markSessionFailure(session, 'stale', 'Conversation snapshot no longer belongs to the active session.');
-        return;
-      }
-      const throughSequence = parseSequence(snapshot.throughSequence);
-      if (throughSequence === null) {
-        markSessionFailure(session, 'stale', 'Conversation snapshot high-water is invalid.');
-        return;
-      }
-      let messages: readonly ConversationCanonicalMessage[];
-      try {
-        const messageIds = new Set<string>();
-        const projectedMessages: ConversationCanonicalMessage[] = [];
-        for (const message of snapshot.messages) {
-          if (messageIds.has(message.messageId)) {
-            throw new Error('Canonical Conversation snapshot contains duplicate committed messages.');
-          }
-          messageIds.add(message.messageId);
-          const projected = await materializeCommittedMessage(session, message);
-          if (!projected) return;
-          projectedMessages.push(projected);
-        }
-        messages = Object.freeze(projectedMessages);
-      } catch (error) {
-        markSessionFailure(session, 'failed', errorMessage(error, 'Conversation snapshot is invalid.'));
-        return;
-      }
-      session.throughSequence = throughSequence;
-      const snapshotActiveTurn = snapshot.turns.find((turn) => turn.status === 'active')?.turnId
-        ?? opened.activeTurnId;
-      publish({
-        status: 'ready',
-        references: state.references,
-        selectedReference: reference,
-        conversationAnchorId: session.conversationAnchorId,
-        throughSequence: snapshot.throughSequence,
-        activeTurnId: snapshotActiveTurn,
-        truncatedBefore: snapshot.truncatedBefore,
-        messages,
-        pendingAttachment: null,
-        recording: false,
-        error: null,
-        actionError: null,
-      });
-      for (let index = 0; index < session.pendingEvents.length; index += 1) {
-        if (active !== session || !await applyEvent(session, session.pendingEvents[index])) return;
-      }
-      session.pendingEvents.length = 0;
-      session.initialized = true;
+      await hydrateSession(session, opened.activeTurnId);
     } catch (error) {
       if (disposed || currentEpoch !== epoch) return;
       const session = active;

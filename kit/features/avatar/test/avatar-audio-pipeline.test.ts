@@ -135,7 +135,7 @@ describe('AudioPipelineController — runtime.artifacts.readArtifactBytes path',
     const { snapshots } = recordSnapshots(controller);
 
     await controller.playBytes({
-      audioSourceId: 'runtime-agent-voice-stream://voice-stream-1/chunks/000001',
+      audioSourceId: 'avatar-conversation-voice://voice-stream-1/chunks/000001',
       audioMimeType: 'audio/wav',
       bytes: bytesOf(256),
     });
@@ -394,7 +394,7 @@ describe('AudioPipelineController — sink registration', () => {
       logger: { warn: vi.fn(), error: vi.fn() },
     });
     await controller.playBytes({
-      audioSourceId: 'runtime-agent-voice-stream://stream/chunks/1',
+      audioSourceId: 'avatar-conversation-voice://stream/chunks/1',
       audioMimeType: 'audio/wav',
       bytes: bytesOf(32),
     });

@@ -1,19 +1,3 @@
-// Contract tests for .nimi/spec/avatar/embodiment-surface.authority.yaml.
-//
-// Avatar voice-lipsync orchestrator test. The hard-cut surface:
-//   - The deprecated runtime presentation per-frame mouth-batch consume
-//     path is deleted (event ignored entirely; absence enforced by the
-//     SdkDriver type union, not by a runtime guard in this orchestrator).
-//   - voice_playback_requested still routes to audioPipeline.play().
-//   - Optional `backend?: BackendBranch` argument registers the backend's
-//     audioConsumer as the lipsync sink.
-//   - Interrupt / cancel state still stops the audio pipeline.
-//
-// Tests no longer assert per-frame projection writes or per-frame avatar
-// driver emit; per-frame mouth movement is now driven by the wLipSync sink
-// in the surface useFrame loop (covered by the wLipSync e2e test in
-// lipsync-e2e.test.ts).
-
 import { describe, expect, it, vi } from 'vitest';
 import type {
   AgentDataBundle,
@@ -22,9 +6,12 @@ import type {
   AppOriginEvent,
   DriverStatus,
 } from '../driver/types.js';
-import { createAvatarVoiceLipsyncPipeline } from './avatar-voice-lipsync.js';
-import { AudioPipelineController } from '@nimiplatform/kit/features/avatar/headless';
 import type { BackendBranch } from '../carrier/backend-branch.js';
+import {
+  AVATAR_CONVERSATION_VOICE_AUDIO_CHUNK_EVENT,
+  AVATAR_CONVERSATION_VOICE_FAILED_EVENT,
+} from './avatar-conversation-voice.js';
+import { createAvatarVoiceLipsyncPipeline } from './avatar-voice-lipsync.js';
 
 function createDriver(): AgentDataDriver & { emitted: AppOriginEvent[] } {
   const emitted: AppOriginEvent[] = [];
@@ -34,51 +21,67 @@ function createDriver(): AgentDataDriver & { emitted: AppOriginEvent[] } {
     async start() {},
     async stop() {},
     getBundle: () => ({}) as AgentDataBundle,
-    onEvent() {
-      return () => {};
-    },
-    onBundleChange() {
-      return () => {};
-    },
-    onStatusChange() {
-      return () => {};
-    },
-    emit(event) {
-      emitted.push(event);
-    },
+    onEvent: () => () => {},
+    onBundleChange: () => () => {},
+    onStatusChange: () => () => {},
+    emit: (event) => { emitted.push(event); },
     emitted,
   };
 }
 
-function createRuntimeMock(readArtifactBytes = vi.fn(async () => ({
-  bytes: new ArrayBuffer(64),
-  mimeType: 'audio/wav',
-  sizeBytes: 64,
-}))) {
+function createAudioPipeline() {
+  const listeners = new Set<(snapshot: Record<string, unknown>) => void>();
+  const playBytes = vi.fn(async (input: { audioSourceId: string; audioMimeType: string }) => {
+    queueMicrotask(() => {
+      for (const listener of listeners) {
+        listener({
+          state: 'completed',
+          audioArtifactId: input.audioSourceId,
+          audioMimeType: input.audioMimeType,
+          reason: null,
+        });
+      }
+    });
+  });
   return {
-    artifacts: { readArtifactBytes },
-  } as never;
+    playBytes,
+    stop: vi.fn(),
+    registerLipsyncSink: vi.fn(() => vi.fn()),
+    subscribe(listener: (snapshot: Record<string, unknown>) => void) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
 }
 
-function createBackendMock(): BackendBranch & { audioConsumer: { attachAudioSource: ReturnType<typeof vi.fn>; detachAudioSource: ReturnType<typeof vi.fn>; silent: ReturnType<typeof vi.fn>; snapshot: ReturnType<typeof vi.fn> } } {
+function createStateBus() {
+  return { publish: vi.fn() };
+}
+
+function event(name: string, detail: Record<string, unknown>): AgentEvent {
+  return {
+    event_id: 'event-1',
+    name,
+    timestamp: '2026-08-29T00:00:00.000Z',
+    detail,
+  };
+}
+
+function createBackendMock(): BackendBranch & { audioConsumer: Record<string, unknown> } {
   const audioConsumer = {
     attachAudioSource: vi.fn(async () => undefined),
     detachAudioSource: vi.fn(),
     silent: vi.fn(),
     snapshot: vi.fn(() => null),
   };
-  const Surface = () => null;
   return {
     kind: 'live2d',
     nominalBounds: { width: 400, height: 600, bodyCenterX: 0.5, bodyCenterY: 0.5 },
     projection: {
-      applyActivity: vi.fn(),
-      applyEmotion: vi.fn(),
-      applyMotion: vi.fn(),
-      applyExpression: vi.fn(),
-      reset: vi.fn(),
+      applyActivity: vi.fn(), applyEmotion: vi.fn(), applyMotion: vi.fn(),
+      applyExpression: vi.fn(), reset: vi.fn(),
     },
-    surface: { Component: Surface },
+    surface: { Component: () => null },
     metadata: () => ({}),
     shutdown: vi.fn(),
     live2dExtension: { setParameter: vi.fn() },
@@ -86,352 +89,102 @@ function createBackendMock(): BackendBranch & { audioConsumer: { attachAudioSour
   } as never;
 }
 
-function createRuntimeTimeline(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-  return {
-    turn_id: 'turn-1',
-    stream_id: 'stream-1',
-    channel: 'voice',
-    offset_ms: 0,
-    sequence: 1,
-    started_at_wall: '2026-04-25T00:00:00.000Z',
-    observed_at_wall: '2026-04-25T00:00:00.010Z',
-    timebase_owner: 'runtime',
-    projection_rule_id: 'K-AGCORE-051',
-    clock_basis: 'monotonic_with_wall_anchor',
-    provider_neutral: true,
-    app_local_authority: false,
-    ...overrides,
-  };
-}
-
-function createRuntimeVoiceChunkTimeline(overrides: Record<string, unknown> = {}): Record<string, unknown> {
-  return createRuntimeTimeline({
-    projection_rule_id: 'K-AGCORE-133',
-    ...overrides,
-  });
-}
-
-function createVoicePlaybackRequestedEvent(detail: Record<string, unknown> = {}): AgentEvent {
-  return {
-    event_id: 'event-vpr-1',
-    name: 'runtime.agent.presentation.voice_playback_requested',
-    timestamp: '2026-04-25T00:00:00.020Z',
-    detail: {
+describe('Avatar Conversation voice lipsync owner', () => {
+  it('plays canonical Conversation bytes through an Avatar-owned source identity', async () => {
+    const audioPipeline = createAudioPipeline();
+    const stateBus = createStateBus();
+    const pipeline = createAvatarVoiceLipsyncPipeline({
+      driver: createDriver(),
+      audioPipeline: audioPipeline as never,
+      stateBus: stateBus as never,
+    });
+    pipeline.handleEvent(event(AVATAR_CONVERSATION_VOICE_AUDIO_CHUNK_EVENT, {
+      voice_id: 'voice-1',
+      chunk_sequence: 1,
+      audio_mime_type: 'audio/wav',
+      chunk_bytes: Uint8Array.from([1, 2, 3]),
       turn_id: 'turn-1',
-      stream_id: 'stream-1',
-      runtime_timeline: createRuntimeTimeline(),
-      audioArtifactId: 'artifact-1',
+    }));
+    await vi.waitFor(() => expect(audioPipeline.playBytes).toHaveBeenCalledOnce());
+    expect(audioPipeline.playBytes).toHaveBeenCalledWith({
+      audioSourceId: 'avatar-conversation-voice://voice-1/chunks/000001',
       audioMimeType: 'audio/wav',
-      playbackState: 'requested',
-      playbackTarget: 'avatar_autoplay',
-      ...detail,
-    },
-  };
-}
-
-function createVoiceStreamChunkAvailableEvent(detail: Record<string, unknown> = {}): AgentEvent {
-  return {
-    event_id: 'event-vsc-1',
-    name: 'runtime.agent.presentation.voice_stream_chunk_available',
-    timestamp: '2026-04-25T00:00:00.018Z',
-    detail: {
-      turn_id: 'turn-1',
-      stream_id: 'stream-1',
-      runtime_timeline: createRuntimeVoiceChunkTimeline(),
-      audioArtifactId: 'chunk-artifact-1',
-      audioMimeType: 'audio/wav',
-      chunkSequence: 1,
-      finalChunk: false,
-      playbackTarget: 'avatar_autoplay',
-      ...detail,
-    },
-  };
-}
-
-describe('avatar-voice-lipsync orchestrator hard-cut', () => {
-  it('routes voice_playback_requested → audioPipeline.play and updates state bus', async () => {
-    const driver = createDriver();
-    const audioPipeline = new AudioPipelineController({
-      audioContextFactory: () => null,
-      logger: { warn: vi.fn(), error: vi.fn() },
+      bytes: Uint8Array.from([1, 2, 3]),
     });
-    audioPipeline.setRuntime(createRuntimeMock());
-    const playSpy = vi.spyOn(audioPipeline, 'play');
-    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
-
-    pipeline.handleEvent(createVoicePlaybackRequestedEvent());
-
-    expect(playSpy).toHaveBeenCalledWith({
-      audioArtifactId: 'artifact-1',
-      audioMimeType: 'audio/wav',
+    expect(stateBus.publish).toHaveBeenCalledWith({
+      kind: 'activate',
+      audioArtifactId: 'avatar-conversation-voice://voice-1/chunks/000001',
     });
-    // The local pipeline does not fabricate Runtime speech lifecycle or emit
-    // the per-frame lipsync event retired by rule.nimi.avatar.embodiment.r019.
-    expect(driver.emitted).toEqual([]);
   });
 
-  it('ignores voice_playback_requested for non-avatar playback targets', () => {
-    const driver = createDriver();
-    const audioPipeline = new AudioPipelineController({
-      audioContextFactory: () => null,
-      logger: { warn: vi.fn(), error: vi.fn() },
+  it('does not consume an unrelated presentation event', async () => {
+    const audioPipeline = createAudioPipeline();
+    const pipeline = createAvatarVoiceLipsyncPipeline({
+      driver: createDriver(),
+      audioPipeline: audioPipeline as never,
+      stateBus: createStateBus() as never,
     });
-    audioPipeline.setRuntime(createRuntimeMock());
-    const playSpy = vi.spyOn(audioPipeline, 'play');
-    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
-
-    pipeline.handleEvent(createVoicePlaybackRequestedEvent({ playbackTarget: 'desktop_manual' }));
-
-    expect(playSpy).not.toHaveBeenCalled();
-    expect(driver.emitted).toEqual([]);
-  });
-
-  it('queues non-final avatar voice stream chunks without replaying final-artifact chunk events', async () => {
-    const driver = createDriver();
-    const audioPipeline = new AudioPipelineController({
-      audioContextFactory: () => null,
-      logger: { warn: vi.fn(), error: vi.fn() },
-    });
-    audioPipeline.setRuntime(createRuntimeMock());
-    const playSpy = vi.spyOn(audioPipeline, 'play');
-    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
-
-    pipeline.handleEvent(createVoiceStreamChunkAvailableEvent());
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(playSpy).toHaveBeenCalledWith({
-      audioArtifactId: 'chunk-artifact-1',
-      audioMimeType: 'audio/wav',
-    });
-
-    playSpy.mockClear();
-    pipeline.handleEvent(createVoiceStreamChunkAvailableEvent({
-      audioArtifactId: 'final-artifact-1',
-      finalChunk: true,
-      chunkSequence: 2,
+    pipeline.handleEvent(event('retired.presentation.voice', {
+      audio_artifact_id: 'artifact-legacy',
+      audio_mime_type: 'audio/wav',
     }));
     await Promise.resolve();
-
-    expect(playSpy).not.toHaveBeenCalled();
+    expect(audioPipeline.playBytes).not.toHaveBeenCalled();
   });
 
-  it('does not treat transient native stream chunk refs as artifact playback', async () => {
-    const driver = createDriver();
-    const audioPipeline = new AudioPipelineController({
-      audioContextFactory: () => null,
-      logger: { warn: vi.fn(), error: vi.fn() },
+  it('fences a failed Conversation voice before queued playback', async () => {
+    const audioPipeline = createAudioPipeline();
+    const pipeline = createAvatarVoiceLipsyncPipeline({
+      driver: createDriver(),
+      audioPipeline: audioPipeline as never,
+      stateBus: createStateBus() as never,
     });
-    audioPipeline.setRuntime(createRuntimeMock());
-    const playSpy = vi.spyOn(audioPipeline, 'play');
-    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
-
-    pipeline.handleEvent(createVoiceStreamChunkAvailableEvent({
-      audioArtifactId: undefined,
-      voiceStreamId: 'voice-stream-1',
-      chunkTransportRef: 'runtime-agent-voice-stream://voice-stream-1/chunks/000001',
-      voiceOutputMode: 'native_stream',
+    pipeline.handleEvent(event(AVATAR_CONVERSATION_VOICE_FAILED_EVENT, {
+      voice_id: 'voice-failed', reason: 'render-failed',
+    }));
+    pipeline.handleEvent(event(AVATAR_CONVERSATION_VOICE_AUDIO_CHUNK_EVENT, {
+      voice_id: 'voice-failed', chunk_sequence: 1,
+      audio_mime_type: 'audio/wav', chunk_bytes: [1], turn_id: 'turn-1',
     }));
     await Promise.resolve();
-
-    expect(playSpy).not.toHaveBeenCalled();
-    expect(driver.emitted).toEqual([
-      expect.objectContaining({
-        name: 'avatar.speak.stream_chunk_available',
-        detail: expect.objectContaining({
-          voice_stream_id: 'voice-stream-1',
-          chunk_transport_ref: 'runtime-agent-voice-stream://voice-stream-1/chunks/000001',
-        }),
-      }),
-    ]);
+    await Promise.resolve();
+    expect(audioPipeline.playBytes).not.toHaveBeenCalled();
   });
 
-  it('plays typed native stream chunk bytes through transient audio pipeline input', async () => {
+  it('interrupts local playback and emits only an Avatar-owned interrupt cue', () => {
     const driver = createDriver();
-    const audioPipeline = new AudioPipelineController({
-      audioContextFactory: () => null,
-      logger: { warn: vi.fn(), error: vi.fn() },
+    const audioPipeline = createAudioPipeline();
+    const stateBus = createStateBus();
+    const pipeline = createAvatarVoiceLipsyncPipeline({
+      driver,
+      audioPipeline: audioPipeline as never,
+      stateBus: stateBus as never,
     });
-    audioPipeline.setRuntime(createRuntimeMock());
-    const playSpy = vi.spyOn(audioPipeline, 'play');
-    const playBytesSpy = vi.spyOn(audioPipeline, 'playBytes');
-    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
-
-    pipeline.handleEvent({
-      event_id: 'event-native-bytes-1',
-      name: 'avatar.speak.native_audio_chunk',
-      timestamp: '2026-04-25T00:00:00.019Z',
+    pipeline.handleEvent(event('runtime.agent.turn.interrupted', {
+      turn_id: 'turn-1', stream_id: 'turn-1', reason: 'user-interrupt',
+    }));
+    expect(audioPipeline.stop).toHaveBeenCalledWith('interrupted');
+    expect(driver.emitted).toEqual([{
+      name: 'avatar.speak.interrupt',
       detail: {
-        voice_stream_id: 'voice-stream-1',
-        chunk_sequence: 1,
-        audio_mime_type: 'audio/wav',
-        playback_target: 'avatar_autoplay',
-        chunk_bytes: new Uint8Array([1, 2, 3]),
+        turn_id: 'turn-1', stream_id: 'turn-1',
+        source_event_name: 'runtime.agent.turn.interrupted',
       },
-    });
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(playSpy).not.toHaveBeenCalled();
-    expect(playBytesSpy).toHaveBeenCalledWith({
-      audioSourceId: 'runtime-agent-voice-stream://voice-stream-1/chunks/000001',
-      audioMimeType: 'audio/wav',
-      bytes: new Uint8Array([1, 2, 3]),
-    });
+    }]);
   });
 
-  it('ignores voice stream chunks for non-avatar playback targets', async () => {
-    const driver = createDriver();
-    const audioPipeline = new AudioPipelineController({
-      audioContextFactory: () => null,
-      logger: { warn: vi.fn(), error: vi.fn() },
-    });
-    audioPipeline.setRuntime(createRuntimeMock());
-    const playSpy = vi.spyOn(audioPipeline, 'play');
-    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
-
-    pipeline.handleEvent(createVoiceStreamChunkAvailableEvent({ playbackTarget: 'desktop_manual' }));
-    await Promise.resolve();
-
-    expect(playSpy).not.toHaveBeenCalled();
-  });
-
-  it('registers backend.audioConsumer as the lipsync sink when backend supplied', () => {
-    const driver = createDriver();
+  it('binds and releases the backend-owned audio consumer', () => {
     const backend = createBackendMock();
-    const audioPipeline = new AudioPipelineController({
-      audioContextFactory: () => null,
-      logger: { warn: vi.fn(), error: vi.fn() },
+    const audioPipeline = createAudioPipeline();
+    const unregister = vi.fn();
+    audioPipeline.registerLipsyncSink.mockReturnValue(unregister);
+    const pipeline = createAvatarVoiceLipsyncPipeline({
+      driver: createDriver(), backend,
+      audioPipeline: audioPipeline as never,
+      stateBus: createStateBus() as never,
     });
-    const registerSpy = vi.spyOn(audioPipeline, 'registerLipsyncSink');
-    createAvatarVoiceLipsyncPipeline({ driver, audioPipeline, backend });
-
-    expect(registerSpy).toHaveBeenCalledTimes(1);
-    expect(registerSpy.mock.calls[0]?.[0]).toBe(backend.audioConsumer);
-  });
-
-  it('throws when backend is supplied without a valid audioConsumer (fail-close, no silent stub)', () => {
-    const driver = createDriver();
-    const audioPipeline = new AudioPipelineController({
-      audioContextFactory: () => null,
-      logger: { warn: vi.fn(), error: vi.fn() },
-    });
-    const malformedBackend = {
-      kind: 'live2d',
-      nominalBounds: { width: 0, height: 0, bodyCenterX: 0, bodyCenterY: 0 },
-      projection: {} as never,
-      surface: { Component: () => null },
-      metadata: () => ({}),
-      shutdown: () => {},
-      live2dExtension: { setParameter: () => {} },
-      // audioConsumer missing intentionally
-    } as never;
-
-    expect(() =>
-      createAvatarVoiceLipsyncPipeline({ driver, audioPipeline, backend: malformedBackend }),
-    ).toThrow(/audioConsumer missing/);
-  });
-
-  // Hard-cut: the deprecated per-frame mouth-batch presentation event
-  // is no longer in the SdkDriver event union; typecheck enforces absence at
-  // compile time. A runtime fixture for "ignores X" is intentionally NOT
-  // included here so the hard-cut grep gate stays at 0 hits.
-
-  it('runtime.agent.turn.interrupted stops audio pipeline and emits avatar.speak.interrupt', () => {
-    const driver = createDriver();
-    const audioPipeline = new AudioPipelineController({
-      audioContextFactory: () => null,
-      logger: { warn: vi.fn(), error: vi.fn() },
-    });
-    const stopSpy = vi.spyOn(audioPipeline, 'stop');
-    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
-
-    pipeline.handleEvent({
-      event_id: 'event-interrupt',
-      name: 'runtime.agent.turn.interrupted',
-      timestamp: '2026-04-25T00:00:00.050Z',
-      detail: {
-        turn_id: 'turn-1',
-        stream_id: 'stream-1',
-        runtime_timeline: createRuntimeTimeline({ channel: 'state', sequence: 2 }),
-      },
-    });
-
-    expect(stopSpy).toHaveBeenCalledWith('interrupted');
-    expect(driver.emitted.map((event) => event.name)).toEqual(['avatar.speak.interrupt']);
-  });
-
-  it('voice_playback_requested with playbackState=canceled stops the audio pipeline', () => {
-    const driver = createDriver();
-    const audioPipeline = new AudioPipelineController({
-      audioContextFactory: () => null,
-      logger: { warn: vi.fn(), error: vi.fn() },
-    });
-    const stopSpy = vi.spyOn(audioPipeline, 'stop');
-    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
-
-    pipeline.handleEvent({
-      event_id: 'event-cancel',
-      name: 'runtime.agent.presentation.voice_playback_requested',
-      timestamp: '2026-04-25T00:00:00.030Z',
-      detail: {
-        turn_id: 'turn-1',
-        stream_id: 'stream-1',
-        runtime_timeline: createRuntimeTimeline({ sequence: 3 }),
-        audioArtifactId: 'artifact-1',
-        audioMimeType: 'audio/wav',
-        playbackState: 'canceled',
-        playbackTarget: 'avatar_autoplay',
-      },
-    });
-
-    expect(stopSpy).toHaveBeenCalledWith('interrupted');
-    expect(driver.emitted.map((event) => event.name)).toEqual(['avatar.speak.interrupt']);
-  });
-
-  it('voice_playback_terminal drives completed and interrupted voice truth', () => {
-    const driver = createDriver();
-    const audioPipeline = new AudioPipelineController({
-      audioContextFactory: () => null,
-      logger: { warn: vi.fn(), error: vi.fn() },
-    });
-    const stopSpy = vi.spyOn(audioPipeline, 'stop');
-    const pipeline = createAvatarVoiceLipsyncPipeline({ driver, audioPipeline });
-
-    pipeline.handleEvent({
-      event_id: 'event-terminal-completed',
-      name: 'runtime.agent.presentation.voice_playback_terminal',
-      timestamp: '2026-04-25T00:00:00.040Z',
-      detail: {
-        turn_id: 'turn-1',
-        stream_id: 'stream-1',
-        runtime_timeline: createRuntimeVoiceChunkTimeline({ sequence: 3 }),
-        voiceStreamId: 'voice-stream-1',
-        voiceOutputMode: 'native_stream',
-        voicePlaybackState: 'completed',
-        terminalReason: 'native_stream_completed',
-        playbackTarget: 'avatar_autoplay',
-      },
-    });
-    expect(stopSpy).not.toHaveBeenCalled();
-
-    pipeline.handleEvent({
-      event_id: 'event-terminal-interrupted',
-      name: 'runtime.agent.presentation.voice_playback_terminal',
-      timestamp: '2026-04-25T00:00:00.050Z',
-      detail: {
-        turn_id: 'turn-1',
-        stream_id: 'stream-1',
-        runtime_timeline: createRuntimeVoiceChunkTimeline({ sequence: 4 }),
-        voiceStreamId: 'voice-stream-1',
-        voiceOutputMode: 'native_stream',
-        voicePlaybackState: 'interrupted',
-        terminalReason: 'runtime_voice_interrupt_requested',
-        playbackTarget: 'avatar_autoplay',
-      },
-    });
-
-    expect(stopSpy).toHaveBeenCalledWith('interrupted');
-    expect(driver.emitted.some((event) => event.name === 'avatar.speak.interrupt')).toBe(true);
+    expect(audioPipeline.registerLipsyncSink).toHaveBeenCalledWith(backend.audioConsumer);
+    pipeline.dispose();
+    expect(unregister).toHaveBeenCalledOnce();
   });
 });

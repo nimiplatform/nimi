@@ -815,6 +815,13 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		appservice.WithAppStorageDataRoot(cfg.DataRootRef),
 		appservice.WithRuntimeAccountProjectionProvider(accountSvc),
 	}
+	if bundledRoot := strings.TrimSpace(cfg.AppBundledArtifactsRoot); bundledRoot != "" {
+		formalAppReleases, releaseErr := appservice.NewManifestFormalAppReleaseResolver(bundledRoot)
+		if releaseErr != nil {
+			return nil, fmt.Errorf("load formal App registered releases: %w", releaseErr)
+		}
+		appOptions = append(appOptions, appservice.WithFormalAppReleaseResolver(formalAppReleases))
+	}
 	if protected != nil {
 		if protected.PerUserRuntime {
 			appOptions = append(appOptions, appservice.WithPerUserRuntimeRebind(true))
@@ -853,7 +860,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 				return err == nil && registration.AppID == appID
 			}
 		}
-		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc, appOwnerAdmission)
+		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc, appOwnerAdmission, appSvc)
 		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, localSvc, aiSvc, agentSvc, appSvc)
 	}
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)

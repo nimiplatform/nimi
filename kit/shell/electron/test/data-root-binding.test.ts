@@ -121,8 +121,8 @@ describe('Electron standard data root binding', () => {
         return {
           metadata: {
             participantId: 'acme.widget',
-            callerKind: 'local-first-party-app',
-            callerId: 'acme.widget.local-first-party',
+            callerKind: 'third-party-app',
+            callerId: 'acme.widget',
           },
           appSession: {
             sessionId: 'session-id',
@@ -140,8 +140,8 @@ describe('Electron standard data root binding', () => {
             'x-nimi-participant-id': 'acme.widget',
             'x-nimi-domain': 'runtime.rpc',
             'x-nimi-app-id': 'acme.widget',
-            'x-nimi-caller-kind': 'local-first-party-app',
-            'x-nimi-caller-id': 'acme.widget.local-first-party',
+            'x-nimi-caller-kind': 'third-party-app',
+            'x-nimi-caller-id': 'acme.widget',
             'x-nimi-session-id': 'session-id',
             'x-nimi-session-token': 'session-token',
           });

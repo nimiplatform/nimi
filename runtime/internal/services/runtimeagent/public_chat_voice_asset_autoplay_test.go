@@ -60,7 +60,7 @@ func (f *ownerCapturingNativeVoiceExecutor) StreamScenario(
 	return f.fakeVoiceLipsyncScenarioExecutor.StreamScenario(req, stream)
 }
 
-func TestAIBackedVoiceAssetResolverUsesOwnerAwareRuntimePrivateLookupForAutoplay(t *testing.T) {
+func TestAIBackedVoiceAssetResolverUsesOwnerAwareRuntimePrivateLookupForConversationVoice(t *testing.T) {
 	t.Parallel()
 	aiService := &ownerAwareRuntimeAIVoiceAssetService{
 		asset: &runtimev1.VoiceAsset{
@@ -86,7 +86,7 @@ func TestAIBackedVoiceAssetResolverUsesOwnerAwareRuntimePrivateLookupForAutoplay
 	}
 }
 
-func TestPublicChatVoiceAssetAutoplayPreservesVoiceDemoOwnerAndDashScopeTarget(t *testing.T) {
+func TestPublicChatVoiceAssetPreservesVoiceDemoOwnerAndDashScopeTarget(t *testing.T) {
 	t.Parallel()
 
 	const (
@@ -134,7 +134,7 @@ func TestPublicChatVoiceAssetAutoplayPreservesVoiceDemoOwnerAndDashScopeTarget(t
 		Mutation: &runtimev1.SetAgentPresentationProfileRequest_Patch{
 			Patch: &runtimev1.AgentPresentationProfilePatch{
 				DefaultVoiceReference: proto.String("voice_asset_id:" + voiceAssetID),
-				AvatarAutoplay:        proto.Bool(true),
+				AvatarAutoplay:        proto.Bool(false),
 			},
 		},
 	}); err != nil {
@@ -232,12 +232,12 @@ func TestPublicChatVoiceAssetAutoplayPreservesVoiceDemoOwnerAndDashScopeTarget(t
 		t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
 	}
 
-	_ = capture.waitForMessageType(t, publicChatPresentationVoiceStreamChunkType)
-	_ = capture.waitForMessageType(t, publicChatPresentationVoicePlaybackRequestedType)
-	terminal := capture.waitForMessageType(t, publicChatPresentationVoicePlaybackTerminalType)
+	_ = capture.waitForMessageType(t, publicChatConversationVoiceArtifactAvailableType)
+	_ = capture.waitForMessageType(t, publicChatConversationVoiceTimingReadyType)
+	terminal := capture.waitForMessageType(t, publicChatConversationVoiceTimingTerminalType)
 	terminalDetail := publicChatPayloadMap(t, terminal)["detail"].(map[string]any)
-	if got := strings.TrimSpace(terminalDetail["voice_playback_state"].(string)); got != "completed" {
-		t.Fatalf("voice playback terminal state = %q, want completed", got)
+	if got := strings.TrimSpace(terminalDetail["voice_timing_phase"].(string)); got != "completed" {
+		t.Fatalf("semantic voice terminal phase = %q, want completed", got)
 	}
 
 	if voiceAI.streamReq == nil {

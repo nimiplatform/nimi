@@ -1,5 +1,6 @@
-import { readFileSync, realpathSync } from 'node:fs';
+import { readFileSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import postcss from 'postcss';
 import {
   parseSimulatorManifest,
@@ -29,6 +30,7 @@ import {
   resolveRelativeImport,
   isSimulatorStaticAssetPath,
 } from './simulator-conformance-graph.mjs';
+import { validateSimulatorCanonicalKitExports } from './simulator-kit-export-resolution.mjs';
 
 export { isSimulatorStaticAssetPath } from './simulator-conformance-graph.mjs';
 
@@ -168,6 +170,28 @@ export function validateSimulatorAppSource(rootDir, options = {}) {
     style,
     fixture: simulatorParts.declaration,
   });
+}
+
+export async function validateSimulatorAppSourceWithCanonicalKitExports(rootDir, options = {}) {
+  const result = validateSimulatorAppSource(rootDir, options);
+  const kitPackageRoot = options.kitPackageRoot || resolveSimulatorKitPackageRoot(rootDir);
+  await validateSimulatorCanonicalKitExports({ kitPackageRoot });
+  return result;
+}
+
+function resolveSimulatorKitPackageRoot(rootDir) {
+  const candidates = [
+    path.resolve(rootDir, 'node_modules', '@nimiplatform', 'kit'),
+    path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'kit'),
+  ];
+  for (const candidate of candidates) {
+    try {
+      if (statSync(path.join(candidate, 'package.json')).isFile()) return realpathSync(candidate);
+    } catch {
+      // Continue to the other explicitly supported installation topology.
+    }
+  }
+  fail('SIM_KIT_PACKAGE_MISSING', 'Canonical @nimiplatform/kit package is unavailable');
 }
 
 export {

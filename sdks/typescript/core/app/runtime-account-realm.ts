@@ -5,20 +5,13 @@ import {
   ReasonCode as RuntimeWireReasonCode,
 } from '../../core-generated/runtime-typed-client';
 import type { NimiRuntimeAccountCaller, Runtime } from '../../runtime';
-import {
-  NIMI_BUNDLED_AVATAR_APP_ID,
-  NIMI_BUNDLED_AVATAR_APP_INSTANCE_ID,
-  NIMI_BUNDLED_AVATAR_DEVICE_ID,
-} from '../../runtime/bundled-avatar-profile.generated.js';
 import { createNimiClientId, createNimiError, type CoreStreamRequest, type CoreUnaryRequest, ReasonCode } from '../../types';
 import {
-  NIMI_BUNDLED_AVATAR_REALM_OPERATION_ID,
   isNimiDesktopProductRealmOperationID,
   isNimiDesktopSourceReadinessRealmOperationID,
 } from './runtime-account-realm-source-readiness.generated.js';
 
 export {
-  NIMI_BUNDLED_AVATAR_REALM_OPERATION_ID,
   NIMI_DESKTOP_PRODUCT_REALM_OPERATION_IDS,
   NIMI_DESKTOP_SOURCE_READINESS_REALM_OPERATION_IDS,
   type NimiDesktopProductRealmOperationID,
@@ -36,31 +29,6 @@ export function createRuntimeAccountMediatedRealmTransport(input: {
 }): CoreTransport {
   assertRuntimeMediatedRealmCallerMode(input.accountCaller);
   return createRuntimeAccountMediatedRealmTransportInternal(input);
-}
-
-export function createRuntimeAccountMediatedBundledAvatarRealmTransport(input: {
-  readonly runtime: RuntimeAccountMediatedRealmRuntime;
-  readonly accountCaller: NimiRuntimeAccountCaller;
-}): CoreTransport {
-  assertBundledAvatarRealmCaller(input.accountCaller);
-  const transport = createRuntimeAccountMediatedRealmTransportInternal(input);
-  return {
-    async unary<Response = unknown, Body = unknown>(request: CoreUnaryRequest<Body>): Promise<Response> {
-      if (request.methodId !== NIMI_BUNDLED_AVATAR_REALM_OPERATION_ID) {
-        throw createNimiError({
-          message: `Realm operation is outside the bundled Avatar admission: ${request.methodId}.`,
-          reasonCode: 'SDK_RUNTIME_REALM_OPERATION_NOT_ADMITTED',
-          actionHint: 'use_the_fixed_bundled_avatar_realm_operation',
-          source: 'sdk',
-          details: { methodId: request.methodId },
-        });
-      }
-      return transport.unary<Response, Body>(request);
-    },
-    serverStream<Response = unknown, Body = unknown>(request: CoreStreamRequest<Body>): AsyncIterable<Response> {
-      return transport.serverStream<Response, Body>(request);
-    },
-  };
 }
 
 function createRuntimeAccountMediatedRealmTransportInternal(input: {
@@ -226,34 +194,11 @@ function runtimeEnumName(enumType: Record<number, string>, value: number): strin
   return normalizeText(enumType[value]);
 }
 function assertRuntimeMediatedRealmCallerMode(caller: NimiRuntimeAccountCaller): void {
-  if (
-    caller.mode !== AccountCallerMode.LOCAL_FIRST_PARTY_APP
-    && caller.mode !== AccountCallerMode.DESKTOP_SHELL
-  ) {
+  if (caller.mode !== AccountCallerMode.DESKTOP_SHELL) {
     throw createNimiError({
       message: 'Runtime-mediated Realm transport requires an admitted Runtime account caller mode.',
       reasonCode: 'SDK_RUNTIME_REALM_MEDIATION_CALLER_MODE_FORBIDDEN',
       actionHint: 'request_runtime_account_caller_registration',
-      source: 'sdk',
-    });
-  }
-}
-
-function assertBundledAvatarRealmCaller(caller: NimiRuntimeAccountCaller): void {
-  if (
-    caller.mode !== AccountCallerMode.AVATAR_NATIVE_HOST
-    || caller.appId !== NIMI_BUNDLED_AVATAR_APP_ID
-    || caller.appInstanceId !== NIMI_BUNDLED_AVATAR_APP_INSTANCE_ID
-    || caller.deviceId !== NIMI_BUNDLED_AVATAR_DEVICE_ID
-    || caller.launchHostId !== ''
-    || caller.launchNonce !== ''
-    || caller.releaseDescriptorRef !== ''
-    || caller.scopes.length !== 0
-  ) {
-    throw createNimiError({
-      message: 'Bundled Avatar Realm transport requires the fixed verified Avatar native-host caller.',
-      reasonCode: 'SDK_RUNTIME_REALM_BUNDLED_AVATAR_CALLER_REQUIRED',
-      actionHint: 'use_create_nimi_bundled_avatar_runtime_client',
       source: 'sdk',
     });
   }

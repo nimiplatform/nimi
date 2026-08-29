@@ -344,7 +344,7 @@ export enum VoiceCreationSource {
  * VoiceOutputMode is the positive, authoritative selected output-truth axis for
  * speech execution and agent voice projection (K-VOICE-019, K-STREAM-004,
  * K-AGCORE-133; tokens: tables/voice-enums.yaml output_modes). It is distinct
- * from ExecutionMode (sync|stream|async_job) and from voice playback lifecycle.
+ * from ExecutionMode (sync|stream|async_job) and from App/Host-local playback.
  * NATIVE_STREAM and SIMULATED_STREAM are the only values reachable at the
  * SPEECH_SYNTHESIZE scenario-stream layer; BATCH_FINAL_ARTIFACT and TEXT_ONLY are
  * additionally reachable as Runtime Agent orchestration outcomes. Consumers must
@@ -374,39 +374,6 @@ export enum VoiceOutputMode {
      * @generated from protobuf enum value: VOICE_OUTPUT_MODE_TEXT_ONLY = 4;
      */
     TEXT_ONLY = 4
-}
-/**
- * VoicePlaybackState is the runtime-owned lifecycle axis for agent voice
- * playback (K-VOICE-019). It is deliberately separate from VoiceOutputMode:
- * failed/interrupted/canceled are terminal outcomes, not output modes.
- *
- * @generated from protobuf enum nimi.runtime.v1.VoicePlaybackState
- */
-export enum VoicePlaybackState {
-    /**
-     * @generated from protobuf enum value: VOICE_PLAYBACK_STATE_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: VOICE_PLAYBACK_STATE_ACTIVE = 1;
-     */
-    ACTIVE = 1,
-    /**
-     * @generated from protobuf enum value: VOICE_PLAYBACK_STATE_COMPLETED = 2;
-     */
-    COMPLETED = 2,
-    /**
-     * @generated from protobuf enum value: VOICE_PLAYBACK_STATE_FAILED = 3;
-     */
-    FAILED = 3,
-    /**
-     * @generated from protobuf enum value: VOICE_PLAYBACK_STATE_INTERRUPTED = 4;
-     */
-    INTERRUPTED = 4,
-    /**
-     * @generated from protobuf enum value: VOICE_PLAYBACK_STATE_CANCELED = 5;
-     */
-    CANCELED = 5
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.VoiceReferenceKind

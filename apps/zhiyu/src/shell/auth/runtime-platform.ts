@@ -8,7 +8,7 @@ export const appId = 'nimi.zhiyu';
 export const appTitle = '织羽 Zhiyu';
 export const runtimeAccountLoginEnabled = false;
 
-export type RuntimeAuthMode = 'first-party-local-app';
+export type RuntimeAuthMode = 'local-app';
 export type ZhiyuLocalAppClient = NimiLocalAppClient;
 
 export type RuntimePlatformReadyProjection = {
@@ -40,7 +40,7 @@ export type RuntimePlatformProjection =
   | RuntimePlatformUnavailableProjection;
 
 export function getRuntimePlatformProjection(): Promise<RuntimePlatformProjection> {
-  return createLocalAppRuntimeProjection('first-party-local-app');
+  return createLocalAppRuntimeProjection('local-app');
 }
 
 let localAppClient: ZhiyuLocalAppClient | null = null;

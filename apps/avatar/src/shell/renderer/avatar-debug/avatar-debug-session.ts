@@ -1,4 +1,4 @@
-import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/wire-types';
+import { AvatarDebugProbeKind } from './contract.js';
 import type { BackendBranch } from '../carrier/backend-branch.js';
 import {
   isVrmGeneratedRouteId,
@@ -20,9 +20,8 @@ export type AvatarDebugEvidenceKind =
 
 export type AvatarDebugEvidenceStatus = 'passed' | 'failed' | 'unsupported' | 'invalid';
 
-export type RuntimeAvatarDebugProbeEnvelope = {
+export type AvatarDebugProbeEnvelope = {
   probeId: string;
-  agentId: string;
   probeKind: AvatarDebugProbeKind;
 };
 
@@ -33,7 +32,7 @@ export type AvatarDebugResolverEvidence = {
 
 export type AvatarDebugSessionInput = {
   debugSessionId: string;
-  runtimeProbe: RuntimeAvatarDebugProbeEnvelope;
+  probe: AvatarDebugProbeEnvelope;
   avatarInstanceId?: string | null;
   avatarPackageRef?: string | null;
   backendCapabilityProfileRef?: string | null;
@@ -70,8 +69,7 @@ export type AvatarDebugEvidence = {
 
 export type AvatarDebugSession = {
   debugSessionId: string;
-  runtimeProbeId: string;
-  agentId: string;
+  probeId: string;
   avatarInstanceId: string | null;
   avatarPackageRef: string | null;
   backendCapabilityProfileRef: string | null;
@@ -286,11 +284,11 @@ function resolverFailureReason(input: AvatarDebugSessionInput): string | null {
     return 'package_descriptor_not_resolved';
   }
   const requiresCapabilityProfile =
-    input.runtimeProbe.probeKind === AvatarDebugProbeKind.CAPABILITY_PROFILE
-    || input.runtimeProbe.probeKind === AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX
-    || input.runtimeProbe.probeKind === AvatarDebugProbeKind.GENERATED_MOTION
-    || input.runtimeProbe.probeKind === AvatarDebugProbeKind.EMOTION_EXPRESSION
-    || input.runtimeProbe.probeKind === AvatarDebugProbeKind.SPEECH_LIPSYNC;
+    input.probe.probeKind === AvatarDebugProbeKind.CAPABILITY_PROFILE
+    || input.probe.probeKind === AvatarDebugProbeKind.ROUTE_SUPPORT_MATRIX
+    || input.probe.probeKind === AvatarDebugProbeKind.GENERATED_MOTION
+    || input.probe.probeKind === AvatarDebugProbeKind.EMOTION_EXPRESSION
+    || input.probe.probeKind === AvatarDebugProbeKind.SPEECH_LIPSYNC;
   if (requiresCapabilityProfile && !resolved.capabilityProfileResolved) {
     return 'backend_capability_profile_not_resolved';
   }
@@ -301,7 +299,7 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
   status: AvatarDebugEvidenceStatus;
   reasonCode: string | null;
 } {
-  if (!ADMITTED_PROBE_KINDS.has(input.runtimeProbe.probeKind)) {
+  if (!ADMITTED_PROBE_KINDS.has(input.probe.probeKind)) {
     return { status: 'invalid', reasonCode: 'probe_kind_not_admitted' };
   }
 
@@ -316,7 +314,7 @@ function evaluateStatus(input: AvatarDebugSessionInput): {
   const hasProfileRef = optionalString(input.backendCapabilityProfileRef) !== null;
   const supportedRoutes = supportedVrmRouteIds(input);
 
-  switch (input.runtimeProbe.probeKind) {
+  switch (input.probe.probeKind) {
     case AvatarDebugProbeKind.PACKAGE_VALIDATION:
       return { status: 'unsupported', reasonCode: 'avatar_package_projection_retired' };
     case AvatarDebugProbeKind.LAUNCH_READINESS:
@@ -412,12 +410,11 @@ function routeRefs(input: AvatarDebugSessionInput): AvatarDebugEvidence['refs'] 
 export function createAvatarDebugSession(input: AvatarDebugSessionInput): AvatarDebugSession {
   assertNoForbiddenFields(input);
   const debugSessionId = requiredString(input.debugSessionId, 'debug_session_id');
-  const runtimeProbeId = requiredString(input.runtimeProbe.probeId, 'runtime_probe_id');
-  const agentId = requiredString(input.runtimeProbe.agentId, 'agent_id');
-  if (!ADMITTED_PROBE_KINDS.has(input.runtimeProbe.probeKind)) {
-    throw new Error(`avatar debug probe kind is not admitted: ${input.runtimeProbe.probeKind}`);
+  const probeId = requiredString(input.probe.probeId, 'probe_id');
+  if (!ADMITTED_PROBE_KINDS.has(input.probe.probeKind)) {
+    throw new Error(`avatar debug probe kind is not admitted: ${input.probe.probeKind}`);
   }
-  const evidenceKind = evidenceKindForProbe(input.runtimeProbe.probeKind);
+  const evidenceKind = evidenceKindForProbe(input.probe.probeKind);
   const evaluation = evaluateStatus(input);
   const refs = routeRefs(input);
   const avatarPackageRef = optionalString(input.avatarPackageRef);
@@ -425,13 +422,12 @@ export function createAvatarDebugSession(input: AvatarDebugSessionInput): Avatar
   const observedAt = normalizeObservedAt(input.observedAt);
   return {
     debugSessionId,
-    runtimeProbeId,
-    agentId,
+    probeId,
     avatarInstanceId: optionalString(input.avatarInstanceId),
     avatarPackageRef,
     backendCapabilityProfileRef,
     backendKind: input.backendKind,
-    probeKind: input.runtimeProbe.probeKind,
+    probeKind: input.probe.probeKind,
     evidence: {
       evidenceId: `${debugSessionId}:${evidenceKind}`,
       evidenceKind,
@@ -460,7 +456,7 @@ export function evidenceRefsForAvatarDebugSession(session: AvatarDebugSession): 
   };
   return [
     `avatar_debug_session_id:${session.debugSessionId}`,
-    `runtime_probe_id:${session.runtimeProbeId}`,
+    `probe_id:${session.probeId}`,
     evidenceRefByKind[session.evidence.evidenceKind] ?? '',
     `avatar_backend_evidence_ref:${session.evidence.evidenceId}`,
     `avatar.debug.session/${session.debugSessionId}`,

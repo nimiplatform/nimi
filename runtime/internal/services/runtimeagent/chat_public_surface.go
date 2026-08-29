@@ -45,7 +45,6 @@ const (
 	publicChatTurnFailedType                 = "runtime.agent.turn.failed"
 	publicChatTurnInterruptedType            = "runtime.agent.turn.interrupted"
 	publicChatTurnInterruptAckType           = "runtime.agent.turn.interrupt_ack"
-	publicChatTurnVoiceRenderType            = "runtime.agent.turn.voice_render"
 	publicChatDefaultTurnTimeoutMs     int32 = 120_000
 	publicChatMaxFollowUpTurns               = 8
 )
@@ -139,19 +138,6 @@ type publicChatVoiceSidecarState struct {
 	ArtifactID string               `json:"artifactId,omitempty"`
 	ReasonCode runtimev1.ReasonCode `json:"reasonCode,omitempty"`
 	Message    string               `json:"message,omitempty"`
-}
-
-type avatarLiveInstanceBindingState struct {
-	AvatarInstanceID     string
-	ConversationAnchorID string
-	AgentID              string
-	LocalAgentRef        string
-	OwnerUserID          string
-	RuntimeSourceRef     string
-	CallerAppID          string
-	SubjectUserID        string
-	RegisteredAt         time.Time
-	UpdatedAt            time.Time
 }
 
 // publicChatAnchorState is the Runtime-owned continuity state for a
@@ -343,7 +329,6 @@ type publicChatTurnVoiceRenderPayload struct {
 	TurnID               string `json:"turn_id"`
 	MessageID            string `json:"message_id"`
 	Text                 string `json:"text,omitempty"`
-	PlaybackTarget       string `json:"playback_target,omitempty"`
 }
 type PublicChatTurnExecutionRequest struct {
 	AppID            string

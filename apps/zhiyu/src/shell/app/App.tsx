@@ -20,7 +20,6 @@ import {
 import { ZhiyuAgentChatSurface } from '../agent-chat/ZhiyuAgentChatSurface';
 import type { ZhiyuRuntimeAgentChatAttachment } from '../agent-chat/runtime-agent-turn-adapter';
 import { projectZhiyuHomeProductState } from './home-product-state';
-import { projectZhiyuIdentitySafetyEvidence } from './identity-safety-evidence';
 import { projectZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
 import type { ZhiyuCanonicalRendererBindings } from '../../renderer/contract';
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
@@ -39,7 +38,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   const [draft, setDraft] = useState('');
   const activeChatAbortRef = useRef<AbortController | null>(null);
   const latestAgentInventoryRef = useRef<ZhiyuEvidence['inventory']>(evidence.inventory);
-  const renderEvidence = useMemo(() => projectZhiyuIdentitySafetyEvidence(evidence), [evidence]);
+  const renderEvidence = evidence;
   const agentCenterHandle = projectZhiyuAuthorizedAgentCenterHandle(renderEvidence);
   const agentCenterConversationAnchorId = renderEvidence.conversation.ready
     && renderEvidence.conversation.agentHandle === agentCenterHandle
@@ -66,9 +65,18 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   useEffect(() => {
     let active = true;
     void (async () => {
-      const home = await bindings.app.projection.loadHome({ selectedAgentHandle });
+      const home = await bindings.app.projection.loadHome({
+        selectedAgentHandle,
+        previousConversationAnchorId: latestConversationIdentityRef.current.conversationAnchorId,
+        isCurrent: () => active,
+      });
       if (!active) {
         return;
+      }
+      if (home.localAgent.ready && home.localAgent.agentHandle) {
+        setSelectedAgentHandle((current) => (
+          current === selectedAgentHandle ? home.localAgent.agentHandle : current
+        ));
       }
       setEvidence((current) => {
         const turn = bindings.app.projection.projectTurnReadiness(home.conversation, home.inventory);
@@ -406,10 +414,10 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       ...current,
       avatar: {
         ...current.avatar,
-        reasonCode: 'zhiyu-avatar-launch-registering-live-instance',
+        reasonCode: 'zhiyu-avatar-host-handoff-requested',
         actionHint: 'wait_avatar_launch_handoff',
-        message: 'Registering the Avatar live instance with Runtime before launch.',
-        launchHandoff: null,
+        message: 'Requesting Avatar launch or focus through the common Host handoff port.',
+        hostHandoff: null,
       },
     }));
     const result = await bindings.app.commands.launchAvatar({
@@ -425,7 +433,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
         reasonCode: result.reasonCode,
         actionHint: result.actionHint,
         message: result.message,
-        launchHandoff: result.state === 'opened' ? result.handoff : null,
+        hostHandoff: result.state === 'opened' ? result.handoff : null,
       },
     }));
   }

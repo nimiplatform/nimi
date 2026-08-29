@@ -1517,6 +1517,41 @@ pub async fn local_app_conversation_snapshot(
     .await
 }
 
+#[napi(js_name = "localAppEmbodimentSnapshot")]
+pub async fn local_app_embodiment_snapshot(
+    input: NativeConversationScopeInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .embodiment_snapshot(LocalAppEmbodimentSnapshotRequest {
+                agent_handle: input.agent_handle,
+                conversation_anchor_id: input.conversation_anchor_id,
+            })
+            .await
+    })
+    .await
+}
+
+#[napi(js_name = "localAppEmbodimentSubscribe")]
+pub async fn local_app_embodiment_subscribe(
+    input: NativeEmbodimentSubscribeInput,
+) -> NativeJsonOutcome {
+    let after_sequence = match native_embodiment_cursor(input.after_sequence.as_str()) {
+        Ok(value) => value,
+        Err(error) => return NativeJsonOutcome::error(error),
+    };
+    subscribe_realtime("embodiment", move |session| async move {
+        session
+            .embodiment_subscribe(LocalAppEmbodimentSubscribeRequest {
+                agent_handle: input.agent_handle,
+                conversation_anchor_id: input.conversation_anchor_id,
+                after_sequence,
+            })
+            .await
+    })
+    .await
+}
+
 #[napi(js_name = "localAppConversationSubscribe")]
 pub async fn local_app_conversation_subscribe(
     input: NativeConversationScopeInput,
@@ -2050,6 +2085,13 @@ fn native_realtime_generation(value: &str) -> Result<u64, LocalAppOperationError
         .ok()
         .filter(|generation| *generation > 0)
         .ok_or_else(native_invalid_payload)
+}
+
+fn native_embodiment_cursor(value: &str) -> Result<u64, LocalAppOperationError> {
+    if value.is_empty() || (value.len() > 1 && value.starts_with('0')) {
+        return Err(native_invalid_payload());
+    }
+    value.parse::<u64>().map_err(|_| native_invalid_payload())
 }
 
 fn project_conversation_event(event: LocalAppConversationEvent) -> JsonValue {

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "pnpm run dev:electron",
     "dev:renderer": "vite --host 127.0.0.1 --port 1427 --strictPort",
     "dev:electron": "node scripts/run-electron-dev.mjs",
     "dev:shell": "tauri dev --config src-tauri/tauri.conf.json",

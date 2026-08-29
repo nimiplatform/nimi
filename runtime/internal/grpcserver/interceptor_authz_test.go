@@ -52,10 +52,6 @@ func TestProtectedCapabilityForStream(t *testing.T) {
 		t.Fatalf("expected runtime.agent app stream to require runtime.agent.turn.read, got (%q,%v)", capability, required)
 	}
 
-	capability, required = protectedCapabilityForStream("/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream", nil)
-	if !required || capability != "runtime.agent.turn.read" {
-		t.Fatalf("expected Runtime Agent voice stream to require runtime.agent.turn.read, got (%q,%v)", capability, required)
-	}
 }
 
 func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
@@ -156,11 +152,6 @@ func TestProtectedCapabilityForUnaryMemoryAndRuntimeAgent(t *testing.T) {
 			method:     "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
 			request:    &runtimev1.GetPublicChatSessionSnapshotRequest{AgentId: "agent-alpha"},
 			capability: "runtime.agent.read",
-		},
-		{
-			method:     "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
-			request:    &runtimev1.InterruptAgentVoicePlaybackRequest{},
-			capability: "runtime.agent.turn.write",
 		},
 		{
 			method:     "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput",
@@ -563,45 +554,6 @@ func TestUnaryAuthzInterceptorAllowsUnprotectedMethodWithoutAuthorizer(t *testin
 	}
 	if !called {
 		t.Fatal("expected unprotected unary handler to run")
-	}
-}
-
-func TestUnaryAuthzInterceptorDoesNotDeferVoiceInterruptForRetiredBindingMetadata(t *testing.T) {
-	authorizer := &authzTestAuthorizer{
-		allow:      false,
-		reason:     runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED,
-		actionHint: "provide_access_token_credentials",
-	}
-	interceptor := newUnaryAuthzInterceptor(authorizer)
-	called := false
-	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
-		"x-nimi-runtime-scoped-binding-id",
-		"binding-voice-write",
-	))
-	req := &runtimev1.InterruptAgentVoicePlaybackRequest{
-		Context: &runtimev1.AgentRequestContext{
-			AppId: "nimi.zhiyu",
-		},
-		ConversationAnchorId: "agent_anchor_1",
-		TurnId:               "agent_turn_1",
-		VoiceStreamId:        "voice_stream_1",
-	}
-	info := &grpc.UnaryServerInfo{
-		FullMethod: "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
-	}
-
-	_, err := interceptor(ctx, req, info, func(_ context.Context, request any) (any, error) {
-		called = true
-		return request, nil
-	})
-	if status.Code(err) != codes.PermissionDenied {
-		t.Fatalf("expected retired binding metadata not to bypass protected authz, got %v", err)
-	}
-	if called {
-		t.Fatal("voice interrupt handler ran without protected capability")
-	}
-	if authorizer.calls != 1 {
-		t.Fatalf("protected authorizer calls=%d, want 1", authorizer.calls)
 	}
 }
 

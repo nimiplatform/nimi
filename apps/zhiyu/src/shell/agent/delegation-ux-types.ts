@@ -2,15 +2,14 @@ import type {
   ZhiyuDelegationApprovalDecision,
   ZhiyuDelegationUxStatus,
 } from '../app/evidence';
+import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 
 export const APP_ID = 'nimi.zhiyu';
 export const DELEGATION_READ_SCOPE = 'runtime.agent.delegation.read';
 export const DELEGATION_WRITE_SCOPE = 'runtime.agent.delegation.write';
 
 export type DelegationIdentity = {
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
+  readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string;
 };
 
@@ -18,7 +17,6 @@ export type DelegationSnapshotQuery = DelegationIdentity;
 
 export type DelegationApprovalRequest = {
   readonly approvalRequestId?: string;
-  readonly agentId?: string;
   readonly conversationAnchorId?: string;
   readonly turnId?: string;
   readonly providerProfileId?: string;
@@ -36,7 +34,6 @@ export type DelegationApprovalRequest = {
 
 export type DelegationDiagnostic = {
   readonly diagnosticId?: string;
-  readonly agentId?: string;
   readonly conversationAnchorId?: string;
   readonly turnId?: string;
   readonly providerProfileId?: string;
@@ -73,7 +70,6 @@ export type DelegationReplayTraceStageInput = {
 };
 
 export type DelegationControlSurfaceSnapshot = {
-  readonly agentId?: string;
   readonly conversationAnchorId?: string;
   readonly approvalMode?: unknown;
   readonly providerProfiles?: readonly unknown[];
@@ -122,9 +118,7 @@ export type DelegationUnavailableInput = {
   readonly actionHint: string;
   readonly source: string;
   readonly message: string;
-  readonly ownerUserId?: string | null;
-  readonly runtimeSourceRef?: string | null;
-  readonly localAgentRef?: string | null;
+  readonly agentHandle?: NimiLocalAppAgentHandle | null;
   readonly conversationAnchorId?: string | null;
   readonly observedAt?: string | null;
   readonly lastDecision?: ZhiyuDelegationUxStatus['lastDecision'];

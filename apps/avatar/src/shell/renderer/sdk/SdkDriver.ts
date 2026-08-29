@@ -5,13 +5,19 @@ import type {
   NimiLocalAppConversationSnapshot,
   NimiLocalAppConversationSubscription,
   NimiLocalAppConversationVoice,
+  NimiLocalAppEmbodimentClient,
+  NimiLocalAppEmbodimentEvent,
+  NimiLocalAppEmbodimentSnapshot,
+  NimiLocalAppEmbodimentSubscription,
 } from '@nimiplatform/sdk/app';
 import type {
+  ActionFamily,
   AgentDataBundle,
   AgentDataDriver,
   AgentEvent,
   AppOriginEvent,
   DriverStatus,
+  InterruptMode,
 } from '../driver/types.js';
 import { createEventBus } from '../infra/event-bus.js';
 import {
@@ -20,6 +26,10 @@ import {
   mergeCustomRecord,
   toRuntimeAgentEvent,
 } from './sdk-driver-event-helpers.js';
+import {
+  AVATAR_CONVERSATION_VOICE_AUDIO_CHUNK_EVENT,
+  AVATAR_CONVERSATION_VOICE_FAILED_EVENT,
+} from '../voice-lipsync/avatar-conversation-voice.js';
 
 type InternalEvents = {
   'agent-event': AgentEvent;
@@ -35,12 +45,14 @@ const STREAM_RECONNECT_DELAYS_MS = [250, 500, 1_000, 2_000, 5_000] as const;
 
 type AvatarRuntimeStreams = {
   readonly conversation: NimiLocalAppConversationSubscription;
+  readonly embodiment: NimiLocalAppEmbodimentSubscription;
   readonly signal: AbortSignal;
   readonly close: () => Promise<void>;
 };
 
 export type SdkDriverOptions = {
   conversation: NimiLocalAppConversationClient;
+  embodiment: NimiLocalAppEmbodimentClient;
   agentHandle: NimiLocalAppAgentHandle;
   runWithAgentHandle?: <T>(
     operation: (agentHandle: NimiLocalAppAgentHandle) => Promise<T>,
@@ -58,6 +70,7 @@ export class SdkDriver implements AgentDataDriver {
   readonly kind = 'sdk' as const;
   private _status: DriverStatus = 'idle';
   private readonly conversation: NimiLocalAppConversationClient;
+  private readonly embodiment: NimiLocalAppEmbodimentClient;
   private agentHandle: NimiLocalAppAgentHandle;
   private readonly runWithAgentHandle: NonNullable<SdkDriverOptions['runWithAgentHandle']>;
   private readonly conversationAnchorId: string;
@@ -69,13 +82,14 @@ export class SdkDriver implements AgentDataDriver {
   private readonly cursorInfo: () => { x: number; y: number };
   private readonly bus = createEventBus<InternalEvents>();
   private streamAbort: AbortController | null = null;
-  private canonicalVoiceStreamGeneration = 0;
+  private canonicalVoiceGeneration = 0;
   private readonly interruptedCanonicalVoiceTurns = new Set<string>();
   private bundle: AgentDataBundle;
   private lastError: string | null = null;
 
   constructor(options: SdkDriverOptions) {
     this.conversation = options.conversation;
+    this.embodiment = options.embodiment;
     this.agentHandle = options.agentHandle;
     this.runWithAgentHandle = options.runWithAgentHandle
       ?? (<T>(operation: (agentHandle: NimiLocalAppAgentHandle) => Promise<T>) => (
@@ -171,32 +185,52 @@ export class SdkDriver implements AgentDataDriver {
     const abortAttempt = () => attemptAbort.abort();
     parentAbort.signal.addEventListener('abort', abortAttempt, { once: true });
     let conversation: NimiLocalAppConversationSubscription | null = null;
+    let embodiment: NimiLocalAppEmbodimentSubscription | null = null;
     const close = async () => {
       attemptAbort.abort();
       parentAbort.signal.removeEventListener('abort', abortAttempt);
-      await conversation?.cancel().catch(() => undefined);
+      await Promise.allSettled([
+        conversation?.cancel(),
+        embodiment?.cancel(),
+      ]);
     };
     try {
-      conversation = await this.runWithAgentHandle(async (agentHandle) => {
-        const opened = await this.conversation.subscribe({
+      const opened = await this.runWithAgentHandle(async (agentHandle) => {
+        const openedConversation = await this.conversation.subscribe({
           agentHandle,
           conversationAnchorId: this.conversationAnchorId,
         });
+        let openedEmbodiment: NimiLocalAppEmbodimentSubscription | null = null;
         try {
-          const snapshot = await this.conversation.snapshot({
+          openedEmbodiment = await this.embodiment.subscribe({
             agentHandle,
             conversationAnchorId: this.conversationAnchorId,
           });
+          const [conversationSnapshot, embodimentSnapshot] = await Promise.all([
+            this.conversation.snapshot({
+              agentHandle,
+              conversationAnchorId: this.conversationAnchorId,
+            }),
+            this.embodiment.snapshot({
+              agentHandle,
+              conversationAnchorId: this.conversationAnchorId,
+            }),
+          ]);
           this.setCurrentAgentHandle(agentHandle);
-          this.applyCanonicalConversationSnapshot(snapshot);
-          return opened;
+          this.applyCanonicalConversationSnapshot(conversationSnapshot);
+          this.applyEmbodimentSnapshot(embodimentSnapshot);
+          return { conversation: openedConversation, embodiment: openedEmbodiment };
         } catch (error) {
-          await opened.cancel().catch(() => undefined);
+          await Promise.allSettled([
+            openedConversation.cancel(),
+            openedEmbodiment?.cancel(),
+          ]);
           throw error;
         }
       });
-      const openedConversation = conversation;
-      return { conversation: openedConversation, signal: attemptAbort.signal, close };
+      conversation = opened.conversation;
+      embodiment = opened.embodiment;
+      return { conversation, embodiment, signal: attemptAbort.signal, close };
     } catch (error) {
       await close();
       throw error;
@@ -211,7 +245,10 @@ export class SdkDriver implements AgentDataDriver {
     let retryAttempt = 0;
     while (!abortController.signal.aborted) {
       try {
-        await this.consumeCanonicalConversationStream(streams.conversation, streams.signal);
+        await Promise.all([
+          this.consumeCanonicalConversationStream(streams.conversation, streams.signal),
+          this.consumeEmbodimentStream(streams.embodiment, streams.signal),
+        ]);
       } catch (error) {
         if (abortController.signal.aborted) return;
         const message = errorMessage(error);
@@ -257,7 +294,7 @@ export class SdkDriver implements AgentDataDriver {
       status_text: '',
       execution_state: 'IDLE',
       active_world_id: this.activeWorldId,
-      active_user_id: this.agentHandle,
+      active_agent_handle: this.agentHandle,
       app: {
         namespace: 'avatar',
         surface_id: 'avatar-window',
@@ -273,7 +310,7 @@ export class SdkDriver implements AgentDataDriver {
         locale: this.locale,
       },
       custom: {
-        agent_id: this.agentHandle,
+        agent_handle: this.agentHandle,
         conversation_anchor_id: this.conversationAnchorId,
       },
     };
@@ -298,23 +335,23 @@ export class SdkDriver implements AgentDataDriver {
     this.agentHandle = agentHandle;
     this.bundle = {
       ...this.bundle,
-      active_user_id: agentHandle,
+      active_agent_handle: agentHandle,
       custom: mergeCustomRecord(this.bundle.custom, {
-        agent_id: agentHandle,
+        agent_handle: agentHandle,
       }),
     };
   }
 
   private invalidateCanonicalVoiceReads(): void {
-    this.canonicalVoiceStreamGeneration += 1;
+    this.canonicalVoiceGeneration += 1;
     this.interruptedCanonicalVoiceTurns.clear();
   }
 
   private canonicalVoiceReadIsCurrent(
     voice: NimiLocalAppConversationVoice,
-    streamGeneration: number,
+    voiceGeneration: number,
   ): boolean {
-    return streamGeneration === this.canonicalVoiceStreamGeneration
+    return voiceGeneration === this.canonicalVoiceGeneration
       && !this.interruptedCanonicalVoiceTurns.has(voice.turnId)
       && Boolean(this.streamAbort && !this.streamAbort.signal.aborted);
   }
@@ -445,6 +482,162 @@ export class SdkDriver implements AgentDataDriver {
     this.publishBundle();
   }
 
+  private applyEmbodimentSnapshot(snapshot: NimiLocalAppEmbodimentSnapshot): void {
+    const at = embodimentObservedAt(snapshot.observedAt, this.now());
+    if (snapshot.activity) this.applyEmbodimentActivity(snapshot.activity, at);
+    if (snapshot.emotion) this.applyEmbodimentEmotion(snapshot.emotion, at);
+    if (snapshot.posture) this.applyEmbodimentPosture(snapshot.posture, at);
+    if (snapshot.voiceTiming) this.applyEmbodimentVoiceTiming(snapshot.voiceTiming, at);
+    this.bundle = {
+      ...this.bundle,
+      custom: mergeCustomRecord(this.bundle.custom, {
+        embodiment_sequence: snapshot.sequence,
+        embodiment_provenance: snapshot.provenance,
+      }),
+    };
+    this.touchRuntimeNow();
+    this.publishBundle();
+  }
+
+  private async consumeEmbodimentStream(
+    stream: NimiLocalAppEmbodimentSubscription,
+    signal: AbortSignal,
+  ): Promise<void> {
+    for await (const event of stream) {
+      if (signal.aborted) return;
+      this.applyEmbodimentEvent(event);
+    }
+    if (!signal.aborted) throw new Error('Avatar embodiment stream closed unexpectedly.');
+  }
+
+  private applyEmbodimentEvent(event: NimiLocalAppEmbodimentEvent): void {
+    const at = embodimentObservedAt(event.observedAt, this.now());
+    switch (event.kind) {
+      case 'activity':
+        this.applyEmbodimentActivity(event.payload, at);
+        break;
+      case 'emotion':
+        this.applyEmbodimentEmotion(event.payload, at);
+        break;
+      case 'posture':
+        this.applyEmbodimentPosture(event.payload, at);
+        break;
+      case 'voice-timing':
+        this.applyEmbodimentVoiceTiming(event.payload, at);
+        break;
+    }
+    this.bundle = {
+      ...this.bundle,
+      custom: mergeCustomRecord(this.bundle.custom, {
+        embodiment_sequence: event.sequence,
+        embodiment_provenance: event.provenance,
+      }),
+    };
+    this.touchRuntimeNow();
+    this.publishBundle();
+  }
+
+  private applyEmbodimentActivity(
+    activity: NimiLocalAppEmbodimentSnapshot['activity'] & {},
+    at: string,
+  ): void {
+    const intensity = activity.intensity === 'weak'
+      || activity.intensity === 'moderate'
+      || activity.intensity === 'strong'
+      ? activity.intensity
+      : null;
+    const category = activity.category === 'emotion'
+      || activity.category === 'interaction'
+      || activity.category === 'state'
+      ? activity.category
+      : 'state';
+    this.bundle = {
+      ...this.bundle,
+      activity: {
+        name: activity.name,
+        category,
+        intensity,
+        source: 'runtime',
+      },
+      history: {
+        last_activity: { name: activity.name, at },
+        last_motion: this.bundle.history?.last_motion ?? null,
+        last_expression: this.bundle.history?.last_expression ?? null,
+      },
+    };
+    this.emitAgentEvent(toRuntimeAgentEvent('runtime.agent.presentation.activity_requested', {
+      agent_handle: this.agentHandle,
+      conversation_anchor_id: this.conversationAnchorId,
+      activity_name: activity.name,
+      category,
+      intensity,
+      source: 'runtime',
+      turn_ref: activity.turnRef,
+    }, Date.parse(at)));
+  }
+
+  private applyEmbodimentEmotion(
+    emotion: NimiLocalAppEmbodimentSnapshot['emotion'] & {},
+    at: string,
+  ): void {
+    const previous = this.bundle.emotion?.current ?? null;
+    this.bundle = {
+      ...this.bundle,
+      emotion: {
+        current: emotion.name as NonNullable<AgentDataBundle['emotion']>['current'],
+        previous,
+        source: emotion.source,
+      },
+      history: {
+        last_activity: this.bundle.history?.last_activity ?? null,
+        last_motion: this.bundle.history?.last_motion ?? null,
+        last_expression: { name: emotion.name, at },
+      },
+    };
+    this.emitAgentEvent(toRuntimeAgentEvent('runtime.agent.state.emotion_changed', {
+      emotion_name: emotion.name,
+      previous_emotion: previous,
+      source: emotion.source,
+    }, Date.parse(at)));
+  }
+
+  private applyEmbodimentPosture(
+    posture: NimiLocalAppEmbodimentSnapshot['posture'] & {},
+    at: string,
+  ): void {
+    this.bundle = {
+      ...this.bundle,
+      posture: {
+        posture_class: 'runtime_semantic',
+        action_family: posture.actionFamily as ActionFamily,
+        interrupt_mode: posture.interruptMode as InterruptMode,
+        transition_reason: 'runtime_embodiment',
+        truth_basis_ids: [],
+      },
+    };
+    this.emitAgentEvent(toRuntimeAgentEvent('runtime.agent.state.posture_changed', {
+      action_family: posture.actionFamily,
+      interrupt_mode: posture.interruptMode,
+    }, Date.parse(at)));
+  }
+
+  private applyEmbodimentVoiceTiming(
+    timing: NimiLocalAppEmbodimentSnapshot['voiceTiming'] & {},
+    at: string,
+  ): void {
+    this.bundle = {
+      ...this.bundle,
+      custom: mergeCustomRecord(this.bundle.custom, {
+        semantic_voice_phase: timing.phase,
+        semantic_voice_duration_millis: timing.durationMillis,
+        semantic_voice_deadline_offset_millis: timing.deadlineOffsetMillis,
+        semantic_voice_turn_ref: timing.turnRef,
+        semantic_voice_correlation_ref: timing.correlationRef,
+        semantic_voice_observed_at: at,
+      }),
+    };
+  }
+
   private async consumeCanonicalConversationStream(
     stream: NimiLocalAppConversationSubscription,
     signal: AbortSignal,
@@ -564,10 +757,10 @@ export class SdkDriver implements AgentDataDriver {
         };
         void this.playCanonicalConversationVoice(
           event.voice,
-          this.canonicalVoiceStreamGeneration,
+        this.canonicalVoiceGeneration,
         ).catch((error) => {
-          this.emitAgentEvent(toRuntimeAgentEvent('avatar.speak.native_audio_stream_failed', {
-            voice_stream_id: event.voice.voiceId,
+          this.emitAgentEvent(toRuntimeAgentEvent(AVATAR_CONVERSATION_VOICE_FAILED_EVENT, {
+            voice_id: event.voice.voiceId,
             reason: errorMessage(error),
           }, this.now()));
         });
@@ -581,8 +774,8 @@ export class SdkDriver implements AgentDataDriver {
             last_conversation_voice_reason: event.voice.reasonCode,
           }),
         };
-        this.emitAgentEvent(toRuntimeAgentEvent('avatar.speak.native_audio_stream_failed', {
-          voice_stream_id: event.voice.voiceId,
+        this.emitAgentEvent(toRuntimeAgentEvent(AVATAR_CONVERSATION_VOICE_FAILED_EVENT, {
+          voice_id: event.voice.voiceId,
           reason: event.voice.reasonCode ?? event.voice.message ?? 'conversation_voice_failed',
         }, this.now()));
         break;
@@ -623,7 +816,7 @@ export class SdkDriver implements AgentDataDriver {
   // @nimi-authority: rule.nimi.avatar.embodiment.r010
   private async playCanonicalConversationVoice(
     voice: NimiLocalAppConversationVoice,
-    streamGeneration: number,
+    voiceGeneration: number,
   ): Promise<void> {
     const artifactId = voice.artifactId;
     if (!artifactId) {
@@ -639,17 +832,16 @@ export class SdkDriver implements AgentDataDriver {
         })
       ));
     } catch (error) {
-      if (!this.canonicalVoiceReadIsCurrent(voice, streamGeneration)) return;
+      if (!this.canonicalVoiceReadIsCurrent(voice, voiceGeneration)) return;
       throw error;
     }
-    if (!this.canonicalVoiceReadIsCurrent(voice, streamGeneration)) return;
-    this.emitAgentEvent(toRuntimeAgentEvent('avatar.speak.native_audio_chunk', {
-      voice_stream_id: voice.voiceId,
+    if (!this.canonicalVoiceReadIsCurrent(voice, voiceGeneration)) return;
+    this.emitAgentEvent(toRuntimeAgentEvent(AVATAR_CONVERSATION_VOICE_AUDIO_CHUNK_EVENT, {
+      voice_id: voice.voiceId,
       chunk_sequence: 1,
       audio_mime_type: artifact.mimeType,
       chunk_bytes: artifact.bytes,
       turn_id: voice.turnId,
-      stream_id: voice.voiceId,
       conversation_anchor_id: this.conversationAnchorId,
       source: 'canonical_conversation',
     }, this.now()));
@@ -671,4 +863,18 @@ function abortableDelay(ms: number, signal: AbortSignal): Promise<void> {
     }
     signal.addEventListener('abort', finish, { once: true });
   });
+}
+
+function embodimentObservedAt(
+  value: Readonly<{ readonly seconds: string; readonly nanos: number }>,
+  fallbackNow: number,
+): string {
+  try {
+    const millis = Number((BigInt(value.seconds) * 1_000n) + BigInt(Math.floor(value.nanos / 1_000_000)));
+    if (Number.isSafeInteger(millis)) return new Date(millis).toISOString();
+  } catch {
+    // The SDK has already validated the timestamp; retain a local diagnostic
+    // fallback only if the host Date range cannot represent it.
+  }
+  return new Date(fallbackNow).toISOString();
 }

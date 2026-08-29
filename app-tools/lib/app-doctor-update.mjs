@@ -11,7 +11,7 @@ import {
   SUPPORTED_APP_SCAFFOLD_PROFILES,
 } from './app-scaffold.mjs';
 import { assertManifestAppAccessDeclaration } from './app-access-declaration.mjs';
-import { validateSimulatorAppSource } from './simulator-conformance.mjs';
+import { validateSimulatorAppSourceWithCanonicalKitExports } from './simulator-conformance.mjs';
 
 const SCAN_EXCLUDED_DIRS = new Set([
   '.git',
@@ -612,9 +612,10 @@ export function doctorApp(cwd, options = {}, versions, runners = {}) {
     if (options.json) {
       throw new Error('--json is not supported for Simulator source validation');
     }
-    const result = validateSimulatorAppSource(targetDir);
-    process.stdout.write(`[nimi-app] Simulator source validation passed for ${targetDir}\n`);
-    return result;
+    return validateSimulatorAppSourceWithCanonicalKitExports(targetDir).then((result) => {
+      process.stdout.write(`[nimi-app] Simulator source validation passed for ${targetDir}\n`);
+      return result;
+    });
   }
   const result = validateDoctorState(targetDir, versions, runners);
   const payload = {

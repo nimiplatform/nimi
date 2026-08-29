@@ -157,7 +157,7 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
   'agent-center': frozenModule({
     id: 'agent-center',
     kind: 'feature',
-    lifecycle: 'candidate',
+    lifecycle: 'admitted',
     order: 50,
     label: 'Agent Center',
     requires: [],
@@ -180,7 +180,7 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
   'agent-conversation': frozenModule({
     id: 'agent-conversation',
     kind: 'feature',
-    lifecycle: 'candidate',
+    lifecycle: 'admitted',
     order: 60,
     label: 'Agent Conversation',
     requires: [],
@@ -203,7 +203,7 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
   'agent-realtime': frozenModule({
     id: 'agent-realtime',
     kind: 'feature',
-    lifecycle: 'candidate',
+    lifecycle: 'admitted',
     order: 70,
     label: 'Agent Realtime',
     requires: [],
@@ -720,8 +720,7 @@ export const APP_SCAFFOLD_FEATURE_IDS = Object.freeze(
     .map(([id]) => id),
 );
 
-// Exact WP5 input for the fresh ordinary protected reference App. It remains
-// candidate-only until the three Agent slices are admitted in the WP6 cut.
+// Exact active input for a fresh ordinary protected reference App.
 export const APP_SCAFFOLD_REFERENCE_APP_FEATURE_IDS = Object.freeze([
   'studio-create',
   'studio-media',

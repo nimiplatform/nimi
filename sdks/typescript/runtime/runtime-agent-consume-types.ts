@@ -3,28 +3,10 @@ import type {
   AgentEvent,
   AgentRequestContext,
   AppMessageEvent,
-  AvatarDebugProbeResultEnvelope,
-  AvatarDebugProbeKind,
-  AvatarDebugRequestedBy,
-  AvatarLiveInstanceBinding,
-  CompanionParticipationProjection,
-  CompanionParticipationSurfaceKind,
-  CompanionParticipationTriggerSource,
   ConversationAnchorStatus,
   ConversationAnchorSnapshot,
-  GetAvatarDebugReplayResponse,
-  GetAvatarDebugSnapshotResponse,
-  ListAvatarDebugProbeResultsResponse,
-  RequestAvatarDebugProbeResponse,
-  SubmitAvatarDebugProbeResultResponse,
   GetPublicChatSessionSnapshotResponse,
-  OpenCompanionParticipationReplayResponse,
   RuntimeTypedCallOptions,
-} from '../core-generated/runtime-typed-client';
-export type {
-  GetAvatarDebugSnapshotResponse,
-  ListAvatarDebugProbeResultsResponse,
-  RequestAvatarDebugProbeResponse,
 } from '../core-generated/runtime-typed-client';
 import type { JsonObject } from '../types';
 import type {
@@ -132,8 +114,7 @@ export type NimiRuntimeAgentConsumeEvent =
   | NimiRuntimeAgentTurnConsumeEvent
   | NimiRuntimeAgentPresentationConsumeEvent
   | NimiRuntimeAgentStateConsumeEvent
-  | NimiRuntimeAgentHookConsumeEvent
-  | NimiRuntimeAgentAvatarDebugConsumeEvent;
+  | NimiRuntimeAgentHookConsumeEvent;
 
 export interface NimiRuntimeAgentBaseConsumeEvent {
   readonly eventName: string;
@@ -163,10 +144,9 @@ export interface NimiRuntimeAgentTurnConsumeEvent extends NimiRuntimeAgentBaseCo
     | 'runtime.agent.turn.failed'
     | 'runtime.agent.turn.interrupted'
     | 'runtime.agent.turn.interrupt_ack'
-    | 'runtime.agent.presentation.voice_playback_requested'
-    | 'runtime.agent.presentation.voice_stream_chunk_available'
-    | 'runtime.agent.presentation.voice_playback_terminal'
-    | 'runtime.agent.presentation.lipsync_frame_batch';
+    | 'runtime.agent.conversation.voice_timing_ready'
+    | 'runtime.agent.conversation.voice_artifact_available'
+    | 'runtime.agent.conversation.voice_timing_terminal';
   readonly conversationAnchorId: string;
   readonly turnId: string;
   readonly streamId: string;
@@ -181,9 +161,9 @@ export interface NimiRuntimeAgentPresentationConsumeEvent extends NimiRuntimeAge
     | 'runtime.agent.presentation.pose_requested'
     | 'runtime.agent.presentation.pose_cleared'
     | 'runtime.agent.presentation.lookat_requested'
-    | 'runtime.agent.presentation.voice_playback_requested'
-    | 'runtime.agent.presentation.voice_stream_chunk_available'
-    | 'runtime.agent.presentation.voice_playback_terminal';
+    | 'runtime.agent.conversation.voice_timing_ready'
+    | 'runtime.agent.conversation.voice_artifact_available'
+    | 'runtime.agent.conversation.voice_timing_terminal';
   readonly conversationAnchorId: string;
   readonly turnId: string;
   readonly streamId: string;
@@ -211,15 +191,6 @@ export interface NimiRuntimeAgentHookConsumeEvent extends NimiRuntimeAgentBaseCo
     | 'runtime.agent.hook.failed'
     | 'runtime.agent.hook.canceled'
     | 'runtime.agent.hook.rescheduled';
-  readonly detail: JsonObject;
-}
-
-export interface NimiRuntimeAgentAvatarDebugConsumeEvent extends NimiRuntimeAgentBaseConsumeEvent {
-  readonly eventName:
-    | 'runtime.agent.avatar_debug.probe_requested'
-    | 'runtime.agent.avatar_debug.probe_result'
-    | 'runtime.agent.avatar_debug.replay_linked';
-  readonly conversationAnchorId?: string;
   readonly detail: JsonObject;
 }
 
@@ -251,107 +222,6 @@ export interface NimiRuntimeAgentConversationSummariesResult {
   readonly nextPageToken?: string;
 }
 
-export type NimiRuntimeAgentCompanionParticipationSurfaceKind =
-  | 'avatar_companion'
-  | 'desktop_companion_panel'
-  | 'avatar_debug_workbench';
-
-export type NimiRuntimeAgentCompanionParticipationTriggerSource =
-  | 'user_explicit'
-  | 'scheduled_proactive'
-  | 'domain_event';
-
-export type NimiRuntimeAgentCompanionParticipationStatus =
-  | 'idle'
-  | 'admission_pending'
-  | 'blocked'
-  | 'running'
-  | 'candidate_ready'
-  | 'committed_by_owner'
-  | 'failed'
-  | 'canceled';
-
-export interface NimiRuntimeAgentCompanionParticipationProjection {
-  readonly projectionId: string;
-  readonly agentId: string;
-  readonly surfaceKind: NimiRuntimeAgentCompanionParticipationSurfaceKind;
-  readonly profileRef: string;
-  readonly triggerSource: NimiRuntimeAgentCompanionParticipationTriggerSource;
-  readonly status: NimiRuntimeAgentCompanionParticipationStatus;
-  readonly candidateRef?: string;
-  readonly commitRef?: string;
-  readonly refusalReason?: string;
-  readonly presentationRef?: string;
-  readonly auditRef: string;
-  readonly observedAt?: string;
-  readonly conversationAnchorId: string;
-  readonly turnId?: string;
-  readonly streamId?: string;
-}
-
-export interface NimiRuntimeAgentCompanionParticipationReplay {
-  readonly replayRef: string;
-  readonly projection: NimiRuntimeAgentCompanionParticipationProjection;
-}
-
-export interface NimiRuntimeAgentCompanionParticipationBaseInput extends NimiRuntimeAgentConsumeIdentityInput {
-  readonly conversationAnchorId: unknown;
-  readonly surfaceKind?: NimiRuntimeAgentCompanionParticipationSurfaceKind | CompanionParticipationSurfaceKind;
-  readonly triggerSource?: NimiRuntimeAgentCompanionParticipationTriggerSource | CompanionParticipationTriggerSource;
-  readonly profileRef?: unknown;
-  readonly requestId?: unknown;
-}
-
-export interface NimiRuntimeAgentCompanionParticipationRequestInput
-  extends NimiRuntimeAgentCompanionParticipationBaseInput {
-  readonly text: unknown;
-  readonly threadId?: unknown;
-  readonly worldId?: unknown;
-  readonly maxOutputTokens?: unknown;
-}
-
-export interface NimiRuntimeAgentCompanionParticipationCancelInput
-  extends NimiRuntimeAgentCompanionParticipationBaseInput {
-  readonly projectionId?: unknown;
-  readonly turnId?: unknown;
-  readonly reason?: unknown;
-}
-
-export interface NimiRuntimeAgentCompanionParticipationReplayInput
-  extends NimiRuntimeAgentCompanionParticipationBaseInput {
-  readonly projectionId: unknown;
-}
-
-// @nimi-authority: rule.nimi.sdks.feature-clients.r080
-export interface NimiRuntimeAgentAvatarDebugBaseInput extends NimiRuntimeAgentConsumeIdentityInput {
-  readonly conversationAnchorId: unknown;
-}
-
-export interface NimiRuntimeAgentAvatarDebugRequestProbeInput
-  extends NimiRuntimeAgentAvatarDebugBaseInput {
-  readonly probeKind: AvatarDebugProbeKind;
-  readonly requestedBy: AvatarDebugRequestedBy;
-  readonly probeId?: unknown;
-  readonly turnId?: unknown;
-  readonly streamId?: unknown;
-  readonly avatarInstanceId?: unknown;
-  readonly replayRequested?: boolean;
-}
-
-export interface NimiRuntimeAgentAvatarDebugListProbeResultsInput
-  extends NimiRuntimeAgentAvatarDebugBaseInput {
-  readonly probeKind?: AvatarDebugProbeKind;
-}
-
-export interface NimiRuntimeAgentAvatarDebugReplayInput extends NimiRuntimeAgentAvatarDebugBaseInput {
-  readonly probeId: unknown;
-}
-
-export interface NimiRuntimeAgentAvatarDebugSubmitProbeResultInput
-  extends NimiRuntimeAgentAvatarDebugBaseInput {
-  readonly result: AvatarDebugProbeResultEnvelope;
-}
-
 export interface NimiRuntimeAgentConsumeRuntime {
   readonly agents: {
     openConversationAnchor(request: unknown, options?: RuntimeTypedCallOptions): Promise<{ snapshot?: ConversationAnchorSnapshot }>;
@@ -360,55 +230,11 @@ export interface NimiRuntimeAgentConsumeRuntime {
       request: unknown,
       options?: RuntimeTypedCallOptions,
     ): Promise<{ summaries?: AgentConversationSummary[]; nextPageToken?: string }>;
-    registerAvatarLiveInstanceBinding(
-      request: unknown,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<{ binding?: AvatarLiveInstanceBinding; snapshot?: ConversationAnchorSnapshot }>;
-    resolveAvatarLiveInstanceBinding(
-      request: unknown,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<{ binding?: AvatarLiveInstanceBinding; snapshot?: ConversationAnchorSnapshot }>;
     getPublicChatSessionSnapshot(
       request: unknown,
       options?: RuntimeTypedCallOptions,
     ): Promise<GetPublicChatSessionSnapshotResponse>;
-    getCompanionParticipationProjection?(
-      request: unknown,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<{ projection?: CompanionParticipationProjection }>;
     subscribeAgentEvents(request: unknown, options?: RuntimeTypedCallOptions): AsyncIterable<AgentEvent>;
-    requestCompanionParticipation?(
-      request: unknown,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<{ projection?: CompanionParticipationProjection }>;
-    cancelCompanionParticipation?(
-      request: unknown,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<{ projection?: CompanionParticipationProjection }>;
-    openCompanionParticipationReplay?(
-      request: unknown,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<OpenCompanionParticipationReplayResponse>;
-    getAvatarDebugSnapshot?(
-      request: unknown,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<GetAvatarDebugSnapshotResponse>;
-    requestAvatarDebugProbe?(
-      request: unknown,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<RequestAvatarDebugProbeResponse>;
-    submitAvatarDebugProbeResult?(
-      request: unknown,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<SubmitAvatarDebugProbeResultResponse>;
-    listAvatarDebugProbeResults?(
-      request: unknown,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<ListAvatarDebugProbeResultsResponse>;
-    getAvatarDebugReplay?(
-      request: unknown,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<GetAvatarDebugReplayResponse>;
   };
   readonly appMessages?: {
     subscribeAppMessages(request: unknown, options?: RuntimeTypedCallOptions): AsyncIterable<AppMessageEvent>;
@@ -434,17 +260,6 @@ export interface NimiRuntimeAgentConsumeClient {
       input: NimiRuntimeAgentConversationSummariesInput,
       options?: RuntimeTypedCallOptions,
     ): Promise<NimiRuntimeAgentConversationSummariesResult>;
-    registerAvatarLiveInstance(
-      input: NimiRuntimeAgentConsumeIdentityInput & {
-        readonly avatarInstanceId: unknown;
-        readonly conversationAnchorId: unknown;
-      },
-      options?: RuntimeTypedCallOptions,
-    ): Promise<{ readonly binding: AvatarLiveInstanceBinding; readonly snapshot: NimiRuntimeAgentConversationAnchorSnapshot }>;
-    resolveAvatarLiveInstance(
-      input: NimiRuntimeAgentConsumeIdentityInput & { readonly avatarInstanceId: unknown },
-      options?: RuntimeTypedCallOptions,
-    ): Promise<{ readonly binding: AvatarLiveInstanceBinding; readonly snapshot: NimiRuntimeAgentConversationAnchorSnapshot }>;
   };
   readonly turns: {
     getSessionSnapshot(
@@ -465,47 +280,4 @@ export interface NimiRuntimeAgentConsumeClient {
       options?: RuntimeTypedCallOptions,
     ): Promise<AsyncIterable<NimiRuntimeAgentConsumeEvent>>;
   };
-  readonly companionParticipation: {
-    getProjection(
-      input: NimiRuntimeAgentCompanionParticipationBaseInput,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<NimiRuntimeAgentCompanionParticipationProjection>;
-    request(
-      input: NimiRuntimeAgentCompanionParticipationRequestInput,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<NimiRuntimeAgentCompanionParticipationProjection>;
-    cancel(
-      input: NimiRuntimeAgentCompanionParticipationCancelInput,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<NimiRuntimeAgentCompanionParticipationProjection>;
-    openReplay(
-      input: NimiRuntimeAgentCompanionParticipationReplayInput,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<NimiRuntimeAgentCompanionParticipationReplay>;
-  };
-  readonly avatarDebug: {
-    snapshot(
-      input: NimiRuntimeAgentAvatarDebugBaseInput,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<GetAvatarDebugSnapshotResponse>;
-    requestProbe(
-      input: NimiRuntimeAgentAvatarDebugRequestProbeInput,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<RequestAvatarDebugProbeResponse>;
-    submitProbeResult(
-      input: NimiRuntimeAgentAvatarDebugSubmitProbeResultInput,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<SubmitAvatarDebugProbeResultResponse>;
-    listProbeResults(
-      input: NimiRuntimeAgentAvatarDebugListProbeResultsInput,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<ListAvatarDebugProbeResultsResponse>;
-    getReplay(
-      input: NimiRuntimeAgentAvatarDebugReplayInput,
-      options?: RuntimeTypedCallOptions,
-    ): Promise<GetAvatarDebugReplayResponse>;
-  };
 }
-
-export type NimiRuntimeAgentCompanionParticipationInput =
-  NimiRuntimeAgentCompanionParticipationBaseInput;

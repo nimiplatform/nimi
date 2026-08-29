@@ -5,16 +5,16 @@ import type {
   NimiRuntimeAgentScopeRunner,
 } from '@nimiplatform/sdk/runtime';
 import type { Realm } from '@nimiplatform/sdk/realm';
-import type { NimiLocalAppConversationClient } from '@nimiplatform/sdk/app';
+import type { NimiLocalAppClient, NimiLocalAppConversationClient } from '@nimiplatform/sdk/app';
 import type {
   DesktopAccountRuntime,
   DesktopHostRuntimeAgentClient,
   DesktopRuntimeAgentDiscoverySurface,
   getDesktopAccountProductClient,
-  getDesktopAiExecutionClient,
   getDesktopAuditAdminClient,
   getDesktopConnectorAdminClient,
   getDesktopExternalAgentClient,
+  getDesktopFormalAppClient,
   getDesktopLocalEnvironmentRpc,
   getDesktopLocalAuditClient,
 } from '../infra/sdk/desktop-nimi-client-session.js';
@@ -36,7 +36,7 @@ export interface DesktopRendererSdkPort {
   localEnvironmentRpc(): ReturnType<typeof getDesktopLocalEnvironmentRpc>;
   localAudit(): ReturnType<typeof getDesktopLocalAuditClient>;
   auditAdmin(): ReturnType<typeof getDesktopAuditAdminClient>;
-  aiExecution(): ReturnType<typeof getDesktopAiExecutionClient>;
+  appProduct(): NimiLocalAppClient;
   externalAgent(): ReturnType<typeof getDesktopExternalAgentClient>;
   runtimeAgentDiscovery(
     getSubjectUserId: () => string | Promise<string | undefined> | undefined,

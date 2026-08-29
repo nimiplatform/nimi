@@ -31,6 +31,8 @@ const (
 	LocalAppOperationConversationArtifactRead       = localappop.OperationConversationArtifactRead
 	LocalAppOperationConversationVoiceTranscribe    = localappop.OperationConversationVoiceTranscribe
 	LocalAppOperationConversationVoiceRender        = localappop.OperationConversationVoiceRender
+	LocalAppOperationEmbodimentSnapshot             = localappop.OperationAgentEmbodimentSnapshotGet
+	LocalAppOperationEmbodimentEventsSubscribe      = localappop.OperationAgentEmbodimentEventsSubscribe
 	LocalAppOperationReferenceList                  = localappop.OperationAgentReferenceList
 	LocalAppOperationStorageJSONRead                = localappop.OperationStorageJSONRead
 	LocalAppOperationStorageJSONWrite               = localappop.OperationStorageJSONWrite

@@ -101,14 +101,11 @@ func TestPublicChatTimelineValidationRejectsInvalidTimelineMetadata(t *testing.T
 	if _, err := publicChatBuildTimelineEnvelopeForChannel(turn, publicChatTimelineChannelVoice, 1, started.Add(-time.Millisecond)); err == nil {
 		t.Fatalf("expected negative offset to fail closed")
 	}
-	if _, err := publicChatBuildTimelineEnvelopeForChannel(turn, publicChatTimelineChannelLipsync, 0, started); err == nil {
-		t.Fatalf("expected zero lipsync sequence to fail closed")
+	if _, err := publicChatBuildTimelineEnvelopeForChannel(turn, publicChatTimelineChannelVoice, 0, started); err == nil {
+		t.Fatalf("expected zero voice sequence to fail closed")
 	}
 	if err := publicChatValidateTimelineSequence(publicChatTimelineChannelVoice, 2, publicChatTimelineChannelVoice, 2); err == nil {
 		t.Fatalf("expected non-monotonic voice sequence to fail closed")
-	}
-	if err := publicChatValidateTimelineSequence(publicChatTimelineChannelLipsync, 3, publicChatTimelineChannelLipsync, 2); err == nil {
-		t.Fatalf("expected non-monotonic lipsync sequence to fail closed")
 	}
 	reasoningTimeline, err := publicChatBuildTimelineEnvelope(turn, publicChatTurnReasoningStatusType, 3, started.Add(time.Millisecond))
 	if err != nil {
@@ -119,7 +116,7 @@ func TestPublicChatTimelineValidationRejectsInvalidTimelineMetadata(t *testing.T
 	}
 }
 
-func TestPublicChatVoiceAndLipsyncTimelineEventsRequireRuntimeOwnedPayload(t *testing.T) {
+func TestPublicChatVoiceTimelineEventsRequireRuntimeOwnedPayload(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	capture := newPublicChatEmitCapture()
@@ -145,96 +142,55 @@ func TestPublicChatVoiceAndLipsyncTimelineEventsRequireRuntimeOwnedPayload(t *te
 	svc.chatTurns[turn.TurnID] = &turn
 	svc.chatSurfaceMu.Unlock()
 
-	if err := svc.publicChatRuntime().emitVoicePlaybackTimelineEvent(session, turn, publicChatVoicePlaybackProjection{
-		AudioArtifactID:    "artifact-voice-1",
-		AudioMimeType:      "audio/wav",
-		DurationMs:         1200,
-		DeadlineOffsetMs:   1500,
-		PlaybackState:      "requested",
-		VoiceOutputMode:    "batch_final_artifact",
-		VoicePlaybackState: "active",
+	if err := svc.publicChatRuntime().emitVoiceTimingReadyTimelineEvent(session, turn, publicChatVoiceTimingReadyProjection{
+		AudioArtifactID:  "artifact-voice-1",
+		AudioMimeType:    "audio/wav",
+		MessageID:        "message-voice-1",
+		DurationMs:       1200,
+		DeadlineOffsetMs: 1500,
 	}); err != nil {
-		t.Fatalf("emitVoicePlaybackTimelineEvent: %v", err)
+		t.Fatalf("emitVoiceTimingReadyTimelineEvent: %v", err)
 	}
-	voicePayload := publicChatPayloadMap(t, capture.waitForMessageType(t, publicChatPresentationVoicePlaybackRequestedType))
+	voicePayload := publicChatPayloadMap(t, capture.waitForMessageType(t, publicChatConversationVoiceTimingReadyType))
 	requirePublicChatTimelineEnvelope(t, voicePayload, turn.TurnID, turn.StreamID, publicChatTimelineChannelVoice)
 	voiceDetail := voicePayload["detail"].(map[string]any)
 	if got := strings.TrimSpace(voiceDetail["audio_artifact_id"].(string)); got != "artifact-voice-1" {
 		t.Fatalf("expected voice audio artifact identity, got %s", got)
 	}
-
-	if err := svc.publicChatRuntime().emitLipsyncFrameBatchTimelineEvent(session, turn, publicChatLipsyncFrameBatchProjection{
-		AudioArtifactID: "artifact-voice-1",
-		Frames: []publicChatLipsyncFrameProjection{
-			{FrameSequence: 1, OffsetMs: 0, DurationMs: 80, MouthOpenY: 0.25, AudioLevel: 0.4},
-			{FrameSequence: 2, OffsetMs: 80, DurationMs: 80, MouthOpenY: 0.8, AudioLevel: 0.7},
-		},
-	}); err != nil {
-		t.Fatalf("emitLipsyncFrameBatchTimelineEvent: %v", err)
-	}
-	lipsyncPayload := publicChatPayloadMap(t, capture.waitForMessageType(t, publicChatPresentationLipsyncFrameBatchType))
-	requirePublicChatTimelineEnvelope(t, lipsyncPayload, turn.TurnID, turn.StreamID, publicChatTimelineChannelLipsync)
-	lipsyncDetail := lipsyncPayload["detail"].(map[string]any)
-	frames := lipsyncDetail["frames"].([]any)
-	if len(frames) != 2 {
-		t.Fatalf("expected two lipsync frames, got %v", frames)
+	for _, forbidden := range []string{"mouth_open_y", "audio_level", "frames", "playback_target", "playback_state", "voice_playback_state", "voice_output_mode", "voice_stream_id", "voice_route_binding", "chunk_transport_ref"} {
+		if _, exists := voiceDetail[forbidden]; exists {
+			t.Fatalf("common voice detail exposed %s: %v", forbidden, voiceDetail)
+		}
 	}
 }
 
-func TestPublicChatVoiceAndLipsyncTimelinePayloadValidationRejectsMalformedInput(t *testing.T) {
+func TestPublicChatVoiceTimelinePayloadValidationRejectsMalformedInput(t *testing.T) {
 	t.Parallel()
-	if _, err := publicChatBuildVoicePlaybackDetail(publicChatVoicePlaybackProjection{
+	if _, err := publicChatBuildVoiceTimingReadyDetail(publicChatVoiceTimingReadyProjection{
 		AudioMimeType: "audio/wav",
-		PlaybackState: "requested",
 	}); err == nil {
 		t.Fatalf("expected missing voice audio artifact identity to fail closed")
 	}
-	if _, err := publicChatBuildVoicePlaybackDetail(publicChatVoicePlaybackProjection{
+	if _, err := publicChatBuildVoiceTimingReadyDetail(publicChatVoiceTimingReadyProjection{
 		AudioArtifactID: "artifact-voice-1",
 		AudioMimeType:   "audio/wav",
-		PlaybackState:   "provider-timed",
+		DurationMs:      -1,
 	}); err == nil {
-		t.Fatalf("expected invalid voice playback state to fail closed")
+		t.Fatalf("expected invalid semantic voice duration to fail closed")
 	}
-	if _, err := publicChatBuildVoiceStreamChunkDetail(publicChatVoiceStreamChunkProjection{
-		AudioArtifactID: "artifact-voice-1",
-		AudioMimeType:   syntheticVoiceMimeType,
-		ChunkSequence:   1,
-		FinalChunk:      true,
+	if _, err := publicChatBuildVoiceArtifactDetail(publicChatVoiceArtifactProjection{
+		AudioArtifactID:  "artifact-voice-1",
+		AudioMimeType:    "application/x-avatar-lipsync",
+		ArtifactSequence: 1,
+		ArtifactComplete: true,
 	}); err == nil {
-		t.Fatalf("expected non-audio voice stream chunk to fail closed")
+		t.Fatalf("expected non-audio semantic voice artifact to fail closed")
 	}
-	if _, err := publicChatBuildVoiceStreamChunkDetail(publicChatVoiceStreamChunkProjection{
+	if _, err := publicChatBuildVoiceArtifactDetail(publicChatVoiceArtifactProjection{
 		AudioArtifactID: "artifact-voice-1",
 		AudioMimeType:   "audio/wav",
-		ChunkSequence:   0,
 	}); err == nil {
-		t.Fatalf("expected non-positive voice stream chunk sequence to fail closed")
-	}
-	if _, err := publicChatBuildLipsyncFrameBatchDetail(publicChatLipsyncFrameBatchProjection{
-		AudioArtifactID: "artifact-voice-1",
-		Frames: []publicChatLipsyncFrameProjection{
-			{FrameSequence: 2, OffsetMs: 0, DurationMs: 80, MouthOpenY: 0.2, AudioLevel: 0.2},
-			{FrameSequence: 2, OffsetMs: 80, DurationMs: 80, MouthOpenY: 0.4, AudioLevel: 0.4},
-		},
-	}); err == nil {
-		t.Fatalf("expected non-monotonic lipsync frame sequence to fail closed")
-	}
-	if _, err := publicChatBuildLipsyncFrameBatchDetail(publicChatLipsyncFrameBatchProjection{
-		AudioArtifactID: "artifact-voice-1",
-		Frames: []publicChatLipsyncFrameProjection{
-			{FrameSequence: 1, OffsetMs: 0, DurationMs: 0, MouthOpenY: 0.2, AudioLevel: 0.2},
-		},
-	}); err == nil {
-		t.Fatalf("expected non-positive lipsync frame duration to fail closed")
-	}
-	if _, err := publicChatBuildLipsyncFrameBatchDetail(publicChatLipsyncFrameBatchProjection{
-		AudioArtifactID: "artifact-voice-1",
-		Frames: []publicChatLipsyncFrameProjection{
-			{FrameSequence: 1, OffsetMs: 0, DurationMs: 80, MouthOpenY: 1.2, AudioLevel: 0.2},
-		},
-	}); err == nil {
-		t.Fatalf("expected invalid mouth_open_y to fail closed")
+		t.Fatalf("expected non-positive semantic artifact sequence to fail closed")
 	}
 }
 

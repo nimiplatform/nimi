@@ -1,8 +1,4 @@
-import type { NimiDesktopRuntimeAiExecutionClient } from '@nimiplatform/sdk/runtime';
-import {
-  runRuntimeAIConsumeCapability,
-  type RuntimeAIConsumeOutput,
-} from '@nimiplatform/kit/features/generation/runtime';
+import type { NimiLocalAppClient, NimiLocalAppTextCandidateInput } from '@nimiplatform/sdk/app';
 
 export type DesktopNimiTextCapabilityResult = {
   readonly text: string;
@@ -10,49 +6,33 @@ export type DesktopNimiTextCapabilityResult = {
 };
 
 export type DesktopNimiTextCapabilityInput = {
-  readonly runtime: { readonly ai: NimiDesktopRuntimeAiExecutionClient };
-  readonly appId: string;
+  readonly client: Pick<NimiLocalAppClient, 'ai'>;
   readonly prompt: string;
-  readonly subjectUserId?: string;
   readonly signal?: AbortSignal;
 };
 
-/** Pure App projection into the Kit CapabilityContract boundary. */
+/** Builds only bounded App input; Runtime owns route, implementation and target. */
 export function buildDesktopNimiTextCapabilityRequest(
   input: DesktopNimiTextCapabilityInput,
-): Parameters<typeof runRuntimeAIConsumeCapability>[0] {
-  return {
-    runtime: input.runtime,
-    appId: input.appId,
-    capabilityId: 'text.generate',
-    prompt: input.prompt,
-    scenarioId: 'desktop-nimi-chat',
-    subjectUserId: input.subjectUserId,
-    surfaceId: 'desktop.chat.nimi',
-    signal: input.signal,
-  };
+): NimiLocalAppTextCandidateInput {
+  const prompt = input.prompt.trim();
+  if (!prompt) throw new Error('Nimi Chat text input is required.');
+  return Object.freeze({
+    messages: Object.freeze([{ role: 'user' as const, text: prompt }]),
+  });
 }
 
-/** Executes a CapabilityContract request with Runtime-owned implementation selection. */
+/** Executes Nimi Chat through Desktop's canonical formal App client. */
 export async function runDesktopNimiTextCapability(
   input: DesktopNimiTextCapabilityInput,
 ): Promise<DesktopNimiTextCapabilityResult> {
-  const result = await runRuntimeAIConsumeCapability(
+  if (input.signal?.aborted) throw input.signal.reason;
+  const result = await input.client.ai.text.generateCandidate(
     buildDesktopNimiTextCapabilityRequest(input),
   );
-  if (!result.ok) throw result.error;
-  return projectTextOutput(result.output, result.trace?.traceId);
-}
-
-function projectTextOutput(
-  output: RuntimeAIConsumeOutput,
-  traceId: string | undefined,
-): DesktopNimiTextCapabilityResult {
-  if (output.kind !== 'text') {
-    throw new Error('Runtime text.generate returned a non-text output.');
-  }
+  if (input.signal?.aborted) throw input.signal.reason;
   return {
-    text: output.text,
-    traceId: traceId?.trim() || null,
+    text: result.text,
+    traceId: result.traceId.trim() || null,
   };
 }

@@ -133,14 +133,11 @@ export const simulatorConformanceFixture = {
       },
     },
     moduleData: {
-      ownerUserId: 'sim-user-zhiyu',
       agents: [{
-        localAgentRef: 'sim-agent-lin',
-        runtimeSourceRef: 'sim-source-lin',
+        agentHandle: 'agent_ref_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         displayName: '林默',
       }, {
-        localAgentRef: 'sim-agent-yun',
-        runtimeSourceRef: 'sim-source-yun',
+        agentHandle: 'agent_ref_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
         displayName: '云织',
       }],
       responseText: '我已收到你的消息。这次回复来自同一条可回放的 Nimi 模拟生态状态链。',

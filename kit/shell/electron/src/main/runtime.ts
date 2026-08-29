@@ -39,7 +39,6 @@ import {
 } from './runtime-trusted-metadata.js';
 export { resolveTrustedRuntimeMetadata } from './runtime-trusted-metadata.js';
 export {
-  assertNoRendererLocalAgentCallerPayload,
   assertNoRendererSensitiveMetadata,
   assertNoRendererSensitiveRuntimeBridgePayload,
   buildElectronRuntimeGrpcMetadata,
@@ -89,6 +88,9 @@ export async function invokeElectronRuntimeUnary(input: {
   readonly signal?: AbortSignal;
 }): Promise<ElectronRuntimeBridgeUnaryResponse> {
   const request = parseElectronRuntimeUnaryRequest(input.payload);
+  if (input.desktopControlHost && isElectronFormalAppOnlyRuntimeMethod(request.methodId)) {
+    throw electronDesktopRuntimeMethodNotAdmitted(input.command, request.methodId);
+  }
   if (input.bundledAvatarProfile) {
     if (!input.desktopControlHost) {
       throw electronDesktopControlError(
@@ -331,6 +333,9 @@ export async function openElectronRuntimeStream(input: {
   readonly bundledAvatarProfile?: boolean;
 }): Promise<ElectronRuntimeBridgeStreamOpenResponse> {
   const request = parseElectronRuntimeStreamOpenRequest(input.payload);
+  if (input.desktopControlHost && isElectronFormalAppOnlyRuntimeMethod(request.methodId)) {
+    throw electronDesktopRuntimeStreamNotAdmitted(input.command, request.methodId);
+  }
   const metadataInput = {
     provider: input.trustedRuntimeMetadataProvider,
     command: input.command,
@@ -479,6 +484,13 @@ export async function openElectronRuntimeStream(input: {
     throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error);
   }
   return { streamId: request.streamId };
+}
+
+function isElectronFormalAppOnlyRuntimeMethod(methodId: string): boolean {
+  const methodName = methodId.slice(methodId.lastIndexOf('/') + 1);
+  return methodName.includes('LocalApp')
+    || methodId.startsWith('/nimi.runtime.v1.RuntimeAiRealtimeService/')
+    || methodId.startsWith('/nimi.runtime.v1.RuntimeRealmRealtimeService/');
 }
 
 export function closeElectronRuntimeStream(

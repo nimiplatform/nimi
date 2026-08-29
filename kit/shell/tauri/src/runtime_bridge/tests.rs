@@ -147,7 +147,7 @@ fn runtime_bridge_unary_applies_trusted_metadata_before_override() {
                     metadata: Some(RuntimeBridgeMetadata {
                         app_id: Some("nimi.parentos".to_string()),
                         participant_id: Some("nimi.parentos".to_string()),
-                        caller_kind: Some("local-first-party-app".to_string()),
+                        caller_kind: Some("third-party-app".to_string()),
                         caller_id: Some("nimi.parentos.local-first-party".to_string()),
                         surface_id: Some("host.surface".to_string()),
                         ..RuntimeBridgeMetadata::default()

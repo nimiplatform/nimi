@@ -687,6 +687,11 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppConversationSnapshot: record('localAppConversationSnapshot', {
       conversationAnchorId: 'anchor-1', activeTurnId: null, messages: [], truncatedBefore: false,
     }),
+    localAppEmbodimentSnapshot: record('localAppEmbodimentSnapshot', {
+      sequence: '1', observedAt: { seconds: '1', nanos: 0 }, provenance: 'runtime_agent_owner',
+      activity: null, emotion: null, posture: null, voiceTiming: null,
+    }),
+    localAppEmbodimentSubscribe: record('localAppEmbodimentSubscribe', { streamId: 'embodiment-1' }),
     localAppAiRealtimeOpen: record('localAppAiRealtimeOpen', {}),
     localAppAiRealtimeAppendInput: record('localAppAiRealtimeAppendInput', {}),
     localAppAiRealtimeSubmitOwnerControl: record('localAppAiRealtimeSubmitOwnerControl', {}),

@@ -4,7 +4,43 @@ import test from 'node:test';
 import {
   createNimiAppAIConfigClient,
   createNimiAppAIConfigOwner,
+  createNimiLocalAppAIConfigRuntimeClient,
 } from './capability-configuration';
+
+test('formal Local App AIConfig derives owner without a caller selector', async () => {
+	const requests: unknown[] = [];
+	const owner = createNimiAppAIConfigOwner('app.formal');
+	const client = createNimiLocalAppAIConfigRuntimeClient({
+		appId: 'app.formal',
+		runtime: {
+			async getAppAIConfig(request) {
+				requests.push(request);
+				return { config: { owner, capabilities: [] }, revision: '0', effectiveSelections: [] };
+			},
+			async overwriteAppAIConfig(request) {
+				requests.push(request);
+				return { config: { ...request.config, owner }, revision: '1', committed: true, reasonCode: 0 };
+			},
+			async listAppAIConfigOptions(request) {
+				requests.push(request);
+				return { result: { oneofKind: 'presetVoices', presetVoices: { options: [] } }, truncated: false };
+			},
+		},
+	});
+
+	await client.get();
+	await client.overwrite({ expectedRevision: '0', capabilities: [] });
+	await client.listOptions({ kind: 'preset-voices' });
+
+	assert.deepEqual(requests[0], {});
+	assert.deepEqual(requests[1], {
+		config: { capabilities: [] },
+		expectedRevision: '0',
+	});
+	assert.deepEqual(requests[2], {
+		query: { oneofKind: 'presetVoices', presetVoices: {} },
+	});
+});
 
 test('App AIConfig client uses exact whole-object owner intent', async () => {
   const requests: unknown[] = [];

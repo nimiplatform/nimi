@@ -1,7 +1,10 @@
 {
   "Workbench": {
     "sideNavAriaLabel": "Nimi Lab workspace navigation",
-    "uiRecipes": "UI Recipes"
+    "uiRecipes": "UI Recipes",
+    "agentCenter": "Agent Center",
+    "agentConversation": "Agent Conversation",
+    "agentRealtime": "Agent Realtime"
   },
   "Capabilities": {
     "worldGenerate": {

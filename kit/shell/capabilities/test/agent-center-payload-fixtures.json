@@ -2,12 +2,12 @@
   {
     "operationId": "avatarAssetImport",
     "command": "nimi.shell.agentCenter.avatarAssetImport",
-    "valid": { "backendKind": "live2d", "agentHandle": "agent_ref_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
+    "valid": { "backendKind": "live2d" },
     "invalid": [
-      { "backendKind": "live2d", "agentHandle": "agent_ref_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "sourcePath": "/fixture/avatar-live2d.zip" },
+      { "backendKind": "live2d", "sourcePath": "/fixture/avatar-live2d.zip" },
       {},
-      { "backendKind": "raw", "agentHandle": "agent_ref_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" },
-      { "backendKind": "vrm", "agentHandle": "local-agent:forbidden" }
+      { "backendKind": "raw" },
+      { "backendKind": "vrm", "agentHandle": "agent_ref_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }
     ]
   },
   {

@@ -52,6 +52,12 @@ type NativeFirstPartyProductUnaryInput = {
   readonly requestId: string;
 };
 
+type NimiElectronDesktopControlClientStreamInput = {
+  readonly methodId: string;
+  readonly requestFrames: readonly Uint8Array[];
+  readonly timeoutMs?: number;
+};
+
 export type NimiElectronDesktopControlBinding = {
   readonly desktopMachineProductUnary: (input: {
     readonly methodId: string;
@@ -71,6 +77,11 @@ export type NimiElectronDesktopControlBinding = {
   readonly desktopFirstPartyProductUnaryRelease: (input: {
     readonly requestId: string;
   }) => Promise<NativeJsonOutcome>;
+  readonly desktopAccountProductClientStream: (input: {
+    readonly methodId: string;
+    readonly requestFrames: readonly Uint8Array[];
+    readonly timeoutMs?: number;
+  }) => Promise<NativeBytesOutcome>;
   readonly desktopMachineProductStreamOpen: (input: {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
@@ -88,6 +99,11 @@ export type NimiElectronDesktopControlBinding = {
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
     readonly requestId: string;
+  }) => Promise<NativeBytesOutcome>;
+  readonly desktopBundledAvatarClientStream: (input: {
+    readonly methodId: string;
+    readonly requestFrames: readonly Uint8Array[];
+    readonly timeoutMs?: number;
   }) => Promise<NativeBytesOutcome>;
   readonly desktopBundledAvatarStreamOpen: (input: {
     readonly methodId: string;
@@ -111,12 +127,18 @@ export type NimiElectronDesktopControlHost = {
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
   }) => RuntimeGrpcBridgeStream;
+  readonly accountProductClientStream: (
+    input: NimiElectronDesktopControlClientStreamInput,
+  ) => Promise<Uint8Array>;
   readonly bundledAvatarUnary: (input: NimiElectronDesktopControlUnaryInput) => Promise<Uint8Array>;
   readonly bundledAvatarServerStream: (input: {
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
   }) => RuntimeGrpcBridgeStream;
+  readonly bundledAvatarClientStream: (
+    input: NimiElectronDesktopControlClientStreamInput,
+  ) => Promise<Uint8Array>;
 };
 
 export class NimiElectronDesktopControlHostError extends Error {
@@ -168,6 +190,15 @@ class ElectronDesktopControlHost implements NimiElectronDesktopControlHost {
     return new ElectronFirstPartyProductStream(this.binding, input, 'account');
   }
 
+  async accountProductClientStream(
+    input: NimiElectronDesktopControlClientStreamInput,
+  ): Promise<Uint8Array> {
+    validateClientStreamInput(input);
+    if (input.methodId !== '/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset'
+      || !isNimiElectronDesktopAccountProductMethod(input.methodId, 'server_stream')) throw untrusted();
+    return this.invokeNative(() => this.binding.desktopAccountProductClientStream(input));
+  }
+
   async bundledAvatarUnary(input: NimiElectronDesktopControlUnaryInput): Promise<Uint8Array> {
     if (!isNimiElectronBundledAvatarUnaryMethod(input.methodId)) throw untrusted();
     return this.invokeFirstPartyUnary('avatar', input, (nativeInput) => this.binding.desktopBundledAvatarUnary(nativeInput));
@@ -180,6 +211,15 @@ class ElectronDesktopControlHost implements NimiElectronDesktopControlHost {
   }): RuntimeGrpcBridgeStream {
     if (!isNimiElectronBundledAvatarServerStreamMethod(input.methodId)) throw untrusted();
     return new ElectronBundledAvatarStream(this.binding, input);
+  }
+
+  async bundledAvatarClientStream(
+    input: NimiElectronDesktopControlClientStreamInput,
+  ): Promise<Uint8Array> {
+    validateClientStreamInput(input);
+    if (input.methodId !== '/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset'
+      || !isNimiElectronBundledAvatarServerStreamMethod(input.methodId)) throw untrusted();
+    return this.invokeNative(() => this.binding.desktopBundledAvatarClientStream(input));
   }
 
   private async invokeNative(invoke: () => Promise<NativeBytesOutcome>): Promise<Uint8Array> {
@@ -268,6 +308,11 @@ class LazyElectronDesktopControlHost implements NimiElectronDesktopControlHost {
     return this.host.accountProductServerStream(input);
   }
 
+  accountProductClientStream(input: NimiElectronDesktopControlClientStreamInput): Promise<Uint8Array> {
+    this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
+    return this.host.accountProductClientStream(input);
+  }
+
   bundledAvatarUnary(input: NimiElectronDesktopControlUnaryInput): Promise<Uint8Array> {
     this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
     return this.host.bundledAvatarUnary(input);
@@ -280,6 +325,11 @@ class LazyElectronDesktopControlHost implements NimiElectronDesktopControlHost {
   }): RuntimeGrpcBridgeStream {
     this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
     return this.host.bundledAvatarServerStream(input);
+  }
+
+  bundledAvatarClientStream(input: NimiElectronDesktopControlClientStreamInput): Promise<Uint8Array> {
+    this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
+    return this.host.bundledAvatarClientStream(input);
   }
 }
 
@@ -417,6 +467,7 @@ function validateBinding(value: unknown): NimiElectronDesktopControlBinding {
   if (!value || typeof value !== 'object' || Array.isArray(value)
     || typeof (value as Record<string, unknown>).desktopMachineProductUnary !== 'function'
     || typeof (value as Record<string, unknown>).desktopAccountProductUnary !== 'function'
+    || typeof (value as Record<string, unknown>).desktopAccountProductClientStream !== 'function'
     || typeof (value as Record<string, unknown>).desktopFirstPartyProductUnaryCancel !== 'function'
     || typeof (value as Record<string, unknown>).desktopFirstPartyProductUnaryRelease !== 'function'
     || typeof (value as Record<string, unknown>).desktopMachineProductStreamOpen !== 'function'
@@ -424,12 +475,23 @@ function validateBinding(value: unknown): NimiElectronDesktopControlBinding {
     || typeof (value as Record<string, unknown>).desktopFirstPartyProductStreamNext !== 'function'
     || typeof (value as Record<string, unknown>).desktopFirstPartyProductStreamClose !== 'function'
     || typeof (value as Record<string, unknown>).desktopBundledAvatarUnary !== 'function'
+    || typeof (value as Record<string, unknown>).desktopBundledAvatarClientStream !== 'function'
     || typeof (value as Record<string, unknown>).desktopBundledAvatarStreamOpen !== 'function'
     || typeof (value as Record<string, unknown>).desktopBundledAvatarStreamNext !== 'function'
     || typeof (value as Record<string, unknown>).desktopBundledAvatarStreamClose !== 'function') {
     throw untrusted();
   }
   return value as NimiElectronDesktopControlBinding;
+}
+
+function validateClientStreamInput(input: NimiElectronDesktopControlClientStreamInput): void {
+  if (!Array.isArray(input.requestFrames) || input.requestFrames.length < 2
+    || input.requestFrames.length > 65
+    || input.requestFrames.some((frame) => !(frame instanceof Uint8Array) || frame.byteLength === 0)) {
+    throw untrusted();
+  }
+  const size = input.requestFrames.reduce((total, frame) => total + frame.byteLength, 0);
+  if (!Number.isSafeInteger(size) || size > 65 * 1024 * 1024) throw untrusted();
 }
 
 function nativeError(value: {

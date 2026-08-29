@@ -3,7 +3,11 @@ import {
   type NimiRendererHostFacadeV1,
   type NimiRendererHostMethodMap,
 } from '@nimiplatform/kit/shell/renderer/host';
-import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
+import type {
+  NimiLocalAppAgentHandle,
+  NimiLocalAppConversationClient,
+} from '@nimiplatform/sdk/app';
+import type { AvatarHostHandoffPort } from '@nimiplatform/kit/features/avatar/headless';
 
 import type { ZhiyuCanonicalRendererBindings, ZhiyuHomeProjection } from '../renderer/contract.js';
 import {
@@ -11,13 +15,16 @@ import {
 } from '../shell/agent/agent-inventory.js';
 import { probeZhiyuRuntimeCompanionState } from '../shell/agent/companion-state.js';
 import { probeZhiyuRuntimeConversationHome } from '../shell/agent/conversation-home.js';
+import { remintZhiyuConversationSelection } from '../shell/agent/conversation-selection-remint.js';
 import { probeZhiyuRuntimeDelegationUx } from '../shell/agent/delegation-ux.js';
 import { resolveZhiyuRuntimeLocalAgentSelection } from '../shell/agent/local-agent-selection.js';
+import type { ZhiyuLocalAgentStatus } from '../shell/agent/local-agent-status.js';
 import { projectZhiyuProposalIntakeStatus } from '../shell/agent/proposal-intake.js';
 import { projectZhiyuRuntimeSourceProjection } from '../shell/agent/source-projection.js';
 import { probeZhiyuAgentTurnReadiness } from '../shell/agent-chat/agent-turn-readiness.js';
 import { runZhiyuAgentChatTurn, zhiyuArtifactDataUrl } from '../shell/agent-chat/runtime-agent-turn-adapter.js';
 import { probeZhiyuAvatarPresence } from '../shell/avatar/avatar-presence.js';
+import { createZhiyuAvatarHostHandoffPort } from '../shell/avatar/avatar-host-handoff-port.js';
 import { launchZhiyuAvatar } from '../shell/avatar/avatar-launch-handoff.js';
 import { probeZhiyuRuntimeAccountStatus } from '../shell/auth/runtime-account-status.js';
 import { getZhiyuLocalAppClient } from '../shell/auth/runtime-platform.js';
@@ -41,19 +48,77 @@ function productionRoutePort(): ZhiyuCanonicalRendererBindings['route'] {
   });
 }
 
-async function loadHome(selectedAgentHandle: string | null): Promise<ZhiyuHomeProjection> {
+async function resolveCurrentAgentHandle(input: {
+  readonly selectedAgentHandle: NimiLocalAppAgentHandle | null;
+  readonly previousConversationAnchorId: string | null;
+  readonly isCurrent: () => boolean;
+  readonly inventory: ZhiyuHomeProjection['inventory'];
+  readonly conversation: Pick<NimiLocalAppConversationClient, 'snapshot'>;
+}): Promise<NimiLocalAppAgentHandle | null> {
+  const selectedAgentHandle = input.selectedAgentHandle;
+  if (!selectedAgentHandle
+    || !input.inventory.ready
+    || !input.previousConversationAnchorId
+    || input.inventory.localAgents.some((reference) => reference.agentHandle === selectedAgentHandle)) {
+    return selectedAgentHandle;
+  }
+  const reminted = await remintZhiyuConversationSelection({
+    previousConversationAnchorId: input.previousConversationAnchorId,
+    currentReferences: input.inventory.localAgents,
+    conversation: input.conversation,
+    isCurrent: input.isCurrent,
+  });
+  return reminted.outcome === 'reminted' ? reminted.agentHandle : selectedAgentHandle;
+}
+
+function localAgentFromRemintError(error: unknown): ZhiyuLocalAgentStatus {
+  const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+  return {
+    transport: 'electron-ipc',
+    ready: false,
+    reasonCode: typeof record.reasonCode === 'string'
+      ? record.reasonCode
+      : typeof record.code === 'string'
+        ? record.code
+        : 'zhiyu-conversation-selection-remint-failed',
+    actionHint: typeof record.actionHint === 'string'
+      ? record.actionHint
+      : 'refresh_runtime_local_agent_inventory',
+    source: typeof record.source === 'string' ? record.source : 'sdk',
+    message: error instanceof Error && error.message.trim()
+      ? error.message.trim()
+      : 'Zhiyu could not rebind the previous Conversation to a current-session Agent.',
+    agentHandle: null,
+  };
+}
+
+async function loadHome(
+  input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadHome']>[0],
+  avatarHostPort: AvatarHostHandoffPort,
+): Promise<ZhiyuHomeProjection> {
   const [runtime, auth] = await Promise.all([
     probeZhiyuRuntimeStatus(),
     probeZhiyuRuntimeAccountStatus(),
   ]);
   const inventory = await probeZhiyuRuntimeAgentInventory();
-  const localAgent = resolveZhiyuRuntimeLocalAgentSelection({ inventory, selectedAgentHandle });
+  const client = getZhiyuLocalAppClient();
+  let localAgent: ZhiyuLocalAgentStatus;
+  try {
+    const selectedAgentHandle = await resolveCurrentAgentHandle({
+      ...input,
+      inventory,
+      conversation: client.conversation,
+    });
+    localAgent = resolveZhiyuRuntimeLocalAgentSelection({ inventory, selectedAgentHandle });
+  } catch (error) {
+    localAgent = localAgentFromRemintError(error);
+  }
   let source: ZhiyuHomeProjection['source'];
   if (!localAgent.agentHandle) {
     source = projectZhiyuRuntimeSourceProjection({ manager: null });
   } else {
     try {
-      const manager = await getZhiyuLocalAppClient().agentConfigure.manager.snapshot({
+      const manager = await client.agentConfigure.manager.snapshot({
         agentHandle: localAgent.agentHandle,
       });
       source = projectZhiyuRuntimeSourceProjection({ manager });
@@ -61,10 +126,12 @@ async function loadHome(selectedAgentHandle: string | null): Promise<ZhiyuHomePr
       source = projectZhiyuRuntimeSourceProjection({ error });
     }
   }
-  const [conversation, companion, avatar] = await Promise.all([
-    probeZhiyuRuntimeConversationHome(localAgent),
-    probeZhiyuRuntimeCompanionState(localAgent),
-    probeZhiyuAvatarPresence(localAgent),
+  const conversation = await probeZhiyuRuntimeConversationHome(localAgent);
+  const [companion, avatar] = await Promise.all([
+    probeZhiyuRuntimeCompanionState(conversation, {
+      readEmbodiment: (target) => client.embodiment.snapshot(target),
+    }),
+    probeZhiyuAvatarPresence(conversation, { hostPort: avatarHostPort }),
   ]);
   const delegation = await probeZhiyuRuntimeDelegationUx(conversation);
   return {
@@ -88,7 +155,9 @@ async function hydrateConversation(input: Parameters<ZhiyuCanonicalRendererBindi
 
 export function createZhiyuProductionBindings(
   kit: NimiRendererHostFacadeV1<NimiRendererHostMethodMap>,
+  options: { readonly avatarHostPort?: AvatarHostHandoffPort } = {},
 ): ZhiyuCanonicalRendererBindings {
+  const avatarHostPort = options.avatarHostPort ?? createZhiyuAvatarHostHandoffPort();
   return createNimiCanonicalRendererHostBindings({
     scope: kit.scope,
     capabilities: kit.capabilities,
@@ -98,7 +167,9 @@ export function createZhiyuProductionBindings(
     app: {
       projection: Object.freeze({
         agentCenterSession: createZhiyuProductionAgentCenterSession,
-        loadHome: ({ selectedAgentHandle }: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadHome']>[0]) => loadHome(selectedAgentHandle),
+        loadHome: (
+          input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadHome']>[0],
+        ) => loadHome(input, avatarHostPort),
         loadAgentInventory: probeZhiyuRuntimeAgentInventory,
         projectTurnReadiness: probeZhiyuAgentTurnReadiness,
         hydrateConversation,
@@ -115,7 +186,7 @@ export function createZhiyuProductionBindings(
           await requestZhiyuDesktopOpenRuntimeSettings();
         },
         openDesktopSelectPartner: requestZhiyuDesktopOpenSelectPartner,
-        launchAvatar: ({ evidence, action }: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['launchAvatar']>[0]) => launchZhiyuAvatar({ evidence, action }),
+        launchAvatar: ({ evidence, action }: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['launchAvatar']>[0]) => launchZhiyuAvatar({ evidence, action, hostPort: avatarHostPort }),
       }),
       events: Object.freeze({
         subscribeConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeConversation']>[0]) {

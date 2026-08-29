@@ -56,34 +56,12 @@ methods:
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding
-    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot
     posture: authenticated_or_protected_local_app_operation
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput
     posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults
-    posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay
-    posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentState
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateAgentState
@@ -140,10 +118,6 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents
     posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream
-    posture: protected_origin_required
-  - method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback
-    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario

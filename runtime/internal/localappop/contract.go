@@ -66,6 +66,8 @@ const (
 	AppOperationIDAgentRealtimeStatusGet         = "runtime.agent.realtime.status.get"
 	AppOperationIDAgentRealtimeOutputInterrupt   = "runtime.agent.realtime.output.interrupt"
 	AppOperationIDAgentRealtimeClose             = "runtime.agent.realtime.close"
+	AppOperationIDAgentEmbodimentSnapshotGet     = "runtime.agent.embodiment.snapshot.get"
+	AppOperationIDAgentEmbodimentEventsSubscribe = "runtime.agent.embodiment.events.subscribe"
 )
 
 // Canonical operation identifiers for the scenario-consumption operation
@@ -157,6 +159,8 @@ const (
 	IngressAgentMemoryForget
 	IngressAgentMemorySwitch
 	IngressAgentMemoryDelete
+	IngressAgentEmbodimentSnapshotGet
+	IngressAgentEmbodimentEventsSubscribe
 )
 
 const (
@@ -233,6 +237,8 @@ const (
 	OperationAgentMemoryForget
 	OperationAgentMemorySwitch
 	OperationAgentMemoryDelete
+	OperationAgentEmbodimentSnapshotGet
+	OperationAgentEmbodimentEventsSubscribe
 )
 
 type contractRow struct {
@@ -308,6 +314,8 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressConversationArtifactRead, OperationConversationArtifactRead, AppOperationIDConversationArtifactRead, AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationVoiceTranscribe, OperationConversationVoiceTranscribe, AppOperationIDConversationVoiceTranscribe, AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationVoiceRender, OperationConversationVoiceRender, AppOperationIDConversationVoiceRender, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentEmbodimentSnapshotGet, OperationAgentEmbodimentSnapshotGet, AppOperationIDAgentEmbodimentSnapshotGet, AuthorityClassAppAccess, "agent.local"},
+	{IngressAgentEmbodimentEventsSubscribe, OperationAgentEmbodimentEventsSubscribe, AppOperationIDAgentEmbodimentEventsSubscribe, AuthorityClassAppAccess, "agent.local"},
 	{IngressAgentManagerSnapshotGet, OperationAgentManagerSnapshotGet, "runtime.agent.manager.snapshot.get", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentAIConfigGet, OperationAgentAIConfigGet, "runtime.agent.ai-config.get", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentAIConfigOverwrite, OperationAgentAIConfigOverwrite, "runtime.agent.ai-config.overwrite", AuthorityClassAppAccess, "agent.configure"},

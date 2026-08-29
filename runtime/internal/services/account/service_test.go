@@ -179,7 +179,7 @@ func firstPartyCaller() *runtimev1.AccountCaller {
 		AppId:         "nimi.desktop",
 		AppInstanceId: "desktop-1",
 		DeviceId:      "device-1",
-		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
+		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL,
 	}
 }
 
@@ -192,18 +192,18 @@ func desktopAccountControlCaller() *runtimev1.AccountCaller {
 	}
 }
 
+func explicitLocalAppAccountCaller() *runtimev1.AccountCaller {
+	return &runtimev1.AccountCaller{
+		AppId:         "acme.widget",
+		AppInstanceId: "renderer-selected-instance",
+		DeviceId:      "renderer-selected-device",
+		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_APP,
+	}
+}
+
 func desktopAccountControlContext(t *testing.T) context.Context {
 	t.Helper()
 	return protectedDesktopAccountContext(t)
-}
-
-func localFirstPartyAppCaller() *runtimev1.AccountCaller {
-	return &runtimev1.AccountCaller{
-		AppId:         "acme.widget",
-		AppInstanceId: "acme.widget.local-first-party",
-		DeviceId:      "local-first-party-device",
-		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
-	}
 }
 
 func testAppRegistry(t *testing.T, callers ...*runtimev1.AccountCaller) *appregistry.Registry {
@@ -428,25 +428,6 @@ func TestCompleteLoginFailsClosedForStateNonceReplayAndExpiry(t *testing.T) {
 	if err != nil || expired.GetAccepted() || expired.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_PROOF_EXPIRED {
 		t.Fatalf("expired proof response=%+v error=%v", expired, err)
 	}
-}
-
-func TestRegisteredLocalFirstPartyAppReadsSingleActiveAccountProjection(t *testing.T) {
-	custody := &memoryCustody{}
-	svc := newHarnessService(t, custody, WithAppRegistry(testAppRegistry(t, firstPartyCaller(), localFirstPartyAppCaller())))
-	completeLogin(t, svc)
-
-	status, err := svc.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{
-		Caller: localFirstPartyAppCaller(),
-	})
-	if err != nil {
-		t.Fatalf("local first-party App GetAccountSessionStatus: %v", err)
-	}
-	if status.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED ||
-		accountStatusState(status) != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED ||
-		accountStatusProjection(status).GetAccountId() != "acct-1" {
-		t.Fatalf("registered local first-party App caller should read the Runtime single active account projection: %+v", status)
-	}
-
 }
 
 func TestUnavailableCustodyFailsClosed(t *testing.T) {
@@ -699,44 +680,21 @@ func TestDaemonRestartRecoversAccountAndPrivateBrokerCredential(t *testing.T) {
 	}
 }
 
-func TestAccountStatusRejectsUnregisteredLocalFirstPartyCaller(t *testing.T) {
-	t.Run("authenticated", func(t *testing.T) {
-		svc := newHarnessService(t, nil)
-		completeLogin(t, svc)
-		svc.registry = appregistry.New()
-
-		resp, err := svc.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{Caller: firstPartyCaller()})
+func TestAccountStatusRejectsExplicitLocalAppCallerAssertion(t *testing.T) {
+	for _, svc := range []*Service{
+		newHarnessService(t, nil),
+		newHarnessService(t, &memoryCustody{err: ErrNoStoredAccount}),
+	} {
+		resp, err := svc.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{Caller: explicitLocalAppAccountCaller()})
 		if err != nil {
 			t.Fatalf("GetAccountSessionStatus: %v", err)
 		}
 		if resp.GetReasonCode() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED ||
 			resp.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED ||
 			resp.GetSnapshot() != nil {
-			t.Fatalf("unregistered caller must not receive account status projection: %+v", resp)
+			t.Fatalf("explicit Local App caller assertion received account status: %+v", resp)
 		}
-	})
-
-	t.Run("anonymous_requires_admission", func(t *testing.T) {
-		anonymous := newHarnessService(t, &memoryCustody{err: ErrNoStoredAccount})
-		allowed, err := anonymous.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{Caller: firstPartyCaller()})
-		if err != nil {
-			t.Fatalf("admitted anonymous GetAccountSessionStatus: %v", err)
-		}
-		if allowed.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED ||
-			accountStatusState(allowed) != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_ANONYMOUS {
-			t.Fatalf("admitted caller should receive anonymous status: %+v", allowed)
-		}
-
-		anonymous.registry = appregistry.New()
-		rejected, err := anonymous.GetAccountSessionStatus(context.Background(), &runtimev1.GetAccountSessionStatusRequest{Caller: firstPartyCaller()})
-		if err != nil {
-			t.Fatalf("unregistered anonymous GetAccountSessionStatus: %v", err)
-		}
-		if rejected.GetReasonCode() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED ||
-			rejected.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
-			t.Fatalf("anonymous status reads still require admitted caller registration: %+v", rejected)
-		}
-	})
+	}
 }
 
 func TestSubscribeAccountSessionEventsRequiresAdmittedCallerAndProtectsBundledAvatar(t *testing.T) {
@@ -746,7 +704,7 @@ func TestSubscribeAccountSessionEventsRequiresAdmittedCallerAndProtectsBundledAv
 
 	unregistered := &accountSessionEventStream{ctx: context.Background()}
 	svc.registry = appregistry.New()
-	if err := svc.SubscribeAccountSessionEvents(&runtimev1.SubscribeAccountSessionEventsRequest{Caller: firstPartyCaller()}, unregistered); err != nil {
+	if err := svc.SubscribeAccountSessionEvents(&runtimev1.SubscribeAccountSessionEventsRequest{Caller: explicitLocalAppAccountCaller()}, unregistered); err != nil {
 		t.Fatalf("unregistered SubscribeAccountSessionEvents: %v", err)
 	}
 	if len(unregistered.sent) != 1 ||
@@ -774,7 +732,6 @@ func TestSubscribeAccountSessionEventsRequiresAdmittedCallerAndProtectsBundledAv
 		t.Fatalf("protected bundled Avatar must receive the Runtime-owned account projection: %+v", avatarStream.sent)
 	}
 
-	svc.registry = testAppRegistry(t, firstPartyCaller())
 	ctx, cancel := context.WithCancel(context.Background())
 	admitted := &accountSessionEventStream{ctx: ctx, afterSend: cancel}
 	if err := svc.SubscribeAccountSessionEvents(&runtimev1.SubscribeAccountSessionEventsRequest{Caller: firstPartyCaller()}, admitted); err != context.Canceled {
@@ -793,14 +750,14 @@ func TestLifecycleRPCsRejectUnregisteredCallerWithoutMutation(t *testing.T) {
 		{
 			name: "logout",
 			act: func(svc *Service) (bool, runtimev1.AccountReasonCode, error) {
-				resp, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: firstPartyCaller()})
+				resp, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: explicitLocalAppAccountCaller()})
 				return resp.GetAccepted(), resp.GetAccountReasonCode(), err
 			},
 		},
 		{
 			name: "switch",
 			act: func(svc *Service) (bool, runtimev1.AccountReasonCode, error) {
-				resp, err := svc.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: firstPartyCaller()})
+				resp, err := svc.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: explicitLocalAppAccountCaller()})
 				return resp.GetAccepted(), resp.GetAccountReasonCode(), err
 			},
 		},

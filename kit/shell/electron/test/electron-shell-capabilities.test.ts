@@ -115,6 +115,8 @@ describe('Electron standard shell capability catalog', () => {
       'local-app.conversationInterruptTurn',
       'local-app.conversationSubscribe',
       'local-app.conversationSnapshot',
+      'local-app.embodimentSnapshot',
+      'local-app.embodimentSubscribe',
       'local-app.aiRealtimeOpen',
       'local-app.aiRealtimeAppendInput',
       'local-app.aiRealtimeSubmitOwnerControl',
@@ -174,6 +176,7 @@ describe('Electron standard shell capability catalog', () => {
       'agent-center.avatarAssetImport',
       'agent-center.backgroundImport',
       'desktop-open.openIntent',
+      'avatar.hostHandoff',
     ]);
     expect(localAppSet?.allowedCommands).toEqual([
       'nimi.shell.localApp.sessionStatus',
@@ -200,6 +203,8 @@ describe('Electron standard shell capability catalog', () => {
       'nimi.shell.localApp.conversationInterruptTurn',
       'nimi.shell.localApp.conversationSubscribe',
       'nimi.shell.localApp.conversationSnapshot',
+      'nimi.shell.localApp.embodimentSnapshot',
+      'nimi.shell.localApp.embodimentSubscribe',
       'nimi.shell.localApp.aiRealtimeOpen',
       'nimi.shell.localApp.aiRealtimeAppendInput',
       'nimi.shell.localApp.aiRealtimeSubmitOwnerControl',
@@ -259,6 +264,7 @@ describe('Electron standard shell capability catalog', () => {
       'nimi.shell.agentCenter.avatarAssetImport',
       'nimi.shell.agentCenter.backgroundImport',
       'nimi.shell.desktopOpen.openIntent',
+      'nimi.shell.avatar.hostHandoff',
     ]);
     expect(localAppSet?.plannedOperations).toEqual(expect.arrayContaining([
       'data.pathResolve',
@@ -267,7 +273,6 @@ describe('Electron standard shell capability catalog', () => {
     expect(localAppSet?.plannedOperations).not.toContain('desktop-open.openIntent');
     expect(localAppSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status']);
     expect(localAppSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['runtime.unary']);
-    expect(localAppSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']);
     expect(localAppSet?.forbiddenCommands).toContain(NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get']);
     expect(localAppSet?.forbiddenOperations).toContain('electron.raw-ipc');
     expect(localAppSet?.forbiddenOperations).toContain('node.raw-fs');

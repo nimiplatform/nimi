@@ -12,7 +12,7 @@ import (
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 )
 
-func TestPublicChatCommittedTurnSkipsVoiceLipsyncProjectionWithoutAvatarAutoplay(t *testing.T) {
+func TestPublicChatCommittedTurnSkipsVoiceProjectionWithoutVoiceConfiguration(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
@@ -87,15 +87,14 @@ func TestPublicChatCommittedTurnSkipsVoiceLipsyncProjectionWithoutAvatarAutoplay
 	committedPayload := publicChatPayloadMap(t, committed)
 	requirePublicChatTimelineEnvelope(t, committedPayload, turnID, streamID, publicChatTimelineChannelText)
 	for _, messageType := range capture.messageTypes() {
-		if messageType == publicChatPresentationVoicePlaybackRequestedType ||
-			messageType == publicChatPresentationVoiceStreamChunkType ||
-			messageType == publicChatPresentationLipsyncFrameBatchType {
-			t.Fatalf("default text-only turn must not emit voice/lipsync projection, got message types %v", capture.messageTypes())
+		if messageType == publicChatConversationVoiceTimingReadyType ||
+			messageType == publicChatConversationVoiceArtifactAvailableType {
+			t.Fatalf("default text-only turn must not emit voice projection, got message types %v", capture.messageTypes())
 		}
 	}
 }
 
-func TestPublicChatCommittedTurnEmitsAvatarAutoplayProviderVoiceProjection(t *testing.T) {
+func TestPublicChatCommittedTurnEmitsProviderVoiceProjectionWithoutAvatarAutoplay(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	installMachineAIConfigForTest(t, svc, "user-1", capabilitydriver.LlamaCapabilityContract, capabilitydriver.AudioSynthesizeContract)
@@ -115,7 +114,7 @@ func TestPublicChatCommittedTurnEmitsAvatarAutoplayProviderVoiceProjection(t *te
 			capabilitydriver.AudioSynthesizeContract: selectedSpeech,
 		},
 	})
-	setPublicChatTestPresentationProfile(t, svc, "agent-alpha", "desktop.app", "user-1", true)
+	setPublicChatTestPresentationProfile(t, svc, "agent-alpha", "desktop.app", "user-1", false)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
@@ -195,9 +194,8 @@ func TestPublicChatCommittedTurnEmitsAvatarAutoplayProviderVoiceProjection(t *te
 
 	accepted := capture.waitForMessageType(t, publicChatTurnAcceptedType)
 	committed := capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
-	voiceChunk := capture.waitForMessageType(t, publicChatPresentationVoiceStreamChunkType)
-	voicePlayback := capture.waitForMessageType(t, publicChatPresentationVoicePlaybackRequestedType)
-	lipsyncBatch := capture.waitForMessageType(t, publicChatPresentationLipsyncFrameBatchType)
+	voiceChunk := capture.waitForMessageType(t, publicChatConversationVoiceArtifactAvailableType)
+	voicePlayback := capture.waitForMessageType(t, publicChatConversationVoiceTimingReadyType)
 
 	voicePayload := publicChatPayloadMap(t, voicePlayback)
 	acceptedPayload := publicChatPayloadMap(t, accepted)
@@ -210,33 +208,27 @@ func TestPublicChatCommittedTurnEmitsAvatarAutoplayProviderVoiceProjection(t *te
 	requirePublicChatTimelineEnvelope(t, chunkPayload, turnID, streamID, publicChatTimelineChannelVoice, "K-AGCORE-133")
 	chunkDetail := chunkPayload["detail"].(map[string]any)
 	if got := strings.TrimSpace(chunkDetail["message_id"].(string)); got != messageID {
-		t.Fatalf("expected voice stream chunk message_id %s, got %s", messageID, got)
+		t.Fatalf("expected semantic voice artifact message_id %s, got %s", messageID, got)
 	}
 	if got := strings.TrimSpace(chunkDetail["audio_artifact_id"].(string)); got != expectedAudioArtifactID {
-		t.Fatalf("expected voice stream chunk audio artifact id %s, got %s", expectedAudioArtifactID, got)
+		t.Fatalf("expected semantic voice artifact id %s, got %s", expectedAudioArtifactID, got)
 	}
 	if got := strings.TrimSpace(chunkDetail["audio_mime_type"].(string)); got != "audio/wav" {
-		t.Fatalf("expected voice stream chunk audio mime type audio/wav, got %s", got)
+		t.Fatalf("expected semantic voice artifact mime type audio/wav, got %s", got)
 	}
-	if got, _ := chunkDetail["chunk_sequence"].(float64); got != 1 {
-		t.Fatalf("expected voice stream chunk_sequence=1, got %v", chunkDetail["chunk_sequence"])
+	if got, _ := chunkDetail["artifact_sequence"].(float64); got != 1 {
+		t.Fatalf("expected semantic voice artifact_sequence=1, got %v", chunkDetail["artifact_sequence"])
 	}
-	if got, ok := chunkDetail["final_chunk"].(bool); !ok || !got {
-		t.Fatalf("expected final_chunk=true, got %v", chunkDetail["final_chunk"])
+	if got, ok := chunkDetail["artifact_complete"].(bool); !ok || !got {
+		t.Fatalf("expected artifact_complete=true, got %v", chunkDetail["artifact_complete"])
 	}
-	if got := strings.TrimSpace(chunkDetail["playback_target"].(string)); got != "avatar_autoplay" {
-		t.Fatalf("expected voice stream playback_target=avatar_autoplay, got %s", got)
-	}
-	if got := strings.TrimSpace(chunkDetail["voice_output_mode"].(string)); got != "batch_final_artifact" {
-		t.Fatalf("expected voice stream chunk voice_output_mode=batch_final_artifact, got %s", got)
-	}
-	if got := strings.TrimSpace(chunkDetail["voice_playback_state"].(string)); got != "active" {
-		t.Fatalf("expected voice stream chunk voice_playback_state=active, got %s", got)
+	if got := strings.TrimSpace(chunkDetail["voice_timing_phase"].(string)); got != "active" {
+		t.Fatalf("expected semantic voice timing phase active, got %s", got)
 	}
 	requirePublicChatTimelineEnvelope(t, voicePayload, turnID, streamID, publicChatTimelineChannelVoice)
 	voiceDetail := voicePayload["detail"].(map[string]any)
 	if got := strings.TrimSpace(voiceDetail["message_id"].(string)); got != messageID {
-		t.Fatalf("expected voice playback message_id %s, got %s", messageID, got)
+		t.Fatalf("expected semantic voice timing message_id %s, got %s", messageID, got)
 	}
 	audioArtifactID := strings.TrimSpace(voiceDetail["audio_artifact_id"].(string))
 	if audioArtifactID != expectedAudioArtifactID {
@@ -267,23 +259,13 @@ func TestPublicChatCommittedTurnEmitsAvatarAutoplayProviderVoiceProjection(t *te
 	if got := strings.TrimSpace(record.GeneratedVoice.MessageID); got != messageID {
 		t.Fatalf("expected generated voice message_id %s, got %s", messageID, got)
 	}
-	if got := strings.TrimSpace(voiceDetail["playback_state"].(string)); got != "requested" {
-		t.Fatalf("expected playback_state=requested, got %s", got)
+	if got := strings.TrimSpace(voiceDetail["voice_timing_phase"].(string)); got != "active" {
+		t.Fatalf("expected semantic voice timing phase active, got %s", got)
 	}
-	if got := strings.TrimSpace(voiceDetail["voice_output_mode"].(string)); got != "batch_final_artifact" {
-		t.Fatalf("expected voice playback voice_output_mode=batch_final_artifact, got %s", got)
-	}
-	if got := strings.TrimSpace(voiceDetail["voice_playback_state"].(string)); got != "active" {
-		t.Fatalf("expected voice playback voice_playback_state=active, got %s", got)
-	}
-	if got := strings.TrimSpace(voiceDetail["playback_target"].(string)); got != "avatar_autoplay" {
-		t.Fatalf("expected playback_target=avatar_autoplay, got %s", got)
-	}
-	if got, ok := voiceDetail["final_artifact"].(bool); !ok || !got {
-		t.Fatalf("expected final_artifact=true, got %v", voiceDetail["final_artifact"])
-	}
-	if duration, ok := voiceDetail["duration_ms"].(float64); !ok || duration <= 0 {
-		t.Fatalf("expected positive duration_ms, got %v", voiceDetail["duration_ms"])
+	for _, forbidden := range []string{"playback_state", "voice_playback_state", "voice_output_mode", "voice_stream_id", "playback_target", "voice_route_binding", "mouth_open_y", "audio_level", "frames", "chunk_transport_ref"} {
+		if _, exists := voiceDetail[forbidden]; exists {
+			t.Fatalf("common voice projection exposed %s: %v", forbidden, voiceDetail)
+		}
 	}
 	if voiceAI.submitReq == nil {
 		t.Fatalf("expected provider voice synthesis submit")
@@ -300,27 +282,6 @@ func TestPublicChatCommittedTurnEmitsAvatarAutoplayProviderVoiceProjection(t *te
 		t.Fatalf("expected selected Local speech execution %q, got %+v, ok=%v", selectedSpeech.LoadoutID, captured, ok)
 	}
 
-	lipsyncPayload := publicChatPayloadMap(t, lipsyncBatch)
-	requirePublicChatTimelineEnvelope(t, lipsyncPayload, turnID, streamID, publicChatTimelineChannelLipsync)
-	lipsyncDetail := lipsyncPayload["detail"].(map[string]any)
-	if got := strings.TrimSpace(lipsyncDetail["audio_artifact_id"].(string)); got != audioArtifactID {
-		t.Fatalf("voice + lipsync audio_artifact_id mismatch: %s vs %s", got, voiceDetail["audio_artifact_id"])
-	}
-	frames, ok := lipsyncDetail["frames"].([]any)
-	if !ok || len(frames) == 0 {
-		t.Fatalf("expected non-empty frames, got %v", lipsyncDetail["frames"])
-	}
-	// Spot-check frame schema of first/last frame.
-	first := frames[0].(map[string]any)
-	if seq, _ := first["frame_sequence"].(float64); seq != 1 {
-		t.Fatalf("expected first frame_sequence=1, got %v", first["frame_sequence"])
-	}
-	if dur, _ := first["duration_ms"].(float64); dur <= 0 {
-		t.Fatalf("expected positive duration_ms on first frame, got %v", first["duration_ms"])
-	}
-	if mouth, _ := first["mouth_open_y"].(float64); mouth < 0 || mouth > 1 {
-		t.Fatalf("first frame mouth_open_y out of [0,1]: %v", first["mouth_open_y"])
-	}
 }
 
 func TestPublicChatCommittedTurnEmitsTypedVoiceFailureWithoutRollingBackText(t *testing.T) {
@@ -401,22 +362,22 @@ func TestPublicChatCommittedTurnEmitsTypedVoiceFailureWithoutRollingBackText(t *
 	}
 
 	committed := capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
-	terminal := capture.waitForMessageType(t, publicChatPresentationVoicePlaybackTerminalType)
+	terminal := capture.waitForMessageType(t, publicChatConversationVoiceTimingTerminalType)
 	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
 	committedDetail := publicChatPayloadMap(t, committed)["detail"].(map[string]any)
 	if got := strings.TrimSpace(committedDetail["text"].(string)); got != "Text remains committed after voice failure." {
 		t.Fatalf("committed text = %q", got)
 	}
 	terminalDetail := publicChatPayloadMap(t, terminal)["detail"].(map[string]any)
-	if got := strings.TrimSpace(terminalDetail["voice_playback_state"].(string)); got != "failed" {
-		t.Fatalf("voice playback terminal state = %q, want failed", got)
+	if got := strings.TrimSpace(terminalDetail["voice_timing_phase"].(string)); got != "failed" {
+		t.Fatalf("semantic voice terminal phase = %q, want failed", got)
 	}
 	if got := strings.TrimSpace(terminalDetail["terminal_reason"].(string)); got != "AI_LOCAL_EXECUTION_LOAD_FAILED" {
 		t.Fatalf("voice terminal reason = %q, want AI_LOCAL_EXECUTION_LOAD_FAILED", got)
 	}
 	for _, messageType := range capture.messageTypes() {
-		if messageType == publicChatPresentationVoicePlaybackRequestedType {
-			t.Fatalf("failed synthesis must not emit playback requested: %v", capture.messageTypes())
+		if messageType == publicChatConversationVoiceTimingReadyType {
+			t.Fatalf("failed synthesis must not emit semantic timing ready: %v", capture.messageTypes())
 		}
 	}
 }
@@ -440,8 +401,8 @@ func TestAgentVoicePolicyReportsMissingProductionLocalSelection(t *testing.T) {
 	svc.chatSurfaceMu.Unlock()
 
 	policy, ok, reason := svc.publicChatRuntime().agentVoiceOutputPolicyForSession(context.Background(), *session)
-	if ok || !policy.AvatarAutoplay {
-		t.Fatalf("voice policy availability = %v, autoplay=%v", ok, policy.AvatarAutoplay)
+	if ok {
+		t.Fatalf("voice policy availability = %v, policy=%+v", ok, policy)
 	}
 	if reason != "AI_LOCAL_CONFIGURATION_NOT_CONFIGURED" {
 		t.Fatalf("voice policy terminal reason = %q, want AI_LOCAL_CONFIGURATION_NOT_CONFIGURED", reason)

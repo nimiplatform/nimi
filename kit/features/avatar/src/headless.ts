@@ -88,11 +88,9 @@ export type {
   VoiceLipsyncStateBusListener,
 } from './voice-lipsync-state-bus.js';
 export type {
-  AgentCenterLocalAvatarAssetReference,
   AvatarModelManifest,
   Live2DAvatarModelManifest,
   Live2DLocalModelManifest,
-  LocalAvatarAssetReference,
   TauriAvatarModelManifest,
   VrmAvatarModelManifest,
 } from './avatar-model-manifest.js';
@@ -354,6 +352,19 @@ export type {
   AvatarLaunchInstanceIdInput,
   AvatarRendererLaunchContext,
 } from './launch-handoff.js';
+export {
+  buildAvatarHostHandoffRequest,
+  invokeAvatarHostHandoff,
+  parseAvatarHostHandoffResult,
+} from './host-handoff-port.js';
+export type {
+  AvatarHostHandoffCommand,
+  AvatarHostHandoffPort,
+  AvatarHostHandoffRequest,
+  AvatarHostHandoffResult,
+  AvatarHostHandoffTarget,
+  AvatarHostPresenceState,
+} from './host-handoff-port.js';
 export {
   AVATAR_INSTANCE_POLICY_VALUES,
   arbitrateAvatarLaunch,

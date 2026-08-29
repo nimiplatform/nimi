@@ -56,7 +56,6 @@ function interpolate(template: string, values: Readonly<Record<string, string>>)
   return template.replace(/\{\{(\w+)\}\}/gu, (match, key: string) => values[key] ?? match);
 }
 
-// Candidate composition remains unmounted until the single active WP6 hard cut.
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-model-config-002
 export function ModelConfigCurrentMachineLocalAction(
   props: ModelConfigCurrentMachineLocalActionProps,

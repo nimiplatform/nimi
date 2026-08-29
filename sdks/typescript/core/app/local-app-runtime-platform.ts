@@ -16,6 +16,13 @@ import {
   type NimiLocalAppAgentReferencesShell,
 } from './local-app-runtime-platform-agent-references.js';
 import {
+  createNimiLocalAppEmbodimentClient,
+  createNimiLocalAppEmbodimentRuntimeClient,
+  type NimiLocalAppEmbodimentClient,
+  type NimiLocalAppEmbodimentRuntime,
+  type NimiLocalAppEmbodimentShell,
+} from './local-app-runtime-platform-embodiment.js';
+import {
   createNimiLocalAppConversationClient,
   type NimiLocalAppConversationArtifactReadInput,
   type NimiLocalAppConversationArtifactReadResult,
@@ -141,7 +148,9 @@ export {
   createNimiRealmChatRuntimeClient,
 } from './local-app-runtime-platform-realm-chat.js';
 export {
+  createNimiLocalAppAIConsumptionRuntimeClient,
   createNimiLocalAppRuntimeScenarioJobClient,
+  createNimiLocalAppVoiceAssetsRuntimeClient,
 } from './local-app-runtime-platform-ai.js';
 export {
   createNimiLocalAppConversationRuntimeClient,
@@ -149,6 +158,9 @@ export {
 export {
   createNimiAgentRealtimeRuntimeClient,
 } from './local-app-runtime-platform-direct-agent-realtime.js';
+export {
+  createNimiAiRealtimeRuntimeClient,
+} from './local-app-runtime-platform-direct-ai-realtime.js';
 export {
   createNimiRealmRealtimeRuntimeClient,
 } from './local-app-runtime-platform-direct-realm-realtime.js';
@@ -158,6 +170,9 @@ export type {
 export type {
   NimiAgentRealtimeRuntime,
 } from './local-app-runtime-platform-direct-agent-realtime.js';
+export type {
+  NimiAiRealtimeRuntime,
+} from './local-app-runtime-platform-direct-ai-realtime.js';
 export type {
   NimiRealmRealtimeRuntime,
 } from './local-app-runtime-platform-direct-realm-realtime.js';
@@ -195,6 +210,25 @@ export type {
   NimiLocalAppAgentReferencesRuntime,
   NimiLocalAppAgentReferencesShell,
 } from './local-app-runtime-platform-agent-references.js';
+export {
+  createNimiLocalAppEmbodimentClient,
+  createNimiLocalAppEmbodimentRuntimeClient,
+} from './local-app-runtime-platform-embodiment.js';
+export type {
+  NimiLocalAppEmbodimentActivity,
+  NimiLocalAppEmbodimentClient,
+  NimiLocalAppEmbodimentRuntime,
+  NimiLocalAppEmbodimentEmotion,
+  NimiLocalAppEmbodimentEvent,
+  NimiLocalAppEmbodimentPosture,
+  NimiLocalAppEmbodimentScopeInput,
+  NimiLocalAppEmbodimentShell,
+  NimiLocalAppEmbodimentShellSubscription,
+  NimiLocalAppEmbodimentSnapshot,
+  NimiLocalAppEmbodimentSubscribeInput,
+  NimiLocalAppEmbodimentSubscription,
+  NimiLocalAppEmbodimentVoiceTiming,
+} from './local-app-runtime-platform-embodiment.js';
 export {
   createNimiLocalAppAgentReferencesRuntimeClient,
 } from './local-app-runtime-platform-agent-references.js';
@@ -309,7 +343,7 @@ export type {
   NimiLocalAppPersonaCharacterWritableVisibility,
 } from './local-app-runtime-platform-persona-character.js';
 
-export type NimiAppAuthMode = 'local-first-party-app' | 'local-app';
+export type NimiAppAuthMode = 'local-app';
 
 export type NimiAppLocalSessionState =
   | 'session-bound'
@@ -412,6 +446,7 @@ export type NimiLocalAppStandardShell = {
   };
   readonly agents: NimiLocalAppAgentReferencesShell;
   readonly conversation: NimiLocalAppConversationShell;
+  readonly embodiment: NimiLocalAppEmbodimentShell;
   readonly agentRealtime: NimiAgentRealtimeShell;
   readonly agentConfigure: NimiLocalAppAgentConfigureShell;
 };
@@ -476,6 +511,7 @@ export type NimiLocalAppClient = {
     readonly subscribe: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSubscription>;
     readonly snapshot: (input: NimiLocalAppConversationScopeInput) => Promise<NimiLocalAppConversationSnapshot>;
   };
+  readonly embodiment: NimiLocalAppEmbodimentClient;
   readonly agentRealtime: NimiAgentRealtimeClient;
 };
 
@@ -488,7 +524,7 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'agentRealtime', 'agentConfigure'] as const;
+  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'embodiment', 'agentRealtime', 'agentConfigure'] as const;
   if (!asRecord(standardShell)
     || Object.keys(standardShell).sort().join('|') !== [...expectedNamespaces].sort().join('|')) {
     return localAppError(
@@ -536,6 +572,7 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(realm.realtime, ['open', 'subscribe', 'ack', 'closeSubscription', 'closeChannel'], 'realm.realtime');
   assertExactMethodNamespace(standardShell.agents, ['listReferences'], 'agents');
   assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'uploadAttachment', 'readArtifact', 'transcribeVoice', 'renderVoice', 'interruptTurn', 'subscribe', 'snapshot'], 'conversation');
+  assertExactMethodNamespace(standardShell.embodiment, ['snapshot', 'subscribe'], 'embodiment');
   assertExactMethodNamespace(standardShell.agentRealtime, ['open', 'appendInput', 'subscribe', 'status', 'interruptOutput', 'close'], 'agentRealtime');
   const agentConfigure = asRecord(standardShell.agentConfigure);
   if (!agentConfigure
@@ -578,6 +615,7 @@ export function createNimiLocalAppClient(
     }),
     agents: createNimiLocalAppAgentReferencesClient(standardShell.agents),
     conversation: createNimiLocalAppConversationClient(standardShell.conversation),
+    embodiment: createNimiLocalAppEmbodimentClient(standardShell.embodiment),
     agentRealtime: createNimiAgentRealtimeClient(standardShell.agentRealtime),
     agentConfigure: createNimiLocalAppAgentConfigureClient(standardShell.agentConfigure),
   });

@@ -23,7 +23,7 @@ func (s *Service) OpenLocalAppSession(ctx context.Context, req *runtimev1.OpenLo
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 	}
-	if connection.TrustClass() != protectedlocal.LocalAppTrustLocalDevelopment {
+	if !localAppSessionConnectionAllowed(connection) {
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
 	projection, err := s.localAppOpener.OpenLocalAppSessionProjection(ctx)
@@ -47,7 +47,7 @@ func (s *Service) RenewLocalAppSession(ctx context.Context, req *runtimev1.Renew
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 	}
-	if connection.TrustClass() != protectedlocal.LocalAppTrustLocalDevelopment {
+	if !localAppSessionConnectionAllowed(connection) {
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
 	projection, err := s.localAppOpener.RenewLocalAppSessionProjection(ctx)
@@ -55,6 +55,17 @@ func (s *Service) RenewLocalAppSession(ctx context.Context, req *runtimev1.Renew
 		return nil, err
 	}
 	return localAppSessionResponse(projection), nil
+}
+
+func localAppSessionConnectionAllowed(connection *protectedlocal.LocalAppConnection) bool {
+	if connection == nil {
+		return false
+	}
+	if connection.TrustClass() == protectedlocal.LocalAppTrustLocalDevelopment {
+		return true
+	}
+	_, installed := connection.InstalledRegistrationHandle()
+	return connection.TrustClass() == protectedlocal.LocalAppTrustBuiltIn && installed
 }
 
 func localAppSessionResponse(projection LocalAppSessionProjection) *runtimev1.OpenLocalAppSessionResponse {

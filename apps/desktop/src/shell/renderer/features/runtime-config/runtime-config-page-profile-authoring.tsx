@@ -59,7 +59,7 @@ export type AIProfileAuthoringViewProps = {
 export function AIProfileAuthoringPage() {
   const sdk = useDesktopRendererSdk();
   const subjectUserId = useAppStore((state) => String(state.auth.user?.id ?? '').trim());
-  const appAIConfig = useMemo(() => sdk.accountProduct().appAIConfig(sdk.appId()), [sdk]);
+  const appAIConfig = useMemo(() => sdk.appProduct().aiConfig, [sdk]);
   const loadouts = useMemo(() => sdk.machineProduct().local.loadouts, [sdk]);
   const sharedAIConfig = useMemo(() => createRuntimeAgentAIConfigAdapter({
     runtime: {
@@ -84,7 +84,7 @@ export function AIProfileAuthoringPage() {
     setProjectionTechnicalError('');
     try {
       const next = await loadRuntimeConfigAIProfileAuthoringCurrentProjection({
-        appId: appAIConfig.appId,
+        appId: sdk.appId(),
         getAppAIConfig: () => readOptionalAIConfig(async () => (
           (await appAIConfig.get()).config as unknown as NimiCapabilityAIConfig | null
         )),
@@ -102,7 +102,7 @@ export function AIProfileAuthoringPage() {
       setProjectionStatus('failed');
       setProjectionTechnicalError(technicalErrorDetail(error));
     }
-  }, [appAIConfig, loadouts, sharedAIConfig, subjectUserId]);
+  }, [appAIConfig, loadouts, sdk, sharedAIConfig, subjectUserId]);
 
   useEffect(() => {
     void reloadProjection();

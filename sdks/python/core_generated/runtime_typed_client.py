@@ -33,7 +33,6 @@ def _decode_model(model_type: type[_T], value: object) -> _T:
     source = dict(value)
     names = {field.name for field in fields(model_type)}
     decoded = model_type(**{key: val for key, val in source.items() if key in names})
-    _validate_companion_participation_response(model_type.__name__, decoded)
     return decoded
 
 
@@ -44,51 +43,7 @@ def _runtime_decode_error(message: str) -> RuntimeError:
     return error
 
 
-def _validate_companion_participation_response(model_name: str, decoded: object) -> None:
-    if model_name not in {
-        "GetCompanionParticipationProjectionResponse",
-        "RequestCompanionParticipationResponse",
-        "CancelCompanionParticipationResponse",
-        "OpenCompanionParticipationReplayResponse",
-    }:
-        return
-    projection = getattr(decoded, "projection", None)
-    if projection is None:
-        raise _runtime_decode_error("companion participation projection is missing")
-    required = ("projection_id", "agent_id", "profile_ref", "audit_ref", "conversation_anchor_id")
-    if any(not str(getattr(projection, field_name, "") or "").strip() for field_name in required):
-        raise _runtime_decode_error("companion participation projection is missing required refs")
-    if getattr(projection, "surface_kind", None) not in {
-        "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION",
-        "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL",
-        "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH",
-    }:
-        raise _runtime_decode_error("companion participation projection has unsupported surface_kind")
-    if getattr(projection, "trigger_source", None) not in {
-        "COMPANION_PARTICIPATION_TRIGGER_SOURCE_USER_EXPLICIT",
-        "COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE",
-        "COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT",
-    }:
-        raise _runtime_decode_error("companion participation projection has unsupported trigger_source")
-    status = getattr(projection, "status", None)
-    if status == "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY" and not str(getattr(projection, "candidate_ref", "") or "").strip():
-        raise _runtime_decode_error("companion participation candidate_ready projection missing candidate_ref")
-    if status == "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER" and not str(getattr(projection, "commit_ref", "") or "").strip():
-        raise _runtime_decode_error("companion participation committed_by_owner projection missing commit_ref")
-    if status not in {
-        "COMPANION_PARTICIPATION_STATUS_IDLE",
-        "COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING",
-        "COMPANION_PARTICIPATION_STATUS_BLOCKED",
-        "COMPANION_PARTICIPATION_STATUS_RUNNING",
-        "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY",
-        "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER",
-        "COMPANION_PARTICIPATION_STATUS_FAILED",
-        "COMPANION_PARTICIPATION_STATUS_CANCELED",
-    }:
-        raise _runtime_decode_error("companion participation projection has unsupported status")
-
-
-AccountCallerMode = Literal["ACCOUNT_CALLER_MODE_UNSPECIFIED", "ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP", "ACCOUNT_CALLER_MODE_DESKTOP_SHELL", "ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST", "ACCOUNT_CALLER_MODE_WEB_CLOUD", "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL", "ACCOUNT_CALLER_MODE_LOCAL_APP"]
+AccountCallerMode = Literal["ACCOUNT_CALLER_MODE_UNSPECIFIED", "ACCOUNT_CALLER_MODE_DESKTOP_SHELL", "ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST", "ACCOUNT_CALLER_MODE_WEB_CLOUD", "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL", "ACCOUNT_CALLER_MODE_LOCAL_APP"]
 AccountEventType = Literal["ACCOUNT_EVENT_TYPE_UNSPECIFIED", "ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS", "ACCOUNT_EVENT_TYPE_LOGIN_STARTED", "ACCOUNT_EVENT_TYPE_LOGIN_COMPLETED", "ACCOUNT_EVENT_TYPE_LOGIN_FAILED", "ACCOUNT_EVENT_TYPE_LOGIN_TIMED_OUT", "ACCOUNT_EVENT_TYPE_REFRESH_STARTED", "ACCOUNT_EVENT_TYPE_REFRESH_COMPLETED", "ACCOUNT_EVENT_TYPE_REFRESH_FAILED", "ACCOUNT_EVENT_TYPE_LOGOUT_STARTED", "ACCOUNT_EVENT_TYPE_LOGOUT_COMPLETED", "ACCOUNT_EVENT_TYPE_SWITCH_STARTED", "ACCOUNT_EVENT_TYPE_SWITCH_COMPLETED", "ACCOUNT_EVENT_TYPE_CUSTODY_UNAVAILABLE", "ACCOUNT_EVENT_TYPE_CUSTODY_RECOVERED", "ACCOUNT_EVENT_TYPE_REFRESH_DEFERRED", "ACCOUNT_EVENT_TYPE_LOGOUT_FAILED", "ACCOUNT_EVENT_TYPE_SWITCH_FAILED"]
 AccountReasonCode = Literal["ACCOUNT_REASON_CODE_UNSPECIFIED", "ACCOUNT_REASON_CODE_ACTION_EXECUTED", "ACCOUNT_REASON_CODE_INERT_NOT_ACTIVATED", "ACCOUNT_REASON_CODE_CUSTODY_UNAVAILABLE", "ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE", "ACCOUNT_REASON_CODE_PROOF_EXPIRED", "ACCOUNT_REASON_CODE_PROOF_MISMATCHED", "ACCOUNT_REASON_CODE_PROOF_CONSUMED", "ACCOUNT_REASON_CODE_PROOF_UNSUPPORTED", "ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED", "ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED", "ACCOUNT_REASON_CODE_LOGIN_EXCHANGE_UNAVAILABLE", "ACCOUNT_REASON_CODE_PRESENCE_VERIFICATION_UNAVAILABLE", "ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED", "ACCOUNT_REASON_CODE_BROKER_CAPABILITY_MISSING", "ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED", "ACCOUNT_REASON_CODE_BROKER_REQUEST_INVALID", "ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE", "ACCOUNT_REASON_CODE_BROKER_CREDENTIAL_RESPONSE_FORBIDDEN", "ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH", "ACCOUNT_REASON_CODE_LAUNCH_NONCE_REPLAY", "ACCOUNT_REASON_CODE_BROKER_REALM_UNAVAILABLE", "ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID", "ACCOUNT_REASON_CODE_BROKER_FORBIDDEN", "ACCOUNT_REASON_CODE_BROKER_NOT_FOUND", "ACCOUNT_REASON_CODE_BROKER_CONFLICT", "ACCOUNT_REASON_CODE_BROKER_RATE_LIMITED", "ACCOUNT_REASON_CODE_BROKER_REQUEST_REJECTED", "ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED", "ACCOUNT_REASON_CODE_BROKER_OPERATION_FAILED", "ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED", "ACCOUNT_REASON_CODE_REFRESH_TOKEN_INVALID", "ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID", "ACCOUNT_REASON_CODE_REFRESH_OUTCOME_AMBIGUOUS", "ACCOUNT_REASON_CODE_ACCOUNT_DELETED"]
 AccountSessionDeliveryKind = Literal["ACCOUNT_SESSION_DELIVERY_KIND_UNSPECIFIED", "ACCOUNT_SESSION_DELIVERY_KIND_SNAPSHOT", "ACCOUNT_SESSION_DELIVERY_KIND_REPLAY", "ACCOUNT_SESSION_DELIVERY_KIND_LIVE"]
@@ -96,7 +51,7 @@ AccountSessionState = Literal["ACCOUNT_SESSION_STATE_UNSPECIFIED", "ACCOUNT_SESS
 AgentAutonomyMode = Literal["AGENT_AUTONOMY_MODE_UNSPECIFIED", "AGENT_AUTONOMY_MODE_OFF", "AGENT_AUTONOMY_MODE_LOW", "AGENT_AUTONOMY_MODE_MEDIUM", "AGENT_AUTONOMY_MODE_HIGH"]
 AgentContextProjectionReasonCode = Literal["AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED", "AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE", "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED", "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING", "AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID", "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED", "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED", "AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID"]
 AgentConversationSummaryStatus = Literal["AGENT_CONVERSATION_SUMMARY_STATUS_UNSPECIFIED", "AGENT_CONVERSATION_SUMMARY_STATUS_ABSENT", "AGENT_CONVERSATION_SUMMARY_STATUS_READY", "AGENT_CONVERSATION_SUMMARY_STATUS_FAILED", "AGENT_CONVERSATION_SUMMARY_STATUS_OMITTED", "AGENT_CONVERSATION_SUMMARY_STATUS_UNAVAILABLE"]
-AgentEventType = Literal["AGENT_EVENT_TYPE_UNSPECIFIED", "AGENT_EVENT_TYPE_LIFECYCLE", "AGENT_EVENT_TYPE_HOOK", "AGENT_EVENT_TYPE_BUDGET", "AGENT_EVENT_TYPE_STATE", "AGENT_EVENT_TYPE_PRESENTATION", "AGENT_EVENT_TYPE_AVATAR_DEBUG", "AGENT_EVENT_TYPE_PROACTIVE"]
+AgentEventType = Literal["AGENT_EVENT_TYPE_UNSPECIFIED", "AGENT_EVENT_TYPE_LIFECYCLE", "AGENT_EVENT_TYPE_HOOK", "AGENT_EVENT_TYPE_BUDGET", "AGENT_EVENT_TYPE_STATE", "AGENT_EVENT_TYPE_PRESENTATION", "AGENT_EVENT_TYPE_PROACTIVE"]
 AgentExecutionState = Literal["AGENT_EXECUTION_STATE_UNSPECIFIED"]
 AgentLifecycleStatus = Literal["AGENT_LIFECYCLE_STATUS_UNSPECIFIED"]
 AgentLocalSourceContextSchemaVersion = Literal["AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED", "AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2"]
@@ -125,6 +80,7 @@ AgentTurnContextManifestSchemaVersion = Literal["AGENT_TURN_CONTEXT_MANIFEST_SCH
 AgentTurnContextState = Literal["AGENT_TURN_CONTEXT_STATE_UNSPECIFIED", "AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED", "AGENT_TURN_CONTEXT_STATE_READY", "AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED", "AGENT_TURN_CONTEXT_STATE_INVALID"]
 AgentTurnContextSummarySchemaVersion = Literal["AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED", "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2"]
 AgentTurnContextTruncationReason = Literal["AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED", "AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE", "AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED", "AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED", "AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED"]
+AgentVoiceTimingPhase = Literal["AGENT_VOICE_TIMING_PHASE_UNSPECIFIED", "AGENT_VOICE_TIMING_PHASE_ACTIVE", "AGENT_VOICE_TIMING_PHASE_COMPLETED", "AGENT_VOICE_TIMING_PHASE_FAILED", "AGENT_VOICE_TIMING_PHASE_INTERRUPTED", "AGENT_VOICE_TIMING_PHASE_CANCELED"]
 AIConfigEffectiveState = Literal["AI_CONFIG_EFFECTIVE_STATE_UNSPECIFIED", "AI_CONFIG_EFFECTIVE_STATE_READY", "AI_CONFIG_EFFECTIVE_STATE_MISSING", "AI_CONFIG_EFFECTIVE_STATE_BLOCKED", "AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE"]
 AiRealtimeAudioCodec = Literal["AI_REALTIME_AUDIO_CODEC_UNSPECIFIED", "AI_REALTIME_AUDIO_CODEC_PCM_S16LE"]
 AiRealtimeOutputTrackLifecycle = Literal["AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_UNSPECIFIED", "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_ACTIVE", "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_INTERRUPTED", "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_COMPLETED", "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_FAILED"]
@@ -134,12 +90,6 @@ AiRealtimeSpeechState = Literal["AI_REALTIME_SPEECH_STATE_UNSPECIFIED", "AI_REAL
 AiRealtimeTurnDetectionMode = Literal["AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED", "AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD", "AI_REALTIME_TURN_DETECTION_MODE_MANUAL"]
 AppMessageEventType = Literal["APP_MESSAGE_EVENT_TYPE_UNSPECIFIED", "APP_MESSAGE_EVENT_RECEIVED", "APP_MESSAGE_EVENT_ACKED", "APP_MESSAGE_EVENT_FAILED"]
 AppStorageState = Literal["APP_STORAGE_STATE_UNSPECIFIED", "APP_STORAGE_STATE_READY", "APP_STORAGE_STATE_REPAIR_REQUIRED", "APP_STORAGE_STATE_STORAGE_UNAVAILABLE"]
-AvatarDebugEventFamily = Literal["AVATAR_DEBUG_EVENT_FAMILY_UNSPECIFIED"]
-AvatarDebugProbeKind = Literal["AVATAR_DEBUG_PROBE_KIND_UNSPECIFIED", "AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD", "AVATAR_DEBUG_PROBE_KIND_GENERATED_MOTION"]
-AvatarDebugProbeStatus = Literal["AVATAR_DEBUG_PROBE_STATUS_UNSPECIFIED", "AVATAR_DEBUG_PROBE_STATUS_UNSUPPORTED"]
-AvatarDebugReplayRedactionState = Literal["AVATAR_DEBUG_REPLAY_REDACTION_STATE_UNSPECIFIED"]
-AvatarDebugReplayVisibility = Literal["AVATAR_DEBUG_REPLAY_VISIBILITY_UNSPECIFIED"]
-AvatarDebugRequestedBy = Literal["AVATAR_DEBUG_REQUESTED_BY_UNSPECIFIED"]
 CallerKind = Literal["CALLER_KIND_UNSPECIFIED", "CALLER_KIND_DESKTOP_CORE", "CALLER_KIND_THIRD_PARTY_APP", "CALLER_KIND_THIRD_PARTY_SERVICE"]
 CatalogModelSource = Literal["CATALOG_MODEL_SOURCE_UNSPECIFIED", "CATALOG_MODEL_SOURCE_BUILTIN", "CATALOG_MODEL_SOURCE_CUSTOM", "CATALOG_MODEL_SOURCE_OVERRIDDEN"]
 CatalogSourceKind = Literal["CATALOG_SOURCE_KIND_UNSPECIFIED", "CATALOG_SOURCE_KIND_PROVIDER_DOCUMENTATION", "CATALOG_SOURCE_KIND_AUTHENTICATED_PROVIDER_INVENTORY"]
@@ -152,9 +102,6 @@ CognitionMemoryEpistemicStatus = Literal["COGNITION_MEMORY_EPISTEMIC_STATUS_UNSP
 CognitionMemoryLifecycle = Literal["COGNITION_MEMORY_LIFECYCLE_UNSPECIFIED", "COGNITION_MEMORY_LIFECYCLE_CURRENT", "COGNITION_MEMORY_LIFECYCLE_SUPERSEDED", "COGNITION_MEMORY_LIFECYCLE_CONFLICTED", "COGNITION_MEMORY_LIFECYCLE_FORGOTTEN"]
 CognitionMemoryOutcome = Literal["COGNITION_MEMORY_OUTCOME_UNSPECIFIED", "COGNITION_MEMORY_OUTCOME_UNSUPPORTED", "COGNITION_MEMORY_OUTCOME_INVALID", "COGNITION_MEMORY_OUTCOME_UNAUTHORIZED", "COGNITION_MEMORY_OUTCOME_UNCONFIGURED", "COGNITION_MEMORY_OUTCOME_PENDING", "COGNITION_MEMORY_OUTCOME_BUILDING", "COGNITION_MEMORY_OUTCOME_RECEIVED", "COGNITION_MEMORY_OUTCOME_PROCESSING", "COGNITION_MEMORY_OUTCOME_READY", "COGNITION_MEMORY_OUTCOME_NO_HITS", "COGNITION_MEMORY_OUTCOME_UNAVAILABLE", "COGNITION_MEMORY_OUTCOME_FAILED", "COGNITION_MEMORY_OUTCOME_NO_EFFECT", "COGNITION_MEMORY_OUTCOME_REJECTED", "COGNITION_MEMORY_OUTCOME_ADMITTED", "COGNITION_MEMORY_OUTCOME_FORGOTTEN", "COGNITION_MEMORY_OUTCOME_DELETED", "COGNITION_MEMORY_OUTCOME_ALREADY_ABSENT", "COGNITION_MEMORY_OUTCOME_COMMITTED", "COGNITION_MEMORY_OUTCOME_CONFLICT", "COGNITION_MEMORY_OUTCOME_DUPLICATE"]
 CognitionMemoryTerminalState = Literal["COGNITION_MEMORY_TERMINAL_STATE_UNSPECIFIED", "COGNITION_MEMORY_TERMINAL_STATE_COMPLETED", "COGNITION_MEMORY_TERMINAL_STATE_FAILED", "COGNITION_MEMORY_TERMINAL_STATE_INTERRUPTED", "COGNITION_MEMORY_TERMINAL_STATE_CANCELED"]
-CompanionParticipationStatus = Literal["COMPANION_PARTICIPATION_STATUS_UNSPECIFIED", "COMPANION_PARTICIPATION_STATUS_IDLE", "COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING", "COMPANION_PARTICIPATION_STATUS_BLOCKED", "COMPANION_PARTICIPATION_STATUS_RUNNING", "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY", "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER", "COMPANION_PARTICIPATION_STATUS_FAILED", "COMPANION_PARTICIPATION_STATUS_CANCELED"]
-CompanionParticipationSurfaceKind = Literal["COMPANION_PARTICIPATION_SURFACE_KIND_UNSPECIFIED", "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION", "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL", "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH"]
-CompanionParticipationTriggerSource = Literal["COMPANION_PARTICIPATION_TRIGGER_SOURCE_UNSPECIFIED", "COMPANION_PARTICIPATION_TRIGGER_SOURCE_USER_EXPLICIT", "COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE", "COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT"]
 ConnectorAuthKind = Literal["CONNECTOR_AUTH_KIND_UNSPECIFIED", "CONNECTOR_AUTH_KIND_API_KEY", "CONNECTOR_AUTH_KIND_OAUTH_MANAGED"]
 ConnectorKind = Literal["CONNECTOR_KIND_UNSPECIFIED", "CONNECTOR_KIND_REMOTE_MANAGED"]
 ConnectorOwnerType = Literal["CONNECTOR_OWNER_TYPE_UNSPECIFIED", "CONNECTOR_OWNER_TYPE_SYSTEM", "CONNECTOR_OWNER_TYPE_REALM_USER"]
@@ -254,7 +201,6 @@ VoiceAssetPersistence = Literal["VOICE_ASSET_PERSISTENCE_UNSPECIFIED", "VOICE_AS
 VoiceAssetStatus = Literal["VOICE_ASSET_STATUS_UNSPECIFIED", "VOICE_ASSET_STATUS_ACTIVE", "VOICE_ASSET_STATUS_EXPIRED", "VOICE_ASSET_STATUS_DELETED", "VOICE_ASSET_STATUS_FAILED"]
 VoiceCreationSource = Literal["VOICE_CREATION_SOURCE_UNSPECIFIED", "VOICE_CREATION_SOURCE_TEXT_DESCRIPTION", "VOICE_CREATION_SOURCE_REFERENCE_AUDIO"]
 VoiceOutputMode = Literal["VOICE_OUTPUT_MODE_UNSPECIFIED", "VOICE_OUTPUT_MODE_NATIVE_STREAM", "VOICE_OUTPUT_MODE_SIMULATED_STREAM", "VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT", "VOICE_OUTPUT_MODE_TEXT_ONLY"]
-VoicePlaybackState = Literal["VOICE_PLAYBACK_STATE_UNSPECIFIED", "VOICE_PLAYBACK_STATE_ACTIVE", "VOICE_PLAYBACK_STATE_COMPLETED", "VOICE_PLAYBACK_STATE_FAILED", "VOICE_PLAYBACK_STATE_INTERRUPTED", "VOICE_PLAYBACK_STATE_CANCELED"]
 VoiceReferenceKind = Literal["VOICE_REFERENCE_KIND_UNSPECIFIED", "VOICE_REFERENCE_KIND_PRESET", "VOICE_REFERENCE_KIND_VOICE_ASSET", "VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF"]
 WorkspaceMembershipState = Literal["WORKSPACE_MEMBERSHIP_STATE_UNSPECIFIED", "WORKSPACE_MEMBERSHIP_STATE_ACTIVE", "WORKSPACE_MEMBERSHIP_STATE_SUSPENDED", "WORKSPACE_MEMBERSHIP_STATE_REVOKED", "WORKSPACE_MEMBERSHIP_STATE_UNKNOWN"]
 WorldEntityRefKindV3 = Literal["WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED", "WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY"]
@@ -452,13 +398,6 @@ class AgentAutonomyState:
     revision: int | None = None
 
 @dataclass(frozen=True)
-class AgentAvatarDebugEventDetail:
-    family: AvatarDebugEventFamily | None = None
-    request: AvatarDebugProbeRequestEnvelope | None = None
-    result: AvatarDebugProbeResultEnvelope | None = None
-    replay: AvatarDebugReplayRef | None = None
-
-@dataclass(frozen=True)
 class AgentBudgetEventDetail:
     budget_exhausted: bool | None = None
     remaining_tokens: int | None = None
@@ -494,7 +433,6 @@ class AgentEvent:
     budget: AgentBudgetEventDetail | None = None
     state: AgentStateEventDetail | None = None
     presentation: AgentPresentationEventDetail | None = None
-    avatar_debug: AgentAvatarDebugEventDetail | None = None
     proactive: AgentProactiveEventDetail | None = None
     local_agent_ref: str | None = None
     owner_user_id: str | None = None
@@ -575,20 +513,14 @@ class AgentPresentationEventDetail:
     lookat_has_z: bool | None = None
     audio_artifact_id: str | None = None
     audio_mime_type: str | None = None
-    voice_stream_id: str | None = None
-    chunk_transport_ref: str | None = None
     message_id: str | None = None
-    chunk_sequence: int | None = None
-    final_chunk: bool | None = None
-    voice_output_mode: VoiceOutputMode | None = None
-    voice_playback_state: VoicePlaybackState | None = None
-    playback_target: str | None = None
-    final_artifact: bool | None = None
+    artifact_sequence: int | None = None
+    artifact_complete: bool | None = None
+    voice_timing_phase: AgentVoiceTimingPhase | None = None
     terminal_reason: str | None = None
     reason: str | None = None
     duration_ms: int | None = None
     deadline_offset_ms: int | None = None
-    final_artifact_id: str | None = None
 
 @dataclass(frozen=True)
 class AgentPresentationProfile:
@@ -793,23 +725,6 @@ class AgentTurnContextTruncationSummary:
     reason: AgentTurnContextTruncationReason | None = None
     omitted_item_count: int | None = None
     truncated_item_count: int | None = None
-
-@dataclass(frozen=True)
-class AgentVoiceStreamEvent:
-    voice_stream_id: str | None = None
-    conversation_anchor_id: str | None = None
-    turn_id: str | None = None
-    stream_id: str | None = None
-    message_id: str | None = None
-    chunk_sequence: int | None = None
-    chunk: bytes | None = None
-    mime_type: str | None = None
-    voice_output_mode: VoiceOutputMode | None = None
-    playback_target: str | None = None
-    terminal: bool | None = None
-    voice_playback_state: VoicePlaybackState | None = None
-    terminal_reason: str | None = None
-    replay_truncated: bool | None = None
 
 @dataclass(frozen=True)
 class AiRealtimeAudioFormat:
@@ -1081,53 +996,6 @@ class AuditExportChunk:
     mime_type: str | None = None
 
 @dataclass(frozen=True)
-class AvatarDebugProbeRequestEnvelope:
-    probe_id: str | None = None
-    agent_id: str | None = None
-    conversation_anchor_id: str | None = None
-    probe_kind: AvatarDebugProbeKind | None = None
-    requested_at: str | None = None
-    requested_by: AvatarDebugRequestedBy | None = None
-    turn_id: str | None = None
-    stream_id: str | None = None
-    avatar_instance_id: str | None = None
-    runtime_replay_ref: str | None = None
-    replay_requested: bool | None = None
-
-@dataclass(frozen=True)
-class AvatarDebugProbeResultEnvelope:
-    probe_id: str | None = None
-    agent_id: str | None = None
-    conversation_anchor_id: str | None = None
-    probe_kind: AvatarDebugProbeKind | None = None
-    status: AvatarDebugProbeStatus | None = None
-    observed_at: str | None = None
-    evidence_refs: tuple[str, ...] = field(default_factory=tuple)
-    reason_code: str | None = None
-    result_id: str | None = None
-
-@dataclass(frozen=True)
-class AvatarDebugReplayRef:
-    probe_id: str | None = None
-    replay_ref: str | None = None
-    redaction_state: AvatarDebugReplayRedactionState | None = None
-    visibility: AvatarDebugReplayVisibility | None = None
-    linked_at: str | None = None
-
-@dataclass(frozen=True)
-class AvatarLiveInstanceBinding:
-    avatar_instance_id: str | None = None
-    conversation_anchor_id: str | None = None
-    agent_id: str | None = None
-    subject_user_id: str | None = None
-    registered_at: str | None = None
-    updated_at: str | None = None
-    local_agent_ref: str | None = None
-    owner_user_id: str | None = None
-    runtime_source_ref: str | None = None
-    caller_app_id: str | None = None
-
-@dataclass(frozen=True)
 class BeginLoginRequest:
     caller: AccountCaller | None = None
     redirect_uri: str | None = None
@@ -1159,23 +1027,6 @@ class BindLocalAppProcessResponse:
     launch_id: bytes | None = None
     bind_deadline: str | None = None
     reason_code: ReasonCode | None = None
-
-@dataclass(frozen=True)
-class CancelCompanionParticipationRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-    conversation_anchor_id: str | None = None
-    surface_kind: CompanionParticipationSurfaceKind | None = None
-    trigger_source: CompanionParticipationTriggerSource | None = None
-    profile_ref: str | None = None
-    projection_id: str | None = None
-    turn_id: str | None = None
-    reason: str | None = None
-    request_id: str | None = None
-
-@dataclass(frozen=True)
-class CancelCompanionParticipationResponse:
-    projection: CompanionParticipationProjection | None = None
 
 @dataclass(frozen=True)
 class CancelHookRequest:
@@ -1722,24 +1573,6 @@ class CommitLocalAppAgentPresentationRequest:
     imported_assets: tuple[AgentPresentationAssetMaterial, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
-class CompanionParticipationProjection:
-    projection_id: str | None = None
-    agent_id: str | None = None
-    surface_kind: CompanionParticipationSurfaceKind | None = None
-    profile_ref: str | None = None
-    trigger_source: CompanionParticipationTriggerSource | None = None
-    status: CompanionParticipationStatus | None = None
-    candidate_ref: str | None = None
-    commit_ref: str | None = None
-    refusal_reason: str | None = None
-    presentation_ref: str | None = None
-    audit_ref: str | None = None
-    observed_at: str | None = None
-    conversation_anchor_id: str | None = None
-    turn_id: str | None = None
-    stream_id: str | None = None
-
-@dataclass(frozen=True)
 class CompleteLoginRequest:
     caller: AccountCaller | None = None
     login_attempt_id: str | None = None
@@ -2259,33 +2092,6 @@ class GetAppStorageResponse:
     projection: AppStorageProjection | None = None
 
 @dataclass(frozen=True)
-class GetAvatarDebugReplayRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-    probe_id: str | None = None
-    conversation_anchor_id: str | None = None
-
-@dataclass(frozen=True)
-class GetAvatarDebugReplayResponse:
-    request: AvatarDebugProbeRequestEnvelope | None = None
-    result: AvatarDebugProbeResultEnvelope | None = None
-    replay_ref: AvatarDebugReplayRef | None = None
-
-@dataclass(frozen=True)
-class GetAvatarDebugSnapshotRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-    conversation_anchor_id: str | None = None
-
-@dataclass(frozen=True)
-class GetAvatarDebugSnapshotResponse:
-    agent_id: str | None = None
-    conversation_anchor_id: str | None = None
-    probe_results: tuple[AvatarDebugProbeResultEnvelope, ...] = field(default_factory=tuple)
-    replay_refs: tuple[AvatarDebugReplayRef, ...] = field(default_factory=tuple)
-    observed_at: str | None = None
-
-@dataclass(frozen=True)
 class GetCatalogModelDetailRequest:
     provider: str | None = None
     model_id: str | None = None
@@ -2295,20 +2101,6 @@ class GetCatalogModelDetailResponse:
     provider: ModelCatalogProviderEntry | None = None
     model: CatalogModelDetail | None = None
     warnings: tuple[CatalogOverlayWarning, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class GetCompanionParticipationProjectionRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-    conversation_anchor_id: str | None = None
-    surface_kind: CompanionParticipationSurfaceKind | None = None
-    trigger_source: CompanionParticipationTriggerSource | None = None
-    profile_ref: str | None = None
-    request_id: str | None = None
-
-@dataclass(frozen=True)
-class GetCompanionParticipationProjectionResponse:
-    projection: CompanionParticipationProjection | None = None
 
 @dataclass(frozen=True)
 class GetConnectorRequest:
@@ -2633,21 +2425,6 @@ class InstallModelFromPlanResponse:
     model_asset: ModelAssetRecord | None = None
 
 @dataclass(frozen=True)
-class InterruptAgentVoicePlaybackRequest:
-    context: AgentRequestContext | None = None
-    voice_stream_id: str | None = None
-    conversation_anchor_id: str | None = None
-    turn_id: str | None = None
-    reason: str | None = None
-
-@dataclass(frozen=True)
-class InterruptAgentVoicePlaybackResponse:
-    voice_stream_id: str | None = None
-    voice_output_mode: VoiceOutputMode | None = None
-    voice_playback_state: VoicePlaybackState | None = None
-    terminal_reason: str | None = None
-
-@dataclass(frozen=True)
 class InterruptLocalAppAgentRealtimeOutputRequest:
     realtime_session_id: str | None = None
     generation: int | None = None
@@ -2757,17 +2534,6 @@ class ListAuditEventsRequest:
 class ListAuditEventsResponse:
     events: tuple[AuditEventRecord, ...] = field(default_factory=tuple)
     next_page_token: str | None = None
-
-@dataclass(frozen=True)
-class ListAvatarDebugProbeResultsRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-    conversation_anchor_id: str | None = None
-    probe_kind: AvatarDebugProbeKind | None = None
-
-@dataclass(frozen=True)
-class ListAvatarDebugProbeResultsResponse:
-    probe_results: tuple[AvatarDebugProbeResultEnvelope, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class ListCatalogProviderModelsRequest:
@@ -3662,7 +3428,7 @@ class LocalAppEmbodimentVoiceTiming:
     duration_ms: int | None = None
     deadline_offset_ms: int | None = None
     turn_ref: str | None = None
-    voice_ref: str | None = None
+    correlation_ref: str | None = None
 
 @dataclass(frozen=True)
 class LocalAppImageGenerateOutput:
@@ -4384,22 +4150,6 @@ class MusicGenerateScenarioSpec:
     instrumental: bool | None = None
 
 @dataclass(frozen=True)
-class OpenCompanionParticipationReplayRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-    conversation_anchor_id: str | None = None
-    surface_kind: CompanionParticipationSurfaceKind | None = None
-    trigger_source: CompanionParticipationTriggerSource | None = None
-    profile_ref: str | None = None
-    projection_id: str | None = None
-    request_id: str | None = None
-
-@dataclass(frozen=True)
-class OpenCompanionParticipationReplayResponse:
-    replay_ref: str | None = None
-    projection: CompanionParticipationProjection | None = None
-
-@dataclass(frozen=True)
 class OpenConversationAnchorRequest:
     context: AgentRequestContext | None = None
     agent_id: str | None = None
@@ -4944,17 +4694,6 @@ class ReconcileProductControlFirstRunSetupStateRequest:
     pass
 
 @dataclass(frozen=True)
-class RegisterAvatarLiveInstanceBindingRequest:
-    context: AgentRequestContext | None = None
-    avatar_instance_id: str | None = None
-    conversation_anchor_id: str | None = None
-
-@dataclass(frozen=True)
-class RegisterAvatarLiveInstanceBindingResponse:
-    binding: AvatarLiveInstanceBinding | None = None
-    snapshot: ConversationAnchorSnapshot | None = None
-
-@dataclass(frozen=True)
 class RegisterExternalPrincipalRequest:
     app_id: str | None = None
     external_principal_id: str | None = None
@@ -5048,43 +4787,6 @@ class RepairLocalEnvironmentDependencyResponse:
     job: LocalEnvironmentDependencyJob | None = None
 
 @dataclass(frozen=True)
-class RequestAvatarDebugProbeRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-    conversation_anchor_id: str | None = None
-    probe_kind: AvatarDebugProbeKind | None = None
-    requested_by: AvatarDebugRequestedBy | None = None
-    probe_id: str | None = None
-    turn_id: str | None = None
-    stream_id: str | None = None
-    avatar_instance_id: str | None = None
-    replay_requested: bool | None = None
-
-@dataclass(frozen=True)
-class RequestAvatarDebugProbeResponse:
-    request: AvatarDebugProbeRequestEnvelope | None = None
-    result: AvatarDebugProbeResultEnvelope | None = None
-    replay_ref: AvatarDebugReplayRef | None = None
-
-@dataclass(frozen=True)
-class RequestCompanionParticipationRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-    conversation_anchor_id: str | None = None
-    surface_kind: CompanionParticipationSurfaceKind | None = None
-    trigger_source: CompanionParticipationTriggerSource | None = None
-    profile_ref: str | None = None
-    request_id: str | None = None
-    text: str | None = None
-    thread_id: str | None = None
-    world_id: str | None = None
-    max_output_tokens: int | None = None
-
-@dataclass(frozen=True)
-class RequestCompanionParticipationResponse:
-    projection: CompanionParticipationProjection | None = None
-
-@dataclass(frozen=True)
 class RequestPresenceVerificationRequest:
     caller: AccountCaller | None = None
     purpose: str | None = None
@@ -5110,16 +4812,6 @@ class RequestRuntimeRestartRequest:
 class RequestRuntimeRestartResponse:
     accepted: bool | None = None
     reason_code: ReasonCode | None = None
-
-@dataclass(frozen=True)
-class ResolveAvatarLiveInstanceBindingRequest:
-    context: AgentRequestContext | None = None
-    avatar_instance_id: str | None = None
-
-@dataclass(frozen=True)
-class ResolveAvatarLiveInstanceBindingResponse:
-    binding: AvatarLiveInstanceBinding | None = None
-    snapshot: ConversationAnchorSnapshot | None = None
 
 @dataclass(frozen=True)
 class ResolveLocalEnvironmentActivationGateRequest:
@@ -5621,17 +5313,6 @@ class StreamScenarioRequest:
     extensions: tuple[ScenarioExtension, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
-class SubmitAvatarDebugProbeResultRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-    conversation_anchor_id: str | None = None
-    result: AvatarDebugProbeResultEnvelope | None = None
-
-@dataclass(frozen=True)
-class SubmitAvatarDebugProbeResultResponse:
-    result: AvatarDebugProbeResultEnvelope | None = None
-
-@dataclass(frozen=True)
 class SubmitDelegatedApprovalDecisionRequest:
     context: AgentRequestContext | None = None
     agent_id: str | None = None
@@ -5695,14 +5376,6 @@ class SubscribeAgentEventsRequest:
     agent_id: str | None = None
     cursor: str | None = None
     event_filters: tuple[AgentEventType, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class SubscribeAgentVoiceStreamRequest:
-    context: AgentRequestContext | None = None
-    voice_stream_id: str | None = None
-    conversation_anchor_id: str | None = None
-    turn_id: str | None = None
-    agent_id: str | None = None
 
 @dataclass(frozen=True)
 class SubscribeAppMessagesRequest:
@@ -6328,10 +6001,6 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ApplySharedLocalAgentAIProfileResponse, raw)
 
-    async def cancel_companion_participation(self, request: CancelCompanionParticipationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelCompanionParticipationResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(CancelCompanionParticipationResponse, raw)
-
     async def cancel_hook(self, request: CancelHookRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> CancelHookResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/CancelHook", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CancelHookResponse, raw)
@@ -6375,18 +6044,6 @@ class RuntimeTypedClient:
     async def get_agent_state(self, request: GetAgentStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAgentStateResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAgentState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAgentStateResponse, raw)
-
-    async def get_avatar_debug_replay(self, request: GetAvatarDebugReplayRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAvatarDebugReplayResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetAvatarDebugReplayResponse, raw)
-
-    async def get_avatar_debug_snapshot(self, request: GetAvatarDebugSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetAvatarDebugSnapshotResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetAvatarDebugSnapshotResponse, raw)
-
-    async def get_companion_participation_projection(self, request: GetCompanionParticipationProjectionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetCompanionParticipationProjectionResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetCompanionParticipationProjectionResponse, raw)
 
     async def get_conversation_anchor_snapshot(self, request: GetConversationAnchorSnapshotRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetConversationAnchorSnapshotResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6444,10 +6101,6 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(InspectLocalAppAgentMemoryResponse, raw)
 
-    async def interrupt_agent_voice_playback(self, request: InterruptAgentVoicePlaybackRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InterruptAgentVoicePlaybackResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(InterruptAgentVoicePlaybackResponse, raw)
-
     async def interrupt_local_app_agent_realtime_output(self, request: InterruptLocalAppAgentRealtimeOutputRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InterruptLocalAppAgentRealtimeOutputResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(InterruptLocalAppAgentRealtimeOutputResponse, raw)
@@ -6463,10 +6116,6 @@ class RuntimeTypedClient:
     async def list_agents(self, request: ListAgentsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListAgentsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListAgents", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListAgentsResponse, raw)
-
-    async def list_avatar_debug_probe_results(self, request: ListAvatarDebugProbeResultsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListAvatarDebugProbeResultsResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ListAvatarDebugProbeResultsResponse, raw)
 
     async def list_delegated_approval_requests(self, request: ListDelegatedApprovalRequestsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListDelegatedApprovalRequestsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6504,10 +6153,6 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(MaterializeRealmSourceResponse, raw)
 
-    async def open_companion_participation_replay(self, request: OpenCompanionParticipationReplayRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenCompanionParticipationReplayResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(OpenCompanionParticipationReplayResponse, raw)
-
     async def open_conversation_anchor(self, request: OpenConversationAnchorRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> OpenConversationAnchorResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OpenConversationAnchorResponse, raw)
@@ -6540,25 +6185,9 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ReadLocalAppConversationArtifactResponse, raw)
 
-    async def register_avatar_live_instance_binding(self, request: RegisterAvatarLiveInstanceBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RegisterAvatarLiveInstanceBindingResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RegisterAvatarLiveInstanceBindingResponse, raw)
-
     async def render_local_app_conversation_voice(self, request: RenderLocalAppConversationVoiceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RenderLocalAppConversationVoiceResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RenderLocalAppConversationVoiceResponse, raw)
-
-    async def request_avatar_debug_probe(self, request: RequestAvatarDebugProbeRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestAvatarDebugProbeResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RequestAvatarDebugProbeResponse, raw)
-
-    async def request_companion_participation(self, request: RequestCompanionParticipationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestCompanionParticipationResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RequestCompanionParticipationResponse, raw)
-
-    async def resolve_avatar_live_instance_binding(self, request: ResolveAvatarLiveInstanceBindingRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveAvatarLiveInstanceBindingResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(ResolveAvatarLiveInstanceBindingResponse, raw)
 
     async def send_local_app_conversation_turn(self, request: SendLocalAppConversationTurnRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SendLocalAppConversationTurnResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -6576,19 +6205,12 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SetLocalAppAgentMemoryEnabledResponse, raw)
 
-    async def submit_avatar_debug_probe_result(self, request: SubmitAvatarDebugProbeResultRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitAvatarDebugProbeResultResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(SubmitAvatarDebugProbeResultResponse, raw)
-
     async def submit_delegated_approval_decision(self, request: SubmitDelegatedApprovalDecisionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitDelegatedApprovalDecisionResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SubmitDelegatedApprovalDecisionResponse, raw)
 
     def subscribe_agent_events(self, request: SubscribeAgentEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AgentEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents", _model_body(request), AgentEvent, metadata=metadata, timeout_ms=timeout_ms)
-
-    def subscribe_agent_voice_stream(self, request: SubscribeAgentVoiceStreamRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AgentVoiceStreamEvent]:
-        return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream", _model_body(request), AgentVoiceStreamEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     def subscribe_local_app_agent_realtime_events(self, request: SubscribeLocalAppAgentRealtimeEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[LocalAppAgentRealtimeEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents", _model_body(request), LocalAppAgentRealtimeEvent, metadata=metadata, timeout_ms=timeout_ms)

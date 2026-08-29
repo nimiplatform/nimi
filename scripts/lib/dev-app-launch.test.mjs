@@ -87,8 +87,10 @@ test('CDP input fails closed on duplicate, missing, and non-canonical ports', ()
 test('only Avatar admits the explicit Tauri carrier and never combines it with CDP', () => {
   const plan = resolveDevAppLaunch('avatar', [
     '--tauri',
-    '--agent-id',
-    'local-agent:owner:agent',
+    '--agent-handle',
+    `agent_ref_${'a'.repeat(43)}`,
+    '--conversation-anchor-id',
+    'anchor-1',
     '--instance-id',
     'avatar-instance',
     '--no-kill-existing',
@@ -104,8 +106,10 @@ test('only Avatar admits the explicit Tauri carrier and never combines it with C
     command: '/node',
     args: [
       path.join('scripts', 'dev-avatar.mjs'),
-      '--agent-id',
-      'local-agent:owner:agent',
+      '--agent-handle',
+      `agent_ref_${'a'.repeat(43)}`,
+      '--conversation-anchor-id',
+      'anchor-1',
       '--instance-id',
       'avatar-instance',
       '--no-kill-existing',
@@ -128,8 +132,8 @@ test('only Avatar admits the explicit Tauri carrier and never combines it with C
 
 test('Avatar Electron maps launch selectors to the existing Desktop carrier contract', () => {
   const plan = resolveDevAppLaunch('avatar', [
-    '--agent-id',
-    'local-agent:owner:agent',
+    '--agent-handle',
+    `agent_ref_${'a'.repeat(43)}`,
     '--instance-id',
     'avatar-instance',
     '--cdp',
@@ -137,7 +141,7 @@ test('Avatar Electron maps launch selectors to the existing Desktop carrier cont
   assert.equal(plan.carrier, 'electron');
   assert.equal(plan.cdpPort, 9336);
   assert.deepEqual(plan.envOverrides, {
-    NIMI_AVATAR_AGENT_ID: 'local-agent:owner:agent',
+    NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_HANDLE: `agent_ref_${'a'.repeat(43)}`,
     NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID: 'avatar-instance',
   });
   assert.throws(

@@ -215,6 +215,11 @@ export interface NimiAppAIConfigClient {
   ): Promise<NimiAIConfigOptionsResult>;
 }
 
+export type NimiLocalAppAIConfigRuntimeClient = Pick<
+  NimiAppAIConfigClient,
+  'get' | 'overwrite' | 'listOptions'
+>;
+
 export function createNimiAppAIConfigOwner(appId: string): AIConfigOwner {
   return {
     owner: {
@@ -237,12 +242,32 @@ export function createNimiAppAIConfigClient(options: {
 }): NimiAppAIConfigClient {
   const appId = requireText(options.appId, 'App AIConfig client requires appId');
   const owner = createNimiAppAIConfigOwner(appId);
-  const client = 'ai' in options.runtime ? options.runtime.ai : options.runtime;
+	const operations = createAppAIConfigOperations(options.runtime, appId, owner);
+	return Object.freeze({ appId, owner, ...operations });
+}
+
+/**
+ * Runtime adapter for one already-admitted formal App session. appId validates
+ * the returned owner projection only; no owner selector is sent to Runtime.
+ */
+// @nimi-authority: rule.nimi.sdks.feature-clients.r014
+export function createNimiLocalAppAIConfigRuntimeClient(options: {
+  readonly appId: string;
+  readonly runtime: { readonly ai: NimiAppAIConfigRpcClient } | NimiAppAIConfigRpcClient;
+}): NimiLocalAppAIConfigRuntimeClient {
+	const appId = requireText(options.appId, 'Local App AIConfig projection requires appId');
+	return createAppAIConfigOperations(options.runtime, appId);
+}
+
+function createAppAIConfigOperations(
+	runtime: { readonly ai: NimiAppAIConfigRpcClient } | NimiAppAIConfigRpcClient,
+	appId: string,
+	owner?: AIConfigOwner,
+): NimiLocalAppAIConfigRuntimeClient {
+  const client = 'ai' in runtime ? runtime.ai : runtime;
   return Object.freeze({
-    appId,
-    owner,
     async get(callOptions?: RuntimeTypedCallOptions) {
-      const response = await client.getAppAIConfig({ owner }, callOptions);
+      const response = await client.getAppAIConfig(owner ? { owner } : {}, callOptions);
       return Object.freeze({
         config: response.config ? requireAppConfig(response.config, appId, 'GetAppAIConfig') : null,
         revision: requireRevision(response.revision),
@@ -260,7 +285,7 @@ export function createNimiAppAIConfigClient(options: {
       const response = await client.overwriteAppAIConfig(
         {
           config: {
-            owner,
+			...(owner ? { owner } : {}),
             capabilities: [...input.capabilities],
           },
           expectedRevision: requireRevision(input.expectedRevision),
@@ -316,7 +341,7 @@ export function createNimiAppAIConfigClient(options: {
       }
       const response = await client.listAppAIConfigOptions({
         query: wireQuery,
-        owner,
+		...(owner ? { owner } : {}),
       }, callOptions);
 	  if (query.kind === 'local-loadouts' && response.result.oneofKind === 'localLoadouts') {
 	    return Object.freeze({

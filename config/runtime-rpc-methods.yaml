@@ -56,6 +56,33 @@ services:
         type: unary
       - name: ListLocalAppVoiceAssets
         type: unary
+      - name: GenerateLocalAppTextCandidate
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate
+      - name: StreamLocalAppTextTurn
+        type: server_stream
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn
+      - name: ExecuteLocalAppScenario
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario
+      - name: SubmitLocalAppScenarioJob
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob
+      - name: GetLocalAppScenarioJob
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob
+      - name: SubscribeLocalAppScenarioJobEvents
+        type: server_stream
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents
+      - name: CancelLocalAppScenarioJob
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob
+      - name: ReadLocalAppArtifact
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact
+      - name: UploadLocalAppArtifact
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact
       - name: DeleteVoiceAsset
         type: unary
       - name: ListPresetVoices
@@ -373,6 +400,30 @@ services:
         authority_status: admitted_local_app
         transport_disposition: protected_local_app_host_only
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson
+      - name: StatLocalAppAsset
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset
+      - name: ListLocalAppAssets
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets
+      - name: WriteLocalAppAsset
+        type: server_stream
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset
+      - name: ReadLocalAppAsset
+        type: server_stream
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset
+      - name: RemoveLocalAppAsset
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset
+      - name: MoveLocalAppAsset
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset
+      - name: RevealLocalAppAsset
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset
+      - name: AdoptLocalAppArtifact
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact
       - name: PrepareLocalAppLaunch
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch
@@ -432,31 +483,9 @@ services:
         type: unary
       - name: ListAgentConversationSummaries
         type: unary
-      - name: RegisterAvatarLiveInstanceBinding
-        type: unary
-      - name: ResolveAvatarLiveInstanceBinding
-        type: unary
       - name: GetPublicChatSessionSnapshot
         type: unary
       - name: ReadConversationArtifact
-        type: unary
-      - name: GetCompanionParticipationProjection
-        type: unary
-      - name: RequestCompanionParticipation
-        type: unary
-      - name: CancelCompanionParticipation
-        type: unary
-      - name: OpenCompanionParticipationReplay
-        type: unary
-      - name: GetAvatarDebugSnapshot
-        type: unary
-      - name: RequestAvatarDebugProbe
-        type: unary
-      - name: SubmitAvatarDebugProbeResult
-        type: unary
-      - name: ListAvatarDebugProbeResults
-        type: unary
-      - name: GetAvatarDebugReplay
         type: unary
       - name: ListDelegatedProviderProfiles
         type: unary
@@ -490,11 +519,6 @@ services:
         type: unary
       - name: SubscribeAgentEvents
         type: server_stream
-      - name: SubscribeAgentVoiceStream
-        type: server_stream
-        authority_status: existing_scoped_consumer_only
-      - name: InterruptAgentVoicePlayback
-        type: unary
       - name: TranscribeAgentVoiceInput
         type: unary
       - name: GetSharedLocalAgentAIConfig
@@ -580,6 +604,12 @@ services:
       - name: GetLocalAppConversationSnapshot
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot
+      - name: GetLocalAppEmbodimentSnapshot
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot
+      - name: SubscribeLocalAppEmbodimentEvents
+        type: server_stream
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents
       - name: OpenLocalAppAgentRealtime
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime

@@ -9,13 +9,14 @@ use crate::avatar_paths::resolve_avatar_app_data_dir;
 
 const AVATAR_INSTANCE_PROJECTION_DIR: &str = "avatar-instance-registry";
 const AVATAR_INSTANCE_PROJECTION_FILE: &str = "instances.json";
-const AVATAR_INSTANCE_PROJECTION_SCHEMA_VERSION: u32 = 4;
+const AVATAR_INSTANCE_PROJECTION_SCHEMA_VERSION: u32 = 5;
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AvatarInstanceProjectionRecord {
     pub avatar_instance_id: String,
     pub agent_handle: String,
+    pub conversation_anchor_id: String,
     pub launch_source: Option<String>,
 }
 
@@ -94,7 +95,8 @@ pub fn projection_record_from_launch_context(
     fallback_avatar_instance_id: &str,
 ) -> Option<AvatarInstanceProjectionRecord> {
     let agent_handle = context.agent_handle.trim();
-    if agent_handle.is_empty() {
+    let conversation_anchor_id = context.conversation_anchor_id.trim();
+    if agent_handle.is_empty() || conversation_anchor_id.is_empty() {
         return None;
     }
     let avatar_instance_id = context
@@ -108,6 +110,7 @@ pub fn projection_record_from_launch_context(
     Some(AvatarInstanceProjectionRecord {
         avatar_instance_id: avatar_instance_id.to_string(),
         agent_handle: agent_handle.to_string(),
+        conversation_anchor_id: conversation_anchor_id.to_string(),
         launch_source: context.launch_source.clone(),
     })
 }
@@ -150,6 +153,7 @@ mod tests {
             instances: vec![AvatarInstanceProjectionRecord {
                 avatar_instance_id: "instance-1".to_string(),
                 agent_handle: format!("agent_ref_{}", "a".repeat(43)),
+                conversation_anchor_id: "anchor-1".to_string(),
                 launch_source: Some("desktop-agent-chat".to_string()),
             }],
         };
@@ -157,13 +161,14 @@ mod tests {
         persist_projection_to_path(&path, &payload).expect("persist projection");
 
         let raw = fs::read_to_string(&path).expect("read projection");
-        assert!(raw.contains("\"schemaVersion\": 4"));
+        assert!(raw.contains("\"schemaVersion\": 5"));
         assert!(raw.contains("\"publisherPid\": 42"));
         assert!(raw.contains("\"avatarInstanceId\": \"instance-1\""));
         assert!(raw.contains(&format!(
             "\"agentHandle\": \"agent_ref_{}\"",
             "a".repeat(43)
         )));
+        assert!(raw.contains("\"conversationAnchorId\": \"anchor-1\""));
         assert!(!raw.contains("local-agent:opaque-1"));
         assert!(!raw.contains("ownerUserId"));
         assert!(!raw.contains("runtimeSourceRef"));
@@ -192,6 +197,7 @@ mod tests {
 
         assert_eq!(record.avatar_instance_id, "instance-1");
         assert_eq!(record.agent_handle, format!("agent_ref_{}", "a".repeat(43)));
+        assert_eq!(record.conversation_anchor_id, "anchor-1");
     }
 
     #[test]
@@ -209,5 +215,6 @@ mod tests {
         let record = projection_record_from_registry_entry(&entry).expect("selector projection");
 
         assert_eq!(record.agent_handle, format!("agent_ref_{}", "b".repeat(43)));
+        assert_eq!(record.conversation_anchor_id, "anchor-1");
     }
 }

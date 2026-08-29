@@ -88,14 +88,6 @@ RUNTIME_METHODS = [
     "response_type": "ApplySharedLocalAgentAIProfileResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
-    "service": "RuntimeAgentService",
-    "method": "CancelCompanionParticipation",
-    "kind": "unary",
-    "request_type": "CancelCompanionParticipationRequest",
-    "response_type": "CancelCompanionParticipationResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
     "service": "RuntimeAgentService",
     "method": "CancelHook",
@@ -182,30 +174,6 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "GetAgentStateRequest",
     "response_type": "GetAgentStateResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
-    "service": "RuntimeAgentService",
-    "method": "GetAvatarDebugReplay",
-    "kind": "unary",
-    "request_type": "GetAvatarDebugReplayRequest",
-    "response_type": "GetAvatarDebugReplayResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot",
-    "service": "RuntimeAgentService",
-    "method": "GetAvatarDebugSnapshot",
-    "kind": "unary",
-    "request_type": "GetAvatarDebugSnapshotRequest",
-    "response_type": "GetAvatarDebugSnapshotResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection",
-    "service": "RuntimeAgentService",
-    "method": "GetCompanionParticipationProjection",
-    "kind": "unary",
-    "request_type": "GetCompanionParticipationProjectionRequest",
-    "response_type": "GetCompanionParticipationProjectionResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
@@ -320,14 +288,6 @@ RUNTIME_METHODS = [
     "response_type": "InspectLocalAppAgentMemoryResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
-    "service": "RuntimeAgentService",
-    "method": "InterruptAgentVoicePlayback",
-    "kind": "unary",
-    "request_type": "InterruptAgentVoicePlaybackRequest",
-    "response_type": "InterruptAgentVoicePlaybackResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput",
     "service": "RuntimeAgentService",
     "method": "InterruptLocalAppAgentRealtimeOutput",
@@ -358,14 +318,6 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "ListAgentsRequest",
     "response_type": "ListAgentsResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults",
-    "service": "RuntimeAgentService",
-    "method": "ListAvatarDebugProbeResults",
-    "kind": "unary",
-    "request_type": "ListAvatarDebugProbeResultsRequest",
-    "response_type": "ListAvatarDebugProbeResultsResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
@@ -440,14 +392,6 @@ RUNTIME_METHODS = [
     "response_type": "MaterializeRealmSourceResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
-    "service": "RuntimeAgentService",
-    "method": "OpenCompanionParticipationReplay",
-    "kind": "unary",
-    "request_type": "OpenCompanionParticipationReplayRequest",
-    "response_type": "OpenCompanionParticipationReplayResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
     "service": "RuntimeAgentService",
     "method": "OpenConversationAnchor",
@@ -512,44 +456,12 @@ RUNTIME_METHODS = [
     "response_type": "ReadLocalAppConversationArtifactResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
-    "service": "RuntimeAgentService",
-    "method": "RegisterAvatarLiveInstanceBinding",
-    "kind": "unary",
-    "request_type": "RegisterAvatarLiveInstanceBindingRequest",
-    "response_type": "RegisterAvatarLiveInstanceBindingResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
     "service": "RuntimeAgentService",
     "method": "RenderLocalAppConversationVoice",
     "kind": "unary",
     "request_type": "RenderLocalAppConversationVoiceRequest",
     "response_type": "RenderLocalAppConversationVoiceResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
-    "service": "RuntimeAgentService",
-    "method": "RequestAvatarDebugProbe",
-    "kind": "unary",
-    "request_type": "RequestAvatarDebugProbeRequest",
-    "response_type": "RequestAvatarDebugProbeResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
-    "service": "RuntimeAgentService",
-    "method": "RequestCompanionParticipation",
-    "kind": "unary",
-    "request_type": "RequestCompanionParticipationRequest",
-    "response_type": "RequestCompanionParticipationResponse"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding",
-    "service": "RuntimeAgentService",
-    "method": "ResolveAvatarLiveInstanceBinding",
-    "kind": "unary",
-    "request_type": "ResolveAvatarLiveInstanceBindingRequest",
-    "response_type": "ResolveAvatarLiveInstanceBindingResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
@@ -584,14 +496,6 @@ RUNTIME_METHODS = [
     "response_type": "SetLocalAppAgentMemoryEnabledResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
-    "service": "RuntimeAgentService",
-    "method": "SubmitAvatarDebugProbeResult",
-    "kind": "unary",
-    "request_type": "SubmitAvatarDebugProbeResultRequest",
-    "response_type": "SubmitAvatarDebugProbeResultResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
     "service": "RuntimeAgentService",
     "method": "SubmitDelegatedApprovalDecision",
@@ -606,14 +510,6 @@ RUNTIME_METHODS = [
     "kind": "server_stream",
     "request_type": "SubscribeAgentEventsRequest",
     "response_type": "AgentEvent"
-  },
-  {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
-    "service": "RuntimeAgentService",
-    "method": "SubscribeAgentVoiceStream",
-    "kind": "server_stream",
-    "request_type": "SubscribeAgentVoiceStreamRequest",
-    "response_type": "AgentVoiceStreamEvent"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",

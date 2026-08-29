@@ -1,133 +1,121 @@
+import {
+  buildAvatarHostHandoffRequest,
+  buildAvatarLaunchInstanceId,
+  invokeAvatarHostHandoff,
+  type AvatarHostHandoffPort,
+  type AvatarHostHandoffTarget,
+} from '@nimiplatform/kit/features/avatar/headless';
+import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
+import type { ZhiyuConversationHomeStatus } from '../agent/conversation-home';
 import type { ZhiyuEvidence } from '../app/evidence';
-import type { ZhiyuLocalAgentStatus } from '../agent/local-agent-status';
 
 export type ZhiyuAvatarPresenceStatus = ZhiyuEvidence['avatar'];
-
-export interface ZhiyuAvatarPresenceReadInput {
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
-}
-
-export interface ZhiyuAvatarPresenceProjection {
-  readonly configurationRef?: string | null;
-  readonly launchAvailable?: boolean;
-  readonly manageAvailable?: boolean;
-  readonly reasonCode?: string;
-  readonly actionHint?: string;
-  readonly source?: string;
-  readonly message?: string;
-}
-
-export type ZhiyuAvatarPresenceReader = (
-  input: ZhiyuAvatarPresenceReadInput,
-) => Promise<ZhiyuAvatarPresenceProjection | null | undefined>;
+type ZhiyuAvatarHostTarget = AvatarHostHandoffTarget & Readonly<{
+  readonly agentHandle: NimiLocalAppAgentHandle;
+}>;
 
 export interface ZhiyuAvatarPresenceProbeOptions {
-  readonly readAvatarPresence?: ZhiyuAvatarPresenceReader;
+  readonly hostPort?: AvatarHostHandoffPort;
 }
 
+// Host presence is mechanical evidence only. Product launch availability is
+// derived from the current formal Agent plus exact Conversation anchor.
+// @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r011
 export async function probeZhiyuAvatarPresence(
-  localAgent: ZhiyuLocalAgentStatus,
+  conversation: ZhiyuConversationHomeStatus,
   options: ZhiyuAvatarPresenceProbeOptions = {},
 ): Promise<ZhiyuAvatarPresenceStatus> {
-  if (localAgent.ready && stringOr(localAgent.source, '') !== 'runtime') {
+  const target = zhiyuAvatarHostTarget(conversation);
+  if (!target) {
     return avatarUnavailable({
-      reasonCode: 'zhiyu-runtime-owned-local-agent-required',
-      actionHint: 'select_runtime_owned_partner',
-      source: localAgent.source,
-      message: 'Zhiyu requires Runtime-owned LocalAgent evidence before reading Avatar presence.',
-      ownerUserId: localAgent.ownerUserId,
-      runtimeSourceRef: localAgent.runtimeSourceRef,
-      localAgentRef: localAgent.localAgentRef,
-    });
-  }
-  const identity = localAgentIdentity(localAgent);
-  if (!identity) {
-    return avatarUnavailable({
-      reasonCode: 'zhiyu-local-agent-required',
-      actionHint: 'select_runtime_owned_partner',
-      source: localAgent.source,
-      message: 'Zhiyu requires a Runtime-owned LocalAgent before reading Avatar presence.',
-      ownerUserId: localAgent.ownerUserId,
-      runtimeSourceRef: localAgent.runtimeSourceRef,
-      localAgentRef: localAgent.localAgentRef,
+      reasonCode: 'zhiyu-avatar-current-conversation-required',
+      actionHint: 'open_runtime_conversation_anchor',
+      source: conversation.source,
+      message: 'Avatar launch requires the current formal Agent and exact Conversation anchor.',
+      agentHandle: conversation.agentHandle,
+      conversationAnchorId: conversation.conversationAnchorId,
     });
   }
 
-  if (!options.readAvatarPresence) {
-    return avatarUnavailable({
-      reasonCode: 'zhiyu-avatar-presence-capability-not-admitted',
-      actionHint: 'admit_zhiyu_avatar_presence_capability',
-      source: 'sdk',
-      message: 'Avatar presence is not admitted on the Zhiyu local-app carrier.',
-      ...identity,
+  if (!options.hostPort) {
+    return avatarAvailable({
+      target,
+      reasonCode: 'zhiyu-avatar-host-presence-unavailable',
+      actionHint: 'launch_avatar_through_host_port',
+      source: 'host',
+      message: 'Avatar can be launched; Host presence will be resolved by the launch request.',
+      hostHandoff: null,
     });
   }
 
   try {
-    const projection = await options.readAvatarPresence(identity);
-    return avatarAvailable(projection, identity);
+    const hostHandoff = await invokeAvatarHostHandoff(
+      options.hostPort,
+      buildAvatarHostHandoffRequest({ command: 'presence', target }),
+    );
+    return avatarAvailable({
+      target,
+      reasonCode: `zhiyu-avatar-host-${hostHandoff.state}`,
+      actionHint: hostHandoff.state === 'present' || hostHandoff.state === 'focused'
+        ? 'focus_avatar_through_host_port'
+        : 'launch_avatar_through_host_port',
+      source: 'host',
+      message: `Avatar Host presence is ${hostHandoff.state}.`,
+      hostHandoff,
+    });
   } catch (error) {
-    return normalizeAvatarPresenceError(error, identity);
+    const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
+    return avatarAvailable({
+      target,
+      reasonCode: text(record.reasonCode) || text(record.code) || 'zhiyu-avatar-host-presence-unavailable',
+      actionHint: text(record.actionHint) || 'launch_avatar_through_host_port',
+      source: text(record.source) || 'host',
+      message: error instanceof Error && error.message.trim()
+        ? error.message.trim()
+        : 'Avatar Host presence is unavailable; an explicit launch can still be requested.',
+      hostHandoff: null,
+    });
   }
 }
 
-function avatarAvailable(
-  projection: ZhiyuAvatarPresenceProjection | null | undefined,
-  identity: {
-    readonly ownerUserId: string;
-    readonly runtimeSourceRef: string;
-    readonly localAgentRef: string;
-  },
-): ZhiyuAvatarPresenceStatus {
-  const configurationRef = stringOr(projection?.configurationRef, '');
-  if (!configurationRef) {
-    return avatarUnavailable({
-      reasonCode: stringOr(projection?.reasonCode, 'zhiyu-avatar-configuration-not-projected'),
-      actionHint: stringOr(projection?.actionHint, 'provide_avatar_configuration_projection'),
-      source: stringOr(projection?.source, 'sdk'),
-      message: stringOr(
-        projection?.message,
-        'Avatar facade projection did not include an admitted configuration reference.',
-      ),
-      ...identity,
-    });
-  }
+export function zhiyuAvatarHostTarget(
+  conversation: ZhiyuConversationHomeStatus,
+): ZhiyuAvatarHostTarget | null {
+  if (!conversation.ready || !conversation.agentHandle || !conversation.conversationAnchorId) return null;
+  return {
+    agentHandle: conversation.agentHandle,
+    conversationAnchorId: conversation.conversationAnchorId,
+    avatarInstanceId: buildAvatarLaunchInstanceId({
+      agentHandle: conversation.agentHandle,
+      sourceSurface: 'zhiyu',
+    }),
+    launchSource: 'zhiyu',
+    committedPresentationRef: null,
+    temporaryCustodyRef: null,
+  };
+}
+
+function avatarAvailable(input: {
+  readonly target: ZhiyuAvatarHostTarget;
+  readonly reasonCode: string;
+  readonly actionHint: string;
+  readonly source: string;
+  readonly message: string;
+  readonly hostHandoff: ZhiyuAvatarPresenceStatus['hostHandoff'];
+}): ZhiyuAvatarPresenceStatus {
   return {
     transport: 'electron-ipc',
     ready: true,
     state: 'projected',
-    reasonCode: stringOr(projection?.reasonCode, 'avatar-facade-projected'),
-    actionHint: stringOr(projection?.actionHint, 'open_avatar_through_admitted_facade'),
-    source: stringOr(projection?.source, 'sdk'),
-    message: stringOr(projection?.message, 'Avatar facade projection is available.'),
-    ...identity,
-    configurationRef,
-    launchAvailable: projection?.launchAvailable === true,
-    manageAvailable: projection?.manageAvailable === true,
-    launchHandoff: null,
+    reasonCode: input.reasonCode,
+    actionHint: input.actionHint,
+    source: input.source,
+    message: input.message,
+    agentHandle: input.target.agentHandle,
+    conversationAnchorId: input.target.conversationAnchorId ?? null,
+    launchAvailable: true,
+    hostHandoff: input.hostHandoff,
   };
-}
-
-function normalizeAvatarPresenceError(
-  error: unknown,
-  identity: {
-    readonly ownerUserId: string;
-    readonly runtimeSourceRef: string;
-    readonly localAgentRef: string;
-  },
-): ZhiyuAvatarPresenceStatus {
-  const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
-  return avatarUnavailable({
-    reasonCode: stringOr(record.reasonCode, 'zhiyu-avatar-facade-projection-unavailable'),
-    actionHint: stringOr(record.actionHint, 'check_avatar_facade_projection'),
-    source: stringOr(record.source, 'sdk'),
-    message: error instanceof Error && error.message.trim()
-      ? error.message.trim()
-      : 'Avatar facade projection is unavailable.',
-    ...identity,
-  });
 }
 
 function avatarUnavailable(input: {
@@ -135,9 +123,8 @@ function avatarUnavailable(input: {
   readonly actionHint: string;
   readonly source: string;
   readonly message: string;
-  readonly ownerUserId?: string | null;
-  readonly runtimeSourceRef?: string | null;
-  readonly localAgentRef?: string | null;
+  readonly agentHandle?: ZhiyuConversationHomeStatus['agentHandle'];
+  readonly conversationAnchorId?: string | null;
 }): ZhiyuAvatarPresenceStatus {
   return {
     transport: 'electron-ipc',
@@ -147,37 +134,13 @@ function avatarUnavailable(input: {
     actionHint: input.actionHint,
     source: input.source,
     message: input.message,
-    ownerUserId: input.ownerUserId ?? null,
-    runtimeSourceRef: input.runtimeSourceRef ?? null,
-    localAgentRef: input.localAgentRef ?? null,
-    configurationRef: null,
+    agentHandle: input.agentHandle ?? null,
+    conversationAnchorId: input.conversationAnchorId ?? null,
     launchAvailable: false,
-    manageAvailable: false,
-    launchHandoff: null,
+    hostHandoff: null,
   };
 }
 
-function localAgentIdentity(localAgent: ZhiyuLocalAgentStatus): {
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
-} | null {
-  if (!localAgent.ready) {
-    return null;
-  }
-  const ownerUserId = stringOr(localAgent.ownerUserId, '');
-  const runtimeSourceRef = stringOr(localAgent.runtimeSourceRef, '');
-  const localAgentRef = stringOr(localAgent.localAgentRef, '');
-  if (!ownerUserId || !runtimeSourceRef || !localAgentRef) {
-    return null;
-  }
-  return {
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
-  };
-}
-
-function stringOr(value: unknown, fallback: string): string {
-  return typeof value === 'string' && value.trim() ? value.trim() : fallback;
+function text(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
 }

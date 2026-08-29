@@ -20,7 +20,7 @@ function input(overrides: Partial<CompositionInput> = {}): CompositionInput {
       fixturePlaying: false,
       avatarInstanceId: 'avatar-1',
       conversationAnchorId: 'anchor-1',
-      agentId: 'agent-1',
+      agentHandle: 'agent-1',
       worldId: 'world-1',
     },
     runtimeBinding: {
@@ -59,7 +59,7 @@ describe('deriveCompositionState', () => {
         fixturePlaying: true,
         avatarInstanceId: 'fixture-avatar-vrm-render-recovery',
         conversationAnchorId: 'fixture-anchor-vrm-render-recovery',
-        agentId: 'fixture-agent-vrm-render-recovery',
+        agentHandle: 'fixture-agent-vrm-render-recovery',
         worldId: 'world-mock-vrm-render-recovery',
       },
     }));
@@ -81,7 +81,7 @@ describe('deriveCompositionState', () => {
         fixturePlaying: true,
         avatarInstanceId: 'fixture-avatar-default',
         conversationAnchorId: 'fixture-anchor-default',
-        agentId: 'fixture-agent-default',
+        agentHandle: 'fixture-agent-default',
         worldId: 'world-mock-default',
       },
       runtimeBinding: {
@@ -113,7 +113,7 @@ describe('deriveCompositionState', () => {
         fixturePlaying: true,
         avatarInstanceId: null,
         conversationAnchorId: null,
-        agentId: null,
+        agentHandle: null,
         worldId: null,
       },
       driver: {
@@ -211,7 +211,7 @@ describe('deriveCompositionState', () => {
         fixturePlaying: true,
         avatarInstanceId: 'fixture-avatar-default',
         conversationAnchorId: 'fixture-anchor-default',
-        agentId: 'fixture-agent-default',
+        agentHandle: 'fixture-agent-default',
         worldId: 'world-mock-default',
       },
     }));

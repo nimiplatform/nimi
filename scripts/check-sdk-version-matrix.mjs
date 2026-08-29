@@ -168,14 +168,6 @@ async function main() {
   const expectedKitRange = kitVersion ? `^${kitVersion}` : '';
   const expectedAppToolsRange = appToolsVersion ? `^${appToolsVersion}` : '';
 
-  const examplesAppTemplate = JSON.parse(await fs.readFile(path.join(repoRoot, 'examples/app-template/package.json'), 'utf8'));
-  const examplesSdkRange = String(examplesAppTemplate.dependencies?.['@nimiplatform/sdk'] || '');
-  if (examplesSdkRange !== expectedSdkRange) {
-    violations.push(
-      `examples/app-template/package.json must depend on @nimiplatform/sdk as "${expectedSdkRange}"`,
-    );
-  }
-
   const scaffoldVersions = packageVersions.get('@nimiplatform/app-tools')?.pkg?.nimiScaffoldVersions;
   if (scaffoldVersions?.sdkVersion !== expectedSdkRange) {
     violations.push(`app-tools/package.json nimiScaffoldVersions.sdkVersion must be "${expectedSdkRange}"`);

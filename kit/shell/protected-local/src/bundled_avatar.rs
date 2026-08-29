@@ -50,6 +50,13 @@ pub struct BundledAvatarRuntimeRequest {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BundledAvatarRuntimeClientStreamRequest {
+    pub method_id: String,
+    pub request_frames: Vec<Vec<u8>>,
+    pub timeout: Option<Duration>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BundledAvatarRuntimeResponse {
     pub response_bytes: Vec<u8>,
 }
@@ -110,6 +117,35 @@ pub(crate) async fn open_stream(
         request.timeout,
     )
     .await
+}
+
+pub(crate) async fn invoke_client_stream(
+    channel: Channel,
+    request: BundledAvatarRuntimeClientStreamRequest,
+) -> Result<BundledAvatarRuntimeResponse, BundledAvatarRuntimeError> {
+    let Some(profile) = bundled_avatar_method_profile(request.method_id.trim()) else {
+        return Err(BundledAvatarRuntimeError::new(
+            "runtime-service-untrusted",
+            false,
+        ));
+    };
+    if profile.method_id != "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset"
+        || profile.kind != BundledAvatarMethodKind::ServerStream
+        || !timeout_allowed(request.timeout)
+    {
+        return Err(BundledAvatarRuntimeError::new(
+            "runtime-service-untrusted",
+            false,
+        ));
+    }
+    let response_bytes = crate::desktop_client_stream::invoke_bundled_avatar(
+        channel,
+        profile.method_id,
+        request.request_frames,
+        request.timeout,
+    )
+    .await?;
+    Ok(BundledAvatarRuntimeResponse { response_bytes })
 }
 
 fn timeout_allowed(timeout: Option<Duration>) -> bool {

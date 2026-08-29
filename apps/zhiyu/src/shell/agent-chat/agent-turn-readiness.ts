@@ -18,9 +18,7 @@ export function probeZhiyuAgentTurnReadiness(
       actionHint: inventory.actionHint,
       source: inventory.source,
       message: inventory.message,
-      ownerUserId: conversation.ownerUserId,
-      runtimeSourceRef: conversation.runtimeSourceRef,
-      localAgentRef: conversation.localAgentRef,
+      agentHandle: conversation.agentHandle,
       conversationAnchorId: conversation.conversationAnchorId,
     });
   }
@@ -32,9 +30,7 @@ export function probeZhiyuAgentTurnReadiness(
       actionHint: 'open_runtime_conversation_anchor',
       source: conversation.source,
       message: 'Zhiyu requires a Runtime-owned conversation anchor before sending a turn.',
-      ownerUserId: conversation.ownerUserId,
-      runtimeSourceRef: conversation.runtimeSourceRef,
-      localAgentRef: conversation.localAgentRef,
+      agentHandle: conversation.agentHandle,
       conversationAnchorId: conversation.conversationAnchorId,
     });
   }
@@ -56,9 +52,6 @@ export function probeZhiyuAgentTurnReadiness(
     actionHint: 'send_runtime_agent_turn',
     source: 'renderer',
     message: 'Runtime Agent turn channel is ready.',
-    ownerUserId: null,
-    runtimeSourceRef: null,
-    localAgentRef: null,
     ...identity,
     requestId: null,
     runtimeTurnId: null,
@@ -93,9 +86,7 @@ function turnUnavailable(input: {
   readonly actionHint: string;
   readonly source: string;
   readonly message: string;
-  readonly ownerUserId?: string | null;
-  readonly runtimeSourceRef?: string | null;
-  readonly localAgentRef?: string | null;
+  readonly agentHandle?: NimiLocalAppAgentHandle | null;
   readonly conversationAnchorId?: string | null;
   readonly requestId?: string | null;
 }): ZhiyuRuntimeTurnStatus {
@@ -106,9 +97,7 @@ function turnUnavailable(input: {
     actionHint: input.actionHint,
     source: input.source,
     message: input.message,
-    ownerUserId: input.ownerUserId ?? null,
-    runtimeSourceRef: input.runtimeSourceRef ?? null,
-    localAgentRef: input.localAgentRef ?? null,
+    agentHandle: input.agentHandle ?? null,
     conversationAnchorId: input.conversationAnchorId ?? null,
     requestId: input.requestId ?? null,
     runtimeTurnId: null,

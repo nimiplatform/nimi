@@ -186,8 +186,6 @@ export function formatNimiRuntimeAgentEventType(value: unknown): string | null {
       return 'state';
     case AgentEventType.PRESENTATION:
       return 'presentation';
-    case AgentEventType.AVATAR_DEBUG:
-      return 'avatar-debug';
     case AgentEventType.PROACTIVE:
       return 'proactive';
     default:

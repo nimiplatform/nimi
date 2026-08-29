@@ -6,6 +6,7 @@ export * from './bundled-avatar-asset-host.js';
 export * from './app-menu.js';
 export * from './agent-center.js';
 export * from './desktop-open.js';
+export * from './avatar-host-handoff.js';
 export {
   registerNimiElectronAppBridge,
   type NimiElectronAgentCenterOpenFileDialog,

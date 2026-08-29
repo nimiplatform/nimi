@@ -16,7 +16,7 @@ import (
 
 func TestAccountRPCPermissionMatrixKeepsAccountControlDesktopOwned(t *testing.T) {
 	desktop := realmDesktopShellCaller()
-	localApp := firstPartyCaller()
+	localApp := explicitLocalAppAccountCaller()
 
 	for _, tc := range []struct {
 		name   string
@@ -169,7 +169,7 @@ func TestProductionLocalCallerCannotRestoreRetiredPortableSessionAuthority(t *te
 		t.Fatalf("GetAccountSessionStatus: %v", err)
 	}
 	if response.GetReasonCode() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED ||
-		response.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
+		response.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_ENVELOPE_MISMATCH {
 		t.Fatalf("retired portable session family restored authority: %+v", response)
 	}
 }
@@ -225,7 +225,7 @@ func TestRealmBrokerAuthorizationProfileRejectsSameAppNonDesktopInstance(t *test
 		AppId:         caller.GetAppId(),
 		AppInstanceId: "nimi.desktop.runtime-agent",
 		DeviceId:      "runtime-agent",
-		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
+		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_APP,
 	}
 	operation := realmBrokerOperations["WorldCoreController_getPersonaCharacter"]
 	if !operation.admitsProtectedDesktopCaller(caller) {

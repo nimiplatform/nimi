@@ -84,9 +84,9 @@ export interface LocalAppEmbodimentVoiceTiming {
      */
     turnRef: string;
     /**
-     * @generated from protobuf field: string voice_ref = 5
+     * @generated from protobuf field: string correlation_ref = 5
      */
-    voiceRef: string;
+    correlationRef: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppEmbodimentSnapshot
@@ -462,7 +462,7 @@ class LocalAppEmbodimentVoiceTiming$Type extends MessageType<LocalAppEmbodimentV
             { no: 2, name: "duration_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 3, name: "deadline_offset_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 4, name: "turn_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "voice_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 5, name: "correlation_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppEmbodimentVoiceTiming>): LocalAppEmbodimentVoiceTiming {
@@ -471,7 +471,7 @@ class LocalAppEmbodimentVoiceTiming$Type extends MessageType<LocalAppEmbodimentV
         message.durationMs = "0";
         message.deadlineOffsetMs = "0";
         message.turnRef = "";
-        message.voiceRef = "";
+        message.correlationRef = "";
         if (value !== undefined)
             reflectionMergePartial<LocalAppEmbodimentVoiceTiming>(this, message, value);
         return message;
@@ -493,8 +493,8 @@ class LocalAppEmbodimentVoiceTiming$Type extends MessageType<LocalAppEmbodimentV
                 case /* string turn_ref */ 4:
                     message.turnRef = reader.string();
                     break;
-                case /* string voice_ref */ 5:
-                    message.voiceRef = reader.string();
+                case /* string correlation_ref */ 5:
+                    message.correlationRef = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -520,9 +520,9 @@ class LocalAppEmbodimentVoiceTiming$Type extends MessageType<LocalAppEmbodimentV
         /* string turn_ref = 4; */
         if (message.turnRef !== "")
             writer.tag(4, WireType.LengthDelimited).string(message.turnRef);
-        /* string voice_ref = 5; */
-        if (message.voiceRef !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.voiceRef);
+        /* string correlation_ref = 5; */
+        if (message.correlationRef !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.correlationRef);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

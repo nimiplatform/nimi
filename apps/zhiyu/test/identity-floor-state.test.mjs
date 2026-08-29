@@ -44,35 +44,25 @@ function evidence(overrides = {}) {
     },
     source: {
       ...status('zhiyu-admitted-source-projection-required'),
-      ownerUserId: null,
-      runtimeSourceRef: null,
       sourceRef: null,
     },
     inventory: {
       ...status('zhiyu-runtime-account-required'),
-      ownerUserId: null,
       count: 0,
       localAgents: [],
     },
     localAgent: {
       ...status('zhiyu-runtime-source-required'),
-      ownerUserId: null,
-      runtimeSourceRef: null,
-      localAgentRef: null,
+      agentHandle: null,
     },
     conversation: {
       ...status('zhiyu-local-agent-required'),
-      ownerUserId: null,
-      runtimeSourceRef: null,
-      localAgentRef: null,
+      agentHandle: null,
       conversationAnchorId: null,
     },
     memory: {
       ...status('zhiyu-local-agent-required'),
       state: 'blocked',
-      ownerUserId: null,
-      runtimeSourceRef: null,
-      localAgentRef: null,
       observedAt: null,
       recordCount: 0,
       bankCount: 0,
@@ -82,9 +72,7 @@ function evidence(overrides = {}) {
     },
     turn: {
       ...status('zhiyu-conversation-anchor-required'),
-      ownerUserId: null,
-      runtimeSourceRef: null,
-      localAgentRef: null,
+      agentHandle: null,
       conversationAnchorId: null,
       requestId: null,
       messageId: null,
@@ -98,43 +86,6 @@ function evidence(overrides = {}) {
       message: 'Runtime Agent composer has not been used.',
     },
     productRegions: ['presence', 'conversation', 'memory', 'capability', 'proposal', 'delegation', 'identity', 'companion', 'avatar', 'diagnostics'],
-    ...overrides,
-  };
-}
-
-function identitySafety(overrides = {}) {
-  return {
-    schemaVersion: 1,
-    observedAt: '2026-07-02T00:00:00.000Z',
-    state: 'ready',
-    identity: {
-      state: 'ready',
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'source-1',
-      localAgentRef: 'local-agent:1',
-      conversationAnchorId: 'conversation:1',
-      reasonCode: 'runtime-agent-local-identity-ready',
-      source: 'runtime-agent-local-identity',
-    },
-    outputFirewall: {
-      state: 'not_projected',
-      reasonCode: 'runtime-agent-output-firewall-verdict-not-projected',
-      source: 'not_projected',
-      diagnosticId: null,
-      firewallInputId: null,
-      firewallVerdict: null,
-      runtimeDecision: null,
-    },
-    promptInjection: {
-      state: 'not_projected',
-      reasonCode: 'runtime-agent-firewall-threat-indicators-not-projected',
-      source: 'not_projected',
-      firewallInputId: null,
-    },
-    unsupportedProjectionFields: [
-      'firewallThreatIndicators',
-      'firewallNormalizedOutputDiff',
-    ],
     ...overrides,
   };
 }
@@ -163,15 +114,11 @@ test('identity floor admits continuity readiness without claiming firewall or me
   const state = projectZhiyuIdentityFloorState(evidence({
     localAgent: {
       ...status('local-agent-discovered', true, 'runtime'),
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'source-1',
-      localAgentRef: 'local-agent:1',
+      agentHandle: `agent_ref_${'a'.repeat(43)}`,
     },
     conversation: {
       ...status('conversation-ready', true, 'runtime'),
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'source-1',
-      localAgentRef: 'local-agent:1',
+      agentHandle: `agent_ref_${'a'.repeat(43)}`,
       conversationAnchorId: 'conversation:1',
     },
   }));
@@ -184,49 +131,37 @@ test('identity floor admits continuity readiness without claiming firewall or me
   assert.equal(state.items.find((item) => item.key === 'conversation-anchor')?.reasonCode, 'conversation-ready');
   assert.equal(
     state.items.find((item) => item.key === 'output-firewall')?.reasonCode,
-    'runtime-agent-output-firewall-verdict-not-projected',
+    'runtime-delegation-firewall-not-projected',
   );
 });
 
-test('identity floor renders Runtime delegated firewall block and prompt suppression from SDK projection', async () => {
+test('identity floor renders delegated firewall block without fabricating prompt indicators', async () => {
   const { projectZhiyuIdentityFloorState } = await loadModule();
   const state = projectZhiyuIdentityFloorState(evidence({
     localAgent: {
       ...status('local-agent-discovered', true, 'runtime'),
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'source-1',
-      localAgentRef: 'local-agent:1',
+      agentHandle: `agent_ref_${'a'.repeat(43)}`,
     },
     conversation: {
       ...status('conversation-ready', true, 'runtime'),
-      ownerUserId: 'user-1',
-      runtimeSourceRef: 'source-1',
-      localAgentRef: 'local-agent:1',
+      agentHandle: `agent_ref_${'a'.repeat(43)}`,
       conversationAnchorId: 'conversation:1',
     },
-    identitySafety: identitySafety({
-      state: 'blocked',
+    delegation: {
+      source: 'runtime-delegation-firewall',
       outputFirewall: {
         state: 'blocked',
         reasonCode: 'DELEG_FIREWALL_QUARANTINED',
-        source: 'runtime-delegation-firewall',
-        diagnosticId: 'diag-1',
-        firewallInputId: 'firewall-input-1',
-        firewallVerdict: 'POLICY_BLOCKED',
-        runtimeDecision: 'blocked',
       },
-      promptInjection: {
-        state: 'suppressed',
-        reasonCode: 'DELEG_FIREWALL_QUARANTINED',
-        source: 'runtime-delegation-firewall',
-        firewallInputId: 'firewall-input-1',
-      },
-    }),
+    },
   }));
 
   assert.equal(state.state, 'blocked');
   assert.equal(state.items.find((item) => item.key === 'output-firewall')?.state, 'blocked');
   assert.equal(state.items.find((item) => item.key === 'output-firewall')?.source, 'runtime-delegation-firewall');
-  assert.equal(state.items.find((item) => item.key === 'prompt-injection')?.state, 'blocked');
-  assert.equal(state.items.find((item) => item.key === 'prompt-injection')?.reasonCode, 'DELEG_FIREWALL_QUARANTINED');
+  assert.equal(state.items.find((item) => item.key === 'prompt-injection')?.state, 'not-admitted');
+  assert.equal(
+    state.items.find((item) => item.key === 'prompt-injection')?.reasonCode,
+    'runtime-agent-firewall-threat-indicators-not-projected',
+  );
 });

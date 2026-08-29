@@ -13,7 +13,6 @@ pub const STANDARD_SHELL_CAPABILITY_IDS: &[&str] = &[
     "storage",
     "config",
     "local-assets",
-    "local-agent",
     "ai-profile",
     "avatar",
     "agent-center",
@@ -267,21 +266,6 @@ pub const STANDARD_SHELL_CAPABILITIES: &[StandardShellCapability] = &[
             command: "nimi.shell.localAssets.resolveUrl",
             negative_states: &["capability-unavailable", "invalid-path", "not-found"],
         }],
-    },
-    StandardShellCapability {
-        id: "local-agent",
-        operations: &[
-            StandardShellOperation {
-                id: "identity",
-                command: "nimi.shell.localAgent.identity",
-                negative_states: &["capability-unavailable"],
-            },
-            StandardShellOperation {
-                id: "runtimeTrustedCaller",
-                command: "nimi.shell.localAgent.runtimeTrustedCaller",
-                negative_states: &["capability-unavailable", "forbidden-renderer-access"],
-            },
-        ],
     },
     StandardShellCapability {
         id: "ai-profile",

@@ -32,15 +32,8 @@ import {
 } from './index';
 import {
   AgentEventType,
-  AvatarDebugEventFamily,
   AgentPresentationEventFamily,
   AgentStateEventFamily,
-  AvatarDebugProbeKind,
-  AvatarDebugProbeStatus,
-  AvatarDebugRequestedBy,
-  CompanionParticipationStatus,
-  CompanionParticipationSurfaceKind,
-  CompanionParticipationTriggerSource,
   ConversationAnchorStatus,
   DelegatedApprovalDecision,
   DelegatedProviderKind,
@@ -67,12 +60,6 @@ function createUnexpectedRuntimeAgentConsumeRuntime(
         throw new Error('unexpected');
       },
       async getConversationAnchorSnapshot() {
-        throw new Error('unexpected');
-      },
-      async registerAvatarLiveInstanceBinding() {
-        throw new Error('unexpected');
-      },
-      async resolveAvatarLiveInstanceBinding() {
         throw new Error('unexpected');
       },
       async getPublicChatSessionSnapshot() {
@@ -138,12 +125,6 @@ test('Runtime Agent consume fails closed when turn stream assembly lacks appMess
         throw new Error('unexpected');
       },
       async getConversationAnchorSnapshot() {
-        throw new Error('unexpected');
-      },
-      async registerAvatarLiveInstanceBinding() {
-        throw new Error('unexpected');
-      },
-      async resolveAvatarLiveInstanceBinding() {
         throw new Error('unexpected');
       },
       async getPublicChatSessionSnapshot() {
@@ -337,7 +318,6 @@ test('Runtime Agent consume subscribe filters app messages and merges generated 
     AgentEventType.HOOK,
     AgentEventType.STATE,
     AgentEventType.PRESENTATION,
-    AgentEventType.AVATAR_DEBUG,
   ]);
   assert.equal((agentEventCalls[0] as { cursor?: string }).cursor, '4');
 
@@ -591,38 +571,6 @@ test('Runtime Agent consume projects generated event families and fails closed o
     assert.notEqual(event.detail[detailField], undefined);
   }
 
-  const avatarDebugEvent = projectNimiRuntimeAgentServiceEvent({
-    eventType: AgentEventType.AVATAR_DEBUG,
-    sequence: 'avatar-debug-1',
-    agentId: 'local-agent:owner-1:agent-1',
-    localAgentRef: 'local-agent:owner-1:agent-1',
-    ownerUserId: 'owner-1',
-    runtimeSourceRef: 'agent-1',
-    detail: {
-      oneofKind: 'avatarDebug',
-      avatarDebug: {
-        family: AvatarDebugEventFamily.PROBE_REQUESTED,
-        request: {
-          probeId: 'probe-1',
-          agentId: 'local-agent:owner-1:agent-1',
-          conversationAnchorId: 'anchor-1',
-          probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
-          requestedAt: { seconds: 1n, nanos: 0 },
-          requestedBy: AvatarDebugRequestedBy.DESKTOP_WORKBENCH,
-          turnId: '',
-          streamId: '',
-          avatarInstanceId: 'avatar-1',
-          runtimeReplayRef: 'runtime.replay/probe-1',
-          replayRequested: true,
-        },
-      },
-    },
-  });
-  assert.equal(avatarDebugEvent.eventName, 'runtime.agent.avatar_debug.probe_requested');
-  assert.equal(avatarDebugEvent.conversationAnchorId, 'anchor-1');
-  assert.equal(avatarDebugEvent.detail.probeId, 'probe-1');
-  assert.equal('scopedBinding' in avatarDebugEvent.detail, false);
-
   const hookCases: Array<readonly [HookAdmissionState, string]> = [
     [HookAdmissionState.PROPOSED, 'runtime.agent.hook.intent_proposed'],
     [HookAdmissionState.PENDING, 'runtime.agent.hook.pending'],
@@ -635,7 +583,7 @@ test('Runtime Agent consume projects generated event families and fails closed o
   ];
   for (const [family, eventName] of hookCases) {
     const event = projectNimiRuntimeAgentServiceEvent({
-      eventType: 8,
+      eventType: AgentEventType.HOOK,
       sequence: String(family),
       agentId: 'local-agent:owner-1:agent-1',
       localAgentRef: 'local-agent:owner-1:agent-1',
@@ -733,7 +681,7 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
     fromAppId: 'runtime.agent',
     toAppId: 'nimi.avatar',
     subjectUserId: 'owner-1',
-    messageType: 'runtime.agent.presentation.voice_playback_requested',
+    messageType: 'runtime.agent.conversation.voice_timing_ready',
     payload: toNimiRuntimeProtoStruct({
       local_agent_ref: 'local-agent:owner-1:agent-1',
       conversation_anchor_id: 'anchor-1',
@@ -742,12 +690,7 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
       message_id: 'message-1',
       audio_artifact_id: 'artifact-1',
       audio_mime_type: 'audio/wav',
-      playback_state: 'queued',
-      voice_output_mode: 'batch_final_artifact',
-      voice_playback_state: 'active',
-      playback_target: 'avatar_autoplay',
-      final_artifact: true,
-      default_voice_reference: 'preset_voice_id:zh_narrator',
+      voice_timing_phase: 'active',
       voice_route_binding: {
         capability: 'audio.synthesize',
         default_voice_reference: 'preset_voice_id:zh_narrator',
@@ -787,24 +730,8 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
   assert.deepEqual(hook?.detail.triggerDetail, { tool: 'search' });
   assert.equal(voice?.detail.audioArtifactId, 'artifact-1');
   assert.equal(voice?.detail.messageId, 'message-1');
-  assert.equal(voice?.detail.voiceOutputMode, 'batch_final_artifact');
-  assert.equal(voice?.detail.voicePlaybackState, 'active');
-  assert.equal(voice?.detail.playbackTarget, 'avatar_autoplay');
-  assert.equal(voice?.detail.finalArtifact, true);
-  assert.deepEqual(voice?.detail.voiceRouteBinding, {
-    capability: 'audio.synthesize',
-    defaultVoiceReference: 'preset_voice_id:zh_narrator',
-    voiceReferenceKind: 'preset_voice_id',
-    voiceReferenceValue: 'zh_narrator',
-    modelId: 'speech/qwen3tts',
-    modelResolved: 'speech/qwen3tts-ready',
-    scenarioJobId: 'job-voice-1',
-    boundAudioArtifactId: 'artifact-voice-provider-1',
-    boundAudioMimeType: 'audio/wav',
-    synthesisMode: 'provider_audio_with_synthetic_lipsync',
-    status: 'bound',
-    reason: 'tts_provider_route_bound',
-  });
+  assert.equal(voice?.detail.voiceTimingPhase, 'active');
+  assert.equal(voice?.detail.voiceRouteBinding, undefined);
   assert.equal(voice?.timeline?.channel, 'voice');
   const voiceChunk = projectNimiRuntimeAgentAppMessageEvent({
     eventType: 0,
@@ -812,7 +739,7 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
     fromAppId: 'runtime.agent',
     toAppId: 'nimi.avatar',
     subjectUserId: 'owner-1',
-    messageType: 'runtime.agent.presentation.voice_stream_chunk_available',
+    messageType: 'runtime.agent.conversation.voice_artifact_available',
     payload: toNimiRuntimeProtoStruct({
       local_agent_ref: 'local-agent:owner-1:agent-1',
       conversation_anchor_id: 'anchor-1',
@@ -821,13 +748,11 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
       message_id: 'message-1',
       audio_artifact_id: 'artifact-1',
       audio_mime_type: 'audio/wav',
-      chunk_sequence: 1,
-      final_chunk: true,
-      voice_output_mode: 'batch_final_artifact',
-      voice_playback_state: 'active',
+      artifact_sequence: 1,
+      artifact_complete: true,
+      voice_timing_phase: 'active',
       duration_ms: 1200,
       reason: 'final_artifact_available',
-      playback_target: 'avatar_autoplay',
       runtime_timeline: {
         turn_id: 'turn-1',
         stream_id: 'stream-1',
@@ -844,14 +769,12 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
       },
     }),
   });
-  assert.equal(voiceChunk?.eventName, 'runtime.agent.presentation.voice_stream_chunk_available');
+  assert.equal(voiceChunk?.eventName, 'runtime.agent.conversation.voice_artifact_available');
   assert.equal(voiceChunk?.detail.audioArtifactId, 'artifact-1');
   assert.equal(voiceChunk?.detail.messageId, 'message-1');
-  assert.equal(voiceChunk?.detail.chunkSequence, 1);
-  assert.equal(voiceChunk?.detail.finalChunk, true);
-  assert.equal(voiceChunk?.detail.voiceOutputMode, 'batch_final_artifact');
-  assert.equal(voiceChunk?.detail.voicePlaybackState, 'active');
-  assert.equal(voiceChunk?.detail.playbackTarget, 'avatar_autoplay');
+  assert.equal(voiceChunk?.detail.artifactSequence, 1);
+  assert.equal(voiceChunk?.detail.artifactComplete, true);
+  assert.equal(voiceChunk?.detail.voiceTimingPhase, 'active');
   assert.equal(voiceChunk?.timeline?.projectionRuleId, 'K-AGCORE-133');
   const nativeVoiceChunk = projectNimiRuntimeAgentAppMessageEvent({
     eventType: 0,
@@ -859,7 +782,7 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
     fromAppId: 'runtime.agent',
     toAppId: 'nimi.avatar',
     subjectUserId: 'owner-1',
-    messageType: 'runtime.agent.presentation.voice_stream_chunk_available',
+    messageType: 'runtime.agent.conversation.voice_artifact_available',
     payload: toNimiRuntimeProtoStruct({
       local_agent_ref: 'local-agent:owner-1:agent-1',
       conversation_anchor_id: 'anchor-1',
@@ -867,14 +790,10 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
       stream_id: 'stream-1',
       message_id: 'message-1',
       audio_mime_type: 'audio/wav',
-      voice_stream_id: 'voice-stream-1',
-      chunk_transport_ref: 'runtime-agent-voice-stream://voice-stream-1/chunks/000001',
-      chunk_sequence: 1,
-      final_chunk: false,
-      voice_output_mode: 'native_stream',
-      voice_playback_state: 'active',
+      artifact_sequence: 1,
+      artifact_complete: false,
+      voice_timing_phase: 'active',
       reason: 'native_stream_chunk_available',
-      playback_target: 'avatar_autoplay',
       runtime_timeline: {
         turn_id: 'turn-1',
         stream_id: 'stream-1',
@@ -891,32 +810,25 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
       },
     }),
   });
-  assert.equal(nativeVoiceChunk?.detail.audioArtifactId, undefined);
-  assert.equal(nativeVoiceChunk?.detail.voiceStreamId, 'voice-stream-1');
-  assert.equal(nativeVoiceChunk?.detail.chunkTransportRef, 'runtime-agent-voice-stream://voice-stream-1/chunks/000001');
-  assert.equal(nativeVoiceChunk?.detail.finalChunk, false);
-  assert.equal(nativeVoiceChunk?.detail.voiceOutputMode, 'native_stream');
+  assert.equal(nativeVoiceChunk, null);
   const voiceTerminal = projectNimiRuntimeAgentAppMessageEvent({
     eventType: 0,
     sequence: '6',
     fromAppId: 'runtime.agent',
     toAppId: 'nimi.avatar',
     subjectUserId: 'owner-1',
-    messageType: 'runtime.agent.presentation.voice_playback_terminal',
+    messageType: 'runtime.agent.conversation.voice_timing_terminal',
     payload: toNimiRuntimeProtoStruct({
       local_agent_ref: 'local-agent:owner-1:agent-1',
       conversation_anchor_id: 'anchor-1',
       turn_id: 'turn-1',
       stream_id: 'stream-1',
       detail: {},
-      voice_stream_id: 'voice-stream-1',
-      final_artifact_id: 'artifact-final-1',
+      audio_artifact_id: 'artifact-final-1',
       audio_mime_type: 'audio/wav',
       message_id: 'message-1',
-      voice_output_mode: 'native_stream',
-      voice_playback_state: 'completed',
+      voice_timing_phase: 'completed',
       terminal_reason: 'native_stream_completed',
-      playback_target: 'avatar_autoplay',
       runtime_timeline: {
         turn_id: 'turn-1',
         stream_id: 'stream-1',
@@ -933,11 +845,9 @@ test('Runtime Agent consume app-message projection covers state hook presentatio
       },
     }),
   });
-  assert.equal(voiceTerminal?.eventName, 'runtime.agent.presentation.voice_playback_terminal');
-  assert.equal(voiceTerminal?.detail.voiceStreamId, 'voice-stream-1');
-  assert.equal(voiceTerminal?.detail.finalArtifactId, 'artifact-final-1');
-  assert.equal(voiceTerminal?.detail.voiceOutputMode, 'native_stream');
-  assert.equal(voiceTerminal?.detail.voicePlaybackState, 'completed');
+  assert.equal(voiceTerminal?.eventName, 'runtime.agent.conversation.voice_timing_terminal');
+  assert.equal(voiceTerminal?.detail.audioArtifactId, 'artifact-final-1');
+  assert.equal(voiceTerminal?.detail.voiceTimingPhase, 'completed');
   assert.equal(voiceTerminal?.detail.terminalReason, 'native_stream_completed');
   assert.equal(projectNimiRuntimeAgentAppMessageEvent({
     eventType: 0,
@@ -1230,145 +1140,4 @@ test('Runtime Agent consumer helpers summarize projection scope and recover term
     enqueue: (event) => enqueued.push(event),
     logEvent: (event) => logs.push(event),
   }), 'none');
-});
-
-test('Runtime Agent companion participation and avatar debug clients cover request envelopes', async () => {
-  const calls: Array<{ readonly method: string; readonly request: unknown; readonly options?: unknown }> = [];
-  const callOptions = { timeoutMs: 9000 };
-  const projection = {
-    projectionId: 'projection-1',
-    agentId: 'local-agent:owner-1:agent-1',
-    surfaceKind: CompanionParticipationSurfaceKind.DESKTOP_COMPANION_PANEL,
-    profileRef: 'runtime.agent.profile/local-agent:owner-1:agent-1',
-    triggerSource: CompanionParticipationTriggerSource.SCHEDULED_PROACTIVE,
-    status: CompanionParticipationStatus.CANDIDATE_READY,
-    candidateRef: 'candidate-1',
-    commitRef: '',
-    refusalReason: '',
-    presentationRef: 'presentation-1',
-    auditRef: 'runtime.audit.companion_participation/projection-1',
-    conversationAnchorId: 'anchor-1',
-    turnId: 'turn-1',
-    streamId: 'stream-1',
-  };
-  const runtime = createUnexpectedRuntimeAgentConsumeRuntime({
-    async requestCompanionParticipation(request, options) {
-      calls.push({ method: 'request', request, options });
-      return { projection };
-    },
-    async cancelCompanionParticipation(request, options) {
-      calls.push({ method: 'cancel', request, options });
-      return {
-        projection: {
-          ...projection,
-          status: CompanionParticipationStatus.CANCELED,
-          candidateRef: '',
-          presentationRef: '',
-        },
-      };
-    },
-    async openCompanionParticipationReplay(request, options) {
-      calls.push({ method: 'openReplay', request, options });
-      return {
-        replayRef: 'runtime.replay/projection-1',
-        projection,
-      };
-    },
-    async getAvatarDebugSnapshot(request, options) {
-      calls.push({ method: 'debugSnapshot', request, options });
-      return { snapshot: { ok: true } } as never;
-    },
-    async listAvatarDebugProbeResults(request, options) {
-      calls.push({ method: 'listProbeResults', request, options });
-      return { results: [] } as never;
-    },
-    async getAvatarDebugReplay(request, options) {
-      calls.push({ method: 'getReplay', request, options });
-      return { replay: { probeId: 'probe-1' } } as never;
-    },
-    async submitAvatarDebugProbeResult(request, options) {
-      calls.push({ method: 'submitProbeResult', request, options });
-      return { result: request.result } as never;
-    },
-  });
-  const client = createNimiRuntimeAgentConsumeClient({ runtime, runtimeAppId: 'nimi.avatar' });
-
-  assert.equal((await client.companionParticipation.request({
-    ...consumeContext,
-    conversationAnchorId: 'anchor-1',
-    surfaceKind: 'desktop_companion_panel',
-    triggerSource: 'scheduled_proactive',
-    text: 'Join the conversation',
-    threadId: 'thread-1',
-    worldId: 'world-1',
-    maxOutputTokens: 128,
-  }, callOptions)).status, 'candidate_ready');
-  assert.equal((await client.companionParticipation.cancel({
-    ...consumeContext,
-    conversationAnchorId: 'anchor-1',
-    projectionId: 'projection-1',
-    reason: 'owner dismissed',
-  }, callOptions)).status, 'canceled');
-  assert.equal((await client.companionParticipation.openReplay({
-    ...consumeContext,
-    conversationAnchorId: 'anchor-1',
-    projectionId: 'projection-1',
-  }, callOptions)).replayRef, 'runtime.replay/projection-1');
-  await client.avatarDebug.snapshot({
-    ...consumeContext,
-    conversationAnchorId: 'anchor-1',
-  }, callOptions);
-  await client.avatarDebug.listProbeResults({
-    ...consumeContext,
-    conversationAnchorId: 'anchor-1',
-  }, callOptions);
-  await client.avatarDebug.getReplay({
-    ...consumeContext,
-    conversationAnchorId: 'anchor-1',
-    probeId: 'probe-1',
-  }, callOptions);
-  await client.avatarDebug.submitProbeResult({
-    ...consumeContext,
-    conversationAnchorId: 'anchor-1',
-    result: {
-      probeId: 'probe-1',
-      agentId: 'local-agent:owner-1:agent-1',
-      conversationAnchorId: 'anchor-1',
-      probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
-      status: AvatarDebugProbeStatus.PASSED,
-      observedAt: { seconds: 1n, nanos: 0 },
-      evidenceRefs: ['avatar.debug.session/session-1'],
-      reasonCode: '',
-      resultId: 'result-1',
-    },
-  }, callOptions);
-
-  assert.deepEqual(calls.map((call) => call.method), [
-    'request',
-    'cancel',
-    'openReplay',
-    'debugSnapshot',
-    'listProbeResults',
-    'getReplay',
-    'submitProbeResult',
-  ]);
-  assert.equal((calls[0]?.request as { maxOutputTokens?: number }).maxOutputTokens, 128);
-  assert.equal((calls[1]?.request as { reason?: string }).reason, 'owner dismissed');
-  assert.equal((calls[2]?.request as { projectionId?: string }).projectionId, 'projection-1');
-  assert.equal((calls[4]?.request as { probeKind?: AvatarDebugProbeKind }).probeKind, AvatarDebugProbeKind.UNSPECIFIED);
-  assert.equal((calls[5]?.request as { probeId?: string }).probeId, 'probe-1');
-  assert.equal((calls[6]?.request as { result?: { resultId?: string } }).result?.resultId, 'result-1');
-
-  await assert.rejects(
-    () => client.companionParticipation.request({
-      ...consumeContext,
-      conversationAnchorId: 'anchor-1',
-      surfaceKind: 'unsupported' as 'avatar_companion',
-      text: 'hello',
-    }),
-    (error: unknown) => {
-      assert.equal((error as { reasonCode?: string }).reasonCode, 'SDK_RUNTIME_AGENT_INPUT_INVALID');
-      return true;
-    },
-  );
 });

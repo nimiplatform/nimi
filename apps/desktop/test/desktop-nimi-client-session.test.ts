@@ -11,6 +11,7 @@ test('desktop Electron Runtime calls leave host-owned auth metadata to the Elect
     appId: 'nimi.desktop',
     runtimeTransport: { type: 'electron-ipc' },
     runtimeClients: {},
+    localAppClient: {},
     accountRuntime: {
       account: {
         getAccountSessionStatus: async () => {
@@ -39,6 +40,7 @@ test('desktop Electron Runtime calls do not mint a public Grant token', async ()
     appId: 'nimi.desktop',
     runtimeTransport: { type: 'electron-ipc' },
     runtimeClients: {},
+    localAppClient: {},
     accountRuntime: {
       account: {
         getAccountSessionStatus: async () => {

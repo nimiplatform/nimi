@@ -15,7 +15,7 @@ function createBundle(): AgentDataBundle {
     status_text: '',
     execution_state: 'IDLE',
     active_world_id: 'world-1',
-    active_user_id: 'user-1',
+    active_agent_handle: 'user-1',
     app: {
       namespace: 'avatar',
       surface_id: 'avatar-window',

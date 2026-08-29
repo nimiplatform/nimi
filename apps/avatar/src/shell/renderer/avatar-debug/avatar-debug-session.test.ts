@@ -1,4 +1,4 @@
-import { AvatarDebugProbeKind } from '@nimiplatform/sdk/runtime/wire-types';
+import { AvatarDebugProbeKind } from './contract.js';
 import { describe, expect, it } from 'vitest';
 import type { BackendBranch } from '../carrier/backend-branch.js';
 import type { VrmCapabilityProfile } from '../vrm/vrm-capability-profile.js';
@@ -72,7 +72,7 @@ function backend(
 
 function vrmProfile(): VrmCapabilityProfile {
   return {
-    profileId: 'vrm-runtime-probe-v1',
+    profileId: 'vrm-avatar-capability-profile-v1',
     backendKind: 'vrm',
     humanoidBones: {
       hips: true,
@@ -116,9 +116,8 @@ function vrmProfile(): VrmCapabilityProfile {
 function input(probeKind: AvatarDebugProbeKind): AvatarDebugSessionInput {
   return {
     debugSessionId: 'debug-session-1',
-    runtimeProbe: {
+    probe: {
       probeId: 'probe-1',
-      agentId: 'agent-1',
       probeKind,
     },
     avatarInstanceId: 'avatar-1',
@@ -140,8 +139,7 @@ describe('createAvatarDebugSession', () => {
     const session = createAvatarDebugSession(input(AvatarDebugProbeKind.GENERATED_MOTION));
 
     expect(session).toMatchObject({
-      runtimeProbeId: 'probe-1',
-      agentId: 'agent-1',
+      probeId: 'probe-1',
       backendKind: 'vrm',
       evidence: {
         evidenceKind: 'generated_motion_checked',

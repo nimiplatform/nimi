@@ -384,36 +384,43 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
           </div>
         </div>
       ) : isImage ? (
-        mediaUri && !imageLoadError ? (
-          <button
-            type="button"
-            onClick={handleOpenImagePreview}
-            aria-label={copyResolved.bubbleOpenImagePreviewLabel}
-            className={`group block overflow-hidden ${displayContext === 'stage'
-              ? 'bg-[radial-gradient(circle_at_center,_rgba(248,250,252,0.98),_rgba(226,232,240,0.84))]'
-              : 'bg-gray-50'}`}
-            style={stageMediaFrameStyle}
-          >
-            <img
-              src={mediaUri}
-              alt={message.text || copyResolved.bubbleImageLabel}
-              className={`transition-transform duration-[var(--nimi-motion-slow)] group-hover:scale-[1.02] ${displayContext === 'stage'
-                ? 'h-full w-full object-contain'
-                : 'max-h-[360px] w-full object-cover'}`}
-              loading="lazy"
-              onLoad={(event) => {
-                const target = event.currentTarget;
-                setResolvedMediaSize({
-                  width: target.naturalWidth,
-                  height: target.naturalHeight,
-                });
-              }}
-              onError={() => setImageLoadError(true)}
-            />
-          </button>
-        ) : (
-          <p className="text-xs italic opacity-70">{String(metadata.mediaError || copyResolved.bubbleImageUnavailableLabel)}</p>
-        )
+        <div className="space-y-2">
+          {mediaUri && !imageLoadError ? (
+            <button
+              type="button"
+              onClick={handleOpenImagePreview}
+              aria-label={copyResolved.bubbleOpenImagePreviewLabel}
+              className={`group block overflow-hidden ${displayContext === 'stage'
+                ? 'bg-[radial-gradient(circle_at_center,_rgba(248,250,252,0.98),_rgba(226,232,240,0.84))]'
+                : 'bg-gray-50'}`}
+              style={stageMediaFrameStyle}
+            >
+              <img
+                src={mediaUri}
+                alt={message.text || copyResolved.bubbleImageLabel}
+                className={`transition-transform duration-[var(--nimi-motion-slow)] group-hover:scale-[1.02] ${displayContext === 'stage'
+                  ? 'h-full w-full object-contain'
+                  : 'max-h-[360px] w-full object-cover'}`}
+                loading="lazy"
+                onLoad={(event) => {
+                  const target = event.currentTarget;
+                  setResolvedMediaSize({
+                    width: target.naturalWidth,
+                    height: target.naturalHeight,
+                  });
+                }}
+                onError={() => setImageLoadError(true)}
+              />
+            </button>
+          ) : (
+            <p className="text-xs italic opacity-70">{String(metadata.mediaError || copyResolved.bubbleImageUnavailableLabel)}</p>
+          )}
+          {typeof metadata.caption === 'string' && metadata.caption.trim() ? (
+            <p className="m-0 whitespace-pre-wrap break-words text-sm" data-nimi-conversation-image-caption="true">
+              {metadata.caption}
+            </p>
+          ) : null}
+        </div>
       ) : isVideo ? (
         mediaUri && !videoLoadError ? (
           <video

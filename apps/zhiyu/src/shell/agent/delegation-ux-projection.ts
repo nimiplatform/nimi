@@ -430,9 +430,7 @@ export function delegationUnavailable(input: DelegationUnavailableInput): ZhiyuD
     actionHint: input.actionHint,
     source: input.source,
     message: input.message,
-    ownerUserId: input.ownerUserId ?? null,
-    runtimeSourceRef: input.runtimeSourceRef ?? null,
-    localAgentRef: input.localAgentRef ?? null,
+    agentHandle: input.agentHandle ?? null,
     conversationAnchorId: input.conversationAnchorId ?? null,
     observedAt: input.observedAt ?? null,
     approvalMode: null,
@@ -501,20 +499,16 @@ export function delegationUnavailable(input: DelegationUnavailableInput): ZhiyuD
 }
 
 export function conversationIdentity(conversation: ZhiyuConversationHomeStatus): DelegationIdentity | null {
-  if (!conversation.ready || stringOr(conversation.source, '') !== 'runtime') {
+  if (!conversation.ready) {
     return null;
   }
-  const ownerUserId = stringOr(conversation.ownerUserId, '');
-  const runtimeSourceRef = stringOr(conversation.runtimeSourceRef, '');
-  const localAgentRef = stringOr(conversation.localAgentRef, '');
+  const agentHandle = conversation.agentHandle;
   const conversationAnchorId = stringOr(conversation.conversationAnchorId, '');
-  if (!ownerUserId || !runtimeSourceRef || !localAgentRef || !conversationAnchorId) {
+  if (!agentHandle || !conversationAnchorId) {
     return null;
   }
   return {
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
+    agentHandle,
     conversationAnchorId,
   };
 }

@@ -5,30 +5,14 @@ import { buildDesktopNimiTextCapabilityRequest } from '../src/shell/renderer/fea
 
 test('Nimi Chat execution request carries CapabilityContract intent without App target authority', () => {
   const built = buildDesktopNimiTextCapabilityRequest({
-    runtime: { ai: {} as never },
-    appId: 'nimi.desktop',
+    client: { ai: {} as never },
     prompt: 'Hello Runtime',
-    subjectUserId: 'account-1',
   });
-  const request = {
-    appId: built.appId,
-    capabilityId: built.capabilityId,
-    prompt: built.prompt,
-    scenarioId: built.scenarioId,
-    subjectUserId: built.subjectUserId,
-    surfaceId: built.surfaceId,
-  };
-
-  assert.deepEqual(request, {
-    appId: 'nimi.desktop',
-    capabilityId: 'text.generate',
-    prompt: 'Hello Runtime',
-    scenarioId: 'desktop-nimi-chat',
-    subjectUserId: 'account-1',
-    surfaceId: 'desktop.chat.nimi',
+  assert.deepEqual(built, {
+    messages: [{ role: 'user', text: 'Hello Runtime' }],
   });
   assert.doesNotMatch(
-    JSON.stringify(request),
+    JSON.stringify(built),
     /model|binding|target|implementation|readiness|fallback|llama/i,
   );
 });

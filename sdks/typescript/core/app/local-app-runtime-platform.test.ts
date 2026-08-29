@@ -126,6 +126,10 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       subscribe: touched('conversation.subscribe'),
       snapshot: touched('conversation.snapshot'),
     },
+    embodiment: {
+      snapshot: touched('embodiment.snapshot'),
+      subscribe: touched('embodiment.subscribe'),
+    },
     agentRealtime: {
       open: touched('agentRealtime.open'),
       appendInput: touched('agentRealtime.appendInput'),
@@ -242,7 +246,7 @@ test('generated local-app session wire projection is posture-only', () => {
 test('local-app client hard-cuts the access workflow namespace', () => {
   const client = createNimiLocalAppClient({ standardShell: standardShell([]) });
   assert.deepEqual(Object.keys(client).sort(), [
-    'agentConfigure', 'agentRealtime', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'realm', 'storage',
+    'agentConfigure', 'agentRealtime', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'embodiment', 'realm', 'storage',
   ]);
   assert.equal('permissions' in client, false);
   assert.equal('artifacts' in client, false);
@@ -251,6 +255,7 @@ test('local-app client hard-cuts the access workflow namespace', () => {
   assert.deepEqual(Object.keys(client.ai.artifacts).sort(), ['read', 'upload']);
   assert.deepEqual(Object.keys(client.realm.chat), ['list']);
   assert.deepEqual(Object.keys(client.realm.realtime).sort(), ['ack', 'closeChannel', 'closeSubscription', 'open', 'subscribe']);
+  assert.deepEqual(Object.keys(client.embodiment).sort(), ['snapshot', 'subscribe']);
   assert.deepEqual(Object.keys(client.agentConfigure).sort(), ['autonomy', 'manager', 'memory', 'presentation', 'sharedAIConfig']);
   assert.deepEqual(Object.keys(client.agentConfigure.sharedAIConfig).sort(), ['get', 'listOptions', 'overwrite']);
   assert.deepEqual(Object.keys(client.agentConfigure.autonomy).sort(), ['snapshot', 'update']);

@@ -49,14 +49,14 @@ routes: &avatar_nimi2d_live_action_route_entries
 
   - route_id: nimi2d_speak_jaw_amplitude
     lane: speech_mouth
-    projection_event: runtime.agent.presentation.voice_playback_requested
+    projection_event: avatar.conversation.voice.audio_chunk
     minimum_tier: tier-1_agent_basic
     success_condition: jaw_amplitude_mouth_channel_applied
     unsupported_semantics: silent_mouth
 
   - route_id: nimi2d_true_viseme
     lane: true_viseme
-    projection_event: runtime.agent.presentation.voice_playback_requested
+    projection_event: avatar.conversation.voice.audio_chunk
     minimum_tier: tier-2_viseme_gesture
     success_condition: true_viseme_channel_applied
     unsupported_semantics: unsupported_tier1_true_viseme

@@ -203,7 +203,7 @@ export function createDesktopSimulatorBindings(
       localEnvironmentRpc: simulatorSdkUnadmitted,
       localAudit: simulatorSdkUnadmitted,
       auditAdmin: simulatorSdkUnadmitted,
-      aiExecution: simulatorSdkUnadmitted,
+      appProduct: simulatorSdkUnadmitted,
       externalAgent: simulatorSdkUnadmitted,
       runtimeAgentDiscovery: simulatorSdkUnadmitted,
       runtimeAgentTurns: simulatorSdkUnadmitted,

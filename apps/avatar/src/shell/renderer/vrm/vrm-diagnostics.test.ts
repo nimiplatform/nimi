@@ -1,10 +1,10 @@
 // Contract tests for .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
-// Verifies the diagnostics module: window global wiring, snapshot shape,
-// SSR-safe attach, and the frameStats boundary (visibleDrawableCount
-// stays null), and detach removes the global.
+// Verifies the module-local diagnostics snapshot and the frameStats boundary
+// (visibleDrawableCount stays null). The concrete runtime is never published
+// through a renderer global.
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { VrmRuntime, VrmRenderState } from './vrm-runtime.js';
 import {
   attachVrmDiagnostics,
@@ -12,16 +12,6 @@ import {
   updateVrmDiagnosticsFrameStats,
 } from './vrm-diagnostics.js';
 import { clearVrmCache } from './vrm-instance-cache.js';
-
-type DebugGlobal = {
-  snapshot: () => unknown;
-  runtime: VrmRuntime;
-};
-
-function getDebugGlobal(): DebugGlobal | undefined {
-  return (globalThis as { nimi?: { avatar?: { vrm?: { debug?: DebugGlobal } } } }).nimi?.avatar
-    ?.vrm?.debug;
-}
 
 function makeMockRuntime(initial: VrmRenderState = { kind: 'idle' }): {
   runtime: VrmRuntime;
@@ -54,21 +44,13 @@ beforeEach(() => {
   clearVrmCache();
 });
 
-afterEach(() => {
-  // Make sure the global namespace never leaks between tests — wipe the
-  // entire `nimi` shell so a leftover `{avatar: {vrm: {}}}` from a prior
-  // attach-then-detach doesn't fail the SSR-safety assertion below.
-  delete (globalThis as { nimi?: unknown }).nimi;
-});
-
 describe('attachVrmDiagnostics', () => {
-  it('writes window.nimi.avatar.vrm.debug.snapshot when window is available', () => {
+  it('keeps the runtime module-local without publishing a private global', () => {
+    delete (globalThis as { nimi?: unknown }).nimi;
     const { runtime } = makeMockRuntime();
     const detach = attachVrmDiagnostics(runtime);
-    const dbg = getDebugGlobal();
-    expect(dbg).toBeDefined();
-    expect(typeof dbg?.snapshot).toBe('function');
-    expect(dbg?.runtime).toBe(runtime);
+    expect(getVrmDiagnosticsSnapshot()?.state).toBe('idle');
+    expect((globalThis as { nimi?: unknown }).nimi).toBeUndefined();
     detach();
   });
 
@@ -133,12 +115,10 @@ describe('attachVrmDiagnostics', () => {
     detach();
   });
 
-  it('detach removes the window global and clears the active runtime', () => {
+  it('detach clears the active module-local runtime', () => {
     const { runtime } = makeMockRuntime();
     const detach = attachVrmDiagnostics(runtime);
-    expect(getDebugGlobal()).toBeDefined();
     detach();
-    expect(getDebugGlobal()).toBeUndefined();
     expect(getVrmDiagnosticsSnapshot()).toBeNull();
   });
 
@@ -155,21 +135,17 @@ describe('attachVrmDiagnostics', () => {
   });
 });
 
-describe('attachVrmDiagnostics SSR safety', () => {
-  it('returns a no-op detach without throwing when window is undefined', async () => {
-    // jsdom keeps window attached on globalThis. We patch it to undefined
-    // for a single test and restore in finally.
+describe('attachVrmDiagnostics environment independence', () => {
+  it('keeps the bounded module-local snapshot available without window', () => {
     const original = (globalThis as { window?: unknown }).window;
     try {
       (globalThis as { window?: unknown }).window = undefined;
       const { runtime } = makeMockRuntime();
-      // Re-import the module to see the SSR branch — but the runtime
-      // check uses `typeof window` directly so the existing import works.
       const detach = attachVrmDiagnostics(runtime);
       expect(typeof detach).toBe('function');
-      // Should not have thrown, and should not have written to globalThis.
+      expect(getVrmDiagnosticsSnapshot()?.state).toBe('idle');
       expect((globalThis as { nimi?: unknown }).nimi).toBeUndefined();
-      detach(); // also no-throw
+      detach();
     } finally {
       (globalThis as { window?: unknown }).window = original;
     }

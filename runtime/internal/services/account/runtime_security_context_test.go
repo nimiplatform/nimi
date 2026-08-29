@@ -36,7 +36,7 @@ func TestAuthenticatedRuntimeSecurityContextGenerationLifecycle(t *testing.T) {
 	default:
 	}
 
-	unauthorized, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: firstPartyCaller()})
+	unauthorized, err := svc.Logout(context.Background(), &runtimev1.LogoutRequest{Caller: explicitLocalAppAccountCaller()})
 	if err != nil || unauthorized.GetAccepted() {
 		t.Fatalf("unauthorized logout = (%+v, %v)", unauthorized, err)
 	}

@@ -9,7 +9,6 @@ import (
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const runtimeAgentTurnReadScope = "runtime.agent.turn.read"
@@ -77,14 +76,7 @@ func (s *Service) GetPublicChatSessionSnapshot(ctx context.Context, req *runtime
 	if err := s.authorizeBundledAvatarIdentity(ctx, requestContext, identity, runtimeAgentReadScope); err != nil {
 		return nil, err
 	}
-	var snapshot *structpb.Struct
-	var session publicChatAnchorState
-	var err error
-	if localAppAuthorized {
-		snapshot, session, _, _, _, err = s.publicChatRuntime().buildAvatarLiveInstanceSessionSnapshot(callerAppID, anchorID, req.GetRequestId(), identity)
-	} else {
-		snapshot, session, _, _, _, err = s.publicChatRuntime().buildAvatarLiveInstanceSessionSnapshot(callerAppID, anchorID, req.GetRequestId(), identity)
-	}
+	snapshot, session, _, _, _, err := s.publicChatRuntime().buildSessionSnapshot(callerAppID, anchorID, req.GetRequestId())
 	if err != nil {
 		return nil, err
 	}

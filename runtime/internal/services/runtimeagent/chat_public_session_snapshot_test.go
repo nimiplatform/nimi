@@ -66,23 +66,14 @@ func TestPublicChatSessionSnapshotAcceptsFirstPartyProtectedCapability(t *testin
 	}
 }
 
-func TestPublicChatSessionSnapshotAcceptsDefaultAvatarWithLiveInstanceBinding(t *testing.T) {
+func TestPublicChatSessionSnapshotAcceptsProtectedAvatarWithoutSpecialBinding(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
-	desktopCtx := testRuntimeAgentIdentityContext("agent-alpha")
-	desktopCtx.AppId = "desktop.app"
-	if _, err := svc.RegisterAvatarLiveInstanceBinding(context.Background(), &runtimev1.RegisterAvatarLiveInstanceBindingRequest{
-		Context:              desktopCtx,
-		AvatarInstanceId:     "avatar-instance-1",
-		ConversationAnchorId: anchorID,
-	}); err != nil {
-		t.Fatalf("RegisterAvatarLiveInstanceBinding: %v", err)
-	}
 
-	ctx := envelope.WithValidatedProtectedCapability(context.Background(), defaultAvatarRuntimeAppID, runtimeAgentReadScope)
+	ctx := envelope.WithValidatedProtectedCapability(context.Background(), "nimi.avatar", runtimeAgentReadScope)
 	avatarCtx := testRuntimeAgentIdentityContext("agent-alpha")
-	avatarCtx.AppId = defaultAvatarRuntimeAppID
+	avatarCtx.AppId = "nimi.avatar"
 	resp, err := svc.GetPublicChatSessionSnapshot(ctx, &runtimev1.GetPublicChatSessionSnapshotRequest{
 		Context:              avatarCtx,
 		AgentId:              testRuntimeAgentLocalRef("agent-alpha"),
@@ -90,7 +81,7 @@ func TestPublicChatSessionSnapshotAcceptsDefaultAvatarWithLiveInstanceBinding(t 
 		RequestId:            "avatar-live-instance-snapshot",
 	})
 	if err != nil {
-		t.Fatalf("avatar live instance snapshot should be admitted: %v", err)
+		t.Fatalf("protected Avatar snapshot should be admitted: %v", err)
 	}
 	payload := publicChatSessionSnapshotDetail(t, resp.GetSnapshot())
 	if got := payload["request_id"]; got != "avatar-live-instance-snapshot" {
@@ -103,9 +94,9 @@ func TestPublicChatSessionSnapshotUsesAnchorScopeAcrossAppsWithoutAppPartition(t
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
 
-	ctx := envelope.WithValidatedProtectedCapability(context.Background(), defaultAvatarRuntimeAppID, runtimeAgentReadScope)
+	ctx := envelope.WithValidatedProtectedCapability(context.Background(), "nimi.avatar", runtimeAgentReadScope)
 	avatarCtx := testRuntimeAgentIdentityContext("agent-alpha")
-	avatarCtx.AppId = defaultAvatarRuntimeAppID
+	avatarCtx.AppId = "nimi.avatar"
 	resp, err := svc.GetPublicChatSessionSnapshot(ctx, &runtimev1.GetPublicChatSessionSnapshotRequest{
 		Context:              avatarCtx,
 		AgentId:              testRuntimeAgentLocalRef("agent-alpha"),
@@ -117,19 +108,10 @@ func TestPublicChatSessionSnapshotUsesAnchorScopeAcrossAppsWithoutAppPartition(t
 	}
 }
 
-func TestPublicChatSessionSnapshotDoesNotUseAvatarBindingAsAppPartition(t *testing.T) {
+func TestPublicChatSessionSnapshotUsesAnchorScopeForOrdinaryProtectedApp(t *testing.T) {
 	t.Parallel()
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
-	desktopCtx := testRuntimeAgentIdentityContext("agent-alpha")
-	desktopCtx.AppId = "desktop.app"
-	if _, err := svc.RegisterAvatarLiveInstanceBinding(context.Background(), &runtimev1.RegisterAvatarLiveInstanceBindingRequest{
-		Context:              desktopCtx,
-		AvatarInstanceId:     "avatar-instance-1",
-		ConversationAnchorId: anchorID,
-	}); err != nil {
-		t.Fatalf("RegisterAvatarLiveInstanceBinding: %v", err)
-	}
 
 	ctx := envelope.WithValidatedProtectedCapability(context.Background(), "other.app", runtimeAgentReadScope)
 	otherCtx := testRuntimeAgentIdentityContext("agent-alpha")

@@ -30,7 +30,6 @@ pub struct ModelManifest {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AgentCenterAvatarAssetResolvePayload {
-    pub agent_handle: String,
     pub backend_kind: String,
     pub avatar_asset_ref: String,
 }
@@ -88,41 +87,6 @@ struct AgentCenterAvatarAssetManifestImport {
     source_fingerprint: String,
 }
 
-fn validate_agent_handle(value: &str) -> Result<String, String> {
-    let normalized = value.trim();
-    let body = normalized.strip_prefix("agent_ref_").unwrap_or_default();
-    if body.len() != 43
-        || !body
-            .bytes()
-            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
-    {
-        return Err("agent_handle must be a canonical opaque Agent handle".to_string());
-    }
-    Ok(normalized.to_string())
-}
-
-fn can_use_raw_agent_center_path_segment(value: &str) -> bool {
-    let body = value.strip_prefix('~').unwrap_or(value);
-    if body.is_empty() || value.len() > 128 {
-        return false;
-    }
-    let mut chars = body.chars();
-    matches!(chars.next(), Some(first) if first.is_ascii_lowercase() || first.is_ascii_digit())
-        && body
-            .chars()
-            .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_' || ch == '-')
-}
-
-pub fn agent_center_path_segment(value: &str) -> String {
-    if can_use_raw_agent_center_path_segment(value) {
-        return value.to_string();
-    }
-    let mut hasher = Sha256::new();
-    hasher.update(value.as_bytes());
-    let digest = format!("{:x}", hasher.finalize());
-    format!("id_{}", &digest[..24])
-}
-
 fn validate_avatar_asset_id(value: &str, kind: &str) -> Result<String, String> {
     let normalized = value.trim();
     let expected_prefix = format!("{kind}_");
@@ -142,11 +106,8 @@ fn validate_avatar_asset_id(value: &str, kind: &str) -> Result<String, String> {
     Ok(normalized.to_string())
 }
 
-fn expected_materialization_ref(agent_handle: &str, kind: &str, local_asset_id: &str) -> String {
-    format!(
-        "agent-center-avatar-asset:local-app:{}:{kind}:{local_asset_id}",
-        agent_center_path_segment(agent_handle),
-    )
+fn expected_materialization_ref(kind: &str, local_asset_id: &str) -> String {
+    format!("avatar-materialization:{kind}:{local_asset_id}")
 }
 
 fn is_safe_asset_relative_path(value: &str) -> bool {
@@ -183,13 +144,11 @@ fn resolve_admitted_data_root() -> Result<PathBuf, String> {
 
 fn resolve_agent_center_avatar_asset_dir(
     data_root: &Path,
-    agent_handle: &str,
     kind: &str,
     local_asset_id: &str,
 ) -> Result<PathBuf, String> {
     Ok(data_root
-        .join("local-app-agent-assets")
-        .join(agent_center_path_segment(agent_handle))
+        .join("avatar-assets")
         .join("packages")
         .join(kind)
         .join(local_asset_id))
@@ -197,12 +156,10 @@ fn resolve_agent_center_avatar_asset_dir(
 
 fn find_agent_center_avatar_asset_dir(
     data_root: &Path,
-    agent_handle: &str,
     kind: &str,
     local_asset_id: &str,
 ) -> Result<PathBuf, String> {
-    let candidate =
-        resolve_agent_center_avatar_asset_dir(data_root, agent_handle, kind, local_asset_id)?;
+    let candidate = resolve_agent_center_avatar_asset_dir(data_root, kind, local_asset_id)?;
     if candidate.exists() {
         return Ok(candidate);
     }
@@ -210,13 +167,11 @@ fn find_agent_center_avatar_asset_dir(
 }
 
 pub(crate) fn materialize_agent_center_avatar_asset(
-    agent_handle: &str,
     kind: &str,
     file_name: &str,
     content: &[u8],
     content_sha256: &str,
 ) -> Result<String, String> {
-    let agent_handle = validate_agent_handle(agent_handle)?;
     if kind != "live2d" && kind != "vrm" {
         return Err("avatar_asset_kind must be live2d or vrm".to_string());
     }
@@ -232,8 +187,7 @@ pub(crate) fn materialize_agent_center_avatar_asset(
     }
     let local_asset_id = format!("{kind}_{}", &content_sha256[..12]);
     let data_root = resolve_admitted_data_root()?;
-    let final_dir =
-        resolve_agent_center_avatar_asset_dir(&data_root, &agent_handle, kind, &local_asset_id)?;
+    let final_dir = resolve_agent_center_avatar_asset_dir(&data_root, kind, &local_asset_id)?;
     if final_dir.exists() {
         return Ok(local_asset_id);
     }
@@ -456,18 +410,15 @@ fn manifest_file(path: &str, content: &[u8], mime: &str) -> serde_json::Value {
 pub async fn nimi_avatar_resolve_agent_center_avatar_asset(
     payload: AgentCenterAvatarAssetResolvePayload,
 ) -> Result<AgentCenterAvatarAssetResolveResult, String> {
-    let agent_handle = validate_agent_handle(&payload.agent_handle)?;
     let kind = payload.backend_kind.trim().to_string();
     if kind != "live2d" && kind != "vrm" {
         return Err("avatar_asset_kind must be live2d or vrm".to_string());
     }
     let local_asset_id = validate_avatar_asset_id(&payload.avatar_asset_ref, kind.as_str())?;
     let data_root = resolve_admitted_data_root()?;
-    let expected_ref =
-        expected_materialization_ref(&agent_handle, kind.as_str(), local_asset_id.as_str());
+    let expected_ref = expected_materialization_ref(kind.as_str(), local_asset_id.as_str());
     let asset_dir = find_agent_center_avatar_asset_dir(
         &data_root,
-        &agent_handle,
         kind.as_str(),
         local_asset_id.as_str(),
     )?;

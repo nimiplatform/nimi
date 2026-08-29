@@ -16,8 +16,11 @@ Nimi Avatar（阿凡达）是桌面悬浮 embodiment carrier。Authority-defined
 
 The normal path is Desktop bridge/handoff to a local Avatar asset:
 
-- Launch context requires `agent_id`; `avatar_instance_id` and non-authoritative `launch_source` are optional.
-- `agent_id` is a selector, not authorization proof. Runtime/SDK validates the active agent and conversation binding.
+- Launch context requires a current-session canonical `agent_handle` and exact
+  `conversation_anchor_id`; `avatar_instance_id` and non-authoritative
+  `launch_source` are optional.
+- The handle and anchor are selectors, not authorization proof. Runtime/SDK
+  validates their active session binding.
 - Missing or invalid launch context fails closed; Avatar does not choose a default agent.
 - Local Live2D, VRM, and Nimi2D assets enter only through their validated package/profile boundary.
 - Runtime bootstrap uses the Desktop/Runtime bridge. Avatar does not read shared auth, create a Realm client, or own login/session truth.
@@ -51,9 +54,10 @@ Runtime/SDK retain semantic truth. Avatar owns embodiment projection, validated 
 ```bash
 pnpm --filter @nimiplatform/avatar dev:renderer
 pnpm --filter @nimiplatform/avatar dev:shell
-pnpm dev:avatar --agent-id local-agent:<owner>:<agent>
-pnpm dev:avatar --cdp --agent-id local-agent:<owner>:<agent>
-pnpm dev:avatar --tauri --agent-id local-agent:<owner>:<agent>
+pnpm dev:avatar
+pnpm dev:avatar --cdp
+pnpm dev:avatar --agent-handle agent_ref_<current-session-handle>
+pnpm dev:avatar --tauri --agent-handle agent_ref_<current-session-handle> --conversation-anchor-id <anchor>
 VITE_AVATAR_DRIVER=mock pnpm --filter @nimiplatform/avatar dev:shell
 pnpm --filter @nimiplatform/avatar typecheck
 pnpm --filter @nimiplatform/avatar lint

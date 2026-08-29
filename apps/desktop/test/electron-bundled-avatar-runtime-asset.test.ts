@@ -15,6 +15,7 @@ const electronMockUrl = `data:text/javascript,${encodeURIComponent(`
     static fromWebContents() { return null; }
   }
   export const screen = {};
+  export const shell = {};
 `)}`;
 
 registerHooks({

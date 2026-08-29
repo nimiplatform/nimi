@@ -1,94 +1,111 @@
 import assert from 'node:assert/strict';
-import path from 'node:path';
 import test from 'node:test';
-import { buildSync } from 'esbuild';
+import { projectZhiyuAvatarLaunchAction } from '../src/shell/avatar/avatar-launch.ts';
+import {
+  buildZhiyuAvatarLaunchHandoff,
+  launchZhiyuAvatar,
+} from '../src/shell/avatar/avatar-launch-handoff.ts';
 
-const root = path.resolve(import.meta.dirname, '..');
-const repoRoot = path.resolve(root, '..', '..');
-
-async function loadSourceModule(relativePath) {
-  const sourcePath = path.join(root, relativePath);
-  const output = buildSync({
-    entryPoints: [sourcePath],
-    bundle: true,
-    format: 'esm',
-    platform: 'node',
-    target: 'es2022',
-    write: false,
-    alias: {
-      '@nimiplatform/kit/features/avatar/headless': path.join(repoRoot, 'kit/features/avatar/src/headless.ts'),
-    },
-  });
-  return import(`data:text/javascript;base64,${Buffer.from(output.outputFiles[0].text).toString('base64')}`);
-}
+const AGENT_HANDLE = `agent_ref_${'a'.repeat(43)}`;
 
 function readyEvidence(overrides = {}) {
   return {
-    localAgent: {
-      ready: true,
-    },
+    localAgent: { ready: true },
     conversation: {
       ready: true,
-      agentHandle: `agent_ref_${'a'.repeat(43)}`,
+      agentHandle: AGENT_HANDLE,
       conversationAnchorId: 'conversation-anchor:must-stay-in-runtime',
     },
     avatar: {
       launchAvailable: true,
+      hostHandoff: null,
     },
     ...overrides,
   };
 }
 
-test('Zhiyu projects a ready Avatar action with a Runtime-anchor-free instance id', async () => {
-  const { projectZhiyuAvatarLaunchAction } = await loadSourceModule('src/shell/avatar/avatar-launch.ts');
-
+test('Zhiyu projects a ready Avatar action with a Conversation-independent instance id', () => {
   const action = projectZhiyuAvatarLaunchAction(readyEvidence());
 
   assert.equal(action.state, 'ready');
-  assert.equal(action.reasonCode, 'zhiyu-avatar-launch-ready');
+  assert.equal(action.command, 'launch');
   assert.equal(action.avatarInstanceId, `zhiyu-avatar-agent-ref-${'a'.repeat(43)}`);
-  assert.doesNotMatch(action.avatarInstanceId, /conversation-anchor|must-stay-in-runtime/);
+  assert.doesNotMatch(action.avatarInstanceId, /conversation-anchor|must-stay-in-runtime/u);
 });
 
-test('Zhiyu builds one handle-only Avatar host payload without a second identity path', async () => {
-  const { projectZhiyuAvatarLaunchAction } = await loadSourceModule('src/shell/avatar/avatar-launch.ts');
-  const { buildZhiyuAvatarLaunchHandoff } = await loadSourceModule('src/shell/avatar/avatar-launch-handoff.ts');
+test('Zhiyu builds the exact common Host handoff without identity or product authority', () => {
   const evidence = readyEvidence();
   const action = projectZhiyuAvatarLaunchAction(evidence);
-
   const handoff = buildZhiyuAvatarLaunchHandoff({ evidence, action });
 
-  assert.deepEqual(handoff.payload, {
-    agentHandle: `agent_ref_${'a'.repeat(43)}`,
-    conversationAnchorId: 'conversation-anchor:must-stay-in-runtime',
-    avatarInstanceId: `zhiyu-avatar-agent-ref-${'a'.repeat(43)}`,
-    launchSource: 'zhiyu',
+  assert.deepEqual(handoff.request, {
+    command: 'launch',
+    target: {
+      agentHandle: AGENT_HANDLE,
+      conversationAnchorId: 'conversation-anchor:must-stay-in-runtime',
+      avatarInstanceId: `zhiyu-avatar-agent-ref-${'a'.repeat(43)}`,
+      launchSource: 'zhiyu',
+      committedPresentationRef: null,
+      temporaryCustodyRef: null,
+    },
   });
-  assert.doesNotMatch(JSON.stringify(handoff.payload), /accessToken|subjectUserId|runtimeAppId|ownerUserId|runtimeSourceRef|localAgentRef/);
+  assert.doesNotMatch(
+    JSON.stringify(handoff.request),
+    /accessToken|subjectUserId|runtimeAppId|ownerUserId|runtimeSourceRef|localAgentRef|configurationRef|coverage|availability/u,
+  );
 });
 
-test('Zhiyu invokes the Avatar host with only the canonical handle handoff', async () => {
-  const { projectZhiyuAvatarLaunchAction } = await loadSourceModule('src/shell/avatar/avatar-launch.ts');
-  const { launchZhiyuAvatar } = await loadSourceModule('src/shell/avatar/avatar-launch-handoff.ts');
-  const evidence = readyEvidence();
+test('Zhiyu invokes the common Host port and preserves opaque custody refs', async () => {
+  const evidence = readyEvidence({
+    avatar: {
+      launchAvailable: true,
+      hostHandoff: {
+        command: 'presence',
+        state: 'absent',
+        avatarInstanceRef: null,
+        committedPresentationRef: null,
+        temporaryCustodyRef: null,
+      },
+    },
+  });
   const action = projectZhiyuAvatarLaunchAction(evidence);
   const calls = [];
   const result = await launchZhiyuAvatar({
     evidence,
     action,
-    invokeHost: async (payload) => {
-      calls.push({ kind: 'host', payload });
-      return {
-        opened: true,
-        avatarInstanceId: payload.avatarInstanceId,
-        handoffUri: 'electron:avatar',
-        launchSource: payload.launchSource,
-        pid: 777,
-      };
+    hostPort: {
+      async invoke(request) {
+        calls.push(request);
+        return {
+          command: request.command,
+          state: 'present',
+          avatarInstanceRef: request.target.avatarInstanceId,
+          committedPresentationRef: 'presentation:opaque',
+          temporaryCustodyRef: 'custody:opaque',
+        };
+      },
     },
   });
 
   assert.equal(result.state, 'opened');
-  assert.deepEqual(calls.map((call) => call.kind), ['host']);
-  assert.doesNotMatch(JSON.stringify(calls[0].payload), /agentId|accessToken|subjectUserId|runtimeAppId|ownerUserId|runtimeSourceRef|localAgentRef/);
+  assert.equal(result.handoff.state, 'present');
+  assert.equal(calls.length, 1);
+  assert.doesNotMatch(JSON.stringify(calls), /ownerUserId|runtimeSourceRef|localAgentRef|configurationRef/u);
+});
+
+test('an already present Avatar is focused through the same port', () => {
+  const action = projectZhiyuAvatarLaunchAction(readyEvidence({
+    avatar: {
+      launchAvailable: true,
+      hostHandoff: {
+        command: 'presence',
+        state: 'present',
+        avatarInstanceRef: 'avatar:opaque',
+        committedPresentationRef: null,
+        temporaryCustodyRef: null,
+      },
+    },
+  }));
+  assert.equal(action.state, 'ready');
+  assert.equal(action.command, 'focus');
 });

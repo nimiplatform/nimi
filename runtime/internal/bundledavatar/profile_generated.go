@@ -25,20 +25,62 @@ type MethodProfile struct {
 
 func Method(methodID string) (MethodProfile, bool) {
 	switch methodID {
-	case "/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.health.read"}, true
-	case "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus":
-		return MethodProfile{Kind: MethodUnary, Capability: "account.session.read"}, true
-	case "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents":
-		return MethodProfile{Kind: MethodServerStream, Capability: "account.session.read"}, true
+	case "/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession":
+		return MethodProfile{Kind: MethodUnary, Capability: ""}, true
+	case "/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession":
+		return MethodProfile{Kind: MethodUnary, Capability: ""}, true
 	case "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary":
-		return MethodProfile{Kind: MethodUnary, Capability: "account.realm.read"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/ListAgents":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.read"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/GetAgent":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.read"}, true
+		return MethodProfile{Kind: MethodUnary, Capability: "realm.data"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
+	case "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson":
+		return MethodProfile{Kind: MethodUnary, Capability: "realm.data"}, true
+	case "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson":
+		return MethodProfile{Kind: MethodUnary, Capability: "realm.data"}, true
+	case "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson":
+		return MethodProfile{Kind: MethodUnary, Capability: "realm.data"}, true
+	case "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset":
+		return MethodProfile{Kind: MethodUnary, Capability: "realm.data"}, true
+	case "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets":
+		return MethodProfile{Kind: MethodUnary, Capability: "realm.data"}, true
+	case "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset":
+		return MethodProfile{Kind: MethodServerStream, Capability: "realm.data"}, true
+	case "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset":
+		return MethodProfile{Kind: MethodServerStream, Capability: "realm.data"}, true
+	case "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset":
+		return MethodProfile{Kind: MethodUnary, Capability: "realm.data"}, true
+	case "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset":
+		return MethodProfile{Kind: MethodUnary, Capability: "realm.data"}, true
+	case "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset":
+		return MethodProfile{Kind: MethodUnary, Capability: "realm.data"}, true
+	case "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiService/GenerateLocalAppTextCandidate":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn":
+		return MethodProfile{Kind: MethodServerStream, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents":
+		return MethodProfile{Kind: MethodServerStream, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiService/CancelLocalAppScenarioJob":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig":
@@ -65,36 +107,6 @@ func Method(methodID string) (MethodProfile, bool) {
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.configure"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.read"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.write"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.write"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.read"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.read"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.companion_participation.read"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.companion_participation.write"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.companion_participation.write"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.companion_participation.read"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.turn.write"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.avatar_debug.read"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.avatar_debug.write"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.avatar_debug.write"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.avatar_debug.read"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.avatar_debug.read"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation":
@@ -115,36 +127,47 @@ func Method(methodID string) (MethodProfile, bool) {
 		return MethodProfile{Kind: MethodServerStream, Capability: "agent.local"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
-	case "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.artifact.read"}, true
-	case "/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob":
-		return MethodProfile{Kind: MethodUnary, Capability: "ai.spend.meter"}, true
-	case "/nimi.runtime.v1.RuntimeAiService/GetScenarioJob":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.ai.scenario.read"}, true
-	case "/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.ai.scenario.write"}, true
-	case "/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.ai.scenario.read"}, true
-	case "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents":
-		return MethodProfile{Kind: MethodServerStream, Capability: "runtime.ai.scenario.read"}, true
-	case "/nimi.runtime.v1.RuntimeAppService/SendAppMessage":
-		return MethodProfile{Kind: MethodUnary, Capability: "runtime.agent.turn.write"}, true
-	case "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages":
-		return MethodProfile{Kind: MethodServerStream, Capability: "runtime.agent.turn.read"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents":
-		return MethodProfile{Kind: MethodServerStream, Capability: "runtime.agent.read"}, true
-	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream":
-		return MethodProfile{Kind: MethodServerStream, Capability: "runtime.agent.turn.read"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents":
+		return MethodProfile{Kind: MethodServerStream, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAiRealtimeService/OpenRealtimeSession":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiRealtimeService/SubmitRealtimeOwnerControl":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiRealtimeService/ReadRealtimeEvents":
+		return MethodProfile{Kind: MethodServerStream, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiRealtimeService/InterruptRealtimeOutput":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession":
+		return MethodProfile{Kind: MethodUnary, Capability: "runtime.consume"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents":
+		return MethodProfile{Kind: MethodServerStream, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats":
+		return MethodProfile{Kind: MethodUnary, Capability: "realm.data"}, true
+	case "/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel":
+		return MethodProfile{Kind: MethodUnary, Capability: "realm.data"}, true
+	case "/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents":
+		return MethodProfile{Kind: MethodServerStream, Capability: "realm.data"}, true
+	case "/nimi.runtime.v1.RuntimeRealmRealtimeService/AckRealmRealtimeEvents":
+		return MethodProfile{Kind: MethodUnary, Capability: "realm.data"}, true
+	case "/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeSubscription":
+		return MethodProfile{Kind: MethodUnary, Capability: "realm.data"}, true
+	case "/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeChannel":
+		return MethodProfile{Kind: MethodUnary, Capability: "realm.data"}, true
 	default:
 		return MethodProfile{}, false
-	}
-}
-
-func RealmOperationAllowed(operationID string) bool {
-	switch operationID {
-	case "WorldCoreController_listPersonaCharacters":
-		return true
-	default:
-		return false
 	}
 }

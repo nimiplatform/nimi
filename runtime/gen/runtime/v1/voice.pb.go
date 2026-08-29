@@ -75,7 +75,7 @@ func (VoiceCreationSource) EnumDescriptor() ([]byte, []int) {
 // VoiceOutputMode is the positive, authoritative selected output-truth axis for
 // speech execution and agent voice projection (K-VOICE-019, K-STREAM-004,
 // K-AGCORE-133; tokens: tables/voice-enums.yaml output_modes). It is distinct
-// from ExecutionMode (sync|stream|async_job) and from voice playback lifecycle.
+// from ExecutionMode (sync|stream|async_job) and from App/Host-local playback.
 // NATIVE_STREAM and SIMULATED_STREAM are the only values reachable at the
 // SPEECH_SYNTHESIZE scenario-stream layer; BATCH_FINAL_ARTIFACT and TEXT_ONLY are
 // additionally reachable as Runtime Agent orchestration outcomes. Consumers must
@@ -136,67 +136,6 @@ func (VoiceOutputMode) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{1}
 }
 
-// VoicePlaybackState is the runtime-owned lifecycle axis for agent voice
-// playback (K-VOICE-019). It is deliberately separate from VoiceOutputMode:
-// failed/interrupted/canceled are terminal outcomes, not output modes.
-type VoicePlaybackState int32
-
-const (
-	VoicePlaybackState_VOICE_PLAYBACK_STATE_UNSPECIFIED VoicePlaybackState = 0
-	VoicePlaybackState_VOICE_PLAYBACK_STATE_ACTIVE      VoicePlaybackState = 1
-	VoicePlaybackState_VOICE_PLAYBACK_STATE_COMPLETED   VoicePlaybackState = 2
-	VoicePlaybackState_VOICE_PLAYBACK_STATE_FAILED      VoicePlaybackState = 3
-	VoicePlaybackState_VOICE_PLAYBACK_STATE_INTERRUPTED VoicePlaybackState = 4
-	VoicePlaybackState_VOICE_PLAYBACK_STATE_CANCELED    VoicePlaybackState = 5
-)
-
-// Enum value maps for VoicePlaybackState.
-var (
-	VoicePlaybackState_name = map[int32]string{
-		0: "VOICE_PLAYBACK_STATE_UNSPECIFIED",
-		1: "VOICE_PLAYBACK_STATE_ACTIVE",
-		2: "VOICE_PLAYBACK_STATE_COMPLETED",
-		3: "VOICE_PLAYBACK_STATE_FAILED",
-		4: "VOICE_PLAYBACK_STATE_INTERRUPTED",
-		5: "VOICE_PLAYBACK_STATE_CANCELED",
-	}
-	VoicePlaybackState_value = map[string]int32{
-		"VOICE_PLAYBACK_STATE_UNSPECIFIED": 0,
-		"VOICE_PLAYBACK_STATE_ACTIVE":      1,
-		"VOICE_PLAYBACK_STATE_COMPLETED":   2,
-		"VOICE_PLAYBACK_STATE_FAILED":      3,
-		"VOICE_PLAYBACK_STATE_INTERRUPTED": 4,
-		"VOICE_PLAYBACK_STATE_CANCELED":    5,
-	}
-)
-
-func (x VoicePlaybackState) Enum() *VoicePlaybackState {
-	p := new(VoicePlaybackState)
-	*p = x
-	return p
-}
-
-func (x VoicePlaybackState) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (VoicePlaybackState) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_voice_proto_enumTypes[2].Descriptor()
-}
-
-func (VoicePlaybackState) Type() protoreflect.EnumType {
-	return &file_runtime_v1_voice_proto_enumTypes[2]
-}
-
-func (x VoicePlaybackState) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use VoicePlaybackState.Descriptor instead.
-func (VoicePlaybackState) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{2}
-}
-
 type VoiceReferenceKind int32
 
 const (
@@ -233,11 +172,11 @@ func (x VoiceReferenceKind) String() string {
 }
 
 func (VoiceReferenceKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_voice_proto_enumTypes[3].Descriptor()
+	return file_runtime_v1_voice_proto_enumTypes[2].Descriptor()
 }
 
 func (VoiceReferenceKind) Type() protoreflect.EnumType {
-	return &file_runtime_v1_voice_proto_enumTypes[3]
+	return &file_runtime_v1_voice_proto_enumTypes[2]
 }
 
 func (x VoiceReferenceKind) Number() protoreflect.EnumNumber {
@@ -246,7 +185,7 @@ func (x VoiceReferenceKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use VoiceReferenceKind.Descriptor instead.
 func (VoiceReferenceKind) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{3}
+	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{2}
 }
 
 type VoiceAssetPersistence int32
@@ -282,11 +221,11 @@ func (x VoiceAssetPersistence) String() string {
 }
 
 func (VoiceAssetPersistence) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_voice_proto_enumTypes[4].Descriptor()
+	return file_runtime_v1_voice_proto_enumTypes[3].Descriptor()
 }
 
 func (VoiceAssetPersistence) Type() protoreflect.EnumType {
-	return &file_runtime_v1_voice_proto_enumTypes[4]
+	return &file_runtime_v1_voice_proto_enumTypes[3]
 }
 
 func (x VoiceAssetPersistence) Number() protoreflect.EnumNumber {
@@ -295,7 +234,7 @@ func (x VoiceAssetPersistence) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use VoiceAssetPersistence.Descriptor instead.
 func (VoiceAssetPersistence) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{4}
+	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{3}
 }
 
 type VoiceAssetStatus int32
@@ -337,11 +276,11 @@ func (x VoiceAssetStatus) String() string {
 }
 
 func (VoiceAssetStatus) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_voice_proto_enumTypes[5].Descriptor()
+	return file_runtime_v1_voice_proto_enumTypes[4].Descriptor()
 }
 
 func (VoiceAssetStatus) Type() protoreflect.EnumType {
-	return &file_runtime_v1_voice_proto_enumTypes[5]
+	return &file_runtime_v1_voice_proto_enumTypes[4]
 }
 
 func (x VoiceAssetStatus) Number() protoreflect.EnumNumber {
@@ -350,7 +289,7 @@ func (x VoiceAssetStatus) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use VoiceAssetStatus.Descriptor instead.
 func (VoiceAssetStatus) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{5}
+	return file_runtime_v1_voice_proto_rawDescGZIP(), []int{4}
 }
 
 type VoiceReference struct {
@@ -1401,14 +1340,7 @@ const file_runtime_v1_voice_proto_rawDesc = "" +
 	"\x1fVOICE_OUTPUT_MODE_NATIVE_STREAM\x10\x01\x12&\n" +
 	"\"VOICE_OUTPUT_MODE_SIMULATED_STREAM\x10\x02\x12*\n" +
 	"&VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT\x10\x03\x12\x1f\n" +
-	"\x1bVOICE_OUTPUT_MODE_TEXT_ONLY\x10\x04*\xe9\x01\n" +
-	"\x12VoicePlaybackState\x12$\n" +
-	" VOICE_PLAYBACK_STATE_UNSPECIFIED\x10\x00\x12\x1f\n" +
-	"\x1bVOICE_PLAYBACK_STATE_ACTIVE\x10\x01\x12\"\n" +
-	"\x1eVOICE_PLAYBACK_STATE_COMPLETED\x10\x02\x12\x1f\n" +
-	"\x1bVOICE_PLAYBACK_STATE_FAILED\x10\x03\x12$\n" +
-	" VOICE_PLAYBACK_STATE_INTERRUPTED\x10\x04\x12!\n" +
-	"\x1dVOICE_PLAYBACK_STATE_CANCELED\x10\x05*\xae\x01\n" +
+	"\x1bVOICE_OUTPUT_MODE_TEXT_ONLY\x10\x04*\xae\x01\n" +
 	"\x12VoiceReferenceKind\x12$\n" +
 	" VOICE_REFERENCE_KIND_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bVOICE_REFERENCE_KIND_PRESET\x10\x01\x12$\n" +
@@ -1437,49 +1369,48 @@ func file_runtime_v1_voice_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_voice_proto_rawDescData
 }
 
-var file_runtime_v1_voice_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
+var file_runtime_v1_voice_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
 var file_runtime_v1_voice_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_runtime_v1_voice_proto_goTypes = []any{
 	(VoiceCreationSource)(0),         // 0: nimi.runtime.v1.VoiceCreationSource
 	(VoiceOutputMode)(0),             // 1: nimi.runtime.v1.VoiceOutputMode
-	(VoicePlaybackState)(0),          // 2: nimi.runtime.v1.VoicePlaybackState
-	(VoiceReferenceKind)(0),          // 3: nimi.runtime.v1.VoiceReferenceKind
-	(VoiceAssetPersistence)(0),       // 4: nimi.runtime.v1.VoiceAssetPersistence
-	(VoiceAssetStatus)(0),            // 5: nimi.runtime.v1.VoiceAssetStatus
-	(*VoiceReference)(nil),           // 6: nimi.runtime.v1.VoiceReference
-	(*VoicePresetDescriptor)(nil),    // 7: nimi.runtime.v1.VoicePresetDescriptor
-	(*VoiceAsset)(nil),               // 8: nimi.runtime.v1.VoiceAsset
-	(*VoiceV2VInput)(nil),            // 9: nimi.runtime.v1.VoiceV2VInput
-	(*VoiceT2VInput)(nil),            // 10: nimi.runtime.v1.VoiceT2VInput
-	(*GetVoiceAssetRequest)(nil),     // 11: nimi.runtime.v1.GetVoiceAssetRequest
-	(*GetVoiceAssetResponse)(nil),    // 12: nimi.runtime.v1.GetVoiceAssetResponse
-	(*ListVoiceAssetsRequest)(nil),   // 13: nimi.runtime.v1.ListVoiceAssetsRequest
-	(*ListVoiceAssetsResponse)(nil),  // 14: nimi.runtime.v1.ListVoiceAssetsResponse
-	(*DeleteVoiceAssetRequest)(nil),  // 15: nimi.runtime.v1.DeleteVoiceAssetRequest
-	(*DeleteVoiceAssetResponse)(nil), // 16: nimi.runtime.v1.DeleteVoiceAssetResponse
-	(*ListPresetVoicesRequest)(nil),  // 17: nimi.runtime.v1.ListPresetVoicesRequest
-	(*ListPresetVoicesResponse)(nil), // 18: nimi.runtime.v1.ListPresetVoicesResponse
-	nil,                              // 19: nimi.runtime.v1.VoicePresetDescriptor.LabelsEntry
-	(*timestamppb.Timestamp)(nil),    // 20: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),          // 21: google.protobuf.Struct
-	(*Ack)(nil),                      // 22: nimi.runtime.v1.Ack
+	(VoiceReferenceKind)(0),          // 2: nimi.runtime.v1.VoiceReferenceKind
+	(VoiceAssetPersistence)(0),       // 3: nimi.runtime.v1.VoiceAssetPersistence
+	(VoiceAssetStatus)(0),            // 4: nimi.runtime.v1.VoiceAssetStatus
+	(*VoiceReference)(nil),           // 5: nimi.runtime.v1.VoiceReference
+	(*VoicePresetDescriptor)(nil),    // 6: nimi.runtime.v1.VoicePresetDescriptor
+	(*VoiceAsset)(nil),               // 7: nimi.runtime.v1.VoiceAsset
+	(*VoiceV2VInput)(nil),            // 8: nimi.runtime.v1.VoiceV2VInput
+	(*VoiceT2VInput)(nil),            // 9: nimi.runtime.v1.VoiceT2VInput
+	(*GetVoiceAssetRequest)(nil),     // 10: nimi.runtime.v1.GetVoiceAssetRequest
+	(*GetVoiceAssetResponse)(nil),    // 11: nimi.runtime.v1.GetVoiceAssetResponse
+	(*ListVoiceAssetsRequest)(nil),   // 12: nimi.runtime.v1.ListVoiceAssetsRequest
+	(*ListVoiceAssetsResponse)(nil),  // 13: nimi.runtime.v1.ListVoiceAssetsResponse
+	(*DeleteVoiceAssetRequest)(nil),  // 14: nimi.runtime.v1.DeleteVoiceAssetRequest
+	(*DeleteVoiceAssetResponse)(nil), // 15: nimi.runtime.v1.DeleteVoiceAssetResponse
+	(*ListPresetVoicesRequest)(nil),  // 16: nimi.runtime.v1.ListPresetVoicesRequest
+	(*ListPresetVoicesResponse)(nil), // 17: nimi.runtime.v1.ListPresetVoicesResponse
+	nil,                              // 18: nimi.runtime.v1.VoicePresetDescriptor.LabelsEntry
+	(*timestamppb.Timestamp)(nil),    // 19: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),          // 20: google.protobuf.Struct
+	(*Ack)(nil),                      // 21: nimi.runtime.v1.Ack
 }
 var file_runtime_v1_voice_proto_depIdxs = []int32{
-	3,  // 0: nimi.runtime.v1.VoiceReference.kind:type_name -> nimi.runtime.v1.VoiceReferenceKind
-	19, // 1: nimi.runtime.v1.VoicePresetDescriptor.labels:type_name -> nimi.runtime.v1.VoicePresetDescriptor.LabelsEntry
-	4,  // 2: nimi.runtime.v1.VoiceAsset.persistence:type_name -> nimi.runtime.v1.VoiceAssetPersistence
-	5,  // 3: nimi.runtime.v1.VoiceAsset.status:type_name -> nimi.runtime.v1.VoiceAssetStatus
-	20, // 4: nimi.runtime.v1.VoiceAsset.created_at:type_name -> google.protobuf.Timestamp
-	20, // 5: nimi.runtime.v1.VoiceAsset.updated_at:type_name -> google.protobuf.Timestamp
-	20, // 6: nimi.runtime.v1.VoiceAsset.expires_at:type_name -> google.protobuf.Timestamp
-	21, // 7: nimi.runtime.v1.VoiceAsset.metadata:type_name -> google.protobuf.Struct
+	2,  // 0: nimi.runtime.v1.VoiceReference.kind:type_name -> nimi.runtime.v1.VoiceReferenceKind
+	18, // 1: nimi.runtime.v1.VoicePresetDescriptor.labels:type_name -> nimi.runtime.v1.VoicePresetDescriptor.LabelsEntry
+	3,  // 2: nimi.runtime.v1.VoiceAsset.persistence:type_name -> nimi.runtime.v1.VoiceAssetPersistence
+	4,  // 3: nimi.runtime.v1.VoiceAsset.status:type_name -> nimi.runtime.v1.VoiceAssetStatus
+	19, // 4: nimi.runtime.v1.VoiceAsset.created_at:type_name -> google.protobuf.Timestamp
+	19, // 5: nimi.runtime.v1.VoiceAsset.updated_at:type_name -> google.protobuf.Timestamp
+	19, // 6: nimi.runtime.v1.VoiceAsset.expires_at:type_name -> google.protobuf.Timestamp
+	20, // 7: nimi.runtime.v1.VoiceAsset.metadata:type_name -> google.protobuf.Struct
 	0,  // 8: nimi.runtime.v1.VoiceAsset.creation_source:type_name -> nimi.runtime.v1.VoiceCreationSource
-	8,  // 9: nimi.runtime.v1.GetVoiceAssetResponse.asset:type_name -> nimi.runtime.v1.VoiceAsset
-	5,  // 10: nimi.runtime.v1.ListVoiceAssetsRequest.status:type_name -> nimi.runtime.v1.VoiceAssetStatus
+	7,  // 9: nimi.runtime.v1.GetVoiceAssetResponse.asset:type_name -> nimi.runtime.v1.VoiceAsset
+	4,  // 10: nimi.runtime.v1.ListVoiceAssetsRequest.status:type_name -> nimi.runtime.v1.VoiceAssetStatus
 	0,  // 11: nimi.runtime.v1.ListVoiceAssetsRequest.creation_source:type_name -> nimi.runtime.v1.VoiceCreationSource
-	8,  // 12: nimi.runtime.v1.ListVoiceAssetsResponse.assets:type_name -> nimi.runtime.v1.VoiceAsset
-	22, // 13: nimi.runtime.v1.DeleteVoiceAssetResponse.ack:type_name -> nimi.runtime.v1.Ack
-	7,  // 14: nimi.runtime.v1.ListPresetVoicesResponse.voices:type_name -> nimi.runtime.v1.VoicePresetDescriptor
+	7,  // 12: nimi.runtime.v1.ListVoiceAssetsResponse.assets:type_name -> nimi.runtime.v1.VoiceAsset
+	21, // 13: nimi.runtime.v1.DeleteVoiceAssetResponse.ack:type_name -> nimi.runtime.v1.Ack
+	6,  // 14: nimi.runtime.v1.ListPresetVoicesResponse.voices:type_name -> nimi.runtime.v1.VoicePresetDescriptor
 	15, // [15:15] is the sub-list for method output_type
 	15, // [15:15] is the sub-list for method input_type
 	15, // [15:15] is the sub-list for extension type_name
@@ -1503,7 +1434,7 @@ func file_runtime_v1_voice_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_voice_proto_rawDesc), len(file_runtime_v1_voice_proto_rawDesc)),
-			NumEnums:      6,
+			NumEnums:      5,
 			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   0,

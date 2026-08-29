@@ -13,7 +13,7 @@ function base(sequence: string) {
   return { sequence, observedAt: { seconds: '1', nanos: 2 }, provenance: 'runtime_agent_owner' };
 }
 
-test('candidate embodiment client projects bounded snapshot and ordered events', async () => {
+test('canonical embodiment client projects bounded snapshot and ordered events', async () => {
   const calls: unknown[] = [];
   let canceled = false;
   const shell: NimiLocalAppEmbodimentShell = {
@@ -24,7 +24,7 @@ test('candidate embodiment client projects bounded snapshot and ordered events',
         activity: { name: 'thinking', category: 'interaction', intensity: '', source: 'runtime', turnRef: 'turn-1' },
         emotion: { name: 'happy', source: 'runtime' },
         posture: { actionFamily: 'support', interruptMode: 'cautious' },
-        voiceTiming: { phase: 'active', durationMillis: 640, deadlineOffsetMillis: 80, turnRef: 'turn-1', voiceRef: 'voice-1' },
+        voiceTiming: { phase: 'active', durationMillis: 640, deadlineOffsetMillis: 80, turnRef: 'turn-1', correlationRef: 'voice-1' },
       };
     },
     async subscribe(input) {
@@ -32,7 +32,7 @@ test('candidate embodiment client projects bounded snapshot and ordered events',
       return {
         events: (async function* () {
           yield { ...base('5'), kind: 'activity', payload: { name: 'speaking', category: 'interaction', intensity: '', source: 'runtime', turnRef: 'turn-1' } };
-          yield { ...base('6'), kind: 'voice-timing', payload: { phase: 'completed', durationMillis: 700, deadlineOffsetMillis: 90, turnRef: 'turn-1', voiceRef: 'voice-1' } };
+          yield { ...base('6'), kind: 'voice-timing', payload: { phase: 'completed', durationMillis: 700, deadlineOffsetMillis: 90, turnRef: 'turn-1', correlationRef: 'voice-1' } };
         }()),
         async cancel() { canceled = true; },
       };
@@ -54,14 +54,14 @@ test('candidate embodiment client projects bounded snapshot and ordered events',
   assert.equal(canceled, true);
 });
 
-test('candidate embodiment client rejects authority, renderer, raw identity, and unbounded timing', async () => {
+test('canonical embodiment client rejects authority, renderer, raw identity, and unbounded timing', async () => {
   let calls = 0;
   const shell: NimiLocalAppEmbodimentShell = {
     async snapshot() {
       calls++;
       return {
         ...base('1'), activity: null, emotion: null, posture: null,
-        voiceTiming: { phase: 'active', durationMillis: 86_400_001, deadlineOffsetMillis: 0, turnRef: 'turn-1', voiceRef: 'voice-1' },
+        voiceTiming: { phase: 'active', durationMillis: 86_400_001, deadlineOffsetMillis: 0, turnRef: 'turn-1', correlationRef: 'voice-1' },
       };
     },
     async subscribe() { throw new Error('not reached'); },
@@ -91,7 +91,7 @@ test('candidate embodiment client rejects authority, renderer, raw identity, and
   }));
 });
 
-test('candidate embodiment client enforces proto uint64 cursors before transport and projection', async () => {
+test('canonical embodiment client enforces proto uint64 cursors before transport and projection', async () => {
   const subscribeInputs: unknown[] = [];
   let snapshotSequence = '18446744073709551615';
   const shell: NimiLocalAppEmbodimentShell = {

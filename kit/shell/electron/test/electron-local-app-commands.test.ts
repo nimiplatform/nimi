@@ -527,6 +527,58 @@ describe('Electron local-app standard-shell operations', () => {
     }
   });
 
+  it('routes embodiment snapshot and pull subscription without renderer or authority sideband', async () => {
+    const calls: unknown[] = [];
+    const host = {
+      embodimentSnapshot: async (input: unknown) => {
+        calls.push(['snapshot', input]);
+        return { sequence: '1', observedAt: { seconds: '1', nanos: 0 }, provenance: 'runtime_agent_owner', activity: null, emotion: null, posture: null, voiceTiming: null };
+      },
+      embodimentSubscribe: async (input: unknown) => {
+        calls.push(['subscribe', input]);
+        return { streamId: 'embodiment-1' };
+      },
+      realtimeStreamNext: async (input: unknown) => {
+        calls.push(['next', input]);
+        return { completed: false, event: { sequence: '2' } };
+      },
+      realtimeStreamClose: async (input: unknown) => {
+        calls.push(['close', input]);
+        return { closed: true };
+      },
+    } as never;
+    const scope = { agentHandle: `agent_ref_${'A'.repeat(43)}`, conversationAnchorId: 'anchor-1' };
+    await expect(dispatchElectronLocalAppCommand({
+      host, command: NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSnapshot'], payload: scope,
+    })).resolves.toMatchObject({ sequence: '1' });
+    await expect(dispatchElectronLocalAppCommand({
+      host, command: NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSubscribe'],
+      payload: { ...scope, afterSequence: '0' },
+    })).resolves.toEqual({ subscriptionId: 'embodiment-1' });
+    await expect(dispatchElectronLocalAppCommand({
+      host, command: NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSubscribe'],
+      payload: { action: 'next', subscriptionId: 'embodiment-1' },
+    })).resolves.toEqual({ subscriptionId: 'embodiment-1', completed: false, event: { sequence: '2' } });
+    await expect(dispatchElectronLocalAppCommand({
+      host, command: NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSubscribe'],
+      payload: { action: 'cancel', subscriptionId: 'embodiment-1' },
+    })).resolves.toEqual({ subscriptionId: 'embodiment-1', closed: true });
+    expect(calls).toEqual([
+      ['snapshot', scope],
+      ['subscribe', { ...scope, afterSequence: '0' }],
+      ['next', { streamId: 'embodiment-1' }],
+      ['close', { streamId: 'embodiment-1' }],
+    ]);
+    await expect(dispatchElectronLocalAppCommand({
+      host, command: NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSubscribe'],
+      payload: { ...scope, afterSequence: '18446744073709551616' },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    await expect(dispatchElectronLocalAppCommand({
+      host, command: NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSnapshot'],
+      payload: { ...scope, audioClock: 1 },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+  });
+
   it('routes the canonical Agent configuration operations through the protected host', async () => {
     const ipcMain = new FakeIpcMain();
     const calls: unknown[] = [];
@@ -1023,6 +1075,8 @@ function localAppHost(calls: unknown[]) {
     conversationInterruptTurn: unavailable('conversationInterruptTurn', calls),
     conversationSubscribe: unavailable('conversationSubscribe', calls),
     conversationSnapshot: unavailable('conversationSnapshot', calls),
+    embodimentSnapshot: unavailable('embodimentSnapshot', calls),
+    embodimentSubscribe: unavailable('embodimentSubscribe', calls),
     conversationStreamNext: async () => ({ completed: true }),
     conversationStreamClose: async () => ({ closed: true }),
     renewTechnicalSession: async () => ({ state: 'ready' }),

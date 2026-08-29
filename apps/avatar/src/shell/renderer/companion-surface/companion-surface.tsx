@@ -151,8 +151,8 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
       const submittedAt = new Date().toISOString();
       setCompanion((current) => beginCompanionSubmit(current, { text, at: submittedAt }));
       void bootstrapHandle
-        .requestCompanionParticipation({
-          agentId: binding.agentId,
+        .sendConversationText({
+          agentHandle: binding.agentHandle,
           conversationAnchorId: binding.conversationAnchorId,
           text,
         })
@@ -217,7 +217,7 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
             throw createAbortError();
           }
           return bootstrapHandle.submitVoiceCaptureTurn({
-            agentId: binding.agentId,
+            agentHandle: binding.agentHandle,
             conversationAnchorId: binding.conversationAnchorId,
             audioBytes: recording.bytes,
             mimeType: recording.mimeType,
@@ -254,7 +254,7 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
     const operationId = beginVoiceOperation(operationAnchorKey);
     void bootstrapHandle
       .startVoiceCapture({
-        agentId: binding.agentId,
+        agentHandle: binding.agentHandle,
         conversationAnchorId: binding.conversationAnchorId,
         onLevelChange: (amplitude) => {
           if (!isVoiceOperationCurrent(operationId, operationAnchorKey)) return;
@@ -293,8 +293,8 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
   const onInterruptClick = useCallback(() => {
     if (!bootstrapHandle || !binding) return;
     void bootstrapHandle
-      .interruptActiveTurn({
-        agentId: binding.agentId,
+      .interruptConversationTurn({
+        agentHandle: binding.agentHandle,
         conversationAnchorId: binding.conversationAnchorId,
         turnId: voice.currentTurnId || undefined,
         reason: 'avatar_voice_interrupt',

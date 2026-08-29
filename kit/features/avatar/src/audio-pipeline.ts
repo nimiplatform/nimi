@@ -1,8 +1,7 @@
 // Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
-// AudioPipelineController consumes `runtime.agent.presentation.voice_playback_requested`
-// events through SDK Runtime artifacts; runtime owns the lifecycle
-// (`requested → started → completed | interrupted | failed`) and this
-// controller mirrors it 1:1 for avatar surfaces.
+// AudioPipelineController is an Avatar vertical primitive. Its caller supplies
+// canonical Conversation artifact/byte custody; local decoder and playback
+// lifecycle remain Avatar/Host mechanics.
 //
 // Hard-cut behavior:
 //   - The caller-injected byte fetcher is removed. Bytes are read

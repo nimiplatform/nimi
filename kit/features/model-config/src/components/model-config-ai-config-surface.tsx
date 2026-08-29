@@ -43,6 +43,7 @@ import type {
 } from '../types.js';
 import { sanitizeCapabilityDefaults } from '../capability-defaults.js';
 import { CapabilityDefaultsEditor } from './capability-defaults-editor.js';
+import { ModelConfigCurrentMachineLocalAction } from './model-config-current-machine-local-action.js';
 import { ModelConfigOwnerBoundary } from './model-config-owner-boundary.js';
 
 type ResolvedCopy = ReturnType<typeof resolveModelConfigCopy>;
@@ -96,6 +97,7 @@ export type ModelConfigAIConfigSurfaceProps = {
   readonly onOpenMachineLoadout?: (capabilityContract: string) => void;
   readonly formatError?: (error: unknown) => ModelConfigFormattedError;
   readonly copy?: ModelConfigCopy;
+  readonly language?: string | null;
   readonly className?: string;
   readonly titleId?: string;
   readonly headerSlot?: ReactNode;
@@ -385,10 +387,26 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
       : { label: copy.notConfiguredLabel, tone: 'neutral' };
   const activeEntry = entries.find((entry) => entry.contract === activeContract) || null;
   const configurationObserved = props.capabilities !== undefined;
+  const allowedRoutes = props.allowedRoutes || DEFAULT_ALLOWED_ROUTES;
+  const currentMachineOwnerKey = props.context.owner === 'app-ai-config'
+    ? `app-ai-config:${props.context.appId}`
+    : 'shared-local-agent-ai-config';
 
   return (
     <ModelConfigOwnerBoundary context={props.context} className={cn('min-w-0 space-y-5', props.className)}>
       {props.headerSlot}
+      {allowedRoutes.includes('local') ? (
+        <ModelConfigCurrentMachineLocalAction
+          capabilityContracts={props.capabilityContracts}
+          ownerKey={currentMachineOwnerKey}
+          capabilities={props.capabilities}
+          revision={props.revision}
+          listOptions={props.listOptions}
+          onOverwrite={props.onOverwrite}
+          disabled={props.disabled}
+          language={props.language}
+        />
+      ) : null}
       {props.loadError ? (
         <div className="flex flex-wrap items-center gap-2">
           <InlineAlert tone="warning">{props.loadError || copy.loadFailed}</InlineAlert>
@@ -424,7 +442,7 @@ export function ModelConfigAIConfigSurface(props: ModelConfigAIConfigSurfaceProp
           <CapabilityIntentEditor
             key={activeEntry.contract}
             capabilityContract={activeEntry.contract}
-            allowedRoutes={props.allowedRoutes || DEFAULT_ALLOWED_ROUTES}
+            allowedRoutes={allowedRoutes}
             descriptor={activeEntry.descriptor}
             currentIntent={activeEntry.intent}
             allCapabilities={props.capabilities || []}

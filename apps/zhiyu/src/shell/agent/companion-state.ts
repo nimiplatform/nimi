@@ -1,15 +1,15 @@
-import type { NimiRuntimeAgentStateSnapshot } from '@nimiplatform/sdk/runtime';
+import type {
+  NimiLocalAppAgentHandle,
+  NimiLocalAppEmbodimentSnapshot,
+} from '@nimiplatform/sdk/app';
 import type { ZhiyuEvidence } from '../app/evidence';
-import type { ZhiyuLocalAgentStatus } from './local-agent-status';
+import type { ZhiyuConversationHomeStatus } from './conversation-home';
 import {
   initialZhiyuCompanionEmotionProjection,
   projectZhiyuCompanionEmotion,
 } from './companion-emotion';
 
-const APP_ID = 'nimi.zhiyu';
 const UNSUPPORTED_EXPLAINABILITY_FIELDS = [
-  'posture',
-  'postureSource',
   'stateConfidence',
   'whyThisState',
   'relationshipContext',
@@ -18,161 +18,110 @@ const UNSUPPORTED_EXPLAINABILITY_FIELDS = [
 
 export type ZhiyuCompanionStateStatus = ZhiyuEvidence['companion'];
 
-export interface ZhiyuCompanionStateReadInput {
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
-}
+export type ZhiyuCompanionStateReadInput = Readonly<{
+  readonly agentHandle: NimiLocalAppAgentHandle;
+  readonly conversationAnchorId: string;
+}>;
 
 export type ZhiyuCompanionStateReader = (
   input: ZhiyuCompanionStateReadInput,
-) => Promise<NimiRuntimeAgentStateSnapshot>;
+) => Promise<NimiLocalAppEmbodimentSnapshot>;
 
 export interface ZhiyuCompanionStateProbeOptions {
   readonly observedAt?: string;
-  readonly readAgentState?: ZhiyuCompanionStateReader;
+  readonly readEmbodiment?: ZhiyuCompanionStateReader;
 }
 
+// @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r011
 export async function probeZhiyuRuntimeCompanionState(
-  localAgent: ZhiyuLocalAgentStatus,
+  conversation: ZhiyuConversationHomeStatus,
   options: ZhiyuCompanionStateProbeOptions = {},
 ): Promise<ZhiyuCompanionStateStatus> {
-  if (localAgent.ready && stringOr(localAgent.source, '') !== 'runtime') {
+  const target = conversationTarget(conversation);
+  if (!target) {
     return companionUnavailable({
-      reasonCode: 'zhiyu-runtime-owned-local-agent-required',
-      actionHint: 'select_runtime_owned_partner',
-      source: localAgent.source,
-      message: 'Zhiyu requires Runtime-owned LocalAgent evidence before reading companion state.',
-      ownerUserId: localAgent.ownerUserId,
-      runtimeSourceRef: localAgent.runtimeSourceRef,
-      localAgentRef: localAgent.localAgentRef,
+      reasonCode: 'zhiyu-conversation-anchor-required',
+      actionHint: 'open_runtime_conversation_anchor',
+      source: conversation.source,
+      message: 'Zhiyu requires the current formal Agent and exact Conversation anchor before reading companion facts.',
+      agentHandle: conversation.agentHandle,
     });
   }
-  const identity = localAgentIdentity(localAgent);
-  if (!identity) {
+  if (!options.readEmbodiment) {
     return companionUnavailable({
-      reasonCode: 'zhiyu-local-agent-required',
-      actionHint: 'select_runtime_owned_partner',
-      source: localAgent.source,
-      message: 'Zhiyu requires a Runtime-owned LocalAgent before reading companion state.',
-      ownerUserId: localAgent.ownerUserId,
-      runtimeSourceRef: localAgent.runtimeSourceRef,
-      localAgentRef: localAgent.localAgentRef,
-    });
-  }
-
-  if (!options.readAgentState) {
-    return companionUnavailable({
-      reasonCode: 'zhiyu-companion-state-capability-not-admitted',
-      actionHint: 'admit_zhiyu_companion_state_capability',
+      reasonCode: 'zhiyu-embodiment-projection-unavailable',
+      actionHint: 'retry_formal_app_embodiment_projection',
       source: 'sdk',
-      message: 'Companion state is not admitted on the Zhiyu local-app carrier.',
-      ...identity,
+      message: 'The common typed embodiment projection is unavailable.',
+      agentHandle: target.agentHandle,
     });
   }
-
   try {
-    const snapshot = await options.readAgentState(identity);
-    return companionAvailable(snapshot, identity, stringOr(options.observedAt, new Date().toISOString()));
+    return companionAvailable(
+      await options.readEmbodiment(target),
+      target.agentHandle,
+      stringOr(options.observedAt, new Date().toISOString()),
+    );
   } catch (error) {
-    return normalizeCompanionStateError(error, identity);
+    return normalizeCompanionStateError(error, target.agentHandle);
   }
 }
 
 function companionAvailable(
-  snapshot: NimiRuntimeAgentStateSnapshot,
-  identity: {
-    readonly ownerUserId: string;
-    readonly runtimeSourceRef: string;
-    readonly localAgentRef: string;
-  },
+  snapshot: NimiLocalAppEmbodimentSnapshot,
+  agentHandle: NimiLocalAppAgentHandle,
   observedAt: string,
 ): ZhiyuCompanionStateStatus {
-  if (!snapshot.updatedAt) {
-    return companionUnavailable({
-      reasonCode: 'runtime-agent-state-timestamp-required',
-      actionHint: 'check_runtime_agent_state_projection',
-      source: 'runtime',
-      message: 'Runtime Agent state projection is missing updatedAt.',
-      ...identity,
-    });
-  }
-  const participation = companionParticipationProjection(snapshot);
   const emotion = projectZhiyuCompanionEmotion({
     current: initialZhiyuCompanionEmotionProjection(),
-    emotion: snapshot.currentEmotion,
+    emotion: snapshot.emotion?.name,
   });
   const projectedFields = [
-    snapshot.executionState ? 'executionState' : '',
-    snapshot.statusText ? 'statusText' : '',
-    snapshot.activeWorldId ? 'activeWorldId' : '',
-    snapshot.activeUserId ? 'activeUserId' : '',
-    snapshot.updatedAt ? 'stateUpdatedAt' : '',
-    emotion.currentEmotion ? 'currentEmotion' : '',
-    emotion.currentEmotionId ? 'currentEmotionId' : '',
-    emotion.currentEmotionCue ? 'currentEmotionCue' : '',
-    emotion.currentEmotionIntensity ? 'currentEmotionIntensity' : '',
-    emotion.emotionViolation ? 'emotionViolation' : '',
-    'participationMode',
-    'participationSource',
+    snapshot.activity ? 'activity' : '',
+    snapshot.emotion ? 'emotion' : '',
+    snapshot.posture ? 'posture' : '',
+    snapshot.voiceTiming ? 'voiceTiming' : '',
   ].filter(Boolean);
   return {
     transport: 'electron-ipc',
     ready: true,
     state: 'projected',
-    reasonCode: 'runtime-agent-state-projected',
-    actionHint: 'inspect_runtime_agent_state_projection',
+    reasonCode: 'runtime-embodiment-snapshot-projected',
+    actionHint: 'inspect_runtime_embodiment_projection',
     source: 'runtime',
-    message: 'Runtime Agent state was projected through SDK Runtime Agent state read.',
-    ...identity,
+    message: 'Common typed embodiment facts were projected for the current Conversation.',
+    agentHandle,
     observedAt,
-    stateUpdatedAt: snapshot.updatedAt,
-    executionState: snapshot.executionState,
-    statusText: snapshot.statusText,
-    activeWorldId: snapshot.activeWorldId,
-    activeUserId: snapshot.activeUserId,
+    stateUpdatedAt: timestamp(snapshot.observedAt) ?? observedAt,
+    executionState: snapshot.activity?.name ?? null,
+    statusText: snapshot.activity?.category ?? null,
+    activityCategory: snapshot.activity?.category ?? null,
+    activityIntensity: snapshot.activity?.intensity || null,
+    postureActionFamily: snapshot.posture?.actionFamily ?? null,
+    postureInterruptMode: snapshot.posture?.interruptMode ?? null,
     currentEmotion: emotion.currentEmotion,
     currentEmotionId: emotion.currentEmotionId,
     currentEmotionCue: emotion.currentEmotionCue,
     currentEmotionIntensity: emotion.currentEmotionIntensity,
     emotionViolation: emotion.emotionViolation,
-    participationMode: participation.mode,
-    participationSource: participation.source,
     projectedFields,
     unsupportedExplainabilityFields: [...UNSUPPORTED_EXPLAINABILITY_FIELDS],
   };
 }
 
-function companionParticipationProjection(snapshot: NimiRuntimeAgentStateSnapshot): {
-  readonly mode: ZhiyuCompanionStateStatus['participationMode'];
-  readonly source: string;
-} {
-  if (snapshot.activeWorldId) {
-    return { mode: 'world', source: snapshot.activeWorldId };
-  }
-  if (snapshot.activeUserId) {
-    return { mode: 'dyadic', source: snapshot.activeUserId };
-  }
-  return { mode: 'idle', source: 'runtime-agent-state' };
-}
-
 function normalizeCompanionStateError(
   error: unknown,
-  identity: {
-    readonly ownerUserId: string;
-    readonly runtimeSourceRef: string;
-    readonly localAgentRef: string;
-  },
+  agentHandle: NimiLocalAppAgentHandle,
 ): ZhiyuCompanionStateStatus {
   const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
   return companionUnavailable({
-    reasonCode: stringOr(record.reasonCode, 'zhiyu-runtime-agent-state-unavailable'),
-    actionHint: stringOr(record.actionHint, 'check_runtime_agent_state_projection'),
+    reasonCode: stringOr(record.reasonCode, 'zhiyu-embodiment-projection-unavailable'),
+    actionHint: stringOr(record.actionHint, 'retry_formal_app_embodiment_projection'),
     source: stringOr(record.source, 'sdk'),
     message: error instanceof Error && error.message.trim()
       ? error.message.trim()
-      : 'Runtime Agent state projection is unavailable.',
-    ...identity,
+      : 'Common typed embodiment facts are unavailable.',
+    agentHandle,
   });
 }
 
@@ -181,9 +130,7 @@ function companionUnavailable(input: {
   readonly actionHint: string;
   readonly source: string;
   readonly message: string;
-  readonly ownerUserId?: string | null;
-  readonly runtimeSourceRef?: string | null;
-  readonly localAgentRef?: string | null;
+  readonly agentHandle?: NimiLocalAppAgentHandle | null;
 }): ZhiyuCompanionStateStatus {
   return {
     transport: 'electron-ipc',
@@ -193,46 +140,40 @@ function companionUnavailable(input: {
     actionHint: input.actionHint,
     source: input.source,
     message: input.message,
-    ownerUserId: input.ownerUserId ?? null,
-    runtimeSourceRef: input.runtimeSourceRef ?? null,
-    localAgentRef: input.localAgentRef ?? null,
+    agentHandle: input.agentHandle ?? null,
     observedAt: null,
     stateUpdatedAt: null,
     executionState: null,
     statusText: null,
-    activeWorldId: null,
-    activeUserId: null,
+    activityCategory: null,
+    activityIntensity: null,
+    postureActionFamily: null,
+    postureInterruptMode: null,
     currentEmotion: null,
     currentEmotionId: null,
     currentEmotionCue: null,
     currentEmotionIntensity: null,
     emotionViolation: null,
-    participationMode: 'not_projected',
-    participationSource: null,
     projectedFields: [],
     unsupportedExplainabilityFields: [...UNSUPPORTED_EXPLAINABILITY_FIELDS],
   };
 }
 
-function localAgentIdentity(localAgent: ZhiyuLocalAgentStatus): {
-  readonly ownerUserId: string;
-  readonly runtimeSourceRef: string;
-  readonly localAgentRef: string;
-} | null {
-  if (!localAgent.ready) {
-    return null;
-  }
-  const ownerUserId = stringOr(localAgent.ownerUserId, '');
-  const runtimeSourceRef = stringOr(localAgent.runtimeSourceRef, '');
-  const localAgentRef = stringOr(localAgent.localAgentRef, '');
-  if (!ownerUserId || !runtimeSourceRef || !localAgentRef) {
-    return null;
-  }
+function conversationTarget(conversation: ZhiyuConversationHomeStatus): ZhiyuCompanionStateReadInput | null {
+  if (!conversation.ready || !conversation.agentHandle || !conversation.conversationAnchorId) return null;
   return {
-    ownerUserId,
-    runtimeSourceRef,
-    localAgentRef,
+    agentHandle: conversation.agentHandle,
+    conversationAnchorId: conversation.conversationAnchorId,
   };
+}
+
+function timestamp(value: Readonly<{ seconds: string; nanos: number }>): string | null {
+  try {
+    const milliseconds = Number(BigInt(value.seconds) * 1_000n + BigInt(Math.floor(value.nanos / 1_000_000)));
+    return Number.isSafeInteger(milliseconds) ? new Date(milliseconds).toISOString() : null;
+  } catch {
+    return null;
+  }
 }
 
 function stringOr(value: unknown, fallback: string): string {

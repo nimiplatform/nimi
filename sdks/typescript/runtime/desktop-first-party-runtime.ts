@@ -9,13 +9,11 @@ import {
   type RuntimeMaterializeRealmSourceInput,
   type RuntimeMaterializeRealmSourceResult,
   type RuntimeOptions,
-  type RuntimeRealmRealtimeModule,
   type RuntimeTransportConfig,
 } from './index';
 import {
   RUNTIME_AGENT_METHODS,
   RUNTIME_AI_METHODS,
-  RUNTIME_REALM_REALTIME_METHODS,
   type RuntimeMethodModule,
   type RuntimeTypedMethodName,
 } from './runtime-method-modules.js';
@@ -26,7 +24,6 @@ import type {
   DesktopMachineProductRuntimeMethods,
 } from './first-party-protected-runtime-profiles.generated';
 import type { NimiRuntimeAgentAuthClient } from './runtime-agent-protected';
-import type { NimiRuntimeScenarioJobClient } from './scenario-jobs';
 import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
 import {
   createNimiMachineLoadoutClient,
@@ -37,14 +34,6 @@ import {
   createNimiAppAIConfigClient,
   type NimiAppAIConfigClient,
 } from '../core/ai/capability-configuration';
-import {
-  createNimiAgentRealtimeRuntimeClient,
-  createNimiLocalAppAgentReferencesRuntimeClient,
-  createNimiLocalAppConversationRuntimeClient,
-  type NimiLocalAppClient,
-} from '../core/app/local-app-runtime-platform.js';
-import { createNimiLocalAppVoiceAssetsRuntimeClient } from '../core/app/local-app-runtime-platform-ai.js';
-import { createNimiLocalAppAgentConfigureClient } from '../core/app/local-app-runtime-platform-configure.js';
 import { assertRouteOnlyLocalAIConfigIntents } from '../core/ai/capability-configuration-local-intent.js';
 import {
   parseNimiPortableAIProfile,
@@ -52,7 +41,6 @@ import {
   type NimiPortableAIProfile,
   type NimiPortableAIProfileInput,
 } from '../core/ai/config-profile';
-import { createNimiRuntimeLocalAppAgentConfigureShell } from './runtime-local-app-agent-configure.js';
 
 export type NimiDesktopPortableAIProfileCatalogRecord = {
   readonly source: NimiPortableAIProfile;
@@ -121,8 +109,6 @@ export type NimiDesktopAccountProductRuntimeClient = {
     | 'getPublicChatSessionSnapshot'
     | 'readConversationArtifact'
     | 'transcribeAgentVoiceInput'
-    | 'registerAvatarLiveInstanceBinding'
-    | 'resolveAvatarLiveInstanceBinding'
     | 'getSharedLocalAgentAIConfig'
     | 'overwriteSharedLocalAgentAIConfig'
     | 'listSharedLocalAgentAIConfigOptions'
@@ -160,34 +146,15 @@ export type NimiDesktopAccountProductRuntimeClient = {
   ) => Promise<RuntimeMaterializeRealmSourceResult>;
 };
 
-/** Exact Desktop Scenario execution methods exercised by active product consumers. */
-export type NimiDesktopRuntimeAiExecutionClient = NimiRuntimeScenarioJobClient
-  & Pick<DesktopAccountProductRuntimeMethods,
-    | 'executeScenario'
-    | 'streamScenario'
-    | 'listPresetVoices'
-    | 'listVoiceAssets'>;
-
 /** Exact Agent methods exercised by active Desktop product consumers. */
 export type NimiDesktopRuntimeAgentPurposeClient =
   NimiDesktopAccountProductRuntimeClient['agents'];
 
-/** Canonical App Product Plane clients shared with equally covered protected Apps. */
-export type NimiDesktopLocalAppProductRuntimeClient = Pick<
-  NimiLocalAppClient,
-  'agents' | 'conversation' | 'agentRealtime' | 'agentConfigure'
-> & {
-  readonly ai: Pick<NimiLocalAppClient['ai'], 'voiceAssets'>;
-};
-
 export type NimiDesktopFirstPartyRuntimeClients = {
   readonly machineProduct: NimiDesktopMachineProductRuntimeClient;
   readonly accountProduct: NimiDesktopAccountProductRuntimeClient;
-  readonly localAppProduct: NimiDesktopLocalAppProductRuntimeClient;
   readonly auth: NimiRuntimeAgentAuthClient;
-  readonly aiExecution: NimiDesktopRuntimeAiExecutionClient;
   readonly agentPurpose: NimiDesktopRuntimeAgentPurposeClient;
-  readonly realmRealtime: RuntimeRealmRealtimeModule;
 };
 
 export type NimiDesktopFirstPartyRuntimeClientsInput = {
@@ -310,7 +277,6 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       return boundProtectedAI.overwriteAppAIConfig(request, options);
     },
   });
-  const protectedRealmRealtime = bindProtectedRuntimeModule(protectedGenerated, RUNTIME_REALM_REALTIME_METHODS);
   const machineProductRuntime = runtime.desktopMachineProduct;
   if (!machineProductRuntime) {
     throw createNimiError({
@@ -346,8 +312,6 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       }, options)
     ),
     transcribeAgentVoiceInput: protectedAgent(protectedAgents.transcribeAgentVoiceInput),
-    registerAvatarLiveInstanceBinding: protectedAgents.registerAvatarLiveInstanceBinding,
-    resolveAvatarLiveInstanceBinding: protectedAgents.resolveAvatarLiveInstanceBinding,
     getSharedLocalAgentAIConfig: protectedAgents.getSharedLocalAgentAIConfig,
     overwriteSharedLocalAgentAIConfig: protectedAgents.overwriteSharedLocalAgentAIConfig,
     listSharedLocalAgentAIConfigOptions: protectedAgents.listSharedLocalAgentAIConfigOptions,
@@ -359,17 +323,6 @@ export function createNimiDesktopFirstPartyRuntimeClients(
     getDelegatedControlSurfaceSnapshot: protectedAgent(protectedAgents.getDelegatedControlSurfaceSnapshot),
     getDelegatedReplayTrace: protectedAgent(protectedAgents.getDelegatedReplayTrace),
     submitDelegatedApprovalDecision: protectedAgent(protectedAgents.submitDelegatedApprovalDecision),
-  });
-  const localAppProduct: NimiDesktopLocalAppProductRuntimeClient = Object.freeze({
-    agents: createNimiLocalAppAgentReferencesRuntimeClient(protectedAgents),
-    conversation: createNimiLocalAppConversationRuntimeClient(protectedAgents),
-    agentRealtime: createNimiAgentRealtimeRuntimeClient(protectedAgents),
-    agentConfigure: createNimiLocalAppAgentConfigureClient(
-      createNimiRuntimeLocalAppAgentConfigureShell(protectedAgents),
-    ),
-    ai: Object.freeze({
-      voiceAssets: createNimiLocalAppVoiceAssetsRuntimeClient(protectedGenerated),
-    }),
   });
   const agentPurpose: NimiDesktopRuntimeAgentPurposeClient = accountAgents;
   const appAIConfig = (appId: string): NimiAppAIConfigClient => createNimiAppAIConfigClient({
@@ -525,21 +478,8 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       }),
       materializeRealmSource: runtime.materializeRealmSource.bind(runtime),
     }),
-    localAppProduct,
     auth: Object.freeze({}),
-    aiExecution: Object.freeze({
-      executeScenario: protectedAI.executeScenario,
-      streamScenario: protectedAI.streamScenario,
-      submitScenarioJob: protectedAI.submitScenarioJob,
-      getScenarioJob: protectedAI.getScenarioJob,
-      cancelScenarioJob: protectedAI.cancelScenarioJob,
-      subscribeScenarioJobEvents: protectedAI.subscribeScenarioJobEvents,
-      getScenarioArtifacts: protectedAI.getScenarioArtifacts,
-      listPresetVoices: protectedAI.listPresetVoices,
-      listVoiceAssets: protectedAI.listVoiceAssets,
-    }),
     agentPurpose,
-    realmRealtime: protectedRealmRealtime,
   });
 }
 

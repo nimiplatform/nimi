@@ -119,6 +119,7 @@ function installRuntimeConnectorProbeDesktopSession(): void {
       machineProduct: { connectors: runtime.connectors },
       accountProduct: { connectors: runtime.connectors },
     },
+    localAppClient: {},
     accountRuntime: {},
     accountCaller: {},
     realm: {},

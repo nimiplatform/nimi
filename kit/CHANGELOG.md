@@ -50,6 +50,15 @@ Discipline.
 
 ### Added
 
+- **Breaking (0.x):** `NimiLocalAppStandardShell` and the canonical formal App
+  client add the required `embodiment.snapshot` and `embodiment.subscribe`
+  namespace for every App with matching `agent.local` coverage. Host adapters
+  must carry the two exact protected operations and preserve their ordered
+  uint64 cursor; consumers receive only Runtime-owned activity, emotion,
+  semantic posture, provenance, and bounded voice-timing correlation. Do not
+  migrate renderer motion, lipsync, audio clock, replay, backend probe, or
+  diagnostic fields into this namespace; there is no optional or privileged
+  compatibility client.
 - **Breaking (0.x):** The protected Local App Conversation surface adds the
   canonical `conversation.renderVoice` operation. Consumers request final
   voice only with the current opaque Agent handle, Conversation anchor,

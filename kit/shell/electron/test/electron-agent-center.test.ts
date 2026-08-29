@@ -18,7 +18,6 @@ import {
 import { FakeElectronProtocol } from './fake-electron-protocol.js';
 
 const VALID_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64');
-const AGENT_HANDLE = `agent_ref_${'a'.repeat(43)}`;
 
 function registerAgentCenterBridge(standardShellHost: NimiElectronStandardShellHost): FakeIpcMain {
   const ipcMain = new FakeIpcMain();
@@ -97,7 +96,7 @@ describe('Electron standard Agent Center host', () => {
 
       const imported = await invokeBridge(ipcMain, event, {
         command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport'],
-        payload: { backendKind: 'live2d', agentHandle: AGENT_HANDLE },
+        payload: { backendKind: 'live2d' },
       });
 
       expect(imported).toMatchObject({
@@ -154,7 +153,7 @@ describe('Electron standard Agent Center host', () => {
     const { event } = createInvokeEvent();
     await expect(invokeBridge(ipcMain, event, {
       command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.avatarAssetImport'],
-      payload: { backendKind: 'vrm', agentHandle: AGENT_HANDLE },
+      payload: { backendKind: 'vrm' },
     })).resolves.toBeNull();
     await expect(invokeBridge(ipcMain, event, {
       command: NIMI_STANDARD_SHELL_COMMANDS['agent-center.backgroundImport'],

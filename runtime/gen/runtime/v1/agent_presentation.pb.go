@@ -72,25 +72,23 @@ func (AgentPresentationAssetRole) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_agent_presentation_proto_rawDescGZIP(), []int{0}
 }
 
-// K-AGCORE-037 AgentPresentationEventFamily discriminates
-// runtime.agent.presentation.* families. Mapping is 1:1 to
-// runtime.agent.presentation.{activity_requested|motion_requested|
-// expression_requested|pose_requested|pose_cleared|lookat_requested|
-// voice_playback_requested|voice_stream_chunk_available|
-// voice_playback_terminal}.
+// K-AGCORE-037 AgentPresentationEventFamily discriminates Runtime-owned
+// activity semantics plus common Conversation voice correlation. Renderer
+// motion mapping, audio clocks, mouth/viseme parameters, and playback remain
+// outside this contract.
 type AgentPresentationEventFamily int32
 
 const (
-	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED                  AgentPresentationEventFamily = 0
-	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED           AgentPresentationEventFamily = 1
-	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED             AgentPresentationEventFamily = 2
-	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED         AgentPresentationEventFamily = 3
-	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED               AgentPresentationEventFamily = 4
-	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED                 AgentPresentationEventFamily = 5
-	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED             AgentPresentationEventFamily = 6
-	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED     AgentPresentationEventFamily = 7
-	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE AgentPresentationEventFamily = 8
-	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL      AgentPresentationEventFamily = 9
+	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED              AgentPresentationEventFamily = 0
+	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED       AgentPresentationEventFamily = 1
+	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED         AgentPresentationEventFamily = 2
+	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED     AgentPresentationEventFamily = 3
+	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED           AgentPresentationEventFamily = 4
+	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED             AgentPresentationEventFamily = 5
+	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED         AgentPresentationEventFamily = 6
+	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY       AgentPresentationEventFamily = 7
+	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE AgentPresentationEventFamily = 8
+	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL    AgentPresentationEventFamily = 9
 )
 
 // Enum value maps for AgentPresentationEventFamily.
@@ -103,21 +101,21 @@ var (
 		4: "AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED",
 		5: "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED",
 		6: "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED",
-		7: "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED",
-		8: "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE",
-		9: "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL",
+		7: "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY",
+		8: "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE",
+		9: "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL",
 	}
 	AgentPresentationEventFamily_value = map[string]int32{
-		"AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED":                  0,
-		"AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED":           1,
-		"AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED":             2,
-		"AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED":         3,
-		"AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED":               4,
-		"AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED":                 5,
-		"AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED":             6,
-		"AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED":     7,
-		"AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE": 8,
-		"AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL":      9,
+		"AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED":              0,
+		"AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED":       1,
+		"AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED":         2,
+		"AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED":     3,
+		"AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED":           4,
+		"AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED":             5,
+		"AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED":         6,
+		"AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY":       7,
+		"AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE": 8,
+		"AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL":    9,
 	}
 )
 
@@ -146,6 +144,64 @@ func (x AgentPresentationEventFamily) Number() protoreflect.EnumNumber {
 // Deprecated: Use AgentPresentationEventFamily.Descriptor instead.
 func (AgentPresentationEventFamily) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_agent_presentation_proto_rawDescGZIP(), []int{1}
+}
+
+type AgentVoiceTimingPhase int32
+
+const (
+	AgentVoiceTimingPhase_AGENT_VOICE_TIMING_PHASE_UNSPECIFIED AgentVoiceTimingPhase = 0
+	AgentVoiceTimingPhase_AGENT_VOICE_TIMING_PHASE_ACTIVE      AgentVoiceTimingPhase = 1
+	AgentVoiceTimingPhase_AGENT_VOICE_TIMING_PHASE_COMPLETED   AgentVoiceTimingPhase = 2
+	AgentVoiceTimingPhase_AGENT_VOICE_TIMING_PHASE_FAILED      AgentVoiceTimingPhase = 3
+	AgentVoiceTimingPhase_AGENT_VOICE_TIMING_PHASE_INTERRUPTED AgentVoiceTimingPhase = 4
+	AgentVoiceTimingPhase_AGENT_VOICE_TIMING_PHASE_CANCELED    AgentVoiceTimingPhase = 5
+)
+
+// Enum value maps for AgentVoiceTimingPhase.
+var (
+	AgentVoiceTimingPhase_name = map[int32]string{
+		0: "AGENT_VOICE_TIMING_PHASE_UNSPECIFIED",
+		1: "AGENT_VOICE_TIMING_PHASE_ACTIVE",
+		2: "AGENT_VOICE_TIMING_PHASE_COMPLETED",
+		3: "AGENT_VOICE_TIMING_PHASE_FAILED",
+		4: "AGENT_VOICE_TIMING_PHASE_INTERRUPTED",
+		5: "AGENT_VOICE_TIMING_PHASE_CANCELED",
+	}
+	AgentVoiceTimingPhase_value = map[string]int32{
+		"AGENT_VOICE_TIMING_PHASE_UNSPECIFIED": 0,
+		"AGENT_VOICE_TIMING_PHASE_ACTIVE":      1,
+		"AGENT_VOICE_TIMING_PHASE_COMPLETED":   2,
+		"AGENT_VOICE_TIMING_PHASE_FAILED":      3,
+		"AGENT_VOICE_TIMING_PHASE_INTERRUPTED": 4,
+		"AGENT_VOICE_TIMING_PHASE_CANCELED":    5,
+	}
+)
+
+func (x AgentVoiceTimingPhase) Enum() *AgentVoiceTimingPhase {
+	p := new(AgentVoiceTimingPhase)
+	*p = x
+	return p
+}
+
+func (x AgentVoiceTimingPhase) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AgentVoiceTimingPhase) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_agent_presentation_proto_enumTypes[2].Descriptor()
+}
+
+func (AgentVoiceTimingPhase) Type() protoreflect.EnumType {
+	return &file_runtime_v1_agent_presentation_proto_enumTypes[2]
+}
+
+func (x AgentVoiceTimingPhase) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AgentVoiceTimingPhase.Descriptor instead.
+func (AgentVoiceTimingPhase) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_agent_presentation_proto_rawDescGZIP(), []int{2}
 }
 
 type AgentPresentationBackendKind int32
@@ -190,11 +246,11 @@ func (x AgentPresentationBackendKind) String() string {
 }
 
 func (AgentPresentationBackendKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_agent_presentation_proto_enumTypes[2].Descriptor()
+	return file_runtime_v1_agent_presentation_proto_enumTypes[3].Descriptor()
 }
 
 func (AgentPresentationBackendKind) Type() protoreflect.EnumType {
-	return &file_runtime_v1_agent_presentation_proto_enumTypes[2]
+	return &file_runtime_v1_agent_presentation_proto_enumTypes[3]
 }
 
 func (x AgentPresentationBackendKind) Number() protoreflect.EnumNumber {
@@ -203,7 +259,7 @@ func (x AgentPresentationBackendKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use AgentPresentationBackendKind.Descriptor instead.
 func (AgentPresentationBackendKind) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_agent_presentation_proto_rawDescGZIP(), []int{2}
+	return file_runtime_v1_agent_presentation_proto_rawDescGZIP(), []int{3}
 }
 
 type AgentPresentationAssetMaterial struct {
@@ -529,8 +585,8 @@ func (*ClearAgentPresentationProfile) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_agent_presentation_proto_rawDescGZIP(), []int{3}
 }
 
-// AgentPresentationEventDetail projects runtime.agent.presentation.* events
-// per K-AGCORE-037 / presentation_envelope. `agent_id` is REQUIRED at the
+// AgentPresentationEventDetail projects bounded Runtime presentation and
+// Conversation voice-correlation events. `agent_id` is REQUIRED at the
 // AgentEvent envelope level; `conversation_anchor_id`, `turn_id`, and
 // `stream_id` are ALSO REQUIRED on every presentation event because
 // presentation is stream-scoped transient projection derived from committed
@@ -559,34 +615,25 @@ type AgentPresentationEventDetail struct {
 	PoseExpectedDurationMs int64  `protobuf:"varint,41,opt,name=pose_expected_duration_ms,json=poseExpectedDurationMs,proto3" json:"pose_expected_duration_ms,omitempty"`
 	PreviousPoseId         string `protobuf:"bytes,42,opt,name=previous_pose_id,json=previousPoseId,proto3" json:"previous_pose_id,omitempty"`
 	// lookat_requested
-	LookatTargetKind string  `protobuf:"bytes,50,opt,name=lookat_target_kind,json=lookatTargetKind,proto3" json:"lookat_target_kind,omitempty"`
-	LookatX          float64 `protobuf:"fixed64,51,opt,name=lookat_x,json=lookatX,proto3" json:"lookat_x,omitempty"`
-	LookatY          float64 `protobuf:"fixed64,52,opt,name=lookat_y,json=lookatY,proto3" json:"lookat_y,omitempty"`
-	LookatZ          float64 `protobuf:"fixed64,53,opt,name=lookat_z,json=lookatZ,proto3" json:"lookat_z,omitempty"`
-	LookatHasX       bool    `protobuf:"varint,54,opt,name=lookat_has_x,json=lookatHasX,proto3" json:"lookat_has_x,omitempty"`
-	LookatHasY       bool    `protobuf:"varint,55,opt,name=lookat_has_y,json=lookatHasY,proto3" json:"lookat_has_y,omitempty"`
-	LookatHasZ       bool    `protobuf:"varint,56,opt,name=lookat_has_z,json=lookatHasZ,proto3" json:"lookat_has_z,omitempty"`
-	// voice_playback_requested / voice_stream_chunk_available /
-	// voice_playback_terminal. Non-final native stream chunks carry only
-	// transient stream identity; final replay bytes remain Runtime artifacts.
-	AudioArtifactId    string             `protobuf:"bytes,60,opt,name=audio_artifact_id,json=audioArtifactId,proto3" json:"audio_artifact_id,omitempty"`
-	AudioMimeType      string             `protobuf:"bytes,61,opt,name=audio_mime_type,json=audioMimeType,proto3" json:"audio_mime_type,omitempty"`
-	VoiceStreamId      string             `protobuf:"bytes,62,opt,name=voice_stream_id,json=voiceStreamId,proto3" json:"voice_stream_id,omitempty"`
-	ChunkTransportRef  string             `protobuf:"bytes,63,opt,name=chunk_transport_ref,json=chunkTransportRef,proto3" json:"chunk_transport_ref,omitempty"`
-	MessageId          string             `protobuf:"bytes,64,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
-	ChunkSequence      uint64             `protobuf:"varint,65,opt,name=chunk_sequence,json=chunkSequence,proto3" json:"chunk_sequence,omitempty"`
-	FinalChunk         bool               `protobuf:"varint,66,opt,name=final_chunk,json=finalChunk,proto3" json:"final_chunk,omitempty"`
-	VoiceOutputMode    VoiceOutputMode    `protobuf:"varint,67,opt,name=voice_output_mode,json=voiceOutputMode,proto3,enum=nimi.runtime.v1.VoiceOutputMode" json:"voice_output_mode,omitempty"`
-	VoicePlaybackState VoicePlaybackState `protobuf:"varint,68,opt,name=voice_playback_state,json=voicePlaybackState,proto3,enum=nimi.runtime.v1.VoicePlaybackState" json:"voice_playback_state,omitempty"`
-	PlaybackTarget     string             `protobuf:"bytes,69,opt,name=playback_target,json=playbackTarget,proto3" json:"playback_target,omitempty"`
-	FinalArtifact      bool               `protobuf:"varint,70,opt,name=final_artifact,json=finalArtifact,proto3" json:"final_artifact,omitempty"`
-	TerminalReason     string             `protobuf:"bytes,71,opt,name=terminal_reason,json=terminalReason,proto3" json:"terminal_reason,omitempty"`
-	Reason             string             `protobuf:"bytes,72,opt,name=reason,proto3" json:"reason,omitempty"`
-	DurationMs         int64              `protobuf:"varint,73,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
-	DeadlineOffsetMs   int64              `protobuf:"varint,74,opt,name=deadline_offset_ms,json=deadlineOffsetMs,proto3" json:"deadline_offset_ms,omitempty"`
-	FinalArtifactId    string             `protobuf:"bytes,75,opt,name=final_artifact_id,json=finalArtifactId,proto3" json:"final_artifact_id,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	LookatTargetKind string                `protobuf:"bytes,50,opt,name=lookat_target_kind,json=lookatTargetKind,proto3" json:"lookat_target_kind,omitempty"`
+	LookatX          float64               `protobuf:"fixed64,51,opt,name=lookat_x,json=lookatX,proto3" json:"lookat_x,omitempty"`
+	LookatY          float64               `protobuf:"fixed64,52,opt,name=lookat_y,json=lookatY,proto3" json:"lookat_y,omitempty"`
+	LookatZ          float64               `protobuf:"fixed64,53,opt,name=lookat_z,json=lookatZ,proto3" json:"lookat_z,omitempty"`
+	LookatHasX       bool                  `protobuf:"varint,54,opt,name=lookat_has_x,json=lookatHasX,proto3" json:"lookat_has_x,omitempty"`
+	LookatHasY       bool                  `protobuf:"varint,55,opt,name=lookat_has_y,json=lookatHasY,proto3" json:"lookat_has_y,omitempty"`
+	LookatHasZ       bool                  `protobuf:"varint,56,opt,name=lookat_has_z,json=lookatHasZ,proto3" json:"lookat_has_z,omitempty"`
+	AudioArtifactId  string                `protobuf:"bytes,60,opt,name=audio_artifact_id,json=audioArtifactId,proto3" json:"audio_artifact_id,omitempty"`
+	AudioMimeType    string                `protobuf:"bytes,61,opt,name=audio_mime_type,json=audioMimeType,proto3" json:"audio_mime_type,omitempty"`
+	MessageId        string                `protobuf:"bytes,64,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
+	ArtifactSequence uint64                `protobuf:"varint,65,opt,name=artifact_sequence,json=artifactSequence,proto3" json:"artifact_sequence,omitempty"`
+	ArtifactComplete bool                  `protobuf:"varint,66,opt,name=artifact_complete,json=artifactComplete,proto3" json:"artifact_complete,omitempty"`
+	VoiceTimingPhase AgentVoiceTimingPhase `protobuf:"varint,68,opt,name=voice_timing_phase,json=voiceTimingPhase,proto3,enum=nimi.runtime.v1.AgentVoiceTimingPhase" json:"voice_timing_phase,omitempty"`
+	TerminalReason   string                `protobuf:"bytes,71,opt,name=terminal_reason,json=terminalReason,proto3" json:"terminal_reason,omitempty"`
+	Reason           string                `protobuf:"bytes,72,opt,name=reason,proto3" json:"reason,omitempty"`
+	DurationMs       int64                 `protobuf:"varint,73,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
+	DeadlineOffsetMs int64                 `protobuf:"varint,74,opt,name=deadline_offset_ms,json=deadlineOffsetMs,proto3" json:"deadline_offset_ms,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *AgentPresentationEventDetail) Reset() {
@@ -794,20 +841,6 @@ func (x *AgentPresentationEventDetail) GetAudioMimeType() string {
 	return ""
 }
 
-func (x *AgentPresentationEventDetail) GetVoiceStreamId() string {
-	if x != nil {
-		return x.VoiceStreamId
-	}
-	return ""
-}
-
-func (x *AgentPresentationEventDetail) GetChunkTransportRef() string {
-	if x != nil {
-		return x.ChunkTransportRef
-	}
-	return ""
-}
-
 func (x *AgentPresentationEventDetail) GetMessageId() string {
 	if x != nil {
 		return x.MessageId
@@ -815,46 +848,25 @@ func (x *AgentPresentationEventDetail) GetMessageId() string {
 	return ""
 }
 
-func (x *AgentPresentationEventDetail) GetChunkSequence() uint64 {
+func (x *AgentPresentationEventDetail) GetArtifactSequence() uint64 {
 	if x != nil {
-		return x.ChunkSequence
+		return x.ArtifactSequence
 	}
 	return 0
 }
 
-func (x *AgentPresentationEventDetail) GetFinalChunk() bool {
+func (x *AgentPresentationEventDetail) GetArtifactComplete() bool {
 	if x != nil {
-		return x.FinalChunk
+		return x.ArtifactComplete
 	}
 	return false
 }
 
-func (x *AgentPresentationEventDetail) GetVoiceOutputMode() VoiceOutputMode {
+func (x *AgentPresentationEventDetail) GetVoiceTimingPhase() AgentVoiceTimingPhase {
 	if x != nil {
-		return x.VoiceOutputMode
+		return x.VoiceTimingPhase
 	}
-	return VoiceOutputMode_VOICE_OUTPUT_MODE_UNSPECIFIED
-}
-
-func (x *AgentPresentationEventDetail) GetVoicePlaybackState() VoicePlaybackState {
-	if x != nil {
-		return x.VoicePlaybackState
-	}
-	return VoicePlaybackState_VOICE_PLAYBACK_STATE_UNSPECIFIED
-}
-
-func (x *AgentPresentationEventDetail) GetPlaybackTarget() string {
-	if x != nil {
-		return x.PlaybackTarget
-	}
-	return ""
-}
-
-func (x *AgentPresentationEventDetail) GetFinalArtifact() bool {
-	if x != nil {
-		return x.FinalArtifact
-	}
-	return false
+	return AgentVoiceTimingPhase_AGENT_VOICE_TIMING_PHASE_UNSPECIFIED
 }
 
 func (x *AgentPresentationEventDetail) GetTerminalReason() string {
@@ -885,18 +897,11 @@ func (x *AgentPresentationEventDetail) GetDeadlineOffsetMs() int64 {
 	return 0
 }
 
-func (x *AgentPresentationEventDetail) GetFinalArtifactId() string {
-	if x != nil {
-		return x.FinalArtifactId
-	}
-	return ""
-}
-
 var File_runtime_v1_agent_presentation_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_agent_presentation_proto_rawDesc = "" +
 	"\n" +
-	"#runtime/v1/agent_presentation.proto\x12\x0fnimi.runtime.v1\x1a\x16runtime/v1/voice.proto\"\xcf\x01\n" +
+	"#runtime/v1/agent_presentation.proto\x12\x0fnimi.runtime.v1\"\xcf\x01\n" +
 	"\x1eAgentPresentationAssetMaterial\x12?\n" +
 	"\x04role\x18\x01 \x01(\x0e2+.nimi.runtime.v1.AgentPresentationAssetRoleR\x04role\x12\x1b\n" +
 	"\tfile_name\x18\x02 \x01(\tR\bfileName\x12\x1d\n" +
@@ -935,7 +940,7 @@ const file_runtime_v1_agent_presentation_proto_rawDesc = "" +
 	"\x18_default_voice_referenceB\x12\n" +
 	"\x10_avatar_autoplayB\x17\n" +
 	"\x15_background_asset_ref\"\x1f\n" +
-	"\x1dClearAgentPresentationProfile\"\x93\r\n" +
+	"\x1dClearAgentPresentationProfile\"\x93\f\n" +
 	"\x1cAgentPresentationEventDetail\x12E\n" +
 	"\x06family\x18\x01 \x01(\x0e2-.nimi.runtime.v1.AgentPresentationEventFamilyR\x06family\x124\n" +
 	"\x16conversation_anchor_id\x18\x02 \x01(\tR\x14conversationAnchorId\x12\x17\n" +
@@ -965,28 +970,21 @@ const file_runtime_v1_agent_presentation_proto_rawDesc = "" +
 	"\flookat_has_z\x188 \x01(\bR\n" +
 	"lookatHasZ\x12*\n" +
 	"\x11audio_artifact_id\x18< \x01(\tR\x0faudioArtifactId\x12&\n" +
-	"\x0faudio_mime_type\x18= \x01(\tR\raudioMimeType\x12&\n" +
-	"\x0fvoice_stream_id\x18> \x01(\tR\rvoiceStreamId\x12.\n" +
-	"\x13chunk_transport_ref\x18? \x01(\tR\x11chunkTransportRef\x12\x1d\n" +
+	"\x0faudio_mime_type\x18= \x01(\tR\raudioMimeType\x12\x1d\n" +
 	"\n" +
-	"message_id\x18@ \x01(\tR\tmessageId\x12%\n" +
-	"\x0echunk_sequence\x18A \x01(\x04R\rchunkSequence\x12\x1f\n" +
-	"\vfinal_chunk\x18B \x01(\bR\n" +
-	"finalChunk\x12L\n" +
-	"\x11voice_output_mode\x18C \x01(\x0e2 .nimi.runtime.v1.VoiceOutputModeR\x0fvoiceOutputMode\x12U\n" +
-	"\x14voice_playback_state\x18D \x01(\x0e2#.nimi.runtime.v1.VoicePlaybackStateR\x12voicePlaybackState\x12'\n" +
-	"\x0fplayback_target\x18E \x01(\tR\x0eplaybackTarget\x12%\n" +
-	"\x0efinal_artifact\x18F \x01(\bR\rfinalArtifact\x12'\n" +
+	"message_id\x18@ \x01(\tR\tmessageId\x12+\n" +
+	"\x11artifact_sequence\x18A \x01(\x04R\x10artifactSequence\x12+\n" +
+	"\x11artifact_complete\x18B \x01(\bR\x10artifactComplete\x12T\n" +
+	"\x12voice_timing_phase\x18D \x01(\x0e2&.nimi.runtime.v1.AgentVoiceTimingPhaseR\x10voiceTimingPhase\x12'\n" +
 	"\x0fterminal_reason\x18G \x01(\tR\x0eterminalReason\x12\x16\n" +
 	"\x06reason\x18H \x01(\tR\x06reason\x12\x1f\n" +
 	"\vduration_ms\x18I \x01(\x03R\n" +
 	"durationMs\x12,\n" +
-	"\x12deadline_offset_ms\x18J \x01(\x03R\x10deadlineOffsetMs\x12*\n" +
-	"\x11final_artifact_id\x18K \x01(\tR\x0ffinalArtifactId*\xa3\x01\n" +
+	"\x12deadline_offset_ms\x18J \x01(\x03R\x10deadlineOffsetMsJ\x04\b>\x10?J\x04\b?\x10@J\x04\bC\x10DJ\x04\bE\x10FJ\x04\bF\x10GJ\x04\bK\x10LR\x0fvoice_stream_idR\x13chunk_transport_refR\x11voice_output_modeR\x0fplayback_targetR\x0efinal_artifactR\x11final_artifact_id*\xa3\x01\n" +
 	"\x1aAgentPresentationAssetRole\x12-\n" +
 	")AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED\x10\x00\x12(\n" +
 	"$AGENT_PRESENTATION_ASSET_ROLE_AVATAR\x10\x01\x12,\n" +
-	"(AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND\x10\x02*\xd0\x04\n" +
+	"(AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND\x10\x02*\xc4\x04\n" +
 	"\x1cAgentPresentationEventFamily\x12/\n" +
 	"+AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED\x10\x00\x126\n" +
 	"2AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED\x10\x01\x124\n" +
@@ -994,10 +992,17 @@ const file_runtime_v1_agent_presentation_proto_rawDesc = "" +
 	"4AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED\x10\x03\x122\n" +
 	".AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED\x10\x04\x120\n" +
 	",AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED\x10\x05\x124\n" +
-	"0AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED\x10\x06\x12<\n" +
-	"8AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_REQUESTED\x10\a\x12@\n" +
-	"<AGENT_PRESENTATION_EVENT_FAMILY_VOICE_STREAM_CHUNK_AVAILABLE\x10\b\x12;\n" +
-	"7AGENT_PRESENTATION_EVENT_FAMILY_VOICE_PLAYBACK_TERMINAL\x10\t*\xab\x02\n" +
+	"0AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED\x10\x06\x126\n" +
+	"2AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY\x10\a\x12<\n" +
+	"8AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE\x10\b\x129\n" +
+	"5AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL\x10\t*\x84\x02\n" +
+	"\x15AgentVoiceTimingPhase\x12(\n" +
+	"$AGENT_VOICE_TIMING_PHASE_UNSPECIFIED\x10\x00\x12#\n" +
+	"\x1fAGENT_VOICE_TIMING_PHASE_ACTIVE\x10\x01\x12&\n" +
+	"\"AGENT_VOICE_TIMING_PHASE_COMPLETED\x10\x02\x12#\n" +
+	"\x1fAGENT_VOICE_TIMING_PHASE_FAILED\x10\x03\x12(\n" +
+	"$AGENT_VOICE_TIMING_PHASE_INTERRUPTED\x10\x04\x12%\n" +
+	"!AGENT_VOICE_TIMING_PHASE_CANCELED\x10\x05*\xab\x02\n" +
 	"\x1cAgentPresentationBackendKind\x12/\n" +
 	"+AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED\x10\x00\x12'\n" +
 	"#AGENT_PRESENTATION_BACKEND_KIND_VRM\x10\x01\x12*\n" +
@@ -1018,32 +1023,30 @@ func file_runtime_v1_agent_presentation_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_agent_presentation_proto_rawDescData
 }
 
-var file_runtime_v1_agent_presentation_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_runtime_v1_agent_presentation_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
 var file_runtime_v1_agent_presentation_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_runtime_v1_agent_presentation_proto_goTypes = []any{
 	(AgentPresentationAssetRole)(0),        // 0: nimi.runtime.v1.AgentPresentationAssetRole
 	(AgentPresentationEventFamily)(0),      // 1: nimi.runtime.v1.AgentPresentationEventFamily
-	(AgentPresentationBackendKind)(0),      // 2: nimi.runtime.v1.AgentPresentationBackendKind
-	(*AgentPresentationAssetMaterial)(nil), // 3: nimi.runtime.v1.AgentPresentationAssetMaterial
-	(*AgentPresentationProfile)(nil),       // 4: nimi.runtime.v1.AgentPresentationProfile
-	(*AgentPresentationProfilePatch)(nil),  // 5: nimi.runtime.v1.AgentPresentationProfilePatch
-	(*ClearAgentPresentationProfile)(nil),  // 6: nimi.runtime.v1.ClearAgentPresentationProfile
-	(*AgentPresentationEventDetail)(nil),   // 7: nimi.runtime.v1.AgentPresentationEventDetail
-	(VoiceOutputMode)(0),                   // 8: nimi.runtime.v1.VoiceOutputMode
-	(VoicePlaybackState)(0),                // 9: nimi.runtime.v1.VoicePlaybackState
+	(AgentVoiceTimingPhase)(0),             // 2: nimi.runtime.v1.AgentVoiceTimingPhase
+	(AgentPresentationBackendKind)(0),      // 3: nimi.runtime.v1.AgentPresentationBackendKind
+	(*AgentPresentationAssetMaterial)(nil), // 4: nimi.runtime.v1.AgentPresentationAssetMaterial
+	(*AgentPresentationProfile)(nil),       // 5: nimi.runtime.v1.AgentPresentationProfile
+	(*AgentPresentationProfilePatch)(nil),  // 6: nimi.runtime.v1.AgentPresentationProfilePatch
+	(*ClearAgentPresentationProfile)(nil),  // 7: nimi.runtime.v1.ClearAgentPresentationProfile
+	(*AgentPresentationEventDetail)(nil),   // 8: nimi.runtime.v1.AgentPresentationEventDetail
 }
 var file_runtime_v1_agent_presentation_proto_depIdxs = []int32{
 	0, // 0: nimi.runtime.v1.AgentPresentationAssetMaterial.role:type_name -> nimi.runtime.v1.AgentPresentationAssetRole
-	2, // 1: nimi.runtime.v1.AgentPresentationProfile.backend_kind:type_name -> nimi.runtime.v1.AgentPresentationBackendKind
-	2, // 2: nimi.runtime.v1.AgentPresentationProfilePatch.backend_kind:type_name -> nimi.runtime.v1.AgentPresentationBackendKind
+	3, // 1: nimi.runtime.v1.AgentPresentationProfile.backend_kind:type_name -> nimi.runtime.v1.AgentPresentationBackendKind
+	3, // 2: nimi.runtime.v1.AgentPresentationProfilePatch.backend_kind:type_name -> nimi.runtime.v1.AgentPresentationBackendKind
 	1, // 3: nimi.runtime.v1.AgentPresentationEventDetail.family:type_name -> nimi.runtime.v1.AgentPresentationEventFamily
-	8, // 4: nimi.runtime.v1.AgentPresentationEventDetail.voice_output_mode:type_name -> nimi.runtime.v1.VoiceOutputMode
-	9, // 5: nimi.runtime.v1.AgentPresentationEventDetail.voice_playback_state:type_name -> nimi.runtime.v1.VoicePlaybackState
-	6, // [6:6] is the sub-list for method output_type
-	6, // [6:6] is the sub-list for method input_type
-	6, // [6:6] is the sub-list for extension type_name
-	6, // [6:6] is the sub-list for extension extendee
-	0, // [0:6] is the sub-list for field type_name
+	2, // 4: nimi.runtime.v1.AgentPresentationEventDetail.voice_timing_phase:type_name -> nimi.runtime.v1.AgentVoiceTimingPhase
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_agent_presentation_proto_init() }
@@ -1051,14 +1054,13 @@ func file_runtime_v1_agent_presentation_proto_init() {
 	if File_runtime_v1_agent_presentation_proto != nil {
 		return
 	}
-	file_runtime_v1_voice_proto_init()
 	file_runtime_v1_agent_presentation_proto_msgTypes[2].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_agent_presentation_proto_rawDesc), len(file_runtime_v1_agent_presentation_proto_rawDesc)),
-			NumEnums:      3,
+			NumEnums:      4,
 			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,

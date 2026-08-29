@@ -29,6 +29,10 @@ The admitted Agent configuration carrier is the canonical `agent.configure`
 family: bounded Manager snapshot, shared AIConfig, autonomy, presentation, and
 Memory operations. It is identical for every equally covered protected App;
 the Electron Host adds no first-party product path or raw identity sideband.
+The same formal client carries the `agent.local` embodiment snapshot and
+ordered event subscription: activity, emotion, semantic posture, and bounded
+voice-timing correlation only. Renderer motion, lipsync, audio-clock, replay,
+and backend diagnostics remain outside the standard shell.
 
 Protected-session unavailability does not terminate the App, request a Host
 reopen, or unregister the renderer bridge. Protected calls continue to return

@@ -11,7 +11,10 @@ import {
 } from './app-scaffold.mjs';
 import { doctorApp, initApp, updateApp } from './app-doctor-update.mjs';
 export { runDevShell } from '../scripts/dev-shell.mjs';
-export { validateSimulatorAppSource } from './simulator-conformance.mjs';
+export {
+  validateSimulatorAppSource,
+  validateSimulatorAppSourceWithCanonicalKitExports,
+} from './simulator-conformance.mjs';
 export { APP_SCAFFOLD_FEATURE_IDS } from './app-scaffold-capabilities.mjs';
 
 const APP_TOOLS_PACKAGE_MANIFEST = JSON.parse(

@@ -22,7 +22,7 @@ const DESKTOP_OPEN_DESCRIPTOR_RELATIVE_PATH = ['.nimi', 'run', 'desktop', 'open-
 const DESKTOP_OPEN_PATH = '/v1/open-intent';
 const DEFAULT_MAX_HEARTBEAT_AGE_MS = 10_000;
 
-type DesktopOpenPresenceDescriptor = {
+export type DesktopOpenPresenceDescriptor = {
   readonly bridgeId: string;
   readonly endpoint: string;
   readonly token: string;
@@ -119,7 +119,7 @@ function resolveElectronDesktopOpenSourceHost(
   return 'electron-standard-shell';
 }
 
-async function resolveDesktopOpenPresenceDescriptor(
+export async function resolveDesktopOpenPresenceDescriptor(
   host: NimiElectronStandardShellHost | undefined,
 ): Promise<
   | { readonly ok: true; readonly descriptor: DesktopOpenPresenceDescriptor }
@@ -229,7 +229,7 @@ function requireDescriptorText(value: unknown, field: string): string {
   return normalized;
 }
 
-function resolveDesktopOpenFetch(host: NimiElectronStandardShellHost | undefined): NimiElectronDesktopOpenFetch | undefined {
+export function resolveDesktopOpenFetch(host: NimiElectronStandardShellHost | undefined): NimiElectronDesktopOpenFetch | undefined {
   if (host?.desktopOpen?.fetch) {
     return host.desktopOpen.fetch;
   }
@@ -238,7 +238,7 @@ function resolveDesktopOpenFetch(host: NimiElectronStandardShellHost | undefined
     : undefined;
 }
 
-async function readDesktopOpenJsonResponse(response: NimiElectronDesktopOpenFetchResponse): Promise<unknown> {
+export async function readDesktopOpenJsonResponse(response: NimiElectronDesktopOpenFetchResponse): Promise<unknown> {
   if (typeof response.json === 'function') {
     return await response.json();
   }

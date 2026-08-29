@@ -106,18 +106,12 @@ describe('registerNimiElectronRuntimeBridge', () => {
       },
       standardShellHost: {
         capabilitySetRef: NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID,
-        localAgentIdentity: {
-          ownerUserId: 'owner-1',
-          runtimeSourceRef: 'tester-runtime',
-          localAgentRef: 'local-agent:opaque-tester-runtime',
-        },
       },
     });
 
     for (const command of [
       NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status'],
       NIMI_STANDARD_SHELL_COMMANDS['runtime-defaults.get'],
-      NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller'],
       NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get'],
       NIMI_STANDARD_SHELL_COMMANDS['runtime.unary'],
     ]) {

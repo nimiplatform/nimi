@@ -4,6 +4,8 @@ import type {
   NimiLocalAppConversationClient,
   NimiLocalAppConversationEvent,
   NimiLocalAppConversationSubscription,
+  NimiLocalAppEmbodimentClient,
+  NimiLocalAppEmbodimentEvent,
 } from '@nimiplatform/sdk/app';
 import { SdkDriver, type SdkDriverOptions } from './SdkDriver.js';
 
@@ -69,6 +71,32 @@ function conversation(events: readonly NimiLocalAppConversationEvent[]): NimiLoc
   } as unknown as NimiLocalAppConversationClient;
 }
 
+function embodiment(events: readonly NimiLocalAppEmbodimentEvent[] = []): NimiLocalAppEmbodimentClient {
+  let release: (() => void) | undefined;
+  const closed = new Promise<void>((resolve) => { release = resolve; });
+  return {
+    async snapshot() {
+      return {
+        sequence: '1',
+        observedAt: { seconds: '1', nanos: 0 },
+        provenance: 'runtime_agent_owner',
+        activity: null,
+        emotion: null,
+        posture: null,
+        voiceTiming: null,
+      };
+    },
+    async subscribe() {
+      return Object.assign({
+        async *[Symbol.asyncIterator]() {
+          for (const event of events) yield event;
+          await closed;
+        },
+      }, { async cancel() { release?.(); } });
+    },
+  };
+}
+
 describe('SdkDriver canonical App Product Plane', () => {
   it('binds only agentHandle + Conversation anchor and consumes canonical events', async () => {
     const driver = new SdkDriver({
@@ -82,6 +110,7 @@ describe('SdkDriver canonical App Product Plane', () => {
           parts: [{ kind: 'text', text: 'Hello from canonical Conversation' }],
         },
       }]),
+      embodiment: embodiment(),
       agentHandle: AGENT_HANDLE,
       conversationAnchorId: ANCHOR,
       activeWorldId: '',
@@ -91,10 +120,10 @@ describe('SdkDriver canonical App Product Plane', () => {
     await driver.start();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(driver.getBundle()).toMatchObject({
-      active_user_id: AGENT_HANDLE,
+      active_agent_handle: AGENT_HANDLE,
       status_text: 'Hello from canonical Conversation',
       custom: {
-        agent_id: AGENT_HANDLE,
+        agent_handle: AGENT_HANDLE,
         conversation_anchor_id: ANCHOR,
         latest_committed_message_text: 'Hello from canonical Conversation',
       },
@@ -103,9 +132,59 @@ describe('SdkDriver canonical App Product Plane', () => {
     await driver.stop();
   });
 
+  it('projects common embodiment facts while keeping renderer mapping and audio clock App-owned', async () => {
+    const base = {
+      observedAt: { seconds: '2', nanos: 0 },
+      provenance: 'runtime_agent_owner' as const,
+    };
+    const driver = new SdkDriver({
+      conversation: conversation([]),
+      embodiment: embodiment([
+        { ...base, sequence: '2', kind: 'activity', payload: {
+          name: 'happy', category: 'emotion', intensity: 'moderate', source: 'runtime', turnRef: 'turn-2',
+        } },
+        { ...base, sequence: '3', kind: 'emotion', payload: { name: 'happy', source: 'runtime' } },
+        { ...base, sequence: '4', kind: 'posture', payload: { actionFamily: 'engage', interruptMode: 'focused' } },
+        { ...base, sequence: '5', kind: 'voice-timing', payload: {
+          phase: 'active', durationMillis: 1200, deadlineOffsetMillis: 80,
+          turnRef: 'turn-2', correlationRef: 'voice-2',
+        } },
+      ]),
+      agentHandle: AGENT_HANDLE,
+      conversationAnchorId: ANCHOR,
+      activeWorldId: '',
+      locale: 'en-US',
+    });
+    const events: string[] = [];
+    driver.onEvent((event) => events.push(event.name));
+
+    await driver.start();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(driver.getBundle()).toMatchObject({
+      activity: { name: 'happy', category: 'emotion', intensity: 'moderate', source: 'runtime' },
+      emotion: { current: 'happy', source: 'runtime' },
+      posture: { action_family: 'engage', interrupt_mode: 'focused' },
+      custom: {
+        embodiment_sequence: '5',
+        semantic_voice_phase: 'active',
+        semantic_voice_duration_millis: 1200,
+        semantic_voice_deadline_offset_millis: 80,
+        semantic_voice_turn_ref: 'turn-2',
+        semantic_voice_correlation_ref: 'voice-2',
+      },
+    });
+    expect(events).toContain('runtime.agent.presentation.activity_requested');
+    expect(events).toContain('runtime.agent.state.emotion_changed');
+    expect(events).toContain('runtime.agent.state.posture_changed');
+    expect(JSON.stringify(driver.getBundle())).not.toMatch(/viseme|mouth|audioClock|provider|model/u);
+    await driver.stop();
+  });
+
   it('rejects the retired raw identity option shape at compile time', () => {
     const options: SdkDriverOptions = {
       conversation: conversation([]),
+      embodiment: embodiment(),
       agentHandle: AGENT_HANDLE,
       conversationAnchorId: ANCHOR,
       activeWorldId: '',
@@ -123,6 +202,7 @@ describe('SdkDriver canonical App Product Plane', () => {
         ...conversation([voiceReadyEvent()]),
         readArtifact,
       } as NimiLocalAppConversationClient,
+      embodiment: embodiment(),
       agentHandle: AGENT_HANDLE,
       conversationAnchorId: ANCHOR,
       activeWorldId: '',
@@ -140,9 +220,9 @@ describe('SdkDriver canonical App Product Plane', () => {
       artifactId: 'voice-artifact-1',
     });
     expect(events).toContainEqual(expect.objectContaining({
-      name: 'avatar.speak.native_audio_chunk',
+      name: 'avatar.conversation.voice.audio_chunk',
       detail: expect.objectContaining({
-        voice_stream_id: 'voice-1',
+        voice_id: 'voice-1',
         chunk_sequence: 1,
         audio_mime_type: 'audio/wav',
         chunk_bytes: Uint8Array.from([1, 2, 3]),
@@ -168,6 +248,7 @@ describe('SdkDriver canonical App Product Plane', () => {
         ]),
         readArtifact,
       } as unknown as NimiLocalAppConversationClient,
+      embodiment: embodiment(),
       agentHandle: AGENT_HANDLE,
       conversationAnchorId: ANCHOR,
       activeWorldId: '',
@@ -182,7 +263,7 @@ describe('SdkDriver canonical App Product Plane', () => {
     pendingArtifact.resolve(voiceArtifact());
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(eventNames).not.toContain('avatar.speak.native_audio_chunk');
+    expect(eventNames).not.toContain('avatar.conversation.voice.audio_chunk');
     await driver.stop();
   });
 
@@ -194,6 +275,7 @@ describe('SdkDriver canonical App Product Plane', () => {
         ...conversation([voiceReadyEvent()]),
         readArtifact,
       } as unknown as NimiLocalAppConversationClient,
+      embodiment: embodiment(),
       agentHandle: AGENT_HANDLE,
       conversationAnchorId: ANCHOR,
       activeWorldId: '',
@@ -208,7 +290,7 @@ describe('SdkDriver canonical App Product Plane', () => {
     pendingArtifact.resolve(voiceArtifact());
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(eventNames).not.toContain('avatar.speak.native_audio_chunk');
+    expect(eventNames).not.toContain('avatar.conversation.voice.audio_chunk');
   });
 
   it('does not emit a late voice chunk from a disconnected stream after reconnect', async () => {
@@ -238,6 +320,7 @@ describe('SdkDriver canonical App Product Plane', () => {
           turns: [], messages: [], actions: [], voices: [], truncatedBefore: false,
         }),
       } as unknown as NimiLocalAppConversationClient,
+      embodiment: embodiment(),
       agentHandle: AGENT_HANDLE,
       conversationAnchorId: ANCHOR,
       activeWorldId: '',
@@ -254,7 +337,7 @@ describe('SdkDriver canonical App Product Plane', () => {
       pendingArtifact.resolve(voiceArtifact());
       await new Promise((resolve) => setTimeout(resolve, 0));
 
-      expect(eventNames).not.toContain('avatar.speak.native_audio_chunk');
+      expect(eventNames).not.toContain('avatar.conversation.voice.audio_chunk');
     } finally {
       consoleError.mockRestore();
       await driver.stop();

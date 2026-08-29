@@ -39,6 +39,12 @@ presentation accept only an opaque session-scoped handle and independent
 revision CAS. Presentation commit projects the previous profile needed for
 restore. AI profile mutation and Artifact operations are not exposed.
 
+The `agent.local` carrier also exposes the exact embodiment snapshot and
+ordered subscription operations. Their projection is limited to Runtime-owned
+activity, emotion, semantic posture, provenance, and bounded voice-timing
+correlation. It carries no renderer mapping, motion, lipsync parameter, audio
+clock, raw replay, backend probe, or diagnostic store.
+
 The crate never exposes a generic method-id/bytes proxy, endpoint, credential,
 portable session proof, principal, record, grant, launch lease, process tuple,
 account identity, or Runtime boot epoch. Immutable package admission remains

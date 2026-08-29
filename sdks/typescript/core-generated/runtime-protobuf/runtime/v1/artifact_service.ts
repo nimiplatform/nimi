@@ -17,9 +17,8 @@ import { MessageType } from "@protobuf-ts/runtime";
 export interface ReadArtifactBytesRequest {
     /**
      * Runtime-owned, opaque, globally-unique artifact identity. Required.
-     * Sourced from runtime emit events (e.g.
-     * voice_playback_requested.audio_artifact_id,
-     * lipsync_frame_batch.audio_artifact_id).
+     * Sourced from canonical Conversation or other typed Runtime artifact
+     * projections.
      *
      * @generated from protobuf field: string artifact_id = 1
      */

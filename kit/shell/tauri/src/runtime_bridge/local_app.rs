@@ -15,9 +15,10 @@ use nimi_shell_protected_local::{
     LocalAppAssetReadReceiver, LocalAppAssetReadRequest, LocalAppAssetRecord,
     LocalAppAssetRemoveRequest, LocalAppAssetRemoveResult, LocalAppAssetRevealRequest,
     LocalAppAssetRevealTarget, LocalAppAssetStatRequest, LocalAppAssetWriteRequest,
-    LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
-    LocalAppPersonaCharacterDeleteRequest, LocalAppPersonaCharacterGetOwnedRequest,
-    LocalAppPersonaCharacterListOwnedRequest, LocalAppPersonaCharacterReplaceRequest,
+    LocalAppEmbodimentSnapshotRequest, LocalAppEmbodimentSubscribeRequest, LocalAppOperationError,
+    LocalAppPersonaCharacterCreateRequest, LocalAppPersonaCharacterDeleteRequest,
+    LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
+    LocalAppPersonaCharacterReplaceRequest, LocalAppRealtimeSubscriptionReceiver,
     LocalAppReasonCode, LocalAppScenarioUploadArtifactRequest, LocalAppSessionStatus,
     LocalAppSharedAgentAIConfigLocalOptionsRequest, LocalAppSharedAgentAIConfigOverwriteRequest,
     LocalAppStorageDocument, LocalAppStorageReadRequest, LocalAppStorageRemoveRequest,
@@ -32,10 +33,11 @@ use std::{
         Arc,
     },
 };
-use tokio::sync::Mutex;
+use tokio::sync::{watch, Mutex};
 use tokio::task::JoinHandle;
 
 const MAX_ASSET_STREAMS: usize = 8;
+const MAX_EMBODIMENT_STREAMS: usize = 8;
 
 struct AssetWriteStream {
     sender: tokio::sync::mpsc::Sender<Vec<u8>>,
@@ -46,6 +48,11 @@ struct AssetWriteStream {
 struct AssetReadStream {
     receiver: Mutex<LocalAppAssetReadReceiver>,
     session: Arc<dyn NimiLocalAppSession>,
+}
+
+struct EmbodimentStream {
+    receiver: Mutex<Option<LocalAppRealtimeSubscriptionReceiver>>,
+    close_tx: watch::Sender<bool>,
 }
 
 pub struct RuntimeBridgeAssetReadOpenResult {
@@ -59,6 +66,11 @@ pub struct RuntimeBridgeAssetReadNextResult {
     pub body_chunk: Option<Vec<u8>>,
 }
 
+pub struct RuntimeBridgeEmbodimentNextResult {
+    pub completed: bool,
+    pub event: Option<serde_json::Value>,
+}
+
 /// Host-only Tauri projection of one connection-bound Local App session.
 /// It exposes the same exact typed operations as the Electron Node-API addon.
 pub struct RuntimeBridgeLocalAppHost {
@@ -67,6 +79,8 @@ pub struct RuntimeBridgeLocalAppHost {
     asset_write_streams: Mutex<HashMap<String, AssetWriteStream>>,
     asset_read_streams: Mutex<HashMap<String, Arc<AssetReadStream>>>,
     asset_stream_counter: AtomicU64,
+    embodiment_streams: Mutex<HashMap<String, Arc<EmbodimentStream>>>,
+    embodiment_stream_counter: AtomicU64,
 }
 
 impl RuntimeBridgeLocalAppHost {
@@ -77,6 +91,8 @@ impl RuntimeBridgeLocalAppHost {
             asset_write_streams: Mutex::new(HashMap::new()),
             asset_read_streams: Mutex::new(HashMap::new()),
             asset_stream_counter: AtomicU64::new(1),
+            embodiment_streams: Mutex::new(HashMap::new()),
+            embodiment_stream_counter: AtomicU64::new(1),
         }
     }
 
@@ -461,6 +477,119 @@ impl RuntimeBridgeLocalAppHost {
                 Err(error)
             }
         }
+    }
+
+    pub async fn embodiment_snapshot(
+        &self,
+        request: LocalAppEmbodimentSnapshotRequest,
+    ) -> Result<serde_json::Value, LocalAppOperationError> {
+        let session = self.current_or_open_session().await?;
+        match session.embodiment_snapshot(request).await {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn embodiment_subscribe(
+        &self,
+        request: LocalAppEmbodimentSubscribeRequest,
+    ) -> Result<String, LocalAppOperationError> {
+        if self.embodiment_streams.lock().await.len() >= MAX_EMBODIMENT_STREAMS {
+            return Err(LocalAppOperationError::new(
+                LocalAppReasonCode::ResourceExhausted,
+                false,
+            ));
+        }
+        let session = self.current_or_open_session().await?;
+        match session.embodiment_subscribe(request).await {
+            Ok(receiver) => {
+                let stream_id = format!(
+                    "embodiment-{}",
+                    self.embodiment_stream_counter
+                        .fetch_add(1, Ordering::Relaxed)
+                );
+                let (close_tx, _) = watch::channel(false);
+                let mut streams = self.embodiment_streams.lock().await;
+                if streams.len() >= MAX_EMBODIMENT_STREAMS {
+                    return Err(LocalAppOperationError::new(
+                        LocalAppReasonCode::ResourceExhausted,
+                        false,
+                    ));
+                }
+                streams.insert(
+                    stream_id.clone(),
+                    Arc::new(EmbodimentStream {
+                        receiver: Mutex::new(Some(receiver)),
+                        close_tx,
+                    }),
+                );
+                Ok(stream_id)
+            }
+            Err(error) => {
+                self.clear_on_transport_failure(&session, &error).await;
+                Err(error)
+            }
+        }
+    }
+
+    pub async fn embodiment_stream_next(
+        &self,
+        stream_id: &str,
+    ) -> Result<RuntimeBridgeEmbodimentNextResult, LocalAppOperationError> {
+        let stream = self.embodiment_streams.lock().await.get(stream_id).cloned();
+        let Some(stream) = stream else {
+            return Err(LocalAppOperationError::new(
+                LocalAppReasonCode::NotFound,
+                false,
+            ));
+        };
+        let mut close_rx = stream.close_tx.subscribe();
+        let Ok(mut receiver_slot) = stream.receiver.try_lock() else {
+            return Err(LocalAppOperationError::new(
+                LocalAppReasonCode::InvalidPayload,
+                false,
+            ));
+        };
+        let Some(receiver) = receiver_slot.as_mut() else {
+            return Ok(RuntimeBridgeEmbodimentNextResult {
+                completed: true,
+                event: None,
+            });
+        };
+        let next = tokio::select! {
+            biased;
+            _ = close_rx.changed() => None,
+            next = receiver.recv() => next,
+        };
+        match next {
+            Some(Ok(event)) => Ok(RuntimeBridgeEmbodimentNextResult {
+                completed: false,
+                event: Some(event),
+            }),
+            Some(Err(error)) => {
+                self.embodiment_streams.lock().await.remove(stream_id);
+                Err(error)
+            }
+            None => {
+                self.embodiment_streams.lock().await.remove(stream_id);
+                Ok(RuntimeBridgeEmbodimentNextResult {
+                    completed: true,
+                    event: None,
+                })
+            }
+        }
+    }
+
+    pub async fn embodiment_stream_close(&self, stream_id: &str) -> bool {
+        let stream = self.embodiment_streams.lock().await.remove(stream_id);
+        if let Some(stream) = stream.as_ref() {
+            stream.close_tx.send_replace(true);
+            stream.receiver.lock().await.take();
+        }
+        stream.is_some()
     }
 
     pub async fn storage_read_json(

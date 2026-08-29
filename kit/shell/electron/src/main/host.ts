@@ -49,19 +49,16 @@ import {
 } from './app-asset-protocol.js';
 import { bindElectronStandardDataRootRuntimeResolver } from './data-root-binding.js';
 import { openElectronDesktopIntent } from './desktop-open.js';
+import { createNimiElectronFormalAppLocalHost } from './formal-app-local-host.js';
 import { saveElectronShellExportFile } from './export.js';
 import { openElectronShellFileDialog } from './file-dialog.js';
 import { revealElectronShellFile } from './file-reveal.js';
 import { dispatchElectronFloatingWindowCommand, isElectronFloatingWindowCommand } from './floating-window.js';
 import { resolveElectronStandardLocalAssetUrl } from './local-assets.js';
-import {
-  assertOpaqueElectronLocalAgentRef,
-  resolveElectronLocalAgentIdentity,
-  resolveElectronRuntimeTrustedCaller,
-} from './local-agent.js';
 import { listenElectronOauthForCode, openElectronExternalUrl } from './oauth.js';
 import { resolveElectronPlatformProjection } from './platform-projection.js';
 import { confirmElectronShellDialog, focusElectronMainWindow, startElectronWindowDrag } from './shell-ui.js';
+import { handoffElectronAvatarHost } from './avatar-host-handoff.js';
 import { asRecord, normalizeRequiredToken, normalizeText, standardNestedPayload } from './paths.js';
 import {
   createElectronRuntimeBridgeCommandNames,
@@ -102,7 +99,6 @@ export {
   isAllowedElectronRendererOrigin,
   isAllowedElectronRendererUrl,
   normalizeElectronShellAppId,
-  assertOpaqueElectronLocalAgentRef,
 };
 
 const STANDARD_SHELL_COMMAND_SET: ReadonlySet<string> = new Set(
@@ -179,18 +175,36 @@ export function registerNimiElectronRuntimeBridge(
   const eventNamespace = normalizeText(input.eventNamespace) || 'nimi.shell.runtime';
   const invokeChannel = normalizeText(input.invokeChannel) || 'nimi:runtime:invoke';
   const eventChannelPrefix = normalizeText(input.eventChannelPrefix) || 'nimi:runtime:event:';
-  const capabilitySet = resolveElectronStandardShellCapabilitySet(input.standardShellHost);
+  const desktopControlHost = appId === 'nimi.desktop'
+    ? createNimiElectronDesktopControlHost()
+    : undefined;
+  const standardShellHost = desktopControlHost && input.standardShellHost
+    ? {
+        ...input.standardShellHost,
+        localAppHost: createNimiElectronFormalAppLocalHost({
+          appId: 'nimi.desktop', profile: 'desktop', control: desktopControlHost,
+          revealInOs: input.standardShellHost.revealInOs,
+        }),
+      }
+    : input.standardShellHost;
+  const bundledAvatarStandardShellHost = desktopControlHost && input.bundledAvatarHost
+    ? {
+        ...input.bundledAvatarHost.standardShellHost,
+        localAppHost: createNimiElectronFormalAppLocalHost({
+          appId: 'nimi.avatar', profile: 'avatar', control: desktopControlHost,
+          revealInOs: input.bundledAvatarHost.standardShellHost?.revealInOs,
+        }),
+      }
+    : input.bundledAvatarHost?.standardShellHost;
+  const capabilitySet = resolveElectronStandardShellCapabilitySet(standardShellHost);
   const bundledAvatarRendererUrl = resolveBundledAvatarRendererUrl(input, appId, allowedRendererUrls);
   const bundledAvatarCapabilitySet = resolveElectronStandardShellCapabilitySet(
-    input.bundledAvatarHost?.standardShellHost,
+    bundledAvatarStandardShellHost,
   );
   const allowedOrigins = bundledAvatarRendererUrl
     ? [...new Set([...baseAllowedOrigins, rendererOriginFromUrl(bundledAvatarRendererUrl)])]
     : baseAllowedOrigins;
   const createGrpcClient = input.createGrpcClient ?? createDefaultRuntimeGrpcBridgeClient;
-  const desktopControlHost = appId === 'nimi.desktop'
-    ? createNimiElectronDesktopControlHost()
-    : undefined;
   const desktopAccountHost = appId === 'nimi.desktop'
     ? createNimiElectronDesktopAccountHost()
     : undefined;
@@ -208,8 +222,8 @@ export function registerNimiElectronRuntimeBridge(
     clientPromise ??= Promise.resolve(createGrpcClient(runtimeEndpoint));
     return clientPromise;
   };
-  if (input.standardShellHost?.standardDataRootBinding?.source === 'runtime-get-app-storage') {
-    bindElectronStandardDataRootRuntimeResolver(input.standardShellHost, {
+  if (standardShellHost?.standardDataRootBinding?.source === 'runtime-get-app-storage') {
+    bindElectronStandardDataRootRuntimeResolver(standardShellHost, {
       appId,
       runtimeEndpoint,
       ensureClient,
@@ -285,7 +299,7 @@ export function registerNimiElectronRuntimeBridge(
         bundledAvatarProfile: true,
         desktopSenderAuthorized: false,
         capabilitySet: bundledAvatarCapabilitySet,
-        standardShellHost: input.bundledAvatarHost?.standardShellHost,
+        standardShellHost: bundledAvatarStandardShellHost,
         commandPolicy: input.bundledAvatarHost?.commandPolicy,
         commandHandlers: input.bundledAvatarHost?.commandHandlers,
         streams: bundledAvatarStreamsFor(event.sender as object),
@@ -298,7 +312,7 @@ export function registerNimiElectronRuntimeBridge(
       bundledAvatarProfile: false,
       desktopSenderAuthorized: input.desktopHost?.authorizeSender(event) === true,
       capabilitySet,
-      standardShellHost: input.standardShellHost,
+      standardShellHost,
       commandPolicy: input.commandPolicy,
       commandHandlers: input.commandHandlers,
       streams: desktopStreams,
@@ -445,6 +459,7 @@ export function registerNimiElectronRuntimeBridge(
     if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']) return openElectronExternalUrl(effectiveStandardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode']) return listenElectronOauthForCode(standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent']) return openElectronDesktopIntent({ host: effectiveStandardShellHost, payload: standardPayload, command, appId: effectiveAppId });
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['avatar.hostHandoff']) return handoffElectronAvatarHost({ host: effectiveStandardShellHost, payload: standardPayload, command, appId: effectiveAppId });
     if (command === NIMI_STANDARD_SHELL_COMMANDS['shell-ui.confirmDialog']) {
       return confirmElectronShellDialog({ host: effectiveStandardShellHost, payload: standardPayload, command, event, appId: effectiveAppId, runtimeEndpoint });
     }
@@ -476,8 +491,6 @@ export function registerNimiElectronRuntimeBridge(
       return dispatchElectronFloatingWindowCommand({ host: effectiveStandardShellHost, payload: standardPayload, command, event, appId: effectiveAppId, runtimeEndpoint });
     }
     if (command === NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve']) return resolveElectronAvatarAssetUrl(effectiveStandardShellHost, standardPayload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['local-agent.identity']) return resolveElectronLocalAgentIdentity(effectiveStandardShellHost, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller']) return resolveElectronRuntimeTrustedCaller(effectiveStandardShellHost, standardPayload, effectiveAppId, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-profile.get']) return resolveElectronAiProfile(standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get']) return resolveElectronPlatformProjection(standardPayload, command);
     if (!rendererProfile.bundledAvatarProfile && desktopAccountHost && isElectronDesktopAccountCommand(command)) {
@@ -533,6 +546,9 @@ export function registerNimiElectronRuntimeBridge(
 
   return {
     invokeChannel,
+    ...(bundledAvatarStandardShellHost?.localAppHost
+      ? { bundledAvatarLocalAppHost: bundledAvatarStandardShellHost.localAppHost }
+      : {}),
     unregister: () => {
       input.ipcMain.removeHandler?.(invokeChannel);
       for (const stream of desktopStreams.values()) stream.cancel();

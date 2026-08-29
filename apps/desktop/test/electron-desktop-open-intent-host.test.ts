@@ -5,8 +5,10 @@ import path from 'node:path';
 import test from 'node:test';
 
 import type { NimiDesktopOpenIntentEnvelope } from '@nimiplatform/kit/core/desktop-open';
+import type { AvatarHostHandoffRequest } from '@nimiplatform/kit/features/avatar/headless';
 import {
   createDesktopElectronOpenIntentHost,
+  DESKTOP_AVATAR_HOST_HANDOFF_PATH,
   DESKTOP_OPEN_INTENT_EVENT,
 } from '../src-electron/desktop-open-intent-host';
 
@@ -35,6 +37,7 @@ test('Electron Desktop Open host enforces auth/readiness and emits an exact admi
   let now = Date.parse('2026-07-19T10:00:00.000Z');
   let focusCount = 0;
   const emitted: NimiDesktopOpenIntentEnvelope[] = [];
+  const avatarRequests: AvatarHostHandoffRequest[] = [];
   const host = await createDesktopElectronOpenIntentHost({
     homeDirectory: home,
     now: () => now,
@@ -42,6 +45,16 @@ test('Electron Desktop Open host enforces auth/readiness and emits an exact admi
     readinessTtlMs: 10_000,
     focusMainWindow: async () => { focusCount += 1; },
     emitIntent: (value) => emitted.push(value),
+    avatarHostHandoff: async (request) => {
+      avatarRequests.push(request);
+      return {
+        command: request.command,
+        state: 'present',
+        avatarInstanceRef: request.target.avatarInstanceId,
+        committedPresentationRef: request.target.committedPresentationRef,
+        temporaryCustodyRef: request.target.temporaryCustodyRef,
+      };
+    },
   });
   try {
     const descriptor = JSON.parse(await readFile(descriptorPath, 'utf8')) as {
@@ -85,6 +98,35 @@ test('Electron Desktop Open host enforces auth/readiness and emits an exact admi
     });
     assert.equal(focusCount, 0);
     assert.deepEqual(emitted, []);
+
+    const avatarRequest: AvatarHostHandoffRequest = {
+      command: 'presence',
+      target: {
+        agentHandle: `agent_ref_${'a'.repeat(43)}`,
+        conversationAnchorId: 'anchor-1',
+        avatarInstanceId: 'avatar-instance-1',
+        launchSource: 'zhiyu',
+        committedPresentationRef: null,
+        temporaryCustodyRef: null,
+      },
+    };
+    const avatarPresence = await post(
+      descriptor.endpoint,
+      descriptor.token,
+      { schemaVersion: 1, sourceApp: 'nimi.zhiyu', request: avatarRequest },
+      DESKTOP_AVATAR_HOST_HANDOFF_PATH,
+    );
+    assert.equal(avatarPresence.status, 200);
+    assert.deepEqual(await avatarPresence.json(), {
+      bridgeId: descriptor.bridgeId,
+      command: 'presence',
+      state: 'present',
+      avatarInstanceRef: 'avatar-instance-1',
+      committedPresentationRef: null,
+      temporaryCustodyRef: null,
+    });
+    assert.deepEqual(avatarRequests, [avatarRequest]);
+    assert.equal(focusCount, 0);
 
     assert.throws(() => host.commandHandlers.desktop_open_intent_set_ready({
       command: 'desktop_open_intent_set_ready',
@@ -149,8 +191,13 @@ test('Electron Desktop Open event keeps the admitted cross-shell event identity'
   assert.equal(DESKTOP_OPEN_INTENT_EVENT, 'desktop-open://open-intent');
 });
 
-async function post(endpoint: string, token: string, value: unknown): Promise<Response> {
-  return await fetch(`${endpoint}/v1/open-intent`, {
+async function post(
+  endpoint: string,
+  token: string,
+  value: unknown,
+  requestPath = '/v1/open-intent',
+): Promise<Response> {
+  return await fetch(`${endpoint}${requestPath}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,

@@ -138,8 +138,7 @@ type Service struct {
 	voiceTranscription agentVoiceTranscriptionScenarioExecutor
 	// runtimeArtifacts is the runtime-owned by-id artifact byte store. Any
 	// runtime event carrying an artifact id must put bytes here before emit.
-	runtimeArtifacts  runtimeartifact.Store
-	agentVoiceStreams *agentVoiceStreamBroker
+	runtimeArtifacts runtimeartifact.Store
 
 	mu               sync.RWMutex
 	agents           map[string]*agentEntry
@@ -156,10 +155,6 @@ type Service struct {
 	chatAnchors   map[string]*publicChatAnchorState
 	chatTurns     map[string]*publicChatTurnState
 	chatFollowUps map[string]*publicChatFollowUpState
-	// avatarLiveInstanceBindings maps explicit Avatar window instances to
-	// Runtime-owned ConversationAnchor ids. It lets late-joining Avatar windows
-	// recover Desktop's current anchor without widening launch payload truth.
-	avatarLiveInstanceBindings map[string]*avatarLiveInstanceBindingState
 	// chatActiveByAgent tracks the currently-active chat turn per agent.
 	// With per-anchor isolation, each agent may still run only one active
 	// chat turn at a time across anchors to preserve single-speaker truth.
@@ -239,7 +234,6 @@ func newWithBackend(logger *slog.Logger, localStatePath string, backend *runtime
 		chatAnchors:                              make(map[string]*publicChatAnchorState),
 		chatTurns:                                make(map[string]*publicChatTurnState),
 		chatFollowUps:                            make(map[string]*publicChatFollowUpState),
-		avatarLiveInstanceBindings:               make(map[string]*avatarLiveInstanceBindingState),
 		chatActiveByAgent:                        make(map[string]string),
 		chatTerminatingAgents:                    make(map[string]uint32),
 		chatDurableTerminatingAgents:             make(map[string]bool),
@@ -256,9 +250,8 @@ func newWithBackend(logger *slog.Logger, localStatePath string, backend *runtime
 		localAppConversationSubscribers:          make(map[uint64]*localAppConversationSubscriber),
 		localAppConversationLiveChildren:         make(map[string]localAppConversationLiveChildState),
 		agentRealtimeSessions:                    make(map[string]*localAppAgentRealtimeSession),
-		voiceLipsync:                             newSyntheticVoiceLipsyncSynthesizer(),
+		voiceLipsync:                             unavailableVoiceLipsyncSynthesizer{},
 		runtimeArtifacts:                         runtimeartifact.NewMemoryStore(),
-		agentVoiceStreams:                        newAgentVoiceStreamBroker(),
 		accountTerminationFencedAccounts:         make(map[string]bool),
 		delegatedProviderProfiles:                make(map[string]*runtimev1.DelegatedProviderProfile),
 		delegatedApprovalRequests:                make(map[string]*runtimev1.DelegatedApprovalRequest),

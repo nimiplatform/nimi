@@ -66,6 +66,8 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppConversationStreamNext',
   'localAppConversationStreamClose',
   'localAppConversationSnapshot',
+  'localAppEmbodimentSnapshot',
+  'localAppEmbodimentSubscribe',
   'localAppAiRealtimeOpen',
   'localAppAiRealtimeAppendInput',
   'localAppAiRealtimeSubmitOwnerControl',
@@ -329,6 +331,8 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppConversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppEmbodimentSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppEmbodimentSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmRealtimeOpen: () => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmRealtimeSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmRealtimeAck: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -419,6 +423,8 @@ export type NimiElectronLocalAppHost = {
   readonly conversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly embodimentSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly embodimentSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmRealtimeOpen: () => Promise<NimiElectronLocalAppRecord>;
   readonly realmRealtimeSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmRealtimeAck: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -882,6 +888,14 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeConversationSnapshot(() => this.binding.localAppConversationSnapshot(input));
   }
 
+  embodimentSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppEmbodimentSnapshot(input));
+  }
+
+  embodimentSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeExactTextRecord(() => this.binding.localAppEmbodimentSubscribe(input), ['streamId']);
+  }
+
   realmChatList(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppRealmChatList(input));
   }
@@ -1188,6 +1202,14 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   conversationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().conversationSnapshot(input);
+  }
+
+  embodimentSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().embodimentSnapshot(input);
+  }
+
+  embodimentSubscribe(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().embodimentSubscribe(input);
   }
 
   realmChatList(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return this.resolve().realmChatList(input); }

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AvatarDebugProbeKind, AvatarDebugProbeStatus } from '@nimiplatform/sdk/runtime/wire-types';
+import { AvatarDebugProbeKind } from '../avatar-debug/contract.js';
 import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import type { AgentDataBundle, AgentDataDriver, AgentEvent, DriverStatus } from '../driver/types.js';
 import { useAvatarStore } from '../app-shell/app-store.js';
@@ -19,7 +19,7 @@ const backendUnloadMock = vi.fn();
 
 function runtimeEnvelopeDetail(): Record<string, string> {
   return {
-    agent_id: 'local-agent:owner-product:agent-product-01',
+    agent_handle: `agent_ref_${'a'.repeat(43)}`,
     conversation_anchor_id: 'anchor-01',
     turn_id: 'turn-01',
     stream_id: 'stream-01',
@@ -135,7 +135,7 @@ function createBundle(): AgentDataBundle {
     status_text: '',
     execution_state: 'IDLE',
     active_world_id: 'world-1',
-    active_user_id: 'user-1',
+    active_agent_handle: 'user-1',
     app: {
       namespace: 'avatar',
       surface_id: 'avatar-window',
@@ -408,9 +408,8 @@ describe('avatar runtime carrier', () => {
 
     const session = carrier.createDebugSession({
       debugSessionId: 'debug-session-live2d',
-      runtimeProbe: {
+      probe: {
         probeId: 'probe-generated-motion',
-        agentId: 'agent-1',
         probeKind: AvatarDebugProbeKind.GENERATED_MOTION,
       },
       avatarPackageRef: 'avatar-package-ref-1',
@@ -428,68 +427,6 @@ describe('avatar runtime carrier', () => {
       status: 'unsupported',
       reasonCode: 'generated_motion_not_supported_by_backend',
     });
-
-    carrier.shutdown();
-  });
-
-  it('submits Runtime avatar debug probe results from the active backend session', async () => {
-    const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
-    const driver = createDriver();
-    const submitDebugProbeResult = vi.fn(async () => {});
-    const carrier = await startAvatarRuntimeCarrier({
-      driver,
-      modelManifest: live2dManifest(),
-      submitDebugProbeResult,
-    });
-
-    driver.trigger({
-      event_id: 'event-debug-probe',
-      name: 'runtime.agent.avatar_debug.probe_requested',
-      timestamp: '2026-05-01T00:00:00.000Z',
-      detail: {
-        probeId: 'probe-runtime-1',
-        agentId: 'agent-1',
-        conversationAnchorId: 'anchor-1',
-        probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
-        avatarInstanceId: 'avatar-1',
-      },
-    });
-
-    expect(submitDebugProbeResult).toHaveBeenCalledWith(expect.objectContaining({
-      probeId: 'probe-runtime-1',
-      agentId: 'agent-1',
-      conversationAnchorId: 'anchor-1',
-      probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
-      status: AvatarDebugProbeStatus.PASSED,
-    }));
-
-    carrier.shutdown();
-  });
-
-  it('skips non Avatar-submittable Runtime avatar debug probe requests', async () => {
-    const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
-    const driver = createDriver();
-    const submitDebugProbeResult = vi.fn(async () => {});
-    const carrier = await startAvatarRuntimeCarrier({
-      driver,
-      modelManifest: live2dManifest(),
-      submitDebugProbeResult,
-    });
-
-    driver.trigger({
-      event_id: 'event-debug-probe-package-validation',
-      name: 'runtime.agent.avatar_debug.probe_requested',
-      timestamp: '2026-05-01T00:00:00.000Z',
-      detail: {
-        probeId: 'probe-runtime-package-validation',
-        agentId: 'agent-1',
-        conversationAnchorId: 'anchor-1',
-        probeKind: AvatarDebugProbeKind.PACKAGE_VALIDATION,
-        avatarInstanceId: 'avatar-1',
-      },
-    });
-
-    expect(submitDebugProbeResult).not.toHaveBeenCalled();
 
     carrier.shutdown();
   });

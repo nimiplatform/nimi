@@ -303,14 +303,14 @@ func TestInvokeRealmUnaryRejectsNonDesktopCaller(t *testing.T) {
 	svc := newRealmUnaryHarnessService(t, "https://realm.example.test")
 	completeLogin(t, svc)
 	resp, err := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
-		Caller:      realmWorldStudioCaller(),
+		Caller:      explicitLocalAppAccountCaller(),
 		MethodId:    "WorldPublicController_listWorlds",
 		RequestJson: `{}`,
 	})
 	if err != nil {
 		t.Fatalf("InvokeRealmUnary: %v", err)
 	}
-	if resp.GetAccepted() || resp.GetReasonCode() != runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN || resp.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_OPERATION_NOT_ADMITTED {
+	if resp.GetAccepted() || resp.GetReasonCode() != runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED || resp.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_CALLER_UNAUTHORIZED {
 		t.Fatalf("non-Desktop caller did not fail closed: %+v", resp)
 	}
 }
@@ -360,10 +360,10 @@ func newRealmUnaryHarnessService(t *testing.T, realmBaseURL string) *Service {
 
 func realmWorldStudioCaller() *runtimev1.AccountCaller {
 	return &runtimev1.AccountCaller{
-		AppId:         "nimi.realm-world-studio",
-		AppInstanceId: "nimi.realm-world-studio.local-first-party",
-		DeviceId:      "device-1",
-		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP,
+		AppId:         "nimi.desktop",
+		AppInstanceId: "nimi.desktop.desktop-shell",
+		DeviceId:      "desktop-shell",
+		Mode:          runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL,
 	}
 }
 

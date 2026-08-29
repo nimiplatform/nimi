@@ -476,6 +476,27 @@ func TestProtectedLocalAppAIConfigRejectsCallerOwnerAndWrongOperation(t *testing
 	}
 }
 
+func TestDesktopFormalSelfAIConfigUsesLocalDecisionWithoutManagerPrivilege(t *testing.T) {
+	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+	ctx := desktopAccountProductAIConfigContext("account-a")
+	ctx = accountservice.ContextWithAuthorizedLocalAppDecision(ctx, accountservice.LocalAppCallerDecision{
+		AccountID: "account-a", AppID: "nimi.desktop",
+		Operation: accountservice.LocalAppOperationAppAIConfigRead, RegisteredAppSubject: "ras_v1_formal_desktop",
+	})
+	caller, callerErr := authenticatedAppAIConfigCaller(ctx)
+	if callerErr != nil {
+		t.Fatalf("formal self caller: %v", callerErr)
+	}
+	if _, ownerErr := svc.appAIConfigOwnerForCaller(ctx, caller, nil, accountservice.LocalAppOperationAppAIConfigRead); ownerErr != nil {
+		t.Fatalf("formal self owner: %v", ownerErr)
+	}
+	if _, err := svc.GetAppAIConfig(ctx, &runtimev1.GetAppAIConfigRequest{}); err != nil {
+		t.Fatalf("formal self GetAppAIConfig: %v", err)
+	}
+	_, err := svc.GetAppAIConfig(ctx, &runtimev1.GetAppAIConfigRequest{Owner: appAIConfigOwner("nimi.desktop")})
+	assertAppAIConfigError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+}
+
 func TestAppAIConfigRejectsOwnerlessFirstPartyAndUnauthenticatedCalls(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	principal := protectedprincipal.New(

@@ -9,7 +9,11 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
   const cleanup = [];
   const context = simulatorContext(cleanup);
   const bindings = createZhiyuSimulatorBindings(context);
-  const home = await bindings.app.projection.loadHome({ selectedAgentHandle: null });
+  const home = await bindings.app.projection.loadHome({
+    selectedAgentHandle: null,
+    previousConversationAnchorId: null,
+    isCurrent: () => true,
+  });
   const agentHandle = home.localAgent.agentHandle;
   const conversationAnchorId = home.conversation.conversationAnchorId;
   assert.ok(agentHandle);
@@ -144,6 +148,31 @@ test('Simulator Agent Center uses the canonical App factory, current conversatio
   assert.doesNotMatch(configureClient, /ownerUserId|runtimeSourceRef|localAgentRef/u);
 });
 
+test('Simulator remints a rotated session handle by the exact previous Conversation anchor', async () => {
+  const cleanup = [];
+  const bindings = createZhiyuSimulatorBindings(simulatorContext(cleanup));
+  const home = await bindings.app.projection.loadHome({
+    selectedAgentHandle: `agent_ref_${'c'.repeat(43)}`,
+    previousConversationAnchorId: `sim-conversation:agent_ref_${'a'.repeat(43)}`,
+    isCurrent: () => true,
+  });
+
+  assert.equal(home.localAgent.agentHandle, `agent_ref_${'a'.repeat(43)}`);
+  assert.equal(home.conversation.agentHandle, `agent_ref_${'a'.repeat(43)}`);
+  assert.equal(home.conversation.conversationAnchorId, `sim-conversation:agent_ref_${'a'.repeat(43)}`);
+
+  await assert.rejects(
+    bindings.app.projection.loadHome({
+      selectedAgentHandle: `agent_ref_${'c'.repeat(43)}`,
+      previousConversationAnchorId: 'sim-conversation:missing',
+      isCurrent: () => true,
+    }),
+    /ZHIYU_SIMULATOR_AGENT_REQUIRED/u,
+  );
+
+  for (const dispose of cleanup.reverse()) await dispose();
+});
+
 function simulatorContext(cleanup) {
   const scope = Object.freeze({
     domId: (localId) => `zhiyu-test--${localId}`,
@@ -168,10 +197,8 @@ function simulatorContext(cleanup) {
   const projected = Object.freeze({
     protocolRevision: 1,
     scenario: Object.freeze({
-      ownerUserId: 'sim-owner-1',
       agents: Object.freeze([Object.freeze({
-        localAgentRef: 'sim-local-agent-1',
-        runtimeSourceRef: 'sim-runtime-source-1',
+        agentHandle: `agent_ref_${'a'.repeat(43)}`,
         displayName: '模拟伙伴',
       })]),
       responseText: '模拟回复',

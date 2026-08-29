@@ -5,7 +5,6 @@
   "source_paths": [
     "proto/runtime/v1/account.proto",
     "proto/runtime/v1/agent_common.proto",
-    "proto/runtime/v1/agent_companion.proto",
     "proto/runtime/v1/agent_configure.proto",
     "proto/runtime/v1/agent_embodiment.proto",
     "proto/runtime/v1/agent_presentation.proto",
@@ -341,24 +340,6 @@
           "response_stream": false
         },
         {
-          "name": "RegisterAvatarLiveInstanceBinding",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
-          "kind": "unary",
-          "request_type": "RegisterAvatarLiveInstanceBindingRequest",
-          "response_type": "RegisterAvatarLiveInstanceBindingResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "ResolveAvatarLiveInstanceBinding",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding",
-          "kind": "unary",
-          "request_type": "ResolveAvatarLiveInstanceBindingRequest",
-          "response_type": "ResolveAvatarLiveInstanceBindingResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
           "name": "GetPublicChatSessionSnapshot",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetPublicChatSessionSnapshot",
           "kind": "unary",
@@ -382,87 +363,6 @@
           "kind": "unary",
           "request_type": "ListAgentConversationSummariesRequest",
           "response_type": "ListAgentConversationSummariesResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "GetCompanionParticipationProjection",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection",
-          "kind": "unary",
-          "request_type": "GetCompanionParticipationProjectionRequest",
-          "response_type": "GetCompanionParticipationProjectionResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "RequestCompanionParticipation",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
-          "kind": "unary",
-          "request_type": "RequestCompanionParticipationRequest",
-          "response_type": "RequestCompanionParticipationResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "CancelCompanionParticipation",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
-          "kind": "unary",
-          "request_type": "CancelCompanionParticipationRequest",
-          "response_type": "CancelCompanionParticipationResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "OpenCompanionParticipationReplay",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
-          "kind": "unary",
-          "request_type": "OpenCompanionParticipationReplayRequest",
-          "response_type": "OpenCompanionParticipationReplayResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "GetAvatarDebugSnapshot",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot",
-          "kind": "unary",
-          "request_type": "GetAvatarDebugSnapshotRequest",
-          "response_type": "GetAvatarDebugSnapshotResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "RequestAvatarDebugProbe",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
-          "kind": "unary",
-          "request_type": "RequestAvatarDebugProbeRequest",
-          "response_type": "RequestAvatarDebugProbeResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "SubmitAvatarDebugProbeResult",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
-          "kind": "unary",
-          "request_type": "SubmitAvatarDebugProbeResultRequest",
-          "response_type": "SubmitAvatarDebugProbeResultResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "ListAvatarDebugProbeResults",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults",
-          "kind": "unary",
-          "request_type": "ListAvatarDebugProbeResultsRequest",
-          "response_type": "ListAvatarDebugProbeResultsResponse",
-          "request_stream": false,
-          "response_stream": false
-        },
-        {
-          "name": "GetAvatarDebugReplay",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
-          "kind": "unary",
-          "request_type": "GetAvatarDebugReplayRequest",
-          "response_type": "GetAvatarDebugReplayResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -609,24 +509,6 @@
           "response_type": "AgentEvent",
           "request_stream": false,
           "response_stream": true
-        },
-        {
-          "name": "SubscribeAgentVoiceStream",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
-          "kind": "server_stream",
-          "request_type": "SubscribeAgentVoiceStreamRequest",
-          "response_type": "AgentVoiceStreamEvent",
-          "request_stream": false,
-          "response_stream": true
-        },
-        {
-          "name": "InterruptAgentVoicePlayback",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
-          "kind": "unary",
-          "request_type": "InterruptAgentVoicePlaybackRequest",
-          "response_type": "InterruptAgentVoicePlaybackResponse",
-          "request_stream": false,
-          "response_stream": false
         },
         {
           "name": "TranscribeAgentVoiceInput",
@@ -2172,7 +2054,6 @@
     "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
     "/nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput",
     "/nimi.runtime.v1.RuntimeAgentService/ApplySharedLocalAgentAIProfile",
-    "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
     "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
     "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime",
     "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation",
@@ -2184,9 +2065,6 @@
     "/nimi.runtime.v1.RuntimeAgentService/GetAgent",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset",
     "/nimi.runtime.v1.RuntimeAgentService/GetAgentState",
-    "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
-    "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot",
-    "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection",
     "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace",
@@ -2201,12 +2079,10 @@
     "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig",
     "/nimi.runtime.v1.RuntimeAgentService/ImportPortableAIProfile",
     "/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory",
-    "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
     "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput",
     "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn",
     "/nimi.runtime.v1.RuntimeAgentService/ListAgentConversationSummaries",
     "/nimi.runtime.v1.RuntimeAgentService/ListAgents",
-    "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults",
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics",
     "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedProviderProfiles",
@@ -2216,7 +2092,6 @@
     "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles",
     "/nimi.runtime.v1.RuntimeAgentService/ListSharedLocalAgentAIConfigOptions",
     "/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource",
-    "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
     "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
     "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime",
     "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
@@ -2225,19 +2100,13 @@
     "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile",
     "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact",
     "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
-    "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
     "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
-    "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
-    "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
-    "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding",
     "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
     "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
     "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig",
     "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled",
-    "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
     "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
-    "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents",
@@ -2471,14 +2340,6 @@
       "response_type": "ApplySharedLocalAgentAIProfileResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
-      "service": "RuntimeAgentService",
-      "method": "CancelCompanionParticipation",
-      "kind": "unary",
-      "request_type": "CancelCompanionParticipationRequest",
-      "response_type": "CancelCompanionParticipationResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
       "service": "RuntimeAgentService",
       "method": "CancelHook",
@@ -2565,30 +2426,6 @@
       "kind": "unary",
       "request_type": "GetAgentStateRequest",
       "response_type": "GetAgentStateResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
-      "service": "RuntimeAgentService",
-      "method": "GetAvatarDebugReplay",
-      "kind": "unary",
-      "request_type": "GetAvatarDebugReplayRequest",
-      "response_type": "GetAvatarDebugReplayResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot",
-      "service": "RuntimeAgentService",
-      "method": "GetAvatarDebugSnapshot",
-      "kind": "unary",
-      "request_type": "GetAvatarDebugSnapshotRequest",
-      "response_type": "GetAvatarDebugSnapshotResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection",
-      "service": "RuntimeAgentService",
-      "method": "GetCompanionParticipationProjection",
-      "kind": "unary",
-      "request_type": "GetCompanionParticipationProjectionRequest",
-      "response_type": "GetCompanionParticipationProjectionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
@@ -2703,14 +2540,6 @@
       "response_type": "InspectLocalAppAgentMemoryResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
-      "service": "RuntimeAgentService",
-      "method": "InterruptAgentVoicePlayback",
-      "kind": "unary",
-      "request_type": "InterruptAgentVoicePlaybackRequest",
-      "response_type": "InterruptAgentVoicePlaybackResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput",
       "service": "RuntimeAgentService",
       "method": "InterruptLocalAppAgentRealtimeOutput",
@@ -2741,14 +2570,6 @@
       "kind": "unary",
       "request_type": "ListAgentsRequest",
       "response_type": "ListAgentsResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults",
-      "service": "RuntimeAgentService",
-      "method": "ListAvatarDebugProbeResults",
-      "kind": "unary",
-      "request_type": "ListAvatarDebugProbeResultsRequest",
-      "response_type": "ListAvatarDebugProbeResultsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
@@ -2823,14 +2644,6 @@
       "response_type": "MaterializeRealmSourceResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
-      "service": "RuntimeAgentService",
-      "method": "OpenCompanionParticipationReplay",
-      "kind": "unary",
-      "request_type": "OpenCompanionParticipationReplayRequest",
-      "response_type": "OpenCompanionParticipationReplayResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
       "service": "RuntimeAgentService",
       "method": "OpenConversationAnchor",
@@ -2895,44 +2708,12 @@
       "response_type": "ReadLocalAppConversationArtifactResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
-      "service": "RuntimeAgentService",
-      "method": "RegisterAvatarLiveInstanceBinding",
-      "kind": "unary",
-      "request_type": "RegisterAvatarLiveInstanceBindingRequest",
-      "response_type": "RegisterAvatarLiveInstanceBindingResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
       "service": "RuntimeAgentService",
       "method": "RenderLocalAppConversationVoice",
       "kind": "unary",
       "request_type": "RenderLocalAppConversationVoiceRequest",
       "response_type": "RenderLocalAppConversationVoiceResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
-      "service": "RuntimeAgentService",
-      "method": "RequestAvatarDebugProbe",
-      "kind": "unary",
-      "request_type": "RequestAvatarDebugProbeRequest",
-      "response_type": "RequestAvatarDebugProbeResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
-      "service": "RuntimeAgentService",
-      "method": "RequestCompanionParticipation",
-      "kind": "unary",
-      "request_type": "RequestCompanionParticipationRequest",
-      "response_type": "RequestCompanionParticipationResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding",
-      "service": "RuntimeAgentService",
-      "method": "ResolveAvatarLiveInstanceBinding",
-      "kind": "unary",
-      "request_type": "ResolveAvatarLiveInstanceBindingRequest",
-      "response_type": "ResolveAvatarLiveInstanceBindingResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
@@ -2967,14 +2748,6 @@
       "response_type": "SetLocalAppAgentMemoryEnabledResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
-      "service": "RuntimeAgentService",
-      "method": "SubmitAvatarDebugProbeResult",
-      "kind": "unary",
-      "request_type": "SubmitAvatarDebugProbeResultRequest",
-      "response_type": "SubmitAvatarDebugProbeResultResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
       "service": "RuntimeAgentService",
       "method": "SubmitDelegatedApprovalDecision",
@@ -2989,14 +2762,6 @@
       "kind": "server_stream",
       "request_type": "SubscribeAgentEventsRequest",
       "response_type": "AgentEvent"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
-      "service": "RuntimeAgentService",
-      "method": "SubscribeAgentVoiceStream",
-      "kind": "server_stream",
-      "request_type": "SubscribeAgentVoiceStreamRequest",
-      "response_type": "AgentVoiceStreamEvent"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
@@ -4281,14 +4046,6 @@
       "response_type": "ApplySharedLocalAgentAIProfileResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation",
-      "service": "RuntimeAgentService",
-      "method": "CancelCompanionParticipation",
-      "kind": "unary",
-      "request_type": "CancelCompanionParticipationRequest",
-      "response_type": "CancelCompanionParticipationResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelHook",
       "service": "RuntimeAgentService",
       "method": "CancelHook",
@@ -4375,30 +4132,6 @@
       "kind": "unary",
       "request_type": "GetAgentStateRequest",
       "response_type": "GetAgentStateResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay",
-      "service": "RuntimeAgentService",
-      "method": "GetAvatarDebugReplay",
-      "kind": "unary",
-      "request_type": "GetAvatarDebugReplayRequest",
-      "response_type": "GetAvatarDebugReplayResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot",
-      "service": "RuntimeAgentService",
-      "method": "GetAvatarDebugSnapshot",
-      "kind": "unary",
-      "request_type": "GetAvatarDebugSnapshotRequest",
-      "response_type": "GetAvatarDebugSnapshotResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection",
-      "service": "RuntimeAgentService",
-      "method": "GetCompanionParticipationProjection",
-      "kind": "unary",
-      "request_type": "GetCompanionParticipationProjectionRequest",
-      "response_type": "GetCompanionParticipationProjectionResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetConversationAnchorSnapshot",
@@ -4513,14 +4246,6 @@
       "response_type": "InspectLocalAppAgentMemoryResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback",
-      "service": "RuntimeAgentService",
-      "method": "InterruptAgentVoicePlayback",
-      "kind": "unary",
-      "request_type": "InterruptAgentVoicePlaybackRequest",
-      "response_type": "InterruptAgentVoicePlaybackResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput",
       "service": "RuntimeAgentService",
       "method": "InterruptLocalAppAgentRealtimeOutput",
@@ -4551,14 +4276,6 @@
       "kind": "unary",
       "request_type": "ListAgentsRequest",
       "response_type": "ListAgentsResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults",
-      "service": "RuntimeAgentService",
-      "method": "ListAvatarDebugProbeResults",
-      "kind": "unary",
-      "request_type": "ListAvatarDebugProbeResultsRequest",
-      "response_type": "ListAvatarDebugProbeResultsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedApprovalRequests",
@@ -4633,14 +4350,6 @@
       "response_type": "MaterializeRealmSourceResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay",
-      "service": "RuntimeAgentService",
-      "method": "OpenCompanionParticipationReplay",
-      "kind": "unary",
-      "request_type": "OpenCompanionParticipationReplayRequest",
-      "response_type": "OpenCompanionParticipationReplayResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor",
       "service": "RuntimeAgentService",
       "method": "OpenConversationAnchor",
@@ -4705,44 +4414,12 @@
       "response_type": "ReadLocalAppConversationArtifactResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding",
-      "service": "RuntimeAgentService",
-      "method": "RegisterAvatarLiveInstanceBinding",
-      "kind": "unary",
-      "request_type": "RegisterAvatarLiveInstanceBindingRequest",
-      "response_type": "RegisterAvatarLiveInstanceBindingResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
       "service": "RuntimeAgentService",
       "method": "RenderLocalAppConversationVoice",
       "kind": "unary",
       "request_type": "RenderLocalAppConversationVoiceRequest",
       "response_type": "RenderLocalAppConversationVoiceResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe",
-      "service": "RuntimeAgentService",
-      "method": "RequestAvatarDebugProbe",
-      "kind": "unary",
-      "request_type": "RequestAvatarDebugProbeRequest",
-      "response_type": "RequestAvatarDebugProbeResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation",
-      "service": "RuntimeAgentService",
-      "method": "RequestCompanionParticipation",
-      "kind": "unary",
-      "request_type": "RequestCompanionParticipationRequest",
-      "response_type": "RequestCompanionParticipationResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding",
-      "service": "RuntimeAgentService",
-      "method": "ResolveAvatarLiveInstanceBinding",
-      "kind": "unary",
-      "request_type": "ResolveAvatarLiveInstanceBindingRequest",
-      "response_type": "ResolveAvatarLiveInstanceBindingResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
@@ -4777,14 +4454,6 @@
       "response_type": "SetLocalAppAgentMemoryEnabledResponse"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult",
-      "service": "RuntimeAgentService",
-      "method": "SubmitAvatarDebugProbeResult",
-      "kind": "unary",
-      "request_type": "SubmitAvatarDebugProbeResultRequest",
-      "response_type": "SubmitAvatarDebugProbeResultResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
       "service": "RuntimeAgentService",
       "method": "SubmitDelegatedApprovalDecision",
@@ -4799,14 +4468,6 @@
       "kind": "server_stream",
       "request_type": "SubscribeAgentEventsRequest",
       "response_type": "AgentEvent"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream",
-      "service": "RuntimeAgentService",
-      "method": "SubscribeAgentVoiceStream",
-      "kind": "server_stream",
-      "request_type": "SubscribeAgentVoiceStreamRequest",
-      "response_type": "AgentVoiceStreamEvent"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
@@ -6041,7 +5702,6 @@
       "AdoptLocalAppArtifactResponse",
       "AgentAutonomyConfig",
       "AgentAutonomyState",
-      "AgentAvatarDebugEventDetail",
       "AgentBudgetEventDetail",
       "AgentConversationContextSummary",
       "AgentConversationSummary",
@@ -6073,7 +5733,6 @@
       "AgentTurnContextLaneSummary",
       "AgentTurnContextSummary",
       "AgentTurnContextTruncationSummary",
-      "AgentVoiceStreamEvent",
       "AiRealtimeAudioFormat",
       "AiRealtimeAudioFrameInput",
       "AiRealtimeAudioFrameOutput",
@@ -6109,16 +5768,10 @@
       "AudioChunks",
       "AuditEventRecord",
       "AuditExportChunk",
-      "AvatarDebugProbeRequestEnvelope",
-      "AvatarDebugProbeResultEnvelope",
-      "AvatarDebugReplayRef",
-      "AvatarLiveInstanceBinding",
       "BeginLoginRequest",
       "BeginLoginResponse",
       "BindLocalAppProcessRequest",
       "BindLocalAppProcessResponse",
-      "CancelCompanionParticipationRequest",
-      "CancelCompanionParticipationResponse",
       "CancelHookRequest",
       "CancelHookResponse",
       "CancelLocalAppScenarioJobRequest",
@@ -6203,7 +5856,6 @@
       "CommitLoadoutRequest",
       "CommitLoadoutResponse",
       "CommitLocalAppAgentPresentationRequest",
-      "CompanionParticipationProjection",
       "CompleteLoginRequest",
       "CompleteLoginResponse",
       "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
@@ -6276,14 +5928,8 @@
       "GetAppAIConfigResponse",
       "GetAppStorageRequest",
       "GetAppStorageResponse",
-      "GetAvatarDebugReplayRequest",
-      "GetAvatarDebugReplayResponse",
-      "GetAvatarDebugSnapshotRequest",
-      "GetAvatarDebugSnapshotResponse",
       "GetCatalogModelDetailRequest",
       "GetCatalogModelDetailResponse",
-      "GetCompanionParticipationProjectionRequest",
-      "GetCompanionParticipationProjectionResponse",
       "GetConnectorRequest",
       "GetConnectorResponse",
       "GetConversationAnchorSnapshotRequest",
@@ -6347,8 +5993,6 @@
       "InspectLocalAppAgentMemoryResponse",
       "InstallModelFromPlanRequest",
       "InstallModelFromPlanResponse",
-      "InterruptAgentVoicePlaybackRequest",
-      "InterruptAgentVoicePlaybackResponse",
       "InterruptLocalAppAgentRealtimeOutputRequest",
       "InterruptLocalAppAgentRealtimeOutputResponse",
       "InterruptLocalAppConversationTurnRequest",
@@ -6365,8 +6009,6 @@
       "ListAppAIConfigOptionsResponse",
       "ListAuditEventsRequest",
       "ListAuditEventsResponse",
-      "ListAvatarDebugProbeResultsRequest",
-      "ListAvatarDebugProbeResultsResponse",
       "ListCatalogProviderModelsRequest",
       "ListCatalogProviderModelsResponse",
       "ListCatalogVariantsRequest",
@@ -6567,8 +6209,6 @@
       "MoveLocalAppAssetResponse",
       "MusicGenerateResult",
       "MusicGenerateScenarioSpec",
-      "OpenCompanionParticipationReplayRequest",
-      "OpenCompanionParticipationReplayResponse",
       "OpenConversationAnchorRequest",
       "OpenConversationAnchorResponse",
       "OpenDesktopSessionRequest",
@@ -6653,8 +6293,6 @@
       "RebindLocalAppProcessRequest",
       "RebindLocalAppProcessResponse",
       "ReconcileProductControlFirstRunSetupStateRequest",
-      "RegisterAvatarLiveInstanceBindingRequest",
-      "RegisterAvatarLiveInstanceBindingResponse",
       "RegisterExternalPrincipalRequest",
       "RegisterExternalPrincipalResponse",
       "RegisterLocalDevelopmentProjectRequest",
@@ -6672,16 +6310,10 @@
       "RenewLocalAppSessionRequest",
       "RepairLocalEnvironmentDependencyRequest",
       "RepairLocalEnvironmentDependencyResponse",
-      "RequestAvatarDebugProbeRequest",
-      "RequestAvatarDebugProbeResponse",
-      "RequestCompanionParticipationRequest",
-      "RequestCompanionParticipationResponse",
       "RequestPresenceVerificationRequest",
       "RequestPresenceVerificationResponse",
       "RequestRuntimeRestartRequest",
       "RequestRuntimeRestartResponse",
-      "ResolveAvatarLiveInstanceBindingRequest",
-      "ResolveAvatarLiveInstanceBindingResponse",
       "ResolveLocalEnvironmentActivationGateRequest",
       "ResolveLocalEnvironmentActivationGateResponse",
       "ResolveLocalEnvironmentPlanRequest",
@@ -6754,8 +6386,6 @@
       "StreamLocalAppTextTurnRequest",
       "StreamScenarioEvent",
       "StreamScenarioRequest",
-      "SubmitAvatarDebugProbeResultRequest",
-      "SubmitAvatarDebugProbeResultResponse",
       "SubmitDelegatedApprovalDecisionRequest",
       "SubmitDelegatedApprovalDecisionResponse",
       "SubmitLocalAppScenarioJobRequest",
@@ -6766,7 +6396,6 @@
       "SubmitScenarioJobResponse",
       "SubscribeAccountSessionEventsRequest",
       "SubscribeAgentEventsRequest",
-      "SubscribeAgentVoiceStreamRequest",
       "SubscribeAppMessagesRequest",
       "SubscribeLocalAppAgentRealtimeEventsRequest",
       "SubscribeLocalAppConversationEventsRequest",
@@ -6890,6 +6519,7 @@
       "AgentTurnContextState",
       "AgentTurnContextSummarySchemaVersion",
       "AgentTurnContextTruncationReason",
+      "AgentVoiceTimingPhase",
       "AiRealtimeAudioCodec",
       "AiRealtimeOutputTrackLifecycle",
       "AiRealtimeOwnerContextKind",
@@ -6898,12 +6528,6 @@
       "AiRealtimeTurnDetectionMode",
       "AppMessageEventType",
       "AppStorageState",
-      "AvatarDebugEventFamily",
-      "AvatarDebugProbeKind",
-      "AvatarDebugProbeStatus",
-      "AvatarDebugReplayRedactionState",
-      "AvatarDebugReplayVisibility",
-      "AvatarDebugRequestedBy",
       "CallerKind",
       "CatalogModelSource",
       "CatalogSourceKind",
@@ -6916,9 +6540,6 @@
       "CognitionMemoryLifecycle",
       "CognitionMemoryOutcome",
       "CognitionMemoryTerminalState",
-      "CompanionParticipationStatus",
-      "CompanionParticipationSurfaceKind",
-      "CompanionParticipationTriggerSource",
       "ConnectorAuthKind",
       "ConnectorKind",
       "ConnectorOwnerType",
@@ -7018,7 +6639,6 @@
       "VoiceAssetStatus",
       "VoiceCreationSource",
       "VoiceOutputMode",
-      "VoicePlaybackState",
       "VoiceReferenceKind",
       "WorkspaceMembershipState",
       "WorldEntityRefKindV3"
@@ -7439,40 +7059,6 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
-        "name": "AgentAvatarDebugEventDetail",
-        "fields": [
-          {
-            "name": "family",
-            "type": "AvatarDebugEventFamily",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "request",
-            "type": "AvatarDebugProbeRequestEnvelope",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "result",
-            "type": "AvatarDebugProbeResultEnvelope",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "replay",
-            "type": "AvatarDebugReplayRef",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "AgentBudgetEventDetail",
         "fields": [
           {
@@ -7667,13 +7253,6 @@
             "repeated": false,
             "optional": false,
             "number": 16
-          },
-          {
-            "name": "avatar_debug",
-            "type": "AgentAvatarDebugEventDetail",
-            "repeated": false,
-            "optional": false,
-            "number": 17
           },
           {
             "name": "proactive",
@@ -8131,20 +7710,6 @@
             "number": 61
           },
           {
-            "name": "voice_stream_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 62
-          },
-          {
-            "name": "chunk_transport_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 63
-          },
-          {
             "name": "message_id",
             "type": "string",
             "repeated": false,
@@ -8152,46 +7717,25 @@
             "number": 64
           },
           {
-            "name": "chunk_sequence",
+            "name": "artifact_sequence",
             "type": "uint64",
             "repeated": false,
             "optional": false,
             "number": 65
           },
           {
-            "name": "final_chunk",
+            "name": "artifact_complete",
             "type": "bool",
             "repeated": false,
             "optional": false,
             "number": 66
           },
           {
-            "name": "voice_output_mode",
-            "type": "VoiceOutputMode",
-            "repeated": false,
-            "optional": false,
-            "number": 67
-          },
-          {
-            "name": "voice_playback_state",
-            "type": "VoicePlaybackState",
+            "name": "voice_timing_phase",
+            "type": "AgentVoiceTimingPhase",
             "repeated": false,
             "optional": false,
             "number": 68
-          },
-          {
-            "name": "playback_target",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 69
-          },
-          {
-            "name": "final_artifact",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 70
           },
           {
             "name": "terminal_reason",
@@ -8220,13 +7764,6 @@
             "repeated": false,
             "optional": false,
             "number": 74
-          },
-          {
-            "name": "final_artifact_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 75
           }
         ],
         "source_file": "proto/runtime/v1/agent_presentation.proto"
@@ -9343,110 +8880,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
-      },
-      {
-        "name": "AgentVoiceStreamEvent",
-        "fields": [
-          {
-            "name": "voice_stream_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "turn_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "stream_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "message_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "chunk_sequence",
-            "type": "uint64",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "chunk",
-            "type": "bytes",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "mime_type",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "voice_output_mode",
-            "type": "VoiceOutputMode",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "playback_target",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "terminal",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "voice_playback_state",
-            "type": "VoicePlaybackState",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          },
-          {
-            "name": "terminal_reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 13
-          },
-          {
-            "name": "replay_truncated",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 14
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "AIConfig",
@@ -11255,275 +10688,6 @@
         "source_file": "proto/runtime/v1/audit.proto"
       },
       {
-        "name": "AvatarDebugProbeRequestEnvelope",
-        "fields": [
-          {
-            "name": "probe_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "probe_kind",
-            "type": "AvatarDebugProbeKind",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "requested_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "requested_by",
-            "type": "AvatarDebugRequestedBy",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "turn_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "stream_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "avatar_instance_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "runtime_replay_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "replay_requested",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "AvatarDebugProbeResultEnvelope",
-        "fields": [
-          {
-            "name": "probe_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "probe_kind",
-            "type": "AvatarDebugProbeKind",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "status",
-            "type": "AvatarDebugProbeStatus",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "observed_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "evidence_refs",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "reason_code",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "result_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "AvatarDebugReplayRef",
-        "fields": [
-          {
-            "name": "probe_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "replay_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "redaction_state",
-            "type": "AvatarDebugReplayRedactionState",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "visibility",
-            "type": "AvatarDebugReplayVisibility",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "linked_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "AvatarLiveInstanceBinding",
-        "fields": [
-          {
-            "name": "avatar_instance_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "subject_user_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "registered_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "updated_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "local_agent_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 20
-          },
-          {
-            "name": "owner_user_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 21
-          },
-          {
-            "name": "runtime_source_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 22
-          },
-          {
-            "name": "caller_app_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 23
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "BeginLoginRequest",
         "fields": [
           {
@@ -11693,95 +10857,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "CancelCompanionParticipationRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "surface_kind",
-            "type": "CompanionParticipationSurfaceKind",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "trigger_source",
-            "type": "CompanionParticipationTriggerSource",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "profile_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "projection_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "turn_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "request_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_companion.proto"
-      },
-      {
-        "name": "CancelCompanionParticipationResponse",
-        "fields": [
-          {
-            "name": "projection",
-            "type": "CompanionParticipationProjection",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_companion.proto"
       },
       {
         "name": "CancelHookRequest",
@@ -14324,117 +13399,6 @@
         "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
-        "name": "CompanionParticipationProjection",
-        "fields": [
-          {
-            "name": "projection_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "surface_kind",
-            "type": "CompanionParticipationSurfaceKind",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "profile_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "trigger_source",
-            "type": "CompanionParticipationTriggerSource",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "status",
-            "type": "CompanionParticipationStatus",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "candidate_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "commit_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "refusal_reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "presentation_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "audit_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          },
-          {
-            "name": "observed_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 13
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 14
-          },
-          {
-            "name": "turn_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 15
-          },
-          {
-            "name": "stream_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 16
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_companion.proto"
-      },
-      {
         "name": "CompleteLoginRequest",
         "fields": [
           {
@@ -16956,135 +15920,6 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
-        "name": "GetAvatarDebugReplayRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "probe_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "GetAvatarDebugReplayResponse",
-        "fields": [
-          {
-            "name": "request",
-            "type": "AvatarDebugProbeRequestEnvelope",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "result",
-            "type": "AvatarDebugProbeResultEnvelope",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "replay_ref",
-            "type": "AvatarDebugReplayRef",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "GetAvatarDebugSnapshotRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "GetAvatarDebugSnapshotResponse",
-        "fields": [
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "probe_results",
-            "type": "AvatarDebugProbeResultEnvelope",
-            "repeated": true,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "replay_refs",
-            "type": "AvatarDebugReplayRef",
-            "repeated": true,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "observed_at",
-            "type": "google.protobuf.Timestamp",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "GetCatalogModelDetailRequest",
         "fields": [
           {
@@ -17130,74 +15965,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
-      },
-      {
-        "name": "GetCompanionParticipationProjectionRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "surface_kind",
-            "type": "CompanionParticipationSurfaceKind",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "trigger_source",
-            "type": "CompanionParticipationTriggerSource",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "profile_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "request_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_companion.proto"
-      },
-      {
-        "name": "GetCompanionParticipationProjectionResponse",
-        "fields": [
-          {
-            "name": "projection",
-            "type": "CompanionParticipationProjection",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_companion.proto"
       },
       {
         "name": "GetConnectorRequest",
@@ -18453,81 +17220,6 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
-        "name": "InterruptAgentVoicePlaybackRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "voice_stream_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "turn_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "InterruptAgentVoicePlaybackResponse",
-        "fields": [
-          {
-            "name": "voice_stream_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "voice_output_mode",
-            "type": "VoiceOutputMode",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "voice_playback_state",
-            "type": "VoicePlaybackState",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "terminal_reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "InterruptLocalAppAgentRealtimeOutputRequest",
         "fields": [
           {
@@ -19063,53 +17755,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/audit.proto"
-      },
-      {
-        "name": "ListAvatarDebugProbeResultsRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "probe_kind",
-            "type": "AvatarDebugProbeKind",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "ListAvatarDebugProbeResultsResponse",
-        "fields": [
-          {
-            "name": "probe_results",
-            "type": "AvatarDebugProbeResultEnvelope",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "ListCatalogProviderModelsRequest",
@@ -23347,7 +21992,7 @@
             "number": 4
           },
           {
-            "name": "voice_ref",
+            "name": "correlation_ref",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -27376,88 +26021,6 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
-        "name": "OpenCompanionParticipationReplayRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "surface_kind",
-            "type": "CompanionParticipationSurfaceKind",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "trigger_source",
-            "type": "CompanionParticipationTriggerSource",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "profile_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "projection_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "request_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_companion.proto"
-      },
-      {
-        "name": "OpenCompanionParticipationReplayResponse",
-        "fields": [
-          {
-            "name": "replay_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "projection",
-            "type": "CompanionParticipationProjection",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_companion.proto"
-      },
-      {
         "name": "OpenConversationAnchorRequest",
         "fields": [
           {
@@ -29958,53 +28521,6 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
-        "name": "RegisterAvatarLiveInstanceBindingRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "avatar_instance_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "RegisterAvatarLiveInstanceBindingResponse",
-        "fields": [
-          {
-            "name": "binding",
-            "type": "AvatarLiveInstanceBinding",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "snapshot",
-            "type": "ConversationAnchorSnapshot",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "RegisterExternalPrincipalRequest",
         "fields": [
           {
@@ -30393,205 +28909,6 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
-        "name": "RequestAvatarDebugProbeRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "probe_kind",
-            "type": "AvatarDebugProbeKind",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "requested_by",
-            "type": "AvatarDebugRequestedBy",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "probe_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "turn_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "stream_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "avatar_instance_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "replay_requested",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "RequestAvatarDebugProbeResponse",
-        "fields": [
-          {
-            "name": "request",
-            "type": "AvatarDebugProbeRequestEnvelope",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "result",
-            "type": "AvatarDebugProbeResultEnvelope",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "replay_ref",
-            "type": "AvatarDebugReplayRef",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "RequestCompanionParticipationRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "surface_kind",
-            "type": "CompanionParticipationSurfaceKind",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "trigger_source",
-            "type": "CompanionParticipationTriggerSource",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "profile_ref",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "request_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "text",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "thread_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "world_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "max_output_tokens",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_companion.proto"
-      },
-      {
-        "name": "RequestCompanionParticipationResponse",
-        "fields": [
-          {
-            "name": "projection",
-            "type": "CompanionParticipationProjection",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_companion.proto"
-      },
-      {
         "name": "RequestPresenceVerificationRequest",
         "fields": [
           {
@@ -30711,46 +29028,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/runtime_service_control.proto"
-      },
-      {
-        "name": "ResolveAvatarLiveInstanceBindingRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "avatar_instance_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "ResolveAvatarLiveInstanceBindingResponse",
-        "fields": [
-          {
-            "name": "binding",
-            "type": "AvatarLiveInstanceBinding",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "snapshot",
-            "type": "ConversationAnchorSnapshot",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "ResolveLocalEnvironmentActivationGateRequest",
@@ -33152,53 +31429,6 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
-        "name": "SubmitAvatarDebugProbeResultRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "result",
-            "type": "AvatarDebugProbeResultEnvelope",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "SubmitAvatarDebugProbeResultResponse",
-        "fields": [
-          {
-            "name": "result",
-            "type": "AvatarDebugProbeResultEnvelope",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "SubmitDelegatedApprovalDecisionRequest",
         "fields": [
           {
@@ -33500,47 +31730,6 @@
             "repeated": true,
             "optional": false,
             "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "SubscribeAgentVoiceStreamRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "voice_stream_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "conversation_anchor_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "turn_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -36325,7 +34514,6 @@
         "name": "AccountCallerMode",
         "values": [
           "ACCOUNT_CALLER_MODE_UNSPECIFIED",
-          "ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP",
           "ACCOUNT_CALLER_MODE_DESKTOP_SHELL",
           "ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST",
           "ACCOUNT_CALLER_MODE_WEB_CLOUD",
@@ -36471,7 +34659,6 @@
           "AGENT_EVENT_TYPE_BUDGET",
           "AGENT_EVENT_TYPE_STATE",
           "AGENT_EVENT_TYPE_PRESENTATION",
-          "AGENT_EVENT_TYPE_AVATAR_DEBUG",
           "AGENT_EVENT_TYPE_PROACTIVE"
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -36741,6 +34928,18 @@
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
       },
       {
+        "name": "AgentVoiceTimingPhase",
+        "values": [
+          "AGENT_VOICE_TIMING_PHASE_UNSPECIFIED",
+          "AGENT_VOICE_TIMING_PHASE_ACTIVE",
+          "AGENT_VOICE_TIMING_PHASE_COMPLETED",
+          "AGENT_VOICE_TIMING_PHASE_FAILED",
+          "AGENT_VOICE_TIMING_PHASE_INTERRUPTED",
+          "AGENT_VOICE_TIMING_PHASE_CANCELED"
+        ],
+        "source_file": "proto/runtime/v1/agent_presentation.proto"
+      },
+      {
         "name": "AIConfigEffectiveState",
         "values": [
           "AI_CONFIG_EFFECTIVE_STATE_UNSPECIFIED",
@@ -36829,51 +35028,6 @@
           "APP_STORAGE_STATE_STORAGE_UNAVAILABLE"
         ],
         "source_file": "proto/runtime/v1/app.proto"
-      },
-      {
-        "name": "AvatarDebugEventFamily",
-        "values": [
-          "AVATAR_DEBUG_EVENT_FAMILY_UNSPECIFIED"
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "AvatarDebugProbeKind",
-        "values": [
-          "AVATAR_DEBUG_PROBE_KIND_UNSPECIFIED",
-          "AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD",
-          "AVATAR_DEBUG_PROBE_KIND_GENERATED_MOTION"
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "AvatarDebugProbeStatus",
-        "values": [
-          "AVATAR_DEBUG_PROBE_STATUS_UNSPECIFIED",
-          "AVATAR_DEBUG_PROBE_STATUS_UNSUPPORTED"
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "AvatarDebugReplayRedactionState",
-        "values": [
-          "AVATAR_DEBUG_REPLAY_REDACTION_STATE_UNSPECIFIED"
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "AvatarDebugReplayVisibility",
-        "values": [
-          "AVATAR_DEBUG_REPLAY_VISIBILITY_UNSPECIFIED"
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "AvatarDebugRequestedBy",
-        "values": [
-          "AVATAR_DEBUG_REQUESTED_BY_UNSPECIFIED"
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "CallerKind",
@@ -37014,41 +35168,6 @@
           "COGNITION_MEMORY_TERMINAL_STATE_CANCELED"
         ],
         "source_file": "proto/runtime/v1/cognition_memory.proto"
-      },
-      {
-        "name": "CompanionParticipationStatus",
-        "values": [
-          "COMPANION_PARTICIPATION_STATUS_UNSPECIFIED",
-          "COMPANION_PARTICIPATION_STATUS_IDLE",
-          "COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING",
-          "COMPANION_PARTICIPATION_STATUS_BLOCKED",
-          "COMPANION_PARTICIPATION_STATUS_RUNNING",
-          "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY",
-          "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER",
-          "COMPANION_PARTICIPATION_STATUS_FAILED",
-          "COMPANION_PARTICIPATION_STATUS_CANCELED"
-        ],
-        "source_file": "proto/runtime/v1/agent_companion.proto"
-      },
-      {
-        "name": "CompanionParticipationSurfaceKind",
-        "values": [
-          "COMPANION_PARTICIPATION_SURFACE_KIND_UNSPECIFIED",
-          "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION",
-          "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL",
-          "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH"
-        ],
-        "source_file": "proto/runtime/v1/agent_companion.proto"
-      },
-      {
-        "name": "CompanionParticipationTriggerSource",
-        "values": [
-          "COMPANION_PARTICIPATION_TRIGGER_SOURCE_UNSPECIFIED",
-          "COMPANION_PARTICIPATION_TRIGGER_SOURCE_USER_EXPLICIT",
-          "COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE",
-          "COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT"
-        ],
-        "source_file": "proto/runtime/v1/agent_companion.proto"
       },
       {
         "name": "ConnectorAuthKind",
@@ -38371,18 +36490,6 @@
           "VOICE_OUTPUT_MODE_SIMULATED_STREAM",
           "VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT",
           "VOICE_OUTPUT_MODE_TEXT_ONLY"
-        ],
-        "source_file": "proto/runtime/v1/voice.proto"
-      },
-      {
-        "name": "VoicePlaybackState",
-        "values": [
-          "VOICE_PLAYBACK_STATE_UNSPECIFIED",
-          "VOICE_PLAYBACK_STATE_ACTIVE",
-          "VOICE_PLAYBACK_STATE_COMPLETED",
-          "VOICE_PLAYBACK_STATE_FAILED",
-          "VOICE_PLAYBACK_STATE_INTERRUPTED",
-          "VOICE_PLAYBACK_STATE_CANCELED"
         ],
         "source_file": "proto/runtime/v1/voice.proto"
       },

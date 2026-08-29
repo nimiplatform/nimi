@@ -321,7 +321,7 @@ type LocalAppEmbodimentVoiceTiming struct {
 	DurationMs       int64                        `protobuf:"varint,2,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
 	DeadlineOffsetMs int64                        `protobuf:"varint,3,opt,name=deadline_offset_ms,json=deadlineOffsetMs,proto3" json:"deadline_offset_ms,omitempty"`
 	TurnRef          string                       `protobuf:"bytes,4,opt,name=turn_ref,json=turnRef,proto3" json:"turn_ref,omitempty"`
-	VoiceRef         string                       `protobuf:"bytes,5,opt,name=voice_ref,json=voiceRef,proto3" json:"voice_ref,omitempty"`
+	CorrelationRef   string                       `protobuf:"bytes,5,opt,name=correlation_ref,json=correlationRef,proto3" json:"correlation_ref,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -384,9 +384,9 @@ func (x *LocalAppEmbodimentVoiceTiming) GetTurnRef() string {
 	return ""
 }
 
-func (x *LocalAppEmbodimentVoiceTiming) GetVoiceRef() string {
+func (x *LocalAppEmbodimentVoiceTiming) GetCorrelationRef() string {
 	if x != nil {
-		return x.VoiceRef
+		return x.CorrelationRef
 	}
 	return ""
 }
@@ -801,14 +801,14 @@ const file_runtime_v1_agent_embodiment_proto_rawDesc = "" +
 	"\x06source\x18\x02 \x01(\tR\x06source\"g\n" +
 	"\x19LocalAppEmbodimentPosture\x12#\n" +
 	"\raction_family\x18\x01 \x01(\tR\factionFamily\x12%\n" +
-	"\x0einterrupt_mode\x18\x02 \x01(\tR\rinterruptMode\"\xeb\x01\n" +
+	"\x0einterrupt_mode\x18\x02 \x01(\tR\rinterruptMode\"\xf7\x01\n" +
 	"\x1dLocalAppEmbodimentVoiceTiming\x12C\n" +
 	"\x05phase\x18\x01 \x01(\x0e2-.nimi.runtime.v1.LocalAppEmbodimentVoicePhaseR\x05phase\x12\x1f\n" +
 	"\vduration_ms\x18\x02 \x01(\x03R\n" +
 	"durationMs\x12,\n" +
 	"\x12deadline_offset_ms\x18\x03 \x01(\x03R\x10deadlineOffsetMs\x12\x19\n" +
-	"\bturn_ref\x18\x04 \x01(\tR\aturnRef\x12\x1b\n" +
-	"\tvoice_ref\x18\x05 \x01(\tR\bvoiceRef\"\xbd\x03\n" +
+	"\bturn_ref\x18\x04 \x01(\tR\aturnRef\x12'\n" +
+	"\x0fcorrelation_ref\x18\x05 \x01(\tR\x0ecorrelationRef\"\xbd\x03\n" +
 	"\x1aLocalAppEmbodimentSnapshot\x12\x1a\n" +
 	"\bsequence\x18\x01 \x01(\x04R\bsequence\x12;\n" +
 	"\vobserved_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\n" +

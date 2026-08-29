@@ -16,7 +16,6 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
       actionHint: input.inventory.actionHint,
       source: input.inventory.source,
       message: input.inventory.message,
-      ownerUserId: input.inventory.ownerUserId,
     });
   }
 
@@ -27,7 +26,6 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
       actionHint: 'refresh_runtime_local_agent_inventory',
       source: input.inventory.source,
       message: 'Runtime LocalAgent inventory count does not match the listed projection.',
-      ownerUserId: input.inventory.ownerUserId,
     });
   }
   const selectedAgentHandle = stringOr(input.selectedAgentHandle, '');
@@ -41,7 +39,6 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
       actionHint: 'refresh_runtime_local_agent_inventory',
       source: input.inventory.source,
       message: 'The selected Runtime LocalAgent is no longer available in the current upstream projection.',
-      ownerUserId: input.inventory.ownerUserId,
     });
   }
   if (localAgents.length === 0) {
@@ -50,7 +47,6 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
       actionHint: 'wait_for_account_agent_inventory',
       source: 'runtime',
       message: '账户级授权已生效，但当前没有可用 Agent；后续新增 Agent 会自动出现在织羽中。',
-      ownerUserId: input.inventory.ownerUserId,
     });
   }
   if (localAgents.length > 1) {
@@ -59,7 +55,6 @@ export function resolveZhiyuRuntimeLocalAgentSelection(
       actionHint: 'select_runtime_local_agent',
       source: 'runtime',
       message: 'Runtime inventory has multiple LocalAgents; Zhiyu requires an explicit current selection.',
-      ownerUserId: input.inventory.ownerUserId,
     });
   }
 
@@ -71,8 +66,6 @@ function localAgentUnavailable(input: {
   readonly actionHint: string;
   readonly source: string;
   readonly message: string;
-  readonly ownerUserId?: string | null;
-  readonly runtimeSourceRef?: string | null;
 }): ZhiyuLocalAgentStatus {
   return {
     transport: 'electron-ipc',
@@ -82,9 +75,6 @@ function localAgentUnavailable(input: {
     source: input.source,
     message: input.message,
     agentHandle: null,
-    ownerUserId: input.ownerUserId ?? null,
-    runtimeSourceRef: input.runtimeSourceRef ?? null,
-    localAgentRef: null,
   };
 }
 
@@ -99,9 +89,6 @@ function localAgentSelected(
     source: 'runtime',
     message: '账户授权范围内的 Agent 已通过不透明 handle 选中。',
     agentHandle: agent.agentHandle,
-    ownerUserId: null,
-    runtimeSourceRef: null,
-    localAgentRef: null,
   };
 }
 

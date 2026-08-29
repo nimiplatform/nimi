@@ -246,14 +246,10 @@ const runtimeWireEnumShardDefinitions = [
     matches: (name) => name.startsWith('Agent'),
   },
   {
-    id: 'agent-companion',
-    path: 'sdks/typescript/runtime/wire-types/agent-companion-enums.ts',
-    exportPath: './agent-companion-enums',
-    matches: (name) => [
-      'Avatar',
-      'Companion',
-      'Conversation',
-    ].some((prefix) => name.startsWith(prefix)),
+    id: 'agent-conversation',
+    path: 'sdks/typescript/runtime/wire-types/agent-conversation-enums.ts',
+    exportPath: './agent-conversation-enums',
+    matches: (name) => name.startsWith('Conversation'),
   },
   {
     id: 'agent-delegation',

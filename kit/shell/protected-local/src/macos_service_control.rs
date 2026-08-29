@@ -21,14 +21,15 @@ use crate::macos_peer_trust::{
 };
 use crate::macos_supervised_process::SupervisedDevelopmentProcess;
 use crate::{
-    BundledAvatarRuntimeError, BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse,
-    BundledAvatarRuntimeStreamReceiver, DesktopAccountActionRequest,
-    DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
+    BundledAvatarRuntimeClientStreamRequest, BundledAvatarRuntimeError,
+    BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
+    DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
-    DesktopAccountProductStreamRequest, DesktopAccountProductUnaryRequest,
-    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
-    DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
-    DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest, DesktopFirstPartyProductError,
+    DesktopAccountProductClientStreamRequest, DesktopAccountProductStreamRequest,
+    DesktopAccountProductUnaryRequest, DesktopAccountRealmUnaryRequest,
+    DesktopAccountRealmUnaryResponse, DesktopAccountSessionEventReceiver,
+    DesktopAccountSessionEventsRequest, DesktopAccountSessionStatus,
+    DesktopAccountSessionStatusRequest, DesktopFirstPartyProductError,
     DesktopFirstPartyProductStreamReceiver, DesktopFirstPartyProductUnaryResponse,
     DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest, DeveloperModeStatus,
     FixedRuntimeServiceControl, LocalDevelopmentEndRunRequest, LocalDevelopmentLaunchOutcome,
@@ -127,6 +128,16 @@ impl NimiDesktopControl for MacOSDesktopControl {
         })
     }
 
+    fn invoke_bundled_avatar_client_stream(
+        &self,
+        request: BundledAvatarRuntimeClientStreamRequest,
+    ) -> ControlFuture<'_, BundledAvatarRuntimeResponse, BundledAvatarRuntimeError> {
+        Box::pin(async move {
+            crate::bundled_avatar::invoke_client_stream(self.bundled_avatar_channel()?, request)
+                .await
+        })
+    }
+
     fn invoke_machine_product_unary(
         &self,
         request: DesktopMachineProductUnaryRequest,
@@ -176,6 +187,20 @@ impl NimiDesktopControl for MacOSDesktopControl {
     {
         Box::pin(async move {
             crate::first_party_product::open_account_stream(
+                self.product_profile_channel()?,
+                request,
+            )
+            .await
+        })
+    }
+
+    fn invoke_account_product_client_stream(
+        &self,
+        request: DesktopAccountProductClientStreamRequest,
+    ) -> ControlFuture<'_, DesktopFirstPartyProductUnaryResponse, DesktopFirstPartyProductError>
+    {
+        Box::pin(async move {
+            crate::first_party_product::invoke_account_client_stream(
                 self.product_profile_channel()?,
                 request,
             )

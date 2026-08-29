@@ -2,14 +2,11 @@ import type {
   RuntimeAgentConversationProjectionState,
 } from '@nimiplatform/kit/features/chat/headless';
 import type {
-  AvatarLaunchHandoffResult,
   AvatarEmotionCue,
+  AvatarHostHandoffResult,
   RuntimeAgentEmotionId,
   RuntimeAgentEmotionIntensity,
 } from '@nimiplatform/kit/features/avatar/headless';
-import type {
-  NimiRuntimeAgentIdentitySafetyProjection,
-} from '@nimiplatform/sdk/runtime';
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import {
   createInitialZhiyuDelegationEvidence,
@@ -50,9 +47,7 @@ export type ZhiyuRuntimeAgentChatStatus = {
   readonly actionHint: string;
   readonly source: string;
   readonly message: string;
-  readonly ownerUserId: string | null;
-  readonly runtimeSourceRef: string | null;
-  readonly localAgentRef: string | null;
+  readonly agentHandle: NimiLocalAppAgentHandle | null;
   readonly conversationAnchorId: string | null;
   readonly requestId: string | null;
   readonly runtimeTurnId: string | null;
@@ -108,7 +103,6 @@ export type ZhiyuEvidence = {
     readonly actionHint: string;
     readonly source: string;
     readonly message: string;
-    readonly ownerUserId: string | null;
     readonly count: number;
     readonly localAgents: readonly {
       readonly agentHandle: NimiLocalAppAgentHandle;
@@ -124,9 +118,6 @@ export type ZhiyuEvidence = {
     readonly source: string;
     readonly message: string;
     readonly agentHandle: NimiLocalAppAgentHandle | null;
-    readonly ownerUserId: string | null;
-    readonly runtimeSourceRef: string | null;
-    readonly localAgentRef: string | null;
   };
   readonly conversation: {
     readonly transport: 'electron-ipc';
@@ -136,9 +127,6 @@ export type ZhiyuEvidence = {
     readonly source: string;
     readonly message: string;
     readonly agentHandle: NimiLocalAppAgentHandle | null;
-    readonly ownerUserId: string | null;
-    readonly runtimeSourceRef: string | null;
-    readonly localAgentRef: string | null;
     readonly conversationAnchorId: string | null;
     readonly threadId: string | null;
   };
@@ -150,22 +138,20 @@ export type ZhiyuEvidence = {
     readonly actionHint: string;
     readonly source: string;
     readonly message: string;
-    readonly ownerUserId: string | null;
-    readonly runtimeSourceRef: string | null;
-    readonly localAgentRef: string | null;
+    readonly agentHandle: NimiLocalAppAgentHandle | null;
     readonly observedAt: string | null;
     readonly stateUpdatedAt: string | null;
     readonly executionState: string | null;
     readonly statusText: string | null;
-    readonly activeWorldId: string | null;
-    readonly activeUserId: string | null;
+    readonly activityCategory: string | null;
+    readonly activityIntensity: string | null;
+    readonly postureActionFamily: string | null;
+    readonly postureInterruptMode: string | null;
     readonly currentEmotion: RuntimeAgentEmotionId | null;
     readonly currentEmotionId: RuntimeAgentEmotionId | null;
     readonly currentEmotionCue: AvatarEmotionCue | null;
     readonly currentEmotionIntensity: RuntimeAgentEmotionIntensity | null;
     readonly emotionViolation: ZhiyuCompanionEmotionViolation | null;
-    readonly participationMode: 'world' | 'dyadic' | 'idle' | 'not_projected';
-    readonly participationSource: string | null;
     readonly projectedFields: readonly string[];
     readonly unsupportedExplainabilityFields: readonly string[];
   };
@@ -198,13 +184,10 @@ export type ZhiyuEvidence = {
     readonly actionHint: string;
     readonly source: string;
     readonly message: string;
-    readonly ownerUserId: string | null;
-    readonly runtimeSourceRef: string | null;
-    readonly localAgentRef: string | null;
-    readonly configurationRef: string | null;
+    readonly agentHandle: NimiLocalAppAgentHandle | null;
+    readonly conversationAnchorId: string | null;
     readonly launchAvailable: boolean;
-    readonly manageAvailable: boolean;
-    readonly launchHandoff: AvatarLaunchHandoffResult | null;
+    readonly hostHandoff: AvatarHostHandoffResult | null;
   };
   readonly chat: ZhiyuRuntimeAgentChatStatus;
   readonly turn: {
@@ -214,9 +197,7 @@ export type ZhiyuEvidence = {
     readonly actionHint: string;
     readonly source: string;
     readonly message: string;
-    readonly ownerUserId: string | null;
-    readonly runtimeSourceRef: string | null;
-    readonly localAgentRef: string | null;
+    readonly agentHandle: NimiLocalAppAgentHandle | null;
     readonly conversationAnchorId: string | null;
     readonly requestId: string | null;
     readonly runtimeTurnId: string | null;
@@ -231,7 +212,6 @@ export type ZhiyuEvidence = {
     readonly source: string;
     readonly message: string;
   };
-  readonly identitySafety?: NimiRuntimeAgentIdentitySafetyProjection;
   readonly productRegions: readonly string[];
 };
 
@@ -277,7 +257,6 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       actionHint: 'list_runtime_local_agents',
       source: 'renderer',
       message: 'Runtime LocalAgent inventory has not been probed.',
-      ownerUserId: null,
       count: 0,
       localAgents: [],
     },
@@ -289,9 +268,6 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       source: 'renderer',
       message: 'LocalAgent discovery has not been probed.',
       agentHandle: null,
-      ownerUserId: null,
-      runtimeSourceRef: null,
-      localAgentRef: null,
     },
     conversation: {
       transport: 'electron-ipc',
@@ -301,9 +277,6 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       source: 'renderer',
       message: 'Runtime conversation home has not been probed.',
       agentHandle: null,
-      ownerUserId: null,
-      runtimeSourceRef: null,
-      localAgentRef: null,
       conversationAnchorId: null,
       threadId: null,
     },
@@ -315,22 +288,20 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       actionHint: 'probe_runtime_agent_state_projection',
       source: 'renderer',
       message: 'Runtime Agent companion state has not been probed.',
-      ownerUserId: null,
-      runtimeSourceRef: null,
-      localAgentRef: null,
+      agentHandle: null,
       observedAt: null,
       stateUpdatedAt: null,
       executionState: null,
       statusText: null,
-      activeWorldId: null,
-      activeUserId: null,
+      activityCategory: null,
+      activityIntensity: null,
+      postureActionFamily: null,
+      postureInterruptMode: null,
       currentEmotion: null,
       currentEmotionId: null,
       currentEmotionCue: null,
       currentEmotionIntensity: null,
       emotionViolation: null,
-      participationMode: 'not_projected',
-      participationSource: null,
       projectedFields: [],
       unsupportedExplainabilityFields: [
         'posture',
@@ -369,14 +340,11 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       reasonCode: 'not-probed',
       actionHint: 'probe_avatar_facade_projection',
       source: 'renderer',
-      message: 'Avatar facade presence has not been probed.',
-      ownerUserId: null,
-      runtimeSourceRef: null,
-      localAgentRef: null,
-      configurationRef: null,
+      message: 'Avatar Host handoff target has not been projected.',
+      agentHandle: null,
+      conversationAnchorId: null,
       launchAvailable: false,
-      manageAvailable: false,
-      launchHandoff: null,
+      hostHandoff: null,
     },
     chat: {
       transport: 'electron-ipc',
@@ -386,9 +354,7 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       actionHint: 'send_runtime_agent_turn',
       source: 'renderer',
       message: 'Runtime Agent chat has not started.',
-      ownerUserId: null,
-      runtimeSourceRef: null,
-      localAgentRef: null,
+      agentHandle: null,
       conversationAnchorId: null,
       requestId: null,
       runtimeTurnId: null,
@@ -409,9 +375,7 @@ export function createInitialZhiyuEvidence(): ZhiyuEvidence {
       actionHint: 'open_runtime_conversation_anchor',
       source: 'renderer',
       message: 'Runtime turn readiness has not been probed.',
-      ownerUserId: null,
-      runtimeSourceRef: null,
-      localAgentRef: null,
+      agentHandle: null,
       conversationAnchorId: null,
       requestId: null,
       runtimeTurnId: null,

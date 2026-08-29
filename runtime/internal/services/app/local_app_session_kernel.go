@@ -51,7 +51,15 @@ type localAppRuntimeSession struct {
 // @nimi-authority: rule.nimi.runtime.protected-session.r001
 func (s *Service) OpenLocalAppSessionProjection(ctx context.Context) (authservice.LocalAppSessionProjection, error) {
 	connection, ok := protectedlocal.LocalAppConnectionFromContext(ctx)
-	if s == nil || !ok || connection == nil || !connection.BootstrapAllowed() {
+	if s == nil || !ok || connection == nil {
+		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	if formalAppSessionFromContext(ctx) {
+		if current, exists, err := s.currentFormalAppSessionProjection(ctx, connection); exists || err != nil {
+			return current, err
+		}
+	}
+	if !connection.BootstrapAllowed() {
 		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
 	}
 	if _, installed := connection.InstalledRegistrationHandle(); installed {
@@ -84,6 +92,58 @@ func (s *Service) OpenLocalAppSessionProjection(ctx context.Context) (authservic
 		s.localAppSessionMu.Unlock()
 	})
 	return localAppAuthSessionProjection(next), nil
+}
+
+// currentFormalAppSessionProjection makes request-empty Open idempotent only
+// for a Runtime-bound formal App connection. Ordinary protected Apps retain
+// the one-shot bootstrap contract.
+func (s *Service) currentFormalAppSessionProjection(
+	ctx context.Context,
+	connection *protectedlocal.LocalAppConnection,
+) (authservice.LocalAppSessionProjection, bool, error) {
+	handle, bound := connection.Session()
+	if !bound {
+		return authservice.LocalAppSessionProjection{}, false, nil
+	}
+	s.localAppSessionMu.RLock()
+	session, exists := s.localAppSessions[connection]
+	s.localAppSessionMu.RUnlock()
+	if !exists || session.handle != handle {
+		return authservice.LocalAppSessionProjection{}, true, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	if !s.now().UTC().Before(session.expiresAt) {
+		connection.InvalidateSession(handle)
+		return authservice.LocalAppSessionProjection{}, true, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	invalidated, live := connection.SessionInvalidated(handle)
+	if !live {
+		return authservice.LocalAppSessionProjection{}, true, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	select {
+	case <-invalidated:
+		return authservice.LocalAppSessionProjection{}, true, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	default:
+	}
+	select {
+	case <-session.accountInvalidated:
+		connection.InvalidateSession(handle)
+		return authservice.LocalAppSessionProjection{}, true, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
+	default:
+	}
+	account, generation, _, accountOK := s.bindAuthenticatedRuntimeAccount(ctx)
+	if !accountOK || generation != session.accountGeneration || strings.TrimSpace(account.GetAccountId()) != session.accountID {
+		connection.InvalidateSession(handle)
+		return authservice.LocalAppSessionProjection{}, true, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
+	}
+	registration, err := s.localAppKernel.Registrations().GetByHandle(ctx, session.registrationHandle)
+	if err != nil || registration.State != localappkernel.RegistrationStateActive ||
+		registration.RegisteredAppSubject != session.registeredAppSubject ||
+		registration.SourceGeneration != session.sourceGeneration ||
+		registration.DeclarationGeneration != session.declarationGeneration {
+		connection.InvalidateSession(handle)
+		return authservice.LocalAppSessionProjection{}, true, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	return localAppAuthSessionProjection(session), true, nil
 }
 
 func (s *Service) RenewLocalAppSessionProjection(ctx context.Context) (authservice.LocalAppSessionProjection, error) {
@@ -400,6 +460,8 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		localappop.OperationConversationArtifactRead,
 		localappop.OperationConversationVoiceTranscribe,
 		localappop.OperationConversationVoiceRender,
+		localappop.OperationAgentEmbodimentSnapshotGet,
+		localappop.OperationAgentEmbodimentEventsSubscribe,
 		localappop.OperationAgentManagerSnapshotGet,
 		localappop.OperationAgentAIConfigGet,
 		localappop.OperationAgentAIConfigOverwrite,

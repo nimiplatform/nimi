@@ -1,11 +1,4 @@
-import {
-  createNimiBundledAvatarRuntimeClient,
-  type NimiBundledAvatarRuntimeClient,
-} from '@nimiplatform/sdk/runtime';
-import {
-  AccountSessionState,
-  type AccountSessionSnapshot,
-} from '@nimiplatform/sdk/runtime/wire-types';
+import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
 import { startAvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import type { AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
@@ -26,61 +19,17 @@ import {
   waitForAvatarLaunchContext,
 } from './app-bootstrap-helpers.js';
 import {
-  diagnosticEnumString,
   firstPartyUnavailableDetail,
   recordDriverStartFailure,
   runFirstPartyStage,
   runFirstPartyStageWithTimeout,
   setRuntimeBindingUnavailable,
 } from './app-bootstrap-first-party-diagnostics.js';
-import { consumeAvatarAccountSessionWithResync } from './account-session-resync.js';
 import { createAvatarSessionAgentBinding } from './avatar-session-agent-binding.js';
+import { getAvatarLocalAppClient } from './avatar-local-app-client.js';
+import { createAvatarDebugFacade } from '../avatar-debug/avatar-debug-facade.js';
 
 const AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS = 12_000;
-
-function accountStateUnavailableReason(snapshot: AccountSessionSnapshot): {
-  readonly status: 'unavailable' | 'expired' | 'stale';
-  readonly reason: string;
-  readonly actionHint: string;
-  readonly retryable: boolean;
-} | null {
-  switch (snapshot.state) {
-    case AccountSessionState.AUTHENTICATED:
-      return null;
-    case AccountSessionState.EXPIRED:
-    case AccountSessionState.REAUTH_REQUIRED:
-      return {
-        status: 'expired',
-        reason: 'runtime_account_reauth_required',
-        actionHint: 'reauthenticate_from_desktop_account_flow',
-        retryable: true,
-      };
-    case AccountSessionState.REFRESH_PENDING:
-    case AccountSessionState.SWITCHING:
-    case AccountSessionState.LOGGING_OUT:
-      return {
-        status: 'stale',
-        reason: 'runtime_account_transition_in_progress',
-        actionHint: 'wait_for_runtime_account_transition',
-        retryable: true,
-      };
-    case AccountSessionState.ANONYMOUS:
-    case AccountSessionState.LOGIN_PENDING:
-      return {
-        status: 'unavailable',
-        reason: 'runtime_account_session_anonymous',
-        actionHint: 'authenticate_from_desktop_account_flow',
-        retryable: true,
-      };
-    default:
-      return {
-        status: 'unavailable',
-        reason: 'runtime_account_carrier_unavailable',
-        actionHint: 'repair_runtime_account_session',
-        retryable: true,
-      };
-  }
-}
 
 export type { BootstrapHandle } from './app-bootstrap-types.js';
 
@@ -96,8 +45,6 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   let unsubscribeStatus = () => {};
   let unsubscribeBundle = () => {};
   let activeVoiceCapture: AvatarVoiceCaptureSession | null = null;
-  let accountStreamAbort: AbortController | null = null;
-  let accountStreamTask: Promise<void> | null = null;
   let cleanedUp = false;
   let getVoiceInputAvailability: BootstrapHandle['getVoiceInputAvailability'] = async () => ({
     available: false,
@@ -109,13 +56,10 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   let submitVoiceCaptureTurn: BootstrapHandle['submitVoiceCaptureTurn'] = async () => {
     throw new Error('Foreground voice requires a protected Desktop launch session');
   };
-  let cancelCompanionParticipation: BootstrapHandle['cancelCompanionParticipation'] = async () => {
+  let interruptConversationTurn: BootstrapHandle['interruptConversationTurn'] = async () => {
     throw new Error('Foreground voice requires a protected Desktop launch session');
   };
-  let interruptActiveTurn: BootstrapHandle['interruptActiveTurn'] = async () => {
-    throw new Error('Foreground voice requires a protected Desktop launch session');
-  };
-  let requestCompanionParticipation: BootstrapHandle['requestCompanionParticipation'] = async () => {
+  let sendConversationText: BootstrapHandle['sendConversationText'] = async () => {
     throw new Error('avatar companion input requires a protected Desktop launch session');
   };
   let avatarDebug: BootstrapHandle['avatarDebug'] = null;
@@ -128,10 +72,6 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
     unsubscribeBundle();
     activeVoiceCapture?.cancel();
     activeVoiceCapture = null;
-    accountStreamAbort?.abort();
-    accountStreamAbort = null;
-    await accountStreamTask?.catch(() => {});
-    accountStreamTask = null;
     shellUnlisten?.();
     carrier?.shutdown();
     carrier = null;
@@ -146,9 +86,8 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
     getVoiceInputAvailability,
     startVoiceCapture,
     submitVoiceCaptureTurn,
-    cancelCompanionParticipation,
-    interruptActiveTurn,
-    requestCompanionParticipation,
+    interruptConversationTurn,
+    sendConversationText,
     avatarDebug,
     async shutdown() {
       await cleanup();
@@ -195,68 +134,26 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       }
       const launchContext = await waitForAvatarLaunchContext(5_000);
       useAvatarStore.getState().setLaunchContext(launchContext);
-      let runtime: NimiBundledAvatarRuntimeClient | null = null;
+      let runtime: NimiLocalAppClient | null = null;
       const avatarInstanceId = launchContext.avatarInstanceId || `desktop-avatar-${ulid()}`;
       try {
-        runtime = createNimiBundledAvatarRuntimeClient();
-        await runFirstPartyStage('runtime_client_ready', () => runtime!.ready());
-        const accountSnapshot = await runFirstPartyStage(
-          'account_session_status',
-          () => runtime!.session.getSnapshot(),
+        runtime = getAvatarLocalAppClient();
+        const formalSession = await runFirstPartyStage(
+          'formal_app_session_status',
+          () => runtime!.auth.status(),
         );
-        const accountFailure = accountStateUnavailableReason(accountSnapshot);
-        if (accountFailure) {
-          useAvatarStore.getState().setRuntimeBindingStatus({
-            status: accountFailure?.status || 'unavailable',
-            reason: accountFailure?.reason || 'runtime_account_projection_unavailable',
-            reasonCode: diagnosticEnumString(accountSnapshot.reasonCode),
-            accountReasonCode: diagnosticEnumString(accountSnapshot.accountReasonCode),
-            actionHint: accountFailure?.actionHint || 'repair_runtime_account_session',
-            stage: 'account_session_status',
-            source: 'runtime',
-            retryable: accountFailure?.retryable ?? true,
+        if (!formalSession.sessionBound) {
+          throw Object.assign(new Error('Avatar formal App session is unavailable.'), {
+            reasonCode: formalSession.reasonCode,
+            actionHint: formalSession.actionHint,
+            retryable: formalSession.retryable,
           });
-          useAvatarStore.getState().setDriverStatus('stopped');
-          return buildHandle();
         }
-
-        accountStreamAbort = new AbortController();
-        accountStreamTask = consumeAvatarAccountSessionWithResync({
-          runtime,
-          initialSnapshot: accountSnapshot,
-          signal: accountStreamAbort.signal,
-          classifySnapshot: accountStateUnavailableReason,
-          onUnavailable(failure) {
-            useAvatarStore.getState().setRuntimeBindingStatus({
-              status: failure.status,
-              reason: failure.reason,
-              reasonCode: failure.reasonCode ?? null,
-              actionHint: failure.actionHint,
-              stage: failure.stage,
-              source: 'runtime',
-              retryable: failure.retryable,
-            });
-          },
-          onRecovered(snapshot) {
-            useAvatarStore.getState().setRuntimeBindingStatus({
-              status: 'active',
-              reasonCode: diagnosticEnumString(snapshot.reasonCode),
-              accountReasonCode: diagnosticEnumString(snapshot.accountReasonCode),
-              stage: 'account_session_resync',
-              source: 'runtime',
-            });
-          },
-        });
-
-        await runFirstPartyStage(
-          'realm_connectivity',
-          () => runtime!.realm.listPersonaCharacters(),
-        );
 
         const agentBinding = await runFirstPartyStage(
           'runtime_identity_binding',
           () => createAvatarSessionAgentBinding({
-            agents: runtime!.localAgentReferences,
+            agents: runtime!.agents,
             conversation: runtime!.conversation,
             conversationAnchorId: launchContext.conversationAnchorId,
             onHandleChange(agentHandle) {
@@ -268,7 +165,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
               state.setRuntimeConsumeContext({
                 avatarInstanceId,
                 conversationAnchorId: launchContext.conversationAnchorId,
-                agentId: agentHandle,
+                agentHandle,
                 worldId: state.consume.worldId ?? '',
               });
             },
@@ -294,7 +191,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         useAvatarStore.getState().setRuntimeBinding({
           avatarInstanceId,
           conversationAnchorId: conversationContext.conversationAnchorId,
-          agentId: agentBinding.current(),
+          agentHandle: agentBinding.current(),
           worldId: '',
         });
         if (!presentationSnapshot.profile?.avatarAssetRef || !presentationSnapshot.presentationRevision) {
@@ -318,10 +215,9 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
 
         const resolvedAvatarAsset = await runFirstPartyStage(
           'local_avatar_asset_manifest',
-          () => agentBinding.run((agentHandle) => resolveRuntimePresentationAvatarAsset({
-            agentHandle,
+          () => resolveRuntimePresentationAvatarAsset({
             presentationProfile: presentationSnapshot.profile,
-          })),
+          }),
         );
         const modelManifest = resolvedAvatarAsset.manifest;
         if (resolvedAvatarAsset.reference.backendKind !== 'live2d'
@@ -333,6 +229,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           kind: 'sdk',
           sdk: {
             conversation: runtime!.conversation,
+            embodiment: runtime!.embodiment,
             agentHandle: agentBinding.current(),
             runWithAgentHandle: agentBinding.run,
             conversationAnchorId: conversationContext.conversationAnchorId,
@@ -343,7 +240,8 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         }));
         getVoiceInputAvailability = async () => {
           try {
-            await runtime!.ready();
+            const session = await runtime!.auth.status();
+            if (!session.sessionBound) throw new Error('Avatar formal App session is unavailable.');
             await agentBinding.refresh();
             return { available: true, reason: null };
           } catch (error) {
@@ -354,7 +252,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           activeVoiceCapture = await startAvatarVoiceCaptureSession({ onLevelChange: input.onLevelChange });
           return activeVoiceCapture;
         };
-        requestCompanionParticipation = async (input) => {
+        sendConversationText = async (input) => {
           if (input.conversationAnchorId !== conversationContext.conversationAnchorId) {
             throw new Error('Avatar canonical Conversation binding changed before send.');
           }
@@ -379,23 +277,14 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           ));
           const transcript = readNormalizedString(transcription.text);
           if (!transcript) throw new Error('Foreground voice transcription returned an empty transcript.');
-          await requestCompanionParticipation({
-            agentId: input.agentId,
+          await sendConversationText({
+            agentHandle: input.agentHandle,
             conversationAnchorId: input.conversationAnchorId,
             text: transcript,
           });
           return { transcript };
         };
-        cancelCompanionParticipation = async (input) => {
-          if (input.conversationAnchorId !== conversationContext.conversationAnchorId) {
-            throw new Error('Avatar canonical Conversation binding changed before cancel.');
-          }
-          await agentBinding.run((agentHandle) => runtime!.conversation.interruptTurn({
-            agentHandle,
-            conversationAnchorId: conversationContext.conversationAnchorId,
-          }));
-        };
-        interruptActiveTurn = async (input) => {
+        interruptConversationTurn = async (input) => {
           if (input.conversationAnchorId !== conversationContext.conversationAnchorId) {
             throw new Error('Avatar canonical Conversation binding changed before interrupt.');
           }
@@ -415,6 +304,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             presentationRevision,
           },
         }));
+        avatarDebug = createAvatarDebugFacade(carrier);
       } catch (error) {
         carrier?.shutdown();
         carrier = null;
@@ -438,7 +328,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       useAvatarStore.getState().setRuntimeConsumeContext({
         avatarInstanceId: `fixture-avatar-${fixture.scenarioId}`,
         conversationAnchorId: `fixture-anchor-${fixture.scenarioId}`,
-        agentId: `fixture-agent-${fixture.scenarioId}`,
+        agentHandle: `fixture-agent-${fixture.scenarioId}`,
         worldId: fixture.activeWorldId,
       });
       driver = createDriver({

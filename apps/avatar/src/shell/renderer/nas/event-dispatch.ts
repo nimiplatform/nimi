@@ -53,10 +53,8 @@ function readRuntimeAdmissionRef(
 
 function hasRuntimePresentationEnvelope(detail: Record<string, unknown>): boolean {
   return Boolean(
-    readRuntimeAdmissionRef(detail, 'agent_id')
+    readRuntimeAdmissionRef(detail, 'agent_handle')
     && readRuntimeAdmissionRef(detail, 'conversation_anchor_id')
-    && readRuntimeAdmissionRef(detail, 'turn_id')
-    && readRuntimeAdmissionRef(detail, 'stream_id'),
   );
 }
 

@@ -31,7 +31,11 @@ export interface ZhiyuRendererProjectionPort {
     agentHandle: NimiLocalAppAgentHandle | null,
     conversationAnchorId: string | null,
   ): AgentCenterSession | null;
-  loadHome(input: { readonly selectedAgentHandle: NimiLocalAppAgentHandle | null }): Promise<ZhiyuHomeProjection>;
+  loadHome(input: {
+    readonly selectedAgentHandle: NimiLocalAppAgentHandle | null;
+    readonly previousConversationAnchorId: string | null;
+    readonly isCurrent: () => boolean;
+  }): Promise<ZhiyuHomeProjection>;
   loadAgentInventory(): Promise<ZhiyuEvidence['inventory']>;
   projectTurnReadiness(
     conversation: ZhiyuEvidence['conversation'],

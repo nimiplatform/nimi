@@ -3,11 +3,6 @@ import test from 'node:test';
 
 import {
   AgentEventType,
-  AvatarDebugProbeKind,
-  AvatarDebugRequestedBy,
-  CompanionParticipationStatus,
-  CompanionParticipationSurfaceKind,
-  CompanionParticipationTriggerSource,
   ConversationAnchorStatus,
   DelegatedApprovalDecision,
   HookAdmissionState,
@@ -22,7 +17,6 @@ import {
   createNimiHostRuntimeAgentDelegatedControlSurface,
   createNimiRuntimeAgentConsumeClient,
   createUnexpectedRuntimeAgentConsumeRuntime,
-  decodeNimiRuntimeAgentCompanionParticipationProjection,
   isNimiRuntimeAgentProjectionEvent,
   matchesNimiRuntimeAgentProjectionScope,
   nimiRuntimeAgentSnapshotCompletedTurnHasRecoverableContent,

@@ -83,7 +83,7 @@ const bundle: AgentDataBundle = {
   status_text: 'Idle',
   execution_state: 'IDLE',
   active_world_id: 'world',
-  active_user_id: 'user',
+  active_agent_handle: 'user',
   app: {
     namespace: 'avatar',
     surface_id: 'main',

@@ -12,8 +12,8 @@ import {
   validateSimulatorAppSource,
 } from '../lib/simulator-conformance.mjs';
 import {
-  validateSimulatorCanonicalKitExportsCandidate,
-} from '../lib/simulator-kit-export-resolution-candidate.mjs';
+  validateSimulatorCanonicalKitExports,
+} from '../lib/simulator-kit-export-resolution.mjs';
 
 const TEST_ROOT = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE_ROOT = path.join(TEST_ROOT, 'fixtures', 'simulator-valid');
@@ -98,20 +98,18 @@ test('per-instance resources remain allowed while module-scope resources fail cl
   expectFailure(root, 'SIM_MODULE_SCOPE_RESOURCE');
 }));
 
-test('adapter admits the renderer-invoked first-party Agent Center session factory only per instance', () => withFixture((root) => {
+test('adapter rejects the retired first-party Agent Center session factory at every scope', () => withFixture((root) => {
   append(root, 'src/simulator/adapter.ts', `
 import { createFirstPartyAgentCenterSession } from '@nimiplatform/kit/features/agent-center';
 export function projectAgentCenterSession(input: unknown) {
   return createFirstPartyAgentCenterSession(input);
 }
 `);
-  assert.equal(validateSimulatorAppSource(root).manifest.module_id, 'sample-app');
-  append(root, 'src/simulator/adapter.ts', 'export const sharedSession = createFirstPartyAgentCenterSession({});');
-  expectFailure(root, 'SIM_MODULE_SCOPE_RESOURCE');
+  expectFailure(root, 'SIM_ADAPTER_RESOURCE_FACTORY');
 }));
 
-test('candidate Simulator conformance resolves actual canonical Kit exports', async () => {
-  const resolved = await validateSimulatorCanonicalKitExportsCandidate({ kitPackageRoot: KIT_ROOT });
+test('Simulator conformance resolves actual canonical Kit exports', async () => {
+  const resolved = await validateSimulatorCanonicalKitExports({ kitPackageRoot: KIT_ROOT });
   assert.deepEqual(resolved.map(({ subpath, exports }) => ({ subpath, exports })), [{
     subpath: './features/agent-center',
     exports: ['createAppAgentCenterSession', 'AppAgentCenterEntry'],
@@ -123,7 +121,7 @@ test('candidate Simulator conformance resolves actual canonical Kit exports', as
     exports: ['AgentRealtimeEntry', 'createBrowserAgentRealtimeHostMediaPort'],
   }]);
   await assert.rejects(
-    () => validateSimulatorCanonicalKitExportsCandidate({
+    () => validateSimulatorCanonicalKitExports({
       kitPackageRoot: KIT_ROOT,
       requirements: [{
         subpath: './features/agent-center',

@@ -5,6 +5,7 @@ mod asset_reveal;
 mod bundled_avatar;
 mod carrier;
 mod desktop_account;
+mod desktop_client_stream;
 mod desktop_stream;
 mod desktop_unary;
 mod first_party_product;
@@ -100,8 +101,8 @@ pub use adapters::{
 };
 pub use asset_reveal::reveal_local_app_asset_target;
 pub use bundled_avatar::{
-    BundledAvatarRuntimeError, BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse,
-    BundledAvatarRuntimeStreamReceiver,
+    BundledAvatarRuntimeClientStreamRequest, BundledAvatarRuntimeError,
+    BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
 };
 pub use carrier::{
     DesktopControlFuture, LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
@@ -131,18 +132,20 @@ pub use carrier::{
     LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceRenderRequest,
     LocalAppConversationVoiceRenderResult, LocalAppConversationVoiceTranscriptionRequest,
     LocalAppConversationVoiceTranscriptionResult, LocalAppCurrentUserDisplay,
-    LocalAppCurrentUserStatus, LocalAppOperationError, LocalAppPersonaCharacterCreateRequest,
-    LocalAppPersonaCharacterDeleteRequest, LocalAppPersonaCharacterGetOwnedRequest,
-    LocalAppPersonaCharacterListOwnedRequest, LocalAppPersonaCharacterReplaceRequest,
-    LocalAppRealmChatListRequest, LocalAppRealmRealtimeAckRequest,
-    LocalAppRealmRealtimeChannelRequest, LocalAppRealmRealtimeOpenRequest,
-    LocalAppRealmRealtimeSubscribeRequest, LocalAppRealmRealtimeSubscriptionRequest,
-    LocalAppRealtimeSubscriptionReceiver, LocalAppReasonCode, LocalAppScenarioCancelRequest,
-    LocalAppScenarioExecuteRequest, LocalAppScenarioGetRequest,
-    LocalAppScenarioJobSubscribeRequest, LocalAppScenarioListVoiceAssetsRequest,
-    LocalAppScenarioReadArtifactRequest, LocalAppScenarioStreamReceiver,
-    LocalAppScenarioSubmitRequest, LocalAppScenarioUploadArtifactRequest, LocalAppSessionFuture,
-    LocalAppSessionState, LocalAppSessionStatus, LocalAppSharedAgentAIConfigLocalOptionsRequest,
+    LocalAppCurrentUserStatus, LocalAppEmbodimentSnapshotRequest,
+    LocalAppEmbodimentSubscribeRequest, LocalAppOperationError,
+    LocalAppPersonaCharacterCreateRequest, LocalAppPersonaCharacterDeleteRequest,
+    LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
+    LocalAppPersonaCharacterReplaceRequest, LocalAppRealmChatListRequest,
+    LocalAppRealmRealtimeAckRequest, LocalAppRealmRealtimeChannelRequest,
+    LocalAppRealmRealtimeOpenRequest, LocalAppRealmRealtimeSubscribeRequest,
+    LocalAppRealmRealtimeSubscriptionRequest, LocalAppRealtimeSubscriptionReceiver,
+    LocalAppReasonCode, LocalAppScenarioCancelRequest, LocalAppScenarioExecuteRequest,
+    LocalAppScenarioGetRequest, LocalAppScenarioJobSubscribeRequest,
+    LocalAppScenarioListVoiceAssetsRequest, LocalAppScenarioReadArtifactRequest,
+    LocalAppScenarioStreamReceiver, LocalAppScenarioSubmitRequest,
+    LocalAppScenarioUploadArtifactRequest, LocalAppSessionFuture, LocalAppSessionState,
+    LocalAppSessionStatus, LocalAppSharedAgentAIConfigLocalOptionsRequest,
     LocalAppSharedAgentAIConfigOverwriteRequest, LocalAppStorageDocument,
     LocalAppStorageReadRequest, LocalAppStorageRemoveRequest, LocalAppStorageRemoveResult,
     LocalAppStorageWriteRequest, LocalAppTextCandidateMessage, LocalAppTextCandidateRequest,
@@ -158,10 +161,10 @@ pub use desktop_account::{
     DesktopAccountSessionState, DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest,
 };
 pub use first_party_product::{
-    DesktopAccountProductStreamRequest, DesktopAccountProductUnaryRequest,
-    DesktopFirstPartyProductError, DesktopFirstPartyProductStreamReceiver,
-    DesktopFirstPartyProductUnaryResponse, DesktopMachineProductStreamRequest,
-    DesktopMachineProductUnaryRequest,
+    DesktopAccountProductClientStreamRequest, DesktopAccountProductStreamRequest,
+    DesktopAccountProductUnaryRequest, DesktopFirstPartyProductError,
+    DesktopFirstPartyProductStreamReceiver, DesktopFirstPartyProductUnaryResponse,
+    DesktopMachineProductStreamRequest, DesktopMachineProductUnaryRequest,
 };
 pub use first_party_profiles_generated::{
     DesktopAccountProductStreamMethod, DesktopAccountProductUnaryMethod,

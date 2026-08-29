@@ -17,6 +17,14 @@ test('Desktop Runtime account contract keeps protected scopes in a single shared
   assert.ok(DESKTOP_RUNTIME_PROTECTED_SCOPES.includes('runtime.agent.ai_config.write'));
   assert.ok(DESKTOP_RUNTIME_PROTECTED_SCOPES.includes('runtime.agent.read'));
   assert.ok(DESKTOP_RUNTIME_PROTECTED_SCOPES.includes('runtime.agent.write'));
+  assert.equal(
+    DESKTOP_RUNTIME_PROTECTED_SCOPES.some((scope) => scope.includes('avatar_debug')),
+    false,
+  );
+  assert.equal(
+    DESKTOP_RUNTIME_PROTECTED_SCOPES.some((scope) => scope.includes('companion_participation')),
+    false,
+  );
   assert.match(DESKTOP_RUNTIME_PROTECTED_SCOPE_SIGNATURE, /^s\d+-[a-z0-9]+$/u);
   assert.equal(
     DESKTOP_RUNTIME_PROTECTED_AUTHORIZATION_VERSION,

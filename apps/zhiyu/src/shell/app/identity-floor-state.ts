@@ -32,7 +32,11 @@ export type ZhiyuIdentityFloorState = {
 };
 
 export function projectZhiyuIdentityFloorState(evidence: ZhiyuEvidence): ZhiyuIdentityFloorState {
-  const safety = evidence.identitySafety;
+  const outputFirewall = evidence.delegation?.outputFirewall ?? {
+    state: 'not_projected' as const,
+    reasonCode: 'runtime-delegation-firewall-not-projected',
+  };
+  const delegationSource = evidence.delegation?.source ?? 'not_projected';
   const items: readonly ZhiyuIdentityFloorItem[] = [
     {
       key: 'platform',
@@ -68,25 +72,23 @@ export function projectZhiyuIdentityFloorState(evidence: ZhiyuEvidence): ZhiyuId
       key: 'output-firewall',
       title: '输出防火墙解释',
       owner: '委托输出防护',
-      state: outputFirewallItemState(safety?.outputFirewall?.state),
-      reasonCode: safety?.outputFirewall?.reasonCode ?? 'runtime-agent-output-firewall-verdict-not-projected',
-      actionHint: safety?.outputFirewall?.state && safety.outputFirewall.state !== 'not_projected'
+      state: outputFirewallItemState(outputFirewall.state),
+      reasonCode: outputFirewall.reasonCode,
+      actionHint: outputFirewall.state !== 'not_projected'
         ? 'inspect_runtime_delegation_firewall_projection'
         : 'admit_runtime_delegation_firewall_user_projection',
       sourceRule: 'K-DELEG-050..K-DELEG-084',
-      source: safety?.outputFirewall?.source ?? 'not_projected',
+      source: delegationSource,
     },
     {
       key: 'prompt-injection',
       title: '指令注入冲突状态',
       owner: '平台与本地服务',
-      state: safety?.promptInjection?.state === 'suppressed' ? 'blocked' : 'not-admitted',
-      reasonCode: safety?.promptInjection?.reasonCode ?? 'runtime-agent-firewall-threat-indicators-not-projected',
-      actionHint: safety?.promptInjection?.state === 'suppressed'
-        ? 'inspect_runtime_firewall_suppression'
-        : 'admit_identity_floor_conflict_projection',
+      state: 'not-admitted',
+      reasonCode: 'runtime-agent-firewall-threat-indicators-not-projected',
+      actionHint: 'admit_identity_floor_conflict_projection',
       sourceRule: 'P-AGID-*;K-DELEG-067',
-      source: safety?.promptInjection?.source ?? 'not_projected',
+      source: 'not_projected',
     },
   ];
 
@@ -111,7 +113,7 @@ export function projectZhiyuIdentityFloorState(evidence: ZhiyuEvidence): ZhiyuId
     blockedCount,
     notAdmittedCount,
     items,
-    unsupportedProjectionFields: safety?.unsupportedProjectionFields ?? [
+    unsupportedProjectionFields: [
       'firewallThreatIndicators',
       'firewallNormalizedOutputDiff',
     ],
@@ -119,12 +121,12 @@ export function projectZhiyuIdentityFloorState(evidence: ZhiyuEvidence): ZhiyuId
 }
 
 function outputFirewallItemState(
-  state: NonNullable<ZhiyuEvidence['identitySafety']>['outputFirewall']['state'] | undefined,
+  state: ZhiyuEvidence['delegation']['outputFirewall']['state'] | undefined,
 ): ZhiyuIdentityFloorItemState {
   switch (state) {
     case 'accepted':
       return 'ready';
-    case 'approval_required':
+    case 'approval-required':
     case 'blocked':
     case 'quarantined':
       return 'blocked';

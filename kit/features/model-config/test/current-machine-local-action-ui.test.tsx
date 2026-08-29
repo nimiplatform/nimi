@@ -2,6 +2,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type {
+  NimiAIConfigOptionsQuery,
   NimiAIConfigOptionsResult,
   NimiPortableAppAIConfig,
 } from '@nimiplatform/kit/core/sdk-contract';
@@ -41,6 +42,11 @@ function selectedResult(capabilityContract: string): Extract<NimiAIConfigOptions
     }],
     truncated: false,
   };
+}
+
+function localLoadoutCapabilityContract(query: NimiAIConfigOptionsQuery): string {
+  if (query.kind !== 'local-loadouts') throw new Error(`unexpected options query: ${query.kind}`);
+  return query.capabilityContract;
 }
 
 function committedOverwrite(): ModelConfigOverwrite {
@@ -112,7 +118,7 @@ describe('Model Config current-machine Local action candidate', () => {
   });
 
   it('reads only deduplicated explicit contracts and presents committed state after one CAS', async () => {
-    const listOptions = vi.fn<ModelConfigListOptions>(async (query) => selectedResult(query.capabilityContract));
+    const listOptions = vi.fn<ModelConfigListOptions>(async (query) => selectedResult(localLoadoutCapabilityContract(query)));
     const onOverwrite = committedOverwrite();
     const node = await renderAction({
       ...baseProps({ listOptions, onOverwrite }),
@@ -140,7 +146,7 @@ describe('Model Config current-machine Local action candidate', () => {
     const listOptions = vi.fn<ModelConfigListOptions>(async (query) => {
       attempts += 1;
       if (attempts === 1) throw new Error('Runtime unavailable');
-      return selectedResult(query.capabilityContract);
+      return selectedResult(localLoadoutCapabilityContract(query));
     });
     const onOverwrite = committedOverwrite();
     const node = await renderAction(baseProps({ listOptions, onOverwrite }));
@@ -155,7 +161,7 @@ describe('Model Config current-machine Local action candidate', () => {
   });
 
   it('preserves and presents returned conflict current state without retry', async () => {
-    const listOptions = vi.fn<ModelConfigListOptions>(async (query) => selectedResult(query.capabilityContract));
+    const listOptions = vi.fn<ModelConfigListOptions>(async (query) => selectedResult(localLoadoutCapabilityContract(query)));
     const current = {
       capabilities: [{
         capabilityContract: 'image.generate', requiredFeatures: [],
@@ -176,7 +182,7 @@ describe('Model Config current-machine Local action candidate', () => {
     let resolveOldRead!: (result: NimiAIConfigOptionsResult) => void;
     const listOptionsA = vi.fn<ModelConfigListOptions>(() => new Promise((resolve) => { resolveOldRead = resolve; }));
     const overwriteA = committedOverwrite();
-    const listOptionsB = vi.fn<ModelConfigListOptions>(async (query) => selectedResult(query.capabilityContract));
+    const listOptionsB = vi.fn<ModelConfigListOptions>(async (query) => selectedResult(localLoadoutCapabilityContract(query)));
     const overwriteB = committedOverwrite();
     const node = await renderAction(baseProps({ listOptions: listOptionsA, onOverwrite: overwriteA, ownerKey: 'app-ai-config:app.a' }));
 
@@ -198,7 +204,7 @@ describe('Model Config current-machine Local action candidate', () => {
     'app-ai-config:test.app',
     'shared-local-agent-ai-config',
   ])('binds the action only to the supplied manager for %s', async (ownerKey) => {
-    const activeList = vi.fn<ModelConfigListOptions>(async (query) => selectedResult(query.capabilityContract));
+    const activeList = vi.fn<ModelConfigListOptions>(async (query) => selectedResult(localLoadoutCapabilityContract(query)));
     const activeOverwrite = committedOverwrite();
     const otherList = vi.fn<ModelConfigListOptions>();
     const otherOverwrite = committedOverwrite();

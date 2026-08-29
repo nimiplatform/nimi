@@ -252,7 +252,7 @@ function AiModeSettings(props: {
           capabilities={appAIConfig.data?.config?.capabilities ?? (appAIConfig.isPending ? undefined : null)}
           revision={appAIConfig.data?.revision}
           effectiveSelections={appAIConfig.data?.effectiveSelections}
-          listOptions={(query) => sdk.accountProduct().appAIConfig(DESKTOP_NIMI_APP_ID).listOptions(query)}
+          listOptions={(query) => sdk.appProduct().aiConfig.listOptions(query)}
           loading={appAIConfig.isPending}
           loadError={appAIConfig.isError ? copy.loadFailed : null}
           onRetry={() => { void appAIConfig.refetch(); }}

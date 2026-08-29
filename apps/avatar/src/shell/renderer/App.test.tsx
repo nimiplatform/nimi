@@ -9,7 +9,7 @@ import { App } from './App.js';
 import { useAvatarStore } from './app-shell/app-store.js';
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
 import type { AgentDataBundle } from './driver/types.js';
-import { AvatarDebugProbeKind, AvatarDebugProbeStatus } from '@nimiplatform/sdk/runtime/wire-types';
+import { AvatarDebugProbeKind, AvatarDebugProbeStatus } from './avatar-debug/contract.js';
 import {
   AVATAR_SCALE_DEFAULT,
   AVATAR_SCALE_STORAGE_KEY,
@@ -27,12 +27,8 @@ const onLaunchContextUpdatedMock = vi.fn();
 const reloadAvatarShellMock = vi.fn();
 let tauriRuntime = false;
 type AvatarLaunchContextForTest = {
-  agentId: string;
   agentHandle: string;
   conversationAnchorId: string;
-  ownerUserId: string;
-  runtimeSourceRef: string;
-  localAgentRef: string;
   avatarInstanceId: string | null;
   launchSource: string | null;
 };
@@ -43,12 +39,8 @@ let launchContextUpdatedHandler:
 
 function launchContext(overrides: Partial<AvatarLaunchContextForTest> = {}): AvatarLaunchContextForTest {
   return {
-    agentId: 'local-agent:avatar-product-01',
     agentHandle: `agent_ref_${'a'.repeat(43)}`,
     conversationAnchorId: 'anchor-01',
-    ownerUserId: 'owner-product',
-    runtimeSourceRef: 'agent-product-01',
-    localAgentRef: 'local-agent:avatar-product-01',
     avatarInstanceId: 'avatar-instance-01',
     launchSource: 'desktop-avatar-launcher',
     ...overrides,
@@ -101,21 +93,6 @@ function createDeferred<T>() {
     reject = rej;
   });
   return { promise, resolve, reject };
-}
-
-function createCompanionParticipationProjection() {
-  return {
-    projectionId: 'companion_participation_projection/anchor-01/avatar_companion/turn-01',
-    agentId: 'local-agent:owner-product:agent-product-01',
-    surfaceKind: 'avatar_companion',
-    profileRef: 'runtime.agent.profile/local-agent:owner-product:agent-product-01',
-    roomOrchestrationRef: 'runtime.room_orchestration/avatar_companion_presentation_room',
-    triggerSource: 'user_explicit',
-    status: 'running',
-    auditRef: 'runtime.audit.companion_participation/anchor-01',
-    conversationAnchorId: 'anchor-01',
-    turnId: 'turn-01',
-  } as const;
 }
 
 function createBackendProjection() {
@@ -184,9 +161,8 @@ function createBootstrapHandle(input: {
       cancel: vi.fn(),
     })),
     submitVoiceCaptureTurn: vi.fn(async () => ({ transcript: 'voice hello' })),
-    cancelCompanionParticipation: vi.fn(async () => createCompanionParticipationProjection()),
-    interruptActiveTurn: vi.fn(async () => undefined),
-    requestCompanionParticipation: vi.fn(async () => createCompanionParticipationProjection()),
+    interruptConversationTurn: vi.fn(async () => undefined),
+    sendConversationText: vi.fn(async () => ({ turnId: 'turn-01' })),
     avatarDebug: input.avatarDebug ?? null,
     shutdown: vi.fn(async () => {}),
   } as unknown as BootstrapHandle;
@@ -200,44 +176,41 @@ function createAvatarDebugFacade(input: {
     snapshot: vi.fn(async () => {
       if (input.snapshotError) throw input.snapshotError;
       return {
-        agentId: 'local-agent:owner-product:agent-product-01',
-        conversationAnchorId: 'anchor-01',
         probeResults: [
           {
             probeId: 'probe-backend-load-01',
-            agentId: 'local-agent:owner-product:agent-product-01',
-            conversationAnchorId: 'anchor-01',
             probeKind: AvatarDebugProbeKind.BACKEND_LOAD,
             status: AvatarDebugProbeStatus.BLOCKED,
             observedAt: { seconds: '1770000000', nanos: 0 },
-            evidenceRefs: ['runtime.audit.avatar_debug.authorization/probe-backend-load-01'],
+            evidenceRefs: ['avatar-debug-evidence:probe-backend-load-01'],
             reasonCode: 'avatar_debug_session_not_available',
-            resultId: 'runtime-avatar-debug-result-01',
+            resultId: 'avatar-debug-result-01',
           },
         ],
         replayRefs: [
           {
             probeId: 'probe-backend-load-01',
-            replayRef: 'runtime.audit.avatar_debug.replay/probe-backend-load-01',
-            redactionState: 1,
-            visibility: 1,
+            replayRef: 'avatar-debug-replay:probe-backend-load-01',
+            redactionState: 'redacted' as const,
+            visibility: 'avatar-debug' as const,
             linkedAt: { seconds: '1770000000', nanos: 0 },
           },
         ],
         observedAt: { seconds: '1770000000', nanos: 0 },
-      } as Awaited<ReturnType<NonNullable<BootstrapHandle['avatarDebug']>['snapshot']>>;
+      };
     }),
-    requestProbe: vi.fn(async () => {
+    requestProbe: vi.fn(async (request) => {
       if (input.requestError) throw input.requestError;
       return {
-        request: undefined,
-        result: undefined,
-        replayRef: undefined,
-      } as Awaited<ReturnType<NonNullable<BootstrapHandle['avatarDebug']>['requestProbe']>>;
+        probeId: 'probe-requested',
+        probeKind: request.probeKind,
+        status: AvatarDebugProbeStatus.PASSED,
+        observedAt: { seconds: '1770000000', nanos: 0 },
+        evidenceRefs: [],
+        reasonCode: '',
+        resultId: 'avatar-debug-result-requested',
+      };
     }),
-    listProbeResults: vi.fn(async () => ({
-      probeResults: [],
-    }) as Awaited<ReturnType<NonNullable<BootstrapHandle['avatarDebug']>['listProbeResults']>>),
   };
 }
 
@@ -252,7 +225,7 @@ function seedReadyState(): void {
   useAvatarStore.getState().setRuntimeBinding({
     avatarInstanceId: 'avatar-instance-01',
     conversationAnchorId: 'anchor-01',
-    agentId: 'local-agent:owner-product:agent-product-01',
+    agentHandle: `agent_ref_${'a'.repeat(43)}`,
     worldId: 'world-01',
   });
   useAvatarStore.getState().setLaunchContext(launchContext());
@@ -277,7 +250,7 @@ function seedActiveTurnBundle(input: {
     status_text: '',
     execution_state: 'CHAT_ACTIVE',
     active_world_id: 'world-01',
-    active_user_id: 'user-01',
+    active_agent_handle: `agent_ref_${'a'.repeat(43)}`,
     app: {
       namespace: 'avatar',
       surface_id: 'avatar-window',
@@ -293,7 +266,7 @@ function seedActiveTurnBundle(input: {
       locale: 'en',
     },
     custom: {
-      agent_id: 'local-agent:owner-product:agent-product-01',
+      agent_handle: `agent_ref_${'a'.repeat(43)}`,
       conversation_anchor_id: 'anchor-01',
       active_turn_id: turnId,
       active_turn_stream_id: 'stream-active-01',
@@ -316,7 +289,7 @@ function seedMockDriverWithRuntimeBinding(): void {
   useAvatarStore.getState().setRuntimeBinding({
     avatarInstanceId: 'avatar-instance-01',
     conversationAnchorId: 'anchor-01',
-    agentId: 'local-agent:owner-product:agent-product-01',
+    agentHandle: `agent_ref_${'a'.repeat(43)}`,
     worldId: 'world-mock-default',
   });
   useAvatarStore.getState().setDriverStatus('running');
@@ -334,7 +307,7 @@ function seedMockDriverWithoutRuntimeBinding(): void {
   useAvatarStore.getState().setRuntimeConsumeContext({
     avatarInstanceId: 'fixture-avatar-default',
     conversationAnchorId: 'fixture-anchor-default',
-    agentId: 'fixture-agent-default',
+    agentHandle: 'fixture-agent-default',
     worldId: 'world-mock-default',
   });
   useAvatarStore.getState().setDriverStatus('running');
@@ -540,7 +513,7 @@ describe('App composition state machine', () => {
 
     act(() => {
       emitLaunchContextUpdated({
-        agentId: 'agent-product-02',
+        agentHandle: 'agent-product-02',
         avatarInstanceId: 'avatar-instance-02',
         launchSource: 'desktop-avatar-launcher',
       });

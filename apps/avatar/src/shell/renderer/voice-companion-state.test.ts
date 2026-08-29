@@ -13,7 +13,7 @@ import {
 
 const baseBinding = {
   conversationAnchorId: 'agent_anchor_01HZX',
-  agentId: 'agent-alpha',
+  agentHandle: 'agent-alpha',
 };
 
 describe('voice-companion-state — base slice', () => {

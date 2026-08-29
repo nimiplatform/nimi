@@ -302,7 +302,7 @@ export function deriveSurfacePresentation(
   }
 
   const readyAccent = readyPresence;
-  const agentValue = shortenId(input.consume.agentId || input.launchContext?.agentHandle);
+  const agentValue = shortenId(input.consume.agentHandle || input.launchContext?.agentHandle);
   return {
     tone: 'ready',
     badge: 'Live companion',

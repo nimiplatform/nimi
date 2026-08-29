@@ -121,7 +121,7 @@ export class MockDriver implements AgentDataDriver {
       status_text: bs.initial_status_text,
       execution_state: bs.initial_execution_state,
       active_world_id: bs.active_world_id,
-      active_user_id: bs.active_user_id,
+      active_agent_handle: bs.active_user_id,
       app: {
         namespace: 'avatar',
         surface_id: 'avatar-window',

@@ -16,11 +16,10 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-func TestProductionSubstrateIsInertForFirstPartyDesktopSDKAvatar(t *testing.T) {
+func TestProductionSubstrateIsInertForDesktopAndAvatarHosts(t *testing.T) {
 	svc := New(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	for name, caller := range map[string]*runtimev1.AccountCaller{
 		"desktop": firstPartyCaller(),
-		"sdk":     {AppId: "sdk.local", AppInstanceId: "sdk-1", Mode: runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP},
 		"avatar":  {AppId: "avatar", AppInstanceId: "avatar-1", Mode: runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST},
 	} {
 		t.Run(name, func(t *testing.T) {

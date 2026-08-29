@@ -27,7 +27,6 @@ const DENIED_COMMANDS = new Set<string>([
   NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.start'],
   NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.restart'],
   NIMI_STANDARD_SHELL_COMMANDS['config.set'],
-  NIMI_STANDARD_SHELL_COMMANDS['local-agent.runtimeTrustedCaller'],
 ]);
 
 function parentosFixturePolicy(): NimiElectronHostCommandPolicy {

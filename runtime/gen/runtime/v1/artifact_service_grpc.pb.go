@@ -35,8 +35,8 @@ const (
 // SDK consume surface: S-RUNTIME-111 (.nimi/spec/sdks/client-core.authority.yaml)
 //
 // Use cases:
-//   - avatar app reads voice_playback_requested.audio_artifact_id bytes for
-//     wLipSync analysis + AudioContext decode + speaker output.
+//   - eligible Apps read canonical Conversation voice artifacts for Host-local
+//     decode, playback, and App-owned lipsync analysis.
 //   - future image/video/music consumers read by id without depending on
 //     ScenarioJob (artifacts may originate from realtime, cache, streaming TTS,
 //     local voice engine, or user upload).
@@ -148,8 +148,8 @@ func (c *runtimeArtifactServiceClient) PutArtifact(ctx context.Context, in *PutA
 // SDK consume surface: S-RUNTIME-111 (.nimi/spec/sdks/client-core.authority.yaml)
 //
 // Use cases:
-//   - avatar app reads voice_playback_requested.audio_artifact_id bytes for
-//     wLipSync analysis + AudioContext decode + speaker output.
+//   - eligible Apps read canonical Conversation voice artifacts for Host-local
+//     decode, playback, and App-owned lipsync analysis.
 //   - future image/video/music consumers read by id without depending on
 //     ScenarioJob (artifacts may originate from realtime, cache, streaming TTS,
 //     local voice engine, or user upload).

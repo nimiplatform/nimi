@@ -8,8 +8,40 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"google.golang.org/grpc/status"
 )
+
+func TestInstalledFormalAppConnectionMayEnterCommonSessionOwner(t *testing.T) {
+	ownerDone := make(chan struct{})
+	connection, err := protectedlocal.EstablishInstalledAppConnection(
+		"lar_v1_formal_app",
+		localAppSessionAuthTestIdentifier(0x21),
+		localAppSessionAuthTestIdentifier(0x22),
+		protectedlocal.ProcessTuple{
+			OS:                          protectedlocal.OSWindows,
+			PID:                         4321,
+			CreationMarker:              "formal-app-start",
+			OSLoginSession:              "interactive-login",
+			SecurityPrincipal:           "interactive-user",
+			CanonicalExecutableIdentity: "formal-app-executable",
+			ExecutableDigest:            localAppSessionAuthTestIdentifier(0x23),
+			ExecutableTrustSetID:        "formal-app-release",
+		},
+		ownerDone,
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(connection.Revoke)
+	if !localAppSessionConnectionAllowed(connection) {
+		t.Fatal("installed formal App connection was rejected before the common session owner")
+	}
+	connection.Revoke()
+	if localAppSessionConnectionAllowed(connection) {
+		t.Fatal("revoked installed connection remained eligible")
+	}
+}
 
 func TestLocalAppSessionRequestsRejectCallerAssertions(t *testing.T) {
 	open := &runtimev1.OpenLocalAppSessionRequest{}
@@ -78,4 +110,12 @@ func assertNoLocalAppPrivateProjectionText(t testing.TB, value string) {
 func localAppSessionTestReason(err error) runtimev1.ReasonCode {
 	reason, _ := grpcerr.ExtractReasonCode(err)
 	return reason
+}
+
+func localAppSessionAuthTestIdentifier(value byte) protectedlocal.Identifier {
+	var identifier protectedlocal.Identifier
+	for index := range identifier {
+		identifier[index] = value
+	}
+	return identifier
 }

@@ -3,11 +3,6 @@ import test from 'node:test';
 
 import {
   AgentEventType,
-  AvatarDebugProbeKind,
-  AvatarDebugRequestedBy,
-  CompanionParticipationStatus,
-  CompanionParticipationSurfaceKind,
-  CompanionParticipationTriggerSource,
   ConversationAnchorStatus,
   DelegatedApprovalDecision,
   DelegatedProviderKind,
@@ -27,7 +22,6 @@ import {
   consumeContext,
   createNimiRuntimeAgentConsumeClient,
   createUnexpectedRuntimeAgentConsumeRuntime,
-  decodeNimiRuntimeAgentCompanionParticipationProjection,
   isNimiRuntimeAgentProjectionEvent,
   matchesNimiRuntimeAgentProjectionScope,
   nimiRuntimeAgentSnapshotCompletedTurnHasRecoverableContent,
@@ -140,65 +134,6 @@ test('Runtime Agent consume preserves reasoning delta text as a typed text-chann
   assert.equal(projected?.eventName, 'runtime.agent.turn.reasoning_delta');
   assert.equal(projected?.detail.text, 'checking Runtime route');
   assert.equal(projected?.timeline?.channel, 'text');
-});
-
-test('Runtime Agent consume preserves lipsync frame batch app-message detail', () => {
-  const payload = {
-    local_agent_ref: 'local-agent:test-owner-1-agent-1',
-    conversation_anchor_id: 'anchor-1',
-    turn_id: 'turn-1',
-    stream_id: 'stream-1',
-    detail: {
-      audio_artifact_id: 'runtime-agent-voice:final:turn-1:message-1:artifact-1',
-      frames: [
-        {
-          frame_sequence: 1,
-          offset_ms: 0,
-          duration_ms: 80,
-          mouth_open_y: 0.42,
-          audio_level: 0.77,
-        },
-      ],
-    },
-    runtime_timeline: {
-      turn_id: 'turn-1',
-      stream_id: 'stream-1',
-      channel: 'lipsync',
-      offset_ms: 16,
-      sequence: 1,
-      started_at_wall: '2026-06-05T00:00:00.000Z',
-      observed_at_wall: '2026-06-05T00:00:00.016Z',
-      timebase_owner: 'runtime',
-      projection_rule_id: 'K-AGCORE-051',
-      clock_basis: 'monotonic_with_wall_anchor',
-      provider_neutral: true,
-      app_local_authority: false,
-    },
-  };
-  const event: AppMessageEvent = {
-    eventType: 0,
-    sequence: '2',
-    fromAppId: 'runtime.agent',
-    toAppId: 'nimi.avatar',
-    subjectUserId: 'owner-1',
-    messageType: 'runtime.agent.presentation.lipsync_frame_batch',
-    payload: toNimiRuntimeProtoStruct(payload),
-  };
-
-  const projected = projectNimiRuntimeAgentAppMessageEvent(event);
-
-  assert.equal(projected?.eventName, 'runtime.agent.presentation.lipsync_frame_batch');
-  assert.equal(projected?.detail.audioArtifactId, 'runtime-agent-voice:final:turn-1:message-1:artifact-1');
-  assert.deepEqual(projected?.detail.frames, [
-    {
-      frameSequence: 1,
-      offsetMs: 0,
-      durationMs: 80,
-      mouthOpenY: 0.42,
-      audioLevel: 0.77,
-    },
-  ]);
-  assert.equal(projected?.timeline?.channel, 'lipsync');
 });
 
 test('Runtime Agent consume preserves structured app message payload for the turn runner', () => {

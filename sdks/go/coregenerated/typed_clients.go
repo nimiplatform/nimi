@@ -14,13 +14,12 @@ import (
 type AccountCallerMode string
 
 const (
-	ACCOUNTCALLERMODEUNSPECIFIED        AccountCallerMode = "ACCOUNT_CALLER_MODE_UNSPECIFIED"
-	ACCOUNTCALLERMODELOCALFIRSTPARTYAPP AccountCallerMode = "ACCOUNT_CALLER_MODE_LOCAL_FIRST_PARTY_APP"
-	ACCOUNTCALLERMODEDESKTOPSHELL       AccountCallerMode = "ACCOUNT_CALLER_MODE_DESKTOP_SHELL"
-	ACCOUNTCALLERMODEAVATARNATIVEHOST   AccountCallerMode = "ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST"
-	ACCOUNTCALLERMODEWEBCLOUD           AccountCallerMode = "ACCOUNT_CALLER_MODE_WEB_CLOUD"
-	ACCOUNTCALLERMODEEXTERNALPRINCIPAL  AccountCallerMode = "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL"
-	ACCOUNTCALLERMODELOCALAPP           AccountCallerMode = "ACCOUNT_CALLER_MODE_LOCAL_APP"
+	ACCOUNTCALLERMODEUNSPECIFIED       AccountCallerMode = "ACCOUNT_CALLER_MODE_UNSPECIFIED"
+	ACCOUNTCALLERMODEDESKTOPSHELL      AccountCallerMode = "ACCOUNT_CALLER_MODE_DESKTOP_SHELL"
+	ACCOUNTCALLERMODEAVATARNATIVEHOST  AccountCallerMode = "ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST"
+	ACCOUNTCALLERMODEWEBCLOUD          AccountCallerMode = "ACCOUNT_CALLER_MODE_WEB_CLOUD"
+	ACCOUNTCALLERMODEEXTERNALPRINCIPAL AccountCallerMode = "ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL"
+	ACCOUNTCALLERMODELOCALAPP          AccountCallerMode = "ACCOUNT_CALLER_MODE_LOCAL_APP"
 )
 
 type AccountEventType string
@@ -153,7 +152,6 @@ const (
 	AGENTEVENTTYPEBUDGET       AgentEventType = "AGENT_EVENT_TYPE_BUDGET"
 	AGENTEVENTTYPESTATE        AgentEventType = "AGENT_EVENT_TYPE_STATE"
 	AGENTEVENTTYPEPRESENTATION AgentEventType = "AGENT_EVENT_TYPE_PRESENTATION"
-	AGENTEVENTTYPEAVATARDEBUG  AgentEventType = "AGENT_EVENT_TYPE_AVATAR_DEBUG"
 	AGENTEVENTTYPEPROACTIVE    AgentEventType = "AGENT_EVENT_TYPE_PROACTIVE"
 )
 
@@ -393,6 +391,17 @@ const (
 	AGENTTURNCONTEXTTRUNCATIONREASONCONTEXTCAPACITYEXCEEDED AgentTurnContextTruncationReason = "AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED"
 )
 
+type AgentVoiceTimingPhase string
+
+const (
+	AGENTVOICETIMINGPHASEUNSPECIFIED AgentVoiceTimingPhase = "AGENT_VOICE_TIMING_PHASE_UNSPECIFIED"
+	AGENTVOICETIMINGPHASEACTIVE      AgentVoiceTimingPhase = "AGENT_VOICE_TIMING_PHASE_ACTIVE"
+	AGENTVOICETIMINGPHASECOMPLETED   AgentVoiceTimingPhase = "AGENT_VOICE_TIMING_PHASE_COMPLETED"
+	AGENTVOICETIMINGPHASEFAILED      AgentVoiceTimingPhase = "AGENT_VOICE_TIMING_PHASE_FAILED"
+	AGENTVOICETIMINGPHASEINTERRUPTED AgentVoiceTimingPhase = "AGENT_VOICE_TIMING_PHASE_INTERRUPTED"
+	AGENTVOICETIMINGPHASECANCELED    AgentVoiceTimingPhase = "AGENT_VOICE_TIMING_PHASE_CANCELED"
+)
+
 type AIConfigEffectiveState string
 
 const (
@@ -472,45 +481,6 @@ const (
 	APPSTORAGESTATEREADY              AppStorageState = "APP_STORAGE_STATE_READY"
 	APPSTORAGESTATEREPAIRREQUIRED     AppStorageState = "APP_STORAGE_STATE_REPAIR_REQUIRED"
 	APPSTORAGESTATESTORAGEUNAVAILABLE AppStorageState = "APP_STORAGE_STATE_STORAGE_UNAVAILABLE"
-)
-
-type AvatarDebugEventFamily string
-
-const (
-	AVATARDEBUGEVENTFAMILYUNSPECIFIED AvatarDebugEventFamily = "AVATAR_DEBUG_EVENT_FAMILY_UNSPECIFIED"
-)
-
-type AvatarDebugProbeKind string
-
-const (
-	AVATARDEBUGPROBEKINDUNSPECIFIED     AvatarDebugProbeKind = "AVATAR_DEBUG_PROBE_KIND_UNSPECIFIED"
-	AVATARDEBUGPROBEKINDBACKENDLOAD     AvatarDebugProbeKind = "AVATAR_DEBUG_PROBE_KIND_BACKEND_LOAD"
-	AVATARDEBUGPROBEKINDGENERATEDMOTION AvatarDebugProbeKind = "AVATAR_DEBUG_PROBE_KIND_GENERATED_MOTION"
-)
-
-type AvatarDebugProbeStatus string
-
-const (
-	AVATARDEBUGPROBESTATUSUNSPECIFIED AvatarDebugProbeStatus = "AVATAR_DEBUG_PROBE_STATUS_UNSPECIFIED"
-	AVATARDEBUGPROBESTATUSUNSUPPORTED AvatarDebugProbeStatus = "AVATAR_DEBUG_PROBE_STATUS_UNSUPPORTED"
-)
-
-type AvatarDebugReplayRedactionState string
-
-const (
-	AVATARDEBUGREPLAYREDACTIONSTATEUNSPECIFIED AvatarDebugReplayRedactionState = "AVATAR_DEBUG_REPLAY_REDACTION_STATE_UNSPECIFIED"
-)
-
-type AvatarDebugReplayVisibility string
-
-const (
-	AVATARDEBUGREPLAYVISIBILITYUNSPECIFIED AvatarDebugReplayVisibility = "AVATAR_DEBUG_REPLAY_VISIBILITY_UNSPECIFIED"
-)
-
-type AvatarDebugRequestedBy string
-
-const (
-	AVATARDEBUGREQUESTEDBYUNSPECIFIED AvatarDebugRequestedBy = "AVATAR_DEBUG_REQUESTED_BY_UNSPECIFIED"
 )
 
 type CallerKind string
@@ -639,38 +609,6 @@ const (
 	COGNITIONMEMORYTERMINALSTATEFAILED      CognitionMemoryTerminalState = "COGNITION_MEMORY_TERMINAL_STATE_FAILED"
 	COGNITIONMEMORYTERMINALSTATEINTERRUPTED CognitionMemoryTerminalState = "COGNITION_MEMORY_TERMINAL_STATE_INTERRUPTED"
 	COGNITIONMEMORYTERMINALSTATECANCELED    CognitionMemoryTerminalState = "COGNITION_MEMORY_TERMINAL_STATE_CANCELED"
-)
-
-type CompanionParticipationStatus string
-
-const (
-	COMPANIONPARTICIPATIONSTATUSUNSPECIFIED      CompanionParticipationStatus = "COMPANION_PARTICIPATION_STATUS_UNSPECIFIED"
-	COMPANIONPARTICIPATIONSTATUSIDLE             CompanionParticipationStatus = "COMPANION_PARTICIPATION_STATUS_IDLE"
-	COMPANIONPARTICIPATIONSTATUSADMISSIONPENDING CompanionParticipationStatus = "COMPANION_PARTICIPATION_STATUS_ADMISSION_PENDING"
-	COMPANIONPARTICIPATIONSTATUSBLOCKED          CompanionParticipationStatus = "COMPANION_PARTICIPATION_STATUS_BLOCKED"
-	COMPANIONPARTICIPATIONSTATUSRUNNING          CompanionParticipationStatus = "COMPANION_PARTICIPATION_STATUS_RUNNING"
-	COMPANIONPARTICIPATIONSTATUSCANDIDATEREADY   CompanionParticipationStatus = "COMPANION_PARTICIPATION_STATUS_CANDIDATE_READY"
-	COMPANIONPARTICIPATIONSTATUSCOMMITTEDBYOWNER CompanionParticipationStatus = "COMPANION_PARTICIPATION_STATUS_COMMITTED_BY_OWNER"
-	COMPANIONPARTICIPATIONSTATUSFAILED           CompanionParticipationStatus = "COMPANION_PARTICIPATION_STATUS_FAILED"
-	COMPANIONPARTICIPATIONSTATUSCANCELED         CompanionParticipationStatus = "COMPANION_PARTICIPATION_STATUS_CANCELED"
-)
-
-type CompanionParticipationSurfaceKind string
-
-const (
-	COMPANIONPARTICIPATIONSURFACEKINDUNSPECIFIED           CompanionParticipationSurfaceKind = "COMPANION_PARTICIPATION_SURFACE_KIND_UNSPECIFIED"
-	COMPANIONPARTICIPATIONSURFACEKINDAVATARCOMPANION       CompanionParticipationSurfaceKind = "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_COMPANION"
-	COMPANIONPARTICIPATIONSURFACEKINDDESKTOPCOMPANIONPANEL CompanionParticipationSurfaceKind = "COMPANION_PARTICIPATION_SURFACE_KIND_DESKTOP_COMPANION_PANEL"
-	COMPANIONPARTICIPATIONSURFACEKINDAVATARDEBUGWORKBENCH  CompanionParticipationSurfaceKind = "COMPANION_PARTICIPATION_SURFACE_KIND_AVATAR_DEBUG_WORKBENCH"
-)
-
-type CompanionParticipationTriggerSource string
-
-const (
-	COMPANIONPARTICIPATIONTRIGGERSOURCEUNSPECIFIED        CompanionParticipationTriggerSource = "COMPANION_PARTICIPATION_TRIGGER_SOURCE_UNSPECIFIED"
-	COMPANIONPARTICIPATIONTRIGGERSOURCEUSEREXPLICIT       CompanionParticipationTriggerSource = "COMPANION_PARTICIPATION_TRIGGER_SOURCE_USER_EXPLICIT"
-	COMPANIONPARTICIPATIONTRIGGERSOURCESCHEDULEDPROACTIVE CompanionParticipationTriggerSource = "COMPANION_PARTICIPATION_TRIGGER_SOURCE_SCHEDULED_PROACTIVE"
-	COMPANIONPARTICIPATIONTRIGGERSOURCEDOMAINEVENT        CompanionParticipationTriggerSource = "COMPANION_PARTICIPATION_TRIGGER_SOURCE_DOMAIN_EVENT"
 )
 
 type ConnectorAuthKind string
@@ -1898,17 +1836,6 @@ const (
 	VOICEOUTPUTMODETEXTONLY           VoiceOutputMode = "VOICE_OUTPUT_MODE_TEXT_ONLY"
 )
 
-type VoicePlaybackState string
-
-const (
-	VOICEPLAYBACKSTATEUNSPECIFIED VoicePlaybackState = "VOICE_PLAYBACK_STATE_UNSPECIFIED"
-	VOICEPLAYBACKSTATEACTIVE      VoicePlaybackState = "VOICE_PLAYBACK_STATE_ACTIVE"
-	VOICEPLAYBACKSTATECOMPLETED   VoicePlaybackState = "VOICE_PLAYBACK_STATE_COMPLETED"
-	VOICEPLAYBACKSTATEFAILED      VoicePlaybackState = "VOICE_PLAYBACK_STATE_FAILED"
-	VOICEPLAYBACKSTATEINTERRUPTED VoicePlaybackState = "VOICE_PLAYBACK_STATE_INTERRUPTED"
-	VOICEPLAYBACKSTATECANCELED    VoicePlaybackState = "VOICE_PLAYBACK_STATE_CANCELED"
-)
-
 type VoiceReferenceKind string
 
 const (
@@ -2124,13 +2051,6 @@ type AgentAutonomyState struct {
 	Revision           uint64               `json:"revision,omitempty"`
 }
 
-type AgentAvatarDebugEventDetail struct {
-	Family  AvatarDebugEventFamily           `json:"family,omitempty"`
-	Request *AvatarDebugProbeRequestEnvelope `json:"request,omitempty"`
-	Result  *AvatarDebugProbeResultEnvelope  `json:"result,omitempty"`
-	Replay  *AvatarDebugReplayRef            `json:"replay,omitempty"`
-}
-
 type AgentBudgetEventDetail struct {
 	BudgetExhausted bool   `json:"budget_exhausted,omitempty"`
 	RemainingTokens int64  `json:"remaining_tokens,omitempty"`
@@ -2166,7 +2086,6 @@ type AgentEvent struct {
 	Budget           *AgentBudgetEventDetail       `json:"budget,omitempty"`
 	State            *AgentStateEventDetail        `json:"state,omitempty"`
 	Presentation     *AgentPresentationEventDetail `json:"presentation,omitempty"`
-	AvatarDebug      *AgentAvatarDebugEventDetail  `json:"avatar_debug,omitempty"`
 	Proactive        *AgentProactiveEventDetail    `json:"proactive,omitempty"`
 	LocalAgentRef    string                        `json:"local_agent_ref,omitempty"`
 	OwnerUserId      string                        `json:"owner_user_id,omitempty"`
@@ -2247,20 +2166,14 @@ type AgentPresentationEventDetail struct {
 	LookatHasZ                   bool                         `json:"lookat_has_z,omitempty"`
 	AudioArtifactId              string                       `json:"audio_artifact_id,omitempty"`
 	AudioMimeType                string                       `json:"audio_mime_type,omitempty"`
-	VoiceStreamId                string                       `json:"voice_stream_id,omitempty"`
-	ChunkTransportRef            string                       `json:"chunk_transport_ref,omitempty"`
 	MessageId                    string                       `json:"message_id,omitempty"`
-	ChunkSequence                uint64                       `json:"chunk_sequence,omitempty"`
-	FinalChunk                   bool                         `json:"final_chunk,omitempty"`
-	VoiceOutputMode              VoiceOutputMode              `json:"voice_output_mode,omitempty"`
-	VoicePlaybackState           VoicePlaybackState           `json:"voice_playback_state,omitempty"`
-	PlaybackTarget               string                       `json:"playback_target,omitempty"`
-	FinalArtifact                bool                         `json:"final_artifact,omitempty"`
+	ArtifactSequence             uint64                       `json:"artifact_sequence,omitempty"`
+	ArtifactComplete             bool                         `json:"artifact_complete,omitempty"`
+	VoiceTimingPhase             AgentVoiceTimingPhase        `json:"voice_timing_phase,omitempty"`
 	TerminalReason               string                       `json:"terminal_reason,omitempty"`
 	Reason                       string                       `json:"reason,omitempty"`
 	DurationMs                   int64                        `json:"duration_ms,omitempty"`
 	DeadlineOffsetMs             int64                        `json:"deadline_offset_ms,omitempty"`
-	FinalArtifactId              string                       `json:"final_artifact_id,omitempty"`
 }
 
 type AgentPresentationProfile struct {
@@ -2463,23 +2376,6 @@ type AgentTurnContextTruncationSummary struct {
 	Reason             AgentTurnContextTruncationReason `json:"reason,omitempty"`
 	OmittedItemCount   uint32                           `json:"omitted_item_count,omitempty"`
 	TruncatedItemCount uint32                           `json:"truncated_item_count,omitempty"`
-}
-
-type AgentVoiceStreamEvent struct {
-	VoiceStreamId        string             `json:"voice_stream_id,omitempty"`
-	ConversationAnchorId string             `json:"conversation_anchor_id,omitempty"`
-	TurnId               string             `json:"turn_id,omitempty"`
-	StreamId             string             `json:"stream_id,omitempty"`
-	MessageId            string             `json:"message_id,omitempty"`
-	ChunkSequence        uint64             `json:"chunk_sequence,omitempty"`
-	Chunk                []byte             `json:"chunk,omitempty"`
-	MimeType             string             `json:"mime_type,omitempty"`
-	VoiceOutputMode      VoiceOutputMode    `json:"voice_output_mode,omitempty"`
-	PlaybackTarget       string             `json:"playback_target,omitempty"`
-	Terminal             bool               `json:"terminal,omitempty"`
-	VoicePlaybackState   VoicePlaybackState `json:"voice_playback_state,omitempty"`
-	TerminalReason       string             `json:"terminal_reason,omitempty"`
-	ReplayTruncated      bool               `json:"replay_truncated,omitempty"`
 }
 
 type AiRealtimeAudioFormat struct {
@@ -2750,53 +2646,6 @@ type AuditExportChunk struct {
 	MimeType string `json:"mime_type,omitempty"`
 }
 
-type AvatarDebugProbeRequestEnvelope struct {
-	ProbeId              string                 `json:"probe_id,omitempty"`
-	AgentId              string                 `json:"agent_id,omitempty"`
-	ConversationAnchorId string                 `json:"conversation_anchor_id,omitempty"`
-	ProbeKind            AvatarDebugProbeKind   `json:"probe_kind,omitempty"`
-	RequestedAt          string                 `json:"requested_at,omitempty"`
-	RequestedBy          AvatarDebugRequestedBy `json:"requested_by,omitempty"`
-	TurnId               string                 `json:"turn_id,omitempty"`
-	StreamId             string                 `json:"stream_id,omitempty"`
-	AvatarInstanceId     string                 `json:"avatar_instance_id,omitempty"`
-	RuntimeReplayRef     string                 `json:"runtime_replay_ref,omitempty"`
-	ReplayRequested      bool                   `json:"replay_requested,omitempty"`
-}
-
-type AvatarDebugProbeResultEnvelope struct {
-	ProbeId              string                 `json:"probe_id,omitempty"`
-	AgentId              string                 `json:"agent_id,omitempty"`
-	ConversationAnchorId string                 `json:"conversation_anchor_id,omitempty"`
-	ProbeKind            AvatarDebugProbeKind   `json:"probe_kind,omitempty"`
-	Status               AvatarDebugProbeStatus `json:"status,omitempty"`
-	ObservedAt           string                 `json:"observed_at,omitempty"`
-	EvidenceRefs         []string               `json:"evidence_refs,omitempty"`
-	ReasonCode           string                 `json:"reason_code,omitempty"`
-	ResultId             string                 `json:"result_id,omitempty"`
-}
-
-type AvatarDebugReplayRef struct {
-	ProbeId        string                          `json:"probe_id,omitempty"`
-	ReplayRef      string                          `json:"replay_ref,omitempty"`
-	RedactionState AvatarDebugReplayRedactionState `json:"redaction_state,omitempty"`
-	Visibility     AvatarDebugReplayVisibility     `json:"visibility,omitempty"`
-	LinkedAt       string                          `json:"linked_at,omitempty"`
-}
-
-type AvatarLiveInstanceBinding struct {
-	AvatarInstanceId     string `json:"avatar_instance_id,omitempty"`
-	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
-	AgentId              string `json:"agent_id,omitempty"`
-	SubjectUserId        string `json:"subject_user_id,omitempty"`
-	RegisteredAt         string `json:"registered_at,omitempty"`
-	UpdatedAt            string `json:"updated_at,omitempty"`
-	LocalAgentRef        string `json:"local_agent_ref,omitempty"`
-	OwnerUserId          string `json:"owner_user_id,omitempty"`
-	RuntimeSourceRef     string `json:"runtime_source_ref,omitempty"`
-	CallerAppId          string `json:"caller_app_id,omitempty"`
-}
-
 type BeginLoginRequest struct {
 	Caller          *AccountCaller `json:"caller,omitempty"`
 	RedirectUri     string         `json:"redirect_uri,omitempty"`
@@ -2828,23 +2677,6 @@ type BindLocalAppProcessResponse struct {
 	LaunchId     []byte     `json:"launch_id,omitempty"`
 	BindDeadline string     `json:"bind_deadline,omitempty"`
 	ReasonCode   ReasonCode `json:"reason_code,omitempty"`
-}
-
-type CancelCompanionParticipationRequest struct {
-	Context              *AgentRequestContext                `json:"context,omitempty"`
-	AgentId              string                              `json:"agent_id,omitempty"`
-	ConversationAnchorId string                              `json:"conversation_anchor_id,omitempty"`
-	SurfaceKind          CompanionParticipationSurfaceKind   `json:"surface_kind,omitempty"`
-	TriggerSource        CompanionParticipationTriggerSource `json:"trigger_source,omitempty"`
-	ProfileRef           string                              `json:"profile_ref,omitempty"`
-	ProjectionId         string                              `json:"projection_id,omitempty"`
-	TurnId               string                              `json:"turn_id,omitempty"`
-	Reason               string                              `json:"reason,omitempty"`
-	RequestId            string                              `json:"request_id,omitempty"`
-}
-
-type CancelCompanionParticipationResponse struct {
-	Projection *CompanionParticipationProjection `json:"projection,omitempty"`
 }
 
 type CancelHookRequest struct {
@@ -3390,24 +3222,6 @@ type CommitLocalAppAgentPresentationRequest struct {
 	ImportedAssets               []AgentPresentationAssetMaterial `json:"imported_assets,omitempty"`
 }
 
-type CompanionParticipationProjection struct {
-	ProjectionId         string                              `json:"projection_id,omitempty"`
-	AgentId              string                              `json:"agent_id,omitempty"`
-	SurfaceKind          CompanionParticipationSurfaceKind   `json:"surface_kind,omitempty"`
-	ProfileRef           string                              `json:"profile_ref,omitempty"`
-	TriggerSource        CompanionParticipationTriggerSource `json:"trigger_source,omitempty"`
-	Status               CompanionParticipationStatus        `json:"status,omitempty"`
-	CandidateRef         string                              `json:"candidate_ref,omitempty"`
-	CommitRef            string                              `json:"commit_ref,omitempty"`
-	RefusalReason        string                              `json:"refusal_reason,omitempty"`
-	PresentationRef      string                              `json:"presentation_ref,omitempty"`
-	AuditRef             string                              `json:"audit_ref,omitempty"`
-	ObservedAt           string                              `json:"observed_at,omitempty"`
-	ConversationAnchorId string                              `json:"conversation_anchor_id,omitempty"`
-	TurnId               string                              `json:"turn_id,omitempty"`
-	StreamId             string                              `json:"stream_id,omitempty"`
-}
-
 type CompleteLoginRequest struct {
 	Caller                 *AccountCaller `json:"caller,omitempty"`
 	LoginAttemptId         string         `json:"login_attempt_id,omitempty"`
@@ -3923,33 +3737,6 @@ type GetAppStorageResponse struct {
 	Projection *AppStorageProjection `json:"projection,omitempty"`
 }
 
-type GetAvatarDebugReplayRequest struct {
-	Context              *AgentRequestContext `json:"context,omitempty"`
-	AgentId              string               `json:"agent_id,omitempty"`
-	ProbeId              string               `json:"probe_id,omitempty"`
-	ConversationAnchorId string               `json:"conversation_anchor_id,omitempty"`
-}
-
-type GetAvatarDebugReplayResponse struct {
-	Request   *AvatarDebugProbeRequestEnvelope `json:"request,omitempty"`
-	Result    *AvatarDebugProbeResultEnvelope  `json:"result,omitempty"`
-	ReplayRef *AvatarDebugReplayRef            `json:"replay_ref,omitempty"`
-}
-
-type GetAvatarDebugSnapshotRequest struct {
-	Context              *AgentRequestContext `json:"context,omitempty"`
-	AgentId              string               `json:"agent_id,omitempty"`
-	ConversationAnchorId string               `json:"conversation_anchor_id,omitempty"`
-}
-
-type GetAvatarDebugSnapshotResponse struct {
-	AgentId              string                           `json:"agent_id,omitempty"`
-	ConversationAnchorId string                           `json:"conversation_anchor_id,omitempty"`
-	ProbeResults         []AvatarDebugProbeResultEnvelope `json:"probe_results,omitempty"`
-	ReplayRefs           []AvatarDebugReplayRef           `json:"replay_refs,omitempty"`
-	ObservedAt           string                           `json:"observed_at,omitempty"`
-}
-
 type GetCatalogModelDetailRequest struct {
 	Provider string `json:"provider,omitempty"`
 	ModelId  string `json:"model_id,omitempty"`
@@ -3959,20 +3746,6 @@ type GetCatalogModelDetailResponse struct {
 	Provider *ModelCatalogProviderEntry `json:"provider,omitempty"`
 	Model    *CatalogModelDetail        `json:"model,omitempty"`
 	Warnings []CatalogOverlayWarning    `json:"warnings,omitempty"`
-}
-
-type GetCompanionParticipationProjectionRequest struct {
-	Context              *AgentRequestContext                `json:"context,omitempty"`
-	AgentId              string                              `json:"agent_id,omitempty"`
-	ConversationAnchorId string                              `json:"conversation_anchor_id,omitempty"`
-	SurfaceKind          CompanionParticipationSurfaceKind   `json:"surface_kind,omitempty"`
-	TriggerSource        CompanionParticipationTriggerSource `json:"trigger_source,omitempty"`
-	ProfileRef           string                              `json:"profile_ref,omitempty"`
-	RequestId            string                              `json:"request_id,omitempty"`
-}
-
-type GetCompanionParticipationProjectionResponse struct {
-	Projection *CompanionParticipationProjection `json:"projection,omitempty"`
 }
 
 type GetConnectorRequest struct {
@@ -4290,21 +4063,6 @@ type InstallModelFromPlanResponse struct {
 	ModelAsset *ModelAssetRecord `json:"model_asset,omitempty"`
 }
 
-type InterruptAgentVoicePlaybackRequest struct {
-	Context              *AgentRequestContext `json:"context,omitempty"`
-	VoiceStreamId        string               `json:"voice_stream_id,omitempty"`
-	ConversationAnchorId string               `json:"conversation_anchor_id,omitempty"`
-	TurnId               string               `json:"turn_id,omitempty"`
-	Reason               string               `json:"reason,omitempty"`
-}
-
-type InterruptAgentVoicePlaybackResponse struct {
-	VoiceStreamId      string             `json:"voice_stream_id,omitempty"`
-	VoiceOutputMode    VoiceOutputMode    `json:"voice_output_mode,omitempty"`
-	VoicePlaybackState VoicePlaybackState `json:"voice_playback_state,omitempty"`
-	TerminalReason     string             `json:"terminal_reason,omitempty"`
-}
-
 type InterruptLocalAppAgentRealtimeOutputRequest struct {
 	RealtimeSessionId  string `json:"realtime_session_id,omitempty"`
 	Generation         uint64 `json:"generation,omitempty"`
@@ -4414,17 +4172,6 @@ type ListAuditEventsRequest struct {
 type ListAuditEventsResponse struct {
 	Events        []AuditEventRecord `json:"events,omitempty"`
 	NextPageToken string             `json:"next_page_token,omitempty"`
-}
-
-type ListAvatarDebugProbeResultsRequest struct {
-	Context              *AgentRequestContext `json:"context,omitempty"`
-	AgentId              string               `json:"agent_id,omitempty"`
-	ConversationAnchorId string               `json:"conversation_anchor_id,omitempty"`
-	ProbeKind            AvatarDebugProbeKind `json:"probe_kind,omitempty"`
-}
-
-type ListAvatarDebugProbeResultsResponse struct {
-	ProbeResults []AvatarDebugProbeResultEnvelope `json:"probe_results,omitempty"`
 }
 
 type ListCatalogProviderModelsRequest struct {
@@ -5314,7 +5061,7 @@ type LocalAppEmbodimentVoiceTiming struct {
 	DurationMs       int64                        `json:"duration_ms,omitempty"`
 	DeadlineOffsetMs int64                        `json:"deadline_offset_ms,omitempty"`
 	TurnRef          string                       `json:"turn_ref,omitempty"`
-	VoiceRef         string                       `json:"voice_ref,omitempty"`
+	CorrelationRef   string                       `json:"correlation_ref,omitempty"`
 }
 
 type LocalAppImageGenerateOutput struct {
@@ -6036,22 +5783,6 @@ type MusicGenerateScenarioSpec struct {
 	Instrumental    bool   `json:"instrumental,omitempty"`
 }
 
-type OpenCompanionParticipationReplayRequest struct {
-	Context              *AgentRequestContext                `json:"context,omitempty"`
-	AgentId              string                              `json:"agent_id,omitempty"`
-	ConversationAnchorId string                              `json:"conversation_anchor_id,omitempty"`
-	SurfaceKind          CompanionParticipationSurfaceKind   `json:"surface_kind,omitempty"`
-	TriggerSource        CompanionParticipationTriggerSource `json:"trigger_source,omitempty"`
-	ProfileRef           string                              `json:"profile_ref,omitempty"`
-	ProjectionId         string                              `json:"projection_id,omitempty"`
-	RequestId            string                              `json:"request_id,omitempty"`
-}
-
-type OpenCompanionParticipationReplayResponse struct {
-	ReplayRef  string                            `json:"replay_ref,omitempty"`
-	Projection *CompanionParticipationProjection `json:"projection,omitempty"`
-}
-
 type OpenConversationAnchorRequest struct {
 	Context          *AgentRequestContext `json:"context,omitempty"`
 	AgentId          string               `json:"agent_id,omitempty"`
@@ -6590,17 +6321,6 @@ type RebindLocalAppProcessResponse struct {
 type ReconcileProductControlFirstRunSetupStateRequest struct {
 }
 
-type RegisterAvatarLiveInstanceBindingRequest struct {
-	Context              *AgentRequestContext `json:"context,omitempty"`
-	AvatarInstanceId     string               `json:"avatar_instance_id,omitempty"`
-	ConversationAnchorId string               `json:"conversation_anchor_id,omitempty"`
-}
-
-type RegisterAvatarLiveInstanceBindingResponse struct {
-	Binding  *AvatarLiveInstanceBinding  `json:"binding,omitempty"`
-	Snapshot *ConversationAnchorSnapshot `json:"snapshot,omitempty"`
-}
-
 type RegisterExternalPrincipalRequest struct {
 	AppId                 string                `json:"app_id,omitempty"`
 	ExternalPrincipalId   string                `json:"external_principal_id,omitempty"`
@@ -6693,43 +6413,6 @@ type RepairLocalEnvironmentDependencyResponse struct {
 	Job *LocalEnvironmentDependencyJob `json:"job,omitempty"`
 }
 
-type RequestAvatarDebugProbeRequest struct {
-	Context              *AgentRequestContext   `json:"context,omitempty"`
-	AgentId              string                 `json:"agent_id,omitempty"`
-	ConversationAnchorId string                 `json:"conversation_anchor_id,omitempty"`
-	ProbeKind            AvatarDebugProbeKind   `json:"probe_kind,omitempty"`
-	RequestedBy          AvatarDebugRequestedBy `json:"requested_by,omitempty"`
-	ProbeId              string                 `json:"probe_id,omitempty"`
-	TurnId               string                 `json:"turn_id,omitempty"`
-	StreamId             string                 `json:"stream_id,omitempty"`
-	AvatarInstanceId     string                 `json:"avatar_instance_id,omitempty"`
-	ReplayRequested      bool                   `json:"replay_requested,omitempty"`
-}
-
-type RequestAvatarDebugProbeResponse struct {
-	Request   *AvatarDebugProbeRequestEnvelope `json:"request,omitempty"`
-	Result    *AvatarDebugProbeResultEnvelope  `json:"result,omitempty"`
-	ReplayRef *AvatarDebugReplayRef            `json:"replay_ref,omitempty"`
-}
-
-type RequestCompanionParticipationRequest struct {
-	Context              *AgentRequestContext                `json:"context,omitempty"`
-	AgentId              string                              `json:"agent_id,omitempty"`
-	ConversationAnchorId string                              `json:"conversation_anchor_id,omitempty"`
-	SurfaceKind          CompanionParticipationSurfaceKind   `json:"surface_kind,omitempty"`
-	TriggerSource        CompanionParticipationTriggerSource `json:"trigger_source,omitempty"`
-	ProfileRef           string                              `json:"profile_ref,omitempty"`
-	RequestId            string                              `json:"request_id,omitempty"`
-	Text                 string                              `json:"text,omitempty"`
-	ThreadId             string                              `json:"thread_id,omitempty"`
-	WorldId              string                              `json:"world_id,omitempty"`
-	MaxOutputTokens      int32                               `json:"max_output_tokens,omitempty"`
-}
-
-type RequestCompanionParticipationResponse struct {
-	Projection *CompanionParticipationProjection `json:"projection,omitempty"`
-}
-
 type RequestPresenceVerificationRequest struct {
 	Caller     *AccountCaller `json:"caller,omitempty"`
 	Purpose    string         `json:"purpose,omitempty"`
@@ -6754,16 +6437,6 @@ type RequestRuntimeRestartRequest struct {
 type RequestRuntimeRestartResponse struct {
 	Accepted   bool       `json:"accepted,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-}
-
-type ResolveAvatarLiveInstanceBindingRequest struct {
-	Context          *AgentRequestContext `json:"context,omitempty"`
-	AvatarInstanceId string               `json:"avatar_instance_id,omitempty"`
-}
-
-type ResolveAvatarLiveInstanceBindingResponse struct {
-	Binding  *AvatarLiveInstanceBinding  `json:"binding,omitempty"`
-	Snapshot *ConversationAnchorSnapshot `json:"snapshot,omitempty"`
 }
 
 type ResolveLocalEnvironmentActivationGateRequest struct {
@@ -7263,17 +6936,6 @@ type StreamScenarioRequest struct {
 	Extensions    []ScenarioExtension  `json:"extensions,omitempty"`
 }
 
-type SubmitAvatarDebugProbeResultRequest struct {
-	Context              *AgentRequestContext            `json:"context,omitempty"`
-	AgentId              string                          `json:"agent_id,omitempty"`
-	ConversationAnchorId string                          `json:"conversation_anchor_id,omitempty"`
-	Result               *AvatarDebugProbeResultEnvelope `json:"result,omitempty"`
-}
-
-type SubmitAvatarDebugProbeResultResponse struct {
-	Result *AvatarDebugProbeResultEnvelope `json:"result,omitempty"`
-}
-
 type SubmitDelegatedApprovalDecisionRequest struct {
 	Context           *AgentRequestContext      `json:"context,omitempty"`
 	AgentId           string                    `json:"agent_id,omitempty"`
@@ -7337,14 +6999,6 @@ type SubscribeAgentEventsRequest struct {
 	AgentId      string               `json:"agent_id,omitempty"`
 	Cursor       string               `json:"cursor,omitempty"`
 	EventFilters []AgentEventType     `json:"event_filters,omitempty"`
-}
-
-type SubscribeAgentVoiceStreamRequest struct {
-	Context              *AgentRequestContext `json:"context,omitempty"`
-	VoiceStreamId        string               `json:"voice_stream_id,omitempty"`
-	ConversationAnchorId string               `json:"conversation_anchor_id,omitempty"`
-	TurnId               string               `json:"turn_id,omitempty"`
-	AgentId              string               `json:"agent_id,omitempty"`
 }
 
 type SubscribeAppMessagesRequest struct {
@@ -7986,58 +7640,8 @@ func decodeRuntimeTypedResponse[T any](raw []byte, responseType string) (T, erro
 	if err != nil {
 		return out, err
 	}
-	if err := validateCompanionParticipationResponse(responseType, any(out)); err != nil {
-		return out, err
-	}
+	_ = responseType
 	return out, nil
-}
-
-func validateCompanionParticipationResponse(responseType string, value any) error {
-	switch responseType {
-	case "GetCompanionParticipationProjectionResponse":
-		return validateCompanionParticipationProjection(value.(GetCompanionParticipationProjectionResponse).Projection)
-	case "RequestCompanionParticipationResponse":
-		return validateCompanionParticipationProjection(value.(RequestCompanionParticipationResponse).Projection)
-	case "CancelCompanionParticipationResponse":
-		return validateCompanionParticipationProjection(value.(CancelCompanionParticipationResponse).Projection)
-	case "OpenCompanionParticipationReplayResponse":
-		return validateCompanionParticipationProjection(value.(OpenCompanionParticipationReplayResponse).Projection)
-	default:
-		return nil
-	}
-}
-
-func validateCompanionParticipationProjection(projection *CompanionParticipationProjection) error {
-	if projection == nil {
-		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection is missing")
-	}
-	if projection.ProjectionId == "" || projection.AgentId == "" || projection.ProfileRef == "" || projection.AuditRef == "" || projection.ConversationAnchorId == "" {
-		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection is missing required refs")
-	}
-	switch projection.SurfaceKind {
-	case COMPANIONPARTICIPATIONSURFACEKINDAVATARCOMPANION, COMPANIONPARTICIPATIONSURFACEKINDDESKTOPCOMPANIONPANEL, COMPANIONPARTICIPATIONSURFACEKINDAVATARDEBUGWORKBENCH:
-	default:
-		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection has unsupported surface_kind")
-	}
-	switch projection.TriggerSource {
-	case COMPANIONPARTICIPATIONTRIGGERSOURCEUSEREXPLICIT, COMPANIONPARTICIPATIONTRIGGERSOURCESCHEDULEDPROACTIVE, COMPANIONPARTICIPATIONTRIGGERSOURCEDOMAINEVENT:
-	default:
-		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection has unsupported trigger_source")
-	}
-	switch projection.Status {
-	case COMPANIONPARTICIPATIONSTATUSIDLE, COMPANIONPARTICIPATIONSTATUSADMISSIONPENDING, COMPANIONPARTICIPATIONSTATUSBLOCKED, COMPANIONPARTICIPATIONSTATUSRUNNING, COMPANIONPARTICIPATIONSTATUSFAILED, COMPANIONPARTICIPATIONSTATUSCANCELED:
-	case COMPANIONPARTICIPATIONSTATUSCANDIDATEREADY:
-		if projection.CandidateRef == "" {
-			return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation candidate_ready projection missing candidate_ref")
-		}
-	case COMPANIONPARTICIPATIONSTATUSCOMMITTEDBYOWNER:
-		if projection.CommitRef == "" {
-			return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation committed_by_owner projection missing commit_ref")
-		}
-	default:
-		return fmt.Errorf("SDK_RUNTIME_AGENT_RESPONSE_INVALID: companion participation projection has unsupported status")
-	}
-	return nil
 }
 
 func (c RuntimeTypedClient) BeginLogin(ctx context.Context, request BeginLoginRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BeginLoginResponse, error) {
@@ -8118,14 +7722,6 @@ func (c RuntimeTypedClient) ApplySharedLocalAgentAIProfile(ctx context.Context, 
 		return ApplySharedLocalAgentAIProfileResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ApplySharedLocalAgentAIProfileResponse](raw, "ApplySharedLocalAgentAIProfileResponse")
-}
-
-func (c RuntimeTypedClient) CancelCompanionParticipation(ctx context.Context, request CancelCompanionParticipationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelCompanionParticipationResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/CancelCompanionParticipation", request, metadata, timeoutMS)
-	if err != nil {
-		return CancelCompanionParticipationResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[CancelCompanionParticipationResponse](raw, "CancelCompanionParticipationResponse")
 }
 
 func (c RuntimeTypedClient) CancelHook(ctx context.Context, request CancelHookRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelHookResponse, error) {
@@ -8214,30 +7810,6 @@ func (c RuntimeTypedClient) GetAgentState(ctx context.Context, request GetAgentS
 		return GetAgentStateResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[GetAgentStateResponse](raw, "GetAgentStateResponse")
-}
-
-func (c RuntimeTypedClient) GetAvatarDebugReplay(ctx context.Context, request GetAvatarDebugReplayRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAvatarDebugReplayResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugReplay", request, metadata, timeoutMS)
-	if err != nil {
-		return GetAvatarDebugReplayResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetAvatarDebugReplayResponse](raw, "GetAvatarDebugReplayResponse")
-}
-
-func (c RuntimeTypedClient) GetAvatarDebugSnapshot(ctx context.Context, request GetAvatarDebugSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAvatarDebugSnapshotResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetAvatarDebugSnapshot", request, metadata, timeoutMS)
-	if err != nil {
-		return GetAvatarDebugSnapshotResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetAvatarDebugSnapshotResponse](raw, "GetAvatarDebugSnapshotResponse")
-}
-
-func (c RuntimeTypedClient) GetCompanionParticipationProjection(ctx context.Context, request GetCompanionParticipationProjectionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetCompanionParticipationProjectionResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetCompanionParticipationProjection", request, metadata, timeoutMS)
-	if err != nil {
-		return GetCompanionParticipationProjectionResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetCompanionParticipationProjectionResponse](raw, "GetCompanionParticipationProjectionResponse")
 }
 
 func (c RuntimeTypedClient) GetConversationAnchorSnapshot(ctx context.Context, request GetConversationAnchorSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetConversationAnchorSnapshotResponse, error) {
@@ -8352,14 +7924,6 @@ func (c RuntimeTypedClient) InspectLocalAppAgentMemory(ctx context.Context, requ
 	return decodeRuntimeTypedResponse[InspectLocalAppAgentMemoryResponse](raw, "InspectLocalAppAgentMemoryResponse")
 }
 
-func (c RuntimeTypedClient) InterruptAgentVoicePlayback(ctx context.Context, request InterruptAgentVoicePlaybackRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InterruptAgentVoicePlaybackResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/InterruptAgentVoicePlayback", request, metadata, timeoutMS)
-	if err != nil {
-		return InterruptAgentVoicePlaybackResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[InterruptAgentVoicePlaybackResponse](raw, "InterruptAgentVoicePlaybackResponse")
-}
-
 func (c RuntimeTypedClient) InterruptLocalAppAgentRealtimeOutput(ctx context.Context, request InterruptLocalAppAgentRealtimeOutputRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InterruptLocalAppAgentRealtimeOutputResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput", request, metadata, timeoutMS)
 	if err != nil {
@@ -8390,14 +7954,6 @@ func (c RuntimeTypedClient) ListAgents(ctx context.Context, request ListAgentsRe
 		return ListAgentsResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ListAgentsResponse](raw, "ListAgentsResponse")
-}
-
-func (c RuntimeTypedClient) ListAvatarDebugProbeResults(ctx context.Context, request ListAvatarDebugProbeResultsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAvatarDebugProbeResultsResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ListAvatarDebugProbeResults", request, metadata, timeoutMS)
-	if err != nil {
-		return ListAvatarDebugProbeResultsResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ListAvatarDebugProbeResultsResponse](raw, "ListAvatarDebugProbeResultsResponse")
 }
 
 func (c RuntimeTypedClient) ListDelegatedApprovalRequests(ctx context.Context, request ListDelegatedApprovalRequestsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListDelegatedApprovalRequestsResponse, error) {
@@ -8472,14 +8028,6 @@ func (c RuntimeTypedClient) MaterializeRealmSource(ctx context.Context, request 
 	return decodeRuntimeTypedResponse[MaterializeRealmSourceResponse](raw, "MaterializeRealmSourceResponse")
 }
 
-func (c RuntimeTypedClient) OpenCompanionParticipationReplay(ctx context.Context, request OpenCompanionParticipationReplayRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenCompanionParticipationReplayResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/OpenCompanionParticipationReplay", request, metadata, timeoutMS)
-	if err != nil {
-		return OpenCompanionParticipationReplayResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[OpenCompanionParticipationReplayResponse](raw, "OpenCompanionParticipationReplayResponse")
-}
-
 func (c RuntimeTypedClient) OpenConversationAnchor(ctx context.Context, request OpenConversationAnchorRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (OpenConversationAnchorResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/OpenConversationAnchor", request, metadata, timeoutMS)
 	if err != nil {
@@ -8544,44 +8092,12 @@ func (c RuntimeTypedClient) ReadLocalAppConversationArtifact(ctx context.Context
 	return decodeRuntimeTypedResponse[ReadLocalAppConversationArtifactResponse](raw, "ReadLocalAppConversationArtifactResponse")
 }
 
-func (c RuntimeTypedClient) RegisterAvatarLiveInstanceBinding(ctx context.Context, request RegisterAvatarLiveInstanceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RegisterAvatarLiveInstanceBindingResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/RegisterAvatarLiveInstanceBinding", request, metadata, timeoutMS)
-	if err != nil {
-		return RegisterAvatarLiveInstanceBindingResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RegisterAvatarLiveInstanceBindingResponse](raw, "RegisterAvatarLiveInstanceBindingResponse")
-}
-
 func (c RuntimeTypedClient) RenderLocalAppConversationVoice(ctx context.Context, request RenderLocalAppConversationVoiceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RenderLocalAppConversationVoiceResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice", request, metadata, timeoutMS)
 	if err != nil {
 		return RenderLocalAppConversationVoiceResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[RenderLocalAppConversationVoiceResponse](raw, "RenderLocalAppConversationVoiceResponse")
-}
-
-func (c RuntimeTypedClient) RequestAvatarDebugProbe(ctx context.Context, request RequestAvatarDebugProbeRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestAvatarDebugProbeResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/RequestAvatarDebugProbe", request, metadata, timeoutMS)
-	if err != nil {
-		return RequestAvatarDebugProbeResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RequestAvatarDebugProbeResponse](raw, "RequestAvatarDebugProbeResponse")
-}
-
-func (c RuntimeTypedClient) RequestCompanionParticipation(ctx context.Context, request RequestCompanionParticipationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestCompanionParticipationResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/RequestCompanionParticipation", request, metadata, timeoutMS)
-	if err != nil {
-		return RequestCompanionParticipationResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[RequestCompanionParticipationResponse](raw, "RequestCompanionParticipationResponse")
-}
-
-func (c RuntimeTypedClient) ResolveAvatarLiveInstanceBinding(ctx context.Context, request ResolveAvatarLiveInstanceBindingRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveAvatarLiveInstanceBindingResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ResolveAvatarLiveInstanceBinding", request, metadata, timeoutMS)
-	if err != nil {
-		return ResolveAvatarLiveInstanceBindingResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[ResolveAvatarLiveInstanceBindingResponse](raw, "ResolveAvatarLiveInstanceBindingResponse")
 }
 
 func (c RuntimeTypedClient) SendLocalAppConversationTurn(ctx context.Context, request SendLocalAppConversationTurnRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SendLocalAppConversationTurnResponse, error) {
@@ -8616,14 +8132,6 @@ func (c RuntimeTypedClient) SetLocalAppAgentMemoryEnabled(ctx context.Context, r
 	return decodeRuntimeTypedResponse[SetLocalAppAgentMemoryEnabledResponse](raw, "SetLocalAppAgentMemoryEnabledResponse")
 }
 
-func (c RuntimeTypedClient) SubmitAvatarDebugProbeResult(ctx context.Context, request SubmitAvatarDebugProbeResultRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitAvatarDebugProbeResultResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubmitAvatarDebugProbeResult", request, metadata, timeoutMS)
-	if err != nil {
-		return SubmitAvatarDebugProbeResultResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[SubmitAvatarDebugProbeResultResponse](raw, "SubmitAvatarDebugProbeResultResponse")
-}
-
 func (c RuntimeTypedClient) SubmitDelegatedApprovalDecision(ctx context.Context, request SubmitDelegatedApprovalDecisionRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SubmitDelegatedApprovalDecisionResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision", request, metadata, timeoutMS)
 	if err != nil {
@@ -8638,14 +8146,6 @@ func (c RuntimeTypedClient) SubscribeAgentEvents(ctx context.Context, request Su
 		return nil, err
 	}
 	return &RuntimeTypedStream[AgentEvent]{reader: reader}, nil
-}
-
-func (c RuntimeTypedClient) SubscribeAgentVoiceStream(ctx context.Context, request SubscribeAgentVoiceStreamRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AgentVoiceStreamEvent], error) {
-	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentVoiceStream", request, metadata, timeoutMS)
-	if err != nil {
-		return nil, err
-	}
-	return &RuntimeTypedStream[AgentVoiceStreamEvent]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) SubscribeLocalAppAgentRealtimeEvents(ctx context.Context, request SubscribeLocalAppAgentRealtimeEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalAppAgentRealtimeEvent], error) {

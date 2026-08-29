@@ -54,9 +54,15 @@ What each file demonstrates:
 - `04-vercel-ai-sdk.ts`: Nimi as a provider for the Vercel AI SDK
 - `05-multimodal.ts`: image and TTS flows through the runtime
 
-## Author Templates
+## App Scaffolds
 
-- `app-template/`: tracked output shape for `pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone`
+Generate a fresh protected App with the current `@nimiplatform/app-tools` CLI; this
+examples package does not keep a hand-maintained scaffold copy or claim it as the
+current reference implementation.
+
+```bash
+pnpm dlx --package @nimiplatform/app-tools nimi-app create --dir my-nimi-app --profile standalone
+```
 
 ## Advanced Paths
 
@@ -79,6 +85,5 @@ pnpm --filter @nimiplatform/examples run check
 ## Layout
 
 - `sdk/`: app-facing SDK examples
-- `app-template/`: app scaffold reference
 - `sdk/advanced/`: deeper runtime features
 - `runtime/`: CLI examples

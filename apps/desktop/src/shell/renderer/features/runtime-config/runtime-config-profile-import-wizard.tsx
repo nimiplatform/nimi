@@ -55,7 +55,7 @@ export function ProfileImportWizard(props: ProfileImportWizardProps) {
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const profileClient = useMemo(
-    () => createNimiAppAIProfileClient(sdk.accountProduct().appAIConfig(sdk.appId())),
+    () => createNimiAppAIProfileClient(sdk.appProduct().aiConfig),
     [sdk],
   );
   const loadoutsClient = useMemo(() => sdk.machineProduct().local.loadouts, [sdk]);
