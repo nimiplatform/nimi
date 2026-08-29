@@ -1,0 +1,9 @@
+schema_version: 1
+app_id: nimi.avatar
+display_name: Nimi Avatar
+app_access:
+  - realm.data
+  - runtime.consume
+  - agent.local
+  - agent.configure
+disposition: bundled_first_party_formal_app

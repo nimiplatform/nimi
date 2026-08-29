@@ -204,6 +204,7 @@ test('Lab app-private storage reaches typed ingress and preserves owner-unavaila
   };
   try {
     const { getLabLocalAppClient } = await importLocalAppRuntimePlatform();
+    assert.equal(getLabLocalAppClient(), getLabLocalAppClient());
 
     await assert.rejects(
       getLabLocalAppClient().storage.writeJson('settings/profile.json', { theme: 'calm' }),

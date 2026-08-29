@@ -1,0 +1,9 @@
+schema_version: 1
+app_id: nimi.desktop
+display_name: Nimi Desktop
+app_access:
+  - realm.data
+  - runtime.consume
+  - agent.local
+  - agent.configure
+disposition: first_party_host_with_formal_app_self

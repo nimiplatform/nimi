@@ -98,6 +98,11 @@ function worldCoreInput(marker: string) {
   return {
     origin: { kind: 'manual' },
     visibility: 'private',
+    lorebookDeclaration: {
+      identityBaseSetting: `Nimi Lab App Access World ${marker}.`,
+      rolePlacements: [],
+      worldRules: [],
+    },
     core: {
       identity: {
         name: `App Access World ${marker}`,
@@ -221,10 +226,12 @@ export async function runPersonaOwnerCreateReplaceConflictProbe(client: AppAcces
     const world = worlds[0];
     if (!world) throw Object.assign(new Error('persona-owner-world-required'), { reasonCode: 'persona-owner-world-required' });
     const marker = createLabPersonaMarker();
+    const lorebookDeclaration = labPersonaLorebookDeclaration(marker);
     const created = await client.realm.personaCharacter.create({
       worldId: world.id,
       visibility: 'private',
       origin: { kind: 'manual' },
+      lorebookDeclaration,
       profile: labPersonaProfile(marker),
     });
     const detail = await client.realm.personaCharacter.getOwned(created.id);
@@ -234,12 +241,16 @@ export async function runPersonaOwnerCreateReplaceConflictProbe(client: AppAcces
     if (detail.visibility === 'system') {
       throw Object.assign(new Error('persona-owner-system-write-forbidden'), { reasonCode: 'contract-invalid' });
     }
+    if (!detail.lorebookDeclaration) {
+      throw Object.assign(new Error('persona-owner-lorebook-declaration-missing'), { reasonCode: 'contract-invalid' });
+    }
     const replaced = await client.realm.personaCharacter.replace({
       personaCharacterId: detail.id,
       baseContentHash: detail.contentHash,
       worldId: detail.worldId,
       visibility: detail.visibility,
       origin: detail.origin,
+      lorebookDeclaration: detail.lorebookDeclaration,
       profile: {
         ...client.realm.personaCharacter.toProfileInput(detail.profile),
         narrative: {
@@ -254,6 +265,10 @@ export async function runPersonaOwnerCreateReplaceConflictProbe(client: AppAcces
     if (replaced.visibility === 'system') {
       throw Object.assign(new Error('persona-owner-system-write-forbidden'), { reasonCode: 'contract-invalid' });
     }
+    const replacedLorebookDeclaration = replaced.lorebookDeclaration;
+    if (!replacedLorebookDeclaration) {
+      throw Object.assign(new Error('persona-owner-lorebook-declaration-missing'), { reasonCode: 'contract-invalid' });
+    }
     const writableVisibility = replaced.visibility;
     await requireRejection(
       () => client.realm.personaCharacter.replace({
@@ -262,6 +277,7 @@ export async function runPersonaOwnerCreateReplaceConflictProbe(client: AppAcces
         worldId: replaced.worldId,
         visibility: writableVisibility,
         origin: replaced.origin,
+        lorebookDeclaration: replacedLorebookDeclaration,
         profile: client.realm.personaCharacter.toProfileInput(replaced.profile),
       }),
       'content-conflict',
@@ -328,6 +344,16 @@ function labPersonaProfile(marker: { readonly ulid: string; readonly handle: str
     assets: { resourceRefs: [], intents: [] },
     authoring: { source: 'nimi.lab.realm-app-access', notes: [`persistent-test:${marker.ulid}`] },
   };
+}
+
+function labPersonaLorebookDeclaration(marker: { readonly ulid: string; readonly handle: string }) {
+  return {
+    identity: `Nimi Lab Persona ${marker.ulid}`,
+    behavior: ['Remain the explicitly authored Nimi Lab App Access test persona.'],
+    speaking: ['Use the authored greeting and interaction profile.'],
+    immutableBoundaries: ['Do not replace the authored identity or owner boundary.'],
+    relationshipPostures: [],
+  } as const;
 }
 
 function createLabPersonaMarker(): { readonly ulid: string; readonly handle: string } {

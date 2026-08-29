@@ -346,7 +346,9 @@ test('PersonaCharacter owner probes cover list, create, replace, conflict, and p
         worldId: input.worldId,
         schemaVersion: 'realm.persona-character-core/v1',
         contentHash: 'a'.repeat(64), contentRevision: 1, sourceHash: 'b'.repeat(64),
-        visibility: input.visibility, origin: input.origin, profile: {
+        visibility: input.visibility, origin: input.origin,
+        lorebookDeclaration: input.lorebookDeclaration,
+        profile: {
           ...input.profile,
           profileHash: 'd'.repeat(64),
           profileCoverage: {
@@ -362,7 +364,9 @@ test('PersonaCharacter owner probes cover list, create, replace, conflict, and p
     async replace(input) {
       if (!current || input.personaCharacterId !== current.id) throw rejected('not-found');
       if (input.baseContentHash !== current.contentHash) throw rejected('content-conflict');
-      current = { ...current, contentHash: 'c'.repeat(64), contentRevision: 2, profile: {
+      current = { ...current, contentHash: 'c'.repeat(64), contentRevision: 2,
+        lorebookDeclaration: input.lorebookDeclaration,
+        profile: {
         ...input.profile,
         profileHash: 'f'.repeat(64),
         profileCoverage: current.profile.profileCoverage,

@@ -154,6 +154,75 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
       identityProp: 'exampleAppId',
     }),
   }),
+  'agent-center': frozenModule({
+    id: 'agent-center',
+    kind: 'feature',
+    lifecycle: 'candidate',
+    order: 50,
+    label: 'Agent Center',
+    requires: [],
+    sourceMappings: [frozenSourceMapping('src/product-modules/agent-center', 'src/capabilities/agent-center')],
+    appAccessItems: ['agent.local', 'agent.configure'],
+    npmDependencies: {},
+    cargoDependencies: {},
+    hostAdapterContract: 'local-app-standard-shell-v1',
+    views: ['agent-center'],
+    navigation: ['agent-center'],
+    styles: [],
+    assets: [],
+    productEntry: Object.freeze({
+      kind: 'component',
+      modulePath: 'src/product-modules/agent-center/index.tsx',
+      componentExport: 'AgentCenterCapability',
+      clientProp: 'client',
+    }),
+  }),
+  'agent-conversation': frozenModule({
+    id: 'agent-conversation',
+    kind: 'feature',
+    lifecycle: 'candidate',
+    order: 60,
+    label: 'Agent Conversation',
+    requires: [],
+    sourceMappings: [frozenSourceMapping('src/product-modules/agent-conversation', 'src/capabilities/agent-conversation')],
+    appAccessItems: ['agent.local'],
+    npmDependencies: {},
+    cargoDependencies: {},
+    hostAdapterContract: 'app-conversation-browser-media-v1',
+    views: ['agent-conversation'],
+    navigation: ['agent-conversation'],
+    styles: [],
+    assets: [],
+    productEntry: Object.freeze({
+      kind: 'component',
+      modulePath: 'src/product-modules/agent-conversation/index.tsx',
+      componentExport: 'AgentConversationCapability',
+      clientProp: 'client',
+    }),
+  }),
+  'agent-realtime': frozenModule({
+    id: 'agent-realtime',
+    kind: 'feature',
+    lifecycle: 'candidate',
+    order: 70,
+    label: 'Agent Realtime',
+    requires: [],
+    sourceMappings: [frozenSourceMapping('src/product-modules/agent-realtime', 'src/capabilities/agent-realtime')],
+    appAccessItems: ['agent.local'],
+    npmDependencies: {},
+    cargoDependencies: {},
+    hostAdapterContract: 'agent-realtime-browser-media-v1',
+    views: ['agent-realtime'],
+    navigation: ['agent-realtime'],
+    styles: [],
+    assets: [],
+    productEntry: Object.freeze({
+      kind: 'component',
+      modulePath: 'src/product-modules/agent-realtime/index.tsx',
+      componentExport: 'AgentRealtimeCapability',
+      clientProp: 'client',
+    }),
+  }),
 });
 
 function registryEntries(registry) {
@@ -327,6 +396,12 @@ function assertProductEntry(id, entry) {
       || typeof productEntry.identityProp !== 'string'
       || !/^[A-Za-z_$][A-Za-z0-9_$]*$/u.test(productEntry.identityProp))) {
     throw new Error(`App scaffold module productEntry identity prop is invalid: ${id}`);
+  }
+  if (productEntry.clientProp !== undefined
+    && (productEntry.kind !== 'component'
+      || typeof productEntry.clientProp !== 'string'
+      || !/^[A-Za-z_$][A-Za-z0-9_$]*$/u.test(productEntry.clientProp))) {
+    throw new Error(`App scaffold module productEntry client prop is invalid: ${id}`);
   }
 }
 
@@ -644,6 +719,17 @@ export const APP_SCAFFOLD_FEATURE_IDS = Object.freeze(
     .filter(([, entry]) => entry.kind === 'feature' && entry.lifecycle === 'admitted')
     .map(([id]) => id),
 );
+
+// Exact WP5 input for the fresh ordinary protected reference App. It remains
+// candidate-only until the three Agent slices are admitted in the WP6 cut.
+export const APP_SCAFFOLD_REFERENCE_APP_FEATURE_IDS = Object.freeze([
+  'studio-create',
+  'studio-media',
+  'studio-voice',
+  'agent-center',
+  'agent-conversation',
+  'agent-realtime',
+]);
 
 export const APP_SCAFFOLD_ADMITTED_MODULE_IDS = resolveAdmittedModuleIds(
   APP_SCAFFOLD_MODULE_REGISTRY,

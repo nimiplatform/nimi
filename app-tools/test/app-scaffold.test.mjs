@@ -29,6 +29,7 @@ import {
 import {
   APP_SCAFFOLD_MODULE_REGISTRY,
   APP_SCAFFOLD_FEATURE_IDS,
+  APP_SCAFFOLD_REFERENCE_APP_FEATURE_IDS,
   resolveAppScaffoldCandidateFeatures,
   resolveAppScaffoldFeatures,
   resolveAppScaffoldIntentFeatures,
@@ -656,7 +657,7 @@ test('cli help projects the current registry lifecycle and honest workflow witho
     'studio-media (Media)',
     'studio-voice (Voice)',
     'kit-recipes (UI Recipes)',
-    'Candidate features (not public-selectable): (none)',
+    'Candidate features (not public-selectable): agent-center (Agent Center), agent-conversation (Agent Conversation), agent-realtime (Agent Realtime)',
     'Internal modules (dependency-only): ai-studio-core',
     '--features all expands in order to: studio-create, studio-media, studio-voice, kit-recipes',
     'nimi-app doctor [--dir path] [--conformance simulator] [--json]',
@@ -1076,6 +1077,9 @@ test('create accepts the admitted registry and keeps candidate validation on the
       'studio-media': ['src/capabilities/studio-media'],
       'studio-voice': ['src/capabilities/studio-voice'],
       'kit-recipes': ['src/capabilities/kit-recipes'],
+      'agent-center': ['src/capabilities/agent-center'],
+      'agent-conversation': ['src/capabilities/agent-conversation'],
+      'agent-realtime': ['src/capabilities/agent-realtime'],
     },
   );
 
@@ -1102,6 +1106,35 @@ test('create accepts the admitted registry and keeps candidate validation on the
   assert.deepEqual(kit.resolvedFeatureIds, ['kit-recipes']);
   assert.deepEqual(kit.resolvedModuleIds, ['kit-recipes']);
   assert.deepEqual(kit.appAccessItems, []);
+
+  const agentCenter = resolveAppScaffoldCandidateFeatures(['agent-center']);
+  assert.deepEqual(agentCenter.directFeatureIds, ['agent-center']);
+  assert.deepEqual(agentCenter.resolvedFeatureIds, ['agent-center']);
+  assert.deepEqual(agentCenter.resolvedModuleIds, ['agent-center']);
+  assert.deepEqual(agentCenter.appAccessItems, ['agent.local', 'agent.configure']);
+  assert.equal(APP_SCAFFOLD_MODULE_REGISTRY['agent-center'].lifecycle, 'candidate');
+  assert.throws(
+    () => resolveAppScaffoldFeatures('agent-center'),
+    /feature is not admitted: agent-center/,
+  );
+
+  const agentRealtime = resolveAppScaffoldCandidateFeatures(['agent-realtime']);
+  assert.deepEqual(agentRealtime.resolvedModuleIds, ['agent-realtime']);
+  assert.deepEqual(agentRealtime.appAccessItems, ['agent.local']);
+  assert.equal(APP_SCAFFOLD_MODULE_REGISTRY['agent-realtime'].lifecycle, 'candidate');
+
+  const agentConversation = resolveAppScaffoldCandidateFeatures(['agent-conversation']);
+  assert.deepEqual(agentConversation.resolvedModuleIds, ['agent-conversation']);
+  assert.deepEqual(agentConversation.appAccessItems, ['agent.local']);
+  assert.equal(APP_SCAFFOLD_MODULE_REGISTRY['agent-conversation'].lifecycle, 'candidate');
+
+  assert.deepEqual(APP_SCAFFOLD_REFERENCE_APP_FEATURE_IDS, [
+    'studio-create', 'studio-media', 'studio-voice',
+    'agent-center', 'agent-conversation', 'agent-realtime',
+  ]);
+  const referenceApp = resolveAppScaffoldCandidateFeatures(APP_SCAFFOLD_REFERENCE_APP_FEATURE_IDS);
+  assert.deepEqual(referenceApp.directFeatureIds, APP_SCAFFOLD_REFERENCE_APP_FEATURE_IDS);
+  assert.deepEqual(referenceApp.appAccessItems, ['runtime.consume', 'agent.local', 'agent.configure']);
 
   assert.throws(
     () => resolveAppScaffoldCandidateFeatures('studio-create'),
@@ -1275,6 +1308,61 @@ test('create accepts candidate Kit-only output without AI source imports or an A
   }
   assert.equal(snapshot.filesByPath.get('src/scaffold/generated/module-styles.css')?.content, '');
   assert.match(snapshot.filesByPath.get('src/scaffold/generated/route-registry.tsx')?.content ?? '', /KitRecipesCapability/);
+});
+
+test('candidate Agent Center slice mounts the canonical Kit entry with one formal App client', () => {
+  const snapshot = candidateSnapshot(['agent-center']);
+  const read = (relativePath) => snapshot.filesByPath.get(relativePath)?.content ?? '';
+  assert.deepEqual(snapshot.lock.appAccessItems, ['agent.local', 'agent.configure']);
+  assert.ok(snapshot.filesByPath.has('src/capabilities/agent-center/index.tsx'));
+  assert.match(read('src/capabilities/agent-center/index.tsx'), /AppAgentCenterEntry/);
+  assert.doesNotMatch(read('src/capabilities/agent-center/index.tsx'), /getLabLocalAppClient|apps\/lab|Nimi Lab/);
+  const route = read('src/scaffold/generated/route-registry.tsx');
+  assert.match(route, /import \{ getNimiLocalAppClient \} from '\.\.\/\.\.\/shell\/auth\/local-app-client\.js'/);
+  assert.match(route, /<AgentCenterCapability client=\{getNimiLocalAppClient\(\)\} \/>/);
+  assert.equal(snapshot.filesByPath.has('src/scaffold/generated/host-adapters.tsx'), false);
+});
+
+test('candidate Agent Realtime slice mounts Kit-owned session and Host media mechanics', () => {
+  const snapshot = candidateSnapshot(['agent-realtime']);
+  const read = (relativePath) => snapshot.filesByPath.get(relativePath)?.content ?? '';
+  assert.deepEqual(snapshot.lock.appAccessItems, ['agent.local']);
+  const source = read('src/capabilities/agent-realtime/index.tsx');
+  assert.match(source, /AgentRealtimeEntry/);
+  assert.match(source, /createBrowserAgentRealtimeHostMediaPort/);
+  assert.doesNotMatch(source, /getUserMedia|AudioContext|MediaRecorder|apps\/lab|Nimi Lab/);
+  const route = read('src/scaffold/generated/route-registry.tsx');
+  assert.match(route, /<AgentRealtimeCapability client=\{getNimiLocalAppClient\(\)\} \/>/);
+});
+
+test('candidate Agent Conversation slice mounts Kit-owned projection and Host media mechanics', () => {
+  const snapshot = candidateSnapshot(['agent-conversation']);
+  const read = (relativePath) => snapshot.filesByPath.get(relativePath)?.content ?? '';
+  assert.deepEqual(snapshot.lock.appAccessItems, ['agent.local']);
+  const source = read('src/capabilities/agent-conversation/index.tsx');
+  assert.match(source, /AppConversationEntry/);
+  assert.match(source, /createBrowserAppConversationHostPort/);
+  assert.doesNotMatch(source, /readArtifact|uploadAttachment|transcribeVoice|MediaRecorder|apps\/lab|Nimi Lab/);
+  const route = read('src/scaffold/generated/route-registry.tsx');
+  assert.match(route, /<AgentConversationCapability client=\{getNimiLocalAppClient\(\)\} \/>/);
+});
+
+test('exact fresh reference App input materializes the fixed AI and Agent closure', () => {
+  const snapshot = candidateSnapshot(APP_SCAFFOLD_REFERENCE_APP_FEATURE_IDS);
+  assert.deepEqual(snapshot.lock.directFeatures, APP_SCAFFOLD_REFERENCE_APP_FEATURE_IDS);
+  assert.deepEqual(snapshot.lock.appAccessItems, ['runtime.consume', 'agent.local', 'agent.configure']);
+  for (const moduleId of [
+    'studio-create', 'studio-media', 'studio-voice',
+    'agent-center', 'agent-conversation', 'agent-realtime',
+  ]) {
+    assert.ok(snapshot.lock.resolvedModules.includes(moduleId), `${moduleId} must be in the reference closure`);
+    assert.ok(snapshot.filesByPath.has(`src/capabilities/${moduleId}/index.tsx`)
+      || snapshot.filesByPath.has(`src/capabilities/${moduleId}/index.ts`), `${moduleId} source must materialize`);
+  }
+  const route = snapshot.filesByPath.get('src/scaffold/generated/route-registry.tsx')?.content ?? '';
+  for (const component of ['AgentCenterCapability', 'AgentConversationCapability', 'AgentRealtimeCapability']) {
+    assert.match(route, new RegExp(`<${component} client=\\{getNimiLocalAppClient\\(\\)\\}`));
+  }
 });
 
 test('phase 7 candidate product imports map wholly into capabilities and reject Lab source residue prewrite', () => {

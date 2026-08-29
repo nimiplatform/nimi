@@ -404,6 +404,9 @@ function renderGeneratedRouteRegistry(resolution) {
   if (componentModules.some((module) => module.productEntry.identityProp)) {
     imports.push("import { appId } from '../../shell/auth/app-identity.js';");
   }
+  if (componentModules.some((module) => module.productEntry.clientProp)) {
+    imports.push("import { getNimiLocalAppClient } from '../../shell/auth/local-app-client.js';");
+  }
   const branches = [];
   if (aiModules.length > 0) {
     branches.push(
@@ -416,8 +419,11 @@ function renderGeneratedRouteRegistry(resolution) {
     const identityProp = module.productEntry.identityProp
       ? ` ${module.productEntry.identityProp}={appId}`
       : '';
+    const clientProp = module.productEntry.clientProp
+      ? ` ${module.productEntry.clientProp}={getNimiLocalAppClient()}`
+      : '';
     branches.push(
-      `  if (activeViewId === ${JSON.stringify(module.views[0])}) content = <${module.productEntry.componentExport}${identityProp} />;`,
+      `  if (activeViewId === ${JSON.stringify(module.views[0])}) content = <${module.productEntry.componentExport}${identityProp}${clientProp} />;`,
     );
   }
   return [

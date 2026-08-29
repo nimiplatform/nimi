@@ -11,11 +11,15 @@ import {
   parseSimulatorManifest,
   validateSimulatorAppSource,
 } from '../lib/simulator-conformance.mjs';
+import {
+  validateSimulatorCanonicalKitExportsCandidate,
+} from '../lib/simulator-kit-export-resolution-candidate.mjs';
 
 const TEST_ROOT = path.dirname(fileURLToPath(import.meta.url));
 const FIXTURE_ROOT = path.join(TEST_ROOT, 'fixtures', 'simulator-valid');
 const CLI_PATH = path.resolve(TEST_ROOT, '..', 'bin', 'nimi-app.mjs');
 const VALID_MANIFEST = readFileSync(path.join(FIXTURE_ROOT, 'nimi.simulator.yaml'), 'utf8');
+const KIT_ROOT = path.resolve(TEST_ROOT, '..', '..', 'kit');
 
 function withFixture(run) {
   const root = mkdtempSync(path.join(tmpdir(), 'nimi-simulator-app-tools-'));
@@ -105,6 +109,30 @@ export function projectAgentCenterSession(input: unknown) {
   append(root, 'src/simulator/adapter.ts', 'export const sharedSession = createFirstPartyAgentCenterSession({});');
   expectFailure(root, 'SIM_MODULE_SCOPE_RESOURCE');
 }));
+
+test('candidate Simulator conformance resolves actual canonical Kit exports', async () => {
+  const resolved = await validateSimulatorCanonicalKitExportsCandidate({ kitPackageRoot: KIT_ROOT });
+  assert.deepEqual(resolved.map(({ subpath, exports }) => ({ subpath, exports })), [{
+    subpath: './features/agent-center',
+    exports: ['createAppAgentCenterSession', 'AppAgentCenterEntry'],
+  }, {
+    subpath: './features/chat',
+    exports: ['AppConversationEntry', 'createBrowserAppConversationHostPort'],
+  }, {
+    subpath: './features/agent-realtime',
+    exports: ['AgentRealtimeEntry', 'createBrowserAgentRealtimeHostMediaPort'],
+  }]);
+  await assert.rejects(
+    () => validateSimulatorCanonicalKitExportsCandidate({
+      kitPackageRoot: KIT_ROOT,
+      requirements: [{
+        subpath: './features/agent-center',
+        exports: ['createFirstPartyAgentCenterSession'],
+      }],
+    }),
+    (error) => error?.code === 'SIM_KIT_EXPORT_MISSING',
+  );
+});
 
 test('source-bound PNG and JSON imports are supported without admitting executable asset types', () => withFixture((root) => {
   assert.equal(isSimulatorStaticAssetPath('src/renderer/logo.png'), true);
