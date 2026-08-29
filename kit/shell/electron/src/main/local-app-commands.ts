@@ -632,10 +632,11 @@ function validatePayload(
         ),
         intent: payload.intent as NimiElectronLocalAppRecord[string],
       };
-    case 'agentCommitPresentation':
+    case 'agentCommitPresentation': {
       assertExactKeys(payload, ['agentHandle', 'expectedPresentationRevision', 'intent', 'importedAssets'], command);
       assertNoForbiddenAuthorityValue(payload.intent, command);
       assertNoForbiddenAuthorityValue(payload.importedAssets, command);
+      const importedAssets = presentationAssetsPayload(payload.importedAssets, command);
       return {
         agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
         expectedPresentationRevision: decimalRevision(
@@ -644,9 +645,14 @@ function validatePayload(
           command,
           true,
         ),
-        intent: presentationIntentPayload(payload.intent, command),
-        importedAssets: presentationAssetsPayload(payload.importedAssets, command),
+        intent: presentationIntentPayload(
+          payload.intent,
+          command,
+          Array.isArray(importedAssets) && importedAssets.length > 0,
+        ),
+        importedAssets,
       };
+    }
     case 'agentMemoryCorrect':
       assertExactKeys(payload, ['agentHandle', 'memoryId', 'correctedContent'], command);
       return {
@@ -737,6 +743,7 @@ function validatePayload(
 function presentationIntentPayload(
   value: unknown,
   command: string,
+  allowEmptyForImportedAsset = false,
 ): NimiElectronLocalAppRecord {
   if (!isPlainRecord(value)) throw invalidPayload(command, 'intent must be an object');
   const allowed = [
@@ -744,7 +751,9 @@ function presentationIntentPayload(
     'interactionPolicyRef', 'defaultVoiceReference', 'avatarAutoplay', 'backgroundAssetRef',
   ];
   assertAllowedKeys(value, allowed, [], command);
-  if (Object.keys(value).length === 0) throw invalidPayload(command, 'intent requires a patch field');
+  if (Object.keys(value).length === 0 && !allowEmptyForImportedAsset) {
+    throw invalidPayload(command, 'intent requires a patch field');
+  }
   if (value.backendKind !== undefined
     && !['vrm', 'live2d', 'sprite2d', 'canvas2d', 'video'].includes(String(value.backendKind))) {
     throw invalidPayload(command, 'intent.backendKind is invalid');

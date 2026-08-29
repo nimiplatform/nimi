@@ -1091,14 +1091,20 @@ export function updateNimiLocalAppAgentAutonomy(input: {
   });
 }
 
-function agentPresentationIntentPayload(value: unknown, command: string): JsonObject {
+function agentPresentationIntentPayload(
+  value: unknown,
+  command: string,
+  allowEmptyForImportedAsset = false,
+): JsonObject {
   const intent = assertRecord(value, `${command}: intent must be an object`);
   const allowed = [
     'backendKind', 'avatarAssetRef', 'expressionProfileRef', 'idlePreset',
     'interactionPolicyRef', 'defaultVoiceReference', 'avatarAutoplay', 'backgroundAssetRef',
   ];
   assertAllowedInputKeys(intent, allowed, [], command);
-  if (Object.keys(intent).length === 0) throw invalidInput(command, 'intent requires a patch field');
+  if (Object.keys(intent).length === 0 && !allowEmptyForImportedAsset) {
+    throw invalidInput(command, 'intent requires a patch field');
+  }
   if (intent.backendKind !== undefined
     && !['vrm', 'live2d', 'sprite2d', 'canvas2d', 'video'].includes(String(intent.backendKind))) {
     throw invalidInput(command, 'intent.backendKind is invalid');
@@ -1156,7 +1162,6 @@ export function commitNimiLocalAppAgentPresentation(input: {
     ['agentHandle', 'expectedPresentationRevision', 'intent', 'importedAssets'],
     command,
   );
-  const intent = agentPresentationIntentPayload(input.intent, command);
   if (!Array.isArray(input.importedAssets) || input.importedAssets.length > 2) {
     throw invalidInput(command, 'importedAssets is invalid');
   }
@@ -1178,6 +1183,7 @@ export function commitNimiLocalAppAgentPresentation(input: {
       sha256: requiredText(asset.sha256, `importedAssets[${index}].sha256`, command, 512),
     };
   });
+  const intent = agentPresentationIntentPayload(input.intent, command, importedAssets.length > 0);
   return invokeLocalAppRecord(command, {
     agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
     expectedPresentationRevision: decimalRevision(

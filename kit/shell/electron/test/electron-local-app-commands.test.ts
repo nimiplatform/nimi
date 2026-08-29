@@ -12,6 +12,35 @@ import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
 
 describe('Electron local-app standard-shell operations', () => {
+  it('admits asset-only Background commits while rejecting an empty mutation', async () => {
+    const calls: unknown[] = [];
+    const host = {
+      agentCommitPresentation: async (input: unknown) => {
+        calls.push(input);
+        return { presentationRevision: '1' };
+      },
+    } as never;
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentCommitPresentation'];
+    const payload = {
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      expectedPresentationRevision: '0',
+      intent: {},
+      importedAssets: [{
+        role: 'background', fileName: 'background.png', mediaType: 'image/png',
+        content: [1, 2, 3], sha256: 'a'.repeat(64),
+      }],
+    };
+    await expect(dispatchElectronLocalAppCommand({ host, command, payload }))
+      .resolves.toEqual({ presentationRevision: '1' });
+    expect(calls).toEqual([payload]);
+    await expect(dispatchElectronLocalAppCommand({
+      host,
+      command,
+      payload: { ...payload, expectedPresentationRevision: '1', importedAssets: [] },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    expect(calls).toHaveLength(1);
+  });
+
   it('maps unavailable Manager owner state to the standard Runtime-unavailable code', async () => {
     const host = {
       agentManagerSnapshot: async () => {

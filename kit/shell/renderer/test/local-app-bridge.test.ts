@@ -34,6 +34,46 @@ function managerActionAvailability() {
 }
 
 describe('renderer local-app standard-shell surface', () => {
+  it('admits asset-only Background commits while rejecting an empty mutation', async () => {
+    const invocations: Array<{ command: string; payload: unknown }> = [];
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, payload: unknown) => {
+        invocations.push({ command, payload });
+        return { profile: null, previousProfile: null, defaultVoiceReference: '', avatarAutoplay: false, presentationRevision: '1' };
+      },
+      listen: () => () => {},
+    };
+    const presentation = createNimiLocalAppStandardShellSurface().agentConfigure.presentation;
+    await expect(presentation.commit({
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      expectedPresentationRevision: '0',
+      intent: {},
+      importedAssets: [{
+        role: 'background', fileName: 'background.png', mediaType: 'image/png',
+        content: new Uint8Array([1, 2, 3]), sha256: 'a'.repeat(64),
+      }],
+    })).resolves.toMatchObject({ presentationRevision: '1' });
+    expect(invocations).toEqual([{
+      command: 'nimi.shell.localApp.agentCommitPresentation',
+      payload: { payload: {
+        agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        expectedPresentationRevision: '0',
+        intent: {},
+        importedAssets: [{
+          role: 'background', fileName: 'background.png', mediaType: 'image/png',
+          content: [1, 2, 3], sha256: 'a'.repeat(64),
+        }],
+      } },
+    }]);
+    expect(() => presentation.commit({
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      expectedPresentationRevision: '1',
+      intent: {},
+      importedAssets: [],
+    })).toThrow(/intent requires a patch field/u);
+    expect(invocations).toHaveLength(1);
+  });
+
   it('maps the admitted local-app operations to exact Tauri commands', () => {
     expect(resolveTauriStandardCommand(
       NIMI_STANDARD_SHELL_COMMANDS['local-app.textGenerateCandidate'],

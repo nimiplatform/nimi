@@ -10,24 +10,23 @@ use crate::generated::{
     AgentTurnContextState, AgentTurnContextTruncationReason, CognitionMemoryEpistemicStatus,
     CognitionMemoryLifecycle, CognitionMemoryOutcome, CommitLocalAppAgentPresentationRequest,
     CorrectLocalAppAgentMemoryRequest, DeleteAllLocalAppAgentMemoryRequest,
-    ForgetLocalAppAgentMemoryRequest, GetLocalAppAgentAutonomySnapshotRequest,
-    GetAgentPresentationAssetRequest,
-    GetLocalAppAgentManagerSnapshotRequest, GetLocalAppAgentPresentationSnapshotRequest,
-    InspectLocalAppAgentMemoryRequest, LocalAppAgentAutonomyConfig, LocalAppAgentAutonomyIntent,
-    LocalAppAgentAutonomyMode, LocalAppAgentAutonomyProjection,
-    LocalAppAgentManagerActionAvailabilityState, LocalAppAgentManagerActionUnavailableReason,
-    LocalAppAgentManagerProductAction, LocalAppAgentPresentationIntent,
-    LocalAppAgentPresentationProjection, SetLocalAppAgentMemoryEnabledRequest,
-    UpdateLocalAppAgentAutonomyRequest,
+    ForgetLocalAppAgentMemoryRequest, GetAgentPresentationAssetRequest,
+    GetLocalAppAgentAutonomySnapshotRequest, GetLocalAppAgentManagerSnapshotRequest,
+    GetLocalAppAgentPresentationSnapshotRequest, InspectLocalAppAgentMemoryRequest,
+    LocalAppAgentAutonomyConfig, LocalAppAgentAutonomyIntent, LocalAppAgentAutonomyMode,
+    LocalAppAgentAutonomyProjection, LocalAppAgentManagerActionAvailabilityState,
+    LocalAppAgentManagerActionUnavailableReason, LocalAppAgentManagerProductAction,
+    LocalAppAgentPresentationIntent, LocalAppAgentPresentationProjection,
+    SetLocalAppAgentMemoryEnabledRequest, UpdateLocalAppAgentAutonomyRequest,
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
-    LocalAppAgentPresentationAssetReadRequest,
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
     LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
-    LocalAppAgentUpdateAutonomyRequest, LocalAppOperationError,
+    LocalAppAgentPresentationAssetReadRequest, LocalAppAgentUpdateAutonomyRequest,
+    LocalAppOperationError,
 };
 
 use super::{invalid_payload, untrusted};
@@ -470,7 +469,10 @@ pub(super) async fn presentation_read_asset(
     request: LocalAppAgentPresentationAssetReadRequest,
 ) -> Result<JsonValue, LocalAppOperationError> {
     require_agent_handle(&request.agent_handle)?;
-    if request.asset_ref.is_empty() || request.asset_ref.len() > 512 || request.asset_ref.trim() != request.asset_ref {
+    if request.asset_ref.is_empty()
+        || request.asset_ref.len() > 512
+        || request.asset_ref.trim() != request.asset_ref
+    {
         return Err(invalid_payload());
     }
     let response = crate::grpc_limits::runtime_agent_client(channel)
@@ -489,7 +491,10 @@ pub(super) async fn presentation_read_asset(
         || response.file_name.is_empty()
         || response.media_type.is_empty()
         || response.sha256.len() != 64
-        || !response.sha256.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+        || !response
+            .sha256
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
     {
         return Err(untrusted());
     }
@@ -509,8 +514,8 @@ pub(super) async fn commit_presentation(
     request: LocalAppAgentCommitPresentationRequest,
 ) -> Result<JsonValue, LocalAppOperationError> {
     require_agent_handle(&request.agent_handle)?;
-    let intent = parse_presentation_intent(request.intent)?;
     let imported_assets = parse_presentation_assets(request.imported_assets)?;
+    let intent = parse_presentation_intent(request.intent, !imported_assets.is_empty())?;
     let response = crate::grpc_limits::runtime_agent_client(channel)
         .commit_local_app_agent_presentation(CommitLocalAppAgentPresentationRequest {
             agent_handle: request.agent_handle,
@@ -873,6 +878,7 @@ fn parse_autonomy_config(
 
 fn parse_presentation_intent(
     value: JsonValue,
+    allow_empty_for_imported_asset: bool,
 ) -> Result<LocalAppAgentPresentationIntent, LocalAppOperationError> {
     let object = value.as_object().ok_or_else(invalid_payload)?;
     let allowed = [
@@ -885,7 +891,9 @@ fn parse_presentation_intent(
         "avatarAutoplay",
         "backgroundAssetRef",
     ];
-    if object.is_empty() || object.keys().any(|key| !allowed.contains(&key.as_str())) {
+    if (object.is_empty() && !allow_empty_for_imported_asset)
+        || object.keys().any(|key| !allowed.contains(&key.as_str()))
+    {
         return Err(invalid_payload());
     }
     let backend_kind = match object.get("backendKind") {
@@ -1351,10 +1359,13 @@ mod tests {
         );
         assert_eq!(projected["avatarAutoplay"], true);
 
-        let intent = parse_presentation_intent(serde_json::json!({
-            "defaultVoiceReference": "preset_voice_id:serena",
-            "avatarAutoplay": false
-        }))
+        let intent = parse_presentation_intent(
+            serde_json::json!({
+                "defaultVoiceReference": "preset_voice_id:serena",
+                "avatarAutoplay": false
+            }),
+            false,
+        )
         .expect("voice-only presentation patch");
         let patch = intent.patch.expect("canonical presentation patch");
         assert!(patch.backend_kind.is_none());
@@ -1375,6 +1386,9 @@ mod tests {
             "sha256": "abc123"
         }]))
         .expect("imported presentation asset");
+        parse_presentation_intent(serde_json::json!({}), !assets.is_empty())
+            .expect("asset-only presentation intent");
+        assert!(parse_presentation_intent(serde_json::json!({}), false).is_err());
         assert_eq!(assets.len(), 1);
         assert_eq!(assets[0].role, AgentPresentationAssetRole::Avatar as i32);
         assert_eq!(assets[0].content, vec![1, 2, 255]);
