@@ -1,5 +1,4 @@
 import type {
-  AgentEvent,
   AppMessageEvent,
   ApplySharedLocalAgentAIProfileRequest,
   ApplySharedLocalAgentAIProfileResponse,
@@ -20,7 +19,6 @@ import type {
   RuntimeTypedCallOptions,
   SendAppMessageRequest,
   SendAppMessageResponse,
-  SubscribeAgentEventsRequest,
   SubscribeAppMessagesRequest,
   TerminateAgentRequest,
   TerminateAgentResponse,
@@ -94,7 +92,6 @@ export interface NimiRuntimeAgentClientAgentModule {
     request: GetPublicChatSessionSnapshotRequest,
     options?: RuntimeTypedCallOptions,
   ): Promise<GetPublicChatSessionSnapshotResponse>;
-  subscribeAgentEvents(request: SubscribeAgentEventsRequest, options?: RuntimeTypedCallOptions): AsyncIterable<AgentEvent | unknown>;
   // Singular shared LocalAgent subsystem AIConfig. Host projections may omit
   // this optional transport surface; SDK operations then fail closed.
   getSharedLocalAgentAIConfig?(
@@ -162,7 +159,6 @@ export function createNimiRuntimeAgentClient(options: NimiRuntimeAgentClientOpti
       auth: runtime.auth,
       agents: {
         getPublicChatSessionSnapshot: runtime.agent.getPublicChatSessionSnapshot,
-        subscribeAgentEvents: runtime.agent.subscribeAgentEvents,
       },
       appMessages: runtime.appMessages,
     },

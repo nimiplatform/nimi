@@ -428,18 +428,9 @@ func TestExecutionStateClosureEmitsOnlyAdmittedNoOriginLifecycleSeam(t *testing.
 		t.Fatalf("CancelHook: %v", err)
 	}
 
-	streamCtx, cancel := context.WithTimeout(ctx, 150*time.Millisecond)
-	defer cancel()
-	stream := newAgentEventCaptureStreamLimit(streamCtx, 7)
-	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		Context: testRuntimeAgentIdentityContext("agent-pack4-hook-origin"),
-		AgentId: testRuntimeAgentLocalRef("agent-pack4-hook-origin"),
-		Cursor:  encodeCursor(cursor),
-	}, stream); err != context.Canceled && err != context.DeadlineExceeded {
-		t.Fatalf("SubscribeAgentEvents: %v", err)
-	}
-	if len(stream.events) != 7 {
-		t.Fatalf("expected 7 bounded lifecycle events after execution-state closure, got %d", len(stream.events))
+	events := retainedAgentEventsForTest(t, svc, "agent-pack4-hook-origin", cursor)
+	if len(events) != 7 {
+		t.Fatalf("expected 7 bounded lifecycle events after execution-state closure, got %d", len(events))
 	}
 
 	wantKinds := []struct {
@@ -455,7 +446,7 @@ func TestExecutionStateClosureEmitsOnlyAdmittedNoOriginLifecycleSeam(t *testing.
 		{eventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK, hook: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED},
 		{eventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE, exec: runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE},
 	}
-	for i, event := range stream.events {
+	for i, event := range events {
 		if event.GetEventType() != wantKinds[i].eventType {
 			t.Fatalf("unexpected event type at index %d: got %s want %s", i, event.GetEventType(), wantKinds[i].eventType)
 		}
@@ -537,22 +528,14 @@ func TestPublicChatTrackHookProposalUsesCanonicalHookLifecycle(t *testing.T) {
 		t.Fatalf("expected canonical pending hook from chat-track path, got %#v", pendingResp.GetHooks())
 	}
 
-	hookStream := newAgentEventCaptureStreamLimit(ctx, 2)
-	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		Context:      testRuntimeAgentIdentityContext("agent-pack4-chat-track"),
-		AgentId:      testRuntimeAgentLocalRef("agent-pack4-chat-track"),
-		Cursor:       encodeCursor(cursor),
-		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK},
-	}, hookStream); err != context.Canceled {
-		t.Fatalf("SubscribeAgentEvents(hook): %v", err)
+	hookEvents := retainedAgentEventsForTest(t, svc, "agent-pack4-chat-track", cursor, runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK)
+	if len(hookEvents) != 2 {
+		t.Fatalf("expected proposed+pending hook events from chat-track path, got %d", len(hookEvents))
 	}
-	if len(hookStream.events) != 2 {
-		t.Fatalf("expected proposed+pending hook events from chat-track path, got %d", len(hookStream.events))
-	}
-	if got := hookStream.events[0].GetHook().GetFamily(); got != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED {
+	if got := hookEvents[0].GetHook().GetFamily(); got != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED {
 		t.Fatalf("expected proposed hook family first, got %s", got)
 	}
-	if got := hookStream.events[1].GetHook().GetFamily(); got != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING {
+	if got := hookEvents[1].GetHook().GetFamily(); got != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING {
 		t.Fatalf("expected pending hook family second, got %s", got)
 	}
 }
@@ -655,23 +638,15 @@ func TestPublicChatHookProjectionAndNoRawAPMLConsumerPath(t *testing.T) {
 	if len(pendingResp.GetHooks()) != 0 {
 		t.Fatalf("public chat follow-up must not create life-track pending hook truth, got %#v", pendingResp.GetHooks())
 	}
-	hookStream := newAgentEventCaptureStreamLimit(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 2)
-	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		Context:      testRuntimeAgentIdentityContext("agent-alpha"),
-		AgentId:      testRuntimeAgentLocalRef("agent-alpha"),
-		Cursor:       encodeCursor(cursor),
-		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK},
-	}, hookStream); err != context.DeadlineExceeded && err != context.Canceled {
-		t.Fatalf("SubscribeAgentEvents(hook after public chat hook projection): %v", err)
-	}
-	if len(hookStream.events) != 2 {
-		t.Fatalf("expected proposed+pending public chat hook projection events, got %#v", hookStream.events)
+	hookEvents := retainedAgentEventsForTest(t, svc, "agent-alpha", cursor, runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK)
+	if len(hookEvents) != 2 {
+		t.Fatalf("expected proposed+pending public chat hook projection events, got %#v", hookEvents)
 	}
 	for index, want := range []runtimev1.HookAdmissionState{
 		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED,
 		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
 	} {
-		detail := hookStream.events[index].GetHook()
+		detail := hookEvents[index].GetHook()
 		if got := detail.GetFamily(); got != want {
 			t.Fatalf("unexpected hook projection family at index %d: got %s want %s", index, got, want)
 		}

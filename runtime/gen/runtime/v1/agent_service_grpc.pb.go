@@ -61,7 +61,6 @@ const (
 	RuntimeAgentService_ListDelegatedDiagnostics_FullMethodName                    = "/nimi.runtime.v1.RuntimeAgentService/ListDelegatedDiagnostics"
 	RuntimeAgentService_GetDelegatedReplayTrace_FullMethodName                     = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedReplayTrace"
 	RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/GetDelegatedControlSurfaceSnapshot"
-	RuntimeAgentService_SubscribeAgentEvents_FullMethodName                        = "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
 	RuntimeAgentService_TranscribeAgentVoiceInput_FullMethodName                   = "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput"
 	RuntimeAgentService_GetSharedLocalAgentAIConfig_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/GetSharedLocalAgentAIConfig"
 	RuntimeAgentService_OverwriteSharedLocalAgentAIConfig_FullMethodName           = "/nimi.runtime.v1.RuntimeAgentService/OverwriteSharedLocalAgentAIConfig"
@@ -134,7 +133,6 @@ type RuntimeAgentServiceClient interface {
 	ListDelegatedDiagnostics(ctx context.Context, in *ListDelegatedDiagnosticsRequest, opts ...grpc.CallOption) (*ListDelegatedDiagnosticsResponse, error)
 	GetDelegatedReplayTrace(ctx context.Context, in *GetDelegatedReplayTraceRequest, opts ...grpc.CallOption) (*GetDelegatedReplayTraceResponse, error)
 	GetDelegatedControlSurfaceSnapshot(ctx context.Context, in *GetDelegatedControlSurfaceSnapshotRequest, opts ...grpc.CallOption) (*GetDelegatedControlSurfaceSnapshotResponse, error)
-	SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error)
 	TranscribeAgentVoiceInput(ctx context.Context, in *TranscribeAgentVoiceInputRequest, opts ...grpc.CallOption) (*TranscribeAgentVoiceInputResponse, error)
 	// Shared Runtime LocalAgent subsystem AIConfig surface.
 	GetSharedLocalAgentAIConfig(ctx context.Context, in *GetSharedLocalAgentAIConfigRequest, opts ...grpc.CallOption) (*GetSharedLocalAgentAIConfigResponse, error)
@@ -617,25 +615,6 @@ func (c *runtimeAgentServiceClient) GetDelegatedControlSurfaceSnapshot(ctx conte
 	return out, nil
 }
 
-func (c *runtimeAgentServiceClient) SubscribeAgentEvents(ctx context.Context, in *SubscribeAgentEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AgentEvent], error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	stream, err := c.cc.NewStream(ctx, &RuntimeAgentService_ServiceDesc.Streams[3], RuntimeAgentService_SubscribeAgentEvents_FullMethodName, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &grpc.GenericClientStream[SubscribeAgentEventsRequest, AgentEvent]{ClientStream: stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAgentService_SubscribeAgentEventsClient = grpc.ServerStreamingClient[AgentEvent]
-
 func (c *runtimeAgentServiceClient) TranscribeAgentVoiceInput(ctx context.Context, in *TranscribeAgentVoiceInputRequest, opts ...grpc.CallOption) (*TranscribeAgentVoiceInputResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(TranscribeAgentVoiceInputResponse)
@@ -895,7 +874,6 @@ type RuntimeAgentServiceServer interface {
 	ListDelegatedDiagnostics(context.Context, *ListDelegatedDiagnosticsRequest) (*ListDelegatedDiagnosticsResponse, error)
 	GetDelegatedReplayTrace(context.Context, *GetDelegatedReplayTraceRequest) (*GetDelegatedReplayTraceResponse, error)
 	GetDelegatedControlSurfaceSnapshot(context.Context, *GetDelegatedControlSurfaceSnapshotRequest) (*GetDelegatedControlSurfaceSnapshotResponse, error)
-	SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error
 	TranscribeAgentVoiceInput(context.Context, *TranscribeAgentVoiceInputRequest) (*TranscribeAgentVoiceInputResponse, error)
 	// Shared Runtime LocalAgent subsystem AIConfig surface.
 	GetSharedLocalAgentAIConfig(context.Context, *GetSharedLocalAgentAIConfigRequest) (*GetSharedLocalAgentAIConfigResponse, error)
@@ -1055,9 +1033,6 @@ func (UnimplementedRuntimeAgentServiceServer) GetDelegatedReplayTrace(context.Co
 }
 func (UnimplementedRuntimeAgentServiceServer) GetDelegatedControlSurfaceSnapshot(context.Context, *GetDelegatedControlSurfaceSnapshotRequest) (*GetDelegatedControlSurfaceSnapshotResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetDelegatedControlSurfaceSnapshot not implemented")
-}
-func (UnimplementedRuntimeAgentServiceServer) SubscribeAgentEvents(*SubscribeAgentEventsRequest, grpc.ServerStreamingServer[AgentEvent]) error {
-	return status.Error(codes.Unimplemented, "method SubscribeAgentEvents not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) TranscribeAgentVoiceInput(context.Context, *TranscribeAgentVoiceInputRequest) (*TranscribeAgentVoiceInputResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method TranscribeAgentVoiceInput not implemented")
@@ -1877,17 +1852,6 @@ func _RuntimeAgentService_GetDelegatedControlSurfaceSnapshot_Handler(srv interfa
 	return interceptor(ctx, in, info, handler)
 }
 
-func _RuntimeAgentService_SubscribeAgentEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(SubscribeAgentEventsRequest)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(RuntimeAgentServiceServer).SubscribeAgentEvents(m, &grpc.GenericServerStream[SubscribeAgentEventsRequest, AgentEvent]{ServerStream: stream})
-}
-
-// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
-type RuntimeAgentService_SubscribeAgentEventsServer = grpc.ServerStreamingServer[AgentEvent]
-
 func _RuntimeAgentService_TranscribeAgentVoiceInput_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(TranscribeAgentVoiceInputRequest)
 	if err := dec(in); err != nil {
@@ -2528,11 +2492,6 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "SubscribeLocalAppEmbodimentEvents",
 			Handler:       _RuntimeAgentService_SubscribeLocalAppEmbodimentEvents_Handler,
-			ServerStreams: true,
-		},
-		{
-			StreamName:    "SubscribeAgentEvents",
-			Handler:       _RuntimeAgentService_SubscribeAgentEvents_Handler,
 			ServerStreams: true,
 		},
 	},

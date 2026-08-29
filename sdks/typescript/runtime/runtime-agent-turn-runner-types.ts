@@ -98,7 +98,6 @@ export type NimiRuntimeAgentConsumeRequest = RuntimeLocalAgentIdentityInput & {
   readonly conversationAnchorId?: string;
   readonly subjectUserId?: string;
   readonly cursor?: string;
-  readonly includeAgentEvents?: boolean;
 };
 
 export type NimiRuntimeAgentSessionSnapshotRequest = RuntimeLocalAgentIdentityInput & {

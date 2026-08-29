@@ -276,8 +276,6 @@ func protectedCapabilityForStream(fullMethod string, req any) (string, bool) {
 		return "ai.spend.meter", true
 	case "/nimi.runtime.v1.RuntimeAuditService/ExportAuditEvents":
 		return "runtime.audit.export", true
-	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents":
-		return "runtime.agent.read", true
 	case "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages":
 		return deferredStreamCapability, true
 	default:

@@ -39,13 +39,12 @@ type agentEntry struct {
 }
 
 type subscriber struct {
-	id                    uint64
-	agentID               string
-	eventFilters          map[runtimev1.AgentEventType]struct{}
-	bundledAvatarIdentity *localAgentIdentity
-	ch                    chan *runtimev1.AgentEvent
-	mu                    sync.Mutex
-	closed                bool
+	id           uint64
+	agentID      string
+	eventFilters map[runtimev1.AgentEventType]struct{}
+	ch           chan *runtimev1.AgentEvent
+	mu           sync.Mutex
+	closed       bool
 }
 
 type runtimeAccountProjectionProvider interface {
@@ -302,10 +301,6 @@ func (s *Service) Close() {
 
 func (s *Service) isClosed() bool {
 	return s == nil || s.closed.Load()
-}
-
-func (s *Service) SubscribeAgentEvents(req *runtimev1.SubscribeAgentEventsRequest, stream runtimev1.RuntimeAgentService_SubscribeAgentEventsServer) error {
-	return s.eventStreamRuntime().subscribe(req, stream)
 }
 
 func (s *Service) SetAuditStore(store *auditlog.Store) {

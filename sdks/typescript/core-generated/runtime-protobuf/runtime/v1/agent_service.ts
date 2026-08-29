@@ -1325,27 +1325,6 @@ export interface CancelHookResponse {
     outcome?: HookExecutionOutcome;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.SubscribeAgentEventsRequest
- */
-export interface SubscribeAgentEventsRequest {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.AgentRequestContext context = 1
-     */
-    context?: AgentRequestContext;
-    /**
-     * @generated from protobuf field: string agent_id = 2
-     */
-    agentId: string;
-    /**
-     * @generated from protobuf field: string cursor = 3
-     */
-    cursor: string;
-    /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.AgentEventType event_filters = 4
-     */
-    eventFilters: AgentEventType[];
-}
-/**
  * First-party recorded voice ingress. Runtime validates the selected
  * LocalAgent Conversation and executes audio.transcribe through the singular
  * shared LocalAgent AIConfig before returning typed text to the caller. The
@@ -7884,84 +7863,6 @@ class CancelHookResponse$Type extends MessageType<CancelHookResponse> {
  * @generated MessageType for protobuf message nimi.runtime.v1.CancelHookResponse
  */
 export const CancelHookResponse = new CancelHookResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class SubscribeAgentEventsRequest$Type extends MessageType<SubscribeAgentEventsRequest> {
-    constructor() {
-        super("nimi.runtime.v1.SubscribeAgentEventsRequest", [
-            { no: 1, name: "context", kind: "message", T: () => AgentRequestContext },
-            { no: 2, name: "agent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "cursor", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "event_filters", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.AgentEventType", AgentEventType, "AGENT_EVENT_TYPE_"] }
-        ]);
-    }
-    create(value?: PartialMessage<SubscribeAgentEventsRequest>): SubscribeAgentEventsRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.agentId = "";
-        message.cursor = "";
-        message.eventFilters = [];
-        if (value !== undefined)
-            reflectionMergePartial<SubscribeAgentEventsRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: SubscribeAgentEventsRequest): SubscribeAgentEventsRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.AgentRequestContext context */ 1:
-                    message.context = AgentRequestContext.internalBinaryRead(reader, reader.uint32(), options, message.context);
-                    break;
-                case /* string agent_id */ 2:
-                    message.agentId = reader.string();
-                    break;
-                case /* string cursor */ 3:
-                    message.cursor = reader.string();
-                    break;
-                case /* repeated nimi.runtime.v1.AgentEventType event_filters */ 4:
-                    if (wireType === WireType.LengthDelimited)
-                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
-                            message.eventFilters.push(reader.int32());
-                    else
-                        message.eventFilters.push(reader.int32());
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: SubscribeAgentEventsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.AgentRequestContext context = 1; */
-        if (message.context)
-            AgentRequestContext.internalBinaryWrite(message.context, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* string agent_id = 2; */
-        if (message.agentId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.agentId);
-        /* string cursor = 3; */
-        if (message.cursor !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.cursor);
-        /* repeated nimi.runtime.v1.AgentEventType event_filters = 4; */
-        if (message.eventFilters.length) {
-            writer.tag(4, WireType.LengthDelimited).fork();
-            for (let i = 0; i < message.eventFilters.length; i++)
-                writer.int32(message.eventFilters[i]);
-            writer.join();
-        }
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.SubscribeAgentEventsRequest
- */
-export const SubscribeAgentEventsRequest = new SubscribeAgentEventsRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class TranscribeAgentVoiceInputRequest$Type extends MessageType<TranscribeAgentVoiceInputRequest> {
     constructor() {

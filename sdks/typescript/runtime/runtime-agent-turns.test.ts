@@ -30,9 +30,6 @@ test('Runtime Agent voice input helper uses the dedicated typed transcription RP
         async getPublicChatSessionSnapshot() {
           return {};
         },
-        async *subscribeAgentEvents() {
-          yield undefined;
-        },
         async transcribeAgentVoiceInput(request, options) {
           calls.push({
             request: request as unknown as Record<string, unknown>,

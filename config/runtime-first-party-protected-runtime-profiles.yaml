@@ -85,7 +85,6 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles
       - method_id: /nimi.runtime.v1.RuntimeAppService/SendAppMessage
       - method_id: /nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages
-      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents
       - method_id: /nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes
       - method_id: /nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts
       - method_id: /nimi.runtime.v1.RuntimeArtifactService/PutArtifact

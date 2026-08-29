@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { AgentEventType, RuntimeHealthStatus } from '../core-generated/runtime-typed-client';
+import { AppMessageEventType, RuntimeHealthStatus } from '../core-generated/runtime-typed-client';
 import {
-  AgentEvent,
-  SubscribeAgentEventsRequest,
-} from '../core-generated/runtime-protobuf/runtime/v1/agent_service';
+  AppMessageEvent,
+  SubscribeAppMessagesRequest,
+} from '../core-generated/runtime-protobuf/runtime/v1/app';
 import {
   GetRuntimeHealthRequest,
   GetRuntimeHealthResponse,
@@ -133,10 +133,11 @@ test('tauri-ipc Runtime transport decodes protobuf server streams', async () => 
           payload: {
             streamId,
             eventType: 'next',
-            payloadBytesBase64: toBase64(AgentEvent.toBinary(AgentEvent.create({
-              agentId: 'agent-tauri',
+            payloadBytesBase64: toBase64(AppMessageEvent.toBinary(AppMessageEvent.create({
+              fromAppId: 'runtime.agent',
+              toAppId: 'nimi.tauri.test',
               sequence: '42',
-              eventType: AgentEventType.LIFECYCLE,
+              eventType: AppMessageEventType.APP_MESSAGE_EVENT_RECEIVED,
             }))),
           },
         });
@@ -168,24 +169,26 @@ test('tauri-ipc Runtime transport decodes protobuf server streams', async () => 
     });
     const events = [];
 
-    for await (const event of runtime.agents.subscribeAgentEvents({
-      agentId: 'agent-tauri',
-      cursor: '41',
-      eventFilters: [],
+    for await (const event of runtime.appMessages.subscribeAppMessages({
+      appId: 'nimi.tauri.test',
+      fromAppIds: ['runtime.agent'],
     })) {
       events.push(event);
     }
 
-    assert.equal(capturedPayload.methodId, '/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents');
-    assert.deepEqual(SubscribeAgentEventsRequest.fromBinary(fromBase64(capturedPayload.requestBytesBase64)), {
-      agentId: 'agent-tauri',
-      cursor: '41',
-      eventFilters: [],
+    assert.equal(capturedPayload.methodId, '/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages');
+    assert.deepEqual(SubscribeAppMessagesRequest.fromBinary(fromBase64(capturedPayload.requestBytesBase64)), {
+      appId: 'nimi.tauri.test',
+      subjectUserId: '',
+      cursor: '',
+      fromAppIds: ['runtime.agent'],
+      localAgentRef: '',
+      conversationAnchorId: '',
     });
     assert.equal((capturedPayload.metadata as { appId?: string } | undefined)?.appId, undefined);
     assert.equal(events.length, 1);
-    assert.equal(events[0]?.agentId, 'agent-tauri');
-    assert.equal(events[0]?.eventType, AgentEventType.LIFECYCLE);
+    assert.equal(events[0]?.fromAppId, 'runtime.agent');
+    assert.equal(events[0]?.eventType, AppMessageEventType.APP_MESSAGE_EVENT_RECEIVED);
   } finally {
     restore();
   }
@@ -202,10 +205,11 @@ test('tauri-ipc Runtime transport drains queued stream chunks before surfacing r
             payload: {
               streamId,
               eventType: 'next',
-              payloadBytesBase64: toBase64(AgentEvent.toBinary(AgentEvent.create({
-                agentId: 'agent-before-error',
+              payloadBytesBase64: toBase64(AppMessageEvent.toBinary(AppMessageEvent.create({
+                fromAppId: 'runtime.agent',
+                toAppId: 'nimi.tauri.test',
                 sequence: '43',
-                eventType: AgentEventType.LIFECYCLE,
+                eventType: AppMessageEventType.APP_MESSAGE_EVENT_RECEIVED,
               }))),
             },
           });
@@ -241,15 +245,14 @@ test('tauri-ipc Runtime transport drains queued stream chunks before surfacing r
       appId: 'nimi.tauri.test',
       transport: { type: 'tauri-ipc' },
     });
-    const iterator = runtime.agents.subscribeAgentEvents({
-      agentId: 'agent-before-error',
-      cursor: '42',
-      eventFilters: [],
+    const iterator = runtime.appMessages.subscribeAppMessages({
+      appId: 'nimi.tauri.test',
+      fromAppIds: ['runtime.agent'],
     })[Symbol.asyncIterator]();
 
     const first = await iterator.next();
     assert.equal(first.done, false);
-    assert.equal(first.value.agentId, 'agent-before-error');
+    assert.equal(first.value.fromAppId, 'runtime.agent');
     await assert.rejects(
       () => iterator.next(),
       (error: unknown) => (error as { reasonCode?: string }).reasonCode === ReasonCode.AI_STREAM_BROKEN,

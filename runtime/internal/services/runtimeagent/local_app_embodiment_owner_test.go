@@ -428,18 +428,6 @@ func TestLocalAppEmbodimentSubscriptionIsOrderedFilteredAndRevalidated(t *testin
 	if err != nil {
 		t.Fatalf("build foreign activity: %v", err)
 	}
-	expression, err := composition.svc.emitPresentationExpressionEvent(
-		composition.agentRef,
-		composition.anchorID,
-		"turn-opaque",
-		"stream-private",
-		"renderer-expression-must-stay-local",
-		500,
-		now.Add(time.Millisecond),
-	)
-	if err != nil {
-		t.Fatalf("build excluded expression: %v", err)
-	}
 	activity, err := composition.svc.emitPresentationActivityEvent(
 		composition.agentRef,
 		composition.anchorID,
@@ -449,7 +437,7 @@ func TestLocalAppEmbodimentSubscriptionIsOrderedFilteredAndRevalidated(t *testin
 		"interaction",
 		"",
 		"runtime",
-		now.Add(2*time.Millisecond),
+		now.Add(time.Millisecond),
 	)
 	if err != nil {
 		t.Fatalf("build admitted activity: %v", err)
@@ -460,9 +448,9 @@ func TestLocalAppEmbodimentSubscriptionIsOrderedFilteredAndRevalidated(t *testin
 		"neutral",
 		"runtime",
 		stateEventOrigin{ConversationAnchorID: composition.anchorID, OriginatingTurnID: "turn-opaque"},
-		now.Add(3*time.Millisecond),
+		now.Add(2*time.Millisecond),
 	)
-	if err := composition.svc.commitAgentEvents(foreignActivity, expression, activity, emotion); err != nil {
+	if err := composition.svc.commitAgentEvents(foreignActivity, activity, emotion); err != nil {
 		t.Fatalf("commit subscription events: %v", err)
 	}
 
@@ -506,20 +494,22 @@ func TestLocalAppEmbodimentSubscriptionIsOrderedFilteredAndRevalidated(t *testin
 		return len(composition.svc.subscribers) == 1
 	})
 	composition.resolver.stale.Store(true)
-	ignoredExpression, err := composition.svc.emitPresentationExpressionEvent(
+	staleActivity, err := composition.svc.emitPresentationActivityEvent(
 		composition.agentRef,
 		composition.anchorID,
 		"turn-late",
 		"stream-private",
-		"renderer-expression-must-stay-local",
-		500,
+		"thinking",
+		"interaction",
+		"",
+		"runtime",
 		time.Now().UTC(),
 	)
 	if err != nil {
-		t.Fatalf("build ignored stale-session event: %v", err)
+		t.Fatalf("build stale-session activity: %v", err)
 	}
-	if err := composition.svc.commitAgentEvents(ignoredExpression); err != nil {
-		t.Fatalf("commit ignored stale-session event: %v", err)
+	if err := composition.svc.commitAgentEvents(staleActivity); err != nil {
+		t.Fatalf("commit stale-session activity: %v", err)
 	}
 	select {
 	case err := <-staleDone:
@@ -583,21 +573,20 @@ func TestLocalAppEmbodimentProjectionRejectsMalformedSemanticCarrier(t *testing.
 		t.Fatalf("invalid timestamp carrier admitted=%v err=%v", admitted, err)
 	}
 
-	rawRendererExpression := &runtimev1.AgentEvent{
+	retiredRendererFamily := &runtimev1.AgentEvent{
 		Sequence:  2,
 		AgentId:   testRuntimeAgentLocalRef("agent-malformed"),
 		EventType: runtimev1.AgentEventType_AGENT_EVENT_TYPE_PRESENTATION,
 		Timestamp: timestamppb.Now(),
 		Detail: &runtimev1.AgentEvent_Presentation{Presentation: &runtimev1.AgentPresentationEventDetail{
-			Family:               runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED,
+			Family:               runtimev1.AgentPresentationEventFamily(3),
 			ConversationAnchorId: "agent_anchor_embodiment",
 			TurnId:               "turn-opaque",
 			StreamId:             "stream-private",
-			ExpressionId:         "renderer-expression-must-stay-local",
 		}},
 	}
-	if projected, admitted, err := projectRuntimeAgentEmbodimentEvent(rawRendererExpression, "agent_anchor_embodiment"); err != nil || admitted || projected.Kind != "" {
-		t.Fatalf("renderer expression carrier leaked: projected=%+v admitted=%v err=%v", projected, admitted, err)
+	if projected, admitted, err := projectRuntimeAgentEmbodimentEvent(retiredRendererFamily, "agent_anchor_embodiment"); err != nil || admitted || projected.Kind != "" {
+		t.Fatalf("retired renderer family leaked: projected=%+v admitted=%v err=%v", projected, admitted, err)
 	}
 
 	unboundedVoiceTiming := &runtimev1.AgentEvent{

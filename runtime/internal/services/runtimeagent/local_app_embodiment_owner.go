@@ -637,8 +637,8 @@ func projectRuntimeAgentEmbodimentEvent(
 			projected.Kind = localAppEmbodimentEventVoiceTiming
 			projected.VoiceTiming = voiceTiming
 		default:
-			// expression_requested, lipsync, debug and every Avatar-specific
-			// carrier remain outside the common embodiment contract.
+			// Renderer mapping, lipsync, debug and every Avatar-specific carrier
+			// remain outside the common embodiment contract.
 			return localAppEmbodimentEvent{}, false, nil
 		}
 	default:

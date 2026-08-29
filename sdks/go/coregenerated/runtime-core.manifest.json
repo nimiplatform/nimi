@@ -502,15 +502,6 @@
           "response_stream": false
         },
         {
-          "name": "SubscribeAgentEvents",
-          "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
-          "kind": "server_stream",
-          "request_type": "SubscribeAgentEventsRequest",
-          "response_type": "AgentEvent",
-          "request_stream": false,
-          "response_stream": true
-        },
-        {
           "name": "TranscribeAgentVoiceInput",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/TranscribeAgentVoiceInput",
           "kind": "unary",
@@ -2106,7 +2097,6 @@
     "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig",
     "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled",
     "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision",
-    "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents",
     "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents",
@@ -2754,14 +2744,6 @@
       "kind": "unary",
       "request_type": "SubmitDelegatedApprovalDecisionRequest",
       "response_type": "SubmitDelegatedApprovalDecisionResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
-      "service": "RuntimeAgentService",
-      "method": "SubscribeAgentEvents",
-      "kind": "server_stream",
-      "request_type": "SubscribeAgentEventsRequest",
-      "response_type": "AgentEvent"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
@@ -4460,14 +4442,6 @@
       "kind": "unary",
       "request_type": "SubmitDelegatedApprovalDecisionRequest",
       "response_type": "SubmitDelegatedApprovalDecisionResponse"
-    },
-    {
-      "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
-      "service": "RuntimeAgentService",
-      "method": "SubscribeAgentEvents",
-      "kind": "server_stream",
-      "request_type": "SubscribeAgentEventsRequest",
-      "response_type": "AgentEvent"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
@@ -6395,7 +6369,6 @@
       "SubmitScenarioJobRequest",
       "SubmitScenarioJobResponse",
       "SubscribeAccountSessionEventsRequest",
-      "SubscribeAgentEventsRequest",
       "SubscribeAppMessagesRequest",
       "SubscribeLocalAppAgentRealtimeEventsRequest",
       "SubscribeLocalAppConversationEventsRequest",
@@ -7589,111 +7562,6 @@
             "repeated": false,
             "optional": false,
             "number": 13
-          },
-          {
-            "name": "motion_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 20
-          },
-          {
-            "name": "motion_priority",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 21
-          },
-          {
-            "name": "motion_expected_duration_ms",
-            "type": "int64",
-            "repeated": false,
-            "optional": false,
-            "number": 22
-          },
-          {
-            "name": "expression_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 30
-          },
-          {
-            "name": "expression_expected_duration_ms",
-            "type": "int64",
-            "repeated": false,
-            "optional": false,
-            "number": 31
-          },
-          {
-            "name": "pose_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 40
-          },
-          {
-            "name": "pose_expected_duration_ms",
-            "type": "int64",
-            "repeated": false,
-            "optional": false,
-            "number": 41
-          },
-          {
-            "name": "previous_pose_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 42
-          },
-          {
-            "name": "lookat_target_kind",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 50
-          },
-          {
-            "name": "lookat_x",
-            "type": "double",
-            "repeated": false,
-            "optional": false,
-            "number": 51
-          },
-          {
-            "name": "lookat_y",
-            "type": "double",
-            "repeated": false,
-            "optional": false,
-            "number": 52
-          },
-          {
-            "name": "lookat_z",
-            "type": "double",
-            "repeated": false,
-            "optional": false,
-            "number": 53
-          },
-          {
-            "name": "lookat_has_x",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 54
-          },
-          {
-            "name": "lookat_has_y",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 55
-          },
-          {
-            "name": "lookat_has_z",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 56
           },
           {
             "name": "audio_artifact_id",
@@ -31701,40 +31569,6 @@
         "source_file": "proto/runtime/v1/account.proto"
       },
       {
-        "name": "SubscribeAgentEventsRequest",
-        "fields": [
-          {
-            "name": "context",
-            "type": "AgentRequestContext",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "agent_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "cursor",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "event_filters",
-            "type": "AgentEventType",
-            "repeated": true,
-            "optional": false,
-            "number": 4
-          }
-        ],
-        "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
         "name": "SubscribeAppMessagesRequest",
         "fields": [
           {
@@ -34760,7 +34594,11 @@
       {
         "name": "AgentPresentationEventFamily",
         "values": [
-          "AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED"
+          "AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED",
+          "AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED",
+          "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY",
+          "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE",
+          "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL"
         ],
         "source_file": "proto/runtime/v1/agent_presentation.proto"
       },

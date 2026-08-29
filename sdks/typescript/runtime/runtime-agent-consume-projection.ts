@@ -1,9 +1,4 @@
 import {
-  AgentPresentationEventFamily,
-  AgentVoiceTimingPhase,
-  AgentStateEventFamily,
-  HookAdmissionState,
-  type AgentEvent,
   type AppMessageEvent,
 } from '../core-generated/runtime-typed-client';
 import type { JsonObject } from '../types';
@@ -18,10 +13,6 @@ import {
 } from './runtime-agent-consume-internal';
 import type {
   NimiRuntimeAgentConsumeEvent,
-  NimiRuntimeAgentExecutionStateValue,
-  NimiRuntimeAgentHookConsumeEvent,
-  NimiRuntimeAgentPresentationConsumeEvent,
-  NimiRuntimeAgentStateConsumeEvent,
   NimiRuntimeAgentTimelineChannel,
   NimiRuntimeAgentTimelineEnvelope,
   NimiRuntimeAgentTurnConsumeEvent,
@@ -48,61 +39,7 @@ const TURN_EVENT_TYPES = new Set([
   'runtime.agent.conversation.voice_timing_ready',
   'runtime.agent.conversation.voice_artifact_available',
   'runtime.agent.conversation.voice_timing_terminal',
-  'runtime.agent.state.status_text_changed',
-  'runtime.agent.state.execution_state_changed',
-  'runtime.agent.state.emotion_changed',
-  'runtime.agent.state.posture_changed',
-  'runtime.agent.hook.intent_proposed',
-  'runtime.agent.hook.pending',
-  'runtime.agent.hook.rejected',
-  'runtime.agent.hook.running',
-  'runtime.agent.hook.completed',
-  'runtime.agent.hook.failed',
-  'runtime.agent.hook.canceled',
-  'runtime.agent.hook.rescheduled',
-  'runtime.agent.presentation.activity_requested',
-  'runtime.agent.presentation.motion_requested',
-  'runtime.agent.presentation.expression_requested',
-  'runtime.agent.presentation.pose_requested',
-  'runtime.agent.presentation.pose_cleared',
-  'runtime.agent.presentation.lookat_requested',
 ]);
-
-function projectAppMessageStream(
-  stream: AsyncIterable<AppMessageEvent>,
-  request: { readonly conversationAnchorId?: unknown; readonly localAgentRef?: unknown },
-): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
-  return {
-    async *[Symbol.asyncIterator]() {
-      for await (const event of stream) {
-        const projected = projectNimiRuntimeAgentAppMessageEvent(event, request.localAgentRef);
-        if (!projected) continue;
-        const expectedAnchorId = normalizeText(request.conversationAnchorId);
-        if (expectedAnchorId && projected.conversationAnchorId !== expectedAnchorId) {
-          continue;
-        }
-        yield projected;
-      }
-    },
-  };
-}
-
-function projectAgentEventStream(
-  stream: AsyncIterable<AgentEvent>,
-  conversationAnchorId: string,
-): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
-  return {
-    async *[Symbol.asyncIterator]() {
-      for await (const event of stream) {
-        const projected = projectNimiRuntimeAgentServiceEvent(event);
-        if (conversationAnchorId && projected.conversationAnchorId && projected.conversationAnchorId !== conversationAnchorId) {
-          continue;
-        }
-        yield projected;
-      }
-    },
-  };
-}
 
 export function projectNimiRuntimeAgentAppMessageEvent(
   event: AppMessageEvent,
@@ -119,26 +56,6 @@ export function projectNimiRuntimeAgentAppMessageEvent(
       : payload.local_agent_ref ?? payload.localAgentRef ?? payload.agent_id ?? payload.agentId,
     'localAgentRef',
   );
-  if (messageType.startsWith('runtime.agent.state.')) {
-    return {
-      eventName: messageType as NimiRuntimeAgentStateConsumeEvent['eventName'],
-      localAgentRef,
-      ...(optionalString(payload.conversation_anchor_id, payload.conversationAnchorId) ? { conversationAnchorId: optionalString(payload.conversation_anchor_id, payload.conversationAnchorId) } : {}),
-      ...(optionalString(payload.originating_turn_id, payload.originatingTurnId) ? { originatingTurnId: optionalString(payload.originating_turn_id, payload.originatingTurnId) } : {}),
-      ...(optionalString(payload.originating_stream_id, payload.originatingStreamId) ? { originatingStreamId: optionalString(payload.originating_stream_id, payload.originatingStreamId) } : {}),
-      detail: projectAppMessageDetail(messageType, payload),
-    };
-  }
-  if (messageType.startsWith('runtime.agent.hook.')) {
-    return {
-      eventName: messageType as NimiRuntimeAgentHookConsumeEvent['eventName'],
-      localAgentRef,
-      ...(optionalString(payload.conversation_anchor_id, payload.conversationAnchorId) ? { conversationAnchorId: optionalString(payload.conversation_anchor_id, payload.conversationAnchorId) } : {}),
-      ...(optionalString(payload.originating_turn_id, payload.originatingTurnId) ? { originatingTurnId: optionalString(payload.originating_turn_id, payload.originatingTurnId) } : {}),
-      ...(optionalString(payload.originating_stream_id, payload.originatingStreamId) ? { originatingStreamId: optionalString(payload.originating_stream_id, payload.originatingStreamId) } : {}),
-      detail: projectAppMessageDetail(messageType, payload),
-    };
-  }
   const conversationAnchorId = requireText(
     payload.conversation_anchor_id ?? payload.conversationAnchorId,
     'conversationAnchorId',
@@ -173,36 +90,6 @@ function admitCommonVoiceDetail(messageType: string, detail: JsonObject): boolea
 function projectAppMessageDetail(messageType: string, payload: JsonObject): JsonObject {
   const detail = asRecord(payload.detail) || {};
   switch (messageType) {
-    case 'runtime.agent.state.status_text_changed':
-      return {
-        currentStatusText: optionalString(detail.current_status_text, detail.currentStatusText, payload.current_status_text, payload.currentStatusText),
-        previousStatusText: optionalString(detail.previous_status_text, detail.previousStatusText, payload.previous_status_text, payload.previousStatusText),
-      };
-    case 'runtime.agent.hook.intent_proposed':
-    case 'runtime.agent.hook.pending':
-    case 'runtime.agent.hook.rejected':
-    case 'runtime.agent.hook.running':
-    case 'runtime.agent.hook.completed':
-    case 'runtime.agent.hook.failed':
-    case 'runtime.agent.hook.canceled':
-    case 'runtime.agent.hook.rescheduled':
-      return {
-        intentId: optionalString(detail.intent_id, detail.intentId, payload.intent_id, payload.intentId),
-        triggerFamily: optionalString(detail.trigger_family, detail.triggerFamily, payload.trigger_family, payload.triggerFamily),
-        triggerDetail: asRecord(detail.trigger_detail ?? detail.triggerDetail ?? payload.trigger_detail ?? payload.triggerDetail),
-        effect: optionalString(detail.effect, payload.effect),
-        admissionState: optionalString(detail.admission_state, detail.admissionState, payload.admission_state, payload.admissionState),
-        reasonCode: optionalString(detail.reason_code, detail.reasonCode, payload.reason_code, payload.reasonCode),
-        message: optionalString(detail.message, payload.message),
-        reason: optionalString(detail.reason, payload.reason),
-      };
-    case 'runtime.agent.presentation.activity_requested':
-      return {
-        activityName: optionalString(detail.activity_name, detail.activityName, payload.activity_name, payload.activityName),
-        category: optionalString(detail.category, payload.category),
-        intensity: optionalString(detail.intensity, payload.intensity),
-        source: optionalString(detail.source, payload.source),
-      };
     case 'runtime.agent.turn.accepted':
       return { requestId: optionalString(detail.request_id, detail.requestId, payload.request_id, payload.requestId) };
     case 'runtime.agent.turn.text_delta':
@@ -298,192 +185,6 @@ function projectAppMessageDetail(messageType: string, payload: JsonObject): Json
 
 function optionalBoolean(value: unknown): boolean | undefined {
   return typeof value === 'boolean' ? value : undefined;
-}
-
-export function projectNimiRuntimeAgentServiceEvent(event: AgentEvent): NimiRuntimeAgentConsumeEvent {
-  const localAgentRef = requireText(event.localAgentRef || event.agentId, 'localAgentRef');
-  switch (event.detail.oneofKind) {
-    case 'state':
-      return projectStateEvent(localAgentRef, event.detail.state);
-    case 'presentation':
-      return projectPresentationEvent(localAgentRef, event.detail.presentation);
-    case 'hook':
-      return projectHookEvent(localAgentRef, event.detail.hook);
-    default:
-      runtimeAgentError(
-        'Runtime Agent service event family is not a consume projection event',
-        'SDK_RUNTIME_AGENT_EVENT_UNSUPPORTED',
-        'subscribe_supported_runtime_agent_event_families',
-      );
-  }
-}
-
-function projectStateEvent(localAgentRef: string, state: AgentEvent['detail'] & { oneofKind: 'state' } extends never ? never : Extract<AgentEvent['detail'], { oneofKind: 'state' }>['state']): NimiRuntimeAgentStateConsumeEvent {
-  const eventName = stateEventName(state.family);
-  return {
-    eventName,
-    localAgentRef,
-    ...(optionalString(state.conversationAnchorId) ? { conversationAnchorId: optionalString(state.conversationAnchorId) } : {}),
-    ...(optionalString(state.originatingTurnId) ? { originatingTurnId: optionalString(state.originatingTurnId) } : {}),
-    ...(optionalString(state.originatingStreamId) ? { originatingStreamId: optionalString(state.originatingStreamId) } : {}),
-    detail: {
-      currentStatusText: state.currentStatusText,
-      previousStatusText: state.hasPreviousStatusText ? state.previousStatusText : undefined,
-      currentExecutionState: formatGeneratedAgentExecutionState(state.currentExecutionState),
-      previousExecutionState: formatGeneratedAgentExecutionState(state.previousExecutionState),
-      currentEmotion: state.currentEmotion,
-      previousEmotion: state.previousEmotion || undefined,
-      source: state.emotionSource,
-      currentPosture: state.currentPosture ? {
-        actionFamily: state.currentPosture.actionFamily,
-        interruptMode: state.currentPosture.interruptMode,
-      } : undefined,
-      previousPosture: state.previousPosture ? {
-        actionFamily: state.previousPosture.actionFamily,
-        interruptMode: state.previousPosture.interruptMode,
-      } : undefined,
-    },
-  };
-}
-
-function projectPresentationEvent(
-  localAgentRef: string,
-  presentation: Extract<AgentEvent['detail'], { oneofKind: 'presentation' }>['presentation'],
-): NimiRuntimeAgentPresentationConsumeEvent {
-  const conversationAnchorId = requireText(presentation.conversationAnchorId, 'conversationAnchorId');
-  const turnId = requireText(presentation.turnId, 'turnId');
-  const streamId = requireText(presentation.streamId, 'streamId');
-  return {
-    eventName: presentationEventName(presentation.family),
-    localAgentRef,
-    conversationAnchorId,
-    turnId,
-    streamId,
-    detail: {
-      activityName: presentation.activityName,
-      category: presentation.activityCategory,
-      intensity: presentation.activityIntensity || undefined,
-      source: presentation.activitySource,
-      motionId: presentation.motionId,
-      motionPriority: presentation.motionPriority,
-      motionExpectedDurationMs: optionalNumber(presentation.motionExpectedDurationMs),
-      expressionId: presentation.expressionId,
-      expectedDurationMs: optionalNumber(presentation.expressionExpectedDurationMs || presentation.poseExpectedDurationMs),
-      poseId: presentation.poseId,
-      previousPoseId: presentation.previousPoseId,
-      lookatTargetKind: presentation.lookatTargetKind,
-      ...(presentation.lookatHasX ? { x: presentation.lookatX } : {}),
-      ...(presentation.lookatHasY ? { y: presentation.lookatY } : {}),
-      ...(presentation.lookatHasZ ? { z: presentation.lookatZ } : {}),
-      audioArtifactId: presentation.audioArtifactId || undefined,
-      audioMimeType: presentation.audioMimeType || undefined,
-      messageId: presentation.messageId || undefined,
-      artifactSequence: optionalNumber(presentation.artifactSequence),
-      artifactComplete: presentation.artifactComplete,
-      voiceTimingPhase: formatGeneratedVoiceTimingPhase(presentation.voiceTimingPhase),
-      terminalReason: presentation.terminalReason || undefined,
-      reason: presentation.reason || undefined,
-      durationMs: optionalNumber(presentation.durationMs),
-      deadlineOffsetMs: optionalNumber(presentation.deadlineOffsetMs),
-    },
-  };
-}
-
-function projectHookEvent(
-  localAgentRef: string,
-  hook: Extract<AgentEvent['detail'], { oneofKind: 'hook' }>['hook'],
-): NimiRuntimeAgentHookConsumeEvent {
-  return {
-    eventName: hookEventName(hook.family),
-    localAgentRef,
-    detail: {
-      intent: hook.intent as unknown as JsonObject,
-      reasonCode: hook.reasonCode,
-      message: hook.message,
-      reason: hook.reason,
-    },
-  };
-}
-
-function stateEventName(family: AgentStateEventFamily): NimiRuntimeAgentStateConsumeEvent['eventName'] {
-  switch (family) {
-    case AgentStateEventFamily.STATUS_TEXT_CHANGED:
-      return 'runtime.agent.state.status_text_changed';
-    case AgentStateEventFamily.EXECUTION_STATE_CHANGED:
-      return 'runtime.agent.state.execution_state_changed';
-    case AgentStateEventFamily.EMOTION_CHANGED:
-      return 'runtime.agent.state.emotion_changed';
-    case AgentStateEventFamily.POSTURE_CHANGED:
-      return 'runtime.agent.state.posture_changed';
-    default:
-      runtimeAgentError('Runtime Agent state event family is unsupported', 'SDK_RUNTIME_AGENT_EVENT_UNSUPPORTED', 'check_runtime_agent_event_family');
-  }
-}
-
-function presentationEventName(family: AgentPresentationEventFamily): NimiRuntimeAgentPresentationConsumeEvent['eventName'] {
-  switch (family) {
-    case AgentPresentationEventFamily.ACTIVITY_REQUESTED:
-      return 'runtime.agent.presentation.activity_requested';
-    case AgentPresentationEventFamily.MOTION_REQUESTED:
-      return 'runtime.agent.presentation.motion_requested';
-    case AgentPresentationEventFamily.EXPRESSION_REQUESTED:
-      return 'runtime.agent.presentation.expression_requested';
-    case AgentPresentationEventFamily.POSE_REQUESTED:
-      return 'runtime.agent.presentation.pose_requested';
-    case AgentPresentationEventFamily.POSE_CLEARED:
-      return 'runtime.agent.presentation.pose_cleared';
-    case AgentPresentationEventFamily.LOOKAT_REQUESTED:
-      return 'runtime.agent.presentation.lookat_requested';
-    case AgentPresentationEventFamily.VOICE_TIMING_READY:
-      return 'runtime.agent.conversation.voice_timing_ready';
-    case AgentPresentationEventFamily.VOICE_ARTIFACT_AVAILABLE:
-      return 'runtime.agent.conversation.voice_artifact_available';
-    case AgentPresentationEventFamily.VOICE_TIMING_TERMINAL:
-      return 'runtime.agent.conversation.voice_timing_terminal';
-    default:
-      runtimeAgentError('Runtime Agent presentation event family is unsupported', 'SDK_RUNTIME_AGENT_EVENT_UNSUPPORTED', 'check_runtime_agent_event_family');
-  }
-}
-
-function hookEventName(family: HookAdmissionState): NimiRuntimeAgentHookConsumeEvent['eventName'] {
-  switch (family) {
-    case HookAdmissionState.PROPOSED:
-      return 'runtime.agent.hook.intent_proposed';
-    case HookAdmissionState.PENDING:
-      return 'runtime.agent.hook.pending';
-    case HookAdmissionState.REJECTED:
-      return 'runtime.agent.hook.rejected';
-    case HookAdmissionState.RUNNING:
-      return 'runtime.agent.hook.running';
-    case HookAdmissionState.COMPLETED:
-      return 'runtime.agent.hook.completed';
-    case HookAdmissionState.FAILED:
-      return 'runtime.agent.hook.failed';
-    case HookAdmissionState.CANCELED:
-      return 'runtime.agent.hook.canceled';
-    case HookAdmissionState.RESCHEDULED:
-      return 'runtime.agent.hook.rescheduled';
-    default:
-      runtimeAgentError('Runtime Agent hook event family is unsupported', 'SDK_RUNTIME_AGENT_EVENT_UNSUPPORTED', 'check_runtime_agent_event_family');
-  }
-}
-
-function formatGeneratedAgentExecutionState(value: unknown): NimiRuntimeAgentExecutionStateValue | undefined {
-  if (value === 1) return 'idle';
-  if (value === 2) return 'chat_active';
-  if (value === 3) return 'life_pending';
-  if (value === 4) return 'life_running';
-  if (value === 5) return 'suspended';
-  return undefined;
-}
-
-function formatGeneratedVoiceTimingPhase(value: unknown): string | undefined {
-  if (value === AgentVoiceTimingPhase.ACTIVE) return 'active';
-  if (value === AgentVoiceTimingPhase.COMPLETED) return 'completed';
-  if (value === AgentVoiceTimingPhase.FAILED) return 'failed';
-  if (value === AgentVoiceTimingPhase.INTERRUPTED) return 'interrupted';
-  if (value === AgentVoiceTimingPhase.CANCELED) return 'canceled';
-  return undefined;
 }
 
 export function parseNimiRuntimeAgentTimeline(

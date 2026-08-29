@@ -111,23 +111,15 @@ func TestPublicChatEventHookRejectsWithoutHostEventDetector(t *testing.T) {
 		t.Fatalf("expected rejected event hook indication, got=%v", hookIntent)
 	}
 
-	hookStream := newAgentEventCaptureStreamLimit(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 2)
-	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		Context:      testRuntimeAgentIdentityContext("agent-alpha"),
-		AgentId:      "agent-alpha",
-		Cursor:       encodeCursor(cursor),
-		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK},
-	}, hookStream); err != context.Canceled {
-		t.Fatalf("SubscribeAgentEvents(hook): %v", err)
-	}
-	if len(hookStream.events) != 2 {
-		t.Fatalf("expected proposed+rejected event hook projections, got %#v", hookStream.events)
+	hookEvents := retainedAgentEventsForTest(t, svc, "agent-alpha", cursor, runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK)
+	if len(hookEvents) != 2 {
+		t.Fatalf("expected proposed+rejected event hook projections, got %#v", hookEvents)
 	}
 	for index, want := range []runtimev1.HookAdmissionState{
 		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED,
 		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_REJECTED,
 	} {
-		detail := hookStream.events[index].GetHook()
+		detail := hookEvents[index].GetHook()
 		if got := detail.GetFamily(); got != want {
 			t.Fatalf("unexpected hook event family at index %d: got %s want %s", index, got, want)
 		}

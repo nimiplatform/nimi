@@ -467,7 +467,6 @@ mod tests {
         for method_id in [
             "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
             "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
-            "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
         ] {
             assert!(protected_desktop_stream_method(method_id));
             assert!(validate_stream_method(method_id).is_ok());

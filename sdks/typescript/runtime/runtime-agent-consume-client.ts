@@ -1,5 +1,4 @@
 import {
-  AgentEventType,
   ConversationAnchorStatus,
   type ConversationAnchorSnapshot,
   type AgentConversationSummary,
@@ -23,7 +22,6 @@ import {
 import {
   mergeNimiRuntimeAgentStreams,
   normalizeCursor,
-  projectAgentEventStream,
   projectAppMessageStream,
 } from './runtime-agent-consume-streams';
 import type {
@@ -161,18 +159,6 @@ export function createNimiRuntimeAgentConsumeClient(
           }, callOptions), input, liveStartedAtMs));
         }
 
-        if (input.includeAgentEvents !== false) {
-          streams.push(projectAgentEventStream(runtime.agents.subscribeAgentEvents({
-            context: context.requestContext,
-            agentId: context.localAgentRef,
-            cursor,
-            eventFilters: [
-              AgentEventType.HOOK,
-              AgentEventType.STATE,
-              AgentEventType.PRESENTATION,
-            ],
-          }, callOptions), conversationAnchorId, liveStartedAtMs));
-        }
         return mergeNimiRuntimeAgentStreams(streams);
       },
     },

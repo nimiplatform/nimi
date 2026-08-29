@@ -36,11 +36,6 @@ func TestProtectedCapabilityForStream(t *testing.T) {
 		t.Fatalf("expected StreamScenario to require ai.spend.meter, got (%q,%v)", capability, required)
 	}
 
-	capability, required = protectedCapabilityForStream("/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents", nil)
-	if !required || capability != "runtime.agent.read" {
-		t.Fatalf("expected agent events stream to require runtime.agent.read, got (%q,%v)", capability, required)
-	}
-
 	capability, required = protectedCapabilityForStream(
 		"/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
 		&runtimev1.SubscribeAppMessagesRequest{

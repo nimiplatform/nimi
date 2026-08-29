@@ -76,24 +76,12 @@ func TestAgentStatePostureProjectionAndEnvelopeInvariants(t *testing.T) {
 		t.Fatalf("updateAgent(posture): %v", err)
 	}
 
-	streamCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-	stream := newAgentEventCaptureStreamLimit(streamCtx, 2)
-	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		Context: testRuntimeAgentIdentityContext("agent-exec-pack-3"),
-		AgentId: "agent-exec-pack-3",
-		Cursor:  encodeCursor(cursor),
-		EventFilters: []runtimev1.AgentEventType{
-			runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE,
-		},
-	}, stream); err != context.Canceled && err != context.DeadlineExceeded {
-		t.Fatalf("SubscribeAgentEvents: %v", err)
-	}
+	events := retainedAgentEventsForTest(t, svc, "agent-exec-pack-3", cursor, runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE)
 
-	if len(stream.events) < 2 {
-		t.Fatalf("expected 2 state events (posture_changed + status_text_changed), got %d", len(stream.events))
+	if len(events) < 2 {
+		t.Fatalf("expected 2 state events (posture_changed + status_text_changed), got %d", len(events))
 	}
-	postureEvent := stream.events[0]
+	postureEvent := events[0]
 	if postureEvent.GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE {
 		t.Fatalf("expected state event type, got %#v", postureEvent)
 	}
@@ -117,7 +105,7 @@ func TestAgentStatePostureProjectionAndEnvelopeInvariants(t *testing.T) {
 		t.Fatalf("no-origin posture event MUST NOT carry linkage, got %#v", postureDetail)
 	}
 
-	statusEvent := stream.events[1]
+	statusEvent := events[1]
 	statusDetail := statusEvent.GetState()
 	if statusDetail.GetFamily() != runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_STATUS_TEXT_CHANGED {
 		t.Fatalf("expected status_text_changed family, got %s", statusDetail.GetFamily())
@@ -138,29 +126,33 @@ func TestAgentStatePostureProjectionAndEnvelopeInvariants(t *testing.T) {
 		t.Fatalf("expected validatePresentationDetail(nil) error")
 	}
 	missing := &runtimev1.AgentPresentationEventDetail{
-		Family:               runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED,
+		Family:               runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED,
 		ConversationAnchorId: "anchor-1",
 		TurnId:               "turn-1",
 		// StreamId intentionally empty
-		ExpressionId: "joy",
+		ActivityName:     "thinking",
+		ActivityCategory: "interaction",
+		ActivitySource:   "runtime",
 	}
 	if err := validatePresentationDetail(missing); err == nil {
 		t.Fatalf("expected fail-closed when stream_id missing")
 	}
 	full := &runtimev1.AgentPresentationEventDetail{
-		Family:               runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED,
+		Family:               runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED,
 		ConversationAnchorId: "anchor-1",
 		TurnId:               "turn-1",
 		StreamId:             "stream-1",
-		ExpressionId:         "joy",
+		ActivityName:         "thinking",
+		ActivityCategory:     "interaction",
+		ActivitySource:       "runtime",
 	}
 	if err := validatePresentationDetail(full); err != nil {
 		t.Fatalf("expected presentation envelope valid with all identifiers, got %v", err)
 	}
 
-	// Exec helper produces a presentation event with stream identity distinct
+	// Common activity helper produces a presentation event with stream identity distinct
 	// from turn identity per K-AGCORE-030.
-	evt := svc.presentationExpressionRequestedEvent("agent-exec-pack-3", "anchor-1", "turn-1", "stream-1", "joy", 0, time.Now().UTC())
+	evt := svc.presentationActivityRequestedEvent("agent-exec-pack-3", "anchor-1", "turn-1", "stream-1", "thinking", "interaction", "", "runtime", time.Now().UTC())
 	if evt.GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_PRESENTATION {
 		t.Fatalf("expected presentation event type")
 	}
@@ -172,7 +164,7 @@ func TestAgentStatePostureProjectionAndEnvelopeInvariants(t *testing.T) {
 	}
 }
 
-func TestPublicChatCommittedPresentationReachesTypedStream(t *testing.T) {
+func TestPublicChatCommittedEmotionDoesNotCreateRendererEvent(t *testing.T) {
 	t.Parallel()
 
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
@@ -251,39 +243,19 @@ func TestPublicChatCommittedPresentationReachesTypedStream(t *testing.T) {
 	_ = capture.waitForMessageType(t, publicChatTurnPostTurnType)
 	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
 
-	streamCtx, cancel := context.WithTimeout(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 2*time.Second)
-	defer cancel()
-	stream := newAgentEventCaptureStreamLimit(streamCtx, 1)
-	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		Context: testRuntimeAgentIdentityContext("agent-alpha"),
-		AgentId: "agent-alpha",
-		Cursor:  encodeCursor(cursor),
-		EventFilters: []runtimev1.AgentEventType{
-			runtimev1.AgentEventType_AGENT_EVENT_TYPE_PRESENTATION,
-		},
-	}, stream); err != context.Canceled && err != context.DeadlineExceeded {
-		t.Fatalf("SubscribeAgentEvents: %v", err)
+	events := retainedAgentEventsForTest(t, svc, "agent-alpha", cursor)
+	var emotionFound bool
+	for _, event := range events {
+		if event.GetEventType() == runtimev1.AgentEventType_AGENT_EVENT_TYPE_PRESENTATION {
+			t.Fatalf("emotion must not create a renderer-owned presentation event: %#v", event)
+		}
+		if event.GetState().GetFamily() == runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_EMOTION_CHANGED &&
+			strings.TrimSpace(event.GetState().GetCurrentEmotion()) == "happy" {
+			emotionFound = true
+		}
 	}
-
-	if len(stream.events) != 1 {
-		t.Fatalf("expected one committed presentation event, got %d", len(stream.events))
-	}
-	event := stream.events[0]
-	if event.GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_PRESENTATION {
-		t.Fatalf("expected presentation event type, got %#v", event)
-	}
-	detail := event.GetPresentation()
-	if detail.GetFamily() != runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED {
-		t.Fatalf("expected expression_requested family, got %s", detail.GetFamily())
-	}
-	if strings.TrimSpace(detail.GetConversationAnchorId()) != anchorID {
-		t.Fatalf("expected committed presentation anchor_id=%s, got %q", anchorID, detail.GetConversationAnchorId())
-	}
-	if strings.TrimSpace(detail.GetTurnId()) == "" || strings.TrimSpace(detail.GetStreamId()) == "" {
-		t.Fatalf("expected committed presentation turn_id + stream_id, got %#v", detail)
-	}
-	if strings.TrimSpace(detail.GetExpressionId()) != "happy" {
-		t.Fatalf("expected committed expression_id=happy, got %#v", detail)
+	if !emotionFound {
+		t.Fatalf("expected committed common emotion state, got %#v", events)
 	}
 }
 
@@ -366,24 +338,12 @@ func TestPublicChatCommittedAPMLActivityReachesTypedStream(t *testing.T) {
 	_ = capture.waitForMessageType(t, publicChatTurnPostTurnType)
 	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
 
-	streamCtx, cancel := context.WithTimeout(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 2*time.Second)
-	defer cancel()
-	stream := newAgentEventCaptureStreamLimit(streamCtx, 1)
-	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		Context: testRuntimeAgentIdentityContext("agent-alpha"),
-		AgentId: "agent-alpha",
-		Cursor:  encodeCursor(cursor),
-		EventFilters: []runtimev1.AgentEventType{
-			runtimev1.AgentEventType_AGENT_EVENT_TYPE_PRESENTATION,
-		},
-	}, stream); err != context.Canceled && err != context.DeadlineExceeded {
-		t.Fatalf("SubscribeAgentEvents: %v", err)
-	}
+	events := retainedAgentEventsForTest(t, svc, "agent-alpha", cursor, runtimev1.AgentEventType_AGENT_EVENT_TYPE_PRESENTATION)
 
-	if len(stream.events) != 1 {
-		t.Fatalf("expected one committed activity presentation event, got %d", len(stream.events))
+	if len(events) != 1 {
+		t.Fatalf("expected one committed activity presentation event, got %d", len(events))
 	}
-	detail := stream.events[0].GetPresentation()
+	detail := events[0].GetPresentation()
 	if detail.GetFamily() != runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED {
 		t.Fatalf("expected activity_requested family, got %s", detail.GetFamily())
 	}

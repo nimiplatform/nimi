@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { AgentEventType, RuntimeHealthStatus } from '../core-generated/runtime-typed-client';
+import { AppMessageEventType, RuntimeHealthStatus } from '../core-generated/runtime-typed-client';
 import {
-  AgentEvent,
-  SubscribeAgentEventsRequest,
-} from '../core-generated/runtime-protobuf/runtime/v1/agent_service';
+  AppMessageEvent,
+  SubscribeAppMessagesRequest,
+} from '../core-generated/runtime-protobuf/runtime/v1/app';
 import {
   GetRuntimeHealthRequest,
   GetRuntimeHealthResponse,
@@ -172,10 +172,11 @@ test('electron-ipc Runtime transport decodes protobuf server streams', async () 
           payload: {
             streamId,
             eventType: 'next',
-            payloadBytesBase64: toBase64(AgentEvent.toBinary(AgentEvent.create({
-              agentId: 'agent-electron',
+            payloadBytesBase64: toBase64(AppMessageEvent.toBinary(AppMessageEvent.create({
+              fromAppId: 'runtime.agent',
+              toAppId: 'nimi.electron.test',
               sequence: '42',
-              eventType: AgentEventType.LIFECYCLE,
+              eventType: AppMessageEventType.APP_MESSAGE_EVENT_RECEIVED,
             }))),
           },
         });
@@ -207,24 +208,26 @@ test('electron-ipc Runtime transport decodes protobuf server streams', async () 
     });
     const events = [];
 
-    for await (const event of runtime.agents.subscribeAgentEvents({
-      agentId: 'agent-electron',
-      cursor: '41',
-      eventFilters: [],
+    for await (const event of runtime.appMessages.subscribeAppMessages({
+      appId: 'nimi.electron.test',
+      fromAppIds: ['runtime.agent'],
     })) {
       events.push(event);
     }
 
-    assert.equal(capturedPayload.methodId, '/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents');
-    assert.deepEqual(SubscribeAgentEventsRequest.fromBinary(fromBase64(capturedPayload.requestBytesBase64)), {
-      agentId: 'agent-electron',
-      cursor: '41',
-      eventFilters: [],
+    assert.equal(capturedPayload.methodId, '/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages');
+    assert.deepEqual(SubscribeAppMessagesRequest.fromBinary(fromBase64(capturedPayload.requestBytesBase64)), {
+      appId: 'nimi.electron.test',
+      subjectUserId: '',
+      cursor: '',
+      fromAppIds: ['runtime.agent'],
+      localAgentRef: '',
+      conversationAnchorId: '',
     });
     assert.equal((capturedPayload.metadata as { appId?: string } | undefined)?.appId, undefined);
     assert.equal(events.length, 1);
-    assert.equal(events[0]?.agentId, 'agent-electron');
-    assert.equal(events[0]?.eventType, AgentEventType.LIFECYCLE);
+    assert.equal(events[0]?.fromAppId, 'runtime.agent');
+    assert.equal(events[0]?.eventType, AppMessageEventType.APP_MESSAGE_EVENT_RECEIVED);
   } finally {
     restore();
   }
@@ -369,10 +372,9 @@ test('electron-ipc Runtime transport registers stream id mismatch as a public re
     });
     await assert.rejects(
       async () => {
-        for await (const _event of runtime.agents.subscribeAgentEvents({
-          agentId: 'agent-electron',
-          cursor: '',
-          eventFilters: [],
+        for await (const _event of runtime.appMessages.subscribeAppMessages({
+          appId: 'nimi.electron.test',
+          fromAppIds: ['runtime.agent'],
         })) {
           // stream open should fail before yielding
         }

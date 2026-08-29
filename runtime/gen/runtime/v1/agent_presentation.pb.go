@@ -81,11 +81,6 @@ type AgentPresentationEventFamily int32
 const (
 	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED              AgentPresentationEventFamily = 0
 	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED       AgentPresentationEventFamily = 1
-	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED         AgentPresentationEventFamily = 2
-	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED     AgentPresentationEventFamily = 3
-	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED           AgentPresentationEventFamily = 4
-	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED             AgentPresentationEventFamily = 5
-	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED         AgentPresentationEventFamily = 6
 	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY       AgentPresentationEventFamily = 7
 	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE AgentPresentationEventFamily = 8
 	AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL    AgentPresentationEventFamily = 9
@@ -96,11 +91,6 @@ var (
 	AgentPresentationEventFamily_name = map[int32]string{
 		0: "AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED",
 		1: "AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED",
-		2: "AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED",
-		3: "AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED",
-		4: "AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED",
-		5: "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED",
-		6: "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED",
 		7: "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY",
 		8: "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE",
 		9: "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL",
@@ -108,11 +98,6 @@ var (
 	AgentPresentationEventFamily_value = map[string]int32{
 		"AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED":              0,
 		"AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED":       1,
-		"AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED":         2,
-		"AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED":     3,
-		"AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED":           4,
-		"AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED":             5,
-		"AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED":         6,
 		"AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY":       7,
 		"AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE": 8,
 		"AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL":    9,
@@ -599,41 +584,22 @@ type AgentPresentationEventDetail struct {
 	TurnId               string                       `protobuf:"bytes,3,opt,name=turn_id,json=turnId,proto3" json:"turn_id,omitempty"`
 	StreamId             string                       `protobuf:"bytes,4,opt,name=stream_id,json=streamId,proto3" json:"stream_id,omitempty"`
 	// activity_requested
-	ActivityName      string `protobuf:"bytes,10,opt,name=activity_name,json=activityName,proto3" json:"activity_name,omitempty"`
-	ActivityCategory  string `protobuf:"bytes,11,opt,name=activity_category,json=activityCategory,proto3" json:"activity_category,omitempty"`
-	ActivityIntensity string `protobuf:"bytes,12,opt,name=activity_intensity,json=activityIntensity,proto3" json:"activity_intensity,omitempty"`
-	ActivitySource    string `protobuf:"bytes,13,opt,name=activity_source,json=activitySource,proto3" json:"activity_source,omitempty"`
-	// motion_requested
-	MotionId                 string `protobuf:"bytes,20,opt,name=motion_id,json=motionId,proto3" json:"motion_id,omitempty"`
-	MotionPriority           string `protobuf:"bytes,21,opt,name=motion_priority,json=motionPriority,proto3" json:"motion_priority,omitempty"`
-	MotionExpectedDurationMs int64  `protobuf:"varint,22,opt,name=motion_expected_duration_ms,json=motionExpectedDurationMs,proto3" json:"motion_expected_duration_ms,omitempty"`
-	// expression_requested
-	ExpressionId                 string `protobuf:"bytes,30,opt,name=expression_id,json=expressionId,proto3" json:"expression_id,omitempty"`
-	ExpressionExpectedDurationMs int64  `protobuf:"varint,31,opt,name=expression_expected_duration_ms,json=expressionExpectedDurationMs,proto3" json:"expression_expected_duration_ms,omitempty"`
-	// pose_requested / pose_cleared
-	PoseId                 string `protobuf:"bytes,40,opt,name=pose_id,json=poseId,proto3" json:"pose_id,omitempty"`
-	PoseExpectedDurationMs int64  `protobuf:"varint,41,opt,name=pose_expected_duration_ms,json=poseExpectedDurationMs,proto3" json:"pose_expected_duration_ms,omitempty"`
-	PreviousPoseId         string `protobuf:"bytes,42,opt,name=previous_pose_id,json=previousPoseId,proto3" json:"previous_pose_id,omitempty"`
-	// lookat_requested
-	LookatTargetKind string                `protobuf:"bytes,50,opt,name=lookat_target_kind,json=lookatTargetKind,proto3" json:"lookat_target_kind,omitempty"`
-	LookatX          float64               `protobuf:"fixed64,51,opt,name=lookat_x,json=lookatX,proto3" json:"lookat_x,omitempty"`
-	LookatY          float64               `protobuf:"fixed64,52,opt,name=lookat_y,json=lookatY,proto3" json:"lookat_y,omitempty"`
-	LookatZ          float64               `protobuf:"fixed64,53,opt,name=lookat_z,json=lookatZ,proto3" json:"lookat_z,omitempty"`
-	LookatHasX       bool                  `protobuf:"varint,54,opt,name=lookat_has_x,json=lookatHasX,proto3" json:"lookat_has_x,omitempty"`
-	LookatHasY       bool                  `protobuf:"varint,55,opt,name=lookat_has_y,json=lookatHasY,proto3" json:"lookat_has_y,omitempty"`
-	LookatHasZ       bool                  `protobuf:"varint,56,opt,name=lookat_has_z,json=lookatHasZ,proto3" json:"lookat_has_z,omitempty"`
-	AudioArtifactId  string                `protobuf:"bytes,60,opt,name=audio_artifact_id,json=audioArtifactId,proto3" json:"audio_artifact_id,omitempty"`
-	AudioMimeType    string                `protobuf:"bytes,61,opt,name=audio_mime_type,json=audioMimeType,proto3" json:"audio_mime_type,omitempty"`
-	MessageId        string                `protobuf:"bytes,64,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
-	ArtifactSequence uint64                `protobuf:"varint,65,opt,name=artifact_sequence,json=artifactSequence,proto3" json:"artifact_sequence,omitempty"`
-	ArtifactComplete bool                  `protobuf:"varint,66,opt,name=artifact_complete,json=artifactComplete,proto3" json:"artifact_complete,omitempty"`
-	VoiceTimingPhase AgentVoiceTimingPhase `protobuf:"varint,68,opt,name=voice_timing_phase,json=voiceTimingPhase,proto3,enum=nimi.runtime.v1.AgentVoiceTimingPhase" json:"voice_timing_phase,omitempty"`
-	TerminalReason   string                `protobuf:"bytes,71,opt,name=terminal_reason,json=terminalReason,proto3" json:"terminal_reason,omitempty"`
-	Reason           string                `protobuf:"bytes,72,opt,name=reason,proto3" json:"reason,omitempty"`
-	DurationMs       int64                 `protobuf:"varint,73,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
-	DeadlineOffsetMs int64                 `protobuf:"varint,74,opt,name=deadline_offset_ms,json=deadlineOffsetMs,proto3" json:"deadline_offset_ms,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	ActivityName      string                `protobuf:"bytes,10,opt,name=activity_name,json=activityName,proto3" json:"activity_name,omitempty"`
+	ActivityCategory  string                `protobuf:"bytes,11,opt,name=activity_category,json=activityCategory,proto3" json:"activity_category,omitempty"`
+	ActivityIntensity string                `protobuf:"bytes,12,opt,name=activity_intensity,json=activityIntensity,proto3" json:"activity_intensity,omitempty"`
+	ActivitySource    string                `protobuf:"bytes,13,opt,name=activity_source,json=activitySource,proto3" json:"activity_source,omitempty"`
+	AudioArtifactId   string                `protobuf:"bytes,60,opt,name=audio_artifact_id,json=audioArtifactId,proto3" json:"audio_artifact_id,omitempty"`
+	AudioMimeType     string                `protobuf:"bytes,61,opt,name=audio_mime_type,json=audioMimeType,proto3" json:"audio_mime_type,omitempty"`
+	MessageId         string                `protobuf:"bytes,64,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
+	ArtifactSequence  uint64                `protobuf:"varint,65,opt,name=artifact_sequence,json=artifactSequence,proto3" json:"artifact_sequence,omitempty"`
+	ArtifactComplete  bool                  `protobuf:"varint,66,opt,name=artifact_complete,json=artifactComplete,proto3" json:"artifact_complete,omitempty"`
+	VoiceTimingPhase  AgentVoiceTimingPhase `protobuf:"varint,68,opt,name=voice_timing_phase,json=voiceTimingPhase,proto3,enum=nimi.runtime.v1.AgentVoiceTimingPhase" json:"voice_timing_phase,omitempty"`
+	TerminalReason    string                `protobuf:"bytes,71,opt,name=terminal_reason,json=terminalReason,proto3" json:"terminal_reason,omitempty"`
+	Reason            string                `protobuf:"bytes,72,opt,name=reason,proto3" json:"reason,omitempty"`
+	DurationMs        int64                 `protobuf:"varint,73,opt,name=duration_ms,json=durationMs,proto3" json:"duration_ms,omitempty"`
+	DeadlineOffsetMs  int64                 `protobuf:"varint,74,opt,name=deadline_offset_ms,json=deadlineOffsetMs,proto3" json:"deadline_offset_ms,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *AgentPresentationEventDetail) Reset() {
@@ -720,111 +686,6 @@ func (x *AgentPresentationEventDetail) GetActivitySource() string {
 		return x.ActivitySource
 	}
 	return ""
-}
-
-func (x *AgentPresentationEventDetail) GetMotionId() string {
-	if x != nil {
-		return x.MotionId
-	}
-	return ""
-}
-
-func (x *AgentPresentationEventDetail) GetMotionPriority() string {
-	if x != nil {
-		return x.MotionPriority
-	}
-	return ""
-}
-
-func (x *AgentPresentationEventDetail) GetMotionExpectedDurationMs() int64 {
-	if x != nil {
-		return x.MotionExpectedDurationMs
-	}
-	return 0
-}
-
-func (x *AgentPresentationEventDetail) GetExpressionId() string {
-	if x != nil {
-		return x.ExpressionId
-	}
-	return ""
-}
-
-func (x *AgentPresentationEventDetail) GetExpressionExpectedDurationMs() int64 {
-	if x != nil {
-		return x.ExpressionExpectedDurationMs
-	}
-	return 0
-}
-
-func (x *AgentPresentationEventDetail) GetPoseId() string {
-	if x != nil {
-		return x.PoseId
-	}
-	return ""
-}
-
-func (x *AgentPresentationEventDetail) GetPoseExpectedDurationMs() int64 {
-	if x != nil {
-		return x.PoseExpectedDurationMs
-	}
-	return 0
-}
-
-func (x *AgentPresentationEventDetail) GetPreviousPoseId() string {
-	if x != nil {
-		return x.PreviousPoseId
-	}
-	return ""
-}
-
-func (x *AgentPresentationEventDetail) GetLookatTargetKind() string {
-	if x != nil {
-		return x.LookatTargetKind
-	}
-	return ""
-}
-
-func (x *AgentPresentationEventDetail) GetLookatX() float64 {
-	if x != nil {
-		return x.LookatX
-	}
-	return 0
-}
-
-func (x *AgentPresentationEventDetail) GetLookatY() float64 {
-	if x != nil {
-		return x.LookatY
-	}
-	return 0
-}
-
-func (x *AgentPresentationEventDetail) GetLookatZ() float64 {
-	if x != nil {
-		return x.LookatZ
-	}
-	return 0
-}
-
-func (x *AgentPresentationEventDetail) GetLookatHasX() bool {
-	if x != nil {
-		return x.LookatHasX
-	}
-	return false
-}
-
-func (x *AgentPresentationEventDetail) GetLookatHasY() bool {
-	if x != nil {
-		return x.LookatHasY
-	}
-	return false
-}
-
-func (x *AgentPresentationEventDetail) GetLookatHasZ() bool {
-	if x != nil {
-		return x.LookatHasZ
-	}
-	return false
 }
 
 func (x *AgentPresentationEventDetail) GetAudioArtifactId() string {
@@ -940,7 +801,8 @@ const file_runtime_v1_agent_presentation_proto_rawDesc = "" +
 	"\x18_default_voice_referenceB\x12\n" +
 	"\x10_avatar_autoplayB\x17\n" +
 	"\x15_background_asset_ref\"\x1f\n" +
-	"\x1dClearAgentPresentationProfile\"\x93\f\n" +
+	"\x1dClearAgentPresentationProfile\"\x94\n" +
+	"\n" +
 	"\x1cAgentPresentationEventDetail\x12E\n" +
 	"\x06family\x18\x01 \x01(\x0e2-.nimi.runtime.v1.AgentPresentationEventFamilyR\x06family\x124\n" +
 	"\x16conversation_anchor_id\x18\x02 \x01(\tR\x14conversationAnchorId\x12\x17\n" +
@@ -950,25 +812,7 @@ const file_runtime_v1_agent_presentation_proto_rawDesc = "" +
 	" \x01(\tR\factivityName\x12+\n" +
 	"\x11activity_category\x18\v \x01(\tR\x10activityCategory\x12-\n" +
 	"\x12activity_intensity\x18\f \x01(\tR\x11activityIntensity\x12'\n" +
-	"\x0factivity_source\x18\r \x01(\tR\x0eactivitySource\x12\x1b\n" +
-	"\tmotion_id\x18\x14 \x01(\tR\bmotionId\x12'\n" +
-	"\x0fmotion_priority\x18\x15 \x01(\tR\x0emotionPriority\x12=\n" +
-	"\x1bmotion_expected_duration_ms\x18\x16 \x01(\x03R\x18motionExpectedDurationMs\x12#\n" +
-	"\rexpression_id\x18\x1e \x01(\tR\fexpressionId\x12E\n" +
-	"\x1fexpression_expected_duration_ms\x18\x1f \x01(\x03R\x1cexpressionExpectedDurationMs\x12\x17\n" +
-	"\apose_id\x18( \x01(\tR\x06poseId\x129\n" +
-	"\x19pose_expected_duration_ms\x18) \x01(\x03R\x16poseExpectedDurationMs\x12(\n" +
-	"\x10previous_pose_id\x18* \x01(\tR\x0epreviousPoseId\x12,\n" +
-	"\x12lookat_target_kind\x182 \x01(\tR\x10lookatTargetKind\x12\x19\n" +
-	"\blookat_x\x183 \x01(\x01R\alookatX\x12\x19\n" +
-	"\blookat_y\x184 \x01(\x01R\alookatY\x12\x19\n" +
-	"\blookat_z\x185 \x01(\x01R\alookatZ\x12 \n" +
-	"\flookat_has_x\x186 \x01(\bR\n" +
-	"lookatHasX\x12 \n" +
-	"\flookat_has_y\x187 \x01(\bR\n" +
-	"lookatHasY\x12 \n" +
-	"\flookat_has_z\x188 \x01(\bR\n" +
-	"lookatHasZ\x12*\n" +
+	"\x0factivity_source\x18\r \x01(\tR\x0eactivitySource\x12*\n" +
 	"\x11audio_artifact_id\x18< \x01(\tR\x0faudioArtifactId\x12&\n" +
 	"\x0faudio_mime_type\x18= \x01(\tR\raudioMimeType\x12\x1d\n" +
 	"\n" +
@@ -980,22 +824,17 @@ const file_runtime_v1_agent_presentation_proto_rawDesc = "" +
 	"\x06reason\x18H \x01(\tR\x06reason\x12\x1f\n" +
 	"\vduration_ms\x18I \x01(\x03R\n" +
 	"durationMs\x12,\n" +
-	"\x12deadline_offset_ms\x18J \x01(\x03R\x10deadlineOffsetMsJ\x04\b>\x10?J\x04\b?\x10@J\x04\bC\x10DJ\x04\bE\x10FJ\x04\bF\x10GJ\x04\bK\x10LR\x0fvoice_stream_idR\x13chunk_transport_refR\x11voice_output_modeR\x0fplayback_targetR\x0efinal_artifactR\x11final_artifact_id*\xa3\x01\n" +
+	"\x12deadline_offset_ms\x18J \x01(\x03R\x10deadlineOffsetMsJ\x04\b\x14\x10\x15J\x04\b\x15\x10\x16J\x04\b\x16\x10\x17J\x04\b\x1e\x10\x1fJ\x04\b\x1f\x10 J\x04\b(\x10)J\x04\b)\x10*J\x04\b*\x10+J\x04\b2\x103J\x04\b3\x104J\x04\b4\x105J\x04\b5\x106J\x04\b6\x107J\x04\b7\x108J\x04\b8\x109J\x04\b>\x10?J\x04\b?\x10@J\x04\bC\x10DJ\x04\bE\x10FJ\x04\bF\x10GJ\x04\bK\x10LR\tmotion_idR\x0fmotion_priorityR\x1bmotion_expected_duration_msR\rexpression_idR\x1fexpression_expected_duration_msR\apose_idR\x19pose_expected_duration_msR\x10previous_pose_idR\x12lookat_target_kindR\blookat_xR\blookat_yR\blookat_zR\flookat_has_xR\flookat_has_yR\flookat_has_zR\x0fvoice_stream_idR\x13chunk_transport_refR\x11voice_output_modeR\x0fplayback_targetR\x0efinal_artifactR\x11final_artifact_id*\xa3\x01\n" +
 	"\x1aAgentPresentationAssetRole\x12-\n" +
 	")AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED\x10\x00\x12(\n" +
 	"$AGENT_PRESENTATION_ASSET_ROLE_AVATAR\x10\x01\x12,\n" +
-	"(AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND\x10\x02*\xc4\x04\n" +
+	"(AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND\x10\x02*\xce\x04\n" +
 	"\x1cAgentPresentationEventFamily\x12/\n" +
 	"+AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED\x10\x00\x126\n" +
-	"2AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED\x10\x01\x124\n" +
-	"0AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED\x10\x02\x128\n" +
-	"4AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED\x10\x03\x122\n" +
-	".AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED\x10\x04\x120\n" +
-	",AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED\x10\x05\x124\n" +
-	"0AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED\x10\x06\x126\n" +
+	"2AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED\x10\x01\x126\n" +
 	"2AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY\x10\a\x12<\n" +
 	"8AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE\x10\b\x129\n" +
-	"5AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL\x10\t*\x84\x02\n" +
+	"5AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL\x10\t\"\x04\b\x02\x10\x02\"\x04\b\x03\x10\x03\"\x04\b\x04\x10\x04\"\x04\b\x05\x10\x05\"\x04\b\x06\x10\x06*0AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED*4AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED*.AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED*,AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED*0AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED*\x84\x02\n" +
 	"\x15AgentVoiceTimingPhase\x12(\n" +
 	"$AGENT_VOICE_TIMING_PHASE_UNSPECIFIED\x10\x00\x12#\n" +
 	"\x1fAGENT_VOICE_TIMING_PHASE_ACTIVE\x10\x01\x12&\n" +

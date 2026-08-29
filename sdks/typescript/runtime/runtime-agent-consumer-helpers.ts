@@ -17,10 +17,7 @@ function normalizeText(value: unknown): string {
 }
 
 export function isNimiRuntimeAgentProjectionEvent(event: NimiRuntimeAgentConsumeEvent): boolean {
-  return event.eventName.startsWith('runtime.agent.state.')
-    || event.eventName.startsWith('runtime.agent.hook.')
-    || event.eventName.startsWith('runtime.agent.presentation.')
-    || event.eventName.startsWith('runtime.agent.conversation.voice_');
+  return event.eventName.startsWith('runtime.agent.conversation.voice_');
 }
 
 export function matchesNimiRuntimeAgentProjectionScope(input: {

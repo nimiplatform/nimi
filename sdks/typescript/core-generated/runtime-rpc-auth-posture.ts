@@ -66,7 +66,6 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision": "anonymous_read",
-  "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents": "anonymous_read",
   "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents": "protected_origin_required",

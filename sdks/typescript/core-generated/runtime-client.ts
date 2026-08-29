@@ -511,14 +511,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "SubmitDelegatedApprovalDecisionResponse"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
-    "service": "RuntimeAgentService",
-    "method": "SubscribeAgentEvents",
-    "kind": "server_stream",
-    "requestType": "SubscribeAgentEventsRequest",
-    "responseType": "AgentEvent"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
     "service": "RuntimeAgentService",
     "method": "SubscribeLocalAppAgentRealtimeEvents",

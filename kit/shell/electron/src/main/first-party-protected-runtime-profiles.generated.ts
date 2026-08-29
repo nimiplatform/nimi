@@ -86,7 +86,6 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeAgentService/ListPortableAIProfiles": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAppService/SendAppMessage": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages": { kind: "server_stream" },
-      "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents": { kind: "server_stream" },
       "/nimi.runtime.v1.RuntimeArtifactService/ReadArtifactBytes": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeArtifactService/CleanupGeneratedVoiceArtifacts": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeArtifactService/PutArtifact": { kind: "unary" },

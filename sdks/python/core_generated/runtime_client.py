@@ -504,14 +504,6 @@ RUNTIME_METHODS = [
     "response_type": "SubmitDelegatedApprovalDecisionResponse"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
-    "service": "RuntimeAgentService",
-    "method": "SubscribeAgentEvents",
-    "kind": "server_stream",
-    "request_type": "SubscribeAgentEventsRequest",
-    "response_type": "AgentEvent"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents",
     "service": "RuntimeAgentService",
     "method": "SubscribeLocalAppAgentRealtimeEvents",

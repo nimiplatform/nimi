@@ -2,7 +2,6 @@ package runtimeagent
 
 import (
 	"context"
-	"errors"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -126,60 +125,6 @@ func TestRuntimeAgentInitializeStateAndHooks(t *testing.T) {
 		t.Fatalf("unexpected hook outcome: %s", cancelResp.GetOutcome().GetIntent().GetAdmissionState())
 	}
 
-}
-
-func TestRuntimeAgentSubscribeAgentEventsRejectsMissingLocalAgentIdentity(t *testing.T) {
-	t.Parallel()
-
-	svc := newRuntimeAgentTestService(t)
-	err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{}, newAgentEventCaptureStream(context.Background()))
-	if status.Code(err) != codes.InvalidArgument {
-		t.Fatalf("expected InvalidArgument for missing local identity context, got %v", err)
-	}
-	if !strings.Contains(err.Error(), "agent request context is required") {
-		t.Fatalf("expected explicit local identity context failure, got %v", err)
-	}
-}
-
-func TestRuntimeAgentSubscribeAgentEventsSendsHeadersBeforeFirstEvent(t *testing.T) {
-	t.Parallel()
-
-	svc := newRuntimeAgentTestService(t)
-	ctx, cancel := context.WithCancel(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"))
-	defer cancel()
-	if _, err := materializeRealmSourceTestAgent(t, svc, ctx, &realmSourceTestAgentInput{
-		Context: testRuntimeAgentIdentityContext("agent-empty-stream"),
-	}); err != nil {
-		t.Fatalf("RealmSourceMaterialization: %v", err)
-	}
-
-	stream := newAgentEventCaptureStreamLimit(ctx, 0)
-	stream.headerSent = make(chan struct{}, 1)
-	done := make(chan error, 1)
-	go func() {
-		done <- svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-			Context:      testRuntimeAgentIdentityContext("agent-empty-stream"),
-			AgentId:      "agent-empty-stream",
-			EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK},
-		}, stream)
-	}()
-
-	select {
-	case <-stream.headerSent:
-	case <-time.After(200 * time.Millisecond):
-		t.Fatal("expected subscribe agent events to send headers before first event")
-	}
-
-	cancel()
-
-	select {
-	case err := <-done:
-		if err != nil && !errors.Is(err, context.Canceled) {
-			t.Fatalf("SubscribeAgentEvents returned unexpected error after cancel: %v", err)
-		}
-	case <-time.After(time.Second):
-		t.Fatal("SubscribeAgentEvents did not stop after context cancellation")
-	}
 }
 
 func TestRuntimeAgentAutonomyDefaultsOffWithoutImplicitEnable(t *testing.T) {

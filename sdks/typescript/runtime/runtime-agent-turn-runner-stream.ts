@@ -285,24 +285,6 @@ export function createNimiRuntimeAgentTurnStream(
             }
           }
           break;
-        case 'runtime.agent.state.status_text_changed':
-        case 'runtime.agent.state.execution_state_changed':
-        case 'runtime.agent.state.emotion_changed':
-        case 'runtime.agent.state.posture_changed':
-        case 'runtime.agent.hook.intent_proposed':
-        case 'runtime.agent.hook.pending':
-        case 'runtime.agent.hook.rejected':
-        case 'runtime.agent.hook.running':
-        case 'runtime.agent.hook.completed':
-        case 'runtime.agent.hook.failed':
-        case 'runtime.agent.hook.canceled':
-        case 'runtime.agent.hook.rescheduled':
-        case 'runtime.agent.presentation.activity_requested':
-        case 'runtime.agent.presentation.motion_requested':
-        case 'runtime.agent.presentation.expression_requested':
-        case 'runtime.agent.presentation.pose_requested':
-        case 'runtime.agent.presentation.pose_cleared':
-        case 'runtime.agent.presentation.lookat_requested':
         case 'runtime.agent.conversation.voice_timing_ready':
         case 'runtime.agent.conversation.voice_artifact_available':
         case 'runtime.agent.conversation.voice_timing_terminal':
@@ -531,24 +513,6 @@ export function createNimiRuntimeAgentTurnStream(
               }
             }
             break;
-          case 'runtime.agent.state.status_text_changed':
-          case 'runtime.agent.state.execution_state_changed':
-          case 'runtime.agent.state.emotion_changed':
-          case 'runtime.agent.state.posture_changed':
-          case 'runtime.agent.hook.intent_proposed':
-          case 'runtime.agent.hook.pending':
-          case 'runtime.agent.hook.rejected':
-          case 'runtime.agent.hook.running':
-          case 'runtime.agent.hook.completed':
-          case 'runtime.agent.hook.failed':
-          case 'runtime.agent.hook.canceled':
-          case 'runtime.agent.hook.rescheduled':
-          case 'runtime.agent.presentation.activity_requested':
-          case 'runtime.agent.presentation.motion_requested':
-          case 'runtime.agent.presentation.expression_requested':
-          case 'runtime.agent.presentation.pose_requested':
-          case 'runtime.agent.presentation.pose_cleared':
-          case 'runtime.agent.presentation.lookat_requested':
           case 'runtime.agent.conversation.voice_timing_ready':
           case 'runtime.agent.conversation.voice_artifact_available':
           case 'runtime.agent.conversation.voice_timing_terminal':

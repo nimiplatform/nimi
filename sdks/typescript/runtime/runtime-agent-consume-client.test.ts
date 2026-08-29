@@ -688,9 +688,6 @@ test('Runtime Agent consume client builds canonical Runtime Agent requests', asy
       async getPublicChatSessionSnapshot() {
         throw new Error('unexpected');
       },
-      subscribeAgentEvents() {
-        throw new Error('unexpected');
-      },
     },
   };
 
@@ -879,9 +876,6 @@ test('Runtime Agent consume client parses public chat session snapshots', async 
             },
           }),
         };
-      },
-      subscribeAgentEvents() {
-        throw new Error('unexpected');
       },
     },
   };

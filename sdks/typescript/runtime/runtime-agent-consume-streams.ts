@@ -1,14 +1,10 @@
-import type {
-  AgentEvent,
-  AppMessageEvent,
-} from '../core-generated/runtime-typed-client';
+import type { AppMessageEvent } from '../core-generated/runtime-typed-client';
 import {
   normalizeText,
   runtimeAgentError,
 } from './runtime-agent-consume-internal';
 import {
   projectNimiRuntimeAgentAppMessageEvent,
-  projectNimiRuntimeAgentServiceEvent,
 } from './runtime-agent-consume-projection';
 import type { NimiRuntimeAgentConsumeEvent } from './runtime-agent-consume-types';
 import { toNimiRuntimeIsoFromTimestamp } from './runtime-agent-values';
@@ -37,21 +33,6 @@ export function projectAppMessageStream(
     if (!projected) return null;
     const expectedAnchorId = normalizeText(request.conversationAnchorId);
     if (expectedAnchorId && projected.conversationAnchorId !== expectedAnchorId) {
-      return null;
-    }
-    return projected;
-  });
-}
-
-export function projectAgentEventStream(
-  stream: AsyncIterable<AgentEvent>,
-  conversationAnchorId: string,
-  liveStartedAtMs?: number,
-): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
-  return projectRuntimeAgentConsumeEventStream(stream, (event) => {
-    if (!eventIsAtOrAfterLiveBoundary(event, liveStartedAtMs)) return null;
-    const projected = projectNimiRuntimeAgentServiceEvent(event);
-    if (conversationAnchorId && projected.conversationAnchorId && projected.conversationAnchorId !== conversationAnchorId) {
       return null;
     }
     return projected;

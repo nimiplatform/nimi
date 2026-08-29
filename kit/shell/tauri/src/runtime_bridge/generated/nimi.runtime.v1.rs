@@ -12897,7 +12897,7 @@ pub struct ClearAgentPresentationProfile {}
 /// presentation is stream-scoped transient projection derived from committed
 /// runtime interpretation. Runtime MUST NOT emit presentation events without
 /// real stream-identity linkage.
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AgentPresentationEventDetail {
     #[prost(enumeration = "AgentPresentationEventFamily", tag = "1")]
     pub family: i32,
@@ -12916,40 +12916,6 @@ pub struct AgentPresentationEventDetail {
     pub activity_intensity: ::prost::alloc::string::String,
     #[prost(string, tag = "13")]
     pub activity_source: ::prost::alloc::string::String,
-    /// motion_requested
-    #[prost(string, tag = "20")]
-    pub motion_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "21")]
-    pub motion_priority: ::prost::alloc::string::String,
-    #[prost(int64, tag = "22")]
-    pub motion_expected_duration_ms: i64,
-    /// expression_requested
-    #[prost(string, tag = "30")]
-    pub expression_id: ::prost::alloc::string::String,
-    #[prost(int64, tag = "31")]
-    pub expression_expected_duration_ms: i64,
-    /// pose_requested / pose_cleared
-    #[prost(string, tag = "40")]
-    pub pose_id: ::prost::alloc::string::String,
-    #[prost(int64, tag = "41")]
-    pub pose_expected_duration_ms: i64,
-    #[prost(string, tag = "42")]
-    pub previous_pose_id: ::prost::alloc::string::String,
-    /// lookat_requested
-    #[prost(string, tag = "50")]
-    pub lookat_target_kind: ::prost::alloc::string::String,
-    #[prost(double, tag = "51")]
-    pub lookat_x: f64,
-    #[prost(double, tag = "52")]
-    pub lookat_y: f64,
-    #[prost(double, tag = "53")]
-    pub lookat_z: f64,
-    #[prost(bool, tag = "54")]
-    pub lookat_has_x: bool,
-    #[prost(bool, tag = "55")]
-    pub lookat_has_y: bool,
-    #[prost(bool, tag = "56")]
-    pub lookat_has_z: bool,
     #[prost(string, tag = "60")]
     pub audio_artifact_id: ::prost::alloc::string::String,
     #[prost(string, tag = "61")]
@@ -13011,11 +12977,6 @@ impl AgentPresentationAssetRole {
 pub enum AgentPresentationEventFamily {
     Unspecified = 0,
     ActivityRequested = 1,
-    MotionRequested = 2,
-    ExpressionRequested = 3,
-    PoseRequested = 4,
-    PoseCleared = 5,
-    LookatRequested = 6,
     VoiceTimingReady = 7,
     VoiceArtifactAvailable = 8,
     VoiceTimingTerminal = 9,
@@ -13031,13 +12992,6 @@ impl AgentPresentationEventFamily {
             Self::ActivityRequested => {
                 "AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED"
             }
-            Self::MotionRequested => "AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED",
-            Self::ExpressionRequested => {
-                "AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED"
-            }
-            Self::PoseRequested => "AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED",
-            Self::PoseCleared => "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED",
-            Self::LookatRequested => "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED",
             Self::VoiceTimingReady => {
                 "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY"
             }
@@ -13055,17 +13009,6 @@ impl AgentPresentationEventFamily {
             "AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED" => Some(Self::Unspecified),
             "AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED" => {
                 Some(Self::ActivityRequested)
-            }
-            "AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED" => {
-                Some(Self::MotionRequested)
-            }
-            "AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED" => {
-                Some(Self::ExpressionRequested)
-            }
-            "AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED" => Some(Self::PoseRequested),
-            "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED" => Some(Self::PoseCleared),
-            "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED" => {
-                Some(Self::LookatRequested)
             }
             "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY" => {
                 Some(Self::VoiceTimingReady)
@@ -17035,7 +16978,7 @@ pub struct AgentProactiveInterruptibilityProjection {
     #[prost(string, repeated, tag = "12")]
     pub unsupported_fields: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AgentEvent {
     #[prost(enumeration = "AgentEventType", tag = "1")]
     pub event_type: i32,
@@ -17056,7 +16999,7 @@ pub struct AgentEvent {
 }
 /// Nested message and enum types in `AgentEvent`.
 pub mod agent_event {
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
     pub enum Detail {
         #[prost(message, tag = "10")]
         Lifecycle(super::AgentLifecycleEventDetail),
@@ -17290,17 +17233,6 @@ pub struct CancelHookRequest {
 pub struct CancelHookResponse {
     #[prost(message, optional, tag = "1")]
     pub outcome: ::core::option::Option<HookExecutionOutcome>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct SubscribeAgentEventsRequest {
-    #[prost(message, optional, tag = "1")]
-    pub context: ::core::option::Option<AgentRequestContext>,
-    #[prost(string, tag = "2")]
-    pub agent_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub cursor: ::prost::alloc::string::String,
-    #[prost(enumeration = "AgentEventType", repeated, tag = "4")]
-    pub event_filters: ::prost::alloc::vec::Vec<i32>,
 }
 /// First-party recorded voice ingress. Runtime validates the selected
 /// LocalAgent Conversation and executes audio.transcribe through the singular
@@ -20958,35 +20890,6 @@ pub mod runtime_agent_service_client {
                     ),
                 );
             self.inner.unary(req, path, codec).await
-        }
-        pub async fn subscribe_agent_events(
-            &mut self,
-            request: impl tonic::IntoRequest<super::SubscribeAgentEventsRequest>,
-        ) -> std::result::Result<
-            tonic::Response<tonic::codec::Streaming<super::AgentEvent>>,
-            tonic::Status,
-        > {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::unknown(
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic_prost::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(
-                    GrpcMethod::new(
-                        "nimi.runtime.v1.RuntimeAgentService",
-                        "SubscribeAgentEvents",
-                    ),
-                );
-            self.inner.server_streaming(req, path, codec).await
         }
         pub async fn transcribe_agent_voice_input(
             &mut self,

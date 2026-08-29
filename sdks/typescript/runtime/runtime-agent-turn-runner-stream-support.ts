@@ -166,7 +166,6 @@ export function buildNimiRuntimeAgentSubscribeRequest(
   return subscribe || {
     ...nimiRuntimeAgentLocalIdentityFromRequest(request),
     conversationAnchorId: request.conversationAnchorId,
-    includeAgentEvents: false,
   };
 }
 

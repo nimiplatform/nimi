@@ -513,6 +513,10 @@ impl Default for AgentPresentationBackendKind {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AgentPresentationEventFamily {
     AGENTPRESENTATIONEVENTFAMILYUNSPECIFIED,
+    AGENTPRESENTATIONEVENTFAMILYACTIVITYREQUESTED,
+    AGENTPRESENTATIONEVENTFAMILYVOICETIMINGREADY,
+    AGENTPRESENTATIONEVENTFAMILYVOICEARTIFACTAVAILABLE,
+    AGENTPRESENTATIONEVENTFAMILYVOICETIMINGTERMINAL,
 }
 
 impl Default for AgentPresentationEventFamily {
@@ -3818,21 +3822,6 @@ pub struct AgentPresentationEventDetail {
     pub activity_category: Option<String>,
     pub activity_intensity: Option<String>,
     pub activity_source: Option<String>,
-    pub motion_id: Option<String>,
-    pub motion_priority: Option<String>,
-    pub motion_expected_duration_ms: Option<i64>,
-    pub expression_id: Option<String>,
-    pub expression_expected_duration_ms: Option<i64>,
-    pub pose_id: Option<String>,
-    pub pose_expected_duration_ms: Option<i64>,
-    pub previous_pose_id: Option<String>,
-    pub lookat_target_kind: Option<String>,
-    pub lookat_x: Option<f64>,
-    pub lookat_y: Option<f64>,
-    pub lookat_z: Option<f64>,
-    pub lookat_has_x: Option<bool>,
-    pub lookat_has_y: Option<bool>,
-    pub lookat_has_z: Option<bool>,
     pub audio_artifact_id: Option<String>,
     pub audio_mime_type: Option<String>,
     pub message_id: Option<String>,
@@ -10163,14 +10152,6 @@ pub struct SubmitScenarioJobResponse {
 pub struct SubscribeAccountSessionEventsRequest {
     pub caller: Option<Box<AccountCaller>>,
     pub after_sequence: Option<u64>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct SubscribeAgentEventsRequest {
-    pub context: Option<Box<AgentRequestContext>>,
-    pub agent_id: Option<String>,
-    pub cursor: Option<String>,
-    pub event_filters: Vec<AgentEventType>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -1,6 +1,5 @@
 import type {
   AgentConversationSummary,
-  AgentEvent,
   AgentRequestContext,
   AppMessageEvent,
   ConversationAnchorStatus,
@@ -111,10 +110,7 @@ export type NimiRuntimeAgentConversationSummary = Omit<
 };
 
 export type NimiRuntimeAgentConsumeEvent =
-  | NimiRuntimeAgentTurnConsumeEvent
-  | NimiRuntimeAgentPresentationConsumeEvent
-  | NimiRuntimeAgentStateConsumeEvent
-  | NimiRuntimeAgentHookConsumeEvent;
+  NimiRuntimeAgentTurnConsumeEvent;
 
 export interface NimiRuntimeAgentBaseConsumeEvent {
   readonly eventName: string;
@@ -150,47 +146,6 @@ export interface NimiRuntimeAgentTurnConsumeEvent extends NimiRuntimeAgentBaseCo
   readonly conversationAnchorId: string;
   readonly turnId: string;
   readonly streamId: string;
-  readonly detail: JsonObject;
-}
-
-export interface NimiRuntimeAgentPresentationConsumeEvent extends NimiRuntimeAgentBaseConsumeEvent {
-  readonly eventName:
-    | 'runtime.agent.presentation.activity_requested'
-    | 'runtime.agent.presentation.motion_requested'
-    | 'runtime.agent.presentation.expression_requested'
-    | 'runtime.agent.presentation.pose_requested'
-    | 'runtime.agent.presentation.pose_cleared'
-    | 'runtime.agent.presentation.lookat_requested'
-    | 'runtime.agent.conversation.voice_timing_ready'
-    | 'runtime.agent.conversation.voice_artifact_available'
-    | 'runtime.agent.conversation.voice_timing_terminal';
-  readonly conversationAnchorId: string;
-  readonly turnId: string;
-  readonly streamId: string;
-  readonly detail: JsonObject;
-}
-
-export interface NimiRuntimeAgentStateConsumeEvent extends NimiRuntimeAgentBaseConsumeEvent {
-  readonly eventName:
-    | 'runtime.agent.state.status_text_changed'
-    | 'runtime.agent.state.execution_state_changed'
-    | 'runtime.agent.state.emotion_changed'
-    | 'runtime.agent.state.posture_changed';
-  readonly originatingTurnId?: string;
-  readonly originatingStreamId?: string;
-  readonly detail: JsonObject;
-}
-
-export interface NimiRuntimeAgentHookConsumeEvent extends NimiRuntimeAgentBaseConsumeEvent {
-  readonly eventName:
-    | 'runtime.agent.hook.intent_proposed'
-    | 'runtime.agent.hook.pending'
-    | 'runtime.agent.hook.rejected'
-    | 'runtime.agent.hook.running'
-    | 'runtime.agent.hook.completed'
-    | 'runtime.agent.hook.failed'
-    | 'runtime.agent.hook.canceled'
-    | 'runtime.agent.hook.rescheduled';
   readonly detail: JsonObject;
 }
 
@@ -234,7 +189,6 @@ export interface NimiRuntimeAgentConsumeRuntime {
       request: unknown,
       options?: RuntimeTypedCallOptions,
     ): Promise<GetPublicChatSessionSnapshotResponse>;
-    subscribeAgentEvents(request: unknown, options?: RuntimeTypedCallOptions): AsyncIterable<AgentEvent>;
   };
   readonly appMessages?: {
     subscribeAppMessages(request: unknown, options?: RuntimeTypedCallOptions): AsyncIterable<AppMessageEvent>;
@@ -275,7 +229,6 @@ export interface NimiRuntimeAgentConsumeClient {
         readonly conversationAnchorId?: unknown;
         readonly cursor?: unknown;
         readonly includeTurnEvents?: boolean;
-        readonly includeAgentEvents?: boolean;
       },
       options?: RuntimeTypedCallOptions,
     ): Promise<AsyncIterable<NimiRuntimeAgentConsumeEvent>>;

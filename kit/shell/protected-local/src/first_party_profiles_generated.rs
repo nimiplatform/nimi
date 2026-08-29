@@ -674,15 +674,12 @@ pub const DESKTOP_ACCOUNT_PRODUCT_UNARY_METHODS: &[DesktopAccountProductUnaryMet
 
 #[rustfmt::skip]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum DesktopAccountProductStreamMethod { SubscribeAppMessages, SubscribeAgentEvents, WriteLocalAppAsset, ReadLocalAppAsset, StreamLocalAppTextTurn, SubscribeLocalAppScenarioJobEvents, SubscribeRealmRealtimeEvents, ReadRealtimeEvents, SubscribeLocalAppAgentRealtimeEvents, SubscribeLocalAppConversationEvents, SubscribeLocalAppEmbodimentEvents }
+pub enum DesktopAccountProductStreamMethod { SubscribeAppMessages, WriteLocalAppAsset, ReadLocalAppAsset, StreamLocalAppTextTurn, SubscribeLocalAppScenarioJobEvents, SubscribeRealmRealtimeEvents, ReadRealtimeEvents, SubscribeLocalAppAgentRealtimeEvents, SubscribeLocalAppConversationEvents, SubscribeLocalAppEmbodimentEvents }
 
 impl DesktopAccountProductStreamMethod {
     pub fn from_method_id(method_id: &str) -> Option<Self> {
         Some(match method_id {
             "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages" => Self::SubscribeAppMessages,
-            "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents" => {
-                Self::SubscribeAgentEvents
-            }
             "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset" => Self::WriteLocalAppAsset,
             "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset" => Self::ReadLocalAppAsset,
             "/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn" => {
@@ -713,9 +710,6 @@ impl DesktopAccountProductStreamMethod {
     pub const fn method_id(self) -> &'static str {
         match self {
             Self::SubscribeAppMessages => "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
-            Self::SubscribeAgentEvents => {
-                "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents"
-            }
             Self::WriteLocalAppAsset => "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset",
             Self::ReadLocalAppAsset => "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset",
             Self::StreamLocalAppTextTurn => {
@@ -744,7 +738,7 @@ impl DesktopAccountProductStreamMethod {
 }
 
 #[rustfmt::skip]
-pub const DESKTOP_ACCOUNT_PRODUCT_STREAM_METHODS: &[DesktopAccountProductStreamMethod] = &[DesktopAccountProductStreamMethod::SubscribeAppMessages, DesktopAccountProductStreamMethod::SubscribeAgentEvents, DesktopAccountProductStreamMethod::WriteLocalAppAsset, DesktopAccountProductStreamMethod::ReadLocalAppAsset, DesktopAccountProductStreamMethod::StreamLocalAppTextTurn, DesktopAccountProductStreamMethod::SubscribeLocalAppScenarioJobEvents, DesktopAccountProductStreamMethod::SubscribeRealmRealtimeEvents, DesktopAccountProductStreamMethod::ReadRealtimeEvents, DesktopAccountProductStreamMethod::SubscribeLocalAppAgentRealtimeEvents, DesktopAccountProductStreamMethod::SubscribeLocalAppConversationEvents, DesktopAccountProductStreamMethod::SubscribeLocalAppEmbodimentEvents];
+pub const DESKTOP_ACCOUNT_PRODUCT_STREAM_METHODS: &[DesktopAccountProductStreamMethod] = &[DesktopAccountProductStreamMethod::SubscribeAppMessages, DesktopAccountProductStreamMethod::WriteLocalAppAsset, DesktopAccountProductStreamMethod::ReadLocalAppAsset, DesktopAccountProductStreamMethod::StreamLocalAppTextTurn, DesktopAccountProductStreamMethod::SubscribeLocalAppScenarioJobEvents, DesktopAccountProductStreamMethod::SubscribeRealmRealtimeEvents, DesktopAccountProductStreamMethod::ReadRealtimeEvents, DesktopAccountProductStreamMethod::SubscribeLocalAppAgentRealtimeEvents, DesktopAccountProductStreamMethod::SubscribeLocalAppConversationEvents, DesktopAccountProductStreamMethod::SubscribeLocalAppEmbodimentEvents];
 
 pub const BUNDLED_AVATAR_APP_ID: &str = "nimi.avatar";
 pub const BUNDLED_AVATAR_NATIVE_PROFILE_MARKER: &str = "avatar-v1";

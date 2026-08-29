@@ -1,12 +1,10 @@
 import {
-  AgentEventType,
   ReasonCode as RuntimeGeneratedReasonCode,
   type AppMessageEvent,
   type GetPublicChatSessionSnapshotRequest,
   type GetPublicChatSessionSnapshotResponse,
   type SendAppMessageRequest,
   type SendAppMessageResponse,
-  type SubscribeAgentEventsRequest,
   type SubscribeAppMessagesRequest,
   type TranscribeAgentVoiceInputRequest,
   type TranscribeAgentVoiceInputResponse,
@@ -21,7 +19,6 @@ import {
 import {
   parseNimiRuntimeAgentSessionSnapshot,
   projectNimiRuntimeAgentAppMessageEvent,
-  projectNimiRuntimeAgentServiceEvent,
 } from './runtime-agent-consume-projection';
 import type {
   NimiRuntimeAgentConsumeEvent,
@@ -77,10 +74,6 @@ export interface NimiRuntimeAgentTurnsRuntime {
       request: GetPublicChatSessionSnapshotRequest,
       options?: RuntimeTypedCallOptions,
     ): Promise<GetPublicChatSessionSnapshotResponse>;
-    subscribeAgentEvents(
-      request: SubscribeAgentEventsRequest,
-      options?: RuntimeTypedCallOptions,
-    ): AsyncIterable<unknown>;
     transcribeAgentVoiceInput?(
       request: TranscribeAgentVoiceInputRequest,
       options?: RuntimeTypedCallOptions,
@@ -401,23 +394,6 @@ function projectRuntimeAgentEventStream<Input>(
   };
 }
 
-function agentEvents(
-  stream: AsyncIterable<unknown>,
-  request: NimiRuntimeAgentConsumeRequest,
-  liveStartedAtMs?: number,
-): AsyncIterable<NimiRuntimeAgentConsumeEvent> {
-  return projectRuntimeAgentEventStream(stream, (event) => {
-    if (!eventIsAtOrAfterLiveBoundary(event, liveStartedAtMs)) return null;
-    const projected = projectNimiRuntimeAgentServiceEvent(event as Parameters<typeof projectNimiRuntimeAgentServiceEvent>[0]);
-    const expectedAnchorId = optionalString(request.conversationAnchorId);
-    const projectedAnchorId = optionalString((projected as { readonly conversationAnchorId?: unknown }).conversationAnchorId);
-    if (expectedAnchorId && projectedAnchorId && projectedAnchorId !== expectedAnchorId) {
-      return null;
-    }
-    return projected;
-  });
-}
-
 function eventIsAtOrAfterLiveBoundary(event: unknown, liveStartedAtMs?: number): boolean {
   if (liveStartedAtMs === undefined) {
     return true;
@@ -432,52 +408,6 @@ function eventIsAtOrAfterLiveBoundary(event: unknown, liveStartedAtMs?: number):
     return true;
   }
   return eventMs >= liveStartedAtMs;
-}
-
-function mergeAsyncIterables<T>(sources: readonly AsyncIterable<T>[]): AsyncIterable<T> {
-  type NextState = {
-    readonly index: number;
-    readonly result?: IteratorResult<T>;
-    readonly error?: unknown;
-  };
-  const iterators = sources.map((source) => source[Symbol.asyncIterator]());
-  const never = new Promise<NextState>(() => undefined);
-  const pull = (iterator: AsyncIterator<T>, index: number): Promise<NextState> =>
-    iterator.next().then(
-      (result) => ({ index, result }),
-      (error) => ({ index, error }),
-    );
-  const nexts = iterators.map((iterator, index) => pull(iterator, index));
-  let active = iterators.length;
-  let closed = false;
-  return {
-    [Symbol.asyncIterator](): AsyncIterator<T> {
-      return {
-        next: async () => {
-          while (!closed && active > 0) {
-            const next = await Promise.race(nexts);
-            if (next.error) {
-              throw next.error;
-            }
-            const result = next.result;
-            if (!result || result.done) {
-              active -= 1;
-              nexts[next.index] = never;
-              continue;
-            }
-            nexts[next.index] = pull(iterators[next.index]!, next.index);
-            return { done: false, value: result.value };
-          }
-          return { done: true, value: undefined };
-        },
-        return: async () => {
-          closed = true;
-          await Promise.allSettled(iterators.map((iterator) => iterator.return?.()));
-          return { done: true, value: undefined };
-        },
-      };
-    },
-  };
 }
 
 export function createNimiRuntimeAgentTurnsModule(
@@ -501,34 +431,7 @@ export function createNimiRuntimeAgentTurnsModule(
           conversationAnchorId: '',
         }, callOptions),
       );
-      const includeAgentEvents = request.includeAgentEvents !== false;
-      const agentStream = includeAgentEvents
-        ? await withTurnScopes(options, subjectUserId, [AGENT_READ_SCOPE], async (callOptions) =>
-          runtime.agents.subscribeAgentEvents({
-            agentId: '',
-            cursor,
-            eventFilters: [
-              AgentEventType.HOOK,
-              AgentEventType.STATE,
-              AgentEventType.PRESENTATION,
-            ],
-            context: requestContext({
-              runtimeAppId: runtime.appId,
-              subjectUserId,
-              ownerUserId: identity.ownerUserId,
-              runtimeSourceRef: identity.runtimeSourceRef,
-              localAgentRef: identity.localAgentRef,
-            }),
-          }, callOptions),
-        )
-        : null;
-      const sources = agentStream
-        ? [
-          appMessageEvents(appStream, request, liveStartedAtMs),
-          agentEvents(agentStream, request, liveStartedAtMs),
-        ]
-        : [appMessageEvents(appStream, request, liveStartedAtMs)];
-      return mergeAsyncIterables(sources);
+      return appMessageEvents(appStream, request, liveStartedAtMs);
     },
     async request(request) {
       const payload = toNimiRuntimeProtoStruct(buildNimiRuntimeAgentTurnPayload(request));

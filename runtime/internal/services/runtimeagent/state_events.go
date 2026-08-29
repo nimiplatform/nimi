@@ -157,19 +157,6 @@ func clonePostureProjection(input *runtimev1.AgentPostureProjection) *runtimev1.
 	}
 }
 
-// emitPresentationExpressionEvent builds and envelope-validates a
-// runtime.agent.presentation.expression_requested event. Runtime MUST NOT
-// emit presentation events without real anchor/turn/stream identity; this
-// wrapper is the single admitted commit path so fail-closed envelope check
-// runs on every emission.
-func (s *Service) emitPresentationExpressionEvent(agentID string, anchorID string, turnID string, streamID string, expressionID string, expectedDurationMs int64, observedAt time.Time) (*runtimev1.AgentEvent, error) {
-	event := s.presentationExpressionRequestedEvent(agentID, anchorID, turnID, streamID, expressionID, expectedDurationMs, observedAt)
-	if err := validatePresentationDetail(event.GetPresentation()); err != nil {
-		return nil, err
-	}
-	return event, nil
-}
-
 // emitPresentationActivityEvent is the corresponding activity_requested
 // commit path with fail-closed envelope validation.
 func (s *Service) emitPresentationActivityEvent(agentID string, anchorID string, turnID string, streamID string, activityName string, category string, intensity string, source string, observedAt time.Time) (*runtimev1.AgentEvent, error) {
@@ -178,24 +165,6 @@ func (s *Service) emitPresentationActivityEvent(agentID string, anchorID string,
 		return nil, err
 	}
 	return event, nil
-}
-
-// presentationExpressionRequestedEvent emits
-// runtime.agent.presentation.expression_requested. Presentation is
-// stream-scoped: all four envelope identifiers are required. Runtime MUST
-// NOT emit presentation events without real stream identity. Callers should
-// prefer emitPresentationExpressionEvent which fail-closes on envelope
-// violations at commit time; this constructor is retained for completeness.
-func (s *Service) presentationExpressionRequestedEvent(agentID string, anchorID string, turnID string, streamID string, expressionID string, expectedDurationMs int64, observedAt time.Time) *runtimev1.AgentEvent {
-	detail := &runtimev1.AgentPresentationEventDetail{
-		Family:                       runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED,
-		ConversationAnchorId:         strings.TrimSpace(anchorID),
-		TurnId:                       strings.TrimSpace(turnID),
-		StreamId:                     strings.TrimSpace(streamID),
-		ExpressionId:                 strings.TrimSpace(expressionID),
-		ExpressionExpectedDurationMs: expectedDurationMs,
-	}
-	return s.newEventAt(agentID, runtimev1.AgentEventType_AGENT_EVENT_TYPE_PRESENTATION, &runtimev1.AgentEvent_Presentation{Presentation: detail}, observedAt)
 }
 
 // presentationActivityRequestedEvent emits

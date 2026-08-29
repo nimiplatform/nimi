@@ -104,9 +104,6 @@ export function createUnexpectedRuntimeAgentConsumeRuntime(
       async getPublicChatSessionSnapshot() {
         throw new Error('unexpected');
       },
-      subscribeAgentEvents() {
-        throw new Error('unexpected');
-      },
       ...overrides,
     },
   };

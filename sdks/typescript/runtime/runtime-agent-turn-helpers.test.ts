@@ -4,10 +4,7 @@ import test from 'node:test';
 import type { NimiRuntimeAgentTurnRequest } from './runtime-agent-turn-runner-types';
 
 import {
-  AgentEventType,
   AgentLifecycleStatus,
-  AgentPresentationEventFamily,
-  AgentVoiceTimingPhase,
   CancellableStream,
   LOCAL_AGENT_REF,
   OWNER_USER_ID,
@@ -24,12 +21,10 @@ import {
   toNimiRuntimeProtoStruct,
   toNimiRuntimeTimestamp,
   trackedPendingStream,
-  type AgentEvent,
   type AppMessageEvent,
   type GetAgentRequest,
   type RuntimeTypedCallOptions,
   type SendAppMessageRequest,
-  type SubscribeAgentEventsRequest,
   type SubscribeAppMessagesRequest,
   type TerminateAgentRequest,
 } from './runtime-agent-helpers.test-helper';
@@ -77,9 +72,6 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
       agents: {
         async getPublicChatSessionSnapshot() {
           return {};
-        },
-        async *subscribeAgentEvents() {
-          yield undefined;
         },
       },
       appMessages: {
@@ -154,9 +146,6 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
         async getPublicChatSessionSnapshot() {
           return {};
         },
-        async *subscribeAgentEvents() {
-          yield undefined;
-        },
       },
       appMessages: {
         async sendAppMessage() {
@@ -177,7 +166,6 @@ test('Runtime Agent turn helpers build explicit payloads and fail closed on inva
 });
 
 test('Runtime Agent turn subscription without cursor starts at live boundary', async () => {
-  const agentEventCalls: SubscribeAgentEventsRequest[] = [];
   const appMessageCalls: SubscribeAppMessagesRequest[] = [];
   const oldAccepted = {
     messageType: 'runtime.agent.turn.accepted',
@@ -192,52 +180,23 @@ test('Runtime Agent turn subscription without cursor starts at live boundary', a
     }),
   } as AppMessageEvent;
   const newVoiceChunk = {
-    eventType: AgentEventType.PRESENTATION,
-    sequence: '10',
-    agentId: LOCAL_AGENT_REF,
-    localAgentRef: LOCAL_AGENT_REF,
-    ownerUserId: OWNER_USER_ID,
-    runtimeSourceRef: RUNTIME_SOURCE_REF,
+    messageType: 'runtime.agent.conversation.voice_artifact_available',
     timestamp: toNimiRuntimeTimestamp(Date.now() + 1_000),
-    detail: {
-      oneofKind: 'presentation',
-      presentation: {
-        family: AgentPresentationEventFamily.VOICE_ARTIFACT_AVAILABLE,
-        conversationAnchorId: 'anchor-1',
-        turnId: 'new-turn',
-        streamId: 'new-stream',
-        activityName: '',
-        activityCategory: '',
-        activityIntensity: '',
-        activitySource: '',
-        motionId: '',
-        motionPriority: '',
-        motionExpectedDurationMs: '0',
-        expressionId: '',
-        expressionExpectedDurationMs: '0',
-        poseId: '',
-        poseExpectedDurationMs: '0',
-        previousPoseId: '',
-        lookatTargetKind: '',
-        lookatX: 0,
-        lookatY: 0,
-        lookatZ: 0,
-        lookatHasX: false,
-        lookatHasY: false,
-        lookatHasZ: false,
-        audioArtifactId: 'artifact-voice-new',
-        audioMimeType: 'audio/wav',
-        messageId: 'message-new',
-        artifactSequence: '1',
-        artifactComplete: true,
-        voiceTimingPhase: AgentVoiceTimingPhase.ACTIVE,
-        terminalReason: '',
-        reason: 'final_artifact_available',
-        durationMs: '0',
-        deadlineOffsetMs: '0',
+    payload: toNimiRuntimeProtoStruct({
+      local_agent_ref: LOCAL_AGENT_REF,
+      conversation_anchor_id: 'anchor-1',
+      turn_id: 'new-turn',
+      stream_id: 'new-stream',
+      detail: {
+        audio_artifact_id: 'artifact-voice-new',
+        audio_mime_type: 'audio/wav',
+        message_id: 'message-new',
+        artifact_sequence: 1,
+        artifact_complete: true,
+        voice_timing_phase: 'active',
       },
-    },
-  } as AgentEvent;
+    }),
+  } as AppMessageEvent;
   const module = createNimiRuntimeAgentTurnsModule({
     runtime: {
       appId: 'desktop',
@@ -246,10 +205,6 @@ test('Runtime Agent turn subscription without cursor starts at live boundary', a
         async getPublicChatSessionSnapshot() {
           return {};
         },
-        subscribeAgentEvents(request) {
-          agentEventCalls.push(request);
-          return new CancellableStream<AgentEvent>([newVoiceChunk]);
-        },
       },
       appMessages: {
         async sendAppMessage() {
@@ -257,7 +212,7 @@ test('Runtime Agent turn subscription without cursor starts at live boundary', a
         },
         subscribeAppMessages(request) {
           appMessageCalls.push(request);
-          return new CancellableStream<AppMessageEvent>([oldAccepted]);
+          return new CancellableStream<AppMessageEvent>([oldAccepted, newVoiceChunk]);
         },
       },
     },
@@ -270,7 +225,6 @@ test('Runtime Agent turn subscription without cursor starts at live boundary', a
     runtimeSourceRef: RUNTIME_SOURCE_REF,
     localAgentRef: LOCAL_AGENT_REF,
     conversationAnchorId: 'anchor-1',
-    includeAgentEvents: true,
   });
   const iterator = stream[Symbol.asyncIterator]();
   try {
@@ -279,17 +233,14 @@ test('Runtime Agent turn subscription without cursor starts at live boundary', a
     assert.equal(next.value.eventName, 'runtime.agent.conversation.voice_artifact_available');
     assert.equal(next.value.turnId, 'new-turn');
     assert.equal(next.value.detail.audioArtifactId, 'artifact-voice-new');
-    assert.equal((agentEventCalls[0] as { cursor?: string }).cursor, '');
     assert.equal((appMessageCalls[0] as { cursor?: string }).cursor, '');
   } finally {
     await iterator.return?.();
   }
 });
 
-test('Runtime Agent turn subscription opens live streams before caller pulls', async () => {
-  let agentNextCount = 0;
+test('Runtime Agent turn subscription opens the App stream without prefetching events', async () => {
   let appNextCount = 0;
-  let agentReturnCount = 0;
   let appReturnCount = 0;
   const module = createNimiRuntimeAgentTurnsModule({
     runtime: {
@@ -298,16 +249,6 @@ test('Runtime Agent turn subscription opens live streams before caller pulls', a
       agents: {
         async getPublicChatSessionSnapshot() {
           return {};
-        },
-        subscribeAgentEvents() {
-          return trackedPendingStream<AgentEvent>({
-            onNext: () => {
-              agentNextCount += 1;
-            },
-            onReturn: () => {
-              agentReturnCount += 1;
-            },
-          });
         },
       },
       appMessages: {
@@ -335,14 +276,11 @@ test('Runtime Agent turn subscription opens live streams before caller pulls', a
     runtimeSourceRef: RUNTIME_SOURCE_REF,
     localAgentRef: LOCAL_AGENT_REF,
     conversationAnchorId: 'anchor-1',
-    includeAgentEvents: true,
   });
 
-  assert.equal(appNextCount, 1);
-  assert.equal(agentNextCount, 1);
+  assert.equal(appNextCount, 0);
   await stream[Symbol.asyncIterator]().return?.();
   assert.equal(appReturnCount, 1);
-  assert.equal(agentReturnCount, 1);
 });
 
 test('Runtime Agent turn subscription does not treat zero timestamp as stale live event', async () => {
@@ -384,9 +322,6 @@ test('Runtime Agent turn subscription does not treat zero timestamp as stale liv
         async getPublicChatSessionSnapshot() {
           return {};
         },
-        subscribeAgentEvents() {
-          return new CancellableStream<AgentEvent>([]);
-        },
       },
       appMessages: {
         async sendAppMessage() {
@@ -406,7 +341,6 @@ test('Runtime Agent turn subscription does not treat zero timestamp as stale liv
     runtimeSourceRef: RUNTIME_SOURCE_REF,
     localAgentRef: LOCAL_AGENT_REF,
     conversationAnchorId: 'anchor-1',
-    includeAgentEvents: false,
   });
   const iterator = stream[Symbol.asyncIterator]();
   try {
@@ -420,7 +354,7 @@ test('Runtime Agent turn subscription does not treat zero timestamp as stale liv
   }
 });
 
-test('Runtime Agent turn subscription cancels sibling streams on early consumer exit', async () => {
+test('Runtime Agent turn subscription cancels the App message stream on early consumer exit', async () => {
   const appStream = new CancellableStream<AppMessageEvent>([{
     messageType: 'runtime.agent.turn.started',
     payload: toNimiRuntimeProtoStruct({
@@ -429,7 +363,6 @@ test('Runtime Agent turn subscription cancels sibling streams on early consumer 
       stream_id: 'stream-1',
     }),
   } as AppMessageEvent]);
-  const agentStream = new CancellableStream<unknown>([]);
   const module = createNimiRuntimeAgentTurnsModule({
     runtime: {
       appId: 'desktop',
@@ -437,9 +370,6 @@ test('Runtime Agent turn subscription cancels sibling streams on early consumer 
       agents: {
         async getPublicChatSessionSnapshot() {
           return {};
-        },
-        subscribeAgentEvents() {
-          return agentStream;
         },
       },
       appMessages: {
@@ -460,7 +390,6 @@ test('Runtime Agent turn subscription cancels sibling streams on early consumer 
     runtimeSourceRef: RUNTIME_SOURCE_REF,
     localAgentRef: LOCAL_AGENT_REF,
     conversationAnchorId: 'anchor-1',
-    includeAgentEvents: true,
   });
   for await (const event of stream) {
     assert.equal(event.eventName, 'runtime.agent.turn.started');
@@ -469,5 +398,4 @@ test('Runtime Agent turn subscription cancels sibling streams on early consumer 
   }
 
   assert.equal(appStream.returnCount, 1);
-  assert.equal(agentStream.returnCount, 1);
 });

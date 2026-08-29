@@ -38,7 +38,7 @@ func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorSta
 		OriginatingTurnID:    turnID,
 		OriginatingStreamID:  streamID,
 	}
-	events := make([]*runtimev1.AgentEvent, 0, 3)
+	events := make([]*runtimev1.AgentEvent, 0, 2)
 	if mood != "" {
 		emotionEvent, eerr := r.svc.applyCurrentEmotionTransition(entry, mood, "chat_status_cue", origin, now)
 		if eerr != nil {
@@ -48,14 +48,6 @@ func (r publicChatRuntime) projectCommittedStatusCue(session publicChatAnchorSta
 		}
 		if emotionEvent != nil {
 			events = append(events, emotionEvent)
-			presentationEvent, perr := r.svc.emitPresentationExpressionEvent(entry.Agent.GetLocalAgentRef(), anchorID, turnID, streamID, mood, 0, now)
-			if perr != nil {
-				if r.svc.logger != nil {
-					r.svc.logger.Warn("skip presentation.expression_requested; envelope invalid", "agent_id", session.AgentID, "error", perr)
-				}
-			} else {
-				events = append(events, presentationEvent)
-			}
 		}
 	}
 	if activityName != "" {

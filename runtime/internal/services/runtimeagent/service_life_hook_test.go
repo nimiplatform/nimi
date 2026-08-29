@@ -111,17 +111,9 @@ func TestRuntimeAgentHookLifecycleExecutionStateAndCursor(t *testing.T) {
 		t.Fatalf("expected one canceled hook, got %d", len(canceledResp.GetHooks()))
 	}
 
-	hookStream := newAgentEventCaptureStreamLimit(ctx, 4)
-	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		Context:      testRuntimeAgentIdentityContext("agent-lifecycle"),
-		AgentId:      "agent-lifecycle",
-		Cursor:       encodeCursor(cursor),
-		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK},
-	}, hookStream); err != context.Canceled {
-		t.Fatalf("SubscribeAgentEvents returned %v, want context.Canceled", err)
-	}
-	if len(hookStream.events) != 4 {
-		t.Fatalf("expected 4 hook events from cursor backlog, got %d", len(hookStream.events))
+	hookEvents := retainedAgentEventsForTest(t, svc, "agent-lifecycle", cursor, runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK)
+	if len(hookEvents) != 4 {
+		t.Fatalf("expected 4 hook events from cursor backlog, got %d", len(hookEvents))
 	}
 	wantHookFamilies := []runtimev1.HookAdmissionState{
 		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED,
@@ -129,23 +121,15 @@ func TestRuntimeAgentHookLifecycleExecutionStateAndCursor(t *testing.T) {
 		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING,
 		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED,
 	}
-	for i, event := range hookStream.events {
+	for i, event := range hookEvents {
 		if got := event.GetHook().GetFamily(); got != wantHookFamilies[i] {
 			t.Fatalf("unexpected hook family at index %d: got %s want %s", i, got, wantHookFamilies[i])
 		}
 	}
 
-	stateStream := newAgentEventCaptureStreamLimit(ctx, 3)
-	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		Context:      testRuntimeAgentIdentityContext("agent-lifecycle"),
-		AgentId:      "agent-lifecycle",
-		Cursor:       encodeCursor(cursor),
-		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE},
-	}, stateStream); err != context.Canceled {
-		t.Fatalf("SubscribeAgentEvents(state) returned %v, want context.Canceled", err)
-	}
-	if len(stateStream.events) != 3 {
-		t.Fatalf("expected 3 execution-state events from cursor backlog, got %d", len(stateStream.events))
+	stateEvents := retainedAgentEventsForTest(t, svc, "agent-lifecycle", cursor, runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE)
+	if len(stateEvents) != 3 {
+		t.Fatalf("expected 3 execution-state events from cursor backlog, got %d", len(stateEvents))
 	}
 	wantExecutionStates := []runtimev1.AgentExecutionState{
 		runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_PENDING,
@@ -157,7 +141,7 @@ func TestRuntimeAgentHookLifecycleExecutionStateAndCursor(t *testing.T) {
 		runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_PENDING,
 		runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_RUNNING,
 	}
-	for i, event := range stateStream.events {
+	for i, event := range stateEvents {
 		if event.GetState().GetFamily() != runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED {
 			t.Fatalf("expected execution_state_changed at index %d, got %#v", i, event)
 		}
@@ -200,21 +184,19 @@ func TestRuntimeAgentTerminateBroadcastsTeardownThenHardDeletes(t *testing.T) {
 	// Attach a live STATE subscriber before terminate. The teardown event is
 	// broadcast-only (the persisted event log for the agent is deleted), so it
 	// is observable only to a subscriber that is live at terminate time.
-	stream := newAgentEventCaptureStreamLimit(ctx, 1)
-	stream.headerSent = make(chan struct{}, 1)
-	done := make(chan error, 1)
-	go func() {
-		done <- svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-			Context:      testRuntimeAgentIdentityContext("agent-terminate-state"),
-			AgentId:      "agent-terminate-state",
-			EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE},
-		}, stream)
-	}()
-	select {
-	case <-stream.headerSent:
-	case <-time.After(time.Second):
-		t.Fatal("subscriber did not become live before terminate")
+	sub := &subscriber{
+		agentID: testRuntimeAgentLocalRef("agent-terminate-state"),
+		eventFilters: map[runtimev1.AgentEventType]struct{}{
+			runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE: {},
+		},
+		ch: make(chan *runtimev1.AgentEvent, 1),
 	}
+	svc.mu.Lock()
+	svc.nextSubscriberID++
+	sub.id = svc.nextSubscriberID
+	svc.subscribers[sub.id] = sub
+	svc.mu.Unlock()
+	t.Cleanup(func() { svc.removeSubscriber(sub.id) })
 
 	if _, err := svc.TerminateAgent(ctx, &runtimev1.TerminateAgentRequest{
 		Context: testRuntimeAgentIdentityContext("agent-terminate-state"),
@@ -224,20 +206,15 @@ func TestRuntimeAgentTerminateBroadcastsTeardownThenHardDeletes(t *testing.T) {
 		t.Fatalf("TerminateAgent: %v", err)
 	}
 
+	var event *runtimev1.AgentEvent
 	select {
-	case err := <-done:
-		if err != context.Canceled {
-			t.Fatalf("SubscribeAgentEvents(state) returned %v, want context.Canceled", err)
-		}
+	case event = <-sub.ch:
 	case <-time.After(time.Second):
 		t.Fatal("expected the terminate teardown event to reach the live subscriber")
 	}
-	if len(stream.events) != 1 {
-		t.Fatalf("expected 1 terminate execution-state event, got %d", len(stream.events))
-	}
-	detail := stream.events[0].GetState()
+	detail := event.GetState()
 	if detail.GetFamily() != runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED {
-		t.Fatalf("expected execution_state_changed on terminate, got %#v", stream.events[0])
+		t.Fatalf("expected execution_state_changed on terminate, got %#v", event)
 	}
 	if detail.GetCurrentExecutionState() != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_SUSPENDED {
 		t.Fatalf("expected current_execution_state=SUSPENDED, got %s", detail.GetCurrentExecutionState())
@@ -611,64 +588,57 @@ func TestRuntimeAgentLifeTrackLoopEmitsCommittedHookActivityAndBudgetEvents(t *t
 	// K-AGCORE-037 state_envelope this state event carries `agent_id` only;
 	// origin linkage is absent because the triggering HookIntent in this
 	// fixture has no conversation_anchor_id / originating_turn_id linkage.
-	stream := newAgentEventCaptureStreamLimit(ctx, 8)
-	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		Context: testRuntimeAgentIdentityContext("agent-loop-events"),
-		AgentId: "agent-loop-events",
-		Cursor:  encodeCursor(cursor),
-	}, stream); err != context.Canceled {
-		t.Fatalf("SubscribeAgentEvents returned %v, want context.Canceled", err)
+	events := retainedAgentEventsForTest(t, svc, "agent-loop-events", cursor)
+	if len(events) != 8 {
+		t.Fatalf("expected 8 committed events after loop including execution-state closure, got %d", len(events))
 	}
-	if len(stream.events) != 8 {
-		t.Fatalf("expected 8 committed events after loop including execution-state closure, got %d", len(stream.events))
+	if events[0].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK ||
+		events[0].GetHook().GetFamily() != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING {
+		t.Fatalf("expected running hook event first, got %#v", events[0])
 	}
-	if stream.events[0].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK ||
-		stream.events[0].GetHook().GetFamily() != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_RUNNING {
-		t.Fatalf("expected running hook event first, got %#v", stream.events[0])
+	if events[1].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE ||
+		events[1].GetState().GetFamily() != runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED {
+		t.Fatalf("expected LIFE_RUNNING execution_state_changed second, got %#v", events[1])
 	}
-	if stream.events[1].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE ||
-		stream.events[1].GetState().GetFamily() != runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED {
-		t.Fatalf("expected LIFE_RUNNING execution_state_changed second, got %#v", stream.events[1])
-	}
-	if got := stream.events[1].GetState().GetCurrentExecutionState(); got != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_RUNNING {
+	if got := events[1].GetState().GetCurrentExecutionState(); got != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_RUNNING {
 		t.Fatalf("expected LIFE_RUNNING second, got %s", got)
 	}
-	if stream.events[2].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE ||
-		stream.events[2].GetState().GetFamily() != runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_STATUS_TEXT_CHANGED {
-		t.Fatalf("expected status_text_changed state event third, got %#v", stream.events[2])
+	if events[2].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE ||
+		events[2].GetState().GetFamily() != runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_STATUS_TEXT_CHANGED {
+		t.Fatalf("expected status_text_changed state event third, got %#v", events[2])
 	}
-	if got := strings.TrimSpace(stream.events[2].GetState().GetCurrentStatusText()); got != "watching the world" {
+	if got := strings.TrimSpace(events[2].GetState().GetCurrentStatusText()); got != "watching the world" {
 		t.Fatalf("expected current_status_text='watching the world', got %q", got)
 	}
-	if stream.events[3].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK ||
-		stream.events[3].GetHook().GetFamily() != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_COMPLETED {
-		t.Fatalf("expected completed hook event fourth, got %#v", stream.events[3])
+	if events[3].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK ||
+		events[3].GetHook().GetFamily() != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_COMPLETED {
+		t.Fatalf("expected completed hook event fourth, got %#v", events[3])
 	}
-	if stream.events[4].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE ||
-		stream.events[4].GetState().GetFamily() != runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED {
-		t.Fatalf("expected IDLE execution_state_changed fifth, got %#v", stream.events[4])
+	if events[4].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE ||
+		events[4].GetState().GetFamily() != runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED {
+		t.Fatalf("expected IDLE execution_state_changed fifth, got %#v", events[4])
 	}
-	if got := stream.events[4].GetState().GetCurrentExecutionState(); got != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE {
+	if got := events[4].GetState().GetCurrentExecutionState(); got != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_IDLE {
 		t.Fatalf("expected IDLE fifth, got %s", got)
 	}
-	if stream.events[5].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET {
-		t.Fatalf("expected budget event sixth, got %#v", stream.events[5])
+	if events[5].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_BUDGET {
+		t.Fatalf("expected budget event sixth, got %#v", events[5])
 	}
-	if stream.events[6].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK {
-		t.Fatalf("expected cadence pending hook event seventh, got %#v", stream.events[6])
+	if events[6].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK {
+		t.Fatalf("expected cadence pending hook event seventh, got %#v", events[6])
 	}
-	if stream.events[6].GetHook().GetFamily() != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING {
-		t.Fatalf("expected cadence hook family pending, got %s", stream.events[6].GetHook().GetFamily())
+	if events[6].GetHook().GetFamily() != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING {
+		t.Fatalf("expected cadence hook family pending, got %s", events[6].GetHook().GetFamily())
 	}
-	if stream.events[7].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE ||
-		stream.events[7].GetState().GetFamily() != runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED {
-		t.Fatalf("expected cadence LIFE_PENDING execution_state_changed eighth, got %#v", stream.events[7])
+	if events[7].GetEventType() != runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE ||
+		events[7].GetState().GetFamily() != runtimev1.AgentStateEventFamily_AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED {
+		t.Fatalf("expected cadence LIFE_PENDING execution_state_changed eighth, got %#v", events[7])
 	}
-	if got := stream.events[7].GetState().GetCurrentExecutionState(); got != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_PENDING {
+	if got := events[7].GetState().GetCurrentExecutionState(); got != runtimev1.AgentExecutionState_AGENT_EXECUTION_STATE_LIFE_PENDING {
 		t.Fatalf("expected LIFE_PENDING eighth, got %s", got)
 	}
 	for _, idx := range []int{1, 2, 4, 7} {
-		lifeState := stream.events[idx].GetState()
+		lifeState := events[idx].GetState()
 		if strings.TrimSpace(lifeState.GetConversationAnchorId()) != "" ||
 			strings.TrimSpace(lifeState.GetOriginatingTurnId()) != "" ||
 			strings.TrimSpace(lifeState.GetOriginatingStreamId()) != "" {

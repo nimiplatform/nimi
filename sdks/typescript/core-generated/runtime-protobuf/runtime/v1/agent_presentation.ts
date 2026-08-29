@@ -170,74 +170,6 @@ export interface AgentPresentationEventDetail {
      */
     activitySource: string;
     /**
-     * motion_requested
-     *
-     * @generated from protobuf field: string motion_id = 20
-     */
-    motionId: string;
-    /**
-     * @generated from protobuf field: string motion_priority = 21
-     */
-    motionPriority: string;
-    /**
-     * @generated from protobuf field: int64 motion_expected_duration_ms = 22
-     */
-    motionExpectedDurationMs: string;
-    /**
-     * expression_requested
-     *
-     * @generated from protobuf field: string expression_id = 30
-     */
-    expressionId: string;
-    /**
-     * @generated from protobuf field: int64 expression_expected_duration_ms = 31
-     */
-    expressionExpectedDurationMs: string;
-    /**
-     * pose_requested / pose_cleared
-     *
-     * @generated from protobuf field: string pose_id = 40
-     */
-    poseId: string;
-    /**
-     * @generated from protobuf field: int64 pose_expected_duration_ms = 41
-     */
-    poseExpectedDurationMs: string;
-    /**
-     * @generated from protobuf field: string previous_pose_id = 42
-     */
-    previousPoseId: string;
-    /**
-     * lookat_requested
-     *
-     * @generated from protobuf field: string lookat_target_kind = 50
-     */
-    lookatTargetKind: string;
-    /**
-     * @generated from protobuf field: double lookat_x = 51
-     */
-    lookatX: number;
-    /**
-     * @generated from protobuf field: double lookat_y = 52
-     */
-    lookatY: number;
-    /**
-     * @generated from protobuf field: double lookat_z = 53
-     */
-    lookatZ: number;
-    /**
-     * @generated from protobuf field: bool lookat_has_x = 54
-     */
-    lookatHasX: boolean;
-    /**
-     * @generated from protobuf field: bool lookat_has_y = 55
-     */
-    lookatHasY: boolean;
-    /**
-     * @generated from protobuf field: bool lookat_has_z = 56
-     */
-    lookatHasZ: boolean;
-    /**
      * @generated from protobuf field: string audio_artifact_id = 60
      */
     audioArtifactId: string;
@@ -315,26 +247,6 @@ export enum AgentPresentationEventFamily {
      * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED = 1;
      */
     ACTIVITY_REQUESTED = 1,
-    /**
-     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED = 2;
-     */
-    MOTION_REQUESTED = 2,
-    /**
-     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED = 3;
-     */
-    EXPRESSION_REQUESTED = 3,
-    /**
-     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED = 4;
-     */
-    POSE_REQUESTED = 4,
-    /**
-     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED = 5;
-     */
-    POSE_CLEARED = 5,
-    /**
-     * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED = 6;
-     */
-    LOOKAT_REQUESTED = 6,
     /**
      * @generated from protobuf enum value: AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY = 7;
      */
@@ -741,21 +653,6 @@ class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEve
             { no: 11, name: "activity_category", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 12, name: "activity_intensity", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 13, name: "activity_source", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 20, name: "motion_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 21, name: "motion_priority", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 22, name: "motion_expected_duration_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 30, name: "expression_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 31, name: "expression_expected_duration_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 40, name: "pose_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 41, name: "pose_expected_duration_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 42, name: "previous_pose_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 50, name: "lookat_target_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 51, name: "lookat_x", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
-            { no: 52, name: "lookat_y", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
-            { no: 53, name: "lookat_z", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
-            { no: 54, name: "lookat_has_x", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 55, name: "lookat_has_y", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 56, name: "lookat_has_z", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 60, name: "audio_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 61, name: "audio_mime_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 64, name: "message_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
@@ -778,21 +675,6 @@ class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEve
         message.activityCategory = "";
         message.activityIntensity = "";
         message.activitySource = "";
-        message.motionId = "";
-        message.motionPriority = "";
-        message.motionExpectedDurationMs = "0";
-        message.expressionId = "";
-        message.expressionExpectedDurationMs = "0";
-        message.poseId = "";
-        message.poseExpectedDurationMs = "0";
-        message.previousPoseId = "";
-        message.lookatTargetKind = "";
-        message.lookatX = 0;
-        message.lookatY = 0;
-        message.lookatZ = 0;
-        message.lookatHasX = false;
-        message.lookatHasY = false;
-        message.lookatHasZ = false;
         message.audioArtifactId = "";
         message.audioMimeType = "";
         message.messageId = "";
@@ -835,51 +717,6 @@ class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEve
                     break;
                 case /* string activity_source */ 13:
                     message.activitySource = reader.string();
-                    break;
-                case /* string motion_id */ 20:
-                    message.motionId = reader.string();
-                    break;
-                case /* string motion_priority */ 21:
-                    message.motionPriority = reader.string();
-                    break;
-                case /* int64 motion_expected_duration_ms */ 22:
-                    message.motionExpectedDurationMs = reader.int64().toString();
-                    break;
-                case /* string expression_id */ 30:
-                    message.expressionId = reader.string();
-                    break;
-                case /* int64 expression_expected_duration_ms */ 31:
-                    message.expressionExpectedDurationMs = reader.int64().toString();
-                    break;
-                case /* string pose_id */ 40:
-                    message.poseId = reader.string();
-                    break;
-                case /* int64 pose_expected_duration_ms */ 41:
-                    message.poseExpectedDurationMs = reader.int64().toString();
-                    break;
-                case /* string previous_pose_id */ 42:
-                    message.previousPoseId = reader.string();
-                    break;
-                case /* string lookat_target_kind */ 50:
-                    message.lookatTargetKind = reader.string();
-                    break;
-                case /* double lookat_x */ 51:
-                    message.lookatX = reader.double();
-                    break;
-                case /* double lookat_y */ 52:
-                    message.lookatY = reader.double();
-                    break;
-                case /* double lookat_z */ 53:
-                    message.lookatZ = reader.double();
-                    break;
-                case /* bool lookat_has_x */ 54:
-                    message.lookatHasX = reader.bool();
-                    break;
-                case /* bool lookat_has_y */ 55:
-                    message.lookatHasY = reader.bool();
-                    break;
-                case /* bool lookat_has_z */ 56:
-                    message.lookatHasZ = reader.bool();
                     break;
                 case /* string audio_artifact_id */ 60:
                     message.audioArtifactId = reader.string();
@@ -947,51 +784,6 @@ class AgentPresentationEventDetail$Type extends MessageType<AgentPresentationEve
         /* string activity_source = 13; */
         if (message.activitySource !== "")
             writer.tag(13, WireType.LengthDelimited).string(message.activitySource);
-        /* string motion_id = 20; */
-        if (message.motionId !== "")
-            writer.tag(20, WireType.LengthDelimited).string(message.motionId);
-        /* string motion_priority = 21; */
-        if (message.motionPriority !== "")
-            writer.tag(21, WireType.LengthDelimited).string(message.motionPriority);
-        /* int64 motion_expected_duration_ms = 22; */
-        if (message.motionExpectedDurationMs !== "0")
-            writer.tag(22, WireType.Varint).int64(message.motionExpectedDurationMs);
-        /* string expression_id = 30; */
-        if (message.expressionId !== "")
-            writer.tag(30, WireType.LengthDelimited).string(message.expressionId);
-        /* int64 expression_expected_duration_ms = 31; */
-        if (message.expressionExpectedDurationMs !== "0")
-            writer.tag(31, WireType.Varint).int64(message.expressionExpectedDurationMs);
-        /* string pose_id = 40; */
-        if (message.poseId !== "")
-            writer.tag(40, WireType.LengthDelimited).string(message.poseId);
-        /* int64 pose_expected_duration_ms = 41; */
-        if (message.poseExpectedDurationMs !== "0")
-            writer.tag(41, WireType.Varint).int64(message.poseExpectedDurationMs);
-        /* string previous_pose_id = 42; */
-        if (message.previousPoseId !== "")
-            writer.tag(42, WireType.LengthDelimited).string(message.previousPoseId);
-        /* string lookat_target_kind = 50; */
-        if (message.lookatTargetKind !== "")
-            writer.tag(50, WireType.LengthDelimited).string(message.lookatTargetKind);
-        /* double lookat_x = 51; */
-        if (message.lookatX !== 0)
-            writer.tag(51, WireType.Bit64).double(message.lookatX);
-        /* double lookat_y = 52; */
-        if (message.lookatY !== 0)
-            writer.tag(52, WireType.Bit64).double(message.lookatY);
-        /* double lookat_z = 53; */
-        if (message.lookatZ !== 0)
-            writer.tag(53, WireType.Bit64).double(message.lookatZ);
-        /* bool lookat_has_x = 54; */
-        if (message.lookatHasX !== false)
-            writer.tag(54, WireType.Varint).bool(message.lookatHasX);
-        /* bool lookat_has_y = 55; */
-        if (message.lookatHasY !== false)
-            writer.tag(55, WireType.Varint).bool(message.lookatHasY);
-        /* bool lookat_has_z = 56; */
-        if (message.lookatHasZ !== false)
-            writer.tag(56, WireType.Varint).bool(message.lookatHasZ);
         /* string audio_artifact_id = 60; */
         if (message.audioArtifactId !== "")
             writer.tag(60, WireType.LengthDelimited).string(message.audioArtifactId);

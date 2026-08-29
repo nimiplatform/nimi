@@ -7,7 +7,6 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -17,6 +16,35 @@ func newRuntimeAgentTestService(t *testing.T) *Service {
 	svc, closeFn := openRuntimeAgentTestComposition(t, localStatePath)
 	t.Cleanup(closeFn)
 	return svc
+}
+
+func retainedAgentEventsForTest(
+	t *testing.T,
+	svc *Service,
+	agentID string,
+	afterSequence uint64,
+	filters ...runtimev1.AgentEventType,
+) []*runtimev1.AgentEvent {
+	t.Helper()
+	filterSet := make(map[runtimev1.AgentEventType]struct{}, len(filters))
+	for _, filter := range filters {
+		filterSet[filter] = struct{}{}
+	}
+	svc.mu.RLock()
+	defer svc.mu.RUnlock()
+	events := make([]*runtimev1.AgentEvent, 0)
+	for _, event := range svc.events {
+		if event.GetSequence() <= afterSequence || event.GetAgentId() != testRuntimeAgentLocalRef(agentID) {
+			continue
+		}
+		if len(filterSet) > 0 {
+			if _, ok := filterSet[event.GetEventType()]; !ok {
+				continue
+			}
+		}
+		events = append(events, proto.Clone(event).(*runtimev1.AgentEvent))
+	}
+	return events
 }
 
 func mustEnableAutonomy(t *testing.T, svc *Service, ctx context.Context, agentID string) {
@@ -42,45 +70,6 @@ func mustFindPendingCadenceHook(t *testing.T, svc *Service, ctx context.Context,
 		}
 	}
 	t.Fatalf("expected pending cadence hook for %s, got %#v", agentID, resp.GetHooks())
-	return nil
-}
-
-type agentEventCaptureStream struct {
-	ctx        context.Context
-	cancel     context.CancelFunc
-	events     []*runtimev1.AgentEvent
-	max        int
-	headerSent chan struct{}
-}
-
-func newAgentEventCaptureStream(parent context.Context) *agentEventCaptureStream {
-	return newAgentEventCaptureStreamLimit(parent, 1)
-}
-
-func newAgentEventCaptureStreamLimit(parent context.Context, max int) *agentEventCaptureStream {
-	ctx, cancel := context.WithCancel(parent)
-	return &agentEventCaptureStream{ctx: ctx, cancel: cancel, max: max}
-}
-
-func (s *agentEventCaptureStream) SetHeader(metadata.MD) error { return nil }
-func (s *agentEventCaptureStream) SendHeader(metadata.MD) error {
-	if s.headerSent != nil {
-		select {
-		case s.headerSent <- struct{}{}:
-		default:
-		}
-	}
-	return nil
-}
-func (s *agentEventCaptureStream) SetTrailer(metadata.MD)   {}
-func (s *agentEventCaptureStream) Context() context.Context { return s.ctx }
-func (s *agentEventCaptureStream) SendMsg(any) error        { return nil }
-func (s *agentEventCaptureStream) RecvMsg(any) error        { return nil }
-func (s *agentEventCaptureStream) Send(event *runtimev1.AgentEvent) error {
-	s.events = append(s.events, proto.Clone(event).(*runtimev1.AgentEvent))
-	if s.max <= 0 || len(s.events) >= s.max {
-		s.cancel()
-	}
 	return nil
 }
 

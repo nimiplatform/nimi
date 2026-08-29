@@ -243,7 +243,11 @@ const (
 type AgentPresentationEventFamily string
 
 const (
-	AGENTPRESENTATIONEVENTFAMILYUNSPECIFIED AgentPresentationEventFamily = "AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED"
+	AGENTPRESENTATIONEVENTFAMILYUNSPECIFIED            AgentPresentationEventFamily = "AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED"
+	AGENTPRESENTATIONEVENTFAMILYACTIVITYREQUESTED      AgentPresentationEventFamily = "AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED"
+	AGENTPRESENTATIONEVENTFAMILYVOICETIMINGREADY       AgentPresentationEventFamily = "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY"
+	AGENTPRESENTATIONEVENTFAMILYVOICEARTIFACTAVAILABLE AgentPresentationEventFamily = "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE"
+	AGENTPRESENTATIONEVENTFAMILYVOICETIMINGTERMINAL    AgentPresentationEventFamily = "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL"
 )
 
 type AgentProactiveDeliveryChannel string
@@ -2141,39 +2145,24 @@ type AgentPresentationAssetMaterial struct {
 }
 
 type AgentPresentationEventDetail struct {
-	Family                       AgentPresentationEventFamily `json:"family,omitempty"`
-	ConversationAnchorId         string                       `json:"conversation_anchor_id,omitempty"`
-	TurnId                       string                       `json:"turn_id,omitempty"`
-	StreamId                     string                       `json:"stream_id,omitempty"`
-	ActivityName                 string                       `json:"activity_name,omitempty"`
-	ActivityCategory             string                       `json:"activity_category,omitempty"`
-	ActivityIntensity            string                       `json:"activity_intensity,omitempty"`
-	ActivitySource               string                       `json:"activity_source,omitempty"`
-	MotionId                     string                       `json:"motion_id,omitempty"`
-	MotionPriority               string                       `json:"motion_priority,omitempty"`
-	MotionExpectedDurationMs     int64                        `json:"motion_expected_duration_ms,omitempty"`
-	ExpressionId                 string                       `json:"expression_id,omitempty"`
-	ExpressionExpectedDurationMs int64                        `json:"expression_expected_duration_ms,omitempty"`
-	PoseId                       string                       `json:"pose_id,omitempty"`
-	PoseExpectedDurationMs       int64                        `json:"pose_expected_duration_ms,omitempty"`
-	PreviousPoseId               string                       `json:"previous_pose_id,omitempty"`
-	LookatTargetKind             string                       `json:"lookat_target_kind,omitempty"`
-	LookatX                      float64                      `json:"lookat_x,omitempty"`
-	LookatY                      float64                      `json:"lookat_y,omitempty"`
-	LookatZ                      float64                      `json:"lookat_z,omitempty"`
-	LookatHasX                   bool                         `json:"lookat_has_x,omitempty"`
-	LookatHasY                   bool                         `json:"lookat_has_y,omitempty"`
-	LookatHasZ                   bool                         `json:"lookat_has_z,omitempty"`
-	AudioArtifactId              string                       `json:"audio_artifact_id,omitempty"`
-	AudioMimeType                string                       `json:"audio_mime_type,omitempty"`
-	MessageId                    string                       `json:"message_id,omitempty"`
-	ArtifactSequence             uint64                       `json:"artifact_sequence,omitempty"`
-	ArtifactComplete             bool                         `json:"artifact_complete,omitempty"`
-	VoiceTimingPhase             AgentVoiceTimingPhase        `json:"voice_timing_phase,omitempty"`
-	TerminalReason               string                       `json:"terminal_reason,omitempty"`
-	Reason                       string                       `json:"reason,omitempty"`
-	DurationMs                   int64                        `json:"duration_ms,omitempty"`
-	DeadlineOffsetMs             int64                        `json:"deadline_offset_ms,omitempty"`
+	Family               AgentPresentationEventFamily `json:"family,omitempty"`
+	ConversationAnchorId string                       `json:"conversation_anchor_id,omitempty"`
+	TurnId               string                       `json:"turn_id,omitempty"`
+	StreamId             string                       `json:"stream_id,omitempty"`
+	ActivityName         string                       `json:"activity_name,omitempty"`
+	ActivityCategory     string                       `json:"activity_category,omitempty"`
+	ActivityIntensity    string                       `json:"activity_intensity,omitempty"`
+	ActivitySource       string                       `json:"activity_source,omitempty"`
+	AudioArtifactId      string                       `json:"audio_artifact_id,omitempty"`
+	AudioMimeType        string                       `json:"audio_mime_type,omitempty"`
+	MessageId            string                       `json:"message_id,omitempty"`
+	ArtifactSequence     uint64                       `json:"artifact_sequence,omitempty"`
+	ArtifactComplete     bool                         `json:"artifact_complete,omitempty"`
+	VoiceTimingPhase     AgentVoiceTimingPhase        `json:"voice_timing_phase,omitempty"`
+	TerminalReason       string                       `json:"terminal_reason,omitempty"`
+	Reason               string                       `json:"reason,omitempty"`
+	DurationMs           int64                        `json:"duration_ms,omitempty"`
+	DeadlineOffsetMs     int64                        `json:"deadline_offset_ms,omitempty"`
 }
 
 type AgentPresentationProfile struct {
@@ -6994,13 +6983,6 @@ type SubscribeAccountSessionEventsRequest struct {
 	AfterSequence uint64         `json:"after_sequence,omitempty"`
 }
 
-type SubscribeAgentEventsRequest struct {
-	Context      *AgentRequestContext `json:"context,omitempty"`
-	AgentId      string               `json:"agent_id,omitempty"`
-	Cursor       string               `json:"cursor,omitempty"`
-	EventFilters []AgentEventType     `json:"event_filters,omitempty"`
-}
-
 type SubscribeAppMessagesRequest struct {
 	AppId                string   `json:"app_id,omitempty"`
 	SubjectUserId        string   `json:"subject_user_id,omitempty"`
@@ -8138,14 +8120,6 @@ func (c RuntimeTypedClient) SubmitDelegatedApprovalDecision(ctx context.Context,
 		return SubmitDelegatedApprovalDecisionResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[SubmitDelegatedApprovalDecisionResponse](raw, "SubmitDelegatedApprovalDecisionResponse")
-}
-
-func (c RuntimeTypedClient) SubscribeAgentEvents(ctx context.Context, request SubscribeAgentEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[AgentEvent], error) {
-	reader, err := c.streamTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents", request, metadata, timeoutMS)
-	if err != nil {
-		return nil, err
-	}
-	return &RuntimeTypedStream[AgentEvent]{reader: reader}, nil
 }
 
 func (c RuntimeTypedClient) SubscribeLocalAppAgentRealtimeEvents(ctx context.Context, request SubscribeLocalAppAgentRealtimeEventsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (*RuntimeTypedStream[LocalAppAgentRealtimeEvent], error) {

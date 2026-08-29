@@ -90,23 +90,11 @@ func TestRuntimeAgentApplyChatTrackSidecarOmitsUnprovenOriginLinkage(t *testing.
 		t.Fatalf("ApplyChatTrackSidecar: %v", err)
 	}
 
-	streamCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-	stream := newAgentEventCaptureStreamLimit(streamCtx, 2)
-	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		Context: testRuntimeAgentIdentityContext("agent-chat-sidecar-origin"),
-		AgentId: "agent-chat-sidecar-origin",
-		Cursor:  encodeCursor(cursor),
-		EventFilters: []runtimev1.AgentEventType{
-			runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE,
-		},
-	}, stream); err != context.Canceled && err != context.DeadlineExceeded {
-		t.Fatalf("SubscribeAgentEvents: %v", err)
+	events := retainedAgentEventsForTest(t, svc, "agent-chat-sidecar-origin", cursor, runtimev1.AgentEventType_AGENT_EVENT_TYPE_STATE)
+	if len(events) < 2 {
+		t.Fatalf("expected posture/state projection events, got %d", len(events))
 	}
-	if len(stream.events) < 2 {
-		t.Fatalf("expected posture/state projection events, got %d", len(stream.events))
-	}
-	for _, event := range stream.events {
+	for _, event := range events {
 		detail := event.GetState()
 		if detail == nil {
 			t.Fatalf("expected state event detail, got %#v", event)

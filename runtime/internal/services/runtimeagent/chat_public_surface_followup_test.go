@@ -614,24 +614,16 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 	if got := publicChatLastTurnSnapshot(t, secondSnapshot)["turn_origin"]; got != publicChatTurnOriginUser {
 		t.Fatalf("expected second snapshot last_turn.turn_origin=user, got=%v", publicChatLastTurnSnapshot(t, secondSnapshot))
 	}
-	hookStream := newAgentEventCaptureStreamLimit(authenticatedRuntimeAgentTestContext(context.Background(), "user-1"), 3)
-	if err := svc.SubscribeAgentEvents(&runtimev1.SubscribeAgentEventsRequest{
-		Context:      testRuntimeAgentIdentityContext("agent-alpha"),
-		AgentId:      "agent-alpha",
-		Cursor:       encodeCursor(hookCursor),
-		EventFilters: []runtimev1.AgentEventType{runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK},
-	}, hookStream); err != context.Canceled {
-		t.Fatalf("SubscribeAgentEvents(hook cancellation): %v", err)
-	}
-	if len(hookStream.events) != 3 {
-		t.Fatalf("expected proposed+pending+canceled hook events, got %#v", hookStream.events)
+	hookEvents := retainedAgentEventsForTest(t, svc, "agent-alpha", hookCursor, runtimev1.AgentEventType_AGENT_EVENT_TYPE_HOOK)
+	if len(hookEvents) != 3 {
+		t.Fatalf("expected proposed+pending+canceled hook events, got %#v", hookEvents)
 	}
 	for index, want := range []runtimev1.HookAdmissionState{
 		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PROPOSED,
 		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_PENDING,
 		runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_CANCELED,
 	} {
-		detail := hookStream.events[index].GetHook()
+		detail := hookEvents[index].GetHook()
 		if got := detail.GetFamily(); got != want {
 			t.Fatalf("unexpected hook lifecycle event at index %d: got %s want %s", index, got, want)
 		}

@@ -424,12 +424,6 @@ message CancelHookRequest {
 message CancelHookResponse {
   HookExecutionOutcome outcome = 1;
 }
-message SubscribeAgentEventsRequest {
-  AgentRequestContext context = 1;
-  string agent_id = 2;
-  string cursor = 3;
-  repeated AgentEventType event_filters = 4;
-}
 // First-party recorded voice ingress. Runtime validates the selected
 // LocalAgent Conversation and executes audio.transcribe through the singular
 // shared LocalAgent AIConfig before returning typed text to the caller. The
@@ -1142,7 +1136,6 @@ service RuntimeAgentService {
   rpc ListDelegatedDiagnostics(ListDelegatedDiagnosticsRequest) returns (ListDelegatedDiagnosticsResponse);
   rpc GetDelegatedReplayTrace(GetDelegatedReplayTraceRequest) returns (GetDelegatedReplayTraceResponse);
   rpc GetDelegatedControlSurfaceSnapshot(GetDelegatedControlSurfaceSnapshotRequest) returns (GetDelegatedControlSurfaceSnapshotResponse);
-  rpc SubscribeAgentEvents(SubscribeAgentEventsRequest) returns (stream AgentEvent);
   rpc TranscribeAgentVoiceInput(TranscribeAgentVoiceInputRequest) returns (TranscribeAgentVoiceInputResponse);
   // Shared Runtime LocalAgent subsystem AIConfig surface.
   rpc GetSharedLocalAgentAIConfig(GetSharedLocalAgentAIConfigRequest) returns (GetSharedLocalAgentAIConfigResponse);

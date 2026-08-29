@@ -1,12 +1,10 @@
 import {
   AgentAutonomyMode,
-  AgentEventType,
   AgentExecutionState,
   AgentLifecycleStatus,
   HookAdmissionState,
   HookTriggerFamily,
   type AgentAutonomyState,
-  type AgentEvent,
   type AgentStateMutation,
   type AgentStateProjection,
   type PendingHook,
@@ -20,7 +18,6 @@ import {
 import type {
   NimiRuntimeAgentAutonomyMode,
   NimiRuntimeAgentAutonomySnapshot,
-  NimiRuntimeAgentInspectEventSummary,
   NimiRuntimeAgentInspectSnapshot,
   NimiRuntimeAgentPendingHookInspect,
   NimiRuntimeAgentPresentationProfileProjection,
@@ -174,25 +171,6 @@ function formatNimiRuntimeAgentHookTriggerKind(input?: {
   }
 }
 
-export function formatNimiRuntimeAgentEventType(value: unknown): string | null {
-  switch (Number(value)) {
-    case AgentEventType.LIFECYCLE:
-      return 'lifecycle';
-    case AgentEventType.HOOK:
-      return 'hook';
-    case AgentEventType.BUDGET:
-      return 'budget';
-    case AgentEventType.STATE:
-      return 'state';
-    case AgentEventType.PRESENTATION:
-      return 'presentation';
-    case AgentEventType.PROACTIVE:
-      return 'proactive';
-    default:
-      return null;
-  }
-}
-
 export function projectNimiRuntimeAgentPendingHookInspect(
   hook: PendingHook,
 ): NimiRuntimeAgentPendingHookInspect {
@@ -311,49 +289,5 @@ export function projectNimiRuntimeAgentInspectSnapshot(
     nextScheduledFor: activeHooks[0]?.scheduledFor || null,
     pendingHooks: activeHooks.slice(0, input.maxPendingHookPreview ?? 3),
     recentTerminalHooks: terminalHooks,
-  };
-}
-
-export function projectNimiRuntimeAgentInspectEventSummary(input: {
-  readonly event: AgentEvent;
-  readonly fallbackAgentId?: string;
-}): NimiRuntimeAgentInspectEventSummary {
-  const event = input.event;
-  const normalizedAgentId = normalizeNimiRuntimeAgentText(event.agentId)
-    || normalizeNimiRuntimeAgentText(input.fallbackAgentId);
-  const detail = event.detail;
-  return {
-    agentId: normalizedAgentId,
-    eventType: Number(event.eventType) || 0,
-    eventTypeLabel: formatNimiRuntimeAgentEventType(event.eventType),
-    sequence: String(event.sequence || ''),
-    detailKind: detail?.oneofKind || null,
-    timestamp: runtimeAgentTimestampToIso(event.timestamp),
-    summaryText: detail?.oneofKind === 'hook'
-      ? [
-        normalizeNimiRuntimeAgentText(detail.hook?.intent?.intentId) || 'hook',
-        formatNimiRuntimeAgentHookStatus(detail.hook?.family) || 'unknown',
-      ].join(' - ')
-      : detail?.oneofKind === 'lifecycle'
-        ? `current=${formatNimiRuntimeAgentLifecycleStatus(detail.lifecycle?.currentStatus) || 'unknown'}`
-        : detail?.oneofKind === 'budget'
-            ? [
-              `budgetExhausted=${detail.budget?.budgetExhausted === true}`,
-              `remainingTokens=${normalizeNimiRuntimeAgentOptionalNumber(detail.budget?.remainingTokens) ?? '-'}`,
-            ].join(' - ')
-            : null,
-    hookId: detail?.oneofKind === 'hook'
-      ? normalizeNimiRuntimeAgentText(detail.hook?.intent?.intentId) || null
-      : null,
-    hookStatus: detail?.oneofKind === 'hook'
-      ? formatNimiRuntimeAgentHookStatus(detail.hook?.family)
-      : null,
-    lifecycleStatus: detail?.oneofKind === 'lifecycle'
-      ? formatNimiRuntimeAgentLifecycleStatus(detail.lifecycle?.currentStatus)
-      : null,
-    budgetExhausted: detail?.oneofKind === 'budget' ? detail.budget?.budgetExhausted === true : null,
-    remainingTokens: detail?.oneofKind === 'budget'
-      ? normalizeNimiRuntimeAgentOptionalNumber(detail.budget?.remainingTokens)
-      : null,
   };
 }

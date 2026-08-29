@@ -61,7 +61,7 @@ AgentLocalSourceCoverageState = Literal["AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPE
 AgentLocalSourceSnapshotSchemaVersion = Literal["AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED", "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3"]
 AgentPresentationAssetRole = Literal["AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED", "AGENT_PRESENTATION_ASSET_ROLE_AVATAR", "AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND"]
 AgentPresentationBackendKind = Literal["AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED", "AGENT_PRESENTATION_BACKEND_KIND_VRM", "AGENT_PRESENTATION_BACKEND_KIND_LIVE2D", "AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D", "AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D", "AGENT_PRESENTATION_BACKEND_KIND_VIDEO"]
-AgentPresentationEventFamily = Literal["AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED"]
+AgentPresentationEventFamily = Literal["AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED", "AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED", "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY", "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE", "AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL"]
 AgentProactiveDeliveryChannel = Literal["AGENT_PROACTIVE_DELIVERY_CHANNEL_UNSPECIFIED"]
 AgentProactiveEffectClass = Literal["AGENT_PROACTIVE_EFFECT_CLASS_UNSPECIFIED"]
 AgentProactiveEventFamily = Literal["AGENT_PROACTIVE_EVENT_FAMILY_UNSPECIFIED"]
@@ -496,21 +496,6 @@ class AgentPresentationEventDetail:
     activity_category: str | None = None
     activity_intensity: str | None = None
     activity_source: str | None = None
-    motion_id: str | None = None
-    motion_priority: str | None = None
-    motion_expected_duration_ms: int | None = None
-    expression_id: str | None = None
-    expression_expected_duration_ms: int | None = None
-    pose_id: str | None = None
-    pose_expected_duration_ms: int | None = None
-    previous_pose_id: str | None = None
-    lookat_target_kind: str | None = None
-    lookat_x: float | None = None
-    lookat_y: float | None = None
-    lookat_z: float | None = None
-    lookat_has_x: bool | None = None
-    lookat_has_y: bool | None = None
-    lookat_has_z: bool | None = None
     audio_artifact_id: str | None = None
     audio_mime_type: str | None = None
     message_id: str | None = None
@@ -5371,13 +5356,6 @@ class SubscribeAccountSessionEventsRequest:
     after_sequence: int | None = None
 
 @dataclass(frozen=True)
-class SubscribeAgentEventsRequest:
-    context: AgentRequestContext | None = None
-    agent_id: str | None = None
-    cursor: str | None = None
-    event_filters: tuple[AgentEventType, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
 class SubscribeAppMessagesRequest:
     app_id: str | None = None
     subject_user_id: str | None = None
@@ -6208,9 +6186,6 @@ class RuntimeTypedClient:
     async def submit_delegated_approval_decision(self, request: SubmitDelegatedApprovalDecisionRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SubmitDelegatedApprovalDecisionResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SubmitDelegatedApprovalDecision", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SubmitDelegatedApprovalDecisionResponse, raw)
-
-    def subscribe_agent_events(self, request: SubscribeAgentEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[AgentEvent]:
-        return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeAgentEvents", _model_body(request), AgentEvent, metadata=metadata, timeout_ms=timeout_ms)
 
     def subscribe_local_app_agent_realtime_events(self, request: SubscribeLocalAppAgentRealtimeEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[LocalAppAgentRealtimeEvent]:
         return self._stream("/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents", _model_body(request), LocalAppAgentRealtimeEvent, metadata=metadata, timeout_ms=timeout_ms)

@@ -114,9 +114,6 @@ test('runtime agent client composes RuntimeAgentService and reserved turn seam a
       async getPublicChatSessionSnapshot() {
         return { snapshot: {} };
       },
-      subscribeAgentEvents() {
-        return emptyAsyncIterable();
-      },
     },
     appMessages: {
       async sendAppMessage(request: SendAppMessageRequest, options?: RuntimeTypedCallOptions) {
@@ -215,9 +212,6 @@ test('runtime agent client discovers existing LocalAgents by Runtime inventory p
         async getPublicChatSessionSnapshot() {
           return { snapshot: {} };
         },
-        subscribeAgentEvents() {
-          return emptyAsyncIterable();
-        },
       },
       appMessages: {
         async sendAppMessage() {
@@ -300,9 +294,6 @@ test('runtime agent client lists existing LocalAgents from Runtime inventory', a
         },
         async getPublicChatSessionSnapshot() {
           return { snapshot: {} };
-        },
-        subscribeAgentEvents() {
-          return emptyAsyncIterable();
         },
       },
       appMessages: {

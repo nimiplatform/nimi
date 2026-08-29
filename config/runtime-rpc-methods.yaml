@@ -517,8 +517,6 @@ services:
         type: unary
       - name: CancelHook
         type: unary
-      - name: SubscribeAgentEvents
-        type: server_stream
       - name: TranscribeAgentVoiceInput
         type: unary
       - name: GetSharedLocalAgentAIConfig

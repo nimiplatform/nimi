@@ -1,10 +1,8 @@
 import type {
-  AgentEvent,
   GetAgentRequest,
   type AppMessageEvent,
   RuntimeTypedCallOptions,
   SendAppMessageRequest,
-  SubscribeAgentEventsRequest,
   SubscribeAppMessagesRequest,
   TerminateAgentRequest,
 } from '../core-generated/runtime-typed-client';
@@ -32,12 +30,10 @@ import {
 import { fromNimiRuntimeProtoStruct, toNimiRuntimeProtoStruct, toNimiRuntimeTimestamp } from './runtime-agent-values';
 
 export type {
-  AgentEvent,
   GetAgentRequest,
   AppMessageEvent,
   RuntimeTypedCallOptions,
   SendAppMessageRequest,
-  SubscribeAgentEventsRequest,
   SubscribeAppMessagesRequest,
   TerminateAgentRequest,
 };
