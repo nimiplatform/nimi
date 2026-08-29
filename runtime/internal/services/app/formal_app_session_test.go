@@ -50,17 +50,21 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 	}
 	t.Cleanup(desktop.Revoke)
 	account := newLocalAppSessionTestAccount("account-built-in", "realm-built-in")
+	release := FormalAppRelease{
+		AppID: "nimi.desktop", DisplayName: "Nimi Desktop", SourceRef: "platform-app-release:nimi.desktop",
+		InstallRoot: t.TempDir(), ManifestRef: "formal-release:nimi.desktop", ShellKind: 1,
+		Declaration:  []string{"realm.data", "runtime.consume", "agent.local", "agent.configure"},
+		SourceDigest: "release-source:desktop", PayloadRootDigest: "release-payload:desktop",
+	}
 	service := New(nil,
 		WithRuntimeAccountProjectionProvider(account),
 		WithLocalAppKernel(kernel),
 		WithLocalAppSessionRuntime(bytes.NewReader(sessionTestEntropy()), time.Minute),
 		WithFormalAppReleaseResolver(formalAppReleaseResolverFunc(func(_ context.Context, appID string) (FormalAppRelease, error) {
-			return FormalAppRelease{
-				AppID: appID, DisplayName: "Nimi Desktop", SourceRef: "platform-app-release:" + appID,
-				InstallRoot: t.TempDir(), ManifestRef: "formal-release:nimi.desktop", ShellKind: 1,
-				Declaration:  []string{"realm.data", "runtime.consume", "agent.local", "agent.configure"},
-				SourceDigest: "release-source:desktop", PayloadRootDigest: "release-payload:desktop",
-			}, nil
+			if appID != release.AppID {
+				return FormalAppRelease{}, errFormalAppReleaseUnavailable
+			}
+			return release, nil
 		})),
 	)
 	desktopCtx := protectedlocal.ContextWithDesktopConnection(ctx, desktop)
@@ -162,6 +166,32 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 		protectedDecision.OperationCapability != decision.OperationCapability ||
 		!strings.HasPrefix(protectedDecision.RegisteredAppSubject, "ras_v1_") {
 		t.Fatalf("protected App parity decision = %+v ok=%v", protectedDecision, ok)
+	}
+
+	release.SourceDigest = "release-source:desktop:2"
+	release.PayloadRootDigest = "release-payload:desktop:2"
+	replacementProcess := client
+	replacementProcess.PID++
+	replacementProcess.CreationMarker = "desktop-built-in-replacement"
+	replacementProcess.ExecutableDigest = localAppSessionTestIdentifier(0x98)
+	replacement, err := service.registerFormalAppRelease(ctx, release.AppID, replacementProcess)
+	if err != nil {
+		t.Fatalf("register replacement formal Desktop release: %v", err)
+	}
+	if replacement.HostExecutableDigest != protectedExecutableDigestRef(replacementProcess.ExecutableDigest) {
+		t.Fatalf("replacement executable witness = %q", replacement.HostExecutableDigest)
+	}
+	if _, err := service.AuthorizeFormalAppIngress(
+		desktopCtx, "nimi.desktop", boot, localappop.IngressAgentManagerSnapshotGet,
+	); err == nil {
+		t.Fatal("old live formal Desktop rewrote the replacement executable witness")
+	}
+	current, err := kernel.Registrations().GetActiveByAppID(ctx, "nimi.desktop")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if current.HostExecutableDigest != replacement.HostExecutableDigest || current.SourceGeneration != replacement.SourceGeneration {
+		t.Fatalf("old formal Desktop changed replacement registration: current=%+v replacement=%+v", current, replacement)
 	}
 }
 

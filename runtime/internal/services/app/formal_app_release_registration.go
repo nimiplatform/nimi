@@ -54,12 +54,42 @@ func (s *Service) registerFormalAppRelease(
 	}
 	s.installedAppRegistrationMu.Lock()
 	defer s.installedAppRegistrationMu.Unlock()
+	current, currentErr := s.localAppKernel.Registrations().GetActiveByAppID(ctx, appID)
+	if currentErr == nil && sameFormalAppReleaseRegistration(current, input) {
+		if current.HostExecutableDigest != input.HostExecutableDigest {
+			return localappkernel.Registration{}, errLocalDevelopmentSessionRevoked
+		}
+		return current, nil
+	}
+	if currentErr != nil && !errors.Is(currentErr, localappkernel.ErrNotFound) {
+		return localappkernel.Registration{}, fmt.Errorf("resolve current formal App release: %w", currentErr)
+	}
 	registration, err := s.localAppKernel.Registrations().RegisterInstalled(ctx, input)
 	if err != nil {
 		return localappkernel.Registration{}, fmt.Errorf("register formal App release: %w", err)
 	}
 	s.invalidateLocalAppSessionsForRegistration(registration, false)
 	return registration, nil
+}
+
+func sameFormalAppReleaseRegistration(
+	current localappkernel.Registration,
+	input localappkernel.RegisterInstalledInput,
+) bool {
+	if current.SourceClass != localappkernel.SourceClassInstalled || current.AppID != input.AppID ||
+		current.DisplayName != input.DisplayName || current.SourceRef != input.SourceRef ||
+		filepath.Clean(current.ProjectRoot) != filepath.Clean(input.ProjectRoot) ||
+		current.ManifestPath != input.ManifestPath || current.ShellKind != input.ShellKind ||
+		current.SourceDigest != input.SourceDigest || current.PayloadRootDigest != input.PayloadRootDigest ||
+		len(current.RawDeclaration) != len(input.RawDeclaration) {
+		return false
+	}
+	for index := range current.RawDeclaration {
+		if current.RawDeclaration[index] != input.RawDeclaration[index] {
+			return false
+		}
+	}
+	return true
 }
 
 func formalAppInstalledRegistrationInput(
