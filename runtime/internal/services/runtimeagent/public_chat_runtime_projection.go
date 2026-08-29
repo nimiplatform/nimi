@@ -198,14 +198,30 @@ func (r publicChatRuntime) projectCommittedConversationVoice(ctx context.Context
 		AudioMimeType:   out.AudioMimeType,
 		MessageID:       messageID,
 		DurationMs:      out.DurationMs,
+	}); err != nil {
+		if r.svc.logger != nil {
+			r.svc.logger.Warn("emit semantic voice timing ready failed",
+				"agent_id", session.AgentID,
+				"turn_id", turnID,
+				"audio_artifact_id", out.AudioArtifactID,
+				"error", err,
+			)
+		}
+		return
+	}
+	if err := r.emitVoiceTimingTerminalTimelineEvent(session, turn, publicChatVoiceTimingTerminalProjection{
+		AudioArtifactID: out.AudioArtifactID,
+		AudioMimeType:   out.AudioMimeType,
+		MessageID:       messageID,
+		Phase:           "completed",
+		TerminalReason:  "final_artifact_completed",
 	}); err != nil && r.svc.logger != nil {
-		r.svc.logger.Warn("emit semantic voice timing ready failed",
+		r.svc.logger.Warn("emit semantic voice timing terminal failed",
 			"agent_id", session.AgentID,
 			"turn_id", turnID,
 			"audio_artifact_id", out.AudioArtifactID,
 			"error", err,
 		)
-		return
 	}
 }
 

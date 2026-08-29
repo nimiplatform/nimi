@@ -196,6 +196,7 @@ func TestPublicChatCommittedTurnEmitsProviderVoiceProjectionWithoutAvatarAutopla
 	committed := capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
 	voiceChunk := capture.waitForMessageType(t, publicChatConversationVoiceArtifactAvailableType)
 	voicePlayback := capture.waitForMessageType(t, publicChatConversationVoiceTimingReadyType)
+	voiceTerminal := capture.waitForMessageType(t, publicChatConversationVoiceTimingTerminalType)
 
 	voicePayload := publicChatPayloadMap(t, voicePlayback)
 	acceptedPayload := publicChatPayloadMap(t, accepted)
@@ -261,6 +262,21 @@ func TestPublicChatCommittedTurnEmitsProviderVoiceProjectionWithoutAvatarAutopla
 	}
 	if got := strings.TrimSpace(voiceDetail["voice_timing_phase"].(string)); got != "active" {
 		t.Fatalf("expected semantic voice timing phase active, got %s", got)
+	}
+	terminalPayload := publicChatPayloadMap(t, voiceTerminal)
+	requirePublicChatTimelineEnvelope(t, terminalPayload, turnID, streamID, publicChatTimelineChannelVoice, "K-AGCORE-133")
+	terminalDetail := terminalPayload["detail"].(map[string]any)
+	if got := strings.TrimSpace(terminalDetail["voice_timing_phase"].(string)); got != "completed" {
+		t.Fatalf("expected semantic voice terminal phase completed, got %s", got)
+	}
+	if got := strings.TrimSpace(terminalDetail["terminal_reason"].(string)); got != "final_artifact_completed" {
+		t.Fatalf("expected semantic voice terminal reason final_artifact_completed, got %s", got)
+	}
+	if got := strings.TrimSpace(terminalDetail["message_id"].(string)); got != messageID {
+		t.Fatalf("expected semantic voice terminal message_id %s, got %s", messageID, got)
+	}
+	if got := strings.TrimSpace(terminalDetail["audio_artifact_id"].(string)); got != expectedAudioArtifactID {
+		t.Fatalf("expected semantic voice terminal artifact id %s, got %s", expectedAudioArtifactID, got)
 	}
 	for _, forbidden := range []string{"playback_state", "voice_playback_state", "voice_output_mode", "voice_stream_id", "playback_target", "voice_route_binding", "mouth_open_y", "audio_level", "frames", "chunk_transport_ref"} {
 		if _, exists := voiceDetail[forbidden]; exists {
