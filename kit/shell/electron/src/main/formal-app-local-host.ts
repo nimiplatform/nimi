@@ -410,6 +410,7 @@ export function createNimiElectronFormalAppLocalHost(input: {
     agentAutonomySnapshot: (record) => configure.autonomy.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentUpdateAutonomy: (record) => configure.autonomy.update(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentPresentationSnapshot: (record) => configure.presentation.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
+    agentPresentationReadAsset: (record) => configure.presentation.readAsset(record as never) as unknown as Promise<NimiElectronLocalAppRecord>,
     agentCommitPresentation: (record) => configure.presentation.commit(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentMemoryInspect: (record) => configure.memory.inspect(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentMemoryCorrect: (record) => configure.memory.correct(record as never) as Promise<NimiElectronLocalAppRecord>,

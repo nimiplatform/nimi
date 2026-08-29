@@ -1,6 +1,7 @@
 use nimi_shell_protected_local::{
     LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
+    LocalAppAgentPresentationAssetReadRequest,
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
     LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
@@ -236,6 +237,13 @@ pub struct LocalAppAgentCommitPresentationPayload {
     expected_presentation_revision: String,
     intent: Value,
     imported_assets: Value,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct LocalAppAgentPresentationAssetReadPayload {
+    agent_handle: String,
+    asset_ref: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -895,6 +903,20 @@ pub async fn agent_presentation_snapshot_for_host(
         parse_payload(payload, "local_app_agent_presentation_snapshot")?;
     host.agent_presentation_snapshot(LocalAppAgentHandleRequest {
         agent_handle: payload.agent_handle,
+    })
+    .await
+    .map_err(map_local_app_error)
+}
+
+pub async fn agent_presentation_read_asset_for_host(
+    host: &RuntimeBridgeLocalAppHost,
+    payload: Value,
+) -> Result<Value, String> {
+    let payload: LocalAppAgentPresentationAssetReadPayload =
+        parse_payload(payload, "local_app_agent_presentation_read_asset")?;
+    host.agent_presentation_read_asset(LocalAppAgentPresentationAssetReadRequest {
+        agent_handle: payload.agent_handle,
+        asset_ref: payload.asset_ref,
     })
     .await
     .map_err(map_local_app_error)

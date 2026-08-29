@@ -2,6 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { LocalAppSessionState, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
 import { OpenLocalAppSessionResponse } from '../../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/auth.js';
 import {
+  GetAgentPresentationAssetRequest,
+  GetAgentPresentationAssetResponse,
+} from '../../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/agent_service.js';
+import {
   WriteLocalAppAssetRequest,
   WriteLocalAppAssetResponse,
 } from '../../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/app.js';
@@ -63,6 +67,39 @@ describe('Electron formal App local host', () => {
       '/nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats',
     ]);
     expect(runtime.bodies).toHaveLength(2);
+  });
+
+  it.each([
+    ['desktop', 'nimi.desktop'],
+    ['avatar', 'nimi.avatar'],
+  ] as const)('reads committed presentation assets through the same %s formal operation', async (profile, appId) => {
+    const methodId = '/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset';
+    const handle = `agent_ref_${'A'.repeat(43)}`;
+    const unary = vi.fn(async (input: { methodId: string; requestBytes: Uint8Array }) => {
+      expect(input.methodId).toBe(methodId);
+      expect(GetAgentPresentationAssetRequest.fromBinary(input.requestBytes)).toEqual({
+        agentHandle: handle,
+        assetRef: 'vrm_0123456789ab',
+      });
+      return GetAgentPresentationAssetResponse.toBinary(GetAgentPresentationAssetResponse.create({
+        assetRef: 'vrm_0123456789ab', role: 1, backendKind: 1,
+        fileName: 'avatar.vrm', mediaType: 'model/gltf-binary',
+        content: Uint8Array.from([1, 2, 3]), sha256: 'a'.repeat(64),
+      }));
+    });
+    const controlHost = {
+      accountProductUnary: profile === 'desktop' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
+      bundledAvatarUnary: profile === 'avatar' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
+    } as unknown as NimiElectronDesktopControlHost;
+    const host = createNimiElectronFormalAppLocalHost({ profile, appId, control: controlHost });
+
+    await expect(host.agentPresentationReadAsset({
+      agentHandle: handle,
+      assetRef: 'vrm_0123456789ab',
+    })).resolves.toMatchObject({
+      assetRef: 'vrm_0123456789ab', role: 'avatar', backendKind: 'vrm',
+    });
+    expect(unary).toHaveBeenCalledOnce();
   });
 
   it.each([

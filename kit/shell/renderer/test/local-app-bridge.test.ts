@@ -50,6 +50,7 @@ describe('renderer local-app standard-shell surface', () => {
       ['local-app.agentAutonomySnapshot', 'local_app_agent_autonomy_snapshot'],
       ['local-app.agentUpdateAutonomy', 'local_app_agent_update_autonomy'],
       ['local-app.agentPresentationSnapshot', 'local_app_agent_presentation_snapshot'],
+      ['local-app.agentPresentationReadAsset', 'local_app_agent_presentation_read_asset'],
       ['local-app.agentCommitPresentation', 'local_app_agent_commit_presentation'],
       ['local-app.agentMemoryInspect', 'local_app_agent_memory_inspect'],
       ['local-app.agentMemoryCorrect', 'local_app_agent_memory_correct'],

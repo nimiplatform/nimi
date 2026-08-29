@@ -517,6 +517,12 @@ pub struct NativeAgentHandleInput {
 }
 
 #[napi(object)]
+pub struct NativeAgentPresentationAssetReadInput {
+    pub agent_handle: String,
+    pub asset_ref: String,
+}
+
+#[napi(object)]
 pub struct NativeAgentMemoryInspectInput {
     pub agent_handle: String,
     pub limit: u32,

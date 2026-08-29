@@ -277,6 +277,7 @@ capability_sets:
       - local-app.agentAutonomySnapshot
       - local-app.agentUpdateAutonomy
       - local-app.agentPresentationSnapshot
+      - local-app.agentPresentationReadAsset
       - local-app.agentCommitPresentation
       - local-app.agentMemoryInspect
       - local-app.agentMemoryCorrect
@@ -915,6 +916,15 @@ local_app_operation_contract:
       effect_boundary: read
       typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
       owner: runtime_agent_service
+    agentPresentationReadAsset:
+      command: local-app.agentPresentationReadAsset
+      operation_id: runtime.agent.presentation.snapshot.get
+      request_fields: [agentHandle, assetRef]
+      response_fields: [assetRef, role, backendKind, fileName, mediaType, content, sha256]
+      transport_boundary: unary
+      effect_boundary: read
+      typed_failures: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
+      owner: runtime_agent_service
     agentCommitPresentation:
       command: local-app.agentCommitPresentation
       operation_id: runtime.agent.presentation.commit
@@ -1354,6 +1364,9 @@ capabilities:
       - id: agentPresentationSnapshot
         command: nimi.shell.localApp.agentPresentationSnapshot
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]
+      - id: agentPresentationReadAsset
+        command: nimi.shell.localApp.agentPresentationReadAsset
+        negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error]
       - id: agentCommitPresentation
         command: nimi.shell.localApp.agentCommitPresentation
         negative_states: [protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error]

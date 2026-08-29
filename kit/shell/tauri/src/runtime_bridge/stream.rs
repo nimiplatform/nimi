@@ -464,10 +464,7 @@ mod tests {
 
     #[test]
     fn generated_machine_and_account_streams_use_protected_transport() {
-        for method_id in [
-            "/nimi.runtime.v1.RuntimeAiService/StreamScenario",
-            "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages",
-        ] {
+        for method_id in ["/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"] {
             assert!(protected_desktop_stream_method(method_id));
             assert!(validate_stream_method(method_id).is_ok());
         }
@@ -478,6 +475,9 @@ mod tests {
             assert!(protected_desktop_stream_method(method_id));
             assert!(validate_stream_method(method_id).is_ok());
         }
+        let public_scenario_stream = "/nimi.runtime.v1.RuntimeAiService/StreamScenario";
+        assert!(!protected_desktop_stream_method(public_scenario_stream));
+        assert!(validate_stream_method(public_scenario_stream).is_ok());
     }
 
     #[test]

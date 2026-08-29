@@ -135,6 +135,7 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory": { kind: "unary" },

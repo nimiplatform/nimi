@@ -21,6 +21,7 @@ use nimi_shell_protected_local::{
     DesktopMachineProductUnaryRequest, LocalAppAIConfigLocalOptionsRequest,
     LocalAppAIConfigOverwriteRequest, LocalAppAgentCommitPresentationRequest,
     LocalAppAgentHandleRequest, LocalAppAgentManagerSnapshotRequest,
+    LocalAppAgentPresentationAssetReadRequest,
     LocalAppAgentMemoryCorrectRequest, LocalAppAgentMemoryDeleteRequest,
     LocalAppAgentMemoryForgetRequest, LocalAppAgentMemoryInspectRequest,
     LocalAppAgentMemorySwitchRequest, LocalAppAgentRealtimeAppendInputRequest,

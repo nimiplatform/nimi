@@ -23,14 +23,6 @@ func isBundledAvatarCapability(ctx context.Context, capability string) bool {
 	return ok && principal.AppID == bundledavatar.AppID && principal.Capability == capability
 }
 
-func bundledAvatarPrincipal(ctx context.Context) (protectedprincipal.Principal, error) {
-	principal, ok := protectedprincipal.FromContext(ctx)
-	if !ok || principal.AppID != bundledavatar.AppID {
-		return protectedprincipal.Principal{}, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
-	}
-	return principal, nil
-}
-
 func protectedAccountProductPrincipal(ctx context.Context, avatarCapability string) (protectedprincipal.Principal, bool, error) {
 	principal, attached := protectedprincipal.AttachedToContext(ctx)
 	if !attached {

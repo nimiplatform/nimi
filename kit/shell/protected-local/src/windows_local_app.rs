@@ -36,6 +36,7 @@ use crate::windows_service_control::{open_verified_runtime_channel, SOURCE_LOCAL
 use crate::{
     LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
+    LocalAppAgentPresentationAssetReadRequest,
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
     LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
@@ -1105,6 +1106,17 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             agent_configure::presentation_snapshot(self.checked_channel()?, request).await
+        })
+    }
+
+    fn agent_presentation_read_asset(
+        &self,
+        request: LocalAppAgentPresentationAssetReadRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<serde_json::Value, LocalAppOperationError>> + Send + '_>>
+    {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            agent_configure::presentation_read_asset(self.checked_channel()?, request).await
         })
     }
 

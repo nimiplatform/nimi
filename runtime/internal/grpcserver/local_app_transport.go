@@ -137,6 +137,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedAutonomySnapshotMethod:               localAppSessionMethodPolicy(),
 	protectedUpdateAutonomyMethod:                 localAppSessionMethodPolicy(),
 	protectedPresentationSnapshotMethod:           localAppSessionMethodPolicy(),
+	protectedPresentationAssetMethod:              localAppSessionMethodPolicy(),
 	protectedCommitPresentationMethod:             localAppSessionMethodPolicy(),
 	protectedInspectAgentMemoryMethod:             localAppSessionMethodPolicy(),
 	protectedCorrectAgentMemoryMethod:             localAppSessionMethodPolicy(),
@@ -576,7 +577,7 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 		protectedGetSharedAIConfigMethod, protectedOverwriteSharedAIConfigMethod, protectedListSharedAIConfigOptionsMethod,
 		protectedAgentManagerSnapshotMethod,
 		protectedAutonomySnapshotMethod, protectedUpdateAutonomyMethod,
-		protectedPresentationSnapshotMethod, protectedCommitPresentationMethod,
+		protectedPresentationSnapshotMethod, protectedPresentationAssetMethod, protectedCommitPresentationMethod,
 		protectedInspectAgentMemoryMethod, protectedCorrectAgentMemoryMethod, protectedForgetAgentMemoryMethod,
 		protectedSwitchAgentMemoryMethod, protectedDeleteAgentMemoryMethod:
 		return true

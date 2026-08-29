@@ -107,6 +107,7 @@ export {
   generateNimiLocalAppTextCandidate,
   getNimiLocalAppAgentAutonomySnapshot,
   getNimiLocalAppAgentPresentationSnapshot,
+  readNimiLocalAppAgentPresentationAsset,
   getNimiLocalAppConversationSnapshot,
   getNimiLocalAppSessionStatus,
   getNimiLocalAppSharedAgentAIConfig,

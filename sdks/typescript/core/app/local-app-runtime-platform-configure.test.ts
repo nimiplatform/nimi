@@ -224,6 +224,18 @@ function shell(calls: unknown[]): NimiLocalAppAgentConfigureShell {
         calls.push(['presentation.snapshot', input]);
         return PRESENTATION_PROJECTION;
       },
+      readAsset: async (input) => {
+        calls.push(['presentation.readAsset', input]);
+        return {
+          assetRef: 'vrm_0123456789ab',
+          role: 'avatar',
+          backendKind: 'vrm',
+          fileName: 'avatar.vrm',
+          mediaType: 'model/gltf-binary',
+          content: [1, 2, 3],
+          sha256: 'a'.repeat(64),
+        };
+      },
       commit: async (input) => {
         calls.push(['presentation.commit', input]);
         return PRESENTATION_PROJECTION;
@@ -740,6 +752,23 @@ test('presentation snapshot projects the previous profile restore carrier', asyn
   const snapshot = await client.presentation.snapshot({ agentHandle: HANDLE });
   assert.equal(snapshot.previousProfile?.backendKind, 'sprite2d');
   assert.equal(snapshot.previousProfile?.revision, '2');
+});
+
+test('presentation asset read carries only current handle and committed asset ref', async () => {
+  const calls: unknown[] = [];
+  const client = createNimiLocalAppAgentConfigureClient(shell(calls));
+  const asset = await client.presentation.readAsset({
+    agentHandle: HANDLE,
+    assetRef: 'vrm_0123456789ab',
+  });
+  assert.deepEqual(calls, [['presentation.readAsset', {
+    agentHandle: HANDLE,
+    assetRef: 'vrm_0123456789ab',
+  }]]);
+  assert.equal(asset.role, 'avatar');
+  assert.equal(asset.backendKind, 'vrm');
+  assert.deepEqual([...asset.content], [1, 2, 3]);
+  assert.equal(Object.isFrozen(asset), true);
 });
 
 test('presentation voice-only patch preserves top-level voice and autoplay without an Avatar backend', async () => {

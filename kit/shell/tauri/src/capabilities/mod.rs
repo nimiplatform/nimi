@@ -496,7 +496,8 @@ pub mod ai_profile {
 
 pub mod avatar {
     pub use crate::agent_center_avatar_asset::{
-        nimi_avatar_resolve_agent_center_avatar_asset, AgentCenterAvatarAssetResolvePayload,
+        nimi_avatar_resolve_agent_center_avatar_asset,
+        resolve_verified_agent_center_avatar_materialization, AgentCenterAvatarAssetResolvePayload,
         AgentCenterAvatarAssetResolveResult, ModelManifest,
     };
     pub use crate::standard_local_assets::{
@@ -762,6 +763,15 @@ pub mod local_app {
         payload: serde_json::Value,
     ) -> Result<serde_json::Value, String> {
         crate::standard_local_app::agent_presentation_snapshot_for_host(host.inner(), payload).await
+    }
+
+    #[tauri::command]
+    pub async fn local_app_agent_presentation_read_asset(
+        host: tauri::State<'_, crate::runtime_bridge::RuntimeBridgeLocalAppHost>,
+        payload: serde_json::Value,
+    ) -> Result<serde_json::Value, String> {
+        crate::standard_local_app::agent_presentation_read_asset_for_host(host.inner(), payload)
+            .await
     }
 
     #[tauri::command]

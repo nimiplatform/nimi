@@ -51,6 +51,7 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'local-app.agentAutonomySnapshot',
   'local-app.agentUpdateAutonomy',
   'local-app.agentPresentationSnapshot',
+  'local-app.agentPresentationReadAsset',
   'local-app.agentCommitPresentation',
   'local-app.agentMemoryInspect',
   'local-app.agentMemoryCorrect',

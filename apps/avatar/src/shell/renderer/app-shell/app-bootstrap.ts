@@ -215,9 +215,10 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
 
         const resolvedAvatarAsset = await runFirstPartyStage(
           'local_avatar_asset_manifest',
-          () => resolveRuntimePresentationAvatarAsset({
+          () => agentBinding.run((agentHandle) => resolveRuntimePresentationAvatarAsset({
+            agentHandle,
             presentationProfile: presentationSnapshot.profile,
-          }),
+          })),
         );
         const modelManifest = resolvedAvatarAsset.manifest;
         if (resolvedAvatarAsset.reference.backendKind !== 'live2d'

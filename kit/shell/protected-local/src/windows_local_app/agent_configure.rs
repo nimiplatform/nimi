@@ -11,6 +11,7 @@ use crate::generated::{
     CognitionMemoryLifecycle, CognitionMemoryOutcome, CommitLocalAppAgentPresentationRequest,
     CorrectLocalAppAgentMemoryRequest, DeleteAllLocalAppAgentMemoryRequest,
     ForgetLocalAppAgentMemoryRequest, GetLocalAppAgentAutonomySnapshotRequest,
+    GetAgentPresentationAssetRequest,
     GetLocalAppAgentManagerSnapshotRequest, GetLocalAppAgentPresentationSnapshotRequest,
     InspectLocalAppAgentMemoryRequest, LocalAppAgentAutonomyConfig, LocalAppAgentAutonomyIntent,
     LocalAppAgentAutonomyMode, LocalAppAgentAutonomyProjection,
@@ -22,6 +23,7 @@ use crate::generated::{
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
     LocalAppAgentCommitPresentationRequest, LocalAppAgentHandleRequest,
+    LocalAppAgentPresentationAssetReadRequest,
     LocalAppAgentManagerSnapshotRequest, LocalAppAgentMemoryCorrectRequest,
     LocalAppAgentMemoryDeleteRequest, LocalAppAgentMemoryForgetRequest,
     LocalAppAgentMemoryInspectRequest, LocalAppAgentMemorySwitchRequest,
@@ -461,6 +463,45 @@ pub(super) async fn presentation_snapshot(
         .map_err(local_app_error_from_status)?
         .into_inner();
     project_presentation(response.projection.ok_or_else(untrusted)?)
+}
+
+pub(super) async fn presentation_read_asset(
+    channel: Channel,
+    request: LocalAppAgentPresentationAssetReadRequest,
+) -> Result<JsonValue, LocalAppOperationError> {
+    require_agent_handle(&request.agent_handle)?;
+    if request.asset_ref.is_empty() || request.asset_ref.len() > 512 || request.asset_ref.trim() != request.asset_ref {
+        return Err(invalid_payload());
+    }
+    let response = crate::grpc_limits::runtime_agent_client(channel)
+        .get_agent_presentation_asset(GetAgentPresentationAssetRequest {
+            asset_ref: request.asset_ref,
+            agent_handle: request.agent_handle,
+        })
+        .await
+        .map_err(local_app_error_from_status)?
+        .into_inner();
+    if AgentPresentationAssetRole::try_from(response.role).map_err(|_| untrusted())?
+        != AgentPresentationAssetRole::Avatar
+        || response.content.is_empty()
+        || response.content.len() > 64 * 1024 * 1024
+        || response.asset_ref.is_empty()
+        || response.file_name.is_empty()
+        || response.media_type.is_empty()
+        || response.sha256.len() != 64
+        || !response.sha256.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return Err(untrusted());
+    }
+    Ok(json!({
+        "assetRef": response.asset_ref,
+        "role": "avatar",
+        "backendKind": project_backend_kind(response.backend_kind)?,
+        "fileName": response.file_name,
+        "mediaType": response.media_type,
+        "content": response.content,
+        "sha256": response.sha256,
+    }))
 }
 
 pub(super) async fn commit_presentation(

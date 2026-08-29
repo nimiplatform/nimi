@@ -344,6 +344,7 @@ export type NimiLocalAppAgentConfigureShellSurface = {
   };
   readonly presentation: {
     readonly snapshot: (input: { readonly agentHandle: string }) => Promise<JsonObject>;
+    readonly readAsset: (input: { readonly agentHandle: string; readonly assetRef: string }) => Promise<JsonObject>;
     readonly commit: (input: {
       readonly agentHandle: string;
       readonly expectedPresentationRevision: string;
@@ -577,6 +578,7 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       },
       presentation: {
         snapshot: getNimiLocalAppAgentPresentationSnapshot,
+        readAsset: readNimiLocalAppAgentPresentationAsset,
         commit: commitNimiLocalAppAgentPresentation,
       },
       memory: {
@@ -1126,6 +1128,14 @@ export function getNimiLocalAppAgentPresentationSnapshot(
   input: { readonly agentHandle: string },
 ): Promise<JsonObject> {
   return invokeAgentConfigureHandle('local-app.agentPresentationSnapshot', input);
+}
+
+export function readNimiLocalAppAgentPresentationAsset(input: {
+  readonly agentHandle: string;
+  readonly assetRef: string;
+}): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPresentationReadAsset'];
+  return invokeLocalAppRecord(command, identifiers(input, ['agentHandle', 'assetRef'], command));
 }
 
 export function commitNimiLocalAppAgentPresentation(input: {

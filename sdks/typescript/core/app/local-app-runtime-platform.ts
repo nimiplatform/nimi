@@ -293,6 +293,7 @@ export type {
   NimiLocalAppAgentManagerTruncationProjection,
   NimiLocalAppAgentManagerTruncationReason,
   NimiLocalAppAgentPresentationAssetMaterial,
+  NimiLocalAppAgentPresentationAsset,
   NimiLocalAppAgentPresentationBackendKind,
   NimiLocalAppAgentPresentationIntent,
   NimiLocalAppAgentPresentationProfile,
@@ -302,6 +303,7 @@ export type {
   NimiLocalAppAutonomyUpdateInput,
   NimiLocalAppDuration,
   NimiLocalAppPresentationCommitInput,
+  NimiLocalAppPresentationAssetReadInput,
   NimiLocalAppPresentationSnapshotInput,
   NimiLocalAppRevision,
   NimiLocalAppTimestamp,
@@ -590,7 +592,7 @@ export function createNimiLocalAppClient(
   }
   assertExactMethodNamespace(agentConfigure.sharedAIConfig, ['get', 'overwrite', 'listOptions'], 'agentConfigure.sharedAIConfig');
   assertExactMethodNamespace(agentConfigure.autonomy, ['snapshot', 'update'], 'agentConfigure.autonomy');
-  assertExactMethodNamespace(agentConfigure.presentation, ['snapshot', 'commit'], 'agentConfigure.presentation');
+  assertExactMethodNamespace(agentConfigure.presentation, ['snapshot', 'readAsset', 'commit'], 'agentConfigure.presentation');
   assertExactMethodNamespace(agentConfigure.memory, ['inspect', 'correct', 'forget', 'setEnabled', 'deleteAll'], 'agentConfigure.memory');
   assertExactMethodNamespace(agentConfigure.manager, ['snapshot'], 'agentConfigure.manager');
 

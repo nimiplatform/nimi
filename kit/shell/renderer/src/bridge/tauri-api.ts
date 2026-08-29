@@ -96,6 +96,7 @@ export const TAURI_STANDARD_COMMAND_ALIASES: Readonly<Record<string, string>> = 
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAutonomySnapshot']]: 'local_app_agent_autonomy_snapshot',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateAutonomy']]: 'local_app_agent_update_autonomy',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPresentationSnapshot']]: 'local_app_agent_presentation_snapshot',
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPresentationReadAsset']]: 'local_app_agent_presentation_read_asset',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentCommitPresentation']]: 'local_app_agent_commit_presentation',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentMemoryInspect']]: 'local_app_agent_memory_inspect',
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentMemoryCorrect']]: 'local_app_agent_memory_correct',

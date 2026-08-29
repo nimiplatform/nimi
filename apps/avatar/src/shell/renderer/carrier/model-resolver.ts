@@ -17,6 +17,7 @@ import type { NimiLocalAppAgentPresentationProfile } from '@nimiplatform/sdk/app
 import { invokeAvatarHostCommand } from '../app-shell/avatar-host-bridge.js';
 
 export async function resolveRuntimePresentationAvatarAsset(input: {
+  readonly agentHandle: string;
   readonly presentationProfile: NimiLocalAppAgentPresentationProfile | null | undefined;
 }): Promise<{
   readonly manifest: AvatarModelManifest;
@@ -42,6 +43,7 @@ export async function resolveRuntimePresentationAvatarAsset(input: {
     readonly materializationRef: string;
   }>('nimi_avatar_resolve_agent_center_avatar_asset', {
     payload: {
+      agentHandle: normalizeRequiredText(input.agentHandle, 'current-session Agent handle'),
       avatarAssetRef,
       backendKind,
     },
@@ -57,6 +59,7 @@ export async function resolveRuntimePresentationAvatarAsset(input: {
 }
 
 export async function resolveRuntimePresentationAvatarAssetManifest(input: {
+  readonly agentHandle: string;
   readonly presentationProfile: NimiLocalAppAgentPresentationProfile | null | undefined;
 }): Promise<AvatarModelManifest> {
   return (await resolveRuntimePresentationAvatarAsset(input)).manifest;

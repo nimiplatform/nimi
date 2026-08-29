@@ -639,6 +639,12 @@ pub struct LocalAppAgentHandleRequest {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAgentPresentationAssetReadRequest {
+    pub agent_handle: String,
+    pub asset_ref: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppAgentMemoryInspectRequest {
     pub agent_handle: String,
     pub limit: u32,
@@ -1701,6 +1707,11 @@ pub trait NimiLocalAppSession: Send + Sync {
     fn agent_presentation_snapshot(
         &self,
         request: LocalAppAgentHandleRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+
+    fn agent_presentation_read_asset(
+        &self,
+        request: LocalAppAgentPresentationAssetReadRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn agent_commit_presentation(

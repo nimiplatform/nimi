@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/bundledavatar"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -22,7 +21,6 @@ func TestPresentationAssetContentRefRemainsStrictlyHandleAndAgentScoped(t *testi
 	secondAgentRef := testRuntimeAgentLocalRef("agent-configure-second")
 
 	commitDecision := localAppConfigureDecision(accountservice.LocalAppOperationCommitPresentation, 0x71, accountID)
-	commitDecision.AppID = bundledavatar.AppID
 	commitCtx := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), commitDecision)
 	commit := func(agentRef string) *runtimev1.LocalAppAgentCommitPresentationResponse {
 		t.Helper()
@@ -56,36 +54,53 @@ func TestPresentationAssetContentRefRemainsStrictlyHandleAndAgentScoped(t *testi
 		t.Fatalf("foreign scoped lookup leaked existence: record=%+v exists=%v err=%v", record, exists, err)
 	}
 
-	snapshotDecision := localAppConfigureDecision(accountservice.LocalAppOperationPresentationSnapshot, 0x71, accountID)
-	snapshotDecision.AppID = bundledavatar.AppID
-	readCtx := bundledAvatarTestPrincipalContext("agent.configure", accountID, make(chan struct{}))
-	readCtx = accountservice.ContextWithAuthorizedLocalAppDecision(readCtx, snapshotDecision)
-	read := func(agentRef string) *runtimev1.GetAgentPresentationAssetResponse {
+	read := func(decision accountservice.LocalAppCallerDecision, agentRef string) *runtimev1.GetAgentPresentationAssetResponse {
 		t.Helper()
-		response, err := svc.GetAgentPresentationAsset(readCtx, &runtimev1.GetAgentPresentationAssetRequest{
-			AgentHandle: mintLocalAppAgentHandle(snapshotDecision, agentRef),
-			AssetRef:    assetRef,
-		})
+		response, err := svc.GetAgentPresentationAsset(
+			accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision),
+			&runtimev1.GetAgentPresentationAssetRequest{
+				AgentHandle: mintLocalAppAgentHandle(decision, agentRef),
+				AssetRef:    assetRef,
+			})
 		if err != nil {
-			t.Fatalf("read %s: %v", agentRef, err)
+			t.Fatalf("read %s for app %s: %v", agentRef, decision.AppID, err)
 		}
 		return response
 	}
-	firstRead := read(firstAgentRef)
-	secondRead := read(secondAgentRef)
-	if !bytes.Equal(firstRead.GetContent(), secondRead.GetContent()) || len(firstRead.GetContent()) == 0 {
-		t.Fatalf("same-content scoped reads differ or are empty")
+	appDecisions := []accountservice.LocalAppCallerDecision{
+		localAppConfigureDecision(accountservice.LocalAppOperationPresentationSnapshot, 0x71, accountID),
+		localAppConfigureDecision(accountservice.LocalAppOperationPresentationSnapshot, 0x72, accountID),
+	}
+	appDecisions[1].AppID = "nimi.ordinary.presentation"
+	for _, decision := range appDecisions {
+		firstRead := read(decision, firstAgentRef)
+		secondRead := read(decision, secondAgentRef)
+		if !bytes.Equal(firstRead.GetContent(), secondRead.GetContent()) || len(firstRead.GetContent()) == 0 {
+			t.Fatalf("same-content scoped reads differ or are empty for app %s", decision.AppID)
+		}
 	}
 
-	foreignDecision := localAppConfigureDecision(accountservice.LocalAppOperationPresentationSnapshot, 0x72, accountID)
-	foreignDecision.AppID = bundledavatar.AppID
-	foreignCtx := bundledAvatarTestPrincipalContext("agent.configure", accountID, make(chan struct{}))
-	foreignCtx = accountservice.ContextWithAuthorizedLocalAppDecision(foreignCtx, foreignDecision)
-	_, err := svc.GetAgentPresentationAsset(foreignCtx, &runtimev1.GetAgentPresentationAssetRequest{
-		AgentHandle: mintLocalAppAgentHandle(snapshotDecision, firstAgentRef),
-		AssetRef:    assetRef,
-	})
+	staleDecision := localAppConfigureDecision(accountservice.LocalAppOperationPresentationSnapshot, 0x73, accountID)
+	_, err := svc.GetAgentPresentationAsset(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), staleDecision),
+		&runtimev1.GetAgentPresentationAssetRequest{
+			AgentHandle: mintLocalAppAgentHandle(appDecisions[0], firstAgentRef),
+			AssetRef:    assetRef,
+		})
 	if status.Code(err) != codes.PermissionDenied {
-		t.Fatalf("foreign-session handle read code = %s, err=%v", status.Code(err), err)
+		t.Fatalf("stale-session handle read code = %s, err=%v", status.Code(err), err)
+	}
+
+	foreignDecision := localAppConfigureDecision(accountservice.LocalAppOperationPresentationSnapshot, 0x74, "user-2")
+	foreignDecision.AppID = "nimi.foreign.presentation"
+	_, err = svc.GetAgentPresentationAsset(
+		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), foreignDecision),
+		&runtimev1.GetAgentPresentationAssetRequest{
+			AgentHandle: mintLocalAppAgentHandle(foreignDecision, firstAgentRef),
+			AssetRef:    assetRef,
+		},
+	)
+	if status.Code(err) != codes.PermissionDenied {
+		t.Fatalf("foreign-account handle read code = %s, err=%v", status.Code(err), err)
 	}
 }

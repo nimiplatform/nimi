@@ -92,6 +92,7 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 		protectedAutonomySnapshotMethod,
 		protectedUpdateAutonomyMethod,
 		protectedPresentationSnapshotMethod,
+		protectedPresentationAssetMethod,
 		protectedCommitPresentationMethod,
 		protectedInspectAgentMemoryMethod,
 		protectedCorrectAgentMemoryMethod,
@@ -103,6 +104,9 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 		if _, blocked := publicTransportDenial(method); !blocked {
 			t.Fatalf("host local-app method %s is reachable from public transport", method)
 		}
+	}
+	if ingress := protectedLocalAppUnaryIngress(protectedPresentationAssetMethod, &runtimev1.GetAgentPresentationAssetRequest{}); !protectedLocalAppOwnerEnabled(protectedPresentationAssetMethod, &runtimev1.GetAgentPresentationAssetRequest{}, ingress) {
+		t.Fatal("presentation asset read is not enabled on the common local-App owner path")
 	}
 	assertProtectedLocalAppStreamMethodPolicy(t, protectedSubscribeConversationMethod, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)
 	assertProtectedLocalAppStreamMethodPolicy(t, protectedStreamTextTurnMethod, protectedlocal.TransportLocalAppHost, protectedlocal.RoleLocalAppSession)

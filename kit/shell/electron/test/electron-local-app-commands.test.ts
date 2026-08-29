@@ -596,6 +596,7 @@ describe('Electron local-app standard-shell operations', () => {
         agentHandle: handle, expectedAutonomyRevision: '2', intent: { enabled: true },
       }],
       ['local-app.agentPresentationSnapshot', { agentHandle: handle }],
+      ['local-app.agentPresentationReadAsset', { agentHandle: handle, assetRef: 'vrm_0123456789ab' }],
       ['local-app.agentCommitPresentation', {
         agentHandle: handle,
         expectedPresentationRevision: '0',
@@ -626,7 +627,8 @@ describe('Electron local-app standard-shell operations', () => {
         agentHandle: handle, expectedAutonomyRevision: '2', intent: { enabled: true },
       }],
       ['agentPresentationSnapshot', { agentHandle: handle }],
-      ['agentCommitPresentation', requests[9][1]],
+      ['agentPresentationReadAsset', { agentHandle: handle, assetRef: 'vrm_0123456789ab' }],
+      ['agentCommitPresentation', requests[10][1]],
       ['agentMemoryInspect', { agentHandle: handle, limit: 2, pageToken: 'opaque-page-2' }],
       ['agentMemoryCorrect', { agentHandle: handle, memoryId: 'memory-1', correctedContent: 'corrected' }],
       ['agentMemoryForget', { agentHandle: handle, memoryIds: ['memory-1'], confirmed: true }],
@@ -638,7 +640,7 @@ describe('Electron local-app standard-shell operations', () => {
       command: NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigGet'],
       payload: { payload: { agentHandle: handle } },
     })).rejects.toMatchObject({ code: 'invalid-payload' });
-    expect(calls).toHaveLength(15);
+    expect(calls).toHaveLength(16);
 
     for (const payload of [
       { kind: 'preset-voices', capabilityContract: 'audio.synthesize', search: '' },
@@ -659,7 +661,7 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls.at(-1)).toEqual(['aiConfigLocalOptions', {
       kind: 'preset-voices', capabilityContract: '', search: '',
     }]);
-    expect(calls).toHaveLength(16);
+    expect(calls).toHaveLength(17);
     for (const payload of [
       { kind: 'preset-voices', capabilityContract: 'audio.synthesize', search: '' },
       { kind: 'preset-voices', capabilityContract: '', search: 'serena' },
@@ -670,7 +672,7 @@ describe('Electron local-app standard-shell operations', () => {
         payload: { payload },
       })).rejects.toMatchObject({ code: 'invalid-payload' });
     }
-    expect(calls).toHaveLength(16);
+    expect(calls).toHaveLength(17);
   });
 
   it('defaults and bounds opaque Memory pagination selectors before protected carriage', async () => {
@@ -1038,6 +1040,13 @@ function localAppHost(calls: unknown[]) {
     agentPresentationSnapshot: async (input: unknown) => {
       calls.push(['agentPresentationSnapshot', input]);
       return { profile: null, previousProfile: null, defaultVoiceReference: '', avatarAutoplay: false, presentationRevision: '0' };
+    },
+    agentPresentationReadAsset: async (input: unknown) => {
+      calls.push(['agentPresentationReadAsset', input]);
+      return {
+        assetRef: 'vrm_0123456789ab', role: 'avatar', backendKind: 'vrm',
+        fileName: 'avatar.vrm', mediaType: 'model/gltf-binary', content: [1], sha256: 'a'.repeat(64),
+      };
     },
     agentCommitPresentation: async (input: unknown) => {
       calls.push(['agentCommitPresentation', input]);

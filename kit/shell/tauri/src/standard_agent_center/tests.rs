@@ -254,10 +254,22 @@ async fn live2d_import_materializes_and_resolves_by_asset_ref_and_kind() {
                 .as_str()
                 .ok_or_else(|| "import digest missing".to_string())?;
             let asset_ref = format!("live2d_{}", &digest[..12]);
-            crate::agent_center_avatar_asset::nimi_avatar_resolve_agent_center_avatar_asset(
+            crate::agent_center_avatar_asset::resolve_agent_center_avatar_asset_with_formal_reader(
                 crate::agent_center_avatar_asset::AgentCenterAvatarAssetResolvePayload {
+                    agent_handle: "agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string(),
                     backend_kind: "live2d".to_string(),
-                    avatar_asset_ref: asset_ref,
+                    avatar_asset_ref: asset_ref.clone(),
+                },
+                move |_agent_handle, _requested_ref| async move {
+                    Ok(serde_json::json!({
+                        "assetRef": asset_ref,
+                        "role": imported["role"],
+                        "backendKind": imported["backendKind"],
+                        "fileName": imported["fileName"],
+                        "mediaType": imported["mediaType"],
+                        "content": imported["content"],
+                        "sha256": imported["sha256"],
+                    }))
                 },
             )
             .await

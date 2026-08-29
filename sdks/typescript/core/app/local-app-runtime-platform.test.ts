@@ -150,6 +150,7 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       },
       presentation: {
         snapshot: touched('agentConfigure.presentation.snapshot'),
+        readAsset: touched('agentConfigure.presentation.readAsset'),
         commit: touched('agentConfigure.presentation.commit'),
       },
       memory: {
@@ -259,7 +260,7 @@ test('local-app client hard-cuts the access workflow namespace', () => {
   assert.deepEqual(Object.keys(client.agentConfigure).sort(), ['autonomy', 'manager', 'memory', 'presentation', 'sharedAIConfig']);
   assert.deepEqual(Object.keys(client.agentConfigure.sharedAIConfig).sort(), ['get', 'listOptions', 'overwrite']);
   assert.deepEqual(Object.keys(client.agentConfigure.autonomy).sort(), ['snapshot', 'update']);
-  assert.deepEqual(Object.keys(client.agentConfigure.presentation).sort(), ['commit', 'snapshot']);
+  assert.deepEqual(Object.keys(client.agentConfigure.presentation).sort(), ['commit', 'readAsset', 'snapshot']);
   assert.deepEqual(Object.keys(client.agentConfigure.memory).sort(), ['correct', 'deleteAll', 'forget', 'inspect', 'setEnabled']);
   assert.deepEqual(Object.keys(client.agentConfigure.manager), ['snapshot']);
   assert.deepEqual(Object.keys(client.storage).sort(), ['assets', 'readJson', 'removeJson', 'writeJson']);

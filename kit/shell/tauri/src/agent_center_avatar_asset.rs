@@ -30,6 +30,7 @@ pub struct ModelManifest {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct AgentCenterAvatarAssetResolvePayload {
+    pub agent_handle: String,
     pub backend_kind: String,
     pub avatar_asset_ref: String,
 }
@@ -39,6 +40,18 @@ pub struct AgentCenterAvatarAssetResolvePayload {
 pub struct AgentCenterAvatarAssetResolveResult {
     pub manifest: ModelManifest,
     pub materialization_ref: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+struct FormalPresentationAsset {
+    asset_ref: String,
+    role: String,
+    backend_kind: String,
+    file_name: String,
+    media_type: String,
+    content: Vec<u8>,
+    sha256: String,
 }
 
 #[derive(Deserialize)]
@@ -406,22 +419,118 @@ fn manifest_file(path: &str, content: &[u8], mime: &str) -> serde_json::Value {
     })
 }
 
-#[tauri::command]
 pub async fn nimi_avatar_resolve_agent_center_avatar_asset(
+    host: &crate::runtime_bridge::RuntimeBridgeLocalAppHost,
     payload: AgentCenterAvatarAssetResolvePayload,
 ) -> Result<AgentCenterAvatarAssetResolveResult, String> {
+    resolve_agent_center_avatar_asset_with_formal_reader(
+        payload,
+        |agent_handle, asset_ref| async move {
+            crate::standard_local_app::agent_presentation_read_asset_for_host(
+                host,
+                serde_json::json!({
+                    "agentHandle": agent_handle,
+                    "assetRef": asset_ref,
+                }),
+            )
+            .await
+        },
+    )
+    .await
+}
+
+pub(crate) async fn resolve_agent_center_avatar_asset_with_formal_reader<F, Fut>(
+    payload: AgentCenterAvatarAssetResolvePayload,
+    read_formal_asset: F,
+) -> Result<AgentCenterAvatarAssetResolveResult, String>
+where
+    F: FnOnce(String, String) -> Fut,
+    Fut: std::future::Future<Output = Result<serde_json::Value, String>>,
+{
+    if !valid_agent_handle(&payload.agent_handle) {
+        return Err("agentHandle must be a current-session opaque Agent handle".to_string());
+    }
     let kind = payload.backend_kind.trim().to_string();
     if kind != "live2d" && kind != "vrm" {
         return Err("avatar_asset_kind must be live2d or vrm".to_string());
     }
     let local_asset_id = validate_avatar_asset_id(&payload.avatar_asset_ref, kind.as_str())?;
-    let data_root = resolve_admitted_data_root()?;
-    let expected_ref = expected_materialization_ref(kind.as_str(), local_asset_id.as_str());
-    let asset_dir = find_agent_center_avatar_asset_dir(
-        &data_root,
+    let formal_asset = read_formal_asset(payload.agent_handle, local_asset_id.clone()).await?;
+    let formal_asset =
+        validate_formal_presentation_asset(formal_asset, kind.as_str(), local_asset_id.as_str())?;
+    let materialized_asset_id = materialize_agent_center_avatar_asset(
+        kind.as_str(),
+        formal_asset.file_name.as_str(),
+        &formal_asset.content,
+        formal_asset.sha256.as_str(),
+    )?;
+    if materialized_asset_id != local_asset_id {
+        return Err("formal Avatar presentation asset identity is inconsistent".to_string());
+    }
+    resolve_verified_agent_center_avatar_materialization(
         kind.as_str(),
         local_asset_id.as_str(),
-    )?;
+        formal_asset.sha256.as_str(),
+    )
+    .await
+}
+
+fn validate_formal_presentation_asset(
+    value: serde_json::Value,
+    expected_kind: &str,
+    expected_asset_ref: &str,
+) -> Result<FormalPresentationAsset, String> {
+    let asset: FormalPresentationAsset = serde_json::from_value(value)
+        .map_err(|_| "formal Avatar presentation asset projection is invalid".to_string())?;
+    if asset.asset_ref != expected_asset_ref
+        || asset.role != "avatar"
+        || asset.backend_kind != expected_kind
+    {
+        return Err("formal Avatar presentation asset identity is inconsistent".to_string());
+    }
+    let expected_media_type = match expected_kind {
+        "live2d" => {
+            safe_material_file_name(asset.file_name.as_str(), "zip")?;
+            "application/zip"
+        }
+        "vrm" => {
+            safe_material_file_name(asset.file_name.as_str(), "vrm")?;
+            "model/gltf-binary"
+        }
+        _ => return Err("avatar_asset_kind must be live2d or vrm".to_string()),
+    };
+    if asset.media_type != expected_media_type
+        || asset.content.is_empty()
+        || asset.content.len() > 64 * 1024 * 1024
+        || !valid_lower_sha256(asset.sha256.as_str())
+    {
+        return Err("formal Avatar presentation asset material is invalid".to_string());
+    }
+    let mut hasher = Sha256::new();
+    hasher.update(&asset.content);
+    if format!("{:x}", hasher.finalize()) != asset.sha256 {
+        return Err("formal Avatar presentation asset digest mismatch".to_string());
+    }
+    Ok(asset)
+}
+
+pub async fn resolve_verified_agent_center_avatar_materialization(
+    backend_kind: &str,
+    avatar_asset_ref: &str,
+    content_sha256: &str,
+) -> Result<AgentCenterAvatarAssetResolveResult, String> {
+    let kind = backend_kind.trim().to_string();
+    if kind != "live2d" && kind != "vrm" {
+        return Err("avatar_asset_kind must be live2d or vrm".to_string());
+    }
+    let local_asset_id = validate_avatar_asset_id(avatar_asset_ref, kind.as_str())?;
+    if !valid_lower_sha256(content_sha256) {
+        return Err("formal Avatar presentation asset material is invalid".to_string());
+    }
+    let data_root = resolve_admitted_data_root()?;
+    let expected_ref = expected_materialization_ref(kind.as_str(), local_asset_id.as_str());
+    let asset_dir =
+        find_agent_center_avatar_asset_dir(&data_root, kind.as_str(), local_asset_id.as_str())?;
     let canonical_data_root = data_root
         .canonicalize()
         .map_err(|error| format!("agent center data root is unavailable: {error}"))?;
@@ -452,6 +561,14 @@ pub async fn nimi_avatar_resolve_agent_center_avatar_asset(
         return Err(
             "avatar asset manifest identity does not match local Avatar asset selection"
                 .to_string(),
+        );
+    }
+    let expected_source_fingerprint = format!("sha256:{content_sha256}");
+    if manifest.content_digest != expected_source_fingerprint
+        || manifest.import.source_fingerprint != expected_source_fingerprint
+    {
+        return Err(
+            "Avatar materialization does not match the formal presentation asset".to_string(),
         );
     }
     if manifest.loader_min_version.trim() != "1.0.0" {
@@ -627,4 +744,19 @@ pub async fn nimi_avatar_resolve_agent_center_avatar_asset(
         manifest,
         materialization_ref: expected_ref,
     })
+}
+
+fn valid_agent_handle(value: &str) -> bool {
+    value.len() == "agent_ref_".len() + 43
+        && value.starts_with("agent_ref_")
+        && value["agent_ref_".len()..]
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'-')
+}
+
+fn valid_lower_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
 }

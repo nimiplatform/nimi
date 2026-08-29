@@ -174,6 +174,8 @@ describe('Electron protected local-app host', () => {
       .resolves.toMatchObject({ autonomyRevision: '2' });
     await expect(host.agentPresentationSnapshot({ agentHandle: handle }))
       .resolves.toMatchObject({ presentationRevision: '1' });
+    await expect(host.agentPresentationReadAsset({ agentHandle: handle, assetRef: 'vrm_0123456789ab' }))
+      .resolves.toMatchObject({ assetRef: 'vrm_0123456789ab', role: 'avatar', backendKind: 'vrm' });
     await expect(host.agentCommitPresentation(presentationCommit)).resolves.toMatchObject({
       presentationRevision: '2',
       previousProfile: { backendKind: 'sprite2d', revision: '1' },
@@ -187,6 +189,7 @@ describe('Electron protected local-app host', () => {
       { method: 'localAppAgentAutonomySnapshot', input: { agentHandle: handle } },
       { method: 'localAppAgentUpdateAutonomy', input: autonomyUpdate },
       { method: 'localAppAgentPresentationSnapshot', input: { agentHandle: handle } },
+      { method: 'localAppAgentPresentationReadAsset', input: { agentHandle: handle, assetRef: 'vrm_0123456789ab' } },
       { method: 'localAppAgentCommitPresentation', input: presentationCommit },
     ]);
   });
@@ -615,6 +618,10 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     }),
     localAppAgentPresentationSnapshot: record('localAppAgentPresentationSnapshot', {
       profile: null, previousProfile: null, defaultVoiceReference: '', avatarAutoplay: false, presentationRevision: '1',
+    }),
+    localAppAgentPresentationReadAsset: record('localAppAgentPresentationReadAsset', {
+      assetRef: 'vrm_0123456789ab', role: 'avatar', backendKind: 'vrm',
+      fileName: 'avatar.vrm', mediaType: 'model/gltf-binary', content: [1, 2, 3], sha256: 'a'.repeat(64),
     }),
     localAppAgentCommitPresentation: record('localAppAgentCommitPresentation', {
       profile: null,

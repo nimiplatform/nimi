@@ -1,15 +1,8 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { registerHooks } from 'node:module';
 import test from 'node:test';
 
-import {
-  GetAgentPresentationAssetRequest,
-  GetAgentPresentationAssetResponse,
-} from '../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/agent_service';
-
-const METHOD_ID = '/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset';
 const electronMockUrl = `data:text/javascript,${encodeURIComponent(`
   export class BrowserWindow {
     static fromWebContents() { return null; }
@@ -28,7 +21,6 @@ registerHooks({
 });
 
 const {
-  createDesktopBundledAvatarRuntimeAssetResolver,
   desktopAvatarWindowBindingMatches,
 } = await import('../src-electron/bundled-avatar-host.js');
 
@@ -48,102 +40,7 @@ test('bundled Avatar window reuse requires the same current handle and exact anc
   }), false);
 });
 
-test('bundled Avatar Runtime asset resolver uses protected unary with only the bound selector', async () => {
-  const content = new Uint8Array([0x67, 0x6c, 0x54, 0x46, 0x02, 0x00, 0x00, 0x00]);
-  const digest = createHash('sha256').update(content).digest('hex');
-  const calls: Array<{
-    readonly methodId: string;
-    readonly requestBytes: Uint8Array;
-    readonly timeoutMs?: number;
-  }> = [];
-  const resolveRuntimeAsset = createDesktopBundledAvatarRuntimeAssetResolver({
-    bundledAvatarUnary: async (input) => {
-      calls.push(input);
-      return GetAgentPresentationAssetResponse.toBinary(GetAgentPresentationAssetResponse.create({
-        assetRef: 'vrm_0123456789ab',
-        role: 1,
-        backendKind: 1,
-        fileName: 'avatar.vrm',
-        mediaType: 'model/gltf-binary',
-        content,
-        sha256: digest,
-      }));
-    },
-  });
-
-  const result = await resolveRuntimeAsset({
-    agentHandle: `agent_ref_${'a'.repeat(43)}`,
-    assetRef: 'vrm_0123456789ab',
-  });
-
-  assert.equal(calls.length, 1);
-  assert.equal(calls[0]?.methodId, METHOD_ID);
-  assert.equal(calls[0]?.timeoutMs, 30_000);
-  assert.deepEqual(GetAgentPresentationAssetRequest.fromBinary(
-    calls[0]?.requestBytes ?? new Uint8Array(),
-  ), {
-    assetRef: 'vrm_0123456789ab',
-    agentHandle: `agent_ref_${'a'.repeat(43)}`,
-  });
-  assert.deepEqual(result, {
-    assetRef: 'vrm_0123456789ab',
-    role: 'avatar',
-    backendKind: 'vrm',
-    fileName: 'avatar.vrm',
-    mediaType: 'model/gltf-binary',
-    content,
-    sha256: digest,
-  });
-});
-
-test('bundled Avatar Runtime asset resolver rejects a mismatched or corrupted projection', async () => {
-  const content = new Uint8Array([1, 2, 3]);
-  const resolveRuntimeAsset = createDesktopBundledAvatarRuntimeAssetResolver({
-    bundledAvatarUnary: async () => GetAgentPresentationAssetResponse.toBinary(
-      GetAgentPresentationAssetResponse.create({
-        assetRef: 'vrm_bbbbbbbbbbbb',
-        role: 1,
-        backendKind: 1,
-        fileName: 'avatar.vrm',
-        mediaType: 'model/gltf-binary',
-        content,
-        sha256: createHash('sha256').update(content).digest('hex'),
-      }),
-    ),
-  });
-
-  await assert.rejects(
-    resolveRuntimeAsset({
-      agentHandle: `agent_ref_${'a'.repeat(43)}`,
-      assetRef: 'vrm_aaaaaaaaaaaa',
-    }),
-    /desktop-bundled-avatar-runtime-asset-response-invalid/u,
-  );
-
-  const resolveRuntimeAssetWithControlFileName = createDesktopBundledAvatarRuntimeAssetResolver({
-    bundledAvatarUnary: async () => GetAgentPresentationAssetResponse.toBinary(
-      GetAgentPresentationAssetResponse.create({
-        assetRef: 'vrm_aaaaaaaaaaaa',
-        role: 1,
-        backendKind: 1,
-        fileName: 'avatar\u0000.vrm',
-        mediaType: 'model/gltf-binary',
-        content,
-        sha256: createHash('sha256').update(content).digest('hex'),
-      }),
-    ),
-  });
-
-  await assert.rejects(
-    resolveRuntimeAssetWithControlFileName({
-      agentHandle: `agent_ref_${'a'.repeat(43)}`,
-      assetRef: 'vrm_aaaaaaaaaaaa',
-    }),
-    /desktop-bundled-avatar-runtime-asset-response-invalid/u,
-  );
-});
-
-test('bundled Avatar asset command binds the canonical Agent handle to its sender window', async () => {
+test('bundled Avatar asset command carries the reminted formal App handle into Host materialization', async () => {
   const source = await readFile(
     new URL('../src-electron/bundled-avatar-host.ts', import.meta.url),
     'utf8',
@@ -151,9 +48,11 @@ test('bundled Avatar asset command binds the canonical Agent handle to its sende
 
   assert.match(
     source,
-    /record\.launchContext\.agentHandle/u,
+    /requiredAgentHandle\(request\.agentHandle, 'agentHandle'\)/u,
   );
+  assert.doesNotMatch(source, /resolveBoundPresentation\([\s\S]*record\.launchContext\.agentHandle/u);
   assert.match(source, /assetHost\.resolveBoundPresentation/u);
+  assert.doesNotMatch(source, /GetAgentPresentationAsset|bundledAvatarUnary/u);
   assert.doesNotMatch(source, /privateBinding|localAgentRef|ownerUserId|runtimeSourceRef/u);
   assert.doesNotMatch(source, /resolveSelectedDataRoot/u);
   assert.match(source, /await assetHost\.close\(\);/u);

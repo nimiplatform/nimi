@@ -20,9 +20,6 @@ func (s *Service) GetAgentPresentationAsset(
 	if req == nil || strings.TrimSpace(req.GetAgentHandle()) == "" || strings.TrimSpace(req.GetAssetRef()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if _, err := bundledAvatarPrincipal(ctx); err != nil {
-		return nil, err
-	}
 	resolved, _, err := s.resolveLocalAppAgent(
 		ctx,
 		accountservice.LocalAppOperationPresentationSnapshot,

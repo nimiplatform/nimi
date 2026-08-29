@@ -40,6 +40,8 @@ import {
   type DeleteAllLocalAppAgentMemoryResponse,
   type ForgetLocalAppAgentMemoryRequest,
   type ForgetLocalAppAgentMemoryResponse,
+  type GetAgentPresentationAssetRequest,
+  type GetAgentPresentationAssetResponse,
   type GetLocalAppAgentAutonomySnapshotRequest,
   type GetLocalAppAgentManagerSnapshotRequest,
   type GetLocalAppAgentManagerSnapshotResponse,
@@ -144,6 +146,16 @@ export type NimiLocalAppAgentPresentationAssetMaterial = {
   readonly sha256: string;
 };
 
+export type NimiLocalAppAgentPresentationAsset = {
+  readonly assetRef: string;
+  readonly role: 'avatar';
+  readonly backendKind: NimiLocalAppAgentPresentationBackendKind;
+  readonly fileName: string;
+  readonly mediaType: string;
+  readonly content: Uint8Array;
+  readonly sha256: string;
+};
+
 export type NimiLocalAppAgentPresentationIntent = {
   readonly backendKind?: NimiLocalAppAgentPresentationBackendKind;
   readonly avatarAssetRef?: string;
@@ -167,6 +179,10 @@ export type NimiLocalAppAutonomyUpdateInput = NimiLocalAppAgentScopedInput & {
 };
 
 export type NimiLocalAppPresentationSnapshotInput = NimiLocalAppAgentScopedInput;
+
+export type NimiLocalAppPresentationAssetReadInput = NimiLocalAppAgentScopedInput & {
+  readonly assetRef: string;
+};
 
 export type NimiLocalAppPresentationCommitInput = NimiLocalAppAgentScopedInput & {
   readonly expectedPresentationRevision: NimiLocalAppRevision;
@@ -433,6 +449,7 @@ export type NimiLocalAppAgentConfigureShell = {
   };
   readonly presentation: {
     readonly snapshot: (input: { readonly agentHandle: string }) => Promise<unknown>;
+    readonly readAsset: (input: { readonly agentHandle: string; readonly assetRef: string }) => Promise<unknown>;
     readonly commit: (input: {
       readonly agentHandle: string;
       readonly expectedPresentationRevision: string;
@@ -498,6 +515,10 @@ export interface NimiLocalAppAgentConfigureRuntime {
     GetLocalAppAgentPresentationSnapshotRequest,
     LocalAppAgentPresentationSnapshotResponse
   >;
+  readonly getAgentPresentationAsset: AgentConfigureRuntimeUnary<
+    GetAgentPresentationAssetRequest,
+    GetAgentPresentationAssetResponse
+  >;
   readonly commitLocalAppAgentPresentation: AgentConfigureRuntimeUnary<
     CommitLocalAppAgentPresentationRequest,
     LocalAppAgentCommitPresentationResponse
@@ -542,6 +563,9 @@ export type NimiLocalAppAgentConfigureClient = {
     readonly snapshot: (
       input: NimiLocalAppPresentationSnapshotInput,
     ) => Promise<NimiLocalAppAgentPresentationProjection>;
+    readonly readAsset: (
+      input: NimiLocalAppPresentationAssetReadInput,
+    ) => Promise<NimiLocalAppAgentPresentationAsset>;
     readonly commit: (
       input: NimiLocalAppPresentationCommitInput,
     ) => Promise<NimiLocalAppAgentPresentationProjection>;
@@ -701,6 +725,9 @@ export function createNimiLocalAppAgentConfigureRuntimeShell(
           'agent presentation projection',
         ),
       ),
+      readAsset: async (input: Parameters<NimiLocalAppAgentConfigureShell['presentation']['readAsset']>[0]) => (
+        projectRuntimePresentationAsset(await runtime.getAgentPresentationAsset(input))
+      ),
       commit: async (input: Parameters<NimiLocalAppAgentConfigureShell['presentation']['commit']>[0]) => projectRuntimePresentation(
         requireWireProjection(
           (await runtime.commitLocalAppAgentPresentation({
@@ -806,6 +833,16 @@ export function createNimiLocalAppAgentConfigureClient(
       ): Promise<NimiLocalAppAgentPresentationProjection> => projectPresentation(
         await shell.presentation.snapshot(agentScopedPayload(input, 'presentation snapshot')),
       ),
+      readAsset: async (
+        input: NimiLocalAppPresentationAssetReadInput,
+      ): Promise<NimiLocalAppAgentPresentationAsset> => {
+        assertExactKeys(input, ['agentHandle', 'assetRef'], 'local-app presentation asset read input');
+        assertNoAuthorityMaterial(input);
+        return projectPresentationAsset(await shell.presentation.readAsset({
+          agentHandle: validateAgentHandle(input.agentHandle),
+          assetRef: configureText(input.assetRef, 'assetRef'),
+        }));
+      },
       commit: async (
         input: NimiLocalAppPresentationCommitInput,
       ): Promise<NimiLocalAppAgentPresentationProjection> => {
@@ -2419,6 +2456,67 @@ function projectPresentation(value: unknown): NimiLocalAppAgentPresentationProje
       ? record.avatarAutoplay
       : localAppProjectionError('agent presentation avatarAutoplay'),
     presentationRevision: projectedRevision(record.presentationRevision, 'presentationRevision'),
+  });
+}
+
+function projectRuntimePresentationAsset(
+  value: GetAgentPresentationAssetResponse,
+): NimiLocalAppAgentPresentationAsset {
+  const backendKind = projectRuntimePresentationBackend(value.backendKind);
+  if (value.role !== AgentPresentationAssetRole.AVATAR || backendKind === null) {
+    return localAppProjectionError('agent presentation asset role or backendKind');
+  }
+  return projectPresentationAsset({
+    assetRef: value.assetRef,
+    role: 'avatar',
+    backendKind,
+    fileName: value.fileName,
+    mediaType: value.mediaType,
+    content: value.content,
+    sha256: value.sha256,
+  });
+}
+
+function projectPresentationAsset(value: unknown): NimiLocalAppAgentPresentationAsset {
+  const record = asRecord(value);
+  assertExactProjectionKeys(
+    record,
+    ['assetRef', 'role', 'backendKind', 'fileName', 'mediaType', 'content', 'sha256'],
+    'agent presentation asset',
+  );
+  assertSafeProjection(record);
+  if (record.role !== 'avatar'
+    || typeof record.backendKind !== 'string'
+    || !PRESENTATION_BACKENDS.has(record.backendKind as NimiLocalAppAgentPresentationBackendKind)) {
+    return localAppProjectionError('agent presentation asset role or backendKind');
+  }
+  const content = record.content instanceof Uint8Array
+    ? new Uint8Array(record.content)
+    : Array.isArray(record.content)
+      && record.content.every((entry) => Number.isSafeInteger(entry) && entry >= 0 && entry <= 255)
+      ? Uint8Array.from(record.content as number[])
+      : localAppProjectionError('agent presentation asset content');
+  if (content.byteLength === 0 || content.byteLength > MAX_PRESENTATION_ASSET_CONTENT_BYTES) {
+    return localAppProjectionError('agent presentation asset content');
+  }
+  const sha256 = projectedConfigureText(record.sha256, 'presentation asset sha256');
+  if (!/^[a-f0-9]{64}$/u.test(sha256)) {
+    return localAppProjectionError('agent presentation asset sha256');
+  }
+  const assetRef = projectedConfigureText(record.assetRef, 'presentation assetRef');
+  const fileName = projectedConfigureText(record.fileName, 'presentation asset fileName');
+  const mediaType = projectedConfigureText(record.mediaType, 'presentation asset mediaType');
+  if (!assetRef || !fileName || !mediaType) {
+    return localAppProjectionError('agent presentation asset identity');
+  }
+  return Object.freeze({
+    assetRef,
+    role: 'avatar',
+    backendKind: record.backendKind as NimiLocalAppAgentPresentationBackendKind,
+    fileName,
+    mediaType,
+    content,
+    sha256,
   });
 }
 

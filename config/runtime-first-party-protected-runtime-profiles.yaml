@@ -138,6 +138,7 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset
       - method_id: /nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation
       - method_id: /nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory
       - method_id: /nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory

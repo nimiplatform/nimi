@@ -89,6 +89,7 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppAgentAutonomySnapshot',
   'localAppAgentUpdateAutonomy',
   'localAppAgentPresentationSnapshot',
+  'localAppAgentPresentationReadAsset',
   'localAppAgentCommitPresentation',
   'localAppAgentMemoryInspect',
   'localAppAgentMemoryCorrect',
@@ -359,6 +360,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppAgentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentPresentationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentPresentationReadAsset: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentCommitPresentation: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentMemoryInspect: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentMemoryCorrect: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -451,6 +453,7 @@ export type NimiElectronLocalAppHost = {
   readonly agentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentPresentationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentPresentationReadAsset: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentCommitPresentation: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentMemoryInspect: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentMemoryCorrect: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -1004,6 +1007,10 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeRecord(() => this.binding.localAppAgentPresentationSnapshot(input));
   }
 
+  agentPresentationReadAsset(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentPresentationReadAsset(input));
+  }
+
   agentCommitPresentation(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppAgentCommitPresentation(input));
   }
@@ -1260,6 +1267,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   agentPresentationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().agentPresentationSnapshot(input);
+  }
+
+  agentPresentationReadAsset(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().agentPresentationReadAsset(input);
   }
 
   agentCommitPresentation(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {

@@ -127,6 +127,12 @@ pub const LOCAL_APP_COMMANDS: &[ShellCommandDescriptor] = &[
         boundary: ShellCommandBoundary::LocalApp,
     },
     ShellCommandDescriptor {
+        command_name: "local_app_agent_presentation_read_asset",
+        rust_path:
+            "nimi_shell_tauri::capabilities::local_app::local_app_agent_presentation_read_asset",
+        boundary: ShellCommandBoundary::LocalApp,
+    },
+    ShellCommandDescriptor {
         command_name: "local_app_agent_commit_presentation",
         rust_path: "nimi_shell_tauri::capabilities::local_app::local_app_agent_commit_presentation",
         boundary: ShellCommandBoundary::LocalApp,
@@ -557,6 +563,7 @@ macro_rules! nimi_shell_tauri_local_app_standard_shell_handler {
             $crate::capabilities::local_app::local_app_agent_autonomy_snapshot,
             $crate::capabilities::local_app::local_app_agent_update_autonomy,
             $crate::capabilities::local_app::local_app_agent_presentation_snapshot,
+            $crate::capabilities::local_app::local_app_agent_presentation_read_asset,
             $crate::capabilities::local_app::local_app_agent_commit_presentation,
             $crate::capabilities::local_app::local_app_agent_memory_inspect,
             $crate::capabilities::local_app::local_app_agent_memory_correct,

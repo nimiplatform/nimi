@@ -288,6 +288,11 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         'data',
       ),
       localAssetProtocolHost,
+      resolveFormalPresentationAsset: async ({ agentHandle, assetRef }) => {
+        const localAppHost = registeredRuntimeBridge?.bundledAvatarLocalAppHost;
+        if (!localAppHost) throw new Error('Avatar formal App host is unavailable.');
+        return localAppHost.agentPresentationReadAsset({ agentHandle, assetRef }) as never;
+      },
       devRendererRoot: ELECTRON_DEVELOPMENT_BUILD
         ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_DEV_ROOT)
         : undefined,

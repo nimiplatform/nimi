@@ -1085,6 +1085,21 @@ pub async fn local_app_agent_presentation_snapshot(
     .await
 }
 
+#[napi(js_name = "localAppAgentPresentationReadAsset")]
+pub async fn local_app_agent_presentation_read_asset(
+    input: NativeAgentPresentationAssetReadInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .agent_presentation_read_asset(LocalAppAgentPresentationAssetReadRequest {
+                agent_handle: input.agent_handle,
+                asset_ref: input.asset_ref,
+            })
+            .await
+    })
+    .await
+}
+
 #[napi(js_name = "localAppAgentCommitPresentation")]
 pub async fn local_app_agent_commit_presentation(
     input: NativeAgentCommitPresentationInput,

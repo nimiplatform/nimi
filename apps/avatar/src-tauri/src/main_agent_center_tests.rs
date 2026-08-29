@@ -64,9 +64,36 @@ fn resolve_payload_with_package(
     local_avatar_asset_ref: &str,
 ) -> AgentCenterAvatarAssetResolvePayload {
     AgentCenterAvatarAssetResolvePayload {
+        agent_handle: "agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA".to_string(),
         backend_kind: backend_kind.to_string(),
         avatar_asset_ref: local_avatar_asset_ref.to_string(),
     }
+}
+
+async fn resolve_materialized_avatar_fixture(
+    payload: AgentCenterAvatarAssetResolvePayload,
+) -> Result<nimi_shell_tauri::capabilities::avatar::AgentCenterAvatarAssetResolveResult, String> {
+    let data_root = crate::avatar_paths::resolve_avatar_nimi_data_dir()?;
+    let manifest_path = data_root
+        .join("avatar-assets/packages")
+        .join(&payload.backend_kind)
+        .join(&payload.avatar_asset_ref)
+        .join("manifest.json");
+    let manifest: serde_json::Value = serde_json::from_slice(
+        &fs::read(manifest_path)
+            .map_err(|error| format!("fixture manifest read failed: {error}"))?,
+    )
+    .map_err(|error| format!("fixture manifest decode failed: {error}"))?;
+    let digest = manifest["content_digest"]
+        .as_str()
+        .and_then(|value| value.strip_prefix("sha256:"))
+        .ok_or_else(|| "fixture content digest missing".to_string())?;
+    nimi_shell_tauri::capabilities::avatar::resolve_verified_agent_center_avatar_materialization(
+        &payload.backend_kind,
+        &payload.avatar_asset_ref,
+        digest,
+    )
+    .await
 }
 
 fn write_agent_center_live2d_package_for_local_agent(
@@ -295,7 +322,7 @@ async fn resolve_agent_center_avatar_asset_returns_live2d_model_manifest() {
     let _binding = TestAvatarDataRootBinding::install(&data_root);
     let package_dir = write_agent_center_live2d_package(&data_root, r#"{"Version":3}"#);
 
-    let manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
+    let manifest = resolve_materialized_avatar_fixture(resolve_payload(
         "account_1",
         owner_user_id(),
         runtime_source_ref(),
@@ -348,7 +375,7 @@ async fn resolve_agent_center_avatar_asset_rejects_local_config_external_live2d_
         r#"{"manifest_kind":"nimi.avatar.live2d.adapter","schema_version":1}"#,
     )
     .unwrap();
-    let manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
+    let manifest = resolve_materialized_avatar_fixture(resolve_payload(
         "account_1",
         owner_user_id(),
         runtime_source_ref(),
@@ -395,7 +422,7 @@ async fn resolve_agent_center_avatar_asset_uses_explicit_embedded_live2d_adapter
         r#"{"manifest_kind":"nimi.avatar.live2d.adapter","schema_version":1}"#,
     )
     .unwrap();
-    let manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
+    let manifest = resolve_materialized_avatar_fixture(resolve_payload(
         "account_1",
         owner_user_id(),
         runtime_source_ref(),
@@ -436,7 +463,7 @@ async fn resolve_agent_center_avatar_asset_accepts_runtime_scoped_runtime_source
         r#"{"Version":3}"#,
     );
 
-    let manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
+    let manifest = resolve_materialized_avatar_fixture(resolve_payload(
         "account_1",
         owner_user_id(),
         runtime_scoped_runtime_source_ref,
@@ -474,7 +501,7 @@ async fn resolve_agent_center_avatar_asset_accepts_opaque_runtime_source_ref() {
         r#"{"Version":3}"#,
     );
 
-    let manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
+    let manifest = resolve_materialized_avatar_fixture(resolve_payload(
         "account_1",
         owner_user_id(),
         opaque_runtime_source_ref,
@@ -511,7 +538,7 @@ async fn resolve_agent_center_avatar_asset_uses_runtime_account_projection_scope
         r#"{"Version":3}"#,
     );
 
-    let manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
+    let manifest = resolve_materialized_avatar_fixture(resolve_payload(
         account_id,
         owner_user_id(),
         runtime_source_ref(),
@@ -541,7 +568,7 @@ async fn resolve_agent_center_avatar_asset_returns_vrm_model_manifest_and_reject
     let _binding = TestAvatarDataRootBinding::install(&data_root);
     let vrm_package_dir = write_agent_center_vrm_package(&data_root, b"vrm-bytes");
 
-    let vrm_manifest = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload_with_package(
+    let vrm_manifest = resolve_materialized_avatar_fixture(resolve_payload_with_package(
         "account_1",
         owner_user_id(),
         runtime_source_ref(),
@@ -572,7 +599,7 @@ async fn resolve_agent_center_avatar_asset_returns_vrm_model_manifest_and_reject
     let entry = agent_center_root(&data_root, "account_1", &local_agent_ref())
         .join("packages/live2d/live2d_ab12cd34ef56/files/ren.model3.json");
     fs::write(entry, r#"{"Version":4}"#).unwrap();
-    let digest_error = nimi_avatar_resolve_agent_center_avatar_asset(resolve_payload(
+    let digest_error = resolve_materialized_avatar_fixture(resolve_payload(
         "account_1",
         owner_user_id(),
         runtime_source_ref(),

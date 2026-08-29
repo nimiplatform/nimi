@@ -110,6 +110,7 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAutonomySnapshot'], 'agentAutonomySnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateAutonomy'], 'agentUpdateAutonomy'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPresentationSnapshot'], 'agentPresentationSnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentPresentationReadAsset'], 'agentPresentationReadAsset'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentCommitPresentation'], 'agentCommitPresentation'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentMemoryInspect'], 'agentMemoryInspect'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentMemoryCorrect'], 'agentMemoryCorrect'],
@@ -607,6 +608,8 @@ function validatePayload(
     case 'agentAutonomySnapshot':
     case 'agentPresentationSnapshot':
       return identifiers(payload, ['agentHandle'], command);
+    case 'agentPresentationReadAsset':
+      return identifiers(payload, ['agentHandle', 'assetRef'], command);
     case 'agentMemoryInspect': {
       assertAllowedKeys(payload, ['agentHandle', 'limit', 'pageToken'], ['agentHandle'], command);
       return {
