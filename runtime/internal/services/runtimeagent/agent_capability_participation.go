@@ -2,7 +2,7 @@ package runtimeagent
 
 import runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 
-// @nimi-authority: definition.nimi.runtime.agent-participation.capability-participation
+// @nimi-authority: definition.nimi.runtime.agent-participation.local-agent-capability-participation-plane
 // @nimi-authority: rule.nimi.runtime.agent-participation.r181
 func projectLocalAgentCapabilityParticipation() []*runtimev1.LocalAgentCapabilityParticipation {
 	return []*runtimev1.LocalAgentCapabilityParticipation{

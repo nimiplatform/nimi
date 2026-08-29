@@ -246,11 +246,11 @@ units:
         target: definition.nimi.runtime.protected-session.config-plane
   - id: rule.nimi.runtime.protected-session.r023
     kind: rule
-    title: Avatar is an independent first-party projection
+    title: Avatar native mechanics use a formal App product session
     modality: must
-    statement: Avatar may use its own native-admitted first-party host connection to consume Runtime-authorized LocalAgent state, voice, and presentation projections without a live Desktop process, Desktop account-control privilege, Realm JWT, Provider Credential, or caller-supplied account truth.
+    statement: Avatar may use an independently supervised native window and exact protected transport as Host mechanics, but every Avatar App Product Plane operation binds the canonical registered Avatar App subject, registered release declaration, fresh formal protected App session, Effective App Access Snapshot, current account generation, opaque Agent handle, and exact operation mapping used by every equally covered App; the native connection, profile, bundling, trust class, process witness, and Desktop Host Control principal create no product subject, declaration domain, availability, result, error, account-control privilege, Realm JWT, Provider Credential, or caller-supplied account truth.
     condition: Whenever Avatar opens protected Runtime access.
-    failure: Reject Desktop identity inheritance, independent account truth, or direct LocalAgent execution.
+    failure: Reject Desktop identity inheritance, profile-derived coverage, synthetic subject, independent account truth, special product session, raw LocalAgent identity, or direct LocalAgent execution.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.protected-session.protected-local-session-plane

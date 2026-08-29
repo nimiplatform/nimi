@@ -5,11 +5,11 @@ units:
   - id: definition.nimi.avatar.embodiment.product-boundary
     kind: definition
     title: Avatar embodiment product boundary
-    meaning: Avatar is the LocalAgent shape, state, and voice projection product that renders Live2D, VRM, motion, expression, pose, look-at, voice playback, and lipsync from Runtime-owned LocalAgent execution, Conversation, activity, emotion, voice, and presentation output without becoming their owner or a Third-party App driver.
+    meaning: Avatar is the LocalAgent shape, state, and voice projection product with its own App-specific feature authority over Live2D, VRM, and Nimi2D rendering, deterministic motion, expression, pose, look-at and generated-motion mapping, decoder and audio-clock integration, local playback and lipsync parameters, backend diagnostics, probes, evidence and replay, package validation, window and hit-region behavior, and backend recovery; it consumes only Runtime-owned current-session Agent, Conversation, activity, emotion, semantic posture, artifact and timing correlation, independently owned companion state, voice, and presentation facts available through the common formal App contract and gains no first-party, platform, declaration, coverage, availability, result, error, identity, or Runtime privilege authority.
   - id: definition.nimi.avatar.embodiment.backend-branch
     kind: definition
     title: BackendBranch carrier protocol
-    meaning: A BackendBranch is the closed discriminated Avatar-local carrier protocol for one validated live2d or vrm backend, including nominal bounds, hit regions, audio consumption, ontology-level projection, a render surface, opaque metadata, and shutdown; temporary faults and recovery remain internal to the concrete backend.
+    meaning: A BackendBranch is the closed discriminated Avatar-local carrier protocol for one validated live2d, vrm, or nimi2d backend, including nominal bounds, hit regions, audio consumption, ontology-level projection, a render surface, opaque metadata, and shutdown; temporary faults and recovery remain internal to the concrete backend.
   - id: definition.nimi.avatar.embodiment.projection-output
     kind: definition
     title: Embodiment projection output
@@ -34,7 +34,7 @@ units:
   - id: definition.nimi.avatar.embodiment.debug-backend-result
     kind: definition
     title: Avatar debug backend result
-    meaning: An Avatar debug backend result is a typed local evaluation bound to Runtime probe identity and Avatar backend identity that may carry bounded backend facts and opaque refs but cannot establish public Runtime probe status or retain run-record accounting.
+    meaning: An Avatar debug backend result is a typed local evaluation bound to an Avatar diagnostic session and validated backend identity that may carry bounded backend facts and an optional opaque common Runtime correlation ref but creates no Runtime probe identity, special product store or transport, public App entitlement, LocalAgent truth, or run-record accounting authority.
   - id: definition.nimi.avatar.embodiment.renderer-smoothing
     kind: definition
     title: Renderer-local signal smoothing
@@ -42,12 +42,12 @@ units:
   - id: definition.nimi.avatar.embodiment.host-consumption-boundary
     kind: definition
     title: Host-only Kit consumption boundary
-    meaning: The host-only Kit consumption boundary permits shared headless Avatar protocol types, projection helpers, theme tokens, and UI primitives while Avatar retains product semantics and concrete backend execution and Kit gains no Avatar, Runtime, Desktop, or Realm truth ownership.
+    meaning: The host-only Kit consumption boundary permits reusable Avatar-vertical headless protocol types, projection helpers, theme tokens, UI primitives, semantic-to-renderer mapping utilities, and backend-local support under kit/features/avatar while Avatar retains product semantics and concrete backend execution and Kit gains no public App entitlement, declaration coverage, special Runtime permission or client, or Avatar, Runtime, Desktop, Realm, and Cognition truth ownership.
   - id: rule.nimi.avatar.embodiment.r001
     kind: rule
     title: Ownership guardrail for Avatar embodiment
     modality: must_not
-    statement: Avatar redefines Runtime participation, provenance, input ontology, voice timeline, or continuity truth, Realm truth, or Desktop host mechanics while validating or rendering an embodiment.
+    statement: Avatar redefines Runtime participation, provenance, current Agent, Conversation, activity, emotion, semantic posture, artifact or timing correlation, independently owned companion state, voice, presentation, or continuity truth, Realm truth, or Desktop Host mechanics, or promotes its App-specific renderer, mapping, playback, diagnostics, package, window, or recovery feature authority into first-party or platform privilege, common App entitlement, declaration coverage, special Runtime operations, or a privileged SDK client while validating or rendering an embodiment.
     condition: Whenever Avatar consumes or projects another owner surface.
     failure: Reject the ownership transfer and retain only the typed downstream projection or opaque reference.
     relations:
@@ -57,7 +57,7 @@ units:
     kind: rule
     title: Backend Branch Contract 2.1 closed backend kinds
     modality: must
-    statement: BackendKind contains exactly live2d and vrm, and one Avatar-owned branch factory validates the selected model and exhaustively selects one matching BackendBranch.
+    statement: BackendKind contains exactly live2d, vrm, and nimi2d, and one Avatar-owned branch factory validates the selected model and exhaustively selects one matching BackendBranch.
     condition: Whenever a backend model is admitted or a branch is created.
     failure: Reject an unknown, unvalidated, ambiguous, or non-exhaustively handled backend kind without a placeholder branch.
     relations:
@@ -242,8 +242,8 @@ units:
     kind: rule
     title: K-NAV-SHELL-FIRST-PARTY-RUNTIME-003 minimal launch intent
     modality: must
-    statement: Default Avatar launch carries only the minimal intent needed to select a Runtime-authorized LocalAgent and optional Avatar instance, treats all caller input as untrusted until Runtime validation, resolves Conversation continuity and visual identity only through typed Runtime or SDK projections, and permits only the verified Avatar native host to materialize the exact Runtime-authorized visual package under the protected data root; Avatar renderer, NAS, third-party App, and SDK surfaces receive neither the raw root nor arbitrary path authority.
-    condition: Whenever Desktop or another host launches the default first-party Avatar or an authorized visual package is materialized.
+    statement: Default Avatar launch carries only a session-scoped Agent-handle target hint, optional exact Conversation anchor, Avatar instance id, bounded non-authorizing launch source, and optional opaque committed-presentation or temporary-custody refs, treats every handoff field as untrusted targeting intent rather than identity or authority, resolves an Avatar-current-session Agent handle and Conversation continuity through the formal App client and Runtime revalidation before product use, and permits only the Desktop Host Control Plane to launch or focus the verified Avatar native host and authorize materialization of the exact Runtime-validated visual package under the protected data root; the requesting App, handoff, Host presence port, Avatar renderer, NAS, and SDK surfaces receive no Host lifecycle authority, account, owner, raw LocalAgent, Realm source identity, runtimeSourceRef, configuration, private global, raw root, or arbitrary path authority.
+    condition: Whenever the Desktop Host Control Plane launches or focuses the default Avatar in response to Nimi Home or a formal App request, or authorizes materialization of an Avatar visual package.
     failure: Reject missing or invalid LocalAgent selection, a mismatched materialization result, raw-root disclosure, renderer or NAS path authority, and any launch-carried account, user, Realm, credential, calibration, model, render, or performance truth.
     relations:
       - type: applies_to
@@ -252,7 +252,7 @@ units:
     kind: rule
     title: K-NAV-SHELL-FIRST-PARTY-RUNTIME-001 credential custody prohibition
     modality: must_not
-    statement: Avatar reads or stores access tokens, refresh tokens, raw JWTs, authorization headers, durable account sessions, shared auth truth, independent Realm authentication truth, local subject truth, or an app-owned credential provider.
+    statement: Avatar reads or stores access tokens, refresh tokens, raw JWTs, authorization headers, a second account snapshot, event stream, resync loop, or durable account session, shared auth truth, independent Realm authentication or connectivity truth, native-profile-derived product availability, local subject truth, or an App-owned credential provider instead of deriving product readiness and operations from its current credential-free formal protected App session and typed owner results.
     condition: Whenever Avatar authenticates, accesses private data, or invokes a Realm-mediated operation.
     failure: Deny the operation, discard the sensitive value, and remain in a typed non-ready or unauthorized state.
     relations:
@@ -262,7 +262,7 @@ units:
     kind: rule
     title: K-NAV-SHELL-OUTPUT-002 local presentation ownership
     modality: must_not
-    statement: Avatar local presentation creates conversation history, wake truth, listener arbitration, audible-speaker arbitration, interruption success, account truth, or semantic writeback from local interaction, backend state, or NAS output.
+    statement: Avatar local presentation, semantic-to-motion mapping, lipsync parameters, backend diagnostics, probe evidence, replay, or window state creates Conversation history, activity, emotion, posture, timing, companion, wake, listener arbitration, audible-speaker arbitration, interruption success, account truth, semantic writeback, or any corresponding visible product success without the applicable formal App Conversation, Realtime, embodiment, or presentation owner result.
     condition: Whenever Avatar renders output or handles a shell-local interaction.
     failure: Keep the effect presentation-local and require the typed owning Runtime result before showing the corresponding product truth.
     relations:
@@ -302,9 +302,9 @@ units:
     kind: rule
     title: Avatar debug session backend result shape
     modality: must
-    statement: A debug backend result requires debug_session_id, Runtime probe id, Runtime agent id, backend kind, probe kind, observed_at, and evidence containing evidence_id, evidence_kind, status, and source, with status exactly passed, failed, unsupported, or invalid.
-    condition: Whenever Avatar evaluates or submits backend evidence for a Runtime debug probe.
-    failure: Reject the result before submission when identity, binding, timestamp, evidence, or status is missing, unknown, malformed, or stale.
+    statement: An Avatar-owned debug backend result requires diagnostic_session_id, backend kind, probe kind, observed_at, and evidence containing evidence_id, evidence_kind, status, and source with status exactly passed, failed, unsupported, or invalid, and may carry only an optional opaque correlation ref from the common bounded Runtime embodiment projection; it contains no Runtime probe id, raw Agent or account identity, Runtime special-store ref, provider, model, storage, package path, prompt, reasoning, or public operation authority.
+    condition: Whenever Avatar evaluates or records local backend diagnostic evidence.
+    failure: Reject the local result when its diagnostic session, backend binding, timestamp, evidence, status, or optional common correlation is missing, unknown, malformed, stale, or over-broad.
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.debug-backend-result
@@ -322,9 +322,9 @@ units:
     kind: rule
     title: Avatar debug public result boundary
     modality: must_not
-    statement: Avatar backend evaluation, local event, run record, artifact reference, screenshot, preview, fixture, or evidence-accounting record establishes public Runtime debug probe status or fabricated backend success.
+    statement: Avatar backend evaluation, local event, run record, artifact reference, screenshot, preview, fixture, or evidence record establishes Runtime LocalAgent, Conversation, activity, emotion, posture, timing, companion, voice, presentation, availability, or operation success or is exposed as a common App entitlement beyond the bounded Avatar-owned diagnostic result admitted by its exact local feature contract.
     condition: Whenever a local debug result is displayed, retained, or submitted.
-    failure: Keep the result local and non-success until Runtime accepts the typed probe result through its admitted method and publishes its own status.
+    failure: Keep the result within the Avatar-owned diagnostic surface and require the applicable common Runtime owner result before presenting any Runtime product truth.
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.debug-backend-result
@@ -332,9 +332,9 @@ units:
     kind: rule
     title: K-NAV-KIT-UI-001 host-only consumption
     modality: must
-    statement: Avatar consumes reusable Kit theme, primitive, headless projection, protocol-type, and smoothing surfaces only as host support while retaining Avatar product meaning and concrete backend validation and rendering.
+    statement: Avatar consumes reusable Kit theme, primitive, headless projection, protocol-type, semantic-to-renderer mapping, backend-local support, and smoothing surfaces only as Avatar-vertical feature support while retaining Avatar product meaning and concrete backend validation and rendering; publication under kit/features/avatar grants no ordinary App entitlement, declaration coverage, Runtime operation, special client, product availability, or owner authority.
     condition: Whenever Avatar or Kit shares an embodiment-related surface.
-    failure: Reject duplicated semantic ownership, a global fallback, or transfer of Avatar, Runtime, Desktop, Realm, or backend execution truth into Kit.
+    failure: Reject duplicated semantic ownership, a global fallback, public entitlement inference, privileged Runtime access, or transfer of Avatar, Runtime, Desktop, Realm, Cognition, or backend execution truth into Kit.
     relations:
       - type: applies_to
         target: definition.nimi.avatar.embodiment.host-consumption-boundary
@@ -732,7 +732,7 @@ units:
     kind: rule
     title: Backend Capability Profile Schema v1 closure
     modality: must
-    statement: "An Avatar backend capability profile is closed to profile_id, backend_kind, model_fingerprint, generated_motion with disjoint supported_routes, unsupported_routes, and safety_limits, plus exactly the kind-specific section: VRM humanoid bones, expression presets, look-at, and pose limits; or Live2D motion groups, expression ids, and parameter ids."
+    statement: "An Avatar backend capability profile is closed to profile_id, backend_kind, model_fingerprint, generated_motion with disjoint supported_routes, unsupported_routes, and safety_limits, plus exactly the kind-specific section: VRM humanoid bones, expression presets, look-at, and pose limits; Live2D motion groups, expression ids, and parameter ids; or Nimi2D validated package manifest ref, package digest, proven tier, default outfit ref, and closed live-action lanes, with package requested tier never establishing support and true viseme unavailable below proven tier two."
     condition: Whenever Avatar validates a capability profile or uses one for a generated route.
     failure: Reject an unknown kind, missing or extra section, duplicate disposition, malformed identity or fingerprint, unsafe limit, unsupported target, or open extension, and fail an absent route capability closed without idle fallback or ontology promotion.
     relations:
@@ -808,7 +808,7 @@ units:
     kind: rule
     title: Avatar local presentation unavailability
     modality: must
-    statement: The Avatar window attempts presentation with the selected Live2D or VRM backend and asset, shows the concrete surface without a public success phase when presentation succeeds, and shows a local unable-to-render surface with restart and close actions when the initial attempt cannot present or a presented surface is permanently lost after backend-local recovery is exhausted.
+    statement: The Avatar window attempts presentation with the selected Live2D, VRM, or Nimi2D backend and validated asset or package, shows the concrete surface without a public success phase when presentation succeeds, and shows a local unable-to-render surface with restart and close actions when the initial attempt cannot present or a presented surface is permanently lost after backend-local recovery is exhausted; Nimi2D requires a validated default outfit and proven package tier before any ready visual state and never treats base-body-only or an unsupported live-action lane as success.
     condition: Whenever the selected backend begins presentation, encounters a temporary fault, exhausts local recovery, or is replaced or shut down.
     failure: Keep temporary faults and recovery internal to the active backend, never return renderer operational state to Desktop or Runtime, and prevent a replaced or disposed attempt from changing the current presentation.
     relations:

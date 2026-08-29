@@ -22,7 +22,7 @@ units:
   - id: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
     kind: definition
     title: Runtime Registered App Subject and record plane
-    meaning: The Runtime Registered App Subject and record plane owns one per-user registered App subject and record seam shared by installed, local-import, and development sources, including source class, source generation, declaration generation, stable non-reused opaque subject, security-relevant Host launch facts, lifecycle state, and immutable per-operation resolution without permission or marketplace state; physical record and storage layout remains Runtime implementation.
+    meaning: The Runtime Registered App Subject and record plane owns one per-user registered App subject and record seam shared by separately admitted installed, immutable local-import, development, bundled, and platform sources, including source class, source generation, declaration generation, stable non-reused opaque subject, security-relevant Host launch facts, lifecycle state, and immutable per-operation resolution without permission or marketplace state; physical record and storage layout remains Runtime implementation.
     relations:
       - type: supersedes
         target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
@@ -187,10 +187,10 @@ units:
         target: definition.nimi.runtime.app-surface.app-lifecycle-plane
   - id: rule.nimi.runtime.app-surface.r017
     kind: rule
-    title: The Third-party App surface is purpose specific
+    title: The formal protected App surface is purpose specific
     modality: must
-    statement: The Third-party App-facing surface exposes only canonical purpose-specific typed operations after protected Runtime admission, while trusted host control owns launch preparation and exact Host process binding; generic messaging, generic streams, cross-App routing, account inventory, package readiness, lifecycle jobs, update, repair, reinstall, and public-distribution behavior are not App-callable and have no Third-party SDK mapping.
-    condition: Whenever the Third-party App-facing surface is defined or consumed.
+    statement: Every formal protected App-facing surface, including bundled and platform App Product Plane consumers, exposes only canonical purpose-specific typed operations after the same registered-subject, declaration, fresh-session, Effective App Access Snapshot, and protected Runtime admission path, while the Desktop Host Control Plane owns launch preparation and exact Host process binding; generic messaging, generic streams, cross-App routing, account inventory, package readiness, lifecycle jobs, update, repair, reinstall, public-distribution behavior, native profile coverage, and first-party product shortcuts are not App-callable and have no SDK mapping.
+    condition: Whenever a formal protected App-facing surface is defined or consumed.
     failure: Reject behavior outside the canonical App operation contract, generic forwarding, and cross-carried semantics.
     relations:
       - type: applies_to
@@ -278,11 +278,11 @@ units:
     reason: Removed because generic multi-App messaging and projection are outside the canonical Third-party App operation contract.
   - id: rule.nimi.runtime.app-surface.r031
     kind: rule
-    title: The Avatar runtime boundary is fixed
+    title: The Avatar product boundary uses canonical App operations
     modality: must
-    statement: Default Avatar is an independent first-party LocalAgent projection consumer that uses normal Runtime and SDK authorization without inheriting Desktop account control, receiving Realm or provider credentials, or accepting caller-supplied account or authorization truth; Runtime validates the selected localAgentId and emits message, state, emotion, activity, voice, and presentation truth, while Avatar owns only visual and playback presentation.
+    statement: Default Avatar is a formal protected App LocalAgent projection consumer that uses the same complete SDK App client, registered subject, declaration, session, operation coverage, typed results, and typed errors as every equally covered App without inheriting Desktop account control, receiving Realm or provider credentials, accepting caller-supplied account or authorization truth, or using a richer first-party profile; Runtime resolves the Avatar session's current opaque agentHandle and exact Conversation anchor, emits Conversation and Realtime truth through their canonical operations and bounded activity, emotion, semantic posture, presentation timing, and any independently meaningful companion state through the two canonical embodiment operations, while Avatar owns only local mapping, rendering, playback, backend diagnostics, and window mechanics.
     condition: Whenever Avatar consumes Runtime App or LocalAgent surfaces.
-    failure: Reject caller-supplied identity or authorization, direct LocalAgent execution, App-owned Conversation truth, and direct third-party Avatar control.
+    failure: Reject caller-supplied identity or authorization, raw localAgentId, special client or carrier, direct LocalAgent execution, App-owned Conversation or embodiment truth, and direct control of Avatar rendering by another App.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-messaging-plane

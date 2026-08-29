@@ -17,7 +17,7 @@ units:
   - id: definition.nimi.zhiyu.local-partner-surface.avatar-surface
     kind: definition
     title: Zhiyu and Avatar projection relation
-    meaning: Zhiyu and Avatar independently consume the same Runtime LocalAgent; Zhiyu never drives, embeds, or owns Avatar rendering, motion, expression, voice, or presentation truth.
+    meaning: Zhiyu and Avatar independently consume the same Runtime LocalAgent; Zhiyu may request the Desktop Host Control Plane's common launch, focus, and presence-handoff mechanics port with only current opaque handle-and-anchor targeting intent, a bounded non-authorizing launch source, and opaque presentation, custody, and instance refs and receive only typed opaque mechanic availability or instance outcome, while it never owns Host lifecycle or drives, embeds, or owns Avatar rendering, motion, expression, voice, presentation truth, product availability, or Runtime result semantics.
   - id: rule.nimi.zhiyu.local-partner-surface.r001
     kind: rule
     title: Zhiyu is a LocalAgent projection consumer
@@ -122,9 +122,9 @@ units:
     kind: rule
     title: Zhiyu does not control Avatar
     modality: must_not
-    statement: Zhiyu directly drives Avatar motion, expression, pose, look-at, rendering backend, visual package, voice playback, lipsync, or raw presentation state.
+    statement: Zhiyu directly drives Avatar motion, expression, pose, look-at, rendering backend, visual package, voice playback, lipsync, raw presentation state, or product availability, or sends raw identity, private global state, configuration ref, capability, state, commit, result, or error authority through the common Host launch, focus, and presence-handoff mechanics port.
     condition: Whenever Zhiyu and Avatar present the same LocalAgent.
-    failure: Submit user intent to Runtime and let Avatar independently consume Runtime presentation projection.
+    failure: Submit product intent through canonical Runtime operations, use only the common opaque Host mechanics port for launch or focus, and let Avatar independently consume the same formal App presentation and embodiment projections.
     relations:
       - type: applies_to
         target: definition.nimi.zhiyu.local-partner-surface.avatar-surface

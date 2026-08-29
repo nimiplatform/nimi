@@ -21,11 +21,11 @@ units:
   - id: definition.nimi.runtime.agent-participation.presentation-stream-plane
     kind: definition
     title: Runtime LocalAgent presentation stream plane
-    meaning: Runtime owns transient LocalAgent turn, state, activity, emotion, voice, interruption, and presentation projection truth; consumers own only their UI, playback, rendering, and ephemeral cache.
+    meaning: Runtime owns transient LocalAgent turn, state, activity, emotion, semantic posture, voice, interruption, presentation timing, and any independently meaningful companion state; a private detailed carrier may exist only inside Runtime owner implementation, while every formal App receives the admitted subset only through canonical Conversation, Realtime, or the closed bounded embodiment operations and consumers own only UI, playback, rendering, Avatar-local mapping, and ephemeral cache.
   - id: definition.nimi.runtime.agent-participation.avatar-debug-projection-plane
     kind: definition
     title: Optional Runtime Avatar diagnostics projection plane
-    meaning: Runtime may project bounded, authorized Avatar diagnostic status without transferring LocalAgent, Avatar backend, package, credential, or provider truth, and the diagnostics path never blocks ordinary product readiness.
+    meaning: Avatar owns bounded backend diagnostic, probe, evidence, and replay projections at its exact Kit and SDK boundary, while Runtime supplies only the same sanitized semantic embodiment snapshot or opaque correlation already admitted to every equally covered formal App; no Runtime special Avatar debug product store or transport transfers LocalAgent, backend, package, credential, provider, model, storage, raw score, prompt, or reasoning truth, and diagnostics never block ordinary product readiness.
   - id: definition.nimi.runtime.agent-participation.participation-plane
     kind: definition
     title: Deferred advanced participation boundary
@@ -41,7 +41,7 @@ units:
   - id: definition.nimi.runtime.agent-participation.app-consume-plane
     kind: definition
     title: Runtime protected formal App LocalAgent consume plane
-    meaning: Every formal App consumes one canonical App Operation Contract agent.local subset—the bounded current-account active-Agent reference listing, nine durable Conversation operations, and six active Realtime media operations—through the same standard Runtime SDK seam; Runtime returns a session-scoped opaque agentHandle as the only Agent selector, may revalidate a Runtime-issued Conversation anchor only as an operation-specific continuity fence, projects one rich sanitized live Conversation union and one distinct bounded transient Realtime media and status union, and exposes no raw localAgentId, private reasoning, activity, emotion, Avatar rendering, Memory, Knowledge, Runtime proof, Realm JWT, Provider Credentials, provider or model detail, caller-supplied Agent context or tool result, or product binding entity.
+    meaning: Every formal App consumes one canonical App Operation Contract agent.local subset—the bounded current-account active-Agent reference listing, nine durable Conversation operations, six active Realtime media operations, and two bounded semantic embodiment read operations carrying any independently owned companion state—through the same standard Runtime SDK seam; Runtime returns a session-scoped opaque agentHandle as the only Agent selector, revalidates a Runtime-issued Conversation anchor only as an operation-specific continuity fence, projects one rich sanitized Conversation union, one distinct bounded transient Realtime media union, and one closed ordered embodiment union, and exposes no raw localAgentId or account identity, private carrier envelope, raw score, prompt or reasoning, Avatar rendering or backend command, Memory, Knowledge, Runtime proof, Realm JWT, Provider Credentials, provider or model detail, storage detail, caller-supplied Agent context or tool result, raw replay, or product binding entity.
   - id: definition.nimi.runtime.agent-participation.agent-realtime-media-plane
     kind: definition
     title: Runtime Agent-owned Realtime media projection plane
@@ -69,7 +69,7 @@ units:
   - id: definition.nimi.runtime.agent-participation.embodiment-input-plane
     kind: definition
     title: Runtime LocalAgent embodiment input plane
-    meaning: Runtime supplies typed LocalAgent state and presentation input to Avatar while Avatar owns shell-local interaction and renderer execution; neither side writes its local state back as the other's truth.
+    meaning: Runtime supplies every eligible formal App the same closed agentHandle-and-anchor-scoped semantic embodiment snapshot and ordered event union containing only bounded activity, emotion, semantic posture, presentation timing, supported companion state, sequence, provenance, and necessary opaque turn or voice correlation; Avatar deterministically maps those facts into local motion, expression, pose, look-at, playback, and lipsync parameters and owns shell interaction, diagnostics, backend execution, and rendering, while neither side writes local state back as the other's truth.
   - id: definition.nimi.runtime.agent-participation.source-context-projection-plane
     kind: definition
     title: Runtime LocalAgent source Memory and turn context projection plane
@@ -176,7 +176,7 @@ units:
     kind: rule
     title: Transient LocalAgent projection truth is Runtime-owned
     modality: must
-    statement: Runtime owns committed LocalAgent turn, state, activity, emotion, voice, interruption, and presentation timing truth, while Avatar and other Apps own only rendering, playback, interaction, and ephemeral UI state.
+    statement: Runtime owns committed LocalAgent turn, state, activity, emotion, semantic posture, voice, interruption, presentation timing, and any independently meaningful companion state, while Avatar and other Apps own only rendering, playback, interaction, backend-local mapping, diagnostics, and ephemeral UI state.
     condition: Whenever LocalAgent output or state is projected.
     failure: Reject a consumer-authored semantic event, direct renderer control as Runtime truth, or a fabricated successful projection.
     relations:
@@ -186,9 +186,9 @@ units:
     kind: rule
     title: Internal presentation carrier is not an App protocol
     modality: must
-    statement: Runtime may use a private canonical LocalAgent identity only inside a Runtime-internal owner or presentation carrier after current account and owner authorization; that non-SDK, non-App carrier may project independently owned activity, emotion, Avatar rendering, and presentation timing sidebands but contains no duplicate canonical turn, message, reasoning-status, action, tool, transcript, input-audio, output-audio, outputTrack, lifecycle, terminal, or reducer protocol. Every formal App and SDK consumer, including Desktop-hosted and Nimi-owned surfaces, uses only the canonical agent.local operations with a current session-scoped agentHandle, and any internal turn or media fact crossing that boundary is sanitized and mapped into the canonical Conversation or Agent Realtime union rather than exposed as a privileged rich profile.
+    statement: Runtime may use a private canonical LocalAgent identity only inside a Runtime-internal owner or presentation carrier after current account and owner authorization; that non-SDK, non-App carrier may carry only Runtime owner-semantic activity, emotion, posture, presentation timing, companion, and voice-correlation facts necessary to derive canonical owner results and contains no renderer mapping, motion, expression, pose, look-at, decoder, audio-clock, viseme, mouth-parameter, package, backend, diagnostic, probe, replay, window, hit-region, recovery, duplicate Conversation, Realtime, or public reducer protocol. Every formal App and SDK consumer, including Desktop-hosted, bundled, Avatar, and Nimi-owned surfaces, uses only the canonical agent.local operations with a current session-scoped agentHandle and exact operation-required Conversation anchor; any internal turn or media fact crossing that boundary is sanitized and mapped into the canonical Conversation, Agent Realtime, or bounded embodiment union rather than exposed as a privileged rich profile, private subscription, profile method, first-party sideband, duplicate companion request or cancel operation, or raw replay.
     condition: Whenever Runtime-internal presentation state or a formal-App LocalAgent projection is subscribed, read, adapted, or delivered.
-    failure: Reject a formal-App or SDK use of the internal carrier, raw localAgentId, duplicate turn or media union, unsanitized sideband, missing owner authorization, or caller-controlled access and return no projection data.
+    failure: Reject a formal-App or SDK use of the internal carrier, raw localAgentId, duplicate public union, unsanitized sideband, missing owner authorization, stale handle or anchor, or caller-controlled access and return no projection data.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
@@ -218,9 +218,9 @@ units:
     kind: rule
     title: Avatar diagnostics are optional owner projections
     modality: must
-    statement: Runtime may project authorized Avatar probe status and Avatar may return bounded backend evidence, but diagnostics never transfer LocalAgent, provider, package, backend, or presentation authority and never block ordinary LocalAgent or Avatar readiness.
+    statement: Avatar may expose bounded local backend snapshot, probe, evidence, and replay results through its exact Avatar-owned Kit and SDK diagnostics boundary and correlate them only with the common sanitized Runtime embodiment snapshot; Runtime exposes no special Avatar debug product operation, store, replay transport, raw backend payload, or first-party result path, and diagnostics never transfer LocalAgent, provider, model, package, backend, storage, or presentation authority or block ordinary LocalAgent or Avatar readiness.
     condition: Whenever an Avatar diagnostic probe is requested or displayed.
-    failure: Reject raw backend payloads, credentials, fabricated pass status, and readiness dependence on diagnostics.
+    failure: Reject a Runtime special debug product path, raw backend payload, credential, fabricated pass status, authority transfer, or readiness dependence on diagnostics.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.avatar-debug-projection-plane
@@ -268,9 +268,9 @@ units:
     kind: rule
     title: Protected Apps use the canonical multimodal LocalAgent consume seam
     modality: must
-    statement: A formal App submits typed user intent and consumes only the canonical App Operation Contract agent.local reference-list operation, nine durable Conversation operations, and six active Realtime media operations through the same standard SDK and Runtime seam; the Conversation projection contains the canonical rich sanitized live and committed unions, recorded-voice transcription text, bounded on-demand final-voice synthesis selected only by committed assistant message, and terminal final-voice sidecars, while the separate Realtime media projection may contain bounded transient input pressure, speech and transcript status, outputTrack state, audio frames, health, and terminal state. Neither projection exposes private reasoning content, activity, emotion, Avatar rendering, presentation internals, Memory, Knowledge, raw local IPC, provider APIs, parser payloads, execution proof, or an App-specific richer or degraded protocol, and native audio appears only in the exact admitted Realtime media family rather than Conversation events, snapshots, final sidecars, or ordinary Agent voice chunks.
+    statement: A formal App submits typed user intent and consumes only the canonical App Operation Contract agent.local reference-list operation, nine durable Conversation operations, six active Realtime media operations, and two bounded semantic embodiment reads through the same standard SDK and Runtime seam; Conversation contains the canonical rich sanitized live and committed unions, recorded-voice transcription text, bounded on-demand final-voice synthesis selected only by a committed assistant message, terminal final-voice sidecars, and the existing user send or interrupt intent used by Avatar companion interaction, Realtime may contain bounded transient input pressure, speech and transcript status, outputTrack state, audio frames, health, and terminal state, and embodiment contains only ordered bounded activity, emotion, semantic posture, presentation timing, independently owned companion state, sequence, provenance, and opaque turn or voice correlation. None exposes private reasoning, raw identity, private carrier data, raw replay, Avatar rendering or backend commands, Memory, Knowledge, raw local IPC, provider APIs, parser payloads, storage detail, execution proof, or an App-specific richer or degraded protocol, and native audio appears only in Realtime rather than Conversation or embodiment.
     condition: Whenever a formal App interacts with a LocalAgent.
-    failure: Reject a bypass, private, degraded, duplicated, or unknown projection variant, operation outside the canonical sixteen-row agent.local family, native audio on the Conversation family, or consumer-authored truth and keep the exact operation unavailable.
+    failure: Reject a bypass, private, degraded, duplicated, or unknown projection variant, operation outside the canonical eighteen-row agent.local family, duplicate companion request or cancel, raw replay, native audio outside Realtime, backend control, or consumer-authored truth and keep the exact operation unavailable.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
@@ -302,7 +302,7 @@ units:
     kind: rule
     title: Avatar consumes Runtime voice projection only
     modality: must
-    statement: Avatar plays and renders only authorized Runtime-projected LocalAgent voice artifacts and timing for the active LocalAgent Conversation, never calls speech synthesis directly, owns durable voice truth, or exposes raw motion or driver control to an App.
+    statement: Avatar plays and renders only the canonical Conversation final-voice artifact plus bounded timing from the common embodiment projection for the active handle-and-anchor-scoped LocalAgent Conversation, never calls speech synthesis directly, owns durable voice truth, accepts a first-party voice stream fallback, or exposes raw motion or driver control to an App.
     condition: Whenever Avatar renders LocalAgent speech or lipsync.
     failure: Keep presentation silent or unavailable rather than synthesize or fabricate voice state.
     relations:
@@ -322,7 +322,7 @@ units:
     kind: rule
     title: Runtime LocalAgent event provenance cannot be synthesized
     modality: must
-    statement: Runtime is the only producer of LocalAgent turn, state, presentation, voice, continuity, and diagnostic projection truth, and Avatar, Desktop, Apps, fixtures, providers, and renderer backends never create or imply Runtime success.
+    statement: Runtime is the only producer of LocalAgent turn, state, activity, emotion, semantic posture, presentation timing, companion, voice, and continuity truth projected through the canonical operations, while Avatar alone owns bounded local backend diagnostic evidence; Avatar, Desktop, Apps, fixtures, providers, and renderer backends never create or imply Runtime success or relabel local diagnostics as Runtime truth.
     condition: Whenever a LocalAgent projection causes visible behavior.
     failure: Reject unknown or synthetic provenance and show typed unavailable state.
     relations:
@@ -332,7 +332,7 @@ units:
     kind: rule
     title: Embodiment input is a bounded LocalAgent projection
     modality: must
-    statement: Avatar embodiment consumes only typed Runtime LocalAgent state, activity, emotion, voice, continuity, and presentation input plus Avatar-owned shell interaction context, with no raw provider, parser, motion-driver, or open extension payload as product truth.
+    statement: Avatar embodiment consumes Runtime state, activity, emotion, semantic posture, presentation timing, supported companion state, voice correlation, continuity, and presentation input only through runtime.agent.embodiment.snapshot.get and runtime.agent.embodiment.events.subscribe on the same canonical formal App client available to every equally covered App, plus Avatar-owned shell interaction context, with no raw provider, parser, private carrier, motion-driver, backend command, or open extension payload as product truth.
     condition: Whenever Avatar embodiment input is assembled.
     failure: Reject undeclared input or raw payloads and render no synthetic cue.
     relations:
@@ -342,7 +342,7 @@ units:
     kind: rule
     title: Embodiment ownership stays separated
     modality: must
-    statement: Runtime LocalAgent semantic input retains Runtime provenance, Avatar shell and renderer state remains Avatar-local, launch identifiers remain targeting input until Runtime validates access, and neither Avatar nor a Third-party App writes local state back as LocalAgent truth.
+    statement: Runtime LocalAgent semantic input retains Runtime provenance and is admitted only from the receiving App's current formal session with agent.local coverage, current session-scoped opaque Agent handle, and Runtime-revalidated exact Conversation anchor; Avatar shell, renderer, mapping, diagnostics, and backend state remain Avatar-local, Host handoff, presence, instance, presentation, and custody refs remain opaque mechanics rather than identity or provenance, and neither Avatar nor another formal App writes local state back as LocalAgent truth.
     condition: Whenever embodiment inputs are combined or rendered.
     failure: Fail closed on missing, mismatched, or local-only provenance.
     relations:
