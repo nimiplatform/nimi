@@ -22,6 +22,31 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
   assert.equal(bindings.app.projection.agentCenterBinding('wrong-handle'), null);
 
   const binding = bindings.app.projection.agentCenterBinding(agentHandle);
+  assert.deepEqual(
+    await Promise.all([
+      binding.client.sharedAIConfig.listOptions({ kind: 'local-loadouts', capabilityContract: 'text.generate' }),
+      binding.client.sharedAIConfig.listOptions({ kind: 'cloud-connectors', capabilityContract: 'text.generate' }),
+      binding.client.sharedAIConfig.listOptions({
+        kind: 'cloud-targets',
+        capabilityContract: 'text.generate',
+        connectorRef: 'simulator-cloud-connector',
+      }),
+      binding.client.sharedAIConfig.listOptions({ kind: 'preset-voices' }),
+      binding.client.sharedAIConfig.listOptions({ kind: 'voice-assets' }),
+    ]).then((results) => results.map((result) => ({
+      kind: result.kind,
+      keys: Object.keys(result).sort(),
+      optionCount: result.options.length,
+      truncated: result.truncated,
+    }))),
+    [
+      { kind: 'local-loadouts', keys: ['kind', 'options', 'truncated'], optionCount: 1, truncated: false },
+      { kind: 'cloud-connectors', keys: ['kind', 'options', 'truncated'], optionCount: 0, truncated: false },
+      { kind: 'cloud-targets', keys: ['kind', 'options', 'truncated'], optionCount: 0, truncated: false },
+      { kind: 'preset-voices', keys: ['kind', 'options', 'truncated'], optionCount: 0, truncated: false },
+      { kind: 'voice-assets', keys: ['kind', 'options', 'truncated'], optionCount: 1, truncated: false },
+    ],
+  );
   const session = createZhiyuCanonicalAgentCenterSession(agentHandle, conversationAnchorId, binding);
   assert.ok(session);
   await session.refresh();
@@ -140,6 +165,88 @@ test('Simulator Agent Center keeps configuration in memory with CAS and fail-clo
   for (const dispose of cleanup.reverse()) await dispose();
 });
 
+test('Simulator Agent Center keeps account AIConfig singular and owner state stable across A to B to A rebinds', async () => {
+  const cleanup = [];
+  const agentA = `agent_ref_${'a'.repeat(43)}`;
+  const agentB = `agent_ref_${'b'.repeat(43)}`;
+  const bindings = createZhiyuSimulatorBindings(simulatorContext(cleanup, [
+    Object.freeze({ agentHandle: agentA, displayName: 'Agent A' }),
+    Object.freeze({ agentHandle: agentB, displayName: 'Agent B' }),
+  ]));
+
+  const bindingA = bindings.app.projection.agentCenterBinding(agentA);
+  assert.ok(bindingA);
+  assert.equal(bindings.app.projection.agentCenterBinding(agentA), bindingA);
+  const sessionA = createZhiyuCanonicalAgentCenterSession(agentA, `sim-conversation:${agentA}`, bindingA);
+  assert.ok(sessionA);
+  await sessionA.refresh();
+  await sessionA.overwriteSharedAIConfig({
+    expectedRevision: '1',
+    capabilities: [{
+      capabilityContract: 'text.embed',
+      requiredFeatures: [],
+      route: { oneofKind: 'local', local: {} },
+    }],
+  });
+  await sessionA.updateAutonomy({
+    expectedRevision: '1',
+    enabled: false,
+    mode: 'medium',
+    dailyTokenBudget: 2_048,
+    maxTokensPerHook: 256,
+  });
+  await sessionA.appearance.replaceAvatar('vrm');
+  const memoryA = sessionA.getSnapshot().state.cognition.memory?.items[0];
+  assert.ok(memoryA);
+  await sessionA.correctMemory({
+    memoryId: memoryA.memoryId,
+    correctedContent: 'Agent A 保留自己的模拟记忆。',
+  });
+  const avatarAssetRefA = sessionA.getSnapshot().state.appearance.avatarAssetRef;
+  assert.ok(avatarAssetRefA);
+  sessionA.dispose();
+
+  const bindingB = bindings.app.projection.agentCenterBinding(agentB);
+  assert.ok(bindingB);
+  const sessionB = createZhiyuCanonicalAgentCenterSession(agentB, `sim-conversation:${agentB}`, bindingB);
+  assert.ok(sessionB);
+  await sessionB.refresh();
+  assert.equal(sessionB.getSnapshot().state.sharedAIConfig?.revision, '2');
+  assert.equal(
+    sessionB.getSnapshot().state.sharedAIConfig?.aiConfig.capabilities[0]?.capabilityContract,
+    'text.embed',
+  );
+  assert.equal(sessionB.getSnapshot().state.autonomy.revision, '1');
+  assert.equal(sessionB.getSnapshot().state.autonomy.enabled, true);
+  assert.equal(sessionB.getSnapshot().state.appearance.presentationRevision, '1');
+  assert.equal(sessionB.getSnapshot().state.cognition.memory?.items[0]?.content, '模拟伙伴记得你偏好简洁、直接的回答。');
+  sessionB.dispose();
+
+  const reboundA = bindings.app.projection.agentCenterBinding(agentA);
+  assert.equal(reboundA, bindingA);
+  const reboundSessionA = createZhiyuCanonicalAgentCenterSession(agentA, `sim-conversation:${agentA}`, reboundA);
+  assert.ok(reboundSessionA);
+  await reboundSessionA.refresh();
+  assert.equal(reboundSessionA.getSnapshot().state.sharedAIConfig?.revision, '2');
+  assert.equal(reboundSessionA.getSnapshot().state.autonomy.revision, '2');
+  assert.equal(reboundSessionA.getSnapshot().state.autonomy.enabled, false);
+  assert.equal(reboundSessionA.getSnapshot().state.appearance.presentationRevision, '2');
+  assert.equal(reboundSessionA.getSnapshot().state.appearance.avatarAssetRef, avatarAssetRefA);
+  assert.equal(
+    reboundSessionA.getSnapshot().state.cognition.memory?.items[0]?.content,
+    'Agent A 保留自己的模拟记忆。',
+  );
+  const retainedAsset = await reboundA.client.presentation.readAsset({
+    agentHandle: agentA,
+    assetRef: avatarAssetRefA,
+  });
+  assert.equal(retainedAsset.assetRef, avatarAssetRefA);
+  assert.deepEqual([...retainedAsset.content], [1, 2, 3]);
+  reboundSessionA.dispose();
+
+  for (const dispose of cleanup.reverse()) await dispose();
+});
+
 test('Simulator Agent Center uses the canonical App factory, current conversation anchor, and handle-only configure client', async () => {
   const source = await readFile(path.resolve(import.meta.dirname, '../src/simulator/bindings.ts'), 'utf8');
   const canonicalSource = await readFile(path.resolve(import.meta.dirname, '../src/renderer/agent-center-session.ts'), 'utf8');
@@ -182,7 +289,10 @@ test('Simulator remints a rotated session handle by the exact previous Conversat
   for (const dispose of cleanup.reverse()) await dispose();
 });
 
-function simulatorContext(cleanup) {
+function simulatorContext(cleanup, agents = [Object.freeze({
+  agentHandle: `agent_ref_${'a'.repeat(43)}`,
+  displayName: '模拟伙伴',
+})]) {
   const scope = Object.freeze({
     domId: (localId) => `zhiyu-test--${localId}`,
     globalName: (localName) => `zhiyu-test--${localName}`,
@@ -206,10 +316,7 @@ function simulatorContext(cleanup) {
   const projected = Object.freeze({
     protocolRevision: 1,
     scenario: Object.freeze({
-      agents: Object.freeze([Object.freeze({
-        agentHandle: `agent_ref_${'a'.repeat(43)}`,
-        displayName: '模拟伙伴',
-      })]),
+      agents: Object.freeze(agents),
       responseText: '模拟回复',
     }),
     turnSequence: 0,

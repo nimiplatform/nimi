@@ -52,6 +52,35 @@ type Projection = {
   readonly carry: JsonRecord | null;
 };
 
+type SimulatedSharedAIConfigSnapshot = Awaited<
+  ReturnType<NimiLocalAppAgentConfigureClient['sharedAIConfig']['get']>
+>;
+type SimulatedSharedCapabilities = NonNullable<SimulatedSharedAIConfigSnapshot['config']>['capabilities'];
+type SimulatedAutonomy = Awaited<ReturnType<NimiLocalAppAgentConfigureClient['autonomy']['snapshot']>>;
+
+type SimulatedSharedAIConfigState = {
+  capabilities: SimulatedSharedCapabilities;
+  revision: string;
+};
+
+type SimulatedAgentOwnerState = {
+  autonomyRevision: string;
+  autonomy: SimulatedAutonomy;
+  presentationRevision: string;
+  presentationProfile: NimiLocalAppAgentPresentationProfile;
+  previousPresentationProfile: NimiLocalAppAgentPresentationProfile | null;
+  readonly presentationAssets: Map<string, NimiLocalAppAgentPresentationAsset>;
+  memoryItems: NimiLocalAppAgentMemoryItem[];
+  memoryEnabled: boolean;
+  forgottenMemoryCount: number;
+};
+
+type SimulatedAgentCenterOwnerState = {
+  readonly sharedAIConfig: SimulatedSharedAIConfigState;
+  readonly agents: Map<NimiLocalAppAgentHandle, SimulatedAgentOwnerState>;
+  readonly bindings: Map<NimiLocalAppAgentHandle, ZhiyuAgentCenterBinding>;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -323,77 +352,99 @@ async function invoke(
   return { revision: result.value.revision as number };
 }
 
+function createSimulatedAgentCenterOwnerState(): SimulatedAgentCenterOwnerState {
+  return {
+    sharedAIConfig: {
+      capabilities: [{
+        capabilityContract: 'text.generate',
+        requiredFeatures: [],
+        route: { oneofKind: 'local', local: {} },
+      }],
+      revision: '1',
+    },
+    agents: new Map(),
+    bindings: new Map(),
+  };
+}
+
+function simulatedAgentOwnerState(
+  context: ZhiyuSimulatorPrepareContext,
+  ownerState: SimulatedAgentCenterOwnerState,
+  agentHandle: NimiLocalAppAgentHandle,
+): SimulatedAgentOwnerState {
+  const existing = ownerState.agents.get(agentHandle);
+  if (existing) return existing;
+  const autonomyRevision = '1';
+  const presentationRevision = '1';
+  const occurredAt = new Date(context.clock.now() - 60_000).toISOString();
+  const created: SimulatedAgentOwnerState = {
+    autonomyRevision,
+    autonomy: Object.freeze({
+      enabled: true,
+      config: Object.freeze({
+        mode: 'low' as const,
+        dailyTokenBudget: 4_096,
+        maxTokensPerHook: 512,
+      }),
+      budgetExhausted: false,
+      usedTokensInWindow: 0,
+      autonomyRevision,
+    }),
+    presentationRevision,
+    presentationProfile: simulatedPresentationProfile(presentationRevision),
+    previousPresentationProfile: null,
+    presentationAssets: new Map(),
+    memoryItems: [Object.freeze({
+      memoryId: `sim-memory:${agentHandle}:1`,
+      content: '模拟伙伴记得你偏好简洁、直接的回答。',
+      epistemicStatus: 'explicit',
+      lifecycle: 'current',
+      occurredAt,
+      updatedAt: occurredAt,
+      sourceExplanation: '来自当前模拟会话中已提交的用户事实。',
+    })],
+    memoryEnabled: true,
+    forgottenMemoryCount: 0,
+  };
+  ownerState.agents.set(agentHandle, created);
+  return created;
+}
+
 function simulatedAgentCenterBinding(
   context: ZhiyuSimulatorPrepareContext,
+  ownerState: SimulatedAgentCenterOwnerState,
   agentHandle: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterBinding']>[0],
 ): ZhiyuAgentCenterBinding | null {
   const scenario = projection(context).scenario;
   const selected = scenario.agents.find((agent) => agent.agentHandle === agentHandle);
   if (!agentHandle || !selected) return null;
-
-  type SharedSnapshot = Awaited<ReturnType<NimiLocalAppAgentConfigureClient['sharedAIConfig']['get']>>;
-  type SharedCapabilities = NonNullable<SharedSnapshot['config']>['capabilities'];
-  let capabilities: SharedCapabilities = [{
-    capabilityContract: 'text.generate',
-    requiredFeatures: [],
-    route: { oneofKind: 'local', local: {} },
-  }];
-  let aiConfigRevision = '1';
+  const existingBinding = ownerState.bindings.get(agentHandle);
+  if (existingBinding) return existingBinding;
+  const agentState = simulatedAgentOwnerState(context, ownerState, agentHandle);
   const sharedAIConfig = () => Object.freeze({
     owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem' as const, runtimeLocalAgentSubsystem: {} } },
-    capabilities: [...capabilities],
+    capabilities: [...ownerState.sharedAIConfig.capabilities],
   });
-
-  type SimulatedAutonomy = Awaited<ReturnType<NimiLocalAppAgentConfigureClient['autonomy']['snapshot']>>;
-  let autonomyRevision = '1';
-  let autonomy: SimulatedAutonomy = Object.freeze({
-    enabled: true,
-    config: Object.freeze({
-      mode: 'low' as const,
-      dailyTokenBudget: 4_096,
-      maxTokensPerHook: 512,
-    }),
-    budgetExhausted: false,
-    usedTokensInWindow: 0,
-    autonomyRevision,
-  });
-
-  let presentationRevision = '1';
-  let presentationProfile: NimiLocalAppAgentPresentationProfile = simulatedPresentationProfile(presentationRevision);
-  let previousPresentationProfile: NimiLocalAppAgentPresentationProfile | null = null;
-  const presentationAssets = new Map<string, NimiLocalAppAgentPresentationAsset>();
   const presentationResult = () => ({
-    profile: { ...presentationProfile },
-    previousProfile: previousPresentationProfile,
-    defaultVoiceReference: presentationProfile.defaultVoiceReference,
-    avatarAutoplay: presentationProfile.avatarAutoplay,
-    presentationRevision,
+    profile: { ...agentState.presentationProfile },
+    previousProfile: agentState.previousPresentationProfile,
+    defaultVoiceReference: agentState.presentationProfile.defaultVoiceReference,
+    avatarAutoplay: agentState.presentationProfile.avatarAutoplay,
+    presentationRevision: agentState.presentationRevision,
   });
-
-  let memoryItems: NimiLocalAppAgentMemoryItem[] = [Object.freeze({
-    memoryId: `sim-memory:${agentHandle}:1`,
-    content: '模拟伙伴记得你偏好简洁、直接的回答。',
-    epistemicStatus: 'explicit',
-    lifecycle: 'current',
-    occurredAt: new Date(context.clock.now() - 60_000).toISOString(),
-    updatedAt: new Date(context.clock.now() - 60_000).toISOString(),
-    sourceExplanation: '来自当前模拟会话中已提交的用户事实。',
-  })];
-  let memoryEnabled = true;
-  let forgottenMemoryCount = 0;
   const memoryProjection = (
-    outcome: NimiLocalAppAgentMemoryProjection['outcome'] = memoryEnabled ? 'ready' : 'unconfigured',
+    outcome: NimiLocalAppAgentMemoryProjection['outcome'] = agentState.memoryEnabled ? 'ready' : 'unconfigured',
   ): NimiLocalAppAgentMemoryProjection => {
-    const currentCount = memoryItems.filter((item) => item.lifecycle === 'current').length;
-    const supersededCount = memoryItems.filter((item) => item.lifecycle === 'superseded').length;
+    const currentCount = agentState.memoryItems.filter((item) => item.lifecycle === 'current').length;
+    const supersededCount = agentState.memoryItems.filter((item) => item.lifecycle === 'superseded').length;
     return Object.freeze({
       outcome,
-      enabled: memoryEnabled,
+      enabled: agentState.memoryEnabled,
       adoptionRequired: false,
-      items: Object.freeze([...memoryItems]),
+      items: Object.freeze([...agentState.memoryItems]),
       currentCount,
       supersededCount,
-      forgottenCount: forgottenMemoryCount,
+      forgottenCount: agentState.forgottenMemoryCount,
       nextPageToken: null,
     });
   };
@@ -403,27 +454,27 @@ function simulatedAgentCenterBinding(
       async get() {
         return Object.freeze({
           config: sharedAIConfig(),
-          revision: aiConfigRevision,
+          revision: ownerState.sharedAIConfig.revision,
           effectiveSelections: Object.freeze([]),
           participation: SIMULATED_LOCAL_AGENT_PARTICIPATION,
         });
       },
       async overwrite(input) {
-        if (input.expectedRevision !== aiConfigRevision) {
+        if (input.expectedRevision !== ownerState.sharedAIConfig.revision) {
           return Object.freeze({
             outcome: 'conflict' as const,
             config: sharedAIConfig(),
-            revision: aiConfigRevision,
+            revision: ownerState.sharedAIConfig.revision,
             reasonCode: 'AGENT_AI_CONFIG_REVISION_CONFLICT' as const,
             participation: SIMULATED_LOCAL_AGENT_PARTICIPATION,
           });
         }
-        capabilities = [...input.capabilities];
-        aiConfigRevision = String(BigInt(aiConfigRevision) + 1n);
+        ownerState.sharedAIConfig.capabilities = [...input.capabilities];
+        ownerState.sharedAIConfig.revision = String(BigInt(ownerState.sharedAIConfig.revision) + 1n);
         return Object.freeze({
           outcome: 'committed' as const,
           config: sharedAIConfig(),
-          revision: aiConfigRevision,
+          revision: ownerState.sharedAIConfig.revision,
           participation: SIMULATED_LOCAL_AGENT_PARTICIPATION,
         });
       },
@@ -437,6 +488,12 @@ function simulatedAgentCenterBinding(
         }
         if (input.kind === 'preset-voices') {
           return Object.freeze({ kind: 'preset-voices' as const, options: Object.freeze([]), truncated: false });
+        }
+        if (input.kind === 'cloud-connectors') {
+          return Object.freeze({ kind: 'cloud-connectors' as const, options: Object.freeze([]), truncated: false });
+        }
+        if (input.kind === 'cloud-targets') {
+          return Object.freeze({ kind: 'cloud-targets' as const, options: Object.freeze([]), truncated: false });
         }
         return Object.freeze({
           kind: 'local-loadouts' as const,
@@ -460,31 +517,31 @@ function simulatedAgentCenterBinding(
     autonomy: {
       async snapshot(input) {
         assertSimulatedHandle(input.agentHandle, agentHandle);
-        return autonomy;
+        return agentState.autonomy;
       },
       async update(input) {
         assertSimulatedHandle(input.agentHandle, agentHandle);
-        if (input.expectedAutonomyRevision !== autonomyRevision) {
+        if (input.expectedAutonomyRevision !== agentState.autonomyRevision) {
           throw new Error('ZHIYU_SIMULATOR_AUTONOMY_REVISION_CONFLICT');
         }
-        const config = input.intent.config ?? autonomy.config ?? {
+        const config = input.intent.config ?? agentState.autonomy.config ?? {
           mode: 'low' as const,
           dailyTokenBudget: 4_096,
           maxTokensPerHook: 512,
         };
-        autonomyRevision = String(BigInt(autonomyRevision) + 1n);
-        autonomy = Object.freeze({
-          ...autonomy,
-          enabled: input.intent.enabled ?? autonomy.enabled,
+        agentState.autonomyRevision = String(BigInt(agentState.autonomyRevision) + 1n);
+        agentState.autonomy = Object.freeze({
+          ...agentState.autonomy,
+          enabled: input.intent.enabled ?? agentState.autonomy.enabled,
           config: Object.freeze({
             ...config,
             mode: simulatedAutonomyMode(config.mode),
             dailyTokenBudget: simulatedNonNegativeInteger(config.dailyTokenBudget, 'DAILY_TOKEN_BUDGET'),
             maxTokensPerHook: simulatedNonNegativeInteger(config.maxTokensPerHook, 'MAX_TOKENS_PER_HOOK'),
           }),
-          autonomyRevision,
+          autonomyRevision: agentState.autonomyRevision,
         });
-        return autonomy;
+        return agentState.autonomy;
       },
     },
     presentation: {
@@ -494,7 +551,7 @@ function simulatedAgentCenterBinding(
       },
       async readAsset(input) {
         assertSimulatedHandle(input.agentHandle, agentHandle);
-        const asset = presentationAssets.get(input.assetRef);
+        const asset = agentState.presentationAssets.get(input.assetRef);
         if (!asset) throw new Error('ZHIYU_SIMULATOR_PRESENTATION_ASSET_NOT_FOUND');
         return Object.freeze({
           ...asset,
@@ -503,7 +560,7 @@ function simulatedAgentCenterBinding(
       },
       async commit(input) {
         assertSimulatedHandle(input.agentHandle, agentHandle);
-        if (input.expectedPresentationRevision !== presentationRevision) {
+        if (input.expectedPresentationRevision !== agentState.presentationRevision) {
           throw new Error('ZHIYU_SIMULATOR_PRESENTATION_REVISION_CONFLICT');
         }
         let avatarAssetRef: string | undefined;
@@ -517,7 +574,7 @@ function simulatedAgentCenterBinding(
             }
             assertSimulatedAvatarMaterial(backendKind, asset.fileName, asset.mediaType);
             avatarAssetRef = `${backendKind}_${asset.sha256.slice(0, 12)}`;
-            presentationAssets.set(avatarAssetRef, Object.freeze({
+            agentState.presentationAssets.set(avatarAssetRef, Object.freeze({
               assetRef: avatarAssetRef,
               role: 'avatar' as const,
               backendKind,
@@ -530,21 +587,21 @@ function simulatedAgentCenterBinding(
             backgroundAssetRef = `background_${asset.sha256.slice(0, 12)}`;
           }
         }
-        previousPresentationProfile = presentationProfile;
-        presentationRevision = String(BigInt(presentationRevision) + 1n);
-        presentationProfile = Object.freeze({
-          ...presentationProfile,
+        agentState.previousPresentationProfile = agentState.presentationProfile;
+        agentState.presentationRevision = String(BigInt(agentState.presentationRevision) + 1n);
+        agentState.presentationProfile = Object.freeze({
+          ...agentState.presentationProfile,
           ...input.intent,
           ...(avatarAssetRef ? { avatarAssetRef } : {}),
           ...(backgroundAssetRef ? { backgroundAssetRef } : {}),
-          revision: presentationRevision,
+          revision: agentState.presentationRevision,
         });
         const retainedAvatarRefs = new Set([
-          presentationProfile.avatarAssetRef,
-          previousPresentationProfile?.avatarAssetRef ?? '',
+          agentState.presentationProfile.avatarAssetRef,
+          agentState.previousPresentationProfile?.avatarAssetRef ?? '',
         ]);
-        for (const assetRef of presentationAssets.keys()) {
-          if (!retainedAvatarRefs.has(assetRef)) presentationAssets.delete(assetRef);
+        for (const assetRef of agentState.presentationAssets.keys()) {
+          if (!retainedAvatarRefs.has(assetRef)) agentState.presentationAssets.delete(assetRef);
         }
         return presentationResult();
       },
@@ -556,9 +613,9 @@ function simulatedAgentCenterBinding(
       },
       async correct(input) {
         assertSimulatedHandle(input.agentHandle, agentHandle);
-        const index = memoryItems.findIndex((item) => item.memoryId === input.memoryId && item.lifecycle === 'current');
+        const index = agentState.memoryItems.findIndex((item) => item.memoryId === input.memoryId && item.lifecycle === 'current');
         if (index < 0 || !input.correctedContent.trim()) throw new Error('ZHIYU_SIMULATOR_MEMORY_CORRECTION_REJECTED');
-        memoryItems = memoryItems.map((item, itemIndex) => itemIndex === index
+        agentState.memoryItems = agentState.memoryItems.map((item, itemIndex) => itemIndex === index
           ? Object.freeze({ ...item, content: input.correctedContent, updatedAt: new Date(context.clock.now()).toISOString() })
           : item);
         return Object.freeze({
@@ -570,11 +627,11 @@ function simulatedAgentCenterBinding(
       async forget(input) {
         assertSimulatedHandle(input.agentHandle, agentHandle);
         const targets = new Set(input.memoryIds);
-        const affectedMemoryIds = memoryItems
+        const affectedMemoryIds = agentState.memoryItems
           .filter((item) => targets.has(item.memoryId) && item.lifecycle === 'current')
           .map((item) => item.memoryId);
-        memoryItems = memoryItems.filter((item) => !affectedMemoryIds.includes(item.memoryId));
-        forgottenMemoryCount += affectedMemoryIds.length;
+        agentState.memoryItems = agentState.memoryItems.filter((item) => !affectedMemoryIds.includes(item.memoryId));
+        agentState.forgottenMemoryCount += affectedMemoryIds.length;
         const outcome = affectedMemoryIds.length > 0 ? 'forgotten' as const : 'no_effect' as const;
         return Object.freeze({
           outcome,
@@ -584,7 +641,7 @@ function simulatedAgentCenterBinding(
       },
       async setEnabled(input) {
         assertSimulatedHandle(input.agentHandle, agentHandle);
-        memoryEnabled = input.enabled;
+        agentState.memoryEnabled = input.enabled;
         return Object.freeze({
           outcome: 'committed' as const,
           affectedMemoryIds: Object.freeze([]),
@@ -593,9 +650,9 @@ function simulatedAgentCenterBinding(
       },
       async deleteAll(input) {
         assertSimulatedHandle(input.agentHandle, agentHandle);
-        const affectedMemoryIds = memoryItems.map((item) => item.memoryId);
-        memoryItems = [];
-        forgottenMemoryCount = 0;
+        const affectedMemoryIds = agentState.memoryItems.map((item) => item.memoryId);
+        agentState.memoryItems = [];
+        agentState.forgottenMemoryCount = 0;
         return Object.freeze({
           outcome: 'deleted' as const,
           affectedMemoryIds: Object.freeze(affectedMemoryIds),
@@ -632,11 +689,11 @@ function simulatedAgentCenterBinding(
             reasonCode: 'none' as const,
             lanes: Object.freeze([
               Object.freeze({ laneId: 'source_identity' as const, state: 'included' as const, includedItemCount: 1, omittedItemCount: 0, truncatedItemCount: 0, allocatedTokens: '64', usedTokens: '32' }),
-              Object.freeze({ laneId: 'canonical_memory' as const, state: memoryEnabled ? 'included' as const : 'empty' as const, includedItemCount: memoryEnabled ? currentMemoryCount : 0, omittedItemCount: 0, truncatedItemCount: 0, allocatedTokens: '64', usedTokens: memoryEnabled ? '32' : '0' }),
+              Object.freeze({ laneId: 'canonical_memory' as const, state: agentState.memoryEnabled ? 'included' as const : 'empty' as const, includedItemCount: agentState.memoryEnabled ? currentMemoryCount : 0, omittedItemCount: 0, truncatedItemCount: 0, allocatedTokens: '64', usedTokens: agentState.memoryEnabled ? '32' : '0' }),
             ]),
             inputBudgetTokens: '1024',
-            usedTokens: memoryEnabled ? '64' : '32',
-            requiredInputTokens: memoryEnabled ? '64' : '32',
+            usedTokens: agentState.memoryEnabled ? '64' : '32',
+            requiredInputTokens: agentState.memoryEnabled ? '64' : '32',
             requiredContextWindowTokens: '256',
             truncation: Object.freeze([Object.freeze({ reason: 'none' as const, omittedItemCount: 0, truncatedItemCount: 0 })]),
             transcriptTurnCount: 1,
@@ -646,7 +703,7 @@ function simulatedAgentCenterBinding(
             sourceAdapterStatus: 'ready' as const,
             sourceSelectionStatus: 'ready' as const,
             conversationSummaryStatus: 'absent' as const,
-            privateRecallCount: memoryEnabled ? currentMemoryCount : 0,
+            privateRecallCount: agentState.memoryEnabled ? currentMemoryCount : 0,
           }),
           actionAvailability: Object.freeze({
             getSharedAIConfig: Object.freeze({ state: 'available' as const, reason: null }),
@@ -654,16 +711,16 @@ function simulatedAgentCenterBinding(
             readAutonomy: Object.freeze({ state: 'available' as const, reason: null }),
             updateAutonomy: Object.freeze({ state: 'available' as const, reason: null }),
             inspectMemory: Object.freeze({ state: 'available' as const, reason: null }),
-            correctMemory: memoryEnabled
+            correctMemory: agentState.memoryEnabled
               ? Object.freeze({ state: 'available' as const, reason: null })
               : Object.freeze({ state: 'unavailable' as const, reason: 'memory-disabled' as const }),
-            forgetMemory: memoryEnabled
+            forgetMemory: agentState.memoryEnabled
               ? Object.freeze({ state: 'available' as const, reason: null })
               : Object.freeze({ state: 'unavailable' as const, reason: 'memory-disabled' as const }),
             switchMemory: Object.freeze({ state: 'available' as const, reason: null }),
             deleteAllMemory: Object.freeze({ state: 'available' as const, reason: null }),
             replaceAppearance: Object.freeze({ state: 'available' as const, reason: null }),
-            restorePreviousAppearance: previousPresentationProfile
+            restorePreviousAppearance: agentState.previousPresentationProfile
               ? Object.freeze({ state: 'available' as const, reason: null })
               : Object.freeze({ state: 'unavailable' as const, reason: 'previous-presentation-unavailable' as const }),
           }),
@@ -710,11 +767,13 @@ function simulatedAgentCenterBinding(
     },
   });
 
-  return Object.freeze({
+  const binding = Object.freeze({
     agentHandle,
     client,
     hostMechanics,
   });
+  ownerState.bindings.set(agentHandle, binding);
+  return binding;
 }
 
 function simulatedPresentationProfile(revision: string): NimiLocalAppAgentPresentationProfile {
@@ -782,6 +841,7 @@ function assertSimulatedHandle(input: NimiLocalAppAgentHandle, expected: NimiLoc
 export function createZhiyuSimulatorBindings(
   context: ZhiyuSimulatorPrepareContext,
 ): ZhiyuCanonicalRendererBindings {
+  const agentCenterOwnerState = createSimulatedAgentCenterOwnerState();
   let currentRoute = context.route.get();
   const routeListeners = new Set<() => void>();
   const unsubscribeRoute = context.route.subscribe((route) => {
@@ -803,7 +863,7 @@ export function createZhiyuSimulatorBindings(
       projection: Object.freeze({
         agentCenterBinding: (
           agentHandle: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['agentCenterBinding']>[0],
-        ) => simulatedAgentCenterBinding(context, agentHandle),
+        ) => simulatedAgentCenterBinding(context, agentCenterOwnerState, agentHandle),
         loadHome: (
           input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadHome']>[0],
         ) => simulatedHome(context, input),
