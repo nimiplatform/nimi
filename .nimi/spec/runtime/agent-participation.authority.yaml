@@ -742,3 +742,13 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.avatar-host-target-plane
+  - id: rule.nimi.runtime.agent-participation.r196
+    kind: rule
+    title: Current Avatar Host target revalidation has one exact private operation
+    modality: must
+    statement: RuntimeAgentService RevalidateLocalAppAvatarHostTarget is a Desktop-Host-private unary mechanic whose request and response each contain exactly avatarHostTargetRef; Runtime accepts it only on the current verified Desktop native Host connection and protected account-product session with current agent.local reference-list coverage, recomputes the generation-bounded refs of current-account active LocalAgents under current account and Runtime generation, requires exactly one constant-time match, and returns that same ref without raw identity or another field. The method is not a public App Operation Contract row, is not present on an SDK product client, public wire-type surface, renderer command, or ordinary formal App Host profile, and is used only to revalidate the current companion immediately before an already user-confirmed different-Agent replacement.
+    condition: Whenever Desktop Host is about to consume a one-time switch-intent ref to replace the current Avatar companion.
+    failure: Reject extra fields, an absent or stale protected Host session, missing coverage, an unknown, stale, cross-account, inactive-Agent, deleted-Agent, old-generation, ambiguous, caller-authored, or renderer-supplied ref, and leave the current Avatar instance unchanged.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.avatar-host-target-plane
