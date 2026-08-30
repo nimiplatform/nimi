@@ -18,6 +18,7 @@ const GET_RECORD = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord
 const GET_SELECTED_DATA_ROOT = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot';
 const ENSURE_RECORD = '/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated';
 const SELECT_DATA_ROOT = '/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot';
+const INITIALIZE_ROOT_ACTIVATION = '/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation';
 const REPLACE_DATA_ROOT = '/nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot';
 const START_CHECK_SYNC = '/nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync';
 const GET_CHECK_SYNC = '/nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync';
@@ -417,19 +418,27 @@ test('Electron Product Control reconnects source Runtime through the explicit Ch
   assert.equal(replacement.error, 'SOURCE_RUNTIME_RESTART_THEN_RUN_CHECK_SYNC_REQUIRED_AFTER_DATA_ROOT_ACTIVATION');
   assert.deepEqual(events, [GET_RECORD, 'quiesce', REPLACE_DATA_ROOT, 'commit']);
 
-  await host.commandHandlers.product_control_check_sync_start({
-    command: 'product_control_check_sync_start',
-    payload: {},
-  });
+  await Promise.all([
+    host.commandHandlers.product_control_check_sync_start({
+      command: 'product_control_check_sync_start',
+      payload: {},
+    }),
+    host.commandHandlers.product_control_check_sync_start({
+      command: 'product_control_check_sync_start',
+      payload: {},
+    }),
+  ]);
   assert.deepEqual(events, [
     GET_RECORD,
     'quiesce',
     REPLACE_DATA_ROOT,
     'commit',
+    INITIALIZE_ROOT_ACTIVATION,
+    GET_CHECK_SYNC,
     GET_RECORD,
     GET_CHECK_SYNC,
     'activate',
-    START_CHECK_SYNC,
+    GET_CHECK_SYNC,
   ]);
 });
 

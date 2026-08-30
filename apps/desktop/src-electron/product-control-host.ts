@@ -201,9 +201,37 @@ class ElectronProductControlHost {
     if (command === 'product_control_check_sync_start') {
       requireEmptyPayload(payload);
       if (this.operationGate.isClosed()) {
-        await this.recoverDataRootHandoff();
+        return this.operationGate.runDiagnostic(async () => {
+          if (!this.operationGate.isClosed()) {
+            return this.checkSyncProjection(METHOD.getCheckSync, 2_000);
+          }
+          const initialized = await this.projection(METHOD.initializeRootActivation, {}, 10_000);
+          const activation = initialized.record?.dataRoot?.rootActivationId ?? null;
+          if (!activation) {
+            throw new Error('desktop-product-control-current-activation-unavailable');
+          }
+          const current = await this.checkSyncProjection(METHOD.getCheckSync, 2_000);
+          const currentCoversActivation = current.obligation?.rootActivationId === activation
+            && (
+              current.obligation.state === 'completed'
+              || (
+                current.run?.rootActivationId === activation
+                && (current.run.state === 'running' || current.run.state === 'completed')
+              )
+            );
+          if (currentCoversActivation) {
+            await this.recoverDataRootHandoff();
+            return current;
+          }
+          const started = await this.checkSyncProjection(METHOD.startCheckSync, 10_000);
+          await this.recoverDataRootHandoff();
+          return started;
+        });
       }
-      return this.operationGate.runExclusive(() => this.checkSyncProjection(METHOD.startCheckSync, 10_000));
+      return this.operationGate.runExclusive(async () => {
+        await this.projection(METHOD.initializeRootActivation, {}, 10_000);
+        return this.checkSyncProjection(METHOD.startCheckSync, 10_000);
+      });
     }
     if (command === 'product_control_check_sync_get') {
       requireEmptyPayload(payload);
