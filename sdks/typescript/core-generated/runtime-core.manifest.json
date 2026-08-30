@@ -169,6 +169,24 @@
           "response_stream": false
         },
         {
+          "name": "ResolveLocalAppAvatarHostTarget",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget",
+          "kind": "unary",
+          "request_type": "ResolveLocalAppAvatarHostTargetRequest",
+          "response_type": "ResolveLocalAppAvatarHostTargetResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "RevalidateLocalAppAvatarHostTarget",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget",
+          "kind": "unary",
+          "request_type": "RevalidateLocalAppAvatarHostTargetRequest",
+          "response_type": "RevalidateLocalAppAvatarHostTargetResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "OpenLocalAppConversation",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation",
           "kind": "unary",
@@ -2092,6 +2110,8 @@
     "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact",
     "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
     "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
+    "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget",
+    "/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget",
     "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
     "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile",
     "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig",
@@ -2704,6 +2724,22 @@
       "kind": "unary",
       "request_type": "RenderLocalAppConversationVoiceRequest",
       "response_type": "RenderLocalAppConversationVoiceResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget",
+      "service": "RuntimeAgentService",
+      "method": "ResolveLocalAppAvatarHostTarget",
+      "kind": "unary",
+      "request_type": "ResolveLocalAppAvatarHostTargetRequest",
+      "response_type": "ResolveLocalAppAvatarHostTargetResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget",
+      "service": "RuntimeAgentService",
+      "method": "RevalidateLocalAppAvatarHostTarget",
+      "kind": "unary",
+      "request_type": "RevalidateLocalAppAvatarHostTargetRequest",
+      "response_type": "RevalidateLocalAppAvatarHostTargetResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
@@ -4402,6 +4438,22 @@
       "kind": "unary",
       "request_type": "RenderLocalAppConversationVoiceRequest",
       "response_type": "RenderLocalAppConversationVoiceResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget",
+      "service": "RuntimeAgentService",
+      "method": "ResolveLocalAppAvatarHostTarget",
+      "kind": "unary",
+      "request_type": "ResolveLocalAppAvatarHostTargetRequest",
+      "response_type": "ResolveLocalAppAvatarHostTargetResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget",
+      "service": "RuntimeAgentService",
+      "method": "RevalidateLocalAppAvatarHostTarget",
+      "kind": "unary",
+      "request_type": "RevalidateLocalAppAvatarHostTargetRequest",
+      "response_type": "RevalidateLocalAppAvatarHostTargetResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
@@ -6289,6 +6341,8 @@
       "RequestPresenceVerificationResponse",
       "RequestRuntimeRestartRequest",
       "RequestRuntimeRestartResponse",
+      "ResolveLocalAppAvatarHostTargetRequest",
+      "ResolveLocalAppAvatarHostTargetResponse",
       "ResolveLocalEnvironmentActivationGateRequest",
       "ResolveLocalEnvironmentActivationGateResponse",
       "ResolveLocalEnvironmentPlanRequest",
@@ -6301,6 +6355,8 @@
       "ResumeLocalTransferResponse",
       "RetryLocalEnvironmentDependencyJobRequest",
       "RetryLocalEnvironmentDependencyJobResponse",
+      "RevalidateLocalAppAvatarHostTargetRequest",
+      "RevalidateLocalAppAvatarHostTargetResponse",
       "RevealLocalAppAssetRequest",
       "RevealLocalAppAssetResponse",
       "RevokeExternalPrincipalSessionRequest",
@@ -28919,6 +28975,39 @@
         "source_file": "proto/runtime/v1/runtime_service_control.proto"
       },
       {
+        "name": "ResolveLocalAppAvatarHostTargetRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "ResolveLocalAppAvatarHostTargetResponse",
+        "fields": [
+          {
+            "name": "avatar_host_target_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "ResolveLocalEnvironmentActivationGateRequest",
         "fields": [
           {
@@ -29257,6 +29346,32 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "RevalidateLocalAppAvatarHostTargetRequest",
+        "fields": [
+          {
+            "name": "avatar_host_target_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "RevalidateLocalAppAvatarHostTargetResponse",
+        "fields": [
+          {
+            "name": "avatar_host_target_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "RevealLocalAppAssetRequest",

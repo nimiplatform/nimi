@@ -28,7 +28,7 @@ const beginManualDragWindowMock = vi.fn();
 const moveManualDragWindowMock = vi.fn();
 const constrainWindowToVisibleAreaMock = vi.fn();
 const runtimeFlags = vi.hoisted(() => ({
-  tauriRuntime: false,
+  hostRuntime: false,
 }));
 
 vi.mock('../app-shell/avatar-window-commands.js', () => ({
@@ -40,16 +40,10 @@ vi.mock('../app-shell/avatar-window-commands.js', () => ({
   setAlwaysOnTop: vi.fn(),
 }));
 
-vi.mock('../app-shell/tauri-lifecycle.js', () => ({
-  isTauriRuntime: () => runtimeFlags.tauriRuntime,
-  onLaunchContextUpdated: () => Promise.resolve(() => {}),
-}));
-
 vi.mock('../app-shell/avatar-host-bridge.js', () => ({
   // Manual drag now runs whenever an avatar host runtime is present; the test
-  // toggles it via the same `runtimeFlags.tauriRuntime` seam used for
-  // click-through gating.
-  hasAvatarHostRuntime: () => runtimeFlags.tauriRuntime,
+  // toggles it via the same host-runtime seam used for click-through gating.
+  hasAvatarHostRuntime: () => runtimeFlags.hostRuntime,
 }));
 
 vi.mock('@nimiplatform/kit/features/avatar/headless', async (importOriginal) => {
@@ -89,17 +83,25 @@ function createMockBackend(input?: {
   audioConsumer?: BackendAudioConsumer;
   hitRegion?: BackendHitRegion;
   onSurfaceProps?: (props: BackendSurfaceProps) => void;
+  onMount?: () => void;
+  onUnmount?: () => void;
 }): BackendBranch & { kind: 'live2d' } {
   const audioConsumer = input?.audioConsumer ?? createAudioConsumerStub();
   const hitRegion = input?.hitRegion ?? createHitRegionStub();
   const Component: ComponentType<BackendSurfaceProps> = (props) => {
     input?.onSurfaceProps?.(props);
     useEffect(() => {
+      input?.onMount?.();
+      return () => input?.onUnmount?.();
+    }, []);
+    useEffect(() => {
       props.onAudioConsumerReady?.(audioConsumer);
       props.onHitRegionChange?.(hitRegion);
+      props.onPresentationStateChange?.({ kind: 'ready' });
     }, [
       props.onAudioConsumerReady,
       props.onHitRegionChange,
+      props.onPresentationStateChange,
     ]);
     return null;
   };
@@ -107,7 +109,7 @@ function createMockBackend(input?: {
     kind: 'live2d',
     nominalBounds: { width: 400, height: 600, bodyCenterX: 0.5, bodyCenterY: 0.5 },
     projection: {
-      applyActivity() {},
+      applyActivity() { return 'applied'; },
       applyEmotion() {},
       applyMotion() {},
       applyExpression() {},
@@ -129,7 +131,7 @@ beforeEach(() => {
   moveManualDragWindowMock.mockResolvedValue(undefined);
   constrainWindowToVisibleAreaMock.mockReset();
   constrainWindowToVisibleAreaMock.mockResolvedValue(undefined);
-  runtimeFlags.tauriRuntime = false;
+  runtimeFlags.hostRuntime = false;
   getCursorClientPositionMock.mockResolvedValue({
     screenX: 200,
     screenY: 200,
@@ -196,7 +198,7 @@ describe('EmbodimentStage — render', () => {
   });
 
   it('serializes keyboard window nudges without emitting drag semantics', async () => {
-    runtimeFlags.tauriRuntime = true;
+    runtimeFlags.hostRuntime = true;
     const emit = vi.fn();
     render(<EmbodimentStage {...baseProps} interactionModality="keyboard" emit={emit} />);
     const stage = screen.getByTestId('avatar-embodiment-stage');
@@ -216,7 +218,7 @@ describe('EmbodimentStage — render', () => {
   });
 
   it('does not move the window for assistive-technology modifiers or key repeat', async () => {
-    runtimeFlags.tauriRuntime = true;
+    runtimeFlags.hostRuntime = true;
     render(<EmbodimentStage {...baseProps} interactionModality="keyboard" />);
     const stage = screen.getByTestId('avatar-embodiment-stage');
 
@@ -235,6 +237,58 @@ describe('EmbodimentStage — render', () => {
     render(<EmbodimentStage {...baseProps} embodied={false} />);
     expect(screen.getByTestId('avatar-embodiment-stage')).toBeTruthy();
   });
+
+  it('renders a development preview without product interaction, audio, or Host movement', async () => {
+    runtimeFlags.hostRuntime = true;
+    const emit = vi.fn();
+    const onAvatarWheel = vi.fn();
+    const consumer = createAudioConsumerStub();
+    render(
+      <EmbodimentStage
+        {...baseProps}
+        backend={createMockBackend({ audioConsumer: consumer })}
+        embodied={false}
+        interactive={false}
+        interactionModality="keyboard"
+        emit={emit}
+        onAvatarWheel={onAvatarWheel}
+      />,
+    );
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    installStageRect(stage);
+    expect(stage.getAttribute('tabindex')).toBe('-1');
+    expect(stage.getAttribute('aria-keyshortcuts')).toBeNull();
+    expect(registerLipsyncSinkMock).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(stage, { key: 'F10', shiftKey: true });
+    fireEvent.keyDown(stage, { key: 'ArrowRight' });
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 80,
+      clientX: 200,
+      clientY: 300,
+      screenX: 800,
+      screenY: 500,
+    });
+    fireEvent.pointerUp(stage, {
+      button: 0,
+      pointerId: 80,
+      clientX: 200,
+      clientY: 300,
+      screenX: 800,
+      screenY: 500,
+    });
+    fireEvent.wheel(stage, { deltaY: -100, clientX: 200, clientY: 300 });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(emit).not.toHaveBeenCalled();
+    expect(onAvatarWheel).not.toHaveBeenCalled();
+    expect(beginManualDragWindowMock).not.toHaveBeenCalled();
+    expect(moveManualDragWindowMock).not.toHaveBeenCalled();
+  });
 });
 
 describe('EmbodimentStage — BackendBranch surface mount', () => {
@@ -250,6 +304,51 @@ describe('EmbodimentStage — BackendBranch surface mount', () => {
     const backend = createMockBackend({ onSurfaceProps: (props) => observed.push(props) });
     render(<EmbodimentStage {...baseProps} backend={backend} reducedMotion />);
     expect(observed.at(-1)?.reducedMotion).toBe(true);
+  });
+
+  it('keeps the staged surface mounted while promoting it to active without early audio attachment', () => {
+    const oldConsumer = createAudioConsumerStub();
+    const candidateConsumer = createAudioConsumerStub();
+    const candidateMounted = vi.fn();
+    const candidateUnmounted = vi.fn();
+    const oldBackend = createMockBackend({ audioConsumer: oldConsumer });
+    const candidateBackend = createMockBackend({
+      audioConsumer: candidateConsumer,
+      onMount: candidateMounted,
+      onUnmount: candidateUnmounted,
+    });
+    const stagedReady = vi.fn();
+    const result = render(
+      <EmbodimentStage
+        {...baseProps}
+        backend={oldBackend}
+        presentationKey="old"
+        stagingPresentation={{
+          backend: candidateBackend,
+          presentationKey: 'candidate',
+          onPresentationStateChange: stagedReady,
+        }}
+      />,
+    );
+
+    expect(candidateMounted).toHaveBeenCalledOnce();
+    expect(candidateUnmounted).not.toHaveBeenCalled();
+    expect(stagedReady).toHaveBeenCalledWith({ kind: 'ready' });
+    expect(registerLipsyncSinkMock).toHaveBeenCalledWith(oldConsumer);
+    expect(registerLipsyncSinkMock).not.toHaveBeenCalledWith(candidateConsumer);
+
+    result.rerender(
+      <EmbodimentStage
+        {...baseProps}
+        backend={candidateBackend}
+        presentationKey="candidate"
+        stagingPresentation={null}
+      />,
+    );
+
+    expect(candidateMounted).toHaveBeenCalledOnce();
+    expect(candidateUnmounted).not.toHaveBeenCalled();
+    expect(registerLipsyncSinkMock).toHaveBeenCalledWith(candidateConsumer);
   });
 
   it('does not fire click-through from hit-region change alone beyond mount reset', () => {
@@ -460,12 +559,13 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
   });
 
   it('macOS manual drag uses absolute target movement and freezes click-through during the drag', async () => {
-    runtimeFlags.tauriRuntime = true;
+    runtimeFlags.hostRuntime = true;
     Object.defineProperty(window.navigator, 'platform', {
       value: 'MacIntel',
       configurable: true,
     });
     const isOpaqueAtClientPoint = vi.fn(() => true);
+    const emit = vi.fn();
     const backend = createMockBackend({
       hitRegion: {
         body: { left: 0, top: 0, right: 1, bottom: 1 },
@@ -473,7 +573,7 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
         isOpaqueAtClientPoint,
       },
     });
-    render(<EmbodimentStage {...baseProps} backend={backend} />);
+    render(<EmbodimentStage {...baseProps} backend={backend} emit={emit} />);
     setIgnoreCursorEventsMock.mockClear();
     const stage = screen.getByTestId('avatar-embodiment-stage');
     installStageRect(stage);
@@ -498,6 +598,21 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
       button: 0,
       buttons: 1,
       pointerId: 7,
+      clientX: 123,
+      clientY: 220,
+      screenX: 803,
+      screenY: 500,
+    });
+    act(() => {
+      vi.advanceTimersByTime(20);
+    });
+    expect(moveManualDragWindowMock).not.toHaveBeenCalled();
+    expect(emit.mock.calls.some(([event]) => event.name === 'avatar.user.drag.start')).toBe(false);
+
+    fireEvent.pointerMove(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 7,
       clientX: 180,
       clientY: 260,
       screenX: 860,
@@ -514,10 +629,47 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     });
     expect(isOpaqueAtClientPoint).not.toHaveBeenCalled();
     expect(setIgnoreCursorEventsMock).not.toHaveBeenCalled();
+
+    fireEvent.pointerMove(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 7,
+      clientX: 125,
+      clientY: 220,
+      screenX: 1500,
+      screenY: 900,
+    });
+    await act(async () => {
+      vi.advanceTimersByTime(100);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(moveManualDragWindowMock).toHaveBeenLastCalledWith({
+      origin: { x: 1000, y: 700 },
+      totalDeltaX: 700,
+      totalDeltaY: 400,
+    });
+    expect(setIgnoreCursorEventsMock).not.toHaveBeenCalledWith(true);
+
+    fireEvent.pointerUp(stage, {
+      button: 0,
+      buttons: 0,
+      pointerId: 7,
+      clientX: 125,
+      clientY: 220,
+      screenX: 1500,
+      screenY: 900,
+    });
+    expect(emit.mock.calls.map(([event]) => event.name)).toEqual(expect.arrayContaining([
+      'avatar.user.drag.start',
+      'avatar.user.drag.move',
+      'avatar.user.drag.end',
+    ]));
+    expect(emit.mock.calls.some(([event]) => event.name === 'avatar.user.click')).toBe(false);
   });
 
   it('does not arm manual drag on a transparent backend pixel', async () => {
-    runtimeFlags.tauriRuntime = true;
+    runtimeFlags.hostRuntime = true;
     const backend = createMockBackend({
       hitRegion: {
         body: { left: 0, top: 0, right: 1, bottom: 1 },
@@ -528,6 +680,7 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     render(<EmbodimentStage {...baseProps} backend={backend} />);
     setIgnoreCursorEventsMock.mockClear();
     const stage = screen.getByTestId('avatar-embodiment-stage');
+    installStageRect(stage);
 
     fireEvent.pointerDown(stage, {
       button: 0,
@@ -544,8 +697,173 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     expect(setIgnoreCursorEventsMock).toHaveBeenCalledWith(true);
   });
 
+  it('falls back to the current drag rectangle when a Tier A/B precision probe returns null', async () => {
+    runtimeFlags.hostRuntime = true;
+    const emit = vi.fn();
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0, top: 0, right: 1, bottom: 1 },
+        drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        isOpaqueAtClientPoint: () => null,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} emit={emit} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    installStageRect(stage);
+
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 71,
+      clientX: 120,
+      clientY: 220,
+      screenX: 800,
+      screenY: 500,
+    });
+    fireEvent.pointerMove(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 71,
+      clientX: 140,
+      clientY: 220,
+      screenX: 820,
+      screenY: 500,
+    });
+    fireEvent.pointerUp(stage, {
+      button: 0,
+      pointerId: 71,
+      clientX: 140,
+      clientY: 220,
+      screenX: 820,
+      screenY: 500,
+    });
+    await Promise.resolve();
+
+    expect(beginManualDragWindowMock).toHaveBeenCalledOnce();
+    expect(emit.mock.calls.some(([event]) => event.name === 'avatar.user.drag.start'))
+      .toBe(true);
+  });
+
+  it('falls back to the current drag rectangle when the precision probe throws', async () => {
+    runtimeFlags.hostRuntime = true;
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0.2, top: 0.2, right: 0.8, bottom: 0.8 },
+        drag: { left: 0.2, top: 0.2, right: 0.8, bottom: 0.8 },
+        isOpaqueAtClientPoint: () => {
+          throw new Error('precision snapshot unreadable');
+        },
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    installStageRect(stage);
+
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 73,
+      clientX: 200,
+      clientY: 300,
+      screenX: 800,
+      screenY: 500,
+    });
+    await Promise.resolve();
+
+    expect(beginManualDragWindowMock).toHaveBeenCalledOnce();
+  });
+
+  it('requires the point to be inside the current bounded drag rectangle before probing precision', async () => {
+    runtimeFlags.hostRuntime = true;
+    const isOpaqueAtClientPoint = vi.fn(() => true);
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0, top: 0, right: 1, bottom: 1 },
+        drag: { left: 0.25, top: 0.25, right: 0.75, bottom: 0.75 },
+        isOpaqueAtClientPoint,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    installStageRect(stage);
+
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 74,
+      clientX: 20,
+      clientY: 20,
+      screenX: 620,
+      screenY: 320,
+    });
+    await Promise.resolve();
+
+    // Pointerdown performs one ordinary click-through hit-test. Drag admission
+    // must reject on the rectangle and must not issue a second precision query.
+    expect(isOpaqueAtClientPoint).toHaveBeenCalledOnce();
+    expect(beginManualDragWindowMock).not.toHaveBeenCalled();
+  });
+
+  it('allows Tier C rectangle drag when the backend deliberately publishes no precision probe', async () => {
+    runtimeFlags.hostRuntime = true;
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0.2, top: 0.2, right: 0.8, bottom: 0.8 },
+        drag: { left: 0.2, top: 0.2, right: 0.8, bottom: 0.8 },
+        isOpaqueAtClientPoint: null,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    installStageRect(stage);
+
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 72,
+      clientX: 200,
+      clientY: 300,
+      screenX: 800,
+      screenY: 500,
+    });
+    await Promise.resolve();
+
+    expect(beginManualDragWindowMock).toHaveBeenCalledOnce();
+  });
+
+  it('does not arm manual drag when the backend publishes an invalid zero-area region', async () => {
+    runtimeFlags.hostRuntime = true;
+    render(<EmbodimentStage
+      {...baseProps}
+      backend={createMockBackend({
+        hitRegion: {
+          body: { left: 0, top: 0, right: 0, bottom: 0 },
+          drag: { left: 0, top: 0, right: 0, bottom: 0 },
+          isOpaqueAtClientPoint: null,
+        },
+      })}
+    />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    installStageRect(stage);
+
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 9,
+      clientX: 200,
+      clientY: 300,
+      screenX: 1200,
+      screenY: 900,
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(beginManualDragWindowMock).not.toHaveBeenCalled();
+  });
+
   it('macOS manual drag cancels pending long-press action radial timer once movement starts', async () => {
-    runtimeFlags.tauriRuntime = true;
+    runtimeFlags.hostRuntime = true;
     Object.defineProperty(window.navigator, 'platform', {
       value: 'MacIntel',
       configurable: true,
@@ -597,7 +915,7 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
   });
 
   it('macOS manual drag coalesces move IPC while a prior move is in flight', async () => {
-    runtimeFlags.tauriRuntime = true;
+    runtimeFlags.hostRuntime = true;
     Object.defineProperty(window.navigator, 'platform', {
       value: 'MacIntel',
       configurable: true,
@@ -676,7 +994,7 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
     // platform; the retired system-level start-dragging OS-sniff branch is
     // gone. A Win32 platform (which used to take the system-drag path) now
     // takes the manual path too.
-    runtimeFlags.tauriRuntime = true;
+    runtimeFlags.hostRuntime = true;
     Object.defineProperty(window.navigator, 'platform', {
       value: 'Win32',
       configurable: true,
@@ -726,7 +1044,7 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
   });
 
   it('zero-delta pointermove while armed does not consume a click as drag', async () => {
-    runtimeFlags.tauriRuntime = true;
+    runtimeFlags.hostRuntime = true;
     const emit = vi.fn();
     const backend = createMockBackend({
       hitRegion: {

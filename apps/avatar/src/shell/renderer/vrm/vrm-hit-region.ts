@@ -25,6 +25,8 @@ export type VrmHitRegionRenderTarget = {
 
 export type CreateVrmHitRegionInputs = {
   renderTarget: VrmHitRegionRenderTarget;
+  body: BackendHitRegion['body'];
+  drag: BackendHitRegion['drag'];
   getViewport: () => {
     left: number;
     top: number;
@@ -35,16 +37,33 @@ export type CreateVrmHitRegionInputs = {
   onDegraded?: (detail: VrmHitRegionDegradedDetail) => void;
 };
 
-const FULL_VIEWPORT_RECT: BackendHitRegion['body'] = Object.freeze({
+const INVALID_REGION_RECT: BackendHitRegion['body'] = Object.freeze({
   left: 0,
   top: 0,
-  right: 1,
-  bottom: 1,
+  right: 0,
+  bottom: 0,
 });
+
+function validRect(rect: BackendHitRegion['body']): boolean {
+  return [rect.left, rect.top, rect.right, rect.bottom].every(Number.isFinite)
+    && rect.left >= 0
+    && rect.top >= 0
+    && rect.right <= 1
+    && rect.bottom <= 1
+    && rect.right > rect.left
+    && rect.bottom > rect.top;
+}
 
 // @nimi-authority: rule.nimi.avatar.embodiment.r062
 export function createVrmHitRegion(input: CreateVrmHitRegionInputs): BackendHitRegion {
   const tier = input.deviceTier ?? 'C';
+  if (!validRect(input.body) || !validRect(input.drag)) {
+    return {
+      body: INVALID_REGION_RECT,
+      drag: INVALID_REGION_RECT,
+      isOpaqueAtClientPoint: null,
+    };
+  }
 
   if (tier === 'C') {
     input.onDegraded?.({
@@ -52,8 +71,8 @@ export function createVrmHitRegion(input: CreateVrmHitRegionInputs): BackendHitR
       recordedAt: new Date().toISOString(),
     });
     return {
-      body: FULL_VIEWPORT_RECT,
-      drag: FULL_VIEWPORT_RECT,
+      body: input.body,
+      drag: input.drag,
       isOpaqueAtClientPoint: null,
     };
   }
@@ -76,8 +95,8 @@ export function createVrmHitRegion(input: CreateVrmHitRegionInputs): BackendHitR
   };
 
   return {
-    body: FULL_VIEWPORT_RECT,
-    drag: FULL_VIEWPORT_RECT,
+    body: input.body,
+    drag: input.drag,
     isOpaqueAtClientPoint,
   };
 }

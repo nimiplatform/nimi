@@ -42,9 +42,9 @@ export function createLive2DCarrierSurface(
     const hostRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
-      if (announcedAudioRef.current) return;
+      if (announcedAudioRef.current || !props.onAudioConsumerReady) return;
       announcedAudioRef.current = true;
-      props.onAudioConsumerReady?.(deps.audioConsumer);
+      props.onAudioConsumerReady(deps.audioConsumer);
     }, [props.onAudioConsumerReady]);
 
     // Build the hit-region with alpha-mask path on
@@ -53,7 +53,7 @@ export function createLive2DCarrierSurface(
     // it through a closure each probe instead of capturing a stale
     // reference.
     useEffect(() => {
-      if (announcedRegionRef.current) return;
+      if (announcedRegionRef.current || !props.onHitRegionChange) return;
       announcedRegionRef.current = true;
       const hitRegion = createLive2DHitRegion({
         getCanvas: () => {
@@ -80,10 +80,8 @@ export function createLive2DCarrierSurface(
           console.warn(`[avatar:live2d] hit-region degraded: ${detail.reason_code}`);
         },
       });
-      if (props.onHitRegionChange) {
-        props.onHitRegionChange(hitRegion);
-        deps.onHitRegionPublished?.();
-      }
+      props.onHitRegionChange(hitRegion);
+      deps.onHitRegionPublished?.();
     }, [deps.onHitRegionPublished, props.onHitRegionChange]);
 
     return (
@@ -93,6 +91,7 @@ export function createLive2DCarrierSurface(
           audioConsumer={deps.audioConsumer}
           paramMouthFormSupported={deps.paramMouthFormSupported}
           reducedMotion={props.reducedMotion}
+          onPresentationStateChange={props.onPresentationStateChange}
         />
       </div>
     );

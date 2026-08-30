@@ -1,13 +1,18 @@
 // App.tsx shell composition integration tests.
 // The app-local prerequisite composition renders one of:
-// embodiment-stage under ready, or degraded-surface
-// under loading / degraded:* / error:* / relaunch-pending.
+// product embodiment-stage under ready, non-interactive renderer preview under
+// fixture_not_verified, or degraded-surface under the remaining postures.
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App.js';
 import { useAvatarStore } from './app-shell/app-store.js';
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
+import { useEffect } from 'react';
+import type {
+  BackendPresentationState,
+  BackendSurfaceProps,
+} from './carrier/backend-branch.js';
 import type { AgentDataBundle } from './driver/types.js';
 import {
   AVATAR_SCALE_DEFAULT,
@@ -24,7 +29,8 @@ const hideAvatarWindowMock = vi.fn();
 const closeAvatarWindowMock = vi.fn();
 const onLaunchContextUpdatedMock = vi.fn();
 const reloadAvatarShellMock = vi.fn();
-let tauriRuntime = false;
+const installAvatarAgentCenterPreviewHandoffMock = vi.fn(async (_input: unknown) => () => {});
+let hostRuntime = false;
 type AvatarLaunchContextForTest = {
   agentHandle: string;
   conversationAnchorId: string;
@@ -51,7 +57,7 @@ vi.mock('./app-shell/app-bootstrap.js', () => ({
 }));
 
 vi.mock('./app-shell/avatar-host-bridge.js', () => ({
-  hasAvatarHostRuntime: () => tauriRuntime,
+  hasAvatarHostRuntime: () => hostRuntime,
 }));
 
 
@@ -72,8 +78,7 @@ vi.mock('./app-shell/avatar-window-commands.js', () => ({
   })),
 }));
 
-vi.mock('./app-shell/tauri-lifecycle.js', () => ({
-  isTauriRuntime: () => tauriRuntime,
+vi.mock('./app-shell/host-lifecycle.js', () => ({
   onHostSuspend: async () => () => {},
   onLaunchContextUpdated: (handler: typeof launchContextUpdatedHandler) => {
     launchContextUpdatedHandler = handler;
@@ -83,6 +88,12 @@ vi.mock('./app-shell/tauri-lifecycle.js', () => ({
 
 vi.mock('./shell-reload.js', () => ({
   reloadAvatarShell: () => reloadAvatarShellMock(),
+}));
+
+vi.mock('./agent-center-preview/agent-center-preview-handoff.js', () => ({
+  installAvatarAgentCenterPreviewHandoff: (input: unknown) => (
+    installAvatarAgentCenterPreviewHandoffMock(input)
+  ),
 }));
 
 vi.mock('./live2d/Live2DCarrierVisualSurface.js', () => ({
@@ -129,6 +140,7 @@ function createLive2dModelManifest(): AvatarModelManifestForTest {
 function createBootstrapHandle(input: {
   projection?: ReturnType<typeof createBackendProjection>;
   modelManifest?: AvatarModelManifestForTest;
+  presentationState?: BackendPresentationState;
 } = {}): BootstrapHandle {
   const projection = input.projection;
   return {
@@ -151,7 +163,16 @@ function createBootstrapHandle(input: {
           kind: 'vrm',
           nominalBounds: { width: 360, height: 640, bodyCenterX: 180, bodyCenterY: 320 },
           projection,
-          surface: { Component: () => null },
+          surface: {
+            Component: (props: BackendSurfaceProps) => {
+              useEffect(() => {
+                props.onPresentationStateChange?.(
+                  input.presentationState ?? { kind: 'ready' },
+                );
+              }, [props.onPresentationStateChange]);
+              return null;
+            },
+          },
           metadata: () => ({}),
           shutdown: vi.fn(),
         }
@@ -233,24 +254,6 @@ function seedActiveTurnBundle(input: {
   } satisfies AgentDataBundle);
 }
 
-function seedMockDriverWithRuntimeBinding(): void {
-  useAvatarStore.getState().markShellReady({ width: 360, height: 640 });
-  useAvatarStore.getState().setConsumeMode({
-    mode: 'mock',
-    authority: 'fixture',
-    fixtureId: 'default',
-    fixturePlaying: true,
-  });
-  useAvatarStore.getState().setLaunchContext(launchContext());
-  useAvatarStore.getState().setRuntimeBinding({
-    avatarInstanceId: 'avatar-instance-01',
-    conversationAnchorId: 'anchor-01',
-    agentHandle: `agent_ref_${'a'.repeat(43)}`,
-    worldId: 'world-mock-default',
-  });
-  useAvatarStore.getState().setDriverStatus('running');
-}
-
 function seedMockDriverWithoutRuntimeBinding(): void {
   useAvatarStore.getState().markShellReady({ width: 360, height: 640 });
   useAvatarStore.getState().setConsumeMode({
@@ -266,6 +269,18 @@ function seedMockDriverWithoutRuntimeBinding(): void {
     agentHandle: 'fixture-agent-default',
     worldId: 'world-mock-default',
   });
+  useAvatarStore.getState().setDriverStatus('running');
+}
+
+function seedRuntimeDriverWithoutRuntimeBinding(): void {
+  useAvatarStore.getState().markShellReady({ width: 360, height: 640 });
+  useAvatarStore.getState().setConsumeMode({
+    mode: 'sdk',
+    authority: 'runtime',
+    fixtureId: null,
+    fixturePlaying: false,
+  });
+  useAvatarStore.getState().setLaunchContext(launchContext());
   useAvatarStore.getState().setDriverStatus('running');
 }
 
@@ -301,8 +316,8 @@ function seedDegradedReauth(): void {
   useAvatarStore.getState().setDriverStatus('stopped');
 }
 
-function setTauriRuntime(value: boolean): void {
-  tauriRuntime = value;
+function setHostRuntime(value: boolean): void {
+  hostRuntime = value;
 }
 
 function hasLaunchContextUpdatedHandler(): boolean {
@@ -327,8 +342,9 @@ beforeEach(() => {
   onLaunchContextUpdatedMock.mockReset();
   onLaunchContextUpdatedMock.mockResolvedValue(() => {});
   reloadAvatarShellMock.mockReset();
+  installAvatarAgentCenterPreviewHandoffMock.mockClear();
   launchContextUpdatedHandler = null;
-  tauriRuntime = false;
+  hostRuntime = false;
   window.localStorage.clear();
 });
 
@@ -371,29 +387,54 @@ describe('App composition state machine', () => {
     expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('ready');
   });
 
-  it('keeps mock driver selection inside the ready shell composition', async () => {
-    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+  it('renders an explicit fixture surface without claiming product readiness', async () => {
+    const handle = createBootstrapHandle({ projection: createBackendProjection() });
+    bootstrapAvatarMock.mockResolvedValue(handle);
 
     render(<App />);
 
     act(() => {
-      seedMockDriverWithRuntimeBinding();
+      seedMockDriverWithoutRuntimeBinding();
     });
 
     await waitFor(() => {
       expect(screen.getByTestId('avatar-embodiment-stage')).toBeTruthy();
     });
     expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
-    expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('ready');
+    const root = screen.getByTestId('avatar-root');
+    expect(root.getAttribute('data-composition')).toBe('fixture_not_verified');
+    expect(root.getAttribute('data-avatar-status')).toBe('not_verified');
+    expect(root.getAttribute('data-avatar-product-ready')).toBe('false');
+    expect(root.getAttribute('data-avatar-development-preview')).toBe('true');
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    expect(stage.getAttribute('tabindex')).toBe('-1');
+    expect(screen.getByTestId('avatar-runtime-status').textContent)
+      .toBe('Fixture preview — not verified as a live Runtime avatar');
+
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 90,
+      clientX: 160,
+      clientY: 260,
+    });
+    fireEvent.pointerUp(stage, {
+      button: 0,
+      pointerId: 90,
+      clientX: 160,
+      clientY: 260,
+    });
+    expect(handle.driver?.emit).not.toHaveBeenCalled();
+    expect(handle.getVoiceInputAvailability).not.toHaveBeenCalled();
   });
 
-  it('does not let mock driver selection bypass the Runtime binding', async () => {
+  it('keeps the production Runtime path gated by its Runtime binding', async () => {
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);
 
     act(() => {
-      seedMockDriverWithoutRuntimeBinding();
+      seedRuntimeDriverWithoutRuntimeBinding();
     });
 
     await waitFor(() => {
@@ -403,6 +444,22 @@ describe('App composition state machine', () => {
     expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
     expect(screen.getByTestId('avatar-root').getAttribute('data-composition'))
       .toBe('degraded_runtime_unavailable');
+  });
+
+  it('does not register the Agent Center Host preview handoff for fixture mode', async () => {
+    setHostRuntime(true);
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+    act(() => {
+      seedMockDriverWithoutRuntimeBinding();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-root').getAttribute('data-composition'))
+        .toBe('fixture_not_verified');
+    });
+    expect(installAvatarAgentCenterPreviewHandoffMock).not.toHaveBeenCalled();
   });
 
   it('mounts ONLY degraded-surface under degraded:runtime-unavailable', async () => {
@@ -450,7 +507,7 @@ describe('App composition state machine', () => {
   });
 
   it('flips to relaunch_pending and unmounts ready surfaces when desktop pushes a new launch context', async () => {
-    setTauriRuntime(true);
+    setHostRuntime(true);
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);
@@ -466,6 +523,7 @@ describe('App composition state machine', () => {
     await waitFor(() => {
       expect(hasLaunchContextUpdatedHandler()).toBe(true);
     });
+    expect(installAvatarAgentCenterPreviewHandoffMock).toHaveBeenCalledTimes(1);
 
     act(() => {
       emitLaunchContextUpdated({
@@ -500,5 +558,26 @@ describe('App composition state machine', () => {
     fireEvent.click(screen.getByTestId('avatar-degraded-reload'));
 
     expect(reloadAvatarShellMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps backend terminal failure local but removes the global ready claim and body interaction', async () => {
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle({
+      projection: createBackendProjection(),
+      presentationState: { kind: 'unavailable', reason: 'vrm_load_failed' },
+    }));
+
+    render(<App />);
+    act(() => {
+      seedReadyState();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state'))
+        .toBe('unavailable');
+    });
+    expect(screen.getByTestId('avatar-runtime-status').getAttribute('data-avatar-status'))
+      .toBe('unavailable');
+    expect(screen.getByTestId('avatar-runtime-status').textContent).toBe('Avatar unavailable');
+    expect(screen.getByTestId('avatar-embodiment-stage').getAttribute('tabindex')).toBe('-1');
   });
 });

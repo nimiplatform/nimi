@@ -206,7 +206,7 @@ describe('createVrmMotionPresetRegistry — loadAll', () => {
   });
 
   it('uses resolveAssetUrl to massage relative paths (e.g. convertFileSrc)', async () => {
-    const resolveAssetUrl = vi.fn((rel: string) => `tauri://localhost/${rel}`);
+    const resolveAssetUrl = vi.fn((rel: string) => `nimi-shell-file://local/${rel}`);
     const reg = createVrmMotionPresetRegistry({ table: makeTable(), resolveAssetUrl });
     const loader = vi.fn(async () => ({ __anim: true }));
     await reg.loadAll({
@@ -214,7 +214,7 @@ describe('createVrmMotionPresetRegistry — loadAll', () => {
       loadAnimationOverride: loader,
     });
     expect(loader).toHaveBeenCalledWith(
-      'tauri://localhost/apps/avatar/assets/vrm-motion-presets/idle_subtle.vrma',
+      'nimi-shell-file://local/apps/avatar/assets/vrm-motion-presets/idle_subtle.vrma',
     );
   });
 });

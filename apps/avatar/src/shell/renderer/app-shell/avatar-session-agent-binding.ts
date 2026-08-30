@@ -14,6 +14,7 @@ type AvatarSessionAgentBindingInput = {
 
 export type AvatarSessionAgentBinding = {
   readonly current: () => NimiLocalAppAgentHandle;
+  readonly generation: () => number;
   readonly refresh: () => Promise<NimiLocalAppAgentHandle>;
   readonly run: <T>(operation: (agentHandle: NimiLocalAppAgentHandle) => Promise<T>) => Promise<T>;
 };
@@ -61,6 +62,7 @@ export async function createAvatarSessionAgentBinding(
   input: AvatarSessionAgentBindingInput,
 ): Promise<AvatarSessionAgentBinding> {
   let currentHandle: NimiLocalAppAgentHandle | null = null;
+  let currentGeneration = 0;
   let refreshInFlight: Promise<NimiLocalAppAgentHandle> | null = null;
 
   const refresh = (): Promise<NimiLocalAppAgentHandle> => {
@@ -68,6 +70,7 @@ export async function createAvatarSessionAgentBinding(
       .then((agentHandle) => {
         if (agentHandle !== currentHandle) {
           currentHandle = agentHandle;
+          currentGeneration += 1;
           input.onHandleChange?.(agentHandle);
         }
         return agentHandle;
@@ -86,6 +89,7 @@ export async function createAvatarSessionAgentBinding(
       }
       return currentHandle;
     },
+    generation: () => currentGeneration,
     refresh,
     run: async <T>(operation: (agentHandle: NimiLocalAppAgentHandle) => Promise<T>): Promise<T> => {
       try {

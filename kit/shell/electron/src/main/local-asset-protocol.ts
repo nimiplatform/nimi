@@ -85,6 +85,10 @@ export function createElectronShellFileProtocolHost(
       readableFiles.add(canonical);
       return canonical;
     },
+    unregisterReadableFile: async (absolutePath) => {
+      const canonical = await canonicalCandidatePath(normalizeRequiredToken(absolutePath, 'absolutePath'));
+      readableFiles.delete(canonical);
+    },
     resolveLocalAssetUrl: (absolutePath) =>
       `${NIMI_ELECTRON_SHELL_FILE_PROTOCOL_SCHEME}://local/?path=${encodeElectronShellFilePath(path.resolve(normalizeRequiredToken(absolutePath, 'absolutePath')))}`,
     hasReadableFile: async (absolutePath) => {

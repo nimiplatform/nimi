@@ -13,7 +13,7 @@
 //
 // Why this is a separate module:
 // - Pure computation (computeWindowBounds) is deterministic + unit-testable
-//   without touching React or Tauri. Keeps the policy formula auditable.
+//   without touching React or the native Host. Keeps the policy formula auditable.
 // - The orchestrator (createWindowBoundsRecomputer) wraps the set_size
 //   dispatch; App.tsx owns wiring it up to model-load and scale-change events.
 
@@ -78,7 +78,11 @@ function clamp(value: number, min: number, max: number): number {
 
 // Recompute trigger ids — match window-bounds-policy.yaml.recompute_triggers.*.id.
 // Used in evidence emit + tests; do not free-form strings at call sites.
-export type WindowBoundsTrigger = 'model_load' | 'model_switch' | 'avatar_scale_change';
+export type WindowBoundsTrigger =
+  | 'model_load'
+  | 'model_switch'
+  | 'avatar_scale_change'
+  | 'surface_bounds_change';
 
 export type WindowBoundsRecomputerDeps = {
   // Read latest embodiment bounds. Returns null when no model is loaded
@@ -87,8 +91,7 @@ export type WindowBoundsRecomputerDeps = {
   // Read latest per-avatar scale. Wave 1 defaults to 1; Wave 5 wires this to
   // wheel-driven persistent avatar instance scale.
   getAvatarScale?: () => number;
-  // Apply the result to the OS window. In production this is the Tauri
-  // `floatingWindow.setBounds` invoker; in tests a spy.
+  // Apply the result to the OS window through the Desktop Host; in tests a spy.
   applySize: (size: { width: number; height: number }) => void | Promise<void>;
   // Optional evidence sink. When provided, every successful recompute emits
   // `avatar.shell.window-bounds-changed` so the projection layer can record

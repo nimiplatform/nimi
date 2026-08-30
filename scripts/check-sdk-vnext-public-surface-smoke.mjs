@@ -71,10 +71,29 @@ const runtimeWireTypesModule = await import('@nimiplatform/sdk/runtime/wire-type
 assert.equal(runtimeWireTypesModule.ScenarioType.TEXT_GENERATE, 1);
 assert.equal(runtimeWireTypesModule.AccountSessionState.AUTHENTICATED, 3);
 
+const runtimeGeneratedModule = await import('@nimiplatform/sdk/runtime/generated');
+const hostPrivateRuntimeMethodIds = [
+  '/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget',
+  '/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget',
+];
+for (const methodId of hostPrivateRuntimeMethodIds) {
+  assert.equal(runtimeGeneratedModule.RUNTIME_METHOD_BY_ID.has(methodId), false);
+  assert.equal(methodId in runtimeGeneratedModule.RUNTIME_WIRE_CODECS, false);
+  assert.equal(runtimeGeneratedModule.hasRuntimeWireCodec(methodId), false);
+  assert.equal(runtimeGeneratedModule.runtimeRpcAuthPosture(methodId), null);
+  assert.throws(
+    () => runtimeGeneratedModule.getRuntimeWireCodec(methodId),
+    { code: 'SDK_RUNTIME_CODEC_MISSING' },
+  );
+}
+
 const runtimeModule = await import('@nimiplatform/sdk/runtime');
 assert.equal('createRuntimeNodeGrpcTransport' in runtimeModule, false);
 assert.equal('createNimiRuntimeInstalledAppSessionMetadataProvider' in runtimeModule, false);
 assert.equal('createNimiDesktopLaunchedNimiAppRuntimeAccountCaller' in runtimeModule, false);
+assert.equal('createNimiHostRuntimeTypedClient' in runtimeModule, false);
+const runtimeHostModule = await import('@nimiplatform/sdk/runtime/host');
+assert.equal(typeof runtimeHostModule.createNimiHostRuntimeTypedClient, 'function');
 await assert.rejects(
   import('@nimiplatform/sdk/features/memory-context'),
   /Package subpath '.\\/features\\/memory-context' is not defined/,
@@ -97,7 +116,15 @@ assert.equal(typeof typesModule.ReasonCode.RUNTIME_UNAVAILABLE, 'string');
 import { createNimiClient, type NimiClientConfig, type NimiLocalAppStandardShell } from '@nimiplatform/sdk';
 import { createRuntime, type CoreTransport } from '@nimiplatform/sdk/runtime';
 import { ReasonCode as RuntimeGeneratedReasonCode } from '@nimiplatform/sdk/runtime/generated';
+// @ts-expect-error Host-private Avatar target messages are not public generated types.
+import type { ResolveLocalAppAvatarHostTargetRequest as GeneratedResolveLocalAppAvatarHostTargetRequest } from '@nimiplatform/sdk/runtime/generated';
+// @ts-expect-error Host-private Avatar target revalidation messages are not public generated types.
+import type { RevalidateLocalAppAvatarHostTargetRequest as GeneratedRevalidateLocalAppAvatarHostTargetRequest } from '@nimiplatform/sdk/runtime/generated';
 import { ScenarioType, type ExecuteScenarioRequest } from '@nimiplatform/sdk/runtime/wire-types';
+// @ts-expect-error Host-private Avatar target messages are not public wire types.
+import type { ResolveLocalAppAvatarHostTargetRequest } from '@nimiplatform/sdk/runtime/wire-types';
+// @ts-expect-error Host-private Avatar target revalidation messages are not public wire types.
+import type { RevalidateLocalAppAvatarHostTargetRequest } from '@nimiplatform/sdk/runtime/wire-types';
 import { createRealm, type Realm } from '@nimiplatform/sdk/realm';
 import { type RealmModel, type RealmModelName } from '@nimiplatform/sdk/realm/generated';
 import {
@@ -233,6 +260,10 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
     },
     async snapshot() { return {}; },
   },
+  embodiment: {
+    snapshot: unavailableCarrier,
+    subscribe: unavailableCarrier,
+  },
   agentRealtime: {
     open: unavailableCarrier,
     appendInput: unavailableCarrier,
@@ -244,7 +275,11 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
   agentConfigure: {
     sharedAIConfig: { get: unavailableCarrier, overwrite: unavailableCarrier, listOptions: unavailableCarrier },
     autonomy: { snapshot: unavailableCarrier, update: unavailableCarrier },
-    presentation: { snapshot: unavailableCarrier, commit: unavailableCarrier },
+    presentation: {
+      snapshot: unavailableCarrier,
+      readAsset: unavailableCarrier,
+      commit: unavailableCarrier,
+    },
     memory: {
       inspect: unavailableCarrier,
       correct: unavailableCarrier,
@@ -260,6 +295,10 @@ const error: NimiError = createNimiError({ message: 'x', reasonCode: 'SDK_SURFAC
 const json: JsonObject = { reasonCode: ReasonCode.REALM_UNAVAILABLE };
 const generatedReason = RuntimeGeneratedReasonCode.REASON_CODE_UNSPECIFIED;
 const scenarioRequest: Partial<ExecuteScenarioRequest> = { scenarioType: ScenarioType.TEXT_GENERATE };
+const resolveAvatarHostTargetRequest: ResolveLocalAppAvatarHostTargetRequest = {};
+const revalidateAvatarHostTargetRequest: RevalidateLocalAppAvatarHostTargetRequest = {};
+const generatedResolveAvatarHostTargetRequest: GeneratedResolveLocalAppAvatarHostTargetRequest = {};
+const generatedRevalidateAvatarHostTargetRequest: GeneratedRevalidateLocalAppAvatarHostTargetRequest = {};
 const realmModelName: RealmModelName = 'PostDto';
 const post: Partial<RealmModel<'PostDto'>> = {};
 // @ts-expect-error Packet transport models are Runtime-internal authority.
@@ -280,7 +319,7 @@ const model: NimiAiModel = createNimiMockModel({ text: 'ok' });
 const runner: NimiAiRunnerSpec = { id: 'runner', name: 'Runner' };
 const registry = createNimiToolRegistry([]);
 
-void client; void runtime; void realm; void appClient; void localApp; void error; void json; void generatedReason; void scenarioRequest; void realmModelName; void post; void packetModelName; void grantModelName; void sourceRefModelName; void message;
+void client; void runtime; void realm; void appClient; void localApp; void error; void json; void generatedReason; void scenarioRequest; void resolveAvatarHostTargetRequest; void revalidateAvatarHostTargetRequest; void generatedResolveAvatarHostTargetRequest; void generatedRevalidateAvatarHostTargetRequest; void realmModelName; void post; void packetModelName; void grantModelName; void sourceRefModelName; void message;
 void manifest; void model; void runner; void registry;
 void collectNimiTextStream; void runNimiAiRunner; void userTextMessage;
 void buildNimiConversationHistoryWindow; void createNimiGenerationJob; void createNimiGoldenRun;

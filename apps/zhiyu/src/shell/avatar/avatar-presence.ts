@@ -101,6 +101,7 @@ export function zhiyuAvatarHostTarget(
       sourceSurface: 'zhiyu',
     }),
     launchSource: 'zhiyu',
+    switchIntentRef: null,
     committedPresentationRef: null,
     temporaryCustodyRef: null,
   };

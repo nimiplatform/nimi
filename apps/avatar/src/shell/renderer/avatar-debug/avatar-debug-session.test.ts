@@ -30,7 +30,7 @@ function backend(
       bodyCenterY: 0.55,
     },
     projection: {
-      applyActivity() {},
+      applyActivity() { return 'applied' as const; },
       applyEmotion() {},
       applyMotion() {},
       applyExpression() {},

@@ -101,11 +101,21 @@ button {
   width: 100%;
   height: 100%;
   background: transparent;
-  /* Window drag is handled programmatically by AvatarInteractionController via
-   * Tauri `startDragging`. We do NOT use -webkit-app-region (Electron-style)
-   * because Tauri WebView intercepts those regions at the OS layer and
-   * silently swallows the React pointer events the controller relies on for
-   * hit-region detection — leaving the stage feeling unresponsive. */
+  /* Window drag is handled programmatically so body hit testing remains the
+   * single source for drag admission and transparent regions stay inert. */
+}
+
+.avatar-embodiment-stage__presentation-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.avatar-embodiment-stage__presentation-layer--staging {
+  inset: auto;
+  left: -10000px;
+  top: -10000px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .avatar-embodiment-stage__body {
@@ -211,6 +221,10 @@ button {
   border-color: var(--nimi-status-info);
 }
 
+.avatar-companion-surface__mic--requesting-permission {
+  border-color: var(--nimi-status-info);
+}
+
 .avatar-companion-surface__mic--pending,
 .avatar-companion-surface__mic--replying {
   border-color: var(--nimi-status-warning);
@@ -274,6 +288,7 @@ button {
   .avatar-companion-surface__voice-level-fill,
   .avatar-companion-surface__mic,
   .avatar-companion-surface__interrupt,
+  .avatar-companion-surface__cancel,
   .avatar-companion-surface__text-entry,
   .avatar-companion-surface__close {
     transition: none;
@@ -291,6 +306,7 @@ button {
   overflow: hidden;
 }
 
+.avatar-companion-surface--requesting-permission .avatar-companion-surface__status-label,
 .avatar-companion-surface--listening .avatar-companion-surface__status-label,
 .avatar-companion-surface--transcribing .avatar-companion-surface__status-label {
   color: var(--nimi-status-info);
@@ -358,6 +374,7 @@ button {
 }
 
 .avatar-companion-surface__interrupt,
+.avatar-companion-surface__cancel,
 .avatar-companion-surface__text-entry,
 .avatar-companion-surface__close {
   display: inline-flex;
@@ -378,6 +395,7 @@ button {
 }
 
 .avatar-companion-surface__interrupt:hover,
+.avatar-companion-surface__cancel:hover,
 .avatar-companion-surface__text-entry:hover,
 .avatar-companion-surface__close:hover {
   background: var(--nimi-action-ghost-hover);
@@ -415,6 +433,22 @@ button {
   background: var(--nimi-material-glass-regular-bg);
   border: 1px solid var(--nimi-material-glass-regular-border);
   pointer-events: auto;
+}
+
+.avatar-companion-surface[data-caption-size='small'] .avatar-companion-surface__caption {
+  font-size: var(--nimi-type-caption-size);
+}
+
+.avatar-companion-surface[data-caption-size='large'] .avatar-companion-surface__caption {
+  font-size: calc(var(--nimi-type-body-sm-size) * 1.2);
+  line-height: 1.5;
+}
+
+.avatar-companion-surface[data-caption-contrast='high'] .avatar-companion-surface__caption {
+  color: var(--nimi-text-primary);
+  background: var(--nimi-surface-overlay);
+  border-color: var(--nimi-border-strong);
+  box-shadow: var(--nimi-elevation-floating);
 }
 
 .avatar-companion-surface__caption--user {
@@ -585,6 +619,8 @@ button {
   gap: var(--nimi-space-2);
   width: 280px;
   max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
   padding: var(--nimi-space-3);
   border-radius: var(--nimi-radius-md);
   background: var(--nimi-material-glass-thick-bg);
@@ -668,6 +704,25 @@ button {
   color: var(--nimi-text-secondary);
   background: color-mix(in srgb, var(--nimi-status-info) 10%, transparent);
   border: 1px solid color-mix(in srgb, var(--nimi-status-info) 22%, transparent);
+}
+
+.avatar-settings-popover__select-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--nimi-space-2);
+  padding: var(--nimi-space-1) var(--nimi-space-2);
+  font-size: var(--nimi-type-body-sm-size);
+  color: var(--nimi-text-secondary);
+}
+
+.avatar-settings-popover__select-row select {
+  min-height: 30px;
+  padding: 0 var(--nimi-space-2);
+  border: 1px solid var(--nimi-border-subtle);
+  border-radius: var(--nimi-radius-sm);
+  background: var(--nimi-field-bg);
+  color: var(--nimi-text-primary);
 }
 
 /* ── Appearance Overlay (K-NAV-SHELL-OUTPUT-011 transient overlay) ──────── */

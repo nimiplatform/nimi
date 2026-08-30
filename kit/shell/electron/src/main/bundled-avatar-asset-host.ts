@@ -3,14 +3,13 @@ import {
   lstat,
   mkdir,
   readFile,
-  readdir,
   realpath,
   rename,
   rm,
   writeFile,
 } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
-import type { TauriAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
+import type { HostAvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import {
   MAX_AVATAR_ASSET_FILE_BYTES,
   invalidAsset,
@@ -30,30 +29,31 @@ import type { NimiElectronShellFileProtocolHost } from './types.js';
 export const NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND =
   'nimi_avatar_resolve_agent_center_avatar_asset';
 
-export type NimiElectronBundledAvatarNasHandlerManifest = {
-  readonly activity: readonly NimiElectronBundledAvatarNasHandlerEntry[];
-  readonly event: readonly NimiElectronBundledAvatarNasHandlerEntry[];
-  readonly continuous: readonly NimiElectronBundledAvatarNasHandlerEntry[];
-  readonly config_json_path: string | null;
-};
-
-export type NimiElectronBundledAvatarNasHandlerEntry = {
-  readonly file_stem: string;
-  readonly absolute_path: string;
-};
-
 export type NimiElectronBundledAvatarAssetHost = {
   readonly resolveBoundPresentation: (input: {
     readonly avatarAssetRef: unknown;
     readonly backendKind: unknown;
   }, agentHandle: string) => Promise<{
-    readonly manifest: TauriAvatarModelManifest;
+    readonly manifest: HostAvatarModelManifest;
     readonly materializationRef: string;
   }>;
+  readonly releaseMaterialization: (materializationRef: string) => Promise<void>;
   readonly readTextFile: (filePath: unknown) => Promise<string>;
-  readonly scanNasHandlers: (nimiDir: unknown) => Promise<NimiElectronBundledAvatarNasHandlerManifest>;
-  readonly assertAdmittedDirectory: (directoryPath: unknown) => Promise<string>;
   readonly close: () => Promise<void>;
+};
+
+type MaterializedAvatarAsset = {
+  readonly manifest: HostAvatarModelManifest;
+  readonly materializationRef: string;
+  readonly assetRoot: string;
+  readonly readablePaths: readonly string[];
+};
+
+type MaterializationEntry = {
+  readonly promise: Promise<MaterializedAvatarAsset>;
+  readonly materializationRef: string;
+  leases: number;
+  disposed: boolean;
 };
 
 export type NimiElectronBundledAvatarRuntimeAsset = {
@@ -89,7 +89,9 @@ export function createNimiElectronBundledAvatarAssetHost(
   input: CreateNimiElectronBundledAvatarAssetHostInput,
 ): NimiElectronBundledAvatarAssetHost {
   const admittedAssetRoots = new Set<string>();
-  const materializations = new Map<string, Promise<TauriAvatarModelManifest>>();
+  const materializations = new Map<string, MaterializationEntry>();
+  const materializationKeysByRef = new Map<string, string>();
+  const materializationDisposals = new Map<string, Promise<void>>();
   const sessionId = randomUUID();
   let sessionRoot: string | undefined;
   let closed = false;
@@ -126,8 +128,8 @@ export function createNimiElectronBundledAvatarAssetHost(
     return canonical;
   };
 
-  const assertAdmittedPath = async (value: unknown, requireDirectory: boolean): Promise<string> => {
-    const raw = requiredAbsolutePath(value, requireDirectory ? 'nimiDir' : 'path');
+  const assertAdmittedFile = async (value: unknown): Promise<string> => {
+    const raw = requiredAbsolutePath(value, 'path');
     const canonical = await realpath(raw).catch(() => {
       throw notFound(NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND, 'Avatar materialized path is unavailable.');
     });
@@ -139,15 +141,50 @@ export function createNimiElectronBundledAvatarAssetHost(
       );
     }
     const metadata = await lstat(canonical);
-    if (metadata.isSymbolicLink() || (requireDirectory ? !metadata.isDirectory() : !metadata.isFile())) {
+    if (metadata.isSymbolicLink() || !metadata.isFile()) {
       throw invalidPath(
         NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
-        requireDirectory
-          ? 'Avatar materialized directory must be a real directory.'
-          : 'Avatar materialized file must be a real file.',
+        'Avatar materialized file must be a real file.',
       );
     }
     return canonical;
+  };
+
+  const disposeMaterialization = async (
+    cacheKey: string,
+    entry: MaterializationEntry,
+  ): Promise<void> => {
+    if (entry.disposed) {
+      await materializationDisposals.get(entry.materializationRef);
+      return;
+    }
+    entry.disposed = true;
+    materializations.delete(cacheKey);
+    if (materializationKeysByRef.get(entry.materializationRef) === cacheKey) {
+      materializationKeysByRef.delete(entry.materializationRef);
+    }
+    const disposal = (async () => {
+      const materialized = await entry.promise.catch(() => null);
+      if (!materialized) return;
+      await Promise.allSettled(materialized.readablePaths.map((readablePath) => (
+        input.localAssetProtocolHost.unregisterReadableFile?.(readablePath)
+          ?? Promise.resolve()
+      )));
+      admittedAssetRoots.delete(materialized.assetRoot);
+      const rootIndex = input.localAssetRoots.findIndex(
+        (candidate) => path.resolve(candidate) === path.resolve(materialized.assetRoot),
+      );
+      if (rootIndex >= 0) input.localAssetRoots.splice(rootIndex, 1);
+      await rm(materialized.assetRoot, { recursive: true, force: true });
+    })();
+    materializationDisposals.set(entry.materializationRef, disposal);
+    try {
+      await disposal;
+    } finally {
+      if (materializationDisposals.get(entry.materializationRef) === disposal) {
+        materializationDisposals.delete(entry.materializationRef);
+      }
+    }
   };
 
   return {
@@ -181,28 +218,65 @@ export function createNimiElectronBundledAvatarAssetHost(
       }
       validateRuntimeAsset(asset, avatarAssetRef, kind, command);
       const cacheKey = `${kind}\0${avatarAssetRef}\0${asset.sha256}`;
-      let pending = materializations.get(cacheKey);
-      if (!pending) {
-        pending = materializeRuntimeAsset({
+      const materializationRef = avatarMaterializationRef(kind, avatarAssetRef);
+      await materializationDisposals.get(materializationRef);
+      if (closed) {
+        throw notFound(
+          NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
+          'Avatar temporary materialization host is closed.',
+        );
+      }
+      const existingKey = materializationKeysByRef.get(materializationRef);
+      if (existingKey && existingKey !== cacheKey) {
+        throw invalidAsset(command, 'Runtime changed bytes for an admitted Avatar materialization reference.');
+      }
+      let entry = materializations.get(cacheKey);
+      if (!entry) {
+        const pending = materializeRuntimeAsset({
           command,
           asset,
+          materializationRef,
           ensureSessionRoot,
           localAssetProtocolHost: input.localAssetProtocolHost,
           localAssetRoots: input.localAssetRoots,
           admittedAssetRoots,
         }).catch((error) => {
           materializations.delete(cacheKey);
+          if (materializationKeysByRef.get(materializationRef) === cacheKey) {
+            materializationKeysByRef.delete(materializationRef);
+          }
           throw error;
         });
-        materializations.set(cacheKey, pending);
+        entry = { promise: pending, materializationRef, leases: 0, disposed: false };
+        materializations.set(cacheKey, entry);
+        materializationKeysByRef.set(materializationRef, cacheKey);
       }
+      const materialized = await entry.promise;
+      if (closed || entry.disposed) {
+        await disposeMaterialization(cacheKey, entry);
+        throw notFound(
+          NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
+          'Avatar temporary materialization host is closed.',
+        );
+      }
+      entry.leases += 1;
       return {
-        manifest: await pending,
-        materializationRef: avatarMaterializationRef(kind, avatarAssetRef),
+        manifest: materialized.manifest,
+        materializationRef,
       };
     },
+    releaseMaterialization: async (materializationRef) => {
+      const cacheKey = materializationKeysByRef.get(materializationRef);
+      if (!cacheKey) return;
+      const entry = materializations.get(cacheKey);
+      if (!entry || entry.disposed) return;
+      entry.leases = Math.max(0, entry.leases - 1);
+      if (entry.leases === 0) {
+        await disposeMaterialization(cacheKey, entry);
+      }
+    },
     readTextFile: async (value) => {
-      const filePath = await assertAdmittedPath(value, false);
+      const filePath = await assertAdmittedFile(value);
       const metadata = await lstat(filePath);
       if (metadata.size <= 0 || metadata.size > MAX_AVATAR_ASSET_FILE_BYTES) {
         throw invalidAsset(
@@ -212,26 +286,17 @@ export function createNimiElectronBundledAvatarAssetHost(
       }
       return readFile(filePath, 'utf8');
     },
-    scanNasHandlers: async (value) => {
-      const nimiDir = await assertAdmittedPath(value, true);
-      return {
-        activity: await scanNasHandlerDirectory(path.join(nimiDir, 'activity'), assertAdmittedPath),
-        event: await scanNasHandlerDirectory(path.join(nimiDir, 'event'), assertAdmittedPath),
-        continuous: await scanNasHandlerDirectory(path.join(nimiDir, 'continuous'), assertAdmittedPath),
-        config_json_path: await optionalAdmittedFile(path.join(nimiDir, 'config.json'), assertAdmittedPath),
-      };
-    },
-    assertAdmittedDirectory: (value) => assertAdmittedPath(value, true),
     close: async () => {
       if (closed) return;
       closed = true;
-      await Promise.allSettled([...materializations.values()]);
-      for (const root of admittedAssetRoots) {
-        const index = input.localAssetRoots.findIndex((candidate) => path.resolve(candidate) === path.resolve(root));
-        if (index >= 0) input.localAssetRoots.splice(index, 1);
-      }
+      await Promise.allSettled([...materializations.entries()].map(
+        ([cacheKey, entry]) => disposeMaterialization(cacheKey, entry),
+      ));
+      await Promise.allSettled([...materializationDisposals.values()]);
       admittedAssetRoots.clear();
       materializations.clear();
+      materializationKeysByRef.clear();
+      materializationDisposals.clear();
       if (sessionRoot) {
         await rm(sessionRoot, { recursive: true, force: true });
         sessionRoot = undefined;
@@ -243,11 +308,12 @@ export function createNimiElectronBundledAvatarAssetHost(
 async function materializeRuntimeAsset(input: {
   readonly command: string;
   readonly asset: NimiElectronBundledAvatarRuntimeAsset;
+  readonly materializationRef: string;
   readonly ensureSessionRoot: () => Promise<string>;
   readonly localAssetProtocolHost: NimiElectronShellFileProtocolHost;
   readonly localAssetRoots: string[];
   readonly admittedAssetRoots: Set<string>;
-}): Promise<TauriAvatarModelManifest> {
+}): Promise<MaterializedAvatarAsset> {
   const { asset } = input;
 
   const root = await input.ensureSessionRoot();
@@ -258,6 +324,8 @@ async function materializeRuntimeAsset(input: {
   }
   await mkdir(stagingRoot, { recursive: false });
   let finalized = false;
+  let admittedRoot: string | null = null;
+  const registeredReadablePaths: string[] = [];
   try {
     const materialized = asset.backendKind === 'live2d'
       ? await materializeLive2dZip(asset.content, stagingRoot, input.command)
@@ -279,13 +347,32 @@ async function materializeRuntimeAsset(input: {
         throw invalidPath(input.command, 'Avatar materialized file escaped its admitted root.');
       }
       await input.localAssetProtocolHost.registerReadableFile(readablePath);
+      registeredReadablePaths.push(readablePath);
     }
     input.admittedAssetRoots.add(canonicalAssetRoot);
+    admittedRoot = canonicalAssetRoot;
     if (!input.localAssetRoots.some((candidate) => path.resolve(candidate) === path.resolve(canonicalAssetRoot))) {
       input.localAssetRoots.push(canonicalAssetRoot);
     }
-    return projectModelManifest(asset.backendKind, canonicalEntryPath, canonicalAssetRoot);
+    const manifest = await projectModelManifest(asset.backendKind, canonicalEntryPath, canonicalAssetRoot);
+    return {
+      manifest,
+      materializationRef: input.materializationRef,
+      assetRoot: canonicalAssetRoot,
+      readablePaths: registeredReadablePaths,
+    };
   } catch (error) {
+    await Promise.allSettled(registeredReadablePaths.map((readablePath) => (
+      input.localAssetProtocolHost.unregisterReadableFile?.(readablePath)
+        ?? Promise.resolve()
+    )));
+    if (admittedRoot) {
+      input.admittedAssetRoots.delete(admittedRoot);
+      const rootIndex = input.localAssetRoots.findIndex(
+        (candidate) => path.resolve(candidate) === path.resolve(admittedRoot!),
+      );
+      if (rootIndex >= 0) input.localAssetRoots.splice(rootIndex, 1);
+    }
     if (finalized) await rm(finalRoot, { recursive: true, force: true });
     throw error;
   } finally {
@@ -364,7 +451,7 @@ async function projectModelManifest(
   kind: AvatarBackendKind,
   entryPath: string,
   assetRoot: string,
-): Promise<TauriAvatarModelManifest> {
+): Promise<HostAvatarModelManifest> {
   const runtimeDir = path.dirname(entryPath);
   const modelId = kind === 'live2d'
     ? path.basename(entryPath).replace(/\.model3\.json$/u, '')
@@ -414,31 +501,6 @@ async function optionalFile(candidate: string, assetRoot: string): Promise<strin
     throw invalidPath(NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND, 'Avatar optional file escaped the asset root.');
   }
   return canonical;
-}
-
-async function scanNasHandlerDirectory(
-  directory: string,
-  assertAdmittedPath: (value: unknown, requireDirectory: boolean) => Promise<string>,
-): Promise<readonly NimiElectronBundledAvatarNasHandlerEntry[]> {
-  const metadata = await lstat(directory).catch(() => undefined);
-  if (!metadata) return [];
-  const canonical = await assertAdmittedPath(directory, true);
-  const output: NimiElectronBundledAvatarNasHandlerEntry[] = [];
-  for (const entry of await readdir(canonical, { withFileTypes: true })) {
-    if (!entry.isFile() || !entry.name.endsWith('.js') || entry.name.startsWith('_')) continue;
-    const absolutePath = await assertAdmittedPath(path.join(canonical, entry.name), false);
-    output.push({ file_stem: entry.name.slice(0, -3), absolute_path: absolutePath });
-  }
-  return output.sort((left, right) => left.file_stem.localeCompare(right.file_stem));
-}
-
-async function optionalAdmittedFile(
-  candidate: string,
-  assertAdmittedPath: (value: unknown, requireDirectory: boolean) => Promise<string>,
-): Promise<string | null> {
-  const metadata = await lstat(candidate).catch(() => undefined);
-  if (!metadata) return null;
-  return assertAdmittedPath(candidate, false);
 }
 
 function requiredAbsolutePath(value: unknown, field: string): string {

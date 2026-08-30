@@ -1,5 +1,4 @@
 import { createServer } from 'node:net';
-import path from 'node:path';
 
 import { composePnpmSpawn } from './pnpm-command.mjs';
 
@@ -7,37 +6,24 @@ export const DEV_APP_DEFINITIONS = Object.freeze({
   desktop: Object.freeze({
     packageName: '@nimiplatform/desktop',
     defaultCdpPort: 9333,
-    supportsTauri: false,
   }),
   zhiyu: Object.freeze({
     packageName: '@nimiplatform/zhiyu',
     defaultCdpPort: 9334,
-    supportsTauri: false,
   }),
   lab: Object.freeze({
     packageName: '@nimiplatform/lab',
     defaultCdpPort: 9335,
-    supportsTauri: false,
   }),
   avatar: Object.freeze({
     packageName: '@nimiplatform/avatar',
     defaultCdpPort: 9336,
-    supportsTauri: true,
   }),
 });
 
 const AVATAR_VALUE_OPTIONS = new Set([
-  '--uri',
   '--agent-handle',
-  '--conversation-anchor-id',
   '--instance-id',
-]);
-const AVATAR_FLAG_OPTIONS = new Set(['--no-kill-existing', '--dry-run']);
-const TAURI_ONLY_AVATAR_OPTIONS = new Set([
-  '--uri',
-  '--conversation-anchor-id',
-  '--no-kill-existing',
-  '--dry-run',
 ]);
 
 export class DevAppLaunchError extends Error {
@@ -51,25 +37,18 @@ export class DevAppLaunchError extends Error {
 export function devAppUsage(appName) {
   const definition = requireDefinition(appName);
   const lines = [
-    `Usage: pnpm dev:${appName} [--cdp-port <port> | --no-cdp]${definition.supportsTauri ? ' [--tauri]' : ''}`,
+    `Usage: pnpm dev:${appName} [--cdp-port <port> | --no-cdp]`,
     '',
     'Options:',
     `  --cdp-port <port>  Override the default loopback Electron CDP port (${definition.defaultCdpPort}).`,
     '  --no-cdp           Disable Electron CDP for this launch.',
   ];
-  if (definition.supportsTauri) {
+  if (appName === 'avatar') {
     lines.push(
-      '  --tauri            Use the Avatar Tauri carrier instead of the default Electron carrier.',
       '  --agent-handle <h>  Select a current-session canonical Agent handle.',
-      '  --conversation-anchor-id <id>',
-      '                     Bind the explicit Tauri carrier to an exact Conversation.',
       '  --instance-id <id>  Select the Avatar instance.',
-      '  --uri <uri>         Pass an explicit launch URI to the Tauri carrier.',
-      '  --no-kill-existing  Keep an existing Tauri Avatar process.',
-      '  --dry-run           Resolve the Tauri launch without starting it.',
       '',
       'Electron Avatar is an avatar-only Desktop carrier and cannot run beside the regular Desktop dev instance.',
-      'CDP is unavailable with --tauri.',
     );
   }
   lines.push('', `Electron CDP defaults to 127.0.0.1:${definition.defaultCdpPort}.`, '');
@@ -78,12 +57,9 @@ export function devAppUsage(appName) {
 
 export function parseDevAppArguments(appName, argv = []) {
   const definition = requireDefinition(appName);
-  let carrier = 'electron';
-  let carrierSeen = false;
   let cdpOption;
   let cdpPort = definition.defaultCdpPort;
   let help = false;
-  const avatarArguments = [];
   const avatarOptions = new Map();
 
   const setCdpPort = (rawValue, option) => {
@@ -101,12 +77,7 @@ export function parseDevAppArguments(appName, argv = []) {
       help = true;
       continue;
     }
-    if (argument === '--electron' || argument === '--tauri') {
-      if (carrierSeen) {
-        throw launchError('dev-app-carrier-duplicate', 'The development carrier may only be selected once.');
-      }
-      carrier = argument === '--tauri' ? 'tauri' : 'electron';
-      carrierSeen = true;
+    if (argument === '--electron') {
       continue;
     }
     if (argument === '--no-cdp') {
@@ -134,51 +105,26 @@ export function parseDevAppArguments(appName, argv = []) {
       }
       const value = requireOptionValue(argv, index, argument);
       avatarOptions.set(argument, value);
-      avatarArguments.push(argument, value);
       index += 1;
-      continue;
-    }
-    if (AVATAR_FLAG_OPTIONS.has(argument)) {
-      requireAvatarOption(appName, argument);
-      if (avatarOptions.has(argument)) {
-        throw launchError('dev-app-option-duplicate', `${argument} may only be provided once.`);
-      }
-      avatarOptions.set(argument, true);
-      avatarArguments.push(argument);
       continue;
     }
     throw launchError('dev-app-option-unsupported', `Unsupported dev:${appName} option: ${argument}`);
   }
 
-  if (carrier === 'tauri' && !definition.supportsTauri) {
-    throw launchError('dev-app-carrier-unsupported', `dev:${appName} does not support --tauri.`);
-  }
-  if (carrier === 'tauri' && cdpOption === '--cdp-port') {
-    throw launchError('dev-app-tauri-cdp-unsupported', 'CDP is available only for the Electron carrier; remove --cdp-port or --tauri.');
-  }
-  if (carrier === 'electron') {
-    for (const option of TAURI_ONLY_AVATAR_OPTIONS) {
-      if (avatarOptions.has(option)) {
-        throw launchError('dev-app-avatar-option-requires-tauri', `${option} requires --tauri.`);
-      }
-    }
-  }
-
   const envOverrides = {};
-  if (carrier === 'electron' && avatarOptions.has('--agent-handle')) {
+  if (avatarOptions.has('--agent-handle')) {
     envOverrides.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_HANDLE = avatarOptions.get('--agent-handle');
   }
-  if (carrier === 'electron' && avatarOptions.has('--instance-id')) {
+  if (avatarOptions.has('--instance-id')) {
     envOverrides.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID = avatarOptions.get('--instance-id');
   }
 
   return {
     appName,
-    carrier,
-    cdpPort: carrier === 'electron' ? cdpPort : undefined,
-    cdpDisabled: carrier === 'electron' && cdpOption === '--no-cdp',
+    carrier: 'electron',
+    cdpPort,
+    cdpDisabled: cdpOption === '--no-cdp',
     help,
-    avatarArguments,
     envOverrides,
   };
 }
@@ -191,18 +137,6 @@ export function resolveDevAppLaunch(appName, argv = [], options = {}) {
       kind: 'help',
       appName,
       output: devAppUsage(appName),
-    };
-  }
-
-  if (parsed.carrier === 'tauri') {
-    return {
-      kind: 'launch',
-      appName,
-      carrier: 'tauri',
-      cdpPort: undefined,
-      command: options.nodeExecutable ?? process.execPath,
-      args: [path.join('scripts', 'dev-avatar.mjs'), ...parsed.avatarArguments],
-      envOverrides: {},
     };
   }
 
@@ -228,7 +162,6 @@ export function resolveDevAppLaunch(appName, argv = [], options = {}) {
 
 export function devAppLaunchSummary(plan) {
   if (plan.kind !== 'launch') return '';
-  if (plan.carrier === 'tauri') return `[dev-app] ${plan.appName}: Tauri carrier; CDP unavailable\n`;
   const cdp = plan.cdpPort === undefined
     ? 'CDP disabled'
     : `CDP http://127.0.0.1:${plan.cdpPort}`;

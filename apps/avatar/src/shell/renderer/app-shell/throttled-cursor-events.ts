@@ -1,9 +1,9 @@
 // Authority: .nimi/spec/avatar/embodiment-surface.authority.yaml.
 //
-// 60Hz-capped wrapper around the Tauri `set_ignore_cursor_events` IPC.
+// 60Hz-capped wrapper around the Desktop Host click-through command.
 // The underlying IPC must not be invoked more than once
 // per ~16.67ms (1000/60). Pointer events on macOS can fire at 60-120Hz
-// during drag; calling Tauri once per pointermove would saturate the IPC
+// during drag; calling the Host once per pointermove would saturate the IPC
 // channel and lag the click-through transition.
 //
 // Algorithm — leading edge fire + trailing edge debounce:
@@ -23,7 +23,7 @@ import { setIgnoreCursorEvents } from './avatar-window-commands.js';
 export const THROTTLED_CURSOR_EVENTS_MIN_INTERVAL_MS = 1000 / 60;
 
 export type ThrottledCursorEventsHandle = {
-  /** Update the desired ignore state. Calls the underlying Tauri IPC at
+  /** Update the desired ignore state. Calls the underlying Host IPC at
    *  most once per `minIntervalMs`; intermediate calls coalesce so the
    *  last-seen value wins on the trailing edge. Same-value calls are
    *  deduplicated and never trigger an IPC. */
@@ -41,8 +41,7 @@ export type CreateThrottledCursorEventsInputs = {
   /** Minimum interval between IPC calls in milliseconds. Default 60Hz
    *  (~16.67ms). */
   minIntervalMs?: number;
-  /** Test seam: override the underlying `setIgnoreCursorEvents` Tauri
-   *  command. Default: real Tauri IPC. */
+  /** Test seam: override the underlying `setIgnoreCursorEvents` Host command. */
   ipcOverride?: (ignore: boolean) => Promise<void>;
   /** Test seam: clock source. Default `performance.now()` (or `Date.now`
    *  if `performance` is unavailable). */
@@ -107,10 +106,12 @@ export function createThrottledCursorEvents(
       const sameAsPending = pendingValue === value;
       const sameAsApplied = lastSentValue === value;
       const sameAsRecentInFlight = inFlightValue === value && elapsed < minIntervalMs;
-      if (sameAsPending || sameAsApplied || sameAsRecentInFlight) {
-        // If the pending timer would resend the same value as last sent
-        // we can clear it (saves a no-op IPC).
-        if (pendingValue !== null && pendingValue === lastSentValue) {
+      if (sameAsPending) return;
+      if (sameAsApplied || sameAsRecentInFlight) {
+        // Returning to the applied/in-flight state cancels an opposite trailing
+        // value. This is required when pointer-down or an active drag locks the
+        // window interactive before a queued click-through=true can fire.
+        if (pendingValue !== null) {
           if (pendingTimer !== null) {
             clearTimeout(pendingTimer);
             pendingTimer = null;

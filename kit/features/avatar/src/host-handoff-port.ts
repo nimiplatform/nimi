@@ -2,13 +2,21 @@ const AGENT_HANDLE_PATTERN = /^agent_ref_[A-Za-z0-9_-]{43}$/u;
 const MAX_OPAQUE_REF_LENGTH = 512;
 
 export type AvatarHostHandoffCommand = 'presence' | 'launch' | 'focus';
-export type AvatarHostPresenceState = 'absent' | 'launching' | 'present' | 'focused' | 'closing';
+export type AvatarHostPresenceState =
+  | 'absent'
+  | 'non-matching'
+  | 'confirmation-required'
+  | 'launching'
+  | 'present'
+  | 'focused'
+  | 'closing';
 
 export type AvatarHostHandoffTarget = Readonly<{
   readonly agentHandle: string;
   readonly conversationAnchorId?: string | null;
   readonly avatarInstanceId: string | null;
   readonly launchSource: string | null;
+  readonly switchIntentRef: string | null;
   readonly committedPresentationRef: string | null;
   readonly temporaryCustodyRef: string | null;
 }>;
@@ -22,6 +30,7 @@ export type AvatarHostHandoffResult = Readonly<{
   readonly command: AvatarHostHandoffCommand;
   readonly state: AvatarHostPresenceState;
   readonly avatarInstanceRef: string | null;
+  readonly switchIntentRef: string | null;
   readonly committedPresentationRef: string | null;
   readonly temporaryCustodyRef: string | null;
 }>;
@@ -97,7 +106,10 @@ function command(value: unknown): AvatarHostHandoffCommand {
 }
 
 function presenceState(value: unknown): AvatarHostPresenceState {
-  if (!['absent', 'launching', 'present', 'focused', 'closing'].includes(String(value))) {
+  if (![
+    'absent', 'non-matching', 'confirmation-required',
+    'launching', 'present', 'focused', 'closing',
+  ].includes(String(value))) {
     throw new Error('Avatar Host presence state is invalid');
   }
   return value as AvatarHostPresenceState;
@@ -110,6 +122,7 @@ function parseTarget(value: unknown): AvatarHostHandoffTarget {
     'conversationAnchorId',
     'avatarInstanceId',
     'launchSource',
+    'switchIntentRef',
     'committedPresentationRef',
     'temporaryCustodyRef',
   ] as const;
@@ -126,6 +139,7 @@ function parseTarget(value: unknown): AvatarHostHandoffTarget {
       : optionalOpaqueRef(target.conversationAnchorId, 'conversationAnchorId'),
     avatarInstanceId: optionalOpaqueRef(target.avatarInstanceId, 'avatarInstanceId'),
     launchSource: optionalOpaqueRef(target.launchSource, 'launchSource'),
+    switchIntentRef: optionalOpaqueRef(target.switchIntentRef, 'switchIntentRef'),
     committedPresentationRef: optionalOpaqueRef(target.committedPresentationRef, 'committedPresentationRef'),
     temporaryCustodyRef: optionalOpaqueRef(target.temporaryCustodyRef, 'temporaryCustodyRef'),
   });
@@ -155,6 +169,7 @@ export function parseAvatarHostHandoffResult(
     'command',
     'state',
     'avatarInstanceRef',
+    'switchIntentRef',
     'committedPresentationRef',
     'temporaryCustodyRef',
   ], 'Avatar Host handoff result');
@@ -165,17 +180,23 @@ export function parseAvatarHostHandoffResult(
   }
   const state = presenceState(record.state);
   const avatarInstanceRef = optionalOpaqueRef(record.avatarInstanceRef, 'avatarInstanceRef');
+  const switchIntentRef = optionalOpaqueRef(record.switchIntentRef, 'switchIntentRef');
   if ((state === 'present' || state === 'focused' || state === 'closing') && !avatarInstanceRef) {
     throw new Error('Avatar Host handoff result requires an opaque instance ref');
   }
-  if (state === 'absent' && (avatarInstanceRef !== null
+  if ((state === 'absent' || state === 'non-matching' || state === 'confirmation-required')
+    && (avatarInstanceRef !== null
     || record.committedPresentationRef !== null || record.temporaryCustodyRef !== null)) {
-    throw new Error('Absent Avatar Host presence cannot carry instance or custody refs');
+    throw new Error('Non-present Avatar Host result cannot carry instance or custody refs');
+  }
+  if ((state === 'confirmation-required') !== (switchIntentRef !== null)) {
+    throw new Error('Avatar Host confirmation result requires exactly one switch intent ref');
   }
   return Object.freeze({
     command: projectedCommand,
     state,
     avatarInstanceRef,
+    switchIntentRef,
     committedPresentationRef: optionalOpaqueRef(record.committedPresentationRef, 'committedPresentationRef'),
     temporaryCustodyRef: optionalOpaqueRef(record.temporaryCustodyRef, 'temporaryCustodyRef'),
   });

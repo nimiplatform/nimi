@@ -12,7 +12,7 @@ description: >
 
   This schema replaces the retired Live2D-only motion-group naming convention
   table. The Live2D `motion_group` naming convention itself is preserved
-  in §naming_rule for default-fallback lookup behavior; the per-activity
+  in §naming_rule for built-in adapter lookup behavior; the per-activity
   routing below is the primary authority.
 
   Generated motion provider authority supersedes `.vrma` fallback semantics
@@ -29,10 +29,11 @@ source_authority: /config/runtime-local-agent-activity-catalog.yaml
 
 naming_rule:
   description: >
-    Live2D default-fallback motion-group naming (when no NAS handler is
-    registered for an activity and the per-activity route below also
-    yields no matching model3.json group). Convention: split activity
-    id by '-' and ':', CamelCase each segment, prefix with 'Activity_'.
+    Live2D built-in adapter motion-group naming used only when the admitted
+    per-activity route below permits convention lookup. Convention: split
+    activity id by '-' and ':', CamelCase each segment, prefix with
+    'Activity_'. Missing mappings remain unsupported semantic results rather
+    than creator-handler or global fallback success.
   prefix: "Activity_"
   splitter_chars: ["-", ":"]
   case: "CamelCase"

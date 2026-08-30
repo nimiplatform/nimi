@@ -1,7 +1,7 @@
 {
   "scenario_id": "posture-sync",
   "version": "1",
-  "description": "Cycles action_family observe → engage → support → rest with matching activities; validates posture bundle projection to handler ctx.",
+  "description": "Cycles action_family observe → engage → support → rest with matching activities; validates built-in posture bundle projection.",
   "duration_ms": 20000,
   "loop": true,
   "agent_bootstrap": {

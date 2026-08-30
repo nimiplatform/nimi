@@ -37,7 +37,7 @@ The normal path is Desktop bridge/handoff to a local Avatar asset:
 
 ## Architecture
 
-- Shell: Tauri 2 transparent always-on-top window.
+- Shell: Desktop-supervised Electron `BrowserWindow`; Avatar has no independent native shell or native bundle.
 - Renderer: React 19, Vite 7, Tailwind 4.
 - Backends: `live2d | vrm`.
 - Shared contracts and UI: `@nimiplatform/kit`.
@@ -54,12 +54,10 @@ Runtime/SDK retain semantic truth. Avatar owns embodiment projection, validated 
 
 ```bash
 pnpm --filter @nimiplatform/avatar dev:renderer
-pnpm --filter @nimiplatform/avatar dev:shell
 pnpm dev:avatar
 pnpm dev:avatar --cdp-port 19472
 pnpm dev:avatar --agent-handle agent_ref_<current-session-handle>
-pnpm dev:avatar --tauri --agent-handle agent_ref_<current-session-handle> --conversation-anchor-id <anchor>
-VITE_AVATAR_DRIVER=mock pnpm --filter @nimiplatform/avatar dev:shell
+VITE_AVATAR_DRIVER=mock pnpm --filter @nimiplatform/avatar dev:renderer
 pnpm --filter @nimiplatform/avatar typecheck
 pnpm --filter @nimiplatform/avatar lint
 pnpm --filter @nimiplatform/avatar test
@@ -67,8 +65,7 @@ pnpm --filter @nimiplatform/avatar test
 
 The root `dev:avatar` command defaults to the Desktop-owned Electron carrier.
 It enables deterministic loopback CDP port `9336` by default; `--cdp-port <port>`
-overrides the port and `--no-cdp` disables it. `--tauri` selects the explicit Tauri
-carrier and rejects `--cdp-port`. The avatar-only Electron carrier and ordinary
+overrides the port and `--no-cdp` disables it. The avatar-only Electron carrier and ordinary
 `pnpm dev:desktop` are mutually exclusive Desktop instances.
 
 ## Main Paths
@@ -77,12 +74,12 @@ carrier and rejects `--cdp-port`. The avatar-only Electron carrier and ordinary
 apps/avatar/
 ├── src/shell/renderer/
 │   ├── app-shell/   # renderer-local state and composition
-│   ├── nas/         # semantic projection wiring
+│   ├── semantic-projection/ # built-in activity and event projection wiring
 │   ├── live2d/      # Live2D backend
 │   ├── vrm/         # VRM backend
 │   ├── mock/        # explicit fixture driver
 │   └── sdk/         # real Runtime/SDK adapter
-└── src-tauri/       # bounded shell and window integration
+└── src-electron/    # preload sources consumed by the Desktop-supervised BrowserWindow
 ```
 
 ## Upstream Contracts

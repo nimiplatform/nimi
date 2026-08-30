@@ -7,8 +7,19 @@ import type {
 } from '@nimiplatform/kit/features/avatar/headless';
 import type { VrmCapabilityProfile } from '../vrm/vrm-capability-profile.js';
 
+export type BackendActivityProjectionSettlement = 'applied' | 'unsupported' | 'canceled';
+
+export type BackendPendingActivityProjectionResult = Readonly<{
+  status: 'pending';
+  completion: Promise<BackendActivityProjectionSettlement>;
+}>;
+
+export type BackendActivityProjectionResult =
+  | Exclude<BackendActivityProjectionSettlement, 'canceled'>
+  | BackendPendingActivityProjectionResult;
+
 export type BackendProjection = {
-  applyActivity(input: { name: string; intensity: number | null }): void;
+  applyActivity(input: { name: string; intensity: number | null }): BackendActivityProjectionResult;
   applyEmotion(input: { current: string; previous: string | null }): void;
   applyMotion(input: { routeId: string; fade?: number; loop?: boolean }): void;
   applyExpression(input: { name: string; weight?: number; fade?: number }): void;
@@ -20,6 +31,18 @@ export type Live2DBackendExtension = {
 };
 
 export type BackendMetadata = Record<string, unknown>;
+
+export type BackendPresentationState =
+  | Readonly<{ kind: 'loading' }>
+  | Readonly<{ kind: 'recovering' }>
+  | Readonly<{ kind: 'ready' }>
+  | Readonly<{ kind: 'unavailable'; reason: string }>;
+
+export type BackendSurfaceBounds = Readonly<{
+  bounds: BackendNominalBounds;
+  source: 'scene_geometry' | 'configured_fallback';
+  reasonCode: string | null;
+}>;
 
 export type AvatarBackendDebugFacts =
   | Readonly<{
@@ -51,6 +74,10 @@ export type BackendSurfaceProps = {
   reducedMotion?: boolean;
   onHitRegionChange?: (region: BackendHitRegion) => void;
   onAudioConsumerReady?: (consumer: BackendAudioConsumer) => void;
+  /** Avatar-local presentation observation. Never crosses to Desktop or Runtime. */
+  onPresentationStateChange?: (state: BackendPresentationState) => void;
+  /** Current validated geometry or the explicitly configured bounded fallback. */
+  onSurfaceBoundsChange?: (surface: BackendSurfaceBounds) => void;
 };
 
 export type BackendSurface = {

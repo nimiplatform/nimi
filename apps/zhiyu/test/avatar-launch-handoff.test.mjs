@@ -45,6 +45,7 @@ test('Zhiyu builds the exact common Host handoff without identity or product aut
       conversationAnchorId: 'conversation-anchor:must-stay-in-runtime',
       avatarInstanceId: `zhiyu-avatar-agent-ref-${'a'.repeat(43)}`,
       launchSource: 'zhiyu',
+      switchIntentRef: null,
       committedPresentationRef: null,
       temporaryCustodyRef: null,
     },
@@ -63,6 +64,7 @@ test('Zhiyu invokes the common Host port and preserves opaque custody refs', asy
         command: 'presence',
         state: 'absent',
         avatarInstanceRef: null,
+        switchIntentRef: null,
         committedPresentationRef: null,
         temporaryCustodyRef: null,
       },
@@ -80,6 +82,7 @@ test('Zhiyu invokes the common Host port and preserves opaque custody refs', asy
           command: request.command,
           state: 'present',
           avatarInstanceRef: request.target.avatarInstanceId,
+          switchIntentRef: null,
           committedPresentationRef: 'presentation:opaque',
           temporaryCustodyRef: 'custody:opaque',
         };
@@ -101,6 +104,7 @@ test('an already present Avatar is focused through the same port', () => {
         command: 'presence',
         state: 'present',
         avatarInstanceRef: 'avatar:opaque',
+        switchIntentRef: null,
         committedPresentationRef: null,
         temporaryCustodyRef: null,
       },
@@ -118,6 +122,7 @@ test('focus returning absent fails closed instead of reporting an opened Avatar'
         command: 'presence',
         state: 'present',
         avatarInstanceRef: 'avatar:opaque',
+        switchIntentRef: null,
         committedPresentationRef: null,
         temporaryCustodyRef: null,
       },
@@ -133,6 +138,7 @@ test('focus returning absent fails closed instead of reporting an opened Avatar'
           command: request.command,
           state: 'absent',
           avatarInstanceRef: null,
+          switchIntentRef: null,
           committedPresentationRef: null,
           temporaryCustodyRef: null,
         };
@@ -145,5 +151,64 @@ test('focus returning absent fails closed instead of reporting an opened Avatar'
     reasonCode: 'zhiyu-avatar-host-focus-absent',
     actionHint: 'retry_avatar_host_handoff',
     message: 'Avatar Host focus did not establish a present window.',
+  });
+});
+
+test('Zhiyu explicitly confirms and resubmits a one-time switch intent', async () => {
+  const evidence = readyEvidence();
+  const action = projectZhiyuAvatarLaunchAction(evidence);
+  const calls = [];
+  const result = await launchZhiyuAvatar({
+    evidence,
+    action,
+    confirmSwitch: async () => true,
+    hostPort: {
+      async invoke(request) {
+        calls.push(request);
+        if (calls.length === 1) {
+          return {
+            command: 'launch', state: 'confirmation-required', avatarInstanceRef: null,
+            switchIntentRef: 'avatar_switch_once', committedPresentationRef: null, temporaryCustodyRef: null,
+          };
+        }
+        return {
+          command: 'launch', state: 'present', avatarInstanceRef: 'avatar:switched',
+          switchIntentRef: null, committedPresentationRef: null, temporaryCustodyRef: null,
+        };
+      },
+    },
+  });
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].target.switchIntentRef, null);
+  assert.equal(calls[1].target.switchIntentRef, 'avatar_switch_once');
+  assert.equal(result.state, 'opened');
+});
+
+test('Zhiyu switch cancellation keeps the current companion without resubmission', async () => {
+  const evidence = readyEvidence();
+  const action = projectZhiyuAvatarLaunchAction(evidence);
+  let calls = 0;
+  const result = await launchZhiyuAvatar({
+    evidence,
+    action,
+    confirmSwitch: async () => false,
+    hostPort: {
+      async invoke() {
+        calls += 1;
+        return {
+          command: 'launch', state: 'confirmation-required', avatarInstanceRef: null,
+          switchIntentRef: 'avatar_switch_once', committedPresentationRef: null, temporaryCustodyRef: null,
+        };
+      },
+    },
+  });
+
+  assert.equal(calls, 1);
+  assert.deepEqual(result, {
+    state: 'blocked',
+    reasonCode: 'zhiyu-avatar-switch-cancelled',
+    actionHint: 'keep_current_companion',
+    message: 'Kept the current desktop companion.',
   });
 });

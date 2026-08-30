@@ -102,7 +102,6 @@ func projectLocalAppAgentReferences(
 	}
 	return references, true
 }
-
 func mintLocalAppAgentHandle(decision accountservice.LocalAppCallerDecision, localAgentID string) string {
 	localAgentID = strings.TrimSpace(localAgentID)
 	if !hasLocalAppSessionID(decision.SessionID[:]) || localAgentID == "" {

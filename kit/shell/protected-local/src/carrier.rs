@@ -545,6 +545,17 @@ pub struct LocalAppAgentReference {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAvatarHostTargetResolveRequest {
+    pub agent_handle: String,
+    pub conversation_anchor_id: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppAvatarHostTargetResolveResult {
+    pub avatar_host_target_ref: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LocalAppConversationOpenRequest {
     pub agent_handle: String,
 }
@@ -1473,6 +1484,20 @@ pub trait NimiLocalAppSession: Send + Sync {
         Box<
             dyn Future<Output = Result<Vec<LocalAppAgentReference>, LocalAppOperationError>>
                 + Send
+                + '_,
+        >,
+    >;
+
+    /// Resolves one formal-App Agent selector to Host-private Avatar
+    /// correlation. This method is never projected through renderer commands.
+    fn avatar_host_target_resolve(
+        &self,
+        request: LocalAppAvatarHostTargetResolveRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppAvatarHostTargetResolveResult, LocalAppOperationError>,
+                > + Send
                 + '_,
         >,
     >;

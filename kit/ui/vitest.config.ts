@@ -92,6 +92,7 @@ export default defineConfig({
       { find: '@nimiplatform/sdk/features/conversation', replacement: path.resolve(__dirname, '../../sdks/typescript/features/conversation/index.ts') },
       { find: '@nimiplatform/sdk/features/generation', replacement: path.resolve(__dirname, '../../sdks/typescript/features/generation/index.ts') },
       { find: '@nimiplatform/sdk/runtime/generated', replacement: path.resolve(__dirname, '../../sdks/typescript/runtime/generated.ts') },
+      { find: '@nimiplatform/sdk/runtime/host', replacement: path.resolve(__dirname, '../../sdks/typescript/runtime/host.ts') },
       { find: '@nimiplatform/sdk/realm/generated', replacement: path.resolve(__dirname, '../../sdks/typescript/realm/generated.ts') },
       { find: '@nimiplatform/sdk/contracts', replacement: path.resolve(__dirname, '../../sdks/typescript/core/contracts/index.ts') },
       { find: '@nimiplatform/sdk/runtime', replacement: path.resolve(__dirname, '../../sdks/typescript/runtime/index.ts') },

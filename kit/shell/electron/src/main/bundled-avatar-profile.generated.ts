@@ -49,6 +49,7 @@ export const NIMI_ELECTRON_BUNDLED_AVATAR_METHODS = {
   "/nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled": { kind: "unary", capability: "agent.configure" },
   "/nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory": { kind: "unary", capability: "agent.configure" },
   "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences": { kind: "unary", capability: "agent.local" },
+  "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget": { kind: "unary", capability: "agent.local" },
   "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation": { kind: "unary", capability: "agent.local" },
   "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn": { kind: "unary", capability: "agent.local" },
   "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment": { kind: "unary", capability: "agent.local" },

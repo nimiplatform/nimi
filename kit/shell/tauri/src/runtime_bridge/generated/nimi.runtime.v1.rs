@@ -17366,6 +17366,33 @@ pub struct ListLocalAppAgentReferencesResponse {
     #[prost(message, repeated, tag = "1")]
     pub references: ::prost::alloc::vec::Vec<LocalAppAgentReference>,
 }
+/// Host-private Avatar correlation. This wire is reachable only through the
+/// protected native Host binding and is never an App product operation.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResolveLocalAppAvatarHostTargetRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "2")]
+    pub conversation_anchor_id: ::core::option::Option<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResolveLocalAppAvatarHostTargetResponse {
+    #[prost(string, tag = "1")]
+    pub avatar_host_target_ref: ::prost::alloc::string::String,
+}
+/// Desktop-Host-private revalidation of an already minted Avatar correlation.
+/// This wire is admitted only on the verified Desktop account-product binding
+/// and is excluded from public SDK product and wire surfaces.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RevalidateLocalAppAvatarHostTargetRequest {
+    #[prost(string, tag = "1")]
+    pub avatar_host_target_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RevalidateLocalAppAvatarHostTargetResponse {
+    #[prost(string, tag = "1")]
+    pub avatar_host_target_ref: ::prost::alloc::string::String,
+}
 /// Bounded AgentCenter manager projection. It deliberately excludes raw Agent
 /// or account identity, source/Memory corpus, hashes, prompts, reasoning,
 /// internal generations, provider/model/storage detail, and reconstructable
@@ -19802,6 +19829,68 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "ListLocalAppAgentReferences",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn resolve_local_app_avatar_host_target(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ResolveLocalAppAvatarHostTargetRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ResolveLocalAppAvatarHostTargetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ResolveLocalAppAvatarHostTarget",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn revalidate_local_app_avatar_host_target(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::RevalidateLocalAppAvatarHostTargetRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::RevalidateLocalAppAvatarHostTargetResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "RevalidateLocalAppAvatarHostTarget",
                     ),
                 );
             self.inner.unary(req, path, codec).await

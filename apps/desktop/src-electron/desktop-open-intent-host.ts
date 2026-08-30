@@ -61,7 +61,7 @@ export async function createDesktopElectronOpenIntentHost(input: {
   readonly homeDirectory: string;
   readonly focusMainWindow: () => Promise<void>;
   readonly emitIntent: (envelope: NimiDesktopOpenIntentEnvelope) => void;
-  readonly avatarHostHandoff?: (request: AvatarHostHandoffRequest) => Promise<AvatarHostHandoffResult>;
+  readonly avatarHostHandoff?: (dispatch: AvatarHostHandoffEnvelope) => Promise<AvatarHostHandoffResult>;
   readonly zhiyuResourcePackPlacement?: (
     request: DesktopZhiyuResourcePackPlacementDispatch,
     ) => Promise<NimiElectronAgentCenterResourcePackPlacementResult>;
@@ -104,7 +104,7 @@ class ElectronDesktopOpenIntentHost {
     readonly homeDirectory: string;
     readonly focusMainWindow: () => Promise<void>;
     readonly emitIntent: (envelope: NimiDesktopOpenIntentEnvelope) => void;
-    readonly avatarHostHandoff?: (request: AvatarHostHandoffRequest) => Promise<AvatarHostHandoffResult>;
+    readonly avatarHostHandoff?: (dispatch: AvatarHostHandoffEnvelope) => Promise<AvatarHostHandoffResult>;
     readonly zhiyuResourcePackPlacement?: (
       request: DesktopZhiyuResourcePackPlacementDispatch,
     ) => Promise<NimiElectronAgentCenterResourcePackPlacementResult>;
@@ -283,7 +283,7 @@ class ElectronDesktopOpenIntentHost {
       try {
         const envelope = avatarHostHandoffEnvelope(raw);
         const handoff = envelope.request;
-        const result = await this.input.avatarHostHandoff(handoff);
+        const result = await this.input.avatarHostHandoff(envelope);
         writeJson(response, 200, {
           bridgeId: this.bridgeId,
           ...parseAvatarHostHandoffResult(result, handoff.command),
@@ -377,17 +377,20 @@ class ElectronDesktopOpenIntentHost {
   }
 }
 
-function avatarHostHandoffEnvelope(value: unknown): {
+type AvatarHostHandoffEnvelope = Readonly<{
   readonly schemaVersion: 1;
   readonly sourceApp: string;
+  readonly avatarHostTargetRef: string;
   readonly request: AvatarHostHandoffRequest;
-} {
+}>;
+
+function avatarHostHandoffEnvelope(value: unknown): AvatarHostHandoffEnvelope {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new Error('avatar-host-handoff-envelope-invalid');
   }
   const record = value as Record<string, unknown>;
   const keys = Object.keys(record).sort();
-  if (keys.join(',') !== 'request,schemaVersion,sourceApp' || record.schemaVersion !== 1) {
+  if (keys.join(',') !== 'avatarHostTargetRef,request,schemaVersion,sourceApp' || record.schemaVersion !== 1) {
     throw new Error('avatar-host-handoff-envelope-invalid');
   }
   const sourceApp = typeof record.sourceApp === 'string' ? record.sourceApp.trim() : '';
@@ -395,9 +398,17 @@ function avatarHostHandoffEnvelope(value: unknown): {
     || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(sourceApp)) {
     throw new Error('avatar-host-handoff-source-app-invalid');
   }
+  const avatarHostTargetRef = typeof record.avatarHostTargetRef === 'string'
+    ? record.avatarHostTargetRef.trim()
+    : '';
+  if (avatarHostTargetRef !== record.avatarHostTargetRef
+    || !/^avatar_target_[A-Za-z0-9_-]{43}$/u.test(avatarHostTargetRef)) {
+    throw new Error('avatar-host-handoff-target-ref-invalid');
+  }
   return {
     schemaVersion: 1,
     sourceApp,
+    avatarHostTargetRef,
     request: buildAvatarHostHandoffRequest(record.request as AvatarHostHandoffRequest),
   };
 }

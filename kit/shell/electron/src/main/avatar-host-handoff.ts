@@ -45,7 +45,8 @@ export async function handoffElectronAvatarHost(input: {
       'check_desktop_runtime_bridge',
     );
   }
-  const request = await runtimeValidatedRequest(input.host, parsedRequest);
+  const validated = await runtimeValidatedRequest(input.host, parsedRequest);
+  const request = validated.request;
 
   let response;
   try {
@@ -58,6 +59,7 @@ export async function handoffElectronAvatarHost(input: {
       body: JSON.stringify({
         schemaVersion: 1,
         sourceApp: input.appId,
+        avatarHostTargetRef: validated.avatarHostTargetRef,
         request,
       }),
     });
@@ -109,8 +111,10 @@ export async function handoffElectronAvatarHost(input: {
 async function runtimeValidatedRequest(
   host: NimiElectronStandardShellHost | undefined,
   request: AvatarHostHandoffRequest,
-): Promise<AvatarHostHandoffRequest> {
-  if (request.command !== 'launch') return request;
+): Promise<Readonly<{
+  request: AvatarHostHandoffRequest;
+  avatarHostTargetRef: string;
+}>> {
   const localAppHost = host?.localAppHost;
   if (!localAppHost) {
     throw handoffError(
@@ -120,25 +124,13 @@ async function runtimeValidatedRequest(
       'restart_desktop_supervised_app',
     );
   }
-  const target = request.target;
-  let conversationAnchorId = target.conversationAnchorId;
-  try {
-    if (conversationAnchorId) {
-      const snapshot = await localAppHost.conversationSnapshot({
-        agentHandle: target.agentHandle,
-        conversationAnchorId,
+  let exactRequest = request;
+  if (!request.target.conversationAnchorId && request.command === 'launch') {
+    try {
+      const opened = await localAppHost.conversationOpen({
+        agentHandle: request.target.agentHandle,
       });
-      if (normalizedAnchor(snapshot.conversationAnchorId) !== conversationAnchorId) {
-        throw handoffError(
-          'invalid-payload',
-          'Avatar Host handoff Agent and Conversation do not match.',
-          'avatar-host-agent-anchor-mismatch',
-          'refresh_current_agent_selection',
-        );
-      }
-    } else {
-      const opened = await localAppHost.conversationOpen({ agentHandle: target.agentHandle });
-      conversationAnchorId = normalizedAnchor(opened.conversationAnchorId);
+      const conversationAnchorId = normalizedAnchor(opened.conversationAnchorId);
       if (!conversationAnchorId) {
         throw handoffError(
           'host-internal-error',
@@ -147,10 +139,62 @@ async function runtimeValidatedRequest(
           'retry_avatar_host_handoff',
         );
       }
+      exactRequest = buildAvatarHostHandoffRequest({
+        command: request.command,
+        target: { ...request.target, conversationAnchorId },
+      });
+    } catch (error) {
+      if (error instanceof NimiElectronShellHostError) throw error;
+      if (error instanceof NimiElectronLocalAppHostError) {
+        throw targetRevalidationError(error);
+      }
+      throw handoffError(
+        'host-internal-error',
+        'Avatar launch Conversation continuity could not be established.',
+        'avatar-host-conversation-anchor-unavailable',
+        'retry_avatar_host_handoff',
+      );
     }
+  }
+  try {
+    return await validateAvatarTargetOnce(localAppHost, exactRequest);
   } catch (error) {
     if (error instanceof NimiElectronShellHostError) throw error;
     if (error instanceof NimiElectronLocalAppHostError) {
+      throw targetRevalidationError(error);
+    }
+    throw handoffError(
+      'host-internal-error',
+      'Avatar Host handoff target revalidation failed.',
+      'avatar-host-target-revalidation-failed',
+      'retry_avatar_host_handoff',
+    );
+  }
+}
+
+async function validateAvatarTargetOnce(
+  localAppHost: NonNullable<NimiElectronStandardShellHost['localAppHost']>,
+  request: AvatarHostHandoffRequest,
+): Promise<Readonly<{ request: AvatarHostHandoffRequest; avatarHostTargetRef: string }>> {
+  const target = request.target;
+  const resolved = await localAppHost.avatarHostTargetResolve({
+    agentHandle: target.agentHandle,
+    conversationAnchorId: target.conversationAnchorId ?? null,
+  });
+  const avatarHostTargetRef = normalizedAvatarHostTargetRef(resolved.avatarHostTargetRef);
+  if (!avatarHostTargetRef) {
+    throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+  }
+  return Object.freeze({
+    avatarHostTargetRef,
+    request: buildAvatarHostHandoffRequest({
+      command: request.command,
+      target,
+    }),
+  });
+}
+
+function targetRevalidationError(error: NimiElectronLocalAppHostError): NimiElectronShellHostError {
       const unavailable = error.retryable || [
         'runtime-service-unavailable',
         'runtime-service-untrusted',
@@ -158,7 +202,7 @@ async function runtimeValidatedRequest(
         'runtime-restarted',
         'local-app-snapshot-unavailable',
       ].includes(error.reasonCode);
-      throw handoffError(
+      return handoffError(
         unavailable ? 'capability-unavailable' : 'invalid-payload',
         unavailable
           ? 'Runtime could not revalidate the Avatar target.'
@@ -168,21 +212,11 @@ async function runtimeValidatedRequest(
           : 'avatar-host-target-revalidation-failed',
         unavailable ? 'retry_avatar_host_handoff' : 'refresh_current_agent_selection',
       );
-    }
-    throw handoffError(
-      'host-internal-error',
-      'Avatar Host handoff target revalidation failed.',
-      'avatar-host-target-revalidation-failed',
-      'retry_avatar_host_handoff',
-    );
-  }
-  return buildAvatarHostHandoffRequest({
-    command: request.command,
-    target: {
-      ...target,
-      conversationAnchorId,
-    },
-  });
+}
+
+function normalizedAvatarHostTargetRef(value: unknown): string | null {
+  const normalized = typeof value === 'string' ? value.trim() : '';
+  return /^avatar_target_[A-Za-z0-9_-]{43}$/u.test(normalized) ? normalized : null;
 }
 
 function normalizedAnchor(value: unknown): string | null {

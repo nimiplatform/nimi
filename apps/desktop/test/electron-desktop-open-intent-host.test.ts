@@ -13,6 +13,7 @@ import {
   DESKTOP_OPEN_INTENT_EVENT,
   DESKTOP_ZHIYU_RESOURCE_PACK_REDEEM_PATH,
 } from '../src-electron/desktop-open-intent-host';
+import type { DesktopAvatarHostHandoffDispatch } from '../src-electron/bundled-avatar-host';
 
 const envelope: NimiDesktopOpenIntentEnvelope = {
   schemaVersion: 1,
@@ -39,7 +40,7 @@ test('Electron Desktop Open host enforces auth/readiness and emits an exact admi
   let now = Date.parse('2026-07-19T10:00:00.000Z');
   let focusCount = 0;
   const emitted: NimiDesktopOpenIntentEnvelope[] = [];
-  const avatarRequests: AvatarHostHandoffRequest[] = [];
+  const avatarRequests: DesktopAvatarHostHandoffDispatch[] = [];
   const placementRequests: unknown[] = [];
   let descriptor: {
     schemaVersion: number;
@@ -57,14 +58,15 @@ test('Electron Desktop Open host enforces auth/readiness and emits an exact admi
     readinessTtlMs: 10_000,
     focusMainWindow: async () => { focusCount += 1; },
     emitIntent: (value) => emitted.push(value),
-    avatarHostHandoff: async (request) => {
-      avatarRequests.push(request);
+    avatarHostHandoff: async (dispatch) => {
+      avatarRequests.push(dispatch);
       return {
-        command: request.command,
+        command: dispatch.request.command,
         state: 'present',
-        avatarInstanceRef: request.target.avatarInstanceId,
-        committedPresentationRef: request.target.committedPresentationRef,
-        temporaryCustodyRef: request.target.temporaryCustodyRef,
+        avatarInstanceRef: dispatch.request.target.avatarInstanceId,
+        switchIntentRef: null,
+        committedPresentationRef: dispatch.request.target.committedPresentationRef,
+        temporaryCustodyRef: dispatch.request.target.temporaryCustodyRef,
       };
     },
     zhiyuResourcePackPlacement: async (request) => {
@@ -163,6 +165,7 @@ test('Electron Desktop Open host enforces auth/readiness and emits an exact admi
         conversationAnchorId: 'anchor-1',
         avatarInstanceId: 'avatar-instance-1',
         launchSource: 'zhiyu',
+        switchIntentRef: null,
         committedPresentationRef: null,
         temporaryCustodyRef: null,
       },
@@ -170,7 +173,12 @@ test('Electron Desktop Open host enforces auth/readiness and emits an exact admi
     const avatarPresence = await post(
       descriptor.endpoint,
       descriptor.token,
-      { schemaVersion: 1, sourceApp: 'nimi.zhiyu', request: avatarRequest },
+      {
+        schemaVersion: 1,
+        sourceApp: 'nimi.zhiyu',
+        avatarHostTargetRef: `avatar_target_${'b'.repeat(43)}`,
+        request: avatarRequest,
+      },
       DESKTOP_AVATAR_HOST_HANDOFF_PATH,
     );
     assert.equal(avatarPresence.status, 200);
@@ -179,10 +187,16 @@ test('Electron Desktop Open host enforces auth/readiness and emits an exact admi
       command: 'presence',
       state: 'present',
       avatarInstanceRef: 'avatar-instance-1',
+      switchIntentRef: null,
       committedPresentationRef: null,
       temporaryCustodyRef: null,
     });
-    assert.deepEqual(avatarRequests, [avatarRequest]);
+    assert.deepEqual(avatarRequests, [{
+      schemaVersion: 1,
+      sourceApp: 'nimi.zhiyu',
+      avatarHostTargetRef: `avatar_target_${'b'.repeat(43)}`,
+      request: avatarRequest,
+    }]);
     assert.equal(focusCount, 0);
 
     assert.throws(() => host.commandHandlers.desktop_open_intent_set_ready({

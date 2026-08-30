@@ -81,11 +81,11 @@ apps:
     runtime_caller_mode: formal-app-session
     principal_posture: registered_release_eas
     development_integration_profile: null
-    native_shell: tauri
-    native_bundle_identifier: ai.nimi.apps.nimi.avatar
-    native_bundle_identifier_required: true
+    native_shell: none
+    native_bundle_identifier: null
+    native_bundle_identifier_required: false
     npm_package: "@nimiplatform/avatar"
-    product_status: first-party-nimi-app
+    product_status: bundled-formal-app
     source_rule: P-NAPP-012
 
   - source_root: apps/lab

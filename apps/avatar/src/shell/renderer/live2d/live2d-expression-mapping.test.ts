@@ -46,10 +46,6 @@ function createCompatibility(): Live2DCompatibilityReport {
           fallback: 'alpha_mask_only',
           disposition: { status: 'supported' },
         },
-        nas_fallback: {
-          default_idle_motion: 'Idle',
-          missing_handler: 'backend_default_with_diagnostic',
-        },
       },
     },
     diagnostics: [],

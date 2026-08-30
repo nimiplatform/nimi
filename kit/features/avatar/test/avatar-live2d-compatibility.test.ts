@@ -107,10 +107,6 @@ function createBasicManifest(overrides: Partial<Live2DAdapterManifestV1> = {}): 
         fallback: 'alpha_mask_only',
         disposition: { status: 'supported' },
       },
-      nas_fallback: {
-        default_idle_motion: 'Idle',
-        missing_handler: 'backend_default_with_diagnostic',
-      },
     },
   };
   return { ...base, ...overrides };
@@ -280,6 +276,20 @@ describe('Live2D compatibility validation', () => {
 
   it('rejects malformed adapter manifests before loader success', () => {
     expect(() => parseLive2DAdapterManifest('{"manifest_kind":"wrong"}'))
+      .toThrow('AVATAR_LIVE2D_COMPAT_MANIFEST_INVALID');
+  });
+
+  it('rejects the retired nas_fallback field as unknown closed-schema input', () => {
+    const manifest = createBasicManifest() as unknown as Record<string, unknown>;
+    manifest['semantics'] = {
+      ...(manifest['semantics'] as Record<string, unknown>),
+      nas_fallback: {
+        default_idle_motion: 'Idle',
+        missing_handler: 'backend_default_with_diagnostic',
+      },
+    };
+
+    expect(() => parseLive2DAdapterManifest(JSON.stringify(manifest)))
       .toThrow('AVATAR_LIVE2D_COMPAT_MANIFEST_INVALID');
   });
 });

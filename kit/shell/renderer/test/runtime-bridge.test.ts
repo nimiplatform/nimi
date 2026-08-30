@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import {
-  convertTauriFileSrc,
+  convertShellFileSrc,
   hasElectronInvoke,
   hasElectronRuntime,
   hasNimiShellRuntime,
@@ -157,7 +157,7 @@ describe('installNimiShellRuntimeBridge', () => {
     expect(typeof unsubscribe).toBe('function');
     expect(invokeCalls).toEqual([{ command: 'desktop_command', payload: { ok: true } }]);
     expect(listenCalls).toEqual(['menu-bar://quit-requested']);
-    await expect(Promise.resolve().then(() => convertTauriFileSrc('/tmp/avatar.vrm'))).rejects.toThrow(/not available/);
+    await expect(Promise.resolve().then(() => convertShellFileSrc('/tmp/avatar.vrm'))).rejects.toThrow(/not available/);
   });
 
   it('uses an Electron preload runtime hook through host-neutral invoke and listen', async () => {

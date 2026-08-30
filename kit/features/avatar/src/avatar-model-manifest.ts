@@ -34,7 +34,7 @@ export type VrmAvatarModelManifest = {
 
 export type AvatarModelManifest = Live2DAvatarModelManifest | VrmAvatarModelManifest;
 
-export type TauriAvatarModelManifest = {
+export type HostAvatarModelManifest = {
   kind?: string;
   runtime_dir?: string;
   model_id?: string;
@@ -83,7 +83,7 @@ export function fromLive2DLocalModelManifest(raw: Live2DLocalModelManifest): Liv
   };
 }
 
-export function fromTauriAvatarModelManifest(raw: TauriAvatarModelManifest): AvatarModelManifest {
+export function fromHostAvatarModelManifest(raw: HostAvatarModelManifest): AvatarModelManifest {
   const kind = readRequiredString(raw.kind, 'kind');
   const runtimeDir = readRequiredString(raw.runtime_dir, 'runtime_dir');
   const modelId = readRequiredString(raw.model_id, 'model_id');

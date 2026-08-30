@@ -45,6 +45,8 @@ namespaces: &avatar_i18n_key_entries
     keys:
       - key: Avatar.status.idle
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.requesting_permission
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
       - key: Avatar.status.listening
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
       - key: Avatar.status.transcribing
@@ -68,6 +70,10 @@ namespaces: &avatar_i18n_key_entries
       - key: Avatar.status.mic_commit_aria
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
       - key: Avatar.status.mic_blocked_aria
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.cancel_capture_aria
+        usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
+      - key: Avatar.status.permission_denied
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
       - key: Avatar.status.interrupt_aria
         usage: "src/shell/renderer/companion-surface/companion-surface.tsx"
@@ -259,13 +265,6 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/creator-capabilities.ts"
       - key: Avatar.creator_capabilities.lipsync.proof_missing
         usage: "src/shell/renderer/creator-capabilities.ts"
-      - key: Avatar.creator_capabilities.nas_handlers.label
-        usage: "src/shell/renderer/creator-capability-panel.tsx"
-      - key: Avatar.creator_capabilities.nas_handlers.proof_present
-        usage: "src/shell/renderer/creator-capabilities.ts"
-      - key: Avatar.creator_capabilities.nas_handlers.proof_missing
-        usage: "src/shell/renderer/creator-capabilities.ts"
-
   - id: settings
     spec_anchor: "rule.nimi.avatar.embodiment.r025"
     description: "Shell settings labels used by transient context-menu/settings overlays."
@@ -285,6 +284,28 @@ namespaces: &avatar_i18n_key_entries
       - key: Avatar.settings.show_voice_captions.help
         usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
       - key: Avatar.settings.show_voice_captions.note
+        usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
+      - key: Avatar.settings.caption_size.label
+        usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
+      - key: Avatar.settings.caption_size.small
+        usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
+      - key: Avatar.settings.caption_size.medium
+        usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
+      - key: Avatar.settings.caption_size.large
+        usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
+      - key: Avatar.settings.caption_contrast.label
+        usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
+      - key: Avatar.settings.caption_contrast.standard
+        usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
+      - key: Avatar.settings.caption_contrast.high
+        usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
+      - key: Avatar.settings.caption_duration.label
+        usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
+      - key: Avatar.settings.caption_duration.short
+        usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
+      - key: Avatar.settings.caption_duration.standard
+        usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
+      - key: Avatar.settings.caption_duration.long
         usage: "src/shell/renderer/settings-overlay/avatar-settings-overlay.tsx"
 
   - id: appearance_overlay
@@ -350,6 +371,8 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/context-menu/avatar-context-menu.tsx"
       - key: Avatar.context_menu.close
         usage: "src/shell/renderer/context-menu/avatar-context-menu.tsx"
+      - key: Avatar.context_menu.quit_app
+        usage: "src/shell/renderer/context-menu/avatar-context-menu.tsx"
       - key: Avatar.context_menu.settings
         usage: "src/shell/renderer/context-menu/avatar-context-menu.tsx"
       - key: Avatar.context_menu.pending
@@ -365,7 +388,11 @@ namespaces: &avatar_i18n_key_entries
         usage: "src/shell/renderer/i18n/index.ts"
       - key: Avatar.runtime_status.loading
         usage: "src/shell/renderer/avatar-runtime-status.tsx"
+      - key: Avatar.runtime_status.recovering
+        usage: "src/shell/renderer/avatar-runtime-status.tsx"
       - key: Avatar.runtime_status.ready
+        usage: "src/shell/renderer/avatar-runtime-status.tsx"
+      - key: Avatar.runtime_status.not_verified
         usage: "src/shell/renderer/avatar-runtime-status.tsx"
       - key: Avatar.runtime_status.speaking
         usage: "src/shell/renderer/avatar-runtime-status.tsx"

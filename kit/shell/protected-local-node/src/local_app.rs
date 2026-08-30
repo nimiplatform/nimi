@@ -997,6 +997,22 @@ pub async fn local_app_agent_reference_list() -> NativeJsonOutcome {
     .await
 }
 
+#[napi(js_name = "localAppAvatarHostTargetResolve")]
+pub async fn local_app_avatar_host_target_resolve(
+    input: NativeAvatarHostTargetResolveInput,
+) -> NativeJsonOutcome {
+    invoke_agent(|session| async move {
+        session
+            .avatar_host_target_resolve(LocalAppAvatarHostTargetResolveRequest {
+                agent_handle: input.agent_handle,
+                conversation_anchor_id: input.conversation_anchor_id,
+            })
+            .await
+            .map(|resolved| json!({ "avatarHostTargetRef": resolved.avatar_host_target_ref }))
+    })
+    .await
+}
+
 fn project_agent_reference(reference: LocalAppAgentReference) -> JsonValue {
     json!({
         "agentHandle": reference.agent_handle,

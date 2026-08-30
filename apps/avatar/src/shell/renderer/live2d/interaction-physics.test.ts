@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AgentDataBundle, AgentEvent } from '../driver/types.js';
-import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
+import type { AvatarSignalProjection } from '../semantic-projection/signal-projection.js';
 import { createInteractionPhysicsController, isAvatarUserInteractionEvent } from './interaction-physics.js';
 
 function createBundle(): AgentDataBundle {
@@ -33,20 +33,12 @@ function createBundle(): AgentDataBundle {
   };
 }
 
-function createProjection(): EmbodimentProjectionApi & { setSignal: ReturnType<typeof vi.fn<(signalId: string, value: number, weight?: number) => void>> } {
+function createProjection(): AvatarSignalProjection & { setSignal: ReturnType<typeof vi.fn<(signalId: string, value: number, weight?: number) => void>> } {
   const setSignal = vi.fn<(signalId: string, value: number, weight?: number) => void>();
   return {
-    triggerMotion: vi.fn(async () => undefined),
-    stopMotion: vi.fn(),
     setSignal,
     getSignal: vi.fn(() => 0),
     addSignal: vi.fn(),
-    setExpression: vi.fn(async () => undefined),
-    clearExpression: vi.fn(),
-    setPose: vi.fn(),
-    clearPose: vi.fn(),
-    wait: vi.fn(async () => undefined),
-    getSurfaceBounds: vi.fn(() => ({ x: 0, y: 0, width: 200, height: 400 })),
   };
 }
 

@@ -1,16 +1,13 @@
 import type { AgentDataDriver } from '../driver/types.js';
-import { ContinuousScheduler, wireEventDispatch } from '../nas/event-dispatch.js';
-import { HandlerExecutor } from '../nas/handler-executor.js';
-import {
-  createHandlerRegistry,
-  disposeRegistry,
-  type HandlerRegistry,
-} from '../nas/handler-registry.js';
+import { wireEventDispatch } from '../semantic-projection/event-dispatch.js';
 import { useAvatarStore } from '../app-shell/app-store.js';
 import { wireAvatarVoiceLipsync } from '../voice-lipsync/avatar-voice-lipsync.js';
 import { createInteractionPhysicsController } from '../live2d/interaction-physics.js';
-import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
-import { createSmoothedProjection, type ProjectionSmoothingHandle } from '@nimiplatform/kit/features/avatar/headless';
+import {
+  createSmoothedSignalProjection,
+  type AvatarSignalProjection,
+  type SignalProjectionSmoothingHandle,
+} from '../semantic-projection/signal-projection.js';
 import { createBackendBranch, type BackendBranchHandle } from './create-backend-branch.js';
 import type { AvatarModelManifest } from '@nimiplatform/kit/features/avatar/headless';
 import type { BackendBranch } from './backend-branch.js';
@@ -46,7 +43,6 @@ export type AvatarCommittedPresentationSelection = {
 export type AvatarRuntimeCarrier = {
   model: AvatarModelManifest;
   committedPresentationSelection: AvatarCommittedPresentationSelection | null;
-  registry: HandlerRegistry;
   backend: BackendBranch;
   createDebugSession(input: {
     debugSessionId: string;
@@ -62,21 +58,9 @@ export type AvatarRuntimeCarrier = {
   shutdown(): void;
 };
 
-function countHandlers(registry: HandlerRegistry): number {
-  return registry.activity.size + registry.event.size + registry.continuous.size;
-}
-
-function activityIntensity(value: string | null | undefined): number | null {
-  if (value === 'weak') return 0.25;
-  if (value === 'moderate') return 0.5;
-  if (value === 'strong') return 0.85;
-  return null;
-}
-
-// @nimi-authority: definition.nimi.avatar.embodiment.nas-projection-api
 // @nimi-authority: definition.nimi.avatar.embodiment.projection-output
 // @nimi-authority: rule.nimi.avatar.embodiment.r010
-function createBackendCueProjection(branch: BackendBranch): EmbodimentProjectionApi {
+function createBackendSignalProjection(branch: BackendBranch): AvatarSignalProjection {
   const signalState = new Map<string, number>();
   const setSignalValue = (signalId: string, value: number): void => {
     if (branch.kind !== 'live2d') {
@@ -86,16 +70,6 @@ function createBackendCueProjection(branch: BackendBranch): EmbodimentProjection
     branch.live2dExtension.setParameter(signalId, value);
   };
   return {
-    async triggerMotion(motionId, opts) {
-      branch.projection.applyMotion({
-        routeId: motionId,
-        loop: opts?.loop,
-        fade: opts?.fadeIn,
-      });
-    },
-    stopMotion() {
-      branch.projection.reset();
-    },
     setSignal(signalId, value) {
       setSignalValue(signalId, value);
     },
@@ -104,36 +78,6 @@ function createBackendCueProjection(branch: BackendBranch): EmbodimentProjection
     },
     addSignal(signalId, delta) {
       setSignalValue(signalId, (signalState.get(signalId) ?? 0) + delta);
-    },
-    async setExpression(expressionId) {
-      branch.projection.applyExpression({ name: expressionId });
-    },
-    clearExpression() {
-      branch.projection.reset();
-    },
-    setPose(poseId, loop) {
-      branch.projection.applyMotion({ routeId: poseId, loop });
-    },
-    clearPose() {
-      branch.projection.reset();
-    },
-    wait(ms) {
-      return new Promise((resolve) => window.setTimeout(resolve, ms));
-    },
-    getSurfaceBounds() {
-      return {
-        x: 0,
-        y: 0,
-        width: branch.nominalBounds.width,
-        height: branch.nominalBounds.height,
-      };
-    },
-    async runDefaultActivity(activityId, options) {
-      if (options.signal.aborted) return;
-      branch.projection.applyActivity({
-        name: activityId,
-        intensity: activityIntensity(options.bundle.activity?.intensity),
-      });
     },
   };
 }
@@ -179,30 +123,23 @@ export async function startAvatarVisualCarrier(input: {
     throw error;
   }
 
-  const registry = createHandlerRegistry();
-
   let backendHandle: BackendBranchHandle;
   try {
     backendHandle = await createBackendBranch(model);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (publishModelState) store.setModelError(message);
-    disposeRegistry(registry);
     throw error;
   }
 
-  const executor = new HandlerExecutor();
-  const backendCueProjection = createBackendCueProjection(backendHandle.branch);
+  const backendSignalProjection = createBackendSignalProjection(backendHandle.branch);
 
   let unwireDispatch: (() => void) | null = null;
   let unwireVoiceLipsync: (() => void) | null = null;
-  let continuous: ContinuousScheduler | null = null;
-  let projectionSmoothing: ProjectionSmoothingHandle | null = null;
+  let projectionSmoothing: SignalProjectionSmoothingHandle | null = null;
   let interactionPhysics: ReturnType<typeof createInteractionPhysicsController> | null = null;
   let attachedDriver: AgentDataDriver | null = null;
   const detachRuntimeDriver = () => {
-    continuous?.stop();
-    continuous = null;
     unwireVoiceLipsync?.();
     unwireVoiceLipsync = null;
     unwireDispatch?.();
@@ -218,7 +155,6 @@ export async function startAvatarVisualCarrier(input: {
     model_id: model.modelId,
     model_kind: backendHandle.branch.kind,
     backend_meta: backendHandle.branch.metadata(),
-    nas_handler_count: countHandlers(registry),
     loaded_at: new Date().toISOString(),
   };
   const modelLoadEvent = {
@@ -228,7 +164,6 @@ export async function startAvatarVisualCarrier(input: {
   return {
     model,
     committedPresentationSelection: input.committedPresentationSelection ?? null,
-    registry,
     backend: backendHandle.branch,
     createDebugSession(input) {
       const backendFacts = backendHandle.branch.debugFacts?.() ?? null;
@@ -262,7 +197,7 @@ export async function startAvatarVisualCarrier(input: {
         throw new Error('avatar visual carrier runtime driver is already attached');
       }
       attachedDriver = driver;
-      projectionSmoothing = createSmoothedProjection({ projection: backendCueProjection });
+      projectionSmoothing = createSmoothedSignalProjection({ projection: backendSignalProjection });
       const runtimeCueProjection = projectionSmoothing?.projection ?? null;
       interactionPhysics = runtimeCueProjection && backendHandle.branch.kind === 'live2d'
         ? createInteractionPhysicsController({ projection: runtimeCueProjection })
@@ -270,13 +205,7 @@ export async function startAvatarVisualCarrier(input: {
       if (runtimeCueProjection) {
         unwireDispatch = wireEventDispatch({
           driver,
-          registry,
-          executor,
           projection: backendHandle.branch.projection,
-          live2dExtension:
-            backendHandle.branch.kind === 'live2d'
-              ? backendHandle.branch.live2dExtension
-              : undefined,
           ...(interactionPhysics ? { interactionPhysics } : {}),
         });
       }
@@ -289,21 +218,11 @@ export async function startAvatarVisualCarrier(input: {
       unwireVoiceLipsync = wireAvatarVoiceLipsync({
         driver,
       });
-      if (runtimeCueProjection && registry.continuous.size > 0) {
-        continuous = new ContinuousScheduler(
-          registry,
-          () => driver.getBundle(),
-          backendHandle.branch.projection,
-        );
-        continuous.start();
-      }
       driver.emit(modelLoadEvent);
     },
     detachRuntimeDriver,
     shutdown() {
       detachRuntimeDriver();
-      executor.cancelAll();
-      disposeRegistry(registry);
       backendHandle.shutdown();
     },
   };

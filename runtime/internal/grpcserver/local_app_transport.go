@@ -35,6 +35,8 @@ const (
 	protectedRevealLocalAppAssetMethod            = "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset"
 	protectedAdoptLocalAppArtifactMethod          = "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact"
 	protectedAgentReferenceListMethod             = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences"
+	protectedAvatarHostTargetResolveMethod        = "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget"
+	protectedAvatarHostTargetRevalidateMethod     = "/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget"
 	protectedOpenConversationMethod               = "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation"
 	protectedSendConversationTurnMethod           = "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn"
 	protectedUploadConversationAttachmentMethod   = "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment"
@@ -121,6 +123,8 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedRevealLocalAppAssetMethod:            localAppSessionMethodPolicy(),
 	protectedAdoptLocalAppArtifactMethod:          localAppSessionMethodPolicy(),
 	protectedAgentReferenceListMethod:             localAppSessionMethodPolicy(),
+	protectedAvatarHostTargetResolveMethod:        localAppSessionMethodPolicy(),
+	protectedAvatarHostTargetRevalidateMethod:     localAppSessionMethodPolicy(),
 	protectedOpenConversationMethod:               localAppSessionMethodPolicy(),
 	protectedSendConversationTurnMethod:           localAppSessionMethodPolicy(),
 	protectedUploadConversationAttachmentMethod:   localAppSessionMethodPolicy(),
@@ -459,6 +463,10 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressVoiceAssetsList
 	case protectedAgentReferenceListMethod:
 		return localappop.IngressAgentReferenceList
+	case protectedAvatarHostTargetResolveMethod:
+		return localappop.IngressAgentReferenceList
+	case protectedAvatarHostTargetRevalidateMethod:
+		return localappop.IngressAgentReferenceList
 	case protectedInvokeRealmUnaryMethod:
 		realmRequest, ok := request.(*runtimev1.InvokeRealmUnaryRequest)
 		if !ok || realmRequest == nil {
@@ -570,7 +578,9 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 		protectedListAppAIConfigOptionsMethod, protectedGenerateTextCandidateMethod,
 		protectedExecuteLocalAppScenarioMethod, protectedSubmitScenarioJobMethod, protectedGetScenarioJobMethod, protectedCancelScenarioJobMethod,
 		protectedReadLocalAppArtifactMethod, protectedUploadLocalAppArtifactMethod, protectedListLocalAppVoiceAssetsMethod,
-		protectedAgentReferenceListMethod, protectedOpenConversationMethod, protectedSendConversationTurnMethod,
+		protectedAgentReferenceListMethod, protectedAvatarHostTargetResolveMethod,
+		protectedAvatarHostTargetRevalidateMethod,
+		protectedOpenConversationMethod, protectedSendConversationTurnMethod,
 		protectedUploadConversationAttachmentMethod, protectedReadConversationArtifactMethod, protectedTranscribeConversationVoiceMethod, protectedRenderConversationVoiceMethod,
 		protectedInterruptConversationTurnMethod, protectedConversationSnapshotMethod,
 		protectedEmbodimentSnapshotMethod,

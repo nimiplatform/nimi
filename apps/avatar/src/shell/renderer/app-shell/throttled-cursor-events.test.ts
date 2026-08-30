@@ -99,6 +99,25 @@ describe('createThrottledCursorEvents — trailing edge', () => {
     expect(ipc).toHaveBeenCalledTimes(2);
     expect(ipc).toHaveBeenLastCalledWith(false);
   });
+
+  it('cancels a queued click-through when interaction returns to the applied state', async () => {
+    const ipc = vi.fn(async () => undefined);
+    let now = 0;
+    const handle = createThrottledCursorEvents({
+      ipcOverride: ipc,
+      nowMsFn: () => now,
+    });
+    handle.setIgnore(false);
+    await Promise.resolve();
+    now = 5;
+    handle.setIgnore(true);
+    handle.setIgnore(false);
+
+    now = 100;
+    vi.advanceTimersByTime(100);
+    expect(ipc).toHaveBeenCalledTimes(1);
+    expect(ipc).toHaveBeenLastCalledWith(false);
+  });
 });
 
 describe('createThrottledCursorEvents — 60Hz rate cap', () => {

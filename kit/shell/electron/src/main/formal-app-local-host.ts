@@ -10,7 +10,6 @@ import {
   createNimiRealmChatRuntimeClient,
   createNimiRealmRealtimeRuntimeClient,
   createNimiLocalAppAIConfigRuntimeClient,
-  createNimiHostRuntimeTypedClient,
   AccountReasonCode,
   FinishReason,
   LocalAppSessionState,
@@ -23,6 +22,10 @@ import {
   type WriteLocalAppAssetResponse,
 } from '@nimiplatform/kit/core/sdk-contract';
 import {
+  createNimiHostRuntimeTypedClient,
+  getHostRuntimeWireCodec,
+} from '@nimiplatform/sdk/runtime/host';
+import {
   NimiElectronDesktopControlHostError,
   type NimiElectronDesktopControlHost,
 } from './desktop-control-host.js';
@@ -32,6 +35,7 @@ import {
   type NimiElectronLocalAppRecord,
 } from './local-app-host.js';
 import type { RuntimeGrpcBridgeStream } from './types.js';
+import { invalidateElectronLocalAppCommandResources } from './local-app-commands.js';
 
 type FormalAppProfile = 'desktop' | 'avatar';
 type RuntimeCallOptions = Readonly<{ signal?: AbortSignal; timeoutMs?: number }>;
@@ -51,6 +55,21 @@ type FormalAssetWrite = {
   totalBytes: number;
 };
 
+const FORMAL_SESSION_RENEW_TIMEOUT_MS = 2_000;
+
+export type NimiElectronFormalAppLocalHostOwner = Readonly<{
+  host: NimiElectronLocalAppHost;
+  createResourceScope: () => NimiElectronFormalAppLocalHostResourceScope;
+  invalidateResources: () => Promise<void>;
+  dispose: () => Promise<void>;
+}>;
+
+export type NimiElectronFormalAppLocalHostResourceScope = Readonly<{
+  host: NimiElectronLocalAppHost;
+  invalidateResources: () => Promise<void>;
+  dispose: () => Promise<void>;
+}>;
+
 // Host-only composition: renderer code receives the same local-app standard
 // commands as every ordinary App. The profile transport never becomes a
 // renderer Runtime proxy or a second product client.
@@ -60,6 +79,15 @@ export function createNimiElectronFormalAppLocalHost(input: {
   readonly control: NimiElectronDesktopControlHost;
   readonly revealInOs?: (path: string) => Promise<void> | void;
 }): NimiElectronLocalAppHost {
+  return createNimiElectronFormalAppLocalHostOwner(input).host;
+}
+
+export function createNimiElectronFormalAppLocalHostOwner(input: {
+  readonly appId: 'nimi.desktop' | 'nimi.avatar';
+  readonly profile: FormalAppProfile;
+  readonly control: NimiElectronDesktopControlHost;
+  readonly revealInOs?: (path: string) => Promise<void> | void;
+}): NimiElectronFormalAppLocalHostOwner {
   const runtime = createNimiHostRuntimeTypedClient(profileTransport(input.control, input.profile));
   const agents = createNimiLocalAppAgentReferencesRuntimeClient(runtime);
   const conversation = createNimiLocalAppConversationRuntimeClient(runtime);
@@ -77,6 +105,10 @@ export function createNimiElectronFormalAppLocalHost(input: {
   const assetWrites = new Map<string, FormalAssetWrite>();
   let streamSequence = 0;
   let assetSequence = 0;
+  let publicHost: NimiElectronLocalAppHost;
+  const resourceScopes = new Set<NimiElectronFormalAppLocalHostResourceScope>();
+  let invalidationInFlight: Promise<void> | undefined;
+  let disposed = false;
   const openFormalSession = (): Promise<NimiElectronLocalAppRecord> =>
     runtime.openLocalAppSession({}).then(projectFormalSession);
 
@@ -103,13 +135,42 @@ export function createNimiElectronFormalAppLocalHost(input: {
     await stream?.cancel();
     return { closed: Boolean(stream) };
   };
+  const invalidateFormalSessionResources = (): Promise<void> => {
+    invalidationInFlight ??= (async () => {
+      await Promise.allSettled(
+        [...resourceScopes].map((scope) => scope.invalidateResources()),
+      );
+      // All exposed resource handles belong to one of the scopes above. Keep
+      // this final owner cleanup for a concurrent close that had already left
+      // its scope but had not yet removed the underlying Runtime resource.
+      const streams = [...pullStreams.values()];
+      pullStreams.clear();
+      const reads = [...assetReads.values()];
+      assetReads.clear();
+      assetWrites.clear();
+      for (const read of reads) read.cancel();
+      await Promise.allSettled(streams.map((stream) => stream.cancel()));
+    })().finally(() => {
+      invalidationInFlight = undefined;
+    });
+    return invalidationInFlight;
+  };
+  const renewFormalSession = async (): Promise<NimiElectronLocalAppRecord> => {
+    return runBoundedFormalHostOperation(async (signal) => {
+      const projection = projectFormalSession(await runtime.renewLocalAppSession({}, {
+        signal,
+      }));
+      await invalidateFormalSessionResources();
+      return projection;
+    });
+  };
 
   const implemented: NimiElectronLocalAppHost = {
     async sessionStatus() {
       return openFormalSession();
     },
     async renewTechnicalSession() {
-      return projectFormalSession(await runtime.renewLocalAppSession({}));
+      return renewFormalSession();
     },
     aiConfigGet: () => aiConfig.get() as Promise<NimiElectronLocalAppRecord>,
     aiConfigOverwrite: (record) => aiConfig.overwrite(record as never) as Promise<NimiElectronLocalAppRecord>,
@@ -371,6 +432,23 @@ export function createNimiElectronFormalAppLocalHost(input: {
     realmRealtimeSubscriptionClose: (record) => realmRealtime.closeSubscription(record as never) as Promise<NimiElectronLocalAppRecord>,
     realmRealtimeChannelClose: (record) => realmRealtime.closeChannel(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentReferenceList: () => agents.listReferences() as Promise<readonly NimiElectronLocalAppRecord[]>,
+    avatarHostTargetResolve: async (record) => {
+      if (!formalExactKeys(record, ['agentHandle', 'conversationAnchorId'])) {
+        throw new NimiElectronLocalAppHostError('invalid-input', false);
+      }
+      const agentHandle = exactFormalText(record.agentHandle);
+      const conversationAnchorId = record.conversationAnchorId === null
+        ? undefined
+        : exactFormalText(record.conversationAnchorId);
+      const response = await runtime.resolveLocalAppAvatarHostTarget({
+        agentHandle,
+        conversationAnchorId,
+      });
+      if (!/^avatar_target_[A-Za-z0-9_-]{43}$/u.test(response.avatarHostTargetRef)) {
+        throw new NimiElectronLocalAppHostError('contract-invalid', false);
+      }
+      return Object.freeze({ avatarHostTargetRef: response.avatarHostTargetRef });
+    },
     conversationOpen: (record) => conversation.open(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationSendTurn: (record) => conversation.send(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationAttachmentUpload: (record) => conversation.uploadAttachment(record as never) as Promise<NimiElectronLocalAppRecord>,
@@ -417,20 +495,455 @@ export function createNimiElectronFormalAppLocalHost(input: {
     agentMemoryDelete: (record) => configure.memory.deleteAll(record as never) as Promise<NimiElectronLocalAppRecord>,
   };
 
-  return wrapFormalHost(implemented);
+  publicHost = wrapFormalHost(implemented);
+  const createResourceScope = (): NimiElectronFormalAppLocalHostResourceScope => {
+    if (disposed) throw new NimiElectronLocalAppHostError('runtime-service-unavailable', true);
+    const resourceScope = createFormalAppResourceScope(publicHost, implemented, () => {
+      resourceScopes.delete(resourceScope);
+    });
+    resourceScopes.add(resourceScope);
+    return resourceScope;
+  };
+  const defaultScope = createResourceScope();
+  const invalidateResources = (): Promise<void> => runBoundedFormalHostOperation(
+    async () => invalidateFormalSessionResources(),
+  ).then(() => undefined);
+  return Object.freeze({
+    host: defaultScope.host,
+    createResourceScope,
+    invalidateResources,
+    dispose: async () => {
+      if (disposed) {
+        await settleBoundedFormalHostCleanup(
+          invalidationInFlight,
+          `${input.profile} formal App owner repeated disposal`,
+        );
+        return;
+      }
+      disposed = true;
+      const scopes = [...resourceScopes];
+      await Promise.allSettled(scopes.map((scope) => scope.dispose()));
+      await settleBoundedFormalHostCleanup(
+        invalidateResources(),
+        `${input.profile} formal App owner disposal`,
+      );
+      resourceScopes.clear();
+    },
+  });
+}
+
+function createFormalAppResourceScope(
+  host: NimiElectronLocalAppHost,
+  closeHost: NimiElectronLocalAppHost,
+  onDispose: () => void,
+): NimiElectronFormalAppLocalHostResourceScope {
+  type PullStreamKind = 'text-turn' | 'scenario-job' | 'conversation' | 'realtime';
+  const pullStreams = new Map<string, PullStreamKind>();
+  const assetReads = new Set<string>();
+  const assetWrites = new Set<string>();
+  const realmRealtimeChannels = new Map<string, NimiElectronLocalAppRecord>();
+  const aiRealtimeSessions = new Map<string, NimiElectronLocalAppRecord>();
+  const agentRealtimeSessions = new Map<string, NimiElectronLocalAppRecord>();
+  let invalidationInFlight: Promise<void> | undefined;
+  let disposed = false;
+  let resourceGeneration = 0;
+
+  const assertOpen = (): void => {
+    if (disposed || invalidationInFlight) {
+      throw new NimiElectronLocalAppHostError('runtime-service-unavailable', true);
+    }
+  };
+  const openResource = async (
+    operation: () => Promise<NimiElectronLocalAppRecord>,
+    project: (result: NimiElectronLocalAppRecord) => Readonly<{
+      resourceId: string;
+      closeInput: NimiElectronLocalAppRecord;
+    }>,
+    register: (resourceId: string, closeInput: NimiElectronLocalAppRecord) => void,
+    closeLate: (closeInput: NimiElectronLocalAppRecord) => Promise<unknown>,
+  ): Promise<NimiElectronLocalAppRecord> => {
+    assertOpen();
+    const openingGeneration = resourceGeneration;
+    const result = await operation();
+    const resource = project(result);
+    if (disposed || invalidationInFlight || resourceGeneration !== openingGeneration) {
+      await closeLate(resource.closeInput).catch(() => undefined);
+      throw new NimiElectronLocalAppHostError('runtime-service-unavailable', true);
+    }
+    register(resource.resourceId, resource.closeInput);
+    return result;
+  };
+  const openPull = (
+    kind: PullStreamKind,
+    operation: () => Promise<NimiElectronLocalAppRecord>,
+  ): Promise<NimiElectronLocalAppRecord> => openResource(
+    operation,
+    (result) => {
+      const streamId = requiredText(result.streamId);
+      return { resourceId: streamId, closeInput: { streamId } };
+    },
+    (streamId) => pullStreams.set(streamId, kind),
+    (closeInput) => {
+      if (kind === 'text-turn') return closeHost.textTurnStreamClose(closeInput);
+      if (kind === 'scenario-job') return closeHost.scenarioJobStreamClose(closeInput);
+      if (kind === 'conversation') return closeHost.conversationStreamClose(closeInput);
+      return closeHost.realtimeStreamClose(closeInput);
+    },
+  );
+  const usePull = async (
+    record: NimiElectronLocalAppRecord,
+    kind: PullStreamKind,
+    operation: () => Promise<NimiElectronLocalAppRecord>,
+    close = false,
+  ): Promise<NimiElectronLocalAppRecord> => {
+    assertOpen();
+    const streamId = requiredText(record.streamId);
+    if (pullStreams.get(streamId) !== kind) {
+      throw new NimiElectronLocalAppHostError('not-found', false);
+    }
+    try {
+      const result = await operation();
+      if (close || result.completed === true) pullStreams.delete(streamId);
+      return result;
+    } catch (error) {
+      if (close) pullStreams.delete(streamId);
+      throw error;
+    }
+  };
+  const requireScopedAsset = (
+    set: Set<string>,
+    record: Readonly<Record<string, unknown>>,
+  ): string => {
+    assertOpen();
+    const streamId = requiredText(record.streamId);
+    if (!set.has(streamId)) throw new NimiElectronLocalAppHostError('not-found', false);
+    return streamId;
+  };
+  const requireScopedResource = (
+    resources: ReadonlyMap<string, NimiElectronLocalAppRecord>,
+    record: NimiElectronLocalAppRecord,
+    idField: string,
+    matchingFields: readonly string[] = [],
+  ): string => {
+    assertOpen();
+    const resourceId = requiredText(record[idField]);
+    const owned = resources.get(resourceId);
+    if (!owned || matchingFields.some((field) => owned[field] !== record[field])) {
+      throw new NimiElectronLocalAppHostError('not-found', false);
+    }
+    return resourceId;
+  };
+
+  const scopedHost: NimiElectronLocalAppHost = Object.freeze({
+    ...host,
+    textTurnSubscribe: (record) => openPull('text-turn', () => host.textTurnSubscribe(record)),
+    textTurnStreamNext: (record) => usePull(
+      record, 'text-turn', () => host.textTurnStreamNext(record),
+    ),
+    textTurnStreamClose: (record) => usePull(
+      record, 'text-turn', () => host.textTurnStreamClose(record), true,
+    ),
+    scenarioJobSubscribe: (record) => openPull(
+      'scenario-job', () => host.scenarioJobSubscribe(record),
+    ),
+    scenarioJobStreamNext: (record) => usePull(
+      record, 'scenario-job', () => host.scenarioJobStreamNext(record),
+    ),
+    scenarioJobStreamClose: (record) => usePull(
+      record, 'scenario-job', () => host.scenarioJobStreamClose(record), true,
+    ),
+    conversationSubscribe: (record) => openPull(
+      'conversation', () => host.conversationSubscribe(record),
+    ),
+    conversationStreamNext: (record) => usePull(
+      record, 'conversation', () => host.conversationStreamNext(record),
+    ),
+    conversationStreamClose: (record) => usePull(
+      record, 'conversation', () => host.conversationStreamClose(record), true,
+    ),
+    realmRealtimeSubscribe: (record) => openPull(
+      'realtime', () => host.realmRealtimeSubscribe(record),
+    ),
+    embodimentSubscribe: (record) => openPull(
+      'realtime', () => host.embodimentSubscribe(record),
+    ),
+    aiRealtimeSubscribe: (record) => openPull(
+      'realtime', () => host.aiRealtimeSubscribe(record),
+    ),
+    agentRealtimeSubscribe: (record) => openPull(
+      'realtime', () => host.agentRealtimeSubscribe(record),
+    ),
+    realtimeStreamNext: (record) => usePull(
+      record, 'realtime', () => host.realtimeStreamNext(record),
+    ),
+    realtimeStreamClose: (record) => usePull(
+      record, 'realtime', () => host.realtimeStreamClose(record), true,
+    ),
+    assetWriteOpen: (record) => openResource(
+      () => host.assetWriteOpen(record),
+      (result) => {
+        const streamId = requiredText(result.streamId);
+        return { resourceId: streamId, closeInput: { streamId } };
+      },
+      (streamId) => assetWrites.add(streamId),
+      (closeInput) => closeHost.assetWriteAbort(closeInput),
+    ),
+    async assetWriteChunk(record) {
+      requireScopedAsset(assetWrites, record);
+      return host.assetWriteChunk(record);
+    },
+    async assetWriteCommit(record) {
+      const streamId = requireScopedAsset(assetWrites, record);
+      assetWrites.delete(streamId);
+      return host.assetWriteCommit(record);
+    },
+    async assetWriteAbort(record) {
+      const streamId = requireScopedAsset(assetWrites, record);
+      assetWrites.delete(streamId);
+      return host.assetWriteAbort(record);
+    },
+    assetReadOpen: (record) => openResource(
+      () => host.assetReadOpen(record),
+      (result) => {
+        const streamId = requiredText(result.streamId);
+        return { resourceId: streamId, closeInput: { streamId } };
+      },
+      (streamId) => assetReads.add(streamId),
+      (closeInput) => closeHost.assetReadClose(closeInput),
+    ),
+    async assetReadNext(record) {
+      const streamId = requireScopedAsset(assetReads, record);
+      try {
+        const result = await host.assetReadNext(record);
+        if (result.completed === true) assetReads.delete(streamId);
+        return result;
+      } catch (error) {
+        assetReads.delete(streamId);
+        throw error;
+      }
+    },
+    async assetReadClose(record) {
+      const streamId = requireScopedAsset(assetReads, record);
+      assetReads.delete(streamId);
+      return host.assetReadClose(record);
+    },
+    realmRealtimeOpen: () => openResource(
+      () => host.realmRealtimeOpen(),
+      (result) => {
+        const channelId = requiredText(result.channelId);
+        return { resourceId: channelId, closeInput: { channelId } };
+      },
+      (channelId, closeInput) => realmRealtimeChannels.set(channelId, closeInput),
+      (closeInput) => closeHost.realmRealtimeChannelClose(closeInput),
+    ),
+    async realmRealtimeChannelClose(record) {
+      const channelId = requireScopedResource(realmRealtimeChannels, record, 'channelId');
+      realmRealtimeChannels.delete(channelId);
+      return host.realmRealtimeChannelClose(record);
+    },
+    aiRealtimeOpen: (record) => openResource(
+      () => host.aiRealtimeOpen(record),
+      (result) => {
+        const realtimeSessionId = requiredText(result.realtimeSessionId);
+        return {
+          resourceId: realtimeSessionId,
+          closeInput: { realtimeSessionId, generation: result.generation },
+        };
+      },
+      (sessionId, closeInput) => aiRealtimeSessions.set(sessionId, closeInput),
+      (closeInput) => closeHost.aiRealtimeClose(closeInput),
+    ),
+    async aiRealtimeClose(record) {
+      const sessionId = requireScopedResource(
+        aiRealtimeSessions,
+        record,
+        'realtimeSessionId',
+        ['generation'],
+      );
+      aiRealtimeSessions.delete(sessionId);
+      return host.aiRealtimeClose(record);
+    },
+    agentRealtimeOpen: (record) => openResource(
+      () => host.agentRealtimeOpen(record),
+      (result) => {
+        const realtimeSessionId = requiredText(result.realtimeSessionId);
+        return {
+          resourceId: realtimeSessionId,
+          closeInput: {
+            realtimeSessionId,
+            generation: result.generation,
+            agentHandle: record.agentHandle,
+          },
+        };
+      },
+      (sessionId, closeInput) => agentRealtimeSessions.set(sessionId, closeInput),
+      (closeInput) => closeHost.agentRealtimeClose(closeInput),
+    ),
+    async agentRealtimeClose(record) {
+      const sessionId = requireScopedResource(
+        agentRealtimeSessions,
+        record,
+        'realtimeSessionId',
+        ['generation', 'agentHandle'],
+      );
+      agentRealtimeSessions.delete(sessionId);
+      return host.agentRealtimeClose(record);
+    },
+  });
+
+  const invalidateResources = (): Promise<void> => {
+    resourceGeneration += 1;
+    return runBoundedFormalHostOperation(async () => {
+      invalidationInFlight ??= (async () => {
+        const streams = [...pullStreams.entries()];
+        const reads = [...assetReads];
+        const writes = [...assetWrites];
+        const realmChannels = [...realmRealtimeChannels.values()];
+        const aiSessions = [...aiRealtimeSessions.values()];
+        const agentSessions = [...agentRealtimeSessions.values()];
+        pullStreams.clear();
+        assetReads.clear();
+        assetWrites.clear();
+        realmRealtimeChannels.clear();
+        aiRealtimeSessions.clear();
+        agentRealtimeSessions.clear();
+        await invalidateElectronLocalAppCommandResources(scopedHost, closeHost);
+        await Promise.allSettled([
+          ...streams.map(([streamId, kind]) => {
+            if (kind === 'text-turn') return closeHost.textTurnStreamClose({ streamId });
+            if (kind === 'scenario-job') return closeHost.scenarioJobStreamClose({ streamId });
+            if (kind === 'conversation') return closeHost.conversationStreamClose({ streamId });
+            return closeHost.realtimeStreamClose({ streamId });
+          }),
+          ...reads.map((streamId) => closeHost.assetReadClose({ streamId })),
+          ...writes.map((streamId) => closeHost.assetWriteAbort({ streamId })),
+          ...realmChannels.map((record) => closeHost.realmRealtimeChannelClose(record)),
+          ...aiSessions.map((record) => closeHost.aiRealtimeClose(record)),
+          ...agentSessions.map((record) => closeHost.agentRealtimeClose(record)),
+        ]);
+      })().finally(() => {
+        invalidationInFlight = undefined;
+      });
+      return invalidationInFlight;
+    }).then(() => undefined);
+  };
+
+  return Object.freeze({
+    host: scopedHost,
+    invalidateResources,
+    async dispose() {
+      if (disposed) {
+        await settleBoundedFormalHostCleanup(
+          invalidationInFlight,
+          'formal App sender scope repeated disposal',
+        );
+        return;
+      }
+      disposed = true;
+      await settleBoundedFormalHostCleanup(
+        invalidateResources(),
+        'formal App sender scope disposal',
+      );
+      onDispose();
+    },
+  });
+}
+
+async function settleBoundedFormalHostCleanup(
+  cleanup: Promise<unknown> | undefined,
+  operation: string,
+): Promise<void> {
+  if (!cleanup) return;
+  try {
+    await runBoundedFormalHostOperation(async () => cleanup);
+  } catch (error) {
+    console.warn(`[electron:formal-app] ${operation} did not settle cleanly: ${describeFormalHostError(error)}`);
+  }
+}
+
+function describeFormalHostError(value: unknown): string {
+  return value instanceof Error && value.message.trim()
+    ? value.message.trim()
+    : String(value ?? 'unknown-error');
+}
+
+async function runBoundedFormalHostOperation<T>(
+  operation: (signal: AbortSignal) => Promise<T>,
+): Promise<T> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      reject(new NimiElectronLocalAppHostError('runtime-service-unavailable', true));
+    }, FORMAL_SESSION_RENEW_TIMEOUT_MS);
+    timer.unref?.();
+  });
+  try {
+    return await Promise.race([operation(controller.signal), timeout]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
 }
 
 function wrapFormalHost(
   host: NimiElectronLocalAppHost,
 ): NimiElectronLocalAppHost {
+  let sessionRevision = 0;
+  let renewalInFlight: Promise<void> | undefined;
+  const renewAfter = async (observedRevision: number): Promise<void> => {
+    if (sessionRevision !== observedRevision) return;
+    renewalInFlight ??= formalCall(async () => {
+      await host.renewTechnicalSession();
+      sessionRevision += 1;
+    }).finally(() => {
+      renewalInFlight = undefined;
+    });
+    await renewalInFlight;
+  };
   return Object.freeze(Object.fromEntries(
     Object.entries(host).map(([name, operation]) => [
       name,
-      (...args: unknown[]) => formalCall(async () => {
-        return Promise.resolve(Reflect.apply(operation, host, args));
-      }),
+      async (...args: unknown[]) => {
+        const invoke = () => formalCall(async () => Promise.resolve(Reflect.apply(operation, host, args)));
+        const observedRevision = sessionRevision;
+        try {
+          return await invoke();
+        } catch (error) {
+          if (name === 'renewTechnicalSession' || !isFormalSessionInvalid(error)) throw error;
+          await renewAfter(observedRevision);
+          if (FORMAL_SESSION_RETRY_SAFE_METHODS.has(name as keyof NimiElectronLocalAppHost)) {
+            return invoke();
+          }
+          // Mutation admission is now repaired for a future explicit action,
+          // but this call is never replayed after an uncertain owner boundary.
+          throw error;
+        }
+      },
     ]),
   )) as NimiElectronLocalAppHost;
+}
+
+const FORMAL_SESSION_RETRY_SAFE_METHODS: ReadonlySet<keyof NimiElectronLocalAppHost> = new Set([
+  'sessionStatus',
+  'aiConfigGet', 'aiConfigLocalOptions',
+  'scenarioJobGet', 'artifactRead', 'voiceAssetsList',
+  'realmWorldCoreList', 'realmPersonaCharacterListOwned', 'realmPersonaCharacterGetOwned',
+  'realmChatList',
+  'agentReferenceList', 'avatarHostTargetResolve',
+  'conversationSubscribe', 'conversationSnapshot',
+  'embodimentSnapshot', 'embodimentSubscribe',
+  'aiRealtimeSubscribe', 'agentRealtimeSubscribe', 'agentRealtimeStatus',
+  'sharedAgentAIConfigGet', 'sharedAgentAIConfigLocalOptions',
+  'agentManagerSnapshot', 'agentAutonomySnapshot',
+  'agentPresentationSnapshot', 'agentPresentationReadAsset', 'agentMemoryInspect',
+  'storageReadJson', 'assetStat', 'assetList', 'assetReadOpen',
+]);
+
+function isFormalSessionInvalid(error: unknown): error is NimiElectronLocalAppHostError {
+  return error instanceof NimiElectronLocalAppHostError && [
+    'session-invalid', 'revoked', 'presence-expired', 'runtime-unauthenticated',
+  ].includes(error.reasonCode);
 }
 
 function profileTransport(
@@ -445,7 +958,7 @@ function profileTransport(
     : (request: Parameters<NimiElectronDesktopControlHost['accountProductServerStream']>[0]) => control.accountProductServerStream(request);
   return {
     async unary(request) {
-      const codec = getRuntimeWireCodec(request.methodId);
+      const codec = getHostRuntimeWireCodec(request.methodId);
       const response = await unary({
         methodId: request.methodId,
         requestBytes: codec.encodeRequest(request.body),
@@ -455,7 +968,7 @@ function profileTransport(
       return codec.decodeResponse(response) as never;
     },
     serverStream(request) {
-      const codec = getRuntimeWireCodec(request.methodId);
+      const codec = getHostRuntimeWireCodec(request.methodId);
       const stream = serverStream({
         methodId: request.methodId,
         requestBytes: codec.encodeRequest(request.body),
@@ -628,7 +1141,11 @@ async function formalCall<T>(operation: () => Promise<T>): Promise<T> {
   } catch (error) {
     if (error instanceof NimiElectronLocalAppHostError) throw error;
     if (error instanceof NimiElectronDesktopControlHostError) {
-      throw new NimiElectronLocalAppHostError(error.reasonCode, error.retryable, error.reasonMetadata);
+      throw new NimiElectronLocalAppHostError(
+        formalLocalAppReasonCode(error.reasonCode),
+        error.retryable,
+        error.reasonMetadata,
+      );
     }
     const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
     const reasonCode = typeof record.reasonCode === 'string' ? record.reasonCode : 'runtime-service-untrusted';
@@ -642,6 +1159,19 @@ async function formalCall<T>(operation: () => Promise<T>): Promise<T> {
       retryable,
       projectionMatch ? { projection: projectionMatch[1] } : {},
     );
+  }
+}
+
+function formalLocalAppReasonCode(reasonCode: string): string {
+  switch (reasonCode) {
+    case 'LOCAL_APP_SESSION_REVOKED': return 'revoked';
+    case 'LOCAL_APP_PRESENCE_EXPIRED': return 'presence-expired';
+    case 'LOCAL_APP_ACCOUNT_CHANGED': return 'account-changed';
+    case 'LOCAL_APP_SNAPSHOT_UNAVAILABLE': return 'local-app-snapshot-unavailable';
+    case 'LOCAL_APP_ACCESS_DENIED': return 'local-app-access-denied';
+    case 'LOCAL_APP_OPERATION_UNAVAILABLE': return 'local-app-operation-unavailable';
+    case 'LOCAL_APP_OWNER_UNAVAILABLE': return 'local-app-owner-unavailable';
+    default: return reasonCode;
   }
 }
 
@@ -701,6 +1231,17 @@ function requiredText(value: unknown): string {
   const normalized = typeof value === 'string' ? value.trim() : '';
   if (!normalized) throw new NimiElectronLocalAppHostError('invalid-input', false);
   return normalized;
+}
+
+function exactFormalText(value: unknown): string {
+  if (typeof value !== 'string' || value.length === 0 || value.trim() !== value || value.length > 512) {
+    throw new NimiElectronLocalAppHostError('invalid-input', false);
+  }
+  return value;
+}
+
+function formalExactKeys(record: NimiElectronLocalAppRecord, keys: readonly string[]): boolean {
+  return JSON.stringify(Object.keys(record).sort()) === JSON.stringify([...keys].sort());
 }
 
 function jsonProjection(value: unknown): NimiElectronLocalAppRecord[string] {

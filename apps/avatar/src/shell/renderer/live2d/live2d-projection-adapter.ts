@@ -1,8 +1,6 @@
-import type {
-  Live2DCompatibilityReport,
-  PlayMotionOptions,
-} from '@nimiplatform/kit/features/avatar/headless';
+import type { Live2DCompatibilityReport } from '@nimiplatform/kit/features/avatar/headless';
 import type { BackendProjection } from '../carrier/backend-branch.js';
+import type { PlayMotionOptions } from './plugin-api.js';
 
 export type Live2DProjectionCommandEvent =
   | { kind: 'motion'; group: string; options: PlayMotionOptions }
@@ -68,13 +66,14 @@ export function createLive2DProjectionAdapter(
   const { commandBus, compatibility } = deps;
   return {
     applyActivity({ name, intensity }) {
-      if (!name) return;
+      if (!name) return 'unsupported';
       const motionGroup = resolveActivityMotionGroup(compatibility, name, intensity);
       if (!motionGroup) {
         console.warn(`[avatar:live2d] activity "${name}" has no admitted motion-group mapping; ignored`);
-        return;
+        return 'unsupported';
       }
       emitMotion(commandBus, motionGroup, 'normal');
+      return 'applied';
     },
     applyEmotion({ current }) {
       if (!current) return;

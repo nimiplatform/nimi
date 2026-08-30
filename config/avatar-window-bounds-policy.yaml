@@ -7,11 +7,13 @@ owner: avatar
 protocol_id: avatar_window_bounds_policy
 description: >
   Dynamic window sizing policy for Nimi Avatar.
-  Governs how the Tauri window's physical size is derived from the active
-  embodiment backend's surface bounds plus the current per-avatar scale,
-  which triggers cause a recompute, and the visible-area + multi-monitor
-  constraints described by rules rule.nimi.avatar.embodiment.r073, r074, and
-  r075.
+  Avatar has no independent native shell or native bundle. The Desktop Host
+  supervises the Electron BrowserWindow that carries the Avatar renderer.
+  This table governs how that window's physical size is derived from the
+  active embodiment backend's surface bounds plus the current per-avatar
+  scale, which triggers cause a recompute, and the visible-area +
+  multi-monitor constraints described by rules
+  rule.nimi.avatar.embodiment.r073, r074, and r075.
 
 policy: &avatar_window_bounds_policy_surfaces
   initial:
@@ -91,7 +93,7 @@ policy: &avatar_window_bounds_policy_surfaces
     rule_id: K-NAV-SHELL-010
     min_visible_ratio: 0.20
     target_metric: embodiment_bounds_area
-    enforcer: nimi_avatar_constrain_window_to_visible_area
+    enforcer: floating-window.constrainToVisibleArea
     reason: >
       Per rule.nimi.avatar.embodiment.r074, at least 20% of the
       embodiment_bounds must remain inside the active monitor's work area so the user can
@@ -136,9 +138,12 @@ policy: &avatar_window_bounds_policy_surfaces
 
 constraints:
   - description: >
-      Dynamic resize must use programmatic Tauri set_size only. The
-      `resizable: false` runtime effect prevents user drag-handle resize;
-      programmatic set_size remains the sole authority on window size.
+      Dynamic resize must use the shared floating-window.setBounds Host
+      mechanic only. The Desktop Host maps that bounded command to its
+      supervised Electron BrowserWindow. Avatar owns no independent native
+      resize path or native bundle. BrowserWindow `resizable: false` prevents
+      user drag-handle resize; the shared Host mechanic remains the sole
+      programmatic window-size path.
   - description: >
       Transient overlays do not contribute to default ready window size.
       If a future overlay is admitted as window-contained, this table must
@@ -167,6 +172,11 @@ drift_checks:
       and r019.
   - description: >
       Any change to composition.formula must update both
-      window-bounds-computer unit tests and the Tauri cargo test that
-      asserts set_size receives the expected derived dimensions.
+      apps/avatar/src/shell/renderer/app-shell/window-bounds.test.ts and
+      use-window-bounds-sync.test.tsx, which respectively prove the formula
+      and shared floating-window.setBounds dispatch. Changes to native window
+      ownership or resize admission must also update
+      apps/desktop/test/bundled-avatar-window-options.test.ts and the shared
+      Electron floating-window Host tests; these TypeScript checks are the
+      admitted drift surface for this policy.
 surfaces: *avatar_window_bounds_policy_surfaces

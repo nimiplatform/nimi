@@ -26,6 +26,7 @@ function makeComposition(state: CompositionState, overrides: Partial<Composition
         : state === 'relaunch_pending' ? 'relaunch'
           : state === 'error_bootstrap_fatal' ? 'error'
             : state === 'ready' ? 'live'
+              : state === 'fixture_not_verified' ? 'fixture'
               : 'degraded',
     reason: null,
     reasonCode: null,
@@ -36,6 +37,8 @@ function makeComposition(state: CompositionState, overrides: Partial<Composition
     retryable: null,
     modelDiagnostics: null,
     ready: state === 'ready',
+    renderable: state === 'ready' || state === 'fixture_not_verified',
+    developmentPreview: state === 'fixture_not_verified',
     ...overrides,
   };
 }

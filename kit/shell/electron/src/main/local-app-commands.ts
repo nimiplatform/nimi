@@ -43,6 +43,7 @@ const FORBIDDEN_RENDERER_FIELDS = new Set([
 type RendererLocalAppHostMethod = Exclude<
   keyof NimiElectronLocalAppHost,
   | 'renewTechnicalSession'
+  | 'avatarHostTargetResolve'
   | 'conversationStreamNext' | 'conversationStreamClose'
   | 'realtimeStreamNext' | 'realtimeStreamClose'
   | 'textTurnStreamNext' | 'textTurnStreamClose'
@@ -50,7 +51,10 @@ type RendererLocalAppHostMethod = Exclude<
 >;
 
 const ACTIVE_CONVERSATION_STREAMS = new WeakMap<NimiElectronLocalAppHost, Set<string>>();
-const ACTIVE_SCENARIO_STREAMS = new WeakMap<NimiElectronLocalAppHost, Set<string>>();
+const ACTIVE_SCENARIO_STREAMS = new WeakMap<
+  NimiElectronLocalAppHost,
+  Map<string, 'textTurnSubscribe' | 'scenarioJobSubscribe'>
+>();
 const ACTIVE_REALTIME_STREAMS = new WeakMap<NimiElectronLocalAppHost, Set<string>>();
 
 const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
@@ -193,7 +197,7 @@ export async function dispatchElectronLocalAppCommand(input: {
         : await input.host.scenarioJobSubscribe(payload);
       const subscriptionId = String(opened.streamId);
       const eventName = `local-app-ai.${subscriptionId}`;
-      streams.add(subscriptionId);
+      streams.set(subscriptionId, method);
       const pumpTimer = setTimeout(() => {
         void pumpScenarioStream(
           input.host!, method, subscriptionId, eventName, input.sendEvent!, input.command,
@@ -1622,10 +1626,12 @@ function activeConversationStreams(host: NimiElectronLocalAppHost): Set<string> 
   return streams;
 }
 
-function activeScenarioStreams(host: NimiElectronLocalAppHost): Set<string> {
+function activeScenarioStreams(
+  host: NimiElectronLocalAppHost,
+): Map<string, 'textTurnSubscribe' | 'scenarioJobSubscribe'> {
   let streams = ACTIVE_SCENARIO_STREAMS.get(host);
   if (!streams) {
-    streams = new Set();
+    streams = new Map();
     ACTIVE_SCENARIO_STREAMS.set(host, streams);
   }
   return streams;
@@ -1638,6 +1644,28 @@ function activeRealtimeStreams(host: NimiElectronLocalAppHost): Set<string> {
     ACTIVE_REALTIME_STREAMS.set(host, streams);
   }
   return streams;
+}
+
+/** @internal Clears renderer-owned local-App resources without adding a renderer lifecycle port. */
+export async function invalidateElectronLocalAppCommandResources(
+  registryHost: NimiElectronLocalAppHost,
+  closeHost: NimiElectronLocalAppHost = registryHost,
+): Promise<void> {
+  const scenarios = [...activeScenarioStreams(registryHost).entries()];
+  const conversations = [...activeConversationStreams(registryHost)];
+  const realtime = [...activeRealtimeStreams(registryHost)];
+  activeScenarioStreams(registryHost).clear();
+  activeConversationStreams(registryHost).clear();
+  activeRealtimeStreams(registryHost).clear();
+  await Promise.allSettled([
+    ...scenarios.map(([streamId, method]) => (
+      method === 'textTurnSubscribe'
+        ? closeHost.textTurnStreamClose({ streamId })
+        : closeHost.scenarioJobStreamClose({ streamId })
+    )),
+    ...conversations.map((streamId) => closeHost.conversationStreamClose({ streamId })),
+    ...realtime.map((streamId) => closeHost.realtimeStreamClose({ streamId })),
+  ]);
 }
 
 async function pumpScenarioStream(

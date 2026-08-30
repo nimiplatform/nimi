@@ -2,8 +2,12 @@ import {
   buildAvatarHostHandoffRequest,
   parseAvatarHostHandoffResult,
   type AvatarHostHandoffRequest,
+  type AvatarHostHandoffResult,
 } from '@nimiplatform/kit/features/avatar/headless';
-import { invokeAvatarHostHandoffMechanic } from '@nimiplatform/kit/shell/renderer/bridge';
+import {
+  confirmDialog,
+  invokeAvatarHostHandoffMechanic,
+} from '@nimiplatform/kit/shell/renderer/bridge';
 
 export type DesktopAvatarLaunchHandoffInput = {
   agentHandle: string;
@@ -25,118 +29,9 @@ export type DesktopAvatarLaunchHandoffPayload = {
   launchSource?: string;
 };
 
-const FORBIDDEN_LAUNCH_INPUT_FIELDS = [
-  'agentId',
-  'agent_id',
-  'ownerUserId',
-  'owner_user_id',
-  'runtimeSourceRef',
-  'runtime_source_ref',
-  'localAgentRef',
-  'local_agent_ref',
-  'avatarPackage',
-  'avatar_package',
-  'avatarPackageKind',
-  'avatar_package_kind',
-  'avatarPackageId',
-  'avatar_package_id',
-  'avatarPackageRef',
-  'avatar_package_ref',
-  'avatarPackageSchemaVersion',
-  'avatar_package_schema_version',
-  'materializationRef',
-  'materialization_ref',
-  'localMaterializationRef',
-  'local_materialization_ref',
-  'live2dCalibrationRef',
-  'live2d_calibration_ref',
-  'live2dCalibration',
-  'live2d_calibration',
-  'modelDigest',
-  'model_digest',
-  'avatarInstanceCalibration',
-  'avatar_instance_calibration',
-  'previewArtifactRef',
-  'preview_artifact_ref',
-  'framingCalibration',
-  'framing_calibration',
-  'renderScale',
-  'render_scale',
-  'targetFps',
-  'target_fps',
-  'performancePolicy',
-  'performance_policy',
-  'expressionInventory',
-  'expression_inventory',
-  'compatibilityTier',
-  'compatibility_tier',
-  'avatarCompatibilityDiagnostics',
-  'avatar_compatibility_diagnostics',
-  'manifestPath',
-  'manifest_path',
-  'packagePath',
-  'package_path',
-  'sourcePath',
-  'source_path',
-  'configPath',
-  'config_path',
-  'anchorMode',
-  'anchor_mode',
-  'runtimeAppId',
-  'runtime_app_id',
-  'worldId',
-  'world_id',
-  'scopedBinding',
-  'scoped_binding',
-  'bindingId',
-  'binding_id',
-  'bindingHandle',
-  'binding_handle',
-  'bindingAppInstanceId',
-  'binding_app_instance_id',
-  'bindingWindowId',
-  'binding_window_id',
-  'bindingPurpose',
-  'binding_purpose',
-  'bindingScopes',
-  'binding_scopes',
-  'bindingState',
-  'binding_state',
-  'bindingReasonCode',
-  'binding_reason_code',
-  'scopes',
-  'state',
-  'reason',
-  'reasonCode',
-  'accountId',
-  'account_id',
-  'userId',
-  'user_id',
-  'subjectUserId',
-  'subject_user_id',
-  'agentCenterAccountId',
-  'agent_center_account_id',
-  'realmBaseUrl',
-  'realm_base_url',
-  'realmUrl',
-  'realm_url',
-  'accessToken',
-  'access_token',
-  'accountAccessToken',
-  'account_access_token',
-  'refreshToken',
-  'refresh_token',
-  'jwt',
-  'rawJwt',
-  'raw_jwt',
-  'sharedAuth',
-  'shared_auth',
-  'sharedAuthSession',
-  'shared_auth_session',
-] as const;
-
 export type DesktopAvatarLaunchHandoffDeps = {
   invokeLaunchHandoff?: (request: AvatarHostHandoffRequest) => Promise<unknown>;
+  confirmSwitch?: () => Promise<boolean>;
 };
 
 function normalizeOptionalString(value: string | null | undefined): string | null {
@@ -159,26 +54,12 @@ function normalizeRequiredPayloadString(value: unknown, field: string): string {
   return normalizeRequiredString(value, field);
 }
 
-function isRetiredSelectionField(field: string): boolean {
-  const normalized = field.replace(/_/g, '').toLowerCase();
-  return (
-    (normalized.includes('avatarasset') && normalized.endsWith('ref'))
-    || (normalized.includes('backendcapability') && normalized.endsWith('ref'))
-  );
-}
-
 // @nimi-authority: definition.nimi.desktop.agent-projection.avatar-surface
 // @nimi-authority: rule.nimi.desktop.agent-projection.r016
 // @nimi-authority: rule.nimi.desktop.agent-projection.r199
 export function buildDesktopAvatarLaunchHandoffPayload(
   input: DesktopAvatarLaunchHandoffInput,
 ): DesktopAvatarLaunchHandoffPayload {
-  const record = input as Record<string, unknown>;
-  for (const field of Object.keys(record)) {
-    if ((FORBIDDEN_LAUNCH_INPUT_FIELDS as readonly string[]).includes(field) || isRetiredSelectionField(field)) {
-      throw new Error(`desktop avatar handoff contains forbidden field: ${field}`);
-    }
-  }
   const agentHandle = normalizeRequiredAgentHandle(input.agentHandle);
   const conversationAnchorId = normalizeOptionalString(input.conversationAnchorId);
   const avatarInstanceId = normalizeOptionalString(input.avatarInstanceId);
@@ -211,6 +92,29 @@ export async function launchDesktopAvatarHandoff(
   deps: DesktopAvatarLaunchHandoffDeps = {},
 ): Promise<DesktopAvatarLaunchHandoffResult> {
   const payload = await prepareDesktopAvatarLaunchHandoffPayload(input, deps);
+  const invokeLaunch = deps.invokeLaunchHandoff ?? invokeAvatarHostHandoffMechanic;
+  let result = await invokeDesktopAvatarLaunch(invokeLaunch, payload, null);
+  if (result.state === 'confirmation-required') {
+    const confirmed = await (deps.confirmSwitch
+      ? deps.confirmSwitch()
+      : confirmDesktopAvatarSwitch());
+    if (!confirmed) return { opened: false, handoffUri: '' };
+    result = await invokeDesktopAvatarLaunch(invokeLaunch, payload, result.switchIntentRef);
+    if (result.state === 'confirmation-required') {
+      throw new Error('desktop avatar switch confirmation did not converge');
+    }
+  }
+  return {
+    opened: result.state === 'present' || result.state === 'focused',
+    handoffUri: result.avatarInstanceRef ?? '',
+  };
+}
+
+async function invokeDesktopAvatarLaunch(
+  invokeLaunch: (request: AvatarHostHandoffRequest) => Promise<unknown>,
+  payload: DesktopAvatarLaunchHandoffPayload,
+  switchIntentRef: string | null,
+): Promise<AvatarHostHandoffResult> {
   const request = buildAvatarHostHandoffRequest({
     command: 'launch',
     target: {
@@ -218,20 +122,21 @@ export async function launchDesktopAvatarHandoff(
       conversationAnchorId: payload.conversationAnchorId,
       avatarInstanceId: payload.avatarInstanceId ?? null,
       launchSource: payload.launchSource ?? null,
+      switchIntentRef,
       committedPresentationRef: null,
       temporaryCustodyRef: null,
     },
   });
-  const result = parseAvatarHostHandoffResult(
-    await (deps.invokeLaunchHandoff
-      ? deps.invokeLaunchHandoff(request)
-      : invokeAvatarHostHandoffMechanic(request)),
-    'launch',
-  );
-  return {
-    opened: result.state === 'present' || result.state === 'focused',
-    handoffUri: result.avatarInstanceRef ?? '',
-  };
+  return parseAvatarHostHandoffResult(await invokeLaunch(request), 'launch');
+}
+
+async function confirmDesktopAvatarSwitch(): Promise<boolean> {
+  const result = await confirmDialog({
+    title: 'Switch current companion?',
+    description: 'Another companion is already active. Switch the desktop companion to this Agent?',
+    level: 'warning',
+  });
+  return result.confirmed;
 }
 
 function sanitizeInstanceSegment(value: string | null | undefined): string {

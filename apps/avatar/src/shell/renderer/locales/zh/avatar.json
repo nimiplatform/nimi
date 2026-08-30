@@ -9,6 +9,7 @@
     },
     "status": {
       "idle": "空闲",
+      "requesting_permission": "正在请求麦克风权限……",
       "listening": "聆听中……",
       "transcribing": "转写中……",
       "pending": "等待回复",
@@ -21,6 +22,8 @@
       "mic_listen_aria": "开始语音输入",
       "mic_commit_aria": "停止并发送语音输入",
       "mic_blocked_aria": "当前状态无法使用语音输入",
+      "cancel_capture_aria": "取消并丢弃语音输入",
+      "permission_denied": "麦克风权限已被拒绝。请在系统设置中启用后再使用语音输入。",
       "interrupt_aria": "打断当前回复",
       "interrupt_pending": "正在打断……",
       "interrupt_failed": "打断失败",
@@ -134,11 +137,6 @@
         "label": "嘴型同步",
         "proof_present": "已加载音频配置",
         "proof_missing": "未检测到嘴型同步配置"
-      },
-      "nas_handlers": {
-        "label": "NAS 处理器",
-        "proof_present": "已注册 {{count}} 个处理器",
-        "proof_missing": "尚未注册处理器"
       }
     },
     "settings": {
@@ -153,6 +151,23 @@
         "label": "显示语音字幕",
         "help": "显示当前伙伴会话的语音字幕。",
         "note": "语音字幕只会显示当前伙伴会话中的语音内容。"
+      },
+      "caption_size": {
+        "label": "字幕大小",
+        "small": "小",
+        "medium": "中",
+        "large": "大"
+      },
+      "caption_contrast": {
+        "label": "字幕对比度",
+        "standard": "标准",
+        "high": "高"
+      },
+      "caption_duration": {
+        "label": "字幕显示时长",
+        "short": "短",
+        "standard": "标准",
+        "long": "长"
       }
     },
     "appearance": {
@@ -202,6 +217,7 @@
       "always_on_top": "始终置顶",
       "hide": "隐藏伙伴形象",
       "close": "关闭伙伴形象",
+      "quit_app": "退出 Avatar App",
       "settings": "设置",
       "pending": "处理中"
     },
@@ -211,7 +227,9 @@
     },
     "runtime_status": {
       "loading": "伙伴形象正在加载",
+      "recovering": "伙伴形象正在恢复",
       "ready": "伙伴形象已就绪",
+      "not_verified": "夹具预览——尚未验证为实时运行时伙伴形象",
       "speaking": "伙伴形象正在说话",
       "voice_failed": "声音播放失败",
       "lipsync_silent": "声音正在播放，口型已静默",

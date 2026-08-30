@@ -1,7 +1,7 @@
 {
   "scenario_id": "default",
   "version": "1",
-  "description": "Default fixture bootstrap scenario: cycles neutral → happy → greet → thinking to exercise NAS fallback motion group lookup and expression blending.",
+  "description": "Default fixture bootstrap scenario: cycles neutral → happy → greet → thinking to exercise built-in activity mapping and expression blending.",
   "duration_ms": 15000,
   "loop": true,
 

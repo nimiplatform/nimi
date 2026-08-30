@@ -3,13 +3,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App.js';
 import { useAvatarStore } from './app-shell/app-store.js';
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
-import type { AgentDataBundle } from './driver/types.js';
+import type { AgentDataBundle, AgentEvent } from './driver/types.js';
 import {
   AVATAR_SCALE_DEFAULT,
   AVATAR_SCALE_STORAGE_KEY,
   readAvatarInstanceScale,
 } from './avatar-scale-state.js';
 import { readAvatarShellSettings } from './settings-state.js';
+import { useEffect } from 'react';
+import type { BackendSurfaceProps } from './carrier/backend-branch.js';
 
 const bootstrapAvatarMock = vi.fn<() => Promise<BootstrapHandle>>();
 const setIgnoreCursorEventsMock = vi.fn();
@@ -17,9 +19,10 @@ const constrainWindowToVisibleAreaMock = vi.fn();
 const setAlwaysOnTopMock = vi.fn();
 const hideAvatarWindowMock = vi.fn();
 const closeAvatarWindowMock = vi.fn();
+const quitAvatarAppMock = vi.fn();
 const onLaunchContextUpdatedMock = vi.fn();
 const reloadAvatarShellMock = vi.fn();
-let tauriRuntime = false;
+let hostRuntime = false;
 let avatarHostRuntime = false;
 type AvatarLaunchContextForTest = {
   agentHandle: string;
@@ -57,6 +60,7 @@ vi.mock('./app-shell/avatar-window-commands.js', () => ({
   setAlwaysOnTop: (...args: unknown[]) => setAlwaysOnTopMock(...args),
   hideAvatarWindow: (...args: unknown[]) => hideAvatarWindowMock(...args),
   closeAvatarWindow: (...args: unknown[]) => closeAvatarWindowMock(...args),
+  quitAvatarApp: (...args: unknown[]) => quitAvatarAppMock(...args),
   beginManualDragWindow: vi.fn(),
   moveManualDragWindow: vi.fn(),
   getCursorClientPosition: vi.fn(async () => ({
@@ -68,8 +72,7 @@ vi.mock('./app-shell/avatar-window-commands.js', () => ({
   })),
 }));
 
-vi.mock('./app-shell/tauri-lifecycle.js', () => ({
-  isTauriRuntime: () => tauriRuntime,
+vi.mock('./app-shell/host-lifecycle.js', () => ({
   onHostSuspend: async (handler: () => void) => {
     hostSuspendHandler = handler;
     return () => {};
@@ -129,7 +132,7 @@ function createBootstrapHandle(input: {
   projection?: ReturnType<typeof createBackendProjection>;
   modelManifest?: AvatarModelManifestForTest;
 } = {}): BootstrapHandle {
-  const projection = input.projection;
+  const projection = input.projection ?? createBackendProjection();
   return {
     driver: {
       kind: 'sdk',
@@ -145,16 +148,21 @@ function createBootstrapHandle(input: {
     carrier: {
       backendSession: null,
       ...(input.modelManifest ? { model: input.modelManifest } : {}),
-      backend: projection
-        ? {
+      backend: {
           kind: 'vrm',
           nominalBounds: { width: 360, height: 640, bodyCenterX: 180, bodyCenterY: 320 },
           projection,
-          surface: { Component: () => null },
+          surface: {
+            Component: (props: BackendSurfaceProps) => {
+              useEffect(() => {
+                props.onPresentationStateChange?.({ kind: 'ready' });
+              }, [props.onPresentationStateChange]);
+              return null;
+            },
+          },
           metadata: () => ({}),
           shutdown: vi.fn(),
-        }
-        : undefined,
+        },
       shutdown: vi.fn(),
     },
     getVoiceInputAvailability: vi.fn(async () => ({ available: true, reason: null })),
@@ -185,6 +193,14 @@ function seedReadyState(): void {
   });
   useAvatarStore.getState().setLaunchContext(launchContext());
   useAvatarStore.getState().setDriverStatus('running');
+}
+
+async function readyEmbodimentStage(): Promise<HTMLElement> {
+  await waitFor(() => {
+    expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state'))
+      .toBe('ready');
+  });
+  return screen.getByTestId('avatar-embodiment-stage');
 }
 
 function seedActiveTurnBundle(input: {
@@ -264,8 +280,8 @@ function seedDegradedReauth(): void {
   useAvatarStore.getState().setDriverStatus('stopped');
 }
 
-function setTauriRuntime(value: boolean): void {
-  tauriRuntime = value;
+function setHostRuntime(value: boolean): void {
+  hostRuntime = value;
   avatarHostRuntime = value;
 }
 
@@ -288,12 +304,14 @@ beforeEach(() => {
   hideAvatarWindowMock.mockResolvedValue(undefined);
   closeAvatarWindowMock.mockReset();
   closeAvatarWindowMock.mockResolvedValue(undefined);
+  quitAvatarAppMock.mockReset();
+  quitAvatarAppMock.mockResolvedValue(undefined);
   onLaunchContextUpdatedMock.mockReset();
   onLaunchContextUpdatedMock.mockResolvedValue(() => {});
   reloadAvatarShellMock.mockReset();
   launchContextUpdatedHandler = null;
   hostSuspendHandler = null;
-  tauriRuntime = false;
+  hostRuntime = false;
   avatarHostRuntime = false;
   window.localStorage.clear();
 });
@@ -313,7 +331,11 @@ describe('App context menu overlay', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state'))
+        .toBe('ready');
+    });
+    const stage = await readyEmbodimentStage();
     stage.focus();
     fireEvent.pointerDown(stage, {
       button: 2,
@@ -345,7 +367,11 @@ describe('App context menu overlay', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state'))
+        .toBe('ready');
+    });
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -385,7 +411,7 @@ describe('App context menu overlay', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     stage.focus();
     fireEvent.pointerDown(stage, {
       button: 2,
@@ -420,7 +446,7 @@ describe('App context menu overlay', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -492,7 +518,7 @@ describe('App context menu overlay', () => {
     act(() => {
       seedReadyState();
     });
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -518,7 +544,7 @@ describe('App context menu overlay', () => {
     act(() => {
       seedReadyState();
     });
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -536,7 +562,7 @@ describe('App context menu overlay', () => {
     expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
 
     act(() => useAvatarStore.getState().setDriverStatus('running'));
-    const recoveredStage = await screen.findByTestId('avatar-embodiment-stage');
+    const recoveredStage = await readyEmbodimentStage();
     expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
     projection.applyActivity.mockClear();
     fireEvent.pointerDown(recoveredStage, {
@@ -597,6 +623,63 @@ describe('App context menu overlay', () => {
     expect(handle.startVoiceCapture).not.toHaveBeenCalled();
   });
 
+  it('produces an assistant caption only from an exact-turn Runtime voice chunk', async () => {
+    let voiceEventHandler: ((event: AgentEvent) => void) | null = null;
+    const handle = createBootstrapHandle();
+    handle.driver!.onEvent = vi.fn((handler) => {
+      voiceEventHandler = handler;
+      return () => {};
+    });
+    bootstrapAvatarMock.mockResolvedValue(handle);
+    render(<App />);
+    act(() => {
+      seedReadyState();
+      seedActiveTurnBundle({ turnId: 'turn-caption-1', phase: 'committed' });
+      const current = useAvatarStore.getState().bundle!;
+      useAvatarStore.getState().setBundle({
+        ...current,
+        custom: {
+          ...current.custom,
+          latest_committed_turn_id: 'turn-caption-1',
+          latest_committed_message_id: 'message-caption-1',
+          latest_committed_message_text: 'Exact spoken reply',
+          latest_committed_message_at: '2026-08-30T00:00:00.000Z',
+          last_conversation_voice_id: 'voice-caption-1',
+        },
+      });
+    });
+    await waitFor(() => expect(voiceEventHandler).not.toBeNull());
+    act(() => voiceEventHandler?.({
+      event_id: 'voice-event-1',
+      name: 'avatar.conversation.voice.audio_chunk',
+      timestamp: '2026-08-30T00:00:01.000Z',
+      detail: {
+        turn_id: 'turn-caption-1',
+        voice_id: 'voice-caption-1',
+      },
+    }));
+
+    const caption = await screen.findByText('Exact spoken reply');
+    expect(caption.getAttribute('role')).toBe('status');
+    expect(caption.getAttribute('aria-live')).toBe('polite');
+
+    act(() => voiceEventHandler?.({
+      event_id: 'voice-event-other-failed',
+      name: 'avatar.conversation.voice.failed',
+      timestamp: '2026-08-30T00:00:02.000Z',
+      detail: { voice_id: 'voice-other' },
+    }));
+    expect(screen.getByText('Exact spoken reply')).toBeTruthy();
+
+    act(() => voiceEventHandler?.({
+      event_id: 'voice-event-active-failed',
+      name: 'avatar.conversation.voice.failed',
+      timestamp: '2026-08-30T00:00:03.000Z',
+      detail: { voice_id: 'voice-caption-1' },
+    }));
+    expect(screen.queryByText('Exact spoken reply')).toBeNull();
+  });
+
   it('keeps native window menu actions disabled without an Avatar host runtime', async () => {
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
@@ -606,7 +689,7 @@ describe('App context menu overlay', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -619,8 +702,11 @@ describe('App context menu overlay', () => {
       .toBe(true);
     expect((screen.getByTestId('avatar-context-menu-item-close') as HTMLButtonElement).disabled)
       .toBe(true);
+    expect((screen.getByTestId('avatar-context-menu-item-quit_app') as HTMLButtonElement).disabled)
+      .toBe(true);
     expect(hideAvatarWindowMock).not.toHaveBeenCalled();
     expect(closeAvatarWindowMock).not.toHaveBeenCalled();
+    expect(quitAvatarAppMock).not.toHaveBeenCalled();
   });
 
   it('enables the same lifecycle and always-on-top commands on the Electron host', async () => {
@@ -635,7 +721,7 @@ describe('App context menu overlay', () => {
     await waitFor(() => {
       expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
     });
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -648,10 +734,12 @@ describe('App context menu overlay', () => {
       .toBe(false);
     expect((screen.getByTestId('avatar-context-menu-item-close') as HTMLButtonElement).disabled)
       .toBe(false);
+    expect((screen.getByTestId('avatar-context-menu-item-quit_app') as HTMLButtonElement).disabled)
+      .toBe(false);
   });
 
   it('hides the current avatar window through the native window command', async () => {
-    setTauriRuntime(true);
+    setHostRuntime(true);
     const projection = createBackendProjection();
     const cancelCapture = vi.fn();
     const handle = createBootstrapHandle({ projection });
@@ -667,7 +755,11 @@ describe('App context menu overlay', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state'))
+        .toBe('ready');
+    });
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -713,7 +805,7 @@ describe('App context menu overlay', () => {
   });
 
   it('closes the current avatar window through the native window command', async () => {
-    setTauriRuntime(true);
+    setHostRuntime(true);
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);
@@ -722,7 +814,7 @@ describe('App context menu overlay', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -737,6 +829,43 @@ describe('App context menu overlay', () => {
     await waitFor(() => {
       expect(closeAvatarWindowMock).toHaveBeenCalledTimes(1);
     });
+    expect(hideAvatarWindowMock).not.toHaveBeenCalled();
+    expect(quitAvatarAppMock).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
+    });
+  });
+
+  it('quits the Avatar App without closing only the current avatar', async () => {
+    setHostRuntime(true);
+    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+
+    render(<App />);
+
+    act(() => {
+      seedReadyState();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state'))
+        .toBe('ready');
+    });
+    const stage = await readyEmbodimentStage();
+    fireEvent.pointerDown(stage, {
+      button: 2,
+      buttons: 2,
+      pointerId: 1261,
+      clientX: 140,
+      clientY: 180,
+    });
+    const quitApp = await screen.findByRole('menuitem', { name: 'Quit Avatar App' });
+    expect(quitApp).toBe(screen.getByTestId('avatar-context-menu-item-quit_app'));
+    fireEvent.click(quitApp);
+
+    await waitFor(() => {
+      expect(quitAvatarAppMock).toHaveBeenCalledTimes(1);
+    });
+    expect(closeAvatarWindowMock).not.toHaveBeenCalled();
     expect(hideAvatarWindowMock).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-context-menu')).toBeNull();
@@ -753,7 +882,7 @@ describe('App context menu overlay', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 0,
       buttons: 1,
@@ -798,7 +927,7 @@ describe('App context menu overlay', () => {
   });
 
   it('toggles always-on-top from the menu', async () => {
-    setTauriRuntime(true);
+    setHostRuntime(true);
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 
     render(<App />);
@@ -807,7 +936,7 @@ describe('App context menu overlay', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     await waitFor(() => {
       expect(setAlwaysOnTopMock).toHaveBeenCalledWith(true);
     });
@@ -840,7 +969,7 @@ describe('App context menu overlay', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -857,6 +986,9 @@ describe('App context menu overlay', () => {
     expect(screen.getByText('Avatar settings')).toBeTruthy();
     expect(screen.getByText('Always on top')).toBeTruthy();
     expect(screen.getByText('Show voice captions')).toBeTruthy();
+    expect(screen.getByText('Caption size')).toBeTruthy();
+    expect(screen.getByText('Caption contrast')).toBeTruthy();
+    expect(screen.getByText('Caption duration')).toBeTruthy();
     expect(screen.queryByText('Auto-open new replies')).toBeNull();
   });
 
@@ -869,7 +1001,11 @@ describe('App context menu overlay', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state'))
+        .toBe('ready');
+    });
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -882,8 +1018,16 @@ describe('App context menu overlay', () => {
     const captions = await screen.findByTestId('avatar-settings-toggle-show-voice-captions') as HTMLInputElement;
     expect(captions.checked).toBe(true);
     fireEvent.click(captions);
+    fireEvent.change(screen.getByTestId('avatar-settings-caption-size'), { target: { value: 'large' } });
+    fireEvent.change(screen.getByTestId('avatar-settings-caption-contrast'), { target: { value: 'high' } });
+    fireEvent.change(screen.getByTestId('avatar-settings-caption-duration'), { target: { value: 'long' } });
 
     expect(readAvatarShellSettings().showVoiceCaptions).toBe(false);
+    expect(readAvatarShellSettings()).toMatchObject({
+      captionSize: 'large',
+      captionContrast: 'high',
+      captionDuration: 'long',
+    });
   });
 
   it('dismisses settings overlay by explicit close', async () => {
@@ -895,7 +1039,8 @@ describe('App context menu overlay', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
+    stage.focus();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -909,6 +1054,7 @@ describe('App context menu overlay', () => {
 
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-settings-overlay')).toBeNull();
+      expect(document.activeElement).toBe(stage);
     });
   });
 
@@ -921,7 +1067,8 @@ describe('App context menu overlay', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
+    stage.focus();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -945,7 +1092,8 @@ describe('App context menu overlay', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
+    stage.focus();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -972,6 +1120,7 @@ describe('App context menu overlay', () => {
     fireEvent.click(screen.getByTestId('avatar-appearance-overlay-close'));
     await waitFor(() => {
       expect(screen.queryByTestId('avatar-appearance-overlay')).toBeNull();
+      expect(document.activeElement).toBe(stage);
     });
   });
 
@@ -982,7 +1131,7 @@ describe('App context menu overlay', () => {
     act(() => {
       seedReadyState();
     });
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -1002,7 +1151,7 @@ describe('App context menu overlay', () => {
     act(() => {
       seedReadyState();
     });
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     fireEvent.keyDown(window, { key: 'Tab' });
     stage.focus();
     fireEvent.keyDown(stage, { key: 'F10', shiftKey: true });
@@ -1025,7 +1174,7 @@ describe('App context menu overlay', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -1052,7 +1201,7 @@ describe('App context menu overlay', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,

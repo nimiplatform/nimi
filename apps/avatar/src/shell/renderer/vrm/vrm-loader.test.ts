@@ -10,17 +10,13 @@ const mocks = vi.hoisted(() => {
     rotateVRM0: vi.fn((_vrm: unknown) => {
       mocks.callOrder.push('rotateVRM0');
     }),
+    deepDispose: vi.fn((_scene: unknown) => {
+      mocks.callOrder.push('deepDispose');
+    }),
     applyIdlePose: vi.fn((_vrm: unknown) => {
       mocks.callOrder.push('applyIdlePose');
     }),
-    suspendCreateImageBitmap: vi.fn(() => {
-      mocks.callOrder.push('suspend');
-      return () => {
-        mocks.callOrder.push('restore');
-      };
-    }),
     loadAsync: vi.fn<(url: string) => Promise<unknown>>(),
-    parse: vi.fn<(data: ArrayBuffer, path: string) => Promise<unknown>>(),
     invoke: vi.fn<(command: string, args?: Record<string, unknown>) => Promise<unknown>>(),
     GLTFLoaderCtor: vi.fn(),
   };
@@ -30,7 +26,7 @@ vi.mock('@pixiv/three-vrm', async () => {
   // Preserve actual module so VRM type imports stay valid; only override
   // the bits we exercise.
   return {
-    VRMUtils: { rotateVRM0: mocks.rotateVRM0 },
+    VRMUtils: { rotateVRM0: mocks.rotateVRM0, deepDispose: mocks.deepDispose },
     VRMLoaderPlugin: class FakeVRMLoaderPlugin {
       constructor(_parser: unknown, _opts: unknown) {}
     },
@@ -65,24 +61,12 @@ vi.mock('three/examples/jsm/loaders/GLTFLoader.js', () => {
       loadAsync(url: string): Promise<unknown> {
         return mocks.loadAsync(url);
       }
-      parse(
-        data: ArrayBuffer,
-        path: string,
-        onLoad: (gltf: unknown) => void,
-        onError?: (error: unknown) => void,
-      ): void {
-        mocks.parse(data, path).then(onLoad, onError);
-      }
     },
   };
 });
 
 vi.mock('./vrm-pose.js', () => ({
   applyIdlePose: mocks.applyIdlePose,
-}));
-
-vi.mock('./vrm-tauri-quirks.js', () => ({
-  suspendCreateImageBitmapForTauriVrmLoad: mocks.suspendCreateImageBitmap,
 }));
 
 // SUT import comes AFTER all mocks.
@@ -123,19 +107,18 @@ function vrmManifest(filePath: string): VrmAvatarModelManifest {
 beforeEach(() => {
   mocks.callOrder.length = 0;
   mocks.rotateVRM0.mockClear();
+  mocks.deepDispose.mockClear();
   mocks.applyIdlePose.mockClear();
-  mocks.suspendCreateImageBitmap.mockClear();
   mocks.loadAsync.mockReset();
-  mocks.parse.mockReset();
   mocks.invoke.mockReset();
   mocks.GLTFLoaderCtor.mockClear();
-  (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = undefined;
+  (globalThis as unknown as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = undefined;
   __resetVrmLoaderForTests();
 });
 
 afterEach(() => {
   __resetVrmLoaderForTests();
-  (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = undefined;
+  (globalThis as unknown as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = undefined;
 });
 
 describe('getVrmLoader', () => {
@@ -153,7 +136,7 @@ describe('loadVrmFromManifest', () => {
     await expect(loadVrmFromManifest(bad)).rejects.toThrow(/manifest\.kind/);
   });
 
-  it('honours strict load order: suspend → loadAsync → rotateVRM0 → applyIdlePose → traverse → restore', async () => {
+  it('honours strict load order: loadAsync → rotateVRM0 → applyIdlePose → traverse', async () => {
     const fake = makeFakeVrm();
     mocks.loadAsync.mockImplementation(async () => {
       mocks.callOrder.push('loadAsync');
@@ -161,12 +144,10 @@ describe('loadVrmFromManifest', () => {
     });
     await loadVrmFromManifest(vrmManifest('/path/to/model.vrm'));
     expect(mocks.callOrder).toEqual([
-      'suspend',
       'loadAsync',
       'rotateVRM0',
       'applyIdlePose',
       'traverse',
-      'restore',
     ]);
   });
 
@@ -196,25 +177,40 @@ describe('loadVrmFromManifest', () => {
   });
 
   it('throws fail-close when gltf.userData.vrm is missing', async () => {
-    mocks.loadAsync.mockResolvedValue({ userData: {} });
+    const scene = { traverse: vi.fn() };
+    mocks.loadAsync.mockResolvedValue({ userData: {}, scene });
     await expect(loadVrmFromManifest(vrmManifest('/x/missing.vrm'))).rejects.toThrow(
       /not a valid VRM/,
     );
+    expect(mocks.deepDispose).toHaveBeenCalledWith(scene);
   });
 
-  it('still calls restore() even when loadAsync rejects', async () => {
+  it('deep-disposes the parsed VRM when pose initialization rejects', async () => {
+    const fake = makeFakeVrm();
+    mocks.loadAsync.mockResolvedValue({ userData: fake });
+    mocks.applyIdlePose.mockImplementationOnce(() => {
+      throw new Error('pose rejected');
+    });
+
+    await expect(loadVrmFromManifest(vrmManifest('/x/pose-failure.vrm')))
+      .rejects.toThrow(/pose rejected/u);
+    expect(mocks.deepDispose).toHaveBeenCalledWith(fake.vrm.scene);
+    expect(mocks.callOrder.at(-1)).toBe('deepDispose');
+  });
+
+  it('propagates a loader rejection before any scene exists', async () => {
     mocks.loadAsync.mockRejectedValue(new Error('parse boom'));
     await expect(loadVrmFromManifest(vrmManifest('/x/broken.vrm'))).rejects.toThrow(/parse boom/);
-    expect(mocks.callOrder).toEqual(['suspend', 'restore']);
+    expect(mocks.deepDispose).not.toHaveBeenCalled();
   });
 
-  it('still calls restore() when userData.vrm is missing', async () => {
+  it('fails closed when userData.vrm is missing without a parsed scene', async () => {
     mocks.loadAsync.mockImplementation(async () => {
       mocks.callOrder.push('loadAsync');
       return { userData: {} };
     });
     await expect(loadVrmFromManifest(vrmManifest('/x/empty.vrm'))).rejects.toThrow();
-    expect(mocks.callOrder).toEqual(['suspend', 'loadAsync', 'restore']);
+    expect(mocks.callOrder).toEqual(['loadAsync']);
   });
 
   it('reloads the same URL as a fresh scene for recovery', async () => {
@@ -230,61 +226,28 @@ describe('loadVrmFromManifest', () => {
     await loadVrmFromManifest(vrmManifest('/path/to/cached.vrm'));
     expect(mocks.loadAsync.mock.calls.length).toBe(2);
     expect(mocks.callOrder).toEqual([
-      'suspend',
       'loadAsync',
       'rotateVRM0',
       'applyIdlePose',
       'traverse',
-      'restore',
     ]);
   });
 
-  it('loads Tauri local VRM files through Avatar-owned binary read instead of fetch', async () => {
+  it('loads Electron local VRM files through the admitted shell-file URL', async () => {
     const fake = makeFakeVrm();
-    (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = {
+    (globalThis as unknown as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: mocks.invoke,
-      listen: async () => () => undefined,
-      convertFileSrc: (path: string) => `asset://${path}`,
+      listen: () => () => undefined,
     };
-    mocks.invoke.mockResolvedValue([0x67, 0x6c, 0x54, 0x46]);
-    mocks.parse.mockImplementation(async () => {
+    mocks.loadAsync.mockImplementation(async () => {
       mocks.callOrder.push('parse');
       return { userData: fake };
     });
 
     await loadVrmFromManifest(vrmManifest('\\\\?\\D:\\DataNimi\\avatar\\AliciaSolid.vrm'));
 
-    expect(mocks.invoke).toHaveBeenCalledWith('nimi_avatar_read_binary_file', {
-      path: '\\\\?\\D:\\DataNimi\\avatar\\AliciaSolid.vrm',
-    });
-    expect(mocks.loadAsync).not.toHaveBeenCalled();
-    expect(mocks.parse).toHaveBeenCalledTimes(1);
-    expect(mocks.parse.mock.calls[0]?.[0]).toBeInstanceOf(ArrayBuffer);
-    expect(mocks.callOrder).toEqual([
-      'suspend',
-      'parse',
-      'rotateVRM0',
-      'applyIdlePose',
-      'traverse',
-      'restore',
-    ]);
-  });
-
-  it('treats normal Windows drive VRM paths as local Tauri files', async () => {
-    const fake = makeFakeVrm();
-    (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = {
-      invoke: mocks.invoke,
-      listen: async () => () => undefined,
-      convertFileSrc: (path: string) => `asset://${path}`,
-    };
-    mocks.invoke.mockResolvedValue([0x67, 0x6c, 0x54, 0x46]);
-    mocks.parse.mockResolvedValue({ userData: fake });
-
-    await loadVrmFromManifest(vrmManifest('D:\\DataNimi\\avatar\\AliciaSolid.vrm'));
-
-    expect(mocks.invoke).toHaveBeenCalledWith('nimi_avatar_read_binary_file', {
-      path: 'D:\\DataNimi\\avatar\\AliciaSolid.vrm',
-    });
-    expect(mocks.loadAsync).not.toHaveBeenCalled();
+    expect(mocks.loadAsync).toHaveBeenCalledTimes(1);
+    expect(String(mocks.loadAsync.mock.calls[0]?.[0])).toMatch(/^nimi-shell-file:\/\/local\/\?path=/u);
+    expect(mocks.invoke).not.toHaveBeenCalled();
   });
 });

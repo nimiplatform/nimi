@@ -156,6 +156,7 @@ let connectorAuthAcquisitionHost: DesktopElectronConnectorAuthAcquisitionHost | 
 let registeredRuntimeBridge: RegisteredNimiElectronRuntimeBridge | undefined;
 let quitCleanup: Promise<void> | undefined;
 let quitCleanupComplete = false;
+const DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS = 5_000;
 
 app.setName(MACOS_LOCAL_DEVELOPMENT_BUILD ? 'Nimi Dev' : 'Nimi');
 if (SOURCE_PER_USER_RUNTIME_D2) {
@@ -289,10 +290,45 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         'data',
       ),
       localAssetProtocolHost,
+      revalidateFormalPresentationForMaterialization: async ({
+        avatarHostTargetRef,
+        agentHandle,
+        conversationAnchorId,
+        avatarAssetRef,
+        backendKind,
+        presentationRevision,
+      }) => {
+        const localAppHost = registeredRuntimeBridge?.bundledAvatarLocalAppHost;
+        if (!localAppHost) throw new Error('Avatar formal App host is unavailable.');
+        const resolvedTarget = await localAppHost.avatarHostTargetResolve({
+          agentHandle,
+          conversationAnchorId,
+        });
+        if (normalizeText(resolvedTarget.avatarHostTargetRef) !== avatarHostTargetRef) {
+          throw new Error('Avatar materialization target no longer matches the hosted LocalAgent.');
+        }
+        const snapshot = await localAppHost.agentPresentationSnapshot({ agentHandle });
+        const profileValue = snapshot.profile;
+        if (!profileValue || typeof profileValue !== 'object' || Array.isArray(profileValue)) {
+          throw new Error('Avatar formal presentation snapshot is unavailable.');
+        }
+        const profile = profileValue as Readonly<Record<string, unknown>>;
+        if (normalizeText(snapshot.presentationRevision) !== presentationRevision
+          || normalizeText(profile.revision) !== presentationRevision
+          || normalizeText(profile.avatarAssetRef) !== avatarAssetRef
+          || normalizeText(profile.backendKind) !== backendKind) {
+          throw new Error('Avatar materialization request no longer matches the formal presentation.');
+        }
+      },
       resolveFormalPresentationAsset: async ({ agentHandle, assetRef }) => {
         const localAppHost = registeredRuntimeBridge?.bundledAvatarLocalAppHost;
         if (!localAppHost) throw new Error('Avatar formal App host is unavailable.');
         return localAppHost.agentPresentationReadAsset({ agentHandle, assetRef }) as never;
+      },
+      revalidateCurrentAvatarHostTarget: async (avatarHostTargetRef) => {
+        const revalidate = registeredRuntimeBridge?.revalidateAvatarHostTarget;
+        if (!revalidate) throw new Error('Avatar current Host target revalidation is unavailable.');
+        return revalidate(avatarHostTargetRef);
       },
       devRendererRoot: ELECTRON_DEVELOPMENT_BUILD
         ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_DEV_ROOT)
@@ -387,17 +423,23 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       const conversation = await localAppHost.conversationOpen({ agentHandle: selectedAgentHandle });
       const conversationAnchorId = normalizeText(conversation.conversationAnchorId);
       if (!conversationAnchorId) throw new Error('Avatar formal Conversation anchor is unavailable.');
-      const launchResult = await bundledAvatarHost.hostHandoff(buildAvatarHostHandoffRequest({
-        command: 'launch',
-        target: {
-          agentHandle: selectedAgentHandle,
-          conversationAnchorId,
-          avatarInstanceId: normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID) || null,
-          launchSource: 'official-avatar-electron-dev-launcher',
-          committedPresentationRef: null,
-          temporaryCustodyRef: null,
-        },
-      }));
+      const hostTarget = await localAppHost.avatarHostTargetResolve({ agentHandle: selectedAgentHandle });
+      const launchResult = await bundledAvatarHost.hostHandoff({
+        sourceApp: 'nimi.desktop',
+        avatarHostTargetRef: normalizeText(hostTarget.avatarHostTargetRef),
+        request: buildAvatarHostHandoffRequest({
+          command: 'launch',
+          target: {
+            agentHandle: selectedAgentHandle,
+            conversationAnchorId,
+            avatarInstanceId: normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_INSTANCE_ID) || null,
+            launchSource: 'official-avatar-electron-dev-launcher',
+            switchIntentRef: null,
+            committedPresentationRef: null,
+            temporaryCustodyRef: null,
+          },
+        }),
+      });
       if (launchResult.state !== 'present' && launchResult.state !== 'focused') {
         throw new Error('Avatar-only Electron dev launch did not create or focus an Avatar instance.');
       }
@@ -480,11 +522,18 @@ async function shutdownBeforeQuit(): Promise<void> {
   const runtimeBridge = registeredRuntimeBridge;
   await localHost?.shutdown();
   const cleanupResults = await Promise.allSettled([
+    boundDesktopShutdownCleanup(
+      runtimeBridge?.disposeFormalAppResources?.(),
+      DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS,
+      'formal-app-resources',
+    ),
+  ]);
+  cleanupResults.push(...await Promise.allSettled([
     openIntentHost?.shutdown(),
     avatarHost?.shutdown(),
     chatStoreHost?.close(),
     connectorAuthHost?.shutdown(),
-  ]);
+  ]));
   try {
     runtimeBridge?.unregister();
   } catch (error) {
@@ -511,6 +560,26 @@ async function shutdownBeforeQuit(): Promise<void> {
   }
 }
 
+async function boundDesktopShutdownCleanup(
+  cleanup: Promise<unknown> | undefined,
+  timeoutMs: number,
+  operation: string,
+): Promise<void> {
+  if (!cleanup) return;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    await Promise.race([
+      cleanup,
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(() => reject(new Error(`desktop-shutdown-${operation}-timeout`)), timeoutMs);
+        timer.unref?.();
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
 async function createMainWindow(): Promise<BrowserWindow> {
   const window = new BrowserWindow({
     width: 1440,
@@ -532,6 +601,11 @@ async function createMainWindow(): Promise<BrowserWindow> {
       return;
     }
     if (!quitCleanupComplete) {
+      if (bundledAvatarHost?.hasActiveInstances()) {
+        event.preventDefault();
+        window.hide();
+        return;
+      }
       event.preventDefault();
       app.quit();
     }

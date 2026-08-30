@@ -1,4 +1,5 @@
 import { generatedBy, readText, writeText } from './context.mjs';
+import { HOST_PRIVATE_RUNTIME_MESSAGE_NAMES } from './runtime-proto.mjs';
 import { quote, runtimeEnumSchemas, runtimeMessageSchemas } from './types.mjs';
 
 function runtimeSchemaSources(runtime) {
@@ -38,9 +39,12 @@ const publicCognitionMemoryEnumNames = new Set([
   'CognitionMemoryOutcome',
 ]);
 
+const hostPrivateRuntimeWireMessageNames = new Set(HOST_PRIVATE_RUNTIME_MESSAGE_NAMES);
+
 function isPublicRuntimeWireMessage(schema) {
-  return schema.source_file !== cognitionMemoryProtoSource
-    || publicCognitionMemoryMessageNames.has(schema.name);
+  return !hostPrivateRuntimeWireMessageNames.has(schema.name)
+    && (schema.source_file !== cognitionMemoryProtoSource
+      || publicCognitionMemoryMessageNames.has(schema.name));
 }
 
 function isPublicRuntimeWireEnum(schema) {

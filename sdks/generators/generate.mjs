@@ -1,11 +1,20 @@
 #!/usr/bin/env node
 
 import { checkMode, languages, realmOnly, writeJson } from './lib/context.mjs';
-import { writeTypescriptClients, writePythonClients, writeGoClients, writeRustClients } from './lib/descriptor-clients.mjs';
+import {
+  writeGoClients,
+  writePythonClients,
+  writeRustClients,
+  writeTypescriptClients,
+  writeTypescriptPublicRuntimeDescriptors,
+} from './lib/descriptor-clients.mjs';
 import { writeConformanceFixtures } from './lib/conformance.mjs';
 import { extractErrorCodes, buildExportManifest, languageGeneratedDir, writeSharedArtifacts } from './lib/manifests.mjs';
 import { extractRealmCore } from './lib/realm-openapi.mjs';
-import { extractRuntimeProto } from './lib/runtime-proto.mjs';
+import {
+  extractRuntimeProto,
+  projectRuntimeForNonHostPublicSdks,
+} from './lib/runtime-proto.mjs';
 import { writeTypescriptRuntimeProtobuf } from './lib/runtime-protobuf-ts.mjs';
 import { writeTypedClients } from './lib/typed-clients.mjs';
 import { writeTypescriptRuntimeAuthPostureProjection } from './lib/runtime-auth-posture.mjs';
@@ -22,9 +31,10 @@ function assertRealmOpenApiLoaded(realm) {
   ].join(' '));
 }
 
-function writeLanguageArtifacts(runtime, realm, errorCodes, exportsManifest) {
+function writeLanguageArtifacts(typescriptRuntime, nonHostRuntime, realm, errorCodes, exportsManifest) {
   for (const language of languages) {
     const dir = languageGeneratedDir(language);
+    const runtime = language === 'typescript' ? typescriptRuntime : nonHostRuntime;
     writeJson(dir + '/runtime-core.manifest.json', {
       ...runtime,
       language,
@@ -46,32 +56,34 @@ function writeLanguageArtifacts(runtime, realm, errorCodes, exportsManifest) {
       generated_projection: 'language-core-generated',
     });
   }
-  writeTypescriptClients(runtime, realm);
-  writePythonClients(runtime, realm);
-  writeGoClients(runtime, realm);
-  writeRustClients(runtime, realm);
-  writeTypedClients(runtime, realm);
+  writeTypescriptClients(typescriptRuntime, realm);
+  writeTypescriptPublicRuntimeDescriptors(nonHostRuntime);
+  writePythonClients(nonHostRuntime, realm);
+  writeGoClients(nonHostRuntime, realm);
+  writeRustClients(nonHostRuntime, realm);
+  writeTypedClients(typescriptRuntime, nonHostRuntime, realm);
 }
 
 function main() {
   const runtime = extractRuntimeProto();
+  const nonHostRuntime = projectRuntimeForNonHostPublicSdks(runtime);
   const realm = extractRealmCore();
   assertRealmOpenApiLoaded(realm);
   const publicSdkRealm = projectRealmForPublicSdks(realm);
   const errorCodes = extractErrorCodes();
-  const exportsManifest = buildExportManifest(runtime, publicSdkRealm, errorCodes);
+  const exportsManifest = buildExportManifest(nonHostRuntime, publicSdkRealm, errorCodes);
 
   if (!realmOnly) {
     writeTypescriptRuntimeProtobuf();
-    writeTypescriptRuntimeAuthPostureProjection(runtime);
+    writeTypescriptRuntimeAuthPostureProjection(runtime, nonHostRuntime);
   }
-  writeSharedArtifacts(runtime, realm, errorCodes, exportsManifest);
+  writeSharedArtifacts(nonHostRuntime, realm, errorCodes, exportsManifest);
   writeRuntimeRealmCarrier(realm);
-  writeLanguageArtifacts(runtime, publicSdkRealm, errorCodes, exportsManifest);
-  writeConformanceFixtures(runtime, publicSdkRealm);
+  writeLanguageArtifacts(runtime, nonHostRuntime, publicSdkRealm, errorCodes, exportsManifest);
+  writeConformanceFixtures(nonHostRuntime, publicSdkRealm);
 
   const action = checkMode ? 'checked' : 'generated';
-  process.stdout.write(action + ' sdks core manifests: mode=' + (realmOnly ? 'realm-only' : 'full') + ', runtime=' + runtime.method_ids.length + ' methods, realm=' + realm.operations.length + ' operations, public_realm=' + publicSdkRealm.operations.length + ' operations (' + realm.source_state + ')\n');
+  process.stdout.write(action + ' sdks core manifests: mode=' + (realmOnly ? 'realm-only' : 'full') + ', runtime=' + runtime.method_ids.length + ' methods, non_host_public_runtime=' + nonHostRuntime.method_ids.length + ' methods, realm=' + realm.operations.length + ' operations, public_realm=' + publicSdkRealm.operations.length + ' operations (' + realm.source_state + ')\n');
 }
 
 try {

@@ -26,6 +26,7 @@ function makeMockRuntime(initial: VrmRenderState = { kind: 'idle' }): {
     },
     notifyContextLost() {},
     notifyContextRestored() {},
+    notifyFirstFrameTimedOut() {},
     subscribe(listener) {
       listeners.add(listener);
       listener(state);

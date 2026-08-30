@@ -181,6 +181,8 @@ test('Runtime facade materializes a Realm source from sourceRef and requestId on
   assert.equal(response.localAgentRef, 'local-agent:materialized-world-character');
   assert.equal(response.reasonCode, RealmSourceMaterializationReasonCode.NONE);
   assert.equal('materializeRealmSource' in runtime.generated, false);
+  assert.equal('resolveLocalAppAvatarHostTarget' in runtime.generated, false);
+  assert.equal('revalidateLocalAppAvatarHostTarget' in runtime.generated, false);
   assert.equal('materializeRealmSource' in runtime.agents, false);
   assert.equal(transport.unaryCalls.length, 1);
   assert.equal(

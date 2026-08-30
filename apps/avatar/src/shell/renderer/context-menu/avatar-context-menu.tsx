@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, type ReactNode } from 'react';
 import {
   EyeOff,
   Keyboard,
+  LogOut,
   Mic,
   Palette,
   Pin,
@@ -34,6 +35,7 @@ export type AvatarContextMenuAction =
   | 'toggle_always_on_top'
   | 'hide'
   | 'close'
+  | 'quit_app'
   | 'settings';
 
 export type AvatarContextMenuProps = {
@@ -173,6 +175,12 @@ export function AvatarContextMenu(props: AvatarContextMenuProps) {
       action: 'close',
       labelKey: 'Avatar.context_menu.close',
       icon: <Power size={15} aria-hidden="true" />,
+      enabled: shellLifecycleEnabled,
+    },
+    {
+      action: 'quit_app',
+      labelKey: 'Avatar.context_menu.quit_app',
+      icon: <LogOut size={15} aria-hidden="true" />,
       enabled: shellLifecycleEnabled,
     },
     {

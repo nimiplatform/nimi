@@ -7,7 +7,7 @@ import {
 } from './vrm-mtoon-outline-policy.js';
 
 describe('classifyOutlineCompatibility', () => {
-  it('returns true for Tauri WKWebView (WebKit WebGL)', () => {
+  it('returns true for an unknown renderer without the known slow-path signature', () => {
     expect(classifyOutlineCompatibility('WebKit WebGL')).toBe(true);
   });
 

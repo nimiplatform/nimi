@@ -18,6 +18,18 @@ import type { Profile } from 'wlipsync';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial } from 'three';
+
+const r3fScene = vi.hoisted(() => ({
+  onAfterRender: undefined as ((...args: unknown[]) => void) | undefined,
+}));
+
+function renderVisibleFrame(): void {
+  r3fScene.onAfterRender?.({
+    getRenderTarget: () => null,
+    info: { render: { calls: 1, triangles: 2 } },
+  }, r3fScene);
+}
 
 vi.mock('@react-three/fiber', () => ({
   Canvas: ({ children }: { children?: ReactNode }) => (
@@ -34,7 +46,19 @@ vi.mock('@react-three/fiber', () => ({
   // through useThree for the per-tick capture(). Stubs are fine — the
   // capture is wrapped in try/catch, and the alpha-mask probe only
   // matters in real-WebGL builds.
-  useThree: () => ({ gl: {}, scene: {}, camera: {} }),
+  useThree: () => ({
+    gl: {},
+    scene: r3fScene,
+    camera: {
+      position: { set() {} },
+      lookAt() {},
+      updateProjectionMatrix() {},
+      near: 0.1,
+      far: 100,
+      fov: 30,
+    },
+    invalidate() {},
+  }),
 }));
 
 function vrmManifest(): VrmAvatarModelManifest {
@@ -52,8 +76,10 @@ function vrmManifest(): VrmAvatarModelManifest {
 }
 
 function stubVrm(): VRM {
+  const scene = new Group();
+  scene.add(new Mesh(new BoxGeometry(0.6, 1.8, 0.3), new MeshBasicMaterial({ opacity: 1 })));
   return {
-    scene: { traverse() {} },
+    scene,
     humanoid: { getNormalizedBoneNode: () => ({ name: 'bone' }) },
     expressionManager: { expressionMap: { happy: {}, aa: {} } },
     lookAt: {},
@@ -69,7 +95,15 @@ const ORIGINAL_FLAG = (import.meta.env as Record<string, unknown>)
 
 beforeEach(() => {
   vi.resetModules();
+  r3fScene.onAfterRender = undefined;
 });
+
+async function completeFirstFrame(): Promise<void> {
+  await act(async () => {
+    renderVisibleFrame();
+    await Promise.resolve();
+  });
+}
 
 afterEach(() => {
   if (ORIGINAL_FLAG === undefined) {
@@ -106,6 +140,7 @@ describe('VRM backend branch (chunk 2-C)', () => {
       await Promise.resolve();
       await Promise.resolve();
     });
+    await completeFirstFrame();
 
     // Real surface mounts a canvas-rooted carrier shell.
     const carrier = result!.getByTestId('avatar-vrm-carrier');
@@ -168,6 +203,7 @@ describe('VRM backend branch (chunk 2-C)', () => {
       await Promise.resolve();
       await Promise.resolve();
     });
+    await completeFirstFrame();
     expect(result!.getByTestId('avatar-vrm-carrier').getAttribute('data-avatar-vrm-state')).toBe(
       'ready',
     );

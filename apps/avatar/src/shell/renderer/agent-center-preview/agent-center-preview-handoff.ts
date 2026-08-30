@@ -135,15 +135,16 @@ export function createAvatarAgentCenterPreviewHandoff(input: {
         }
         const surface = documentRef.querySelector('[data-avatar-vrm-state]');
         const state = surface?.getAttribute('data-avatar-vrm-state');
+        const capabilityProfileRef = surface?.getAttribute(
+          'data-avatar-vrm-capability-profile-ref',
+        )?.trim() || null;
         return service.resolvePreview({
           avatarAssetRef,
           backendKind,
           previewMaterialRef,
           previewSurfaceHandle: surfaceHandle,
           vrm: {
-            capabilityProfileRef: state === 'ready'
-              ? `avatar.vrm.capability-profile:${avatarAssetRef}`
-              : null,
+            capabilityProfileRef: state === 'ready' ? capabilityProfileRef : null,
             failureReason: state === 'failed_closed'
               ? 'VRM preview renderer failed closed.'
               : 'VRM preview renderer has not produced visible output.',
@@ -208,12 +209,17 @@ async function waitForRendererReadiness(input: {
         'Avatar presentation changed while renderer readiness was pending.',
       );
     }
-    const root = input.document.querySelector('[data-testid="avatar-root"]');
+    const root = input.document.querySelector(
+      '[data-avatar-presentation-asset-ref][data-avatar-presentation-backend][data-avatar-presentation-revision]',
+    );
     const rootMatches = root?.getAttribute('data-avatar-presentation-asset-ref') === input.request.avatarAssetRef
       && root.getAttribute('data-avatar-presentation-backend') === input.request.backendKind
-      && root.getAttribute('data-avatar-presentation-revision') === input.request.presentationRevision;
+      && root.getAttribute('data-avatar-presentation-revision') === input.request.presentationRevision
+      && root.getAttribute('data-avatar-presentation-state') === 'ready';
     if (rootMatches && rendererIsTerminal(input.document, input.request.backendKind)) return;
-    if (Date.now() >= deadline) return;
+    if (Date.now() >= deadline) {
+      throw new Error('Avatar preview renderer did not bind the exact committed presentation before the deadline.');
+    }
     await input.wait(Math.min(AVATAR_PREVIEW_RENDERER_READINESS_POLL_MS, Math.max(0, deadline - Date.now())));
   }
 }

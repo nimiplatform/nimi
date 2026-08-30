@@ -525,6 +525,12 @@ pub struct NativeAgentHandleInput {
 }
 
 #[napi(object)]
+pub struct NativeAvatarHostTargetResolveInput {
+    pub agent_handle: String,
+    pub conversation_anchor_id: Option<String>,
+}
+
+#[napi(object)]
 pub struct NativeAgentPresentationAssetReadInput {
     pub agent_handle: String,
     pub asset_ref: String,

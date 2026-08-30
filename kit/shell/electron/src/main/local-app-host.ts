@@ -38,6 +38,7 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppRealmRealtimeSubscriptionClose',
   'localAppRealmRealtimeChannelClose',
   'localAppAgentReferenceList',
+  'localAppAvatarHostTargetResolve',
   'localAppStorageReadJson',
   'localAppStorageWriteJson',
   'localAppStorageRemoveJson',
@@ -109,6 +110,8 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'account-changed',
   'runtime-restarted',
   'revoked',
+  'session-invalid',
+  'presence-expired',
   'project-changed',
   'presence-expired',
   'runtime-access-denied',
@@ -312,6 +315,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppRealmPersonaCharacterDelete: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppRealmChatList: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentReferenceList: () => Promise<NativeLocalAppOutcome>;
+  readonly localAppAvatarHostTargetResolve: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppStorageRemoveJson: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -406,6 +410,8 @@ export type NimiElectronLocalAppHost = {
   readonly realmPersonaCharacterDelete: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly realmChatList: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentReferenceList: () => Promise<readonly NimiElectronLocalAppRecord[]>;
+  /** Host-only Avatar correlation; never dispatched through local-app commands. */
+  readonly avatarHostTargetResolve: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageReadJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageWriteJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly storageRemoveJson: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -486,6 +492,21 @@ const LOCAL_APP_SESSION_INVALID_REASONS: ReadonlySet<string> = new Set([
   'project-changed',
   'local-app-snapshot-unavailable',
 ]);
+const LOCAL_APP_BINDING_RETRY_SAFE_METHODS: ReadonlySet<string> = new Set([
+  'localAppSessionStatus',
+  'localAppAIConfigGet', 'localAppAIConfigLocalOptions',
+  'localAppScenarioJobGet', 'localAppArtifactRead', 'localAppVoiceAssetsList',
+  'localAppRealmWorldCoreList', 'localAppRealmPersonaCharacterListOwned',
+  'localAppRealmPersonaCharacterGetOwned', 'localAppRealmChatList',
+  'localAppAgentReferenceList', 'localAppAvatarHostTargetResolve',
+  'localAppConversationSnapshot', 'localAppEmbodimentSnapshot',
+  'localAppAgentRealtimeStatus',
+  'localAppSharedAgentAIConfigGet', 'localAppSharedAgentAIConfigLocalOptions',
+  'localAppAgentManagerSnapshot', 'localAppAgentAutonomySnapshot',
+  'localAppAgentPresentationSnapshot', 'localAppAgentPresentationReadAsset',
+  'localAppAgentMemoryInspect',
+  'localAppStorageReadJson', 'localAppAssetStat', 'localAppAssetList',
+]);
 
 export class NimiElectronLocalAppHostError extends Error {
   readonly reasonCode: string;
@@ -537,6 +558,9 @@ function withBoundedSessionRebind(
           return rebound.status === 'error' ? rebound : untrustedNativeOutcome();
         }
         onSessionChange();
+        if (!LOCAL_APP_BINDING_RETRY_SAFE_METHODS.has(property)) {
+          return first;
+        }
         return Reflect.apply(value, target, args) as Promise<NativeLocalAppOutcome>;
       };
     },
@@ -755,6 +779,16 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   agentReferenceList(): Promise<readonly NimiElectronLocalAppRecord[]> {
     return invokeAgentReferenceList(() => this.binding.localAppAgentReferenceList());
+  }
+
+  avatarHostTargetResolve(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    if (!hasExactKeys(input, ['agentHandle', 'conversationAnchorId'])) throw untrustedRuntimeError();
+    const agentHandle = exactText(input.agentHandle);
+    const conversationAnchorId = optionalExactText(input.conversationAnchorId);
+    return invokeAvatarHostTargetResolve(() => this.binding.localAppAvatarHostTargetResolve({
+      agentHandle,
+      conversationAnchorId,
+    }));
   }
 
   storageReadJson(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -1147,7 +1181,9 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
   agentReferenceList(): Promise<readonly NimiElectronLocalAppRecord[]> {
     return this.resolve().agentReferenceList();
   }
-
+  avatarHostTargetResolve(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().avatarHostTargetResolve(input);
+  }
   storageReadJson(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().storageReadJson(input);
   }
@@ -1843,6 +1879,18 @@ async function invokeAgentReferenceList(
       avatarUrl: entry.avatarUrl as string | null,
     }) as NimiElectronLocalAppRecord;
   }));
+}
+
+async function invokeAvatarHostTargetResolve(
+  call: () => Promise<NativeLocalAppOutcome>,
+): Promise<NimiElectronLocalAppRecord> {
+  const value = await invoke(call);
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['avatarHostTargetRef']) ||
+    typeof value.avatarHostTargetRef !== 'string' ||
+    !/^avatar_target_[A-Za-z0-9_-]{43}$/u.test(value.avatarHostTargetRef)) {
+    throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+  }
+  return Object.freeze({ avatarHostTargetRef: value.avatarHostTargetRef });
 }
 
 async function invokeWorldCore(

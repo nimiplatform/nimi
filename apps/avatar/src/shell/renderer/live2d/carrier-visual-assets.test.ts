@@ -21,7 +21,6 @@ function createFakeGl() {
 }
 
 describe('Live2D carrier visual texture loading', () => {
-  const originalTauriTest = (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__;
   const originalCreateObjectURL = URL.createObjectURL;
   const originalRevokeObjectURL = URL.revokeObjectURL;
 
@@ -37,12 +36,7 @@ describe('Live2D carrier visual texture loading', () => {
   });
 
   afterEach(() => {
-    const shellGlobal = globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown };
-    if (originalTauriTest === undefined) {
-      delete shellGlobal.__NIMI_TAURI_TEST__;
-    } else {
-      shellGlobal.__NIMI_TAURI_TEST__ = originalTauriTest;
-    }
+    vi.useRealTimers();
     Object.defineProperty(URL, 'createObjectURL', {
       configurable: true,
       value: originalCreateObjectURL,
@@ -55,19 +49,14 @@ describe('Live2D carrier visual texture loading', () => {
     vi.restoreAllMocks();
   });
 
-  it('uses HTMLImageElement texture decode in the Tauri WebView', async () => {
+  it('uses HTMLImageElement texture decode when ImageBitmap is unavailable', async () => {
     class FakeImage {
       public decoding = '';
       public src = '';
       public decode = vi.fn(async () => {});
     }
 
-    (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__ = {
-      invoke: async () => undefined,
-      listen: async () => () => undefined,
-    };
-    const createImageBitmapMock = vi.fn(async () => ({ close: vi.fn() }) as unknown as ImageBitmap);
-    vi.stubGlobal('createImageBitmap', createImageBitmapMock);
+    vi.stubGlobal('createImageBitmap', undefined);
     vi.stubGlobal('Image', FakeImage);
 
     const { loadLive2DTextureFromBytes } = await import('./carrier-visual-assets.js');
@@ -78,7 +67,6 @@ describe('Live2D carrier visual texture loading', () => {
       bytes: new ArrayBuffer(8),
     });
 
-    expect(createImageBitmapMock).not.toHaveBeenCalled();
     expect(gl.texImage2D).toHaveBeenCalledWith(
       gl.TEXTURE_2D,
       0,
@@ -89,8 +77,7 @@ describe('Live2D carrier visual texture loading', () => {
     );
   });
 
-  it('keeps the ImageBitmap fast path outside Tauri', async () => {
-    delete (globalThis as unknown as { __NIMI_TAURI_TEST__?: unknown }).__NIMI_TAURI_TEST__;
+  it('keeps the ImageBitmap fast path in the Electron renderer', async () => {
     const bitmap = { close: vi.fn() } as unknown as ImageBitmap;
     const createImageBitmapMock = vi.fn(async () => bitmap);
     vi.stubGlobal('createImageBitmap', createImageBitmapMock);
@@ -113,5 +100,43 @@ describe('Live2D carrier visual texture loading', () => {
       bitmap,
     );
     expect(bitmap.close).toHaveBeenCalledOnce();
+  });
+
+  it('falls back without leaking an ImageBitmap that resolves after the fast-path timeout', async () => {
+    vi.useFakeTimers();
+    const lateBitmap = { close: vi.fn() } as unknown as ImageBitmap;
+    let resolveBitmap!: (bitmap: ImageBitmap) => void;
+    vi.stubGlobal('createImageBitmap', vi.fn(() => new Promise<ImageBitmap>((resolve) => {
+      resolveBitmap = resolve;
+    })));
+    class FakeImage {
+      public decoding = '';
+      public src = '';
+      public decode = vi.fn(async () => {});
+    }
+    vi.stubGlobal('Image', FakeImage);
+
+    const { loadLive2DTextureFromBytes } = await import('./carrier-visual-assets.js');
+    const gl = createFakeGl();
+    const loading = loadLive2DTextureFromBytes({
+      gl,
+      path: '/models/ren/runtime/slow.png',
+      bytes: new ArrayBuffer(8),
+    });
+    await vi.advanceTimersByTimeAsync(5_000);
+    await loading;
+    resolveBitmap(lateBitmap);
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(lateBitmap.close).toHaveBeenCalledOnce();
+    expect(gl.texImage2D).toHaveBeenCalledWith(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      expect.any(FakeImage),
+    );
   });
 });

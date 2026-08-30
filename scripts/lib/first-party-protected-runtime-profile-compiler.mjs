@@ -34,6 +34,10 @@ const FORMAL_APP_SESSION_METHODS = new Set([
   '/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession',
   '/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession',
 ]);
+const SDK_RAW_HOST_METHOD_IDS = new Set([
+  '/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget',
+  '/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget',
+]);
 
 export function compileFirstPartyProtectedRuntimeProfiles({ repoRoot, sourceText, rpcSourceText } = {}) {
   if (!repoRoot) throw new Error('repoRoot is required');
@@ -240,8 +244,12 @@ function renderElectronAvatar(model) {
 }
 
 function renderSdkProfiles(model) {
-  const profiles = model.profiles.map((profile) => `  ${JSON.stringify(profile.profileId)}: {\n    identityClass: ${JSON.stringify(profile.identityClass)},\n    methods: {\n${profile.methods.map((method) => `      ${JSON.stringify(method.methodId)}: { typedMethod: ${JSON.stringify(method.methodName)}, kind: ${JSON.stringify(method.kind)} },`).join('\n')}\n    },\n  },`).join('\n');
-  const groups = model.profiles.map((profile) => `  ${JSON.stringify(profile.profileId)}: ${JSON.stringify(profile.methods.map((method) => method.methodName))},`).join('\n');
+  const sdkProfiles = model.profiles.map((profile) => ({
+    ...profile,
+    methods: profile.methods.filter((method) => !SDK_RAW_HOST_METHOD_IDS.has(method.methodId)),
+  }));
+  const profiles = sdkProfiles.map((profile) => `  ${JSON.stringify(profile.profileId)}: {\n    identityClass: ${JSON.stringify(profile.identityClass)},\n    methods: {\n${profile.methods.map((method) => `      ${JSON.stringify(method.methodId)}: { typedMethod: ${JSON.stringify(method.methodName)}, kind: ${JSON.stringify(method.kind)} },`).join('\n')}\n    },\n  },`).join('\n');
+  const groups = sdkProfiles.map((profile) => `  ${JSON.stringify(profile.profileId)}: ${JSON.stringify(profile.methods.map((method) => method.methodName))},`).join('\n');
   return `${generatedHeader()}\nimport type { RuntimeTypedClient } from '../core-generated/runtime-typed-client';\n\nexport const NIMI_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {\n${profiles}\n} as const;\n\nexport const NIMI_FIRST_PARTY_PROTECTED_RUNTIME_TYPED_METHOD_GROUPS = {\n${groups}\n} as const satisfies Readonly<Record<string, readonly (keyof RuntimeTypedClient)[]>>;\n\nexport type NimiFirstPartyProtectedRuntimeProfileId = keyof typeof NIMI_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES;\nexport type DesktopMachineProductRuntimeMethods = Pick<RuntimeTypedClient, typeof NIMI_FIRST_PARTY_PROTECTED_RUNTIME_TYPED_METHOD_GROUPS.desktop_machine_product_v1[number]>;\nexport type DesktopAccountProductRuntimeMethods = Pick<RuntimeTypedClient, typeof NIMI_FIRST_PARTY_PROTECTED_RUNTIME_TYPED_METHOD_GROUPS.desktop_account_product_v1[number]>;\n`;
 }
 

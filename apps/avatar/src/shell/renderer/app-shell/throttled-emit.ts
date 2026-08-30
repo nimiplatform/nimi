@@ -28,8 +28,9 @@ export type ThrottledEmitHandle<T> = {
   emit(value: T): void;
   /** Force-flush any pending coalesced value. Synchronous. */
   flush(): void;
-  /** Cancel any pending timer; subsequent `emit` calls are still
-   *  honored. */
+  /** Clear pending state while keeping the handle reusable after recovery. */
+  reset(): void;
+  /** Permanently cancel pending work. */
   dispose(): void;
 };
 
@@ -104,6 +105,15 @@ export function createThrottledEmit<T>(
     flush(): void {
       if (disposed) return;
       flushPending();
+    },
+    reset(): void {
+      if (disposed) return;
+      if (pendingTimer !== null) {
+        clearTimeout(pendingTimer);
+        pendingTimer = null;
+      }
+      pendingValue = null;
+      lastFiredAtMs = -Infinity;
     },
     dispose(): void {
       disposed = true;

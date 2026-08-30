@@ -10,6 +10,7 @@ import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
 import {
   createVrmRuntime,
   VRM_CONTEXT_LOST_RETRY_MS,
+  VRM_PRESENTATION_WATCHDOG_TIMEOUT_MS,
   type VrmRenderState,
 } from './vrm-runtime.js';
 
@@ -98,6 +99,33 @@ describe('createVrmRuntime', () => {
     });
     await runtime.start();
     expect(runtime.getState()).toMatchObject({ kind: 'failed_closed', reason: 'load_failed' });
+  });
+
+  it('bounds initial loading and disposes a VRM that resolves after timeout', async () => {
+    const pending = deferred<VRM>();
+    const timer = makeFakeTimer();
+    const disposeVrm = vi.fn();
+    const runtime = createVrmRuntime({
+      manifest: manifest(),
+      loaderOverride: () => pending.promise,
+      setTimeoutFn: timer.setTimeoutFn,
+      clearTimeoutFn: timer.clearTimeoutFn,
+      disposeVrm,
+    });
+
+    const start = runtime.start();
+    await Promise.resolve();
+    expect(timer.pending()).toBe(true);
+    timer.fire();
+    await start;
+    expect(runtime.getState()).toMatchObject({ kind: 'failed_closed', reason: 'load_timed_out' });
+
+    const late = stubVrm();
+    pending.resolve(late);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(disposeVrm).toHaveBeenCalledWith(late);
+    expect(VRM_PRESENTATION_WATCHDOG_TIMEOUT_MS).toBe(45_000);
   });
 
   it('context lost -> timer fires -> retry succeeds -> ready', async () => {
@@ -206,6 +234,61 @@ describe('createVrmRuntime', () => {
       kind: 'failed_closed',
       reason: 'context_lost_recovery_failed',
     });
+  });
+
+  it('bounds a hung recovery load and disposes its late result', async () => {
+    const stale = stubVrm();
+    const late = stubVrm();
+    const retry = deferred<VRM>();
+    const timer = makeFakeTimer();
+    const disposeVrm = vi.fn();
+    const runtime = createVrmRuntime({
+      manifest: manifest(),
+      loaderOverride: vi.fn()
+        .mockResolvedValueOnce(stale)
+        .mockImplementationOnce(() => retry.promise),
+      setTimeoutFn: timer.setTimeoutFn,
+      clearTimeoutFn: timer.clearTimeoutFn,
+      disposeVrm,
+    });
+    await runtime.start();
+    runtime.notifyContextLost();
+    timer.fire();
+    expect(timer.pending()).toBe(true);
+    timer.fire();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(runtime.getState()).toMatchObject({
+      kind: 'failed_closed',
+      reason: 'context_lost_recovery_timed_out',
+    });
+    expect(disposeVrm).toHaveBeenCalledWith(stale);
+
+    retry.resolve(late);
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(disposeVrm).toHaveBeenCalledWith(late);
+  });
+
+  it('fails closed only for the exact current VRM when its visible first frame times out', async () => {
+    const current = stubVrm();
+    const other = stubVrm();
+    const disposeVrm = vi.fn();
+    const runtime = createVrmRuntime({
+      manifest: manifest(),
+      loaderOverride: async () => current,
+      disposeVrm,
+    });
+    await runtime.start();
+
+    runtime.notifyFirstFrameTimedOut(other);
+    expect(runtime.getState().kind).toBe('ready');
+    runtime.notifyFirstFrameTimedOut(current);
+    expect(runtime.getState()).toMatchObject({
+      kind: 'failed_closed',
+      reason: 'visible_first_frame_timed_out',
+    });
+    expect(disposeVrm).toHaveBeenCalledWith(current);
   });
 
   it('shutdown() cancels pending retry timer', async () => {

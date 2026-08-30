@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   CircleSlash,
   Crosshair,
-  FileCode2,
   Smile,
   TriangleAlert,
 } from 'lucide-react';
@@ -84,8 +83,6 @@ function iconForCapability(id: CreatorCapabilityId) {
       return <Crosshair size={ICON_SIZE} />;
     case 'lipsync':
       return <AudioLines size={ICON_SIZE} />;
-    case 'nas_handlers':
-      return <FileCode2 size={ICON_SIZE} />;
     default:
       return <CircleSlash size={ICON_SIZE} />;
   }

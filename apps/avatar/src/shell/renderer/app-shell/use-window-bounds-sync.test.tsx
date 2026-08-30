@@ -1,6 +1,6 @@
 // Wave 4 chunk 4-D — verifies useWindowBoundsSync consumes
 // `BackendBranch.nominalBounds` and forwards the derived window size to the
-// shared-host `floatingWindow.setBounds` IPC.
+// Desktop-supervised shared-host `floatingWindow.setBounds` IPC.
 //
 // Source-of-truth defaults (per
 // config/avatar-window-bounds-policy.yaml backends.*):
@@ -40,9 +40,11 @@ vi.mock('./avatar-host-bridge.js', () => ({
 function Harness({
   nominalBounds,
   avatarScale = 1,
+  surfaceBoundsRevision = 0,
 }: {
   nominalBounds: BackendNominalBounds | null;
   avatarScale?: number;
+  surfaceBoundsRevision?: number;
 }) {
   const getEmbodimentBounds = useCallback(
     () =>
@@ -55,6 +57,7 @@ function Harness({
     isReady: true,
     getEmbodimentBounds,
     avatarScale,
+    surfaceBoundsRevision,
   });
   return null;
 }
@@ -88,7 +91,7 @@ afterEach(() => {
   resetModelState();
 });
 
-describe('useWindowBoundsSync - BackendBranch.nominalBounds -> set_window_size IPC', () => {
+describe('useWindowBoundsSync - BackendBranch.nominalBounds -> floatingWindow.setBounds Host IPC', () => {
   it('forwards VRM 360x720 nominalBounds to floatingWindow.setBounds on model_load', async () => {
     const vrmBounds: BackendNominalBounds = {
       width: 360,
@@ -178,6 +181,38 @@ describe('useWindowBoundsSync - BackendBranch.nominalBounds -> set_window_size I
     );
   });
 
+  it('recomputes when a ready backend publishes refined scene bounds', async () => {
+    const bootstrapBounds = {
+      width: 360,
+      height: 720,
+      bodyCenterX: 0.5,
+      bodyCenterY: 0.55,
+    };
+    const refinedBounds = {
+      width: 420,
+      height: 640,
+      bodyCenterX: 0.5,
+      bodyCenterY: 0.55,
+    };
+    const { rerender } = render(
+      <Harness nominalBounds={bootstrapBounds} surfaceBoundsRevision={0} />,
+    );
+    await act(async () => {
+      useAvatarStore.getState().setModelLoaded('vrm-refined-model');
+    });
+    setWindowSizeMock.mockClear();
+
+    rerender(<Harness nominalBounds={refinedBounds} surfaceBoundsRevision={1} />);
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(setWindowSizeMock).toHaveBeenCalledWith(
+      refinedBounds.width + 2 * WINDOW_BOUNDS_PADDING_PX,
+      refinedBounds.height + 2 * WINDOW_BOUNDS_PADDING_PX,
+    );
+  });
+
   it('IPC params change between VRM and Live2D baselines', async () => {
     const { unmount } = renderWithBackend({
       width: 360,
@@ -215,7 +250,7 @@ describe('useWindowBoundsSync - BackendBranch.nominalBounds -> set_window_size I
     expect(live2dCall).not.toEqual(vrmCall);
   });
 
-  it('skips set_window_size when nominalBounds is null (no model loaded)', async () => {
+  it('skips floatingWindow.setBounds when nominalBounds is null (no model loaded)', async () => {
     renderWithBackend(null);
 
     await act(async () => {
@@ -242,8 +277,8 @@ describe('useWindowBoundsSync - BackendBranch.nominalBounds -> set_window_size I
     expect(setWindowSizeMock).not.toHaveBeenCalled();
   });
 
-  it('does not store the new size when set_window_size IPC fails', async () => {
-    setWindowSizeMock.mockRejectedValue(new Error('native resize failed'));
+  it('does not store the new size when floatingWindow.setBounds Host IPC fails', async () => {
+    setWindowSizeMock.mockRejectedValue(new Error('Desktop Host resize failed'));
     renderWithBackend({
       width: 360,
       height: 720,

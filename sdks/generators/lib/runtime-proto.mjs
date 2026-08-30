@@ -2,6 +2,23 @@ import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { generatedBy, readText, repoRoot } from './context.mjs';
 
+// These RPCs exist only for verified native Host mechanics. TypeScript keeps
+// the raw core-generated transport for the explicit runtime/host entrypoint;
+// languages without a native Host consumer receive a hard-cut projection.
+export const HOST_PRIVATE_RUNTIME_METHOD_IDS = Object.freeze([
+  '/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget',
+  '/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget',
+]);
+export const HOST_PRIVATE_RUNTIME_MESSAGE_NAMES = Object.freeze([
+  'ResolveLocalAppAvatarHostTargetRequest',
+  'ResolveLocalAppAvatarHostTargetResponse',
+  'RevalidateLocalAppAvatarHostTargetRequest',
+  'RevalidateLocalAppAvatarHostTargetResponse',
+]);
+
+const hostPrivateRuntimeMethodIds = new Set(HOST_PRIVATE_RUNTIME_METHOD_IDS);
+const hostPrivateRuntimeMessageNames = new Set(HOST_PRIVATE_RUNTIME_MESSAGE_NAMES);
+
 function runtimeProtoFiles() {
   const dir = path.join(repoRoot, 'proto/runtime/v1');
   return readdirSync(dir)
@@ -132,9 +149,10 @@ export function extractRuntimeProto() {
             : responseStream
               ? 'server_stream'
               : 'unary';
+        const methodId = `/${protoPackage}.${serviceName}/${methodName}`;
         methods.push({
           name: methodName,
-          method_id: `/${protoPackage}.${serviceName}/${methodName}`,
+          method_id: methodId,
           kind,
           request_type: requestType,
           response_type: responseType,
@@ -179,6 +197,41 @@ export function extractRuntimeProto() {
       enums: [...enums.keys()].sort(),
       message_schemas: [...messages.values()].sort((a, b) => a.name.localeCompare(b.name)),
       enum_schemas: [...enums.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    },
+  };
+}
+
+export function projectRuntimeForNonHostPublicSdks(runtime) {
+  const services = runtime.services.map((service) => ({
+    ...service,
+    methods: service.methods.filter((method) => !hostPrivateRuntimeMethodIds.has(method.method_id)),
+  }));
+  const filterCodecRows = (rows) => rows.filter(
+    (row) => !hostPrivateRuntimeMethodIds.has(row.method_id),
+  );
+  const messages = runtime.schema_types.messages.filter(
+    (name) => !hostPrivateRuntimeMessageNames.has(name),
+  );
+  const messageSchemas = runtime.schema_types.message_schemas.filter(
+    (schema) => !hostPrivateRuntimeMessageNames.has(schema.name),
+  );
+  return {
+    ...runtime,
+    provenance: {
+      ...runtime.provenance,
+      notes: [
+        ...(runtime.provenance?.notes ?? []),
+        'Host-private Avatar target RPCs and messages are excluded from non-Host public SDK languages.',
+      ],
+    },
+    services,
+    method_ids: runtime.method_ids.filter((methodId) => !hostPrivateRuntimeMethodIds.has(methodId)),
+    codec_maps: filterCodecRows(runtime.codec_maps),
+    contract_maps: filterCodecRows(runtime.contract_maps),
+    schema_types: {
+      ...runtime.schema_types,
+      messages,
+      message_schemas: messageSchemas,
     },
   };
 }

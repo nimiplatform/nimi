@@ -1,5 +1,11 @@
 import { createEventBus, type EventBus } from '../infra/event-bus.js';
-import type { PlayMotionOptions } from '@nimiplatform/kit/features/avatar/headless';
+
+export type PlayMotionOptions = {
+  priority?: 'low' | 'normal' | 'high';
+  loop?: boolean;
+  fadeIn?: number;
+  fadeOut?: number;
+};
 
 export type Live2DCommandEvent =
   | { kind: 'motion'; group: string; options: PlayMotionOptions }

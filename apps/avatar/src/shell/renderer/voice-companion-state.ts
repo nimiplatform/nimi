@@ -6,6 +6,7 @@ export type { AudioPlaybackState } from '@nimiplatform/kit/features/avatar/headl
 export type VoiceCompanionAvailability = 'unknown' | 'ready' | 'blocked';
 export type VoiceCompanionStatus =
   | 'idle'
+  | 'requesting_permission'
   | 'listening'
   | 'transcribing'
   | 'pending'
@@ -123,6 +124,44 @@ export function beginVoiceListening(state: VoiceCompanionState): VoiceCompanionS
     currentTurnId: null,
     interruptedTurnId: null,
     errorMessage: null,
+  };
+}
+
+export function beginVoicePermissionRequest(state: VoiceCompanionState): VoiceCompanionState {
+  return {
+    ...state,
+    panelVisible: true,
+    status: 'requesting_permission',
+    level: 0,
+    awaitingReply: false,
+    currentTurnId: null,
+    interruptedTurnId: null,
+    errorMessage: null,
+  };
+}
+
+export function cancelVoiceCapture(state: VoiceCompanionState): VoiceCompanionState {
+  return {
+    ...state,
+    panelVisible: true,
+    status: 'idle',
+    level: 0,
+    awaitingReply: false,
+    currentTurnId: null,
+    interruptedTurnId: null,
+    errorMessage: null,
+    userCaption: null,
+  };
+}
+
+export function setVoicePermissionBlocked(
+  state: VoiceCompanionState,
+  message: string,
+): VoiceCompanionState {
+  return {
+    ...setVoiceCompanionError(state, message),
+    availability: 'blocked',
+    availabilityMessage: normalizeText(message) || null,
   };
 }
 

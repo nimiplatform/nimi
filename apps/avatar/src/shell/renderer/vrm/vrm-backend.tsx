@@ -14,16 +14,17 @@
 // Queued projection adapter:
 //   At factory time the VRM instance does not exist yet — the projection
 //   adapter requires a loaded VRM. We expose a thin adapter implementing
-//   BackendProjection that queues calls until the surface (post-runtime
-//   `ready`) registers the real adapter. Pre-ready calls are replayed
-//   on first `setAdapter`. If the runtime never reaches ready (failed_
-//   closed), queued calls remain queued indefinitely — matches the
-//   fail-close handling (no projection delivery is correct).
+//   BackendProjection that retains only the latest call in each bounded
+//   semantic lane until the surface registers the real adapter. Recovery,
+//   terminal failure, replacement, and shutdown detach the adapter and clear
+//   pending cues so a failed scene never replays stale state.
 
 import type { Profile } from 'wlipsync';
 import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
 import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
 import type {
+  BackendActivityProjectionResult,
+  BackendActivityProjectionSettlement,
   BackendBranch,
   BackendProjection,
   BackendSurface,
@@ -50,15 +51,19 @@ import { loadEmbeddedWLipSyncProfile } from '../lip-sync-profile.js';
 // embodiment-stage for the very first window-resize tick (before VRM
 // scene bbox is known). Per rule.nimi.avatar.embodiment.r003 this is a
 // static field; post-load bounds flow through
-// onHitRegionChange (carrier surface). VRM_DEFAULT_NOMINAL_BOUNDS is
+// onSurfaceBoundsChange (carrier surface). VRM_DEFAULT_NOMINAL_BOUNDS is
 // sourced from window-bounds-policy.yaml backends.vrm (360x720 +
 // bottom-companion default bodyCenterY=0.55).
 
 type VrmRuntimeMode = 'real_render';
 
 /** Method-record form used by the queued projection adapter so we can
- *  replay queued calls without per-method casts. */
-type QueuedProjectionCall = (p: BackendProjection) => void;
+ *  replay the latest pending call in each semantic lane without per-method casts. */
+type QueuedProjectionCall = Readonly<{
+  apply(p: BackendProjection): void;
+  cancel?(): void;
+}>;
+type QueuedProjectionLane = 'reset' | 'activity' | 'emotion' | 'motion' | 'expression';
 
 export type QueuedProjectionHandle = {
   projection: BackendProjection;
@@ -67,39 +72,120 @@ export type QueuedProjectionHandle = {
 };
 
 /**
- * Build a thin projection adapter that buffers calls until the surface
- * (post-runtime-ready) registers the real adapter. Once registered,
- * queued calls are replayed in arrival order, then subsequent calls dispatch
- * directly. After `reset()` the adapter is detached again
- * (used at branch.shutdown so a second start-up rebuilds cleanly).
+ * Build a thin projection adapter that keeps at most one latest call per
+ * semantic lane until the surface registers the real adapter. Replacing one
+ * lane moves it to the newest replay position. A semantic reset clears every
+ * older pending cue; the handle reset detaches and clears all cues during
+ * recovery, terminal failure, replacement, and shutdown.
  */
+// @nimi-authority: rule.nimi.avatar.embodiment.r057
 export function createQueuedProjection(): QueuedProjectionHandle {
   let adapter: BackendProjection | null = null;
-  const queue: QueuedProjectionCall[] = [];
+  const pending = new Map<QueuedProjectionLane, QueuedProjectionCall>();
+  const unsettledActivities = new Set<{
+    settle(value: BackendActivityProjectionSettlement): void;
+  }>();
 
-  const enqueueOrApply = (call: QueuedProjectionCall): void => {
+  const createPendingActivity = (): Readonly<{
+    result: Extract<BackendActivityProjectionResult, { status: 'pending' }>;
+    settle(value: BackendActivityProjectionSettlement): void;
+  }> => {
+    let settled = false;
+    let resolveCompletion: (value: BackendActivityProjectionSettlement) => void = () => {};
+    const completion = new Promise<BackendActivityProjectionSettlement>((resolve) => {
+      resolveCompletion = resolve;
+    });
+    const control = {
+      settle(value: BackendActivityProjectionSettlement) {
+        if (settled) return;
+        settled = true;
+        unsettledActivities.delete(control);
+        resolveCompletion(value);
+      },
+    };
+    unsettledActivities.add(control);
+    return {
+      result: Object.freeze({ status: 'pending', completion }),
+      settle: control.settle,
+    };
+  };
+
+  const settleFromProjectionResult = (
+    result: BackendActivityProjectionResult,
+    settle: (value: BackendActivityProjectionSettlement) => void,
+  ): void => {
+    if (typeof result === 'string') {
+      settle(result);
+      return;
+    }
+    void result.completion.then(settle, () => settle('unsupported'));
+  };
+
+  const cancelEntry = (entry: QueuedProjectionCall | undefined): void => {
+    entry?.cancel?.();
+  };
+
+  const cancelUnsettledActivities = (): void => {
+    for (const activity of [...unsettledActivities]) activity.settle('canceled');
+  };
+
+  const cancelAllPending = (): void => {
+    for (const entry of pending.values()) cancelEntry(entry);
+    pending.clear();
+    cancelUnsettledActivities();
+  };
+
+  const enqueueOrApply = (lane: Exclude<QueuedProjectionLane, 'reset'>, call: QueuedProjectionCall): void => {
     if (adapter) {
-      call(adapter);
+      call.apply(adapter);
     } else {
-      queue.push(call);
+      cancelEntry(pending.get(lane));
+      pending.delete(lane);
+      pending.set(lane, call);
     }
   };
 
   const projection: BackendProjection = {
     applyActivity(input) {
-      enqueueOrApply((p) => p.applyActivity(input));
+      if (adapter) {
+        cancelUnsettledActivities();
+        const result = adapter.applyActivity(input);
+        if (typeof result === 'string') return result;
+        const pendingActivity = createPendingActivity();
+        settleFromProjectionResult(result, pendingActivity.settle);
+        return pendingActivity.result;
+      }
+      const pendingActivity = createPendingActivity();
+      enqueueOrApply('activity', {
+        apply(p) {
+          try {
+            settleFromProjectionResult(p.applyActivity(input), pendingActivity.settle);
+          } catch (error) {
+            pendingActivity.settle('unsupported');
+            throw error;
+          }
+        },
+        cancel: () => pendingActivity.settle('canceled'),
+      });
+      return pendingActivity.result;
     },
     applyEmotion(input) {
-      enqueueOrApply((p) => p.applyEmotion(input));
+      enqueueOrApply('emotion', { apply: (p) => p.applyEmotion(input) });
     },
     applyMotion(input) {
-      enqueueOrApply((p) => p.applyMotion(input));
+      enqueueOrApply('motion', { apply: (p) => p.applyMotion(input) });
     },
     applyExpression(input) {
-      enqueueOrApply((p) => p.applyExpression(input));
+      enqueueOrApply('expression', { apply: (p) => p.applyExpression(input) });
     },
     reset() {
-      enqueueOrApply((p) => p.reset());
+      if (adapter) {
+        cancelAllPending();
+        adapter.reset();
+        return;
+      }
+      cancelAllPending();
+      pending.set('reset', { apply: (p) => p.reset() });
     },
   };
 
@@ -107,14 +193,20 @@ export function createQueuedProjection(): QueuedProjectionHandle {
     projection,
     setAdapter(a) {
       adapter = a;
-      while (queue.length > 0) {
-        const next = queue.shift();
-        if (next) next(a);
+      const replay = [...pending.values()];
+      pending.clear();
+      try {
+        for (const next of replay) {
+          next.apply(a);
+        }
+      } catch (error) {
+        cancelAllPending();
+        throw error;
       }
     },
     reset() {
       adapter = null;
-      queue.length = 0;
+      cancelAllPending();
     },
   };
 }

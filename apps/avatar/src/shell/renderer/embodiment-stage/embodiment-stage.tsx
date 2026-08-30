@@ -13,7 +13,10 @@ import {
   type BackendAudioConsumer,
   type BackendHitRegion,
 } from '@nimiplatform/kit/features/avatar/headless';
-import { AvatarInteractionController } from '../interaction/avatar-interaction-controller.js';
+import {
+  AVATAR_DRAG_THRESHOLD_PX,
+  AvatarInteractionController,
+} from '../interaction/avatar-interaction-controller.js';
 import {
   beginManualDragWindow,
   constrainWindowToVisibleArea,
@@ -26,6 +29,10 @@ import { hasAvatarHostRuntime } from '../app-shell/avatar-host-bridge.js';
 import { isInteractiveTarget } from '../avatar-shell-utils.js';
 import type { AppOriginEvent } from '../driver/types.js';
 import type { BackendBranch } from '../carrier/backend-branch.js';
+import type {
+  BackendPresentationState,
+  BackendSurfaceBounds,
+} from '../carrier/backend-branch.js';
 import { createThrottledCursorEvents } from '../app-shell/throttled-cursor-events.js';
 import { createThrottledEmit } from '../app-shell/throttled-emit.js';
 import { useTranslation } from '../i18n/index.js';
@@ -33,11 +40,20 @@ import { useTranslation } from '../i18n/index.js';
 export type EmbodimentStageProps = {
   /** Active BackendBranch supplying the surface component, audio
    *  consumer, and hit-region snapshots. `null` while bootstrap is in
-   *  flight; the parent must not mount the stage before composition
-   *  reaches the `ready` posture. */
+   *  flight; the parent mounts it only for product-ready rendering or the
+   *  explicitly non-interactive development preview posture. */
   backend: BackendBranch | null;
+  presentationKey?: string | null;
+  stagingPresentation?: Readonly<{
+    backend: BackendBranch;
+    presentationKey: string;
+    onPresentationStateChange: (state: BackendPresentationState) => void;
+  }> | null;
   windowSize: { width: number; height: number };
   embodied: boolean;
+  /** Product interaction gate. Development previews render the real backend
+   *  with this false so they cannot emit Avatar actions or control the Host. */
+  interactive?: boolean;
   reducedMotion: boolean;
   emit?: (event: AppOriginEvent) => void;
   setBodyHovered?: (value: boolean) => void;
@@ -49,6 +65,8 @@ export type EmbodimentStageProps = {
   }) => void;
   interactionModality: 'keyboard' | 'pointer';
   onFocusVisibleChange?: (value: boolean) => void;
+  onPresentationStateChange?: (state: BackendPresentationState) => void;
+  onSurfaceBoundsChange?: (surface: BackendSurfaceBounds) => void;
 };
 
 const CLICK_THROUGH_RECOVERY_POLL_INTERVAL_MS = 50;
@@ -72,6 +90,8 @@ type ManualDragState = {
   mode: 'armed' | 'manual';
   startScreenX: number;
   startScreenY: number;
+  startClientX: number;
+  startClientY: number;
   lastScreenX: number;
   lastScreenY: number;
   pointerId: number;
@@ -90,8 +110,11 @@ type ManualDragState = {
 export function EmbodimentStage(props: EmbodimentStageProps) {
   const {
     backend,
+    presentationKey,
+    stagingPresentation,
     windowSize,
     embodied,
+    interactive = embodied,
     reducedMotion,
     emit,
     setBodyHovered,
@@ -99,6 +122,8 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     onAvatarWheel,
     interactionModality,
     onFocusVisibleChange,
+    onPresentationStateChange,
+    onSurfaceBoundsChange,
   } = props;
   const { t } = useTranslation();
 
@@ -117,7 +142,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   const currentHitRegionRef = useRef<BackendHitRegion | null>(null);
   const alphaProbeFailureReportedRef = useRef(false);
 
-  // 60Hz-capped throttle around the Tauri set_ignore_cursor_events IPC.
+  // 60Hz-capped throttle around the Desktop Host click-through command.
   // Per the app-shell contract, rapid pointermove
   // (1000+ events in 10ms) must not saturate the IPC channel. The throttle
   // dedupes same-value calls and coalesces with trailing-edge fire.
@@ -146,8 +171,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
       createThrottledEmit<BackendHitRegion>({
         callback: (region) => {
           // Fan-out point: today the only downstream consumer is the
-          // ref store used by pointermove; future wiring (e.g. Tauri
-          // set_size for dynamic window bounds) attaches here.
+          // ref store used by pointermove and dynamic window-bounds wiring.
           currentHitRegionRef.current = region;
         },
       }),
@@ -168,6 +192,14 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     [hitRegionEmitThrottleRef],
   );
 
+  const handlePresentationStateChange = useCallback((state: BackendPresentationState): void => {
+    if (state.kind !== 'ready') {
+      currentHitRegionRef.current = null;
+      hitRegionEmitThrottleRef.reset();
+    }
+    onPresentationStateChange?.(state);
+  }, [hitRegionEmitThrottleRef, onPresentationStateChange]);
+
   // Sink unregistration + throttle disposal on unmount / backend swap.
   useEffect(
     () => () => {
@@ -178,6 +210,12 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     },
     [backend],
   );
+
+  useEffect(() => {
+    if (interactive) return;
+    sinkRegistrationRef.current?.();
+    sinkRegistrationRef.current = null;
+  }, [interactive]);
 
   const bodyRef = useRef<HTMLDivElement | null>(null);
   // Wave 4 manual drag fallback state. macOS NSWindow with transparent +
@@ -192,8 +230,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     // Window drag is unified to the kit standard manual drag primitive
     // (`floatingWindow.beginManualDrag` → `moveManualDrag`) on every host and
     // platform; the retired system-level `start_dragging` OS-sniff branch is
-    // gone. Manual drag runs whenever an avatar host runtime (Tauri or
-    // Electron) is present so window movement works on both hosts.
+    // gone. Manual drag runs whenever the Desktop Electron Host is present.
     return hasAvatarHostRuntime();
   };
 
@@ -369,7 +406,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     () =>
       new AvatarInteractionController({
         getHitRegionSnapshot: () => {
-          if (!embodied) return null;
+          if (!interactive) return null;
           const body = backendBodyRect(
             currentHitRegionRef.current,
             bodyRef.current?.parentElement,
@@ -398,9 +435,10 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         constrainWindowToVisibleArea,
         nowMs: () => performance.now(),
         hasHostRuntime: hasAvatarHostRuntime,
+        isClickThroughLocked: () => dragRef.current?.mode === 'manual',
       }),
     [
-      embodied,
+      interactive,
       emit,
       setBodyHovered,
       setBodyPointerContact,
@@ -424,17 +462,20 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
   // unclickable.
   useEffect(() => {
     stopClickThroughRecoveryPoll();
-    void setIgnoreCursorEvents(false);
-  }, [stopClickThroughRecoveryPoll]);
+    if (interactive) void setIgnoreCursorEvents(false);
+  }, [interactive, stopClickThroughRecoveryPoll]);
 
   return (
     <section
       className={cn('avatar-embodiment-stage', FOCUS_RING_CLASS_NAME)}
       data-testid="avatar-embodiment-stage"
-      tabIndex={0}
+      tabIndex={interactive ? 0 : -1}
       aria-label={t('Avatar.shell.companion_aria')}
-      aria-keyshortcuts="Shift+F10 ContextMenu ArrowUp ArrowDown ArrowLeft ArrowRight"
+      aria-keyshortcuts={interactive
+        ? 'Shift+F10 ContextMenu ArrowUp ArrowDown ArrowLeft ArrowRight'
+        : undefined}
       onKeyDown={(event) => {
+        if (!interactive) return;
         if (event.nativeEvent.isComposing
           || event.repeat || event.ctrlKey || event.altKey || event.metaKey) {
           return;
@@ -468,6 +509,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         queueKeyboardWindowNudge(delta.x, delta.y);
       }}
       onPointerEnter={(event) => {
+        if (!interactive) return;
         if (isInteractiveTarget(event.target)) {
           setClickThrough(false);
           return;
@@ -482,6 +524,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         controller.pointerMove(event);
       }}
       onPointerMove={(event) => {
+        if (!interactive) return;
         // Wave 4 manual drag: accumulate screen-coord deltas, flush once
         // per animation frame. macOS pointermove can fire 60–120 Hz; one
         // IPC per event makes drag feel laggy. Coalescing to RAF cadence
@@ -492,14 +535,22 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
           const dx = event.screenX - drag.lastScreenX;
           const dy = event.screenY - drag.lastScreenY;
           if (dx !== 0 || dy !== 0) {
-            if (drag.mode === 'armed') {
-              drag.mode = 'manual';
-              controller.pointerCancel();
-            }
             drag.lastScreenX = event.screenX;
             drag.lastScreenY = event.screenY;
             drag.totalDx = event.screenX - drag.startScreenX;
             drag.totalDy = event.screenY - drag.startScreenY;
+            if (drag.mode === 'armed'
+              && Math.hypot(drag.totalDx, drag.totalDy) >= AVATAR_DRAG_THRESHOLD_PX) {
+              drag.mode = 'manual';
+            }
+            controller.pointerMove({
+              clientX: event.clientX,
+              clientY: event.clientY,
+              button: event.button,
+              buttons: event.buttons,
+              pointerId: event.pointerId,
+            });
+            if (drag.mode === 'armed') return;
             if (drag.rafHandle === null) {
               drag.rafHandle = requestAnimationFrame(flushManualDragTarget);
             }
@@ -509,7 +560,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         // Wave 4 chunk 4-C: alpha-mask-aware click-through via the 60Hz
         // throttle. The throttle dedupes same-state calls (so rapid
         // pointermove inside an opaque region does not saturate the IPC
-        // channel) and fires Tauri at most once per ~16.67ms. When the
+        // channel) and invokes the Host at most once per ~16.67ms. When the
         // window becomes click-through, the global cursor poll is the
         // recovery path because the webview no longer receives pointermove.
         if (isInteractiveTarget(event.target)) {
@@ -523,6 +574,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         controller.pointerCancel();
       }}
       onPointerDown={(event) => {
+        if (!interactive) return;
         if (isInteractiveTarget(event.target)) {
           setClickThrough(false);
           return;
@@ -533,20 +585,25 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
           return;
         }
         setClickThrough(false);
-        if (event.button === 0) {
-          // Capture pointer so subsequent move/up events fire here even when
-          // the cursor leaves the element while dragging.
-          (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
-          if (shouldUseManualDragWindow() && pointInBackendDragRegion(
+        const dragAllowed = event.button === 0
+          && embodied
+          && pointCanStartBackendDrag(
             currentHitRegionRef.current,
             bodyRef.current?.parentElement,
             event.clientX,
             event.clientY,
-          )) {
+          );
+        if (event.button === 0) {
+          // Capture pointer so subsequent move/up events fire here even when
+          // the cursor leaves the element while dragging.
+          (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
+          if (shouldUseManualDragWindow() && dragAllowed) {
             const drag: ManualDragState = {
               mode: 'armed',
               startScreenX: event.screenX,
               startScreenY: event.screenY,
+              startClientX: event.clientX,
+              startClientY: event.clientY,
               lastScreenX: event.screenX,
               lastScreenY: event.screenY,
               pointerId: event.pointerId,
@@ -563,9 +620,16 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
             dragRef.current = drag;
             void beginManualDragWindow()
               .then((origin) => {
-                if (dragRef.current !== drag || origin === null) return;
+                if (dragRef.current !== drag) return;
+                if (origin === null) {
+                  drag.originFailed = true;
+                  dragRef.current = null;
+                  controller.pointerCancel();
+                  return;
+                }
                 drag.origin = origin;
-                if (drag.totalDx !== 0 || drag.totalDy !== 0) {
+                if (drag.mode === 'manual'
+                  && (drag.totalDx !== 0 || drag.totalDy !== 0)) {
                   drag.pendingTarget = {
                     totalDx: drag.totalDx,
                     totalDy: drag.totalDy,
@@ -578,17 +642,23 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
                 console.warn('[avatar:embodiment] manual drag origin failed', error);
                 if (dragRef.current === drag) {
                   dragRef.current = null;
+                  controller.pointerCancel();
                 }
               });
           }
         }
-        controller.pointerDown(event);
+        controller.pointerDown(event, { dragAllowed });
       }}
       onContextMenu={(event) => {
+        if (!interactive) {
+          event.preventDefault();
+          return;
+        }
         if (isInteractiveTarget(event.target)) return;
         event.preventDefault();
       }}
       onWheel={(event) => {
+        if (!interactive) return;
         if (isInteractiveTarget(event.target)) return;
         if (computeIgnoreForPoint(event.clientX, event.clientY)) return;
         event.preventDefault();
@@ -600,6 +670,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         });
       }}
       onPointerUp={(event) => {
+        if (!interactive) return;
         const drag = dragRef.current;
         let consumedDrag = false;
         if (drag && drag.pointerId === event.pointerId) {
@@ -622,13 +693,14 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
           if (consumedDrag) {
             drag.ended = true;
             drag.constrainOnEnd = true;
-            finalizeManualDragIfDone(drag);
           } else {
             dragRef.current = null;
           }
         }
         if (consumedDrag) {
-          controller.pointerCancel();
+          controller.pointerUp(event);
+          finalizeManualDragIfDone(drag!);
+          setClickThrough(false);
           return;
         }
         if (isInteractiveTarget(event.target)) return;
@@ -646,16 +718,17 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
           finalizeManualDragIfDone(drag);
         }
         controller.pointerCancel();
+        setClickThrough(false);
       }}
       onFocusCapture={() => {
-        if (!embodied) return;
+        if (!interactive) return;
         onFocusVisibleChange?.(interactionModality === 'keyboard');
       }}
       onBlurCapture={(event) => {
         const currentTarget = event.currentTarget;
         window.requestAnimationFrame(() => {
           const activeElement = document.activeElement;
-          if (!embodied) {
+          if (!interactive) {
             onFocusVisibleChange?.(false);
             return;
           }
@@ -672,15 +745,46 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
       }}
     >
       {backend ? (
-        <backend.surface.Component
-          width={Math.max(1, windowSize.width ?? 0)}
-          height={Math.max(1, windowSize.height ?? 0)}
-          embodied={embodied}
-          reducedMotion={reducedMotion}
-          onAudioConsumerReady={handleAudioConsumerReady}
-          onHitRegionChange={handleHitRegionChange}
-        />
+        <div
+          key={presentationKey ?? `active:${backend.kind}`}
+          className="avatar-embodiment-stage__presentation-layer"
+          data-avatar-presentation-layer="active"
+        >
+          <backend.surface.Component
+            width={Math.max(1, windowSize.width ?? 0)}
+            height={Math.max(1, windowSize.height ?? 0)}
+            embodied={embodied}
+            reducedMotion={reducedMotion}
+            onAudioConsumerReady={interactive ? handleAudioConsumerReady : undefined}
+            onHitRegionChange={handleHitRegionChange}
+            onPresentationStateChange={handlePresentationStateChange}
+            onSurfaceBoundsChange={onSurfaceBoundsChange}
+          />
+        </div>
       ) : null}
+      {stagingPresentation
+        && stagingPresentation.presentationKey !== presentationKey ? (
+          <div
+            key={stagingPresentation.presentationKey}
+            className="avatar-embodiment-stage__presentation-layer avatar-embodiment-stage__presentation-layer--staging"
+            data-avatar-presentation-layer="staging"
+            aria-hidden="true"
+            // The candidate must retain a real layout box so WebGL and canvas
+            // loaders can produce a first frame without becoming visible or interactive.
+            style={{
+              width: Math.max(1, stagingPresentation.backend.nominalBounds.width),
+              height: Math.max(1, stagingPresentation.backend.nominalBounds.height),
+            }}
+          >
+            <stagingPresentation.backend.surface.Component
+              width={Math.max(1, stagingPresentation.backend.nominalBounds.width)}
+              height={Math.max(1, stagingPresentation.backend.nominalBounds.height)}
+              embodied={false}
+              reducedMotion={reducedMotion}
+              onPresentationStateChange={stagingPresentation.onPresentationStateChange}
+            />
+          </div>
+        ) : null}
       <div className="avatar-embodiment-stage__body" data-testid="avatar-body-hit-region" ref={bodyRef} />
     </section>
   );
@@ -725,19 +829,45 @@ function backendBodyRect(
   };
 }
 
-function pointInBackendDragRegion(
+function pointCanStartBackendDrag(
   region: BackendHitRegion | null,
   stageEl: Element | null | undefined,
   clientX: number,
   clientY: number,
 ): boolean {
-  if (!region) return true;
+  if (!region) return false;
   if (!stageEl) return false;
   const stageRect = stageEl.getBoundingClientRect();
-  if (stageRect.width <= 0 || stageRect.height <= 0) return false;
+  if (!Number.isFinite(stageRect.width) || !Number.isFinite(stageRect.height)
+    || stageRect.width <= 0 || stageRect.height <= 0
+    || !isCurrentBoundedDragRect(region.drag)) return false;
   const left = stageRect.left + region.drag.left * stageRect.width;
   const right = stageRect.left + region.drag.right * stageRect.width;
   const top = stageRect.top + region.drag.top * stageRect.height;
   const bottom = stageRect.top + region.drag.bottom * stageRect.height;
-  return clientX >= left && clientX < right && clientY >= top && clientY < bottom;
+  const insideRect = clientX >= left && clientX < right && clientY >= top && clientY < bottom;
+  if (!insideRect) return false;
+  // The current bounded drag rectangle is the required admission floor. Tier C
+  // deliberately has no precision probe; Tier A/B may temporarily have no
+  // readable current-frame sample. Both cases retain the rectangle fallback.
+  // Only a readable, explicit transparent result overrides it.
+  if (region.isOpaqueAtClientPoint === null) return true;
+  try {
+    return region.isOpaqueAtClientPoint(clientX, clientY) !== false;
+  } catch {
+    return true;
+  }
+}
+
+function isCurrentBoundedDragRect(rect: BackendHitRegion['drag']): boolean {
+  return Number.isFinite(rect.left)
+    && Number.isFinite(rect.top)
+    && Number.isFinite(rect.right)
+    && Number.isFinite(rect.bottom)
+    && rect.left >= 0
+    && rect.top >= 0
+    && rect.right <= 1
+    && rect.bottom <= 1
+    && rect.left < rect.right
+    && rect.top < rect.bottom;
 }

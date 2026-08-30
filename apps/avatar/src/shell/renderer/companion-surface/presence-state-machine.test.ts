@@ -28,6 +28,22 @@ describe('derivePresenceState', () => {
     expect(state.canStartForegroundCapture).toBe(true);
   });
 
+  it('keeps permission request mic-idle and denied permission mic-blocked', () => {
+    const requesting = derive({
+      voice: { ...initialVoiceCompanionState, availability: 'ready', status: 'requesting_permission' },
+    });
+    expect(requesting.stateId).toBe('requesting_permission');
+    expect(requesting.privacyIndicator).toBe('mic_idle');
+    expect(requesting.micDisabled).toBe(true);
+
+    const denied = derive({
+      voice: { ...initialVoiceCompanionState, availability: 'blocked', status: 'error' },
+    });
+    expect(denied.stateId).toBe('error');
+    expect(denied.privacyIndicator).toBe('mic_blocked');
+    expect(denied.micDisabled).toBe(true);
+  });
+
   it('fails closed when runtime binding is missing', () => {
     const state = derive({ bindingPresent: false });
     expect(state.stateId).toBe('blocked');

@@ -113,7 +113,6 @@ fields:
       - lipsync
       - physics
       - hit_regions
-      - nas_fallback
     closed_fields:
       - motions
       - expressions
@@ -121,7 +120,6 @@ fields:
       - lipsync
       - physics
       - hit_regions
-      - nas_fallback
 
 feature_disposition:
   closed_fields:
@@ -232,22 +230,10 @@ semantic_map:
     fallback_enum:
       - alpha_mask_only
       - fail_closed
-  nas_fallback:
-    closed_fields:
-      - default_idle_motion
-      - missing_handler
-    required_fields:
-      - default_idle_motion
-      - missing_handler
-    fields:
-      missing_handler:
-        enum:
-          - backend_default_with_diagnostic
-          - no_default
-
 forbidden_fields_and_values:
   - "retired pre-2026-05-01 Live2D tier/class identifiers"
   - "retired pre-2026-05-01 package manifest identity or path identifiers"
+  - "retired creator NAS fields, including semantics.nas_fallback"
   - "manifest merge or silent preference"
   - "Runtime/APML/MCP/A2A ontology fields"
 

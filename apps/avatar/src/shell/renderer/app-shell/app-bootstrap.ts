@@ -2,15 +2,16 @@ import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
 import { startAvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import type { AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
-import { resolveRuntimePresentationAvatarAsset } from '../carrier/model-resolver.js';
+import {
+  commitRuntimePresentationMaterializationLease,
+  releaseRuntimePresentationMaterializationLease,
+  resolveRuntimePresentationAvatarAsset,
+} from '../carrier/model-resolver.js';
 import type { AgentDataDriver } from '../driver/types.js';
 import { ulid } from '../infra/ids.js';
-import { readAvatarShellSettings } from '../settings-state.js';
 import { startAvatarVoiceCaptureSession, type AvatarVoiceCaptureSession } from '../voice-capture.js';
 import type { BootstrapHandle } from './app-bootstrap-types.js';
 import { useAvatarStore } from './app-store.js';
-import { isTauriRuntime, onShellReady } from './tauri-lifecycle.js';
-import { setAlwaysOnTop } from './avatar-window-commands.js';
 import {
   errorMessage,
   installAvatarRuntimeBridge,
@@ -27,7 +28,10 @@ import {
 } from './app-bootstrap-first-party-diagnostics.js';
 import { createAvatarSessionAgentBinding } from './avatar-session-agent-binding.js';
 import { getAvatarLocalAppClient } from './avatar-local-app-client.js';
-import { createAvatarLivePresentationSwap } from './live-presentation-swap.js';
+import {
+  createAvatarLivePresentationSwap,
+  type AvatarLivePresentationSwap,
+} from './live-presentation-swap.js';
 import { detectDeviceTier } from './device-tier-detector.js';
 
 const AVATAR_FIRST_PARTY_DRIVER_START_TIMEOUT_MS = 12_000;
@@ -41,12 +45,15 @@ export type { BootstrapHandle } from './app-bootstrap-types.js';
  */
 export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   detectDeviceTier();
-  let shellUnlisten: (() => void) | null = null;
   let driver: AgentDataDriver | null = null;
   let carrier: AvatarRuntimeCarrier | null = null;
   let unsubscribeStatus = () => {};
   let unsubscribeBundle = () => {};
   let activeVoiceCapture: AvatarVoiceCaptureSession | null = null;
+  let pendingMaterializationLeaseRef: string | null = null;
+  const ownedMaterializationLeaseRefs = new Set<string>();
+  let initialMaterializationCommit: Promise<void> | null = null;
+  let presentationSwap: AvatarLivePresentationSwap | null = null;
   let cleanedUp = false;
   let getVoiceInputAvailability: BootstrapHandle['getVoiceInputAvailability'] = async () => ({
     available: false,
@@ -67,6 +74,7 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
   let activateCommittedPresentation: BootstrapHandle['activateCommittedPresentation'] = async () => {
     throw new Error('Avatar live presentation replacement requires an active formal App session.');
   };
+  let commitInitialPresentation: BootstrapHandle['commitInitialPresentation'] = async () => {};
   const cleanup = async () => {
     if (cleanedUp) {
       return;
@@ -76,11 +84,22 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
     unsubscribeBundle();
     activeVoiceCapture?.cancel();
     activeVoiceCapture = null;
-    shellUnlisten?.();
+    await presentationSwap?.cancelPending();
+    presentationSwap = null;
     carrier?.shutdown();
     carrier = null;
     if (driver) {
       await driver.stop().catch(() => {});
+    }
+    await initialMaterializationCommit?.catch(() => undefined);
+    if (pendingMaterializationLeaseRef) {
+      const leaseRef = pendingMaterializationLeaseRef;
+      pendingMaterializationLeaseRef = null;
+      await releaseRuntimePresentationMaterializationLease(leaseRef).catch(() => {});
+    }
+    for (const leaseRef of ownedMaterializationLeaseRefs) {
+      await releaseRuntimePresentationMaterializationLease(leaseRef).catch(() => {});
+      ownedMaterializationLeaseRefs.delete(leaseRef);
     }
     useAvatarStore.getState().clearRuntimeBinding();
   };
@@ -96,26 +115,20 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
     submitVoiceCaptureTurn,
     interruptConversationTurn,
     sendConversationText,
-    activateCommittedPresentation: (input) => activateCommittedPresentation(input),
+    activateCommittedPresentation: (input, waitForPresentationReady) => (
+      activateCommittedPresentation(input, waitForPresentationReady)
+    ),
+    commitInitialPresentation: () => commitInitialPresentation(),
     async shutdown() {
       await cleanup();
     },
   });
 
   try {
-    if (isTauriRuntime()) {
-      const shellSettings = readAvatarShellSettings();
-      useAvatarStore.getState().setAlwaysOnTop(shellSettings.alwaysOnTop);
-      shellUnlisten = await onShellReady((payload) => {
-        useAvatarStore.getState().markShellReady({ width: payload.width, height: payload.height });
-      });
-      await setAlwaysOnTop(shellSettings.alwaysOnTop);
-    } else {
-      useAvatarStore.getState().markShellReady({
-        width: typeof window !== 'undefined' ? window.innerWidth : 400,
-        height: typeof window !== 'undefined' ? window.innerHeight : 600,
-      });
-    }
+    useAvatarStore.getState().markShellReady({
+      width: typeof window !== 'undefined' ? window.innerWidth : 400,
+      height: typeof window !== 'undefined' ? window.innerHeight : 600,
+    });
 
     if (resolveDriverKind() !== 'mock') {
       useAvatarStore.getState().setConsumeMode({
@@ -225,9 +238,11 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
           'local_avatar_asset_manifest',
           () => agentBinding.run((agentHandle) => resolveRuntimePresentationAvatarAsset({
             agentHandle,
+            presentationRevision,
             presentationProfile: presentationSnapshot.profile,
           })),
         );
+        pendingMaterializationLeaseRef = resolvedAvatarAsset.reference.materializationLeaseRef;
         const modelManifest = resolvedAvatarAsset.manifest;
         if (resolvedAvatarAsset.reference.backendKind !== 'live2d'
           && resolvedAvatarAsset.reference.backendKind !== 'vrm') {
@@ -313,7 +328,30 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             presentationRevision,
           },
         }));
-        const presentationSwap = createAvatarLivePresentationSwap({
+        commitInitialPresentation = async () => {
+          if (!pendingMaterializationLeaseRef || !carrier?.committedPresentationSelection) return;
+          if (initialMaterializationCommit) return initialMaterializationCommit;
+          const leaseRef = pendingMaterializationLeaseRef;
+          const selection = carrier.committedPresentationSelection;
+          initialMaterializationCommit = runFirstPartyStage('materialization_lease_commit', () => (
+            commitRuntimePresentationMaterializationLease({
+              materializationLeaseRef: leaseRef,
+              materializationRef: selection.previewMaterialRef,
+              avatarAssetRef: selection.avatarAssetRef,
+              backendKind: selection.backendKind,
+              presentationRevision: selection.presentationRevision,
+            })
+          )).then(() => {
+            ownedMaterializationLeaseRefs.add(leaseRef);
+            if (pendingMaterializationLeaseRef === leaseRef) {
+              pendingMaterializationLeaseRef = null;
+            }
+          }).finally(() => {
+            initialMaterializationCommit = null;
+          });
+          return initialMaterializationCommit;
+        };
+        presentationSwap = createAvatarLivePresentationSwap({
           runtime,
           agentBinding,
           driver: activeDriver,
@@ -322,6 +360,12 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             carrier = replacement;
           },
           isClosed: () => cleanedUp,
+          trackMaterializationLease(leaseRef) {
+            ownedMaterializationLeaseRefs.add(leaseRef);
+          },
+          untrackMaterializationLease(leaseRef) {
+            ownedMaterializationLeaseRefs.delete(leaseRef);
+          },
         });
         activateCommittedPresentation = presentationSwap.activate;
       } catch (error) {
@@ -330,6 +374,11 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
         if (driver) {
           await driver.stop().catch(() => {});
           driver = null;
+        }
+        if (pendingMaterializationLeaseRef) {
+          const leaseRef = pendingMaterializationLeaseRef;
+          pendingMaterializationLeaseRef = null;
+          await releaseRuntimePresentationMaterializationLease(leaseRef).catch(() => {});
         }
         const unavailable = firstPartyUnavailableDetail(error);
         setRuntimeBindingUnavailable(unavailable);
@@ -392,6 +441,11 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
       carrier?.shutdown();
       carrier = null;
       await activeDriver.stop().catch(() => {});
+      if (pendingMaterializationLeaseRef) {
+        const leaseRef = pendingMaterializationLeaseRef;
+        pendingMaterializationLeaseRef = null;
+        await releaseRuntimePresentationMaterializationLease(leaseRef).catch(() => {});
+      }
       driver = null;
       return buildHandle();
     }

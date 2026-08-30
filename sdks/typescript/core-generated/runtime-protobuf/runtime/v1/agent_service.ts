@@ -1548,6 +1548,53 @@ export interface ListLocalAppAgentReferencesResponse {
     references: LocalAppAgentReference[];
 }
 /**
+ * Host-private Avatar correlation. This wire is reachable only through the
+ * protected native Host binding and is never an App product operation.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ResolveLocalAppAvatarHostTargetRequest
+ */
+export interface ResolveLocalAppAvatarHostTargetRequest {
+    /**
+     * @generated from protobuf field: string agent_handle = 1
+     */
+    agentHandle: string;
+    /**
+     * @generated from protobuf field: optional string conversation_anchor_id = 2
+     */
+    conversationAnchorId?: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ResolveLocalAppAvatarHostTargetResponse
+ */
+export interface ResolveLocalAppAvatarHostTargetResponse {
+    /**
+     * @generated from protobuf field: string avatar_host_target_ref = 1
+     */
+    avatarHostTargetRef: string;
+}
+/**
+ * Desktop-Host-private revalidation of an already minted Avatar correlation.
+ * This wire is admitted only on the verified Desktop account-product binding
+ * and is excluded from public SDK product and wire surfaces.
+ *
+ * @generated from protobuf message nimi.runtime.v1.RevalidateLocalAppAvatarHostTargetRequest
+ */
+export interface RevalidateLocalAppAvatarHostTargetRequest {
+    /**
+     * @generated from protobuf field: string avatar_host_target_ref = 1
+     */
+    avatarHostTargetRef: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RevalidateLocalAppAvatarHostTargetResponse
+ */
+export interface RevalidateLocalAppAvatarHostTargetResponse {
+    /**
+     * @generated from protobuf field: string avatar_host_target_ref = 1
+     */
+    avatarHostTargetRef: string;
+}
+/**
  * Bounded AgentCenter manager projection. It deliberately excludes raw Agent
  * or account identity, source/Memory corpus, hashes, prompts, reasoning,
  * internal generations, provider/model/storage detail, and reconstructable
@@ -8521,6 +8568,201 @@ class ListLocalAppAgentReferencesResponse$Type extends MessageType<ListLocalAppA
  * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppAgentReferencesResponse
  */
 export const ListLocalAppAgentReferencesResponse = new ListLocalAppAgentReferencesResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveLocalAppAvatarHostTargetRequest$Type extends MessageType<ResolveLocalAppAvatarHostTargetRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ResolveLocalAppAvatarHostTargetRequest", [
+            { no: 1, name: "agent_handle", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "conversation_anchor_id", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ResolveLocalAppAvatarHostTargetRequest>): ResolveLocalAppAvatarHostTargetRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.agentHandle = "";
+        if (value !== undefined)
+            reflectionMergePartial<ResolveLocalAppAvatarHostTargetRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResolveLocalAppAvatarHostTargetRequest): ResolveLocalAppAvatarHostTargetRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string agent_handle */ 1:
+                    message.agentHandle = reader.string();
+                    break;
+                case /* optional string conversation_anchor_id */ 2:
+                    message.conversationAnchorId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ResolveLocalAppAvatarHostTargetRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string agent_handle = 1; */
+        if (message.agentHandle !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.agentHandle);
+        /* optional string conversation_anchor_id = 2; */
+        if (message.conversationAnchorId !== undefined)
+            writer.tag(2, WireType.LengthDelimited).string(message.conversationAnchorId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ResolveLocalAppAvatarHostTargetRequest
+ */
+export const ResolveLocalAppAvatarHostTargetRequest = new ResolveLocalAppAvatarHostTargetRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveLocalAppAvatarHostTargetResponse$Type extends MessageType<ResolveLocalAppAvatarHostTargetResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ResolveLocalAppAvatarHostTargetResponse", [
+            { no: 1, name: "avatar_host_target_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ResolveLocalAppAvatarHostTargetResponse>): ResolveLocalAppAvatarHostTargetResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.avatarHostTargetRef = "";
+        if (value !== undefined)
+            reflectionMergePartial<ResolveLocalAppAvatarHostTargetResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResolveLocalAppAvatarHostTargetResponse): ResolveLocalAppAvatarHostTargetResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string avatar_host_target_ref */ 1:
+                    message.avatarHostTargetRef = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ResolveLocalAppAvatarHostTargetResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string avatar_host_target_ref = 1; */
+        if (message.avatarHostTargetRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.avatarHostTargetRef);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ResolveLocalAppAvatarHostTargetResponse
+ */
+export const ResolveLocalAppAvatarHostTargetResponse = new ResolveLocalAppAvatarHostTargetResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RevalidateLocalAppAvatarHostTargetRequest$Type extends MessageType<RevalidateLocalAppAvatarHostTargetRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RevalidateLocalAppAvatarHostTargetRequest", [
+            { no: 1, name: "avatar_host_target_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RevalidateLocalAppAvatarHostTargetRequest>): RevalidateLocalAppAvatarHostTargetRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.avatarHostTargetRef = "";
+        if (value !== undefined)
+            reflectionMergePartial<RevalidateLocalAppAvatarHostTargetRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RevalidateLocalAppAvatarHostTargetRequest): RevalidateLocalAppAvatarHostTargetRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string avatar_host_target_ref */ 1:
+                    message.avatarHostTargetRef = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RevalidateLocalAppAvatarHostTargetRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string avatar_host_target_ref = 1; */
+        if (message.avatarHostTargetRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.avatarHostTargetRef);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RevalidateLocalAppAvatarHostTargetRequest
+ */
+export const RevalidateLocalAppAvatarHostTargetRequest = new RevalidateLocalAppAvatarHostTargetRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RevalidateLocalAppAvatarHostTargetResponse$Type extends MessageType<RevalidateLocalAppAvatarHostTargetResponse> {
+    constructor() {
+        super("nimi.runtime.v1.RevalidateLocalAppAvatarHostTargetResponse", [
+            { no: 1, name: "avatar_host_target_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<RevalidateLocalAppAvatarHostTargetResponse>): RevalidateLocalAppAvatarHostTargetResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.avatarHostTargetRef = "";
+        if (value !== undefined)
+            reflectionMergePartial<RevalidateLocalAppAvatarHostTargetResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RevalidateLocalAppAvatarHostTargetResponse): RevalidateLocalAppAvatarHostTargetResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string avatar_host_target_ref */ 1:
+                    message.avatarHostTargetRef = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RevalidateLocalAppAvatarHostTargetResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string avatar_host_target_ref = 1; */
+        if (message.avatarHostTargetRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.avatarHostTargetRef);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RevalidateLocalAppAvatarHostTargetResponse
+ */
+export const RevalidateLocalAppAvatarHostTargetResponse = new RevalidateLocalAppAvatarHostTargetResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalAppAgentManagerSourceProjection$Type extends MessageType<LocalAppAgentManagerSourceProjection> {
     constructor() {

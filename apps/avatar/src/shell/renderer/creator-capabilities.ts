@@ -4,8 +4,7 @@ export type CreatorCapabilityId =
   | 'motion'
   | 'expression'
   | 'hit_region'
-  | 'lipsync'
-  | 'nas_handlers';
+  | 'lipsync';
 
 export type CreatorCapabilityStatus = 'passed' | 'unsupported' | 'failed';
 
@@ -28,7 +27,6 @@ const LABEL_KEYS: Record<CreatorCapabilityId, string> = {
   expression: 'Avatar.creator_capabilities.expression.label',
   hit_region: 'Avatar.creator_capabilities.hit_region.label',
   lipsync: 'Avatar.creator_capabilities.lipsync.label',
-  nas_handlers: 'Avatar.creator_capabilities.nas_handlers.label',
 };
 
 export function deriveCreatorCapabilityReport(
@@ -38,17 +36,11 @@ export function deriveCreatorCapabilityReport(
   if (
     !carrier.backend
     || typeof carrier.backend.metadata !== 'function'
-    || !carrier.registry
   ) {
     return null;
   }
   const meta = carrier.backend.metadata();
   const backendKind = carrier.backend.kind;
-  const nasHandlerCount =
-    (carrier.registry.activity?.size ?? 0)
-    + (carrier.registry.event?.size ?? 0)
-    + (carrier.registry.continuous?.size ?? 0);
-
   return {
     backendKind,
     modelId: carrier.model.modelId,
@@ -57,15 +49,6 @@ export function deriveCreatorCapabilityReport(
       deriveExpression(backendKind, meta),
       deriveHitRegion(carrier, meta),
       deriveLipsync(meta),
-      {
-        id: 'nas_handlers',
-        status: nasHandlerCount > 0 ? 'passed' : 'unsupported',
-        labelKey: LABEL_KEYS.nas_handlers,
-        proofKey: nasHandlerCount > 0
-          ? 'Avatar.creator_capabilities.nas_handlers.proof_present'
-          : 'Avatar.creator_capabilities.nas_handlers.proof_missing',
-        proofParams: { count: nasHandlerCount },
-      },
     ],
   };
 }

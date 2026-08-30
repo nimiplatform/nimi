@@ -18,7 +18,8 @@ export type FirstPartyBootstrapStage =
   | 'local_avatar_asset_manifest'
   | 'driver_create'
   | 'runtime_carrier_start'
-  | 'driver_start';
+  | 'driver_start'
+  | 'materialization_lease_commit';
 
 type FirstPartyBootstrapErrorDetail = {
   reason: string;

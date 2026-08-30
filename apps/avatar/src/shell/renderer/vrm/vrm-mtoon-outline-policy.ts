@@ -14,7 +14,7 @@
 // Detection criteria (case-insensitive substring match against
 // `gl.getParameter(gl.RENDERER)`):
 //   - 'SwiftShader' / 'llvmpipe' / 'software' → outline disabled
-//   - everything else (including Tauri WKWebView's 'WebKit WebGL') → outline ON
+//   - everything else → outline ON
 //
 // Implementation: subclass-style wrap of MToonMaterialLoaderPlugin so we can
 // preserve the official extendMaterialParams pipeline (renderOrderOffset /

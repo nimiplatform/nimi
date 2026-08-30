@@ -29,6 +29,8 @@ import { loadVrmFromManifest } from './vrm-loader.js';
 
 /** Avatar-local WebGL context-lost recovery window in milliseconds. */
 export const VRM_CONTEXT_LOST_RETRY_MS = 1500;
+/** Shared conservative bound for model loading and the first visible frame. */
+export const VRM_PRESENTATION_WATCHDOG_TIMEOUT_MS = 45_000;
 
 export type VrmRenderState =
   | { kind: 'idle' }
@@ -71,8 +73,17 @@ export type VrmRuntime = {
    *  auto-recovery does not prove the admitted reload path, so this must not
    *  cancel the 1500ms retry or promote the stale VRM back to ready. */
   notifyContextRestored(): void;
+  /** Fail closed when the exact current VRM cannot produce a visible frame
+   *  within the shared presentation watchdog. */
+  notifyFirstFrameTimedOut(vrm: VRM): void;
   subscribe(listener: (state: VrmRenderState) => void): () => void;
 };
+
+type VrmLoadOutcome =
+  | { kind: 'loaded'; vrm: VRM }
+  | { kind: 'rejected'; error: unknown }
+  | { kind: 'timed_out' }
+  | { kind: 'cancelled' };
 
 // @nimi-authority: rule.nimi.avatar.embodiment.r057
 export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
@@ -95,6 +106,7 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
 
   let state: VrmRenderState = { kind: 'idle' };
   let retryHandle: unknown = null;
+  let cancelPendingLoad: (() => void) | null = null;
   let shutdownRequested = false;
   let attemptGeneration = 0;
   const disposedVrms = new Set<VRM>();
@@ -130,23 +142,67 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
     }
   }
 
+  function waitForLoadOutcome(): Promise<VrmLoadOutcome> {
+    let load: Promise<VRM>;
+    try {
+      load = loader(opts.manifest);
+    } catch (error) {
+      load = Promise.reject(error);
+    }
+    return new Promise((resolve) => {
+      let settled = false;
+      let watchdogHandle: unknown = null;
+      let cancel = (): void => {};
+      const finish = (outcome: VrmLoadOutcome): void => {
+        if (settled) return;
+        settled = true;
+        clearTimeoutImpl(watchdogHandle);
+        if (cancelPendingLoad === cancel) cancelPendingLoad = null;
+        resolve(outcome);
+      };
+      watchdogHandle = setTimeoutImpl(() => {
+        finish({ kind: 'timed_out' });
+      }, VRM_PRESENTATION_WATCHDOG_TIMEOUT_MS);
+      cancel = (): void => finish({ kind: 'cancelled' });
+      cancelPendingLoad = cancel;
+      void load.then(
+        (vrm) => {
+          if (settled) {
+            disposeOnce(vrm);
+            return;
+          }
+          finish({ kind: 'loaded', vrm });
+        },
+        (error) => {
+          if (!settled) finish({ kind: 'rejected', error });
+        },
+      );
+    });
+  }
+
   async function runLoad(): Promise<void> {
     const attempt = ++attemptGeneration;
     setState({ kind: 'loading', manifest: opts.manifest });
-    try {
-      const vrm = await loader(opts.manifest);
+    const outcome = await waitForLoadOutcome();
+    if (outcome.kind === 'cancelled') return;
+    if (outcome.kind === 'loaded') {
       if (shutdownRequested || attempt !== attemptGeneration || state.kind !== 'loading') {
-        disposeOnce(vrm);
+        disposeOnce(outcome.vrm);
         return;
       }
-      detachedVrms.delete(vrm);
-      setState({ kind: 'ready', manifest: opts.manifest, vrm });
-    } catch (err) {
-      if (shutdownRequested || attempt !== attemptGeneration || state.kind !== 'loading') return;
-      const reason = err instanceof Error ? err.message : String(err);
-      console.warn(`[avatar:vrm] model load failed: ${reason}`);
-      setState({ kind: 'failed_closed', reason: 'load_failed', manifest: opts.manifest });
+      detachedVrms.delete(outcome.vrm);
+      setState({ kind: 'ready', manifest: opts.manifest, vrm: outcome.vrm });
+      return;
     }
+    if (shutdownRequested || attempt !== attemptGeneration || state.kind !== 'loading') return;
+    attemptGeneration += 1;
+    if (outcome.kind === 'timed_out') {
+      setState({ kind: 'failed_closed', reason: 'load_timed_out', manifest: opts.manifest });
+      return;
+    }
+    const reason = outcome.error instanceof Error ? outcome.error.message : String(outcome.error);
+    console.warn(`[avatar:vrm] model load failed: ${reason}`);
+    setState({ kind: 'failed_closed', reason: 'load_failed', manifest: opts.manifest });
   }
 
   async function runRetry(
@@ -154,34 +210,44 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
     attempt: number,
   ): Promise<void> {
     const staleVrm = state.kind === 'context_lost' ? state.vrm : null;
-    try {
-      const vrm = await loader(prior.manifest);
+    const outcome = await waitForLoadOutcome();
+    if (outcome.kind === 'cancelled') return;
+    if (outcome.kind === 'loaded') {
       if (shutdownRequested
         || attempt !== attemptGeneration
         || state.kind !== 'context_lost'
         || state.lostAt !== prior.lostAt
         || !state.retried) {
-        disposeOnce(vrm);
+        disposeOnce(outcome.vrm);
         return;
       }
-      if (staleVrm && staleVrm !== vrm) disposeOnce(staleVrm);
-      detachedVrms.delete(vrm);
-      setState({ kind: 'ready', manifest: prior.manifest, vrm });
-    } catch (err) {
-      if (shutdownRequested
-        || attempt !== attemptGeneration
-        || state.kind !== 'context_lost'
-        || state.lostAt !== prior.lostAt
-        || !state.retried) return;
-      const reason = err instanceof Error ? err.message : String(err);
-      console.warn(`[avatar:vrm] context-loss recovery failed: ${reason}`);
-      if (staleVrm) disposeOnce(staleVrm);
+      if (staleVrm && staleVrm !== outcome.vrm) disposeOnce(staleVrm);
+      detachedVrms.delete(outcome.vrm);
+      setState({ kind: 'ready', manifest: prior.manifest, vrm: outcome.vrm });
+      return;
+    }
+    if (shutdownRequested
+      || attempt !== attemptGeneration
+      || state.kind !== 'context_lost'
+      || state.lostAt !== prior.lostAt
+      || !state.retried) return;
+    attemptGeneration += 1;
+    if (staleVrm) disposeOnce(staleVrm);
+    if (outcome.kind === 'timed_out') {
       setState({
         kind: 'failed_closed',
-        reason: 'context_lost_recovery_failed',
+        reason: 'context_lost_recovery_timed_out',
         manifest: prior.manifest,
       });
+      return;
     }
+    const reason = outcome.error instanceof Error ? outcome.error.message : String(outcome.error);
+    console.warn(`[avatar:vrm] context-loss recovery failed: ${reason}`);
+    setState({
+      kind: 'failed_closed',
+      reason: 'context_lost_recovery_failed',
+      manifest: prior.manifest,
+    });
   }
 
   return {
@@ -193,6 +259,7 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
       shutdownRequested = true;
       attemptGeneration += 1;
       clearRetry();
+      cancelPendingLoad?.();
       if (state.kind === 'ready' || state.kind === 'context_lost') {
         disposeOnce(state.vrm);
       }
@@ -230,6 +297,7 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
         // Second loss before/around the retry — fail-close immediately.
         clearRetry();
         attemptGeneration += 1;
+        cancelPendingLoad?.();
         const staleVrm = state.vrm;
         setState({
           kind: 'failed_closed',
@@ -247,6 +315,16 @@ export function createVrmRuntime(opts: VrmRuntimeOptions): VrmRuntime {
       // A browser-level restored event can arrive before the runtime reloads
       // scene/textures/animations, so it cannot change render state.
       return;
+    },
+    notifyFirstFrameTimedOut(vrm): void {
+      if (state.kind !== 'ready' || state.vrm !== vrm) return;
+      attemptGeneration += 1;
+      setState({
+        kind: 'failed_closed',
+        reason: 'visible_first_frame_timed_out',
+        manifest: state.manifest,
+      });
+      disposeOnce(vrm);
     },
     subscribe(listener: (s: VrmRenderState) => void): () => void {
       listeners.add(listener);

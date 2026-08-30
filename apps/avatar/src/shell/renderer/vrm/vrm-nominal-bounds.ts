@@ -11,13 +11,16 @@
 // `nominalBounds` on `BackendBranch` is a static r003 field; it carries the
 // bounded bootstrap fallback used
 // by `embodiment-stage` for the very first window-resize tick. The
-// post-load truth flows through the per-frame `onHitRegionChange` payload
-// (which embodiment-stage maps to `set_size` if the alpha bounding box
-// shrinks). The canonical fallback is 360x720 with a `bottom-companion`
-// default, while loaded VRMs return derived bounds through this function.
+// post-load logical window truth flows through `onSurfaceBoundsChange`, while
+// viewport-projected body/drag geometry flows independently through
+// `onHitRegionChange`. The canonical fallback is 360x720 with a
+// `bottom-companion` default.
 
 import type { VRM } from '@pixiv/three-vrm';
-import type { BackendNominalBounds } from '@nimiplatform/kit/features/avatar/headless';
+import type {
+  BackendHitRegion,
+  BackendNominalBounds,
+} from '@nimiplatform/kit/features/avatar/headless';
 import type { VrmFramingIntent } from './vrm-framing.js';
 import { applyVrmFraming } from './vrm-framing.js';
 
@@ -55,14 +58,42 @@ export const VRM_DEFAULT_NOMINAL_BOUNDS: Readonly<BackendNominalBounds> = Object
   bodyCenterY: 0.55,
 });
 
-export type DeriveNominalBoundsInputs = {
+export type DeriveVrmLogicalWindowBoundsInputs = {
   /** null at boot before VRM is ready; falls back to VRM_DEFAULT_NOMINAL_BOUNDS. */
   vrm: VRM | null;
   /** Default 'bottom-companion' per window-bounds-policy.yaml. */
   intent: VrmFramingIntent;
-  /** Default 0.45 per window-bounds-policy.yaml. */
+};
+
+export type DeriveVrmProjectedHitGeometryInputs = DeriveVrmLogicalWindowBoundsInputs & {
+  /** Current viewport width / height. Used only for projected hit geometry. */
   aspect: number;
 };
+
+export type VrmLogicalWindowGeometry = Readonly<{
+  bounds: BackendNominalBounds;
+  source: 'scene_geometry' | 'configured_fallback';
+  reasonCode: 'scene_geometry_unavailable' | null;
+}>;
+
+export type VrmProjectedHitGeometry = Readonly<{
+  body: BackendHitRegion['body'];
+  drag: BackendHitRegion['drag'];
+  source: 'scene_geometry' | 'configured_fallback';
+  reasonCode: 'scene_geometry_unavailable' | null;
+}>;
+
+export const VRM_INVALID_HIT_REGION_RECT: BackendHitRegion['body'] = Object.freeze({
+  left: 0,
+  top: 0,
+  right: 0,
+  bottom: 0,
+});
+
+/** Logical Avatar window aspect. It must never be replaced with the current
+ *  native window aspect, otherwise set_size feeds its own output back into
+ *  the next nominal-bounds derivation. */
+export const VRM_LOGICAL_WINDOW_ASPECT = 0.45;
 
 /**
  * Body-center Y depends on framing intent. Higher value means the body
@@ -100,42 +131,128 @@ function clamp(value: number, min: number, max: number): number {
  * sanity clamp.
  */
 export function deriveVrmNominalBounds(
-  inputs: DeriveNominalBoundsInputs,
+  inputs: DeriveVrmLogicalWindowBoundsInputs,
 ): BackendNominalBounds {
-  const { vrm, intent, aspect } = inputs;
+  return deriveVrmLogicalWindowGeometry(inputs).bounds;
+}
+
+// @nimi-authority: rule.nimi.avatar.embodiment.r059
+export function deriveVrmLogicalWindowGeometry(
+  inputs: DeriveVrmLogicalWindowBoundsInputs,
+): VrmLogicalWindowGeometry {
+  const { vrm, intent } = inputs;
   if (vrm === null) {
-    return VRM_DEFAULT_NOMINAL_BOUNDS;
+    return configuredFallbackWindowGeometry();
   }
-  let framedHeight: number;
-  let framedWidth: number;
+  let framing: ReturnType<typeof applyVrmFraming>;
   try {
-    const result = applyVrmFraming({ vrm, intent, aspect });
-    framedHeight = result.framedHeight;
-    framedWidth = result.framedWidth;
+    framing = applyVrmFraming({
+      vrm,
+      intent,
+      aspect: VRM_LOGICAL_WINDOW_ASPECT,
+    });
   } catch {
-    return VRM_DEFAULT_NOMINAL_BOUNDS;
+    return configuredFallbackWindowGeometry();
   }
-  // Defensive: a degenerate scene (zero-size bbox) collapses to default.
-  if (
-    !Number.isFinite(framedHeight) ||
-    !Number.isFinite(framedWidth) ||
-    framedHeight <= 0 ||
-    framedWidth <= 0
-  ) {
-    return VRM_DEFAULT_NOMINAL_BOUNDS;
+  const values = [
+    framing.framedHeight,
+    framing.framedWidth,
+    framing.cameraLookAt.x,
+    framing.cameraLookAt.y,
+    framing.sceneBboxMin.x,
+    framing.sceneBboxMin.y,
+    framing.sceneBboxMax.x,
+    framing.sceneBboxMax.y,
+  ];
+  if (values.some((value) => !Number.isFinite(value))
+    || framing.framedHeight <= 0
+    || framing.framedWidth <= 0
+    || framing.sceneBboxMax.x <= framing.sceneBboxMin.x
+    || framing.sceneBboxMax.y <= framing.sceneBboxMin.y) {
+    return configuredFallbackWindowGeometry();
   }
-  const rawWidth = framedWidth * VRM_NOMINAL_PX_PER_WORLD_UNIT;
-  const rawHeight = framedHeight * VRM_NOMINAL_PX_PER_WORLD_UNIT;
+  const rawWidth = framing.framedWidth * VRM_NOMINAL_PX_PER_WORLD_UNIT;
+  const rawHeight = framing.framedHeight * VRM_NOMINAL_PX_PER_WORLD_UNIT;
   const width = clamp(rawWidth, VRM_NOMINAL_BOUNDS_MIN_WIDTH, VRM_NOMINAL_BOUNDS_MAX_WIDTH);
   const height = clamp(
     rawHeight,
     VRM_NOMINAL_BOUNDS_MIN_HEIGHT,
     VRM_NOMINAL_BOUNDS_MAX_HEIGHT,
   );
-  return Object.freeze({
+  const bounds = Object.freeze({
     width,
     height,
     bodyCenterX: 0.5,
     bodyCenterY: bodyCenterYForIntent(intent),
+  });
+  return Object.freeze({
+    bounds,
+    source: 'scene_geometry',
+    reasonCode: null,
+  });
+}
+
+// @nimi-authority: rule.nimi.avatar.embodiment.r062
+export function deriveVrmProjectedHitGeometry(
+  inputs: DeriveVrmProjectedHitGeometryInputs,
+): VrmProjectedHitGeometry {
+  const { vrm, intent, aspect } = inputs;
+  if (vrm === null) return configuredFallbackProjectedHitGeometry();
+  let framing: ReturnType<typeof applyVrmFraming>;
+  try {
+    framing = applyVrmFraming({ vrm, intent, aspect });
+  } catch {
+    return configuredFallbackProjectedHitGeometry();
+  }
+  const values = [
+    framing.framedHeight,
+    framing.framedWidth,
+    framing.cameraLookAt.x,
+    framing.cameraLookAt.y,
+    framing.sceneBboxMin.x,
+    framing.sceneBboxMin.y,
+    framing.sceneBboxMax.x,
+    framing.sceneBboxMax.y,
+  ];
+  if (values.some((value) => !Number.isFinite(value))
+    || framing.framedHeight <= 0
+    || framing.framedWidth <= 0
+    || framing.sceneBboxMax.x <= framing.sceneBboxMin.x
+    || framing.sceneBboxMax.y <= framing.sceneBboxMin.y) {
+    return configuredFallbackProjectedHitGeometry();
+  }
+  const viewportLeft = framing.cameraLookAt.x - framing.framedWidth / 2;
+  const viewportBottom = framing.cameraLookAt.y - framing.framedHeight / 2;
+  const body = Object.freeze({
+    left: clamp((framing.sceneBboxMin.x - viewportLeft) / framing.framedWidth, 0, 1),
+    top: clamp(1 - ((framing.sceneBboxMax.y - viewportBottom) / framing.framedHeight), 0, 1),
+    right: clamp((framing.sceneBboxMax.x - viewportLeft) / framing.framedWidth, 0, 1),
+    bottom: clamp(1 - ((framing.sceneBboxMin.y - viewportBottom) / framing.framedHeight), 0, 1),
+  });
+  if (body.right <= body.left || body.bottom <= body.top) {
+    return configuredFallbackProjectedHitGeometry();
+  }
+  return Object.freeze({
+    body,
+    drag: body,
+    source: 'scene_geometry',
+    reasonCode: null,
+  });
+}
+
+function configuredFallbackWindowGeometry(): VrmLogicalWindowGeometry {
+  return Object.freeze({
+    bounds: VRM_DEFAULT_NOMINAL_BOUNDS,
+    source: 'configured_fallback',
+    reasonCode: 'scene_geometry_unavailable',
+  });
+}
+
+function configuredFallbackProjectedHitGeometry(): VrmProjectedHitGeometry {
+  return Object.freeze({
+    body: VRM_INVALID_HIT_REGION_RECT,
+    drag: VRM_INVALID_HIT_REGION_RECT,
+    source: 'configured_fallback',
+    reasonCode: 'scene_geometry_unavailable',
   });
 }

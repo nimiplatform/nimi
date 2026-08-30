@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type 
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
 import type { AvatarAppState } from './app-shell/app-store.js';
 import type { CompanionAnchorBinding } from './companion-state.js';
-import { closeAvatarWindow, hideAvatarWindow } from './app-shell/avatar-window-commands.js';
+import {
+  closeAvatarWindow,
+  hideAvatarWindow,
+  quitAvatarApp,
+} from './app-shell/avatar-window-commands.js';
 import { hasAvatarHostRuntime } from './app-shell/avatar-host-bridge.js';
 import { AVATAR_SCALE_DEFAULT } from './avatar-scale-state.js';
 import { normalizeText, toErrorMessage } from './avatar-shell-utils.js';
@@ -17,6 +21,7 @@ import {
 } from './context-menu/avatar-context-menu.js';
 import {
   AvatarSettingsOverlay,
+  type AvatarSettingsOverlayChangeKey,
   type AvatarSettingsOverlayDismissReason,
 } from './settings-overlay/avatar-settings-overlay.js';
 import {
@@ -202,7 +207,7 @@ export function useAvatarShellOverlays(input: {
   );
 
   const persistShellSettings = useCallback(
-    (next: AvatarShellSettings, _changedKey?: 'always_on_top' | 'show_voice_captions'): void => {
+    (next: AvatarShellSettings, _changedKey?: AvatarSettingsOverlayChangeKey): void => {
       setShellSettings(next);
       writeAvatarShellSettings(next);
     },
@@ -288,6 +293,11 @@ export function useAvatarShellOverlays(input: {
       }
       if (action === 'close') {
         requestShellLifecycle('close');
+      }
+      if (action === 'quit_app') {
+        void quitAvatarApp().catch((error: unknown) => {
+          console.warn(`[avatar:shell] quit app request failed: ${toErrorMessage(error)}`);
+        });
       }
       dismissContextMenu('action');
     },

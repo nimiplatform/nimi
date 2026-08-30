@@ -40,7 +40,7 @@ tiers: &live2d_compatibility_tier_values
       lipsync: "unsupported unless mapped by manifest"
       physics: "not_applicable or model_physics if present and valid"
       hit_regions: "alpha_mask_only unless mapped by manifest"
-      nas_fallback: "no semantic success without supported motion mapping"
+      missing_activity: "no semantic success without a supported built-in adapter motion mapping"
 
   semantic_basic:
     product_claim: "The package works as a basic companion with bounded degraded features."
@@ -66,7 +66,7 @@ tiers: &live2d_compatibility_tier_values
     requires_carrier_visual: true
     required_activity_scope: "all active core Avatar activity ids in tables/activity-mapping.yaml"
     requirements:
-      - "All core activity ids map to existing model motion groups or NAS handlers."
+      - "All core activity ids map to existing model motion groups through the built-in adapter projection."
       - "Idle fallback maps to an existing motion group."
       - "Expression support is mapped or proven not applicable for every current core emotion, and every mapped expression is present in the parsed exp3 inventory."
       - "Pose support maps posture ids when pose is declared supported."

@@ -38,10 +38,18 @@ export type UseWindowBoundsSyncInput = {
   getEmbodimentBounds: () => { width: number; height: number } | null;
   getAvatarScale?: () => number;
   avatarScale?: number;
+  /** Increments when a mounted backend publishes refined validated geometry. */
+  surfaceBoundsRevision?: number;
 };
 
 export function useWindowBoundsSync(input: UseWindowBoundsSyncInput): void {
-  const { isReady, getEmbodimentBounds, getAvatarScale, avatarScale } = input;
+  const {
+    isReady,
+    getEmbodimentBounds,
+    getAvatarScale,
+    avatarScale,
+    surfaceBoundsRevision = 0,
+  } = input;
   const avatarScaleRef = useRef(avatarScale ?? WINDOW_BOUNDS_DEFAULT_AVATAR_SCALE);
   avatarScaleRef.current = avatarScale ?? WINDOW_BOUNDS_DEFAULT_AVATAR_SCALE;
 
@@ -68,6 +76,7 @@ export function useWindowBoundsSync(input: UseWindowBoundsSyncInput): void {
   useEffect(() => () => recomputer.dispose(), [recomputer]);
 
   const previousAvatarScaleRef = useRef<number | null>(null);
+  const previousSurfaceBoundsRevisionRef = useRef<number | null>(null);
 
   // Subscribe to model load state. On `loaded` we fire model_load the first
   // time, model_switch on subsequent loads (modelId change).
@@ -102,4 +111,14 @@ export function useWindowBoundsSync(input: UseWindowBoundsSyncInput): void {
     if (model.loadState !== 'loaded' || !model.modelId) return;
     recomputer.trigger('avatar_scale_change');
   }, [avatarScale, isReady, recomputer]);
+
+  useEffect(() => {
+    if (!isReady) return;
+    const previous = previousSurfaceBoundsRevisionRef.current;
+    previousSurfaceBoundsRevisionRef.current = surfaceBoundsRevision;
+    if (previous === null || previous === surfaceBoundsRevision) return;
+    const model = useAvatarStore.getState().model;
+    if (model.loadState !== 'loaded' || !model.modelId) return;
+    recomputer.trigger('surface_bounds_change');
+  }, [isReady, recomputer, surfaceBoundsRevision]);
 }

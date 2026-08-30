@@ -34,7 +34,7 @@ storage truth and never determines product availability.
 
 ## Before Building Locally
 - Check `avatar/ui` before building a new avatar stage, idle shell, or reusable agent render container.
-- Check `avatar/ui` and `avatar/headless` before rendering Agent Center avatar previews. A configured Agent Center avatar is only non-placeholder when `AgentCenterAvatarPreview` receives `previewTier=avatar_preview_service`, `previewState=ready`, positive visible pixels, and an Avatar-controlled blob or same-origin render-surface URL.
+- Check `avatar/ui` and `avatar/headless` before rendering Agent Center avatar previews. A configured Agent Center avatar is ready only when the Avatar renderer binds the exact committed asset, backend, and presentation revision, reports the typed backend terminal state, and returns an Avatar-controlled blob or same-origin render-surface URL.
 - Check `avatar/headless` before introducing app-local presentation normalization, emotion cue mapping, or transient avatar interaction state contracts.
 - Check `avatar/runtime` before rebuilding avatar presentation-record or playback-cue helpers in app code. Runtime event schedule decisions belong in `@nimiplatform/sdk/runtime`.
 - Check `avatar/vrm` before introducing app-local R3F/VRM renderer code; prefer injecting that implementation through the admitted optional VRM surface.

@@ -30,6 +30,18 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 import scenarioJson from '../mock/scenarios/vrm-render-recovery.mock.json';
 import type { VrmAvatarModelManifest } from './vrm-model-manifest.js';
+import { BoxGeometry, Group, Mesh, MeshBasicMaterial } from 'three';
+
+const r3fScene = vi.hoisted(() => ({
+  onAfterRender: undefined as ((...args: unknown[]) => void) | undefined,
+}));
+
+function renderVisibleFrame(): void {
+  r3fScene.onAfterRender?.({
+    getRenderTarget: () => null,
+    info: { render: { calls: 1, triangles: 2 } },
+  }, r3fScene);
+}
 
 vi.mock('@react-three/fiber', () => ({
   // Same Canvas mock pattern as vrm-carrier-surface.test.tsx — gives us
@@ -46,7 +58,19 @@ vi.mock('@react-three/fiber', () => ({
   // Wave 4 chunk 4-C: VrmRenderTargetCaptureLoop calls useThree to read
   // gl/scene/camera. Stubs are fine — the render/recovery assertions don't
   // depend on the alpha-mask probe.
-  useThree: () => ({ gl: {}, scene: {}, camera: {} }),
+  useThree: () => ({
+    gl: {},
+    scene: r3fScene,
+    camera: {
+      position: { set() {} },
+      lookAt() {},
+      updateProjectionMatrix() {},
+      near: 0.1,
+      far: 100,
+      fov: 30,
+    },
+    invalidate() {},
+  }),
 }));
 
 type ScenarioVrmRenderRecovery = {
@@ -81,12 +105,24 @@ function alternateManifest(): VrmAvatarModelManifest {
 }
 
 function stubVrm(): VRM {
-  return { scene: { traverse() {} } } as unknown as VRM;
+  const scene = new Group();
+  scene.add(new Mesh(new BoxGeometry(0.6, 1.8, 0.3), new MeshBasicMaterial({ opacity: 1 })));
+  return {
+    scene,
+  } as unknown as VRM;
 }
 
 beforeEach(() => {
   vi.resetModules();
+  r3fScene.onAfterRender = undefined;
 });
+
+async function completeFirstFrame(): Promise<void> {
+  await act(async () => {
+    renderVisibleFrame();
+    await Promise.resolve();
+  });
+}
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -125,6 +161,7 @@ describe('VRM render and recovery end-to-end (chunk 2-D)', () => {
       await Promise.resolve();
       await Promise.resolve();
     });
+    await completeFirstFrame();
 
     const root = result!.getByTestId('avatar-vrm-carrier');
     expect(root.getAttribute('data-avatar-vrm-state')).toBe('ready');
@@ -192,6 +229,7 @@ describe('VRM render and recovery end-to-end (chunk 2-D)', () => {
       await Promise.resolve();
       await Promise.resolve();
     });
+    await completeFirstFrame();
     expect(
       resultA!.getByTestId('avatar-vrm-carrier').getAttribute('data-avatar-vrm-state'),
     ).toBe('ready');
@@ -214,6 +252,7 @@ describe('VRM render and recovery end-to-end (chunk 2-D)', () => {
       await Promise.resolve();
       await Promise.resolve();
     });
+    await completeFirstFrame();
     expect(
       resultB!.getByTestId('avatar-vrm-carrier').getAttribute('data-avatar-vrm-state'),
     ).toBe('ready');
@@ -262,6 +301,7 @@ describe('VRM render and recovery end-to-end (chunk 2-D)', () => {
       await Promise.resolve();
       await Promise.resolve();
     });
+    await completeFirstFrame();
     expect(
       result!.getByTestId('avatar-vrm-carrier').getAttribute('data-avatar-vrm-state'),
     ).toBe('ready');
@@ -274,7 +314,7 @@ describe('VRM render and recovery end-to-end (chunk 2-D)', () => {
     });
     expect(
       result!.getByTestId('avatar-vrm-carrier').getAttribute('data-avatar-vrm-state'),
-    ).toBe('context_lost');
+    ).toBe('recovering');
 
     // Advance virtual clock by 1500ms and fire the captured retry.
     virtualNow += 1500;
@@ -285,6 +325,7 @@ describe('VRM render and recovery end-to-end (chunk 2-D)', () => {
       await Promise.resolve();
       await Promise.resolve();
     });
+    await completeFirstFrame();
 
     expect(
       result!.getByTestId('avatar-vrm-carrier').getAttribute('data-avatar-vrm-state'),
@@ -319,6 +360,7 @@ describe('VRM render and recovery end-to-end (chunk 2-D)', () => {
       await Promise.resolve();
       await Promise.resolve();
     });
+    await completeFirstFrame();
     expect(
       result!.getByTestId('avatar-vrm-carrier').getAttribute('data-avatar-vrm-state'),
     ).toBe('ready');
@@ -330,7 +372,7 @@ describe('VRM render and recovery end-to-end (chunk 2-D)', () => {
     });
     expect(
       result!.getByTestId('avatar-vrm-carrier').getAttribute('data-avatar-vrm-state'),
-    ).toBe('context_lost');
+    ).toBe('recovering');
 
     // Second loss before retry timer fires.
     await act(async () => {

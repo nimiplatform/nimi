@@ -37,7 +37,8 @@
   "provenance": {
     "notes": [
       "Runtime core descriptors are derived from Runtime proto.",
-      "Generated core descriptors preserve proto coverage; typed public facades admit only their explicit SDK owner surface and fail closed for unsupported method kinds."
+      "Generated core descriptors preserve proto coverage; typed public facades admit only their explicit SDK owner surface and fail closed for unsupported method kinds.",
+      "Host-private Avatar target RPCs and messages are excluded from non-Host public SDK languages."
     ]
   },
   "services": [

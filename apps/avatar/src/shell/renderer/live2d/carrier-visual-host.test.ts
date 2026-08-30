@@ -154,10 +154,16 @@ function createFakeGl(options: { drawVisible: boolean }) {
     __setInteractionTone: (value: number) => {
       state.interactionTone = Math.max(0, Math.min(80, Math.round(Math.abs(value) * 4)));
     },
+    __releaseModel: vi.fn(),
   };
 }
 
-function createFakeRuntime(gl: ReturnType<typeof createFakeGl>): Live2DVisualRuntime {
+function createFakeRuntime(
+  gl: ReturnType<typeof createFakeGl>,
+  drawables: readonly Readonly<{ visible: boolean; opacity: number }>[] = [
+    { visible: true, opacity: 1 },
+  ],
+): Live2DVisualRuntime {
   class FakeModelSetting {
     public constructor(_buffer: ArrayBuffer, _size: number) {}
     public getModelFileName() { return 'ren.moc3'; }
@@ -214,9 +220,9 @@ function createFakeRuntime(gl: ReturnType<typeof createFakeGl>): Live2DVisualRun
       },
       getCanvasWidth: () => 2,
       getCanvasHeight: () => 2,
-      getDrawableCount: () => 1,
-      getDrawableOpacity: () => 1,
-      getDrawableDynamicFlagIsVisible: () => true,
+      getDrawableCount: () => drawables.length,
+      getDrawableOpacity: (index: number) => drawables[index]?.opacity ?? 0,
+      getDrawableDynamicFlagIsVisible: (index: number) => drawables[index]?.visible ?? false,
       getDrawableVertexCount: () => 4,
     };
     private readonly renderer = {
@@ -327,7 +333,9 @@ function createFakeRuntime(gl: ReturnType<typeof createFakeGl>): Live2DVisualRun
     public getModelMatrix() {
       return this.matrix;
     }
-    public release() {}
+    public release() {
+      gl.__releaseModel();
+    }
   }
 
   return {
@@ -410,6 +418,7 @@ async function createHostWithFakeRuntime(options: {
   expressions?: Map<string, string>;
   physicsPath?: string | null;
   posePath?: string | null;
+  drawables?: readonly Readonly<{ visible: boolean; opacity: number }>[];
 }) {
   const { createLive2DCarrierVisualHost } = await import('./carrier-visual-host.js');
   const gl = createFakeGl({ drawVisible: options.drawVisible });
@@ -436,7 +445,7 @@ async function createHostWithFakeRuntime(options: {
     width: 128,
     height: 160,
   }, {
-    loadRuntime: async () => createFakeRuntime(gl),
+    loadRuntime: async () => createFakeRuntime(gl, options.drawables),
     readBinary: vi.fn(async () => new ArrayBuffer(8)),
     loadTexture: vi.fn(async () => ({}) as WebGLTexture),
     verifyShaders: vi.fn(async () => []),
@@ -455,6 +464,7 @@ describe('Live2D carrier visual host', () => {
       drawableCount: 1,
       visibleDrawableCount: 1,
       nonZeroOpacityDrawableCount: 1,
+      visibleNonZeroOpacityDrawableCount: 1,
       textureBindingCount: 1,
     }));
     expect(gl.readPixels).not.toHaveBeenCalled();
@@ -470,15 +480,59 @@ describe('Live2D carrier visual host', () => {
       drawableCount: 1,
       visibleDrawableCount: 1,
       nonZeroOpacityDrawableCount: 1,
+      visibleNonZeroOpacityDrawableCount: 1,
       textureBindingCount: 1,
     }));
     expect(stats).not.toHaveProperty('sampledPixels');
     expect(gl.readPixels).not.toHaveBeenCalled();
   });
 
+  it('counts only drawables that are visible and non-transparent in the same frame', async () => {
+    const { host } = await createHostWithFakeRuntime({
+      drawVisible: true,
+      drawables: [
+        { visible: true, opacity: 0 },
+        { visible: false, opacity: 1 },
+        { visible: true, opacity: 0.5 },
+      ],
+    });
+
+    expect(host.drawFrame({ deltaTimeSeconds: 1 / 60, seconds: 1 })).toEqual(
+      expect.objectContaining({
+        drawableCount: 3,
+        visibleDrawableCount: 2,
+        nonZeroOpacityDrawableCount: 2,
+        visibleNonZeroOpacityDrawableCount: 1,
+      }),
+    );
+  });
+
   it('rejects unloaded backend sessions before creating a visual success state', async () => {
     await expect(createHostWithFakeRuntime({ drawVisible: true, loaded: false }))
       .rejects.toThrow('requires a loaded backend session');
+  });
+
+  it('releases a partially initialized Cubism model when texture setup fails', async () => {
+    const { createLive2DCarrierVisualHost } = await import('./carrier-visual-host.js');
+    const gl = createFakeGl({ drawVisible: true });
+    const canvas = document.createElement('canvas');
+    Object.defineProperty(canvas, 'getContext', { value: vi.fn(() => gl) });
+
+    await expect(createLive2DCarrierVisualHost({
+      canvas,
+      session: createSession(),
+      width: 128,
+      height: 160,
+    }, {
+      loadRuntime: async () => createFakeRuntime(gl),
+      readBinary: vi.fn(async () => new ArrayBuffer(8)),
+      loadTexture: vi.fn(async () => {
+        throw new Error('texture setup failed');
+      }),
+      verifyShaders: vi.fn(async () => []),
+    })).rejects.toThrow(/texture setup failed/u);
+
+    expect(gl.__releaseModel).toHaveBeenCalledTimes(1);
   });
 
   it('applies interaction parameter lanes without a pixel checksum harness', async () => {

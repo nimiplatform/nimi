@@ -7,7 +7,6 @@ export default defineConfig([
     'dist/**',
     '.cache/**',
     'node_modules/**',
-    'src-tauri/target/**',
     'src/shell/renderer/public/assets/**',
     '*.config.ts',
     '*.config.mjs',

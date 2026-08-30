@@ -58,6 +58,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
   const canceled = new Set<string>();
   const playbackChains = new Map<string, Promise<void>>();
   let disposed = false;
+  let activeIdentity: string | null = null;
   const stateBus = input.stateBus ?? getSharedVoiceLipsyncStateBus();
   const audioPipeline = input.audioPipeline ?? getSharedAudioPipelineController();
   const unregisterSink = input.backend
@@ -66,6 +67,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
   const unsubscribeQuiet = subscribeAvatarLocalQuiet((quiet) => {
     if (!quiet || disposed) return;
     for (const identity of playbackChains.keys()) canceled.add(identity);
+    activeIdentity = null;
     audioPipeline.stop('interrupted');
     audioPipeline.reset();
     stateBus.publish({ kind: 'deactivate' });
@@ -80,6 +82,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     const turnId = readString(detail, 'turn_id');
     if (!turnId) return;
     for (const identity of playbackChains.keys()) canceled.add(identity);
+    activeIdentity = null;
     audioPipeline.stop('interrupted');
     stateBus.publish({ kind: 'deactivate' });
     publishPlaybackState('interrupted');
@@ -125,6 +128,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       .catch(() => undefined)
       .then(async () => {
         if (disposed || isAvatarLocalQuiet() || canceled.has(identity)) return;
+        activeIdentity = identity;
         stateBus.publish({ kind: 'activate', audioArtifactId: voiceInput.audioSourceId });
         publishPlaybackState('requested');
         await playVoiceBytesAndWait({
@@ -132,6 +136,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
           audioMimeType: voiceInput.audioMimeType,
           bytes: voiceInput.bytes,
         });
+        if (activeIdentity === identity) activeIdentity = null;
       })
       .finally(() => {
         if (playbackChains.get(identity) === next) playbackChains.delete(identity);
@@ -172,7 +177,14 @@ export function createAvatarVoiceLipsyncPipeline(input: {
     if (event.name !== AVATAR_CONVERSATION_VOICE_FAILED_EVENT) return false;
     const voiceId = readString(detail, 'voice_id') ?? readString(detail, 'voiceId');
     if (!voiceId) return true;
-    canceled.add(`conversation:${voiceId}`);
+    const identity = `conversation:${voiceId}`;
+    canceled.add(identity);
+    if (activeIdentity === identity) {
+      activeIdentity = null;
+      audioPipeline.stop('interrupted');
+      stateBus.publish({ kind: 'deactivate' });
+      publishPlaybackState('failed');
+    }
     console.warn(
       `[avatar:voice] Conversation voice ${voiceId} failed: ${readString(detail, 'reason') ?? 'conversation_voice_failed'}`,
     );
@@ -198,6 +210,7 @@ export function createAvatarVoiceLipsyncPipeline(input: {
       publishPlaybackState('idle');
       canceled.clear();
       playbackChains.clear();
+      activeIdentity = null;
       unsubscribeQuiet();
       unregisterSink?.();
     },

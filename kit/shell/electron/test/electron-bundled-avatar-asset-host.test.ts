@@ -176,12 +176,13 @@ describe('bundled Avatar Runtime asset materialization', () => {
       const content = minimalVrmGlb();
       const localAssetRoots: string[] = [];
       const resolveRuntimeAsset = vi.fn(async () => runtimeAsset(content));
+      const protocolHost = createElectronShellFileProtocolHost({
+        protocol: new FakeElectronProtocol(),
+      });
       const host = createNimiElectronBundledAvatarAssetHost({
         resolveAppPrivateDataRoot: async () => path.join(root, 'avatar-private'),
         resolveRuntimeAsset,
-        localAssetProtocolHost: createElectronShellFileProtocolHost({
-          protocol: new FakeElectronProtocol(),
-        }),
+        localAssetProtocolHost: protocolHost,
         localAssetRoots,
       });
 
@@ -194,7 +195,22 @@ describe('bundled Avatar Runtime asset materialization', () => {
       ]);
       expect(rotated).toEqual(first);
       expect(localAssetRoots).toHaveLength(1);
-      expect(await readdir(path.dirname(localAssetRoots[0]!))).toEqual([AVATAR_ASSET_REF]);
+      const assetRoot = localAssetRoots[0]!;
+      const assetPath = first.manifest.vrm_file_path!;
+      expect(await readdir(path.dirname(assetRoot))).toEqual([AVATAR_ASSET_REF]);
+
+      await host.releaseMaterialization(first.materializationRef);
+      expect(localAssetRoots).toEqual([assetRoot]);
+      expect(await protocolHost.hasReadableFile(assetPath)).toBe(true);
+      const finalRelease = host.releaseMaterialization(rotated.materializationRef);
+      const reacquired = host.resolveBoundPresentation(avatarReference(), ROTATED_AGENT_HANDLE);
+      const [, replacementLease] = await Promise.all([finalRelease, reacquired]);
+      expect(localAssetRoots).toHaveLength(1);
+      expect(await protocolHost.hasReadableFile(replacementLease.manifest.vrm_file_path!)).toBe(true);
+      await host.releaseMaterialization(replacementLease.materializationRef);
+      expect(localAssetRoots).toEqual([]);
+      expect(await lstat(assetRoot).catch(() => null)).toBeNull();
+      expect(await protocolHost.hasReadableFile(assetPath)).toBe(false);
 
       await host.close();
     });

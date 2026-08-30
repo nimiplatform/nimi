@@ -15,7 +15,6 @@ import {
 } from '@pixiv/three-vrm-animation';
 
 import { getVrmLoader } from './vrm-loader.js';
-import { suspendCreateImageBitmapForTauriVrmLoad } from './vrm-tauri-quirks.js';
 
 // `three` is shimmed via `declare module 'three'` in three-loader-shim.d.ts
 // (no @types/three at this wave), so AnimationClip is exposed as `any`.
@@ -31,21 +30,12 @@ type AnimationClip = unknown;
  * The caller pairs this with `clipFromVRMAnimation(animation, vrm)` to
  * retarget onto a specific VRM (humanoid bone retargeting per the VRM
  * standard).
- *
- * Suspend wrap is applied identically to VRM loads — `.vrma` files
- * usually carry no textures, but the wrap is cheap and keeps a uniform
- * code path across both asset kinds.
  */
 export async function loadVrmAnimation(url: string): Promise<VRMAnimation | null> {
-  const restore = suspendCreateImageBitmapForTauriVrmLoad();
-  try {
-    const gltf = await getVrmLoader().loadAsync(url);
-    const animations = (gltf.userData as { vrmAnimations?: unknown[] }).vrmAnimations;
-    if (!Array.isArray(animations) || animations.length === 0) return null;
-    return animations[0] as VRMAnimation;
-  } finally {
-    restore();
-  }
+  const gltf = await getVrmLoader().loadAsync(url);
+  const animations = (gltf.userData as { vrmAnimations?: unknown[] }).vrmAnimations;
+  if (!Array.isArray(animations) || animations.length === 0) return null;
+  return animations[0] as VRMAnimation;
 }
 
 /**

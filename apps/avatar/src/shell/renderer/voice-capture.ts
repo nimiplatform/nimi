@@ -47,6 +47,15 @@ export type AvatarVoiceCaptureSession = {
   cancel: () => void;
 };
 
+export class AvatarVoiceCaptureStopTimeoutError extends Error {
+  readonly code = 'AVATAR_VOICE_CAPTURE_STOP_TIMEOUT' as const;
+
+  constructor() {
+    super('Voice capture did not finish after the recorder was stopped.');
+    this.name = 'AvatarVoiceCaptureStopTimeoutError';
+  }
+}
+
 type StartAvatarVoiceCaptureSessionDeps = {
   onLevelChange?: (amplitude: number) => void;
   getUserMediaImpl?: (constraints: MediaStreamConstraints) => Promise<MediaStreamLike>;
@@ -66,6 +75,7 @@ const PREFERRED_VOICE_CAPTURE_MIME_TYPES = [
   'audio/mp4',
 ] as const;
 const LEVEL_POLL_INTERVAL_MS = 120;
+export const VOICE_CAPTURE_STOP_SETTLE_TIMEOUT_MS = 5_000;
 
 function createAbortError(): Error {
   const error = new Error('Voice capture aborted.');
@@ -167,12 +177,23 @@ function createLevelMeterHandle(input: {
     input.onLevelChange(0);
     return { dispose() {} };
   }
-  const audioContext = createAudioContext();
-  const source = audioContext.createMediaStreamSource(input.stream);
-  const analyser = audioContext.createAnalyser();
-  analyser.fftSize = 2048;
-  source.connect(analyser);
-  void audioContext.resume?.();
+  let audioContext: AudioContextLike | null = null;
+  let source: MediaStreamSourceLike | null = null;
+  let analyser: AnalyserLike | null = null;
+  try {
+    audioContext = createAudioContext();
+    source = audioContext.createMediaStreamSource(input.stream);
+    analyser = audioContext.createAnalyser();
+    analyser.fftSize = 2048;
+    source.connect(analyser);
+    void audioContext.resume?.();
+  } catch (error) {
+    source?.disconnect?.();
+    analyser?.disconnect?.();
+    void audioContext?.close?.();
+    input.onLevelChange(0);
+    throw error;
+  }
 
   const samples = new Uint8Array(analyser.fftSize);
   const setTimer = input.setTimeoutImpl || ((handler: () => void, timeoutMs: number) => setTimeout(handler, timeoutMs));
@@ -185,7 +206,7 @@ function createLevelMeterHandle(input: {
       return;
     }
     try {
-      analyser.getByteTimeDomainData(samples);
+      analyser!.getByteTimeDomainData(samples);
       input.onLevelChange?.(resolveAgentVoicePlaybackAmplitude(samples));
     } finally {
       timerId = setTimer(poll, LEVEL_POLL_INTERVAL_MS);
@@ -204,9 +225,9 @@ function createLevelMeterHandle(input: {
         clearTimer(timerId);
       }
       input.onLevelChange?.(0);
-      source.disconnect?.();
-      analyser.disconnect?.();
-      void audioContext.close?.();
+      source?.disconnect?.();
+      analyser?.disconnect?.();
+      void audioContext?.close?.();
     },
   };
 }
@@ -217,28 +238,67 @@ export async function startAvatarVoiceCaptureSession(
   const getUserMedia = resolveGetUserMedia(deps);
   const createMediaRecorder = resolveCreateMediaRecorder(deps);
   const stream = await getUserMedia({ audio: true });
-  const captureMimeType = resolveCaptureMimeType(deps);
-  const recorder = createMediaRecorder(
-    stream,
-    captureMimeType ? { mimeType: captureMimeType } : undefined,
-  );
-  const levelMeter = createLevelMeterHandle({
-    stream,
-    onLevelChange: deps.onLevelChange,
-    createAudioContextImpl: resolveCreateAudioContext(deps) || undefined,
-    setTimeoutImpl: deps.setTimeoutImpl,
-    clearTimeoutImpl: deps.clearTimeoutImpl,
-  });
+  let levelMeter: { dispose: () => void } | null = null;
+  let recorder: MediaRecorderLike;
+  let captureMimeType: string | undefined;
+  try {
+    captureMimeType = resolveCaptureMimeType(deps);
+    recorder = createMediaRecorder(
+      stream,
+      captureMimeType ? { mimeType: captureMimeType } : undefined,
+    );
+    levelMeter = createLevelMeterHandle({
+      stream,
+      onLevelChange: deps.onLevelChange,
+      createAudioContextImpl: resolveCreateAudioContext(deps) || undefined,
+      setTimeoutImpl: deps.setTimeoutImpl,
+      clearTimeoutImpl: deps.clearTimeoutImpl,
+    });
+  } catch (error) {
+    levelMeter?.dispose();
+    stopTracks(stream);
+    throw error;
+  }
   const chunks: Blob[] = [];
   let settled = false;
   let stopped = false;
   let rejectStop: ((error: unknown) => void) | null = null;
   let resolveStop: ((result: AvatarVoiceCaptureResult) => void) | null = null;
   let recorderError: unknown | null = null;
+  let stopSettleTimer: unknown = null;
+  let resourcesReleased = false;
+  const setTimer = deps.setTimeoutImpl
+    || ((handler: () => void, timeoutMs: number) => setTimeout(handler, timeoutMs));
+  const clearTimer = deps.clearTimeoutImpl
+    || ((timerId: unknown) => clearTimeout(timerId as ReturnType<typeof setTimeout>));
 
   const cleanup = () => {
-    levelMeter.dispose();
+    if (resourcesReleased) return;
+    resourcesReleased = true;
+    levelMeter?.dispose();
     stopTracks(stream);
+  };
+
+  const clearStopSettleTimer = () => {
+    if (stopSettleTimer === null) return;
+    clearTimer(stopSettleTimer);
+    stopSettleTimer = null;
+  };
+
+  const rejectCapture = (error: unknown) => {
+    if (settled) return;
+    settled = true;
+    clearStopSettleTimer();
+    cleanup();
+    rejectStop?.(error);
+  };
+
+  const resolveCapture = (result: AvatarVoiceCaptureResult) => {
+    if (settled) return;
+    settled = true;
+    clearStopSettleTimer();
+    cleanup();
+    resolveStop?.(result);
   };
 
   recorder.ondataavailable = (event) => {
@@ -251,31 +311,31 @@ export async function startAvatarVoiceCaptureSession(
       return;
     }
     recorderError = event.error || new Error('Voice capture failed.');
-    settled = true;
-    cleanup();
-    rejectStop?.(recorderError);
+    rejectCapture(recorderError);
   };
   recorder.onstop = () => {
     if (settled) {
       return;
     }
-    settled = true;
     void (async () => {
       try {
         const blob = new Blob(chunks, { type: recorder.mimeType || captureMimeType || 'audio/webm' });
         const bytes = new Uint8Array(await blob.arrayBuffer());
-        cleanup();
-        resolveStop?.({
+        resolveCapture({
           bytes,
           mimeType: blob.type || recorder.mimeType || captureMimeType || 'audio/webm',
         });
       } catch (error) {
-        cleanup();
-        rejectStop?.(error);
+        rejectCapture(error);
       }
     })();
   };
-  recorder.start();
+  try {
+    recorder.start();
+  } catch (error) {
+    cleanup();
+    throw error;
+  }
 
   return {
     stop() {
@@ -289,23 +349,29 @@ export async function startAvatarVoiceCaptureSession(
       return new Promise<AvatarVoiceCaptureResult>((resolve, reject) => {
         resolveStop = resolve;
         rejectStop = reject;
+        stopSettleTimer = setTimer(() => {
+          stopSettleTimer = null;
+          rejectCapture(new AvatarVoiceCaptureStopTimeoutError());
+        }, VOICE_CAPTURE_STOP_SETTLE_TIMEOUT_MS);
         try {
           recorder.stop();
         } catch (error) {
+          rejectCapture(error);
+        } finally {
+          // MediaRecorder has already been asked to flush its final data. The
+          // microphone, meter and AudioContext are no longer needed while the
+          // queued dataavailable/onstop events settle.
           cleanup();
-          reject(error);
         }
       });
     },
     cancel() {
-      if (settled || stopped) {
+      if (settled) {
         cleanup();
         return;
       }
       stopped = true;
-      settled = true;
-      cleanup();
-      rejectStop?.(createAbortError());
+      rejectCapture(createAbortError());
       try {
         if (recorder.state === 'recording' || recorder.state === 'paused') {
           recorder.stop();

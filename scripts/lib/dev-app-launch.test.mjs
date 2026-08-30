@@ -41,7 +41,6 @@ test('Electron is the default carrier and enables the app CDP default', () => {
     cdpPort: 9334,
     cdpDisabled: false,
     help: false,
-    avatarArguments: [],
     envOverrides: {},
   });
   const plan = resolveDevAppLaunch('zhiyu', [], { platform: 'darwin' });
@@ -99,52 +98,6 @@ test('CDP can be disabled explicitly and fails closed on conflicting or invalid 
   );
 });
 
-test('only Avatar admits the explicit Tauri carrier and never combines it with CDP', () => {
-  const plan = resolveDevAppLaunch('avatar', [
-    '--tauri',
-    '--agent-handle',
-    `agent_ref_${'a'.repeat(43)}`,
-    '--conversation-anchor-id',
-    'anchor-1',
-    '--instance-id',
-    'avatar-instance',
-    '--no-kill-existing',
-  ], {
-    nodeExecutable: '/node',
-    platform: 'darwin',
-  });
-  assert.deepEqual(plan, {
-    kind: 'launch',
-    appName: 'avatar',
-    carrier: 'tauri',
-    cdpPort: undefined,
-    command: '/node',
-    args: [
-      path.join('scripts', 'dev-avatar.mjs'),
-      '--agent-handle',
-      `agent_ref_${'a'.repeat(43)}`,
-      '--conversation-anchor-id',
-      'anchor-1',
-      '--instance-id',
-      'avatar-instance',
-      '--no-kill-existing',
-    ],
-    envOverrides: {},
-  });
-  assert.throws(
-    () => resolveDevAppLaunch('avatar', ['--tauri', '--cdp-port', '9336']),
-    (error) => error.reasonCode === 'dev-app-tauri-cdp-unsupported',
-  );
-  assert.throws(
-    () => resolveDevAppLaunch('lab', ['--tauri']),
-    (error) => error.reasonCode === 'dev-app-carrier-unsupported',
-  );
-  assert.throws(
-    () => resolveDevAppLaunch('avatar', ['--electron', '--tauri']),
-    (error) => error.reasonCode === 'dev-app-carrier-duplicate',
-  );
-});
-
 test('Avatar Electron maps launch selectors to the existing Desktop carrier contract', () => {
   const plan = resolveDevAppLaunch('avatar', [
     '--agent-handle',
@@ -160,13 +113,13 @@ test('Avatar Electron maps launch selectors to the existing Desktop carrier cont
   });
   assert.throws(
     () => resolveDevAppLaunch('avatar', ['--uri', 'nimi-avatar://launch?agent_id=x']),
-    (error) => error.reasonCode === 'dev-app-avatar-option-requires-tauri',
+    (error) => error.reasonCode === 'dev-app-option-unsupported',
   );
 });
 
 test('help exposes the short interface and carrier constraints', () => {
   const output = devAppUsage('avatar');
-  assert.match(output, /pnpm dev:avatar \[--cdp-port <port> \| --no-cdp\] \[--tauri\]/u);
+  assert.match(output, /pnpm dev:avatar \[--cdp-port <port> \| --no-cdp\]/u);
   assert.match(output, /defaults to 127\.0\.0\.1:9336/u);
   assert.match(output, /cannot run beside the regular Desktop dev instance/u);
   assert.equal(resolveDevAppLaunch('avatar', ['--help']).kind, 'help');

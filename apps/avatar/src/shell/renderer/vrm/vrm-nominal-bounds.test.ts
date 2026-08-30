@@ -15,6 +15,7 @@ import {
   VRM_NOMINAL_BOUNDS_MIN_WIDTH,
   VRM_NOMINAL_PX_PER_WORLD_UNIT,
   deriveVrmNominalBounds,
+  deriveVrmProjectedHitGeometry,
 } from './vrm-nominal-bounds.js';
 
 // Build a fake VRM whose `scene` is a real Object3D containing a single
@@ -67,7 +68,6 @@ describe('deriveVrmNominalBounds', () => {
     const result = deriveVrmNominalBounds({
       vrm: null,
       intent: 'bottom-companion',
-      aspect: 0.45,
     });
     expect(result).toEqual(VRM_DEFAULT_NOMINAL_BOUNDS);
   });
@@ -79,7 +79,6 @@ describe('deriveVrmNominalBounds', () => {
     const result = deriveVrmNominalBounds({
       vrm,
       intent: 'bottom-companion',
-      aspect: 0.45,
     });
     expect(result.width).toBeGreaterThanOrEqual(VRM_NOMINAL_BOUNDS_MIN_WIDTH);
     expect(result.width).toBeLessThanOrEqual(VRM_NOMINAL_BOUNDS_MAX_WIDTH);
@@ -95,7 +94,6 @@ describe('deriveVrmNominalBounds', () => {
     const result = deriveVrmNominalBounds({
       vrm,
       intent: 'full-body',
-      aspect: 0.45,
     });
     const expectedHeight = 3.15 * VRM_NOMINAL_PX_PER_WORLD_UNIT;
     const expectedWidth = 3.15 * 0.45 * VRM_NOMINAL_PX_PER_WORLD_UNIT;
@@ -106,32 +104,39 @@ describe('deriveVrmNominalBounds', () => {
   it('framing intent governs bodyCenterY: full-body=0.5, bottom-companion=0.55, head-shoulders=0.7', () => {
     const vrm = makeStubVrm({ x: -0.3, y: 0, z: -0.2 }, { x: 0.3, y: 1.7, z: 0.2 });
     expect(
-      deriveVrmNominalBounds({ vrm, intent: 'full-body', aspect: 0.45 }).bodyCenterY,
+      deriveVrmNominalBounds({ vrm, intent: 'full-body' }).bodyCenterY,
     ).toBe(0.5);
     expect(
-      deriveVrmNominalBounds({ vrm, intent: 'bottom-companion', aspect: 0.45 }).bodyCenterY,
+      deriveVrmNominalBounds({ vrm, intent: 'bottom-companion' }).bodyCenterY,
     ).toBe(0.55);
     expect(
-      deriveVrmNominalBounds({ vrm, intent: 'head-shoulders', aspect: 0.45 }).bodyCenterY,
+      deriveVrmNominalBounds({ vrm, intent: 'head-shoulders' }).bodyCenterY,
     ).toBe(0.7);
   });
 
   it('bodyCenterX is always 0.5 (VRM models are world-centered on X)', () => {
     const vrm = makeStubVrm({ x: -0.3, y: 0, z: -0.2 }, { x: 0.3, y: 1.7, z: 0.2 });
     for (const intent of ['full-body', 'bottom-companion', 'head-shoulders'] as const) {
-      const r = deriveVrmNominalBounds({ vrm, intent, aspect: 0.45 });
+      const r = deriveVrmNominalBounds({ vrm, intent });
       expect(r.bodyCenterX).toBe(0.5);
     }
   });
 
-  it('aspect ratio variation drives width while height stays stable for the same intent', () => {
+  it('has no current-window aspect input, preventing native resize feedback', () => {
     const vrm = makeStubVrm({ x: -0.5, y: 0, z: -0.3 }, { x: 0.5, y: 3, z: 0.3 });
-    const wide = deriveVrmNominalBounds({ vrm, intent: 'full-body', aspect: 0.5 });
-    const narrow = deriveVrmNominalBounds({ vrm, intent: 'full-body', aspect: 0.4 });
-    // Same model, same intent → height is identical.
-    expect(wide.height).toBeCloseTo(narrow.height, 6);
-    // Wider aspect produces a wider framed width (when within clamp range).
-    expect(wide.width).toBeGreaterThan(narrow.width);
+    const logical = deriveVrmNominalBounds({ vrm, intent: 'full-body' });
+    const narrowHit = deriveVrmProjectedHitGeometry({
+      vrm,
+      intent: 'full-body',
+      aspect: 0.4,
+    });
+    const wideHit = deriveVrmProjectedHitGeometry({
+      vrm,
+      intent: 'full-body',
+      aspect: 0.6,
+    });
+    expect(wideHit.body).not.toEqual(narrowHit.body);
+    expect(deriveVrmNominalBounds({ vrm, intent: 'full-body' })).toEqual(logical);
   });
 
   it('falls back to default when scene bbox is degenerate (zero size)', () => {
@@ -142,7 +147,6 @@ describe('deriveVrmNominalBounds', () => {
     const result = deriveVrmNominalBounds({
       vrm: empty,
       intent: 'bottom-companion',
-      aspect: 0.45,
     });
     expect(result).toEqual(VRM_DEFAULT_NOMINAL_BOUNDS);
   });

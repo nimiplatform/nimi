@@ -9,6 +9,10 @@ export type AvatarCommittedPresentationActivation = {
   readonly presentationRevision: string;
 };
 
+export type AvatarPresentationReadinessGate = (
+  carrier: AvatarRuntimeCarrier,
+) => Promise<void>;
+
 export type BootstrapHandle = {
   driver?: AgentDataDriver | null;
   carrier?: AvatarRuntimeCarrier | null;
@@ -47,6 +51,8 @@ export type BootstrapHandle = {
   }): Promise<{ readonly turnId: string }>;
   activateCommittedPresentation(
     input: AvatarCommittedPresentationActivation,
+    waitForPresentationReady: AvatarPresentationReadinessGate,
   ): Promise<void>;
+  commitInitialPresentation(): Promise<void>;
   shutdown(): Promise<void>;
 };

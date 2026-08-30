@@ -32,7 +32,7 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Component as ReactComponent } from 'react';
 import type { ComponentType, ReactNode } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { VRM } from '@pixiv/three-vrm';
 import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
 import type {
@@ -47,6 +47,7 @@ import {
 import { applyVrmFraming } from './vrm-framing.js';
 import {
   createVrmRuntime,
+  VRM_PRESENTATION_WATCHDOG_TIMEOUT_MS,
   type VrmRenderState,
   type VrmRuntime,
   type VrmRuntimeOptions,
@@ -68,6 +69,12 @@ import {
   createVrmCapabilityProfile,
   type VrmCapabilityProfile,
 } from './vrm-capability-profile.js';
+import {
+  deriveVrmLogicalWindowGeometry,
+  deriveVrmProjectedHitGeometry,
+  type VrmLogicalWindowGeometry,
+  type VrmProjectedHitGeometry,
+} from './vrm-nominal-bounds.js';
 import { getCachedDeviceTier } from '../app-shell/device-tier-detector.js';
 import { PresentationUnavailableSurface } from '../presentation-unavailable/presentation-unavailable-surface.js';
 
@@ -105,6 +112,102 @@ export function shouldCaptureVrmAlphaMask(deviceTier: string): boolean {
   return deviceTier === 'A' || deviceTier === 'B';
 }
 
+export const VRM_PROJECTED_HIT_CHANGE_THRESHOLD_PX = 2;
+
+export function hasMaterialProjectedHitChange(input: {
+  previous: VrmProjectedHitGeometry | null;
+  next: VrmProjectedHitGeometry;
+  viewportWidth: number;
+  viewportHeight: number;
+}): boolean {
+  if (!input.previous) return true;
+  const width = Math.max(1, input.viewportWidth);
+  const height = Math.max(1, input.viewportHeight);
+  const horizontalKeys = ['left', 'right'] as const;
+  const verticalKeys = ['top', 'bottom'] as const;
+  for (const region of ['body', 'drag'] as const) {
+    for (const key of horizontalKeys) {
+      if (Math.abs(input.previous[region][key] - input.next[region][key]) * width
+        >= VRM_PROJECTED_HIT_CHANGE_THRESHOLD_PX) return true;
+    }
+    for (const key of verticalKeys) {
+      if (Math.abs(input.previous[region][key] - input.next[region][key]) * height
+        >= VRM_PROJECTED_HIT_CHANGE_THRESHOLD_PX) return true;
+    }
+  }
+  return false;
+}
+
+type VrmRenderableObjectLike = {
+  readonly visible?: boolean;
+  readonly parent?: VrmRenderableObjectLike | null;
+  readonly isMesh?: boolean;
+  readonly isSkinnedMesh?: boolean;
+  readonly geometry?: {
+    readonly attributes?: { readonly position?: { readonly count?: number } };
+    getAttribute?: (name: string) => { readonly count?: number } | undefined;
+  };
+  readonly material?: VrmMaterialLike | readonly VrmMaterialLike[];
+};
+
+type VrmMaterialLike = {
+  readonly visible?: boolean;
+  readonly opacity?: number;
+};
+
+type VrmFrameRendererLike = {
+  getRenderTarget?: () => unknown;
+  readonly info?: {
+    readonly render?: {
+      readonly calls?: number;
+      readonly triangles?: number;
+    };
+  };
+};
+
+export function hasVisibleRenderableVrmScene(vrm: VRM): boolean {
+  let renderable = false;
+  vrm.scene.traverse((candidate: unknown) => {
+    if (renderable || !candidate || typeof candidate !== 'object') return;
+    const object = candidate as VrmRenderableObjectLike;
+    if (object.isMesh !== true && object.isSkinnedMesh !== true) return;
+    for (let current: VrmRenderableObjectLike | null | undefined = object;
+      current;
+      current = current.parent) {
+      if (current.visible === false) return;
+    }
+    const position = object.geometry?.getAttribute?.('position')
+      ?? object.geometry?.attributes?.position;
+    if (!Number.isFinite(position?.count) || Number(position?.count) <= 0) return;
+    const materials = Array.isArray(object.material)
+      ? object.material
+      : object.material ? [object.material] : [];
+    if (!materials.some((material) => {
+      const opacity = material.opacity ?? 1;
+      return material.visible !== false && Number.isFinite(opacity) && opacity > 0;
+    })) return;
+    renderable = true;
+  });
+  return renderable;
+}
+
+export function isVrmSemanticFirstFrame(input: {
+  vrm: VRM;
+  renderer: VrmFrameRendererLike | null | undefined;
+  renderedScene: unknown;
+  expectedScene: unknown;
+}): boolean {
+  const render = input.renderer?.info?.render;
+  return typeof input.renderer?.getRenderTarget === 'function'
+    && input.renderer.getRenderTarget() === null
+    && input.renderedScene === input.expectedScene
+    && Number.isFinite(render?.calls)
+    && Number(render?.calls) > 0
+    && Number.isFinite(render?.triangles)
+    && Number(render?.triangles) > 0
+    && hasVisibleRenderableVrmScene(input.vrm);
+}
+
 export function createVrmCarrierSurface(
   input: VrmCarrierSurfaceInput,
 ): VrmCarrierSurfaceHandle {
@@ -119,6 +222,25 @@ export function createVrmCarrierSurface(
   const Component: ComponentType<BackendSurfaceProps> = (props) => {
     const audioAnnouncedRef = useRef(false);
     const regionAnnouncedRef = useRef(false);
+    const presentationCallbackRef = useRef(props.onPresentationStateChange);
+    presentationCallbackRef.current = props.onPresentationStateChange;
+    const reportedPresentationRef = useRef<{
+      kind: 'loading' | 'recovering' | 'ready' | 'unavailable';
+      reason?: string;
+    } | null>(null);
+    const [presentationState, setPresentationState] = useState<
+      'loading' | 'recovering' | 'ready' | 'failed_closed'
+    >('loading');
+    const reportPresentation = (
+      next: Parameters<NonNullable<typeof props.onPresentationStateChange>>[0],
+    ): void => {
+      const current = reportedPresentationRef.current;
+      const reason = next.kind === 'unavailable' ? next.reason : undefined;
+      if (current?.kind === next.kind && current.reason === reason) return;
+      reportedPresentationRef.current = { kind: next.kind, ...(reason ? { reason } : {}) };
+      setPresentationState(next.kind === 'unavailable' ? 'failed_closed' : next.kind);
+      presentationCallbackRef.current?.(next);
+    };
     const boundVrmRef = useRef<VRM | null>(null);
     const suppressedMotionRef = useRef<PlayGeneratedMotionInput | null>(null);
     const reducedMotionRef = useRef(props.reducedMotion === true);
@@ -127,84 +249,202 @@ export function createVrmCarrierSurface(
     const [state, setState] = useState<VrmRenderState>({ kind: 'idle' });
     const [boundVrm, setBoundVrm] = useState<VRM | null>(null);
     const [canvasError, setCanvasError] = useState(false);
+    const [capabilityProfileRef, setCapabilityProfileRef] = useState<string | null>(null);
+    const firstFrameWatchdogRef = useRef<number | null>(null);
+    const firstFrameWatchdogVrmRef = useRef<VRM | null>(null);
+    const lastValidLogicalWindowRef = useRef<VrmLogicalWindowGeometry | null>(null);
+    const lastValidProjectedHitRef = useRef<VrmProjectedHitGeometry | null>(null);
+    const lastPublishedBoundsRef = useRef<VrmLogicalWindowGeometry['bounds'] | null>(null);
+    const lastPublishedProjectedHitRef = useRef<VrmProjectedHitGeometry | null>(null);
+
+    const clearFirstFrameWatchdog = (): void => {
+      if (firstFrameWatchdogRef.current !== null) {
+        window.clearTimeout(firstFrameWatchdogRef.current);
+        firstFrameWatchdogRef.current = null;
+      }
+      firstFrameWatchdogVrmRef.current = null;
+    };
+
+    const armFirstFrameWatchdog = (runtime: VrmRuntime, vrm: VRM): void => {
+      clearFirstFrameWatchdog();
+      firstFrameWatchdogVrmRef.current = vrm;
+      firstFrameWatchdogRef.current = window.setTimeout(() => {
+        firstFrameWatchdogRef.current = null;
+        if (runtimeRef !== runtime || firstFrameWatchdogVrmRef.current !== vrm) return;
+        firstFrameWatchdogVrmRef.current = null;
+        runtime.notifyFirstFrameTimedOut(vrm);
+      }, VRM_PRESENTATION_WATCHDOG_TIMEOUT_MS);
+    };
 
     // Construct runtime + start it on mount; tear down on unmount.
     useEffect(() => {
+      let mounted = true;
+      const detachVrmConsumers = (retiredVrm?: VRM): void => {
+        if (retiredVrm && boundVrmRef.current !== retiredVrm) {
+          // Even an unbound terminal/retry attempt must clear pending cues so
+          // a later adapter cannot replay state captured for a failed scene.
+          input.resetProjectionAdapter();
+          return;
+        }
+        input.resetProjectionAdapter();
+        input.generatedMotionRuntime.dispose();
+        input.emoteState.setLipsyncActive(false);
+        if (retiredVrm) input.emoteState.reset({ vrm: retiredVrm });
+        input.audioConsumer.silent();
+        suppressedMotionRef.current = null;
+        boundVrmRef.current = null;
+        lastValidLogicalWindowRef.current = null;
+        lastValidProjectedHitRef.current = null;
+        lastPublishedBoundsRef.current = null;
+        lastPublishedProjectedHitRef.current = null;
+        if (mounted) {
+          setBoundVrm(null);
+          setCapabilityProfileRef(null);
+        }
+      };
       const runtime = createVrmRuntime({
         manifest: input.manifest,
         ...input.runtimeOptions,
-        beforeDisposeVrm: (retiredVrm) => {
-          if (boundVrmRef.current !== retiredVrm) return;
-          input.resetProjectionAdapter();
-          input.generatedMotionRuntime.dispose();
-          input.emoteState.setLipsyncActive(false);
-          input.emoteState.reset({ vrm: retiredVrm });
-          input.audioConsumer.silent();
-          suppressedMotionRef.current = null;
-          boundVrmRef.current = null;
-          setBoundVrm((current) => current === retiredVrm ? null : current);
-        },
+        beforeDisposeVrm: detachVrmConsumers,
       });
       runtimeRef = runtime;
       const detachDiagnostics = attachVrmDiagnostics(runtime);
-      const unsubscribe = runtime.subscribe((next) => setState(next));
+      const unsubscribe = runtime.subscribe((next) => {
+        if (next.kind === 'context_lost') {
+          detachVrmConsumers(next.vrm);
+        } else if (next.kind === 'failed_closed') {
+          detachVrmConsumers();
+        }
+        if (next.kind === 'ready') {
+          // The scene is loaded, but presentation is not ready until the
+          // projection adapter, motion runtime, capability profile, and first
+          // visible default-framebuffer render all complete.
+          armFirstFrameWatchdog(runtime, next.vrm);
+          reportPresentation({ kind: 'loading' });
+        } else if (next.kind === 'context_lost') {
+          clearFirstFrameWatchdog();
+          reportPresentation({ kind: 'recovering' });
+        } else if (next.kind === 'failed_closed') {
+          clearFirstFrameWatchdog();
+          reportPresentation({ kind: 'unavailable', reason: next.reason });
+        } else {
+          clearFirstFrameWatchdog();
+          reportPresentation({ kind: 'loading' });
+        }
+        if (mounted) setState(next);
+      });
       void runtime.start();
       return () => {
+        mounted = false;
         unsubscribe();
         detachDiagnostics();
+        clearFirstFrameWatchdog();
         runtime.shutdown();
         runtimeRef = null;
       };
     }, []);
 
-    // Once the surface reaches `ready` for the first time, announce the
-    // audio consumer and the hit region. Both are guarded by refs so a
-    // bounce through context_lost → ready does not re-announce.
+    // A staging surface deliberately receives no audio callback. Announce the
+    // sink only after this same mounted surface becomes the active layer.
     useEffect(() => {
       if (state.kind !== 'ready') return;
-      if (!audioAnnouncedRef.current) {
+      if (!audioAnnouncedRef.current && props.onAudioConsumerReady) {
         audioAnnouncedRef.current = true;
-        props.onAudioConsumerReady?.(input.audioConsumer);
+        props.onAudioConsumerReady(input.audioConsumer);
       }
+    }, [state.kind, props.onAudioConsumerReady]);
+
+    const publishCurrentGeometry = useCallback((currentVrm: VRM): void => {
+      const logicalDerived = deriveVrmLogicalWindowGeometry({
+        vrm: currentVrm,
+        intent: 'bottom-companion',
+      });
+      const logical = logicalDerived.source === 'scene_geometry'
+        ? logicalDerived
+        : lastValidLogicalWindowRef.current ?? logicalDerived;
+      if (logicalDerived.source === 'scene_geometry') {
+        lastValidLogicalWindowRef.current = logicalDerived;
+      } else if (!lastValidLogicalWindowRef.current) {
+        console.warn(`[avatar:vrm] logical window geometry degraded: ${logicalDerived.reasonCode}`);
+      }
+
+      const aspect = props.height > 0 ? props.width / props.height : 0.45;
+      const projectedDerived = deriveVrmProjectedHitGeometry({
+        vrm: currentVrm,
+        intent: 'bottom-companion',
+        aspect,
+      });
+      const projected = projectedDerived.source === 'scene_geometry'
+        ? projectedDerived
+        : lastValidProjectedHitRef.current ?? projectedDerived;
+      if (projectedDerived.source === 'scene_geometry') {
+        lastValidProjectedHitRef.current = projectedDerived;
+      } else if (!lastValidProjectedHitRef.current) {
+        console.warn(`[avatar:vrm] projected hit geometry degraded: ${projectedDerived.reasonCode}`);
+      }
+
+      const previousBounds = lastPublishedBoundsRef.current;
+      const materiallyChanged = !previousBounds
+        || Math.abs(previousBounds.width - logical.bounds.width) >= 2
+        || Math.abs(previousBounds.height - logical.bounds.height) >= 2
+        || previousBounds.bodyCenterX !== logical.bounds.bodyCenterX
+        || previousBounds.bodyCenterY !== logical.bounds.bodyCenterY;
+      if (materiallyChanged) {
+        lastPublishedBoundsRef.current = logical.bounds;
+        props.onSurfaceBoundsChange?.({
+          bounds: logical.bounds,
+          source: logical.source,
+          reasonCode: logical.reasonCode,
+        });
+      }
+
+      if (!props.onHitRegionChange || !hasMaterialProjectedHitChange({
+        previous: lastPublishedProjectedHitRef.current,
+        next: projected,
+        viewportWidth: props.width,
+        viewportHeight: props.height,
+      })) return;
+      lastPublishedProjectedHitRef.current = projected;
+      const hitRegion = createVrmHitRegion({
+        renderTarget: input.renderTarget,
+        body: projected.body,
+        drag: projected.drag,
+        deviceTier,
+        getViewport: () => {
+          const container = canvasContainerRef.current;
+          if (!container) return null;
+          const canvas = container.querySelector('canvas');
+          if (!canvas) return null;
+          const rect = canvas.getBoundingClientRect();
+          if (rect.width <= 0 || rect.height <= 0) return null;
+          return {
+            left: rect.left,
+            top: rect.top,
+            width: rect.width,
+            height: rect.height,
+          };
+        },
+        onDegraded: (detail) => {
+          console.warn(`[avatar:vrm] hit-region degraded: ${detail.reason_code}`);
+        },
+      });
+      props.onHitRegionChange(hitRegion);
       if (!regionAnnouncedRef.current) {
         regionAnnouncedRef.current = true;
-        // Wave 4 chunk 4-C: real alpha-mask (or tier-C bbox fallback)
-        // hit region. The render target was already constructed at the
-        // BackendBranch factory; we wire the viewport through a closure
-        // reading the canvas element's bounding rect each probe so the
-        // region works correctly across resize / drag.
-        const hitRegion = createVrmHitRegion({
-          renderTarget: input.renderTarget,
-          deviceTier,
-          getViewport: () => {
-            const container = canvasContainerRef.current;
-            if (!container) return null;
-            const canvas = container.querySelector('canvas');
-            if (!canvas) return null;
-            const rect = canvas.getBoundingClientRect();
-            if (rect.width <= 0 || rect.height <= 0) return null;
-            return {
-              left: rect.left,
-              top: rect.top,
-              width: rect.width,
-              height: rect.height,
-            };
-          },
-          onDegraded: (detail) => {
-            console.warn(`[avatar:vrm] hit-region degraded: ${detail.reason_code}`);
-          },
-        });
-        if (props.onHitRegionChange) {
-          props.onHitRegionChange(hitRegion);
-          input.onHitRegionPublished?.();
-        }
+        input.onHitRegionPublished?.();
       }
     }, [
-      state.kind,
-      props.onAudioConsumerReady,
-      props.onHitRegionChange,
       input.onHitRegionPublished,
+      input.renderTarget,
+      props.height,
+      props.onHitRegionChange,
+      props.onSurfaceBoundsChange,
+      props.width,
     ]);
+
+    useEffect(() => {
+      if (state.kind === 'ready') publishCurrentGeometry(state.vrm);
+    }, [publishCurrentGeometry, state]);
 
     // Wire webglcontextlost / restored once the canvas DOM mounts.
     useEffect(() => {
@@ -251,16 +491,33 @@ export function createVrmCarrierSurface(
         input.setProjectionAdapter(adapter);
         boundVrmRef.current = currentVrm;
         setBoundVrm(currentVrm);
-        input.onCapabilityProfile?.(createVrmCapabilityProfile(currentVrm));
+        const profile = createVrmCapabilityProfile(currentVrm);
+        input.onCapabilityProfile?.(profile);
+        setCapabilityProfileRef(`avatar.vrm.capability-profile:${profile.profileId}`);
       } catch (error) {
+        clearFirstFrameWatchdog();
         input.resetProjectionAdapter();
         input.generatedMotionRuntime.dispose();
         boundVrmRef.current = null;
         setBoundVrm(null);
         setCanvasError(true);
+        reportPresentation({
+          kind: 'unavailable',
+          reason: error instanceof Error ? error.message : String(error),
+        });
         console.warn(`[avatar:vrm] failed to bind current VRM consumers: ${error instanceof Error ? error.message : String(error)}`);
       }
     }, [state]);
+
+    const handleFirstRenderedFrame = useCallback((renderedVrm: VRM): void => {
+      const runtimeState = runtimeRef?.getState();
+      if (runtimeState?.kind !== 'ready'
+        || runtimeState.vrm !== renderedVrm
+        || boundVrmRef.current !== renderedVrm) return;
+      if (firstFrameWatchdogVrmRef.current !== renderedVrm) return;
+      clearFirstFrameWatchdog();
+      reportPresentation({ kind: 'ready' });
+    }, []);
 
     useEffect(() => {
       if (props.reducedMotion) {
@@ -320,9 +577,11 @@ export function createVrmCarrierSurface(
 
     if (state.kind === 'failed_closed' || canvasError) {
       return (
-        <PresentationUnavailableSurface
-          reason={state.kind === 'failed_closed' ? state.reason : 'webgl_canvas_unavailable'}
-        />
+        <div data-avatar-vrm-state="failed_closed">
+          <PresentationUnavailableSurface
+            reason={state.kind === 'failed_closed' ? state.reason : 'webgl_canvas_unavailable'}
+          />
+        </div>
       );
     }
 
@@ -330,7 +589,9 @@ export function createVrmCarrierSurface(
       <div
         ref={canvasContainerRef}
         data-testid="avatar-vrm-carrier"
-        data-avatar-vrm-state={state.kind}
+        data-avatar-vrm-state={presentationState}
+        data-avatar-vrm-runtime-state={state.kind}
+        data-avatar-vrm-capability-profile-ref={capabilityProfileRef ?? undefined}
         style={{
           position: 'absolute',
           inset: 0,
@@ -344,6 +605,10 @@ export function createVrmCarrierSurface(
           reducedMotion={props.reducedMotion === true}
           onMountError={() => {
             setCanvasError(true);
+            reportPresentation({
+              kind: 'unavailable',
+              reason: 'webgl_canvas_unavailable',
+            });
             console.warn('[avatar:vrm] WebGL canvas failed to mount');
           }}
         >
@@ -357,7 +622,9 @@ export function createVrmCarrierSurface(
                 emoteState={input.emoteState}
                 generatedMotionRuntime={input.generatedMotionRuntime}
                 reducedMotion={props.reducedMotion === true}
+                onGeometrySample={publishCurrentGeometry}
               />
+              <VrmFirstFrameObserver vrm={vrm} onFirstFrame={handleFirstRenderedFrame} />
               {shouldCaptureVrmAlphaMask(deviceTier) ? (
                 <VrmRenderTargetCaptureLoop
                   vrm={vrm}
@@ -402,6 +669,7 @@ function VrmFrameLoop({
   emoteState,
   generatedMotionRuntime,
   reducedMotion,
+  onGeometrySample,
 }: {
   vrm: VRM;
   audioConsumer: BackendAudioConsumer;
@@ -409,7 +677,9 @@ function VrmFrameLoop({
   emoteState: VrmEmoteState;
   generatedMotionRuntime: VrmGeneratedMotionRuntime<VRM>;
   reducedMotion: boolean;
+  onGeometrySample: (vrm: VRM) => void;
 }): null {
+  const lastGeometrySampleAtMsRef = useRef(-Infinity);
   useFrame((_state, deltaSec) => {
     const dt = Math.max(0, deltaSec);
     const lipsyncSnapshot = audioConsumer.snapshot();
@@ -422,7 +692,52 @@ function VrmFrameLoop({
     if (typeof (vrm as { update?: (dt: number) => void }).update === 'function') {
       (vrm as { update: (dt: number) => void }).update(reducedMotion ? 0 : dt);
     }
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    if (now - lastGeometrySampleAtMsRef.current >= VRM_GEOMETRY_SAMPLE_INTERVAL_MS) {
+      lastGeometrySampleAtMsRef.current = now;
+      onGeometrySample(vrm);
+    }
   });
+  return null;
+}
+
+const VRM_GEOMETRY_SAMPLE_INTERVAL_MS = 100;
+
+function VrmFirstFrameObserver({
+  vrm,
+  onFirstFrame,
+}: {
+  vrm: VRM;
+  onFirstFrame: (vrm: VRM) => void;
+}): null {
+  const { scene } = useThree();
+  const callbackRef = useRef(onFirstFrame);
+  callbackRef.current = onFirstFrame;
+  useEffect(() => {
+    const renderScene = scene as unknown as {
+      onAfterRender?: (...args: unknown[]) => void;
+    };
+    const previous = renderScene.onAfterRender;
+    let observed = false;
+    const handleAfterRender = (...args: unknown[]): void => {
+      previous?.(...args);
+      if (observed) return;
+      if (!isVrmSemanticFirstFrame({
+        vrm,
+        renderer: args[0] as VrmFrameRendererLike | undefined,
+        renderedScene: args[1],
+        expectedScene: renderScene,
+      })) return;
+      observed = true;
+      callbackRef.current(vrm);
+    };
+    renderScene.onAfterRender = handleAfterRender;
+    return () => {
+      if (renderScene.onAfterRender === handleAfterRender) {
+        renderScene.onAfterRender = previous;
+      }
+    };
+  }, [scene, vrm]);
   return null;
 }
 

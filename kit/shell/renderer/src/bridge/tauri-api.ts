@@ -236,7 +236,7 @@ export async function listenShell(
   return await listenTauri(eventName, handler);
 }
 
-export function convertTauriFileSrc(fileUrl: string): string {
+export function convertShellFileSrc(fileUrl: string): string {
   if (hasElectronRuntime()) {
     return convertElectronFileSrc(fileUrl);
   }

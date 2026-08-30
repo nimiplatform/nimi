@@ -1,4 +1,4 @@
-// Wave 4 — window-bounds-policy.yaml conformance tests.
+// Desktop-supervised window-bounds-policy.yaml conformance tests.
 //
 // Asserts the renderer's bounds computer matches the policy table:
 //   - width_px  = embodiment_bounds.width  * avatar_scale + 2 * padding_px
@@ -162,7 +162,7 @@ describe('createWindowBoundsRecomputer - recompute_triggers', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const ctx = makeDeps({
       applySize: vi.fn(async () => {
-        throw new Error('native set_size failed');
+        throw new Error('Desktop Host setBounds failed');
       }),
     });
     const recomputer = createWindowBoundsRecomputer(ctx.deps);

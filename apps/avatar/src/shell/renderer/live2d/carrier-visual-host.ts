@@ -28,6 +28,7 @@ export type Live2DCarrierVisualDrawStats = {
   drawableCount: number;
   visibleDrawableCount: number;
   nonZeroOpacityDrawableCount: number;
+  visibleNonZeroOpacityDrawableCount: number;
   textureBindingCount: number;
   activeMotionGroup: string | null;
   motionFrameApplied: boolean;
@@ -360,12 +361,18 @@ async function createVisualModel(input: {
       const drawableCount = model.getDrawableCount();
       let visibleDrawableCount = 0;
       let nonZeroOpacityDrawableCount = 0;
+      let visibleNonZeroOpacityDrawableCount = 0;
       for (let index = 0; index < drawableCount; index += 1) {
-        if (model.getDrawableDynamicFlagIsVisible(index)) {
+        const visible = model.getDrawableDynamicFlagIsVisible(index);
+        const nonZeroOpacity = model.getDrawableOpacity(index) > 0.001;
+        if (visible) {
           visibleDrawableCount += 1;
         }
-        if (model.getDrawableOpacity(index) > 0.001) {
+        if (nonZeroOpacity) {
           nonZeroOpacityDrawableCount += 1;
+        }
+        if (visible && nonZeroOpacity) {
+          visibleNonZeroOpacityDrawableCount += 1;
         }
       }
       return {
@@ -374,6 +381,7 @@ async function createVisualModel(input: {
         drawableCount,
         visibleDrawableCount,
         nonZeroOpacityDrawableCount,
+        visibleNonZeroOpacityDrawableCount,
         textureBindingCount: this.getRenderer().getBindedTextures().size,
         activeMotionGroup: this.startedMotionGroup,
         motionFrameApplied,
@@ -514,8 +522,20 @@ async function createVisualModel(input: {
   }
 
   const model = new AvatarCarrierCubismModel();
-  await model.initialize(input.width, input.height);
-  return model;
+  try {
+    await model.initialize(input.width, input.height);
+    return model;
+  } catch (error) {
+    // `initialize` acquires the Cubism model, motions, expressions, physics,
+    // textures, and renderer incrementally. A rejected partial attempt owns
+    // everything it already acquired and must release it before propagating.
+    try {
+      model.release();
+    } catch (releaseError) {
+      console.warn(`[avatar:live2d] partial visual host release failed: ${releaseError instanceof Error ? releaseError.message : String(releaseError)}`);
+    }
+    throw error;
+  }
 }
 
 // @nimi-authority: rule.nimi.avatar.embodiment.r078

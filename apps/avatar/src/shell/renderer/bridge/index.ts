@@ -1,5 +1,4 @@
 export {
-  hasTauriInvoke,
   installNimiShellRuntimeBridge,
   getRuntimeDefaults,
   getDaemonStatus,

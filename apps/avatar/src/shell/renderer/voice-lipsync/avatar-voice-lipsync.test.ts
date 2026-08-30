@@ -32,9 +32,10 @@ function createDriver(): AgentDataDriver & { emitted: AppOriginEvent[] } {
   };
 }
 
-function createAudioPipeline() {
+function createAudioPipeline(options: { autoComplete?: boolean } = {}) {
   const listeners = new Set<(snapshot: Record<string, unknown>) => void>();
   const playBytes = vi.fn(async (input: { audioSourceId: string; audioMimeType: string }) => {
+    if (options.autoComplete === false) return;
     queueMicrotask(() => {
       for (const listener of listeners) {
         listener({
@@ -153,6 +154,43 @@ describe('Avatar Conversation voice lipsync owner', () => {
     await Promise.resolve();
     await Promise.resolve();
     expect(audioPipeline.playBytes).not.toHaveBeenCalled();
+  });
+
+  it('immediately stops only the matching active Conversation voice on failure', async () => {
+    const audioPipeline = createAudioPipeline({ autoComplete: false });
+    const stateBus = createStateBus();
+    const pipeline = createAvatarVoiceLipsyncPipeline({
+      driver: createDriver(),
+      audioPipeline: audioPipeline as never,
+      stateBus: stateBus as never,
+    });
+    pipeline.handleEvent(event(AVATAR_CONVERSATION_VOICE_AUDIO_CHUNK_EVENT, {
+      voice_id: 'voice-active', chunk_sequence: 1,
+      audio_mime_type: 'audio/wav', chunk_bytes: [1], turn_id: 'turn-1',
+    }));
+    await vi.waitFor(() => expect(audioPipeline.playBytes).toHaveBeenCalledOnce());
+
+    pipeline.handleEvent(event(AVATAR_CONVERSATION_VOICE_FAILED_EVENT, {
+      voice_id: 'voice-other', reason: 'render-failed',
+    }));
+    expect(audioPipeline.stop).not.toHaveBeenCalled();
+
+    pipeline.handleEvent(event(AVATAR_CONVERSATION_VOICE_FAILED_EVENT, {
+      voice_id: 'voice-active', reason: 'render-failed',
+    }));
+    expect(audioPipeline.stop).toHaveBeenCalledWith('interrupted');
+    expect(stateBus.publish).toHaveBeenCalledWith({ kind: 'deactivate' });
+    expect(stateBus.publish).toHaveBeenCalledWith({
+      kind: 'audio_playback_state',
+      state: 'failed',
+    });
+
+    pipeline.handleEvent(event(AVATAR_CONVERSATION_VOICE_AUDIO_CHUNK_EVENT, {
+      voice_id: 'voice-active', chunk_sequence: 2,
+      audio_mime_type: 'audio/wav', chunk_bytes: [2], turn_id: 'turn-1',
+    }));
+    await Promise.resolve();
+    expect(audioPipeline.playBytes).toHaveBeenCalledTimes(1);
   });
 
   it('interrupts local playback and emits only an Avatar-owned interrupt cue', () => {

@@ -2,6 +2,7 @@ import type { VoiceCompanionState } from '../voice-companion-state.js';
 
 export type PresenceLifecycleStateId =
   | 'idle'
+  | 'requesting_permission'
   | 'foreground_listening'
   | 'transcribing'
   | 'turn_pending'
@@ -15,6 +16,7 @@ export type PresenceLifecycleStateId =
 
 export type PresenceVisualTone =
   | 'idle'
+  | 'requesting-permission'
   | 'listening'
   | 'transcribing'
   | 'pending'
@@ -59,6 +61,7 @@ export type PresenceState = {
 
 const LABEL_KEY_BY_TONE: Record<PresenceVisualTone, string> = {
   idle: 'Avatar.status.idle',
+  'requesting-permission': 'Avatar.status.requesting_permission',
   listening: 'Avatar.status.listening',
   transcribing: 'Avatar.status.transcribing',
   pending: 'Avatar.status.pending',
@@ -110,6 +113,17 @@ export function derivePresenceState(input: PresenceMachineInput): PresenceState 
       tone: 'error',
       privacyIndicator: micCanStart ? 'mic_idle' : 'mic_blocked',
       micIntent: micCanStart ? 'start_listening' : 'disabled',
+      audioActive,
+      audioUnavailable,
+    });
+  }
+
+  if (voice.status === 'requesting_permission') {
+    return makePresence({
+      stateId: 'requesting_permission',
+      tone: 'requesting-permission',
+      privacyIndicator: 'mic_idle',
+      micIntent: 'disabled',
       audioActive,
       audioUnavailable,
     });

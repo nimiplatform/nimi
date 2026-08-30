@@ -102,10 +102,6 @@ export type Live2DAdapterManifestV1 = {
       fallback: 'alpha_mask_only' | 'fail_closed';
       disposition: Live2DFeatureDisposition;
     };
-    nas_fallback: {
-      default_idle_motion: string;
-      missing_handler: 'backend_default_with_diagnostic' | 'no_default';
-    };
   };
 };
 
@@ -186,13 +182,23 @@ function readString(record: Record<string, unknown>, key: string): string | null
   return typeof value === 'string' && value.trim() ? value : null;
 }
 
+function hasExactKeys(
+  record: Record<string, unknown>,
+  required: readonly string[],
+  optional: readonly string[] = [],
+): boolean {
+  const allowed = new Set([...required, ...optional]);
+  return required.every((key) => Object.prototype.hasOwnProperty.call(record, key))
+    && Object.keys(record).every((key) => allowed.has(key));
+}
+
 function readDisposition(value: unknown): Live2DFeatureDisposition | null {
   const record = readRecord(value);
+  if (!record || !hasExactKeys(record, ['status'], ['reason'])) return null;
   const status = record?.['status'];
   if (status !== 'supported' && status !== 'unsupported' && status !== 'not_applicable') {
     return null;
   }
-  if (!record) return null;
   const reason = readString(record, 'reason') ?? undefined;
   if (status !== 'supported' && !reason) {
     return null;
@@ -232,7 +238,11 @@ function parseActivityMappings(value: unknown): Record<string, ActivityMotionMap
   const out: Record<string, ActivityMotionMapping> = {};
   for (const [activityId, entry] of Object.entries(record)) {
     const mapping = readRecord(entry);
-    if (!mapping) return undefined;
+    if (!mapping || !hasExactKeys(
+      mapping,
+      [],
+      ['group', 'weak_group', 'strong_group', 'disposition'],
+    )) return undefined;
     const disposition = mapping['disposition'] === undefined ? undefined : readDisposition(mapping['disposition']) ?? undefined;
     if (mapping['disposition'] !== undefined && !disposition) return undefined;
     out[activityId] = {
@@ -247,7 +257,15 @@ function parseActivityMappings(value: unknown): Record<string, ActivityMotionMap
 
 function parseManifestObject(value: unknown): Live2DAdapterManifestV1 | null {
   const root = readRecord(value);
-  if (!root) return null;
+  if (!root || !hasExactKeys(root, [
+    'manifest_kind',
+    'schema_version',
+    'adapter_id',
+    'target_model',
+    'license',
+    'compatibility',
+    'semantics',
+  ])) return null;
   if (root['manifest_kind'] !== LIVE2D_ADAPTER_MANIFEST_KIND || root['schema_version'] !== 1) {
     return null;
   }
@@ -259,9 +277,24 @@ function parseManifestObject(value: unknown): Live2DAdapterManifestV1 | null {
   if (!adapterId || !target || !license || !compatibility || !semantics) {
     return null;
   }
+  if (!hasExactKeys(target, ['model_id', 'model3'], ['expected_runtime_digest'])
+    || !hasExactKeys(license, ['redistribution', 'evidence', 'fixture_use'])
+    || !hasExactKeys(compatibility, ['requested_tier'])
+    || !hasExactKeys(semantics, [
+      'motions',
+      'expressions',
+      'poses',
+      'lipsync',
+      'physics',
+      'hit_regions',
+    ])) {
+    return null;
+  }
   const modelId = readString(target, 'model_id');
   const model3 = readString(target, 'model3');
+  const expectedRuntimeDigest = readString(target, 'expected_runtime_digest');
   const redistribution = license['redistribution'];
+  const evidence = readString(license, 'evidence');
   const fixtureUse = license['fixture_use'];
   const requestedTier = compatibility['requested_tier'];
   const motions = readRecord(semantics['motions']);
@@ -270,11 +303,12 @@ function parseManifestObject(value: unknown): Live2DAdapterManifestV1 | null {
   const lipsync = readRecord(semantics['lipsync']);
   const physics = readRecord(semantics['physics']);
   const hitRegions = readRecord(semantics['hit_regions']);
-  const nasFallback = readRecord(semantics['nas_fallback']);
   if (
     !modelId ||
     !model3 ||
+    (target['expected_runtime_digest'] !== undefined && !expectedRuntimeDigest) ||
     (redistribution !== 'allowed' && redistribution !== 'forbidden' && redistribution !== 'unknown') ||
+    !evidence ||
     (fixtureUse !== 'committable' && fixtureUse !== 'operator_local_only' && fixtureUse !== 'not_allowed') ||
     (requestedTier !== 'render_only' && requestedTier !== 'semantic_basic' && requestedTier !== 'companion_complete') ||
     !motions ||
@@ -282,14 +316,27 @@ function parseManifestObject(value: unknown): Live2DAdapterManifestV1 | null {
     !poses ||
     !lipsync ||
     !physics ||
-    !hitRegions ||
-    !nasFallback
+    !hitRegions
   ) {
     return null;
   }
   const idle = readRecord(motions['idle']);
+  if (!idle
+    || !hasExactKeys(motions, ['idle', 'missing_activity'], ['activities'])
+    || !hasExactKeys(idle, ['group'])
+    || !hasExactKeys(expressions, ['disposition'], ['map'])
+    || !hasExactKeys(poses, ['disposition'], ['map'])
+    || !hasExactKeys(lipsync, ['disposition'], ['mouth_open_y_parameter', 'paramMouthForm'])
+    || !hasExactKeys(physics, ['mode', 'disposition'])
+    || !hasExactKeys(hitRegions, ['fallback', 'disposition'], ['map'])) {
+    return null;
+  }
   const idleGroup = idle ? readString(idle, 'group') : null;
   const missingActivity = motions['missing_activity'];
+  const activities = parseActivityMappings(motions['activities']);
+  const expressionMap = readStringMap(expressions['map']);
+  const poseMap = readStringMap(poses['map']);
+  const hitRegionMap = readStringArrayMap(hitRegions['map']);
   const expressionDisposition = readDisposition(expressions['disposition']);
   const poseDisposition = readDisposition(poses['disposition']);
   const lipsyncDisposition = readDisposition(lipsync['disposition']);
@@ -298,10 +345,18 @@ function parseManifestObject(value: unknown): Live2DAdapterManifestV1 | null {
   const hitRegionDisposition = readDisposition(hitRegions['disposition']);
   const physicsMode = physics['mode'];
   const hitFallback = hitRegions['fallback'];
-  const defaultIdleMotion = readString(nasFallback, 'default_idle_motion');
-  const missingHandler = nasFallback['missing_handler'];
   if (
     !idleGroup ||
+    (motions['activities'] !== undefined && !activities) ||
+    (expressions['map'] !== undefined && !expressionMap) ||
+    (poses['map'] !== undefined && !poseMap) ||
+    (hitRegions['map'] !== undefined && (!hitRegionMap || !hasExactKeys(
+      hitRegions['map'] as Record<string, unknown>,
+      [],
+      ['head', 'face', 'body', 'accessory'],
+    ))) ||
+    (lipsync['mouth_open_y_parameter'] !== undefined
+      && !readString(lipsync, 'mouth_open_y_parameter')) ||
     (missingActivity !== 'diagnostic_no_success' && missingActivity !== 'idle_degraded_with_diagnostic') ||
     !expressionDisposition ||
     !poseDisposition ||
@@ -310,9 +365,7 @@ function parseManifestObject(value: unknown): Live2DAdapterManifestV1 | null {
     !physicsDisposition ||
     !hitRegionDisposition ||
     (physicsMode !== 'model_physics' && physicsMode !== 'absent' && physicsMode !== 'unsupported') ||
-    (hitFallback !== 'alpha_mask_only' && hitFallback !== 'fail_closed') ||
-    !defaultIdleMotion ||
-    (missingHandler !== 'backend_default_with_diagnostic' && missingHandler !== 'no_default')
+    (hitFallback !== 'alpha_mask_only' && hitFallback !== 'fail_closed')
   ) {
     return null;
   }
@@ -323,26 +376,26 @@ function parseManifestObject(value: unknown): Live2DAdapterManifestV1 | null {
     target_model: {
       model_id: modelId,
       model3,
-      expected_runtime_digest: readString(target, 'expected_runtime_digest') ?? undefined,
+      expected_runtime_digest: expectedRuntimeDigest ?? undefined,
     },
     license: {
       redistribution,
-      evidence: readString(license, 'evidence') ?? '',
+      evidence,
       fixture_use: fixtureUse,
     },
     compatibility: { requested_tier: requestedTier },
     semantics: {
       motions: {
         idle: { group: idleGroup },
-        activities: parseActivityMappings(motions['activities']),
+        activities,
         missing_activity: missingActivity,
       },
       expressions: {
-        map: readStringMap(expressions['map']),
+        map: expressionMap,
         disposition: expressionDisposition,
       },
       poses: {
-        map: readStringMap(poses['map']),
+        map: poseMap,
         disposition: poseDisposition,
       },
       lipsync: {
@@ -357,13 +410,9 @@ function parseManifestObject(value: unknown): Live2DAdapterManifestV1 | null {
         disposition: physicsDisposition,
       },
       hit_regions: {
-        map: readStringArrayMap(hitRegions['map']),
+        map: hitRegionMap,
         fallback: hitFallback,
         disposition: hitRegionDisposition,
-      },
-      nas_fallback: {
-        default_idle_motion: defaultIdleMotion,
-        missing_handler: missingHandler,
       },
     },
   };

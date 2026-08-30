@@ -7,6 +7,7 @@ import type {
   NimiLocalAppEmbodimentClient,
   NimiLocalAppEmbodimentEvent,
 } from '@nimiplatform/sdk/app';
+import type { AgentEvent } from '../driver/types.js';
 import { SdkDriver, type SdkDriverOptions } from './SdkDriver.js';
 
 const AGENT_HANDLE = `agent_ref_${'a'.repeat(43)}` as NimiLocalAppAgentHandle;
@@ -187,8 +188,8 @@ describe('SdkDriver canonical App Product Plane', () => {
       activeWorldId: '',
       locale: 'en-US',
     });
-    const events: string[] = [];
-    driver.onEvent((event) => events.push(event.name));
+    const events: AgentEvent[] = [];
+    driver.onEvent((event) => events.push(event));
 
     await driver.start();
     await new Promise((resolve) => setTimeout(resolve, 0));
@@ -206,9 +207,17 @@ describe('SdkDriver canonical App Product Plane', () => {
         semantic_voice_correlation_ref: 'voice-2',
       },
     });
-    expect(events).toContain('runtime.agent.presentation.activity_requested');
-    expect(events).toContain('runtime.agent.state.emotion_changed');
-    expect(events).toContain('runtime.agent.state.posture_changed');
+    expect(events).toContainEqual(expect.objectContaining({
+      name: 'runtime.agent.presentation.activity_requested',
+      detail: expect.objectContaining({
+        agent_handle: AGENT_HANDLE,
+        conversation_anchor_id: ANCHOR,
+        activity_name: 'happy',
+        source: 'runtime',
+      }),
+    }));
+    expect(events.map((event) => event.name)).toContain('runtime.agent.state.emotion_changed');
+    expect(events.map((event) => event.name)).toContain('runtime.agent.state.posture_changed');
     expect(JSON.stringify(driver.getBundle())).not.toMatch(/viseme|mouth|audioClock|provider|model/u);
     await driver.stop();
   });

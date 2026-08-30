@@ -145,6 +145,8 @@ for (const absPath of sourceFiles) {
   }
 
   for (const target of importTargets) {
+    const isElectronMainHostSdkImport = fileRel.startsWith('kit/shell/electron/src/main/')
+      && target === '@nimiplatform/sdk/runtime/host';
     if (/^apps\//u.test(target) || /(^|\/)apps\//u.test(target)) {
       fail(`${fileRel}: Kit must not import app-layer code (${target})`);
     }
@@ -160,8 +162,12 @@ for (const absPath of sourceFiles) {
       && fileRel !== 'kit/core/src/sdk-contract.ts'
       && fileRel !== 'kit/shell/electron/src/main/data-root-binding.ts'
       && fileRel !== 'kit/shell/electron/src/main/runtime-bridge-protocol.ts'
+      && !isElectronMainHostSdkImport
     ) {
       fail(`${fileRel}: SDK imports must route through kit/core/src/sdk-contract.ts (${target})`);
+    }
+    if (fileRel === 'kit/core/src/sdk-contract.ts' && target === '@nimiplatform/sdk/runtime/host') {
+      fail(`${fileRel}: public Kit SDK contract must not forward the Host-only Runtime surface`);
     }
   }
 

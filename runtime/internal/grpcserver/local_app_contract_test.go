@@ -83,6 +83,8 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 		protectedMoveLocalAppAssetMethod,
 		protectedRevealLocalAppAssetMethod,
 		protectedAdoptLocalAppArtifactMethod,
+		protectedAvatarHostTargetResolveMethod,
+		protectedAvatarHostTargetRevalidateMethod,
 		protectedOpenConversationMethod,
 		protectedSendConversationTurnMethod,
 		protectedConversationSnapshotMethod,

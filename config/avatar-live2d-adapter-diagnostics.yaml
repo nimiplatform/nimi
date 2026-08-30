@@ -41,7 +41,7 @@ codes: &live2d_adapter_diagnostic_values
     claim_semantics: "fail_closed_for_fixture_or_distribution_claim"
   AVATAR_LIVE2D_COMPAT_MOTION_MISSING:
     meaning: "A supported motion mapping points to a missing group."
-    trigger: "a supported motion group or NAS fallback motion is not present in FileReferences.Motions."
+    trigger: "a supported built-in adapter motion group is not present in FileReferences.Motions."
     severity: "error"
     claim_semantics: "fail_closed_for_claimed_semantic_motion_support"
   AVATAR_LIVE2D_COMPAT_EXPRESSION_MISSING:

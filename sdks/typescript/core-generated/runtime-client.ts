@@ -471,6 +471,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RenderLocalAppConversationVoiceResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget",
+    "service": "RuntimeAgentService",
+    "method": "ResolveLocalAppAvatarHostTarget",
+    "kind": "unary",
+    "requestType": "ResolveLocalAppAvatarHostTargetRequest",
+    "responseType": "ResolveLocalAppAvatarHostTargetResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget",
+    "service": "RuntimeAgentService",
+    "method": "RevalidateLocalAppAvatarHostTarget",
+    "kind": "unary",
+    "requestType": "RevalidateLocalAppAvatarHostTargetRequest",
+    "responseType": "RevalidateLocalAppAvatarHostTargetResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
     "service": "RuntimeAgentService",
     "method": "SendLocalAppConversationTurn",

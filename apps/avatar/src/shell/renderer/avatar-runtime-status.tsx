@@ -5,10 +5,14 @@ import {
 } from '@nimiplatform/kit/ui/a11y';
 import type { CSSProperties } from 'react';
 import { useTranslation } from './i18n/index.js';
+import type { BackendPresentationState } from './carrier/backend-branch.js';
+import type { DriverAuthority } from './app-shell/app-store.js';
 
 export type AvatarRuntimeStatus =
   | 'loading'
+  | 'recovering'
   | 'ready'
+  | 'not_verified'
   | 'speaking'
   | 'voice_failed'
   | 'lipsync_silent'
@@ -17,13 +21,20 @@ export type AvatarRuntimeStatus =
 export function deriveAvatarRuntimeStatus(input: {
   compositionReady: boolean;
   compositionState: string;
+  consumeAuthority: DriverAuthority | null;
+  presentationState?: BackendPresentationState['kind'];
   audio: AudioPlaybackSnapshot;
 }): AvatarRuntimeStatus {
+  if (input.consumeAuthority === 'fixture') return 'not_verified';
   if (!input.compositionReady) {
     return input.compositionState === 'loading' || input.compositionState === 'relaunch_pending'
       ? 'loading'
       : 'unavailable';
   }
+  const presentationState = input.presentationState ?? 'ready';
+  if (presentationState === 'unavailable') return 'unavailable';
+  if (presentationState === 'recovering') return 'recovering';
+  if (presentationState !== 'ready') return 'loading';
   if (input.audio.state === 'failed') return 'voice_failed';
   if (input.audio.state === 'started' && input.audio.reason === 'lipsync_sink_failed') {
     return 'lipsync_silent';

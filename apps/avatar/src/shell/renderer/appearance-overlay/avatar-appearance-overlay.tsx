@@ -56,6 +56,7 @@ export function AvatarAppearanceOverlay(props: AvatarAppearanceOverlayProps) {
   } = props;
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   const position = useMemo(() => {
     const viewport = readViewportSize();
@@ -66,7 +67,14 @@ export function AvatarAppearanceOverlay(props: AvatarAppearanceOverlayProps) {
   }, [x, y]);
 
   useEffect(() => {
+    returnFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     rootRef.current?.focus();
+    return () => {
+      const target = returnFocusRef.current;
+      if (target?.isConnected) target.focus();
+    };
   }, []);
 
   useEffect(() => {

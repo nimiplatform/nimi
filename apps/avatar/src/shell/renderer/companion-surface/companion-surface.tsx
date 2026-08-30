@@ -7,6 +7,7 @@ import {
   type RefObject,
 } from 'react';
 import {
+  Ban,
   Keyboard,
   LoaderCircle,
   Mic,
@@ -26,10 +27,13 @@ import { useTranslation } from '../i18n/index.js';
 import type { AvatarShellSettings } from '../settings-state.js';
 import type { AvatarVoiceCaptureSession } from '../voice-capture.js';
 import {
+  beginVoicePermissionRequest,
   beginVoiceListening,
   beginVoiceTranscribing,
+  cancelVoiceCapture,
   setVoiceCompanionError,
   setVoiceLevel,
+  setVoicePermissionBlocked,
   setVoiceTranscriptSubmitted,
   type VoiceCompanionState,
 } from '../voice-companion-state.js';
@@ -77,13 +81,19 @@ function micIconFor(presence: PresenceState) {
   if (presence.micIntent === 'commit_listening') {
     return <Square size={ICON_SIZE} aria-hidden="true" />;
   }
-  if (presence.tone === 'transcribing' || presence.tone === 'pending') {
+  if (presence.tone === 'requesting-permission'
+    || presence.tone === 'transcribing' || presence.tone === 'pending') {
     return <LoaderCircle size={ICON_SIZE} aria-hidden="true" className="avatar-companion-surface__icon--spin" />;
   }
   if (presence.tone === 'blocked') {
     return <MicOff size={ICON_SIZE} aria-hidden="true" />;
   }
   return <Mic size={ICON_SIZE} aria-hidden="true" />;
+}
+
+function isPermissionDeniedError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return error.name === 'NotAllowedError' || error.name === 'SecurityError';
 }
 
 export function shouldMountCompanionSurface(voice: VoiceCompanionState): boolean {
@@ -157,7 +167,12 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
   const rootStyle: CompanionSurfaceStyle = { '--avatar-voice-level': levelPercent };
   const audioActive = presence.audioActive;
   const audioUnavailable = presence.audioUnavailable;
-  const showCaptions = shellSettings.showVoiceCaptions && presence.captionsVisible;
+  const showCaptions = shellSettings.showVoiceCaptions
+    && (
+      presence.captionsVisible
+      || Boolean(voice.userCaption)
+      || Boolean(voice.assistantCaption)
+    );
   const voiceInputErrorMessage = useCallback((error: unknown): string => {
     const raw = toErrorMessage(error);
     const record = error && typeof error === 'object'
@@ -226,7 +241,7 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
 
     const operationAnchorKey = anchorKey;
     const operationId = beginVoiceOperation(operationAnchorKey);
-    setVoice((current) => beginVoiceListening(current));
+    setVoice((current) => beginVoicePermissionRequest(current));
     setCaptureReady(false);
     void bootstrapHandle
       .startVoiceCapture({
@@ -244,12 +259,19 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
         }
         voiceCaptureSessionRef.current = session;
         setCaptureReady(true);
+        setVoice((current) => beginVoiceListening(current));
       })
       .catch((error: unknown) => {
         if (!isVoiceOperationCurrent(operationId, operationAnchorKey)) return;
         voiceCaptureSessionRef.current = null;
         clearVoiceOperation(operationId, operationAnchorKey);
-        setVoice((current) => setVoiceCompanionError(current, voiceInputErrorMessage(error)));
+        const denied = isPermissionDeniedError(error);
+        const message = denied
+          ? t('Avatar.status.permission_denied')
+          : voiceInputErrorMessage(error);
+        setVoice((current) => denied
+          ? setVoicePermissionBlocked(current, message)
+          : setVoiceCompanionError(current, message));
       });
   }, [
     anchorKey,
@@ -262,10 +284,31 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
     onExplicitEngage,
     presence.micDisabled,
     setVoice,
+    t,
     voice.status,
     voiceCaptureSessionRef,
     voiceSubmitAbortRef,
     voiceInputErrorMessage,
+  ]);
+
+  const onCancelCapture = useCallback(() => {
+    if (voice.status !== 'requesting_permission' && voice.status !== 'listening') return;
+    const operationId = beginVoiceOperation(anchorKey);
+    voiceCaptureSessionRef.current?.cancel();
+    voiceCaptureSessionRef.current = null;
+    voiceSubmitAbortRef.current?.abort();
+    voiceSubmitAbortRef.current = null;
+    setCaptureReady(false);
+    setVoice((current) => cancelVoiceCapture(current));
+    clearVoiceOperation(operationId, anchorKey);
+  }, [
+    anchorKey,
+    beginVoiceOperation,
+    clearVoiceOperation,
+    setVoice,
+    voice.status,
+    voiceCaptureSessionRef,
+    voiceSubmitAbortRef,
   ]);
 
   const onInterruptClick = useCallback(() => {
@@ -311,6 +354,8 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
       data-privacy-indicator={presence.privacyIndicator}
       data-audio-playback-state={voice.audioPlaybackState}
       data-lipsync-active={voice.lipsyncActive ? 'true' : 'false'}
+      data-caption-size={shellSettings.captionSize}
+      data-caption-contrast={shellSettings.captionContrast}
       aria-label={t('Avatar.shell.companion_aria')}
       style={rootStyle}
     >
@@ -406,6 +451,17 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
               : <Volume2 size={ICON_SIZE} aria-hidden="true" />}
           </span>
         )}
+        {voice.status === 'requesting_permission' || voice.status === 'listening' ? (
+          <IconButton
+            className="avatar-companion-surface__cancel"
+            onClick={onCancelCapture}
+            aria-label={t('Avatar.status.cancel_capture_aria')}
+            title={t('Avatar.status.cancel_capture_aria')}
+            icon={<Ban size={ICON_SIZE} aria-hidden="true" />}
+            size="sm"
+            tone="ghost"
+          />
+        ) : null}
         <IconButton
           className="avatar-companion-surface__text-entry"
           onClick={onOpenTextInput}
@@ -418,6 +474,7 @@ export function CompanionSurface(props: CompanionSurfaceProps) {
         <IconButton
           className="avatar-companion-surface__close"
           onClick={onClose}
+          disabled={voice.status === 'requesting_permission' || voice.status === 'listening'}
           aria-label={t('Avatar.status.close_aria')}
           title={t('Avatar.status.close_aria')}
           icon={<X size={ICON_SIZE} aria-hidden="true" />}

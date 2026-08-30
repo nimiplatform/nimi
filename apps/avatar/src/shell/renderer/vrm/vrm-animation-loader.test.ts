@@ -1,6 +1,5 @@
 // VRM animation interchange owner behavior:
 //   - loadVrmAnimation returns the first VRMAnimation, null when absent
-//   - loadVrmAnimation wraps loadAsync with the createImageBitmap suspend
 //   - clipFromVRMAnimation delegates to upstream createVRMAnimationClip
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,9 +7,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   loadAsync: vi.fn<(url: string) => Promise<unknown>>(),
   GLTFLoaderCtor: vi.fn(),
-  suspendCreateImageBitmap: vi.fn(() => () => {
-    /* restore noop */
-  }),
   createVRMAnimationClip: vi.fn(),
 }));
 
@@ -48,17 +44,12 @@ vi.mock('three/examples/jsm/loaders/GLTFLoader.js', () => ({
   },
 }));
 
-vi.mock('./vrm-tauri-quirks.js', () => ({
-  suspendCreateImageBitmapForTauriVrmLoad: mocks.suspendCreateImageBitmap,
-}));
-
 import { __resetVrmLoaderForTests } from './vrm-loader.js';
 import { clipFromVRMAnimation, loadVrmAnimation } from './vrm-animation-loader.js';
 
 beforeEach(() => {
   mocks.loadAsync.mockReset();
   mocks.GLTFLoaderCtor.mockClear();
-  mocks.suspendCreateImageBitmap.mockClear();
   mocks.createVRMAnimationClip.mockReset();
   __resetVrmLoaderForTests();
 });
@@ -85,18 +76,9 @@ describe('loadVrmAnimation', () => {
     expect(await loadVrmAnimation('/p/empty.vrma')).toBeNull();
   });
 
-  it('wraps loadAsync with the createImageBitmap suspend', async () => {
-    mocks.loadAsync.mockResolvedValue({ userData: { vrmAnimations: [{}] } });
-    await loadVrmAnimation('/p/anim.vrma');
-    expect(mocks.suspendCreateImageBitmap).toHaveBeenCalledTimes(1);
-  });
-
-  it('still invokes the suspend restore() when loadAsync rejects', async () => {
-    const restore = vi.fn();
-    mocks.suspendCreateImageBitmap.mockImplementationOnce(() => restore);
+  it('propagates loader failure without a host-specific fallback path', async () => {
     mocks.loadAsync.mockRejectedValue(new Error('boom'));
     await expect(loadVrmAnimation('/p/broken.vrma')).rejects.toThrow(/boom/);
-    expect(restore).toHaveBeenCalledTimes(1);
   });
 });
 

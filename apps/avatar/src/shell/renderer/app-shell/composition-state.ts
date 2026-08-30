@@ -1,7 +1,8 @@
 // App-local prerequisite composition. These branches decide which shell view
 // is mounted; they are not a public Avatar presentation state machine.
-// The Avatar shell renders exactly one product surface at any time:
-//   - ready:            embodiment-stage
+// The Avatar shell renders exactly one product or development surface at any time:
+//   - ready:            live product embodiment-stage
+//   - fixture_not_verified: renderable development preview, never product-ready
 //   - loading:          pre-bootstrap-complete; degraded-surface variant=loading
 //   - degraded:*:       typed runtime / account / launch failures
 //   - error:*:          untyped bootstrap failures
@@ -12,6 +13,7 @@ import type { AvatarAppState } from './app-store.js';
 
 export type CompositionState =
   | 'ready'
+  | 'fixture_not_verified'
   | 'loading'
   | 'degraded_reauth_required'
   | 'degraded_cloud_offline'
@@ -20,7 +22,7 @@ export type CompositionState =
   | 'error_bootstrap_fatal'
   | 'relaunch_pending';
 
-export type CompositionVariant = 'live' | 'loading' | 'degraded' | 'error' | 'relaunch';
+export type CompositionVariant = 'live' | 'fixture' | 'loading' | 'degraded' | 'error' | 'relaunch';
 
 export type CompositionDerivation = {
   state: CompositionState;
@@ -33,9 +35,12 @@ export type CompositionDerivation = {
   source: string | null;
   retryable: boolean | null;
   modelDiagnostics: CompositionModelDiagnostics | null;
-  // True iff embodiment-stage should mount.
-  // False iff only degraded-surface should mount.
+  // Product readiness. Fixture execution must never set this true.
   ready: boolean;
+  // True when a validated backend surface may mount. This includes the
+  // explicitly labeled fixture development preview without granting product readiness.
+  renderable: boolean;
+  developmentPreview: boolean;
 };
 
 export type CompositionModelDiagnostics = {
@@ -148,6 +153,8 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       retryable: null,
       modelDiagnostics,
       ready: false,
+      renderable: false,
+      developmentPreview: false,
     };
   }
 
@@ -165,6 +172,8 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       retryable: null,
       modelDiagnostics,
       ready: false,
+      renderable: false,
+      developmentPreview: false,
     };
   }
 
@@ -181,10 +190,15 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       retryable: null,
       modelDiagnostics,
       ready: false,
+      renderable: false,
+      developmentPreview: false,
     };
   }
 
-  if (input.runtimeBinding.status !== 'active') {
+  // Explicit fixture mode has no Runtime binding by design. It may mount the
+  // real renderer/backend surface for local development, while App.tsx keeps
+  // its externally observable status distinct from product readiness.
+  if (input.consume.authority !== 'fixture' && input.runtimeBinding.status !== 'active') {
     const reason = readNormalizedString(input.runtimeBinding.reason);
     return {
       state: isExplicitRealmTransportUnavailable(input.runtimeBinding)
@@ -200,6 +214,8 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       retryable: input.runtimeBinding.retryable,
       modelDiagnostics,
       ready: false,
+      renderable: false,
+      developmentPreview: false,
     };
   }
 
@@ -217,6 +233,8 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       retryable: null,
       modelDiagnostics,
       ready: false,
+      renderable: false,
+      developmentPreview: false,
     };
   }
 
@@ -233,6 +251,26 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
       retryable: false,
       modelDiagnostics,
       ready: false,
+      renderable: false,
+      developmentPreview: false,
+    };
+  }
+
+  if (input.consume.authority === 'fixture') {
+    return {
+      state: 'fixture_not_verified',
+      variant: 'fixture',
+      reason: 'fixture_not_verified',
+      reasonCode: null,
+      accountReasonCode: null,
+      actionHint: null,
+      stage: 'development_preview',
+      source: 'fixture',
+      retryable: null,
+      modelDiagnostics,
+      ready: false,
+      renderable: true,
+      developmentPreview: true,
     };
   }
 
@@ -248,5 +286,7 @@ export function deriveCompositionState(input: CompositionInput): CompositionDeri
     retryable: null,
     modelDiagnostics,
     ready: true,
+    renderable: true,
+    developmentPreview: false,
   };
 }

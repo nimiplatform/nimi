@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   fromLive2DLocalModelManifest,
-  fromTauriAvatarModelManifest,
+  fromHostAvatarModelManifest,
 } from '../src/avatar-model-manifest.js';
 
 describe('avatar model manifest projection', () => {
@@ -28,7 +28,7 @@ describe('avatar model manifest projection', () => {
   });
 
   it('normalizes shell-tauri live2d manifests', () => {
-    expect(fromTauriAvatarModelManifest({
+    expect(fromHostAvatarModelManifest({
       kind: 'live2d',
       runtime_dir: '/runtime',
       model_id: 'ren',
@@ -50,7 +50,7 @@ describe('avatar model manifest projection', () => {
   });
 
   it('normalizes shell-tauri Live2D calibration refs as opaque resolver evidence', () => {
-    expect(fromTauriAvatarModelManifest({
+    expect(fromHostAvatarModelManifest({
       kind: 'live2d',
       runtime_dir: '/runtime',
       model_id: 'ren',
@@ -73,7 +73,7 @@ describe('avatar model manifest projection', () => {
   });
 
   it('normalizes shell-tauri vrm manifests', () => {
-    expect(fromTauriAvatarModelManifest({
+    expect(fromHostAvatarModelManifest({
       kind: 'vrm',
       runtime_dir: '/runtime',
       model_id: 'model',
@@ -94,7 +94,7 @@ describe('avatar model manifest projection', () => {
   });
 
   it('fails closed on missing required backend fields', () => {
-    expect(() => fromTauriAvatarModelManifest({
+    expect(() => fromHostAvatarModelManifest({
       kind: 'vrm',
       runtime_dir: '/runtime',
       model_id: 'model',
@@ -102,7 +102,7 @@ describe('avatar model manifest projection', () => {
   });
 
   it('fails closed on unknown backend kind', () => {
-    expect(() => fromTauriAvatarModelManifest({
+    expect(() => fromHostAvatarModelManifest({
       kind: 'spine',
       runtime_dir: '/runtime',
       model_id: 'model',
@@ -110,7 +110,7 @@ describe('avatar model manifest projection', () => {
   });
 
   it('fails closed on invalid Live2D calibration refs', () => {
-    expect(() => fromTauriAvatarModelManifest({
+    expect(() => fromHostAvatarModelManifest({
       kind: 'live2d',
       runtime_dir: '/runtime',
       model_id: 'ren',
@@ -120,7 +120,7 @@ describe('avatar model manifest projection', () => {
   });
 
   it('fails closed when VRM manifests carry Live2D calibration refs', () => {
-    expect(() => fromTauriAvatarModelManifest({
+    expect(() => fromHostAvatarModelManifest({
       kind: 'vrm',
       runtime_dir: '/runtime',
       model_id: 'model',
@@ -130,7 +130,7 @@ describe('avatar model manifest projection', () => {
   });
 
   it('fails closed when Nimi2D is selected', () => {
-    expect(() => fromTauriAvatarModelManifest({
+    expect(() => fromHostAvatarModelManifest({
       kind: 'nimi2d',
       runtime_dir: '/runtime',
       model_id: 'agent-skin',

@@ -1,7 +1,7 @@
 {
   "scenario_id": "continuous-eye-tracking",
   "version": "1",
-  "description": "Idle scenario to validate continuous handler frame scheduling + parameter API (eye_tracker.js drives ParamEyeBallX/Y).",
+  "description": "Idle scenario reserved for continuous built-in projection and parameter movement checks.",
   "duration_ms": null,
   "loop": false,
   "agent_bootstrap": {

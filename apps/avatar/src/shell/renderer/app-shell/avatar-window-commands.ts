@@ -72,3 +72,7 @@ export async function hideAvatarWindow(): Promise<void> {
 export async function closeAvatarWindow(): Promise<void> {
   await floatingWindowClose();
 }
+
+export async function quitAvatarApp(): Promise<void> {
+  await invokeAvatarHostCommand<void>('nimi_avatar_quit_app');
+}

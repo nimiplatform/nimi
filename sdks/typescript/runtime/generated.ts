@@ -6,11 +6,16 @@ export {
   type RuntimeWireCodec,
   type RuntimeWireMethodId,
   type RuntimeWireMethodKind,
-} from '../core-generated/runtime-wire-codecs';
+} from '../core-generated/runtime-public-wire-codecs';
+export {
+  RUNTIME_METHOD_BY_ID,
+  RUNTIME_METHODS,
+  type RuntimeMethodDescriptor,
+} from '../core-generated/runtime-public-client';
 export {
   runtimeRpcAuthPosture,
   type RuntimeRpcAuthPosture,
-} from '../core-generated/runtime-rpc-auth-posture';
+} from '../core-generated/runtime-public-rpc-auth-posture';
 export type {
   AgentConversationSummary,
   AccountCaller,

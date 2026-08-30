@@ -33,7 +33,7 @@ function conversationResourceNotFound(): Error {
   );
 }
 
-function tauriConversationResourceNotFound(): Error {
+function hostConversationResourceNotFound(): Error {
   return Object.assign(new Error(JSON.stringify({
     reasonCode: 'RUNTIME_GRPC_NOT_FOUND',
     actionHint: 'check_request_and_app_auth',
@@ -71,7 +71,7 @@ function snapshotClient(
 describe('Avatar current-session Agent binding', () => {
   it.each([
     ['Electron', conversationResourceNotFound],
-    ['Tauri', tauriConversationResourceNotFound],
+    ['Host', hostConversationResourceNotFound],
   ])('rebinds from the handed-off anchor across the %s transport error shape', async (_transport, mismatch) => {
     const snapshot = vi.fn(async (agentHandle: NimiLocalAppAgentHandle) => {
       if (agentHandle === HANDLE_A) throw mismatch();
@@ -97,6 +97,7 @@ describe('Avatar current-session Agent binding', () => {
       conversationAnchorId: ANCHOR,
       onHandleChange: (handle) => changed.push(handle),
     });
+    expect(binding.generation()).toBe(1);
     generation = 1;
     const operation = vi.fn(async (handle: NimiLocalAppAgentHandle) => {
       if (handle === HANDLE_A) throw accessDenied();
@@ -106,6 +107,7 @@ describe('Avatar current-session Agent binding', () => {
     await expect(binding.run(operation)).resolves.toBe('committed');
     expect(operation.mock.calls.map(([handle]) => handle)).toEqual([HANDLE_A, HANDLE_B]);
     expect(binding.current()).toBe(HANDLE_B);
+    expect(binding.generation()).toBe(2);
     expect(changed).toEqual([HANDLE_A, HANDLE_B]);
   });
 

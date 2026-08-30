@@ -36,12 +36,15 @@ function surface(attributes: Readonly<Record<string, string>>): Pick<Document, '
     'data-avatar-presentation-asset-ref': request.avatarAssetRef,
     'data-avatar-presentation-backend': request.backendKind,
     'data-avatar-presentation-revision': request.presentationRevision,
+    'data-avatar-presentation-state': 'ready',
     ...attributes,
   };
   return {
     querySelector: (selector: string) => ({
       getAttribute: (name: string) => (
-        selector === '[data-testid="avatar-root"]' ? rootAttributes[name] : attributes[name]
+        selector === '[data-avatar-presentation-asset-ref][data-avatar-presentation-backend][data-avatar-presentation-revision]'
+          ? rootAttributes[name]
+          : attributes[name]
       ) ?? null,
     }) as Element,
   };
@@ -53,7 +56,6 @@ describe('Avatar Agent Center preview handoff', () => {
       getContext: () => ({ agentHandle: AVATAR_HANDLE, conversationAnchorId: request.conversationAnchorId, carrier: carrier() }),
       document: surface({
         'data-avatar-live2d-carrier-status': 'ready',
-        'data-avatar-live2d-carrier-visible-pixels': '42',
       }),
     });
 
@@ -65,6 +67,50 @@ describe('Avatar Agent Center preview handoff', () => {
       previewMaterialRef: PREVIEW_MATERIAL_REF,
       previewImageRef: '/__nimi/avatar-preview/request-1.png',
       warnings: ['avatar_preview_service:live2d'],
+    });
+  });
+
+  it('does not synthesize a VRM capability profile ref from an asset ref', async () => {
+    const vrmRequest: AvatarAgentCenterPreviewRequest = {
+      ...request,
+      avatarAssetRef: 'vrm_222222222222',
+      backendKind: 'vrm',
+    };
+    const vrmCarrier = carrier({
+      committedPresentationSelection: {
+        avatarAssetRef: vrmRequest.avatarAssetRef,
+        backendKind: 'vrm',
+        previewMaterialRef: 'agent-center-avatar-asset:id_account:id_agent:vrm:vrm_222222222222',
+        presentationRevision: vrmRequest.presentationRevision,
+      },
+      backend: { kind: 'vrm' },
+    } as Partial<AvatarRuntimeCarrier>);
+    const documentRef: Pick<Document, 'querySelector'> = {
+      querySelector: (selector: string) => ({
+        getAttribute: (name: string) => (
+          selector === '[data-avatar-presentation-asset-ref][data-avatar-presentation-backend][data-avatar-presentation-revision]'
+            ? {
+                'data-avatar-presentation-asset-ref': vrmRequest.avatarAssetRef,
+                'data-avatar-presentation-backend': vrmRequest.backendKind,
+                'data-avatar-presentation-revision': vrmRequest.presentationRevision,
+                'data-avatar-presentation-state': 'ready',
+              }[name]
+            : { 'data-avatar-vrm-state': 'ready' }[name]
+        ) ?? null,
+      }) as Element,
+    };
+    const handoff = createAvatarAgentCenterPreviewHandoff({
+      getContext: () => ({
+        agentHandle: AVATAR_HANDLE,
+        conversationAnchorId: vrmRequest.conversationAnchorId,
+        carrier: vrmCarrier,
+      }),
+      document: documentRef,
+    });
+
+    await expect(handoff.handleRequest(vrmRequest)).resolves.toMatchObject({
+      state: 'failed',
+      reasonCode: 'invalid_manifest',
     });
   });
 
@@ -119,7 +165,6 @@ describe('Avatar Agent Center preview handoff', () => {
       activatePresentation,
       document: surface({
         'data-avatar-live2d-carrier-status': 'ready',
-        'data-avatar-live2d-carrier-visible-pixels': '64',
       }),
     });
 
@@ -148,7 +193,6 @@ describe('Avatar Agent Center preview handoff', () => {
       getContext: () => ({ agentHandle: AVATAR_HANDLE, conversationAnchorId: request.conversationAnchorId, carrier: carrier() }),
       document: surface({
         'data-avatar-live2d-carrier-status': 'error',
-        'data-avatar-live2d-carrier-visible-pixels': '0',
         'data-avatar-live2d-carrier-error': 'render_failed',
       }),
       listen: listen as never,
@@ -166,5 +210,37 @@ describe('Avatar Agent Center preview handoff', () => {
     ));
     release();
     expect(unlisten).toHaveBeenCalledOnce();
+  });
+
+  it('fails closed when the exact committed presentation never reaches the renderer root', async () => {
+    const mismatchedDocument: Pick<Document, 'querySelector'> = {
+      querySelector: (selector: string) => ({
+        getAttribute: (name: string) => (
+          selector === '[data-avatar-presentation-asset-ref][data-avatar-presentation-backend][data-avatar-presentation-revision]'
+            ? {
+                'data-avatar-presentation-asset-ref': 'live2d_aaaaaaaaaaaa',
+                'data-avatar-presentation-backend': request.backendKind,
+                'data-avatar-presentation-revision': '6',
+                'data-avatar-presentation-state': 'ready',
+              }[name]
+            : { 'data-avatar-live2d-carrier-status': 'ready' }[name]
+        ) ?? null,
+      }) as Element,
+    };
+    const handoff = createAvatarAgentCenterPreviewHandoff({
+      getContext: () => ({
+        agentHandle: AVATAR_HANDLE,
+        conversationAnchorId: request.conversationAnchorId,
+        carrier: carrier(),
+      }),
+      document: mismatchedDocument,
+      readinessTimeoutMs: 0,
+    });
+
+    await expect(handoff.handleRequest(request)).resolves.toMatchObject({
+      state: 'failed',
+      reasonCode: 'host_internal_error',
+      previewImageRef: null,
+    });
   });
 });

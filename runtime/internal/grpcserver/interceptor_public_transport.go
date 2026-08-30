@@ -34,6 +34,8 @@ var publicTransportBlockedMethods = map[string]runtimev1.ReasonCode{
 	"/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset":                           runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact":                       runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences":               runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget":           runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget":        runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation":                  runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn":              runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment":      runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,

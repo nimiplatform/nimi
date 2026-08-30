@@ -17,7 +17,6 @@ import type {
 } from '../core-generated/runtime-typed-client';
 import { createNimiError, ReasonCode } from '../types';
 import { assertRouteOnlyLocalAIConfigIntents } from '../core/ai/capability-configuration-local-intent.js';
-export { createNimiHostRuntimeTypedClient } from './host.js';
 import type {
   CoreMetadata,
   CoreResponseMetadata,
@@ -609,7 +608,12 @@ function bindRuntimeModule<const Keys extends readonly RuntimeTypedMethodName[]>
   return module as RuntimeMethodModule<Keys>;
 }
 
-export type RuntimePublicGeneratedClient = Omit<RuntimeTypedClient, 'materializeRealmSource'>;
+export type RuntimePublicGeneratedClient = Omit<
+  RuntimeTypedClient,
+  | 'materializeRealmSource'
+  | 'resolveLocalAppAvatarHostTarget'
+  | 'revalidateLocalAppAvatarHostTarget'
+>;
 
 function createPublicRuntimeGeneratedClient(
   client: RuntimeTypedClient,
@@ -619,7 +623,9 @@ function createPublicRuntimeGeneratedClient(
     if (property === 'constructor') {
       continue;
     }
-    if (property === 'materializeRealmSource') {
+    if (property === 'materializeRealmSource'
+      || property === 'resolveLocalAppAvatarHostTarget'
+      || property === 'revalidateLocalAppAvatarHostTarget') {
       continue;
     }
     if (RUNTIME_PUBLIC_GENERATED_BLOCKED_METHODS.has(property)) {

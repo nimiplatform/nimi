@@ -8,10 +8,6 @@ import { VRM_CAPABILITY_REQUIRED_BONES } from '../vrm/vrm-capability-profile.js'
 
 const resolveModelManifestMock = vi.fn();
 const readTextFileMock = vi.fn();
-const scanNasHandlersMock = vi.fn();
-const populateRegistryMock = vi.fn();
-const startNasHandlerHotReloadMock = vi.fn();
-const stopNasHandlerHotReloadMock = vi.fn();
 const waitForCubismCoreMock = vi.fn();
 const loadOfficialCubismFrameworkRuntimeMock = vi.fn();
 const createLive2DBackendSessionMock = vi.fn();
@@ -113,16 +109,6 @@ vi.mock('../vrm/vrm-backend.js', () => ({
   createVrmBackendBranch: (...args: unknown[]) => createVrmBackendBranchMock(...args),
 }));
 
-vi.mock('../nas/handler-registry.js', async () => {
-  const actual = await vi.importActual<typeof import('../nas/handler-registry.js')>('../nas/handler-registry.js');
-  return {
-    ...actual,
-    scanNasHandlers: (...args: unknown[]) => scanNasHandlersMock(...args),
-    populateRegistry: (...args: unknown[]) => populateRegistryMock(...args),
-    startNasHandlerHotReload: (...args: unknown[]) => startNasHandlerHotReloadMock(...args),
-  };
-});
-
 function createBundle(): AgentDataBundle {
   return {
     activity: {
@@ -218,25 +204,12 @@ describe('avatar runtime carrier', () => {
     useAvatarStore.setState(useAvatarStore.getInitialState(), true);
     resolveModelManifestMock.mockReset();
     readTextFileMock.mockReset();
-    scanNasHandlersMock.mockReset();
-    populateRegistryMock.mockReset();
-    startNasHandlerHotReloadMock.mockReset();
-    stopNasHandlerHotReloadMock.mockReset();
     waitForCubismCoreMock.mockReset();
     loadOfficialCubismFrameworkRuntimeMock.mockReset();
     createLive2DBackendSessionMock.mockReset();
     backendApplyCommandMock.mockReset();
     backendUnloadMock.mockReset();
     createVrmBackendBranchMock.mockReset();
-    scanNasHandlersMock.mockResolvedValue({
-      activity: [],
-      event: [],
-      continuous: [],
-      configJsonPath: null,
-    });
-    populateRegistryMock.mockResolvedValue(undefined);
-    stopNasHandlerHotReloadMock.mockResolvedValue(undefined);
-    startNasHandlerHotReloadMock.mockResolvedValue(stopNasHandlerHotReloadMock);
     waitForCubismCoreMock.mockResolvedValue({ Version: { csmGetVersion: () => 1, csmGetLatestMocVersion: () => 1 } });
     loadOfficialCubismFrameworkRuntimeMock.mockResolvedValue({ CubismFramework: {} });
     createLive2DBackendSessionMock.mockResolvedValue(live2dBackendSession({
@@ -280,10 +253,6 @@ describe('avatar runtime carrier', () => {
         hit_regions: {
           fallback: 'alpha_mask_only',
           disposition: { status: 'not_applicable', reason: 'render only' },
-        },
-        nas_fallback: {
-          default_idle_motion: 'Idle',
-          missing_handler: 'backend_default_with_diagnostic',
         },
       },
     }));
@@ -336,7 +305,6 @@ describe('avatar runtime carrier', () => {
       .filter((command) => command.kind === 'motion')
       .map((command) => command.group ?? '');
 
-    expect(scanNasHandlersMock).not.toHaveBeenCalled();
     expect(useAvatarStore.getState().model).toEqual(expect.objectContaining({
       modelPath: '/models/ren/runtime',
       modelId: 'ren',
@@ -348,7 +316,6 @@ describe('avatar runtime carrier', () => {
       detail: expect.objectContaining({
         model_id: 'ren',
         model_kind: 'live2d',
-        nas_handler_count: 0,
         backend_meta: expect.objectContaining({
           compatibility_tier: 'render_only',
         }),
@@ -489,7 +456,6 @@ describe('avatar runtime carrier', () => {
           fallback: 'alpha_mask_only',
           disposition: { status: 'supported', reason: 'canvas alpha probe' },
         },
-        nas_fallback: { default_idle_motion: 'Idle', missing_handler: 'no_default' },
       },
     }));
 
@@ -605,47 +571,7 @@ describe('avatar runtime carrier', () => {
     carrier.shutdown();
   });
 
-  it('does not scan, execute, or watch embedded NAS handlers from a committed model', async () => {
-    const handler = {
-      execute: vi.fn(async () => undefined),
-    };
-    populateRegistryMock.mockImplementation(async (registry: {
-      event: Map<string, { kind: 'event'; eventName: string; handler: typeof handler; sourcePath: string }>;
-    }) => {
-      registry.event.set('runtime.agent.hook.running', {
-        kind: 'event',
-        eventName: 'runtime.agent.hook.running',
-        handler,
-        sourcePath: '/models/ren/runtime/nimi/event/runtime_agent_hook_running.js',
-      });
-    });
-    const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
-    const driver = createDriver();
-    const carrier = await startAvatarRuntimeCarrier({
-      driver,
-      modelManifest: live2dManifest({ nimiDir: '/models/ren/runtime/nimi' }),
-    });
-
-    driver.trigger({
-      event_id: 'event-2',
-      name: 'runtime.agent.hook.running',
-      timestamp: '2026-04-25T00:00:02.000Z',
-      detail: {
-        intentId: 'hook-1',
-      },
-    });
-    await Promise.resolve();
-
-    expect(scanNasHandlersMock).not.toHaveBeenCalled();
-    expect(populateRegistryMock).not.toHaveBeenCalled();
-    expect(startNasHandlerHotReloadMock).not.toHaveBeenCalled();
-    expect(handler.execute).not.toHaveBeenCalled();
-
-    carrier.shutdown();
-    expect(stopNasHandlerHotReloadMock).not.toHaveBeenCalled();
-  });
-
-  it('shutdown unwires dispatch and unloads the backend without starting a NAS watcher', async () => {
+  it('shutdown unwires dispatch and unloads the backend', async () => {
     const { startAvatarRuntimeCarrier } = await import('./avatar-carrier.js');
     const driver = createDriver();
     const carrier = await startAvatarRuntimeCarrier({
@@ -660,7 +586,6 @@ describe('avatar runtime carrier', () => {
       detail: { intentId: 'hook-1' },
     });
     carrier.shutdown();
-    expect(stopNasHandlerHotReloadMock).not.toHaveBeenCalled();
     expect(backendUnloadMock).toHaveBeenCalledTimes(1);
 
     driver.trigger({
@@ -670,8 +595,6 @@ describe('avatar runtime carrier', () => {
       detail: { intentId: 'hook-2' },
     });
     await Promise.resolve();
-    expect(scanNasHandlersMock).not.toHaveBeenCalled();
-    expect(populateRegistryMock).not.toHaveBeenCalled();
   });
 
   // The backend-branch hard cut removes the two

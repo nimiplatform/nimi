@@ -320,6 +320,8 @@ func generatedRuntimeFullMethods() []string {
 func isKnownReadOperation(operation string) bool {
 	switch operation {
 	case "RevealLocalAppAsset",
+		"ResolveLocalAppAvatarHostTarget",
+		"RevalidateLocalAppAvatarHostTarget",
 		"ResolveLocalEnvironmentPlan",
 		"ResolveModelInstallPlan":
 		return true

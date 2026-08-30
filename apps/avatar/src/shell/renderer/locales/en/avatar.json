@@ -9,6 +9,7 @@
     },
     "status": {
       "idle": "Idle",
+      "requesting_permission": "Requesting microphone permission…",
       "listening": "Listening…",
       "transcribing": "Transcribing…",
       "pending": "Waiting for reply",
@@ -21,6 +22,8 @@
       "mic_listen_aria": "Start voice input",
       "mic_commit_aria": "Stop and send voice input",
       "mic_blocked_aria": "Voice input unavailable for this state",
+      "cancel_capture_aria": "Cancel and discard voice input",
+      "permission_denied": "Microphone permission was denied. Enable it in system settings to use voice input.",
       "interrupt_aria": "Interrupt current reply",
       "interrupt_pending": "Interrupting…",
       "interrupt_failed": "Interrupt failed",
@@ -134,11 +137,6 @@
         "label": "LipSync",
         "proof_present": "Audio profile loaded",
         "proof_missing": "No lip-sync profile detected"
-      },
-      "nas_handlers": {
-        "label": "NAS handlers",
-        "proof_present": "{{count}} handlers registered",
-        "proof_missing": "No handlers registered"
       }
     },
     "settings": {
@@ -153,6 +151,23 @@
         "label": "Show voice captions",
         "help": "Bounded foreground voice captions only.",
         "note": "Voice captions only show speech from the current agent conversation."
+      },
+      "caption_size": {
+        "label": "Caption size",
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large"
+      },
+      "caption_contrast": {
+        "label": "Caption contrast",
+        "standard": "Standard",
+        "high": "High"
+      },
+      "caption_duration": {
+        "label": "Caption duration",
+        "short": "Short",
+        "standard": "Standard",
+        "long": "Long"
       }
     },
     "appearance": {
@@ -202,6 +217,7 @@
       "always_on_top": "Always on top",
       "hide": "Hide avatar",
       "close": "Close this avatar",
+      "quit_app": "Quit Avatar App",
       "settings": "Settings",
       "pending": "In progress"
     },
@@ -211,7 +227,9 @@
     },
     "runtime_status": {
       "loading": "Avatar loading",
+      "recovering": "Avatar recovering",
       "ready": "Avatar ready",
+      "not_verified": "Fixture preview — not verified as a live Runtime avatar",
       "speaking": "Avatar speaking",
       "voice_failed": "Voice playback failed",
       "lipsync_silent": "Audio playing without lip sync",

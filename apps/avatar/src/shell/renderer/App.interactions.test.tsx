@@ -10,6 +10,8 @@ import {
   readAvatarInstanceScale,
 } from './avatar-scale-state.js';
 import { readAvatarShellSettings } from './settings-state.js';
+import { useEffect } from 'react';
+import type { BackendSurfaceProps } from './carrier/backend-branch.js';
 
 const bootstrapAvatarMock = vi.fn<() => Promise<BootstrapHandle>>();
 const setIgnoreCursorEventsMock = vi.fn();
@@ -19,7 +21,7 @@ const hideAvatarWindowMock = vi.fn();
 const closeAvatarWindowMock = vi.fn();
 const onLaunchContextUpdatedMock = vi.fn();
 const reloadAvatarShellMock = vi.fn();
-let tauriRuntime = false;
+let hostRuntime = false;
 type AvatarLaunchContextForTest = {
   agentHandle: string;
   conversationAnchorId: string;
@@ -46,7 +48,7 @@ vi.mock('./app-shell/app-bootstrap.js', () => ({
 }));
 
 vi.mock('./app-shell/avatar-host-bridge.js', () => ({
-  hasAvatarHostRuntime: () => tauriRuntime,
+  hasAvatarHostRuntime: () => hostRuntime,
 }));
 
 vi.mock('./app-shell/avatar-window-commands.js', () => ({
@@ -66,8 +68,7 @@ vi.mock('./app-shell/avatar-window-commands.js', () => ({
   })),
 }));
 
-vi.mock('./app-shell/tauri-lifecycle.js', () => ({
-  isTauriRuntime: () => tauriRuntime,
+vi.mock('./app-shell/host-lifecycle.js', () => ({
   onHostSuspend: async () => () => {},
   onLaunchContextUpdated: (handler: typeof launchContextUpdatedHandler) => {
     launchContextUpdatedHandler = handler;
@@ -124,7 +125,7 @@ function createBootstrapHandle(input: {
   projection?: ReturnType<typeof createBackendProjection>;
   modelManifest?: AvatarModelManifestForTest;
 } = {}): BootstrapHandle {
-  const projection = input.projection;
+  const projection = input.projection ?? createBackendProjection();
   return {
     driver: {
       kind: 'sdk',
@@ -140,16 +141,21 @@ function createBootstrapHandle(input: {
     carrier: {
       backendSession: null,
       ...(input.modelManifest ? { model: input.modelManifest } : {}),
-      backend: projection
-        ? {
+      backend: {
           kind: 'vrm',
           nominalBounds: { width: 360, height: 640, bodyCenterX: 180, bodyCenterY: 320 },
           projection,
-          surface: { Component: () => null },
+          surface: {
+            Component: (props: BackendSurfaceProps) => {
+              useEffect(() => {
+                props.onPresentationStateChange?.({ kind: 'ready' });
+              }, [props.onPresentationStateChange]);
+              return null;
+            },
+          },
           metadata: () => ({}),
           shutdown: vi.fn(),
-        }
-        : undefined,
+        },
       shutdown: vi.fn(),
     },
     getVoiceInputAvailability: vi.fn(async () => ({ available: true, reason: null })),
@@ -180,6 +186,14 @@ function seedReadyState(): void {
   });
   useAvatarStore.getState().setLaunchContext(launchContext());
   useAvatarStore.getState().setDriverStatus('running');
+}
+
+async function readyEmbodimentStage(): Promise<HTMLElement> {
+  await waitFor(() => {
+    expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state'))
+      .toBe('ready');
+  });
+  return screen.getByTestId('avatar-embodiment-stage');
 }
 
 function seedActiveTurnBundle(input: {
@@ -259,8 +273,8 @@ function seedDegradedReauth(): void {
   useAvatarStore.getState().setDriverStatus('stopped');
 }
 
-function setTauriRuntime(value: boolean): void {
-  tauriRuntime = value;
+function setHostRuntime(value: boolean): void {
+  hostRuntime = value;
 }
 
 function hasLaunchContextUpdatedHandler(): boolean {
@@ -286,7 +300,7 @@ beforeEach(() => {
   onLaunchContextUpdatedMock.mockResolvedValue(() => {});
   reloadAvatarShellMock.mockReset();
   launchContextUpdatedHandler = null;
-  tauriRuntime = false;
+  hostRuntime = false;
   window.localStorage.clear();
 });
 
@@ -296,7 +310,11 @@ afterEach(() => {
 
 describe('App body interaction and partner menu', () => {
   async function openPartnerMenuFromLongPress() {
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state'))
+        .toBe('ready');
+    });
+    const stage = await readyEmbodimentStage();
     vi.useFakeTimers();
     fireEvent.pointerDown(stage, {
       button: 0,
@@ -326,7 +344,11 @@ describe('App body interaction and partner menu', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state'))
+        .toBe('ready');
+    });
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 0,
       buttons: 1,
@@ -380,7 +402,7 @@ describe('App body interaction and partner menu', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     vi.useFakeTimers();
     fireEvent.pointerDown(stage, {
       button: 0,
@@ -427,7 +449,7 @@ describe('App per-avatar scale', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     fireEvent.wheel(stage, {
       deltaY: -100,
       clientX: 180,
@@ -446,7 +468,7 @@ describe('App per-avatar scale', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     fireEvent.wheel(stage, {
       deltaY: -100,
       clientX: 180,
@@ -477,7 +499,7 @@ describe('App per-avatar scale', () => {
     act(() => {
       seedReadyState();
     });
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -519,7 +541,7 @@ describe('App per-avatar scale', () => {
       seedReadyState();
     });
 
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     fireEvent.pointerDown(stage, {
       button: 2,
       buttons: 2,
@@ -534,7 +556,7 @@ describe('App per-avatar scale', () => {
 
 describe('App transient composer overlay', () => {
   async function openComposer() {
-    const stage = await screen.findByTestId('avatar-embodiment-stage');
+    const stage = await readyEmbodimentStage();
     stage.focus();
     fireEvent.pointerDown(stage, {
       button: 2,

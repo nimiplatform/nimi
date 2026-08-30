@@ -1,5 +1,5 @@
 import type { AgentDataBundle, AgentEvent } from '../driver/types.js';
-import type { EmbodimentProjectionApi } from '@nimiplatform/kit/features/avatar/headless';
+import type { AvatarSignalProjection } from '../semantic-projection/signal-projection.js';
 
 export type InteractionPhysicsController = {
   handle(event: AgentEvent, bundle: AgentDataBundle): void;
@@ -28,7 +28,7 @@ export function isAvatarUserInteractionEvent(name: string): boolean {
 }
 
 export function createInteractionPhysicsController(input: {
-  projection: EmbodimentProjectionApi;
+  projection: AvatarSignalProjection;
   nowMs?: () => number;
 }): InteractionPhysicsController {
   const nowMs = input.nowMs ?? (() => Date.now());
@@ -48,7 +48,7 @@ export function createInteractionPhysicsController(input: {
 }
 
 export function applyInteractionPhysics(
-  projection: EmbodimentProjectionApi,
+  projection: AvatarSignalProjection,
   event: AgentEvent,
   bundle: AgentDataBundle,
 ): void {
@@ -78,7 +78,7 @@ export function applyInteractionPhysics(
   }
 }
 
-function resetSignals(projection: EmbodimentProjectionApi): void {
+function resetSignals(projection: AvatarSignalProjection): void {
   projection.setSignal(ANGLE_X, 0, 0.2);
   projection.setSignal(ANGLE_Y, 0, 0.2);
   projection.setSignal(BODY_X, 0, 0.2);

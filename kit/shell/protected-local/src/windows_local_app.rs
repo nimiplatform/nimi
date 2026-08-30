@@ -1,5 +1,6 @@
 mod agent_configure;
 mod app_ai_config;
+mod avatar_host_target;
 mod conversation;
 mod embodiment;
 mod realm_persona_character;
@@ -49,7 +50,8 @@ use crate::{
     LocalAppAssetMoveRequest, LocalAppAssetReadRequest, LocalAppAssetReadResult,
     LocalAppAssetRecord, LocalAppAssetRemoveRequest, LocalAppAssetRemoveResult,
     LocalAppAssetRevealRequest, LocalAppAssetRevealTarget, LocalAppAssetStatRequest,
-    LocalAppAssetWriteReceiver, LocalAppAssetWriteRequest, LocalAppConversationArtifactReadRequest,
+    LocalAppAssetWriteReceiver, LocalAppAssetWriteRequest, LocalAppAvatarHostTargetResolveRequest,
+    LocalAppAvatarHostTargetResolveResult, LocalAppConversationArtifactReadRequest,
     LocalAppConversationArtifactReadResult, LocalAppConversationAttachmentUploadRequest,
     LocalAppConversationAttachmentUploadResult, LocalAppConversationInterruptRequest,
     LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
@@ -628,6 +630,23 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             reference::list(self.checked_channel()?).await
+        })
+    }
+
+    fn avatar_host_target_resolve(
+        &self,
+        request: LocalAppAvatarHostTargetResolveRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppAvatarHostTargetResolveResult, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            avatar_host_target::resolve(self.checked_channel()?, request).await
         })
     }
 

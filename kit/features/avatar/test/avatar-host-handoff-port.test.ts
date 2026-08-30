@@ -11,6 +11,7 @@ const target = {
   conversationAnchorId: 'anchor-1',
   avatarInstanceId: 'avatar-instance-hint-1',
   launchSource: 'zhiyu',
+  switchIntentRef: null,
   committedPresentationRef: 'presentation:opaque-1',
   temporaryCustodyRef: 'custody:opaque-1',
 } as const;
@@ -36,6 +37,7 @@ describe('Avatar Host handoff port', () => {
       command: 'presence',
       state: 'present',
       avatarInstanceRef: 'instance:opaque-1',
+      switchIntentRef: null,
       committedPresentationRef: 'presentation:opaque-1',
       temporaryCustodyRef: 'custody:opaque-1',
     }));
@@ -48,6 +50,7 @@ describe('Avatar Host handoff port', () => {
       command: 'presence',
       state: 'present',
       avatarInstanceRef: 'instance:opaque-1',
+      switchIntentRef: null,
       committedPresentationRef: 'presentation:opaque-1',
       temporaryCustodyRef: 'custody:opaque-1',
     });
@@ -59,12 +62,14 @@ describe('Avatar Host handoff port', () => {
       command: 'presence',
       state: 'absent',
       avatarInstanceRef: null,
+      switchIntentRef: null,
       committedPresentationRef: null,
       temporaryCustodyRef: null,
     }, 'presence')).toEqual({
       command: 'presence',
       state: 'absent',
       avatarInstanceRef: null,
+      switchIntentRef: null,
       committedPresentationRef: null,
       temporaryCustodyRef: null,
     });
@@ -82,14 +87,17 @@ describe('Avatar Host handoff port', () => {
   it('rejects mismatched command, missing instance proof, and product/error fields in results', () => {
     expect(() => parseAvatarHostHandoffResult({
       command: 'focus', state: 'focused', avatarInstanceRef: 'instance:1',
+      switchIntentRef: null,
       committedPresentationRef: null, temporaryCustodyRef: null,
     }, 'launch')).toThrow(/does not match/u);
     expect(() => parseAvatarHostHandoffResult({
       command: 'focus', state: 'focused', avatarInstanceRef: null,
+      switchIntentRef: null,
       committedPresentationRef: null, temporaryCustodyRef: null,
     }, 'focus')).toThrow(/instance ref/u);
     expect(() => parseAvatarHostHandoffResult({
       command: 'presence', state: 'absent', avatarInstanceRef: null,
+      switchIntentRef: null,
       committedPresentationRef: null, temporaryCustodyRef: null,
       reasonCode: 'avatar-not-running',
     }, 'presence')).toThrow(/unsupported field|forbidden field/u);

@@ -42,11 +42,6 @@ vi.mock('./device-tier-detector.js', () => ({
   }),
 }));
 
-vi.mock('./tauri-lifecycle.js', () => ({
-  isTauriRuntime: () => false,
-  onShellReady: vi.fn(),
-}));
-
 vi.mock('./avatar-window-commands.js', () => ({
   setAlwaysOnTop: vi.fn(),
 }));

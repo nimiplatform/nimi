@@ -9,7 +9,12 @@ export type AvatarSettingsOverlayDismissReason =
   | 'escape'
   | 'composition_change';
 
-export type AvatarSettingsOverlayChangeKey = 'always_on_top' | 'show_voice_captions';
+export type AvatarSettingsOverlayChangeKey =
+  | 'always_on_top'
+  | 'show_voice_captions'
+  | 'caption_size'
+  | 'caption_contrast'
+  | 'caption_duration';
 
 export type AvatarSettingsOverlayProps = {
   x: number;
@@ -20,7 +25,7 @@ export type AvatarSettingsOverlayProps = {
 };
 
 const OVERLAY_WIDTH_PX = 280;
-const OVERLAY_ESTIMATED_HEIGHT_PX = 220;
+const OVERLAY_ESTIMATED_HEIGHT_PX = 410;
 const VIEWPORT_PADDING_PX = 8;
 
 function clampPosition(value: number, size: number, viewport: number): number {
@@ -49,6 +54,7 @@ export function AvatarSettingsOverlay(props: AvatarSettingsOverlayProps) {
   } = props;
   const { t } = useTranslation();
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
 
   const position = useMemo(() => {
     const viewport = readViewportSize();
@@ -59,7 +65,14 @@ export function AvatarSettingsOverlay(props: AvatarSettingsOverlayProps) {
   }, [x, y]);
 
   useEffect(() => {
+    returnFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
     rootRef.current?.focus();
+    return () => {
+      const target = returnFocusRef.current;
+      if (target?.isConnected) target.focus();
+    };
   }, []);
 
   useEffect(() => {
@@ -151,6 +164,50 @@ export function AvatarSettingsOverlay(props: AvatarSettingsOverlayProps) {
       <p className="avatar-settings-popover__note">
         {t('Avatar.settings.show_voice_captions.note')}
       </p>
+      <label className="avatar-settings-popover__select-row">
+        <span>{t('Avatar.settings.caption_size.label')}</span>
+        <select
+          value={settings.captionSize}
+          data-testid="avatar-settings-caption-size"
+          onChange={(event) => onSettingsChange(
+            { ...settings, captionSize: event.currentTarget.value as AvatarShellSettings['captionSize'] },
+            'caption_size',
+          )}
+        >
+          <option value="small">{t('Avatar.settings.caption_size.small')}</option>
+          <option value="medium">{t('Avatar.settings.caption_size.medium')}</option>
+          <option value="large">{t('Avatar.settings.caption_size.large')}</option>
+        </select>
+      </label>
+      <label className="avatar-settings-popover__select-row">
+        <span>{t('Avatar.settings.caption_contrast.label')}</span>
+        <select
+          value={settings.captionContrast}
+          data-testid="avatar-settings-caption-contrast"
+          onChange={(event) => onSettingsChange(
+            { ...settings, captionContrast: event.currentTarget.value as AvatarShellSettings['captionContrast'] },
+            'caption_contrast',
+          )}
+        >
+          <option value="standard">{t('Avatar.settings.caption_contrast.standard')}</option>
+          <option value="high">{t('Avatar.settings.caption_contrast.high')}</option>
+        </select>
+      </label>
+      <label className="avatar-settings-popover__select-row">
+        <span>{t('Avatar.settings.caption_duration.label')}</span>
+        <select
+          value={settings.captionDuration}
+          data-testid="avatar-settings-caption-duration"
+          onChange={(event) => onSettingsChange(
+            { ...settings, captionDuration: event.currentTarget.value as AvatarShellSettings['captionDuration'] },
+            'caption_duration',
+          )}
+        >
+          <option value="short">{t('Avatar.settings.caption_duration.short')}</option>
+          <option value="standard">{t('Avatar.settings.caption_duration.standard')}</option>
+          <option value="long">{t('Avatar.settings.caption_duration.long')}</option>
+        </select>
+      </label>
     </div>
   );
 }

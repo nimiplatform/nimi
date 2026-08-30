@@ -261,6 +261,7 @@ export type NimiElectronShellFileProtocolHost = {
   readonly registerPrivilegedSchemes: () => void;
   readonly registerProtocolHandler: () => void;
   readonly registerReadableFile: (absolutePath: string) => Promise<string>;
+  readonly unregisterReadableFile?: (absolutePath: string) => Promise<void>;
   readonly resolveLocalAssetUrl: (absolutePath: string) => string;
   readonly hasReadableFile: (absolutePath: string) => Promise<boolean>;
 };
@@ -350,7 +351,7 @@ export type NimiElectronDesktopHost = {
   /** Exact Desktop-owned main WebContents/main-frame authorization. */
   readonly authorizeSender: (event: NimiElectronIpcMainInvokeEvent) => boolean;
   /** Desktop-owned sender destruction or replacement invalidation. */
-  readonly subscribeSenderInvalidation: (listener: () => void) => () => void;
+  readonly subscribeSenderInvalidation: (listener: () => void | Promise<void>) => () => void;
 };
 
 export type NimiElectronBundledAvatarHost = {
@@ -359,7 +360,7 @@ export type NimiElectronBundledAvatarHost = {
   /** Non-portable exact sender/main-frame authorization owned by Desktop main. */
   readonly authorizeSender: (event: NimiElectronIpcMainInvokeEvent) => boolean;
   /** Desktop-owned destruction/navigation invalidation for exact sender objects. */
-  readonly subscribeSenderInvalidation: (listener: (sender: object) => void) => () => void;
+  readonly subscribeSenderInvalidation: (listener: (sender: object) => void | Promise<void>) => () => void;
   readonly standardShellHost?: NimiElectronStandardShellHost;
   readonly commandPolicy?: NimiElectronHostCommandPolicy;
   readonly commandHandlers?: Readonly<Record<string, NimiElectronCommandHandler>>;
@@ -394,6 +395,10 @@ export type RegisteredNimiElectronRuntimeBridge = {
   readonly invokeChannel: string;
   /** Main-process-only canonical formal host used for Avatar dev bootstrap. */
   readonly bundledAvatarLocalAppHost?: import('./local-app-host.js').NimiElectronLocalAppHost;
+  /** Desktop-main-only private current Avatar target revalidation. */
+  readonly revalidateAvatarHostTarget?: (avatarHostTargetRef: string) => Promise<string>;
+  /** Bounded owner cleanup used before Desktop Host shutdown. */
+  readonly disposeFormalAppResources?: () => Promise<void>;
   readonly unregister: () => void;
 };
 

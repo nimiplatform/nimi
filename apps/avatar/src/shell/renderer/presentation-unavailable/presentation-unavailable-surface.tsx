@@ -26,6 +26,7 @@ export function PresentationUnavailableSurface({
         'nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]',
       )}
       data-testid="avatar-presentation-unavailable"
+      data-avatar-interactive-region="true"
       role="alert"
       aria-label={t('Avatar.presentation_unavailable.surface_aria')}
     >

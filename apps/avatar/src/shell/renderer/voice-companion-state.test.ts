@@ -2,13 +2,16 @@ import { describe, expect, it } from 'vitest';
 import {
   activateLipsync,
   bindVoiceCompanionState,
+  beginVoicePermissionRequest,
   beginVoiceInterruptRequest,
+  cancelVoiceCapture,
   closeVoiceCompanion,
   deactivateLipsync,
   initialVoiceCompanionState,
   interruptVoiceCompanion,
   setAudioPlaybackState,
   setMouthOpenY,
+  setVoicePermissionBlocked,
   type VoiceCompanionState,
 } from './voice-companion-state.js';
 
@@ -23,6 +26,20 @@ describe('voice-companion-state — base slice', () => {
     expect(initialVoiceCompanionState.currentMouthOpenY).toBe(0);
     expect(initialVoiceCompanionState.audioArtifactId).toBeNull();
     expect(initialVoiceCompanionState.audioPlaybackState).toBe('idle');
+  });
+
+  it('separates permission request, listening cancellation, and denied availability', () => {
+    const requesting = beginVoicePermissionRequest({
+      ...initialVoiceCompanionState,
+      availability: 'ready',
+    });
+    expect(requesting.status).toBe('requesting_permission');
+    const cancelled = cancelVoiceCapture(requesting);
+    expect(cancelled.status).toBe('idle');
+    expect(cancelled.availability).toBe('ready');
+    const blocked = setVoicePermissionBlocked(requesting, 'permission denied');
+    expect(blocked.status).toBe('error');
+    expect(blocked.availability).toBe('blocked');
   });
 
   it('bind to a new anchor resets lipsync slice along with the rest of the state', () => {

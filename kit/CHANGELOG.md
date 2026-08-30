@@ -11,6 +11,17 @@ Discipline.
 
 ### Removed
 
+- **Breaking (0.x):** Removed the public NAS-era
+  `EmbodimentProjectionApi`, `ActivityFallbackOptions`,
+  `AvatarActivityFallbackBundle`, and projection-smoothing exports, including
+  the optional `runDefaultActivity` fallback contract. Built-in activity and
+  signal projection are now Avatar-owned implementation details; consumers
+  must use admitted backend primitives without a compatibility alias.
+- **Breaking (0.x):** Removed `semantics.nas_fallback` from the public
+  `Live2DAdapterManifestV1` contract. Live2D adapters now contain only the
+  built-in Avatar semantic mappings; manifests retaining the retired field are
+  rejected by the closed v1 parser and must delete it without a compatibility
+  alias.
 - **Breaking (0.x):** Removed the optional `AgentCenterVoiceAssetsClient` and
   `voiceAssetsClient` factory input. Agent Center now discovers bounded
   current-session-owned custom VoiceAsset choices through the canonical

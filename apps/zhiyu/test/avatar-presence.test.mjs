@@ -28,6 +28,7 @@ test('projects only common Host presence mechanics for the current formal Conver
           command: 'presence',
           state: 'present',
           avatarInstanceRef: request.target.avatarInstanceId,
+          switchIntentRef: null,
           committedPresentationRef: 'presentation:opaque',
           temporaryCustodyRef: 'custody:opaque',
         };
@@ -45,6 +46,7 @@ test('projects only common Host presence mechanics for the current formal Conver
       conversationAnchorId: 'conversation-anchor:1',
       avatarInstanceId: `zhiyu-avatar-agent-ref-${'a'.repeat(43)}`,
       launchSource: 'zhiyu',
+      switchIntentRef: null,
       committedPresentationRef: null,
       temporaryCustodyRef: null,
     },

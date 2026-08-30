@@ -22,10 +22,10 @@
 ## Retrieval Defaults
 - Start with the observed Avatar consumer, its backend branch, direct Kit/SDK contract, and the exact authority unit it implements.
 - Read `config/avatar-*.yaml` only for the affected route, profile, activity, scenario, or window policy; do not preload all backend docs or historical evidence.
-- Use `src/shell/renderer/{live2d,vrm}/**` only for the affected backend, `nas/**` for semantic projection, and `src-tauri/src/**` only for shell/window work.
+- Use `src/shell/renderer/{live2d,vrm}/**` only for the affected backend and the built-in semantic projection modules only for admitted activity/event projection; Desktop Electron Host code owns shell/window mechanics.
 
 ## Verification Commands
 - Default: the focused Avatar test plus `pnpm --filter @nimiplatform/avatar typecheck`.
 - When an admitted config projection changes, run only the generator or checker tied to that config.
 - Run `pnpm check:apps-avatar-isolation` for import or package-boundary changes.
-- Run targeted `cargo check` or `cargo test` under `apps/avatar/src-tauri` only for Rust or window-shell changes.
+- Run the targeted Desktop Electron Host test for native shell/window changes.

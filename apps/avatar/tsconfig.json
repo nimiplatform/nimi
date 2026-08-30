@@ -3,7 +3,6 @@
     "paths": {
       "@renderer/*": ["./src/shell/renderer/*"],
       "@live2d/*": ["./src/shell/renderer/live2d/*"],
-      "@nas/*": ["./src/shell/renderer/nas/*"],
       "@mock/*": ["./src/shell/renderer/mock/*"],
       "@driver/*": ["./src/shell/renderer/driver/*"],
       "react": ["./node_modules/@types/react/index.d.ts"],
@@ -11,8 +10,6 @@
       "react-dom": ["./node_modules/@types/react-dom/index.d.ts"],
       "react-dom/client": ["./node_modules/@types/react-dom/client.d.ts"],
       "react-dom/server": ["./node_modules/@types/react-dom/server.d.ts"],
-      "@tauri-apps/api/core": ["./node_modules/@tauri-apps/api/core.d.ts"],
-      "@tauri-apps/api/*": ["./node_modules/@tauri-apps/api/*"],
       "@nimiplatform/kit/auth": ["../../kit/auth/src/index.ts"],
       "@nimiplatform/kit/auth/*": ["../../kit/auth/src/*"],
       "@nimiplatform/kit/ui": ["../../kit/ui/src/index.ts"],

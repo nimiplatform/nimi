@@ -16,6 +16,8 @@ const ACCOUNT_METHOD = '/nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSou
 const SCENARIO_JOB_METHOD = '/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob';
 const SCENARIO_STREAM_METHOD = '/nimi.runtime.v1.RuntimeAiService/StreamScenario';
 const FORMAL_AGENT_METHOD = '/nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory';
+const AVATAR_TARGET_RESOLVE_METHOD = '/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget';
+const AVATAR_TARGET_REVALIDATE_METHOD = '/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget';
 const AVATAR_METHOD = '/nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset';
 
 function binding(overrides: Partial<NimiElectronDesktopControlBinding> = {}): NimiElectronDesktopControlBinding {
@@ -156,6 +158,47 @@ describe('Electron verified Desktop control host', () => {
       desktopSenderAuthorized: true,
     })).rejects.toMatchObject({ reasonCode: 'electron-desktop-runtime-method-not-admitted' });
     expect(nativeCalls).toBe(0);
+  });
+
+  it('keeps current Avatar target revalidation on the private Desktop account binding', async () => {
+    let nativeCalls = 0;
+    const desktopControlHost = createNimiElectronDesktopControlHostForBinding(binding({
+      desktopAccountProductUnary: async () => {
+        nativeCalls += 1;
+        return { status: 'ok', value: new Uint8Array() };
+      },
+    }));
+    expect(isElectronDesktopAccountProductMethod(AVATAR_TARGET_REVALIDATE_METHOD, 'unary')).toBe(true);
+    await expect(invokeElectronRuntimeUnary({
+      payload: { methodId: AVATAR_TARGET_REVALIDATE_METHOD, requestBytesBase64: '' },
+      appId: 'nimi.desktop',
+      event: {},
+      runtimeEndpoint: 'protected-desktop-control',
+      command: 'runtime_bridge_unary',
+      desktopControlHost,
+      desktopSenderAuthorized: true,
+    })).rejects.toMatchObject({ reasonCode: 'electron-desktop-runtime-method-not-admitted' });
+    expect(nativeCalls).toBe(0);
+  });
+
+  it('admits Avatar target resolution through the bundled Avatar native profile', async () => {
+    const calls: string[] = [];
+    const host = createNimiElectronDesktopControlHostForBinding(binding({
+      desktopBundledAvatarUnary: async (input) => {
+        calls.push(input.methodId);
+        return { status: 'ok', value: Uint8Array.from([7, 8, 9]) };
+      },
+    }));
+
+    await expect(host.bundledAvatarUnary({
+      methodId: AVATAR_TARGET_RESOLVE_METHOD,
+      requestBytes: Uint8Array.from([1]),
+    })).resolves.toEqual(Uint8Array.from([7, 8, 9]));
+    expect(calls).toEqual([AVATAR_TARGET_RESOLVE_METHOD]);
+    await expect(host.bundledAvatarUnary({
+      methodId: AVATAR_TARGET_REVALIDATE_METHOD,
+      requestBytes: new Uint8Array(),
+    })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
   });
 
   it('cancels an active account unary in the native binding before rejecting its signal', async () => {

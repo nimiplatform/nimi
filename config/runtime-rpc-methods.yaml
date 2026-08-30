@@ -536,6 +536,12 @@ services:
       - name: ListLocalAppAgentReferences
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
+      - name: ResolveLocalAppAvatarHostTarget
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget
+      - name: RevalidateLocalAppAvatarHostTarget
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget
       - name: GetLocalAppAgentManagerSnapshot
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot

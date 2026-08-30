@@ -9,16 +9,9 @@ import { NimiThemeProvider } from '@nimiplatform/kit/ui';
 import { installNimiShellRuntimeBridge } from '@nimiplatform/kit/shell/renderer/bridge';
 import { App } from './App.js';
 import { t } from './i18n/index.js';
-import { installCreateImageBitmapSuspendForTauri } from './vrm/vrm-tauri-quirks.js';
 import './app.css';
 
 installNimiShellRuntimeBridge();
-
-// Install the Tauri WKWebView createImageBitmap quirk-shim before any VRM /
-// Three.js code runs. Forces GLTFLoader's stable `<img>` fallback path for
-// every texture decode (not just inside loadVrmFromManifest) — see
-// vrm-tauri-quirks.ts for the full rationale.
-installCreateImageBitmapSuspendForTauri();
 
 const container = document.getElementById('root');
 if (!container) {

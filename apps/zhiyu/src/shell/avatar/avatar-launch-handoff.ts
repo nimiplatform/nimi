@@ -5,6 +5,7 @@ import {
   type AvatarHostHandoffRequest,
   type AvatarHostHandoffResult,
 } from '@nimiplatform/kit/features/avatar/headless';
+import { confirmDialog } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from './avatar-launch';
 
@@ -31,6 +32,7 @@ export type ZhiyuAvatarLaunchOptions = {
   readonly evidence: ZhiyuEvidence;
   readonly action: ZhiyuAvatarLaunchAction;
   readonly hostPort?: AvatarHostHandoffPort;
+  readonly confirmSwitch?: () => Promise<boolean>;
 };
 
 // @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r011
@@ -38,6 +40,7 @@ export type ZhiyuAvatarLaunchOptions = {
 export function buildZhiyuAvatarLaunchHandoff(input: {
   readonly evidence: ZhiyuEvidence;
   readonly action: ZhiyuAvatarLaunchAction;
+  readonly switchIntentRef?: string | null;
 }): ZhiyuAvatarLaunchHandoff {
   if (input.action.state !== 'ready') {
     throw new Error(`Zhiyu Avatar launch is not ready: ${input.action.reasonCode}`);
@@ -55,6 +58,7 @@ export function buildZhiyuAvatarLaunchHandoff(input: {
         conversationAnchorId,
         avatarInstanceId: input.action.avatarInstanceId,
         launchSource: 'zhiyu',
+        switchIntentRef: input.switchIntentRef ?? null,
         committedPresentationRef: input.evidence.avatar.hostHandoff?.committedPresentationRef ?? null,
         temporaryCustodyRef: input.evidence.avatar.hostHandoff?.temporaryCustodyRef ?? null,
       },
@@ -73,8 +77,33 @@ export async function launchZhiyuAvatar(
         source: 'host',
       });
     }
-    const handoff = buildZhiyuAvatarLaunchHandoff(options);
-    const result = await invokeAvatarHostHandoff(options.hostPort, handoff.request);
+    let handoff = buildZhiyuAvatarLaunchHandoff(options);
+    let result = await invokeAvatarHostHandoff(options.hostPort, handoff.request);
+    if (handoff.request.command === 'launch' && result.state === 'confirmation-required') {
+      const confirmed = await (options.confirmSwitch
+        ? options.confirmSwitch()
+        : confirmZhiyuAvatarSwitch());
+      if (!confirmed) {
+        return {
+          state: 'blocked',
+          reasonCode: 'zhiyu-avatar-switch-cancelled',
+          actionHint: 'keep_current_companion',
+          message: 'Kept the current desktop companion.',
+        };
+      }
+      handoff = buildZhiyuAvatarLaunchHandoff({
+        evidence: options.evidence,
+        action: options.action,
+        switchIntentRef: result.switchIntentRef,
+      });
+      result = await invokeAvatarHostHandoff(options.hostPort, handoff.request);
+      if (result.state === 'confirmation-required') {
+        throw Object.assign(new Error('Avatar Host switch confirmation did not converge.'), {
+          reasonCode: 'zhiyu-avatar-switch-confirmation-invalid',
+          actionHint: 'retry_avatar_host_handoff',
+        });
+      }
+    }
     if (result.state !== 'present' && result.state !== 'focused') {
       return {
         state: 'blocked',
@@ -100,6 +129,15 @@ export async function launchZhiyuAvatar(
         : 'Avatar Host handoff failed closed.',
     };
   }
+}
+
+async function confirmZhiyuAvatarSwitch(): Promise<boolean> {
+  const result = await confirmDialog({
+    title: 'Switch current companion?',
+    description: 'Another companion is already active. Switch the desktop companion to this Agent?',
+    level: 'warning',
+  });
+  return result.confirmed;
 }
 
 function requireText(value: unknown, field: string): string {

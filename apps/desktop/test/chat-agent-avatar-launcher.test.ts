@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type { AvatarHostHandoffRequest } from '@nimiplatform/kit/features/avatar/headless';
 
 import {
   buildDesktopAvatarLaunchHandoffPayload,
@@ -11,23 +12,6 @@ import { parseAvatarLaunchContext } from '../../avatar/src/shell/renderer/bridge
 
 const AGENT_HANDLE = `agent_ref_${'a'.repeat(43)}`;
 const CONVERSATION_ANCHOR_ID = 'anchor-1';
-const FORBIDDEN_AUTHORITY_FIELDS = [
-  'ownerUserId',
-  'runtimeSourceRef',
-  'localAgentRef',
-  'accountId',
-  'subjectUserId',
-  'realmBaseUrl',
-  'accessToken',
-  'refreshToken',
-  'jwt',
-  'scopedBinding',
-  'bindingId',
-  'avatarPackage',
-  'avatarAssetRef',
-  'backendCapabilityProfileRef',
-  'agentId',
-] as const;
 
 test('desktop avatar launcher builds deterministic instance ids from the Runtime Agent selector', () => {
   assert.equal(
@@ -76,22 +60,20 @@ test('desktop avatar launcher preserves an omitted Conversation anchor for Host-
   assert.deepEqual(payload, { agentHandle: AGENT_HANDLE, conversationAnchorId: null });
 });
 
-test('desktop avatar launcher rejects malformed handles and renderer-carried authority', async () => {
+test('desktop avatar launcher rejects malformed handles and constructs only the exact payload', async () => {
   assert.throws(
     () => buildDesktopAvatarLaunchHandoffPayload({ agentHandle: 'agent-1', conversationAnchorId: CONVERSATION_ANCHOR_ID }),
     /canonical agentHandle/,
   );
-  for (const field of FORBIDDEN_AUTHORITY_FIELDS) {
-    await assert.rejects(
-      prepareDesktopAvatarLaunchHandoffPayload({
-        agentHandle: AGENT_HANDLE,
-        conversationAnchorId: CONVERSATION_ANCHOR_ID,
-        [field]: field === 'scopedBinding' ? { bindingId: 'binding-1' } : 'forbidden',
-      } as never),
-      /forbidden field/,
-      `expected ${field} to be rejected before Avatar handoff`,
-    );
-  }
+  assert.deepEqual(await prepareDesktopAvatarLaunchHandoffPayload({
+    agentHandle: AGENT_HANDLE,
+    conversationAnchorId: CONVERSATION_ANCHOR_ID,
+    ownerUserId: 'must-not-project',
+    avatarAssetRef: 'must-not-project',
+  } as never), {
+    agentHandle: AGENT_HANDLE,
+    conversationAnchorId: CONVERSATION_ANCHOR_ID,
+  });
 });
 
 test('desktop avatar launcher invokes only the minimal launch handoff', async () => {
@@ -108,6 +90,7 @@ test('desktop avatar launcher invokes only the minimal launch handoff', async ()
         command: 'launch',
         state: 'present',
         avatarInstanceRef: 'instance-1',
+        switchIntentRef: null,
         committedPresentationRef: null,
         temporaryCustodyRef: null,
       };
@@ -120,10 +103,54 @@ test('desktop avatar launcher invokes only the minimal launch handoff', async ()
       conversationAnchorId: CONVERSATION_ANCHOR_ID,
       avatarInstanceId: 'instance-1',
       launchSource: 'desktop-agent-chat',
+      switchIntentRef: null,
       committedPresentationRef: null,
       temporaryCustodyRef: null,
     },
   }]);
   assert.equal(result.opened, true);
   assert.equal(result.handoffUri, 'instance-1');
+});
+
+test('desktop avatar launcher explicitly confirms a different active Agent before resubmitting once', async () => {
+  const calls: AvatarHostHandoffRequest[] = [];
+  const result = await launchDesktopAvatarHandoff({
+    agentHandle: AGENT_HANDLE,
+    conversationAnchorId: CONVERSATION_ANCHOR_ID,
+  }, {
+    confirmSwitch: async () => true,
+    invokeLaunchHandoff: async (request) => {
+      calls.push(request);
+      if (calls.length === 1) {
+        return {
+          command: 'launch', state: 'confirmation-required', avatarInstanceRef: null,
+          switchIntentRef: 'avatar_switch_once', committedPresentationRef: null, temporaryCustodyRef: null,
+        };
+      }
+      return {
+        command: 'launch', state: 'present', avatarInstanceRef: 'instance-switched',
+        switchIntentRef: null, committedPresentationRef: null, temporaryCustodyRef: null,
+      };
+    },
+  });
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0]?.target.switchIntentRef, null);
+  assert.equal(calls[1]?.target.switchIntentRef, 'avatar_switch_once');
+  assert.deepEqual(result, { opened: true, handoffUri: 'instance-switched' });
+});
+
+test('desktop avatar launcher cancellation does not resubmit the switch intent', async () => {
+  let calls = 0;
+  const result = await launchDesktopAvatarHandoff({ agentHandle: AGENT_HANDLE }, {
+    confirmSwitch: async () => false,
+    invokeLaunchHandoff: async () => {
+      calls += 1;
+      return {
+        command: 'launch', state: 'confirmation-required', avatarInstanceRef: null,
+        switchIntentRef: 'avatar_switch_once', committedPresentationRef: null, temporaryCustodyRef: null,
+      };
+    },
+  });
+  assert.equal(calls, 1);
+  assert.deepEqual(result, { opened: false, handoffUri: '' });
 });

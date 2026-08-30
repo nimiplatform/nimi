@@ -48,6 +48,32 @@ test('compiles all protected Runtime profiles and current generated consumers', 
   }
 });
 
+test('keeps raw Avatar Host target methods in native profiles and out of SDK typed groups', () => {
+  const { model, outputs } = compile();
+  const nativeOutput = outputs.get(
+    'kit/shell/electron/src/main/first-party-protected-runtime-profiles.generated.ts',
+  );
+  const sdkOutput = outputs.get(
+    'sdks/typescript/runtime/first-party-protected-runtime-profiles.generated.ts',
+  );
+  const profiles = new Map(model.profiles.map((profile) => [profile.profileId, profile]));
+  const avatarMethods = new Set(
+    profiles.get('bundled_avatar_v1')?.methods.map((method) => method.methodId),
+  );
+  const resolve = '/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget';
+  const revalidate = '/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget';
+
+  assert.equal(avatarMethods.has(resolve), true);
+  assert.equal(avatarMethods.has(revalidate), false);
+  for (const method of [resolve, revalidate]) {
+    assert.match(nativeOutput, new RegExp(method.replaceAll('/', '\\/'), 'u'));
+  }
+  assert.doesNotMatch(
+    sdkOutput,
+    /ResolveLocalAppAvatarHostTarget|resolveLocalAppAvatarHostTarget|RevalidateLocalAppAvatarHostTarget|revalidateLocalAppAvatarHostTarget/u,
+  );
+});
+
 test('retires Desktop self AI consumption from the direct account product profile', () => {
   const { model } = compile();
   const profiles = new Map(model.profiles.map((profile) => [profile.profileId, profile]));

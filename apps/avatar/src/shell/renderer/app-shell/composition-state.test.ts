@@ -44,7 +44,7 @@ function input(overrides: Partial<CompositionInput> = {}): CompositionInput {
 }
 
 describe('deriveCompositionState', () => {
-  it('keeps mock driver selection inside the ready shell composition', () => {
+  it('keeps fixture rendering outside product-ready composition', () => {
     const state = deriveCompositionState(input({
       model: {
         modelPath: 'fixture://vrm-render-recovery',
@@ -65,14 +65,16 @@ describe('deriveCompositionState', () => {
     }));
 
     expect(state).toMatchObject({
-      state: 'ready',
-      variant: 'live',
-      reason: null,
-      ready: true,
+      state: 'fixture_not_verified',
+      variant: 'fixture',
+      reason: 'fixture_not_verified',
+      ready: false,
+      renderable: true,
+      developmentPreview: true,
     });
   });
 
-  it('does not let mock driver selection bypass an unavailable Runtime binding', () => {
+  it('lets explicit fixture mode mount without manufacturing a Runtime binding', () => {
     const state = deriveCompositionState(input({
       consume: {
         mode: 'mock',
@@ -97,10 +99,12 @@ describe('deriveCompositionState', () => {
     }));
 
     expect(state).toMatchObject({
-      state: 'degraded_runtime_unavailable',
-      variant: 'degraded',
-      reason: 'runtime binding unavailable',
+      state: 'fixture_not_verified',
+      variant: 'fixture',
+      reason: 'fixture_not_verified',
       ready: false,
+      renderable: true,
+      developmentPreview: true,
     });
   });
 
@@ -127,6 +131,8 @@ describe('deriveCompositionState', () => {
       variant: 'degraded',
       reason: 'driver_stopped',
       ready: false,
+      renderable: false,
+      developmentPreview: false,
     });
   });
 

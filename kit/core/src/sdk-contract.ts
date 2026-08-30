@@ -115,7 +115,6 @@ export type {
 export {
   NIMI_RUNTIME_REASON_CODES,
   Runtime,
-  createNimiHostRuntimeTypedClient,
   getNimiRuntimeScenarioJobTerminalStatusFromError,
   getNimiRuntimeReasonCodeMessage,
   toNimiRuntimeVoiceReference,

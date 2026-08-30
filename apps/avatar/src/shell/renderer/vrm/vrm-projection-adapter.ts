@@ -81,8 +81,9 @@ export function createVrmProjectionAdapter(
         console.warn(
           `[avatar:vrm] activity "${name}" has no vrm route admitted`,
         );
-        return;
+        return 'unsupported';
       }
+      let applied = false;
       if (route.motion) {
         const motion = {
           routeId: route.motion,
@@ -92,9 +93,10 @@ export function createVrmProjectionAdapter(
         if (reducedMotion() && isAmbientGeneratedMotion(route.motion)) {
           input.onSuppressedMotionChange?.(motion);
           generatedMotionRuntime.stopAll();
+          applied = true;
         } else {
           input.onSuppressedMotionChange?.(null);
-          generatedMotionRuntime.play(motion);
+          applied = generatedMotionRuntime.play(motion).played || applied;
         }
       }
       if (route.expression) {
@@ -104,10 +106,13 @@ export function createVrmProjectionAdapter(
           route.expression,
           scaleByIntensity(intensity),
         );
+        applied = true;
       }
       if (route.emotion) {
         emoteState.setEmote(route.emotion);
+        applied = true;
       }
+      return applied ? 'applied' : 'unsupported';
     },
     applyEmotion({ current, previous }) {
       emoteState.setEmote(current, { previous });

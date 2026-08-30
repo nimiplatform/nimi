@@ -7,13 +7,23 @@ import {
 import type { BackendAudioConsumer } from '@nimiplatform/kit/features/avatar/headless';
 import { createLive2DLipsyncDriver } from './live2d-lipsync-driver.js';
 import { PresentationUnavailableSurface } from '../presentation-unavailable/presentation-unavailable-surface.js';
+import type { BackendPresentationState } from '../carrier/backend-branch.js';
 
 type Live2DCarrierVisualSurfaceProps = {
   session: Live2DBackendSession | null;
   audioConsumer: BackendAudioConsumer;
   paramMouthFormSupported: boolean;
   reducedMotion?: boolean;
+  onPresentationStateChange?: (state: BackendPresentationState) => void;
 };
+
+type Live2DVisualSurfaceStatus = 'idle' | 'loading' | 'recovering' | 'ready' | 'error';
+const LIVE2D_CONTEXT_RECOVERY_ATTEMPTS = 1;
+// Conservative local watchdogs prevent a missing browser restore event or a
+// hung local resource read from retaining loading/recovering forever. These
+// are runtime safety bounds, not release or performance evidence.
+export const LIVE2D_VISUAL_LOAD_TIMEOUT_MS = 45_000;
+export const LIVE2D_CONTEXT_RESTORE_TIMEOUT_MS = 15_000;
 
 function describeError(error: unknown): string {
   return error instanceof Error && error.message.trim()
@@ -28,31 +38,47 @@ function measureHost(host: HTMLDivElement): { width: number; height: number } {
   };
 }
 
-function timeoutAfter<T>(ms: number, message: string): Promise<T> {
-  return new Promise((_, reject) => {
-    window.setTimeout(() => reject(new Error(message)), ms);
-  });
+function hasObservedCarrierOutput(stats: ReturnType<Live2DCarrierVisualHost['drawFrame']>): boolean {
+  return stats.textureBindingCount > 0
+    && stats.visibleNonZeroOpacityDrawableCount > 0;
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r035
+// @nimi-authority: rule.nimi.avatar.embodiment.r076
 export function Live2DCarrierVisualSurface({
   session,
   audioConsumer,
   paramMouthFormSupported,
   reducedMotion,
+  onPresentationStateChange,
 }: Live2DCarrierVisualSurfaceProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const lipsyncDriverRef = useRef(createLive2DLipsyncDriver());
   const lastFrameTimeRef = useRef<number | null>(null);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const [status, setStatus] = useState<Live2DVisualSurfaceStatus>('idle');
   const [error, setError] = useState<string | null>(null);
-  const statusRef = useRef<'idle' | 'loading' | 'ready' | 'error'>('idle');
+  const statusRef = useRef<Live2DVisualSurfaceStatus>('idle');
+  const presentationCallbackRef = useRef(onPresentationStateChange);
+  presentationCallbackRef.current = onPresentationStateChange;
   const reducedMotionRef = useRef(reducedMotion === true);
   reducedMotionRef.current = reducedMotion === true;
 
-  const setSurfaceStatus = (nextStatus: 'idle' | 'loading' | 'ready' | 'error'): void => {
-    if (statusRef.current === nextStatus) return;
+  const setSurfaceStatus = (
+    nextStatus: Live2DVisualSurfaceStatus,
+    reason?: string,
+  ): void => {
+    if (statusRef.current === nextStatus && nextStatus !== 'error') return;
     statusRef.current = nextStatus;
     setStatus(nextStatus);
+    if (nextStatus === 'loading') presentationCallbackRef.current?.({ kind: 'loading' });
+    if (nextStatus === 'recovering') presentationCallbackRef.current?.({ kind: 'recovering' });
+    if (nextStatus === 'ready') presentationCallbackRef.current?.({ kind: 'ready' });
+    if (nextStatus === 'error') {
+      presentationCallbackRef.current?.({
+        kind: 'unavailable',
+        reason: reason?.trim() || 'live2d_presentation_unavailable',
+      });
+    }
   };
 
   useEffect(() => {
@@ -66,28 +92,108 @@ export function Live2DCarrierVisualSurface({
     }
 
     let cancelled = false;
+    let attemptGeneration = 0;
+    let recoveryAttempts = 0;
     let animationFrame = 0;
     let reducedMotionTimer: number | null = null;
+    let attemptWatchdog: number | null = null;
+    let contextRestoreWatchdog: number | null = null;
     let resizeObserver: ResizeObserver | null = null;
     let visualHost: Live2DCarrierVisualHost | null = null;
+    let activeCanvas: HTMLCanvasElement | null = null;
+    let removeCanvasListeners: () => void = () => {};
     lastFrameTimeRef.current = null;
-    setSurfaceStatus('loading');
     setError(null);
 
-    const scheduleNextFrame = (): void => {
-      if (cancelled || !visualHost) return;
+    const stopFrameScheduling = (): void => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+        animationFrame = 0;
+      }
+      if (reducedMotionTimer !== null) {
+        window.clearTimeout(reducedMotionTimer);
+        reducedMotionTimer = null;
+      }
+    };
+
+    const clearAttemptWatchdog = (): void => {
+      if (attemptWatchdog === null) return;
+      window.clearTimeout(attemptWatchdog);
+      attemptWatchdog = null;
+    };
+
+    const clearContextRestoreWatchdog = (): void => {
+      if (contextRestoreWatchdog === null) return;
+      window.clearTimeout(contextRestoreWatchdog);
+      contextRestoreWatchdog = null;
+    };
+
+    const clearWatchdogs = (): void => {
+      clearAttemptWatchdog();
+      clearContextRestoreWatchdog();
+    };
+
+    const releaseVisualHost = (): void => {
+      const retiring = visualHost;
+      visualHost = null;
+      if (!retiring) return;
+      try {
+        retiring.unload();
+      } catch (releaseError) {
+        console.warn(`[avatar:live2d] visual host release failed: ${describeError(releaseError)}`);
+      }
+    };
+
+    const silenceBackend = (): void => {
+      try {
+        audioConsumer.silent();
+        lipsyncDriverRef.current.silent((id, value) => {
+          session.applyCommand({
+            kind: 'parameter',
+            id,
+            value,
+            weight: 1,
+            source: 'speech_lipsync',
+          });
+        });
+      } catch (silenceError) {
+        console.warn(`[avatar:live2d] recovery silence failed: ${describeError(silenceError)}`);
+      }
+    };
+
+    const failSurface = (reason: unknown): void => {
+      if (cancelled) return;
+      attemptGeneration += 1;
+      stopFrameScheduling();
+      clearWatchdogs();
+      resizeObserver?.disconnect();
+      resizeObserver = null;
+      releaseVisualHost();
+      removeCanvasListeners();
+      removeCanvasListeners = () => {};
+      activeCanvas = null;
+      silenceBackend();
+      const message = describeError(reason);
+      setSurfaceStatus('error', message);
+      setError(message);
+      console.warn(`[avatar:live2d] visual presentation failed: ${message}`);
+      host.replaceChildren();
+    };
+
+    const scheduleNextFrame = (attempt: number): void => {
+      if (cancelled || attempt !== attemptGeneration || !visualHost) return;
       if (reducedMotionRef.current) {
         reducedMotionTimer = window.setTimeout(() => {
           reducedMotionTimer = null;
-          animationFrame = requestAnimationFrame(renderLoop);
+          animationFrame = requestAnimationFrame(() => renderLoop(attempt));
         }, 100);
         return;
       }
-      animationFrame = requestAnimationFrame(renderLoop);
+      animationFrame = requestAnimationFrame(() => renderLoop(attempt));
     };
 
-    const renderLoop = () => {
-      if (cancelled || !visualHost) {
+    const renderLoop = (attempt: number): void => {
+      if (cancelled || attempt !== attemptGeneration || !visualHost) {
         return;
       }
       try {
@@ -114,45 +220,98 @@ export function Live2DCarrierVisualSurface({
           seconds: now / 1000,
           reducedMotion: reducedMotionRef.current,
         };
-        visualHost.drawFrame(frameInput);
-        setSurfaceStatus('ready');
+        const stats = visualHost.drawFrame(frameInput);
+        if (statusRef.current !== 'ready' && hasObservedCarrierOutput(stats)) {
+          clearAttemptWatchdog();
+          setSurfaceStatus('ready');
+        }
       } catch (renderError) {
-        const message = describeError(renderError);
-        setSurfaceStatus('error');
-        setError(message);
-        console.warn(`[avatar:live2d] visual frame failed: ${message}`);
-        visualHost.unload();
-        visualHost = null;
-        host.replaceChildren();
+        failSurface(renderError);
         return;
       }
-      scheduleNextFrame();
+      scheduleNextFrame(attempt);
     };
 
-    void (async () => {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.className = 'avatar-live2d-carrier__canvas';
-        canvas.setAttribute('aria-hidden', 'true');
-        host.replaceChildren(canvas);
-        const size = measureHost(host);
-        visualHost = await Promise.race([
-          createLive2DCarrierVisualHost({
-            canvas,
-            session,
-            width: size.width,
-            height: size.height,
-          }),
-          timeoutAfter<Live2DCarrierVisualHost>(8_000, 'Live2D carrier visual host initialization timed out'),
-        ]);
-        if (cancelled) {
-          visualHost.unload();
-          visualHost = null;
+    const startAttempt = async (posture: 'loading' | 'recovering'): Promise<void> => {
+      if (cancelled) return;
+      const attempt = ++attemptGeneration;
+      stopFrameScheduling();
+      clearWatchdogs();
+      resizeObserver?.disconnect();
+      resizeObserver = null;
+      releaseVisualHost();
+      removeCanvasListeners();
+      removeCanvasListeners = () => {};
+      lastFrameTimeRef.current = null;
+      setSurfaceStatus(posture);
+      setError(null);
+
+      const canvas = document.createElement('canvas');
+      canvas.className = 'avatar-live2d-carrier__canvas';
+      canvas.setAttribute('aria-hidden', 'true');
+      activeCanvas = canvas;
+      host.replaceChildren(canvas);
+      let contextLost = false;
+      const onContextLost = (event: Event): void => {
+        event.preventDefault();
+        if (cancelled || activeCanvas !== canvas || attempt !== attemptGeneration) return;
+        if (recoveryAttempts >= LIVE2D_CONTEXT_RECOVERY_ATTEMPTS) {
+          failSurface('live2d_webgl_context_recovery_exhausted');
           return;
         }
+        recoveryAttempts += 1;
+        contextLost = true;
+        attemptGeneration += 1;
+        stopFrameScheduling();
+        clearAttemptWatchdog();
+        resizeObserver?.disconnect();
+        resizeObserver = null;
+        releaseVisualHost();
+        silenceBackend();
+        setSurfaceStatus('recovering');
+        setError(null);
+        contextRestoreWatchdog = window.setTimeout(() => {
+          contextRestoreWatchdog = null;
+          if (cancelled || activeCanvas !== canvas || !contextLost) return;
+          failSurface('live2d_webgl_context_restore_timed_out');
+        }, LIVE2D_CONTEXT_RESTORE_TIMEOUT_MS);
+      };
+      const onContextRestored = (): void => {
+        if (cancelled || !contextLost || activeCanvas !== canvas) return;
+        contextLost = false;
+        clearContextRestoreWatchdog();
+        void startAttempt('recovering');
+      };
+      canvas.addEventListener('webglcontextlost', onContextLost);
+      canvas.addEventListener('webglcontextrestored', onContextRestored);
+      removeCanvasListeners = () => {
+        canvas.removeEventListener('webglcontextlost', onContextLost);
+        canvas.removeEventListener('webglcontextrestored', onContextRestored);
+      };
+
+      try {
+        attemptWatchdog = window.setTimeout(() => {
+          attemptWatchdog = null;
+          if (cancelled || attempt !== attemptGeneration || activeCanvas !== canvas) return;
+          failSurface(posture === 'loading'
+            ? 'live2d_visual_load_timed_out'
+            : 'live2d_visual_recovery_reload_timed_out');
+        }, LIVE2D_VISUAL_LOAD_TIMEOUT_MS);
+        const size = measureHost(host);
+        const created = await createLive2DCarrierVisualHost({
+          canvas,
+          session,
+          width: size.width,
+          height: size.height,
+        });
+        if (cancelled || attempt !== attemptGeneration || activeCanvas !== canvas) {
+          created.unload();
+          return;
+        }
+        visualHost = created;
         if (typeof ResizeObserver !== 'undefined') {
           resizeObserver = new ResizeObserver(() => {
-            if (!visualHost) {
+            if (!visualHost || attempt !== attemptGeneration) {
               return;
             }
             const nextSize = measureHost(host);
@@ -160,30 +319,26 @@ export function Live2DCarrierVisualSurface({
           });
           resizeObserver.observe(host);
         }
-        renderLoop();
+        renderLoop(attempt);
       } catch (loadError) {
-        if (cancelled) {
-          return;
-        }
-        setSurfaceStatus('error');
-        const message = describeError(loadError);
-        setError(message);
-        console.warn(`[avatar:live2d] visual host failed to load: ${message}`);
-        host.replaceChildren();
+        if (cancelled || attempt !== attemptGeneration || activeCanvas !== canvas) return;
+        failSurface(loadError);
       }
-    })();
+    };
+
+    void startAttempt('loading');
 
     return () => {
       cancelled = true;
-      if (animationFrame) {
-        cancelAnimationFrame(animationFrame);
-      }
-      if (reducedMotionTimer !== null) {
-        window.clearTimeout(reducedMotionTimer);
-      }
+      attemptGeneration += 1;
+      stopFrameScheduling();
+      clearWatchdogs();
       resizeObserver?.disconnect();
-      visualHost?.unload();
-      visualHost = null;
+      resizeObserver = null;
+      releaseVisualHost();
+      removeCanvasListeners();
+      removeCanvasListeners = () => {};
+      activeCanvas = null;
       host.replaceChildren();
     };
   }, [audioConsumer, paramMouthFormSupported, session]);

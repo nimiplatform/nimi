@@ -1,7 +1,7 @@
 {
   "scenario_id": "sequence-greet",
   "version": "1",
-  "description": "Emits greet then pre-empts with happy 2s later to validate handler AbortSignal respect.",
+  "description": "Emits greet then pre-empts with happy 2s later to validate built-in projection replacement.",
   "duration_ms": 20000,
   "loop": true,
   "agent_bootstrap": {

@@ -33,7 +33,7 @@ import {
 } from './plugin-api.js';
 import {
   readTextFile,
-  type ModelManifest as Live2DTauriManifest,
+  type ModelManifest as Live2DHostManifest,
 } from './model-loader.js';
 import { summarizeLive2DExpressionInventory } from './live2d-expression-stack.js';
 import { computeLive2DNominalBounds } from '@nimiplatform/kit/features/avatar/headless';
@@ -43,9 +43,9 @@ import { createLive2DProjectionAdapter } from './live2d-projection-adapter.js';
 import { createLive2DCarrierSurface } from './live2d-carrier-surface.js';
 import { loadEmbeddedWLipSyncProfile } from '../lip-sync-profile.js';
 
-function toLive2DTauriManifest(
+function toLive2DHostManifest(
   manifest: Live2DAvatarModelManifest,
-): Live2DTauriManifest {
+): Live2DHostManifest {
   return {
     runtimeDir: manifest.runtimeDir,
     modelId: manifest.modelId,
@@ -94,7 +94,7 @@ export async function createLive2DBackendBranch(
   const adapterManifest = await loadEmbeddedAdapterManifest(manifest);
   const core = await waitForCubismCore();
   const framework = await loadOfficialCubismFrameworkRuntime();
-  const live2dManifest = toLive2DTauriManifest(manifest);
+  const live2dManifest = toLive2DHostManifest(manifest);
   const backendSession = await createLive2DBackendSession(live2dManifest, {
     core,
     framework,

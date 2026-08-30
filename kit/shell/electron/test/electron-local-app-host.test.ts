@@ -66,6 +66,12 @@ describe('Electron protected local-app host', () => {
       displayName: 'Agent One',
       avatarUrl: null,
     }]);
+    await expect(host.avatarHostTargetResolve({
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      conversationAnchorId: 'anchor-1',
+    })).resolves.toEqual({
+      avatarHostTargetRef: 'avatar_target_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+    });
     await expect(host.conversationOpen({ agentHandle: 'lash_one' }))
       .resolves.toEqual({ conversationAnchorId: 'anchor-1', activeTurnId: null });
     await expect(host.conversationAttachmentUpload({
@@ -93,6 +99,7 @@ describe('Electron protected local-app host', () => {
       'localAppRealmWorldCoreList',
       'localAppStorageReadJson',
       'localAppAgentReferenceList',
+      'localAppAvatarHostTargetResolve',
       'localAppConversationOpen',
       'localAppConversationAttachmentUpload',
       'localAppConversationVoiceTranscribe',
@@ -222,6 +229,28 @@ describe('Electron protected local-app host', () => {
       { method: 'localAppStorageReadJson', input: { relativePath: 'state.json' } },
     ]);
     expect(sessionChanges).toBe(1);
+  });
+
+  it('repairs the native session without replaying a mutation after uncertain invalidation', async () => {
+    const calls: Array<{ method: string; input?: unknown }> = [];
+    const candidate = {
+      ...binding(calls),
+      localAppSessionRenew: async () => {
+        calls.push({ method: 'localAppSessionRenew' });
+        return { status: 'ok' as const, value: statusProjection() };
+      },
+      localAppConversationOpen: async (input: unknown) => {
+        calls.push({ method: 'localAppConversationOpen', input });
+        return { status: 'error' as const, reasonCode: 'revoked', retryable: false };
+      },
+    };
+    const host = createNimiElectronLocalAppHostForBinding(candidate);
+    await expect(host.conversationOpen({ agentHandle: `agent_ref_${'a'.repeat(43)}` }))
+      .rejects.toMatchObject({ reasonCode: 'revoked' });
+    expect(calls).toEqual([
+      { method: 'localAppConversationOpen', input: { agentHandle: `agent_ref_${'a'.repeat(43)}` } },
+      { method: 'localAppSessionRenew' },
+    ]);
   });
 
   it('renews once when the formal session status itself is revoked', async () => {
@@ -646,6 +675,9 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
       displayName: 'Agent One',
       avatarUrl: null,
     }]),
+    localAppAvatarHostTargetResolve: record('localAppAvatarHostTargetResolve', {
+      avatarHostTargetRef: 'avatar_target_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+    }),
     localAppSharedAgentAIConfigGet: record('localAppSharedAgentAIConfigGet', {
       config: { owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } }, capabilities: [] },
       revision: '0', effectiveSelections: [],

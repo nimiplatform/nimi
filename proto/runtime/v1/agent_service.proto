@@ -499,6 +499,26 @@ message ListLocalAppAgentReferencesResponse {
   repeated LocalAppAgentReference references = 1;
 }
 
+// Host-private Avatar correlation. This wire is reachable only through the
+// protected native Host binding and is never an App product operation.
+message ResolveLocalAppAvatarHostTargetRequest {
+  string agent_handle = 1;
+  optional string conversation_anchor_id = 2;
+}
+message ResolveLocalAppAvatarHostTargetResponse {
+  string avatar_host_target_ref = 1;
+}
+
+// Desktop-Host-private revalidation of an already minted Avatar correlation.
+// This wire is admitted only on the verified Desktop account-product binding
+// and is excluded from public SDK product and wire surfaces.
+message RevalidateLocalAppAvatarHostTargetRequest {
+  string avatar_host_target_ref = 1;
+}
+message RevalidateLocalAppAvatarHostTargetResponse {
+  string avatar_host_target_ref = 1;
+}
+
 // Bounded AgentCenter manager projection. It deliberately excludes raw Agent
 // or account identity, source/Memory corpus, hashes, prompts, reasoning,
 // internal generations, provider/model/storage detail, and reconstructable
@@ -1102,6 +1122,8 @@ service RuntimeAgentService {
   rpc GetAgent(GetAgentRequest) returns (GetAgentResponse);
   rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
   rpc ListLocalAppAgentReferences(ListLocalAppAgentReferencesRequest) returns (ListLocalAppAgentReferencesResponse);
+  rpc ResolveLocalAppAvatarHostTarget(ResolveLocalAppAvatarHostTargetRequest) returns (ResolveLocalAppAvatarHostTargetResponse);
+  rpc RevalidateLocalAppAvatarHostTarget(RevalidateLocalAppAvatarHostTargetRequest) returns (RevalidateLocalAppAvatarHostTargetResponse);
   rpc OpenLocalAppConversation(OpenLocalAppConversationRequest) returns (OpenLocalAppConversationResponse);
   rpc SendLocalAppConversationTurn(SendLocalAppConversationTurnRequest) returns (SendLocalAppConversationTurnResponse);
   rpc UploadLocalAppConversationAttachment(UploadLocalAppConversationAttachmentRequest) returns (UploadLocalAppConversationAttachmentResponse);

@@ -17,6 +17,7 @@ export type AvatarInteractionControllerDeps = {
   constrainWindowToVisibleArea(): Promise<void> | void;
   nowMs(): number;
   hasHostRuntime(): boolean;
+  isClickThroughLocked?(): boolean;
   setTimer?(callback: () => void, delayMs: number): ReturnType<typeof setTimeout>;
   clearTimer?(timer: ReturnType<typeof setTimeout>): void;
 };
@@ -35,12 +36,13 @@ type PendingDrag = {
   lastMoveEmittedAtMs: number;
   longPressTimer: ReturnType<typeof setTimeout> | null;
   startHit: AvatarHitTestResult;
+  dragAllowed: boolean;
   dragging: boolean;
   dragStartConfirmed: boolean;
   dragStartFailed: boolean;
 };
 
-const DRAG_THRESHOLD_PX = 4;
+export const AVATAR_DRAG_THRESHOLD_PX = 4;
 const DRAG_MOVE_INTERVAL_MS = 33;
 const LONG_PRESS_THRESHOLD_MS = 1000;
 const DOUBLE_CLICK_MS = 350;
@@ -68,8 +70,14 @@ export class AvatarInteractionController {
     const dy = event.clientY - this.pending.startClientY;
     const distance = Math.hypot(dx, dy);
 
-    if (!this.pending.dragging && distance >= DRAG_THRESHOLD_PX) {
+    if (!this.pending.dragging && distance >= AVATAR_DRAG_THRESHOLD_PX) {
       this.clearPendingLongPressTimer(this.pending);
+      if (!this.pending.dragAllowed) {
+        this.clearPendingLongPressTimer(this.pending);
+        this.pending.dragStartFailed = true;
+        this.deps.setPointerContact(false);
+        return;
+      }
       this.beginDrag(this.pending, event, hit);
       return;
     }
@@ -99,7 +107,10 @@ export class AvatarInteractionController {
     }
   }
 
-  pointerDown(event: AvatarPointerEventLike): void {
+  pointerDown(
+    event: AvatarPointerEventLike,
+    options: { dragAllowed?: boolean } = {},
+  ): void {
     const hit = this.hitTest(event);
     this.updatePointerRegion(hit);
     if (!hit.inside) {
@@ -136,6 +147,7 @@ export class AvatarInteractionController {
       lastMoveEmittedAtMs: 0,
       longPressTimer: null,
       startHit: hit,
+      dragAllowed: options.dragAllowed !== false,
       dragging: false,
       dragStartConfirmed: false,
       dragStartFailed: false,
@@ -285,18 +297,19 @@ export class AvatarInteractionController {
 
   private setClickThrough(ignore: boolean): void {
     if (!this.deps.hasHostRuntime()) return;
-    if (this.clickThrough === ignore && this.clickThroughInFlight === null) return;
-    this.clickThroughInFlight = ignore;
-    void Promise.resolve(this.deps.setClickThrough(ignore))
+    const next = ignore && this.deps.isClickThroughLocked?.() !== true;
+    if (this.clickThrough === next && this.clickThroughInFlight === null) return;
+    this.clickThroughInFlight = next;
+    void Promise.resolve(this.deps.setClickThrough(next))
       .then(() => {
-        this.clickThrough = ignore;
+        this.clickThrough = next;
       })
       .catch((error: unknown) => {
-        if (this.clickThroughInFlight === ignore) this.clickThroughInFlight = null;
+        if (this.clickThroughInFlight === next) this.clickThroughInFlight = null;
         console.warn(`[avatar:interaction] set click-through failed: ${error instanceof Error ? error.message : String(error)}`);
       })
       .finally(() => {
-        if (this.clickThroughInFlight === ignore) this.clickThroughInFlight = null;
+        if (this.clickThroughInFlight === next) this.clickThroughInFlight = null;
       });
   }
 }

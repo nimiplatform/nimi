@@ -1,6 +1,6 @@
 import { invokeAvatarHostCommand } from '../app-shell/avatar-host-bridge.js';
 import {
-  convertTauriFileSrc,
+  convertShellFileSrc,
   hasElectronRuntime,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 
@@ -37,7 +37,7 @@ export async function resolveModelManifest(modelPath: string): Promise<ModelMani
 
 export async function readTextFile(path: string): Promise<string> {
   if (hasElectronRuntime()) {
-    const response = await fetch(convertTauriFileSrc(path));
+    const response = await fetch(convertShellFileSrc(path));
     if (!response.ok) throw new Error(`read ${path} failed: HTTP ${response.status}`);
     return response.text();
   }
@@ -46,7 +46,7 @@ export async function readTextFile(path: string): Promise<string> {
 
 export async function readBinaryFile(path: string): Promise<ArrayBuffer> {
   if (hasElectronRuntime()) {
-    const response = await fetch(convertTauriFileSrc(path));
+    const response = await fetch(convertShellFileSrc(path));
     if (!response.ok) throw new Error(`read ${path} failed: HTTP ${response.status}`);
     return response.arrayBuffer();
   }

@@ -170,8 +170,9 @@ describe('createVrmProjectionAdapter — applyActivity', () => {
       activityMapping,
     });
 
-    adapter.applyActivity({ name: 'agree', intensity: 1 });
+    const result = adapter.applyActivity({ name: 'agree', intensity: 1 });
 
+    expect(result).toBe('applied');
     expect(spies.play).toHaveBeenCalledWith({
       routeId: 'nod_yes',
       intensity: 1,
@@ -283,13 +284,32 @@ describe('createVrmProjectionAdapter — applyActivity', () => {
       activityMapping,
     });
 
-    adapter.applyActivity({ name: 'mystery_activity', intensity: 1 });
+    const result = adapter.applyActivity({ name: 'mystery_activity', intensity: 1 });
 
+    expect(result).toBe('unsupported');
     expect(spies.resolveVrmRoute).toHaveBeenCalledWith('mystery_activity');
     expect(warn).toHaveBeenCalled();
     expect(spies.play).not.toHaveBeenCalled();
     expect(spies.setEmote).not.toHaveBeenCalled();
     expect(spies.applyTransientExpression).not.toHaveBeenCalled();
+  });
+
+  it('reports a motion-only route as unsupported when generated motion does not play', () => {
+    const { vrm, emoteState, generatedMotionRuntime, activityMapping, spies } =
+      createMocks({ agree: { motion: 'nod_yes' } });
+    spies.play.mockReturnValue({
+      played: false,
+      reason: 'missing_profile',
+      evidence: { routeId: 'nod_yes', providerKind: 'missing' },
+    });
+    const adapter = createVrmProjectionAdapter({
+      vrm,
+      emoteState,
+      generatedMotionRuntime,
+      activityMapping,
+    });
+
+    expect(adapter.applyActivity({ name: 'agree', intensity: 1 })).toBe('unsupported');
   });
 });
 

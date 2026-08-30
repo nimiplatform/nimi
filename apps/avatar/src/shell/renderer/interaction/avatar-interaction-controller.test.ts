@@ -3,7 +3,7 @@ import type { AppOriginEvent } from '../driver/types.js';
 import { createAvatarHitRegionSnapshot } from '@nimiplatform/kit/features/avatar/headless';
 import { AvatarInteractionController } from './avatar-interaction-controller.js';
 
-function createController(input: { tauri?: boolean; clickThroughRejectsOnce?: boolean } = {}) {
+function createController(input: { hostRuntime?: boolean; clickThroughRejectsOnce?: boolean } = {}) {
   let now = 1000;
   const emitted: AppOriginEvent[] = [];
   const clickThrough: boolean[] = [];
@@ -34,7 +34,7 @@ function createController(input: { tauri?: boolean; clickThroughRejectsOnce?: bo
     },
     constrainWindowToVisibleArea,
     nowMs: () => now,
-    hasHostRuntime: () => input.tauri ?? false,
+    hasHostRuntime: () => input.hostRuntime ?? false,
   });
   return {
     controller,
@@ -55,7 +55,7 @@ afterEach(() => {
 
 describe('AvatarInteractionController', () => {
   it('emits hover, click, double click, and right click only inside hit region', () => {
-    const fixture = createController({ tauri: true });
+    const fixture = createController({ hostRuntime: true });
 
     fixture.controller.pointerMove({ clientX: 60, clientY: 70, button: 0 });
     fixture.controller.pointerDown({ clientX: 60, clientY: 70, button: 0 });
@@ -99,6 +99,19 @@ describe('AvatarInteractionController', () => {
     ]);
     expect(fixture.emitted.at(-1)?.detail).toMatchObject({ delta_x: 32, delta_y: 0 });
     expect(fixture.constrainWindowToVisibleArea).toHaveBeenCalledTimes(1);
+  });
+
+  it('fails closed at the drag threshold when precision did not approve drag', () => {
+    const fixture = createController();
+    fixture.controller.pointerDown(
+      { clientX: 60, clientY: 180, button: 0 },
+      { dragAllowed: false },
+    );
+    fixture.controller.pointerMove({ clientX: 70, clientY: 180, button: 0, buttons: 1 });
+    fixture.controller.pointerUp({ clientX: 70, clientY: 180, button: 0 });
+
+    expect(fixture.emitted.map((event) => event.name)).toEqual(['avatar.user.hover']);
+    expect(fixture.constrainWindowToVisibleArea).not.toHaveBeenCalled();
   });
 
   it('emits long press after 1s stationary hold without creating a click', () => {
@@ -153,12 +166,12 @@ describe('AvatarInteractionController', () => {
     expect(fixture.constrainWindowToVisibleArea).not.toHaveBeenCalled();
   });
 
-  it('confirms drag immediately on the Tauri host (unified manual drag, no system handoff)', () => {
+  it('confirms drag immediately on the Desktop Host (unified manual drag, no system handoff)', () => {
     // Drag is unified to the kit standard manual drag primitive; the retired
     // system-level `start_dragging` handoff is gone. Drag start is confirmed
     // synchronously on every host, so the drag events emit without awaiting a
     // native drag session.
-    const fixture = createController({ tauri: true });
+    const fixture = createController({ hostRuntime: true });
 
     fixture.controller.pointerDown({ clientX: 60, clientY: 180, button: 0 });
     fixture.controller.pointerMove({ clientX: 66, clientY: 180, button: 0, buttons: 1 });
@@ -174,7 +187,7 @@ describe('AvatarInteractionController', () => {
   });
 
   it('restores cursor handling during teardown instead of leaving click-through active', () => {
-    const fixture = createController({ tauri: true });
+    const fixture = createController({ hostRuntime: true });
 
     fixture.controller.pointerMove({ clientX: 5, clientY: 180, button: 0 });
     fixture.controller.teardown();
@@ -185,7 +198,7 @@ describe('AvatarInteractionController', () => {
   });
 
   it('does not treat failed click-through IPC as applied', async () => {
-    const fixture = createController({ tauri: true, clickThroughRejectsOnce: true });
+    const fixture = createController({ hostRuntime: true, clickThroughRejectsOnce: true });
 
     fixture.controller.pointerMove({ clientX: 5, clientY: 180, button: 0 });
     await Promise.resolve();

@@ -3,9 +3,9 @@ import { writePythonTypedClients } from './typed-clients-python.mjs';
 import { writeRustTypedClients } from './typed-clients-rust.mjs';
 import { writeTypescriptTypedClients } from './typed-clients-typescript.mjs';
 
-export function writeTypedClients(runtime, realm) {
-  writeTypescriptTypedClients(runtime, realm);
-  writePythonTypedClients(runtime, realm);
-  writeGoTypedClients(runtime, realm);
-  writeRustTypedClients(runtime, realm);
+export function writeTypedClients(typescriptRuntime, nonHostRuntime, realm) {
+  writeTypescriptTypedClients(typescriptRuntime, nonHostRuntime, realm);
+  writePythonTypedClients(nonHostRuntime, realm);
+  writeGoTypedClients(nonHostRuntime, realm);
+  writeRustTypedClients(nonHostRuntime, realm);
 }

@@ -4,7 +4,11 @@ import {
   rendererUrlsEqualExact,
   resolveBundledAvatarRendererUrl,
 } from './bundled-avatar-sender.js';
-import { createNimiElectronDesktopControlHost } from './desktop-control-host.js';
+import {
+  createNimiElectronDesktopControlHost,
+  NimiElectronDesktopControlHostError,
+  type NimiElectronDesktopControlHost,
+} from './desktop-control-host.js';
 import { createNimiElectronDesktopAccountHost, isElectronDesktopAccountCommand } from './desktop-account-host.js';
 import {
   NIMI_STANDARD_SHELL_CAPABILITIES,
@@ -49,7 +53,11 @@ import {
 } from './app-asset-protocol.js';
 import { bindElectronStandardDataRootRuntimeResolver } from './data-root-binding.js';
 import { openElectronDesktopIntent } from './desktop-open.js';
-import { createNimiElectronFormalAppLocalHost } from './formal-app-local-host.js';
+import {
+  createNimiElectronFormalAppLocalHostOwner,
+  type NimiElectronFormalAppLocalHostOwner,
+  type NimiElectronFormalAppLocalHostResourceScope,
+} from './formal-app-local-host.js';
 import { saveElectronShellExportFile } from './export.js';
 import { openElectronShellFileDialog } from './file-dialog.js';
 import { revealElectronShellFile } from './file-reveal.js';
@@ -178,24 +186,55 @@ export function registerNimiElectronRuntimeBridge(
   const desktopControlHost = appId === 'nimi.desktop'
     ? createNimiElectronDesktopControlHost()
     : undefined;
-  const standardShellHost = desktopControlHost && input.standardShellHost
+  const desktopFormalHostOwner = desktopControlHost && input.standardShellHost
+    ? createNimiElectronFormalAppLocalHostOwner({
+        appId: 'nimi.desktop', profile: 'desktop', control: desktopControlHost,
+        revealInOs: input.standardShellHost.revealInOs,
+      })
+    : undefined;
+  const standardShellHost = desktopFormalHostOwner && input.standardShellHost
     ? {
         ...input.standardShellHost,
-        localAppHost: createNimiElectronFormalAppLocalHost({
-          appId: 'nimi.desktop', profile: 'desktop', control: desktopControlHost,
-          revealInOs: input.standardShellHost.revealInOs,
-        }),
+        localAppHost: desktopFormalHostOwner.host,
       }
     : input.standardShellHost;
-  const bundledAvatarStandardShellHost = desktopControlHost && input.bundledAvatarHost
+  const bundledAvatarFormalHostOwner = desktopControlHost && input.bundledAvatarHost
+    ? createNimiElectronFormalAppLocalHostOwner({
+        appId: 'nimi.avatar', profile: 'avatar', control: desktopControlHost,
+        revealInOs: input.bundledAvatarHost.standardShellHost?.revealInOs,
+      })
+    : undefined;
+  const bundledAvatarStandardShellHost = bundledAvatarFormalHostOwner && input.bundledAvatarHost
     ? {
         ...input.bundledAvatarHost.standardShellHost,
-        localAppHost: createNimiElectronFormalAppLocalHost({
-          appId: 'nimi.avatar', profile: 'avatar', control: desktopControlHost,
-          revealInOs: input.bundledAvatarHost.standardShellHost?.revealInOs,
-        }),
+        localAppHost: bundledAvatarFormalHostOwner.host,
       }
     : input.bundledAvatarHost?.standardShellHost;
+  const bundledAvatarFormalScopesBySender = new Map<
+    object,
+    NimiElectronFormalAppLocalHostResourceScope
+  >();
+  const invalidatedBundledAvatarSenders = new WeakSet<object>();
+  const assertBundledAvatarSenderActive = (sender: object): void => {
+    if (invalidatedBundledAvatarSenders.has(sender)) {
+      throw new NimiElectronShellHostError({
+        code: 'protected-carrier-required',
+        message: 'Bundled Avatar sender was invalidated',
+        reasonCode: 'electron-bundled-avatar-sender-invalidated',
+        actionHint: 'close_and_reopen_supervised_avatar_window',
+      });
+    }
+  };
+  const bundledAvatarFormalScopeFor = (sender: object): NimiElectronFormalAppLocalHostResourceScope | undefined => {
+    assertBundledAvatarSenderActive(sender);
+    if (!bundledAvatarFormalHostOwner) return undefined;
+    let scope = bundledAvatarFormalScopesBySender.get(sender);
+    if (!scope) {
+      scope = bundledAvatarFormalHostOwner.createResourceScope();
+      bundledAvatarFormalScopesBySender.set(sender, scope);
+    }
+    return scope;
+  };
   const capabilitySet = resolveElectronStandardShellCapabilitySet(standardShellHost);
   const bundledAvatarRendererUrl = resolveBundledAvatarRendererUrl(input, appId, allowedRendererUrls);
   const bundledAvatarCapabilitySet = resolveElectronStandardShellCapabilitySet(
@@ -266,13 +305,17 @@ export function registerNimiElectronRuntimeBridge(
     }
   };
   // @nimi-authority: rule.nimi.desktop.shell-runtime.r011
-  const unsubscribeDesktopInvalidation = input.desktopHost?.subscribeSenderInvalidation(() => {
+  const unsubscribeDesktopInvalidation = input.desktopHost?.subscribeSenderInvalidation(async () => {
     for (const stream of desktopStreams.values()) stream.cancel();
     desktopStreams.clear();
     cancelRuntimeUnaries(desktopUnaries, 'Desktop renderer was invalidated during Runtime unary');
     desktopAccountHost?.close();
+    await desktopFormalHostOwner?.invalidateResources();
   });
-  const unsubscribeBundledAvatarInvalidation = input.bundledAvatarHost?.subscribeSenderInvalidation((sender) => {
+  const unsubscribeBundledAvatarInvalidation = input.bundledAvatarHost?.subscribeSenderInvalidation(async (sender) => {
+    // The callback is invoked synchronously by the Desktop Host up to this
+    // first await. Keep the tombstone for the sender object's entire lifetime.
+    invalidatedBundledAvatarSenders.add(sender);
     const streams = bundledAvatarStreamsBySender.get(sender);
     for (const stream of streams?.values() ?? []) stream.cancel();
     streams?.clear();
@@ -280,10 +323,16 @@ export function registerNimiElectronRuntimeBridge(
     const unaries = bundledAvatarUnariesBySender.get(sender);
     cancelRuntimeUnaries(unaries ?? new Map(), 'Bundled Avatar renderer was invalidated during Runtime unary');
     bundledAvatarUnariesBySender.delete(sender);
+    const formalScope = bundledAvatarFormalScopesBySender.get(sender);
+    bundledAvatarFormalScopesBySender.delete(sender);
+    await formalScope?.dispose();
   });
 
   const resolveRendererProfile = (event: NimiElectronIpcMainInvokeEvent): ResolvedElectronRendererProfile => {
     const rendererUrl = normalizeText(event.senderFrame?.url);
+    if (invalidatedBundledAvatarSenders.has(event.sender as object)) {
+      assertBundledAvatarSenderActive(event.sender as object);
+    }
     const bundledSenderAuthorized = input.bundledAvatarHost?.authorizeSender(event) === true;
     if (bundledSenderAuthorized) {
       if (!bundledAvatarRendererUrl || !rendererUrlsEqualExact(rendererUrl, bundledAvatarRendererUrl)) {
@@ -299,7 +348,13 @@ export function registerNimiElectronRuntimeBridge(
         bundledAvatarProfile: true,
         desktopSenderAuthorized: false,
         capabilitySet: bundledAvatarCapabilitySet,
-        standardShellHost: bundledAvatarStandardShellHost,
+        standardShellHost: bundledAvatarStandardShellHost
+          ? {
+              ...bundledAvatarStandardShellHost,
+              localAppHost: bundledAvatarFormalScopeFor(event.sender as object)?.host
+                ?? bundledAvatarStandardShellHost.localAppHost,
+            }
+          : undefined,
         commandPolicy: input.bundledAvatarHost?.commandPolicy,
         commandHandlers: input.bundledAvatarHost?.commandHandlers,
         streams: bundledAvatarStreamsFor(event.sender as object),
@@ -334,6 +389,9 @@ export function registerNimiElectronRuntimeBridge(
     const commandHandler = rendererProfile.commandHandlers?.[command];
     const commandKind = classifyElectronHostCommand(command, Boolean(commandHandler));
     await assertElectronHostCommandPolicyAllowed(rendererProfile.commandPolicy, { command, commandKind, appId: effectiveAppId });
+    if (rendererProfile.bundledAvatarProfile) {
+      assertBundledAvatarSenderActive(event.sender as object);
+    }
     assertElectronStandardShellCommandAllowed(command, commandKind, rendererProfile.capabilitySet, effectiveAppId, Boolean(effectiveStandardShellHost));
     if (command === commandNames.unary) {
       const runtimePayload = electronRuntimeCommandPayload(payload, command);
@@ -556,6 +614,23 @@ export function registerNimiElectronRuntimeBridge(
     ...(bundledAvatarStandardShellHost?.localAppHost
       ? { bundledAvatarLocalAppHost: bundledAvatarStandardShellHost.localAppHost }
       : {}),
+    ...(desktopControlHost && desktopFormalHostOwner
+      ? {
+          revalidateAvatarHostTarget: (avatarHostTargetRef: string) => (
+            revalidateDesktopAvatarHostTarget(
+              desktopControlHost,
+              desktopFormalHostOwner,
+              avatarHostTargetRef,
+            )
+          ),
+          disposeFormalAppResources: async () => {
+            await Promise.all([
+              desktopFormalHostOwner.dispose(),
+              bundledAvatarFormalHostOwner?.dispose(),
+            ]);
+          },
+        }
+      : {}),
     unregister: () => {
       input.ipcMain.removeHandler?.(invokeChannel);
       for (const stream of desktopStreams.values()) stream.cancel();
@@ -571,12 +646,77 @@ export function registerNimiElectronRuntimeBridge(
       desktopUnaries.clear();
       bundledAvatarStreamsBySender.clear();
       bundledAvatarUnariesBySender.clear();
+      bundledAvatarFormalScopesBySender.clear();
       unsubscribeDesktopInvalidation?.();
       unsubscribeBundledAvatarInvalidation?.();
       desktopAccountHost?.close();
+      void desktopFormalHostOwner?.dispose();
+      void bundledAvatarFormalHostOwner?.dispose();
       void clientPromise?.then((client) => client.close()).catch(() => undefined);
     },
   };
+}
+
+const REVALIDATE_AVATAR_HOST_TARGET_METHOD =
+  '/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget';
+
+async function revalidateDesktopAvatarHostTarget(
+  control: NimiElectronDesktopControlHost,
+  owner: NimiElectronFormalAppLocalHostOwner,
+  value: string,
+): Promise<string> {
+  const avatarHostTargetRef = exactAvatarHostTargetRef(value);
+  const invoke = async (): Promise<string> => {
+    const response = await control.accountProductUnary({
+      methodId: REVALIDATE_AVATAR_HOST_TARGET_METHOD,
+      requestBytes: encodeExactPrivateStringField(avatarHostTargetRef),
+      timeoutMs: 2_000,
+    });
+    const projected = decodeExactPrivateStringField(response);
+    if (projected !== avatarHostTargetRef) throw new Error('desktop-avatar-current-target-revalidation-mismatch');
+    return projected;
+  };
+  await owner.host.sessionStatus();
+  try {
+    return await invoke();
+  } catch (error) {
+    if (!(error instanceof NimiElectronDesktopControlHostError)
+      || !['LOCAL_APP_SESSION_REVOKED', 'LOCAL_APP_PRESENCE_EXPIRED'].includes(error.reasonCode)) {
+      throw error;
+    }
+    await owner.host.renewTechnicalSession();
+    return invoke();
+  }
+}
+
+function exactAvatarHostTargetRef(value: unknown): string {
+  if (typeof value !== 'string' || !/^avatar_target_[A-Za-z0-9_-]{43}$/u.test(value)) {
+    throw new Error('desktop-avatar-current-target-ref-invalid');
+  }
+  return value;
+}
+
+function encodeExactPrivateStringField(value: string): Uint8Array {
+  const body = new TextEncoder().encode(value);
+  if (body.byteLength >= 128) throw new Error('desktop-avatar-current-target-ref-invalid');
+  return Uint8Array.from([0x0a, body.byteLength, ...body]);
+}
+
+function decodeExactPrivateStringField(bytes: Uint8Array): string {
+  if (!(bytes instanceof Uint8Array) || bytes.byteLength < 3 || bytes[0] !== 0x0a) {
+    throw new Error('desktop-avatar-current-target-response-invalid');
+  }
+  const length = bytes[1];
+  if (length === undefined || length >= 128 || bytes.byteLength !== length + 2) {
+    throw new Error('desktop-avatar-current-target-response-invalid');
+  }
+  let value: string;
+  try {
+    value = new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(2));
+  } catch {
+    throw new Error('desktop-avatar-current-target-response-invalid');
+  }
+  return exactAvatarHostTargetRef(value);
 }
 
 let electronHostUnaryRequestCounter = 0;

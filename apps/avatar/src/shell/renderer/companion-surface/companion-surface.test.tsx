@@ -28,6 +28,12 @@ function createBootstrapHandle(overrides: Partial<BootstrapHandle> = {}): Bootst
   } as BootstrapHandle;
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((res) => { resolve = res; });
+  return { promise, resolve };
+}
+
 function makeProps(overrides: Partial<Parameters<typeof CompanionSurface>[0]> = {}) {
   const captureRef: RefObject<AvatarVoiceCaptureSession | null> = { current: null };
   const abortRef: RefObject<AbortController | null> = { current: null };
@@ -68,12 +74,27 @@ function StatefulSurface(props: {
   });
   const captureRef = useRef<AvatarVoiceCaptureSession | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const operationRef = useRef<{ id: number; anchorKey: string | null } | null>(null);
+  const sequenceRef = useRef(0);
   return <CompanionSurface {...makeProps({
     bootstrapHandle: props.bootstrapHandle,
     voice,
     setVoice,
     voiceCaptureSessionRef: captureRef,
     voiceSubmitAbortRef: abortRef,
+    beginVoiceOperation: (anchorKey) => {
+      const id = ++sequenceRef.current;
+      operationRef.current = { id, anchorKey };
+      return id;
+    },
+    clearVoiceOperation: (id, anchorKey) => {
+      if (operationRef.current?.id === id && operationRef.current.anchorKey === anchorKey) {
+        operationRef.current = null;
+      }
+    },
+    isVoiceOperationCurrent: (id, anchorKey) => (
+      operationRef.current?.id === id && operationRef.current.anchorKey === anchorKey
+    ),
   })} />;
 }
 
@@ -94,6 +115,60 @@ describe('CompanionSurface', () => {
     expect(screen.queryByTestId('avatar-companion-composer')).toBeNull();
     expect(screen.queryByLabelText(/settings/i)).toBeNull();
     expect((screen.getByLabelText('Start voice input') as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('applies bounded caption size and contrast preferences directly to the surface', () => {
+    render(<CompanionSurface {...makeProps({
+      shellSettings: {
+        ...defaultAvatarShellSettings,
+        captionSize: 'large',
+        captionContrast: 'high',
+      },
+      voice: {
+        ...initialVoiceCompanionState,
+        panelVisible: true,
+        availability: 'ready',
+        status: 'pending',
+        userCaption: {
+          text: 'caption', at: '2026-08-30T00:00:00.000Z', messageId: null, turnId: null, live: false,
+        },
+      },
+    })} />);
+    const surface = screen.getByTestId('avatar-companion-surface');
+    expect(surface.getAttribute('data-caption-size')).toBe('large');
+    expect(surface.getAttribute('data-caption-contrast')).toBe('high');
+    expect(screen.getByText('caption').getAttribute('aria-live')).toBe('polite');
+  });
+
+  it('keeps either terminal idle caption visible until the existing App timeout closes it', () => {
+    const terminalCue = {
+      at: '2026-08-30T00:00:00.000Z',
+      messageId: null,
+      turnId: 'turn-terminal',
+      live: false,
+    };
+    const result = render(<CompanionSurface {...makeProps({
+      voice: {
+        ...initialVoiceCompanionState,
+        panelVisible: true,
+        availability: 'ready',
+        status: 'idle',
+        userCaption: { ...terminalCue, text: 'Final user caption' },
+      },
+    })} />);
+    expect(screen.getByText('Final user caption')).toBeTruthy();
+
+    result.rerender(<CompanionSurface {...makeProps({
+      voice: {
+        ...initialVoiceCompanionState,
+        panelVisible: true,
+        availability: 'ready',
+        status: 'idle',
+        assistantCaption: { ...terminalCue, text: 'Final assistant caption' },
+      },
+    })} />);
+    expect(screen.queryByText('Final user caption')).toBeNull();
+    expect(screen.getByText('Final assistant caption')).toBeTruthy();
   });
 
   it('uses explicit click-to-start and click-to-stop before canonical transcription/send', async () => {
@@ -126,6 +201,61 @@ describe('CompanionSurface', () => {
       signal: expect.any(AbortSignal),
     }));
     expect(await screen.findByText('hello there')).toBeTruthy();
+  });
+
+  it('shows truthful permission-request state and can cancel before permission resolves', async () => {
+    const pending = deferred<AvatarVoiceCaptureSession>();
+    const lateCancel = vi.fn();
+    const bootstrapHandle = createBootstrapHandle({
+      startVoiceCapture: vi.fn(() => pending.promise),
+    });
+    render(<StatefulSurface bootstrapHandle={bootstrapHandle} />);
+
+    fireEvent.click(screen.getByLabelText('Start voice input'));
+    expect(await screen.findByText('Requesting microphone permission…')).toBeTruthy();
+    const surface = screen.getByTestId('avatar-companion-surface');
+    expect(surface.getAttribute('data-presence-state')).toBe('requesting_permission');
+    expect(surface.getAttribute('data-privacy-indicator')).toBe('mic_idle');
+    expect(screen.queryByText('Listening…')).toBeNull();
+    expect((screen.getByLabelText('Close companion controls') as HTMLButtonElement).disabled).toBe(true);
+
+    fireEvent.click(screen.getByLabelText('Cancel and discard voice input'));
+    expect(await screen.findByText('Idle')).toBeTruthy();
+    expect(bootstrapHandle.submitVoiceCaptureTurn).not.toHaveBeenCalled();
+    pending.resolve({ stop: vi.fn(), cancel: lateCancel });
+    await waitFor(() => expect(lateCancel).toHaveBeenCalledOnce());
+  });
+
+  it('keeps Cancel and discard distinct from Stop and send while listening', async () => {
+    const cancel = vi.fn();
+    const bootstrapHandle = createBootstrapHandle({
+      startVoiceCapture: vi.fn(async () => ({ stop: vi.fn(), cancel })),
+    });
+    render(<StatefulSurface bootstrapHandle={bootstrapHandle} />);
+    fireEvent.click(screen.getByLabelText('Start voice input'));
+    await screen.findByLabelText('Stop and send voice input');
+    expect(screen.getByLabelText('Cancel and discard voice input')).toBeTruthy();
+
+    fireEvent.click(screen.getByLabelText('Cancel and discard voice input'));
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(bootstrapHandle.submitVoiceCaptureTurn).not.toHaveBeenCalled();
+    expect(await screen.findByText('Idle')).toBeTruthy();
+  });
+
+  it('reports denied permission as blocked without claiming mic capture', async () => {
+    const denied = new Error('Permission denied');
+    denied.name = 'NotAllowedError';
+    const bootstrapHandle = createBootstrapHandle({
+      startVoiceCapture: vi.fn(async () => { throw denied; }),
+    });
+    render(<StatefulSurface bootstrapHandle={bootstrapHandle} />);
+    fireEvent.click(screen.getByLabelText('Start voice input'));
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Microphone permission was denied');
+    const surface = screen.getByTestId('avatar-companion-surface');
+    expect(surface.getAttribute('data-presence-state')).toBe('error');
+    expect(surface.getAttribute('data-privacy-indicator')).toBe('mic_blocked');
+    expect(screen.queryByText('Listening…')).toBeNull();
   });
 
   it('maps typed invalid voice input to a user-facing retry message', async () => {

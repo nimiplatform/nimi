@@ -62,23 +62,6 @@ export type {
   AvatarHitTestPoint,
   AvatarHitTestResult,
 } from './avatar-hit-region.js';
-export type {
-  ActivityFallbackOptions,
-  AvatarActivityFallbackBundle,
-  EmbodimentProjectionApi,
-  MotionPriority,
-  PlayMotionOptions,
-  ProjectionBounds,
-} from './avatar-cue-projection.js';
-export {
-  createSmoothedProjection,
-  PROJECTION_SIGNAL_SMOOTHING_MAX_PENDING_SIGNALS,
-} from './avatar-projection-smoothing.js';
-export type {
-  CreateSmoothedProjectionInput,
-  ProjectionSmoothingHandle,
-  ProjectionSmoothingStats,
-} from './avatar-projection-smoothing.js';
 export {
   getSharedVoiceLipsyncStateBus,
   VoiceLipsyncStateBus,
@@ -91,7 +74,7 @@ export type {
   AvatarModelManifest,
   Live2DAvatarModelManifest,
   Live2DLocalModelManifest,
-  TauriAvatarModelManifest,
+  HostAvatarModelManifest,
   VrmAvatarModelManifest,
 } from './avatar-model-manifest.js';
 export type {
@@ -103,7 +86,7 @@ export type {
 } from './backend-branch.js';
 export {
   fromLive2DLocalModelManifest,
-  fromTauriAvatarModelManifest,
+  fromHostAvatarModelManifest,
 } from './avatar-model-manifest.js';
 export {
   assertLive2DCompatibilitySupported,
