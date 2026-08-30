@@ -1132,6 +1132,300 @@ describe('AgentCenterSession', () => {
       && (entry[1] as { intent?: { selectImportedResourcePack?: boolean } }).intent?.selectImportedResourcePack)).toHaveLength(1);
   });
 
+  it('does not mistake an unchanged same-digest selection for an ambiguous Apply commit', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    let rejectBeforeCommit = false;
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      presentation: {
+        ...base.presentation,
+        async commit(input) {
+          if (rejectBeforeCommit && 'selectImportedResourcePack' in input.intent) {
+            throw new Error('transport unavailable before Apply reached Runtime');
+          }
+          return base.presentation.commit(input);
+        },
+      },
+    };
+    const controller = new TestResourcePackTargetController();
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client,
+      hostMechanics: {
+        async selectResourcePack() {
+          return {
+            role: 'resource-pack', fileName: 'same-digest.nimipack',
+            mediaType: 'application/vnd.nimi.resource-pack+zip',
+            content: Uint8Array.from([7, 8, 9]), sha256: 'c'.repeat(64),
+          };
+        },
+      },
+      resourcePackTargetController: controller,
+    });
+    await session.refresh();
+    await session.appearance.selectResourcePack?.();
+    await session.appearance.applyResourcePack?.();
+    await session.appearance.selectResourcePack?.();
+    rejectBeforeCommit = true;
+
+    await expect(session.appearance.applyResourcePack?.()).rejects.toThrow(/exact reviewed bytes/u);
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      presentationRevision: '2',
+      resourcePackSelection: { assetRef: `pack_${'c'.repeat(12)}` },
+      resourcePackTarget: { phase: 'selected', effectiveResourceRef: `pack_${'c'.repeat(12)}` },
+    });
+  });
+
+  it('preserves a structured known Apply failure without ambiguous reread success', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    let rejectKnownApply = false;
+    const knownFailure = Object.assign(new Error('Resource Pack operation is unavailable'), {
+      reasonCode: 'local-app-operation-unavailable',
+    });
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      presentation: {
+        ...base.presentation,
+        async commit(input) {
+          if (rejectKnownApply && 'selectImportedResourcePack' in input.intent) throw knownFailure;
+          return base.presentation.commit(input);
+        },
+      },
+    };
+    const controller = new TestResourcePackTargetController();
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client,
+      hostMechanics: {
+        async selectResourcePack() {
+          return {
+            role: 'resource-pack', fileName: 'same-bytes.nimipack',
+            mediaType: 'application/vnd.nimi.resource-pack+zip',
+            content: Uint8Array.from([7, 8, 9]), sha256: 'c'.repeat(64),
+          };
+        },
+      },
+      resourcePackTargetController: controller,
+    });
+    await session.refresh();
+    await session.appearance.selectResourcePack?.();
+    await session.appearance.applyResourcePack?.();
+    await session.appearance.selectResourcePack?.();
+    rejectKnownApply = true;
+    const snapshotReads = calls.filter((entry) => Array.isArray(entry) && entry[0] === 'presentation.snapshot').length;
+    await expect(session.appearance.applyResourcePack?.()).rejects.toBe(knownFailure);
+    expect(calls.filter((entry) => Array.isArray(entry) && entry[0] === 'presentation.snapshot')).toHaveLength(snapshotReads);
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      resourcePackSelection: { assetRef: `pack_${'c'.repeat(12)}` },
+      resourcePackTarget: { phase: 'selected' },
+    });
+  });
+
+  it('uses a newer owner projection after focus refresh and a known Apply conflict', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    let rejectNextApply = false;
+    let applyStarted: (() => void) | undefined;
+    let releaseApply: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => { applyStarted = resolve; });
+    const applyGate = new Promise<void>((resolve) => { releaseApply = resolve; });
+    const knownFailure = Object.assign(new Error('stale Resource Pack revision'), {
+      reasonCode: 'AGENT_PRESENTATION_REVISION_CONFLICT',
+    });
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      presentation: {
+        ...base.presentation,
+        async commit(input) {
+          if (rejectNextApply && 'selectImportedResourcePack' in input.intent) {
+            applyStarted?.();
+            await applyGate;
+            throw knownFailure;
+          }
+          return base.presentation.commit(input);
+        },
+      },
+    };
+    let selections = 0;
+    const controller = new TestResourcePackTargetController();
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client,
+      hostMechanics: {
+        async selectResourcePack() {
+          selections += 1;
+          return {
+            role: 'resource-pack', fileName: `candidate-${selections}.nimipack`,
+            mediaType: 'application/vnd.nimi.resource-pack+zip',
+            content: Uint8Array.from([selections, 8, 9]),
+            sha256: (selections === 1 ? 'c' : 'd').repeat(64),
+          };
+        },
+      },
+      resourcePackTargetController: controller,
+    });
+    await session.refresh();
+    await session.appearance.selectResourcePack?.();
+    await session.appearance.applyResourcePack?.();
+    await session.appearance.selectResourcePack?.();
+    rejectNextApply = true;
+
+    const apply = session.appearance.applyResourcePack!();
+    await started;
+    await base.presentation.commit({
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '2',
+      intent: { selectImportedResourcePack: true },
+      importedAssets: [{
+        role: 'resource-pack', fileName: 'external-c.nimipack',
+        mediaType: 'application/vnd.nimi.resource-pack+zip',
+        content: Uint8Array.from([5, 6, 7]), sha256: 'e'.repeat(64),
+      }],
+    });
+    await session.refresh();
+    releaseApply?.();
+    await expect(apply).rejects.toBe(knownFailure);
+
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      presentationRevision: '3',
+      resourcePackSelection: { assetRef: `pack_${'e'.repeat(12)}` },
+      resourcePackTarget: { phase: 'selected', effectiveResourceRef: `pack_${'e'.repeat(12)}` },
+    });
+  });
+
+  it('destroys Preview and returns to the selected Pack after a structured known Clear failure', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    let rejectClear = false;
+    let selections = 0;
+    const knownFailure = Object.assign(new Error('Resource Pack owner is unavailable'), {
+      reasonCode: 'local-app-owner-unavailable',
+    });
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      presentation: {
+        ...base.presentation,
+        async commit(input) {
+          if (rejectClear && 'clearResourcePackSelection' in input.intent) throw knownFailure;
+          return base.presentation.commit(input);
+        },
+      },
+    };
+    const controller = new TestResourcePackTargetController();
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client,
+      hostMechanics: {
+        async selectResourcePack() {
+          selections += 1;
+          return {
+            role: 'resource-pack', fileName: `pack-${selections}.nimipack`,
+            mediaType: 'application/vnd.nimi.resource-pack+zip',
+            content: Uint8Array.from([selections, 8, 9]),
+            sha256: (selections === 1 ? 'c' : 'd').repeat(64),
+          };
+        },
+      },
+      resourcePackTargetController: controller,
+    });
+    await session.refresh();
+    await session.appearance.selectResourcePack?.();
+    await session.appearance.applyResourcePack?.();
+    await session.appearance.selectResourcePack?.();
+    expect(controller.getSnapshot()).toMatchObject({ phase: 'preview', reviewFileName: 'pack-2.nimipack' });
+
+    rejectClear = true;
+    const snapshotReads = calls.filter((entry) => Array.isArray(entry) && entry[0] === 'presentation.snapshot').length;
+    await expect(session.appearance.clearResourcePack()).rejects.toBe(knownFailure);
+
+    expect(calls.filter((entry) => Array.isArray(entry) && entry[0] === 'presentation.snapshot')).toHaveLength(snapshotReads);
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      resourcePackSelection: { assetRef: `pack_${'c'.repeat(12)}` },
+      resourcePackTarget: { phase: 'selected', effectiveResourceRef: `pack_${'c'.repeat(12)}` },
+    });
+  });
+
+  it('keeps an Apply adoptable across preview cleanup, refresh, and a different Manager domain mutation', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    let releaseCommit: (() => void) | undefined;
+    const commitGate = new Promise<void>((resolve) => { releaseCommit = resolve; });
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      presentation: {
+        ...base.presentation,
+        async commit(input) {
+          const projection = await base.presentation.commit(input);
+          if ('selectImportedResourcePack' in input.intent) await commitGate;
+          return projection;
+        },
+      },
+    };
+    const controller = new TestResourcePackTargetController();
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client,
+      hostMechanics: {
+        async selectResourcePack() {
+          return {
+            role: 'resource-pack', fileName: 'apply-in-flight.nimipack',
+            mediaType: 'application/vnd.nimi.resource-pack+zip',
+            content: Uint8Array.from([7, 8, 9]), sha256: 'c'.repeat(64),
+          };
+        },
+      },
+      resourcePackTargetController: controller,
+    });
+    await session.refresh();
+    await session.appearance.selectResourcePack?.();
+    const apply = session.appearance.applyResourcePack!();
+    while (controller.getSnapshot().phase !== 'apply-in-flight') await Promise.resolve();
+    session.appearance.cancelResourcePackPreview?.();
+    expect(controller.getSnapshot().phase).toBe('apply-in-flight');
+    await session.updateAutonomy({
+      expectedRevision: '1',
+      enabled: true,
+      mode: 'low',
+      dailyTokenBudget: 100,
+      maxTokensPerHook: 10,
+    });
+    await session.refresh();
+    expect(controller.getSnapshot().phase).toBe('apply-in-flight');
+    releaseCommit?.();
+    await apply;
+    expect(session.getSnapshot().state.appearance.resourcePackTarget).toMatchObject({ phase: 'selected' });
+  });
+
+  it('destroys the previous preview when a replacement Pack fails at the Host boundary', async () => {
+    const calls: unknown[] = [];
+    let selections = 0;
+    const controller = new TestResourcePackTargetController();
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client: appClient(calls),
+      hostMechanics: {
+        async selectResourcePack() {
+          selections += 1;
+          if (selections > 1) throw new Error('replacement Pack cannot be read');
+          return {
+            role: 'resource-pack', fileName: 'preview-a.nimipack',
+            mediaType: 'application/vnd.nimi.resource-pack+zip',
+            content: Uint8Array.from([7, 8, 9]), sha256: 'c'.repeat(64),
+          };
+        },
+      },
+      resourcePackTargetController: controller,
+    });
+    await session.refresh();
+    await session.appearance.selectResourcePack?.();
+    expect(controller.getSnapshot().phase).toBe('preview');
+    await expect(session.appearance.selectResourcePack?.()).rejects.toThrow(/cannot be read/u);
+    expect(controller.getSnapshot().phase).toBe('default');
+    expect(session.getSnapshot().state.appearance.resourcePackTarget).toMatchObject({ phase: 'default' });
+  });
+
   it('preserves canonical truth and surfaces a conflict when Apply selects different bytes', async () => {
     const calls: unknown[] = [];
     const base = appClient(calls);
@@ -1350,6 +1644,58 @@ describe('AgentCenterSession', () => {
       && (entry[1] as { intent?: { clearResourcePackSelection?: boolean } }).intent?.clearResourcePackSelection)).toHaveLength(1);
   });
 
+  it('keeps a Clear authoritative when the Appearance panel is remounted during the commit', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    let clearStarted: (() => void) | undefined;
+    let releaseClear: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => { clearStarted = resolve; });
+    const clearGate = new Promise<void>((resolve) => { releaseClear = resolve; });
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      presentation: {
+        ...base.presentation,
+        async commit(input) {
+          const projection = await base.presentation.commit(input);
+          if ('clearResourcePackSelection' in input.intent) {
+            clearStarted?.();
+            await clearGate;
+          }
+          return projection;
+        },
+      },
+    };
+    const controller = new TestResourcePackTargetController();
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client,
+      hostMechanics: {
+        async selectResourcePack() {
+          return {
+            role: 'resource-pack', fileName: 'clear-after-remount.nimipack',
+            mediaType: 'application/vnd.nimi.resource-pack+zip',
+            content: Uint8Array.from([7, 8, 9]), sha256: 'c'.repeat(64),
+          };
+        },
+      },
+      resourcePackTargetController: controller,
+    });
+    await session.refresh();
+    await session.appearance.selectResourcePack?.();
+    await session.appearance.applyResourcePack?.();
+
+    const clear = session.appearance.clearResourcePack();
+    await started;
+    await expect(session.appearance.setAvatarAutoplay?.(true)).rejects.toThrow(/appearance mutation is already in progress/u);
+    releaseClear?.();
+    await clear;
+
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      resourcePackSelection: null,
+      resourcePackTarget: { phase: 'default' },
+    });
+  });
+
   it('keeps the reread canonical selection when an ambiguous Clear did not commit', async () => {
     const calls: unknown[] = [];
     const base = appClient(calls);
@@ -1394,6 +1740,52 @@ describe('AgentCenterSession', () => {
     expect(calls.filter((entry) => Array.isArray(entry)
       && entry[0] === 'presentation.commit'
       && (entry[1] as { intent?: { clearResourcePackSelection?: boolean } }).intent?.clearResourcePackSelection)).toHaveLength(1);
+  });
+
+  it('does not let a window-focus refresh race an active native Resource Pack selection', async () => {
+    const calls: unknown[] = [];
+    const controller = new TestResourcePackTargetController();
+    let selectionStarted = false;
+    let releaseSelection: (() => void) | undefined;
+    const selectionGate = new Promise<void>((resolve) => { releaseSelection = resolve; });
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client: appClient(calls),
+      hostMechanics: {
+        async selectResourcePack() {
+          selectionStarted = true;
+          await selectionGate;
+          return {
+            role: 'resource-pack',
+            fileName: 'technical-pack-a.nimipack',
+            mediaType: 'application/vnd.nimi.resource-pack+zip',
+            content: Uint8Array.from([7, 8, 9]),
+            sha256: 'c'.repeat(64),
+          };
+        },
+      },
+      resourcePackTargetController: controller,
+    });
+    await session.refresh();
+    const preview = session.appearance.selectResourcePack!();
+    while (!selectionStarted) await Promise.resolve();
+
+    await session.refresh();
+    expect(session.getSnapshot().phase).toBe('ready');
+
+    releaseSelection?.();
+    await preview;
+    expect(session.getSnapshot().state.appearance.resourcePackTarget).toMatchObject({
+      phase: 'preview',
+      reviewFileName: 'technical-pack-a.nimipack',
+    });
+    const cancels = controller.calls.filter((entry) => Array.isArray(entry) && entry[0] === 'cancelPreview').length;
+    await session.refresh();
+    expect(session.getSnapshot()).toMatchObject({
+      phase: 'ready',
+      state: { appearance: { resourcePackTarget: { phase: 'preview' } } },
+    });
+    expect(controller.calls.filter((entry) => Array.isArray(entry) && entry[0] === 'cancelPreview')).toHaveLength(cancels);
   });
 
   it('rejects a late Resource Pack preview after the presentation revision changes', async () => {

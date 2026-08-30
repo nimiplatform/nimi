@@ -1179,8 +1179,7 @@ function agentPresentationIntentPayload(
 export function getNimiLocalAppAgentPresentationSnapshot(
   input: { readonly agentHandle: string },
 ): Promise<JsonObject> {
-  return invokeAgentConfigureHandle('local-app.agentPresentationSnapshot', input)
-    .then(normalizeLocalAppPresentationProjection);
+  return invokeAgentConfigureHandle('local-app.agentPresentationSnapshot', input);
 }
 
 export function readNimiLocalAppAgentPresentationAsset(input: {
@@ -1251,7 +1250,7 @@ export async function commitNimiLocalAppAgentPresentation(input: {
     && importedAssets.some((asset) => asset.role === 'resource-pack')) {
     throw invalidInput(command, 'Resource Pack material requires Resource Pack Apply intent');
   }
-  const projection = await invokeLocalAppRecord(command, {
+  return invokeLocalAppRecord(command, {
     agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
     expectedPresentationRevision: decimalRevision(
       input.expectedPresentationRevision,
@@ -1262,13 +1261,6 @@ export async function commitNimiLocalAppAgentPresentation(input: {
     intent,
     importedAssets: importedAssets as unknown as JsonValue,
   });
-  return normalizeLocalAppPresentationProjection(projection);
-}
-
-function normalizeLocalAppPresentationProjection(projection: JsonObject): JsonObject {
-  return Object.prototype.hasOwnProperty.call(projection, 'resourcePackSelection')
-    ? projection
-    : { ...projection, resourcePackSelection: null };
 }
 
 export function inspectNimiLocalAppAgentMemory(input: {

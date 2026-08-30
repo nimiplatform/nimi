@@ -8,11 +8,12 @@ use crate::generated::{
     AgentLifecycleStatus, AgentLocalSourceContextState, AgentLocalSourceCoverageSection,
     AgentLocalSourceCoverageState, AgentPresentationAssetMaterial, AgentPresentationAssetRole,
     AgentPresentationBackendKind, AgentPresentationProfile, AgentPresentationProfilePatch,
-    AgentSourceCognitionStatus, AgentTurnContextLaneId, AgentTurnContextLaneState,
-    AgentTurnContextState, AgentTurnContextTruncationReason, CognitionMemoryEpistemicStatus,
-    CognitionMemoryLifecycle, CognitionMemoryOutcome, CommitLocalAppAgentPresentationRequest,
-    CorrectLocalAppAgentMemoryRequest, DeleteAllLocalAppAgentMemoryRequest,
-    ForgetLocalAppAgentMemoryRequest, GetAgentPresentationAssetRequest,
+    AgentResourcePackSelection, AgentSourceCognitionStatus, AgentTurnContextLaneId,
+    AgentTurnContextLaneState, AgentTurnContextState, AgentTurnContextTruncationReason,
+    CognitionMemoryEpistemicStatus, CognitionMemoryLifecycle, CognitionMemoryOutcome,
+    CommitLocalAppAgentPresentationRequest, CorrectLocalAppAgentMemoryRequest,
+    DeleteAllLocalAppAgentMemoryRequest, ForgetLocalAppAgentMemoryRequest,
+    GetAgentPresentationAssetRequest, GetAgentPresentationAssetResponse,
     GetLocalAppAgentAutonomySnapshotRequest, GetLocalAppAgentManagerSnapshotRequest,
     GetLocalAppAgentPresentationSnapshotRequest, InspectLocalAppAgentMemoryRequest,
     LocalAppAgentAutonomyConfig, LocalAppAgentAutonomyIntent, LocalAppAgentAutonomyMode,
@@ -37,6 +38,9 @@ const AGENT_HANDLE_PREFIX: &str = "agent_ref_";
 const AGENT_HANDLE_SUFFIX_BYTES: usize = 43;
 const MAX_MEMORY_PAGE_SIZE: u32 = 100;
 const MAX_MEMORY_PAGE_TOKEN_BYTES: usize = 1024;
+const RESOURCE_PACK_MEDIA_TYPE: &str = "application/vnd.nimi.resource-pack+zip";
+const RESOURCE_PACK_TARGET_ID: &str = "zhiyu-experience-surface";
+const RESOURCE_PACK_TARGET_VERSION: u32 = 1;
 
 pub(super) async fn manager_snapshot(
     channel: Channel,
@@ -485,10 +489,22 @@ pub(super) async fn presentation_read_asset(
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    if AgentPresentationAssetRole::try_from(response.role).map_err(|_| untrusted())?
-        != AgentPresentationAssetRole::Avatar
+    project_presentation_asset(response)
+}
+
+fn project_presentation_asset(
+    response: GetAgentPresentationAssetResponse,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let role = AgentPresentationAssetRole::try_from(response.role).map_err(|_| untrusted())?;
+    let content_limit = if role == AgentPresentationAssetRole::ResourcePack {
+        2 * 1024 * 1024
+    } else {
+        64 * 1024 * 1024
+    };
+    if (role != AgentPresentationAssetRole::Avatar
+        && role != AgentPresentationAssetRole::ResourcePack)
         || response.content.is_empty()
-        || response.content.len() > 64 * 1024 * 1024
+        || response.content.len() > content_limit
         || response.asset_ref.is_empty()
         || response.file_name.is_empty()
         || response.media_type.is_empty()
@@ -499,6 +515,25 @@ pub(super) async fn presentation_read_asset(
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
     {
         return Err(untrusted());
+    }
+    if role == AgentPresentationAssetRole::ResourcePack {
+        if response.backend_kind != AgentPresentationBackendKind::Unspecified as i32
+            || response.media_type != RESOURCE_PACK_MEDIA_TYPE
+            || !response
+                .file_name
+                .to_ascii_lowercase()
+                .ends_with(".nimipack")
+        {
+            return Err(untrusted());
+        }
+        return Ok(json!({
+            "assetRef": response.asset_ref,
+            "role": "resource-pack",
+            "fileName": response.file_name,
+            "mediaType": response.media_type,
+            "content": response.content,
+            "sha256": response.sha256,
+        }));
     }
     Ok(json!({
         "assetRef": response.asset_ref,
@@ -517,7 +552,7 @@ pub(super) async fn commit_presentation(
 ) -> Result<JsonValue, LocalAppOperationError> {
     require_agent_handle(&request.agent_handle)?;
     let imported_assets = parse_presentation_assets(request.imported_assets)?;
-    let intent = parse_presentation_intent(request.intent, !imported_assets.is_empty())?;
+    let intent = parse_presentation_intent(request.intent, &imported_assets)?;
     let response = crate::grpc_limits::runtime_agent_client(channel)
         .commit_local_app_agent_presentation(CommitLocalAppAgentPresentationRequest {
             agent_handle: request.agent_handle,
@@ -771,7 +806,28 @@ fn project_presentation(
         "defaultVoiceReference": projection.default_voice_reference,
         "avatarAutoplay": projection.avatar_autoplay,
         "presentationRevision": projection.presentation_revision.to_string(),
+        "resourcePackSelection": project_optional_resource_pack_selection(projection.resource_pack_selection)?,
     }))
+}
+
+fn project_optional_resource_pack_selection(
+    selection: Option<AgentResourcePackSelection>,
+) -> Result<Option<JsonValue>, LocalAppOperationError> {
+    let Some(selection) = selection else {
+        return Ok(None);
+    };
+    if selection.asset_ref.is_empty()
+        || selection.asset_ref.len() > 512
+        || selection.target_id != RESOURCE_PACK_TARGET_ID
+        || selection.target_version != RESOURCE_PACK_TARGET_VERSION
+    {
+        return Err(untrusted_projection("resource_pack_selection_invalid"));
+    }
+    Ok(Some(json!({
+        "assetRef": selection.asset_ref,
+        "targetId": selection.target_id,
+        "targetVersion": selection.target_version,
+    })))
 }
 
 fn project_optional_presentation_profile(
@@ -894,9 +950,42 @@ fn parse_autonomy_config(
 
 fn parse_presentation_intent(
     value: JsonValue,
-    allow_empty_for_imported_asset: bool,
+    imported_assets: &[AgentPresentationAssetMaterial],
 ) -> Result<LocalAppAgentPresentationIntent, LocalAppOperationError> {
     let object = value.as_object().ok_or_else(invalid_payload)?;
+    if object.contains_key("selectImportedResourcePack") {
+        if object.len() != 1
+            || object
+                .get("selectImportedResourcePack")
+                .and_then(JsonValue::as_bool)
+                != Some(true)
+            || imported_assets.len() != 1
+            || imported_assets[0].role != AgentPresentationAssetRole::ResourcePack as i32
+        {
+            return Err(invalid_payload());
+        }
+        return Ok(LocalAppAgentPresentationIntent {
+            patch: None,
+            select_imported_resource_pack: true,
+            clear_resource_pack_selection: false,
+        });
+    }
+    if object.contains_key("clearResourcePackSelection") {
+        if object.len() != 1
+            || object
+                .get("clearResourcePackSelection")
+                .and_then(JsonValue::as_bool)
+                != Some(true)
+            || !imported_assets.is_empty()
+        {
+            return Err(invalid_payload());
+        }
+        return Ok(LocalAppAgentPresentationIntent {
+            patch: None,
+            select_imported_resource_pack: false,
+            clear_resource_pack_selection: true,
+        });
+    }
     let allowed = [
         "backendKind",
         "avatarAssetRef",
@@ -907,8 +996,11 @@ fn parse_presentation_intent(
         "avatarAutoplay",
         "backgroundAssetRef",
     ];
-    if (object.is_empty() && !allow_empty_for_imported_asset)
+    if (object.is_empty() && imported_assets.is_empty())
         || object.keys().any(|key| !allowed.contains(&key.as_str()))
+        || imported_assets
+            .iter()
+            .any(|asset| asset.role == AgentPresentationAssetRole::ResourcePack as i32)
     {
         return Err(invalid_payload());
     }
@@ -1350,7 +1442,47 @@ mod tests {
         assert!(projected["profile"].is_null());
         assert!(projected["previousProfile"].is_null());
         assert_eq!(projected["avatarAutoplay"], false);
-        assert_eq!(projected.as_object().map(|record| record.len()), Some(5));
+        assert!(projected["resourcePackSelection"].is_null());
+        assert_eq!(projected.as_object().map(|record| record.len()), Some(6));
+    }
+
+    #[test]
+    fn resource_pack_selection_and_asset_keep_the_typed_target_contract() {
+        let projected = project_presentation(LocalAppAgentPresentationProjection {
+            profile: None,
+            previous_profile: None,
+            default_voice_reference: String::new(),
+            presentation_revision: 3,
+            avatar_autoplay: false,
+            resource_pack_selection: Some(AgentResourcePackSelection {
+                asset_ref: "pack_0123456789ab".to_string(),
+                target_id: RESOURCE_PACK_TARGET_ID.to_string(),
+                target_version: RESOURCE_PACK_TARGET_VERSION,
+            }),
+        })
+        .expect("Resource Pack selection projection");
+        assert_eq!(
+            projected["resourcePackSelection"]["assetRef"],
+            "pack_0123456789ab"
+        );
+        assert_eq!(
+            projected["resourcePackSelection"]["targetId"],
+            RESOURCE_PACK_TARGET_ID
+        );
+
+        let asset = project_presentation_asset(GetAgentPresentationAssetResponse {
+            asset_ref: "pack_0123456789ab".to_string(),
+            role: AgentPresentationAssetRole::ResourcePack as i32,
+            backend_kind: AgentPresentationBackendKind::Unspecified as i32,
+            file_name: "technical-a.nimipack".to_string(),
+            media_type: RESOURCE_PACK_MEDIA_TYPE.to_string(),
+            content: vec![0x50, 0x4b, 0x03, 0x04],
+            sha256: "a".repeat(64),
+        })
+        .expect("Resource Pack asset projection");
+        assert_eq!(asset["role"], "resource-pack");
+        assert!(asset.get("backendKind").is_none());
+        assert_eq!(asset["content"], json!([0x50, 0x4b, 0x03, 0x04]));
     }
 
     #[test]
@@ -1386,7 +1518,7 @@ mod tests {
                 "defaultVoiceReference": "preset_voice_id:serena",
                 "avatarAutoplay": false
             }),
-            false,
+            &[],
         )
         .expect("voice-only presentation patch");
         let patch = intent.patch.expect("canonical presentation patch");
@@ -1408,9 +1540,9 @@ mod tests {
             sha256: "abc123".to_string(),
         }])
         .expect("imported presentation asset");
-        parse_presentation_intent(serde_json::json!({}), !assets.is_empty())
+        parse_presentation_intent(serde_json::json!({}), &assets)
             .expect("asset-only presentation intent");
-        assert!(parse_presentation_intent(serde_json::json!({}), false).is_err());
+        assert!(parse_presentation_intent(serde_json::json!({}), &[]).is_err());
         assert_eq!(assets.len(), 1);
         assert_eq!(assets[0].role, AgentPresentationAssetRole::Avatar as i32);
         assert_eq!(assets[0].content, vec![1, 2, 255]);
@@ -1428,6 +1560,25 @@ mod tests {
             AgentPresentationAssetRole::ResourcePack as i32
         );
         assert_eq!(resource_pack[0].content, vec![0x50, 0x4b, 0x03, 0x04]);
+        let apply = parse_presentation_intent(
+            serde_json::json!({ "selectImportedResourcePack": true }),
+            &resource_pack,
+        )
+        .expect("Resource Pack Apply intent");
+        assert!(apply.patch.is_none());
+        assert!(apply.select_imported_resource_pack);
+        let clear = parse_presentation_intent(
+            serde_json::json!({ "clearResourcePackSelection": true }),
+            &[],
+        )
+        .expect("Resource Pack Clear intent");
+        assert!(clear.patch.is_none());
+        assert!(clear.clear_resource_pack_selection);
+        assert!(parse_presentation_intent(
+            serde_json::json!({ "selectImportedResourcePack": true }),
+            &[],
+        )
+        .is_err());
 
         assert!(
             parse_presentation_assets(vec![LocalAppAgentPresentationAssetInput {

@@ -78,6 +78,57 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls).toHaveLength(1);
   });
 
+  it('admits only exact Resource Pack Apply and selection-only Clear intents', async () => {
+    const calls: unknown[] = [];
+    const host = {
+      agentCommitPresentation: async (input: unknown) => {
+        calls.push(input);
+        return { presentationRevision: String(calls.length) };
+      },
+    } as never;
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentCommitPresentation'];
+    const base = {
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      expectedPresentationRevision: '0',
+    };
+    const pack = {
+      role: 'resource-pack',
+      fileName: 'technical-a.nimipack',
+      mediaType: 'application/vnd.nimi.resource-pack+zip',
+      content: new Uint8Array([80, 75, 3, 4]),
+      sha256: 'b'.repeat(64),
+    };
+    await expect(dispatchElectronLocalAppCommand({
+      host,
+      command,
+      payload: { ...base, intent: { selectImportedResourcePack: true }, importedAssets: [pack] },
+    })).resolves.toEqual({ presentationRevision: '1' });
+    await expect(dispatchElectronLocalAppCommand({
+      host,
+      command,
+      payload: {
+        ...base,
+        expectedPresentationRevision: '1',
+        intent: { clearResourcePackSelection: true },
+        importedAssets: [],
+      },
+    })).resolves.toEqual({ presentationRevision: '2' });
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toMatchObject({ intent: { selectImportedResourcePack: true } });
+    expect(calls[1]).toMatchObject({ intent: { clearResourcePackSelection: true }, importedAssets: [] });
+
+    await expect(dispatchElectronLocalAppCommand({
+      host,
+      command,
+      payload: { ...base, intent: { selectImportedResourcePack: true }, importedAssets: [] },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    await expect(dispatchElectronLocalAppCommand({
+      host,
+      command,
+      payload: { ...base, intent: {}, importedAssets: [pack] },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+  });
+
   it('maps unavailable Manager owner state to the standard Runtime-unavailable code', async () => {
     const host = {
       agentManagerSnapshot: async () => {

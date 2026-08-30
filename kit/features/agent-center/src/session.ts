@@ -149,6 +149,28 @@ type MutationRunResult<T> = {
   readonly adopt: boolean;
 };
 
+type MutationDomain = 'shared-ai-config' | 'autonomy' | 'memory' | 'appearance';
+
+function mutationDomain(action: AgentCenterProductAction): MutationDomain {
+  switch (action) {
+    case 'getSharedAIConfig':
+    case 'overwriteSharedAIConfig':
+      return 'shared-ai-config';
+    case 'readAutonomy':
+    case 'updateAutonomy':
+      return 'autonomy';
+    case 'inspectMemory':
+    case 'correctMemory':
+    case 'forgetMemory':
+    case 'switchMemory':
+    case 'deleteAllMemory':
+      return 'memory';
+    case 'replaceAppearance':
+    case 'restorePreviousAppearance':
+      return 'appearance';
+  }
+}
+
 type ResourcePackMutationResolution = Readonly<
   | { outcome: 'committed'; projection: NimiLocalAppAgentPresentationProjection }
   | { outcome: 'conflict'; projection: NimiLocalAppAgentPresentationProjection; error: Error }
@@ -213,6 +235,21 @@ function errorMessage(error: unknown): string {
   return error instanceof Error && error.message.trim()
     ? error.message.trim()
     : 'Agent Center projection is unavailable.';
+}
+
+function resourcePackCommitOutcomeIsAmbiguous(error: unknown): boolean {
+  const record = error && typeof error === 'object' ? error as Record<string, unknown> : null;
+  const reasonCode = typeof record?.reasonCode === 'string' ? record.reasonCode.trim() : '';
+  if (!reasonCode) return true;
+  return new Set([
+    'RUNTIME_UNAVAILABLE',
+    'RUNTIME_BRIDGE_DAEMON_UNAVAILABLE',
+    'SDK_HOST_UNAVAILABLE',
+    'runtime-service-unavailable',
+    'runtime-service-error-unclassified',
+    'runtime-service-repair-required',
+    'standard-shell-host-error-envelope-missing',
+  ]).has(reasonCode);
 }
 
 function resourcePackPlacementUnavailableError(
@@ -288,7 +325,13 @@ class ManagerSession {
   #listeners = new Set<() => void>();
   #lifecycleEpoch = 0;
   #refreshToken = 0;
-  #mutationToken = 0;
+  #mutationTokens: Record<MutationDomain, number> = {
+    'shared-ai-config': 0,
+    autonomy: 0,
+    memory: 0,
+    appearance: 0,
+  };
+  #activeMutationDomains = new Set<MutationDomain>();
   #stateVersion = 0;
   #memoryPageToken = 0;
   #invalidated = false;
@@ -325,13 +368,14 @@ class ManagerSession {
             'replaceAppearance',
             () => transport.selectResourcePack!(),
             false,
+            false,
           );
           if (mutation.adopt) this.#replaceAppearance(mutation.result);
         },
         cancelResourcePackPreview: () => {
           this.#assertActive();
           if (!transport.cancelResourcePackPreview()) return;
-          this.#mutationToken += 1;
+          this.#mutationTokens.appearance += 1;
           this.#stateVersion += 1;
           this.#replaceResourcePackTarget(transport.resourcePackTargetController!.getSnapshot());
         },
@@ -400,7 +444,6 @@ class ManagerSession {
     this.#invalidated = true;
     this.#lifecycleEpoch += 1;
     this.#refreshToken += 1;
-    this.#mutationToken += 1;
     this.#memoryPageToken += 1;
     this.#resourcePackTargetUnsubscribe?.();
     this.#resourcePackTargetUnsubscribe = null;
@@ -439,7 +482,6 @@ class ManagerSession {
     const refreshToken = ++this.#refreshToken;
     this.#memoryPageToken += 1;
     const stateVersion = this.#stateVersion;
-    this.#set({ ...this.#snapshot, phase: 'loading', error: null });
     try {
       const read = await this.transport.read();
       if (!this.#isCurrentRefresh(lifecycleEpoch, refreshToken, stateVersion)) return;
@@ -750,13 +792,19 @@ class ManagerSession {
     action: AgentCenterProductAction,
     task: () => Promise<T>,
     degradeOnError = true,
+    claimDomain = true,
   ): Promise<MutationRunResult<T>> {
     this.#assertActive();
     const lifecycleEpoch = this.#lifecycleEpoch;
-    const mutationToken = ++this.#mutationToken;
+    const domain = mutationDomain(action);
+    if (this.#activeMutationDomains.has(domain)) {
+      throw new Error(`Agent Center ${domain} mutation is already in progress.`);
+    }
+    if (claimDomain) this.#activeMutationDomains.add(domain);
+    const mutationToken = ++this.#mutationTokens[domain];
     try {
       const result = await task();
-      const adopt = this.#isLifecycleCurrent(lifecycleEpoch) && this.#mutationToken === mutationToken;
+      const adopt = this.#isLifecycleCurrent(lifecycleEpoch) && this.#mutationTokens[domain] === mutationToken;
       if (adopt) {
         this.#stateVersion += 1;
         this.#memoryPageToken += 1;
@@ -766,10 +814,12 @@ class ManagerSession {
         adopt,
       };
     } catch (error) {
-      if (degradeOnError && this.#isLifecycleCurrent(lifecycleEpoch) && this.#mutationToken === mutationToken) {
+      if (degradeOnError && this.#isLifecycleCurrent(lifecycleEpoch) && this.#mutationTokens[domain] === mutationToken) {
         this.#degradeAction(action, error);
       }
       throw error;
+    } finally {
+      if (claimDomain) this.#activeMutationDomains.delete(domain);
     }
   }
 
@@ -830,6 +880,7 @@ export function createAppAgentCenterSession(
   let resourcePackSyncEpoch = 0;
   let resourcePackReviewEpoch = 0;
   let resourcePackSelectionPending = false;
+  let resourcePackMutationInFlight: 'apply' | 'clear' | null = null;
   let resourcePackContext: Readonly<{
     revision: string;
     selectedResourceRef: string | null;
@@ -981,6 +1032,7 @@ export function createAppAgentCenterSession(
     projection: NimiLocalAppAgentPresentationProjection,
   ): Promise<void> => {
     if (!resourcePackTargetController || resourcePackDisposed) return;
+    if (resourcePackMutationInFlight) return;
     const selectedResourceRef = projection.resourcePackSelection?.assetRef ?? null;
     if (contextMatches(projection.presentationRevision, selectedResourceRef)) return;
     resourcePackReviewEpoch += 1;
@@ -1008,6 +1060,20 @@ export function createAppAgentCenterSession(
     targetSnapshot(),
     input.resourcePackPlacement?.availability ?? RESOURCE_PACK_PLACEMENT_UNAVAILABLE,
   );
+
+  const restoreResourcePackAfterKnownFailure = async (
+    expectedRevision: string,
+    restorePreview: () => void,
+  ): Promise<void> => {
+    resourcePackMutationInFlight = null;
+    resourcePackReview = null;
+    if (presentation && presentation.presentationRevision !== expectedRevision) {
+      resourcePackContext = null;
+      await synchronizeResourcePackTarget(presentation);
+      return;
+    }
+    restorePreview();
+  };
 
   const readSharedAIConfig = async (): Promise<SharedAIConfigRead> => {
     try {
@@ -1209,7 +1275,13 @@ export function createAppAgentCenterSession(
       resourcePackSelectionPending = true;
       try {
         const expectedRevision = currentPresentationRevision(manager);
-        const selected = await input.hostMechanics!.selectResourcePack!();
+        const selected = await input.hostMechanics!.selectResourcePack!().catch((error) => {
+          if (resourcePackReviewEpoch === reviewEpoch) {
+            resourcePackReview = null;
+            resourcePackTargetController.cancelPreview();
+          }
+          throw error;
+        });
         if (!selected) return projectCurrentAppearance(await currentPresentation());
         if (resourcePackDisposed
           || resourcePackReviewEpoch !== reviewEpoch
@@ -1221,6 +1293,8 @@ export function createAppAgentCenterSession(
           || !selected.fileName.trim()
           || selected.content.byteLength === 0
           || !/^[a-f0-9]{64}$/u.test(selected.sha256)) {
+          resourcePackReview = null;
+          resourcePackTargetController.cancelPreview();
           throw new Error('Agent Center Host returned invalid Resource Pack material.');
         }
         const content = Uint8Array.from(selected.content);
@@ -1258,7 +1332,7 @@ export function createAppAgentCenterSession(
   ): Promise<ResourcePackMutationResolution> => {
     presentation = projection;
     const selection = projection.resourcePackSelection;
-    if (selection) {
+    if (selection && projection.presentationRevision !== review.expectedRevision) {
       try {
         const selected = await input.client.presentation.readAsset({
           agentHandle: handle,
@@ -1325,6 +1399,7 @@ export function createAppAgentCenterSession(
       resourcePackTargetController.applyFailed('Resource Pack review is stale for the current Agent presentation revision.');
       throw new Error('Resource Pack review is stale for the current Agent presentation revision.');
     }
+    resourcePackMutationInFlight = 'apply';
     let committed: NimiLocalAppAgentPresentationProjection;
     try {
       committed = await input.client.presentation.commit({
@@ -1340,7 +1415,15 @@ export function createAppAgentCenterSession(
         }],
       });
     } catch (error) {
-      return reconcileResourcePackApply(review, error);
+      if (!resourcePackCommitOutcomeIsAmbiguous(error)) {
+        await restoreResourcePackAfterKnownFailure(review.expectedRevision, () => {
+          resourcePackTargetController.applyFailed(errorMessage(error));
+        });
+        throw error;
+      }
+      const resolution = await reconcileResourcePackApply(review, error);
+      if (resolution.outcome === 'pending') resourcePackMutationInFlight = null;
+      return resolution;
     }
     if (!committed.resourcePackSelection) {
       return {
@@ -1358,6 +1441,7 @@ export function createAppAgentCenterSession(
     presentation = committed;
     const selection = committed.resourcePackSelection;
     if (!resourcePackTargetController || resourcePackDisposed || !selection) {
+      resourcePackMutationInFlight = null;
       throw new Error('Committed Resource Pack target projection is unavailable.');
     }
     resourcePackReview = null;
@@ -1366,13 +1450,17 @@ export function createAppAgentCenterSession(
       selectedResourceRef: selection.assetRef,
     });
     const syncEpoch = ++resourcePackSyncEpoch;
-    resourcePackTargetController.applyCommitted({
-      agentHandle: handle,
-      selectionRevision: committed.presentationRevision,
-      selectedResourceRef: selection.assetRef,
-    });
-    await renderSelectedResourcePack(committed, syncEpoch);
-    return projectCurrentAppearance(committed);
+    try {
+      resourcePackTargetController.applyCommitted({
+        agentHandle: handle,
+        selectionRevision: committed.presentationRevision,
+        selectedResourceRef: selection.assetRef,
+      });
+      await renderSelectedResourcePack(committed, syncEpoch);
+      return projectCurrentAppearance(committed);
+    } finally {
+      resourcePackMutationInFlight = null;
+    }
   };
 
   const adoptResourcePackReconciliation = async (
@@ -1381,6 +1469,7 @@ export function createAppAgentCenterSession(
     presentation = reconciled;
     resourcePackReview = null;
     resourcePackContext = null;
+    resourcePackMutationInFlight = null;
     await synchronizeResourcePackTarget(reconciled);
     return projectCurrentAppearance(reconciled);
   };
@@ -1402,6 +1491,7 @@ export function createAppAgentCenterSession(
   const commitResourcePackClear = async (): Promise<ResourcePackMutationResolution> => {
     resourcePackReviewEpoch += 1;
     const current = await currentPresentation();
+    resourcePackMutationInFlight = 'clear';
     try {
       const committed = await input.client.presentation.commit({
         agentHandle: handle,
@@ -1411,10 +1501,17 @@ export function createAppAgentCenterSession(
       });
       return resolveResourcePackClearProjection(committed);
     } catch (commitError) {
+      if (!resourcePackCommitOutcomeIsAmbiguous(commitError)) {
+        await restoreResourcePackAfterKnownFailure(current.presentationRevision, () => {
+          resourcePackTargetController?.cancelPreview();
+        });
+        throw commitError;
+      }
       try {
         const projection = await input.client.presentation.snapshot({ agentHandle: handle });
         return resolveResourcePackClearProjection(projection, commitError);
       } catch (readError) {
+        resourcePackMutationInFlight = null;
         resourcePackContext = null;
         resourcePackSyncEpoch += 1;
         const pendingError = new Error(
@@ -1434,6 +1531,7 @@ export function createAppAgentCenterSession(
   ): Promise<AgentCenterAppearanceProjection> => {
     presentation = committed;
     resourcePackReview = null;
+    resourcePackMutationInFlight = null;
     resourcePackContext = Object.freeze({
       revision: committed.presentationRevision,
       selectedResourceRef: null,
@@ -1513,9 +1611,9 @@ export function createAppAgentCenterSession(
     },
     ...(selectResourcePack ? { selectResourcePack } : {}),
     cancelResourcePackPreview() {
-      if (!resourcePackSelectionPending
-        && !resourcePackReview
-        && resourcePackTargetController?.getSnapshot().phase !== 'preview') return false;
+      if (resourcePackMutationInFlight
+        || (!resourcePackSelectionPending
+          && resourcePackTargetController?.getSnapshot().phase !== 'preview')) return false;
       resourcePackReviewEpoch += 1;
       resourcePackSelectionPending = false;
       resourcePackReview = null;
@@ -1534,6 +1632,7 @@ export function createAppAgentCenterSession(
       resourcePackSelectionPending = false;
       resourcePackReview = null;
       resourcePackContext = null;
+      resourcePackMutationInFlight = null;
       resourcePackSyncEpoch += 1;
       resourcePackReviewEpoch += 1;
       resourcePackTargetController?.dispose();

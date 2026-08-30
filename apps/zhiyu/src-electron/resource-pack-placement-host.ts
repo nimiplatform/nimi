@@ -20,7 +20,7 @@ import {
 
 const PLACEMENT_PATH = '/v1/agent-center-resource-pack-placement';
 const HEARTBEAT_INTERVAL_MS = 3_000;
-const DEFAULT_ACK_TIMEOUT_MS = 8_000;
+const DEFAULT_ACK_TIMEOUT_MS = 12_000;
 const MAX_REQUEST_BYTES = 4 * 1024;
 
 type PresenceDescriptor = Readonly<{

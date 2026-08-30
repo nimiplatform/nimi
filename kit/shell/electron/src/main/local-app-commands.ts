@@ -639,6 +639,24 @@ function validatePayload(
       assertNoForbiddenAuthorityValue(payload.intent, command);
       assertNoForbiddenAuthorityValue(payload.importedAssets, command);
       const importedAssets = presentationAssetsPayload(payload.importedAssets, command);
+      const intent = presentationIntentPayload(
+        payload.intent,
+        command,
+        Array.isArray(importedAssets) && importedAssets.length > 0,
+      );
+      const assetRows = importedAssets as unknown as Array<{ readonly role: string }>;
+      if (intent.selectImportedResourcePack === true
+        && (assetRows.length !== 1 || assetRows[0]?.role !== 'resource-pack')) {
+        throw invalidPayload(command, 'Resource Pack Apply requires exactly one Resource Pack archive');
+      }
+      if (intent.clearResourcePackSelection === true && assetRows.length !== 0) {
+        throw invalidPayload(command, 'Resource Pack Clear cannot import assets');
+      }
+      if (intent.selectImportedResourcePack !== true
+        && intent.clearResourcePackSelection !== true
+        && assetRows.some((asset) => asset.role === 'resource-pack')) {
+        throw invalidPayload(command, 'Resource Pack material requires Resource Pack Apply intent');
+      }
       return {
         agentHandle: requiredText(payload.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
         expectedPresentationRevision: decimalRevision(
@@ -647,11 +665,7 @@ function validatePayload(
           command,
           true,
         ),
-        intent: presentationIntentPayload(
-          payload.intent,
-          command,
-          Array.isArray(importedAssets) && importedAssets.length > 0,
-        ),
+        intent,
         importedAssets,
       };
     }
@@ -748,6 +762,20 @@ function presentationIntentPayload(
   allowEmptyForImportedAsset = false,
 ): NimiElectronLocalAppRecord {
   if (!isPlainRecord(value)) throw invalidPayload(command, 'intent must be an object');
+  if (Object.hasOwn(value, 'selectImportedResourcePack')) {
+    assertExactKeys(value, ['selectImportedResourcePack'], command);
+    if (value.selectImportedResourcePack !== true) {
+      throw invalidPayload(command, 'intent.selectImportedResourcePack must be true');
+    }
+    return { selectImportedResourcePack: true };
+  }
+  if (Object.hasOwn(value, 'clearResourcePackSelection')) {
+    assertExactKeys(value, ['clearResourcePackSelection'], command);
+    if (value.clearResourcePackSelection !== true) {
+      throw invalidPayload(command, 'intent.clearResourcePackSelection must be true');
+    }
+    return { clearResourcePackSelection: true };
+  }
   const allowed = [
     'backendKind', 'avatarAssetRef', 'expressionProfileRef', 'idlePreset',
     'interactionPolicyRef', 'defaultVoiceReference', 'avatarAutoplay', 'backgroundAssetRef',

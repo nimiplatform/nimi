@@ -81,6 +81,7 @@ test('rejects remote CSS, descendant selectors, and guarded-control interception
     '[data-nimi-pack-zone="surface"] { pointer-events: none; }',
     '[data-nimi-pack-zone="surface"]::before { content: "online"; }',
     '[data-nimi-pack-zone="surface"] { display: none; }',
+    '[data-nimi-pack-zone="surface"] { color: URL("assets/mark.png"); }',
     '[data-nimi-pack-zone="surface"] { background-image: \\75 \\72 \\6c ("https://example.com/x.png"); }',
   ];
   for (const css of denied) {

@@ -92,6 +92,26 @@ test('selected Pack render failure uses Default with honest selected/effective m
   assert.match(state.mismatchReason, /could not render/u);
 });
 
+test('Cancel from a fallback Preview keeps the canonical selection retryable', async () => {
+  const controller = new ZhiyuResourcePackPresentationController({ urlFactory: testUrls().factory });
+  controller.resetAgent({ agentHandle: agentA, selectionRevision: '2', selectedResourceRef: 'pack:A' });
+  controller.selectedRenderFailed('Selected Pack could not render.');
+  await controller.beginPreview({
+    agentHandle: agentA,
+    expectedRevision: '2',
+    fileName: 'B.nimipack',
+    archiveBytes: pack('#ede9fe'),
+  });
+
+  controller.cancelPreview();
+
+  const state = controller.getSnapshot();
+  assert.equal(state.phase, 'fallback');
+  assert.equal(state.selectedResourceRef, 'pack:A');
+  assert.equal(state.effectiveSource, 'default');
+  assert.match(state.mismatchReason, /selected Resource Pack/u);
+});
+
 test('Agent change invalidates preview and stale selected reads', async () => {
   const controller = new ZhiyuResourcePackPresentationController({ urlFactory: testUrls().factory });
   controller.resetAgent({ agentHandle: agentA, selectionRevision: '1', selectedResourceRef: null });

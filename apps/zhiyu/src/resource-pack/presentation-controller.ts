@@ -295,16 +295,20 @@ export class ZhiyuResourcePackPresentationController {
 
   #lastSafeState(generation: number): ZhiyuResourcePackPresentationState {
     const hasSelectedRender = Boolean(this.#selectedRender && this.#state.effectiveResourceRef);
+    const hasSelectedFallback = Boolean(this.#state.selectedResourceRef) && !hasSelectedRender;
+    const fallbackReason = hasSelectedFallback
+      ? this.#state.mismatchReason ?? 'The selected Resource Pack is not rendering; Zhiyu is using Default.'
+      : null;
     return Object.freeze({
       ...this.#state,
       generation,
-      phase: hasSelectedRender ? 'selected' : 'default',
+      phase: hasSelectedRender ? 'selected' : hasSelectedFallback ? 'fallback' : 'default',
       effectiveSource: hasSelectedRender ? 'last-safe' : 'default',
       scopedCssText: hasSelectedRender ? this.#selectedRender!.cssText : null,
       reviewFileName: null,
       pendingTruth: null,
-      mismatchReason: null,
-      error: null,
+      mismatchReason: fallbackReason,
+      error: fallbackReason,
     });
   }
 

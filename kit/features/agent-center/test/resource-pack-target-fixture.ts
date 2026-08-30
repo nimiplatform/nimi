@@ -67,6 +67,7 @@ export class TestResourcePackTargetController implements AgentCenterResourcePack
       ...DEFAULT_STATE,
       phase: 'preview',
       reviewFileName: input.fileName,
+      effectiveResourceRef: this.#state.effectiveResourceRef,
     });
   }
 
@@ -76,7 +77,9 @@ export class TestResourcePackTargetController implements AgentCenterResourcePack
     this.#review = null;
     this.#replace(this.#selectedResourceRef && this.#state.effectiveResourceRef
       ? { ...DEFAULT_STATE, phase: 'selected', effectiveResourceRef: this.#selectedResourceRef }
-      : DEFAULT_STATE);
+      : this.#selectedResourceRef
+        ? { ...DEFAULT_STATE, phase: 'fallback', mismatchReason: 'selected Resource Pack is not rendering' }
+        : DEFAULT_STATE);
   }
 
   prepareApply(): AgentCenterResourcePackApplyMaterial {
@@ -87,6 +90,7 @@ export class TestResourcePackTargetController implements AgentCenterResourcePack
       phase: 'apply-in-flight',
       reviewFileName: this.#state.reviewFileName,
       pendingTruth: 'selection-unchanged-candidate-not-applied',
+      effectiveResourceRef: this.#state.effectiveResourceRef,
     });
     return Object.freeze({
       ...this.#review,
@@ -97,7 +101,16 @@ export class TestResourcePackTargetController implements AgentCenterResourcePack
   applyFailed(message: string): void {
     this.calls.push(['applyFailed', message]);
     this.#review = null;
-    this.#replace({ ...DEFAULT_STATE, error: message });
+    this.#replace(this.#selectedResourceRef && this.#state.effectiveResourceRef
+      ? {
+          ...DEFAULT_STATE,
+          phase: 'selected',
+          effectiveResourceRef: this.#selectedResourceRef,
+          error: message,
+        }
+      : this.#selectedResourceRef
+        ? { ...DEFAULT_STATE, phase: 'fallback', mismatchReason: message, error: message }
+        : { ...DEFAULT_STATE, error: message });
   }
 
   mutationOutcomeUnknown(kind: 'apply' | 'clear', message: string): void {
@@ -117,6 +130,7 @@ export class TestResourcePackTargetController implements AgentCenterResourcePack
   }): void {
     this.calls.push(['applyCommitted', input]);
     if (!this.#review || this.#review.agentHandle !== input.agentHandle) throw new Error('review Agent mismatch');
+    const effectiveResourceRef = this.#state.effectiveResourceRef;
     this.#agentHandle = input.agentHandle;
     this.#selectionRevision = input.selectionRevision;
     this.#selectedResourceRef = input.selectedResourceRef;
@@ -125,6 +139,7 @@ export class TestResourcePackTargetController implements AgentCenterResourcePack
       ...DEFAULT_STATE,
       phase: 'render-pending',
       pendingTruth: 'selection-saved-not-effective',
+      effectiveResourceRef,
     });
   }
 

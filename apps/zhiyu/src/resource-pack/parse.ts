@@ -368,7 +368,7 @@ function validateDeclaration(declaration: Declaration, source: string): void {
     validateLayoutValue(property, value, source);
   }
   if (property === 'background-image') validateBackgroundImage(value, source);
-  if (value.includes('url(') && property !== 'background-image') {
+  if (lowerValue.includes('url(') && property !== 'background-image') {
     fail('style', source, `url() is not allowed in ${property}.`, 'Use a declared packaged image only in background-image.');
   }
   if (value.length > 512) {

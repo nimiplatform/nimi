@@ -165,7 +165,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
         reasonCode: 'destination-session-failed',
       });
       setPendingResourcePackPlacement((current) => current?.placementKey === pending.placementKey ? null : current);
-    }, 6_000);
+    }, 10_000);
     return () => window.clearTimeout(timer);
   }, [bindings, pendingResourcePackPlacement]);
 

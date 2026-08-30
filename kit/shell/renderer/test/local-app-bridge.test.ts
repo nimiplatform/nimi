@@ -606,6 +606,9 @@ describe('renderer local-app standard-shell surface', () => {
           return { kind: 'local-loadouts', options: [], truncated: false };
         }
         if (command.endsWith('agentManagerSnapshot')) return managerProjection;
+        if (command.endsWith('agentPresentationSnapshot') || command.endsWith('agentCommitPresentation')) {
+          return { autonomyRevision: '2', presentationRevision: '3', resourcePackSelection: null };
+        }
         return { autonomyRevision: '2', presentationRevision: '3' };
       },
       listen: () => () => {},

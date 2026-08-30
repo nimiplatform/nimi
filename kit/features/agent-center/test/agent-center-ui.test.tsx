@@ -448,6 +448,144 @@ describe('AgentCenter UI session contract', () => {
     expect(document.activeElement).toBe(status);
   });
 
+  it('disables sibling Appearance mutations while Resource Pack Apply is pending', async () => {
+    const controller = new TestResourcePackTargetController();
+    const session = await sessionFor({}, {
+      async selectResourcePack() {
+        return {
+          role: 'resource-pack', fileName: 'pending.nimipack',
+          mediaType: 'application/vnd.nimi.resource-pack+zip',
+          content: Uint8Array.from([7, 8, 9]), sha256: 'c'.repeat(64),
+        };
+      },
+    }, undefined, controller);
+    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    await flush();
+    await act(async () => {
+      (node.querySelector('[data-agent-center-resource-pack-action="select"]') as HTMLButtonElement).click();
+      await Promise.resolve();
+    });
+    await flush();
+    act(() => { controller.prepareApply(); });
+    await flush();
+
+    for (const label of ['Choose Live2D package', 'Choose VRM file']) {
+      const button = Array.from(node.querySelectorAll('button'))
+        .find((entry) => entry.textContent?.trim() === label) as HTMLButtonElement;
+      expect(button.disabled).toBe(true);
+    }
+    expect((node.querySelector('[data-agent-center-background-import="true"]') as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('disables sibling Appearance mutations while Resource Pack Clear is in flight', async () => {
+    const controller = new TestResourcePackTargetController();
+    const session = await sessionFor({
+      appearance: {
+        status: 'not_configured',
+        presentationRevision: '4',
+        resourcePackSelection: {
+          assetRef: 'pack_0123456789ab',
+          targetId: 'zhiyu-experience-surface',
+          targetVersion: 1,
+        },
+      },
+    }, undefined, undefined, controller);
+    let releaseClear: (() => void) | undefined;
+    const clearGate = new Promise<void>((resolve) => { releaseClear = resolve; });
+    const pendingSession = {
+      ...session,
+      appearance: {
+        ...session.appearance,
+        clearResourcePack: async () => { await clearGate; },
+      },
+    } as typeof session;
+    const node = render(<AgentCenter activeSection="appearance" session={pendingSession} />);
+    await flush();
+
+    act(() => {
+      (node.querySelector('[data-agent-center-resource-pack-action="clear"]') as HTMLButtonElement).click();
+    });
+    await flush();
+
+    for (const label of ['Choose Live2D package', 'Choose VRM file']) {
+      const button = Array.from(node.querySelectorAll('button'))
+        .find((entry) => entry.textContent?.trim() === label) as HTMLButtonElement;
+      expect(button.disabled).toBe(true);
+    }
+    expect((node.querySelector('[data-agent-center-background-import="true"]') as HTMLButtonElement).disabled).toBe(true);
+
+    releaseClear?.();
+    await flush();
+  });
+
+  it('disables Resource Pack mutations while another Appearance save is in flight', async () => {
+    const controller = new TestResourcePackTargetController();
+    let releaseBackground: (() => void) | undefined;
+    const backgroundGate = new Promise<void>((resolve) => { releaseBackground = resolve; });
+    const session = await sessionFor({
+      appearance: {
+        status: 'not_configured',
+        presentationRevision: '4',
+        resourcePackSelection: {
+          assetRef: 'pack_0123456789ab',
+          targetId: 'zhiyu-experience-surface',
+          targetVersion: 1,
+        },
+      },
+    }, {
+      async selectBackground() {
+        await backgroundGate;
+        return {
+          intent: { backgroundAssetReference: 'asset://background/selected' },
+          importedAssets: [{
+            role: 'background', fileName: 'selected.png', mediaType: 'image/png',
+            content: Uint8Array.from([1, 2, 3]), sha256: 'b'.repeat(64),
+          }],
+        };
+      },
+    }, undefined, controller);
+    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    await flush();
+
+    act(() => {
+      (node.querySelector('[data-agent-center-background-import="true"]') as HTMLButtonElement).click();
+    });
+    const confirm = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.trim() === 'Choose file and replace') as HTMLButtonElement;
+    act(() => { confirm.click(); });
+    await flush();
+
+    expect((node.querySelector('[data-agent-center-resource-pack-action="clear"]') as HTMLButtonElement).disabled).toBe(true);
+
+    releaseBackground?.();
+    await flush();
+  });
+
+  it('keeps an established Preview mounted across a background refresh', async () => {
+    const controller = new TestResourcePackTargetController();
+    const session = await sessionFor({}, {
+      async selectResourcePack() {
+        return {
+          role: 'resource-pack', fileName: 'refresh-safe.nimipack',
+          mediaType: 'application/vnd.nimi.resource-pack+zip',
+          content: Uint8Array.from([7, 8, 9]), sha256: 'c'.repeat(64),
+        };
+      },
+    }, undefined, controller);
+    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    await flush();
+    await act(async () => {
+      (node.querySelector('[data-agent-center-resource-pack-action="select"]') as HTMLButtonElement).click();
+      await Promise.resolve();
+    });
+    await flush();
+    const cancels = controller.calls.filter((entry) => Array.isArray(entry) && entry[0] === 'cancelPreview').length;
+    await act(async () => { await session.refresh(); });
+    expect(node.querySelector('[data-agent-center-loading="true"]')).toBeNull();
+    expect(node.querySelector('[data-agent-center-resource-pack-phase="preview"]')).toBeTruthy();
+    expect(controller.calls.filter((entry) => Array.isArray(entry) && entry[0] === 'cancelPreview')).toHaveLength(cancels);
+  });
+
   it('keeps canonical selected state and Clear on the shared non-rendering card', async () => {
     const session = await sessionFor({
       appearance: {

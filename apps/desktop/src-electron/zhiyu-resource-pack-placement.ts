@@ -11,7 +11,7 @@ export const ZHIYU_RESOURCE_PACK_PLACEMENT_PATH = '/v1/agent-center-resource-pac
 const PRESENCE_RELATIVE_PATH = ['.nimi', 'run', 'zhiyu', 'resource-pack-placement', 'presence.v1.json'] as const;
 const DEFAULT_HEARTBEAT_MAX_AGE_MS = 10_000;
 const DEFAULT_LAUNCH_WAIT_MS = 8_000;
-const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
+const DEFAULT_REQUEST_TIMEOUT_MS = 15_000;
 const LAUNCH_POLL_MS = 100;
 
 export type DesktopZhiyuResourcePackPlacementDispatch = Readonly<{

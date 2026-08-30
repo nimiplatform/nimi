@@ -80,7 +80,12 @@ function AgentCenterResourcePackCard({
   session,
   snapshot,
   i18n,
-}: AgentCenterAppearanceSectionProps) {
+  blocked,
+  onBusyChange,
+}: AgentCenterAppearanceSectionProps & {
+  readonly blocked: boolean;
+  readonly onBusyChange: (busy: boolean) => void;
+}) {
   const appearance = snapshot.state.appearance;
   const selection = appearance.resourcePackSelection ?? null;
   const target = appearance.resourcePackTarget ?? null;
@@ -122,10 +127,11 @@ function AgentCenterResourcePackCard({
     ?? (target?.pendingTruth === 'apply-outcome-unknown'
       ? 'apply'
       : target?.pendingTruth === 'clear-outcome-unknown' ? 'clear' : null);
-  const busy = pending || Boolean(mutationPending)
+  const busy = blocked || pending || Boolean(mutationPending)
     || target?.phase === 'apply-in-flight' || target?.phase === 'render-pending';
   const run = async (task: () => Promise<void>) => {
     setPending(true);
+    onBusyChange(true);
     setLocalError(null);
     try {
       await task();
@@ -133,6 +139,7 @@ function AgentCenterResourcePackCard({
       setLocalError(message(error).message);
     } finally {
       setPending(false);
+      onBusyChange(false);
     }
   };
   const status = mutationPending === 'apply'
@@ -293,6 +300,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
   const appearance = snapshot.state.appearance;
   const availability = snapshot.availability.replaceAppearance;
   const [pendingKind, setPendingKind] = useState<PendingKind>(null);
+  const [resourcePackCardBusy, setResourcePackCardBusy] = useState(false);
   const [operation, setOperation] = useState<OperationState>({ state: 'idle', message: '' });
   const copy = useMemo(() => Object.fromEntries(
     Object.entries(AUTOSAVE_COPY_DEFAULTS).map(([key, fallback]) => [
@@ -334,17 +342,26 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
     voiceKindAsset: translateAgentCenter(i18n, 'AgentCenter.appearance.voiceKindAsset', agentCenterEnCatalog['AgentCenter.appearance.voiceKindAsset']),
   }), [i18n]);
   const actionAvailable = availability.state === 'available';
-  const canReplace = actionAvailable && Boolean(session.appearance.replaceAvatar);
-  const canImportBackground = actionAvailable && Boolean(session.appearance.importBackground);
+  const appearanceOperationBusy = operation.state === 'saving' || operation.state === 'restoring';
+  const resourcePackMutationBusy = resourcePackCardBusy
+    || appearance.resourcePackTarget?.phase === 'apply-in-flight'
+    || appearance.resourcePackTarget?.phase === 'render-pending'
+    || appearance.resourcePackMutationPending === 'apply'
+    || appearance.resourcePackMutationPending === 'clear';
+  const canReplace = actionAvailable && !resourcePackMutationBusy && Boolean(session.appearance.replaceAvatar);
+  const canImportBackground = actionAvailable && !resourcePackMutationBusy && Boolean(session.appearance.importBackground);
   const canRestore = snapshot.availability.restorePreviousAppearance.state === 'available'
+    && !resourcePackMutationBusy
     && Boolean(appearance.previousSelection);
   const hasDefaultVoice = Boolean(appearance.defaultVoiceReference?.trim());
   const voiceCatalog = appearance.voiceCatalog;
   const voiceOptions = voiceCatalog?.state === 'ready' ? voiceCatalog.options : [];
   const canSetDefaultVoice = actionAvailable
+    && !resourcePackMutationBusy
     && Boolean(session.appearance.setDefaultVoice)
     && voiceOptions.length > 0;
   const canToggleAutoplay = actionAvailable
+    && !resourcePackMutationBusy
     && Boolean(session.appearance.setAvatarAutoplay)
     && (appearance.avatarAutoplay || hasDefaultVoice);
 
@@ -507,7 +524,9 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
         </Card>
 
         <AgentCenterResourcePackCard
+          blocked={appearanceOperationBusy}
           i18n={i18n}
+          onBusyChange={setResourcePackCardBusy}
           session={session}
           snapshot={snapshot}
         />
