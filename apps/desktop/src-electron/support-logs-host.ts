@@ -12,6 +12,7 @@ import {
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
+import type { DesktopDataRootOperationGate } from './data-root-operation-gate.js';
 
 const COMMAND = 'desktop_logs_export' as const;
 const LOGS_DIRECTORY_NAME = 'logs';
@@ -46,6 +47,7 @@ export function createDesktopElectronSupportLogsHost(input: {
   readonly resolveSelectedDataRoot: () => Promise<string>;
   readonly downloadsDirectory: string;
   readonly revealFile: (filePath: string) => void;
+  readonly operationGate: DesktopDataRootOperationGate;
   readonly platform?: NodeJS.Platform;
   readonly windowsSystemRoot?: string;
 }): DesktopElectronSupportLogsHost {
@@ -55,13 +57,13 @@ export function createDesktopElectronSupportLogsHost(input: {
         if (Object.keys(payload).length !== 0) {
           throw new Error('desktop-logs-export-payload-invalid');
         }
-        return exportDesktopElectronSupportLogs({
+        return input.operationGate.runDiagnostic(async () => exportDesktopElectronSupportLogs({
           dataRoot: await input.resolveSelectedDataRoot(),
           downloadsDirectory: input.downloadsDirectory,
           revealFile: input.revealFile,
           platform: input.platform ?? process.platform,
           windowsSystemRoot: input.windowsSystemRoot,
-        });
+        }));
       },
     },
   };

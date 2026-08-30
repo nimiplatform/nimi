@@ -12,6 +12,7 @@ import {
   createNimiDesktopShellRuntimeAccountCaller,
   createNimiHostRuntimeAgentLifecycleSurface,
   type NimiDesktopAccountProductRuntimeClient,
+  type NimiDesktopExternalAIHostClient,
   type NimiDesktopFirstPartyRuntimeClients,
   type NimiDesktopMachineProductRuntimeClient,
   type NimiDesktopRuntimeAgentPurposeClient,
@@ -340,6 +341,11 @@ export function getDesktopAuditAdminClient(): NimiDesktopMachineProductRuntimeCl
 
 export function getDesktopFormalAppClient(): NimiLocalAppClient {
   return getDesktopRuntimeRealmSession().localAppClient;
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r125
+export function getDesktopExternalAIHostClient(): NimiDesktopExternalAIHostClient {
+  return getDesktopRuntimeRealmSession().runtimeClients.externalAIHost;
 }
 
 export function getDesktopExternalAgentClient(): NimiDesktopMachineProductRuntimeClient['externalAgents'] {

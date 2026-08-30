@@ -4,8 +4,11 @@ import test from 'node:test';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 import {
   getProductControlRecord,
+  getProductControlCheckSync,
   pickProductDataRootDirectory,
+  replaceProductDataRoot,
   selectProductDataRoot,
+  startProductControlCheckSync,
 } from '../src/shell/renderer/bridge/runtime-bridge/product-control';
 
 type DesktopBridgeTestWindow = {
@@ -223,5 +226,52 @@ test('managed Runtime data-root selection still performs the required typed rest
     NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.status'],
     NIMI_STANDARD_SHELL_COMMANDS['runtime-lifecycle.restart'],
     'product_control_record_get',
+  ]);
+});
+
+test('post-ready replacement and Check & Sync remain Host-supervised protected commands', async () => {
+  const calls: Array<{ command: string; payload: unknown }> = [];
+  await withStandardShellInvoke(async (command, payload) => {
+    calls.push({ command, payload });
+    if (command === 'product_control_root_activation_initialize') {
+      return { path: 'C:/Users/test/.nimi/nimi.json', exists: true, state: 'ready_for_use', record: null, error: null };
+    }
+    if (command === 'product_control_data_root_replace') {
+      return {
+        path: 'C:/Users/test/.nimi/nimi.json', exists: true, state: 'ready_for_use', record: null, error: null,
+        activation: { activated: true, reasonCode: 'DATA_ROOT_REPLACED', actionHint: 'restart_runtime_and_check_sync' },
+        configMutation: { disposition: 'restart_required', reasonCode: 'CONFIG_RESTART_REQUIRED', actionHint: 'request_typed_runtime_restart' },
+      };
+    }
+    if (command === 'product_control_check_sync_start' || command === 'product_control_check_sync_get') {
+      return {
+        run: {
+          runId: 'sync_test', rootActivationId: 'rootact_test', trigger: 'manual', state: 'running',
+          owners: [{
+            ownerId: 'dependencies_environments', state: 'completed',
+            resources: [{ kind: 'python_profile', status: 'unavailable', reason: 'PROFILE_RETRY_REQUIRED', nextAction: 'rerun_check_sync' }],
+          }], unclaimed: [],
+        },
+        obligation: { rootActivationId: 'rootact_test', state: 'required' },
+        error: null,
+      };
+    }
+    throw new Error(`unexpected command: ${command}`);
+  }, async () => {
+    const replaced = await replaceProductDataRoot('D:/next-nimi-data');
+    assert.equal(replaced.activation?.activated, true);
+    assert.equal(replaced.configMutation?.disposition, 'restart_required');
+    const started = await startProductControlCheckSync();
+    assert.equal(started.run?.state, 'running');
+    assert.equal(started.run?.owners[0]?.resources[0]?.nextAction, 'rerun_check_sync');
+    assert.equal((await getProductControlCheckSync()).obligation?.state, 'required');
+  });
+
+  assert.deepEqual(calls, [
+    { command: 'product_control_root_activation_initialize', payload: {} },
+    { command: 'product_control_data_root_replace', payload: { payload: { targetRoot: 'D:/next-nimi-data' } } },
+    { command: 'product_control_root_activation_initialize', payload: {} },
+    { command: 'product_control_check_sync_start', payload: {} },
+    { command: 'product_control_check_sync_get', payload: {} },
   ]);
 });

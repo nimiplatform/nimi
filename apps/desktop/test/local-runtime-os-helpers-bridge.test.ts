@@ -52,6 +52,7 @@ function selectedDataRootProjection(dataRoot: string) {
     dataRoot: {
       path: dataRoot,
       status: 'ready',
+      rootActivationId: 'rootact_os_helper',
       selectedAt: '2026-01-01T00:00:00Z',
       verifiedAt: '2026-01-01T00:00:00Z',
       selectedAtUnixMs: 1,

@@ -12,7 +12,6 @@ import {
   resolveAgentFooterViewState,
 } from './chat-agent-shell-footer-state';
 import { resolveAgentConversationSurfaceState } from './chat-agent-shell-visible-state';
-import type { RuntimeCommittedStatusProjection } from './chat-agent-shell-visible-state';
 import { resolveAgentConversationHostView } from './chat-agent-shell-host-view';
 import { resolveAgentConversationHostSnapshot } from './chat-agent-shell-host-snapshot';
 import {

@@ -26,8 +26,9 @@ import {
   TOKEN_TEXT_PRIMARY,
 } from './runtime-config-runtime-page-ui.js';
 
-const LOCAL_ENVIRONMENT_CAPABILITIES = [
+export const RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES = [
   { slice: 'text', capabilityContract: 'text.generate' },
+  { slice: 'embed', capabilityContract: 'text.embed' },
   { slice: 'image', capabilityContract: 'image.generate' },
   { slice: 'video', capabilityContract: 'video.generate' },
   { slice: 'tts', capabilityContract: 'audio.synthesize' },
@@ -39,7 +40,7 @@ const LOCAL_ENVIRONMENT_CAPABILITIES = [
   readonly capabilityContract: RuntimeConfigLocalCapabilityContract;
 }[];
 
-type LocalCapabilitySlice = (typeof LOCAL_ENVIRONMENT_CAPABILITIES)[number]['slice'];
+type LocalCapabilitySlice = (typeof RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES)[number]['slice'];
 
 type PendingCapabilityAction = {
   readonly slice: LocalCapabilitySlice;
@@ -185,13 +186,13 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
     if (!silent) setLoading(true);
     setErrors([]);
     try {
-      const results = await Promise.allSettled(LOCAL_ENVIRONMENT_CAPABILITIES.map(({ capabilityContract }) => (
+      const results = await Promise.allSettled(RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES.map(({ capabilityContract }) => (
         resolveRuntimeConfigLocalEnvironmentPlan({ capabilityContract, localEnvironment })
       )));
       const nextPlans: LocalCapabilityPlan[] = [];
       const nextErrors: LocalCapabilityError[] = [];
       results.forEach((result, index) => {
-        const slice = LOCAL_ENVIRONMENT_CAPABILITIES[index]?.slice;
+        const slice = RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES[index]?.slice;
         if (!slice) return;
         if (result.status === 'fulfilled') {
           nextPlans.push({ slice, plan: result.value.plan, resolution: result.value.resolution });
@@ -270,7 +271,7 @@ export function RuntimeConfigLocalCapabilityEnvironmentPanel(props: {
     presentation: projectRuntimeConfigLocalCapabilityEnvironmentState(item.plan, jobs),
   }));
   const readyCount = planPresentations.filter((item) => item.presentation.state === 'ready').length;
-  const capabilityCount = LOCAL_ENVIRONMENT_CAPABILITIES.length;
+  const capabilityCount = RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES.length;
   const textReady = planPresentations.some((item) => item.slice === 'text' && item.presentation.state === 'ready');
 
   return (

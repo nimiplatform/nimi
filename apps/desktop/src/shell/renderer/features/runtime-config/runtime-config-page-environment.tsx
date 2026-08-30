@@ -2,9 +2,9 @@
  * Environment section — flattened single-level tabs owned by the page header:
  * Local AI, Health, Activity, Access, Data & Storage.
  *
- * Data-root relocation is not an admitted ordinary Desktop feature. The data
- * tab shows the runtime-scoped storage view only; account-level data actions
- * (cache, Web account-management handoff, logout) live exclusively in Settings.
+ * Product Control root replacement and Check & Sync live exclusively in
+ * Settings > Data Management. This data tab shows the runtime-scoped storage
+ * view only; account-level data actions remain Settings-owned.
  */
 
 import { useState } from 'react';

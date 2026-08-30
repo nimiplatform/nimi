@@ -201,9 +201,79 @@ describe('Desktop Electron local-development registration host', () => {
       payload: { selector: row!.selector },
     }) as Record<string, unknown>;
 
-    assert.deepEqual(captured, ['example.local-app', '/projects/example', 'electron', undefined, true]);
+    assert.deepEqual(captured, ['example.local-app', '/projects/example', 'electron', undefined, true, HANDLE]);
     assert.equal(result.state, 'running');
     assert.equal(result.appId, 'example.local-app');
+  });
+
+  it('starts an existing registration by exact handle without registering a new Subject', async () => {
+    const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-existing-registration-test-'));
+    try {
+      const manifestPath = path.join(projectRoot, 'nimi.app.yaml');
+      const electronRoot = path.join(projectRoot, 'node_modules', 'electron', 'dist');
+      await mkdir(electronRoot, { recursive: true });
+      await writeFile(path.join(electronRoot, 'electron.exe'), 'test host', 'utf8');
+      await writeFile(manifestPath, 'app_id: example.local-app\ndisplay_name: Example Local App\nlocal_development:\n  electron:\n    renderer_origin: http://127.0.0.1:1420\n', 'utf8');
+      await writeFile(path.join(projectRoot, 'package.json'), JSON.stringify({ scripts: {
+        dev: 'nimi-app dev --shell electron',
+        'dev:shell': 'nimi-app dev',
+        'dev:renderer': 'vite --host 127.0.0.1 --port 1420 --strictPort',
+        'build:electron': 'tsc',
+      } }), 'utf8');
+      const existing = registration({ project: {
+        ...registration().project,
+        canonicalProjectRoot: projectRoot,
+        canonicalManifestPath: manifestPath,
+      } });
+      let registerCalls = 0;
+      let supervisorStarts = 0;
+      const host = new ElectronLocalDevelopmentHost(control({
+        register: async () => {
+          registerCalls += 1;
+          throw new Error('existing registration must not be reminted');
+        },
+        listRegistrations: async () => [existing],
+      }), '/tmp');
+      Reflect.set(host, 'startSupervisor', () => { supervisorStarts += 1; });
+      const [row] = await host.invoke('local_development_registrations_list', {}) as Array<{ selector: string }>;
+
+      await host.invoke('local_development_registration_start', { payload: { selector: row!.selector } });
+
+      const runs = Reflect.get(host, 'runs') as Map<string, ReturnType<typeof activeRun>>;
+      const started = [...runs.values()][0];
+      assert.equal(registerCalls, 0);
+      assert.equal(supervisorStarts, 1);
+      assert.equal(started?.registrationHandle, HANDLE);
+    } finally {
+      await rm(projectRoot, { recursive: true, force: true });
+    }
+  });
+
+  it('does not remint after an ambiguous fresh-registration response loss', async () => {
+    let registerCalls = 0;
+    const host = new ElectronLocalDevelopmentHost(control({
+      register: async () => {
+        registerCalls += 1;
+        throw Object.assign(new Error('runtime response unavailable'), {
+          reasonCode: 'runtime-service-unavailable',
+        });
+      },
+    }), '/tmp');
+    const run = activeRun();
+    run.registrationHandle = undefined;
+    run.status.state = 'preparing';
+    const internal = host as unknown as {
+      resolveRegistration(context: typeof run): Promise<void>;
+      refreshRegistration(context: typeof run): Promise<void>;
+    };
+
+    await internal.resolveRegistration(run);
+    await internal.refreshRegistration(run);
+
+    assert.equal(registerCalls, 1);
+    assert.equal(run.registrationHandle, undefined);
+    assert.equal(run.status.state, 'registration-unavailable');
+    assert.equal(run.status.retryable, false);
   });
 
   it('projects only the latest run for an App', async () => {

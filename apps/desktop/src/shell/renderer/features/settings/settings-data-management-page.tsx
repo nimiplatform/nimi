@@ -3,7 +3,10 @@ import { useAppStore } from '../../app-shell/providers/app-store';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { logoutAndClearSession, useLogoutSessionDependencies } from '../auth/logout';
-import type { DesktopRendererStorageDirs } from '../../renderer/settings-port.js';
+import type {
+  DesktopRendererCheckSyncProjection,
+  DesktopRendererStorageDirs,
+} from '../../renderer/settings-port.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
@@ -55,6 +58,8 @@ export function DataManagementPage() {
   const logoutDependencies = useLogoutSessionDependencies();
   const [feedback, setFeedback] = useState<InlineFeedbackState | null>(null);
   const [resolvedDataRoot, setResolvedDataRoot] = useState('');
+  const [checkSync, setCheckSync] = useState<DesktopRendererCheckSyncProjection | null>(null);
+  const [dataRootBusy, setDataRootBusy] = useState(false);
   const [storage, setStorage] = useState<StorageSnapshot>({
     queryCacheBytes: 0,
     localStorageBytes: 0,
@@ -97,6 +102,66 @@ export function DataManagementPage() {
         });
       });
   }, [applyStorageDirs, bindings.app.commands.settings]);
+
+  const refreshCheckSync = useCallback(async () => {
+    const projection = await bindings.app.commands.settings.loadCheckSync();
+    setCheckSync(projection);
+    return projection;
+  }, [bindings.app.commands.settings]);
+
+  useEffect(() => {
+    void refreshCheckSync().catch(() => undefined);
+  }, [refreshCheckSync]);
+
+  useEffect(() => {
+    if (checkSync?.run?.state !== 'running') return undefined;
+    const timeout = window.setTimeout(() => {
+      void refreshCheckSync().catch(() => undefined);
+    }, 1_000);
+    return () => window.clearTimeout(timeout);
+  }, [checkSync?.run?.state, refreshCheckSync]);
+
+  const handleReplaceDataRoot = useCallback(async () => {
+    setDataRootBusy(true);
+    setFeedback(null);
+    try {
+      const targetRoot = await bindings.app.commands.settings.pickDataRootDirectory();
+      if (!targetRoot) return;
+      const projection = await bindings.app.commands.settings.replaceDataRoot(targetRoot);
+      const storageDirs = await bindings.app.commands.settings.loadStorageDirs();
+      applyStorageDirs(storageDirs);
+      await refreshCheckSync().catch(() => undefined);
+      if (projection.error) {
+        setFeedback({ kind: 'error', message: projection.error });
+      } else if (projection.activation?.activated) {
+        setFeedback({ kind: 'success', message: t('DataManagement.dataRootReplaced') });
+      } else {
+        setFeedback({ kind: 'success', message: t('DataManagement.dataRootUnchanged') });
+      }
+    } catch (error) {
+      setFeedback({
+        kind: 'error',
+        message: error instanceof Error ? error.message : t('DataManagement.dataRootReplaceFailed'),
+      });
+    } finally {
+      setDataRootBusy(false);
+    }
+  }, [applyStorageDirs, bindings.app.commands.settings, refreshCheckSync, t]);
+
+  const handleCheckSync = useCallback(async () => {
+    setDataRootBusy(true);
+    setFeedback(null);
+    try {
+      setCheckSync(await bindings.app.commands.settings.startCheckSync());
+    } catch (error) {
+      setFeedback({
+        kind: 'error',
+        message: error instanceof Error ? error.message : t('DataManagement.checkSyncFailed'),
+      });
+    } finally {
+      setDataRootBusy(false);
+    }
+  }, [bindings.app.commands.settings, t]);
 
   const totalTrackedBytes = useMemo(
     () => storage.queryCacheBytes + storage.localStorageBytes + storage.estimatedUsageBytes,
@@ -155,6 +220,57 @@ export function DataManagementPage() {
             <p className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-status-warning)]">
               {t('DataManagement.dataDirHelp')}
             </p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="secondary"
+                disabled={dataRootBusy}
+                onClick={() => { void handleReplaceDataRoot(); }}
+              >
+                {t('DataManagement.replaceDataRootButton')}
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={dataRootBusy || !resolvedDataRoot}
+                onClick={() => { void handleCheckSync(); }}
+              >
+                {t('DataManagement.checkSyncButton')}
+              </Button>
+            </div>
+            {checkSync?.run ? (
+              <div className="space-y-3 rounded-[var(--nimi-radius-md)] bg-[var(--nimi-surface-panel)] p-4" data-testid="data-management-check-sync">
+                <p className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">
+                  {t('DataManagement.checkSyncState', { state: checkSync.run.state })}
+                </p>
+                {checkSync.run.owners.map((owner) => (
+                  <div key={owner.ownerId} className="space-y-1 border-t border-[var(--nimi-border-subtle)] pt-2">
+                    <p className="text-xs font-medium text-[var(--nimi-text-primary)]">
+                      {owner.ownerId} · {owner.state}
+                    </p>
+                    {owner.resources.map((resource, index) => (
+                      <div key={`${resource.kind}-${resource.reference ?? resource.locator ?? index}`} className="space-y-1">
+                        <p className="break-all text-xs text-[var(--nimi-text-muted)]">
+                          {resource.kind}: {resource.status} · {resource.reason}
+                        </p>
+                        {resource.nextAction === 'rerun_check_sync' ? (
+                          <Button
+                            variant="secondary"
+                            disabled={dataRootBusy}
+                            onClick={() => { void handleCheckSync(); }}
+                          >
+                            {t('DataManagement.checkSyncButton')}
+                          </Button>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+                {checkSync.run.unclaimed.map((entry) => (
+                  <p key={entry.locator} className="break-all text-xs text-[var(--nimi-status-warning)]">
+                    {entry.locator}: {entry.status} · {entry.reason}
+                  </p>
+                ))}
+              </div>
+            ) : null}
           </div>
         </Card>
       </Section>

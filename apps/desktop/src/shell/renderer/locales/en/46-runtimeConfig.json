@@ -193,6 +193,8 @@
     "unknownDownloadSize": "size unknown",
     "incompatibleSummary": "This model cannot be used in this setup. Choose another model, or open technical details.",
     "incompatibleOption": "not available for this setup",
+    "implementationSupportedFeatures": "Implementation-supported features",
+    "configuredFeatures": "Configured features",
     "recipeCustody": "Template custody",
     "recipeCustodyEmpty": "none",
     "executionSupply": "Execution supply: Runtime Driver bundle and managed environment dependencies.",
@@ -203,6 +205,20 @@
       "configured": "Ready to use",
       "unresolved": "Choose a model",
       "blocked": "Needs attention"
+    },
+    "textBehaviors": {
+      "title": "Text behaviors",
+      "kind": {
+        "tool-use": "Tool Use",
+        "reasoning": "Reasoning",
+        "structured-output": "Structured Output"
+      },
+      "state": {
+        "implementation-supported": "Implementation supported",
+        "configured": "Configured",
+        "unavailable": "Unavailable"
+      },
+      "typedReasons": "Runtime reason"
     },
     "capability": {
       "textGenerate": "Text generation",
@@ -232,6 +248,7 @@
     "runtimeTechnicalStatusDescription": "Daemon, bridge, resource, and configuration diagnostics for support and development.",
     "localCapabilityLabel": "Local execution",
     "localCapabilityTEXT": "Text",
+    "localCapabilityEMBED": "Embeddings",
     "localCapabilityIMAGE": "Image",
     "localCapabilityVIDEO": "Video generation",
     "localCapabilityTTS": "Speech synthesis",

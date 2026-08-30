@@ -14,6 +14,7 @@ import {
   canSubmitRuntimeConfigLocalCapabilityEnvironmentPlan,
   isRuntimeConfigLocalCapabilitySelectionMissing,
   projectRuntimeConfigLocalCapabilityEnvironmentState,
+  RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES,
   resolveRuntimeConfigLocalCapabilityConfirmationProjection,
   submitRuntimeConfigLocalCapabilityEnvironmentPlan,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-local-capability-environment-panel.js';
@@ -102,6 +103,7 @@ function dependencyJob(input: {
 test('local environment service submits only the capability contract to Runtime', async () => {
   const capabilities = [
     'text.generate',
+    'text.embed',
     'image.generate',
     'video.generate',
     'audio.synthesize',
@@ -126,6 +128,22 @@ test('local environment service submits only the capability contract to Runtime'
   }
 
   assert.deepEqual(requests, capabilities.map((capabilityContract) => ({ capabilityContract })));
+});
+
+test('Desktop Local AI environment includes the embedding capability in its real card flow', () => {
+  assert.deepEqual(
+    RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES.map(({ capabilityContract }) => capabilityContract),
+    [
+      'text.generate',
+      'text.embed',
+      'image.generate',
+      'video.generate',
+      'audio.synthesize',
+      'audio.transcribe',
+      'voice.create',
+      'music.generate',
+    ],
+  );
 });
 
 test('local capability setup leaves mixed repair, retry, and start admission to Runtime', () => {

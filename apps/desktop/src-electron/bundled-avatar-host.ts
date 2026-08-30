@@ -60,6 +60,8 @@ export type DesktopElectronBundledAvatarHost = {
   readonly desktopCommandHandlers: Readonly<Record<string, NimiElectronCommandHandler>>;
   readonly runtimeBridgeHost: NimiElectronBundledAvatarHost;
   readonly hostHandoff: (request: AvatarHostHandoffRequest) => Promise<AvatarHostHandoffResult>;
+  readonly quiesceDataRoot: () => Promise<void>;
+  readonly resumeDataRoot: () => void;
   readonly shutdown: () => Promise<void>;
 };
 
@@ -68,6 +70,7 @@ export type CreateDesktopElectronBundledAvatarHostInput = {
   readonly preloadPath: string;
   readonly resolveAppPrivateDataRoot: () => Promise<string>;
   readonly localAssetProtocolHost: NimiElectronShellFileProtocolHost;
+  readonly runDataRootOperation?: <T>(operation: () => Promise<T>) => Promise<T>;
   readonly devRendererRoot?: string;
   readonly packagedRendererIndexPath?: string;
   readonly publishPreviewImage?: (bytes: Uint8Array) => string;
@@ -87,12 +90,33 @@ export async function createDesktopElectronBundledAvatarHost(
     return appPrivateDataRoot;
   };
   const localAssetRoots: string[] = [];
-  const assetHost = createNimiElectronBundledAvatarAssetHost({
+  const createAssetHost = () => createNimiElectronBundledAvatarAssetHost({
     resolveAppPrivateDataRoot,
     resolveRuntimeAsset: input.resolveFormalPresentationAsset,
     localAssetProtocolHost: input.localAssetProtocolHost,
     localAssetRoots,
   });
+  let assetHost = createAssetHost();
+  let dataRootQuiesced = false;
+  let activeAssetOperations = 0;
+  const assetIdleWaiters = new Set<() => void>();
+  const runAssetOperation = async <T>(operation: () => Promise<T>): Promise<T> => {
+    if (dataRootQuiesced) throw new Error('desktop-bundled-avatar-data-root-handoff-closed');
+    activeAssetOperations += 1;
+    try {
+      return await operation();
+    } finally {
+      activeAssetOperations -= 1;
+      if (activeAssetOperations === 0) {
+        for (const resolve of assetIdleWaiters) resolve();
+        assetIdleWaiters.clear();
+      }
+    }
+  };
+  const waitForAssetOperations = async (): Promise<void> => {
+    if (activeAssetOperations === 0) return;
+    await new Promise<void>((resolve) => assetIdleWaiters.add(resolve));
+  };
   const windows = new Map<string, AvatarWindowRecord>();
   const nasWatchers = new Map<string, FSWatcher>();
   const pendingPreviewRequests = new Map<string, {
@@ -353,23 +377,23 @@ export async function createDesktopElectronBundledAvatarHost(
         NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
       );
       recordForSender(asElectronEvent(event));
-      return assetHost.resolveBoundPresentation({
+      return runAssetOperation(() => assetHost.resolveBoundPresentation({
         avatarAssetRef: request.avatarAssetRef,
         backendKind: request.backendKind,
-      }, requiredAgentHandle(request.agentHandle, 'agentHandle'));
+      }, requiredAgentHandle(request.agentHandle, 'agentHandle')));
     },
     nimi_avatar_scan_nas_handlers: ({ payload }) => {
       assertOnlyKeys(payload, ['nimiDir'], 'nimi_avatar_scan_nas_handlers');
-      return assetHost.scanNasHandlers(payload.nimiDir);
+      return runAssetOperation(() => assetHost.scanNasHandlers(payload.nimiDir));
     },
     nimi_avatar_read_text_file: ({ payload }) => {
       assertOnlyKeys(payload, ['path'], 'nimi_avatar_read_text_file');
-      return assetHost.readTextFile(payload.path);
+      return runAssetOperation(() => assetHost.readTextFile(payload.path));
     },
     nimi_avatar_watch_nas_handlers: async ({ payload, event }) => {
       assertOnlyKeys(payload, ['nimiDir', 'watcherId'], 'nimi_avatar_watch_nas_handlers');
       const watcherId = requiredText(payload.watcherId, 'watcherId');
-      const nimiDir = await assetHost.assertAdmittedDirectory(payload.nimiDir);
+      const nimiDir = await runAssetOperation(() => assetHost.assertAdmittedDirectory(payload.nimiDir));
       closeWatcher(watcherId);
       const sender = asElectronEvent(event).sender;
       const watcher = watch(nimiDir, { recursive: true }, (eventType, filename) => {
@@ -429,6 +453,7 @@ export async function createDesktopElectronBundledAvatarHost(
         source: 'product-control-projection',
         resolveDataRoot: resolveAppPrivateDataRoot,
       },
+      runDataRootOperation: input.runDataRootOperation,
       localAssetRoots,
       localAssetProtocolHost: input.localAssetProtocolHost,
       revealInOs: (targetPath) => shell.showItemInFolder(targetPath),
@@ -571,6 +596,18 @@ export async function createDesktopElectronBundledAvatarHost(
     desktopCommandHandlers,
     runtimeBridgeHost,
     hostHandoff,
+    quiesceDataRoot: async () => {
+      if (dataRootQuiesced) return;
+      dataRootQuiesced = true;
+      for (const watcherId of [...nasWatchers.keys()]) closeWatcher(watcherId);
+      await waitForAssetOperations();
+      await assetHost.detachDataRoot();
+    },
+    resumeDataRoot: () => {
+      if (!dataRootQuiesced || shuttingDown) return;
+      assetHost = createAssetHost();
+      dataRootQuiesced = false;
+    },
     shutdown: async () => {
       if (shuttingDown) return;
       shuttingDown = true;
@@ -587,6 +624,8 @@ export async function createDesktopElectronBundledAvatarHost(
       senderInvalidationListeners.clear();
       if (devRendererProcess && devRendererProcess.exitCode === null) devRendererProcess.kill();
       devRendererProcess = undefined;
+      dataRootQuiesced = true;
+      await waitForAssetOperations();
       await assetHost.close();
     },
   };
@@ -889,27 +928,6 @@ function requiredAgentHandle(value: unknown, field: string): string {
   return handle;
 }
 
-function requiredAvatarAssetRef(value: unknown, field: string): string {
-  const normalized = requiredText(value, field);
-  if (!/^(?:live2d|vrm)_[a-f0-9]{12}$/u.test(normalized)) {
-    throw new Error(`${field} must be an Avatar asset ref`);
-  }
-  return normalized;
-}
-
-
-function assertExactKeys(
-  payload: Readonly<Record<string, unknown>>,
-  expectedKeys: readonly string[],
-  command: string,
-): void {
-  const actual = Object.keys(payload).sort();
-  const expected = [...expectedKeys].sort();
-  if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) {
-    throw new Error(`${command} keys are invalid`);
-  }
-}
-
 function requiredText(value: unknown, field: string): string {
   const normalized = normalizeText(value);
   if (!normalized || normalized.length > 32_768) throw new Error(`${field} is required`);
@@ -926,10 +944,6 @@ function optionalNumber(value: unknown): number | undefined {
   if (value === undefined || value === null || value === '') return undefined;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function optionalText(value: unknown): string | null {
-  return normalizeText(value) || null;
 }
 
 function normalizeText(value: unknown): string {

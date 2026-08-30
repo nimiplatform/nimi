@@ -792,6 +792,35 @@ test('Lab chat.stream runs the Kit streaming face and forwards accumulated parti
   });
 });
 
+test('Lab chat.stream forwards the caller cancellation signal to the Kit streaming face', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  const controller = new AbortController();
+  let capturedSignal;
+  const result = await runLabCapability({
+    capabilityId: 'chat.stream',
+    prompt: 'keep streaming',
+    scenarioId: 'chat-cancel-1',
+    signal: controller.signal,
+  }, readyRuntimeDependencies(fakeLocalAppClient(), {
+    runners: {
+      async aiConsume(input) {
+        capturedSignal = input.signal;
+        return {
+          ok: false,
+          capabilityId: 'chat.stream',
+          reason: 'operation-aborted',
+          message: 'stream canceled',
+          error: Object.assign(new Error('stream canceled'), { reasonCode: 'OPERATION_ABORTED' }),
+        };
+      },
+    },
+  }));
+
+  assert.equal(capturedSignal, controller.signal);
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'operation-aborted');
+});
+
 test('Lab text.embed executes the closed Local App scenario face and projects vectors', async () => {
   const { runLabCapability } = await importLabRuntime();
   const calls = [];

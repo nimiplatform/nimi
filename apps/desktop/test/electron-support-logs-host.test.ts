@@ -16,6 +16,7 @@ import {
   createDesktopElectronSupportLogsHost,
   resolveDesktopSupportLogsArchiveCommand,
 } from '../src-electron/support-logs-host.js';
+import { createDesktopDataRootOperationGate } from '../src-electron/data-root-operation-gate.js';
 
 test('Electron support logs uses fixed native zip commands on macOS and Windows', () => {
   assert.deepEqual(
@@ -69,6 +70,28 @@ test('Electron support logs uses fixed native zip commands on macOS and Windows'
   );
 });
 
+test('Electron support logs remains serialized and reachable while ordinary root operations are closed', async () => {
+  const operationGate = createDesktopDataRootOperationGate();
+  operationGate.close('desktop-data-root-handoff-repair-required');
+  let resolverCalls = 0;
+  const host = createDesktopElectronSupportLogsHost({
+    resolveSelectedDataRoot: async () => {
+      resolverCalls += 1;
+      throw new Error('support-root-resolver-reached');
+    },
+    downloadsDirectory: path.resolve(os.tmpdir()),
+    operationGate,
+    revealFile: () => undefined,
+  });
+
+  await assert.rejects(
+    host.commandHandlers.desktop_logs_export({ payload: {} }),
+    /support-root-resolver-reached/u,
+  );
+  assert.equal(resolverCalls, 1);
+  assert.equal(operationGate.isClosed(), true);
+});
+
 test('macOS Electron support logs exports real log files and excludes symlinks', {
   skip: process.platform !== 'darwin',
 }, async () => {
@@ -90,6 +113,7 @@ test('macOS Electron support logs exports real log files and excludes symlinks',
     const host = createDesktopElectronSupportLogsHost({
       resolveSelectedDataRoot: async () => dataRoot,
       downloadsDirectory,
+      operationGate: createDesktopDataRootOperationGate(),
       revealFile: (filePath) => {
         revealedPath = filePath;
       },
@@ -126,6 +150,7 @@ test('macOS Electron support logs fails closed for an empty logs directory', {
     const host = createDesktopElectronSupportLogsHost({
       resolveSelectedDataRoot: async () => dataRoot,
       downloadsDirectory,
+      operationGate: createDesktopDataRootOperationGate(),
       revealFile: () => undefined,
     });
 

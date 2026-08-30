@@ -213,3 +213,24 @@ test('Electron data cleanup waits for in-flight data-root work before removing a
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('data-root operation gate keeps queued work closed after a committed handoff failure', async () => {
+  const gate = createDesktopDataRootOperationGate();
+  let release: (() => void) | undefined;
+  const barrier = new Promise<void>((resolve) => { release = resolve; });
+  let markStarted: (() => void) | undefined;
+  const started = new Promise<void>((resolve) => { markStarted = resolve; });
+  const active = gate.runExclusive(async () => {
+    markStarted?.();
+    await barrier;
+  });
+  await started;
+  const queued = gate.runExclusive(async () => 'queued');
+  gate.close('replacement-restart-failed');
+  release?.();
+  await active;
+  await assert.rejects(queued, /replacement-restart-failed/u);
+  assert.equal(gate.isClosed(), true);
+  gate.open();
+  assert.equal(await gate.runExclusive(async () => 'reopened'), 'reopened');
+});

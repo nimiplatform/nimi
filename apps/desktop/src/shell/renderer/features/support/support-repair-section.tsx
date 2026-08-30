@@ -3,8 +3,8 @@
  *
  * Consumes the `P-COLD-*` product-control projection and the `P-MIG-*`
  * `nimi_data` directory-ownership / cleanup bridge. It presents and triggers
- * repair — it never re-implements schema migration, pointer rebuild, or data
- * relocation. The destructive-cleanup action is gated by the `P-MIG-008`
+ * repair — it never interprets owner storage or performs Product Control root
+ * replacement. The destructive-cleanup action is gated by the `P-MIG-008`
  * confirmation token; a non-cache cleanup is never run without it.
  */
 
@@ -149,7 +149,7 @@ export function SupportRepairSection(props: { onNavigateToRecovery: () => void }
  * delegated entirely to the `nimi_data` cleanup bridge: the renderer plans the
  * impact, shows it, requires the explicit confirmation token for any
  * non-pure-cache directory, then runs the confirmed cleanup. It never deletes
- * or relocates data itself.
+ * or changes the active Product Control root itself.
  */
 function SupportDataRootCleanupCard(props: {
   dirs: DesktopStorageDirs | null;

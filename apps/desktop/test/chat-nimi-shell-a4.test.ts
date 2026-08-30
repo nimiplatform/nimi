@@ -69,8 +69,22 @@ test('chat ai a4: resolveChatThinkingConfig stays fail-close when thinking is un
       reason: 'thinking_unsupported',
     }),
     {
-      mode: 'off',
-      traceMode: 'hide',
+      activation: 'disabled',
+      presentation: 'hidden',
+    },
+  );
+});
+
+test('chat ai a4: supported thinking maps to required summarized reasoning with one canonical intensity', () => {
+  assert.deepEqual(
+    resolveChatThinkingConfig('on', {
+      supported: true,
+      reason: null,
+    }),
+    {
+      activation: 'required',
+      presentation: 'summary',
+      effort: 'medium',
     },
   );
 });
