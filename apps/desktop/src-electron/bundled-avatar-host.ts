@@ -544,6 +544,11 @@ export async function createDesktopElectronBundledAvatarHost(
       retiringWindows.delete(record);
       return;
     }
+    stageCurrentWindowForPromotion(record);
+    retiringWindows.add(record);
+    for (const [instanceId, current] of windows) {
+      if (current === record) windows.delete(instanceId);
+    }
     record.senderInvalidation ??= invalidateSender(record.sender);
     invalidatePreviewProjection(
       record,

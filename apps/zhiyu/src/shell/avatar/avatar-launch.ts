@@ -1,6 +1,5 @@
 import {
   buildAvatarLaunchInstanceId,
-  type AvatarHostHandoffCommand,
 } from '@nimiplatform/kit/features/avatar/headless';
 import type { ZhiyuEvidence } from '../app/evidence';
 
@@ -20,7 +19,7 @@ export type ZhiyuAvatarLaunchAction =
       readonly reasonCode: 'zhiyu-avatar-launch-ready';
       readonly message: string;
       readonly avatarInstanceId: string;
-      readonly command: Extract<AvatarHostHandoffCommand, 'launch' | 'focus'>;
+      readonly command: 'launch';
     };
 
 export function projectZhiyuAvatarLaunchAction(evidence: ZhiyuEvidence): ZhiyuAvatarLaunchAction {
@@ -64,9 +63,6 @@ export function projectZhiyuAvatarLaunchAction(evidence: ZhiyuEvidence): ZhiyuAv
     reasonCode: 'zhiyu-avatar-launch-ready',
     message: 'Avatar launch can be requested through the common Host handoff port.',
     avatarInstanceId,
-    command: evidence.avatar.hostHandoff?.state === 'present'
-      || evidence.avatar.hostHandoff?.state === 'focused'
-      ? 'focus'
-      : 'launch',
+    command: 'launch',
   };
 }

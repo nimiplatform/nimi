@@ -545,6 +545,37 @@ test('Stop Companion destroys its window when sender invalidation rejects', asyn
   await host.shutdown();
 });
 
+test('Stop Companion detaches the old window before cleanup so one launch can replace it', async () => {
+  const host = await createBundledAvatarHostForLifecycleTest();
+  const oldWindow = await launchBundledAvatarHostForLifecycleTest(host, 'instance-stop-race-old');
+  let finishCleanup!: () => void;
+  const cleanup = new Promise<void>((resolve) => { finishCleanup = resolve; });
+  host.runtimeBridgeHost.subscribeSenderInvalidation(() => cleanup);
+  const close = host.runtimeBridgeHost.standardShellHost?.floatingWindow?.close;
+  assert.ok(close);
+  const pendingClose = close({}, {
+    event: {
+      sender: oldWindow.webContents,
+      senderFrame: oldWindow.webContents.mainFrame,
+    },
+  } as never);
+  assert.equal(oldWindow.isVisible(), false);
+  assert.equal(host.hasActiveInstances(), false);
+
+  const replacement = await launchBundledAvatarHostForLifecycleTest(
+    host,
+    'instance-stop-race-replacement',
+  );
+  assert.equal(replacement.isVisible(), true);
+  assert.equal(replacement.isDestroyed(), false);
+  finishCleanup();
+  await pendingClose;
+  assert.equal(oldWindow.isDestroyed(), true);
+  assert.equal(replacement.isDestroyed(), false);
+  assert.equal(host.hasActiveInstances(), true);
+  await host.shutdown();
+});
+
 test('Quit Avatar App destroys all windows when sender invalidation never resolves', async () => {
   const host = await createBundledAvatarHostForLifecycleTest();
   const window = await launchBundledAvatarHostForLifecycleTest(host, 'instance-quit-cleanup-pending');

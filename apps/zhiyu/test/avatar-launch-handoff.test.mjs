@@ -96,7 +96,7 @@ test('Zhiyu invokes the common Host port and preserves opaque custody refs', asy
   assert.doesNotMatch(JSON.stringify(calls), /ownerUserId|runtimeSourceRef|localAgentRef|configurationRef/u);
 });
 
-test('an already present Avatar is focused through the same port', () => {
+test('an already present Avatar uses idempotent launch to focus through the same port', () => {
   const action = projectZhiyuAvatarLaunchAction(readyEvidence({
     avatar: {
       launchAvailable: true,
@@ -111,10 +111,10 @@ test('an already present Avatar is focused through the same port', () => {
     },
   }));
   assert.equal(action.state, 'ready');
-  assert.equal(action.command, 'focus');
+  assert.equal(action.command, 'launch');
 });
 
-test('focus returning absent fails closed instead of reporting an opened Avatar', async () => {
+test('stale present evidence still sends launch so one click can recreate a stopped Avatar', async () => {
   const evidence = readyEvidence({
     avatar: {
       launchAvailable: true,
@@ -136,8 +136,8 @@ test('focus returning absent fails closed instead of reporting an opened Avatar'
       async invoke(request) {
         return {
           command: request.command,
-          state: 'absent',
-          avatarInstanceRef: null,
+          state: 'present',
+          avatarInstanceRef: request.target.avatarInstanceId,
           switchIntentRef: null,
           committedPresentationRef: null,
           temporaryCustodyRef: null,
@@ -146,12 +146,9 @@ test('focus returning absent fails closed instead of reporting an opened Avatar'
     },
   });
 
-  assert.deepEqual(result, {
-    state: 'blocked',
-    reasonCode: 'zhiyu-avatar-host-focus-absent',
-    actionHint: 'retry_avatar_host_handoff',
-    message: 'Avatar Host focus did not establish a present window.',
-  });
+  assert.equal(action.command, 'launch');
+  assert.equal(result.state, 'opened');
+  assert.equal(result.handoff.state, 'present');
 });
 
 test('Zhiyu explicitly confirms and resubmits a one-time switch intent', async () => {
