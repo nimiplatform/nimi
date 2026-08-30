@@ -217,6 +217,27 @@ describe('EmbodimentStage — render', () => {
     expect(emit).not.toHaveBeenCalled();
   });
 
+  it('uses one window-sized Shift+Arrow step as the non-drag display transition', async () => {
+    runtimeFlags.hostRuntime = true;
+    render(<EmbodimentStage {...baseProps} interactionModality="keyboard" />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    vi.spyOn(stage, 'getBoundingClientRect').mockReturnValue({
+      x: 0, y: 0, left: 0, top: 0, right: 390, bottom: 520,
+      width: 390, height: 520, toJSON: () => ({}),
+    });
+    fireEvent.keyDown(stage, { key: 'ArrowUp', shiftKey: true });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(moveManualDragWindowMock).toHaveBeenCalledWith({
+      origin: { x: 1000, y: 700 },
+      totalDeltaX: 0,
+      totalDeltaY: -520,
+    });
+    expect(constrainWindowToVisibleAreaMock).toHaveBeenCalledTimes(1);
+  });
+
   it('does not move the window for assistive-technology modifiers or key repeat', async () => {
     runtimeFlags.hostRuntime = true;
     render(<EmbodimentStage {...baseProps} interactionModality="keyboard" />);

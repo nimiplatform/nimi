@@ -71,7 +71,7 @@ export type EmbodimentStageProps = {
 
 const CLICK_THROUGH_RECOVERY_POLL_INTERVAL_MS = 50;
 const KEYBOARD_WINDOW_NUDGE_PX = 8;
-const KEYBOARD_WINDOW_NUDGE_LARGE_PX = 32;
+const KEYBOARD_WINDOW_NUDGE_LARGE_FALLBACK_PX = 32;
 const AVATAR_INTERACTIVE_REGION_SELECTOR = '[data-avatar-interactive-region="true"]';
 
 function pointInMountedInteractiveRegion(clientX: number, clientY: number): boolean {
@@ -494,7 +494,14 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
           });
           return;
         }
-        const distance = event.shiftKey ? KEYBOARD_WINDOW_NUDGE_LARGE_PX : KEYBOARD_WINDOW_NUDGE_PX;
+        const horizontal = event.key === 'ArrowLeft' || event.key === 'ArrowRight';
+        const stageBounds = event.currentTarget.getBoundingClientRect();
+        const distance = event.shiftKey
+          ? Math.max(
+            KEYBOARD_WINDOW_NUDGE_LARGE_FALLBACK_PX,
+            Math.round(horizontal ? stageBounds.width : stageBounds.height),
+          )
+          : KEYBOARD_WINDOW_NUDGE_PX;
         const delta = event.key === 'ArrowLeft'
           ? { x: -distance, y: 0 }
           : event.key === 'ArrowRight'
