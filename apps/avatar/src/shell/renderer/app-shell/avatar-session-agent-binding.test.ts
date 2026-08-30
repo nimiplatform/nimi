@@ -95,7 +95,7 @@ describe('Avatar current-session Agent binding', () => {
       agents,
       conversation,
       conversationAnchorId: ANCHOR,
-      onHandleChange: (handle) => changed.push(handle),
+      onHandleChange: (handle) => { changed.push(handle); },
     });
     expect(binding.generation()).toBe(1);
     generation = 1;
@@ -109,6 +109,34 @@ describe('Avatar current-session Agent binding', () => {
     expect(binding.current()).toBe(HANDLE_B);
     expect(binding.generation()).toBe(2);
     expect(changed).toEqual([HANDLE_A, HANDLE_B]);
+  });
+
+  it('does not publish a reminted handle before the Host accepts the renewed binding', async () => {
+    let generation = 0;
+    let releaseHostRefresh: (() => void) | undefined;
+    const hostRefresh = vi.fn(async (handle: NimiLocalAppAgentHandle) => {
+      if (handle !== HANDLE_B) return;
+      await new Promise<void>((resolve) => { releaseHostRefresh = resolve; });
+    });
+    const binding = await createAvatarSessionAgentBinding({
+      agents: references(() => generation === 0 ? [HANDLE_A] : [HANDLE_B]),
+      conversation: snapshotClient(async () => ({ conversationAnchorId: ANCHOR })),
+      conversationAnchorId: ANCHOR,
+      onHandleChange: hostRefresh,
+    });
+    generation = 1;
+    const operation = vi.fn(async (handle: NimiLocalAppAgentHandle) => {
+      if (handle === HANDLE_A) throw accessDenied();
+      return 'committed';
+    });
+    const pending = binding.run(operation);
+    await vi.waitFor(() => expect(releaseHostRefresh).toBeTypeOf('function'));
+    expect(binding.current()).toBe(HANDLE_A);
+    expect(binding.generation()).toBe(1);
+    releaseHostRefresh?.();
+    await expect(pending).resolves.toBe('committed');
+    expect(binding.current()).toBe(HANDLE_B);
+    expect(binding.generation()).toBe(2);
   });
 
   it('does not hide a Runtime read failure as an Agent mismatch', async () => {

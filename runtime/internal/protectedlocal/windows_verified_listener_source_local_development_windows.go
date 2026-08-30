@@ -293,7 +293,11 @@ func (listener *windowsSourceLocalAppListener) Accept() (net.Conn, error) {
 			_ = raw.Close()
 			continue
 		}
-		connection, err := newDirectLocalAppConnection(peer, consumed)
+		connection, err := newDirectLocalAppConnection(
+			peer,
+			consumed,
+			listener.state.desktopSessions.OperationSessionID(),
+		)
 		if err != nil {
 			_ = raw.Close()
 			continue

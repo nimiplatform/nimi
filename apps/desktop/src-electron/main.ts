@@ -320,6 +320,19 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
           throw new Error('Avatar materialization request no longer matches the formal presentation.');
         }
       },
+      resolveFormalAvatarHostTarget: async ({ agentHandle, conversationAnchorId }) => {
+        const localAppHost = registeredRuntimeBridge?.bundledAvatarLocalAppHost;
+        if (!localAppHost) throw new Error('Avatar formal App host is unavailable.');
+        const resolved = await localAppHost.avatarHostTargetResolve({
+          agentHandle,
+          conversationAnchorId,
+        });
+        const avatarHostTargetRef = normalizeText(resolved.avatarHostTargetRef);
+        if (!/^avatar_target_[A-Za-z0-9_-]{43}$/u.test(avatarHostTargetRef)) {
+          throw new Error('Avatar formal App target is invalid.');
+        }
+        return avatarHostTargetRef;
+      },
       resolveFormalPresentationAsset: async ({ agentHandle, assetRef }) => {
         const localAppHost = registeredRuntimeBridge?.bundledAvatarLocalAppHost;
         if (!localAppHost) throw new Error('Avatar formal App host is unavailable.');

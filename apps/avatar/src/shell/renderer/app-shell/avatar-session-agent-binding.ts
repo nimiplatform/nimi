@@ -9,7 +9,7 @@ type AvatarSessionAgentBindingInput = {
   readonly agents: NimiLocalAppAgentReferencesClient;
   readonly conversation: NimiLocalAppConversationClient;
   readonly conversationAnchorId: string;
-  readonly onHandleChange?: (agentHandle: NimiLocalAppAgentHandle) => void;
+  readonly onHandleChange?: (agentHandle: NimiLocalAppAgentHandle) => void | Promise<void>;
 };
 
 export type AvatarSessionAgentBinding = {
@@ -67,11 +67,11 @@ export async function createAvatarSessionAgentBinding(
 
   const refresh = (): Promise<NimiLocalAppAgentHandle> => {
     refreshInFlight ??= resolveAvatarSessionAgentHandle(input)
-      .then((agentHandle) => {
+      .then(async (agentHandle) => {
         if (agentHandle !== currentHandle) {
+          await input.onHandleChange?.(agentHandle);
           currentHandle = agentHandle;
           currentGeneration += 1;
-          input.onHandleChange?.(agentHandle);
         }
         return agentHandle;
       })

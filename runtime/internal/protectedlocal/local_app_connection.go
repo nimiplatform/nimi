@@ -148,15 +148,16 @@ func EstablishInstalledAppConnection(registrationHandle string, launchID, runtim
 	return connection, nil
 }
 
-func newDirectLocalAppConnection(peer DirectLocalAppPeer, launch DirectLocalAppLaunch) (*LocalAppConnection, error) {
+func newDirectLocalAppConnection(peer DirectLocalAppPeer, launch DirectLocalAppLaunch, runtimeGeneration Identifier) (*LocalAppConnection, error) {
 	if !peer.valid() || !launch.valid() || launch.Process.PID == 0 || launch.BindDeadline.IsZero() ||
-		peer.PID != launch.Process.PID || peer.UID != launch.ExpectedUID {
+		peer.PID != launch.Process.PID || peer.UID != launch.ExpectedUID || runtimeGeneration == (Identifier{}) {
 		return nil, fail(ReasonDesktopProcessVerificationUnavailable, false, "relaunch_app", fmt.Errorf("direct local-app peer or launch is incomplete"))
 	}
 	directPeer := peer
 	directLaunch := launch
 	connection := &LocalAppConnection{
 		launchID: launch.LaunchID, directPeer: &directPeer, directLaunch: &directLaunch,
+		boot:       runtimeGeneration,
 		trustClass: LocalAppTrustLocalDevelopment, done: make(chan struct{}),
 	}
 	connection.live.Store(true)

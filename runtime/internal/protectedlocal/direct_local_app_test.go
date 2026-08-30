@@ -64,6 +64,17 @@ func TestDirectLocalAppLaunchIsIdempotentAndPIDReuseSafe(t *testing.T) {
 	if consumed.Process != witness {
 		t.Fatalf("consumed witness = %+v, want %+v", consumed.Process, witness)
 	}
+	runtimeGeneration := Identifier{3}
+	connection, err := newDirectLocalAppConnection(DirectLocalAppPeer{
+		OS: OSMacOS, PID: witness.PID, UID: witness.UID,
+	}, consumed, runtimeGeneration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(connection.Revoke)
+	if connection.RuntimeBootEpoch() != runtimeGeneration {
+		t.Fatal("direct local-App connection omitted the Runtime generation")
+	}
 	if _, err := launches.Consume(witness.PID, witness.UID); err == nil {
 		t.Fatal("one-time launch was replayed")
 	}

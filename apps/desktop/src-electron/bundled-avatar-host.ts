@@ -123,6 +123,10 @@ export type CreateDesktopElectronBundledAvatarHostInput = {
     readonly backendKind: 'live2d' | 'vrm';
     readonly presentationRevision: string;
   }) => Promise<void>;
+  readonly resolveFormalAvatarHostTarget: (input: {
+    readonly agentHandle: string;
+    readonly conversationAnchorId: string;
+  }) => Promise<string>;
   readonly revalidateCurrentAvatarHostTarget: (avatarHostTargetRef: string) => Promise<string>;
 };
 
@@ -160,6 +164,18 @@ export async function createDesktopElectronBundledAvatarHost(
     presentationRevision: string;
     materializationRef: string;
   }>>();
+  const releasePendingMaterializationLease = async (
+    materializationLeaseRef: string,
+    expectedLease?: Readonly<{
+      materializationRef: string;
+    }>,
+  ): Promise<boolean> => {
+    const lease = pendingMaterializationLeases.get(materializationLeaseRef);
+    if (!lease || (expectedLease && lease !== expectedLease)) return false;
+    pendingMaterializationLeases.delete(materializationLeaseRef);
+    await assetHost.releaseMaterialization(lease.materializationRef);
+    return true;
+  };
   const pendingCandidates = new Set<AvatarWindowRecord>();
   const retiringWindows = new Set<AvatarWindowRecord>();
   const pendingCandidateReadiness = new Map<AvatarWindowRecord, Readonly<{
@@ -294,8 +310,7 @@ export async function createDesktopElectronBundledAvatarHost(
   const releasePendingMaterializationsForRecord = (record: AvatarWindowRecord): void => {
     for (const [leaseRef, lease] of pendingMaterializationLeases) {
       if (lease.record !== record) continue;
-      pendingMaterializationLeases.delete(leaseRef);
-      void assetHost.releaseMaterialization(lease.materializationRef).catch(() => undefined);
+      void releasePendingMaterializationLease(leaseRef, lease).catch(() => undefined);
     }
   };
 
@@ -668,6 +683,38 @@ export async function createDesktopElectronBundledAvatarHost(
         launchSource: context.launchSource,
       };
     },
+    nimi_avatar_refresh_host_binding: async ({ payload, event }) => {
+      assertOnlyKeys(payload, ['agentHandle', 'conversationAnchorId'], 'nimi_avatar_refresh_host_binding');
+      const agentHandle = requiredAgentHandle(payload.agentHandle, 'agentHandle');
+      const conversationAnchorId = requiredText(payload.conversationAnchorId, 'conversationAnchorId');
+      const record = recordForSender(asElectronEvent(event));
+      if (record.launchContext.conversationAnchorId !== conversationAnchorId) {
+        throw new Error('desktop-bundled-avatar-refresh-anchor-mismatch');
+      }
+      const avatarHostTargetRef = requiredAvatarHostTargetRef(
+        await input.resolveFormalAvatarHostTarget({ agentHandle, conversationAnchorId }),
+      );
+      if (recordForSender(asElectronEvent(event)) !== record
+        || record.window.isDestroyed()
+        || record.launchContext.conversationAnchorId !== conversationAnchorId) {
+        throw new Error('desktop-bundled-avatar-refresh-binding-stale');
+      }
+      if (record.avatarHostTargetRef !== avatarHostTargetRef
+        || record.launchContext.agentHandle !== agentHandle) {
+        invalidatePreviewProjection(
+          record,
+          'Avatar Host binding changed before preview projection completed.',
+        );
+        releasePendingMaterializationsForRecord(record);
+        record.avatarHostTargetRef = avatarHostTargetRef;
+        record.launchContext = buildAvatarLaunchHandoffPayload({
+          ...record.launchContext,
+          agentHandle,
+          conversationAnchorId,
+        });
+      }
+      return { accepted: true };
+    },
     nimi_avatar_quit_app: async ({ payload, event }) => {
       requireEmptyPayload(payload, 'nimi_avatar_quit_app');
       recordForSender(asElectronEvent(event));
@@ -823,24 +870,22 @@ export async function createDesktopElectronBundledAvatarHost(
         throw new Error('desktop-bundled-avatar-materialization-lease-stale');
       }
       const rejectCandidate = async (reason: string): Promise<never> => {
-        pendingMaterializationLeases.delete(materializationLeaseRef);
         const candidateReadiness = pendingCandidateReadiness.get(record);
         if (candidateReadiness && !candidateReadiness.settled()) {
           candidateReadiness.reject(new Error(reason));
         }
-        await assetHost.releaseMaterialization(lease.materializationRef).catch(() => undefined);
+        await releasePendingMaterializationLease(materializationLeaseRef, lease).catch(() => undefined);
         throw new Error(reason);
       };
       let commit: ReturnType<typeof parseDesktopAvatarMaterializationCommit>;
       try {
         commit = parseDesktopAvatarMaterializationCommit(payload);
       } catch (error) {
-        pendingMaterializationLeases.delete(materializationLeaseRef);
         const candidateReadiness = pendingCandidateReadiness.get(record);
         if (candidateReadiness && !candidateReadiness.settled()) {
           candidateReadiness.reject(error instanceof Error ? error : new Error(String(error)));
         }
-        await assetHost.releaseMaterialization(lease.materializationRef).catch(() => undefined);
+        await releasePendingMaterializationLease(materializationLeaseRef, lease).catch(() => undefined);
         throw error;
       }
       if (!desktopAvatarMaterializationWindowBindingMatches(
@@ -904,16 +949,13 @@ export async function createDesktopElectronBundledAvatarHost(
           }
         },
         release: async () => {
-          if (pendingMaterializationLeases.get(materializationLeaseRef) === lease) {
-            pendingMaterializationLeases.delete(materializationLeaseRef);
-          }
           const candidateReadiness = pendingCandidateReadiness.get(record);
           if (candidateReadiness && !candidateReadiness.settled()) {
             candidateReadiness.reject(new Error(
               'desktop-avatar-pending-candidate-presentation-revalidation-failed',
             ));
           }
-          await assetHost.releaseMaterialization(lease.materializationRef).catch(() => undefined);
+          await releasePendingMaterializationLease(materializationLeaseRef, lease).catch(() => undefined);
         },
         staleReason: 'desktop-bundled-avatar-materialization-binding-stale',
       });
@@ -930,9 +972,7 @@ export async function createDesktopElectronBundledAvatarHost(
       const lease = pendingMaterializationLeases.get(materializationLeaseRef);
       const record = recordForSender(asElectronEvent(event));
       if (!lease || lease.record !== record) return { accepted: false };
-      pendingMaterializationLeases.delete(materializationLeaseRef);
-      await assetHost.releaseMaterialization(lease.materializationRef);
-      return { accepted: true };
+      return { accepted: await releasePendingMaterializationLease(materializationLeaseRef, lease) };
     },
     nimi_avatar_read_text_file: ({ payload }) => {
       assertOnlyKeys(payload, ['path'], 'nimi_avatar_read_text_file');

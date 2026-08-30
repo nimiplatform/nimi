@@ -7,6 +7,7 @@ export {
 export {
   getAvatarLaunchContext,
   parseAvatarLaunchContext,
+  refreshAvatarHostBinding,
 } from './launch-context.js';
 
 export type {

@@ -307,7 +307,11 @@ func (listener *MacOSVerifiedLocalAppListener) Accept() (net.Conn, error) {
 			_ = raw.Close()
 			continue
 		}
-		connection, err := newDirectLocalAppConnection(peer, launch)
+		connection, err := newDirectLocalAppConnection(
+			peer,
+			launch,
+			listener.state.desktopSessions.OperationSessionID(),
+		)
 		if err != nil {
 			_ = raw.Close()
 			continue

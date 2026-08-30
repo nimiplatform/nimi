@@ -1,6 +1,7 @@
 import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
 import { startAvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
 import type { AvatarRuntimeCarrier } from '../carrier/avatar-carrier.js';
+import { refreshAvatarHostBinding } from '../bridge/launch-context.js';
 import { createDriver, resolveDriverKind } from '../driver/factory.js';
 import {
   commitRuntimePresentationMaterializationLease,
@@ -177,7 +178,11 @@ export async function bootstrapAvatar(): Promise<BootstrapHandle> {
             agents: runtime!.agents,
             conversation: runtime!.conversation,
             conversationAnchorId: launchContext.conversationAnchorId,
-            onHandleChange(agentHandle) {
+            async onHandleChange(agentHandle) {
+              await refreshAvatarHostBinding({
+                agentHandle,
+                conversationAnchorId: launchContext.conversationAnchorId,
+              });
               const state = useAvatarStore.getState();
               if (state.consume.avatarInstanceId !== avatarInstanceId
                 || state.consume.conversationAnchorId !== launchContext.conversationAnchorId) {

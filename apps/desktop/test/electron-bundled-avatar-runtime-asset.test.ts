@@ -123,7 +123,18 @@ function minimalVrmGlb(): Uint8Array {
   return Uint8Array.from(bytes);
 }
 
-async function createBundledAvatarHostForLifecycleTest() {
+type BundledAvatarLifecycleTestOptions = Readonly<{
+  resolveFormalAvatarHostTarget?: (input: Readonly<{
+    agentHandle: string;
+    conversationAnchorId: string;
+  }>) => Promise<string>;
+  revalidateFormalPresentationForMaterialization?: () => Promise<void>;
+  onRegisterReadableFile?: () => void;
+}>;
+
+async function createBundledAvatarHostForLifecycleTest(
+  options: BundledAvatarLifecycleTestOptions = {},
+) {
   const content = minimalVrmGlb();
   return createDesktopElectronBundledAvatarHost({
     rendererUrl: 'file:///avatar/index.html',
@@ -134,7 +145,10 @@ async function createBundledAvatarHostForLifecycleTest() {
       protocolScheme: 'nimi-local',
       registerPrivilegedSchemes() {},
       registerProtocolHandler() {},
-      async registerReadableFile(filePath: string) { return filePath; },
+      async registerReadableFile(filePath: string) {
+        options.onRegisterReadableFile?.();
+        return filePath;
+      },
       resolveLocalAssetUrl(filePath: string) { return filePath; },
       async hasReadableFile() { return false; },
     },
@@ -149,7 +163,10 @@ async function createBundledAvatarHostForLifecycleTest() {
         sha256: createHash('sha256').update(content).digest('hex'),
       };
     },
-    async revalidateFormalPresentationForMaterialization() {},
+    revalidateFormalPresentationForMaterialization:
+      options.revalidateFormalPresentationForMaterialization ?? (async () => {}),
+    resolveFormalAvatarHostTarget:
+      options.resolveFormalAvatarHostTarget ?? (async () => `avatar_target_${'f'.repeat(43)}`),
     async revalidateCurrentAvatarHostTarget() { throw new Error('not-used'); },
   });
 }
@@ -278,6 +295,147 @@ test('same-target presence, launch, and focus converge without rebinding caller 
       command === 'presence' ? [] : [['show'], ['moveTop'], ['focus']],
     );
   }
+  await host.shutdown();
+});
+
+test('current Avatar session refresh replaces the Host-private generation target without exposing it', async () => {
+  const nextTargetRef = `avatar_target_${'g'.repeat(43)}`;
+  const host = await createBundledAvatarHostForLifecycleTest({
+    resolveFormalAvatarHostTarget: async (input) => {
+      assert.deepEqual(input, {
+        agentHandle: `agent_ref_${'h'.repeat(43)}`,
+        conversationAnchorId: 'anchor-instance-renewed',
+      });
+      return nextTargetRef;
+    },
+  });
+  const window = await launchBundledAvatarHostForLifecycleTest(host, 'instance-renewed');
+  const refresh = host.runtimeBridgeHost.commandHandlers?.nimi_avatar_refresh_host_binding;
+  assert.ok(refresh);
+  const result = await refresh({
+    command: 'nimi_avatar_refresh_host_binding',
+    payload: {
+      agentHandle: `agent_ref_${'h'.repeat(43)}`,
+      conversationAnchorId: 'anchor-instance-renewed',
+    },
+    event: { sender: window.webContents, senderFrame: window.webContents.mainFrame },
+    appId: 'nimi.avatar',
+    runtimeEndpoint: 'protected-test',
+    sendEvent() {},
+  });
+  assert.deepEqual(result, { accepted: true });
+
+  const presence = await host.hostHandoff({
+    sourceApp: 'nimi.zhiyu',
+    avatarHostTargetRef: nextTargetRef,
+    request: {
+      command: 'presence',
+      target: {
+        agentHandle: `agent_ref_${'i'.repeat(43)}`,
+        conversationAnchorId: 'anchor-instance-renewed',
+        avatarInstanceId: null,
+        launchSource: 'zhiyu',
+        switchIntentRef: null,
+        committedPresentationRef: null,
+        temporaryCustodyRef: null,
+      },
+    },
+  });
+  assert.ok(presence.state === 'present' || presence.state === 'focused');
+  assert.equal(presence.avatarInstanceRef, 'instance-renewed');
+  await host.shutdown();
+});
+
+test('binding refresh releases a same-materialization pending lease exactly once', async () => {
+  let revalidationCount = 0;
+  let enterFinalRevalidation!: () => void;
+  let finishFinalRevalidation!: () => void;
+  const finalRevalidationStarted = new Promise<void>((resolve) => {
+    enterFinalRevalidation = resolve;
+  });
+  const holdFinalRevalidation = new Promise<void>((resolve) => {
+    finishFinalRevalidation = resolve;
+  });
+  let readableFileRegistrations = 0;
+  const nextTargetRef = `avatar_target_${'g'.repeat(43)}`;
+  const host = await createBundledAvatarHostForLifecycleTest({
+    resolveFormalAvatarHostTarget: async () => nextTargetRef,
+    revalidateFormalPresentationForMaterialization: async () => {
+      revalidationCount += 1;
+      if (revalidationCount === 4) {
+        enterFinalRevalidation();
+        await holdFinalRevalidation;
+      }
+    },
+    onRegisterReadableFile: () => { readableFileRegistrations += 1; },
+  });
+  const window = await launchBundledAvatarHostForLifecycleTest(host, 'instance-refresh-release');
+  const resolveAsset = host.runtimeBridgeHost.commandHandlers?.nimi_avatar_resolve_agent_center_avatar_asset;
+  const commitAsset = host.runtimeBridgeHost.commandHandlers?.nimi_avatar_commit_materialization_lease;
+  const releaseAsset = host.runtimeBridgeHost.commandHandlers?.nimi_avatar_release_materialization_lease;
+  const refresh = host.runtimeBridgeHost.commandHandlers?.nimi_avatar_refresh_host_binding;
+  assert.ok(resolveAsset);
+  assert.ok(commitAsset);
+  assert.ok(releaseAsset);
+  assert.ok(refresh);
+  const call = {
+    event: { sender: window.webContents, senderFrame: window.webContents.mainFrame },
+    appId: 'nimi.avatar',
+    runtimeEndpoint: 'protected-test',
+    sendEvent() {},
+  };
+  const pending = await resolveAsset({
+    ...call,
+    command: 'nimi_avatar_resolve_agent_center_avatar_asset',
+    payload: { payload: {
+      agentHandle: AGENT_HANDLE,
+      avatarAssetRef: AVATAR_ASSET_REF,
+      backendKind: 'vrm',
+      presentationRevision: 'revision-current',
+    } },
+  });
+  const pendingCommit = assert.rejects(async () => commitAsset({
+    ...call,
+    command: 'nimi_avatar_commit_materialization_lease',
+    payload: {
+      materializationLeaseRef: (pending as { materializationLeaseRef: string }).materializationLeaseRef,
+      avatarAssetRef: AVATAR_ASSET_REF,
+      backendKind: 'vrm',
+      presentationRevision: 'revision-current',
+      materializationRef: (pending as { materializationRef: string }).materializationRef,
+    },
+  }), /materialization-binding-stale/u);
+  await finalRevalidationStarted;
+  await refresh({
+    ...call,
+    command: 'nimi_avatar_refresh_host_binding',
+    payload: {
+      agentHandle: `agent_ref_${'h'.repeat(43)}`,
+      conversationAnchorId: 'anchor-instance-refresh-release',
+    },
+  });
+  finishFinalRevalidation();
+  await pendingCommit;
+
+  const registrationsBeforeReuse = readableFileRegistrations;
+  const reused = await resolveAsset({
+    ...call,
+    command: 'nimi_avatar_resolve_agent_center_avatar_asset',
+    payload: { payload: {
+      agentHandle: `agent_ref_${'h'.repeat(43)}`,
+      avatarAssetRef: AVATAR_ASSET_REF,
+      backendKind: 'vrm',
+      presentationRevision: 'revision-current',
+    } },
+  });
+  assert.equal(readableFileRegistrations, registrationsBeforeReuse);
+  assert.deepEqual(await releaseAsset({
+    ...call,
+    command: 'nimi_avatar_release_materialization_lease',
+    payload: {
+      materializationLeaseRef: (reused as { materializationLeaseRef: string }).materializationLeaseRef,
+    },
+  }), { accepted: true });
   await host.shutdown();
 });
 
@@ -917,8 +1075,9 @@ test('bundled Avatar asset command carries the reminted formal App handle into H
   assert.doesNotMatch(resolveHandler, /activePresentation\s*=/u);
   assert.match(
     source,
-    /catch \(error\) \{[\s\S]*pendingMaterializationLeases\.delete\(materializationLeaseRef\);[\s\S]*assetHost\.releaseMaterialization\(lease\.materializationRef\)/u,
+    /releasePendingMaterializationLease[\s\S]*pendingMaterializationLeases\.delete\(materializationLeaseRef\);[\s\S]*assetHost\.releaseMaterialization\(lease\.materializationRef\)/u,
   );
+  assert.match(source, /catch \(error\) \{[\s\S]*releasePendingMaterializationLease\(materializationLeaseRef, lease\)/u);
   assert.match(source, /invalidatePreviewProjection[\s\S]*releasePendingPreviewsForRecord/u);
   assert.match(source, /preservesPendingPreview/u);
   assert.match(source, /desktopAvatarPreviewRequestMatchesActivePresentation/u);
