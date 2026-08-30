@@ -3,12 +3,14 @@
 import process from 'node:process';
 import {
   APP_SCAFFOLD_FEATURE_IDS,
+  checkSubmittedApp,
   createApp,
   doctorAppScaffold,
   initAppScaffold,
   resolveAppCreateInput,
   resolveAppCreatePlan,
   runDevShell,
+  syncSubmittedApp,
   updateAppScaffold,
 } from '../lib/index.mjs';
 import { APP_SCAFFOLD_MODULE_REGISTRY } from '../lib/app-scaffold-capabilities.mjs';
@@ -104,6 +106,8 @@ function assertCommandOptions(command, providedOptions) {
     init: new Set(['dir', 'json']),
     doctor: new Set(['dir', 'json', 'conformance']),
     update: new Set(['dir', 'json']),
+    sync: new Set(['dir', 'json']),
+    check: new Set(['dir', 'json']),
     dev: new Set(['dir', 'shell', 'cdpPort', 'noCdp']),
   }[command];
   if (!allowed) return;
@@ -132,6 +136,8 @@ function printUsage() {
       '  nimi-app init [--dir path] [--json]',
       '  nimi-app doctor [--dir path] [--conformance simulator] [--json]',
       '  nimi-app update [--dir path] [--json]',
+      '  nimi-app sync [--dir path] [--json]',
+      '  nimi-app check [--dir path] [--json]',
       '  nimi-app dev [--dir path] [--shell electron] [--cdp-port 1024..65535 | --no-cdp]',
       '',
       'Current module registry:',
@@ -315,6 +321,18 @@ try {
       break;
     case 'update':
       updateAppScaffold(process.cwd(), {
+        dir,
+        json,
+      });
+      break;
+    case 'sync':
+      syncSubmittedApp(process.cwd(), {
+        dir,
+        json,
+      });
+      break;
+    case 'check':
+      checkSubmittedApp(process.cwd(), {
         dir,
         json,
       });

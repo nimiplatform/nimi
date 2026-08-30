@@ -629,6 +629,9 @@ export function doctorApp(cwd, options = {}, versions, runners = {}) {
     checkedManagedFiles: result.lock ? Object.keys(result.lock.managedFileHashes || {}).length : 0,
     checkedExistingFiles: result.managed === false ? result.checkedFiles : 0,
   };
+  if (options.silent) {
+    return payload;
+  }
   if (options.json) {
     process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
   } else {

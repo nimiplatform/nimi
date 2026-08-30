@@ -52,7 +52,7 @@
     "sync:app-source": "node scripts/sync-app-source.mjs --apply",
     "prepack": "pnpm run build",
     "prepublishOnly": "pnpm run build",
-    "test": "node scripts/sync-scaffold-versions.mjs --check && node ../scripts/with-workspace-surfaces.mjs -- node --test test/simulator-conformance.test.mjs test/dev-shell.test.mjs && node ../scripts/with-workspace-surfaces.mjs -- node --test test/app-scaffold.test.mjs",
+    "test": "node scripts/sync-scaffold-versions.mjs --check && node ../scripts/with-workspace-surfaces.mjs -- node --test test/simulator-conformance.test.mjs test/dev-shell.test.mjs && node ../scripts/with-workspace-surfaces.mjs -- node --test test/app-project-lifecycle.test.mjs test/app-scaffold.test.mjs",
     "test:full": "node ../scripts/with-workspace-surfaces.mjs -- node --test --test-name-pattern=\"^(update regenerates|update rejects|unsupported previous app scaffold lock|doctor fails closed on a missing scaffold lock|doctor fails closed on provider/model hardcoding|doctor fails closed on app-owned Realm permission grant shortcuts|doctor fails closed on installed-app custody bypasses|doctor requires official Desktop-supervised development scripts|update fails closed on unsupported locks and classification conflicts|app source resolves only scaffoldable slices)\" test/app-scaffold.test.mjs"
   },
   "files": [

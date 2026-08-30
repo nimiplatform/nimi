@@ -10,6 +10,7 @@ import {
   resolveAppScaffoldCreateInput,
 } from './app-scaffold.mjs';
 import { doctorApp, initApp, updateApp } from './app-doctor-update.mjs';
+import { checkAppProject, syncAppProject } from './app-project-lifecycle.mjs';
 export { runDevShell } from '../scripts/dev-shell.mjs';
 export {
   validateSimulatorAppSource,
@@ -73,7 +74,7 @@ function runNimicodingSync(targetDir, mode) {
   });
   if (result.status !== 0) {
     const output = [result.error?.message, result.stdout, result.stderr].filter(Boolean).join('\n').trim();
-    throw new Error(`nimicoding sync ${mode} failed. Run pnpm install before pnpm run init. ${output}`);
+    throw new Error(`nimicoding sync ${mode} failed. Run pnpm install before rerunning the lifecycle command. ${output}`);
   }
   try {
     return JSON.parse(result.stdout);
@@ -168,4 +169,12 @@ export function initAppScaffold(cwd, options = {}) {
 
 export function updateAppScaffold(cwd, options = {}) {
   return updateApp(cwd, options, appScaffoldVersions(), appToolRunners());
+}
+
+export function syncSubmittedApp(cwd, options = {}) {
+  return syncAppProject(cwd, options, appScaffoldVersions(), appToolRunners());
+}
+
+export function checkSubmittedApp(cwd, options = {}) {
+  return checkAppProject(cwd, options, appScaffoldVersions(), appToolRunners());
 }
