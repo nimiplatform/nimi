@@ -638,6 +638,81 @@ describe('App transient composer overlay', () => {
     expect(textarea.value).toBe('blocked note');
   });
 
+  it('keeps the rejected draft when a pointer submit also blurs the textarea', async () => {
+    const handle = createBootstrapHandle();
+    (handle.sendConversationText as ReturnType<typeof vi.fn>)
+      .mockRejectedValueOnce(new Error('AI_CONFIG_NOT_FOUND'));
+    bootstrapAvatarMock.mockResolvedValue(handle);
+    render(<App />);
+    act(() => {
+      seedReadyState();
+    });
+
+    await openComposer();
+    const textarea = screen.getByPlaceholderText('Type a message…') as HTMLTextAreaElement;
+    fireEvent.change(textarea, { target: { value: 'pointer note' } });
+    const send = screen.getByLabelText('Send message');
+    await act(async () => {
+      fireEvent.mouseDown(send);
+      textarea.blur();
+      fireEvent.click(send);
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toContain('AI_CONFIG_NOT_FOUND');
+    });
+    expect((screen.getByPlaceholderText('Type a message…') as HTMLTextAreaElement).value)
+      .toBe('pointer note');
+    expect(handle.sendConversationText).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['success', 'failure'] as const)(
+    'ignores a stale %s completion after composition replacement opens a new draft',
+    async (outcome) => {
+      let resolveSend!: (value: { turnId: string }) => void;
+      let rejectSend!: (reason: Error) => void;
+      const pendingSend = new Promise<{ turnId: string }>((resolve, reject) => {
+        resolveSend = resolve;
+        rejectSend = reject;
+      });
+      const handle = createBootstrapHandle();
+      (handle.sendConversationText as ReturnType<typeof vi.fn>).mockReturnValueOnce(pendingSend);
+      bootstrapAvatarMock.mockResolvedValue(handle);
+      render(<App />);
+      act(() => {
+        seedReadyState();
+      });
+
+      await openComposer();
+      const first = screen.getByPlaceholderText('Type a message…') as HTMLTextAreaElement;
+      fireEvent.change(first, { target: { value: 'draft A' } });
+      fireEvent.keyDown(first, { key: 'Enter', shiftKey: false });
+      await waitFor(() => expect(handle.sendConversationText).toHaveBeenCalledTimes(1));
+
+      act(() => {
+        seedDegradedRuntime();
+      });
+      await waitFor(() => expect(screen.queryByTestId('avatar-transient-composer')).toBeNull());
+      act(() => {
+        seedReadyState();
+      });
+      await openComposer();
+      const second = screen.getByPlaceholderText('Type a message…') as HTMLTextAreaElement;
+      fireEvent.change(second, { target: { value: 'draft B' } });
+
+      await act(async () => {
+        if (outcome === 'success') resolveSend({ turnId: 'turn-A' });
+        else rejectSend(new Error('late failure A'));
+        await Promise.resolve();
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      });
+      expect((screen.getByPlaceholderText('Type a message…') as HTMLTextAreaElement).value)
+        .toBe('draft B');
+      expect(screen.queryByRole('alert')).toBeNull();
+    },
+  );
+
   it('dismisses on Escape and focus switch', async () => {
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
 

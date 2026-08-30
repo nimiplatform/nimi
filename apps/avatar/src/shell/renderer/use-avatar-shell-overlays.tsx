@@ -79,6 +79,9 @@ export function useAvatarShellOverlays(input: {
   // Last draft lost to an accidental focus-switch dismissal (e.g. right-click
   // opening the context menu while typing). Intentional closes clear it.
   const composerDraftRef = useRef('');
+  const composerInstanceSequenceRef = useRef(0);
+  const activeComposerInstanceRef = useRef<number | null>(null);
+  const composerSendInFlightRef = useRef<number | null>(null);
 
   const dismissContextMenu = useCallback(
     (_reason: AvatarContextMenuDismissReason): void => {
@@ -107,6 +110,10 @@ export function useAvatarShellOverlays(input: {
     (nextInput: { x: number; y: number; source: 'context_menu' | 'capsule' }): void => {
       const x = Number.isFinite(nextInput.x) ? nextInput.x : 24;
       const y = Number.isFinite(nextInput.y) ? nextInput.y : 24;
+      if (activeComposerInstanceRef.current === null) {
+        composerInstanceSequenceRef.current += 1;
+        activeComposerInstanceRef.current = composerInstanceSequenceRef.current;
+      }
       setTransientComposer((current) => ({
         x,
         y,
@@ -120,6 +127,11 @@ export function useAvatarShellOverlays(input: {
 
   const dismissTransientComposer = useCallback(
     (reason: AvatarTransientComposerDismissReason): void => {
+      const activeComposerInstance = activeComposerInstanceRef.current;
+      if (reason === 'focus_switch'
+        && activeComposerInstance !== null
+        && composerSendInFlightRef.current === activeComposerInstance) return;
+      activeComposerInstanceRef.current = null;
       setTransientComposer((current) => {
         if (!current) return null;
         // Accidental focus loss (opening another overlay, Alt-Tab) keeps the
@@ -168,6 +180,9 @@ export function useAvatarShellOverlays(input: {
       if (!bootstrapHandle || !companionBinding) return;
       const text = normalizeText(transientComposer?.draft);
       if (!text || transientComposer?.sendState === 'sending') return;
+      const composerInstance = activeComposerInstanceRef.current;
+      if (composerInstance === null) return;
+      composerSendInFlightRef.current = composerInstance;
       composerDraftRef.current = '';
       setTransientComposer((current) =>
         current
@@ -186,10 +201,19 @@ export function useAvatarShellOverlays(input: {
           text,
         })
         .then(() => {
+          if (composerSendInFlightRef.current !== composerInstance) return;
+          composerSendInFlightRef.current = null;
+          if (activeComposerInstanceRef.current !== composerInstance) return;
+          activeComposerInstanceRef.current = null;
           composerDraftRef.current = '';
           setTransientComposer(null);
         })
         .catch((error: unknown) => {
+          if (composerSendInFlightRef.current !== composerInstance) return;
+          if (activeComposerInstanceRef.current !== composerInstance) {
+            composerSendInFlightRef.current = null;
+            return;
+          }
           const message = toErrorMessage(error);
           setTransientComposer((current) =>
             current
@@ -201,6 +225,11 @@ export function useAvatarShellOverlays(input: {
               }
               : current,
           );
+          window.requestAnimationFrame(() => {
+            if (composerSendInFlightRef.current === composerInstance) {
+              composerSendInFlightRef.current = null;
+            }
+          });
         });
     },
     [bootstrapHandle, companionBinding, transientComposer?.draft, transientComposer?.sendState],
