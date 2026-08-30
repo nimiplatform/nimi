@@ -6,7 +6,6 @@
 //   - loading:          pre-bootstrap-complete; degraded-surface variant=loading
 //   - degraded:*:       typed runtime / account / launch failures
 //   - error:*:          untyped bootstrap failures
-//   - relaunch-pending: desktop-pushed launch context update; ready surface unmounted
 
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { AvatarAppState } from './app-store.js';
@@ -19,10 +18,9 @@ export type CompositionState =
   | 'degraded_cloud_offline'
   | 'degraded_runtime_unavailable'
   | 'degraded_launch_context_invalid'
-  | 'error_bootstrap_fatal'
-  | 'relaunch_pending';
+  | 'error_bootstrap_fatal';
 
-export type CompositionVariant = 'live' | 'fixture' | 'loading' | 'degraded' | 'error' | 'relaunch';
+export type CompositionVariant = 'live' | 'fixture' | 'loading' | 'degraded' | 'error';
 
 export type CompositionDerivation = {
   state: CompositionState;
@@ -59,9 +57,6 @@ export type CompositionInput = {
   runtimeBinding: AvatarAppState['runtime']['binding'];
   driver: AvatarAppState['driver'];
   launchContext: AvatarAppState['launch']['context'];
-  // Set when desktop pushes a launch-context update that requires a shell reload before the
-  // next ready posture. App.tsx flips this on `avatar://launch-context-updated`.
-  relaunchPending: boolean;
 };
 
 const READY_DRIVER_STATUSES = new Set<string>(['running', 'starting']);
@@ -140,24 +135,6 @@ function deriveModelDiagnostics(model: AvatarAppState['model']): CompositionMode
 
 export function deriveCompositionState(input: CompositionInput): CompositionDerivation {
   const modelDiagnostics = deriveModelDiagnostics(input.model);
-  if (input.relaunchPending) {
-    return {
-      state: 'relaunch_pending',
-      variant: 'relaunch',
-      reason: 'launch_context_updated',
-      reasonCode: null,
-      accountReasonCode: null,
-      actionHint: null,
-      stage: null,
-      source: null,
-      retryable: null,
-      modelDiagnostics,
-      ready: false,
-      renderable: false,
-      developmentPreview: false,
-    };
-  }
-
   if (input.bootstrapError) {
     const classification = classifyBootstrapError(input.bootstrapError);
     return {

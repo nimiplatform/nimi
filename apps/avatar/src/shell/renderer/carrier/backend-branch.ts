@@ -76,6 +76,8 @@ export type BackendSurfaceProps = {
   onAudioConsumerReady?: (consumer: BackendAudioConsumer) => void;
   /** Avatar-local presentation observation. Never crosses to Desktop or Runtime. */
   onPresentationStateChange?: (state: BackendPresentationState) => void;
+  /** Rebuilds the current validated presentation after backend-local recovery is exhausted. */
+  onPresentationRestart?: () => void;
   /** Current validated geometry or the explicitly configured bounded fallback. */
   onSurfaceBoundsChange?: (surface: BackendSurfaceBounds) => void;
 };

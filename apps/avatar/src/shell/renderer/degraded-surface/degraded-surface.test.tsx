@@ -1,18 +1,14 @@
 // Per-surface owner behavior tests for App-local prerequisite composition.
-// Covers all current postures (loading / degraded:* / error / relaunch /
-// unknown), reason interpolation, reload-button affordance, and i18n coverage.
+// Covers all current postures (loading / degraded:* / error / unknown), reason
+// interpolation, restart affordance, and i18n coverage.
 
 import { render, screen, fireEvent } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DegradedSurface } from './degraded-surface.js';
 import type { CompositionDerivation, CompositionState } from '../app-shell/composition-state.js';
 
-const reloadAvatarShellMock = vi.fn();
+const restartAvatarMock = vi.fn();
 const closeAvatarWindowMock = vi.fn();
-
-vi.mock('../shell-reload.js', () => ({
-  reloadAvatarShell: () => reloadAvatarShellMock(),
-}));
 
 vi.mock('../app-shell/avatar-window-commands.js', () => ({
   closeAvatarWindow: () => closeAvatarWindowMock(),
@@ -23,11 +19,10 @@ function makeComposition(state: CompositionState, overrides: Partial<Composition
     state,
     variant:
       state === 'loading' ? 'loading'
-        : state === 'relaunch_pending' ? 'relaunch'
-          : state === 'error_bootstrap_fatal' ? 'error'
-            : state === 'ready' ? 'live'
-              : state === 'fixture_not_verified' ? 'fixture'
-              : 'degraded',
+        : state === 'error_bootstrap_fatal' ? 'error'
+          : state === 'ready' ? 'live'
+            : state === 'fixture_not_verified' ? 'fixture'
+            : 'degraded',
     reason: null,
     reasonCode: null,
     accountReasonCode: null,
@@ -44,7 +39,7 @@ function makeComposition(state: CompositionState, overrides: Partial<Composition
 }
 
 beforeEach(() => {
-  reloadAvatarShellMock.mockReset();
+  restartAvatarMock.mockReset();
   closeAvatarWindowMock.mockReset();
 });
 
@@ -60,14 +55,13 @@ describe('DegradedSurface — composition postures', () => {
     ['degraded_runtime_unavailable', "Can't connect to Runtime"],
     ['degraded_launch_context_invalid', 'Open the avatar from Nimi Desktop'],
     ['error_bootstrap_fatal', "The avatar couldn't start"],
-    ['relaunch_pending', 'Switching avatar'],
   ] as const)('renders %s posture with i18n title', (state, expectedTitle) => {
-    render(<DegradedSurface composition={makeComposition(state as CompositionState)} />);
+    render(<DegradedSurface composition={makeComposition(state as CompositionState)} onRestart={restartAvatarMock} />);
     expect(screen.getByText(expectedTitle)).toBeTruthy();
   });
 
   it('falls through to unknown posture for ready (defensive)', () => {
-    render(<DegradedSurface composition={makeComposition('ready')} />);
+    render(<DegradedSurface composition={makeComposition('ready')} onRestart={restartAvatarMock} />);
     expect(screen.getByText('Avatar paused')).toBeTruthy();
   });
 });
@@ -77,6 +71,7 @@ describe('DegradedSurface — reason interpolation', () => {
     render(
       <DegradedSurface
         composition={makeComposition('degraded_runtime_unavailable', { reason: 'driver_start timeout' })}
+        onRestart={restartAvatarMock}
       />,
     );
     // Reason appears both in the interpolated summary AND in the diagnostics row.
@@ -84,7 +79,7 @@ describe('DegradedSurface — reason interpolation', () => {
   });
 
   it('uses bare summary text when reason is empty', () => {
-    render(<DegradedSurface composition={makeComposition('degraded_runtime_unavailable')} />);
+    render(<DegradedSurface composition={makeComposition('degraded_runtime_unavailable')} onRestart={restartAvatarMock} />);
     expect(
       screen.getByText("The avatar isn't receiving live data from Runtime."),
     ).toBeTruthy();
@@ -101,6 +96,7 @@ describe('DegradedSurface — reason interpolation', () => {
           source: 'avatar_local_materialization',
           retryable: false,
         })}
+        onRestart={restartAvatarMock}
       />,
     );
 
@@ -124,6 +120,7 @@ describe('DegradedSurface — reason interpolation', () => {
             error: 'VRM scene graph is missing a humanoid root',
           },
         })}
+        onRestart={restartAvatarMock}
       />,
     );
 
@@ -136,35 +133,42 @@ describe('DegradedSurface — reason interpolation', () => {
   });
 });
 
-describe('DegradedSurface — reload affordance', () => {
+describe('DegradedSurface — restart affordance', () => {
   it('renders restart and close actions', () => {
-    render(<DegradedSurface composition={makeComposition('degraded_runtime_unavailable')} />);
+    render(<DegradedSurface composition={makeComposition('degraded_runtime_unavailable')} onRestart={restartAvatarMock} />);
     const button = screen.getByRole('button', { name: 'Restart avatar' });
     fireEvent.click(button);
     fireEvent.click(screen.getByRole('button', { name: 'Close this avatar' }));
-    expect(reloadAvatarShellMock).toHaveBeenCalledTimes(1);
+    expect(restartAvatarMock).toHaveBeenCalledTimes(1);
     expect(closeAvatarWindowMock).toHaveBeenCalledTimes(1);
   });
 
   it('hides the restart action during loading but keeps the close action', () => {
-    render(<DegradedSurface composition={makeComposition('loading')} />);
-    expect(screen.queryByTestId('avatar-degraded-reload')).toBeNull();
+    render(<DegradedSurface composition={makeComposition('loading')} onRestart={restartAvatarMock} />);
+    expect(screen.queryByTestId('avatar-degraded-restart')).toBeNull();
+    expect(screen.getByTestId('avatar-degraded-close')).toBeTruthy();
+  });
+
+  it('keeps owner-classified permanent failures fail-closed', () => {
+    render(
+      <DegradedSurface
+        composition={makeComposition('degraded_runtime_unavailable', { retryable: false })}
+        onRestart={restartAvatarMock}
+      />,
+    );
+    expect(screen.queryByTestId('avatar-degraded-restart')).toBeNull();
     expect(screen.getByTestId('avatar-degraded-close')).toBeTruthy();
   });
 });
 
 describe('DegradedSurface — live-region semantics', () => {
-  it('uses a polite status role for routine loading and relaunch postures', () => {
-    const { unmount } = render(<DegradedSurface composition={makeComposition('loading')} />);
-    expect(screen.getByTestId('avatar-degraded-surface').getAttribute('role')).toBe('status');
-    unmount();
-
-    render(<DegradedSurface composition={makeComposition('relaunch_pending')} />);
+  it('uses a polite status role for routine loading', () => {
+    render(<DegradedSurface composition={makeComposition('loading')} onRestart={restartAvatarMock} />);
     expect(screen.getByTestId('avatar-degraded-surface').getAttribute('role')).toBe('status');
   });
 
   it('keeps an assertive alert role for genuine failure postures', () => {
-    render(<DegradedSurface composition={makeComposition('degraded_runtime_unavailable')} />);
+    render(<DegradedSurface composition={makeComposition('degraded_runtime_unavailable')} onRestart={restartAvatarMock} />);
     expect(screen.getByTestId('avatar-degraded-surface').getAttribute('role')).toBe('alert');
   });
 });

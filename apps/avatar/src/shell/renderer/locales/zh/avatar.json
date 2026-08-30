@@ -34,7 +34,7 @@
     },
     "degraded": {
       "surface_aria": "伙伴形象不可用",
-      "reload": "重新启动伙伴形象",
+      "restart": "重新启动伙伴形象",
       "diagnostics": {
         "summary": "诊断信息",
         "composition_state": "界面状态",
@@ -91,19 +91,13 @@
         "title": "伙伴形象启动失败",
         "summary": "出现意外错误，伙伴形象未能打开。",
         "summary_with_reason": "出现意外错误，伙伴形象未能打开。原因：{{reason}}。",
-        "recovery": "请重新加载伙伴形象；如果问题再次出现，请检查运行时日志。"
-      },
-      "relaunch_pending": {
-        "badge": "正在切换",
-        "title": "正在切换伙伴形象",
-        "summary": "Nimi Desktop 选择了其他伙伴或形象实例。",
-        "recovery": "请重新加载以应用新选择。"
+        "recovery": "请重新启动伙伴形象；如果问题再次出现，请检查运行时日志。"
       },
       "unknown": {
         "badge": "界面已暂停",
         "title": "伙伴形象已暂停",
         "summary": "伙伴形象进入了异常状态，已安全暂停。",
-        "recovery": "请重新加载伙伴形象以继续。"
+        "recovery": "请重新启动伙伴形象以继续。"
       }
     },
     "creator_capabilities": {

@@ -66,6 +66,7 @@ export type EmbodimentStageProps = {
   interactionModality: 'keyboard' | 'pointer';
   onFocusVisibleChange?: (value: boolean) => void;
   onPresentationStateChange?: (state: BackendPresentationState) => void;
+  onPresentationRestart?: () => void;
   onSurfaceBoundsChange?: (surface: BackendSurfaceBounds) => void;
 };
 
@@ -123,6 +124,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
     interactionModality,
     onFocusVisibleChange,
     onPresentationStateChange,
+    onPresentationRestart,
     onSurfaceBoundsChange,
   } = props;
   const { t } = useTranslation();
@@ -765,6 +767,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
             onAudioConsumerReady={interactive ? handleAudioConsumerReady : undefined}
             onHitRegionChange={handleHitRegionChange}
             onPresentationStateChange={handlePresentationStateChange}
+            onPresentationRestart={onPresentationRestart}
             onSurfaceBoundsChange={onSurfaceBoundsChange}
           />
         </div>
@@ -776,6 +779,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
             className="avatar-embodiment-stage__presentation-layer avatar-embodiment-stage__presentation-layer--staging"
             data-avatar-presentation-layer="staging"
             aria-hidden="true"
+            inert
             // The candidate must retain a real layout box so WebGL and canvas
             // loaders can produce a first frame without becoming visible or interactive.
             style={{

@@ -38,7 +38,6 @@ function input(overrides: Partial<CompositionInput> = {}): CompositionInput {
       error: null,
     },
     launchContext: null,
-    relaunchPending: false,
     ...overrides,
   };
 }

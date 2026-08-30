@@ -20,8 +20,6 @@ const setAlwaysOnTopMock = vi.fn();
 const hideAvatarWindowMock = vi.fn();
 const closeAvatarWindowMock = vi.fn();
 const quitAvatarAppMock = vi.fn();
-const onLaunchContextUpdatedMock = vi.fn();
-const reloadAvatarShellMock = vi.fn();
 let hostRuntime = false;
 let avatarHostRuntime = false;
 type AvatarLaunchContextForTest = {
@@ -31,9 +29,6 @@ type AvatarLaunchContextForTest = {
   launchSource: string | null;
 };
 
-let launchContextUpdatedHandler:
-  | ((payload: AvatarLaunchContextForTest) => void)
-  | null = null;
 let hostSuspendHandler: (() => void) | null = null;
 
 function launchContext(overrides: Partial<AvatarLaunchContextForTest> = {}): AvatarLaunchContextForTest {
@@ -77,14 +72,6 @@ vi.mock('./app-shell/host-lifecycle.js', () => ({
     hostSuspendHandler = handler;
     return () => {};
   },
-  onLaunchContextUpdated: (handler: typeof launchContextUpdatedHandler) => {
-    launchContextUpdatedHandler = handler;
-    return onLaunchContextUpdatedMock();
-  },
-}));
-
-vi.mock('./shell-reload.js', () => ({
-  reloadAvatarShell: () => reloadAvatarShellMock(),
 }));
 
 vi.mock('./live2d/Live2DCarrierVisualSurface.js', () => ({
@@ -285,14 +272,6 @@ function setHostRuntime(value: boolean): void {
   avatarHostRuntime = value;
 }
 
-function hasLaunchContextUpdatedHandler(): boolean {
-  return launchContextUpdatedHandler !== null;
-}
-
-function emitLaunchContextUpdated(payload: Partial<AvatarLaunchContextForTest>): void {
-  launchContextUpdatedHandler?.(launchContext(payload));
-}
-
 beforeEach(() => {
   useAvatarStore.setState(useAvatarStore.getInitialState(), true);
   bootstrapAvatarMock.mockReset();
@@ -306,10 +285,6 @@ beforeEach(() => {
   closeAvatarWindowMock.mockResolvedValue(undefined);
   quitAvatarAppMock.mockReset();
   quitAvatarAppMock.mockResolvedValue(undefined);
-  onLaunchContextUpdatedMock.mockReset();
-  onLaunchContextUpdatedMock.mockResolvedValue(() => {});
-  reloadAvatarShellMock.mockReset();
-  launchContextUpdatedHandler = null;
   hostSuspendHandler = null;
   hostRuntime = false;
   avatarHostRuntime = false;

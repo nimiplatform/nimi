@@ -4,12 +4,12 @@
 
 import { useTranslation } from '../i18n/index.js';
 import { Button, StatusBadge, Surface, cn } from '@nimiplatform/kit/ui';
-import { reloadAvatarShell } from '../shell-reload.js';
 import { closeAvatarWindow } from '../app-shell/avatar-window-commands.js';
 import type { CompositionDerivation } from '../app-shell/composition-state.js';
 
 export type DegradedSurfaceProps = {
   composition: CompositionDerivation;
+  onRestart: () => void;
 };
 
 // Map composition state → i18n key prefix. `unknown` covers the defensive
@@ -29,8 +29,6 @@ function stateKeyPrefix(state: CompositionDerivation['state']): string {
       return 'Avatar.degraded.degraded_launch_context_invalid';
     case 'error_bootstrap_fatal':
       return 'Avatar.degraded.error_bootstrap_fatal';
-    case 'relaunch_pending':
-      return 'Avatar.degraded.relaunch_pending';
     case 'ready':
     default:
       return 'Avatar.degraded.unknown';
@@ -47,23 +45,21 @@ const REASON_AWARE_STATES = new Set<CompositionDerivation['state']>([
 ]);
 
 export function DegradedSurface(props: DegradedSurfaceProps) {
-  const { composition } = props;
+  const { composition, onRestart } = props;
   const { t } = useTranslation();
   const tone = composition.variant;
   const keyPrefix = stateKeyPrefix(composition.state);
   const trimmedReason = (composition.reason ?? '').trim();
   const diagnosticsVisible =
     (Boolean(composition.reason) || Boolean(composition.modelDiagnostics))
-    && composition.variant !== 'loading'
-    && composition.variant !== 'relaunch';
-  // loading / relaunch mount on every cold start and avatar switch; an
-  // assertive alert there spam-announces routine transitions. Genuine failure
-  // postures keep role="alert".
-  const liveRegionRole = tone === 'loading' || tone === 'relaunch' ? 'status' : 'alert';
+    && composition.variant !== 'loading';
+  // Loading mounts on every cold start; an assertive alert there would
+  // spam-announce a routine transition. Genuine failure postures keep role="alert".
+  const liveRegionRole = tone === 'loading' ? 'status' : 'alert';
   // "Restart avatar" during loading contradicts the recovery copy ("Keep this
-  // window open…") and interrupts bootstrap; relaunch copy explicitly invites
-  // a reload, so the action stays there.
-  const reloadVisible = tone !== 'loading';
+  // window open…") and interrupts bootstrap. Owner-classified permanent
+  // failures stay fail-closed rather than exposing a retry that cannot repair them.
+  const restartVisible = tone !== 'loading' && composition.retryable !== false;
 
   const summary =
     REASON_AWARE_STATES.has(composition.state) && trimmedReason.length > 0
@@ -92,16 +88,16 @@ export function DegradedSurface(props: DegradedSurfaceProps) {
       <p className="avatar-degraded-surface__summary">{summary}</p>
       <p className="avatar-degraded-surface__recovery">{t(`${keyPrefix}.recovery`)}</p>
       <div className="avatar-degraded-surface__actions">
-        {reloadVisible ? (
+        {restartVisible ? (
           <Button
             type="button"
             className="avatar-degraded-surface__primary-action"
             tone="primary"
             size="md"
-            onClick={() => reloadAvatarShell()}
-            data-testid="avatar-degraded-reload"
+            onClick={onRestart}
+            data-testid="avatar-degraded-restart"
           >
-            {t('Avatar.degraded.reload')}
+            {t('Avatar.degraded.restart')}
           </Button>
         ) : null}
         <Button

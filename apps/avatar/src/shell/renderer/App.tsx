@@ -11,7 +11,7 @@ import { bootstrapAvatar, type BootstrapHandle } from './app-shell/app-bootstrap
 import { useAvatarStore } from './app-shell/app-store.js';
 import { setAlwaysOnTop } from './app-shell/avatar-window-commands.js';
 import { useWindowBoundsSync } from './app-shell/use-window-bounds-sync.js';
-import { onHostSuspend, onLaunchContextUpdated } from './app-shell/host-lifecycle.js';
+import { onHostSuspend } from './app-shell/host-lifecycle.js';
 import { deriveCompositionState, type CompositionDerivation } from './app-shell/composition-state.js';
 import { EmbodimentStage } from './embodiment-stage/embodiment-stage.js';
 import { DegradedSurface } from './degraded-surface/degraded-surface.js';
@@ -61,7 +61,6 @@ import {
   shouldMountCompanionSurface,
 } from './companion-surface/companion-surface.js';
 import { setAvatarLocalQuiet } from './local-quiet-state.js';
-import { reloadAvatarShell } from './shell-reload.js';
 import {
   AVATAR_CONVERSATION_VOICE_AUDIO_CHUNK_EVENT,
   AVATAR_CONVERSATION_VOICE_FAILED_EVENT,
@@ -81,6 +80,11 @@ type StagedPresentation = Readonly<{
   reject: (error: Error) => void;
 }>;
 
+type PresentationRecoveryAttempt = Readonly<{
+  presentationKey: string;
+  epoch: number;
+}>;
+
 function carrierPresentationKey(carrier: AvatarRuntimeCarrier | null | undefined): string | null {
   if (!carrier) return null;
   const selection = carrier.committedPresentationSelection;
@@ -95,12 +99,21 @@ function carrierPresentationKey(carrier: AvatarRuntimeCarrier | null | undefined
     : `${backendKind || 'unbound'}:${modelId || 'unbound'}`;
 }
 
+function carrierPresentationAttemptKey(
+  carrier: AvatarRuntimeCarrier | null | undefined,
+  recovery: PresentationRecoveryAttempt | null,
+): string {
+  const presentationKey = carrierPresentationKey(carrier) ?? 'unbound';
+  const epoch = recovery?.presentationKey === presentationKey ? recovery.epoch : 0;
+  return `${presentationKey}:${epoch}`;
+}
+
 export function App() {
   const reducedMotion = useNimiReducedMotion();
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [bootstrapComplete, setBootstrapComplete] = useState(false);
   const [bootstrapHandle, setBootstrapHandle] = useState<BootstrapHandle | null>(null);
-  const [, setPresentationEpoch] = useState(0);
+  const [presentationRecovery, setPresentationRecovery] = useState<PresentationRecoveryAttempt | null>(null);
   const [backendPresentation, setBackendPresentation] = useState<BackendPresentationState>({
     kind: 'loading',
   });
@@ -117,7 +130,6 @@ export function App() {
   const [bodyHovered, setBodyHovered] = useState(false);
   const [bodyPointerContact, setBodyPointerContact] = useState(false);
   const [focusVisibleWithinStage, setFocusVisibleWithinStage] = useState(false);
-  const [relaunchPending, setRelaunchPending] = useState(false);
   const [quietLatched, setQuietLatched] = useState(false);
 
   const voiceCaptureSessionRef = useRef<AvatarVoiceCaptureSession | null>(null);
@@ -133,6 +145,9 @@ export function App() {
   const stagedPresentationRef = useRef<StagedPresentation | null>(null);
   const initialLeaseCommitInFlightRef = useRef<string | null>(null);
   const committedLeasePresentationRef = useRef<string | null>(null);
+  const activeBootstrapHandleRef = useRef<BootstrapHandle | null>(null);
+  const bootstrapRestartInFlightRef = useRef(false);
+  const appMountedRef = useRef(false);
 
   const bundle = useAvatarStore((s) => s.bundle);
   const shell = useAvatarStore((s) => s.shell);
@@ -153,7 +168,6 @@ export function App() {
         runtimeBinding,
         driver,
         launchContext,
-        relaunchPending,
       }),
     [
       bootstrapError,
@@ -164,7 +178,6 @@ export function App() {
       runtimeBinding,
       driver,
       launchContext,
-      relaunchPending,
     ],
   );
   const productCompositionReady = composition.ready && consume.authority === 'runtime';
@@ -179,17 +192,25 @@ export function App() {
   }, [presentationReady]);
 
   useEffect(() => {
-    let handle: BootstrapHandle | null = null;
+    appMountedRef.current = true;
+    let cancelled = false;
     bootstrapAvatar()
       .then((h) => {
-        handle = h;
+        if (cancelled) {
+          void h.shutdown();
+          return;
+        }
+        activeBootstrapHandleRef.current = h;
         setBootstrapHandle(h);
         setBootstrapComplete(true);
       })
       .catch((err: unknown) => {
+        if (cancelled) return;
         setBootstrapError(toErrorMessage(err));
       });
     return () => {
+      cancelled = true;
+      appMountedRef.current = false;
       const staged = stagedPresentationRef.current;
       if (staged && !staged.settled.value) {
         staged.settled.value = true;
@@ -201,7 +222,9 @@ export function App() {
       voiceSubmitAbortRef.current?.abort();
       voiceSubmitAbortRef.current = null;
       setBootstrapHandle(null);
-      void handle?.shutdown();
+      const activeHandle = activeBootstrapHandleRef.current;
+      activeBootstrapHandleRef.current = null;
+      void activeHandle?.shutdown();
     };
   }, []);
 
@@ -216,14 +239,13 @@ export function App() {
         carrier: bootstrapHandle?.carrier ?? null,
       }),
       async activatePresentation(request) {
-        const previousPresentation = backendPresentationRef.current;
         try {
           await bootstrapHandle!.activateCommittedPresentation(request, (candidate) => (
             new Promise<void>((resolve, reject) => {
               const settled = { value: false };
               const staged: StagedPresentation = {
                 carrier: candidate,
-                presentationKey: carrierPresentationKey(candidate)!,
+                presentationKey: carrierPresentationAttemptKey(candidate, presentationRecovery),
                 settled,
                 resolve,
                 reject,
@@ -235,7 +257,7 @@ export function App() {
           backendSurfaceBoundsRef.current = null;
           backendPresentationRef.current = { kind: 'ready' };
           setBackendPresentation({ kind: 'ready' });
-          setPresentationEpoch((current) => current + 1);
+          setPresentationRecovery(null);
           stagedPresentationRef.current = null;
           setStagedPresentation(null);
         } catch (error) {
@@ -250,8 +272,6 @@ export function App() {
             setBackendPresentation(unavailable);
             throw error;
           }
-          backendPresentationRef.current = previousPresentation;
-          setBackendPresentation(previousPresentation);
           throw error;
         }
       },
@@ -266,7 +286,7 @@ export function App() {
       cancelled = true;
       unlisten?.();
     };
-  }, [bootstrapHandle, productCompositionReady]);
+  }, [bootstrapHandle, presentationRecovery, productCompositionReady]);
 
   // ── Wave 3 lipsync state subscription ────────────────────────────────────────
   // The avatar-voice-lipsync pipeline (wired from carrier/avatar-carrier.ts)
@@ -425,39 +445,6 @@ export function App() {
     return () => {
       window.removeEventListener('keydown', handleKeyDown, true);
       window.removeEventListener('pointerdown', handlePointerDown, true);
-    };
-  }, []);
-
-  // ── Launch context update → relaunch-pending composition state ───────────────
-  useEffect(() => {
-    if (!hasAvatarHostRuntime()) return;
-    let active = true;
-    let unlisten: (() => void) | null = null;
-    void onLaunchContextUpdated((payload) => {
-      if (!active) return;
-      useAvatarStore.getState().setLaunchContext(payload);
-      setRelaunchPending(true);
-      voiceCaptureSessionRef.current?.cancel();
-      voiceCaptureSessionRef.current = null;
-      voiceSubmitAbortRef.current?.abort();
-      voiceSubmitAbortRef.current = null;
-      voiceOperationSequenceRef.current += 1;
-      voiceOperationRef.current = null;
-      activeVoiceCaptionIdRef.current = null;
-      getSharedAudioPipelineController().stop('interrupted');
-      getSharedAudioPipelineController().reset();
-      getSharedVoiceLipsyncStateBus().publish({ kind: 'deactivate' });
-      setAvatarLocalQuiet(false);
-      setQuietLatched(false);
-      voiceCaptionsSuppressedRef.current = true;
-      setVoice(initialVoiceCompanionState);
-      void reloadAvatarShell();
-    }).then((dispose) => {
-      unlisten = dispose;
-    });
-    return () => {
-      active = false;
-      unlisten?.();
     };
   }, []);
 
@@ -771,6 +758,78 @@ export function App() {
   ]);
 
   // ── Render: hard mutually exclusive ──────────────────────────────────────────
+  const restartPresentation = useCallback((): void => {
+    if (backendPresentationRef.current.kind !== 'unavailable'
+      || !activeBootstrapHandleRef.current?.carrier?.backend) {
+      return;
+    }
+    dismissTransientSurfaces('composition_change');
+    cancelLocalVoice();
+    voiceCaptionsSuppressedRef.current = true;
+    setAvatarLocalQuiet(true);
+    setQuietLatched(true);
+    setVoice(initialVoiceCompanionState);
+    backendSurfaceBoundsRef.current = null;
+    const loading: BackendPresentationState = { kind: 'loading' };
+    backendPresentationRef.current = loading;
+    setBackendPresentation(loading);
+    const presentationKey = carrierPresentationKey(activeBootstrapHandleRef.current.carrier);
+    if (!presentationKey) return;
+    setPresentationRecovery((current) => ({
+      presentationKey,
+      epoch: current?.presentationKey === presentationKey ? current.epoch + 1 : 1,
+    }));
+  }, [cancelLocalVoice, dismissTransientSurfaces]);
+
+  const restartBootstrap = useCallback((): void => {
+    if (bootstrapRestartInFlightRef.current) return;
+    bootstrapRestartInFlightRef.current = true;
+    dismissTransientSurfaces('composition_change');
+    cancelLocalVoice();
+    voiceCaptionsSuppressedRef.current = true;
+    setAvatarLocalQuiet(true);
+    setQuietLatched(true);
+    setVoice(initialVoiceCompanionState);
+    setBootstrapError(null);
+    setBootstrapComplete(false);
+    const loading: BackendPresentationState = { kind: 'loading' };
+    backendPresentationRef.current = loading;
+    setBackendPresentation(loading);
+    setPresentationRecovery(null);
+    backendSurfaceBoundsRef.current = null;
+    const previousHandle = activeBootstrapHandleRef.current;
+    activeBootstrapHandleRef.current = null;
+    setBootstrapHandle(null);
+    const staged = stagedPresentationRef.current;
+    if (staged && !staged.settled.value) {
+      staged.settled.value = true;
+      staged.reject(new Error('Avatar presentation staging was restarted.'));
+    }
+    stagedPresentationRef.current = null;
+    setStagedPresentation(null);
+    initialLeaseCommitInFlightRef.current = null;
+    committedLeasePresentationRef.current = null;
+
+    void (async () => {
+      try {
+        await previousHandle?.shutdown();
+        if (!appMountedRef.current) return;
+        const nextHandle = await bootstrapAvatar();
+        if (!appMountedRef.current) {
+          await nextHandle.shutdown();
+          return;
+        }
+        activeBootstrapHandleRef.current = nextHandle;
+        setBootstrapHandle(nextHandle);
+        setBootstrapComplete(true);
+      } catch (error: unknown) {
+        if (appMountedRef.current) setBootstrapError(toErrorMessage(error));
+      } finally {
+        bootstrapRestartInFlightRef.current = false;
+      }
+    })();
+  }, [cancelLocalVoice, dismissTransientSurfaces]);
+
   const ambient = presentationReady
     ? quietLatched
       ? 'ready'
@@ -803,7 +862,7 @@ export function App() {
         data-composition={composition.state}
         data-avatar-status={runtimeStatus}
       >
-        <DegradedSurface composition={composition} />
+        <DegradedSurface composition={composition} onRestart={restartBootstrap} />
         <AvatarRuntimeStatusRegion status={runtimeStatus} />
       </div>
     );
@@ -824,7 +883,7 @@ export function App() {
     >
       <EmbodimentStage
         backend={bootstrapHandle?.carrier?.backend ?? null}
-        presentationKey={carrierPresentationKey(bootstrapHandle?.carrier)}
+        presentationKey={carrierPresentationAttemptKey(bootstrapHandle?.carrier, presentationRecovery)}
         stagingPresentation={stagedPresentation ? {
           backend: stagedPresentation.carrier.backend,
           presentationKey: stagedPresentation.presentationKey,
@@ -841,6 +900,7 @@ export function App() {
         interactionModality={interactionModality}
         onFocusVisibleChange={setFocusVisibleWithinStage}
         onPresentationStateChange={handleBackendPresentationState}
+        onPresentationRestart={restartPresentation}
         onSurfaceBoundsChange={handleBackendSurfaceBounds}
       />
       {presentationReady && shouldMountCompanionSurface(voice) && !quietLatched ? (

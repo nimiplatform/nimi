@@ -27,7 +27,7 @@ export function deriveAvatarRuntimeStatus(input: {
 }): AvatarRuntimeStatus {
   if (input.consumeAuthority === 'fixture') return 'not_verified';
   if (!input.compositionReady) {
-    return input.compositionState === 'loading' || input.compositionState === 'relaunch_pending'
+    return input.compositionState === 'loading'
       ? 'loading'
       : 'unavailable';
   }

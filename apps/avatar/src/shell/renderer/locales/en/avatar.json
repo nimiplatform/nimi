@@ -34,7 +34,7 @@
     },
     "degraded": {
       "surface_aria": "Avatar unavailable",
-      "reload": "Restart avatar",
+      "restart": "Restart avatar",
       "diagnostics": {
         "summary": "Diagnostics",
         "composition_state": "Composition state",
@@ -91,19 +91,13 @@
         "title": "The avatar couldn't start",
         "summary": "An unexpected error stopped the avatar before it opened.",
         "summary_with_reason": "An unexpected error stopped the avatar before it opened. Reason: {{reason}}.",
-        "recovery": "Reload the avatar. If it happens again, check the Runtime logs."
-      },
-      "relaunch_pending": {
-        "badge": "Preparing",
-        "title": "Switching avatar",
-        "summary": "Nimi Desktop selected a different agent or avatar instance.",
-        "recovery": "Reload to apply the new selection."
+        "recovery": "Restart the avatar. If it happens again, check the Runtime logs."
       },
       "unknown": {
         "badge": "Surface paused",
         "title": "Avatar paused",
         "summary": "The avatar entered an unexpected state and paused safely.",
-        "recovery": "Reload the avatar to continue."
+        "recovery": "Restart the avatar to continue."
       }
     },
     "creator_capabilities": {

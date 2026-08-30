@@ -96,7 +96,7 @@ namespaces: &avatar_i18n_key_entries
     keys:
       - key: Avatar.degraded.surface_aria
         usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
-      - key: Avatar.degraded.reload
+      - key: Avatar.degraded.restart
         usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
       - key: Avatar.degraded.diagnostics.summary
         usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
@@ -197,16 +197,6 @@ namespaces: &avatar_i18n_key_entries
       - key: Avatar.degraded.error_bootstrap_fatal.summary_with_reason
         usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
       - key: Avatar.degraded.error_bootstrap_fatal.recovery
-        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
-
-      # state: relaunch_pending
-      - key: Avatar.degraded.relaunch_pending.badge
-        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
-      - key: Avatar.degraded.relaunch_pending.title
-        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
-      - key: Avatar.degraded.relaunch_pending.summary
-        usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
-      - key: Avatar.degraded.relaunch_pending.recovery
         usage: "src/shell/renderer/degraded-surface/degraded-surface.tsx"
 
       # defensive unknown bucket

@@ -19,8 +19,6 @@ const constrainWindowToVisibleAreaMock = vi.fn();
 const setAlwaysOnTopMock = vi.fn();
 const hideAvatarWindowMock = vi.fn();
 const closeAvatarWindowMock = vi.fn();
-const onLaunchContextUpdatedMock = vi.fn();
-const reloadAvatarShellMock = vi.fn();
 let hostRuntime = false;
 type AvatarLaunchContextForTest = {
   agentHandle: string;
@@ -28,10 +26,6 @@ type AvatarLaunchContextForTest = {
   avatarInstanceId: string | null;
   launchSource: string | null;
 };
-
-let launchContextUpdatedHandler:
-  | ((payload: AvatarLaunchContextForTest) => void)
-  | null = null;
 
 function launchContext(overrides: Partial<AvatarLaunchContextForTest> = {}): AvatarLaunchContextForTest {
   return {
@@ -70,14 +64,6 @@ vi.mock('./app-shell/avatar-window-commands.js', () => ({
 
 vi.mock('./app-shell/host-lifecycle.js', () => ({
   onHostSuspend: async () => () => {},
-  onLaunchContextUpdated: (handler: typeof launchContextUpdatedHandler) => {
-    launchContextUpdatedHandler = handler;
-    return onLaunchContextUpdatedMock();
-  },
-}));
-
-vi.mock('./shell-reload.js', () => ({
-  reloadAvatarShell: () => reloadAvatarShellMock(),
 }));
 
 vi.mock('./live2d/Live2DCarrierVisualSurface.js', () => ({
@@ -277,14 +263,6 @@ function setHostRuntime(value: boolean): void {
   hostRuntime = value;
 }
 
-function hasLaunchContextUpdatedHandler(): boolean {
-  return launchContextUpdatedHandler !== null;
-}
-
-function emitLaunchContextUpdated(payload: Partial<AvatarLaunchContextForTest>): void {
-  launchContextUpdatedHandler?.(launchContext(payload));
-}
-
 beforeEach(() => {
   useAvatarStore.setState(useAvatarStore.getInitialState(), true);
   bootstrapAvatarMock.mockReset();
@@ -296,10 +274,6 @@ beforeEach(() => {
   hideAvatarWindowMock.mockResolvedValue(undefined);
   closeAvatarWindowMock.mockReset();
   closeAvatarWindowMock.mockResolvedValue(undefined);
-  onLaunchContextUpdatedMock.mockReset();
-  onLaunchContextUpdatedMock.mockResolvedValue(() => {});
-  reloadAvatarShellMock.mockReset();
-  launchContextUpdatedHandler = null;
   hostRuntime = false;
   window.localStorage.clear();
 });

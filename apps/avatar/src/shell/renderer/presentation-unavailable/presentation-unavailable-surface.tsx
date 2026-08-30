@@ -1,15 +1,16 @@
 import { Button, StatusBadge, Surface, cn } from '@nimiplatform/kit/ui';
 import { closeAvatarWindow } from '../app-shell/avatar-window-commands.js';
 import { useTranslation } from '../i18n/index.js';
-import { reloadAvatarShell } from '../shell-reload.js';
 
 export type PresentationUnavailableSurfaceProps = {
   reason?: string | null;
+  onRestart?: () => void;
 };
 
 // @nimi-authority: rule.nimi.avatar.embodiment.r076
 export function PresentationUnavailableSurface({
   reason,
+  onRestart,
 }: PresentationUnavailableSurfaceProps) {
   const { t } = useTranslation();
   const normalizedReason = reason?.trim() || null;
@@ -48,16 +49,18 @@ export function PresentationUnavailableSurface({
         {t('Avatar.presentation_unavailable.recovery')}
       </p>
       <div className="avatar-degraded-surface__actions">
-        <Button
-          type="button"
-          className="avatar-degraded-surface__primary-action"
-          tone="primary"
-          size="md"
-          onClick={() => reloadAvatarShell()}
-          data-testid="avatar-presentation-restart"
-        >
-          {t('Avatar.presentation_unavailable.restart')}
-        </Button>
+        {onRestart ? (
+          <Button
+            type="button"
+            className="avatar-degraded-surface__primary-action"
+            tone="primary"
+            size="md"
+            onClick={onRestart}
+            data-testid="avatar-presentation-restart"
+          >
+            {t('Avatar.presentation_unavailable.restart')}
+          </Button>
+        ) : null}
         <Button
           type="button"
           tone="ghost"

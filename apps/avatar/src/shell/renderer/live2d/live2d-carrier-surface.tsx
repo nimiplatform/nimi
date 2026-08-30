@@ -92,6 +92,7 @@ export function createLive2DCarrierSurface(
           paramMouthFormSupported={deps.paramMouthFormSupported}
           reducedMotion={props.reducedMotion}
           onPresentationStateChange={props.onPresentationStateChange}
+          onPresentationRestart={props.onPresentationRestart}
         />
       </div>
     );

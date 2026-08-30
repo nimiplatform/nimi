@@ -580,6 +580,7 @@ export function createVrmCarrierSurface(
         <div data-avatar-vrm-state="failed_closed">
           <PresentationUnavailableSurface
             reason={state.kind === 'failed_closed' ? state.reason : 'webgl_canvas_unavailable'}
+            onRestart={props.onPresentationRestart}
           />
         </div>
       );

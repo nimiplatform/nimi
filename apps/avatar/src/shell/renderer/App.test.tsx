@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from './App.js';
 import { useAvatarStore } from './app-shell/app-store.js';
 import type { BootstrapHandle } from './app-shell/app-bootstrap.js';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type {
   BackendPresentationState,
   BackendSurfaceProps,
@@ -27,8 +27,6 @@ const constrainWindowToVisibleAreaMock = vi.fn();
 const setAlwaysOnTopMock = vi.fn();
 const hideAvatarWindowMock = vi.fn();
 const closeAvatarWindowMock = vi.fn();
-const onLaunchContextUpdatedMock = vi.fn();
-const reloadAvatarShellMock = vi.fn();
 const installAvatarAgentCenterPreviewHandoffMock = vi.fn(async (_input: unknown) => () => {});
 let hostRuntime = false;
 type AvatarLaunchContextForTest = {
@@ -37,10 +35,6 @@ type AvatarLaunchContextForTest = {
   avatarInstanceId: string | null;
   launchSource: string | null;
 };
-
-let launchContextUpdatedHandler:
-  | ((payload: AvatarLaunchContextForTest) => void)
-  | null = null;
 
 function launchContext(overrides: Partial<AvatarLaunchContextForTest> = {}): AvatarLaunchContextForTest {
   return {
@@ -80,14 +74,6 @@ vi.mock('./app-shell/avatar-window-commands.js', () => ({
 
 vi.mock('./app-shell/host-lifecycle.js', () => ({
   onHostSuspend: async () => () => {},
-  onLaunchContextUpdated: (handler: typeof launchContextUpdatedHandler) => {
-    launchContextUpdatedHandler = handler;
-    return onLaunchContextUpdatedMock();
-  },
-}));
-
-vi.mock('./shell-reload.js', () => ({
-  reloadAvatarShell: () => reloadAvatarShellMock(),
 }));
 
 vi.mock('./agent-center-preview/agent-center-preview-handoff.js', () => ({
@@ -121,6 +107,7 @@ function createBackendProjection() {
 }
 
 type AvatarModelManifestForTest = NonNullable<NonNullable<BootstrapHandle['carrier']>['model']>;
+const READY_PRESENTATION_STATE: BackendPresentationState = { kind: 'ready' };
 
 function createLive2dModelManifest(): AvatarModelManifestForTest {
   return {
@@ -141,8 +128,13 @@ function createBootstrapHandle(input: {
   projection?: ReturnType<typeof createBackendProjection>;
   modelManifest?: AvatarModelManifestForTest;
   presentationState?: BackendPresentationState;
+  presentationStates?: BackendPresentationState[];
+  onSurfaceMount?: () => void;
+  onSurfaceUnmount?: () => void;
+  presentationReadyGate?: Promise<void>;
 } = {}): BootstrapHandle {
   const projection = input.projection;
+  let surfaceMountCount = 0;
   return {
     driver: {
       kind: 'sdk',
@@ -165,12 +157,40 @@ function createBootstrapHandle(input: {
           projection,
           surface: {
             Component: (props: BackendSurfaceProps) => {
+              const mountIndexRef = useRef<number | null>(null);
+              if (mountIndexRef.current === null) {
+                mountIndexRef.current = surfaceMountCount++;
+              }
+              const presentationState = input.presentationStates?.[mountIndexRef.current]
+                ?? input.presentationState
+                ?? READY_PRESENTATION_STATE;
               useEffect(() => {
-                props.onPresentationStateChange?.(
-                  input.presentationState ?? { kind: 'ready' },
-                );
-              }, [props.onPresentationStateChange]);
-              return null;
+                let active = true;
+                const publish = () => {
+                  if (active) props.onPresentationStateChange?.(presentationState);
+                };
+                if (input.presentationReadyGate) {
+                  void input.presentationReadyGate.then(publish);
+                } else {
+                  publish();
+                }
+                return () => {
+                  active = false;
+                };
+              }, [presentationState, props.onPresentationStateChange]);
+              useEffect(() => {
+                input.onSurfaceMount?.();
+                return () => input.onSurfaceUnmount?.();
+              }, []);
+              return presentationState.kind === 'unavailable' ? (
+                <button
+                  type="button"
+                  data-testid="test-backend-presentation-restart"
+                  onClick={props.onPresentationRestart}
+                >
+                  Restart presentation
+                </button>
+              ) : null;
             },
           },
           metadata: () => ({}),
@@ -320,14 +340,6 @@ function setHostRuntime(value: boolean): void {
   hostRuntime = value;
 }
 
-function hasLaunchContextUpdatedHandler(): boolean {
-  return launchContextUpdatedHandler !== null;
-}
-
-function emitLaunchContextUpdated(payload: Partial<AvatarLaunchContextForTest>): void {
-  launchContextUpdatedHandler?.(launchContext(payload));
-}
-
 beforeEach(() => {
   useAvatarStore.setState(useAvatarStore.getInitialState(), true);
   bootstrapAvatarMock.mockReset();
@@ -339,11 +351,7 @@ beforeEach(() => {
   hideAvatarWindowMock.mockResolvedValue(undefined);
   closeAvatarWindowMock.mockReset();
   closeAvatarWindowMock.mockResolvedValue(undefined);
-  onLaunchContextUpdatedMock.mockReset();
-  onLaunchContextUpdatedMock.mockResolvedValue(() => {});
-  reloadAvatarShellMock.mockReset();
   installAvatarAgentCenterPreviewHandoffMock.mockClear();
-  launchContextUpdatedHandler = null;
   hostRuntime = false;
   window.localStorage.clear();
 });
@@ -506,44 +514,12 @@ describe('App composition state machine', () => {
     expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('error_bootstrap_fatal');
   });
 
-  it('flips to relaunch_pending and unmounts ready surfaces when desktop pushes a new launch context', async () => {
-    setHostRuntime(true);
-    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
-
-    render(<App />);
-
-    act(() => {
-      seedReadyState();
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('avatar-embodiment-stage')).toBeTruthy();
-    });
-
-    await waitFor(() => {
-      expect(hasLaunchContextUpdatedHandler()).toBe(true);
-    });
-    expect(installAvatarAgentCenterPreviewHandoffMock).toHaveBeenCalledTimes(1);
-
-    act(() => {
-      emitLaunchContextUpdated({
-        agentHandle: 'agent-product-02',
-        avatarInstanceId: 'avatar-instance-02',
-        launchSource: 'desktop-avatar-launcher',
-      });
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('avatar-degraded-surface')).toBeTruthy();
-    });
-    expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('relaunch_pending');
-    expect(screen.queryByTestId('avatar-embodiment-stage')).toBeNull();
-    expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
-    expect(reloadAvatarShellMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('reload button triggers shell reload from degraded surface', async () => {
-    bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle());
+  it('restart from a degraded bootstrap tears down the prior handle before revalidation', async () => {
+    const initialHandle = createBootstrapHandle();
+    const replacementHandle = createBootstrapHandle();
+    bootstrapAvatarMock
+      .mockResolvedValueOnce(initialHandle)
+      .mockResolvedValueOnce(replacementHandle);
 
     render(<App />);
 
@@ -552,18 +528,181 @@ describe('App composition state machine', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('avatar-degraded-reload')).toBeTruthy();
+      expect(screen.getByTestId('avatar-degraded-restart')).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByTestId('avatar-degraded-reload'));
+    fireEvent.click(screen.getByTestId('avatar-degraded-restart'));
 
-    expect(reloadAvatarShellMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(initialHandle.shutdown).toHaveBeenCalledTimes(1);
+      expect(bootstrapAvatarMock).toHaveBeenCalledTimes(2);
+    });
   });
 
-  it('keeps backend terminal failure local but removes the global ready claim and body interaction', async () => {
+  it('keeps staged promotion mounted when the unavailable current carrier is restarted', async () => {
+    setHostRuntime(true);
+    const candidateMounted = vi.fn();
+    const candidateUnmounted = vi.fn();
+    const candidateReady = createDeferred<void>();
+    const initialHandle = createBootstrapHandle({
+      projection: createBackendProjection(),
+      presentationState: { kind: 'unavailable', reason: 'current_backend_failed' },
+    });
+    const candidateHandle = createBootstrapHandle({
+      projection: createBackendProjection(),
+      onSurfaceMount: candidateMounted,
+      onSurfaceUnmount: candidateUnmounted,
+      presentationReadyGate: candidateReady.promise,
+    });
+    const initialCarrier = initialHandle.carrier!;
+    const candidateCarrier = candidateHandle.carrier!;
+    initialCarrier.committedPresentationSelection = {
+      avatarAssetRef: 'avatar_asset_old',
+      backendKind: 'vrm',
+      previewMaterialRef: 'material_old',
+      presentationRevision: 'revision_old',
+    };
+    candidateCarrier.committedPresentationSelection = {
+      avatarAssetRef: 'avatar_asset_new',
+      backendKind: 'vrm',
+      previewMaterialRef: 'material_new',
+      presentationRevision: 'revision_new',
+    };
+    initialHandle.activateCommittedPresentation = vi.fn(async (_request, waitForReady) => {
+      await waitForReady(candidateCarrier);
+      initialHandle.carrier = candidateCarrier;
+    });
+    bootstrapAvatarMock.mockResolvedValue(initialHandle);
+
+    render(<App />);
+    act(() => seedReadyState());
+
+    await waitFor(() => {
+      expect(installAvatarAgentCenterPreviewHandoffMock).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state'))
+        .toBe('unavailable');
+    });
+    const previewInput = installAvatarAgentCenterPreviewHandoffMock.mock.calls[0]?.[0] as {
+      activatePresentation(input: {
+        agentHandle: string;
+        avatarAssetRef: string;
+        backendKind: 'live2d' | 'vrm';
+        presentationRevision: string;
+      }): Promise<void>;
+    };
+
+    let activationPromise!: Promise<void>;
+    act(() => {
+      activationPromise = previewInput.activatePresentation({
+        agentHandle: `agent_ref_${'a'.repeat(43)}`,
+        avatarAssetRef: 'avatar_asset_new',
+        backendKind: 'vrm',
+        presentationRevision: 'revision_new',
+      });
+    });
+    await waitFor(() => expect(candidateMounted).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getAllByTestId('test-backend-presentation-restart')[0]!);
+    act(() => candidateReady.resolve());
+    await act(async () => activationPromise);
+
+    expect(candidateMounted).toHaveBeenCalledTimes(1);
+    expect(candidateUnmounted).not.toHaveBeenCalled();
+  });
+
+  it('does not overwrite a recovered active carrier when staging fails', async () => {
+    setHostRuntime(true);
+    const candidateMounted = vi.fn();
+    const candidateResult = createDeferred<void>();
+    const initialHandle = createBootstrapHandle({
+      projection: createBackendProjection(),
+      presentationStates: [
+        { kind: 'unavailable', reason: 'current_backend_failed' },
+        { kind: 'ready' },
+      ],
+    });
+    const candidateHandle = createBootstrapHandle({
+      projection: createBackendProjection(),
+      presentationState: { kind: 'unavailable', reason: 'candidate_backend_failed' },
+      presentationReadyGate: candidateResult.promise,
+      onSurfaceMount: candidateMounted,
+    });
+    const initialCarrier = initialHandle.carrier!;
+    const candidateCarrier = candidateHandle.carrier!;
+    initialCarrier.committedPresentationSelection = {
+      avatarAssetRef: 'avatar_asset_old',
+      backendKind: 'vrm',
+      previewMaterialRef: 'material_old',
+      presentationRevision: 'revision_old',
+    };
+    candidateCarrier.committedPresentationSelection = {
+      avatarAssetRef: 'avatar_asset_failed',
+      backendKind: 'vrm',
+      previewMaterialRef: 'material_failed',
+      presentationRevision: 'revision_failed',
+    };
+    initialHandle.activateCommittedPresentation = vi.fn(async (_request, waitForReady) => {
+      await waitForReady(candidateCarrier);
+    });
+    bootstrapAvatarMock.mockResolvedValue(initialHandle);
+
+    render(<App />);
+    act(() => seedReadyState());
+
+    await waitFor(() => {
+      expect(installAvatarAgentCenterPreviewHandoffMock).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state'))
+        .toBe('unavailable');
+    });
+    const previewInput = installAvatarAgentCenterPreviewHandoffMock.mock.calls[0]?.[0] as {
+      activatePresentation(input: {
+        agentHandle: string;
+        avatarAssetRef: string;
+        backendKind: 'live2d' | 'vrm';
+        presentationRevision: string;
+      }): Promise<void>;
+    };
+    let activationPromise!: Promise<void>;
+    act(() => {
+      activationPromise = previewInput.activatePresentation({
+        agentHandle: `agent_ref_${'a'.repeat(43)}`,
+        avatarAssetRef: 'avatar_asset_failed',
+        backendKind: 'vrm',
+        presentationRevision: 'revision_failed',
+      });
+    });
+    await waitFor(() => expect(candidateMounted).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getAllByTestId('test-backend-presentation-restart')[0]!);
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state'))
+        .toBe('ready');
+    });
+    const activationResult = activationPromise.then(
+      () => null,
+      (error: unknown) => error,
+    );
+    let activationError: unknown;
+    await act(async () => {
+      candidateResult.resolve();
+      activationError = await activationResult;
+    });
+    expect(activationError).toEqual(expect.objectContaining({
+      message: 'candidate_backend_failed',
+    }));
+
+    expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state'))
+      .toBe('ready');
+    expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-product-ready'))
+      .toBe('true');
+  });
+
+  it('remounts the same backend after terminal presentation failure without re-bootstrapping', async () => {
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle({
       projection: createBackendProjection(),
-      presentationState: { kind: 'unavailable', reason: 'vrm_load_failed' },
+      presentationStates: [
+        { kind: 'unavailable', reason: 'vrm_load_failed' },
+        { kind: 'ready' },
+      ],
     }));
 
     render(<App />);
@@ -579,5 +718,13 @@ describe('App composition state machine', () => {
       .toBe('unavailable');
     expect(screen.getByTestId('avatar-runtime-status').textContent).toBe('Avatar unavailable');
     expect(screen.getByTestId('avatar-embodiment-stage').getAttribute('tabindex')).toBe('-1');
+
+    fireEvent.click(screen.getByTestId('test-backend-presentation-restart'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-presentation-state'))
+        .toBe('ready');
+    });
+    expect(bootstrapAvatarMock).toHaveBeenCalledTimes(1);
   });
 });

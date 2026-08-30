@@ -15,6 +15,7 @@ type Live2DCarrierVisualSurfaceProps = {
   paramMouthFormSupported: boolean;
   reducedMotion?: boolean;
   onPresentationStateChange?: (state: BackendPresentationState) => void;
+  onPresentationRestart?: () => void;
 };
 
 type Live2DVisualSurfaceStatus = 'idle' | 'loading' | 'recovering' | 'ready' | 'error';
@@ -51,6 +52,7 @@ export function Live2DCarrierVisualSurface({
   paramMouthFormSupported,
   reducedMotion,
   onPresentationStateChange,
+  onPresentationRestart,
 }: Live2DCarrierVisualSurfaceProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const lipsyncDriverRef = useRef(createLive2DLipsyncDriver());
@@ -353,7 +355,9 @@ export function Live2DCarrierVisualSurface({
         data-avatar-live2d-carrier-status={status}
         data-avatar-live2d-carrier-error={error ?? undefined}
       />
-      {status === 'error' ? <PresentationUnavailableSurface reason={error} /> : null}
+      {status === 'error' ? (
+        <PresentationUnavailableSurface reason={error} onRestart={onPresentationRestart} />
+      ) : null}
     </>
   );
 }
