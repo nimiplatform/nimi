@@ -39,24 +39,26 @@ type heldLoadoutPrepare struct {
 }
 
 type resolvedLoadoutAxis struct {
-	slot          *runtimev1.LoadoutModelAxis
-	requirement   *runtimev1.LocalCapabilityRequirement
-	binding       *runtimev1.ModelAssetExactBinding
-	descriptor    capabilitydriver.ModelAssetDescriptor
-	absolutePath  string
-	bundleDir     string
-	declaredFiles []string
-	entrySHA256   string
-	contextWindow uint64
+	slot             *runtimev1.LoadoutModelAxis
+	requirement      *runtimev1.LocalCapabilityRequirement
+	binding          *runtimev1.ModelAssetExactBinding
+	descriptor       capabilitydriver.ModelAssetDescriptor
+	absolutePath     string
+	bundleDir        string
+	declaredFiles    []string
+	entrySHA256      string
+	contextWindow    uint64
+	templateIdentity string
 }
 
 type loadoutValidationResult struct {
-	state        runtimev1.LoadoutValidationState
-	reasons      []runtimev1.ReasonCode
-	axisReasons  map[string][]runtimev1.ReasonCode
-	axes         []resolvedLoadoutAxis
-	requirements []*runtimev1.LocalCapabilityRequirement
-	driver       capabilitydriver.Driver
+	state              runtimev1.LoadoutValidationState
+	reasons            []runtimev1.ReasonCode
+	axisReasons        map[string][]runtimev1.ReasonCode
+	axes               []resolvedLoadoutAxis
+	requirements       []*runtimev1.LocalCapabilityRequirement
+	configuredFeatures []string
+	driver             capabilitydriver.Driver
 }
 
 func validateLocalCatalogLoadoutRecipes(local *catalog.LocalProviderCatalog, drivers *capabilitydriver.Registry) error {
@@ -74,9 +76,22 @@ func validateLocalCatalogLoadoutRecipes(local *catalog.LocalProviderCatalog, dri
 		if !ok {
 			return nil, fmt.Errorf("Driver does not support recipe projection")
 		}
-		requirements, reason := recipeDriver.ProjectRecipe(recipe.RecipeID, options, recipe.SupportedFeatures)
+		authoringFeatures := normalizeStableStringSet(recipe.SupportedFeatures)
+		implementationFeatures, reason := recipeDriver.ImplementationSupportedFeatures(recipe.RecipeID)
+		implementationFeatures = normalizeStableStringSet(implementationFeatures)
+		if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+			return nil, fmt.Errorf("Driver feature declaration: %s", reason.String())
+		}
+		if !stableStringSetsEqual(authoringFeatures, implementationFeatures) {
+			return nil, fmt.Errorf("catalog supported_features do not match Driver declaration")
+		}
+		requirements, reason := recipeDriver.ProjectRecipe(recipe.RecipeID, options, implementationFeatures)
 		if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 			return nil, fmt.Errorf("recipe projection: %s", reason.String())
+		}
+		requirements = cloneLocalCapabilityRequirements(requirements)
+		if err := normalizeProjectedLoadoutRequirements(requirements, implementationFeatures); err != nil {
+			return nil, fmt.Errorf("recipe projection: %w", err)
 		}
 		slots := make([]string, 0, len(requirements))
 		for _, requirement := range requirements {
@@ -130,7 +145,22 @@ func (s *Service) ListLoadoutRecipes(_ context.Context, request *runtimev1.ListL
 			continue
 		}
 		recipe = s.projectHostRecommendedLoadoutRecipe(recipe, hostProfile)
-		projected, err := projectLoadoutRecipeDescriptor(recipe)
+		options, err := structpb.NewStruct(recipe.DefaultOptions)
+		if err != nil {
+			return nil, loadoutError(codes.Internal, runtimev1.ReasonCode_AI_LOADOUT_CATALOG_SCHEMA_INVALID, err.Error(), nil)
+		}
+		authoringFeatures := normalizeStableStringSet(recipe.SupportedFeatures)
+		_, requirements, implementationFeatures, err := s.projectRecipe(
+			recipe.RecipeID,
+			recipe.CapabilityContract,
+			(&capabilitydriver.Identity{ImplementationID: recipe.ImplementationID, DriverID: recipe.DriverID, DriverDialect: recipe.DriverDialect}).Proto(),
+			options,
+			authoringFeatures,
+		)
+		if err != nil {
+			return nil, err
+		}
+		projected, err := projectLoadoutRecipeDescriptor(recipe, requirements, implementationFeatures)
 		if err != nil {
 			return nil, loadoutError(codes.Internal, runtimev1.ReasonCode_AI_LOADOUT_CATALOG_SCHEMA_INVALID, err.Error(), nil)
 		}
@@ -183,23 +213,32 @@ func loadoutRecipeCustodyReferences(recipe catalog.LocalLoadoutRecipe) []*runtim
 	return result
 }
 
-func projectLoadoutRecipeDescriptor(recipe catalog.LocalLoadoutRecipe) (*runtimev1.LoadoutRecipeDescriptor, error) {
+func projectLoadoutRecipeDescriptor(recipe catalog.LocalLoadoutRecipe, requirements []*runtimev1.LocalCapabilityRequirement, implementationFeatures []string) (*runtimev1.LoadoutRecipeDescriptor, error) {
 	options, err := structpb.NewStruct(recipe.DefaultOptions)
 	if err != nil {
 		return nil, err
 	}
 	result := &runtimev1.LoadoutRecipeDescriptor{
 		RecipeId: recipe.RecipeID, Revision: recipe.Revision, Title: recipe.Title,
-		CapabilityContract: recipe.CapabilityContract,
-		Implementation:     (&capabilitydriver.Identity{ImplementationID: recipe.ImplementationID, DriverID: recipe.DriverID, DriverDialect: recipe.DriverDialect}).Proto(),
-		DefaultOptions:     options, SupportedFeatures: append([]string(nil), recipe.SupportedFeatures...),
+		CapabilityContract:              recipe.CapabilityContract,
+		Implementation:                  (&capabilitydriver.Identity{ImplementationID: recipe.ImplementationID, DriverID: recipe.DriverID, DriverDialect: recipe.DriverDialect}).Proto(),
+		DefaultOptions:                  options,
+		ImplementationSupportedFeatures: append([]string(nil), implementationFeatures...),
 	}
 	for _, custody := range recipe.Custody {
 		result.Custody = append(result.Custody, &runtimev1.LoadoutRecipeCustodyDescriptor{
 			File: custody.File, Sha256: custody.SHA256, Source: custody.Source, Role: custody.Role,
 		})
 	}
+	metadataBySlot := make(map[string]catalog.LocalRecipeSlotMetadata, len(recipe.SlotMetadata))
 	for _, slot := range recipe.SlotMetadata {
+		metadataBySlot[slot.SlotID] = slot
+	}
+	for _, requirement := range requirements {
+		slot, ok := metadataBySlot[requirement.GetRequirementId()]
+		if !ok {
+			return nil, fmt.Errorf("recipe slot metadata is missing Driver slot %q", requirement.GetRequirementId())
+		}
 		contract, err := structpb.NewStruct(slot.ModelContract)
 		if err != nil {
 			return nil, err
@@ -208,7 +247,12 @@ func projectLoadoutRecipeDescriptor(recipe catalog.LocalLoadoutRecipe) (*runtime
 			SlotId: slot.SlotID, DisplayLabel: slot.DisplayLabel,
 			RecommendedContentIds: append([]string(nil), slot.RecommendedContentIDs...), ModelContract: contract,
 			RecommendedVariantIds: append([]string(nil), slot.RecommendedVariantIDs...),
+			Presence:              requirement.GetPresence(), ConditionalFeatures: append([]string(nil), requirement.GetConditionalFeatures()...),
 		})
+		delete(metadataBySlot, slot.SlotID)
+	}
+	if len(metadataBySlot) != 0 {
+		return nil, fmt.Errorf("recipe slot metadata contains slots outside the Driver projection")
 	}
 	return result, nil
 }
@@ -301,11 +345,8 @@ func (s *Service) PrepareLoadout(ctx context.Context, request *runtimev1.Prepare
 	if options == nil {
 		options, _ = structpb.NewStruct(recipe.DefaultOptions)
 	}
-	features := normalizeStableStringSet(request.GetSupportedFeatures())
-	if request.SupportedFeatures == nil {
-		features = normalizeStableStringSet(recipe.SupportedFeatures)
-	}
-	driver, requirements, err := s.projectRecipe(recipeID, contract, (&capabilitydriver.Identity{ImplementationID: recipe.ImplementationID, DriverID: recipe.DriverID, DriverDialect: recipe.DriverDialect}).Proto(), options, features)
+	authoringFeatures := normalizeStableStringSet(recipe.SupportedFeatures)
+	driver, requirements, implementationFeatures, err := s.projectRecipe(recipeID, contract, (&capabilitydriver.Identity{ImplementationID: recipe.ImplementationID, DriverID: recipe.DriverID, DriverDialect: recipe.DriverDialect}).Proto(), options, authoringFeatures)
 	if err != nil {
 		return nil, err
 	}
@@ -329,23 +370,37 @@ func (s *Service) PrepareLoadout(ctx context.Context, request *runtimev1.Prepare
 		LoadoutId: loadoutID, CapabilityContract: contract,
 		Implementation: (&capabilitydriver.Identity{ImplementationID: recipe.ImplementationID, DriverID: recipe.DriverID, DriverDialect: recipe.DriverDialect}).Proto(),
 		RecipeId:       recipe.RecipeID, RecipeRevision: recipe.Revision, Options: options,
-		SupportedFeatures: features, DisplayName: displayName, Provenance: cloneStruct(request.GetProvenance()),
+		ImplementationSupportedFeatures: append([]string(nil), implementationFeatures...),
+		DisplayName:                     displayName, Provenance: cloneStruct(request.GetProvenance()),
 		CreatedAt: createdAt, UpdatedAt: now.Format(time.RFC3339Nano),
 		RecipeCustody: loadoutRecipeCustodyReferences(recipe),
 	}
+	textBehaviors, behaviorErr := projectLoadoutTextBehaviors(driver, recipe.RecipeID)
+	if behaviorErr != nil {
+		return nil, behaviorErr
+	}
+	proposal.TextBehaviors = textBehaviors
 	for _, requirement := range requirements {
 		metadata, exists := metadataBySlot[requirement.GetRequirementId()]
 		if !exists {
 			return nil, loadoutError(codes.Internal, runtimev1.ReasonCode_AI_LOADOUT_CATALOG_SCHEMA_INVALID, "recipe slot metadata is incomplete", nil)
 		}
-		axis := &runtimev1.LoadoutModelAxis{SlotId: requirement.GetRequirementId(), DisplayLabel: metadata.DisplayLabel}
+		axis := &runtimev1.LoadoutModelAxis{
+			SlotId: requirement.GetRequirementId(), DisplayLabel: metadata.DisplayLabel,
+			Presence: requirement.GetPresence(), ConditionalFeatures: append([]string(nil), requirement.GetConditionalFeatures()...),
+		}
 		input := inputs[requirement.GetRequirementId()]
 		if input != nil {
 			axis.ModelAssetId = strings.TrimSpace(input.GetModelAssetId())
 			axis.ExpectedContentId = strings.TrimSpace(input.GetExpectedContentId())
+			if (axis.GetModelAssetId() == "") != (axis.GetExpectedContentId() == "") {
+				return nil, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID, "model_axes bindings require both model_asset_id and expected_content_id", map[string]string{"slot_id": axis.GetSlotId()})
+			}
 			delete(inputs, requirement.GetRequirementId())
-		} else if candidate := s.uniqueRecommendedModelAsset(s.recommendedContentIDsForRequirement(metadata, requirement)); candidate != nil {
-			axis.ModelAssetId, axis.ExpectedContentId = candidate.GetModelAssetId(), candidate.GetContentId()
+		} else if requirement.GetPresence() == runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED {
+			if candidate := s.uniqueRecommendedModelAsset(s.recommendedContentIDsForRequirement(metadata, requirement)); candidate != nil {
+				axis.ModelAssetId, axis.ExpectedContentId = candidate.GetModelAssetId(), candidate.GetContentId()
+			}
 		}
 		proposal.ModelAxes = append(proposal.ModelAxes, axis)
 	}
@@ -439,7 +494,7 @@ func (s *Service) UpdateLoadout(ctx context.Context, request *runtimev1.UpdateLo
 	}
 	prepared, err := s.PrepareLoadout(ctx, &runtimev1.PrepareLoadoutRequest{
 		LoadoutId: request.GetLoadoutId(), CapabilityContract: request.GetCapabilityContract(), RecipeId: request.GetRecipeId(),
-		Options: request.GetOptions(), SupportedFeatures: request.GetSupportedFeatures(), ModelAxes: request.GetModelAxes(),
+		Options: request.GetOptions(), ModelAxes: request.GetModelAxes(),
 		DisplayName: request.GetDisplayName(), Provenance: request.GetProvenance(),
 	})
 	if err != nil {
@@ -533,33 +588,120 @@ func (s *Service) DeleteLoadout(_ context.Context, request *runtimev1.DeleteLoad
 	return &runtimev1.DeleteLoadoutResponse{}, nil
 }
 
-func (s *Service) projectRecipe(recipeID, contract string, implementation *runtimev1.CapabilityImplementationIdentity, options *structpb.Struct, features []string) (capabilitydriver.Driver, []*runtimev1.LocalCapabilityRequirement, error) {
+func (s *Service) projectRecipe(recipeID, contract string, implementation *runtimev1.CapabilityImplementationIdentity, options *structpb.Struct, authoringFeatures []string) (capabilitydriver.Driver, []*runtimev1.LocalCapabilityRequirement, []string, error) {
+	authoringFeatures = normalizeStableStringSet(authoringFeatures)
 	driver, reason := s.capabilityDrivers.Resolve(contract, capabilitydriver.IdentityFromProto(implementation))
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || driver == nil {
-		return nil, nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout Driver is unavailable", map[string]string{"local_reason": reason.String()})
+		return nil, nil, nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout Driver is unavailable", map[string]string{"local_reason": reason.String()})
 	}
 	recipeDriver, ok := driver.(capabilitydriver.RecipeDriver)
 	if !ok {
-		return nil, nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout Driver does not support recipe projection", nil)
+		return nil, nil, nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout Driver does not support recipe projection", nil)
+	}
+	implementationFeatures, reason := recipeDriver.ImplementationSupportedFeatures(recipeID)
+	implementationFeatures = normalizeStableStringSet(implementationFeatures)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		return nil, nil, nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout recipe feature declaration is unavailable", map[string]string{"local_reason": reason.String()})
+	}
+	if !stableStringSetsEqual(authoringFeatures, implementationFeatures) {
+		return nil, nil, nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout recipe feature metadata does not match its exact Driver declaration", nil)
 	}
 	var requirements []*runtimev1.LocalCapabilityRequirement
 	if hostDriver, ok := driver.(capabilitydriver.HostPlatformRecipeDriver); ok {
 		platformTuple := strings.ToLower(strings.TrimSpace(localRuntimeGOOS)) + "/" + strings.ToLower(strings.TrimSpace(localRuntimeGOARCH))
-		requirements, reason = hostDriver.ProjectRecipeForHost(recipeID, options, features, platformTuple)
+		requirements, reason = hostDriver.ProjectRecipeForHost(recipeID, options, implementationFeatures, platformTuple)
 	} else {
-		requirements, reason = recipeDriver.ProjectRecipe(recipeID, options, features)
+		requirements, reason = recipeDriver.ProjectRecipe(recipeID, options, implementationFeatures)
 	}
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || len(requirements) == 0 {
 		if reason == runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID {
-			return nil, nil, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID, "Loadout options are not valid for the selected recipe", map[string]string{"local_reason": reason.String()})
+			return nil, nil, nil, loadoutError(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONFIG_INVALID, "Loadout options are not valid for the selected recipe", map[string]string{"local_reason": reason.String()})
 		}
-		return nil, nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout recipe is not interpretable by its exact Driver dialect", map[string]string{"local_reason": reason.String()})
+		return nil, nil, nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout recipe is not interpretable by its exact Driver dialect", map[string]string{"local_reason": reason.String()})
 	}
-	return driver, cloneLocalCapabilityRequirements(requirements), nil
+	requirements = cloneLocalCapabilityRequirements(requirements)
+	if err := normalizeProjectedLoadoutRequirements(requirements, implementationFeatures); err != nil {
+		return nil, nil, nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout Driver projected invalid slot presence semantics", map[string]string{"detail": err.Error()})
+	}
+	return driver, requirements, implementationFeatures, nil
 }
 
 func (s *Service) projectStoredLoadout(loadout *runtimev1.Loadout) (capabilitydriver.Driver, []*runtimev1.LocalCapabilityRequirement, error) {
-	return s.projectRecipe(loadout.GetRecipeId(), loadout.GetCapabilityContract(), loadout.GetImplementation(), loadout.GetOptions(), loadout.GetSupportedFeatures())
+	if loadout == nil {
+		return nil, nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout is required", nil)
+	}
+	features := normalizeStableStringSet(loadout.GetImplementationSupportedFeatures())
+	driver, requirements, implementationFeatures, err := s.projectRecipe(loadout.GetRecipeId(), loadout.GetCapabilityContract(), loadout.GetImplementation(), loadout.GetOptions(), features)
+	if err != nil {
+		return nil, nil, err
+	}
+	loadout.ImplementationSupportedFeatures = append([]string(nil), implementationFeatures...)
+	behaviors, behaviorErr := projectLoadoutTextBehaviors(driver, loadout.GetRecipeId())
+	if behaviorErr != nil {
+		return nil, nil, behaviorErr
+	}
+	loadout.TextBehaviors = behaviors
+	return driver, requirements, nil
+}
+
+func projectLoadoutTextBehaviors(driver capabilitydriver.Driver, recipeID string) ([]*runtimev1.TextBehaviorCapabilityProjection, error) {
+	behaviorDriver, ok := driver.(capabilitydriver.TextBehaviorProjectionDriver)
+	if !ok {
+		return nil, nil
+	}
+	behaviors, reason := behaviorDriver.TextBehaviorCapabilities(recipeID)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE, "Loadout text behavior mapping is unavailable", map[string]string{"local_reason": reason.String()})
+	}
+	result := make([]*runtimev1.TextBehaviorCapabilityProjection, 0, len(behaviors))
+	for _, behavior := range behaviors {
+		if behavior != nil {
+			result = append(result, proto.Clone(behavior).(*runtimev1.TextBehaviorCapabilityProjection))
+		}
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].GetKind() < result[j].GetKind() })
+	return result, nil
+}
+
+// normalizeProjectedLoadoutRequirements validates Driver-owned slot presence.
+// LocalService never supplies requiredness or infers it from slot names,
+// roles, catalog metadata, or a legacy default.
+func normalizeProjectedLoadoutRequirements(requirements []*runtimev1.LocalCapabilityRequirement, implementationFeatures []string) error {
+	featureSet := make(map[string]struct{}, len(implementationFeatures))
+	for _, feature := range implementationFeatures {
+		featureSet[feature] = struct{}{}
+	}
+	seen := make(map[string]struct{}, len(requirements))
+	for _, requirement := range requirements {
+		if requirement == nil || strings.TrimSpace(requirement.GetRequirementId()) == "" {
+			return fmt.Errorf("Driver projected an empty requirement")
+		}
+		if _, duplicate := seen[requirement.GetRequirementId()]; duplicate {
+			return fmt.Errorf("Driver projected duplicate requirement %q", requirement.GetRequirementId())
+		}
+		seen[requirement.GetRequirementId()] = struct{}{}
+		requirement.ConditionalFeatures = normalizeStableStringSet(requirement.GetConditionalFeatures())
+		switch requirement.GetPresence() {
+		case runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_UNSPECIFIED:
+			return fmt.Errorf("Driver requirement %q does not declare presence", requirement.GetRequirementId())
+		case runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED:
+			if len(requirement.GetConditionalFeatures()) != 0 {
+				return fmt.Errorf("required Driver requirement %q has conditional features", requirement.GetRequirementId())
+			}
+		case runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL:
+			if len(requirement.GetConditionalFeatures()) == 0 {
+				return fmt.Errorf("optional-conditional Driver requirement %q has no trigger features", requirement.GetRequirementId())
+			}
+			for _, feature := range requirement.GetConditionalFeatures() {
+				if _, ok := featureSet[feature]; !ok {
+					return fmt.Errorf("Driver requirement %q names unsupported conditional feature %q", requirement.GetRequirementId(), feature)
+				}
+			}
+		default:
+			return fmt.Errorf("Driver requirement %q has invalid presence", requirement.GetRequirementId())
+		}
+	}
+	return nil
 }
 
 type loadoutModelAxisResolver func(*runtimev1.Loadout, capabilitydriver.Driver, *runtimev1.LocalCapabilityRequirement, *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode)
@@ -597,7 +739,22 @@ func (s *Service) validateLoadoutWithAxisResolver(loadout *runtimev1.Loadout, dr
 	for _, requirement := range requirements {
 		slotID := requirement.GetRequirementId()
 		axis := axisBySlot[slotID]
-		if axis == nil || axis.GetModelAssetId() == "" || axis.GetExpectedContentId() == "" {
+		if axis == nil {
+			if requirement.GetPresence() == runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL {
+				result.state = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED
+			} else if result.state != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED {
+				result.state = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_UNRESOLVED
+			}
+			result.reasons = appendReasonCode(result.reasons, runtimev1.ReasonCode_AI_LOADOUT_NOT_CONFIGURED)
+			result.axisReasons[slotID] = appendReasonCode(result.axisReasons[slotID], runtimev1.ReasonCode_AI_LOADOUT_NOT_CONFIGURED)
+			continue
+		}
+		modelAssetID := strings.TrimSpace(axis.GetModelAssetId())
+		expectedContentID := strings.TrimSpace(axis.GetExpectedContentId())
+		if modelAssetID == "" && expectedContentID == "" && requirement.GetPresence() == runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL {
+			continue
+		}
+		if modelAssetID == "" || expectedContentID == "" {
 			if result.state != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED {
 				result.state = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_UNRESOLVED
 			}
@@ -626,7 +783,44 @@ func (s *Service) validateLoadoutWithAxisResolver(loadout *runtimev1.Loadout, dr
 			result.reasons = appendReasonCode(result.reasons, runtimev1.ReasonCode_AI_LOADOUT_MODEL_CONTRACT_FAILED)
 		}
 	}
+	result.configuredFeatures = deriveConfiguredLoadoutFeatures(loadout.GetImplementationSupportedFeatures(), requirements, result)
 	return result
+}
+
+func deriveConfiguredLoadoutFeatures(implementationFeatures []string, requirements []*runtimev1.LocalCapabilityRequirement, validation loadoutValidationResult) []string {
+	if validation.state != runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
+		return nil
+	}
+	resolved := make(map[string]struct{}, len(validation.axes))
+	for _, axis := range validation.axes {
+		resolved[axis.requirement.GetRequirementId()] = struct{}{}
+	}
+	for _, requirement := range requirements {
+		if requirement.GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED {
+			continue
+		}
+		if _, ok := resolved[requirement.GetRequirementId()]; !ok {
+			return nil
+		}
+	}
+	configured := make([]string, 0, len(implementationFeatures))
+	for _, feature := range normalizeStableStringSet(implementationFeatures) {
+		available := true
+		for _, requirement := range requirements {
+			if requirement.GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL ||
+				!loadoutContainsString(requirement.GetConditionalFeatures(), feature) {
+				continue
+			}
+			if _, ok := resolved[requirement.GetRequirementId()]; !ok {
+				available = false
+				break
+			}
+		}
+		if available {
+			configured = append(configured, feature)
+		}
+	}
+	return configured
 }
 
 func (s *Service) resolveLoadoutModelAxis(loadout *runtimev1.Loadout, driver capabilitydriver.Driver, requirement *runtimev1.LocalCapabilityRequirement, axis *runtimev1.LoadoutModelAxis) (resolvedLoadoutAxis, runtimev1.ReasonCode) {
@@ -687,12 +881,19 @@ func (s *Service) resolveLoadoutModelAxisWithHasher(loadout *runtimev1.Loadout, 
 		}
 		files = append(files, &runtimev1.ModelAssetFile{RelativePath: declared.GetRelativePath(), Sha256: digest, SizeBytes: info.Size(), NonExecutableContent: declared.GetNonExecutableContent()})
 		declaredFiles = append(declaredFiles, declared.GetRelativePath())
+		probeLimit, ok := modelAssetFormatProbeLimit(driver, capabilitydriver.ModelAssetFormatProbeInput{
+			RecipeID: loadout.GetRecipeId(), RequirementID: requirement.GetRequirementId(),
+			RelativePath: declared.GetRelativePath(), Entry: declared.GetRelativePath() == asset.GetEntry(),
+		})
+		if !ok {
+			return resolvedLoadoutAxis{}, runtimev1.ReasonCode_AI_LOADOUT_MODEL_CONTRACT_FAILED
+		}
 		opened, openErr := os.Open(absolute)
 		if openErr != nil {
 			contentMismatch = true
 			continue
 		}
-		probe, readErr := io.ReadAll(io.LimitReader(opened, capabilitydriver.MaxAssetFormatProbeBytes))
+		probe, readErr := io.ReadAll(io.LimitReader(opened, probeLimit))
 		closeErr := opened.Close()
 		if readErr != nil || closeErr != nil {
 			contentMismatch = true
@@ -720,7 +921,16 @@ func (s *Service) resolveLoadoutModelAxisWithHasher(loadout *runtimev1.Loadout, 
 		slot: cloneLoadoutAxis(axis), requirement: cloneLocalCapabilityRequirement(requirement), binding: binding, descriptor: projection.Descriptor,
 		absolutePath: filepath.Clean(entryPath), bundleDir: filepath.Clean(directory), declaredFiles: append([]string(nil), declaredFiles...),
 		entrySHA256: entrySHA, contextWindow: projection.ModelContextWindowTokens,
+		templateIdentity: projection.TemplateIdentity,
 	}, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+func modelAssetFormatProbeLimit(driver capabilitydriver.Driver, input capabilitydriver.ModelAssetFormatProbeInput) (int64, bool) {
+	limit := int64(capabilitydriver.MaxAssetFormatProbeBytes)
+	if scoped, ok := driver.(capabilitydriver.ModelAssetFormatProbeDriver); ok {
+		limit = scoped.ModelAssetFormatProbeBytes(input)
+	}
+	return limit, limit >= 4 && limit <= int64(capabilitydriver.MaxDriverAssetFormatProbeBytes)
 }
 
 func applyLoadoutValidation(loadout *runtimev1.Loadout, validation loadoutValidationResult) {
@@ -729,20 +939,64 @@ func applyLoadoutValidation(loadout *runtimev1.Loadout, validation loadoutValida
 	}
 	loadout.ValidationState = validation.state
 	loadout.Reasons = append([]runtimev1.ReasonCode(nil), validation.reasons...)
+	loadout.ConfiguredFeatures = append([]string(nil), validation.configuredFeatures...)
 	resolved := make(map[string]struct{}, len(validation.axes))
 	for _, axis := range validation.axes {
 		resolved[axis.slot.GetSlotId()] = struct{}{}
+	}
+	requirementBySlot := make(map[string]*runtimev1.LocalCapabilityRequirement, len(validation.requirements))
+	for _, requirement := range validation.requirements {
+		requirementBySlot[requirement.GetRequirementId()] = requirement
 	}
 	for _, axis := range loadout.GetModelAxes() {
 		if axis == nil {
 			continue
 		}
+		requirement := requirementBySlot[axis.GetSlotId()]
+		if requirement != nil {
+			axis.Presence = requirement.GetPresence()
+			axis.ConditionalFeatures = append([]string(nil), requirement.GetConditionalFeatures()...)
+		}
 		_, axis.RecipeCompatible = resolved[axis.GetSlotId()]
 		axis.Reasons = append([]runtimev1.ReasonCode(nil), validation.axisReasons[axis.GetSlotId()]...)
-		if axis.GetModelAssetId() == "" && len(axis.GetReasons()) == 0 {
-			axis.Reasons = []runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOADOUT_NOT_CONFIGURED}
+		switch {
+		case axis.GetRecipeCompatible():
+			axis.Resolution = runtimev1.LocalCapabilityRequirementResolution_LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED
+		case axis.GetModelAssetId() == "" && axis.GetExpectedContentId() == "" && axis.GetPresence() == runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL:
+			axis.Resolution = runtimev1.LocalCapabilityRequirementResolution_LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_NOT_CONFIGURED
+			axis.Reasons = nil
+		default:
+			axis.Resolution = runtimev1.LocalCapabilityRequirementResolution_LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNRESOLVED
+			if axis.GetModelAssetId() == "" && len(axis.GetReasons()) == 0 {
+				axis.Reasons = []runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOADOUT_NOT_CONFIGURED}
+			}
 		}
 	}
+	applyValidatedLoadoutTextBehaviors(loadout, validation)
+}
+
+func applyValidatedLoadoutTextBehaviors(loadout *runtimev1.Loadout, validation loadoutValidationResult) {
+	if loadout == nil {
+		return
+	}
+	driver, ok := validation.driver.(capabilitydriver.TextBehaviorBindingProjectionDriver)
+	if !ok {
+		return
+	}
+	facts := make([]capabilitydriver.TextBehaviorBindingFacts, 0, len(validation.axes))
+	if validation.state == runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
+		for _, axis := range validation.axes {
+			facts = append(facts, capabilitydriver.TextBehaviorBindingFacts{
+				RequirementID: axis.requirement.GetRequirementId(), VerifiedContentID: axis.binding.GetVerifiedContentId(),
+				EntrySHA256: axis.binding.GetEntrySha256(), TemplateIdentity: axis.templateIdentity,
+			})
+		}
+	}
+	behaviors, reason := driver.TextBehaviorCapabilitiesForBindings(loadout.GetRecipeId(), facts)
+	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
+		return
+	}
+	loadout.TextBehaviors = cloneTextBehaviorCapabilityProjections(behaviors)
 }
 
 func (s *Service) deriveCurrentLoadout(stored *runtimev1.Loadout) *runtimev1.Loadout {
@@ -772,6 +1026,14 @@ func validateStoredLoadout(loadout *runtimev1.Loadout) error {
 	if !aicapabilities.IsCanonicalCatalogCapability(loadout.GetCapabilityContract()) {
 		return fmt.Errorf("Loadout capability_contract is not canonical")
 	}
+	if !stableStringSetIsCanonical(loadout.GetImplementationSupportedFeatures()) || !stableStringSetIsCanonical(loadout.GetConfiguredFeatures()) {
+		return fmt.Errorf("Loadout feature projections are not canonical")
+	}
+	for _, feature := range loadout.GetConfiguredFeatures() {
+		if !loadoutContainsString(loadout.GetImplementationSupportedFeatures(), feature) {
+			return fmt.Errorf("Loadout configured feature %q is not implementation-supported", feature)
+		}
+	}
 	identity := loadout.GetImplementation()
 	if identity == nil || strings.TrimSpace(identity.GetImplementationId()) == "" || strings.TrimSpace(identity.GetDriverId()) == "" || strings.TrimSpace(identity.GetDriverDialect()) == "" {
 		return fmt.Errorf("Loadout implementation identity is incomplete")
@@ -797,11 +1059,37 @@ func validateStoredLoadout(loadout *runtimev1.Loadout) error {
 		seen[axis.GetSlotId()] = struct{}{}
 		modelAssetID := strings.TrimSpace(axis.GetModelAssetId())
 		expectedContentID := strings.TrimSpace(axis.GetExpectedContentId())
+		if !stableStringSetIsCanonical(axis.GetConditionalFeatures()) {
+			return fmt.Errorf("Loadout slot %q conditional features are not canonical", axis.GetSlotId())
+		}
+		switch axis.GetPresence() {
+		case runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED:
+			if len(axis.GetConditionalFeatures()) != 0 {
+				return fmt.Errorf("required Loadout slot %q has conditional features", axis.GetSlotId())
+			}
+		case runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL:
+			if len(axis.GetConditionalFeatures()) == 0 {
+				return fmt.Errorf("optional-conditional Loadout slot %q has no trigger features", axis.GetSlotId())
+			}
+		default:
+			return fmt.Errorf("Loadout slot %q presence is invalid", axis.GetSlotId())
+		}
 		if expectedContentID != "" && normalizeVerifiedContentID(expectedContentID) != expectedContentID {
 			return fmt.Errorf("Loadout slot %q expected content identity is invalid", axis.GetSlotId())
 		}
-		if modelAssetID != "" && expectedContentID == "" {
+		if (modelAssetID == "") != (expectedContentID == "") {
 			return fmt.Errorf("Loadout slot %q binding is not exact", axis.GetSlotId())
+		}
+		if modelAssetID != "" {
+			if axis.GetResolution() != runtimev1.LocalCapabilityRequirementResolution_LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED || !axis.GetRecipeCompatible() {
+				return fmt.Errorf("Loadout slot %q configured binding projection is invalid", axis.GetSlotId())
+			}
+		} else if axis.GetPresence() == runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED {
+			if axis.GetResolution() != runtimev1.LocalCapabilityRequirementResolution_LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNRESOLVED || axis.GetRecipeCompatible() {
+				return fmt.Errorf("required Loadout slot %q absence projection is invalid", axis.GetSlotId())
+			}
+		} else if axis.GetResolution() != runtimev1.LocalCapabilityRequirementResolution_LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_NOT_CONFIGURED || axis.GetRecipeCompatible() {
+			return fmt.Errorf("optional-conditional Loadout slot %q absence projection is invalid", axis.GetSlotId())
 		}
 	}
 	if len(loadout.GetModelAxes()) == 0 {
@@ -819,16 +1107,45 @@ func canonicalizeLoadout(loadout *runtimev1.Loadout) {
 	loadout.RecipeId = strings.TrimSpace(loadout.GetRecipeId())
 	loadout.RecipeRevision = strings.TrimSpace(loadout.GetRecipeRevision())
 	loadout.DisplayName = strings.TrimSpace(loadout.GetDisplayName())
-	loadout.SupportedFeatures = normalizeStableStringSet(loadout.GetSupportedFeatures())
+	loadout.ImplementationSupportedFeatures = normalizeStableStringSet(loadout.GetImplementationSupportedFeatures())
+	loadout.ConfiguredFeatures = normalizeStableStringSet(loadout.GetConfiguredFeatures())
+	sort.Slice(loadout.TextBehaviors, func(i, j int) bool { return loadout.TextBehaviors[i].GetKind() < loadout.TextBehaviors[j].GetKind() })
 	for _, axis := range loadout.GetModelAxes() {
 		if axis != nil {
 			axis.SlotId = strings.TrimSpace(axis.GetSlotId())
 			axis.DisplayLabel = strings.TrimSpace(axis.GetDisplayLabel())
 			axis.ModelAssetId = strings.TrimSpace(axis.GetModelAssetId())
 			axis.ExpectedContentId = strings.TrimSpace(axis.GetExpectedContentId())
+			axis.ConditionalFeatures = normalizeStableStringSet(axis.GetConditionalFeatures())
 		}
 	}
 	sort.Slice(loadout.ModelAxes, func(i, j int) bool { return loadout.ModelAxes[i].GetSlotId() < loadout.ModelAxes[j].GetSlotId() })
+}
+
+func stableStringSetIsCanonical(values []string) bool {
+	for index, value := range values {
+		if strings.TrimSpace(value) == "" || strings.TrimSpace(value) != value {
+			return false
+		}
+		if index > 0 && values[index-1] >= value {
+			return false
+		}
+	}
+	return true
+}
+
+func stableStringSetsEqual(left, right []string) bool {
+	left = normalizeStableStringSet(left)
+	right = normalizeStableStringSet(right)
+	if len(left) != len(right) {
+		return false
+	}
+	for index := range left {
+		if left[index] != right[index] {
+			return false
+		}
+	}
+	return true
 }
 
 func validateStoredLoadoutSelection(selection *runtimev1.LoadoutSelection, loadouts map[string]*runtimev1.Loadout) error {

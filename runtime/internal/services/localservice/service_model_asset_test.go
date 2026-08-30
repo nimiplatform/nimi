@@ -592,10 +592,6 @@ func TestModelAssetStoreUnavailableResolvedRootPreservesInventory(t *testing.T) 
 	storePath := svc.modelAssetStorePath
 	resolvedRoot := filepath.Join(modelsPath, "resolved")
 	offlineRoot := filepath.Join(filepath.Dir(resolvedRoot), "resolved-offline")
-	storeBefore, err := os.ReadFile(storePath)
-	if err != nil {
-		t.Fatal(err)
-	}
 	svc.Close()
 
 	if err := os.Rename(resolvedRoot, offlineRoot); err != nil {
@@ -609,18 +605,20 @@ func TestModelAssetStoreUnavailableResolvedRootPreservesInventory(t *testing.T) 
 		modelsPath,
 		filepath.Dir(modelsPath),
 	)
-	if restarted != nil {
-		restarted.Close()
+	if restartErr != nil || restarted == nil {
+		t.Fatalf("startup must preserve record-only ModelAsset intent: service=%v err=%v", restarted, restartErr)
 	}
-	if restartErr == nil {
-		t.Fatal("startup succeeded while the complete resolved ModelAsset root was unavailable")
+	listedUnavailable, listErr := restarted.ListModelAssets(context.Background(), &runtimev1.ListModelAssetsRequest{})
+	if listErr != nil || len(listedUnavailable.GetAssets()) != 1 || listedUnavailable.GetAssets()[0].GetModelAssetId() != asset.GetModelAssetId() {
+		t.Fatalf("record-only ModelAsset inventory = %+v err=%v", listedUnavailable, listErr)
 	}
+	restarted.Close()
 	storeAfter, err := os.ReadFile(storePath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(storeAfter, storeBefore) || !modelAssetStorePayloadContainsID(storeAfter, asset.GetModelAssetId()) {
-		t.Fatal("root-scope unavailability rewrote active ModelAsset inventory")
+	if !modelAssetStorePayloadContainsID(storeAfter, asset.GetModelAssetId()) {
+		t.Fatal("root-scope unavailability removed active ModelAsset inventory")
 	}
 	quarantine, err := filepath.Glob(filepath.Join(
 		stateQuarantineDirectory(storePath),

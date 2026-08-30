@@ -173,8 +173,9 @@ type Service struct {
 	lifeLoopCancel context.CancelFunc
 	lifeLoopDone   chan struct{}
 
-	closeOnce sync.Once
-	closed    atomic.Bool
+	closeOnce             sync.Once
+	closed                atomic.Bool
+	dataRootHandoffClosed atomic.Bool
 }
 
 func NewWithBackend(logger *slog.Logger, localStatePath string, backend *runtimepersistence.Backend) (*Service, error) {
@@ -300,7 +301,7 @@ func (s *Service) Close() {
 }
 
 func (s *Service) isClosed() bool {
-	return s == nil || s.closed.Load()
+	return s == nil || s.closed.Load() || s.dataRootHandoffClosed.Load()
 }
 
 func (s *Service) SetAuditStore(store *auditlog.Store) {

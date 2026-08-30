@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -71,7 +70,7 @@ func TestLocalAppSessionInvalidationAndSameHostRebind(t *testing.T) {
 		t.Fatalf("rebound realm.data PersonaCharacter admission: %v", err)
 	}
 
-	fixture.registrationInput.SourceDigest = "source-digest-2"
+	fixture.registrationInput.HostExecutableDigest = "host-digest-2"
 	if _, err := fixture.kernel.Registrations().RegisterDevelopment(ctx, fixture.registrationInput); err != nil {
 		t.Fatal(err)
 	}
@@ -462,7 +461,12 @@ func newLocalAppSessionFixture(t testing.TB, domains []string) localAppSessionFi
 		t.Fatal(err)
 	}
 	kernelEntropy := bytes.Repeat([]byte{0x31}, 256)
-	kernel, err := localappkernel.OpenSQLite(ctx, filepath.Join(t.TempDir(), "registered-apps.db"), identity, localappkernel.Options{Random: bytes.NewReader(kernelEntropy)})
+	dataRoot := t.TempDir()
+	databasePath, err := localappkernel.CanonicalRegistrationDatabasePath(dataRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kernel, err := localappkernel.OpenSQLite(ctx, databasePath, identity, localappkernel.Options{Random: bytes.NewReader(kernelEntropy), HostInstallID: "local-app-session-host", DataRoot: dataRoot})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -470,13 +474,14 @@ func newLocalAppSessionFixture(t testing.TB, domains []string) localAppSessionFi
 	input := localappkernel.RegisterDevelopmentInput{
 		AppID: "nimi.test.session", DisplayName: "Session Test", SourceRef: "source-1",
 		ProjectRoot: "/tmp/nimi-session-test", ManifestPath: "/tmp/nimi-session-test/nimi.app.yaml",
-		ShellKind: 1, RawDeclaration: append([]string(nil), domains...), SourceDigest: "source-digest-1",
-		HostExecutableDigest: "host-digest-1", PayloadRootDigest: "payload-digest-1",
+		ShellKind: 1, RawDeclaration: append([]string(nil), domains...),
+		HostExecutableDigest: "host-digest-1",
 	}
 	registration, err := kernel.Registrations().RegisterDevelopment(ctx, input)
 	if err != nil {
 		t.Fatal(err)
 	}
+	input.ExistingRegistrationHandle = registration.RegistrationHandle
 	registrationHandle, ok := localDevelopmentRegistrationIdentifier(registration.RegistrationHandle)
 	if !ok {
 		t.Fatal("registration handle is not a protected identifier")

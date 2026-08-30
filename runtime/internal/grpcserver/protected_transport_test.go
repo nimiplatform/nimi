@@ -33,14 +33,18 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-type recordingFormalAppAdmission struct{ calls []string }
+type recordingFormalAppAdmission struct {
+	calls        []string
+	bindingSlots []string
+}
 
-func (admission *recordingFormalAppAdmission) AuthorizeFormalAppIngress(ctx context.Context, appID string, boot protectedlocal.Identifier, ingress localappop.Ingress) (context.Context, error) {
+func (admission *recordingFormalAppAdmission) AuthorizeFormalAppIngress(ctx context.Context, appID string, bindingSlot string, boot protectedlocal.Identifier, ingress localappop.Ingress) (context.Context, error) {
 	classification, err := localappop.ClassifyIngress(ingress)
 	if err != nil {
 		return nil, err
 	}
 	admission.calls = append(admission.calls, appID+":"+string(classification.Domain))
+	admission.bindingSlots = append(admission.bindingSlots, bindingSlot)
 	return accountservice.ContextWithAuthorizedLocalAppDecision(ctx, accountservice.LocalAppCallerDecision{
 		SessionID: boot, RuntimeBootEpoch: boot, AppID: appID,
 		AccountID: "account-1", RealmEnvironmentID: "realm-1", AccountGeneration: 1,
@@ -49,8 +53,9 @@ func (admission *recordingFormalAppAdmission) AuthorizeFormalAppIngress(ctx cont
 	}), nil
 }
 
-func (admission *recordingFormalAppAdmission) BindFormalAppSession(ctx context.Context, appID string, _ protectedlocal.Identifier) (context.Context, func(), error) {
+func (admission *recordingFormalAppAdmission) BindFormalAppSession(ctx context.Context, appID string, bindingSlot string, _ protectedlocal.Identifier) (context.Context, func(), error) {
 	admission.calls = append(admission.calls, appID+":session")
+	admission.bindingSlots = append(admission.bindingSlots, bindingSlot)
 	return ctx, func() {}, nil
 }
 
@@ -75,6 +80,9 @@ func TestBundledAvatarFormalSessionUsesRequestEmptyMechanicBinding(t *testing.T)
 	}
 	if len(admission.calls) != 1 || admission.calls[0] != bundledavatar.AppID+":session" {
 		t.Fatalf("formal session calls = %v", admission.calls)
+	}
+	if len(admission.bindingSlots) != 1 || admission.bindingSlots[0] != bundledavatar.ProfileID {
+		t.Fatalf("formal session binding slots = %v", admission.bindingSlots)
 	}
 }
 
@@ -296,8 +304,11 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	auditService := &protectedDesktopAuditTestService{}
 	localService := &protectedDesktopLocalTestService{}
 	appService := &protectedDesktopAppTestService{}
+	runtimeControlService := &protectedDesktopRuntimeControlTestService{}
+	rpcRegistry := newActiveRPCRegistry(nil)
+	formalAdmission := &recordingFormalAppAdmission{}
 	server := newProtectedDesktopRPCServer(
-		&runtimev1.UnimplementedRuntimeServiceControlServiceServer{},
+		runtimeControlService,
 		authService,
 		accountService,
 		&runtimev1.UnimplementedRuntimeRealmRealtimeServiceServer{},
@@ -313,7 +324,8 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		manager,
 		accountService,
 		nil,
-		nil,
+		formalAdmission,
+		rpcRegistry,
 	)
 	for _, serviceName := range []string{
 		"nimi.runtime.v1.RuntimeAuditService",
@@ -484,6 +496,36 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	if err != nil || localAppLaunch.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED || !appService.localAppLaunchBound {
 		t.Fatalf("PrepareLocalAppLaunch protected carrier = (%+v, %v), bound=%v", localAppLaunch, err, appService.localAppLaunchBound)
 	}
+	if err := rpcRegistry.CloseRootAdmission(context.Background()); err != nil {
+		t.Fatalf("close protected RPC root admission: %v", err)
+	}
+	formalAdmission.calls = nil
+	accountContext := metadata.NewOutgoingContext(context.Background(), metadata.Pairs(
+		protectedFirstPartyProfileMetadata, protectedlocal.DesktopAccountProductNativeMarker,
+		"x-nimi-app-id", envelope.ProtectedDesktopAppID,
+	))
+	agentClient := runtimev1.NewRuntimeAgentServiceClient(clientConn)
+	if _, err = agentClient.GetLocalAppAgentManagerSnapshot(accountContext, &runtimev1.GetLocalAppAgentManagerSnapshotRequest{}); status.Code(err) != codes.Unavailable || len(formalAdmission.calls) != 0 {
+		t.Fatalf("closed root admission reached protected formal App owner: calls=%v err=%v", formalAdmission.calls, err)
+	}
+	localService.productControlBound = false
+	productControlResponse, err = localClient.GetProductControlRecord(machineContext, &runtimev1.GetProductControlRecordRequest{})
+	if err != nil || productControlResponse.GetJson() == "" || !localService.productControlBound {
+		t.Fatalf("Product Control observation did not cross prepared handoff = (%+v, %v), bound=%v", productControlResponse, err, localService.productControlBound)
+	}
+	localService.modelAssetsCalled = false
+	if _, err = localClient.ListModelAssets(machineContext, &runtimev1.ListModelAssetsRequest{}); status.Code(err) != codes.Unavailable || localService.modelAssetsCalled {
+		t.Fatalf("root-bound protected Desktop RPC crossed prepared handoff: called=%v err=%v", localService.modelAssetsCalled, err)
+	}
+	runtimeControlClient := runtimev1.NewRuntimeServiceControlServiceClient(clientConn)
+	if _, err = runtimeControlClient.RequestRuntimeRestart(context.Background(), &runtimev1.RequestRuntimeRestartRequest{}); status.Code(err) != codes.Unavailable || runtimeControlService.restartCalls != 0 {
+		t.Fatalf("Runtime restart crossed protected admission before commit: calls=%d err=%v", runtimeControlService.restartCalls, err)
+	}
+	rpcRegistry.CommitRootHandoff()
+	restartResponse, err := runtimeControlClient.RequestRuntimeRestart(context.Background(), &runtimev1.RequestRuntimeRestartRequest{})
+	if err != nil || !restartResponse.GetAccepted() || runtimeControlService.restartCalls != 1 {
+		t.Fatalf("Runtime restart after commit = (%+v, %v), calls=%d", restartResponse, err, runtimeControlService.restartCalls)
+	}
 	if err := clientConn.Close(); err != nil {
 		t.Fatalf("close protected Desktop client: %v", err)
 	}
@@ -499,6 +541,16 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
+}
+
+type protectedDesktopRuntimeControlTestService struct {
+	runtimev1.UnimplementedRuntimeServiceControlServiceServer
+	restartCalls int
+}
+
+func (service *protectedDesktopRuntimeControlTestService) RequestRuntimeRestart(context.Context, *runtimev1.RequestRuntimeRestartRequest) (*runtimev1.RequestRuntimeRestartResponse, error) {
+	service.restartCalls++
+	return &runtimev1.RequestRuntimeRestartResponse{Accepted: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
 func TestGeneratedFirstPartyProfilesResolveExactMarkerMethodAndKind(t *testing.T) {
@@ -539,7 +591,7 @@ func TestGeneratedFirstPartyProfilesResolveExactMarkerMethodAndKind(t *testing.T
 	}
 }
 
-func TestDesktopAccountProfileRetiresDirectScenarioStream(t *testing.T) {
+func TestDesktopAccountProfileAdmitsTypedExternalAIHostScenarioStream(t *testing.T) {
 	manager, connection := newProtectedRPCFixture(t)
 	if _, err := manager.Open(protectedlocal.ContextWithDesktopConnection(context.Background(), connection)); err != nil {
 		t.Fatalf("open Desktop session: %v", err)
@@ -558,8 +610,8 @@ func TestDesktopAccountProfileRetiresDirectScenarioStream(t *testing.T) {
 		}
 		return nil
 	})
-	if status.Code(err) != codes.PermissionDenied || reached {
-		t.Fatalf("retired account Scenario stream reached=%v error=%v", reached, err)
+	if err != nil || !reached {
+		t.Fatalf("typed external AI host Scenario stream reached=%v error=%v", reached, err)
 	}
 }
 
@@ -589,6 +641,9 @@ func TestDesktopAgentConfigureUsesFormalAppAdmission(t *testing.T) {
 	)
 	if err != nil || !reached || len(admission.calls) != 1 {
 		t.Fatalf("Desktop formal App admission reached=%v calls=%v err=%v", reached, admission.calls, err)
+	}
+	if len(admission.bindingSlots) != 1 || admission.bindingSlots[0] != protectedlocal.DesktopAccountProductProfileID {
+		t.Fatalf("Desktop formal App binding slots = %v", admission.bindingSlots)
 	}
 }
 

@@ -101,9 +101,11 @@ func projectVerifiedAssetDescriptor(
 	engine := ""
 	logicalModelID := ""
 	if !passive {
-		engine = strings.ToLower(strings.TrimSpace(install.PreferredEngine))
-		if engine == "" {
-			engine = defaultLocalEngine("", capabilities)
+		engine = defaultLocalEngine(install.PreferredEngine, capabilities)
+		switch engine {
+		case "llama", "media", "speech", "sidecar":
+		default:
+			return nil, fmt.Errorf("verified asset projection: model %q has unsupported public engine %q", row.ModelID, engine)
 		}
 		logicalModelID = strings.TrimSpace(row.ModelID)
 	}
@@ -171,7 +173,7 @@ func projectVerifiedAssetDescriptor(
 		PreferredEngine:  engine,
 		Metadata:         metadata,
 		EngineConfig:     engineConfig,
-		HostRequirements: projectHostRequirements(variant.HostRequirement, engine),
+		HostRequirements: projectHostRequirements(variant.HostRequirement, install.PreferredEngine),
 	}, nil
 }
 
@@ -205,11 +207,11 @@ func verifiedAssetTags(capabilities []string, quant string) []string {
 // accelerated variants require a GPU.
 func projectHostRequirements(
 	requirement catalog.LocalPlaneHostRequirement,
-	engine string,
+	privateEngine string,
 ) *runtimev1.LocalHostRequirements {
 	accelerator := strings.ToLower(strings.TrimSpace(requirement.Accelerator))
 	return &runtimev1.LocalHostRequirements{
 		GpuRequired:           accelerator == "cuda" || accelerator == "metal",
-		PythonRuntimeRequired: strings.EqualFold(strings.TrimSpace(engine), "speech"),
+		PythonRuntimeRequired: strings.EqualFold(strings.TrimSpace(privateEngine), "speech"),
 	}
 }

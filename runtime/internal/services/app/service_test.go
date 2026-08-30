@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -18,6 +20,20 @@ import (
 
 func newTestService(opts ...Option) *Service {
 	return New(slog.New(slog.NewTextHandler(io.Discard, nil)), opts...)
+}
+
+func TestAppStorageCheckSyncUsesOnlyCurrentDataRoot(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "app-data-root")
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	service := newTestService(WithAppStorageDataRoot(root))
+	if err := service.CheckSyncDataRoot(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.CheckSyncDataRoot(filepath.Join(t.TempDir(), "other-root")); err == nil {
+		t.Fatal("App storage owner accepted a non-current data root")
+	}
 }
 
 func appContext(appID string) context.Context {

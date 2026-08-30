@@ -269,15 +269,17 @@ func (protectedLocalAppTransportCredentials) OverrideServerName(string) error {
 	return fmt.Errorf("protected local-app transport has no portable server name")
 }
 
-func newProtectedLocalAppRPCServer(runtimeControlService runtimev1.RuntimeServiceControlServiceServer, authService runtimev1.RuntimeAuthServiceServer, accountService runtimev1.RuntimeAccountServiceServer, realmRealtimeService runtimev1.RuntimeRealmRealtimeServiceServer, localService runtimev1.RuntimeLocalServiceServer, aiService runtimev1.RuntimeAiServiceServer, agentService runtimev1.RuntimeAgentServiceServer, appService runtimev1.RuntimeAppServiceServer) *grpc.Server {
+func newProtectedLocalAppRPCServer(runtimeControlService runtimev1.RuntimeServiceControlServiceServer, authService runtimev1.RuntimeAuthServiceServer, accountService runtimev1.RuntimeAccountServiceServer, realmRealtimeService runtimev1.RuntimeRealmRealtimeServiceServer, localService runtimev1.RuntimeLocalServiceServer, aiService runtimev1.RuntimeAiServiceServer, agentService runtimev1.RuntimeAgentServiceServer, appService runtimev1.RuntimeAppServiceServer, rpcRegistry *activeRPCRegistry) *grpc.Server {
 	admission, _ := appService.(protectedLocalAppAdmission)
+	transportUnary := newUnaryProtectedLocalAppTransportInterceptor(admission)
+	transportStream := newStreamProtectedLocalAppTransportInterceptor(admission)
 	server := grpc.NewServer(
 		grpc.Creds(protectedLocalAppTransportCredentials{}),
 		grpc.KeepaliveEnforcementPolicy(protectedGRPCKeepalivePolicy()),
 		grpc.MaxRecvMsgSize(maxProtectedLocalAppRecvMessageBytes),
 		grpc.MaxSendMsgSize(maxGRPCSendMessageBytes), grpc.MaxConcurrentStreams(maxGRPCConcurrentStreams),
-		grpc.UnaryInterceptor(newUnaryProtectedLocalAppTransportInterceptor(admission)),
-		grpc.StreamInterceptor(newStreamProtectedLocalAppTransportInterceptor(admission)),
+		grpc.ChainUnaryInterceptor(newUnaryActivityInterceptor(rpcRegistry), transportUnary),
+		grpc.ChainStreamInterceptor(newStreamActivityInterceptor(rpcRegistry), transportStream),
 	)
 	runtimev1.RegisterRuntimeServiceControlServiceServer(server, runtimeControlService)
 	runtimev1.RegisterRuntimeAuthServiceServer(server, authService)

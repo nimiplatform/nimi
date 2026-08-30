@@ -76,7 +76,7 @@ func TestLocalEnvironmentActivationGateBlocksRepairRequiredSourceRecord(t *testi
 	if len(deps) == 0 {
 		t.Fatal("expected dependencies")
 	}
-	svc.markLocalEnvironmentDependencyRepairRequired(deps[0].EnvironmentKey, "repair required for test")
+	_, _, _ = svc.markLocalEnvironmentDependencyRepairRequired(deps[0].EnvironmentKey, "repair required for test")
 
 	gate := svc.resolveLocalEnvironmentConsumerActivationGate(req)
 

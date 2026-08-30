@@ -59,6 +59,43 @@ type OutboxItem struct {
 	Envelope         *runtimev1.CognitionMemoryCommittedEventEnvelope
 }
 
+const cognitionMemoryRootActivationMetaKey = "cognition_memory_root_activation_id"
+
+// FenceRootActivationJobs makes Runtime AI Jobs explicitly non-portable while
+// preserving canonical Memory bindings and the committed-event outbox. The
+// single owner-private activation marker distinguishes an ordinary restart
+// from a copied/reselected root activation without creating run history.
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007e
+func (s *Store) FenceRootActivationJobs(ctx context.Context, rootActivationID string) (bool, error) {
+	if s == nil || s.backend == nil || strings.TrimSpace(rootActivationID) == "" || strings.TrimSpace(rootActivationID) != rootActivationID {
+		return false, fmt.Errorf("cognition memory root activation is invalid")
+	}
+	changed := false
+	err := s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		var current string
+		err := tx.QueryRow(`SELECT value FROM runtime_local_agent_meta WHERE key = ?`, cognitionMemoryRootActivationMetaKey).Scan(&current)
+		if err != nil && !errors.Is(err, sql.ErrNoRows) {
+			return err
+		}
+		if err == nil && current == rootActivationID {
+			return nil
+		}
+		now := s.now().UTC().Format(time.RFC3339Nano)
+		if _, err := tx.Exec(`UPDATE runtime_cognition_memory_ai_job
+			SET status = 'failed', result_json = NULL, failure_code = 'root_activation_changed', updated_at = ?
+			WHERE status IN ('pending', 'running', 'ready')`, now); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_meta(key, value) VALUES(?, ?)
+			ON CONFLICT(key) DO UPDATE SET value = excluded.value`, cognitionMemoryRootActivationMetaKey, rootActivationID); err != nil {
+			return err
+		}
+		changed = true
+		return nil
+	})
+	return changed, err
+}
+
 func NewStore(backend *runtimepersistence.Backend) *Store {
 	return &Store{backend: backend, now: time.Now}
 }

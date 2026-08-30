@@ -99,6 +99,7 @@ func (s *Service) ResolveModelInstallPlan(ctx context.Context, req *runtimev1.Re
 			EngineConfig:      nil,
 			TotalSizeBytes:    catalogItem.GetTotalSizeBytes(),
 			SourceProvenance:  catalogItem.GetSourceProvenance(),
+			ModelType:         catalogItem.GetModelType(),
 		}
 		evaluateCatalogModelAcquisitionPlan(plan)
 		s.mu.Lock()
@@ -240,8 +241,25 @@ func (s *Service) resolveHFCatalogAcquisition(
 	return item, nil
 }
 
-func defaultLocalEngine(raw string, _ []string) string {
-	return strings.TrimSpace(raw)
+func defaultLocalEngine(raw string, capabilities []string) string {
+	normalized := strings.ToLower(strings.TrimSpace(raw))
+	if normalized == "audio-cpp" {
+		return "speech"
+	}
+	if normalized != "" {
+		return normalized
+	}
+	for _, capability := range capabilities {
+		switch normalizeLocalCapabilityToken(capability) {
+		case "text.generate", "text.embed":
+			return "llama"
+		case "image.generate", "video.generate", "world.generate":
+			return "media"
+		case "audio.synthesize", "audio.transcribe", "music.generate", "voice.create", "realtime.interact":
+			return "speech"
+		}
+	}
+	return ""
 }
 
 func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.InstallModelFromPlanRequest) (*runtimev1.InstallModelFromPlanResponse, error) {
@@ -279,12 +297,19 @@ func (s *Service) InstallModelFromPlan(ctx context.Context, req *runtimev1.Insta
 			Message: "ModelAsset install plan contains no payload files",
 		})
 	}
+	kind := inferAssetKindFromCapabilities(plan.GetCapabilities())
+	if kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED && strings.TrimSpace(plan.GetModelType()) != "" {
+		kind, err = verifiedAssetKindForPassiveModel(strings.TrimSpace(plan.GetModelType()))
+		if err != nil {
+			return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID, err, grpcerr.ReasonOptions{Message: "install plan model_type is invalid"})
+		}
+	}
 	record, err := s.installManagedDownloadedModel(ctx, managedDownloadedModelSpec{
 		modelID:           defaultString(plan.GetTemplateId(), defaultString(plan.GetItemId(), plan.GetModelId())),
 		displayName:       plan.GetModelId(),
 		catalogAssetID:    plan.GetItemId(),
 		catalogTemplateID: plan.GetTemplateId(),
-		kind:              inferAssetKindFromCapabilities(plan.GetCapabilities()),
+		kind:              kind,
 		capabilities:      append([]string(nil), plan.GetCapabilities()...),
 		entry:             plan.GetEntry(),
 		files:             append([]string(nil), plan.GetFiles()...),

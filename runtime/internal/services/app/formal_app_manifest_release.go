@@ -127,7 +127,7 @@ func loadManifestFormalAppRelease(releaseRoot string, manifestPath string) (Form
 	if _, _, err := appaccess.ResolveDeclaration(*manifest.AppAccess); err != nil {
 		return FormalAppRelease{}, fmt.Errorf("resolve formal App declaration: %w", err)
 	}
-	payloadDigest, err := localDevelopmentProjectPayloadDigest(canonicalRoot)
+	payloadDigest, err := formalAppImmutablePayloadDigest(canonicalRoot)
 	if err != nil {
 		return FormalAppRelease{}, fmt.Errorf("observe formal App release payload: %w", err)
 	}

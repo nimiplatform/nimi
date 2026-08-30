@@ -496,7 +496,7 @@ func writeFileAtomically(path string, payload []byte, mode os.FileMode) error {
 	if err := temporary.Close(); err != nil {
 		return err
 	}
-	if err := os.Rename(temporaryPath, path); err != nil {
+	if err := replaceLocalStateFileAtomically(temporaryPath, path); err != nil {
 		return err
 	}
 	keep = false

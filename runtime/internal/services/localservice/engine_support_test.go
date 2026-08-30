@@ -13,16 +13,13 @@ func TestClassifyManagedEngineSupportSpeechUsesPlatformGate(t *testing.T) {
 		wantClass  string
 		wantDetail string
 	}{
+		{name: "speech supported on Apple Silicon", profile: &runtimev1.LocalDeviceProfile{Os: "darwin", Arch: "arm64"}, wantClass: localEngineSupportSupportedSupervised},
+		{name: "speech unsupported on linux arm64", profile: &runtimev1.LocalDeviceProfile{Os: "linux", Arch: "arm64"}, wantClass: localEngineSupportUnsupported, wantDetail: "speech supervised mode is unsupported on the exact host tuple"},
 		{
-			name:      "speech supported on linux arm64",
-			profile:   &runtimev1.LocalDeviceProfile{Os: "linux", Arch: "arm64"},
-			wantClass: localEngineSupportSupportedSupervised,
-		},
-		{
-			name:       "speech attached only on windows arm64",
+			name:       "speech unsupported on windows arm64",
 			profile:    &runtimev1.LocalDeviceProfile{Os: "windows", Arch: "arm64"},
-			wantClass:  localEngineSupportAttachedOnly,
-			wantDetail: "speech-backed supervised mode is unavailable on this host; configure an attached endpoint instead",
+			wantClass:  localEngineSupportUnsupported,
+			wantDetail: "speech supervised mode is unsupported on the exact host tuple",
 		},
 		{
 			name:       "speech unsupported without profile",
@@ -42,5 +39,12 @@ func TestClassifyManagedEngineSupportSpeechUsesPlatformGate(t *testing.T) {
 				t.Fatalf("classifyManagedEngineSupport(speech) detail = %q, want %q", gotDetail, tt.wantDetail)
 			}
 		})
+	}
+}
+
+func TestClassifyManagedEngineSupportKeepsSidecarAttachedOnly(t *testing.T) {
+	class, detail := classifyManagedEngineSupport("sidecar", nil)
+	if class != localEngineSupportAttachedOnly || detail != "sidecar requires an explicitly admitted attached endpoint" {
+		t.Fatalf("sidecar support = %q/%q", class, detail)
 	}
 }

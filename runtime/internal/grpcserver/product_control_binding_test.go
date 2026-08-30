@@ -41,7 +41,7 @@ func TestProtectedRuntimeConfigMustMatchFixedProductControlDataRoot(t *testing.T
 
 	derivedConfigPath := filepath.Join(t.TempDir(), "runtime", config.ServiceOwnedConfigFilename)
 	var derived config.Config
-	if err := reconcileProtectedProductControlDataRootConfig(productControlRoot, derivedConfigPath, &derived, localservice.ProductControlDataRootSecurityBinding{}); err != nil {
+	if _, err := reconcileProtectedProductControlDataRootConfig(productControlRoot, derivedConfigPath, &derived, localservice.ProductControlDataRootSecurityBinding{}); err != nil {
 		t.Fatalf("materialize missing derived config: %v", err)
 	}
 	if derived.DataRootRef != dataRoot ||
@@ -77,7 +77,7 @@ func TestProtectedRuntimeConfigMustMatchFixedProductControlDataRoot(t *testing.T
 			t.Fatalf("mismatched derived data root error = %v", err)
 		}
 	})
-	t.Run("existing private config cannot be regenerated over mismatch", func(t *testing.T) {
+	t.Run("stale derived config is regenerated from committed Product Control", func(t *testing.T) {
 		mismatchedRoot := filepath.Join(t.TempDir(), "other")
 		configPath := filepath.Join(t.TempDir(), "runtime", config.ServiceOwnedConfigFilename)
 		if _, err := config.WriteServiceOwnedDataRoot(configPath, mismatchedRoot); err != nil {
@@ -87,9 +87,20 @@ func TestProtectedRuntimeConfigMustMatchFixedProductControlDataRoot(t *testing.T
 		if err := config.ApplyServiceOwnedDataRoot(&mutated, configPath); err != nil {
 			t.Fatal(err)
 		}
-		if err := reconcileProtectedProductControlDataRootConfig(productControlRoot, configPath, &mutated, localservice.ProductControlDataRootSecurityBinding{}); err == nil ||
-			!strings.Contains(err.Error(), "dataRootRef does not match") {
-			t.Fatalf("mismatched existing proof error = %v", err)
+		if _, err := reconcileProtectedProductControlDataRootConfig(productControlRoot, configPath, &mutated, localservice.ProductControlDataRootSecurityBinding{}); err != nil {
+			t.Fatalf("recover committed Product Control over stale derived config: %v", err)
+		}
+		if !sameProductControlPath(mutated.DataRootRef, dataRoot) ||
+			!sameProductControlPath(mutated.LocalModelsPath, filepath.Join(dataRoot, "models")) ||
+			!sameProductControlPath(mutated.ManagedRoots.Environments, filepath.Join(dataRoot, "environments")) {
+			t.Fatalf("recovered derived config = %+v", mutated)
+		}
+		var restarted config.Config
+		if err := config.ApplyServiceOwnedDataRoot(&restarted, configPath); err != nil {
+			t.Fatal(err)
+		}
+		if !sameProductControlPath(restarted.DataRootRef, dataRoot) {
+			t.Fatalf("durable recovered data root = %q, want %q", restarted.DataRootRef, dataRoot)
 		}
 	})
 	t.Run("different managed dependency root", func(t *testing.T) {
@@ -154,6 +165,23 @@ func TestNonProductionDataRootIgnoresConfigAndUsesCanonicalBinding(t *testing.T)
 	}
 }
 
+func TestRuntimeOwnerStateDerivesFromActiveProductControlRoot(t *testing.T) {
+	dataRoot := filepath.Join(t.TempDir(), "active-nimi-data")
+	cfg := config.Config{LocalStatePath: filepath.Join(t.TempDir(), "service-state", "runtime", "local-state.json"), DataRootRef: dataRoot}
+	bindRuntimeOwnerStateToProductControlRoot(&cfg)
+	want := filepath.Join(dataRoot, "accounts", "runtime", "local-state.json")
+	if cfg.LocalStatePath != want {
+		t.Fatalf("Runtime owner state path = %q, want %q", cfg.LocalStatePath, want)
+	}
+
+	withoutRoot := config.Config{LocalStatePath: filepath.Join(t.TempDir(), "service-state", "runtime", "local-state.json")}
+	original := withoutRoot.LocalStatePath
+	bindRuntimeOwnerStateToProductControlRoot(&withoutRoot)
+	if withoutRoot.LocalStatePath != original {
+		t.Fatalf("first-run without selected root changed owner state path: %q", withoutRoot.LocalStatePath)
+	}
+}
+
 func TestProtectedRuntimeDoesNotMaterializeDerivedConfigFromRepairRequiredProductControl(t *testing.T) {
 	productControlRoot := filepath.Join(t.TempDir(), ".nimi")
 	dataRoot := filepath.Join(t.TempDir(), "NimiData")
@@ -206,7 +234,7 @@ func TestProtectedRuntimeDoesNotMaterializeDerivedConfigFromRepairRequiredProduc
 
 	derivedConfigPath := filepath.Join(t.TempDir(), "runtime", config.ServiceOwnedConfigFilename)
 	var derived config.Config
-	err = reconcileProtectedProductControlDataRootConfig(
+	_, err = reconcileProtectedProductControlDataRootConfig(
 		productControlRoot,
 		derivedConfigPath,
 		&derived,

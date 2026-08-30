@@ -64,6 +64,67 @@ func TestOwnerEventAndOutboxCommitAtomically(t *testing.T) {
 	}
 }
 
+func TestFenceRootActivationJobsIsIdempotentAndPreservesOutboxSequence(t *testing.T) {
+	backend := openTestBackend(t, filepath.Join(t.TempDir(), "local-state.json"))
+	store := NewStore(backend)
+	ctx := context.Background()
+	binding := createTestBinding(t, backend, store, "agent-root-activation", true)
+	if err := backend.WriteTx(ctx, func(tx *sql.Tx) error {
+		if _, err := store.EnqueueCommittedEventTx(tx, binding.LocalAgentRef, testEnvelope("event-root-activation", "operation-root-activation", "portable committed fact")); err != nil {
+			return err
+		}
+		now := time.Now().UTC().Format(time.RFC3339Nano)
+		for _, job := range []struct{ id, status string }{{"job-pending", "pending"}, {"job-running", "running"}, {"job-ready", "ready"}} {
+			if _, err := tx.Exec(`INSERT INTO runtime_cognition_memory_ai_job(operation_id, local_agent_ref, account_namespace, config_revision, request_key, profile_json, status, result_json, created_at, updated_at) VALUES(?, ?, 'account-root-activation', 1, ?, X'01', ?, X'01', ?, ?)`, job.id, binding.LocalAgentRef, "request-"+job.id, job.status, now, now); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	changed, err := store.FenceRootActivationJobs(ctx, "rootact_one")
+	if err != nil || !changed {
+		t.Fatalf("first activation fence changed=%v err=%v", changed, err)
+	}
+	var failed, retainedResults int
+	if err := backend.DB().QueryRow(`SELECT COUNT(*), COALESCE(SUM(CASE WHEN result_json IS NOT NULL THEN 1 ELSE 0 END), 0) FROM runtime_cognition_memory_ai_job WHERE status = 'failed' AND failure_code = 'root_activation_changed'`).Scan(&failed, &retainedResults); err != nil || failed != 3 || retainedResults != 0 {
+		t.Fatalf("fenced jobs failed=%d retained_results=%d err=%v", failed, retainedResults, err)
+	}
+	var outboxState string
+	var payloadPresent bool
+	if err := backend.DB().QueryRow(`SELECT state, payload IS NOT NULL FROM runtime_cognition_memory_outbox WHERE operation_id = 'operation-root-activation'`).Scan(&outboxState, &payloadPresent); err != nil || outboxState != "pending" || !payloadPresent {
+		t.Fatalf("activation fence changed outbox state=%q payload=%v err=%v", outboxState, payloadPresent, err)
+	}
+	current, err := store.BindingForAgent(ctx, binding.LocalAgentRef)
+	if err != nil || current.NextSequence != 2 || current.DeliveryFrontier != 0 {
+		t.Fatalf("activation fence changed outbox sequence: binding=%+v err=%v", current, err)
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339Nano)
+	if _, err := backend.DB().Exec(`INSERT INTO runtime_cognition_memory_ai_job(operation_id, local_agent_ref, account_namespace, config_revision, request_key, profile_json, status, result_json, created_at, updated_at) VALUES('job-same-activation', ?, 'account-root-activation', 1, 'request-same', X'01', 'ready', X'01', ?, ?)`, binding.LocalAgentRef, now, now); err != nil {
+		t.Fatal(err)
+	}
+	changed, err = store.FenceRootActivationJobs(ctx, "rootact_one")
+	if err != nil || changed {
+		t.Fatalf("ordinary restart fence changed=%v err=%v", changed, err)
+	}
+	var sameStatus string
+	if err := backend.DB().QueryRow(`SELECT status FROM runtime_cognition_memory_ai_job WHERE operation_id = 'job-same-activation'`).Scan(&sameStatus); err != nil || sameStatus != "ready" {
+		t.Fatalf("ordinary restart changed current activation job status=%q err=%v", sameStatus, err)
+	}
+
+	changed, err = store.FenceRootActivationJobs(ctx, "rootact_two")
+	if err != nil || !changed {
+		t.Fatalf("replacement activation fence changed=%v err=%v", changed, err)
+	}
+	var replacementStatus, replacementFailure string
+	if err := backend.DB().QueryRow(`SELECT status, failure_code FROM runtime_cognition_memory_ai_job WHERE operation_id = 'job-same-activation'`).Scan(&replacementStatus, &replacementFailure); err != nil || replacementStatus != "failed" || replacementFailure != "root_activation_changed" {
+		t.Fatalf("replacement activation job status=%q failure=%q err=%v", replacementStatus, replacementFailure, err)
+	}
+}
+
 func TestCommittedCorrectionOwnerFactSurvivesOutboxCompactionAndRestart(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "local-state.json")
 	backend := openTestBackend(t, root)

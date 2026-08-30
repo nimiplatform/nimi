@@ -106,6 +106,12 @@ func TestProjectVerifiedAssetDescriptorOmitsUnknownCapacityMetadata(t *testing.T
 		if err != nil {
 			t.Fatalf("project descriptor: %v", err)
 		}
+		if descriptor.GetEngine() != "speech" || descriptor.GetPreferredEngine() != "speech" {
+			t.Fatalf("audio.cpp leaked into public engine taxonomy: engine=%q preferred=%q", descriptor.GetEngine(), descriptor.GetPreferredEngine())
+		}
+		if descriptor.GetHostRequirements().GetPythonRuntimeRequired() {
+			t.Fatalf("native audio.cpp was inferred as Python from public speech taxonomy: %+v", descriptor.GetHostRequirements())
+		}
 		fields := descriptor.GetMetadata().GetFields()
 		if _, ok := fields["min_ram_bytes"]; ok {
 			t.Fatalf("unknown min_ram_bytes was projected: %+v", fields)

@@ -2,10 +2,53 @@ package cognition
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 )
+
+func TestCopiedCognitionOwnerRootReopensSnapshotIdentity(t *testing.T) {
+	rootOne := filepath.Join(t.TempDir(), "cognition-root-one")
+	first, err := NewV1Owner(rootOne)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scopeID := "agent_source_portable"
+	snapshot := strings.Repeat("e", 64)
+	partition := strings.Repeat("f", 64)
+	envelope := RuntimeSourceIngestionEnvelope{
+		ScopeID: scopeID, SnapshotIdentity: snapshot, PartitionIdentity: partition,
+		EmbeddingStatus: "building", CoverageCount: 1, Omissions: []RuntimeSourceOmission{},
+		Units: []RuntimeSourceUnit{{
+			UnitID: "portable-unit", Category: "biography_event", SourcePath: "profile.biography",
+			SourceRef: RuntimeSourceRef{Kind: "worldCharacter", WorldID: "world-portable", RefID: "character-portable", SchemaVersion: "realm.world-character-core/v1", ContentHash: strings.Repeat("a", 64)},
+			Text:      "Portable canonical source", ProvenanceRefs: []string{"realm:portable"}, Priority: 100,
+		}},
+	}
+	if _, err := first.SourceBridge().IngestAgentSource(context.Background(), runtimeSourceTestAuthorization(scopeID, RuntimeBridgeOperationIngestAgentSource, RuntimeAuthorizationActionIngestAgentSource), envelope); err != nil {
+		_ = first.Close()
+		t.Fatal(err)
+	}
+	if err := first.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	rootTwo := filepath.Join(t.TempDir(), "cognition-root-two")
+	if err := os.CopyFS(rootTwo, os.DirFS(rootOne)); err != nil {
+		t.Fatal(err)
+	}
+	second, err := NewV1Owner(rootTwo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer second.Close()
+	inspection, err := second.SourceBridge().InspectAgentSource(context.Background(), runtimeSourceTestAuthorization(scopeID, RuntimeBridgeOperationSearchAgentSource, RuntimeAuthorizationActionSearchAgentSource), scopeID, snapshot)
+	if err != nil || inspection.Status != "building" || inspection.SnapshotIdentity != snapshot || inspection.PartitionIdentity != partition || inspection.UnitCount != 1 {
+		t.Fatalf("copied Cognition owner state = %#v err=%v", inspection, err)
+	}
+}
 
 func TestRuntimeSourceBridgeEmbeddingGatesReadySearchAndSnapshotIsolation(t *testing.T) {
 	core, err := NewV1Owner(t.TempDir())

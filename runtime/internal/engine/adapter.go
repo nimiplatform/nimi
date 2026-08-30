@@ -13,6 +13,27 @@ type ServiceAdapter struct {
 	mgr *Manager
 }
 
+func (a *ServiceAdapter) CheckSyncManagedEnvironment(ctx context.Context, dataRoot string) []ManagedEnvironmentCheckResult {
+	if a == nil || a.mgr == nil {
+		return []ManagedEnvironmentCheckResult{{Kind: "environment_owner", Status: "failed", Reason: "ENVIRONMENT_MANAGER_UNAVAILABLE"}}
+	}
+	return a.mgr.CheckSyncManagedEnvironment(ctx, dataRoot)
+}
+
+func (a *ServiceAdapter) QuiesceDataRoot(ctx context.Context) error {
+	if a == nil || a.mgr == nil {
+		return nil
+	}
+	return a.mgr.QuiesceDataRoot(ctx)
+}
+
+func (a *ServiceAdapter) ResumeDataRootAfterAbort() {
+	if a == nil || a.mgr == nil {
+		return
+	}
+	a.mgr.ResumeDataRootAfterAbort()
+}
+
 // NewServiceAdapter creates an adapter that bridges Manager to the service layer interface.
 func NewServiceAdapter(mgr *Manager) *ServiceAdapter {
 	return &ServiceAdapter{mgr: mgr}
@@ -62,6 +83,30 @@ func (a *ServiceAdapter) EnsureEngineBinaryDependency(ctx context.Context, engin
 		return EngineBinaryDependencyStatus{}, err
 	}
 	return a.mgr.EnsureEngineBinaryDependency(ctx, cfg)
+}
+
+// VerifyEngineBinaryDependency performs the owner verifier without acquiring,
+// repairing, or promoting material. Execution admission uses it to fresh-check
+// native package evidence captured by a selected-source record.
+func (a *ServiceAdapter) VerifyEngineBinaryDependency(engineName string, version string, expectedBinaryPath string) error {
+	if a == nil || a.mgr == nil {
+		return fmt.Errorf("engine manager is unavailable")
+	}
+	if strings.TrimSpace(expectedBinaryPath) == "" {
+		return fmt.Errorf("expected engine binary path is required")
+	}
+	cfg, err := resolveEngineBinaryDependencyConfig(engineName, version)
+	if err != nil {
+		return err
+	}
+	verified, err := a.mgr.RequireEngineBinaryDependency(context.Background(), cfg)
+	if err != nil {
+		return err
+	}
+	if !sameManagedPath(verified.BinaryPath, expectedBinaryPath) {
+		return fmt.Errorf("selected-source binary path does not match engine owner inventory")
+	}
+	return nil
 }
 
 func (a *ServiceAdapter) EnsureUVToolDependency(ctx context.Context) (UVToolDependencyStatus, error) {

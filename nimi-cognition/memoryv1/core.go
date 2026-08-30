@@ -47,7 +47,13 @@ func Open(rootDir string, opts ...Option) (*Core, error) {
 	if err := os.MkdirAll(rootDir, 0o700); err != nil {
 		return nil, fmt.Errorf("memory core: create root: %w", err)
 	}
-	db, err := sql.Open("sqlite", filepath.Join(rootDir, storeFilename))
+	storePath := filepath.Join(rootDir, storeFilename)
+	_, statErr := os.Stat(storePath)
+	existing := statErr == nil
+	if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
+		return nil, fmt.Errorf("memory core: inspect store: %w", statErr)
+	}
+	db, err := sql.Open("sqlite", storePath)
 	if err != nil {
 		return nil, fmt.Errorf("memory core: open store: %w", err)
 	}
@@ -56,11 +62,44 @@ func Open(rootDir string, opts ...Option) (*Core, error) {
 	for _, opt := range opts {
 		opt(core)
 	}
+	if existing {
+		if err := core.validateExistingStore(); err != nil {
+			_ = db.Close()
+			return nil, err
+		}
+	}
 	if err := core.initialize(); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
 	return core, nil
+}
+
+func (c *Core) validateExistingStore() error {
+	var version int
+	if err := c.db.QueryRow(`PRAGMA user_version`).Scan(&version); err != nil {
+		return fmt.Errorf("memory core: inspect existing schema version: %w", err)
+	}
+	if version != schemaVersion {
+		return contractError(OutcomeUnsupported, "schema_version")
+	}
+	checks := []string{
+		`SELECT bank_ref,lifecycle_ref,canonical_version,state,created_at,updated_at FROM memory_banks LIMIT 0`,
+		`SELECT binding_ref,bank_ref,state,created_at,retired_at FROM memory_bank_bindings LIMIT 0`,
+		`SELECT operation_id,operation_kind,binding_ref,bank_ref,event_ref,delivery_sequence,request_key,outcome,result_json,created_at,updated_at FROM memory_operations LIMIT 0`,
+		`SELECT binding_ref,received_frontier,ready_frontier FROM memory_frontiers LIMIT 0`,
+		`SELECT operation_id,binding_ref,bank_ref,event_ref,delivery_sequence,request_key,lifecycle_ref,outcome,payload,committed_at,terminal_at FROM memory_receipts LIMIT 0`,
+		`SELECT memory_ref,bank_ref,content,epistemic_status,lifecycle,occurred_at,updated_at,source_explanation,event_ref,supersedes_ref FROM memories LIMIT 0`,
+		`SELECT memory_ref,ref_type,ref_kind,ref_value FROM memory_lineage LIMIT 0`,
+	}
+	for _, query := range checks {
+		rows, err := c.db.Query(query)
+		if err != nil {
+			return fmt.Errorf("memory core: existing store schema is incomplete: %w", err)
+		}
+		_ = rows.Close()
+	}
+	return nil
 }
 
 func (c *Core) Close() error {

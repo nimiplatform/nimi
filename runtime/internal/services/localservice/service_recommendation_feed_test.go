@@ -168,8 +168,8 @@ func TestRecommendationHostSupportUsesManagedEngineAuthority(t *testing.T) {
 	}
 
 	speech := classifyRecommendationHostSupport("speech", &runtimev1.LocalDeviceProfile{Os: "freebsd", Arch: "amd64"})
-	if speech.class != runtimev1.LocalHostSupportClass_LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY {
-		t.Fatalf("speech host support on unsupported platform = %s, want attached-only", speech.class)
+	if speech.class != runtimev1.LocalHostSupportClass_LOCAL_HOST_SUPPORT_CLASS_UNSUPPORTED {
+		t.Fatalf("speech host support on unsupported platform = %s, want unsupported", speech.class)
 	}
 	if speech.detail == "" {
 		t.Fatalf("speech host support should project managed-engine detail")

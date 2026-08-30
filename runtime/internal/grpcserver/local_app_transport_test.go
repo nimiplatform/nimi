@@ -13,8 +13,11 @@ import (
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/test/bufconn"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -28,9 +31,68 @@ func TestProtectedLocalAppRPCServerRegistersBoundedMachineLocalConfigurationOwne
 		&runtimev1.UnimplementedRuntimeAiServiceServer{},
 		&runtimev1.UnimplementedRuntimeAgentServiceServer{},
 		&runtimev1.UnimplementedRuntimeAppServiceServer{},
+		newActiveRPCRegistry(nil),
 	)
 	if _, registered := server.GetServiceInfo()["nimi.runtime.v1.RuntimeLocalService"]; !registered {
 		t.Fatal("protected Local App server did not register RuntimeLocalService")
+	}
+}
+
+func TestProtectedLocalAppRPCServerSharesRootHandoffAdmission(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x2a)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x2b), SessionProof: grpcLocalAppIdentifier(0x2c)}); err != nil {
+		t.Fatal(err)
+	}
+	authService := &protectedLocalAppRootHandoffAuthService{}
+	appService := &protectedLocalAppAdmissionServer{}
+	rpcRegistry := newActiveRPCRegistry(nil)
+	server := newProtectedLocalAppRPCServer(
+		&runtimev1.UnimplementedRuntimeServiceControlServiceServer{},
+		authService,
+		&runtimev1.UnimplementedRuntimeAccountServiceServer{},
+		&runtimev1.UnimplementedRuntimeRealmRealtimeServiceServer{},
+		&runtimev1.UnimplementedRuntimeLocalServiceServer{},
+		&runtimev1.UnimplementedRuntimeAiServiceServer{},
+		&runtimev1.UnimplementedRuntimeAgentServiceServer{},
+		appService,
+		rpcRegistry,
+	)
+	baseListener := bufconn.Listen(1024 * 1024)
+	listener := &protectedLocalAppTestListener{Listener: baseListener, connection: connection}
+	serveDone := make(chan error, 1)
+	go func() { serveDone <- server.Serve(listener) }()
+	t.Cleanup(func() {
+		server.Stop()
+		_ = baseListener.Close()
+		<-serveDone
+	})
+
+	clientConn, err := grpc.DialContext(
+		context.Background(),
+		"passthrough:///protected-local-app-root-handoff-test",
+		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) { return baseListener.Dial() }),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		t.Fatalf("dial protected local-app transport: %v", err)
+	}
+	t.Cleanup(func() { _ = clientConn.Close() })
+	client := runtimev1.NewRuntimeAuthServiceClient(clientConn)
+
+	if err := rpcRegistry.CloseRootAdmission(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	appClient := runtimev1.NewRuntimeAppServiceClient(clientConn)
+	if _, err := appClient.ReadLocalAppStorageJson(context.Background(), &runtimev1.ReadLocalAppStorageJsonRequest{RelativePath: "state.json"}); status.Code(err) != codes.Unavailable || appService.calls != 0 {
+		t.Fatalf("closed root admission reached Local App owner: calls=%d err=%v", appService.calls, err)
+	}
+	if _, err := client.OpenLocalAppSession(context.Background(), &runtimev1.OpenLocalAppSessionRequest{}); status.Code(err) != codes.Unavailable || authService.openCalls != 0 {
+		t.Fatalf("protected local-app RPC crossed closed root admission: calls=%d err=%v", authService.openCalls, err)
+	}
+
+	rpcRegistry.AbortRootHandoff()
+	if _, err := appClient.ReadLocalAppStorageJson(context.Background(), &runtimev1.ReadLocalAppStorageJsonRequest{RelativePath: "state.json"}); status.Code(err) != codes.Unimplemented || appService.calls != 1 {
+		t.Fatalf("protected local-app owner after abort = calls:%d err:%v", appService.calls, err)
 	}
 }
 
@@ -586,6 +648,11 @@ type localAppAdmissionStub struct {
 	decision *accountservice.LocalAppCallerDecision
 }
 
+type protectedLocalAppAdmissionServer struct {
+	runtimev1.UnimplementedRuntimeAppServiceServer
+	localAppAdmissionStub
+}
+
 func (stub *localAppAdmissionStub) AdmitLocalAppIngress(_ context.Context, ingress localappop.Ingress) error {
 	stub.calls++
 	stub.ingress = ingress
@@ -663,6 +730,29 @@ func newGRPCLocalAppConnection(t testing.TB, seed byte) *protectedlocal.LocalApp
 	}
 	t.Cleanup(connection.Revoke)
 	return connection
+}
+
+type protectedLocalAppRootHandoffAuthService struct {
+	runtimev1.UnimplementedRuntimeAuthServiceServer
+	openCalls int
+}
+
+func (service *protectedLocalAppRootHandoffAuthService) OpenLocalAppSession(context.Context, *runtimev1.OpenLocalAppSessionRequest) (*runtimev1.OpenLocalAppSessionResponse, error) {
+	service.openCalls++
+	return &runtimev1.OpenLocalAppSessionResponse{ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
+}
+
+type protectedLocalAppTestListener struct {
+	*bufconn.Listener
+	connection *protectedlocal.LocalAppConnection
+}
+
+func (listener *protectedLocalAppTestListener) Accept() (net.Conn, error) {
+	connection, err := listener.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+	return &protectedLocalAppNetConn{Conn: connection, connection: listener.connection}, nil
 }
 
 func grpcLocalAppIdentifier(value byte) protectedlocal.Identifier {

@@ -255,7 +255,7 @@ func TestProbeGPUProfileFailsClosedWhenNvidiaSmiTimesOut(t *testing.T) {
 	}
 
 	caps := probeGPUCapabilities()
-	if caps.profile.GetAvailable() || caps.cudaReady {
+	if caps.profile.GetAvailable() || caps.driverVisible {
 		t.Fatalf("timed-out nvidia-smi probe must fail closed, got %+v", caps)
 	}
 }

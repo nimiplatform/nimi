@@ -19,30 +19,76 @@ import (
 )
 
 const identifierAllocationAttempts = 8
+const dataRootRelativeLocatorPrefix = "nimi-data-relative:v1:"
 
 type VerifiedLocalOSUserIdentity struct{ canonical string }
 
+// LocalOSUserAnchor returns the stable verified OS-user scope used by current
+// host bindings and account-scoped keys. A macOS audit session remains part of
+// peer verification, but is deliberately excluded from this durable scope.
 func (identity VerifiedLocalOSUserIdentity) LocalOSUserAnchor() (string, error) {
+	stable, err := identity.stableOSUserScopeSource()
+	if err != nil {
+		return "", err
+	}
+	digest := sha256.Sum256([]byte("nimi.local-os-user-anchor.v2\x00" + stable))
+	return "loua_v2_" + base64.RawURLEncoding.EncodeToString(digest[:]), nil
+}
+
+func (identity VerifiedLocalOSUserIdentity) stableOSUserScopeSource() (string, error) {
 	if identity.canonical == "" {
 		return "", fmt.Errorf("%w: empty verified local OS-user identity", ErrInvalidArgument)
 	}
-	digest := sha256.Sum256([]byte("nimi.local-os-user-anchor.v1\x00" + identity.canonical))
-	return "loua_v1_" + base64.RawURLEncoding.EncodeToString(digest[:]), nil
+	if strings.HasPrefix(identity.canonical, "windows:sid:") {
+		if _, ok := identity.WindowsInteractiveUserSID(); !ok {
+			return "", fmt.Errorf("%w: verified Windows OS-user scope", ErrInvalidArgument)
+		}
+		return identity.canonical, nil
+	}
+	if strings.HasPrefix(identity.canonical, "macos:euid:") {
+		euid, _, ok := identity.MacOSInteractiveUser()
+		if !ok {
+			return "", fmt.Errorf("%w: verified macOS OS-user scope", ErrInvalidArgument)
+		}
+		return fmt.Sprintf("macos:euid:%d", euid), nil
+	}
+	return "", fmt.Errorf("%w: unsupported verified local OS-user identity", ErrInvalidArgument)
 }
 
 type Options struct {
-	Random io.Reader
-	Now    func() time.Time
+	Random        io.Reader
+	Now           func() time.Time
+	HostInstallID string
+	DataRoot      string
 }
 
 type Kernel struct {
 	db            *sql.DB
 	anchor        string
+	hostInstallID string
+	dataRoot      string
 	random        io.Reader
 	now           func() time.Time
 	mu            sync.Mutex
 	registrations *RegistrationStore
 	keys          *KeyDeriver
+
+	// In-package failure injection proves canonical+binding transactionality
+	// without introducing a production harness or evidence surface.
+	beforeCommit func() error
+}
+
+// @nimi-authority: rule.nimi.runtime.app-surface.r051
+// @nimi-authority: rule.nimi.runtime.app-surface.r058
+// CanonicalRegistrationDatabasePath is the one K-APP-owned database in an
+// active data root. Canonical registrations and host binding partitions share
+// it; there is no portable sidecar or per-host database.
+func CanonicalRegistrationDatabasePath(dataRoot string) (string, error) {
+	root := filepath.Clean(strings.TrimSpace(dataRoot))
+	if root == "." || !filepath.IsAbs(root) {
+		return "", fmt.Errorf("%w: data root", ErrInvalidArgument)
+	}
+	return filepath.Join(root, "apps", "local-app-kernel.db"), nil
 }
 
 func OpenSQLite(ctx context.Context, databasePath string, identity VerifiedLocalOSUserIdentity, options Options) (*Kernel, error) {
@@ -53,9 +99,23 @@ func OpenSQLite(ctx context.Context, databasePath string, identity VerifiedLocal
 	if trimmedPath == "" || trimmedPath != databasePath {
 		return nil, fmt.Errorf("%w: sqlite path", ErrInvalidArgument)
 	}
+	if err := requireExactText("host_install_id", options.HostInstallID); err != nil {
+		return nil, err
+	}
+	dataRoot := filepath.Clean(strings.TrimSpace(options.DataRoot))
+	if dataRoot == "." || !filepath.IsAbs(dataRoot) || dataRoot == filepath.VolumeName(dataRoot)+string(filepath.Separator) {
+		return nil, fmt.Errorf("%w: data root", ErrInvalidArgument)
+	}
+	canonicalPath, err := CanonicalRegistrationDatabasePath(dataRoot)
+	if err != nil {
+		return nil, err
+	}
 	absolutePath, err := filepath.Abs(filepath.Clean(trimmedPath))
 	if err != nil {
 		return nil, fmt.Errorf("resolve registered App sqlite path: %w", err)
+	}
+	if !sameKAPPPath(absolutePath, canonicalPath) {
+		return nil, fmt.Errorf("%w: sqlite path must be the canonical data-root owner store", ErrInvalidArgument)
 	}
 	if err := os.MkdirAll(filepath.Dir(absolutePath), 0o700); err != nil {
 		return nil, fmt.Errorf("create registered App sqlite directory: %w", err)
@@ -71,7 +131,10 @@ func OpenSQLite(ctx context.Context, databasePath string, identity VerifiedLocal
 	}
 	db.SetMaxOpenConns(1)
 	db.SetMaxIdleConns(1)
-	kernel := &Kernel{db: db, anchor: anchor, random: options.Random, now: options.Now}
+	kernel := &Kernel{
+		db: db, anchor: anchor, hostInstallID: options.HostInstallID, dataRoot: dataRoot,
+		random: options.Random, now: options.Now,
+	}
 	if kernel.random == nil {
 		kernel.random = rand.Reader
 	}
@@ -87,23 +150,54 @@ func OpenSQLite(ctx context.Context, databasePath string, identity VerifiedLocal
 	return kernel, nil
 }
 
+func sameKAPPPath(left string, right string) bool {
+	left = filepath.Clean(left)
+	right = filepath.Clean(right)
+	if filepath.Separator == '\\' {
+		return strings.EqualFold(left, right)
+	}
+	return left == right
+}
+
+func (kernel *Kernel) encodeBindingLocator(value string) (string, error) {
+	trimmed := strings.TrimSpace(value)
+	if kernel == nil || kernel.dataRoot == "" || trimmed == "" {
+		return "", fmt.Errorf("%w: binding locator", ErrInvalidArgument)
+	}
+	if !filepath.IsAbs(trimmed) {
+		return trimmed, nil
+	}
+	cleaned := filepath.Clean(trimmed)
+	relative, err := filepath.Rel(kernel.dataRoot, cleaned)
+	if err != nil || filepath.IsAbs(relative) {
+		return cleaned, nil
+	}
+	if relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return cleaned, nil
+	}
+	return dataRootRelativeLocatorPrefix + filepath.ToSlash(relative), nil
+}
+
+func (kernel *Kernel) decodeBindingLocator(value string) (string, error) {
+	if !strings.HasPrefix(value, dataRootRelativeLocatorPrefix) {
+		return value, nil
+	}
+	relative := filepath.Clean(filepath.FromSlash(strings.TrimPrefix(value, dataRootRelativeLocatorPrefix)))
+	if relative == "" || filepath.IsAbs(relative) || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("%w: data-root-relative binding locator", ErrInvalidArgument)
+	}
+	return filepath.Join(kernel.dataRoot, relative), nil
+}
+
 func (kernel *Kernel) initialize(ctx context.Context) error {
 	statements := []string{
-		`CREATE TABLE IF NOT EXISTS registered_app_partition (
-			singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
-			local_os_user_anchor TEXT NOT NULL UNIQUE,
-			bound_unix_nano INTEGER NOT NULL
-		)`,
-		`CREATE TABLE IF NOT EXISTS registered_app_records (
-			local_os_user_anchor TEXT NOT NULL,
-			registration_handle TEXT NOT NULL UNIQUE,
+		`CREATE TABLE IF NOT EXISTS canonical_registration (
+			registration_handle TEXT PRIMARY KEY,
 			registered_app_subject TEXT NOT NULL UNIQUE,
 			app_id TEXT NOT NULL,
 			display_name TEXT NOT NULL,
 			source_class TEXT NOT NULL CHECK(source_class IN ('installed','local_import','development')),
 			source_ref TEXT NOT NULL,
-			project_root TEXT NOT NULL,
-			manifest_path TEXT NOT NULL,
 			shell_kind INTEGER NOT NULL CHECK(shell_kind > 0),
 			raw_declaration_json TEXT NOT NULL,
 			activated_domains_json TEXT NOT NULL,
@@ -111,54 +205,60 @@ func (kernel *Kernel) initialize(ctx context.Context) error {
 			declaration_generation INTEGER NOT NULL CHECK(declaration_generation > 0),
 			source_digest TEXT NOT NULL,
 			declaration_digest TEXT NOT NULL,
-			host_executable_digest TEXT NOT NULL,
-			payload_root_digest TEXT NOT NULL,
 			state TEXT NOT NULL CHECK(state IN ('active','tombstoned')),
 			created_unix_nano INTEGER NOT NULL,
 			updated_unix_nano INTEGER NOT NULL,
 			tombstoned_unix_nano INTEGER,
-			PRIMARY KEY(local_os_user_anchor, registration_handle),
 			CHECK((state = 'active' AND tombstoned_unix_nano IS NULL) OR (state = 'tombstoned' AND tombstoned_unix_nano IS NOT NULL))
 		)`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS registered_app_active_source
-			ON registered_app_records(local_os_user_anchor, source_class, source_ref)
-			WHERE state = 'active'`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS registered_app_active_app
-			ON registered_app_records(local_os_user_anchor, app_id)
-			WHERE state = 'active'`,
-		`CREATE TRIGGER IF NOT EXISTS registered_app_subject_immutable
-		BEFORE UPDATE ON registered_app_records
-		WHEN OLD.local_os_user_anchor <> NEW.local_os_user_anchor
-		  OR OLD.registration_handle <> NEW.registration_handle
+		`CREATE TABLE IF NOT EXISTS current_host_binding (
+			host_install_id TEXT NOT NULL,
+			local_os_user_scope TEXT NOT NULL,
+			registration_handle TEXT NOT NULL,
+			binding_slot TEXT NOT NULL DEFAULT '',
+			project_root TEXT NOT NULL,
+			manifest_path TEXT NOT NULL,
+			host_executable_digest TEXT NOT NULL,
+			payload_root_digest TEXT NOT NULL,
+			created_unix_nano INTEGER NOT NULL,
+			updated_unix_nano INTEGER NOT NULL,
+			PRIMARY KEY(host_install_id, local_os_user_scope, registration_handle),
+			FOREIGN KEY(registration_handle) REFERENCES canonical_registration(registration_handle)
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS current_host_binding_slot
+			ON current_host_binding(host_install_id, local_os_user_scope, binding_slot)
+			WHERE binding_slot <> ''`,
+		`CREATE TRIGGER IF NOT EXISTS canonical_registration_identity_immutable
+		BEFORE UPDATE ON canonical_registration
+		WHEN OLD.registration_handle <> NEW.registration_handle
 		  OR OLD.registered_app_subject <> NEW.registered_app_subject
 		  OR OLD.source_class <> NEW.source_class
 		  OR OLD.source_ref <> NEW.source_ref
 		  OR OLD.app_id <> NEW.app_id
 		  OR OLD.created_unix_nano <> NEW.created_unix_nano
-		BEGIN SELECT RAISE(ABORT, 'registered App subject identity is immutable'); END`,
-		`CREATE TRIGGER IF NOT EXISTS registered_app_no_reactivation
-		BEFORE UPDATE OF state ON registered_app_records
+		BEGIN SELECT RAISE(ABORT, 'registered App canonical identity is immutable'); END`,
+		`CREATE TRIGGER IF NOT EXISTS canonical_registration_no_reactivation
+		BEFORE UPDATE OF state ON canonical_registration
 		WHEN OLD.state = 'tombstoned' AND NEW.state <> 'tombstoned'
 		BEGIN SELECT RAISE(ABORT, 'registered App subject cannot be reactivated'); END`,
-		`CREATE TRIGGER IF NOT EXISTS registered_app_no_delete
-		BEFORE DELETE ON registered_app_records
+		`CREATE TRIGGER IF NOT EXISTS canonical_registration_no_delete
+		BEFORE DELETE ON canonical_registration
 		BEGIN SELECT RAISE(ABORT, 'registered App subjects are permanently retained'); END`,
+		`CREATE TRIGGER IF NOT EXISTS current_host_binding_identity_immutable
+		BEFORE UPDATE ON current_host_binding
+		WHEN OLD.host_install_id <> NEW.host_install_id
+		  OR OLD.local_os_user_scope <> NEW.local_os_user_scope
+		  OR OLD.registration_handle <> NEW.registration_handle
+		  OR OLD.created_unix_nano <> NEW.created_unix_nano
+		BEGIN SELECT RAISE(ABORT, 'registered App current-host binding identity is immutable'); END`,
+		`CREATE TRIGGER IF NOT EXISTS current_host_binding_no_delete
+		BEFORE DELETE ON current_host_binding
+		BEGIN SELECT RAISE(ABORT, 'registered App current-host bindings are retained'); END`,
 	}
 	for _, statement := range statements {
 		if _, err := kernel.db.ExecContext(ctx, statement); err != nil {
 			return fmt.Errorf("initialize registered App schema: %w", err)
 		}
-	}
-	now := kernel.now().UTC().UnixNano()
-	if _, err := kernel.db.ExecContext(ctx, `INSERT INTO registered_app_partition(singleton, local_os_user_anchor, bound_unix_nano) VALUES (1, ?, ?) ON CONFLICT(singleton) DO NOTHING`, kernel.anchor, now); err != nil {
-		return fmt.Errorf("bind registered App OS-user partition: %w", err)
-	}
-	var existing string
-	if err := kernel.db.QueryRowContext(ctx, `SELECT local_os_user_anchor FROM registered_app_partition WHERE singleton = 1`).Scan(&existing); err != nil {
-		return fmt.Errorf("read registered App OS-user partition: %w", err)
-	}
-	if existing != kernel.anchor {
-		return ErrPartitionMismatch
 	}
 	return nil
 }
@@ -219,11 +319,20 @@ func (kernel *Kernel) nextIdentifier(prefix string, exists func(string) (bool, e
 	return "", ErrRandomExhausted
 }
 
-func identifierExists(ctx context.Context, db *sql.DB, column, candidate string) (bool, error) {
+func identifierExistsTx(ctx context.Context, tx *sql.Tx, column, candidate string) (bool, error) {
 	var found int
-	err := db.QueryRowContext(ctx, `SELECT 1 FROM registered_app_records WHERE `+column+` = ?`, candidate).Scan(&found)
+	err := tx.QueryRowContext(ctx, `SELECT 1 FROM canonical_registration WHERE `+column+` = ?`, candidate).Scan(&found)
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
 	return err == nil, err
+}
+
+func (kernel *Kernel) commitTransaction(tx *sql.Tx) error {
+	if kernel.beforeCommit != nil {
+		if err := kernel.beforeCommit(); err != nil {
+			return err
+		}
+	}
+	return tx.Commit()
 }

@@ -20,6 +20,9 @@ var ErrManagedImageBackendMaterializationRequired = errors.New("managed image ba
 // distinguish this from a Supervisor failure to terminate a tracked process
 // tree.
 var ErrEngineNotRunning = errors.New("engine is not running")
+var ErrEngineManagerStopped = errors.New("engine manager is stopped")
+var ErrEngineManagerDataRootQuiesced = errors.New("engine manager data-root admission is closed")
+var ErrEngineRegistryReconciliationRequired = errors.New("engine registry requires Check & Sync reconciliation")
 
 // ErrEngineBinaryDependencyNotReady is returned when a managed engine package
 // has not been admitted by the local environment dependency state machine. It
@@ -73,6 +76,9 @@ type Manager struct {
 	pythonProfileVerifications map[string]pythonDependencyProfileVerificationCacheEntry
 	supervisors                map[EngineKind]*Supervisor
 	starting                   map[EngineKind]bool
+	stopped                    bool
+	dataRootAdmissionClosed    bool
+	startStateChanged          chan struct{}
 }
 
 // NewManager creates a new engine manager.
@@ -127,6 +133,7 @@ func NewManager(logger *slog.Logger, roots ManagedRoots, onState StateChangeFunc
 		pythonProfileVerifications:        make(map[string]pythonDependencyProfileVerificationCacheEntry),
 		supervisors:                       make(map[EngineKind]*Supervisor),
 		starting:                          make(map[EngineKind]bool),
+		startStateChanged:                 make(chan struct{}),
 	}, nil
 }
 
@@ -219,6 +226,8 @@ func (m *Manager) RequireEngineBinaryDependency(ctx context.Context, cfg EngineC
 	switch cfg.Kind {
 	case EngineLlama:
 		return m.requireLlamaBinaryDependency(cfg)
+	case EngineAudioCPP:
+		return m.requireAudioCppBinaryDependency(cfg)
 	default:
 		return cfg, fmt.Errorf("engine binary dependency readiness is not admitted for %s", cfg.Kind)
 	}
@@ -237,6 +246,13 @@ func (m *Manager) EnsureEngineBinaryDependency(ctx context.Context, cfg EngineCo
 		}
 		if strings.TrimSpace(entry.BinaryPath) == "" {
 			return EngineBinaryDependencyStatus{}, fmt.Errorf("llama registry entry missing binary path after materialization")
+		}
+		preferredAssetName, err := preferredLlamaAssetNameForCurrentHost(ensured.Version)
+		if err != nil {
+			return EngineBinaryDependencyStatus{}, err
+		}
+		if err := verifyLlamaRegistryEntryForCurrentHost(entry, preferredAssetName); err != nil {
+			return EngineBinaryDependencyStatus{}, fmt.Errorf("verify llama registry entry: %w", err)
 		}
 		fi, err := os.Stat(entry.BinaryPath)
 		if err != nil {
@@ -262,28 +278,34 @@ func (m *Manager) EnsureEngineBinaryDependency(ctx context.Context, cfg EngineCo
 
 func (m *Manager) ensureLlama(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
 	preferredAssetName, preferredAssetErr := preferredLlamaAssetNameForCurrentHost(cfg.Version)
+	if preferredAssetErr != nil {
+		return cfg, fmt.Errorf("llama.cpp package is unsupported on the exact host backend: %w", preferredAssetErr)
+	}
+	if m.registry.PendingRebase(EngineLlama, cfg.Version) {
+		return cfg, fmt.Errorf("%w: engine=%s version=%s", ErrEngineRegistryReconciliationRequired, EngineLlama, cfg.Version)
+	}
+	if reason := m.registry.ConflictReason(EngineLlama, cfg.Version); reason != "" {
+		return cfg, fmt.Errorf("%w: engine=%s version=%s reason=%s", ErrEngineRegistryReconciliationRequired, EngineLlama, cfg.Version, reason)
+	}
 	// Check registry first.
 	entry := m.registry.Get(EngineLlama, cfg.Version)
 	if entry != nil {
-		if _, err := os.Stat(entry.BinaryPath); err == nil {
-			if preferredAssetErr == nil && llamaRegistryEntryRequiresReplacement(entry, preferredAssetName) {
-				m.logger.Info("llama binary registry entry does not match preferred accelerator package",
-					"version", cfg.Version,
-					"registered_asset", entry.AssetName,
-					"preferred_asset", preferredAssetName,
-				)
-				_ = m.registry.Remove(EngineLlama, cfg.Version)
-			} else {
-				cfg.BinaryPath = entry.BinaryPath
-				m.logger.Info("llama binary found in registry",
-					"version", cfg.Version,
-					"path", entry.BinaryPath,
-				)
-				return cfg, nil
-			}
+		if err := verifyLlamaRegistryEntryForCurrentHost(entry, preferredAssetName); err == nil {
+			cfg.BinaryPath = entry.BinaryPath
+			m.logger.Info("llama binary found in registry",
+				"version", cfg.Version,
+				"path", entry.BinaryPath,
+			)
+			return cfg, nil
+		} else {
+			m.logger.Info("llama binary registry entry requires owner re-verification",
+				"version", cfg.Version,
+				"detail", err.Error(),
+			)
 		}
-		// Binary missing from disk — re-download.
-		_ = m.registry.Remove(EngineLlama, cfg.Version)
+		// Missing or unverifiable owner material is never reused implicitly. Keep
+		// its durable record until the verified replacement can be committed so a
+		// failed download cannot erase owner intent.
 	}
 
 	m.logger.Info("downloading llama binary",
@@ -317,35 +339,48 @@ func (m *Manager) requireLlamaBinaryDependency(cfg EngineConfig) (EngineConfig, 
 		cfg.Version = DefaultLlamaConfig().Version
 	}
 	preferredAssetName, preferredAssetErr := preferredLlamaAssetNameForCurrentHost(cfg.Version)
+	if preferredAssetErr != nil {
+		return cfg, fmt.Errorf("%w: state=unsupported; dependency_family=native-engine-package.llama; dependency_id=llama.cpp.package; detail=%v", ErrEngineBinaryDependencyNotReady, preferredAssetErr)
+	}
 	if m.registry == nil {
 		return cfg, fmt.Errorf("%w: llama.cpp.package registry unavailable", ErrEngineBinaryDependencyNotReady)
+	}
+	if m.registry.PendingRebase(EngineLlama, cfg.Version) {
+		return cfg, fmt.Errorf("%w: state=reconciliation_required; dependency_family=native-engine-package.llama; dependency_id=llama.cpp.package", ErrEngineRegistryReconciliationRequired)
+	}
+	if reason := m.registry.ConflictReason(EngineLlama, cfg.Version); reason != "" {
+		return cfg, fmt.Errorf("%w: state=conflict; dependency_family=native-engine-package.llama; dependency_id=llama.cpp.package; reason=%s", ErrEngineRegistryReconciliationRequired, reason)
 	}
 	entry := m.registry.Get(EngineLlama, cfg.Version)
 	if entry == nil {
 		detail := "state=needs_confirmation; dependency_family=native-engine-package.llama; dependency_id=llama.cpp.package; first_network_materialization_requires_confirmation=true"
-		if preferredAssetErr != nil {
-			detail = detail + "; preferred_asset_error=" + preferredAssetErr.Error()
-		} else {
-			detail = detail + "; preferred_asset=" + preferredAssetName
-		}
+		detail = detail + "; preferred_asset=" + preferredAssetName
 		return cfg, fmt.Errorf("%w: %s", ErrEngineBinaryDependencyNotReady, detail)
 	}
-	if preferredAssetErr == nil && llamaRegistryEntryRequiresReplacement(entry, preferredAssetName) {
-		return cfg, fmt.Errorf("%w: state=needs_confirmation; dependency_family=native-engine-package.llama; dependency_id=llama.cpp.package; registered_asset=%s; preferred_asset=%s", ErrEngineBinaryDependencyNotReady, strings.TrimSpace(entry.AssetName), preferredAssetName)
+	if err := verifyLlamaRegistryEntryForCurrentHost(entry, preferredAssetName); err != nil {
+		return cfg, fmt.Errorf("%w: state=repair_required; dependency_family=native-engine-package.llama; dependency_id=llama.cpp.package; detail=%v", ErrEngineBinaryDependencyNotReady, err)
 	}
 	binaryPath := strings.TrimSpace(entry.BinaryPath)
-	if binaryPath == "" {
-		return cfg, fmt.Errorf("%w: state=repair_required; dependency_family=native-engine-package.llama; dependency_id=llama.cpp.package; registry entry missing binary path", ErrEngineBinaryDependencyNotReady)
-	}
-	if _, err := os.Stat(binaryPath); err != nil {
-		return cfg, fmt.Errorf("%w: state=repair_required; dependency_family=native-engine-package.llama; dependency_id=llama.cpp.package; binary_path=%s; stat_error=%v", ErrEngineBinaryDependencyNotReady, binaryPath, err)
-	}
 	cfg.BinaryPath = binaryPath
 	return cfg, nil
 }
 
 // StartEngine starts the engine with the given configuration.
 func (m *Manager) StartEngine(ctx context.Context, cfg EngineConfig) error {
+	m.mu.RLock()
+	stopped := m.stopped
+	dataRootAdmissionClosed := m.dataRootAdmissionClosed
+	m.mu.RUnlock()
+	if stopped {
+		return ErrEngineManagerStopped
+	}
+	if dataRootAdmissionClosed {
+		return ErrEngineManagerDataRootQuiesced
+	}
+	if err := m.beginEngineStart(cfg.Kind); err != nil {
+		return err
+	}
+	defer m.finishEngineStart(cfg.Kind)
 	cfg = m.applySpeechPaths(cfg)
 	cfg.SupervisedRoot = m.baseDir
 	if cfg.Kind == EngineLlama {
@@ -355,10 +390,6 @@ func (m *Manager) StartEngine(ctx context.Context, cfg EngineConfig) error {
 			return err
 		}
 	}
-	if err := m.beginEngineStart(cfg.Kind); err != nil {
-		return err
-	}
-	defer m.finishEngineStart(cfg.Kind)
 	if cfg.Kind == EngineLlama {
 		var err error
 		cfg, err = m.prepareLlamaStart(ctx, cfg)
@@ -367,6 +398,14 @@ func (m *Manager) StartEngine(ctx context.Context, cfg EngineConfig) error {
 		}
 	}
 	m.mu.Lock()
+	if m.stopped {
+		m.mu.Unlock()
+		return ErrEngineManagerStopped
+	}
+	if m.dataRootAdmissionClosed {
+		m.mu.Unlock()
+		return ErrEngineManagerDataRootQuiesced
+	}
 	existing, hasExisting := m.supervisors[cfg.Kind]
 	if hasExisting {
 		if existing.Status() == StatusHealthy || existing.Status() == StatusStarting {
@@ -395,6 +434,13 @@ func (m *Manager) StartEngine(ctx context.Context, cfg EngineConfig) error {
 
 	sup := NewSupervisor(cfg, m.logger, m.onState)
 	m.mu.Lock()
+	if m.stopped || m.dataRootAdmissionClosed {
+		m.mu.Unlock()
+		if m.stopped {
+			return ErrEngineManagerStopped
+		}
+		return ErrEngineManagerDataRootQuiesced
+	}
 	m.supervisors[cfg.Kind] = sup
 	m.mu.Unlock()
 
@@ -435,12 +481,21 @@ func (m *Manager) StopAll() {
 		sup  *Supervisor
 	}
 
-	m.mu.RLock()
+	m.mu.Lock()
+	m.stopped = true
+	m.dataRootAdmissionClosed = true
+	m.signalStartStateChangedLocked()
+	for len(m.starting) > 0 {
+		changed := m.startStateChanged
+		m.mu.Unlock()
+		<-changed
+		m.mu.Lock()
+	}
 	sups := make([]managedSupervisor, 0, len(m.supervisors))
 	for kind, s := range m.supervisors {
 		sups = append(sups, managedSupervisor{kind: kind, sup: s})
 	}
-	m.mu.RUnlock()
+	m.mu.Unlock()
 
 	for _, entry := range sups {
 		if entry.sup == nil {
@@ -456,6 +511,62 @@ func (m *Manager) StopAll() {
 		}
 		m.removeSupervisorIfCurrent(entry.kind, entry.sup)
 	}
+}
+
+func (m *Manager) QuiesceDataRoot(ctx context.Context) error {
+	if m == nil {
+		return nil
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	type managedSupervisor struct {
+		kind EngineKind
+		sup  *Supervisor
+	}
+	m.mu.Lock()
+	m.dataRootAdmissionClosed = true
+	m.signalStartStateChangedLocked()
+	for len(m.starting) > 0 {
+		changed := m.startStateChanged
+		m.mu.Unlock()
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("wait for engine starts before data-root handoff: %w", ctx.Err())
+		case <-changed:
+		}
+		m.mu.Lock()
+	}
+	supervisors := make([]managedSupervisor, 0, len(m.supervisors))
+	for kind, supervisor := range m.supervisors {
+		supervisors = append(supervisors, managedSupervisor{kind: kind, sup: supervisor})
+	}
+	m.mu.Unlock()
+	var errs []error
+	for _, entry := range supervisors {
+		if entry.sup == nil {
+			m.removeSupervisorIfCurrent(entry.kind, nil)
+			continue
+		}
+		if err := entry.sup.Stop(); err != nil {
+			errs = append(errs, fmt.Errorf("stop engine %s for data-root handoff: %w", entry.kind, err))
+			continue
+		}
+		m.removeSupervisorIfCurrent(entry.kind, entry.sup)
+	}
+	return errors.Join(errs...)
+}
+
+func (m *Manager) ResumeDataRootAfterAbort() {
+	if m == nil {
+		return
+	}
+	m.mu.Lock()
+	if !m.stopped {
+		m.dataRootAdmissionClosed = false
+		m.signalStartStateChangedLocked()
+	}
+	m.mu.Unlock()
 }
 
 // EngineEndpoint returns the HTTP endpoint for the given engine.
@@ -485,6 +596,36 @@ func (m *Manager) EngineStatus(kind EngineKind) (SupervisorInfo, error) {
 		return SupervisorInfo{}, fmt.Errorf("engine %s not started", kind)
 	}
 	return sup.Info(), nil
+}
+
+// UnhealthyEngines returns the current unhealthy state of every tracked
+// Supervisor. Unlike ListEngines, it includes private execution-host kinds so
+// daemon readiness can remain degraded until every affected supervised engine
+// has recovered.
+func (m *Manager) UnhealthyEngines() []SupervisorInfo {
+	if m == nil {
+		return nil
+	}
+	m.mu.RLock()
+	supervisors := make([]*Supervisor, 0, len(m.supervisors))
+	for _, supervisor := range m.supervisors {
+		if supervisor != nil {
+			supervisors = append(supervisors, supervisor)
+		}
+	}
+	m.mu.RUnlock()
+
+	result := make([]SupervisorInfo, 0, len(supervisors))
+	for _, supervisor := range supervisors {
+		info := supervisor.Info()
+		if info.Status == StatusUnhealthy {
+			result = append(result, info)
+		}
+	}
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Kind < result[j].Kind
+	})
+	return result
 }
 
 // ListEngines returns status info for all managed engines.
@@ -607,6 +748,12 @@ func (m *Manager) removeSupervisorIfCurrent(kind EngineKind, expected *Superviso
 func (m *Manager) beginEngineStart(kind EngineKind) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.stopped {
+		return ErrEngineManagerStopped
+	}
+	if m.dataRootAdmissionClosed {
+		return ErrEngineManagerDataRootQuiesced
+	}
 	if m.starting[kind] {
 		return fmt.Errorf("engine %s already running", kind)
 	}
@@ -616,13 +763,22 @@ func (m *Manager) beginEngineStart(kind EngineKind) error {
 		}
 	}
 	m.starting[kind] = true
+	m.signalStartStateChangedLocked()
 	return nil
 }
 
 func (m *Manager) finishEngineStart(kind EngineKind) {
 	m.mu.Lock()
 	delete(m.starting, kind)
+	m.signalStartStateChangedLocked()
 	m.mu.Unlock()
+}
+
+func (m *Manager) signalStartStateChangedLocked() {
+	if m.startStateChanged != nil {
+		close(m.startStateChanged)
+	}
+	m.startStateChanged = make(chan struct{})
 }
 
 func (m *Manager) latestRegistryEntry(kind EngineKind) *RegistryEntry {

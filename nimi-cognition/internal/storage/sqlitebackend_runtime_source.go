@@ -160,10 +160,47 @@ func (b *SQLiteBackend) InspectRuntimeSourceState(scopeID string) (RuntimeSource
 	if state.Generation == 0 {
 		return RuntimeSourceState{}, errors.New("storage: runtime source generation is corrupt")
 	}
+	if err := b.validateStoredRuntimeSourceUnits(scopeID, state); err != nil {
+		return RuntimeSourceState{}, err
+	}
 	if err := b.validateStoredRuntimeSourceOmissions(scopeID, state.OmissionCount); err != nil {
 		return RuntimeSourceState{}, err
 	}
 	return state, nil
+}
+
+func (b *SQLiteBackend) validateStoredRuntimeSourceUnits(scopeID string, state RuntimeSourceState) error {
+	rows, err := b.db.Query(`SELECT unit_id,category,source_path,source_kind,source_world_id,source_ref_id,source_schema_version,source_content_hash,text,provenance_refs_json,priority,embedding_json FROM runtime_source_unit WHERE scope_id=?`, scopeID)
+	if err != nil {
+		return fmt.Errorf("storage: inspect runtime source units: %w", err)
+	}
+	defer rows.Close()
+	count := 0
+	for rows.Next() {
+		var unit RuntimeSourceUnit
+		var rawProvenanceRefs, rawEmbedding []byte
+		if err := rows.Scan(&unit.UnitID, &unit.Category, &unit.SourcePath, &unit.SourceRef.Kind, &unit.SourceRef.WorldID, &unit.SourceRef.RefID, &unit.SourceRef.SchemaVersion, &unit.SourceRef.ContentHash, &unit.Text, &rawProvenanceRefs, &unit.Priority, &rawEmbedding); err != nil {
+			return fmt.Errorf("storage: scan runtime source unit: %w", err)
+		}
+		if err := json.Unmarshal(rawProvenanceRefs, &unit.ProvenanceRefs); err != nil || unit.ProvenanceRefs == nil || !validStoredRuntimeSourceUnit(unit) {
+			return errors.New("storage: runtime source unit is corrupt")
+		}
+		if state.Status == "ready" {
+			if err := json.Unmarshal(rawEmbedding, &unit.Embedding); err != nil || len(unit.Embedding) != state.EmbeddingDimension || !finiteRuntimeSourceVector(unit.Embedding) {
+				return errors.New("storage: runtime source embedding is missing or corrupt")
+			}
+		} else if len(rawEmbedding) != 0 {
+			return errors.New("storage: non-ready runtime source unit carries an embedding")
+		}
+		count++
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("storage: inspect runtime source units: %w", err)
+	}
+	if count != state.UnitCount {
+		return errors.New("storage: runtime source unit count changed during inspection")
+	}
+	return nil
 }
 
 func (b *SQLiteBackend) SearchRuntimeSource(scopeID, snapshotIdentity, embeddingIdentity, query string, queryEmbedding []float64, limit int) ([]RuntimeSourceUnit, RuntimeSourceState, error) {

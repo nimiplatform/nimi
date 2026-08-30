@@ -179,6 +179,7 @@ func (s *Service) restoreState() error {
 	}
 	s.localEnvironmentSelectedSources = make(map[string]localEnvironmentSelectedSourceRecordState, len(snapshot.LocalEnvironmentSelectedSources))
 	for _, item := range snapshot.LocalEnvironmentSelectedSources {
+		item = localEnvironmentSelectedSourceRecordFromStorage(item, s.runtimeDataRoot)
 		if strings.TrimSpace(item.EnvironmentKey) == "" {
 			continue
 		}
@@ -319,7 +320,8 @@ func (s *Service) persistStateLocked() error {
 	}
 	sort.Strings(selectedSourceKeys)
 	for _, key := range selectedSourceKeys {
-		snapshot.LocalEnvironmentSelectedSources = append(snapshot.LocalEnvironmentSelectedSources, s.localEnvironmentSelectedSources[key])
+		record := localEnvironmentSelectedSourceRecordForStorage(s.localEnvironmentSelectedSources[key], s.runtimeDataRoot)
+		snapshot.LocalEnvironmentSelectedSources = append(snapshot.LocalEnvironmentSelectedSources, record)
 	}
 
 	dependencyJobIDs := make([]string, 0, len(s.localEnvironmentDependencyJobs))

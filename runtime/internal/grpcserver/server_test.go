@@ -109,6 +109,42 @@ func TestNewConfiguresRuntimeAgentDefaultExecutors(t *testing.T) {
 	}
 }
 
+func TestServerCompositionOpensCanonicalOwnersUnderActiveDataRoot(t *testing.T) {
+	dataRoot := t.TempDir()
+	for _, directory := range []string{"models", "dependencies", "environments", "apps", "accounts", "logs", "audit"} {
+		if err := os.MkdirAll(filepath.Join(dataRoot, directory), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	cfg := config.Config{
+		GRPCAddr: "127.0.0.1:0", HTTPAddr: "127.0.0.1:0", ShutdownTimeout: 2 * time.Second,
+		LocalStatePath: filepath.Join(t.TempDir(), "service-state", "runtime", "local-state.json"),
+		DataRootRef:    dataRoot, LocalModelsPath: filepath.Join(dataRoot, "models"),
+		ManagedRoots: config.ManagedRootsConfig{
+			Models: filepath.Join(dataRoot, "models"), Dependencies: filepath.Join(dataRoot, "dependencies"),
+			Environments: filepath.Join(dataRoot, "environments"), Apps: filepath.Join(dataRoot, "apps"),
+			Accounts: filepath.Join(dataRoot, "accounts"), Logs: filepath.Join(dataRoot, "logs"), Audit: filepath.Join(dataRoot, "audit"),
+		},
+		AuditRingBufferSize: 64, UsageStatsBufferSize: 64, IdempotencyCapacity: 32,
+	}
+	bindRuntimeOwnerStateToProductControlRoot(&cfg)
+	productControlRoot := filepath.Join(t.TempDir(), ".nimi")
+	server, err := newServer(cfg, health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), "test", nil, productControlRoot, localservice.ProductControlDataRootSecurityBinding{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = server.Stop(context.Background()) })
+	if got, want := server.persistenceBackend.Path(), filepath.Join(dataRoot, "accounts", "runtime", "memory.db"); got != want {
+		t.Fatalf("Runtime canonical owner store = %q, want %q", got, want)
+	}
+	if err := server.cognitionV1Owner.CheckSyncRoot(dataRoot); err != nil {
+		t.Fatal(err)
+	}
+	if err := server.appService.CheckSyncDataRoot(dataRoot); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestNewKeepsRuntimeCoreAvailableWhenCognitionInitializationFails(t *testing.T) {
 	productControlRoot := filepath.Join(t.TempDir(), ".nimi")
 	runtimeStateRoot := filepath.Join(productControlRoot, "runtime")

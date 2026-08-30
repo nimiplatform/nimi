@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -14,10 +15,18 @@ import (
 func upsertReadyPythonPrerequisiteForTest(t *testing.T, svc *Service, record localEnvironmentSelectedSourceRecordState) localEnvironmentSelectedSourceRecordState {
 	t.Helper()
 	switch record.DependencyFamily {
-	case localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet, localEnvironmentFamilyPythonTorchWheel, localEnvironmentFamilyCUDA:
-		record.CanonicalRoot = t.TempDir()
+	case localEnvironmentFamilyPythonVenv, localEnvironmentFamilyPythonPackageSet:
+		record.CanonicalRoot = filepath.Join(svc.runtimeDataRoot, "environments", "python-profiles", strings.TrimSpace(record.DependencyID))
+	case localEnvironmentFamilyPythonTorchWheel:
+		record.CanonicalRoot = filepath.Join(svc.runtimeDataRoot, "dependencies", "python-package-cache")
+	case localEnvironmentFamilyCUDA:
+		record.CanonicalRoot = filepath.Join(svc.runtimeDataRoot, "dependencies", "accelerator-dependencies", strings.TrimSpace(record.DependencyID))
+	case localEnvironmentFamilyPythonUV:
+		record.CanonicalRoot = filepath.Join(svc.runtimeDataRoot, "dependencies", "uv", "uv.exe")
+	case localEnvironmentFamilyPythonRuntime:
+		record.CanonicalRoot = filepath.Join(svc.runtimeDataRoot, "environments", "python", engine.ManagedPythonVersion, "python.exe")
 	default:
-		record.CanonicalRoot = filepath.Join(t.TempDir(), "artifact.exe")
+		record.CanonicalRoot = filepath.Join(svc.runtimeDataRoot, "environments", "test", "artifact.exe")
 	}
 	record = verifiedSelectedSourceRecordForTest(record)
 	writeSelectedSourceLocalArtifactsForTest(t, record)
@@ -290,8 +299,8 @@ func TestStartPythonRuntimeDependencyJobPromotesVerifiedSelectedSource(t *testin
 	svc.SetEngineManager(&mockEngineManager{
 		pythonRuntimeStatus: &engine.PythonRuntimeDependencyStatus{
 			PythonVersion:   "Python " + engine.ManagedPythonVersion,
-			InterpreterPath: filepath.Join(t.TempDir(), "python.exe"),
-			RuntimeRoot:     t.TempDir(),
+			InterpreterPath: filepath.Join(svc.runtimeDataRoot, "environments", "python", engine.ManagedPythonVersion, "python.exe"),
+			RuntimeRoot:     filepath.Join(svc.runtimeDataRoot, "environments", "python", engine.ManagedPythonVersion),
 			UVExecutable:    uvRecord.CanonicalRoot,
 			Detail:          "Runtime-managed Python runtime verified through selected uv tool",
 		},
@@ -337,8 +346,8 @@ func TestPythonRuntimeDependencyJobUsesInstallingWithoutDownloadProgress(t *test
 		pythonRuntimeDependencyRelease: release,
 		pythonRuntimeStatus: &engine.PythonRuntimeDependencyStatus{
 			PythonVersion:   "Python " + engine.ManagedPythonVersion,
-			InterpreterPath: filepath.Join(t.TempDir(), "python.exe"),
-			RuntimeRoot:     t.TempDir(),
+			InterpreterPath: filepath.Join(svc.runtimeDataRoot, "environments", "python", engine.ManagedPythonVersion, "python.exe"),
+			RuntimeRoot:     filepath.Join(svc.runtimeDataRoot, "environments", "python", engine.ManagedPythonVersion),
 			UVExecutable:    uvRecord.CanonicalRoot,
 			Detail:          "Runtime-managed Python runtime verified through selected uv tool",
 		},
@@ -372,7 +381,12 @@ func TestStartPythonRuntimeDependencyJobUsesRequestConsumerScope(t *testing.T) {
 	upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	environmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), environmentKey, consumer)
-	svc.SetEngineManager(&mockEngineManager{})
+	svc.SetEngineManager(&mockEngineManager{pythonRuntimeStatus: &engine.PythonRuntimeDependencyStatus{
+		PythonVersion:   "Python " + engine.ManagedPythonVersion,
+		InterpreterPath: filepath.Join(svc.runtimeDataRoot, "environments", "python", engine.ManagedPythonVersion, "python.exe"),
+		RuntimeRoot:     filepath.Join(svc.runtimeDataRoot, "environments", "python", engine.ManagedPythonVersion),
+		UVExecutable:    filepath.Join(svc.runtimeDataRoot, "dependencies", "uv", "uv.exe"), Detail: "test python runtime ready for python",
+	}})
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   environmentKey,
@@ -436,10 +450,10 @@ func TestStartPythonVenvDependencyJobPromotesVerifiedSelectedSource(t *testing.T
 	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	runtimeRecord := upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
 	upsertReadyCUDAForProfileTest(t, svc, consumer, identity)
-	profileRoot := t.TempDir()
+	profileRoot := filepath.Join(svc.runtimeDataRoot, "environments", "python-profiles", identity.ProfileDigest)
 	svc.SetEngineManager(&mockEngineManager{
 		pythonDependencyProfileStatus: func() *engine.PythonDependencyProfileStatus {
-			status := pythonDependencyProfileStatusForTest(identity, consumer, profileRoot, uvRecord.CanonicalRoot, t.TempDir())
+			status := pythonDependencyProfileStatusForTest(identity, consumer, profileRoot, uvRecord.CanonicalRoot, filepath.Join(svc.runtimeDataRoot, "dependencies", "python-package-cache"))
 			return &status
 		}(),
 	})
@@ -524,7 +538,7 @@ func TestStartPythonPackageSetDependencyJobFailsFastWhenVenvJobFailed(t *testing
 	if err != nil {
 		t.Fatalf("start failed venv seed job: %v", err)
 	}
-	if _, ok := svc.transitionLocalEnvironmentDependencyJob(failedVenv.JobID, localEnvironmentStateFailed, "uv venv failed: interpreter inspection failed", true); !ok {
+	if _, ok, _ := svc.transitionLocalEnvironmentDependencyJob(failedVenv.JobID, localEnvironmentStateFailed, "uv venv failed: interpreter inspection failed", true); !ok {
 		t.Fatalf("failed to transition venv seed job")
 	}
 	svc.SetEngineManager(&mockEngineManager{})
@@ -560,7 +574,7 @@ func TestStartPythonPackageSetDependencyJobPromotesVerifiedSelectedSource(t *tes
 	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	venvRecord := upsertReadyPythonProfileForTest(t, svc, localEnvironmentFamilyPythonVenv, consumer, identity)
 	runtimeRecord := upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
-	status := pythonDependencyProfileStatusForTest(identity, consumer, venvRecord.CanonicalRoot, uvRecord.CanonicalRoot, t.TempDir())
+	status := pythonDependencyProfileStatusForTest(identity, consumer, venvRecord.CanonicalRoot, uvRecord.CanonicalRoot, filepath.Join(svc.runtimeDataRoot, "dependencies", "python-package-cache"))
 	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
 	environmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
 
@@ -620,7 +634,7 @@ func TestPythonPackageSetDependencyJobUsesVerifyingWithoutDownloadProgress(t *te
 	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	venvRecord := upsertReadyPythonProfileForTest(t, svc, localEnvironmentFamilyPythonVenv, consumer, identity)
 	upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
-	status := pythonDependencyProfileStatusForTest(identity, consumer, venvRecord.CanonicalRoot, uvRecord.CanonicalRoot, t.TempDir())
+	status := pythonDependencyProfileStatusForTest(identity, consumer, venvRecord.CanonicalRoot, uvRecord.CanonicalRoot, filepath.Join(svc.runtimeDataRoot, "dependencies", "python-package-cache"))
 	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
 	states := []string{}
 	progressCalled := false
@@ -668,8 +682,8 @@ func TestPythonPackageSetWaitsForVerifiedVenvInsteadOfStaleRepairRecord(t *testi
 		SelectedConsumers: []string{consumer},
 		RepairState:       localEnvironmentRepairRequired,
 	}))
-	venvRoot := t.TempDir()
-	status := pythonDependencyProfileStatusForTest(identity, consumer, venvRoot, uvRecord.CanonicalRoot, t.TempDir())
+	venvRoot := filepath.Join(svc.runtimeDataRoot, "environments", "python-profiles", identity.ProfileDigest)
+	status := pythonDependencyProfileStatusForTest(identity, consumer, venvRoot, uvRecord.CanonicalRoot, filepath.Join(svc.runtimeDataRoot, "dependencies", "python-package-cache"))
 	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
 	packageEnvironmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
 
@@ -731,11 +745,11 @@ func TestPythonPackageSetWaitsForExactTTSProfileWhenASRProfileIsAlreadyReady(t *
 	if err != nil {
 		t.Fatalf("start in-flight TTS venv job: %v", err)
 	}
-	if _, ok := svc.transitionLocalEnvironmentDependencyJob(ttsVenvJob.JobID, localEnvironmentStateInstalling, "", true); !ok {
+	if _, ok, _ := svc.transitionLocalEnvironmentDependencyJob(ttsVenvJob.JobID, localEnvironmentStateInstalling, "", true); !ok {
 		t.Fatal("transition TTS venv job to installing")
 	}
 
-	ttsProfileRoot := t.TempDir()
+	ttsProfileRoot := filepath.Join(svc.runtimeDataRoot, "environments", "python-profiles", ttsIdentity.ProfileDigest)
 	ttsVenvRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		DependencyFamily:  localEnvironmentFamilyPythonVenv,
 		DependencyID:      ttsIdentity.DependencyID,
@@ -747,7 +761,7 @@ func TestPythonPackageSetWaitsForExactTTSProfileWhenASRProfileIsAlreadyReady(t *
 		VerifiedArtifacts: []string{filepath.Join(ttsProfileRoot, "Scripts", "python.exe")},
 	})
 	writeSelectedSourceLocalArtifactsForTest(t, ttsVenvRecord)
-	status := pythonDependencyProfileStatusForTest(ttsIdentity, ttsConsumer, ttsProfileRoot, uvRecord.CanonicalRoot, t.TempDir())
+	status := pythonDependencyProfileStatusForTest(ttsIdentity, ttsConsumer, ttsProfileRoot, uvRecord.CanonicalRoot, filepath.Join(svc.runtimeDataRoot, "dependencies", "python-package-cache"))
 	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
 
 	type packageResult struct {
@@ -832,7 +846,7 @@ func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *tes
 	upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
 	packageRecord := upsertReadyPythonProfileForTest(t, svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
 	upsertReadyCUDAForProfileTest(t, svc, consumer, identity)
-	packageCacheRoot := t.TempDir()
+	packageCacheRoot := filepath.Join(svc.runtimeDataRoot, "dependencies", "python-package-cache")
 	status := pythonDependencyProfileStatusForTest(identity, consumer, packageRecord.CanonicalRoot, uvRecord.CanonicalRoot, packageCacheRoot)
 	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
 	torchIdentity, err := engine.ResolvePythonTorchWheelDependencyIdentity(consumer)
@@ -892,7 +906,7 @@ func TestPythonTorchWheelDependencyJobUsesVerifyingWithoutDownloadProgress(t *te
 	upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
 	packageRecord := upsertReadyPythonProfileForTest(t, svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
 	upsertReadyCUDAForProfileTest(t, svc, consumer, identity)
-	status := pythonDependencyProfileStatusForTest(identity, consumer, packageRecord.CanonicalRoot, uvRecord.CanonicalRoot, t.TempDir())
+	status := pythonDependencyProfileStatusForTest(identity, consumer, packageRecord.CanonicalRoot, uvRecord.CanonicalRoot, filepath.Join(svc.runtimeDataRoot, "dependencies", "python-package-cache"))
 	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
 	torchIdentity, err := engine.ResolvePythonTorchWheelDependencyIdentity(consumer)
 	if err != nil {
@@ -932,11 +946,18 @@ func TestPythonPrerequisiteOrderingConvergesUnderConcurrentUnorderedStart(t *tes
 	uvEnvironmentKey := localEnvironmentManagedUVKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), runtimeEnvironmentKey, consumer)
 	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonUV, "uv", uvEnvironmentKey, consumer)
+	uvExecutable := filepath.Join(svc.runtimeDataRoot, "dependencies", "uv", "uv.exe")
+	if err := os.MkdirAll(filepath.Dir(uvExecutable), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(uvExecutable, []byte("uv"), 0o700); err != nil {
+		t.Fatal(err)
+	}
 	svc.SetEngineManager(&mockEngineManager{
 		uvToolDependencyStatus: &engine.UVToolDependencyStatus{
 			Version:          "0.11.8",
-			ExecutablePath:   `C:\nimi\engines\uv\uv.exe`,
-			SourceRoot:       `C:\nimi\engines\uv`,
+			ExecutablePath:   uvExecutable,
+			SourceRoot:       filepath.Join(svc.runtimeDataRoot, "dependencies", "uv"),
 			ArchiveURL:       "https://releases.astral.sh/github/uv/releases/download/0.11.8/uv-x86_64-pc-windows-msvc.zip",
 			ArchiveSHA256:    "c84629a56e0706b69a47ea35862208af827cb6fbfa1d0ca763c52c67594637e8",
 			ArchiveAssetName: "uv-x86_64-pc-windows-msvc.zip",
@@ -945,9 +966,9 @@ func TestPythonPrerequisiteOrderingConvergesUnderConcurrentUnorderedStart(t *tes
 		},
 		pythonRuntimeStatus: &engine.PythonRuntimeDependencyStatus{
 			PythonVersion:   "Python " + engine.ManagedPythonVersion,
-			InterpreterPath: filepath.Join(t.TempDir(), "python.exe"),
-			RuntimeRoot:     t.TempDir(),
-			UVExecutable:    `C:\nimi\engines\uv\uv.exe`,
+			InterpreterPath: filepath.Join(svc.runtimeDataRoot, "environments", "python", engine.ManagedPythonVersion, "python.exe"),
+			RuntimeRoot:     filepath.Join(svc.runtimeDataRoot, "environments", "python", engine.ManagedPythonVersion),
+			UVExecutable:    uvExecutable,
 			Detail:          "Runtime-managed Python runtime verified through selected uv tool",
 		},
 	})
@@ -1002,9 +1023,9 @@ func TestPythonRuntimeWaitIgnoresFailedPrerequisiteFromDifferentConsumer(t *test
 	svc.SetEngineManager(&mockEngineManager{
 		pythonRuntimeStatus: &engine.PythonRuntimeDependencyStatus{
 			PythonVersion:   "Python " + engine.ManagedPythonVersion,
-			InterpreterPath: filepath.Join(t.TempDir(), "python.exe"),
-			RuntimeRoot:     t.TempDir(),
-			UVExecutable:    `C:\nimi\engines\uv\uv.exe`,
+			InterpreterPath: filepath.Join(svc.runtimeDataRoot, "environments", "python", engine.ManagedPythonVersion, "python.exe"),
+			RuntimeRoot:     filepath.Join(svc.runtimeDataRoot, "environments", "python", engine.ManagedPythonVersion),
+			UVExecutable:    filepath.Join(svc.runtimeDataRoot, "dependencies", "uv", "uv.exe"),
 			Detail:          "Runtime-managed Python runtime verified through selected uv tool",
 		},
 	})
@@ -1024,7 +1045,7 @@ func TestPythonRuntimeWaitIgnoresFailedPrerequisiteFromDifferentConsumer(t *test
 		DependencyID:      "uv",
 		EnvironmentKey:    localEnvironmentManagedUVKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot()),
 		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     filepath.Join(t.TempDir(), "uv.exe"),
+		CanonicalRoot:     filepath.Join(svc.runtimeDataRoot, "dependencies", "uv", "uv.exe"),
 		Version:           engine.ManagedUVVersion,
 		SelectedConsumers: []string{consumer},
 	})
@@ -1064,8 +1085,8 @@ func TestPythonVenvWaitIgnoresOlderFailedPrerequisiteWhenNewerJobInFlight(t *tes
 	}, nil); err != nil {
 		t.Fatalf("start in-flight python.runtime job: %v", err)
 	}
-	venvRoot := t.TempDir()
-	status := pythonDependencyProfileStatusForTest(identity, consumer, venvRoot, uvRecord.CanonicalRoot, t.TempDir())
+	venvRoot := filepath.Join(svc.runtimeDataRoot, "environments", "python-profiles", identity.ProfileDigest)
+	status := pythonDependencyProfileStatusForTest(identity, consumer, venvRoot, uvRecord.CanonicalRoot, filepath.Join(svc.runtimeDataRoot, "dependencies", "python-package-cache"))
 	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
 	venvEnvironmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonVenv, consumer, identity)
 
@@ -1084,7 +1105,7 @@ func TestPythonVenvWaitIgnoresOlderFailedPrerequisiteWhenNewerJobInFlight(t *tes
 		DependencyID:      localEnvironmentPythonRuntimeDependencyID(),
 		EnvironmentKey:    runtimeEnvironmentKey,
 		SourceKind:        localEnvironmentSourceManaged,
-		CanonicalRoot:     filepath.Join(t.TempDir(), "python"),
+		CanonicalRoot:     filepath.Join(svc.runtimeDataRoot, "environments", "python", engine.ManagedPythonVersion, "python.exe"),
 		Version:           "Python " + engine.ManagedPythonVersion,
 		SelectedConsumers: []string{consumer},
 		Hashes:            map[string]string{"selected_uv_record": uvRecord.RecordID},
@@ -1103,7 +1124,7 @@ func TestPythonVenvWaitIgnoresOlderFailedPrerequisiteWhenNewerJobInFlight(t *tes
 
 func TestStartNativeSDCPPDependencyJobRepairRequiredWithoutEvidence(t *testing.T) {
 	svc := newTestService(t)
-	dep := nativeSDCPPPlanDependencyForTest(t, svc, "stable-diffusion.cpp.metal", localEnvironmentAppleSilicon128GBProfile())
+	dep := nativeSDCPPPlanDependencyForTest(t, svc, stableDiffusionCUDAConsumerID, localEnvironmentNvidiaProfile())
 	svc.SetEngineManager(&mockEngineManager{
 		managedImageBackendStatus: &engine.ManagedImageBackendDependencyStatus{
 			BackendName: "stablediffusion-ggml",

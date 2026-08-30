@@ -124,3 +124,50 @@ func TestLocalAppJSONStorageHardCutsSubjectOnlyLegacyPath(t *testing.T) {
 		t.Fatalf("subject-only legacy data was rebound: %v", err)
 	}
 }
+
+func TestCopiedDataRootReopensOnlyExactAccountAndRegisteredAppSubject(t *testing.T) {
+	rootOne := filepath.Join(t.TempDir(), "app-root-one")
+	if err := os.MkdirAll(rootOne, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	owner := ManagedOwner{AccountID: "account-portable", RegisteredAppSubject: "ras_v1_portable"}
+	if _, err := WriteLocalAppJSON(rootOne, owner, "state/portable.json", []byte(`{"portable":true}`)); err != nil {
+		t.Fatal(err)
+	}
+	rootTwo := filepath.Join(t.TempDir(), "app-root-two")
+	if err := os.CopyFS(rootTwo, os.DirFS(rootOne)); err != nil {
+		t.Fatal(err)
+	}
+	opened, err := ReadLocalAppJSON(rootTwo, owner, "state/portable.json")
+	if err != nil || string(opened.JSONValue) != `{"portable":true}` {
+		t.Fatalf("copied App owner state = %+v err=%v", opened, err)
+	}
+	if _, err := ReadLocalAppJSON(rootTwo, ManagedOwner{AccountID: owner.AccountID, RegisteredAppSubject: "ras_v1_other"}, "state/portable.json"); !errors.Is(err, ErrLocalAppJSONNotFound) {
+		t.Fatalf("raw App identity crossed subject partition: %v", err)
+	}
+	if _, err := ReadLocalAppJSON(rootTwo, ManagedOwner{AccountID: "other-account", RegisteredAppSubject: owner.RegisteredAppSubject}, "state/portable.json"); !errors.Is(err, ErrLocalAppJSONNotFound) {
+		t.Fatalf("copied App owner state crossed Account partition: %v", err)
+	}
+}
+
+func TestInspectManagedOwnerJSONRejectsNonCanonicalOwnerRecord(t *testing.T) {
+	dataRoot := t.TempDir()
+	owner := ManagedOwner{AccountID: "account-inspect", RegisteredAppSubject: "ras_v1_inspect"}
+	if _, err := WriteLocalAppJSON(dataRoot, owner, "state/value.json", []byte(`{"value":1}`)); err != nil {
+		t.Fatal(err)
+	}
+	root, relative, err := localAppJSONRoot(dataRoot, owner, "state/value.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	target, exists, err := resolveLocalAppJSONTarget(root, relative, false)
+	if err != nil || !exists {
+		t.Fatalf("resolve committed JSON target: exists=%v err=%v", exists, err)
+	}
+	if err := os.WriteFile(target, []byte(`{ "value": 1 }`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := InspectManagedOwnerJSON(dataRoot, owner); !errors.Is(err, ErrLocalAppJSONValueInvalid) {
+		t.Fatalf("non-canonical JSON owner record inspection = %v", err)
+	}
+}

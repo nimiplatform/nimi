@@ -13,7 +13,7 @@ const (
 	localEngineSupportSupportedSupervised = "supported_supervised"
 	localEngineSupportAttachedOnly        = "attached_only"
 	localEngineSupportUnsupported         = "unsupported"
-	warnMediaAttachedOnly                 = "WARN_NIMI_MEDIA_ATTACHED_ONLY"
+	warnMediaUnsupported                  = "WARN_NIMI_MEDIA_UNSUPPORTED"
 	warnCUDARequired                      = "WARN_CUDA_REQUIRED"
 )
 
@@ -59,10 +59,11 @@ func classifyManagedEngineSupportForAsset(
 		if profile == nil {
 			return localEngineSupportUnsupported, "device profile unavailable"
 		}
-		if engine.LlamaSupervisedPlatformSupportedFor(profile.GetOs(), profile.GetArch()) {
+		driverVisible := profile.GetGpu().GetAvailable()
+		if engine.LlamaSupervisedHostSupportedFor(profile.GetOs(), profile.GetArch(), profile.GetGpu().GetVendor(), driverVisible) {
 			return localEngineSupportSupportedSupervised, ""
 		}
-		return localEngineSupportAttachedOnly, "llama-backed supervised mode is unavailable on this host; configure an attached endpoint instead"
+		return localEngineSupportUnsupported, "llama supervised mode is unsupported on the exact host tuple"
 	case "speech":
 		if profile == nil {
 			return localEngineSupportUnsupported, "device profile unavailable"
@@ -70,7 +71,9 @@ func classifyManagedEngineSupportForAsset(
 		if engine.SpeechSupervisedPlatformSupportedFor(profile.GetOs(), profile.GetArch()) {
 			return localEngineSupportSupportedSupervised, ""
 		}
-		return localEngineSupportAttachedOnly, "speech-backed supervised mode is unavailable on this host; configure an attached endpoint instead"
+		return localEngineSupportUnsupported, "speech supervised mode is unsupported on the exact host tuple"
+	case "sidecar":
+		return localEngineSupportAttachedOnly, "sidecar requires an explicitly admitted attached endpoint"
 	default:
 		return localEngineSupportUnsupported, "unknown managed engine"
 	}
@@ -136,8 +139,10 @@ func managedRuntimeEngineForAsset(
 		return "media"
 	case "llama":
 		return "llama"
-	case "speech":
+	case "speech", "audio-cpp":
 		return "speech"
+	case "sidecar":
+		return "sidecar"
 	default:
 		return strings.ToLower(strings.TrimSpace(engineName))
 	}
@@ -159,8 +164,10 @@ func executionRuntimeEngineForAsset(
 		return "media"
 	case "llama":
 		return "llama"
-	case "speech":
+	case "speech", "audio-cpp":
 		return "speech"
+	case "sidecar":
+		return "sidecar"
 	default:
 		return strings.ToLower(strings.TrimSpace(engineName))
 	}
@@ -195,22 +202,20 @@ func requiresNPU(engineName string) bool {
 }
 
 func classifyMediaHostSupport(profile *runtimev1.LocalDeviceProfile) (string, string) {
-	cudaReady, _ := probeGPUCUDAReady()
-	return classifyMediaHostSupportWithCUDA(profile, cudaReady)
+	driverVisible := profile != nil && profile.GetGpu().GetAvailable()
+	return classifyMediaHostSupportWithDriver(profile, driverVisible)
 }
 
-func classifyMediaHostSupportWithCUDA(profile *runtimev1.LocalDeviceProfile, cudaReady bool) (string, string) {
+func classifyMediaHostSupportWithDriver(profile *runtimev1.LocalDeviceProfile, driverVisible bool) (string, string) {
 	if profile == nil {
 		return localEngineSupportUnsupported, "device profile unavailable"
 	}
-	support := engine.ClassifyMediaHost(profile.GetOs(), profile.GetArch(), profile.GetGpu().GetVendor(), cudaReady)
+	support := engine.ClassifyMediaHost(profile.GetOs(), profile.GetArch(), profile.GetGpu().GetVendor(), driverVisible)
 	switch support {
 	case engine.MediaHostSupportSupportedSupervised:
 		return localEngineSupportSupportedSupervised, ""
-	case engine.MediaHostSupportAttachedOnly:
-		return localEngineSupportAttachedOnly, engine.MediaHostSupportDetail(profile.GetOs(), profile.GetArch(), profile.GetGpu().GetVendor(), cudaReady)
 	default:
-		return localEngineSupportUnsupported, engine.MediaHostSupportDetail(profile.GetOs(), profile.GetArch(), profile.GetGpu().GetVendor(), cudaReady)
+		return localEngineSupportUnsupported, engine.MediaHostSupportDetail(profile.GetOs(), profile.GetArch(), profile.GetGpu().GetVendor(), driverVisible)
 	}
 }
 
@@ -230,40 +235,9 @@ func managedEngineSupportWarningsForAsset(
 	if classification == localEngineSupportSupportedSupervised {
 		return nil
 	}
-	warnings := []string{warnMediaAttachedOnly}
+	warnings := []string{warnMediaUnsupported}
 	if strings.Contains(strings.ToLower(detail), "cuda") {
 		warnings = append(warnings, warnCUDARequired)
 	}
 	return warnings
-}
-
-func normalizeEndpointForComparison(endpoint string) string {
-	return strings.TrimRight(strings.TrimSpace(endpoint), "/")
-}
-
-func isManagedLoopbackEndpoint(engineName string, endpoint string) bool {
-	managedEndpoint := managedDefaultEndpointForEngine(engineName)
-	if managedEndpoint == "" {
-		return false
-	}
-	return strings.EqualFold(
-		normalizeEndpointForComparison(endpoint),
-		normalizeEndpointForComparison(managedEndpoint),
-	)
-}
-
-func attachedEndpointRequiredDetailForAsset(
-	engineName string,
-	capabilities []string,
-	kind runtimev1.LocalAssetKind,
-	profile *runtimev1.LocalDeviceProfile,
-) string {
-	if !supportsSupervisedEngine(engineName) {
-		return ""
-	}
-	classification, detail := classifyManagedEngineSupportForAsset(engineName, capabilities, kind, profile)
-	if classification == localEngineSupportAttachedOnly || classification == localEngineSupportUnsupported {
-		return strings.TrimSpace(detail)
-	}
-	return ""
 }

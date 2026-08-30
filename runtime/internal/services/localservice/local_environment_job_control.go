@@ -39,6 +39,12 @@ func (s *Service) startLocalEnvironmentDependencyJobConfirmed(ctx context.Contex
 	if strings.TrimSpace(consumerScope) == "" {
 		return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "local environment dependency consumer scope is ambiguous", "refresh_local_environment_plan")
 	}
+	if strings.TrimSpace(req.GetDependencyFamily()) == localEnvironmentFamilyNativeSDCPP &&
+		strings.TrimSpace(req.GetDependencyId()) == "stable-diffusion.cpp.package" {
+		if _, ok := nativeSDCPPPackageContractForEnvironment(req.GetEnvironmentKey(), consumerScope); !ok {
+			return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "stable-diffusion.cpp package is unsupported for the exact host and consumer", "inspect_local_environment_dependency")
+		}
+	}
 	if localEnvironmentDependencyProfileStartRequiresPlanContract(req.GetDependencyFamily()) {
 		if _, ok := s.localEnvironmentPlanDependencyContract(req.GetEnvironmentKey(), req.GetDependencyFamily(), req.GetDependencyId(), consumerScope); !ok {
 			return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "local environment dependency profile is not admitted by the current plan", "refresh_local_environment_plan")
@@ -328,9 +334,12 @@ func localEnvironmentDependencyProfileStartRequiresPlanContract(family string) b
 func (s *Service) CancelLocalEnvironmentDependencyJob(_ context.Context, req *runtimev1.CancelLocalEnvironmentDependencyJobRequest) (*runtimev1.CancelLocalEnvironmentDependencyJobResponse, error) {
 	s.localEnvironmentPlanApplyMu.Lock()
 	defer s.localEnvironmentPlanApplyMu.Unlock()
-	job, ok := s.cancelLocalEnvironmentDependencyJob(req.GetJobId())
+	job, ok, persistErr := s.cancelLocalEnvironmentDependencyJob(req.GetJobId())
 	if !ok {
 		return nil, localEnvironmentJobControlError(codes.NotFound, "local environment dependency job not found", "refresh_local_environment_jobs")
+	}
+	if persistErr != nil {
+		return nil, localEnvironmentJobControlError(codes.Internal, "local environment dependency cancellation could not be persisted", "retry_local_environment_dependency_cancel")
 	}
 	return &runtimev1.CancelLocalEnvironmentDependencyJobResponse{Job: localEnvironmentDependencyJobToProto(job)}, nil
 }
@@ -397,9 +406,12 @@ func (s *Service) repairLocalEnvironmentDependencyConfirmed(ctx context.Context,
 	if strings.TrimSpace(consumerScope) == "" {
 		return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "local environment dependency repair consumer scope is ambiguous", "refresh_local_environment_plan")
 	}
-	record, ok := s.markLocalEnvironmentDependencyRepairRequired(environmentKey, family, dependencyID, consumerScope, req.GetReasonCode())
+	record, ok, persistErr := s.markLocalEnvironmentDependencyRepairRequired(environmentKey, family, dependencyID, consumerScope, req.GetReasonCode())
 	if !ok {
 		return nil, localEnvironmentJobControlError(codes.FailedPrecondition, "local environment dependency has no selected source record to repair", "refresh_local_environment_plan")
+	}
+	if persistErr != nil {
+		return nil, localEnvironmentJobControlError(codes.Internal, "local environment dependency repair state could not be persisted", "retry_local_environment_dependency_repair")
 	}
 	if family == "" {
 		family = record.DependencyFamily

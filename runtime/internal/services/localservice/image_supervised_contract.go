@@ -129,8 +129,7 @@ func canonicalImageResolverInput(
 		ArtifactFormats: artifactFormats,
 		ProfileKind:     profileKind,
 	}
-	cudaReady, _ := probeGPUCUDAReady()
-	input.CUDAReady = cudaReady
+	input.CUDAReady = profile.GetGpu().GetAvailable() && strings.EqualFold(profile.GetGpu().GetVendor(), "nvidia")
 	return input, true
 }
 
@@ -285,15 +284,4 @@ func canonicalSupervisedImageSelectionSupported(
 ) bool {
 	sel := canonicalSupervisedImageSelection(profile, facts)
 	return sel.Matched && !sel.Conflict && sel.Entry != nil && sel.ProductState == engine.ImageProductStateSupported
-}
-
-func canonicalSupervisedImageAttachedEndpointDetail(
-	engineName string,
-	capabilities []string,
-	kind runtimev1.LocalAssetKind,
-) string {
-	if !isCanonicalSupervisedImageAsset(engineName, capabilities, kind) {
-		return ""
-	}
-	return "local image assets require runtime supervised execution; attached endpoints are not supported for the canonical image path"
 }

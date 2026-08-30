@@ -167,6 +167,13 @@ func (b *Backend) WriteTx(ctx context.Context, fn func(*sql.Tx) error) error {
 	})
 }
 
+func (b *Backend) Flush(ctx context.Context) error {
+	if b == nil || b.closed.Load() {
+		return errors.New("runtime persistence backend is closed")
+	}
+	return b.WriteTx(ctx, func(*sql.Tx) error { return nil })
+}
+
 func (b *Backend) Close() error {
 	var closeErr error
 	b.closeOnce.Do(func() {

@@ -3,8 +3,12 @@ package app
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"io"
 	"log/slog"
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -35,6 +39,54 @@ type trustedInternalCaller struct {
 	appID string
 }
 
+func (s *Service) CheckSyncDataRoot(dataRoot string) error {
+	if s == nil {
+		return errors.New("App storage owner is unavailable")
+	}
+	configured := filepath.Clean(strings.TrimSpace(s.appStorageDataRoot))
+	expected := filepath.Clean(strings.TrimSpace(dataRoot))
+	equal := configured == expected
+	if runtime.GOOS == "windows" {
+		equal = strings.EqualFold(configured, expected)
+	}
+	if configured == "." || expected == "." || !filepath.IsAbs(configured) || !equal {
+		return errors.New("App storage owner is not bound to the current data-root activation")
+	}
+	managedRoot := filepath.Join(configured, "managed-app-storage")
+	info, err := os.Lstat(managedRoot)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return errors.New("managed App storage root is not a direct directory")
+	}
+	return nil
+}
+
+func (s *Service) CheckSyncManagedOwner(ctx context.Context, dataRoot string, owner appstorage.ManagedOwner) (bool, error) {
+	if err := s.CheckSyncDataRoot(dataRoot); err != nil {
+		return false, err
+	}
+	exists, err := appstorage.InspectManagedOwner(dataRoot, owner)
+	if err != nil || !exists {
+		return exists, err
+	}
+	if err := appstorage.InspectManagedOwnerJSON(dataRoot, owner); err != nil {
+		return true, err
+	}
+	assets, err := s.localAppAssets()
+	if err != nil {
+		return true, err
+	}
+	if _, _, err := assets.Usage(ctx, owner); err != nil {
+		return true, err
+	}
+	return true, nil
+}
+
 type Option func(*Service)
 
 type subscriber struct {
@@ -49,8 +101,9 @@ type subscriber struct {
 type InternalConsumer func(context.Context, *runtimev1.AppMessageEvent) error
 
 type formalAppConnectionKey struct {
-	desktop *protectedlocal.Connection
-	appID   string
+	desktop     *protectedlocal.Connection
+	appID       string
+	bindingSlot string
 }
 
 type formalAppBinding struct {

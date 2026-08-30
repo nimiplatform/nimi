@@ -1,6 +1,7 @@
 package localservice
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,8 +30,10 @@ type modelAssetStoreSnapshot struct {
 }
 
 type modelAssetStoreRecord struct {
-	Asset            json.RawMessage `json:"asset"`
-	ManagedDirectory string          `json:"managedDirectory"`
+	Asset                    json.RawMessage `json:"asset"`
+	ManagedDirectory         string          `json:"managedDirectory"`
+	resolvedManagedDirectory string
+	rebaseRequired           bool
 }
 
 type modelAssetCleanupObligation struct {
@@ -47,12 +50,14 @@ type modelAssetCleanupObligation struct {
 }
 
 type decodedModelAssetStore struct {
-	Assets             map[string]*runtimev1.ModelAssetRecord
-	Directories        map[string]string
-	CleanupObligations map[string]modelAssetCleanupObligation
-	Diagnostics        []stateIsolationDiagnostic
-	RewriteRequired    bool
-	retainedRecords    []quarantinedStateRecord
+	Assets                  map[string]*runtimev1.ModelAssetRecord
+	Directories             map[string]string
+	CleanupObligations      map[string]modelAssetCleanupObligation
+	PendingDirectoryRebases map[string]string
+	PendingCleanupRebases   map[string]modelAssetCleanupObligation
+	Diagnostics             []stateIsolationDiagnostic
+	RewriteRequired         bool
+	retainedRecords         []quarantinedStateRecord
 }
 
 type modelAssetStoreAccessError struct {
@@ -83,9 +88,11 @@ func resolveModelAssetStorePath(stateStorePath string, modelsRoot string) string
 
 func emptyDecodedModelAssetStore() decodedModelAssetStore {
 	return decodedModelAssetStore{
-		Assets:             make(map[string]*runtimev1.ModelAssetRecord),
-		Directories:        make(map[string]string),
-		CleanupObligations: make(map[string]modelAssetCleanupObligation),
+		Assets:                  make(map[string]*runtimev1.ModelAssetRecord),
+		Directories:             make(map[string]string),
+		CleanupObligations:      make(map[string]modelAssetCleanupObligation),
+		PendingDirectoryRebases: make(map[string]string),
+		PendingCleanupRebases:   make(map[string]modelAssetCleanupObligation),
 	}
 }
 
@@ -108,24 +115,26 @@ func loadModelAssetStore(path string, modelsRoot string) (decodedModelAssetStore
 	if raw.SchemaVersion != modelAssetStoreSchemaVersion {
 		return isolateModelAssetStoreDocument(path, payload, fmt.Errorf("unsupported schemaVersion=%d", raw.SchemaVersion))
 	}
-	if len(raw.Assets) > 0 {
-		if err := validateModelAssetStoreResolvedRoot(modelsRoot); err != nil {
-			return result, err
-		}
-	}
-
 	quarantined := make([]quarantinedStateRecord, 0)
 	seenDirectories := make(map[string]struct{}, len(raw.Assets))
 	var accessErr error
 	rows := decodeIsolatedRows(raw.Assets, modelAssetStoreFileName, "assets", &quarantined,
 		func(row *modelAssetStoreRecord, _ json.RawMessage) error {
-			if err := validateStoredModelAssetRecord(modelsRoot, row); err != nil {
+			directory, changed := resolveStoredModelAssetDirectory(modelsRoot, row)
+			row.resolvedManagedDirectory = directory
+			row.rebaseRequired = changed
+			resolvedRow := *row
+			resolvedRow.ManagedDirectory = directory
+			if err := validateStoredModelAssetRecord(modelsRoot, &resolvedRow); err != nil {
+				if errors.Is(err, os.ErrNotExist) && validateUnavailableStoredModelAssetRecord(&resolvedRow) == nil {
+					return nil
+				}
 				if accessErr == nil && isModelAssetStoreAccessError(err) {
 					accessErr = err
 				}
 				return err
 			}
-			directoryKey := canonicalReportPath(row.ManagedDirectory)
+			directoryKey := canonicalReportPath(directory)
 			if _, duplicate := seenDirectories[directoryKey]; duplicate {
 				return fmt.Errorf("duplicate ModelAsset managed directory %q", row.ManagedDirectory)
 			}
@@ -146,12 +155,22 @@ func loadModelAssetStore(path string, modelsRoot string) (decodedModelAssetStore
 		if err := protojson.Unmarshal(row.Asset, asset); err != nil {
 			continue
 		}
-		result.Assets[asset.GetModelAssetId()] = asset
-		result.Directories[asset.GetModelAssetId()] = filepath.Clean(row.ManagedDirectory)
+		id := asset.GetModelAssetId()
+		result.Assets[id] = asset
+		if row.rebaseRequired {
+			// Never expose the former absolute root to live owner consumers. The
+			// current-root path is active in memory immediately; Check & Sync owns
+			// the later durable locator rewrite through PendingDirectoryRebases.
+			result.Directories[id] = filepath.Clean(row.resolvedManagedDirectory)
+			result.PendingDirectoryRebases[id] = filepath.Clean(row.resolvedManagedDirectory)
+		} else {
+			result.Directories[id] = filepath.Clean(row.resolvedManagedDirectory)
+		}
 	}
 
 	seenCleanup := make(map[string]struct{}, len(raw.CleanupObligations))
 	for index, obligation := range raw.CleanupObligations {
+		directory, detached, changed := resolveStoredModelAssetCleanupDirectory(modelsRoot, obligation)
 		id := strings.TrimSpace(obligation.ModelAssetID)
 		if id == "" || strings.TrimSpace(obligation.ManagedDirectory) == "" {
 			encoded, _ := json.Marshal(obligation)
@@ -164,7 +183,21 @@ func loadModelAssetStore(path string, modelsRoot string) (decodedModelAssetStore
 			continue
 		}
 		seenCleanup[id] = struct{}{}
-		result.CleanupObligations[id] = obligation
+		if changed {
+			rebasedObligation := obligation
+			rebasedObligation.ManagedDirectory = directory
+			if detached {
+				rebasedObligation.Terminal = true
+				rebasedObligation.TerminalReason = "former root detached"
+			}
+			// A former-root cleanup obligation becomes inert before any retry can
+			// run. Check & Sync persists the terminalized current-root form later.
+			result.CleanupObligations[id] = rebasedObligation
+			result.PendingCleanupRebases[id] = rebasedObligation
+		} else {
+			obligation.ManagedDirectory = directory
+			result.CleanupObligations[id] = obligation
+		}
 	}
 
 	if len(quarantined) > 0 {
@@ -186,6 +219,131 @@ func loadModelAssetStore(path string, modelsRoot string) (decodedModelAssetStore
 		}
 	}
 	return result, nil
+}
+
+func resolveStoredModelAssetDirectory(modelsRoot string, row *modelAssetStoreRecord) (string, bool) {
+	if row == nil {
+		return "", false
+	}
+	stored := filepath.Clean(strings.TrimSpace(row.ManagedDirectory))
+	root := resolveLocalModelsPath(modelsRoot)
+	if stored == "." || root == "" || !filepath.IsAbs(root) {
+		return stored, false
+	}
+	if !filepath.IsAbs(stored) {
+		if stored == ".." || strings.HasPrefix(stored, ".."+string(filepath.Separator)) {
+			return stored, false
+		}
+		// Root-relative locators are the canonical persisted form. Resolving one
+		// to an absolute in-memory path is not a store migration and must not
+		// trigger a rewrite merely because the resolved root is temporarily down.
+		return filepath.Join(root, stored), false
+	}
+	if modelAssetManagedDirectoryWithinRoot(root, stored) {
+		return stored, false
+	}
+	asset := &runtimev1.ModelAssetRecord{}
+	if protojson.Unmarshal(row.Asset, asset) == nil && validateUnavailableStoredModelAssetRecord(row) == nil {
+		matches := exactModelAssetManifestDirectories(root, asset)
+		if len(matches) == 1 {
+			return matches[0], !productControlPathsEqual(stored, matches[0])
+		}
+		inert := unavailableModelAssetDirectory(root, asset.GetModelAssetId(), asset.GetContentId())
+		return inert, !productControlPathsEqual(stored, inert)
+	}
+	return stored, false
+}
+
+func resolveStoredModelAssetCleanupDirectory(modelsRoot string, obligation modelAssetCleanupObligation) (string, bool, bool) {
+	stored := filepath.Clean(strings.TrimSpace(obligation.ManagedDirectory))
+	root := resolveLocalModelsPath(modelsRoot)
+	if stored == "." || root == "" || !filepath.IsAbs(root) {
+		return stored, false, false
+	}
+	if !filepath.IsAbs(stored) {
+		if stored == ".." || strings.HasPrefix(stored, ".."+string(filepath.Separator)) {
+			return stored, false, false
+		}
+		return filepath.Join(root, stored), false, false
+	}
+	if modelAssetManagedDirectoryWithinRoot(root, stored) {
+		return stored, false, false
+	}
+	inert := unavailableModelAssetDirectory(root, obligation.ModelAssetID, obligation.ContentID)
+	return inert, true, !productControlPathsEqual(stored, inert)
+}
+
+func unavailableModelAssetDirectory(modelsRoot string, modelAssetID string, contentID string) string {
+	digest := sha256.Sum256([]byte("nimi.model-asset-unavailable-locator.v1\x00" + modelAssetID + "\x00" + contentID))
+	return filepath.Join(resolveLocalModelsPath(modelsRoot), "resolved", ".unavailable", fmt.Sprintf("%x", digest[:]))
+}
+
+func exactModelAssetManifestDirectories(modelsRoot string, asset *runtimev1.ModelAssetRecord) []string {
+	if asset == nil {
+		return nil
+	}
+	resolvedRoot := filepath.Join(resolveLocalModelsPath(modelsRoot), "resolved")
+	entries, err := os.ReadDir(resolvedRoot)
+	if err != nil {
+		return nil
+	}
+	matches := make([]string, 0, 1)
+	wanted := modelAssetManifestFromRecord(asset)
+	for _, entry := range entries {
+		if !entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
+			continue
+		}
+		directory := filepath.Join(resolvedRoot, entry.Name())
+		info, err := os.Lstat(directory)
+		if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+			continue
+		}
+		payload, err := os.ReadFile(filepath.Join(directory, localAssetManifestFileName))
+		if err != nil {
+			continue
+		}
+		var manifest modelAssetManifest
+		if decodeStrictJSON(payload, &manifest) != nil || manifest.ModelAssetID != asset.GetModelAssetId() ||
+			manifest.ContentID != asset.GetContentId() || !reflect.DeepEqual(manifest, wanted) {
+			continue
+		}
+		matches = append(matches, directory)
+	}
+	sort.Strings(matches)
+	return matches
+}
+
+func validateUnavailableStoredModelAssetRecord(row *modelAssetStoreRecord) error {
+	if row == nil || strings.TrimSpace(row.ManagedDirectory) == "" {
+		return errors.New("ModelAsset store row is incomplete")
+	}
+	asset := &runtimev1.ModelAssetRecord{}
+	if err := protojson.Unmarshal(row.Asset, asset); err != nil {
+		return err
+	}
+	if strings.TrimSpace(asset.GetModelAssetId()) == "" || normalizeVerifiedContentID(asset.GetContentId()) != asset.GetContentId() || !asset.GetContentVerified() || len(asset.GetFiles()) == 0 || !canonicalModelAssetRelativePath(asset.GetEntry()) {
+		return errors.New("ModelAsset unavailable inventory identity is invalid")
+	}
+	seen := make(map[string]struct{}, len(asset.GetFiles()))
+	var total int64
+	entryFound := false
+	previous := ""
+	for _, file := range asset.GetFiles() {
+		if file == nil || !canonicalModelAssetRelativePath(file.GetRelativePath()) || isModelAssetControlFile(file.GetRelativePath()) || normalizeExactSHA256Hex(file.GetSha256()) != file.GetSha256() || file.GetSizeBytes() < 0 || (previous != "" && file.GetRelativePath() <= previous) {
+			return errors.New("ModelAsset unavailable inventory file is invalid")
+		}
+		if _, duplicate := seen[file.GetRelativePath()]; duplicate {
+			return errors.New("ModelAsset unavailable inventory file is duplicated")
+		}
+		seen[file.GetRelativePath()] = struct{}{}
+		previous = file.GetRelativePath()
+		total += file.GetSizeBytes()
+		entryFound = entryFound || file.GetRelativePath() == asset.GetEntry()
+	}
+	if !entryFound || total != asset.GetTotalSizeBytes() || modelAssetContentID(asset.GetFiles()) != asset.GetContentId() {
+		return errors.New("ModelAsset unavailable inventory content identity is invalid")
+	}
+	return nil
 }
 
 // validateModelAssetStoreResolvedRoot distinguishes a root-scope custody
@@ -230,7 +388,7 @@ func validateStoredModelAssetRecord(modelsRoot string, row *modelAssetStoreRecor
 		if !errors.Is(err, os.ErrNotExist) {
 			return failModelAssetStoreAccess("inspect ModelAsset managed directory", err)
 		}
-		return errors.New("managedDirectory must be an available non-link directory")
+		return fmt.Errorf("managedDirectory must be an available non-link directory: %w", os.ErrNotExist)
 	}
 	if !directoryInfo.IsDir() || directoryInfo.Mode()&os.ModeSymlink != 0 {
 		return errors.New("managedDirectory must be an available non-link directory")
@@ -283,7 +441,7 @@ func validateStoredModelAssetRecord(modelsRoot string, row *modelAssetStoreRecor
 			if !errors.Is(statErr, os.ErrNotExist) {
 				return failModelAssetStoreAccess("inspect ModelAsset payload file", statErr)
 			}
-			return fmt.Errorf("ModelAsset payload file %q is unavailable or differs from inventory", file.GetRelativePath())
+			return fmt.Errorf("ModelAsset payload file %q is unavailable or differs from inventory: %w", file.GetRelativePath(), os.ErrNotExist)
 		}
 		if !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Size() != file.GetSizeBytes() {
 			return fmt.Errorf("ModelAsset payload file %q is unavailable or differs from inventory", file.GetRelativePath())
@@ -306,7 +464,7 @@ func validateStoredModelAssetRecord(modelsRoot string, row *modelAssetStoreRecor
 		if !errors.Is(err, os.ErrNotExist) {
 			return failModelAssetStoreAccess("inspect ModelAsset manifest", err)
 		}
-		return errors.New("ModelAsset manifest must be an available non-link regular file")
+		return fmt.Errorf("ModelAsset manifest must be an available non-link regular file: %w", os.ErrNotExist)
 	}
 	if !manifestInfo.Mode().IsRegular() || manifestInfo.Mode()&os.ModeSymlink != 0 {
 		return errors.New("ModelAsset manifest must be an available non-link regular file")
@@ -350,7 +508,7 @@ func isolateModelAssetStoreDocument(path string, payload []byte, cause error) (d
 	return result, nil
 }
 
-func buildModelAssetStoreSnapshot(assets map[string]*runtimev1.ModelAssetRecord, directories map[string]string, cleanup map[string]modelAssetCleanupObligation) (modelAssetStoreSnapshot, error) {
+func buildModelAssetStoreSnapshot(assets map[string]*runtimev1.ModelAssetRecord, directories map[string]string, cleanup map[string]modelAssetCleanupObligation, modelsRoot string) (modelAssetStoreSnapshot, error) {
 	snapshot := modelAssetStoreSnapshot{
 		SchemaVersion: modelAssetStoreSchemaVersion,
 		SavedAt:       time.Now().UTC().Format(time.RFC3339Nano),
@@ -370,7 +528,11 @@ func buildModelAssetStoreSnapshot(assets map[string]*runtimev1.ModelAssetRecord,
 		if err != nil {
 			return modelAssetStoreSnapshot{}, err
 		}
-		rowPayload, err := json.Marshal(modelAssetStoreRecord{Asset: assetPayload, ManagedDirectory: filepath.Clean(directories[id])})
+		locator, err := modelAssetStoreRelativeLocator(modelsRoot, directories[id])
+		if err != nil {
+			return modelAssetStoreSnapshot{}, err
+		}
+		rowPayload, err := json.Marshal(modelAssetStoreRecord{Asset: assetPayload, ManagedDirectory: locator})
 		if err != nil {
 			return modelAssetStoreSnapshot{}, err
 		}
@@ -382,9 +544,28 @@ func buildModelAssetStoreSnapshot(assets map[string]*runtimev1.ModelAssetRecord,
 	}
 	sort.Strings(cleanupIDs)
 	for _, id := range cleanupIDs {
-		snapshot.CleanupObligations = append(snapshot.CleanupObligations, cleanup[id])
+		obligation := cleanup[id]
+		locator, err := modelAssetStoreRelativeLocator(modelsRoot, obligation.ManagedDirectory)
+		if err != nil {
+			return modelAssetStoreSnapshot{}, err
+		}
+		obligation.ManagedDirectory = locator
+		snapshot.CleanupObligations = append(snapshot.CleanupObligations, obligation)
 	}
 	return snapshot, nil
+}
+
+func modelAssetStoreRelativeLocator(modelsRoot string, directory string) (string, error) {
+	root := resolveLocalModelsPath(modelsRoot)
+	directory = filepath.Clean(strings.TrimSpace(directory))
+	if root == "" || directory == "." || !filepath.IsAbs(root) || !filepath.IsAbs(directory) {
+		return "", errors.New("ModelAsset managed directory cannot be made root-relative")
+	}
+	relative, err := filepath.Rel(root, directory)
+	if err != nil || filepath.IsAbs(relative) || relative == "." || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return "", errors.New("ModelAsset managed directory escaped models root")
+	}
+	return filepath.ToSlash(relative), nil
 }
 
 func saveModelAssetStore(path string, snapshot modelAssetStoreSnapshot) error {

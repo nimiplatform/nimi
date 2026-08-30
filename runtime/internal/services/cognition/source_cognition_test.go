@@ -18,6 +18,27 @@ func TestProjectAgentSourceOmissionsPreservesExplicitEmptyCoverage(t *testing.T)
 	}
 }
 
+func TestCognitionCheckSyncRootMatchesPortableRuntimeOwnerState(t *testing.T) {
+	dataRoot := t.TempDir()
+	service, err := NewV1Owner(nil, config.Config{LocalStatePath: filepath.Join(dataRoot, "accounts", "runtime", "local-state.json")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer service.Close()
+	resources, err := service.CheckSyncDataRoot(context.Background(), dataRoot)
+	if err != nil || len(resources) != 2 {
+		t.Fatalf("Cognition owner inspection=%+v err=%v", resources, err)
+	}
+	for _, resource := range resources {
+		if resource.Status != "available" || !strings.HasSuffix(resource.Reason, "_EMPTY") {
+			t.Fatalf("fresh Cognition owner resource=%+v", resource)
+		}
+	}
+	if err := service.CheckSyncRoot(t.TempDir()); err == nil {
+		t.Fatal("Cognition owner accepted a non-current data root")
+	}
+}
+
 func TestAgentSourceGenerationCommitsBuildingBeforeTerminalReady(t *testing.T) {
 	svc, cleanup := newSourceTestService(t)
 	defer cleanup()

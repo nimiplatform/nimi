@@ -33,8 +33,8 @@ const protectedFirstPartyProfileMetadata = "x-nimi-protected-first-party-profile
 type protectedAppOwnerAdmission func(context.Context, string) bool
 
 type protectedFormalAppAdmission interface {
-	AuthorizeFormalAppIngress(context.Context, string, protectedlocal.Identifier, localappop.Ingress) (context.Context, error)
-	BindFormalAppSession(context.Context, string, protectedlocal.Identifier) (context.Context, func(), error)
+	AuthorizeFormalAppIngress(context.Context, string, string, protectedlocal.Identifier, localappop.Ingress) (context.Context, error)
+	BindFormalAppSession(context.Context, string, string, protectedlocal.Identifier) (context.Context, func(), error)
 }
 
 func protectedDesktopUnaryMethodAllowed(method string) bool {
@@ -224,7 +224,10 @@ func newProtectedDesktopRPCServer(
 	accountPrincipalProvider protectedAccountPrincipalProvider,
 	appOwnerAdmission protectedAppOwnerAdmission,
 	formalAppAdmission protectedFormalAppAdmission,
+	rpcRegistry *activeRPCRegistry,
 ) *grpc.Server {
+	transportUnary := newUnaryProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider, appOwnerAdmission, formalAppAdmission)
+	transportStream := newStreamProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider, formalAppAdmission)
 	server := grpc.NewServer(
 		grpc.Creds(newProtectedDesktopTransportCredentials()),
 		grpc.KeepaliveEnforcementPolicy(protectedGRPCKeepalivePolicy()),
@@ -233,8 +236,8 @@ func newProtectedDesktopRPCServer(
 		grpc.MaxConcurrentStreams(maxGRPCConcurrentStreams),
 		grpc.ReadBufferSize(grpcIOBufferBytes),
 		grpc.WriteBufferSize(grpcIOBufferBytes),
-		grpc.UnaryInterceptor(newUnaryProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider, appOwnerAdmission, formalAppAdmission)),
-		grpc.StreamInterceptor(newStreamProtectedDesktopTransportInterceptor(desktopSessions, accountPrincipalProvider, formalAppAdmission)),
+		grpc.ChainUnaryInterceptor(newUnaryActivityInterceptor(rpcRegistry), transportUnary),
+		grpc.ChainStreamInterceptor(newStreamActivityInterceptor(rpcRegistry), transportStream),
 	)
 	runtimev1.RegisterRuntimeServiceControlServiceServer(server, runtimeControlService)
 	runtimev1.RegisterRuntimeAuthServiceServer(server, authService)
@@ -295,11 +298,13 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 		}
 		if bundled || firstPartyProfile.account {
 			appID := envelope.ProtectedDesktopAppID
+			bindingSlot := firstPartyProfile.profileID
 			if bundled {
 				appID = bundledavatar.AppID
+				bindingSlot = bundledavatar.ProfileID
 			}
 			formalContext, authorized, formalErr := authorizeProtectedFormalAppOperation(
-				protectedContext, info.FullMethod, req, appID,
+				protectedContext, info.FullMethod, req, appID, bindingSlot,
 				desktopSessions, formalAdmission, false,
 			)
 			if formalErr != nil {
@@ -314,11 +319,13 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 				return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 			}
 			appID := envelope.ProtectedDesktopAppID
+			bindingSlot := firstPartyProfile.profileID
 			if bundled {
 				appID = bundledavatar.AppID
+				bindingSlot = bundledavatar.ProfileID
 			}
 			formalContext, release, bindErr := formalAdmission.BindFormalAppSession(
-				protectedContext, appID, desktopSessions.OperationSessionID(),
+				protectedContext, appID, bindingSlot, desktopSessions.OperationSessionID(),
 			)
 			if bindErr != nil {
 				return nil, bindErr
@@ -504,11 +511,13 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 		}
 		if bundled || firstPartyProfile.account {
 			appID := envelope.ProtectedDesktopAppID
+			bindingSlot := firstPartyProfile.profileID
 			if bundled {
 				appID = bundledavatar.AppID
+				bindingSlot = bundledavatar.ProfileID
 			}
 			formalContext, authorized, formalErr := authorizeProtectedFormalAppOperation(
-				protectedContext, info.FullMethod, nil, appID,
+				protectedContext, info.FullMethod, nil, appID, bindingSlot,
 				desktopSessions, formalAdmission, true,
 			)
 			if formalErr != nil {
@@ -630,6 +639,7 @@ func authorizeProtectedFormalAppOperation(
 	method string,
 	request any,
 	appID string,
+	bindingSlot string,
 	desktopSessions *protectedlocal.DesktopSessionManager,
 	admission protectedFormalAppAdmission,
 	stream bool,
@@ -657,7 +667,7 @@ func authorizeProtectedFormalAppOperation(
 	if desktopSessions == nil || admission == nil {
 		return ctx, false, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
 	}
-	authorized, err := admission.AuthorizeFormalAppIngress(ctx, appID, desktopSessions.OperationSessionID(), ingress)
+	authorized, err := admission.AuthorizeFormalAppIngress(ctx, appID, bindingSlot, desktopSessions.OperationSessionID(), ingress)
 	if err != nil {
 		return ctx, false, err
 	}

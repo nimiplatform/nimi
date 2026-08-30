@@ -37,10 +37,12 @@ type FormalAppReleaseResolver interface {
 func (s *Service) registerFormalAppRelease(
 	ctx context.Context,
 	appID string,
+	bindingSlot string,
 	process protectedlocal.ProcessTuple,
 ) (localappkernel.Registration, error) {
 	appID = strings.TrimSpace(appID)
-	if s == nil || s.localAppKernel == nil || s.formalAppReleaseResolver == nil || appID == "" ||
+	bindingSlot = strings.TrimSpace(bindingSlot)
+	if s == nil || s.localAppKernel == nil || s.formalAppReleaseResolver == nil || appID == "" || bindingSlot == "" ||
 		process.ExecutableDigest == (protectedlocal.Identifier{}) {
 		return localappkernel.Registration{}, errFormalAppReleaseUnavailable
 	}
@@ -52,9 +54,10 @@ func (s *Service) registerFormalAppRelease(
 	if err != nil {
 		return localappkernel.Registration{}, err
 	}
+	input.BindingSlot = bindingSlot
 	s.installedAppRegistrationMu.Lock()
 	defer s.installedAppRegistrationMu.Unlock()
-	current, currentErr := s.localAppKernel.Registrations().GetActiveByAppID(ctx, appID)
+	current, currentErr := s.localAppKernel.Registrations().GetActiveByBindingSlot(ctx, bindingSlot)
 	if currentErr == nil && sameFormalAppReleaseRegistration(current, input) {
 		if current.HostExecutableDigest != input.HostExecutableDigest {
 			return localappkernel.Registration{}, errLocalDevelopmentSessionRevoked
@@ -63,6 +66,9 @@ func (s *Service) registerFormalAppRelease(
 	}
 	if currentErr != nil && !errors.Is(currentErr, localappkernel.ErrNotFound) {
 		return localappkernel.Registration{}, fmt.Errorf("resolve current formal App release: %w", currentErr)
+	}
+	if currentErr == nil {
+		input.ExistingRegistrationHandle = current.RegistrationHandle
 	}
 	registration, err := s.localAppKernel.Registrations().RegisterInstalled(ctx, input)
 	if err != nil {

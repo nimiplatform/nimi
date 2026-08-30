@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -17,21 +16,20 @@ import (
 )
 
 const (
-	localDevelopmentPayloadMaxFiles = 20_000
-	localDevelopmentPayloadMaxBytes = int64(1 << 30)
+	formalAppPayloadMaxFiles = 20_000
+	formalAppPayloadMaxBytes = int64(1 << 30)
 )
 
-var localDevelopmentPayloadExcludedDirectories = map[string]struct{}{
+var formalAppPayloadExcludedDirectories = map[string]struct{}{
 	".git": {}, ".cache": {}, ".nimi": {}, "node_modules": {}, "target": {},
 }
 
 type localDevelopmentExecutionObservation struct {
 	CanonicalProjectFileID string
 	HostExecutableDigest   string
-	PayloadRootDigest      string
-	SourceDigest           string
 }
 
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-036b
 func (s *Service) observeLocalDevelopmentExecution(project localDevelopmentProjectSnapshot) (localDevelopmentExecutionObservation, error) {
 	projectFileID, err := localDevelopmentCanonicalProjectFileID(project.ProjectRoot)
 	if err != nil {
@@ -45,22 +43,14 @@ func (s *Service) observeLocalDevelopmentExecution(project localDevelopmentProje
 	if err != nil {
 		return localDevelopmentExecutionObservation{}, err
 	}
-	payloadDigest, err := localDevelopmentProjectPayloadDigest(project.ProjectRoot)
-	if err != nil {
-		return localDevelopmentExecutionObservation{}, err
-	}
 	hostRef := localDevelopmentDigestRef("host", hostDigest)
-	payloadRef := localDevelopmentDigestRef("payload", payloadDigest)
-	sourceHash := sha256.Sum256([]byte(fmt.Sprintf("nimi.development-source.v1\x00%s\x00%d\x00%s\x00%s", projectFileID, project.ShellKind, hostRef, payloadRef)))
 	return localDevelopmentExecutionObservation{
 		CanonicalProjectFileID: projectFileID,
 		HostExecutableDigest:   hostRef,
-		PayloadRootDigest:      payloadRef,
-		SourceDigest:           "rsg_v1_" + base64.RawURLEncoding.EncodeToString(sourceHash[:]),
 	}, nil
 }
 
-func (s *Service) registerLocalDevelopmentProject(ctx context.Context, project localDevelopmentProjectSnapshot) (localappkernel.Registration, error) {
+func (s *Service) registerLocalDevelopmentProject(ctx context.Context, project localDevelopmentProjectSnapshot, existingHandle string) (localappkernel.Registration, error) {
 	if s == nil || s.localAppKernel == nil {
 		return localappkernel.Registration{}, localappkernel.ErrNotFound
 	}
@@ -69,11 +59,12 @@ func (s *Service) registerLocalDevelopmentProject(ctx context.Context, project l
 		return localappkernel.Registration{}, err
 	}
 	registration, err := s.localAppKernel.Registrations().RegisterDevelopment(ctx, localappkernel.RegisterDevelopmentInput{
-		AppID: project.AppID, DisplayName: project.DisplayName,
+		ExistingRegistrationHandle: existingHandle,
+		AppID:                      project.AppID, DisplayName: project.DisplayName,
 		SourceRef: observation.CanonicalProjectFileID, ProjectRoot: project.ProjectRoot,
 		ManifestPath: project.ManifestPath, ShellKind: int32(project.ShellKind),
-		RawDeclaration: project.RawAppAccess, SourceDigest: observation.SourceDigest,
-		HostExecutableDigest: observation.HostExecutableDigest, PayloadRootDigest: observation.PayloadRootDigest,
+		RawDeclaration:       project.RawAppAccess,
+		HostExecutableDigest: observation.HostExecutableDigest,
 	})
 	if err != nil {
 		return localappkernel.Registration{}, err
@@ -136,7 +127,9 @@ func localDevelopmentFileDigest(path string) (protectedlocal.Identifier, error) 
 	return result, nil
 }
 
-func localDevelopmentProjectPayloadDigest(root string) (protectedlocal.Identifier, error) {
+// formalAppImmutablePayloadDigest is package-lifecycle evidence for a formal
+// immutable release. Mutable local-development registration never calls it.
+func formalAppImmutablePayloadDigest(root string) (protectedlocal.Identifier, error) {
 	canonical := filepath.Clean(root)
 	hash := sha256.New()
 	_, _ = hash.Write([]byte("nimi.local-development-payload.v1\x00"))
@@ -151,7 +144,7 @@ func localDevelopmentProjectPayloadDigest(root string) (protectedlocal.Identifie
 		}
 		name := entry.Name()
 		if entry.IsDir() {
-			if _, excluded := localDevelopmentPayloadExcludedDirectories[name]; excluded {
+			if _, excluded := formalAppPayloadExcludedDirectories[name]; excluded {
 				return filepath.SkipDir
 			}
 			return nil
@@ -168,7 +161,7 @@ func localDevelopmentProjectPayloadDigest(root string) (protectedlocal.Identifie
 		}
 		files++
 		totalBytes += info.Size()
-		if files > localDevelopmentPayloadMaxFiles || totalBytes > localDevelopmentPayloadMaxBytes {
+		if files > formalAppPayloadMaxFiles || totalBytes > formalAppPayloadMaxBytes {
 			return errLocalDevelopmentProjectChanged
 		}
 		relative, err := filepath.Rel(canonical, path)

@@ -3,7 +3,6 @@ package app
 import (
 	"bytes"
 	"context"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -20,8 +19,13 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	kernel, err := localappkernel.OpenSQLite(ctx, filepath.Join(t.TempDir(), "registered-apps.db"), identity, localappkernel.Options{
-		Random: bytes.NewReader(bytes.Repeat([]byte{0x71}, 1024)),
+	dataRoot := t.TempDir()
+	databasePath, err := localappkernel.CanonicalRegistrationDatabasePath(dataRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kernel, err := localappkernel.OpenSQLite(ctx, databasePath, identity, localappkernel.Options{
+		Random: bytes.NewReader(bytes.Repeat([]byte{0x71}, 1024)), HostInstallID: "formal-session-host", DataRoot: dataRoot,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -68,7 +72,7 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 		})),
 	)
 	desktopCtx := protectedlocal.ContextWithDesktopConnection(ctx, desktop)
-	formalSessionCtx, releaseFormalSession, err := service.BindFormalAppSession(desktopCtx, "nimi.desktop", boot)
+	formalSessionCtx, releaseFormalSession, err := service.BindFormalAppSession(desktopCtx, "nimi.desktop", protectedlocal.DesktopAccountProductProfileID, boot)
 	if err != nil {
 		t.Fatalf("bind formal Desktop session: %v", err)
 	}
@@ -82,7 +86,7 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 	}
 	releaseFormalSession()
 	authorized, err := service.AuthorizeFormalAppIngress(
-		desktopCtx, "nimi.desktop", boot, localappop.IngressAgentManagerSnapshotGet,
+		desktopCtx, "nimi.desktop", protectedlocal.DesktopAccountProductProfileID, boot, localappop.IngressAgentManagerSnapshotGet,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -95,7 +99,7 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 		t.Fatalf("built-in Desktop decision = %+v ok=%v", decision, ok)
 	}
 	secondAuthorized, err := service.AuthorizeFormalAppIngress(
-		desktopCtx, "nimi.desktop", boot, localappop.IngressAgentAIConfigGet,
+		desktopCtx, "nimi.desktop", protectedlocal.DesktopAccountProductProfileID, boot, localappop.IngressAgentAIConfigGet,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -106,7 +110,7 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 		t.Fatalf("second built-in Desktop decision = %+v ok=%v, first = %+v", secondDecision, ok, decision)
 	}
 	embodimentAuthorized, err := service.AuthorizeFormalAppIngress(
-		desktopCtx, "nimi.desktop", boot, localappop.IngressAgentEmbodimentSnapshotGet,
+		desktopCtx, "nimi.desktop", protectedlocal.DesktopAccountProductProfileID, boot, localappop.IngressAgentEmbodimentSnapshotGet,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -119,7 +123,7 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 	}
 
 	service.formalAppMu.Lock()
-	binding := service.formalApps[formalAppConnectionKey{desktop: desktop, appID: "nimi.desktop"}]
+	binding := service.formalApps[formalAppConnectionKey{desktop: desktop, appID: "nimi.desktop", bindingSlot: protectedlocal.DesktopAccountProductProfileID}]
 	service.formalAppMu.Unlock()
 	if binding == nil || binding.connection == nil {
 		t.Fatal("built-in Desktop connection was not retained")
@@ -129,7 +133,7 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 		t.Fatalf("renew built-in Desktop technical session: %v", err)
 	}
 	renewedAuthorized, err := service.AuthorizeFormalAppIngress(
-		desktopCtx, "nimi.desktop", boot, localappop.IngressAgentAutonomySnapshotGet,
+		desktopCtx, "nimi.desktop", protectedlocal.DesktopAccountProductProfileID, boot, localappop.IngressAgentAutonomySnapshotGet,
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -139,7 +143,7 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 		renewedDecision.SessionID == (protectedlocal.Identifier{}) || renewedDecision.SessionID == decision.SessionID {
 		t.Fatalf("renewed built-in Desktop decision = %+v ok=%v, first = %+v", renewedDecision, ok, decision)
 	}
-	registration, err := kernel.Registrations().GetActiveByAppID(ctx, "nimi.desktop")
+	registration, err := kernel.Registrations().GetActiveByBindingSlot(ctx, protectedlocal.DesktopAccountProductProfileID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -174,7 +178,7 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 	replacementProcess.PID++
 	replacementProcess.CreationMarker = "desktop-built-in-replacement"
 	replacementProcess.ExecutableDigest = localAppSessionTestIdentifier(0x98)
-	replacement, err := service.registerFormalAppRelease(ctx, release.AppID, replacementProcess)
+	replacement, err := service.registerFormalAppRelease(ctx, release.AppID, protectedlocal.DesktopAccountProductProfileID, replacementProcess)
 	if err != nil {
 		t.Fatalf("register replacement formal Desktop release: %v", err)
 	}
@@ -182,11 +186,11 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 		t.Fatalf("replacement executable witness = %q", replacement.HostExecutableDigest)
 	}
 	if _, err := service.AuthorizeFormalAppIngress(
-		desktopCtx, "nimi.desktop", boot, localappop.IngressAgentManagerSnapshotGet,
+		desktopCtx, "nimi.desktop", protectedlocal.DesktopAccountProductProfileID, boot, localappop.IngressAgentManagerSnapshotGet,
 	); err == nil {
 		t.Fatal("old live formal Desktop rewrote the replacement executable witness")
 	}
-	current, err := kernel.Registrations().GetActiveByAppID(ctx, "nimi.desktop")
+	current, err := kernel.Registrations().GetActiveByBindingSlot(ctx, protectedlocal.DesktopAccountProductProfileID)
 	if err != nil {
 		t.Fatal(err)
 	}

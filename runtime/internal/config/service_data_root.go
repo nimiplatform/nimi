@@ -53,6 +53,17 @@ func WriteServiceOwnedDataRoot(path string, dataRootRef string) (bool, error) {
 	return true, nil
 }
 
+func ValidateServiceOwnedDataRootMutation(path string, dataRootRef string) error {
+	root := filepath.Clean(strings.TrimSpace(dataRootRef))
+	if root == "." || !filepath.IsAbs(root) || root == filepath.VolumeName(root)+string(filepath.Separator) {
+		return fmt.Errorf("dataRootRef must be an absolute non-root path")
+	}
+	if _, err := LoadFileConfig(path); err != nil {
+		return fmt.Errorf("load service-owned Runtime config: %w", err)
+	}
+	return nil
+}
+
 // ApplyServiceOwnedDataRoot overlays only the admitted mutable data-plane
 // fields onto the fixed boot configuration. Missing state leaves setup
 // fail-closed; it never guesses a root from the acceptance proposal.

@@ -19,6 +19,8 @@ import (
 
 type formalAppReleaseResolverFunc func(context.Context, string) (FormalAppRelease, error)
 
+const formalReleaseTestBindingSlot = "formal_release_test_v1"
+
 func (resolve formalAppReleaseResolverFunc) ResolveFormalAppRelease(ctx context.Context, appID string) (FormalAppRelease, error) {
 	return resolve(ctx, appID)
 }
@@ -29,8 +31,13 @@ func TestFormalAppReleaseRegistrationUsesCanonicalDeclarationInput(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	kernel, err := localappkernel.OpenSQLite(ctx, filepath.Join(t.TempDir(), "registered-apps.db"), identity, localappkernel.Options{
-		Random: bytes.NewReader(bytes.Repeat([]byte{0x91}, 1024)),
+	dataRoot := t.TempDir()
+	databasePath, err := localappkernel.CanonicalRegistrationDatabasePath(dataRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kernel, err := localappkernel.OpenSQLite(ctx, databasePath, identity, localappkernel.Options{
+		Random: bytes.NewReader(bytes.Repeat([]byte{0x91}, 1024)), HostInstallID: "formal-release-host", DataRoot: dataRoot,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -63,7 +70,7 @@ func TestFormalAppReleaseRegistrationUsesCanonicalDeclarationInput(t *testing.T)
 		ExecutableDigest:            localAppSessionTestIdentifier(0x92),
 		ExecutableTrustSetID:        "formal-release",
 	}
-	registration, err := service.registerFormalAppRelease(ctx, release.AppID, process)
+	registration, err := service.registerFormalAppRelease(ctx, release.AppID, formalReleaseTestBindingSlot, process)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +114,7 @@ func TestFormalAppReleaseRegistrationUsesCanonicalDeclarationInput(t *testing.T)
 	release.SourceDigest = "release-source-digest:desktop:2"
 	nextProcess := process
 	nextProcess.ExecutableDigest = localAppSessionTestIdentifier(0x97)
-	updated, err := service.registerFormalAppRelease(ctx, release.AppID, nextProcess)
+	updated, err := service.registerFormalAppRelease(ctx, release.AppID, formalReleaseTestBindingSlot, nextProcess)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,15 +132,20 @@ func TestFormalAppReleaseRegistrationFailsClosedWithoutCanonicalInput(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	kernel, err := localappkernel.OpenSQLite(ctx, filepath.Join(t.TempDir(), "registered-apps.db"), identity, localappkernel.Options{
-		Random: bytes.NewReader(bytes.Repeat([]byte{0x93}, 1024)),
+	dataRoot := t.TempDir()
+	databasePath, err := localappkernel.CanonicalRegistrationDatabasePath(dataRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kernel, err := localappkernel.OpenSQLite(ctx, databasePath, identity, localappkernel.Options{
+		Random: bytes.NewReader(bytes.Repeat([]byte{0x93}, 1024)), HostInstallID: "formal-release-missing-host", DataRoot: dataRoot,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = kernel.Close() })
 	process := protectedlocal.ProcessTuple{ExecutableDigest: localAppSessionTestIdentifier(0x94)}
-	if _, err := New(nil, WithLocalAppKernel(kernel)).registerFormalAppRelease(ctx, "nimi.avatar", process); !errors.Is(err, errFormalAppReleaseUnavailable) {
+	if _, err := New(nil, WithLocalAppKernel(kernel)).registerFormalAppRelease(ctx, "nimi.avatar", formalReleaseTestBindingSlot, process); !errors.Is(err, errFormalAppReleaseUnavailable) {
 		t.Fatalf("missing resolver error = %v", err)
 	}
 	service := New(nil,
@@ -142,10 +154,10 @@ func TestFormalAppReleaseRegistrationFailsClosedWithoutCanonicalInput(t *testing
 			return FormalAppRelease{AppID: "nimi.desktop"}, nil
 		})),
 	)
-	if _, err := service.registerFormalAppRelease(ctx, "nimi.avatar", process); !errors.Is(err, errFormalAppReleaseUnavailable) {
+	if _, err := service.registerFormalAppRelease(ctx, "nimi.avatar", formalReleaseTestBindingSlot, process); !errors.Is(err, errFormalAppReleaseUnavailable) {
 		t.Fatalf("mismatched canonical input error = %v", err)
 	}
-	if _, err := kernel.Registrations().GetActiveByAppID(ctx, "nimi.avatar"); !errors.Is(err, localappkernel.ErrNotFound) {
+	if _, err := kernel.Registrations().GetActiveByBindingSlot(ctx, formalReleaseTestBindingSlot); !errors.Is(err, localappkernel.ErrNotFound) {
 		t.Fatalf("unexpected registration after failed canonical input: %v", err)
 	}
 }

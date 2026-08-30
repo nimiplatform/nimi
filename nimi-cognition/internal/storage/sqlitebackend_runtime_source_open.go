@@ -22,13 +22,25 @@ func NewRuntimeSourceBackend(rootDir string) (*SQLiteBackend, error) {
 	if err := os.MkdirAll(rootDir, dirPerm); err != nil {
 		return nil, fmt.Errorf("storage: create root: %w", err)
 	}
-	dsn := "file:" + filepath.Join(rootDir, runtimeSourceSQLiteFileName) +
+	storePath := filepath.Join(rootDir, runtimeSourceSQLiteFileName)
+	_, statErr := os.Stat(storePath)
+	existing := statErr == nil
+	if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
+		return nil, fmt.Errorf("storage: inspect runtime source store: %w", statErr)
+	}
+	dsn := "file:" + storePath +
 		"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(on)"
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("storage: open runtime source sqlite: %w", err)
 	}
 	backend := &SQLiteBackend{db: db}
+	if existing {
+		if err := backend.validateRuntimeSourceSchema(); err != nil {
+			_ = db.Close()
+			return nil, err
+		}
+	}
 	if err := backend.initRuntimeSource(); err != nil {
 		_ = db.Close()
 		return nil, err

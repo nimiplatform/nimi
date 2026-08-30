@@ -257,9 +257,9 @@ func localEnvironmentActivationDependencyReason(state string) string {
 
 func localEnvironmentConsumerRequirementByID(consumerID string) (localEnvironmentConsumerRequirement, bool) {
 	switch strings.TrimSpace(consumerID) {
-	case "llama.cpp.cpu", "llama.cpp.vulkan", "llama.cpp.cuda":
+	case "llama.cpp.cuda", "llama.cpp.metal":
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-text"}, true
-	case "stable-diffusion.cpp.cpu", "stable-diffusion.cpp.metal", stableDiffusionCUDAConsumerID:
+	case "stable-diffusion.cpp.metal", stableDiffusionCUDAConsumerID:
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-image-native"}, true
 	case audioCppCUDAConsumerID:
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-music-native"}, true

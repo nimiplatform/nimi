@@ -106,6 +106,7 @@ func TestModelAssetStoreQuarantineFailurePreservesOriginal(t *testing.T) {
 			modelAssetCleanupObligations: decoded.CleanupObligations,
 			modelAssetRetainedRecords:    cloneQuarantinedStateRecords(decoded.retainedRecords),
 			modelAssetStorePath:          path,
+			localModelsPath:              filepath.Join(root, "models"),
 			saveModelAssetStore:          saveModelAssetStore,
 		}
 		svc.modelAssetCleanupObligations["mutation"] = modelAssetCleanupObligation{
@@ -125,9 +126,9 @@ func TestModelAssetStoreQuarantineFailurePreservesOriginal(t *testing.T) {
 		if err != nil || !recovered.RewriteRequired || len(recovered.retainedRecords) != 0 {
 			t.Fatalf("recovered ModelAsset isolation = rewrite:%t retained:%d err:%v", recovered.RewriteRequired, len(recovered.retainedRecords), err)
 		}
-		recoveredSnapshot, err := buildModelAssetStoreSnapshot(recovered.Assets, recovered.Directories, recovered.CleanupObligations)
+		recoveredSnapshot, err := buildModelAssetStoreSnapshot(recovered.Assets, recovered.Directories, recovered.CleanupObligations, filepath.Join(root, "models"))
 		if err != nil {
-			t.Fatal(err)
+			t.Fatalf("build recovered ModelAsset snapshot: %v assets=%+v directories=%+v cleanup=%+v", err, recovered.Assets, recovered.Directories, recovered.CleanupObligations)
 		}
 		if err := saveModelAssetStore(path, recoveredSnapshot); err != nil {
 			t.Fatalf("rewrite recovered ModelAsset store: %v", err)

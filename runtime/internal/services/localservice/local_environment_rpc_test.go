@@ -37,24 +37,74 @@ func TestLocalEnvironmentTargetForDriverUsesRuntimeDriverContract(t *testing.T) 
 		host         localEnvironmentHostProfileState
 		wantPack     string
 		wantConsumer string
+		wantOK       bool
 	}{
-		{name: "llama CUDA", driver: capabilitydriver.LlamaTextDriver{}, host: localEnvironmentHostProfileState{OS: "windows", GPUAvailable: true, GPUVendor: "nvidia"}, wantPack: "local-text", wantConsumer: "llama.cpp.cuda"},
-		{name: "stable diffusion Metal", driver: capabilitydriver.StableDiffusionImageDriver{}, host: localEnvironmentHostProfileState{OS: "darwin", Arch: "arm64"}, wantPack: "local-image-native", wantConsumer: "stable-diffusion.cpp.metal"},
-		{name: "stable diffusion video CUDA", driver: capabilitydriver.StableDiffusionVideoDriver{}, host: localEnvironmentHostProfileState{OS: "windows", GPUAvailable: true, GPUVendor: "nvidia"}, wantPack: "local-image-native", wantConsumer: stableDiffusionCUDAConsumerID},
-		{name: "qwen tts", driver: capabilitydriver.Qwen3TTSDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-tts.python"},
-		{name: "qwen tts audio.cpp", driver: capabilitydriver.Qwen3TTSAudioCppDriver{}, host: localEnvironmentHostProfileState{OS: "windows", GPUAvailable: true, GPUVendor: "nvidia"}, wantPack: "local-speech-native", wantConsumer: audioCppQwen3TTSCUDAConsumerID},
-		{name: "qwen voice create", driver: capabilitydriver.Qwen3VoiceCreateDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-tts.python"},
-		{name: "voxcpm", driver: capabilitydriver.VoxCPMDriver{}, wantPack: "local-speech", wantConsumer: "speech.voxcpm.python"},
-		{name: "qwen asr", driver: capabilitydriver.Qwen3ASRDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-asr.python"},
-		{name: "qwen transformers asr", driver: capabilitydriver.Qwen3ASRTransformersDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-asr-transformers.python"},
+		{name: "llama CUDA", driver: capabilitydriver.LlamaTextDriver{}, host: localEnvironmentHostProfileState{OS: "windows", Arch: "amd64", GPUAvailable: true, GPUVendor: "nvidia"}, wantPack: "local-text", wantConsumer: "llama.cpp.cuda", wantOK: true},
+		{name: "llama embed CUDA", driver: capabilitydriver.LlamaEmbedDriver{}, host: localEnvironmentHostProfileState{OS: "windows", Arch: "amd64", GPUAvailable: true, GPUVendor: "nvidia"}, wantPack: "local-text", wantConsumer: "llama.cpp.cuda", wantOK: true},
+		{name: "llama embed Metal", driver: capabilitydriver.LlamaEmbedDriver{}, host: localEnvironmentHostProfileState{OS: "darwin", Arch: "arm64"}, wantPack: "local-text", wantConsumer: "llama.cpp.metal", wantOK: true},
+		{name: "llama Windows CPU is not a target", driver: capabilitydriver.LlamaTextDriver{}, host: localEnvironmentHostProfileState{OS: "windows", Arch: "amd64"}},
+		{name: "llama Linux is not a target", driver: capabilitydriver.LlamaTextDriver{}, host: localEnvironmentHostProfileState{OS: "linux", Arch: "amd64"}},
+		{name: "stable diffusion Metal", driver: capabilitydriver.StableDiffusionImageDriver{}, host: localEnvironmentHostProfileState{OS: "darwin", Arch: "arm64"}, wantPack: "local-image-native", wantConsumer: "stable-diffusion.cpp.metal", wantOK: true},
+		{name: "stable diffusion video CUDA", driver: capabilitydriver.StableDiffusionVideoDriver{}, host: localEnvironmentHostProfileState{OS: "windows", Arch: "amd64", GPUAvailable: true, GPUVendor: "nvidia"}, wantPack: "local-image-native", wantConsumer: stableDiffusionCUDAConsumerID, wantOK: true},
+		{name: "stable diffusion Windows CPU is not a target", driver: capabilitydriver.StableDiffusionImageDriver{}, host: localEnvironmentHostProfileState{OS: "windows", Arch: "amd64"}},
+		{name: "qwen tts", driver: capabilitydriver.Qwen3TTSDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-tts.python", wantOK: true},
+		{name: "qwen tts audio.cpp", driver: capabilitydriver.Qwen3TTSAudioCppDriver{}, host: localEnvironmentHostProfileState{OS: "windows", GPUAvailable: true, GPUVendor: "nvidia"}, wantPack: "local-speech-native", wantConsumer: audioCppQwen3TTSCUDAConsumerID, wantOK: true},
+		{name: "qwen voice create", driver: capabilitydriver.Qwen3VoiceCreateDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-tts.python", wantOK: true},
+		{name: "voxcpm", driver: capabilitydriver.VoxCPMDriver{}, wantPack: "local-speech", wantConsumer: "speech.voxcpm.python", wantOK: true},
+		{name: "qwen asr", driver: capabilitydriver.Qwen3ASRDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-asr.python", wantOK: true},
+		{name: "qwen transformers asr", driver: capabilitydriver.Qwen3ASRTransformersDriver{}, wantPack: "local-speech", wantConsumer: "speech.qwen3-asr-transformers.python", wantOK: true},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			pack, consumer, ok := localEnvironmentTargetForDriver(test.driver, test.host)
-			if !ok || pack != test.wantPack || consumer != test.wantConsumer {
-				t.Fatalf("environment target = %q/%q/%v, want %q/%q/true", pack, consumer, ok, test.wantPack, test.wantConsumer)
+			if ok != test.wantOK || pack != test.wantPack || consumer != test.wantConsumer {
+				t.Fatalf("environment target = %q/%q/%v, want %q/%q/%v", pack, consumer, ok, test.wantPack, test.wantConsumer, test.wantOK)
 			}
 		})
+	}
+}
+
+func TestResolveLocalEnvironmentPlanUsesCanonicalLocalTextConsumerForLlamaEmbed(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{})
+	selectEnvironmentLoadoutForTest(t, svc, capabilitydriver.TextEmbedCapabilityContract, capabilitydriver.LlamaEmbedGGUFRecipeID, capabilitydriver.Identity{
+		ImplementationID: capabilitydriver.LlamaEmbedImplementationID,
+		DriverID:         capabilitydriver.LlamaDriverID,
+		DriverDialect:    capabilitydriver.LlamaEmbedDriverDialect,
+	})
+
+	resp, err := svc.ResolveLocalEnvironmentPlan(context.Background(), &runtimev1.ResolveLocalEnvironmentPlanRequest{
+		CapabilityContract: capabilitydriver.TextEmbedCapabilityContract,
+		HostProfile:        localEnvironmentNvidiaProfile(),
+	})
+	if err != nil {
+		t.Fatalf("ResolveLocalEnvironmentPlan: %v", err)
+	}
+	plan := resp.GetPlan()
+	if plan.GetPackId() != "local-text" || plan.GetConsumerScope() != "llama.cpp.cuda" {
+		t.Fatalf("embedding environment target = %q/%q, want local-text/llama.cpp.cuda", plan.GetPackId(), plan.GetConsumerScope())
+	}
+}
+
+func TestResolveLocalEnvironmentPlanUsesMetalLocalTextConsumerForLlamaEmbed(t *testing.T) {
+	svc := newTestService(t)
+	svc.SetEngineManager(&mockEngineManager{})
+	selectEnvironmentLoadoutForTest(t, svc, capabilitydriver.TextEmbedCapabilityContract, capabilitydriver.LlamaEmbedGGUFRecipeID, capabilitydriver.Identity{
+		ImplementationID: capabilitydriver.LlamaEmbedImplementationID,
+		DriverID:         capabilitydriver.LlamaDriverID,
+		DriverDialect:    capabilitydriver.LlamaEmbedDriverDialect,
+	})
+
+	resp, err := svc.ResolveLocalEnvironmentPlan(context.Background(), &runtimev1.ResolveLocalEnvironmentPlanRequest{
+		CapabilityContract: capabilitydriver.TextEmbedCapabilityContract,
+		HostProfile:        localEnvironmentAppleSilicon128GBProfile(),
+	})
+	if err != nil {
+		t.Fatalf("ResolveLocalEnvironmentPlan: %v", err)
+	}
+	plan := resp.GetPlan()
+	if plan.GetPackId() != "local-text" || plan.GetConsumerScope() != "llama.cpp.metal" {
+		t.Fatalf("embedding environment target = %q/%q, want local-text/llama.cpp.metal", plan.GetPackId(), plan.GetConsumerScope())
 	}
 }
 
@@ -109,7 +159,7 @@ func TestLocalEnvironmentRPCRejectsRootDifferentFromProductControl(t *testing.T)
 			name: "activation gate",
 			call: func() error {
 				_, err := svc.ResolveLocalEnvironmentActivationGate(context.Background(), &runtimev1.ResolveLocalEnvironmentActivationGateRequest{
-					ConsumerId:      "llama.cpp.cpu",
+					ConsumerId:      "llama.cpp.metal",
 					RuntimeDataRoot: divergent,
 				})
 				return err
@@ -264,5 +314,22 @@ func TestResolveLocalEnvironmentActivationGateRejectsUnsupportedConsumer(t *test
 	}
 	if resp.GetGate().GetState() != localEnvironmentActivationStateUnsupported {
 		t.Fatalf("gate state = %q, want unsupported", resp.GetGate().GetState())
+	}
+}
+
+func TestResolveLocalEnvironmentActivationGateRejectsRetiredLlamaBackends(t *testing.T) {
+	for _, consumerID := range []string{"llama.cpp.cpu", "llama.cpp.vulkan"} {
+		t.Run(consumerID, func(t *testing.T) {
+			svc := newTestService(t)
+			resp, err := svc.ResolveLocalEnvironmentActivationGate(context.Background(), &runtimev1.ResolveLocalEnvironmentActivationGateRequest{
+				ConsumerId: consumerID,
+			})
+			if err != nil {
+				t.Fatalf("ResolveLocalEnvironmentActivationGate: %v", err)
+			}
+			if resp.GetGate().GetState() != localEnvironmentActivationStateUnsupported {
+				t.Fatalf("gate state = %q, want unsupported", resp.GetGate().GetState())
+			}
+		})
 	}
 }

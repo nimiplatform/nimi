@@ -34,6 +34,16 @@ var productControlRecordFields = []string{
 var productControlDataRootFields = []string{
 	"path",
 	"status",
+	"rootActivationId",
+	"selectedAt",
+	"verifiedAt",
+	"selectedAtUnixMs",
+	"verifiedAtUnixMs",
+}
+
+var productControlLegacyDataRootFields = []string{
+	"path",
+	"status",
 	"selectedAt",
 	"verifiedAt",
 	"selectedAtUnixMs",
@@ -206,14 +216,6 @@ func verifyNimiDataRootLayout(root string, security ProductControlDataRootSecuri
 	if !info.IsDir() {
 		return errors.New("data root is not a directory")
 	}
-	for _, dir := range retiredNimiDataRootDirectories {
-		entryPath := filepath.Join(root, dir)
-		if _, err := os.Lstat(entryPath); err == nil {
-			return fmt.Errorf("retired root-level directory %s still exists", dir)
-		} else if !errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("inspect retired root-level directory %s: %w", dir, err)
-		}
-	}
 	for _, dir := range nimiDataRootRequiredDirectories {
 		entryPath := filepath.Join(root, dir)
 		if err := validateProductControlDataRootPlatform(entryPath, ProductControlDataRootSecurityBinding{}); err != nil {
@@ -323,7 +325,7 @@ func decodeProductControlRawRecord(fields map[string]json.RawMessage) (*productC
 	if err != nil {
 		return nil, err
 	}
-	dataRoot, err := decodeProductControlRawDataRoot(fields["dataRoot"])
+	dataRoot, err := decodeProductControlRawDataRoot(fields["dataRoot"], int(schemaVersion))
 	if err != nil {
 		return nil, err
 	}
@@ -351,11 +353,15 @@ func decodeProductControlRawRecord(fields map[string]json.RawMessage) (*productC
 	}, nil
 }
 
-func decodeProductControlRawDataRoot(raw json.RawMessage) (*productDataRootRecord, error) {
+func decodeProductControlRawDataRoot(raw json.RawMessage, schemaVersion int) (*productDataRootRecord, error) {
 	if productControlRawIsNull(raw) {
 		return nil, nil
 	}
-	fields, err := decodeProductControlRawObject(raw, productControlDataRootFields, "dataRoot")
+	expected := productControlDataRootFields
+	if schemaVersion == productControlLegacySchemaVersion {
+		expected = productControlLegacyDataRootFields
+	}
+	fields, err := decodeProductControlRawObject(raw, expected, "dataRoot")
 	if err != nil {
 		return nil, err
 	}
@@ -366,6 +372,13 @@ func decodeProductControlRawDataRoot(raw json.RawMessage) (*productDataRootRecor
 	status, err := decodeProductControlRawText(fields["status"], "dataRoot.status")
 	if err != nil {
 		return nil, err
+	}
+	rootActivationID := ""
+	if schemaVersion == productControlSchemaVersion {
+		rootActivationID, err = decodeProductControlRawText(fields["rootActivationId"], "dataRoot.rootActivationId")
+		if err != nil {
+			return nil, err
+		}
 	}
 	selectedAt, err := decodeProductControlRawText(fields["selectedAt"], "dataRoot.selectedAt")
 	if err != nil {
@@ -392,6 +405,7 @@ func decodeProductControlRawDataRoot(raw json.RawMessage) (*productDataRootRecor
 	return &productDataRootRecord{
 		Path:             path,
 		Status:           productDataRootStatus(status),
+		RootActivationID: rootActivationID,
 		SelectedAt:       selectedAt,
 		VerifiedAt:       verifiedAt,
 		SelectedAtUnixMs: selectedAtUnixMS,
@@ -546,8 +560,8 @@ func validateProductControlRecord(record *productControlRecord) error {
 	if record == nil {
 		return errors.New("product-control record is required")
 	}
-	if record.SchemaVersion != productControlSchemaVersion {
-		return fmt.Errorf("unsupported product-control schemaVersion=%d expected=%d", record.SchemaVersion, productControlSchemaVersion)
+	if record.SchemaVersion != productControlSchemaVersion && record.SchemaVersion != productControlLegacySchemaVersion {
+		return fmt.Errorf("unsupported product-control schemaVersion=%d expected=%d or legacy=%d", record.SchemaVersion, productControlSchemaVersion, productControlLegacySchemaVersion)
 	}
 	if !isKnownProductControlState(record.State) {
 		return fmt.Errorf("unsupported product-control state=%q", record.State)
@@ -571,6 +585,12 @@ func validateProductControlRecord(record *productControlRecord) error {
 		}
 		if !isKnownProductDataRootStatus(record.DataRoot.Status) {
 			return fmt.Errorf("unsupported product-control dataRoot.status=%q", record.DataRoot.Status)
+		}
+		if record.SchemaVersion == productControlSchemaVersion && strings.TrimSpace(record.DataRoot.RootActivationID) == "" {
+			return errors.New("product-control dataRoot.rootActivationId is required")
+		}
+		if record.SchemaVersion == productControlLegacySchemaVersion && record.DataRoot.RootActivationID != "" {
+			return errors.New("legacy product-control dataRoot cannot carry rootActivationId")
 		}
 		if strings.TrimSpace(record.DataRoot.SelectedAt) == "" ||
 			strings.TrimSpace(record.DataRoot.SelectedAt) != record.DataRoot.SelectedAt ||
@@ -600,6 +620,8 @@ func validateProductControlRecord(record *productControlRecord) error {
 		}
 	}
 	if record.State != productControlStateReadyForUse &&
+		record.State != productControlStateRepairRequired &&
+		record.State != productControlStateBlocked &&
 		(record.FirstRun.Completed || record.FirstRun.CompletedAt != nil) {
 		return fmt.Errorf("product-control state %q cannot carry completed firstRun", record.State)
 	}

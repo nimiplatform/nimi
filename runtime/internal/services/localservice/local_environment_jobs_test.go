@@ -1,14 +1,19 @@
 package localservice
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/nimiplatform/nimi/runtime/internal/engine"
 	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
 )
 
@@ -68,10 +73,10 @@ func TestLocalEnvironmentDependencyJobSuccessPromotesSelectedSource(t *testing.T
 		return localEnvironmentDependencyJobResult{
 			State:                 localEnvironmentStateReadyManaged,
 			SourceKind:            localEnvironmentSourceManaged,
-			CanonicalRoot:         filepath.Join(t.TempDir(), "dependency-root"),
+			CanonicalRoot:         localEnvironmentPortableFileForTest(t, svc),
 			Version:               "1.0.0",
 			CompatibilityEvidence: []string{"test compatibility"},
-			VerifiedArtifacts:     []string{"bin/tool"},
+			VerifiedArtifacts:     []string{localEnvironmentPortableFileForTest(t, svc)},
 			SelectedConsumers:     []string{"llama.cpp.cuda"},
 			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 		}, nil
@@ -146,7 +151,7 @@ func TestLocalEnvironmentDependencyJobCancelDoesNotPromote(t *testing.T) {
 	if err != nil {
 		t.Fatalf("start job: %v", err)
 	}
-	cancelled, ok := svc.cancelLocalEnvironmentDependencyJob(job.JobID)
+	cancelled, ok, _ := svc.cancelLocalEnvironmentDependencyJob(job.JobID)
 	if !ok {
 		t.Fatalf("cancel job failed")
 	}
@@ -308,7 +313,7 @@ func TestLocalEnvironmentDependencyJobUnderspecifiedReadyResultDoesNotPromote(t 
 	started, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(context.Context, localEnvironmentDependencyJobState, localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
 		return localEnvironmentDependencyJobResult{
 			SourceKind:    localEnvironmentSourceManaged,
-			CanonicalRoot: filepath.Join(t.TempDir(), "dependency-root"),
+			CanonicalRoot: localEnvironmentPortableFileForTest(t, svc),
 		}, nil
 	})
 	if err != nil {
@@ -333,10 +338,10 @@ func TestLocalEnvironmentDependencyJobRepairRequiredBlocksPlan(t *testing.T) {
 		return localEnvironmentDependencyJobResult{
 			State:                 localEnvironmentStateReadyManaged,
 			SourceKind:            localEnvironmentSourceManaged,
-			CanonicalRoot:         filepath.Join(t.TempDir(), "dependency-root"),
+			CanonicalRoot:         localEnvironmentPortableFileForTest(t, svc),
 			Version:               "1.0.0",
 			CompatibilityEvidence: []string{"test compatibility"},
-			VerifiedArtifacts:     []string{"bin/tool"},
+			VerifiedArtifacts:     []string{localEnvironmentPortableFileForTest(t, svc)},
 			SelectedConsumers:     []string{"llama.cpp.cuda"},
 			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 		}, nil
@@ -347,7 +352,7 @@ func TestLocalEnvironmentDependencyJobRepairRequiredBlocksPlan(t *testing.T) {
 	if job := pollLocalEnvironmentDependencyJobToTerminal(t, svc, started.JobID); job.State != localEnvironmentStateReadyManaged {
 		t.Fatalf("expected ready_managed job before repair, got %+v", job)
 	}
-	if _, ok := svc.markLocalEnvironmentDependencyRepairRequired(req.EnvironmentKey, "hash_mismatch"); !ok {
+	if _, ok, _ := svc.markLocalEnvironmentDependencyRepairRequired(req.EnvironmentKey, "hash_mismatch"); !ok {
 		t.Fatalf("mark repair required failed")
 	}
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
@@ -366,19 +371,26 @@ func TestLocalEnvironmentDependencyJobsPersistAcrossRestart(t *testing.T) {
 	dir := t.TempDir()
 	statePath := filepath.Join(dir, "local-state.json")
 	runtimeDataRoot := filepath.Join(dir, "runtime-data")
-	svc, err := New(slog.Default(), nil, statePath, 10, runtimeDataRoot)
+	svc, err := NewWithProductControlDataRoot(slog.Default(), nil, statePath, 10, filepath.Join(runtimeDataRoot, "models"), runtimeDataRoot)
 	if err != nil {
 		t.Fatalf("new service: %v", err)
 	}
 	req := localEnvironmentJobRequestForTestWithRoot(t, svc, runtimeDataRoot)
+	binaryPath := filepath.Join(runtimeDataRoot, "environments", "llama", "1.0.0", "llama-server.exe")
+	if err := os.MkdirAll(filepath.Dir(binaryPath), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(binaryPath, []byte("llama"), 0o700); err != nil {
+		t.Fatal(err)
+	}
 	started, err := svc.startLocalEnvironmentDependencyJob(context.Background(), req, func(context.Context, localEnvironmentDependencyJobState, localEnvironmentDependencyJobProgressReporter) (localEnvironmentDependencyJobResult, error) {
 		return localEnvironmentDependencyJobResult{
 			State:                 localEnvironmentStateReadyManaged,
 			SourceKind:            localEnvironmentSourceManaged,
-			CanonicalRoot:         filepath.Join(runtimeDataRoot, "engines", "llama"),
+			CanonicalRoot:         binaryPath,
 			Version:               "1.0.0",
 			CompatibilityEvidence: []string{"test compatibility"},
-			VerifiedArtifacts:     []string{"bin/llama"},
+			VerifiedArtifacts:     []string{binaryPath},
 			SelectedConsumers:     []string{"llama.cpp.cuda"},
 			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 		}, nil
@@ -392,7 +404,7 @@ func TestLocalEnvironmentDependencyJobsPersistAcrossRestart(t *testing.T) {
 	}
 	svc.Close()
 
-	restored, err := New(slog.Default(), nil, statePath, 10, runtimeDataRoot)
+	restored, err := NewWithProductControlDataRoot(slog.Default(), nil, statePath, 10, filepath.Join(runtimeDataRoot, "models"), runtimeDataRoot)
 	if err != nil {
 		t.Fatalf("restore service: %v", err)
 	}
@@ -508,10 +520,10 @@ func TestStartLocalEnvironmentDependencyJobRunsExecutorAsynchronously(t *testing
 		return localEnvironmentDependencyJobResult{
 			State:                 localEnvironmentStateReadyManaged,
 			SourceKind:            localEnvironmentSourceManaged,
-			CanonicalRoot:         filepath.Join(t.TempDir(), "dependency-root"),
+			CanonicalRoot:         localEnvironmentPortableFileForTest(t, svc),
 			Version:               "1.0.0",
 			CompatibilityEvidence: []string{"test compatibility"},
-			VerifiedArtifacts:     []string{"bin/tool"},
+			VerifiedArtifacts:     []string{localEnvironmentPortableFileForTest(t, svc)},
 			SelectedConsumers:     []string{"llama.cpp.cuda"},
 			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 		}, nil
@@ -559,7 +571,7 @@ func TestCancelLocalEnvironmentDependencyJobAbortsRunningExecutor(t *testing.T) 
 	case <-time.After(5 * time.Second):
 		t.Fatal("background executor goroutine did not start")
 	}
-	cancelled, ok := svc.cancelLocalEnvironmentDependencyJob(job.JobID)
+	cancelled, ok, _ := svc.cancelLocalEnvironmentDependencyJob(job.JobID)
 	if !ok {
 		t.Fatal("cancel running job failed")
 	}
@@ -596,10 +608,10 @@ func TestCancelLocalEnvironmentDependencyJobAfterExecutorSuccessLeavesNoRecord(t
 		result := localEnvironmentDependencyJobResult{
 			State:                 localEnvironmentStateReadyManaged,
 			SourceKind:            localEnvironmentSourceManaged,
-			CanonicalRoot:         filepath.Join(t.TempDir(), "dependency-root"),
+			CanonicalRoot:         localEnvironmentPortableFileForTest(t, svc),
 			Version:               "1.0.0",
 			CompatibilityEvidence: []string{"test compatibility"},
-			VerifiedArtifacts:     []string{"bin/tool"},
+			VerifiedArtifacts:     []string{localEnvironmentPortableFileForTest(t, svc)},
 			SelectedConsumers:     []string{"llama.cpp.cuda"},
 			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 		}
@@ -619,7 +631,7 @@ func TestCancelLocalEnvironmentDependencyJobAfterExecutorSuccessLeavesNoRecord(t
 		t.Fatal("background executor goroutine did not produce a result")
 	}
 	// Cancel lands after executor success but before promotion runs.
-	cancelled, ok := svc.cancelLocalEnvironmentDependencyJob(job.JobID)
+	cancelled, ok, _ := svc.cancelLocalEnvironmentDependencyJob(job.JobID)
 	if !ok {
 		t.Fatal("cancel job failed")
 	}
@@ -733,7 +745,7 @@ func TestLocalEnvironmentDependencyJobRepairRequiredSurvivesRestart(t *testing.T
 	if restoredJob.Retryable || restoredJob.RecoveryDisposition != localEnvironmentJobRecoveryRepairRequired {
 		t.Fatalf("restored repair disposition = %+v, want non-retryable repair_required", restoredJob)
 	}
-	cancelled, ok := restored.cancelLocalEnvironmentDependencyJob(job.JobID)
+	cancelled, ok, _ := restored.cancelLocalEnvironmentDependencyJob(job.JobID)
 	if !ok || cancelled.State != localEnvironmentStateRepairRequired {
 		t.Fatalf("cancel rewrote settled repair job: ok=%v job=%+v", ok, cancelled)
 	}
@@ -744,7 +756,7 @@ func TestLocalEnvironmentDependencyJobRepairRequiredSurvivesRestart(t *testing.T
 	if restarted.JobID == job.JobID {
 		t.Fatalf("repair-required job was incorrectly deduped: %q", restarted.JobID)
 	}
-	if _, ok := restored.cancelLocalEnvironmentDependencyJob(restarted.JobID); !ok {
+	if _, ok, _ := restored.cancelLocalEnvironmentDependencyJob(restarted.JobID); !ok {
 		t.Fatalf("cancel replacement job %s", restarted.JobID)
 	}
 }
@@ -776,10 +788,10 @@ func TestLocalEnvironmentDependencyJobCarriesDownloadProgress(t *testing.T) {
 		return localEnvironmentDependencyJobResult{
 			State:                 localEnvironmentStateReadyManaged,
 			SourceKind:            localEnvironmentSourceManaged,
-			CanonicalRoot:         filepath.Join(t.TempDir(), "dependency-root"),
+			CanonicalRoot:         localEnvironmentPortableFileForTest(t, svc),
 			Version:               "1.0.0",
 			CompatibilityEvidence: []string{"test compatibility"},
-			VerifiedArtifacts:     []string{"bin/tool"},
+			VerifiedArtifacts:     []string{localEnvironmentPortableFileForTest(t, svc)},
 			SelectedConsumers:     []string{"llama.cpp.cuda"},
 			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 		}, nil
@@ -853,10 +865,10 @@ func TestLocalEnvironmentDependencyJobHeartbeatRefreshesInstallingState(t *testi
 		return localEnvironmentDependencyJobResult{
 			State:                 localEnvironmentStateReadyManaged,
 			SourceKind:            localEnvironmentSourceManaged,
-			CanonicalRoot:         filepath.Join(t.TempDir(), "dependency-root"),
+			CanonicalRoot:         localEnvironmentPortableFileForTest(t, svc),
 			Version:               "1.0.0",
 			CompatibilityEvidence: []string{"test compatibility"},
-			VerifiedArtifacts:     []string{"bin/tool"},
+			VerifiedArtifacts:     []string{localEnvironmentPortableFileForTest(t, svc)},
 			SelectedConsumers:     []string{"llama.cpp.cuda"},
 			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 		}, nil
@@ -916,10 +928,10 @@ func TestLocalEnvironmentDependencyJobHeartbeatDoesNotMaskDownloadingWithoutProg
 		return localEnvironmentDependencyJobResult{
 			State:                 localEnvironmentStateReadyManaged,
 			SourceKind:            localEnvironmentSourceManaged,
-			CanonicalRoot:         filepath.Join(t.TempDir(), "dependency-root"),
+			CanonicalRoot:         localEnvironmentPortableFileForTest(t, svc),
 			Version:               "1.0.0",
 			CompatibilityEvidence: []string{"test compatibility"},
-			VerifiedArtifacts:     []string{"bin/tool"},
+			VerifiedArtifacts:     []string{localEnvironmentPortableFileForTest(t, svc)},
 			SelectedConsumers:     []string{"llama.cpp.cuda"},
 			AuditReasonCode:       "LOCAL_ENVIRONMENT_DEPENDENCY_READY_MANAGED",
 		}, nil
@@ -1010,16 +1022,28 @@ func TestLocalEnvironmentDependencyJobProgressIgnoredOnTerminalJob(t *testing.T)
 func newLocalEnvironmentJobTestService(t *testing.T) *Service {
 	t.Helper()
 	dir := t.TempDir()
-	svc, err := New(slog.Default(), nil, filepath.Join(dir, "local-state.json"), 10, filepath.Join(dir, "models"))
+	svc, err := NewWithProductControlDataRoot(slog.Default(), nil, filepath.Join(dir, "local-state.json"), 10, filepath.Join(dir, "models"), dir)
 	if err != nil {
 		t.Fatalf("new service: %v", err)
 	}
 	return svc
 }
 
+func localEnvironmentPortableFileForTest(t *testing.T, svc *Service) string {
+	t.Helper()
+	path := filepath.Join(svc.runtimeDataRoot, "environments", "test-dependency", "tool.exe")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("test dependency"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
 func localEnvironmentJobRequestForTest(t *testing.T, svc *Service) localEnvironmentDependencyJobRequest {
 	t.Helper()
-	return localEnvironmentJobRequestForTestWithRoot(t, svc, filepath.Join(t.TempDir(), "runtime-data"))
+	return localEnvironmentJobRequestForTestWithRoot(t, svc, svc.runtimeDataRoot)
 }
 
 func localEnvironmentJobRequestForTestWithRoot(t *testing.T, svc *Service, runtimeDataRoot string) localEnvironmentDependencyJobRequest {
@@ -1037,5 +1061,182 @@ func localEnvironmentJobRequestForTestWithRoot(t *testing.T, svc *Service, runti
 		DependencyID:     dep.DependencyID,
 		ConsumerScope:    dep.ConsumerScope,
 		SourceKind:       localEnvironmentSourceManaged,
+	}
+}
+
+func TestCopiedDataRootDerivesEnvironmentOwnerLocatorsAndDropsHostJobs(t *testing.T) {
+	rootOne := filepath.Join(t.TempDir(), "environment-root-one")
+	canonicalOne := filepath.Join(rootOne, "environments", "native", "engine-a")
+	if err := os.MkdirAll(canonicalOne, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(canonicalOne, "llama-server"), []byte("engine"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	stateOne := filepath.Join(rootOne, "accounts", "runtime", "local-state.json")
+	first, err := NewWithProductControlDataRoot(slog.Default(), nil, stateOne, 10, filepath.Join(rootOne, "models"), rootOne)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		RecordID: "source-portable", DependencyFamily: localEnvironmentFamilyNativeLlama,
+		DependencyID: "llama.cpp.package", EnvironmentKey: localEnvironmentNativeLlamaKey("1.0.0", "windows/amd64"), Version: "1.0.0",
+		CanonicalRoot: canonicalOne, VerifiedArtifacts: []string{filepath.Join(canonicalOne, "llama-server")},
+	})
+	jobRequest := localEnvironmentJobRequestForTestWithRoot(t, first, rootOne)
+	portableJob, err := first.startLocalEnvironmentDependencyJob(context.Background(), jobRequest, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first.mu.Lock()
+	record = first.mergeLocalEnvironmentSelectedSourceRecordLocked(record)
+	hostProfile := localEnvironmentHostProfileFromDeviceProfile(localEnvironmentNvidiaProfile())
+	first.localEnvironmentHostProfiles[hostProfile.HostProfileID] = hostProfile
+	first.persistStateLocked()
+	first.mu.Unlock()
+	stored, err := os.ReadFile(stateOne)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(stored, []byte(rootOne)) || !bytes.Contains(stored, []byte(`"canonicalRoot": "environments/native/engine-a"`)) {
+		t.Fatalf("selected-source storage did not use an owner-relative locator: %s", stored)
+	}
+	first.Close()
+
+	rootTwo := filepath.Join(t.TempDir(), "environment-root-two")
+	if err := os.CopyFS(rootTwo, os.DirFS(rootOne)); err != nil {
+		t.Fatal(err)
+	}
+	second, err := NewWithProductControlDataRoot(slog.Default(), nil, filepath.Join(rootTwo, "accounts", "runtime", "local-state.json"), 10, filepath.Join(rootTwo, "models"), rootTwo)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer second.Close()
+	result := second.reconcileProductControlCheckSyncEnvironments(context.Background(), ProductControlCheckSyncInput{RootActivationID: "rootact_test", DataRoot: rootTwo})
+	if result.State != "completed" {
+		t.Fatalf("environment reconciliation = %+v", result)
+	}
+	foundRecord := false
+	for _, resource := range result.Resources {
+		foundRecord = foundRecord || resource.Reference != nil && *resource.Reference == record.RecordID &&
+			resource.Status == "unavailable" && resource.Reason == "ENVIRONMENT_OWNER_MATERIAL_VERIFICATION_REQUIRED" && resource.Change == nil
+	}
+	if !foundRecord {
+		t.Fatalf("environment owner reopen was not fail-closed pending owner verification: %+v", result.Resources)
+	}
+	second.mu.RLock()
+	var reopened localEnvironmentSelectedSourceRecordState
+	for _, current := range second.localEnvironmentSelectedSources {
+		reopened = current
+	}
+	hostCount := len(second.localEnvironmentHostProfiles)
+	reopenedJob := second.localEnvironmentDependencyJobs[portableJob.JobID]
+	second.mu.RUnlock()
+	if reopened.RecordID != record.RecordID || !productControlPathsEqual(reopened.CanonicalRoot, filepath.Join(rootTwo, "environments", "native", "engine-a")) || strings.Contains(reopened.EnvironmentKey, rootOne) {
+		t.Fatalf("environment owner locator was not derived from the copied root: %+v", reopened)
+	}
+	if hostCount != 0 || reopenedJob.State != localEnvironmentStateFailed {
+		t.Fatalf("host-specific environment state survived root reopen: hosts=%d job=%+v", hostCount, reopenedJob)
+	}
+}
+
+func TestSelectedSourceRestoreKeepsRootRelativeArtifactsRelative(t *testing.T) {
+	dataRoot := filepath.Join(t.TempDir(), "nimi-data")
+	stored := localEnvironmentSelectedSourceRecordState{
+		DependencyFamily: localEnvironmentFamilyCUDA,
+		CanonicalRoot:    "dependencies/accelerator-dependencies/nvidia-cuda-user-space-runtime",
+		VerifiedArtifacts: []string{
+			"cudart64_12.dll",
+			"cublas64_12.dll",
+		},
+	}
+	restored := localEnvironmentSelectedSourceRecordFromStorage(stored, dataRoot)
+	wantRoot := filepath.Join(dataRoot, "dependencies", "accelerator-dependencies", "nvidia-cuda-user-space-runtime")
+	if !productControlPathsEqual(restored.CanonicalRoot, wantRoot) {
+		t.Fatalf("restored CUDA root = %q, want %q", restored.CanonicalRoot, wantRoot)
+	}
+	if !reflect.DeepEqual(restored.VerifiedArtifacts, stored.VerifiedArtifacts) {
+		t.Fatalf("root-relative CUDA artifacts = %v, want %v", restored.VerifiedArtifacts, stored.VerifiedArtifacts)
+	}
+	checks := localEnvironmentSelectedSourceLocalArtifactChecks(restored)
+	if len(checks) != 3 || !productControlPathsEqual(checks[1].Path, filepath.Join(wantRoot, "cudart64_12.dll")) {
+		t.Fatalf("restored CUDA artifact checks = %+v", checks)
+	}
+}
+
+func TestSelectedSourceRestoreRehydratesOwnerArtifactLocators(t *testing.T) {
+	dataRoot := filepath.Join(t.TempDir(), "nimi-data")
+	storedRoot := "environments/llama/b8645/llama-server.exe"
+	stored := localEnvironmentSelectedSourceRecordState{
+		DependencyFamily:  localEnvironmentFamilyNativeLlama,
+		CanonicalRoot:     storedRoot,
+		VerifiedArtifacts: []string{storedRoot},
+	}
+	restored := localEnvironmentSelectedSourceRecordFromStorage(stored, dataRoot)
+	want := filepath.Join(dataRoot, "environments", "llama", "b8645", "llama-server.exe")
+	if !productControlPathsEqual(restored.CanonicalRoot, want) || len(restored.VerifiedArtifacts) != 1 || !productControlPathsEqual(restored.VerifiedArtifacts[0], want) {
+		t.Fatalf("restored owner locator = %+v, want %q", restored, want)
+	}
+}
+
+func TestReadyEnvironmentPromotionRollsBackAndPropagatesPersistenceFailure(t *testing.T) {
+	service := newTestService(t)
+	job := localEnvironmentDependencyJobState{
+		JobID: "job-persist-failure", EnvironmentKey: "native-engine-package.llama|llama.cpp.package|windows/amd64",
+		DependencyFamily: localEnvironmentFamilyNativeLlama, DependencyID: "llama.cpp.package", ConsumerScope: "llama.cpp.cuda",
+		State: localEnvironmentStateVerifying, SourceKind: localEnvironmentSourceManaged, CreatedAt: nowISO(), UpdatedAt: nowISO(),
+	}
+	service.mu.Lock()
+	service.localEnvironmentDependencyJobs[job.JobID] = job
+	service.mu.Unlock()
+	badTarget := filepath.Join(t.TempDir(), "state-is-directory")
+	if err := os.MkdirAll(badTarget, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	service.stateStorePath = badTarget
+	pending := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		DependencyFamily: job.DependencyFamily, DependencyID: job.DependencyID, EnvironmentKey: job.EnvironmentKey,
+		CanonicalRoot: filepath.Join(t.TempDir(), "llama-server"), SelectedConsumers: []string{job.ConsumerScope},
+	})
+	promoted, ok, err := service.promoteLocalEnvironmentDependencyJobReady(job.JobID, localEnvironmentStateReadyManaged, localEnvironmentSourceManaged, pending.CanonicalRoot, pending)
+	if !ok || err == nil || promoted.State != job.State {
+		t.Fatalf("failed durable promotion = promoted:%+v ok:%t err:%v", promoted, ok, err)
+	}
+	service.mu.RLock()
+	preservedJob := service.localEnvironmentDependencyJobs[job.JobID]
+	selectedCount := len(service.localEnvironmentSelectedSources)
+	service.mu.RUnlock()
+	if preservedJob.State != job.State || selectedCount != 0 {
+		t.Fatalf("persistence failure left pseudo-ready owner state: job=%+v selected=%d", preservedJob, selectedCount)
+	}
+	transitioned, ok, transitionErr := service.transitionLocalEnvironmentDependencyJob(job.JobID, localEnvironmentStateFailed, "failed", false)
+	if !ok || transitionErr == nil || transitioned.State != job.State {
+		t.Fatalf("failed durable transition = job:%+v ok:%t err:%v", transitioned, ok, transitionErr)
+	}
+}
+
+func TestPortableSelectedSourceStorageRehydratesOnlyExactOwnerLocators(t *testing.T) {
+	rootOne := t.TempDir()
+	rootTwo := t.TempDir()
+	interpreter := filepath.Join(rootOne, "environments", "python", engine.ManagedPythonVersion, "python.exe")
+	uvExecutable := filepath.Join(rootOne, "dependencies", "uv", "uv.exe")
+	record := localEnvironmentSelectedSourceRecordState{
+		SourceKind: localEnvironmentSourceManaged, CanonicalRoot: interpreter,
+		VerifiedArtifacts: []string{interpreter, uvExecutable, "python312.dll"},
+	}
+	stored := localEnvironmentSelectedSourceRecordForStorage(record, rootOne)
+	if filepath.IsAbs(stored.CanonicalRoot) || filepath.IsAbs(stored.VerifiedArtifacts[0]) || filepath.IsAbs(stored.VerifiedArtifacts[1]) {
+		t.Fatalf("portable selected-source retained absolute owner paths: %+v", stored)
+	}
+	reopened := localEnvironmentSelectedSourceRecordFromStorage(stored, rootTwo)
+	if reopened.CanonicalRoot != filepath.Join(rootTwo, filepath.FromSlash(stored.CanonicalRoot)) ||
+		reopened.VerifiedArtifacts[1] != filepath.Join(rootTwo, filepath.FromSlash(stored.VerifiedArtifacts[1])) || reopened.VerifiedArtifacts[2] != "python312.dll" {
+		t.Fatalf("portable selected-source locator derivation = %+v", reopened)
+	}
+	foreign := record
+	foreign.CanonicalRoot = filepath.Join(t.TempDir(), "environments", "python", "python.exe")
+	blocked := localEnvironmentSelectedSourceRecordForStorage(foreign, rootOne)
+	if blocked.CanonicalRoot != "" || blocked.RepairState != localEnvironmentRepairRequired {
+		t.Fatalf("foreign absolute selected-source was persisted: %+v", blocked)
 	}
 }

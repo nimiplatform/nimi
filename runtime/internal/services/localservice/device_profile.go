@@ -118,8 +118,8 @@ func probeGPUProfile() *runtimev1.LocalGpuProfile {
 }
 
 type gpuProbeCapabilities struct {
-	profile   *runtimev1.LocalGpuProfile
-	cudaReady bool
+	profile       *runtimev1.LocalGpuProfile
+	driverVisible bool
 }
 
 func probeGPUCapabilities() gpuProbeCapabilities {
@@ -139,7 +139,7 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 					AvailableVramBytes: freeVRAM,
 					MemoryModel:        runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_DISCRETE,
 				},
-				cudaReady: probeGPUCUDAReadyValue(),
+				driverVisible: true,
 			}
 		}
 	}
@@ -159,7 +159,7 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 					AvailableVramBytes: availRAM,
 					MemoryModel:        runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_UNIFIED,
 				},
-				cudaReady: false,
+				driverVisible: true,
 			}
 		}
 	}
@@ -169,7 +169,7 @@ func probeGPUCapabilities() gpuProbeCapabilities {
 			Available:   false,
 			MemoryModel: runtimev1.GpuMemoryModel_GPU_MEMORY_MODEL_UNSPECIFIED,
 		},
-		cudaReady: false,
+		driverVisible: false,
 	}
 }
 
@@ -229,30 +229,6 @@ func parseNvidiaSmiOutput(output string) (name string, totalBytes int64, freeByt
 	totalMiB, _ := strconv.ParseInt(strings.TrimSpace(parts[1]), 10, 64)
 	freeMiB, _ := strconv.ParseInt(strings.TrimSpace(parts[2]), 10, 64)
 	return name, totalMiB * 1024 * 1024, freeMiB * 1024 * 1024
-}
-
-func probeGPUCUDAReady() (bool, string) {
-	for _, key := range []string{"CUDA_PATH", "CUDA_HOME"} {
-		if value := strings.TrimSpace(os.Getenv(key)); value != "" {
-			return true, "env:" + key
-		}
-	}
-	if _, err := localRuntimeLookPath("nvcc"); err == nil {
-		return true, "path:nvcc"
-	}
-	if localRuntimeGOOS == "windows" {
-		if _, err := localRuntimeStat(filepath.Join(localRuntimeProgramFiles(), "NVIDIA GPU Computing Toolkit", "CUDA")); err == nil {
-			return true, "windows:default_cuda_path"
-		}
-	} else if _, err := localRuntimeStat("/usr/local/cuda"); err == nil {
-		return true, "unix:/usr/local/cuda"
-	}
-	return false, ""
-}
-
-func probeGPUCUDAReadyValue() bool {
-	ready, _ := probeGPUCUDAReady()
-	return ready
 }
 
 func probePythonProfile() *runtimev1.LocalPythonProfile {
