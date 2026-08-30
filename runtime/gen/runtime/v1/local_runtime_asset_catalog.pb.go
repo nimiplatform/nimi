@@ -106,8 +106,10 @@ func (LocalAssetKind) EnumDescriptor() ([]byte, []int) {
 type LocalEngineRuntimeMode int32
 
 const (
-	LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED       LocalEngineRuntimeMode = 0
-	LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED        LocalEngineRuntimeMode = 1
+	LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED LocalEngineRuntimeMode = 0
+	LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED  LocalEngineRuntimeMode = 1
+	// Public value retained for sidecar only. llama, media, and speech are
+	// Runtime-owned supervised topologies and reject this value typed.
 	LocalEngineRuntimeMode_LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT LocalEngineRuntimeMode = 2
 )
 
@@ -522,13 +524,13 @@ type LocalVerifiedAssetDescriptor struct {
 	Metadata       *structpb.Struct       `protobuf:"bytes,16,opt,name=metadata,proto3" json:"metadata,omitempty"`
 	ContentId      string                 `protobuf:"bytes,17,opt,name=content_id,json=contentId,proto3" json:"content_id,omitempty"`
 	// Runnable-only fields
-	InstallKind      string                 `protobuf:"bytes,20,opt,name=install_kind,json=installKind,proto3" json:"install_kind,omitempty"`
-	LogicalModelId   string                 `protobuf:"bytes,21,opt,name=logical_model_id,json=logicalModelId,proto3" json:"logical_model_id,omitempty"`
-	Capabilities     []string               `protobuf:"bytes,22,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
-	ArtifactRoles    []string               `protobuf:"bytes,23,rep,name=artifact_roles,json=artifactRoles,proto3" json:"artifact_roles,omitempty"`
-	PreferredEngine  string                 `protobuf:"bytes,24,opt,name=preferred_engine,json=preferredEngine,proto3" json:"preferred_engine,omitempty"`
-	FallbackEngines  []string               `protobuf:"bytes,25,rep,name=fallback_engines,json=fallbackEngines,proto3" json:"fallback_engines,omitempty"`
-	EngineConfig     *structpb.Struct       `protobuf:"bytes,26,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
+	InstallKind     string           `protobuf:"bytes,20,opt,name=install_kind,json=installKind,proto3" json:"install_kind,omitempty"`
+	LogicalModelId  string           `protobuf:"bytes,21,opt,name=logical_model_id,json=logicalModelId,proto3" json:"logical_model_id,omitempty"`
+	Capabilities    []string         `protobuf:"bytes,22,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
+	ArtifactRoles   []string         `protobuf:"bytes,23,rep,name=artifact_roles,json=artifactRoles,proto3" json:"artifact_roles,omitempty"`
+	PreferredEngine string           `protobuf:"bytes,24,opt,name=preferred_engine,json=preferredEngine,proto3" json:"preferred_engine,omitempty"`
+	EngineConfig    *structpb.Struct `protobuf:"bytes,26,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
+	// Attached endpoint projection is valid only for sidecar assets.
 	Endpoint         string                 `protobuf:"bytes,27,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
 	HostRequirements *LocalHostRequirements `protobuf:"bytes,28,opt,name=host_requirements,json=hostRequirements,proto3" json:"host_requirements,omitempty"`
 	unknownFields    protoimpl.UnknownFields
@@ -719,13 +721,6 @@ func (x *LocalVerifiedAssetDescriptor) GetPreferredEngine() string {
 	return ""
 }
 
-func (x *LocalVerifiedAssetDescriptor) GetFallbackEngines() []string {
-	if x != nil {
-		return x.FallbackEngines
-	}
-	return nil
-}
-
 func (x *LocalVerifiedAssetDescriptor) GetEngineConfig() *structpb.Struct {
 	if x != nil {
 		return x.EngineConfig
@@ -748,10 +743,13 @@ func (x *LocalVerifiedAssetDescriptor) GetHostRequirements() *LocalHostRequireme
 }
 
 type LocalProviderHintsLlama struct {
-	state               protoimpl.MessageState `protogen:"open.v1"`
-	Backend             string                 `protobuf:"bytes,1,opt,name=backend,proto3" json:"backend,omitempty"`
-	PreferredAdapter    string                 `protobuf:"bytes,2,opt,name=preferred_adapter,json=preferredAdapter,proto3" json:"preferred_adapter,omitempty"`
-	MultimodalProjector string                 `protobuf:"bytes,3,opt,name=multimodal_projector,json=multimodalProjector,proto3" json:"multimodal_projector,omitempty"`
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Backend string                 `protobuf:"bytes,1,opt,name=backend,proto3" json:"backend,omitempty"`
+	// Recommendation label only; never a public TextBehaviorAdapter selector.
+	PreferredAdapter string `protobuf:"bytes,2,opt,name=preferred_adapter,json=preferredAdapter,proto3" json:"preferred_adapter,omitempty"`
+	// Recommendation only; pairing and optional-conditional admission are
+	// Driver and Model Contract truth.
+	MultimodalProjector string `protobuf:"bytes,3,opt,name=multimodal_projector,json=multimodalProjector,proto3" json:"multimodal_projector,omitempty"`
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -815,8 +813,6 @@ type LocalProviderHintsMedia struct {
 	ImageDriver      string                 `protobuf:"bytes,4,opt,name=image_driver,json=imageDriver,proto3" json:"image_driver,omitempty"`
 	VideoDriver      string                 `protobuf:"bytes,5,opt,name=video_driver,json=videoDriver,proto3" json:"video_driver,omitempty"`
 	Device           string                 `protobuf:"bytes,6,opt,name=device,proto3" json:"device,omitempty"`
-	FallbackDriver   string                 `protobuf:"bytes,7,opt,name=fallback_driver,json=fallbackDriver,proto3" json:"fallback_driver,omitempty"`
-	FallbackReason   string                 `protobuf:"bytes,8,opt,name=fallback_reason,json=fallbackReason,proto3" json:"fallback_reason,omitempty"`
 	PolicyGate       string                 `protobuf:"bytes,9,opt,name=policy_gate,json=policyGate,proto3" json:"policy_gate,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
@@ -890,20 +886,6 @@ func (x *LocalProviderHintsMedia) GetVideoDriver() string {
 func (x *LocalProviderHintsMedia) GetDevice() string {
 	if x != nil {
 		return x.Device
-	}
-	return ""
-}
-
-func (x *LocalProviderHintsMedia) GetFallbackDriver() string {
-	if x != nil {
-		return x.FallbackDriver
-	}
-	return ""
-}
-
-func (x *LocalProviderHintsMedia) GetFallbackReason() string {
-	if x != nil {
-		return x.FallbackReason
 	}
 	return ""
 }
@@ -1136,37 +1118,40 @@ func (x *LocalProviderHints) GetExtra() map[string]string {
 }
 
 type LocalCatalogModelDescriptor struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	ItemId            string                 `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
-	Source            string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
-	Title             string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
-	Description       string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
-	ModelId           string                 `protobuf:"bytes,5,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	Repo              string                 `protobuf:"bytes,6,opt,name=repo,proto3" json:"repo,omitempty"`
-	Revision          string                 `protobuf:"bytes,7,opt,name=revision,proto3" json:"revision,omitempty"`
-	TemplateId        string                 `protobuf:"bytes,8,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
-	Capabilities      []string               `protobuf:"bytes,9,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
-	Engine            string                 `protobuf:"bytes,10,opt,name=engine,proto3" json:"engine,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	ItemId       string                 `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
+	Source       string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	Title        string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Description  string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	ModelId      string                 `protobuf:"bytes,5,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	Repo         string                 `protobuf:"bytes,6,opt,name=repo,proto3" json:"repo,omitempty"`
+	Revision     string                 `protobuf:"bytes,7,opt,name=revision,proto3" json:"revision,omitempty"`
+	TemplateId   string                 `protobuf:"bytes,8,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	Capabilities []string               `protobuf:"bytes,9,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
+	Engine       string                 `protobuf:"bytes,10,opt,name=engine,proto3" json:"engine,omitempty"`
+	// ATTACHED_ENDPOINT is valid only when engine is sidecar.
 	EngineRuntimeMode LocalEngineRuntimeMode `protobuf:"varint,11,opt,name=engine_runtime_mode,json=engineRuntimeMode,proto3,enum=nimi.runtime.v1.LocalEngineRuntimeMode" json:"engine_runtime_mode,omitempty"`
 	InstallKind       string                 `protobuf:"bytes,12,opt,name=install_kind,json=installKind,proto3" json:"install_kind,omitempty"`
 	InstallAvailable  bool                   `protobuf:"varint,13,opt,name=install_available,json=installAvailable,proto3" json:"install_available,omitempty"`
-	Endpoint          string                 `protobuf:"bytes,14,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	ProviderHints     *LocalProviderHints    `protobuf:"bytes,15,opt,name=provider_hints,json=providerHints,proto3" json:"provider_hints,omitempty"`
-	Entry             string                 `protobuf:"bytes,16,opt,name=entry,proto3" json:"entry,omitempty"`
-	Files             []string               `protobuf:"bytes,17,rep,name=files,proto3" json:"files,omitempty"`
-	License           string                 `protobuf:"bytes,18,opt,name=license,proto3" json:"license,omitempty"`
-	Hashes            map[string]string      `protobuf:"bytes,19,rep,name=hashes,proto3" json:"hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Tags              []string               `protobuf:"bytes,20,rep,name=tags,proto3" json:"tags,omitempty"`
-	Downloads         int64                  `protobuf:"varint,21,opt,name=downloads,proto3" json:"downloads,omitempty"`
-	Likes             int64                  `protobuf:"varint,22,opt,name=likes,proto3" json:"likes,omitempty"`
-	LastModified      string                 `protobuf:"bytes,23,opt,name=last_modified,json=lastModified,proto3" json:"last_modified,omitempty"`
-	Verified          bool                   `protobuf:"varint,24,opt,name=verified,proto3" json:"verified,omitempty"`
-	EngineConfig      *structpb.Struct       `protobuf:"bytes,25,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
-	HostRequirements  *LocalHostRequirements `protobuf:"bytes,26,opt,name=host_requirements,json=hostRequirements,proto3" json:"host_requirements,omitempty"`
-	TotalSizeBytes    int64                  `protobuf:"varint,27,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
-	SourceProvenance  string                 `protobuf:"bytes,28,opt,name=source_provenance,json=sourceProvenance,proto3" json:"source_provenance,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Populated only for an admitted sidecar ATTACHED_ENDPOINT descriptor.
+	Endpoint         string                 `protobuf:"bytes,14,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	ProviderHints    *LocalProviderHints    `protobuf:"bytes,15,opt,name=provider_hints,json=providerHints,proto3" json:"provider_hints,omitempty"`
+	Entry            string                 `protobuf:"bytes,16,opt,name=entry,proto3" json:"entry,omitempty"`
+	Files            []string               `protobuf:"bytes,17,rep,name=files,proto3" json:"files,omitempty"`
+	License          string                 `protobuf:"bytes,18,opt,name=license,proto3" json:"license,omitempty"`
+	Hashes           map[string]string      `protobuf:"bytes,19,rep,name=hashes,proto3" json:"hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Tags             []string               `protobuf:"bytes,20,rep,name=tags,proto3" json:"tags,omitempty"`
+	Downloads        int64                  `protobuf:"varint,21,opt,name=downloads,proto3" json:"downloads,omitempty"`
+	Likes            int64                  `protobuf:"varint,22,opt,name=likes,proto3" json:"likes,omitempty"`
+	LastModified     string                 `protobuf:"bytes,23,opt,name=last_modified,json=lastModified,proto3" json:"last_modified,omitempty"`
+	Verified         bool                   `protobuf:"varint,24,opt,name=verified,proto3" json:"verified,omitempty"`
+	EngineConfig     *structpb.Struct       `protobuf:"bytes,25,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
+	HostRequirements *LocalHostRequirements `protobuf:"bytes,26,opt,name=host_requirements,json=hostRequirements,proto3" json:"host_requirements,omitempty"`
+	TotalSizeBytes   int64                  `protobuf:"varint,27,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
+	SourceProvenance string                 `protobuf:"bytes,28,opt,name=source_provenance,json=sourceProvenance,proto3" json:"source_provenance,omitempty"`
+	ModelType        string                 `protobuf:"bytes,29,opt,name=model_type,json=modelType,proto3" json:"model_type,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *LocalCatalogModelDescriptor) Reset() {
@@ -1395,33 +1380,43 @@ func (x *LocalCatalogModelDescriptor) GetSourceProvenance() string {
 	return ""
 }
 
+func (x *LocalCatalogModelDescriptor) GetModelType() string {
+	if x != nil {
+		return x.ModelType
+	}
+	return ""
+}
+
 type LocalInstallPlanDescriptor struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	PlanId            string                 `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
-	ItemId            string                 `protobuf:"bytes,2,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
-	Source            string                 `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
-	TemplateId        string                 `protobuf:"bytes,4,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
-	ModelId           string                 `protobuf:"bytes,5,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	Repo              string                 `protobuf:"bytes,6,opt,name=repo,proto3" json:"repo,omitempty"`
-	Revision          string                 `protobuf:"bytes,7,opt,name=revision,proto3" json:"revision,omitempty"`
-	Capabilities      []string               `protobuf:"bytes,8,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
-	Engine            string                 `protobuf:"bytes,9,opt,name=engine,proto3" json:"engine,omitempty"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	PlanId       string                 `protobuf:"bytes,1,opt,name=plan_id,json=planId,proto3" json:"plan_id,omitempty"`
+	ItemId       string                 `protobuf:"bytes,2,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
+	Source       string                 `protobuf:"bytes,3,opt,name=source,proto3" json:"source,omitempty"`
+	TemplateId   string                 `protobuf:"bytes,4,opt,name=template_id,json=templateId,proto3" json:"template_id,omitempty"`
+	ModelId      string                 `protobuf:"bytes,5,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
+	Repo         string                 `protobuf:"bytes,6,opt,name=repo,proto3" json:"repo,omitempty"`
+	Revision     string                 `protobuf:"bytes,7,opt,name=revision,proto3" json:"revision,omitempty"`
+	Capabilities []string               `protobuf:"bytes,8,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
+	Engine       string                 `protobuf:"bytes,9,opt,name=engine,proto3" json:"engine,omitempty"`
+	// ATTACHED_ENDPOINT is valid only when engine is sidecar.
 	EngineRuntimeMode LocalEngineRuntimeMode `protobuf:"varint,10,opt,name=engine_runtime_mode,json=engineRuntimeMode,proto3,enum=nimi.runtime.v1.LocalEngineRuntimeMode" json:"engine_runtime_mode,omitempty"`
 	InstallKind       string                 `protobuf:"bytes,11,opt,name=install_kind,json=installKind,proto3" json:"install_kind,omitempty"`
 	InstallAvailable  bool                   `protobuf:"varint,12,opt,name=install_available,json=installAvailable,proto3" json:"install_available,omitempty"`
-	Endpoint          string                 `protobuf:"bytes,13,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	ProviderHints     *LocalProviderHints    `protobuf:"bytes,14,opt,name=provider_hints,json=providerHints,proto3" json:"provider_hints,omitempty"`
-	Entry             string                 `protobuf:"bytes,15,opt,name=entry,proto3" json:"entry,omitempty"`
-	Files             []string               `protobuf:"bytes,16,rep,name=files,proto3" json:"files,omitempty"`
-	License           string                 `protobuf:"bytes,17,opt,name=license,proto3" json:"license,omitempty"`
-	Hashes            map[string]string      `protobuf:"bytes,18,rep,name=hashes,proto3" json:"hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Warnings          []string               `protobuf:"bytes,19,rep,name=warnings,proto3" json:"warnings,omitempty"`
-	ReasonCode        string                 `protobuf:"bytes,20,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
-	EngineConfig      *structpb.Struct       `protobuf:"bytes,21,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
-	TotalSizeBytes    int64                  `protobuf:"varint,22,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
-	SourceProvenance  string                 `protobuf:"bytes,23,opt,name=source_provenance,json=sourceProvenance,proto3" json:"source_provenance,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Populated only for an admitted sidecar ATTACHED_ENDPOINT install plan.
+	Endpoint         string              `protobuf:"bytes,13,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
+	ProviderHints    *LocalProviderHints `protobuf:"bytes,14,opt,name=provider_hints,json=providerHints,proto3" json:"provider_hints,omitempty"`
+	Entry            string              `protobuf:"bytes,15,opt,name=entry,proto3" json:"entry,omitempty"`
+	Files            []string            `protobuf:"bytes,16,rep,name=files,proto3" json:"files,omitempty"`
+	License          string              `protobuf:"bytes,17,opt,name=license,proto3" json:"license,omitempty"`
+	Hashes           map[string]string   `protobuf:"bytes,18,rep,name=hashes,proto3" json:"hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Warnings         []string            `protobuf:"bytes,19,rep,name=warnings,proto3" json:"warnings,omitempty"`
+	ReasonCode       string              `protobuf:"bytes,20,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
+	EngineConfig     *structpb.Struct    `protobuf:"bytes,21,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
+	TotalSizeBytes   int64               `protobuf:"varint,22,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
+	SourceProvenance string              `protobuf:"bytes,23,opt,name=source_provenance,json=sourceProvenance,proto3" json:"source_provenance,omitempty"`
+	ModelType        string              `protobuf:"bytes,24,opt,name=model_type,json=modelType,proto3" json:"model_type,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *LocalInstallPlanDescriptor) Reset() {
@@ -1615,6 +1610,13 @@ func (x *LocalInstallPlanDescriptor) GetSourceProvenance() string {
 	return ""
 }
 
+func (x *LocalInstallPlanDescriptor) GetModelType() string {
+	if x != nil {
+		return x.ModelType
+	}
+	return ""
+}
+
 var File_runtime_v1_local_runtime_asset_catalog_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
@@ -1653,7 +1655,7 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"updated_at\x18\r \x01(\tR\tupdatedAt\x12=\n" +
 	"\x1blatest_integrity_checked_at\x18\x0e \x01(\tR\x18latestIntegrityCheckedAt\x12+\n" +
 	"\x11duplicate_content\x18\x0f \x01(\bR\x10duplicateContent\x12?\n" +
-	"\x1ccontains_non_executable_code\x18\x10 \x01(\bR\x19containsNonExecutableCode\"\xb1\b\n" +
+	"\x1ccontains_non_executable_code\x18\x10 \x01(\bR\x19containsNonExecutableCode\"\x9e\b\n" +
 	"\x1cLocalVerifiedAssetDescriptor\x12\x1f\n" +
 	"\vtemplate_id\x18\x01 \x01(\tR\n" +
 	"templateId\x12\x14\n" +
@@ -1680,29 +1682,26 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\x10logical_model_id\x18\x15 \x01(\tR\x0elogicalModelId\x12\"\n" +
 	"\fcapabilities\x18\x16 \x03(\tR\fcapabilities\x12%\n" +
 	"\x0eartifact_roles\x18\x17 \x03(\tR\rartifactRoles\x12)\n" +
-	"\x10preferred_engine\x18\x18 \x01(\tR\x0fpreferredEngine\x12)\n" +
-	"\x10fallback_engines\x18\x19 \x03(\tR\x0ffallbackEngines\x12<\n" +
+	"\x10preferred_engine\x18\x18 \x01(\tR\x0fpreferredEngine\x12<\n" +
 	"\rengine_config\x18\x1a \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x12\x1a\n" +
 	"\bendpoint\x18\x1b \x01(\tR\bendpoint\x12S\n" +
 	"\x11host_requirements\x18\x1c \x01(\v2&.nimi.runtime.v1.LocalHostRequirementsR\x10hostRequirements\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x93\x01\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01J\x04\b\x19\x10\x1aR\x10fallback_engines\"\x93\x01\n" +
 	"\x17LocalProviderHintsLlama\x12\x18\n" +
 	"\abackend\x18\x01 \x01(\tR\abackend\x12+\n" +
 	"\x11preferred_adapter\x18\x02 \x01(\tR\x10preferredAdapter\x121\n" +
-	"\x14multimodal_projector\x18\x03 \x01(\tR\x13multimodalProjector\"\xc9\x02\n" +
+	"\x14multimodal_projector\x18\x03 \x01(\tR\x13multimodalProjector\"\xa5\x02\n" +
 	"\x17LocalProviderHintsMedia\x12\x18\n" +
 	"\abackend\x18\x01 \x01(\tR\abackend\x12+\n" +
 	"\x11preferred_adapter\x18\x02 \x01(\tR\x10preferredAdapter\x12\x16\n" +
 	"\x06family\x18\x03 \x01(\tR\x06family\x12!\n" +
 	"\fimage_driver\x18\x04 \x01(\tR\vimageDriver\x12!\n" +
 	"\fvideo_driver\x18\x05 \x01(\tR\vvideoDriver\x12\x16\n" +
-	"\x06device\x18\x06 \x01(\tR\x06device\x12'\n" +
-	"\x0ffallback_driver\x18\a \x01(\tR\x0efallbackDriver\x12'\n" +
-	"\x0ffallback_reason\x18\b \x01(\tR\x0efallbackReason\x12\x1f\n" +
+	"\x06device\x18\x06 \x01(\tR\x06device\x12\x1f\n" +
 	"\vpolicy_gate\x18\t \x01(\tR\n" +
-	"policyGate\"\xfe\x01\n" +
+	"policyGateJ\x04\b\a\x10\bJ\x04\b\b\x10\tR\x0ffallback_driverR\x0ffallback_reason\"\xfe\x01\n" +
 	"\x18LocalProviderHintsSpeech\x12\x18\n" +
 	"\abackend\x18\x01 \x01(\tR\abackend\x12+\n" +
 	"\x11preferred_adapter\x18\x02 \x01(\tR\x10preferredAdapter\x12\x16\n" +
@@ -1725,7 +1724,7 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\n" +
 	"ExtraEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x85\t\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa4\t\n" +
 	"\x1bLocalCatalogModelDescriptor\x12\x17\n" +
 	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12\x16\n" +
 	"\x06source\x18\x02 \x01(\tR\x06source\x12\x14\n" +
@@ -1756,10 +1755,12 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\rengine_config\x18\x19 \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x12S\n" +
 	"\x11host_requirements\x18\x1a \x01(\v2&.nimi.runtime.v1.LocalHostRequirementsR\x10hostRequirements\x12(\n" +
 	"\x10total_size_bytes\x18\x1b \x01(\x03R\x0etotalSizeBytes\x12+\n" +
-	"\x11source_provenance\x18\x1c \x01(\tR\x10sourceProvenance\x1a9\n" +
+	"\x11source_provenance\x18\x1c \x01(\tR\x10sourceProvenance\x12\x1d\n" +
+	"\n" +
+	"model_type\x18\x1d \x01(\tR\tmodelType\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xc3\a\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xe2\a\n" +
 	"\x1aLocalInstallPlanDescriptor\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x17\n" +
 	"\aitem_id\x18\x02 \x01(\tR\x06itemId\x12\x16\n" +
@@ -1786,7 +1787,9 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"reasonCode\x12<\n" +
 	"\rengine_config\x18\x15 \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x12(\n" +
 	"\x10total_size_bytes\x18\x16 \x01(\x03R\x0etotalSizeBytes\x12+\n" +
-	"\x11source_provenance\x18\x17 \x01(\tR\x10sourceProvenance\x1a9\n" +
+	"\x11source_provenance\x18\x17 \x01(\tR\x10sourceProvenance\x12\x1d\n" +
+	"\n" +
+	"model_type\x18\x18 \x01(\tR\tmodelType\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*\x86\x03\n" +

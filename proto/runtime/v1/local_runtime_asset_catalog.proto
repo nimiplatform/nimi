@@ -31,6 +31,8 @@ enum LocalAssetKind {
 enum LocalEngineRuntimeMode {
   LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED       = 0;
   LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED        = 1;
+  // Public value retained for sidecar only. llama, media, and speech are
+  // Runtime-owned supervised topologies and reject this value typed.
   LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT = 2;
 }
 
@@ -105,8 +107,10 @@ message LocalVerifiedAssetDescriptor {
   repeated string capabilities             = 22;
   repeated string artifact_roles           = 23;
   string preferred_engine                  = 24;
-  repeated string fallback_engines         = 25;
+  reserved 25;
+  reserved "fallback_engines";
   google.protobuf.Struct engine_config     = 26;
+  // Attached endpoint projection is valid only for sidecar assets.
   string endpoint                          = 27;
   LocalHostRequirements host_requirements  = 28;
 }
@@ -115,7 +119,10 @@ message LocalVerifiedAssetDescriptor {
 
 message LocalProviderHintsLlama {
   string backend             = 1;
+  // Recommendation label only; never a public TextBehaviorAdapter selector.
   string preferred_adapter   = 2;
+  // Recommendation only; pairing and optional-conditional admission are
+  // Driver and Model Contract truth.
   string multimodal_projector = 3;
 }
 
@@ -126,8 +133,8 @@ message LocalProviderHintsMedia {
   string image_driver       = 4;
   string video_driver       = 5;
   string device             = 6;
-  string fallback_driver    = 7;
-  string fallback_reason    = 8;
+  reserved 7, 8;
+  reserved "fallback_driver", "fallback_reason";
   string policy_gate        = 9;
 }
 
@@ -167,9 +174,11 @@ message LocalCatalogModelDescriptor {
   string template_id                    = 8;
   repeated string capabilities          = 9;
   string engine                         = 10;
+  // ATTACHED_ENDPOINT is valid only when engine is sidecar.
   LocalEngineRuntimeMode engine_runtime_mode = 11;
   string install_kind                   = 12;
   bool install_available                = 13;
+  // Populated only for an admitted sidecar ATTACHED_ENDPOINT descriptor.
   string endpoint                       = 14;
   LocalProviderHints provider_hints     = 15;
   string entry                          = 16;
@@ -185,6 +194,7 @@ message LocalCatalogModelDescriptor {
   LocalHostRequirements host_requirements = 26;
   int64 total_size_bytes               = 27;
   string source_provenance             = 28;
+  string model_type                    = 29;
 }
 
 message LocalInstallPlanDescriptor {
@@ -197,9 +207,11 @@ message LocalInstallPlanDescriptor {
   string revision                             = 7;
   repeated string capabilities                = 8;
   string engine                               = 9;
+  // ATTACHED_ENDPOINT is valid only when engine is sidecar.
   LocalEngineRuntimeMode engine_runtime_mode  = 10;
   string install_kind                         = 11;
   bool install_available                      = 12;
+  // Populated only for an admitted sidecar ATTACHED_ENDPOINT install plan.
   string endpoint                             = 13;
   LocalProviderHints provider_hints           = 14;
   string entry                                = 15;
@@ -211,4 +223,5 @@ message LocalInstallPlanDescriptor {
   google.protobuf.Struct engine_config        = 21;
   int64 total_size_bytes                      = 22;
   string source_provenance                    = 23;
+  string model_type                           = 24;
 }

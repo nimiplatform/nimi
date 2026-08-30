@@ -18,6 +18,10 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot
       - method_id: /nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated
       - method_id: /nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync
       - method_id: /nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel
       - method_id: /nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan
       - method_id: /nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse
@@ -67,6 +71,10 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAiService/GetAppAIConfig
       - method_id: /nimi.runtime.v1.RuntimeAiService/OverwriteAppAIConfig
       - method_id: /nimi.runtime.v1.RuntimeAiService/ListAppAIConfigOptions
+      # First-party Desktop external-AI-host facade only. Renderer composition
+      # receives the canonical NimiAiModel, never this Runtime method family.
+      - method_id: /nimi.runtime.v1.RuntimeAiService/ExecuteScenario
+      - method_id: /nimi.runtime.v1.RuntimeAiService/StreamScenario
       - method_id: /nimi.runtime.v1.RuntimeAgentService/MaterializeRealmSource
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListAgents
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgent

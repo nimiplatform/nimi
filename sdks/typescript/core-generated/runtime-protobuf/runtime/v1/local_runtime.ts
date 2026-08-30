@@ -348,6 +348,9 @@ export interface ResolveModelInstallPlanRequest {
         [key: string]: string;
     };
     /**
+     * Explicit configuration input for sidecar acquisition only. llama, media,
+     * and speech reject endpoint-bearing install plans.
+     *
      * @generated from protobuf field: string endpoint = 13
      */
     endpoint: string;
@@ -355,6 +358,10 @@ export interface ResolveModelInstallPlanRequest {
      * @generated from protobuf field: google.protobuf.Struct engine_config = 14
      */
     engineConfig?: Struct;
+    /**
+     * @generated from protobuf field: string model_type = 15
+     */
+    modelType: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ResolveModelInstallPlanResponse
@@ -1007,6 +1014,20 @@ export interface ProductControlProjectionJson {
     json: string;
 }
 /**
+ * CheckSyncProjectionJson carries the protected Runtime Check & Sync
+ * projection. It is intentionally an opaque JSON envelope at the wire layer:
+ * owner result vocabularies stay Runtime/owner-defined and are not promoted to
+ * an ordinary App SDK entitlement.
+ *
+ * @generated from protobuf message nimi.runtime.v1.CheckSyncProjectionJson
+ */
+export interface CheckSyncProjectionJson {
+    /**
+     * @generated from protobuf field: string json = 1
+     */
+    json: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.GetProductControlRecordRequest
  */
 export interface GetProductControlRecordRequest {
@@ -1029,6 +1050,30 @@ export interface SelectProductControlDataRootRequest {
      * @generated from protobuf field: string data_root = 1
      */
     dataRoot: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.InitializeProductControlRootActivationRequest
+ */
+export interface InitializeProductControlRootActivationRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ReplaceProductControlDataRootRequest
+ */
+export interface ReplaceProductControlDataRootRequest {
+    /**
+     * @generated from protobuf field: string target_root = 1
+     */
+    targetRoot: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.StartProductControlCheckSyncRequest
+ */
+export interface StartProductControlCheckSyncRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetProductControlCheckSyncRequest
+ */
+export interface GetProductControlCheckSyncRequest {
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SetProductControlFirstRunInstallLevelRequest
@@ -2058,7 +2103,8 @@ class ResolveModelInstallPlanRequest$Type extends MessageType<ResolveModelInstal
             { no: 11, name: "license", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 12, name: "hashes", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
             { no: 13, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 14, name: "engine_config", kind: "message", T: () => Struct }
+            { no: 14, name: "engine_config", kind: "message", T: () => Struct },
+            { no: 15, name: "model_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ResolveModelInstallPlanRequest>): ResolveModelInstallPlanRequest {
@@ -2076,6 +2122,7 @@ class ResolveModelInstallPlanRequest$Type extends MessageType<ResolveModelInstal
         message.license = "";
         message.hashes = {};
         message.endpoint = "";
+        message.modelType = "";
         if (value !== undefined)
             reflectionMergePartial<ResolveModelInstallPlanRequest>(this, message, value);
         return message;
@@ -2126,6 +2173,9 @@ class ResolveModelInstallPlanRequest$Type extends MessageType<ResolveModelInstal
                     break;
                 case /* google.protobuf.Struct engine_config */ 14:
                     message.engineConfig = Struct.internalBinaryRead(reader, reader.uint32(), options, message.engineConfig);
+                    break;
+                case /* string model_type */ 15:
+                    message.modelType = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2197,6 +2247,9 @@ class ResolveModelInstallPlanRequest$Type extends MessageType<ResolveModelInstal
         /* google.protobuf.Struct engine_config = 14; */
         if (message.engineConfig)
             Struct.internalBinaryWrite(message.engineConfig, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+        /* string model_type = 15; */
+        if (message.modelType !== "")
+            writer.tag(15, WireType.LengthDelimited).string(message.modelType);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4595,6 +4648,53 @@ class ProductControlProjectionJson$Type extends MessageType<ProductControlProjec
  */
 export const ProductControlProjectionJson = new ProductControlProjectionJson$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class CheckSyncProjectionJson$Type extends MessageType<CheckSyncProjectionJson> {
+    constructor() {
+        super("nimi.runtime.v1.CheckSyncProjectionJson", [
+            { no: 1, name: "json", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CheckSyncProjectionJson>): CheckSyncProjectionJson {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.json = "";
+        if (value !== undefined)
+            reflectionMergePartial<CheckSyncProjectionJson>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CheckSyncProjectionJson): CheckSyncProjectionJson {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string json */ 1:
+                    message.json = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CheckSyncProjectionJson, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string json = 1; */
+        if (message.json !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.json);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CheckSyncProjectionJson
+ */
+export const CheckSyncProjectionJson = new CheckSyncProjectionJson$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class GetProductControlRecordRequest$Type extends MessageType<GetProductControlRecordRequest> {
     constructor() {
         super("nimi.runtime.v1.GetProductControlRecordRequest", []);
@@ -4755,6 +4855,167 @@ class SelectProductControlDataRootRequest$Type extends MessageType<SelectProduct
  * @generated MessageType for protobuf message nimi.runtime.v1.SelectProductControlDataRootRequest
  */
 export const SelectProductControlDataRootRequest = new SelectProductControlDataRootRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class InitializeProductControlRootActivationRequest$Type extends MessageType<InitializeProductControlRootActivationRequest> {
+    constructor() {
+        super("nimi.runtime.v1.InitializeProductControlRootActivationRequest", []);
+    }
+    create(value?: PartialMessage<InitializeProductControlRootActivationRequest>): InitializeProductControlRootActivationRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<InitializeProductControlRootActivationRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: InitializeProductControlRootActivationRequest): InitializeProductControlRootActivationRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: InitializeProductControlRootActivationRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.InitializeProductControlRootActivationRequest
+ */
+export const InitializeProductControlRootActivationRequest = new InitializeProductControlRootActivationRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ReplaceProductControlDataRootRequest$Type extends MessageType<ReplaceProductControlDataRootRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ReplaceProductControlDataRootRequest", [
+            { no: 1, name: "target_root", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ReplaceProductControlDataRootRequest>): ReplaceProductControlDataRootRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.targetRoot = "";
+        if (value !== undefined)
+            reflectionMergePartial<ReplaceProductControlDataRootRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReplaceProductControlDataRootRequest): ReplaceProductControlDataRootRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string target_root */ 1:
+                    message.targetRoot = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReplaceProductControlDataRootRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string target_root = 1; */
+        if (message.targetRoot !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.targetRoot);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReplaceProductControlDataRootRequest
+ */
+export const ReplaceProductControlDataRootRequest = new ReplaceProductControlDataRootRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class StartProductControlCheckSyncRequest$Type extends MessageType<StartProductControlCheckSyncRequest> {
+    constructor() {
+        super("nimi.runtime.v1.StartProductControlCheckSyncRequest", []);
+    }
+    create(value?: PartialMessage<StartProductControlCheckSyncRequest>): StartProductControlCheckSyncRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<StartProductControlCheckSyncRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StartProductControlCheckSyncRequest): StartProductControlCheckSyncRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: StartProductControlCheckSyncRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.StartProductControlCheckSyncRequest
+ */
+export const StartProductControlCheckSyncRequest = new StartProductControlCheckSyncRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetProductControlCheckSyncRequest$Type extends MessageType<GetProductControlCheckSyncRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetProductControlCheckSyncRequest", []);
+    }
+    create(value?: PartialMessage<GetProductControlCheckSyncRequest>): GetProductControlCheckSyncRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetProductControlCheckSyncRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetProductControlCheckSyncRequest): GetProductControlCheckSyncRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetProductControlCheckSyncRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetProductControlCheckSyncRequest
+ */
+export const GetProductControlCheckSyncRequest = new GetProductControlCheckSyncRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class SetProductControlFirstRunInstallLevelRequest$Type extends MessageType<SetProductControlFirstRunInstallLevelRequest> {
     constructor() {

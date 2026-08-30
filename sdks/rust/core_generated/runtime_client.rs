@@ -1416,6 +1416,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetModelAssetResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync",
+        service: "RuntimeLocalService",
+        method: "GetProductControlCheckSync",
+        kind: "unary",
+        request_type: "GetProductControlCheckSyncRequest",
+        response_type: "CheckSyncProjectionJson",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
         service: "RuntimeLocalService",
         method: "GetProductControlRecord",
@@ -1446,6 +1454,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "ImportModelAssetRequest",
         response_type: "ImportModelAssetResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation",
+        service: "RuntimeLocalService",
+        method: "InitializeProductControlRootActivation",
+        kind: "unary",
+        request_type: "InitializeProductControlRootActivationRequest",
+        response_type: "ProductControlProjectionJson",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan",
@@ -1560,6 +1576,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RepairLocalEnvironmentDependencyResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot",
+        service: "RuntimeLocalService",
+        method: "ReplaceProductControlDataRoot",
+        kind: "unary",
+        request_type: "ReplaceProductControlDataRootRequest",
+        response_type: "ProductControlProjectionJson",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
         service: "RuntimeLocalService",
         method: "ResolveLocalEnvironmentActivationGate",
@@ -1638,6 +1662,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "StartLocalEnvironmentDependencyJobRequest",
         response_type: "StartLocalEnvironmentDependencyJobResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync",
+        service: "RuntimeLocalService",
+        method: "StartProductControlCheckSync",
+        kind: "unary",
+        request_type: "StartProductControlCheckSyncRequest",
+        response_type: "CheckSyncProjectionJson",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/UpdateLoadout",

@@ -28,18 +28,36 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { VoiceAsset } from "./voice";
-import { LoadoutEffectiveInputIdentity } from "./capability_configuration";
 import { VoiceOutputMode } from "./voice";
 import { VoiceCreationSource } from "./voice";
 import { VoiceAssetStatus } from "./voice";
 import { Timestamp } from "../../google/protobuf/timestamp";
 import { ReasonCode } from "./common";
+import { LoadoutEffectiveInputIdentity } from "./capability_configuration";
 import { UsageStats } from "./common";
 import { VoiceT2VInput } from "./voice";
 import { VoiceV2VInput } from "./voice";
 import { VoiceReference } from "./voice";
+import { ToolChoiceMode } from "./common";
 import { Value } from "../../google/protobuf/struct";
+import { ToolSpecKind } from "./common";
 import { Struct } from "../../google/protobuf/struct";
+/**
+ * Presence of this message is the canonical typed INTERRUPTED disposition. It
+ * does not add an INTERRUPTED Job status.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ExecutionInterruption
+ */
+export interface ExecutionInterruption {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ExecutionInterruptionCause cause = 1
+     */
+    cause: ExecutionInterruptionCause;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ExecutionResubmitDisposition resubmit_disposition = 2
+     */
+    resubmitDisposition: ExecutionResubmitDisposition;
+}
 /**
  * @generated from protobuf message nimi.runtime.v1.ChatMessage
  */
@@ -61,25 +79,13 @@ export interface ChatMessage {
      */
     parts: ChatContentPart[];
     /**
-     * Tool calls emitted by an assistant turn (carried back for multi-step loops).
+     * Canonical ordered assistant/tool-result round-trip. When non-empty,
+     * content and parts must be empty; convenience output views are never
+     * accepted here as a second source of truth.
      *
-     * @generated from protobuf field: repeated nimi.runtime.v1.ToolCall tool_calls = 5
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextTurnItem turn_items = 9
      */
-    toolCalls: ToolCall[];
-    /**
-     * Tool call id this message answers (set on tool-role messages).
-     *
-     * @generated from protobuf field: string tool_call_id = 6
-     */
-    toolCallId: string;
-    /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.ToolResult tool_results = 7
-     */
-    toolResults: ToolResult[];
-    /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.ToolApprovalResponse tool_approval_responses = 8
-     */
-    toolApprovalResponses: ToolApprovalResponse[];
+    turnItems: TextTurnItem[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ChatContentImageURL
@@ -237,10 +243,6 @@ export interface ToolCall {
      */
     argumentsJson: string;
     /**
-     * @generated from protobuf field: bool provider_executed = 4
-     */
-    providerExecuted: boolean;
-    /**
      * @generated from protobuf field: bool dynamic = 5
      */
     dynamic: boolean;
@@ -283,42 +285,178 @@ export interface ToolResult {
     providerMetadata?: Struct;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.ToolApprovalRequest
+ * @generated from protobuf message nimi.runtime.v1.TextOutputText
  */
-export interface ToolApprovalRequest {
+export interface TextOutputText {
     /**
-     * @generated from protobuf field: string approval_id = 1
+     * @generated from protobuf field: string text = 1
      */
-    approvalId: string;
-    /**
-     * @generated from protobuf field: string tool_call_id = 2
-     */
-    toolCallId: string;
-    /**
-     * @generated from protobuf field: google.protobuf.Struct provider_metadata = 3
-     */
-    providerMetadata?: Struct;
+    text: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.ToolApprovalResponse
+ * Only an implementation-authorized summary is carried here. Raw
+ * chain-of-thought has no canonical public field.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ReasoningSummary
  */
-export interface ToolApprovalResponse {
+export interface ReasoningSummary {
     /**
-     * @generated from protobuf field: string approval_id = 1
+     * @generated from protobuf field: string text = 1
      */
-    approvalId: string;
+    text: string;
+}
+/**
+ * Bounded self-contained native continuity state. Callers preserve the ordered
+ * bytes unchanged; Runtime does not interpret or persist a cross-request store.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ReasoningContinuityCarrier
+ */
+export interface ReasoningContinuityCarrier {
     /**
-     * @generated from protobuf field: bool approved = 2
+     * @generated from protobuf field: string kind = 1
      */
-    approved: boolean;
+    kind: string;
     /**
-     * @generated from protobuf field: string reason = 3
+     * @generated from protobuf field: uint32 version = 2
      */
-    reason: string;
+    version: number;
     /**
-     * @generated from protobuf field: google.protobuf.Struct provider_metadata = 4
+     * @generated from protobuf field: bytes payload = 3
      */
-    providerMetadata?: Struct;
+    payload: Uint8Array;
+}
+/**
+ * Canonical ordered text.generate output item used by sync and stream.
+ *
+ * @generated from protobuf message nimi.runtime.v1.TextOutputItem
+ */
+export interface TextOutputItem {
+    /**
+     * @generated from protobuf oneof: item
+     */
+    item: {
+        oneofKind: "text";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.TextOutputText text = 1
+         */
+        text: TextOutputText;
+    } | {
+        oneofKind: "reasoningSummary";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ReasoningSummary reasoning_summary = 2
+         */
+        reasoningSummary: ReasoningSummary;
+    } | {
+        oneofKind: "toolCall";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ToolCall tool_call = 3
+         */
+        toolCall: ToolCall;
+    } | {
+        oneofKind: "reasoningContinuity";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ReasoningContinuityCarrier reasoning_continuity = 6
+         */
+        reasoningContinuity: ReasoningContinuityCarrier;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * Canonical ordered assistant transcript input. A ToolResult is supplied only
+ * by the external AI host in the later turn and is never Runtime output.
+ *
+ * @generated from protobuf message nimi.runtime.v1.TextTurnItem
+ */
+export interface TextTurnItem {
+    /**
+     * @generated from protobuf oneof: item
+     */
+    item: {
+        oneofKind: "output";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.TextOutputItem output = 1
+         */
+        output: TextOutputItem;
+    } | {
+        oneofKind: "toolResult";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ToolResult tool_result = 2
+         */
+        toolResult: ToolResult;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextOutputTextDelta
+ */
+export interface TextOutputTextDelta {
+    /**
+     * @generated from protobuf field: string text = 1
+     */
+    text: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ReasoningSummaryDelta
+ */
+export interface ReasoningSummaryDelta {
+    /**
+     * @generated from protobuf field: string text = 1
+     */
+    text: string;
+}
+/**
+ * Streaming public-output counterpart of TextOutputItem. item_completed seals the item;
+ * engine fragments remain Runtime-private, and only a complete validated
+ * ToolCall may occupy the public tool_call branch.
+ *
+ * @generated from protobuf message nimi.runtime.v1.TextOutputItemDelta
+ */
+export interface TextOutputItemDelta {
+    /**
+     * Zero-based global output-item index. Repeated deltas may address the same
+     * open text/summary item; a completed item never accepts another delta.
+     *
+     * @generated from protobuf field: uint32 item_index = 1
+     */
+    itemIndex: number;
+    /**
+     * @generated from protobuf oneof: delta
+     */
+    delta: {
+        oneofKind: "text";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.TextOutputTextDelta text = 2
+         */
+        text: TextOutputTextDelta;
+    } | {
+        oneofKind: "reasoningSummary";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ReasoningSummaryDelta reasoning_summary = 3
+         */
+        reasoningSummary: ReasoningSummaryDelta;
+    } | {
+        oneofKind: "toolCall";
+        /**
+         * Complete validated items; both require item_completed=true.
+         *
+         * @generated from protobuf field: nimi.runtime.v1.ToolCall tool_call = 4
+         */
+        toolCall: ToolCall;
+    } | {
+        oneofKind: "reasoningContinuity";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ReasoningContinuityCarrier reasoning_continuity = 7
+         */
+        reasoningContinuity: ReasoningContinuityCarrier;
+    } | {
+        oneofKind: undefined;
+    };
+    /**
+     * @generated from protobuf field: bool item_completed = 8
+     */
+    itemCompleted: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.TextSource
@@ -410,17 +548,31 @@ export interface IgnoredScenarioExtension {
  */
 export interface ReasoningConfig {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.ReasoningMode mode = 1
+     * @generated from protobuf field: nimi.runtime.v1.ReasoningActivation activation = 4
      */
-    mode: ReasoningMode;
+    activation: ReasoningActivation;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.ReasoningTraceMode trace_mode = 2
+     * @generated from protobuf oneof: intensity
      */
-    traceMode: ReasoningTraceMode;
+    intensity: {
+        oneofKind: "effort";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ReasoningEffort effort = 5
+         */
+        effort: ReasoningEffort;
+    } | {
+        oneofKind: "exactBudgetTokens";
+        /**
+         * @generated from protobuf field: uint32 exact_budget_tokens = 6
+         */
+        exactBudgetTokens: number;
+    } | {
+        oneofKind: undefined;
+    };
     /**
-     * @generated from protobuf field: int32 budget_tokens = 3
+     * @generated from protobuf field: nimi.runtime.v1.ReasoningPresentation presentation = 7
      */
-    budgetTokens: number;
+    presentation: ReasoningPresentation;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.TextGenerateScenarioSpec
@@ -552,6 +704,14 @@ export interface ImageGenerateScenarioSpec {
      * @generated from protobuf field: string reference_image_artifact_id = 12
      */
     referenceImageArtifactId: string;
+    /**
+     * @generated from protobuf field: string mask_artifact_id = 13
+     */
+    maskArtifactId: string;
+    /**
+     * @generated from protobuf field: optional float strength = 14
+     */
+    strength?: number;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.VideoGenerateScenarioSpec
@@ -927,6 +1087,8 @@ export interface ExecuteScenarioRequest {
  */
 export interface TextGenerateOutput {
     /**
+     * Convenience views derived from items. They are never independent truth.
+     *
      * @generated from protobuf field: string text = 1
      */
     text: string;
@@ -935,14 +1097,6 @@ export interface TextGenerateOutput {
      */
     toolCalls: ToolCall[];
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.ToolResult tool_results = 3
-     */
-    toolResults: ToolResult[];
-    /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.ToolApprovalRequest tool_approval_requests = 4
-     */
-    toolApprovalRequests: ToolApprovalRequest[];
-    /**
      * @generated from protobuf field: repeated nimi.runtime.v1.TextSource sources = 5
      */
     sources: TextSource[];
@@ -950,6 +1104,19 @@ export interface TextGenerateOutput {
      * @generated from protobuf field: repeated nimi.runtime.v1.RawChunk raw_chunks = 6
      */
     rawChunks: RawChunk[];
+    /**
+     * Sole primary content truth for text.generate synchronous output.
+     *
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextOutputItem items = 7
+     */
+    items: TextOutputItem[];
+    /**
+     * Ordered concatenation of permitted ReasoningSummary items, derived from
+     * items and empty when presentation is HIDDEN.
+     *
+     * @generated from protobuf field: string reasoning_summary = 8
+     */
+    reasoningSummary: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.EmbeddingVector
@@ -1169,6 +1336,12 @@ export interface ExecuteScenarioResponse {
      * @generated from protobuf field: repeated nimi.runtime.v1.IgnoredScenarioExtension ignored_extensions = 7
      */
     ignoredExtensions: IgnoredScenarioExtension[];
+    /**
+     * Public attribution of the exact Local request admission. Empty for Cloud.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.LoadoutEffectiveInputIdentity effective_input_identity = 9
+     */
+    effectiveInputIdentity?: LoadoutEffectiveInputIdentity;
 }
 /**
  * Exact third-party Local App foreground text-candidate contract. Runtime
@@ -1279,6 +1452,13 @@ export interface LocalAppScenarioArtifact {
      * @generated from protobuf field: int32 channels = 10
      */
     channels: number;
+    /**
+     * Concrete image seed selected by the admitted Driver/ExecutionHost. This
+     * is absent for non-image artifacts and does not expose free-form metadata.
+     *
+     * @generated from protobuf field: optional int32 seed = 11
+     */
+    seed?: number;
 }
 /**
  * Synchronous closed-set scenario specs admitted for ExecuteLocalAppScenario.
@@ -1343,6 +1523,14 @@ export interface LocalAppImageGenerateScenarioSpec {
      * @generated from protobuf field: string reference_image_artifact_id = 12
      */
     referenceImageArtifactId: string;
+    /**
+     * @generated from protobuf field: string mask_artifact_id = 13
+     */
+    maskArtifactId: string;
+    /**
+     * @generated from protobuf field: optional float strength = 14
+     */
+    strength?: number;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ExecuteLocalAppScenarioRequest
@@ -1734,6 +1922,12 @@ export interface LocalAppScenarioJob {
      * @generated from protobuf field: string transcription_text = 13
      */
     transcriptionText: string;
+    /**
+     * Set only with reason_code AI_EXECUTION_INTERRUPTED and status FAILED.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ExecutionInterruption interruption = 14
+     */
+    interruption?: ExecutionInterruption;
 }
 /**
  * Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -1936,6 +2130,10 @@ export interface LocalAppTextTurnFailed {
      * @generated from protobuf field: string action_hint = 2
      */
     actionHint: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ExecutionInterruption interruption = 3
+     */
+    interruption?: ExecutionInterruption;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.StreamLocalAppTextTurnEvent
@@ -2111,24 +2309,12 @@ export interface ScenarioStreamStarted {
      * @generated from protobuf field: nimi.runtime.v1.VoiceOutputMode voice_output_mode = 4
      */
     voiceOutputMode: VoiceOutputMode;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.TextStreamDelta
- */
-export interface TextStreamDelta {
     /**
-     * @generated from protobuf field: string text = 1
+     * Public attribution of the exact Local request admission. Empty for Cloud.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.LoadoutEffectiveInputIdentity effective_input_identity = 5
      */
-    text: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.ReasoningStreamDelta
- */
-export interface ReasoningStreamDelta {
-    /**
-     * @generated from protobuf field: string text = 1
-     */
-    text: string;
+    effectiveInputIdentity?: LoadoutEffectiveInputIdentity;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ArtifactStreamDelta
@@ -2151,23 +2337,11 @@ export interface ScenarioStreamDelta {
      * @generated from protobuf oneof: delta
      */
     delta: {
-        oneofKind: "text";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.TextStreamDelta text = 1
-         */
-        text: TextStreamDelta;
-    } | {
         oneofKind: "artifact";
         /**
          * @generated from protobuf field: nimi.runtime.v1.ArtifactStreamDelta artifact = 2
          */
         artifact: ArtifactStreamDelta;
-    } | {
-        oneofKind: "reasoning";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.ReasoningStreamDelta reasoning = 3
-         */
-        reasoning: ReasoningStreamDelta;
     } | {
         oneofKind: "source";
         /**
@@ -2177,9 +2351,17 @@ export interface ScenarioStreamDelta {
     } | {
         oneofKind: "raw";
         /**
+         * RawChunk never carries hidden or raw chain-of-thought.
+         *
          * @generated from protobuf field: nimi.runtime.v1.RawChunk raw = 5
          */
         raw: RawChunk;
+    } | {
+        oneofKind: "textOutputItem";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.TextOutputItemDelta text_output_item = 6
+         */
+        textOutputItem: TextOutputItemDelta;
     } | {
         oneofKind: undefined;
     };
@@ -2218,6 +2400,10 @@ export interface ScenarioStreamFailed {
      * @generated from protobuf field: string action_hint = 2
      */
     actionHint: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ExecutionInterruption interruption = 3
+     */
+    interruption?: ExecutionInterruption;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.StreamScenarioEvent
@@ -2272,24 +2458,6 @@ export interface StreamScenarioEvent {
          * @generated from protobuf field: nimi.runtime.v1.ScenarioStreamFailed failed = 16
          */
         failed: ScenarioStreamFailed;
-    } | {
-        oneofKind: "toolCall";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.ToolCall tool_call = 17
-         */
-        toolCall: ToolCall;
-    } | {
-        oneofKind: "toolResult";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.ToolResult tool_result = 18
-         */
-        toolResult: ToolResult;
-    } | {
-        oneofKind: "toolApprovalRequest";
-        /**
-         * @generated from protobuf field: nimi.runtime.v1.ToolApprovalRequest tool_approval_request = 19
-         */
-        toolApprovalRequest: ToolApprovalRequest;
     } | {
         oneofKind: undefined;
     };
@@ -2354,6 +2522,13 @@ export interface ScenarioArtifact {
      * @generated from protobuf field: google.protobuf.Struct metadata = 14
      */
     metadata?: Struct;
+    /**
+     * Concrete seed used to produce an image artifact. This is absent for
+     * non-image artifacts and is the canonical seed result, not metadata.
+     *
+     * @generated from protobuf field: optional int32 seed = 15
+     */
+    seed?: number;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ScenarioJob
@@ -2462,6 +2637,12 @@ export interface ScenarioJob {
      * @generated from protobuf field: nimi.runtime.v1.LoadoutEffectiveInputIdentity effective_input_identity = 24
      */
     effectiveInputIdentity?: LoadoutEffectiveInputIdentity;
+    /**
+     * Set only with reason_code AI_EXECUTION_INTERRUPTED and status FAILED.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ExecutionInterruption interruption = 25
+     */
+    interruption?: ExecutionInterruption;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.SubmitScenarioJobRequest
@@ -3145,38 +3326,97 @@ export enum FinishReason {
     ERROR = 5
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.ReasoningMode
+ * @generated from protobuf enum nimi.runtime.v1.ReasoningActivation
  */
-export enum ReasoningMode {
+export enum ReasoningActivation {
     /**
-     * @generated from protobuf enum value: REASONING_MODE_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: REASONING_ACTIVATION_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: REASONING_MODE_OFF = 1;
+     * @generated from protobuf enum value: REASONING_ACTIVATION_DISABLED = 1;
      */
-    OFF = 1,
+    DISABLED = 1,
     /**
-     * @generated from protobuf enum value: REASONING_MODE_ON = 2;
+     * @generated from protobuf enum value: REASONING_ACTIVATION_ADAPTIVE = 2;
      */
-    ON = 2
+    ADAPTIVE = 2,
+    /**
+     * @generated from protobuf enum value: REASONING_ACTIVATION_REQUIRED = 3;
+     */
+    REQUIRED = 3
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.ReasoningTraceMode
+ * @generated from protobuf enum nimi.runtime.v1.ReasoningEffort
  */
-export enum ReasoningTraceMode {
+export enum ReasoningEffort {
     /**
-     * @generated from protobuf enum value: REASONING_TRACE_MODE_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: REASONING_EFFORT_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: REASONING_TRACE_MODE_HIDE = 1;
+     * @generated from protobuf enum value: REASONING_EFFORT_MINIMAL = 1;
      */
-    HIDE = 1,
+    MINIMAL = 1,
     /**
-     * @generated from protobuf enum value: REASONING_TRACE_MODE_SEPARATE = 2;
+     * @generated from protobuf enum value: REASONING_EFFORT_LOW = 2;
      */
-    SEPARATE = 2
+    LOW = 2,
+    /**
+     * @generated from protobuf enum value: REASONING_EFFORT_MEDIUM = 3;
+     */
+    MEDIUM = 3,
+    /**
+     * @generated from protobuf enum value: REASONING_EFFORT_HIGH = 4;
+     */
+    HIGH = 4,
+    /**
+     * @generated from protobuf enum value: REASONING_EFFORT_MAXIMUM = 5;
+     */
+    MAXIMUM = 5
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.ReasoningPresentation
+ */
+export enum ReasoningPresentation {
+    /**
+     * @generated from protobuf enum value: REASONING_PRESENTATION_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: REASONING_PRESENTATION_HIDDEN = 1;
+     */
+    HIDDEN = 1,
+    /**
+     * @generated from protobuf enum value: REASONING_PRESENTATION_SUMMARY = 2;
+     */
+    SUMMARY = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.ExecutionInterruptionCause
+ */
+export enum ExecutionInterruptionCause {
+    /**
+     * @generated from protobuf enum value: EXECUTION_INTERRUPTION_CAUSE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART = 1;
+     */
+    RUNTIME_RESTART = 1
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.ExecutionResubmitDisposition
+ */
+export enum ExecutionResubmitDisposition {
+    /**
+     * @generated from protobuf enum value: EXECUTION_RESUBMIT_DISPOSITION_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT = 1;
+     */
+    CALLER_MAY_RESUBMIT = 1
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.StreamEventType
@@ -3195,14 +3435,6 @@ export enum StreamEventType {
      */
     STREAM_EVENT_DELTA = 2,
     /**
-     * @generated from protobuf enum value: STREAM_EVENT_TOOL_CALL = 3;
-     */
-    STREAM_EVENT_TOOL_CALL = 3,
-    /**
-     * @generated from protobuf enum value: STREAM_EVENT_TOOL_RESULT = 4;
-     */
-    STREAM_EVENT_TOOL_RESULT = 4,
-    /**
      * @generated from protobuf enum value: STREAM_EVENT_USAGE = 5;
      */
     STREAM_EVENT_USAGE = 5,
@@ -3213,11 +3445,7 @@ export enum StreamEventType {
     /**
      * @generated from protobuf enum value: STREAM_EVENT_FAILED = 7;
      */
-    STREAM_EVENT_FAILED = 7,
-    /**
-     * @generated from protobuf enum value: STREAM_EVENT_TOOL_APPROVAL_REQUEST = 8;
-     */
-    STREAM_EVENT_TOOL_APPROVAL_REQUEST = 8
+    STREAM_EVENT_FAILED = 7
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.VideoMode
@@ -3374,50 +3602,6 @@ export enum ChatContentPartType {
     ARTIFACT_REF = 5
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.ToolSpecKind
- */
-export enum ToolSpecKind {
-    /**
-     * @generated from protobuf enum value: TOOL_SPEC_KIND_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: TOOL_SPEC_KIND_FUNCTION = 1;
-     */
-    FUNCTION = 1,
-    /**
-     * @generated from protobuf enum value: TOOL_SPEC_KIND_PROVIDER = 2;
-     */
-    PROVIDER = 2
-}
-/**
- * How the model is allowed or required to select tools for a text scenario.
- *
- * @generated from protobuf enum nimi.runtime.v1.ToolChoiceMode
- */
-export enum ToolChoiceMode {
-    /**
-     * @generated from protobuf enum value: TOOL_CHOICE_MODE_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: TOOL_CHOICE_MODE_AUTO = 1;
-     */
-    AUTO = 1,
-    /**
-     * @generated from protobuf enum value: TOOL_CHOICE_MODE_NONE = 2;
-     */
-    NONE = 2,
-    /**
-     * @generated from protobuf enum value: TOOL_CHOICE_MODE_REQUIRED = 3;
-     */
-    REQUIRED = 3,
-    /**
-     * @generated from protobuf enum value: TOOL_CHOICE_MODE_TOOL = 4;
-     */
-    TOOL = 4
-}
-/**
  * Requested structured-output shape for a text scenario.
  *
  * @generated from protobuf enum nimi.runtime.v1.ResponseFormatKind
@@ -3532,6 +3716,61 @@ export enum ScenarioJobEventType {
     SCENARIO_JOB_EVENT_TIMEOUT = 7
 }
 // @generated message type with reflection information, may provide speed optimized methods
+class ExecutionInterruption$Type extends MessageType<ExecutionInterruption> {
+    constructor() {
+        super("nimi.runtime.v1.ExecutionInterruption", [
+            { no: 1, name: "cause", kind: "enum", T: () => ["nimi.runtime.v1.ExecutionInterruptionCause", ExecutionInterruptionCause, "EXECUTION_INTERRUPTION_CAUSE_"] },
+            { no: 2, name: "resubmit_disposition", kind: "enum", T: () => ["nimi.runtime.v1.ExecutionResubmitDisposition", ExecutionResubmitDisposition, "EXECUTION_RESUBMIT_DISPOSITION_"] }
+        ]);
+    }
+    create(value?: PartialMessage<ExecutionInterruption>): ExecutionInterruption {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.cause = 0;
+        message.resubmitDisposition = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ExecutionInterruption>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ExecutionInterruption): ExecutionInterruption {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ExecutionInterruptionCause cause */ 1:
+                    message.cause = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.ExecutionResubmitDisposition resubmit_disposition */ 2:
+                    message.resubmitDisposition = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ExecutionInterruption, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ExecutionInterruptionCause cause = 1; */
+        if (message.cause !== 0)
+            writer.tag(1, WireType.Varint).int32(message.cause);
+        /* nimi.runtime.v1.ExecutionResubmitDisposition resubmit_disposition = 2; */
+        if (message.resubmitDisposition !== 0)
+            writer.tag(2, WireType.Varint).int32(message.resubmitDisposition);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ExecutionInterruption
+ */
+export const ExecutionInterruption = new ExecutionInterruption$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ChatMessage$Type extends MessageType<ChatMessage> {
     constructor() {
         super("nimi.runtime.v1.ChatMessage", [
@@ -3539,10 +3778,7 @@ class ChatMessage$Type extends MessageType<ChatMessage> {
             { no: 2, name: "content", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "parts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ChatContentPart },
-            { no: 5, name: "tool_calls", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolCall },
-            { no: 6, name: "tool_call_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "tool_results", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolResult },
-            { no: 8, name: "tool_approval_responses", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolApprovalResponse }
+            { no: 9, name: "turn_items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextTurnItem }
         ]);
     }
     create(value?: PartialMessage<ChatMessage>): ChatMessage {
@@ -3551,10 +3787,7 @@ class ChatMessage$Type extends MessageType<ChatMessage> {
         message.content = "";
         message.name = "";
         message.parts = [];
-        message.toolCalls = [];
-        message.toolCallId = "";
-        message.toolResults = [];
-        message.toolApprovalResponses = [];
+        message.turnItems = [];
         if (value !== undefined)
             reflectionMergePartial<ChatMessage>(this, message, value);
         return message;
@@ -3576,17 +3809,8 @@ class ChatMessage$Type extends MessageType<ChatMessage> {
                 case /* repeated nimi.runtime.v1.ChatContentPart parts */ 4:
                     message.parts.push(ChatContentPart.internalBinaryRead(reader, reader.uint32(), options));
                     break;
-                case /* repeated nimi.runtime.v1.ToolCall tool_calls */ 5:
-                    message.toolCalls.push(ToolCall.internalBinaryRead(reader, reader.uint32(), options));
-                    break;
-                case /* string tool_call_id */ 6:
-                    message.toolCallId = reader.string();
-                    break;
-                case /* repeated nimi.runtime.v1.ToolResult tool_results */ 7:
-                    message.toolResults.push(ToolResult.internalBinaryRead(reader, reader.uint32(), options));
-                    break;
-                case /* repeated nimi.runtime.v1.ToolApprovalResponse tool_approval_responses */ 8:
-                    message.toolApprovalResponses.push(ToolApprovalResponse.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.TextTurnItem turn_items */ 9:
+                    message.turnItems.push(TextTurnItem.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3612,18 +3836,9 @@ class ChatMessage$Type extends MessageType<ChatMessage> {
         /* repeated nimi.runtime.v1.ChatContentPart parts = 4; */
         for (let i = 0; i < message.parts.length; i++)
             ChatContentPart.internalBinaryWrite(message.parts[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.ToolCall tool_calls = 5; */
-        for (let i = 0; i < message.toolCalls.length; i++)
-            ToolCall.internalBinaryWrite(message.toolCalls[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
-        /* string tool_call_id = 6; */
-        if (message.toolCallId !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.toolCallId);
-        /* repeated nimi.runtime.v1.ToolResult tool_results = 7; */
-        for (let i = 0; i < message.toolResults.length; i++)
-            ToolResult.internalBinaryWrite(message.toolResults[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.ToolApprovalResponse tool_approval_responses = 8; */
-        for (let i = 0; i < message.toolApprovalResponses.length; i++)
-            ToolApprovalResponse.internalBinaryWrite(message.toolApprovalResponses[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.TextTurnItem turn_items = 9; */
+        for (let i = 0; i < message.turnItems.length; i++)
+            TextTurnItem.internalBinaryWrite(message.turnItems[i], writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4035,7 +4250,6 @@ class ToolCall$Type extends MessageType<ToolCall> {
             { no: 1, name: "id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "arguments_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "provider_executed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 5, name: "dynamic", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 6, name: "provider_metadata", kind: "message", T: () => Struct }
         ]);
@@ -4045,7 +4259,6 @@ class ToolCall$Type extends MessageType<ToolCall> {
         message.id = "";
         message.name = "";
         message.argumentsJson = "";
-        message.providerExecuted = false;
         message.dynamic = false;
         if (value !== undefined)
             reflectionMergePartial<ToolCall>(this, message, value);
@@ -4064,9 +4277,6 @@ class ToolCall$Type extends MessageType<ToolCall> {
                     break;
                 case /* string arguments_json */ 3:
                     message.argumentsJson = reader.string();
-                    break;
-                case /* bool provider_executed */ 4:
-                    message.providerExecuted = reader.bool();
                     break;
                 case /* bool dynamic */ 5:
                     message.dynamic = reader.bool();
@@ -4095,9 +4305,6 @@ class ToolCall$Type extends MessageType<ToolCall> {
         /* string arguments_json = 3; */
         if (message.argumentsJson !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.argumentsJson);
-        /* bool provider_executed = 4; */
-        if (message.providerExecuted !== false)
-            writer.tag(4, WireType.Varint).bool(message.providerExecuted);
         /* bool dynamic = 5; */
         if (message.dynamic !== false)
             writer.tag(5, WireType.Varint).bool(message.dynamic);
@@ -4208,35 +4415,26 @@ class ToolResult$Type extends MessageType<ToolResult> {
  */
 export const ToolResult = new ToolResult$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ToolApprovalRequest$Type extends MessageType<ToolApprovalRequest> {
+class TextOutputText$Type extends MessageType<TextOutputText> {
     constructor() {
-        super("nimi.runtime.v1.ToolApprovalRequest", [
-            { no: 1, name: "approval_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "tool_call_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "provider_metadata", kind: "message", T: () => Struct }
+        super("nimi.runtime.v1.TextOutputText", [
+            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<ToolApprovalRequest>): ToolApprovalRequest {
+    create(value?: PartialMessage<TextOutputText>): TextOutputText {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.approvalId = "";
-        message.toolCallId = "";
+        message.text = "";
         if (value !== undefined)
-            reflectionMergePartial<ToolApprovalRequest>(this, message, value);
+            reflectionMergePartial<TextOutputText>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ToolApprovalRequest): ToolApprovalRequest {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextOutputText): TextOutputText {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string approval_id */ 1:
-                    message.approvalId = reader.string();
-                    break;
-                case /* string tool_call_id */ 2:
-                    message.toolCallId = reader.string();
-                    break;
-                case /* google.protobuf.Struct provider_metadata */ 3:
-                    message.providerMetadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerMetadata);
+                case /* string text */ 1:
+                    message.text = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4249,16 +4447,10 @@ class ToolApprovalRequest$Type extends MessageType<ToolApprovalRequest> {
         }
         return message;
     }
-    internalBinaryWrite(message: ToolApprovalRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string approval_id = 1; */
-        if (message.approvalId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.approvalId);
-        /* string tool_call_id = 2; */
-        if (message.toolCallId !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.toolCallId);
-        /* google.protobuf.Struct provider_metadata = 3; */
-        if (message.providerMetadata)
-            Struct.internalBinaryWrite(message.providerMetadata, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+    internalBinaryWrite(message: TextOutputText, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string text = 1; */
+        if (message.text !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.text);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4266,44 +4458,30 @@ class ToolApprovalRequest$Type extends MessageType<ToolApprovalRequest> {
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.ToolApprovalRequest
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextOutputText
  */
-export const ToolApprovalRequest = new ToolApprovalRequest$Type();
+export const TextOutputText = new TextOutputText$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class ToolApprovalResponse$Type extends MessageType<ToolApprovalResponse> {
+class ReasoningSummary$Type extends MessageType<ReasoningSummary> {
     constructor() {
-        super("nimi.runtime.v1.ToolApprovalResponse", [
-            { no: 1, name: "approval_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "approved", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 3, name: "reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "provider_metadata", kind: "message", T: () => Struct }
+        super("nimi.runtime.v1.ReasoningSummary", [
+            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<ToolApprovalResponse>): ToolApprovalResponse {
+    create(value?: PartialMessage<ReasoningSummary>): ReasoningSummary {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.approvalId = "";
-        message.approved = false;
-        message.reason = "";
+        message.text = "";
         if (value !== undefined)
-            reflectionMergePartial<ToolApprovalResponse>(this, message, value);
+            reflectionMergePartial<ReasoningSummary>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ToolApprovalResponse): ToolApprovalResponse {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReasoningSummary): ReasoningSummary {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string approval_id */ 1:
-                    message.approvalId = reader.string();
-                    break;
-                case /* bool approved */ 2:
-                    message.approved = reader.bool();
-                    break;
-                case /* string reason */ 3:
-                    message.reason = reader.string();
-                    break;
-                case /* google.protobuf.Struct provider_metadata */ 4:
-                    message.providerMetadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.providerMetadata);
+                case /* string text */ 1:
+                    message.text = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4316,19 +4494,10 @@ class ToolApprovalResponse$Type extends MessageType<ToolApprovalResponse> {
         }
         return message;
     }
-    internalBinaryWrite(message: ToolApprovalResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string approval_id = 1; */
-        if (message.approvalId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.approvalId);
-        /* bool approved = 2; */
-        if (message.approved !== false)
-            writer.tag(2, WireType.Varint).bool(message.approved);
-        /* string reason = 3; */
-        if (message.reason !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.reason);
-        /* google.protobuf.Struct provider_metadata = 4; */
-        if (message.providerMetadata)
-            Struct.internalBinaryWrite(message.providerMetadata, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+    internalBinaryWrite(message: ReasoningSummary, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string text = 1; */
+        if (message.text !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.text);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4336,9 +4505,402 @@ class ToolApprovalResponse$Type extends MessageType<ToolApprovalResponse> {
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.ToolApprovalResponse
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReasoningSummary
  */
-export const ToolApprovalResponse = new ToolApprovalResponse$Type();
+export const ReasoningSummary = new ReasoningSummary$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ReasoningContinuityCarrier$Type extends MessageType<ReasoningContinuityCarrier> {
+    constructor() {
+        super("nimi.runtime.v1.ReasoningContinuityCarrier", [
+            { no: 1, name: "kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "version", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "payload", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ReasoningContinuityCarrier>): ReasoningContinuityCarrier {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.kind = "";
+        message.version = 0;
+        message.payload = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<ReasoningContinuityCarrier>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReasoningContinuityCarrier): ReasoningContinuityCarrier {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string kind */ 1:
+                    message.kind = reader.string();
+                    break;
+                case /* uint32 version */ 2:
+                    message.version = reader.uint32();
+                    break;
+                case /* bytes payload */ 3:
+                    message.payload = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReasoningContinuityCarrier, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string kind = 1; */
+        if (message.kind !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.kind);
+        /* uint32 version = 2; */
+        if (message.version !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.version);
+        /* bytes payload = 3; */
+        if (message.payload.length)
+            writer.tag(3, WireType.LengthDelimited).bytes(message.payload);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReasoningContinuityCarrier
+ */
+export const ReasoningContinuityCarrier = new ReasoningContinuityCarrier$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextOutputItem$Type extends MessageType<TextOutputItem> {
+    constructor() {
+        super("nimi.runtime.v1.TextOutputItem", [
+            { no: 1, name: "text", kind: "message", oneof: "item", T: () => TextOutputText },
+            { no: 2, name: "reasoning_summary", kind: "message", oneof: "item", T: () => ReasoningSummary },
+            { no: 3, name: "tool_call", kind: "message", oneof: "item", T: () => ToolCall },
+            { no: 6, name: "reasoning_continuity", kind: "message", oneof: "item", T: () => ReasoningContinuityCarrier }
+        ]);
+    }
+    create(value?: PartialMessage<TextOutputItem>): TextOutputItem {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.item = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<TextOutputItem>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextOutputItem): TextOutputItem {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.TextOutputText text */ 1:
+                    message.item = {
+                        oneofKind: "text",
+                        text: TextOutputText.internalBinaryRead(reader, reader.uint32(), options, (message.item as any).text)
+                    };
+                    break;
+                case /* nimi.runtime.v1.ReasoningSummary reasoning_summary */ 2:
+                    message.item = {
+                        oneofKind: "reasoningSummary",
+                        reasoningSummary: ReasoningSummary.internalBinaryRead(reader, reader.uint32(), options, (message.item as any).reasoningSummary)
+                    };
+                    break;
+                case /* nimi.runtime.v1.ToolCall tool_call */ 3:
+                    message.item = {
+                        oneofKind: "toolCall",
+                        toolCall: ToolCall.internalBinaryRead(reader, reader.uint32(), options, (message.item as any).toolCall)
+                    };
+                    break;
+                case /* nimi.runtime.v1.ReasoningContinuityCarrier reasoning_continuity */ 6:
+                    message.item = {
+                        oneofKind: "reasoningContinuity",
+                        reasoningContinuity: ReasoningContinuityCarrier.internalBinaryRead(reader, reader.uint32(), options, (message.item as any).reasoningContinuity)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextOutputItem, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.TextOutputText text = 1; */
+        if (message.item.oneofKind === "text")
+            TextOutputText.internalBinaryWrite(message.item.text, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasoningSummary reasoning_summary = 2; */
+        if (message.item.oneofKind === "reasoningSummary")
+            ReasoningSummary.internalBinaryWrite(message.item.reasoningSummary, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ToolCall tool_call = 3; */
+        if (message.item.oneofKind === "toolCall")
+            ToolCall.internalBinaryWrite(message.item.toolCall, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasoningContinuityCarrier reasoning_continuity = 6; */
+        if (message.item.oneofKind === "reasoningContinuity")
+            ReasoningContinuityCarrier.internalBinaryWrite(message.item.reasoningContinuity, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextOutputItem
+ */
+export const TextOutputItem = new TextOutputItem$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextTurnItem$Type extends MessageType<TextTurnItem> {
+    constructor() {
+        super("nimi.runtime.v1.TextTurnItem", [
+            { no: 1, name: "output", kind: "message", oneof: "item", T: () => TextOutputItem },
+            { no: 2, name: "tool_result", kind: "message", oneof: "item", T: () => ToolResult }
+        ]);
+    }
+    create(value?: PartialMessage<TextTurnItem>): TextTurnItem {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.item = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<TextTurnItem>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextTurnItem): TextTurnItem {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.TextOutputItem output */ 1:
+                    message.item = {
+                        oneofKind: "output",
+                        output: TextOutputItem.internalBinaryRead(reader, reader.uint32(), options, (message.item as any).output)
+                    };
+                    break;
+                case /* nimi.runtime.v1.ToolResult tool_result */ 2:
+                    message.item = {
+                        oneofKind: "toolResult",
+                        toolResult: ToolResult.internalBinaryRead(reader, reader.uint32(), options, (message.item as any).toolResult)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextTurnItem, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.TextOutputItem output = 1; */
+        if (message.item.oneofKind === "output")
+            TextOutputItem.internalBinaryWrite(message.item.output, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ToolResult tool_result = 2; */
+        if (message.item.oneofKind === "toolResult")
+            ToolResult.internalBinaryWrite(message.item.toolResult, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextTurnItem
+ */
+export const TextTurnItem = new TextTurnItem$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextOutputTextDelta$Type extends MessageType<TextOutputTextDelta> {
+    constructor() {
+        super("nimi.runtime.v1.TextOutputTextDelta", [
+            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TextOutputTextDelta>): TextOutputTextDelta {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.text = "";
+        if (value !== undefined)
+            reflectionMergePartial<TextOutputTextDelta>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextOutputTextDelta): TextOutputTextDelta {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string text */ 1:
+                    message.text = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextOutputTextDelta, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string text = 1; */
+        if (message.text !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.text);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextOutputTextDelta
+ */
+export const TextOutputTextDelta = new TextOutputTextDelta$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ReasoningSummaryDelta$Type extends MessageType<ReasoningSummaryDelta> {
+    constructor() {
+        super("nimi.runtime.v1.ReasoningSummaryDelta", [
+            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ReasoningSummaryDelta>): ReasoningSummaryDelta {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.text = "";
+        if (value !== undefined)
+            reflectionMergePartial<ReasoningSummaryDelta>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReasoningSummaryDelta): ReasoningSummaryDelta {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string text */ 1:
+                    message.text = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReasoningSummaryDelta, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string text = 1; */
+        if (message.text !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.text);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReasoningSummaryDelta
+ */
+export const ReasoningSummaryDelta = new ReasoningSummaryDelta$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextOutputItemDelta$Type extends MessageType<TextOutputItemDelta> {
+    constructor() {
+        super("nimi.runtime.v1.TextOutputItemDelta", [
+            { no: 1, name: "item_index", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 2, name: "text", kind: "message", oneof: "delta", T: () => TextOutputTextDelta },
+            { no: 3, name: "reasoning_summary", kind: "message", oneof: "delta", T: () => ReasoningSummaryDelta },
+            { no: 4, name: "tool_call", kind: "message", oneof: "delta", T: () => ToolCall },
+            { no: 7, name: "reasoning_continuity", kind: "message", oneof: "delta", T: () => ReasoningContinuityCarrier },
+            { no: 8, name: "item_completed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<TextOutputItemDelta>): TextOutputItemDelta {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.itemIndex = 0;
+        message.delta = { oneofKind: undefined };
+        message.itemCompleted = false;
+        if (value !== undefined)
+            reflectionMergePartial<TextOutputItemDelta>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextOutputItemDelta): TextOutputItemDelta {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint32 item_index */ 1:
+                    message.itemIndex = reader.uint32();
+                    break;
+                case /* nimi.runtime.v1.TextOutputTextDelta text */ 2:
+                    message.delta = {
+                        oneofKind: "text",
+                        text: TextOutputTextDelta.internalBinaryRead(reader, reader.uint32(), options, (message.delta as any).text)
+                    };
+                    break;
+                case /* nimi.runtime.v1.ReasoningSummaryDelta reasoning_summary */ 3:
+                    message.delta = {
+                        oneofKind: "reasoningSummary",
+                        reasoningSummary: ReasoningSummaryDelta.internalBinaryRead(reader, reader.uint32(), options, (message.delta as any).reasoningSummary)
+                    };
+                    break;
+                case /* nimi.runtime.v1.ToolCall tool_call */ 4:
+                    message.delta = {
+                        oneofKind: "toolCall",
+                        toolCall: ToolCall.internalBinaryRead(reader, reader.uint32(), options, (message.delta as any).toolCall)
+                    };
+                    break;
+                case /* nimi.runtime.v1.ReasoningContinuityCarrier reasoning_continuity */ 7:
+                    message.delta = {
+                        oneofKind: "reasoningContinuity",
+                        reasoningContinuity: ReasoningContinuityCarrier.internalBinaryRead(reader, reader.uint32(), options, (message.delta as any).reasoningContinuity)
+                    };
+                    break;
+                case /* bool item_completed */ 8:
+                    message.itemCompleted = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextOutputItemDelta, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint32 item_index = 1; */
+        if (message.itemIndex !== 0)
+            writer.tag(1, WireType.Varint).uint32(message.itemIndex);
+        /* nimi.runtime.v1.TextOutputTextDelta text = 2; */
+        if (message.delta.oneofKind === "text")
+            TextOutputTextDelta.internalBinaryWrite(message.delta.text, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasoningSummaryDelta reasoning_summary = 3; */
+        if (message.delta.oneofKind === "reasoningSummary")
+            ReasoningSummaryDelta.internalBinaryWrite(message.delta.reasoningSummary, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ToolCall tool_call = 4; */
+        if (message.delta.oneofKind === "toolCall")
+            ToolCall.internalBinaryWrite(message.delta.toolCall, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasoningContinuityCarrier reasoning_continuity = 7; */
+        if (message.delta.oneofKind === "reasoningContinuity")
+            ReasoningContinuityCarrier.internalBinaryWrite(message.delta.reasoningContinuity, writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* bool item_completed = 8; */
+        if (message.itemCompleted !== false)
+            writer.tag(8, WireType.Varint).bool(message.itemCompleted);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextOutputItemDelta
+ */
+export const TextOutputItemDelta = new TextOutputItemDelta$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class TextSource$Type extends MessageType<TextSource> {
     constructor() {
@@ -4655,16 +5217,17 @@ export const IgnoredScenarioExtension = new IgnoredScenarioExtension$Type();
 class ReasoningConfig$Type extends MessageType<ReasoningConfig> {
     constructor() {
         super("nimi.runtime.v1.ReasoningConfig", [
-            { no: 1, name: "mode", kind: "enum", T: () => ["nimi.runtime.v1.ReasoningMode", ReasoningMode, "REASONING_MODE_"] },
-            { no: 2, name: "trace_mode", kind: "enum", T: () => ["nimi.runtime.v1.ReasoningTraceMode", ReasoningTraceMode, "REASONING_TRACE_MODE_"] },
-            { no: 3, name: "budget_tokens", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 4, name: "activation", kind: "enum", T: () => ["nimi.runtime.v1.ReasoningActivation", ReasoningActivation, "REASONING_ACTIVATION_"] },
+            { no: 5, name: "effort", kind: "enum", oneof: "intensity", T: () => ["nimi.runtime.v1.ReasoningEffort", ReasoningEffort, "REASONING_EFFORT_"] },
+            { no: 6, name: "exact_budget_tokens", kind: "scalar", oneof: "intensity", T: 13 /*ScalarType.UINT32*/ },
+            { no: 7, name: "presentation", kind: "enum", T: () => ["nimi.runtime.v1.ReasoningPresentation", ReasoningPresentation, "REASONING_PRESENTATION_"] }
         ]);
     }
     create(value?: PartialMessage<ReasoningConfig>): ReasoningConfig {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.mode = 0;
-        message.traceMode = 0;
-        message.budgetTokens = 0;
+        message.activation = 0;
+        message.intensity = { oneofKind: undefined };
+        message.presentation = 0;
         if (value !== undefined)
             reflectionMergePartial<ReasoningConfig>(this, message, value);
         return message;
@@ -4674,14 +5237,23 @@ class ReasoningConfig$Type extends MessageType<ReasoningConfig> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.ReasoningMode mode */ 1:
-                    message.mode = reader.int32();
+                case /* nimi.runtime.v1.ReasoningActivation activation */ 4:
+                    message.activation = reader.int32();
                     break;
-                case /* nimi.runtime.v1.ReasoningTraceMode trace_mode */ 2:
-                    message.traceMode = reader.int32();
+                case /* nimi.runtime.v1.ReasoningEffort effort */ 5:
+                    message.intensity = {
+                        oneofKind: "effort",
+                        effort: reader.int32()
+                    };
                     break;
-                case /* int32 budget_tokens */ 3:
-                    message.budgetTokens = reader.int32();
+                case /* uint32 exact_budget_tokens */ 6:
+                    message.intensity = {
+                        oneofKind: "exactBudgetTokens",
+                        exactBudgetTokens: reader.uint32()
+                    };
+                    break;
+                case /* nimi.runtime.v1.ReasoningPresentation presentation */ 7:
+                    message.presentation = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4695,15 +5267,18 @@ class ReasoningConfig$Type extends MessageType<ReasoningConfig> {
         return message;
     }
     internalBinaryWrite(message: ReasoningConfig, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.ReasoningMode mode = 1; */
-        if (message.mode !== 0)
-            writer.tag(1, WireType.Varint).int32(message.mode);
-        /* nimi.runtime.v1.ReasoningTraceMode trace_mode = 2; */
-        if (message.traceMode !== 0)
-            writer.tag(2, WireType.Varint).int32(message.traceMode);
-        /* int32 budget_tokens = 3; */
-        if (message.budgetTokens !== 0)
-            writer.tag(3, WireType.Varint).int32(message.budgetTokens);
+        /* nimi.runtime.v1.ReasoningActivation activation = 4; */
+        if (message.activation !== 0)
+            writer.tag(4, WireType.Varint).int32(message.activation);
+        /* nimi.runtime.v1.ReasoningEffort effort = 5; */
+        if (message.intensity.oneofKind === "effort")
+            writer.tag(5, WireType.Varint).int32(message.intensity.effort);
+        /* uint32 exact_budget_tokens = 6; */
+        if (message.intensity.oneofKind === "exactBudgetTokens")
+            writer.tag(6, WireType.Varint).uint32(message.intensity.exactBudgetTokens);
+        /* nimi.runtime.v1.ReasoningPresentation presentation = 7; */
+        if (message.presentation !== 0)
+            writer.tag(7, WireType.Varint).int32(message.presentation);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -4934,7 +5509,9 @@ class ImageGenerateScenarioSpec$Type extends MessageType<ImageGenerateScenarioSp
             { no: 9, name: "reference_images", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "mask", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "response_format", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 12, name: "reference_image_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 12, name: "reference_image_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "mask_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "strength", kind: "scalar", opt: true, T: 2 /*ScalarType.FLOAT*/ }
         ]);
     }
     create(value?: PartialMessage<ImageGenerateScenarioSpec>): ImageGenerateScenarioSpec {
@@ -4949,6 +5526,7 @@ class ImageGenerateScenarioSpec$Type extends MessageType<ImageGenerateScenarioSp
         message.mask = "";
         message.responseFormat = "";
         message.referenceImageArtifactId = "";
+        message.maskArtifactId = "";
         if (value !== undefined)
             reflectionMergePartial<ImageGenerateScenarioSpec>(this, message, value);
         return message;
@@ -4993,6 +5571,12 @@ class ImageGenerateScenarioSpec$Type extends MessageType<ImageGenerateScenarioSp
                     break;
                 case /* string reference_image_artifact_id */ 12:
                     message.referenceImageArtifactId = reader.string();
+                    break;
+                case /* string mask_artifact_id */ 13:
+                    message.maskArtifactId = reader.string();
+                    break;
+                case /* optional float strength */ 14:
+                    message.strength = reader.float();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -5042,6 +5626,12 @@ class ImageGenerateScenarioSpec$Type extends MessageType<ImageGenerateScenarioSp
         /* string reference_image_artifact_id = 12; */
         if (message.referenceImageArtifactId !== "")
             writer.tag(12, WireType.LengthDelimited).string(message.referenceImageArtifactId);
+        /* string mask_artifact_id = 13; */
+        if (message.maskArtifactId !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.maskArtifactId);
+        /* optional float strength = 14; */
+        if (message.strength !== undefined)
+            writer.tag(14, WireType.Bit32).float(message.strength);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6081,20 +6671,20 @@ class TextGenerateOutput$Type extends MessageType<TextGenerateOutput> {
         super("nimi.runtime.v1.TextGenerateOutput", [
             { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "tool_calls", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolCall },
-            { no: 3, name: "tool_results", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolResult },
-            { no: 4, name: "tool_approval_requests", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolApprovalRequest },
             { no: 5, name: "sources", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextSource },
-            { no: 6, name: "raw_chunks", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RawChunk }
+            { no: 6, name: "raw_chunks", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => RawChunk },
+            { no: 7, name: "items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextOutputItem },
+            { no: 8, name: "reasoning_summary", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<TextGenerateOutput>): TextGenerateOutput {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.text = "";
         message.toolCalls = [];
-        message.toolResults = [];
-        message.toolApprovalRequests = [];
         message.sources = [];
         message.rawChunks = [];
+        message.items = [];
+        message.reasoningSummary = "";
         if (value !== undefined)
             reflectionMergePartial<TextGenerateOutput>(this, message, value);
         return message;
@@ -6110,17 +6700,17 @@ class TextGenerateOutput$Type extends MessageType<TextGenerateOutput> {
                 case /* repeated nimi.runtime.v1.ToolCall tool_calls */ 2:
                     message.toolCalls.push(ToolCall.internalBinaryRead(reader, reader.uint32(), options));
                     break;
-                case /* repeated nimi.runtime.v1.ToolResult tool_results */ 3:
-                    message.toolResults.push(ToolResult.internalBinaryRead(reader, reader.uint32(), options));
-                    break;
-                case /* repeated nimi.runtime.v1.ToolApprovalRequest tool_approval_requests */ 4:
-                    message.toolApprovalRequests.push(ToolApprovalRequest.internalBinaryRead(reader, reader.uint32(), options));
-                    break;
                 case /* repeated nimi.runtime.v1.TextSource sources */ 5:
                     message.sources.push(TextSource.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 case /* repeated nimi.runtime.v1.RawChunk raw_chunks */ 6:
                     message.rawChunks.push(RawChunk.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated nimi.runtime.v1.TextOutputItem items */ 7:
+                    message.items.push(TextOutputItem.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string reasoning_summary */ 8:
+                    message.reasoningSummary = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -6140,18 +6730,18 @@ class TextGenerateOutput$Type extends MessageType<TextGenerateOutput> {
         /* repeated nimi.runtime.v1.ToolCall tool_calls = 2; */
         for (let i = 0; i < message.toolCalls.length; i++)
             ToolCall.internalBinaryWrite(message.toolCalls[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.ToolResult tool_results = 3; */
-        for (let i = 0; i < message.toolResults.length; i++)
-            ToolResult.internalBinaryWrite(message.toolResults[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
-        /* repeated nimi.runtime.v1.ToolApprovalRequest tool_approval_requests = 4; */
-        for (let i = 0; i < message.toolApprovalRequests.length; i++)
-            ToolApprovalRequest.internalBinaryWrite(message.toolApprovalRequests[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         /* repeated nimi.runtime.v1.TextSource sources = 5; */
         for (let i = 0; i < message.sources.length; i++)
             TextSource.internalBinaryWrite(message.sources[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         /* repeated nimi.runtime.v1.RawChunk raw_chunks = 6; */
         for (let i = 0; i < message.rawChunks.length; i++)
             RawChunk.internalBinaryWrite(message.rawChunks[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.TextOutputItem items = 7; */
+        for (let i = 0; i < message.items.length; i++)
+            TextOutputItem.internalBinaryWrite(message.items[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* string reasoning_summary = 8; */
+        if (message.reasoningSummary !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.reasoningSummary);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -6826,7 +7416,8 @@ class ExecuteScenarioResponse$Type extends MessageType<ExecuteScenarioResponse> 
             { no: 4, name: "route_decision", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
             { no: 5, name: "model_resolved", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "ignored_extensions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => IgnoredScenarioExtension }
+            { no: 7, name: "ignored_extensions", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => IgnoredScenarioExtension },
+            { no: 9, name: "effective_input_identity", kind: "message", T: () => LoadoutEffectiveInputIdentity }
         ]);
     }
     create(value?: PartialMessage<ExecuteScenarioResponse>): ExecuteScenarioResponse {
@@ -6866,6 +7457,9 @@ class ExecuteScenarioResponse$Type extends MessageType<ExecuteScenarioResponse> 
                 case /* repeated nimi.runtime.v1.IgnoredScenarioExtension ignored_extensions */ 7:
                     message.ignoredExtensions.push(IgnoredScenarioExtension.internalBinaryRead(reader, reader.uint32(), options));
                     break;
+                case /* nimi.runtime.v1.LoadoutEffectiveInputIdentity effective_input_identity */ 9:
+                    message.effectiveInputIdentity = LoadoutEffectiveInputIdentity.internalBinaryRead(reader, reader.uint32(), options, message.effectiveInputIdentity);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -6899,6 +7493,9 @@ class ExecuteScenarioResponse$Type extends MessageType<ExecuteScenarioResponse> 
         /* repeated nimi.runtime.v1.IgnoredScenarioExtension ignored_extensions = 7; */
         for (let i = 0; i < message.ignoredExtensions.length; i++)
             IgnoredScenarioExtension.internalBinaryWrite(message.ignoredExtensions[i], writer.tag(7, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LoadoutEffectiveInputIdentity effective_input_identity = 9; */
+        if (message.effectiveInputIdentity)
+            LoadoutEffectiveInputIdentity.internalBinaryWrite(message.effectiveInputIdentity, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7108,7 +7705,8 @@ class LocalAppScenarioArtifact$Type extends MessageType<LocalAppScenarioArtifact
             { no: 7, name: "width", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 8, name: "height", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 9, name: "sample_rate_hz", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
-            { no: 10, name: "channels", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+            { no: 10, name: "channels", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
+            { no: 11, name: "seed", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppScenarioArtifact>): LocalAppScenarioArtifact {
@@ -7162,6 +7760,9 @@ class LocalAppScenarioArtifact$Type extends MessageType<LocalAppScenarioArtifact
                 case /* int32 channels */ 10:
                     message.channels = reader.int32();
                     break;
+                case /* optional int32 seed */ 11:
+                    message.seed = reader.int32();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -7204,6 +7805,9 @@ class LocalAppScenarioArtifact$Type extends MessageType<LocalAppScenarioArtifact
         /* int32 channels = 10; */
         if (message.channels !== 0)
             writer.tag(10, WireType.Varint).int32(message.channels);
+        /* optional int32 seed = 11; */
+        if (message.seed !== undefined)
+            writer.tag(11, WireType.Varint).int32(message.seed);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -7276,7 +7880,9 @@ class LocalAppImageGenerateScenarioSpec$Type extends MessageType<LocalAppImageGe
             { no: 9, name: "reference_images", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "mask", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "response_format", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 12, name: "reference_image_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 12, name: "reference_image_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "mask_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "strength", kind: "scalar", opt: true, T: 2 /*ScalarType.FLOAT*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppImageGenerateScenarioSpec>): LocalAppImageGenerateScenarioSpec {
@@ -7291,6 +7897,7 @@ class LocalAppImageGenerateScenarioSpec$Type extends MessageType<LocalAppImageGe
         message.mask = "";
         message.responseFormat = "";
         message.referenceImageArtifactId = "";
+        message.maskArtifactId = "";
         if (value !== undefined)
             reflectionMergePartial<LocalAppImageGenerateScenarioSpec>(this, message, value);
         return message;
@@ -7335,6 +7942,12 @@ class LocalAppImageGenerateScenarioSpec$Type extends MessageType<LocalAppImageGe
                     break;
                 case /* string reference_image_artifact_id */ 12:
                     message.referenceImageArtifactId = reader.string();
+                    break;
+                case /* string mask_artifact_id */ 13:
+                    message.maskArtifactId = reader.string();
+                    break;
+                case /* optional float strength */ 14:
+                    message.strength = reader.float();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -7384,6 +7997,12 @@ class LocalAppImageGenerateScenarioSpec$Type extends MessageType<LocalAppImageGe
         /* string reference_image_artifact_id = 12; */
         if (message.referenceImageArtifactId !== "")
             writer.tag(12, WireType.LengthDelimited).string(message.referenceImageArtifactId);
+        /* string mask_artifact_id = 13; */
+        if (message.maskArtifactId !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.maskArtifactId);
+        /* optional float strength = 14; */
+        if (message.strength !== undefined)
+            writer.tag(14, WireType.Bit32).float(message.strength);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -8271,7 +8890,8 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
             { no: 10, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "created_at", kind: "message", T: () => Timestamp },
             { no: 12, name: "updated_at", kind: "message", T: () => Timestamp },
-            { no: 13, name: "transcription_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 13, name: "transcription_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "interruption", kind: "message", T: () => ExecutionInterruption }
         ]);
     }
     create(value?: PartialMessage<LocalAppScenarioJob>): LocalAppScenarioJob {
@@ -8335,6 +8955,9 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
                 case /* string transcription_text */ 13:
                     message.transcriptionText = reader.string();
                     break;
+                case /* nimi.runtime.v1.ExecutionInterruption interruption */ 14:
+                    message.interruption = ExecutionInterruption.internalBinaryRead(reader, reader.uint32(), options, message.interruption);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -8386,6 +9009,9 @@ class LocalAppScenarioJob$Type extends MessageType<LocalAppScenarioJob> {
         /* string transcription_text = 13; */
         if (message.transcriptionText !== "")
             writer.tag(13, WireType.LengthDelimited).string(message.transcriptionText);
+        /* nimi.runtime.v1.ExecutionInterruption interruption = 14; */
+        if (message.interruption)
+            ExecutionInterruption.internalBinaryWrite(message.interruption, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -9061,7 +9687,8 @@ class LocalAppTextTurnFailed$Type extends MessageType<LocalAppTextTurnFailed> {
     constructor() {
         super("nimi.runtime.v1.LocalAppTextTurnFailed", [
             { no: 1, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
-            { no: 2, name: "action_hint", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "action_hint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "interruption", kind: "message", T: () => ExecutionInterruption }
         ]);
     }
     create(value?: PartialMessage<LocalAppTextTurnFailed>): LocalAppTextTurnFailed {
@@ -9083,6 +9710,9 @@ class LocalAppTextTurnFailed$Type extends MessageType<LocalAppTextTurnFailed> {
                 case /* string action_hint */ 2:
                     message.actionHint = reader.string();
                     break;
+                case /* nimi.runtime.v1.ExecutionInterruption interruption */ 3:
+                    message.interruption = ExecutionInterruption.internalBinaryRead(reader, reader.uint32(), options, message.interruption);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -9101,6 +9731,9 @@ class LocalAppTextTurnFailed$Type extends MessageType<LocalAppTextTurnFailed> {
         /* string action_hint = 2; */
         if (message.actionHint !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.actionHint);
+        /* nimi.runtime.v1.ExecutionInterruption interruption = 3; */
+        if (message.interruption)
+            ExecutionInterruption.internalBinaryWrite(message.interruption, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -9618,7 +10251,8 @@ class ScenarioStreamStarted$Type extends MessageType<ScenarioStreamStarted> {
         super("nimi.runtime.v1.ScenarioStreamStarted", [
             { no: 1, name: "model_resolved", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "route_decision", kind: "enum", T: () => ["nimi.runtime.v1.RoutePolicy", RoutePolicy, "ROUTE_POLICY_"] },
-            { no: 4, name: "voice_output_mode", kind: "enum", T: () => ["nimi.runtime.v1.VoiceOutputMode", VoiceOutputMode, "VOICE_OUTPUT_MODE_"] }
+            { no: 4, name: "voice_output_mode", kind: "enum", T: () => ["nimi.runtime.v1.VoiceOutputMode", VoiceOutputMode, "VOICE_OUTPUT_MODE_"] },
+            { no: 5, name: "effective_input_identity", kind: "message", T: () => LoadoutEffectiveInputIdentity }
         ]);
     }
     create(value?: PartialMessage<ScenarioStreamStarted>): ScenarioStreamStarted {
@@ -9644,6 +10278,9 @@ class ScenarioStreamStarted$Type extends MessageType<ScenarioStreamStarted> {
                 case /* nimi.runtime.v1.VoiceOutputMode voice_output_mode */ 4:
                     message.voiceOutputMode = reader.int32();
                     break;
+                case /* nimi.runtime.v1.LoadoutEffectiveInputIdentity effective_input_identity */ 5:
+                    message.effectiveInputIdentity = LoadoutEffectiveInputIdentity.internalBinaryRead(reader, reader.uint32(), options, message.effectiveInputIdentity);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -9665,6 +10302,9 @@ class ScenarioStreamStarted$Type extends MessageType<ScenarioStreamStarted> {
         /* nimi.runtime.v1.VoiceOutputMode voice_output_mode = 4; */
         if (message.voiceOutputMode !== 0)
             writer.tag(4, WireType.Varint).int32(message.voiceOutputMode);
+        /* nimi.runtime.v1.LoadoutEffectiveInputIdentity effective_input_identity = 5; */
+        if (message.effectiveInputIdentity)
+            LoadoutEffectiveInputIdentity.internalBinaryWrite(message.effectiveInputIdentity, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -9675,100 +10315,6 @@ class ScenarioStreamStarted$Type extends MessageType<ScenarioStreamStarted> {
  * @generated MessageType for protobuf message nimi.runtime.v1.ScenarioStreamStarted
  */
 export const ScenarioStreamStarted = new ScenarioStreamStarted$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class TextStreamDelta$Type extends MessageType<TextStreamDelta> {
-    constructor() {
-        super("nimi.runtime.v1.TextStreamDelta", [
-            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<TextStreamDelta>): TextStreamDelta {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.text = "";
-        if (value !== undefined)
-            reflectionMergePartial<TextStreamDelta>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextStreamDelta): TextStreamDelta {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string text */ 1:
-                    message.text = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: TextStreamDelta, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string text = 1; */
-        if (message.text !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.text);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.TextStreamDelta
- */
-export const TextStreamDelta = new TextStreamDelta$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class ReasoningStreamDelta$Type extends MessageType<ReasoningStreamDelta> {
-    constructor() {
-        super("nimi.runtime.v1.ReasoningStreamDelta", [
-            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<ReasoningStreamDelta>): ReasoningStreamDelta {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.text = "";
-        if (value !== undefined)
-            reflectionMergePartial<ReasoningStreamDelta>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReasoningStreamDelta): ReasoningStreamDelta {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string text */ 1:
-                    message.text = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: ReasoningStreamDelta, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string text = 1; */
-        if (message.text !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.text);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.ReasoningStreamDelta
- */
-export const ReasoningStreamDelta = new ReasoningStreamDelta$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ArtifactStreamDelta$Type extends MessageType<ArtifactStreamDelta> {
     constructor() {
@@ -9828,11 +10374,10 @@ export const ArtifactStreamDelta = new ArtifactStreamDelta$Type();
 class ScenarioStreamDelta$Type extends MessageType<ScenarioStreamDelta> {
     constructor() {
         super("nimi.runtime.v1.ScenarioStreamDelta", [
-            { no: 1, name: "text", kind: "message", oneof: "delta", T: () => TextStreamDelta },
             { no: 2, name: "artifact", kind: "message", oneof: "delta", T: () => ArtifactStreamDelta },
-            { no: 3, name: "reasoning", kind: "message", oneof: "delta", T: () => ReasoningStreamDelta },
             { no: 4, name: "source", kind: "message", oneof: "delta", T: () => TextSource },
-            { no: 5, name: "raw", kind: "message", oneof: "delta", T: () => RawChunk }
+            { no: 5, name: "raw", kind: "message", oneof: "delta", T: () => RawChunk },
+            { no: 6, name: "text_output_item", kind: "message", oneof: "delta", T: () => TextOutputItemDelta }
         ]);
     }
     create(value?: PartialMessage<ScenarioStreamDelta>): ScenarioStreamDelta {
@@ -9847,22 +10392,10 @@ class ScenarioStreamDelta$Type extends MessageType<ScenarioStreamDelta> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.TextStreamDelta text */ 1:
-                    message.delta = {
-                        oneofKind: "text",
-                        text: TextStreamDelta.internalBinaryRead(reader, reader.uint32(), options, (message.delta as any).text)
-                    };
-                    break;
                 case /* nimi.runtime.v1.ArtifactStreamDelta artifact */ 2:
                     message.delta = {
                         oneofKind: "artifact",
                         artifact: ArtifactStreamDelta.internalBinaryRead(reader, reader.uint32(), options, (message.delta as any).artifact)
-                    };
-                    break;
-                case /* nimi.runtime.v1.ReasoningStreamDelta reasoning */ 3:
-                    message.delta = {
-                        oneofKind: "reasoning",
-                        reasoning: ReasoningStreamDelta.internalBinaryRead(reader, reader.uint32(), options, (message.delta as any).reasoning)
                     };
                     break;
                 case /* nimi.runtime.v1.TextSource source */ 4:
@@ -9877,6 +10410,12 @@ class ScenarioStreamDelta$Type extends MessageType<ScenarioStreamDelta> {
                         raw: RawChunk.internalBinaryRead(reader, reader.uint32(), options, (message.delta as any).raw)
                     };
                     break;
+                case /* nimi.runtime.v1.TextOutputItemDelta text_output_item */ 6:
+                    message.delta = {
+                        oneofKind: "textOutputItem",
+                        textOutputItem: TextOutputItemDelta.internalBinaryRead(reader, reader.uint32(), options, (message.delta as any).textOutputItem)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -9889,21 +10428,18 @@ class ScenarioStreamDelta$Type extends MessageType<ScenarioStreamDelta> {
         return message;
     }
     internalBinaryWrite(message: ScenarioStreamDelta, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.TextStreamDelta text = 1; */
-        if (message.delta.oneofKind === "text")
-            TextStreamDelta.internalBinaryWrite(message.delta.text, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         /* nimi.runtime.v1.ArtifactStreamDelta artifact = 2; */
         if (message.delta.oneofKind === "artifact")
             ArtifactStreamDelta.internalBinaryWrite(message.delta.artifact, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.ReasoningStreamDelta reasoning = 3; */
-        if (message.delta.oneofKind === "reasoning")
-            ReasoningStreamDelta.internalBinaryWrite(message.delta.reasoning, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         /* nimi.runtime.v1.TextSource source = 4; */
         if (message.delta.oneofKind === "source")
             TextSource.internalBinaryWrite(message.delta.source, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         /* nimi.runtime.v1.RawChunk raw = 5; */
         if (message.delta.oneofKind === "raw")
             RawChunk.internalBinaryWrite(message.delta.raw, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.TextOutputItemDelta text_output_item = 6; */
+        if (message.delta.oneofKind === "textOutputItem")
+            TextOutputItemDelta.internalBinaryWrite(message.delta.textOutputItem, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -9981,7 +10517,8 @@ class ScenarioStreamFailed$Type extends MessageType<ScenarioStreamFailed> {
     constructor() {
         super("nimi.runtime.v1.ScenarioStreamFailed", [
             { no: 1, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
-            { no: 2, name: "action_hint", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "action_hint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "interruption", kind: "message", T: () => ExecutionInterruption }
         ]);
     }
     create(value?: PartialMessage<ScenarioStreamFailed>): ScenarioStreamFailed {
@@ -10003,6 +10540,9 @@ class ScenarioStreamFailed$Type extends MessageType<ScenarioStreamFailed> {
                 case /* string action_hint */ 2:
                     message.actionHint = reader.string();
                     break;
+                case /* nimi.runtime.v1.ExecutionInterruption interruption */ 3:
+                    message.interruption = ExecutionInterruption.internalBinaryRead(reader, reader.uint32(), options, message.interruption);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -10021,6 +10561,9 @@ class ScenarioStreamFailed$Type extends MessageType<ScenarioStreamFailed> {
         /* string action_hint = 2; */
         if (message.actionHint !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.actionHint);
+        /* nimi.runtime.v1.ExecutionInterruption interruption = 3; */
+        if (message.interruption)
+            ExecutionInterruption.internalBinaryWrite(message.interruption, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10043,10 +10586,7 @@ class StreamScenarioEvent$Type extends MessageType<StreamScenarioEvent> {
             { no: 11, name: "delta", kind: "message", oneof: "payload", T: () => ScenarioStreamDelta },
             { no: 14, name: "usage", kind: "message", oneof: "payload", T: () => UsageStats },
             { no: 15, name: "completed", kind: "message", oneof: "payload", T: () => ScenarioStreamCompleted },
-            { no: 16, name: "failed", kind: "message", oneof: "payload", T: () => ScenarioStreamFailed },
-            { no: 17, name: "tool_call", kind: "message", oneof: "payload", T: () => ToolCall },
-            { no: 18, name: "tool_result", kind: "message", oneof: "payload", T: () => ToolResult },
-            { no: 19, name: "tool_approval_request", kind: "message", oneof: "payload", T: () => ToolApprovalRequest }
+            { no: 16, name: "failed", kind: "message", oneof: "payload", T: () => ScenarioStreamFailed }
         ]);
     }
     create(value?: PartialMessage<StreamScenarioEvent>): StreamScenarioEvent {
@@ -10106,24 +10646,6 @@ class StreamScenarioEvent$Type extends MessageType<StreamScenarioEvent> {
                         failed: ScenarioStreamFailed.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).failed)
                     };
                     break;
-                case /* nimi.runtime.v1.ToolCall tool_call */ 17:
-                    message.payload = {
-                        oneofKind: "toolCall",
-                        toolCall: ToolCall.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).toolCall)
-                    };
-                    break;
-                case /* nimi.runtime.v1.ToolResult tool_result */ 18:
-                    message.payload = {
-                        oneofKind: "toolResult",
-                        toolResult: ToolResult.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).toolResult)
-                    };
-                    break;
-                case /* nimi.runtime.v1.ToolApprovalRequest tool_approval_request */ 19:
-                    message.payload = {
-                        oneofKind: "toolApprovalRequest",
-                        toolApprovalRequest: ToolApprovalRequest.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).toolApprovalRequest)
-                    };
-                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -10163,15 +10685,6 @@ class StreamScenarioEvent$Type extends MessageType<StreamScenarioEvent> {
         /* nimi.runtime.v1.ScenarioStreamFailed failed = 16; */
         if (message.payload.oneofKind === "failed")
             ScenarioStreamFailed.internalBinaryWrite(message.payload.failed, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.ToolCall tool_call = 17; */
-        if (message.payload.oneofKind === "toolCall")
-            ToolCall.internalBinaryWrite(message.payload.toolCall, writer.tag(17, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.ToolResult tool_result = 18; */
-        if (message.payload.oneofKind === "toolResult")
-            ToolResult.internalBinaryWrite(message.payload.toolResult, writer.tag(18, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.ToolApprovalRequest tool_approval_request = 19; */
-        if (message.payload.oneofKind === "toolApprovalRequest")
-            ToolApprovalRequest.internalBinaryWrite(message.payload.toolApprovalRequest, writer.tag(19, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10199,7 +10712,8 @@ class ScenarioArtifact$Type extends MessageType<ScenarioArtifact> {
             { no: 11, name: "sample_rate_hz", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 12, name: "channels", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 13, name: "speech_alignment", kind: "message", T: () => SpeechAlignment },
-            { no: 14, name: "metadata", kind: "message", T: () => Struct }
+            { no: 14, name: "metadata", kind: "message", T: () => Struct },
+            { no: 15, name: "seed", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ }
         ]);
     }
     create(value?: PartialMessage<ScenarioArtifact>): ScenarioArtifact {
@@ -10267,6 +10781,9 @@ class ScenarioArtifact$Type extends MessageType<ScenarioArtifact> {
                 case /* google.protobuf.Struct metadata */ 14:
                     message.metadata = Struct.internalBinaryRead(reader, reader.uint32(), options, message.metadata);
                     break;
+                case /* optional int32 seed */ 15:
+                    message.seed = reader.int32();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -10321,6 +10838,9 @@ class ScenarioArtifact$Type extends MessageType<ScenarioArtifact> {
         /* google.protobuf.Struct metadata = 14; */
         if (message.metadata)
             Struct.internalBinaryWrite(message.metadata, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+        /* optional int32 seed = 15; */
+        if (message.seed !== undefined)
+            writer.tag(15, WireType.Varint).int32(message.seed);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10358,7 +10878,8 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
             { no: 21, name: "progress_current_step", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 22, name: "progress_total_steps", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 23, name: "transcription_text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 24, name: "effective_input_identity", kind: "message", T: () => LoadoutEffectiveInputIdentity }
+            { no: 24, name: "effective_input_identity", kind: "message", T: () => LoadoutEffectiveInputIdentity },
+            { no: 25, name: "interruption", kind: "message", T: () => ExecutionInterruption }
         ]);
     }
     create(value?: PartialMessage<ScenarioJob>): ScenarioJob {
@@ -10461,6 +10982,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
                 case /* nimi.runtime.v1.LoadoutEffectiveInputIdentity effective_input_identity */ 24:
                     message.effectiveInputIdentity = LoadoutEffectiveInputIdentity.internalBinaryRead(reader, reader.uint32(), options, message.effectiveInputIdentity);
                     break;
+                case /* nimi.runtime.v1.ExecutionInterruption interruption */ 25:
+                    message.interruption = ExecutionInterruption.internalBinaryRead(reader, reader.uint32(), options, message.interruption);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -10545,6 +11069,9 @@ class ScenarioJob$Type extends MessageType<ScenarioJob> {
         /* nimi.runtime.v1.LoadoutEffectiveInputIdentity effective_input_identity = 24; */
         if (message.effectiveInputIdentity)
             LoadoutEffectiveInputIdentity.internalBinaryWrite(message.effectiveInputIdentity, writer.tag(24, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ExecutionInterruption interruption = 25; */
+        if (message.interruption)
+            ExecutionInterruption.internalBinaryWrite(message.interruption, writer.tag(25, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

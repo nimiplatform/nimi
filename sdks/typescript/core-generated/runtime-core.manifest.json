@@ -1885,6 +1885,42 @@
           "response_stream": false
         },
         {
+          "name": "InitializeProductControlRootActivation",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation",
+          "kind": "unary",
+          "request_type": "InitializeProductControlRootActivationRequest",
+          "response_type": "ProductControlProjectionJson",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ReplaceProductControlDataRoot",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot",
+          "kind": "unary",
+          "request_type": "ReplaceProductControlDataRootRequest",
+          "response_type": "ProductControlProjectionJson",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "StartProductControlCheckSync",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync",
+          "kind": "unary",
+          "request_type": "StartProductControlCheckSyncRequest",
+          "response_type": "CheckSyncProjectionJson",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetProductControlCheckSync",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync",
+          "kind": "unary",
+          "request_type": "GetProductControlCheckSyncRequest",
+          "response_type": "CheckSyncProjectionJson",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "SetProductControlFirstRunInstallLevel",
           "method_id": "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
           "kind": "unary",
@@ -2210,10 +2246,12 @@
     "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
     "/nimi.runtime.v1.RuntimeLocalService/GetMachineLoadouts",
     "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset",
+    "/nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync",
     "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
     "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
     "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
     "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset",
+    "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation",
     "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan",
     "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants",
     "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes",
@@ -2228,6 +2266,7 @@
     "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState",
     "/nimi.runtime.v1.RuntimeLocalService/RemoveModelAsset",
     "/nimi.runtime.v1.RuntimeLocalService/RepairLocalEnvironmentDependency",
+    "/nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot",
     "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
     "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentPlan",
     "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan",
@@ -2238,6 +2277,7 @@
     "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot",
     "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel",
     "/nimi.runtime.v1.RuntimeLocalService/StartLocalEnvironmentDependencyJob",
+    "/nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync",
     "/nimi.runtime.v1.RuntimeLocalService/UpdateLoadout",
     "/nimi.runtime.v1.RuntimeLocalService/WatchLocalTransfers",
     "/nimi.runtime.v1.RuntimeRealmRealtimeService/AckRealmRealtimeEvents",
@@ -3650,6 +3690,14 @@
       "response_type": "GetModelAssetResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync",
+      "service": "RuntimeLocalService",
+      "method": "GetProductControlCheckSync",
+      "kind": "unary",
+      "request_type": "GetProductControlCheckSyncRequest",
+      "response_type": "CheckSyncProjectionJson"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
       "service": "RuntimeLocalService",
       "method": "GetProductControlRecord",
@@ -3680,6 +3728,14 @@
       "kind": "unary",
       "request_type": "ImportModelAssetRequest",
       "response_type": "ImportModelAssetResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation",
+      "service": "RuntimeLocalService",
+      "method": "InitializeProductControlRootActivation",
+      "kind": "unary",
+      "request_type": "InitializeProductControlRootActivationRequest",
+      "response_type": "ProductControlProjectionJson"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan",
@@ -3794,6 +3850,14 @@
       "response_type": "RepairLocalEnvironmentDependencyResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot",
+      "service": "RuntimeLocalService",
+      "method": "ReplaceProductControlDataRoot",
+      "kind": "unary",
+      "request_type": "ReplaceProductControlDataRootRequest",
+      "response_type": "ProductControlProjectionJson"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
       "service": "RuntimeLocalService",
       "method": "ResolveLocalEnvironmentActivationGate",
@@ -3872,6 +3936,14 @@
       "kind": "unary",
       "request_type": "StartLocalEnvironmentDependencyJobRequest",
       "response_type": "StartLocalEnvironmentDependencyJobResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync",
+      "service": "RuntimeLocalService",
+      "method": "StartProductControlCheckSync",
+      "kind": "unary",
+      "request_type": "StartProductControlCheckSyncRequest",
+      "response_type": "CheckSyncProjectionJson"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/UpdateLoadout",
@@ -5348,6 +5420,14 @@
       "response_type": "GetModelAssetResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync",
+      "service": "RuntimeLocalService",
+      "method": "GetProductControlCheckSync",
+      "kind": "unary",
+      "request_type": "GetProductControlCheckSyncRequest",
+      "response_type": "CheckSyncProjectionJson"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
       "service": "RuntimeLocalService",
       "method": "GetProductControlRecord",
@@ -5378,6 +5458,14 @@
       "kind": "unary",
       "request_type": "ImportModelAssetRequest",
       "response_type": "ImportModelAssetResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation",
+      "service": "RuntimeLocalService",
+      "method": "InitializeProductControlRootActivation",
+      "kind": "unary",
+      "request_type": "InitializeProductControlRootActivationRequest",
+      "response_type": "ProductControlProjectionJson"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan",
@@ -5492,6 +5580,14 @@
       "response_type": "RepairLocalEnvironmentDependencyResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot",
+      "service": "RuntimeLocalService",
+      "method": "ReplaceProductControlDataRoot",
+      "kind": "unary",
+      "request_type": "ReplaceProductControlDataRootRequest",
+      "response_type": "ProductControlProjectionJson"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
       "service": "RuntimeLocalService",
       "method": "ResolveLocalEnvironmentActivationGate",
@@ -5570,6 +5666,14 @@
       "kind": "unary",
       "request_type": "StartLocalEnvironmentDependencyJobRequest",
       "response_type": "StartLocalEnvironmentDependencyJobResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync",
+      "service": "RuntimeLocalService",
+      "method": "StartProductControlCheckSync",
+      "kind": "unary",
+      "request_type": "StartProductControlCheckSyncRequest",
+      "response_type": "CheckSyncProjectionJson"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/UpdateLoadout",
@@ -5774,6 +5878,7 @@
       "ChatContentImageURL",
       "ChatContentPart",
       "ChatMessage",
+      "CheckSyncProjectionJson",
       "CleanupGeneratedVoiceArtifactsRequest",
       "CleanupGeneratedVoiceArtifactsResponse",
       "ClearAgentPresentationProfile",
@@ -5876,6 +5981,7 @@
       "ExecuteLocalAppScenarioResponse",
       "ExecuteScenarioRequest",
       "ExecuteScenarioResponse",
+      "ExecutionInterruption",
       "ExportAuditEventsRequest",
       "ExternalAgentActionScope",
       "ExternalAgentGatewayStatusRequest",
@@ -5934,6 +6040,7 @@
       "GetMachineLoadoutsResponse",
       "GetModelAssetRequest",
       "GetModelAssetResponse",
+      "GetProductControlCheckSyncRequest",
       "GetProductControlRecordRequest",
       "GetProductControlSelectedDataRootRequest",
       "GetPublicChatSessionSnapshotRequest",
@@ -5963,6 +6070,7 @@
       "ImportModelAssetResponse",
       "ImportPortableAIProfileRequest",
       "ImportPortableAIProfileResponse",
+      "InitializeProductControlRootActivationRequest",
       "InspectLocalAppAgentMemoryRequest",
       "InspectLocalAppAgentMemoryResponse",
       "InstallModelFromPlanRequest",
@@ -6263,7 +6371,9 @@
       "RealmPresenceSubscriptionTarget",
       "RealtimeControlStatus",
       "ReasoningConfig",
-      "ReasoningStreamDelta",
+      "ReasoningContinuityCarrier",
+      "ReasoningSummary",
+      "ReasoningSummaryDelta",
       "RebindLocalAppProcessRequest",
       "RebindLocalAppProcessResponse",
       "ReconcileProductControlFirstRunSetupStateRequest",
@@ -6284,6 +6394,7 @@
       "RenewLocalAppSessionRequest",
       "RepairLocalEnvironmentDependencyRequest",
       "RepairLocalEnvironmentDependencyResponse",
+      "ReplaceProductControlDataRootRequest",
       "RequestPresenceVerificationRequest",
       "RequestPresenceVerificationResponse",
       "RequestRuntimeRestartRequest",
@@ -6354,6 +6465,7 @@
       "SpeechTranscriptionAudioSource",
       "StartLocalEnvironmentDependencyJobRequest",
       "StartLocalEnvironmentDependencyJobResponse",
+      "StartProductControlCheckSyncRequest",
       "StatLocalAppAssetRequest",
       "StatLocalAppAssetResponse",
       "StreamLocalAppTextTurnEvent",
@@ -6384,17 +6496,21 @@
       "TerminateAgentResponse",
       "TestConnectorRequest",
       "TestConnectorResponse",
+      "TextBehaviorCapabilityProjection",
       "TextEmbedOutput",
       "TextEmbedScenarioSpec",
       "TextGenerateOutput",
       "TextGenerateScenarioSpec",
+      "TextOutputItem",
+      "TextOutputItemDelta",
+      "TextOutputText",
+      "TextOutputTextDelta",
       "TextSource",
-      "TextStreamDelta",
-      "ToolApprovalRequest",
-      "ToolApprovalResponse",
+      "TextTurnItem",
       "ToolCall",
       "ToolResult",
       "ToolSpec",
+      "ToolUseCapabilityProjection",
       "TranscribeAgentVoiceInputRequest",
       "TranscribeAgentVoiceInputResponse",
       "TranscribeLocalAppConversationVoiceRequest",
@@ -6529,7 +6645,9 @@
       "DelegatedTransportKind",
       "DeveloperModeState",
       "EffectClass",
+      "ExecutionInterruptionCause",
       "ExecutionMode",
+      "ExecutionResubmitDisposition",
       "ExternalPrincipalType",
       "ExternalProofType",
       "FinishReason",
@@ -6559,6 +6677,7 @@
       "LocalCapabilityInterpretability",
       "LocalCapabilityReason",
       "LocalCapabilityRequirementPolicy",
+      "LocalCapabilityRequirementPresence",
       "LocalCapabilityRequirementResolution",
       "LocalCapabilityRequirementRole",
       "LocalDevelopmentShellKind",
@@ -6588,8 +6707,9 @@
       "RealtimeLifecycle",
       "RealtimeTerminalReason",
       "ReasonCode",
-      "ReasoningMode",
-      "ReasoningTraceMode",
+      "ReasoningActivation",
+      "ReasoningEffort",
+      "ReasoningPresentation",
       "ResponseFormatKind",
       "RoutePolicy",
       "RuntimeHealthStatus",
@@ -6601,6 +6721,8 @@
       "SpeechAlignmentUnit",
       "SpeechTimingMode",
       "StreamEventType",
+      "TextBehaviorConfigurationState",
+      "TextBehaviorKind",
       "TextSourceType",
       "ToolChoiceMode",
       "ToolSpecKind",
@@ -9157,13 +9279,6 @@
             "number": 4
           },
           {
-            "name": "supported_features",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 5
-          },
-          {
             "name": "state",
             "type": "AIConfigEffectiveState",
             "repeated": false,
@@ -9176,6 +9291,27 @@
             "repeated": true,
             "optional": false,
             "number": 7
+          },
+          {
+            "name": "implementation_supported_features",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "configured_features",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "text_behaviors",
+            "type": "TextBehaviorCapabilityProjection",
+            "repeated": true,
+            "optional": false,
+            "number": 10
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -11683,35 +11819,27 @@
             "number": 4
           },
           {
-            "name": "tool_calls",
-            "type": "ToolCall",
+            "name": "turn_items",
+            "type": "TextTurnItem",
             "repeated": true,
             "optional": false,
-            "number": 5
-          },
-          {
-            "name": "tool_call_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "tool_results",
-            "type": "ToolResult",
-            "repeated": true,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "tool_approval_responses",
-            "type": "ToolApprovalResponse",
-            "repeated": true,
-            "optional": false,
-            "number": 8
+            "number": 9
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "CheckSyncProjectionJson",
+        "fields": [
+          {
+            "name": "json",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
         "name": "CleanupGeneratedVoiceArtifactsRequest",
@@ -14991,6 +15119,33 @@
             "repeated": true,
             "optional": false,
             "number": 7
+          },
+          {
+            "name": "effective_input_identity",
+            "type": "LoadoutEffectiveInputIdentity",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ExecutionInterruption",
+        "fields": [
+          {
+            "name": "cause",
+            "type": "ExecutionInterruptionCause",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "resubmit_disposition",
+            "type": "ExecutionResubmitDisposition",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -16285,6 +16440,11 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
+        "name": "GetProductControlCheckSyncRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
         "name": "GetProductControlRecordRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -16916,6 +17076,20 @@
             "repeated": false,
             "optional": false,
             "number": 12
+          },
+          {
+            "name": "mask_artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "strength",
+            "type": "float",
+            "repeated": false,
+            "optional": true,
+            "number": 14
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -16985,6 +17159,11 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "InitializeProductControlRootActivationRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
         "name": "InspectLocalAppAgentMemoryRequest",
@@ -19117,13 +19296,6 @@
             "number": 8
           },
           {
-            "name": "supported_features",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 9
-          },
-          {
             "name": "validation_state",
             "type": "LoadoutValidationState",
             "repeated": false,
@@ -19164,6 +19336,27 @@
             "repeated": false,
             "optional": false,
             "number": 15
+          },
+          {
+            "name": "implementation_supported_features",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 16
+          },
+          {
+            "name": "configured_features",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 17
+          },
+          {
+            "name": "text_behaviors",
+            "type": "TextBehaviorCapabilityProjection",
+            "repeated": true,
+            "optional": false,
+            "number": 18
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -19226,6 +19419,20 @@
             "repeated": true,
             "optional": false,
             "number": 8
+          },
+          {
+            "name": "admitted_features",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "admitted_text_behaviors",
+            "type": "TextBehaviorKind",
+            "repeated": true,
+            "optional": false,
+            "number": 10
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -19253,6 +19460,13 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "presence",
+            "type": "LocalCapabilityRequirementPresence",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -19335,6 +19549,27 @@
             "repeated": true,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "presence",
+            "type": "LocalCapabilityRequirementPresence",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "conditional_features",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "resolution",
+            "type": "LocalCapabilityRequirementResolution",
+            "repeated": false,
+            "optional": false,
+            "number": 9
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -19466,13 +19701,6 @@
             "number": 6
           },
           {
-            "name": "supported_features",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 7
-          },
-          {
             "name": "slots",
             "type": "LoadoutRecipeSlotDescriptor",
             "repeated": true,
@@ -19485,6 +19713,13 @@
             "repeated": true,
             "optional": false,
             "number": 9
+          },
+          {
+            "name": "implementation_supported_features",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 10
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -19526,6 +19761,20 @@
             "repeated": true,
             "optional": false,
             "number": 5
+          },
+          {
+            "name": "presence",
+            "type": "LocalCapabilityRequirementPresence",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "conditional_features",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -21933,6 +22182,20 @@
             "repeated": false,
             "optional": false,
             "number": 12
+          },
+          {
+            "name": "mask_artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "strength",
+            "type": "float",
+            "repeated": false,
+            "optional": true,
+            "number": 14
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -22029,6 +22292,13 @@
             "repeated": false,
             "optional": false,
             "number": 10
+          },
+          {
+            "name": "seed",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 11
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -22126,6 +22396,13 @@
             "repeated": false,
             "optional": false,
             "number": 13
+          },
+          {
+            "name": "interruption",
+            "type": "ExecutionInterruption",
+            "repeated": false,
+            "optional": false,
+            "number": 14
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -22438,6 +22715,13 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "interruption",
+            "type": "ExecutionInterruption",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -22816,6 +23100,20 @@
             "repeated": false,
             "optional": false,
             "number": 8
+          },
+          {
+            "name": "presence",
+            "type": "LocalCapabilityRequirementPresence",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "conditional_features",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 10
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -23019,6 +23317,13 @@
             "repeated": false,
             "optional": false,
             "number": 28
+          },
+          {
+            "name": "model_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 29
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
@@ -24107,6 +24412,13 @@
             "repeated": false,
             "optional": false,
             "number": 23
+          },
+          {
+            "name": "model_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 24
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
@@ -24285,20 +24597,6 @@
             "repeated": false,
             "optional": false,
             "number": 6
-          },
-          {
-            "name": "fallback_driver",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "fallback_reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 8
           },
           {
             "name": "policy_gate",
@@ -25143,13 +25441,6 @@
             "repeated": false,
             "optional": false,
             "number": 24
-          },
-          {
-            "name": "fallback_engines",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 25
           },
           {
             "name": "engine_config",
@@ -26684,13 +26975,6 @@
             "repeated": false,
             "optional": false,
             "number": 4
-          },
-          {
-            "name": "supported_features",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 5
           },
           {
             "name": "model_axes",
@@ -28265,22 +28549,56 @@
         "name": "ReasoningConfig",
         "fields": [
           {
-            "name": "mode",
-            "type": "ReasoningMode",
+            "name": "activation",
+            "type": "ReasoningActivation",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "effort",
+            "type": "ReasoningEffort",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "exact_budget_tokens",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "presentation",
+            "type": "ReasoningPresentation",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ReasoningContinuityCarrier",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "string",
             "repeated": false,
             "optional": false,
             "number": 1
           },
           {
-            "name": "trace_mode",
-            "type": "ReasoningTraceMode",
+            "name": "version",
+            "type": "uint32",
             "repeated": false,
             "optional": false,
             "number": 2
           },
           {
-            "name": "budget_tokens",
-            "type": "int32",
+            "name": "payload",
+            "type": "bytes",
             "repeated": false,
             "optional": false,
             "number": 3
@@ -28289,7 +28607,20 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
-        "name": "ReasoningStreamDelta",
+        "name": "ReasoningSummary",
+        "fields": [
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ReasoningSummaryDelta",
         "fields": [
           {
             "name": "text",
@@ -28742,6 +29073,19 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
+        "name": "ReplaceProductControlDataRootRequest",
+        "fields": [
+          {
+            "name": "target_root",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
         "name": "RequestPresenceVerificationRequest",
         "fields": [
           {
@@ -29050,6 +29394,13 @@
             "repeated": false,
             "optional": false,
             "number": 14
+          },
+          {
+            "name": "model_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 15
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -29424,6 +29775,13 @@
             "repeated": false,
             "optional": false,
             "number": 14
+          },
+          {
+            "name": "seed",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 15
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -29618,6 +29976,13 @@
             "repeated": false,
             "optional": false,
             "number": 24
+          },
+          {
+            "name": "interruption",
+            "type": "ExecutionInterruption",
+            "repeated": false,
+            "optional": false,
+            "number": 25
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -29879,25 +30244,11 @@
         "name": "ScenarioStreamDelta",
         "fields": [
           {
-            "name": "text",
-            "type": "TextStreamDelta",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
             "name": "artifact",
             "type": "ArtifactStreamDelta",
             "repeated": false,
             "optional": false,
             "number": 2
-          },
-          {
-            "name": "reasoning",
-            "type": "ReasoningStreamDelta",
-            "repeated": false,
-            "optional": false,
-            "number": 3
           },
           {
             "name": "source",
@@ -29912,6 +30263,13 @@
             "repeated": false,
             "optional": false,
             "number": 5
+          },
+          {
+            "name": "text_output_item",
+            "type": "TextOutputItemDelta",
+            "repeated": false,
+            "optional": false,
+            "number": 6
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -29932,6 +30290,13 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "interruption",
+            "type": "ExecutionInterruption",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -29959,6 +30324,13 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "effective_input_identity",
+            "type": "LoadoutEffectiveInputIdentity",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -30988,6 +31360,11 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
+        "name": "StartProductControlCheckSyncRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
         "name": "StatLocalAppAssetRequest",
         "fields": [
           {
@@ -31195,27 +31572,6 @@
             "repeated": false,
             "optional": false,
             "number": 16
-          },
-          {
-            "name": "tool_call",
-            "type": "ToolCall",
-            "repeated": false,
-            "optional": false,
-            "number": 17
-          },
-          {
-            "name": "tool_result",
-            "type": "ToolResult",
-            "repeated": false,
-            "optional": false,
-            "number": 18
-          },
-          {
-            "name": "tool_approval_request",
-            "type": "ToolApprovalRequest",
-            "repeated": false,
-            "optional": false,
-            "number": 19
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -31952,6 +32308,54 @@
         "source_file": "proto/runtime/v1/connector.proto"
       },
       {
+        "name": "TextBehaviorCapabilityProjection",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "TextBehaviorKind",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "implementation_supported",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "configuration_state",
+            "type": "TextBehaviorConfigurationState",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "reasons",
+            "type": "LocalCapabilityReason",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "implementation_tool_use",
+            "type": "ToolUseCapabilityProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "configured_tool_use",
+            "type": "ToolUseCapabilityProjection",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
         "name": "TextEmbedOutput",
         "fields": [
           {
@@ -31995,20 +32399,6 @@
             "number": 2
           },
           {
-            "name": "tool_results",
-            "type": "ToolResult",
-            "repeated": true,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "tool_approval_requests",
-            "type": "ToolApprovalRequest",
-            "repeated": true,
-            "optional": false,
-            "number": 4
-          },
-          {
             "name": "sources",
             "type": "TextSource",
             "repeated": true,
@@ -32021,6 +32411,20 @@
             "repeated": true,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "items",
+            "type": "TextOutputItem",
+            "repeated": true,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "reasoning_summary",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -32144,6 +32548,114 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "TextOutputItem",
+        "fields": [
+          {
+            "name": "text",
+            "type": "TextOutputText",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reasoning_summary",
+            "type": "ReasoningSummary",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "tool_call",
+            "type": "ToolCall",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "reasoning_continuity",
+            "type": "ReasoningContinuityCarrier",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "TextOutputItemDelta",
+        "fields": [
+          {
+            "name": "item_index",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "text",
+            "type": "TextOutputTextDelta",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reasoning_summary",
+            "type": "ReasoningSummaryDelta",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "tool_call",
+            "type": "ToolCall",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "reasoning_continuity",
+            "type": "ReasoningContinuityCarrier",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "item_completed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "TextOutputText",
+        "fields": [
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "TextOutputTextDelta",
+        "fields": [
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "TextSource",
         "fields": [
           {
@@ -32199,75 +32711,21 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
-        "name": "TextStreamDelta",
+        "name": "TextTurnItem",
         "fields": [
           {
-            "name": "text",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/ai.proto"
-      },
-      {
-        "name": "ToolApprovalRequest",
-        "fields": [
-          {
-            "name": "approval_id",
-            "type": "string",
+            "name": "output",
+            "type": "TextOutputItem",
             "repeated": false,
             "optional": false,
             "number": 1
           },
           {
-            "name": "tool_call_id",
-            "type": "string",
+            "name": "tool_result",
+            "type": "ToolResult",
             "repeated": false,
             "optional": false,
             "number": 2
-          },
-          {
-            "name": "provider_metadata",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/ai.proto"
-      },
-      {
-        "name": "ToolApprovalResponse",
-        "fields": [
-          {
-            "name": "approval_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "approved",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "reason",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "provider_metadata",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -32295,13 +32753,6 @@
             "repeated": false,
             "optional": false,
             "number": 3
-          },
-          {
-            "name": "provider_executed",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 4
           },
           {
             "name": "dynamic",
@@ -32429,6 +32880,82 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ToolUseCapabilityProjection",
+        "fields": [
+          {
+            "name": "supported_tool_spec_kinds",
+            "type": "ToolSpecKind",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "supported_tool_choice_modes",
+            "type": "ToolChoiceMode",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "supports_single_call",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "supports_multiple_calls",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "supports_parallel_calls",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "supports_sync",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "supports_stream",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "supports_tool_only_response",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "supports_tool_result_round_trip",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "supports_mixed_text_and_tool_calls",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
         "name": "TranscribeAgentVoiceInputRequest",
@@ -32711,13 +33238,6 @@
             "repeated": false,
             "optional": false,
             "number": 4
-          },
-          {
-            "name": "supported_features",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 5
           },
           {
             "name": "model_axes",
@@ -35141,12 +35661,28 @@
         "source_file": "proto/runtime/v1/delegated_control.proto"
       },
       {
+        "name": "ExecutionInterruptionCause",
+        "values": [
+          "EXECUTION_INTERRUPTION_CAUSE_UNSPECIFIED",
+          "EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "ExecutionMode",
         "values": [
           "EXECUTION_MODE_UNSPECIFIED",
           "EXECUTION_MODE_SYNC",
           "EXECUTION_MODE_STREAM",
           "EXECUTION_MODE_ASYNC_JOB"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ExecutionResubmitDisposition",
+        "values": [
+          "EXECUTION_RESUBMIT_DISPOSITION_UNSPECIFIED",
+          "EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },
@@ -35449,7 +35985,10 @@
           "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND",
           "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED",
           "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH",
-          "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE"
+          "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE",
+          "LOCAL_CAPABILITY_REASON_CONDITIONAL_BINDING_MISSING",
+          "LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_UNAVAILABLE",
+          "LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_AMBIGUOUS"
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
@@ -35463,11 +36002,21 @@
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
+        "name": "LocalCapabilityRequirementPresence",
+        "values": [
+          "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_UNSPECIFIED",
+          "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED",
+          "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL"
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
         "name": "LocalCapabilityRequirementResolution",
         "values": [
           "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNSPECIFIED",
           "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNRESOLVED",
-          "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED"
+          "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED",
+          "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_NOT_CONFIGURED"
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
@@ -35854,6 +36403,12 @@
           "AI_PROVIDER_INTERNAL",
           "AI_PROVIDER_RATE_LIMITED",
           "AI_PROVIDER_TIMEOUT",
+          "AI_TEXT_BEHAVIOR_UNSUPPORTED",
+          "AI_TEXT_BEHAVIOR_AMBIGUOUS",
+          "AI_TEXT_OUTPUT_INCOMPLETE",
+          "AI_TOOL_CALL_INVALID",
+          "AI_REASONING_CONTINUITY_INVALID",
+          "AI_EXECUTION_INTERRUPTED",
           "AI_MEDIA_SPEC_INVALID",
           "AI_MEDIA_OPTION_UNSUPPORTED",
           "AI_MEDIA_JOB_NOT_FOUND",
@@ -36029,20 +36584,33 @@
         "source_file": "proto/runtime/v1/common.proto"
       },
       {
-        "name": "ReasoningMode",
+        "name": "ReasoningActivation",
         "values": [
-          "REASONING_MODE_UNSPECIFIED",
-          "REASONING_MODE_OFF",
-          "REASONING_MODE_ON"
+          "REASONING_ACTIVATION_UNSPECIFIED",
+          "REASONING_ACTIVATION_DISABLED",
+          "REASONING_ACTIVATION_ADAPTIVE",
+          "REASONING_ACTIVATION_REQUIRED"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
-        "name": "ReasoningTraceMode",
+        "name": "ReasoningEffort",
         "values": [
-          "REASONING_TRACE_MODE_UNSPECIFIED",
-          "REASONING_TRACE_MODE_HIDE",
-          "REASONING_TRACE_MODE_SEPARATE"
+          "REASONING_EFFORT_UNSPECIFIED",
+          "REASONING_EFFORT_MINIMAL",
+          "REASONING_EFFORT_LOW",
+          "REASONING_EFFORT_MEDIUM",
+          "REASONING_EFFORT_HIGH",
+          "REASONING_EFFORT_MAXIMUM"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ReasoningPresentation",
+        "values": [
+          "REASONING_PRESENTATION_UNSPECIFIED",
+          "REASONING_PRESENTATION_HIDDEN",
+          "REASONING_PRESENTATION_SUMMARY"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },
@@ -36172,14 +36740,31 @@
           "STREAM_EVENT_TYPE_UNSPECIFIED",
           "STREAM_EVENT_STARTED",
           "STREAM_EVENT_DELTA",
-          "STREAM_EVENT_TOOL_CALL",
-          "STREAM_EVENT_TOOL_RESULT",
           "STREAM_EVENT_USAGE",
           "STREAM_EVENT_COMPLETED",
-          "STREAM_EVENT_FAILED",
-          "STREAM_EVENT_TOOL_APPROVAL_REQUEST"
+          "STREAM_EVENT_FAILED"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "TextBehaviorConfigurationState",
+        "values": [
+          "TEXT_BEHAVIOR_CONFIGURATION_STATE_UNSPECIFIED",
+          "TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE",
+          "TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED",
+          "TEXT_BEHAVIOR_CONFIGURATION_STATE_AMBIGUOUS"
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "TextBehaviorKind",
+        "values": [
+          "TEXT_BEHAVIOR_KIND_UNSPECIFIED",
+          "TEXT_BEHAVIOR_KIND_TOOL_USE",
+          "TEXT_BEHAVIOR_KIND_REASONING",
+          "TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT"
+        ],
+        "source_file": "proto/runtime/v1/common.proto"
       },
       {
         "name": "TextSourceType",
@@ -36199,7 +36784,7 @@
           "TOOL_CHOICE_MODE_REQUIRED",
           "TOOL_CHOICE_MODE_TOOL"
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/common.proto"
       },
       {
         "name": "ToolSpecKind",
@@ -36208,7 +36793,7 @@
           "TOOL_SPEC_KIND_FUNCTION",
           "TOOL_SPEC_KIND_PROVIDER"
         ],
-        "source_file": "proto/runtime/v1/ai.proto"
+        "source_file": "proto/runtime/v1/common.proto"
       },
       {
         "name": "UsageWindow",

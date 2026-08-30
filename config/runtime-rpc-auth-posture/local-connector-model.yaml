@@ -96,6 +96,14 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan

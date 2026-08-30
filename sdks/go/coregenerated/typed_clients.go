@@ -767,6 +767,13 @@ const (
 	EFFECTCLASSUNSUPPORTEDEFFECT  EffectClass = "EFFECT_CLASS_UNSUPPORTED_EFFECT"
 )
 
+type ExecutionInterruptionCause string
+
+const (
+	EXECUTIONINTERRUPTIONCAUSEUNSPECIFIED    ExecutionInterruptionCause = "EXECUTION_INTERRUPTION_CAUSE_UNSPECIFIED"
+	EXECUTIONINTERRUPTIONCAUSERUNTIMERESTART ExecutionInterruptionCause = "EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART"
+)
+
 type ExecutionMode string
 
 const (
@@ -774,6 +781,13 @@ const (
 	EXECUTIONMODESYNC        ExecutionMode = "EXECUTION_MODE_SYNC"
 	EXECUTIONMODESTREAM      ExecutionMode = "EXECUTION_MODE_STREAM"
 	EXECUTIONMODEASYNCJOB    ExecutionMode = "EXECUTION_MODE_ASYNC_JOB"
+)
+
+type ExecutionResubmitDisposition string
+
+const (
+	EXECUTIONRESUBMITDISPOSITIONUNSPECIFIED       ExecutionResubmitDisposition = "EXECUTION_RESUBMIT_DISPOSITION_UNSPECIFIED"
+	EXECUTIONRESUBMITDISPOSITIONCALLERMAYRESUBMIT ExecutionResubmitDisposition = "EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT"
 )
 
 type ExternalPrincipalType string
@@ -1049,6 +1063,9 @@ const (
 	LOCALCAPABILITYREASONLOCALASSETCONTENTUNVERIFIED LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED"
 	LOCALCAPABILITYREASONLOCALASSETCONTENTMISMATCH   LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH"
 	LOCALCAPABILITYREASONLOCALASSETINCOMPATIBLE      LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE"
+	LOCALCAPABILITYREASONCONDITIONALBINDINGMISSING   LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_CONDITIONAL_BINDING_MISSING"
+	LOCALCAPABILITYREASONTEXTBEHAVIORUNAVAILABLE     LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_UNAVAILABLE"
+	LOCALCAPABILITYREASONTEXTBEHAVIORAMBIGUOUS       LocalCapabilityReason = "LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_AMBIGUOUS"
 )
 
 type LocalCapabilityRequirementPolicy string
@@ -1059,12 +1076,21 @@ const (
 	LOCALCAPABILITYREQUIREMENTPOLICYSUBSTITUTABLE LocalCapabilityRequirementPolicy = "LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE"
 )
 
+type LocalCapabilityRequirementPresence string
+
+const (
+	LOCALCAPABILITYREQUIREMENTPRESENCEUNSPECIFIED         LocalCapabilityRequirementPresence = "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_UNSPECIFIED"
+	LOCALCAPABILITYREQUIREMENTPRESENCEREQUIRED            LocalCapabilityRequirementPresence = "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED"
+	LOCALCAPABILITYREQUIREMENTPRESENCEOPTIONALCONDITIONAL LocalCapabilityRequirementPresence = "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL"
+)
+
 type LocalCapabilityRequirementResolution string
 
 const (
-	LOCALCAPABILITYREQUIREMENTRESOLUTIONUNSPECIFIED LocalCapabilityRequirementResolution = "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNSPECIFIED"
-	LOCALCAPABILITYREQUIREMENTRESOLUTIONUNRESOLVED  LocalCapabilityRequirementResolution = "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNRESOLVED"
-	LOCALCAPABILITYREQUIREMENTRESOLUTIONCONFIGURED  LocalCapabilityRequirementResolution = "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED"
+	LOCALCAPABILITYREQUIREMENTRESOLUTIONUNSPECIFIED   LocalCapabilityRequirementResolution = "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNSPECIFIED"
+	LOCALCAPABILITYREQUIREMENTRESOLUTIONUNRESOLVED    LocalCapabilityRequirementResolution = "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNRESOLVED"
+	LOCALCAPABILITYREQUIREMENTRESOLUTIONCONFIGURED    LocalCapabilityRequirementResolution = "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED"
+	LOCALCAPABILITYREQUIREMENTRESOLUTIONNOTCONFIGURED LocalCapabilityRequirementResolution = "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_NOT_CONFIGURED"
 )
 
 type LocalCapabilityRequirementRole string
@@ -1423,6 +1449,12 @@ const (
 	AIPROVIDERINTERNAL                              ReasonCode = "AI_PROVIDER_INTERNAL"
 	AIPROVIDERRATELIMITED                           ReasonCode = "AI_PROVIDER_RATE_LIMITED"
 	AIPROVIDERTIMEOUT                               ReasonCode = "AI_PROVIDER_TIMEOUT"
+	AITEXTBEHAVIORUNSUPPORTED                       ReasonCode = "AI_TEXT_BEHAVIOR_UNSUPPORTED"
+	AITEXTBEHAVIORAMBIGUOUS                         ReasonCode = "AI_TEXT_BEHAVIOR_AMBIGUOUS"
+	AITEXTOUTPUTINCOMPLETE                          ReasonCode = "AI_TEXT_OUTPUT_INCOMPLETE"
+	AITOOLCALLINVALID                               ReasonCode = "AI_TOOL_CALL_INVALID"
+	AIREASONINGCONTINUITYINVALID                    ReasonCode = "AI_REASONING_CONTINUITY_INVALID"
+	AIEXECUTIONINTERRUPTED                          ReasonCode = "AI_EXECUTION_INTERRUPTED"
 	AIMEDIASPECINVALID                              ReasonCode = "AI_MEDIA_SPEC_INVALID"
 	AIMEDIAOPTIONUNSUPPORTED                        ReasonCode = "AI_MEDIA_OPTION_UNSUPPORTED"
 	AIMEDIAJOBNOTFOUND                              ReasonCode = "AI_MEDIA_JOB_NOT_FOUND"
@@ -1596,20 +1628,32 @@ const (
 	AICONFIGREVISIONCONFLICT                        ReasonCode = "AI_CONFIG_REVISION_CONFLICT"
 )
 
-type ReasoningMode string
+type ReasoningActivation string
 
 const (
-	REASONINGMODEUNSPECIFIED ReasoningMode = "REASONING_MODE_UNSPECIFIED"
-	REASONINGMODEOFF         ReasoningMode = "REASONING_MODE_OFF"
-	REASONINGMODEON          ReasoningMode = "REASONING_MODE_ON"
+	REASONINGACTIVATIONUNSPECIFIED ReasoningActivation = "REASONING_ACTIVATION_UNSPECIFIED"
+	REASONINGACTIVATIONDISABLED    ReasoningActivation = "REASONING_ACTIVATION_DISABLED"
+	REASONINGACTIVATIONADAPTIVE    ReasoningActivation = "REASONING_ACTIVATION_ADAPTIVE"
+	REASONINGACTIVATIONREQUIRED    ReasoningActivation = "REASONING_ACTIVATION_REQUIRED"
 )
 
-type ReasoningTraceMode string
+type ReasoningEffort string
 
 const (
-	REASONINGTRACEMODEUNSPECIFIED ReasoningTraceMode = "REASONING_TRACE_MODE_UNSPECIFIED"
-	REASONINGTRACEMODEHIDE        ReasoningTraceMode = "REASONING_TRACE_MODE_HIDE"
-	REASONINGTRACEMODESEPARATE    ReasoningTraceMode = "REASONING_TRACE_MODE_SEPARATE"
+	REASONINGEFFORTUNSPECIFIED ReasoningEffort = "REASONING_EFFORT_UNSPECIFIED"
+	REASONINGEFFORTMINIMAL     ReasoningEffort = "REASONING_EFFORT_MINIMAL"
+	REASONINGEFFORTLOW         ReasoningEffort = "REASONING_EFFORT_LOW"
+	REASONINGEFFORTMEDIUM      ReasoningEffort = "REASONING_EFFORT_MEDIUM"
+	REASONINGEFFORTHIGH        ReasoningEffort = "REASONING_EFFORT_HIGH"
+	REASONINGEFFORTMAXIMUM     ReasoningEffort = "REASONING_EFFORT_MAXIMUM"
+)
+
+type ReasoningPresentation string
+
+const (
+	REASONINGPRESENTATIONUNSPECIFIED ReasoningPresentation = "REASONING_PRESENTATION_UNSPECIFIED"
+	REASONINGPRESENTATIONHIDDEN      ReasoningPresentation = "REASONING_PRESENTATION_HIDDEN"
+	REASONINGPRESENTATIONSUMMARY     ReasoningPresentation = "REASONING_PRESENTATION_SUMMARY"
 )
 
 type ResponseFormatKind string
@@ -1725,15 +1769,30 @@ const (
 type StreamEventType string
 
 const (
-	STREAMEVENTTYPEUNSPECIFIED     StreamEventType = "STREAM_EVENT_TYPE_UNSPECIFIED"
-	STREAMEVENTSTARTED             StreamEventType = "STREAM_EVENT_STARTED"
-	STREAMEVENTDELTA               StreamEventType = "STREAM_EVENT_DELTA"
-	STREAMEVENTTOOLCALL            StreamEventType = "STREAM_EVENT_TOOL_CALL"
-	STREAMEVENTTOOLRESULT          StreamEventType = "STREAM_EVENT_TOOL_RESULT"
-	STREAMEVENTUSAGE               StreamEventType = "STREAM_EVENT_USAGE"
-	STREAMEVENTCOMPLETED           StreamEventType = "STREAM_EVENT_COMPLETED"
-	STREAMEVENTFAILED              StreamEventType = "STREAM_EVENT_FAILED"
-	STREAMEVENTTOOLAPPROVALREQUEST StreamEventType = "STREAM_EVENT_TOOL_APPROVAL_REQUEST"
+	STREAMEVENTTYPEUNSPECIFIED StreamEventType = "STREAM_EVENT_TYPE_UNSPECIFIED"
+	STREAMEVENTSTARTED         StreamEventType = "STREAM_EVENT_STARTED"
+	STREAMEVENTDELTA           StreamEventType = "STREAM_EVENT_DELTA"
+	STREAMEVENTUSAGE           StreamEventType = "STREAM_EVENT_USAGE"
+	STREAMEVENTCOMPLETED       StreamEventType = "STREAM_EVENT_COMPLETED"
+	STREAMEVENTFAILED          StreamEventType = "STREAM_EVENT_FAILED"
+)
+
+type TextBehaviorConfigurationState string
+
+const (
+	TEXTBEHAVIORCONFIGURATIONSTATEUNSPECIFIED TextBehaviorConfigurationState = "TEXT_BEHAVIOR_CONFIGURATION_STATE_UNSPECIFIED"
+	TEXTBEHAVIORCONFIGURATIONSTATEUNAVAILABLE TextBehaviorConfigurationState = "TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE"
+	TEXTBEHAVIORCONFIGURATIONSTATECONFIGURED  TextBehaviorConfigurationState = "TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED"
+	TEXTBEHAVIORCONFIGURATIONSTATEAMBIGUOUS   TextBehaviorConfigurationState = "TEXT_BEHAVIOR_CONFIGURATION_STATE_AMBIGUOUS"
+)
+
+type TextBehaviorKind string
+
+const (
+	TEXTBEHAVIORKINDUNSPECIFIED      TextBehaviorKind = "TEXT_BEHAVIOR_KIND_UNSPECIFIED"
+	TEXTBEHAVIORKINDTOOLUSE          TextBehaviorKind = "TEXT_BEHAVIOR_KIND_TOOL_USE"
+	TEXTBEHAVIORKINDREASONING        TextBehaviorKind = "TEXT_BEHAVIOR_KIND_REASONING"
+	TEXTBEHAVIORKINDSTRUCTUREDOUTPUT TextBehaviorKind = "TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT"
 )
 
 type TextSourceType string
@@ -1953,13 +2012,15 @@ type AIConfigLocalLoadoutOptionsQuery struct {
 }
 
 type AIConfigLocalResourceProjection struct {
-	LoadoutRef         string                            `json:"loadout_ref,omitempty"`
-	Label              string                            `json:"label,omitempty"`
-	CapabilityContract string                            `json:"capability_contract,omitempty"`
-	Implementation     *CapabilityImplementationIdentity `json:"implementation,omitempty"`
-	SupportedFeatures  []string                          `json:"supported_features,omitempty"`
-	State              AIConfigEffectiveState            `json:"state,omitempty"`
-	Reasons            []string                          `json:"reasons,omitempty"`
+	LoadoutRef                      string                             `json:"loadout_ref,omitempty"`
+	Label                           string                             `json:"label,omitempty"`
+	CapabilityContract              string                             `json:"capability_contract,omitempty"`
+	Implementation                  *CapabilityImplementationIdentity  `json:"implementation,omitempty"`
+	State                           AIConfigEffectiveState             `json:"state,omitempty"`
+	Reasons                         []string                           `json:"reasons,omitempty"`
+	ImplementationSupportedFeatures []string                           `json:"implementation_supported_features,omitempty"`
+	ConfiguredFeatures              []string                           `json:"configured_features,omitempty"`
+	TextBehaviors                   []TextBehaviorCapabilityProjection `json:"text_behaviors,omitempty"`
 }
 
 type AIConfigOwner struct {
@@ -2859,14 +2920,15 @@ type ChatContentPart struct {
 }
 
 type ChatMessage struct {
-	Role                  string                 `json:"role,omitempty"`
-	Content               string                 `json:"content,omitempty"`
-	Name                  string                 `json:"name,omitempty"`
-	Parts                 []ChatContentPart      `json:"parts,omitempty"`
-	ToolCalls             []ToolCall             `json:"tool_calls,omitempty"`
-	ToolCallId            string                 `json:"tool_call_id,omitempty"`
-	ToolResults           []ToolResult           `json:"tool_results,omitempty"`
-	ToolApprovalResponses []ToolApprovalResponse `json:"tool_approval_responses,omitempty"`
+	Role      string            `json:"role,omitempty"`
+	Content   string            `json:"content,omitempty"`
+	Name      string            `json:"name,omitempty"`
+	Parts     []ChatContentPart `json:"parts,omitempty"`
+	TurnItems []TextTurnItem    `json:"turn_items,omitempty"`
+}
+
+type CheckSyncProjectionJson struct {
+	Json string `json:"json,omitempty"`
 }
 
 type CleanupGeneratedVoiceArtifactsRequest struct {
@@ -3548,13 +3610,19 @@ type ExecuteScenarioRequest struct {
 }
 
 type ExecuteScenarioResponse struct {
-	Output            *ScenarioOutput            `json:"output,omitempty"`
-	FinishReason      FinishReason               `json:"finish_reason,omitempty"`
-	Usage             *UsageStats                `json:"usage,omitempty"`
-	RouteDecision     RoutePolicy                `json:"route_decision,omitempty"`
-	ModelResolved     string                     `json:"model_resolved,omitempty"`
-	TraceId           string                     `json:"trace_id,omitempty"`
-	IgnoredExtensions []IgnoredScenarioExtension `json:"ignored_extensions,omitempty"`
+	Output                 *ScenarioOutput                `json:"output,omitempty"`
+	FinishReason           FinishReason                   `json:"finish_reason,omitempty"`
+	Usage                  *UsageStats                    `json:"usage,omitempty"`
+	RouteDecision          RoutePolicy                    `json:"route_decision,omitempty"`
+	ModelResolved          string                         `json:"model_resolved,omitempty"`
+	TraceId                string                         `json:"trace_id,omitempty"`
+	IgnoredExtensions      []IgnoredScenarioExtension     `json:"ignored_extensions,omitempty"`
+	EffectiveInputIdentity *LoadoutEffectiveInputIdentity `json:"effective_input_identity,omitempty"`
+}
+
+type ExecutionInterruption struct {
+	Cause               ExecutionInterruptionCause   `json:"cause,omitempty"`
+	ResubmitDisposition ExecutionResubmitDisposition `json:"resubmit_disposition,omitempty"`
 }
 
 type ExportAuditEventsRequest struct {
@@ -3866,6 +3934,9 @@ type GetModelAssetResponse struct {
 	Asset *ModelAssetRecord `json:"asset,omitempty"`
 }
 
+type GetProductControlCheckSyncRequest struct {
+}
+
 type GetProductControlRecordRequest struct {
 }
 
@@ -4009,6 +4080,8 @@ type ImageGenerateScenarioSpec struct {
 	Mask                     string   `json:"mask,omitempty"`
 	ResponseFormat           string   `json:"response_format,omitempty"`
 	ReferenceImageArtifactId string   `json:"reference_image_artifact_id,omitempty"`
+	MaskArtifactId           string   `json:"mask_artifact_id,omitempty"`
+	Strength                 *float32 `json:"strength,omitempty"`
 }
 
 type ImportModelAssetRequest struct {
@@ -4027,6 +4100,9 @@ type ImportPortableAIProfileRequest struct {
 
 type ImportPortableAIProfileResponse struct {
 	Profile *PortableAIProfileRecord `json:"profile,omitempty"`
+}
+
+type InitializeProductControlRootActivationRequest struct {
 }
 
 type InspectLocalAppAgentMemoryRequest struct {
@@ -4498,38 +4574,43 @@ type ListVoiceAssetsResponse struct {
 }
 
 type Loadout struct {
-	LoadoutId          string                            `json:"loadout_id,omitempty"`
-	CapabilityContract string                            `json:"capability_contract,omitempty"`
-	Implementation     *CapabilityImplementationIdentity `json:"implementation,omitempty"`
-	RecipeId           string                            `json:"recipe_id,omitempty"`
-	RecipeRevision     string                            `json:"recipe_revision,omitempty"`
-	Options            map[string]any                    `json:"options,omitempty"`
-	ModelAxes          []LoadoutModelAxis                `json:"model_axes,omitempty"`
-	RecipeCustody      []LoadoutRecipeCustodyReference   `json:"recipe_custody,omitempty"`
-	SupportedFeatures  []string                          `json:"supported_features,omitempty"`
-	ValidationState    LoadoutValidationState            `json:"validation_state,omitempty"`
-	Reasons            []ReasonCode                      `json:"reasons,omitempty"`
-	DisplayName        string                            `json:"display_name,omitempty"`
-	Provenance         map[string]any                    `json:"provenance,omitempty"`
-	CreatedAt          string                            `json:"created_at,omitempty"`
-	UpdatedAt          string                            `json:"updated_at,omitempty"`
+	LoadoutId                       string                             `json:"loadout_id,omitempty"`
+	CapabilityContract              string                             `json:"capability_contract,omitempty"`
+	Implementation                  *CapabilityImplementationIdentity  `json:"implementation,omitempty"`
+	RecipeId                        string                             `json:"recipe_id,omitempty"`
+	RecipeRevision                  string                             `json:"recipe_revision,omitempty"`
+	Options                         map[string]any                     `json:"options,omitempty"`
+	ModelAxes                       []LoadoutModelAxis                 `json:"model_axes,omitempty"`
+	RecipeCustody                   []LoadoutRecipeCustodyReference    `json:"recipe_custody,omitempty"`
+	ValidationState                 LoadoutValidationState             `json:"validation_state,omitempty"`
+	Reasons                         []ReasonCode                       `json:"reasons,omitempty"`
+	DisplayName                     string                             `json:"display_name,omitempty"`
+	Provenance                      map[string]any                     `json:"provenance,omitempty"`
+	CreatedAt                       string                             `json:"created_at,omitempty"`
+	UpdatedAt                       string                             `json:"updated_at,omitempty"`
+	ImplementationSupportedFeatures []string                           `json:"implementation_supported_features,omitempty"`
+	ConfiguredFeatures              []string                           `json:"configured_features,omitempty"`
+	TextBehaviors                   []TextBehaviorCapabilityProjection `json:"text_behaviors,omitempty"`
 }
 
 type LoadoutEffectiveInputIdentity struct {
-	LoadoutId          string                              `json:"loadout_id,omitempty"`
-	CapabilityContract string                              `json:"capability_contract,omitempty"`
-	Implementation     *CapabilityImplementationIdentity   `json:"implementation,omitempty"`
-	RecipeId           string                              `json:"recipe_id,omitempty"`
-	RecipeRevision     string                              `json:"recipe_revision,omitempty"`
-	Options            map[string]any                      `json:"options,omitempty"`
-	ModelAxes          []LoadoutEffectiveModelAxisIdentity `json:"model_axes,omitempty"`
-	RecipeCustody      []LoadoutRecipeCustodyReference     `json:"recipe_custody,omitempty"`
+	LoadoutId             string                              `json:"loadout_id,omitempty"`
+	CapabilityContract    string                              `json:"capability_contract,omitempty"`
+	Implementation        *CapabilityImplementationIdentity   `json:"implementation,omitempty"`
+	RecipeId              string                              `json:"recipe_id,omitempty"`
+	RecipeRevision        string                              `json:"recipe_revision,omitempty"`
+	Options               map[string]any                      `json:"options,omitempty"`
+	ModelAxes             []LoadoutEffectiveModelAxisIdentity `json:"model_axes,omitempty"`
+	RecipeCustody         []LoadoutRecipeCustodyReference     `json:"recipe_custody,omitempty"`
+	AdmittedFeatures      []string                            `json:"admitted_features,omitempty"`
+	AdmittedTextBehaviors []TextBehaviorKind                  `json:"admitted_text_behaviors,omitempty"`
 }
 
 type LoadoutEffectiveModelAxisIdentity struct {
-	SlotId       string `json:"slot_id,omitempty"`
-	ModelAssetId string `json:"model_asset_id,omitempty"`
-	ContentId    string `json:"content_id,omitempty"`
+	SlotId       string                             `json:"slot_id,omitempty"`
+	ModelAssetId string                             `json:"model_asset_id,omitempty"`
+	ContentId    string                             `json:"content_id,omitempty"`
+	Presence     LocalCapabilityRequirementPresence `json:"presence,omitempty"`
 }
 
 type LoadoutImpactProjection struct {
@@ -4540,12 +4621,15 @@ type LoadoutImpactProjection struct {
 }
 
 type LoadoutModelAxis struct {
-	SlotId            string       `json:"slot_id,omitempty"`
-	DisplayLabel      string       `json:"display_label,omitempty"`
-	ModelAssetId      string       `json:"model_asset_id,omitempty"`
-	ExpectedContentId string       `json:"expected_content_id,omitempty"`
-	RecipeCompatible  bool         `json:"recipe_compatible,omitempty"`
-	Reasons           []ReasonCode `json:"reasons,omitempty"`
+	SlotId              string                               `json:"slot_id,omitempty"`
+	DisplayLabel        string                               `json:"display_label,omitempty"`
+	ModelAssetId        string                               `json:"model_asset_id,omitempty"`
+	ExpectedContentId   string                               `json:"expected_content_id,omitempty"`
+	RecipeCompatible    bool                                 `json:"recipe_compatible,omitempty"`
+	Reasons             []ReasonCode                         `json:"reasons,omitempty"`
+	Presence            LocalCapabilityRequirementPresence   `json:"presence,omitempty"`
+	ConditionalFeatures []string                             `json:"conditional_features,omitempty"`
+	Resolution          LocalCapabilityRequirementResolution `json:"resolution,omitempty"`
 }
 
 type LoadoutModelAxisInput struct {
@@ -4567,23 +4651,25 @@ type LoadoutRecipeCustodyReference struct {
 }
 
 type LoadoutRecipeDescriptor struct {
-	RecipeId           string                            `json:"recipe_id,omitempty"`
-	Revision           string                            `json:"revision,omitempty"`
-	Title              string                            `json:"title,omitempty"`
-	CapabilityContract string                            `json:"capability_contract,omitempty"`
-	Implementation     *CapabilityImplementationIdentity `json:"implementation,omitempty"`
-	DefaultOptions     map[string]any                    `json:"default_options,omitempty"`
-	SupportedFeatures  []string                          `json:"supported_features,omitempty"`
-	Slots              []LoadoutRecipeSlotDescriptor     `json:"slots,omitempty"`
-	Custody            []LoadoutRecipeCustodyDescriptor  `json:"custody,omitempty"`
+	RecipeId                        string                            `json:"recipe_id,omitempty"`
+	Revision                        string                            `json:"revision,omitempty"`
+	Title                           string                            `json:"title,omitempty"`
+	CapabilityContract              string                            `json:"capability_contract,omitempty"`
+	Implementation                  *CapabilityImplementationIdentity `json:"implementation,omitempty"`
+	DefaultOptions                  map[string]any                    `json:"default_options,omitempty"`
+	Slots                           []LoadoutRecipeSlotDescriptor     `json:"slots,omitempty"`
+	Custody                         []LoadoutRecipeCustodyDescriptor  `json:"custody,omitempty"`
+	ImplementationSupportedFeatures []string                          `json:"implementation_supported_features,omitempty"`
 }
 
 type LoadoutRecipeSlotDescriptor struct {
-	SlotId                string         `json:"slot_id,omitempty"`
-	DisplayLabel          string         `json:"display_label,omitempty"`
-	RecommendedContentIds []string       `json:"recommended_content_ids,omitempty"`
-	ModelContract         map[string]any `json:"model_contract,omitempty"`
-	RecommendedVariantIds []string       `json:"recommended_variant_ids,omitempty"`
+	SlotId                string                             `json:"slot_id,omitempty"`
+	DisplayLabel          string                             `json:"display_label,omitempty"`
+	RecommendedContentIds []string                           `json:"recommended_content_ids,omitempty"`
+	ModelContract         map[string]any                     `json:"model_contract,omitempty"`
+	RecommendedVariantIds []string                           `json:"recommended_variant_ids,omitempty"`
+	Presence              LocalCapabilityRequirementPresence `json:"presence,omitempty"`
+	ConditionalFeatures   []string                           `json:"conditional_features,omitempty"`
 }
 
 type LoadoutSelection struct {
@@ -5065,6 +5151,8 @@ type LocalAppImageGenerateScenarioSpec struct {
 	Mask                     string   `json:"mask,omitempty"`
 	ResponseFormat           string   `json:"response_format,omitempty"`
 	ReferenceImageArtifactId string   `json:"reference_image_artifact_id,omitempty"`
+	MaskArtifactId           string   `json:"mask_artifact_id,omitempty"`
+	Strength                 *float32 `json:"strength,omitempty"`
 }
 
 type LocalAppMusicGenerateJobSpec struct {
@@ -5083,6 +5171,7 @@ type LocalAppScenarioArtifact struct {
 	Height       int32  `json:"height,omitempty"`
 	SampleRateHz int32  `json:"sample_rate_hz,omitempty"`
 	Channels     int32  `json:"channels,omitempty"`
+	Seed         *int32 `json:"seed,omitempty"`
 }
 
 type LocalAppScenarioJob struct {
@@ -5099,6 +5188,7 @@ type LocalAppScenarioJob struct {
 	CreatedAt           string                     `json:"created_at,omitempty"`
 	UpdatedAt           string                     `json:"updated_at,omitempty"`
 	TranscriptionText   string                     `json:"transcription_text,omitempty"`
+	Interruption        *ExecutionInterruption     `json:"interruption,omitempty"`
 }
 
 type LocalAppScenarioJobEvent struct {
@@ -5163,8 +5253,9 @@ type LocalAppTextTurnDelta struct {
 }
 
 type LocalAppTextTurnFailed struct {
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	ActionHint string     `json:"action_hint,omitempty"`
+	ReasonCode   ReasonCode             `json:"reason_code,omitempty"`
+	ActionHint   string                 `json:"action_hint,omitempty"`
+	Interruption *ExecutionInterruption `json:"interruption,omitempty"`
 }
 
 type LocalAppVideoGenerateJobSpec struct {
@@ -5226,14 +5317,16 @@ type LocalAuditTimeRange struct {
 }
 
 type LocalCapabilityRequirement struct {
-	RequirementId              string                           `json:"requirement_id,omitempty"`
-	Role                       LocalCapabilityRequirementRole   `json:"role,omitempty"`
-	ResourceKind               string                           `json:"resource_kind,omitempty"`
-	Policy                     LocalCapabilityRequirementPolicy `json:"policy,omitempty"`
-	PreferredVerifiedContentId string                           `json:"preferred_verified_content_id,omitempty"`
-	CompatibilityConstraints   map[string]any                   `json:"compatibility_constraints,omitempty"`
-	OccurrenceOrdinal          uint32                           `json:"occurrence_ordinal,omitempty"`
-	DisplayLabel               string                           `json:"display_label,omitempty"`
+	RequirementId              string                             `json:"requirement_id,omitempty"`
+	Role                       LocalCapabilityRequirementRole     `json:"role,omitempty"`
+	ResourceKind               string                             `json:"resource_kind,omitempty"`
+	Policy                     LocalCapabilityRequirementPolicy   `json:"policy,omitempty"`
+	PreferredVerifiedContentId string                             `json:"preferred_verified_content_id,omitempty"`
+	CompatibilityConstraints   map[string]any                     `json:"compatibility_constraints,omitempty"`
+	OccurrenceOrdinal          uint32                             `json:"occurrence_ordinal,omitempty"`
+	DisplayLabel               string                             `json:"display_label,omitempty"`
+	Presence                   LocalCapabilityRequirementPresence `json:"presence,omitempty"`
+	ConditionalFeatures        []string                           `json:"conditional_features,omitempty"`
 }
 
 type LocalCatalogModelDescriptor struct {
@@ -5265,6 +5358,7 @@ type LocalCatalogModelDescriptor struct {
 	HostRequirements  *LocalHostRequirements `json:"host_requirements,omitempty"`
 	TotalSizeBytes    int64                  `json:"total_size_bytes,omitempty"`
 	SourceProvenance  string                 `json:"source_provenance,omitempty"`
+	ModelType         string                 `json:"model_type,omitempty"`
 }
 
 type LocalCatalogRecommendation struct {
@@ -5448,6 +5542,7 @@ type LocalInstallPlanDescriptor struct {
 	EngineConfig      map[string]any         `json:"engine_config,omitempty"`
 	TotalSizeBytes    int64                  `json:"total_size_bytes,omitempty"`
 	SourceProvenance  string                 `json:"source_provenance,omitempty"`
+	ModelType         string                 `json:"model_type,omitempty"`
 }
 
 type LocalNpuProfile struct {
@@ -5484,8 +5579,6 @@ type LocalProviderHintsMedia struct {
 	ImageDriver      string `json:"image_driver,omitempty"`
 	VideoDriver      string `json:"video_driver,omitempty"`
 	Device           string `json:"device,omitempty"`
-	FallbackDriver   string `json:"fallback_driver,omitempty"`
-	FallbackReason   string `json:"fallback_reason,omitempty"`
 	PolicyGate       string `json:"policy_gate,omitempty"`
 }
 
@@ -5632,7 +5725,6 @@ type LocalVerifiedAssetDescriptor struct {
 	Capabilities     []string               `json:"capabilities,omitempty"`
 	ArtifactRoles    []string               `json:"artifact_roles,omitempty"`
 	PreferredEngine  string                 `json:"preferred_engine,omitempty"`
-	FallbackEngines  []string               `json:"fallback_engines,omitempty"`
 	EngineConfig     map[string]any         `json:"engine_config,omitempty"`
 	Endpoint         string                 `json:"endpoint,omitempty"`
 	HostRequirements *LocalHostRequirements `json:"host_requirements,omitempty"`
@@ -5949,7 +6041,6 @@ type PrepareLoadoutRequest struct {
 	CapabilityContract string                  `json:"capability_contract,omitempty"`
 	RecipeId           string                  `json:"recipe_id,omitempty"`
 	Options            map[string]any          `json:"options,omitempty"`
-	SupportedFeatures  []string                `json:"supported_features,omitempty"`
 	ModelAxes          []LoadoutModelAxisInput `json:"model_axes,omitempty"`
 	DisplayName        string                  `json:"display_name,omitempty"`
 	Provenance         map[string]any          `json:"provenance,omitempty"`
@@ -6282,12 +6373,23 @@ type RealtimeControlStatus struct {
 }
 
 type ReasoningConfig struct {
-	Mode         ReasoningMode      `json:"mode,omitempty"`
-	TraceMode    ReasoningTraceMode `json:"trace_mode,omitempty"`
-	BudgetTokens int32              `json:"budget_tokens,omitempty"`
+	Activation        ReasoningActivation   `json:"activation,omitempty"`
+	Effort            ReasoningEffort       `json:"effort,omitempty"`
+	ExactBudgetTokens uint32                `json:"exact_budget_tokens,omitempty"`
+	Presentation      ReasoningPresentation `json:"presentation,omitempty"`
 }
 
-type ReasoningStreamDelta struct {
+type ReasoningContinuityCarrier struct {
+	Kind    string `json:"kind,omitempty"`
+	Version uint32 `json:"version,omitempty"`
+	Payload []byte `json:"payload,omitempty"`
+}
+
+type ReasoningSummary struct {
+	Text string `json:"text,omitempty"`
+}
+
+type ReasoningSummaryDelta struct {
 	Text string `json:"text,omitempty"`
 }
 
@@ -6397,6 +6499,10 @@ type RepairLocalEnvironmentDependencyResponse struct {
 	Job *LocalEnvironmentDependencyJob `json:"job,omitempty"`
 }
 
+type ReplaceProductControlDataRootRequest struct {
+	TargetRoot string `json:"target_root,omitempty"`
+}
+
 type RequestPresenceVerificationRequest struct {
 	Caller     *AccountCaller `json:"caller,omitempty"`
 	Purpose    string         `json:"purpose,omitempty"`
@@ -6459,6 +6565,7 @@ type ResolveModelInstallPlanRequest struct {
 	Hashes       map[string]string `json:"hashes,omitempty"`
 	Endpoint     string            `json:"endpoint,omitempty"`
 	EngineConfig map[string]any    `json:"engine_config,omitempty"`
+	ModelType    string            `json:"model_type,omitempty"`
 }
 
 type ResolveModelInstallPlanResponse struct {
@@ -6538,6 +6645,7 @@ type ScenarioArtifact struct {
 	Channels        int32            `json:"channels,omitempty"`
 	SpeechAlignment *SpeechAlignment `json:"speech_alignment,omitempty"`
 	Metadata        map[string]any   `json:"metadata,omitempty"`
+	Seed            *int32           `json:"seed,omitempty"`
 }
 
 type ScenarioExtension struct {
@@ -6570,6 +6678,7 @@ type ScenarioJob struct {
 	ProgressTotalSteps     int32                          `json:"progress_total_steps,omitempty"`
 	TranscriptionText      string                         `json:"transcription_text,omitempty"`
 	EffectiveInputIdentity *LoadoutEffectiveInputIdentity `json:"effective_input_identity,omitempty"`
+	Interruption           *ExecutionInterruption         `json:"interruption,omitempty"`
 }
 
 type ScenarioJobEvent struct {
@@ -6622,22 +6731,23 @@ type ScenarioStreamCompleted struct {
 }
 
 type ScenarioStreamDelta struct {
-	Text      *TextStreamDelta      `json:"text,omitempty"`
-	Artifact  *ArtifactStreamDelta  `json:"artifact,omitempty"`
-	Reasoning *ReasoningStreamDelta `json:"reasoning,omitempty"`
-	Source    *TextSource           `json:"source,omitempty"`
-	Raw       *RawChunk             `json:"raw,omitempty"`
+	Artifact       *ArtifactStreamDelta `json:"artifact,omitempty"`
+	Source         *TextSource          `json:"source,omitempty"`
+	Raw            *RawChunk            `json:"raw,omitempty"`
+	TextOutputItem *TextOutputItemDelta `json:"text_output_item,omitempty"`
 }
 
 type ScenarioStreamFailed struct {
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
-	ActionHint string     `json:"action_hint,omitempty"`
+	ReasonCode   ReasonCode             `json:"reason_code,omitempty"`
+	ActionHint   string                 `json:"action_hint,omitempty"`
+	Interruption *ExecutionInterruption `json:"interruption,omitempty"`
 }
 
 type ScenarioStreamStarted struct {
-	ModelResolved   string          `json:"model_resolved,omitempty"`
-	RouteDecision   RoutePolicy     `json:"route_decision,omitempty"`
-	VoiceOutputMode VoiceOutputMode `json:"voice_output_mode,omitempty"`
+	ModelResolved          string                         `json:"model_resolved,omitempty"`
+	RouteDecision          RoutePolicy                    `json:"route_decision,omitempty"`
+	VoiceOutputMode        VoiceOutputMode                `json:"voice_output_mode,omitempty"`
+	EffectiveInputIdentity *LoadoutEffectiveInputIdentity `json:"effective_input_identity,omitempty"`
 }
 
 type SchedulingEvaluationTarget struct {
@@ -6868,6 +6978,9 @@ type StartLocalEnvironmentDependencyJobResponse struct {
 	Job *LocalEnvironmentDependencyJob `json:"job,omitempty"`
 }
 
+type StartProductControlCheckSyncRequest struct {
+}
+
 type StatLocalAppAssetRequest struct {
 	RelativePath string `json:"relative_path,omitempty"`
 }
@@ -6898,18 +7011,15 @@ type StreamLocalAppTextTurnRequest struct {
 }
 
 type StreamScenarioEvent struct {
-	EventType           StreamEventType          `json:"event_type,omitempty"`
-	Sequence            uint64                   `json:"sequence,omitempty"`
-	TraceId             string                   `json:"trace_id,omitempty"`
-	Timestamp           string                   `json:"timestamp,omitempty"`
-	Started             *ScenarioStreamStarted   `json:"started,omitempty"`
-	Delta               *ScenarioStreamDelta     `json:"delta,omitempty"`
-	Usage               *UsageStats              `json:"usage,omitempty"`
-	Completed           *ScenarioStreamCompleted `json:"completed,omitempty"`
-	Failed              *ScenarioStreamFailed    `json:"failed,omitempty"`
-	ToolCall            *ToolCall                `json:"tool_call,omitempty"`
-	ToolResult          *ToolResult              `json:"tool_result,omitempty"`
-	ToolApprovalRequest *ToolApprovalRequest     `json:"tool_approval_request,omitempty"`
+	EventType StreamEventType          `json:"event_type,omitempty"`
+	Sequence  uint64                   `json:"sequence,omitempty"`
+	TraceId   string                   `json:"trace_id,omitempty"`
+	Timestamp string                   `json:"timestamp,omitempty"`
+	Started   *ScenarioStreamStarted   `json:"started,omitempty"`
+	Delta     *ScenarioStreamDelta     `json:"delta,omitempty"`
+	Usage     *UsageStats              `json:"usage,omitempty"`
+	Completed *ScenarioStreamCompleted `json:"completed,omitempty"`
+	Failed    *ScenarioStreamFailed    `json:"failed,omitempty"`
 }
 
 type StreamScenarioRequest struct {
@@ -7070,6 +7180,15 @@ type TestConnectorResponse struct {
 	Ack *Ack `json:"ack,omitempty"`
 }
 
+type TextBehaviorCapabilityProjection struct {
+	Kind                    TextBehaviorKind               `json:"kind,omitempty"`
+	ImplementationSupported bool                           `json:"implementation_supported,omitempty"`
+	ConfigurationState      TextBehaviorConfigurationState `json:"configuration_state,omitempty"`
+	Reasons                 []LocalCapabilityReason        `json:"reasons,omitempty"`
+	ImplementationToolUse   *ToolUseCapabilityProjection   `json:"implementation_tool_use,omitempty"`
+	ConfiguredToolUse       *ToolUseCapabilityProjection   `json:"configured_tool_use,omitempty"`
+}
+
 type TextEmbedOutput struct {
 	Vectors []EmbeddingVector `json:"vectors,omitempty"`
 }
@@ -7079,12 +7198,12 @@ type TextEmbedScenarioSpec struct {
 }
 
 type TextGenerateOutput struct {
-	Text                 string                `json:"text,omitempty"`
-	ToolCalls            []ToolCall            `json:"tool_calls,omitempty"`
-	ToolResults          []ToolResult          `json:"tool_results,omitempty"`
-	ToolApprovalRequests []ToolApprovalRequest `json:"tool_approval_requests,omitempty"`
-	Sources              []TextSource          `json:"sources,omitempty"`
-	RawChunks            []RawChunk            `json:"raw_chunks,omitempty"`
+	Text             string           `json:"text,omitempty"`
+	ToolCalls        []ToolCall       `json:"tool_calls,omitempty"`
+	Sources          []TextSource     `json:"sources,omitempty"`
+	RawChunks        []RawChunk       `json:"raw_chunks,omitempty"`
+	Items            []TextOutputItem `json:"items,omitempty"`
+	ReasoningSummary string           `json:"reasoning_summary,omitempty"`
 }
 
 type TextGenerateScenarioSpec struct {
@@ -7106,6 +7225,30 @@ type TextGenerateScenarioSpec struct {
 	IncludeRawChunks bool             `json:"include_raw_chunks,omitempty"`
 }
 
+type TextOutputItem struct {
+	Text                *TextOutputText             `json:"text,omitempty"`
+	ReasoningSummary    *ReasoningSummary           `json:"reasoning_summary,omitempty"`
+	ToolCall            *ToolCall                   `json:"tool_call,omitempty"`
+	ReasoningContinuity *ReasoningContinuityCarrier `json:"reasoning_continuity,omitempty"`
+}
+
+type TextOutputItemDelta struct {
+	ItemIndex           uint32                      `json:"item_index,omitempty"`
+	Text                *TextOutputTextDelta        `json:"text,omitempty"`
+	ReasoningSummary    *ReasoningSummaryDelta      `json:"reasoning_summary,omitempty"`
+	ToolCall            *ToolCall                   `json:"tool_call,omitempty"`
+	ReasoningContinuity *ReasoningContinuityCarrier `json:"reasoning_continuity,omitempty"`
+	ItemCompleted       bool                        `json:"item_completed,omitempty"`
+}
+
+type TextOutputText struct {
+	Text string `json:"text,omitempty"`
+}
+
+type TextOutputTextDelta struct {
+	Text string `json:"text,omitempty"`
+}
+
 type TextSource struct {
 	Id               string         `json:"id,omitempty"`
 	SourceType       TextSourceType `json:"source_type,omitempty"`
@@ -7116,28 +7259,15 @@ type TextSource struct {
 	ProviderMetadata map[string]any `json:"provider_metadata,omitempty"`
 }
 
-type TextStreamDelta struct {
-	Text string `json:"text,omitempty"`
-}
-
-type ToolApprovalRequest struct {
-	ApprovalId       string         `json:"approval_id,omitempty"`
-	ToolCallId       string         `json:"tool_call_id,omitempty"`
-	ProviderMetadata map[string]any `json:"provider_metadata,omitempty"`
-}
-
-type ToolApprovalResponse struct {
-	ApprovalId       string         `json:"approval_id,omitempty"`
-	Approved         bool           `json:"approved,omitempty"`
-	Reason           string         `json:"reason,omitempty"`
-	ProviderMetadata map[string]any `json:"provider_metadata,omitempty"`
+type TextTurnItem struct {
+	Output     *TextOutputItem `json:"output,omitempty"`
+	ToolResult *ToolResult     `json:"tool_result,omitempty"`
 }
 
 type ToolCall struct {
 	Id               string         `json:"id,omitempty"`
 	Name             string         `json:"name,omitempty"`
 	ArgumentsJson    string         `json:"arguments_json,omitempty"`
-	ProviderExecuted bool           `json:"provider_executed,omitempty"`
 	Dynamic          bool           `json:"dynamic,omitempty"`
 	ProviderMetadata map[string]any `json:"provider_metadata,omitempty"`
 }
@@ -7160,6 +7290,19 @@ type ToolSpec struct {
 	ProviderToolId   string         `json:"provider_tool_id,omitempty"`
 	ProviderArgs     map[string]any `json:"provider_args,omitempty"`
 	ProviderMetadata map[string]any `json:"provider_metadata,omitempty"`
+}
+
+type ToolUseCapabilityProjection struct {
+	SupportedToolSpecKinds        []ToolSpecKind   `json:"supported_tool_spec_kinds,omitempty"`
+	SupportedToolChoiceModes      []ToolChoiceMode `json:"supported_tool_choice_modes,omitempty"`
+	SupportsSingleCall            bool             `json:"supports_single_call,omitempty"`
+	SupportsMultipleCalls         bool             `json:"supports_multiple_calls,omitempty"`
+	SupportsParallelCalls         bool             `json:"supports_parallel_calls,omitempty"`
+	SupportsSync                  bool             `json:"supports_sync,omitempty"`
+	SupportsStream                bool             `json:"supports_stream,omitempty"`
+	SupportsToolOnlyResponse      bool             `json:"supports_tool_only_response,omitempty"`
+	SupportsToolResultRoundTrip   bool             `json:"supports_tool_result_round_trip,omitempty"`
+	SupportsMixedTextAndToolCalls bool             `json:"supports_mixed_text_and_tool_calls,omitempty"`
 }
 
 type TranscribeAgentVoiceInputRequest struct {
@@ -7220,7 +7363,6 @@ type UpdateLoadoutRequest struct {
 	CapabilityContract     string                  `json:"capability_contract,omitempty"`
 	RecipeId               string                  `json:"recipe_id,omitempty"`
 	Options                map[string]any          `json:"options,omitempty"`
-	SupportedFeatures      []string                `json:"supported_features,omitempty"`
 	ModelAxes              []LoadoutModelAxisInput `json:"model_axes,omitempty"`
 	DisplayName            string                  `json:"display_name,omitempty"`
 	Provenance             map[string]any          `json:"provenance,omitempty"`
@@ -9013,6 +9155,14 @@ func (c RuntimeTypedClient) GetModelAsset(ctx context.Context, request GetModelA
 	return decodeRuntimeTypedResponse[GetModelAssetResponse](raw, "GetModelAssetResponse")
 }
 
+func (c RuntimeTypedClient) GetProductControlCheckSync(ctx context.Context, request GetProductControlCheckSyncRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CheckSyncProjectionJson, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync", request, metadata, timeoutMS)
+	if err != nil {
+		return CheckSyncProjectionJson{}, err
+	}
+	return decodeRuntimeTypedResponse[CheckSyncProjectionJson](raw, "CheckSyncProjectionJson")
+}
+
 func (c RuntimeTypedClient) GetProductControlRecord(ctx context.Context, request GetProductControlRecordRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord", request, metadata, timeoutMS)
 	if err != nil {
@@ -9043,6 +9193,14 @@ func (c RuntimeTypedClient) ImportModelAsset(ctx context.Context, request Import
 		return ImportModelAssetResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ImportModelAssetResponse](raw, "ImportModelAssetResponse")
+}
+
+func (c RuntimeTypedClient) InitializeProductControlRootActivation(ctx context.Context, request InitializeProductControlRootActivationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation", request, metadata, timeoutMS)
+	if err != nil {
+		return ProductControlProjectionJson{}, err
+	}
+	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
 }
 
 func (c RuntimeTypedClient) InstallModelFromPlan(ctx context.Context, request InstallModelFromPlanRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InstallModelFromPlanResponse, error) {
@@ -9157,6 +9315,14 @@ func (c RuntimeTypedClient) RepairLocalEnvironmentDependency(ctx context.Context
 	return decodeRuntimeTypedResponse[RepairLocalEnvironmentDependencyResponse](raw, "RepairLocalEnvironmentDependencyResponse")
 }
 
+func (c RuntimeTypedClient) ReplaceProductControlDataRoot(ctx context.Context, request ReplaceProductControlDataRootRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ProductControlProjectionJson, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot", request, metadata, timeoutMS)
+	if err != nil {
+		return ProductControlProjectionJson{}, err
+	}
+	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
+}
+
 func (c RuntimeTypedClient) ResolveLocalEnvironmentActivationGate(ctx context.Context, request ResolveLocalEnvironmentActivationGateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveLocalEnvironmentActivationGateResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate", request, metadata, timeoutMS)
 	if err != nil {
@@ -9235,6 +9401,14 @@ func (c RuntimeTypedClient) StartLocalEnvironmentDependencyJob(ctx context.Conte
 		return StartLocalEnvironmentDependencyJobResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[StartLocalEnvironmentDependencyJobResponse](raw, "StartLocalEnvironmentDependencyJobResponse")
+}
+
+func (c RuntimeTypedClient) StartProductControlCheckSync(ctx context.Context, request StartProductControlCheckSyncRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CheckSyncProjectionJson, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync", request, metadata, timeoutMS)
+	if err != nil {
+		return CheckSyncProjectionJson{}, err
+	}
+	return decodeRuntimeTypedResponse[CheckSyncProjectionJson](raw, "CheckSyncProjectionJson")
 }
 
 func (c RuntimeTypedClient) UpdateLoadout(ctx context.Context, request UpdateLoadoutRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateLoadoutResponse, error) {

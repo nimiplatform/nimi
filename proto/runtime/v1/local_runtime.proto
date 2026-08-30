@@ -124,8 +124,11 @@ message ResolveModelInstallPlanRequest {
   repeated string files                = 10;
   string license                       = 11;
   map<string, string> hashes           = 12;
+  // Explicit configuration input for sidecar acquisition only. llama, media,
+  // and speech reject endpoint-bearing install plans.
   string endpoint                      = 13;
   google.protobuf.Struct engine_config = 14;
+  string model_type                    = 15;
 }
 
 message ResolveModelInstallPlanResponse {
@@ -386,6 +389,14 @@ message ProductControlProjectionJson {
   string json = 1;
 }
 
+// CheckSyncProjectionJson carries the protected Runtime Check & Sync
+// projection. It is intentionally an opaque JSON envelope at the wire layer:
+// owner result vocabularies stay Runtime/owner-defined and are not promoted to
+// an ordinary App SDK entitlement.
+message CheckSyncProjectionJson {
+  string json = 1;
+}
+
 message GetProductControlRecordRequest {}
 
 message GetProductControlSelectedDataRootRequest {}
@@ -395,6 +406,16 @@ message EnsureProductControlRecordCreatedRequest {}
 message SelectProductControlDataRootRequest {
   string data_root = 1;
 }
+
+message InitializeProductControlRootActivationRequest {}
+
+message ReplaceProductControlDataRootRequest {
+  string target_root = 1;
+}
+
+message StartProductControlCheckSyncRequest {}
+
+message GetProductControlCheckSyncRequest {}
 
 message SetProductControlFirstRunInstallLevelRequest {
   string install_level = 1;
@@ -465,6 +486,10 @@ service RuntimeLocalService {
   rpc GetProductControlSelectedDataRoot(GetProductControlSelectedDataRootRequest) returns (ProductControlProjectionJson);
   rpc EnsureProductControlRecordCreated(EnsureProductControlRecordCreatedRequest) returns (ProductControlProjectionJson);
   rpc SelectProductControlDataRoot(SelectProductControlDataRootRequest) returns (ProductControlProjectionJson);
+  rpc InitializeProductControlRootActivation(InitializeProductControlRootActivationRequest) returns (ProductControlProjectionJson);
+  rpc ReplaceProductControlDataRoot(ReplaceProductControlDataRootRequest) returns (ProductControlProjectionJson);
+  rpc StartProductControlCheckSync(StartProductControlCheckSyncRequest) returns (CheckSyncProjectionJson);
+  rpc GetProductControlCheckSync(GetProductControlCheckSyncRequest) returns (CheckSyncProjectionJson);
   rpc SetProductControlFirstRunInstallLevel(SetProductControlFirstRunInstallLevelRequest) returns (ProductControlProjectionJson);
   rpc CompleteProductControlFirstRunDeviceEnvironmentScan(CompleteProductControlFirstRunDeviceEnvironmentScanRequest) returns (ProductControlProjectionJson);
   rpc AdmitProductControlReadyForUse(AdmitProductControlReadyForUseRequest) returns (ProductControlProjectionJson);

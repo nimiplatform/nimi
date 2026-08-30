@@ -226,14 +226,12 @@ export interface LocalVerifiedAssetDescriptor {
      */
     preferredEngine: string;
     /**
-     * @generated from protobuf field: repeated string fallback_engines = 25
-     */
-    fallbackEngines: string[];
-    /**
      * @generated from protobuf field: google.protobuf.Struct engine_config = 26
      */
     engineConfig?: Struct;
     /**
+     * Attached endpoint projection is valid only for sidecar assets.
+     *
      * @generated from protobuf field: string endpoint = 27
      */
     endpoint: string;
@@ -253,10 +251,15 @@ export interface LocalProviderHintsLlama {
      */
     backend: string;
     /**
+     * Recommendation label only; never a public TextBehaviorAdapter selector.
+     *
      * @generated from protobuf field: string preferred_adapter = 2
      */
     preferredAdapter: string;
     /**
+     * Recommendation only; pairing and optional-conditional admission are
+     * Driver and Model Contract truth.
+     *
      * @generated from protobuf field: string multimodal_projector = 3
      */
     multimodalProjector: string;
@@ -289,14 +292,6 @@ export interface LocalProviderHintsMedia {
      * @generated from protobuf field: string device = 6
      */
     device: string;
-    /**
-     * @generated from protobuf field: string fallback_driver = 7
-     */
-    fallbackDriver: string;
-    /**
-     * @generated from protobuf field: string fallback_reason = 8
-     */
-    fallbackReason: string;
     /**
      * @generated from protobuf field: string policy_gate = 9
      */
@@ -422,6 +417,8 @@ export interface LocalCatalogModelDescriptor {
      */
     engine: string;
     /**
+     * ATTACHED_ENDPOINT is valid only when engine is sidecar.
+     *
      * @generated from protobuf field: nimi.runtime.v1.LocalEngineRuntimeMode engine_runtime_mode = 11
      */
     engineRuntimeMode: LocalEngineRuntimeMode;
@@ -434,6 +431,8 @@ export interface LocalCatalogModelDescriptor {
      */
     installAvailable: boolean;
     /**
+     * Populated only for an admitted sidecar ATTACHED_ENDPOINT descriptor.
+     *
      * @generated from protobuf field: string endpoint = 14
      */
     endpoint: string;
@@ -495,6 +494,10 @@ export interface LocalCatalogModelDescriptor {
      * @generated from protobuf field: string source_provenance = 28
      */
     sourceProvenance: string;
+    /**
+     * @generated from protobuf field: string model_type = 29
+     */
+    modelType: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalInstallPlanDescriptor
@@ -537,6 +540,8 @@ export interface LocalInstallPlanDescriptor {
      */
     engine: string;
     /**
+     * ATTACHED_ENDPOINT is valid only when engine is sidecar.
+     *
      * @generated from protobuf field: nimi.runtime.v1.LocalEngineRuntimeMode engine_runtime_mode = 10
      */
     engineRuntimeMode: LocalEngineRuntimeMode;
@@ -549,6 +554,8 @@ export interface LocalInstallPlanDescriptor {
      */
     installAvailable: boolean;
     /**
+     * Populated only for an admitted sidecar ATTACHED_ENDPOINT install plan.
+     *
      * @generated from protobuf field: string endpoint = 13
      */
     endpoint: string;
@@ -594,6 +601,10 @@ export interface LocalInstallPlanDescriptor {
      * @generated from protobuf field: string source_provenance = 23
      */
     sourceProvenance: string;
+    /**
+     * @generated from protobuf field: string model_type = 24
+     */
+    modelType: string;
 }
 // === Asset Kind & Status (unified from Model + Artifact) ===
 
@@ -671,6 +682,9 @@ export enum LocalEngineRuntimeMode {
      */
     SUPERVISED = 1,
     /**
+     * Public value retained for sidecar only. llama, media, and speech are
+     * Runtime-owned supervised topologies and reject this value typed.
+     *
      * @generated from protobuf enum value: LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT = 2;
      */
     ATTACHED_ENDPOINT = 2
@@ -1027,7 +1041,6 @@ class LocalVerifiedAssetDescriptor$Type extends MessageType<LocalVerifiedAssetDe
             { no: 22, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 23, name: "artifact_roles", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 24, name: "preferred_engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 25, name: "fallback_engines", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 26, name: "engine_config", kind: "message", T: () => Struct },
             { no: 27, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 28, name: "host_requirements", kind: "message", T: () => LocalHostRequirements }
@@ -1056,7 +1069,6 @@ class LocalVerifiedAssetDescriptor$Type extends MessageType<LocalVerifiedAssetDe
         message.capabilities = [];
         message.artifactRoles = [];
         message.preferredEngine = "";
-        message.fallbackEngines = [];
         message.endpoint = "";
         if (value !== undefined)
             reflectionMergePartial<LocalVerifiedAssetDescriptor>(this, message, value);
@@ -1132,9 +1144,6 @@ class LocalVerifiedAssetDescriptor$Type extends MessageType<LocalVerifiedAssetDe
                     break;
                 case /* string preferred_engine */ 24:
                     message.preferredEngine = reader.string();
-                    break;
-                case /* repeated string fallback_engines */ 25:
-                    message.fallbackEngines.push(reader.string());
                     break;
                 case /* google.protobuf.Struct engine_config */ 26:
                     message.engineConfig = Struct.internalBinaryRead(reader, reader.uint32(), options, message.engineConfig);
@@ -1239,9 +1248,6 @@ class LocalVerifiedAssetDescriptor$Type extends MessageType<LocalVerifiedAssetDe
         /* string preferred_engine = 24; */
         if (message.preferredEngine !== "")
             writer.tag(24, WireType.LengthDelimited).string(message.preferredEngine);
-        /* repeated string fallback_engines = 25; */
-        for (let i = 0; i < message.fallbackEngines.length; i++)
-            writer.tag(25, WireType.LengthDelimited).string(message.fallbackEngines[i]);
         /* google.protobuf.Struct engine_config = 26; */
         if (message.engineConfig)
             Struct.internalBinaryWrite(message.engineConfig, writer.tag(26, WireType.LengthDelimited).fork(), options).join();
@@ -1334,8 +1340,6 @@ class LocalProviderHintsMedia$Type extends MessageType<LocalProviderHintsMedia> 
             { no: 4, name: "image_driver", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "video_driver", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "device", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "fallback_driver", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "fallback_reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 9, name: "policy_gate", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -1347,8 +1351,6 @@ class LocalProviderHintsMedia$Type extends MessageType<LocalProviderHintsMedia> 
         message.imageDriver = "";
         message.videoDriver = "";
         message.device = "";
-        message.fallbackDriver = "";
-        message.fallbackReason = "";
         message.policyGate = "";
         if (value !== undefined)
             reflectionMergePartial<LocalProviderHintsMedia>(this, message, value);
@@ -1376,12 +1378,6 @@ class LocalProviderHintsMedia$Type extends MessageType<LocalProviderHintsMedia> 
                     break;
                 case /* string device */ 6:
                     message.device = reader.string();
-                    break;
-                case /* string fallback_driver */ 7:
-                    message.fallbackDriver = reader.string();
-                    break;
-                case /* string fallback_reason */ 8:
-                    message.fallbackReason = reader.string();
                     break;
                 case /* string policy_gate */ 9:
                     message.policyGate = reader.string();
@@ -1416,12 +1412,6 @@ class LocalProviderHintsMedia$Type extends MessageType<LocalProviderHintsMedia> 
         /* string device = 6; */
         if (message.device !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.device);
-        /* string fallback_driver = 7; */
-        if (message.fallbackDriver !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.fallbackDriver);
-        /* string fallback_reason = 8; */
-        if (message.fallbackReason !== "")
-            writer.tag(8, WireType.LengthDelimited).string(message.fallbackReason);
         /* string policy_gate = 9; */
         if (message.policyGate !== "")
             writer.tag(9, WireType.LengthDelimited).string(message.policyGate);
@@ -1707,7 +1697,8 @@ class LocalCatalogModelDescriptor$Type extends MessageType<LocalCatalogModelDesc
             { no: 25, name: "engine_config", kind: "message", T: () => Struct },
             { no: 26, name: "host_requirements", kind: "message", T: () => LocalHostRequirements },
             { no: 27, name: "total_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 28, name: "source_provenance", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 28, name: "source_provenance", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 29, name: "model_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalCatalogModelDescriptor>): LocalCatalogModelDescriptor {
@@ -1737,6 +1728,7 @@ class LocalCatalogModelDescriptor$Type extends MessageType<LocalCatalogModelDesc
         message.verified = false;
         message.totalSizeBytes = "0";
         message.sourceProvenance = "";
+        message.modelType = "";
         if (value !== undefined)
             reflectionMergePartial<LocalCatalogModelDescriptor>(this, message, value);
         return message;
@@ -1829,6 +1821,9 @@ class LocalCatalogModelDescriptor$Type extends MessageType<LocalCatalogModelDesc
                     break;
                 case /* string source_provenance */ 28:
                     message.sourceProvenance = reader.string();
+                    break;
+                case /* string model_type */ 29:
+                    message.modelType = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1942,6 +1937,9 @@ class LocalCatalogModelDescriptor$Type extends MessageType<LocalCatalogModelDesc
         /* string source_provenance = 28; */
         if (message.sourceProvenance !== "")
             writer.tag(28, WireType.LengthDelimited).string(message.sourceProvenance);
+        /* string model_type = 29; */
+        if (message.modelType !== "")
+            writer.tag(29, WireType.LengthDelimited).string(message.modelType);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1978,7 +1976,8 @@ class LocalInstallPlanDescriptor$Type extends MessageType<LocalInstallPlanDescri
             { no: 20, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 21, name: "engine_config", kind: "message", T: () => Struct },
             { no: 22, name: "total_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 23, name: "source_provenance", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 23, name: "source_provenance", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 24, name: "model_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalInstallPlanDescriptor>): LocalInstallPlanDescriptor {
@@ -2004,6 +2003,7 @@ class LocalInstallPlanDescriptor$Type extends MessageType<LocalInstallPlanDescri
         message.reasonCode = "";
         message.totalSizeBytes = "0";
         message.sourceProvenance = "";
+        message.modelType = "";
         if (value !== undefined)
             reflectionMergePartial<LocalInstallPlanDescriptor>(this, message, value);
         return message;
@@ -2081,6 +2081,9 @@ class LocalInstallPlanDescriptor$Type extends MessageType<LocalInstallPlanDescri
                     break;
                 case /* string source_provenance */ 23:
                     message.sourceProvenance = reader.string();
+                    break;
+                case /* string model_type */ 24:
+                    message.modelType = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2179,6 +2182,9 @@ class LocalInstallPlanDescriptor$Type extends MessageType<LocalInstallPlanDescri
         /* string source_provenance = 23; */
         if (message.sourceProvenance !== "")
             writer.tag(23, WireType.LengthDelimited).string(message.sourceProvenance);
+        /* string model_type = 24; */
+        if (message.modelType !== "")
+            writer.tag(24, WireType.LengthDelimited).string(message.modelType);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

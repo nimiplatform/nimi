@@ -25,12 +25,22 @@ enum LocalCapabilityRequirementResolution {
   LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNSPECIFIED = 0;
   LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNRESOLVED = 1;
   LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED = 2;
+  // Valid absent state for a Driver-declared optional-conditional slot.
+  LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_NOT_CONFIGURED = 3;
 }
 
 enum LocalCapabilityRequirementPolicy {
   LOCAL_CAPABILITY_REQUIREMENT_POLICY_UNSPECIFIED = 0;
   LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT = 1;
   LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE = 2;
+}
+
+// Presence is Driver dialect truth. Catalog metadata may project it but cannot
+// author or override it.
+enum LocalCapabilityRequirementPresence {
+  LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_UNSPECIFIED = 0;
+  LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED = 1;
+  LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL = 2;
 }
 
 enum LocalCapabilityRequirementRole {
@@ -52,6 +62,42 @@ enum LocalCapabilityReason {
   LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED = 9;
   LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH = 10;
   LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE = 11;
+  LOCAL_CAPABILITY_REASON_CONDITIONAL_BINDING_MISSING = 12;
+  LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_UNAVAILABLE = 13;
+  LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_AMBIGUOUS = 14;
+}
+
+enum TextBehaviorConfigurationState {
+  TEXT_BEHAVIOR_CONFIGURATION_STATE_UNSPECIFIED = 0;
+  TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE = 1;
+  TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED = 2;
+  TEXT_BEHAVIOR_CONFIGURATION_STATE_AMBIGUOUS = 3;
+}
+
+// Read-only primitive Tool Use support. Exact model/template mapping and
+// cross-behavior combination predicates remain Runtime-private Driver truth.
+message ToolUseCapabilityProjection {
+  repeated ToolSpecKind supported_tool_spec_kinds = 1;
+  repeated ToolChoiceMode supported_tool_choice_modes = 2;
+  bool supports_single_call = 3;
+  bool supports_multiple_calls = 4;
+  bool supports_parallel_calls = 5;
+  bool supports_sync = 6;
+  bool supports_stream = 7;
+  bool supports_tool_only_response = 8;
+  bool supports_tool_result_round_trip = 9;
+  bool supports_mixed_text_and_tool_calls = 10;
+}
+
+message TextBehaviorCapabilityProjection {
+  TextBehaviorKind kind = 1;
+  bool implementation_supported = 2;
+  TextBehaviorConfigurationState configuration_state = 3;
+  repeated LocalCapabilityReason reasons = 4;
+  // Set only when kind is TOOL_USE.
+  ToolUseCapabilityProjection implementation_tool_use = 5;
+  // Exact subset configured by the current Loadout's unique adapter mapping.
+  ToolUseCapabilityProjection configured_tool_use = 6;
 }
 
 message LocalCapabilityRequirement {
@@ -65,6 +111,9 @@ message LocalCapabilityRequirement {
   // are one-based and carry only an order explicitly declared by the Driver.
   uint32 occurrence_ordinal = 7;
   string display_label = 8;
+  LocalCapabilityRequirementPresence presence = 9;
+  // Non-empty exactly when presence is OPTIONAL_CONDITIONAL.
+  repeated string conditional_features = 10;
 }
 
 message ModelAssetExactBinding {
@@ -93,6 +142,9 @@ message LoadoutModelAxis {
   string expected_content_id = 4;
   bool recipe_compatible = 5;
   repeated ReasonCode reasons = 6;
+  LocalCapabilityRequirementPresence presence = 7;
+  repeated string conditional_features = 8;
+  LocalCapabilityRequirementResolution resolution = 9;
 }
 
 message LoadoutRecipeCustodyReference {
@@ -109,13 +161,18 @@ message Loadout {
   google.protobuf.Struct options = 6;
   repeated LoadoutModelAxis model_axes = 7;
   repeated LoadoutRecipeCustodyReference recipe_custody = 8;
-  repeated string supported_features = 9;
+  reserved 9;
+  reserved "supported_features";
   LoadoutValidationState validation_state = 10;
   repeated ReasonCode reasons = 11;
   string display_name = 12;
   google.protobuf.Struct provenance = 13;
   string created_at = 14;
   string updated_at = 15;
+  // Both projections are Runtime-derived and never accepted from a caller.
+  repeated string implementation_supported_features = 16;
+  repeated string configured_features = 17;
+  repeated TextBehaviorCapabilityProjection text_behaviors = 18;
 }
 
 message LoadoutSelection {
@@ -148,6 +205,8 @@ message LoadoutRecipeSlotDescriptor {
   repeated string recommended_content_ids = 3;
   google.protobuf.Struct model_contract = 4;
   repeated string recommended_variant_ids = 5;
+  LocalCapabilityRequirementPresence presence = 6;
+  repeated string conditional_features = 7;
 }
 
 message LoadoutRecipeDescriptor {
@@ -157,9 +216,11 @@ message LoadoutRecipeDescriptor {
   string capability_contract = 4;
   CapabilityImplementationIdentity implementation = 5;
   google.protobuf.Struct default_options = 6;
-  repeated string supported_features = 7;
+  reserved 7;
+  reserved "supported_features";
   repeated LoadoutRecipeSlotDescriptor slots = 8;
   repeated LoadoutRecipeCustodyDescriptor custody = 9;
+  repeated string implementation_supported_features = 10;
 }
 
 message ListLoadoutRecipesRequest {
@@ -180,7 +241,8 @@ message PrepareLoadoutRequest {
   string capability_contract = 2;
   string recipe_id = 3;
   google.protobuf.Struct options = 4;
-  repeated string supported_features = 5;
+  reserved 5;
+  reserved "supported_features";
   repeated LoadoutModelAxisInput model_axes = 6;
   string display_name = 7;
   google.protobuf.Struct provenance = 8;
@@ -206,7 +268,8 @@ message UpdateLoadoutRequest {
   string capability_contract = 2;
   string recipe_id = 3;
   google.protobuf.Struct options = 4;
-  repeated string supported_features = 5;
+  reserved 5;
+  reserved "supported_features";
   repeated LoadoutModelAxisInput model_axes = 6;
   string display_name = 7;
   google.protobuf.Struct provenance = 8;
@@ -232,6 +295,7 @@ message LoadoutEffectiveModelAxisIdentity {
   string slot_id = 1;
   string model_asset_id = 2;
   string content_id = 3;
+  LocalCapabilityRequirementPresence presence = 4;
 }
 
 message LoadoutEffectiveInputIdentity {
@@ -243,6 +307,8 @@ message LoadoutEffectiveInputIdentity {
   google.protobuf.Struct options = 6;
   repeated LoadoutEffectiveModelAxisIdentity model_axes = 7;
   repeated LoadoutRecipeCustodyReference recipe_custody = 8;
+  repeated string admitted_features = 9;
+  repeated TextBehaviorKind admitted_text_behaviors = 10;
 }
 
 message AIConfigAppOwner {
@@ -315,9 +381,13 @@ message AIConfigLocalResourceProjection {
   string label = 2;
   string capability_contract = 3;
   CapabilityImplementationIdentity implementation = 4;
-  repeated string supported_features = 5;
+  reserved 5;
+  reserved "supported_features";
   AIConfigEffectiveState state = 6;
   repeated string reasons = 7;
+  repeated string implementation_supported_features = 8;
+  repeated string configured_features = 9;
+  repeated TextBehaviorCapabilityProjection text_behaviors = 10;
 }
 
 message AIConfigCloudConnectorProjection {

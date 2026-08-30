@@ -358,7 +358,7 @@ units:
     kind: rule
     title: Every model slot recommendation is independent
     modality: must
-    statement: Model content formerly described as a companion is an ordinary independent ModelAsset candidate listed under the exact Driver-projected slot metadata, never a child or identity component of another model; a recipe may recommend one or more content references per slot, including host-ranked alternatives, but makes no cross-slot training-compatibility guarantee, binding inheritance, grouped identity, selection, or download claim. RecipeCustody is a separate list limited to pinned non-model loader or execution supply and never contains a model, encoder, VAE, tokenizer data payload, or user-replaceable slot.
+    statement: Model content formerly described as a companion is an ordinary independent ModelAsset candidate listed under the exact Driver-projected slot metadata, never a child or identity component of another model; a recipe may recommend one or more content references per slot, including host-ranked alternatives, but makes no cross-slot training-compatibility guarantee, binding inheritance, grouped identity, selection, or download claim. A passive install-only ModelAsset offer retains its canonical model_type through catalog search and install-plan projections and may declare zero CapabilityContracts; product consumers use that model_type only to present and install the independent ModelAsset and never to infer Driver slot eligibility, cross-slot compatibility, selection, route, readiness, or execution support. RecipeCustody is a separate list limited to pinned non-model loader or execution supply and never contains a model, encoder, VAE, tokenizer data payload, or user-replaceable slot.
     condition: Whenever slot recommendations or RecipeCustody are authored or consumed.
     failure: Reject parent-coupled companion identity, model-bearing custody, inherited or grouped bindings, catalog-defined slot requiredness, and recommendation presented as selection or compatibility proof.
     relations:
@@ -618,6 +618,8 @@ units:
         target: definition.nimi.runtime.ai-provider.voxcpm-family
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
   - id: rule.nimi.runtime.model-catalog.r059
     kind: rule
     title: Gemma 4 catalog cutover follows one recipe identity
@@ -638,5 +640,3 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
-      - type: applies_to
-        target: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane

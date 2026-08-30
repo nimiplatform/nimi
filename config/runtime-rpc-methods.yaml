@@ -265,6 +265,18 @@ services:
       - name: SelectProductControlDataRoot
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot
+      - name: InitializeProductControlRootActivation
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation
+      - name: ReplaceProductControlDataRoot
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot
+      - name: StartProductControlCheckSync
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync
+      - name: GetProductControlCheckSync
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync
       - name: SetProductControlFirstRunInstallLevel
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel

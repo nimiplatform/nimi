@@ -60,28 +60,54 @@ enum FinishReason {
   FINISH_REASON_ERROR = 5;
 }
 
-enum ReasoningMode {
-  REASONING_MODE_UNSPECIFIED = 0;
-  REASONING_MODE_OFF = 1;
-  REASONING_MODE_ON = 2;
+enum ReasoningActivation {
+  REASONING_ACTIVATION_UNSPECIFIED = 0;
+  REASONING_ACTIVATION_DISABLED = 1;
+  REASONING_ACTIVATION_ADAPTIVE = 2;
+  REASONING_ACTIVATION_REQUIRED = 3;
 }
 
-enum ReasoningTraceMode {
-  REASONING_TRACE_MODE_UNSPECIFIED = 0;
-  REASONING_TRACE_MODE_HIDE = 1;
-  REASONING_TRACE_MODE_SEPARATE = 2;
+enum ReasoningEffort {
+  REASONING_EFFORT_UNSPECIFIED = 0;
+  REASONING_EFFORT_MINIMAL = 1;
+  REASONING_EFFORT_LOW = 2;
+  REASONING_EFFORT_MEDIUM = 3;
+  REASONING_EFFORT_HIGH = 4;
+  REASONING_EFFORT_MAXIMUM = 5;
+}
+
+enum ReasoningPresentation {
+  REASONING_PRESENTATION_UNSPECIFIED = 0;
+  REASONING_PRESENTATION_HIDDEN = 1;
+  REASONING_PRESENTATION_SUMMARY = 2;
+}
+
+enum ExecutionInterruptionCause {
+  EXECUTION_INTERRUPTION_CAUSE_UNSPECIFIED = 0;
+  EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART = 1;
+}
+
+enum ExecutionResubmitDisposition {
+  EXECUTION_RESUBMIT_DISPOSITION_UNSPECIFIED = 0;
+  EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT = 1;
+}
+
+// Presence of this message is the canonical typed INTERRUPTED disposition. It
+// does not add an INTERRUPTED Job status.
+message ExecutionInterruption {
+  ExecutionInterruptionCause cause = 1;
+  ExecutionResubmitDisposition resubmit_disposition = 2;
 }
 
 enum StreamEventType {
   STREAM_EVENT_TYPE_UNSPECIFIED = 0;
   STREAM_EVENT_STARTED = 1;
   STREAM_EVENT_DELTA = 2;
-  STREAM_EVENT_TOOL_CALL = 3;
-  STREAM_EVENT_TOOL_RESULT = 4;
+  reserved 3, 4, 8;
+  reserved "STREAM_EVENT_TOOL_CALL", "STREAM_EVENT_TOOL_RESULT", "STREAM_EVENT_TOOL_APPROVAL_REQUEST";
   STREAM_EVENT_USAGE = 5;
   STREAM_EVENT_COMPLETED = 6;
   STREAM_EVENT_FAILED = 7;
-  STREAM_EVENT_TOOL_APPROVAL_REQUEST = 8;
 }
 
 enum VideoMode {
@@ -129,12 +155,12 @@ message ChatMessage {
   string content = 2;
   string name = 3;
   repeated ChatContentPart parts = 4;
-  // Tool calls emitted by an assistant turn (carried back for multi-step loops).
-  repeated ToolCall tool_calls = 5;
-  // Tool call id this message answers (set on tool-role messages).
-  string tool_call_id = 6;
-  repeated ToolResult tool_results = 7;
-  repeated ToolApprovalResponse tool_approval_responses = 8;
+  reserved 5 to 8;
+  reserved "tool_calls", "tool_call_id", "tool_results", "tool_approval_responses";
+  // Canonical ordered assistant/tool-result round-trip. When non-empty,
+  // content and parts must be empty; convenience output views are never
+  // accepted here as a second source of truth.
+  repeated TextTurnItem turn_items = 9;
 }
 
 enum ChatContentPartType {
@@ -179,21 +205,6 @@ message ToolSpec {
   google.protobuf.Struct provider_metadata = 7;
 }
 
-enum ToolSpecKind {
-  TOOL_SPEC_KIND_UNSPECIFIED = 0;
-  TOOL_SPEC_KIND_FUNCTION = 1;
-  TOOL_SPEC_KIND_PROVIDER = 2;
-}
-
-// How the model is allowed or required to select tools for a text scenario.
-enum ToolChoiceMode {
-  TOOL_CHOICE_MODE_UNSPECIFIED = 0;
-  TOOL_CHOICE_MODE_AUTO = 1;
-  TOOL_CHOICE_MODE_NONE = 2;
-  TOOL_CHOICE_MODE_REQUIRED = 3;
-  TOOL_CHOICE_MODE_TOOL = 4;
-}
-
 // Requested structured-output shape for a text scenario.
 enum ResponseFormatKind {
   RESPONSE_FORMAT_KIND_UNSPECIFIED = 0;
@@ -215,7 +226,8 @@ message ToolCall {
   string id = 1;
   string name = 2;
   string arguments_json = 3;
-  bool provider_executed = 4;
+  reserved 4;
+  reserved "provider_executed";
   bool dynamic = 5;
   google.protobuf.Struct provider_metadata = 6;
 }
@@ -230,17 +242,66 @@ message ToolResult {
   google.protobuf.Struct provider_metadata = 7;
 }
 
-message ToolApprovalRequest {
-  string approval_id = 1;
-  string tool_call_id = 2;
-  google.protobuf.Struct provider_metadata = 3;
+message TextOutputText {
+  string text = 1;
 }
 
-message ToolApprovalResponse {
-  string approval_id = 1;
-  bool approved = 2;
-  string reason = 3;
-  google.protobuf.Struct provider_metadata = 4;
+// Only an implementation-authorized summary is carried here. Raw
+// chain-of-thought has no canonical public field.
+message ReasoningSummary {
+  string text = 1;
+}
+
+// Bounded self-contained native continuity state. Callers preserve the ordered
+// bytes unchanged; Runtime does not interpret or persist a cross-request store.
+message ReasoningContinuityCarrier {
+  string kind = 1;
+  uint32 version = 2;
+  bytes payload = 3;
+}
+
+// Canonical ordered text.generate output item used by sync and stream.
+message TextOutputItem {
+  oneof item {
+    TextOutputText text = 1;
+    ReasoningSummary reasoning_summary = 2;
+    ToolCall tool_call = 3;
+    ReasoningContinuityCarrier reasoning_continuity = 6;
+  }
+}
+
+// Canonical ordered assistant transcript input. A ToolResult is supplied only
+// by the external AI host in the later turn and is never Runtime output.
+message TextTurnItem {
+  oneof item {
+    TextOutputItem output = 1;
+    ToolResult tool_result = 2;
+  }
+}
+
+message TextOutputTextDelta {
+  string text = 1;
+}
+
+message ReasoningSummaryDelta {
+  string text = 1;
+}
+
+// Streaming public-output counterpart of TextOutputItem. item_completed seals the item;
+// engine fragments remain Runtime-private, and only a complete validated
+// ToolCall may occupy the public tool_call branch.
+message TextOutputItemDelta {
+  // Zero-based global output-item index. Repeated deltas may address the same
+  // open text/summary item; a completed item never accepts another delta.
+  uint32 item_index = 1;
+  oneof delta {
+    TextOutputTextDelta text = 2;
+    ReasoningSummaryDelta reasoning_summary = 3;
+    // Complete validated items; both require item_completed=true.
+    ToolCall tool_call = 4;
+    ReasoningContinuityCarrier reasoning_continuity = 7;
+  }
+  bool item_completed = 8;
 }
 
 message TextSource {
@@ -284,9 +345,14 @@ message IgnoredScenarioExtension {
 }
 
 message ReasoningConfig {
-  ReasoningMode mode = 1;
-  ReasoningTraceMode trace_mode = 2;
-  int32 budget_tokens = 3;
+  reserved 1 to 3;
+  reserved "mode", "trace_mode", "budget_tokens";
+  ReasoningActivation activation = 4;
+  oneof intensity {
+    ReasoningEffort effort = 5;
+    uint32 exact_budget_tokens = 6;
+  }
+  ReasoningPresentation presentation = 7;
 }
 
 message TextGenerateScenarioSpec {
@@ -325,6 +391,8 @@ message ImageGenerateScenarioSpec {
   string mask = 10;
   string response_format = 11;
   string reference_image_artifact_id = 12;
+  string mask_artifact_id = 13;
+  optional float strength = 14;
 }
 
 message VideoGenerateScenarioSpec {
@@ -439,12 +507,18 @@ message ExecuteScenarioRequest {
 }
 
 message TextGenerateOutput {
+  // Convenience views derived from items. They are never independent truth.
   string text = 1;
   repeated ToolCall tool_calls = 2;
-  repeated ToolResult tool_results = 3;
-  repeated ToolApprovalRequest tool_approval_requests = 4;
+  reserved 3, 4;
+  reserved "tool_results", "tool_approval_requests";
   repeated TextSource sources = 5;
   repeated RawChunk raw_chunks = 6;
+  // Sole primary content truth for text.generate synchronous output.
+  repeated TextOutputItem items = 7;
+  // Ordered concatenation of permitted ReasoningSummary items, derived from
+  // items and empty when presentation is HIDDEN.
+  string reasoning_summary = 8;
 }
 
 message EmbeddingVector {
@@ -519,6 +593,8 @@ message ExecuteScenarioResponse {
   repeated IgnoredScenarioExtension ignored_extensions = 7;
   reserved 8;
   reserved "resolved_execution_binding";
+  // Public attribution of the exact Local request admission. Empty for Cloud.
+  LoadoutEffectiveInputIdentity effective_input_identity = 9;
 }
 
 // Exact third-party Local App foreground text-candidate contract. Runtime
@@ -564,6 +640,9 @@ message LocalAppScenarioArtifact {
   int32 height = 8;
   int32 sample_rate_hz = 9;
   int32 channels = 10;
+  // Concrete image seed selected by the admitted Driver/ExecutionHost. This
+  // is absent for non-image artifacts and does not expose free-form metadata.
+  optional int32 seed = 11;
 }
 
 // Synchronous closed-set scenario specs admitted for ExecuteLocalAppScenario.
@@ -584,6 +663,8 @@ message LocalAppImageGenerateScenarioSpec {
   string mask = 10;
   string response_format = 11;
   string reference_image_artifact_id = 12;
+  string mask_artifact_id = 13;
+  optional float strength = 14;
 }
 
 message ExecuteLocalAppScenarioRequest {
@@ -710,6 +791,8 @@ message LocalAppScenarioJob {
   // Empty for every non-transcription Job and never reconstructed by reading
   // an artifact body.
   string transcription_text = 13;
+  // Set only with reason_code AI_EXECUTION_INTERRUPTED and status FAILED.
+  ExecutionInterruption interruption = 14;
 }
 
 // Trimmed voice asset catalog projection. Provider, model, provider voice
@@ -790,6 +873,7 @@ message LocalAppTextTurnCompleted {
 message LocalAppTextTurnFailed {
   ReasonCode reason_code = 1;
   string action_hint = 2;
+  ExecutionInterruption interruption = 3;
 }
 
 message StreamLocalAppTextTurnEvent {
@@ -858,14 +942,8 @@ message ScenarioStreamStarted {
   // UNSPECIFIED for non-speech scenario streams. Consumers must not infer
   // native realtime from event shape or from ScenarioStreamCompleted.stream_simulated.
   VoiceOutputMode voice_output_mode = 4;
-}
-
-message TextStreamDelta {
-  string text = 1;
-}
-
-message ReasoningStreamDelta {
-  string text = 1;
+  // Public attribution of the exact Local request admission. Empty for Cloud.
+  LoadoutEffectiveInputIdentity effective_input_identity = 5;
 }
 
 message ArtifactStreamDelta {
@@ -874,12 +952,14 @@ message ArtifactStreamDelta {
 }
 
 message ScenarioStreamDelta {
+  reserved 1, 3;
+  reserved "text", "reasoning";
   oneof delta {
-    TextStreamDelta text = 1;
     ArtifactStreamDelta artifact = 2;
-    ReasoningStreamDelta reasoning = 3;
     TextSource source = 4;
+    // RawChunk never carries hidden or raw chain-of-thought.
     RawChunk raw = 5;
+    TextOutputItemDelta text_output_item = 6;
   }
 }
 
@@ -896,6 +976,7 @@ message ScenarioStreamCompleted {
 message ScenarioStreamFailed {
   ReasonCode reason_code = 1;
   string action_hint = 2;
+  ExecutionInterruption interruption = 3;
 }
 
 message StreamScenarioEvent {
@@ -903,16 +984,14 @@ message StreamScenarioEvent {
   uint64 sequence = 2;
   string trace_id = 3;
   google.protobuf.Timestamp timestamp = 4;
-  reserved 12, 13;
+  reserved 12, 13, 17 to 19;
+  reserved "tool_call", "tool_result", "tool_approval_request";
   oneof payload {
     ScenarioStreamStarted started = 10;
     ScenarioStreamDelta delta = 11;
     UsageStats usage = 14;
     ScenarioStreamCompleted completed = 15;
     ScenarioStreamFailed failed = 16;
-    ToolCall tool_call = 17;
-    ToolResult tool_result = 18;
-    ToolApprovalRequest tool_approval_request = 19;
   }
 }
 
@@ -953,6 +1032,9 @@ message ScenarioArtifact {
   int32 channels = 12;
   SpeechAlignment speech_alignment = 13;
   google.protobuf.Struct metadata = 14;
+  // Concrete seed used to produce an image artifact. This is absent for
+  // non-image artifacts and is the canonical seed result, not metadata.
+  optional int32 seed = 15;
 }
 
 message ScenarioJob {
@@ -985,6 +1067,8 @@ message ScenarioJob {
   // Public attribution projection of the immutable Runtime-private
   // ResolvedAssembly captured before this Job was published.
   LoadoutEffectiveInputIdentity effective_input_identity = 24;
+  // Set only with reason_code AI_EXECUTION_INTERRUPTED and status FAILED.
+  ExecutionInterruption interruption = 25;
 }
 
 message SubmitScenarioJobRequest {

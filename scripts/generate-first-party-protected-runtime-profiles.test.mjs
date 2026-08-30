@@ -48,7 +48,7 @@ test('compiles all protected Runtime profiles and current generated consumers', 
   }
 });
 
-test('retires Desktop self AI consumption from the direct account product profile', () => {
+test('admits only the typed Desktop external-AI-host RPC pair on the account profile', () => {
   const { model } = compile();
   const profiles = new Map(model.profiles.map((profile) => [profile.profileId, profile]));
   const accountMethods = new Set(
@@ -60,25 +60,30 @@ test('retires Desktop self AI consumption from the direct account product profil
   for (const methodId of [
     '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario',
     '/nimi.runtime.v1.RuntimeAiService/StreamScenario',
+  ]) {
+    assert.equal(accountMethods.has(methodId), true, `${methodId} must back the typed Desktop external-AI-host facade`);
+    assert.equal(machineMethods.has(methodId), false, `${methodId} must not use the machine product profile`);
+  }
+  for (const methodId of [
     '/nimi.runtime.v1.RuntimeAiService/SubmitScenarioJob',
     '/nimi.runtime.v1.RuntimeAiService/GetScenarioJob',
     '/nimi.runtime.v1.RuntimeAiService/CancelScenarioJob',
     '/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents',
     '/nimi.runtime.v1.RuntimeAiService/GetScenarioArtifacts',
-	'/nimi.runtime.v1.RuntimeAiService/ListPresetVoices',
-	'/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets',
+    '/nimi.runtime.v1.RuntimeAiService/ListPresetVoices',
+    '/nimi.runtime.v1.RuntimeAiService/ListVoiceAssets',
   ]) {
-	assert.equal(accountMethods.has(methodId), false, `${methodId} must be unreachable from the direct account product profile`);
+    assert.equal(accountMethods.has(methodId), false, `${methodId} must remain unreachable from the direct account product profile`);
     assert.equal(machineMethods.has(methodId), false, `${methodId} must not use the machine product profile`);
   }
-	for (const methodId of [
-		'/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario',
-		'/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn',
-		'/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob',
-		'/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets',
-	]) {
-		assert.equal(accountMethods.has(methodId), true, `${methodId} must remain on the formal App carrier`);
-	}
+  for (const methodId of [
+    '/nimi.runtime.v1.RuntimeAiService/ExecuteLocalAppScenario',
+    '/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn',
+    '/nimi.runtime.v1.RuntimeAiService/SubmitLocalAppScenarioJob',
+    '/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets',
+  ]) {
+    assert.equal(accountMethods.has(methodId), true, `${methodId} must remain on the formal App carrier`);
+  }
 });
 
 test('rejects duplicate and wildcard methods', () => {

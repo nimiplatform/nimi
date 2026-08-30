@@ -1415,6 +1415,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "GetModelAssetResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync",
+    "service": "RuntimeLocalService",
+    "method": "GetProductControlCheckSync",
+    "kind": "unary",
+    "requestType": "GetProductControlCheckSyncRequest",
+    "responseType": "CheckSyncProjectionJson"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
     "service": "RuntimeLocalService",
     "method": "GetProductControlRecord",
@@ -1445,6 +1453,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "ImportModelAssetRequest",
     "responseType": "ImportModelAssetResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation",
+    "service": "RuntimeLocalService",
+    "method": "InitializeProductControlRootActivation",
+    "kind": "unary",
+    "requestType": "InitializeProductControlRootActivationRequest",
+    "responseType": "ProductControlProjectionJson"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan",
@@ -1559,6 +1575,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RepairLocalEnvironmentDependencyResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot",
+    "service": "RuntimeLocalService",
+    "method": "ReplaceProductControlDataRoot",
+    "kind": "unary",
+    "requestType": "ReplaceProductControlDataRootRequest",
+    "responseType": "ProductControlProjectionJson"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/ResolveLocalEnvironmentActivationGate",
     "service": "RuntimeLocalService",
     "method": "ResolveLocalEnvironmentActivationGate",
@@ -1637,6 +1661,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "StartLocalEnvironmentDependencyJobRequest",
     "responseType": "StartLocalEnvironmentDependencyJobResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync",
+    "service": "RuntimeLocalService",
+    "method": "StartProductControlCheckSync",
+    "kind": "unary",
+    "requestType": "StartProductControlCheckSyncRequest",
+    "responseType": "CheckSyncProjectionJson"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/UpdateLoadout",

@@ -21,6 +21,165 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+// Provider-neutral typed behaviors within text.generate. These do not create
+// additional top-level CapabilityContract tokens.
+type TextBehaviorKind int32
+
+const (
+	TextBehaviorKind_TEXT_BEHAVIOR_KIND_UNSPECIFIED       TextBehaviorKind = 0
+	TextBehaviorKind_TEXT_BEHAVIOR_KIND_TOOL_USE          TextBehaviorKind = 1
+	TextBehaviorKind_TEXT_BEHAVIOR_KIND_REASONING         TextBehaviorKind = 2
+	TextBehaviorKind_TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT TextBehaviorKind = 3
+)
+
+// Enum value maps for TextBehaviorKind.
+var (
+	TextBehaviorKind_name = map[int32]string{
+		0: "TEXT_BEHAVIOR_KIND_UNSPECIFIED",
+		1: "TEXT_BEHAVIOR_KIND_TOOL_USE",
+		2: "TEXT_BEHAVIOR_KIND_REASONING",
+		3: "TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT",
+	}
+	TextBehaviorKind_value = map[string]int32{
+		"TEXT_BEHAVIOR_KIND_UNSPECIFIED":       0,
+		"TEXT_BEHAVIOR_KIND_TOOL_USE":          1,
+		"TEXT_BEHAVIOR_KIND_REASONING":         2,
+		"TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT": 3,
+	}
+)
+
+func (x TextBehaviorKind) Enum() *TextBehaviorKind {
+	p := new(TextBehaviorKind)
+	*p = x
+	return p
+}
+
+func (x TextBehaviorKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (TextBehaviorKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_common_proto_enumTypes[0].Descriptor()
+}
+
+func (TextBehaviorKind) Type() protoreflect.EnumType {
+	return &file_runtime_v1_common_proto_enumTypes[0]
+}
+
+func (x TextBehaviorKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use TextBehaviorKind.Descriptor instead.
+func (TextBehaviorKind) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{0}
+}
+
+type ToolSpecKind int32
+
+const (
+	ToolSpecKind_TOOL_SPEC_KIND_UNSPECIFIED ToolSpecKind = 0
+	ToolSpecKind_TOOL_SPEC_KIND_FUNCTION    ToolSpecKind = 1
+	ToolSpecKind_TOOL_SPEC_KIND_PROVIDER    ToolSpecKind = 2
+)
+
+// Enum value maps for ToolSpecKind.
+var (
+	ToolSpecKind_name = map[int32]string{
+		0: "TOOL_SPEC_KIND_UNSPECIFIED",
+		1: "TOOL_SPEC_KIND_FUNCTION",
+		2: "TOOL_SPEC_KIND_PROVIDER",
+	}
+	ToolSpecKind_value = map[string]int32{
+		"TOOL_SPEC_KIND_UNSPECIFIED": 0,
+		"TOOL_SPEC_KIND_FUNCTION":    1,
+		"TOOL_SPEC_KIND_PROVIDER":    2,
+	}
+)
+
+func (x ToolSpecKind) Enum() *ToolSpecKind {
+	p := new(ToolSpecKind)
+	*p = x
+	return p
+}
+
+func (x ToolSpecKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ToolSpecKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_common_proto_enumTypes[1].Descriptor()
+}
+
+func (ToolSpecKind) Type() protoreflect.EnumType {
+	return &file_runtime_v1_common_proto_enumTypes[1]
+}
+
+func (x ToolSpecKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ToolSpecKind.Descriptor instead.
+func (ToolSpecKind) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{1}
+}
+
+// How the model is allowed or required to select tools for a text scenario.
+type ToolChoiceMode int32
+
+const (
+	ToolChoiceMode_TOOL_CHOICE_MODE_UNSPECIFIED ToolChoiceMode = 0
+	ToolChoiceMode_TOOL_CHOICE_MODE_AUTO        ToolChoiceMode = 1
+	ToolChoiceMode_TOOL_CHOICE_MODE_NONE        ToolChoiceMode = 2
+	ToolChoiceMode_TOOL_CHOICE_MODE_REQUIRED    ToolChoiceMode = 3
+	ToolChoiceMode_TOOL_CHOICE_MODE_TOOL        ToolChoiceMode = 4
+)
+
+// Enum value maps for ToolChoiceMode.
+var (
+	ToolChoiceMode_name = map[int32]string{
+		0: "TOOL_CHOICE_MODE_UNSPECIFIED",
+		1: "TOOL_CHOICE_MODE_AUTO",
+		2: "TOOL_CHOICE_MODE_NONE",
+		3: "TOOL_CHOICE_MODE_REQUIRED",
+		4: "TOOL_CHOICE_MODE_TOOL",
+	}
+	ToolChoiceMode_value = map[string]int32{
+		"TOOL_CHOICE_MODE_UNSPECIFIED": 0,
+		"TOOL_CHOICE_MODE_AUTO":        1,
+		"TOOL_CHOICE_MODE_NONE":        2,
+		"TOOL_CHOICE_MODE_REQUIRED":    3,
+		"TOOL_CHOICE_MODE_TOOL":        4,
+	}
+)
+
+func (x ToolChoiceMode) Enum() *ToolChoiceMode {
+	p := new(ToolChoiceMode)
+	*p = x
+	return p
+}
+
+func (x ToolChoiceMode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (ToolChoiceMode) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_common_proto_enumTypes[2].Descriptor()
+}
+
+func (ToolChoiceMode) Type() protoreflect.EnumType {
+	return &file_runtime_v1_common_proto_enumTypes[2]
+}
+
+func (x ToolChoiceMode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use ToolChoiceMode.Descriptor instead.
+func (ToolChoiceMode) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{2}
+}
+
 type ReasonCode int32
 
 const (
@@ -123,6 +282,13 @@ const (
 	ReasonCode_AI_PROVIDER_INTERNAL           ReasonCode = 392
 	ReasonCode_AI_PROVIDER_RATE_LIMITED       ReasonCode = 393
 	ReasonCode_AI_PROVIDER_TIMEOUT            ReasonCode = 394
+	// TEXT_BEHAVIOR and execution interruption family (395+)
+	ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED    ReasonCode = 395
+	ReasonCode_AI_TEXT_BEHAVIOR_AMBIGUOUS      ReasonCode = 396
+	ReasonCode_AI_TEXT_OUTPUT_INCOMPLETE       ReasonCode = 397
+	ReasonCode_AI_TOOL_CALL_INVALID            ReasonCode = 398
+	ReasonCode_AI_REASONING_CONTINUITY_INVALID ReasonCode = 399
+	ReasonCode_AI_EXECUTION_INTERRUPTED        ReasonCode = 402
 	// MEDIA family (410+)
 	ReasonCode_AI_MEDIA_SPEC_INVALID         ReasonCode = 410
 	ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED   ReasonCode = 411
@@ -434,6 +600,12 @@ var (
 		392: "AI_PROVIDER_INTERNAL",
 		393: "AI_PROVIDER_RATE_LIMITED",
 		394: "AI_PROVIDER_TIMEOUT",
+		395: "AI_TEXT_BEHAVIOR_UNSUPPORTED",
+		396: "AI_TEXT_BEHAVIOR_AMBIGUOUS",
+		397: "AI_TEXT_OUTPUT_INCOMPLETE",
+		398: "AI_TOOL_CALL_INVALID",
+		399: "AI_REASONING_CONTINUITY_INVALID",
+		402: "AI_EXECUTION_INTERRUPTED",
 		410: "AI_MEDIA_SPEC_INVALID",
 		411: "AI_MEDIA_OPTION_UNSUPPORTED",
 		412: "AI_MEDIA_JOB_NOT_FOUND",
@@ -691,6 +863,12 @@ var (
 		"AI_PROVIDER_INTERNAL":                                 392,
 		"AI_PROVIDER_RATE_LIMITED":                             393,
 		"AI_PROVIDER_TIMEOUT":                                  394,
+		"AI_TEXT_BEHAVIOR_UNSUPPORTED":                         395,
+		"AI_TEXT_BEHAVIOR_AMBIGUOUS":                           396,
+		"AI_TEXT_OUTPUT_INCOMPLETE":                            397,
+		"AI_TOOL_CALL_INVALID":                                 398,
+		"AI_REASONING_CONTINUITY_INVALID":                      399,
+		"AI_EXECUTION_INTERRUPTED":                             402,
 		"AI_MEDIA_SPEC_INVALID":                                410,
 		"AI_MEDIA_OPTION_UNSUPPORTED":                          411,
 		"AI_MEDIA_JOB_NOT_FOUND":                               412,
@@ -876,11 +1054,11 @@ func (x ReasonCode) String() string {
 }
 
 func (ReasonCode) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_common_proto_enumTypes[0].Descriptor()
+	return file_runtime_v1_common_proto_enumTypes[3].Descriptor()
 }
 
 func (ReasonCode) Type() protoreflect.EnumType {
-	return &file_runtime_v1_common_proto_enumTypes[0]
+	return &file_runtime_v1_common_proto_enumTypes[3]
 }
 
 func (x ReasonCode) Number() protoreflect.EnumNumber {
@@ -889,7 +1067,7 @@ func (x ReasonCode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ReasonCode.Descriptor instead.
 func (ReasonCode) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_common_proto_rawDescGZIP(), []int{0}
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{3}
 }
 
 type ExternalPrincipalType int32
@@ -928,11 +1106,11 @@ func (x ExternalPrincipalType) String() string {
 }
 
 func (ExternalPrincipalType) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_common_proto_enumTypes[1].Descriptor()
+	return file_runtime_v1_common_proto_enumTypes[4].Descriptor()
 }
 
 func (ExternalPrincipalType) Type() protoreflect.EnumType {
-	return &file_runtime_v1_common_proto_enumTypes[1]
+	return &file_runtime_v1_common_proto_enumTypes[4]
 }
 
 func (x ExternalPrincipalType) Number() protoreflect.EnumNumber {
@@ -941,7 +1119,7 @@ func (x ExternalPrincipalType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ExternalPrincipalType.Descriptor instead.
 func (ExternalPrincipalType) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_common_proto_rawDescGZIP(), []int{1}
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{4}
 }
 
 type CallerKind int32
@@ -980,11 +1158,11 @@ func (x CallerKind) String() string {
 }
 
 func (CallerKind) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_common_proto_enumTypes[2].Descriptor()
+	return file_runtime_v1_common_proto_enumTypes[5].Descriptor()
 }
 
 func (CallerKind) Type() protoreflect.EnumType {
-	return &file_runtime_v1_common_proto_enumTypes[2]
+	return &file_runtime_v1_common_proto_enumTypes[5]
 }
 
 func (x CallerKind) Number() protoreflect.EnumNumber {
@@ -993,7 +1171,7 @@ func (x CallerKind) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use CallerKind.Descriptor instead.
 func (CallerKind) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_common_proto_rawDescGZIP(), []int{2}
+	return file_runtime_v1_common_proto_rawDescGZIP(), []int{5}
 }
 
 type UsageStats struct {
@@ -1360,7 +1538,22 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12\x1f\n" +
 	"\vaction_hint\x18\x03 \x01(\tR\n" +
-	"actionHint*\xcfQ\n" +
+	"actionHint*\xa3\x01\n" +
+	"\x10TextBehaviorKind\x12\"\n" +
+	"\x1eTEXT_BEHAVIOR_KIND_UNSPECIFIED\x10\x00\x12\x1f\n" +
+	"\x1bTEXT_BEHAVIOR_KIND_TOOL_USE\x10\x01\x12 \n" +
+	"\x1cTEXT_BEHAVIOR_KIND_REASONING\x10\x02\x12(\n" +
+	"$TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT\x10\x03*h\n" +
+	"\fToolSpecKind\x12\x1e\n" +
+	"\x1aTOOL_SPEC_KIND_UNSPECIFIED\x10\x00\x12\x1b\n" +
+	"\x17TOOL_SPEC_KIND_FUNCTION\x10\x01\x12\x1b\n" +
+	"\x17TOOL_SPEC_KIND_PROVIDER\x10\x02*\xa2\x01\n" +
+	"\x0eToolChoiceMode\x12 \n" +
+	"\x1cTOOL_CHOICE_MODE_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15TOOL_CHOICE_MODE_AUTO\x10\x01\x12\x19\n" +
+	"\x15TOOL_CHOICE_MODE_NONE\x10\x02\x12\x1d\n" +
+	"\x19TOOL_CHOICE_MODE_REQUIRED\x10\x03\x12\x19\n" +
+	"\x15TOOL_CHOICE_MODE_TOOL\x10\x04*\x93S\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1446,7 +1639,13 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x17AI_PROVIDER_AUTH_FAILED\x10\x87\x03\x12\x19\n" +
 	"\x14AI_PROVIDER_INTERNAL\x10\x88\x03\x12\x1d\n" +
 	"\x18AI_PROVIDER_RATE_LIMITED\x10\x89\x03\x12\x18\n" +
-	"\x13AI_PROVIDER_TIMEOUT\x10\x8a\x03\x12\x1a\n" +
+	"\x13AI_PROVIDER_TIMEOUT\x10\x8a\x03\x12!\n" +
+	"\x1cAI_TEXT_BEHAVIOR_UNSUPPORTED\x10\x8b\x03\x12\x1f\n" +
+	"\x1aAI_TEXT_BEHAVIOR_AMBIGUOUS\x10\x8c\x03\x12\x1e\n" +
+	"\x19AI_TEXT_OUTPUT_INCOMPLETE\x10\x8d\x03\x12\x19\n" +
+	"\x14AI_TOOL_CALL_INVALID\x10\x8e\x03\x12$\n" +
+	"\x1fAI_REASONING_CONTINUITY_INVALID\x10\x8f\x03\x12\x1d\n" +
+	"\x18AI_EXECUTION_INTERRUPTED\x10\x92\x03\x12\x1a\n" +
 	"\x15AI_MEDIA_SPEC_INVALID\x10\x9a\x03\x12 \n" +
 	"\x1bAI_MEDIA_OPTION_UNSUPPORTED\x10\x9b\x03\x12\x1b\n" +
 	"\x16AI_MEDIA_JOB_NOT_FOUND\x10\x9c\x03\x12!\n" +
@@ -1643,28 +1842,31 @@ func file_runtime_v1_common_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_common_proto_rawDescData
 }
 
-var file_runtime_v1_common_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_runtime_v1_common_proto_enumTypes = make([]protoimpl.EnumInfo, 6)
 var file_runtime_v1_common_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_runtime_v1_common_proto_goTypes = []any{
-	(ReasonCode)(0),            // 0: nimi.runtime.v1.ReasonCode
-	(ExternalPrincipalType)(0), // 1: nimi.runtime.v1.ExternalPrincipalType
-	(CallerKind)(0),            // 2: nimi.runtime.v1.CallerKind
-	(*UsageStats)(nil),         // 3: nimi.runtime.v1.UsageStats
-	(*ResourceSelectors)(nil),  // 4: nimi.runtime.v1.ResourceSelectors
-	(*ConsentRef)(nil),         // 5: nimi.runtime.v1.ConsentRef
-	(*ErrorInfo)(nil),          // 6: nimi.runtime.v1.ErrorInfo
-	(*Ack)(nil),                // 7: nimi.runtime.v1.Ack
-	nil,                        // 8: nimi.runtime.v1.ResourceSelectors.LabelsEntry
+	(TextBehaviorKind)(0),      // 0: nimi.runtime.v1.TextBehaviorKind
+	(ToolSpecKind)(0),          // 1: nimi.runtime.v1.ToolSpecKind
+	(ToolChoiceMode)(0),        // 2: nimi.runtime.v1.ToolChoiceMode
+	(ReasonCode)(0),            // 3: nimi.runtime.v1.ReasonCode
+	(ExternalPrincipalType)(0), // 4: nimi.runtime.v1.ExternalPrincipalType
+	(CallerKind)(0),            // 5: nimi.runtime.v1.CallerKind
+	(*UsageStats)(nil),         // 6: nimi.runtime.v1.UsageStats
+	(*ResourceSelectors)(nil),  // 7: nimi.runtime.v1.ResourceSelectors
+	(*ConsentRef)(nil),         // 8: nimi.runtime.v1.ConsentRef
+	(*ErrorInfo)(nil),          // 9: nimi.runtime.v1.ErrorInfo
+	(*Ack)(nil),                // 10: nimi.runtime.v1.Ack
+	nil,                        // 11: nimi.runtime.v1.ResourceSelectors.LabelsEntry
 }
 var file_runtime_v1_common_proto_depIdxs = []int32{
-	8, // 0: nimi.runtime.v1.ResourceSelectors.labels:type_name -> nimi.runtime.v1.ResourceSelectors.LabelsEntry
-	0, // 1: nimi.runtime.v1.ErrorInfo.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	0, // 2: nimi.runtime.v1.Ack.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	3, // [3:3] is the sub-list for method output_type
-	3, // [3:3] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	11, // 0: nimi.runtime.v1.ResourceSelectors.labels:type_name -> nimi.runtime.v1.ResourceSelectors.LabelsEntry
+	3,  // 1: nimi.runtime.v1.ErrorInfo.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 2: nimi.runtime.v1.Ack.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // [3:3] is the sub-list for method output_type
+	3,  // [3:3] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_common_proto_init() }
@@ -1677,7 +1879,7 @@ func file_runtime_v1_common_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_common_proto_rawDesc), len(file_runtime_v1_common_proto_rawDesc)),
-			NumEnums:      3,
+			NumEnums:      6,
 			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   0,
