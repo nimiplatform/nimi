@@ -1,0 +1,128 @@
+syntax = "proto3";
+package nimi.runtime.v1;
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+// Runtime receives protected-Shell-imported bytes, validates them, and mints
+// official refs. A material is never durable candidate/preview state.
+enum AgentPresentationAssetRole {
+  AGENT_PRESENTATION_ASSET_ROLE_UNSPECIFIED = 0;
+  AGENT_PRESENTATION_ASSET_ROLE_AVATAR = 1;
+  AGENT_PRESENTATION_ASSET_ROLE_BACKGROUND = 2;
+  AGENT_PRESENTATION_ASSET_ROLE_RESOURCE_PACK = 3;
+}
+
+message AgentPresentationAssetMaterial {
+  AgentPresentationAssetRole role = 1;
+  string file_name = 2;
+  string media_type = 3;
+  bytes content = 4;
+  string sha256 = 5;
+}
+
+// One Runtime-owned selected Resource Pack for the fixed Zhiyu presentation
+// target. The resource remains opaque outside the bounded presentation read;
+// target identity is projected so renderers never infer it from a raw path.
+message AgentResourcePackSelection {
+  string asset_ref = 1;
+  string target_id = 2;
+  uint32 target_version = 3;
+}
+
+// K-AGCORE-037 AgentPresentationEventFamily discriminates Runtime-owned
+// activity semantics plus common Conversation voice correlation. Renderer
+// motion mapping, audio clocks, mouth/viseme parameters, and playback remain
+// outside this contract.
+enum AgentPresentationEventFamily {
+  reserved 2, 3, 4, 5, 6;
+  reserved "AGENT_PRESENTATION_EVENT_FAMILY_MOTION_REQUESTED", "AGENT_PRESENTATION_EVENT_FAMILY_EXPRESSION_REQUESTED", "AGENT_PRESENTATION_EVENT_FAMILY_POSE_REQUESTED", "AGENT_PRESENTATION_EVENT_FAMILY_POSE_CLEARED", "AGENT_PRESENTATION_EVENT_FAMILY_LOOKAT_REQUESTED";
+  AGENT_PRESENTATION_EVENT_FAMILY_UNSPECIFIED = 0;
+  AGENT_PRESENTATION_EVENT_FAMILY_ACTIVITY_REQUESTED = 1;
+  AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY = 7;
+  AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE = 8;
+  AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL = 9;
+}
+
+enum AgentVoiceTimingPhase {
+  AGENT_VOICE_TIMING_PHASE_UNSPECIFIED = 0;
+  AGENT_VOICE_TIMING_PHASE_ACTIVE = 1;
+  AGENT_VOICE_TIMING_PHASE_COMPLETED = 2;
+  AGENT_VOICE_TIMING_PHASE_FAILED = 3;
+  AGENT_VOICE_TIMING_PHASE_INTERRUPTED = 4;
+  AGENT_VOICE_TIMING_PHASE_CANCELED = 5;
+}
+
+enum AgentPresentationBackendKind {
+  AGENT_PRESENTATION_BACKEND_KIND_UNSPECIFIED = 0;
+  AGENT_PRESENTATION_BACKEND_KIND_VRM = 1;
+  AGENT_PRESENTATION_BACKEND_KIND_LIVE2D = 2;
+  AGENT_PRESENTATION_BACKEND_KIND_SPRITE2D = 3;
+  AGENT_PRESENTATION_BACKEND_KIND_CANVAS2D = 4;
+  AGENT_PRESENTATION_BACKEND_KIND_VIDEO = 5;
+}
+
+// K-AGCORE-023 runtime-owned persistent presentation truth. This shape is
+// intentionally narrow and stable; renderer-local execution state must remain
+// on transient app/runtime seams rather than being smuggled here.
+message AgentPresentationProfile {
+  AgentPresentationBackendKind backend_kind = 1;
+  string avatar_asset_ref = 2;
+  string expression_profile_ref = 3;
+  string idle_preset = 4;
+  string interaction_policy_ref = 5;
+  string default_voice_reference = 6;
+  bool avatar_autoplay = 7;
+  string background_asset_ref = 8;
+  reserved 9;
+  uint64 revision = 10;
+}
+
+message AgentPresentationProfilePatch {
+  optional AgentPresentationBackendKind backend_kind = 1;
+  optional string avatar_asset_ref = 2;
+  optional string expression_profile_ref = 3;
+  optional string idle_preset = 4;
+  optional string interaction_policy_ref = 5;
+  optional string default_voice_reference = 6;
+  optional bool avatar_autoplay = 7;
+  optional string background_asset_ref = 8;
+}
+
+message ClearAgentPresentationProfile {}
+
+// AgentPresentationEventDetail projects bounded Runtime presentation and
+// Conversation voice-correlation events. `agent_id` is REQUIRED at the
+// AgentEvent envelope level; `conversation_anchor_id`, `turn_id`, and
+// `stream_id` are ALSO REQUIRED on every presentation event because
+// presentation is stream-scoped transient projection derived from committed
+// runtime interpretation. Runtime MUST NOT emit presentation events without
+// real stream-identity linkage.
+message AgentPresentationEventDetail {
+  AgentPresentationEventFamily family = 1;
+  string conversation_anchor_id = 2;
+  string turn_id = 3;
+  string stream_id = 4;
+  // activity_requested
+  string activity_name = 10;
+  string activity_category = 11;
+  string activity_intensity = 12;
+  string activity_source = 13;
+  // Renderer motion/expression/pose/look-at mapping is Avatar-owned and was
+  // retired from the common Runtime semantic carrier.
+  reserved 20, 21, 22, 30, 31, 40, 41, 42, 50, 51, 52, 53, 54, 55, 56;
+  reserved "motion_id", "motion_priority", "motion_expected_duration_ms", "expression_id", "expression_expected_duration_ms", "pose_id", "pose_expected_duration_ms", "previous_pose_id", "lookat_target_kind", "lookat_x", "lookat_y", "lookat_z", "lookat_has_x", "lookat_has_y", "lookat_has_z";
+  // Provider-neutral voice artifact/timing correlation. Decoder clocks,
+  // playback targets, transient transport refs, and lipsync parameters are
+  // Avatar/Host-owned and never enter this common projection.
+  reserved 62, 63, 67, 69, 70, 75;
+  reserved "voice_stream_id", "chunk_transport_ref", "voice_output_mode", "playback_target", "final_artifact", "final_artifact_id";
+  string audio_artifact_id = 60;
+  string audio_mime_type = 61;
+  string message_id = 64;
+  uint64 artifact_sequence = 65;
+  bool artifact_complete = 66;
+  AgentVoiceTimingPhase voice_timing_phase = 68;
+  string terminal_reason = 71;
+  string reason = 72;
+  int64 duration_ms = 73;
+  int64 deadline_offset_ms = 74;
+}

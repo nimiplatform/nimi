@@ -26,7 +26,7 @@
     "react": "19.2.6",
     "react-dom": "19.2.6",
     "react-i18next": "16.5.8",
-    "react-router-dom": "7.15.1",
+    "react-router-dom": "7.18.3",
     "scheduler": "0.27.0",
     "zod": "4.4.3",
     "zustand": "5.0.13"

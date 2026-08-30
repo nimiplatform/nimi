@@ -475,7 +475,8 @@ mod tests {
             assert!(protected_desktop_stream_method(method_id));
             assert!(validate_stream_method(method_id).is_ok());
         }
-        let public_scenario_stream = "/nimi.runtime.v1.RuntimeAiService/StreamScenario";
+        let public_scenario_stream =
+            "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents";
         assert!(!protected_desktop_stream_method(public_scenario_stream));
         assert!(validate_stream_method(public_scenario_stream).is_ok());
     }

@@ -1,0 +1,142 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/agent_presentation.proto";
+import "runtime/v1/capability_configuration.proto";
+import "runtime/v1/common.proto";
+
+// Shared LocalAgent AIConfig actions resolve the singular subsystem owner from
+// the authorized account scope and carry no Agent handle. Autonomy and
+// presentation remain per-Agent and continue to require Runtime-issued handles.
+enum LocalAgentCapabilityParticipationRole {
+  LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_UNSPECIFIED = 0;
+  LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY = 1;
+  LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING = 2;
+  LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE = 3;
+  LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE = 4;
+  LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE = 5;
+  LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_REALTIME = 6;
+}
+message LocalAgentCapabilityParticipation {
+  LocalAgentCapabilityParticipationRole role = 1;
+  string capability_contract = 2;
+}
+message LocalAppSharedLocalAgentAIConfigProjection {
+  AIConfig config = 1;
+  string revision = 2;
+  repeated AIConfigEffectiveSelection effective_selections = 3;
+  repeated LocalAgentCapabilityParticipation participation = 4;
+}
+
+message GetLocalAppSharedLocalAgentAIConfigRequest {}
+message GetLocalAppSharedLocalAgentAIConfigResponse { LocalAppSharedLocalAgentAIConfigProjection projection = 1; }
+message OverwriteLocalAppSharedLocalAgentAIConfigRequest {
+  repeated AIConfigCapabilityIntent capabilities = 1;
+  string expected_revision = 2;
+}
+message OverwriteLocalAppSharedLocalAgentAIConfigResponse {
+  LocalAppSharedLocalAgentAIConfigProjection projection = 1;
+  bool committed = 2;
+  ReasonCode reason_code = 3;
+}
+message SharedLocalAgentPresetVoiceOptionsQuery {}
+message SharedLocalAgentPresetVoiceOption {
+  string voice_id = 1;
+  string name = 2;
+  repeated string supported_langs = 3;
+}
+message SharedLocalAgentPresetVoiceOptions {
+  repeated SharedLocalAgentPresetVoiceOption options = 1;
+}
+message SharedLocalAgentVoiceAssetOptionsQuery {}
+message SharedLocalAgentVoiceAssetOption {
+  string voice_asset_id = 1;
+}
+message SharedLocalAgentVoiceAssetOptions {
+  repeated SharedLocalAgentVoiceAssetOption options = 1;
+}
+message ListLocalAppSharedLocalAgentAIConfigOptionsRequest {
+  oneof query {
+    AIConfigLocalLoadoutOptionsQuery local_loadouts = 1;
+    AIConfigCloudConnectorOptionsQuery cloud_connectors = 2;
+    AIConfigCloudTargetOptionsQuery cloud_targets = 3;
+    SharedLocalAgentPresetVoiceOptionsQuery preset_voices = 4;
+    SharedLocalAgentVoiceAssetOptionsQuery voice_assets = 5;
+  }
+}
+message ListLocalAppSharedLocalAgentAIConfigOptionsResponse {
+  oneof result {
+    AIConfigLocalLoadoutOptions local_loadouts = 1;
+    AIConfigCloudConnectorOptions cloud_connectors = 3;
+    AIConfigCloudTargetOptions cloud_targets = 4;
+    SharedLocalAgentPresetVoiceOptions preset_voices = 5;
+    SharedLocalAgentVoiceAssetOptions voice_assets = 6;
+  }
+  bool truncated = 2;
+}
+
+enum LocalAppAgentAutonomyMode {
+  LOCAL_APP_AGENT_AUTONOMY_MODE_UNSPECIFIED = 0;
+  LOCAL_APP_AGENT_AUTONOMY_MODE_OFF = 1;
+  LOCAL_APP_AGENT_AUTONOMY_MODE_LOW = 2;
+  LOCAL_APP_AGENT_AUTONOMY_MODE_MEDIUM = 3;
+  LOCAL_APP_AGENT_AUTONOMY_MODE_HIGH = 4;
+}
+message LocalAppAgentAutonomyConfig {
+  int64 daily_token_budget = 1;
+  int64 max_tokens_per_hook = 2;
+  google.protobuf.Duration min_hook_interval = 3;
+  google.protobuf.Timestamp suspend_until = 4;
+  LocalAppAgentAutonomyMode mode = 5;
+}
+message LocalAppAgentAutonomyProjection {
+  bool enabled = 1;
+  LocalAppAgentAutonomyConfig config = 2;
+  int64 used_tokens_in_window = 3;
+  google.protobuf.Timestamp window_started_at = 4;
+  bool budget_exhausted = 5;
+  google.protobuf.Timestamp suspended_until = 6;
+  uint64 autonomy_revision = 7;
+}
+message LocalAppAgentAutonomyIntent {
+  optional bool enabled = 1;
+  optional LocalAppAgentAutonomyConfig config = 2;
+}
+message GetLocalAppAgentAutonomySnapshotRequest { string agent_handle = 1; }
+message LocalAppAgentAutonomySnapshotResponse { LocalAppAgentAutonomyProjection projection = 1; }
+message UpdateLocalAppAgentAutonomyRequest {
+  string agent_handle = 1;
+  uint64 expected_autonomy_revision = 2;
+  LocalAppAgentAutonomyIntent intent = 3;
+}
+message LocalAppAgentUpdateAutonomyResponse { LocalAppAgentAutonomyProjection projection = 1; }
+
+message LocalAppAgentPresentationProjection {
+  AgentPresentationProfile profile = 1;
+  string default_voice_reference = 2;
+  uint64 presentation_revision = 3;
+  AgentPresentationProfile previous_profile = 4;
+  bool avatar_autoplay = 5;
+  AgentResourcePackSelection resource_pack_selection = 6;
+}
+message LocalAppAgentPresentationIntent {
+  AgentPresentationProfilePatch patch = 1;
+  bool select_imported_resource_pack = 20;
+  bool clear_resource_pack_selection = 21;
+}
+message GetLocalAppAgentPresentationSnapshotRequest { string agent_handle = 1; }
+message LocalAppAgentPresentationSnapshotResponse {
+  LocalAppAgentPresentationProjection projection = 1;
+}
+message CommitLocalAppAgentPresentationRequest {
+  string agent_handle = 1;
+  uint64 expected_presentation_revision = 2;
+  LocalAppAgentPresentationIntent intent = 3;
+  repeated AgentPresentationAssetMaterial imported_assets = 4;
+}
+message LocalAppAgentCommitPresentationResponse { LocalAppAgentPresentationProjection projection = 1; }

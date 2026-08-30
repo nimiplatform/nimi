@@ -1,0 +1,302 @@
+syntax = "proto3";
+package nimi.runtime.v1;
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/agent_common.proto";
+
+// Realm v3 public source identity. The oneof is the only discriminator;
+// callers cannot mix WorldCharacter and PersonaCharacter fields.
+enum CharacterSourceKindV3 {
+  CHARACTER_SOURCE_KIND_V3_UNSPECIFIED = 0;
+  CHARACTER_SOURCE_KIND_V3_WORLD_CHARACTER = 1;
+  CHARACTER_SOURCE_KIND_V3_PERSONA_CHARACTER = 2;
+}
+enum WorldEntityRefKindV3 {
+  WORLD_ENTITY_REF_KIND_V3_UNSPECIFIED = 0;
+  WORLD_ENTITY_REF_KIND_V3_WORLD_ENTITY = 1;
+}
+message WorldEntityRefV3 {
+  WorldEntityRefKindV3 kind = 1;
+  string world_id = 2;
+  string entity_id = 3;
+}
+message WorldCharacterSourceRefV3 {
+  CharacterSourceKindV3 kind = 1;
+  string id = 2;
+  string world_id = 3;
+  WorldEntityRefV3 world_entity_ref = 4;
+  string source_hash = 5;
+}
+message PersonaCharacterSourceRefV3 {
+  CharacterSourceKindV3 kind = 1;
+  string id = 2;
+  string world_id = 3;
+  string owner_account_id = 4;
+  string source_hash = 5;
+}
+message CharacterSourceRefV3 {
+  oneof source {
+    WorldCharacterSourceRefV3 world_character = 1;
+    PersonaCharacterSourceRefV3 persona_character = 2;
+  }
+}
+
+enum RealmSourceMaterializationReasonCode {
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_UNSPECIFIED = 0;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_NONE = 1;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_INVALID_REQUEST = 2;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_REQUEST_CONFLICT = 3;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_DENIED = 4;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_ACQUISITION_FAILED = 5;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_PACKET_INVALID = 6;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_CAPACITY_EXCEEDED = 7;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_BINDING_MISMATCH = 8;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_JWKS_INVALID = 9;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_PROOF_INVALID = 10;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_CLOSURE_INVALID = 11;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_HASH_INVALID = 12;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_REPLAY_DETECTED = 13;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_PERSISTENCE_FAILED = 14;
+  REALM_SOURCE_MATERIALIZATION_REASON_CODE_DATA_RESET_REQUIRED = 15;
+}
+
+message MaterializeRealmSourceRequest {
+  AgentRequestContext context = 1;
+  string request_id = 2;
+  CharacterSourceRefV3 source_ref = 3;
+}
+message MaterializeRealmSourceResponse {
+  string local_agent_ref = 1;
+  LocalAgentSourceContextStatus source_context_status = 2;
+  bool idempotent_replay = 3;
+  RealmSourceMaterializationReasonCode reason_code = 4;
+}
+
+enum AgentLocalSourceContextState {
+  AGENT_LOCAL_SOURCE_CONTEXT_STATE_UNSPECIFIED = 0;
+  AGENT_LOCAL_SOURCE_CONTEXT_STATE_NOT_MATERIALIZED = 1;
+  AGENT_LOCAL_SOURCE_CONTEXT_STATE_VALIDATING = 2;
+  AGENT_LOCAL_SOURCE_CONTEXT_STATE_READY = 3;
+  AGENT_LOCAL_SOURCE_CONTEXT_STATE_INVALID = 4;
+  AGENT_LOCAL_SOURCE_CONTEXT_STATE_DELETED = 5;
+}
+enum AgentLocalSourceCoverageSection {
+  reserved 3, 12, 13;
+  reserved "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PLACEMENT",
+    "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PERSONA_STYLE",
+    "AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CONTENT_PROFILE";
+
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_UNSPECIFIED = 0;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_IDENTITY = 1;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PRESENTATION = 2;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BIOGRAPHY = 4;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_PSYCHOLOGY = 5;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_KNOWLEDGE = 6;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_RELATIONSHIPS = 7;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_CAPABILITIES = 8;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_INTERACTION_PROFILE = 9;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_ASSETS = 10;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_AUTHORING = 11;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_WORLD_CORE = 14;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_BOUND_ENTITY = 15;
+  AGENT_LOCAL_SOURCE_COVERAGE_SECTION_DEPENDENCY_CLOSURE = 16;
+}
+enum AgentLocalSourceCoverageState {
+  AGENT_LOCAL_SOURCE_COVERAGE_STATE_UNSPECIFIED = 0;
+  AGENT_LOCAL_SOURCE_COVERAGE_STATE_COMPLETE = 1;
+  AGENT_LOCAL_SOURCE_COVERAGE_STATE_NOT_APPLICABLE = 2;
+  AGENT_LOCAL_SOURCE_COVERAGE_STATE_OPTIONAL_OMITTED = 3;
+  AGENT_LOCAL_SOURCE_COVERAGE_STATE_INVALID = 4;
+}
+enum AgentTurnContextState {
+  AGENT_TURN_CONTEXT_STATE_UNSPECIFIED = 0;
+  AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED = 1;
+  AGENT_TURN_CONTEXT_STATE_READY = 2;
+  AGENT_TURN_CONTEXT_STATE_CONTEXT_CAPACITY_EXCEEDED = 3;
+  AGENT_TURN_CONTEXT_STATE_INVALID = 4;
+}
+enum AgentTurnContextLaneId {
+  AGENT_TURN_CONTEXT_LANE_ID_UNSPECIFIED = 0;
+  AGENT_TURN_CONTEXT_LANE_ID_RUNTIME_POLICY = 1;
+  AGENT_TURN_CONTEXT_LANE_ID_OUTPUT_CONTRACT = 2;
+  AGENT_TURN_CONTEXT_LANE_ID_SOURCE_IDENTITY = 3;
+  AGENT_TURN_CONTEXT_LANE_ID_SOURCE_BEHAVIOR = 4;
+  AGENT_TURN_CONTEXT_LANE_ID_WORLD_CONTEXT = 5;
+  AGENT_TURN_CONTEXT_LANE_ID_RELATIONSHIP_CONTEXT = 6;
+  AGENT_TURN_CONTEXT_LANE_ID_SOURCE_KNOWLEDGE = 7;
+  AGENT_TURN_CONTEXT_LANE_ID_CANONICAL_MEMORY = 8;
+  AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_HISTORY = 9;
+  AGENT_TURN_CONTEXT_LANE_ID_CAPABILITY_CONTEXT = 10;
+  AGENT_TURN_CONTEXT_LANE_ID_CURRENT_USER_TURN = 11;
+  AGENT_TURN_CONTEXT_LANE_ID_COGNITION_SOURCE = 12;
+  AGENT_TURN_CONTEXT_LANE_ID_CONVERSATION_SUMMARY = 13;
+  AGENT_TURN_CONTEXT_LANE_ID_PRIVATE_RECALL = 14;
+}
+enum AgentTurnContextLaneState {
+  AGENT_TURN_CONTEXT_LANE_STATE_UNSPECIFIED = 0;
+  AGENT_TURN_CONTEXT_LANE_STATE_INCLUDED = 1;
+  AGENT_TURN_CONTEXT_LANE_STATE_EMPTY = 2;
+  AGENT_TURN_CONTEXT_LANE_STATE_OMITTED = 3;
+  AGENT_TURN_CONTEXT_LANE_STATE_TRUNCATED = 4;
+  AGENT_TURN_CONTEXT_LANE_STATE_INVALID = 5;
+}
+enum AgentTurnContextTruncationReason {
+  AGENT_TURN_CONTEXT_TRUNCATION_REASON_UNSPECIFIED = 0;
+  AGENT_TURN_CONTEXT_TRUNCATION_REASON_NONE = 1;
+  AGENT_TURN_CONTEXT_TRUNCATION_REASON_INPUT_BUDGET_EXHAUSTED = 2;
+  AGENT_TURN_CONTEXT_TRUNCATION_REASON_OPTIONAL_CONTENT_OMITTED = 3;
+  AGENT_TURN_CONTEXT_TRUNCATION_REASON_CONTEXT_CAPACITY_EXCEEDED = 4;
+}
+enum AgentContextProjectionReasonCode {
+  AGENT_CONTEXT_PROJECTION_REASON_CODE_UNSPECIFIED = 0;
+  AGENT_CONTEXT_PROJECTION_REASON_CODE_NONE = 1;
+  AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED = 2;
+  AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_VALIDATION_PENDING = 3;
+  AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID = 4;
+  AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_NOT_COMPOSED = 5;
+  AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_CAPACITY_EXCEEDED = 6;
+  AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID = 7;
+}
+enum AgentLocalSourceContextSchemaVersion {
+  AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_UNSPECIFIED = 0;
+  AGENT_LOCAL_SOURCE_CONTEXT_SCHEMA_VERSION_V2 = 2;
+}
+enum AgentLocalSourceSnapshotSchemaVersion {
+  reserved 2;
+  reserved "AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V2";
+  AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_UNSPECIFIED = 0;
+  AGENT_LOCAL_SOURCE_SNAPSHOT_SCHEMA_VERSION_V3 = 3;
+}
+enum AgentTurnContextSummarySchemaVersion {
+  reserved 1;
+  reserved "AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V1";
+  AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_UNSPECIFIED = 0;
+  AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2 = 2;
+}
+enum AgentTurnContextManifestSchemaVersion {
+  AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_UNSPECIFIED = 0;
+  AGENT_TURN_CONTEXT_MANIFEST_SCHEMA_VERSION_V1 = 1;
+}
+enum AgentTurnContextCompilerSchemaVersion {
+  AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_UNSPECIFIED = 0;
+  AGENT_TURN_CONTEXT_COMPILER_SCHEMA_VERSION_V1 = 1;
+}
+enum AgentSourceCognitionStatus {
+  AGENT_SOURCE_COGNITION_STATUS_UNSPECIFIED = 0;
+  AGENT_SOURCE_COGNITION_STATUS_UNCONFIGURED = 1;
+  AGENT_SOURCE_COGNITION_STATUS_BUILDING = 2;
+  AGENT_SOURCE_COGNITION_STATUS_READY = 3;
+  AGENT_SOURCE_COGNITION_STATUS_UNAVAILABLE = 4;
+  AGENT_SOURCE_COGNITION_STATUS_FAILURE = 5;
+  AGENT_SOURCE_COGNITION_STATUS_NO_HITS = 6;
+  AGENT_SOURCE_COGNITION_STATUS_NO_RESULT = 7;
+}
+enum AgentConversationSummaryStatus {
+  AGENT_CONVERSATION_SUMMARY_STATUS_UNSPECIFIED = 0;
+  AGENT_CONVERSATION_SUMMARY_STATUS_ABSENT = 1;
+  AGENT_CONVERSATION_SUMMARY_STATUS_READY = 2;
+  AGENT_CONVERSATION_SUMMARY_STATUS_FAILED = 3;
+  AGENT_CONVERSATION_SUMMARY_STATUS_OMITTED = 4;
+  AGENT_CONVERSATION_SUMMARY_STATUS_UNAVAILABLE = 5;
+}
+
+message LocalAgentSourceCoverageSectionStatus {
+  AgentLocalSourceCoverageSection section = 1;
+  AgentLocalSourceCoverageState state = 2;
+  uint32 required_count = 3;
+  uint32 resolved_count = 4;
+  uint32 omitted_count = 5;
+}
+// K-AGCORE-158 bounded source/snapshot projection. It intentionally excludes
+// raw core/world/closure content, proof, chunks, prompts, transcript, memory,
+// and every free-form map.
+message LocalAgentSourceContextStatus {
+  AgentLocalSourceContextSchemaVersion schema_version = 1;
+  bool ready = 2;
+  AgentLocalSourceContextState state = 3;
+  AgentContextProjectionReasonCode reason_code = 4;
+  string local_agent_ref = 5;
+  CharacterSourceRefV3 source_ref = 6;
+  string source_schema_version = 7;
+  AgentLocalSourceSnapshotSchemaVersion snapshot_schema_version = 8;
+  string snapshot_hash = 9;
+  google.protobuf.Timestamp captured_at = 10;
+  string world_content_hash = 11;
+  string materialization_context_hash = 12;
+  repeated LocalAgentSourceCoverageSectionStatus coverage_sections = 13;
+  bool lorebook_ready = 14;
+  uint32 lorebook_item_count = 15;
+  uint64 lorebook_estimated_tokens = 16;
+}
+message AgentTurnContextLaneSummary {
+  AgentTurnContextLaneId lane_id = 1;
+  AgentTurnContextLaneState state = 2;
+  uint32 included_item_count = 3;
+  uint32 omitted_item_count = 4;
+  uint32 truncated_item_count = 5;
+  uint64 allocated_tokens = 6;
+  uint64 used_tokens = 7;
+}
+message AgentTurnContextBudgetSummary {
+  uint64 context_window_tokens = 1;
+  uint64 reserved_output_tokens = 2;
+  uint64 reserved_safety_tokens = 3;
+  uint64 reserved_adapter_tokens = 4;
+  uint64 input_budget_tokens = 5;
+  uint64 used_tokens = 6;
+  uint64 required_input_tokens = 7;
+  uint64 required_context_window_tokens = 8;
+  uint64 reserved_reasoning_tokens = 9;
+}
+message AgentTurnContextTruncationSummary {
+  AgentTurnContextTruncationReason reason = 1;
+  uint32 omitted_item_count = 2;
+  uint32 truncated_item_count = 3;
+}
+message AgentSourceCognitionSummary {
+  AgentSourceCognitionStatus adapter_status = 1;
+  AgentSourceCognitionStatus selection_status = 2;
+  uint64 generation = 3;
+  uint32 candidate_count = 4;
+  uint32 included_unit_count = 5;
+  uint32 omitted_unit_count = 6;
+}
+message AgentConversationContextSummary {
+  AgentConversationSummaryStatus status = 1;
+  uint64 revision = 2;
+  uint64 covered_sequence_start = 3;
+  uint64 covered_sequence_end = 4;
+}
+// K-AGCORE-158 bounded manifest projection. Raw lane/prompt/transcript/memory,
+// provider payloads, credentials, and tool arguments/results are absent.
+message AgentTurnContextSummary {
+  AgentTurnContextSummarySchemaVersion schema_version = 1;
+  bool ready = 2;
+  AgentTurnContextState state = 3;
+  AgentContextProjectionReasonCode reason_code = 4;
+  AgentTurnContextManifestSchemaVersion manifest_schema_version = 5;
+  AgentTurnContextCompilerSchemaVersion compiler_schema_version = 6;
+  string manifest_instance_hash = 7;
+  string context_content_hash = 8;
+  string prompt_hash = 9;
+  string source_snapshot_hash = 10;
+  CharacterSourceRefV3 source_ref = 11;
+  string world_content_hash = 12;
+  string materialization_context_hash = 13;
+  repeated AgentTurnContextLaneSummary lanes = 14;
+  AgentTurnContextBudgetSummary budget = 15;
+  repeated AgentTurnContextTruncationSummary truncation = 16;
+  uint32 transcript_turn_count = 17;
+  uint32 memory_item_count = 18;
+  uint32 media_count = 19;
+  uint32 tool_count = 20;
+  string route_digest = 21;
+  string catalog_revision_digest = 22;
+  string local_agent_ref = 23;
+  string conversation_anchor_id = 24;
+  string turn_id = 25;
+  AgentSourceCognitionSummary source_cognition = 26;
+  AgentConversationContextSummary conversation_summary = 27;
+  uint32 private_recall_count = 28;
+}

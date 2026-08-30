@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/sdk",
-  "version": "0.9.0",
+  "version": "0.7.0-rc.1",
   "private": false,
   "license": "Apache-2.0",
   "type": "module",
@@ -124,8 +124,8 @@
   },
   "devDependencies": {
     "@grpc/grpc-js": "^1.14.4",
-    "@types/node": "^25.9.1",
-    "tsx": "^4.22.3",
+    "@types/node": "^24.13.3",
+    "tsx": "^4.23.13",
     "typescript": "^5.9.3"
   },
   "nimi": {

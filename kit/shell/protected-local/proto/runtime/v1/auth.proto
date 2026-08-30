@@ -1,0 +1,118 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/common.proto";
+
+enum ExternalProofType {
+  EXTERNAL_PROOF_TYPE_UNSPECIFIED = 0;
+  EXTERNAL_PROOF_TYPE_JWT = 1;
+  reserved 2;
+  reserved "EXTERNAL_PROOF_TYPE_HMAC_SHA256";
+}
+
+// OpenDesktopSessionRequest is intentionally empty. The protected transport,
+// verified peer process, executable trust, and origin roles are derived from
+// the already-authenticated desktop_control connection; no request field or
+// metadata value may select or upgrade that authority (K-PLOCAL-006).
+message OpenDesktopSessionRequest {
+}
+
+// Both byte strings are exactly 32 bytes. desktop_session_id is
+// correlation-only and runtime_boot_epoch is used only for stale projection
+// rejection; neither value is a portable credential or rebind proof.
+message OpenDesktopSessionResponse {
+  bytes desktop_session_id = 1;
+  bytes runtime_boot_epoch = 2;
+}
+
+enum LocalAppSessionState {
+  LOCAL_APP_SESSION_STATE_UNSPECIFIED = 0;
+  LOCAL_APP_SESSION_STATE_READY = 1;
+  LOCAL_APP_SESSION_STATE_RUNTIME_UNAVAILABLE = 2;
+  LOCAL_APP_SESSION_STATE_REVOKED = 3;
+  LOCAL_APP_SESSION_STATE_ACCOUNT_CHANGED = 4;
+  LOCAL_APP_SESSION_STATE_PROCESS_REPLACED = 5;
+}
+
+enum LocalAppTrustClass {
+  LOCAL_APP_TRUST_CLASS_UNSPECIFIED = 0;
+  LOCAL_APP_TRUST_CLASS_VERIFIED = 1;
+  LOCAL_APP_TRUST_CLASS_USER_IMPORTED = 2;
+  LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT = 3;
+}
+
+// Request-empty by design. Runtime consumes the exact bound launch lease on
+// the verified local_app_bootstrap connection; request data and metadata carry
+// no principal, record, account, grant, process, endpoint, or credential.
+message OpenLocalAppSessionRequest {
+}
+
+message CurrentUserDisplayProjection {
+  string handle = 1;
+  string display_name = 2;
+  optional string avatar_url = 3;
+}
+
+// Session posture stays non-authoritative. The optional Current User display
+// value contains exactly the three display-safe fields; its independent reason
+// cannot fail or downgrade the private App Access session.
+message OpenLocalAppSessionResponse {
+  LocalAppSessionState state = 1;
+  reserved 2, 3, 4;
+  reserved "trust_class", "account_generation", "runtime_boot_epoch";
+  ReasonCode reason_code = 5;
+  CurrentUserDisplayProjection current_user = 6;
+  ReasonCode current_user_reason_code = 7;
+}
+
+// Request-empty by design. Runtime accepts renewal only on the same verified
+// local_app_host connection that already owns the current private session.
+// No request data or metadata may select session, process, account, or trust.
+message RenewLocalAppSessionRequest {
+}
+
+message RegisterExternalPrincipalRequest {
+  string app_id = 1;
+  string external_principal_id = 2;
+  ExternalPrincipalType external_principal_type = 3;
+  string issuer = 4;
+  string client_id = 5;
+  string signature_key_id = 6;
+  ExternalProofType proof_type = 7;
+}
+
+message RegisterExternalPrincipalResponse {
+  bool accepted = 1;
+  ReasonCode reason_code = 2;
+}
+
+message OpenExternalPrincipalSessionRequest {
+  string app_id = 1;
+  string external_principal_id = 2;
+  string proof = 3;
+  int32 ttl_seconds = 4;
+}
+
+message OpenExternalPrincipalSessionResponse {
+  string external_session_id = 1;
+  google.protobuf.Timestamp expires_at = 2;
+  string session_token = 3;
+  ReasonCode reason_code = 4;
+}
+
+message RevokeExternalPrincipalSessionRequest {
+  string external_session_id = 1;
+}
+
+service RuntimeAuthService {
+  rpc OpenDesktopSession(OpenDesktopSessionRequest) returns (OpenDesktopSessionResponse);
+  rpc OpenLocalAppSession(OpenLocalAppSessionRequest) returns (OpenLocalAppSessionResponse);
+  rpc RenewLocalAppSession(RenewLocalAppSessionRequest) returns (OpenLocalAppSessionResponse);
+  rpc RegisterExternalPrincipal(RegisterExternalPrincipalRequest) returns (RegisterExternalPrincipalResponse);
+  rpc OpenExternalPrincipalSession(OpenExternalPrincipalSessionRequest) returns (OpenExternalPrincipalSessionResponse);
+  rpc RevokeExternalPrincipalSession(RevokeExternalPrincipalSessionRequest) returns (Ack);
+}

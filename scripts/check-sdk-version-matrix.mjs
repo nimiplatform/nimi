@@ -74,40 +74,30 @@ function readPackageVersionFromGit(ref) {
   }
 }
 
+function latestPublishedSdkRef() {
+  const override = String(process.env.NIMI_PUBLISHED_SDK_REF || '').trim();
+  if (override) return override;
+  return listGitPaths(['tag', '--merged', 'HEAD', '--list', 'sdk/v*', '--sort=-version:refname'])[0] || '';
+}
+
+function isPrereleaseVersion(version) {
+  return String(version || '').includes('-');
+}
+
 function detectRuntimeSurfaceVersionContext(currentVersion) {
-  const baseRef = String(process.env.NIMI_BASE_SHA || '').trim() || 'HEAD~1';
-  const focusPaths = [...PUBLIC_RUNTIME_SURFACE_PATHS, `${SDK_PACKAGE_PATH}/package.json`];
-
-  const worktreeChangedPaths = listGitPaths(['diff', '--name-only', 'HEAD', '--', ...focusPaths]);
-  const worktreeSurfacePaths = worktreeChangedPaths.filter((filePath) => PUBLIC_RUNTIME_SURFACE_PATHS.includes(filePath));
-  if (worktreeSurfacePaths.length > 0) {
-    const baseVersion = readPackageVersionFromGit('HEAD');
-    if (!baseVersion) {
-      return null;
-    }
-    return {
-      changedSurfacePaths: worktreeSurfacePaths,
-      baseVersion,
-      currentVersion,
-      comparisonLabel: 'HEAD -> worktree',
-    };
-  }
-
-  const range = `${baseRef}...HEAD`;
-  const rangeChangedPaths = listGitPaths(['diff', '--name-only', range, '--', ...focusPaths]);
-  const rangeSurfacePaths = rangeChangedPaths.filter((filePath) => PUBLIC_RUNTIME_SURFACE_PATHS.includes(filePath));
-  if (rangeSurfacePaths.length === 0) {
-    return null;
-  }
+  const baseRef = latestPublishedSdkRef();
+  if (!baseRef) return null;
+  const committedPaths = listGitPaths(['diff', '--name-only', `${baseRef}...HEAD`, '--', ...PUBLIC_RUNTIME_SURFACE_PATHS]);
+  const worktreePaths = listGitPaths(['diff', '--name-only', 'HEAD', '--', ...PUBLIC_RUNTIME_SURFACE_PATHS]);
+  const changedSurfacePaths = [...new Set([...committedPaths, ...worktreePaths])];
+  if (changedSurfacePaths.length === 0) return null;
   const baseVersion = readPackageVersionFromGit(baseRef);
-  if (!baseVersion) {
-    return null;
-  }
+  if (!baseVersion) return null;
   return {
-    changedSurfacePaths: rangeSurfacePaths,
+    changedSurfacePaths,
     baseVersion,
     currentVersion,
-    comparisonLabel: `${baseRef} -> HEAD`,
+    comparisonLabel: `${baseRef} -> current candidate`,
   };
 }
 
@@ -181,14 +171,16 @@ async function main() {
 
   if (sdkPackage?.version) {
     const runtimeSurfaceContext = detectRuntimeSurfaceVersionContext(sdkPackage.version);
-    if (
-      runtimeSurfaceContext
-      && parseMajorMinor(runtimeSurfaceContext.baseVersion) === parseMajorMinor(runtimeSurfaceContext.currentVersion)
-    ) {
+    const versionNotAdvanced = runtimeSurfaceContext && (
+      isPrereleaseVersion(runtimeSurfaceContext.baseVersion)
+        ? runtimeSurfaceContext.baseVersion === runtimeSurfaceContext.currentVersion
+        : parseMajorMinor(runtimeSurfaceContext.baseVersion) === parseMajorMinor(runtimeSurfaceContext.currentVersion)
+    );
+    if (runtimeSurfaceContext && versionNotAdvanced) {
       violations.push(
         `@nimiplatform/sdk public runtime surface changed in ${runtimeSurfaceContext.comparisonLabel} `
-        + `(${runtimeSurfaceContext.changedSurfacePaths.join(', ')}) but version stayed within ${parseMajorMinor(runtimeSurfaceContext.currentVersion)}; `
-        + `bump major.minor for breaking or surface-affecting runtime API edits`,
+        + `(${runtimeSurfaceContext.changedSurfacePaths.join(', ')}) but candidate version ${runtimeSurfaceContext.currentVersion} `
+        + `does not advance published ${runtimeSurfaceContext.baseVersion}; bump major.minor after a stable release or advance the prerelease identifier`,
       );
     }
   }

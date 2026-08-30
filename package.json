@@ -1,7 +1,7 @@
 {
   "name": "@nimiplatform/nimi",
   "private": true,
-  "packageManager": "pnpm@10.32.1",
+  "packageManager": "pnpm@10.34.5",
   "engines": {
     "node": ">=24.0.0",
     "pnpm": ">=10.0.0"

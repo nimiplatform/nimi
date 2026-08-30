@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { registerHooks } from 'node:module';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 const electronMockUrl = `data:text/javascript,${encodeURIComponent(`
   export const browserWindowOps = [];
@@ -141,7 +142,7 @@ async function createBundledAvatarHostForLifecycleTest(
   const content = minimalVrmGlb();
   return createDesktopElectronBundledAvatarHost({
     rendererUrl: 'file:///avatar/index.html',
-    packagedRendererIndexPath: new URL(import.meta.url).pathname,
+    packagedRendererIndexPath: fileURLToPath(import.meta.url),
     preloadPath: '/tmp/avatar-preload.js',
     resolveAppPrivateDataRoot: async () => options.appPrivateDataRoot ?? '/tmp/nimi-avatar-test-data',
     localAssetProtocolHost: {

@@ -1,0 +1,158 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+// === Device Profile ===
+
+// K-DEV-001: GPU memory architecture model.
+enum GpuMemoryModel {
+  GPU_MEMORY_MODEL_UNSPECIFIED  = 0;
+  GPU_MEMORY_MODEL_DISCRETE = 1;
+  GPU_MEMORY_MODEL_UNIFIED  = 2;
+}
+
+message LocalGpuProfile {
+  bool available              = 1;
+  string vendor               = 2;
+  string model                = 3;
+  // K-DEV-001: VRAM fields. Zero means probe unavailable (not "0 bytes").
+  int64 total_vram_bytes      = 4;
+  int64 available_vram_bytes  = 5;
+  GpuMemoryModel memory_model = 6;
+}
+
+message LocalPythonProfile {
+  bool available = 1;
+  string version = 2;
+}
+
+message LocalNpuProfile {
+  bool available = 1;
+  bool ready     = 2;
+  string vendor  = 3;
+  string runtime = 4;
+  string detail  = 5;
+}
+
+message LocalPortAvailability {
+  int32 port     = 1;
+  bool available = 2;
+}
+
+message LocalDeviceProfile {
+  string os                             = 1;
+  string arch                           = 2;
+  LocalGpuProfile gpu                   = 3;
+  LocalPythonProfile python             = 4;
+  LocalNpuProfile npu                   = 5;
+  int64 disk_free_bytes                 = 6;
+  repeated LocalPortAvailability ports  = 7;
+  // K-DEV-001: Host memory fields. Zero means probe unavailable.
+  int64 total_ram_bytes                 = 8;
+  int64 available_ram_bytes             = 9;
+}
+
+// === Runtime-owned Local Environment ===
+
+message LocalEnvironmentPlanDependency {
+  string dependency_family = 1;
+  string dependency_id = 2;
+  bool required = 3;
+  string state = 4;
+  string source_kind = 5;
+  bool confirmation_required = 6;
+  string selected_source_record_id = 7;
+  string environment_key = 8;
+  string canonical_root = 9;
+  string reason_code = 10;
+  string detail = 11;
+  string consumer_scope = 12;
+}
+
+message LocalEnvironmentPlan {
+  string plan_id = 1;
+  string pack_id = 2;
+  string product_label = 3;
+  string host_profile_id = 4;
+  string platform_tuple = 5;
+  string runtime_data_root = 6;
+  string consumer_scope = 7;
+  string cloud_only_impact = 8;
+  string state = 9;
+  string reason_code = 10;
+  repeated LocalEnvironmentPlanDependency dependencies = 11;
+  repeated string required_dependency_families = 12;
+  bool aggregate_size_known = 13;
+  int64 aggregate_size_bytes = 14;
+  repeated string storage_categories = 15;
+  repeated string source_owners = 16;
+  bool no_system_mutation = 17;
+}
+
+message LocalEnvironmentSelectedSourceRecord {
+  string record_id = 1;
+  string dependency_family = 2;
+  string dependency_id = 3;
+  string environment_key = 4;
+  string source_kind = 5;
+  string canonical_root = 6;
+  string version = 7;
+  repeated string compatibility_evidence = 8;
+  repeated string verified_artifacts = 9;
+  map<string, string> hashes = 10;
+  repeated string selected_consumers = 11;
+  repeated string activation_env_delta = 12;
+  string selected_at = 13;
+  string last_verified_at = 14;
+  string repair_state = 15;
+  string audit_reason_code = 16;
+}
+
+message LocalEnvironmentDependencyJob {
+  string job_id = 1;
+  string environment_key = 2;
+  string dependency_family = 3;
+  string dependency_id = 4;
+  string state = 5;
+  string source_kind = 6;
+  string canonical_root = 7;
+  string selected_source_record_id = 8;
+  string failure_detail = 9;
+  bool retryable = 10;
+  string created_at = 11;
+  string updated_at = 12;
+  // K-RPC-025 dependency-job download-progress projection. The fields are a
+  // bounded diagnostic projection of the byte progress Runtime already tracks
+  // for the job's artifact transfer; they are meaningful only while the job is
+  // actively materializing (downloading / verifying) and project zero/absent
+  // for every other state. They never promote, select, or substitute for
+  // verification evidence. speed_bytes_per_sec / eta_seconds are projected only
+  // when a rate can actually be computed and are 0 (absent) otherwise — never a
+  // fabricated value.
+  int64 bytes_received = 13;
+  int64 bytes_total = 14;
+  // percent is an integer 0..100 projected only when bytes_total > 0; 0 means
+  // the total is not yet known and the consumer renders an indeterminate state.
+  int32 percent = 15;
+  int64 speed_bytes_per_sec = 16;
+  int64 eta_seconds = 17;
+  // Runtime-owned terminal reason code for the job. Empty for in-progress
+  // states unless Runtime has a structured non-ready reason to project.
+  string reason_code = 18;
+  // Runtime-owned recovery policy projection. Consumers may filter this closed
+  // string but must not parse failure_detail for recovery semantics.
+  string recovery_disposition = 19;
+  string consumer_scope = 20;
+}
+
+message LocalEnvironmentActivationGate {
+  string consumer_id = 1;
+  string pack_id = 2;
+  string state = 3;
+  string reason_code = 4;
+  string detail = 5;
+  repeated LocalEnvironmentPlanDependency blocking_dependencies = 6;
+  repeated LocalEnvironmentPlanDependency dependencies = 7;
+}

@@ -37,7 +37,7 @@
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
-    "pixi.js": "^8.19.0",
+    "pixi.js": "^8.20.1",
     "yaml": "^2.9.0"
   }
 }

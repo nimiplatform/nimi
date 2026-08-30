@@ -1,0 +1,423 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "runtime/v1/common.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+enum ConnectorKind {
+  CONNECTOR_KIND_UNSPECIFIED = 0;
+  reserved 1;
+  reserved "CONNECTOR_KIND_LOCAL_MODEL";
+  CONNECTOR_KIND_REMOTE_MANAGED = 2;
+}
+
+enum ConnectorOwnerType {
+  CONNECTOR_OWNER_TYPE_UNSPECIFIED = 0;
+  CONNECTOR_OWNER_TYPE_SYSTEM = 1;
+  CONNECTOR_OWNER_TYPE_REALM_USER = 2;
+}
+
+enum ConnectorStatus {
+  CONNECTOR_STATUS_UNSPECIFIED = 0;
+  CONNECTOR_STATUS_ACTIVE = 1;
+  CONNECTOR_STATUS_DISABLED = 2;
+}
+
+enum ConnectorAuthKind {
+  CONNECTOR_AUTH_KIND_UNSPECIFIED = 0;
+  CONNECTOR_AUTH_KIND_API_KEY = 1;
+  CONNECTOR_AUTH_KIND_OAUTH_MANAGED = 2;
+}
+
+message Connector {
+  string connector_id = 1;
+  ConnectorKind kind = 2;
+  ConnectorOwnerType owner_type = 3;
+  string owner_id = 4;
+  string provider = 5;
+  string endpoint = 6;
+  string label = 7;
+  ConnectorStatus status = 8;
+  reserved 9;
+  reserved "local_category";
+  bool has_credential = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+  ConnectorAuthKind auth_kind = 13;
+  string provider_auth_profile = 14;
+}
+
+message CreateConnectorRequest {
+  string provider = 1;
+  string endpoint = 2;
+  string label = 3;
+  string api_key = 4;
+  reserved 5;
+  reserved "owner_id";
+  ConnectorAuthKind auth_kind = 6;
+  string provider_auth_profile = 7;
+  string credential_json = 8;
+}
+
+message CreateConnectorResponse {
+  Connector connector = 1;
+}
+
+message GetConnectorRequest {
+  string connector_id = 1;
+  reserved 2;
+  reserved "owner_id";
+}
+
+message GetConnectorResponse {
+  Connector connector = 1;
+}
+
+message ListConnectorsRequest {
+  reserved 1;
+  reserved "owner_id";
+  int32 page_size = 2;
+  string page_token = 3;
+  ConnectorKind kind_filter = 4;
+  ConnectorStatus status_filter = 5;
+  string provider_filter = 6;
+}
+
+message ListConnectorsResponse {
+  repeated Connector connectors = 1;
+  string next_page_token = 2;
+}
+
+message UpdateConnectorRequest {
+  string connector_id = 1;
+  reserved 2;
+  reserved "owner_id";
+  optional string label = 3;
+  optional string endpoint = 4;
+  optional string api_key = 5;
+  ConnectorStatus status = 6;
+  google.protobuf.FieldMask update_mask = 7;
+  optional ConnectorAuthKind auth_kind = 8;
+  optional string provider_auth_profile = 9;
+  optional string credential_json = 10;
+}
+
+message UpdateConnectorResponse {
+  Connector connector = 1;
+}
+
+message DeleteConnectorRequest {
+  string connector_id = 1;
+  reserved 2;
+  reserved "owner_id";
+}
+
+message DeleteConnectorResponse {
+  Ack ack = 1;
+}
+
+message TestConnectorRequest {
+  string connector_id = 1;
+  reserved 2;
+  reserved "owner_id";
+}
+
+message TestConnectorResponse {
+  Ack ack = 1;
+}
+
+message ConnectorModelDescriptor {
+  reserved 1;
+  reserved "model_id";
+  string model_label = 2;
+  bool available = 3;
+  repeated string capabilities = 4;
+  string remote_model_catalog_id = 5;
+  string provider_model_id = 6;
+  string provider = 7;
+  string connector_snapshot_id = 8;
+  string endpoint_profile_id = 9;
+  string inventory_snapshot_id = 10;
+}
+
+message ListConnectorModelsRequest {
+  string connector_id = 1;
+  reserved 2;
+  reserved "owner_id";
+  bool force_refresh = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+
+message ListConnectorModelsResponse {
+  repeated ConnectorModelDescriptor models = 1;
+  string next_page_token = 2;
+}
+
+message ProviderCatalogEntry {
+  string provider = 1;
+  string default_endpoint = 2;
+  bool requires_explicit_endpoint = 3;
+  string runtime_plane = 4;
+  string execution_module = 5;
+  bool managed_supported = 6;
+  string inventory_mode = 7;
+  bool inline_supported = 8;
+}
+
+message ListProviderCatalogRequest {}
+
+message ListProviderCatalogResponse {
+  repeated ProviderCatalogEntry providers = 1;
+}
+
+enum ModelCatalogProviderSource {
+  MODEL_CATALOG_PROVIDER_SOURCE_UNSPECIFIED = 0;
+  MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN = 1;
+  MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM = 2;
+  MODEL_CATALOG_PROVIDER_SOURCE_REMOTE = 3;
+  MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN = 4;
+}
+
+message ModelCatalogProviderEntry {
+  string provider = 1;
+  int32 version = 2;
+  string catalog_version = 3;
+  ModelCatalogProviderSource source = 4;
+  uint32 model_count = 5;
+  uint32 voice_count = 6;
+  string yaml = 7;
+  string default_text_model = 8;
+  repeated string capabilities = 9;
+  bool has_overlay = 10;
+  uint32 custom_model_count = 11;
+  uint32 overridden_model_count = 12;
+  string overlay_updated_at = 13;
+  string effective_yaml = 14;
+  string default_endpoint = 15;
+  bool requires_explicit_endpoint = 16;
+  string runtime_plane = 17;
+  string execution_module = 18;
+  bool managed_supported = 19;
+  string inventory_mode = 20;
+}
+
+message ListModelCatalogProvidersRequest {}
+
+message ListModelCatalogProvidersResponse {
+  repeated ModelCatalogProviderEntry providers = 1;
+}
+
+message UpsertModelCatalogProviderRequest {
+  string provider = 1;
+  string yaml = 2;
+}
+
+message UpsertModelCatalogProviderResponse {
+  ModelCatalogProviderEntry provider = 1;
+}
+
+message DeleteModelCatalogProviderRequest {
+  string provider = 1;
+}
+
+message DeleteModelCatalogProviderResponse {
+  Ack ack = 1;
+}
+
+enum CatalogModelSource {
+  CATALOG_MODEL_SOURCE_UNSPECIFIED = 0;
+  CATALOG_MODEL_SOURCE_BUILTIN = 1;
+  CATALOG_MODEL_SOURCE_CUSTOM = 2;
+  CATALOG_MODEL_SOURCE_OVERRIDDEN = 3;
+}
+
+message CatalogOverlayWarning {
+  string code = 1;
+  string message = 2;
+}
+
+message CatalogPricing {
+  string unit = 1;
+  string input = 2;
+  string output = 3;
+  string currency = 4;
+  string as_of = 5;
+  string notes = 6;
+}
+
+enum CatalogSourceKind {
+  CATALOG_SOURCE_KIND_UNSPECIFIED = 0;
+  CATALOG_SOURCE_KIND_PROVIDER_DOCUMENTATION = 1;
+  CATALOG_SOURCE_KIND_AUTHENTICATED_PROVIDER_INVENTORY = 2;
+}
+
+message CatalogSourceRef {
+  string url = 1;
+  string retrieved_at = 2;
+  string note = 3;
+  CatalogSourceKind source_kind = 4;
+}
+
+message CatalogStringListEntry {
+  string key = 1;
+  repeated string values = 2;
+}
+
+message CatalogVideoGenerationOutputs {
+  bool video_url = 1;
+  bool last_frame_url = 2;
+}
+
+message CatalogVideoGenerationCapability {
+  repeated string modes = 1;
+  repeated CatalogStringListEntry input_roles = 2;
+  google.protobuf.Struct limits = 3;
+  repeated string option_supports = 4;
+  google.protobuf.Struct option_constraints = 5;
+  CatalogVideoGenerationOutputs outputs = 6;
+}
+
+message CatalogVoiceEntry {
+  string voice_set_id = 1;
+  string provider = 2;
+  string voice_id = 3;
+  string name = 4;
+  repeated string langs = 5;
+  repeated string model_ids = 6;
+  CatalogSourceRef source_ref = 7;
+}
+
+message CatalogWorkflowModel {
+  string workflow_model_id = 1;
+  string workflow_type = 2;
+  string input_contract_ref = 3;
+  string output_persistence = 4;
+  repeated string target_model_refs = 5;
+  repeated string langs = 6;
+  CatalogSourceRef source_ref = 7;
+}
+
+message CatalogModelWorkflowBinding {
+  string model_id = 1;
+  repeated string workflow_model_refs = 2;
+  repeated string workflow_types = 3;
+}
+
+message CatalogModelSummary {
+  string provider = 1;
+  string model_id = 2;
+  string model_type = 3;
+  string updated_at = 4;
+  repeated string capabilities = 5;
+  CatalogModelSource source = 6;
+  bool user_scoped = 7;
+  string source_note = 8;
+  bool has_voice_catalog = 9;
+  bool has_video_generation = 10;
+}
+
+message CatalogModelDetail {
+  string provider = 1;
+  string model_id = 2;
+  string model_type = 3;
+  string updated_at = 4;
+  repeated string capabilities = 5;
+  CatalogPricing pricing = 6;
+  string voice_set_id = 7;
+  string voice_discovery_mode = 8;
+  repeated string voice_ref_kinds = 9;
+  CatalogVideoGenerationCapability video_generation = 10;
+  CatalogSourceRef source_ref = 11;
+  CatalogModelSource source = 12;
+  bool user_scoped = 13;
+  repeated CatalogOverlayWarning warnings = 14;
+  repeated CatalogVoiceEntry voices = 15;
+  repeated CatalogWorkflowModel voice_workflow_models = 16;
+  CatalogModelWorkflowBinding model_workflow_binding = 17;
+}
+
+message CatalogModelInput {
+  string provider = 1;
+  string model_id = 2;
+  string model_type = 3;
+  string updated_at = 4;
+  repeated string capabilities = 5;
+  CatalogPricing pricing = 6;
+  string voice_set_id = 7;
+  string voice_discovery_mode = 8;
+  repeated string voice_ref_kinds = 9;
+  CatalogVideoGenerationCapability video_generation = 10;
+  CatalogSourceRef source_ref = 11;
+}
+
+message ListCatalogProviderModelsRequest {
+  string provider = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListCatalogProviderModelsResponse {
+  ModelCatalogProviderEntry provider = 1;
+  repeated CatalogModelSummary models = 2;
+  string next_page_token = 3;
+  repeated CatalogOverlayWarning warnings = 4;
+}
+
+message GetCatalogModelDetailRequest {
+  string provider = 1;
+  string model_id = 2;
+}
+
+message GetCatalogModelDetailResponse {
+  ModelCatalogProviderEntry provider = 1;
+  CatalogModelDetail model = 2;
+  repeated CatalogOverlayWarning warnings = 3;
+}
+
+message UpsertCatalogModelOverlayRequest {
+  string provider = 1;
+  CatalogModelInput model = 2;
+  repeated CatalogVoiceEntry voices = 3;
+  repeated CatalogWorkflowModel voice_workflow_models = 4;
+  CatalogModelWorkflowBinding model_workflow_binding = 5;
+}
+
+message UpsertCatalogModelOverlayResponse {
+  ModelCatalogProviderEntry provider = 1;
+  CatalogModelDetail model = 2;
+  repeated CatalogOverlayWarning warnings = 3;
+}
+
+message DeleteCatalogModelOverlayRequest {
+  string provider = 1;
+  string model_id = 2;
+}
+
+message DeleteCatalogModelOverlayResponse {
+  Ack ack = 1;
+  ModelCatalogProviderEntry provider = 2;
+}
+
+service RuntimeConnectorService {
+  rpc CreateConnector(CreateConnectorRequest) returns (CreateConnectorResponse);
+  rpc GetConnector(GetConnectorRequest) returns (GetConnectorResponse);
+  rpc ListConnectors(ListConnectorsRequest) returns (ListConnectorsResponse);
+  rpc UpdateConnector(UpdateConnectorRequest) returns (UpdateConnectorResponse);
+  rpc DeleteConnector(DeleteConnectorRequest) returns (DeleteConnectorResponse);
+  rpc TestConnector(TestConnectorRequest) returns (TestConnectorResponse);
+  rpc ListConnectorModels(ListConnectorModelsRequest) returns (ListConnectorModelsResponse);
+  rpc ListProviderCatalog(ListProviderCatalogRequest) returns (ListProviderCatalogResponse);
+  rpc ListModelCatalogProviders(ListModelCatalogProvidersRequest) returns (ListModelCatalogProvidersResponse);
+  rpc UpsertModelCatalogProvider(UpsertModelCatalogProviderRequest) returns (UpsertModelCatalogProviderResponse);
+  rpc DeleteModelCatalogProvider(DeleteModelCatalogProviderRequest) returns (DeleteModelCatalogProviderResponse);
+  rpc ListCatalogProviderModels(ListCatalogProviderModelsRequest) returns (ListCatalogProviderModelsResponse);
+  rpc GetCatalogModelDetail(GetCatalogModelDetailRequest) returns (GetCatalogModelDetailResponse);
+  rpc UpsertCatalogModelOverlay(UpsertCatalogModelOverlayRequest) returns (UpsertCatalogModelOverlayResponse);
+  rpc DeleteCatalogModelOverlay(DeleteCatalogModelOverlayRequest) returns (DeleteCatalogModelOverlayResponse);
+}

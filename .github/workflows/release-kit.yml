@@ -30,6 +30,7 @@ jobs:
       version: ${{ steps.resolve.outputs.version }}
       version_plain: ${{ steps.resolve.outputs.version_plain }}
       publish: ${{ steps.resolve.outputs.publish }}
+      npm_dist_tag: ${{ steps.resolve.outputs.npm_dist_tag }}
     steps:
       - name: Resolve kit release version
         id: resolve
@@ -67,10 +68,17 @@ jobs:
             exit 1
           fi
 
+          version_plain="${version#v}"
+          npm_dist_tag="latest"
+          if [[ "${version_plain}" == *-* ]]; then
+            npm_dist_tag="next"
+          fi
+
           {
             echo "version=${version}"
-            echo "version_plain=${version#v}"
+            echo "version_plain=${version_plain}"
             echo "publish=${publish}"
+            echo "npm_dist_tag=${npm_dist_tag}"
           } >> "${GITHUB_OUTPUT}"
 
   native-windows-x64:
@@ -83,6 +91,7 @@ jobs:
       RELEASE_VERSION: ${{ needs.resolve.outputs.version_plain }}
       PUBLISH: ${{ needs.resolve.outputs.publish }}
       NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      NPM_DIST_TAG: ${{ needs.resolve.outputs.npm_dist_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -180,7 +189,7 @@ jobs:
       - name: Native npm publish dry-run
         if: needs.resolve.outputs.publish != 'true'
         shell: pwsh
-        run: npm publish kit/shell/protected-local-node/npm/win32-x64 --access public --dry-run
+        run: npm publish kit/shell/protected-local-node/npm/win32-x64 --access public --tag $env:NPM_DIST_TAG --dry-run
 
       - name: Publish native package
         if: needs.resolve.outputs.publish == 'true'
@@ -190,10 +199,95 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($env:NODE_AUTH_TOKEN)) {
             throw 'NPM_TOKEN is required for native package publish'
           }
-          npm publish kit/shell/protected-local-node/npm/win32-x64 --access public --provenance
+          npm publish kit/shell/protected-local-node/npm/win32-x64 --access public --tag $env:NPM_DIST_TAG --provenance
+
+  native-darwin-arm64:
+    needs: resolve
+    runs-on: macos-14
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_VERSION: ${{ needs.resolve.outputs.version_plain }}
+      PUBLISH: ${{ needs.resolve.outputs.publish }}
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      NPM_DIST_TAG: ${{ needs.resolve.outputs.npm_dist_tag }}
+      NIMI_MACOS_TEAM_ID: ${{ secrets.NIMI_MACOS_TEAM_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Verify native package version and metadata
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+
+          const pkg = JSON.parse(readFileSync('kit/shell/protected-local-node/npm/darwin-arm64/package.json', 'utf8'));
+          if (pkg.name !== '@nimiplatform/kit-protected-local-darwin-arm64') throw new Error(`unexpected native package name: ${pkg.name}`);
+          if (pkg.version !== process.env.RELEASE_VERSION) throw new Error(`native package version ${pkg.version} does not match release ${process.env.RELEASE_VERSION}`);
+          if (JSON.stringify(pkg.os) !== JSON.stringify(['darwin'])) throw new Error('native package must be restricted to darwin');
+          if (JSON.stringify(pkg.cpu) !== JSON.stringify(['arm64'])) throw new Error('native package must be restricted to arm64');
+          if (pkg.publishConfig?.access !== 'public' || pkg.publishConfig?.provenance !== true) throw new Error('native package must retain public provenance publication metadata');
+          NODE
+
+      - name: Test and build native carrier
+        run: |
+          set -euo pipefail
+          test -n "${NIMI_MACOS_TEAM_ID:-}"
+          cargo test --manifest-path kit/shell/protected-local-node/Cargo.toml --locked
+          node kit/shell/protected-local-node/scripts/build-darwin-arm64-package.mjs
+
+      - name: Smoke test native exports
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { createRequire } from 'node:module';
+          const require = createRequire(import.meta.url);
+          const binding = require('./kit/shell/protected-local-node/npm/darwin-arm64');
+          const keys = Object.keys(binding).sort();
+          const expected = ['openInstalledAppSession', 'readInstalledArtifactBytes'];
+          if (JSON.stringify(keys) !== JSON.stringify(expected)) throw new Error(`unexpected native exports: ${keys.join(',')}`);
+          NODE
+
+      - name: Check duplicate native package version
+        run: |
+          set -euo pipefail
+          if npm view "@nimiplatform/kit-protected-local-darwin-arm64@${RELEASE_VERSION}" version >/dev/null 2>&1; then
+            if [[ "${PUBLISH}" == "true" ]]; then
+              echo "native package ${RELEASE_VERSION} already exists on npm" >&2
+              exit 1
+            fi
+            echo "native package ${RELEASE_VERSION} already exists; dry-run will not publish"
+          else
+            echo "native package ${RELEASE_VERSION} is not published on npm"
+          fi
+
+      - name: Native npm publish dry-run
+        if: needs.resolve.outputs.publish != 'true'
+        run: npm publish kit/shell/protected-local-node/npm/darwin-arm64 --access public --tag "${NPM_DIST_TAG}" --dry-run
+
+      - name: Publish native package
+        if: needs.resolve.outputs.publish == 'true'
+        run: |
+          set -euo pipefail
+          test -n "${NODE_AUTH_TOKEN:-}"
+          npm publish kit/shell/protected-local-node/npm/darwin-arm64 --access public --tag "${NPM_DIST_TAG}" --provenance
 
   release:
-    needs: [resolve, native-windows-x64]
+    needs: [resolve, native-windows-x64, native-darwin-arm64]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -202,6 +296,7 @@ jobs:
       RELEASE_VERSION: ${{ needs.resolve.outputs.version_plain }}
       PUBLISH: ${{ needs.resolve.outputs.publish }}
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      NPM_DIST_TAG: ${{ needs.resolve.outputs.npm_dist_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -211,7 +306,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
         with:
-          version: 10.32.1
+          version: 10.34.5
 
       - name: Setup Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
@@ -221,7 +316,7 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Verify kit package version and metadata
         run: |
@@ -276,6 +371,9 @@ jobs:
           if (pkg.optionalDependencies?.['@nimiplatform/kit-protected-local-win32-x64'] !== 'workspace:*') {
             throw new Error('@nimiplatform/kit must consume the fixed Windows x64 protected-local optional package');
           }
+          if (pkg.optionalDependencies?.['@nimiplatform/kit-protected-local-darwin-arm64'] !== 'workspace:*') {
+            throw new Error('@nimiplatform/kit must consume the fixed macOS arm64 protected-local optional package');
+          }
           NODE
 
       - name: Build SDK for local workspace resolution
@@ -303,8 +401,29 @@ jobs:
             echo "@nimiplatform/kit@${RELEASE_VERSION} is not published on npm"
           fi
 
+      - name: Verify public dependency readiness for real publish
+        if: env.PUBLISH == 'true'
+        run: |
+          set -euo pipefail
+          sdk_version="$(node -p "JSON.parse(require('node:fs').readFileSync('sdks/typescript/package.json', 'utf8')).version")"
+          wait_for_npm_version() {
+            local package_name="$1"
+            local package_version="$2"
+            for attempt in $(seq 1 18); do
+              if npm view "${package_name}@${package_version}" version >/dev/null 2>&1; then
+                return 0
+              fi
+              sleep 10
+            done
+            echo "${package_name}@${package_version} is not visible on npm" >&2
+            return 1
+          }
+          wait_for_npm_version '@nimiplatform/sdk' "${sdk_version}"
+          wait_for_npm_version '@nimiplatform/kit-protected-local-win32-x64' "${RELEASE_VERSION}"
+          wait_for_npm_version '@nimiplatform/kit-protected-local-darwin-arm64' "${RELEASE_VERSION}"
+
       - name: Kit npm publish dry-run
-        run: pnpm --filter @nimiplatform/kit publish --access public --no-git-checks --dry-run
+        run: pnpm --filter @nimiplatform/kit publish --access public --no-git-checks --tag "${NPM_DIST_TAG}" --dry-run
 
       - name: Publish kit to npm
         if: env.PUBLISH == 'true'
@@ -318,4 +437,4 @@ jobs:
           mkdir -p "$(dirname "${npm_config}")"
           printf '//registry.npmjs.org/:_authToken=%s\n' "${NPM_TOKEN}" > "${npm_config}"
           export NODE_AUTH_TOKEN="${NPM_TOKEN}"
-          pnpm --filter @nimiplatform/kit publish --access public --no-git-checks --provenance
+          pnpm --filter @nimiplatform/kit publish --access public --no-git-checks --tag "${NPM_DIST_TAG}" --provenance

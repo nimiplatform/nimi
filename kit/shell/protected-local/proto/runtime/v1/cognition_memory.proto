@@ -1,0 +1,457 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+
+// The Cognition Memory messages define the stable Runtime-to-Cognition owner
+// boundary. V1 intentionally declares no public service here: Runtime is the
+// only caller, and the active Runtime facade is cut over only after its owner
+// implementation and consumers are ready.
+
+enum CognitionMemoryOutcome {
+  COGNITION_MEMORY_OUTCOME_UNSPECIFIED = 0;
+  COGNITION_MEMORY_OUTCOME_UNSUPPORTED = 1;
+  COGNITION_MEMORY_OUTCOME_INVALID = 2;
+  COGNITION_MEMORY_OUTCOME_UNAUTHORIZED = 3;
+  COGNITION_MEMORY_OUTCOME_UNCONFIGURED = 4;
+  COGNITION_MEMORY_OUTCOME_PENDING = 5;
+  COGNITION_MEMORY_OUTCOME_BUILDING = 6;
+  COGNITION_MEMORY_OUTCOME_RECEIVED = 7;
+  COGNITION_MEMORY_OUTCOME_PROCESSING = 8;
+  COGNITION_MEMORY_OUTCOME_READY = 9;
+  COGNITION_MEMORY_OUTCOME_NO_HITS = 10;
+  COGNITION_MEMORY_OUTCOME_UNAVAILABLE = 11;
+  COGNITION_MEMORY_OUTCOME_FAILED = 12;
+  COGNITION_MEMORY_OUTCOME_NO_EFFECT = 13;
+  COGNITION_MEMORY_OUTCOME_REJECTED = 14;
+  COGNITION_MEMORY_OUTCOME_ADMITTED = 15;
+  COGNITION_MEMORY_OUTCOME_FORGOTTEN = 16;
+  COGNITION_MEMORY_OUTCOME_DELETED = 17;
+  COGNITION_MEMORY_OUTCOME_ALREADY_ABSENT = 18;
+  COGNITION_MEMORY_OUTCOME_COMMITTED = 19;
+  COGNITION_MEMORY_OUTCOME_CONFLICT = 20;
+  COGNITION_MEMORY_OUTCOME_DUPLICATE = 21;
+}
+
+enum CognitionMemoryEpistemicStatus {
+  COGNITION_MEMORY_EPISTEMIC_STATUS_UNSPECIFIED = 0;
+  COGNITION_MEMORY_EPISTEMIC_STATUS_EXPLICIT = 1;
+  COGNITION_MEMORY_EPISTEMIC_STATUS_INFERRED = 2;
+  COGNITION_MEMORY_EPISTEMIC_STATUS_CONSOLIDATED = 3;
+}
+
+enum CognitionMemoryLifecycle {
+  COGNITION_MEMORY_LIFECYCLE_UNSPECIFIED = 0;
+  COGNITION_MEMORY_LIFECYCLE_CURRENT = 1;
+  COGNITION_MEMORY_LIFECYCLE_SUPERSEDED = 2;
+  COGNITION_MEMORY_LIFECYCLE_CONFLICTED = 3;
+  COGNITION_MEMORY_LIFECYCLE_FORGOTTEN = 4;
+}
+
+enum CognitionMemoryActorRole {
+  COGNITION_MEMORY_ACTOR_ROLE_UNSPECIFIED = 0;
+  COGNITION_MEMORY_ACTOR_ROLE_USER = 1;
+  COGNITION_MEMORY_ACTOR_ROLE_ASSISTANT = 2;
+  COGNITION_MEMORY_ACTOR_ROLE_TOOL = 3;
+}
+
+enum CognitionMemoryTerminalState {
+  COGNITION_MEMORY_TERMINAL_STATE_UNSPECIFIED = 0;
+  COGNITION_MEMORY_TERMINAL_STATE_COMPLETED = 1;
+  COGNITION_MEMORY_TERMINAL_STATE_FAILED = 2;
+  COGNITION_MEMORY_TERMINAL_STATE_INTERRUPTED = 3;
+  COGNITION_MEMORY_TERMINAL_STATE_CANCELED = 4;
+}
+
+enum CognitionMemoryCapability {
+  COGNITION_MEMORY_CAPABILITY_UNSPECIFIED = 0;
+  COGNITION_MEMORY_CAPABILITY_FTS_INDEX = 1;
+  COGNITION_MEMORY_CAPABILITY_TEXT_EMBED = 2;
+  COGNITION_MEMORY_CAPABILITY_VECTOR_INDEX = 3;
+}
+
+// Runtime-resolved embedding execution profile used only by the Cognition
+// Memory and typed Agent Source AI ports. It is not a public Memory bank
+// contract and carries no Agent identity.
+enum MemoryDistanceMetric {
+  MEMORY_DISTANCE_METRIC_UNSPECIFIED = 0;
+  MEMORY_DISTANCE_METRIC_COSINE = 1;
+  MEMORY_DISTANCE_METRIC_EUCLIDEAN = 2;
+}
+
+enum MemoryMigrationPolicy {
+  MEMORY_MIGRATION_POLICY_UNSPECIFIED = 0;
+  MEMORY_MIGRATION_POLICY_REINDEX = 1;
+  MEMORY_MIGRATION_POLICY_FREEZE = 2;
+}
+
+message MemoryEmbeddingCloudBindingRef {
+  string connector_id = 1;
+  reserved 2;
+  reserved "model_id";
+  string remote_model_catalog_id = 3;
+  string provider_model_id = 4;
+  string provider = 5;
+}
+
+message MemoryEmbeddingProfile {
+  string provider = 1;
+  string model_id = 2;
+  int32 dimension = 3;
+  MemoryDistanceMetric distance_metric = 4;
+  string version = 5;
+  MemoryMigrationPolicy migration_policy = 6;
+  MemoryEmbeddingCloudBindingRef cloud_binding = 7;
+  reserved 8;
+  reserved "local_binding";
+}
+
+enum CognitionMemoryDeleteReason {
+  COGNITION_MEMORY_DELETE_REASON_UNSPECIFIED = 0;
+  COGNITION_MEMORY_DELETE_REASON_DELETE_ALL = 1;
+  COGNITION_MEMORY_DELETE_REASON_AGENT_TERMINATION = 2;
+  COGNITION_MEMORY_DELETE_REASON_ACCOUNT_TERMINATION = 3;
+}
+
+message CognitionMemoryBankBindingRef {
+  string value = 1;
+}
+
+message CognitionMemoryBankRef {
+  string value = 1;
+}
+
+message CognitionMemoryEventRef {
+  string value = 1;
+}
+
+message CognitionMemoryOperationRef {
+  string value = 1;
+}
+
+message CognitionMemoryRef {
+  string value = 1;
+}
+
+message CognitionMemorySubjectRef {
+  string kind = 1;
+  string value = 2;
+}
+
+message CognitionMemorySourceRef {
+  string kind = 1;
+  string value = 2;
+}
+
+message CognitionMemoryLifecycleCutoffRef {
+  string value = 1;
+}
+
+message CognitionMemoryCapabilitySnapshot {
+  uint64 config_revision = 1;
+  repeated CognitionMemoryCapability available = 2;
+}
+
+message CognitionMemoryTextPart {
+  string text = 1;
+}
+
+message CognitionMemoryTranscriptionPart {
+  string text = 1;
+  CognitionMemorySourceRef transcription = 2;
+}
+
+message CognitionMemoryArtifactPart {
+  CognitionMemorySourceRef artifact = 1;
+  string media_kind = 2;
+}
+
+message CognitionMemoryMessagePart {
+  CognitionMemorySourceRef part = 1;
+  oneof content {
+    CognitionMemoryTextPart text = 10;
+    CognitionMemoryTranscriptionPart transcription = 11;
+    CognitionMemoryArtifactPart artifact = 12;
+  }
+}
+
+message CognitionMemoryMessageCommitted {
+  CognitionMemoryActorRole actor = 1;
+  CognitionMemorySourceRef conversation = 2;
+  CognitionMemorySourceRef message = 3;
+  repeated CognitionMemoryMessagePart parts = 4;
+}
+
+message CognitionMemoryTurnTerminal {
+  CognitionMemorySourceRef conversation = 1;
+  CognitionMemorySourceRef turn = 2;
+  CognitionMemoryTerminalState state = 3;
+}
+
+message CognitionMemoryActivityTerminal {
+  CognitionMemorySourceRef activity = 1;
+  string activity_kind = 2;
+  CognitionMemoryTerminalState state = 3;
+  string bounded_outcome = 4;
+}
+
+message CognitionMemoryCorrectionCommitted {
+  CognitionMemoryRef target_memory = 1;
+  string corrected_content = 2;
+}
+
+message CognitionMemoryRelationshipCommitted {
+  string relationship_kind = 1;
+  string bounded_fact = 2;
+}
+
+message CognitionMemoryCommittedEventEnvelope {
+  uint32 contract_version = 1;
+  CognitionMemoryBankBindingRef bank_binding = 2;
+  CognitionMemoryBankRef bank = 3;
+  CognitionMemoryEventRef event = 4;
+  uint64 delivery_sequence = 5;
+  CognitionMemoryOperationRef operation = 6;
+  repeated CognitionMemorySubjectRef subjects = 7;
+  repeated CognitionMemorySourceRef sources = 8;
+  google.protobuf.Timestamp committed_at = 9;
+  CognitionMemoryLifecycleCutoffRef lifecycle_cutoff = 10;
+  oneof fact {
+    CognitionMemoryMessageCommitted message_committed = 20;
+    CognitionMemoryTurnTerminal turn_terminal = 21;
+    CognitionMemoryActivityTerminal activity_terminal = 22;
+    CognitionMemoryCorrectionCommitted correction_committed = 23;
+    CognitionMemoryRelationshipCommitted relationship_committed = 24;
+  }
+}
+
+message CognitionMemoryEnsureBankRequest {
+  uint32 contract_version = 1;
+  CognitionMemoryBankBindingRef bank_binding = 2;
+  CognitionMemoryOperationRef operation = 3;
+}
+
+message CognitionMemoryEnsureBankResponse {
+  CognitionMemoryOutcome outcome = 1;
+  CognitionMemoryBankBindingRef bank_binding = 2;
+  CognitionMemoryBankRef bank = 3;
+  CognitionMemoryLifecycleCutoffRef lifecycle_cutoff = 4;
+}
+
+message CognitionMemoryCommitRequest {
+  CognitionMemoryCommittedEventEnvelope envelope = 1;
+}
+
+message CognitionMemoryCommitResponse {
+  CognitionMemoryOutcome outcome = 1;
+  CognitionMemoryBankRef bank = 2;
+  CognitionMemoryEventRef event = 3;
+  CognitionMemoryOperationRef operation = 4;
+  uint64 delivery_sequence = 5;
+  uint64 received_frontier = 6;
+}
+
+message CognitionMemoryEventStatus {
+  CognitionMemoryEventRef event = 1;
+  CognitionMemoryOperationRef operation = 2;
+  uint64 delivery_sequence = 3;
+  CognitionMemoryOutcome outcome = 4;
+  repeated CognitionMemoryRef affected_memories = 5;
+}
+
+message CognitionMemoryFrontiers {
+  uint64 delivery_frontier = 1;
+  uint64 received_frontier = 2;
+  uint64 ready_frontier = 3;
+}
+
+message CognitionMemoryHit {
+  CognitionMemoryBankRef bank = 1;
+  CognitionMemoryRef memory = 2;
+  string content = 3;
+  CognitionMemoryEpistemicStatus epistemic_status = 4;
+  CognitionMemoryLifecycle lifecycle = 5;
+  google.protobuf.Timestamp occurred_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  repeated CognitionMemorySubjectRef subjects = 8;
+  repeated CognitionMemorySourceRef sources = 9;
+  string source_explanation = 10;
+}
+
+message CognitionMemoryRecallRequest {
+  uint32 contract_version = 1;
+  CognitionMemoryBankBindingRef bank_binding = 2;
+  CognitionMemoryBankRef bank = 3;
+  CognitionMemoryOperationRef operation = 4;
+  string query = 5;
+  repeated CognitionMemorySubjectRef subject_scope = 6;
+  uint32 limit = 7;
+  CognitionMemoryCapabilitySnapshot capabilities = 8;
+}
+
+message CognitionMemoryRecallResponse {
+  CognitionMemoryOutcome outcome = 1;
+  repeated CognitionMemoryHit hits = 2;
+}
+
+message CognitionMemoryForgetRequest {
+  uint32 contract_version = 1;
+  CognitionMemoryBankBindingRef bank_binding = 2;
+  CognitionMemoryBankRef bank = 3;
+  CognitionMemoryOperationRef operation = 4;
+  repeated CognitionMemoryRef targets = 5;
+  bool confirmed = 6;
+}
+
+message CognitionMemoryForgetResponse {
+  CognitionMemoryOutcome outcome = 1;
+  repeated CognitionMemoryRef affected_memories = 2;
+}
+
+message CognitionMemoryApplyCutoffRequest {
+  uint32 contract_version = 1;
+  CognitionMemoryBankBindingRef bank_binding = 2;
+  CognitionMemoryBankRef bank = 3;
+  CognitionMemoryOperationRef operation = 4;
+  CognitionMemoryLifecycleCutoffRef cutoff = 5;
+  bool delete_all = 6;
+  CognitionMemoryBankBindingRef replacement_bank_binding = 7;
+}
+
+message CognitionMemoryApplyCutoffResponse {
+  CognitionMemoryOutcome outcome = 1;
+  CognitionMemoryLifecycleCutoffRef cutoff = 2;
+  CognitionMemoryBankBindingRef replacement_bank_binding = 3;
+}
+
+message CognitionMemoryDeleteBankRequest {
+  uint32 contract_version = 1;
+  CognitionMemoryBankBindingRef bank_binding = 2;
+  CognitionMemoryBankRef bank = 3;
+  CognitionMemoryOperationRef operation = 4;
+  CognitionMemoryDeleteReason reason = 5;
+  CognitionMemoryLifecycleCutoffRef cutoff = 6;
+}
+
+message CognitionMemoryDeleteBankResponse {
+  CognitionMemoryOutcome outcome = 1;
+}
+
+message CognitionMemoryInspectStatusRequest {
+  uint32 contract_version = 1;
+  CognitionMemoryBankBindingRef bank_binding = 2;
+  CognitionMemoryBankRef bank = 3;
+  CognitionMemoryOperationRef operation = 4;
+}
+
+message CognitionMemoryInspectStatusResponse {
+  CognitionMemoryOutcome outcome = 1;
+  CognitionMemoryFrontiers frontiers = 2;
+  repeated CognitionMemoryEventStatus events = 3;
+  uint64 current_count = 4;
+  uint64 superseded_count = 5;
+  uint64 forgotten_count = 6;
+}
+
+message CognitionMemoryInspectRequest {
+  uint32 contract_version = 1;
+  CognitionMemoryBankBindingRef bank_binding = 2;
+  CognitionMemoryBankRef bank = 3;
+  CognitionMemoryOperationRef operation = 4;
+  uint32 limit = 5;
+  string page_token = 6;
+}
+
+message CognitionMemoryInspectResponse {
+  CognitionMemoryOutcome outcome = 1;
+  repeated CognitionMemoryHit memories = 2;
+  string next_page_token = 3;
+}
+
+message CognitionMemoryAiJobRequest {
+  uint32 contract_version = 1;
+  CognitionMemoryOperationRef operation = 2;
+  CognitionMemoryCapability capability = 3;
+  uint64 config_revision = 4;
+  repeated string bounded_inputs = 5;
+}
+
+message CognitionMemoryAiJobResult {
+  CognitionMemoryOutcome outcome = 1;
+  CognitionMemoryOperationRef operation = 2;
+  repeated double vectors = 3;
+  uint32 vector_dimension = 4;
+  string bounded_text = 5;
+}
+
+message AgentMemoryItem {
+  string memory_id = 1;
+  string content = 2;
+  CognitionMemoryEpistemicStatus epistemic_status = 3;
+  CognitionMemoryLifecycle lifecycle = 4;
+  google.protobuf.Timestamp occurred_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+  string source_explanation = 7;
+}
+
+message AgentMemoryProjection {
+  CognitionMemoryOutcome outcome = 1;
+  bool enabled = 2;
+  bool adoption_required = 3;
+  repeated AgentMemoryItem items = 4;
+  uint64 current_count = 5;
+  uint64 superseded_count = 6;
+  uint64 forgotten_count = 7;
+  string next_page_token = 8;
+}
+
+message InspectLocalAppAgentMemoryRequest {
+  string agent_handle = 1;
+  uint32 limit = 2;
+  string page_token = 3;
+}
+message InspectLocalAppAgentMemoryResponse { AgentMemoryProjection projection = 1; }
+
+message CorrectLocalAppAgentMemoryRequest {
+  string agent_handle = 1;
+  string memory_id = 2;
+  string corrected_content = 3;
+}
+message CorrectLocalAppAgentMemoryResponse {
+  CognitionMemoryOutcome outcome = 1;
+  repeated string affected_memory_ids = 2;
+  AgentMemoryProjection projection = 3;
+}
+
+message ForgetLocalAppAgentMemoryRequest {
+  string agent_handle = 1;
+  repeated string memory_ids = 2;
+  bool confirmed = 3;
+}
+message ForgetLocalAppAgentMemoryResponse {
+  CognitionMemoryOutcome outcome = 1;
+  repeated string affected_memory_ids = 2;
+  AgentMemoryProjection projection = 3;
+}
+
+message SetLocalAppAgentMemoryEnabledRequest {
+  string agent_handle = 1;
+  bool enabled = 2;
+}
+message SetLocalAppAgentMemoryEnabledResponse {
+  CognitionMemoryOutcome outcome = 1;
+  AgentMemoryProjection projection = 2;
+}
+
+message DeleteAllLocalAppAgentMemoryRequest {
+  string agent_handle = 1;
+  bool confirmed = 2;
+}
+message DeleteAllLocalAppAgentMemoryResponse {
+  CognitionMemoryOutcome outcome = 1;
+  repeated string affected_memory_ids = 2;
+  AgentMemoryProjection projection = 3;
+}

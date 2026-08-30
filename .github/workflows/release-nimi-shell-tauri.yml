@@ -126,6 +126,15 @@ jobs:
           if (/^publish = false$/m.test(manifest)) {
             throw new Error('nimi-shell-tauri must not disable publication');
           }
+          const protectedManifest = readFileSync('kit/shell/protected-local/Cargo.toml', 'utf8');
+          const protectedVersion = protectedManifest.match(/^version = "([^"]+)"/m)?.[1] ?? '';
+          if (protectedVersion !== expectedVersion) {
+            throw new Error(`protected-local version ${protectedVersion} does not match shell release ${expectedVersion}`);
+          }
+          const expectedDependency = `nimi-shell-protected-local = { version = "${expectedVersion}", path = "../protected-local" }`;
+          if (!manifest.includes(expectedDependency)) {
+            throw new Error('nimi-shell-tauri must declare the exact publishable protected-local version and local workspace path');
+          }
           NODE
 
       - name: Test nimi-shell-tauri
@@ -143,6 +152,18 @@ jobs:
           else
             echo "nimi-shell-tauri ${RELEASE_VERSION} is not published on crates.io"
           fi
+
+      - name: Verify protected-local dependency readiness
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 18); do
+            if curl --fail --silent --show-error "https://crates.io/api/v1/crates/nimi-shell-protected-local/${RELEASE_VERSION}" >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "nimi-shell-protected-local ${RELEASE_VERSION} is not visible on crates.io" >&2
+          exit 1
 
       - name: Cargo publish dry-run
         run: cargo publish --dry-run --manifest-path kit/shell/tauri/Cargo.toml --allow-dirty

@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/app-tools",
-  "version": "0.3.0",
+  "version": "0.2.0-rc.1",
   "license": "Apache-2.0",
   "type": "module",
   "private": false,
@@ -14,30 +14,30 @@
     "provenance": true
   },
   "nimiScaffoldVersions": {
-    "sdkVersion": "^0.9.0",
-    "appToolsVersion": "^0.3.0",
+    "sdkVersion": "^0.7.0-rc.1",
+    "appToolsVersion": "^0.2.0-rc.1",
     "nimicodingVersion": "0.6.1",
     "aiSdkVersion": "^6.0.85",
-    "kitVersion": "^0.6.0",
-    "reactVersion": "^19.1.0",
-    "reactDomVersion": "^19.1.0",
-    "i18nextVersion": "^25.8.18",
+    "kitVersion": "^0.3.0-rc.1",
+    "reactVersion": "^19.2.8",
+    "reactDomVersion": "^19.2.8",
+    "i18nextVersion": "^25.10.10",
     "lucideReactVersion": "^0.577.0",
-    "tsxVersion": "^4.21.0",
+    "tsxVersion": "^4.23.13",
     "typescriptVersion": "^5.9.3",
-    "nodeTypesVersion": "^24.10.1",
-    "reactTypesVersion": "^19.2.14",
-    "reactDomTypesVersion": "^19.2.3",
-    "viteVersion": "^7.2.4",
-    "viteReactPluginVersion": "^5.1.1",
-    "tailwindcssVersion": "^4.3.0",
-    "tailwindcssViteVersion": "^4.3.0",
-    "tauriCliVersion": "^2.11.2",
+    "nodeTypesVersion": "^24.13.3",
+    "reactTypesVersion": "^19.2.18",
+    "reactDomTypesVersion": "^19.2.5",
+    "viteVersion": "^7.3.6",
+    "viteReactPluginVersion": "^5.2.0",
+    "tailwindcssVersion": "^4.3.3",
+    "tailwindcssViteVersion": "^4.3.3",
+    "tauriCliVersion": "^2.11.4",
     "yamlVersion": "^2.9.0",
-    "nimiShellTauriVersion": "0.1.0",
-    "electronVersion": "^42.5.0",
-    "esbuildVersion": "^0.28.0",
-    "packageManager": "pnpm@10.32.1"
+    "nimiShellTauriVersion": "0.2.0-rc.1",
+    "electronVersion": "^42.10.1",
+    "esbuildVersion": "^0.28.2",
+    "packageManager": "pnpm@10.34.5"
   },
   "bin": {
     "nimi-app": "./bin/nimi-app.mjs"
@@ -63,13 +63,13 @@
     "README.md"
   ],
   "dependencies": {
-    "postcss": "^8.5.6",
-    "postcss-selector-parser": "^7.1.0",
-    "semver": "^7.8.1",
+    "postcss": "^8.5.26",
+    "postcss-selector-parser": "^7.1.5",
+    "semver": "^7.8.5",
     "typescript": "^5.9.3",
     "yaml": "^2.9.0"
   },
   "devDependencies": {
-    "vite": "7.3.1"
+    "vite": "7.3.6"
   }
 }

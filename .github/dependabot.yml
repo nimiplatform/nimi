@@ -9,6 +9,13 @@ updates:
       timezone: UTC
     open-pull-requests-limit: 4
     rebase-strategy: auto
+    ignore:
+      - dependency-name: "@nimiplatform/sdk"
+      - dependency-name: "@nimiplatform/kit"
+      - dependency-name: "@nimiplatform/app-tools"
+      - dependency-name: "@nimiplatform/kit-protected-local-win32-x64"
+      - dependency-name: "@nimiplatform/kit-protected-local-darwin-arm64"
+      - dependency-name: "@nimiplatform/nimi-coding"
     cooldown:
       semver-major-days: 30
       semver-minor-days: 7

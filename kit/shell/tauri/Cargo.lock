@@ -2320,7 +2320,7 @@ checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
 name = "nimi-shell-protected-local"
-version = "0.1.0"
+version = "0.2.0-rc.1"
 dependencies = [
  "base64 0.22.1",
  "cc",
@@ -2349,7 +2349,7 @@ dependencies = [
 
 [[package]]
 name = "nimi-shell-tauri"
-version = "0.1.0"
+version = "0.2.0-rc.1"
 dependencies = [
  "aes-gcm",
  "base64 0.22.1",

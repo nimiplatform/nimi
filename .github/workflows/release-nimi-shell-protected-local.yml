@@ -1,0 +1,112 @@
+name: release-nimi-shell-protected-local
+
+on:
+  push:
+    tags:
+      - nimi-shell-protected-local/v*
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semver version already present in kit/shell/protected-local/Cargo.toml
+        required: true
+        type: string
+      publish:
+        description: Publish nimi-shell-protected-local to crates.io. false runs the dry-run release gate only.
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-nimi-shell-protected-local-${{ github.ref_name || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    outputs:
+      version_plain: ${{ steps.resolve.outputs.version_plain }}
+      publish: ${{ steps.resolve.outputs.publish }}
+    steps:
+      - name: Resolve protected-local release version
+        id: resolve
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
+        run: |
+          set -euo pipefail
+          semver_regex='^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$'
+          if [[ "${EVENT_NAME}" == "push" ]]; then
+            case "${REF_NAME}" in
+              nimi-shell-protected-local/v*) version="${REF_NAME#nimi-shell-protected-local/}"; publish="true" ;;
+              *) echo "unsupported protected-local tag format: ${REF_NAME}" >&2; exit 1 ;;
+            esac
+          else
+            version="${INPUT_VERSION}"
+            if [[ "${version}" != v* ]]; then version="v${version}"; fi
+            publish="${INPUT_PUBLISH}"
+          fi
+          if ! [[ "${version}" =~ ${semver_regex} ]]; then echo "invalid semver version: ${version}" >&2; exit 1; fi
+          {
+            echo "version_plain=${version#v}"
+            echo "publish=${publish}"
+          } >> "${GITHUB_OUTPUT}"
+
+  release:
+    needs: resolve
+    runs-on: ubuntu-latest
+    env:
+      RELEASE_VERSION: ${{ needs.resolve.outputs.version_plain }}
+      PUBLISH: ${{ needs.resolve.outputs.publish }}
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Verify protected-local crate version and metadata
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const manifest = readFileSync('kit/shell/protected-local/Cargo.toml', 'utf8');
+          const field = (name) => manifest.match(new RegExp(`^${name} = "([^"]+)"`, 'm'))?.[1] ?? '';
+          if (field('name') !== 'nimi-shell-protected-local') throw new Error(`unexpected crate name: ${field('name')}`);
+          if (field('version') !== process.env.RELEASE_VERSION) throw new Error(`protected-local version ${field('version')} does not match release ${process.env.RELEASE_VERSION}`);
+          if (field('license') !== 'MIT') throw new Error('protected-local must declare MIT license metadata');
+          if (field('repository') !== 'https://github.com/nimiplatform/nimi') throw new Error('protected-local repository metadata mismatch');
+          if (field('readme') !== 'README.md') throw new Error('protected-local readme metadata mismatch');
+          NODE
+
+      - name: Test protected-local crate
+        run: cargo test --manifest-path kit/shell/protected-local/Cargo.toml --locked
+
+      - name: Check duplicate crates.io version
+        run: |
+          set -euo pipefail
+          if curl --fail --silent --show-error "https://crates.io/api/v1/crates/nimi-shell-protected-local/${RELEASE_VERSION}" >/dev/null 2>&1; then
+            if [[ "${PUBLISH}" == "true" ]]; then echo "nimi-shell-protected-local ${RELEASE_VERSION} already exists" >&2; exit 1; fi
+            echo "nimi-shell-protected-local ${RELEASE_VERSION} already exists; dry-run will not publish"
+          else
+            echo "nimi-shell-protected-local ${RELEASE_VERSION} is not published on crates.io"
+          fi
+
+      - name: Cargo publish dry-run
+        run: cargo publish --dry-run --manifest-path kit/shell/protected-local/Cargo.toml --allow-dirty
+
+      - name: Publish protected-local crate
+        if: env.PUBLISH == 'true'
+        run: |
+          set -euo pipefail
+          test -n "${CARGO_REGISTRY_TOKEN:-}"
+          cargo publish --manifest-path kit/shell/protected-local/Cargo.toml --allow-dirty --token "${CARGO_REGISTRY_TOKEN}"

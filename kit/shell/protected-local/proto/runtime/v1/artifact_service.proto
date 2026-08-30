@@ -1,0 +1,143 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+// RuntimeArtifactService provides generic by-id artifact bytes retrieval for
+// runtime-emitted artifacts (audio / image / video / music / etc.).
+//
+// Authority: K-AGCORE-053 (.nimi/spec/runtime/service-operations.authority.yaml)
+// SDK consume surface: S-RUNTIME-111 (.nimi/spec/sdks/client-core.authority.yaml)
+//
+// Use cases:
+// - eligible Apps read canonical Conversation voice artifacts for Host-local
+//   decode, playback, and App-owned lipsync analysis.
+// - future image/video/music consumers read by id without depending on
+//   ScenarioJob (artifacts may originate from realtime, cache, streaming TTS,
+//   local voice engine, or user upload).
+//
+// Orthogonal to:
+// - RuntimeAiService.GetScenarioArtifacts (job-typed media projection;
+//   S-RUNTIME-073)
+// - RuntimeAiService.GetVoiceAsset (voice asset library)
+// - RuntimeAiService.UploadArtifact (write-side; distinct semantics)
+//
+// Trust model: same as existing getScenarioArtifacts/getVoiceAsset
+// (single-process / single-user / single-tenant). Multi-tenant ACL is
+// reserved future; ARTIFACT_FORBIDDEN reason code admitted but never
+// returned by current deployment.
+service RuntimeArtifactService {
+  // Read artifact bytes by runtime-owned artifact_id.
+  //
+  // Reason codes (admitted in common.proto ARTIFACT family 600+):
+  // - ARTIFACT_INVALID_INPUT (codes.InvalidArgument): empty/malformed artifact_id
+  // - ARTIFACT_NOT_FOUND (codes.NotFound): id not in runtime storage
+  // - ARTIFACT_TOO_LARGE (codes.ResourceExhausted): exceeds 32 MiB inline cap
+  // - ARTIFACT_FORBIDDEN (codes.PermissionDenied): multi-tenant ACL violation
+  //   (reserved; current single-runtime deployment never returns this)
+  //
+  // ARTIFACT_MIME_MISMATCH is SDK-side only (client expectedMimePrefix check);
+  // server never returns it.
+  //
+  // Inline retrieval is hard-capped at 32 MiB; chunked retrieval remains
+  // unadmitted until explicit platform authority is added.
+  //
+  // Errors must be returned via grpcerr.WithReasonCode(codes.X,
+  // runtimev1.ReasonCode_ARTIFACT_*) per K-ERR-003 (ReasonCode in ErrorInfo
+  // details, not status message string).
+  rpc ReadArtifactBytes(ReadArtifactBytesRequest) returns (ReadArtifactBytesResponse) {}
+
+  // Delete generated assistant voice artifacts by Runtime-owned scope.
+  //
+  // Exactly one or both of agent_id / conversation_anchor_id may be supplied.
+  // When both are supplied, only artifacts matching both selectors are removed.
+  // The cleanup is idempotent: no matching artifacts returns deleted_count=0.
+  //
+  // This surface is limited to generated agent voice artifacts admitted by
+  // K-VOICE-020. It does not delete scenario images/video/music, uploaded
+  // user files, committed text messages, or conversation history.
+  rpc CleanupGeneratedVoiceArtifacts(CleanupGeneratedVoiceArtifactsRequest) returns (CleanupGeneratedVoiceArtifactsResponse) {}
+
+  // Upload bounded user attachment material into the runtime artifact store
+  // so that a conversation turn can later reference it by artifact_id.
+  //
+  // Admission (fail closed, checked before the body is fully allocated):
+  // - mime_type must be image/png, image/jpeg, image/webp, or image/gif and
+  //   must match the payload file signature; mismatch or corrupt payloads are
+  //   rejected with ARTIFACT_UPLOAD_CONTENT_MISMATCH.
+  // - data is limited to 4 MiB (4 * 1024 * 1024) raw bytes; oversize payloads
+  //   are rejected with ARTIFACT_UPLOAD_TOO_LARGE before allocation.
+  // - ARTIFACT_UPLOAD_MIME_UNSUPPORTED covers every other media type.
+  //
+  // The stored record carries owner metadata (subject_user_id + calling app
+  // identity); the artifact_id is never an authorization credential, and the
+  // store record's mime/size are the only trusted values for later turn
+  // admission.
+  rpc PutArtifact(PutArtifactRequest) returns (PutArtifactResponse) {}
+}
+
+message ReadArtifactBytesRequest {
+  // Runtime-owned, opaque, globally-unique artifact identity. Required.
+  // Sourced from canonical Conversation or other typed Runtime artifact
+  // projections.
+  string artifact_id = 1;
+}
+
+message ReadArtifactBytesResponse {
+  // Full artifact body. Inline-capped at 32 MiB (hard ceiling; larger
+  // artifacts return ARTIFACT_TOO_LARGE).
+  bytes bytes = 1;
+
+  // RFC-6838 media type. Required (must be present even if upstream
+  // provider didn't declare one; runtime fills "application/octet-stream"
+  // in that case but flags mime_inferred=true).
+  string mime_type = 2;
+
+  // Artifact total size in bytes.
+  int64 size_bytes = 3;
+
+  // True if mime_type was runtime-inferred rather than provider-declared.
+  // Consumers may log/observe but typically still consume.
+  bool mime_inferred = 4;
+}
+
+message CleanupGeneratedVoiceArtifactsRequest {
+  // Generated voice artifacts for this runtime agent id.
+  string agent_id = 1;
+
+  // Generated voice artifacts scoped to this conversation anchor.
+  string conversation_anchor_id = 2;
+}
+
+message CleanupGeneratedVoiceArtifactsResponse {
+  // Number of generated voice artifacts deleted by this call.
+  int32 deleted_count = 1;
+
+  // Runtime artifact ids removed by this call.
+  repeated string deleted_artifact_ids = 2;
+}
+
+message PutArtifactRequest {
+  // Declared media type of the uploaded material. Must be one of image/png,
+  // image/jpeg, image/webp, or image/gif, and must agree with the payload
+  // file signature; the server validates the signature instead of trusting
+  // the declared value.
+  string mime_type = 1;
+
+  // Human-readable display name projected back to consumers (for example the
+  // original file name). May be empty; the server falls back to a generic
+  // attachment label for rendering.
+  string display_name = 2;
+
+  // Raw file bytes. Limited to 4 MiB (4 * 1024 * 1024); the server must
+  // reject oversize payloads before allocating the full body.
+  bytes data = 3;
+}
+
+message PutArtifactResponse {
+  // Runtime-owned, opaque, globally-unique artifact identity
+  // ("artifact_<ulid>") used for later turn attachment references and
+  // ReadArtifactBytes retrieval. It is not an authorization credential.
+  string artifact_id = 1;
+}

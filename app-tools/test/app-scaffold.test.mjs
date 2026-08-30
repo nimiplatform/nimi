@@ -60,7 +60,7 @@ const versions = {
   tailwindcssVersion: '4.0.0',
   tailwindcssViteVersion: '4.0.0',
   tauriCliVersion: '2.0.0-cli',
-  nimiShellTauriVersion: '0.1.0',
+  nimiShellTauriVersion: '0.2.0-rc.1',
   electronVersion: '42.0.0-electron',
   esbuildVersion: '0.28.0-esbuild',
   typescriptVersion: '5.0.0',
@@ -316,7 +316,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.equal(tauri.productName, 'Acme Widget');
     assert.equal(tauri.build.devUrl, `http://127.0.0.1:${devPort}`);
     assert.match(generated.read('src-tauri/Cargo.toml'), /name = "acme-widget-shell"/);
-    assert.match(generated.read('src-tauri/Cargo.toml'), /nimi-shell-tauri = "0\.1\.0"/);
+    assert.ok(generated.read('src-tauri/Cargo.toml').includes(`nimi-shell-tauri = "${versions.nimiShellTauriVersion}"`));
     assert.match(generated.read('src-tauri/Cargo.toml'), /time = "=0\.3\.47"/);
     assert.match(generated.read('nimi.app.yaml'), /^app_access: \[\]$/m);
     assert.doesNotMatch(generated.read('nimi.app.yaml'), /scope:|qualifier:|operation_id:|resource_ref:/);
@@ -617,7 +617,7 @@ test('standalone scaffold always uses public dependency declarations', () => {
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], versions.appToolsVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], versions.nimicodingVersion);
     assert.equal(packageJson.devDependencies.yaml, versions.yamlVersion);
-    assert.match(generated.read('src-tauri/Cargo.toml'), /nimi-shell-tauri = "0\.1\.0"/);
+    assert.ok(generated.read('src-tauri/Cargo.toml').includes(`nimi-shell-tauri = "${versions.nimiShellTauriVersion}"`));
     assert.doesNotMatch(generated.read('vite.config.ts'), /repoRoot|path\.join\(repoRoot|\.\.\/\.\.\/kit|kit\/ui\/src/);
     assert.match(generated.read('nimi.app.yaml'), /profile: standalone/);
     assert.match(generated.read('src/shell/auth/app-identity.ts'), /scaffoldProfile = "standalone"/);
@@ -920,7 +920,10 @@ test('standalone scaffold CLI accepts arbitrary repositories and hard-cuts works
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], scaffoldVersions.sdkVersion);
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], scaffoldVersions.kitVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], scaffoldVersions.appToolsVersion);
-    assert.match(readFileSync(path.join(target, 'src-tauri', 'Cargo.toml'), 'utf8'), /nimi-shell-tauri = "0\.1\.0"/);
+    assert.ok(
+      readFileSync(path.join(target, 'src-tauri', 'Cargo.toml'), 'utf8')
+        .includes(`nimi-shell-tauri = "${scaffoldVersions.nimiShellTauriVersion}"`),
+    );
   } finally {
     rmSync(thirdPartyRepo, { recursive: true, force: true });
   }
@@ -965,7 +968,10 @@ test('candidate high-level plan reuses standalone output without exposing a work
     assert.deepEqual(candidatePlan.preview.topology, publicPlan.preview.topology);
     assert.equal(candidatePlan.resolvedInput.targetDir, target);
     assert.equal(candidatePlan.preview.profile, 'standalone');
-    assert.equal(candidatePlan.preview.cargoDependencies['nimi-shell-tauri'], '0.1.0');
+    assert.equal(
+      candidatePlan.preview.cargoDependencies['nimi-shell-tauri'],
+      JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8')).nimiScaffoldVersions.nimiShellTauriVersion,
+    );
     assert.equal(candidatePlan.preview.identity.devPort, publicPlan.preview.identity.devPort);
     assert.deepEqual(candidatePlan.preview.directFeatures, ['studio-create']);
     assert.equal(existsSync(target), false);

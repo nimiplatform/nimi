@@ -1,0 +1,1292 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/ai_scheduling.proto";
+import "runtime/v1/capability_configuration.proto";
+import "runtime/v1/common.proto";
+import "runtime/v1/voice.proto";
+
+enum Modal {
+  MODAL_UNSPECIFIED = 0;
+  MODAL_TEXT = 1;
+  MODAL_IMAGE = 2;
+  MODAL_VIDEO = 3;
+  MODAL_TTS = 4;
+  MODAL_STT = 5;
+  MODAL_EMBEDDING = 6;
+  MODAL_MUSIC = 7;
+  MODAL_WORLD = 8;
+}
+
+enum ScenarioType {
+  SCENARIO_TYPE_UNSPECIFIED = 0;
+  SCENARIO_TYPE_TEXT_GENERATE = 1;
+  SCENARIO_TYPE_TEXT_EMBED = 2;
+  SCENARIO_TYPE_IMAGE_GENERATE = 3;
+  SCENARIO_TYPE_VIDEO_GENERATE = 4;
+  SCENARIO_TYPE_SPEECH_SYNTHESIZE = 5;
+  SCENARIO_TYPE_SPEECH_TRANSCRIBE = 6;
+  reserved 7, 8;
+  reserved "SCENARIO_TYPE_VOICE_CLONE", "SCENARIO_TYPE_VOICE_DESIGN";
+  SCENARIO_TYPE_MUSIC_GENERATE = 9;
+  SCENARIO_TYPE_WORLD_GENERATE = 10;
+  SCENARIO_TYPE_VOICE_CREATE = 11;
+}
+
+enum ExecutionMode {
+  EXECUTION_MODE_UNSPECIFIED = 0;
+  EXECUTION_MODE_SYNC = 1;
+  EXECUTION_MODE_STREAM = 2;
+  EXECUTION_MODE_ASYNC_JOB = 3;
+}
+
+enum RoutePolicy {
+  ROUTE_POLICY_UNSPECIFIED = 0;
+  ROUTE_POLICY_LOCAL = 1;
+  ROUTE_POLICY_CLOUD = 2;
+}
+
+enum FinishReason {
+  FINISH_REASON_UNSPECIFIED = 0;
+  FINISH_REASON_STOP = 1;
+  FINISH_REASON_LENGTH = 2;
+  FINISH_REASON_TOOL_CALL = 3;
+  FINISH_REASON_CONTENT_FILTER = 4;
+  FINISH_REASON_ERROR = 5;
+}
+
+enum ReasoningActivation {
+  REASONING_ACTIVATION_UNSPECIFIED = 0;
+  REASONING_ACTIVATION_DISABLED = 1;
+  REASONING_ACTIVATION_ADAPTIVE = 2;
+  REASONING_ACTIVATION_REQUIRED = 3;
+}
+
+enum ReasoningEffort {
+  REASONING_EFFORT_UNSPECIFIED = 0;
+  REASONING_EFFORT_MINIMAL = 1;
+  REASONING_EFFORT_LOW = 2;
+  REASONING_EFFORT_MEDIUM = 3;
+  REASONING_EFFORT_HIGH = 4;
+  REASONING_EFFORT_MAXIMUM = 5;
+}
+
+enum ReasoningPresentation {
+  REASONING_PRESENTATION_UNSPECIFIED = 0;
+  REASONING_PRESENTATION_HIDDEN = 1;
+  REASONING_PRESENTATION_SUMMARY = 2;
+}
+
+enum ExecutionInterruptionCause {
+  EXECUTION_INTERRUPTION_CAUSE_UNSPECIFIED = 0;
+  EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART = 1;
+}
+
+enum ExecutionResubmitDisposition {
+  EXECUTION_RESUBMIT_DISPOSITION_UNSPECIFIED = 0;
+  EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT = 1;
+}
+
+// Presence of this message is the canonical typed INTERRUPTED disposition. It
+// does not add an INTERRUPTED Job status.
+message ExecutionInterruption {
+  ExecutionInterruptionCause cause = 1;
+  ExecutionResubmitDisposition resubmit_disposition = 2;
+}
+
+enum StreamEventType {
+  STREAM_EVENT_TYPE_UNSPECIFIED = 0;
+  STREAM_EVENT_STARTED = 1;
+  STREAM_EVENT_DELTA = 2;
+  reserved 3, 4, 8;
+  reserved "STREAM_EVENT_TOOL_CALL", "STREAM_EVENT_TOOL_RESULT", "STREAM_EVENT_TOOL_APPROVAL_REQUEST";
+  STREAM_EVENT_USAGE = 5;
+  STREAM_EVENT_COMPLETED = 6;
+  STREAM_EVENT_FAILED = 7;
+}
+
+enum VideoMode {
+  VIDEO_MODE_UNSPECIFIED = 0;
+  VIDEO_MODE_T2V = 1;
+  VIDEO_MODE_I2V_FIRST_FRAME = 2;
+  VIDEO_MODE_I2V_FIRST_LAST = 3;
+  VIDEO_MODE_I2V_REFERENCE = 4;
+}
+
+enum VideoContentType {
+  VIDEO_CONTENT_TYPE_UNSPECIFIED = 0;
+  VIDEO_CONTENT_TYPE_TEXT = 1;
+  VIDEO_CONTENT_TYPE_IMAGE_URL = 2;
+  VIDEO_CONTENT_TYPE_VIDEO_URL = 3;
+  VIDEO_CONTENT_TYPE_AUDIO_URL = 4;
+  VIDEO_CONTENT_TYPE_ARTIFACT_REF = 5;
+}
+
+enum VideoContentRole {
+  VIDEO_CONTENT_ROLE_UNSPECIFIED = 0;
+  VIDEO_CONTENT_ROLE_PROMPT = 1;
+  VIDEO_CONTENT_ROLE_FIRST_FRAME = 2;
+  VIDEO_CONTENT_ROLE_LAST_FRAME = 3;
+  VIDEO_CONTENT_ROLE_REFERENCE_IMAGE = 4;
+  VIDEO_CONTENT_ROLE_REFERENCE_VIDEO = 5;
+  VIDEO_CONTENT_ROLE_REFERENCE_AUDIO = 6;
+}
+
+enum SpeechTimingMode {
+  SPEECH_TIMING_MODE_UNSPECIFIED = 0;
+  SPEECH_TIMING_MODE_NONE = 1;
+  SPEECH_TIMING_MODE_WORD = 2;
+  SPEECH_TIMING_MODE_CHAR = 3;
+}
+
+enum SpeechAlignmentUnit {
+  SPEECH_ALIGNMENT_UNIT_UNSPECIFIED = 0;
+  SPEECH_ALIGNMENT_UNIT_WORD = 1;
+  SPEECH_ALIGNMENT_UNIT_CHAR = 2;
+}
+
+message ChatMessage {
+  string role = 1;
+  string content = 2;
+  string name = 3;
+  repeated ChatContentPart parts = 4;
+  reserved 5 to 8;
+  reserved "tool_calls", "tool_call_id", "tool_results", "tool_approval_responses";
+  // Canonical ordered assistant/tool-result round-trip. When non-empty,
+  // content and parts must be empty; convenience output views are never
+  // accepted here as a second source of truth.
+  repeated TextTurnItem turn_items = 9;
+}
+
+enum ChatContentPartType {
+  CHAT_CONTENT_PART_TYPE_UNSPECIFIED = 0;
+  CHAT_CONTENT_PART_TYPE_TEXT = 1;
+  CHAT_CONTENT_PART_TYPE_IMAGE_URL = 2;
+  CHAT_CONTENT_PART_TYPE_VIDEO_URL = 3;
+  CHAT_CONTENT_PART_TYPE_AUDIO_URL = 4;
+  CHAT_CONTENT_PART_TYPE_ARTIFACT_REF = 5;
+}
+
+message ChatContentImageURL {
+  string url = 1;
+  string detail = 2;
+}
+
+message ChatContentArtifactRef {
+  string artifact_id = 1;
+  string local_artifact_id = 2;
+  string mime_type = 3;
+  string display_name = 4;
+}
+
+message ChatContentPart {
+  ChatContentPartType type = 1;
+  oneof content {
+    string text = 2;
+    ChatContentImageURL image_url = 3;
+    string video_url = 4;
+    string audio_url = 5;
+    ChatContentArtifactRef artifact_ref = 6;
+  }
+}
+
+message ToolSpec {
+  string name = 1;
+  google.protobuf.Struct input_schema = 2;
+  string description = 3;
+  ToolSpecKind kind = 4;
+  string provider_tool_id = 5;
+  google.protobuf.Struct provider_args = 6;
+  google.protobuf.Struct provider_metadata = 7;
+}
+
+// Requested structured-output shape for a text scenario.
+enum ResponseFormatKind {
+  RESPONSE_FORMAT_KIND_UNSPECIFIED = 0;
+  RESPONSE_FORMAT_KIND_TEXT = 1;
+  RESPONSE_FORMAT_KIND_JSON_OBJECT = 2;
+  RESPONSE_FORMAT_KIND_JSON_SCHEMA = 3;
+}
+
+message ResponseFormat {
+  ResponseFormatKind kind = 1;
+  google.protobuf.Struct json_schema = 2;
+  string schema_name = 3;
+  string schema_description = 4;
+  bool strict = 5;
+}
+
+// A model-selected tool call returned by a text scenario.
+message ToolCall {
+  string id = 1;
+  string name = 2;
+  string arguments_json = 3;
+  reserved 4;
+  reserved "provider_executed";
+  bool dynamic = 5;
+  google.protobuf.Struct provider_metadata = 6;
+}
+
+message ToolResult {
+  string tool_call_id = 1;
+  string tool_name = 2;
+  google.protobuf.Value result = 3;
+  bool is_error = 4;
+  bool preliminary = 5;
+  bool dynamic = 6;
+  google.protobuf.Struct provider_metadata = 7;
+}
+
+message TextOutputText {
+  string text = 1;
+}
+
+// Only an implementation-authorized summary is carried here. Raw
+// chain-of-thought has no canonical public field.
+message ReasoningSummary {
+  string text = 1;
+}
+
+// Bounded self-contained native continuity state. Callers preserve the ordered
+// bytes unchanged; Runtime does not interpret or persist a cross-request store.
+message ReasoningContinuityCarrier {
+  string kind = 1;
+  uint32 version = 2;
+  bytes payload = 3;
+}
+
+// Canonical ordered text.generate output item used by sync and stream.
+message TextOutputItem {
+  oneof item {
+    TextOutputText text = 1;
+    ReasoningSummary reasoning_summary = 2;
+    ToolCall tool_call = 3;
+    ReasoningContinuityCarrier reasoning_continuity = 6;
+  }
+}
+
+// Canonical ordered assistant transcript input. A ToolResult is supplied only
+// by the external AI host in the later turn and is never Runtime output.
+message TextTurnItem {
+  oneof item {
+    TextOutputItem output = 1;
+    ToolResult tool_result = 2;
+  }
+}
+
+message TextOutputTextDelta {
+  string text = 1;
+}
+
+message ReasoningSummaryDelta {
+  string text = 1;
+}
+
+// Streaming public-output counterpart of TextOutputItem. item_completed seals the item;
+// engine fragments remain Runtime-private, and only a complete validated
+// ToolCall may occupy the public tool_call branch.
+message TextOutputItemDelta {
+  // Zero-based global output-item index. Repeated deltas may address the same
+  // open text/summary item; a completed item never accepts another delta.
+  uint32 item_index = 1;
+  oneof delta {
+    TextOutputTextDelta text = 2;
+    ReasoningSummaryDelta reasoning_summary = 3;
+    // Complete validated items; both require item_completed=true.
+    ToolCall tool_call = 4;
+    ReasoningContinuityCarrier reasoning_continuity = 7;
+  }
+  bool item_completed = 8;
+}
+
+message TextSource {
+  string id = 1;
+  TextSourceType source_type = 2;
+  string url = 3;
+  string title = 4;
+  string media_type = 5;
+  string filename = 6;
+  google.protobuf.Struct provider_metadata = 7;
+}
+
+enum TextSourceType {
+  TEXT_SOURCE_TYPE_UNSPECIFIED = 0;
+  TEXT_SOURCE_TYPE_URL = 1;
+  TEXT_SOURCE_TYPE_DOCUMENT = 2;
+}
+
+message RawChunk {
+  google.protobuf.Value value = 1;
+}
+
+message ScenarioRequestHead {
+  string app_id = 1;
+  string subject_user_id = 2;
+  reserved 3, 4, 5;
+  reserved "model_id", "route_policy", "fallback";
+  int32 timeout_ms = 6;
+  reserved 7, 8;
+  reserved "connector_id", "target_ref";
+}
+
+message ScenarioExtension {
+  string namespace = 1;
+  google.protobuf.Struct payload = 2;
+}
+
+message IgnoredScenarioExtension {
+  string namespace = 1;
+  string reason = 2;
+}
+
+message ReasoningConfig {
+  reserved 1 to 3;
+  reserved "mode", "trace_mode", "budget_tokens";
+  ReasoningActivation activation = 4;
+  oneof intensity {
+    ReasoningEffort effort = 5;
+    uint32 exact_budget_tokens = 6;
+  }
+  ReasoningPresentation presentation = 7;
+}
+
+message TextGenerateScenarioSpec {
+  repeated ChatMessage input = 1;
+  string system_prompt = 2;
+  repeated ToolSpec tools = 3;
+  optional float temperature = 4;
+  optional float top_p = 5;
+  optional int32 max_tokens = 6;
+  ReasoningConfig reasoning = 7;
+  ToolChoiceMode tool_choice = 8;
+  string tool_choice_name = 9;
+  ResponseFormat response_format = 10;
+  optional int32 top_k = 11;
+  optional float presence_penalty = 12;
+  optional float frequency_penalty = 13;
+  repeated string stop = 14;
+  optional int64 seed = 15;
+  bool include_raw_chunks = 16;
+}
+
+message TextEmbedScenarioSpec {
+  repeated string inputs = 1;
+}
+
+message ImageGenerateScenarioSpec {
+  string prompt = 1;
+  string negative_prompt = 2;
+  optional int32 n = 3;
+  string size = 4;
+  string aspect_ratio = 5;
+  string quality = 6;
+  string style = 7;
+  optional int64 seed = 8;
+  repeated string reference_images = 9;
+  string mask = 10;
+  string response_format = 11;
+  string reference_image_artifact_id = 12;
+  string mask_artifact_id = 13;
+  optional float strength = 14;
+}
+
+message VideoGenerateScenarioSpec {
+  string prompt = 1;
+  string negative_prompt = 2;
+  VideoMode mode = 3;
+  repeated VideoContentItem content = 4;
+  VideoGenerationOptions options = 5;
+}
+
+message SpeechSynthesizeScenarioSpec {
+  string text = 1;
+  string language = 2;
+  string audio_format = 3;
+  optional int32 sample_rate_hz = 4;
+  optional float speed = 5;
+  optional float pitch = 6;
+  optional float volume = 7;
+  string emotion = 8;
+  VoiceReference voice_ref = 9;
+  SpeechTimingMode timing_mode = 10;
+  VoiceRenderHints voice_render_hints = 11;
+}
+
+message SpeechTranscribeScenarioSpec {
+  string mime_type = 1;
+  string language = 2;
+  optional bool timestamps = 3;
+  optional bool diarization = 4;
+  optional int32 speaker_count = 5;
+  string prompt = 6;
+  SpeechTranscriptionAudioSource audio_source = 7;
+  string response_format = 8;
+}
+
+message VoiceCreateScenarioSpec {
+  string target_model_id = 1;
+  oneof source {
+    VoiceV2VInput reference_audio = 2;
+    VoiceT2VInput text_description = 3;
+  }
+}
+
+message MusicGenerateScenarioSpec {
+  string prompt = 1;
+  string negative_prompt = 2;
+  string lyrics = 3;
+  string style = 4;
+  string title = 5;
+  int32 duration_seconds = 6;
+  bool instrumental = 7;
+}
+
+message WorldGenerateAssetSource {
+  oneof source {
+    string uri = 1;
+    string media_asset_id = 2;
+  }
+}
+
+message WorldGenerateImagePrompt {
+  WorldGenerateAssetSource content = 1;
+}
+
+message WorldGenerateMultiImageReference {
+  int32 azimuth = 1;
+  WorldGenerateAssetSource content = 2;
+}
+
+message WorldGenerateMultiImagePrompt {
+  repeated WorldGenerateMultiImageReference images = 1;
+}
+
+message WorldGenerateVideoPrompt {
+  WorldGenerateAssetSource content = 1;
+}
+
+message WorldGenerateScenarioSpec {
+  string display_name = 1;
+  string text_prompt = 2;
+  repeated string tags = 3;
+  uint64 seed = 4;
+  oneof conditioning {
+    WorldGenerateImagePrompt image_prompt = 5;
+    WorldGenerateMultiImagePrompt multi_image_prompt = 6;
+    WorldGenerateVideoPrompt video_prompt = 7;
+  }
+}
+
+message ScenarioSpec {
+  oneof spec {
+    TextGenerateScenarioSpec text_generate = 1;
+    TextEmbedScenarioSpec text_embed = 2;
+    ImageGenerateScenarioSpec image_generate = 3;
+    VideoGenerateScenarioSpec video_generate = 4;
+    SpeechSynthesizeScenarioSpec speech_synthesize = 5;
+    SpeechTranscribeScenarioSpec speech_transcribe = 6;
+    MusicGenerateScenarioSpec music_generate = 9;
+    WorldGenerateScenarioSpec world_generate = 10;
+    VoiceCreateScenarioSpec voice_create = 11;
+  }
+  reserved 7, 8;
+  reserved "voice_clone", "voice_design";
+}
+
+message ExecuteScenarioRequest {
+  ScenarioRequestHead head = 1;
+  ScenarioType scenario_type = 2;
+  ExecutionMode execution_mode = 3;
+  ScenarioSpec spec = 4;
+  repeated ScenarioExtension extensions = 5;
+}
+
+message TextGenerateOutput {
+  // Convenience views derived from items. They are never independent truth.
+  string text = 1;
+  repeated ToolCall tool_calls = 2;
+  reserved 3, 4;
+  reserved "tool_results", "tool_approval_requests";
+  repeated TextSource sources = 5;
+  repeated RawChunk raw_chunks = 6;
+  // Sole primary content truth for text.generate synchronous output.
+  repeated TextOutputItem items = 7;
+  // Ordered concatenation of permitted ReasoningSummary items, derived from
+  // items and empty when presentation is HIDDEN.
+  string reasoning_summary = 8;
+}
+
+message EmbeddingVector {
+  repeated double values = 1;
+}
+
+message TextEmbedOutput {
+  repeated EmbeddingVector vectors = 1;
+}
+
+message ImageGenerateResult {
+  repeated ScenarioArtifact artifacts = 1;
+}
+
+message VideoGenerateResult {
+  repeated ScenarioArtifact artifacts = 1;
+}
+
+message SpeechSynthesizeResult {
+  repeated ScenarioArtifact artifacts = 1;
+}
+
+message SpeechTranscribeResult {
+  string text = 1;
+  repeated ScenarioArtifact artifacts = 2;
+}
+
+message MusicGenerateResult {
+  repeated ScenarioArtifact artifacts = 1;
+}
+
+message WorldGenerateSemanticsMetadata {
+  double ground_plane_offset = 1;
+  double metric_scale_factor = 2;
+}
+
+message WorldGenerateResult {
+  string world_id = 1;
+  string display_name = 2;
+  string world_marble_url = 3;
+  string caption = 4;
+  string thumbnail_url = 5;
+  string pano_url = 6;
+  string collider_mesh_url = 7;
+  map<string, string> spz_urls = 8;
+  WorldGenerateSemanticsMetadata semantics_metadata = 9;
+  reserved 10;
+  reserved "model";
+  repeated ScenarioArtifact artifacts = 11;
+}
+
+message ScenarioOutput {
+  oneof output {
+    TextGenerateOutput text_generate = 1;
+    TextEmbedOutput text_embed = 2;
+    ImageGenerateResult image_generate = 3;
+    VideoGenerateResult video_generate = 4;
+    SpeechSynthesizeResult speech_synthesize = 5;
+    SpeechTranscribeResult speech_transcribe = 6;
+    MusicGenerateResult music_generate = 7;
+    WorldGenerateResult world_generate = 8;
+  }
+}
+
+message ExecuteScenarioResponse {
+  ScenarioOutput output = 1;
+  FinishReason finish_reason = 2;
+  UsageStats usage = 3;
+  RoutePolicy route_decision = 4;
+  string model_resolved = 5;
+  string trace_id = 6;
+  repeated IgnoredScenarioExtension ignored_extensions = 7;
+  reserved 8;
+  reserved "resolved_execution_binding";
+  // Public attribution of the exact Local request admission. Empty for Cloud.
+  LoadoutEffectiveInputIdentity effective_input_identity = 9;
+}
+
+// Exact third-party Local App foreground text-candidate contract. Runtime
+// derives account, App identity, permission and managed local route from the
+// protected session; callers cannot supply generic Scenario or route fields.
+message LocalAppTextCandidateMessage {
+  string role = 1;
+  string text = 2;
+}
+
+message GenerateLocalAppTextCandidateRequest {
+  repeated LocalAppTextCandidateMessage messages = 1;
+  optional float temperature = 2;
+  optional float top_p = 3;
+  optional int32 max_tokens = 4;
+  reserved 5 to 9;
+  reserved "top_k", "presence_penalty", "frequency_penalty", "stop", "seed";
+}
+
+message GenerateLocalAppTextCandidateResponse {
+  string text = 1;
+  FinishReason finish_reason = 2;
+  string trace_id = 3;
+}
+
+// Exact third-party Local App scenario-consumption contracts. Runtime derives
+// account, App identity, App Access and managed route composition from the
+// protected session and the calling App owner's committed AIConfig; callers
+// cannot supply generic Scenario head, route, provider, model, target, or tool
+// fields.
+
+// Trimmed artifact projection for Local App scenario outputs. Runtime-private
+// uri, producer, and owner fields are never projected; oversized payloads are
+// reachable only through ReadLocalAppArtifact.
+message LocalAppScenarioArtifact {
+  string artifact_id = 1;
+  string mime_type = 2;
+  bytes bytes = 3;
+  int64 size_bytes = 4;
+  string sha256 = 5;
+  int64 duration_ms = 6;
+  int32 width = 7;
+  int32 height = 8;
+  int32 sample_rate_hz = 9;
+  int32 channels = 10;
+  // Concrete image seed selected by the admitted Driver/ExecutionHost. This
+  // is absent for non-image artifacts and does not expose free-form metadata.
+  optional int32 seed = 11;
+}
+
+// Synchronous closed-set scenario specs admitted for ExecuteLocalAppScenario.
+message LocalAppTextEmbedScenarioSpec {
+  repeated string inputs = 1;
+}
+
+message LocalAppImageGenerateScenarioSpec {
+  string prompt = 1;
+  string negative_prompt = 2;
+  optional int32 n = 3;
+  string size = 4;
+  string aspect_ratio = 5;
+  string quality = 6;
+  string style = 7;
+  optional int64 seed = 8;
+  repeated string reference_images = 9;
+  string mask = 10;
+  string response_format = 11;
+  string reference_image_artifact_id = 12;
+  string mask_artifact_id = 13;
+  optional float strength = 14;
+}
+
+message ExecuteLocalAppScenarioRequest {
+  oneof spec {
+    LocalAppTextEmbedScenarioSpec text_embed = 1;
+    LocalAppImageGenerateScenarioSpec image_generate = 2;
+  }
+}
+
+message LocalAppTextEmbedOutput {
+  repeated EmbeddingVector vectors = 1;
+}
+
+message LocalAppImageGenerateOutput {
+  repeated LocalAppScenarioArtifact artifacts = 1;
+}
+
+message ExecuteLocalAppScenarioResponse {
+  oneof output {
+    LocalAppTextEmbedOutput text_embed = 1;
+    LocalAppImageGenerateOutput image_generate = 2;
+  }
+  string trace_id = 3;
+}
+
+// Asynchronous closed-set Job specs admitted for SubmitLocalAppScenarioJob.
+// Per-capability selection happens through the scenario spec type plus the
+// calling App owner's committed AIConfig capability intent, never through
+// caller-supplied route, provider, model, or target fields.
+message LocalAppVideoGenerationOptions {
+  string resolution = 1;
+  string ratio = 2;
+  optional int32 duration_sec = 3;
+  optional int32 frames = 4;
+  optional int32 fps = 5;
+  optional int64 seed = 6;
+  optional bool camera_fixed = 7;
+  optional bool watermark = 8;
+  optional bool generate_audio = 9;
+  optional bool draft = 10;
+  optional bool return_last_frame = 11;
+}
+
+message LocalAppVideoGenerateJobSpec {
+  string prompt = 1;
+  string negative_prompt = 2;
+  VideoMode mode = 3;
+  repeated VideoContentItem content = 4;
+  LocalAppVideoGenerationOptions options = 5;
+}
+
+message LocalAppSpeechSynthesizeJobSpec {
+  string text = 1;
+  string language = 2;
+  string audio_format = 3;
+  optional int32 sample_rate_hz = 4;
+  optional float speed = 5;
+  optional float pitch = 6;
+  optional float volume = 7;
+  string emotion = 8;
+  VoiceReference voice_ref = 9;
+  SpeechTimingMode timing_mode = 10;
+  VoiceRenderHints voice_render_hints = 11;
+}
+
+message LocalAppSpeechTranscribeJobSpec {
+  string mime_type = 1;
+  string language = 2;
+  optional bool timestamps = 3;
+  optional bool diarization = 4;
+  optional int32 speaker_count = 5;
+  string prompt = 6;
+  SpeechTranscriptionAudioSource audio_source = 7;
+  string response_format = 8;
+}
+
+// Voice creation specs omit target_model_id: Runtime resolves the exact
+// execution target from the App owner's committed AIConfig intent.
+message LocalAppVoiceCreateJobSpec {
+  oneof source {
+    VoiceV2VInput reference_audio = 1;
+    VoiceT2VInput text_description = 2;
+  }
+}
+
+message LocalAppMusicGenerateJobSpec {
+  string prompt = 1;
+  string lyrics = 2;
+}
+
+message SubmitLocalAppScenarioJobRequest {
+  oneof spec {
+    LocalAppImageGenerateScenarioSpec image_generate = 1;
+    LocalAppVideoGenerateJobSpec video_generate = 2;
+    LocalAppSpeechSynthesizeJobSpec speech_synthesize = 3;
+    LocalAppSpeechTranscribeJobSpec speech_transcribe = 4;
+    LocalAppVoiceCreateJobSpec voice_create = 7;
+    LocalAppMusicGenerateJobSpec music_generate = 8;
+  }
+  // Canonical Job deadline in milliseconds. Zero keeps Runtime's
+  // capability-owned default; no other ScenarioRequestHead field is exposed.
+  int32 timeout_ms = 9;
+  reserved 5, 6;
+  reserved "voice_clone", "voice_design";
+}
+
+// Trimmed Job projection for Local App consumption: status, progress, typed
+// reason, artifact summaries, and trace correlation only. Head, route, model,
+// provider, usage, and extension fields are never projected.
+message LocalAppScenarioJob {
+  string job_id = 1;
+  ScenarioType scenario_type = 2;
+  ScenarioJobStatus status = 3;
+  int32 progress_percent = 4;
+  int32 progress_current_step = 5;
+  int32 progress_total_steps = 6;
+  ReasonCode reason_code = 7;
+  string reason_detail = 8;
+  repeated LocalAppScenarioArtifact artifacts = 9;
+  string trace_id = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+  // Bounded immutable speech-transcription result captured at Job completion.
+  // Empty for every non-transcription Job and never reconstructed by reading
+  // an artifact body.
+  string transcription_text = 13;
+  // Set only with reason_code AI_EXECUTION_INTERRUPTED and status FAILED.
+  ExecutionInterruption interruption = 14;
+}
+
+// Trimmed voice asset catalog projection. Provider, model, provider voice
+// ref, and owner identity fields are never projected.
+message LocalAppVoiceAsset {
+  string voice_asset_id = 1;
+  reserved 2;
+  reserved "workflow_type";
+  VoiceAssetStatus status = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+  google.protobuf.Timestamp expires_at = 6;
+  VoiceCreationSource creation_source = 7;
+}
+
+message SubmitLocalAppScenarioJobResponse {
+  LocalAppScenarioJob job = 1;
+  reserved 2, 3;
+  reserved "asset", "voice_reference";
+}
+
+message GetLocalAppScenarioJobRequest {
+  string job_id = 1;
+}
+
+message GetLocalAppScenarioJobResponse {
+  LocalAppScenarioJob job = 1;
+  // voice.create publishes its reusable result only after the Job completes.
+  // The protected Local App surface never projects a provider-owned handle.
+  LocalAppVoiceAsset asset = 2;
+  VoiceReference voice_reference = 3;
+}
+
+message CancelLocalAppScenarioJobRequest {
+  string job_id = 1;
+  string reason = 2;
+}
+
+message CancelLocalAppScenarioJobResponse {
+  LocalAppScenarioJob job = 1;
+}
+
+message SubscribeLocalAppScenarioJobEventsRequest {
+  string job_id = 1;
+}
+
+message LocalAppScenarioJobEvent {
+  ScenarioJobEventType event_type = 1;
+  uint64 sequence = 2;
+  string trace_id = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  LocalAppScenarioJob job = 5;
+}
+
+// Streaming TEXT_GENERATE trimmed surface: typed text increments and terminal
+// finish or failure state only. Raw chunks, reasoning traces, sources, and
+// tool events never reach the Local App stream.
+message StreamLocalAppTextTurnRequest {
+  repeated LocalAppTextCandidateMessage messages = 1;
+  optional float temperature = 2;
+  optional float top_p = 3;
+  optional int32 max_tokens = 4;
+  optional int32 top_k = 5;
+  optional float presence_penalty = 6;
+  optional float frequency_penalty = 7;
+  repeated string stop = 8;
+  optional int64 seed = 9;
+}
+
+message LocalAppTextTurnDelta {
+  string text = 1;
+}
+
+message LocalAppTextTurnCompleted {
+  FinishReason finish_reason = 1;
+}
+
+message LocalAppTextTurnFailed {
+  ReasonCode reason_code = 1;
+  string action_hint = 2;
+  ExecutionInterruption interruption = 3;
+}
+
+message StreamLocalAppTextTurnEvent {
+  uint64 sequence = 1;
+  string trace_id = 2;
+  oneof payload {
+    LocalAppTextTurnDelta delta = 3;
+    LocalAppTextTurnCompleted completed = 4;
+    LocalAppTextTurnFailed failed = 5;
+  }
+}
+
+// Bounded inline artifact read limited to artifacts owned by the calling App
+// session owner; payloads above 32 MiB fail closed with ARTIFACT_TOO_LARGE.
+message ReadLocalAppArtifactRequest {
+  string artifact_id = 1;
+}
+
+message ReadLocalAppArtifactResponse {
+  bytes bytes = 1;
+  string mime_type = 2;
+  int64 size_bytes = 3;
+}
+
+// Bounded single-message image upload for the calling Local App owner. The
+// protected Local App transport reserves enough receive capacity for this
+// exact 32 MiB operation; the trimmed unary shape avoids caller-supplied owner
+// metadata and chunk state while preserving UploadArtifact owner custody.
+message UploadLocalAppArtifactRequest {
+  bytes bytes = 1;
+  string mime_type = 2;
+}
+
+message UploadLocalAppArtifactResponse {
+  string artifact_id = 1;
+  int64 size_bytes = 2;
+  string mime_type = 3;
+}
+
+message ListLocalAppVoiceAssetsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message ListLocalAppVoiceAssetsResponse {
+  repeated LocalAppVoiceAsset assets = 1;
+  string next_page_token = 2;
+}
+
+message StreamScenarioRequest {
+  ScenarioRequestHead head = 1;
+  ScenarioType scenario_type = 2;
+  ExecutionMode execution_mode = 3;
+  ScenarioSpec spec = 4;
+  repeated ScenarioExtension extensions = 5;
+}
+
+message ScenarioStreamStarted {
+  string model_resolved = 1;
+  RoutePolicy route_decision = 2;
+  reserved 3;
+  reserved "resolved_execution_binding";
+  // Positive selected output-truth for SPEECH_SYNTHESIZE streams
+  // (K-STREAM-004, K-VOICE-019). Populated only for speech scenario streams,
+  // where it declares NATIVE_STREAM vs SIMULATED_STREAM at route decision;
+  // UNSPECIFIED for non-speech scenario streams. Consumers must not infer
+  // native realtime from event shape or from ScenarioStreamCompleted.stream_simulated.
+  VoiceOutputMode voice_output_mode = 4;
+  // Public attribution of the exact Local request admission. Empty for Cloud.
+  LoadoutEffectiveInputIdentity effective_input_identity = 5;
+}
+
+message ArtifactStreamDelta {
+  bytes chunk = 1;
+  string mime_type = 2;
+}
+
+message ScenarioStreamDelta {
+  reserved 1, 3;
+  reserved "text", "reasoning";
+  oneof delta {
+    ArtifactStreamDelta artifact = 2;
+    TextSource source = 4;
+    // RawChunk never carries hidden or raw chain-of-thought.
+    RawChunk raw = 5;
+    TextOutputItemDelta text_output_item = 6;
+  }
+}
+
+message ScenarioStreamCompleted {
+  FinishReason finish_reason = 1;
+  UsageStats usage = 2;
+  // Derived compatibility / audit metadata only (K-STREAM-004, K-LENG-011,
+  // K-VOICE-019). It is NOT the primary realtime acceptance truth; the
+  // authoritative selected output mode is ScenarioStreamStarted.voice_output_mode.
+  // stream_simulated=false alone is insufficient to prove native realtime.
+  bool stream_simulated = 3;
+}
+
+message ScenarioStreamFailed {
+  ReasonCode reason_code = 1;
+  string action_hint = 2;
+  ExecutionInterruption interruption = 3;
+}
+
+message StreamScenarioEvent {
+  StreamEventType event_type = 1;
+  uint64 sequence = 2;
+  string trace_id = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  reserved 12, 13, 17 to 19;
+  reserved "tool_call", "tool_result", "tool_approval_request";
+  oneof payload {
+    ScenarioStreamStarted started = 10;
+    ScenarioStreamDelta delta = 11;
+    UsageStats usage = 14;
+    ScenarioStreamCompleted completed = 15;
+    ScenarioStreamFailed failed = 16;
+  }
+}
+
+enum ScenarioJobStatus {
+  SCENARIO_JOB_STATUS_UNSPECIFIED = 0;
+  SCENARIO_JOB_STATUS_SUBMITTED = 1;
+  SCENARIO_JOB_STATUS_QUEUED = 2;
+  SCENARIO_JOB_STATUS_RUNNING = 3;
+  SCENARIO_JOB_STATUS_COMPLETED = 4;
+  SCENARIO_JOB_STATUS_FAILED = 5;
+  SCENARIO_JOB_STATUS_CANCELED = 6;
+  SCENARIO_JOB_STATUS_TIMEOUT = 7;
+}
+
+enum ScenarioJobEventType {
+  SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED = 0;
+  SCENARIO_JOB_EVENT_SUBMITTED = 1;
+  SCENARIO_JOB_EVENT_QUEUED = 2;
+  SCENARIO_JOB_EVENT_RUNNING = 3;
+  SCENARIO_JOB_EVENT_COMPLETED = 4;
+  SCENARIO_JOB_EVENT_FAILED = 5;
+  SCENARIO_JOB_EVENT_CANCELED = 6;
+  SCENARIO_JOB_EVENT_TIMEOUT = 7;
+}
+
+message ScenarioArtifact {
+  string artifact_id = 1;
+  string mime_type = 2;
+  bytes bytes = 3;
+  string uri = 4;
+  string sha256 = 5;
+  int64 size_bytes = 6;
+  int64 duration_ms = 7;
+  int32 fps = 8;
+  int32 width = 9;
+  int32 height = 10;
+  int32 sample_rate_hz = 11;
+  int32 channels = 12;
+  SpeechAlignment speech_alignment = 13;
+  google.protobuf.Struct metadata = 14;
+  // Concrete seed used to produce an image artifact. This is absent for
+  // non-image artifacts and is the canonical seed result, not metadata.
+  optional int32 seed = 15;
+}
+
+message ScenarioJob {
+  string job_id = 1;
+  ScenarioRequestHead head = 2;
+  ScenarioType scenario_type = 3;
+  ExecutionMode execution_mode = 4;
+  RoutePolicy route_decision = 5;
+  string model_resolved = 6;
+  ScenarioJobStatus status = 7;
+  string provider_job_id = 8;
+  ReasonCode reason_code = 9;
+  string reason_detail = 10;
+  int32 retry_count = 11;
+  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp updated_at = 13;
+  google.protobuf.Timestamp next_poll_at = 14;
+  repeated ScenarioArtifact artifacts = 15;
+  UsageStats usage = 16;
+  string trace_id = 17;
+  repeated IgnoredScenarioExtension ignored_extensions = 18;
+  google.protobuf.Struct reason_metadata = 19;
+  int32 progress_percent = 20;
+  int32 progress_current_step = 21;
+  int32 progress_total_steps = 22;
+  // Runtime-owned immutable typed result state for speech transcription.
+  // It is projected independently from artifact bytes and does not imply Job
+  // persistence across Runtime restart.
+  string transcription_text = 23;
+  // Public attribution projection of the immutable Runtime-private
+  // ResolvedAssembly captured before this Job was published.
+  LoadoutEffectiveInputIdentity effective_input_identity = 24;
+  // Set only with reason_code AI_EXECUTION_INTERRUPTED and status FAILED.
+  ExecutionInterruption interruption = 25;
+}
+
+message SubmitScenarioJobRequest {
+  ScenarioRequestHead head = 1;
+  ScenarioType scenario_type = 2;
+  ExecutionMode execution_mode = 3;
+  ScenarioSpec spec = 4;
+  string request_id = 5;
+  string idempotency_key = 6;
+  map<string, string> labels = 7;
+  repeated ScenarioExtension extensions = 8;
+}
+
+message SubmitScenarioJobResponse {
+  ScenarioJob job = 1;
+  reserved 2, 3;
+  reserved "asset", "voice_reference";
+}
+
+message GetScenarioJobRequest {
+  string job_id = 1;
+}
+
+message GetScenarioJobResponse {
+  ScenarioJob job = 1;
+  // voice.create terminal success result. Both fields remain absent before
+  // completion and for every failed, canceled, timed-out, or non-voice Job.
+  VoiceAsset asset = 2;
+  VoiceReference voice_reference = 3;
+}
+
+message CancelScenarioJobRequest {
+  string job_id = 1;
+  string reason = 2;
+}
+
+message CancelScenarioJobResponse {
+  ScenarioJob job = 1;
+}
+
+message ScenarioJobEvent {
+  ScenarioJobEventType event_type = 1;
+  uint64 sequence = 2;
+  string trace_id = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  ScenarioJob job = 5;
+}
+
+message SubscribeScenarioJobEventsRequest {
+  string job_id = 1;
+}
+
+message GetScenarioArtifactsRequest {
+  string job_id = 1;
+}
+
+message GetScenarioArtifactsResponse {
+  string job_id = 1;
+  repeated ScenarioArtifact artifacts = 2;
+  string trace_id = 3;
+  ScenarioOutput output = 4;
+}
+
+message ScenarioProfile {
+  ScenarioType scenario_type = 1;
+  repeated ExecutionMode supported_execution_modes = 2;
+  string description = 3;
+}
+
+message ListScenarioProfilesRequest {
+  string model_id = 1;
+}
+
+message ListScenarioProfilesResponse {
+  repeated ScenarioProfile profiles = 1;
+}
+
+message VideoContentImageURL {
+  string url = 1;
+}
+
+message VideoContentVideoURL {
+  string url = 1;
+}
+
+message VideoContentAudioURL {
+  string url = 1;
+}
+
+message VideoContentArtifactRef {
+  string artifact_id = 1;
+}
+
+message VideoContentItem {
+  VideoContentType type = 1;
+  VideoContentRole role = 2;
+  string text = 3;
+  VideoContentImageURL image_url = 4;
+  VideoContentVideoURL video_url = 5;
+  VideoContentAudioURL audio_url = 6;
+  VideoContentArtifactRef artifact_ref = 7;
+}
+
+message VideoGenerationOptions {
+  string resolution = 1;
+  string ratio = 2;
+  optional int32 duration_sec = 3;
+  optional int32 frames = 4;
+  optional int32 fps = 5;
+  optional int64 seed = 6;
+  optional bool camera_fixed = 7;
+  optional bool watermark = 8;
+  optional bool generate_audio = 9;
+  optional bool draft = 10;
+  string service_tier = 11;
+  int32 execution_expires_after_sec = 12;
+  optional bool return_last_frame = 13;
+}
+
+message VoiceRenderHints {
+  float stability = 1;
+  float similarity_boost = 2;
+  float style = 3;
+  bool use_speaker_boost = 4;
+  float speed = 5;
+}
+
+message AudioChunks {
+  repeated bytes chunks = 1;
+}
+
+message SpeechTranscriptionAudioSource {
+  oneof source {
+    bytes audio_bytes = 1;
+    string audio_uri = 2;
+    AudioChunks audio_chunks = 3;
+  }
+}
+
+message SpeechAlignmentToken {
+  string token = 1;
+  int64 start_ms = 2;
+  int64 end_ms = 3;
+}
+
+message SpeechAlignment {
+  SpeechAlignmentUnit unit = 1;
+  repeated SpeechAlignmentToken tokens = 2;
+}
+
+message ArtifactChunk {
+  string artifact_id = 1;
+  string mime_type = 2;
+  uint64 sequence = 3;
+  bytes chunk = 4;
+  bool eof = 5;
+  UsageStats usage = 6;
+  RoutePolicy route_decision = 7;
+  string model_resolved = 8;
+  string trace_id = 9;
+}
+
+message UploadArtifactMetadata {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string mime_type = 3;
+  string display_name = 4;
+}
+
+message UploadArtifactChunk {
+  uint64 sequence = 1;
+  bytes bytes = 2;
+}
+
+message UploadArtifactRequest {
+  oneof payload {
+    UploadArtifactMetadata metadata = 1;
+    UploadArtifactChunk chunk = 2;
+  }
+}
+
+message UploadArtifactResponse {
+  ScenarioArtifact artifact = 1;
+  string trace_id = 2;
+}
+
+// Removed messages: ListTokenProviderModelsRequest (fields 1-5),
+// TokenProviderModelDescriptor (fields 1-3), ListTokenProviderModelsResponse (fields 1-4),
+// CheckTokenProviderHealthRequest (fields 1-6), TokenProviderHealthSnapshot (fields 1-6),
+// CheckTokenProviderHealthResponse (fields 1-2).
+
+service RuntimeAiService {
+  rpc GetAppAIConfig(GetAppAIConfigRequest) returns (GetAppAIConfigResponse);
+  rpc OverwriteAppAIConfig(OverwriteAppAIConfigRequest) returns (OverwriteAppAIConfigResponse);
+  rpc ListAppAIConfigOptions(ListAppAIConfigOptionsRequest) returns (ListAppAIConfigOptionsResponse);
+  rpc GenerateLocalAppTextCandidate(GenerateLocalAppTextCandidateRequest) returns (GenerateLocalAppTextCandidateResponse);
+  rpc ExecuteLocalAppScenario(ExecuteLocalAppScenarioRequest) returns (ExecuteLocalAppScenarioResponse);
+  rpc SubmitLocalAppScenarioJob(SubmitLocalAppScenarioJobRequest) returns (SubmitLocalAppScenarioJobResponse);
+  rpc GetLocalAppScenarioJob(GetLocalAppScenarioJobRequest) returns (GetLocalAppScenarioJobResponse);
+  rpc CancelLocalAppScenarioJob(CancelLocalAppScenarioJobRequest) returns (CancelLocalAppScenarioJobResponse);
+  rpc SubscribeLocalAppScenarioJobEvents(SubscribeLocalAppScenarioJobEventsRequest) returns (stream LocalAppScenarioJobEvent);
+  rpc StreamLocalAppTextTurn(StreamLocalAppTextTurnRequest) returns (stream StreamLocalAppTextTurnEvent);
+  rpc ReadLocalAppArtifact(ReadLocalAppArtifactRequest) returns (ReadLocalAppArtifactResponse);
+  rpc UploadLocalAppArtifact(UploadLocalAppArtifactRequest) returns (UploadLocalAppArtifactResponse);
+  rpc ListLocalAppVoiceAssets(ListLocalAppVoiceAssetsRequest) returns (ListLocalAppVoiceAssetsResponse);
+  rpc ExecuteScenario(ExecuteScenarioRequest) returns (ExecuteScenarioResponse);
+  rpc StreamScenario(StreamScenarioRequest) returns (stream StreamScenarioEvent);
+  rpc SubmitScenarioJob(SubmitScenarioJobRequest) returns (SubmitScenarioJobResponse);
+  rpc GetScenarioJob(GetScenarioJobRequest) returns (GetScenarioJobResponse);
+  rpc CancelScenarioJob(CancelScenarioJobRequest) returns (CancelScenarioJobResponse);
+  rpc SubscribeScenarioJobEvents(SubscribeScenarioJobEventsRequest) returns (stream ScenarioJobEvent);
+  rpc GetScenarioArtifacts(GetScenarioArtifactsRequest) returns (GetScenarioArtifactsResponse);
+  rpc ListScenarioProfiles(ListScenarioProfilesRequest) returns (ListScenarioProfilesResponse);
+  rpc GetVoiceAsset(GetVoiceAssetRequest) returns (GetVoiceAssetResponse);
+  rpc ListVoiceAssets(ListVoiceAssetsRequest) returns (ListVoiceAssetsResponse);
+  rpc DeleteVoiceAsset(DeleteVoiceAssetRequest) returns (DeleteVoiceAssetResponse);
+  rpc ListPresetVoices(ListPresetVoicesRequest) returns (ListPresetVoicesResponse);
+  rpc UploadArtifact(stream UploadArtifactRequest) returns (UploadArtifactResponse);
+  // K-SCHED-002: Non-blocking scheduling preflight assessment.
+  rpc PeekScheduling(PeekSchedulingRequest) returns (PeekSchedulingResponse);
+}

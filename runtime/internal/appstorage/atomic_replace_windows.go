@@ -3,6 +3,8 @@
 package appstorage
 
 import (
+	"fmt"
+	"os"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -16,6 +18,10 @@ type localAppFileRenameInfo struct {
 }
 
 func replaceLocalAppJSONFile(source, target string) error {
+	if err := os.Rename(source, target); err == nil {
+		return nil
+	}
+
 	from, err := windows.UTF16PtrFromString(source)
 	if err != nil {
 		return err
@@ -30,7 +36,7 @@ func replaceLocalAppJSONFile(source, target string) error {
 		0,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("open atomic replace source: %w", err)
 	}
 	defer func() { _ = windows.CloseHandle(handle) }()
 
@@ -46,5 +52,8 @@ func replaceLocalAppJSONFile(source, target string) error {
 	info.flags = windows.FILE_RENAME_REPLACE_IF_EXISTS | windows.FILE_RENAME_POSIX_SEMANTICS
 	info.fileNameLength = uint32(fileNameLength)
 	copy(unsafe.Slice(&info.fileName[0], len(to)-1), to)
-	return windows.SetFileInformationByHandle(handle, windows.FileRenameInfoEx, &buffer[0], uint32(bufferSize))
+	if err := windows.SetFileInformationByHandle(handle, windows.FileRenameInfoEx, &buffer[0], uint32(bufferSize)); err != nil {
+		return fmt.Errorf("rename atomic replace target: %w", err)
+	}
+	return nil
 }

@@ -40,6 +40,7 @@ jobs:
       version_plain: ${{ steps.resolve.outputs.version_plain }}
       tag: ${{ steps.resolve.outputs.tag }}
       publish: ${{ steps.resolve.outputs.publish }}
+      npm_dist_tag: ${{ steps.resolve.outputs.npm_dist_tag }}
     steps:
       - name: Resolve release target/version
         id: resolve
@@ -83,6 +84,10 @@ jobs:
           fi
 
           version_plain="${version#v}"
+          npm_dist_tag="latest"
+          if [[ "${version_plain}" == *-* ]]; then
+            npm_dist_tag="next"
+          fi
 
           {
             echo "target=${target}"
@@ -90,6 +95,7 @@ jobs:
             echo "version_plain=${version_plain}"
             echo "tag=${tag}"
             echo "publish=${publish}"
+            echo "npm_dist_tag=${npm_dist_tag}"
           } >> "${GITHUB_OUTPUT}"
 
   release-sdk:
@@ -103,6 +109,7 @@ jobs:
       RELEASE_VERSION: ${{ needs.resolve.outputs.version_plain }}
       PUBLISH: ${{ needs.resolve.outputs.publish }}
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      NPM_DIST_TAG: ${{ needs.resolve.outputs.npm_dist_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -112,7 +119,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
         with:
-          version: 10.32.1
+          version: 10.34.5
 
       - name: Setup Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
@@ -122,7 +129,7 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Verify SDK package version and metadata
         run: |
@@ -180,7 +187,7 @@ jobs:
           fi
 
       - name: SDK npm publish dry-run
-        run: pnpm --filter @nimiplatform/sdk publish --access public --no-git-checks --dry-run
+        run: pnpm --filter @nimiplatform/sdk publish --access public --no-git-checks --tag "${NPM_DIST_TAG}" --dry-run
 
       - name: Publish SDK to npm
         if: env.PUBLISH == 'true'
@@ -194,7 +201,7 @@ jobs:
           mkdir -p "$(dirname "${npm_config}")"
           printf '//registry.npmjs.org/:_authToken=%s\n' "${NPM_TOKEN}" > "${npm_config}"
           export NODE_AUTH_TOKEN="${NPM_TOKEN}"
-          pnpm --filter @nimiplatform/sdk publish --access public --no-git-checks --provenance
+          pnpm --filter @nimiplatform/sdk publish --access public --no-git-checks --tag "${NPM_DIST_TAG}" --provenance
 
   release-proto:
     needs: resolve
@@ -212,7 +219,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
         with:
-          version: 10.32.1
+          version: 10.34.5
 
       - name: Setup Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
@@ -223,11 +230,11 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
-          go-version: '1.26.4'
+          go-version: '1.26.6'
           cache: false
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Install Buf CLI
         run: go install github.com/bufbuild/buf/cmd/buf@v1.70.0

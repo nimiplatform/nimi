@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { artifactRefPart } from '@nimiplatform/sdk';
 
 import {
   createNimiMastraContextBridge,
@@ -43,4 +44,26 @@ test('Nimi Mastra context bridge also applies to Agent.stream', async () => {
     .map((part) => (part.type === 'text' ? part.text : ''))
     .join('\n');
   assert.match(promptText ?? '', /Runtime context is available for streams/);
+});
+
+test('Nimi Mastra context bridge projects managed artifact references without reading them as data', async () => {
+  const fixture = createNimiFixtureModel();
+  const bridge = createNimiMastraContextBridge({
+    runner: { id: 'nimi-runtime-artifact-owner', name: 'Nimi Runtime Artifact Owner' },
+    model: fixture.model,
+    contextProviders: [{
+      id: 'runtime-artifact-provider',
+      load: () => [artifactRefPart({
+        artifactId: 'artifact-audio-1',
+        mediaType: 'audio/wav',
+        displayName: 'voice sample',
+      })],
+    }],
+  });
+
+  const context = await bridge.buildContext();
+
+  assert.equal(context.length, 1);
+  assert.match(String(context[0]?.content), /\[artifact audio\/wav voice sample\]/);
+  assert.doesNotMatch(String(context[0]?.content), /artifact-audio-1/);
 });

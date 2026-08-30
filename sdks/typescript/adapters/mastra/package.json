@@ -22,16 +22,16 @@
   "peerDependencies": {
     "@ai-sdk/provider": "^3.0.0",
     "@mastra/core": "^1.41.0",
-    "@nimiplatform/sdk": "^0.9.0"
+    "@nimiplatform/sdk": "^0.7.0-rc.1"
   },
   "devDependencies": {
     "@ai-sdk/provider": "3.0.10",
-    "@mastra/core": "1.41.0",
+    "@mastra/core": "1.63.2",
     "@nimiplatform/sdk": "workspace:*",
-    "@types/node": "^25.9.1",
-    "tsx": "^4.22.3",
+    "@types/node": "^24.13.3",
+    "tsx": "^4.23.13",
     "typescript": "^5.9.3",
-    "zod": "4.4.3"
+    "zod": "4.5.4"
   },
   "scripts": {
     "build": "pnpm --dir ../../../../ --filter @nimiplatform/sdk build && node ../../../../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",

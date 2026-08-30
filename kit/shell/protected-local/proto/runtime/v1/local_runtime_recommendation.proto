@@ -1,0 +1,152 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/struct.proto";
+import "runtime/v1/local_runtime_asset_catalog.proto";
+import "runtime/v1/local_runtime_device_environment.proto";
+
+// === Recommendation Feed ===
+
+enum LocalRecommendationSource {
+  LOCAL_RECOMMENDATION_SOURCE_UNSPECIFIED = 0;
+  LOCAL_RECOMMENDATION_SOURCE_LLMFIT      = 1;
+  LOCAL_RECOMMENDATION_SOURCE_MEDIA_FIT   = 2;
+}
+
+enum LocalRecommendationFormat {
+  LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED = 0;
+  LOCAL_RECOMMENDATION_FORMAT_GGUF        = 1;
+  LOCAL_RECOMMENDATION_FORMAT_SAFETENSORS = 2;
+}
+
+enum LocalRecommendationTier {
+  LOCAL_RECOMMENDATION_TIER_UNSPECIFIED      = 0;
+  LOCAL_RECOMMENDATION_TIER_RECOMMENDED      = 1;
+  LOCAL_RECOMMENDATION_TIER_RUNNABLE         = 2;
+  LOCAL_RECOMMENDATION_TIER_TIGHT            = 3;
+  LOCAL_RECOMMENDATION_TIER_NOT_RECOMMENDED  = 4;
+}
+
+enum LocalRecommendationConfidence {
+  LOCAL_RECOMMENDATION_CONFIDENCE_UNSPECIFIED = 0;
+  LOCAL_RECOMMENDATION_CONFIDENCE_HIGH        = 1;
+  LOCAL_RECOMMENDATION_CONFIDENCE_MEDIUM      = 2;
+  LOCAL_RECOMMENDATION_CONFIDENCE_LOW         = 3;
+}
+
+enum LocalHostSupportClass {
+  LOCAL_HOST_SUPPORT_CLASS_UNSPECIFIED          = 0;
+  LOCAL_HOST_SUPPORT_CLASS_SUPPORTED_SUPERVISED = 1;
+  LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY        = 2;
+  LOCAL_HOST_SUPPORT_CLASS_UNSUPPORTED          = 3;
+}
+
+enum LocalRecommendationBaseline {
+  LOCAL_RECOMMENDATION_BASELINE_UNSPECIFIED      = 0;
+  LOCAL_RECOMMENDATION_BASELINE_IMAGE_DEFAULT_V1 = 1;
+  LOCAL_RECOMMENDATION_BASELINE_VIDEO_DEFAULT_V1 = 2;
+}
+
+enum LocalRecommendationFeedCacheState {
+  LOCAL_RECOMMENDATION_FEED_CACHE_STATE_UNSPECIFIED = 0;
+  LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH       = 1;
+  LOCAL_RECOMMENDATION_FEED_CACHE_STATE_STALE       = 2;
+  LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY       = 3;
+}
+
+enum LocalRecommendationFeedCapability {
+  LOCAL_RECOMMENDATION_FEED_CAPABILITY_UNSPECIFIED = 0;
+  LOCAL_RECOMMENDATION_FEED_CAPABILITY_CHAT        = 1;
+  LOCAL_RECOMMENDATION_FEED_CAPABILITY_IMAGE       = 2;
+  LOCAL_RECOMMENDATION_FEED_CAPABILITY_VIDEO       = 3;
+}
+
+enum LocalRecommendationFeedSource {
+  LOCAL_RECOMMENDATION_FEED_SOURCE_UNSPECIFIED = 0;
+  LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX = 1;
+}
+
+message LocalCatalogRecommendation {
+  LocalRecommendationSource source             = 1;
+  LocalRecommendationFormat format             = 2;
+  LocalRecommendationTier tier                 = 3;
+  LocalHostSupportClass host_support_class     = 4;
+  LocalRecommendationConfidence confidence     = 5;
+  repeated string reason_codes                 = 6;
+  string recommended_entry                     = 7;
+  repeated string fallback_entries             = 8;
+  reserved 9;
+  reserved "suggested_assets";
+  repeated string suggested_notes              = 10;
+  LocalRecommendationBaseline baseline         = 11;
+}
+
+message LocalRecommendationFeedEntryDescriptor {
+  string entry_id                         = 1;
+  LocalRecommendationFormat format        = 2;
+  string entry                            = 3;
+  repeated string files                   = 4;
+  int64 total_size_bytes                  = 5;
+  string sha256                           = 6;
+}
+
+message LocalRecommendationInstalledState {
+  bool installed              = 1;
+  reserved 2, 3;
+  reserved "local_asset_id", "status";
+}
+
+message LocalRecommendationActionState {
+  reserved "can_open_local_asset";
+  bool can_review_install_plan = 1;
+  bool can_open_variants       = 2;
+  bool can_open_model_asset    = 3;
+}
+
+message LocalRecommendationInstallPayload {
+  string model_id                      = 1;
+  LocalAssetKind kind                  = 2;
+  string repo                          = 3;
+  string revision                      = 4;
+  repeated string capabilities         = 5;
+  string engine                        = 6;
+  string entry                         = 7;
+  repeated string files                = 8;
+  string license                       = 9;
+  map<string, string> hashes           = 10;
+  string endpoint                      = 11;
+  google.protobuf.Struct engine_config = 12;
+}
+
+message LocalRecommendationFeedItemDescriptor {
+  string item_id                                   = 1;
+  LocalRecommendationFeedSource source             = 2;
+  string repo                                      = 3;
+  string revision                                  = 4;
+  string title                                     = 5;
+  string description                               = 6;
+  repeated string capabilities                     = 7;
+  repeated string tags                             = 8;
+  repeated LocalRecommendationFormat formats       = 9;
+  int64 downloads                                  = 10;
+  int64 likes                                      = 11;
+  string last_modified                             = 12;
+  string preferred_engine                          = 13;
+  bool verified                                    = 14;
+  repeated LocalRecommendationFeedEntryDescriptor entries = 15;
+  LocalCatalogRecommendation recommendation        = 16;
+  LocalRecommendationInstalledState installed_state = 17;
+  LocalRecommendationActionState action_state      = 18;
+  LocalRecommendationInstallPayload install_payload = 19;
+}
+
+message LocalRecommendationFeedDescriptor {
+  LocalDeviceProfile device_profile                = 1;
+  LocalRecommendationFeedCapability active_capability = 2;
+  string generated_at                              = 3;
+  LocalRecommendationFeedCacheState cache_state    = 4;
+  repeated LocalRecommendationFeedItemDescriptor items = 5;
+}

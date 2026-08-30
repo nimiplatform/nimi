@@ -206,7 +206,10 @@ function partToText(part: NimiMessagePart): string {
   if (part.type === 'file') {
     return `[file ${part.mediaType}${part.filename ? ` ${part.filename}` : ''}]`;
   }
-  return dataToText(part.data);
+  if (part.type === 'data') {
+    return dataToText(part.data);
+  }
+  return `[artifact ${part.mediaType}${part.displayName ? ` ${part.displayName}` : ''}]`;
 }
 
 function dataToText(data: NimiJsonValue): string {

@@ -1,6 +1,6 @@
 [package]
 name = "nimi-shell-protected-local-node"
-version = "0.1.0"
+version = "0.2.0-rc.1"
 edition = "2021"
 description = "Node-API projection of the Nimi protected-local Local App carrier."
 license = "MIT"
@@ -21,7 +21,7 @@ windows-source-local-development = ["nimi-shell-protected-local/windows-source-l
 base64 = "0.22"
 napi = { version = "3", features = ["napi8", "tokio_rt", "serde-json"] }
 napi-derive = "3"
-nimi-shell-protected-local = { path = "../protected-local" }
+nimi-shell-protected-local = { version = "0.2.0-rc.1", path = "../protected-local" }
 serde_json = "1"
 tokio = { version = "1", features = ["macros", "sync", "time"] }
 

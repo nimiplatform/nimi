@@ -1020,7 +1020,7 @@ test('Lab voice.create submits a text description through the same canonical con
   assert.equal(result.output.creationSource, source);
 });
 
-test('Lab voice.create reports an interrupted Job stream after one bounded terminal lookup', async () => {
+test('Lab voice.create reports interruption after one bounded stream reattach', async () => {
   const { runLabCapability } = await importLabRuntime();
   const source = 'text-description';
   const submitted = localVoiceJob('submitted', source);
@@ -1042,7 +1042,7 @@ test('Lab voice.create reports an interrupted Job stream after one bounded termi
     parameters: { creationSource: source, previewText: '你好', language: 'zh', preferredName: 'Nimi voice' },
   }, readyRuntimeDependencies(client));
   assert.equal(result.ok, false);
-  assert.equal(gets, 1);
+  assert.equal(gets, 2);
   assert.equal(result.reason, 'stream-interrupted');
   assert.match(result.message, /terminal state could be confirmed/i);
 });

@@ -1,0 +1,166 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/common.proto";
+
+enum VoiceCreationSource {
+  VOICE_CREATION_SOURCE_UNSPECIFIED = 0;
+  VOICE_CREATION_SOURCE_TEXT_DESCRIPTION = 1;
+  VOICE_CREATION_SOURCE_REFERENCE_AUDIO = 2;
+}
+
+// VoiceOutputMode is the positive, authoritative selected output-truth axis for
+// speech execution and agent voice projection (K-VOICE-019, K-STREAM-004,
+// K-AGCORE-133; tokens: tables/voice-enums.yaml output_modes). It is distinct
+// from ExecutionMode (sync|stream|async_job) and from App/Host-local playback.
+// NATIVE_STREAM and SIMULATED_STREAM are the only values reachable at the
+// SPEECH_SYNTHESIZE scenario-stream layer; BATCH_FINAL_ARTIFACT and TEXT_ONLY are
+// additionally reachable as Runtime Agent orchestration outcomes. Consumers must
+// read this field and must not infer native realtime from event shape or from an
+// omitted boolean.
+enum VoiceOutputMode {
+  VOICE_OUTPUT_MODE_UNSPECIFIED = 0;
+  VOICE_OUTPUT_MODE_NATIVE_STREAM = 1;
+  VOICE_OUTPUT_MODE_SIMULATED_STREAM = 2;
+  VOICE_OUTPUT_MODE_BATCH_FINAL_ARTIFACT = 3;
+  VOICE_OUTPUT_MODE_TEXT_ONLY = 4;
+}
+
+enum VoiceReferenceKind {
+  VOICE_REFERENCE_KIND_UNSPECIFIED = 0;
+  VOICE_REFERENCE_KIND_PRESET = 1;
+  VOICE_REFERENCE_KIND_VOICE_ASSET = 2;
+  VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF = 3;
+}
+
+enum VoiceAssetPersistence {
+  VOICE_ASSET_PERSISTENCE_UNSPECIFIED = 0;
+  VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT = 1;
+  VOICE_ASSET_PERSISTENCE_SESSION_EPHEMERAL = 2;
+}
+
+enum VoiceAssetStatus {
+  VOICE_ASSET_STATUS_UNSPECIFIED = 0;
+  VOICE_ASSET_STATUS_ACTIVE = 1;
+  VOICE_ASSET_STATUS_EXPIRED = 2;
+  VOICE_ASSET_STATUS_DELETED = 3;
+  VOICE_ASSET_STATUS_FAILED = 4;
+}
+
+message VoiceReference {
+  VoiceReferenceKind kind = 1;
+  oneof reference {
+    string preset_voice_id = 2;
+    string voice_asset_id = 3;
+    // provider_voice_ref is provider-owned handle truth. It is restricted to
+    // Runtime-internal / privileged / debug consumption (K-VOICE-003,
+    // K-VOICE-014). Ordinary profile / SDK public binding input accepts only
+    // preset_voice_id or voice_asset_id and must fail-close on a bare
+    // provider_voice_ref.
+    string provider_voice_ref = 4;
+  }
+}
+
+message VoicePresetDescriptor {
+  string voice_id = 1;
+  string name = 2;
+  string lang = 3;
+  repeated string supported_langs = 4;
+  map<string, string> labels = 5;
+  string category = 6;
+  string preview_audio_uri = 7;
+}
+
+message VoiceAsset {
+  string voice_asset_id = 1;
+  string app_id = 2;
+  string subject_user_id = 3;
+  string provider = 5;
+  // model_id / target_model_id are post-resolve provider / catalog / audit /
+  // voice asset compatibility facts only. Exact execution identity remains
+  // Runtime-private and is never projected through this artifact response.
+  string model_id = 6;
+  string target_model_id = 7;
+  string provider_voice_ref = 8;
+  VoiceAssetPersistence persistence = 9;
+  VoiceAssetStatus status = 10;
+  google.protobuf.Timestamp created_at = 11;
+  google.protobuf.Timestamp updated_at = 12;
+  google.protobuf.Timestamp expires_at = 13;
+  google.protobuf.Struct metadata = 14;
+  reserved 4, 15, 16;
+  reserved "workflow_type", "target_ref", "voice_asset_target_ref";
+  VoiceCreationSource creation_source = 17;
+}
+
+message VoiceV2VInput {
+  bytes reference_audio_bytes = 1;
+  string reference_audio_uri = 2;
+  string reference_audio_mime = 3;
+  repeated string language_hints = 4;
+  string preferred_name = 5;
+  string text = 6;
+  reserved 20;
+  reserved "provider_options";
+}
+
+message VoiceT2VInput {
+  string instruction_text = 1;
+  string preview_text = 2;
+  string language = 3;
+  string preferred_name = 4;
+  reserved 20;
+  reserved "provider_options";
+}
+
+message GetVoiceAssetRequest {
+  string voice_asset_id = 1;
+}
+
+message GetVoiceAssetResponse {
+  VoiceAsset asset = 1;
+}
+
+message ListVoiceAssetsRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  string model_id = 3;
+  string target_model_id = 4;
+  VoiceAssetStatus status = 6;
+  int32 page_size = 7;
+  string page_token = 8;
+  string connector_id = 9;
+  reserved 5;
+  reserved "workflow_type";
+  VoiceCreationSource creation_source = 10;
+}
+
+message ListVoiceAssetsResponse {
+  repeated VoiceAsset assets = 1;
+  string next_page_token = 2;
+}
+
+message DeleteVoiceAssetRequest {
+  string voice_asset_id = 1;
+}
+
+message DeleteVoiceAssetResponse {
+  Ack ack = 1;
+}
+
+message ListPresetVoicesRequest {
+  string app_id = 1;
+  string subject_user_id = 2;
+  reserved 3, 4, 5;
+}
+
+message ListPresetVoicesResponse {
+  repeated VoicePresetDescriptor voices = 1;
+  string model_resolved = 2;
+  string trace_id = 3;
+}

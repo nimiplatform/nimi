@@ -1,0 +1,506 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/struct.proto";
+import "runtime/v1/common.proto";
+import "runtime/v1/capability_configuration.proto";
+import "runtime/v1/local_runtime_asset_catalog.proto";
+import "runtime/v1/local_runtime_device_environment.proto";
+import "runtime/v1/local_runtime_execution_profile.proto";
+import "runtime/v1/local_runtime_recommendation.proto";
+
+// === Verified Asset Catalog ===
+
+message ListVerifiedAssetsRequest {
+  LocalAssetKind kind_filter = 1;
+  string engine_filter       = 2;
+  int32 page_size            = 3;
+  string page_token          = 4;
+}
+
+message ListVerifiedAssetsResponse {
+  repeated LocalVerifiedAssetDescriptor assets = 1;
+  string next_page_token                       = 2;
+}
+
+// === ModelAsset CRUD ===
+
+message ImportModelAssetRequest {
+  string source_path = 1;
+  string display_name = 2;
+}
+
+message ImportModelAssetResponse {
+  LocalTransferSessionSummary transfer = 1;
+}
+
+message ListModelAssetsRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+}
+
+message ListModelAssetsResponse {
+  repeated ModelAssetRecord assets = 1;
+  string next_page_token = 2;
+}
+
+message GetModelAssetRequest {
+  string model_asset_id = 1;
+}
+
+message GetModelAssetResponse {
+  ModelAssetRecord asset = 1;
+}
+
+message RemoveModelAssetRequest {
+  string model_asset_id = 1;
+  bool force = 2;
+}
+
+message RemoveModelAssetResponse {
+  ModelAssetRecord asset = 1;
+  repeated string referencing_loadout_ids = 2;
+  bool confirmation_required = 3;
+  bool cleanup_pending = 4;
+}
+
+// === Catalog & Install Plan ===
+
+message SearchCatalogModelsRequest {
+  string query           = 1;
+  string capability      = 2;
+  reserved 3;
+  reserved "limit";
+  string category_filter = 4;
+  string engine_filter   = 5;
+  int32 page_size        = 6;
+  string page_token      = 7;
+}
+
+message SearchCatalogModelsResponse {
+  repeated LocalCatalogModelDescriptor items = 1;
+  string next_page_token                     = 2;
+}
+
+message LocalCatalogVariantDescriptor {
+  string filename = 1;
+  string entry    = 2;
+  repeated string files = 3;
+  string format = 4;
+  int64 size_bytes = 5;
+  string sha256 = 6;
+}
+
+message ListCatalogVariantsRequest {
+  string repo = 1;
+}
+
+message ListCatalogVariantsResponse {
+  repeated LocalCatalogVariantDescriptor variants = 1;
+}
+
+message GetRecommendationFeedRequest {
+  string capability = 1;
+  int32 page_size   = 2;
+}
+
+message GetRecommendationFeedResponse {
+  LocalRecommendationFeedDescriptor feed = 1;
+}
+
+message ResolveModelInstallPlanRequest {
+  string item_id                       = 1;
+  string source                        = 2;
+  string template_id                   = 3;
+  string model_id                      = 4;
+  string repo                          = 5;
+  string revision                      = 6;
+  repeated string capabilities         = 7;
+  string engine                        = 8;
+  string entry                         = 9;
+  repeated string files                = 10;
+  string license                       = 11;
+  map<string, string> hashes           = 12;
+  // Explicit configuration input for sidecar acquisition only. llama, media,
+  // and speech reject endpoint-bearing install plans.
+  string endpoint                      = 13;
+  google.protobuf.Struct engine_config = 14;
+  string model_type                    = 15;
+}
+
+message ResolveModelInstallPlanResponse {
+  LocalInstallPlanDescriptor plan = 1;
+}
+
+message InstallModelFromPlanRequest {
+  reserved 1;
+  reserved "plan";
+  string plan_id = 2;
+}
+
+message InstallModelFromPlanResponse {
+  reserved 1;
+  reserved "asset";
+  ModelAssetRecord model_asset = 2;
+}
+
+// === Transfers ===
+
+message LocalTransferSessionSummary {
+  string install_session_id = 1;
+  string asset_id           = 2;
+  reserved 3, 4, 5;
+  reserved "local_asset_id";
+  string session_kind       = 6;
+  string phase              = 7;
+  string state              = 8;
+  int64 bytes_received      = 9;
+  int64 bytes_total         = 10;
+  int64 speed_bytes_per_sec = 11;
+  int64 eta_seconds         = 12;
+  string message            = 13;
+  string reason_code        = 14;
+  bool retryable            = 15;
+  string created_at         = 16;
+  string updated_at         = 17;
+}
+
+message LocalTransferProgressEvent {
+  string install_session_id = 1;
+  string asset_id           = 2;
+  reserved 3, 4, 5;
+  reserved "local_asset_id";
+  string session_kind       = 6;
+  string phase              = 7;
+  int64 bytes_received      = 8;
+  int64 bytes_total         = 9;
+  int64 speed_bytes_per_sec = 10;
+  int64 eta_seconds         = 11;
+  string message            = 12;
+  string state              = 13;
+  string reason_code        = 14;
+  bool retryable            = 15;
+  bool done                 = 16;
+  bool success              = 17;
+  string created_at         = 18;
+  string updated_at         = 19;
+}
+
+message ListLocalTransfersRequest {}
+
+message ListLocalTransfersResponse {
+  repeated LocalTransferSessionSummary transfers = 1;
+}
+
+message PauseLocalTransferRequest {
+  string install_session_id = 1;
+}
+
+message PauseLocalTransferResponse {
+  LocalTransferSessionSummary transfer = 1;
+}
+
+message ResumeLocalTransferRequest {
+  string install_session_id = 1;
+}
+
+message ResumeLocalTransferResponse {
+  LocalTransferSessionSummary transfer = 1;
+}
+
+message CancelLocalTransferRequest {
+  string install_session_id = 1;
+}
+
+message CancelLocalTransferResponse {
+  LocalTransferSessionSummary transfer = 1;
+}
+
+message WatchLocalTransfersRequest {}
+
+// === Runtime-owned Local Environment ===
+
+message ResolveLocalEnvironmentPlanRequest {
+  string capability_contract = 1;
+  reserved 2;
+  LocalDeviceProfile host_profile = 3;
+  string runtime_data_root = 4;
+  reserved 5, 6, 7, 8, 9;
+  reserved "pack_id", "consumer_scope", "asset_id", "local_asset_id", "companion_asset_id", "parent_asset_id", "install_level";
+}
+
+message ResolveLocalEnvironmentPlanResponse {
+  LocalEnvironmentPlan plan = 1;
+}
+
+message ApplyLocalEnvironmentPlanRequest {
+  ResolveLocalEnvironmentPlanRequest resolution = 1;
+  string expected_plan_id = 2;
+  bool confirmed = 3;
+}
+
+message ApplyLocalEnvironmentPlanResponse {
+  LocalEnvironmentPlan plan = 1;
+  repeated LocalEnvironmentDependencyJob jobs = 2;
+}
+
+message ListLocalEnvironmentSelectedSourcesRequest {
+  string dependency_family = 1;
+  string consumer_scope = 2;
+}
+
+message ListLocalEnvironmentSelectedSourcesResponse {
+  repeated LocalEnvironmentSelectedSourceRecord sources = 1;
+}
+
+message ListLocalEnvironmentDependencyJobsRequest {
+  string environment_key = 1;
+  string state = 2;
+}
+
+message ListLocalEnvironmentDependencyJobsResponse {
+  repeated LocalEnvironmentDependencyJob jobs = 1;
+}
+
+message ResolveLocalEnvironmentActivationGateRequest {
+  string consumer_id = 1;
+  string pack_id = 2;
+  LocalDeviceProfile host_profile = 3;
+  string runtime_data_root = 4;
+  reserved 5, 6, 7, 8;
+  reserved "asset_id", "local_asset_id", "companion_asset_id", "parent_asset_id";
+}
+
+message ResolveLocalEnvironmentActivationGateResponse {
+  LocalEnvironmentActivationGate gate = 1;
+}
+
+message StartLocalEnvironmentDependencyJobRequest {
+  string environment_key = 1;
+  string dependency_family = 2;
+  string dependency_id = 3;
+  string source_kind = 4;
+  bool confirmed = 5;
+  string consumer_scope = 6;
+}
+
+message StartLocalEnvironmentDependencyJobResponse {
+  LocalEnvironmentDependencyJob job = 1;
+}
+
+message CancelLocalEnvironmentDependencyJobRequest {
+  string job_id = 1;
+}
+
+message CancelLocalEnvironmentDependencyJobResponse {
+  LocalEnvironmentDependencyJob job = 1;
+}
+
+message RetryLocalEnvironmentDependencyJobRequest {
+  string job_id = 1;
+  bool confirmed = 2;
+}
+
+message RetryLocalEnvironmentDependencyJobResponse {
+  LocalEnvironmentDependencyJob job = 1;
+}
+
+message RepairLocalEnvironmentDependencyRequest {
+  string environment_key = 1;
+  string dependency_family = 2;
+  string dependency_id = 3;
+  bool confirmed = 4;
+  string reason_code = 5;
+  string consumer_scope = 6;
+}
+
+message RepairLocalEnvironmentDependencyResponse {
+  LocalEnvironmentDependencyJob job = 1;
+}
+
+// === Device Profile ===
+
+message CollectDeviceProfileRequest {
+  repeated int32 extra_ports = 1;
+}
+
+message CollectDeviceProfileResponse {
+  LocalDeviceProfile profile = 1;
+}
+
+// === Audits ===
+
+message ListLocalAuditsRequest {
+  reserved 1, 6;
+  reserved "limit", "local_model_id";
+  string event_type            = 2;
+  repeated string event_types  = 3;
+  string source                = 4;
+  string modality              = 5;
+  string target_id             = 7;
+  string reason_code           = 8;
+  LocalAuditTimeRange time_range = 9;
+  int32 page_size              = 10;
+  string page_token            = 11;
+  string app_id                = 12;
+  string subject_user_id       = 13;
+}
+
+message ListLocalAuditsResponse {
+  repeated LocalAuditEvent events = 1;
+  string next_page_token          = 2;
+}
+
+message AppendInferenceAuditRequest {
+  reserved 8;
+  reserved "local_model_id";
+  string event_type                = 1;
+  string target_id                 = 2;
+  string source                    = 3;
+  string provider                  = 4;
+  string modality                  = 5;
+  string adapter                   = 6;
+  string model                     = 7;
+  string endpoint                  = 9;
+  string reason_code               = 10;
+  string detail                    = 11;
+  google.protobuf.Struct policy_gate = 12;
+  google.protobuf.Struct extra     = 13;
+}
+
+message AppendRuntimeAuditRequest {
+  reserved 3;
+  reserved "local_model_id";
+  string event_type              = 1;
+  string model_id                = 2;
+  google.protobuf.Struct payload = 4;
+}
+
+// === Runtime-owned product-control record (`~/.nimi/nimi.json`) ===
+
+// ProductControlProjectionJson carries the product-control projection as
+// canonical camelCase JSON. The Runtime owns the record read/write/admission
+// state machine; SDK/app clients parse this projection through the public
+// product-control schema helpers instead of reading local files.
+message ProductControlProjectionJson {
+  string json = 1;
+}
+
+// CheckSyncProjectionJson carries the protected Runtime Check & Sync
+// projection. It is intentionally an opaque JSON envelope at the wire layer:
+// owner result vocabularies stay Runtime/owner-defined and are not promoted to
+// an ordinary App SDK entitlement.
+message CheckSyncProjectionJson {
+  string json = 1;
+}
+
+message GetProductControlRecordRequest {}
+
+message GetProductControlSelectedDataRootRequest {}
+
+message EnsureProductControlRecordCreatedRequest {}
+
+message SelectProductControlDataRootRequest {
+  string data_root = 1;
+}
+
+message InitializeProductControlRootActivationRequest {}
+
+message ReplaceProductControlDataRootRequest {
+  string target_root = 1;
+}
+
+message StartProductControlCheckSyncRequest {}
+
+message GetProductControlCheckSyncRequest {}
+
+message SetProductControlFirstRunInstallLevelRequest {
+  string install_level = 1;
+  string ai_profile_alias = 2;
+}
+
+message CompleteProductControlFirstRunDeviceEnvironmentScanRequest {}
+
+message AdmitProductControlReadyForUseRequest {
+  reserved 1, 2;
+  reserved "account_default_profile_evidence_json", "built_in_ai_config_evidence_json";
+}
+
+// ReconcileProductControlFirstRunSetupStateRequest is intentionally empty:
+// Runtime derives the first-run setup state from Runtime-owned materialization
+// and activation evidence, then owns the product-control record write.
+message ReconcileProductControlFirstRunSetupStateRequest {}
+
+// === Service Definition ===
+
+service RuntimeLocalService {
+  // Machine Loadouts
+  rpc ListLoadoutRecipes(ListLoadoutRecipesRequest) returns (ListLoadoutRecipesResponse);
+  rpc GetMachineLoadouts(GetMachineLoadoutsRequest) returns (GetMachineLoadoutsResponse);
+  rpc GetLoadout(GetLoadoutRequest) returns (GetLoadoutResponse);
+  rpc PrepareLoadout(PrepareLoadoutRequest) returns (PrepareLoadoutResponse);
+  rpc CommitLoadout(CommitLoadoutRequest) returns (CommitLoadoutResponse);
+  rpc UpdateLoadout(UpdateLoadoutRequest) returns (UpdateLoadoutResponse);
+  rpc SelectLoadout(SelectLoadoutRequest) returns (SelectLoadoutResponse);
+  rpc DeleteLoadout(DeleteLoadoutRequest) returns (DeleteLoadoutResponse);
+
+  // Verified asset catalog
+  rpc ListVerifiedAssets(ListVerifiedAssetsRequest) returns (ListVerifiedAssetsResponse);
+
+  // ModelAsset CRUD
+  rpc ImportModelAsset(ImportModelAssetRequest) returns (ImportModelAssetResponse);
+  rpc ListModelAssets(ListModelAssetsRequest) returns (ListModelAssetsResponse);
+  rpc GetModelAsset(GetModelAssetRequest) returns (GetModelAssetResponse);
+  rpc RemoveModelAsset(RemoveModelAssetRequest) returns (RemoveModelAssetResponse);
+
+  // Catalog & Install
+  rpc SearchCatalogModels(SearchCatalogModelsRequest) returns (SearchCatalogModelsResponse);
+  rpc ListCatalogVariants(ListCatalogVariantsRequest) returns (ListCatalogVariantsResponse);
+  rpc GetRecommendationFeed(GetRecommendationFeedRequest) returns (GetRecommendationFeedResponse);
+  rpc ResolveModelInstallPlan(ResolveModelInstallPlanRequest) returns (ResolveModelInstallPlanResponse);
+  rpc InstallModelFromPlan(InstallModelFromPlanRequest) returns (InstallModelFromPlanResponse);
+
+  // Transfers
+  rpc ListLocalTransfers(ListLocalTransfersRequest) returns (ListLocalTransfersResponse);
+  rpc PauseLocalTransfer(PauseLocalTransferRequest) returns (PauseLocalTransferResponse);
+  rpc ResumeLocalTransfer(ResumeLocalTransferRequest) returns (ResumeLocalTransferResponse);
+  rpc CancelLocalTransfer(CancelLocalTransferRequest) returns (CancelLocalTransferResponse);
+  rpc WatchLocalTransfers(WatchLocalTransfersRequest) returns (stream LocalTransferProgressEvent);
+
+  // Runtime-owned local environment
+  rpc ResolveLocalEnvironmentPlan(ResolveLocalEnvironmentPlanRequest) returns (ResolveLocalEnvironmentPlanResponse);
+  rpc ApplyLocalEnvironmentPlan(ApplyLocalEnvironmentPlanRequest) returns (ApplyLocalEnvironmentPlanResponse);
+  rpc ListLocalEnvironmentSelectedSources(ListLocalEnvironmentSelectedSourcesRequest) returns (ListLocalEnvironmentSelectedSourcesResponse);
+  rpc ListLocalEnvironmentDependencyJobs(ListLocalEnvironmentDependencyJobsRequest) returns (ListLocalEnvironmentDependencyJobsResponse);
+  rpc ResolveLocalEnvironmentActivationGate(ResolveLocalEnvironmentActivationGateRequest) returns (ResolveLocalEnvironmentActivationGateResponse);
+  rpc StartLocalEnvironmentDependencyJob(StartLocalEnvironmentDependencyJobRequest) returns (StartLocalEnvironmentDependencyJobResponse);
+  rpc CancelLocalEnvironmentDependencyJob(CancelLocalEnvironmentDependencyJobRequest) returns (CancelLocalEnvironmentDependencyJobResponse);
+  rpc RetryLocalEnvironmentDependencyJob(RetryLocalEnvironmentDependencyJobRequest) returns (RetryLocalEnvironmentDependencyJobResponse);
+  rpc RepairLocalEnvironmentDependency(RepairLocalEnvironmentDependencyRequest) returns (RepairLocalEnvironmentDependencyResponse);
+
+  // Runtime-owned product-control record
+  rpc GetProductControlRecord(GetProductControlRecordRequest) returns (ProductControlProjectionJson);
+  rpc GetProductControlSelectedDataRoot(GetProductControlSelectedDataRootRequest) returns (ProductControlProjectionJson);
+  rpc EnsureProductControlRecordCreated(EnsureProductControlRecordCreatedRequest) returns (ProductControlProjectionJson);
+  rpc SelectProductControlDataRoot(SelectProductControlDataRootRequest) returns (ProductControlProjectionJson);
+  rpc InitializeProductControlRootActivation(InitializeProductControlRootActivationRequest) returns (ProductControlProjectionJson);
+  rpc ReplaceProductControlDataRoot(ReplaceProductControlDataRootRequest) returns (ProductControlProjectionJson);
+  rpc StartProductControlCheckSync(StartProductControlCheckSyncRequest) returns (CheckSyncProjectionJson);
+  rpc GetProductControlCheckSync(GetProductControlCheckSyncRequest) returns (CheckSyncProjectionJson);
+  rpc SetProductControlFirstRunInstallLevel(SetProductControlFirstRunInstallLevelRequest) returns (ProductControlProjectionJson);
+  rpc CompleteProductControlFirstRunDeviceEnvironmentScan(CompleteProductControlFirstRunDeviceEnvironmentScanRequest) returns (ProductControlProjectionJson);
+  rpc AdmitProductControlReadyForUse(AdmitProductControlReadyForUseRequest) returns (ProductControlProjectionJson);
+  rpc ReconcileProductControlFirstRunSetupState(ReconcileProductControlFirstRunSetupStateRequest) returns (ProductControlProjectionJson);
+
+  // Device
+  rpc CollectDeviceProfile(CollectDeviceProfileRequest) returns (CollectDeviceProfileResponse);
+
+  // Audits
+  rpc ListLocalAudits(ListLocalAuditsRequest) returns (ListLocalAuditsResponse);
+  rpc AppendInferenceAudit(AppendInferenceAuditRequest) returns (Ack);
+  rpc AppendRuntimeAudit(AppendRuntimeAuditRequest) returns (Ack);
+
+}

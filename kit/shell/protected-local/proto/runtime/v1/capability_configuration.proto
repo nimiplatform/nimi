@@ -1,0 +1,519 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/struct.proto";
+import "runtime/v1/common.proto";
+
+// CapabilityImplementationIdentity identifies the implementation vocabulary
+// against which a configuration's requirements are interpreted.
+message CapabilityImplementationIdentity {
+  string implementation_id = 1;
+  string driver_id = 2;
+  string driver_dialect = 3;
+}
+
+enum LocalCapabilityInterpretability {
+  LOCAL_CAPABILITY_INTERPRETABILITY_UNSPECIFIED = 0;
+  LOCAL_CAPABILITY_INTERPRETABILITY_INTERPRETABLE = 1;
+  LOCAL_CAPABILITY_INTERPRETABILITY_UNAVAILABLE = 2;
+}
+
+enum LocalCapabilityRequirementResolution {
+  LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNSPECIFIED = 0;
+  LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNRESOLVED = 1;
+  LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED = 2;
+  // Valid absent state for a Driver-declared optional-conditional slot.
+  LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_NOT_CONFIGURED = 3;
+}
+
+enum LocalCapabilityRequirementPolicy {
+  LOCAL_CAPABILITY_REQUIREMENT_POLICY_UNSPECIFIED = 0;
+  LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT = 1;
+  LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE = 2;
+}
+
+// Presence is Driver dialect truth. Catalog metadata may project it but cannot
+// author or override it.
+enum LocalCapabilityRequirementPresence {
+  LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_UNSPECIFIED = 0;
+  LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED = 1;
+  LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL = 2;
+}
+
+enum LocalCapabilityRequirementRole {
+  LOCAL_CAPABILITY_REQUIREMENT_ROLE_UNSPECIFIED = 0;
+  LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN = 1;
+  LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION = 2;
+}
+
+enum LocalCapabilityReason {
+  LOCAL_CAPABILITY_REASON_UNSPECIFIED = 0;
+  LOCAL_CAPABILITY_REASON_DRIVER_NOT_FOUND = 1;
+  LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED = 2;
+  LOCAL_CAPABILITY_REASON_IMPLEMENTATION_UNSUPPORTED = 3;
+  LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID = 4;
+  LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED = 5;
+  LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING = 6;
+  LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS = 7;
+  LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND = 8;
+  LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED = 9;
+  LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH = 10;
+  LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE = 11;
+  LOCAL_CAPABILITY_REASON_CONDITIONAL_BINDING_MISSING = 12;
+  LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_UNAVAILABLE = 13;
+  LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_AMBIGUOUS = 14;
+}
+
+enum TextBehaviorConfigurationState {
+  TEXT_BEHAVIOR_CONFIGURATION_STATE_UNSPECIFIED = 0;
+  TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE = 1;
+  TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED = 2;
+  TEXT_BEHAVIOR_CONFIGURATION_STATE_AMBIGUOUS = 3;
+}
+
+// Read-only primitive Tool Use support. Exact model/template mapping and
+// cross-behavior combination predicates remain Runtime-private Driver truth.
+message ToolUseCapabilityProjection {
+  repeated ToolSpecKind supported_tool_spec_kinds = 1;
+  repeated ToolChoiceMode supported_tool_choice_modes = 2;
+  bool supports_single_call = 3;
+  bool supports_multiple_calls = 4;
+  bool supports_parallel_calls = 5;
+  bool supports_sync = 6;
+  bool supports_stream = 7;
+  bool supports_tool_only_response = 8;
+  bool supports_tool_result_round_trip = 9;
+  bool supports_mixed_text_and_tool_calls = 10;
+}
+
+message TextBehaviorCapabilityProjection {
+  TextBehaviorKind kind = 1;
+  bool implementation_supported = 2;
+  TextBehaviorConfigurationState configuration_state = 3;
+  repeated LocalCapabilityReason reasons = 4;
+  // Set only when kind is TOOL_USE.
+  ToolUseCapabilityProjection implementation_tool_use = 5;
+  // Exact subset configured by the current Loadout's unique adapter mapping.
+  ToolUseCapabilityProjection configured_tool_use = 6;
+}
+
+message LocalCapabilityRequirement {
+  string requirement_id = 1;
+  LocalCapabilityRequirementRole role = 2;
+  string resource_kind = 3;
+  LocalCapabilityRequirementPolicy policy = 4;
+  string preferred_verified_content_id = 5;
+  google.protobuf.Struct compatibility_constraints = 6;
+  // Zero denotes an unordered or singleton role occurrence. Positive values
+  // are one-based and carry only an order explicitly declared by the Driver.
+  uint32 occurrence_ordinal = 7;
+  string display_label = 8;
+  LocalCapabilityRequirementPresence presence = 9;
+  // Non-empty exactly when presence is OPTIONAL_CONDITIONAL.
+  repeated string conditional_features = 10;
+}
+
+message ModelAssetExactBinding {
+  string requirement_id = 1;
+  string model_asset_id = 2;
+  // For a single-file occurrence these identify the verified entry bytes. For
+  // an explicitly sharded bundle they identify the canonical SHA-256 over its
+  // ordered bundle entry digests.
+  string verified_content_id = 3;
+  string entry_sha256 = 4;
+}
+
+// === Machine Loadouts ===
+
+enum LoadoutValidationState {
+  LOADOUT_VALIDATION_STATE_UNSPECIFIED = 0;
+  LOADOUT_VALIDATION_STATE_CONFIGURED = 1;
+  LOADOUT_VALIDATION_STATE_UNRESOLVED = 2;
+  LOADOUT_VALIDATION_STATE_BLOCKED = 3;
+}
+
+message LoadoutModelAxis {
+  string slot_id = 1;
+  string display_label = 2;
+  string model_asset_id = 3;
+  string expected_content_id = 4;
+  bool recipe_compatible = 5;
+  repeated ReasonCode reasons = 6;
+  LocalCapabilityRequirementPresence presence = 7;
+  repeated string conditional_features = 8;
+  LocalCapabilityRequirementResolution resolution = 9;
+}
+
+message LoadoutRecipeCustodyReference {
+  string custody_id = 1;
+  string expected_content_id = 2;
+}
+
+message Loadout {
+  string loadout_id = 1;
+  string capability_contract = 2;
+  CapabilityImplementationIdentity implementation = 3;
+  string recipe_id = 4;
+  string recipe_revision = 5;
+  google.protobuf.Struct options = 6;
+  repeated LoadoutModelAxis model_axes = 7;
+  repeated LoadoutRecipeCustodyReference recipe_custody = 8;
+  reserved 9;
+  reserved "supported_features";
+  LoadoutValidationState validation_state = 10;
+  repeated ReasonCode reasons = 11;
+  string display_name = 12;
+  google.protobuf.Struct provenance = 13;
+  string created_at = 14;
+  string updated_at = 15;
+  // Both projections are Runtime-derived and never accepted from a caller.
+  repeated string implementation_supported_features = 16;
+  repeated string configured_features = 17;
+  repeated TextBehaviorCapabilityProjection text_behaviors = 18;
+}
+
+message LoadoutSelection {
+  string capability_contract = 1;
+  string loadout_id = 2;
+  google.protobuf.Struct effective_defaults = 3;
+}
+
+message MachineLoadouts {
+  repeated Loadout loadouts = 1;
+  repeated LoadoutSelection selections = 2;
+}
+
+message LoadoutModelAxisInput {
+  string slot_id = 1;
+  string model_asset_id = 2;
+  string expected_content_id = 3;
+}
+
+message LoadoutImpactProjection {
+  string capability_contract = 1;
+  string loadout_id = 2;
+  bool changes_future_local_execution = 3;
+  bool confirmation_required = 4;
+}
+
+message LoadoutRecipeSlotDescriptor {
+  string slot_id = 1;
+  string display_label = 2;
+  repeated string recommended_content_ids = 3;
+  google.protobuf.Struct model_contract = 4;
+  repeated string recommended_variant_ids = 5;
+  LocalCapabilityRequirementPresence presence = 6;
+  repeated string conditional_features = 7;
+}
+
+message LoadoutRecipeDescriptor {
+  string recipe_id = 1;
+  string revision = 2;
+  string title = 3;
+  string capability_contract = 4;
+  CapabilityImplementationIdentity implementation = 5;
+  google.protobuf.Struct default_options = 6;
+  reserved 7;
+  reserved "supported_features";
+  repeated LoadoutRecipeSlotDescriptor slots = 8;
+  repeated LoadoutRecipeCustodyDescriptor custody = 9;
+  repeated string implementation_supported_features = 10;
+}
+
+message ListLoadoutRecipesRequest {
+  string capability_contract = 1;
+}
+
+message ListLoadoutRecipesResponse {
+  repeated LoadoutRecipeDescriptor recipes = 1;
+}
+
+message GetMachineLoadoutsRequest {}
+message GetMachineLoadoutsResponse { MachineLoadouts aggregate = 1; }
+message GetLoadoutRequest { string loadout_id = 1; }
+message GetLoadoutResponse { Loadout loadout = 1; }
+
+message PrepareLoadoutRequest {
+  string loadout_id = 1;
+  string capability_contract = 2;
+  string recipe_id = 3;
+  google.protobuf.Struct options = 4;
+  reserved 5;
+  reserved "supported_features";
+  repeated LoadoutModelAxisInput model_axes = 6;
+  string display_name = 7;
+  google.protobuf.Struct provenance = 8;
+}
+
+message PrepareLoadoutResponse {
+  string prepare_id = 1;
+  Loadout proposed_loadout = 2;
+  string expires_at = 3;
+  LoadoutImpactProjection impact = 4;
+}
+
+message CommitLoadoutRequest {
+  string prepare_id = 1;
+  bool confirmed_machine_impact = 2;
+}
+message CommitLoadoutResponse { Loadout loadout = 1; }
+
+// UpdateLoadout is only a convenience wrapper over PrepareLoadout followed by
+// CommitLoadout. It carries no independent mutation semantics.
+message UpdateLoadoutRequest {
+  string loadout_id = 1;
+  string capability_contract = 2;
+  string recipe_id = 3;
+  google.protobuf.Struct options = 4;
+  reserved 5;
+  reserved "supported_features";
+  repeated LoadoutModelAxisInput model_axes = 6;
+  string display_name = 7;
+  google.protobuf.Struct provenance = 8;
+  bool confirmed_machine_impact = 9;
+}
+message UpdateLoadoutResponse { Loadout loadout = 1; }
+
+message SelectLoadoutRequest {
+  string capability_contract = 1;
+  // Empty explicitly clears this contract's selected relation.
+  string loadout_id = 2;
+  bool confirmed_machine_impact = 3;
+}
+message SelectLoadoutResponse { LoadoutSelection selection = 1; }
+
+message DeleteLoadoutRequest {
+  string loadout_id = 1;
+  bool confirmed_machine_impact = 2;
+}
+message DeleteLoadoutResponse {}
+
+message LoadoutEffectiveModelAxisIdentity {
+  string slot_id = 1;
+  string model_asset_id = 2;
+  string content_id = 3;
+  LocalCapabilityRequirementPresence presence = 4;
+}
+
+message LoadoutEffectiveInputIdentity {
+  string loadout_id = 1;
+  string capability_contract = 2;
+  CapabilityImplementationIdentity implementation = 3;
+  string recipe_id = 4;
+  string recipe_revision = 5;
+  google.protobuf.Struct options = 6;
+  repeated LoadoutEffectiveModelAxisIdentity model_axes = 7;
+  repeated LoadoutRecipeCustodyReference recipe_custody = 8;
+  repeated string admitted_features = 9;
+  repeated TextBehaviorKind admitted_text_behaviors = 10;
+}
+
+message AIConfigAppOwner {
+  string app_id = 1;
+}
+
+// AIConfigRuntimeLocalAgentSubsystemOwner is a fixed marker. No individual
+// LocalAgent identity can be expressed as an AIConfig owner.
+message AIConfigRuntimeLocalAgentSubsystemOwner {
+}
+
+message AIConfigOwner {
+  oneof owner {
+    AIConfigAppOwner app = 1;
+    AIConfigRuntimeLocalAgentSubsystemOwner runtime_local_agent_subsystem = 2;
+  }
+}
+
+message AIConfigLocalIntent {
+  // Local is a route-only marker. The machine Loadout store owns the current
+  // per-CapabilityContract selection used at new Job admission.
+  reserved 1;
+  reserved "loadout_ref";
+}
+
+// AIConfigCloudIntent carries only the exact Cloud implementation and its
+// Driver-owned provider-model target selected through Nimi-owned configuration.
+// Connector credential material never belongs here; connector_ref is the
+// stable Runtime resource selected by the owner.
+message AIConfigCloudIntent {
+  CapabilityImplementationIdentity implementation = 1;
+  google.protobuf.Struct provider_model_target = 2;
+  reserved 3;
+  reserved "connector_grant_id";
+  string connector_ref = 4;
+}
+
+// AIConfigCapabilityIntent is consumer intent only. Local carries no resource
+// reference; Cloud names an exact safe Connector and target. Neither branch
+// embeds Loadout content, assets, bindings, Driver state, credentials,
+// endpoints, process state, or readiness.
+message AIConfigCapabilityIntent {
+  string capability_contract = 1;
+  repeated string required_features = 2;
+  google.protobuf.Struct defaults = 3;
+  oneof route {
+    AIConfigLocalIntent local = 4;
+    AIConfigCloudIntent cloud = 5;
+  }
+}
+
+// AIConfig is the complete current capability intent for exactly one owner.
+// Revision is transported by owner operation results rather than embedded in
+// this portable value; no history or readiness is persisted here.
+message AIConfig {
+  AIConfigOwner owner = 1;
+  repeated AIConfigCapabilityIntent capabilities = 2;
+}
+
+enum AIConfigEffectiveState {
+  AI_CONFIG_EFFECTIVE_STATE_UNSPECIFIED = 0;
+  AI_CONFIG_EFFECTIVE_STATE_READY = 1;
+  AI_CONFIG_EFFECTIVE_STATE_MISSING = 2;
+  AI_CONFIG_EFFECTIVE_STATE_BLOCKED = 3;
+  AI_CONFIG_EFFECTIVE_STATE_UNAVAILABLE = 4;
+}
+
+message AIConfigLocalResourceProjection {
+  string loadout_ref = 1;
+  string label = 2;
+  string capability_contract = 3;
+  CapabilityImplementationIdentity implementation = 4;
+  reserved 5;
+  reserved "supported_features";
+  AIConfigEffectiveState state = 6;
+  repeated string reasons = 7;
+  repeated string implementation_supported_features = 8;
+  repeated string configured_features = 9;
+  repeated TextBehaviorCapabilityProjection text_behaviors = 10;
+}
+
+message AIConfigCloudConnectorProjection {
+  string connector_ref = 1;
+  string label = 2;
+  string provider = 3;
+  AIConfigEffectiveState state = 4;
+  repeated string reasons = 5;
+}
+
+message AIConfigCloudTargetProjection {
+  string connector_ref = 1;
+  string label = 2;
+  string capability_contract = 3;
+  CapabilityImplementationIdentity implementation = 4;
+  google.protobuf.Struct provider_model_target = 5;
+  repeated string supported_features = 6;
+  AIConfigEffectiveState state = 7;
+  repeated string reasons = 8;
+}
+
+message AIConfigCloudResourceProjection {
+  AIConfigCloudConnectorProjection connector = 1;
+  AIConfigCloudTargetProjection target = 2;
+}
+
+message AIConfigEffectiveSelection {
+  string capability_contract = 1;
+  AIConfigEffectiveState state = 2;
+  oneof resource {
+    AIConfigLocalResourceProjection local = 3;
+    AIConfigCloudResourceProjection cloud = 5;
+  }
+  repeated string reasons = 4;
+}
+
+message AIConfigLocalLoadoutOptionsQuery {
+  string capability_contract = 1;
+  string search = 2;
+}
+
+message AIConfigLocalLoadoutOptions {
+  repeated AIConfigLocalResourceProjection options = 1;
+}
+
+message AIConfigCloudConnectorOptionsQuery {
+  string capability_contract = 1;
+  string search = 2;
+}
+
+message AIConfigCloudConnectorOptions {
+  repeated AIConfigCloudConnectorProjection options = 1;
+}
+
+message AIConfigCloudTargetOptionsQuery {
+  string capability_contract = 1;
+  string connector_ref = 2;
+  string search = 3;
+}
+
+message AIConfigCloudTargetOptions {
+  repeated AIConfigCloudTargetProjection options = 1;
+}
+
+message AppAIConfigPresetVoiceOptionsQuery {}
+
+message AppAIConfigPresetVoiceOption {
+  string voice_id = 1;
+  string name = 2;
+  repeated string supported_langs = 3;
+}
+
+message AppAIConfigPresetVoiceOptions {
+  repeated AppAIConfigPresetVoiceOption options = 1;
+}
+
+message ListAppAIConfigOptionsRequest {
+  oneof query {
+    AIConfigLocalLoadoutOptionsQuery local_loadouts = 1;
+    AIConfigCloudConnectorOptionsQuery cloud_connectors = 2;
+    AIConfigCloudTargetOptionsQuery cloud_targets = 3;
+    AppAIConfigPresetVoiceOptionsQuery preset_voices = 5;
+  }
+  // Desktop manager consistency assertion. Protected App callers omit it and
+  // Runtime derives the self owner from the admitted session.
+  AIConfigOwner owner = 4;
+}
+
+message ListAppAIConfigOptionsResponse {
+  oneof result {
+    AIConfigLocalLoadoutOptions local_loadouts = 1;
+    AIConfigCloudConnectorOptions cloud_connectors = 3;
+    AIConfigCloudTargetOptions cloud_targets = 4;
+    AppAIConfigPresetVoiceOptions preset_voices = 5;
+  }
+  bool truncated = 2;
+}
+
+// App AIConfig mutation is whole-object only. The owner carried here is a
+// consistency assertion checked against Runtime-authenticated caller truth;
+// it is never accepted as caller identity.
+message GetAppAIConfigRequest {
+  AIConfigOwner owner = 1;
+}
+
+message GetAppAIConfigResponse {
+  AIConfig config = 1;
+  string revision = 2;
+  repeated AIConfigEffectiveSelection effective_selections = 3;
+}
+
+message OverwriteAppAIConfigRequest {
+  AIConfig config = 1;
+  string expected_revision = 2;
+}
+
+message OverwriteAppAIConfigResponse {
+  AIConfig config = 1;
+  string revision = 2;
+  bool committed = 3;
+  ReasonCode reason_code = 4;
+}
+
+message LoadoutRecipeCustodyDescriptor {
+  string file = 1;
+  string sha256 = 2;
+  string source = 3;
+  string role = 4;
+}

@@ -1,0 +1,1189 @@
+syntax = "proto3";
+package nimi.runtime.v1;
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "runtime/v1/agent_common.proto";
+import "runtime/v1/agent_configure.proto";
+import "runtime/v1/agent_embodiment.proto";
+import "runtime/v1/agent_presentation.proto";
+import "runtime/v1/agent_source_materialization.proto";
+import "runtime/v1/ai_realtime.proto";
+import "runtime/v1/capability_configuration.proto";
+import "runtime/v1/common.proto";
+import "runtime/v1/cognition_memory.proto";
+import "runtime/v1/delegated_control.proto";
+import "runtime/v1/realtime_control.proto";
+enum AgentLifecycleStatus { AGENT_LIFECYCLE_STATUS_UNSPECIFIED = 0; AGENT_LIFECYCLE_STATUS_INITIALIZING = 1; AGENT_LIFECYCLE_STATUS_ACTIVE = 2; AGENT_LIFECYCLE_STATUS_SUSPENDED = 3; AGENT_LIFECYCLE_STATUS_TERMINATING = 4; AGENT_LIFECYCLE_STATUS_TERMINATED = 5; }
+enum AgentExecutionState { AGENT_EXECUTION_STATE_UNSPECIFIED = 0; AGENT_EXECUTION_STATE_IDLE = 1; AGENT_EXECUTION_STATE_CHAT_ACTIVE = 2; AGENT_EXECUTION_STATE_LIFE_PENDING = 3; AGENT_EXECUTION_STATE_LIFE_RUNNING = 4; AGENT_EXECUTION_STATE_SUSPENDED = 5; }
+enum AgentTrackType { AGENT_TRACK_TYPE_UNSPECIFIED = 0; AGENT_TRACK_TYPE_CHAT = 1; AGENT_TRACK_TYPE_LIFE = 2; }
+// K-AGCORE-041 HookIntent trigger family is limited to `time` and `event`.
+// Non-admitted trigger families (turn_completed, scheduled_time absolute,
+// state_condition, world_event, compound) are not part of the mounted
+// vocabulary and must not be reintroduced by implementation rename.
+enum HookTriggerFamily { HOOK_TRIGGER_FAMILY_UNSPECIFIED = 0; HOOK_TRIGGER_FAMILY_TIME = 1; HOOK_TRIGGER_FAMILY_EVENT = 2; }
+// K-AGCORE-041 admitted effect is limited to `follow-up-turn`. Widening
+// beyond this matrix requires a later dedicated runtime rule.
+enum HookEffect { HOOK_EFFECT_UNSPECIFIED = 0; HOOK_EFFECT_FOLLOW_UP_TURN = 1; }
+// K-AGCORE-041 admission states that must remain reconstructable through
+// committed runtime truth.
+enum HookAdmissionState { HOOK_ADMISSION_STATE_UNSPECIFIED = 0; HOOK_ADMISSION_STATE_PROPOSED = 1; HOOK_ADMISSION_STATE_PENDING = 2; HOOK_ADMISSION_STATE_REJECTED = 3; HOOK_ADMISSION_STATE_RUNNING = 4; HOOK_ADMISSION_STATE_COMPLETED = 5; HOOK_ADMISSION_STATE_FAILED = 6; HOOK_ADMISSION_STATE_CANCELED = 7; HOOK_ADMISSION_STATE_RESCHEDULED = 8; }
+enum AgentEventType {
+  reserved 3, 5, 8;
+  reserved "AGENT_EVENT_TYPE_MEMORY", "AGENT_EVENT_TYPE_REPLICATION", "AGENT_EVENT_TYPE_AVATAR_DEBUG";
+  AGENT_EVENT_TYPE_UNSPECIFIED = 0;
+  AGENT_EVENT_TYPE_LIFECYCLE = 1;
+  AGENT_EVENT_TYPE_HOOK = 2;
+  AGENT_EVENT_TYPE_BUDGET = 4;
+  AGENT_EVENT_TYPE_STATE = 6;
+  AGENT_EVENT_TYPE_PRESENTATION = 7;
+  AGENT_EVENT_TYPE_PROACTIVE = 9;
+}
+// K-AGCORE-037 AgentStateEventFamily discriminates runtime.agent.state.* event
+// families. Mapping is 1:1 to the mounted public family names
+// (runtime.agent.state.{status_text_changed|execution_state_changed|
+// emotion_changed|posture_changed}). Consumers MUST dispatch on `family`;
+// reading payload fields alone is not a substitute for the discriminator.
+enum AgentStateEventFamily { AGENT_STATE_EVENT_FAMILY_UNSPECIFIED = 0; AGENT_STATE_EVENT_FAMILY_STATUS_TEXT_CHANGED = 1; AGENT_STATE_EVENT_FAMILY_EXECUTION_STATE_CHANGED = 2; AGENT_STATE_EVENT_FAMILY_EMOTION_CHANGED = 3; AGENT_STATE_EVENT_FAMILY_POSTURE_CHANGED = 4; }
+// K-AGCORE-143 AgentProactiveEventFamily discriminates
+// runtime.agent.proactive.* event families. The family maps 1:1 to
+// runtime.agent.proactive.{suggested|delivered|suppressed}.
+enum AgentProactiveEventFamily { AGENT_PROACTIVE_EVENT_FAMILY_UNSPECIFIED = 0; AGENT_PROACTIVE_EVENT_FAMILY_SUGGESTED = 1; AGENT_PROACTIVE_EVENT_FAMILY_DELIVERED = 2; AGENT_PROACTIVE_EVENT_FAMILY_SUPPRESSED = 3; }
+enum AgentProactiveTriggerSource { AGENT_PROACTIVE_TRIGGER_SOURCE_UNSPECIFIED = 0; AGENT_PROACTIVE_TRIGGER_SOURCE_LIFE_TRACK_CADENCE = 1; AGENT_PROACTIVE_TRIGGER_SOURCE_HOOK_INTENT = 2; }
+enum AgentProactiveEffectClass { AGENT_PROACTIVE_EFFECT_CLASS_UNSPECIFIED = 0; AGENT_PROACTIVE_EFFECT_CLASS_IN_APP_COMPANION_SURFACE = 1; }
+enum AgentProactiveDeliveryChannel { AGENT_PROACTIVE_DELIVERY_CHANNEL_UNSPECIFIED = 0; AGENT_PROACTIVE_DELIVERY_CHANNEL_IN_APP_SURFACE = 1; AGENT_PROACTIVE_DELIVERY_CHANNEL_NOTIFICATION_NOT_ADMITTED = 2; }
+enum AgentProactiveOptInState { AGENT_PROACTIVE_OPT_IN_STATE_UNSPECIFIED = 0; AGENT_PROACTIVE_OPT_IN_STATE_OFF = 1; AGENT_PROACTIVE_OPT_IN_STATE_PENDING = 2; AGENT_PROACTIVE_OPT_IN_STATE_GRANTED = 3; AGENT_PROACTIVE_OPT_IN_STATE_DENIED = 4; AGENT_PROACTIVE_OPT_IN_STATE_REVOKED = 5; AGENT_PROACTIVE_OPT_IN_STATE_EXPIRED = 6; AGENT_PROACTIVE_OPT_IN_STATE_MISSING = 7; }
+enum AgentProactiveQuietHoursState { AGENT_PROACTIVE_QUIET_HOURS_STATE_UNSPECIFIED = 0; AGENT_PROACTIVE_QUIET_HOURS_STATE_INACTIVE = 1; AGENT_PROACTIVE_QUIET_HOURS_STATE_ACTIVE = 2; AGENT_PROACTIVE_QUIET_HOURS_STATE_NOT_CONFIGURED = 3; }
+enum AgentProactiveFrequencyCapState { AGENT_PROACTIVE_FREQUENCY_CAP_STATE_UNSPECIFIED = 0; AGENT_PROACTIVE_FREQUENCY_CAP_STATE_WITHIN_CAP = 1; AGENT_PROACTIVE_FREQUENCY_CAP_STATE_CAPPED = 2; AGENT_PROACTIVE_FREQUENCY_CAP_STATE_NOT_CONFIGURED = 3; }
+enum AgentProactiveSuppressionReason { AGENT_PROACTIVE_SUPPRESSION_REASON_UNSPECIFIED = 0; AGENT_PROACTIVE_SUPPRESSION_REASON_QUIET_HOURS_ACTIVE = 1; AGENT_PROACTIVE_SUPPRESSION_REASON_FREQUENCY_CAP_EXCEEDED = 2; AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_DENIED = 3; AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_REVOKED = 4; AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_MISSING = 5; AGENT_PROACTIVE_SUPPRESSION_REASON_PERMISSION_EXPIRED = 6; AGENT_PROACTIVE_SUPPRESSION_REASON_AUTONOMY_OFF = 7; AGENT_PROACTIVE_SUPPRESSION_REASON_BUDGET_EXHAUSTED = 8; AGENT_PROACTIVE_SUPPRESSION_REASON_SCHEDULER_DENIED = 9; AGENT_PROACTIVE_SUPPRESSION_REASON_HOOK_CONFLICT = 10; AGENT_PROACTIVE_SUPPRESSION_REASON_RUNTIME_UNAVAILABLE = 11; AGENT_PROACTIVE_SUPPRESSION_REASON_UNSUPPORTED_DELIVERY_CHANNEL = 12; AGENT_PROACTIVE_SUPPRESSION_REASON_MISSING_AUDIT_REF = 13; }
+enum AgentAutonomyMode {
+  AGENT_AUTONOMY_MODE_UNSPECIFIED = 0;
+  AGENT_AUTONOMY_MODE_OFF = 1;
+  AGENT_AUTONOMY_MODE_LOW = 2;
+  AGENT_AUTONOMY_MODE_MEDIUM = 3;
+  AGENT_AUTONOMY_MODE_HIGH = 4;
+}
+enum ConversationAnchorStatus {
+  CONVERSATION_ANCHOR_STATUS_UNSPECIFIED = 0;
+  CONVERSATION_ANCHOR_STATUS_ACTIVE = 1;
+  CONVERSATION_ANCHOR_STATUS_CLOSED = 2;
+}
+message AgentAutonomyConfig {
+  int64 daily_token_budget = 1;
+  int64 max_tokens_per_hook = 2;
+  google.protobuf.Duration min_hook_interval = 3;
+  google.protobuf.Timestamp suspend_until = 4;
+  AgentAutonomyMode mode = 5;
+  google.protobuf.Struct extensions = 10;
+}
+message AgentAutonomyState {
+  bool enabled = 1;
+  AgentAutonomyConfig config = 2;
+  int64 used_tokens_in_window = 3;
+  google.protobuf.Timestamp window_started_at = 4;
+  bool budget_exhausted = 5;
+  google.protobuf.Timestamp suspended_until = 6;
+  uint64 revision = 7;
+}
+message LocalAgentRecord {
+  reserved 20;
+  reserved "agent_id";
+  string local_agent_ref = 1;
+  string display_name = 2;
+  AgentLifecycleStatus lifecycle_status = 3;
+  AgentAutonomyState autonomy = 4;
+  google.protobuf.Struct metadata = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  AgentPresentationProfile presentation_profile = 8;
+  uint64 presentation_profile_revision = 9;
+  string owner_user_id = 21;
+  string runtime_source_ref = 22;
+  LocalAgentSourceContextStatus source_context_status = 23;
+  // Exactly one previous committed selection is retained for explicit
+  // restore-as-new-commit. Its embedded revision records where it came from;
+  // clients must commit the selection against the current profile revision.
+  AgentPresentationProfile previous_presentation_profile = 24;
+  // Resource Pack selection shares presentation_profile_revision but is never
+  // copied into or restored through previous_presentation_profile.
+  AgentResourcePackSelection resource_pack_selection = 25;
+}
+message AgentStateProjection {
+  AgentExecutionState execution_state = 1;
+  string status_text = 2;
+  string active_world_id = 3;
+  string active_user_id = 4;
+  map<string, string> attributes = 5;
+  google.protobuf.Timestamp updated_at = 6;
+  // K-AGCORE-038: current_emotion is durable-until-replace runtime state and
+  // must project through AgentStateProjection.current_emotion. Emitting only
+  // runtime.agent.state.emotion_changed without writing here is authority
+  // drift: GetAgentState / snapshot / recovery would not observe committed
+  // emotion truth.
+  string current_emotion = 7;
+  // K-AGCORE-143: proactive_interruptibility is the bounded read-only
+  // proactive_interruptibility_v1 projection. Runtime owns the fields; apps
+  // and SDKs must not infer quiet hours, frequency caps, permission grants, or
+  // delivery truth when this projection is absent.
+  AgentProactiveInterruptibilityProjection proactive_interruptibility = 8;
+}
+message AgentStateSetStatusText {
+  string status_text = 1;
+}
+message AgentStateSetWorldContext {
+  string world_id = 1;
+}
+message AgentStateClearWorldContext {}
+message AgentStateSetDyadicContext {
+  string user_id = 1;
+}
+message AgentStateClearDyadicContext {}
+message AgentStatePutAttribute {
+  string key = 1;
+  string value = 2;
+}
+message AgentStateRemoveAttribute {
+  string key = 1;
+}
+message AgentStateMutation {
+  oneof mutation {
+    AgentStateSetStatusText set_status_text = 1;
+    AgentStateSetWorldContext set_world_context = 2;
+    AgentStateClearWorldContext clear_world_context = 3;
+    AgentStateSetDyadicContext set_dyadic_context = 4;
+    AgentStateClearDyadicContext clear_dyadic_context = 5;
+    AgentStatePutAttribute put_attribute = 6;
+    AgentStateRemoveAttribute remove_attribute = 7;
+  }
+}
+// K-AGCORE-041 HookIntent admitted trigger detail shapes.
+// `time(delay)` uses a relative delay applied at admission time.
+// `event(user_idle, idle_for)` and `event(chat_ended)` are the only admitted
+// event-family details. No absolute-time, turn-completed, state-condition,
+// world-event, or compound trigger is admitted in the v1 matrix.
+message HookTriggerTimeDetail {
+  google.protobuf.Duration delay = 1;
+}
+message HookTriggerEventUserIdleDetail {
+  google.protobuf.Duration idle_for = 1;
+}
+message HookTriggerEventChatEndedDetail {}
+message HookTriggerDetail {
+  oneof detail {
+    HookTriggerTimeDetail time = 10;
+    HookTriggerEventUserIdleDetail event_user_idle = 11;
+    HookTriggerEventChatEndedDetail event_chat_ended = 12;
+  }
+}
+// K-AGCORE-041 HookIntent minimum typed shape.
+// `intent_id` is hook identity across the admission lifecycle.
+// `trigger_family` + `trigger_detail` + `effect` + `admission_state` together
+// form the committed runtime truth projected on `runtime.agent.hook.*`.
+// Origin linkage (`conversation_anchor_id`, `originating_turn_id`,
+// `originating_stream_id`) is preserved when present but never fabricated.
+message HookIntent {
+  string intent_id = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+  string originating_turn_id = 4;
+  string originating_stream_id = 5;
+  HookTriggerFamily trigger_family = 6;
+  HookTriggerDetail trigger_detail = 7;
+  HookEffect effect = 8;
+  HookAdmissionState admission_state = 9;
+  google.protobuf.Timestamp not_before = 10;
+  google.protobuf.Timestamp expires_at = 11;
+  string reason = 12;
+}
+// HookExecutionOutcome projects a single admission-state transition of a
+// `HookIntent`. `reason_code` is populated only on rejected/failed states;
+// `reason` is populated only on canceled state. `observed_at` is the
+// committed transition time.
+message HookExecutionOutcome {
+  HookIntent intent = 1;
+  google.protobuf.Timestamp observed_at = 2;
+  ReasonCode reason_code = 3;
+  string message = 4;
+  string reason = 5;
+}
+// PendingHook represents admitted scheduler truth for a HookIntent that has
+// reached `pending` admission state. The embedded HookIntent carries all
+// admitted hook vocabulary; there is no parallel trigger/next-intent shape.
+message PendingHook {
+  HookIntent intent = 1;
+  google.protobuf.Timestamp scheduled_for = 2;
+  google.protobuf.Timestamp admitted_at = 3;
+}
+message AgentLifecycleEventDetail {
+  AgentLifecycleStatus previous_status = 1;
+  AgentLifecycleStatus current_status = 2;
+}
+// AgentHookEventDetail projects a `runtime.agent.hook.*` event per
+// K-AGCORE-042. `family` is the first-class runtime-owned discriminator
+// (mirror of `intent.admission_state`) and maps 1:1 to the mounted public
+// seam family name (`runtime.agent.hook.intent_proposed` / `pending` /
+// `rejected` / `running` / `completed` / `failed` / `canceled` /
+// `rescheduled`). Consumers MUST read `family` to dispatch; reading
+// `intent.admission_state` alone is admitted but treated as an internal
+// consistency check, not as the discriminator.
+message AgentHookEventDetail {
+  HookAdmissionState family = 1;
+  HookIntent intent = 2;
+  google.protobuf.Timestamp observed_at = 3;
+  ReasonCode reason_code = 4;
+  string message = 5;
+  string reason = 6;
+}
+message AgentBudgetEventDetail {
+  bool budget_exhausted = 1;
+  int64 remaining_tokens = 2;
+  google.protobuf.Timestamp window_started_at = 3;
+}
+// K-AGCORE-037 PostureProjection is the canonical schema alias for
+// runtime.agent.state.posture_changed.detail.current_posture. Only the
+// narrow read-only projection admitted through K-AGCORE-037 may cross the
+// public RuntimeAgentService surface; runtime-private posture truth (truth
+// basis ids, transition reason, posture class) is not exposed here.
+message AgentPostureProjection {
+  string action_family = 1;
+  string interrupt_mode = 2;
+}
+// AgentStateEventDetail projects runtime.agent.state.* events per
+// K-AGCORE-037 / state_envelope. `agent_id` is REQUIRED at the AgentEvent
+// envelope level; origin linkage (`conversation_anchor_id` /
+// `originating_turn_id` / `originating_stream_id`) is OPTIONAL and is carried
+// ONLY when the state projection is traceable to a specific continuity
+// branch. Runtime MUST NOT fabricate origin linkage for no-origin state
+// transitions (admin posture change, lifecycle-driven state, etc.).
+message AgentStateEventDetail {
+  AgentStateEventFamily family = 1;
+  // Optional origin linkage (state_envelope.optional_origin_fields).
+  string conversation_anchor_id = 2;
+  string originating_turn_id = 3;
+  string originating_stream_id = 4;
+  // Family-specific payload fields. Exactly one family's block is populated
+  // per event; discriminator is `family`.
+  string current_status_text = 10;
+  string previous_status_text = 11;
+  bool has_previous_status_text = 12;
+  AgentExecutionState current_execution_state = 20;
+  AgentExecutionState previous_execution_state = 21;
+  string current_emotion = 30;
+  string previous_emotion = 31;
+  string emotion_source = 32;
+  AgentPostureProjection current_posture = 40;
+  AgentPostureProjection previous_posture = 41;
+}
+// AgentProactiveEventDetail projects runtime.agent.proactive.* per K-AGCORE-143; required audit/origin fields must not be fabricated.
+message AgentProactiveEventDetail {
+  AgentProactiveEventFamily family = 1; string projection_id = 2; string projection_kind = 3; string owner_domain = 4;
+  AgentProactiveTriggerSource trigger_source = 5; AgentProactiveEffectClass effect_class = 6; AgentProactiveDeliveryChannel delivery_channel = 7; AgentAutonomyMode mode = 8;
+  AgentProactiveOptInState opt_in_state = 9; AgentProactiveQuietHoursState quiet_hours = 10; AgentProactiveFrequencyCapState frequency_cap = 11; AgentProactiveSuppressionReason suppression_reason = 12;
+  string reason_code = 13; string audit_ref = 14; string source_hook_id = 15; string source_cadence_id = 16; string conversation_anchor_id = 17; string originating_turn_id = 18; string originating_stream_id = 19; google.protobuf.Timestamp observed_at = 20;
+}
+// AgentProactiveInterruptibilityProjection is read-only proactive_interruptibility_v1 state; unsupported_fields blocks consumer inference.
+message AgentProactiveInterruptibilityProjection {
+  string projection_id = 1; string projection_kind = 2; AgentAutonomyMode mode = 3; AgentProactiveOptInState opt_in_state = 4;
+  AgentProactiveDeliveryChannel delivery_channel = 5; AgentProactiveQuietHoursState quiet_hours = 6; AgentProactiveFrequencyCapState frequency_cap = 7; repeated string audit_refs = 8;
+  AgentProactiveEventDetail suggested_event = 9; AgentProactiveEventDetail last_delivered_event = 10; AgentProactiveEventDetail last_suppressed_event = 11; repeated string unsupported_fields = 12;
+}
+message AgentEvent {
+  reserved 12, 14, 17;
+  reserved "memory", "replication", "avatar_debug";
+  AgentEventType event_type = 1;
+  uint64 sequence = 2;
+  string agent_id = 3;
+  google.protobuf.Timestamp timestamp = 4;
+  string local_agent_ref = 20;
+  string owner_user_id = 21;
+  string runtime_source_ref = 22;
+  oneof detail {
+    AgentLifecycleEventDetail lifecycle = 10;
+    AgentHookEventDetail hook = 11;
+    AgentBudgetEventDetail budget = 13;
+    AgentStateEventDetail state = 15;
+    AgentPresentationEventDetail presentation = 16;
+    AgentProactiveEventDetail proactive = 18;
+  }
+}
+message TerminateAgentRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string reason = 3;
+}
+message TerminateAgentResponse {
+  Ack ack = 1;
+}
+message GetAgentRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+}
+message GetAgentResponse {
+  LocalAgentRecord agent = 1;
+}
+message ListAgentsRequest {
+  AgentRequestContext context = 1;
+  AgentLifecycleStatus lifecycle_filter = 2;
+  optional bool autonomy_enabled = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+message ListAgentsResponse {
+  repeated LocalAgentRecord agents = 1;
+  string next_page_token = 2;
+}
+message GetAgentStateRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+}
+message GetAgentStateResponse {
+  AgentStateProjection state = 1;
+}
+message UpdateAgentStateRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  repeated AgentStateMutation mutations = 3;
+}
+message UpdateAgentStateResponse {
+  AgentStateProjection state = 1;
+}
+message EnableAutonomyRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+}
+message EnableAutonomyResponse {
+  AgentAutonomyState autonomy = 1;
+}
+message DisableAutonomyRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string reason = 3;
+}
+message DisableAutonomyResponse {
+  AgentAutonomyState autonomy = 1;
+}
+message SetAutonomyConfigRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  AgentAutonomyConfig config = 3;
+  // When present, this request is the first-party atomic autonomy CAS path.
+  // Omission retains the pre-r168 config-only mutation for compatibility.
+  optional uint64 expected_autonomy_revision = 4;
+  optional bool enabled = 5;
+}
+message SetAutonomyConfigResponse {
+  AgentAutonomyState autonomy = 1;
+}
+message SetAgentPresentationProfileRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  oneof mutation {
+    AgentPresentationProfile profile = 3;
+    ClearAgentPresentationProfile clear = 4;
+    AgentPresentationProfilePatch patch = 5;
+  }
+  optional uint64 expected_revision = 6;
+  repeated AgentPresentationAssetMaterial imported_assets = 7;
+}
+message SetAgentPresentationProfileResponse {
+  AgentPresentationProfile profile = 1;
+  uint64 committed_revision = 2;
+  AgentPresentationProfile previous_profile = 3;
+}
+message GetAgentPresentationAssetRequest {
+  reserved 1, 2;
+  reserved "context", "agent_id";
+  string asset_ref = 3;
+  string agent_handle = 4;
+}
+message GetAgentPresentationAssetResponse {
+  string asset_ref = 1;
+  AgentPresentationAssetRole role = 2;
+  AgentPresentationBackendKind backend_kind = 3;
+  string file_name = 4;
+  string media_type = 5;
+  bytes content = 6;
+  string sha256 = 7;
+}
+message ListPendingHooksRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  HookTriggerFamily trigger_family_filter = 3;
+  HookAdmissionState admission_state_filter = 4;
+  int32 page_size = 5;
+  string page_token = 6;
+}
+message ListPendingHooksResponse {
+  repeated PendingHook hooks = 1;
+  string next_page_token = 2;
+}
+message CancelHookRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string intent_id = 3;
+  string reason = 4;
+}
+message CancelHookResponse {
+  HookExecutionOutcome outcome = 1;
+}
+// First-party recorded voice ingress. Runtime validates the selected
+// LocalAgent Conversation and executes audio.transcribe through the singular
+// shared LocalAgent AIConfig before returning typed text to the caller. The
+// caller cannot provide route, model, provider, Driver, or machine selection.
+// audio_bytes admits at most 6 MiB; Runtime rejects a larger payload with
+// ResourceExhausted and AI_AUDIO_INPUT_TOO_LARGE before authorization or execution.
+message TranscribeAgentVoiceInputRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+  bytes audio_bytes = 4;
+  string mime_type = 5;
+  string request_id = 6;
+}
+message TranscribeAgentVoiceInputResponse {
+  string text = 1;
+  string job_id = 2;
+  string trace_id = 3;
+}
+// ConversationAnchor is Runtime's continuity token for the one conversation
+// transcript owned by a LocalAgent. The first authorized open creates it and
+// every later authorized Desktop, local-app, or Avatar surface resolves the
+// same anchor; App, principal, and surface identity never partition it.
+// `turn_id` and `message_id` are scoped to that shared conversation, and
+// `subject_user_id` equals the LocalAgent owner established by Runtime.
+message ConversationAnchor {
+  string conversation_anchor_id = 1;
+  string agent_id = 2;
+  string subject_user_id = 3;
+  ConversationAnchorStatus status = 4;
+  string last_turn_id = 5;
+  string last_message_id = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+  google.protobuf.Struct metadata = 9;
+  string local_agent_ref = 20;
+  string owner_user_id = 21;
+  string runtime_source_ref = 22;
+}
+message ConversationAnchorSnapshot {
+  ConversationAnchor anchor = 1;
+  string active_turn_id = 2;
+  string active_stream_id = 3;
+  LocalAgentSourceContextStatus source_context_status = 4;
+  AgentTurnContextSummary turn_context_summary = 5;
+}
+message OpenConversationAnchorRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string subject_user_id = 3;
+  google.protobuf.Struct metadata = 4;
+  string local_agent_ref = 20;
+  string owner_user_id = 21;
+  string runtime_source_ref = 22;
+}
+message OpenConversationAnchorResponse {
+  ConversationAnchorSnapshot snapshot = 1;
+}
+
+// Protected Third-party Local Apps receive only this minimal current-account
+// active-Agent catalog. The handle is a session-scoped opaque selector; it is
+// never a raw LocalAgent identity or durable authorization.
+message LocalAppAgentReference {
+  string agent_handle = 1;
+  string display_name = 2;
+  optional string avatar_url = 3;
+}
+message ListLocalAppAgentReferencesRequest {}
+message ListLocalAppAgentReferencesResponse {
+  repeated LocalAppAgentReference references = 1;
+}
+
+// Host-private Avatar correlation. This wire is reachable only through the
+// protected native Host binding and is never an App product operation.
+message ResolveLocalAppAvatarHostTargetRequest {
+  string agent_handle = 1;
+  optional string conversation_anchor_id = 2;
+}
+message ResolveLocalAppAvatarHostTargetResponse {
+  string avatar_host_target_ref = 1;
+}
+
+// Desktop-Host-private revalidation of an already minted Avatar correlation.
+// This wire is admitted only on the verified Desktop account-product binding
+// and is excluded from public SDK product and wire surfaces.
+message RevalidateLocalAppAvatarHostTargetRequest {
+  string avatar_host_target_ref = 1;
+}
+message RevalidateLocalAppAvatarHostTargetResponse {
+  string avatar_host_target_ref = 1;
+}
+
+// Bounded AgentCenter manager projection. It deliberately excludes raw Agent
+// or account identity, source/Memory corpus, hashes, prompts, reasoning,
+// internal generations, provider/model/storage detail, and reconstructable
+// context content.
+message LocalAppAgentManagerSourceProjection {
+  bool ready = 1;
+  AgentLocalSourceContextState state = 2;
+  AgentContextProjectionReasonCode reason_code = 3;
+  google.protobuf.Timestamp captured_at = 4;
+  repeated LocalAgentSourceCoverageSectionStatus coverage_sections = 5;
+  bool lorebook_ready = 6;
+  uint32 lorebook_item_count = 7;
+  uint64 lorebook_estimated_tokens = 8;
+}
+message LocalAppAgentManagerContextProjection {
+  bool ready = 1;
+  AgentTurnContextState state = 2;
+  AgentContextProjectionReasonCode reason_code = 3;
+  repeated AgentTurnContextLaneSummary lanes = 4;
+  uint64 input_budget_tokens = 5;
+  uint64 used_tokens = 6;
+  uint64 required_input_tokens = 7;
+  uint64 required_context_window_tokens = 8;
+  repeated AgentTurnContextTruncationSummary truncation = 9;
+  uint32 transcript_turn_count = 10;
+  uint32 memory_item_count = 11;
+  uint32 media_count = 12;
+  uint32 tool_count = 13;
+  AgentSourceCognitionStatus source_adapter_status = 14;
+  AgentSourceCognitionStatus source_selection_status = 15;
+  AgentConversationSummaryStatus conversation_summary_status = 16;
+  uint32 private_recall_count = 17;
+}
+
+// Product actions are stable Manager semantics, not AppOperationIds or access
+// decisions. The protected session has already admitted the shared
+// agent.configure domain before Runtime projects current owner availability.
+enum LocalAppAgentManagerProductAction {
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_UNSPECIFIED = 0;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_READ = 1;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_SHARED_AI_CONFIG_WRITE = 2;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_READ = 3;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_AUTONOMY_WRITE = 4;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_INSPECT = 5;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_CORRECT = 6;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_FORGET = 7;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_SWITCH = 8;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_MEMORY_DELETE = 9;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_COMMIT = 10;
+  LOCAL_APP_AGENT_MANAGER_PRODUCT_ACTION_APPEARANCE_RESTORE = 11;
+}
+enum LocalAppAgentManagerActionAvailabilityState {
+  LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNSPECIFIED = 0;
+  LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_AVAILABLE = 1;
+  LOCAL_APP_AGENT_MANAGER_ACTION_AVAILABILITY_STATE_UNAVAILABLE = 2;
+}
+enum LocalAppAgentManagerActionUnavailableReason {
+  LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_UNSPECIFIED = 0;
+  LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_NONE = 1;
+  LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OPERATION_UNAVAILABLE = 2;
+  LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_OWNER_UNAVAILABLE = 3;
+  LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_DISABLED = 4;
+  LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_MEMORY_ADOPTION_REQUIRED = 5;
+  LOCAL_APP_AGENT_MANAGER_ACTION_UNAVAILABLE_REASON_PREVIOUS_PRESENTATION_UNAVAILABLE = 6;
+}
+message LocalAppAgentManagerActionAvailability {
+  LocalAppAgentManagerProductAction action = 1;
+  LocalAppAgentManagerActionAvailabilityState state = 2;
+  LocalAppAgentManagerActionUnavailableReason reason = 3;
+}
+message LocalAppAgentManagerSnapshot {
+  AgentLifecycleStatus lifecycle_status = 1;
+  AgentExecutionState execution_state = 2;
+  string status_text = 3;
+  string current_emotion = 4;
+  LocalAppAgentManagerSourceProjection source = 5;
+  LocalAppAgentManagerContextProjection context = 6;
+  repeated LocalAppAgentManagerActionAvailability action_availability = 7;
+}
+message GetLocalAppAgentManagerSnapshotRequest {
+  string agent_handle = 1;
+  optional string conversation_anchor_id = 2;
+}
+message GetLocalAppAgentManagerSnapshotResponse {
+  LocalAppAgentManagerSnapshot snapshot = 1;
+}
+
+// Protected Local App Conversation uses the session-scoped Agent selector
+// above and one canonical bounded content-part vocabulary.
+message OpenLocalAppConversationRequest {
+  string agent_handle = 1;
+}
+message OpenLocalAppConversationResponse {
+  string conversation_anchor_id = 1;
+  optional string active_turn_id = 2;
+}
+message SendLocalAppConversationTurnRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+  string request_id = 3;
+  reserved 4;
+  reserved "text";
+  repeated LocalAppConversationInputPart parts = 5;
+}
+message SendLocalAppConversationTurnResponse {
+  string turn_id = 1;
+}
+message LocalAppConversationInputArtifactRef {
+  string artifact_id = 1;
+}
+message LocalAppConversationInputPart {
+  oneof part {
+    LocalAppConversationTextPart text = 1;
+    LocalAppConversationInputArtifactRef artifact_ref = 2;
+  }
+}
+message UploadLocalAppConversationAttachmentRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+  string mime_type = 3;
+  optional string display_name = 4;
+  bytes data = 5;
+}
+message UploadLocalAppConversationAttachmentResponse {
+  string artifact_id = 1;
+  string expires_at = 2;
+}
+message ReadLocalAppConversationArtifactRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+  string artifact_id = 3;
+}
+message ReadLocalAppConversationArtifactResponse {
+  string artifact_id = 1;
+  bytes data = 2;
+  string mime_type = 3;
+  int64 byte_length = 4;
+}
+message TranscribeLocalAppConversationVoiceRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+  string request_id = 3;
+  string mime_type = 4;
+  bytes audio_bytes = 5;
+}
+message TranscribeLocalAppConversationVoiceResponse {
+  string text = 1;
+}
+message RenderLocalAppConversationVoiceRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+  string message_id = 3;
+  string request_id = 4;
+}
+message RenderLocalAppConversationVoiceResponse {
+  LocalAppConversationVoice voice = 1;
+}
+message InterruptLocalAppConversationTurnRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+}
+message InterruptLocalAppConversationTurnResponse {
+  string turn_id = 1;
+}
+message SubscribeLocalAppConversationEventsRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+}
+message GetLocalAppConversationSnapshotRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+}
+
+enum LocalAppConversationMessageRole {
+  LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED = 0;
+  LOCAL_APP_CONVERSATION_MESSAGE_ROLE_USER = 1;
+  LOCAL_APP_CONVERSATION_MESSAGE_ROLE_ASSISTANT = 2;
+}
+message LocalAppConversationMessage {
+  string turn_id = 1;
+  LocalAppConversationMessageRole role = 2;
+  reserved 3;
+  reserved "text";
+  string message_id = 4;
+  repeated LocalAppConversationMessagePart parts = 5;
+}
+message LocalAppConversationTextPart { string text = 1; }
+enum LocalAppConversationMediaKind {
+  LOCAL_APP_CONVERSATION_MEDIA_KIND_UNSPECIFIED = 0;
+  LOCAL_APP_CONVERSATION_MEDIA_KIND_IMAGE = 1;
+}
+message LocalAppConversationArtifactPart {
+  string artifact_id = 1;
+  LocalAppConversationMediaKind media_kind = 2;
+  string mime_type = 3;
+  optional string display_name = 4;
+}
+message LocalAppConversationMessagePart {
+  oneof part {
+    LocalAppConversationTextPart text = 1;
+    LocalAppConversationArtifactPart artifact = 2;
+  }
+}
+enum LocalAppConversationTurnStatus {
+  LOCAL_APP_CONVERSATION_TURN_STATUS_UNSPECIFIED = 0;
+  LOCAL_APP_CONVERSATION_TURN_STATUS_ACTIVE = 1;
+  LOCAL_APP_CONVERSATION_TURN_STATUS_COMPLETED = 2;
+  LOCAL_APP_CONVERSATION_TURN_STATUS_FAILED = 3;
+  LOCAL_APP_CONVERSATION_TURN_STATUS_INTERRUPTED = 4;
+}
+enum LocalAppConversationTurnPhase {
+  LOCAL_APP_CONVERSATION_TURN_PHASE_UNSPECIFIED = 0;
+  LOCAL_APP_CONVERSATION_TURN_PHASE_ACCEPTED = 1;
+  LOCAL_APP_CONVERSATION_TURN_PHASE_STARTED = 2;
+}
+message LocalAppConversationTurn {
+  string turn_id = 1;
+  LocalAppConversationTurnStatus status = 2;
+  LocalAppConversationTurnPhase phase = 3;
+  optional string terminal_reason = 4;
+  ReasonCode reason_code = 5;
+  optional string message = 6;
+}
+enum LocalAppConversationActionStatus {
+  LOCAL_APP_CONVERSATION_ACTION_STATUS_UNSPECIFIED = 0;
+  LOCAL_APP_CONVERSATION_ACTION_STATUS_PLANNED = 1;
+  LOCAL_APP_CONVERSATION_ACTION_STATUS_STARTED = 2;
+  LOCAL_APP_CONVERSATION_ACTION_STATUS_COMPLETED = 3;
+  LOCAL_APP_CONVERSATION_ACTION_STATUS_FAILED = 4;
+}
+message LocalAppConversationAction {
+  string action_id = 1;
+  string turn_id = 2;
+  string capability_contract = 3;
+  LocalAppConversationActionStatus status = 4;
+  optional string projection_message_id = 5;
+  optional string artifact_id = 6;
+  ReasonCode reason_code = 7;
+  optional string message = 8;
+}
+enum LocalAppConversationVoiceState {
+  LOCAL_APP_CONVERSATION_VOICE_STATE_UNSPECIFIED = 0;
+  LOCAL_APP_CONVERSATION_VOICE_STATE_READY = 1;
+  LOCAL_APP_CONVERSATION_VOICE_STATE_FAILED = 2;
+}
+message LocalAppConversationVoice {
+  string voice_id = 1;
+  string turn_id = 2;
+  string message_id = 3;
+  LocalAppConversationVoiceState state = 4;
+  optional string artifact_id = 5;
+  ReasonCode reason_code = 6;
+  optional string message = 7;
+}
+message LocalAppConversationSnapshot {
+  string conversation_anchor_id = 1;
+  reserved 2;
+  reserved "active_turn_id";
+  repeated LocalAppConversationMessage messages = 3;
+  bool truncated_before = 4;
+  uint64 through_sequence = 5;
+  repeated LocalAppConversationTurn turns = 6;
+  repeated LocalAppConversationAction actions = 7;
+  repeated LocalAppConversationVoice voices = 8;
+}
+message GetLocalAppConversationSnapshotResponse {
+  LocalAppConversationSnapshot snapshot = 1;
+}
+
+message LocalAppConversationTurnAccepted {
+  string turn_id = 1;
+  reserved 2;
+  reserved "request_id";
+}
+message LocalAppConversationTurnStarted {
+  string turn_id = 1;
+}
+message LocalAppConversationTextDelta {
+  string turn_id = 1;
+  string delta = 2;
+}
+enum LocalAppConversationReasoningState {
+  LOCAL_APP_CONVERSATION_REASONING_STATE_UNSPECIFIED = 0;
+  LOCAL_APP_CONVERSATION_REASONING_STATE_STARTED = 1;
+  LOCAL_APP_CONVERSATION_REASONING_STATE_ACTIVE = 2;
+  LOCAL_APP_CONVERSATION_REASONING_STATE_COMPLETED = 3;
+}
+message LocalAppConversationReasoningStatus {
+  string turn_id = 1;
+  LocalAppConversationReasoningState state = 2;
+}
+message LocalAppConversationMessageCommitted {
+  reserved 1, 2, 3;
+  reserved "turn_id", "message_id", "text";
+  LocalAppConversationMessage message = 4;
+}
+message LocalAppConversationTurnCompleted {
+  string turn_id = 1;
+  string terminal_reason = 2;
+}
+message LocalAppConversationTurnFailed {
+  string turn_id = 1;
+  string reason_code = 2;
+  optional string message = 3;
+}
+message LocalAppConversationTurnInterrupted {
+  string turn_id = 1;
+  string reason = 2;
+}
+message LocalAppConversationActionEvent { LocalAppConversationAction action = 1; }
+message LocalAppConversationArtifactReady {
+  string turn_id = 1;
+  string action_id = 2;
+  string capability_contract = 3;
+  string projection_message_id = 4;
+  string artifact_id = 5;
+}
+message LocalAppConversationVoiceEvent { LocalAppConversationVoice voice = 1; }
+enum LocalAppConversationLiveChildLifecycle {
+  LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UNSPECIFIED = 0;
+  LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_STARTED = 1;
+  LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_UPDATED = 2;
+  LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_COMPLETED = 3;
+  LOCAL_APP_CONVERSATION_LIVE_CHILD_LIFECYCLE_FAILED = 4;
+}
+message LocalAppConversationLiveAction {
+  string turn_id = 1;
+  string action_id = 2;
+  string name = 3;
+  LocalAppConversationLiveChildLifecycle lifecycle = 4;
+  optional string progress = 5;
+  optional string result = 6;
+  ReasonCode reason_code = 7;
+}
+message LocalAppConversationLiveTool {
+  string turn_id = 1;
+  string tool_id = 2;
+  string name = 3;
+  LocalAppConversationLiveChildLifecycle lifecycle = 4;
+  optional string progress = 5;
+  optional string result = 6;
+  ReasonCode reason_code = 7;
+}
+message LocalAppConversationEvent {
+  string conversation_anchor_id = 1;
+  uint64 sequence = 2;
+  reserved 12;
+  oneof event {
+    LocalAppConversationTurnAccepted turn_accepted = 10;
+    LocalAppConversationTurnStarted turn_started = 11;
+    LocalAppConversationMessageCommitted message_committed = 13;
+    LocalAppConversationTurnCompleted turn_completed = 14;
+    LocalAppConversationTurnFailed turn_failed = 15;
+    LocalAppConversationTurnInterrupted turn_interrupted = 16;
+    LocalAppConversationActionEvent action_planned = 17;
+    LocalAppConversationActionEvent action_started = 18;
+    LocalAppConversationArtifactReady artifact_ready = 19;
+    LocalAppConversationActionEvent action_completed = 20;
+    LocalAppConversationActionEvent action_failed = 21;
+    LocalAppConversationVoiceEvent voice_ready = 22;
+    LocalAppConversationVoiceEvent voice_failed = 23;
+    LocalAppConversationTextDelta text_delta = 24;
+    LocalAppConversationReasoningStatus reasoning_status = 25;
+    LocalAppConversationLiveAction live_action = 26;
+    LocalAppConversationLiveTool live_tool = 27;
+  }
+}
+
+message GetConversationAnchorSnapshotRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+}
+message GetConversationAnchorSnapshotResponse {
+  ConversationAnchorSnapshot snapshot = 1;
+}
+message GetPublicChatSessionSnapshotRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+  string request_id = 4;
+  string world_id = 5;
+}
+message GetPublicChatSessionSnapshotResponse {
+  google.protobuf.Struct snapshot = 1;
+}
+message ReadConversationArtifactRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  string conversation_anchor_id = 3;
+  string artifact_id = 4;
+}
+message ReadConversationArtifactResponse {
+  string artifact_id = 1;
+  bytes data = 2;
+  string mime_type = 3;
+  int64 byte_length = 4;
+}
+message AgentConversationSummary {
+  ConversationAnchor anchor = 1;
+  string title = 2;
+  string last_message_role = 3;
+  string last_message_text = 4;
+  string last_message_id = 5;
+  int32 transcript_message_count = 6;
+  google.protobuf.Timestamp updated_at = 7;
+  LocalAgentSourceContextStatus source_context_status = 8;
+  AgentTurnContextSummary last_turn_context_summary = 9;
+}
+message ListAgentConversationSummariesRequest {
+  AgentRequestContext context = 1;
+  string agent_id = 2;
+  repeated ConversationAnchorStatus status_filter = 3;
+  int32 page_size = 4;
+  string page_token = 5;
+}
+message ListAgentConversationSummariesResponse {
+  repeated AgentConversationSummary summaries = 1;
+  string next_page_token = 2;
+}
+// Runtime projects exactly one shared LocalAgent subsystem AIConfig. These
+// requests carry only authenticated App/account scope; runtime_source_ref and
+// local_agent_ref remain empty and never select a configuration owner.
+message GetSharedLocalAgentAIConfigRequest { AgentRequestContext context = 1; }
+message GetSharedLocalAgentAIConfigResponse {
+  AIConfig config = 1;
+  string revision = 2;
+  repeated AIConfigEffectiveSelection effective_selections = 3;
+  repeated LocalAgentCapabilityParticipation participation = 4;
+}
+message OverwriteSharedLocalAgentAIConfigRequest {
+  AgentRequestContext context = 1;
+  repeated AIConfigCapabilityIntent capabilities = 2;
+  string expected_revision = 3;
+}
+message OverwriteSharedLocalAgentAIConfigResponse {
+  AIConfig config = 1;
+  string revision = 2;
+  bool committed = 3;
+  ReasonCode reason_code = 4;
+  repeated AIConfigEffectiveSelection effective_selections = 5;
+  repeated LocalAgentCapabilityParticipation participation = 6;
+}
+message ListSharedLocalAgentAIConfigOptionsRequest {
+  AgentRequestContext context = 1;
+  oneof query {
+    AIConfigLocalLoadoutOptionsQuery local_loadouts = 2;
+    AIConfigCloudConnectorOptionsQuery cloud_connectors = 3;
+    AIConfigCloudTargetOptionsQuery cloud_targets = 4;
+    SharedLocalAgentPresetVoiceOptionsQuery preset_voices = 5;
+  }
+}
+message ListSharedLocalAgentAIConfigOptionsResponse {
+  oneof result {
+    AIConfigLocalLoadoutOptions local_loadouts = 1;
+    AIConfigCloudConnectorOptions cloud_connectors = 3;
+    AIConfigCloudTargetOptions cloud_targets = 4;
+    SharedLocalAgentPresetVoiceOptions preset_voices = 5;
+  }
+  bool truncated = 2;
+}
+// AIProfile remains a portable template. Apply writes complete current owner
+// intent only; it never materializes Local bindings or waits for readiness.
+message PreviewSharedLocalAgentAIProfileRequest {
+  AgentRequestContext context = 1;
+  bytes profile_json = 2;
+}
+message PreviewSharedLocalAgentAIProfileResponse {
+  AIConfig before = 1;
+  AIConfig after = 2;
+}
+message ApplySharedLocalAgentAIProfileRequest {
+  AgentRequestContext context = 1;
+  bytes profile_json = 2;
+}
+message ApplySharedLocalAgentAIProfileResponse {
+  AIConfig config = 1;
+}
+// Portable Profile catalog records contain the validated document only. They
+// never carry or trigger AIConfig, ModelAsset, Loadout, selection, or Job state.
+message PortableAIProfileRecord {
+  string profile_id = 1;
+  string title = 2;
+  bytes profile_json = 3;
+  google.protobuf.Timestamp imported_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+message ImportPortableAIProfileRequest {
+  AgentRequestContext context = 1;
+  bytes profile_json = 2;
+}
+message ImportPortableAIProfileResponse { PortableAIProfileRecord profile = 1; }
+message ListPortableAIProfilesRequest { AgentRequestContext context = 1; }
+message ListPortableAIProfilesResponse { repeated PortableAIProfileRecord profiles = 1; }
+
+message OpenLocalAppAgentRealtimeRequest {
+  string agent_handle = 1;
+  optional string conversation_anchor_id = 2;
+  AiRealtimeAudioFormat input_audio = 3;
+  AiRealtimeTurnDetectionMode turn_detection = 4;
+}
+message OpenLocalAppAgentRealtimeResponse {
+  string conversation_anchor_id = 1;
+  string realtime_session_id = 2;
+  string channel_id = 3;
+  uint64 generation = 4;
+  AiRealtimeAudioFormat negotiated_input_audio = 5;
+  AiRealtimeAudioFormat negotiated_output_audio = 6;
+  RealtimeControlStatus control = 7;
+}
+message LocalAppAgentRealtimeTextInput { string request_id = 1; string text = 2; }
+message LocalAppAgentRealtimeAudioFrameInput {
+  string input_track_id = 1;
+  string utterance_id = 2;
+  uint64 frame_sequence = 3;
+  bytes frame = 4;
+}
+message LocalAppAgentRealtimeCaptureStopped {
+  string input_track_id = 1;
+  string utterance_id = 2;
+}
+message AppendLocalAppAgentRealtimeInputRequest {
+  string realtime_session_id = 1;
+  uint64 generation = 2;
+  string agent_handle = 3;
+  oneof input {
+    LocalAppAgentRealtimeTextInput text = 10;
+    LocalAppAgentRealtimeAudioFrameInput audio_frame = 11;
+    LocalAppAgentRealtimeCaptureStopped capture_stopped = 12;
+  }
+}
+message AppendLocalAppAgentRealtimeInputResponse { Ack ack = 1; RealtimeControlStatus control = 2; }
+message SubscribeLocalAppAgentRealtimeEventsRequest { string realtime_session_id = 1; uint64 generation = 2; string agent_handle = 3; }
+message GetLocalAppAgentRealtimeStatusRequest { string realtime_session_id = 1; uint64 generation = 2; string agent_handle = 3; }
+message GetLocalAppAgentRealtimeStatusResponse { RealtimeControlStatus control = 1; }
+message InterruptLocalAppAgentRealtimeOutputRequest {
+  string realtime_session_id = 1;
+  uint64 generation = 2;
+  string output_track_id = 3;
+  bool interrupt_agent_turn = 4;
+  string agent_handle = 5;
+}
+message InterruptLocalAppAgentRealtimeOutputResponse { Ack ack = 1; RealtimeControlStatus control = 2; }
+message CloseLocalAppAgentRealtimeRequest { string realtime_session_id = 1; uint64 generation = 2; string agent_handle = 3; }
+message CloseLocalAppAgentRealtimeResponse { Ack ack = 1; RealtimeControlStatus control = 2; }
+message LocalAppAgentRealtimeInputAccepted {
+  string input_track_id = 1;
+  string utterance_id = 2;
+  uint64 frame_sequence = 3;
+  string request_id = 4;
+}
+message LocalAppAgentRealtimeSpeechStatus {
+  string input_track_id = 1;
+  string utterance_id = 2;
+  AiRealtimeSpeechState state = 3;
+}
+message LocalAppAgentRealtimeTranscript {
+  string input_track_id = 1;
+  string utterance_id = 2;
+  string text = 3;
+  bool final = 4;
+}
+message LocalAppAgentRealtimeTextOutput {
+  string request_id = 1;
+  string output_track_id = 2;
+  string text = 3;
+  bool final = 4;
+}
+message LocalAppAgentRealtimeAudioFrameOutput {
+  string request_id = 1;
+  string output_track_id = 2;
+  uint64 frame_sequence = 3;
+  bytes frame = 4;
+  AiRealtimeAudioFormat format = 5;
+}
+message LocalAppAgentRealtimeOutputTrackStatus {
+  string request_id = 1;
+  string output_track_id = 2;
+  AiRealtimeOutputTrackLifecycle lifecycle = 3;
+  ReasonCode reason_code = 4;
+}
+message LocalAppAgentRealtimeTerminal { ReasonCode reason_code = 1; }
+message LocalAppAgentRealtimeEvent {
+  RealtimeControlStatus control = 1;
+  oneof event {
+    LocalAppAgentRealtimeInputAccepted input_accepted = 10;
+    LocalAppAgentRealtimeSpeechStatus speech_status = 11;
+    LocalAppAgentRealtimeTranscript transcript = 12;
+    LocalAppAgentRealtimeTextOutput text_output = 13;
+    LocalAppAgentRealtimeAudioFrameOutput audio_frame = 14;
+    LocalAppAgentRealtimeOutputTrackStatus output_track = 15;
+    LocalAppAgentRealtimeTerminal terminal = 16;
+  }
+}
+service RuntimeAgentService {
+  // K-AGCORE-139/K-AGCORE-151: the sole public Realm source ingress. Runtime
+  // privately acquires and verifies Packet v3; transport/auth material is not
+  // accepted from callers.
+  rpc MaterializeRealmSource(MaterializeRealmSourceRequest) returns (MaterializeRealmSourceResponse);
+  rpc TerminateAgent(TerminateAgentRequest) returns (TerminateAgentResponse);
+  rpc GetAgent(GetAgentRequest) returns (GetAgentResponse);
+  rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
+  rpc ListLocalAppAgentReferences(ListLocalAppAgentReferencesRequest) returns (ListLocalAppAgentReferencesResponse);
+  rpc ResolveLocalAppAvatarHostTarget(ResolveLocalAppAvatarHostTargetRequest) returns (ResolveLocalAppAvatarHostTargetResponse);
+  rpc RevalidateLocalAppAvatarHostTarget(RevalidateLocalAppAvatarHostTargetRequest) returns (RevalidateLocalAppAvatarHostTargetResponse);
+  rpc OpenLocalAppConversation(OpenLocalAppConversationRequest) returns (OpenLocalAppConversationResponse);
+  rpc SendLocalAppConversationTurn(SendLocalAppConversationTurnRequest) returns (SendLocalAppConversationTurnResponse);
+  rpc UploadLocalAppConversationAttachment(UploadLocalAppConversationAttachmentRequest) returns (UploadLocalAppConversationAttachmentResponse);
+  rpc ReadLocalAppConversationArtifact(ReadLocalAppConversationArtifactRequest) returns (ReadLocalAppConversationArtifactResponse);
+  rpc TranscribeLocalAppConversationVoice(TranscribeLocalAppConversationVoiceRequest) returns (TranscribeLocalAppConversationVoiceResponse);
+  rpc RenderLocalAppConversationVoice(RenderLocalAppConversationVoiceRequest) returns (RenderLocalAppConversationVoiceResponse);
+  rpc InterruptLocalAppConversationTurn(InterruptLocalAppConversationTurnRequest) returns (InterruptLocalAppConversationTurnResponse);
+  rpc SubscribeLocalAppConversationEvents(SubscribeLocalAppConversationEventsRequest) returns (stream LocalAppConversationEvent);
+  rpc GetLocalAppConversationSnapshot(GetLocalAppConversationSnapshotRequest) returns (GetLocalAppConversationSnapshotResponse);
+  rpc OpenLocalAppAgentRealtime(OpenLocalAppAgentRealtimeRequest) returns (OpenLocalAppAgentRealtimeResponse);
+  rpc AppendLocalAppAgentRealtimeInput(AppendLocalAppAgentRealtimeInputRequest) returns (AppendLocalAppAgentRealtimeInputResponse);
+  rpc SubscribeLocalAppAgentRealtimeEvents(SubscribeLocalAppAgentRealtimeEventsRequest) returns (stream LocalAppAgentRealtimeEvent);
+  rpc GetLocalAppAgentRealtimeStatus(GetLocalAppAgentRealtimeStatusRequest) returns (GetLocalAppAgentRealtimeStatusResponse);
+  rpc InterruptLocalAppAgentRealtimeOutput(InterruptLocalAppAgentRealtimeOutputRequest) returns (InterruptLocalAppAgentRealtimeOutputResponse);
+  rpc CloseLocalAppAgentRealtime(CloseLocalAppAgentRealtimeRequest) returns (CloseLocalAppAgentRealtimeResponse);
+  rpc GetLocalAppEmbodimentSnapshot(GetLocalAppEmbodimentSnapshotRequest) returns (GetLocalAppEmbodimentSnapshotResponse);
+  rpc SubscribeLocalAppEmbodimentEvents(SubscribeLocalAppEmbodimentEventsRequest) returns (stream LocalAppEmbodimentEvent);
+  rpc OpenConversationAnchor(OpenConversationAnchorRequest) returns (OpenConversationAnchorResponse);
+  rpc GetConversationAnchorSnapshot(GetConversationAnchorSnapshotRequest) returns (GetConversationAnchorSnapshotResponse);
+  rpc GetPublicChatSessionSnapshot(GetPublicChatSessionSnapshotRequest) returns (GetPublicChatSessionSnapshotResponse);
+  rpc ReadConversationArtifact(ReadConversationArtifactRequest) returns (ReadConversationArtifactResponse);
+  rpc ListAgentConversationSummaries(ListAgentConversationSummariesRequest) returns (ListAgentConversationSummariesResponse);
+  rpc GetAgentState(GetAgentStateRequest) returns (GetAgentStateResponse);
+  rpc UpdateAgentState(UpdateAgentStateRequest) returns (UpdateAgentStateResponse);
+  rpc SetAgentPresentationProfile(SetAgentPresentationProfileRequest) returns (SetAgentPresentationProfileResponse);
+  rpc GetAgentPresentationAsset(GetAgentPresentationAssetRequest) returns (GetAgentPresentationAssetResponse);
+  rpc EnableAutonomy(EnableAutonomyRequest) returns (EnableAutonomyResponse);
+  rpc DisableAutonomy(DisableAutonomyRequest) returns (DisableAutonomyResponse);
+  rpc SetAutonomyConfig(SetAutonomyConfigRequest) returns (SetAutonomyConfigResponse);
+  rpc ListPendingHooks(ListPendingHooksRequest) returns (ListPendingHooksResponse);
+  rpc CancelHook(CancelHookRequest) returns (CancelHookResponse);
+  rpc ListDelegatedProviderProfiles(ListDelegatedProviderProfilesRequest) returns (ListDelegatedProviderProfilesResponse);
+  rpc ListDelegatedApprovalRequests(ListDelegatedApprovalRequestsRequest) returns (ListDelegatedApprovalRequestsResponse);
+  rpc SubmitDelegatedApprovalDecision(SubmitDelegatedApprovalDecisionRequest) returns (SubmitDelegatedApprovalDecisionResponse);
+  rpc ListDelegatedDiagnostics(ListDelegatedDiagnosticsRequest) returns (ListDelegatedDiagnosticsResponse);
+  rpc GetDelegatedReplayTrace(GetDelegatedReplayTraceRequest) returns (GetDelegatedReplayTraceResponse);
+  rpc GetDelegatedControlSurfaceSnapshot(GetDelegatedControlSurfaceSnapshotRequest) returns (GetDelegatedControlSurfaceSnapshotResponse);
+  rpc TranscribeAgentVoiceInput(TranscribeAgentVoiceInputRequest) returns (TranscribeAgentVoiceInputResponse);
+  // Shared Runtime LocalAgent subsystem AIConfig surface.
+  rpc GetSharedLocalAgentAIConfig(GetSharedLocalAgentAIConfigRequest) returns (GetSharedLocalAgentAIConfigResponse);
+  rpc OverwriteSharedLocalAgentAIConfig(OverwriteSharedLocalAgentAIConfigRequest) returns (OverwriteSharedLocalAgentAIConfigResponse);
+  rpc ListSharedLocalAgentAIConfigOptions(ListSharedLocalAgentAIConfigOptionsRequest) returns (ListSharedLocalAgentAIConfigOptionsResponse);
+  rpc PreviewSharedLocalAgentAIProfile(PreviewSharedLocalAgentAIProfileRequest) returns (PreviewSharedLocalAgentAIProfileResponse);
+  rpc ApplySharedLocalAgentAIProfile(ApplySharedLocalAgentAIProfileRequest) returns (ApplySharedLocalAgentAIProfileResponse);
+  rpc ImportPortableAIProfile(ImportPortableAIProfileRequest) returns (ImportPortableAIProfileResponse);
+  rpc ListPortableAIProfiles(ListPortableAIProfilesRequest) returns (ListPortableAIProfilesResponse);
+  // Protected-local App agent configuration carrier (agent.configure AppAccess
+  // domain). Shared AIConfig actions resolve the singular subsystem owner;
+  // autonomy and presentation stay per-Agent behind session-scoped handles.
+  rpc GetLocalAppAgentManagerSnapshot(GetLocalAppAgentManagerSnapshotRequest) returns (GetLocalAppAgentManagerSnapshotResponse);
+  rpc GetLocalAppSharedLocalAgentAIConfig(GetLocalAppSharedLocalAgentAIConfigRequest) returns (GetLocalAppSharedLocalAgentAIConfigResponse);
+  rpc OverwriteLocalAppSharedLocalAgentAIConfig(OverwriteLocalAppSharedLocalAgentAIConfigRequest) returns (OverwriteLocalAppSharedLocalAgentAIConfigResponse);
+  rpc ListLocalAppSharedLocalAgentAIConfigOptions(ListLocalAppSharedLocalAgentAIConfigOptionsRequest) returns (ListLocalAppSharedLocalAgentAIConfigOptionsResponse);
+  rpc GetLocalAppAgentAutonomySnapshot(GetLocalAppAgentAutonomySnapshotRequest) returns (LocalAppAgentAutonomySnapshotResponse);
+  rpc UpdateLocalAppAgentAutonomy(UpdateLocalAppAgentAutonomyRequest) returns (LocalAppAgentUpdateAutonomyResponse);
+  rpc GetLocalAppAgentPresentationSnapshot(GetLocalAppAgentPresentationSnapshotRequest) returns (LocalAppAgentPresentationSnapshotResponse);
+  rpc CommitLocalAppAgentPresentation(CommitLocalAppAgentPresentationRequest) returns (LocalAppAgentCommitPresentationResponse);
+  rpc InspectLocalAppAgentMemory(InspectLocalAppAgentMemoryRequest) returns (InspectLocalAppAgentMemoryResponse);
+  rpc CorrectLocalAppAgentMemory(CorrectLocalAppAgentMemoryRequest) returns (CorrectLocalAppAgentMemoryResponse);
+  rpc ForgetLocalAppAgentMemory(ForgetLocalAppAgentMemoryRequest) returns (ForgetLocalAppAgentMemoryResponse);
+  rpc SetLocalAppAgentMemoryEnabled(SetLocalAppAgentMemoryEnabledRequest) returns (SetLocalAppAgentMemoryEnabledResponse);
+  rpc DeleteAllLocalAppAgentMemory(DeleteAllLocalAppAgentMemoryRequest) returns (DeleteAllLocalAppAgentMemoryResponse);
+}

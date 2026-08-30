@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/struct.proto";
+
+// === Audit Types ===
+
+message LocalAuditEvent {
+  reserved 9;
+  reserved "local_model_id";
+  string id                        = 1;
+  string event_type                = 2;
+  string occurred_at               = 3;
+  string source                    = 4;
+  string modality                  = 5;
+  string reason_code               = 6;
+  string detail                    = 7;
+  string model_id                  = 8;
+  google.protobuf.Struct payload   = 10;
+  string trace_id                  = 11;
+  string app_id                    = 12;
+  string domain                    = 13;
+  string operation                 = 14;
+  string subject_user_id           = 15;
+}
+
+message LocalAuditTimeRange {
+  string from = 1;
+  string to   = 2;
+}
