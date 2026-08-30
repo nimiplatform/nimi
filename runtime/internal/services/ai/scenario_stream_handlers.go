@@ -54,20 +54,24 @@ func (s *Service) StreamScenario(req *runtimev1.StreamScenarioRequest, stream gr
 		return err
 	}
 	stream = &executionIntentScenarioStream{ServerStreamingServer: stream, ctx: capturedCtx}
+	restartStream := newRuntimeRestartScenarioStream(s, stream)
+	stream = restartStream
 	if err := s.reportScenarioSpendDisclosure(stream.Context(), req.GetHead(), req.GetScenarioType()); err != nil {
 		s.logScenarioStreamFailure("spend-disclosure", req, err)
 		return err
 	}
 
+	var streamErr error
 	switch req.GetScenarioType() {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
-		return streamTextGenerateScenario(s, req, stream)
+		streamErr = streamTextGenerateScenario(s, req, stream)
 
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
-		return streamSpeechSynthesizeScenario(s, req, stream)
+		streamErr = streamSpeechSynthesizeScenario(s, req, stream)
 	default:
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
+	return restartStream.finish(streamErr)
 }
 
 func (s *Service) logScenarioStreamFailure(stage string, req *runtimev1.StreamScenarioRequest, err error) {

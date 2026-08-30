@@ -50,18 +50,16 @@ canonical_public_contract:
 #   image topology only; it must not own CUDA source selection, install, repair,
 #   or selected source records.
 #
-# linux/arm64 is listed in local-engine-catalog.yaml as a media supervised supported_platform,
-# but no image-specific backend topology is currently defined or supported for linux/arm64.
-# This is explicitly declared as a non-target host tuple for the v1 image matrix.
-# The media engine may still serve non-image capabilities (e.g. video) on linux/arm64.
+# linux/arm64 is not a first-class local-engine target and has no admitted
+# image-specific backend topology. The explicit disposition below is negative
+# compatibility documentation only; it does not project product support.
 linux_arm64_disposition: >-
-  linux/arm64 is a non-target host tuple for the v1 image supervised matrix.
+  linux/arm64 is a non-target host tuple for the v2 image supervised matrix.
   No gguf_image, safetensors_native_image, or workflow_safetensors_image topology entry
   is defined for linux/arm64 because no image backend binary (stablediffusion-ggml) or
-  pipeline runtime (diffusers) has been validated on linux/arm64. The media engine catalog
-  entry for linux/arm64 covers non-image capabilities only. If future linux/arm64 image
-  support is needed, a new topology entry with explicit product_state and admission_gate
-  must be added.
+  pipeline runtime (diffusers) has been validated on linux/arm64. If future linux/arm64
+  image support is approved, its exact engine catalog tuple and matrix entry must be added
+  together and pass product acceptance before any supported capability is projected.
 
 entries:
   - entry_id: macos-apple-silicon-gguf
@@ -69,6 +67,7 @@ entries:
       os: darwin
       arch: arm64
       gpu_vendor: apple
+      min_os_version: 26.0.0
     asset_family: gguf_image
     artifact_formats: [gguf]
     profile_kind: single_binary_model
@@ -80,6 +79,10 @@ entries:
       - image.generate
     topology_state: defined
     product_state: supported
+    detail: >-
+      macOS 26.0+ / arm64 / Apple Metal uses the canonical official
+      master-813-bfbef5b stable-diffusion.cpp package. Each exact recipe and
+      model tuple remains NOT-VERIFIED until its macOS product journey runs.
 
   - entry_id: macos-apple-silicon-safetensors-native
     host_match:

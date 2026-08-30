@@ -78,8 +78,10 @@ func selectedLoadoutOptionForTest(selected *localexecution.SelectedLocalExecutio
 	return localexecution.LoadoutOption{
 		LoadoutID: selected.LoadoutID, DisplayName: selected.DisplayName,
 		CapabilityContract: selected.CapabilityContract, Implementation: selected.DriverIdentity,
-		SupportedFeatures: append([]string(nil), selected.SupportedFeatures...),
-		ValidationState:   runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED,
+		ImplementationSupportedFeatures: append([]string(nil), selected.ImplementationSupportedFeatures...),
+		ConfiguredFeatures:              append([]string(nil), selected.ConfiguredFeatures...),
+		TextBehaviors:                   cloneAITextBehaviorCapabilityProjections(selected.TextBehaviors),
+		ValidationState:                 runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED,
 	}, true, nil
 }
 
@@ -388,6 +390,9 @@ func TestLocalTextExecutionFailureReasonsRemainDistinct(t *testing.T) {
 		{localexecution.FailureOutOfMemory, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_OUT_OF_MEMORY},
 		{localexecution.FailureProcessCrash, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_PROCESS_CRASHED},
 		{localexecution.FailureCanceled, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CANCELED},
+		{localexecution.FailureTextOutputIncomplete, runtimev1.ReasonCode_AI_TEXT_OUTPUT_INCOMPLETE},
+		{localexecution.FailureTextOutputInvalid, runtimev1.ReasonCode_AI_OUTPUT_INVALID},
+		{localexecution.FailureToolCallInvalid, runtimev1.ReasonCode_AI_TOOL_CALL_INVALID},
 	}
 	for _, test := range tests {
 		err := localTextExecutionError(&localexecution.ExecutionError{Kind: test.kind, Err: fmt.Errorf("failure")})
@@ -395,11 +400,31 @@ func TestLocalTextExecutionFailureReasonsRemainDistinct(t *testing.T) {
 			t.Fatalf("%s error = %v, reason=%v ok=%v", test.kind, err, reason, ok)
 		}
 	}
+	continuityCause := grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID)
+	continuityErr := localTextExecutionError(&localexecution.ExecutionError{Kind: localexecution.FailureTextOutputInvalid, Err: continuityCause})
+	if reason, ok := grpcerr.ExtractReasonCode(continuityErr); !ok || reason != runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID {
+		t.Fatalf("reasoning continuity error = %v reason=%v present=%v", continuityErr, reason, ok)
+	}
 	if usage := localTextUsage(localexecution.TextResult{Text: "not measured"}, &runtimev1.TextGenerateScenarioSpec{}); usage != nil {
 		t.Fatalf("local execution synthesized usage: %+v", usage)
 	}
 	if usage := localTextUsage(localexecution.TextResult{ComputeMS: 7}, nil); usage == nil || usage.GetComputeMs() != 7 {
 		t.Fatalf("local execution discarded measured compute usage: %+v", usage)
+	}
+}
+
+func TestLocalTextInvocationFailureSeparatesBehaviorFromModality(t *testing.T) {
+	for _, test := range []struct {
+		kind   capabilitydriver.InvocationFailureKind
+		reason runtimev1.ReasonCode
+	}{
+		{capabilitydriver.InvocationFailureUnsupported, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED},
+		{capabilitydriver.InvocationFailureTextBehaviorUnsupported, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED},
+	} {
+		err := localTextInvocationError(&capabilitydriver.InvocationError{Kind: test.kind, Err: fmt.Errorf("unsupported")})
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != test.reason {
+			t.Fatalf("%s error = %v, reason=%v ok=%v", test.kind, err, reason, ok)
+		}
 	}
 }
 
@@ -418,6 +443,36 @@ func TestLocalTextLoadFailureIsTypedAndDoesNotMutateSelection(t *testing.T) {
 	current, resolveErr := resolver.ResolveLocalExecution(capabilitydriver.LlamaCapabilityContract, selected.LoadoutID)
 	if resolveErr != nil || current.LoadoutID != selected.LoadoutID || current.ExactBindings[0].AbsolutePath != selected.ExactBindings[0].AbsolutePath {
 		t.Fatalf("load failure mutated selection/binding: %+v, %v", current, resolveErr)
+	}
+}
+
+func TestRequireSelectedRequestFeaturesDistinguishesImplementationAndConditionalConfiguration(t *testing.T) {
+	request := &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{
+		Role: "user", Parts: []*runtimev1.ChatContentPart{imagePart("artifact://image")},
+	}}}
+	for _, test := range []struct {
+		name           string
+		implementation []string
+		configured     []string
+		wantReason     runtimev1.ReasonCode
+	}{
+		{name: "implementation unsupported", wantReason: runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED},
+		{name: "conditional slot missing", implementation: []string{"input.image"}, wantReason: runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING},
+		{name: "conditional slot configured", implementation: []string{"input.image"}, configured: []string{"input.image"}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			err := requireSelectedRequestFeatures(request, test.implementation, test.configured)
+			if test.wantReason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+				if err != nil {
+					t.Fatalf("configured feature admission = %v", err)
+				}
+				return
+			}
+			reason, ok := grpcerr.ExtractReasonCode(err)
+			if !ok || reason != test.wantReason {
+				t.Fatalf("feature admission reason = %v ok=%v err=%v, want %v", reason, ok, err, test.wantReason)
+			}
+		})
 	}
 }
 
@@ -608,7 +663,7 @@ func TestLocalTextStreamEmitsStartedDeltasAndRealUsage(t *testing.T) {
 	var text strings.Builder
 	var completed *runtimev1.ScenarioStreamCompleted
 	for _, event := range stream.events {
-		if delta := event.GetDelta().GetText(); delta != nil {
+		if delta := event.GetDelta().GetTextOutputItem().GetText(); delta != nil {
 			text.WriteString(delta.GetText())
 		}
 		if event.GetCompleted() != nil {
@@ -635,8 +690,8 @@ func TestLocalTextResolvedAssemblyRehydratesPublicChatShapedRequest(t *testing.T
 	spec.SystemPrompt = "<runtime-agent-context>You are the selected Runtime Agent.</runtime-agent-context> Reply concisely."
 	spec.MaxTokens = proto.Int32(512)
 	spec.Reasoning = &runtimev1.ReasoningConfig{
-		Mode:      runtimev1.ReasoningMode_REASONING_MODE_OFF,
-		TraceMode: runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_HIDE,
+		Activation:   runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED,
+		Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN,
 	}
 	stream := &mockScenarioEventStream{ctx: localTextIntentContext(context.Background(), nil)}
 	request := &runtimev1.StreamScenarioRequest{
@@ -850,7 +905,7 @@ func selectedTextExecutionForTest(t *testing.T, configurationID string, filename
 		LoadoutID:          configurationID,
 		CapabilityContract: capabilitydriver.LlamaCapabilityContract,
 		DisplayName:        configurationID,
-		RecipeID:           capabilitydriver.LlamaGemma4E2BRecipeID,
+		RecipeID:           capabilitydriver.LlamaGemma4RecipeID,
 		RecipeRevision:     "1",
 		DriverIdentity: (&capabilitydriver.Identity{
 			ImplementationID: capabilitydriver.LlamaImplementationID,
@@ -882,7 +937,9 @@ func cloneSelectedExecutionForTest(input *localexecution.SelectedLocalExecution)
 		out.Requirements = append(out.Requirements, cloned)
 	}
 	out.ExactBindings = append([]localexecution.ExactBinding(nil), input.ExactBindings...)
-	out.SupportedFeatures = append([]string(nil), input.SupportedFeatures...)
+	out.ImplementationSupportedFeatures = append([]string(nil), input.ImplementationSupportedFeatures...)
+	out.ConfiguredFeatures = append([]string(nil), input.ConfiguredFeatures...)
+	out.TextBehaviors = cloneAITextBehaviorCapabilityProjections(input.TextBehaviors)
 	return &out
 }
 

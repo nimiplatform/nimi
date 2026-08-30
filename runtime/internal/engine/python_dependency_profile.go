@@ -21,23 +21,23 @@ const (
 var pythonDependencyProfileInputs embed.FS
 
 type PythonDependencyProfileIdentity struct {
-	DependencyID       string
-	ProfileDigest      string
-	PythonVersion      string
-	PythonABI          string
-	PlatformTuple      string
-	AcceleratorPlane   string
-	TorchVersion       string
-	CUDAABI            string
-	TorchWheelLockHash string
-	TorchWheelIndex    string
-	TorchPackageSource string
-	ExactLockDigest    string
-	ProjectInputDigest string
-	PackageSource      string
-	DriverProtocol     string
-	DriverBundleDigest string
-	SourceLabel        string
+	DependencyID       string `json:"dependency_id"`
+	ProfileDigest      string `json:"profile_digest"`
+	PythonVersion      string `json:"python_version"`
+	PythonABI          string `json:"python_abi"`
+	PlatformTuple      string `json:"platform_tuple"`
+	AcceleratorPlane   string `json:"accelerator_plane"`
+	TorchVersion       string `json:"torch_version"`
+	CUDAABI            string `json:"cuda_abi"`
+	TorchWheelLockHash string `json:"torch_wheel_lock_hash"`
+	TorchWheelIndex    string `json:"torch_wheel_index"`
+	TorchPackageSource string `json:"torch_package_source"`
+	ExactLockDigest    string `json:"exact_lock_digest"`
+	ProjectInputDigest string `json:"project_input_digest"`
+	PackageSource      string `json:"package_source"`
+	DriverProtocol     string `json:"driver_protocol"`
+	DriverBundleDigest string `json:"driver_bundle_digest"`
+	SourceLabel        string `json:"source_label"`
 }
 
 // PythonDependencyProfileStaticFile is one immutable, Runtime-owned profile

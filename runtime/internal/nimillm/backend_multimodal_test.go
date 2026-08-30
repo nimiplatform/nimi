@@ -160,7 +160,10 @@ func TestBuildLlamaTextMessages(t *testing.T) {
 			},
 		},
 	}
-	msgs := buildLlamaTextMessages("system prompt", input)
+	msgs, err := buildLlamaTextMessages("system prompt", input)
+	if err != nil {
+		t.Fatalf("buildLlamaTextMessages() error = %v", err)
+	}
 	if len(msgs) != 2 {
 		t.Fatalf("expected 2 messages, got %d", len(msgs))
 	}
@@ -186,7 +189,7 @@ func TestBuildOpenAIMultimodalMessages(t *testing.T) {
 		input := []*runtimev1.ChatMessage{
 			{Role: "user", Content: "hello"},
 		}
-		msgs := buildOpenAIMultimodalMessages("  You are helpful  ", input)
+		msgs := mustBuildOpenAIMultimodalMessages(t, "  You are helpful  ", input)
 		if len(msgs) != 2 {
 			t.Fatalf("expected 2 messages, got %d", len(msgs))
 		}
@@ -207,7 +210,7 @@ func TestBuildOpenAIMultimodalMessages(t *testing.T) {
 		input := []*runtimev1.ChatMessage{
 			{Role: "user", Content: "hello"},
 		}
-		msgs := buildOpenAIMultimodalMessages("", input)
+		msgs := mustBuildOpenAIMultimodalMessages(t, "", input)
 		if len(msgs) != 1 {
 			t.Fatalf("expected 1 message, got %d", len(msgs))
 		}
@@ -220,7 +223,7 @@ func TestBuildOpenAIMultimodalMessages(t *testing.T) {
 		input := []*runtimev1.ChatMessage{
 			{Role: "user", Content: "hello world"},
 		}
-		msgs := buildOpenAIMultimodalMessages("", input)
+		msgs := mustBuildOpenAIMultimodalMessages(t, "", input)
 		if len(msgs) != 1 {
 			t.Fatalf("expected 1 message, got %d", len(msgs))
 		}
@@ -243,7 +246,7 @@ func TestBuildOpenAIMultimodalMessages(t *testing.T) {
 				},
 			},
 		}
-		msgs := buildOpenAIMultimodalMessages("", input)
+		msgs := mustBuildOpenAIMultimodalMessages(t, "", input)
 		if len(msgs) != 1 {
 			t.Fatalf("expected 1 message, got %d", len(msgs))
 		}
@@ -280,7 +283,7 @@ func TestBuildOpenAIMultimodalMessages(t *testing.T) {
 			},
 			{Role: "assistant", Content: "response"},
 		}
-		msgs := buildOpenAIMultimodalMessages("system", input)
+		msgs := mustBuildOpenAIMultimodalMessages(t, "system", input)
 		if len(msgs) != 4 {
 			t.Fatalf("expected 4 messages, got %d", len(msgs))
 		}
@@ -306,7 +309,7 @@ func TestBuildOpenAIMultimodalMessages(t *testing.T) {
 		input := []*runtimev1.ChatMessage{
 			{Content: "no role set"},
 		}
-		msgs := buildOpenAIMultimodalMessages("", input)
+		msgs := mustBuildOpenAIMultimodalMessages(t, "", input)
 		if len(msgs) != 1 {
 			t.Fatalf("expected 1 message, got %d", len(msgs))
 		}
@@ -320,7 +323,7 @@ func TestBuildOpenAIMultimodalMessages(t *testing.T) {
 			{Role: "user", Content: ""},
 			{Role: "user", Content: "   "},
 		}
-		msgs := buildOpenAIMultimodalMessages("", input)
+		msgs := mustBuildOpenAIMultimodalMessages(t, "", input)
 		if len(msgs) != 0 {
 			t.Fatalf("expected 0 messages for empty content, got %d", len(msgs))
 		}
@@ -335,7 +338,7 @@ func TestBuildOpenAIMultimodalMessages(t *testing.T) {
 				},
 			},
 		}
-		msgs := buildOpenAIMultimodalMessages("", input)
+		msgs := mustBuildOpenAIMultimodalMessages(t, "", input)
 		if len(msgs) != 0 {
 			t.Fatalf("expected 0 messages for whitespace-only parts, got %d", len(msgs))
 		}
@@ -345,7 +348,7 @@ func TestBuildOpenAIMultimodalMessages(t *testing.T) {
 		input := []*runtimev1.ChatMessage{
 			{Role: "user", Content: "hi", Name: "  alice  "},
 		}
-		msgs := buildOpenAIMultimodalMessages("", input)
+		msgs := mustBuildOpenAIMultimodalMessages(t, "", input)
 		if len(msgs) != 1 {
 			t.Fatalf("expected 1 message, got %d", len(msgs))
 		}
@@ -363,7 +366,7 @@ func TestBuildOpenAIMultimodalMessages(t *testing.T) {
 				},
 			},
 		}
-		msgs := buildOpenAIMultimodalMessages("", input)
+		msgs := mustBuildOpenAIMultimodalMessages(t, "", input)
 		if len(msgs) != 1 {
 			t.Fatalf("expected 1 message, got %d", len(msgs))
 		}
@@ -386,13 +389,14 @@ func TestBuildOpenAIMultimodalMessagesToolRoundTrip(t *testing.T) {
 				imagePart("https://example.com/chart.png"),
 			},
 		},
-		{Role: "assistant", Content: "", ToolCalls: []*runtimev1.ToolCall{
-			{Id: "call-9", Name: "lookup", ArgumentsJson: `{"series":"q3"}`},
-		}},
-		{Role: "tool", Content: `{"value":42}`, ToolCallId: "call-9"},
+		canonicalAssistantToolMessage("call-9", "lookup", `{"series":"q3"}`),
+		canonicalToolResultMessage(t, "call-9", "lookup", map[string]any{"value": 42}),
 	}
 
-	msgs := buildOpenAIMultimodalMessages("", input)
+	msgs, err := buildOpenAIMultimodalMessages("", input)
+	if err != nil {
+		t.Fatalf("buildOpenAIMultimodalMessages() error = %v", err)
+	}
 	if len(msgs) != 3 {
 		t.Fatalf("expected 3 messages (user multimodal + assistant tool call + tool result), got %d", len(msgs))
 	}
@@ -428,10 +432,8 @@ func TestBuildOpenAIProviderNativeMessagesToolRoundTrip(t *testing.T) {
 				imagePart("https://example.com/img.png"),
 			},
 		},
-		{Role: "assistant", Content: "", ToolCalls: []*runtimev1.ToolCall{
-			{Id: "call-1", Name: "lookup", ArgumentsJson: `{"q":"x"}`},
-		}},
-		{Role: "tool", Content: `{"ok":true}`, ToolCallId: "call-1"},
+		canonicalAssistantToolMessage("call-1", "lookup", `{"q":"x"}`),
+		canonicalToolResultMessage(t, "call-1", "lookup", map[string]any{"ok": true}),
 	}
 	msgs, err := backend.buildOpenAIProviderNativeMessages(context.Background(), "", input)
 	if err != nil {
@@ -453,7 +455,7 @@ func TestBuildOpenAIMultimodalMessagesJSON(t *testing.T) {
 		input := []*runtimev1.ChatMessage{
 			{Role: "user", Content: "hello"},
 		}
-		msgs := buildOpenAIMultimodalMessages("system prompt", input)
+		msgs := mustBuildOpenAIMultimodalMessages(t, "system prompt", input)
 		data, err := json.Marshal(msgs)
 		if err != nil {
 			t.Fatalf("marshal error: %v", err)
@@ -487,7 +489,7 @@ func TestBuildOpenAIMultimodalMessagesJSON(t *testing.T) {
 				},
 			},
 		}
-		msgs := buildOpenAIMultimodalMessages("", input)
+		msgs := mustBuildOpenAIMultimodalMessages(t, "", input)
 		data, err := json.Marshal(msgs)
 		if err != nil {
 			t.Fatalf("marshal error: %v", err)
@@ -545,7 +547,7 @@ func TestBuildOpenAIMultimodalMessagesJSON(t *testing.T) {
 		input := []*runtimev1.ChatMessage{
 			{Role: "user", Content: "just text"},
 		}
-		msgs := buildOpenAIMultimodalMessages("", input)
+		msgs := mustBuildOpenAIMultimodalMessages(t, "", input)
 		data, err := json.Marshal(msgs)
 		if err != nil {
 			t.Fatalf("marshal error: %v", err)
@@ -692,4 +694,13 @@ func TestBuildOpenAIProviderNativeMessagesRejectsDataURLImage(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected data URL image to fail closed")
 	}
+}
+
+func mustBuildOpenAIMultimodalMessages(t *testing.T, systemPrompt string, input []*runtimev1.ChatMessage) []openAIMultimodalMessage {
+	t.Helper()
+	messages, err := buildOpenAIMultimodalMessages(systemPrompt, input)
+	if err != nil {
+		t.Fatalf("buildOpenAIMultimodalMessages() error = %v", err)
+	}
+	return messages
 }

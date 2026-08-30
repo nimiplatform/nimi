@@ -39,6 +39,13 @@ const stableDiffusionVideoReferenceImageFeature = "input.image"
 // components; each invocation loads exactly one route transformer.
 type StableDiffusionVideoDriver struct{}
 
+func (StableDiffusionVideoDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
+	if strings.TrimSpace(recipeID) != StableDiffusionVideoRecipeID {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return []string{stableDiffusionVideoReferenceImageFeature}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
 func (StableDiffusionVideoDriver) EffectiveRequestDefaults(_ string, _ *structpb.Struct) map[string]string {
 	return map[string]string{
 		"options.resolution": "512x288",
@@ -161,6 +168,7 @@ func (StableDiffusionVideoDriver) Interpret(input InterpretInput) ([]*runtimev1.
 		requirements = append(requirements, &runtimev1.LocalCapabilityRequirement{
 			RequirementId:            slot.id,
 			Role:                     slot.role,
+			Presence:                 runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED,
 			ResourceKind:             slot.resourceKind,
 			Policy:                   runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE,
 			CompatibilityConstraints: constraints,
@@ -505,14 +513,22 @@ func (StableDiffusionVideoDriver) PlanVideoInvocation(input VideoInvocationInput
 			_, _ = hasher.Write([]byte{0})
 		}
 	}
+	for _, source := range input.ExactDependencySources {
+		for _, value := range invocationExactDependencySourceIdentity(source) {
+			_, _ = hasher.Write([]byte(value))
+			_, _ = hasher.Write([]byte{0})
+		}
+	}
 
 	return &VideoInvocationPlan{
 		processKey:              hex.EncodeToString(hasher.Sum(nil)),
 		loadoutID:               input.LoadoutID,
+		recipeID:                StableDiffusionVideoRecipeID,
 		driverIdentity:          identity,
 		portableConfig:          cloneStruct(input.PortableConfig),
 		exactBindings:           allBindings,
 		modelFiles:              modelFiles,
+		dependencySources:       cloneInvocationExactDependencySources(input.ExactDependencySources),
 		diffusionModelPath:      bindings[diffusionRequirementID].AbsolutePath,
 		encoderPath:             bindings[StableDiffusionVideoEncoderRequirementID].AbsolutePath,
 		videoVAEPath:            bindings[StableDiffusionVideoVAERequirementID].AbsolutePath,

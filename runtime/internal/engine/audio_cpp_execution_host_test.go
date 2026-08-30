@@ -2,8 +2,12 @@ package engine
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
+	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -200,6 +204,35 @@ func TestBoundedAudioCppOutputDetectsOOMAfterDiagnosticLimit(t *testing.T) {
 	}
 }
 
+func TestClassifyAudioCppProcessFailureUsesTypedBoundedCategories(t *testing.T) {
+	tests := []struct {
+		name       string
+		diagnostic string
+		wantKind   localexecution.FailureKind
+		wantDetail string
+	}{
+		{name: "oom", diagnostic: "CUDA_ERROR_OUT_OF_MEMORY", wantKind: localexecution.FailureOutOfMemory, wantDetail: "audio.cpp CLI ran out of memory"},
+		{name: "dependency", diagnostic: "could not load dynamic library cudart64_13.dll", wantKind: localexecution.FailureLoad, wantDetail: "audio.cpp CLI dependency initialization failed"},
+		{name: "model", diagnostic: "failed to load model D:/private/model.gguf", wantKind: localexecution.FailureLoad, wantDetail: "audio.cpp CLI model load failed"},
+		{name: "crash", diagnostic: "native assertion failed", wantKind: localexecution.FailureProcessCrash, wantDetail: "audio.cpp CLI process crashed"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			stderr := &boundedAudioCppOutput{limit: audioCppMaxDiagnosticBytes}
+			if _, err := stderr.Write([]byte(test.diagnostic)); err != nil {
+				t.Fatal(err)
+			}
+			kind, detail := classifyAudioCppProcessFailure(nil, stderr)
+			if kind != test.wantKind || detail != test.wantDetail {
+				t.Fatalf("classification = %s/%q, want %s/%q", kind, detail, test.wantKind, test.wantDetail)
+			}
+			if strings.Contains(detail, "D:/private") || strings.Contains(detail, "cudart64") {
+				t.Fatalf("private diagnostic leaked through typed summary: %q", detail)
+			}
+		})
+	}
+}
+
 func TestAudioCppProcessExitWaitIsBounded(t *testing.T) {
 	done := make(chan error, 1)
 	marker := errors.New("process exited")
@@ -215,5 +248,74 @@ func TestAudioCppProcessExitWaitIsBounded(t *testing.T) {
 	}
 	if elapsed := time.Since(started); elapsed > time.Second {
 		t.Fatalf("bounded wait took %s", elapsed)
+	}
+}
+
+func TestAudioCppProcessRejectsCapturedModelDriftBeforeCLIStart(t *testing.T) {
+	root := t.TempDir()
+	modelRoot := filepath.Join(root, "model")
+	stagingRoot := filepath.Join(root, "staging")
+	if err := os.MkdirAll(modelRoot, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(stagingRoot, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	modelPath := filepath.Join(modelRoot, "model.gguf")
+	captured := []byte("captured audio.cpp model bytes")
+	if err := os.WriteFile(modelPath, captured, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	digestBytes := sha256.Sum256(captured)
+	digest := hex.EncodeToString(digestBytes[:])
+	binding := capabilitydriver.InvocationExactBinding{
+		RequirementID:     "main.gguf",
+		ModelAssetID:      "model-asset",
+		AbsolutePath:      modelPath,
+		BundleDir:         modelRoot,
+		DeclaredFiles:     []string{"model.gguf"},
+		VerifiedContentID: "sha256:" + digest,
+		EntrySHA256:       digest,
+	}
+
+	// The binding above represents the Job-captured identity. Drift while that
+	// Job is queued must be observed before the per-Job CLI can start.
+	if err := os.WriteFile(modelPath, []byte("changed while queued"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	marker := filepath.Join(root, "cli-started")
+	output := filepath.Join(stagingRoot, "artifact.wav")
+	_, err = runAudioCppProcess(context.Background(), audioCppProcessSpec{
+		executablePath:    executable,
+		workingDir:        root,
+		cuda13Root:        root,
+		args:              []string{"-test.run=^TestAudioCppProcessStartProbe$", "--", "audio-cpp-start-probe", marker},
+		stagingOutputPath: output,
+		modelBindings:     []capabilitydriver.InvocationExactBinding{binding},
+	})
+	if localexecution.FailureKindOf(err) != localexecution.FailureContentMismatch {
+		t.Fatalf("model drift err=%v kind=%q, want content mismatch", err, localexecution.FailureKindOf(err))
+	}
+	if _, statErr := os.Stat(marker); !os.IsNotExist(statErr) {
+		t.Fatalf("audio.cpp CLI started despite model drift: %v", statErr)
+	}
+	if _, statErr := os.Stat(output); !os.IsNotExist(statErr) {
+		t.Fatalf("audio.cpp artifact exists despite model drift: %v", statErr)
+	}
+}
+
+func TestAudioCppProcessStartProbe(t *testing.T) {
+	for index, arg := range os.Args {
+		if arg != "audio-cpp-start-probe" || index+1 >= len(os.Args) {
+			continue
+		}
+		if err := os.WriteFile(os.Args[index+1], []byte("started"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		return
 	}
 }

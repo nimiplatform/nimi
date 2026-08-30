@@ -400,6 +400,9 @@ func (m *Manager) EnsurePythonRuntimeDependency(ctx context.Context, uvPath stri
 	if err != nil {
 		return PythonRuntimeDependencyStatus{}, err
 	}
+	if err := writeManagedPythonRuntimeManifest(root, interpreterPath, observedVersion); err != nil {
+		return PythonRuntimeDependencyStatus{}, fmt.Errorf("write managed Python owner manifest: %w", err)
+	}
 	return PythonRuntimeDependencyStatus{
 		PythonVersion:   observedVersion,
 		InterpreterPath: interpreterPath,

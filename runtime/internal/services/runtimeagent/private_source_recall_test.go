@@ -213,9 +213,8 @@ func TestPrivateRecallRoundTwoFailuresPreserveObservedResultAndUsage(t *testing.
 		{
 			name: "repeated-recall",
 			afterUsage: func(emit func(*runtimev1.StreamScenarioEvent) error) error {
-				if err := emit(&runtimev1.StreamScenarioEvent{Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
-					Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{Text: `<message id="message-0"><query>repeat</query></message>`}},
-				}}}); err != nil {
+				if err := emit(&runtimev1.StreamScenarioEvent{Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(
+					`<message id="message-0"><query>repeat</query></message>`)}}); err != nil {
 					return err
 				}
 				return emit(&runtimev1.StreamScenarioEvent{Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP}}})
@@ -225,9 +224,8 @@ func TestPrivateRecallRoundTwoFailuresPreserveObservedResultAndUsage(t *testing.
 		{
 			name: "invalid-recall-shape",
 			afterUsage: func(emit func(*runtimev1.StreamScenarioEvent) error) error {
-				if err := emit(&runtimev1.StreamScenarioEvent{Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
-					Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{Text: `<message id="message-0"><query><nested>invalid</nested></query></message>`}},
-				}}}); err != nil {
+				if err := emit(&runtimev1.StreamScenarioEvent{Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(
+					`<message id="message-0"><query><nested>invalid</nested></query></message>`)}}); err != nil {
 					return err
 				}
 				return emit(&runtimev1.StreamScenarioEvent{Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP}}})
@@ -281,9 +279,9 @@ func TestPrivateRecallTurnSuppressesProviderReasoningAndAggregatesBothRounds(t *
 
 	svc.chatSurfaceMu.Lock()
 	svc.chatAnchors[anchorID].Reasoning = &publicChatReasoningConfig{
-		Mode:         runtimev1.ReasoningMode_REASONING_MODE_ON,
-		TraceMode:    runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_SEPARATE,
-		BudgetTokens: 128,
+		Activation:        runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED,
+		Presentation:      runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY,
+		ExactBudgetTokens: 128,
 	}
 	svc.chatSurfaceMu.Unlock()
 
@@ -321,18 +319,16 @@ func TestPrivateRecallTurnSuppressesProviderReasoningAndAggregatesBothRounds(t *
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   traceID,
-				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
-					Delta: &runtimev1.ScenarioStreamDelta_Reasoning{Reasoning: &runtimev1.ReasoningStreamDelta{Text: reasoning}},
-				}},
+				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentReasoningSummaryStreamDelta(
+					reasoning)},
 			}); err != nil {
 				return err
 			}
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   traceID,
-				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
-					Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{Text: output}},
-				}},
+				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDeltaAt(
+					1, true, output)},
 			}); err != nil {
 				return err
 			}
@@ -372,12 +368,12 @@ func TestPrivateRecallTurnSuppressesProviderReasoningAndAggregatesBothRounds(t *
 		t.Fatalf("private recall provider rounds=%d reasoning captures=%d", callCount, len(capturedReasoning))
 	}
 	for round, reasoning := range capturedReasoning {
-		if reasoning.Mode != runtimev1.ReasoningMode_REASONING_MODE_ON || reasoning.TraceMode != runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_SEPARATE || reasoning.BudgetTokens != 128 {
+		if reasoning.Activation != runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED || reasoning.Presentation != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY || reasoning.ExactBudgetTokens != 128 {
 			t.Fatalf("provider round %d changed captured reasoning config: %+v", round+1, reasoning)
 		}
 	}
 	for _, messageType := range capture.messageTypes() {
-		if messageType == publicChatTurnReasoningDeltaType {
+		if messageType == "runtime.agent.turn.reasoning_delta" {
 			t.Fatal("private recall turn projected provider reasoning")
 		}
 	}
@@ -418,9 +414,9 @@ func TestNormalTurnProjectsBoundedReasoningStatusWithoutReasoningContent(t *test
 
 	svc.chatSurfaceMu.Lock()
 	svc.chatAnchors[anchorID].Reasoning = &publicChatReasoningConfig{
-		Mode:         runtimev1.ReasoningMode_REASONING_MODE_ON,
-		TraceMode:    runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_SEPARATE,
-		BudgetTokens: 128,
+		Activation:        runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED,
+		Presentation:      runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY,
+		ExactBudgetTokens: 128,
 	}
 	svc.chatSurfaceMu.Unlock()
 
@@ -439,18 +435,16 @@ func TestNormalTurnProjectsBoundedReasoningStatusWithoutReasoningContent(t *test
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-normal-reasoning",
-				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
-					Delta: &runtimev1.ScenarioStreamDelta_Reasoning{Reasoning: &runtimev1.ReasoningStreamDelta{Text: privateReasoningCanary}},
-				}},
+				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentReasoningSummaryStreamDelta(
+					privateReasoningCanary)},
 			}); err != nil {
 				return err
 			}
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-normal-reasoning",
-				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
-					Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{Text: publicChatStructuredEnvelopeAPML("message-normal-reasoning", "normal answer")}},
-				}},
+				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDeltaAt(
+					1, true, publicChatStructuredEnvelopeAPML("message-normal-reasoning", "normal answer"))},
 			}); err != nil {
 				return err
 			}
@@ -502,7 +496,7 @@ func TestNormalTurnProjectsBoundedReasoningStatusWithoutReasoningContent(t *test
 		if strings.Contains(event.GetPayload().String(), privateReasoningCanary) {
 			t.Fatalf("reasoning content escaped through %s", event.GetMessageType())
 		}
-		if event.GetMessageType() == publicChatTurnReasoningDeltaType {
+		if event.GetMessageType() == "runtime.agent.turn.reasoning_delta" {
 			t.Fatal("normal turn projected forbidden reasoning content event")
 		}
 	}
@@ -527,9 +521,8 @@ func TestPrivateRecallRoundTwoScenarioFailureAggregatesUsageAndKeepsCanonicalFai
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-private-failure-round-1",
-				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{Delta: &runtimev1.ScenarioStreamDelta_Text{
-					Text: &runtimev1.TextStreamDelta{Text: `<message id="message-0"><query>failure recall</query></message>`},
-				}}},
+				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(
+					`<message id="message-0"><query>failure recall</query></message>`)},
 			}); err != nil {
 				return err
 			}
@@ -616,9 +609,8 @@ func TestPrivateRecallReplanFailurePreservesRoundOneUsage(t *testing.T) {
 		executorCalls++
 		if err := emit(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-			Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{Delta: &runtimev1.ScenarioStreamDelta_Text{
-				Text: &runtimev1.TextStreamDelta{Text: `<message id="message-0"><query>replan usage</query></message>`},
-			}}},
+			Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(
+				`<message id="message-0"><query>replan usage</query></message>`)},
 		}); err != nil {
 			return err
 		}

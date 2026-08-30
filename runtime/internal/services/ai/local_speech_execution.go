@@ -40,7 +40,6 @@ type localSpeechEffectiveInputs struct {
 	requirements           []*runtimev1.LocalCapabilityRequirement
 	exactBindings          []capabilitydriver.InvocationExactBinding
 	contentIDs             []string
-	supportedFeatures      []string
 	streamMode             capabilitydriver.SpeechStreamMode
 	synthesizePlan         capabilitydriver.SpeechSynthesizePlan
 	transcribePlan         capabilitydriver.SpeechTranscribePlan
@@ -81,7 +80,7 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 	if !validSelectedSpeechExecution(selected, contract) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 	}
-	if err := requireSelectedFeatures(intent.RequiredFeatures, selected.SupportedFeatures); err != nil {
+	if err := requireSelectedFeatures(intent.RequiredFeatures, selected.ConfiguredFeatures); err != nil {
 		return nil, err
 	}
 
@@ -95,17 +94,16 @@ func (s *Service) captureLocalSpeechEffectiveInputs(ctx context.Context, head *r
 	exactBindings, contentIDs := captureLocalSpeechBindings(selected.ExactBindings)
 	portable, _ := proto.Clone(selected.PortableConfig).(*structpb.Struct)
 	effective := &localSpeechEffectiveInputs{
-		head:              cloneScenarioHead(head),
-		scenarioType:      request.GetScenarioType(),
-		intent:            executionintent.Clone(intent),
-		loadoutID:         strings.TrimSpace(selected.LoadoutID),
-		displayName:       strings.TrimSpace(selected.DisplayName),
-		driverIdentity:    cloneCapabilityImplementationIdentity(selected.DriverIdentity),
-		portableConfig:    portable,
-		requirements:      cloneLocalCapabilityRequirements(selected.Requirements),
-		exactBindings:     exactBindings,
-		contentIDs:        contentIDs,
-		supportedFeatures: append([]string(nil), selected.SupportedFeatures...),
+		head:           cloneScenarioHead(head),
+		scenarioType:   request.GetScenarioType(),
+		intent:         executionintent.Clone(intent),
+		loadoutID:      strings.TrimSpace(selected.LoadoutID),
+		displayName:    strings.TrimSpace(selected.DisplayName),
+		driverIdentity: cloneCapabilityImplementationIdentity(selected.DriverIdentity),
+		portableConfig: portable,
+		requirements:   cloneLocalCapabilityRequirements(selected.Requirements),
+		exactBindings:  exactBindings,
+		contentIDs:     contentIDs,
 	}
 
 	switch contract {

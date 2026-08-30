@@ -188,16 +188,12 @@ func TestPublicChatVoiceAssetPreservesVoiceDemoOwnerAndDashScopeTarget(t *testin
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{
-								Text: publicChatStructuredEnvelopeAPML(
-									"message-song-lian-native-voice",
-									"宋濂的 Runtime Agent 回复应自动生成原生语音。",
-								),
-							},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						publicChatStructuredEnvelopeAPML(
+							"message-song-lian-native-voice",
+							"宋濂的 Runtime Agent 回复应自动生成原生语音。",
+						)),
 				},
 			}); err != nil {
 				return err

@@ -479,6 +479,12 @@ func createLocalAppScenarioJobForTest(
 func TestGetLocalAppScenarioJobProjectsTrimmedJob(t *testing.T) {
 	svc := newTestService(nil)
 	createLocalAppScenarioJobForTest(svc, "job-1", "nimi.realm-persona-studio", "account-1", "principal-1", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING)
+	seed := int32(44)
+	svc.scenarioJobs.mu.Lock()
+	svc.scenarioJobs.jobs["job-1"].job.Artifacts = []*runtimev1.ScenarioArtifact{{
+		ArtifactId: "artifact-seeded", MimeType: "image/png", Seed: &seed,
+	}}
+	svc.scenarioJobs.mu.Unlock()
 	response, err := svc.GetLocalAppScenarioJob(
 		localAppScenarioJobContext(accountservice.LocalAppOperationScenarioJobGet, localappop.AppOperationIDScenarioJobGet),
 		&runtimev1.GetLocalAppScenarioJobRequest{JobId: "job-1"})
@@ -487,7 +493,8 @@ func TestGetLocalAppScenarioJobProjectsTrimmedJob(t *testing.T) {
 	}
 	job := response.GetJob()
 	if job.GetJobId() != "job-1" || job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING ||
-		job.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE || job.GetTraceId() != "trace-job-1" {
+		job.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE || job.GetTraceId() != "trace-job-1" ||
+		len(job.GetArtifacts()) != 1 || job.GetArtifacts()[0].Seed == nil || job.GetArtifacts()[0].GetSeed() != 44 {
 		t.Fatalf("job projection = %+v", job)
 	}
 }

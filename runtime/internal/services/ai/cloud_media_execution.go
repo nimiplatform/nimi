@@ -169,9 +169,9 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 	if s == nil || head == nil || request == nil || request.GetSpec() == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if cloudVideoHasArtifactReference(request) || cloudImageHasArtifactReference(request) {
+	if cloudVideoHasArtifactReference(request) || cloudImageHasLocalOnlyInput(request) {
 		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
-			Message: "Cloud media execution does not support Runtime Artifact references",
+			Message: "Cloud media execution does not support Runtime Artifact image inputs or Local image strength",
 		})
 	}
 	capabilityContract := scenarioTargetCapability(request.GetScenarioType())
@@ -368,10 +368,13 @@ func cloudVideoHasArtifactReference(request *runtimev1.SubmitScenarioJobRequest)
 	return false
 }
 
-func cloudImageHasArtifactReference(request *runtimev1.SubmitScenarioJobRequest) bool {
-	return request != nil &&
-		request.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE &&
-		strings.TrimSpace(request.GetSpec().GetImageGenerate().GetReferenceImageArtifactId()) != ""
+func cloudImageHasLocalOnlyInput(request *runtimev1.SubmitScenarioJobRequest) bool {
+	if request == nil || request.GetScenarioType() != runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE {
+		return false
+	}
+	spec := request.GetSpec().GetImageGenerate()
+	return strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" ||
+		strings.TrimSpace(spec.GetMaskArtifactId()) != "" || spec.Strength != nil
 }
 
 func (s *Service) speechSynthesizeRouteSupportsNativeStreamTTS(

@@ -481,7 +481,7 @@ func (s *Service) executePublicChatConversationSummaryWithExecution(ctx context.
 		if event == nil {
 			return nil
 		}
-		if text := event.GetDelta().GetText().GetText(); text != "" {
+		if text := scenarioStreamText(event); text != "" {
 			output.WriteString(text)
 		}
 		if event.GetFailed() != nil {

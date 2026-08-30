@@ -148,8 +148,12 @@ func stableScenarioJobReasonDetail(reasonCode runtimev1.ReasonCode) string {
 		return "local execution process crashed"
 	case runtimev1.ReasonCode_AI_LOCAL_EXECUTION_OUT_OF_MEMORY:
 		return "local execution ran out of memory"
+	case runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CONTENT_MISMATCH:
+		return "local model content changed and must be verified again"
 	case runtimev1.ReasonCode_AI_STREAM_BROKEN:
 		return "stream delivery failed"
+	case runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED:
+		return "Runtime restarted before execution completed"
 	case runtimev1.ReasonCode_AI_INPUT_INVALID,
 		runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED:
 		return "provider rejected request parameters"

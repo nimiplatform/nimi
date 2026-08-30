@@ -556,6 +556,28 @@ func TestSupervisorMaxRestartsExhausted(t *testing.T) {
 	}
 }
 
+func TestSupervisorRestartSpawnFailureContinuesUntilBudgetExhausted(t *testing.T) {
+	cfg := testSupervisorCfg(filepath.Join(t.TempDir(), "missing-engine-binary"))
+	cfg.Kind = EngineMedia
+	cfg.CommandArgs = []string{"--version"}
+	cfg.MaxRestarts = 3
+	cfg.RestartBaseDelay = time.Millisecond
+	sup := NewSupervisor(cfg, testLogger(), nil)
+	sup.mu.Lock()
+	sup.runEpoch = 1
+	sup.status = StatusHealthy
+	sup.mu.Unlock()
+
+	sup.handleCrash(context.Background(), "process exited", 1)
+	info := sup.Info()
+	if info.ConsecutiveFailures != cfg.MaxRestarts {
+		t.Fatalf("restart failures = %d, want exhausted budget %d", info.ConsecutiveFailures, cfg.MaxRestarts)
+	}
+	if info.Status != StatusUnhealthy || !strings.Contains(info.Detail, "restart spawn failed") {
+		t.Fatalf("restart terminal status = %s detail=%q", info.Status, info.Detail)
+	}
+}
+
 func TestSupervisorGracefulShutdown(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("supervisor process tests require unix signals")
@@ -702,6 +724,101 @@ func TestSupervisorHealthFailuresDoNotConsumeCrashRestartCounter(t *testing.T) {
 
 	cancel()
 	<-done
+}
+
+func TestSupervisorUnhealthyProcessRecoversAfterThreeConsecutiveProbes(t *testing.T) {
+	reserved, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	address := reserved.Addr().String()
+	if err := reserved.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	sup := NewSupervisor(EngineConfig{
+		Kind:           EngineMedia,
+		HealthMode:     HealthModeTCP,
+		Address:        address,
+		HealthInterval: 10 * time.Millisecond,
+		MaxRestarts:    1,
+	}, testLogger(), nil)
+	sup.mu.Lock()
+	sup.status = StatusHealthy
+	sup.runEpoch = 1
+	sup.process = &supervisedProcess{done: make(chan struct{})}
+	sup.mu.Unlock()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan struct{})
+	go func() {
+		sup.monitor(ctx, 1)
+		close(done)
+	}()
+	defer func() {
+		cancel()
+		<-done
+	}()
+
+	if !waitForStatus(sup, StatusUnhealthy, time.Second) {
+		t.Fatalf("expected unhealthy after probe failures, got %s", sup.Status())
+	}
+	listener, err := net.Listen("tcp", address)
+	if err != nil {
+		t.Fatalf("restore health listener: %v", err)
+	}
+	defer func() { _ = listener.Close() }()
+
+	deadline := time.Now().Add(time.Second)
+	for time.Now().Before(deadline) {
+		sup.mu.RLock()
+		successes := sup.healthProbeSuccesses
+		status := sup.status
+		sup.mu.RUnlock()
+		if successes > 0 {
+			if successes < supervisorRecoverySuccessThreshold && status != StatusUnhealthy {
+				t.Fatalf("Supervisor recovered after only %d successful probes", successes)
+			}
+			break
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
+	if !waitForStatus(sup, StatusHealthy, time.Second) {
+		t.Fatalf("expected healthy after three consecutive recovery probes, got %s", sup.Status())
+	}
+	if got := sup.Info().ConsecutiveFailures; got != 0 {
+		t.Fatalf("health recovery consumed crash restart budget: %d", got)
+	}
+}
+
+func TestSupervisorRecoveryProbeIntervalDecaysExactly(t *testing.T) {
+	sup := NewSupervisor(EngineConfig{Kind: EngineMedia, HealthInterval: 30 * time.Second}, testLogger(), nil)
+	sup.mu.Lock()
+	sup.status = StatusUnhealthy
+	sup.unhealthySince = time.Now()
+	sup.mu.Unlock()
+	if got := sup.nextHealthProbeInterval(); got != supervisorRecoveryProbeInterval {
+		t.Fatalf("base recovery interval = %s, want %s", got, supervisorRecoveryProbeInterval)
+	}
+	sup.mu.Lock()
+	sup.healthProbeFailures = supervisorRecoveryFailureDecayThreshold
+	sup.mu.Unlock()
+	if got := sup.nextHealthProbeInterval(); got != supervisorRecoveryDecayInterval {
+		t.Fatalf("decayed recovery interval = %s, want %s", got, supervisorRecoveryDecayInterval)
+	}
+	sup.mu.Lock()
+	sup.unhealthySince = time.Now().Add(-supervisorRecoveryLongAfter)
+	sup.mu.Unlock()
+	if got := sup.nextHealthProbeInterval(); got != supervisorRecoveryLongInterval {
+		t.Fatalf("long recovery interval = %s, want %s", got, supervisorRecoveryLongInterval)
+	}
+	sup.mu.Lock()
+	sup.healthProbeFailures = 0
+	sup.healthProbeSuccesses = 1
+	sup.mu.Unlock()
+	if got := sup.nextHealthProbeInterval(); got != supervisorRecoveryProbeInterval {
+		t.Fatalf("post-success recovery interval = %s, want %s", got, supervisorRecoveryProbeInterval)
+	}
 }
 
 func TestMergeSupervisorCommandEnvUpsertsPathCaseInsensitivelyOnWindows(t *testing.T) {

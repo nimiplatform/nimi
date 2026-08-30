@@ -39,11 +39,9 @@ func TestPublicChatTurnRejectsConcurrentTurnForSameAgent(t *testing.T) {
 					EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 					TraceId:   "trace-concurrent",
 					Payload: &runtimev1.StreamScenarioEvent_Delta{
-						Delta: &runtimev1.ScenarioStreamDelta{
-							Delta: &runtimev1.ScenarioStreamDelta_Text{
-								Text: &runtimev1.TextStreamDelta{Text: envelope},
-							},
-						},
+						Delta: runtimeAgentTextStreamDelta(
+
+							envelope),
 					},
 				}); err != nil {
 					return err
@@ -130,11 +128,9 @@ func TestPublicChatSessionRejectsThreadIdentityDrift(t *testing.T) {
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-session",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: envelope},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						envelope),
 				},
 			}); err != nil {
 				return err
@@ -225,11 +221,9 @@ func TestPublicChatTurnAdmissionFollowsMachineBindingReplacement(t *testing.T) {
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-binding",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: envelope},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						envelope),
 				},
 			}); err != nil {
 				return err

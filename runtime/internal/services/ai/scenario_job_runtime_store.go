@@ -573,6 +573,7 @@ func (s *scenarioJobStore) transitionWithVoiceResult(
 	if record.job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED ||
 		record.job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
 		record.job.ReasonMetadata = nil
+		record.job.Interruption = nil
 	}
 	if err := prepareFailedScenarioJobProjection(record.job); err != nil {
 		record.job = previousJob

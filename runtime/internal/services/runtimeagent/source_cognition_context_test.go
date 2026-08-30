@@ -601,3 +601,26 @@ func sourceCognitionTestTurnView(t *testing.T, snapshot localAgentSourceSnapshot
 	}
 	return view
 }
+
+func TestDataRootHandoffClosesAndReopensRuntimeAgentAdmission(t *testing.T) {
+	sourceCtx, sourceCancel := context.WithCancel(context.Background())
+	memoryCtx, memoryCancel := context.WithCancel(context.Background())
+	chatCtx, chatCancel := context.WithCancel(context.Background())
+	service := &Service{
+		sourceCognitionLifecycleCtx: sourceCtx, sourceCognitionLifecycleCancel: sourceCancel,
+		sourceCognitionJobs:         make(map[string]struct{}),
+		cognitionMemoryLifecycleCtx: memoryCtx, cognitionMemoryLifecycleCancel: memoryCancel,
+		cognitionMemoryDraining: make(map[string]bool), cognitionMemoryDrainPending: make(map[string]bool),
+		chatAsyncLifecycleCtx: chatCtx, chatAsyncLifecycleCancel: chatCancel,
+		chatTurns: make(map[string]*publicChatTurnState), chatFollowUps: make(map[string]*publicChatFollowUpState),
+		agentRealtimeSessions: make(map[string]*localAppAgentRealtimeSession),
+	}
+	service.QuiesceDataRoot()
+	if !service.isClosed() || sourceCtx.Err() == nil || memoryCtx.Err() == nil || chatCtx.Err() == nil {
+		t.Fatal("Runtime Agent root handoff did not close current activation work")
+	}
+	service.ResumeDataRootAfterAbort()
+	if service.isClosed() || service.sourceCognitionLifecycleCtx.Err() != nil || service.cognitionMemoryLifecycleCtx.Err() != nil || service.chatAsyncLifecycleCtx.Err() != nil {
+		t.Fatal("pre-commit abort did not reopen Runtime Agent for unchanged activation")
+	}
+}

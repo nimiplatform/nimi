@@ -395,12 +395,51 @@ func writeManagedSymlink(destPath string, target string) error {
 }
 
 func installManagedBinaryPayload(destDir string, stagedDir string) error {
-	if err := os.RemoveAll(destDir); err != nil {
-		return fmt.Errorf("%w: remove existing engine payload: %v", ErrEngineBinaryDownloadFailed, err)
+	parent := filepath.Dir(destDir)
+	if err := os.MkdirAll(parent, 0o755); err != nil {
+		return fmt.Errorf("%w: create engine payload parent: %v", ErrEngineBinaryDownloadFailed, err)
 	}
-	if err := os.MkdirAll(destDir, 0o755); err != nil {
-		return fmt.Errorf("%w: create engine payload directory: %v", ErrEngineBinaryDownloadFailed, err)
+	candidate, err := os.MkdirTemp(parent, "."+filepath.Base(destDir)+".promote-*")
+	if err != nil {
+		return fmt.Errorf("%w: create engine promotion candidate: %v", ErrEngineBinaryDownloadFailed, err)
 	}
+	defer func() { _ = os.RemoveAll(candidate) }()
+	if err := copyManagedBinaryPayload(candidate, stagedDir); err != nil {
+		return err
+	}
+
+	backup := ""
+	destinationExists := false
+	if _, statErr := os.Lstat(destDir); statErr == nil {
+		destinationExists = true
+		backup, err = os.MkdirTemp(parent, "."+filepath.Base(destDir)+".replaced-*")
+		if err != nil {
+			return fmt.Errorf("%w: allocate engine promotion backup: %v", ErrEngineBinaryDownloadFailed, err)
+		}
+		if err := os.Remove(backup); err != nil {
+			return fmt.Errorf("%w: prepare engine promotion backup: %v", ErrEngineBinaryDownloadFailed, err)
+		}
+		if err := os.Rename(destDir, backup); err != nil {
+			return fmt.Errorf("%w: stage existing engine payload for replacement: %v", ErrEngineBinaryDownloadFailed, err)
+		}
+	} else if !errors.Is(statErr, os.ErrNotExist) {
+		return fmt.Errorf("%w: inspect existing engine payload: %v", ErrEngineBinaryDownloadFailed, statErr)
+	}
+	if err := os.Rename(candidate, destDir); err != nil {
+		if destinationExists {
+			if restoreErr := os.Rename(backup, destDir); restoreErr != nil {
+				return fmt.Errorf("%w: promote engine payload: %v; restore previous payload: %v", ErrEngineBinaryDownloadFailed, err, restoreErr)
+			}
+		}
+		return fmt.Errorf("%w: promote engine payload: %v", ErrEngineBinaryDownloadFailed, err)
+	}
+	if destinationExists {
+		_ = os.RemoveAll(backup)
+	}
+	return nil
+}
+
+func copyManagedBinaryPayload(destDir string, stagedDir string) error {
 	return filepath.Walk(stagedDir, func(path string, info os.FileInfo, walkErr error) error {
 		if walkErr != nil {
 			return fmt.Errorf("%w: walk staged payload: %v", ErrEngineBinaryDownloadFailed, walkErr)

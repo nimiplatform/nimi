@@ -1,7 +1,9 @@
 package ggufmeta
 
 import (
+	"crypto/sha256"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"os"
@@ -129,6 +131,33 @@ func InspectLLMMetadata(reader io.Reader) (Summary, error) {
 		}
 		summary.Entries = append(summary.Entries, entry)
 		if _, ok := LLMContextLength(summary); ok {
+			return summary, nil
+		}
+	}
+	return summary, nil
+}
+
+// InspectLLMMetadataWithChatTemplate reads the same bounded LLM metadata as
+// InspectLLMMetadata and keeps scanning for the model-authored chat template.
+// A truncated bounded prefix remains usable once the model architecture has
+// been identified: optional template identity is then simply unavailable.
+func InspectLLMMetadataWithChatTemplate(reader io.Reader) (Summary, error) {
+	summary, err := readSummaryHeader(reader)
+	if err != nil {
+		return Summary{}, err
+	}
+	for i := uint64(0); i < summary.KVCount; i++ {
+		entry, err := readMetadataEntry(reader, i)
+		if err != nil {
+			if LLMDetectedArchitecture(summary) != "" {
+				return summary, nil
+			}
+			return Summary{}, err
+		}
+		summary.Entries = append(summary.Entries, entry)
+		_, hasContext := LLMContextLength(summary)
+		_, hasTemplate := LLMChatTemplateIdentity(summary)
+		if hasContext && hasTemplate {
 			return summary, nil
 		}
 	}
@@ -380,6 +409,19 @@ func LLMContextLength(summary Summary) (uint64, bool) {
 		return 0, false
 	}
 	return value, true
+}
+
+// LLMChatTemplateIdentity returns the canonical digest of the exact
+// model-authored tokenizer.chat_template bytes. It does not normalize,
+// interpret, or guess a template. Missing and empty metadata intentionally
+// yield no identity so base text remains independent from behavior matching.
+func LLMChatTemplateIdentity(summary Summary) (string, bool) {
+	template, ok := summary.StringValue("tokenizer.chat_template")
+	if !ok || template == "" {
+		return "", false
+	}
+	digest := sha256.Sum256([]byte(template))
+	return "sha256:" + hex.EncodeToString(digest[:]), true
 }
 
 var stableDiffusionIdentityKeys = []string{

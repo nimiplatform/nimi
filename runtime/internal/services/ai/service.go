@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -95,6 +96,8 @@ type Service struct {
 	streamFirstPacketTimeout               time.Duration
 	streamIdleTimeout                      time.Duration
 	voiceAssetDeleteReconciliationInterval time.Duration
+	runtimeRestarting                      atomic.Bool
+	textBehaviorAdapters                   []textBehaviorAdapterRegistration
 }
 
 type runtimeAccountProjectionProvider interface {
@@ -260,6 +263,7 @@ func newFromProviderConfig(logger *slog.Logger, auditStore *auditlog.Store, conn
 		streamFirstPacketTimeout:               defaultStreamFirstTimeout,
 		streamIdleTimeout:                      defaultStreamIdleTimeout,
 		voiceAssetDeleteReconciliationInterval: defaultVoiceAssetDeleteReconciliationInterval,
+		textBehaviorAdapters:                   productionTextBehaviorAdapterRegistrations(),
 	}
 	voiceCatalog, err := catalog.NewResolver(catalog.ResolverConfig{Logger: logger})
 	if err != nil {

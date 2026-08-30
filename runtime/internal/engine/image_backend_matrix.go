@@ -105,6 +105,7 @@ var imageSupervisedMatrixV2 = []ImageSupervisedMatrixEntry{
 		SupportedCapabilities: []string{"image.generate"},
 		TopologyState:         ImageTopologyStateDefined,
 		ProductState:          ImageProductStateSupported,
+		Detail:                "macOS 26.0+ Apple Silicon native image topology uses the canonical official master-813-bfbef5b stable-diffusion.cpp package; exact recipe/model acceptance remains tuple-specific",
 	},
 	{
 		EntryID:               "macos-apple-silicon-safetensors-native",

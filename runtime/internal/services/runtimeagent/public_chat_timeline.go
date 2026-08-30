@@ -19,7 +19,6 @@ const (
 func publicChatTimelineChannelForTurnEvent(messageType string) string {
 	switch strings.TrimSpace(messageType) {
 	case publicChatTurnTextDeltaType,
-		publicChatTurnReasoningDeltaType,
 		publicChatTurnStructuredType,
 		publicChatTurnMessageCommittedType:
 		return publicChatTimelineChannelText

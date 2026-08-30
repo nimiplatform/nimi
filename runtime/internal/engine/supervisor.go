@@ -24,24 +24,32 @@ type Supervisor struct {
 	logger  *slog.Logger
 	onState StateChangeFunc
 
-	mu                  sync.RWMutex
-	cmd                 *exec.Cmd
-	process             *supervisedProcess
-	status              EngineStatus
-	statusDetail        string
-	pid                 int
-	startedAt           time.Time
-	lastHealthyAt       time.Time
-	consecutiveFailures int
-	healthProbeFailures int
-	cancel              context.CancelFunc
-	runEpoch            uint64
-	stderrTail          []string
-	processLogPhase     string
+	mu                   sync.RWMutex
+	cmd                  *exec.Cmd
+	process              *supervisedProcess
+	status               EngineStatus
+	statusDetail         string
+	pid                  int
+	startedAt            time.Time
+	lastHealthyAt        time.Time
+	consecutiveFailures  int
+	healthProbeFailures  int
+	healthProbeSuccesses int
+	unhealthySince       time.Time
+	cancel               context.CancelFunc
+	runEpoch             uint64
+	stderrTail           []string
+	processLogPhase      string
 }
 
 const maxConsecutiveHealthProbeFailures = 3
 const supervisorStderrTailLines = 8
+const supervisorRecoveryProbeInterval = 8 * time.Second
+const supervisorRecoveryDecayInterval = 60 * time.Second
+const supervisorRecoveryLongInterval = 5 * time.Minute
+const supervisorRecoveryFailureDecayThreshold = 720
+const supervisorRecoveryLongAfter = 24 * time.Hour
+const supervisorRecoverySuccessThreshold = 3
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r035
 // Some CUDA-backed image hosts need several seconds to finish teardown after
@@ -525,8 +533,8 @@ func restartJitterCap(delay time.Duration) time.Duration {
 }
 
 func (s *Supervisor) monitor(ctx context.Context, epoch uint64) {
-	healthTicker := time.NewTicker(s.cfg.HealthInterval)
-	defer healthTicker.Stop()
+	healthTimer := time.NewTimer(s.nextHealthProbeInterval())
+	defer healthTimer.Stop()
 
 	process := s.currentProcess()
 	if process == nil {
@@ -546,17 +554,19 @@ func (s *Supervisor) monitor(ctx context.Context, epoch uint64) {
 		case <-process.done:
 			s.handleExitedProcess(ctx, process, epoch)
 			return
-		case <-healthTicker.C:
+		case <-healthTimer.C:
 			if !s.isRunEpochActive(epoch) {
 				return
 			}
 			currentStatus := s.Status()
-			if currentStatus != StatusHealthy && currentStatus != StatusStarting {
+			if currentStatus != StatusHealthy && currentStatus != StatusStarting && currentStatus != StatusUnhealthy {
+				healthTimer.Reset(s.nextHealthProbeInterval())
 				continue
 			}
 			if err := probeSupervisorHealth(ctx, s.cfg); err != nil {
 				s.mu.Lock()
 				s.healthProbeFailures++
+				s.healthProbeSuccesses = 0
 				failures := s.healthProbeFailures
 				s.mu.Unlock()
 
@@ -567,87 +577,124 @@ func (s *Supervisor) monitor(ctx context.Context, epoch uint64) {
 					"error", err,
 				)
 
-				if failures >= maxConsecutiveHealthProbeFailures {
+				if currentStatus != StatusUnhealthy && failures >= maxConsecutiveHealthProbeFailures {
 					s.setStatus(StatusUnhealthy, fmt.Sprintf("max health probe failures reached (%d)", failures))
 				}
 			} else {
+				now := time.Now()
 				s.mu.Lock()
 				s.healthProbeFailures = 0
 				s.consecutiveFailures = 0
-				s.lastHealthyAt = time.Now()
+				s.lastHealthyAt = now
+				if currentStatus == StatusUnhealthy {
+					s.healthProbeSuccesses++
+				} else {
+					s.healthProbeSuccesses = 0
+				}
+				successes := s.healthProbeSuccesses
 				s.mu.Unlock()
 
-				if s.Status() == StatusUnhealthy {
-					s.setStatus(StatusHealthy, "recovered")
+				if currentStatus == StatusUnhealthy && successes >= supervisorRecoverySuccessThreshold {
+					s.setStatus(StatusHealthy, fmt.Sprintf("recovered after %d consecutive probes", successes))
 				}
 			}
+			healthTimer.Reset(s.nextHealthProbeInterval())
 		}
 	}
 }
 
-func (s *Supervisor) handleCrash(ctx context.Context, crashDetail string, epoch uint64) {
-	if !s.isRunEpochActive(epoch) {
-		return
+func (s *Supervisor) nextHealthProbeInterval() time.Duration {
+	s.mu.RLock()
+	status := s.status
+	failures := s.healthProbeFailures
+	successes := s.healthProbeSuccesses
+	unhealthySince := s.unhealthySince
+	healthInterval := s.cfg.HealthInterval
+	s.mu.RUnlock()
+	if healthInterval <= 0 {
+		healthInterval = 30 * time.Second
 	}
-	s.mu.Lock()
-	if s.runEpoch != epoch {
-		s.mu.Unlock()
-		return
+	if status != StatusUnhealthy {
+		return healthInterval
 	}
-	s.consecutiveFailures++
-	s.healthProbeFailures = 0
-	failures := s.consecutiveFailures
-	s.mu.Unlock()
+	if successes > 0 {
+		return minDuration(supervisorRecoveryProbeInterval, healthInterval)
+	}
+	if !unhealthySince.IsZero() && time.Since(unhealthySince) >= supervisorRecoveryLongAfter {
+		return supervisorRecoveryLongInterval
+	}
+	if failures >= supervisorRecoveryFailureDecayThreshold {
+		return supervisorRecoveryDecayInterval
+	}
+	return minDuration(supervisorRecoveryProbeInterval, healthInterval)
+}
 
+func (s *Supervisor) handleCrash(ctx context.Context, crashDetail string, epoch uint64) {
 	crashDetail = strings.TrimSpace(crashDetail)
 	if crashDetail == "" {
 		crashDetail = "process exited"
 	}
-	if failures >= s.cfg.MaxRestarts {
-		s.setStatus(StatusUnhealthy, fmt.Sprintf("crash=%s attempt=%d/%d", crashDetail, failures, s.cfg.MaxRestarts))
-		s.removePIDFile()
-		return
-	}
-
-	// Exponential backoff with bounded jitter. Keep the jitter proportional to
-	// the current delay so short test backoffs do not balloon into second-long
-	// waits under load.
-	delay := s.cfg.RestartBaseDelay
-	for i := 1; i < failures; i++ {
-		delay *= 2
-		if delay > 30*time.Second {
-			delay = 30 * time.Second
-			break
+	for s.isRunEpochActive(epoch) {
+		s.mu.Lock()
+		if s.runEpoch != epoch {
+			s.mu.Unlock()
+			return
 		}
-	}
-	jitterCap := restartJitterCap(delay)
-	if jitterCap > 0 {
-		delay += time.Duration(rand.Int64N(int64(jitterCap)))
-	}
+		s.consecutiveFailures++
+		s.healthProbeFailures = 0
+		failures := s.consecutiveFailures
+		s.mu.Unlock()
 
-	s.setStatus(StatusUnhealthy, fmt.Sprintf("crash=%s attempt=%d/%d restarting", crashDetail, failures, s.cfg.MaxRestarts))
-	s.logger.Info("restarting engine after crash",
-		"event", "engine.process.restart_scheduled",
-		"engine", s.cfg.Kind,
-		"attempt", failures,
-		"delay", delay,
-	)
+		if failures >= s.cfg.MaxRestarts {
+			s.setStatus(StatusUnhealthy, fmt.Sprintf("crash=%s attempt=%d/%d", crashDetail, failures, s.cfg.MaxRestarts))
+			s.removePIDFile()
+			return
+		}
 
-	select {
-	case <-ctx.Done():
-		return
-	case <-time.After(delay):
-	}
+		// Exponential backoff with bounded jitter. Keep the jitter proportional to
+		// the current delay so short test backoffs do not balloon into second-long
+		// waits under load.
+		delay := s.cfg.RestartBaseDelay
+		for i := 1; i < failures; i++ {
+			delay *= 2
+			if delay > 30*time.Second {
+				delay = 30 * time.Second
+				break
+			}
+		}
+		jitterCap := restartJitterCap(delay)
+		if jitterCap > 0 {
+			delay += time.Duration(rand.Int64N(int64(jitterCap)))
+		}
 
-	if !s.isRunEpochActive(epoch) {
-		return
-	}
-	if err := s.spawn(ctx, epoch); err != nil {
-		s.logger.Error("engine restart failed",
-			"event", "engine.process.restart_failed",
+		s.setStatus(StatusUnhealthy, fmt.Sprintf("crash=%s attempt=%d/%d restarting", crashDetail, failures, s.cfg.MaxRestarts))
+		s.logger.Info("restarting engine after crash",
+			"event", "engine.process.restart_scheduled",
 			"engine", s.cfg.Kind,
-			"error", err,
+			"attempt", failures,
+			"delay", delay,
 		)
+
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(delay):
+		}
+
+		if !s.isRunEpochActive(epoch) {
+			return
+		}
+		if err := s.spawn(ctx, epoch); err != nil {
+			s.logger.Error("engine restart failed",
+				"event", "engine.process.restart_failed",
+				"engine", s.cfg.Kind,
+				"attempt", failures,
+				"error", err,
+			)
+			crashDetail = "restart spawn failed"
+			continue
+		}
+		return
 	}
 }
 
@@ -656,6 +703,15 @@ func (s *Supervisor) setStatus(status EngineStatus, detail string) {
 	prev := s.status
 	s.status = status
 	s.statusDetail = boundedSupervisorStatusDetail(detail)
+	if status == StatusUnhealthy && prev != StatusUnhealthy {
+		s.unhealthySince = time.Now()
+		s.healthProbeSuccesses = 0
+	}
+	if status == StatusHealthy {
+		s.unhealthySince = time.Time{}
+		s.healthProbeFailures = 0
+		s.healthProbeSuccesses = 0
+	}
 	s.mu.Unlock()
 
 	if prev != status {

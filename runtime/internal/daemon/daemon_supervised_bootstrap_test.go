@@ -3,13 +3,10 @@ package daemon
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -111,20 +108,8 @@ func TestStartSupervisedEnginesNeverBootstrapsLlama(t *testing.T) {
 	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return &engine.Manager{}, nil
 	}
-	calls := make([]engine.EngineKind, 0, 1)
-	var callsMu sync.Mutex
-	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
-		callsMu.Lock()
-		calls = append(calls, kind)
-		callsMu.Unlock()
-		return errors.New("mock bootstrap failure")
-	}
-
 	daemon.startSupervisedEngines(context.Background())
 
-	if len(calls) != 0 {
-		t.Fatalf("daemon startup must not bootstrap the private llama worker, got=%v", calls)
-	}
 	snapshot := daemon.state.Snapshot()
 	if snapshot.Status == health.StatusDegraded {
 		t.Fatalf("deferring empty managed llama bootstrap must not degrade Runtime core readiness: %s", snapshot.Reason)
@@ -151,78 +136,20 @@ func TestStartSupervisedEnginesInjectsManagerWithoutBootstrappingWhenNoManagedEn
 	}
 
 	managerCreated := false
-	startCalls := 0
 	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		managerCreated = true
 		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), engine.ManagedRoots{Environments: t.TempDir(), Dependencies: t.TempDir()}, nil)
 	}
-	daemon.startEngineFn = func(_ context.Context, _ engine.EngineKind, _ string, _ int, _ string) error {
-		startCalls++
-		return nil
-	}
-
 	daemon.startSupervisedEngines(context.Background())
 
 	if !managerCreated {
 		t.Fatalf("expected engine manager creation for local environment materializers")
-	}
-	if startCalls != 0 {
-		t.Fatalf("did not expect supervised bootstrap calls, got %d", startCalls)
 	}
 	if daemon.engineMgr == nil {
 		t.Fatalf("expected daemon engine manager to be available for materializers")
 	}
 	if snapshot := daemon.state.Snapshot(); snapshot.Status == health.StatusDegraded {
 		t.Fatalf("did not expect degraded state when only supervised bootstrap is skipped: %s", snapshot.Reason)
-	}
-}
-
-func TestStartSupervisedEnginesFailsClosedForUnsupportedSidecar(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	cfg := config.Config{
-		GRPCAddr:             "127.0.0.1:0",
-		HTTPAddr:             "127.0.0.1:0",
-		LocalStatePath:       filepath.Join(t.TempDir(), "local-state.json"),
-		AuditRingBufferSize:  64,
-		UsageStatsBufferSize: 64,
-		IdempotencyCapacity:  32,
-		EngineSidecarEnabled: true,
-		EngineSidecarPort:    9331,
-		EngineSidecarVersion: "test",
-	}
-	daemon, err := newDaemonForTest(t, cfg, logger, "test")
-	if err != nil {
-		t.Fatalf("create daemon: %v", err)
-	}
-	closeDaemonForTest(t, daemon)
-	if svc := daemon.grpc.LocalService(); svc != nil {
-		t.Cleanup(func() { svc.Close() })
-	}
-	daemon.auditStore = auditlog.New(32, 32)
-	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
-		return &engine.Manager{}, nil
-	}
-
-	daemon.startSupervisedEngines(context.Background())
-
-	snapshot := daemon.state.Snapshot()
-	if snapshot.Status != health.StatusDegraded {
-		t.Fatalf("expected degraded state, got=%s (%s)", snapshot.Status, snapshot.Reason)
-	}
-	if !strings.Contains(snapshot.Reason, "sidecar: engine sidecar is not yet supported for supervised lifecycle") {
-		t.Fatalf("unexpected degraded reason: %s", snapshot.Reason)
-	}
-
-	events := mustListAuditEvents(t, daemon.auditStore, &runtimev1.ListAuditEventsRequest{Domain: "runtime.engine"}).GetEvents()
-	if len(events) != 1 {
-		t.Fatalf("expected 1 runtime.engine event, got=%d", len(events))
-	}
-	record := events[0]
-	if record.GetOperation() != "engine.bootstrap_failed" {
-		t.Fatalf("unexpected operation: %s", record.GetOperation())
-	}
-	if got := record.GetPayload().GetFields()["provider"].GetStringValue(); got != "local-sidecar" {
-		t.Fatalf("unexpected provider payload: %q", got)
 	}
 }
 

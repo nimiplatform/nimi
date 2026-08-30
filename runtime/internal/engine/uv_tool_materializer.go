@@ -101,7 +101,7 @@ func managedUVArchiveURL(spec managedUVArchiveSpec) string {
 
 func verifiedManagedUVToolStatus(root string, spec managedUVArchiveSpec) (UVToolDependencyStatus, bool) {
 	executablePath := managedUVPath(root)
-	if _, err := os.Stat(executablePath); err != nil {
+	if _, err := os.Stat(executablePath); err != nil || !verifyManagedUVManifest(root, spec) {
 		return UVToolDependencyStatus{}, false
 	}
 	return UVToolDependencyStatus{
@@ -147,6 +147,9 @@ func installManagedUVTool(ctx context.Context, root string, spec managedUVArchiv
 	}
 	if err := os.Chmod(managedUVPath(stagedDir), 0o755); err != nil {
 		return fmt.Errorf("install uv tool: chmod executable: %w", err)
+	}
+	if err := writeManagedUVManifest(stagedDir, spec); err != nil {
+		return fmt.Errorf("install uv tool: write owner manifest: %w", err)
 	}
 	if err := installManagedBinaryPayload(root, stagedDir); err != nil {
 		return fmt.Errorf("install uv tool: %w", err)

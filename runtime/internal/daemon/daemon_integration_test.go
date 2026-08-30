@@ -194,15 +194,6 @@ func TestDaemonRunNeverBootstrapsPrivateLlamaWorker(t *testing.T) {
 	daemon.newEngineManager = func(_ *slog.Logger, _ engine.ManagedRoots, _ engine.StateChangeFunc) (*engine.Manager, error) {
 		return &engine.Manager{}, nil
 	}
-	started := make(chan struct{}, 1)
-	daemon.startEngineFn = func(ctx context.Context, _ engine.EngineKind, _ string, _ int, _ string) error {
-		select {
-		case started <- struct{}{}:
-		default:
-		}
-		return nil
-	}
-
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() {
@@ -210,13 +201,6 @@ func TestDaemonRunNeverBootstrapsPrivateLlamaWorker(t *testing.T) {
 	}()
 
 	waitForDaemonStatus(t, daemon, health.StatusReady, 2*time.Second)
-	select {
-	case <-started:
-		cancel()
-		t.Fatal("daemon startup activated the private llama worker")
-	default:
-	}
-
 	cancel()
 	if err := <-done; err != nil {
 		t.Fatalf("daemon run returned error: %v", err)

@@ -188,11 +188,15 @@ func publicChatReasoningPayloadFromConfig(input *publicChatReasoningConfig) *pub
 	if input == nil {
 		return nil
 	}
-	return &publicChatReasoningPayload{
-		Mode:         strings.ToLower(strings.TrimPrefix(input.Mode.String(), "REASONING_MODE_")),
-		TraceMode:    strings.ToLower(strings.TrimPrefix(input.TraceMode.String(), "REASONING_TRACE_MODE_")),
-		BudgetTokens: input.BudgetTokens,
+	payload := &publicChatReasoningPayload{
+		Activation:        strings.ToLower(strings.TrimPrefix(input.Activation.String(), "REASONING_ACTIVATION_")),
+		Presentation:      strings.ToLower(strings.TrimPrefix(input.Presentation.String(), "REASONING_PRESENTATION_")),
+		ExactBudgetTokens: input.ExactBudgetTokens,
 	}
+	if input.Effort != runtimev1.ReasoningEffort_REASONING_EFFORT_UNSPECIFIED {
+		payload.Effort = strings.ToLower(strings.TrimPrefix(input.Effort.String(), "REASONING_EFFORT_"))
+	}
+	return payload
 }
 
 func publicChatTranscriptMessageID(anchorID string, index int) string {

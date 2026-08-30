@@ -87,7 +87,7 @@ func executeTextGenerateScenario(ctx context.Context, s *Service, req *runtimev1
 	}
 	return &runtimev1.ExecuteScenarioResponse{
 		Output: &runtimev1.ScenarioOutput{Output: &runtimev1.ScenarioOutput_TextGenerate{
-			TextGenerate: &runtimev1.TextGenerateOutput{Text: result.Text, ToolCalls: result.ToolCalls},
+			TextGenerate: canonicalTextGenerateOutput(result.Text, result.ToolCalls),
 		}},
 		FinishReason:      result.FinishReason,
 		Usage:             result.Usage,

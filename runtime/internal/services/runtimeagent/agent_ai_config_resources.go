@@ -123,7 +123,7 @@ func (s *Service) projectSharedAIConfigEffectiveSelections(
 			selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY
 		}
 		if selection.State != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_MISSING &&
-			!localexecution.SupportsRequiredFeatures(capability.GetRequiredFeatures(), option.SupportedFeatures) {
+			!localexecution.SupportsRequiredFeatures(capability.GetRequiredFeatures(), option.ConfiguredFeatures) {
 			selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
 			selection.Reasons = appendSharedReasonOnce(selection.Reasons, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH.String())
 		}
@@ -357,7 +357,8 @@ func projectSharedLocalResource(option localexecution.LoadoutOption) *runtimev1.
 	return &runtimev1.AIConfigLocalResourceProjection{
 		LoadoutRef: option.LoadoutID, Label: option.DisplayName,
 		CapabilityContract: option.CapabilityContract, Implementation: implementation,
-		SupportedFeatures: append([]string(nil), option.SupportedFeatures...),
-		State:             state, Reasons: reasons,
+		ImplementationSupportedFeatures: append([]string(nil), option.ImplementationSupportedFeatures...),
+		ConfiguredFeatures:              append([]string(nil), option.ConfiguredFeatures...),
+		State:                           state, Reasons: reasons,
 	}
 }

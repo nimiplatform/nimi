@@ -131,6 +131,10 @@ func (s *Service) triggerCognitionMemory(localAgentRef string) {
 		return
 	}
 	s.cognitionMemoryDrainMu.Lock()
+	if s.isClosed() || ctx.Err() != nil {
+		s.cognitionMemoryDrainMu.Unlock()
+		return
+	}
 	if s.cognitionMemoryDraining == nil {
 		s.cognitionMemoryDraining = make(map[string]bool)
 	}

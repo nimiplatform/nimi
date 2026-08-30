@@ -72,10 +72,10 @@ func (s *Service) captureLocalVoiceCreateEffectiveInputs(
 	if sourceFeature == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 	}
-	if err := requireSelectedFeatures(intent.RequiredFeatures, selected.SupportedFeatures); err != nil {
+	if err := requireSelectedFeatures(intent.RequiredFeatures, selected.ConfiguredFeatures); err != nil {
 		return nil, err
 	}
-	if err := requireSelectedFeatures([]string{sourceFeature}, selected.SupportedFeatures); err != nil {
+	if err := requireSelectedFeatures([]string{sourceFeature}, selected.ConfiguredFeatures); err != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_WORKFLOW_UNSUPPORTED)
 	}
 	if s.capabilityDrivers == nil {
@@ -118,7 +118,7 @@ func (s *Service) captureLocalVoiceCreateEffectiveInputs(
 	planInput := capabilitydriver.VoiceCreateInvocationInput{
 		PortableConfig:    portable,
 		ExactBindings:     append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...),
-		SupportedFeatures: append([]string(nil), selected.SupportedFeatures...),
+		SupportedFeatures: append([]string(nil), selected.ConfiguredFeatures...),
 		Request:           captured,
 	}
 	if registered, ok := driver.(capabilitydriver.AudioCppSpeechRegisteredDriver); ok && registered.AudioCppSpeechRegistration().CapabilityContract == capabilitydriver.VoiceCreateContract {
@@ -429,7 +429,7 @@ func (s *Service) localVoiceCreatePlanFromResolvedAssembly(assembly *localResolv
 	}
 	planInput := capabilitydriver.VoiceCreateInvocationInput{
 		PortableConfig: portable, ExactBindings: resolvedAssemblyExactBindings(assembly),
-		SupportedFeatures: append([]string(nil), assembly.SupportedFeatures...), Request: request,
+		SupportedFeatures: append([]string(nil), assembly.ConfiguredFeatures...), Request: request,
 	}
 	if captured := assembly.LoadPlan.Speech.AudioCppReferenceVoice; captured != nil {
 		planInput.AudioCppReferenceRoot = captured.Root

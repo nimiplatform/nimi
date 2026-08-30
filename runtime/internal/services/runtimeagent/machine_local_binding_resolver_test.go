@@ -64,8 +64,9 @@ func (stub machineLocalExecutionResolverStub) ProjectSelectedLocalLoadout(capabi
 	return localexecution.LoadoutOption{
 		LoadoutID: selected.LoadoutID, DisplayName: selected.DisplayName,
 		CapabilityContract: capabilityContract, Implementation: selected.DriverIdentity,
-		SupportedFeatures: append([]string(nil), selected.SupportedFeatures...),
-		ValidationState:   runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED,
+		ImplementationSupportedFeatures: append([]string(nil), selected.ImplementationSupportedFeatures...),
+		ConfiguredFeatures:              append([]string(nil), selected.ConfiguredFeatures...),
+		ValidationState:                 runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED,
 	}, true, nil
 }
 

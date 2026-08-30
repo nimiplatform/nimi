@@ -8,8 +8,7 @@ import (
 )
 
 func TestVerifiedSystemNVIDIACUDARuntimeRootDoesNotAdmitArtifactOnlyProof(t *testing.T) {
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
-	t.Setenv("NIMI_RUNTIME_GPU_CUDA_READY", "true")
+	setMediaHostGPUProbeForTest(t, "nvidia", true)
 
 	if currentGOOS() == "windows" {
 		root := t.TempDir()

@@ -161,7 +161,8 @@ func TestSharedLocalAgentAIConfigEffectiveSelectionBlocksFeatureIncompatibleLoad
 	svc := newSharedAIConfigTestService(t)
 	contract := capabilitydriver.LlamaCapabilityContract
 	selected := machineLocalExecutionProjectionForTest("loadout-feature-mismatch", contract, "Model", nil)
-	selected.SupportedFeatures = []string{"input.audio"}
+	selected.ImplementationSupportedFeatures = []string{"input.audio", "input.image"}
+	selected.ConfiguredFeatures = []string{"input.audio"}
 	svc.SetMachineLocalExecutionResolver(machineLocalExecutionResolverStub{projections: map[string]*localexecution.SelectedLocalExecution{
 		contract: selected,
 	}})
@@ -175,9 +176,12 @@ func TestSharedLocalAgentAIConfigEffectiveSelectionBlocksFeatureIncompatibleLoad
 	}
 	read, err := svc.GetSharedLocalAgentAIConfig(ctx, &runtimev1.GetSharedLocalAgentAIConfigRequest{Context: requestContext})
 	selection := read.GetEffectiveSelections()[0]
+	local := selection.GetLocal()
 	if err != nil || selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED ||
 		len(selection.GetReasons()) != 1 || selection.GetReasons()[0] != runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH.String() ||
-		selection.GetLocal().GetLoadoutRef() != selected.LoadoutID {
+		local.GetLoadoutRef() != selected.LoadoutID ||
+		len(local.GetImplementationSupportedFeatures()) != 2 || local.GetImplementationSupportedFeatures()[1] != "input.image" ||
+		len(local.GetConfiguredFeatures()) != 1 || local.GetConfiguredFeatures()[0] != "input.audio" {
 		t.Fatalf("shared feature-incompatible effective selection = %+v, %v", selection, err)
 	}
 }

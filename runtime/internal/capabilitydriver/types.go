@@ -9,9 +9,11 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -19,19 +21,23 @@ const (
 	// MaxAssetFormatProbeBytes bounds the verified exact-entry prefix exposed to
 	// Drivers for format and tensor-name admission.
 	MaxAssetFormatProbeBytes = 4 << 20
+	// MaxDriverAssetFormatProbeBytes is the hard ceiling for a Driver-scoped
+	// probe budget. It exists for GGUF metadata such as the pinned Gemma 4 chat
+	// templates which begin beyond the generic four MiB prefix; generic assets
+	// and multi-file bundles retain MaxAssetFormatProbeBytes.
+	MaxDriverAssetFormatProbeBytes = 16 << 20
 	// MaxSafetensorsHeaderBytes leaves room for the fixed eight-byte header
 	// length inside one bounded ModelAsset format probe.
 	MaxSafetensorsHeaderBytes = MaxAssetFormatProbeBytes - 8
 
 	LlamaImplementationID      = "local.text.generate.llama-cpp"
 	LlamaDriverID              = "nimi.runtime.driver.llama-cpp"
-	LlamaDriverDialect         = "llama.cpp/text-generate/v1"
+	LlamaDriverDialect         = "llama.cpp/text-generate/v2"
 	LlamaEmbedImplementationID = "local.text.embed.llama-cpp"
 	LlamaEmbedDriverDialect    = "llama.cpp/text-embed/v1"
 	LlamaCapabilityContract    = "text.generate"
 
-	LlamaGemma4E2BRecipeID = "llama.text-generate.gemma-4-e2b-it.v1"
-	LlamaGemma426BRecipeID = "llama.text-generate.gemma-4-26b-a4b-it.v1"
+	LlamaGemma4RecipeID    = "llama.text-generate.gemma4.v1"
 	LlamaEmbedGGUFRecipeID = "llama.text-embed.gguf.v1"
 
 	MainGGUFRequirementID        = "main.gguf"
@@ -102,12 +108,32 @@ type ModelAssetBindingInput struct {
 	Files       []ModelAssetFileFact
 }
 
+// ModelAssetFormatProbeInput contains only immutable recipe/slot/file facts
+// available before LocalService reads a bounded ModelAsset prefix.
+type ModelAssetFormatProbeInput struct {
+	RecipeID      string
+	RequirementID string
+	RelativePath  string
+	Entry         bool
+}
+
+// ModelAssetFormatProbeDriver may request a larger bounded prefix for one
+// exact recipe/slot/file semantic. It does not read paths or select content.
+type ModelAssetFormatProbeDriver interface {
+	ModelAssetFormatProbeBytes(input ModelAssetFormatProbeInput) int64
+}
+
 // ModelAssetBindingProjection is the Driver-owned interpretation of verified
 // ModelAsset facts. ModelContextWindowTokens is populated only by dialects
 // whose execution contract consumes model-authored context metadata.
 type ModelAssetBindingProjection struct {
 	Descriptor               ModelAssetDescriptor
 	ModelContextWindowTokens uint64
+	// TemplateIdentity is the canonical digest of the exact model-authored
+	// chat template when one is present in the verified bounded GGUF probe.
+	// It is Runtime-private behavior-matching input, never public capability
+	// or adapter identity.
+	TemplateIdentity string
 }
 
 func validatedModelAssetBindingProjection(
@@ -215,7 +241,37 @@ type Driver interface {
 // cannot create, remove, rename, or reorder them.
 type RecipeDriver interface {
 	Driver
+	// ImplementationSupportedFeatures returns the exact recipe-scoped feature
+	// set declared by this Driver dialect. Catalog metadata may be checked
+	// against this value but never supplies the projection truth.
+	ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason)
 	ProjectRecipe(recipeID string, options *structpb.Struct, supportedFeatures []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason)
+}
+
+// TextBehaviorProjectionDriver owns the recipe-scoped read-only projection of
+// Tool Use, Reasoning, and Structured Output adapter resolution. Catalog and
+// callers cannot supply or override this truth.
+type TextBehaviorProjectionDriver interface {
+	RecipeDriver
+	TextBehaviorCapabilities(recipeID string) ([]*runtimev1.TextBehaviorCapabilityProjection, runtimev1.LocalCapabilityReason)
+}
+
+// TextBehaviorBindingFacts are the finite verified facts required to project
+// one current Loadout's unique behavior configuration. They contain no path,
+// route, adapter selector, or mutable catalog data.
+type TextBehaviorBindingFacts struct {
+	RequirementID     string
+	VerifiedContentID string
+	EntrySHA256       string
+	TemplateIdentity  string
+}
+
+// TextBehaviorBindingProjectionDriver refines recipe-level implementation
+// support after Loadout binding validation. Zero facts keep behavior
+// unavailable; exactly one admitted match may project configured support.
+type TextBehaviorBindingProjectionDriver interface {
+	TextBehaviorProjectionDriver
+	TextBehaviorCapabilitiesForBindings(recipeID string, facts []TextBehaviorBindingFacts) ([]*runtimev1.TextBehaviorCapabilityProjection, runtimev1.LocalCapabilityReason)
 }
 
 // HostPlatformRecipeDriver is implemented only when one public recipe has
@@ -239,6 +295,36 @@ type InvocationExactBinding struct {
 	DeclaredFiles     []string
 	VerifiedContentID string
 	EntrySHA256       string
+	TemplateIdentity  string
+}
+
+// InvocationExactDependencySource is immutable Host package/dependency truth
+// captured before Job publication. Drivers carry it opaquely into the Host
+// plan and never use it to select capability, recipe, model, or route.
+type InvocationExactDependencySource struct {
+	DependencyFamily       string
+	DependencyID           string
+	ConsumerScope          string
+	SelectedSourceRecordID string
+	CanonicalRoot          string
+	Version                string
+	VerifiedArtifacts      []string
+	Hashes                 map[string]string
+}
+
+func cloneInvocationExactDependencySources(values []InvocationExactDependencySource) []InvocationExactDependencySource {
+	cloned := make([]InvocationExactDependencySource, len(values))
+	for index, value := range values {
+		cloned[index] = value
+		cloned[index].VerifiedArtifacts = append([]string(nil), value.VerifiedArtifacts...)
+		if value.Hashes != nil {
+			cloned[index].Hashes = make(map[string]string, len(value.Hashes))
+			for key, hash := range value.Hashes {
+				cloned[index].Hashes[key] = hash
+			}
+		}
+	}
+	return cloned
 }
 
 // TextInvocationInput is the complete Driver-owned text invocation input. It
@@ -253,23 +339,59 @@ func cloneInvocationExactBindings(values []InvocationExactBinding) []InvocationE
 }
 
 func invocationExactBindingIdentity(binding InvocationExactBinding) []string {
-	identity := []string{
+	return append([]string{
 		binding.RequirementID,
 		binding.ModelAssetID,
 		binding.AbsolutePath,
 		binding.BundleDir,
 		binding.VerifiedContentID,
 		binding.EntrySHA256,
+	}, binding.DeclaredFiles...)
+}
+
+func invocationExactDependencySourceIdentity(source InvocationExactDependencySource) []string {
+	identity := []string{
+		source.DependencyFamily, source.DependencyID, source.ConsumerScope,
+		source.SelectedSourceRecordID, source.CanonicalRoot, source.Version,
 	}
-	return append(identity, binding.DeclaredFiles...)
+	artifacts := append([]string(nil), source.VerifiedArtifacts...)
+	sort.Strings(artifacts)
+	identity = append(identity, artifacts...)
+	hashKeys := make([]string, 0, len(source.Hashes))
+	for key := range source.Hashes {
+		hashKeys = append(hashKeys, key)
+	}
+	sort.Strings(hashKeys)
+	for _, key := range hashKeys {
+		identity = append(identity, key, source.Hashes[key])
+	}
+	return identity
+}
+
+// TextBehaviorAdapterMatchFacts is the immutable Runtime-private exact-match
+// vocabulary available to the local text Driver. Missing TemplateIdentity
+// makes model-specific behaviors unavailable without invalidating base text.
+type TextBehaviorAdapterMatchFacts struct {
+	RecipeID          string
+	RecipeRevision    string
+	DriverDialect     string
+	ModelAssetID      string
+	VerifiedContentID string
+	EntrySHA256       string
+	TemplateIdentity  string
 }
 
 type TextInvocationInput struct {
 	PortableConfig           *structpb.Struct
 	ModelContextWindowTokens uint64
 	ExactBindings            []InvocationExactBinding
-	Request                  *runtimev1.TextGenerateScenarioSpec
-	Stream                   bool
+	ExactDependencySources   []InvocationExactDependencySource
+	BehaviorMatch            TextBehaviorAdapterMatchFacts
+	// BehaviorAdapter is the single exact Runtime-private adapter already
+	// resolved by the execution owner. Nil is the valid base llama v1 path.
+	BehaviorAdapter *textbehavior.Adapter
+	Request         *runtimev1.TextGenerateScenarioSpec
+	Stream          bool
 }
 
 // EmbedInvocationInput is the complete Driver-owned embedding invocation
@@ -279,12 +401,21 @@ type EmbedInvocationInput struct {
 	PortableConfig           *structpb.Struct
 	ModelContextWindowTokens uint64
 	ExactBindings            []InvocationExactBinding
+	ExactDependencySources   []InvocationExactDependencySource
 	Request                  *runtimev1.TextEmbedScenarioSpec
 }
+
+type ImageResolvedInputRole string
+
+const (
+	ImageResolvedInputRoleSource ImageResolvedInputRole = "source"
+	ImageResolvedInputRoleMask   ImageResolvedInputRole = "mask"
+)
 
 // ImageResolvedInput is one already-authorized, immutable image input captured
 // by the service owner. Drivers never parse a URL or open an input path.
 type ImageResolvedInput struct {
+	Role           ImageResolvedInputRole
 	SourceIdentity string
 	ImageBytes     []byte
 }
@@ -292,12 +423,13 @@ type ImageResolvedInput struct {
 // ImageInvocationInput is the complete Driver-owned image invocation input.
 // Host selection, endpoints, binaries, routes, and fallback never enter it.
 type ImageInvocationInput struct {
-	RecipeID          string
-	PortableConfig    *structpb.Struct
-	SupportedFeatures []string
-	ExactBindings     []InvocationExactBinding
-	Request           *runtimev1.ImageGenerateScenarioSpec
-	Inputs            []ImageResolvedInput
+	RecipeID               string
+	PortableConfig         *structpb.Struct
+	SupportedFeatures      []string
+	ExactBindings          []InvocationExactBinding
+	ExactDependencySources []InvocationExactDependencySource
+	Request                *runtimev1.ImageGenerateScenarioSpec
+	Inputs                 []ImageResolvedInput
 }
 
 // AudioCppRuntimePackageInput is the capability-neutral selected-source pair
@@ -367,21 +499,23 @@ type VideoInvocationRequest struct {
 // LoadoutID and every binding identity have already been selected and
 // verified by the machine-configuration owner.
 type VideoInvocationInput struct {
-	LoadoutID      string
-	PortableConfig *structpb.Struct
-	ExactBindings  []InvocationExactBinding
-	Request        VideoInvocationRequest
+	LoadoutID              string
+	PortableConfig         *structpb.Struct
+	ExactBindings          []InvocationExactBinding
+	ExactDependencySources []InvocationExactDependencySource
+	Request                VideoInvocationRequest
 }
 
 // InvocationFailureKind classifies failures while a Driver is forming a plan.
 type InvocationFailureKind string
 
 const (
-	InvocationFailureInvalidConfig  InvocationFailureKind = "invalid_config"
-	InvocationFailureInvalidBinding InvocationFailureKind = "invalid_binding"
-	InvocationFailureInvalidRequest InvocationFailureKind = "invalid_request"
-	InvocationFailureInvalidOption  InvocationFailureKind = "invalid_option"
-	InvocationFailureUnsupported    InvocationFailureKind = "unsupported"
+	InvocationFailureInvalidConfig           InvocationFailureKind = "invalid_config"
+	InvocationFailureInvalidBinding          InvocationFailureKind = "invalid_binding"
+	InvocationFailureInvalidRequest          InvocationFailureKind = "invalid_request"
+	InvocationFailureInvalidOption           InvocationFailureKind = "invalid_option"
+	InvocationFailureUnsupported             InvocationFailureKind = "unsupported"
+	InvocationFailureTextBehaviorUnsupported InvocationFailureKind = "text_behavior_unsupported"
 )
 
 // InvocationError is returned before any host process or HTTP operation.
@@ -409,24 +543,29 @@ func (e *InvocationError) Unwrap() error {
 // cannot be changed after submission. The ExecutionHost only supplements host,
 // port, and binary facts and executes these instructions.
 type TextInvocationPlan struct {
-	processKey    string
-	processArgs   []string
-	modelFiles    []InvocationExactBinding
-	requestPath   string
-	requestBody   []byte
-	stream        bool
-	contextWindow uint64
+	processKey         string
+	processArgs        []string
+	modelFiles         []InvocationExactBinding
+	dependencySources  []InvocationExactDependencySource
+	requestPath        string
+	requestContentType string
+	requestBody        []byte
+	stream             bool
+	contextWindow      uint64
+	behaviorMatch      TextBehaviorAdapterMatchFacts
+	behaviorInvocation *textbehavior.Invocation
 }
 
 // EmbedInvocationPlan is the immutable llama embedding substrate plan. The
 // ExecutionHost adds only process, endpoint, and transport facts.
 type EmbedInvocationPlan struct {
-	processKey    string
-	processArgs   []string
-	modelFiles    []InvocationExactBinding
-	requestPath   string
-	requestBody   []byte
-	expectedCount int
+	processKey        string
+	processArgs       []string
+	modelFiles        []InvocationExactBinding
+	dependencySources []InvocationExactDependencySource
+	requestPath       string
+	requestBody       []byte
+	expectedCount     int
 }
 
 func (p *EmbedInvocationPlan) ProcessKey() string {
@@ -448,6 +587,13 @@ func (p *EmbedInvocationPlan) ModelFiles() []InvocationExactBinding {
 		return nil
 	}
 	return cloneInvocationExactBindings(p.modelFiles)
+}
+
+func (p *EmbedInvocationPlan) DependencySources() []InvocationExactDependencySource {
+	if p == nil {
+		return nil
+	}
+	return cloneInvocationExactDependencySources(p.dependencySources)
 }
 
 func (p *EmbedInvocationPlan) RequestPath() string {
@@ -495,11 +641,25 @@ func (p *TextInvocationPlan) ModelFiles() []InvocationExactBinding {
 	return cloneInvocationExactBindings(p.modelFiles)
 }
 
+func (p *TextInvocationPlan) DependencySources() []InvocationExactDependencySource {
+	if p == nil {
+		return nil
+	}
+	return cloneInvocationExactDependencySources(p.dependencySources)
+}
+
 func (p *TextInvocationPlan) RequestPath() string {
 	if p == nil {
 		return ""
 	}
 	return p.requestPath
+}
+
+func (p *TextInvocationPlan) RequestContentType() string {
+	if p == nil {
+		return ""
+	}
+	return p.requestContentType
 }
 
 func (p *TextInvocationPlan) RequestBody() []byte {
@@ -518,6 +678,34 @@ func (p *TextInvocationPlan) ContextWindowTokens() uint64 {
 		return 0
 	}
 	return p.contextWindow
+}
+
+func (p *TextInvocationPlan) BehaviorMatchFacts() TextBehaviorAdapterMatchFacts {
+	if p == nil {
+		return TextBehaviorAdapterMatchFacts{}
+	}
+	return p.behaviorMatch
+}
+
+func (p *TextInvocationPlan) BehaviorAdapterCapture() *textbehavior.AdapterCapture {
+	if p == nil || p.behaviorInvocation == nil {
+		return nil
+	}
+	return p.behaviorInvocation.Capture()
+}
+
+func (p *TextInvocationPlan) ParseTextBehaviorResponse(payload []byte) (textbehavior.NormalizedResult, error) {
+	if p == nil || p.behaviorInvocation == nil {
+		return textbehavior.NormalizedResult{}, fmt.Errorf("text behavior adapter is unavailable")
+	}
+	return p.behaviorInvocation.ParseNonStream(payload)
+}
+
+func (p *TextInvocationPlan) NewTextBehaviorStreamAssembler() (textbehavior.StreamFragmentAssembler, error) {
+	if p == nil || p.behaviorInvocation == nil {
+		return nil, fmt.Errorf("text behavior adapter is unavailable")
+	}
+	return p.behaviorInvocation.NewStreamAssembler()
 }
 
 // TextInvocationDriver is the invocation seam implemented by a text Driver.
@@ -690,6 +878,7 @@ type ImageProgress struct {
 
 type ImageBackendArtifactObservation struct {
 	Index   int32
+	Seed    int64
 	Payload []byte
 	Format  string
 	Width   int
@@ -698,6 +887,7 @@ type ImageBackendArtifactObservation struct {
 
 type ImageArtifact struct {
 	Index     int32
+	Seed      int64
 	Payload   []byte
 	MediaType string
 }
@@ -713,6 +903,7 @@ const (
 
 type imageDialectTranslator interface {
 	validateImagePlan(*ImageInvocationPlan) error
+	resolveImageArtifactSeed(*ImageInvocationPlan, int64, int32) (int64, error)
 	translateImageProgress(*ImageInvocationPlan, ImageBackendProgressObservation) (ImageProgress, error)
 	translateImageArtifact(*ImageInvocationPlan, ImageBackendArtifactObservation) (ImageArtifact, error)
 	translateImageFailure(ImageBackendFailureStage, error) error
@@ -722,6 +913,7 @@ type imageDialectTranslator interface {
 type ImageInvocationPlan struct {
 	processKey        string
 	modelFiles        []InvocationExactBinding
+	dependencySources []InvocationExactDependencySource
 	loadPlan          ImageLoadPlan
 	requestPlan       ImageRequestPlan
 	resultConstraints ImageResultConstraints
@@ -740,6 +932,13 @@ func (p *ImageInvocationPlan) ModelFiles() []InvocationExactBinding {
 		return nil
 	}
 	return cloneInvocationExactBindings(p.modelFiles)
+}
+
+func (p *ImageInvocationPlan) DependencySources() []InvocationExactDependencySource {
+	if p == nil {
+		return nil
+	}
+	return cloneInvocationExactDependencySources(p.dependencySources)
 }
 
 func (p *ImageInvocationPlan) LoadPlan() ImageLoadPlan {
@@ -775,6 +974,13 @@ func (p *ImageInvocationPlan) Validate() error {
 		return fmt.Errorf("image invocation plan is incomplete")
 	}
 	return p.translator.validateImagePlan(p)
+}
+
+func (p *ImageInvocationPlan) ResolveArtifactSeed(baseSeed int64, index int32) (int64, error) {
+	if p == nil || p.translator == nil {
+		return 0, fmt.Errorf("image invocation translator is unavailable")
+	}
+	return p.translator.resolveImageArtifactSeed(p, baseSeed, index)
 }
 
 func (p *ImageInvocationPlan) TranslateProgress(observation ImageBackendProgressObservation) (ImageProgress, error) {
@@ -1017,10 +1223,12 @@ const (
 type VideoInvocationPlan struct {
 	processKey              string
 	loadoutID               string
+	recipeID                string
 	driverIdentity          Identity
 	portableConfig          *structpb.Struct
 	exactBindings           []InvocationExactBinding
 	modelFiles              []InvocationExactBinding
+	dependencySources       []InvocationExactDependencySource
 	diffusionModelPath      string
 	encoderPath             string
 	videoVAEPath            string
@@ -1059,6 +1267,13 @@ func (p *VideoInvocationPlan) LoadoutID() string {
 	return p.loadoutID
 }
 
+func (p *VideoInvocationPlan) RecipeID() string {
+	if p == nil {
+		return ""
+	}
+	return p.recipeID
+}
+
 func (p *VideoInvocationPlan) DriverIdentity() Identity {
 	if p == nil {
 		return Identity{}
@@ -1088,6 +1303,13 @@ func (p *VideoInvocationPlan) ModelFiles() []InvocationExactBinding {
 		return nil
 	}
 	return cloneInvocationExactBindings(p.modelFiles)
+}
+
+func (p *VideoInvocationPlan) DependencySources() []InvocationExactDependencySource {
+	if p == nil {
+		return nil
+	}
+	return cloneInvocationExactDependencySources(p.dependencySources)
 }
 
 func (p *VideoInvocationPlan) DiffusionModelPath() string {
@@ -1312,6 +1534,7 @@ func (registry *Registry) Resolve(capabilityContract string, identity Identity) 
 
 func NewProductionRegistry() *Registry {
 	entries := map[RegistrationKey]Driver{
+		// @nimi-authority: rule.nimi.runtime.local-compute.r112
 		{CapabilityContract: LlamaCapabilityContract, Identity: Identity{ImplementationID: LlamaImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaDriverDialect}}:                                                             LlamaTextDriver{},
 		{CapabilityContract: TextEmbedCapabilityContract, Identity: Identity{ImplementationID: LlamaEmbedImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaEmbedDriverDialect}}:                                               LlamaEmbedDriver{},
 		{CapabilityContract: StableDiffusionCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionImplementationID, DriverID: StableDiffusionDriverID, DriverDialect: StableDiffusionDriverDialect}}:                     StableDiffusionImageDriver{},

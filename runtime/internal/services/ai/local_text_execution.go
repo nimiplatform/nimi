@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -83,7 +84,7 @@ func (s *Service) captureLocalTextEffectiveInputs(
 	if !validSelectedTextExecution(selected) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 	}
-	if err := requireSelectedFeatures(intent.RequiredFeatures, selected.SupportedFeatures); err != nil {
+	if err := requireSelectedFeatures(intent.RequiredFeatures, selected.ConfiguredFeatures); err != nil {
 		return nil, err
 	}
 
@@ -99,7 +100,7 @@ func (s *Service) captureLocalTextEffectiveInputs(
 		resolved.release()
 		return nil, err
 	}
-	if err := requireSelectedRequestFeatures(resolved.spec, selected.SupportedFeatures); err != nil {
+	if err := requireSelectedRequestFeatures(resolved.spec, selected.ImplementationSupportedFeatures, selected.ConfiguredFeatures); err != nil {
 		return fail(err)
 	}
 
@@ -121,10 +122,26 @@ func (s *Service) captureLocalTextEffectiveInputs(
 	sort.Strings(contentIDs)
 	portable, _ := proto.Clone(selected.PortableConfig).(*structpb.Struct)
 	request, _ := proto.Clone(resolved.spec).(*runtimev1.TextGenerateScenarioSpec)
+	behaviorMatch := projectLocalTextBehaviorAdapterMatchFacts(selected)
+	behaviorFacts, err := localTextBehaviorAdapterResolutionFacts(selected, behaviorMatch)
+	if err != nil {
+		return fail(grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED))
+	}
+	resolvedBehaviorAdapter, err := resolveTextBehaviorAdapterForFacts(s.textBehaviorAdapters, behaviorFacts, localTextBehaviorExecutionMode(stream), request)
+	if err != nil {
+		return fail(err)
+	}
+	runtimeBehaviorAdapter, err := resolvedBehaviorAdapter.runtimeAdapter()
+	if err != nil {
+		return fail(grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "local text behavior adapter projection failed"}))
+	}
 	plan, err := textDriver.PlanTextInvocation(capabilitydriver.TextInvocationInput{
 		PortableConfig:           portable,
 		ModelContextWindowTokens: selected.ModelContextWindowTokens,
 		ExactBindings:            append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...),
+		ExactDependencySources:   invocationExactDependencySources(selected.ExactDependencySources),
+		BehaviorMatch:            behaviorMatch,
+		BehaviorAdapter:          runtimeBehaviorAdapter,
 		Request:                  request,
 		Stream:                   stream,
 	})
@@ -186,18 +203,34 @@ func (s *Service) localTextEffectiveInputsFromResolvedAssembly(assembly *localRe
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED || !ok {
 		return nil, fmt.Errorf("captured local text Driver is unavailable")
 	}
+	selected := selectedLocalExecutionFromResolvedAssembly(assembly)
+	selected.PortableConfig = portable
+	behaviorMatch := projectLocalTextBehaviorAdapterMatchFacts(selected)
+	behaviorFacts, err := localTextBehaviorAdapterResolutionFacts(selected, behaviorMatch)
+	if err != nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
+	}
+	resolvedBehaviorAdapter, err := resolveTextBehaviorAdapterForFacts(s.textBehaviorAdapters, behaviorFacts, localTextBehaviorExecutionMode(assembly.LoadPlan.Text.Stream), request)
+	if err != nil {
+		return nil, err
+	}
+	runtimeBehaviorAdapter, err := resolvedBehaviorAdapter.runtimeAdapter()
+	if err != nil {
+		return nil, err
+	}
 	plan, err := textDriver.PlanTextInvocation(capabilitydriver.TextInvocationInput{
 		PortableConfig:           portable,
 		ModelContextWindowTokens: assembly.LoadPlan.Text.ContextWindowTokens,
 		ExactBindings:            resolvedAssemblyExactBindings(assembly),
+		ExactDependencySources:   resolvedAssemblyExactDependencySources(assembly),
+		BehaviorMatch:            behaviorMatch,
+		BehaviorAdapter:          runtimeBehaviorAdapter,
 		Request:                  request,
 		Stream:                   assembly.LoadPlan.Text.Stream,
 	})
 	if err != nil {
 		return nil, err
 	}
-	selected := selectedLocalExecutionFromResolvedAssembly(assembly)
-	selected.PortableConfig = portable
 	reprojected, err := localResolvedAssemblyForText(selected, request, plan)
 	if err != nil {
 		return nil, err
@@ -255,7 +288,103 @@ func validSelectedTextExecution(selected *localexecution.SelectedLocalExecution)
 		strings.TrimSpace(selected.LoadoutID) != "" &&
 		selected.CapabilityContract == capabilitydriver.LlamaCapabilityContract &&
 		selected.DriverIdentity != nil &&
-		len(selected.Requirements) > 0 && len(selected.Requirements) == len(selected.ExactBindings)
+		selectedLocalExecutionBindingsComplete(selected)
+}
+
+func selectedLocalExecutionBindingsComplete(selected *localexecution.SelectedLocalExecution) bool {
+	if selected == nil || len(selected.Requirements) == 0 {
+		return false
+	}
+	requirements := make(map[string]runtimev1.LocalCapabilityRequirementPresence, len(selected.Requirements))
+	for _, requirement := range selected.Requirements {
+		if requirement == nil || strings.TrimSpace(requirement.GetRequirementId()) == "" {
+			return false
+		}
+		id := strings.TrimSpace(requirement.GetRequirementId())
+		if _, duplicate := requirements[id]; duplicate {
+			return false
+		}
+		presence := requirement.GetPresence()
+		if presence == runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_UNSPECIFIED {
+			presence = runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED
+		}
+		requirements[id] = presence
+	}
+	bound := make(map[string]struct{}, len(selected.ExactBindings))
+	for _, binding := range selected.ExactBindings {
+		id := strings.TrimSpace(binding.RequirementID)
+		if _, exists := requirements[id]; !exists {
+			return false
+		}
+		if _, duplicate := bound[id]; duplicate {
+			return false
+		}
+		bound[id] = struct{}{}
+	}
+	for id, presence := range requirements {
+		if presence == runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED {
+			if _, exists := bound[id]; !exists {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func localTextBehaviorExecutionMode(stream bool) runtimev1.ExecutionMode {
+	if stream {
+		return runtimev1.ExecutionMode_EXECUTION_MODE_STREAM
+	}
+	return runtimev1.ExecutionMode_EXECUTION_MODE_SYNC
+}
+
+func localTextBehaviorAdapterResolutionFacts(selected *localexecution.SelectedLocalExecution, match capabilitydriver.TextBehaviorAdapterMatchFacts) (textBehaviorAdapterResolutionFacts, error) {
+	if selected == nil || selected.DriverIdentity == nil {
+		return textBehaviorAdapterResolutionFacts{}, fmt.Errorf("selected local text identity is unavailable")
+	}
+	facts := textBehaviorAdapterResolutionFacts{
+		ImplementationID: strings.TrimSpace(selected.DriverIdentity.GetImplementationId()),
+		DriverID:         strings.TrimSpace(selected.DriverIdentity.GetDriverId()),
+		DriverDialect:    strings.TrimSpace(match.DriverDialect),
+		LocalTarget: &textBehaviorLocalResolutionTarget{
+			RecipeID:         strings.TrimSpace(match.RecipeID),
+			RecipeRevision:   strings.TrimSpace(match.RecipeRevision),
+			TemplateIdentity: strings.TrimSpace(match.TemplateIdentity),
+			ModelContents: []textBehaviorModelContent{{
+				SlotID: capabilitydriver.MainGGUFRequirementID, ContentID: strings.TrimSpace(match.VerifiedContentID),
+				EntrySHA256: strings.TrimSpace(match.EntrySHA256),
+			}},
+		},
+	}
+	for _, custody := range selected.RecipeCustody {
+		if custody == nil {
+			continue
+		}
+		facts.LocalTarget.RecipeCustody = append(facts.LocalTarget.RecipeCustody, textBehaviorRecipeCustody{
+			CustodyID: strings.TrimSpace(custody.GetCustodyId()), ContentID: strings.TrimSpace(custody.GetExpectedContentId()),
+		})
+	}
+	sort.Slice(facts.LocalTarget.RecipeCustody, func(left, right int) bool {
+		return facts.LocalTarget.RecipeCustody[left].CustodyID < facts.LocalTarget.RecipeCustody[right].CustodyID
+	})
+	if selected.PortableConfig != nil {
+		for key, value := range selected.PortableConfig.GetFields() {
+			if value == nil {
+				return textBehaviorAdapterResolutionFacts{}, fmt.Errorf("canonicalize local text load option %q: value is unavailable", key)
+			}
+			canonical, err := json.Marshal(value.AsInterface())
+			if err != nil {
+				return textBehaviorAdapterResolutionFacts{}, fmt.Errorf("canonicalize local text load option %q: %w", key, err)
+			}
+			facts.LocalTarget.LoadOptions = append(facts.LocalTarget.LoadOptions, textBehaviorLoadOption{
+				Key: strings.TrimSpace(key), CanonicalValue: string(canonical),
+			})
+		}
+		sort.Slice(facts.LocalTarget.LoadOptions, func(left, right int) bool {
+			return facts.LocalTarget.LoadOptions[left].Key < facts.LocalTarget.LoadOptions[right].Key
+		})
+	}
+	return facts, nil
 }
 
 func (s *Service) resolveLocalTextConsumerIntent(
@@ -304,8 +433,22 @@ func requireSelectedFeatures(required []string, supported []string) error {
 	return nil
 }
 
-func requireSelectedRequestFeatures(spec *runtimev1.TextGenerateScenarioSpec, supported []string) error {
+func requireSelectedRequestFeatures(spec *runtimev1.TextGenerateScenarioSpec, implementationSupported []string, configured []string) error {
+	required := localTextRequestFeatures(spec)
+	if err := requireSelectedFeatures(required, implementationSupported); err != nil {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
+	}
+	if err := requireSelectedFeatures(required, configured); err != nil {
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_ASSET_SLOT_MISSING)
+	}
+	return nil
+}
+
+func localTextRequestFeatures(spec *runtimev1.TextGenerateScenarioSpec) []string {
 	required := make([]string, 0, 1)
+	if spec == nil {
+		return nil
+	}
 	for _, message := range spec.GetInput() {
 		for _, part := range message.GetParts() {
 			switch part.GetType() {
@@ -318,10 +461,7 @@ func requireSelectedRequestFeatures(spec *runtimev1.TextGenerateScenarioSpec, su
 			}
 		}
 	}
-	if err := requireSelectedFeatures(required, supported); err != nil {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
-	}
-	return nil
+	return normalizeLocalFeatureSet(required)
 }
 
 func normalizeLocalTextRequest(
@@ -443,6 +583,8 @@ func localTextInvocationError(err error) error {
 		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{})
 	case capabilitydriver.InvocationFailureUnsupported:
 		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED, err, grpcerr.ReasonOptions{})
+	case capabilitydriver.InvocationFailureTextBehaviorUnsupported:
+		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED, err, grpcerr.ReasonOptions{})
 	case capabilitydriver.InvocationFailureInvalidBinding:
 		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, err, grpcerr.ReasonOptions{})
 	default:
@@ -461,6 +603,11 @@ func localExecutionError(err error) error {
 	kind := localexecution.FailureKindOf(err)
 	options := grpcerr.ReasonOptions{Metadata: map[string]string{"execution_phase": string(kind)}}
 	retryable := false
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok && reason == runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID {
+		options.ActionHint = "replace_reasoning_continuity_carrier"
+		options.Retryable = &retryable
+		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, reason, err, options)
+	}
 	switch kind {
 	case localexecution.FailureTimeout:
 		options.ActionHint = "request_timed_out"
@@ -487,6 +634,18 @@ func localExecutionError(err error) error {
 		options.ActionHint = "reduce_local_execution_memory_requirement"
 		options.Retryable = &retryable
 		return grpcerr.WrapWithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_OUT_OF_MEMORY, err, options)
+	case localexecution.FailureTextOutputIncomplete:
+		options.ActionHint = "increase_text_output_or_reasoning_budget"
+		options.Retryable = &retryable
+		return grpcerr.WrapWithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_TEXT_OUTPUT_INCOMPLETE, err, options)
+	case localexecution.FailureToolCallInvalid:
+		options.ActionHint = "inspect_model_tool_adapter_output"
+		options.Retryable = &retryable
+		return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_TOOL_CALL_INVALID, err, options)
+	case localexecution.FailureTextOutputInvalid:
+		options.ActionHint = "inspect_model_text_adapter_output"
+		options.Retryable = &retryable
+		return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, options)
 	default:
 		retryable = true
 		options.ActionHint = "retry_or_adjust_request"

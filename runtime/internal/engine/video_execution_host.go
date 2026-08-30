@@ -60,6 +60,7 @@ type VideoExecutionHost struct {
 	logger      *slog.Logger
 	substrate   videoInvocationSubstrate
 	cancelGrace time.Duration
+	admit       func(*capabilitydriver.VideoInvocationPlan) error
 
 	mu             sync.Mutex
 	queue          []*videoExecutionRequest
@@ -74,7 +75,17 @@ type VideoExecutionHost struct {
 }
 
 func NewVideoExecutionHost(manager *Manager, logger *slog.Logger, config VideoExecutionHostConfig) *VideoExecutionHost {
-	return newVideoExecutionHostWithSubstrate(newManagerVideoInvocationSubstrate(manager, logger, config), logger, config.CancelGrace)
+	host := newVideoExecutionHostWithSubstrate(newManagerVideoInvocationSubstrate(manager, logger, config), logger, config.CancelGrace)
+	host.admit = func(plan *capabilitydriver.VideoInvocationPlan) error {
+		if err := validateVideoInvocationPlan(plan); err != nil {
+			return err
+		}
+		if plan.RecipeID() != capabilitydriver.StableDiffusionVideoRecipeID {
+			return fmt.Errorf("video invocation recipe %q has no managed package family", plan.RecipeID())
+		}
+		return admitManagedImageRecipeForCurrentHost(capabilitydriver.StableDiffusionVideoRecipeID, config.PackageSource)
+	}
+	return host
 }
 
 func newVideoExecutionHostWithSubstrate(substrate videoInvocationSubstrate, logger *slog.Logger, cancelGrace time.Duration) *VideoExecutionHost {
@@ -87,11 +98,21 @@ func newVideoExecutionHostWithSubstrate(substrate videoInvocationSubstrate, logg
 	lifetime, cancelLifetime := context.WithCancel(context.Background())
 	host := &VideoExecutionHost{
 		logger: logger, substrate: substrate, cancelGrace: cancelGrace,
-		wake: make(chan struct{}, 1), stop: make(chan struct{}), stopped: make(chan struct{}),
+		admit: validateVideoInvocationPlan,
+		wake:  make(chan struct{}, 1), stop: make(chan struct{}), stopped: make(chan struct{}),
 		lifetime: lifetime, cancelLifetime: cancelLifetime,
 	}
 	go host.run()
 	return host
+}
+
+// AdmitVideo validates the exact Driver plan against the current canonical
+// host/package-family tuple before a Runtime Job is published.
+func (h *VideoExecutionHost) AdmitVideo(plan *capabilitydriver.VideoInvocationPlan) error {
+	if h == nil || h.substrate == nil || h.admit == nil {
+		return fmt.Errorf("video execution host admission is unavailable")
+	}
+	return h.admit(plan)
 }
 
 func (h *VideoExecutionHost) ExecuteVideo(
@@ -106,7 +127,7 @@ func (h *VideoExecutionHost) ExecuteVideo(
 	if h == nil || h.substrate == nil {
 		return localexecution.RawAVCandidate{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("video execution host is unavailable"))
 	}
-	if err := validateVideoInvocationPlan(plan); err != nil {
+	if err := h.AdmitVideo(plan); err != nil {
 		return localexecution.RawAVCandidate{}, executionFailure(localexecution.FailureInference, err)
 	}
 	request := &videoExecutionRequest{ctx: ctx, plan: plan, onStart: onStart, progress: progress, done: make(chan videoExecutionOutcome, 1)}
@@ -268,6 +289,9 @@ func beginVideoExecution(ctx context.Context, onStart localexecution.VideoExecut
 func (h *VideoExecutionHost) execute(request *videoExecutionRequest) (localexecution.RawAVCandidate, error) {
 	startedAt := time.Now()
 	_, err := h.substrate.Ensure(request.ctx, request.plan, func() error {
+		if err := validateInvocationDependencySources(h.substrate, request.plan.DependencySources()); err != nil {
+			return err
+		}
 		return validateInvocationModelContentContext(request.ctx, request.plan.ExactBindings())
 	}, request.progress)
 	if err != nil {
@@ -278,7 +302,7 @@ func (h *VideoExecutionHost) execute(request *videoExecutionRequest) (localexecu
 		if localexecution.FailureKindOf(err) != "" {
 			return localexecution.RawAVCandidate{}, err
 		}
-		return localexecution.RawAVCandidate{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("load video invocation substrate: %w", err))
+		return localexecution.RawAVCandidate{}, classifiedExecutionFailure(localexecution.FailureLoad, fmt.Errorf("load video invocation substrate: %w", err), executionFailureDiagnostic(h.substrate))
 	}
 	if request.progress != nil {
 		request.progress(localexecution.VideoExecutionProgress{Stage: localexecution.VideoExecutionStageGenerating, FrameCount: int32(request.plan.FrameCount())})
@@ -300,6 +324,9 @@ func (h *VideoExecutionHost) execute(request *videoExecutionRequest) (localexecu
 		return localexecution.RawAVCandidate{}, executionFailure(localexecution.FailureCanceled, request.ctx.Err())
 	}
 	if generated.err != nil {
+		if executionOutOfMemory(generated.err, executionFailureDiagnostic(h.substrate)) {
+			return localexecution.RawAVCandidate{}, executionFailure(localexecution.FailureOutOfMemory, generated.err)
+		}
 		if !h.substrate.Healthy() {
 			return localexecution.RawAVCandidate{}, executionFailure(localexecution.FailureProcessCrash, fmt.Errorf("video substrate process exited: %w", generated.err))
 		}

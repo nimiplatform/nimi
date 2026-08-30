@@ -60,6 +60,7 @@ type Qwen3TTSAudioCppInvocationPlan struct {
 	text                           string
 	speaker                        string
 	language                       string
+	cliLanguage                    string
 	doSample                       bool
 	temperature                    float64
 	topK                           int
@@ -168,6 +169,15 @@ func (p *Qwen3TTSAudioCppInvocationPlan) Language() string {
 	}
 	return p.language
 }
+
+// CLILanguage is the exact audio.cpp-native token. Language remains the
+// canonical public code so substrate vocabulary never leaks into projection.
+func (p *Qwen3TTSAudioCppInvocationPlan) CLILanguage() string {
+	if p == nil {
+		return ""
+	}
+	return p.cliLanguage
+}
 func (p *Qwen3TTSAudioCppInvocationPlan) Sampling() (bool, float64, int, float64, float64) {
 	if p == nil {
 		return false, 0, 0, 0, 0
@@ -217,6 +227,13 @@ type Qwen3TTSAudioCppInvocationDriver interface {
 
 type Qwen3TTSAudioCppDriver struct{}
 
+func (Qwen3TTSAudioCppDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
+	if strings.TrimSpace(recipeID) != Qwen3TTSAudioCppRecipeID {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
 func (Qwen3TTSAudioCppDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string {
 	return nil
 }
@@ -235,7 +252,7 @@ func (Qwen3TTSAudioCppDriver) Interpret(input InterpretInput) ([]*runtimev1.Loca
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
 	}
 	constraints, _ := structpb.NewStruct(map[string]any{"engine": "audio-cpp", "model_family": "qwen3-tts-customvoice", "artifact_role": "tts_model", "format": "gguf"})
-	return []*runtimev1.LocalCapabilityRequirement{{RequirementId: Qwen3TTSAudioCppModelRequirementID, Role: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN, ResourceKind: "tts", Policy: runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT, CompatibilityConstraints: constraints, DisplayLabel: "Qwen3-TTS CustomVoice 1.7B Q8_0 GGUF"}}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+	return []*runtimev1.LocalCapabilityRequirement{{RequirementId: Qwen3TTSAudioCppModelRequirementID, Role: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN, Presence: runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED, ResourceKind: "tts", Policy: runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT, CompatibilityConstraints: constraints, DisplayLabel: "Qwen3-TTS CustomVoice 1.7B Q8_0 GGUF"}}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 func (d Qwen3TTSAudioCppDriver) ProjectRecipe(recipeID string, options *structpb.Struct, features []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
 	return d.Interpret(InterpretInput{RecipeID: recipeID, PortableConfig: options, SupportedFeatures: features})
@@ -290,7 +307,15 @@ func (Qwen3TTSAudioCppDriver) PlanQwen3TTSAudioCppInvocation(input Qwen3TTSAudio
 		_, _ = hasher.Write([]byte(value))
 		_, _ = hasher.Write([]byte{0})
 	}
-	return &Qwen3TTSAudioCppInvocationPlan{processKey: hex.EncodeToString(hasher.Sum(nil)), loadoutID: strings.TrimSpace(input.LoadoutID), modelBinding: binding, modelPath: filepath.Clean(binding.AbsolutePath), audioCppPackageID: input.Package.AudioCppPackageID, audioCppSelectedSourceRecordID: input.Package.AudioCppSelectedSourceRecordID, audioCppRoot: filepath.Clean(input.Package.AudioCppRoot), audioCppExecutablePath: filepath.Clean(input.Package.AudioCppExecutablePath), cuda13DependencyID: input.Package.CUDA13DependencyID, cuda13SelectedSourceRecordID: input.Package.CUDA13SelectedSourceRecordID, cuda13Root: filepath.Clean(input.Package.CUDA13Root), text: request.GetText(), speaker: request.GetVoiceRef().GetPresetVoiceId(), language: request.GetLanguage(), doSample: true, temperature: 0.9, topK: 50, topP: 1.0, repetitionPenalty: 1.05, maxTokens: 8192, textChunkSize: 8192, seed: 0, memorySaver: true, stagingWAVPath: filepath.Clean(staging)}, nil
+	return &Qwen3TTSAudioCppInvocationPlan{processKey: hex.EncodeToString(hasher.Sum(nil)), loadoutID: strings.TrimSpace(input.LoadoutID), modelBinding: binding, modelPath: filepath.Clean(binding.AbsolutePath), audioCppPackageID: input.Package.AudioCppPackageID, audioCppSelectedSourceRecordID: input.Package.AudioCppSelectedSourceRecordID, audioCppRoot: filepath.Clean(input.Package.AudioCppRoot), audioCppExecutablePath: filepath.Clean(input.Package.AudioCppExecutablePath), cuda13DependencyID: input.Package.CUDA13DependencyID, cuda13SelectedSourceRecordID: input.Package.CUDA13SelectedSourceRecordID, cuda13Root: filepath.Clean(input.Package.CUDA13Root), text: request.GetText(), speaker: request.GetVoiceRef().GetPresetVoiceId(), language: request.GetLanguage(), cliLanguage: qwen3TTSAudioCppCLILanguage(request.GetLanguage()), doSample: true, temperature: 0.9, topK: 50, topP: 1.0, repetitionPenalty: 1.05, maxTokens: 8192, textChunkSize: 8192, seed: 0, memorySaver: true, stagingWAVPath: filepath.Clean(staging)}, nil
+}
+
+func qwen3TTSAudioCppCLILanguage(language string) string {
+	native, ok := audioCppQwen3TTSLanguageTokens[strings.TrimSpace(language)]
+	if !ok {
+		return ""
+	}
+	return native
 }
 
 func validateQwen3TTSAudioCppRequest(value *runtimev1.SpeechSynthesizeScenarioSpec) (*runtimev1.SpeechSynthesizeScenarioSpec, error) {

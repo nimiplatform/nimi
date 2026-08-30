@@ -6,10 +6,11 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
@@ -18,17 +19,36 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 )
 
+func TestLlamaExecutionHostConfigUsesRuntimeConfigExactly(t *testing.T) {
+	disabled, ok := llamaExecutionHostConfig(config.Config{
+		EngineLlamaVersion: "disabled-version",
+		EngineLlamaPort:    24567,
+	})
+	if ok || disabled.Kind != "" || disabled.Version != "" || disabled.Port != 0 {
+		t.Fatalf("disabled llama config = %+v/%t, want zero/false", disabled, ok)
+	}
+
+	resolved, ok := llamaExecutionHostConfig(config.Config{
+		EngineLlamaEnabled: true,
+		EngineLlamaVersion: "  llama-version-override  ",
+		EngineLlamaPort:    24567,
+	})
+	if !ok || resolved.Kind != engine.EngineLlama || resolved.Version != "llama-version-override" || resolved.Port != 24567 {
+		t.Fatalf("resolved llama config = %+v/%t", resolved, ok)
+	}
+}
+
 func TestLlamaHostStateNeverInjectsAmbientProviderEndpoint(t *testing.T) {
 	var logBuf bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logBuf, nil))
 	daemon := newTestDaemon(t, logger)
 	daemon.engineMgr = newHealthyEngineManager(t, engine.EngineLlama, 1234)
+	t.Setenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "sentinel")
 
-	daemon.injectEngineEndpointEnv(engine.EngineLlama, "NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL", "bootstrap")
 	daemon.onEngineStateChange("llama", "healthy", "ready")
 
-	if logs := logBuf.String(); strings.Contains(logs, "msg=\"engine endpoint env injected\"") {
-		t.Fatalf("private llama Host leaked endpoint projection:\n%s", logs)
+	if value := os.Getenv("NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL"); value != "sentinel" {
+		t.Fatalf("private llama Host mutated ambient endpoint: %q", value)
 	}
 }
 
@@ -62,6 +82,40 @@ func TestOnEngineStateChangeHealthyDoesNotRecoverDifferentEngineFailure(t *testi
 	snapshot := daemon.state.Snapshot()
 	if snapshot.Status != health.StatusDegraded || snapshot.Reason != "engine:media unhealthy (probe failed)" {
 		t.Fatalf("expected unrelated degraded state to remain untouched, got %s (%s)", snapshot.Status, snapshot.Reason)
+	}
+}
+
+func TestOnEngineStateChangeHealthyWaitsForEveryUnhealthyEngine(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	daemon := newTestDaemon(t, logger)
+	manager, err := engine.NewManager(logger, engine.ManagedRoots{
+		Environments: t.TempDir(),
+		Dependencies: t.TempDir(),
+	}, nil)
+	if err != nil {
+		t.Fatalf("create engine manager: %v", err)
+	}
+	media := engine.NewSupervisor(engine.EngineConfig{Kind: engine.EngineMedia}, logger, nil)
+	media.SetStateForTesting(engine.StatusUnhealthy, time.Time{})
+	speech := engine.NewSupervisor(engine.EngineConfig{Kind: engine.EngineSpeech}, logger, nil)
+	speech.SetStateForTesting(engine.StatusHealthy, time.Now())
+	manager.SetSupervisorForTesting(engine.EngineMedia, media)
+	manager.SetSupervisorForTesting(engine.EngineSpeech, speech)
+	daemon.engineMgr = manager
+	daemon.state.SetStatus(health.StatusDegraded, "engine:speech unhealthy (probe failed)")
+
+	daemon.onEngineStateChange("speech", "healthy", "probe recovered")
+
+	snapshot := daemon.state.Snapshot()
+	if snapshot.Status != health.StatusDegraded || !engineUnhealthyReasonMatches(snapshot.Reason, "media") {
+		t.Fatalf("remaining unhealthy media engine must keep Runtime degraded, got %s (%s)", snapshot.Status, snapshot.Reason)
+	}
+
+	media.SetStateForTesting(engine.StatusHealthy, time.Now())
+	daemon.onEngineStateChange("media", "healthy", "probe recovered")
+
+	if snapshot := daemon.state.Snapshot(); snapshot.Status != health.StatusReady || snapshot.Reason != "ready" {
+		t.Fatalf("last recovered engine must restore Runtime readiness, got %s (%s)", snapshot.Status, snapshot.Reason)
 	}
 }
 
@@ -237,32 +291,12 @@ func TestStartSupervisedEnginesRegistersSpeechWithoutBootstrapping(t *testing.T)
 		return engine.NewManager(slog.New(slog.NewTextHandler(io.Discard, nil)), engine.ManagedRoots{Environments: t.TempDir(), Dependencies: t.TempDir()}, nil)
 	}
 
-	startCalls := make([]engine.EngineKind, 0, 1)
-	var startCallsMu sync.Mutex
-	daemon.startEngineFn = func(_ context.Context, kind engine.EngineKind, _ string, _ int, _ string) error {
-		startCallsMu.Lock()
-		startCalls = append(startCalls, kind)
-		startCallsMu.Unlock()
-		return nil
-	}
-
 	daemon.startSupervisedEngines(context.Background())
 
 	if daemon.engineMgr == nil {
 		t.Fatal("expected engine manager to initialize for managed speech requests")
 	}
-	if len(startCalls) != 0 {
-		t.Fatalf("speech must stay cold until a speech lease starts the worker, got=%v", startCalls)
-	}
 	if snapshot := daemon.state.Snapshot(); snapshot.Status == health.StatusDegraded {
 		t.Fatalf("speech cold registration must not degrade Runtime core readiness: %s", snapshot.Reason)
-	}
-}
-
-func TestStartEngineRejectsGenericMediaLifecycle(t *testing.T) {
-	daemon := &Daemon{}
-	err := daemon.startEngine(context.Background(), engine.EngineMedia, "0.1.0", 8321, "NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL")
-	if err == nil || !strings.Contains(err.Error(), "exact LocalService asset dependency profile") {
-		t.Fatalf("generic daemon media lifecycle must fail closed, got %v", err)
 	}
 }

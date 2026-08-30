@@ -184,7 +184,13 @@ func TestAppLocalAIConfigPersistsWhenMachineSelectionIsMissing(t *testing.T) {
 
 func TestAppLocalAIConfigEffectiveSelectionBlocksFeatureIncompatibleLoadout(t *testing.T) {
 	selected := selectedTextExecutionForTest(t, "loadout-feature-mismatch", "feature-mismatch.gguf")
-	selected.SupportedFeatures = []string{"input.audio"}
+	selected.ImplementationSupportedFeatures = []string{"input.audio", "input.image"}
+	selected.ConfiguredFeatures = []string{"input.audio"}
+	selected.TextBehaviors = []*runtimev1.TextBehaviorCapabilityProjection{{
+		Kind:               runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_TOOL_USE,
+		ConfigurationState: runtimev1.TextBehaviorConfigurationState_TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE,
+		Reasons:            []runtimev1.LocalCapabilityReason{runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_UNAVAILABLE},
+	}}
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selected})
 	intent := localAppAIConfigIntent("text.generate")
@@ -204,7 +210,10 @@ func TestAppLocalAIConfigEffectiveSelectionBlocksFeatureIncompatibleLoadout(t *t
 	selection := read.GetEffectiveSelections()[0]
 	if err != nil || selection.GetState() != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED ||
 		len(selection.GetReasons()) != 1 || selection.GetReasons()[0] != runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH.String() ||
-		selection.GetLocal().GetLoadoutRef() != selected.LoadoutID {
+		selection.GetLocal().GetLoadoutRef() != selected.LoadoutID ||
+		len(selection.GetLocal().GetImplementationSupportedFeatures()) != 2 ||
+		len(selection.GetLocal().GetConfiguredFeatures()) != 1 || selection.GetLocal().GetConfiguredFeatures()[0] != "input.audio" ||
+		len(selection.GetLocal().GetTextBehaviors()) != 1 || selection.GetLocal().GetTextBehaviors()[0].GetKind() != runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_TOOL_USE {
 		t.Fatalf("feature-incompatible effective selection = %+v, %v", selection, err)
 	}
 }

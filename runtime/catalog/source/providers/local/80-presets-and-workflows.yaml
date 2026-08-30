@@ -2,15 +2,15 @@
 # parameters to exact slots projected by the versioned Driver dialect. It does
 # not own a second slot topology and never causes acquisition.
 loadout_recipes:
-  - recipe_id: llama.text-generate.gemma-4-e2b-it.v1
+  - recipe_id: llama.text-generate.gemma4.v1
     revision: "1"
-    title: Gemma 4 E2B text generation
+    title: Gemma 4 text generation
     capability_contract: text.generate
     implementation_id: local.text.generate.llama-cpp
     driver_id: nimi.runtime.driver.llama-cpp
-    driver_dialect: llama.cpp/text-generate/v1
+    driver_dialect: llama.cpp/text-generate/v2
     default_options: {}
-    supported_features: []
+    supported_features: [input.image]
     slot_metadata:
       - slot_id: main.gguf
         display_label: Main model
@@ -20,22 +20,6 @@ loadout_recipes:
           - local.chat.gemma-4-e2b-it.q5-k-m
           - local.chat.gemma-4-e2b-it.q6-k
           - local.chat.gemma-4-e2b-it.q8-0
-        model_contract:
-          format: gguf
-          gguf_architectures: [gemma4]
-  - recipe_id: llama.text-generate.gemma-4-26b-a4b-it.v1
-    revision: "1"
-    title: Gemma 4 26B-A4B text generation
-    capability_contract: text.generate
-    implementation_id: local.text.generate.llama-cpp
-    driver_id: nimi.runtime.driver.llama-cpp
-    driver_dialect: llama.cpp/text-generate/v1
-    default_options: {}
-    supported_features: []
-    slot_metadata:
-      - slot_id: main.gguf
-        display_label: Main model
-        recommended_variant_ids:
           - local.chat.gemma-4-26b-a4b-it.q4-k-m
           - local.chat.gemma-4-26b-a4b-it.q5-k-m
           - local.chat.gemma-4-26b-a4b-it.q6-k
@@ -43,6 +27,16 @@ loadout_recipes:
         model_contract:
           format: gguf
           gguf_architectures: [gemma4]
+      - slot_id: companion.mmproj
+        display_label: Vision projector
+        recommended_variant_ids:
+          - local.aux.gemma-4-e2b-it.mmproj-f16.cuda
+          - local.aux.gemma-4-e2b-it.mmproj-f16.metal
+          - local.aux.gemma-4-26b-a4b-it.mmproj-f16.cuda
+          - local.aux.gemma-4-26b-a4b-it.mmproj-f16.metal
+        model_contract:
+          format: gguf
+          artifact_role: mmproj
   - recipe_id: llama.text-embed.gguf.v1
     revision: "1"
     title: llama.cpp GGUF embeddings
@@ -231,7 +225,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v2
+    driver_dialect: stable-diffusion.cpp/image-generate/v3
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -271,7 +265,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v2
+    driver_dialect: stable-diffusion.cpp/image-generate/v3
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -368,7 +362,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v2
+    driver_dialect: stable-diffusion.cpp/image-generate/v3
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -398,7 +392,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v2
+    driver_dialect: stable-diffusion.cpp/image-generate/v3
     default_options: {}
     supported_features: [input.image]
     slot_metadata:

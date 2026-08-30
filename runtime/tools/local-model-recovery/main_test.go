@@ -115,7 +115,7 @@ func TestMigrateLegacyStateAssetsReforgesMergesRederivesAndIsIdempotent(t *testi
 	}
 	assertStateAssetCount(t, statePath, 0)
 	storePath := filepath.Join(filepath.Dir(statePath), "model-assets.json")
-	setStoredCatalogVerification(t, storePath, "MODEL_ASSET_CATALOG_VERIFICATION_MATCHED")
+	setStoredCatalogVerification(t, storePath, root, "MODEL_ASSET_CATALOG_VERIFICATION_MATCHED")
 
 	writeLegacyState(t, statePath, "legacy-command-2", manifestPath)
 	second := runMigrationCommand(t, root, statePath)
@@ -476,14 +476,18 @@ func assertStateAssetCount(t *testing.T, statePath string, want int) {
 	}
 }
 
-func setStoredCatalogVerification(t *testing.T, storePath string, verification string) {
+func setStoredCatalogVerification(t *testing.T, storePath string, modelsRoot string, verification string) {
 	t.Helper()
 	document := readObjectFile(t, storePath)
 	rows := document["assets"].([]any)
 	row := rows[0].(map[string]any)
 	asset := row["asset"].(map[string]any)
 	asset["catalog_verification"] = verification
-	manifestPath := filepath.Join(row["managedDirectory"].(string), "asset.manifest.json")
+	managedDirectory := row["managedDirectory"].(string)
+	if !filepath.IsAbs(managedDirectory) {
+		managedDirectory = filepath.Join(modelsRoot, filepath.FromSlash(managedDirectory))
+	}
+	manifestPath := filepath.Join(managedDirectory, "asset.manifest.json")
 	manifest := readObjectFile(t, manifestPath)
 	manifest["catalog_verified"] = verification == "MODEL_ASSET_CATALOG_VERIFICATION_MATCHED"
 	writeJSONFile(t, manifestPath, manifest)

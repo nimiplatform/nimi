@@ -19,8 +19,10 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"github.com/nimiplatform/nimi/runtime/internal/modelassetintegrity"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 )
 
 const maxLlamaInvocationErrorBody = 64 << 10
@@ -66,7 +68,7 @@ func NewExecutionHost(manager *Manager, logger *slog.Logger) *ExecutionHost {
 // NewExecutionHostWithLlamaConfig constructs a Host with explicit supervised
 // llama process settings. Driver-owned command arguments still replace
 // CommandArgs for every captured plan; this constructor only configures Host
-// facts such as the loopback port and lifecycle timeouts.
+// facts such as managed package version, loopback port, and lifecycle timeouts.
 func NewExecutionHostWithLlamaConfig(manager *Manager, logger *slog.Logger, config EngineConfig) (*ExecutionHost, error) {
 	if manager == nil {
 		return nil, fmt.Errorf("llama execution host manager is required")
@@ -77,6 +79,10 @@ func NewExecutionHostWithLlamaConfig(manager *Manager, logger *slog.Logger, conf
 	if config.Port <= 0 || config.Port > 65535 {
 		return nil, fmt.Errorf("llama execution host port must be between 1 and 65535")
 	}
+	if strings.TrimSpace(config.Version) == "" {
+		return nil, fmt.Errorf("llama execution host version is required")
+	}
+	config.Version = strings.TrimSpace(config.Version)
 	if logger == nil {
 		logger = slog.Default()
 	}
@@ -142,16 +148,23 @@ func (h *ExecutionHost) ExecuteEmbed(
 	defer func() { h.lease <- struct{}{} }()
 
 	endpoint, _, err := h.substrate.Ensure(ctx, plan.ProcessKey(), plan.ProcessArgs(), func() error {
+		if err := validateInvocationDependencySources(h.substrate, plan.DependencySources()); err != nil {
+			return err
+		}
 		return validateInvocationModelContent(plan.ModelFiles())
 	}, progress)
 	if err != nil {
+		h.logger.Warn("llama invocation load failed",
+			"event", "engine.llama.invocation_load_failed",
+			"detail", boundedExecutionDiagnostic(err),
+		)
 		if ctx.Err() != nil {
 			return localexecution.EmbedResult{}, executionFailure(localexecution.FailureCanceled, ctx.Err())
 		}
 		if localexecution.FailureKindOf(err) == localexecution.FailureContentMismatch {
 			return localexecution.EmbedResult{}, err
 		}
-		return localexecution.EmbedResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("load llama embedding process: %w", err))
+		return localexecution.EmbedResult{}, classifiedExecutionFailure(localexecution.FailureLoad, fmt.Errorf("load llama embedding process: %w", err), executionFailureDiagnostic(h.substrate))
 	}
 	requestURL := strings.TrimRight(strings.TrimSpace(endpoint), "/") + "/" + strings.TrimLeft(plan.RequestPath(), "/")
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, bytes.NewReader(plan.RequestBody()))
@@ -209,7 +222,7 @@ func (h *ExecutionHost) embedInferenceFailure(ctx context.Context, err error) er
 	if ctx != nil && ctx.Err() != nil {
 		return executionFailure(localexecution.FailureCanceled, ctx.Err())
 	}
-	return executionFailure(localexecution.FailureInference, err)
+	return classifiedExecutionFailure(localexecution.FailureInference, err, executionFailureDiagnostic(h.substrate))
 }
 
 func (h *ExecutionHost) execute(
@@ -224,7 +237,8 @@ func (h *ExecutionHost) execute(
 	if h == nil || h.substrate == nil || h.client == nil {
 		return localexecution.TextResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("llama execution host is unavailable"))
 	}
-	if plan.ProcessKey() == "" || len(plan.ProcessArgs()) == 0 || plan.RequestPath() == "" || len(plan.RequestBody()) == 0 {
+	if plan.ProcessKey() == "" || len(plan.ProcessArgs()) == 0 || plan.RequestPath() == "" ||
+		plan.RequestContentType() == "" || len(plan.RequestBody()) == 0 {
 		return localexecution.TextResult{}, executionFailure(localexecution.FailureInference, fmt.Errorf("llama invocation plan is incomplete"))
 	}
 
@@ -236,6 +250,9 @@ func (h *ExecutionHost) execute(
 	defer func() { h.lease <- struct{}{} }()
 
 	endpoint, _, err := h.substrate.Ensure(ctx, plan.ProcessKey(), plan.ProcessArgs(), func() error {
+		if err := validateInvocationDependencySources(h.substrate, plan.DependencySources()); err != nil {
+			return err
+		}
 		return validateInvocationModelContent(plan.ModelFiles())
 	}, progress)
 	if err != nil {
@@ -245,14 +262,14 @@ func (h *ExecutionHost) execute(
 		if localexecution.FailureKindOf(err) == localexecution.FailureContentMismatch {
 			return localexecution.TextResult{}, err
 		}
-		return localexecution.TextResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("load llama invocation process: %w", err))
+		return localexecution.TextResult{}, classifiedExecutionFailure(localexecution.FailureLoad, fmt.Errorf("load llama invocation process: %w", err), executionFailureDiagnostic(h.substrate))
 	}
 	requestURL := strings.TrimRight(strings.TrimSpace(endpoint), "/") + "/" + strings.TrimLeft(plan.RequestPath(), "/")
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, bytes.NewReader(plan.RequestBody()))
 	if err != nil {
 		return localexecution.TextResult{}, executionFailure(localexecution.FailureInference, fmt.Errorf("create llama inference request: %w", err))
 	}
-	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Content-Type", plan.RequestContentType())
 	if plan.Stream() {
 		request.Header.Set("Accept", "text/event-stream")
 	}
@@ -264,6 +281,12 @@ func (h *ExecutionHost) execute(
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
 		body, _ := io.ReadAll(io.LimitReader(response.Body, maxLlamaInvocationErrorBody))
 		return localexecution.TextResult{}, h.inferenceFailure(ctx, fmt.Errorf("llama inference HTTP %d: %s", response.StatusCode, strings.TrimSpace(string(body))))
+	}
+	if plan.BehaviorAdapterCapture() != nil {
+		if plan.Stream() {
+			return h.consumeTextBehaviorStream(ctx, plan, response.Body, onDelta)
+		}
+		return h.consumeTextBehaviorResponse(ctx, plan, response.Body)
 	}
 	if plan.Stream() {
 		return h.consumeStream(ctx, response.Body, onDelta)
@@ -434,9 +457,10 @@ func (h *ExecutionHost) consumeResponse(ctx context.Context, body io.Reader) (lo
 	}
 	choice, _ := choices[0].(map[string]any)
 	message, _ := choice["message"].(map[string]any)
+	finishReason := mapLlamaFinishReason(stringValue(choice["finish_reason"]))
 	text := textContent(message["content"])
 	if strings.TrimSpace(text) == "" {
-		return localexecution.TextResult{}, h.inferenceFailure(ctx, fmt.Errorf("llama inference response has no text"))
+		return localexecution.TextResult{}, executionFailure(localexecution.FailureTextOutputIncomplete, fmt.Errorf("llama inference response has no public text"))
 	}
 	inputTokens, outputTokens := invocationUsage(payload["usage"])
 	return localexecution.TextResult{
@@ -444,8 +468,92 @@ func (h *ExecutionHost) consumeResponse(ctx context.Context, body io.Reader) (lo
 		InputTokens:  inputTokens,
 		OutputTokens: outputTokens,
 		ComputeMS:    invocationComputeMS(payload),
-		FinishReason: mapLlamaFinishReason(stringValue(choice["finish_reason"])),
+		FinishReason: finishReason,
 	}, nil
+}
+
+func (h *ExecutionHost) consumeTextBehaviorResponse(
+	ctx context.Context,
+	plan *capabilitydriver.TextInvocationPlan,
+	body io.Reader,
+) (localexecution.TextResult, error) {
+	payload, err := io.ReadAll(io.LimitReader(body, 16<<20))
+	if err != nil {
+		return localexecution.TextResult{}, h.inferenceFailure(ctx, fmt.Errorf("read llama text behavior response: %w", err))
+	}
+	normalized, err := plan.ParseTextBehaviorResponse(payload)
+	if err != nil {
+		return localexecution.TextResult{}, h.textBehaviorInferenceFailure(ctx, err)
+	}
+	return textBehaviorExecutionResult(normalized), nil
+}
+
+func (h *ExecutionHost) consumeTextBehaviorStream(
+	ctx context.Context,
+	plan *capabilitydriver.TextInvocationPlan,
+	body io.Reader,
+	onDelta func(localexecution.TextDelta) error,
+) (localexecution.TextResult, error) {
+	assembler, err := plan.NewTextBehaviorStreamAssembler()
+	if err != nil {
+		return localexecution.TextResult{}, h.textBehaviorInferenceFailure(ctx, err)
+	}
+	scanner := bufio.NewScanner(body)
+	scanner.Buffer(make([]byte, 0, 64<<10), 1<<20)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, ":") || !strings.HasPrefix(line, "data:") {
+			continue
+		}
+		data := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+		if data == "" {
+			continue
+		}
+		if data == "[DONE]" {
+			break
+		}
+		deltas, appendErr := assembler.Append([]byte(data))
+		if appendErr != nil {
+			return localexecution.TextResult{}, h.textBehaviorInferenceFailure(ctx, appendErr)
+		}
+		for _, delta := range deltas {
+			if !delta.HasPublicPayload() {
+				continue
+			}
+			value := delta
+			if err := onDelta(localexecution.TextDelta{Ordered: &value}); err != nil {
+				return localexecution.TextResult{}, h.inferenceFailure(ctx, err)
+			}
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return localexecution.TextResult{}, h.inferenceFailure(ctx, fmt.Errorf("read llama text behavior stream: %w", err))
+	}
+	normalized, err := assembler.Finish()
+	if err != nil {
+		return localexecution.TextResult{}, h.textBehaviorInferenceFailure(ctx, err)
+	}
+	return textBehaviorExecutionResult(normalized), nil
+}
+
+func textBehaviorExecutionResult(normalized textbehavior.NormalizedResult) localexecution.TextResult {
+	result := localexecution.TextResult{
+		Items:        textbehavior.CloneOrderedItems(normalized.Items),
+		FinishReason: normalized.FinishReason,
+	}
+	if normalized.Usage != nil {
+		result.InputTokens = normalized.Usage.GetInputTokens()
+		result.OutputTokens = normalized.Usage.GetOutputTokens()
+		result.ComputeMS = normalized.Usage.GetComputeMs()
+	}
+	var text strings.Builder
+	for _, item := range normalized.Items {
+		if item.Kind == textbehavior.OrderedItemText {
+			text.WriteString(item.Text)
+		}
+	}
+	result.Text = text.String()
+	return result
 }
 
 func (h *ExecutionHost) consumeStream(
@@ -487,9 +595,11 @@ func (h *ExecutionHost) consumeStream(
 		choice, _ := choices[0].(map[string]any)
 		delta, _ := choice["delta"].(map[string]any)
 		text := textContent(delta["content"])
-		reasoning := firstString(delta["reasoning"], delta["reasoning_content"])
-		if text != "" || reasoning != "" {
-			if err := onDelta(localexecution.TextDelta{Text: text, Reasoning: reasoning}); err != nil {
+		// Raw reasoning/reasoning_content is engine-private and never crosses the
+		// base llama v1 execution seam. Only an exact adapter may publish a
+		// normalized summary item.
+		if text != "" {
+			if err := onDelta(localexecution.TextDelta{Text: text}); err != nil {
 				return localexecution.TextResult{}, h.inferenceFailure(ctx, err)
 			}
 			output.WriteString(text)
@@ -503,7 +613,7 @@ func (h *ExecutionHost) consumeStream(
 	}
 	result.Text = output.String()
 	if strings.TrimSpace(result.Text) == "" {
-		return localexecution.TextResult{}, h.inferenceFailure(ctx, fmt.Errorf("llama stream completed without text"))
+		return localexecution.TextResult{}, executionFailure(localexecution.FailureTextOutputIncomplete, fmt.Errorf("llama stream completed without public text"))
 	}
 	return result, nil
 }
@@ -512,14 +622,98 @@ func (h *ExecutionHost) inferenceFailure(ctx context.Context, err error) error {
 	if ctx != nil && ctx.Err() != nil {
 		return executionFailure(localexecution.FailureCanceled, ctx.Err())
 	}
+	diagnostic := executionFailureDiagnostic(h.substrate)
+	if executionOutOfMemory(err, diagnostic) {
+		return executionFailure(localexecution.FailureOutOfMemory, err)
+	}
 	if h != nil && h.substrate != nil && !h.substrate.Healthy() {
 		return executionFailure(localexecution.FailureProcessCrash, err)
 	}
 	return executionFailure(localexecution.FailureInference, err)
 }
 
+func (h *ExecutionHost) textBehaviorInferenceFailure(ctx context.Context, err error) error {
+	if ctx != nil && ctx.Err() != nil {
+		return executionFailure(localexecution.FailureCanceled, ctx.Err())
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
+		switch reason {
+		case runtimev1.ReasonCode_AI_TEXT_OUTPUT_INCOMPLETE:
+			return executionFailure(localexecution.FailureTextOutputIncomplete, err)
+		case runtimev1.ReasonCode_AI_TOOL_CALL_INVALID:
+			return executionFailure(localexecution.FailureToolCallInvalid, err)
+		case runtimev1.ReasonCode_AI_OUTPUT_INVALID:
+			return executionFailure(localexecution.FailureTextOutputInvalid, err)
+		case runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID:
+			return executionFailure(localexecution.FailureTextOutputInvalid, err)
+		}
+	}
+	return h.inferenceFailure(ctx, err)
+}
+
 func executionFailure(kind localexecution.FailureKind, err error) error {
 	return &localexecution.ExecutionError{Kind: kind, Err: err}
+}
+
+type executionFailureDiagnosticProvider interface {
+	FailureDiagnostic() string
+}
+
+type invocationDependencySourceValidator interface {
+	ValidateDependencySources([]capabilitydriver.InvocationExactDependencySource) error
+}
+
+func validateInvocationDependencySources(substrate any, sources []capabilitydriver.InvocationExactDependencySource) error {
+	if len(sources) == 0 {
+		return nil
+	}
+	validator, ok := substrate.(invocationDependencySourceValidator)
+	if !ok || validator == nil {
+		return fmt.Errorf("execution substrate cannot validate captured dependency sources")
+	}
+	return validator.ValidateDependencySources(sources)
+}
+
+func executionFailureDiagnostic(source any) string {
+	provider, ok := source.(executionFailureDiagnosticProvider)
+	if !ok || provider == nil {
+		return ""
+	}
+	return provider.FailureDiagnostic()
+}
+
+func boundedExecutionDiagnostic(err error) string {
+	if err == nil {
+		return ""
+	}
+	const limit = 4096
+	value := strings.TrimSpace(err.Error())
+	if len(value) <= limit {
+		return value
+	}
+	return strings.ToValidUTF8(value[:limit], "")
+}
+
+func executionOutOfMemory(err error, diagnostics ...string) bool {
+	values := make([]string, 0, len(diagnostics)+1)
+	if err != nil {
+		values = append(values, err.Error())
+	}
+	values = append(values, diagnostics...)
+	for _, value := range values {
+		normalized := strings.ToLower(value)
+		if strings.Contains(normalized, "out of memory") || strings.Contains(normalized, "cuda_error_out_of_memory") {
+			return true
+		}
+	}
+	return false
+}
+
+func classifiedExecutionFailure(defaultKind localexecution.FailureKind, err error, diagnostics ...string) error {
+	if executionOutOfMemory(err, diagnostics...) {
+		return executionFailure(localexecution.FailureOutOfMemory, err)
+	}
+	return executionFailure(defaultKind, err)
 }
 
 type llamaExecutionManager interface {
@@ -527,6 +721,7 @@ type llamaExecutionManager interface {
 	StopEngine(EngineKind) error
 	StartEngine(context.Context, EngineConfig) error
 	EngineEndpoint(EngineKind) (string, error)
+	ValidateLlamaDependencySources(EngineConfig, []capabilitydriver.InvocationExactDependencySource) error
 }
 
 type managerLlamaInvocationSubstrate struct {
@@ -543,6 +738,9 @@ type managerLlamaInvocationLoad struct {
 	processKey      string
 	args            []string
 	validateContent func() error
+	ctx             context.Context
+	cancel          context.CancelFunc
+	waiters         int
 	done            chan struct{}
 	endpoint        string
 	err             error
@@ -577,6 +775,9 @@ func (s *managerLlamaInvocationSubstrate) Ensure(
 	if ctx == nil {
 		ctx = context.Background()
 	}
+	if err := ctx.Err(); err != nil {
+		return "", false, err
+	}
 	for {
 		s.mu.Lock()
 		if s.loading == nil && processKey == s.currentKey {
@@ -597,23 +798,34 @@ func (s *managerLlamaInvocationSubstrate) Ensure(
 		}
 		load := s.loading
 		if load == nil {
+			loadCtx, cancelLoad := context.WithCancel(s.lifetime)
 			load = &managerLlamaInvocationLoad{
 				processKey:      processKey,
 				args:            append([]string(nil), processArgs...),
 				validateContent: validateContent,
+				ctx:             loadCtx,
+				cancel:          cancelLoad,
+				waiters:         1,
 				done:            make(chan struct{}),
 			}
 			s.loading = load
 			go s.runLoad(load)
+		} else {
+			load.waiters++
 		}
 		s.mu.Unlock()
 		if progress != nil {
 			progress(localexecution.TextExecutionProgressLoading)
 		}
+		canceled := false
 		select {
 		case <-ctx.Done():
-			return "", false, ctx.Err()
+			canceled = true
 		case <-load.done:
+		}
+		s.releaseLoadWaiter(load, canceled)
+		if canceled {
+			return "", false, ctx.Err()
 		}
 		if ctx.Err() != nil {
 			return "", false, ctx.Err()
@@ -632,11 +844,19 @@ func (s *managerLlamaInvocationSubstrate) Ensure(
 }
 
 func (s *managerLlamaInvocationSubstrate) runLoad(load *managerLlamaInvocationLoad) {
+	if err := load.ctx.Err(); err != nil {
+		s.finishLoad(load, "", err)
+		return
+	}
 	if info, err := s.manager.EngineStatus(EngineLlama); err == nil && info.Status != StatusStopped {
 		if err := s.manager.StopEngine(EngineLlama); err != nil {
 			s.finishLoad(load, "", fmt.Errorf("stop prior llama process: %w", err))
 			return
 		}
+	}
+	if err := load.ctx.Err(); err != nil {
+		s.finishLoad(load, "", err)
+		return
 	}
 	// Revalidate only after the prior worker has stopped and immediately before
 	// StartEngine gives the captured paths to llama-server. Performing this
@@ -649,7 +869,7 @@ func (s *managerLlamaInvocationSubstrate) runLoad(load *managerLlamaInvocationLo
 	}
 	cfg := s.config
 	cfg.CommandArgs = append([]string(nil), load.args...)
-	if err := s.manager.StartEngine(s.lifetime, cfg); err != nil {
+	if err := s.manager.StartEngine(load.ctx, cfg); err != nil {
 		s.finishLoad(load, "", err)
 		return
 	}
@@ -670,7 +890,25 @@ func (s *managerLlamaInvocationSubstrate) finishLoad(load *managerLlamaInvocatio
 	if s.loading == load {
 		s.loading = nil
 	}
+	if load.cancel != nil {
+		load.cancel()
+		load.cancel = nil
+	}
 	close(load.done)
+}
+
+func (s *managerLlamaInvocationSubstrate) releaseLoadWaiter(load *managerLlamaInvocationLoad, canceled bool) {
+	if load == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if load.waiters > 0 {
+		load.waiters--
+	}
+	if canceled && load.waiters == 0 && s.loading == load && load.cancel != nil {
+		load.cancel()
+	}
 }
 
 func (s *managerLlamaInvocationSubstrate) Healthy() bool {
@@ -679,6 +917,69 @@ func (s *managerLlamaInvocationSubstrate) Healthy() bool {
 	}
 	info, err := s.manager.EngineStatus(EngineLlama)
 	return err == nil && info.Status == StatusHealthy && info.PID > 0 && supervisorProcessAlive(info.PID)
+}
+
+func (s *managerLlamaInvocationSubstrate) FailureDiagnostic() string {
+	if s == nil || s.manager == nil {
+		return ""
+	}
+	info, err := s.manager.EngineStatus(EngineLlama)
+	if err != nil {
+		return ""
+	}
+	return info.Detail
+}
+
+func (s *managerLlamaInvocationSubstrate) ValidateDependencySources(sources []capabilitydriver.InvocationExactDependencySource) error {
+	if s == nil || s.manager == nil {
+		return fmt.Errorf("llama execution manager is unavailable")
+	}
+	return s.manager.ValidateLlamaDependencySources(s.config, sources)
+}
+
+func (m *Manager) ValidateLlamaDependencySources(config EngineConfig, sources []capabilitydriver.InvocationExactDependencySource) error {
+	if m == nil {
+		return fmt.Errorf("llama execution manager is unavailable")
+	}
+	native, ok := exactInvocationDependencySource(sources, "native-engine-package.llama", "llama.cpp.package")
+	if !ok || strings.TrimSpace(native.Version) != strings.TrimSpace(config.Version) {
+		return fmt.Errorf("captured llama package source is missing or version-mismatched")
+	}
+	entry := m.registry.Get(EngineLlama, config.Version)
+	if entry == nil || !sameCleanPath(native.CanonicalRoot, entry.BinaryPath) || strings.TrimSpace(native.Hashes["sha256"]) != strings.TrimSpace(entry.SHA256) {
+		return fmt.Errorf("captured llama package source no longer matches the Runtime registry")
+	}
+	if strings.EqualFold(strings.TrimSpace(native.ConsumerScope), "llama.cpp.cuda") {
+		cuda, ok := exactInvocationDependencySource(sources, "accelerator.cuda.runtime", NVIDIACUDAUserSpaceRuntimeDependencyID)
+		if !ok {
+			return fmt.Errorf("captured llama CUDA dependency source is missing")
+		}
+		status := m.ResolveSharedAcceleratorDependency(NVIDIACUDAUserSpaceRuntimeDependencyID, native.ConsumerScope)
+		if status.State != SharedAcceleratorDependencyReadySystem && status.State != SharedAcceleratorDependencyReadyManaged ||
+			!sameCleanPath(cuda.CanonicalRoot, status.CanonicalRoot) || strings.TrimSpace(cuda.Version) != strings.TrimSpace(status.Version) {
+			return fmt.Errorf("captured llama CUDA dependency source no longer matches Runtime dependency state")
+		}
+	}
+	return nil
+}
+
+func exactInvocationDependencySource(sources []capabilitydriver.InvocationExactDependencySource, family, dependencyID string) (capabilitydriver.InvocationExactDependencySource, bool) {
+	var match capabilitydriver.InvocationExactDependencySource
+	found := false
+	for _, source := range sources {
+		if strings.TrimSpace(source.DependencyFamily) != family || strings.TrimSpace(source.DependencyID) != dependencyID {
+			continue
+		}
+		if found {
+			return capabilitydriver.InvocationExactDependencySource{}, false
+		}
+		match, found = source, true
+	}
+	return match, found
+}
+
+func sameCleanPath(left, right string) bool {
+	return strings.EqualFold(filepath.Clean(strings.TrimSpace(left)), filepath.Clean(strings.TrimSpace(right)))
 }
 
 func invocationUsage(value any) (int64, int64) {
@@ -723,15 +1024,6 @@ func int64Value(value any) int64 {
 func stringValue(value any) string {
 	text, _ := value.(string)
 	return strings.TrimSpace(text)
-}
-
-func firstString(values ...any) string {
-	for _, value := range values {
-		if text, ok := value.(string); ok && text != "" {
-			return text
-		}
-	}
-	return ""
 }
 
 func textContent(value any) string {

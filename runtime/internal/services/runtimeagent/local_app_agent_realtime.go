@@ -867,8 +867,15 @@ func (s *Service) removeAgentRealtimeSession(sessionID string) {
 }
 
 func (s *Service) shutdownAgentRealtime() {
+	_ = s.shutdownAgentRealtimeContext(context.Background())
+}
+
+func (s *Service) shutdownAgentRealtimeContext(ctx context.Context) error {
 	if s == nil {
-		return
+		return nil
+	}
+	if ctx == nil {
+		ctx = context.Background()
 	}
 	s.agentRealtimeMu.Lock()
 	executor := s.agentRealtimeAI
@@ -879,13 +886,17 @@ func (s *Service) shutdownAgentRealtime() {
 	s.agentRealtimeSessions = make(map[string]*localAppAgentRealtimeSession)
 	s.agentRealtimeMu.Unlock()
 	for _, session := range sessions {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if active := session.detachTurn(); active != nil {
 			s.interruptDetachedAgentRealtimeTurn(active, "room_closed")
 		}
 		if executor != nil {
-			_, _ = executor.CloseRuntimeAgentRealtime(context.Background(), session.accountID, &runtimev1.CloseRealtimeSessionRequest{RealtimeSessionId: session.realtimeSessionID, Generation: session.generation})
+			_, _ = executor.CloseRuntimeAgentRealtime(ctx, session.accountID, &runtimev1.CloseRealtimeSessionRequest{RealtimeSessionId: session.realtimeSessionID, Generation: session.generation})
 		}
 	}
+	return ctx.Err()
 }
 
 func (s *localAppAgentRealtimeSession) setControl(control *runtimev1.RealtimeControlStatus) {

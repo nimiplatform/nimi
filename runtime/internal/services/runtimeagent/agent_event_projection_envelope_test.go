@@ -191,11 +191,9 @@ func TestPublicChatCommittedEmotionDoesNotCreateRendererEvent(t *testing.T) {
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-presentation-stream",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: envelope},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						envelope),
 				},
 			}); err != nil {
 				return err
@@ -286,11 +284,9 @@ func TestPublicChatCommittedAPMLActivityReachesTypedStream(t *testing.T) {
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-activity-stream",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: envelope},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						envelope),
 				},
 			}); err != nil {
 				return err

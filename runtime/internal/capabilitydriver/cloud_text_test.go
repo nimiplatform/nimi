@@ -131,8 +131,8 @@ func TestCloudTextDriverMapsReasoningToClosedWireDirectives(t *testing.T) {
 	}
 
 	deepSeek, err := mapRequest("deepseek", &runtimev1.ReasoningConfig{
-		Mode:      runtimev1.ReasoningMode_REASONING_MODE_OFF,
-		TraceMode: runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_HIDE,
+		Activation:   runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED,
+		Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN,
 	})
 	if err != nil {
 		t.Fatalf("map DeepSeek OFF: %v", err)
@@ -142,8 +142,8 @@ func TestCloudTextDriverMapsReasoningToClosedWireDirectives(t *testing.T) {
 	}
 
 	ordinary, err := mapRequest("openai", &runtimev1.ReasoningConfig{
-		Mode:      runtimev1.ReasoningMode_REASONING_MODE_OFF,
-		TraceMode: runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_HIDE,
+		Activation:   runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED,
+		Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN,
 	})
 	if err != nil {
 		t.Fatalf("map OpenAI OFF: %v", err)
@@ -153,9 +153,26 @@ func TestCloudTextDriverMapsReasoningToClosedWireDirectives(t *testing.T) {
 	}
 
 	if _, err := mapRequest("openai", &runtimev1.ReasoningConfig{
-		Mode:      runtimev1.ReasoningMode_REASONING_MODE_ON,
-		TraceMode: runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_HIDE,
+		Activation:   runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED,
+		Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN,
+		Intensity: &runtimev1.ReasoningConfig_Effort{
+			Effort: runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH,
+		},
 	}); err == nil {
 		t.Fatal("expected unsupported reasoning toggle to fail closed")
+	}
+
+	if _, err := mapRequest("openai", &runtimev1.ReasoningConfig{
+		Activation:   runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED,
+		Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY,
+	}); err == nil {
+		t.Fatal("expected disabled reasoning with summary presentation to fail closed")
+	}
+
+	if _, err := mapRequest("openai", &runtimev1.ReasoningConfig{
+		Activation:   runtimev1.ReasoningActivation_REASONING_ACTIVATION_ADAPTIVE,
+		Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN,
+	}); err == nil {
+		t.Fatal("expected adaptive reasoning without intensity to fail closed")
 	}
 }

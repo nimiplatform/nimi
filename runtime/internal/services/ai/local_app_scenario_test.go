@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 func localAppScenarioDecisionContext(operation accountservice.LocalAppOperation, capability string) context.Context {
@@ -246,6 +247,11 @@ func TestExecuteLocalAppScenarioCloudEmbedFailsClosedWithoutBinding(t *testing.T
 }
 
 func TestProjectLocalAppScenarioArtifactTrimsOwnerFields(t *testing.T) {
+	metadata, err := structpb.NewStruct(map[string]any{"private": "not-projected"})
+	if err != nil {
+		t.Fatalf("build artifact metadata: %v", err)
+	}
+	seed := int32(41)
 	projected, err := projectLocalAppScenarioArtifact(&runtimev1.ScenarioArtifact{
 		ArtifactId: "artifact-1",
 		MimeType:   "image/png",
@@ -253,13 +259,15 @@ func TestProjectLocalAppScenarioArtifactTrimsOwnerFields(t *testing.T) {
 		SizeBytes:  7,
 		Sha256:     "sha256:abc",
 		Uri:        "file:///runtime/private/path.png",
-		Metadata:   nil,
+		Metadata:   metadata,
+		Seed:       &seed,
 	})
 	if err != nil {
 		t.Fatalf("project artifact: %v", err)
 	}
 	if projected.GetArtifactId() != "artifact-1" || projected.GetMimeType() != "image/png" ||
-		len(projected.GetBytes()) != 0 || projected.GetSizeBytes() != 7 || projected.GetSha256() != "sha256:abc" {
+		len(projected.GetBytes()) != 0 || projected.GetSizeBytes() != 7 || projected.GetSha256() != "sha256:abc" ||
+		projected.Seed == nil || projected.GetSeed() != 41 {
 		t.Fatalf("projected artifact = %+v", projected)
 	}
 
@@ -275,5 +283,10 @@ func TestProjectLocalAppScenarioArtifactTrimsOwnerFields(t *testing.T) {
 	}
 	if _, err := projectLocalAppScenarioArtifact(&runtimev1.ScenarioArtifact{ArtifactId: " padded ", MimeType: "image/png"}); err == nil {
 		t.Fatal("padded artifact id passed projection")
+	}
+	if _, err := projectLocalAppScenarioArtifact(&runtimev1.ScenarioArtifact{
+		ArtifactId: "artifact-invalid-seed-mime", MimeType: "audio/wav", Seed: &seed,
+	}); err == nil {
+		t.Fatal("non-image artifact seed passed Local App artifact projection")
 	}
 }

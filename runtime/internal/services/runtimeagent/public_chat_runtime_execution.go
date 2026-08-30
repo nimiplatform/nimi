@@ -124,9 +124,13 @@ func (r publicChatRuntime) runTurn(
 			if delta == nil {
 				return nil
 			}
-			switch item := delta.GetDelta().(type) {
-			case *runtimev1.ScenarioStreamDelta_Text:
-				textDelta := item.Text.GetText()
+			item := delta.GetTextOutputItem()
+			if item == nil {
+				return nil
+			}
+			switch value := item.GetDelta().(type) {
+			case *runtimev1.TextOutputItemDelta_Text:
+				textDelta := value.Text.GetText()
 				if textDelta == "" {
 					return nil
 				}
@@ -160,8 +164,8 @@ func (r publicChatRuntime) runTurn(
 					projectedText = visible
 				}
 				return nil
-			case *runtimev1.ScenarioStreamDelta_Reasoning:
-				reasoningDelta := item.Reasoning.GetText()
+			case *runtimev1.TextOutputItemDelta_ReasoningSummary:
+				reasoningDelta := value.ReasoningSummary.GetText()
 				if reasoningDelta == "" {
 					return nil
 				}

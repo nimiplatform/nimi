@@ -36,6 +36,13 @@ var miniMaxMusic3Files = map[string]int64{
 
 type MiniMaxMusic3AudioCppDriver struct{}
 
+func (MiniMaxMusic3AudioCppDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
+	if strings.TrimSpace(recipeID) != MiniMaxMusic3RecipeID {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
 func (MiniMaxMusic3AudioCppDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
 	if input.RecipeID != MiniMaxMusic3RecipeID || !musicStructIsEmpty(input.PortableConfig) {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
@@ -44,7 +51,7 @@ func (MiniMaxMusic3AudioCppDriver) Interpret(input InterpretInput) ([]*runtimev1
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED
 	}
 	constraints, _ := structpb.NewStruct(map[string]any{"asset_kind": "music", "model_family": "minimax-music3", "artifact_role": "music_model", "format": "gguf-bundle"})
-	return []*runtimev1.LocalCapabilityRequirement{{RequirementId: MiniMaxMusic3RequirementID, Role: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN, ResourceKind: "music", Policy: runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT, CompatibilityConstraints: constraints, DisplayLabel: "MiniMax-Music3 Q4/Q8/Q4 bundle"}}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+	return []*runtimev1.LocalCapabilityRequirement{{RequirementId: MiniMaxMusic3RequirementID, Role: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN, Presence: runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED, ResourceKind: "music", Policy: runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT, CompatibilityConstraints: constraints, DisplayLabel: "MiniMax-Music3 Q4/Q8/Q4 bundle"}}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
 func (d MiniMaxMusic3AudioCppDriver) ProjectRecipe(recipeID string, options *structpb.Struct, supportedFeatures []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {

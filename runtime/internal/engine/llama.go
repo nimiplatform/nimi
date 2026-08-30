@@ -39,20 +39,14 @@ func llamaAssetNameFor(version string, goos string, goarch string) (string, erro
 }
 
 func llamaAssetNameCandidates(version string, goos string, goarch string, gpuVendor string) ([]string, error) {
-	cpuAssetName, err := llamaAssetNameFor(version, goos, goarch)
+	assetName, err := llamaAssetNameFor(version, goos, goarch)
 	if err != nil {
 		return nil, err
 	}
-	if strings.EqualFold(strings.TrimSpace(goos), "windows") &&
-		strings.EqualFold(strings.TrimSpace(goarch), "amd64") &&
-		strings.EqualFold(strings.TrimSpace(gpuVendor), "nvidia") {
-		trimmedVersion := strings.TrimSpace(version)
-		return []string{
-			fmt.Sprintf("llama-%s-bin-win-cuda-12.4-x64.zip", trimmedVersion),
-			cpuAssetName,
-		}, nil
+	if strings.EqualFold(strings.TrimSpace(goos), "windows") && !strings.EqualFold(strings.TrimSpace(gpuVendor), "nvidia") {
+		return nil, fmt.Errorf("unsupported llama host backend: %s/%s/%s", strings.TrimSpace(goos), strings.TrimSpace(goarch), strings.TrimSpace(gpuVendor))
 	}
-	return []string{cpuAssetName}, nil
+	return []string{assetName}, nil
 }
 
 func preferredLlamaAssetNameForCurrentHost(version string) (string, error) {
@@ -70,6 +64,8 @@ func llamaAcceleratorPlaneForAsset(assetName string) string {
 		return "cuda"
 	case strings.Contains(lower, "vulkan"):
 		return "vulkan"
+	case strings.Contains(lower, "macos"):
+		return "metal"
 	default:
 		return "cpu"
 	}

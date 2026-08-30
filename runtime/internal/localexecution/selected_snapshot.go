@@ -16,15 +16,21 @@ func CloneSelectedLocalExecution(input *SelectedLocalExecution) *SelectedLocalEx
 		return nil
 	}
 	out := &SelectedLocalExecution{
-		LoadoutID:                input.LoadoutID,
-		CapabilityContract:       input.CapabilityContract,
-		DisplayName:              input.DisplayName,
-		RecipeID:                 input.RecipeID,
-		RecipeRevision:           input.RecipeRevision,
-		ModelContextWindowTokens: input.ModelContextWindowTokens,
-		ExactBindings:            append([]ExactBinding(nil), input.ExactBindings...),
-		SupportedFeatures:        append([]string(nil), input.SupportedFeatures...),
-		Configured:               input.Configured,
+		LoadoutID:                       input.LoadoutID,
+		CapabilityContract:              input.CapabilityContract,
+		DisplayName:                     input.DisplayName,
+		RecipeID:                        input.RecipeID,
+		RecipeRevision:                  input.RecipeRevision,
+		ModelContextWindowTokens:        input.ModelContextWindowTokens,
+		ExactBindings:                   append([]ExactBinding(nil), input.ExactBindings...),
+		ImplementationSupportedFeatures: append([]string(nil), input.ImplementationSupportedFeatures...),
+		ConfiguredFeatures:              append([]string(nil), input.ConfiguredFeatures...),
+		Configured:                      input.Configured,
+	}
+	for _, behavior := range input.TextBehaviors {
+		if behavior != nil {
+			out.TextBehaviors = append(out.TextBehaviors, proto.Clone(behavior).(*runtimev1.TextBehaviorCapabilityProjection))
+		}
 	}
 	for index := range out.ExactBindings {
 		out.ExactBindings[index].DeclaredFiles = append([]string(nil), input.ExactBindings[index].DeclaredFiles...)

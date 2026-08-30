@@ -9,9 +9,9 @@ func TestSpeechSupervisedPlatformSupportedFor(t *testing.T) {
 		want   bool
 	}{
 		{goos: "darwin", goarch: "arm64", want: true},
-		{goos: "darwin", goarch: "amd64", want: true},
-		{goos: "linux", goarch: "amd64", want: true},
-		{goos: "linux", goarch: "arm64", want: true},
+		{goos: "darwin", goarch: "amd64", want: false},
+		{goos: "linux", goarch: "amd64", want: false},
+		{goos: "linux", goarch: "arm64", want: false},
 		{goos: "windows", goarch: "amd64", want: true},
 		{goos: "windows", goarch: "arm64", want: false},
 		{goos: "freebsd", goarch: "amd64", want: false},

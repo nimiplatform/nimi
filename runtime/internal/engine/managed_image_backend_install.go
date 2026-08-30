@@ -247,6 +247,10 @@ func managedImageBackendDependencyStatusFromConfig(cfg *ManagedImageBackendConfi
 		PackageSource:          strings.TrimSpace(string(spec.PackageSource)),
 		PackageFormat:          strings.TrimSpace(string(spec.PackageFormat)),
 		LaunchMode:             strings.TrimSpace(string(spec.LaunchMode)),
+		ReleaseTag:             strings.TrimSpace(spec.ReleaseTag),
+		SourceCommit:           strings.TrimSpace(spec.SourceCommit),
+		ArchiveURL:             strings.TrimSpace(spec.ArchiveURL),
+		ArchiveSHA256:          strings.TrimSpace(spec.ArchiveSHA256),
 		VerifiedArtifacts:      normalizeManagedImageBackendVerifiedArtifacts(cfg, spec),
 		SupportedModelFamilies: append([]string(nil), spec.SupportedModelFamilies...),
 	}
@@ -277,9 +281,10 @@ func normalizeManagedImageBackendVerifiedArtifacts(cfg *ManagedImageBackendConfi
 		}
 		artifacts = append(artifacts, trimmed)
 	}
-	appendArtifact(cfg.Command)
 	if spec.LaunchMode == managedImageBackendLaunchModeRuntimeWrapper {
 		appendArtifact(managedImageBackendLaunchArgValue(cfg.Args, "--backend-executable"))
+	} else {
+		appendArtifact(cfg.Command)
 	}
 	return artifacts
 }

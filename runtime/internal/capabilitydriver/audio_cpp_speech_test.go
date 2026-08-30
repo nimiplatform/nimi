@@ -167,6 +167,54 @@ func TestAudioCppReferenceRequiredTTSFailsClosed(t *testing.T) {
 	}
 }
 
+func TestAudioCppQwenBaseRequiresTranscriptAndUsesNativeLanguageToken(t *testing.T) {
+	root := t.TempDir()
+	registration := audioCppRegistrationForTest(t, AudioSynthesizeContract, "qwen3_tts")
+	driverValue, _ := NewProductionRegistry().Resolve(registration.CapabilityContract, registration.Identity)
+	driver := driverValue.(AudioCppTTSSynthesizeInvocationDriver)
+	providerRef := AudioCppReferenceVoicePrefix + "01HZZZZZZZZZZZZZZZZZZZZZZZ"
+	request := &runtimev1.SpeechSynthesizeScenarioSpec{Text: "Hello.", Language: "en", VoiceRef: &runtimev1.VoiceReference{
+		Kind:      runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
+		Reference: &runtimev1.VoiceReference_ProviderVoiceRef{ProviderVoiceRef: providerRef},
+	}}
+	input := AudioCppTTSSynthesizeInvocationInput{
+		LoadoutID: "loadout-qwen-base", RecipeID: registration.RecipeID,
+		ExactBindings: []InvocationExactBinding{audioCppBindingForTest(root, AudioCppTTSModelRequirementID, "qwen3_tts")},
+		Runtime:       audioCppRuntimeForTest(root), Request: request, StagingWAVPath: filepath.Join(root, "qwen-base.wav"),
+		ReferenceVoice: &AudioCppReferenceVoiceInput{ProviderVoiceRef: providerRef, WAVPath: filepath.Join(root, "reference.wav"), WAVBytes: audioCppPCM16WAVForTest(), MIMEType: "audio/wav"},
+	}
+	if _, err := driver.PlanAudioCppTTSSynthesis(input); err == nil {
+		t.Fatal("Qwen3-TTS Base accepted a reference without its transcript")
+	}
+	input.ReferenceVoice.ReferenceText = "Reference transcript."
+	plan, err := driver.PlanAudioCppTTSSynthesis(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !audioCppArgsContainPair(plan.CLIArgs(), "--language", "english") || !audioCppArgsContainPair(plan.CLIArgs(), "--reference-text", "Reference transcript.") {
+		t.Fatalf("Qwen3-TTS Base CLI args=%q", plan.CLIArgs())
+	}
+}
+
+func TestAudioCppQwenASRUsesInspectedNativeLanguageToken(t *testing.T) {
+	root := t.TempDir()
+	registration := audioCppRegistrationForTest(t, AudioTranscribeContract, "qwen3_asr")
+	driverValue, _ := NewProductionRegistry().Resolve(registration.CapabilityContract, registration.Identity)
+	plan, err := driverValue.(AudioCppASRTranscribeInvocationDriver).PlanAudioCppASRTranscription(AudioCppASRTranscribeInvocationInput{
+		LoadoutID: "loadout-qwen-asr", RecipeID: registration.RecipeID,
+		ExactBindings: []InvocationExactBinding{audioCppBindingForTest(root, AudioCppASRModelRequirementID, "qwen3_asr")},
+		Runtime:       audioCppRuntimeForTest(root), Request: &runtimev1.SpeechTranscribeScenarioSpec{Language: "en"},
+		AudioBytes: audioCppPCM16WAVForTest(), MIMEType: "audio/wav",
+		StagingAudioPath: filepath.Join(root, "input.wav"), StagingTextOutPath: filepath.Join(root, "output.txt"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !audioCppArgsContainPair(plan.CLIArgs(), "--language", "English") {
+		t.Fatalf("Qwen3-ASR CLI args=%q", plan.CLIArgs())
+	}
+}
+
 func TestAudioCppSpeakingRateUsesFamilyRequestOptions(t *testing.T) {
 	tests := []struct {
 		family string

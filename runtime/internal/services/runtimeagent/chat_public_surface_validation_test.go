@@ -105,11 +105,9 @@ func TestPublicChatTurnInvalidStructuredOutputFailsClosed(t *testing.T) {
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-invalid-structured",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: `{"schemaId":"bad","message":{"messageId":"m1","text":"hello"},"actions":[]}`},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						`{"schemaId":"bad","message":{"messageId":"m1","text":"hello"},"actions":[]}`),
 				},
 			}); err != nil {
 				return err
@@ -218,11 +216,9 @@ func TestPublicChatTurnInvalidAPMLFailsClosedWithoutRepairOrCommit(t *testing.T)
 						EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 						TraceId:   traceID,
 						Payload: &runtimev1.StreamScenarioEvent_Delta{
-							Delta: &runtimev1.ScenarioStreamDelta{
-								Delta: &runtimev1.ScenarioStreamDelta_Text{
-									Text: &runtimev1.TextStreamDelta{Text: tt.raw},
-								},
-							},
+							Delta: runtimeAgentTextStreamDelta(
+
+								tt.raw),
 						},
 					}); err != nil {
 						return err
@@ -324,11 +320,9 @@ func TestPublicChatTurnRequestPreservesCommittedTranscriptOnFailedTurn(t *testin
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-invalid-after-committed-transcript",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: "plain text without apml"},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						"plain text without apml"),
 				},
 			}); err != nil {
 				return err
@@ -423,11 +417,9 @@ func TestPublicChatTurnRequestUsesOnlyCompleteRuntimeCommittedTranscript(t *test
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-fold-committed-last-turn",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: publicChatStructuredEnvelopeAPML("message-next", "next message received")},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						publicChatStructuredEnvelopeAPML("message-next", "next message received")),
 				},
 			}); err != nil {
 				return err
@@ -506,11 +498,9 @@ func TestPublicChatTurnRequestRejectsUnknownEmotionBeforeCommit(t *testing.T) {
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-unknown-emotion",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: `<message id="m1"><emotion>curious</emotion>hello</message>`},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						`<message id="m1"><emotion>curious</emotion>hello</message>`),
 				},
 			}); err != nil {
 				return err
@@ -616,11 +606,9 @@ func TestPublicChatFollowUpRunsInsideRuntime(t *testing.T) {
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   fmt.Sprintf("trace-follow-up-%d", currentCall),
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: envelope},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						envelope),
 				},
 			}); err != nil {
 				return err

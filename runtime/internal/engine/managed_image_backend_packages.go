@@ -3,6 +3,8 @@ package engine
 import (
 	_ "embed"
 	"fmt"
+	"os/exec"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -37,10 +39,8 @@ type managedImageBackendArchiveSource struct {
 type managedImageBackendPackageSource string
 
 const (
-	managedImageBackendPackageSourceCanonicalLocalAIDerived   managedImageBackendPackageSource = "canonical_localai_derived"
-	managedImageBackendPackageSourceExperimentalOfficialSDCPP managedImageBackendPackageSource = "experimental_official_sdcpp"
-	managedImageBackendPackageSourceCanonicalRuntimeWrapper   managedImageBackendPackageSource = "canonical_runtime_wrapper"
-	managedImageBackendPackageSourceCanonicalUnavailable      managedImageBackendPackageSource = "canonical_unavailable"
+	managedImageBackendPackageSourceCanonicalRuntimeWrapper managedImageBackendPackageSource = "canonical_runtime_wrapper"
+	managedImageBackendPackageSourceCanonicalUnavailable    managedImageBackendPackageSource = "canonical_unavailable"
 )
 
 type managedImageBackendPackageSpec struct {
@@ -49,6 +49,9 @@ type managedImageBackendPackageSpec struct {
 	OS                     string
 	Arch                   string
 	GPUVendor              string
+	MinOSVersion           string
+	ReleaseTag             string
+	SourceCommit           string
 	InstallDirName         string
 	PackageFormat          managedImageBackendPackageFormat
 	ImageRef               string
@@ -69,13 +72,16 @@ type managedImageBackendPackagesDocument struct {
 
 type managedImageBackendPackageEntry struct {
 	HostMatch struct {
-		OS        string `yaml:"os"`
-		Arch      string `yaml:"arch"`
-		GPUVendor string `yaml:"gpu_vendor"`
+		OS           string `yaml:"os"`
+		Arch         string `yaml:"arch"`
+		GPUVendor    string `yaml:"gpu_vendor"`
+		MinOSVersion string `yaml:"min_os_version"`
 	} `yaml:"host_match"`
 	BackendFamily          string   `yaml:"backend_family"`
 	PackageSource          string   `yaml:"package_source"`
 	PackageFormat          string   `yaml:"package_format"`
+	ReleaseTag             string   `yaml:"release_tag"`
+	SourceCommit           string   `yaml:"source_commit"`
 	InstallDirName         string   `yaml:"install_dir_name"`
 	ImageRef               string   `yaml:"image_ref"`
 	OCILayerDigest         string   `yaml:"oci_layer_digest"`
@@ -94,14 +100,19 @@ func resolveManagedImageBackendPackageSpecForCurrentHost(backendName string) (ma
 }
 
 func resolveManagedImageBackendPackageSpecForCurrentHostWithSource(backendName string, source string) (managedImageBackendPackageSpec, bool) {
-	return resolveManagedImageBackendPackageSpecForHostWithSource(
+	gpuVendor, driverVisible := detectMediaHostGPU()
+	spec, ok := resolveManagedImageBackendPackageSpecForHostWithSource(
 		backendName,
 		source,
 		currentGOOS(),
 		currentGOARCH(),
-		detectLocalGPUVendor(),
-		detectMediaCUDAReady(),
+		gpuVendor,
+		driverVisible,
 	)
+	if !ok || !managedImageBackendPackageHostVersionSupported(spec, managedImageBackendCurrentOSVersion()) {
+		return managedImageBackendPackageSpec{}, false
+	}
+	return spec, true
 }
 
 func resolveManagedImageBackendPackageSpecForHost(backendName string, goos string, goarch string, gpuVendor string, cudaReady bool) (managedImageBackendPackageSpec, bool) {
@@ -140,27 +151,95 @@ func resolveManagedImageBackendPackageSpecForHostWithSource(backendName string, 
 	if len(candidates) == 0 {
 		return managedImageBackendPackageSpec{}, false
 	}
-	for _, entry := range candidates {
-		if entry.PackageSource != "" && entry.PackageSource == normalizedSource {
-			return entry, true
-		}
-	}
-	for _, entry := range candidates {
-		if entry.PackageSource == "" {
-			return entry, true
-		}
-	}
-	if normalizedSource == "" {
+	if normalizedSource != "" {
 		for _, entry := range candidates {
-			if entry.PackageSource == managedImageBackendPackageSourceCanonicalLocalAIDerived {
+			if entry.PackageSource == normalizedSource {
 				return entry, true
 			}
 		}
-	}
-	if normalizedSource != "" {
 		return managedImageBackendPackageSpec{}, false
 	}
-	return candidates[0], true
+	var canonical *managedImageBackendPackageSpec
+	for index := range candidates {
+		if !candidates[index].Supported {
+			continue
+		}
+		if canonical != nil {
+			return managedImageBackendPackageSpec{}, false
+		}
+		canonical = &candidates[index]
+	}
+	if canonical == nil {
+		return managedImageBackendPackageSpec{}, false
+	}
+	return *canonical, true
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r099
+// @nimi-authority: rule.nimi.runtime.local-compute.r067
+// admitManagedImageRecipeForHost closes the exact host/package-family/recipe
+// intersection. It validates a Driver-selected recipe; it never selects or
+// rewrites one, and proposed package sources are never a fallback.
+func admitManagedImageRecipeForHost(recipeFamily string, packageSource string, goos string, goarch string, gpuVendor string, cudaReady bool) error {
+	recipeFamily = strings.ToLower(strings.TrimSpace(recipeFamily))
+	switch recipeFamily {
+	case "z-image", "ideogram4", "qwen-image", "minimax-h3":
+	default:
+		return fmt.Errorf("managed image recipe family %q is not admitted", recipeFamily)
+	}
+	if !ManagedImageSupervisedPlatformSupportedFor(goos, goarch, gpuVendor, "") {
+		return fmt.Errorf("managed image host tuple %s/%s/%s is recognized but unsupported", strings.ToLower(strings.TrimSpace(goos)), strings.ToLower(strings.TrimSpace(goarch)), strings.ToLower(strings.TrimSpace(gpuVendor)))
+	}
+	spec, ok := resolveManagedImageBackendPackageSpecForHostWithSource(
+		"stablediffusion-ggml",
+		packageSource,
+		goos,
+		goarch,
+		gpuVendor,
+		cudaReady,
+	)
+	if !ok {
+		return fmt.Errorf("no canonical supported stablediffusion-ggml package is admitted for host tuple %s/%s/%s", strings.ToLower(strings.TrimSpace(goos)), strings.ToLower(strings.TrimSpace(goarch)), strings.ToLower(strings.TrimSpace(gpuVendor)))
+	}
+	if !spec.Supported {
+		detail := strings.TrimSpace(spec.Detail)
+		if detail == "" {
+			detail = "selected package source is recognized but unsupported"
+		}
+		return fmt.Errorf("stablediffusion-ggml package source %q is not admitted: %s", spec.PackageSource, detail)
+	}
+	if !managedImageBackendPackageSupportsFamily(spec, recipeFamily) {
+		return fmt.Errorf("stablediffusion-ggml package source %q does not admit recipe family %q", spec.PackageSource, recipeFamily)
+	}
+	return nil
+}
+
+func managedImageBackendPackageSupportsFamily(spec managedImageBackendPackageSpec, family string) bool {
+	family = strings.ToLower(strings.TrimSpace(family))
+	for _, supported := range spec.SupportedModelFamilies {
+		if strings.EqualFold(strings.TrimSpace(supported), family) {
+			return true
+		}
+	}
+	return false
+}
+
+func admitManagedImageRecipeForCurrentHost(recipeFamily string, packageSource string) error {
+	gpuVendor, driverVisible := detectMediaHostGPU()
+	if err := admitManagedImageRecipeForHost(
+		recipeFamily,
+		packageSource,
+		currentGOOS(),
+		currentGOARCH(),
+		gpuVendor,
+		driverVisible,
+	); err != nil {
+		return err
+	}
+	if _, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource("stablediffusion-ggml", packageSource); !ok {
+		return fmt.Errorf("managed image package is unsupported on the exact current OS version")
+	}
+	return nil
 }
 
 func managedImageBackendPackageSpecsFromAuthority() ([]managedImageBackendPackageSpec, error) {
@@ -183,6 +262,9 @@ func loadManagedImageBackendPackageSpecsFromAuthority() ([]managedImageBackendPa
 			OS:                     strings.ToLower(strings.TrimSpace(entry.HostMatch.OS)),
 			Arch:                   strings.ToLower(strings.TrimSpace(entry.HostMatch.Arch)),
 			GPUVendor:              strings.ToLower(strings.TrimSpace(entry.HostMatch.GPUVendor)),
+			MinOSVersion:           strings.TrimSpace(entry.HostMatch.MinOSVersion),
+			ReleaseTag:             strings.TrimSpace(entry.ReleaseTag),
+			SourceCommit:           strings.ToLower(strings.TrimSpace(entry.SourceCommit)),
 			InstallDirName:         strings.TrimSpace(entry.InstallDirName),
 			PackageFormat:          managedImageBackendPackageFormat(strings.TrimSpace(entry.PackageFormat)),
 			ImageRef:               strings.TrimSpace(entry.ImageRef),
@@ -211,11 +293,18 @@ func validateManagedImageBackendPackageSpec(spec managedImageBackendPackageSpec)
 	if spec.PackageSource == "" ||
 		spec.PackageFormat == "" ||
 		spec.PackageFormat == managedImageBackendPackageFormatNone ||
+		strings.TrimSpace(spec.ReleaseTag) == "" ||
+		strings.TrimSpace(spec.SourceCommit) == "" ||
 		strings.TrimSpace(spec.InstallDirName) == "" ||
 		len(spec.ExecutableCandidates) == 0 ||
 		spec.LaunchMode == "" ||
 		strings.TrimSpace(spec.WrapperDriver) == "" {
 		return fmt.Errorf("supported managed image backend package %q is missing authority-owned launch metadata", spec.BackendName)
+	}
+	if spec.MinOSVersion != "" {
+		if _, ok := parseManagedImageBackendVersion(spec.MinOSVersion); !ok {
+			return fmt.Errorf("supported managed image backend package %q has an invalid minimum OS version", spec.BackendName)
+		}
 	}
 	switch spec.PackageFormat {
 	case managedImageBackendPackageFormatOCIPayload:
@@ -230,6 +319,53 @@ func validateManagedImageBackendPackageSpec(spec managedImageBackendPackageSpec)
 		return fmt.Errorf("supported managed image backend package %q has unsupported package format %q", spec.BackendName, spec.PackageFormat)
 	}
 	return nil
+}
+
+var managedImageBackendCurrentOSVersion = func() string {
+	if currentGOOS() != "darwin" {
+		return ""
+	}
+	payload, err := exec.Command("/usr/bin/sw_vers", "-productVersion").Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(payload))
+}
+
+func managedImageBackendPackageHostVersionSupported(spec managedImageBackendPackageSpec, current string) bool {
+	if strings.TrimSpace(spec.MinOSVersion) == "" {
+		return true
+	}
+	want, wantOK := parseManagedImageBackendVersion(spec.MinOSVersion)
+	got, gotOK := parseManagedImageBackendVersion(current)
+	if !wantOK || !gotOK {
+		return false
+	}
+	for index := range want {
+		if got[index] != want[index] {
+			return got[index] > want[index]
+		}
+	}
+	return true
+}
+
+func parseManagedImageBackendVersion(value string) ([3]int, bool) {
+	var result [3]int
+	parts := strings.Split(strings.TrimSpace(value), ".")
+	if len(parts) < 1 || len(parts) > len(result) {
+		return result, false
+	}
+	for index, part := range parts {
+		if part == "" {
+			return result, false
+		}
+		number, err := strconv.Atoi(part)
+		if err != nil || number < 0 {
+			return result, false
+		}
+		result[index] = number
+	}
+	return result, true
 }
 
 func normalizeManagedImageBackendModelFamilies(values []string) []string {
@@ -254,10 +390,6 @@ func normalizeManagedImageBackendModelFamilies(values []string) []string {
 
 func normalizeManagedImageBackendPackageSource(raw string) managedImageBackendPackageSource {
 	switch managedImageBackendPackageSource(strings.ToLower(strings.TrimSpace(raw))) {
-	case managedImageBackendPackageSourceCanonicalLocalAIDerived:
-		return managedImageBackendPackageSourceCanonicalLocalAIDerived
-	case managedImageBackendPackageSourceExperimentalOfficialSDCPP:
-		return managedImageBackendPackageSourceExperimentalOfficialSDCPP
 	case managedImageBackendPackageSourceCanonicalRuntimeWrapper:
 		return managedImageBackendPackageSourceCanonicalRuntimeWrapper
 	case managedImageBackendPackageSourceCanonicalUnavailable:

@@ -245,7 +245,7 @@ func TestConversationSummaryContinuousHighWaterRemainsInTerminationCustody(t *te
 			return context.Canceled
 		}
 		text := `<message id="conversation-summary">summary</message>`
-		if err := emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA, Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{Text: text}}}}}); err != nil {
+		if err := emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA, Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(text)}}); err != nil {
 			return err
 		}
 		return emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED, Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{}}})
@@ -353,7 +353,7 @@ func TestFailedTerminateFencesConversationSummaryJob(t *testing.T) {
 			return ctx.Err()
 		case <-allowProviderExit:
 		}
-		if err := emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA, Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{Text: `<message id="conversation-summary">surviving summary</message>`}}}}}); err != nil {
+		if err := emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA, Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(`<message id="conversation-summary">surviving summary</message>`)}}); err != nil {
 			return err
 		}
 		return emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED, Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{}}})
@@ -424,7 +424,7 @@ func TestConversationSummaryCapturesExecutionIdentityAndResolvesIndependentBindi
 		account, _ := executionintent.RuntimeAccountSubjectFromContext(ctx)
 		executionAccount <- account
 		executionObserved <- req
-		if err := emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA, Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{Text: `<message id="conversation-summary">captured summary</message>`}}}}}); err != nil {
+		if err := emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA, Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(`<message id="conversation-summary">captured summary</message>`)}}); err != nil {
 			return err
 		}
 		return emit(&runtimev1.StreamScenarioEvent{EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED, Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{}}})

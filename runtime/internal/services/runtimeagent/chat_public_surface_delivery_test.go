@@ -54,11 +54,9 @@ func TestPublicChatTurnMessageCommitDeliveryFailurePreservesDurableCommit(t *tes
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-commit-failure",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: publicChatStructuredEnvelopeAPML("message-commit-failure", "must not complete")},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						publicChatStructuredEnvelopeAPML("message-commit-failure", "must not complete")),
 				},
 			}); err != nil {
 				return err

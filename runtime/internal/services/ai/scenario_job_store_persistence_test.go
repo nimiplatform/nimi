@@ -594,8 +594,13 @@ func TestScenarioJobStorePersistsCloudAssemblyWithoutCredentialAndUsesCloudResta
 	if !ok || persisted.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
 		t.Fatalf("restarted Cloud Job = %#v visible=%v", persisted, ok)
 	}
-	if persisted.GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_INTERNAL {
-		t.Fatalf("restarted Cloud reason = %v, want AI_PROVIDER_INTERNAL", persisted.GetReasonCode())
+	if persisted.GetReasonCode() != runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED {
+		t.Fatalf("restarted Cloud reason = %v, want AI_EXECUTION_INTERRUPTED", persisted.GetReasonCode())
+	}
+	if interruption := persisted.GetInterruption(); interruption == nil ||
+		interruption.GetCause() != runtimev1.ExecutionInterruptionCause_EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART ||
+		interruption.GetResubmitDisposition() != runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT {
+		t.Fatalf("restarted Cloud interruption = %#v", interruption)
 	}
 	if persisted.GetReasonDetail() == "" {
 		t.Fatal("restarted Cloud Job has no stable reason detail")
@@ -614,6 +619,149 @@ func TestScenarioJobStorePersistsCloudAssemblyWithoutCredentialAndUsesCloudResta
 	if captured, err := connectorStore.LoadCredentialCustody(custodyRef); err != nil || captured != "" {
 		t.Fatalf("recovered terminal credential custody = %q, err=%v; want released", captured, err)
 	}
+}
+
+func TestScenarioJobStoreRestartTerminalizesEveryPersistedInFlightState(t *testing.T) {
+	for _, recoveredStatus := range []runtimev1.ScenarioJobStatus{
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED,
+		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+	} {
+		t.Run(recoveredStatus.String(), func(t *testing.T) {
+			localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+			store, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			jobID := "job-restart-" + strings.ToLower(recoveredStatus.String())
+			job := completedScenarioJobForIsolationTest(jobID)
+			job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED
+			assembly := cloudAssemblyForIsolationTest(t, job)
+			beginCloudCredentialCustodyForTest(t, store, jobID)
+			if created, published, err := store.createOwnedAndBindCloudAssemblyChecked(job, func() {}, nil, "", assembly); err != nil || created == nil || !published {
+				t.Fatalf("create durable ScenarioJob = %#v, published=%v err=%v", created, published, err)
+			}
+			if recoveredStatus == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED || recoveredStatus == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING {
+				if _, transitioned, err := store.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); err != nil || !transitioned {
+					t.Fatalf("queue durable ScenarioJob: transitioned=%v err=%v", transitioned, err)
+				}
+			}
+			if recoveredStatus == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING {
+				if _, transitioned, err := store.transition(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); err != nil || !transitioned {
+					t.Fatalf("start durable ScenarioJob: transitioned=%v err=%v", transitioned, err)
+				}
+			}
+
+			reopened, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			persisted, ok := reopened.get(jobID)
+			if !ok || persisted.GetJobId() != jobID || persisted.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED ||
+				persisted.GetReasonCode() != runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED {
+				t.Fatalf("restart-recovered ScenarioJob = %#v, visible=%v", persisted, ok)
+			}
+			if interruption := persisted.GetInterruption(); interruption == nil ||
+				interruption.GetCause() != runtimev1.ExecutionInterruptionCause_EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART ||
+				interruption.GetResubmitDisposition() != runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT {
+				t.Fatalf("restart-recovered interruption = %#v", interruption)
+			}
+			projected, err := projectLocalAppScenarioJob(persisted)
+			if err != nil {
+				t.Fatalf("project restart-recovered Local App Job: %v", err)
+			}
+			if projected.GetReasonCode() != runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED {
+				t.Fatalf("Local App restart reason = %v", projected.GetReasonCode())
+			}
+			assertRuntimeRestartInterruption(t, projected.GetInterruption())
+			captured, ok := reopened.cloudResolvedAssembly(jobID)
+			if !ok || !bytes.Contains(captured.Request, []byte("captured prompt")) {
+				t.Fatalf("restart recovery lost captured Cloud ResolvedAssembly: %+v, visible=%v", captured, ok)
+			}
+
+			secondReopen, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			second, ok := secondReopen.get(jobID)
+			if !ok || !proto.Equal(second, persisted) {
+				t.Fatalf("restart terminal was not durable:\n first: %v\nsecond: %v", persisted, second)
+			}
+		})
+	}
+}
+
+func TestScenarioJobStoreRestartPreservesCompletedArtifactAndExplicitCancellation(t *testing.T) {
+	t.Run("completed artifact", func(t *testing.T) {
+		localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+		store, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		job := completedScenarioJobForIsolationTest("job-completed-restart")
+		job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED
+		assembly := cloudAssemblyForIsolationTest(t, job)
+		assembly.Defaults = json.RawMessage(`{"quality":"hd"}`)
+		beginCloudCredentialCustodyForTest(t, store, job.GetJobId())
+		if _, published, err := store.createOwnedAndBindCloudAssemblyChecked(job, func() {}, nil, "", assembly); err != nil || !published {
+			t.Fatalf("create completed-artifact Job: published=%v err=%v", published, err)
+		}
+		if _, transitioned, err := store.transition(job.GetJobId(), runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); err != nil || !transitioned {
+			t.Fatalf("queue completed-artifact Job: transitioned=%v err=%v", transitioned, err)
+		}
+		if _, transitioned, err := store.transition(job.GetJobId(), runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_RUNNING, nil); err != nil || !transitioned {
+			t.Fatalf("start completed-artifact Job: transitioned=%v err=%v", transitioned, err)
+		}
+		artifact := &runtimev1.ScenarioArtifact{ArtifactId: "artifact-completed-restart", MimeType: "image/png", Uri: "nimi-artifact://artifact-completed-restart", SizeBytes: 42}
+		if _, committed, err := store.commitArtifact(job.GetJobId(), artifact, 1, 1, 100); err != nil || !committed {
+			t.Fatalf("commit completed artifact: committed=%v err=%v", committed, err)
+		}
+		if _, transitioned, err := store.transition(job.GetJobId(), runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED, nil); err != nil || !transitioned {
+			t.Fatalf("complete artifact Job: transitioned=%v err=%v", transitioned, err)
+		}
+		reopened, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		persisted, ok := reopened.get(job.GetJobId())
+		if !ok || persisted.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED ||
+			persisted.GetInterruption() != nil || len(persisted.GetArtifacts()) != 1 ||
+			persisted.GetArtifacts()[0].GetArtifactId() != artifact.GetArtifactId() {
+			t.Fatalf("restart changed completed artifact Job: %#v, visible=%v", persisted, ok)
+		}
+		captured, ok := reopened.cloudResolvedAssembly(job.GetJobId())
+		if !ok || !bytes.Contains(captured.Request, []byte("captured prompt")) || !bytes.Contains(captured.Defaults, []byte("quality")) {
+			t.Fatalf("restart changed completed captured configuration: %+v, visible=%v", captured, ok)
+		}
+	})
+
+	t.Run("explicit cancellation", func(t *testing.T) {
+		localStatePath := filepath.Join(t.TempDir(), "local-state.json")
+		store, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		job := completedScenarioJobForIsolationTest("job-canceled-restart")
+		job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED
+		assembly := cloudAssemblyForIsolationTest(t, job)
+		beginCloudCredentialCustodyForTest(t, store, job.GetJobId())
+		if _, published, err := store.createOwnedAndBindCloudAssemblyChecked(job, func() {}, nil, "", assembly); err != nil || !published {
+			t.Fatalf("create cancel Job: published=%v err=%v", published, err)
+		}
+		if canceled, accepted, err := store.requestCancel(job.GetJobId(), "explicit user cancel"); err != nil || !accepted ||
+			canceled.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+			t.Fatalf("explicit cancel = %#v accepted=%v err=%v", canceled, accepted, err)
+		}
+		reopened, err := newScenarioJobStoreForLocalStatePath(localStatePath)
+		if err != nil {
+			t.Fatal(err)
+		}
+		persisted, ok := reopened.get(job.GetJobId())
+		if !ok || persisted.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED ||
+			persisted.GetInterruption() != nil || persisted.GetReasonMetadata() != nil {
+			t.Fatalf("restart changed explicit cancellation: %#v, visible=%v", persisted, ok)
+		}
+	})
 }
 
 func TestBindCloudCredentialCustodyCapturesConnectorRecordAndSecretFromOneGeneration(t *testing.T) {
@@ -1058,18 +1206,27 @@ func resolvedAssemblyForPersistenceTest(t *testing.T, identity *runtimev1.Loadou
 	t.Helper()
 	axes := make([]localResolvedAssemblyModelAxis, 0, len(identity.GetModelAxes()))
 	modelFiles := make([]localResolvedAssemblyInvocationBinding, 0, len(identity.GetModelAxes()))
+	var mainModelAssetID, mainVerifiedContentID, mainEntrySHA256 string
 	for index, axis := range identity.GetModelAxes() {
 		absolutePath := filepath.Join(t.TempDir(), axis.GetSlotId()+".bin")
 		modelAssetID := axis.GetModelAssetId()
 		entrySHA := strings.Repeat(string(rune('a'+index)), 64)
+		presence := axis.GetPresence()
+		if presence == runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_UNSPECIFIED {
+			presence = runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED
+			axis.Presence = presence
+		}
 		axes = append(axes, localResolvedAssemblyModelAxis{
 			RequirementID: axis.GetSlotId(), ModelAssetID: modelAssetID,
-			AbsolutePath: absolutePath, VerifiedContentID: axis.GetContentId(), EntrySHA256: entrySHA,
+			AbsolutePath: absolutePath, VerifiedContentID: axis.GetContentId(), EntrySHA256: entrySHA, Presence: presence,
 		})
 		modelFiles = append(modelFiles, localResolvedAssemblyInvocationBinding{
 			RequirementID: axis.GetSlotId(), ModelAssetID: modelAssetID, AbsolutePath: absolutePath,
 			VerifiedContentID: axis.GetContentId(), EntrySHA256: entrySHA,
 		})
+		if axis.GetSlotId() == capabilitydriver.MainGGUFRequirementID {
+			mainModelAssetID, mainVerifiedContentID, mainEntrySHA256 = modelAssetID, axis.GetContentId(), entrySHA
+		}
 	}
 	var portableConfig json.RawMessage
 	if identity.GetOptions() != nil {
@@ -1088,6 +1245,10 @@ func resolvedAssemblyForPersistenceTest(t *testing.T, identity *runtimev1.Loadou
 		recipeCustody = append(recipeCustody, raw)
 	}
 	implementation := identity.GetImplementation()
+	behaviorMatch := localResolvedAssemblyTextBehaviorMatch{
+		RecipeID: identity.GetRecipeId(), RecipeRevision: identity.GetRecipeRevision(), DriverDialect: implementation.GetDriverDialect(),
+		ModelAssetID: mainModelAssetID, VerifiedContentID: mainVerifiedContentID, EntrySHA256: mainEntrySHA256,
+	}
 	return &localResolvedAssembly{
 		Version: localResolvedAssemblyVersion, LoadoutID: identity.GetLoadoutId(),
 		CapabilityContract: identity.GetCapabilityContract(), RecipeID: identity.GetRecipeId(), RecipeRevision: identity.GetRecipeRevision(),
@@ -1097,7 +1258,8 @@ func resolvedAssemblyForPersistenceTest(t *testing.T, identity *runtimev1.Loadou
 		PortableConfig: portableConfig, ModelAxes: axes, RecipeCustody: recipeCustody,
 		Request: localResolvedAssemblyRequest{Kind: "text.generate", Payload: json.RawMessage(`{"input":[]}`)},
 		LoadPlan: localResolvedAssemblyLoadPlan{Kind: "text", Text: &localResolvedAssemblyTextPlan{
-			ProcessKey: "process-persistence-test", ModelFiles: modelFiles, RequestPath: "/v1/chat/completions", RequestBody: []byte(`{"messages":[]}`),
+			ProcessKey: "process-persistence-test", ModelFiles: modelFiles, RequestPath: "/v1/chat/completions", RequestContentType: "application/json", RequestBody: []byte(`{"messages":[]}`),
+			BehaviorMatch: behaviorMatch,
 		}},
 		ProcessIdentity: localResolvedAssemblyProcessIdentity{ProcessKey: "process-persistence-test", DriverID: implementation.GetDriverId()},
 	}

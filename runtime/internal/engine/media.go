@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -218,57 +219,31 @@ func DetectMediaHostGPU() (string, bool) {
 	return detectMediaHostGPU()
 }
 
+var mediaHostGPUProbe = probePhysicalMediaHostGPU
+
 func detectMediaHostGPU() (string, bool) {
-	vendor := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_GPU_VENDOR"))
-	if vendor == "" {
-		switch {
-		case hasPath("nvidia-smi"):
-			vendor = "nvidia"
-		case fileExists("/dev/nvidia0"):
-			vendor = "nvidia"
-		}
+	if mediaHostGPUProbe == nil {
+		return "", false
 	}
-	if !strings.EqualFold(vendor, "nvidia") {
-		return strings.ToLower(strings.TrimSpace(vendor)), false
-	}
-	return "nvidia", detectMediaCUDAReady()
+	vendor, driverVisible := mediaHostGPUProbe()
+	return strings.ToLower(strings.TrimSpace(vendor)), driverVisible
 }
 
-func detectMediaCUDAReady() bool {
-	if explicit, ok := explicitBoolEnv("NIMI_RUNTIME_GPU_CUDA_READY"); ok {
-		return explicit
+func probePhysicalMediaHostGPU() (string, bool) {
+	if currentGOOS() == "darwin" && currentGOARCH() == "arm64" {
+		return "apple", true
 	}
-	for _, key := range []string{"CUDA_PATH", "CUDA_HOME"} {
-		if strings.TrimSpace(os.Getenv(key)) != "" {
-			return true
+	if hasPath("nvidia-smi") {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		if err := exec.CommandContext(ctx, "nvidia-smi", "--query-gpu=name", "--format=csv,noheader").Run(); err == nil {
+			return "nvidia", true
 		}
 	}
-	if hasPath("nvcc") {
-		return true
+	if currentGOOS() != "windows" && fileExists("/dev/nvidia0") {
+		return "nvidia", true
 	}
-	if currentGOOS() == "windows" {
-		programFiles := strings.TrimSpace(os.Getenv("ProgramFiles"))
-		if programFiles == "" {
-			programFiles = `C:\Program Files`
-		}
-		return fileExists(filepath.Join(programFiles, "NVIDIA GPU Computing Toolkit", "CUDA"))
-	}
-	return fileExists("/usr/local/cuda")
-}
-
-func explicitBoolEnv(key string) (bool, bool) {
-	raw, ok := os.LookupEnv(key)
-	if !ok {
-		return false, false
-	}
-	switch strings.ToLower(strings.TrimSpace(raw)) {
-	case "1", "true", "yes", "on":
-		return true, true
-	case "0", "false", "no", "off":
-		return false, true
-	default:
-		return false, false
-	}
+	return "", false
 }
 
 func hasPath(name string) bool {

@@ -297,7 +297,7 @@ func runAudioCppSpeechSynthesisCLIProcess(ctx context.Context, plan capabilitydr
 			}
 			defer cleanupAudioCppStaging(referencePath, referencePath+".tmp")
 		}
-		outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: exact.AudioCppExecutablePath(), workingDir: exact.AudioCppRoot(), cuda13Root: exact.CUDA13Root(), args: exact.CLIArgs(), stagingOutputPath: exact.StagingWAVPath()})
+		outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: exact.AudioCppExecutablePath(), workingDir: exact.AudioCppRoot(), cuda13Root: exact.CUDA13Root(), args: exact.CLIArgs(), stagingOutputPath: exact.StagingWAVPath(), modelBindings: exact.ModelFiles()})
 		if err != nil {
 			return localexecution.SpeechSynthesisResult{}, err
 		}
@@ -327,7 +327,7 @@ func runAudioCppSpeechTranscriptionCLIProcess(ctx context.Context, plan capabili
 		return localexecution.SpeechTranscriptionResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("write audio.cpp ASR staging input"))
 	}
 	defer cleanupAudioCppStaging(audioPath, audioPath+".tmp")
-	outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: exact.AudioCppExecutablePath(), workingDir: exact.AudioCppRoot(), cuda13Root: exact.CUDA13Root(), args: exact.CLIArgs(), stagingOutputPath: textPath})
+	outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: exact.AudioCppExecutablePath(), workingDir: exact.AudioCppRoot(), cuda13Root: exact.CUDA13Root(), args: exact.CLIArgs(), stagingOutputPath: textPath, modelBindings: exact.ModelFiles()})
 	if err != nil {
 		return localexecution.SpeechTranscriptionResult{}, err
 	}
@@ -351,7 +351,7 @@ func runQwen3TTSAudioCppCLIProcess(ctx context.Context, plan *capabilitydriver.Q
 		return localexecution.SpeechSynthesisResult{}, executionFailure(localexecution.FailureContentMismatch, err)
 	}
 	args := qwen3TTSAudioCppCLIArgs(plan)
-	outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: plan.AudioCppExecutablePath(), workingDir: plan.AudioCppRoot(), cuda13Root: plan.CUDA13Root(), args: args, stagingOutputPath: plan.StagingWAVPath()})
+	outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: plan.AudioCppExecutablePath(), workingDir: plan.AudioCppRoot(), cuda13Root: plan.CUDA13Root(), args: args, stagingOutputPath: plan.StagingWAVPath(), modelBindings: plan.ModelFiles()})
 	if err != nil {
 		return localexecution.SpeechSynthesisResult{}, err
 	}
@@ -361,8 +361,8 @@ func runQwen3TTSAudioCppCLIProcess(ctx context.Context, plan *capabilitydriver.Q
 func qwen3TTSAudioCppCLIArgs(plan *capabilitydriver.Qwen3TTSAudioCppInvocationPlan) []string {
 	doSample, temperature, topK, topP, repetition := plan.Sampling()
 	args := []string{"--task", "tts", "--family", "qwen3_tts", "--model", plan.ModelPath(), "--backend", "cuda", "--session-option", "qwen3_tts.mem_saver=" + strconv.FormatBool(plan.MemorySaver()), "--text", plan.Text(), "--speaker", plan.Speaker()}
-	if plan.Language() != "" {
-		args = append(args, "--language", plan.Language())
+	if plan.CLILanguage() != "" {
+		args = append(args, "--language", plan.CLILanguage())
 	}
 	args = append(args, "--do-sample", strconv.FormatBool(doSample), "--temperature", strconv.FormatFloat(temperature, 'g', -1, 64), "--top-k", strconv.Itoa(topK), "--top-p", strconv.FormatFloat(topP, 'g', -1, 64), "--repetition-penalty", strconv.FormatFloat(repetition, 'g', -1, 64), "--max-tokens", strconv.Itoa(plan.MaxTokens()), "--text-chunk-size", strconv.Itoa(plan.TextChunkSize()), "--seed", strconv.FormatUint(plan.Seed(), 10), "--out", plan.StagingWAVPath(), "--metrics")
 	return args

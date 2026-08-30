@@ -82,18 +82,23 @@ func executeLocalTextGenerateScenario(
 		s.finishLocalTextScenarioJobFailure(requestCtx, jobID, err)
 		return nil, err
 	}
+	textOutput := canonicalTextGenerateOutput(result.Text, nil)
+	if len(result.Items) > 0 {
+		textOutput = canonicalTextGenerateOutputFromOrdered(result.Items)
+	}
 	return &runtimev1.ExecuteScenarioResponse{
 		Output: &runtimev1.ScenarioOutput{
 			Output: &runtimev1.ScenarioOutput_TextGenerate{
-				TextGenerate: &runtimev1.TextGenerateOutput{Text: result.Text},
+				TextGenerate: textOutput,
 			},
 		},
-		FinishReason:      result.FinishReason,
-		Usage:             usage,
-		RouteDecision:     runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
-		ModelResolved:     effective.modelResolved(),
-		TraceId:           job.GetTraceId(),
-		IgnoredExtensions: cloneIgnoredScenarioExtensions(ignored),
+		FinishReason:           result.FinishReason,
+		Usage:                  usage,
+		RouteDecision:          runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+		ModelResolved:          effective.modelResolved(),
+		TraceId:                job.GetTraceId(),
+		IgnoredExtensions:      cloneIgnoredScenarioExtensions(ignored),
+		EffectiveInputIdentity: effective.effectiveInputIdentity,
 	}, nil
 }
 
@@ -264,8 +269,9 @@ func streamLocalTextGenerateScenario(
 		EventType: runtimev1.StreamEventType_STREAM_EVENT_STARTED,
 		Payload: &runtimev1.StreamScenarioEvent_Started{
 			Started: &runtimev1.ScenarioStreamStarted{
-				ModelResolved: effective.modelResolved(),
-				RouteDecision: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				ModelResolved:          effective.modelResolved(),
+				RouteDecision:          runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
+				EffectiveInputIdentity: effective.effectiveInputIdentity,
 			},
 		},
 	}); err != nil {
@@ -277,35 +283,34 @@ func streamLocalTextGenerateScenario(
 	}
 
 	var textBuffer strings.Builder
-	var reasoningBuffer strings.Builder
+	textItemOpened := false
 	flushText := func() error {
 		if textBuffer.Len() == 0 {
 			return nil
 		}
 		text := textBuffer.String()
 		textBuffer.Reset()
+		textItemOpened = true
 		return send(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-			Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
-				Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{Text: text}},
-			}},
-		})
-	}
-	flushReasoning := func() error {
-		if reasoningBuffer.Len() == 0 {
-			return nil
-		}
-		text := reasoningBuffer.String()
-		reasoningBuffer.Reset()
-		return send(&runtimev1.StreamScenarioEvent{
-			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-			Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
-				Delta: &runtimev1.ScenarioStreamDelta_Reasoning{Reasoning: &runtimev1.ReasoningStreamDelta{Text: text}},
-			}},
+			Payload:   &runtimev1.StreamScenarioEvent_Delta{Delta: textOutputDelta(0, text, false)},
 		})
 	}
 	onDelta := func(delta localexecution.TextDelta) error {
-		if delta.Text != "" || delta.Reasoning != "" {
+		if delta.Ordered != nil {
+			if delta.Text != "" {
+				return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+			}
+			recordActivity()
+			if textBuffer.Len() != 0 || textItemOpened {
+				return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+			}
+			return send(&runtimev1.StreamScenarioEvent{
+				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+				Payload:   &runtimev1.StreamScenarioEvent_Delta{Delta: orderedTextOutputDelta(*delta.Ordered)},
+			})
+		}
+		if delta.Text != "" {
 			recordActivity()
 		}
 		if delta.Text != "" {
@@ -316,12 +321,8 @@ func streamLocalTextGenerateScenario(
 				}
 			}
 		}
-		if delta.Reasoning != "" {
-			reasoningBuffer.WriteString(delta.Reasoning)
-			if reasoningBuffer.Len() >= minStreamChunkBytes {
-				return flushReasoning()
-			}
-		}
+		// Raw engine reasoning remains private. No current local adapter declares
+		// a provider-neutral summary or opaque continuity mapping.
 		return nil
 	}
 	if s.localTextHost == nil {
@@ -333,11 +334,24 @@ func streamLocalTextGenerateScenario(
 		var result localexecution.TextResult
 		result, err = s.localTextHost.StreamText(requestCtx, executionEffective.plan, onDelta, nil)
 		if err == nil {
-			if flushErr := flushReasoning(); flushErr != nil {
-				return flushErr
-			}
 			if flushErr := flushText(); flushErr != nil {
 				return flushErr
+			}
+			if len(result.Items) == 0 && !textItemOpened && result.Text != "" {
+				if sendErr := send(&runtimev1.StreamScenarioEvent{
+					EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+					Payload:   &runtimev1.StreamScenarioEvent_Delta{Delta: textOutputDelta(0, result.Text, true)},
+				}); sendErr != nil {
+					return sendErr
+				}
+				textItemOpened = true
+			} else if len(result.Items) == 0 && textItemOpened {
+				if sendErr := send(&runtimev1.StreamScenarioEvent{
+					EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+					Payload:   &runtimev1.StreamScenarioEvent_Delta{Delta: textOutputDelta(0, "", true)},
+				}); sendErr != nil {
+					return sendErr
+				}
 			}
 			if result.FinishReason == runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED {
 				result.FinishReason = runtimev1.FinishReason_FINISH_REASON_STOP

@@ -166,7 +166,8 @@ func TestPublicChatTurnRequestImageActionPromptFollowsAgentAIConfig(t *testing.T
 	}
 
 	selected := machineLocalExecutionProjectionForTest("lcc-image", runtimeAgentAIConfigCapabilityImageGenerate, "local/image", nil)
-	selected.SupportedFeatures = []string{"output.image"}
+	selected.ImplementationSupportedFeatures = []string{"output.image"}
+	selected.ConfiguredFeatures = []string{"output.image"}
 	available := publicChatScenarioSystemPromptForImageConfig(t, &publicChatExecutionBinding{
 		ModelID: "local/image", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL,
 		CapabilityContract: runtimeAgentAIConfigCapabilityImageGenerate,

@@ -17,28 +17,38 @@ func normalizePublicChatReasoning(input *publicChatReasoningPayload) *publicChat
 	if input == nil {
 		return nil
 	}
-	mode := parsePublicChatReasoningMode(input.Mode)
-	traceMode := parsePublicChatReasoningTraceMode(input.TraceMode)
-	if mode == runtimev1.ReasoningMode_REASONING_MODE_UNSPECIFIED &&
-		traceMode == runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_UNSPECIFIED &&
-		input.BudgetTokens <= 0 {
+	activation := parsePublicChatReasoningActivation(input.Activation)
+	presentation := parsePublicChatReasoningPresentation(input.Presentation)
+	effort := parsePublicChatReasoningEffort(input.Effort)
+	if activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED &&
+		presentation == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_UNSPECIFIED &&
+		effort == runtimev1.ReasoningEffort_REASONING_EFFORT_UNSPECIFIED && input.ExactBudgetTokens == 0 {
 		return nil
 	}
+	if presentation == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_UNSPECIFIED {
+		presentation = runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN
+	}
 	return &publicChatReasoningConfig{
-		Mode:         mode,
-		TraceMode:    traceMode,
-		BudgetTokens: input.BudgetTokens,
+		Activation:        activation,
+		Presentation:      presentation,
+		Effort:            effort,
+		ExactBudgetTokens: input.ExactBudgetTokens,
 	}
 }
 func toProtoReasoningConfig(input *publicChatReasoningConfig) *runtimev1.ReasoningConfig {
 	if input == nil {
 		return nil
 	}
-	return &runtimev1.ReasoningConfig{
-		Mode:         input.Mode,
-		TraceMode:    input.TraceMode,
-		BudgetTokens: input.BudgetTokens,
+	config := &runtimev1.ReasoningConfig{
+		Activation:   input.Activation,
+		Presentation: input.Presentation,
 	}
+	if input.Effort != runtimev1.ReasoningEffort_REASONING_EFFORT_UNSPECIFIED {
+		config.Intensity = &runtimev1.ReasoningConfig_Effort{Effort: input.Effort}
+	} else if input.ExactBudgetTokens > 0 {
+		config.Intensity = &runtimev1.ReasoningConfig_ExactBudgetTokens{ExactBudgetTokens: input.ExactBudgetTokens}
+	}
+	return config
 }
 func toProtoPublicChatMessages(input []publicChatMessagePayload) []*runtimev1.ChatMessage {
 	out := make([]*runtimev1.ChatMessage, 0, len(input))
@@ -129,6 +139,9 @@ func decodePublicChatTurnRequestPayload(payload any) (publicChatTurnRequestPaylo
 	if decoded.MaxOutputTokens < 0 {
 		return publicChatTurnRequestPayload{}, status.Error(codes.InvalidArgument, "public chat max_output_tokens must be non-negative")
 	}
+	if err := validatePublicChatReasoningPayload(decoded.Reasoning); err != nil {
+		return publicChatTurnRequestPayload{}, err
+	}
 	return decoded, nil
 }
 func decodePublicChatTurnInterruptPayload(payload any) (publicChatTurnInterruptPayload, error) {
@@ -200,25 +213,73 @@ func parseOptionalPublicChatRoutePolicy(value string) (runtimev1.RoutePolicy, er
 func clonePublicChatTargetRef(input *runtimeidentity.Target) *runtimeidentity.Target {
 	return input.Clone()
 }
-func parsePublicChatReasoningMode(value string) runtimev1.ReasoningMode {
+func parsePublicChatReasoningActivation(value string) runtimev1.ReasoningActivation {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "off", "reasoning_mode_off":
-		return runtimev1.ReasoningMode_REASONING_MODE_OFF
-	case "on", "reasoning_mode_on":
-		return runtimev1.ReasoningMode_REASONING_MODE_ON
+	case "disabled", "reasoning_activation_disabled":
+		return runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED
+	case "adaptive", "reasoning_activation_adaptive":
+		return runtimev1.ReasoningActivation_REASONING_ACTIVATION_ADAPTIVE
+	case "required", "reasoning_activation_required":
+		return runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED
 	default:
-		return runtimev1.ReasoningMode_REASONING_MODE_UNSPECIFIED
+		return runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED
 	}
 }
-func parsePublicChatReasoningTraceMode(value string) runtimev1.ReasoningTraceMode {
+func parsePublicChatReasoningPresentation(value string) runtimev1.ReasoningPresentation {
 	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "hide", "reasoning_trace_mode_hide":
-		return runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_HIDE
-	case "separate", "reasoning_trace_mode_separate":
-		return runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_SEPARATE
+	case "hidden", "reasoning_presentation_hidden":
+		return runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN
+	case "summary", "reasoning_presentation_summary":
+		return runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY
 	default:
-		return runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_UNSPECIFIED
+		return runtimev1.ReasoningPresentation_REASONING_PRESENTATION_UNSPECIFIED
 	}
+}
+func parsePublicChatReasoningEffort(value string) runtimev1.ReasoningEffort {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "minimal", "reasoning_effort_minimal":
+		return runtimev1.ReasoningEffort_REASONING_EFFORT_MINIMAL
+	case "low", "reasoning_effort_low":
+		return runtimev1.ReasoningEffort_REASONING_EFFORT_LOW
+	case "medium", "reasoning_effort_medium":
+		return runtimev1.ReasoningEffort_REASONING_EFFORT_MEDIUM
+	case "high", "reasoning_effort_high":
+		return runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH
+	case "maximum", "reasoning_effort_maximum":
+		return runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM
+	default:
+		return runtimev1.ReasoningEffort_REASONING_EFFORT_UNSPECIFIED
+	}
+}
+func validatePublicChatReasoningPayload(input *publicChatReasoningPayload) error {
+	if input == nil {
+		return nil
+	}
+	activation := parsePublicChatReasoningActivation(input.Activation)
+	if activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED {
+		return status.Error(codes.InvalidArgument, "public chat reasoning activation is invalid")
+	}
+	if strings.TrimSpace(input.Presentation) != "" && parsePublicChatReasoningPresentation(input.Presentation) == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_UNSPECIFIED {
+		return status.Error(codes.InvalidArgument, "public chat reasoning presentation is invalid")
+	}
+	effort := parsePublicChatReasoningEffort(input.Effort)
+	if strings.TrimSpace(input.Effort) != "" && effort == runtimev1.ReasoningEffort_REASONING_EFFORT_UNSPECIFIED {
+		return status.Error(codes.InvalidArgument, "public chat reasoning effort is invalid")
+	}
+	hasEffort := effort != runtimev1.ReasoningEffort_REASONING_EFFORT_UNSPECIFIED
+	hasBudget := input.ExactBudgetTokens > 0
+	switch activation {
+	case runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED:
+		if hasEffort || hasBudget || parsePublicChatReasoningPresentation(input.Presentation) == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY {
+			return status.Error(codes.InvalidArgument, "disabled public chat reasoning admits hidden presentation and no intensity")
+		}
+	case runtimev1.ReasoningActivation_REASONING_ACTIVATION_ADAPTIVE,
+		runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED:
+		if hasEffort == hasBudget {
+			return status.Error(codes.InvalidArgument, "public chat reasoning requires exactly one effort or exact budget")
+		}
+	}
+	return nil
 }
 func publicChatRouteLabel(route runtimev1.RoutePolicy) string {
 	switch route {

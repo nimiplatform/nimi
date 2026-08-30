@@ -357,6 +357,15 @@ const (
 // Qwen3TTSDriver owns the exact Qwen3-TTS plain synthesis dialect.
 type Qwen3TTSDriver struct{}
 
+func (Qwen3TTSDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
+	switch strings.TrimSpace(recipeID) {
+	case Qwen3TTSCustomVoiceRecipeID, Qwen3TTSBaseRecipeID, Qwen3TTSVoiceDesignRecipeID:
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+	default:
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+}
+
 func (Qwen3TTSDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string {
 	return nil
 }
@@ -474,6 +483,17 @@ func (Qwen3TTSDriver) PlanSpeechSynthesizeInvocation(input SpeechSynthesizeInvoc
 // identity, and its selected feature set never chooses another configuration.
 type Qwen3VoiceCreateDriver struct{}
 
+func (Qwen3VoiceCreateDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
+	switch strings.TrimSpace(recipeID) {
+	case Qwen3VoiceCloneRecipeID:
+		return []string{"input.audio"}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+	case Qwen3VoiceDesignRecipeID:
+		return []string{"input.text"}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+	default:
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+}
+
 func (Qwen3VoiceCreateDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string {
 	return nil
 }
@@ -492,6 +512,7 @@ func (Qwen3VoiceCreateDriver) Interpret(input InterpretInput) ([]*runtimev1.Loca
 	return []*runtimev1.LocalCapabilityRequirement{{
 		RequirementId:            Qwen3VoiceCreateModelRequirementID,
 		Role:                     runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN,
+		Presence:                 runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED,
 		ResourceKind:             "tts",
 		Policy:                   runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE,
 		CompatibilityConstraints: constraints,
@@ -571,6 +592,13 @@ func (Qwen3VoiceCreateDriver) PlanVoiceCreateInvocation(input VoiceCreateInvocat
 // Qwen3ASRDriver owns the exact Qwen3-ASR transcription dialect.
 type Qwen3ASRDriver struct{}
 
+func (Qwen3ASRDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
+	if strings.TrimSpace(recipeID) != Qwen3ASRRecipeID {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
 func (Qwen3ASRDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string {
 	return nil
 }
@@ -604,6 +632,13 @@ func (Qwen3ASRDriver) PlanSpeechTranscribeInvocation(input SpeechTranscribeInvoc
 
 // Qwen3ASRTransformersDriver owns the separate Transformers-native Qwen3-ASR dialect.
 type Qwen3ASRTransformersDriver struct{}
+
+func (Qwen3ASRTransformersDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
+	if strings.TrimSpace(recipeID) != Qwen3ASRTransformersRecipeID {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
 
 func (Qwen3ASRTransformersDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string {
 	return nil
@@ -672,6 +707,7 @@ func interpretQwen3Speech(input InterpretInput, requirementID string, resourceKi
 	return []*runtimev1.LocalCapabilityRequirement{{
 		RequirementId:            requirementID,
 		Role:                     runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN,
+		Presence:                 runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED,
 		ResourceKind:             resourceKind,
 		Policy:                   runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE,
 		CompatibilityConstraints: constraints,

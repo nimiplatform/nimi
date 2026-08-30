@@ -343,6 +343,10 @@ func TestManagedImageBackendDependencyStatusUsesResolvedWrapperExecutableOnly(t 
 		PackageSource:          managedImageBackendPackageSourceCanonicalRuntimeWrapper,
 		PackageFormat:          managedImageBackendPackageFormatDirectArchive,
 		LaunchMode:             managedImageBackendLaunchModeRuntimeWrapper,
+		ReleaseTag:             "test-release",
+		SourceCommit:           "0123456789abcdef0123456789abcdef01234567",
+		ArchiveURL:             "https://example.invalid/sd.zip",
+		ArchiveSHA256:          strings.Repeat("a", 64),
 		WrapperDriver:          "stable-diffusion.cpp",
 		ExecutableCandidates:   []string{"sd.exe", "sd-cli.exe"},
 		SupportedModelFamilies: []string{"flux", "ideogram4", "sdxl", "z-image"},
@@ -356,6 +360,9 @@ func TestManagedImageBackendDependencyStatusUsesResolvedWrapperExecutableOnly(t 
 		t.Fatalf("verified artifacts = %v, want resolved backend executable %q", status.VerifiedArtifacts, resolvedBackendExecutable)
 	}
 	for _, artifact := range status.VerifiedArtifacts {
+		if sameCleanPath(artifact, wrapperExecutable) {
+			t.Fatalf("verified package artifacts must not include the Runtime wrapper %q: %v", wrapperExecutable, status.VerifiedArtifacts)
+		}
 		if strings.EqualFold(filepath.Base(artifact), "sd.exe") {
 			t.Fatalf("verified artifacts must not include unresolved executable candidate sd.exe: %v", status.VerifiedArtifacts)
 		}
@@ -366,6 +373,9 @@ func TestManagedImageBackendDependencyStatusUsesResolvedWrapperExecutableOnly(t 
 	if !managedImageBackendStringSliceContains(status.SupportedModelFamilies, "z-image") ||
 		managedImageBackendStringSliceContains(status.SupportedModelFamilies, "z-image-turbo") {
 		t.Fatalf("dependency status must carry only the canonical z-image family, got %v", status.SupportedModelFamilies)
+	}
+	if status.ReleaseTag != "test-release" || status.SourceCommit != "0123456789abcdef0123456789abcdef01234567" || status.ArchiveSHA256 != strings.Repeat("a", 64) {
+		t.Fatalf("dependency status lost exact package identity: %+v", status)
 	}
 }
 
@@ -475,7 +485,7 @@ func TestDiscoverInstalledManagedImageBackendLaunchConfigInjectsManagedCUDAPathP
 }
 
 func TestResolveInstalledManagedImageBackendRequiresMaterializerWithoutCreatingRoot(t *testing.T) {
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	setMediaHostGPUProbeForTest(t, "nvidia", true)
 	spec, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource("stablediffusion-ggml", "")
 	if !ok || !spec.Supported {
 		t.Skip("current host has no supported managed image backend package spec")
@@ -495,7 +505,7 @@ func TestResolveInstalledManagedImageBackendRequiresMaterializerWithoutCreatingR
 }
 
 func TestEnsureManagedImageBackendRequiresMaterializerWithoutInstalling(t *testing.T) {
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	setMediaHostGPUProbeForTest(t, "nvidia", true)
 	spec, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource("stablediffusion-ggml", "")
 	if !ok || !spec.Supported {
 		t.Skip("current host has no supported managed image backend package spec")
@@ -526,7 +536,7 @@ func TestEnsureManagedImageBackendRequiresMaterializerWithoutInstalling(t *testi
 }
 
 func TestEnsureManagedImageBackendDependencyStopsRunningBackendBeforeInstall(t *testing.T) {
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "test")
+	setMediaHostGPUProbeForTest(t, "test", false)
 	archive := makeFakeArchiveAsset(t, "payload.zip", "sd.exe", []byte("fake-windows-backend"))
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -550,6 +560,8 @@ entries:
     backend_family: stablediffusion-ggml
     package_source: canonical_runtime_wrapper
     package_format: direct_archive
+    release_tag: test-release
+    source_commit: 0123456789abcdef0123456789abcdef01234567
     install_dir_name: sd-test-runtime-wrapper
     archive_url: %s
     archive_sha256: %x
@@ -658,7 +670,7 @@ func TestResolveManagedImageBackendPackageSpecForHostWindowsNvidiaWithoutCUDA(t 
 	}
 }
 
-func TestResolveManagedImageBackendPackageSpecForHostDarwinApple(t *testing.T) {
+func TestResolveManagedImageBackendPackageSpecForHostDarwinAppleUsesExactCanonicalPackage(t *testing.T) {
 	spec, ok := resolveManagedImageBackendPackageSpecForHost(
 		"stablediffusion-ggml",
 		"darwin",
@@ -666,42 +678,25 @@ func TestResolveManagedImageBackendPackageSpecForHostDarwinApple(t *testing.T) {
 		"apple",
 		false,
 	)
-	if !ok {
-		t.Fatal("expected darwin apple host to resolve a managed image backend package")
+	if !ok || !spec.Supported {
+		t.Fatalf("darwin canonical package = %#v, ok=%v", spec, ok)
 	}
-	if !spec.Supported {
-		t.Fatalf("expected darwin managed image backend package to be supported, got %#v", spec)
+	if spec.PackageSource != managedImageBackendPackageSourceCanonicalRuntimeWrapper || spec.ReleaseTag != "master-813-bfbef5b" ||
+		spec.SourceCommit != "bfbef5b7e64e89a0205894853de25d19a7ba54b9" ||
+		spec.ArchiveSHA256 != "efd0172b91a2491aeeb92e5ddfca16aa08273d5aa4889eaa6616f5e3242520e5" || spec.MinOSVersion != "26.0.0" {
+		t.Fatalf("darwin exact package identity = %#v", spec)
 	}
-	if spec.PackageSource != managedImageBackendPackageSourceCanonicalLocalAIDerived {
-		t.Fatalf("expected canonical LocalAI-derived package source, got %q", spec.PackageSource)
-	}
-	if spec.PackageFormat != managedImageBackendPackageFormatOCIPayload {
-		t.Fatalf("expected OCI payload package format, got %q", spec.PackageFormat)
-	}
-	if spec.LaunchMode != managedImageBackendLaunchModePackageEntrypoint {
-		t.Fatalf("expected package entrypoint launch mode, got %q", spec.LaunchMode)
-	}
-	if len(spec.ExecutableCandidates) == 0 {
-		t.Fatal("expected darwin package to declare executable candidates")
-	}
-	if strings.TrimSpace(spec.WrapperDriver) == "" {
-		t.Fatal("expected darwin package to declare wrapper driver authority")
-	}
-	if got := strings.TrimSpace(spec.ImageRef); got == "" {
-		t.Fatal("expected OCI image ref for darwin managed image backend package")
-	}
-	if got := strings.TrimSpace(spec.OCILayerDigest); got == "" {
-		t.Fatal("expected OCI layer digest for darwin managed image backend package")
-	}
-	if strings.TrimSpace(spec.ArchiveURL) != "" {
-		t.Fatalf("expected no archive URL for canonical darwin package, got %q", spec.ArchiveURL)
+	for version, want := range map[string]bool{"25.9.9": false, "26.0": true, "26.5.2": true, "27": true, "": false} {
+		if got := managedImageBackendPackageHostVersionSupported(spec, version); got != want {
+			t.Fatalf("darwin package version admission %q = %v, want %v", version, got, want)
+		}
 	}
 }
 
 func TestValidateManagedImageBackendPackageSpecRejectsIncompleteSupportedPackage(t *testing.T) {
 	err := validateManagedImageBackendPackageSpec(managedImageBackendPackageSpec{
 		BackendName:    "stablediffusion-ggml",
-		PackageSource:  managedImageBackendPackageSourceCanonicalLocalAIDerived,
+		PackageSource:  managedImageBackendPackageSourceCanonicalRuntimeWrapper,
 		PackageFormat:  managedImageBackendPackageFormatOCIPayload,
 		InstallDirName: "metal-stablediffusion-ggml",
 		ImageRef:       "quay.io/example/backend:latest",
@@ -714,23 +709,56 @@ func TestValidateManagedImageBackendPackageSpecRejectsIncompleteSupportedPackage
 	}
 }
 
-func TestResolveManagedImageBackendPackageSpecForHostDarwinAppleExperimentalOfficialSourceIsNotSupported(t *testing.T) {
+func TestAdmitManagedImageRecipeForHostClosesPackageFamilyIntersection(t *testing.T) {
+	for _, family := range []string{"z-image", "ideogram4", "qwen-image", "minimax-h3"} {
+		t.Run("windows_"+family, func(t *testing.T) {
+			if err := admitManagedImageRecipeForHost(family, "", "windows", "amd64", "nvidia", true); err != nil {
+				t.Fatalf("admitManagedImageRecipeForHost(%q): %v", family, err)
+			}
+		})
+		t.Run("darwin_"+family, func(t *testing.T) {
+			if err := admitManagedImageRecipeForHost(family, "", "darwin", "arm64", "apple", false); err != nil {
+				t.Fatalf("admitManagedImageRecipeForHost(%q): %v", family, err)
+			}
+		})
+	}
+	for _, test := range []struct {
+		name          string
+		family        string
+		packageSource string
+		goos          string
+		goarch        string
+		gpuVendor     string
+	}{
+		{name: "unknown family", family: "flux", goos: "windows", goarch: "amd64", gpuVendor: "nvidia"},
+		{name: "darwin wrong package source does not fallback", family: "qwen-image", packageSource: "experimental_official_sdcpp", goos: "darwin", goarch: "arm64", gpuVendor: "apple"},
+		{name: "wrong package source does not fallback", family: "z-image", packageSource: "experimental_official_sdcpp", goos: "windows", goarch: "amd64", gpuVendor: "nvidia"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if err := admitManagedImageRecipeForHost(test.family, test.packageSource, test.goos, test.goarch, test.gpuVendor, true); err == nil {
+				t.Fatal("unsupported host/package-family/recipe tuple was admitted")
+			}
+		})
+	}
+}
+
+func TestResolveManagedImageBackendPackageSpecForHostDarwinAppleCanonicalSourceIsSupported(t *testing.T) {
 	spec, ok := resolveManagedImageBackendPackageSpecForHostWithSource(
 		"stablediffusion-ggml",
-		string(managedImageBackendPackageSourceExperimentalOfficialSDCPP),
+		string(managedImageBackendPackageSourceCanonicalRuntimeWrapper),
 		"darwin",
 		"arm64",
 		"apple",
 		false,
 	)
 	if !ok {
-		t.Fatal("expected darwin apple host to resolve the experimental official managed image backend package")
+		t.Fatal("expected darwin apple host to resolve the canonical managed image backend package")
 	}
-	if spec.Supported {
-		t.Fatalf("expected experimental darwin managed image backend package to remain non-supported, got %#v", spec)
+	if !spec.Supported {
+		t.Fatalf("expected darwin managed image backend package to be supported, got %#v", spec)
 	}
-	if spec.PackageSource != managedImageBackendPackageSourceExperimentalOfficialSDCPP {
-		t.Fatalf("expected experimental official package source, got %q", spec.PackageSource)
+	if spec.PackageSource != managedImageBackendPackageSourceCanonicalRuntimeWrapper {
+		t.Fatalf("expected canonical Runtime wrapper package source, got %q", spec.PackageSource)
 	}
 	if spec.PackageFormat != managedImageBackendPackageFormatDirectArchive {
 		t.Fatalf("expected direct archive package format, got %q", spec.PackageFormat)
@@ -742,28 +770,30 @@ func TestResolveManagedImageBackendPackageSpecForHostDarwinAppleExperimentalOffi
 		t.Fatalf("unexpected wrapper driver: %q", got)
 	}
 	if got := strings.TrimSpace(spec.ArchiveURL); got == "" {
-		t.Fatal("expected archive URL for experimental darwin managed image backend package")
+		t.Fatal("expected archive URL for canonical darwin managed image backend package")
 	}
 	if got := strings.TrimSpace(spec.ArchiveSHA256); got == "" {
-		t.Fatal("expected archive SHA256 for experimental darwin managed image backend package")
+		t.Fatal("expected archive SHA256 for canonical darwin managed image backend package")
 	}
-	if len(spec.ExecutableCandidates) != 1 || spec.ExecutableCandidates[0] != "sd-cli" {
+	if len(spec.ExecutableCandidates) != 2 || spec.ExecutableCandidates[0] != "sd-cli" || spec.ExecutableCandidates[1] != "sd-server" {
 		t.Fatalf("unexpected darwin executable candidates: %#v", spec.ExecutableCandidates)
 	}
-	if !strings.Contains(spec.Detail, "not admitted") {
-		t.Fatalf("expected non-admitted detail for experimental package source, got %q", spec.Detail)
+	if !managedImageBackendPackageSupportsFamily(spec, "qwen-image") || !managedImageBackendPackageSupportsFamily(spec, "z-image") {
+		t.Fatalf("darwin package family set = %#v", spec.SupportedModelFamilies)
 	}
 }
 
 func TestResolveManagedImageBackendPackageSpecForHostUnknownSourceFailsClosed(t *testing.T) {
-	if spec, ok := resolveManagedImageBackendPackageSpecForHostWithSource(
-		"stablediffusion-ggml",
-		"unknown_source",
-		"darwin",
-		"arm64",
-		"apple",
-		false,
-	); ok {
-		t.Fatalf("expected unknown package source to fail closed, got %#v", spec)
+	for _, source := range []string{"unknown_source", "canonical_localai_derived"} {
+		if spec, ok := resolveManagedImageBackendPackageSpecForHostWithSource(
+			"stablediffusion-ggml",
+			source,
+			"darwin",
+			"arm64",
+			"apple",
+			false,
+		); ok {
+			t.Fatalf("expected package source %q to fail closed, got %#v", source, spec)
+		}
 	}
 }

@@ -373,14 +373,15 @@ func TestStableDiffusionDriverTranslatesOnlyValidBackendObservations(t *testing.
 		}
 	}
 	artifact, err := plan.TranslateArtifact(ImageBackendArtifactObservation{
-		Index: 1, Payload: []byte("png"), Format: "png", Width: 64, Height: 64,
+		Index: 1, Seed: 7, Payload: []byte("png"), Format: "png", Width: 64, Height: 64,
 	})
-	if err != nil || artifact.MediaType != "image/png" {
+	if err != nil || artifact.MediaType != "image/png" || artifact.Seed != 7 {
 		t.Fatalf("valid artifact = %+v err=%v", artifact, err)
 	}
 	for _, observation := range []ImageBackendArtifactObservation{
 		{Index: 0, Payload: []byte("png"), Format: "png", Width: 64, Height: 64},
 		{Index: 1, Payload: nil, Format: "png", Width: 64, Height: 64},
+		{Index: 1, Seed: -1, Payload: []byte("png"), Format: "png", Width: 64, Height: 64},
 		{Index: 1, Payload: []byte("png"), Format: "jpeg", Width: 64, Height: 64},
 		{Index: 1, Payload: []byte("png"), Format: "png", Width: 128, Height: 64},
 	} {
@@ -433,6 +434,7 @@ func TestStableDiffusionPlanClassifiesImageCountAndSizeAsInvalidOptions(t *testi
 		size string
 	}{
 		{name: "explicit zero count", n: testInt32(0)},
+		{name: "negative count", n: testInt32(-1)},
 		{name: "count above local maximum", n: testInt32(5)},
 		{name: "malformed size", size: "not-a-size"},
 		{name: "width below minimum", size: "63x64"},
@@ -452,6 +454,24 @@ func TestStableDiffusionPlanClassifiesImageCountAndSizeAsInvalidOptions(t *testi
 				t.Fatalf("error=%v kind=%v", err, invocationErr)
 			}
 		})
+	}
+}
+
+func TestStableDiffusionImageRecipeModelFamilyIsExact(t *testing.T) {
+	for recipeID, want := range map[string]string{
+		"z-image":              "z-image",
+		"ideogram4":            "ideogram4",
+		"qwen-image":           "qwen-image",
+		"qwen-image-edit-2511": "qwen-image",
+	} {
+		if got, ok := StableDiffusionImageRecipeModelFamily(recipeID); !ok || got != want {
+			t.Fatalf("recipe %q family=%q present=%v, want %q", recipeID, got, ok, want)
+		}
+	}
+	for _, recipeID := range []string{"", "flux"} {
+		if got, ok := StableDiffusionImageRecipeModelFamily(recipeID); ok {
+			t.Fatalf("unsupported recipe %q returned family %q", recipeID, got)
+		}
 	}
 }
 
@@ -526,7 +546,7 @@ func TestStableDiffusionSeedAdmissionMatchesManagedInt32Carrier(t *testing.T) {
 		stableDiffusionInvocationBindingForTest(StableDiffusionMainRequirementID, "main", filepath.Join(root, "main.gguf"), 'a'),
 		stableDiffusionInvocationBindingForTest(StableDiffusionTextEncoderRequirementID, "text", filepath.Join(root, "text.gguf"), 'b'),
 	}
-	for _, seed := range []int64{math.MinInt32, math.MaxInt32} {
+	for _, seed := range []int64{0, -1, math.MinInt32, math.MaxInt32} {
 		plan, err := driver.PlanImageInvocation(ImageInvocationInput{
 			RecipeID:       "z-image",
 			PortableConfig: portable,
@@ -536,6 +556,15 @@ func TestStableDiffusionSeedAdmissionMatchesManagedInt32Carrier(t *testing.T) {
 		if err != nil || plan.RequestPlan().Seed() != seed {
 			t.Fatalf("request seed %d plan=%v err=%v", seed, plan, err)
 		}
+	}
+	omitted, err := driver.PlanImageInvocation(ImageInvocationInput{
+		RecipeID:       "z-image",
+		PortableConfig: portable,
+		ExactBindings:  bindings,
+		Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: "image"},
+	})
+	if err != nil || omitted == nil || omitted.RequestPlan().Seed() != 42 {
+		t.Fatalf("omitted request seed plan=%v err=%v", omitted, err)
 	}
 	for _, seed := range []int64{int64(math.MinInt32) - 1, int64(math.MaxInt32) + 1} {
 		_, err := driver.PlanImageInvocation(ImageInvocationInput{
@@ -548,6 +577,28 @@ func TestStableDiffusionSeedAdmissionMatchesManagedInt32Carrier(t *testing.T) {
 		if !errors.As(err, &invocationErr) || invocationErr.Kind != InvocationFailureInvalidRequest {
 			t.Fatalf("request seed %d error = %v", seed, err)
 		}
+	}
+	_, err = driver.PlanImageInvocation(ImageInvocationInput{
+		RecipeID:       "z-image",
+		PortableConfig: portable,
+		ExactBindings:  bindings,
+		Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: "overflow", N: testInt32(2), Seed: testInt64(math.MaxInt32)},
+	})
+	var overflowErr *InvocationError
+	if !errors.As(err, &overflowErr) || overflowErr.Kind != InvocationFailureInvalidRequest {
+		t.Fatalf("batch seed overflow error = %v", err)
+	}
+	bounded, err := driver.PlanImageInvocation(ImageInvocationInput{
+		RecipeID:       "z-image",
+		PortableConfig: portable,
+		ExactBindings:  bindings,
+		Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: "bounded", N: testInt32(4), Seed: testInt64(math.MaxInt32 - 3)},
+	})
+	if err != nil {
+		t.Fatalf("bounded batch seed plan: %v", err)
+	}
+	if got, err := bounded.ResolveArtifactSeed(math.MaxInt32-3, 4); err != nil || got != math.MaxInt32 {
+		t.Fatalf("last bounded batch seed = %d, err=%v", got, err)
 	}
 }
 
@@ -593,7 +644,7 @@ func TestStableDiffusionProcessKeyCoversEveryLoadTimeInstruction(t *testing.T) {
 
 func TestStableDiffusionQwenEditRequiresTypedRecipeAndSource(t *testing.T) {
 	root := t.TempDir()
-	source := ImageResolvedInput{SourceIdentity: "artifact_qwen_edit_source", ImageBytes: []byte("source-image")}
+	source := ImageResolvedInput{Role: ImageResolvedInputRoleSource, SourceIdentity: "artifact_qwen_edit_source", ImageBytes: []byte("source-image")}
 	mainPath := filepath.Join(root, "main.gguf")
 	textPath := filepath.Join(root, "text.gguf")
 	vaePath := filepath.Join(root, "vae.safetensors")
@@ -650,7 +701,7 @@ func TestStableDiffusionQwenEditRequiresTypedRecipeAndSource(t *testing.T) {
 		SupportedFeatures: []string{aicapabilities.FeatureInputImage},
 		ExactBindings:     withUnexpected,
 		Request:           request,
-		Inputs:            []ImageResolvedInput{{SourceIdentity: "artifact_qwen_edit_source", ImageBytes: []byte("source-image")}},
+		Inputs:            []ImageResolvedInput{{Role: ImageResolvedInputRoleSource, SourceIdentity: "artifact_qwen_edit_source", ImageBytes: []byte("source-image")}},
 	})
 	if !errors.As(err, &invocationErr) || invocationErr.Kind != InvocationFailureInvalidBinding {
 		t.Fatalf("Qwen edit unexpected binding error = %v", err)
@@ -674,6 +725,8 @@ func TestStableDiffusionRecipesOwnImageInputSemantics(t *testing.T) {
 		features []string
 		inputs   []ImageResolvedInput
 		mask     string
+		maskID   string
+		strength *float32
 		negative string
 		n        *int32
 	}{
@@ -684,21 +737,32 @@ func TestStableDiffusionRecipesOwnImageInputSemantics(t *testing.T) {
 		{
 			name: "edit multiple sources", portable: portable,
 			features: []string{aicapabilities.FeatureInputImage}, inputs: []ImageResolvedInput{
-				{SourceIdentity: "artifact_source_a", ImageBytes: []byte("a")},
-				{SourceIdentity: "artifact_source_b", ImageBytes: []byte("b")},
+				{Role: ImageResolvedInputRoleSource, SourceIdentity: "artifact_source_a", ImageBytes: []byte("a")},
+				{Role: ImageResolvedInputRoleSource, SourceIdentity: "artifact_source_b", ImageBytes: []byte("b")},
 			},
 		},
 		{
 			name: "edit rejects mask", portable: portable,
-			features: []string{aicapabilities.FeatureInputImage}, inputs: []ImageResolvedInput{{SourceIdentity: "artifact_source", ImageBytes: []byte("source")}}, mask: "mask.png",
+			features: []string{aicapabilities.FeatureInputImage}, inputs: []ImageResolvedInput{{Role: ImageResolvedInputRoleSource, SourceIdentity: "artifact_source", ImageBytes: []byte("source")}}, mask: "mask.png",
+		},
+		{
+			name: "edit rejects mask artifact", portable: portable,
+			features: []string{aicapabilities.FeatureInputImage}, inputs: []ImageResolvedInput{
+				{Role: ImageResolvedInputRoleSource, SourceIdentity: "artifact_source", ImageBytes: []byte("source")},
+				{Role: ImageResolvedInputRoleMask, SourceIdentity: "artifact_mask", ImageBytes: []byte("mask")},
+			}, maskID: "artifact_mask",
+		},
+		{
+			name: "edit rejects strength", portable: portable,
+			features: []string{aicapabilities.FeatureInputImage}, inputs: []ImageResolvedInput{{Role: ImageResolvedInputRoleSource, SourceIdentity: "artifact_source", ImageBytes: []byte("source")}}, strength: testFloat32(0.5),
 		},
 		{
 			name: "edit rejects multiple outputs", portable: portable,
-			features: []string{aicapabilities.FeatureInputImage}, inputs: []ImageResolvedInput{{SourceIdentity: "artifact_source", ImageBytes: []byte("source")}}, n: testInt32(2),
+			features: []string{aicapabilities.FeatureInputImage}, inputs: []ImageResolvedInput{{Role: ImageResolvedInputRoleSource, SourceIdentity: "artifact_source", ImageBytes: []byte("source")}}, n: testInt32(2),
 		},
 		{
 			name: "edit rejects negative prompt", portable: portable,
-			features: []string{aicapabilities.FeatureInputImage}, inputs: []ImageResolvedInput{{SourceIdentity: "artifact_source", ImageBytes: []byte("source")}}, negative: "do not change the background",
+			features: []string{aicapabilities.FeatureInputImage}, inputs: []ImageResolvedInput{{Role: ImageResolvedInputRoleSource, SourceIdentity: "artifact_source", ImageBytes: []byte("source")}}, negative: "do not change the background",
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -707,7 +771,7 @@ func TestStableDiffusionRecipesOwnImageInputSemantics(t *testing.T) {
 				PortableConfig:    test.portable,
 				SupportedFeatures: test.features,
 				ExactBindings:     bindings,
-				Request:           &runtimev1.ImageGenerateScenarioSpec{Prompt: "edit", NegativePrompt: test.negative, Mask: test.mask, N: test.n},
+				Request:           &runtimev1.ImageGenerateScenarioSpec{Prompt: "edit", NegativePrompt: test.negative, Mask: test.mask, MaskArtifactId: test.maskID, Strength: test.strength, N: test.n},
 				Inputs:            test.inputs,
 			})
 			var invocationErr *InvocationError
@@ -738,7 +802,7 @@ func TestStableDiffusionGenerateRecipeRejectsInputImageAfterExactBinding(t *test
 		RecipeID:       StableDiffusionQwenImageRecipeID,
 		PortableConfig: portable, ExactBindings: bindings,
 		Request: &runtimev1.ImageGenerateScenarioSpec{Prompt: "generate"},
-		Inputs:  []ImageResolvedInput{{SourceIdentity: "artifact_source", ImageBytes: []byte("source")}},
+		Inputs:  []ImageResolvedInput{{Role: ImageResolvedInputRoleSource, SourceIdentity: "artifact_source", ImageBytes: []byte("source")}},
 	})
 	var invocationErr *InvocationError
 	if !errors.As(err, &invocationErr) || invocationErr.Kind != InvocationFailureUnsupported ||

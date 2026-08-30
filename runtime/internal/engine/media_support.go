@@ -6,7 +6,6 @@ type MediaHostSupport string
 
 const (
 	MediaHostSupportSupportedSupervised MediaHostSupport = "supported_supervised"
-	MediaHostSupportAttachedOnly        MediaHostSupport = "attached_only"
 	MediaHostSupportUnsupported         MediaHostSupport = "unsupported"
 )
 
@@ -15,8 +14,10 @@ func MediaSupervisedPlatformSupported() bool {
 }
 
 func MediaSupervisedPlatformSupportedFor(goos string, goarch string) bool {
-	return strings.EqualFold(strings.TrimSpace(goos), "windows") &&
-		strings.EqualFold(strings.TrimSpace(goarch), "amd64")
+	normalizedOS := strings.ToLower(strings.TrimSpace(goos))
+	normalizedArch := strings.ToLower(strings.TrimSpace(goarch))
+	return normalizedOS == "windows" && normalizedArch == "amd64" ||
+		normalizedOS == "darwin" && normalizedArch == "arm64"
 }
 
 func ClassifyMediaHost(goos string, goarch string, gpuVendor string, cudaReady bool) MediaHostSupport {
@@ -26,28 +27,39 @@ func ClassifyMediaHost(goos string, goarch string, gpuVendor string, cudaReady b
 		return MediaHostSupportUnsupported
 	}
 	if !MediaSupervisedPlatformSupportedFor(normalizedGOOS, normalizedGOARCH) {
-		return MediaHostSupportAttachedOnly
+		return MediaHostSupportUnsupported
 	}
-	if !strings.EqualFold(strings.TrimSpace(gpuVendor), "nvidia") {
-		return MediaHostSupportAttachedOnly
+	vendor := strings.ToLower(strings.TrimSpace(gpuVendor))
+	if normalizedGOOS == "windows" {
+		if vendor != "nvidia" || !cudaReady {
+			return MediaHostSupportUnsupported
+		}
+		return MediaHostSupportSupportedSupervised
 	}
-	return MediaHostSupportSupportedSupervised
+	if normalizedGOOS == "darwin" && vendor == "apple" {
+		return MediaHostSupportSupportedSupervised
+	}
+	return MediaHostSupportUnsupported
 }
 
 func MediaHostSupportDetail(goos string, goarch string, gpuVendor string, cudaReady bool) string {
 	switch ClassifyMediaHost(goos, goarch, gpuVendor, cudaReady) {
 	case MediaHostSupportSupportedSupervised:
 		return ""
-	case MediaHostSupportAttachedOnly:
+	default:
 		if !MediaSupervisedPlatformSupportedFor(goos, goarch) {
-			return "media supervised mode requires Windows x64; configure an attached endpoint instead"
+			return "media supervised mode is unsupported on the exact host tuple"
+		}
+		if strings.EqualFold(strings.TrimSpace(goos), "darwin") {
+			return "media supervised mode requires the admitted Apple Metal backend"
 		}
 		if !strings.EqualFold(strings.TrimSpace(gpuVendor), "nvidia") {
-			return "media supervised mode requires an NVIDIA GPU; configure an attached endpoint instead"
+			return "media supervised mode requires the admitted NVIDIA CUDA backend"
 		}
-		return "media supervised mode is unavailable on this host; configure an attached endpoint instead"
-	default:
-		return "media is unsupported on this host"
+		if !cudaReady {
+			return "media supervised mode requires a CUDA-ready admitted dependency"
+		}
+		return "media supervised mode is unsupported on the exact host tuple"
 	}
 }
 

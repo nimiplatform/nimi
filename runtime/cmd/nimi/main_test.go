@@ -152,8 +152,14 @@ func TestStreamEventJSONDelta(t *testing.T) {
 
 func testTextStreamDelta(text string) *runtimev1.ScenarioStreamDelta {
 	return &runtimev1.ScenarioStreamDelta{
-		Delta: &runtimev1.ScenarioStreamDelta_Text{
-			Text: &runtimev1.TextStreamDelta{Text: text},
+		Delta: &runtimev1.ScenarioStreamDelta_TextOutputItem{
+			TextOutputItem: &runtimev1.TextOutputItemDelta{
+				ItemIndex:     0,
+				ItemCompleted: true,
+				Delta: &runtimev1.TextOutputItemDelta_Text{
+					Text: &runtimev1.TextOutputTextDelta{Text: text},
+				},
+			},
 		},
 	}
 }

@@ -425,7 +425,7 @@ func (s *Service) deriveImageActionAvailability(agentInstanceID string, configRe
 	if binding.RoutePolicy == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL &&
 		(binding.LocalExecution == nil || !localexecution.SupportsRequiredFeatures(
 			binding.RequiredFeatures,
-			binding.LocalExecution.SupportedFeatures,
+			binding.LocalExecution.ConfiguredFeatures,
 		)) {
 		return publicChatImageActionUnavailable
 	}

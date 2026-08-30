@@ -30,6 +30,13 @@ const (
 // has fixed the capability, Driver identity, model binding, and request.
 type VoxCPMDriver struct{}
 
+func (VoxCPMDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
+	if strings.TrimSpace(recipeID) != VoxCPMRecipeID {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
 func (VoxCPMDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string { return nil }
 
 func (VoxCPMDriver) SpeechStreamMode() SpeechStreamMode { return SpeechStreamSimulated }
@@ -75,6 +82,7 @@ func (VoxCPMDriver) interpretForBackend(input InterpretInput, backend string) ([
 	return []*runtimev1.LocalCapabilityRequirement{{
 		RequirementId:            VoxCPMModelRequirementID,
 		Role:                     runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN,
+		Presence:                 runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED,
 		ResourceKind:             "tts",
 		Policy:                   runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE,
 		CompatibilityConstraints: constraints,

@@ -56,9 +56,8 @@ packs:
     optional_dependency_families:
       - accelerator.cuda.runtime
     consumers:
-      - llama.cpp.cpu
-      - llama.cpp.vulkan
       - llama.cpp.cuda
+      - llama.cpp.metal
     cloud_only_impact: none
 
   - pack_id: local-image-native
@@ -78,7 +77,6 @@ packs:
     optional_dependency_families:
       - accelerator.cuda.runtime
     consumers:
-      - stable-diffusion.cpp.cpu
       - stable-diffusion.cpp.metal
       - stable-diffusion.cpp.cuda
     cloud_only_impact: none

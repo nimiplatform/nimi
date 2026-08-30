@@ -29,7 +29,6 @@ const (
 	publicChatTurnAcceptedType               = "runtime.agent.turn.accepted"
 	publicChatTurnStartedType                = "runtime.agent.turn.started"
 	publicChatTurnTextDeltaType              = "runtime.agent.turn.text_delta"
-	publicChatTurnReasoningDeltaType         = "runtime.agent.turn.reasoning_delta"
 	publicChatTurnReasoningStatusType        = "runtime.agent.turn.reasoning_status"
 	publicChatTurnStructuredType             = "runtime.agent.turn.structured"
 	publicChatTurnMessageCommittedType       = "runtime.agent.turn.message_committed"
@@ -81,9 +80,10 @@ type publicChatExecutionBinding struct {
 }
 type publicChatExecutionBindings map[string]publicChatExecutionBinding
 type publicChatReasoningConfig struct {
-	Mode         runtimev1.ReasoningMode
-	TraceMode    runtimev1.ReasoningTraceMode
-	BudgetTokens int32
+	Activation        runtimev1.ReasoningActivation
+	Presentation      runtimev1.ReasoningPresentation
+	Effort            runtimev1.ReasoningEffort
+	ExactBudgetTokens uint32
 }
 
 // publicChatImageActionAvailability is the K-AGCORE-148 tri-state derived at
@@ -290,9 +290,10 @@ type publicChatExecutionBindingPayload struct {
 	TargetRef   json.RawMessage `json:"target_ref,omitempty"`
 }
 type publicChatReasoningPayload struct {
-	Mode         string `json:"mode,omitempty"`
-	TraceMode    string `json:"trace_mode,omitempty"`
-	BudgetTokens int32  `json:"budget_tokens,omitempty"`
+	Activation        string `json:"activation,omitempty"`
+	Presentation      string `json:"presentation,omitempty"`
+	Effort            string `json:"effort,omitempty"`
+	ExactBudgetTokens uint32 `json:"exact_budget_tokens,omitempty"`
 }
 
 // publicChatTurnRequestPayload is the mounted `runtime.agent.turn.request`

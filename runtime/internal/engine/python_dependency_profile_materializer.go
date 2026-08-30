@@ -460,6 +460,9 @@ func (m *Manager) materializePythonDependencyProfile(
 	if err := materializePythonPipelineServerScript(stagingRoot, consumer); err != nil {
 		return PythonDependencyProfileStatus{}, err
 	}
+	if err := writePythonDependencyProfileManifest(stagingRoot, consumer, identity); err != nil {
+		return PythonDependencyProfileStatus{}, err
+	}
 	if _, err := verifyPythonDependencyProfile(ctx, run, stagingRoot, cacheRoot, uvPath, consumer, identity, false); err != nil {
 		return PythonDependencyProfileStatus{}, fmt.Errorf(
 			"verify staged python dependency profile: %w",

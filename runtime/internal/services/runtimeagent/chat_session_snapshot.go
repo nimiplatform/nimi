@@ -557,8 +557,7 @@ func publicChatTranscriptProjection(transcript []publicChatCommittedTranscriptTu
 // replace the text; every other part shape stays rejected.
 func validRuntimeOwnedCurrentUserMessage(message *runtimev1.ChatMessage) bool {
 	if message == nil || strings.TrimSpace(message.GetRole()) != "user" || strings.TrimSpace(message.GetName()) != "" ||
-		len(message.GetToolCalls()) > 0 || strings.TrimSpace(message.GetToolCallId()) != "" ||
-		len(message.GetToolResults()) > 0 || len(message.GetToolApprovalResponses()) > 0 {
+		len(message.GetTurnItems()) > 0 {
 		return false
 	}
 	if len(message.GetParts()) == 0 {

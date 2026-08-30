@@ -85,11 +85,6 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	engineSidecarPort, err := readIntWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SIDECAR_PORT", nil, 0)
-	if err != nil {
-		return Config{}, err
-	}
-
 	cfg := Config{
 		GRPCAddr:                        readString("NIMI_RUNTIME_GRPC_ADDR", nimillm.FirstNonEmpty(fileCfg.GRPCAddr, defaultGRPCAddr)),
 		HTTPAddr:                        readString("NIMI_RUNTIME_HTTP_ADDR", nimillm.FirstNonEmpty(fileCfg.HTTPAddr, defaultHTTPAddr)),
@@ -129,8 +124,6 @@ func Load() (Config, error) {
 		EngineManagedImageBackendSource: readString("NIMI_RUNTIME_ENGINE_MANAGED_IMAGE_BACKEND_SOURCE", ""),
 		EngineSpeechVersion:             readStringWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SPEECH_VERSION", fileConfigEngineString(fileCfg, "speech", "version"), "0.1.0"),
 		EngineSpeechPort:                engineSpeechPort,
-		EngineSidecarVersion:            readString("NIMI_RUNTIME_ENGINE_SIDECAR_VERSION", ""),
-		EngineSidecarPort:               engineSidecarPort,
 	}
 	cfg.AllowLoopbackProviderEndpoint, err = readBoolWithFileConfigFallback("NIMI_RUNTIME_ALLOW_LOOPBACK_PROVIDER_ENDPOINT", nil, false)
 	if err != nil {
@@ -148,16 +141,11 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	cfg.EngineSidecarEnabled, err = readBoolWithFileConfigFallback("NIMI_RUNTIME_ENGINE_SIDECAR_ENABLED", nil, false)
-	if err != nil {
-		return Config{}, err
-	}
-
 	if cfg.EngineLlamaEnabled && !llamaSupervisedPlatformSupported() {
-		cfg.EngineLlamaEnabled = false
+		return Config{}, fmt.Errorf("supervised llama is unsupported on the exact host platform")
 	}
-	if cfg.EngineMediaEnabled && !mediaSupervisedPlatformSupported() && !llamaSupervisedPlatformSupported() {
-		cfg.EngineMediaEnabled = false
+	if cfg.EngineMediaEnabled && !mediaSupervisedPlatformSupported() {
+		return Config{}, fmt.Errorf("supervised media is unsupported on the exact host platform")
 	}
 
 	shutdownTimeoutRaw := strings.TrimSpace(os.Getenv("NIMI_RUNTIME_SHUTDOWN_TIMEOUT"))
@@ -299,12 +287,16 @@ func rejectLegacyLocalRuntimeEnv() error {
 		"NIMI_RUNTIME_DEFAULT_CLOUD_PROVIDER":                   "cloud execution is selected by caller-owned AIConfig intent",
 		"NIMI_RUNTIME_LOCAL_LLAMA_BASE_URL":                     "ambient llama endpoints are retired; use a selected Loadout",
 		"NIMI_RUNTIME_LOCAL_LLAMA_API_KEY":                      "ambient llama endpoints are retired; use a selected Loadout",
+		"NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL":                     "ambient media endpoints are retired; Runtime owns the supervised Host",
+		"NIMI_RUNTIME_LOCAL_MEDIA_API_KEY":                      "ambient media credentials are retired; Runtime owns supervised Host custody",
+		"NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL":                    "ambient speech endpoints are retired; Runtime owns the supervised Host",
+		"NIMI_RUNTIME_LOCAL_SPEECH_API_KEY":                     "ambient speech credentials are retired; Runtime owns supervised Host custody",
 		"NIMI_RUNTIME_LOCAL_AI_BASE_URL":                        "ambient local AI endpoints are retired; use a selected Loadout",
 		"NIMI_RUNTIME_LOCAL_AI_API_KEY":                         "ambient local AI endpoints are retired; use a selected Loadout",
 		"NIMI_RUNTIME_LOCAL_NEXA_BASE_URL":                      "Nexa support was removed; clear this variable and migrate to llama and media providers",
 		"NIMI_RUNTIME_LOCAL_NEXA_API_KEY":                       "Nexa support was removed; clear this variable and migrate to llama and media providers",
-		"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL":                "use NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL instead",
-		"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_API_KEY":                 "use NIMI_RUNTIME_LOCAL_MEDIA_API_KEY instead",
+		"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_BASE_URL":                "ambient media endpoints are retired; clear this variable",
+		"NIMI_RUNTIME_LOCAL_NIMI_MEDIA_API_KEY":                 "ambient media credentials are retired; clear this variable",
 		"NIMI_RUNTIME_ENGINE_LOCALAI_ENABLED":                   "use NIMI_RUNTIME_ENGINE_LLAMA_ENABLED instead",
 		"NIMI_RUNTIME_ENGINE_LOCALAI_VERSION":                   "use NIMI_RUNTIME_ENGINE_LLAMA_VERSION instead",
 		"NIMI_RUNTIME_ENGINE_LOCALAI_PORT":                      "use NIMI_RUNTIME_ENGINE_LLAMA_PORT instead",

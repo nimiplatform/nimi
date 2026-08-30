@@ -62,17 +62,33 @@ func (s *Service) GenerateLocalAppTextCandidate(ctx context.Context, req *runtim
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	text := result.GetOutput().GetTextGenerate()
-	if text == nil || strings.TrimSpace(text.GetText()) == "" ||
-		len([]byte(text.GetText())) > 256*1024 || strings.TrimSpace(result.GetTraceId()) == "" ||
+	canonicalText, canonical := canonicalPlainText(text)
+	if text == nil || !canonical || strings.TrimSpace(canonicalText) == "" ||
+		len([]byte(canonicalText)) > 256*1024 || strings.TrimSpace(result.GetTraceId()) == "" ||
 		result.GetTraceId() != strings.TrimSpace(result.GetTraceId()) ||
-		len(text.GetToolCalls()) != 0 || len(text.GetToolResults()) != 0 ||
-		len(text.GetToolApprovalRequests()) != 0 || len(text.GetSources()) != 0 || len(text.GetRawChunks()) != 0 ||
+		len(text.GetToolCalls()) != 0 || text.GetReasoningSummary() != "" ||
+		len(text.GetSources()) != 0 || len(text.GetRawChunks()) != 0 ||
 		!localAppTextCandidateFinishReason(result.GetFinishReason()) {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	return &runtimev1.GenerateLocalAppTextCandidateResponse{
-		Text: text.GetText(), FinishReason: result.GetFinishReason(), TraceId: result.GetTraceId(),
+		Text: canonicalText, FinishReason: result.GetFinishReason(), TraceId: result.GetTraceId(),
 	}, nil
+}
+
+func canonicalPlainText(output *runtimev1.TextGenerateOutput) (string, bool) {
+	if output == nil || len(output.GetItems()) == 0 {
+		return "", false
+	}
+	var builder strings.Builder
+	for _, item := range output.GetItems() {
+		if item == nil || item.GetText() == nil {
+			return "", false
+		}
+		builder.WriteString(item.GetText().GetText())
+	}
+	text := builder.String()
+	return text, text == output.GetText()
 }
 
 func localAppTextCandidateFinishReason(reason runtimev1.FinishReason) bool {

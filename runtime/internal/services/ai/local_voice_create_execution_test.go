@@ -54,7 +54,7 @@ func TestLocalVoiceCreateTypedSourcesProduceReusableVoiceAssets(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			voiceSelection := selectedLocalVoiceCreateExecutionForTest(t, "voice-"+test.name, test.feature)
-			expectedVoiceIdentity := projectLoadoutEffectiveInputIdentity(voiceSelection)
+			expectedVoiceIdentity := projectLoadoutEffectiveInputIdentity(voiceSelection, test.feature)
 			synthSelection := selectedSpeechExecutionForTest(t, capabilitydriver.AudioSynthesizeContract, "synth-"+test.name)
 			synthSelection.ExecutionTarget = voiceSelection.ExecutionTarget.Clone()
 			svc := newTestService(nil)
@@ -441,7 +441,7 @@ func selectedAudioCppReferenceVoiceExecutionForTest(t *testing.T, family string)
 	}
 	digest := sha256.Sum256(payload)
 	digestText := hex.EncodeToString(digest[:])
-	return &localexecution.SelectedLocalExecution{LoadoutID: "voice-" + family, CapabilityContract: capabilitydriver.VoiceCreateContract, DisplayName: registration.DisplayName, RecipeID: registration.RecipeID, RecipeRevision: "1", DriverIdentity: registration.Identity.Proto(), PortableConfig: &structpb.Struct{}, Requirements: requirements, ExactBindings: []localexecution.ExactBinding{{RequirementID: capabilitydriver.AudioCppTTSModelRequirementID, RequirementRole: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN, ModelAssetID: "model-" + family, AbsolutePath: path, BundleDir: root, DeclaredFiles: []string{filepath.Base(path)}, VerifiedContentID: "sha256:" + digestText, EntrySHA256: digestText}}, SupportedFeatures: []string{"input.audio"}, ExecutionTarget: &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{ReadinessRef: "model-asset://model-" + family}}, Configured: true}
+	return &localexecution.SelectedLocalExecution{LoadoutID: "voice-" + family, CapabilityContract: capabilitydriver.VoiceCreateContract, DisplayName: registration.DisplayName, RecipeID: registration.RecipeID, RecipeRevision: "1", DriverIdentity: registration.Identity.Proto(), PortableConfig: &structpb.Struct{}, Requirements: requirements, ExactBindings: []localexecution.ExactBinding{{RequirementID: capabilitydriver.AudioCppTTSModelRequirementID, RequirementRole: runtimev1.LocalCapabilityRequirementRole_LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN, ModelAssetID: "model-" + family, AbsolutePath: path, BundleDir: root, DeclaredFiles: []string{filepath.Base(path)}, VerifiedContentID: "sha256:" + digestText, EntrySHA256: digestText}}, ImplementationSupportedFeatures: []string{"input.audio"}, ConfiguredFeatures: []string{"input.audio"}, ExecutionTarget: &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{ReadinessRef: "model-asset://model-" + family}}, Configured: true}
 }
 
 func TestLocalVoiceCreateFailsClosedOnUnsupportedSelectedSource(t *testing.T) {
@@ -489,11 +489,12 @@ func selectedLocalVoiceCreateExecutionForTest(t *testing.T, configurationID stri
 	return &localexecution.SelectedLocalExecution{
 		LoadoutID: configurationID, CapabilityContract: capabilitydriver.VoiceCreateContract, DisplayName: configurationID,
 		RecipeID: recipeID, RecipeRevision: "1",
-		DriverIdentity:    (&capabilitydriver.Identity{ImplementationID: capabilitydriver.Qwen3VoiceCreateImplementationID, DriverID: capabilitydriver.Qwen3TTSDriverID, DriverDialect: capabilitydriver.Qwen3VoiceCreateDriverDialect}).Proto(),
-		PortableConfig:    options,
-		Requirements:      requirements,
-		ExactBindings:     []localexecution.ExactBinding{{RequirementID: requirements[0].GetRequirementId(), ModelAssetID: modelAssetID, AbsolutePath: path, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}},
-		SupportedFeatures: []string{feature},
+		DriverIdentity:                  (&capabilitydriver.Identity{ImplementationID: capabilitydriver.Qwen3VoiceCreateImplementationID, DriverID: capabilitydriver.Qwen3TTSDriverID, DriverDialect: capabilitydriver.Qwen3VoiceCreateDriverDialect}).Proto(),
+		PortableConfig:                  options,
+		Requirements:                    requirements,
+		ExactBindings:                   []localexecution.ExactBinding{{RequirementID: requirements[0].GetRequirementId(), ModelAssetID: modelAssetID, AbsolutePath: path, VerifiedContentID: "sha256:" + digest, EntrySHA256: digest}},
+		ImplementationSupportedFeatures: []string{feature},
+		ConfiguredFeatures:              []string{feature},
 		ExecutionTarget: &runtimeidentity.Target{Local: &runtimeidentity.LocalTarget{
 			ReadinessRef: "model-asset://" + modelAssetID,
 		}},

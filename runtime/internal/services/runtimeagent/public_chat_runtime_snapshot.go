@@ -62,9 +62,10 @@ func (r publicChatRuntime) buildSessionSnapshotFromState(
 	}
 	if reasoning := publicChatReasoningPayloadFromConfig(session.Reasoning); reasoning != nil {
 		snapshotDetail["reasoning"] = map[string]any{
-			"mode":          reasoning.Mode,
-			"trace_mode":    reasoning.TraceMode,
-			"budget_tokens": reasoning.BudgetTokens,
+			"activation":          reasoning.Activation,
+			"presentation":        reasoning.Presentation,
+			"effort":              reasoning.Effort,
+			"exact_budget_tokens": reasoning.ExactBudgetTokens,
 		}
 	}
 	if activeTurn != nil {

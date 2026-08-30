@@ -19,7 +19,7 @@ import (
 func TestQwen3TTSAudioCppCLIArgsAreExactAndMusicFree(t *testing.T) {
 	plan := qwen3TTSAudioCppPlanForHostTest(t, "Hello from Nimi.", filepath.Join(t.TempDir(), "out.wav"))
 	args := qwen3TTSAudioCppCLIArgs(plan)
-	wantPrefix := []string{"--task", "tts", "--family", "qwen3_tts", "--model", plan.ModelPath(), "--backend", "cuda", "--session-option", "qwen3_tts.mem_saver=true", "--text", "Hello from Nimi.", "--speaker", capabilitydriver.Qwen3TTSAudioCppPresetVoiceVivian, "--language", "en"}
+	wantPrefix := []string{"--task", "tts", "--family", "qwen3_tts", "--model", plan.ModelPath(), "--backend", "cuda", "--session-option", "qwen3_tts.mem_saver=true", "--text", "Hello from Nimi.", "--speaker", capabilitydriver.Qwen3TTSAudioCppPresetVoiceVivian, "--language", "english"}
 	if len(args) < len(wantPrefix) || !reflect.DeepEqual(args[:len(wantPrefix)], wantPrefix) {
 		t.Fatalf("Qwen audio.cpp argv prefix=%q", args)
 	}

@@ -250,38 +250,66 @@ func mapCloudTextWireDirectives(
 	provider string,
 	reasoning *runtimev1.ReasoningConfig,
 ) (textwire.Directives, error) {
-	mode := runtimev1.ReasoningMode_REASONING_MODE_OFF
-	traceMode := runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_HIDE
-	budgetTokens := int32(0)
+	activation := runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED
+	presentation := runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN
+	hasIntensity := false
 	if reasoning != nil {
-		mode = reasoning.GetMode()
-		traceMode = reasoning.GetTraceMode()
-		budgetTokens = reasoning.GetBudgetTokens()
+		activation = reasoning.GetActivation()
+		presentation = reasoning.GetPresentation()
+		hasIntensity = reasoning.GetIntensity() != nil
 	}
-	switch mode {
-	case runtimev1.ReasoningMode_REASONING_MODE_UNSPECIFIED,
-		runtimev1.ReasoningMode_REASONING_MODE_OFF:
-		if traceMode == runtimev1.ReasoningTraceMode_REASONING_TRACE_MODE_SEPARATE || budgetTokens > 0 {
+	if activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED {
+		activation = runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED
+	}
+	if presentation == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_UNSPECIFIED {
+		presentation = runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN
+	}
+	switch activation {
+	case runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED:
+		if presentation != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN || hasIntensity {
 			return textwire.Directives{}, cloudInvocationError(
 				CloudInvocationFailureRequest,
-				fmt.Errorf("reasoning trace or budget requires an admitted reasoning toggle"),
+				fmt.Errorf("disabled reasoning admits only hidden presentation and no intensity"),
 			)
 		}
 		if provider == "deepseek" {
 			return textwire.Directives{ReasoningToggle: textwire.ReasoningToggleDisabled}, nil
 		}
 		return textwire.Directives{}, nil
-	case runtimev1.ReasoningMode_REASONING_MODE_ON:
+	case runtimev1.ReasoningActivation_REASONING_ACTIVATION_ADAPTIVE,
+		runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED:
+		if err := validateReasoningIntensity(reasoning); err != nil {
+			return textwire.Directives{}, cloudInvocationError(CloudInvocationFailureRequest, err)
+		}
 		return textwire.Directives{}, cloudInvocationError(
 			CloudInvocationFailureRequest,
-			fmt.Errorf("provider %q has no admitted reasoning-enable directive", provider),
+			fmt.Errorf("provider %q has no admitted reasoning behavior adapter", provider),
 		)
 	default:
 		return textwire.Directives{}, cloudInvocationError(
 			CloudInvocationFailureRequest,
-			fmt.Errorf("reasoning mode is unsupported"),
+			fmt.Errorf("reasoning activation is unsupported"),
 		)
 	}
+}
+
+func validateReasoningIntensity(reasoning *runtimev1.ReasoningConfig) error {
+	if reasoning == nil || reasoning.GetIntensity() == nil {
+		return fmt.Errorf("adaptive or required reasoning requires exactly one intensity")
+	}
+	switch intensity := reasoning.GetIntensity().(type) {
+	case *runtimev1.ReasoningConfig_Effort:
+		if intensity.Effort == runtimev1.ReasoningEffort_REASONING_EFFORT_UNSPECIFIED {
+			return fmt.Errorf("reasoning effort is unspecified")
+		}
+	case *runtimev1.ReasoningConfig_ExactBudgetTokens:
+		if intensity.ExactBudgetTokens == 0 {
+			return fmt.Errorf("reasoning exact budget must be positive")
+		}
+	default:
+		return fmt.Errorf("reasoning intensity is unsupported")
+	}
+	return nil
 }
 
 func (providerCloudTextDriver) NormalizeStreamDelta(delta string) (string, error) {
