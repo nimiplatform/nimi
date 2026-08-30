@@ -151,7 +151,7 @@ units:
     kind: rule
     title: Avatar launch is an explicit projection handoff
     modality: must
-    statement: Desktop launches or focuses Avatar only from an explicitly selected authorized LocalAgent reference-list entry and hands off that current session-scoped agentHandle as bounded presentation intent, with a Runtime-issued Conversation anchor carried only when available and only as an optional revalidated continuity fence; Runtime validates current LocalAgent access and obtains or revalidates any exact Conversation anchor required by a later canonical operation, Avatar consumes the same canonical Conversation SDK contract, and any separately carried Runtime-internal presentation binding identity remains only a rendering sideband that cannot select, open, subscribe, reduce, or mutate canonical Conversation or Realtime truth. The handoff carries no account identity, credential, provider, route, or caller-authored owner proof.
+    statement: Desktop launches or focuses Avatar only from an explicitly selected authorized LocalAgent reference-list entry and hands off that current session-scoped agentHandle as bounded presentation intent, with a Runtime-issued Conversation anchor carried only when available and only as an optional revalidated continuity fence; Runtime validates current LocalAgent access and obtains or revalidates any exact Conversation anchor required by a later canonical operation, the verified Desktop Host privately consumes the Runtime-minted generation-bounded Avatar Host target reference only to converge the same active LocalAgent across formal App sessions, Avatar consumes the same canonical Conversation SDK contract, and neither the Host-private target ref nor any separately carried Runtime-internal presentation binding identity can select, open, subscribe, reduce, or mutate canonical Conversation or Realtime truth. The handoff carries no account identity, credential, provider, route, raw LocalAgent identity, or caller-authored owner proof.
     condition: Whenever Desktop opens or targets Avatar.
     failure: Keep the handoff unavailable on missing or unauthorized LocalAgent identity.
     relations:
@@ -358,3 +358,27 @@ units:
         target: definition.nimi.desktop.agent-projection.companion-panel
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-operation-contract
+  - id: rule.nimi.desktop.agent-projection.r206
+    kind: rule
+    title: Avatar caller confirms a different active companion
+    modality: must
+    statement: When the common Avatar Host handoff resolves the same Runtime-minted Host-private target as the current Avatar instance, Desktop converges to that instance regardless of the ordinary App caller or session-scoped handle; when it resolves a different active LocalAgent, presence reports a typed non-matching state without minting a switch intent or prompting, focus fails closed, and only an explicit user-triggered launch returns a typed confirmation-required result carrying one one-time opaque switch-intent ref. The requesting caller surface then offers Switch current companion or Cancel, Cancel sends no mutation, and confirmed Switch resubmits the same public launch command with that exact ref so the Host revalidates both the current and requested targets before replacing the instance. Desktop never silently replaces the active companion, opens a second active or audible P0 companion, compares Conversation anchors as Agent identity, or exposes the Host-private target ref.
+    condition: Whenever Nimi Home or another formal App requests Avatar presence, launch, or focus while an Avatar instance already exists.
+    failure: Keep the current instance unchanged and reject silent replacement, second-active creation, stale confirmation, anchor-as-identity, caller-authored stable identity, or an App-local chooser.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.avatar-host-target-plane
+  - id: rule.nimi.desktop.agent-projection.r207
+    kind: rule
+    title: Desktop Host owns distinct Avatar instance lifecycle
+    modality: must
+    statement: Desktop Host keeps a launched Avatar instance alive independently of the ordinary App caller window, executes Avatar-local Hide, Stop Companion, and Quit Avatar App only as bounded native mechanics with the outcomes defined by Avatar authority, lets any current-Agent formal App caller recall the existing instance through the same public focus operation, and destroys all hosted Avatar instances only on explicit Avatar quit, explicit Desktop or operating-system application shutdown, or terminal Host failure after local resource cleanup; it grants no ordinary App caller a private close, list, stop-all, or richer Avatar lifecycle port.
+    condition: Whenever an ordinary App caller closes, Avatar requests a local lifecycle action, another caller focuses the same target, or Desktop Host shuts down.
+    failure: Reject caller-close-as-Avatar-stop, a private caller lifecycle path, implicit microphone engage, Agent or Conversation deletion, or an orphaned Avatar window, binding, media stream, materialization, protocol admission, watcher, or backend resource.
+    relations:
+      - type: applies_to
+        target: definition.nimi.avatar.embodiment.product-boundary
+      - type: applies_to
+        target: definition.nimi.desktop.agent-projection.avatar-surface

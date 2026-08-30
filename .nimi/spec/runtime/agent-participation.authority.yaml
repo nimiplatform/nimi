@@ -18,6 +18,10 @@ units:
     kind: definition
     title: Runtime LocalAgent presentation configuration plane
     meaning: Runtime owns durable LocalAgent presentation selections including the current official Avatar and background assets, default voice references, and zero-or-one current Zhiyu-targeted LocalAgent Resource Pack selection plus validation-before-commit, revisioned atomic mutation, persistence, bounded selected-resource read, cleanup, appearance-only restore-previous, and Resource-Pack-selection-only Clear semantics needed by authorized projections, while Avatar owns embodiment rendering, Zhiyu owns Resource Pack target rendering and local fallback, previous-profile restore never restores or clears the Pack selection, and no presentation profile becomes a LocalAgent, Avatar, or Zhiyu execution owner.
+  - id: definition.nimi.runtime.agent-participation.avatar-host-target-plane
+    kind: definition
+    title: Runtime Avatar Host target correlation plane
+    meaning: The Runtime Avatar Host target correlation plane resolves a formal App current-session Agent handle and optional exact Conversation fence to one Runtime-minted Host-private opaque target reference used only by the verified Desktop Host to correlate the same active LocalAgent across current formal App sessions; the reference is generation-bounded, is neither a public App selector nor authorization proof, and exposes no raw LocalAgent, Account, owner, source, Conversation, presentation, or relationship identity.
   - id: definition.nimi.runtime.agent-participation.presentation-stream-plane
     kind: definition
     title: Runtime LocalAgent presentation stream plane
@@ -685,6 +689,8 @@ units:
       - type: applies_to
         target: definition.nimi.runtime.agent-participation.app-consume-plane
       - type: applies_to
+        target: definition.nimi.runtime.agent-participation.avatar-host-target-plane
+      - type: applies_to
         target: definition.nimi.runtime.agent-participation.source-context-projection-plane
   - id: rule.nimi.runtime.agent-participation.r192
     kind: rule
@@ -716,3 +722,23 @@ units:
         target: definition.nimi.runtime.agent-participation.presentation-profile-plane
       - type: applies_to
         target: definition.nimi.zhiyu.local-partner-surface.resource-pack-target
+  - id: rule.nimi.runtime.agent-participation.r194
+    kind: rule
+    title: Avatar Host target correlation is private and revalidated
+    modality: must
+    statement: Runtime mints the same opaque Avatar Host target reference for the same current-account active LocalAgent across current formal App sessions on one Runtime generation and a different reference for a different LocalAgent, returns it only to the verified Desktop Host after revalidating the requesting App's current exact Host connection, formal session, agent.local coverage, session-scoped Agent handle, active LocalAgent, account, generation, and optional exact Conversation fence, and rotates or invalidates it on Runtime restart, account change, LocalAgent deletion or deactivation, or generation change; the Desktop Host uses it only for native Avatar instance correlation and never exposes it to an App renderer, Avatar renderer, SDK product client, handoff result, storage, log, or product identity surface.
+    condition: Whenever the Desktop Host resolves a caller-scoped Avatar presence, launch, or focus target across formal App sessions.
+    failure: Reject stale, mismatched, caller-authored, cross-account, inactive-Agent, unverified-Host, or unauthorized resolution and expose no raw identity, portable grant, durable relationship key, or App-visible stable Agent selector.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.app-consume-plane
+  - id: rule.nimi.runtime.agent-participation.r195
+    kind: rule
+    title: Avatar Host target resolution has one exact private operation
+    modality: must
+    statement: RuntimeAgentService ResolveLocalAppAvatarHostTarget is a Host-private unary mechanic whose request contains exactly agentHandle and optional conversationAnchorId and whose response contains exactly avatarHostTargetRef; Runtime resolves it only on the requesting formal App's current verified native Host connection and protected session, applies the same current operation coverage, account, generation, active-LocalAgent, handle, owner, and optional exact Conversation-fence revalidation required by the corresponding public target, and exposes the method through the protected native Host binding only. The method is not a public App Operation Contract row, is not present on an SDK product client or renderer command surface, and neither its request nor response enters runtime.agent.reference.list, Avatar launch context, public handoff request or result, storage, logs, diagnostics, or product state.
+    condition: Whenever a formal App native Host prepares a caller-scoped Avatar presence, launch, or focus handoff for the Desktop Host Control Plane.
+    failure: Reject extra fields, an absent or stale protected session, missing corresponding agent.local coverage, invalid or stale handle, mismatched Conversation fence, inactive or foreign LocalAgent, renderer access, or projection into any public App surface, and return no raw LocalAgent or Account identity.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.avatar-host-target-plane
