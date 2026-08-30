@@ -46,18 +46,20 @@ export {
   normalizeReleaseVelocity,
   shouldCommitGesture,
 } from './gestures.js';
-import { useReducedMotion } from 'motion/react';
+import { useContext } from 'react';
+import { MotionConfigContext } from 'motion/react';
 import { usePrefersReducedMotion } from './use-prefers-reduced-motion.js';
 
 /**
  * Reduced-motion resolution that works with or without
  * `NimiMotionProvider`: prefers the MotionConfig context (which may be
- * app-forced), falls back to the OS media query directly.
+ * app-forced), while an OS reduce request always remains authoritative.
  */
+// @nimi-authority: rule.nimi.platform.ui-design-system.p-design-027e
 export function useNimiReducedMotion(): boolean {
-  const fromConfig = useReducedMotion();
+  const { reducedMotion } = useContext(MotionConfigContext);
   const fromMedia = usePrefersReducedMotion();
-  return fromConfig ?? fromMedia;
+  return reducedMotion === 'always' || fromMedia;
 }
 
 export { NimiMotionProvider } from './provider.js';
