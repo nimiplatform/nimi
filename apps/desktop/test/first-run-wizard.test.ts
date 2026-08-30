@@ -28,6 +28,7 @@ function projectionFor(
       : {
           path: '/tmp/nimi-data-explicit',
           status: ready ? 'ready' as const : 'selected' as const,
+          rootActivationId: 'rootact_first_run',
           selectedAt: '2026-05-20T00:00:00.000Z',
           verifiedAt: '2026-05-20T00:00:00.000Z',
           selectedAtUnixMs: 1,
@@ -40,7 +41,7 @@ function projectionFor(
     state,
     error: null,
     record: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       installId: 'install-1',
       productVersion: '0.1.0',
       state,

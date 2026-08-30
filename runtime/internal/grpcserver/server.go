@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/url"
-	"os"
 	"path/filepath"
 	goruntime "runtime"
 	"strings"
@@ -169,6 +168,8 @@ type ProtectedServiceBindings struct {
 	LocalDevelopmentVerifier         protectedlocal.LocalDevelopmentProcessVerifier
 	DirectLocalAppLaunches           *protectedlocal.DirectLocalAppLaunches
 	RuntimeRestartRequester          runtimecontrolservice.RestartRequester
+	serviceConfigPath                string
+	productControlInstallID          string
 }
 
 func NewNonProduction(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*Server, error) {
@@ -195,6 +196,7 @@ func NewNonProductionAtProductControlRoot(cfg config.Config, state *health.State
 		return nil, fmt.Errorf("load fixed non-production Product Control data-root authority: %w", err)
 	}
 	applyProductControlDataRootBinding(&cfg, binding)
+	bindRuntimeOwnerStateToProductControlRoot(&cfg)
 	return newServer(cfg, state, logger, version, nil, productControlRoot, security)
 }
 
@@ -251,10 +253,26 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	if err != nil {
 		return nil, fmt.Errorf("resolve protected Runtime derived config path: %w", err)
 	}
-	if err := reconcileProtectedProductControlDataRootConfig(productControlRoot, serviceConfigPath, &cfg, productControlSecurity); err != nil {
+	productControlBinding, err := reconcileProtectedProductControlDataRootConfig(productControlRoot, serviceConfigPath, &cfg, productControlSecurity)
+	if err != nil {
 		return nil, err
 	}
+	bindings.serviceConfigPath = serviceConfigPath
+	bindings.productControlInstallID = productControlBinding.InstallID
+	bindRuntimeOwnerStateToProductControlRoot(&cfg)
 	return newServer(cfg, state, logger, version, &bindings, productControlRoot, productControlSecurity)
+}
+
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007e
+func bindRuntimeOwnerStateToProductControlRoot(cfg *config.Config) {
+	if cfg == nil {
+		return
+	}
+	root := strings.TrimSpace(cfg.DataRootRef)
+	if root == "" {
+		return
+	}
+	cfg.LocalStatePath = filepath.Join(root, "accounts", "runtime", "local-state.json")
 }
 
 func protectedProductControlDataRootSecurityBinding(bindings ProtectedServiceBindings) (localservice.ProductControlDataRootSecurityBinding, error) {
@@ -321,28 +339,30 @@ func normalizeOptionalProtectedResourcePath(label string, value string) (string,
 	return cleaned, nil
 }
 
-func reconcileProtectedProductControlDataRootConfig(productControlRoot string, serviceConfigPath string, cfg *config.Config, security localservice.ProductControlDataRootSecurityBinding) error {
+func reconcileProtectedProductControlDataRootConfig(productControlRoot string, serviceConfigPath string, cfg *config.Config, security localservice.ProductControlDataRootSecurityBinding) (localservice.ProductControlDataRootBinding, error) {
 	if cfg == nil {
-		return fmt.Errorf("protected Runtime config is required")
+		return localservice.ProductControlDataRootBinding{}, fmt.Errorf("protected Runtime config is required")
 	}
 	binding, err := localservice.LoadProductControlDataRootBinding(productControlRoot, security)
 	if err != nil {
-		return fmt.Errorf("load fixed Product Control data-root authority: %w", err)
+		return localservice.ProductControlDataRootBinding{}, fmt.Errorf("load fixed Product Control data-root authority: %w", err)
 	}
-	_, statErr := os.Stat(serviceConfigPath)
-	configExists := statErr == nil
-	if statErr != nil && !os.IsNotExist(statErr) {
-		return fmt.Errorf("inspect protected Runtime derived config: %w", statErr)
-	}
-	if binding.DataRoot != "" && strings.TrimSpace(cfg.DataRootRef) == "" && !configExists {
+	// Product Control is canonical and the service config is derived. This
+	// write is intentionally idempotent: besides first materialization it
+	// closes the crash window where root activation committed but the process
+	// exited before the derived config write replaced the former root.
+	if binding.DataRoot != "" {
 		if _, err := config.WriteServiceOwnedDataRoot(serviceConfigPath, binding.DataRoot); err != nil {
-			return fmt.Errorf("materialize protected Runtime data-root proof from Product Control: %w", err)
+			return localservice.ProductControlDataRootBinding{}, fmt.Errorf("reconcile protected Runtime data-root proof from Product Control: %w", err)
 		}
 		if err := config.ApplyServiceOwnedDataRoot(cfg, serviceConfigPath); err != nil {
-			return fmt.Errorf("apply protected Runtime data-root proof from Product Control: %w", err)
+			return localservice.ProductControlDataRootBinding{}, fmt.Errorf("apply protected Runtime data-root proof from Product Control: %w", err)
 		}
 	}
-	return validateProtectedProductControlDataRootBinding(binding, *cfg)
+	if err := validateProtectedProductControlDataRootBinding(binding, *cfg); err != nil {
+		return localservice.ProductControlDataRootBinding{}, err
+	}
+	return binding, nil
 }
 
 func validateProtectedProductControlDataRootBinding(binding localservice.ProductControlDataRootBinding, cfg config.Config) error {
@@ -479,16 +499,22 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			}
 		}
 		localDevelopmentStore = developmentStore
-		kernel, kernelErr := localappkernel.OpenSQLite(
-			context.Background(),
-			filepath.Join(protected.ServiceStateRoot, "local-app-kernel.db"),
-			protected.LocalOSUserIdentity,
-			localappkernel.Options{},
-		)
-		if kernelErr != nil {
-			return nil, fmt.Errorf("open local-app kernel: %w", kernelErr)
+		if strings.TrimSpace(cfg.DataRootRef) != "" {
+			canonicalPath, canonicalPathErr := localappkernel.CanonicalRegistrationDatabasePath(cfg.DataRootRef)
+			if canonicalPathErr != nil {
+				return nil, fmt.Errorf("resolve canonical registered App store: %w", canonicalPathErr)
+			}
+			kernel, kernelErr := localappkernel.OpenSQLite(
+				context.Background(),
+				canonicalPath,
+				protected.LocalOSUserIdentity,
+				localappkernel.Options{HostInstallID: protected.productControlInstallID, DataRoot: cfg.DataRootRef},
+			)
+			if kernelErr != nil {
+				return nil, fmt.Errorf("open local-app kernel: %w", kernelErr)
+			}
+			localAppKernel = kernel
 		}
-		localAppKernel = kernel
 	}
 	keepLocalDevelopmentStore := false
 	defer func() {
@@ -625,18 +651,22 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		return nil, fmt.Errorf("bind Product Control data-root security identities: %w", err)
 	}
 	if protected != nil {
-		serviceConfigPath, err := config.ServiceOwnedConfigPath(cfg.LocalStatePath)
-		if err != nil {
-			return nil, fmt.Errorf("resolve service-owned Runtime config path: %w", err)
+		serviceConfigPath := strings.TrimSpace(protected.serviceConfigPath)
+		if serviceConfigPath == "" {
+			return nil, fmt.Errorf("resolve service-owned Runtime config path: protected path is unavailable")
 		}
 		localSvc.SetProductControlDataRootConfigWriter(func(dataRootRef string) (bool, error) {
 			return config.WriteServiceOwnedDataRoot(serviceConfigPath, dataRootRef)
+		})
+		localSvc.SetProductControlDataRootConfigValidator(func(dataRootRef string) error {
+			return config.ValidateServiceOwnedDataRootMutation(serviceConfigPath, dataRootRef)
 		})
 	} else {
 		initialDataRoot := cfg.DataRootRef
 		localSvc.SetProductControlDataRootConfigWriter(func(dataRootRef string) (bool, error) {
 			return !sameProductControlPath(initialDataRoot, dataRootRef), nil
 		})
+		localSvc.SetProductControlDataRootConfigValidator(func(string) error { return nil })
 	}
 	localSvc.SetRuntimeAccountProjectionProvider(accountSvc)
 	runtimev1.RegisterRuntimeLocalServiceServer(g, localSvc)
@@ -785,6 +815,19 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			memoryCapabilities,
 		)
 		memoryTermination := cognitionmemory.NewTerminationService(memoryStore, memoryOwner)
+		rootActivationID, active, activationErr := localSvc.CurrentProductControlRootActivationID()
+		if activationErr != nil {
+			return nil, fmt.Errorf("resolve Cognition Memory root activation: %w", activationErr)
+		}
+		if active {
+			changed, fenceErr := memoryStore.FenceRootActivationJobs(context.Background(), rootActivationID)
+			if fenceErr != nil {
+				return nil, fmt.Errorf("fence Cognition Memory root activation jobs: %w", fenceErr)
+			}
+			if changed {
+				logger.Info("Cognition Memory non-portable jobs fenced for data-root activation")
+			}
+		}
 		if err := agentSvc.ConfigureCognitionMemory(memoryStore, memoryBridge, memoryFacade, memoryTermination); err != nil {
 			return nil, fmt.Errorf("configure Cognition Memory owner path: %w", err)
 		}
@@ -829,7 +872,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		}
 	}
 	appSvc := appservice.New(logger, appOptions...)
-	if protected != nil {
+	if protected != nil && localAppKernel != nil {
 		if err := appSvc.ReconcileLocalDevelopmentKernel(context.Background()); err != nil {
 			return nil, fmt.Errorf("reconcile local-development authority with local-app kernel: %w", err)
 		}
@@ -846,12 +889,20 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		if localAppKernel != nil {
 			registrations := localAppKernel.Registrations()
 			appOwnerAdmission = func(ctx context.Context, appID string) bool {
-				registration, err := registrations.GetActiveByAppID(ctx, appID)
-				return err == nil && registration.AppID == appID
+				statuses, err := registrations.ListStatuses(ctx)
+				if err != nil {
+					return false
+				}
+				for _, status := range statuses {
+					if status.AppID == appID && status.State == localappkernel.RegistrationStateActive && status.CurrentHostBound && status.Available {
+						return true
+					}
+				}
+				return false
 			}
 		}
-		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc, appOwnerAdmission, appSvc)
-		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, localSvc, aiSvc, agentSvc, appSvc)
+		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc, appOwnerAdmission, appSvc, rpcRegistry)
+		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, localSvc, aiSvc, agentSvc, appSvc, rpcRegistry)
 	}
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)
 	appSvc.RegisterInternalConsumer("runtime.agent", agentSvc.ConsumePublicChatAppMessage)
@@ -865,6 +916,18 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	runtimev1.RegisterRuntimeDevelopmentServiceServer(g, appSvc)
 
 	runtimev1.RegisterRuntimeArtifactServiceServer(g, artifactSvc)
+	localSvc.SetProductControlRootHandoff(&productControlRuntimeRootHandoff{
+		registry: rpcRegistry, ai: aiSvc, agent: agentSvc, cognition: cognitionSvc, backend: backend,
+	})
+	if err := localSvc.SetProductControlCheckSyncRuntimeOwners(productControlCheckSyncOwners(backend, localAppKernel, cognitionSvc, appSvc, accountSvc, agentSvc)); err != nil {
+		return nil, fmt.Errorf("compose fixed Runtime Check & Sync owners: %w", err)
+	}
+	// Recovery belongs to Product Control startup, not optional engine-manager
+	// construction. An unavailable manager is projected as one owner result and
+	// must not suppress reconciliation of the remaining fixed owners.
+	if err := localSvc.RecoverProductControlCheckSync(); err != nil {
+		logger.Warn("automatic Product Control Check & Sync admission failed", "error", err)
+	}
 
 	s := &Server{
 		addr:                  addr,

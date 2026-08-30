@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
@@ -45,13 +46,13 @@ type Daemon struct {
 	audioCppSpeechHost      *engine.AudioCppSpeechExecutionHost
 	videoExecutionHost      *engine.VideoExecutionHost
 	newEngineManager        func(logger *slog.Logger, roots engine.ManagedRoots, onState engine.StateChangeFunc) (*engine.Manager, error)
-	startEngineFn           func(ctx context.Context, kind engine.EngineKind, version string, port int, envKey string) error
 	startupStatusMu         sync.Mutex
 	startupDegradedReason   string
 	readyOnce               sync.Once
 	readyCh                 chan struct{}
 	stopSupervisedOnce      sync.Once
 	stopSupervisedFn        func()
+	restartRequested        atomic.Bool
 }
 
 const (
@@ -116,7 +117,34 @@ func NewProtectedWithResources(cfg config.Config, logger *slog.Logger, version s
 	if resources.Close == nil {
 		return nil, fmt.Errorf("protected Runtime security-state closer is required")
 	}
-	d, err := NewProtected(cfg, logger, version, resources.Bindings)
+	requestRestart := resources.Bindings.RuntimeRestartRequester
+	var d *Daemon
+	if requestRestart != nil {
+		var restartMu sync.Mutex
+		restartAccepted := false
+		resources.Bindings.RuntimeRestartRequester = func() bool {
+			restartMu.Lock()
+			defer restartMu.Unlock()
+			if restartAccepted {
+				return false
+			}
+			// Mark before notifying the external service owner: its requester may
+			// wake the shutdown loop before this callback returns.
+			if d != nil {
+				d.restartRequested.Store(true)
+			}
+			if !requestRestart() {
+				if d != nil {
+					d.restartRequested.Store(false)
+				}
+				return false
+			}
+			restartAccepted = true
+			return true
+		}
+	}
+	var err error
+	d, err = NewProtected(cfg, logger, version, resources.Bindings)
 	if err != nil {
 		if closeErr := resources.Close(); closeErr != nil {
 			return nil, errors.Join(err, fmt.Errorf("close protected Runtime security state after construction failure: %w", closeErr))
@@ -490,6 +518,11 @@ func (d *Daemon) shutdown() error {
 	d.grpc.SyncServingState()
 	ctx, cancel := context.WithTimeout(context.Background(), d.cfg.ShutdownTimeout)
 	defer cancel()
+	if d.restartRequested.Load() {
+		if aiSvc := d.grpc.AIService(); aiSvc != nil {
+			aiSvc.BeginRuntimeRestart()
+		}
+	}
 	activeAtStart := d.grpc.BeginShutdown()
 	if len(activeAtStart) > 0 {
 		d.logger.Warn("canceling active runtime RPCs for shutdown", "count", len(activeAtStart))
@@ -631,8 +664,13 @@ func (d *Daemon) consumeStartupDegradedReason() string {
 	d.startupDegradedReason = ""
 	return reason
 }
-func (d *Daemon) startSupervisedEngines(ctx context.Context) {
+func (d *Daemon) startSupervisedEngines(_ context.Context) {
 	svc := d.grpc.LocalService()
+	d.logger.Info("initializing Runtime-owned local execution hosts",
+		"llama_enabled", d.cfg.EngineLlamaEnabled,
+		"llama_version", strings.TrimSpace(d.cfg.EngineLlamaVersion),
+		"llama_port", d.cfg.EngineLlamaPort,
+	)
 	onState := func(kind engine.EngineKind, status engine.EngineStatus, detail string) {
 		d.onEngineStateChange(string(kind), string(status), detail)
 	}
@@ -653,7 +691,7 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 	// ExecutionHost; it never materializes a package, bootstraps a model, or
 	// creates an ambient provider route.
 	engineWorkRequested := d.cfg.EngineLlamaEnabled ||
-		d.cfg.EngineMediaEnabled || d.cfg.EngineSpeechEnabled || d.cfg.EngineSidecarEnabled
+		d.cfg.EngineMediaEnabled || d.cfg.EngineSpeechEnabled
 	mgr, err := managerFactory(d.logger, engineRoots, onState)
 	if err != nil {
 		// Runtime core readiness is independent from local environment
@@ -675,7 +713,21 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		mgr.SetRuntimeWorkRoot(filepath.Join(filepath.Dir(localStatePath), "engine-work"))
 	}
 	if aiSvc := d.grpc.AIService(); aiSvc != nil {
-		aiSvc.SetLocalTextExecutionHost(engine.NewExecutionHost(mgr, d.logger))
+		if llamaConfig, enabled := llamaExecutionHostConfig(d.cfg); enabled {
+			llamaHost, hostErr := engine.NewExecutionHostWithLlamaConfig(mgr, d.logger, llamaConfig)
+			if hostErr != nil {
+				d.logger.Error("create llama execution host failed", "error", hostErr)
+				reason := fmt.Sprintf("llama execution host init failed (%v)", hostErr)
+				d.setDegradedStatus(reason)
+				appendStartupFailureAudit(d.auditStore, reason)
+			} else {
+				aiSvc.SetLocalTextExecutionHost(llamaHost)
+				d.logger.Info("llama execution host configured",
+					"version", llamaConfig.Version,
+					"port", llamaConfig.Port,
+				)
+			}
+		}
 		d.imageExecutionHost = engine.NewImageExecutionHost(mgr, d.logger, engine.ImageExecutionHostConfig{
 			PackageSource: strings.TrimSpace(d.cfg.EngineManagedImageBackendSource),
 		})
@@ -701,51 +753,15 @@ func (d *Daemon) startSupervisedEngines(ctx context.Context) {
 		}
 	}
 	if svc != nil {
-		svc.SetEngineManager(engine.NewServiceAdapter(mgr))
-	}
-	if !engineWorkRequested {
-		return
-	}
-	var wg sync.WaitGroup
-	type bootstrapFailure struct {
-		kind   engine.EngineKind
-		detail string
-	}
-	failures := make(chan bootstrapFailure, 4)
-	startEngine := d.startEngineFn
-	if startEngine == nil {
-		startEngine = d.startEngine
-	}
-	bootstrap := func(kind engine.EngineKind, version string, port int, envKey string) {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			if err := startEngine(ctx, kind, version, port, envKey); err != nil {
-				failures <- bootstrapFailure{
-					kind:   kind,
-					detail: err.Error(),
-				}
+		llamaVersion := strings.TrimSpace(d.cfg.EngineLlamaVersion)
+		if d.cfg.EngineLlamaEnabled || llamaVersion != "" {
+			if err := svc.SetLlamaEngineVersion(llamaVersion); err != nil {
+				reason := fmt.Sprintf("llama engine version configuration failed (%v)", err)
+				d.setDegradedStatus(reason)
+				appendStartupFailureAudit(d.auditStore, reason)
 				return
 			}
-		}()
-	}
-	if d.cfg.EngineSidecarEnabled {
-		bootstrap(engineSidecar, d.cfg.EngineSidecarVersion, d.cfg.EngineSidecarPort,
-			"NIMI_RUNTIME_LOCAL_SIDECAR_BASE_URL")
-	}
-	wg.Wait()
-	close(failures)
-	firstFailure := ""
-	for failure := range failures {
-		if firstFailure == "" {
-			firstFailure = fmt.Sprintf("%s: %s", failure.kind, failure.detail)
 		}
-		d.logger.Error("engine bootstrap failed", "engine", failure.kind, "detail", failure.detail)
-		if auditTarget, ok := engineAuditTargetName(failure.kind); ok {
-			appendEngineBootstrapFailureAudit(d.auditStore, string(failure.kind), auditTarget, failure.detail, nil)
-		}
-	}
-	if firstFailure != "" {
-		d.setDegradedStatus(fmt.Sprintf("engine bootstrap failed (%s)", firstFailure))
+		svc.SetEngineManager(engine.NewServiceAdapter(mgr))
 	}
 }

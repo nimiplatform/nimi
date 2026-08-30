@@ -69,6 +69,14 @@ func TestSanitizeScenarioJobReasonDetail_LocalSpeechReasonsIgnoreTransportText(t
 	}
 }
 
+func TestSanitizeScenarioJobReasonDetail_ContentMismatchUsesLocalRecoveryMeaning(t *testing.T) {
+	const privatePath = "D:/private/models/model.gguf"
+	got := sanitizeScenarioJobReasonDetail(status.Error(codes.FailedPrecondition, privatePath), runtimev1.ReasonCode_AI_LOCAL_EXECUTION_CONTENT_MISMATCH)
+	if got != "local model content changed and must be verified again" || strings.Contains(got, privatePath) {
+		t.Fatalf("content mismatch detail = %q", got)
+	}
+}
+
 func TestScenarioJobReasonMetadata_DropsProviderBodyWithoutStructuredRecoveryMetadata(t *testing.T) {
 	err := grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, grpcerr.ReasonOptions{
 		Message: "provider request failed",
@@ -408,11 +416,11 @@ func TestScenarioAsyncJobCancellationClearsFailureMetadata(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	const jobID = "scenario-async-canceled"
 	created := svc.scenarioJobs.create(&runtimev1.ScenarioJob{
-		JobId:        jobID,
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		JobId:         jobID,
+		ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
 		ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
-		Status:       runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
-		TraceId:      "trace-canceled",
+		Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_RUNNING,
+		TraceId:       "trace-canceled",
 	}, func() {})
 	if created == nil {
 		t.Fatal("create ScenarioJob")

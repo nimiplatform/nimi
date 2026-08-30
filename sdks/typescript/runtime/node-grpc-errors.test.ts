@@ -36,6 +36,7 @@ function encodeStatus(
   code: grpc.status,
   message: string,
   errorInfo: ErrorInfoInput,
+  extraDetails: readonly { readonly typeUrl: string; readonly value: Uint8Array }[] = [],
 ): Uint8Array {
   const writer = new BinaryWriter();
   writer.tag(1, WireType.Varint).int32(code);
@@ -44,6 +45,16 @@ function encodeStatus(
     'type.googleapis.com/google.rpc.ErrorInfo',
     encodeErrorInfo(errorInfo),
   ));
+  for (const detail of extraDetails) {
+    writer.tag(3, WireType.LengthDelimited).bytes(encodeAny(detail.typeUrl, detail.value));
+  }
+  return writer.finish();
+}
+
+function encodeExecutionInterruption(): Uint8Array {
+  const writer = new BinaryWriter();
+  writer.tag(1, WireType.Varint).int32(1);
+  writer.tag(2, WireType.Varint).int32(1);
   return writer.finish();
 }
 
@@ -100,6 +111,31 @@ test('normalizeServiceError decodes nimi ErrorInfo fields from grpc-status-detai
     grpcCode: grpc.status.UNAVAILABLE,
     grpcDetails: publicMessage,
   });
+});
+
+test('normalizeServiceError maps typed Runtime restart interruption detail', () => {
+  const publicMessage = 'Runtime restarted during execution';
+  const error = createServiceError(
+    grpc.status.ABORTED,
+    publicMessage,
+    encodeStatus(grpc.status.ABORTED, publicMessage, {
+      reason: ReasonCode.AI_EXECUTION_INTERRUPTED,
+      metadata: { action_hint: 'resubmit_when_ready' },
+    }, [{
+      typeUrl: 'type.googleapis.com/nimi.runtime.v1.ExecutionInterruption',
+      value: encodeExecutionInterruption(),
+    }]),
+  );
+
+  const normalized = normalizeServiceError(grpc, error);
+
+  assert.equal(normalized.reasonCode, ReasonCode.AI_EXECUTION_INTERRUPTED);
+  assert.equal(normalized.retryable, true);
+  assert.deepEqual(normalized.interruption, {
+    cause: 'runtime-restart',
+    resubmitDisposition: 'caller-may-resubmit',
+  });
+  assert.deepEqual(normalized.details?.interruption, normalized.interruption);
 });
 
 test('normalizeServiceError treats ErrorInfo as canonical over status message text', () => {

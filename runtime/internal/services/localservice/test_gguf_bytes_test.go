@@ -20,12 +20,21 @@ func validGemma4TestGGUF() []byte {
 		{Key: "general.architecture", Type: 8, StringValue: "gemma4"},
 		{Key: "general.name", Type: 8, StringValue: "gemma-4-test"},
 		{Key: "gemma4.context_length", Type: 4, Uint32Value: 262144},
+		{Key: "tokenizer.chat_template", Type: 8, StringValue: "{{ messages }}"},
 	}, []string{"tok_embeddings.weight"})
 }
 
 func validGemma4TestGGUFHash() string {
 	sum := sha256.Sum256(validGemma4TestGGUF())
 	return hex.EncodeToString(sum[:])
+}
+
+func validEmbeddingTestGGUF() []byte {
+	return buildImageTestGGUF([]ggufTestMetadataEntry{
+		{Key: "general.architecture", Type: 8, StringValue: "bert"},
+		{Key: "general.name", Type: 8, StringValue: "embedding-test"},
+		{Key: "bert.context_length", Type: 4, Uint32Value: 8192},
+	}, []string{"token_embd.weight"})
 }
 
 func validTestGGUFHash() string {

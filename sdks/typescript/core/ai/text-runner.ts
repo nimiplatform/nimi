@@ -79,7 +79,13 @@ export type NimiTextTurnEvent<TStructured = unknown> =
     readonly turnId?: string;
     readonly textDelta: string;
     readonly snapshot: NimiConversationTextAccumulatorSnapshot;
-    readonly runEvent: Extract<NimiRunEvent, { readonly type: 'reasoning-delta' }>;
+    readonly runEvent: Extract<NimiRunEvent, { readonly type: 'reasoning-delta' | 'reasoning-summary-delta' }>;
+  }
+  | {
+    readonly type: 'reasoning-continuity';
+    readonly turnId?: string;
+    readonly snapshot: NimiConversationTextAccumulatorSnapshot;
+    readonly runEvent: Extract<NimiRunEvent, { readonly type: 'reasoning-continuity' }>;
   }
   | {
     readonly type: 'text-delta';
@@ -242,11 +248,16 @@ export async function* runNimiTextTurn<TStructured = unknown>(
       } else if (event.type === 'reasoning-delta') {
         snapshot = appendNimiConversationReasoningDelta(snapshot, event.text);
         yield { type: 'reasoning-delta', turnId: input.turnId, textDelta: event.text, snapshot, runEvent: event };
+      } else if (event.type === 'reasoning-summary-delta') {
+        snapshot = appendNimiConversationReasoningDelta(snapshot, event.text);
+        yield { type: 'reasoning-delta', turnId: input.turnId, textDelta: event.text, snapshot, runEvent: event };
       } else if (event.type === 'text-delta') {
         snapshot = appendNimiConversationTextDelta(snapshot, event.text);
         yield { type: 'text-delta', turnId: input.turnId, textDelta: event.text, snapshot, runEvent: event };
       } else if (event.type === 'tool-call') {
         yield { type: 'tool-call', turnId: input.turnId, snapshot, runEvent: event };
+      } else if (event.type === 'reasoning-continuity') {
+        yield { type: 'reasoning-continuity', turnId: input.turnId, snapshot, runEvent: event };
       } else if (event.type === 'tool-result') {
         yield { type: 'tool-result', turnId: input.turnId, snapshot, runEvent: event };
       } else if (event.type === 'tool-approval-request') {

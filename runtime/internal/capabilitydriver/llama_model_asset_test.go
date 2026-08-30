@@ -22,7 +22,7 @@ func TestLlamaDriversProjectBoundedGGUFIdentityBeforeTruncatedMetadata(t *testin
 		{
 			name:         "text generate Gemma",
 			driver:       LlamaTextDriver{},
-			recipeID:     LlamaGemma4E2BRecipeID,
+			recipeID:     LlamaGemma4RecipeID,
 			architecture: "gemma4",
 			kind:         runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT,
 			artifactRole: "llm",

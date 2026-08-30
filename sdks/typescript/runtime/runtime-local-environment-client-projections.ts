@@ -187,10 +187,9 @@ export function projectNimiRuntimeLocalVerifiedAssetDescriptor(
     totalSizeBytes: positiveNumber(value.totalSizeBytes),
     contentId: normalizeText(value.contentId),
     tags: textList(value.tags),
-    artifactRoles: textListOrUndefined(value.artifactRoles),
-    preferredEngine: normalizeText(value.preferredEngine) || undefined,
-    fallbackEngines: textListOrUndefined(value.fallbackEngines),
-    engineConfig: nonEmptyRecord(fromNimiRuntimeProtoStruct(value.engineConfig)),
+		artifactRoles: textListOrUndefined(value.artifactRoles),
+		preferredEngine: normalizeText(value.preferredEngine) || undefined,
+		engineConfig: nonEmptyRecord(fromNimiRuntimeProtoStruct(value.engineConfig)),
     metadata: nonEmptyRecord(fromNimiRuntimeProtoStruct(value.metadata)),
   };
 }
@@ -198,7 +197,9 @@ export function projectNimiRuntimeLocalVerifiedAssetDescriptor(
 export function projectNimiRuntimeLocalCatalogItemDescriptor(
   value: GeneratedLocalCatalogModelDescriptor,
 ): NimiRuntimeLocalCatalogItemDescriptor {
-  const kind = nimiRuntimeLocalRunnableAssetKindForCapabilities(value.capabilities);
+	const modelType = normalizeText(value.modelType).toLowerCase();
+	const kind = nimiRuntimeLocalRunnableAssetKindForCapabilities(value.capabilities)
+		?? nimiRuntimeLocalPassiveCatalogKind(modelType);
   if (!kind) {
     throw invalidLocalProjection(`Runtime local catalog item ${value.itemId} has unknown or ambiguous capabilities`);
   }
@@ -212,6 +213,7 @@ export function projectNimiRuntimeLocalCatalogItemDescriptor(
     title: normalizeText(value.title),
     description: normalizeText(value.description),
     modelId: normalizeText(value.modelId),
+		...(modelType ? { modelType } : {}),
     repo: normalizeText(value.repo),
     revision: normalizeText(value.revision) || 'main',
     templateId: normalizeText(value.templateId) || undefined,
@@ -264,6 +266,7 @@ export function projectNimiRuntimeLocalInstallPlanDescriptor(
     source: normalizeText(value.source) || 'huggingface',
     templateId: normalizeText(value.templateId) || undefined,
     modelId: normalizeText(value.modelId),
+		...(normalizeText(value.modelType) ? { modelType: normalizeText(value.modelType).toLowerCase() } : {}),
     repo: normalizeText(value.repo),
     revision: normalizeText(value.revision) || 'main',
     capabilities: textList(value.capabilities),
@@ -282,6 +285,19 @@ export function projectNimiRuntimeLocalInstallPlanDescriptor(
     engineConfig: nonEmptyRecord(fromNimiRuntimeProtoStruct(value.engineConfig)),
     totalSizeBytes: positiveNumber(value.totalSizeBytes),
   };
+}
+
+function nimiRuntimeLocalPassiveCatalogKind(modelType: string): string | null {
+	switch (modelType) {
+		case 'vae':
+		case 'clip':
+		case 'lora':
+		case 'controlnet':
+		case 'auxiliary':
+			return modelType;
+		default:
+			return null;
+	}
 }
 
 export function projectNimiRuntimeLocalDeviceProfile(
@@ -495,12 +511,10 @@ function projectNimiRuntimeLocalProviderHints(
         backend: normalizeText(value.media.backend),
         preferredAdapter: normalizeText(value.media.preferredAdapter),
         family: normalizeText(value.media.family) || undefined,
-        imageDriver: normalizeText(value.media.imageDriver) || undefined,
-        videoDriver: normalizeText(value.media.videoDriver) || undefined,
-        device: normalizeText(value.media.device) || undefined,
-        fallbackDriver: normalizeText(value.media.fallbackDriver) || undefined,
-        fallbackReason: normalizeText(value.media.fallbackReason) || undefined,
-        policyGate: normalizeText(value.media.policyGate) || undefined,
+			imageDriver: normalizeText(value.media.imageDriver) || undefined,
+			videoDriver: normalizeText(value.media.videoDriver) || undefined,
+			device: normalizeText(value.media.device) || undefined,
+			policyGate: normalizeText(value.media.policyGate) || undefined,
       }
       : undefined,
     speech: value.speech

@@ -5,38 +5,45 @@ package ai
 
 import (
 	"bytes"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-const localResolvedAssemblyVersion = 1
+const localResolvedAssemblyVersion = 4
 
 type localResolvedAssembly struct {
-	Version            int                                     `json:"version"`
-	LoadoutID          string                                  `json:"loadout_id"`
-	CapabilityContract string                                  `json:"capability_contract"`
-	RecipeID           string                                  `json:"recipe_id"`
-	RecipeRevision     string                                  `json:"recipe_revision"`
-	DriverIdentity     localResolvedAssemblyDriverIdentity     `json:"driver_identity"`
-	PortableConfig     json.RawMessage                         `json:"portable_config,omitempty"`
-	Requirements       []json.RawMessage                       `json:"requirements,omitempty"`
-	ModelAxes          []localResolvedAssemblyModelAxis        `json:"model_axes"`
-	DependencySources  []localResolvedAssemblyDependencySource `json:"dependency_sources,omitempty"`
-	RecipeCustody      []json.RawMessage                       `json:"recipe_custody,omitempty"`
-	SupportedFeatures  []string                                `json:"supported_features,omitempty"`
-	Request            localResolvedAssemblyRequest            `json:"request"`
-	LoadPlan           localResolvedAssemblyLoadPlan           `json:"load_plan"`
-	ProcessIdentity    localResolvedAssemblyProcessIdentity    `json:"process_identity"`
+	Version                         int                                     `json:"version"`
+	LoadoutID                       string                                  `json:"loadout_id"`
+	CapabilityContract              string                                  `json:"capability_contract"`
+	RecipeID                        string                                  `json:"recipe_id"`
+	RecipeRevision                  string                                  `json:"recipe_revision"`
+	DriverIdentity                  localResolvedAssemblyDriverIdentity     `json:"driver_identity"`
+	PortableConfig                  json.RawMessage                         `json:"portable_config,omitempty"`
+	Requirements                    []json.RawMessage                       `json:"requirements,omitempty"`
+	ModelAxes                       []localResolvedAssemblyModelAxis        `json:"model_axes"`
+	DependencySources               []localResolvedAssemblyDependencySource `json:"dependency_sources,omitempty"`
+	RecipeCustody                   []json.RawMessage                       `json:"recipe_custody,omitempty"`
+	ImplementationSupportedFeatures []string                                `json:"implementation_supported_features,omitempty"`
+	ConfiguredFeatures              []string                                `json:"configured_features,omitempty"`
+	AdmittedFeatures                []string                                `json:"admitted_features,omitempty"`
+	AdmittedTextBehaviors           []runtimev1.TextBehaviorKind            `json:"admitted_text_behaviors,omitempty"`
+	Request                         localResolvedAssemblyRequest            `json:"request"`
+	LoadPlan                        localResolvedAssemblyLoadPlan           `json:"load_plan"`
+	ProcessIdentity                 localResolvedAssemblyProcessIdentity    `json:"process_identity"`
 }
 
 type localResolvedAssemblyDriverIdentity struct {
@@ -46,16 +53,18 @@ type localResolvedAssemblyDriverIdentity struct {
 }
 
 type localResolvedAssemblyModelAxis struct {
-	RequirementID     string                                   `json:"requirement_id"`
-	RequirementRole   runtimev1.LocalCapabilityRequirementRole `json:"requirement_role"`
-	OccurrenceOrdinal uint32                                   `json:"occurrence_ordinal"`
-	DisplayLabel      string                                   `json:"display_label,omitempty"`
-	ModelAssetID      string                                   `json:"model_asset_id"`
-	AbsolutePath      string                                   `json:"absolute_path"`
-	BundleDir         string                                   `json:"bundle_dir,omitempty"`
-	DeclaredFiles     []string                                 `json:"declared_files,omitempty"`
-	VerifiedContentID string                                   `json:"verified_content_id"`
-	EntrySHA256       string                                   `json:"entry_sha256"`
+	RequirementID     string                                       `json:"requirement_id"`
+	RequirementRole   runtimev1.LocalCapabilityRequirementRole     `json:"requirement_role"`
+	OccurrenceOrdinal uint32                                       `json:"occurrence_ordinal"`
+	Presence          runtimev1.LocalCapabilityRequirementPresence `json:"presence"`
+	DisplayLabel      string                                       `json:"display_label,omitempty"`
+	ModelAssetID      string                                       `json:"model_asset_id"`
+	AbsolutePath      string                                       `json:"absolute_path"`
+	BundleDir         string                                       `json:"bundle_dir,omitempty"`
+	DeclaredFiles     []string                                     `json:"declared_files,omitempty"`
+	VerifiedContentID string                                       `json:"verified_content_id"`
+	EntrySHA256       string                                       `json:"entry_sha256"`
+	TemplateIdentity  string                                       `json:"template_identity,omitempty"`
 }
 
 type localResolvedAssemblyDependencySource struct {
@@ -127,6 +136,17 @@ type localResolvedAssemblyInvocationBinding struct {
 	DeclaredFiles     []string `json:"declared_files,omitempty"`
 	VerifiedContentID string   `json:"verified_content_id"`
 	EntrySHA256       string   `json:"entry_sha256"`
+	TemplateIdentity  string   `json:"template_identity,omitempty"`
+}
+
+type localResolvedAssemblyTextBehaviorMatch struct {
+	RecipeID          string `json:"recipe_id"`
+	RecipeRevision    string `json:"recipe_revision"`
+	DriverDialect     string `json:"driver_dialect"`
+	ModelAssetID      string `json:"model_asset_id"`
+	VerifiedContentID string `json:"verified_content_id"`
+	EntrySHA256       string `json:"entry_sha256"`
+	TemplateIdentity  string `json:"template_identity,omitempty"`
 }
 
 type localResolvedAssemblyTextPlan struct {
@@ -134,9 +154,12 @@ type localResolvedAssemblyTextPlan struct {
 	ProcessArgs         []string                                 `json:"process_args"`
 	ModelFiles          []localResolvedAssemblyInvocationBinding `json:"model_files"`
 	RequestPath         string                                   `json:"request_path"`
+	RequestContentType  string                                   `json:"request_content_type"`
 	RequestBody         []byte                                   `json:"request_body"`
 	Stream              bool                                     `json:"stream"`
 	ContextWindowTokens uint64                                   `json:"context_window_tokens"`
+	BehaviorMatch       localResolvedAssemblyTextBehaviorMatch   `json:"behavior_match"`
+	BehaviorAdapter     *textbehavior.AdapterCapture             `json:"behavior_adapter,omitempty"`
 }
 
 type localResolvedAssemblyEmbedPlan struct {
@@ -289,21 +312,24 @@ type localResolvedAssemblyVideoPlan struct {
 	RNG                     string                                   `json:"rng"`
 }
 
-func projectLoadoutEffectiveInputIdentity(selected *localexecution.SelectedLocalExecution) *runtimev1.LoadoutEffectiveInputIdentity {
+func projectLoadoutEffectiveInputIdentity(selected *localexecution.SelectedLocalExecution, admittedFeatures ...string) *runtimev1.LoadoutEffectiveInputIdentity {
 	if selected == nil {
 		return nil
 	}
 	result := &runtimev1.LoadoutEffectiveInputIdentity{
 		LoadoutId: strings.TrimSpace(selected.LoadoutID), CapabilityContract: strings.TrimSpace(selected.CapabilityContract),
 		RecipeId: strings.TrimSpace(selected.RecipeID), RecipeRevision: strings.TrimSpace(selected.RecipeRevision),
-		Options: cloneResolvedAssemblyStruct(selected.PortableConfig),
+		Options:          cloneResolvedAssemblyStruct(selected.PortableConfig),
+		AdmittedFeatures: normalizeLocalFeatureSet(admittedFeatures),
 	}
 	if selected.DriverIdentity != nil {
 		result.Implementation = proto.Clone(selected.DriverIdentity).(*runtimev1.CapabilityImplementationIdentity)
 	}
+	presenceByRequirement := localRequirementPresenceByID(selected.Requirements)
 	for _, binding := range selected.ExactBindings {
 		result.ModelAxes = append(result.ModelAxes, &runtimev1.LoadoutEffectiveModelAxisIdentity{
 			SlotId: strings.TrimSpace(binding.RequirementID), ModelAssetId: strings.TrimSpace(binding.ModelAssetID), ContentId: strings.TrimSpace(binding.VerifiedContentID),
+			Presence: presenceByRequirement[strings.TrimSpace(binding.RequirementID)],
 		})
 	}
 	for _, custody := range selected.RecipeCustody {
@@ -330,8 +356,12 @@ func projectResolvedAssemblyEffectiveInputIdentity(assembly *localResolvedAssemb
 			DriverId:         strings.TrimSpace(assembly.DriverIdentity.DriverID),
 			DriverDialect:    strings.TrimSpace(assembly.DriverIdentity.DriverDialect),
 		},
-		RecipeId:       strings.TrimSpace(assembly.RecipeID),
-		RecipeRevision: strings.TrimSpace(assembly.RecipeRevision),
+		RecipeId:         strings.TrimSpace(assembly.RecipeID),
+		RecipeRevision:   strings.TrimSpace(assembly.RecipeRevision),
+		AdmittedFeatures: append([]string(nil), assembly.AdmittedFeatures...),
+		AdmittedTextBehaviors: append(
+			[]runtimev1.TextBehaviorKind(nil), assembly.AdmittedTextBehaviors...,
+		),
 	}
 	if len(assembly.PortableConfig) > 0 {
 		options := &structpb.Struct{}
@@ -343,6 +373,7 @@ func projectResolvedAssemblyEffectiveInputIdentity(assembly *localResolvedAssemb
 	for _, axis := range assembly.ModelAxes {
 		result.ModelAxes = append(result.ModelAxes, &runtimev1.LoadoutEffectiveModelAxisIdentity{
 			SlotId: strings.TrimSpace(axis.RequirementID), ModelAssetId: strings.TrimSpace(axis.ModelAssetID), ContentId: strings.TrimSpace(axis.VerifiedContentID),
+			Presence: axis.Presence,
 		})
 	}
 	for index, raw := range assembly.RecipeCustody {
@@ -392,7 +423,9 @@ func newLocalResolvedAssembly(selected *localexecution.SelectedLocalExecution, r
 		Version:            localResolvedAssemblyVersion,
 		LoadoutID:          strings.TrimSpace(selected.LoadoutID),
 		CapabilityContract: strings.TrimSpace(selected.CapabilityContract), RecipeID: strings.TrimSpace(selected.RecipeID),
-		RecipeRevision: strings.TrimSpace(selected.RecipeRevision), SupportedFeatures: append([]string(nil), selected.SupportedFeatures...),
+		RecipeRevision:                  strings.TrimSpace(selected.RecipeRevision),
+		ImplementationSupportedFeatures: normalizeLocalFeatureSet(selected.ImplementationSupportedFeatures),
+		ConfiguredFeatures:              normalizeLocalFeatureSet(selected.ConfiguredFeatures),
 		DriverIdentity: localResolvedAssemblyDriverIdentity{
 			ImplementationID: strings.TrimSpace(selected.DriverIdentity.GetImplementationId()),
 			DriverID:         strings.TrimSpace(selected.DriverIdentity.GetDriverId()),
@@ -418,13 +451,15 @@ func newLocalResolvedAssembly(selected *localexecution.SelectedLocalExecution, r
 		}
 		assembly.Requirements = append(assembly.Requirements, raw)
 	}
+	presenceByRequirement := localRequirementPresenceByID(selected.Requirements)
 	for _, binding := range selected.ExactBindings {
 		assembly.ModelAxes = append(assembly.ModelAxes, localResolvedAssemblyModelAxis{
 			RequirementID: strings.TrimSpace(binding.RequirementID), RequirementRole: binding.RequirementRole,
-			OccurrenceOrdinal: binding.OccurrenceOrdinal, DisplayLabel: strings.TrimSpace(binding.DisplayLabel),
+			OccurrenceOrdinal: binding.OccurrenceOrdinal, Presence: presenceByRequirement[strings.TrimSpace(binding.RequirementID)], DisplayLabel: strings.TrimSpace(binding.DisplayLabel),
 			ModelAssetID: strings.TrimSpace(binding.ModelAssetID), AbsolutePath: strings.TrimSpace(binding.AbsolutePath),
 			BundleDir: strings.TrimSpace(binding.BundleDir), DeclaredFiles: append([]string(nil), binding.DeclaredFiles...),
 			VerifiedContentID: strings.TrimSpace(binding.VerifiedContentID), EntrySHA256: strings.TrimSpace(binding.EntrySHA256),
+			TemplateIdentity: strings.TrimSpace(binding.TemplateIdentity),
 		})
 	}
 	for _, custody := range selected.RecipeCustody {
@@ -473,11 +508,45 @@ func localResolvedAssemblyForText(selected *localexecution.SelectedLocalExecutio
 	}
 	assembly.LoadPlan = localResolvedAssemblyLoadPlan{Kind: "text", Text: &localResolvedAssemblyTextPlan{
 		ProcessKey: plan.ProcessKey(), ProcessArgs: plan.ProcessArgs(), ModelFiles: resolvedAssemblyInvocationBindings(plan.ModelFiles()),
-		RequestPath: plan.RequestPath(), RequestBody: plan.RequestBody(), Stream: plan.Stream(), ContextWindowTokens: plan.ContextWindowTokens(),
+		RequestPath: plan.RequestPath(), RequestContentType: plan.RequestContentType(), RequestBody: plan.RequestBody(), Stream: plan.Stream(), ContextWindowTokens: plan.ContextWindowTokens(),
+		BehaviorMatch:   resolvedAssemblyTextBehaviorMatch(plan.BehaviorMatchFacts()),
+		BehaviorAdapter: plan.BehaviorAdapterCapture(),
 	}}
+	assembly.AdmittedFeatures = localTextRequestFeatures(request)
+	assembly.AdmittedTextBehaviors, err = localTextRequestBehaviorKinds(request)
+	if err != nil {
+		return nil, err
+	}
 	assembly.ProcessIdentity.ProcessKey = plan.ProcessKey()
 	assembly.ProcessIdentity.ProcessArgs = plan.ProcessArgs()
 	return assembly, nil
+}
+
+func resolvedAssemblyTextBehaviorMatch(facts capabilitydriver.TextBehaviorAdapterMatchFacts) localResolvedAssemblyTextBehaviorMatch {
+	return localResolvedAssemblyTextBehaviorMatch{
+		RecipeID: strings.TrimSpace(facts.RecipeID), RecipeRevision: strings.TrimSpace(facts.RecipeRevision),
+		DriverDialect: strings.TrimSpace(facts.DriverDialect), ModelAssetID: strings.TrimSpace(facts.ModelAssetID),
+		VerifiedContentID: strings.TrimSpace(facts.VerifiedContentID), EntrySHA256: strings.TrimSpace(facts.EntrySHA256),
+		TemplateIdentity: strings.TrimSpace(facts.TemplateIdentity),
+	}
+}
+
+func localTextRequestBehaviorKinds(spec *runtimev1.TextGenerateScenarioSpec) ([]runtimev1.TextBehaviorKind, error) {
+	requested, err := requestedTextBehaviorsForSpec(spec)
+	if err != nil {
+		return nil, err
+	}
+	var result []runtimev1.TextBehaviorKind
+	if requested.toolUse {
+		result = append(result, runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_TOOL_USE)
+	}
+	if requested.reasoning {
+		result = append(result, runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_REASONING)
+	}
+	if requested.structured {
+		result = append(result, runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT)
+	}
+	return result, nil
 }
 
 func localResolvedAssemblyForEmbed(selected *localexecution.SelectedLocalExecution, request *runtimev1.TextEmbedScenarioSpec, plan *capabilitydriver.EmbedInvocationPlan) (*localResolvedAssembly, error) {
@@ -581,6 +650,7 @@ func localResolvedAssemblyForVoiceCreate(selected *localexecution.SelectedLocalE
 		speechPlan.AudioCppReferenceVoice = &localResolvedAssemblyAudioCppReferenceVoicePlan{Root: plan.AudioCppReferenceRoot(), ProviderVoiceRef: plan.AudioCppProviderVoiceRef()}
 	}
 	assembly.LoadPlan = localResolvedAssemblyLoadPlan{Kind: "speech", Speech: speechPlan}
+	assembly.AdmittedFeatures = localVoiceCreateRequestFeatures(request)
 	assembly.ProcessIdentity.DriverID = plan.DriverID()
 	assembly.ProcessIdentity.ModelAssetID = plan.ModelAssetID()
 	return assembly, nil
@@ -629,12 +699,17 @@ func localResolvedAssemblyForImage(selected *localexecution.SelectedLocalExecuti
 		imagePlan.Request.Kind = "text-to-image"
 	case capabilitydriver.StableDiffusionCPPInstructionEditRequestPlan:
 		imagePlan.Request.Kind = "instruction-edit"
+		assembly.AdmittedFeatures = append(assembly.AdmittedFeatures, "input.image")
 		source := typed.SourceImage()
 		imagePlan.Request.SourceIdentity = source.SourceIdentity
 		imagePlan.Request.SourceImage = source.ImageBytes
 	default:
 		return nil, fmt.Errorf("unsupported image ResolvedAssembly request plan %T", requestPlan)
 	}
+	if strings.TrimSpace(request.GetMask()) != "" {
+		assembly.AdmittedFeatures = append(assembly.AdmittedFeatures, "input.mask")
+	}
+	assembly.AdmittedFeatures = normalizeLocalFeatureSet(assembly.AdmittedFeatures)
 	assembly.LoadPlan = localResolvedAssemblyLoadPlan{Kind: "image", Image: imagePlan}
 	assembly.ProcessIdentity.ProcessKey = plan.ProcessKey()
 	return assembly, nil
@@ -661,6 +736,7 @@ func localResolvedAssemblyForVideo(selected *localexecution.SelectedLocalExecuti
 	}
 	if reference, present := plan.ReferenceImage(); present {
 		videoPlan.ReferenceImage = &reference
+		assembly.AdmittedFeatures = []string{"input.image"}
 	}
 	assembly.LoadPlan = localResolvedAssemblyLoadPlan{Kind: "video", Video: videoPlan}
 	assembly.ProcessIdentity.ProcessKey = plan.ProcessKey()
@@ -674,6 +750,7 @@ func resolvedAssemblyInvocationBindings(bindings []capabilitydriver.InvocationEx
 			RequirementID: strings.TrimSpace(binding.RequirementID), ModelAssetID: strings.TrimSpace(binding.ModelAssetID), AbsolutePath: strings.TrimSpace(binding.AbsolutePath),
 			BundleDir: strings.TrimSpace(binding.BundleDir), DeclaredFiles: append([]string(nil), binding.DeclaredFiles...),
 			VerifiedContentID: strings.TrimSpace(binding.VerifiedContentID), EntrySHA256: strings.TrimSpace(binding.EntrySHA256),
+			TemplateIdentity: strings.TrimSpace(binding.TemplateIdentity),
 		})
 	}
 	return result
@@ -704,9 +781,41 @@ func resolvedAssemblyExactBindings(assembly *localResolvedAssembly) []capability
 			DeclaredFiles:     append([]string(nil), axis.DeclaredFiles...),
 			VerifiedContentID: axis.VerifiedContentID,
 			EntrySHA256:       axis.EntrySHA256,
+			TemplateIdentity:  axis.TemplateIdentity,
 		})
 	}
 	return bindings
+}
+
+func invocationExactDependencySources(values []localexecution.ExactDependencySource) []capabilitydriver.InvocationExactDependencySource {
+	result := make([]capabilitydriver.InvocationExactDependencySource, 0, len(values))
+	for _, value := range values {
+		hashes := make(map[string]string, len(value.Hashes))
+		for key, hash := range value.Hashes {
+			hashes[key] = hash
+		}
+		result = append(result, capabilitydriver.InvocationExactDependencySource{
+			DependencyFamily: value.DependencyFamily, DependencyID: value.DependencyID, ConsumerScope: value.ConsumerScope,
+			SelectedSourceRecordID: value.SelectedSourceRecordID, CanonicalRoot: value.CanonicalRoot, Version: value.Version,
+			VerifiedArtifacts: append([]string(nil), value.VerifiedArtifacts...), Hashes: hashes,
+		})
+	}
+	return result
+}
+
+func resolvedAssemblyExactDependencySources(assembly *localResolvedAssembly) []capabilitydriver.InvocationExactDependencySource {
+	if assembly == nil {
+		return nil
+	}
+	values := make([]localexecution.ExactDependencySource, 0, len(assembly.DependencySources))
+	for _, source := range assembly.DependencySources {
+		values = append(values, localexecution.ExactDependencySource{
+			DependencyFamily: source.DependencyFamily, DependencyID: source.DependencyID, ConsumerScope: source.ConsumerScope,
+			SelectedSourceRecordID: source.SelectedSourceRecordID, CanonicalRoot: source.CanonicalRoot, Version: source.Version,
+			VerifiedArtifacts: append([]string(nil), source.VerifiedArtifacts...), Hashes: source.Hashes,
+		})
+	}
+	return invocationExactDependencySources(values)
 }
 
 // selectedLocalExecutionFromResolvedAssembly is a data-only projection used
@@ -726,8 +835,9 @@ func selectedLocalExecutionFromResolvedAssembly(assembly *localResolvedAssembly)
 			DriverID:         assembly.DriverIdentity.DriverID,
 			DriverDialect:    assembly.DriverIdentity.DriverDialect,
 		}).Proto(),
-		SupportedFeatures: append([]string(nil), assembly.SupportedFeatures...),
-		Configured:        true,
+		ImplementationSupportedFeatures: append([]string(nil), assembly.ImplementationSupportedFeatures...),
+		ConfiguredFeatures:              append([]string(nil), assembly.ConfiguredFeatures...),
+		Configured:                      true,
 	}
 	for _, axis := range assembly.ModelAxes {
 		selected.ExactBindings = append(selected.ExactBindings, localexecution.ExactBinding{
@@ -741,6 +851,7 @@ func selectedLocalExecutionFromResolvedAssembly(assembly *localResolvedAssembly)
 			DeclaredFiles:     append([]string(nil), axis.DeclaredFiles...),
 			VerifiedContentID: axis.VerifiedContentID,
 			EntrySHA256:       axis.EntrySHA256,
+			TemplateIdentity:  axis.TemplateIdentity,
 		})
 	}
 	for _, source := range assembly.DependencySources {
@@ -757,7 +868,7 @@ func validateRehydratedResolvedAssemblyPlan(captured, reprojected *localResolved
 	if captured == nil || reprojected == nil {
 		return fmt.Errorf("rehydrated local ResolvedAssembly is missing")
 	}
-	differing := make([]string, 0, 3)
+	differing := make([]string, 0, 4)
 	if !reflect.DeepEqual(captured.Request, reprojected.Request) {
 		differing = append(differing, "request")
 	}
@@ -766,6 +877,12 @@ func validateRehydratedResolvedAssemblyPlan(captured, reprojected *localResolved
 	}
 	if !reflect.DeepEqual(captured.ProcessIdentity, reprojected.ProcessIdentity) {
 		differing = append(differing, "process_identity")
+	}
+	if !reflect.DeepEqual(captured.AdmittedFeatures, reprojected.AdmittedFeatures) {
+		differing = append(differing, "admitted_features")
+	}
+	if !reflect.DeepEqual(captured.AdmittedTextBehaviors, reprojected.AdmittedTextBehaviors) {
+		differing = append(differing, "admitted_text_behaviors")
 	}
 	if len(differing) > 0 {
 		return fmt.Errorf("rehydrated local ResolvedAssembly differs from the captured contract: %s", strings.Join(differing, ","))
@@ -791,6 +908,16 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 	if strings.TrimSpace(assembly.DriverIdentity.ImplementationID) == "" || strings.TrimSpace(assembly.DriverIdentity.DriverID) == "" || strings.TrimSpace(assembly.DriverIdentity.DriverDialect) == "" {
 		return fmt.Errorf("local ResolvedAssembly Driver identity is incomplete")
 	}
+	if !localFeatureSetIsCanonical(assembly.ImplementationSupportedFeatures) ||
+		!localFeatureSetIsCanonical(assembly.ConfiguredFeatures) ||
+		!localFeatureSetIsCanonical(assembly.AdmittedFeatures) ||
+		!localFeatureSubset(assembly.ConfiguredFeatures, assembly.ImplementationSupportedFeatures) ||
+		!localFeatureSubset(assembly.AdmittedFeatures, assembly.ConfiguredFeatures) {
+		return fmt.Errorf("local ResolvedAssembly feature projections are invalid")
+	}
+	if !localTextBehaviorSetIsCanonical(assembly.AdmittedTextBehaviors) {
+		return fmt.Errorf("local ResolvedAssembly admitted text behaviors are invalid")
+	}
 	if len(assembly.ModelAxes) == 0 {
 		return fmt.Errorf("local ResolvedAssembly model axes are empty")
 	}
@@ -799,14 +926,61 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 		if strings.TrimSpace(axis.RequirementID) == "" || modelAssetID == "" || strings.TrimSpace(axis.AbsolutePath) == "" || strings.TrimSpace(axis.VerifiedContentID) == "" || strings.TrimSpace(axis.EntrySHA256) == "" {
 			return fmt.Errorf("local ResolvedAssembly model axis %d is incomplete", index)
 		}
+		if axis.Presence != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED &&
+			axis.Presence != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL {
+			return fmt.Errorf("local ResolvedAssembly model axis %d presence is invalid", index)
+		}
+		if axis.TemplateIdentity != "" && !canonicalResolvedAssemblySHA256Identity(axis.TemplateIdentity) {
+			return fmt.Errorf("local ResolvedAssembly model axis %d template identity is invalid", index)
+		}
 	}
 	if strings.TrimSpace(assembly.Request.Kind) == "" || !json.Valid(assembly.Request.Payload) {
 		return fmt.Errorf("local ResolvedAssembly request is invalid")
 	}
+	if assembly.LoadPlan.Kind != "text" && len(assembly.AdmittedTextBehaviors) != 0 {
+		return fmt.Errorf("non-text ResolvedAssembly carries admitted text behaviors")
+	}
 	switch assembly.LoadPlan.Kind {
 	case "text":
-		if assembly.LoadPlan.Text == nil || strings.TrimSpace(assembly.LoadPlan.Text.ProcessKey) == "" {
+		if assembly.LoadPlan.Text == nil || strings.TrimSpace(assembly.LoadPlan.Text.ProcessKey) == "" ||
+			strings.TrimSpace(assembly.LoadPlan.Text.RequestContentType) == "" {
 			return fmt.Errorf("local ResolvedAssembly text load plan is incomplete")
+		}
+		var main *localResolvedAssemblyModelAxis
+		for index := range assembly.ModelAxes {
+			axis := &assembly.ModelAxes[index]
+			if axis.RequirementID == capabilitydriver.MainGGUFRequirementID {
+				if main != nil {
+					return fmt.Errorf("local ResolvedAssembly text behavior match has ambiguous main GGUF axes")
+				}
+				main = axis
+			} else if axis.TemplateIdentity != "" {
+				return fmt.Errorf("local ResolvedAssembly text template identity is attached to a non-main axis")
+			}
+		}
+		if main == nil {
+			return fmt.Errorf("local ResolvedAssembly text behavior match has no main GGUF axis")
+		}
+		expectedMatch := localResolvedAssemblyTextBehaviorMatch{
+			RecipeID: assembly.RecipeID, RecipeRevision: assembly.RecipeRevision, DriverDialect: assembly.DriverIdentity.DriverDialect,
+			ModelAssetID: main.ModelAssetID, VerifiedContentID: main.VerifiedContentID, EntrySHA256: main.EntrySHA256,
+			TemplateIdentity: main.TemplateIdentity,
+		}
+		if !reflect.DeepEqual(assembly.LoadPlan.Text.BehaviorMatch, expectedMatch) {
+			return fmt.Errorf("local ResolvedAssembly text behavior match differs from the exact model axis")
+		}
+		if adapter := assembly.LoadPlan.Text.BehaviorAdapter; adapter != nil {
+			if err := adapter.Validate(); err != nil {
+				return fmt.Errorf("local ResolvedAssembly text behavior adapter is invalid: %w", err)
+			}
+			if adapter.RequiredTemplateIdentity != "" && adapter.RequiredTemplateIdentity != expectedMatch.TemplateIdentity {
+				return fmt.Errorf("local ResolvedAssembly text behavior adapter template differs from the exact model axis")
+			}
+			if len(assembly.AdmittedTextBehaviors) == 0 {
+				return fmt.Errorf("local ResolvedAssembly text behavior adapter has no admitted behavior")
+			}
+		} else if len(assembly.AdmittedTextBehaviors) != 0 {
+			return fmt.Errorf("local ResolvedAssembly admitted text behavior has no adapter")
 		}
 	case "embed":
 		if assembly.LoadPlan.Embed == nil || strings.TrimSpace(assembly.LoadPlan.Embed.ProcessKey) == "" || assembly.LoadPlan.Embed.ExpectedCount <= 0 {
@@ -861,6 +1035,97 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 		return fmt.Errorf("local ResolvedAssembly load plan kind %q is unsupported", assembly.LoadPlan.Kind)
 	}
 	return nil
+}
+
+func canonicalResolvedAssemblySHA256Identity(value string) bool {
+	if !strings.HasPrefix(value, "sha256:") || value != strings.ToLower(value) || len(value) != len("sha256:")+64 {
+		return false
+	}
+	_, err := hex.DecodeString(strings.TrimPrefix(value, "sha256:"))
+	return err == nil
+}
+
+func normalizeLocalFeatureSet(values []string) []string {
+	set := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		if value = strings.TrimSpace(value); value != "" {
+			set[value] = struct{}{}
+		}
+	}
+	if len(set) == 0 {
+		return nil
+	}
+	result := make([]string, 0, len(set))
+	for value := range set {
+		result = append(result, value)
+	}
+	sort.Strings(result)
+	return result
+}
+
+func localFeatureSetIsCanonical(values []string) bool {
+	for index, value := range values {
+		if strings.TrimSpace(value) == "" || strings.TrimSpace(value) != value || (index > 0 && values[index-1] >= value) {
+			return false
+		}
+	}
+	return true
+}
+
+func localTextBehaviorSetIsCanonical(values []runtimev1.TextBehaviorKind) bool {
+	for index, value := range values {
+		if value != runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_TOOL_USE &&
+			value != runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_REASONING &&
+			value != runtimev1.TextBehaviorKind_TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT {
+			return false
+		}
+		if index > 0 && values[index-1] >= value {
+			return false
+		}
+	}
+	return true
+}
+
+func localFeatureSubset(values, available []string) bool {
+	set := make(map[string]struct{}, len(available))
+	for _, value := range available {
+		set[value] = struct{}{}
+	}
+	for _, value := range values {
+		if _, ok := set[value]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func localRequirementPresenceByID(requirements []*runtimev1.LocalCapabilityRequirement) map[string]runtimev1.LocalCapabilityRequirementPresence {
+	result := make(map[string]runtimev1.LocalCapabilityRequirementPresence, len(requirements))
+	for _, requirement := range requirements {
+		if requirement == nil {
+			continue
+		}
+		presence := requirement.GetPresence()
+		if presence == runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_UNSPECIFIED {
+			presence = runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED
+		}
+		result[strings.TrimSpace(requirement.GetRequirementId())] = presence
+	}
+	return result
+}
+
+func localVoiceCreateRequestFeatures(request *runtimev1.VoiceCreateScenarioSpec) []string {
+	if request == nil {
+		return nil
+	}
+	switch request.GetSource().(type) {
+	case *runtimev1.VoiceCreateScenarioSpec_ReferenceAudio:
+		return []string{aicapabilities.FeatureInputAudio}
+	case *runtimev1.VoiceCreateScenarioSpec_TextDescription:
+		return []string{aicapabilities.FeatureInputText}
+	default:
+		return nil
+	}
 }
 
 func cloneLocalResolvedAssembly(input *localResolvedAssembly) (*localResolvedAssembly, error) {

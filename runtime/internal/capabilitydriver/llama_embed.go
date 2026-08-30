@@ -22,6 +22,13 @@ const llamaEmbedModelAlias = "nimi-selected-local-embedding"
 // process, endpoint, or fallback authority with the llama ExecutionHost.
 type LlamaEmbedDriver struct{}
 
+func (LlamaEmbedDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
+	if strings.TrimSpace(recipeID) != LlamaEmbedGGUFRecipeID {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
 func (LlamaEmbedDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string {
 	return nil
 }
@@ -178,13 +185,20 @@ func (driver LlamaEmbedDriver) PlanEmbedInvocation(input EmbedInvocationInput) (
 		_, _ = hash.Write([]byte(value))
 		_, _ = hash.Write([]byte{0})
 	}
+	for _, source := range input.ExactDependencySources {
+		for _, value := range invocationExactDependencySourceIdentity(source) {
+			_, _ = hash.Write([]byte(value))
+			_, _ = hash.Write([]byte{0})
+		}
+	}
 	return &EmbedInvocationPlan{
-		processKey:    hex.EncodeToString(hash.Sum(nil)),
-		processArgs:   processArgs,
-		modelFiles:    cloneInvocationExactBindings([]InvocationExactBinding{binding}),
-		requestPath:   "/v1/embeddings",
-		requestBody:   requestBody,
-		expectedCount: inputCount,
+		processKey:        hex.EncodeToString(hash.Sum(nil)),
+		processArgs:       processArgs,
+		modelFiles:        cloneInvocationExactBindings([]InvocationExactBinding{binding}),
+		dependencySources: cloneInvocationExactDependencySources(input.ExactDependencySources),
+		requestPath:       "/v1/embeddings",
+		requestBody:       requestBody,
+		expectedCount:     inputCount,
 	}, nil
 }
 

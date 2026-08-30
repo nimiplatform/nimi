@@ -47,6 +47,7 @@ export interface NimiProductControlRecord {
   readonly dataRoot?: {
     readonly path: string;
     readonly status: NimiProductDataRootStatus;
+    readonly rootActivationId: string | null;
     readonly selectedAt: string;
     readonly verifiedAt: string;
     readonly selectedAtUnixMs: number;
@@ -72,12 +73,19 @@ export interface NimiProductControlRecordProjection {
   readonly record: NimiProductControlRecord | null;
   readonly error: string | null;
   readonly configMutation?: NimiProductControlConfigMutation | null;
+  readonly activation?: NimiProductControlActivation | null;
+}
+
+export interface NimiProductControlActivation {
+  readonly activated: boolean;
+  readonly reasonCode: 'DATA_ROOT_REPLACED' | 'DATA_ROOT_UNCHANGED' | 'DATA_ROOT_OVERLAPS_CURRENT';
+  readonly actionHint: 'restart_runtime_and_check_sync' | 'run_check_sync' | 'choose_path_disjoint_root';
 }
 
 export interface NimiProductControlConfigMutation {
-  readonly disposition: 'applied' | 'restart_required';
-  readonly reasonCode: typeof ReasonCode.CONFIG_APPLIED | typeof ReasonCode.CONFIG_RESTART_REQUIRED;
-  readonly actionHint: 'continue_product_setup' | 'request_typed_runtime_restart';
+  readonly disposition: 'applied' | 'restart_required' | 'repair_required';
+  readonly reasonCode: typeof ReasonCode.CONFIG_APPLIED | typeof ReasonCode.CONFIG_RESTART_REQUIRED | 'CONFIG_WRITE_FAILED';
+  readonly actionHint: 'continue_product_setup' | 'request_typed_runtime_restart' | 'repair_runtime_config';
 }
 
 export interface NimiProductControlSelectedDataRootProjection {

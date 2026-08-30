@@ -256,7 +256,21 @@ func TestLoadRejectsAmbientLlamaEndpoint(t *testing.T) {
 	}
 }
 
-func TestLoadDisablesExplicitLlamaEnableOnUnsupportedPlatform(t *testing.T) {
+func TestLoadRejectsAmbientMediaAndSpeechEndpoints(t *testing.T) {
+	for _, key := range []string{"NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", "NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL"} {
+		t.Run(key, func(t *testing.T) {
+			clearRuntimeConfigEnv(t)
+			t.Setenv("NIMI_RUNTIME_CONFIG_PATH", filepath.Join(t.TempDir(), "missing-config.json"))
+			t.Setenv(key, "http://127.0.0.1:9999/v1")
+			_, err := Load()
+			if err == nil || !strings.Contains(err.Error(), key) {
+				t.Fatalf("Load error = %v, want retired ambient endpoint rejection", err)
+			}
+		})
+	}
+}
+
+func TestLoadRejectsExplicitLlamaEnableOnUnsupportedPlatform(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
@@ -274,16 +288,13 @@ func TestLoadDisablesExplicitLlamaEnableOnUnsupportedPlatform(t *testing.T) {
 	clearRuntimeConfigEnv(t)
 	setLlamaSupervisedPlatformForTest(t, false, "windows/amd64")
 
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load returned error: %v", err)
-	}
-	if cfg.EngineLlamaEnabled {
-		t.Fatalf("explicit supervised llama should be disabled on unsupported platforms")
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "supervised llama is unsupported") {
+		t.Fatalf("Load error = %v, want exact supervised llama unsupported failure", err)
 	}
 }
 
-func TestLoadDisablesExplicitMediaEnableOnUnsupportedPlatform(t *testing.T) {
+func TestLoadRejectsExplicitMediaEnableOnUnsupportedPlatform(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "runtime-config.json")
 	configBody := `{
   "schemaVersion": 1,
@@ -302,12 +313,9 @@ func TestLoadDisablesExplicitMediaEnableOnUnsupportedPlatform(t *testing.T) {
 	setMediaSupervisedPlatformForTest(t, false)
 	setLlamaSupervisedPlatformForTest(t, false, "unsupported")
 
-	cfg, err := Load()
-	if err != nil {
-		t.Fatalf("Load returned error: %v", err)
-	}
-	if cfg.EngineMediaEnabled {
-		t.Fatalf("explicit supervised media should be disabled when neither media nor llama supervised platforms are supported")
+	_, err := Load()
+	if err == nil || !strings.Contains(err.Error(), "supervised media is unsupported") {
+		t.Fatalf("Load error = %v, want exact supervised media unsupported failure", err)
 	}
 }
 

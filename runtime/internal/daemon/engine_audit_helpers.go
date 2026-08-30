@@ -13,17 +13,6 @@ import (
 
 const localImageEngineAuditKey = "local-image"
 
-func engineEnvKey(engineName string) (engine.EngineKind, string, bool) {
-	switch strings.TrimSpace(strings.ToLower(engineName)) {
-	case string(engine.EngineMedia):
-		return engine.EngineMedia, "NIMI_RUNTIME_LOCAL_MEDIA_BASE_URL", true
-	case string(engine.EngineSpeech):
-		return engine.EngineSpeech, "NIMI_RUNTIME_LOCAL_SPEECH_BASE_URL", true
-	default:
-		return "", "", false
-	}
-}
-
 func engineAuditTargetName(kind engine.EngineKind) (string, bool) {
 	switch kind {
 	case engineManagedImageBackend:

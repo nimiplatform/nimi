@@ -193,6 +193,8 @@
     "unknownDownloadSize": "大小未知",
     "incompatibleSummary": "这个模型不能用于此配置。请选择其他模型，或查看技术详情。",
     "incompatibleOption": "不可用于此配置",
+    "implementationSupportedFeatures": "实现支持的特性",
+    "configuredFeatures": "当前已配置的特性",
     "recipeCustody": "模板托管",
     "recipeCustodyEmpty": "空集",
     "executionSupply": "执行供给：Runtime Driver bundle 与受管环境依赖。",
@@ -203,6 +205,20 @@
       "configured": "可使用",
       "unresolved": "需要选择模型",
       "blocked": "需要处理"
+    },
+    "textBehaviors": {
+      "title": "文本行为",
+      "kind": {
+        "tool-use": "工具使用",
+        "reasoning": "推理",
+        "structured-output": "结构化输出"
+      },
+      "state": {
+        "implementation-supported": "实现支持",
+        "configured": "已配置",
+        "unavailable": "不可用"
+      },
+      "typedReasons": "Runtime 原因"
     },
     "capability": {
       "textGenerate": "文本生成",
@@ -232,6 +248,7 @@
     "runtimeTechnicalStatusDescription": "供支持与开发使用的守护进程、bridge、资源和配置诊断。",
     "localCapabilityLabel": "本地执行",
     "localCapabilityTEXT": "文本",
+    "localCapabilityEMBED": "向量嵌入",
     "localCapabilityIMAGE": "图像",
     "localCapabilityVIDEO": "视频生成",
     "localCapabilityTTS": "语音合成",

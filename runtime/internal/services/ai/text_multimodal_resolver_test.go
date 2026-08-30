@@ -273,7 +273,7 @@ func TestResolveTextGenerateArtifactPartClassifiesMedia(t *testing.T) {
 	}
 }
 
-func TestResolveTextGenerateArtifactPartInlinesImageForRemoteRoute(t *testing.T) {
+func TestResolveTextGenerateArtifactPartInlinesImageForEngineTransport(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := newTestService(logger)
 	head := &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"}
@@ -291,26 +291,28 @@ func TestResolveTextGenerateArtifactPartInlinesImageForRemoteRoute(t *testing.T)
 		UpdatedAt: timestamppb.Now(),
 	}, func() {})
 
-	part, cleanup, err := svc.resolveTextGenerateArtifactPart(
-		context.Background(),
-		head,
-		false,
-		&runtimev1.ChatContentArtifactRef{ArtifactId: "image-bytes"},
-	)
-	if err != nil {
-		t.Fatalf("resolveTextGenerateArtifactPart(remote image) error = %v", err)
-	}
-	if cleanup == nil {
-		t.Fatal("expected cleanup for temp artifact backing file")
-	}
-	defer cleanup()
-	if part.GetType() != runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL {
-		t.Fatalf("resolved part type = %v", part.GetType())
-	}
-	got := strings.TrimSpace(part.GetImageUrl().GetUrl())
-	wantPrefix := "data:image/png;base64," + base64.StdEncoding.EncodeToString([]byte("png-bytes"))
-	if got != wantPrefix {
-		t.Fatalf("resolved image url = %q, want %q", got, wantPrefix)
+	for _, localText := range []bool{false, true} {
+		part, cleanup, err := svc.resolveTextGenerateArtifactPart(
+			context.Background(),
+			head,
+			localText,
+			&runtimev1.ChatContentArtifactRef{ArtifactId: "image-bytes"},
+		)
+		if err != nil {
+			t.Fatalf("resolveTextGenerateArtifactPart(local=%v) error = %v", localText, err)
+		}
+		if cleanup == nil {
+			t.Fatal("expected cleanup for temp artifact backing file")
+		}
+		if part.GetType() != runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL {
+			t.Fatalf("resolved part type = %v", part.GetType())
+		}
+		got := strings.TrimSpace(part.GetImageUrl().GetUrl())
+		wantPrefix := "data:image/png;base64," + base64.StdEncoding.EncodeToString([]byte("png-bytes"))
+		if got != wantPrefix {
+			t.Fatalf("resolved image url = %q, want %q", got, wantPrefix)
+		}
+		cleanup()
 	}
 }
 

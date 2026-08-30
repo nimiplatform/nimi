@@ -33,6 +33,7 @@ type cloudTextEffectiveInputs struct {
 	request          *runtimev1.TextGenerateScenarioSpec
 	mapped           *capabilitydriver.CloudTextMappedRequest
 	driver           capabilitydriver.CloudTextDriver
+	behaviorAdapter  *resolvedTextBehaviorAdapter
 	traceID          string
 	appID            string
 	accountID        string
@@ -142,6 +143,17 @@ func (s *Service) captureCloudTextEffectiveInputs(
 	if err := s.validateTextGenerateInputParts(ctx, target.ProviderModelID(), safeRemoteTarget, selectedProvider, resolved.spec.GetInput()); err != nil {
 		return fail(err)
 	}
+	behaviorAdapter, err := resolveTextBehaviorAdapter(
+		s.textBehaviorAdapters,
+		intent.CloudImplementation,
+		target.Provider(),
+		target.ProviderModelID(),
+		mode,
+		resolved.spec,
+	)
+	if err != nil {
+		return fail(err)
+	}
 	mapped, err := driver.MapRequest(target, resolved.spec, intent.Defaults, stream)
 	if err != nil {
 		return fail(cloudTextDriverError(err))
@@ -151,19 +163,20 @@ func (s *Service) captureCloudTextEffectiveInputs(
 	defaults, _ := proto.Clone(intent.Defaults).(*structpb.Struct)
 	effectiveRequest := mapped.Spec()
 	effective := &cloudTextEffectiveInputs{
-		implementation: implementation,
-		rawTarget:      rawTarget,
-		target:         target,
-		catalogTarget:  safeRemoteTarget,
-		connector:      connectorRecord,
-		defaults:       defaults,
-		request:        effectiveRequest,
-		mapped:         mapped,
-		driver:         driver,
-		traceID:        ulid.Make().String(),
-		appID:          strings.TrimSpace(head.GetAppId()),
-		accountID:      accountID,
-		cleanup:        resolved.release,
+		implementation:  implementation,
+		rawTarget:       rawTarget,
+		target:          target,
+		catalogTarget:   safeRemoteTarget,
+		connector:       connectorRecord,
+		defaults:        defaults,
+		request:         effectiveRequest,
+		mapped:          mapped,
+		driver:          driver,
+		behaviorAdapter: behaviorAdapter,
+		traceID:         ulid.Make().String(),
+		appID:           strings.TrimSpace(head.GetAppId()),
+		accountID:       accountID,
+		cleanup:         resolved.release,
 	}
 	effective.resolvedAssembly, err = newCloudResolvedAssembly(
 		cloudResolvedRequestText, capabilitydriver.LlamaCapabilityContract, implementation, rawTarget,
@@ -172,6 +185,10 @@ func (s *Service) captureCloudTextEffectiveInputs(
 	)
 	if err != nil {
 		return fail(grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "Cloud ResolvedAssembly capture failed"}))
+	}
+	effective.resolvedAssembly.TextBehaviorAdapter = behaviorAdapter.capture()
+	if err := validateCloudResolvedAssemblyDraft(effective.resolvedAssembly); err != nil {
+		return fail(grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{Message: "Cloud text behavior adapter capture failed"}))
 	}
 	if err := s.auditCloudTextCapture(effective, stream); err != nil {
 		return fail(err)
@@ -206,6 +223,23 @@ func (s *Service) cloudTextEffectiveInputsFromResolvedAssembly(assembly *cloudRe
 	if err != nil {
 		return nil, cloudTextDriverError(err)
 	}
+	if err := validateReasoningConfig(request); err != nil {
+		return nil, err
+	}
+	behaviorAdapter, err := resolveTextBehaviorAdapter(
+		s.textBehaviorAdapters,
+		implementation,
+		target.Provider(),
+		target.ProviderModelID(),
+		assembly.ExecutionMode,
+		request,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !matchingTextBehaviorAdapterCapture(behaviorAdapter, assembly.TextBehaviorAdapter) {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
 	mapped, err := driver.MapRequest(target, request, defaults, assembly.ExecutionMode == runtimev1.ExecutionMode_EXECUTION_MODE_STREAM)
 	if err != nil {
 		return nil, cloudTextDriverError(err)
@@ -218,7 +252,7 @@ func (s *Service) cloudTextEffectiveInputsFromResolvedAssembly(assembly *cloudRe
 	return &cloudTextEffectiveInputs{
 		implementation: implementation, rawTarget: rawTarget, target: target,
 		catalogTarget: &nimillm.RemoteTarget{ProviderType: target.Provider(), ProviderModelID: target.ProviderModelID(), RemoteModelCatalogID: target.RemoteModelCatalogID(), ConnectorID: connectorRecord.ConnectorID},
-		connector:     connectorRecord, defaults: defaults, request: mapped.Spec(), mapped: mapped, driver: driver,
+		connector:     connectorRecord, defaults: defaults, request: mapped.Spec(), mapped: mapped, driver: driver, behaviorAdapter: behaviorAdapter,
 		traceID: assembly.TraceID, appID: assembly.AppID, accountID: assembly.AccountID, resolvedAssembly: clonedAssembly,
 	}, nil
 }
@@ -252,6 +286,7 @@ func (s *Service) executeCapturedCloudText(ctx context.Context, effective *cloud
 	if s == nil || effective == nil || effective.driver == nil || s.remoteTextHost == nil {
 		return capabilitydriver.CloudTextResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
+	ctx = nimillm.WithTextBehaviorAdmission(ctx, effective.behaviorAdapter.nimillmAdmission())
 	transportResponse, err := s.remoteTextHost.ExecuteText(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
 	if err != nil {
 		return capabilitydriver.CloudTextResult{}, effective.driver.NormalizeReason(err)
@@ -267,6 +302,7 @@ func (s *Service) streamCapturedCloudText(ctx context.Context, effective *cloudT
 	if s == nil || effective == nil || effective.driver == nil || s.remoteTextHost == nil || onDelta == nil {
 		return capabilitydriver.CloudTextResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
+	ctx = nimillm.WithTextBehaviorAdmission(ctx, effective.behaviorAdapter.nimillmAdmission())
 	transportResponse, err := s.remoteTextHost.StreamText(ctx, effective.connector, effective.target, effective.mapped, func(raw string) error {
 		delta, normalizeErr := effective.driver.NormalizeStreamDelta(raw)
 		if normalizeErr != nil {

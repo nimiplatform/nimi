@@ -95,3 +95,34 @@ func effectiveAssetKind(kind runtimev1.LocalAssetKind, capabilities []string) ru
 	}
 	return inferAssetKindFromCapabilities(capabilities)
 }
+
+func catalogModelTypeForAssetKind(kind runtimev1.LocalAssetKind) string {
+	switch kind {
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT:
+		return "chat"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING:
+		return "embedding"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE:
+		return "image"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO:
+		return "video"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS:
+		return "tts"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT:
+		return "stt"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_MUSIC:
+		return "music"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VAE:
+		return "vae"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CLIP:
+		return "clip"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_LORA:
+		return "lora"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CONTROLNET:
+		return "controlnet"
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_AUXILIARY:
+		return "auxiliary"
+	default:
+		return ""
+	}
+}

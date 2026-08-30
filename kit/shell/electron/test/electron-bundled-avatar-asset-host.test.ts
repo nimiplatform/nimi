@@ -166,6 +166,10 @@ describe('bundled Avatar Runtime asset materialization', () => {
       expect(await readdir(assetRoot)).toEqual([FILE_NAME]);
       expect(Buffer.from(await readFile(manifest.vrm_file_path!))).toEqual(Buffer.from(content));
       expect(await protocolHost.hasReadableFile(manifest.vrm_file_path!)).toBe(true);
+      await protocolHost.quiesceDataRootReadableGrants();
+      expect(await protocolHost.hasReadableFile(manifest.vrm_file_path!)).toBe(false);
+      protocolHost.resumeDataRootReadableGrants();
+      expect(await protocolHost.hasReadableFile(manifest.vrm_file_path!)).toBe(true);
 
       await host.close();
     });
@@ -517,6 +521,26 @@ describe('bundled Avatar Runtime asset materialization', () => {
       });
       expect(manifest.vrm_file_path).toBe(path.join(assetRoot, FILE_NAME));
       await expect(host.close()).resolves.toBeUndefined();
+    });
+  });
+
+  it('detaches a replacement root without cleaning former-root temporary bytes', async () => {
+    await withTempDir('bundled-avatar-runtime-detach', async (root) => {
+      const localAssetRoots: string[] = [];
+      const host = createNimiElectronBundledAvatarAssetHost({
+        resolveAppPrivateDataRoot: async () => path.join(root, 'avatar-private'),
+        resolveRuntimeAsset: async () => runtimeAsset(minimalVrmGlb()),
+        localAssetProtocolHost: createElectronShellFileProtocolHost({ protocol: new FakeElectronProtocol() }),
+        localAssetRoots,
+      });
+      await host.resolveBoundPresentation(avatarReference(), AGENT_HANDLE);
+      const assetRoot = localAssetRoots[0]!;
+      await host.detachDataRoot();
+      expect(localAssetRoots).toEqual([]);
+      expect(await lstat(assetRoot)).toMatchObject({});
+      await expect(host.resolveBoundPresentation(avatarReference(), AGENT_HANDLE)).rejects.toMatchObject({
+        reasonCode: 'electron-agent-center-resource-not-found',
+      });
     });
   });
 });

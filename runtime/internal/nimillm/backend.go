@@ -54,18 +54,66 @@ type openAIMessage struct {
 	ToolCallID string           `json:"tool_call_id,omitempty"`
 }
 
-func buildOpenAIMessages(systemPrompt string, input []*runtimev1.ChatMessage) []openAIMessage {
+type canonicalTextTurn struct {
+	hasItems    bool
+	text        string
+	toolCalls   []*runtimev1.ToolCall
+	toolResults []*runtimev1.ToolResult
+}
+
+func buildOpenAIMessages(systemPrompt string, input []*runtimev1.ChatMessage) ([]openAIMessage, error) {
 	messages := make([]openAIMessage, 0, len(input)+1)
 	if prompt := strings.TrimSpace(systemPrompt); prompt != "" {
 		messages = append(messages, openAIMessage{Role: "system", Content: prompt})
 	}
 	for _, item := range input {
+		if item == nil {
+			continue
+		}
+		turn, err := canonicalTextTurnFromMessage(item)
+		if err != nil {
+			return nil, err
+		}
+		if turn.hasItems {
+			role := strings.TrimSpace(item.GetRole())
+			switch role {
+			case "assistant":
+				toolCalls, err := buildOpenAIToolCalls(turn.toolCalls)
+				if err != nil {
+					return nil, err
+				}
+				if turn.text == "" && len(toolCalls) == 0 {
+					return nil, invalidCanonicalToolTurn("assistant turn contains no text or tool call")
+				}
+				messages = append(messages, openAIMessage{
+					Role:      role,
+					Content:   turn.text,
+					Name:      strings.TrimSpace(item.GetName()),
+					ToolCalls: toolCalls,
+				})
+			case "tool":
+				if len(turn.toolResults) == 0 || turn.text != "" || len(turn.toolCalls) != 0 {
+					return nil, invalidCanonicalToolTurn("tool turn must contain only tool results")
+				}
+				for _, result := range turn.toolResults {
+					content, err := marshalToolResultContent(result)
+					if err != nil {
+						return nil, err
+					}
+					messages = append(messages, openAIMessage{
+						Role:       role,
+						Content:    content,
+						Name:       strings.TrimSpace(result.GetToolName()),
+						ToolCallID: strings.TrimSpace(result.GetToolCallId()),
+					})
+				}
+			default:
+				return nil, invalidCanonicalToolTurn("ordered turn items require assistant or tool role")
+			}
+			continue
+		}
 		content := strings.TrimSpace(item.GetContent())
-		toolCalls := buildOpenAIToolCalls(item.GetToolCalls())
-		toolCallID := strings.TrimSpace(item.GetToolCallId())
-		// Keep assistant tool-call turns and tool results even when their text
-		// content is empty so multi-step tool loops round-trip correctly.
-		if content == "" && len(toolCalls) == 0 && toolCallID == "" {
+		if content == "" {
 			continue
 		}
 		role := strings.TrimSpace(item.GetRole())
@@ -73,28 +121,33 @@ func buildOpenAIMessages(systemPrompt string, input []*runtimev1.ChatMessage) []
 			role = "user"
 		}
 		messages = append(messages, openAIMessage{
-			Role:       role,
-			Content:    content,
-			Name:       strings.TrimSpace(item.GetName()),
-			ToolCalls:  toolCalls,
-			ToolCallID: toolCallID,
+			Role:    role,
+			Content: content,
+			Name:    strings.TrimSpace(item.GetName()),
 		})
 	}
-	return messages
+	return messages, nil
 }
 
-func buildOpenAIToolCalls(toolCalls []*runtimev1.ToolCall) []openAIToolCall {
+func buildOpenAIToolCalls(toolCalls []*runtimev1.ToolCall) ([]openAIToolCall, error) {
 	if len(toolCalls) == 0 {
-		return nil
+		return nil, nil
 	}
 	out := make([]openAIToolCall, 0, len(toolCalls))
 	for _, toolCall := range toolCalls {
-		if toolCall == nil || strings.TrimSpace(toolCall.GetName()) == "" {
-			continue
+		if toolCall == nil || strings.TrimSpace(toolCall.GetId()) == "" || strings.TrimSpace(toolCall.GetName()) == "" {
+			return nil, invalidCanonicalToolTurn("tool call id and name are required")
+		}
+		if toolCall.GetDynamic() || toolCall.GetProviderMetadata() != nil {
+			return nil, unsupportedCanonicalToolTurn("dynamic or provider-metadata tool calls are unsupported")
 		}
 		arguments := strings.TrimSpace(toolCall.GetArgumentsJson())
 		if arguments == "" {
 			arguments = "{}"
+		}
+		var argumentsObject map[string]any
+		if err := json.Unmarshal([]byte(arguments), &argumentsObject); err != nil || argumentsObject == nil {
+			return nil, invalidCanonicalToolTurn("tool call arguments_json must be one JSON object")
 		}
 		out = append(out, openAIToolCall{
 			ID:       toolCall.GetId(),
@@ -102,10 +155,85 @@ func buildOpenAIToolCalls(toolCalls []*runtimev1.ToolCall) []openAIToolCall {
 			Function: openAIToolCallFunction{Name: toolCall.GetName(), Arguments: arguments},
 		})
 	}
-	if len(out) == 0 {
-		return nil
+	return out, nil
+}
+
+func canonicalTextTurnFromMessage(message *runtimev1.ChatMessage) (canonicalTextTurn, error) {
+	if message == nil || len(message.GetTurnItems()) == 0 {
+		return canonicalTextTurn{}, nil
 	}
-	return out
+	if strings.TrimSpace(message.GetContent()) != "" || len(message.GetParts()) != 0 {
+		return canonicalTextTurn{}, invalidCanonicalToolTurn("ordered turn items conflict with content or parts")
+	}
+	turn := canonicalTextTurn{hasItems: true}
+	var textBuilder strings.Builder
+	for _, item := range message.GetTurnItems() {
+		if item == nil {
+			return canonicalTextTurn{}, invalidCanonicalToolTurn("ordered turn item is missing")
+		}
+		if output := item.GetOutput(); output != nil {
+			switch value := output.GetItem().(type) {
+			case *runtimev1.TextOutputItem_Text:
+				if value.Text != nil {
+					textBuilder.WriteString(value.Text.GetText())
+				}
+			case *runtimev1.TextOutputItem_ToolCall:
+				if value.ToolCall == nil {
+					return canonicalTextTurn{}, invalidCanonicalToolTurn("tool call output item is missing")
+				}
+				turn.toolCalls = append(turn.toolCalls, value.ToolCall)
+			case *runtimev1.TextOutputItem_ReasoningSummary,
+				*runtimev1.TextOutputItem_ReasoningContinuity:
+				return canonicalTextTurn{}, unsupportedCanonicalToolTurn("reasoning round-trip requires an admitted behavior adapter")
+			default:
+				return canonicalTextTurn{}, invalidCanonicalToolTurn("output item kind is unspecified")
+			}
+			continue
+		}
+		if result := item.GetToolResult(); result != nil {
+			turn.toolResults = append(turn.toolResults, result)
+			continue
+		}
+		return canonicalTextTurn{}, invalidCanonicalToolTurn("turn item kind is unspecified")
+	}
+	turn.text = strings.TrimSpace(textBuilder.String())
+	return turn, nil
+}
+
+func marshalToolResultContent(result *runtimev1.ToolResult) (string, error) {
+	if result == nil || strings.TrimSpace(result.GetToolCallId()) == "" || strings.TrimSpace(result.GetToolName()) == "" {
+		return "", invalidCanonicalToolTurn("tool result call id and name are required")
+	}
+	if result.GetPreliminary() || result.GetDynamic() || result.GetProviderMetadata() != nil {
+		return "", unsupportedCanonicalToolTurn("preliminary, dynamic, or provider-metadata tool results are unsupported")
+	}
+	value := any(nil)
+	if result.GetResult() != nil {
+		value = result.GetResult().AsInterface()
+	}
+	payload, err := json.Marshal(value)
+	if err != nil {
+		return "", invalidCanonicalToolTurn("tool result is not JSON serializable")
+	}
+	return string(payload), nil
+}
+
+func invalidCanonicalToolTurn(message string) error {
+	return grpcerr.WrapWithReasonCode(
+		codes.InvalidArgument,
+		runtimev1.ReasonCode_AI_TOOL_CALL_INVALID,
+		errors.New(message),
+		grpcerr.ReasonOptions{Message: message},
+	)
+}
+
+func unsupportedCanonicalToolTurn(message string) error {
+	return grpcerr.WrapWithReasonCode(
+		codes.InvalidArgument,
+		runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED,
+		errors.New(message),
+		grpcerr.ReasonOptions{Message: message},
+	)
 }
 
 // NewBackend creates a new OpenAI-compatible backend.
@@ -342,23 +470,20 @@ func (b *Backend) applyAuthenticationHeaders(request *http.Request) {
 // advanced-sampling parameters and parses returned tool calls. The Anthropic and
 // Codex paths fail closed on tools / structured output until they are wired.
 func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32, params textGenParams) (string, []*runtimev1.ToolCall, *runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	if params.includeRawChunks {
-		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, providerRawChunksUnsupportedError()
-	}
-	if params.hasProviderTools() {
-		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, providerToolUnsupportedError()
+	if err := unsupportedTextBehaviorSurface(ctx, b, modelID, params, input, false); err != nil {
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 	if b.supportsAnthropicMessages() {
 		// Anthropic Messages has no native JSON response_format; structured output
 		// stays fail-closed while tools execute through tool_use blocks.
 		if params.wantsStructuredOutput() {
-			return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, providerToolUnsupportedError()
+			return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, textBehaviorUnsupportedError()
 		}
 		return b.generateTextAnthropicMessages(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params)
 	}
 	if b.supportsCodexResponses() {
-		if err := unsupportedToolSurface(params); err != nil {
-			return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+		if params.requestsToolUse() || params.wantsStructuredOutput() {
+			return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, textBehaviorUnsupportedError()
 		}
 		text, usage, finish, err := b.generateTextCodexResponses(ctx, modelID, input, systemPrompt, temperature, topP, maxTokens, params)
 		return text, nil, usage, finish, err
@@ -448,7 +573,13 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 	if !ok || len(choices) == 0 {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	toolCalls := parseOpenAIToolCalls(respBody)
+	toolCalls, err := parseOpenAIToolCalls(respBody)
+	if err != nil {
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+	}
+	if err := validateReturnedToolCalls(toolCalls, params.tools); err != nil {
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+	}
 	text := strings.TrimSpace(extractChatCompletionMessageText(respBody))
 	if text == "" && len(toolCalls) == 0 {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
@@ -497,7 +628,7 @@ func (b *Backend) StreamGenerateText(ctx context.Context, modelID string, input 
 // StreamGenerateTextRich sends a streaming chat completion request while
 // preserving provider reasoning deltas as a separate typed channel.
 func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, input []*runtimev1.ChatMessage, systemPrompt string, temperature float32, topP float32, maxTokens int32, params textGenParams, handler TextStreamEventHandler) (*runtimev1.UsageStats, runtimev1.FinishReason, error) {
-	if err := unsupportedToolSurface(params); err != nil {
+	if err := unsupportedTextBehaviorSurface(ctx, b, modelID, params, input, true); err != nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 	if b.supportsAnthropicMessages() {

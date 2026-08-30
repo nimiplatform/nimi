@@ -1340,6 +1340,18 @@ impl Default for EffectClass {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ExecutionInterruptionCause {
+    EXECUTIONINTERRUPTIONCAUSEUNSPECIFIED,
+    EXECUTIONINTERRUPTIONCAUSERUNTIMERESTART,
+}
+
+impl Default for ExecutionInterruptionCause {
+    fn default() -> Self {
+        Self::EXECUTIONINTERRUPTIONCAUSEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ExecutionMode {
     EXECUTIONMODEUNSPECIFIED,
     EXECUTIONMODESYNC,
@@ -1350,6 +1362,18 @@ pub enum ExecutionMode {
 impl Default for ExecutionMode {
     fn default() -> Self {
         Self::EXECUTIONMODEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ExecutionResubmitDisposition {
+    EXECUTIONRESUBMITDISPOSITIONUNSPECIFIED,
+    EXECUTIONRESUBMITDISPOSITIONCALLERMAYRESUBMIT,
+}
+
+impl Default for ExecutionResubmitDisposition {
+    fn default() -> Self {
+        Self::EXECUTIONRESUBMITDISPOSITIONUNSPECIFIED
     }
 }
 
@@ -1788,6 +1812,9 @@ pub enum LocalCapabilityReason {
     LOCALCAPABILITYREASONLOCALASSETCONTENTUNVERIFIED,
     LOCALCAPABILITYREASONLOCALASSETCONTENTMISMATCH,
     LOCALCAPABILITYREASONLOCALASSETINCOMPATIBLE,
+    LOCALCAPABILITYREASONCONDITIONALBINDINGMISSING,
+    LOCALCAPABILITYREASONTEXTBEHAVIORUNAVAILABLE,
+    LOCALCAPABILITYREASONTEXTBEHAVIORAMBIGUOUS,
 }
 
 impl Default for LocalCapabilityReason {
@@ -1810,10 +1837,24 @@ impl Default for LocalCapabilityRequirementPolicy {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum LocalCapabilityRequirementPresence {
+    LOCALCAPABILITYREQUIREMENTPRESENCEUNSPECIFIED,
+    LOCALCAPABILITYREQUIREMENTPRESENCEREQUIRED,
+    LOCALCAPABILITYREQUIREMENTPRESENCEOPTIONALCONDITIONAL,
+}
+
+impl Default for LocalCapabilityRequirementPresence {
+    fn default() -> Self {
+        Self::LOCALCAPABILITYREQUIREMENTPRESENCEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LocalCapabilityRequirementResolution {
     LOCALCAPABILITYREQUIREMENTRESOLUTIONUNSPECIFIED,
     LOCALCAPABILITYREQUIREMENTRESOLUTIONUNRESOLVED,
     LOCALCAPABILITYREQUIREMENTRESOLUTIONCONFIGURED,
+    LOCALCAPABILITYREQUIREMENTRESOLUTIONNOTCONFIGURED,
 }
 
 impl Default for LocalCapabilityRequirementResolution {
@@ -2312,6 +2353,12 @@ pub enum ReasonCode {
     AIPROVIDERINTERNAL,
     AIPROVIDERRATELIMITED,
     AIPROVIDERTIMEOUT,
+    AITEXTBEHAVIORUNSUPPORTED,
+    AITEXTBEHAVIORAMBIGUOUS,
+    AITEXTOUTPUTINCOMPLETE,
+    AITOOLCALLINVALID,
+    AIREASONINGCONTINUITYINVALID,
+    AIEXECUTIONINTERRUPTED,
     AIMEDIASPECINVALID,
     AIMEDIAOPTIONUNSUPPORTED,
     AIMEDIAJOBNOTFOUND,
@@ -2662,6 +2709,18 @@ impl ReasonCode {
             "AIPROVIDERRATELIMITED" => Some(Self::AIPROVIDERRATELIMITED),
             "AI_PROVIDER_TIMEOUT" => Some(Self::AIPROVIDERTIMEOUT),
             "AIPROVIDERTIMEOUT" => Some(Self::AIPROVIDERTIMEOUT),
+            "AI_TEXT_BEHAVIOR_UNSUPPORTED" => Some(Self::AITEXTBEHAVIORUNSUPPORTED),
+            "AITEXTBEHAVIORUNSUPPORTED" => Some(Self::AITEXTBEHAVIORUNSUPPORTED),
+            "AI_TEXT_BEHAVIOR_AMBIGUOUS" => Some(Self::AITEXTBEHAVIORAMBIGUOUS),
+            "AITEXTBEHAVIORAMBIGUOUS" => Some(Self::AITEXTBEHAVIORAMBIGUOUS),
+            "AI_TEXT_OUTPUT_INCOMPLETE" => Some(Self::AITEXTOUTPUTINCOMPLETE),
+            "AITEXTOUTPUTINCOMPLETE" => Some(Self::AITEXTOUTPUTINCOMPLETE),
+            "AI_TOOL_CALL_INVALID" => Some(Self::AITOOLCALLINVALID),
+            "AITOOLCALLINVALID" => Some(Self::AITOOLCALLINVALID),
+            "AI_REASONING_CONTINUITY_INVALID" => Some(Self::AIREASONINGCONTINUITYINVALID),
+            "AIREASONINGCONTINUITYINVALID" => Some(Self::AIREASONINGCONTINUITYINVALID),
+            "AI_EXECUTION_INTERRUPTED" => Some(Self::AIEXECUTIONINTERRUPTED),
+            "AIEXECUTIONINTERRUPTED" => Some(Self::AIEXECUTIONINTERRUPTED),
             "AI_MEDIA_SPEC_INVALID" => Some(Self::AIMEDIASPECINVALID),
             "AIMEDIASPECINVALID" => Some(Self::AIMEDIASPECINVALID),
             "AI_MEDIA_OPTION_UNSUPPORTED" => Some(Self::AIMEDIAOPTIONUNSUPPORTED),
@@ -3010,28 +3069,45 @@ impl ReasonCode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ReasoningMode {
-    REASONINGMODEUNSPECIFIED,
-    REASONINGMODEOFF,
-    REASONINGMODEON,
+pub enum ReasoningActivation {
+    REASONINGACTIVATIONUNSPECIFIED,
+    REASONINGACTIVATIONDISABLED,
+    REASONINGACTIVATIONADAPTIVE,
+    REASONINGACTIVATIONREQUIRED,
 }
 
-impl Default for ReasoningMode {
+impl Default for ReasoningActivation {
     fn default() -> Self {
-        Self::REASONINGMODEUNSPECIFIED
+        Self::REASONINGACTIVATIONUNSPECIFIED
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum ReasoningTraceMode {
-    REASONINGTRACEMODEUNSPECIFIED,
-    REASONINGTRACEMODEHIDE,
-    REASONINGTRACEMODESEPARATE,
+pub enum ReasoningEffort {
+    REASONINGEFFORTUNSPECIFIED,
+    REASONINGEFFORTMINIMAL,
+    REASONINGEFFORTLOW,
+    REASONINGEFFORTMEDIUM,
+    REASONINGEFFORTHIGH,
+    REASONINGEFFORTMAXIMUM,
 }
 
-impl Default for ReasoningTraceMode {
+impl Default for ReasoningEffort {
     fn default() -> Self {
-        Self::REASONINGTRACEMODEUNSPECIFIED
+        Self::REASONINGEFFORTUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ReasoningPresentation {
+    REASONINGPRESENTATIONUNSPECIFIED,
+    REASONINGPRESENTATIONHIDDEN,
+    REASONINGPRESENTATIONSUMMARY,
+}
+
+impl Default for ReasoningPresentation {
+    fn default() -> Self {
+        Self::REASONINGPRESENTATIONUNSPECIFIED
     }
 }
 
@@ -3220,17 +3296,42 @@ pub enum StreamEventType {
     STREAMEVENTTYPEUNSPECIFIED,
     STREAMEVENTSTARTED,
     STREAMEVENTDELTA,
-    STREAMEVENTTOOLCALL,
-    STREAMEVENTTOOLRESULT,
     STREAMEVENTUSAGE,
     STREAMEVENTCOMPLETED,
     STREAMEVENTFAILED,
-    STREAMEVENTTOOLAPPROVALREQUEST,
 }
 
 impl Default for StreamEventType {
     fn default() -> Self {
         Self::STREAMEVENTTYPEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TextBehaviorConfigurationState {
+    TEXTBEHAVIORCONFIGURATIONSTATEUNSPECIFIED,
+    TEXTBEHAVIORCONFIGURATIONSTATEUNAVAILABLE,
+    TEXTBEHAVIORCONFIGURATIONSTATECONFIGURED,
+    TEXTBEHAVIORCONFIGURATIONSTATEAMBIGUOUS,
+}
+
+impl Default for TextBehaviorConfigurationState {
+    fn default() -> Self {
+        Self::TEXTBEHAVIORCONFIGURATIONSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TextBehaviorKind {
+    TEXTBEHAVIORKINDUNSPECIFIED,
+    TEXTBEHAVIORKINDTOOLUSE,
+    TEXTBEHAVIORKINDREASONING,
+    TEXTBEHAVIORKINDSTRUCTUREDOUTPUT,
+}
+
+impl Default for TextBehaviorKind {
+    fn default() -> Self {
+        Self::TEXTBEHAVIORKINDUNSPECIFIED
     }
 }
 
@@ -3542,9 +3643,11 @@ pub struct AIConfigLocalResourceProjection {
     pub label: Option<String>,
     pub capability_contract: Option<String>,
     pub implementation: Option<Box<CapabilityImplementationIdentity>>,
-    pub supported_features: Vec<String>,
     pub state: Option<AIConfigEffectiveState>,
     pub reasons: Vec<String>,
+    pub implementation_supported_features: Vec<String>,
+    pub configured_features: Vec<String>,
+    pub text_behaviors: Vec<Box<TextBehaviorCapabilityProjection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -4688,10 +4791,27 @@ pub struct ChatMessage {
     pub content: Option<String>,
     pub name: Option<String>,
     pub parts: Vec<Box<ChatContentPart>>,
-    pub tool_calls: Vec<Box<ToolCall>>,
-    pub tool_call_id: Option<String>,
-    pub tool_results: Vec<Box<ToolResult>>,
-    pub tool_approval_responses: Vec<Box<ToolApprovalResponse>>,
+    pub turn_items: Vec<Box<TextTurnItem>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CheckSyncProjectionJson {
+    pub json: Option<String>,
+}
+
+impl CheckSyncProjectionJson {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.json { pairs.push(format!("json={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.json = pairs.get("json").cloned();
+        out
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5567,6 +5687,13 @@ pub struct ExecuteScenarioResponse {
     pub model_resolved: Option<String>,
     pub trace_id: Option<String>,
     pub ignored_extensions: Vec<Box<IgnoredScenarioExtension>>,
+    pub effective_input_identity: Option<Box<LoadoutEffectiveInputIdentity>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ExecutionInterruption {
+    pub cause: Option<ExecutionInterruptionCause>,
+    pub resubmit_disposition: Option<ExecutionResubmitDisposition>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6020,6 +6147,21 @@ pub struct GetModelAssetResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetProductControlCheckSyncRequest {
+
+}
+
+impl GetProductControlCheckSyncRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(_raw: &[u8]) -> Self {
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetProductControlRecordRequest {
 
 }
@@ -6250,6 +6392,8 @@ pub struct ImageGenerateScenarioSpec {
     pub mask: Option<String>,
     pub response_format: Option<String>,
     pub reference_image_artifact_id: Option<String>,
+    pub mask_artifact_id: Option<String>,
+    pub strength: Option<f32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6272,6 +6416,21 @@ pub struct ImportPortableAIProfileRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ImportPortableAIProfileResponse {
     pub profile: Option<Box<PortableAIProfileRecord>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct InitializeProductControlRootActivationRequest {
+
+}
+
+impl InitializeProductControlRootActivationRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(_raw: &[u8]) -> Self {
+        Self::default()
+    }
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6919,13 +7078,15 @@ pub struct Loadout {
     pub options: Option<BTreeMap<String, String>>,
     pub model_axes: Vec<Box<LoadoutModelAxis>>,
     pub recipe_custody: Vec<Box<LoadoutRecipeCustodyReference>>,
-    pub supported_features: Vec<String>,
     pub validation_state: Option<LoadoutValidationState>,
     pub reasons: Vec<ReasonCode>,
     pub display_name: Option<String>,
     pub provenance: Option<BTreeMap<String, String>>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
+    pub implementation_supported_features: Vec<String>,
+    pub configured_features: Vec<String>,
+    pub text_behaviors: Vec<Box<TextBehaviorCapabilityProjection>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6938,6 +7099,8 @@ pub struct LoadoutEffectiveInputIdentity {
     pub options: Option<BTreeMap<String, String>>,
     pub model_axes: Vec<Box<LoadoutEffectiveModelAxisIdentity>>,
     pub recipe_custody: Vec<Box<LoadoutRecipeCustodyReference>>,
+    pub admitted_features: Vec<String>,
+    pub admitted_text_behaviors: Vec<TextBehaviorKind>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6945,6 +7108,7 @@ pub struct LoadoutEffectiveModelAxisIdentity {
     pub slot_id: Option<String>,
     pub model_asset_id: Option<String>,
     pub content_id: Option<String>,
+    pub presence: Option<LocalCapabilityRequirementPresence>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6963,6 +7127,9 @@ pub struct LoadoutModelAxis {
     pub expected_content_id: Option<String>,
     pub recipe_compatible: Option<bool>,
     pub reasons: Vec<ReasonCode>,
+    pub presence: Option<LocalCapabilityRequirementPresence>,
+    pub conditional_features: Vec<String>,
+    pub resolution: Option<LocalCapabilityRequirementResolution>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6994,9 +7161,9 @@ pub struct LoadoutRecipeDescriptor {
     pub capability_contract: Option<String>,
     pub implementation: Option<Box<CapabilityImplementationIdentity>>,
     pub default_options: Option<BTreeMap<String, String>>,
-    pub supported_features: Vec<String>,
     pub slots: Vec<Box<LoadoutRecipeSlotDescriptor>>,
     pub custody: Vec<Box<LoadoutRecipeCustodyDescriptor>>,
+    pub implementation_supported_features: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7006,6 +7173,8 @@ pub struct LoadoutRecipeSlotDescriptor {
     pub recommended_content_ids: Vec<String>,
     pub model_contract: Option<BTreeMap<String, String>>,
     pub recommended_variant_ids: Vec<String>,
+    pub presence: Option<LocalCapabilityRequirementPresence>,
+    pub conditional_features: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7555,6 +7724,8 @@ pub struct LocalAppImageGenerateScenarioSpec {
     pub mask: Option<String>,
     pub response_format: Option<String>,
     pub reference_image_artifact_id: Option<String>,
+    pub mask_artifact_id: Option<String>,
+    pub strength: Option<f32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7575,6 +7746,7 @@ pub struct LocalAppScenarioArtifact {
     pub height: Option<i32>,
     pub sample_rate_hz: Option<i32>,
     pub channels: Option<i32>,
+    pub seed: Option<i32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7592,6 +7764,7 @@ pub struct LocalAppScenarioJob {
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
     pub transcription_text: Option<String>,
+    pub interruption: Option<Box<ExecutionInterruption>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7668,6 +7841,7 @@ pub struct LocalAppTextTurnDelta {
 pub struct LocalAppTextTurnFailed {
     pub reason_code: Option<ReasonCode>,
     pub action_hint: Option<String>,
+    pub interruption: Option<Box<ExecutionInterruption>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7744,6 +7918,8 @@ pub struct LocalCapabilityRequirement {
     pub compatibility_constraints: Option<BTreeMap<String, String>>,
     pub occurrence_ordinal: Option<u32>,
     pub display_label: Option<String>,
+    pub presence: Option<LocalCapabilityRequirementPresence>,
+    pub conditional_features: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7776,6 +7952,7 @@ pub struct LocalCatalogModelDescriptor {
     pub host_requirements: Option<Box<LocalHostRequirements>>,
     pub total_size_bytes: Option<i64>,
     pub source_provenance: Option<String>,
+    pub model_type: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7972,6 +8149,7 @@ pub struct LocalInstallPlanDescriptor {
     pub engine_config: Option<BTreeMap<String, String>>,
     pub total_size_bytes: Option<i64>,
     pub source_provenance: Option<String>,
+    pub model_type: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8013,8 +8191,6 @@ pub struct LocalProviderHintsMedia {
     pub image_driver: Option<String>,
     pub video_driver: Option<String>,
     pub device: Option<String>,
-    pub fallback_driver: Option<String>,
-    pub fallback_reason: Option<String>,
     pub policy_gate: Option<String>,
 }
 
@@ -8218,7 +8394,6 @@ pub struct LocalVerifiedAssetDescriptor {
     pub capabilities: Vec<String>,
     pub artifact_roles: Vec<String>,
     pub preferred_engine: Option<String>,
-    pub fallback_engines: Vec<String>,
     pub engine_config: Option<BTreeMap<String, String>>,
     pub endpoint: Option<String>,
     pub host_requirements: Option<Box<LocalHostRequirements>>,
@@ -8697,7 +8872,6 @@ pub struct PrepareLoadoutRequest {
     pub capability_contract: Option<String>,
     pub recipe_id: Option<String>,
     pub options: Option<BTreeMap<String, String>>,
-    pub supported_features: Vec<String>,
     pub model_axes: Vec<Box<LoadoutModelAxisInput>>,
     pub display_name: Option<String>,
     pub provenance: Option<BTreeMap<String, String>>,
@@ -9097,13 +9271,26 @@ pub struct RealtimeControlStatus {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReasoningConfig {
-    pub mode: Option<ReasoningMode>,
-    pub trace_mode: Option<ReasoningTraceMode>,
-    pub budget_tokens: Option<i32>,
+    pub activation: Option<ReasoningActivation>,
+    pub effort: Option<ReasoningEffort>,
+    pub exact_budget_tokens: Option<u32>,
+    pub presentation: Option<ReasoningPresentation>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct ReasoningStreamDelta {
+pub struct ReasoningContinuityCarrier {
+    pub kind: Option<String>,
+    pub version: Option<u32>,
+    pub payload: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReasoningSummary {
+    pub text: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReasoningSummaryDelta {
     pub text: Option<String>,
 }
 
@@ -9354,6 +9541,26 @@ pub struct RepairLocalEnvironmentDependencyResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReplaceProductControlDataRootRequest {
+    pub target_root: Option<String>,
+}
+
+impl ReplaceProductControlDataRootRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.target_root { pairs.push(format!("target_root={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.target_root = pairs.get("target_root").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RequestPresenceVerificationRequest {
     pub caller: Option<Box<AccountCaller>>,
     pub purpose: Option<String>,
@@ -9452,6 +9659,7 @@ pub struct ResolveModelInstallPlanRequest {
     pub hashes: BTreeMap<String, String>,
     pub endpoint: Option<String>,
     pub engine_config: Option<BTreeMap<String, String>>,
+    pub model_type: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9589,6 +9797,7 @@ pub struct ScenarioArtifact {
     pub channels: Option<i32>,
     pub speech_alignment: Option<Box<SpeechAlignment>>,
     pub metadata: Option<BTreeMap<String, String>>,
+    pub seed: Option<i32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9623,6 +9832,7 @@ pub struct ScenarioJob {
     pub progress_total_steps: Option<i32>,
     pub transcription_text: Option<String>,
     pub effective_input_identity: Option<Box<LoadoutEffectiveInputIdentity>>,
+    pub interruption: Option<Box<ExecutionInterruption>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9682,17 +9892,17 @@ pub struct ScenarioStreamCompleted {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ScenarioStreamDelta {
-    pub text: Option<Box<TextStreamDelta>>,
     pub artifact: Option<Box<ArtifactStreamDelta>>,
-    pub reasoning: Option<Box<ReasoningStreamDelta>>,
     pub source: Option<Box<TextSource>>,
     pub raw: Option<Box<RawChunk>>,
+    pub text_output_item: Option<Box<TextOutputItemDelta>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ScenarioStreamFailed {
     pub reason_code: Option<ReasonCode>,
     pub action_hint: Option<String>,
+    pub interruption: Option<Box<ExecutionInterruption>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9700,6 +9910,7 @@ pub struct ScenarioStreamStarted {
     pub model_resolved: Option<String>,
     pub route_decision: Option<RoutePolicy>,
     pub voice_output_mode: Option<VoiceOutputMode>,
+    pub effective_input_identity: Option<Box<LoadoutEffectiveInputIdentity>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10037,6 +10248,21 @@ pub struct StartLocalEnvironmentDependencyJobResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartProductControlCheckSyncRequest {
+
+}
+
+impl StartProductControlCheckSyncRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        Vec::new()
+    }
+
+    pub fn from_transport(_raw: &[u8]) -> Self {
+        Self::default()
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct StatLocalAppAssetRequest {
     pub relative_path: Option<String>,
 }
@@ -10080,9 +10306,6 @@ pub struct StreamScenarioEvent {
     pub usage: Option<Box<UsageStats>>,
     pub completed: Option<Box<ScenarioStreamCompleted>>,
     pub failed: Option<Box<ScenarioStreamFailed>>,
-    pub tool_call: Option<Box<ToolCall>>,
-    pub tool_result: Option<Box<ToolResult>>,
-    pub tool_approval_request: Option<Box<ToolApprovalRequest>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10280,6 +10503,16 @@ pub struct TestConnectorResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextBehaviorCapabilityProjection {
+    pub kind: Option<TextBehaviorKind>,
+    pub implementation_supported: Option<bool>,
+    pub configuration_state: Option<TextBehaviorConfigurationState>,
+    pub reasons: Vec<LocalCapabilityReason>,
+    pub implementation_tool_use: Option<Box<ToolUseCapabilityProjection>>,
+    pub configured_tool_use: Option<Box<ToolUseCapabilityProjection>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct TextEmbedOutput {
     pub vectors: Vec<Box<EmbeddingVector>>,
 }
@@ -10293,10 +10526,10 @@ pub struct TextEmbedScenarioSpec {
 pub struct TextGenerateOutput {
     pub text: Option<String>,
     pub tool_calls: Vec<Box<ToolCall>>,
-    pub tool_results: Vec<Box<ToolResult>>,
-    pub tool_approval_requests: Vec<Box<ToolApprovalRequest>>,
     pub sources: Vec<Box<TextSource>>,
     pub raw_chunks: Vec<Box<RawChunk>>,
+    pub items: Vec<Box<TextOutputItem>>,
+    pub reasoning_summary: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10320,6 +10553,34 @@ pub struct TextGenerateScenarioSpec {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextOutputItem {
+    pub text: Option<Box<TextOutputText>>,
+    pub reasoning_summary: Option<Box<ReasoningSummary>>,
+    pub tool_call: Option<Box<ToolCall>>,
+    pub reasoning_continuity: Option<Box<ReasoningContinuityCarrier>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextOutputItemDelta {
+    pub item_index: Option<u32>,
+    pub text: Option<Box<TextOutputTextDelta>>,
+    pub reasoning_summary: Option<Box<ReasoningSummaryDelta>>,
+    pub tool_call: Option<Box<ToolCall>>,
+    pub reasoning_continuity: Option<Box<ReasoningContinuityCarrier>>,
+    pub item_completed: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextOutputText {
+    pub text: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct TextOutputTextDelta {
+    pub text: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct TextSource {
     pub id: Option<String>,
     pub source_type: Option<TextSourceType>,
@@ -10331,23 +10592,9 @@ pub struct TextSource {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct TextStreamDelta {
-    pub text: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ToolApprovalRequest {
-    pub approval_id: Option<String>,
-    pub tool_call_id: Option<String>,
-    pub provider_metadata: Option<BTreeMap<String, String>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct ToolApprovalResponse {
-    pub approval_id: Option<String>,
-    pub approved: Option<bool>,
-    pub reason: Option<String>,
-    pub provider_metadata: Option<BTreeMap<String, String>>,
+pub struct TextTurnItem {
+    pub output: Option<Box<TextOutputItem>>,
+    pub tool_result: Option<Box<ToolResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10355,7 +10602,6 @@ pub struct ToolCall {
     pub id: Option<String>,
     pub name: Option<String>,
     pub arguments_json: Option<String>,
-    pub provider_executed: Option<bool>,
     pub dynamic: Option<bool>,
     pub provider_metadata: Option<BTreeMap<String, String>>,
 }
@@ -10380,6 +10626,20 @@ pub struct ToolSpec {
     pub provider_tool_id: Option<String>,
     pub provider_args: Option<BTreeMap<String, String>>,
     pub provider_metadata: Option<BTreeMap<String, String>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ToolUseCapabilityProjection {
+    pub supported_tool_spec_kinds: Vec<ToolSpecKind>,
+    pub supported_tool_choice_modes: Vec<ToolChoiceMode>,
+    pub supports_single_call: Option<bool>,
+    pub supports_multiple_calls: Option<bool>,
+    pub supports_parallel_calls: Option<bool>,
+    pub supports_sync: Option<bool>,
+    pub supports_stream: Option<bool>,
+    pub supports_tool_only_response: Option<bool>,
+    pub supports_tool_result_round_trip: Option<bool>,
+    pub supports_mixed_text_and_tool_calls: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10449,7 +10709,6 @@ pub struct UpdateLoadoutRequest {
     pub capability_contract: Option<String>,
     pub recipe_id: Option<String>,
     pub options: Option<BTreeMap<String, String>>,
-    pub supported_features: Vec<String>,
     pub model_axes: Vec<Box<LoadoutModelAxisInput>>,
     pub display_name: Option<String>,
     pub provenance: Option<BTreeMap<String, String>>,
@@ -10970,6 +11229,12 @@ impl From<Vec<u8>> for DeleteLoadoutResponse {
     }
 }
 
+impl From<Vec<u8>> for CheckSyncProjectionJson {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for LocalTransferProgressEvent {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -11212,6 +11477,16 @@ where
         Ok(ProductControlProjectionJson::from_transport(&raw))
     }
 
+    pub fn get_product_control_check_sync(&self, request: GetProductControlCheckSyncRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CheckSyncProjectionJson, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(CheckSyncProjectionJson::from_transport(&raw))
+    }
+
     pub fn get_product_control_record(&self, request: GetProductControlRecordRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord".to_string(),
@@ -11232,9 +11507,29 @@ where
         Ok(ProductControlProjectionJson::from_transport(&raw))
     }
 
+    pub fn initialize_product_control_root_activation(&self, request: InitializeProductControlRootActivationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ProductControlProjectionJson::from_transport(&raw))
+    }
+
     pub fn reconcile_product_control_first_run_setup_state(&self, request: ReconcileProductControlFirstRunSetupStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeLocalService/ReconcileProductControlFirstRunSetupState".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(ProductControlProjectionJson::from_transport(&raw))
+    }
+
+    pub fn replace_product_control_data_root(&self, request: ReplaceProductControlDataRootRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<ProductControlProjectionJson, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot".to_string(),
             metadata,
             body: request.to_transport(),
             timeout,
@@ -11260,6 +11555,16 @@ where
             timeout,
         })?;
         Ok(ProductControlProjectionJson::from_transport(&raw))
+    }
+
+    pub fn start_product_control_check_sync(&self, request: StartProductControlCheckSyncRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CheckSyncProjectionJson, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(CheckSyncProjectionJson::from_transport(&raw))
     }
 
     pub fn watch_local_transfers(&self, request: WatchLocalTransfersRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeTypedStream<T::Stream, LocalTransferProgressEvent>, T::Error>

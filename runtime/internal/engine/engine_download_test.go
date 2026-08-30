@@ -281,6 +281,12 @@ func TestManagerEnsureLlamaFailsWhenRegistryPersistFailsDownloadHelpers(t *testi
 	if err != nil {
 		t.Fatalf("NewManager: %v", err)
 	}
+	previous := &RegistryEntry{
+		Engine: EngineLlama, Version: DefaultLlamaConfig().Version,
+		BinaryPath: filepath.Join(mgr.baseDir, string(EngineLlama), DefaultLlamaConfig().Version, llamaBinaryName()),
+		Platform:   PlatformString(), InstalledAt: "previous-owner-intent",
+	}
+	mgr.registry.entries[registryKey(previous.Engine, previous.Version)] = cloneRegistryEntry(previous)
 	blocker := filepath.Join(t.TempDir(), "registry-parent")
 	if err := os.WriteFile(blocker, []byte("file"), 0o644); err != nil {
 		t.Fatalf("write blocker: %v", err)
@@ -293,6 +299,28 @@ func TestManagerEnsureLlamaFailsWhenRegistryPersistFailsDownloadHelpers(t *testi
 	}
 	if !strings.Contains(err.Error(), "persist llama registry entry") {
 		t.Fatalf("unexpected ensureLlama error: %v", err)
+	}
+	if current := mgr.registry.Get(previous.Engine, previous.Version); current == nil || current.InstalledAt != previous.InstalledAt {
+		t.Fatalf("failed replacement erased prior owner intent: %+v", current)
+	}
+}
+
+func TestInstallManagedBinaryPayloadPreservesExistingPayloadWhenStagingFails(t *testing.T) {
+	root := t.TempDir()
+	destination := filepath.Join(root, "llama", "version")
+	if err := os.MkdirAll(destination, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	previous := filepath.Join(destination, "previous.bin")
+	if err := os.WriteFile(previous, []byte("previous-owner-material"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := installManagedBinaryPayload(destination, filepath.Join(root, "missing-staging")); err == nil {
+		t.Fatal("missing staging payload unexpectedly promoted")
+	}
+	content, err := os.ReadFile(previous)
+	if err != nil || string(content) != "previous-owner-material" {
+		t.Fatalf("failed staging changed existing payload: content=%q err=%v", content, err)
 	}
 }
 

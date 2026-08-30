@@ -225,7 +225,7 @@ func resolveLocalAppJSONTarget(root, relativePath string, create bool) (string, 
 
 func localAppJSONPartitionUsage(root string) (int64, error) {
 	var total int64
-	err := filepath.WalkDir(root, func(_ string, entry fs.DirEntry, walkErr error) error {
+	err := filepath.WalkDir(root, func(current string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return ErrLocalAppJSONUnavailable
 		}
@@ -241,6 +241,14 @@ func localAppJSONPartitionUsage(root string) (int64, error) {
 		info, err := entry.Info()
 		if err != nil || !info.Mode().IsRegular() || info.Size() < 0 {
 			return ErrLocalAppJSONUnavailable
+		}
+		payload, err := os.ReadFile(current)
+		if err != nil {
+			return ErrLocalAppJSONUnavailable
+		}
+		canonical, err := canonicalLocalAppJSON(payload)
+		if err != nil || !bytes.Equal(canonical, payload) {
+			return ErrLocalAppJSONValueInvalid
 		}
 		total += info.Size()
 		if total > LocalAppJSONPartitionQuotaBytes {

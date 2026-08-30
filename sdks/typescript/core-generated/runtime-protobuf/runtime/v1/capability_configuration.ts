@@ -13,6 +13,9 @@ import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { ReasonCode } from "./common";
 import { Struct } from "../../google/protobuf/struct";
+import { TextBehaviorKind } from "./common";
+import { ToolChoiceMode } from "./common";
+import { ToolSpecKind } from "./common";
 /**
  * CapabilityImplementationIdentity identifies the implementation vocabulary
  * against which a configuration's requirements are interpreted.
@@ -32,6 +35,87 @@ export interface CapabilityImplementationIdentity {
      * @generated from protobuf field: string driver_dialect = 3
      */
     driverDialect: string;
+}
+/**
+ * Read-only primitive Tool Use support. Exact model/template mapping and
+ * cross-behavior combination predicates remain Runtime-private Driver truth.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ToolUseCapabilityProjection
+ */
+export interface ToolUseCapabilityProjection {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ToolSpecKind supported_tool_spec_kinds = 1
+     */
+    supportedToolSpecKinds: ToolSpecKind[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ToolChoiceMode supported_tool_choice_modes = 2
+     */
+    supportedToolChoiceModes: ToolChoiceMode[];
+    /**
+     * @generated from protobuf field: bool supports_single_call = 3
+     */
+    supportsSingleCall: boolean;
+    /**
+     * @generated from protobuf field: bool supports_multiple_calls = 4
+     */
+    supportsMultipleCalls: boolean;
+    /**
+     * @generated from protobuf field: bool supports_parallel_calls = 5
+     */
+    supportsParallelCalls: boolean;
+    /**
+     * @generated from protobuf field: bool supports_sync = 6
+     */
+    supportsSync: boolean;
+    /**
+     * @generated from protobuf field: bool supports_stream = 7
+     */
+    supportsStream: boolean;
+    /**
+     * @generated from protobuf field: bool supports_tool_only_response = 8
+     */
+    supportsToolOnlyResponse: boolean;
+    /**
+     * @generated from protobuf field: bool supports_tool_result_round_trip = 9
+     */
+    supportsToolResultRoundTrip: boolean;
+    /**
+     * @generated from protobuf field: bool supports_mixed_text_and_tool_calls = 10
+     */
+    supportsMixedTextAndToolCalls: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.TextBehaviorCapabilityProjection
+ */
+export interface TextBehaviorCapabilityProjection {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.TextBehaviorKind kind = 1
+     */
+    kind: TextBehaviorKind;
+    /**
+     * @generated from protobuf field: bool implementation_supported = 2
+     */
+    implementationSupported: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.TextBehaviorConfigurationState configuration_state = 3
+     */
+    configurationState: TextBehaviorConfigurationState;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LocalCapabilityReason reasons = 4
+     */
+    reasons: LocalCapabilityReason[];
+    /**
+     * Set only when kind is TOOL_USE.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ToolUseCapabilityProjection implementation_tool_use = 5
+     */
+    implementationToolUse?: ToolUseCapabilityProjection;
+    /**
+     * Exact subset configured by the current Loadout's unique adapter mapping.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ToolUseCapabilityProjection configured_tool_use = 6
+     */
+    configuredToolUse?: ToolUseCapabilityProjection;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalCapabilityRequirement
@@ -72,6 +156,16 @@ export interface LocalCapabilityRequirement {
      * @generated from protobuf field: string display_label = 8
      */
     displayLabel: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalCapabilityRequirementPresence presence = 9
+     */
+    presence: LocalCapabilityRequirementPresence;
+    /**
+     * Non-empty exactly when presence is OPTIONAL_CONDITIONAL.
+     *
+     * @generated from protobuf field: repeated string conditional_features = 10
+     */
+    conditionalFeatures: string[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ModelAssetExactBinding
@@ -126,6 +220,18 @@ export interface LoadoutModelAxis {
      * @generated from protobuf field: repeated nimi.runtime.v1.ReasonCode reasons = 6
      */
     reasons: ReasonCode[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalCapabilityRequirementPresence presence = 7
+     */
+    presence: LocalCapabilityRequirementPresence;
+    /**
+     * @generated from protobuf field: repeated string conditional_features = 8
+     */
+    conditionalFeatures: string[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalCapabilityRequirementResolution resolution = 9
+     */
+    resolution: LocalCapabilityRequirementResolution;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LoadoutRecipeCustodyReference
@@ -177,10 +283,6 @@ export interface Loadout {
      */
     recipeCustody: LoadoutRecipeCustodyReference[];
     /**
-     * @generated from protobuf field: repeated string supported_features = 9
-     */
-    supportedFeatures: string[];
-    /**
      * @generated from protobuf field: nimi.runtime.v1.LoadoutValidationState validation_state = 10
      */
     validationState: LoadoutValidationState;
@@ -204,6 +306,20 @@ export interface Loadout {
      * @generated from protobuf field: string updated_at = 15
      */
     updatedAt: string;
+    /**
+     * Both projections are Runtime-derived and never accepted from a caller.
+     *
+     * @generated from protobuf field: repeated string implementation_supported_features = 16
+     */
+    implementationSupportedFeatures: string[];
+    /**
+     * @generated from protobuf field: repeated string configured_features = 17
+     */
+    configuredFeatures: string[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextBehaviorCapabilityProjection text_behaviors = 18
+     */
+    textBehaviors: TextBehaviorCapabilityProjection[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LoadoutSelection
@@ -297,6 +413,14 @@ export interface LoadoutRecipeSlotDescriptor {
      * @generated from protobuf field: repeated string recommended_variant_ids = 5
      */
     recommendedVariantIds: string[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalCapabilityRequirementPresence presence = 6
+     */
+    presence: LocalCapabilityRequirementPresence;
+    /**
+     * @generated from protobuf field: repeated string conditional_features = 7
+     */
+    conditionalFeatures: string[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LoadoutRecipeDescriptor
@@ -327,10 +451,6 @@ export interface LoadoutRecipeDescriptor {
      */
     defaultOptions?: Struct;
     /**
-     * @generated from protobuf field: repeated string supported_features = 7
-     */
-    supportedFeatures: string[];
-    /**
      * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutRecipeSlotDescriptor slots = 8
      */
     slots: LoadoutRecipeSlotDescriptor[];
@@ -338,6 +458,10 @@ export interface LoadoutRecipeDescriptor {
      * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutRecipeCustodyDescriptor custody = 9
      */
     custody: LoadoutRecipeCustodyDescriptor[];
+    /**
+     * @generated from protobuf field: repeated string implementation_supported_features = 10
+     */
+    implementationSupportedFeatures: string[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListLoadoutRecipesRequest
@@ -409,10 +533,6 @@ export interface PrepareLoadoutRequest {
      * @generated from protobuf field: google.protobuf.Struct options = 4
      */
     options?: Struct;
-    /**
-     * @generated from protobuf field: repeated string supported_features = 5
-     */
-    supportedFeatures: string[];
     /**
      * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutModelAxisInput model_axes = 6
      */
@@ -492,10 +612,6 @@ export interface UpdateLoadoutRequest {
      * @generated from protobuf field: google.protobuf.Struct options = 4
      */
     options?: Struct;
-    /**
-     * @generated from protobuf field: repeated string supported_features = 5
-     */
-    supportedFeatures: string[];
     /**
      * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutModelAxisInput model_axes = 6
      */
@@ -584,6 +700,10 @@ export interface LoadoutEffectiveModelAxisIdentity {
      * @generated from protobuf field: string content_id = 3
      */
     contentId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalCapabilityRequirementPresence presence = 4
+     */
+    presence: LocalCapabilityRequirementPresence;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LoadoutEffectiveInputIdentity
@@ -621,6 +741,14 @@ export interface LoadoutEffectiveInputIdentity {
      * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutRecipeCustodyReference recipe_custody = 8
      */
     recipeCustody: LoadoutRecipeCustodyReference[];
+    /**
+     * @generated from protobuf field: repeated string admitted_features = 9
+     */
+    admittedFeatures: string[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextBehaviorKind admitted_text_behaviors = 10
+     */
+    admittedTextBehaviors: TextBehaviorKind[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AIConfigAppOwner
@@ -767,10 +895,6 @@ export interface AIConfigLocalResourceProjection {
      */
     implementation?: CapabilityImplementationIdentity;
     /**
-     * @generated from protobuf field: repeated string supported_features = 5
-     */
-    supportedFeatures: string[];
-    /**
      * @generated from protobuf field: nimi.runtime.v1.AIConfigEffectiveState state = 6
      */
     state: AIConfigEffectiveState;
@@ -778,6 +902,18 @@ export interface AIConfigLocalResourceProjection {
      * @generated from protobuf field: repeated string reasons = 7
      */
     reasons: string[];
+    /**
+     * @generated from protobuf field: repeated string implementation_supported_features = 8
+     */
+    implementationSupportedFeatures: string[];
+    /**
+     * @generated from protobuf field: repeated string configured_features = 9
+     */
+    configuredFeatures: string[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextBehaviorCapabilityProjection text_behaviors = 10
+     */
+    textBehaviors: TextBehaviorCapabilityProjection[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AIConfigCloudConnectorProjection
@@ -1188,7 +1324,13 @@ export enum LocalCapabilityRequirementResolution {
     /**
      * @generated from protobuf enum value: LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED = 2;
      */
-    CONFIGURED = 2
+    CONFIGURED = 2,
+    /**
+     * Valid absent state for a Driver-declared optional-conditional slot.
+     *
+     * @generated from protobuf enum value: LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_NOT_CONFIGURED = 3;
+     */
+    NOT_CONFIGURED = 3
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.LocalCapabilityRequirementPolicy
@@ -1206,6 +1348,26 @@ export enum LocalCapabilityRequirementPolicy {
      * @generated from protobuf enum value: LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE = 2;
      */
     SUBSTITUTABLE = 2
+}
+/**
+ * Presence is Driver dialect truth. Catalog metadata may project it but cannot
+ * author or override it.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.LocalCapabilityRequirementPresence
+ */
+export enum LocalCapabilityRequirementPresence {
+    /**
+     * @generated from protobuf enum value: LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED = 1;
+     */
+    REQUIRED = 1,
+    /**
+     * @generated from protobuf enum value: LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL = 2;
+     */
+    OPTIONAL_CONDITIONAL = 2
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.LocalCapabilityRequirementRole
@@ -1275,7 +1437,40 @@ export enum LocalCapabilityReason {
     /**
      * @generated from protobuf enum value: LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE = 11;
      */
-    LOCAL_ASSET_INCOMPATIBLE = 11
+    LOCAL_ASSET_INCOMPATIBLE = 11,
+    /**
+     * @generated from protobuf enum value: LOCAL_CAPABILITY_REASON_CONDITIONAL_BINDING_MISSING = 12;
+     */
+    CONDITIONAL_BINDING_MISSING = 12,
+    /**
+     * @generated from protobuf enum value: LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_UNAVAILABLE = 13;
+     */
+    TEXT_BEHAVIOR_UNAVAILABLE = 13,
+    /**
+     * @generated from protobuf enum value: LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_AMBIGUOUS = 14;
+     */
+    TEXT_BEHAVIOR_AMBIGUOUS = 14
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.TextBehaviorConfigurationState
+ */
+export enum TextBehaviorConfigurationState {
+    /**
+     * @generated from protobuf enum value: TEXT_BEHAVIOR_CONFIGURATION_STATE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE = 1;
+     */
+    UNAVAILABLE = 1,
+    /**
+     * @generated from protobuf enum value: TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED = 2;
+     */
+    CONFIGURED = 2,
+    /**
+     * @generated from protobuf enum value: TEXT_BEHAVIOR_CONFIGURATION_STATE_AMBIGUOUS = 3;
+     */
+    AMBIGUOUS = 3
 }
 // === Machine Loadouts ===
 
@@ -1389,6 +1584,234 @@ class CapabilityImplementationIdentity$Type extends MessageType<CapabilityImplem
  */
 export const CapabilityImplementationIdentity = new CapabilityImplementationIdentity$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ToolUseCapabilityProjection$Type extends MessageType<ToolUseCapabilityProjection> {
+    constructor() {
+        super("nimi.runtime.v1.ToolUseCapabilityProjection", [
+            { no: 1, name: "supported_tool_spec_kinds", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ToolSpecKind", ToolSpecKind, "TOOL_SPEC_KIND_"] },
+            { no: 2, name: "supported_tool_choice_modes", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ToolChoiceMode", ToolChoiceMode, "TOOL_CHOICE_MODE_"] },
+            { no: 3, name: "supports_single_call", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 4, name: "supports_multiple_calls", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 5, name: "supports_parallel_calls", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "supports_sync", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 7, name: "supports_stream", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 8, name: "supports_tool_only_response", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 9, name: "supports_tool_result_round_trip", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 10, name: "supports_mixed_text_and_tool_calls", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ToolUseCapabilityProjection>): ToolUseCapabilityProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.supportedToolSpecKinds = [];
+        message.supportedToolChoiceModes = [];
+        message.supportsSingleCall = false;
+        message.supportsMultipleCalls = false;
+        message.supportsParallelCalls = false;
+        message.supportsSync = false;
+        message.supportsStream = false;
+        message.supportsToolOnlyResponse = false;
+        message.supportsToolResultRoundTrip = false;
+        message.supportsMixedTextAndToolCalls = false;
+        if (value !== undefined)
+            reflectionMergePartial<ToolUseCapabilityProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ToolUseCapabilityProjection): ToolUseCapabilityProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.ToolSpecKind supported_tool_spec_kinds */ 1:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.supportedToolSpecKinds.push(reader.int32());
+                    else
+                        message.supportedToolSpecKinds.push(reader.int32());
+                    break;
+                case /* repeated nimi.runtime.v1.ToolChoiceMode supported_tool_choice_modes */ 2:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.supportedToolChoiceModes.push(reader.int32());
+                    else
+                        message.supportedToolChoiceModes.push(reader.int32());
+                    break;
+                case /* bool supports_single_call */ 3:
+                    message.supportsSingleCall = reader.bool();
+                    break;
+                case /* bool supports_multiple_calls */ 4:
+                    message.supportsMultipleCalls = reader.bool();
+                    break;
+                case /* bool supports_parallel_calls */ 5:
+                    message.supportsParallelCalls = reader.bool();
+                    break;
+                case /* bool supports_sync */ 6:
+                    message.supportsSync = reader.bool();
+                    break;
+                case /* bool supports_stream */ 7:
+                    message.supportsStream = reader.bool();
+                    break;
+                case /* bool supports_tool_only_response */ 8:
+                    message.supportsToolOnlyResponse = reader.bool();
+                    break;
+                case /* bool supports_tool_result_round_trip */ 9:
+                    message.supportsToolResultRoundTrip = reader.bool();
+                    break;
+                case /* bool supports_mixed_text_and_tool_calls */ 10:
+                    message.supportsMixedTextAndToolCalls = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ToolUseCapabilityProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.ToolSpecKind supported_tool_spec_kinds = 1; */
+        if (message.supportedToolSpecKinds.length) {
+            writer.tag(1, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.supportedToolSpecKinds.length; i++)
+                writer.int32(message.supportedToolSpecKinds[i]);
+            writer.join();
+        }
+        /* repeated nimi.runtime.v1.ToolChoiceMode supported_tool_choice_modes = 2; */
+        if (message.supportedToolChoiceModes.length) {
+            writer.tag(2, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.supportedToolChoiceModes.length; i++)
+                writer.int32(message.supportedToolChoiceModes[i]);
+            writer.join();
+        }
+        /* bool supports_single_call = 3; */
+        if (message.supportsSingleCall !== false)
+            writer.tag(3, WireType.Varint).bool(message.supportsSingleCall);
+        /* bool supports_multiple_calls = 4; */
+        if (message.supportsMultipleCalls !== false)
+            writer.tag(4, WireType.Varint).bool(message.supportsMultipleCalls);
+        /* bool supports_parallel_calls = 5; */
+        if (message.supportsParallelCalls !== false)
+            writer.tag(5, WireType.Varint).bool(message.supportsParallelCalls);
+        /* bool supports_sync = 6; */
+        if (message.supportsSync !== false)
+            writer.tag(6, WireType.Varint).bool(message.supportsSync);
+        /* bool supports_stream = 7; */
+        if (message.supportsStream !== false)
+            writer.tag(7, WireType.Varint).bool(message.supportsStream);
+        /* bool supports_tool_only_response = 8; */
+        if (message.supportsToolOnlyResponse !== false)
+            writer.tag(8, WireType.Varint).bool(message.supportsToolOnlyResponse);
+        /* bool supports_tool_result_round_trip = 9; */
+        if (message.supportsToolResultRoundTrip !== false)
+            writer.tag(9, WireType.Varint).bool(message.supportsToolResultRoundTrip);
+        /* bool supports_mixed_text_and_tool_calls = 10; */
+        if (message.supportsMixedTextAndToolCalls !== false)
+            writer.tag(10, WireType.Varint).bool(message.supportsMixedTextAndToolCalls);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ToolUseCapabilityProjection
+ */
+export const ToolUseCapabilityProjection = new ToolUseCapabilityProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class TextBehaviorCapabilityProjection$Type extends MessageType<TextBehaviorCapabilityProjection> {
+    constructor() {
+        super("nimi.runtime.v1.TextBehaviorCapabilityProjection", [
+            { no: 1, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.TextBehaviorKind", TextBehaviorKind, "TEXT_BEHAVIOR_KIND_"] },
+            { no: 2, name: "implementation_supported", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 3, name: "configuration_state", kind: "enum", T: () => ["nimi.runtime.v1.TextBehaviorConfigurationState", TextBehaviorConfigurationState, "TEXT_BEHAVIOR_CONFIGURATION_STATE_"] },
+            { no: 4, name: "reasons", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.LocalCapabilityReason", LocalCapabilityReason, "LOCAL_CAPABILITY_REASON_"] },
+            { no: 5, name: "implementation_tool_use", kind: "message", T: () => ToolUseCapabilityProjection },
+            { no: 6, name: "configured_tool_use", kind: "message", T: () => ToolUseCapabilityProjection }
+        ]);
+    }
+    create(value?: PartialMessage<TextBehaviorCapabilityProjection>): TextBehaviorCapabilityProjection {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.kind = 0;
+        message.implementationSupported = false;
+        message.configurationState = 0;
+        message.reasons = [];
+        if (value !== undefined)
+            reflectionMergePartial<TextBehaviorCapabilityProjection>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: TextBehaviorCapabilityProjection): TextBehaviorCapabilityProjection {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.TextBehaviorKind kind */ 1:
+                    message.kind = reader.int32();
+                    break;
+                case /* bool implementation_supported */ 2:
+                    message.implementationSupported = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.TextBehaviorConfigurationState configuration_state */ 3:
+                    message.configurationState = reader.int32();
+                    break;
+                case /* repeated nimi.runtime.v1.LocalCapabilityReason reasons */ 4:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.reasons.push(reader.int32());
+                    else
+                        message.reasons.push(reader.int32());
+                    break;
+                case /* nimi.runtime.v1.ToolUseCapabilityProjection implementation_tool_use */ 5:
+                    message.implementationToolUse = ToolUseCapabilityProjection.internalBinaryRead(reader, reader.uint32(), options, message.implementationToolUse);
+                    break;
+                case /* nimi.runtime.v1.ToolUseCapabilityProjection configured_tool_use */ 6:
+                    message.configuredToolUse = ToolUseCapabilityProjection.internalBinaryRead(reader, reader.uint32(), options, message.configuredToolUse);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: TextBehaviorCapabilityProjection, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.TextBehaviorKind kind = 1; */
+        if (message.kind !== 0)
+            writer.tag(1, WireType.Varint).int32(message.kind);
+        /* bool implementation_supported = 2; */
+        if (message.implementationSupported !== false)
+            writer.tag(2, WireType.Varint).bool(message.implementationSupported);
+        /* nimi.runtime.v1.TextBehaviorConfigurationState configuration_state = 3; */
+        if (message.configurationState !== 0)
+            writer.tag(3, WireType.Varint).int32(message.configurationState);
+        /* repeated nimi.runtime.v1.LocalCapabilityReason reasons = 4; */
+        if (message.reasons.length) {
+            writer.tag(4, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.reasons.length; i++)
+                writer.int32(message.reasons[i]);
+            writer.join();
+        }
+        /* nimi.runtime.v1.ToolUseCapabilityProjection implementation_tool_use = 5; */
+        if (message.implementationToolUse)
+            ToolUseCapabilityProjection.internalBinaryWrite(message.implementationToolUse, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ToolUseCapabilityProjection configured_tool_use = 6; */
+        if (message.configuredToolUse)
+            ToolUseCapabilityProjection.internalBinaryWrite(message.configuredToolUse, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.TextBehaviorCapabilityProjection
+ */
+export const TextBehaviorCapabilityProjection = new TextBehaviorCapabilityProjection$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LocalCapabilityRequirement$Type extends MessageType<LocalCapabilityRequirement> {
     constructor() {
         super("nimi.runtime.v1.LocalCapabilityRequirement", [
@@ -1399,7 +1822,9 @@ class LocalCapabilityRequirement$Type extends MessageType<LocalCapabilityRequire
             { no: 5, name: "preferred_verified_content_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "compatibility_constraints", kind: "message", T: () => Struct },
             { no: 7, name: "occurrence_ordinal", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
-            { no: 8, name: "display_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 8, name: "display_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "presence", kind: "enum", T: () => ["nimi.runtime.v1.LocalCapabilityRequirementPresence", LocalCapabilityRequirementPresence, "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_"] },
+            { no: 10, name: "conditional_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalCapabilityRequirement>): LocalCapabilityRequirement {
@@ -1411,6 +1836,8 @@ class LocalCapabilityRequirement$Type extends MessageType<LocalCapabilityRequire
         message.preferredVerifiedContentId = "";
         message.occurrenceOrdinal = 0;
         message.displayLabel = "";
+        message.presence = 0;
+        message.conditionalFeatures = [];
         if (value !== undefined)
             reflectionMergePartial<LocalCapabilityRequirement>(this, message, value);
         return message;
@@ -1443,6 +1870,12 @@ class LocalCapabilityRequirement$Type extends MessageType<LocalCapabilityRequire
                     break;
                 case /* string display_label */ 8:
                     message.displayLabel = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalCapabilityRequirementPresence presence */ 9:
+                    message.presence = reader.int32();
+                    break;
+                case /* repeated string conditional_features */ 10:
+                    message.conditionalFeatures.push(reader.string());
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1480,6 +1913,12 @@ class LocalCapabilityRequirement$Type extends MessageType<LocalCapabilityRequire
         /* string display_label = 8; */
         if (message.displayLabel !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.displayLabel);
+        /* nimi.runtime.v1.LocalCapabilityRequirementPresence presence = 9; */
+        if (message.presence !== 0)
+            writer.tag(9, WireType.Varint).int32(message.presence);
+        /* repeated string conditional_features = 10; */
+        for (let i = 0; i < message.conditionalFeatures.length; i++)
+            writer.tag(10, WireType.LengthDelimited).string(message.conditionalFeatures[i]);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1570,7 +2009,10 @@ class LoadoutModelAxis$Type extends MessageType<LoadoutModelAxis> {
             { no: 3, name: "model_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "expected_content_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "recipe_compatible", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 6, name: "reasons", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+            { no: 6, name: "reasons", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 7, name: "presence", kind: "enum", T: () => ["nimi.runtime.v1.LocalCapabilityRequirementPresence", LocalCapabilityRequirementPresence, "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_"] },
+            { no: 8, name: "conditional_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "resolution", kind: "enum", T: () => ["nimi.runtime.v1.LocalCapabilityRequirementResolution", LocalCapabilityRequirementResolution, "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_"] }
         ]);
     }
     create(value?: PartialMessage<LoadoutModelAxis>): LoadoutModelAxis {
@@ -1581,6 +2023,9 @@ class LoadoutModelAxis$Type extends MessageType<LoadoutModelAxis> {
         message.expectedContentId = "";
         message.recipeCompatible = false;
         message.reasons = [];
+        message.presence = 0;
+        message.conditionalFeatures = [];
+        message.resolution = 0;
         if (value !== undefined)
             reflectionMergePartial<LoadoutModelAxis>(this, message, value);
         return message;
@@ -1611,6 +2056,15 @@ class LoadoutModelAxis$Type extends MessageType<LoadoutModelAxis> {
                             message.reasons.push(reader.int32());
                     else
                         message.reasons.push(reader.int32());
+                    break;
+                case /* nimi.runtime.v1.LocalCapabilityRequirementPresence presence */ 7:
+                    message.presence = reader.int32();
+                    break;
+                case /* repeated string conditional_features */ 8:
+                    message.conditionalFeatures.push(reader.string());
+                    break;
+                case /* nimi.runtime.v1.LocalCapabilityRequirementResolution resolution */ 9:
+                    message.resolution = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1646,6 +2100,15 @@ class LoadoutModelAxis$Type extends MessageType<LoadoutModelAxis> {
                 writer.int32(message.reasons[i]);
             writer.join();
         }
+        /* nimi.runtime.v1.LocalCapabilityRequirementPresence presence = 7; */
+        if (message.presence !== 0)
+            writer.tag(7, WireType.Varint).int32(message.presence);
+        /* repeated string conditional_features = 8; */
+        for (let i = 0; i < message.conditionalFeatures.length; i++)
+            writer.tag(8, WireType.LengthDelimited).string(message.conditionalFeatures[i]);
+        /* nimi.runtime.v1.LocalCapabilityRequirementResolution resolution = 9; */
+        if (message.resolution !== 0)
+            writer.tag(9, WireType.Varint).int32(message.resolution);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1723,13 +2186,15 @@ class Loadout$Type extends MessageType<Loadout> {
             { no: 6, name: "options", kind: "message", T: () => Struct },
             { no: 7, name: "model_axes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutModelAxis },
             { no: 8, name: "recipe_custody", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutRecipeCustodyReference },
-            { no: 9, name: "supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "validation_state", kind: "enum", T: () => ["nimi.runtime.v1.LoadoutValidationState", LoadoutValidationState, "LOADOUT_VALIDATION_STATE_"] },
             { no: 11, name: "reasons", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
             { no: 12, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 13, name: "provenance", kind: "message", T: () => Struct },
             { no: 14, name: "created_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 15, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 15, name: "updated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 16, name: "implementation_supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 17, name: "configured_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 18, name: "text_behaviors", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextBehaviorCapabilityProjection }
         ]);
     }
     create(value?: PartialMessage<Loadout>): Loadout {
@@ -1740,12 +2205,14 @@ class Loadout$Type extends MessageType<Loadout> {
         message.recipeRevision = "";
         message.modelAxes = [];
         message.recipeCustody = [];
-        message.supportedFeatures = [];
         message.validationState = 0;
         message.reasons = [];
         message.displayName = "";
         message.createdAt = "";
         message.updatedAt = "";
+        message.implementationSupportedFeatures = [];
+        message.configuredFeatures = [];
+        message.textBehaviors = [];
         if (value !== undefined)
             reflectionMergePartial<Loadout>(this, message, value);
         return message;
@@ -1779,9 +2246,6 @@ class Loadout$Type extends MessageType<Loadout> {
                 case /* repeated nimi.runtime.v1.LoadoutRecipeCustodyReference recipe_custody */ 8:
                     message.recipeCustody.push(LoadoutRecipeCustodyReference.internalBinaryRead(reader, reader.uint32(), options));
                     break;
-                case /* repeated string supported_features */ 9:
-                    message.supportedFeatures.push(reader.string());
-                    break;
                 case /* nimi.runtime.v1.LoadoutValidationState validation_state */ 10:
                     message.validationState = reader.int32();
                     break;
@@ -1803,6 +2267,15 @@ class Loadout$Type extends MessageType<Loadout> {
                     break;
                 case /* string updated_at */ 15:
                     message.updatedAt = reader.string();
+                    break;
+                case /* repeated string implementation_supported_features */ 16:
+                    message.implementationSupportedFeatures.push(reader.string());
+                    break;
+                case /* repeated string configured_features */ 17:
+                    message.configuredFeatures.push(reader.string());
+                    break;
+                case /* repeated nimi.runtime.v1.TextBehaviorCapabilityProjection text_behaviors */ 18:
+                    message.textBehaviors.push(TextBehaviorCapabilityProjection.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1840,9 +2313,6 @@ class Loadout$Type extends MessageType<Loadout> {
         /* repeated nimi.runtime.v1.LoadoutRecipeCustodyReference recipe_custody = 8; */
         for (let i = 0; i < message.recipeCustody.length; i++)
             LoadoutRecipeCustodyReference.internalBinaryWrite(message.recipeCustody[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
-        /* repeated string supported_features = 9; */
-        for (let i = 0; i < message.supportedFeatures.length; i++)
-            writer.tag(9, WireType.LengthDelimited).string(message.supportedFeatures[i]);
         /* nimi.runtime.v1.LoadoutValidationState validation_state = 10; */
         if (message.validationState !== 0)
             writer.tag(10, WireType.Varint).int32(message.validationState);
@@ -1865,6 +2335,15 @@ class Loadout$Type extends MessageType<Loadout> {
         /* string updated_at = 15; */
         if (message.updatedAt !== "")
             writer.tag(15, WireType.LengthDelimited).string(message.updatedAt);
+        /* repeated string implementation_supported_features = 16; */
+        for (let i = 0; i < message.implementationSupportedFeatures.length; i++)
+            writer.tag(16, WireType.LengthDelimited).string(message.implementationSupportedFeatures[i]);
+        /* repeated string configured_features = 17; */
+        for (let i = 0; i < message.configuredFeatures.length; i++)
+            writer.tag(17, WireType.LengthDelimited).string(message.configuredFeatures[i]);
+        /* repeated nimi.runtime.v1.TextBehaviorCapabilityProjection text_behaviors = 18; */
+        for (let i = 0; i < message.textBehaviors.length; i++)
+            TextBehaviorCapabilityProjection.internalBinaryWrite(message.textBehaviors[i], writer.tag(18, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2134,7 +2613,9 @@ class LoadoutRecipeSlotDescriptor$Type extends MessageType<LoadoutRecipeSlotDesc
             { no: 2, name: "display_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "recommended_content_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "model_contract", kind: "message", T: () => Struct },
-            { no: 5, name: "recommended_variant_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 5, name: "recommended_variant_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "presence", kind: "enum", T: () => ["nimi.runtime.v1.LocalCapabilityRequirementPresence", LocalCapabilityRequirementPresence, "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_"] },
+            { no: 7, name: "conditional_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LoadoutRecipeSlotDescriptor>): LoadoutRecipeSlotDescriptor {
@@ -2143,6 +2624,8 @@ class LoadoutRecipeSlotDescriptor$Type extends MessageType<LoadoutRecipeSlotDesc
         message.displayLabel = "";
         message.recommendedContentIds = [];
         message.recommendedVariantIds = [];
+        message.presence = 0;
+        message.conditionalFeatures = [];
         if (value !== undefined)
             reflectionMergePartial<LoadoutRecipeSlotDescriptor>(this, message, value);
         return message;
@@ -2166,6 +2649,12 @@ class LoadoutRecipeSlotDescriptor$Type extends MessageType<LoadoutRecipeSlotDesc
                     break;
                 case /* repeated string recommended_variant_ids */ 5:
                     message.recommendedVariantIds.push(reader.string());
+                    break;
+                case /* nimi.runtime.v1.LocalCapabilityRequirementPresence presence */ 6:
+                    message.presence = reader.int32();
+                    break;
+                case /* repeated string conditional_features */ 7:
+                    message.conditionalFeatures.push(reader.string());
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2194,6 +2683,12 @@ class LoadoutRecipeSlotDescriptor$Type extends MessageType<LoadoutRecipeSlotDesc
         /* repeated string recommended_variant_ids = 5; */
         for (let i = 0; i < message.recommendedVariantIds.length; i++)
             writer.tag(5, WireType.LengthDelimited).string(message.recommendedVariantIds[i]);
+        /* nimi.runtime.v1.LocalCapabilityRequirementPresence presence = 6; */
+        if (message.presence !== 0)
+            writer.tag(6, WireType.Varint).int32(message.presence);
+        /* repeated string conditional_features = 7; */
+        for (let i = 0; i < message.conditionalFeatures.length; i++)
+            writer.tag(7, WireType.LengthDelimited).string(message.conditionalFeatures[i]);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2214,9 +2709,9 @@ class LoadoutRecipeDescriptor$Type extends MessageType<LoadoutRecipeDescriptor> 
             { no: 4, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "implementation", kind: "message", T: () => CapabilityImplementationIdentity },
             { no: 6, name: "default_options", kind: "message", T: () => Struct },
-            { no: 7, name: "supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "slots", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutRecipeSlotDescriptor },
-            { no: 9, name: "custody", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutRecipeCustodyDescriptor }
+            { no: 9, name: "custody", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutRecipeCustodyDescriptor },
+            { no: 10, name: "implementation_supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LoadoutRecipeDescriptor>): LoadoutRecipeDescriptor {
@@ -2225,9 +2720,9 @@ class LoadoutRecipeDescriptor$Type extends MessageType<LoadoutRecipeDescriptor> 
         message.revision = "";
         message.title = "";
         message.capabilityContract = "";
-        message.supportedFeatures = [];
         message.slots = [];
         message.custody = [];
+        message.implementationSupportedFeatures = [];
         if (value !== undefined)
             reflectionMergePartial<LoadoutRecipeDescriptor>(this, message, value);
         return message;
@@ -2255,14 +2750,14 @@ class LoadoutRecipeDescriptor$Type extends MessageType<LoadoutRecipeDescriptor> 
                 case /* google.protobuf.Struct default_options */ 6:
                     message.defaultOptions = Struct.internalBinaryRead(reader, reader.uint32(), options, message.defaultOptions);
                     break;
-                case /* repeated string supported_features */ 7:
-                    message.supportedFeatures.push(reader.string());
-                    break;
                 case /* repeated nimi.runtime.v1.LoadoutRecipeSlotDescriptor slots */ 8:
                     message.slots.push(LoadoutRecipeSlotDescriptor.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 case /* repeated nimi.runtime.v1.LoadoutRecipeCustodyDescriptor custody */ 9:
                     message.custody.push(LoadoutRecipeCustodyDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated string implementation_supported_features */ 10:
+                    message.implementationSupportedFeatures.push(reader.string());
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2294,15 +2789,15 @@ class LoadoutRecipeDescriptor$Type extends MessageType<LoadoutRecipeDescriptor> 
         /* google.protobuf.Struct default_options = 6; */
         if (message.defaultOptions)
             Struct.internalBinaryWrite(message.defaultOptions, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
-        /* repeated string supported_features = 7; */
-        for (let i = 0; i < message.supportedFeatures.length; i++)
-            writer.tag(7, WireType.LengthDelimited).string(message.supportedFeatures[i]);
         /* repeated nimi.runtime.v1.LoadoutRecipeSlotDescriptor slots = 8; */
         for (let i = 0; i < message.slots.length; i++)
             LoadoutRecipeSlotDescriptor.internalBinaryWrite(message.slots[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         /* repeated nimi.runtime.v1.LoadoutRecipeCustodyDescriptor custody = 9; */
         for (let i = 0; i < message.custody.length; i++)
             LoadoutRecipeCustodyDescriptor.internalBinaryWrite(message.custody[i], writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string implementation_supported_features = 10; */
+        for (let i = 0; i < message.implementationSupportedFeatures.length; i++)
+            writer.tag(10, WireType.LengthDelimited).string(message.implementationSupportedFeatures[i]);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2592,7 +3087,6 @@ class PrepareLoadoutRequest$Type extends MessageType<PrepareLoadoutRequest> {
             { no: 2, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "recipe_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "options", kind: "message", T: () => Struct },
-            { no: 5, name: "supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "model_axes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutModelAxisInput },
             { no: 7, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "provenance", kind: "message", T: () => Struct }
@@ -2603,7 +3097,6 @@ class PrepareLoadoutRequest$Type extends MessageType<PrepareLoadoutRequest> {
         message.loadoutId = "";
         message.capabilityContract = "";
         message.recipeId = "";
-        message.supportedFeatures = [];
         message.modelAxes = [];
         message.displayName = "";
         if (value !== undefined)
@@ -2626,9 +3119,6 @@ class PrepareLoadoutRequest$Type extends MessageType<PrepareLoadoutRequest> {
                     break;
                 case /* google.protobuf.Struct options */ 4:
                     message.options = Struct.internalBinaryRead(reader, reader.uint32(), options, message.options);
-                    break;
-                case /* repeated string supported_features */ 5:
-                    message.supportedFeatures.push(reader.string());
                     break;
                 case /* repeated nimi.runtime.v1.LoadoutModelAxisInput model_axes */ 6:
                     message.modelAxes.push(LoadoutModelAxisInput.internalBinaryRead(reader, reader.uint32(), options));
@@ -2663,9 +3153,6 @@ class PrepareLoadoutRequest$Type extends MessageType<PrepareLoadoutRequest> {
         /* google.protobuf.Struct options = 4; */
         if (message.options)
             Struct.internalBinaryWrite(message.options, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        /* repeated string supported_features = 5; */
-        for (let i = 0; i < message.supportedFeatures.length; i++)
-            writer.tag(5, WireType.LengthDelimited).string(message.supportedFeatures[i]);
         /* repeated nimi.runtime.v1.LoadoutModelAxisInput model_axes = 6; */
         for (let i = 0; i < message.modelAxes.length; i++)
             LoadoutModelAxisInput.internalBinaryWrite(message.modelAxes[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
@@ -2863,7 +3350,6 @@ class UpdateLoadoutRequest$Type extends MessageType<UpdateLoadoutRequest> {
             { no: 2, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "recipe_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "options", kind: "message", T: () => Struct },
-            { no: 5, name: "supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "model_axes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutModelAxisInput },
             { no: 7, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "provenance", kind: "message", T: () => Struct },
@@ -2875,7 +3361,6 @@ class UpdateLoadoutRequest$Type extends MessageType<UpdateLoadoutRequest> {
         message.loadoutId = "";
         message.capabilityContract = "";
         message.recipeId = "";
-        message.supportedFeatures = [];
         message.modelAxes = [];
         message.displayName = "";
         message.confirmedMachineImpact = false;
@@ -2899,9 +3384,6 @@ class UpdateLoadoutRequest$Type extends MessageType<UpdateLoadoutRequest> {
                     break;
                 case /* google.protobuf.Struct options */ 4:
                     message.options = Struct.internalBinaryRead(reader, reader.uint32(), options, message.options);
-                    break;
-                case /* repeated string supported_features */ 5:
-                    message.supportedFeatures.push(reader.string());
                     break;
                 case /* repeated nimi.runtime.v1.LoadoutModelAxisInput model_axes */ 6:
                     message.modelAxes.push(LoadoutModelAxisInput.internalBinaryRead(reader, reader.uint32(), options));
@@ -2939,9 +3421,6 @@ class UpdateLoadoutRequest$Type extends MessageType<UpdateLoadoutRequest> {
         /* google.protobuf.Struct options = 4; */
         if (message.options)
             Struct.internalBinaryWrite(message.options, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        /* repeated string supported_features = 5; */
-        for (let i = 0; i < message.supportedFeatures.length; i++)
-            writer.tag(5, WireType.LengthDelimited).string(message.supportedFeatures[i]);
         /* repeated nimi.runtime.v1.LoadoutModelAxisInput model_axes = 6; */
         for (let i = 0; i < message.modelAxes.length; i++)
             LoadoutModelAxisInput.internalBinaryWrite(message.modelAxes[i], writer.tag(6, WireType.LengthDelimited).fork(), options).join();
@@ -3218,7 +3697,8 @@ class LoadoutEffectiveModelAxisIdentity$Type extends MessageType<LoadoutEffectiv
         super("nimi.runtime.v1.LoadoutEffectiveModelAxisIdentity", [
             { no: 1, name: "slot_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "model_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "content_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "content_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "presence", kind: "enum", T: () => ["nimi.runtime.v1.LocalCapabilityRequirementPresence", LocalCapabilityRequirementPresence, "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_"] }
         ]);
     }
     create(value?: PartialMessage<LoadoutEffectiveModelAxisIdentity>): LoadoutEffectiveModelAxisIdentity {
@@ -3226,6 +3706,7 @@ class LoadoutEffectiveModelAxisIdentity$Type extends MessageType<LoadoutEffectiv
         message.slotId = "";
         message.modelAssetId = "";
         message.contentId = "";
+        message.presence = 0;
         if (value !== undefined)
             reflectionMergePartial<LoadoutEffectiveModelAxisIdentity>(this, message, value);
         return message;
@@ -3243,6 +3724,9 @@ class LoadoutEffectiveModelAxisIdentity$Type extends MessageType<LoadoutEffectiv
                     break;
                 case /* string content_id */ 3:
                     message.contentId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalCapabilityRequirementPresence presence */ 4:
+                    message.presence = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3265,6 +3749,9 @@ class LoadoutEffectiveModelAxisIdentity$Type extends MessageType<LoadoutEffectiv
         /* string content_id = 3; */
         if (message.contentId !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.contentId);
+        /* nimi.runtime.v1.LocalCapabilityRequirementPresence presence = 4; */
+        if (message.presence !== 0)
+            writer.tag(4, WireType.Varint).int32(message.presence);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3286,7 +3773,9 @@ class LoadoutEffectiveInputIdentity$Type extends MessageType<LoadoutEffectiveInp
             { no: 5, name: "recipe_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "options", kind: "message", T: () => Struct },
             { no: 7, name: "model_axes", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutEffectiveModelAxisIdentity },
-            { no: 8, name: "recipe_custody", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutRecipeCustodyReference }
+            { no: 8, name: "recipe_custody", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutRecipeCustodyReference },
+            { no: 9, name: "admitted_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "admitted_text_behaviors", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.TextBehaviorKind", TextBehaviorKind, "TEXT_BEHAVIOR_KIND_"] }
         ]);
     }
     create(value?: PartialMessage<LoadoutEffectiveInputIdentity>): LoadoutEffectiveInputIdentity {
@@ -3297,6 +3786,8 @@ class LoadoutEffectiveInputIdentity$Type extends MessageType<LoadoutEffectiveInp
         message.recipeRevision = "";
         message.modelAxes = [];
         message.recipeCustody = [];
+        message.admittedFeatures = [];
+        message.admittedTextBehaviors = [];
         if (value !== undefined)
             reflectionMergePartial<LoadoutEffectiveInputIdentity>(this, message, value);
         return message;
@@ -3329,6 +3820,16 @@ class LoadoutEffectiveInputIdentity$Type extends MessageType<LoadoutEffectiveInp
                     break;
                 case /* repeated nimi.runtime.v1.LoadoutRecipeCustodyReference recipe_custody */ 8:
                     message.recipeCustody.push(LoadoutRecipeCustodyReference.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* repeated string admitted_features */ 9:
+                    message.admittedFeatures.push(reader.string());
+                    break;
+                case /* repeated nimi.runtime.v1.TextBehaviorKind admitted_text_behaviors */ 10:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.admittedTextBehaviors.push(reader.int32());
+                    else
+                        message.admittedTextBehaviors.push(reader.int32());
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3366,6 +3867,16 @@ class LoadoutEffectiveInputIdentity$Type extends MessageType<LoadoutEffectiveInp
         /* repeated nimi.runtime.v1.LoadoutRecipeCustodyReference recipe_custody = 8; */
         for (let i = 0; i < message.recipeCustody.length; i++)
             LoadoutRecipeCustodyReference.internalBinaryWrite(message.recipeCustody[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* repeated string admitted_features = 9; */
+        for (let i = 0; i < message.admittedFeatures.length; i++)
+            writer.tag(9, WireType.LengthDelimited).string(message.admittedFeatures[i]);
+        /* repeated nimi.runtime.v1.TextBehaviorKind admitted_text_behaviors = 10; */
+        if (message.admittedTextBehaviors.length) {
+            writer.tag(10, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.admittedTextBehaviors.length; i++)
+                writer.int32(message.admittedTextBehaviors[i]);
+            writer.join();
+        }
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3765,9 +4276,11 @@ class AIConfigLocalResourceProjection$Type extends MessageType<AIConfigLocalReso
             { no: 2, name: "label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "implementation", kind: "message", T: () => CapabilityImplementationIdentity },
-            { no: 5, name: "supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "state", kind: "enum", T: () => ["nimi.runtime.v1.AIConfigEffectiveState", AIConfigEffectiveState] },
-            { no: 7, name: "reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 7, name: "reasons", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "implementation_supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "configured_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "text_behaviors", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextBehaviorCapabilityProjection }
         ]);
     }
     create(value?: PartialMessage<AIConfigLocalResourceProjection>): AIConfigLocalResourceProjection {
@@ -3775,9 +4288,11 @@ class AIConfigLocalResourceProjection$Type extends MessageType<AIConfigLocalReso
         message.loadoutRef = "";
         message.label = "";
         message.capabilityContract = "";
-        message.supportedFeatures = [];
         message.state = 0;
         message.reasons = [];
+        message.implementationSupportedFeatures = [];
+        message.configuredFeatures = [];
+        message.textBehaviors = [];
         if (value !== undefined)
             reflectionMergePartial<AIConfigLocalResourceProjection>(this, message, value);
         return message;
@@ -3799,14 +4314,20 @@ class AIConfigLocalResourceProjection$Type extends MessageType<AIConfigLocalReso
                 case /* nimi.runtime.v1.CapabilityImplementationIdentity implementation */ 4:
                     message.implementation = CapabilityImplementationIdentity.internalBinaryRead(reader, reader.uint32(), options, message.implementation);
                     break;
-                case /* repeated string supported_features */ 5:
-                    message.supportedFeatures.push(reader.string());
-                    break;
                 case /* nimi.runtime.v1.AIConfigEffectiveState state */ 6:
                     message.state = reader.int32();
                     break;
                 case /* repeated string reasons */ 7:
                     message.reasons.push(reader.string());
+                    break;
+                case /* repeated string implementation_supported_features */ 8:
+                    message.implementationSupportedFeatures.push(reader.string());
+                    break;
+                case /* repeated string configured_features */ 9:
+                    message.configuredFeatures.push(reader.string());
+                    break;
+                case /* repeated nimi.runtime.v1.TextBehaviorCapabilityProjection text_behaviors */ 10:
+                    message.textBehaviors.push(TextBehaviorCapabilityProjection.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3832,15 +4353,21 @@ class AIConfigLocalResourceProjection$Type extends MessageType<AIConfigLocalReso
         /* nimi.runtime.v1.CapabilityImplementationIdentity implementation = 4; */
         if (message.implementation)
             CapabilityImplementationIdentity.internalBinaryWrite(message.implementation, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
-        /* repeated string supported_features = 5; */
-        for (let i = 0; i < message.supportedFeatures.length; i++)
-            writer.tag(5, WireType.LengthDelimited).string(message.supportedFeatures[i]);
         /* nimi.runtime.v1.AIConfigEffectiveState state = 6; */
         if (message.state !== 0)
             writer.tag(6, WireType.Varint).int32(message.state);
         /* repeated string reasons = 7; */
         for (let i = 0; i < message.reasons.length; i++)
             writer.tag(7, WireType.LengthDelimited).string(message.reasons[i]);
+        /* repeated string implementation_supported_features = 8; */
+        for (let i = 0; i < message.implementationSupportedFeatures.length; i++)
+            writer.tag(8, WireType.LengthDelimited).string(message.implementationSupportedFeatures[i]);
+        /* repeated string configured_features = 9; */
+        for (let i = 0; i < message.configuredFeatures.length; i++)
+            writer.tag(9, WireType.LengthDelimited).string(message.configuredFeatures[i]);
+        /* repeated nimi.runtime.v1.TextBehaviorCapabilityProjection text_behaviors = 10; */
+        for (let i = 0; i < message.textBehaviors.length; i++)
+            TextBehaviorCapabilityProjection.internalBinaryWrite(message.textBehaviors[i], writer.tag(10, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

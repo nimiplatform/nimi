@@ -215,7 +215,7 @@ func runAudioCppCLIProcess(ctx context.Context, plan *capabilitydriver.MusicInvo
 	if err != nil {
 		return localexecution.MusicResult{}, executionFailure(localexecution.FailureContentMismatch, err)
 	}
-	outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: plan.AudioCppExecutablePath(), workingDir: plan.AudioCppRoot(), cuda13Root: plan.CUDA13Root(), args: args, stagingOutputPath: plan.StagingWAVPath()})
+	outcome, err := runAudioCppProcess(ctx, audioCppProcessSpec{executablePath: plan.AudioCppExecutablePath(), workingDir: plan.AudioCppRoot(), cuda13Root: plan.CUDA13Root(), args: args, stagingOutputPath: plan.StagingWAVPath(), modelBindings: []capabilitydriver.InvocationExactBinding{plan.ModelBinding()}})
 	if err != nil {
 		return localexecution.MusicResult{}, err
 	}

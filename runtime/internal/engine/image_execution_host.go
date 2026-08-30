@@ -2,8 +2,11 @@ package engine
 
 import (
 	"context"
+	cryptorand "crypto/rand"
 	"fmt"
 	"log/slog"
+	"math"
+	"math/big"
 	"strings"
 	"sync"
 	"time"
@@ -34,7 +37,7 @@ type imageInvocationSubstrate interface {
 		func() error,
 		localexecution.ImageProgressFunc,
 	) (bool, error)
-	GenerateImage(context.Context, *capabilitydriver.ImageInvocationPlan, int32, localexecution.ImageProgressFunc) (localexecution.ImageArtifact, error)
+	GenerateImage(context.Context, *capabilitydriver.ImageInvocationPlan, int32, int64, localexecution.ImageProgressFunc) (localexecution.ImageArtifact, error)
 	Healthy() bool
 	Stop() error
 }
@@ -61,6 +64,7 @@ type imageExecutionOutcome struct {
 type ImageExecutionHost struct {
 	logger    *slog.Logger
 	substrate imageInvocationSubstrate
+	admit     func(*capabilitydriver.ImageInvocationPlan) error
 
 	mu             sync.Mutex
 	queue          []*imageExecutionRequest
@@ -75,7 +79,22 @@ type ImageExecutionHost struct {
 }
 
 func NewImageExecutionHost(manager *Manager, logger *slog.Logger, config ImageExecutionHostConfig) *ImageExecutionHost {
-	return newImageExecutionHostWithSubstrate(newManagerImageInvocationSubstrate(manager, logger, config), logger)
+	host := newImageExecutionHostWithSubstrate(newManagerImageInvocationSubstrate(manager, logger, config), logger)
+	host.admit = func(plan *capabilitydriver.ImageInvocationPlan) error {
+		if err := validateImageInvocationPlan(plan); err != nil {
+			return err
+		}
+		load, ok := plan.LoadPlan().(capabilitydriver.StableDiffusionCPPLoadPlan)
+		if !ok {
+			return fmt.Errorf("image invocation package admission requires a stable-diffusion.cpp load plan")
+		}
+		family, ok := capabilitydriver.StableDiffusionImageRecipeModelFamily(load.RecipeID())
+		if !ok {
+			return fmt.Errorf("image invocation recipe %q has no managed package family", load.RecipeID())
+		}
+		return admitManagedImageRecipeForCurrentHost(family, config.PackageSource)
+	}
+	return host
 }
 
 func newImageExecutionHostWithSubstrate(substrate imageInvocationSubstrate, logger *slog.Logger) *ImageExecutionHost {
@@ -86,6 +105,7 @@ func newImageExecutionHostWithSubstrate(substrate imageInvocationSubstrate, logg
 	host := &ImageExecutionHost{
 		logger:         logger,
 		substrate:      substrate,
+		admit:          validateImageInvocationPlan,
 		wake:           make(chan struct{}, 1),
 		stop:           make(chan struct{}),
 		stopped:        make(chan struct{}),
@@ -94,6 +114,15 @@ func newImageExecutionHostWithSubstrate(substrate imageInvocationSubstrate, logg
 	}
 	go host.run()
 	return host
+}
+
+// AdmitImage validates the exact Driver plan against the current canonical
+// host/package-family tuple before a Runtime Job is published.
+func (h *ImageExecutionHost) AdmitImage(plan *capabilitydriver.ImageInvocationPlan) error {
+	if h == nil || h.substrate == nil || h.admit == nil {
+		return fmt.Errorf("image execution host admission is unavailable")
+	}
+	return h.admit(plan)
 }
 
 func (h *ImageExecutionHost) ExecuteImage(
@@ -109,7 +138,7 @@ func (h *ImageExecutionHost) ExecuteImage(
 	if h == nil || h.substrate == nil {
 		return localexecution.ImageResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("image execution host is unavailable"))
 	}
-	if err := validateImageInvocationPlan(plan); err != nil {
+	if err := h.AdmitImage(plan); err != nil {
 		return localexecution.ImageResult{}, executionFailure(localexecution.FailureInference, err)
 	}
 	request := &imageExecutionRequest{
@@ -283,6 +312,9 @@ func beginImageExecution(ctx context.Context, onStart localexecution.ImageExecut
 func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecution.ImageResult, error) {
 	startedAt := time.Now()
 	_, err := h.substrate.Ensure(request.ctx, request.plan, func() error {
+		if err := validateInvocationDependencySources(h.substrate, request.plan.DependencySources()); err != nil {
+			return err
+		}
 		return validateInvocationModelContentContext(request.ctx, request.plan.ModelFiles())
 	}, request.progress)
 	if err != nil {
@@ -293,10 +325,14 @@ func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecu
 		if kind := localexecution.FailureKindOf(err); kind != "" {
 			return localexecution.ImageResult{}, err
 		}
-		return localexecution.ImageResult{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("load image invocation substrate: %w", err))
+		return localexecution.ImageResult{}, classifiedExecutionFailure(localexecution.FailureLoad, fmt.Errorf("load image invocation substrate: %w", err), executionFailureDiagnostic(h.substrate))
 	}
 
 	count := int32(request.plan.ImageCount())
+	baseSeed, err := resolveImageExecutionBaseSeed(request.plan)
+	if err != nil {
+		return localexecution.ImageResult{}, executionFailure(localexecution.FailureInference, err)
+	}
 	result := localexecution.ImageResult{Artifacts: make([]localexecution.ImageArtifact, 0, count)}
 	for index := int32(1); index <= count; index++ {
 		if request.ctx.Err() != nil {
@@ -311,12 +347,20 @@ func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecu
 				ArtifactCount: count,
 			})
 		}
-		artifact, generateErr := h.substrate.GenerateImage(request.ctx, request.plan, index, request.progress)
+		resolvedSeed, seedErr := request.plan.ResolveArtifactSeed(baseSeed, index)
+		if seedErr != nil {
+			result.ComputeMS = time.Since(startedAt).Milliseconds()
+			return result, executionFailure(localexecution.FailureInference, seedErr)
+		}
+		artifact, generateErr := h.substrate.GenerateImage(request.ctx, request.plan, index, resolvedSeed, request.progress)
 		if generateErr != nil {
 			result.ComputeMS = time.Since(startedAt).Milliseconds()
 			if request.ctx.Err() != nil {
 				_ = h.substrate.Stop()
 				return result, executionFailure(localexecution.FailureCanceled, request.ctx.Err())
+			}
+			if executionOutOfMemory(generateErr, executionFailureDiagnostic(h.substrate)) {
+				return result, executionFailure(localexecution.FailureOutOfMemory, generateErr)
 			}
 			if !h.substrate.Healthy() {
 				return result, executionFailure(localexecution.FailureProcessCrash, fmt.Errorf("image substrate process exited: %w", generateErr))
@@ -326,7 +370,7 @@ func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecu
 		if artifact.Index == 0 {
 			artifact.Index = index
 		}
-		if artifact.Index != index || len(artifact.Bytes) == 0 || strings.TrimSpace(artifact.MediaType) == "" {
+		if artifact.Index != index || artifact.Seed != resolvedSeed || len(artifact.Bytes) == 0 || strings.TrimSpace(artifact.MediaType) == "" {
 			result.ComputeMS = time.Since(startedAt).Milliseconds()
 			return result, executionFailure(localexecution.FailureInference, fmt.Errorf("image substrate returned an invalid artifact %d", index))
 		}
@@ -352,6 +396,25 @@ func (h *ImageExecutionHost) execute(request *imageExecutionRequest) (localexecu
 	}
 	result.ComputeMS = time.Since(startedAt).Milliseconds()
 	return result, nil
+}
+
+func resolveImageExecutionBaseSeed(plan *capabilitydriver.ImageInvocationPlan) (int64, error) {
+	if plan == nil || plan.RequestPlan() == nil || plan.ImageCount() < 1 {
+		return 0, fmt.Errorf("image execution seed plan is unavailable")
+	}
+	requested := plan.RequestPlan().Seed()
+	if requested != -1 {
+		if _, err := plan.ResolveArtifactSeed(requested, int32(plan.ImageCount())); err != nil {
+			return 0, err
+		}
+		return requested, nil
+	}
+	maxBase := int64(math.MaxInt32) - int64(plan.ImageCount()-1)
+	value, err := cryptorand.Int(cryptorand.Reader, big.NewInt(maxBase+1))
+	if err != nil {
+		return 0, fmt.Errorf("resolve random image seed: %w", err)
+	}
+	return value.Int64(), nil
 }
 
 func (h *ImageExecutionHost) deliver(request *imageExecutionRequest, outcome imageExecutionOutcome) {

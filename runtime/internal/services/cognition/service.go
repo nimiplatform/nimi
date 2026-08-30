@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
+	goruntime "runtime"
 	"strings"
 	"sync"
 	"time"
@@ -52,6 +53,12 @@ type AgentSourceOutcome struct {
 	UnitCount         uint32
 	OmissionCount     uint32
 	Units             []AgentSourceUnit
+}
+
+type DataRootCheckResource struct {
+	Kind   string
+	Status string
+	Reason string
 }
 
 type AgentSourceEmbeddingExecution struct {
@@ -278,6 +285,7 @@ type Service struct {
 	logger       *slog.Logger
 	owner        *nimicognition.V1Owner
 	sourceBridge *nimicognition.RuntimeSourceBridge
+	root         string
 
 	mu                           sync.RWMutex
 	agentSourceEmbeddingExecutor AgentSourceEmbeddingExecutor
@@ -314,9 +322,92 @@ func NewV1Owner(logger *slog.Logger, cfg config.Config) (*Service, error) {
 		logger:                     logger,
 		owner:                      owner,
 		sourceBridge:               owner.SourceBridge(),
+		root:                       root,
 		agentSourceLifecycleCtx:    agentSourceLifecycleCtx,
 		agentSourceLifecycleCancel: agentSourceLifecycleCancel,
 	}, nil
+}
+
+// @nimi-authority: rule.nimi.cognition.runtime-bridge.r025
+func (s *Service) CheckSyncRoot(dataRoot string) error {
+	_, err := s.CheckSyncDataRoot(context.Background(), dataRoot)
+	return err
+}
+
+// CheckSyncDataRoot delegates structural verification to the Cognition V1
+// owner. Runtime receives only typed aggregate outcomes and never opens or
+// interprets Cognition SQLite state.
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007e
+func (s *Service) CheckSyncDataRoot(ctx context.Context, dataRoot string) ([]DataRootCheckResource, error) {
+	if s == nil || s.owner == nil || s.MemoryCore() == nil || s.sourceBridge == nil {
+		return nil, errors.New("Cognition owner is unavailable")
+	}
+	expected := filepath.Join(filepath.Clean(strings.TrimSpace(dataRoot)), "accounts", "runtime", "runtime-cognition")
+	if !sameCognitionPath(s.root, expected) {
+		return nil, errors.New("Cognition owner is not bound to the current data-root activation")
+	}
+	inspection, err := s.owner.InspectStore(ctx)
+	if err != nil {
+		return nil, err
+	}
+	resources := make([]DataRootCheckResource, 0, len(inspection.Resources))
+	for _, resource := range inspection.Resources {
+		resources = append(resources, DataRootCheckResource{Kind: resource.Kind, Status: resource.Status, Reason: resource.Reason})
+	}
+	return resources, nil
+}
+
+func (s *Service) QuiesceDataRoot() {
+	_ = s.QuiesceDataRootContext(context.Background())
+}
+
+func (s *Service) QuiesceDataRootContext(ctx context.Context) error {
+	if s == nil {
+		return nil
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	s.agentSourceLifecycleMu.Lock()
+	if !s.agentSourceLifecycleClosed {
+		s.agentSourceLifecycleClosed = true
+		if s.agentSourceLifecycleCancel != nil {
+			s.agentSourceLifecycleCancel()
+		}
+	}
+	s.agentSourceLifecycleMu.Unlock()
+	done := make(chan struct{})
+	go func() {
+		s.agentSourceWG.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (s *Service) ResumeDataRootAfterAbort() {
+	if s == nil || s.owner == nil {
+		return
+	}
+	s.agentSourceLifecycleMu.Lock()
+	if s.agentSourceLifecycleClosed {
+		s.agentSourceLifecycleCtx, s.agentSourceLifecycleCancel = context.WithCancel(context.Background())
+		s.agentSourceLifecycleClosed = false
+	}
+	s.agentSourceLifecycleMu.Unlock()
+}
+
+func sameCognitionPath(left string, right string) bool {
+	left = filepath.Clean(strings.TrimSpace(left))
+	right = filepath.Clean(strings.TrimSpace(right))
+	if goruntime.GOOS == "windows" {
+		return strings.EqualFold(left, right)
+	}
+	return left == right
 }
 
 func (s *Service) Close() error {

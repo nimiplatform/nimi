@@ -129,6 +129,15 @@ export function parseNimiProductControlRecord(value: unknown): NimiProductContro
     });
   }
   const state = parseNimiProductControlState(record.state);
+	const schemaVersion = Number(record.schemaVersion);
+	const rootActivationId = dataRoot ? parseOptionalString(dataRoot.rootActivationId) : null;
+	if (dataRoot && schemaVersion >= 2 && !rootActivationId) {
+		throw productControlError({
+			reasonCode: 'SDK_PRODUCT_CONTROL_ROOT_ACTIVATION_INVALID',
+			message: 'Current product-control schema requires dataRoot.rootActivationId.',
+			actionHint: 'initialize_product_control_root_activation',
+		});
+	}
   const completedAt = parseOptionalString(firstRun.completedAt);
   if (state === 'ready_for_use' && (!firstRun.completed || !completedAt)) {
     throw productControlError({
@@ -138,7 +147,7 @@ export function parseNimiProductControlRecord(value: unknown): NimiProductContro
     });
   }
   return {
-    schemaVersion: Number(record.schemaVersion),
+    schemaVersion,
     installId: String(record.installId || ''),
     productVersion: String(record.productVersion || ''),
     state,
@@ -146,6 +155,7 @@ export function parseNimiProductControlRecord(value: unknown): NimiProductContro
       ? {
         path: String(dataRoot.path || ''),
         status: parseNimiProductDataRootStatus(dataRoot.status),
+        rootActivationId,
         selectedAt: String(dataRoot.selectedAt || ''),
         verifiedAt: String(dataRoot.verifiedAt || ''),
         selectedAtUnixMs: Number(dataRoot.selectedAtUnixMs || 0),
@@ -171,6 +181,9 @@ export function parseNimiProductControlRecordProjection(value: unknown): NimiPro
   const configMutation = record.configMutation == null
     ? null
     : asRecord(record.configMutation, 'product control configMutation');
+	const activation = record.activation == null
+		? null
+		: asRecord(record.activation, 'product control activation');
   if (configMutation && !(
     (configMutation.disposition === 'applied'
       && configMutation.reasonCode === ReasonCode.CONFIG_APPLIED
@@ -178,6 +191,9 @@ export function parseNimiProductControlRecordProjection(value: unknown): NimiPro
     || (configMutation.disposition === 'restart_required'
       && configMutation.reasonCode === ReasonCode.CONFIG_RESTART_REQUIRED
       && configMutation.actionHint === 'request_typed_runtime_restart')
+		|| (configMutation.disposition === 'repair_required'
+			&& configMutation.reasonCode === 'CONFIG_WRITE_FAILED'
+			&& configMutation.actionHint === 'repair_runtime_config')
   )) {
     throw productControlError({
       reasonCode: 'SDK_PRODUCT_CONTROL_CONFIG_MUTATION_INVALID',
@@ -185,6 +201,17 @@ export function parseNimiProductControlRecordProjection(value: unknown): NimiPro
       actionHint: 'inspect_runtime_product_control_response',
     });
   }
+	if (activation && !(
+		typeof activation.activated === 'boolean'
+		&& ['DATA_ROOT_REPLACED', 'DATA_ROOT_UNCHANGED', 'DATA_ROOT_OVERLAPS_CURRENT'].includes(String(activation.reasonCode))
+		&& ['restart_runtime_and_check_sync', 'run_check_sync', 'choose_path_disjoint_root'].includes(String(activation.actionHint))
+	)) {
+		throw productControlError({
+			reasonCode: 'SDK_PRODUCT_CONTROL_ACTIVATION_INVALID',
+			message: 'Runtime product-control activation disposition is invalid.',
+			actionHint: 'inspect_runtime_product_control_response',
+		});
+	}
   return {
     path: String(record.path || ''),
     exists: record.exists === true,
@@ -193,11 +220,18 @@ export function parseNimiProductControlRecordProjection(value: unknown): NimiPro
     error: parseOptionalString(record.error),
     configMutation: configMutation
       ? {
-        disposition: configMutation.disposition as 'applied' | 'restart_required',
-        reasonCode: configMutation.reasonCode as typeof ReasonCode.CONFIG_APPLIED | typeof ReasonCode.CONFIG_RESTART_REQUIRED,
-        actionHint: configMutation.actionHint as 'continue_product_setup' | 'request_typed_runtime_restart',
+			disposition: configMutation.disposition as 'applied' | 'restart_required' | 'repair_required',
+			reasonCode: configMutation.reasonCode as typeof ReasonCode.CONFIG_APPLIED | typeof ReasonCode.CONFIG_RESTART_REQUIRED | 'CONFIG_WRITE_FAILED',
+			actionHint: configMutation.actionHint as 'continue_product_setup' | 'request_typed_runtime_restart' | 'repair_runtime_config',
       }
       : null,
+		activation: activation
+			? {
+				activated: activation.activated as boolean,
+				reasonCode: activation.reasonCode as 'DATA_ROOT_REPLACED' | 'DATA_ROOT_UNCHANGED' | 'DATA_ROOT_OVERLAPS_CURRENT',
+				actionHint: activation.actionHint as 'restart_runtime_and_check_sync' | 'run_check_sync' | 'choose_path_disjoint_root',
+			}
+			: null,
   };
 }
 
@@ -229,6 +263,7 @@ export function parseNimiProductControlSelectedDataRootProjection(
       ? {
         path: String(dataRoot.path || ''),
         status: parseNimiProductDataRootStatus(dataRoot.status),
+        rootActivationId: parseOptionalString(dataRoot.rootActivationId),
         selectedAt: String(dataRoot.selectedAt || ''),
         verifiedAt: String(dataRoot.verifiedAt || ''),
         selectedAtUnixMs: Number(dataRoot.selectedAtUnixMs || 0),

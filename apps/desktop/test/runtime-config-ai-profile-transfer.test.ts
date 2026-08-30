@@ -62,13 +62,15 @@ function recipe(input: {
     capabilityContract: input.capability,
     implementation: { implementationId: 'local.test', driverId: 'driver.test', driverDialect: `${input.id}/v1` },
     defaultOptions: {},
-    supportedFeatures: [],
+    implementationSupportedFeatures: [],
     slots: input.slots.map((slot) => ({
       slotId: slot.id,
       displayLabel: slot.id,
       recommendedContentIds: [slot.contentId],
       recommendedVariantIds: [slot.variantId],
       modelContract: {},
+      presence: 'required',
+      conditionalFeatures: [],
     })),
   };
 }
@@ -134,7 +136,9 @@ function committedLoadout(capability: string, id: string, configured = true): Ni
     options: {},
     modelAxes: [],
     recipeCustody: [],
-    supportedFeatures: [],
+    implementationSupportedFeatures: [],
+    configuredFeatures: [],
+    textBehaviors: [],
     validationState: configured ? 'configured' : 'unresolved',
     reasons: [],
     displayName: id,
@@ -941,6 +945,9 @@ test('multi-file export preserves verified acquisition while manual content stay
       expectedContentId: assetValue.contentId,
       recipeCompatible: true,
       reasons: [],
+      presence: recipeValue.slots[0]!.presence,
+      conditionalFeatures: recipeValue.slots[0]!.conditionalFeatures,
+      resolution: 'configured',
     }],
   });
   const exported = exportRuntimeConfigAIProfileFromLoadouts({
@@ -1099,8 +1106,8 @@ test('Loadout export strips machine ids and emits provenance-backed or content-o
     provenance: { source_repo: 'example/text', source_revision: 'main' },
   });
   const manual = asset({ id: 'machine-private-manual', contentId: B, hash: B });
-  const text = { ...committedLoadout('text.generate', 'private-loadout-text'), modelAxes: [{ slotId: 'model', displayLabel: 'model', modelAssetId: catalog.modelAssetId, expectedContentId: A, recipeCompatible: true, reasons: [] }] };
-  const image = { ...committedLoadout('image.generate', 'private-loadout-image'), modelAxes: [{ slotId: 'main', displayLabel: 'main', modelAssetId: manual.modelAssetId, expectedContentId: B, recipeCompatible: true, reasons: [] }] };
+  const text = { ...committedLoadout('text.generate', 'private-loadout-text'), modelAxes: [{ slotId: 'model', displayLabel: 'model', modelAssetId: catalog.modelAssetId, expectedContentId: A, recipeCompatible: true, reasons: [], presence: 'required' as const, conditionalFeatures: [], resolution: 'configured' as const }] };
+  const image = { ...committedLoadout('image.generate', 'private-loadout-image'), modelAxes: [{ slotId: 'main', displayLabel: 'main', modelAssetId: manual.modelAssetId, expectedContentId: B, recipeCompatible: true, reasons: [], presence: 'required' as const, conditionalFeatures: [], resolution: 'configured' as const }] };
   const exported = exportRuntimeConfigAIProfileFromLoadouts({ profileId: 'profile.exported', title: 'Exported', loadouts: [text, image], assets: [catalog, manual] });
   assert.doesNotMatch(exported.artifactJson, /machine-private|modelAssetId|loadoutId/u);
   assert.equal(exported.profile.capabilities['text.generate']?.route, 'local');

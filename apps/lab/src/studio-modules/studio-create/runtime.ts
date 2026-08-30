@@ -72,6 +72,7 @@ async function runChatStream(context: StudioCapabilityRuntimeContext) {
     scenarioId: context.scenarioId,
     surfaceId: context.host.surfaceId,
     ...(context.input.onPartial ? { onPartial: context.input.onPartial } : {}),
+    ...(context.input.signal ? { signal: context.input.signal } : {}),
   });
   if (result.ok === false) return projectStudioRunnerNonSuccess(context, result);
   if (result.output.kind !== 'text') {
@@ -199,6 +200,7 @@ async function* streamLocalAppTextEvents(
   try {
     if (signal?.aborted) throw studioAbortError();
     let started = false;
+    let textItemOpened = false;
     for await (const event of subscription) {
       if (!started) {
         started = true;
@@ -213,6 +215,7 @@ async function* streamLocalAppTextEvents(
         };
       }
       if (event.type === 'delta') {
+        textItemOpened = true;
         yield localTextDeltaEvent(event);
         continue;
       }
@@ -221,6 +224,9 @@ async function* streamLocalAppTextEvents(
           reasonCode: event.reasonCode,
           actionHint: event.actionHint,
         });
+      }
+      if (textItemOpened) {
+        yield localTextCompletionDeltaEvent(event);
       }
       yield {
         eventType: 6,
@@ -262,7 +268,39 @@ function localTextDeltaEvent(
     traceId: event.traceId,
     payload: {
       oneofKind: 'delta',
-      delta: { delta: { oneofKind: 'text', text: { text: event.text } } },
+      delta: {
+        delta: {
+          oneofKind: 'textOutputItem',
+          textOutputItem: {
+            itemIndex: 0,
+            delta: { oneofKind: 'text', text: { text: event.text } },
+            itemCompleted: false,
+          },
+        },
+      },
+    },
+  };
+}
+
+function localTextCompletionDeltaEvent(
+  event: Extract<NimiLocalAppTextTurnEvent, { type: 'completed' }>,
+): RuntimeStreamEvent {
+  return {
+    eventType: 2,
+    sequence: event.sequence,
+    traceId: event.traceId,
+    payload: {
+      oneofKind: 'delta',
+      delta: {
+        delta: {
+          oneofKind: 'textOutputItem',
+          textOutputItem: {
+            itemIndex: 0,
+            delta: { oneofKind: undefined },
+            itemCompleted: true,
+          },
+        },
+      },
     },
   };
 }

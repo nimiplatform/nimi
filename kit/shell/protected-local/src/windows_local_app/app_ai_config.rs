@@ -15,7 +15,9 @@ use crate::generated::{
     AiConfigLocalLoadoutOptionsQuery, AiConfigLocalResourceProjection,
     AppAiConfigPresetVoiceOption, AppAiConfigPresetVoiceOptionsQuery,
     CapabilityImplementationIdentity, GetAppAiConfigRequest, ListAppAiConfigOptionsRequest,
-    OverwriteAppAiConfigRequest, ReasonCode,
+    LocalCapabilityReason, OverwriteAppAiConfigRequest, ReasonCode,
+    TextBehaviorCapabilityProjection, TextBehaviorConfigurationState, TextBehaviorKind,
+    ToolChoiceMode, ToolSpecKind, ToolUseCapabilityProjection,
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
@@ -263,9 +265,94 @@ pub(super) fn project_local_resource(
         "label": required_text_value(&resource.label)?,
         "capabilityContract": required_text_value(&resource.capability_contract)?,
         "implementation": implementation,
-        "supportedFeatures": resource.supported_features,
+        "implementationSupportedFeatures": resource.implementation_supported_features,
+        "configuredFeatures": resource.configured_features,
+        "textBehaviors": resource.text_behaviors.into_iter().map(project_text_behavior).collect::<Result<Vec<_>, _>>()?,
         "state": project_effective_state(resource.state)?,
         "reasons": resource.reasons,
+    }))
+}
+
+fn project_text_behavior(
+    value: TextBehaviorCapabilityProjection,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let kind = match TextBehaviorKind::try_from(value.kind).map_err(|_| untrusted())? {
+        TextBehaviorKind::ToolUse => "tool-use",
+        TextBehaviorKind::Reasoning => "reasoning",
+        TextBehaviorKind::StructuredOutput => "structured-output",
+        TextBehaviorKind::Unspecified => return Err(untrusted()),
+    };
+    let configuration_state =
+        match TextBehaviorConfigurationState::try_from(value.configuration_state)
+            .map_err(|_| untrusted())?
+        {
+            TextBehaviorConfigurationState::Unavailable => "unavailable",
+            TextBehaviorConfigurationState::Configured => "configured",
+            TextBehaviorConfigurationState::Ambiguous => "ambiguous",
+            TextBehaviorConfigurationState::Unspecified => return Err(untrusted()),
+        };
+    let reasons = value
+        .reasons
+        .into_iter()
+        .map(|reason| {
+            let reason = LocalCapabilityReason::try_from(reason).map_err(|_| untrusted())?;
+            if reason == LocalCapabilityReason::Unspecified {
+                return Err(untrusted());
+            }
+            Ok(reason
+                .as_str_name()
+                .trim_start_matches("LOCAL_CAPABILITY_REASON_")
+                .to_string())
+        })
+        .collect::<Result<Vec<_>, LocalAppOperationError>>()?;
+    Ok(json!({
+        "kind": kind,
+        "implementationSupported": value.implementation_supported,
+        "configurationState": configuration_state,
+        "reasons": reasons,
+        "implementationToolUse": value.implementation_tool_use.map(project_tool_use).transpose()?,
+        "configuredToolUse": value.configured_tool_use.map(project_tool_use).transpose()?,
+    }))
+}
+
+fn project_tool_use(
+    value: ToolUseCapabilityProjection,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let tool_kinds = value
+        .supported_tool_spec_kinds
+        .into_iter()
+        .map(
+            |kind| match ToolSpecKind::try_from(kind).map_err(|_| untrusted())? {
+                ToolSpecKind::Function => Ok("function"),
+                ToolSpecKind::Provider => Ok("provider"),
+                ToolSpecKind::Unspecified => Err(untrusted()),
+            },
+        )
+        .collect::<Result<Vec<_>, LocalAppOperationError>>()?;
+    let choices = value
+        .supported_tool_choice_modes
+        .into_iter()
+        .map(
+            |choice| match ToolChoiceMode::try_from(choice).map_err(|_| untrusted())? {
+                ToolChoiceMode::Auto => Ok("auto"),
+                ToolChoiceMode::None => Ok("none"),
+                ToolChoiceMode::Required => Ok("required"),
+                ToolChoiceMode::Tool => Ok("tool"),
+                ToolChoiceMode::Unspecified => Err(untrusted()),
+            },
+        )
+        .collect::<Result<Vec<_>, LocalAppOperationError>>()?;
+    Ok(json!({
+        "supportedToolSpecKinds": tool_kinds,
+        "supportedToolChoiceModes": choices,
+        "supportsSingleCall": value.supports_single_call,
+        "supportsMultipleCalls": value.supports_multiple_calls,
+        "supportsParallelCalls": value.supports_parallel_calls,
+        "supportsSync": value.supports_sync,
+        "supportsStream": value.supports_stream,
+        "supportsToolOnlyResponse": value.supports_tool_only_response,
+        "supportsToolResultRoundTrip": value.supports_tool_result_round_trip,
+        "supportsMixedTextAndToolCalls": value.supports_mixed_text_and_tool_calls,
     }))
 }
 
@@ -767,7 +854,16 @@ mod tests {
                 driver_id: "nimi.local".to_string(),
                 driver_dialect: "mlx".to_string(),
             }),
-            supported_features: vec!["input.image".to_string()],
+            implementation_supported_features: vec!["input.image".to_string()],
+            configured_features: vec!["input.image".to_string()],
+            text_behaviors: vec![TextBehaviorCapabilityProjection {
+                kind: TextBehaviorKind::ToolUse as i32,
+                implementation_supported: false,
+                configuration_state: TextBehaviorConfigurationState::Unavailable as i32,
+                reasons: vec![LocalCapabilityReason::TextBehaviorUnavailable as i32],
+                implementation_tool_use: None,
+                configured_tool_use: None,
+            }],
             state: AiConfigEffectiveState::Ready as i32,
             reasons: vec![],
         })
@@ -775,7 +871,12 @@ mod tests {
         assert_eq!(projected["loadoutRef"], "loadout-text");
         assert_eq!(projected["label"], "Gemma 4");
         assert_eq!(projected["state"], "ready");
-        assert_eq!(projected["supportedFeatures"], json!(["input.image"]));
+        assert_eq!(
+            projected["implementationSupportedFeatures"],
+            json!(["input.image"])
+        );
+        assert_eq!(projected["configuredFeatures"], json!(["input.image"]));
+        assert_eq!(projected["textBehaviors"][0]["kind"], "tool-use");
     }
 
     #[test]

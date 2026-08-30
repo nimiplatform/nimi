@@ -560,11 +560,9 @@ func TestPublicChatVisionCapableRouteCompletesAttachmentTurn(t *testing.T) {
 					if err := emit(&runtimev1.StreamScenarioEvent{
 						EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 						TraceId:   "trace-happy-" + test.name,
-						Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
-							Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{
-								Text: publicChatStructuredEnvelopeAPML("message-happy-"+test.name, assistantText),
-							}},
-						}},
+						Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(
+
+							publicChatStructuredEnvelopeAPML("message-happy-"+test.name, assistantText))},
 					}); err != nil {
 						return err
 					}

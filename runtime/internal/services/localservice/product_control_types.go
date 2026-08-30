@@ -1,6 +1,9 @@
 package localservice
 
-const productControlSchemaVersion = 1
+const (
+	productControlSchemaVersion       = 2
+	productControlLegacySchemaVersion = 1
+)
 
 type productControlState string
 
@@ -40,6 +43,7 @@ type productControlRecord struct {
 type productDataRootRecord struct {
 	Path             string                `json:"path"`
 	Status           productDataRootStatus `json:"status"`
+	RootActivationID string                `json:"rootActivationId,omitempty"`
 	SelectedAt       string                `json:"selectedAt"`
 	VerifiedAt       string                `json:"verifiedAt"`
 	SelectedAtUnixMs int64                 `json:"selectedAtUnixMs"`
@@ -67,12 +71,30 @@ type productControlRecordProjection struct {
 	Record         *productControlRecord         `json:"record"`
 	Error          *string                       `json:"error"`
 	ConfigMutation *productControlConfigMutation `json:"configMutation,omitempty"`
+	Activation     *productControlActivation     `json:"activation,omitempty"`
+	RootHandoff    *productControlRootHandoff    `json:"rootHandoff,omitempty"`
+}
+
+type productControlActivation struct {
+	Activated  bool   `json:"activated"`
+	ReasonCode string `json:"reasonCode"`
+	ActionHint string `json:"actionHint"`
 }
 
 type productControlConfigMutation struct {
 	Disposition string `json:"disposition"`
 	ReasonCode  string `json:"reasonCode"`
 	ActionHint  string `json:"actionHint"`
+}
+
+// productControlRootHandoff is a queryable process disposition. The durable
+// record remains the activation truth; this projection tells a Host that lost
+// the Replace response whether this Runtime has committed that activation but
+// still requires restart, or is already serving it.
+type productControlRootHandoff struct {
+	Disposition      string `json:"disposition"`
+	RootActivationID string `json:"rootActivationId"`
+	ActionHint       string `json:"actionHint"`
 }
 
 type productControlSelectedDataRootProjection struct {

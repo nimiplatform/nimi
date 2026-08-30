@@ -155,6 +155,7 @@ test('Runtime product-control storage projection preserves platform path separat
     dataRoot: {
       path: 'D:\\NimiData\\',
       status: 'ready',
+      rootActivationId: 'rootact_windows',
       selectedAt: '2026-06-05T00:00:00.000Z',
       verifiedAt: '2026-06-05T00:00:00.000Z',
       selectedAtUnixMs: 1,
@@ -230,13 +231,14 @@ function productControlEnvelope(state: NimiProductControlState) {
       exists: true,
       state,
       record: {
-        schemaVersion: 1,
+        schemaVersion: 2,
         installId: 'tester-install',
         productVersion: 'tester',
         state,
         dataRoot: state === 'config_missing' || state === 'data_root_missing' ? null : {
           path: '/tester/nimi-data',
           status: state === 'ready_for_use' ? 'ready' : 'selected',
+          rootActivationId: 'rootact_tester',
           selectedAt: '2026-06-01T00:00:00.000Z',
           verifiedAt: '2026-06-01T00:00:00.000Z',
           selectedAtUnixMs: 1,
@@ -263,6 +265,7 @@ function selectedDataRootEnvelope(state: NimiProductControlState) {
       dataRoot: {
         path: '/tester/nimi-data',
         status: state === 'ready_for_use' ? 'ready' : 'selected',
+        rootActivationId: 'rootact_tester',
         selectedAt: '2026-06-01T00:00:00.000Z',
         verifiedAt: '2026-06-01T00:00:00.000Z',
         selectedAtUnixMs: 1,

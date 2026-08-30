@@ -36,6 +36,7 @@ function fakeClient(config: {
   submitError?: unknown;
   neverEndingEvents?: boolean;
   lookupJob?: ScenarioJob;
+  cancelJob?: ScenarioJob;
 }) {
   const submitScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['submitScenarioJob']>(async () => {
     if (config.submitError) throw config.submitError;
@@ -44,7 +45,9 @@ function fakeClient(config: {
   const getScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['getScenarioJob']>(async () => ({
     job: config.lookupJob ?? speechJob(ScenarioJobStatus.COMPLETED),
   }));
-  const cancelScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['cancelScenarioJob']>(async () => ({}));
+  const cancelScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['cancelScenarioJob']>(async () => ({
+    ...(config.cancelJob ? { job: config.cancelJob } : {}),
+  }));
   const subscribeScenarioJobEvents = vi.fn<NimiRuntimeScenarioJobClient['subscribeScenarioJobEvents']>(() => ({
     [Symbol.asyncIterator]() {
       let emitted = false;
@@ -144,12 +147,13 @@ describe('runRuntimeSpeechSynthesize', () => {
     const fake = fakeClient({
       neverEndingEvents: true,
       lookupJob: speechJob(ScenarioJobStatus.RUNNING),
+      cancelJob: speechJob(ScenarioJobStatus.CANCELED),
     });
     const controller = new AbortController();
     const pending = runRuntimeSpeechSynthesize(input(fake.client, { signal: controller.signal, abortReason: 'stop speech' }));
     await new Promise((resolve) => setTimeout(resolve, 0));
     controller.abort();
-    expect(await pending).toMatchObject({ ok: false, reason: 'operation-aborted' });
+    expect(await pending).toMatchObject({ ok: false, reason: 'runtime-canceled' });
     expect(fake.cancelScenarioJob).toHaveBeenCalledTimes(1);
     expect(fake.cancelScenarioJob.mock.calls[0]?.[0]).toMatchObject({ jobId: 'job-speech-1', reason: 'stop speech' });
   });

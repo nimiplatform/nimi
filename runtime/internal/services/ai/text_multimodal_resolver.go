@@ -187,16 +187,12 @@ func (s *Service) resolveTextGenerateArtifactPart(
 
 	switch partType {
 	case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL:
-		imageURL := resolvedPath
-		if !localText {
-			inlineURL, err := inlineRemoteTextGenerateImageURL(resolvedPath, mimeType)
-			if err != nil {
-				if cleanup != nil {
-					cleanup()
-				}
-				return nil, nil, err
+		imageURL, err := inlineTextGenerateImageURL(resolvedPath, mimeType)
+		if err != nil {
+			if cleanup != nil {
+				cleanup()
 			}
-			imageURL = inlineURL
+			return nil, nil, err
 		}
 		return &runtimev1.ChatContentPart{
 			Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
@@ -461,7 +457,7 @@ func writeTextGenerateArtifactTempStream(ctx context.Context, mimeType string, s
 	return file.Name(), func() { _ = os.Remove(file.Name()) }, nil
 }
 
-func inlineRemoteTextGenerateImageURL(location string, mimeType string) (string, error) {
+func inlineTextGenerateImageURL(location string, mimeType string) (string, error) {
 	value := strings.TrimSpace(location)
 	if value == "" {
 		return "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)

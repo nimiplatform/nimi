@@ -58,6 +58,23 @@ func TestNewManager(t *testing.T) {
 	}
 }
 
+func TestManagerStopAllFencesLateEngineStart(t *testing.T) {
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
+	if err != nil {
+		t.Fatalf("NewManager: %v", err)
+	}
+	mgr.StopAll()
+	err = mgr.StartEngine(context.Background(), EngineConfig{Kind: EngineMedia})
+	if !errors.Is(err, ErrEngineManagerStopped) {
+		t.Fatalf("StartEngine after StopAll error = %v, want ErrEngineManagerStopped", err)
+	}
+	for _, info := range mgr.ListEngines() {
+		if info.Status != StatusStopped || info.PID != 0 {
+			t.Fatalf("stopped Manager exposed live engine: %+v", info)
+		}
+	}
+}
+
 func TestListEnginesDoesNotProjectLegacyMutableMediaRoot(t *testing.T) {
 	roots := testManagedRoots(t)
 	legacyRoot := engineVersionDir(roots.Environments, EngineMedia, DefaultMediaConfig().Version)

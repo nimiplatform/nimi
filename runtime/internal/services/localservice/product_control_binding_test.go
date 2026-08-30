@@ -249,7 +249,7 @@ func TestLoadProductControlDataRootBindingAcceptsSelectedAndReady(t *testing.T) 
 			if err != nil {
 				t.Fatalf("load %s binding: %v", status, err)
 			}
-			if !binding.RecordExists || binding.DataRoot != dataRoot {
+			if !binding.RecordExists || binding.DataRoot != dataRoot || binding.InstallID != "binding-test" {
 				t.Fatalf("%s binding = %+v", status, binding)
 			}
 		})
@@ -343,7 +343,7 @@ func TestLoadProductControlDataRootBindingFailsClosedForUnusableRecordState(t *t
 	}
 }
 
-func TestLoadProductControlDataRootBindingRejectsRetiredRootDirectories(t *testing.T) {
+func TestLoadProductControlDataRootBindingPreservesUnclaimedLegacyDirectories(t *testing.T) {
 	for _, retired := range retiredNimiDataRootDirectories {
 		t.Run(retired, func(t *testing.T) {
 			productControlRoot, dataRoot := createProductControlBindingLayoutForTest(t)
@@ -360,11 +360,11 @@ func TestLoadProductControlDataRootBindingRejectsRetiredRootDirectories(t *testi
 				productControlRoot,
 				ProductControlDataRootSecurityBinding{},
 			)
-			if err == nil || !strings.Contains(err.Error(), "retired root-level directory "+retired+" still exists") {
+			if err != nil || binding.DataRoot != dataRoot {
 				t.Fatalf("binding=%+v error=%v", binding, err)
 			}
-			if binding.DataRoot != "" {
-				t.Fatalf("retired directory leaked data root: %+v", binding)
+			if _, err := os.Stat(filepath.Join(dataRoot, retired)); err != nil {
+				t.Fatalf("unclaimed legacy directory was changed: %v", err)
 			}
 		})
 	}

@@ -315,6 +315,7 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 	}
 
 	var chunkBuf strings.Builder
+	textItemOpened := false
 	sendDelta := func(text string) error {
 		if text == "" {
 			return nil
@@ -325,17 +326,10 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		}
 		chunk := chunkBuf.String()
 		chunkBuf.Reset()
+		textItemOpened = true
 		if err := send(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-			Payload: &runtimev1.StreamScenarioEvent_Delta{
-				Delta: &runtimev1.ScenarioStreamDelta{
-					Delta: &runtimev1.ScenarioStreamDelta_Text{
-						Text: &runtimev1.TextStreamDelta{
-							Text: chunk,
-						},
-					},
-				},
-			},
+			Payload:   &runtimev1.StreamScenarioEvent_Delta{Delta: textOutputDelta(0, chunk, false)},
 		}); err != nil {
 			return err
 		}
@@ -348,66 +342,35 @@ func streamTextGenerateScenario(s *Service, req *runtimev1.StreamScenarioRequest
 		}
 		chunk := chunkBuf.String()
 		chunkBuf.Reset()
+		textItemOpened = true
 		if err := send(&runtimev1.StreamScenarioEvent{
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-			Payload: &runtimev1.StreamScenarioEvent_Delta{
-				Delta: &runtimev1.ScenarioStreamDelta{
-					Delta: &runtimev1.ScenarioStreamDelta_Text{
-						Text: &runtimev1.TextStreamDelta{
-							Text: chunk,
-						},
-					},
-				},
-			},
+			Payload:   &runtimev1.StreamScenarioEvent_Delta{Delta: textOutputDelta(0, chunk, false)},
 		}); err != nil {
 			return err
 		}
 		recordFirstDeltaSent()
 		return nil
 	}
-	// Tool calls and structured output use a simulated stream over the same
-	// Remote ExecutionHost seam; no second provider path or fallback exists.
-	usesToolSurface := nimillm.TextScenarioUsesToolSurface(effective.request)
-	var pendingToolCalls []*runtimev1.ToolCall
-	if !usesToolSurface {
-		requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
-		result, streamErr := s.streamCapturedCloudText(requestCtx, effective, func(part string) error {
-			recordFirstProviderCallback()
-			recordActivity()
-			return sendDelta(part)
-		})
-		if streamErr != nil {
-			return failAndStop(streamErr)
-		}
-		usage = result.Usage
-		finishReason = result.FinishReason
-	} else {
-		streamSimulated = true
-		result, generateErr := s.executeCapturedCloudText(requestCtx, effective)
-		if generateErr != nil {
-			return failAndStop(generateErr)
-		}
-		pendingToolCalls = result.ToolCalls
-		usage = result.Usage
-		finishReason = result.FinishReason
-		for _, part := range nimillm.SplitText(result.Text, 24) {
-			recordFirstProviderCallback()
-			recordActivity()
-			if err := sendDelta(part); err != nil {
-				return err
-			}
-		}
+	requestCtx = nimillm.WithStreamSimulationFlag(requestCtx, &streamSimulated)
+	result, streamErr := s.streamCapturedCloudText(requestCtx, effective, func(part string) error {
+		recordFirstProviderCallback()
+		recordActivity()
+		return sendDelta(part)
+	})
+	if streamErr != nil {
+		return failAndStop(streamErr)
 	}
+	usage = result.Usage
+	finishReason = result.FinishReason
 
 	if err := flushDelta(); err != nil {
 		return err
 	}
-	for _, toolCall := range pendingToolCalls {
+	if textItemOpened {
 		if err := send(&runtimev1.StreamScenarioEvent{
-			EventType: runtimev1.StreamEventType_STREAM_EVENT_TOOL_CALL,
-			Payload: &runtimev1.StreamScenarioEvent_ToolCall{
-				ToolCall: toolCall,
-			},
+			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+			Payload:   &runtimev1.StreamScenarioEvent_Delta{Delta: textOutputDelta(0, "", true)},
 		}); err != nil {
 			return err
 		}

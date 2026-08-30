@@ -174,16 +174,6 @@ type Config struct {
 	// Default: 8330. (K-LENG-004)
 	EngineSpeechPort int
 
-	// EngineSidecarEnabled enables the supervised sidecar engine.
-	// Default: false. (K-LENG-004)
-	EngineSidecarEnabled bool
-
-	// EngineSidecarVersion is the managed sidecar version.
-	EngineSidecarVersion string
-
-	// EngineSidecarPort is the port for the supervised sidecar instance.
-	EngineSidecarPort int
-
 	// SchedulingDiskDenialThresholdBytes is the disk free threshold for scheduling
 	// denial. Default: 500 MB. (K-SCHED-004)
 	SchedulingDiskDenialThresholdBytes int64

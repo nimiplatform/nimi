@@ -18,8 +18,12 @@ import {
   ensureProductControlRecordCreated,
   getProductControlRecord,
   getProductControlSelectedDataRoot,
+  getProductControlCheckSync,
+  initializeProductControlRootActivation,
   pickProductDataRootDirectory,
+  replaceProductDataRoot,
   selectProductDataRoot,
+  startProductControlCheckSync,
 } from './runtime-bridge/product-control';
 import {
   executeNimiDataCleanup,
@@ -39,6 +43,8 @@ export type {
   NimiProductControlRecord,
   NimiProductControlRecordProjection,
   NimiProductControlState,
+  ProductControlCheckSyncProjection,
+  ProductControlCheckSyncResource,
 } from './runtime-bridge/product-control';
 
 export type {
@@ -92,9 +98,13 @@ export {
   getRuntimeDefaults,
   getProductControlRecord,
   getProductControlSelectedDataRoot,
+  getProductControlCheckSync,
   ensureProductControlRecordCreated,
+  initializeProductControlRootActivation,
   pickProductDataRootDirectory,
+  replaceProductDataRoot,
   selectProductDataRoot,
+  startProductControlCheckSync,
   admitProductReadyForUse,
   planNimiDataCleanup,
   executeNimiDataCleanup,

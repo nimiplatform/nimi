@@ -47,7 +47,7 @@ func (s *Service) validateImageGenerateAgainstCatalog(
 	if len(spec.GetReferenceImages()) > 0 || strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" {
 		required = append(required, aicapabilities.FeatureInputImage)
 	}
-	if strings.TrimSpace(spec.GetMask()) != "" {
+	if strings.TrimSpace(spec.GetMask()) != "" || strings.TrimSpace(spec.GetMaskArtifactId()) != "" {
 		required = append(required, aicapabilities.FeatureInputMask)
 	}
 	for _, feature := range required {

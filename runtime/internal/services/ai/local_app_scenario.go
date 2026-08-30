@@ -119,6 +119,14 @@ func projectLocalAppScenarioArtifact(artifact *runtimev1.ScenarioArtifact) (*run
 		artifact.GetSampleRateHz() < 0 || artifact.GetChannels() < 0 || artifact.GetFps() < 0 {
 		return invalid()
 	}
+	var seed *int32
+	if artifact.Seed != nil {
+		if !strings.HasPrefix(strings.ToLower(mimeType), "image/") {
+			return invalid()
+		}
+		concrete := artifact.GetSeed()
+		seed = &concrete
+	}
 	return &runtimev1.LocalAppScenarioArtifact{
 		ArtifactId:   artifactID,
 		MimeType:     mimeType,
@@ -129,6 +137,7 @@ func projectLocalAppScenarioArtifact(artifact *runtimev1.ScenarioArtifact) (*run
 		Height:       artifact.GetHeight(),
 		SampleRateHz: artifact.GetSampleRateHz(),
 		Channels:     artifact.GetChannels(),
+		Seed:         seed,
 	}, nil
 }
 
@@ -295,6 +304,18 @@ func validateLocalAppImageGenerateSpec(spec *runtimev1.LocalAppImageGenerateScen
 	if mask := spec.GetMask(); mask != "" && !localAppHTTPSURL(mask, maxLocalAppScenarioReferenceURIBytes) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	if maskArtifactID := spec.GetMaskArtifactId(); maskArtifactID != "" && !localAppBoundedIdentifier(maskArtifactID) {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
+	}
+	if spec.GetMask() != "" && spec.GetMaskArtifactId() != "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if spec.GetMaskArtifactId() != "" && spec.GetReferenceImageArtifactId() == "" {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if spec.Strength != nil && (math.IsNaN(float64(spec.GetStrength())) || math.IsInf(float64(spec.GetStrength()), 0) || spec.GetReferenceImageArtifactId() == "") {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
 	format := spec.GetResponseFormat()
 	if format != "" && format != "b64_json" && format != "url" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -311,6 +332,8 @@ func validateLocalAppImageGenerateSpec(spec *runtimev1.LocalAppImageGenerateScen
 		ReferenceImages:          append([]string(nil), spec.GetReferenceImages()...),
 		ReferenceImageArtifactId: spec.GetReferenceImageArtifactId(),
 		Mask:                     spec.GetMask(),
+		MaskArtifactId:           spec.GetMaskArtifactId(),
+		Strength:                 localAppOptionalFloat32(spec.Strength),
 		ResponseFormat:           format,
 	}, nil
 }

@@ -116,6 +116,7 @@ func scenarioJobStorePathForLocalStatePath(localStatePath string) string {
 	return filepath.Join(filepath.Dir(trimmed), scenarioJobDiskStoreDirName, scenarioJobDiskStoreFileName)
 }
 
+// @nimi-authority: rule.nimi.runtime.service-operations.r072
 func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 	raw, err := os.ReadFile(s.durablePath)
 	if err != nil {
@@ -185,9 +186,10 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 		}
 		if !isTerminalScenarioJobStatus(job.GetStatus()) {
 			job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
-			job.ReasonCode = interruptedCapturedAssemblyReasonCode(&job)
+			job.ReasonCode = runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED
 			job.ReasonDetail = interruptedCapturedAssemblyDetail(&job)
 			job.ReasonMetadata = nil
+			job.Interruption = runtimeRestartExecutionInterruption()
 			if projectionErr := prepareFailedScenarioJobProjection(&job); projectionErr != nil {
 				quarantined = append(quarantined, scenarioJobQuarantinedRecord{
 					Section: "records", RecordIndex: index, RecordID: jobID, Reason: projectionErr.Error(),
@@ -307,13 +309,6 @@ func (s *scenarioJobStore) pruneRecoveredDurableState() error {
 	}
 	s.pruneLocked(time.Now().UTC())
 	return s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistPrune})
-}
-
-func interruptedCapturedAssemblyReasonCode(job *runtimev1.ScenarioJob) runtimev1.ReasonCode {
-	if job != nil && job.GetRouteDecision() == runtimev1.RoutePolicy_ROUTE_POLICY_CLOUD {
-		return runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
-	}
-	return runtimev1.ReasonCode_AI_LOCAL_EXECUTION_INFERENCE_FAILED
 }
 
 func decodeScenarioJobStrictJSON(payload []byte, target any) error {

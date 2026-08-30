@@ -77,6 +77,7 @@ type FakeClientConfig = {
   readonly submitError?: unknown;
   readonly neverEndingEvents?: boolean;
   readonly lookupJob?: ScenarioJob;
+  readonly cancelJob?: ScenarioJob;
 };
 
 function fakeScenarioJobClient(config: FakeClientConfig) {
@@ -87,7 +88,9 @@ function fakeScenarioJobClient(config: FakeClientConfig) {
   const getScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['getScenarioJob']>(async () => ({
     job: config.lookupJob ?? config.events?.[config.events.length - 1] ?? config.submitJob ?? videoJobForTest(ScenarioJobStatus.COMPLETED),
   }));
-  const cancelScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['cancelScenarioJob']>(async () => ({}));
+  const cancelScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['cancelScenarioJob']>(async () => ({
+    ...(config.cancelJob ? { job: config.cancelJob } : {}),
+  }));
   const subscribeScenarioJobEvents = vi.fn<NimiRuntimeScenarioJobClient['subscribeScenarioJobEvents']>((_) => ({
     [Symbol.asyncIterator]() {
       let index = 0;
@@ -327,6 +330,7 @@ describe('runRuntimeVideoGenerate', () => {
     const fake = fakeScenarioJobClient({
       neverEndingEvents: true,
       lookupJob: videoJobForTest(ScenarioJobStatus.RUNNING),
+      cancelJob: videoJobForTest(ScenarioJobStatus.CANCELED),
     });
     const controller = new AbortController();
     const pending = runRuntimeVideoGenerate(videoInputForTest(fake.client, {
@@ -341,10 +345,9 @@ describe('runRuntimeVideoGenerate', () => {
     expect(result).toMatchObject({
       ok: false,
       capabilityId: 'video.generate',
-      reason: 'operation-aborted',
+      reason: 'runtime-canceled',
     });
     if (result.ok) throw new Error('expected non-success result');
-    expect(result.message).toContain('terminal state is not confirmed');
     expect(fake.cancelScenarioJob).toHaveBeenCalledTimes(1);
     expect(fake.cancelScenarioJob.mock.calls[0]?.[0]).toMatchObject({
       jobId: 'job-video-1',

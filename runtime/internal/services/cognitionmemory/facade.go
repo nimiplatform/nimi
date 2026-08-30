@@ -56,6 +56,39 @@ type Projection struct {
 	NextPageToken    string
 }
 
+// InspectBinding verifies the exact Runtime-owned Agent-to-Memory owner
+// binding without enumerating canonical Memory rows.
+func (f *Facade) InspectBinding(ctx context.Context, localAgentRef string) (Projection, error) {
+	if f == nil || f.store == nil || f.owner == nil || f.authorize == nil || !validRef(localAgentRef) {
+		return Projection{Outcome: memoryv1.OutcomeInvalid}, fmt.Errorf("inspect cognition memory binding: invalid input")
+	}
+	binding, err := f.store.BindingForAgent(ctx, localAgentRef)
+	if err != nil {
+		return Projection{Outcome: memoryv1.OutcomeUnavailable}, err
+	}
+	if err := f.authorize(ctx, binding); err != nil {
+		return Projection{Outcome: memoryv1.OutcomeInvalid}, err
+	}
+	projection := Projection{Enabled: binding.Enabled, AdoptionRequired: binding.AdoptionRequired}
+	if binding.BankRef == "" {
+		projection.Outcome = memoryv1.OutcomeUnconfigured
+		return projection, nil
+	}
+	status, err := f.owner.InspectStatusSummary(ctx, binding.BindingRef, binding.BankRef)
+	if err != nil {
+		return Projection{Outcome: memoryv1.OutcomeUnavailable, Enabled: binding.Enabled, AdoptionRequired: binding.AdoptionRequired}, err
+	}
+	projection.CurrentCount = status.Current
+	projection.SupersededCount = status.Superseded
+	projection.ForgottenCount = status.Forgotten
+	if !binding.Enabled || binding.AdoptionRequired {
+		projection.Outcome = memoryv1.OutcomeUnconfigured
+	} else {
+		projection.Outcome = memoryv1.OutcomeReady
+	}
+	return projection, nil
+}
+
 type MutationOutcome struct {
 	Outcome            memoryv1.Outcome
 	AffectedMemoryRefs []string

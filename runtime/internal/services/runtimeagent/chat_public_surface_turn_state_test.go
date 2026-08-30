@@ -191,11 +191,8 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-session-snapshot",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: envelope[:splitAt]},
-						},
-					},
+					Delta: runtimeAgentTextStreamDeltaAt(
+						0, false, envelope[:splitAt]),
 				},
 			}); err != nil {
 				return err
@@ -210,11 +207,8 @@ func TestPublicChatSessionSnapshotReportsLiveAndTerminalState(t *testing.T) {
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-session-snapshot",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: envelope[splitAt:]},
-						},
-					},
+					Delta: runtimeAgentTextStreamDeltaAt(
+						0, true, envelope[splitAt:]),
 				},
 			}); err != nil {
 				return err
@@ -371,9 +365,8 @@ func TestPublicChatCommittedSnapshotRemainsActiveUntilTerminalDeliveryReleasesRe
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-terminal-boundary",
-				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
-					Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{Text: envelope}},
-				}},
+				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(
+					envelope)},
 			}); err != nil {
 				return err
 			}

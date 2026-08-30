@@ -3,12 +3,53 @@ package appstorage
 import (
 	"encoding/base32"
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
 	"unicode/utf8"
 
 	"golang.org/x/text/unicode/norm"
 )
+
+// @nimi-authority: rule.nimi.runtime.app-surface.r051
+func InspectManagedOwner(dataRootRef string, owner ManagedOwner) (bool, error) {
+	root, err := managedOwnerPath(dataRootRef, owner)
+	if err != nil {
+		return false, err
+	}
+	info, err := os.Lstat(root)
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return false, ErrManagedOwnerInvalid
+	}
+	return true, nil
+}
+
+// InspectManagedOwnerJSON performs the existing bounded owner-visible JSON
+// validation without materializing a missing partition.
+func InspectManagedOwnerJSON(dataRootRef string, owner ManagedOwner) error {
+	root, err := managedOwnerPath(dataRootRef, owner)
+	if err != nil {
+		return err
+	}
+	objectsRoot := filepath.Join(root, "json", "objects")
+	info, err := os.Lstat(objectsRoot)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return ErrManagedOwnerInvalid
+	}
+	if _, err := localAppJSONPartitionUsage(objectsRoot); err != nil {
+		return err
+	}
+	return nil
+}
 
 const managedStorageDirectory = "managed-app-storage"
 
@@ -35,6 +76,22 @@ func (owner ManagedOwner) normalized() (ManagedOwner, error) {
 }
 
 func managedOwnerRoot(dataRootRef string, owner ManagedOwner) (string, ManagedOwner, error) {
+	root, normalized, err := managedOwnerPathWithIdentity(dataRootRef, owner)
+	if err != nil {
+		return "", ManagedOwner{}, err
+	}
+	if err := materializeRoot(dataRootRef, root); err != nil {
+		return "", ManagedOwner{}, ErrManagedOwnerInvalid
+	}
+	return root, normalized, nil
+}
+
+func managedOwnerPath(dataRootRef string, owner ManagedOwner) (string, error) {
+	root, _, err := managedOwnerPathWithIdentity(dataRootRef, owner)
+	return root, err
+}
+
+func managedOwnerPathWithIdentity(dataRootRef string, owner ManagedOwner) (string, ManagedOwner, error) {
 	dataRootRef = filepath.Clean(strings.TrimSpace(dataRootRef))
 	if dataRootRef == "." || dataRootRef == "" || !filepath.IsAbs(dataRootRef) {
 		return "", ManagedOwner{}, ErrManagedOwnerInvalid
@@ -49,9 +106,6 @@ func managedOwnerRoot(dataRootRef string, owner ManagedOwner) (string, ManagedOw
 	segments = append(segments, encodeManagedComponent(normalized.RegisteredAppSubject)...)
 	root := filepath.Join(segments...)
 	if !within(dataRootRef, root) {
-		return "", ManagedOwner{}, ErrManagedOwnerInvalid
-	}
-	if err := materializeRoot(dataRootRef, root); err != nil {
 		return "", ManagedOwner{}, ErrManagedOwnerInvalid
 	}
 	return root, normalized, nil

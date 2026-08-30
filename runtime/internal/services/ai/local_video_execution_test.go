@@ -47,6 +47,19 @@ type localVideoHostStub struct {
 	progress        []localexecution.VideoExecutionProgress
 	candidate       localexecution.RawAVCandidate
 	err             error
+	admissionErr    error
+	admissionCalls  int
+}
+
+func (h *localVideoHostStub) AdmitVideo(plan *capabilitydriver.VideoInvocationPlan) error {
+	h.mu.Lock()
+	h.admissionCalls++
+	err := h.admissionErr
+	h.mu.Unlock()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (h *localVideoHostStub) ExecuteVideo(
@@ -254,6 +267,7 @@ func TestNormalizeLocalVideoSpecExplicitZeroAndFalseOverrideDefaults(t *testing.
 func TestLocalVideoRatioDerivationAndContradictionAreTypedAtAdmission(t *testing.T) {
 	svc := newTestService(nil)
 	svc.SetLocalExecutionResolver(&countingLocalExecutionResolver{projection: selectedVideoExecutionForTest(t, "video-ratio")})
+	svc.SetLocalVideoExecutionHost(&localVideoHostStub{})
 	for _, test := range []struct {
 		ratio         string
 		width, height int
@@ -762,6 +776,30 @@ func TestLocalVideoAdmissionRejectsBeforeJobOrHostDispatch(t *testing.T) {
 	}
 }
 
+func TestLocalVideoHostPackageAdmissionRejectsBeforeJobOrExecution(t *testing.T) {
+	svc := newTestService(nil)
+	host := &localVideoHostStub{admissionErr: errors.New("package family does not admit minimax-h3")}
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedVideoExecutionForTest(t, "video-package-admission")})
+	svc.SetLocalVideoExecutionHost(host)
+
+	response, err := svc.SubmitScenarioJob(localVideoIntentContext(context.Background()), localVideoJobRequestForTest(64, 64, 5))
+	if response != nil {
+		t.Fatalf("unsupported package tuple returned Job: %+v", response)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH || status.Code(err) != codes.FailedPrecondition {
+		t.Fatalf("admission error=%v code=%v reason=%v present=%v", err, status.Code(err), reason, ok)
+	}
+	host.mu.Lock()
+	admissionCalls, executionCalls := host.admissionCalls, host.calls
+	host.mu.Unlock()
+	svc.scenarioJobs.mu.RLock()
+	jobCount := len(svc.scenarioJobs.jobs)
+	svc.scenarioJobs.mu.RUnlock()
+	if admissionCalls != 1 || executionCalls != 0 || jobCount != 0 {
+		t.Fatalf("unsupported package tuple created work: admissions=%d executions=%d jobs=%d", admissionCalls, executionCalls, jobCount)
+	}
+}
+
 func TestLocalVideoSelectionFailureDoesNotFallbackOrResolveTwice(t *testing.T) {
 	svc := newTestService(nil)
 	resolver := &countingLocalExecutionResolver{err: grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_SELECTION_NOT_FOUND)}
@@ -917,7 +955,8 @@ func selectedVideoExecutionForTest(t *testing.T, configurationID string) *locale
 			ImplementationID: capabilitydriver.StableDiffusionVideoImplementationID,
 			DriverID:         capabilitydriver.StableDiffusionVideoDriverID, DriverDialect: capabilitydriver.StableDiffusionVideoDriverDialect,
 		}).Proto(),
-		Requirements: requirements, ExactBindings: bindings, SupportedFeatures: []string{"input.image"}, Configured: true,
+		Requirements: requirements, ExactBindings: bindings,
+		ImplementationSupportedFeatures: []string{"input.image"}, ConfiguredFeatures: []string{"input.image"}, Configured: true,
 	}
 }
 

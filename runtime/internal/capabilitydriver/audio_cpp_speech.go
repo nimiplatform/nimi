@@ -76,6 +76,7 @@ type audioCppTTSSpec struct {
 	modelUsesStandaloneDITEntry bool
 	requiredFileSizes           map[string]int64
 	languages                   []string
+	languageTokens              map[string]string
 }
 
 type audioCppASRSpec struct {
@@ -84,8 +85,24 @@ type audioCppASRSpec struct {
 	languagePolicy  audioCppLanguagePolicy
 	fixedLanguage   string
 	forcedLanguages []string
+	languageTokens  map[string]string
 	supportsPrompt  bool
 	fixedChunkMode  string
+}
+
+var audioCppQwen3TTSLanguageTokens = map[string]string{
+	"de": "german", "en": "english", "es": "spanish", "fr": "french", "it": "italian",
+	"ja": "japanese", "ko": "korean", "pt": "portuguese", "ru": "russian", "zh": "chinese",
+}
+
+var audioCppQwen3ASRLanguageTokens = map[string]string{
+	"auto": "Auto", "zh": "Chinese", "en": "English", "yue": "Cantonese", "ar": "Arabic",
+	"de": "German", "fr": "French", "es": "Spanish", "pt": "Portuguese", "id": "Indonesian",
+	"it": "Italian", "ko": "Korean", "ru": "Russian", "th": "Thai", "vi": "Vietnamese",
+	"ja": "Japanese", "tr": "Turkish", "hi": "Hindi", "ms": "Malay", "nl": "Dutch",
+	"sv": "Swedish", "da": "Danish", "fi": "Finnish", "pl": "Polish", "cs": "Czech",
+	"fil": "Filipino", "fa": "Persian", "el": "Greek", "ro": "Romanian", "hu": "Hungarian",
+	"mk": "Macedonian",
 }
 
 var audioCppTTSSpecs = []audioCppTTSSpec{
@@ -107,7 +124,7 @@ var audioCppTTSSpecs = []audioCppTTSSpec{
 	{family: "omnivoice", displayName: "OmniVoice", cliTask: "tts", referencePolicy: audioCppReferenceRequired, referenceTextRequired: true, referenceArgument: "--voice-ref", speakingRateOption: "speed"},
 	{family: "outetts", displayName: "Llama-OuteTTS 1.0", cliTask: "tts", referencePolicy: audioCppReferenceOptional, referenceTextRequired: true, referenceArgument: "--voice-ref", languages: []string{"ar", "be", "bn", "de", "en", "es", "fa", "fr", "hu", "it", "ja", "ka", "ko", "lt", "lv", "nl", "pl", "pt", "ru", "sw", "ta", "uk", "zh"}},
 	{family: "pocket_tts", displayName: "PocketTTS English", cliTask: "tts", referencePolicy: audioCppReferenceOptional, referenceArgument: "--voice-ref", presetArgument: "--voice-id", defaultPreset: "alba", presetVoices: audioCppPresetVoices([]string{"alba"}, []string{"en"}), requiredFileSizes: map[string]int64{"embeddings/alba.safetensors": 6194424}, languages: []string{"en"}},
-	{family: "qwen3_tts", implementationID: AudioCppQwen3TTSBaseImplementationID, displayName: "Qwen3-TTS Base", cliTask: "tts", referencePolicy: audioCppReferenceRequired, referenceArgument: "--voice-ref", languages: []string{"zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"}},
+	{family: "qwen3_tts", implementationID: AudioCppQwen3TTSBaseImplementationID, displayName: "Qwen3-TTS Base", cliTask: "tts", referencePolicy: audioCppReferenceRequired, referenceTextRequired: true, referenceArgument: "--voice-ref", languages: []string{"zh", "en", "ja", "ko", "de", "fr", "ru", "pt", "es", "it"}, languageTokens: audioCppQwen3TTSLanguageTokens},
 	{family: "supertonic", displayName: "Supertonic 3", cliTask: "tts", referencePolicy: audioCppReferenceForbidden, presetArgument: "--voice-id", defaultPreset: "M1", presetVoices: audioCppPresetVoices([]string{"M1", "M2", "M3", "M4", "M5", "F1", "F2", "F3", "F4", "F5"}, nil), speakingRateOption: "speaking_rate", languages: []string{"en", "ko", "ja", "ar", "bg", "cs", "da", "de", "el", "es", "et", "fi", "fr", "hi", "hr", "hu", "id", "it", "lt", "lv", "nl", "pl", "pt", "ro", "ru", "sk", "sl", "sv", "tr", "uk", "vi"}},
 	{family: "vevo2", displayName: "Vevo2", cliTask: "tts", referencePolicy: audioCppReferenceRequired, referenceArgument: "--target-voice", languages: []string{"en", "zh"}},
 	{family: "vibevoice", displayName: "VibeVoice 1.5B", cliTask: "tts", referencePolicy: audioCppReferenceRequired, referenceArgument: "voice_samples", textPrefix: "Speaker 1: ", languages: []string{"en", "zh"}},
@@ -123,7 +140,7 @@ var audioCppASRSpecList = []audioCppASRSpec{
 	{family: "kroko_asr", displayName: "Kroko ASR English", languagePolicy: audioCppLanguageFixed, fixedLanguage: "en"},
 	{family: "nemotron_asr", displayName: "Nemotron 3.5 ASR", languagePolicy: audioCppLanguageAny, forcedLanguages: []string{"auto", "ar-AR", "bg-BG", "cs-CZ", "da-DK", "de-DE", "el-GR", "en-GB", "en-US", "es-ES", "es-US", "et-EE", "fi-FI", "fr-CA", "fr-FR", "he-IL", "hi-IN", "hr-HR", "hu-HU", "it-IT", "ja-JP", "ko-KR", "lt-LT", "lv-LV", "mt-MT", "nb-NO", "nl-NL", "nn-NO", "pl-PL", "pt-BR", "pt-PT", "ro-RO", "ru-RU", "sk-SK", "sl-SI", "sv-SE", "th-TH", "tr-TR", "uk-UA", "vi-VN", "zh-CN"}},
 	{family: "parakeet_tdt", displayName: "Parakeet-TDT 0.6B v3", languagePolicy: audioCppLanguageAutoOnly},
-	{family: "qwen3_asr", displayName: "Qwen3-ASR 1.7B", languagePolicy: audioCppLanguageAny, forcedLanguages: []string{"auto", "zh", "en", "yue", "ar", "de", "fr", "es", "pt", "id", "it", "ko", "ru", "th", "vi", "ja", "tr", "hi", "ms", "nl", "sv", "da", "fi", "pl", "cs", "fil", "fa", "el", "hu", "mk", "ro"}, supportsPrompt: true},
+	{family: "qwen3_asr", displayName: "Qwen3-ASR 1.7B", languagePolicy: audioCppLanguageAny, forcedLanguages: []string{"auto", "zh", "en", "yue", "ar", "de", "fr", "es", "pt", "id", "it", "ko", "ru", "th", "vi", "ja", "tr", "hi", "ms", "nl", "sv", "da", "fi", "pl", "cs", "fil", "fa", "el", "hu", "mk", "ro"}, languageTokens: audioCppQwen3ASRLanguageTokens, supportsPrompt: true},
 	{family: "sense_asr", displayName: "SenseVoice Small", forcedLanguages: []string{"auto", "zh", "en", "yue", "ja", "ko", "nospeech"}, fixedChunkMode: "none"},
 	{family: "vibevoice_asr", displayName: "VibeVoice ASR", languagePolicy: audioCppLanguageAutoOnly, supportsPrompt: true},
 	{family: "voxtral_realtime", displayName: "Voxtral Mini 4B Realtime", languagePolicy: audioCppLanguageAutoOnly},
@@ -612,6 +629,27 @@ type AudioCppTTSDriver struct{ spec audioCppTTSSpec }
 type AudioCppASRDriver struct{ spec audioCppASRSpec }
 type AudioCppReferenceVoiceDriver struct{ spec audioCppTTSSpec }
 
+func (d AudioCppTTSDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
+	if strings.TrimSpace(recipeID) != d.registration().RecipeID {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
+func (d AudioCppASRDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
+	if strings.TrimSpace(recipeID) != d.registration().RecipeID {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
+func (d AudioCppReferenceVoiceDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
+	if strings.TrimSpace(recipeID) != d.AudioCppSpeechRegistration().RecipeID {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return []string{"input.audio"}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
+
 func (AudioCppTTSDriver) EffectiveRequestDefaults(string, *structpb.Struct) map[string]string {
 	return nil
 }
@@ -769,7 +807,7 @@ func validAudioCppReferenceVoiceRef(value string) bool {
 
 func audioCppSpeechRequirement(id string, role runtimev1.LocalCapabilityRequirementRole, resourceKind, family, artifactRole, display string) *runtimev1.LocalCapabilityRequirement {
 	constraints, _ := structpb.NewStruct(map[string]any{"engine": "audio-cpp", "model_family": family, "artifact_role": artifactRole, "format": "gguf", "gguf_family": family})
-	return &runtimev1.LocalCapabilityRequirement{RequirementId: id, Role: role, ResourceKind: resourceKind, Policy: runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT, CompatibilityConstraints: constraints, DisplayLabel: display}
+	return &runtimev1.LocalCapabilityRequirement{RequirementId: id, Role: role, Presence: runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED, ResourceKind: resourceKind, Policy: runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT, CompatibilityConstraints: constraints, DisplayLabel: display}
 }
 
 func (d AudioCppTTSDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
@@ -1014,7 +1052,7 @@ func (d AudioCppTTSDriver) ttsRequestArgs(value *runtimev1.SpeechSynthesizeScena
 		if len(d.spec.languages) > 0 && !contains(d.spec.languages, language) {
 			return nil, nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("%s language is unsupported", d.spec.displayName))
 		}
-		args = append(args, "--language", language)
+		args = append(args, "--language", audioCppNativeLanguageToken(language, d.spec.languageTokens))
 	}
 	if request.Speed != nil {
 		args = append(args, "--request-option", d.spec.speakingRateOption+"="+fmt.Sprintf("%g", request.GetSpeed()))
@@ -1142,7 +1180,7 @@ func (d AudioCppASRDriver) asrRequestArgs(value *runtimev1.SpeechTranscribeScena
 			return nil, nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("%s language is unsupported", d.spec.displayName))
 		}
 		if language != "" {
-			args = append(args, "--language", language)
+			args = append(args, "--language", audioCppNativeLanguageToken(language, d.spec.languageTokens))
 		}
 	}
 	prompt := strings.TrimSpace(request.GetPrompt())
@@ -1159,6 +1197,14 @@ func (d AudioCppASRDriver) asrRequestArgs(value *runtimev1.SpeechTranscribeScena
 		args = append(args, "--audio-chunk-mode", d.spec.fixedChunkMode)
 	}
 	return request, args, nil
+}
+
+func audioCppNativeLanguageToken(canonical string, tokens map[string]string) string {
+	canonical = strings.TrimSpace(canonical)
+	if native, ok := tokens[canonical]; ok {
+		return native
+	}
+	return canonical
 }
 
 func audioCppASRWAVSupported(value []byte) bool {

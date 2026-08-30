@@ -8,7 +8,10 @@ import type { StudioCapabilityRunResult, StudioRuntimeInspection } from './runti
 import { getStudioRunIntentLabel, restoreStudioCapabilityRunResult, type StudioRunConfigSnapshot, type StudioRunHistory, type StudioRunHistoryRecord } from './history.js';
 import { CapabilityRunHistory, DrawerErrorBoundary, downloadTextFile, resultPlainText, statusForCapability, type CapabilityStatus, type SectionAITestingProps } from './section-ai-testing-surface.js';
 import { TextStudioComposer, TextStudioStartState } from './section-ai-testing-composer.js';
-import { hasStudioCapabilityRunInput } from './section-ai-testing-input.js';
+import {
+  canCancelStudioCapabilityRun,
+  hasStudioCapabilityRunInput,
+} from './section-ai-testing-input.js';
 import { TextStudioResultState } from './section-ai-testing-result.js';
 import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, textStudioDirectiveForTarget, textStudioRunTargetIntentSummary, textStudioRuntimePrompt, useStudioRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
 import { StudioCapabilityParameterContext, StudioHistoryLoadContext, StudioHistoryPanelContext } from './contexts.js';
@@ -399,7 +402,10 @@ function TextStudioShell({
                 onCopy={handleCopy}
                 onDownload={handleDownload}
                 onRegenerate={() => void run(activeRun.prompt, activeRun.context)}
-                onCancel={profile.resultKind === 'artifacts' || profile.resultKind === 'transcript' || profile.resultKind === 'voice-asset'
+                onCancel={canCancelStudioCapabilityRun({
+                  capabilityId: capability.id,
+                  resultKind: profile.resultKind,
+                })
                   ? handleCancel
                   : undefined}
                 onUseAsDraft={useHistoryRunAsDraft}

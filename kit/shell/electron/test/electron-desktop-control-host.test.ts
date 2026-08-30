@@ -433,7 +433,7 @@ describe('Electron verified Desktop control host', () => {
       '/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages',
       'server_stream',
     )).toBe(true);
-    expect(isElectronDesktopAccountProductMethod(SCENARIO_STREAM_METHOD, 'server_stream')).toBe(false);
+    expect(isElectronDesktopAccountProductMethod(SCENARIO_STREAM_METHOD, 'server_stream')).toBe(true);
     expect(isElectronDesktopMachineProductMethod(ACCOUNT_METHOD, 'unary')).toBe(false);
     expect(isElectronDesktopAccountProductMethod(MACHINE_METHOD, 'unary')).toBe(false);
   });

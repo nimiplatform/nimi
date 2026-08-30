@@ -28,6 +28,7 @@ import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
 
 const NIMI_RUNTIME_SCENARIO_JOB_STATUS_DETAIL_KEY = 'scenarioJobStatus';
 export const NIMI_RUNTIME_SCENARIO_JOB_STREAM_INTERRUPTED_REASON = 'SDK_RUNTIME_SCENARIO_JOB_STREAM_INTERRUPTED';
+const NIMI_RUNTIME_SCENARIO_JOB_CANCEL_CONVERGENCE_TIMEOUT_MS = 30_000;
 
 export type NimiRuntimeScenarioJobErrorTerminalStatus =
   | ScenarioJobStatus.FAILED
@@ -147,6 +148,7 @@ export function getNimiRuntimeScenarioJobTerminalStatusFromError(
   return null;
 }
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r002
 // @nimi-authority: rule.nimi.sdks.feature-clients.r069
 export async function runNimiRuntimeScenarioJob(
   input: NimiRuntimeScenarioJobRunnerInput,
@@ -178,7 +180,7 @@ export async function runNimiRuntimeScenarioJob(
     input.onJobUpdate?.(submitted);
   }
 
-  try {
+  const consumeJobEventStream = async (): Promise<void> => {
     const events = input.ai.subscribeScenarioJobEvents({ jobId }, input.callOptions);
     const iterator = events[Symbol.asyncIterator]();
     while (true) {
@@ -214,6 +216,26 @@ export async function runNimiRuntimeScenarioJob(
       if (isNimiRuntimeScenarioJobTerminalStatus(job.status)) {
         observedTerminalEvent = true;
         break;
+      }
+    }
+  };
+
+  try {
+    await consumeJobEventStream();
+    if (!observedTerminalEvent) {
+      throwIfAborted(input.signal);
+      const refreshed = await queryMatchingScenarioJob(input, jobId);
+      if (refreshed?.job && isNimiRuntimeScenarioJobTerminalStatus(refreshed.job.status)) {
+        terminalJob = refreshed.job;
+        recoveredTerminalResponse = refreshed;
+        observedTerminalEvent = true;
+        input.onJobUpdate?.(refreshed.job);
+      } else {
+        // A protected Local App technical-session rotation may end the old
+        // transport stream while the immutable Runtime Job keeps running.
+        // Reattach once to that exact Job; Runtime backlog/terminal replay
+        // remains the only source of Job state and no execution is retried.
+        await consumeJobEventStream();
       }
     }
   } catch (error) {
@@ -483,22 +505,24 @@ function nextWithAbort<T>(
     let pendingResult: IteratorResult<T> | undefined;
     let pendingError: unknown;
     let hasPendingError = false;
+    let convergenceTimer: ReturnType<typeof setTimeout> | undefined;
     const cleanup = () => {
       signal.removeEventListener('abort', abort);
+      if (convergenceTimer !== undefined) {
+        clearTimeout(convergenceTimer);
+        convergenceTimer = undefined;
+      }
     };
     const finishPending = () => {
       if (settled || !cancellationComplete) return;
       if (hasPendingError) {
         settled = true;
+        cleanup();
         reject(pendingError);
       } else if (pendingResult) {
         settled = true;
+        cleanup();
         resolve(pendingResult);
-      } else {
-        // Cancellation is acknowledged but no terminal event won the same
-        // race. Do not leave an aborted caller waiting on an unbounded stream.
-        settled = true;
-        reject(abortedNimiRuntimeScenarioJobError());
       }
     };
     const abort = () => {
@@ -513,7 +537,13 @@ function nextWithAbort<T>(
             reject(abortedNimiRuntimeScenarioJobError());
           } else {
             cancellationComplete = true;
-            queueMicrotask(finishPending);
+            convergenceTimer = setTimeout(() => {
+              if (settled) return;
+              settled = true;
+              cleanup();
+              reject(abortedNimiRuntimeScenarioJobError());
+            }, NIMI_RUNTIME_SCENARIO_JOB_CANCEL_CONVERGENCE_TIMEOUT_MS);
+            finishPending();
           }
         },
         (error) => {

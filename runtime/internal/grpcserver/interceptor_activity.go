@@ -65,8 +65,11 @@ func newUnaryActivityInterceptor(registry *activeRPCRegistry) grpc.UnaryServerIn
 		if registry == nil {
 			return nil, status.Error(codes.Internal, "active RPC registry is required")
 		}
-		trackedCtx, finish := registry.TrackUnary(ctx, info.FullMethod)
+		trackedCtx, finish, admitted := registry.TrackUnary(ctx, info.FullMethod)
 		defer finish()
+		if !admitted {
+			return nil, status.Error(codes.Unavailable, "Runtime root handoff requires restart")
+		}
 		return handler(trackedCtx, req)
 	}
 }
@@ -76,8 +79,11 @@ func newStreamActivityInterceptor(registry *activeRPCRegistry) grpc.StreamServer
 		if registry == nil {
 			return status.Error(codes.Internal, "active RPC registry is required")
 		}
-		trackedCtx, signal, finish, touch := registry.TrackStream(ss.Context(), info.FullMethod, info)
+		trackedCtx, signal, finish, touch, admitted := registry.TrackStream(ss.Context(), info.FullMethod, info)
 		defer finish()
+		if !admitted {
+			return status.Error(codes.Unavailable, "Runtime root handoff requires restart")
+		}
 		wrapped := &trackedServerStream{
 			ServerStream: ss,
 			ctx:          trackedCtx,

@@ -70,6 +70,10 @@ func (s *Service) scheduleRealmAccountTerminationRetry() {
 		return
 	}
 	s.accountTerminationRetryMu.Lock()
+	if s.isClosed() || s.cognitionMemoryLifecycleCtx == nil || s.cognitionMemoryLifecycleCtx.Err() != nil {
+		s.accountTerminationRetryMu.Unlock()
+		return
+	}
 	if s.accountTerminationRetrying {
 		s.accountTerminationRetryRequested = true
 		s.accountTerminationRetryMu.Unlock()

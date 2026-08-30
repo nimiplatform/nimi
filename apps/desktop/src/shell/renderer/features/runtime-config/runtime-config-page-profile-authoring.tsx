@@ -575,7 +575,7 @@ function LocalImplementationFields(props: {
                 <ReadOnlyAuthoringField label={props.t('runtimeConfig.profiles.authoring.driverId')} value={selected.implementation.driverId} />
                 <ReadOnlyAuthoringField label={props.t('runtimeConfig.profiles.authoring.driverDialect')} value={selected.implementation.driverDialect} />
               </div>
-              <ReadOnlyAuthoringField label={props.t('runtimeConfig.profiles.authoring.supportedFeatures')} value={selected.supportedFeatures.join(', ') || props.t('runtimeConfig.profiles.authoring.none')} />
+              <ReadOnlyAuthoringField label={props.t('runtimeConfig.profiles.authoring.supportedFeatures')} value={selected.implementationSupportedFeatures.join(', ') || props.t('runtimeConfig.profiles.authoring.none')} />
               <AuthoringTextArea
                 label={props.t('runtimeConfig.profiles.authoring.driverPortableConfig')}
                 hint={props.t('runtimeConfig.profiles.authoring.requirementsRuntimeTruth')}

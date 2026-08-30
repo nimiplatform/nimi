@@ -26,6 +26,8 @@ export interface NimiRuntimeImageGenerationInput {
   readonly referenceImages?: readonly string[];
   readonly referenceImageArtifactId?: string;
   readonly mask?: string;
+  readonly maskArtifactId?: string;
+  readonly strength?: number;
   readonly responseFormat?: string;
   readonly requestId: string;
   readonly idempotencyKey: string;
@@ -67,6 +69,8 @@ export async function runNimiRuntimeImageGeneration(
         referenceImages: input.referenceImages,
         referenceImageArtifactId: input.referenceImageArtifactId,
         mask: input.mask,
+        maskArtifactId: input.maskArtifactId,
+        strength: input.strength,
         responseFormat: input.responseFormat,
       }),
       requestId: input.requestId,

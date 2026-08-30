@@ -111,6 +111,74 @@ export interface Ack {
     actionHint: string;
 }
 /**
+ * Provider-neutral typed behaviors within text.generate. These do not create
+ * additional top-level CapabilityContract tokens.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.TextBehaviorKind
+ */
+export enum TextBehaviorKind {
+    /**
+     * @generated from protobuf enum value: TEXT_BEHAVIOR_KIND_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: TEXT_BEHAVIOR_KIND_TOOL_USE = 1;
+     */
+    TOOL_USE = 1,
+    /**
+     * @generated from protobuf enum value: TEXT_BEHAVIOR_KIND_REASONING = 2;
+     */
+    REASONING = 2,
+    /**
+     * @generated from protobuf enum value: TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT = 3;
+     */
+    STRUCTURED_OUTPUT = 3
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.ToolSpecKind
+ */
+export enum ToolSpecKind {
+    /**
+     * @generated from protobuf enum value: TOOL_SPEC_KIND_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: TOOL_SPEC_KIND_FUNCTION = 1;
+     */
+    FUNCTION = 1,
+    /**
+     * @generated from protobuf enum value: TOOL_SPEC_KIND_PROVIDER = 2;
+     */
+    PROVIDER = 2
+}
+/**
+ * How the model is allowed or required to select tools for a text scenario.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.ToolChoiceMode
+ */
+export enum ToolChoiceMode {
+    /**
+     * @generated from protobuf enum value: TOOL_CHOICE_MODE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: TOOL_CHOICE_MODE_AUTO = 1;
+     */
+    AUTO = 1,
+    /**
+     * @generated from protobuf enum value: TOOL_CHOICE_MODE_NONE = 2;
+     */
+    NONE = 2,
+    /**
+     * @generated from protobuf enum value: TOOL_CHOICE_MODE_REQUIRED = 3;
+     */
+    REQUIRED = 3,
+    /**
+     * @generated from protobuf enum value: TOOL_CHOICE_MODE_TOOL = 4;
+     */
+    TOOL = 4
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.ReasonCode
  */
 export enum ReasonCode {
@@ -480,6 +548,32 @@ export enum ReasonCode {
      * @generated from protobuf enum value: AI_PROVIDER_TIMEOUT = 394;
      */
     AI_PROVIDER_TIMEOUT = 394,
+    /**
+     * TEXT_BEHAVIOR and execution interruption family (395+)
+     *
+     * @generated from protobuf enum value: AI_TEXT_BEHAVIOR_UNSUPPORTED = 395;
+     */
+    AI_TEXT_BEHAVIOR_UNSUPPORTED = 395,
+    /**
+     * @generated from protobuf enum value: AI_TEXT_BEHAVIOR_AMBIGUOUS = 396;
+     */
+    AI_TEXT_BEHAVIOR_AMBIGUOUS = 396,
+    /**
+     * @generated from protobuf enum value: AI_TEXT_OUTPUT_INCOMPLETE = 397;
+     */
+    AI_TEXT_OUTPUT_INCOMPLETE = 397,
+    /**
+     * @generated from protobuf enum value: AI_TOOL_CALL_INVALID = 398;
+     */
+    AI_TOOL_CALL_INVALID = 398,
+    /**
+     * @generated from protobuf enum value: AI_REASONING_CONTINUITY_INVALID = 399;
+     */
+    AI_REASONING_CONTINUITY_INVALID = 399,
+    /**
+     * @generated from protobuf enum value: AI_EXECUTION_INTERRUPTED = 402;
+     */
+    AI_EXECUTION_INTERRUPTED = 402,
     /**
      * MEDIA family (410+)
      *

@@ -47,21 +47,6 @@ rows:
 # Consumers declare requirements; Runtime resolves plans and source records.
 
 consumers:
-  - consumer_id: llama.cpp.cpu
-    consumer_kind: native_engine_package_variant
-    engine: llama
-    pack_refs:
-      - local-text
-    dependency_families:
-      - native-engine-package.llama
-    activation_gate:
-      required_states:
-        - ready_system
-        - ready_managed
-      fail_closed_reasons:
-        - engine_package_missing
-        - selected_source_record_missing
-
   - consumer_id: llama.cpp.cuda
     consumer_kind: native_engine_package_variant
     engine: llama
@@ -84,7 +69,7 @@ consumers:
         - accelerator_runtime_unconfirmed
         - selected_source_record_missing
 
-  - consumer_id: llama.cpp.vulkan
+  - consumer_id: llama.cpp.metal
     consumer_kind: native_engine_package_variant
     engine: llama
     pack_refs:
@@ -92,7 +77,8 @@ consumers:
     dependency_families:
       - native-engine-package.llama
     version_constraints:
-      accelerator_plane: vulkan
+      platform: darwin/arm64
+      accelerator_plane: metal
       package_abi: package_declared
     activation_gate:
       required_states:
@@ -100,7 +86,7 @@ consumers:
         - ready_managed
       fail_closed_reasons:
         - engine_package_missing
-        - vulkan_runtime_unavailable
+        - metal_runtime_unavailable
         - selected_source_record_missing
 
   - consumer_id: stable-diffusion.cpp.cuda
@@ -124,25 +110,6 @@ consumers:
         - engine_package_missing
         - accelerator_runtime_missing
         - accelerator_runtime_unconfirmed
-        - selected_source_record_missing
-
-  - consumer_id: stable-diffusion.cpp.cpu
-    consumer_kind: native_engine_package_variant
-    engine: media
-    backend_family: stablediffusion-ggml
-    pack_refs:
-      - local-image-native
-    dependency_families:
-      - native-engine-package.stablediffusion-ggml
-    version_constraints:
-      accelerator_plane: cpu
-      package_abi: package_declared
-    activation_gate:
-      required_states:
-        - ready_system
-        - ready_managed
-      fail_closed_reasons:
-        - engine_package_missing
         - selected_source_record_missing
 
   - consumer_id: audio.cpp.cuda

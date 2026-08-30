@@ -20,6 +20,10 @@ import { AIConfigEffectiveState } from '../../core-generated/runtime-protobuf/ru
 import { ReasonCode as RuntimeReasonCode } from '../../core-generated/runtime-protobuf/runtime/v1/common';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
 import { withNimiRuntimeIdempotencyMetadata } from '../../runtime/scenario-jobs';
+import {
+  projectNimiTextBehaviorCapabilities,
+  type NimiTextBehaviorCapabilityProjection,
+} from '../../runtime/text-behavior-projections';
 import { createNimiClientId, createNimiError, ReasonCode } from '../../types';
 import type { NimiJsonObject } from '../contracts/index.js';
 import { assertRouteOnlyLocalAIConfigIntents } from './capability-configuration-local-intent.js';
@@ -118,7 +122,9 @@ export type NimiAIConfigLocalLoadoutOption = {
     readonly driverId: string;
     readonly driverDialect: string;
   };
-  readonly supportedFeatures: readonly string[];
+  readonly implementationSupportedFeatures: readonly string[];
+  readonly configuredFeatures: readonly string[];
+  readonly textBehaviors: readonly NimiTextBehaviorCapabilityProjection[];
   readonly state: 'ready' | 'blocked';
   readonly reasons: readonly string[];
 };
@@ -422,9 +428,9 @@ function projectCloudTargetResource(value: AIConfigCloudTargetProjection): NimiA
       implementationId: requireText(value.implementation.implementationId, 'AIConfig Cloud target implementation is invalid'),
       driverId: requireText(value.implementation.driverId, 'AIConfig Cloud target driver is invalid'),
       driverDialect: requireText(value.implementation.driverDialect, 'AIConfig Cloud target dialect is invalid'),
-    }),
-    providerModelTarget: RuntimeStruct.toJson(value.providerModelTarget) as NimiJsonObject,
-    supportedFeatures: Object.freeze([...value.supportedFeatures]),
+		}),
+		providerModelTarget: RuntimeStruct.toJson(value.providerModelTarget) as NimiJsonObject,
+		supportedFeatures: Object.freeze([...value.supportedFeatures]),
     state: value.state === AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY ? 'ready' : 'blocked',
     reasons: Object.freeze([...value.reasons]),
   });
@@ -441,7 +447,9 @@ function projectLocalResource(value: AIConfigLocalResourceProjection): NimiAICon
       driverId: requireText(value.implementation.driverId, 'AIConfig Local option driver is invalid'),
       driverDialect: requireText(value.implementation.driverDialect, 'AIConfig Local option dialect is invalid'),
     }),
-    supportedFeatures: Object.freeze([...value.supportedFeatures]),
+    implementationSupportedFeatures: Object.freeze([...value.implementationSupportedFeatures]),
+    configuredFeatures: Object.freeze([...value.configuredFeatures]),
+    textBehaviors: projectNimiTextBehaviorCapabilities(value.textBehaviors),
     state: value.state === AIConfigEffectiveState.AI_CONFIG_EFFECTIVE_STATE_READY ? 'ready' : 'blocked',
     reasons: Object.freeze([...value.reasons]),
   });

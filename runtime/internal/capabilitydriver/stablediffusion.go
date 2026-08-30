@@ -24,7 +24,7 @@ import (
 const (
 	StableDiffusionImplementationID   = "local.image.generate.stable-diffusion-cpp"
 	StableDiffusionDriverID           = "nimi.runtime.driver.stable-diffusion-cpp"
-	StableDiffusionDriverDialect      = "stable-diffusion.cpp/image-generate/v2"
+	StableDiffusionDriverDialect      = "stable-diffusion.cpp/image-generate/v3"
 	StableDiffusionCapabilityContract = "image.generate"
 
 	StableDiffusionMainRequirementID            = "main.diffusion"
@@ -48,6 +48,16 @@ const (
 // @nimi-authority: rule.nimi.runtime.ai-provider.r064
 // StableDiffusionImageDriver owns the stable-diffusion.cpp portable dialect.
 type StableDiffusionImageDriver struct{}
+
+func (StableDiffusionImageDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
+	if _, ok := StableDiffusionImageRecipeModelFamily(recipeID); !ok {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	if stableDiffusionRecipeSupportsInputImage(recipeID) {
+		return []string{aicapabilities.FeatureInputImage}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+	}
+	return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
+}
 
 func (StableDiffusionImageDriver) EffectiveRequestDefaults(recipeID string, value *structpb.Struct) map[string]string {
 	portable, reason := parseStableDiffusionPortableConfig(recipeID, value)
@@ -142,6 +152,26 @@ func stableDiffusionRecipe(family stableDiffusionFamilySpec, recipeID string) (s
 	default:
 		return stableDiffusionFamilySpec{}, false, false
 	}
+}
+
+// StableDiffusionImageRecipeModelFamily returns the exact managed package
+// family required by one closed image recipe. It is a static dialect fact, not
+// a live package or catalog selector.
+func StableDiffusionImageRecipeModelFamily(recipeID string) (string, bool) {
+	recipeID = strings.TrimSpace(recipeID)
+	familyName := recipeID
+	if recipeID == StableDiffusionQwenImageEditRecipeID {
+		familyName = StableDiffusionQwenImageRecipeID
+	}
+	family, ok := stableDiffusionFamily(familyName)
+	if !ok {
+		return "", false
+	}
+	resolved, ok, _ := stableDiffusionRecipe(family, recipeID)
+	if !ok {
+		return "", false
+	}
+	return resolved.name, true
 }
 
 func stableDiffusionRecipeSupportsInputImage(recipeID string) bool {
@@ -391,6 +421,7 @@ func stableDiffusionRequirement(
 	return &runtimev1.LocalCapabilityRequirement{
 		RequirementId:            id,
 		Role:                     role,
+		Presence:                 runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED,
 		ResourceKind:             resourceKind,
 		Policy:                   runtimev1.LocalCapabilityRequirementPolicy_LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE,
 		CompatibilityConstraints: compatibility,
@@ -808,6 +839,12 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 			_, _ = hasher.Write([]byte{0})
 		}
 	}
+	for _, source := range input.ExactDependencySources {
+		for _, value := range invocationExactDependencySourceIdentity(source) {
+			_, _ = hasher.Write([]byte(value))
+			_, _ = hasher.Write([]byte{0})
+		}
+	}
 	load := StableDiffusionCPPLoadPlan{
 		recipeID:                portable.recipeID,
 		main:                    stableDiffusionImageModelFile(bindings[StableDiffusionMainRequirementID]),
@@ -845,10 +882,11 @@ func (StableDiffusionImageDriver) PlanImageInvocation(input ImageInvocationInput
 		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("stable-diffusion image recipe request variant is unsupported"))
 	}
 	return &ImageInvocationPlan{
-		processKey:  hex.EncodeToString(hasher.Sum(nil)),
-		modelFiles:  modelFiles,
-		loadPlan:    load,
-		requestPlan: requestPlan,
+		processKey:        hex.EncodeToString(hasher.Sum(nil)),
+		modelFiles:        modelFiles,
+		dependencySources: cloneInvocationExactDependencySources(input.ExactDependencySources),
+		loadPlan:          load,
+		requestPlan:       requestPlan,
 		resultConstraints: StableDiffusionCPPResultConstraints{
 			artifactCount: request.imageCount,
 			mediaType:     "image/png",
@@ -897,6 +935,11 @@ func (stableDiffusionImageTranslator) validateImagePlan(plan *ImageInvocationPla
 		(request.scheduler != "" && !stableDiffusionOptionToken(request.scheduler)) {
 		return fmt.Errorf("stable-diffusion image request variant is incomplete")
 	}
+	if request.seed != -1 {
+		if _, err := (stableDiffusionImageTranslator{}).resolveImageArtifactSeed(plan, request.seed, int32(request.imageCount)); err != nil {
+			return err
+		}
+	}
 	if load.recipeID == "" || load.recipeID != strings.TrimSpace(load.recipeID) ||
 		math.IsNaN(load.flowShift) || math.IsInf(load.flowShift, 0) || load.flowShift < -100 || load.flowShift > 100 ||
 		load.threads < 0 || load.threads > 1024 || load.cfgScale != request.cfgScale ||
@@ -933,6 +976,21 @@ func (stableDiffusionImageTranslator) validateImagePlan(plan *ImageInvocationPla
 	return nil
 }
 
+func (stableDiffusionImageTranslator) resolveImageArtifactSeed(plan *ImageInvocationPlan, baseSeed int64, index int32) (int64, error) {
+	request, err := stableDiffusionCPPRequestFieldsFromPlan(plan.RequestPlan())
+	if err != nil {
+		return 0, err
+	}
+	if index < 1 || int(index) > request.imageCount || baseSeed < math.MinInt32 || baseSeed > math.MaxInt32 || baseSeed == -1 {
+		return 0, fmt.Errorf("stable-diffusion artifact seed input is invalid")
+	}
+	seed := baseSeed + int64(index-1)
+	if seed < math.MinInt32 || seed > math.MaxInt32 {
+		return 0, fmt.Errorf("stable-diffusion artifact seed overflows signed int32")
+	}
+	return seed, nil
+}
+
 func stableDiffusionCPPRequestFieldsFromPlan(plan ImageRequestPlan) (stableDiffusionCPPRequestFields, error) {
 	switch typed := plan.(type) {
 	case StableDiffusionCPPTextToImageRequestPlan:
@@ -966,10 +1024,11 @@ func (stableDiffusionImageTranslator) translateImageArtifact(plan *ImageInvocati
 		return ImageArtifact{}, fmt.Errorf("stable-diffusion result constraints are unavailable")
 	}
 	if observation.Index < 1 || int(observation.Index) > constraints.artifactCount || len(observation.Payload) == 0 ||
+		observation.Seed < math.MinInt32 || observation.Seed > math.MaxInt32 || observation.Seed == -1 ||
 		observation.Format != constraints.format || observation.Width != constraints.width || observation.Height != constraints.height {
 		return ImageArtifact{}, fmt.Errorf("stable-diffusion backend artifact violates result constraints")
 	}
-	return ImageArtifact{Index: observation.Index, Payload: append([]byte(nil), observation.Payload...), MediaType: constraints.mediaType}, nil
+	return ImageArtifact{Index: observation.Index, Seed: observation.Seed, Payload: append([]byte(nil), observation.Payload...), MediaType: constraints.mediaType}, nil
 }
 
 func (stableDiffusionImageTranslator) translateImageFailure(stage ImageBackendFailureStage, err error) error {
@@ -1092,10 +1151,26 @@ func normalizeStableDiffusionImageRequest(
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidOption, fmt.Errorf("stable-diffusion invocation does not support response format %q", responseFormat))
 	}
 	mask := strings.TrimSpace(spec.GetMask())
-	if len(inputs) > 0 && !contains(features, aicapabilities.FeatureInputImage) {
+	maskArtifactID := strings.TrimSpace(spec.GetMaskArtifactId())
+	sourceInputs := make([]ImageResolvedInput, 0, len(inputs))
+	maskInputs := make([]ImageResolvedInput, 0, 1)
+	for _, input := range inputs {
+		switch input.Role {
+		case ImageResolvedInputRoleSource:
+			sourceInputs = append(sourceInputs, input)
+		case ImageResolvedInputRoleMask:
+			maskInputs = append(maskInputs, input)
+		default:
+			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate resolved input role is invalid"))
+		}
+	}
+	if len(sourceInputs) > 0 && !contains(features, aicapabilities.FeatureInputImage) {
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("image.generate input.image is not declared by this configuration"))
 	}
-	if mask != "" {
+	if len(maskInputs) > 0 && !contains(features, aicapabilities.FeatureInputMask) {
+		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("image.generate input.mask is not declared by this configuration"))
+	}
+	if mask != "" || maskArtifactID != "" || len(maskInputs) > 0 || spec.Strength != nil {
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected stable-diffusion recipe does not admit a mask"))
 	}
 	negativePrompt := strings.TrimSpace(spec.GetNegativePrompt())
@@ -1106,16 +1181,16 @@ func normalizeStableDiffusionImageRequest(
 	sourceImage := ImageResolvedInput{}
 	switch portable.recipeID {
 	case "qwen-image-edit-2511":
-		if len(inputs) != 1 || imageCount != 1 {
+		if len(sourceInputs) != 1 || imageCount != 1 {
 			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("Qwen Image Edit 2511 requires exactly one source image, one output, and no mask"))
 		}
-		if inputs[0].SourceIdentity == "" || inputs[0].SourceIdentity != strings.TrimSpace(inputs[0].SourceIdentity) || len(inputs[0].ImageBytes) == 0 {
+		if sourceInputs[0].SourceIdentity == "" || sourceInputs[0].SourceIdentity != strings.TrimSpace(sourceInputs[0].SourceIdentity) || len(sourceInputs[0].ImageBytes) == 0 {
 			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate resolved input.image is incomplete"))
 		}
-		sourceImage = cloneImageResolvedInput(inputs[0])
+		sourceImage = cloneImageResolvedInput(sourceInputs[0])
 		kind = stableDiffusionRequestInstructionEdit
 	case "z-image", "ideogram4", "qwen-image":
-		if len(inputs) != 0 {
+		if len(sourceInputs) != 0 {
 			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected text-to-image recipe does not admit input.image"))
 		}
 	default:
@@ -1127,6 +1202,9 @@ func normalizeStableDiffusionImageRequest(
 	}
 	if seed < math.MinInt32 || seed > math.MaxInt32 {
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate seed is outside the stable-diffusion.cpp signed-int32 range"))
+	}
+	if seed != -1 && seed+int64(imageCount-1) > math.MaxInt32 {
+		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate batch seed progression overflows the stable-diffusion.cpp signed-int32 range"))
 	}
 	return normalizedStableDiffusionImageRequest{
 		kind:           kind,

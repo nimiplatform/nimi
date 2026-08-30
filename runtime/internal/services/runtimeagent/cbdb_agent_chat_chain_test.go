@@ -171,16 +171,12 @@ func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-cbdb-chain",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{
-								Text: publicChatStructuredEnvelopeAPML(
-									"message-cbdb-chain",
-									"CBDB runtime validation turn complete.",
-								),
-							},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						publicChatStructuredEnvelopeAPML(
+							"message-cbdb-chain",
+							"CBDB runtime validation turn complete.",
+						)),
 				},
 			}); err != nil {
 				return err

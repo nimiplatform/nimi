@@ -14,6 +14,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/aicapabilities"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -38,6 +39,12 @@ type localImageHostStub struct {
 	failBeforeIndex int32
 	failureKind     localexecution.FailureKind
 	failure         error
+	admissionErr    error
+	admissionCalls  int
+}
+
+func (h *serialBlockingLocalImageHostStub) AdmitImage(plan *capabilitydriver.ImageInvocationPlan) error {
+	return plan.Validate()
 }
 
 type capabilityLocalExecutionResolver struct {
@@ -111,7 +118,7 @@ func (h *serialBlockingLocalImageHostStub) ExecuteImage(
 	}
 	result := localexecution.ImageResult{Artifacts: make([]localexecution.ImageArtifact, 0, plan.ImageCount())}
 	for index := int32(1); index <= int32(plan.ImageCount()); index++ {
-		artifact := localexecution.ImageArtifact{Index: index, Bytes: serviceTestPNGBytes(), MediaType: "image/png"}
+		artifact := localexecution.ImageArtifact{Index: index, Seed: int64(100 + index), Bytes: serviceTestPNGBytes(), MediaType: "image/png"}
 		result.Artifacts = append(result.Artifacts, artifact)
 		if onArtifact != nil {
 			if err := onArtifact(artifact); err != nil {
@@ -166,7 +173,7 @@ func (h *localImageHostStub) ExecuteImage(ctx context.Context, plan *capabilityd
 			return result, &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err()}
 		default:
 		}
-		artifact := localexecution.ImageArtifact{Index: index, Bytes: serviceTestPNGBytes(), MediaType: "image/png", ComputeMS: 11}
+		artifact := localexecution.ImageArtifact{Index: index, Seed: int64(100 + index), Bytes: serviceTestPNGBytes(), MediaType: "image/png", ComputeMS: 11}
 		result.Artifacts = append(result.Artifacts, artifact)
 		if onArtifact != nil {
 			if err := onArtifact(artifact); err != nil {
@@ -192,6 +199,17 @@ func (h *localImageHostStub) ExecuteImage(ctx context.Context, plan *capabilityd
 		}
 	}
 	return result, nil
+}
+
+func (h *localImageHostStub) AdmitImage(plan *capabilitydriver.ImageInvocationPlan) error {
+	h.mu.Lock()
+	h.admissionCalls++
+	err := h.admissionErr
+	h.mu.Unlock()
+	if err != nil {
+		return err
+	}
+	return plan.Validate()
 }
 
 func TestNormalizeLocalImageRequestExplicitZeroOverridesDefaults(t *testing.T) {
@@ -292,6 +310,7 @@ func TestLocalImageRejectsUnsupportedCountAndSizeBeforeHostDispatch(t *testing.T
 		size string
 	}{
 		{name: "explicit zero count", n: testInt32(0), size: "64x64"},
+		{name: "negative count", n: testInt32(-1), size: "64x64"},
 		{name: "count above local maximum", n: testInt32(5), size: "64x64"},
 		{name: "invalid size", n: testInt32(1), size: "65x64"},
 	}
@@ -330,6 +349,7 @@ func TestLocalImageJobRejectsUnsupportedCountAndSizeBeforePublicationOrHost(t *t
 		size string
 	}{
 		{name: "explicit zero count", n: testInt32(0), size: "64x64"},
+		{name: "negative count", n: testInt32(-1), size: "64x64"},
 		{name: "count above local maximum", n: testInt32(5), size: "64x64"},
 		{name: "invalid size", n: testInt32(1), size: "65x64"},
 	}
@@ -442,6 +462,30 @@ func TestLocalImageJobRejectsOutOfCarrierRangeSeedBeforePublicationOrHost(t *tes
 	}
 }
 
+func TestLocalImageHostPackageAdmissionRejectsBeforePublicationOrExecution(t *testing.T) {
+	svc := newTestService(nil)
+	host := &localImageHostStub{admissionErr: errors.New("package family does not admit recipe")}
+	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedImageExecutionForTest(t, "image-package-admission")})
+	svc.SetLocalImageExecutionHost(host)
+
+	response, err := svc.SubmitScenarioJob(localImageIntentContext(context.Background(), nil), localImageJobRequestForTest(2))
+	if response != nil {
+		t.Fatalf("unsupported package tuple returned Job: %+v", response)
+	}
+	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH || statusCode(err) != codes.FailedPrecondition {
+		t.Fatalf("admission error=%v code=%v reason=%v present=%v", err, statusCode(err), reason, ok)
+	}
+	host.mu.Lock()
+	admissionCalls, executionCalls := host.admissionCalls, len(host.plans)
+	host.mu.Unlock()
+	svc.scenarioJobs.mu.RLock()
+	jobCount := len(svc.scenarioJobs.jobs)
+	svc.scenarioJobs.mu.RUnlock()
+	if admissionCalls != 1 || executionCalls != 0 || jobCount != 0 {
+		t.Fatalf("unsupported package tuple created work: admissions=%d executions=%d jobs=%d", admissionCalls, executionCalls, jobCount)
+	}
+}
+
 func TestLocalImageWithoutSelectionFailsClosed(t *testing.T) {
 	svc := newTestService(nil)
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{err: grpcerr.WithReasonCode(
@@ -543,6 +587,16 @@ func TestLocalImageJobStaysQueuedThenCommitsArtifactsIncrementallyFromImmutableC
 	}
 	if terminal.GetArtifacts()[0].GetArtifactId() == terminal.GetArtifacts()[1].GetArtifactId() {
 		t.Fatal("image artifacts did not receive distinct identities")
+	}
+	for index, artifact := range terminal.GetArtifacts() {
+		fields := artifact.GetMetadata().GetFields()
+		if fields["batch_index"].GetNumberValue() != float64(index+1) || fields["batch_count"].GetNumberValue() != 2 ||
+			artifact.Seed == nil || artifact.GetSeed() != int32(101+index) {
+			t.Fatalf("image artifact %d batch metadata = %+v", index+1, fields)
+		}
+		if _, duplicated := fields["seed"]; duplicated {
+			t.Fatalf("image artifact %d duplicated canonical seed in metadata", index+1)
+		}
 	}
 	firstArtifact := terminal.GetArtifacts()[0]
 	record, ok := svc.runtimeArtifacts.Get(firstArtifact.GetArtifactId())
@@ -933,6 +987,8 @@ func TestLocalImageJobRunningCancellationPreservesCommittedArtifact(t *testing.T
 func TestLocalImageRequestFeatureMismatchFailsBeforeHost(t *testing.T) {
 	svc := newTestService(nil)
 	selected := selectedImageExecutionForTest(t, "image-feature")
+	selected.ImplementationSupportedFeatures = []string{aicapabilities.FeatureInputImage}
+	selected.ConfiguredFeatures = nil
 	host := &localImageHostStub{}
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selected})
 	svc.SetLocalImageExecutionHost(host)

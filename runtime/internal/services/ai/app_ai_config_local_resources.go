@@ -122,7 +122,7 @@ func (s *Service) projectAppAIConfigEffectiveSelections(
 			selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_READY
 		}
 		if selection.State != runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_MISSING &&
-			!localexecution.SupportsRequiredFeatures(capability.GetRequiredFeatures(), option.SupportedFeatures) {
+			!localexecution.SupportsRequiredFeatures(capability.GetRequiredFeatures(), option.ConfiguredFeatures) {
 			selection.State = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
 			selection.Reasons = appendReasonStringOnce(selection.Reasons, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH.String())
 		}
@@ -420,7 +420,19 @@ func projectLocalResourceProjection(option localexecution.LoadoutOption) *runtim
 	return &runtimev1.AIConfigLocalResourceProjection{
 		LoadoutRef: option.LoadoutID, Label: option.DisplayName,
 		CapabilityContract: option.CapabilityContract, Implementation: implementation,
-		SupportedFeatures: append([]string(nil), option.SupportedFeatures...),
-		State:             state, Reasons: reasons,
+		ImplementationSupportedFeatures: append([]string(nil), option.ImplementationSupportedFeatures...),
+		ConfiguredFeatures:              append([]string(nil), option.ConfiguredFeatures...),
+		TextBehaviors:                   cloneAITextBehaviorCapabilityProjections(option.TextBehaviors),
+		State:                           state, Reasons: reasons,
 	}
+}
+
+func cloneAITextBehaviorCapabilityProjections(values []*runtimev1.TextBehaviorCapabilityProjection) []*runtimev1.TextBehaviorCapabilityProjection {
+	result := make([]*runtimev1.TextBehaviorCapabilityProjection, 0, len(values))
+	for _, value := range values {
+		if value != nil {
+			result = append(result, proto.Clone(value).(*runtimev1.TextBehaviorCapabilityProjection))
+		}
+	}
+	return result
 }

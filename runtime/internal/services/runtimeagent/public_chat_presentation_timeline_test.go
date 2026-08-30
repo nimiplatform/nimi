@@ -34,11 +34,9 @@ func TestPublicChatTurnEventsCarryRuntimeTimelineEnvelope(t *testing.T) {
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-timeline",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: publicChatStructuredEnvelopeAPML("message-timeline", "timeline ready")},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						publicChatStructuredEnvelopeAPML("message-timeline", "timeline ready")),
 				},
 			}); err != nil {
 				return err

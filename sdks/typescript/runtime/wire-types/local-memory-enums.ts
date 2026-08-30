@@ -178,6 +178,9 @@ export enum LocalCapabilityReason {
   LOCAL_ASSET_CONTENT_UNVERIFIED = 9,
   LOCAL_ASSET_CONTENT_MISMATCH = 10,
   LOCAL_ASSET_INCOMPATIBLE = 11,
+  CONDITIONAL_BINDING_MISSING = 12,
+  TEXT_BEHAVIOR_UNAVAILABLE = 13,
+  TEXT_BEHAVIOR_AMBIGUOUS = 14,
 }
 
 export enum LocalCapabilityRequirementPolicy {
@@ -186,10 +189,17 @@ export enum LocalCapabilityRequirementPolicy {
   SUBSTITUTABLE = 2,
 }
 
+export enum LocalCapabilityRequirementPresence {
+  UNSPECIFIED = 0,
+  REQUIRED = 1,
+  OPTIONAL_CONDITIONAL = 2,
+}
+
 export enum LocalCapabilityRequirementResolution {
   UNSPECIFIED = 0,
   UNRESOLVED = 1,
   CONFIGURED = 2,
+  NOT_CONFIGURED = 3,
 }
 
 export enum LocalCapabilityRequirementRole {

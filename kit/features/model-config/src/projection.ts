@@ -33,7 +33,7 @@ export function modelConfigMissingRequiredFeatures(
 ): readonly string[] {
   const local = selection?.resource?.oneofKind === 'local' ? selection.resource.local : null;
   if (!intent || intent.route.oneofKind !== 'local' || selection?.state !== 'ready' || !local) return [];
-  const supported = new Set(local.supportedFeatures);
+	const supported = new Set(local.implementationSupportedFeatures);
   return intent.requiredFeatures.filter((feature) => !supported.has(feature));
 }
 

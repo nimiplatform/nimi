@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { LocalAppSessionState, ReasonCode } from '@nimiplatform/sdk/runtime/generated';
+import {
+  LocalAppSessionState,
+  ReasonCode,
+  ScenarioJobStatus,
+  ScenarioType,
+} from '@nimiplatform/sdk/runtime/generated';
 import { OpenLocalAppSessionResponse } from '../../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/auth.js';
 import {
   GetAgentPresentationAssetRequest,
@@ -7,6 +12,10 @@ import {
   ResolveLocalAppAvatarHostTargetRequest,
   ResolveLocalAppAvatarHostTargetResponse,
 } from '../../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/agent_service.js';
+import {
+  GetLocalAppScenarioJobRequest,
+  GetLocalAppScenarioJobResponse,
+} from '../../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/ai.js';
 import {
   WriteLocalAppAssetRequest,
   WriteLocalAppAssetResponse,
@@ -153,6 +162,43 @@ describe('Electron formal App local host', () => {
       conversationAnchorId: 'anchor-1',
     })).resolves.toEqual({
       avatarHostTargetRef: `avatar_target_${'B'.repeat(43)}`,
+    });
+  });
+
+  it.each([
+    ['desktop', 'nimi.desktop'],
+    ['avatar', 'nimi.avatar'],
+  ] as const)('preserves a typed image artifact seed through the %s formal codec', async (profile, appId) => {
+    const methodId = '/nimi.runtime.v1.RuntimeAiService/GetLocalAppScenarioJob';
+    const jobId = 'job-seeded-image';
+    const unary = vi.fn(async (input: { methodId: string; requestBytes: Uint8Array }) => {
+      expect(input.methodId).toBe(methodId);
+      expect(GetLocalAppScenarioJobRequest.fromBinary(input.requestBytes)).toEqual({ jobId });
+      return GetLocalAppScenarioJobResponse.toBinary(GetLocalAppScenarioJobResponse.create({
+        job: {
+          jobId,
+          scenarioType: ScenarioType.IMAGE_GENERATE,
+          status: ScenarioJobStatus.COMPLETED,
+          progressPercent: 100,
+          progressCurrentStep: 1,
+          progressTotalSteps: 1,
+          reasonCode: ReasonCode.ACTION_EXECUTED,
+          artifacts: [{
+            artifactId: 'artifact-seeded-image', mimeType: 'image/png',
+            sizeBytes: '4', width: 1, height: 1, seed: 44,
+          }],
+          traceId: 'trace-seeded-image',
+        },
+      }));
+    });
+    const controlHost = {
+      accountProductUnary: profile === 'desktop' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
+      bundledAvatarUnary: profile === 'avatar' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
+    } as unknown as NimiElectronDesktopControlHost;
+    const host = createNimiElectronFormalAppLocalHost({ profile, appId, control: controlHost });
+
+    await expect(host.scenarioJobGet({ jobId })).resolves.toMatchObject({
+      job: { artifacts: [{ artifactId: 'artifact-seeded-image', seed: 44 }] },
     });
   });
 

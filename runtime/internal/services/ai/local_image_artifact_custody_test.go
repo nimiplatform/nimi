@@ -48,6 +48,32 @@ func TestValidateLocalAppImageGenerateSpecProjectsExclusiveArtifactReference(t *
 	assertLocalAppTextCandidateError(t, err, codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
 }
 
+func TestValidateLocalAppImageGenerateSpecProjectsMaskArtifactAndStrength(t *testing.T) {
+	strength := float32(0.6)
+	got, err := validateLocalAppImageGenerateSpec(&runtimev1.LocalAppImageGenerateScenarioSpec{
+		Prompt:                   "inpaint the marked region",
+		ReferenceImageArtifactId: "artifact_source",
+		MaskArtifactId:           "artifact_mask",
+		Strength:                 &strength,
+	})
+	if err != nil {
+		t.Fatalf("validateLocalAppImageGenerateSpec: %v", err)
+	}
+	if got.GetReferenceImageArtifactId() != "artifact_source" || got.GetMaskArtifactId() != "artifact_mask" || got.Strength == nil || got.GetStrength() != strength {
+		t.Fatalf("projected mask artifact spec = %+v", got)
+	}
+	for _, invalid := range []*runtimev1.LocalAppImageGenerateScenarioSpec{
+		{Prompt: "inpaint", MaskArtifactId: "artifact_mask"},
+		{Prompt: "inpaint", ReferenceImageArtifactId: "artifact_source", Mask: "https://example.com/mask.png", MaskArtifactId: "artifact_mask"},
+		{Prompt: "inpaint", ReferenceImageArtifactId: "artifact_source", MaskArtifactId: " padded "},
+	} {
+		_, err := validateLocalAppImageGenerateSpec(invalid)
+		if err == nil {
+			t.Fatalf("invalid mask artifact spec was accepted: %+v", invalid)
+		}
+	}
+}
+
 func TestLocalAppImageArtifactReferenceReachesQwenEditHostAsImmutableBytes(t *testing.T) {
 	svc := newTestService(nil)
 	installLocalAppImageArtifactTestExecution(t, svc, "local-app-qwen-edit-artifact")
@@ -78,7 +104,8 @@ func TestLocalAppImageArtifactReferenceReachesQwenEditHostAsImmutableBytes(t *te
 		t.Fatalf("terminal Job = %+v", terminal)
 	}
 	identity := terminal.GetEffectiveInputIdentity()
-	if identity.GetLoadoutId() != "local-app-qwen-edit-artifact" || identity.GetRecipeId() != capabilitydriver.StableDiffusionQwenImageEditRecipeID || len(identity.GetModelAxes()) != 3 {
+	if identity.GetLoadoutId() != "local-app-qwen-edit-artifact" || identity.GetRecipeId() != capabilitydriver.StableDiffusionQwenImageEditRecipeID || len(identity.GetModelAxes()) != 3 ||
+		len(identity.GetAdmittedFeatures()) != 1 || identity.GetAdmittedFeatures()[0] != aicapabilities.FeatureInputImage {
 		t.Fatalf("image Job ResolvedAssembly = %+v", identity)
 	}
 	if strings.Contains(identity.String(), uploaded.GetArtifactId()) {
@@ -216,7 +243,7 @@ func TestImageArtifactReferenceParticipatesInSelectedAndCatalogFeatures(t *testi
 func TestCloudImageArtifactReferenceIsTypedUnsupported(t *testing.T) {
 	request := cloudImageJobRequest("edit from Runtime artifact")
 	request.GetSpec().GetImageGenerate().ReferenceImageArtifactId = "artifact_cloud_image"
-	if !cloudImageHasArtifactReference(request) {
+	if !cloudImageHasLocalOnlyInput(request) {
 		t.Fatal("cloud image artifact reference was not detected")
 	}
 
@@ -299,11 +326,12 @@ func selectedQwenImageEditExecutionForArtifactTest(t *testing.T, configurationID
 			DriverID:         capabilitydriver.StableDiffusionDriverID,
 			DriverDialect:    capabilitydriver.StableDiffusionDriverDialect,
 		}).Proto(),
-		PortableConfig:    portable,
-		Requirements:      requirements,
-		ExactBindings:     bindings,
-		SupportedFeatures: features,
-		Configured:        true,
+		PortableConfig:                  portable,
+		Requirements:                    requirements,
+		ExactBindings:                   bindings,
+		ImplementationSupportedFeatures: append([]string(nil), features...),
+		ConfiguredFeatures:              append([]string(nil), features...),
+		Configured:                      true,
 	}
 }
 

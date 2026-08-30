@@ -29,6 +29,24 @@ type managerVideoInvocationSubstrate struct {
 	address    string
 }
 
+func (s *managerVideoInvocationSubstrate) ValidateDependencySources(sources []capabilitydriver.InvocationExactDependencySource) error {
+	if s == nil || s.manager == nil {
+		return fmt.Errorf("video execution manager is unavailable")
+	}
+	return s.manager.validateManagedImageDependencySources(sources, s.config.PackageSource)
+}
+
+func (s *managerVideoInvocationSubstrate) FailureDiagnostic() string {
+	if s == nil || s.manager == nil {
+		return ""
+	}
+	info, err := s.manager.EngineStatus(engineVideoExecutionHost)
+	if err != nil {
+		return ""
+	}
+	return info.Detail
+}
+
 func newManagerVideoInvocationSubstrate(manager *Manager, logger *slog.Logger, config VideoExecutionHostConfig) *managerVideoInvocationSubstrate {
 	if logger == nil {
 		logger = slog.Default()

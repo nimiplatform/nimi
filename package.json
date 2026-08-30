@@ -55,6 +55,7 @@
     "generate:runtime-provider-registry": "node scripts/generate-runtime-provider-registry.mjs",
     "generate:runtime-connector-auth-profiles": "node scripts/generate-runtime-connector-auth-profiles.mjs",
     "generate:managed-image-backend-packages": "node scripts/generate-managed-image-backend-packages.mjs",
+    "build:audio-cpp-macos-cpu-package": "bash scripts/build-audio-cpp-macos-cpu-package.sh",
     "generate:macos-protected-local-profile": "node scripts/generate-macos-protected-local-profile.mjs",
     "generate:sdk-connector-auth-acquisition-profiles": "node scripts/generate-sdk-connector-auth-acquisition-profiles.mjs",
     "generate:nimi-ui-lib": "node scripts/generate-nimi-ui-lib.mjs",

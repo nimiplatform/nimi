@@ -241,7 +241,7 @@ export type NimiLocalAppArtifactUploadResult = {
 export type NimiLocalAppTextTurnEvent =
   | { readonly type: 'delta'; readonly sequence: string; readonly traceId: string; readonly text: string }
   | { readonly type: 'completed'; readonly sequence: string; readonly traceId: string; readonly finishReason: 'stop' | 'length' | 'content-filter' }
-  | { readonly type: 'failed'; readonly sequence: string; readonly traceId: string; readonly reasonCode: string; readonly actionHint: string };
+  | { readonly type: 'failed'; readonly sequence: string; readonly traceId: string; readonly reasonCode: string; readonly actionHint: string; readonly interruption: { readonly cause: 'runtime-restart'; readonly resubmitDisposition: 'caller-may-resubmit' } | null };
 export type NimiLocalAppScenarioJobEvent = {
   readonly eventType: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly sequence: string; readonly traceId: string; readonly timestamp: NimiLocalAppScenarioTimestamp | null;
@@ -2229,15 +2229,20 @@ function parseScenarioArtifacts(value: unknown, command: string): readonly NimiL
   if (!Array.isArray(value) || value.length > 16) throw new Error(`${command}: artifacts are invalid`);
   return Object.freeze(value.map((entry) => {
     const record = assertRecord(entry, `${command}: artifact is invalid`);
+    const hasSeed = Object.hasOwn(record, 'seed');
     assertProjectionKeys(record, [
       'artifactId', 'mimeType', 'bytes', 'sizeBytes', 'sha256', 'durationMs',
-      'width', 'height', 'sampleRateHz', 'channels',
+      'width', 'height', 'sampleRateHz', 'channels', ...(hasSeed ? ['seed'] : []),
     ], command, 'scenario artifact');
     const bytes = parseProjectionBytes(record.bytes, command);
     const sizeBytes = boundedProjectionInteger(record.sizeBytes, 0, Number.MAX_SAFE_INTEGER, command);
     if (bytes.length > 0 && sizeBytes !== bytes.length) throw new Error(`${command}: artifact size is invalid`);
     const mimeType = requiredText(record.mimeType, 'mimeType', command, 128);
     if (!mimeType.includes('/')) throw new Error(`${command}: artifact mimeType is invalid`);
+    const seed = hasSeed
+      ? boundedProjectionInteger(record.seed, -2_147_483_648, 2_147_483_647, command)
+      : undefined;
+    if (hasSeed && !mimeType.startsWith('image/')) throw new Error(`${command}: artifact seed is invalid`);
     return Object.freeze({
       artifactId: requiredText(record.artifactId, 'artifactId', command, 128), mimeType, bytes,
       sizeBytes, sha256: optionalProjectionText(record.sha256, 128, command),
@@ -2246,6 +2251,7 @@ function parseScenarioArtifacts(value: unknown, command: string): readonly NimiL
       height: boundedProjectionInteger(record.height, 0, Number.MAX_SAFE_INTEGER, command),
       sampleRateHz: boundedProjectionInteger(record.sampleRateHz, 0, Number.MAX_SAFE_INTEGER, command),
       channels: boundedProjectionInteger(record.channels, 0, Number.MAX_SAFE_INTEGER, command),
+      ...(seed !== undefined ? { seed } : {}),
     }) as NimiLocalAppScenarioArtifact;
   }));
 }
@@ -2349,9 +2355,16 @@ function parseTextTurnEvent(value: unknown, command: string): NimiLocalAppTextTu
     return Object.freeze({ ...record }) as unknown as NimiLocalAppTextTurnEvent;
   }
   if (record.type === 'failed') {
-    assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint'], command, 'text failure');
+    assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint', 'interruption'], command, 'text failure');
     requiredText(record.reasonCode, 'reasonCode', command, 128);
     optionalProjectionText(record.actionHint, 512, command);
+    if (record.interruption !== null) {
+      const interruption = assertRecord(record.interruption, `${command}: text interruption is invalid`);
+      assertProjectionKeys(interruption, ['cause', 'resubmitDisposition'], command, 'text interruption');
+      if (interruption.cause !== 'runtime-restart' || interruption.resubmitDisposition !== 'caller-may-resubmit') {
+        throw new Error(`${command}: text interruption is invalid`);
+      }
+    }
     return Object.freeze({ ...record }) as unknown as NimiLocalAppTextTurnEvent;
   }
   throw new Error(`${command}: text-turn event type is invalid`);
@@ -3071,13 +3084,14 @@ function parseAppAIConfigSnapshot(value: unknown, command: string): NimiAIConfig
 function parseAppAIConfigOverwrite(value: unknown, command: string): NimiAIConfigOverwriteResult {
   const result = parseSafeProjection(value, command);
   rejectPortableAppAIConfigFields(result, command);
-  assertProjectionKeys(result, ['outcome', 'config', 'revision', 'reasonCode'], command, 'App AIConfig overwrite');
   const revision = parseRevision(result.revision, command);
   const config = result.config === null ? null : parseAppAIConfig(result.config, command);
-  if (result.outcome === 'committed' && result.reasonCode === 'REASON_CODE_UNSPECIFIED' && config) {
+  if (result.outcome === 'committed' && config) {
+    assertProjectionKeys(result, ['outcome', 'config', 'revision'], command, 'App AIConfig committed overwrite');
     return Object.freeze({ outcome: 'committed', config, revision });
   }
   if (result.outcome === 'conflict' && result.reasonCode === 'AI_CONFIG_REVISION_CONFLICT') {
+    assertProjectionKeys(result, ['outcome', 'config', 'revision', 'reasonCode'], command, 'App AIConfig conflict overwrite');
     return Object.freeze({ outcome: 'conflict', config, revision, reasonCode: result.reasonCode });
   }
   throw new Error(`${command}: overwrite outcome is invalid`);
@@ -3228,7 +3242,7 @@ function parseLocalResource(value: unknown, command: string): void {
   const resource = assertRecord(value, `${command}: Local resource is invalid`);
   assertProjectionKeys(resource, [
     'loadoutRef', 'label', 'capabilityContract', 'implementation',
-    'supportedFeatures', 'state', 'reasons',
+    'implementationSupportedFeatures', 'configuredFeatures', 'textBehaviors', 'state', 'reasons',
   ], command, 'Local resource');
   requiredText(resource.loadoutRef, 'loadoutRef', command, MAX_IDENTIFIER_LENGTH);
   requiredText(resource.label, 'label', command, MAX_IDENTIFIER_LENGTH);
@@ -3238,10 +3252,60 @@ function parseLocalResource(value: unknown, command: string): void {
   for (const key of ['implementationId', 'driverId', 'driverDialect'] as const) {
     requiredText(implementation[key], key, command, MAX_IDENTIFIER_LENGTH);
   }
-  if (!Array.isArray(resource.supportedFeatures) || !Array.isArray(resource.reasons)
-    || (resource.state !== 'ready' && resource.state !== 'blocked')) {
-    throw new Error(`${command}: Local resource is invalid`);
+  if (!Array.isArray(resource.implementationSupportedFeatures)
+    || !resource.implementationSupportedFeatures.every((value) => typeof value === 'string')
+    || !Array.isArray(resource.configuredFeatures)
+    || !resource.configuredFeatures.every((value) => typeof value === 'string')) {
+    throw new Error(`${command}: Local resource features are invalid`);
   }
+  if (!Array.isArray(resource.textBehaviors) || !resource.textBehaviors.every(validTextBehaviorProjection)) {
+    throw new Error(`${command}: Local resource text behaviors are invalid`);
+  }
+  if (!Array.isArray(resource.reasons)) {
+    throw new Error(`${command}: Local resource reasons are invalid`);
+  }
+  if (resource.state !== 'ready' && resource.state !== 'blocked') {
+    throw new Error(`${command}: Local resource state is invalid`);
+  }
+}
+
+function validTextBehaviorProjection(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const projection = value as Record<string, unknown>;
+  const keys = Object.keys(projection).sort();
+  const required = ['configurationState', 'implementationSupported', 'kind', 'reasons'];
+  const allowed = new Set([...required, 'configuredToolUse', 'implementationToolUse']);
+  const kind = String(projection.kind);
+  if (!required.every((key) => keys.includes(key)) || !keys.every((key) => allowed.has(key))
+    || !['tool-use', 'reasoning', 'structured-output'].includes(kind)
+    || typeof projection.implementationSupported !== 'boolean'
+    || !['unavailable', 'configured', 'ambiguous'].includes(String(projection.configurationState))
+    || !Array.isArray(projection.reasons)
+    || !projection.reasons.every((reason) => typeof reason === 'string' && reason.length > 0)) {
+    return false;
+  }
+  if (kind !== 'tool-use') {
+    return projection.implementationToolUse == null && projection.configuredToolUse == null;
+  }
+  return (projection.implementationToolUse == null || validToolUseCapabilityProjection(projection.implementationToolUse))
+    && (projection.configuredToolUse == null || validToolUseCapabilityProjection(projection.configuredToolUse));
+}
+
+function validToolUseCapabilityProjection(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const projection = value as Record<string, unknown>;
+  const expected = [
+    'supportedToolSpecKinds', 'supportedToolChoiceModes', 'supportsSingleCall', 'supportsMultipleCalls',
+    'supportsParallelCalls', 'supportsSync', 'supportsStream', 'supportsToolOnlyResponse',
+    'supportsToolResultRoundTrip', 'supportsMixedTextAndToolCalls',
+  ].sort();
+  const keys = Object.keys(projection).sort();
+  return keys.length === expected.length && keys.every((key, index) => key === expected[index])
+    && Array.isArray(projection.supportedToolSpecKinds)
+    && projection.supportedToolSpecKinds.every((kind) => kind === 'function' || kind === 'provider')
+    && Array.isArray(projection.supportedToolChoiceModes)
+    && projection.supportedToolChoiceModes.every((mode) => ['auto', 'none', 'required', 'tool'].includes(String(mode)))
+    && expected.slice(2).every((key) => typeof projection[key] === 'boolean');
 }
 
 function parseRevision(value: unknown, command: string): string {

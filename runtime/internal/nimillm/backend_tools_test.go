@@ -68,7 +68,7 @@ func TestGenerateTextOpenAIProviderToolsFailClosed(t *testing.T) {
 		t.Fatal("expected provider tool request to fail closed")
 	}
 	reason, ok := grpcerr.ExtractReasonCode(err)
-	if !ok || reason != runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED {
+	if !ok || reason != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
 		t.Fatalf("unexpected reason: %v ok=%v err=%v", reason, ok, err)
 	}
 }
@@ -95,9 +95,11 @@ func TestGenerateTextOpenAIRawChunksFailClosed(t *testing.T) {
 	}
 }
 
-func TestGenerateTextOpenAIToolCallsAndStructuredOutput(t *testing.T) {
+func TestGenerateTextOpenAIToolCallsAndStructuredOutputRequireExactAdapterAdmission(t *testing.T) {
 	var captured map[string]any
+	requestCount := 0
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount++
 		captured = decodeJSONBodyForBackendMediaTest(t, r)
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"","tool_calls":[{"id":"call_1","type":"function","function":{"name":"get_weather","arguments":"{\"city\":\"Paris\"}"}}]},"finish_reason":"tool_calls"}],"usage":{"prompt_tokens":4,"completion_tokens":2}}`))
@@ -125,10 +127,20 @@ func TestGenerateTextOpenAIToolCallsAndStructuredOutput(t *testing.T) {
 		topK:           41,
 	}
 
+	input := []*runtimev1.ChatMessage{{Role: "user", Content: "weather in Paris"}}
+	if _, _, _, _, err := backend.GenerateText(
+		context.Background(), "gpt-4o-mini", input, "", 0, 0, 0, params,
+	); textBehaviorReasonForTest(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED || requestCount != 0 {
+		t.Fatalf("unadmitted tool/structured request = reason=%v requests=%d err=%v", textBehaviorReasonForTest(err), requestCount, err)
+	}
+	ctx := WithTextBehaviorAdmission(context.Background(), &TextBehaviorAdmission{
+		AdapterID: "openai-tools-json", Version: "1", Provider: "openai", ProviderModelID: "gpt-4o-mini", ToolUse: true, StructuredOutput: true,
+		Sync: true, ToolStructuredCombination: true,
+	})
 	text, toolCalls, _, finish, err := backend.GenerateText(
-		context.Background(),
+		ctx,
 		"gpt-4o-mini",
-		[]*runtimev1.ChatMessage{{Role: "user", Content: "weather in Paris"}},
+		input,
 		"",
 		0, 0, 0,
 		params,
@@ -197,12 +209,12 @@ func TestGenerateTextAnthropicFailsClosedOnStructuredOutput(t *testing.T) {
 		"",
 		0, 0, 0,
 		params,
-	); err == nil {
-		t.Fatal("expected Anthropic path to fail closed on structured output")
+	); textBehaviorReasonForTest(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
+		t.Fatalf("expected Anthropic path to fail typed on unadmitted structured output: %v", err)
 	}
 }
 
-func TestGenerateTextAnthropicToolCalls(t *testing.T) {
+func TestGenerateTextAnthropicToolCallsRequireExactAdapterAdmission(t *testing.T) {
 	var captured map[string]any
 	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		captured = decodeJSONBodyForBackendMediaTest(t, r)
@@ -222,8 +234,11 @@ func TestGenerateTextAnthropicToolCalls(t *testing.T) {
 		topK:       27,
 	}
 
+	ctx := WithTextBehaviorAdmission(context.Background(), &TextBehaviorAdmission{
+		AdapterID: "anthropic-tools", Version: "1", Provider: "anthropic", ProviderModelID: "claude-sonnet-4-6", ToolUse: true, Sync: true,
+	})
 	_, toolCalls, _, finish, err := backend.GenerateText(
-		context.Background(),
+		ctx,
 		"claude-sonnet-4-6",
 		[]*runtimev1.ChatMessage{{Role: "user", Content: "weather in Paris"}},
 		"",
@@ -258,16 +273,40 @@ func TestGenerateTextAnthropicToolCalls(t *testing.T) {
 	}
 }
 
+func TestStreamGenerateTextToolUseStaysClosedWithoutNativeOrderedSerializer(t *testing.T) {
+	backend := newBackend("cloud-openai", "https://api.openai.test", "", nil, 0, nil, false, true)
+	ctx := WithTextBehaviorAdmission(context.Background(), &TextBehaviorAdmission{
+		AdapterID: "openai-tools-stream", Version: "1", Provider: "openai", ProviderModelID: "gpt-4o-mini", ToolUse: true, Stream: true,
+	})
+	_, _, err := backend.StreamGenerateText(
+		ctx,
+		"gpt-4o-mini",
+		[]*runtimev1.ChatMessage{{Role: "user", Content: "weather"}},
+		"", 0, 0, 0,
+		textGenParams{tools: []*runtimev1.ToolSpec{{Kind: runtimev1.ToolSpecKind_TOOL_SPEC_KIND_FUNCTION, Name: "weather"}}},
+		func(string) error { return nil },
+	)
+	if textBehaviorReasonForTest(err) != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
+		t.Fatalf("stream tool behavior error = %v", err)
+	}
+}
+
+func textBehaviorReasonForTest(err error) runtimev1.ReasonCode {
+	reason, _ := grpcerr.ExtractReasonCode(err)
+	return reason
+}
+
 func TestBuildOpenAIMessagesToolRoundTrip(t *testing.T) {
 	input := []*runtimev1.ChatMessage{
 		{Role: "user", Content: "weather in Paris?"},
-		{Role: "assistant", Content: "", ToolCalls: []*runtimev1.ToolCall{
-			{Id: "call-1", Name: "weather", ArgumentsJson: `{"city":"Paris"}`},
-		}},
-		{Role: "tool", Content: `{"temp":18}`, ToolCallId: "call-1"},
+		canonicalAssistantToolMessage("call-1", "weather", `{"city":"Paris"}`),
+		canonicalToolResultMessage(t, "call-1", "weather", map[string]any{"temp": 18}),
 	}
 
-	messages := buildOpenAIMessages("", input)
+	messages, err := buildOpenAIMessages("", input)
+	if err != nil {
+		t.Fatalf("buildOpenAIMessages() error = %v", err)
+	}
 	if len(messages) != 3 {
 		t.Fatalf("expected 3 messages (assistant tool call kept), got %d", len(messages))
 	}
@@ -289,5 +328,36 @@ func TestBuildOpenAIMessagesToolRoundTrip(t *testing.T) {
 	tool := messages[2]
 	if tool.Role != "tool" || tool.ToolCallID != "call-1" || tool.Content != `{"temp":18}` {
 		t.Fatalf("unexpected tool message: %+v", tool)
+	}
+}
+
+func canonicalAssistantToolMessage(id, name, argumentsJSON string) *runtimev1.ChatMessage {
+	return &runtimev1.ChatMessage{
+		Role: "assistant",
+		TurnItems: []*runtimev1.TextTurnItem{{
+			Item: &runtimev1.TextTurnItem_Output{Output: &runtimev1.TextOutputItem{
+				Item: &runtimev1.TextOutputItem_ToolCall{ToolCall: &runtimev1.ToolCall{
+					Id: id, Name: name, ArgumentsJson: argumentsJSON,
+				}},
+			}},
+		}},
+	}
+}
+
+func canonicalToolResultMessage(t *testing.T, id, name string, result any) *runtimev1.ChatMessage {
+	t.Helper()
+	value, err := structpb.NewValue(result)
+	if err != nil {
+		t.Fatalf("tool result value: %v", err)
+	}
+	return &runtimev1.ChatMessage{
+		Role: "tool",
+		TurnItems: []*runtimev1.TextTurnItem{{
+			Item: &runtimev1.TextTurnItem_ToolResult{ToolResult: &runtimev1.ToolResult{
+				ToolCallId: id,
+				ToolName:   name,
+				Result:     value,
+			}},
+		}},
 	}
 }

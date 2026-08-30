@@ -4,6 +4,30 @@ package nimi.runtime.v1;
 
 option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
 
+// Provider-neutral typed behaviors within text.generate. These do not create
+// additional top-level CapabilityContract tokens.
+enum TextBehaviorKind {
+  TEXT_BEHAVIOR_KIND_UNSPECIFIED = 0;
+  TEXT_BEHAVIOR_KIND_TOOL_USE = 1;
+  TEXT_BEHAVIOR_KIND_REASONING = 2;
+  TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT = 3;
+}
+
+enum ToolSpecKind {
+  TOOL_SPEC_KIND_UNSPECIFIED = 0;
+  TOOL_SPEC_KIND_FUNCTION = 1;
+  TOOL_SPEC_KIND_PROVIDER = 2;
+}
+
+// How the model is allowed or required to select tools for a text scenario.
+enum ToolChoiceMode {
+  TOOL_CHOICE_MODE_UNSPECIFIED = 0;
+  TOOL_CHOICE_MODE_AUTO = 1;
+  TOOL_CHOICE_MODE_NONE = 2;
+  TOOL_CHOICE_MODE_REQUIRED = 3;
+  TOOL_CHOICE_MODE_TOOL = 4;
+}
+
 enum ReasonCode {
   // General (0–8): stable, not in reason-codes.yaml but implementation-required.
   REASON_CODE_UNSPECIFIED = 0;
@@ -118,6 +142,14 @@ enum ReasonCode {
   AI_PROVIDER_INTERNAL = 392;
   AI_PROVIDER_RATE_LIMITED = 393;
   AI_PROVIDER_TIMEOUT = 394;
+
+  // TEXT_BEHAVIOR and execution interruption family (395+)
+  AI_TEXT_BEHAVIOR_UNSUPPORTED = 395;
+  AI_TEXT_BEHAVIOR_AMBIGUOUS = 396;
+  AI_TEXT_OUTPUT_INCOMPLETE = 397;
+  AI_TOOL_CALL_INVALID = 398;
+  AI_REASONING_CONTINUITY_INVALID = 399;
+  AI_EXECUTION_INTERRUPTED = 402;
 
   // MEDIA family (410+)
   AI_MEDIA_SPEC_INVALID = 410;

@@ -11,6 +11,7 @@ import type {
   NimiPrepareLoadoutInput,
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeModelAssetRecord,
+  NimiTextBehaviorCapabilityProjection,
 } from '@nimiplatform/sdk/runtime';
 import {
   Button,
@@ -263,7 +264,6 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
         capabilityContract: recipe.capabilityContract,
         recipeId: recipe.recipeId,
         options: recipe.defaultOptions,
-        supportedFeatures: recipe.supportedFeatures,
         displayName: name,
         modelAxes,
       });
@@ -333,7 +333,6 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
       capabilityContract: loadout.capabilityContract,
       recipeId: loadout.recipeId,
       options: loadout.options,
-      supportedFeatures: loadout.supportedFeatures,
       displayName: draft.displayName.trim() || loadout.displayName,
       modelAxes,
       provenance: loadout.provenance,
@@ -368,7 +367,6 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
       capabilityContract: loadout.capabilityContract,
       recipeId: loadout.recipeId,
       options: loadout.options,
-      supportedFeatures: loadout.supportedFeatures,
       displayName: nextName,
       modelAxes: runtimeConfigLoadoutUpdateModelAxes(loadout, draft.modelAssetIds, assets, '', ''),
       provenance: loadout.provenance,
@@ -534,7 +532,13 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
                   <span>{slot.displayLabel}</span>
                   <SelectField
                     value={createAxes[slot.slotId] ?? ''}
-                    options={[{ value: '', label: t('runtimeConfig.loadouts.unresolved') }, ...assets.map((asset) => ({ value: asset.modelAssetId, label: loadoutAssetLabel(asset, verifiedAssets) }))]}
+                    options={[
+                      { value: '', label: t('runtimeConfig.loadouts.unresolved') },
+                      ...runtimeConfigLoadoutCandidateAssets(slot, assets).map((asset) => ({
+                        value: asset.modelAssetId,
+                        label: loadoutAssetLabel(asset, verifiedAssets),
+                      })),
+                    ]}
                     onValueChange={(modelAssetId) => setCreateAxes((current) => ({ ...current, [slot.slotId]: modelAssetId }))}
                     contentLayer="dialog"
                   />
@@ -636,11 +640,16 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
                     </div>
                     <SelectField
                       value={manageDraft.modelAssetIds[axis.slotId] ?? ''}
-                      options={assets.map((item) => {
-                        const incompatibility = candidateErrors[`${manageLoadout.loadoutId}:${axis.slotId}:${item.modelAssetId}`];
-                        const label = loadoutAssetLabel(item, verifiedAssets);
-                        return { value: item.modelAssetId, label: incompatibility ? `${label} · ${t('runtimeConfig.loadouts.incompatibleOption')}` : label };
-                      })}
+                      options={[
+                        ...(axis.presence === 'optional-conditional'
+                          ? [{ value: '', label: t('runtimeConfig.loadouts.unresolved') }]
+                          : []),
+                        ...runtimeConfigLoadoutCandidateAssets(slot, assets, axis).map((item) => {
+                          const incompatibility = candidateErrors[`${manageLoadout.loadoutId}:${axis.slotId}:${item.modelAssetId}`];
+                          const label = loadoutAssetLabel(item, verifiedAssets);
+                          return { value: item.modelAssetId, label: incompatibility ? `${label} · ${t('runtimeConfig.loadouts.incompatibleOption')}` : label };
+                        }),
+                      ]}
                       onValueChange={(modelAssetId) => {
                         setEdits((current) => ({
                           ...current,
@@ -659,6 +668,13 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
             <section className="grid gap-3 rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-3 text-xs text-[var(--nimi-text-muted)]" data-testid="loadout-execution-supply">
               <h5 className="font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.loadouts.technicalDetails')}</h5>
               <p>{manageLoadout.capabilityContract} · {manageLoadout.recipeId}@{manageLoadout.recipeRevision} · {manageLoadout.implementation.driverDialect}</p>
+              <RuntimeConfigLoadoutTextBehaviors
+                loadoutId={manageLoadout.loadoutId}
+                behaviors={manageLoadout.textBehaviors}
+                compact
+              />
+              <p>{t('runtimeConfig.loadouts.implementationSupportedFeatures')}: {manageLoadout.implementationSupportedFeatures.length > 0 ? manageLoadout.implementationSupportedFeatures.join(', ') : t('runtimeConfig.loadouts.recipeCustodyEmpty')}</p>
+              <p>{t('runtimeConfig.loadouts.configuredFeatures')}: {manageLoadout.configuredFeatures.length > 0 ? manageLoadout.configuredFeatures.join(', ') : t('runtimeConfig.loadouts.recipeCustodyEmpty')}</p>
               {manageLoadout.modelAxes.map((axis) => {
                 const asset = assets.find((item) => item.modelAssetId === axis.modelAssetId);
                 const catalogBadge = runtimeConfigLoadoutCatalogBadge(asset?.catalogVerification);
@@ -775,7 +791,89 @@ function LoadoutCard(props: {
           <Button size="sm" tone="secondary" disabled={props.busy} onClick={props.onManage}>{t('runtimeConfig.loadouts.manage')}</Button>
         </div>
       </div>
+      <RuntimeConfigLoadoutTextBehaviors
+        loadoutId={props.loadout.loadoutId}
+        behaviors={props.loadout.textBehaviors}
+      />
     </Surface>
+  );
+}
+
+export type RuntimeConfigTextBehaviorPresentationState =
+  | 'implementation-supported'
+  | 'configured'
+  | 'unavailable';
+
+export function runtimeConfigTextBehaviorPresentationState(
+  behavior: Pick<
+    NimiTextBehaviorCapabilityProjection,
+    'implementationSupported' | 'configurationState'
+  >,
+): RuntimeConfigTextBehaviorPresentationState {
+  if (behavior.implementationSupported && behavior.configurationState === 'configured') {
+    return 'configured';
+  }
+  if (behavior.implementationSupported && behavior.configurationState === 'unavailable') {
+    return 'implementation-supported';
+  }
+  return 'unavailable';
+}
+
+function runtimeConfigTextBehaviorTone(
+  behavior: Pick<
+    NimiTextBehaviorCapabilityProjection,
+    'implementationSupported' | 'configurationState'
+  >,
+): 'success' | 'info' | 'warning' | 'danger' {
+  const state = runtimeConfigTextBehaviorPresentationState(behavior);
+  if (state === 'configured') return 'success';
+  if (state === 'implementation-supported') return 'info';
+  return behavior.configurationState === 'ambiguous' ? 'danger' : 'warning';
+}
+
+function RuntimeConfigLoadoutTextBehaviors(props: {
+  readonly loadoutId: string;
+  readonly behaviors: readonly NimiTextBehaviorCapabilityProjection[];
+  readonly compact?: boolean;
+}) {
+  const { t } = useTranslation();
+  if (props.behaviors.length === 0) return null;
+  return (
+    <div
+      className={props.compact ? 'grid gap-2' : 'grid gap-2 border-t border-[var(--nimi-border-subtle)] pt-3'}
+      data-testid={`loadout-text-behaviors:${props.loadoutId}`}
+    >
+      <h5 className="text-xs font-medium text-[var(--nimi-text-secondary)]">
+        {t('runtimeConfig.loadouts.textBehaviors.title')}
+      </h5>
+      <div className="grid gap-2 sm:grid-cols-3">
+        {props.behaviors.map((behavior) => {
+          const state = runtimeConfigTextBehaviorPresentationState(behavior);
+          return (
+            <div
+              key={behavior.kind}
+              className="min-w-0 rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-2"
+              data-testid={`loadout-text-behavior:${props.loadoutId}:${behavior.kind}`}
+              data-state={state}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs font-medium text-[var(--nimi-text-primary)]">
+                  {t(`runtimeConfig.loadouts.textBehaviors.kind.${behavior.kind}`)}
+                </span>
+                <StatusBadge tone={runtimeConfigTextBehaviorTone(behavior)} shape="soft">
+                  {t(`runtimeConfig.loadouts.textBehaviors.state.${state}`)}
+                </StatusBadge>
+              </div>
+              {behavior.reasons.length > 0 ? (
+                <p className="mt-1 break-all text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
+                  {t('runtimeConfig.loadouts.textBehaviors.typedReasons')}: <span className="font-mono">{behavior.reasons.join(' · ')}</span>
+                </p>
+              ) : null}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -805,9 +903,33 @@ function recommendedMissingDownload(items: readonly RecommendedInstallItem[]): {
 function recommendedAxisSelections(recipe: NimiLoadoutRecipe | undefined, assets: readonly NimiRuntimeModelAssetRecord[]): Record<string, string> {
   if (!recipe) return {};
   return Object.fromEntries(recipe.slots.map((slot) => {
+    if (slot.presence === 'optional-conditional') return [slot.slotId, ''];
     const matched = assets.filter((asset) => slot.recommendedContentIds.includes(asset.contentId));
     return [slot.slotId, matched.length === 1 ? matched[0]!.modelAssetId : ''];
   }));
+}
+
+/**
+ * Desktop can present an exact Runtime-projected recommendation and a current
+ * Runtime-validated binding as candidates. A recommendation remains non-binding
+ * and Prepare performs the authoritative Model Contract evaluation. The opaque
+ * Model Contract and ModelAsset fingerprint are never reinterpreted here.
+ */
+export function runtimeConfigLoadoutCandidateAssets(
+  slot: Pick<NimiLoadoutRecipe['slots'][number], 'recommendedContentIds'> | undefined,
+  assets: readonly NimiRuntimeModelAssetRecord[],
+  currentAxis?: Pick<NimiMachineLoadout['modelAxes'][number], 'modelAssetId' | 'recipeCompatible'>,
+): readonly NimiRuntimeModelAssetRecord[] {
+  if (!slot) {
+    return currentAxis?.recipeCompatible
+      ? assets.filter((asset) => asset.modelAssetId === currentAxis.modelAssetId)
+      : [];
+  }
+  const admittedContentIds = new Set(slot.recommendedContentIds);
+  return assets.filter((asset) => (
+    admittedContentIds.has(asset.contentId)
+    || (currentAxis?.recipeCompatible === true && asset.modelAssetId === currentAxis.modelAssetId)
+  ));
 }
 
 export function recommendedInstallItems(
@@ -817,6 +939,7 @@ export function recommendedInstallItems(
   selectedModelAssetIds: Readonly<Record<string, string>> = {},
 ): RecommendedInstallItem[] {
   return recipe.slots.flatMap((slot) => {
+    if (slot.presence === 'optional-conditional') return [];
     const selectedModelAssetId = selectedModelAssetIds[slot.slotId];
     if (selectedModelAssetId && assets.some((asset) => asset.modelAssetId === selectedModelAssetId)) {
       return [];
@@ -847,10 +970,11 @@ export function runtimeConfigLoadoutUpdateModelAxes(
   slotId: string,
   nextModelAssetId: string,
 ): NimiPrepareLoadoutInput['modelAxes'] {
-  return loadout.modelAxes.map((axis) => {
+  return loadout.modelAxes.flatMap((axis) => {
     const modelAssetId = axis.slotId === slotId
       ? nextModelAssetId
       : (draftModelAssetIds[axis.slotId] ?? axis.modelAssetId);
+    if (!modelAssetId && axis.presence === 'optional-conditional') return [];
     const asset = assets.find((item) => item.modelAssetId === modelAssetId);
     if (asset) {
       return { slotId: axis.slotId, modelAssetId: asset.modelAssetId, expectedContentId: asset.contentId };
@@ -868,7 +992,7 @@ export function runtimeConfigRecommendedLoadoutModelAxes(
   recipe: Pick<NimiLoadoutRecipe, 'slots'>,
   assets: readonly NimiRuntimeModelAssetRecord[],
 ): NimiPrepareLoadoutInput['modelAxes'] {
-  return recipe.slots.map((slot) => {
+  return recipe.slots.flatMap((slot) => {
     const current = loadout.modelAxes.find((axis) => axis.slotId === slot.slotId);
     if (current?.modelAssetId) {
       const currentAsset = assets.find((asset) => asset.modelAssetId === current.modelAssetId);
@@ -877,9 +1001,10 @@ export function runtimeConfigRecommendedLoadoutModelAxes(
         modelAssetId: current.modelAssetId,
         ...(currentAsset?.contentId || current.expectedContentId
           ? { expectedContentId: currentAsset?.contentId || current.expectedContentId }
-          : {}),
+        : {}),
       };
     }
+    if (slot.presence === 'optional-conditional') return [];
     const recommended = slot.recommendedContentIds
       .map((contentId) => assets.find((asset) => asset.contentId === contentId))
       .find((asset): asset is NimiRuntimeModelAssetRecord => asset !== undefined);
@@ -925,7 +1050,6 @@ export async function installAndBindRuntimeConfigRecommendedLoadout(input: {
     capabilityContract: input.loadout.capabilityContract,
     recipeId: input.loadout.recipeId,
     options: input.loadout.options,
-    supportedFeatures: input.loadout.supportedFeatures,
     displayName: input.loadout.displayName,
     modelAxes: runtimeConfigRecommendedLoadoutModelAxes(input.loadout, input.recipe, nextAssets),
     provenance: input.loadout.provenance,

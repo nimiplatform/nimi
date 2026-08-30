@@ -141,7 +141,10 @@ func buildTextChatMessages(ctx context.Context, systemPrompt string, input []*ru
 			if hasUnsupportedLlamaTextChatParts(input) {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 			}
-			messages := buildLlamaTextMessages(systemPrompt, input)
+			messages, err := buildLlamaTextMessages(systemPrompt, input)
+			if err != nil {
+				return nil, err
+			}
 			if len(messages) == 0 {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 			}
@@ -163,45 +166,64 @@ func buildTextChatMessages(ctx context.Context, systemPrompt string, input []*ru
 		if hasUnsupportedOpenAICompatibleTextChatParts(input) {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 		}
-		messages := buildOpenAIMultimodalMessages(systemPrompt, input)
+		messages, err := buildOpenAIMultimodalMessages(systemPrompt, input)
+		if err != nil {
+			return nil, err
+		}
 		if len(messages) == 0 {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 		return messages, nil
 	}
-	messages := buildOpenAIMessages(systemPrompt, input)
+	messages, err := buildOpenAIMessages(systemPrompt, input)
+	if err != nil {
+		return nil, err
+	}
 	if len(messages) == 0 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	return messages, nil
 }
 
-func buildOpenAIMultimodalMessages(systemPrompt string, input []*runtimev1.ChatMessage) []openAIMultimodalMessage {
+func buildOpenAIMultimodalMessages(systemPrompt string, input []*runtimev1.ChatMessage) ([]openAIMultimodalMessage, error) {
 	messages := make([]openAIMultimodalMessage, 0, len(input)+1)
 	if prompt := strings.TrimSpace(systemPrompt); prompt != "" {
 		messages = append(messages, openAIMultimodalMessage{Role: "system", Content: prompt})
 	}
 	for _, item := range input {
+		if item == nil {
+			continue
+		}
+		if len(item.GetTurnItems()) != 0 {
+			plainMessages, err := buildOpenAIMessages("", []*runtimev1.ChatMessage{item})
+			if err != nil {
+				return nil, err
+			}
+			for _, plain := range plainMessages {
+				messages = append(messages, openAIMultimodalMessage{
+					Role:       plain.Role,
+					Content:    plain.Content,
+					Name:       plain.Name,
+					ToolCalls:  plain.ToolCalls,
+					ToolCallID: plain.ToolCallID,
+				})
+			}
+			continue
+		}
 		parts := item.GetParts()
 		role := strings.TrimSpace(item.GetRole())
 		if role == "" {
 			role = "user"
 		}
-		toolCalls := buildOpenAIToolCalls(item.GetToolCalls())
-		toolCallID := strings.TrimSpace(item.GetToolCallId())
 		if len(parts) == 0 {
 			content := strings.TrimSpace(item.GetContent())
-			// Keep assistant tool-call turns and tool results even when their text
-			// content is empty so multimodal multi-step tool loops round-trip.
-			if content == "" && len(toolCalls) == 0 && toolCallID == "" {
+			if content == "" {
 				continue
 			}
 			messages = append(messages, openAIMultimodalMessage{
-				Role:       role,
-				Content:    content,
-				Name:       strings.TrimSpace(item.GetName()),
-				ToolCalls:  toolCalls,
-				ToolCallID: toolCallID,
+				Role:    role,
+				Content: content,
+				Name:    strings.TrimSpace(item.GetName()),
 			})
 			continue
 		}
@@ -230,21 +252,19 @@ func buildOpenAIMultimodalMessages(systemPrompt string, input []*runtimev1.ChatM
 				}
 			}
 		}
-		if len(contentParts) == 0 && len(toolCalls) == 0 && toolCallID == "" {
+		if len(contentParts) == 0 {
 			continue
 		}
 		messages = append(messages, openAIMultimodalMessage{
-			Role:       role,
-			Content:    contentParts,
-			Name:       strings.TrimSpace(item.GetName()),
-			ToolCalls:  toolCalls,
-			ToolCallID: toolCallID,
+			Role:    role,
+			Content: contentParts,
+			Name:    strings.TrimSpace(item.GetName()),
 		})
 	}
-	return messages
+	return messages, nil
 }
 
-func buildLlamaTextMessages(systemPrompt string, input []*runtimev1.ChatMessage) []llamaMessage {
+func buildLlamaTextMessages(systemPrompt string, input []*runtimev1.ChatMessage) ([]llamaMessage, error) {
 	messages := make([]llamaMessage, 0, len(input)+1)
 	if prompt := strings.TrimSpace(systemPrompt); prompt != "" {
 		messages = append(messages, llamaMessage{
@@ -254,6 +274,12 @@ func buildLlamaTextMessages(systemPrompt string, input []*runtimev1.ChatMessage)
 		})
 	}
 	for _, item := range input {
+		if item == nil {
+			continue
+		}
+		if len(item.GetTurnItems()) != 0 {
+			return nil, unsupportedCanonicalToolTurn("legacy llama multimodal messages do not admit ordered tool or reasoning turns")
+		}
 		role := strings.TrimSpace(item.GetRole())
 		if role == "" {
 			role = "user"
@@ -310,7 +336,7 @@ func buildLlamaTextMessages(systemPrompt string, input []*runtimev1.ChatMessage)
 		}
 		messages = append(messages, message)
 	}
-	return messages
+	return messages, nil
 }
 
 func (b *Backend) buildOpenAIProviderNativeMessages(ctx context.Context, systemPrompt string, input []*runtimev1.ChatMessage) ([]openAIMultimodalMessage, error) {
@@ -319,25 +345,38 @@ func (b *Backend) buildOpenAIProviderNativeMessages(ctx context.Context, systemP
 		messages = append(messages, openAIMultimodalMessage{Role: "system", Content: prompt})
 	}
 	for _, item := range input {
+		if item == nil {
+			continue
+		}
+		if len(item.GetTurnItems()) != 0 {
+			plainMessages, err := buildOpenAIMessages("", []*runtimev1.ChatMessage{item})
+			if err != nil {
+				return nil, err
+			}
+			for _, plain := range plainMessages {
+				messages = append(messages, openAIMultimodalMessage{
+					Role:       plain.Role,
+					Content:    plain.Content,
+					Name:       plain.Name,
+					ToolCalls:  plain.ToolCalls,
+					ToolCallID: plain.ToolCallID,
+				})
+			}
+			continue
+		}
 		role := strings.TrimSpace(item.GetRole())
 		if role == "" {
 			role = "user"
 		}
-		toolCalls := buildOpenAIToolCalls(item.GetToolCalls())
-		toolCallID := strings.TrimSpace(item.GetToolCallId())
 		if len(item.GetParts()) == 0 {
 			content := strings.TrimSpace(item.GetContent())
-			// Keep assistant tool-call turns and tool results even when their text
-			// content is empty so multimodal multi-step tool loops round-trip.
-			if content == "" && len(toolCalls) == 0 && toolCallID == "" {
+			if content == "" {
 				continue
 			}
 			messages = append(messages, openAIMultimodalMessage{
-				Role:       role,
-				Content:    content,
-				Name:       strings.TrimSpace(item.GetName()),
-				ToolCalls:  toolCalls,
-				ToolCallID: toolCallID,
+				Role:    role,
+				Content: content,
+				Name:    strings.TrimSpace(item.GetName()),
 			})
 			continue
 		}
@@ -372,15 +411,13 @@ func (b *Backend) buildOpenAIProviderNativeMessages(ctx context.Context, systemP
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 			}
 		}
-		if len(contentParts) == 0 && len(toolCalls) == 0 && toolCallID == "" {
+		if len(contentParts) == 0 {
 			continue
 		}
 		messages = append(messages, openAIMultimodalMessage{
-			Role:       role,
-			Content:    contentParts,
-			Name:       strings.TrimSpace(item.GetName()),
-			ToolCalls:  toolCalls,
-			ToolCallID: toolCallID,
+			Role:    role,
+			Content: contentParts,
+			Name:    strings.TrimSpace(item.GetName()),
 		})
 	}
 	return messages, nil

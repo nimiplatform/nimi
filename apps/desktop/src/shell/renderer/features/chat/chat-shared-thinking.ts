@@ -28,13 +28,14 @@ export function resolveChatThinkingConfig(
 ): NimiRuntimeAIReasoningOptions {
   if (preference === 'on' && support.supported) {
     return {
-      mode: 'on',
-      traceMode: 'separate',
+      activation: 'required',
+      presentation: 'summary',
+      effort: 'medium',
     };
   }
   return {
-    mode: 'off',
-    traceMode: 'hide',
+    activation: 'disabled',
+    presentation: 'hidden',
   };
 }
 

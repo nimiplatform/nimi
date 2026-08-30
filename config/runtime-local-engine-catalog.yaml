@@ -10,16 +10,7 @@ entries:
   - engines_2
   - engines_3
   - engines_4
-  - engines_5
-  - engines_6
-  - engines_7
 engines:
-  - engine: llama
-    default_endpoint: ""
-    runtime_mode: attached_endpoint
-    protocol: nimi_runtime_text
-    default_catalog_admitted: true
-    source_rule: K-LENG-005
   - engine: llama
     runtime_mode: supervised
     protocol: nimi_runtime_text
@@ -28,21 +19,12 @@ engines:
     discovery: managed_binary
     supported_platforms:
       - darwin/arm64
-      - darwin/amd64
-      - linux/amd64
       - windows/amd64
-      - windows/arm64
     health_path: "/v1/models"
     start_command: "llama-server --host 127.0.0.1 --port {port} --model {entry}"
     default_port: 1234
     startup_timeout_seconds: 120
   - engine: media
-    default_endpoint: ""
-    runtime_mode: attached_endpoint
-    protocol: nimi_runtime_media
-    default_catalog_admitted: true
-    source_rule: K-LENG-005
-  - engine: media
     runtime_mode: supervised
     protocol: nimi_runtime_media
     default_catalog_admitted: true
@@ -50,22 +32,12 @@ engines:
     discovery: managed_binary
     supported_platforms:
       - darwin/arm64
-      - darwin/amd64
-      - linux/amd64
-      - linux/arm64
       - windows/amd64
     health_path: "/healthz"
     health_response: "\"ready\": true"
     start_command: "stable-diffusion-server --host 127.0.0.1 --port {port}"
     default_port: 8321
     startup_timeout_seconds: 180
-  - engine: speech
-    default_endpoint: ""
-    runtime_mode: attached_endpoint
-    protocol: nimi_runtime_speech
-    default_catalog_admitted: true
-    # Advanced/self-hosted local speech path only; not the ordinary-user default.
-    source_rule: K-LENG-005
   - engine: speech
     runtime_mode: supervised
     protocol: nimi_runtime_speech
@@ -93,9 +65,6 @@ engines:
     # signature, not the current placeholder fact surface.
     supported_platforms:
       - darwin/arm64
-      - darwin/amd64
-      - linux/amd64
-      - linux/arm64
       - windows/amd64
     health_path: "/healthz"
     health_response: "\"ready\": true"

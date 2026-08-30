@@ -87,24 +87,28 @@ type localComputePackDefinition struct {
 	CloudOnlyImpact            string
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r066
 func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localEnvironmentHostProfileState) (string, string, bool) {
 	switch driver.(type) {
-	case capabilitydriver.LlamaTextDriver:
-		consumer := "llama.cpp.cpu"
-		if localEnvironmentHostSupportsCUDA(host) {
-			consumer = "llama.cpp.cuda"
-		} else if strings.EqualFold(strings.TrimSpace(host.OS), "darwin") {
-			consumer = "llama.cpp.metal"
+	case capabilitydriver.LlamaTextDriver, capabilitydriver.LlamaEmbedDriver:
+		if strings.EqualFold(strings.TrimSpace(host.OS), "windows") &&
+			strings.EqualFold(strings.TrimSpace(host.Arch), "amd64") &&
+			localEnvironmentHostSupportsCUDA(host) {
+			return "local-text", "llama.cpp.cuda", true
 		}
-		return "local-text", consumer, true
+		if strings.EqualFold(strings.TrimSpace(host.OS), "darwin") &&
+			strings.EqualFold(strings.TrimSpace(host.Arch), "arm64") {
+			return "local-text", "llama.cpp.metal", true
+		}
+		return "", "", false
 	case capabilitydriver.StableDiffusionImageDriver, capabilitydriver.StableDiffusionVideoDriver:
-		consumer := "stable-diffusion.cpp.cpu"
-		if strings.EqualFold(strings.TrimSpace(host.OS), "darwin") {
-			consumer = "stable-diffusion.cpp.metal"
-		} else if localEnvironmentHostSupportsCUDA(host) {
-			consumer = stableDiffusionCUDAConsumerID
+		if strings.EqualFold(strings.TrimSpace(host.OS), "windows") && strings.EqualFold(strings.TrimSpace(host.Arch), "amd64") && localEnvironmentHostSupportsCUDA(host) {
+			return "local-image-native", stableDiffusionCUDAConsumerID, true
 		}
-		return "local-image-native", consumer, true
+		if strings.EqualFold(strings.TrimSpace(host.OS), "darwin") && strings.EqualFold(strings.TrimSpace(host.Arch), "arm64") {
+			return "local-image-native", "stable-diffusion.cpp.metal", true
+		}
+		return "", "", false
 	case capabilitydriver.MiniMaxMusic3AudioCppDriver:
 		return "local-music-native", audioCppCUDAConsumerID, true
 	case capabilitydriver.Qwen3TTSAudioCppDriver:
@@ -161,7 +165,7 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 	s.persistStateLocked()
 	s.mu.Unlock()
 
-	firstRunLlamaCUDARequired := s.localEnvironmentFirstRunLlamaCUDARequired(def, consumerScope)
+	firstRunLlamaCUDARequired := s.localEnvironmentFirstRunLlamaCUDARequired(def, hostState, consumerScope)
 
 	dependencies := make([]localEnvironmentPlanDependency, 0, len(def.RequiredDependencyFamilies)+len(def.OptionalDependencyFamilies))
 	for _, family := range def.RequiredDependencyFamilies {
@@ -373,6 +377,11 @@ func (s *Service) resolveLocalEnvironmentDependencyWithID(def localComputePackDe
 	environmentKey := localEnvironmentKey(family, dependencyID, hostState.HostProfileID, platformTuple, runtimeDataRoot)
 	var torchIdentityErr error
 	switch family {
+	case localEnvironmentFamilyNativeLlama:
+		s.mu.RLock()
+		version := strings.TrimSpace(s.llamaEngineVersion)
+		s.mu.RUnlock()
+		environmentKey = localEnvironmentNativeLlamaKey(version, platformTuple)
 	case localEnvironmentFamilyPythonUV:
 		environmentKey = localEnvironmentManagedUVKey(platformTuple, runtimeDataRoot)
 	case localEnvironmentFamilyPythonRuntime:
@@ -582,8 +591,10 @@ func localSpeechPlanConsumers(consumerScope string) []string {
 	}
 }
 
-func (s *Service) localEnvironmentFirstRunLlamaCUDARequired(def localComputePackDefinition, consumerScope string) bool {
-	if def.PackID != "local-text" || !localEnvironmentFirstRunConsumerScope(consumerScope) {
+func (s *Service) localEnvironmentFirstRunLlamaCUDARequired(def localComputePackDefinition, hostState localEnvironmentHostProfileState, consumerScope string) bool {
+	if def.PackID != "local-text" || !localEnvironmentFirstRunConsumerScope(consumerScope) ||
+		!strings.EqualFold(strings.TrimSpace(hostState.OS), "windows") ||
+		!strings.EqualFold(strings.TrimSpace(hostState.Arch), "amd64") {
 		return false
 	}
 	// The managed llama package selector and the shared CUDA dependency
@@ -621,7 +632,14 @@ func localEnvironmentDependencyConsumerScope(def localComputePackDefinition, fam
 	case "local-text":
 		switch family {
 		case localEnvironmentFamilyNativeLlama:
-			return "llama.cpp.cpu"
+			if strings.EqualFold(strings.TrimSpace(hostState.OS), "darwin") && strings.EqualFold(strings.TrimSpace(hostState.Arch), "arm64") {
+				return "llama.cpp.metal"
+			}
+			if strings.EqualFold(strings.TrimSpace(hostState.OS), "windows") && strings.EqualFold(strings.TrimSpace(hostState.Arch), "amd64") &&
+				(localEnvironmentHostSupportsCUDA(hostState) || firstRunLlamaCUDARequired) {
+				return "llama.cpp.cuda"
+			}
+			return scope
 		case localEnvironmentFamilyCUDA:
 			if localEnvironmentHostSupportsCUDA(hostState) || firstRunLlamaCUDARequired {
 				return "llama.cpp.cuda"

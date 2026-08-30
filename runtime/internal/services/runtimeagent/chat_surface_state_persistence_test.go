@@ -3,6 +3,8 @@ package runtimeagent
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -115,6 +117,35 @@ func TestPublicChatTranscriptAndContextSummaryRecoverAcrossRestart(t *testing.T)
 	}
 	if len(thirdTranscript) != 6 || thirdTranscript[4].GetContent() != "third user" || thirdTranscript[5].GetContent() != "third assistant" {
 		t.Fatalf("third turn continuity mismatch: %v", thirdTranscript)
+	}
+}
+
+func TestCopiedOwnerRootReopensConversationUnderSameAccount(t *testing.T) {
+	rootOne := filepath.Join(t.TempDir(), "owner-root-one")
+	stateOne := filepath.Join(rootOne, "accounts", "runtime", "local-state.json")
+	first, closeFirst := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, stateOne)
+	anchorID := openPublicChatTestAnchor(t, first, "agent-alpha", "desktop.app", "user-1")
+	if err := first.commitPublicChatTurnTranscript(anchorID, &runtimev1.ChatMessage{Role: "user", Content: "portable question"}, "portable answer"); err != nil {
+		t.Fatal(err)
+	}
+	closeFirst()
+
+	rootTwo := filepath.Join(t.TempDir(), "owner-root-two")
+	if err := os.CopyFS(rootTwo, os.DirFS(rootOne)); err != nil {
+		t.Fatal(err)
+	}
+	second, closeSecond := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, filepath.Join(rootTwo, "accounts", "runtime", "local-state.json"))
+	defer closeSecond()
+	recovered, _, _, _, err := second.snapshotPublicChatAnchorForCaller("desktop.app", anchorID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	transcript, err := publicChatTranscriptProjection(recovered.CommittedTranscript)
+	if err != nil || len(transcript) != 2 || transcript[0].GetContent() != "portable question" || transcript[1].GetContent() != "portable answer" {
+		t.Fatalf("copied owner root transcript = %+v err=%v", transcript, err)
+	}
+	if resolved := openPublicChatTestAnchor(t, second, "agent-alpha", "desktop.app", "user-1"); resolved != anchorID {
+		t.Fatalf("same-account copied root resolved anchor %q, want %q", resolved, anchorID)
 	}
 }
 
@@ -305,11 +336,9 @@ func TestPublicChatStrictTranscriptPersistenceFailureRollsBackBeforeCommitEvent(
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-strict-persist-failure",
-				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
-					Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{
-						Text: publicChatStructuredEnvelopeAPML("message-strict-persist-failure", "must not become committed"),
-					}},
-				}},
+				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(
+
+					publicChatStructuredEnvelopeAPML("message-strict-persist-failure", "must not become committed"))},
 			}); err != nil {
 				return err
 			}

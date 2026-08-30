@@ -218,7 +218,7 @@ func TestStableDiffusionVideoPlanAppliesFirstPartyDefaultsForAbsentFields(t *tes
 		t.Fatalf("absent-field plan: %v", err)
 	}
 	width, height := plan.Size()
-	if width != 512 || height != 288 || plan.FrameCount() != 22 || plan.FPS() != 24 || !plan.AudioRequired() {
+	if plan.RecipeID() != StableDiffusionVideoRecipeID || width != 512 || height != 288 || plan.FrameCount() != 22 || plan.FPS() != 24 || !plan.AudioRequired() {
 		t.Fatalf("defaulted plan = %dx%d frames=%d fps=%d audio=%v", width, height, plan.FrameCount(), plan.FPS(), plan.AudioRequired())
 	}
 }

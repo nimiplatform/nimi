@@ -37,13 +37,9 @@ func TestPublicChatCommittedTurnSkipsVoiceProjectionWithoutVoiceConfiguration(t 
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-lipsync",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{
-								Text: publicChatStructuredEnvelopeAPML("message-lipsync-1", "Hello world this turn drives lipsync."),
-							},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						publicChatStructuredEnvelopeAPML("message-lipsync-1", "Hello world this turn drives lipsync.")),
 				},
 			}); err != nil {
 				return err
@@ -153,13 +149,9 @@ func TestPublicChatCommittedTurnEmitsProviderVoiceProjectionWithoutAvatarAutopla
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-provider-lipsync",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{
-								Text: publicChatStructuredEnvelopeAPML("message-provider-lipsync-1", "Hello world this turn drives provider voice."),
-							},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						publicChatStructuredEnvelopeAPML("message-provider-lipsync-1", "Hello world this turn drives provider voice.")),
 				},
 			}); err != nil {
 				return err
@@ -343,11 +335,9 @@ func TestPublicChatCommittedTurnEmitsTypedVoiceFailureWithoutRollingBackText(t *
 			}
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
-				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
-					Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{
-						Text: publicChatStructuredEnvelopeAPML("message-provider-voice-failed", "Text remains committed after voice failure."),
-					}},
-				}},
+				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(
+
+					publicChatStructuredEnvelopeAPML("message-provider-voice-failed", "Text remains committed after voice failure."))},
 			}); err != nil {
 				return err
 			}

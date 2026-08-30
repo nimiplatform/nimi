@@ -259,19 +259,20 @@ func TestAgentTurnContextBudgetReservesExplicitReasoningCapacity(t *testing.T) {
 	}
 }
 
-func TestAgentTurnContextBudgetReservesOutputUpperBoundForUnboundedReasoning(t *testing.T) {
+func TestAgentTurnContextBudgetReservesOutputUpperBoundForEffortReasoning(t *testing.T) {
 	t.Parallel()
 	input := agentTurnContextTestInput(t, "worldCharacter")
 	input.Budget.ReservedReasoningTokens = publicChatReasoningReserveTokens(&publicChatReasoningConfig{
-		Mode: runtimev1.ReasoningMode_REASONING_MODE_ON,
+		Activation: runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED,
+		Effort:     runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH,
 	}, input.Budget.ReservedOutputTokens)
 	if input.Budget.ReservedReasoningTokens != input.Budget.ReservedOutputTokens {
 		t.Fatalf("unbounded reasoning reserve=%d want captured output upper bound=%d", input.Budget.ReservedReasoningTokens, input.Budget.ReservedOutputTokens)
 	}
-	if got := publicChatReasoningReserveTokens(&publicChatReasoningConfig{Mode: runtimev1.ReasoningMode_REASONING_MODE_ON, BudgetTokens: 333}, input.Budget.ReservedOutputTokens); got != 333 {
+	if got := publicChatReasoningReserveTokens(&publicChatReasoningConfig{Activation: runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED, ExactBudgetTokens: 333}, input.Budget.ReservedOutputTokens); got != 333 {
 		t.Fatalf("explicit reasoning reserve=%d want 333", got)
 	}
-	if got := publicChatReasoningReserveTokens(&publicChatReasoningConfig{Mode: runtimev1.ReasoningMode_REASONING_MODE_OFF}, input.Budget.ReservedOutputTokens); got != 0 {
+	if got := publicChatReasoningReserveTokens(&publicChatReasoningConfig{Activation: runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED}, input.Budget.ReservedOutputTokens); got != 0 {
 		t.Fatalf("disabled reasoning reserved %d tokens", got)
 	}
 

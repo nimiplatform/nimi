@@ -4587,6 +4587,96 @@ models:
           accelerator: cuda
           min_ram_bytes: 8589934592
           min_vram_bytes: 4294967296
+  - model_id: gemma-4-e2b-it-mmproj-local
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-08-30
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/QwenLM/Qwen3-TTS
+      retrieved_at: 2026-03-05
+      note: Open-source Qwen3-TTS repository and examples.
+    family: gemma4
+    install:
+      repo: unsloth/gemma-4-E2B-it-GGUF
+      revision: 90f9618340396838ee7ff5b0ba2da27da62953d3
+      install_kind: weights
+      entry: mmproj-F16.gguf
+      artifact_roles:
+        - mmproj
+    variants:
+      - variant_id: local.aux.gemma-4-e2b-it.mmproj-f16.cuda
+        quant: F16
+        entry: mmproj-F16.gguf
+        files:
+          - mmproj-F16.gguf
+        hashes:
+          mmproj-F16.gguf: sha256:140be8d7849741f88c50757d529b84373ee8e27052cc2236855b537f4a8215fa
+        total_size_bytes: 985654080
+        host_requirement:
+          accelerator: cuda
+      - variant_id: local.aux.gemma-4-e2b-it.mmproj-f16.metal
+        quant: F16
+        entry: mmproj-F16.gguf
+        files:
+          - mmproj-F16.gguf
+        hashes:
+          mmproj-F16.gguf: sha256:140be8d7849741f88c50757d529b84373ee8e27052cc2236855b537f4a8215fa
+        total_size_bytes: 985654080
+        host_requirement:
+          accelerator: metal
+  - model_id: gemma-4-26b-a4b-it-mmproj-local
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-08-30
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/QwenLM/Qwen3-TTS
+      retrieved_at: 2026-03-05
+      note: Open-source Qwen3-TTS repository and examples.
+    family: gemma4
+    install:
+      repo: unsloth/gemma-4-26B-A4B-it-GGUF
+      revision: 3365c68df1a83799b846d05324ebfadbb8cc70b3
+      install_kind: weights
+      entry: mmproj-F16.gguf
+      artifact_roles:
+        - mmproj
+    variants:
+      - variant_id: local.aux.gemma-4-26b-a4b-it.mmproj-f16.cuda
+        quant: F16
+        entry: mmproj-F16.gguf
+        files:
+          - mmproj-F16.gguf
+        hashes:
+          mmproj-F16.gguf: sha256:418a6d8723067cd712235facbbc5cba6c8fbbd413fc1292d2aace5a027d5a42f
+        total_size_bytes: 1193058784
+        host_requirement:
+          accelerator: cuda
+      - variant_id: local.aux.gemma-4-26b-a4b-it.mmproj-f16.metal
+        quant: F16
+        entry: mmproj-F16.gguf
+        files:
+          - mmproj-F16.gguf
+        hashes:
+          mmproj-F16.gguf: sha256:418a6d8723067cd712235facbbc5cba6c8fbbd413fc1292d2aace5a027d5a42f
+        total_size_bytes: 1193058784
+        host_requirement:
+          accelerator: metal
   - model_id: flux.1-schnell-local
     provider: local
     model_type: image
@@ -7874,15 +7964,16 @@ voice_handle_policies:
       retrieved_at: 2026-04-17
       note: Default local voice clone checkpoint for first-wave local admission.
 loadout_recipes:
-  - recipe_id: llama.text-generate.gemma-4-e2b-it.v1
+  - recipe_id: llama.text-generate.gemma4.v1
     revision: "1"
-    title: Gemma 4 E2B text generation
+    title: Gemma 4 text generation
     capability_contract: text.generate
     implementation_id: local.text.generate.llama-cpp
     driver_id: nimi.runtime.driver.llama-cpp
-    driver_dialect: llama.cpp/text-generate/v1
+    driver_dialect: llama.cpp/text-generate/v2
     default_options: {}
-    supported_features: []
+    supported_features:
+      - input.image
     slot_metadata:
       - slot_id: main.gguf
         display_label: Main model
@@ -7892,34 +7983,16 @@ loadout_recipes:
           - local.chat.gemma-4-e2b-it.q5-k-m
           - local.chat.gemma-4-e2b-it.q6-k
           - local.chat.gemma-4-e2b-it.q8-0
+          - local.chat.gemma-4-26b-a4b-it.q4-k-m
+          - local.chat.gemma-4-26b-a4b-it.q5-k-m
+          - local.chat.gemma-4-26b-a4b-it.q6-k
+          - local.chat.gemma-4-26b-a4b-it.q8-0
         recommended_content_ids:
           - sha256:31aeee4a8b5c4a743f51f4021c29cfaa809d31a892cf9b918b9bb40542941197
           - sha256:9378bc471710229ef165709b62e34bfb62231420ddaf6d729e727305b5b8672d
           - sha256:d8fc2ac6fd597481dfd9c5ef9543ea1f0bda8088086da3853ce5e5564ab43bf8
           - sha256:b36824f13bf9fab2910cb7b4282a4d73b13799ee4126d4ec241309ce69c0e783
           - sha256:0a8488b149e1f700712c35d5bf0a3795f9dcc2563b4944d5ef2fb89375f9483e
-        model_contract:
-          format: gguf
-          gguf_architectures:
-            - gemma4
-  - recipe_id: llama.text-generate.gemma-4-26b-a4b-it.v1
-    revision: "1"
-    title: Gemma 4 26B-A4B text generation
-    capability_contract: text.generate
-    implementation_id: local.text.generate.llama-cpp
-    driver_id: nimi.runtime.driver.llama-cpp
-    driver_dialect: llama.cpp/text-generate/v1
-    default_options: {}
-    supported_features: []
-    slot_metadata:
-      - slot_id: main.gguf
-        display_label: Main model
-        recommended_variant_ids:
-          - local.chat.gemma-4-26b-a4b-it.q4-k-m
-          - local.chat.gemma-4-26b-a4b-it.q5-k-m
-          - local.chat.gemma-4-26b-a4b-it.q6-k
-          - local.chat.gemma-4-26b-a4b-it.q8-0
-        recommended_content_ids:
           - sha256:34c746b1d50ab813e29cd46c4796e3f43c741901a582f93a67b55b9fc9687b35
           - sha256:f2fe28fc1d82e7c74f47d570a8c8847513fe2712a1b3a5bcd869031d952c4936
           - sha256:d3d9e6a63845bdc83e9f9fc5923e77c023ccc1197c9e145e6a8754bad80b5d75
@@ -7928,6 +8001,19 @@ loadout_recipes:
           format: gguf
           gguf_architectures:
             - gemma4
+      - slot_id: companion.mmproj
+        display_label: Vision projector
+        recommended_variant_ids:
+          - local.aux.gemma-4-e2b-it.mmproj-f16.cuda
+          - local.aux.gemma-4-e2b-it.mmproj-f16.metal
+          - local.aux.gemma-4-26b-a4b-it.mmproj-f16.cuda
+          - local.aux.gemma-4-26b-a4b-it.mmproj-f16.metal
+        recommended_content_ids:
+          - sha256:140be8d7849741f88c50757d529b84373ee8e27052cc2236855b537f4a8215fa
+          - sha256:418a6d8723067cd712235facbbc5cba6c8fbbd413fc1292d2aace5a027d5a42f
+        model_contract:
+          format: gguf
+          artifact_role: mmproj
   - recipe_id: llama.text-embed.gguf.v1
     revision: "1"
     title: llama.cpp GGUF embeddings
@@ -8159,7 +8245,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v2
+    driver_dialect: stable-diffusion.cpp/image-generate/v3
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -8206,7 +8292,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v2
+    driver_dialect: stable-diffusion.cpp/image-generate/v3
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -8334,7 +8420,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v2
+    driver_dialect: stable-diffusion.cpp/image-generate/v3
     default_options: {}
     supported_features: []
     slot_metadata:
@@ -8375,7 +8461,7 @@ loadout_recipes:
     capability_contract: image.generate
     implementation_id: local.image.generate.stable-diffusion-cpp
     driver_id: nimi.runtime.driver.stable-diffusion-cpp
-    driver_dialect: stable-diffusion.cpp/image-generate/v2
+    driver_dialect: stable-diffusion.cpp/image-generate/v3
     default_options: {}
     supported_features:
       - input.image

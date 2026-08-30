@@ -19,47 +19,33 @@ rows:
     confirmation and job control
 
 entries:
-  - entry_id: macos-apple-silicon-stablediffusion-ggml-canonical
-    host_match:
-      os: darwin
-      arch: arm64
-      gpu_vendor: apple
-    backend_family: stablediffusion-ggml
-    dependency_family: native-engine-package.stablediffusion-ggml
-    package_source: canonical_localai_derived
-    package_format: oci_payload
-    install_dir_name: metal-stablediffusion-ggml
-    image_ref: quay.io/go-skynet/local-ai-backends:latest-metal-darwin-arm64-stablediffusion-ggml
-    oci_layer_digest: sha256:89cdb483a81a98a4cd46d178d23c3540d15e7a27e53ff940984d848e16767b5e
-    executable_candidates: [run.sh]
-    supported_model_families: [flux, sdxl]
-    launch_mode: package_entrypoint
-    wrapper_driver: localai-package-entrypoint
-    product_state: supported
-
   - entry_id: macos-apple-silicon-stablediffusion-ggml-official-sdcpp
     host_match:
       os: darwin
       arch: arm64
       gpu_vendor: apple
+      min_os_version: 26.0.0
     backend_family: stablediffusion-ggml
     dependency_family: native-engine-package.stablediffusion-ggml
-    package_source: experimental_official_sdcpp
+    package_source: canonical_runtime_wrapper
     package_format: direct_archive
-    install_dir_name: metal-stablediffusion-ggml-official-sdcpp
+    release_tag: master-813-bfbef5b
+    source_commit: bfbef5b7e64e89a0205894853de25d19a7ba54b9
+    install_dir_name: sd-macos-metal-arm64-stablediffusion-ggml-bfbef5b
     image_ref: ""
-    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-552-87ecb95/sd-master-87ecb95-bin-Darwin-macOS-15.7.4-arm64.zip
-    archive_sha256: f57c43020b172ae9e5095d7aea3c3c1c470717fbbd6b65118545c702053076b1 # pragma: allowlist secret
-    executable_candidates: [sd-cli]
-    supported_model_families: [flux, sdxl]
+    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-813-bfbef5b/sd-master-bfbef5b-bin-Darwin-macOS-26.5.2-arm64.zip
+    archive_sha256: efd0172b91a2491aeeb92e5ddfca16aa08273d5aa4889eaa6616f5e3242520e5 # pragma: allowlist secret
+    executable_candidates: [sd-cli, sd-server]
+    supported_model_families: [flux, ideogram4, minimax-h3, qwen-image, sdxl, z-image]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
-    product_state: proposed
+    product_state: supported
     detail: >-
-      Runtime-private experimental source only. It may be selected explicitly for
-      diagnostic comparison, but it is not the canonical supported macOS package
-      source, is not admitted as a supported runtime-owned package source, and
-      must never be auto-selected or used as an implicit fallback.
+      Canonical official master-813-bfbef5b Apple Silicon archive for the
+      macOS 26.0+ / arm64 / Apple Metal first-class target. This exact source
+      has no experimental, LocalAI-derived, or alternate-backend fallback;
+      every recipe-family and product claim remains independently subject to
+      real macOS Runtime acceptance.
 
   - entry_id: windows-x64-nvidia-stablediffusion-ggml
     host_match:
@@ -71,6 +57,8 @@ entries:
     dependency_family: native-engine-package.stablediffusion-ggml
     package_source: canonical_runtime_wrapper
     package_format: direct_archive
+    release_tag: master-813-bfbef5b
+    source_commit: bfbef5b7e64e89a0205894853de25d19a7ba54b9
     install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml-bfbef5b
     image_ref: ""
     archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-813-bfbef5b/sd-master-bfbef5b-bin-win-cuda12-x64.zip

@@ -1,6 +1,7 @@
 import type {
-  NimiMessagePart,
-  NimiRunEvent,
+	NimiMessagePart,
+	NimiRunEvent,
+	NimiRuntimeAIReasoningOptions,
 } from '@nimiplatform/kit/core/sdk-contract';
 import type { ConversationMessageRole } from '../types.js';
 
@@ -74,11 +75,7 @@ export type ConversationRuntimeTextRequest = {
   topP?: number;
   maxTokens?: number;
   timeoutMs?: number;
-  reasoning?: {
-    mode?: 'default' | 'off' | 'on';
-    traceMode?: 'hide' | 'separate';
-    budgetTokens?: number;
-  };
+	reasoning?: NimiRuntimeAIReasoningOptions;
   metadata?: Record<string, string>;
   signal?: AbortSignal;
 };

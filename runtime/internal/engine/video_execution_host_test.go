@@ -376,6 +376,18 @@ func TestVideoExecutionHostCrashRecoversOnNextJob(t *testing.T) {
 	}
 }
 
+func TestVideoExecutionHostClassifiesExplicitOOM(t *testing.T) {
+	substrate := &fakeVideoInvocationSubstrate{healthy: true}
+	substrate.generateFn = func(_ context.Context, _ *capabilitydriver.VideoInvocationPlan) (localexecution.RawAVCandidate, error) {
+		return localexecution.RawAVCandidate{}, errors.New("CUDA_ERROR_OUT_OF_MEMORY")
+	}
+	host := newVideoExecutionHostWithSubstrate(substrate, nil, time.Second)
+	defer func() { _ = host.Stop() }()
+	if _, err := host.ExecuteVideo(context.Background(), videoPlanForHostTest(t, "oom"), nil, nil); localexecution.FailureKindOf(err) != localexecution.FailureOutOfMemory {
+		t.Fatalf("video OOM error = %v (%s)", err, localexecution.FailureKindOf(err))
+	}
+}
+
 func executeVideoForTest(host *VideoExecutionHost, ctx context.Context, plan *capabilitydriver.VideoInvocationPlan) <-chan error {
 	done := make(chan error, 1)
 	go func() {

@@ -135,7 +135,13 @@ func (b *Backend) generateTextAnthropicMessages(
 	if err := b.postJSON(ctx, "/v1/messages", requestBody, &response); err != nil {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
-	toolCalls := parseAnthropicToolCalls(response.Content)
+	toolCalls, err := parseAnthropicToolCalls(response.Content)
+	if err != nil {
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+	}
+	if err := validateReturnedToolCalls(toolCalls, params.tools); err != nil {
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
+	}
 	text := strings.TrimSpace(extractAnthropicText(response.Content))
 	if text == "" && len(toolCalls) == 0 {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
@@ -285,6 +291,9 @@ func (b *Backend) streamGenerateTextAnthropicMessages(
 func buildAnthropicMessages(input []*runtimev1.ChatMessage) ([]map[string]any, error) {
 	messages := make([]map[string]any, 0, len(input))
 	for _, message := range input {
+		if message == nil {
+			continue
+		}
 		role := strings.TrimSpace(message.GetRole())
 		if role == "" {
 			role = "user"
@@ -292,44 +301,63 @@ func buildAnthropicMessages(input []*runtimev1.ChatMessage) ([]map[string]any, e
 		if role == "system" {
 			continue
 		}
-		// Tool results round-trip as a user message carrying a tool_result block.
-		if role == "tool" {
-			toolUseID := strings.TrimSpace(message.GetToolCallId())
-			result := strings.TrimSpace(message.GetContent())
-			if toolUseID == "" || result == "" {
-				continue
+		turn, err := canonicalTextTurnFromMessage(message)
+		if err != nil {
+			return nil, err
+		}
+		if turn.hasItems {
+			switch role {
+			case "assistant":
+				toolCalls, err := buildOpenAIToolCalls(turn.toolCalls)
+				if err != nil {
+					return nil, err
+				}
+				content := make([]map[string]any, 0, 1+len(toolCalls))
+				if turn.text != "" {
+					content = append(content, map[string]any{"type": "text", "text": turn.text})
+				}
+				for _, toolCall := range toolCalls {
+					var inputValue map[string]any
+					if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &inputValue); err != nil {
+						return nil, invalidCanonicalToolTurn("tool call arguments_json must be one JSON object")
+					}
+					content = append(content, map[string]any{
+						"type":  "tool_use",
+						"id":    toolCall.ID,
+						"name":  toolCall.Function.Name,
+						"input": inputValue,
+					})
+				}
+				if len(content) == 0 {
+					return nil, invalidCanonicalToolTurn("assistant turn contains no text or tool call")
+				}
+				messages = append(messages, map[string]any{"role": role, "content": content})
+			case "tool":
+				if len(turn.toolResults) == 0 || turn.text != "" || len(turn.toolCalls) != 0 {
+					return nil, invalidCanonicalToolTurn("tool turn must contain only tool results")
+				}
+				content := make([]map[string]any, 0, len(turn.toolResults))
+				for _, result := range turn.toolResults {
+					value, err := marshalToolResultContent(result)
+					if err != nil {
+						return nil, err
+					}
+					content = append(content, map[string]any{
+						"type":        "tool_result",
+						"tool_use_id": strings.TrimSpace(result.GetToolCallId()),
+						"content":     value,
+						"is_error":    result.GetIsError(),
+					})
+				}
+				messages = append(messages, map[string]any{"role": "user", "content": content})
+			default:
+				return nil, invalidCanonicalToolTurn("ordered turn items require assistant or tool role")
 			}
-			messages = append(messages, map[string]any{
-				"role": "user",
-				"content": []map[string]any{{
-					"type":        "tool_result",
-					"tool_use_id": toolUseID,
-					"content":     result,
-				}},
-			})
 			continue
 		}
 		content, err := buildAnthropicMessageContent(message)
 		if err != nil {
 			return nil, err
-		}
-		// Assistant tool calls round-trip as tool_use blocks.
-		if role == "assistant" {
-			for _, toolCall := range message.GetToolCalls() {
-				if toolCall == nil || strings.TrimSpace(toolCall.GetName()) == "" {
-					continue
-				}
-				var inputValue any = map[string]any{}
-				if raw := strings.TrimSpace(toolCall.GetArgumentsJson()); raw != "" {
-					_ = json.Unmarshal([]byte(raw), &inputValue)
-				}
-				content = append(content, map[string]any{
-					"type":  "tool_use",
-					"id":    toolCall.GetId(),
-					"name":  toolCall.GetName(),
-					"input": inputValue,
-				})
-			}
 		}
 		if len(content) == 0 {
 			continue
@@ -430,30 +458,37 @@ func anthropicToolChoicePayload(mode runtimev1.ToolChoiceMode, name string) any 
 	}
 }
 
-func parseAnthropicToolCalls(content []anthropicContentBlock) []*runtimev1.ToolCall {
+func parseAnthropicToolCalls(content []anthropicContentBlock) ([]*runtimev1.ToolCall, error) {
 	calls := make([]*runtimev1.ToolCall, 0)
+	seenIDs := make(map[string]struct{})
 	for _, block := range content {
 		if strings.TrimSpace(block.Type) != "tool_use" {
 			continue
 		}
 		name := strings.TrimSpace(block.Name)
-		if name == "" {
-			continue
+		id := strings.TrimSpace(block.ID)
+		if id == "" || name == "" {
+			return nil, invalidCanonicalToolTurn("Anthropic tool call id and name are required")
 		}
+		if _, duplicate := seenIDs[id]; duplicate {
+			return nil, invalidCanonicalToolTurn("Anthropic tool call id is duplicated")
+		}
+		seenIDs[id] = struct{}{}
 		arguments := "{}"
 		if len(block.Input) > 0 {
 			arguments = string(block.Input)
 		}
+		var argumentsObject map[string]any
+		if err := json.Unmarshal([]byte(arguments), &argumentsObject); err != nil || argumentsObject == nil {
+			return nil, invalidCanonicalToolTurn("Anthropic tool call input must be one JSON object")
+		}
 		calls = append(calls, &runtimev1.ToolCall{
-			Id:            strings.TrimSpace(block.ID),
+			Id:            id,
 			Name:          name,
 			ArgumentsJson: arguments,
 		})
 	}
-	if len(calls) == 0 {
-		return nil
-	}
-	return calls
+	return calls, nil
 }
 
 func anthropicFinishReason(reason string) runtimev1.FinishReason {

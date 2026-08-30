@@ -82,3 +82,24 @@ test('Runtime local projections preserve engine-neutral acquisition without acce
     planId: 'plan.unknown-mode', engineRuntimeMode: 99,
   } as never), /unknown engine runtime mode/);
 });
+
+test('Runtime local catalog projects passive install-only model_type without capability inference', () => {
+	const auxiliary = projectNimiRuntimeLocalCatalogItemDescriptor({
+		itemId: 'catalog.mmproj', modelType: 'auxiliary', capabilities: [],
+		engineRuntimeMode: LocalEngineRuntimeMode.UNSPECIFIED,
+	} as never);
+	assert.equal(auxiliary.modelType, 'auxiliary');
+	assert.deepEqual(auxiliary.capabilities, []);
+	assert.equal(auxiliary.tags.includes('auxiliary'), true);
+
+	const plan = projectNimiRuntimeLocalInstallPlanDescriptor({
+		planId: 'plan.mmproj', modelType: 'auxiliary', capabilities: [],
+		engineRuntimeMode: LocalEngineRuntimeMode.UNSPECIFIED,
+	} as never);
+	assert.equal(plan.modelType, 'auxiliary');
+
+	assert.throws(() => projectNimiRuntimeLocalCatalogItemDescriptor({
+		itemId: 'catalog.unknown-passive', modelType: 'mystery', capabilities: [],
+		engineRuntimeMode: LocalEngineRuntimeMode.UNSPECIFIED,
+	} as never), /unknown or ambiguous capabilities/);
+});

@@ -176,5 +176,9 @@ export function createDesktopProductionSettingsPort(): DesktopRendererSettingsPo
     ),
     estimateStorageUsage: estimateProductionStorageUsage,
     loadStorageDirs: () => desktopBridge.getDesktopStorageDirs(),
+    pickDataRootDirectory: () => desktopBridge.pickProductDataRootDirectory(),
+    replaceDataRoot: (targetRoot: string) => desktopBridge.replaceProductDataRoot(targetRoot),
+    loadCheckSync: () => desktopBridge.getProductControlCheckSync(),
+    startCheckSync: () => desktopBridge.startProductControlCheckSync(),
   });
 }

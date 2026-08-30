@@ -282,8 +282,8 @@ func verifiedSystemNVIDIACUDARuntimeRootForSpec(spec sharedAcceleratorDependency
 			return canonicalRoot, false, "system CUDA user-space runtime candidates exist but runtime lacks admitted version, driver compatibility, and source identity proof"
 		}
 	}
-	if detectMediaCUDAReady() {
-		return "", false, "system CUDA signal exists but runtime lacks admitted CUDA user-space source identity proof"
+	if vendor, driverVisible := detectMediaHostGPU(); driverVisible && strings.EqualFold(vendor, "nvidia") {
+		return "", false, "NVIDIA driver is visible but runtime lacks admitted CUDA user-space source identity proof"
 	}
 	return "", false, ""
 }

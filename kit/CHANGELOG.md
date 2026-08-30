@@ -9,6 +9,17 @@ Discipline.
 
 ## [Unreleased]
 
+### Added
+
+- Added the optional Electron main-process `runDataRootOperation` host seam so
+  a product Host can serialize fixed standard storage/artifact operations with
+  an explicit Product Control data-root replacement handoff. The seam carries
+  no path, owner registry, or renderer authority.
+- Added the bundled Avatar asset-host `detachDataRoot` lifecycle seam, which
+  drops admitted handles without deleting former-root temporary bytes during
+  Product Control replacement; ordinary final host shutdown still cleans the
+  current session root.
+
 ### Removed
 
 - **Breaking (0.x):** Removed the public NAS-era

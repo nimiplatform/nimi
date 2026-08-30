@@ -9,10 +9,48 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/oklog/ulid/v2"
 )
 
 func (s *Service) GetProductControlRecord(ctx context.Context, _ *runtimev1.GetProductControlRecordRequest) (*runtimev1.ProductControlProjectionJson, error) {
-	return productControlJSON(s.readProductControlProjection(ctx))
+	projection, err := s.readProductControlProjection(ctx)
+	if err != nil {
+		return nil, err
+	}
+	s.attachProductControlRootHandoff(&projection)
+	return productControlJSON(projection, nil)
+}
+
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007a
+func (s *Service) attachProductControlRootHandoff(projection *productControlRecordProjection) {
+	if s == nil || projection == nil || projection.Record == nil || projection.Record.DataRoot == nil {
+		return
+	}
+	activationID := strings.TrimSpace(projection.Record.DataRoot.RootActivationID)
+	selectedRoot := selectedProductDataRootPath(projection.Record)
+	if activationID == "" || selectedRoot == "" {
+		return
+	}
+	s.mu.RLock()
+	admissionClosed := s.productControlRootAdmissionClosed
+	runtimeRoot := s.runtimeDataRoot
+	s.mu.RUnlock()
+	disposition := "active_current_process"
+	action := "continue"
+	if admissionClosed {
+		disposition = "committed_restart_required"
+		action = productControlActivationRestartAction
+		if projection.Record.State == productControlStateRepairRequired || projection.Record.Repair.Required {
+			disposition = "committed_repair_required"
+			action = "repair_runtime_config"
+		}
+	} else if strings.TrimSpace(runtimeRoot) == "" || !productControlPathsEqual(runtimeRoot, selectedRoot) {
+		disposition = "activation_not_bound"
+		action = productControlActivationRestartAction
+	}
+	projection.RootHandoff = &productControlRootHandoff{
+		Disposition: disposition, RootActivationID: activationID, ActionHint: action,
+	}
 }
 
 func (s *Service) GetProductControlSelectedDataRoot(context.Context, *runtimev1.GetProductControlSelectedDataRootRequest) (*runtimev1.ProductControlProjectionJson, error) {
@@ -105,6 +143,7 @@ func (s *Service) SelectProductControlDataRoot(_ context.Context, req *runtimev1
 	record.DataRoot = &productDataRootRecord{
 		Path:             normalized,
 		Status:           productDataRootStatusSelected,
+		RootActivationID: mintProductControlRootActivationID(),
 		SelectedAt:       nowISO,
 		VerifiedAt:       nowISO,
 		SelectedAtUnixMs: now,
@@ -144,6 +183,47 @@ func (s *Service) SelectProductControlDataRoot(_ context.Context, req *runtimev1
 	return productControlJSON(projection, nil)
 }
 
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-cold-015-data-root-wire-shape
+func (s *Service) InitializeProductControlRootActivation(_ context.Context, _ *runtimev1.InitializeProductControlRootActivationRequest) (*runtimev1.ProductControlProjectionJson, error) {
+	s.productControlReplacementMu.Lock()
+	defer s.productControlReplacementMu.Unlock()
+
+	path, err := s.productControlRecordPath()
+	if err != nil {
+		return nil, err
+	}
+	record, err := readProductControlRecord(path)
+	if err != nil {
+		return nil, err
+	}
+	if record == nil {
+		return nil, errors.New("product-control record is missing")
+	}
+	if record.SchemaVersion == productControlSchemaVersion {
+		return productControlJSON(productControlRecordProjection{
+			Path: path, Exists: true, State: record.State, Record: record,
+		}, nil)
+	}
+	if record.SchemaVersion != productControlLegacySchemaVersion || record.DataRoot == nil {
+		return nil, fmt.Errorf("product-control root activation initialization is unavailable for schemaVersion=%d state=%s", record.SchemaVersion, record.State)
+	}
+	if record.State != productControlStateReadyForUse && record.State != productControlStateDataRootSelected && record.State != productControlStateRepairRequired && record.State != productControlStateBlocked {
+		return nil, fmt.Errorf("product-control root activation initialization is unavailable in state=%s", record.State)
+	}
+	record.SchemaVersion = productControlSchemaVersion
+	record.DataRoot.RootActivationID = mintProductControlRootActivationID()
+	if err := writeProductControlRecord(path, record); err != nil {
+		return nil, fmt.Errorf("initialize product-control root activation: %w", err)
+	}
+	return productControlJSON(productControlRecordProjection{
+		Path: path, Exists: true, State: record.State, Record: record,
+	}, nil)
+}
+
+func mintProductControlRootActivationID() string {
+	return "rootact_" + strings.ToLower(ulid.Make().String())
+}
+
 func (s *Service) SetProductControlFirstRunInstallLevel(_ context.Context, req *runtimev1.SetProductControlFirstRunInstallLevelRequest) (*runtimev1.ProductControlProjectionJson, error) {
 	return nil, errors.New("first-run install levels are not part of Product Control")
 }
@@ -179,5 +259,8 @@ func (s *Service) AdmitProductControlReadyForUse(ctx context.Context, _ *runtime
 	if err := writeProductControlRecord(path, record); err != nil {
 		return nil, err
 	}
+	go func() {
+		_, _ = s.startProductControlCheckSync("activation", false)
+	}()
 	return productControlJSON(s.readProductControlProjection(ctx))
 }

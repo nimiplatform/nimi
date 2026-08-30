@@ -316,7 +316,8 @@ func mapHFRowToCatalogItem(row hfModelSearchEntry, _ string) (*runtimev1.LocalCa
 		return nil, false
 	}
 	capabilities := inferCapabilitiesFromHF(row.PipelineTag, row.Tags)
-	if len(capabilities) == 0 || inferAssetKindFromCapabilities(capabilities) == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+	kind := inferAssetKindFromCapabilities(capabilities)
+	if len(capabilities) == 0 || kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
 		return nil, false
 	}
 	tags := normalizeStringSlice(append(append([]string(nil), row.Tags...), capabilities...))
@@ -354,6 +355,7 @@ func mapHFRowToCatalogItem(row hfModelSearchEntry, _ string) (*runtimev1.LocalCa
 		Likes:             row.Likes,
 		LastModified:      strings.TrimSpace(row.LastModified),
 		Verified:          false,
+		ModelType:         catalogModelTypeForAssetKind(kind),
 	}, true
 }
 

@@ -150,11 +150,9 @@ func emitPublicChatImageActionStream(traceID string, rawAPML string) func(contex
 			EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 			TraceId:   traceID,
 			Payload: &runtimev1.StreamScenarioEvent_Delta{
-				Delta: &runtimev1.ScenarioStreamDelta{
-					Delta: &runtimev1.ScenarioStreamDelta_Text{
-						Text: &runtimev1.TextStreamDelta{Text: rawAPML},
-					},
-				},
+				Delta: runtimeAgentTextStreamDelta(
+
+					rawAPML),
 			},
 		}); err != nil {
 			return err

@@ -286,7 +286,7 @@ export async function sessionFor(
           options: input.capabilityContract === 'text.generate' ? [{
             loadoutRef: 'loadout:text', label: 'Local text model', capabilityContract: 'text.generate',
             implementation: { implementationId: 'local.text', driverId: 'test', driverDialect: 'test/local/v1' },
-            supportedFeatures: [], state: 'ready', reasons: [],
+			implementationSupportedFeatures: [], configuredFeatures: [], textBehaviors: [], state: 'ready', reasons: [],
           }] : [],
           truncated: false,
         };

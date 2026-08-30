@@ -309,6 +309,47 @@ func TestLLMContextLengthUsesDetectedArchitectureNumericMetadata(t *testing.T) {
 	}
 }
 
+func TestInspectLLMMetadataWithChatTemplateReturnsExactCanonicalIdentity(t *testing.T) {
+	payload := buildTestGGUF(t,
+		nil,
+		metadataKV{Key: "general.architecture", Type: ValueTypeString, String: "gemma4"},
+		metadataKV{Key: "gemma4.context_length", Type: ValueTypeUint32, Uint32: 262144},
+		metadataKV{Key: "tokenizer.chat_template", Type: ValueTypeString, String: "{{ messages }}"},
+	)
+	summary, err := InspectLLMMetadataWithChatTemplate(bytes.NewReader(payload))
+	if err != nil {
+		t.Fatalf("InspectLLMMetadataWithChatTemplate: %v", err)
+	}
+	if got, ok := LLMChatTemplateIdentity(summary); !ok || got != "sha256:f24189f08c85a1eb19a737306c3a13e85462ee33d964f28108d64a2485fa2171" {
+		t.Fatalf("LLMChatTemplateIdentity = %q ok=%v", got, ok)
+	}
+}
+
+func TestInspectLLMMetadataWithChatTemplateKeepsBaseFactsWhenTemplateIsOutsideProbe(t *testing.T) {
+	prefix := buildTestGGUF(t, nil,
+		metadataKV{Key: "general.architecture", Type: ValueTypeString, String: "gemma4"},
+		metadataKV{Key: "gemma4.context_length", Type: ValueTypeUint32, Uint32: 262144},
+	)
+	binary.LittleEndian.PutUint64(prefix[16:24], 3)
+	var truncated bytes.Buffer
+	writeTestString(t, &truncated, "tokenizer.ggml.tokens")
+	mustBinaryWrite(t, &truncated, uint32(ValueTypeArray))
+	mustBinaryWrite(t, &truncated, uint32(ValueTypeString))
+	mustBinaryWrite(t, &truncated, uint64(1<<30))
+	prefix = append(prefix, truncated.Bytes()...)
+
+	summary, err := InspectLLMMetadataWithChatTemplate(bytes.NewReader(prefix))
+	if err != nil {
+		t.Fatalf("InspectLLMMetadataWithChatTemplate: %v", err)
+	}
+	if got, ok := LLMContextLength(summary); !ok || got != 262144 {
+		t.Fatalf("LLMContextLength = %d ok=%v, want 262144", got, ok)
+	}
+	if got, ok := LLMChatTemplateIdentity(summary); ok || got != "" {
+		t.Fatalf("LLMChatTemplateIdentity = %q ok=%v, want unavailable", got, ok)
+	}
+}
+
 func TestInspectLLMMetadataStopsBeforeTruncatedLargeLaterMetadata(t *testing.T) {
 	prefix := buildTestGGUF(t, nil,
 		metadataKV{Key: "general.architecture", Type: ValueTypeString, String: "gemma4"},

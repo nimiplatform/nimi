@@ -34,7 +34,7 @@ const TEXT_RECIPE: NimiLoadoutRecipe = Object.freeze({
     driverDialect: 'test/text/v3',
   }),
   defaultOptions: Object.freeze({ contextSize: 8192, scheduler: { kind: 'balanced' } }),
-  supportedFeatures: Object.freeze(['input.image']),
+  implementationSupportedFeatures: Object.freeze(['input.image']),
   slots: Object.freeze([
     Object.freeze({
       slotId: 'main.weights',
@@ -42,6 +42,8 @@ const TEXT_RECIPE: NimiLoadoutRecipe = Object.freeze({
       recommendedContentIds: Object.freeze(['sha256:main']),
       recommendedVariantIds: Object.freeze(['variant.main']),
       modelContract: Object.freeze({ format: 'test-bundle', architecture: 'text-v3' }),
+      presence: 'required',
+      conditionalFeatures: Object.freeze([]),
     }),
     Object.freeze({
       slotId: 'vision.projector',
@@ -49,6 +51,8 @@ const TEXT_RECIPE: NimiLoadoutRecipe = Object.freeze({
       recommendedContentIds: Object.freeze([]),
       recommendedVariantIds: Object.freeze([]),
       modelContract: Object.freeze({ format: 'test-projector' }),
+      presence: 'optional-conditional',
+      conditionalFeatures: Object.freeze(['input.image']),
     }),
   ]),
 });
@@ -310,7 +314,7 @@ test('Local configuration preview reuses generic Recipe slots and keeps decision
       capabilityContract: 'text.generate',
       implementation: { ...TEXT_RECIPE.implementation },
       portableConfig: add.proposal.portableConfig,
-      supportedFeatures: [...TEXT_RECIPE.supportedFeatures],
+      supportedFeatures: [...TEXT_RECIPE.implementationSupportedFeatures],
       requirementResolution: 'configured',
       provenance: profile.provenance,
       sourceProfileId: profile.profileId,
@@ -396,7 +400,7 @@ test('a new multi-axis Recipe needs no SDK Driver branch or field inventory', ()
       driverDialect: 'test/media-compose/v1',
     }),
     defaultOptions: Object.freeze({ executionOptions: { futureOption: 7 } }),
-    supportedFeatures: Object.freeze(['input.audio', 'input.image']),
+    implementationSupportedFeatures: Object.freeze(['input.audio', 'input.image']),
     slots: Object.freeze([
       Object.freeze({
         slotId: 'encoder.primary',
@@ -404,6 +408,8 @@ test('a new multi-axis Recipe needs no SDK Driver branch or field inventory', ()
         recommendedContentIds: Object.freeze([]),
         recommendedVariantIds: Object.freeze([]),
         modelContract: Object.freeze({ format: 'bundle-a' }),
+        presence: 'required',
+        conditionalFeatures: Object.freeze([]),
       }),
       Object.freeze({
         slotId: 'decoder.secondary',
@@ -411,6 +417,8 @@ test('a new multi-axis Recipe needs no SDK Driver branch or field inventory', ()
         recommendedContentIds: Object.freeze([]),
         recommendedVariantIds: Object.freeze([]),
         modelContract: Object.freeze({ format: 'bundle-b' }),
+        presence: 'required',
+        conditionalFeatures: Object.freeze([]),
       }),
       Object.freeze({
         slotId: 'vocoder.optional',
@@ -418,6 +426,8 @@ test('a new multi-axis Recipe needs no SDK Driver branch or field inventory', ()
         recommendedContentIds: Object.freeze([]),
         recommendedVariantIds: Object.freeze([]),
         modelContract: Object.freeze({ format: 'bundle-c' }),
+        presence: 'optional-conditional',
+        conditionalFeatures: Object.freeze(['input.audio']),
       }),
     ]),
   });
@@ -478,7 +488,7 @@ test('Recipe identity, capability, features, and slots fail closed when descript
     () => deriveNimiAIProfileRequirementProjection(
       profile,
       'text.generate',
-      { ...TEXT_RECIPE, supportedFeatures: [] },
+      { ...TEXT_RECIPE, implementationSupportedFeatures: [] },
     ),
     /supportedFeatures do not match Runtime Recipe/u,
   );

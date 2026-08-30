@@ -15,26 +15,30 @@ func LlamaSupervisedPlatformSupportedFor(goos string, goarch string) bool {
 	return ok
 }
 
+func LlamaSupervisedHostSupportedFor(goos string, goarch string, gpuVendor string, cudaReady bool) bool {
+	normalizedOS := strings.ToLower(strings.TrimSpace(goos))
+	normalizedArch := strings.ToLower(strings.TrimSpace(goarch))
+	switch normalizedOS {
+	case "windows":
+		return normalizedArch == "amd64" && strings.EqualFold(strings.TrimSpace(gpuVendor), "nvidia") && cudaReady
+	case "darwin":
+		return normalizedArch == "arm64"
+	default:
+		return false
+	}
+}
+
 func llamaSupervisedAssetNameSuffix(goos string, goarch string) (string, bool) {
 	switch strings.TrimSpace(strings.ToLower(goos)) {
 	case "darwin":
 		switch strings.TrimSpace(strings.ToLower(goarch)) {
 		case "arm64":
 			return "bin-macos-arm64.tar.gz", true
-		case "amd64":
-			return "bin-macos-x64.tar.gz", true
-		}
-	case "linux":
-		switch strings.TrimSpace(strings.ToLower(goarch)) {
-		case "amd64":
-			return "bin-ubuntu-x64.tar.gz", true
 		}
 	case "windows":
 		switch strings.TrimSpace(strings.ToLower(goarch)) {
 		case "amd64":
-			return "bin-win-cpu-x64.zip", true
-		case "arm64":
-			return "bin-win-cpu-arm64.zip", true
+			return "bin-win-cuda-12.4-x64.zip", true
 		}
 	}
 	return "", false

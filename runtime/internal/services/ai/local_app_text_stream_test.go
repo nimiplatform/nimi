@@ -116,9 +116,16 @@ func TestLocalAppTextTurnStreamBridgeFailsClosedOnOwnerOnlyEvents(t *testing.T) 
 			Delta: &runtimev1.ScenarioStreamDelta_Raw{Raw: &runtimev1.RawChunk{}},
 		}}},
 		{Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
-			Delta: &runtimev1.ScenarioStreamDelta_Reasoning{Reasoning: &runtimev1.ReasoningStreamDelta{Text: "thinking"}},
+			Delta: &runtimev1.ScenarioStreamDelta_TextOutputItem{TextOutputItem: &runtimev1.TextOutputItemDelta{
+				ItemIndex: 0,
+				Delta: &runtimev1.TextOutputItemDelta_ReasoningSummary{
+					ReasoningSummary: &runtimev1.ReasoningSummaryDelta{Text: "thinking"},
+				},
+			}},
 		}}},
-		{Payload: &runtimev1.StreamScenarioEvent_ToolCall{ToolCall: &runtimev1.ToolCall{Name: "tool"}}},
+		{Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: toolCallOutputDelta(0, &runtimev1.ToolCall{
+			Id: "call-1", Name: "tool", ArgumentsJson: `{}`,
+		})}},
 		{Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{
 			FinishReason: runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED,
 		}}},
@@ -152,9 +159,7 @@ func TestLocalAppTextTurnStreamBridgeDropsStartedAndUsage(t *testing.T) {
 		{
 			Sequence: 41,
 			TraceId:  "trace-local-app",
-			Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
-				Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{Text: "hello"}},
-			}},
+			Payload:  &runtimev1.StreamScenarioEvent_Delta{Delta: textOutputDelta(0, "hello", true)},
 		},
 		{
 			Sequence: 42,

@@ -412,7 +412,7 @@ export function deriveRuntimeConfigAIProfileAuthoringPreview(
     const recipe = recipeForCapabilityDraft(draft, capabilityContract, recipes);
     return [Object.freeze({
       capabilityContract,
-      supportedFeatures: recipe.supportedFeatures,
+      supportedFeatures: recipe.implementationSupportedFeatures,
       projection: deriveNimiAIProfileRequirementProjection(
         profile,
         capabilityContract,
@@ -489,7 +489,7 @@ export function projectRuntimeConfigAIProfileAuthoringMachine(
       capabilityContract: loadout.capabilityContract,
       implementation: Object.freeze({ ...loadout.implementation }),
       portableConfig: loadout.options as unknown as NimiJsonObject,
-      supportedFeatures: Object.freeze([...loadout.supportedFeatures]),
+      supportedFeatures: Object.freeze([...loadout.implementationSupportedFeatures]),
       requirementResolution: loadout.validationState === 'configured'
         ? 'configured' as const
         : 'unresolved' as const,
@@ -752,7 +752,7 @@ function draftFromProfile(
     const candidates = recipes.filter((recipe) => (
       recipe.capabilityContract === capabilityContract
       && sameImplementation(recipe.implementation, implementation)
-      && sameStrings(recipe.supportedFeatures, implementation.supportedFeatures)
+      && sameStrings(recipe.implementationSupportedFeatures, implementation.supportedFeatures)
     ));
     const recipe = capability.loadout?.recipeId
       ? candidates.find((candidate) => candidate.recipeId === capability.loadout?.recipeId)
@@ -828,7 +828,7 @@ function sameRecipeImplementation(
   implementation: NimiPortableAIProfileImplementation,
 ): boolean {
   return sameImplementation(recipe.implementation, implementation)
-    && sameStrings(recipe.supportedFeatures, implementation.supportedFeatures);
+    && sameStrings(recipe.implementationSupportedFeatures, implementation.supportedFeatures);
 }
 
 function hasExplicitRecipeSelection(local: RuntimeConfigAIProfileLocalDraft): boolean {

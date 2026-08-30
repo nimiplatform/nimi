@@ -322,3 +322,69 @@ models:
           accelerator: cuda
           min_ram_bytes: 8589934592
           min_vram_bytes: 4294967296
+  - model_id: gemma-4-e2b-it-mmproj-local
+    model_type: auxiliary
+    family: gemma4
+    updated_at: 2026-08-30
+    capabilities: []
+    install:
+      repo: unsloth/gemma-4-E2B-it-GGUF
+      revision: 90f9618340396838ee7ff5b0ba2da27da62953d3
+      install_kind: weights
+      entry: mmproj-F16.gguf
+      artifact_roles:
+        - mmproj
+    variants:
+      - variant_id: local.aux.gemma-4-e2b-it.mmproj-f16.cuda
+        quant: F16
+        entry: mmproj-F16.gguf
+        files:
+          - mmproj-F16.gguf
+        hashes:
+          mmproj-F16.gguf: sha256:140be8d7849741f88c50757d529b84373ee8e27052cc2236855b537f4a8215fa
+        total_size_bytes: 985654080
+        host_requirement:
+          accelerator: cuda
+      - variant_id: local.aux.gemma-4-e2b-it.mmproj-f16.metal
+        quant: F16
+        entry: mmproj-F16.gguf
+        files:
+          - mmproj-F16.gguf
+        hashes:
+          mmproj-F16.gguf: sha256:140be8d7849741f88c50757d529b84373ee8e27052cc2236855b537f4a8215fa
+        total_size_bytes: 985654080
+        host_requirement:
+          accelerator: metal
+  - model_id: gemma-4-26b-a4b-it-mmproj-local
+    model_type: auxiliary
+    family: gemma4
+    updated_at: 2026-08-30
+    capabilities: []
+    install:
+      repo: unsloth/gemma-4-26B-A4B-it-GGUF
+      revision: 3365c68df1a83799b846d05324ebfadbb8cc70b3
+      install_kind: weights
+      entry: mmproj-F16.gguf
+      artifact_roles:
+        - mmproj
+    variants:
+      - variant_id: local.aux.gemma-4-26b-a4b-it.mmproj-f16.cuda
+        quant: F16
+        entry: mmproj-F16.gguf
+        files:
+          - mmproj-F16.gguf
+        hashes:
+          mmproj-F16.gguf: sha256:418a6d8723067cd712235facbbc5cba6c8fbbd413fc1292d2aace5a027d5a42f
+        total_size_bytes: 1193058784
+        host_requirement:
+          accelerator: cuda
+      - variant_id: local.aux.gemma-4-26b-a4b-it.mmproj-f16.metal
+        quant: F16
+        entry: mmproj-F16.gguf
+        files:
+          - mmproj-F16.gguf
+        hashes:
+          mmproj-F16.gguf: sha256:418a6d8723067cd712235facbbc5cba6c8fbbd413fc1292d2aace5a027d5a42f
+        total_size_bytes: 1193058784
+        host_requirement:
+          accelerator: metal

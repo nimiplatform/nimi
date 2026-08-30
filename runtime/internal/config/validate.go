@@ -68,9 +68,6 @@ func (c Config) Validate() error {
 	if err := validateOptionalPort(c.EngineSpeechPort, c.EngineSpeechEnabled, "speech engine port"); err != nil {
 		return err
 	}
-	if err := validateOptionalPort(c.EngineSidecarPort, c.EngineSidecarEnabled || c.EngineSidecarPort != 0, "sidecar engine port"); err != nil {
-		return err
-	}
 	if err := validateJWTSettings(c.AuthJWTIssuer, c.AuthJWTAudience, c.AuthJWTJWKSURL, c.AuthJWTRevocationURL); err != nil {
 		return err
 	}

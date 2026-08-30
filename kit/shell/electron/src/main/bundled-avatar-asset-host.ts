@@ -39,6 +39,7 @@ export type NimiElectronBundledAvatarAssetHost = {
   }>;
   readonly releaseMaterialization: (materializationRef: string) => Promise<void>;
   readonly readTextFile: (filePath: unknown) => Promise<string>;
+  readonly detachDataRoot: () => Promise<void>;
   readonly close: () => Promise<void>;
 };
 
@@ -153,6 +154,7 @@ export function createNimiElectronBundledAvatarAssetHost(
   const disposeMaterialization = async (
     cacheKey: string,
     entry: MaterializationEntry,
+    removeBytes = true,
   ): Promise<void> => {
     if (entry.disposed) {
       await materializationDisposals.get(entry.materializationRef);
@@ -175,7 +177,9 @@ export function createNimiElectronBundledAvatarAssetHost(
         (candidate) => path.resolve(candidate) === path.resolve(materialized.assetRoot),
       );
       if (rootIndex >= 0) input.localAssetRoots.splice(rootIndex, 1);
-      await rm(materialized.assetRoot, { recursive: true, force: true });
+      if (removeBytes) {
+        await rm(materialized.assetRoot, { recursive: true, force: true });
+      }
     })();
     materializationDisposals.set(entry.materializationRef, disposal);
     try {
@@ -185,6 +189,23 @@ export function createNimiElectronBundledAvatarAssetHost(
         materializationDisposals.delete(entry.materializationRef);
       }
     }
+  };
+
+  const closeHost = async (removeBytes: boolean): Promise<void> => {
+    if (closed) return;
+    closed = true;
+    await Promise.allSettled([...materializations.entries()].map(
+      ([cacheKey, entry]) => disposeMaterialization(cacheKey, entry, removeBytes),
+    ));
+    await Promise.allSettled([...materializationDisposals.values()]);
+    admittedAssetRoots.clear();
+    materializations.clear();
+    materializationKeysByRef.clear();
+    materializationDisposals.clear();
+    if (sessionRoot && removeBytes) {
+      await rm(sessionRoot, { recursive: true, force: true });
+    }
+    sessionRoot = undefined;
   };
 
   return {
@@ -286,22 +307,8 @@ export function createNimiElectronBundledAvatarAssetHost(
       }
       return readFile(filePath, 'utf8');
     },
-    close: async () => {
-      if (closed) return;
-      closed = true;
-      await Promise.allSettled([...materializations.entries()].map(
-        ([cacheKey, entry]) => disposeMaterialization(cacheKey, entry),
-      ));
-      await Promise.allSettled([...materializationDisposals.values()]);
-      admittedAssetRoots.clear();
-      materializations.clear();
-      materializationKeysByRef.clear();
-      materializationDisposals.clear();
-      if (sessionRoot) {
-        await rm(sessionRoot, { recursive: true, force: true });
-        sessionRoot = undefined;
-      }
-    },
+    detachDataRoot: () => closeHost(false),
+    close: () => closeHost(true),
   };
 }
 
@@ -346,7 +353,7 @@ async function materializeRuntimeAsset(input: {
       if (!isSameOrChildPath(canonicalAssetRoot, readablePath)) {
         throw invalidPath(input.command, 'Avatar materialized file escaped its admitted root.');
       }
-      await input.localAssetProtocolHost.registerReadableFile(readablePath);
+      await input.localAssetProtocolHost.registerReadableFile(readablePath, 'data-root');
       registeredReadablePaths.push(readablePath);
     }
     input.admittedAssetRoots.add(canonicalAssetRoot);

@@ -377,7 +377,9 @@ function simulatedAIConfigPort(context: LabSimulatorPrepareContext): LabCanonica
               driverId: 'simulator',
               driverDialect: 'simulator/v1',
             },
-            supportedFeatures: [],
+            implementationSupportedFeatures: [],
+            configuredFeatures: [],
+            textBehaviors: [],
             state: 'ready' as const,
             reasons: [],
           }] : [],
@@ -696,7 +698,8 @@ function simulatedFormalAppPort(
               options: query.capabilityContract === 'text.generate' ? [{
                 loadoutRef: 'sim-lab-text-loadout', label: 'Simulator text model', capabilityContract: 'text.generate',
                 implementation: { implementationId: 'sim.text', driverId: 'simulator', driverDialect: 'simulator/v1' },
-                supportedFeatures: [], state: 'ready' as const, reasons: [],
+                implementationSupportedFeatures: [], configuredFeatures: [], textBehaviors: [],
+                state: 'ready' as const, reasons: [],
               }] : [],
               truncated: false,
             };

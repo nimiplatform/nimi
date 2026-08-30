@@ -46,6 +46,7 @@ type cloudResolvedAssembly struct {
 	AppID                string                                `json:"app_id"`
 	AccountID            string                                `json:"account_id"`
 	VoiceWorkflow        *cloudVoiceWorkflowCapture            `json:"voice_workflow,omitempty"`
+	TextBehaviorAdapter  *cloudTextBehaviorAdapterCapture      `json:"text_behavior_adapter,omitempty"`
 }
 
 type cloudVoiceWorkflowCapture struct {
@@ -185,6 +186,12 @@ func validateCloudResolvedAssemblyDraft(assembly *cloudResolvedAssembly) error {
 		}
 	} else if assembly.MediaStreamMode != capabilitydriver.CloudMediaStreamNone {
 		return fmt.Errorf("non-streaming Cloud media ResolvedAssembly cannot contain stream behavior")
+	}
+	if assembly.RequestKind != cloudResolvedRequestText && assembly.TextBehaviorAdapter != nil {
+		return fmt.Errorf("non-text Cloud ResolvedAssembly cannot contain a text behavior adapter")
+	}
+	if err := validateTextBehaviorAdapterCapture(assembly.TextBehaviorAdapter); err != nil {
+		return err
 	}
 	expectedRequestKind := cloudResolvedRequestMedia
 	switch assembly.CapabilityContract {

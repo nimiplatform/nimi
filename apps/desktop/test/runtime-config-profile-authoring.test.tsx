@@ -49,7 +49,7 @@ const TEXT_RECIPE: NimiLoadoutRecipe = Object.freeze({
     driverDialect: 'desktop/text/v7',
   }),
   defaultOptions: Object.freeze({ contextSize: 4096, execution: { mode: 'balanced' } }),
-  supportedFeatures: Object.freeze(['input.image']),
+  implementationSupportedFeatures: Object.freeze(['input.image']),
   slots: Object.freeze([
     Object.freeze({
       slotId: 'main.weights',
@@ -57,6 +57,8 @@ const TEXT_RECIPE: NimiLoadoutRecipe = Object.freeze({
       recommendedContentIds: Object.freeze(['sha256:desktop-main']),
       recommendedVariantIds: Object.freeze(['desktop-main-q4']),
       modelContract: Object.freeze({ format: 'desktop-bundle', architecture: 'text-v7' }),
+      presence: 'required',
+      conditionalFeatures: Object.freeze([]),
     }),
     Object.freeze({
       slotId: 'vision.adapter',
@@ -64,6 +66,8 @@ const TEXT_RECIPE: NimiLoadoutRecipe = Object.freeze({
       recommendedContentIds: Object.freeze([]),
       recommendedVariantIds: Object.freeze([]),
       modelContract: Object.freeze({ format: 'desktop-projector' }),
+      presence: 'optional-conditional',
+      conditionalFeatures: Object.freeze(['input.image']),
     }),
   ]),
 });
@@ -79,7 +83,7 @@ const ALT_TEXT_RECIPE: NimiLoadoutRecipe = Object.freeze({
     driverDialect: 'desktop/text-alt/v2',
   }),
   defaultOptions: Object.freeze({ contextSize: 16384, futureOption: true }),
-  supportedFeatures: Object.freeze([]),
+  implementationSupportedFeatures: Object.freeze([]),
   slots: Object.freeze([
     Object.freeze({
       slotId: 'bundle.primary',
@@ -87,6 +91,8 @@ const ALT_TEXT_RECIPE: NimiLoadoutRecipe = Object.freeze({
       recommendedContentIds: Object.freeze([]),
       recommendedVariantIds: Object.freeze([]),
       modelContract: Object.freeze({ format: 'alt-bundle' }),
+      presence: 'required',
+      conditionalFeatures: Object.freeze([]),
     }),
   ]),
 });
@@ -103,7 +109,7 @@ const MULTI_AXIS_RECIPE: NimiLoadoutRecipe = Object.freeze({
     driverDialect: 'desktop/media-compose/v1',
   }),
   defaultOptions: Object.freeze({ quality: 'preview' }),
-  supportedFeatures: Object.freeze(['input.audio', 'input.image']),
+  implementationSupportedFeatures: Object.freeze(['input.audio', 'input.image']),
   slots: Object.freeze([
     ...TEXT_RECIPE.slots,
     Object.freeze({
@@ -112,6 +118,8 @@ const MULTI_AXIS_RECIPE: NimiLoadoutRecipe = Object.freeze({
       recommendedContentIds: Object.freeze([]),
       recommendedVariantIds: Object.freeze([]),
       modelContract: Object.freeze({ format: 'vocoder-bundle' }),
+      presence: 'required',
+      conditionalFeatures: Object.freeze([]),
     }),
   ]),
 });
@@ -249,7 +257,7 @@ test('Author Profile import and export preserve the complete portable Local inte
           implementationId: TEXT_RECIPE.implementation.implementationId,
           driverId: TEXT_RECIPE.implementation.driverId,
           driverDialect: TEXT_RECIPE.implementation.driverDialect,
-          supportedFeatures: TEXT_RECIPE.supportedFeatures,
+          supportedFeatures: TEXT_RECIPE.implementationSupportedFeatures,
         },
         driverPortableConfig: { contextSize: 8192 },
         resourceOccurrences: [
@@ -314,7 +322,7 @@ test('same-ID Recipe drift fails closed until an explicit Recipe selection', () 
         requiredFeatures: ['input.image'],
         implementation: {
           ...TEXT_RECIPE.implementation,
-          supportedFeatures: TEXT_RECIPE.supportedFeatures,
+          supportedFeatures: TEXT_RECIPE.implementationSupportedFeatures,
         },
         driverPortableConfig: { contextSize: 8192 },
         resourceOccurrences: [{ occurrenceId: 'weights.primary', role: 'weights' }],
@@ -341,7 +349,7 @@ test('same-ID Recipe drift fails closed until an explicit Recipe selection', () 
       driverId: 'nimi.runtime.driver.desktop-text-next',
       driverDialect: 'desktop/text/v8',
     }),
-    supportedFeatures: Object.freeze(['input.image', 'output.json']),
+    implementationSupportedFeatures: Object.freeze(['input.image', 'output.json']),
   });
 
   const refreshed = reconcileRuntimeConfigAIProfileRecipes(draft, [driftedRecipe]);
@@ -479,7 +487,9 @@ test('an unresolved sibling Loadout does not invalidate configured Profile autho
       options: {},
       modelAxes: [],
       recipeCustody: [],
-      supportedFeatures: ['input.image'],
+      implementationSupportedFeatures: ['input.image'],
+      configuredFeatures: [],
+      textBehaviors: [],
       validationState: 'configured',
       reasons: [],
       displayName: 'Text',
@@ -495,7 +505,9 @@ test('an unresolved sibling Loadout does not invalidate configured Profile autho
       options: {},
       modelAxes: [],
       recipeCustody: [],
-      supportedFeatures: [],
+      implementationSupportedFeatures: [],
+      configuredFeatures: [],
+      textBehaviors: [],
       validationState: 'unresolved',
       reasons: ['MODEL_AXIS_UNRESOLVED'],
       displayName: 'Unresolved',

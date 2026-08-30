@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { registerHooks } from 'node:module';
 import test from 'node:test';
 
@@ -130,6 +132,7 @@ type BundledAvatarLifecycleTestOptions = Readonly<{
   }>) => Promise<string>;
   revalidateFormalPresentationForMaterialization?: () => Promise<void>;
   onRegisterReadableFile?: () => void;
+  appPrivateDataRoot?: string;
 }>;
 
 async function createBundledAvatarHostForLifecycleTest(
@@ -140,7 +143,7 @@ async function createBundledAvatarHostForLifecycleTest(
     rendererUrl: 'file:///avatar/index.html',
     packagedRendererIndexPath: new URL(import.meta.url).pathname,
     preloadPath: '/tmp/avatar-preload.js',
-    resolveAppPrivateDataRoot: async () => '/tmp/nimi-avatar-test-data',
+    resolveAppPrivateDataRoot: async () => options.appPrivateDataRoot ?? '/tmp/nimi-avatar-test-data',
     localAssetProtocolHost: {
       protocolScheme: 'nimi-local',
       registerPrivilegedSchemes() {},
@@ -151,6 +154,10 @@ async function createBundledAvatarHostForLifecycleTest(
       },
       resolveLocalAssetUrl(filePath: string) { return filePath; },
       async hasReadableFile() { return false; },
+      async quiesceDataRootReadableGrants() {},
+      resumeDataRootReadableGrants() {},
+      retireDataRootReadableGrants() {},
+      activateDataRootReadableGrants() {},
     },
     async resolveFormalPresentationAsset() {
       return {
@@ -296,6 +303,58 @@ test('same-target presence, launch, and focus converge without rebinding caller 
     );
   }
   await host.shutdown();
+});
+
+test('data-root quiesce closes the current Avatar and resume admits a fresh empty host', async () => {
+  const appPrivateDataRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-avatar-data-root-'));
+  try {
+    const host = await createBundledAvatarHostForLifecycleTest({ appPrivateDataRoot });
+    const targetRef = `avatar_target_${'f'.repeat(43)}`;
+    const window = await launchBundledAvatarHostForLifecycleTest(host, 'instance-data-root');
+
+    await host.quiesceDataRoot();
+
+    assert.equal(window.isDestroyed(), true);
+    assert.equal(host.hasActiveInstances(), false);
+    await assert.rejects(host.hostHandoff({
+      sourceApp: 'nimi.desktop',
+      avatarHostTargetRef: targetRef,
+      request: {
+        command: 'presence',
+        target: {
+          agentHandle: AGENT_HANDLE,
+          conversationAnchorId: 'anchor-instance-data-root',
+          avatarInstanceId: 'instance-data-root',
+          launchSource: 'desktop-test',
+          switchIntentRef: null,
+          committedPresentationRef: null,
+          temporaryCustodyRef: null,
+        },
+      },
+    }), /data-root-handoff-closed/u);
+
+    host.resumeDataRoot();
+    const presence = await host.hostHandoff({
+      sourceApp: 'nimi.desktop',
+      avatarHostTargetRef: targetRef,
+      request: {
+        command: 'presence',
+        target: {
+          agentHandle: AGENT_HANDLE,
+          conversationAnchorId: 'anchor-instance-data-root',
+          avatarInstanceId: 'instance-data-root',
+          launchSource: 'desktop-test',
+          switchIntentRef: null,
+          committedPresentationRef: null,
+          temporaryCustodyRef: null,
+        },
+      },
+    });
+    assert.equal(presence.state, 'absent');
+    await host.shutdown();
+  } finally {
+    await rm(appPrivateDataRoot, { recursive: true, force: true });
+  }
 });
 
 test('current Avatar session refresh replaces the Host-private generation target without exposing it', async () => {

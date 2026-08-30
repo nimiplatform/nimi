@@ -143,6 +143,9 @@ func assertEffectiveInputIdentityFields(t *testing.T, got *runtimev1.LoadoutEffe
 	if !proto.Equal(got.GetOptions(), want.GetOptions()) {
 		t.Fatalf("options=%v want=%v", got.GetOptions(), want.GetOptions())
 	}
+	if strings.Join(got.GetAdmittedFeatures(), "\x00") != strings.Join(want.GetAdmittedFeatures(), "\x00") {
+		t.Fatalf("admitted_features=%v want=%v", got.GetAdmittedFeatures(), want.GetAdmittedFeatures())
+	}
 	if len(got.GetModelAxes()) != len(want.GetModelAxes()) {
 		t.Fatalf("model_axes length=%d want=%d", len(got.GetModelAxes()), len(want.GetModelAxes()))
 	}
@@ -156,6 +159,9 @@ func assertEffectiveInputIdentityFields(t *testing.T, got *runtimev1.LoadoutEffe
 		}
 		if gotAxis.GetContentId() != wantAxis.GetContentId() {
 			t.Fatalf("model_axes[%d].content_id=%q want=%q", index, gotAxis.GetContentId(), wantAxis.GetContentId())
+		}
+		if gotAxis.GetPresence() != wantAxis.GetPresence() {
+			t.Fatalf("model_axes[%d].presence=%s want=%s", index, gotAxis.GetPresence(), wantAxis.GetPresence())
 		}
 	}
 }

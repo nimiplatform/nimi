@@ -27,7 +27,7 @@ func buildScenarioOutputFromArtifacts(
 		}
 		return &runtimev1.ScenarioOutput{
 			Output: &runtimev1.ScenarioOutput_TextGenerate{
-				TextGenerate: &runtimev1.TextGenerateOutput{Text: text},
+				TextGenerate: canonicalTextGenerateOutput(text, nil),
 			},
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:

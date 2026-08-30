@@ -335,7 +335,7 @@ func (r publicChatRuntime) executePublicChatPrivateRound(ctx context.Context, se
 			result.RouteDecision = started.GetRouteDecision()
 		}
 		if delta := event.GetDelta(); delta != nil {
-			if text := delta.GetText().GetText(); text != "" {
+			if text := scenarioStreamText(event); text != "" {
 				output.WriteString(text)
 			}
 		}

@@ -334,7 +334,7 @@ test('Desktop account product imports only a portable Profile document and lists
   }
 });
 
-test('Desktop protected Host runtime keeps Scenario execution behind the formal App client', () => {
+test('Desktop protected Host runtime exposes only the typed external-AI-host model facade', async () => {
   const calls: CoreUnaryRequest[] = [];
   const streams: CoreStreamRequest[] = [];
   const transport: CoreTransport = {
@@ -350,9 +350,20 @@ test('Desktop protected Host runtime keeps Scenario execution behind the formal 
   const clients = createNimiDesktopFirstPartyRuntimeClients({
     appId: 'nimi.desktop',
     transport,
+    getSubjectUserId: () => 'account-a',
   });
 
   assert.equal('aiExecution' in clients, false);
+  assert.deepEqual(Object.keys(clients.externalAIHost), ['createTextModel']);
+  const model = clients.externalAIHost.createTextModel();
+  assert.equal(model.model.modelId, 'text.generate');
+  assert.deepEqual(Object.keys(model).sort(), ['generateText', 'model', 'streamText']);
   assert.equal(calls.length, 0);
   assert.equal(streams.length, 0);
+
+  await assert.rejects(() => model.generateText({
+    messages: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
+  }));
+  const executeCall = calls.find((call) => call.methodId === '/nimi.runtime.v1.RuntimeAiService/ExecuteScenario');
+  assert.equal((executeCall?.body as { head?: { subjectUserId?: string } })?.head?.subjectUserId, 'account-a');
 });

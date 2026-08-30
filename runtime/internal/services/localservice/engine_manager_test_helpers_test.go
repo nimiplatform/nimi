@@ -12,18 +12,21 @@ import (
 
 // mockEngineManager implements EngineManager for testing with configurable errors.
 type mockEngineManager struct {
-	ensureErr                      error
-	engineBinaryDependencyStatus   *engine.EngineBinaryDependencyStatus
-	uvToolDependencyStatus         *engine.UVToolDependencyStatus
-	pythonRuntimeStatus            *engine.PythonRuntimeDependencyStatus
-	pythonDependencyProfileStatus  *engine.PythonDependencyProfileStatus
-	pythonRuntimeDependencyRelease <-chan struct{}
-	ensureManagedImageBackendErr   error
-	managedImageBackendStatus      *engine.ManagedImageBackendDependencyStatus
-	startErr                       error
-	stopErr                        error
-	statusErr                      error
-	status                         *EngineInfo
+	ensureErr                         error
+	verifyEngineBinaryDependencyErr   error
+	verifyEngineBinaryDependencyCalls int
+	lastVerifyEngineBinaryPath        string
+	engineBinaryDependencyStatus      *engine.EngineBinaryDependencyStatus
+	uvToolDependencyStatus            *engine.UVToolDependencyStatus
+	pythonRuntimeStatus               *engine.PythonRuntimeDependencyStatus
+	pythonDependencyProfileStatus     *engine.PythonDependencyProfileStatus
+	pythonRuntimeDependencyRelease    <-chan struct{}
+	ensureManagedImageBackendErr      error
+	managedImageBackendStatus         *engine.ManagedImageBackendDependencyStatus
+	startErr                          error
+	stopErr                           error
+	statusErr                         error
+	status                            *EngineInfo
 
 	startCalls                             int
 	startConfigCalls                       int
@@ -31,6 +34,7 @@ type mockEngineManager struct {
 	lastStartEngine                        string
 	lastStartPort                          int
 	lastStartVersion                       string
+	lastEnsureEngineBinaryVersion          string
 	lastStartConfig                        engine.EngineConfig
 	startEngines                           []string
 	startConfigs                           []engine.EngineConfig
@@ -55,7 +59,8 @@ func (m *mockEngineManager) EnsureEngine(_ context.Context, _ string, _ string) 
 	return m.ensureErr
 }
 
-func (m *mockEngineManager) EnsureEngineBinaryDependency(ctx context.Context, engineName string, _ string) (engine.EngineBinaryDependencyStatus, error) {
+func (m *mockEngineManager) EnsureEngineBinaryDependency(ctx context.Context, engineName string, version string) (engine.EngineBinaryDependencyStatus, error) {
+	m.lastEnsureEngineBinaryVersion = version
 	engine.ReportDownloadProgress(ctx, 300, 1200)
 	if m.engineBinaryDependencyRelease != nil {
 		<-m.engineBinaryDependencyRelease
@@ -73,6 +78,12 @@ func (m *mockEngineManager) EnsureEngineBinaryDependency(ctx context.Context, en
 		AcceleratorPlane: "cpu",
 		Detail:           "test engine package ready",
 	}, m.ensureErr
+}
+
+func (m *mockEngineManager) VerifyEngineBinaryDependency(_ string, _ string, expectedBinaryPath string) error {
+	m.verifyEngineBinaryDependencyCalls++
+	m.lastVerifyEngineBinaryPath = expectedBinaryPath
+	return m.verifyEngineBinaryDependencyErr
 }
 
 func (m *mockEngineManager) EnsureESpeakNGDependency(context.Context) (engine.ESpeakNGDependencyStatus, error) {
@@ -171,9 +182,13 @@ func (m *mockEngineManager) EnsureManagedImageBackendDependency(_ context.Contex
 	}
 	return engine.ManagedImageBackendDependencyStatus{
 		BackendName:       "stablediffusion-ggml",
-		PackageSource:     "canonical_localai_derived",
-		PackageFormat:     "oci_payload",
-		LaunchMode:        "package_entrypoint",
+		PackageSource:     "canonical_runtime_wrapper",
+		PackageFormat:     "direct_archive",
+		LaunchMode:        "runtime_wrapper",
+		ReleaseTag:        "test-release",
+		SourceCommit:      "0123456789abcdef0123456789abcdef01234567",
+		ArchiveURL:        "https://example.invalid/sd.zip",
+		ArchiveSHA256:     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 		CanonicalRoot:     "test-root",
 		VerifiedArtifacts: []string{"sd.exe"},
 		Detail:            "test managed image backend ready",

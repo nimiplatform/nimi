@@ -12,6 +12,8 @@ import (
 	"os"
 	"path/filepath"
 	goruntime "runtime"
+	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -150,6 +152,7 @@ func (s *managerImageInvocationSubstrate) GenerateImage(
 	ctx context.Context,
 	plan *capabilitydriver.ImageInvocationPlan,
 	index int32,
+	resolvedSeed int64,
 	progress localexecution.ImageProgressFunc,
 ) (localexecution.ImageArtifact, error) {
 	if s == nil || s.manager == nil || !s.Healthy() {
@@ -181,7 +184,7 @@ func (s *managerImageInvocationSubstrate) GenerateImage(
 		return localexecution.ImageArtifact{}, fmt.Errorf("create image invocation workspace: %w", err)
 	}
 	defer func() { _ = os.RemoveAll(workDir) }()
-	request, err := imageGenerateRequest(address, protocol, plan)
+	request, err := imageGenerateRequest(address, protocol, plan, resolvedSeed)
 	if err != nil {
 		return localexecution.ImageArtifact{}, err
 	}
@@ -239,12 +242,12 @@ func (s *managerImageInvocationSubstrate) GenerateImage(
 		))
 	}
 	translated, err := plan.TranslateArtifact(capabilitydriver.ImageBackendArtifactObservation{
-		Index: index, Payload: payload, Format: format, Width: decoded.Width, Height: decoded.Height,
+		Index: index, Seed: resolvedSeed, Payload: payload, Format: format, Width: decoded.Width, Height: decoded.Height,
 	})
 	if err != nil {
 		return localexecution.ImageArtifact{}, plan.TranslateFailure(capabilitydriver.ImageBackendFailureResult, err)
 	}
-	return localexecution.ImageArtifact{Index: translated.Index, Bytes: translated.Payload, MediaType: translated.MediaType, ComputeMS: computeMS}, nil
+	return localexecution.ImageArtifact{Index: translated.Index, Seed: translated.Seed, Bytes: translated.Payload, MediaType: translated.MediaType, ComputeMS: computeMS}, nil
 }
 
 func (s *managerImageInvocationSubstrate) Healthy() bool {
@@ -253,6 +256,75 @@ func (s *managerImageInvocationSubstrate) Healthy() bool {
 	}
 	info, err := s.manager.EngineStatus(engineImageExecutionHost)
 	return err == nil && info.Status == StatusHealthy && info.PID > 0 && supervisorProcessAlive(info.PID)
+}
+
+func (s *managerImageInvocationSubstrate) FailureDiagnostic() string {
+	if s == nil || s.manager == nil {
+		return ""
+	}
+	info, err := s.manager.EngineStatus(engineImageExecutionHost)
+	if err != nil {
+		return ""
+	}
+	return info.Detail
+}
+
+func (s *managerImageInvocationSubstrate) ValidateDependencySources(sources []capabilitydriver.InvocationExactDependencySource) error {
+	if s == nil || s.manager == nil {
+		return fmt.Errorf("image execution manager is unavailable")
+	}
+	return s.manager.validateManagedImageDependencySources(sources, s.config.PackageSource)
+}
+
+func (m *Manager) validateManagedImageDependencySources(sources []capabilitydriver.InvocationExactDependencySource, packageSource string) error {
+	native, ok := exactInvocationDependencySource(sources, "native-engine-package.stablediffusion-ggml", "stable-diffusion.cpp.package")
+	if !ok {
+		return fmt.Errorf("captured stable-diffusion.cpp package source is missing")
+	}
+	m.mu.RLock()
+	backendsPath := strings.TrimSpace(m.managedImageBackendsPath)
+	sharedDependenciesPath := strings.TrimSpace(m.sharedAcceleratorDependenciesPath)
+	m.mu.RUnlock()
+	resolved, err := resolveInstalledManagedImageBackendConfig(backendsPath, sharedDependenciesPath, &ManagedImageBackendConfig{
+		Mode: ManagedImageBackendOfficial, BackendName: "stablediffusion-ggml", PackageSource: strings.TrimSpace(packageSource), Address: "127.0.0.1:1",
+	})
+	if err != nil {
+		return fmt.Errorf("validate captured stable-diffusion.cpp package source: %w", err)
+	}
+	spec, ok := resolveManagedImageBackendPackageSpecForCurrentHostWithSource("stablediffusion-ggml", packageSource)
+	if !ok {
+		return fmt.Errorf("captured stable-diffusion.cpp package source has no current exact package contract")
+	}
+	status := managedImageBackendDependencyStatusFromConfig(resolved, spec)
+	if !sameCleanPath(native.CanonicalRoot, status.CanonicalRoot) || strings.TrimSpace(native.Version) != strings.TrimSpace(status.ReleaseTag) ||
+		!strings.EqualFold(strings.TrimSpace(native.Hashes["archive_sha256"]), strings.TrimSpace(status.ArchiveSHA256)) ||
+		!sameInvocationArtifactSet(native.VerifiedArtifacts, status.VerifiedArtifacts) {
+		return fmt.Errorf("captured stable-diffusion.cpp package source no longer matches installed package state")
+	}
+	if strings.EqualFold(strings.TrimSpace(native.ConsumerScope), "stable-diffusion.cpp.cuda") {
+		cuda, ok := exactInvocationDependencySource(sources, "accelerator.cuda.runtime", NVIDIACUDAUserSpaceRuntimeDependencyID)
+		if !ok {
+			return fmt.Errorf("captured stable-diffusion.cpp CUDA dependency source is missing")
+		}
+		cudaStatus := m.ResolveSharedAcceleratorDependency(NVIDIACUDAUserSpaceRuntimeDependencyID, native.ConsumerScope)
+		if cudaStatus.State != SharedAcceleratorDependencyReadySystem && cudaStatus.State != SharedAcceleratorDependencyReadyManaged ||
+			!sameCleanPath(cuda.CanonicalRoot, cudaStatus.CanonicalRoot) || strings.TrimSpace(cuda.Version) != strings.TrimSpace(cudaStatus.Version) {
+			return fmt.Errorf("captured stable-diffusion.cpp CUDA dependency source no longer matches Runtime dependency state")
+		}
+	}
+	return nil
+}
+
+func sameInvocationArtifactSet(left, right []string) bool {
+	normalize := func(values []string) []string {
+		result := make([]string, 0, len(values))
+		for _, value := range values {
+			result = append(result, strings.ToLower(filepath.Clean(strings.TrimSpace(value))))
+		}
+		sort.Strings(result)
+		return result
+	}
+	return slices.Equal(normalize(left), normalize(right))
 }
 
 func (s *managerImageInvocationSubstrate) Stop() error {
@@ -345,12 +417,6 @@ func imageExecutionEngineConfigFromDirectory(directory string, address string, c
 		return EngineConfig{}, err
 	}
 	libraryHint := strings.TrimSpace(config.LibraryPath)
-	if libraryHint == "" {
-		libraryHint = strings.TrimSpace(config.Environment["SD_LIBRARY"])
-	}
-	if libraryHint == "" {
-		libraryHint = strings.TrimSpace(os.Getenv("SD_LIBRARY"))
-	}
 	library, err := resolveImageExecutionLibrary(canonicalDirectory, libraryHint)
 	if err != nil {
 		return EngineConfig{}, err
@@ -373,16 +439,16 @@ func imageExecutionEngineConfigFromDirectory(directory string, address string, c
 	if libraryInfo, statErr := os.Stat(libraryDirectory); statErr == nil && libraryInfo.IsDir() {
 		switch goruntime.GOOS {
 		case "darwin":
-			environment["DYLD_LIBRARY_PATH"] = prependImageExecutionPath(libraryDirectory, environment["DYLD_LIBRARY_PATH"], os.Getenv("DYLD_LIBRARY_PATH"))
+			environment["DYLD_LIBRARY_PATH"] = prependImageExecutionPath(libraryDirectory, environment["DYLD_LIBRARY_PATH"])
 		case "windows":
-			environment["PATH"] = prependImageExecutionPath(libraryDirectory, environment["PATH"], os.Getenv("PATH"))
+			environment["PATH"] = prependImageExecutionPath(libraryDirectory, environment["PATH"])
 		default:
-			environment["LD_LIBRARY_PATH"] = prependImageExecutionPath(libraryDirectory, environment["LD_LIBRARY_PATH"], os.Getenv("LD_LIBRARY_PATH"))
+			environment["LD_LIBRARY_PATH"] = prependImageExecutionPath(libraryDirectory, environment["LD_LIBRARY_PATH"])
 		}
 	}
 	if repair := filepath.Join(canonicalDirectory, "nimi-metal-language-repair.dylib"); goruntime.GOOS == "darwin" {
 		if repairInfo, statErr := os.Stat(repair); statErr == nil && repairInfo.Mode().IsRegular() {
-			environment["DYLD_INSERT_LIBRARIES"] = prependImageExecutionPath(repair, environment["DYLD_INSERT_LIBRARIES"], os.Getenv("DYLD_INSERT_LIBRARIES"))
+			environment["DYLD_INSERT_LIBRARIES"] = prependImageExecutionPath(repair, environment["DYLD_INSERT_LIBRARIES"])
 		}
 	}
 	startupTimeout := config.StartupTimeout
@@ -420,7 +486,14 @@ func resolveImageExecutionExecutable(directory string, hint string) (string, err
 		if !filepath.IsAbs(value) {
 			value = filepath.Join(directory, value)
 		}
-		return requireImageExecutionExecutable(value)
+		resolved, err := requireImageExecutionExecutable(value)
+		if err != nil {
+			return "", err
+		}
+		if !imageExecutionPathWithinPackage(directory, resolved) {
+			return "", fmt.Errorf("image substrate executable must stay within the admitted package root")
+		}
+		return resolved, nil
 	}
 	for _, name := range []string{"stablediffusion-ggml", "stablediffusion-ggml.exe"} {
 		if path, err := requireImageExecutionExecutable(filepath.Join(directory, name)); err == nil {
@@ -452,7 +525,14 @@ func resolveImageExecutionLibrary(directory string, hint string) (string, error)
 		if !filepath.IsAbs(value) {
 			value = filepath.Join(directory, value)
 		}
-		return requireImageExecutionFile(value, "SD_LIBRARY")
+		resolved, err := requireImageExecutionFile(value, "SD_LIBRARY")
+		if err != nil {
+			return "", err
+		}
+		if !imageExecutionPathWithinPackage(directory, resolved) {
+			return "", fmt.Errorf("SD_LIBRARY must stay within the admitted package root")
+		}
+		return resolved, nil
 	}
 	for _, name := range imageExecutionLibraryCandidates() {
 		if path, err := requireImageExecutionFile(filepath.Join(directory, name), "SD_LIBRARY"); err == nil {
@@ -460,6 +540,11 @@ func resolveImageExecutionLibrary(directory string, hint string) (string, error)
 		}
 	}
 	return "", fmt.Errorf("SD_LIBRARY was not found in %s", directory)
+}
+
+func imageExecutionPathWithinPackage(directory string, candidate string) bool {
+	relative, err := filepath.Rel(filepath.Clean(directory), filepath.Clean(candidate))
+	return err == nil && !filepath.IsAbs(relative) && relative != ".." && !strings.HasPrefix(relative, ".."+string(filepath.Separator))
 }
 
 func imageExecutionLibraryCandidates() []string {
@@ -510,10 +595,10 @@ func requireImageExecutionFile(path string, label string) (string, error) {
 	return canonical, nil
 }
 
-func prependImageExecutionPath(value string, configured string, inherited string) string {
+func prependImageExecutionPath(value string, configured string, inherited ...string) string {
 	base := strings.TrimSpace(configured)
-	if base == "" {
-		base = strings.TrimSpace(inherited)
+	if base == "" && len(inherited) > 0 {
+		base = strings.TrimSpace(inherited[0])
 	}
 	if base == "" {
 		return value
@@ -628,9 +713,9 @@ func directGOSDImageLoadOptions(load capabilitydriver.StableDiffusionCPPLoadPlan
 	return options
 }
 
-func imageGenerateRequest(address string, protocol managedimagebackend.Protocol, plan *capabilitydriver.ImageInvocationPlan) (managedimagebackend.ImageRequest, error) {
+func imageGenerateRequest(address string, protocol managedimagebackend.Protocol, plan *capabilitydriver.ImageInvocationPlan, resolvedSeed int64) (managedimagebackend.ImageRequest, error) {
 	requestPlan := plan.RequestPlan()
-	if requestPlan == nil || requestPlan.Seed() < math.MinInt32 || requestPlan.Seed() > math.MaxInt32 {
+	if requestPlan == nil || resolvedSeed < math.MinInt32 || resolvedSeed > math.MaxInt32 || resolvedSeed == -1 {
 		return managedimagebackend.ImageRequest{}, fmt.Errorf("image request plan is invalid")
 	}
 	load, ok := plan.LoadPlan().(capabilitydriver.StableDiffusionCPPLoadPlan)
@@ -641,7 +726,7 @@ func imageGenerateRequest(address string, protocol managedimagebackend.Protocol,
 		BackendAddress: address, Protocol: protocol,
 		ModelsRoot: imageInvocationModelsRoot(load.Main().AbsolutePath()), ModelPath: load.Main().AbsolutePath(),
 		CFGScale: float32(requestPlan.CFGScale()), Sampler: requestPlan.Sampler(), Scheduler: requestPlan.Scheduler(),
-		Width: int32(requestPlan.Width()), Height: int32(requestPlan.Height()), Step: int32(requestPlan.Steps()), Seed: int32(requestPlan.Seed()),
+		Width: int32(requestPlan.Width()), Height: int32(requestPlan.Height()), Step: int32(requestPlan.Steps()), Seed: int32(resolvedSeed),
 		PositivePrompt: requestPlan.Prompt(), NegativePrompt: requestPlan.NegativePrompt(),
 	}
 	switch typed := requestPlan.(type) {

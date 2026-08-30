@@ -199,30 +199,62 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     localDevelopmentHost = await createDesktopElectronLocalDevelopmentHost({
       homeDirectory: app.getPath('home'),
     });
-    const productControlHost = createDesktopElectronProductControlHost();
-    const systemResourcesHost = createDesktopElectronSystemResourcesHost();
-    const resolveProductControlDataRoot = createDesktopProductControlDataRootResolver(
-      productControlHost.resolveSelectedDataRoot,
-    );
     const dataRootOperationGate = createDesktopDataRootOperationGate();
-    chatAiStoreHost = createDesktopElectronChatAiStoreHost({
-      resolveSelectedDataRoot: productControlHost.resolveReadyDataRoot,
-      operationGate: dataRootOperationGate,
-    });
-    const supportLogsHost = createDesktopElectronSupportLogsHost({
-      resolveSelectedDataRoot: resolveProductControlDataRoot,
-      downloadsDirectory: app.getPath('downloads'),
-      revealFile: (filePath) => shell.showItemInFolder(filePath),
-    });
-    const dataCleanupHost = createDesktopElectronDataCleanupHost({
-      resolveReadyDataRoot: productControlHost.resolveReadyDataRoot,
-      operationGate: dataRootOperationGate,
-    });
     const runtimeDeploymentProfile = resolveElectronRuntimeDeploymentProfile({
       electronDevelopmentBuild: ELECTRON_DEVELOPMENT_BUILD,
       macOSLocalDevelopmentBuild: MACOS_LOCAL_DEVELOPMENT_BUILD,
     });
     const runtimeLifecycleProfile = SOURCE_PER_USER_RUNTIME_D2 ? 'source' : 'fixed';
+    const runtimeLifecycleHost = createNimiElectronRuntimeLifecycleHost(
+      PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
+      runtimeLifecycleProfile,
+    );
+    const runtimeCommandNames = createElectronRuntimeBridgeCommandNames();
+    const invokeRuntimeLifecycle = async (
+      command: string,
+    ): Promise<MenuBarRuntimeStatus> => (
+      await runtimeLifecycleHost.invoke(command, runtimeCommandNames)
+    ) as MenuBarRuntimeStatus;
+    const productControlHost = createDesktopElectronProductControlHost({
+      operationGate: dataRootOperationGate,
+      runtimeLifecycleProfile,
+      restartRuntime: () => invokeRuntimeLifecycle(runtimeCommandNames.restart),
+      quiesceHostDataRoot: async () => {
+        await bundledAvatarHost?.quiesceDataRoot();
+        await localAssetProtocolHost.quiesceDataRootReadableGrants();
+      },
+      abortHostDataRoot: () => {
+        localAssetProtocolHost.resumeDataRootReadableGrants();
+        bundledAvatarHost?.resumeDataRoot();
+      },
+      commitHostDataRoot: () => localAssetProtocolHost.retireDataRootReadableGrants(),
+      activateHostDataRoot: () => {
+        localAssetProtocolHost.activateDataRootReadableGrants();
+        bundledAvatarHost?.resumeDataRoot();
+      },
+    });
+    await productControlHost.bootstrapDataRootHandoff();
+    const systemResourcesHost = createDesktopElectronSystemResourcesHost();
+    const resolveProductControlDataRoot = createDesktopProductControlDataRootResolver(
+      productControlHost.resolveSelectedDataRoot,
+    );
+    const resolveProductControlSupportDataRoot = createDesktopProductControlDataRootResolver(
+      productControlHost.resolveSupportDataRoot,
+    );
+    chatAiStoreHost = createDesktopElectronChatAiStoreHost({
+      resolveSelectedDataRoot: productControlHost.resolveReadyDataRoot,
+      operationGate: dataRootOperationGate,
+    });
+    const supportLogsHost = createDesktopElectronSupportLogsHost({
+      resolveSelectedDataRoot: resolveProductControlSupportDataRoot,
+      downloadsDirectory: app.getPath('downloads'),
+      revealFile: (filePath) => shell.showItemInFolder(filePath),
+      operationGate: dataRootOperationGate,
+    });
+    const dataCleanupHost = createDesktopElectronDataCleanupHost({
+      resolveReadyDataRoot: productControlHost.resolveReadyDataRoot,
+      operationGate: dataRootOperationGate,
+    });
     const httpRequestHost = createDesktopElectronHttpHost({
       realmBaseUrl: resolveDesktopRealmBaseUrl(runtimeDeploymentProfile),
     });
@@ -249,16 +281,14 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       },
     });
     const rendererLogHost = createDesktopElectronRendererLogHost();
-    const runtimeLifecycleHost = createNimiElectronRuntimeLifecycleHost(
-      PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
-      runtimeLifecycleProfile,
-    );
-    const runtimeCommandNames = createElectronRuntimeBridgeCommandNames();
-    const invokeRuntimeLifecycle = async (
-      command: string,
-    ): Promise<MenuBarRuntimeStatus> => (
-      await runtimeLifecycleHost.invoke(command, runtimeCommandNames)
-    ) as MenuBarRuntimeStatus;
+    const restartRuntimeFromMenu = async (): Promise<MenuBarRuntimeStatus> => {
+      if (dataRootOperationGate.isClosed()) {
+        const status = await invokeRuntimeLifecycle(runtimeCommandNames.restart);
+        await productControlHost.recoverDataRootHandoff();
+        return status;
+      }
+      return dataRootOperationGate.runExclusive(() => invokeRuntimeLifecycle(runtimeCommandNames.restart));
+    };
     menuBarHost = createDesktopElectronMenuBarHost({
       electron: { Menu, Tray },
       icon: process.platform === 'darwin' ? createDesktopMenuBarIcon() : '',
@@ -266,7 +296,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       lifecycle: {
         status: () => invokeRuntimeLifecycle(runtimeCommandNames.status),
         start: () => invokeRuntimeLifecycle(runtimeCommandNames.start),
-        restart: () => invokeRuntimeLifecycle(runtimeCommandNames.restart),
+        restart: restartRuntimeFromMenu,
       },
       focusMainWindow: focusDesktopMainWindow,
       hideMainWindow: hideDesktopMainWindow,
@@ -333,6 +363,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         }
         return avatarHostTargetRef;
       },
+      runDataRootOperation: (operation) => dataRootOperationGate.runExclusive(operation),
       resolveFormalPresentationAsset: async ({ agentHandle, assetRef }) => {
         const localAppHost = registeredRuntimeBridge?.bundledAvatarLocalAppHost;
         if (!localAppHost) throw new Error('Avatar formal App host is unavailable.');
@@ -393,6 +424,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       },
       standardShellHost: {
         allowAllStandardShellCommands: true,
+        runDataRootOperation: (operation) => dataRootOperationGate.runExclusive(operation),
         standardDataRootBinding: {
           source: 'product-control-projection',
           resolveDataRoot: resolveProductControlDataRoot,

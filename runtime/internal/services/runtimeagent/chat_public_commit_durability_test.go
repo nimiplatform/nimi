@@ -53,9 +53,8 @@ func TestPublicChatPostCommitEmissionFailuresPreserveCompletedTurnAcrossRestart(
 						EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 						TraceId:   "trace-" + tt.name + "-failure",
 						Payload: &runtimev1.StreamScenarioEvent_Delta{
-							Delta: &runtimev1.ScenarioStreamDelta{Delta: &runtimev1.ScenarioStreamDelta_Text{
-								Text: &runtimev1.TextStreamDelta{Text: publicChatStructuredEnvelopeAPML("message-"+tt.name+"-failure", "committed before delivery failure")},
-							}},
+							Delta: runtimeAgentTextStreamDelta(
+								publicChatStructuredEnvelopeAPML("message-"+tt.name+"-failure", "committed before delivery failure")),
 						},
 					}); err != nil {
 						return err
@@ -161,11 +160,9 @@ func TestPublicChatInterruptAfterDurableCommitCannotReclassifyTurn(t *testing.T)
 			if err := emit(&runtimev1.StreamScenarioEvent{
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-post-commit-interrupt",
-				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
-					Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{
-						Text: publicChatStructuredEnvelopeAPML("message-post-commit-interrupt", "durable before interrupt"),
-					}},
-				}},
+				Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDelta(
+
+					publicChatStructuredEnvelopeAPML("message-post-commit-interrupt", "durable before interrupt"))},
 			}); err != nil {
 				return err
 			}

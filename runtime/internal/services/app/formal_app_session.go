@@ -21,14 +21,16 @@ type formalAppSessionContextKey struct{}
 func (s *Service) AuthorizeFormalAppIngress(
 	ctx context.Context,
 	appID string,
+	bindingSlot string,
 	runtimeBootEpoch protectedlocal.Identifier,
 	ingress localappop.Ingress,
 ) (context.Context, error) {
 	appID = strings.TrimSpace(appID)
-	if appID == "" || runtimeBootEpoch == (protectedlocal.Identifier{}) {
+	bindingSlot = strings.TrimSpace(bindingSlot)
+	if appID == "" || bindingSlot == "" || runtimeBootEpoch == (protectedlocal.Identifier{}) {
 		return nil, localAppIngressError(errLocalDevelopmentSessionRevoked)
 	}
-	binding, err := s.ensureFormalAppBinding(ctx, appID, runtimeBootEpoch)
+	binding, err := s.ensureFormalAppBinding(ctx, appID, bindingSlot, runtimeBootEpoch)
 	if err != nil {
 		return nil, localAppIngressError(err)
 	}
@@ -56,13 +58,15 @@ func (s *Service) AuthorizeFormalAppIngress(
 func (s *Service) BindFormalAppSession(
 	ctx context.Context,
 	appID string,
+	bindingSlot string,
 	runtimeBootEpoch protectedlocal.Identifier,
 ) (context.Context, func(), error) {
 	appID = strings.TrimSpace(appID)
-	if appID == "" || runtimeBootEpoch == (protectedlocal.Identifier{}) {
+	bindingSlot = strings.TrimSpace(bindingSlot)
+	if appID == "" || bindingSlot == "" || runtimeBootEpoch == (protectedlocal.Identifier{}) {
 		return nil, nil, localAppIngressError(errLocalDevelopmentSessionRevoked)
 	}
-	binding, err := s.ensureFormalAppBinding(ctx, appID, runtimeBootEpoch)
+	binding, err := s.ensureFormalAppBinding(ctx, appID, bindingSlot, runtimeBootEpoch)
 	if err != nil {
 		if s != nil && s.logger != nil {
 			s.logger.Warn("bind formal App session failed", "app_id", appID, "error", err)
@@ -83,6 +87,7 @@ func formalAppSessionFromContext(ctx context.Context) bool {
 func (s *Service) ensureFormalAppBinding(
 	ctx context.Context,
 	appID string,
+	bindingSlot string,
 	runtimeBootEpoch protectedlocal.Identifier,
 ) (*formalAppBinding, error) {
 	if s == nil || s.localAppKernel == nil {
@@ -98,11 +103,11 @@ func (s *Service) ensureFormalAppBinding(
 		// by the native transport; incomplete direct peers remain fail-closed.
 		return nil, errLocalDevelopmentSessionRevoked
 	}
-	registration, err := s.registerFormalAppRelease(ctx, appID, process)
+	registration, err := s.registerFormalAppRelease(ctx, appID, bindingSlot, process)
 	if err != nil {
 		return nil, err
 	}
-	key := formalAppConnectionKey{desktop: desktop, appID: appID}
+	key := formalAppConnectionKey{desktop: desktop, appID: appID, bindingSlot: bindingSlot}
 	s.formalAppMu.Lock()
 	if current := s.formalApps[key]; current != nil && current.connection != nil && current.connection.Live() {
 		s.formalAppMu.Unlock()
@@ -113,7 +118,7 @@ func (s *Service) ensureFormalAppBinding(
 		s.formalAppMu.Unlock()
 		return nil, errLocalDevelopmentSessionRevoked
 	}
-	launchID := formalAppLaunchIdentifier(connectionID, runtimeBootEpoch, appID)
+	launchID := formalAppLaunchIdentifier(connectionID, runtimeBootEpoch, appID, bindingSlot)
 	connection, err := protectedlocal.EstablishInstalledAppConnection(
 		registration.RegistrationHandle, launchID, runtimeBootEpoch, process, desktop.Done(),
 	)
@@ -139,12 +144,13 @@ func protectedExecutableDigestRef(value protectedlocal.Identifier) string {
 	return "bii_v1_" + base64.RawURLEncoding.EncodeToString(value[:])
 }
 
-func formalAppLaunchIdentifier(connectionID, runtimeBootEpoch protectedlocal.Identifier, appID string) protectedlocal.Identifier {
+func formalAppLaunchIdentifier(connectionID, runtimeBootEpoch protectedlocal.Identifier, appID string, bindingSlot string) protectedlocal.Identifier {
 	hash := sha256.New()
 	_, _ = hash.Write([]byte("nimi.formal-app-launch.v1\x00"))
 	_, _ = hash.Write(connectionID[:])
 	_, _ = hash.Write(runtimeBootEpoch[:])
 	_, _ = hash.Write([]byte(appID))
+	_, _ = hash.Write([]byte("\x00" + bindingSlot))
 	var result protectedlocal.Identifier
 	copy(result[:], hash.Sum(nil))
 	return result

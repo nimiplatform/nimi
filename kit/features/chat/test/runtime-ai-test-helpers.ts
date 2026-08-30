@@ -55,10 +55,15 @@ export function createRuntimeAiTestRuntime(options: RuntimeAiTestRuntimeOptions 
           textGenerate: {
             text: result.text ?? 'Generated reply',
             toolCalls: [],
-            toolResults: [],
-            toolApprovalRequests: [],
             sources: [],
             rawChunks: [],
+            items: [{
+              item: {
+                oneofKind: 'text',
+                text: { text: result.text ?? 'Generated reply' },
+              },
+            }],
+            reasoningSummary: '',
           },
         },
       },
@@ -97,14 +102,18 @@ export async function* runtimeScenarioStreamFromNimiEvents(
   events: readonly NimiRunEvent[],
 ): AsyncIterable<RuntimeScenarioStreamEvent> {
   let sequence = 1;
+  let nextOutputItemIndex = 0;
   for (const event of events) {
-    yield toRuntimeScenarioStreamEvent(event, sequence);
+    yield toRuntimeScenarioStreamEvent(event, sequence, nextOutputItemIndex);
+    if (event.type === 'text-delta' || event.type === 'reasoning-summary-delta') {
+      nextOutputItemIndex += 1;
+    }
     sequence += 1;
   }
 }
 
 export function runtimeTextDeltaEvent(text: string, sequence = 1): RuntimeScenarioStreamEvent {
-  return toRuntimeScenarioStreamEvent({ type: 'text-delta', text }, sequence);
+  return toRuntimeScenarioStreamEvent({ type: 'text-delta', text }, sequence, 0);
 }
 
 export function runtimeDoneEvent(
@@ -121,7 +130,11 @@ export function runtimeDoneEvent(
   }, sequence);
 }
 
-function toRuntimeScenarioStreamEvent(event: NimiRunEvent, sequence: number): RuntimeScenarioStreamEvent {
+function toRuntimeScenarioStreamEvent(
+  event: NimiRunEvent,
+  sequence: number,
+  outputItemIndex = 0,
+): RuntimeScenarioStreamEvent {
   switch (event.type) {
     case 'start':
       return {
@@ -137,7 +150,7 @@ function toRuntimeScenarioStreamEvent(event: NimiRunEvent, sequence: number): Ru
           },
         },
       };
-    case 'reasoning-delta':
+    case 'reasoning-summary-delta':
       return {
         eventType: STREAM_EVENT.DELTA,
         sequence: String(sequence),
@@ -146,8 +159,15 @@ function toRuntimeScenarioStreamEvent(event: NimiRunEvent, sequence: number): Ru
           oneofKind: 'delta',
           delta: {
             delta: {
-              oneofKind: 'reasoning',
-              reasoning: { text: event.text },
+              oneofKind: 'textOutputItem',
+              textOutputItem: {
+                itemIndex: event.itemIndex,
+                delta: {
+                  oneofKind: 'reasoningSummary',
+                  reasoningSummary: { text: event.text },
+                },
+                itemCompleted: event.itemCompleted,
+              },
             },
           },
         },
@@ -161,8 +181,12 @@ function toRuntimeScenarioStreamEvent(event: NimiRunEvent, sequence: number): Ru
           oneofKind: 'delta',
           delta: {
             delta: {
-              oneofKind: 'text',
-              text: { text: event.text },
+              oneofKind: 'textOutputItem',
+              textOutputItem: {
+                itemIndex: event.itemIndex ?? outputItemIndex,
+                delta: { oneofKind: 'text', text: { text: event.text } },
+                itemCompleted: event.itemCompleted ?? true,
+              },
             },
           },
         },
@@ -209,6 +233,8 @@ function toRuntimeScenarioStreamEvent(event: NimiRunEvent, sequence: number): Ru
           },
         },
       };
+    case 'reasoning-delta':
+    case 'reasoning-continuity':
     case 'tool-call':
     case 'tool-result':
     case 'tool-approval-request':

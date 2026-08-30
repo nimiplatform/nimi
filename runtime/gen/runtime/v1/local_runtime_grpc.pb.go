@@ -55,6 +55,10 @@ const (
 	RuntimeLocalService_GetProductControlSelectedDataRoot_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot"
 	RuntimeLocalService_EnsureProductControlRecordCreated_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated"
 	RuntimeLocalService_SelectProductControlDataRoot_FullMethodName                        = "/nimi.runtime.v1.RuntimeLocalService/SelectProductControlDataRoot"
+	RuntimeLocalService_InitializeProductControlRootActivation_FullMethodName              = "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation"
+	RuntimeLocalService_ReplaceProductControlDataRoot_FullMethodName                       = "/nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot"
+	RuntimeLocalService_StartProductControlCheckSync_FullMethodName                        = "/nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync"
+	RuntimeLocalService_GetProductControlCheckSync_FullMethodName                          = "/nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync"
 	RuntimeLocalService_SetProductControlFirstRunInstallLevel_FullMethodName               = "/nimi.runtime.v1.RuntimeLocalService/SetProductControlFirstRunInstallLevel"
 	RuntimeLocalService_CompleteProductControlFirstRunDeviceEnvironmentScan_FullMethodName = "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan"
 	RuntimeLocalService_AdmitProductControlReadyForUse_FullMethodName                      = "/nimi.runtime.v1.RuntimeLocalService/AdmitProductControlReadyForUse"
@@ -112,6 +116,10 @@ type RuntimeLocalServiceClient interface {
 	GetProductControlSelectedDataRoot(ctx context.Context, in *GetProductControlSelectedDataRootRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
 	EnsureProductControlRecordCreated(ctx context.Context, in *EnsureProductControlRecordCreatedRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
 	SelectProductControlDataRoot(ctx context.Context, in *SelectProductControlDataRootRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
+	InitializeProductControlRootActivation(ctx context.Context, in *InitializeProductControlRootActivationRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
+	ReplaceProductControlDataRoot(ctx context.Context, in *ReplaceProductControlDataRootRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
+	StartProductControlCheckSync(ctx context.Context, in *StartProductControlCheckSyncRequest, opts ...grpc.CallOption) (*CheckSyncProjectionJson, error)
+	GetProductControlCheckSync(ctx context.Context, in *GetProductControlCheckSyncRequest, opts ...grpc.CallOption) (*CheckSyncProjectionJson, error)
 	SetProductControlFirstRunInstallLevel(ctx context.Context, in *SetProductControlFirstRunInstallLevelRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
 	CompleteProductControlFirstRunDeviceEnvironmentScan(ctx context.Context, in *CompleteProductControlFirstRunDeviceEnvironmentScanRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
 	AdmitProductControlReadyForUse(ctx context.Context, in *AdmitProductControlReadyForUseRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error)
@@ -501,6 +509,46 @@ func (c *runtimeLocalServiceClient) SelectProductControlDataRoot(ctx context.Con
 	return out, nil
 }
 
+func (c *runtimeLocalServiceClient) InitializeProductControlRootActivation(ctx context.Context, in *InitializeProductControlRootActivationRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProductControlProjectionJson)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_InitializeProductControlRootActivation_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) ReplaceProductControlDataRoot(ctx context.Context, in *ReplaceProductControlDataRootRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ProductControlProjectionJson)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_ReplaceProductControlDataRoot_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) StartProductControlCheckSync(ctx context.Context, in *StartProductControlCheckSyncRequest, opts ...grpc.CallOption) (*CheckSyncProjectionJson, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckSyncProjectionJson)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_StartProductControlCheckSync_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) GetProductControlCheckSync(ctx context.Context, in *GetProductControlCheckSyncRequest, opts ...grpc.CallOption) (*CheckSyncProjectionJson, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CheckSyncProjectionJson)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_GetProductControlCheckSync_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeLocalServiceClient) SetProductControlFirstRunInstallLevel(ctx context.Context, in *SetProductControlFirstRunInstallLevelRequest, opts ...grpc.CallOption) (*ProductControlProjectionJson, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ProductControlProjectionJson)
@@ -628,6 +676,10 @@ type RuntimeLocalServiceServer interface {
 	GetProductControlSelectedDataRoot(context.Context, *GetProductControlSelectedDataRootRequest) (*ProductControlProjectionJson, error)
 	EnsureProductControlRecordCreated(context.Context, *EnsureProductControlRecordCreatedRequest) (*ProductControlProjectionJson, error)
 	SelectProductControlDataRoot(context.Context, *SelectProductControlDataRootRequest) (*ProductControlProjectionJson, error)
+	InitializeProductControlRootActivation(context.Context, *InitializeProductControlRootActivationRequest) (*ProductControlProjectionJson, error)
+	ReplaceProductControlDataRoot(context.Context, *ReplaceProductControlDataRootRequest) (*ProductControlProjectionJson, error)
+	StartProductControlCheckSync(context.Context, *StartProductControlCheckSyncRequest) (*CheckSyncProjectionJson, error)
+	GetProductControlCheckSync(context.Context, *GetProductControlCheckSyncRequest) (*CheckSyncProjectionJson, error)
 	SetProductControlFirstRunInstallLevel(context.Context, *SetProductControlFirstRunInstallLevelRequest) (*ProductControlProjectionJson, error)
 	CompleteProductControlFirstRunDeviceEnvironmentScan(context.Context, *CompleteProductControlFirstRunDeviceEnvironmentScanRequest) (*ProductControlProjectionJson, error)
 	AdmitProductControlReadyForUse(context.Context, *AdmitProductControlReadyForUseRequest) (*ProductControlProjectionJson, error)
@@ -754,6 +806,18 @@ func (UnimplementedRuntimeLocalServiceServer) EnsureProductControlRecordCreated(
 }
 func (UnimplementedRuntimeLocalServiceServer) SelectProductControlDataRoot(context.Context, *SelectProductControlDataRootRequest) (*ProductControlProjectionJson, error) {
 	return nil, status.Error(codes.Unimplemented, "method SelectProductControlDataRoot not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) InitializeProductControlRootActivation(context.Context, *InitializeProductControlRootActivationRequest) (*ProductControlProjectionJson, error) {
+	return nil, status.Error(codes.Unimplemented, "method InitializeProductControlRootActivation not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) ReplaceProductControlDataRoot(context.Context, *ReplaceProductControlDataRootRequest) (*ProductControlProjectionJson, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReplaceProductControlDataRoot not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) StartProductControlCheckSync(context.Context, *StartProductControlCheckSyncRequest) (*CheckSyncProjectionJson, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartProductControlCheckSync not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) GetProductControlCheckSync(context.Context, *GetProductControlCheckSyncRequest) (*CheckSyncProjectionJson, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetProductControlCheckSync not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) SetProductControlFirstRunInstallLevel(context.Context, *SetProductControlFirstRunInstallLevelRequest) (*ProductControlProjectionJson, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetProductControlFirstRunInstallLevel not implemented")
@@ -1440,6 +1504,78 @@ func _RuntimeLocalService_SelectProductControlDataRoot_Handler(srv interface{}, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeLocalService_InitializeProductControlRootActivation_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InitializeProductControlRootActivationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).InitializeProductControlRootActivation(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_InitializeProductControlRootActivation_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).InitializeProductControlRootActivation(ctx, req.(*InitializeProductControlRootActivationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_ReplaceProductControlDataRoot_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReplaceProductControlDataRootRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).ReplaceProductControlDataRoot(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_ReplaceProductControlDataRoot_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).ReplaceProductControlDataRoot(ctx, req.(*ReplaceProductControlDataRootRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_StartProductControlCheckSync_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartProductControlCheckSyncRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).StartProductControlCheckSync(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_StartProductControlCheckSync_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).StartProductControlCheckSync(ctx, req.(*StartProductControlCheckSyncRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_GetProductControlCheckSync_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetProductControlCheckSyncRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).GetProductControlCheckSync(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_GetProductControlCheckSync_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).GetProductControlCheckSync(ctx, req.(*GetProductControlCheckSyncRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeLocalService_SetProductControlFirstRunInstallLevel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SetProductControlFirstRunInstallLevelRequest)
 	if err := dec(in); err != nil {
@@ -1730,6 +1866,22 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SelectProductControlDataRoot",
 			Handler:    _RuntimeLocalService_SelectProductControlDataRoot_Handler,
+		},
+		{
+			MethodName: "InitializeProductControlRootActivation",
+			Handler:    _RuntimeLocalService_InitializeProductControlRootActivation_Handler,
+		},
+		{
+			MethodName: "ReplaceProductControlDataRoot",
+			Handler:    _RuntimeLocalService_ReplaceProductControlDataRoot_Handler,
+		},
+		{
+			MethodName: "StartProductControlCheckSync",
+			Handler:    _RuntimeLocalService_StartProductControlCheckSync_Handler,
+		},
+		{
+			MethodName: "GetProductControlCheckSync",
+			Handler:    _RuntimeLocalService_GetProductControlCheckSync_Handler,
 		},
 		{
 			MethodName: "SetProductControlFirstRunInstallLevel",

@@ -32,8 +32,7 @@ func projectionSpeechReasonCodeFromDetail(detail string) runtimev1.ReasonCode {
 	}
 
 	switch {
-	case strings.Contains(lower, "speech-backed supervised mode is unavailable on this host"),
-		strings.Contains(lower, "configure an attached endpoint instead"),
+	case strings.Contains(lower, "speech supervised mode is unsupported on the exact host tuple"),
 		strings.Contains(lower, "requires windows x64"),
 		strings.Contains(lower, "requires an nvidia gpu"),
 		strings.Contains(lower, "requires a cuda-ready nvidia runtime"):

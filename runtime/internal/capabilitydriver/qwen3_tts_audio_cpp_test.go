@@ -19,7 +19,7 @@ func TestQwen3TTSAudioCppProductionRegistryAndExactPlan(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if plan.DriverID() != Qwen3TTSAudioCppDriverID || plan.ModelAssetID() != binding.ModelAssetID || plan.Speaker() != Qwen3TTSAudioCppPresetVoiceVivian || plan.Text() != "Hello from Nimi." || plan.Language() != "en" || plan.AudioCppSelectedSourceRecordID() != "src-package" || plan.CUDA13SelectedSourceRecordID() != "src-cuda" {
+	if plan.DriverID() != Qwen3TTSAudioCppDriverID || plan.ModelAssetID() != binding.ModelAssetID || plan.Speaker() != Qwen3TTSAudioCppPresetVoiceVivian || plan.Text() != "Hello from Nimi." || plan.Language() != "en" || plan.CLILanguage() != "english" || plan.AudioCppSelectedSourceRecordID() != "src-package" || plan.CUDA13SelectedSourceRecordID() != "src-cuda" {
 		t.Fatalf("unexpected Qwen audio.cpp plan: %+v", plan)
 	}
 	if rate, channels, bits := plan.ExpectedWAVFormat(); rate != 24000 || channels != 1 || bits != 16 {
@@ -31,6 +31,21 @@ func TestQwen3TTSAudioCppProductionRegistryAndExactPlan(t *testing.T) {
 	voices, err := driver.ListPresetVoices([]InvocationExactBinding{binding})
 	if err != nil || len(voices) != 1 || voices[0].VoiceID != Qwen3TTSAudioCppPresetVoiceVivian {
 		t.Fatalf("voices=%+v err=%v", voices, err)
+	}
+}
+
+func TestQwen3TTSAudioCppMapsCanonicalLanguageCodesToNativeTokens(t *testing.T) {
+	want := map[string]string{
+		"de": "german", "en": "english", "es": "spanish", "fr": "french", "it": "italian",
+		"ja": "japanese", "ko": "korean", "pt": "portuguese", "ru": "russian", "zh": "chinese",
+	}
+	for canonical, native := range want {
+		if got := qwen3TTSAudioCppCLILanguage(canonical); got != native {
+			t.Fatalf("qwen3TTSAudioCppCLILanguage(%q) = %q, want %q", canonical, got, native)
+		}
+	}
+	if got := qwen3TTSAudioCppCLILanguage(""); got != "" {
+		t.Fatalf("empty language mapping = %q", got)
 	}
 }
 

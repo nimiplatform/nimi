@@ -23,7 +23,14 @@ test('NimiClient composes explicit Runtime-backed root surfaces without singleto
           output: {
             output: {
               oneofKind: 'textGenerate',
-              textGenerate: { text: 'root runtime text' },
+              textGenerate: {
+                text: 'root runtime text',
+                toolCalls: [],
+                sources: [],
+                rawChunks: [],
+                items: [{ item: { oneofKind: 'text', text: { text: 'root runtime text' } } }],
+                reasoningSummary: '',
+              },
             },
           },
           finishReason: 1,

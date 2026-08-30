@@ -41,11 +41,13 @@ func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteSce
 	if err := s.reportScenarioSpendDisclosure(ctx, req.GetHead(), req.GetScenarioType()); err != nil {
 		return nil, err
 	}
+	var response *runtimev1.ExecuteScenarioResponse
+	var executionErr error
 	switch req.GetScenarioType() {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
-		return executeTextGenerateScenario(ctx, s, req, ignored)
+		response, executionErr = executeTextGenerateScenario(ctx, s, req, ignored)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:
-		return executeTextEmbedScenario(ctx, s, req, ignored)
+		response, executionErr = executeTextEmbedScenario(ctx, s, req, ignored)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
@@ -56,6 +58,7 @@ func (s *Service) ExecuteScenario(ctx context.Context, req *runtimev1.ExecuteSce
 	default:
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
+	return response, s.projectRuntimeRestartExecutionError(ctx, executionErr)
 }
 
 func (s *Service) ListScenarioProfiles(_ context.Context, _ *runtimev1.ListScenarioProfilesRequest) (*runtimev1.ListScenarioProfilesResponse, error) {

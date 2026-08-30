@@ -198,6 +198,7 @@ export function createNimiRuntimeLocalEnvironmentClient(
         source: normalizeText(input.source),
         templateId: normalizeText(input.templateId),
         modelId: normalizeText(input.modelId),
+			modelType: normalizeText(input.modelType),
         repo: normalizeText(input.repo),
         revision: normalizeText(input.revision),
         capabilities: textList(input.capabilities),

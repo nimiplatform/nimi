@@ -72,7 +72,7 @@ func (s *Service) captureSelectedLocalEmbedEffectiveInputs(
 	if !validSelectedEmbedExecution(selected) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 	}
-	if err := requireSelectedFeatures(requiredFeatures, selected.SupportedFeatures); err != nil {
+	if err := requireSelectedFeatures(requiredFeatures, selected.ConfiguredFeatures); err != nil {
 		return nil, err
 	}
 	expectedModelAssetID = strings.TrimSpace(expectedModelAssetID)
@@ -96,6 +96,7 @@ func (s *Service) captureSelectedLocalEmbedEffectiveInputs(
 		PortableConfig:           portable,
 		ModelContextWindowTokens: selected.ModelContextWindowTokens,
 		ExactBindings:            append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...),
+		ExactDependencySources:   invocationExactDependencySources(selected.ExactDependencySources),
 		Request:                  request,
 	})
 	if err != nil {
@@ -158,6 +159,7 @@ func (s *Service) localEmbedEffectiveInputsFromResolvedAssembly(assembly *localR
 		PortableConfig:           portable,
 		ModelContextWindowTokens: assembly.LoadPlan.Embed.ContextWindowTokens,
 		ExactBindings:            resolvedAssemblyExactBindings(assembly),
+		ExactDependencySources:   resolvedAssemblyExactDependencySources(assembly),
 		Request:                  request,
 	})
 	if err != nil {

@@ -100,6 +100,8 @@ export type DesktopElectronBundledAvatarHost = {
   readonly runtimeBridgeHost: NimiElectronBundledAvatarHost;
   readonly hostHandoff: (dispatch: DesktopAvatarHostHandoffDispatch) => Promise<AvatarHostHandoffResult>;
   readonly hasActiveInstances: () => boolean;
+  readonly quiesceDataRoot: () => Promise<void>;
+  readonly resumeDataRoot: () => void;
   readonly shutdown: () => Promise<void>;
 };
 
@@ -108,6 +110,7 @@ export type CreateDesktopElectronBundledAvatarHostInput = {
   readonly preloadPath: string;
   readonly resolveAppPrivateDataRoot: () => Promise<string>;
   readonly localAssetProtocolHost: NimiElectronShellFileProtocolHost;
+  readonly runDataRootOperation?: <T>(operation: () => Promise<T>) => Promise<T>;
   readonly devRendererRoot?: string;
   readonly packagedRendererIndexPath?: string;
   readonly publishPreviewImage?: (bytes: Uint8Array) => string;
@@ -140,12 +143,41 @@ export async function createDesktopElectronBundledAvatarHost(
     return appPrivateDataRoot;
   };
   const localAssetRoots: string[] = [];
-  const assetHost = createNimiElectronBundledAvatarAssetHost({
+  const createAssetHost = () => createNimiElectronBundledAvatarAssetHost({
     resolveAppPrivateDataRoot,
     resolveRuntimeAsset: input.resolveFormalPresentationAsset,
     localAssetProtocolHost: input.localAssetProtocolHost,
     localAssetRoots,
   });
+  let assetHost = createAssetHost();
+  let dataRootQuiesced = false;
+  let activeAssetOperations = 0;
+  const assetIdleWaiters = new Set<() => void>();
+  const trackAssetOperation = async <T>(operation: () => Promise<T>): Promise<T> => {
+    activeAssetOperations += 1;
+    try {
+      return await operation();
+    } finally {
+      activeAssetOperations -= 1;
+      if (activeAssetOperations === 0) {
+        for (const resolve of assetIdleWaiters) resolve();
+        assetIdleWaiters.clear();
+      }
+    }
+  };
+  const runAssetOperation = <T>(operation: () => Promise<T>): Promise<T> => {
+    const run = input.runDataRootOperation ?? (async (next: () => Promise<T>) => next());
+    return run(async () => {
+      if (dataRootQuiesced) {
+        throw new Error('desktop-bundled-avatar-data-root-handoff-closed');
+      }
+      return trackAssetOperation(operation);
+    });
+  };
+  const waitForAssetOperations = async (): Promise<void> => {
+    if (activeAssetOperations === 0) return;
+    await new Promise<void>((resolve) => assetIdleWaiters.add(resolve));
+  };
   const windows = new Map<string, AvatarWindowRecord>();
   const pendingPreviewRequests = new Map<string, {
     readonly record: AvatarWindowRecord;
@@ -173,7 +205,7 @@ export async function createDesktopElectronBundledAvatarHost(
     const lease = pendingMaterializationLeases.get(materializationLeaseRef);
     if (!lease || (expectedLease && lease !== expectedLease)) return false;
     pendingMaterializationLeases.delete(materializationLeaseRef);
-    await assetHost.releaseMaterialization(lease.materializationRef);
+    await trackAssetOperation(() => assetHost.releaseMaterialization(lease.materializationRef));
     return true;
   };
   const pendingCandidates = new Set<AvatarWindowRecord>();
@@ -217,6 +249,7 @@ export async function createDesktopElectronBundledAvatarHost(
   let shuttingDown = false;
   const assertAvatarHostOpen = (): void => {
     if (shuttingDown) throw new Error('desktop-bundled-avatar-host-shutting-down');
+    if (dataRootQuiesced) throw new Error('desktop-bundled-avatar-data-root-handoff-closed');
   };
   const allWindowRecords = (): AvatarWindowRecord[] => [...new Set([
     ...windows.values(),
@@ -319,7 +352,9 @@ export async function createDesktopElectronBundledAvatarHost(
     const activePresentation = record.activePresentation;
     record.activePresentation = null;
     if (!activePresentation) return;
-    void assetHost.releaseMaterialization(activePresentation.materializationRef).catch((error: unknown) => {
+    void trackAssetOperation(() => (
+      assetHost.releaseMaterialization(activePresentation.materializationRef)
+    )).catch((error: unknown) => {
       console.warn(`[desktop:avatar] materialization release failed: ${error instanceof Error ? error.message : String(error)}`);
     });
   };
@@ -817,7 +852,7 @@ export async function createDesktopElectronBundledAvatarHost(
       }
       return { accepted: true };
     },
-    [NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND]: async ({ payload, event }) => {
+    [NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND]: ({ payload, event }) => runAssetOperation(async () => {
       const request = parseDesktopAvatarMaterializationResolveRequest(exactNestedPayload(
         payload,
         NIMI_ELECTRON_BUNDLED_AVATAR_ASSET_RESOLVE_COMMAND,
@@ -866,8 +901,8 @@ export async function createDesktopElectronBundledAvatarHost(
         materializationRef: resolved.materializationRef,
       }));
       return { ...resolved, materializationLeaseRef };
-    },
-    [AVATAR_MATERIALIZATION_COMMIT_COMMAND]: async ({ payload, event }) => {
+    }),
+    [AVATAR_MATERIALIZATION_COMMIT_COMMAND]: ({ payload, event }) => runAssetOperation(async () => {
       const record = recordForSender(asElectronEvent(event));
       const materializationLeaseRef = requiredMaterializationLeaseRef(payload.materializationLeaseRef);
       const lease = pendingMaterializationLeases.get(materializationLeaseRef);
@@ -965,23 +1000,25 @@ export async function createDesktopElectronBundledAvatarHost(
         staleReason: 'desktop-bundled-avatar-materialization-binding-stale',
       });
       if (retiredMaterializationRef) {
-        void assetHost.releaseMaterialization(retiredMaterializationRef).catch((error: unknown) => {
+        void trackAssetOperation(() => (
+          assetHost.releaseMaterialization(retiredMaterializationRef!)
+        )).catch((error: unknown) => {
           console.warn(`[desktop:avatar] retired materialization release failed: ${error instanceof Error ? error.message : String(error)}`);
         });
       }
       return { accepted: true, materializationRef: commit.materializationRef };
-    },
-    [AVATAR_MATERIALIZATION_RELEASE_COMMAND]: async ({ payload, event }) => {
+    }),
+    [AVATAR_MATERIALIZATION_RELEASE_COMMAND]: ({ payload, event }) => runAssetOperation(async () => {
       assertOnlyKeys(payload, ['materializationLeaseRef'], AVATAR_MATERIALIZATION_RELEASE_COMMAND);
       const materializationLeaseRef = requiredMaterializationLeaseRef(payload.materializationLeaseRef);
       const lease = pendingMaterializationLeases.get(materializationLeaseRef);
       const record = recordForSender(asElectronEvent(event));
       if (!lease || lease.record !== record) return { accepted: false };
       return { accepted: await releasePendingMaterializationLease(materializationLeaseRef, lease) };
-    },
+    }),
     nimi_avatar_read_text_file: ({ payload }) => {
       assertOnlyKeys(payload, ['path'], 'nimi_avatar_read_text_file');
-      return assetHost.readTextFile(payload.path);
+      return runAssetOperation(() => assetHost.readTextFile(payload.path));
     },
     nimi_avatar_get_cursor_client_position: ({ payload, event }) => {
       requireEmptyPayload(payload, 'nimi_avatar_get_cursor_client_position');
@@ -1178,6 +1215,7 @@ export async function createDesktopElectronBundledAvatarHost(
   const serializedHostHandoff = createDesktopAvatarHostHandoffSerialDispatcher(performHostHandoff);
   const hostHandoff: DesktopAvatarHostHandoffSerialDispatcher = Object.assign(
     async (rawDispatch: DesktopAvatarHostHandoffDispatch): Promise<AvatarHostHandoffResult> => {
+      assertAvatarHostOpen();
       if (!serializedHostHandoff.isClosing() && rawDispatch.request.command === 'presence') {
         const request = buildAvatarHostHandoffRequest(rawDispatch.request);
         const avatarHostTargetRef = requiredAvatarHostTargetRef(rawDispatch.avatarHostTargetRef);
@@ -1224,6 +1262,7 @@ export async function createDesktopElectronBundledAvatarHost(
   const shutdown = (): Promise<void> => {
     if (shutdownPromise) return shutdownPromise;
     shuttingDown = true;
+    dataRootQuiesced = true;
     shutdownPromise = (async () => {
       await hostHandoff.closeAndWait(AVATAR_HOST_HANDOFF_SHUTDOWN_WAIT_MS);
       for (const [requestId, pending] of pendingPreviewRequests) {
@@ -1254,6 +1293,7 @@ export async function createDesktopElectronBundledAvatarHost(
       senderInvalidationListeners.clear();
       if (devRendererProcess && devRendererProcess.exitCode === null) devRendererProcess.kill();
       devRendererProcess = undefined;
+      await waitForAssetOperations();
       await assetHost.close();
     })();
     return shutdownPromise;
@@ -1264,6 +1304,24 @@ export async function createDesktopElectronBundledAvatarHost(
     runtimeBridgeHost,
     hostHandoff,
     hasActiveInstances: () => [...windows.values()].some((record) => !record.window.isDestroyed()),
+    quiesceDataRoot: async () => {
+      if (dataRootQuiesced) return;
+      dataRootQuiesced = true;
+      await closeAllAvatarWindows();
+      await waitForAssetOperations();
+      await assetHost.detachDataRoot();
+      windows.clear();
+      pendingCandidates.clear();
+      retiringWindows.clear();
+      pendingCandidateReadiness.clear();
+      pendingMaterializationLeases.clear();
+      switchIntents.clear();
+    },
+    resumeDataRoot: () => {
+      if (!dataRootQuiesced || shuttingDown) return;
+      assetHost = createAssetHost();
+      dataRootQuiesced = false;
+    },
     shutdown,
   };
 }

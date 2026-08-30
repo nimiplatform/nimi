@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -23,15 +24,16 @@ import (
 )
 
 type fakeImageInvocationSubstrate struct {
-	mu            sync.Mutex
-	healthy       bool
-	ensureCalls   int
-	generateOrder []string
-	active        int
-	maxActive     int
-	stopCalls     int
-	ensureFn      func(context.Context, *capabilitydriver.ImageInvocationPlan, func() error, localexecution.ImageProgressFunc) (bool, error)
-	generateFn    func(context.Context, *capabilitydriver.ImageInvocationPlan, int32) (localexecution.ImageArtifact, error)
+	mu             sync.Mutex
+	healthy        bool
+	ensureCalls    int
+	generateOrder  []string
+	generatedSeeds []int64
+	active         int
+	maxActive      int
+	stopCalls      int
+	ensureFn       func(context.Context, *capabilitydriver.ImageInvocationPlan, func() error, localexecution.ImageProgressFunc) (bool, error)
+	generateFn     func(context.Context, *capabilitydriver.ImageInvocationPlan, int32, int64) (localexecution.ImageArtifact, error)
 }
 
 func (f *fakeImageInvocationSubstrate) Ensure(ctx context.Context, plan *capabilitydriver.ImageInvocationPlan, validate func() error, progress localexecution.ImageProgressFunc) (bool, error) {
@@ -50,9 +52,10 @@ func (f *fakeImageInvocationSubstrate) Ensure(ctx context.Context, plan *capabil
 	return false, nil
 }
 
-func (f *fakeImageInvocationSubstrate) GenerateImage(ctx context.Context, plan *capabilitydriver.ImageInvocationPlan, index int32, _ localexecution.ImageProgressFunc) (localexecution.ImageArtifact, error) {
+func (f *fakeImageInvocationSubstrate) GenerateImage(ctx context.Context, plan *capabilitydriver.ImageInvocationPlan, index int32, seed int64, _ localexecution.ImageProgressFunc) (localexecution.ImageArtifact, error) {
 	f.mu.Lock()
 	f.generateOrder = append(f.generateOrder, fmt.Sprintf("%s:%d", plan.RequestPlan().Prompt(), index))
+	f.generatedSeeds = append(f.generatedSeeds, seed)
 	f.active++
 	if f.active > f.maxActive {
 		f.maxActive = f.active
@@ -64,9 +67,9 @@ func (f *fakeImageInvocationSubstrate) GenerateImage(ctx context.Context, plan *
 		f.mu.Unlock()
 	}()
 	if f.generateFn != nil {
-		return f.generateFn(ctx, plan, index)
+		return f.generateFn(ctx, plan, index, seed)
 	}
-	return localexecution.ImageArtifact{Index: index, Bytes: testPNGBytes(), MediaType: "image/png"}, nil
+	return localexecution.ImageArtifact{Index: index, Seed: seed, Bytes: testPNGBytes(), MediaType: "image/png"}, nil
 }
 
 func (f *fakeImageInvocationSubstrate) Healthy() bool {
@@ -88,7 +91,7 @@ func TestImageExecutionHostStrictFIFOAndQueuedCancellation(t *testing.T) {
 	releaseFirst := make(chan struct{})
 	var firstOnce sync.Once
 	substrate := &fakeImageInvocationSubstrate{healthy: true}
-	substrate.generateFn = func(ctx context.Context, plan *capabilitydriver.ImageInvocationPlan, index int32) (localexecution.ImageArtifact, error) {
+	substrate.generateFn = func(ctx context.Context, plan *capabilitydriver.ImageInvocationPlan, index int32, seed int64) (localexecution.ImageArtifact, error) {
 		if plan.RequestPlan().Prompt() == "first" {
 			firstOnce.Do(func() { close(firstStarted) })
 			select {
@@ -97,7 +100,7 @@ func TestImageExecutionHostStrictFIFOAndQueuedCancellation(t *testing.T) {
 				return localexecution.ImageArtifact{}, ctx.Err()
 			}
 		}
-		return localexecution.ImageArtifact{Index: index, Bytes: testPNGBytes(), MediaType: "image/png"}, nil
+		return localexecution.ImageArtifact{Index: index, Seed: seed, Bytes: testPNGBytes(), MediaType: "image/png"}, nil
 	}
 	host := newImageExecutionHostWithSubstrate(substrate, nil)
 	defer func() { _ = host.Stop() }()
@@ -190,7 +193,7 @@ func TestImageExecutionHostStopCancelsActiveAndQueuedRequests(t *testing.T) {
 	started := make(chan struct{})
 	var once sync.Once
 	substrate := &fakeImageInvocationSubstrate{healthy: true}
-	substrate.generateFn = func(ctx context.Context, _ *capabilitydriver.ImageInvocationPlan, _ int32) (localexecution.ImageArtifact, error) {
+	substrate.generateFn = func(ctx context.Context, _ *capabilitydriver.ImageInvocationPlan, _ int32, _ int64) (localexecution.ImageArtifact, error) {
 		once.Do(func() { close(started) })
 		<-ctx.Done()
 		return localexecution.ImageArtifact{}, ctx.Err()
@@ -227,7 +230,7 @@ func TestImageExecutionHostRunningCancellationStopsSubstrate(t *testing.T) {
 	started := make(chan struct{})
 	var once sync.Once
 	substrate := &fakeImageInvocationSubstrate{healthy: true}
-	substrate.generateFn = func(ctx context.Context, _ *capabilitydriver.ImageInvocationPlan, _ int32) (localexecution.ImageArtifact, error) {
+	substrate.generateFn = func(ctx context.Context, _ *capabilitydriver.ImageInvocationPlan, _ int32, _ int64) (localexecution.ImageArtifact, error) {
 		once.Do(func() { close(started) })
 		<-ctx.Done()
 		return localexecution.ImageArtifact{}, ctx.Err()
@@ -294,7 +297,7 @@ func TestImageExecutionHostAttributesProcessCrashAndRecoversOnNextRequest(t *tes
 		}
 		return false, nil
 	}
-	substrate.generateFn = func(_ context.Context, plan *capabilitydriver.ImageInvocationPlan, index int32) (localexecution.ImageArtifact, error) {
+	substrate.generateFn = func(_ context.Context, plan *capabilitydriver.ImageInvocationPlan, index int32, seed int64) (localexecution.ImageArtifact, error) {
 		if plan.RequestPlan().Prompt() == "crash" && !crashed {
 			crashed = true
 			substrate.mu.Lock()
@@ -302,7 +305,7 @@ func TestImageExecutionHostAttributesProcessCrashAndRecoversOnNextRequest(t *tes
 			substrate.mu.Unlock()
 			return localexecution.ImageArtifact{}, errors.New("process exited")
 		}
-		return localexecution.ImageArtifact{Index: index, Bytes: testPNGBytes(), MediaType: "image/png"}, nil
+		return localexecution.ImageArtifact{Index: index, Seed: seed, Bytes: testPNGBytes(), MediaType: "image/png"}, nil
 	}
 	host := newImageExecutionHostWithSubstrate(substrate, nil)
 	defer func() { _ = host.Stop() }()
@@ -315,13 +318,25 @@ func TestImageExecutionHostAttributesProcessCrashAndRecoversOnNextRequest(t *tes
 	}
 }
 
+func TestImageExecutionHostClassifiesExplicitOOM(t *testing.T) {
+	substrate := &fakeImageInvocationSubstrate{healthy: true}
+	substrate.generateFn = func(_ context.Context, _ *capabilitydriver.ImageInvocationPlan, _ int32, _ int64) (localexecution.ImageArtifact, error) {
+		return localexecution.ImageArtifact{}, errors.New("backend failed: out of memory")
+	}
+	host := newImageExecutionHostWithSubstrate(substrate, nil)
+	defer func() { _ = host.Stop() }()
+	if _, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "oom", 1), nil, nil, nil); localexecution.FailureKindOf(err) != localexecution.FailureOutOfMemory {
+		t.Fatalf("image OOM error = %v (%s)", err, localexecution.FailureKindOf(err))
+	}
+}
+
 func TestImageExecutionHostPreservesProducedArtifactsOnInferenceFailure(t *testing.T) {
 	substrate := &fakeImageInvocationSubstrate{healthy: true}
-	substrate.generateFn = func(_ context.Context, _ *capabilitydriver.ImageInvocationPlan, index int32) (localexecution.ImageArtifact, error) {
+	substrate.generateFn = func(_ context.Context, _ *capabilitydriver.ImageInvocationPlan, index int32, seed int64) (localexecution.ImageArtifact, error) {
 		if index == 2 {
 			return localexecution.ImageArtifact{}, errors.New("sampler failed")
 		}
-		return localexecution.ImageArtifact{Index: index, Bytes: testPNGBytes(), MediaType: "image/png"}, nil
+		return localexecution.ImageArtifact{Index: index, Seed: seed, Bytes: testPNGBytes(), MediaType: "image/png"}, nil
 	}
 	host := newImageExecutionHostWithSubstrate(substrate, nil)
 	defer func() { _ = host.Stop() }()
@@ -338,6 +353,73 @@ func TestImageExecutionHostPreservesProducedArtifactsOnInferenceFailure(t *testi
 	}
 }
 
+func TestImageExecutionHostProducesExactRequestedArtifactCountInOrder(t *testing.T) {
+	substrate := &fakeImageInvocationSubstrate{healthy: true}
+	host := newImageExecutionHostWithSubstrate(substrate, nil)
+	defer func() { _ = host.Stop() }()
+	var committed []int32
+	result, err := host.ExecuteImage(context.Background(), imagePlanForHostTest(t, "batch", 3), nil, func(artifact localexecution.ImageArtifact) error {
+		committed = append(committed, artifact.Index)
+		return nil
+	}, nil)
+	if err != nil {
+		t.Fatalf("ExecuteImage: %v", err)
+	}
+	if !reflect.DeepEqual(committed, []int32{1, 2, 3}) || len(result.Artifacts) != 3 {
+		t.Fatalf("batch result=%+v committed=%v", result, committed)
+	}
+	for index, artifact := range result.Artifacts {
+		if artifact.Index != int32(index+1) || artifact.Seed != int64(7+index) {
+			t.Fatalf("artifact order=%+v", result.Artifacts)
+		}
+	}
+	substrate.mu.Lock()
+	generatedSeeds := append([]int64(nil), substrate.generatedSeeds...)
+	substrate.mu.Unlock()
+	if !reflect.DeepEqual(generatedSeeds, []int64{7, 8, 9}) {
+		t.Fatalf("batch seeds = %v, want [7 8 9]", generatedSeeds)
+	}
+}
+
+func TestImageExecutionHostResolvesRandomBatchSeedBeforeDispatch(t *testing.T) {
+	substrate := &fakeImageInvocationSubstrate{healthy: true}
+	host := newImageExecutionHostWithSubstrate(substrate, nil)
+	defer func() { _ = host.Stop() }()
+	result, err := host.ExecuteImage(context.Background(), imagePlanForHostTestWithSeed(t, "random-batch", 3, -1), nil, nil, nil)
+	if err != nil {
+		t.Fatalf("ExecuteImage: %v", err)
+	}
+	if len(result.Artifacts) != 3 {
+		t.Fatalf("random batch artifacts = %+v", result.Artifacts)
+	}
+	base := result.Artifacts[0].Seed
+	if base < 0 || base > math.MaxInt32-2 {
+		t.Fatalf("resolved random base seed = %d", base)
+	}
+	for index, artifact := range result.Artifacts {
+		if artifact.Seed != base+int64(index) {
+			t.Fatalf("resolved random batch seeds = %+v", result.Artifacts)
+		}
+	}
+}
+
+func TestImageGenerateRequestPreservesSignedInt32Seed(t *testing.T) {
+	for _, seed := range []int64{0, -2, math.MinInt32, math.MaxInt32} {
+		plan := imagePlanForHostTestWithSeed(t, "seed", 1, seed)
+		request, err := imageGenerateRequest("127.0.0.1:43210", managedimagebackend.ProtocolManagedWrapper, plan, seed)
+		if err != nil {
+			t.Fatalf("imageGenerateRequest(seed=%d): %v", seed, err)
+		}
+		if request.Seed != int32(seed) {
+			t.Fatalf("imageGenerateRequest(seed=%d) projected %d", seed, request.Seed)
+		}
+	}
+	plan := imagePlanForHostTestWithSeed(t, "random-seed", 1, -1)
+	if _, err := imageGenerateRequest("127.0.0.1:43210", managedimagebackend.ProtocolManagedWrapper, plan, -1); err == nil {
+		t.Fatal("unresolved seed -1 reached native request")
+	}
+}
+
 func TestImageInvocationTransportUsesCanonicalDriverComponentsAndPrompt(t *testing.T) {
 	plan := imagePlanWithUncondForHostTest(t)
 	request, err := imageLoadRequest("127.0.0.1:43210", plan, managedimagebackend.ProtocolManagedWrapper)
@@ -351,7 +433,7 @@ func TestImageInvocationTransportUsesCanonicalDriverComponentsAndPrompt(t *testi
 		request.Components[2].EngineSlot != "uncond_diffusion_model" {
 		t.Fatalf("canonical component transport = %+v", request.Components)
 	}
-	generate, err := imageGenerateRequest("127.0.0.1:43210", managedimagebackend.ProtocolManagedWrapper, plan)
+	generate, err := imageGenerateRequest("127.0.0.1:43210", managedimagebackend.ProtocolManagedWrapper, plan, plan.RequestPlan().Seed())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -393,6 +475,7 @@ func TestQwenInstructionEditTransportUsesThreeSlotRecipeAndReferenceCarrier(t *t
 		ExactBindings:     bindings,
 		Request:           &runtimev1.ImageGenerateScenarioSpec{Prompt: "make it dusk"},
 		Inputs: []capabilitydriver.ImageResolvedInput{{
+			Role:           capabilitydriver.ImageResolvedInputRoleSource,
 			SourceIdentity: "artifact_qwen_edit_source", ImageBytes: sourceBytes,
 		}},
 	})
@@ -411,7 +494,7 @@ func TestQwenInstructionEditTransportUsesThreeSlotRecipeAndReferenceCarrier(t *t
 		!loadRequest.QwenImageZeroCondT || loadRequest.FlowShift != 3 {
 		t.Fatalf("Qwen edit load transport = %+v", loadRequest)
 	}
-	generateRequest, err := imageGenerateRequest("127.0.0.1:43210", managedimagebackend.ProtocolManagedWrapper, plan)
+	generateRequest, err := imageGenerateRequest("127.0.0.1:43210", managedimagebackend.ProtocolManagedWrapper, plan, plan.RequestPlan().Seed())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -473,7 +556,55 @@ func TestImageExecutionEngineConfigUsesExplicitSDLibraryAndLoopbackAddress(t *te
 	}
 }
 
+func TestImageExecutionEngineConfigRejectsAmbientOrEscapingPackageContent(t *testing.T) {
+	directory := t.TempDir()
+	executable := filepath.Join(directory, "stablediffusion-ggml")
+	if err := os.WriteFile(executable, []byte("binary"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	candidate := imageExecutionLibraryCandidates()[0]
+	packageLibrary := filepath.Join(directory, candidate)
+	if err := os.MkdirAll(filepath.Dir(packageLibrary), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(packageLibrary, []byte("package-library"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	externalRoot := t.TempDir()
+	externalLibrary := filepath.Join(externalRoot, "ambient-library")
+	externalExecutable := filepath.Join(externalRoot, "ambient-executable")
+	if err := os.WriteFile(externalLibrary, []byte("ambient"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(externalExecutable, []byte("ambient"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("SD_LIBRARY", externalLibrary)
+	address, err := reserveImageExecutionAddress()
+	if err != nil {
+		t.Fatal(err)
+	}
+	config, err := imageExecutionEngineConfigFromDirectory(directory, address, ImageExecutionHostConfig{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolvedPackageLibrary, _ := filepath.EvalSymlinks(packageLibrary)
+	if config.CommandEnv["SD_LIBRARY"] != resolvedPackageLibrary {
+		t.Fatalf("ambient SD_LIBRARY replaced package library: %q", config.CommandEnv["SD_LIBRARY"])
+	}
+	if _, err := imageExecutionEngineConfigFromDirectory(directory, address, ImageExecutionHostConfig{LibraryPath: externalLibrary}); err == nil || !strings.Contains(err.Error(), "admitted package root") {
+		t.Fatalf("external library error = %v", err)
+	}
+	if _, err := imageExecutionEngineConfigFromDirectory(directory, address, ImageExecutionHostConfig{ExecutablePath: externalExecutable}); err == nil || !strings.Contains(err.Error(), "admitted package root") {
+		t.Fatalf("external executable error = %v", err)
+	}
+}
+
 func imagePlanForHostTest(t *testing.T, prompt string, count int32) *capabilitydriver.ImageInvocationPlan {
+	return imagePlanForHostTestWithSeed(t, prompt, count, 7)
+}
+
+func imagePlanForHostTestWithSeed(t *testing.T, prompt string, count int32, seed int64) *capabilitydriver.ImageInvocationPlan {
 	t.Helper()
 	root := t.TempDir()
 	bindings := make([]capabilitydriver.InvocationExactBinding, 0, 3)
@@ -496,7 +627,7 @@ func imagePlanForHostTest(t *testing.T, prompt string, count int32) *capabilityd
 	}
 	portable, err := structpb.NewStruct(map[string]any{
 		"executionOptions": map[string]any{
-			"steps": 2, "cfgScale": 1, "width": 64, "height": 64, "seed": 7, "threads": 1,
+			"steps": 2, "cfgScale": 1, "width": 64, "height": 64, "seed": seed, "threads": 1,
 		},
 	})
 	if err != nil {
@@ -506,7 +637,7 @@ func imagePlanForHostTest(t *testing.T, prompt string, count int32) *capabilityd
 		RecipeID:       "z-image",
 		PortableConfig: portable,
 		ExactBindings:  bindings,
-		Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: prompt, N: proto.Int32(count), Size: "64x64", Seed: proto.Int64(7)},
+		Request:        &runtimev1.ImageGenerateScenarioSpec{Prompt: prompt, N: proto.Int32(count), Size: "64x64", Seed: proto.Int64(seed)},
 	})
 	if err != nil {
 		t.Fatalf("PlanImageInvocation: %v", err)

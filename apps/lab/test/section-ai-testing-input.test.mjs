@@ -21,7 +21,10 @@ await build({
   logLevel: 'silent',
 });
 
-const { hasStudioCapabilityRunInput } = await import(
+const {
+  canCancelStudioCapabilityRun,
+  hasStudioCapabilityRunInput,
+} = await import(
   pathToFileURL(path.join(buildDir, 'section-ai-testing-input.mjs')).href
 );
 
@@ -53,4 +56,13 @@ test('prompt-backed capability runs still require a real input', () => {
     prompt: '',
     hasAlternativeInput: false,
   }), true);
+});
+
+test('streamed text and async result kinds expose the product cancellation action', () => {
+  assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'chat.stream', resultKind: 'text' }), true);
+  assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'text.generate', resultKind: 'text' }), false);
+  assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'image.generate', resultKind: 'artifacts' }), true);
+  assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'audio.transcribe', resultKind: 'transcript' }), true);
+  assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'voice.create', resultKind: 'voice-asset' }), true);
+  assert.equal(canCancelStudioCapabilityRun({ capabilityId: 'text.embed', resultKind: 'embedding' }), false);
 });

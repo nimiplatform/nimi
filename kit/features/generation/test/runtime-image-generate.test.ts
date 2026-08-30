@@ -53,6 +53,7 @@ function fakeClient(config: {
   submitError?: unknown;
   neverEndingEvents?: boolean;
   lookupJob?: ScenarioJob;
+  cancelJob?: ScenarioJob;
 }) {
   const submitScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['submitScenarioJob']>(async () => {
     if (config.submitError) throw config.submitError;
@@ -61,7 +62,9 @@ function fakeClient(config: {
   const getScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['getScenarioJob']>(async () => ({
     job: config.lookupJob ?? config.events?.at(-1) ?? imageJob(ScenarioJobStatus.COMPLETED),
   }));
-  const cancelScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['cancelScenarioJob']>(async () => ({}));
+  const cancelScenarioJob = vi.fn<NimiRuntimeScenarioJobClient['cancelScenarioJob']>(async () => ({
+    ...(config.cancelJob ? { job: config.cancelJob } : {}),
+  }));
   const subscribeScenarioJobEvents = vi.fn<NimiRuntimeScenarioJobClient['subscribeScenarioJobEvents']>(() => ({
     [Symbol.asyncIterator]() {
       let index = 0;
@@ -96,7 +99,11 @@ function input(client: NimiRuntimeScenarioJobClient, overrides: Partial<RuntimeI
 
 describe('runRuntimeImageGenerate', () => {
   it('submits an owner-driven image job and projects a hosted artifact', async () => {
-    const hosted = imageArtifact({ uri: 'https://cdn.example.test/image.png', sizeBytes: '1024' });
+    const hosted = imageArtifact({
+      uri: 'https://cdn.example.test/image.png',
+      sizeBytes: '1024',
+      seed: 41,
+    });
     const fake = fakeClient({ events: [imageJob(ScenarioJobStatus.COMPLETED)], artifacts: [hosted] });
     const onJobUpdate = vi.fn();
     const request = input(fake.client, {
@@ -121,7 +128,7 @@ describe('runRuntimeImageGenerate', () => {
     expect(result.output).toMatchObject({ kind: 'image-artifacts', jobId: 'job-image-1', jobStatus: 'COMPLETED', artifactCount: 1 });
     expect(result.output.firstArtifact).toEqual({
       artifactId: 'artifact-image-1', mimeType: 'image/png', uri: hosted.uri,
-      previewUrl: hosted.uri, previewSource: 'hosted-uri', sizeBytes: 1024, width: 512, height: 512,
+      previewUrl: hosted.uri, previewSource: 'hosted-uri', sizeBytes: 1024, width: 512, height: 512, seed: 41,
     });
     expect(result.trace).toEqual({ traceId: 'trace-image-1', modelResolved: 'image-runtime', routeDecision: 'LOCAL' });
   });
@@ -164,13 +171,14 @@ describe('runRuntimeImageGenerate', () => {
     const fake = fakeClient({
       neverEndingEvents: true,
       lookupJob: imageJob(ScenarioJobStatus.RUNNING),
+      cancelJob: imageJob(ScenarioJobStatus.CANCELED),
     });
     const controller = new AbortController();
     const pending = runRuntimeImageGenerate(input(fake.client, { signal: controller.signal, abortReason: 'tester abort' }));
     await new Promise((resolve) => setTimeout(resolve, 0));
     controller.abort();
     const result = await pending;
-    expect(result).toMatchObject({ ok: false, reason: 'operation-aborted' });
+    expect(result).toMatchObject({ ok: false, reason: 'runtime-canceled' });
     expect(fake.cancelScenarioJob).toHaveBeenCalledTimes(1);
     expect(fake.cancelScenarioJob.mock.calls[0]?.[0]).toMatchObject({ jobId: 'job-image-1', reason: 'tester abort' });
   });

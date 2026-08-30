@@ -8,19 +8,24 @@ import (
 	"strings"
 )
 
-func (s *Service) promoteLocalEnvironmentDependencyJobReady(jobID string, readyState string, sourceKind string, canonicalRoot string, pendingRecord localEnvironmentSelectedSourceRecordState) (localEnvironmentDependencyJobState, bool) {
+func (s *Service) promoteLocalEnvironmentDependencyJobReady(jobID string, readyState string, sourceKind string, canonicalRoot string, pendingRecord localEnvironmentSelectedSourceRecordState) (localEnvironmentDependencyJobState, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	job, ok := s.localEnvironmentDependencyJobs[strings.TrimSpace(jobID)]
 	if !ok {
-		return localEnvironmentDependencyJobState{}, false
+		return localEnvironmentDependencyJobState{}, false, nil
 	}
 	if localEnvironmentDependencyJobTerminal(job.State) {
 		// Job was cancelled/failed between executor success and this section.
 		// Skip the record upsert entirely so no satisfied prerequisite is left
 		// behind for a terminal job.
-		return job, true
+		return job, true, nil
 	}
+	if err := validateLocalEnvironmentSelectedSourceRuntimePathsForPromotion(pendingRecord, s.runtimeDataRoot); err != nil {
+		return job, true, err
+	}
+	previousJob := job
+	previousSources := cloneLocalEnvironmentSelectedSourceRecordsForMutation(s.localEnvironmentSelectedSources)
 	record := s.mergeLocalEnvironmentSelectedSourceRecordLocked(pendingRecord)
 	job.State = strings.TrimSpace(readyState)
 	job.FailureDetail = ""
@@ -39,8 +44,12 @@ func (s *Service) promoteLocalEnvironmentDependencyJobReady(jobID string, readyS
 	job.EtaSeconds = 0
 	job.UpdatedAt = nowISO()
 	s.localEnvironmentDependencyJobs[job.JobID] = job
-	s.persistStateLocked()
-	return job, true
+	if err := s.persistStateLocked(); err != nil {
+		s.localEnvironmentSelectedSources = previousSources
+		s.localEnvironmentDependencyJobs[job.JobID] = previousJob
+		return previousJob, true, err
+	}
+	return job, true, nil
 }
 
 func validateLocalEnvironmentDependencyJobReadyEvidence(job localEnvironmentDependencyJobState, result localEnvironmentDependencyJobResult) error {
@@ -222,9 +231,7 @@ func localEnvironmentSourceManifestRef(job localEnvironmentDependencyJobState, r
 		strings.TrimSpace(job.DependencyID),
 		strings.TrimSpace(job.EnvironmentKey),
 		strings.TrimSpace(result.SourceKind),
-		strings.TrimSpace(result.CanonicalRoot),
 		strings.TrimSpace(result.Version),
-		strings.Join(normalizeStringSlice(result.VerifiedArtifacts), "|"),
 	}, "|"))
 }
 
@@ -239,7 +246,6 @@ func localEnvironmentVerificationEvidenceRef(job localEnvironmentDependencyJobSt
 		strings.TrimSpace(job.DependencyID),
 		strings.TrimSpace(job.EnvironmentKey),
 		strings.Join(normalizeStringSlice(result.CompatibilityEvidence), "|"),
-		strings.Join(normalizeStringSlice(result.VerifiedArtifacts), "|"),
 		strings.TrimSpace(result.AuditReasonCode),
 	}, "|"))
 }

@@ -245,11 +245,9 @@ func TestPublicChatFollowUpCancelsOnNewUserTurn(t *testing.T) {
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   fmt.Sprintf("trace-cancel-follow-up-%d", currentCall),
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: envelope},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						envelope),
 				},
 			}); err != nil {
 				return err
@@ -390,11 +388,9 @@ func TestPublicChatFollowUpRecoversAfterRestart(t *testing.T) {
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   fmt.Sprintf("trace-recovery-%d", currentCall),
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: envelope},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						envelope),
 				},
 			}); err != nil {
 				return err
@@ -527,11 +523,9 @@ func TestPublicChatFollowUpCancelsOnSessionReuseWithoutThreadReplay(t *testing.T
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   fmt.Sprintf("trace-session-reuse-%d", currentCall),
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: envelope},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						envelope),
 				},
 			}); err != nil {
 				return err
@@ -693,11 +687,9 @@ func TestPublicChatFollowUpIgnoresLegacySidebandAdmissionFailure(t *testing.T) {
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   fmt.Sprintf("trace-follow-up-cancel-%d", currentCall),
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: envelope},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						envelope),
 				},
 			}); err != nil {
 				return err
@@ -790,11 +782,9 @@ func TestPublicChatSessionSnapshotPersistsLastTurnAcrossRestart(t *testing.T) {
 				EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 				TraceId:   "trace-restart-snapshot",
 				Payload: &runtimev1.StreamScenarioEvent_Delta{
-					Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{
-							Text: &runtimev1.TextStreamDelta{Text: envelope},
-						},
-					},
+					Delta: runtimeAgentTextStreamDelta(
+
+						envelope),
 				},
 			}); err != nil {
 				return err

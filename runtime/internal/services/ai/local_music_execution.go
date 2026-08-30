@@ -58,7 +58,7 @@ func (s *Service) captureLocalMusicEffectiveInputs(ctx context.Context, head *ru
 	if !validSelectedMusicExecution(selected) {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 	}
-	if err := requireSelectedFeatures(intent.RequiredFeatures, selected.SupportedFeatures); err != nil {
+	if err := requireSelectedFeatures(intent.RequiredFeatures, selected.ConfiguredFeatures); err != nil {
 		return nil, err
 	}
 	driverValue, reason := s.capabilityDrivers.Resolve(capabilitydriver.MiniMaxMusic3CapabilityContract, capabilitydriver.IdentityFromProto(selected.DriverIdentity))

@@ -34,6 +34,11 @@ import {
   createNimiAppAIConfigClient,
   type NimiAppAIConfigClient,
 } from '../core/ai/capability-configuration';
+import {
+  createNimiRuntimeAIModel,
+  type NimiAiModel,
+  type NimiRuntimeAIModelOptions,
+} from '../core/ai';
 import { assertRouteOnlyLocalAIConfigIntents } from '../core/ai/capability-configuration-local-intent.js';
 import {
   parseNimiPortableAIProfile,
@@ -145,6 +150,15 @@ export type NimiDesktopAccountProductRuntimeClient = {
   ) => Promise<RuntimeMaterializeRealmSourceResult>;
 };
 
+export type NimiDesktopExternalAIHostModelOptions = Pick<
+  NimiRuntimeAIModelOptions,
+  'timeoutMs' | 'metadata' | 'reasoning'
+>;
+
+export type NimiDesktopExternalAIHostClient = {
+  createTextModel(options?: NimiDesktopExternalAIHostModelOptions): NimiAiModel;
+};
+
 /** Exact Agent methods exercised by active Desktop product consumers. */
 export type NimiDesktopRuntimeAgentPurposeClient =
   NimiDesktopAccountProductRuntimeClient['agents'];
@@ -152,6 +166,7 @@ export type NimiDesktopRuntimeAgentPurposeClient =
 export type NimiDesktopFirstPartyRuntimeClients = {
   readonly machineProduct: NimiDesktopMachineProductRuntimeClient;
   readonly accountProduct: NimiDesktopAccountProductRuntimeClient;
+  readonly externalAIHost: NimiDesktopExternalAIHostClient;
   readonly auth: NimiRuntimeAgentAuthClient;
   readonly agentPurpose: NimiDesktopRuntimeAgentPurposeClient;
 };
@@ -274,6 +289,22 @@ export function createNimiDesktopFirstPartyRuntimeClients(
         assertRouteOnlyLocalAIConfigIntents(request.config.capabilities, invalidProtectedAIConfigMutation);
       }
       return boundProtectedAI.overwriteAppAIConfig(request, options);
+    },
+  });
+  // @nimi-authority: rule.nimi.runtime.ai-provider.r125
+  const externalAIHost: NimiDesktopExternalAIHostClient = Object.freeze({
+    createTextModel(options = {}) {
+      return createNimiRuntimeAIModel({
+        ...options,
+        appId: input.appId,
+        getSubjectUserId: input.getSubjectUserId,
+        runtime: {
+          ai: {
+            executeScenario: protectedAI.executeScenario,
+            streamScenario: protectedAI.streamScenario,
+          },
+        },
+      });
     },
   });
   const machineProductRuntime = runtime.desktopMachineProduct;
@@ -476,6 +507,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       }),
       materializeRealmSource: runtime.materializeRealmSource.bind(runtime),
     }),
+    externalAIHost,
     auth: Object.freeze({}),
     agentPurpose,
   });

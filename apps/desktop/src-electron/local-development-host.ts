@@ -302,6 +302,7 @@ export class ElectronLocalDevelopmentHost {
     shell: string,
     requestedCdpPort?: number,
     desktopManaged = false,
+    existingRegistrationHandle?: string,
   ): Promise<RunStatus> {
     let plan: ElectronLocalDevelopmentPlan;
     try {
@@ -319,6 +320,10 @@ export class ElectronLocalDevelopmentHost {
     ));
     const existing = activeRuns.find((candidate) => sameLocalDevelopmentPlan(candidate.plan, plan));
     if (existing) {
+      if (existingRegistrationHandle !== undefined
+        && existing.registrationHandle !== existingRegistrationHandle) {
+        throw new Error('local-development-registration-unavailable');
+      }
       if (existing.requestedCdpPort !== requestedCdpPort) {
         throw new Error('local-development-cdp-configuration-conflict');
       }
@@ -341,6 +346,7 @@ export class ElectronLocalDevelopmentHost {
       cdpPort: requestedCdpPort === 0 ? undefined : requestedCdpPort,
       supervisorRunId: randomIdentifier(),
       desktopManaged,
+      ...(existingRegistrationHandle === undefined ? {} : { registrationHandle: existingRegistrationHandle }),
       stopped: false,
       stoppedCleanupComplete: false,
       tearingDown: false,
@@ -370,9 +376,13 @@ export class ElectronLocalDevelopmentHost {
     };
     this.runs.set(runId, run);
     if (!desktopManaged) this.touchLauncherLease(run);
-    // Registration can legitimately outlive the launcher's short loopback
-    // request timeout while Runtime is rebinding. Return the preparing run
-    // immediately and let the existing status polling carry that transition.
+    if (existingRegistrationHandle !== undefined) {
+      this.startSupervisor(run);
+      return run.status;
+    }
+    // Registration can outlive the launcher's short loopback request timeout.
+    // Keep the one in-flight operation attached to this preparing run; an
+    // ambiguous failure never retries without an owner-issued exact handle.
     void this.resolveRegistration(run).catch((error) => {
       if (run.stopped) return;
       const code = reason(error);
@@ -381,9 +391,8 @@ export class ElectronLocalDevelopmentHost {
         resolveLocalDevelopmentRegistrationFailureState(code),
         localDevelopmentFailureMessage(code),
         code,
-        true,
+        false,
       );
-      this.ensureHealthTimer(run);
     });
     return run.status;
   }
@@ -405,9 +414,8 @@ export class ElectronLocalDevelopmentHost {
         resolveLocalDevelopmentRegistrationFailureState(code),
         localDevelopmentFailureMessage(code),
         code,
-        true,
+        false,
       );
-      this.ensureHealthTimer(run);
       return;
     }
     if (!sameLocalDevelopmentProject(registration, run.plan)) {
@@ -515,6 +523,7 @@ export class ElectronLocalDevelopmentHost {
       registration.project.shell,
       undefined,
       true,
+      registrationHandle,
     );
     return projectRun(status);
   }
@@ -698,7 +707,13 @@ export class ElectronLocalDevelopmentHost {
   private async refreshRegistration(run: RunContext): Promise<void> {
     if (run.stopped || run.tearingDown || run.rebuilding) return;
     if (!run.registrationHandle) {
-      await this.resolveRegistration(run);
+      setRunState(
+        run,
+        'registration-unavailable',
+        'local-development-registration-unavailable',
+        'local-development-registration-unavailable',
+        false,
+      );
       return;
     }
     try {

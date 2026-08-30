@@ -2,6 +2,7 @@ package grpcserver
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"sync"
 	"time"
@@ -26,11 +27,18 @@ type shutdownRecord struct {
 }
 
 type activeRPCRegistry struct {
-	mu       sync.Mutex
-	now      func() time.Time
-	nextID   uint64
-	entries  map[uint64]*activeRPC
-	shutdown shutdownRecord
+	mu          sync.Mutex
+	now         func() time.Time
+	nextID      uint64
+	entries     map[uint64]*activeRPC
+	shutdown    shutdownRecord
+	rootHandoff rootHandoffRecord
+	changed     chan struct{}
+}
+
+type rootHandoffRecord struct {
+	closed    bool
+	committed bool
 }
 
 type ShutdownSummary struct {
@@ -52,13 +60,14 @@ func newActiveRPCRegistry(nowFn func() time.Time) *activeRPCRegistry {
 	return &activeRPCRegistry{
 		now:     nowFn,
 		entries: make(map[uint64]*activeRPC),
+		changed: make(chan struct{}),
 	}
 }
 
-func (r *activeRPCRegistry) TrackUnary(ctx context.Context, method string) (context.Context, func()) {
+func (r *activeRPCRegistry) TrackUnary(ctx context.Context, method string) (context.Context, func(), bool) {
 	ctx, signal := withShutdownSignal(ctx)
 	trackedCtx, cancel := context.WithCancel(ctx)
-	id := r.register(&activeRPC{
+	id, admitted := r.register(&activeRPC{
 		cancel: cancel,
 		signal: signal,
 		activeRPCSnapshot: activeRPCSnapshot{
@@ -72,14 +81,14 @@ func (r *activeRPCRegistry) TrackUnary(ctx context.Context, method string) (cont
 	})
 	return trackedCtx, func() {
 		r.unregister(id)
-	}
+	}, admitted
 }
 
-func (r *activeRPCRegistry) TrackStream(ctx context.Context, method string, info *grpc.StreamServerInfo) (context.Context, *rpcctx.ShutdownSignal, func(), func()) {
+func (r *activeRPCRegistry) TrackStream(ctx context.Context, method string, info *grpc.StreamServerInfo) (context.Context, *rpcctx.ShutdownSignal, func(), func(), bool) {
 	ctx, signal := withShutdownSignal(ctx)
 	trackedCtx, cancel := context.WithCancel(ctx)
 	category, disposition := classifyRPCMethod(method, true)
-	id := r.register(&activeRPC{
+	id, admitted := r.register(&activeRPC{
 		cancel: cancel,
 		signal: signal,
 		activeRPCSnapshot: activeRPCSnapshot{
@@ -97,7 +106,7 @@ func (r *activeRPCRegistry) TrackStream(ctx context.Context, method string, info
 			r.unregister(id)
 		}, func() {
 			r.touch(id)
-		}
+		}, admitted
 }
 
 func classifyUnaryCategory(method string) string {
@@ -110,9 +119,13 @@ func classifyUnaryDisposition(method string) rpcShutdownDisposition {
 	return disposition
 }
 
-func (r *activeRPCRegistry) register(entry *activeRPC) uint64 {
+func (r *activeRPCRegistry) register(entry *activeRPC) (uint64, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+	if r.rootHandoff.closed && !r.rootHandoffMethodAdmittedLocked(entry.Method) {
+		entry.cancel()
+		return 0, false
+	}
 	r.nextID++
 	entry.id = r.nextID
 	r.entries[entry.id] = entry
@@ -123,13 +136,111 @@ func (r *activeRPCRegistry) register(entry *activeRPC) uint64 {
 		r.shutdown.cancelledMethods[entry.Method]++
 		entry.cancel()
 	}
-	return entry.id
+	r.signalChangedLocked()
+	return entry.id, true
 }
 
 func (r *activeRPCRegistry) unregister(id uint64) {
+	if id == 0 {
+		return
+	}
 	r.mu.Lock()
 	delete(r.entries, id)
+	r.signalChangedLocked()
 	r.mu.Unlock()
+}
+
+func (r *activeRPCRegistry) signalChangedLocked() {
+	close(r.changed)
+	r.changed = make(chan struct{})
+}
+
+// CloseRootAdmission implements the Product Control root-handoff boundary.
+// It rejects new root-bound RPCs, cancels admitted root-bound work, and waits
+// for those handlers to leave before Product Control may commit a new root.
+func (r *activeRPCRegistry) CloseRootAdmission(ctx context.Context) error {
+	if r == nil {
+		return errors.New("active RPC registry is required")
+	}
+	r.mu.Lock()
+	if r.rootHandoff.closed {
+		r.mu.Unlock()
+		return errors.New("Runtime root handoff is already closed")
+	}
+	r.rootHandoff = rootHandoffRecord{closed: true}
+	for _, entry := range r.entries {
+		if r.rootHandoffMethodAdmittedLocked(entry.Method) {
+			continue
+		}
+		entry.cancel()
+	}
+	r.signalChangedLocked()
+	for {
+		pending := false
+		for _, entry := range r.entries {
+			if !r.rootHandoffMethodAdmittedLocked(entry.Method) {
+				pending = true
+				break
+			}
+		}
+		if !pending {
+			r.mu.Unlock()
+			return nil
+		}
+		changed := r.changed
+		r.mu.Unlock()
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-changed:
+		}
+		r.mu.Lock()
+	}
+}
+
+func (r *activeRPCRegistry) AbortRootHandoff() {
+	if r == nil {
+		return
+	}
+	r.mu.Lock()
+	if r.rootHandoff.closed && !r.rootHandoff.committed {
+		r.rootHandoff = rootHandoffRecord{}
+		r.signalChangedLocked()
+	}
+	r.mu.Unlock()
+}
+
+func (r *activeRPCRegistry) CommitRootHandoff() {
+	if r == nil {
+		return
+	}
+	r.mu.Lock()
+	if r.rootHandoff.closed {
+		r.rootHandoff.committed = true
+		r.signalChangedLocked()
+	}
+	r.mu.Unlock()
+}
+
+func rootHandoffControlPlaneMethod(method string) bool {
+	switch method {
+	case "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
+		"/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
+		"/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation",
+		"/nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot",
+		"/nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync",
+		"/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeStatus":
+		return true
+	default:
+		return false
+	}
+}
+
+func (r *activeRPCRegistry) rootHandoffMethodAdmittedLocked(method string) bool {
+	if method == "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart" {
+		return r.rootHandoff.committed
+	}
+	return rootHandoffControlPlaneMethod(method)
 }
 
 func (r *activeRPCRegistry) touch(id uint64) {

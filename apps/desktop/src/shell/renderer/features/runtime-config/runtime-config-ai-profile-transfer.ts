@@ -121,10 +121,10 @@ export function exportRuntimeConfigAIProfileFromLoadouts(input: {
     });
     capabilities[loadout.capabilityContract] = Object.freeze({
       route: 'local',
-      requiredFeatures: Object.freeze([...loadout.supportedFeatures]),
+      requiredFeatures: Object.freeze([...loadout.configuredFeatures]),
       implementation: Object.freeze({
         ...loadout.implementation,
-        supportedFeatures: Object.freeze([...loadout.supportedFeatures]),
+        supportedFeatures: Object.freeze([...loadout.implementationSupportedFeatures]),
       }),
       loadout: Object.freeze({
         recipeId: loadout.recipeId,
@@ -325,7 +325,6 @@ export async function executeRuntimeConfigAIProfileTransfer(input: {
         capabilityContract: capability.capabilityContract,
         recipeId: capability.recipeId,
         options: source.loadout.options,
-        supportedFeatures: source.implementation?.supportedFeatures ?? [],
         modelAxes: capability.axes.map((axis) => {
           const asset = resolved.get(axisKey(capability.capabilityContract, axis.slotId));
           return asset
@@ -431,7 +430,6 @@ export async function executeRuntimeConfigAIProfileTransfer(input: {
         capabilityContract: capability.capabilityContract,
         recipeId: capability.recipeId,
         options: source.loadout.options,
-        supportedFeatures: source.implementation?.supportedFeatures ?? [],
         modelAxes,
         displayName: `${input.plan.profile.title} · ${capability.recipe.title}`,
         provenance: { source_profile_id: input.plan.profile.profileId },
@@ -667,7 +665,7 @@ function sameImplementation(
     recipe.implementation.implementationId === profile.implementationId &&
     recipe.implementation.driverId === profile.driverId &&
     recipe.implementation.driverDialect === profile.driverDialect &&
-    sameFeatureSet(recipe.supportedFeatures, profile.supportedFeatures);
+    sameFeatureSet(recipe.implementationSupportedFeatures, profile.supportedFeatures);
 }
 
 function sameFeatureSet(left: readonly string[], right: readonly string[]): boolean {

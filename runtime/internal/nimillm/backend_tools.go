@@ -1,6 +1,8 @@
 package nimillm
 
 import (
+	"context"
+	"encoding/json"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -81,6 +83,10 @@ func (p textGenParams) hasTools() bool {
 	return len(p.tools) > 0
 }
 
+func (p textGenParams) requestsToolUse() bool {
+	return p.hasTools() || p.toolChoice != runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_UNSPECIFIED || strings.TrimSpace(p.toolChoiceName) != ""
+}
+
 func (p textGenParams) hasProviderTools() bool {
 	for _, tool := range p.tools {
 		if tool != nil && tool.GetKind() == runtimev1.ToolSpecKind_TOOL_SPEC_KIND_PROVIDER {
@@ -88,15 +94,6 @@ func (p textGenParams) hasProviderTools() bool {
 		}
 	}
 	return false
-}
-
-// TextScenarioUsesToolSurface reports whether the spec requests tools or a
-// non-text response format or raw chunks. The streaming text path simulates
-// unsupported surfaces over the sync path, which must fail closed when the
-// selected provider cannot preserve the requested semantics.
-func TextScenarioUsesToolSurface(spec *runtimev1.TextGenerateScenarioSpec) bool {
-	params := BuildTextGenParams(spec)
-	return params.hasTools() || params.wantsStructuredOutput() || params.includeRawChunks
 }
 
 // wantsStructuredOutput reports whether a non-text response format was requested.
@@ -193,52 +190,87 @@ func openAIResponseFormatPayload(responseFormat *runtimev1.ResponseFormat) map[s
 
 // parseOpenAIToolCalls extracts tool calls from an OpenAI Chat Completions
 // response message.
-func parseOpenAIToolCalls(respBody map[string]any) []*runtimev1.ToolCall {
+func parseOpenAIToolCalls(respBody map[string]any) ([]*runtimev1.ToolCall, error) {
 	choices, ok := respBody["choices"].([]any)
 	if !ok || len(choices) == 0 {
-		return nil
+		return nil, nil
 	}
 	first, ok := choices[0].(map[string]any)
 	if !ok {
-		return nil
+		return nil, nil
 	}
 	message, ok := first["message"].(map[string]any)
 	if !ok {
-		return nil
+		return nil, nil
 	}
 	rawCalls, ok := message["tool_calls"].([]any)
 	if !ok || len(rawCalls) == 0 {
-		return nil
+		return nil, nil
 	}
 	calls := make([]*runtimev1.ToolCall, 0, len(rawCalls))
+	seenIDs := make(map[string]struct{}, len(rawCalls))
 	for _, raw := range rawCalls {
 		callMap, ok := raw.(map[string]any)
 		if !ok {
-			continue
+			return nil, invalidCanonicalToolTurn("provider tool call is malformed")
 		}
-		function, _ := callMap["function"].(map[string]any)
+		function, ok := callMap["function"].(map[string]any)
+		if !ok {
+			return nil, invalidCanonicalToolTurn("provider tool call function is missing")
+		}
+		id := strings.TrimSpace(ValueAsString(callMap["id"]))
 		name := strings.TrimSpace(ValueAsString(function["name"]))
-		if name == "" {
-			continue
+		arguments := strings.TrimSpace(ValueAsString(function["arguments"]))
+		if id == "" || name == "" {
+			return nil, invalidCanonicalToolTurn("provider tool call id and name are required")
+		}
+		if _, duplicate := seenIDs[id]; duplicate {
+			return nil, invalidCanonicalToolTurn("provider tool call id is duplicated")
+		}
+		seenIDs[id] = struct{}{}
+		if arguments == "" {
+			arguments = "{}"
+		}
+		var argumentsObject map[string]any
+		if err := json.Unmarshal([]byte(arguments), &argumentsObject); err != nil || argumentsObject == nil {
+			return nil, invalidCanonicalToolTurn("provider tool call arguments_json must be one JSON object")
 		}
 		calls = append(calls, &runtimev1.ToolCall{
-			Id:            strings.TrimSpace(ValueAsString(callMap["id"])),
+			Id:            id,
 			Name:          name,
-			ArgumentsJson: ValueAsString(function["arguments"]),
+			ArgumentsJson: arguments,
 		})
 	}
+	return calls, nil
+}
+
+func validateReturnedToolCalls(calls []*runtimev1.ToolCall, specs []*runtimev1.ToolSpec) error {
 	if len(calls) == 0 {
 		return nil
 	}
-	return calls
+	declared := make(map[string]struct{}, len(specs))
+	for _, spec := range specs {
+		if spec != nil && spec.GetKind() != runtimev1.ToolSpecKind_TOOL_SPEC_KIND_PROVIDER {
+			if name := strings.TrimSpace(spec.GetName()); name != "" {
+				declared[name] = struct{}{}
+			}
+		}
+	}
+	for _, call := range calls {
+		if call == nil {
+			return invalidCanonicalToolTurn("provider tool call is missing")
+		}
+		if _, ok := declared[strings.TrimSpace(call.GetName())]; !ok {
+			return invalidCanonicalToolTurn("provider tool call names no declared ToolSpec")
+		}
+	}
+	return nil
 }
 
-// providerToolUnsupportedError is the typed fail-closed error for provider
-// paths that do not yet execute tools or structured output end-to-end.
-func providerToolUnsupportedError() error {
-	return grpcerr.WithReasonCodeOptions(codes.Unimplemented, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED, grpcerr.ReasonOptions{
-		ActionHint: "provider_defined_tools_require_provider_native_runtime_adapter",
-	})
+// textBehaviorUnsupportedError is the typed fail-closed result when no exact
+// private adapter owns the requested behavior mapping.
+func textBehaviorUnsupportedError() error {
+	return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 }
 
 func providerRawChunksUnsupportedError() error {
@@ -247,18 +279,40 @@ func providerRawChunksUnsupportedError() error {
 	})
 }
 
-// unsupportedToolSurface returns a typed fail-closed error when tools or
-// structured output are requested on a provider path that does not yet
-// execute them. It returns nil when the request carries neither.
-func unsupportedToolSurface(params textGenParams) error {
+// unsupportedTextBehaviorSurface admits Tool Use or Structured Output only
+// with one request-scoped exact adapter proof. Current stream serializers have
+// no registered ordered Tool/Structured mapping and therefore stay closed.
+func unsupportedTextBehaviorSurface(ctx context.Context, backend *Backend, modelID string, params textGenParams, input []*runtimev1.ChatMessage, stream bool) error {
 	if params.includeRawChunks {
 		return providerRawChunksUnsupportedError()
 	}
-	if params.hasProviderTools() {
-		return providerToolUnsupportedError()
+	turnToolUse, turnReasoning := textMessagesRequestBehavior(input)
+	toolUse := params.requestsToolUse() || turnToolUse
+	structured := params.wantsStructuredOutput()
+	if turnReasoning || params.hasProviderTools() {
+		return textBehaviorUnsupportedError()
 	}
-	if params.hasTools() || params.wantsStructuredOutput() {
-		return providerToolUnsupportedError()
+	if !toolUse && !structured {
+		return nil
+	}
+	admission := textBehaviorAdmissionFromContext(ctx)
+	if admission == nil || !textBehaviorAdmissionMatchesTarget(admission, backend, modelID) ||
+		(toolUse && !admission.ToolUse) || (structured && !admission.StructuredOutput) ||
+		(toolUse && structured && !admission.ToolStructuredCombination) ||
+		(stream && !admission.Stream) || (!stream && !admission.Sync && !admission.Async) {
+		return textBehaviorUnsupportedError()
+	}
+	if stream {
+		return textBehaviorUnsupportedError()
 	}
 	return nil
+}
+
+func textBehaviorAdmissionMatchesTarget(admission *TextBehaviorAdmission, backend *Backend, modelID string) bool {
+	if admission == nil || backend == nil || strings.TrimSpace(modelID) == "" || modelID != strings.TrimSpace(modelID) {
+		return false
+	}
+	provider := strings.TrimPrefix(strings.ToLower(strings.TrimSpace(backend.Name)), "cloud-")
+	provider = ResolveProviderAlias(provider)
+	return provider == admission.Provider && modelID == admission.ProviderModelID
 }

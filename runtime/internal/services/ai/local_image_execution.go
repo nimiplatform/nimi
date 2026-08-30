@@ -38,7 +38,6 @@ type localImageEffectiveInputs struct {
 	requirements           []*runtimev1.LocalCapabilityRequirement
 	exactBindings          []capabilitydriver.InvocationExactBinding
 	contentIDs             []string
-	supportedFeatures      []string
 	request                *runtimev1.ImageGenerateScenarioSpec
 	plan                   *capabilitydriver.ImageInvocationPlan
 	resolvedAssembly       *localResolvedAssembly
@@ -71,12 +70,30 @@ func (s *Service) captureLocalImageEffectiveInputs(
 	}
 	selected, err := s.resolveReferencedLocalExecution(ctx, intent)
 	if err != nil {
+		if s.logger != nil {
+			reason, _ := grpcerr.ExtractReasonCode(err)
+			metadata, _ := grpcerr.ExtractReasonMetadata(err)
+			s.logger.Warn("resolve local image execution failed",
+				"event", "runtime.ai.local_image_execution_resolution_failed",
+				"reason", reason.String(),
+				"metadata", metadata,
+			)
+		}
 		return nil, err
 	}
 	if !validSelectedImageExecution(selected) {
+		if s.logger != nil {
+			s.logger.Warn("resolved local image execution is not configured",
+				"event", "runtime.ai.local_image_execution_not_configured",
+				"has_selection", selected != nil,
+				"configured", selected != nil && selected.Configured,
+				"requirements", selectedImageRequirementCount(selected),
+				"bindings", selectedImageBindingCount(selected),
+			)
+		}
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 	}
-	if err := requireSelectedFeatures(intent.RequiredFeatures, selected.SupportedFeatures); err != nil {
+	if err := requireSelectedFeatures(intent.RequiredFeatures, selected.ConfiguredFeatures); err != nil {
 		return nil, err
 	}
 
@@ -84,7 +101,7 @@ func (s *Service) captureLocalImageEffectiveInputs(
 	if err != nil {
 		return nil, err
 	}
-	if err := requireSelectedImageRequestFeatures(request, selected.SupportedFeatures); err != nil {
+	if err := requireSelectedImageRequestFeatures(request, selected.ConfiguredFeatures); err != nil {
 		return nil, err
 	}
 	inputs, err := s.resolveLocalImageInputs(ctx, head, request)
@@ -113,19 +130,27 @@ func (s *Service) captureLocalImageEffectiveInputs(
 	// The custody reference is consumed by the service owner. Driver planning
 	// receives only the already-authorized immutable bytes.
 	capturedRequest.ReferenceImageArtifactId = ""
+	capturedRequest.MaskArtifactId = ""
 	plan, err := imageDriver.PlanImageInvocation(capabilitydriver.ImageInvocationInput{
-		RecipeID:          selected.RecipeID,
-		PortableConfig:    portable,
-		SupportedFeatures: append([]string(nil), selected.SupportedFeatures...),
-		ExactBindings:     append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...),
-		Request:           capturedRequest,
-		Inputs:            inputs,
+		RecipeID:               selected.RecipeID,
+		PortableConfig:         portable,
+		SupportedFeatures:      append([]string(nil), selected.ConfiguredFeatures...),
+		ExactBindings:          append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...),
+		ExactDependencySources: invocationExactDependencySources(selected.ExactDependencySources),
+		Request:                capturedRequest,
+		Inputs:                 inputs,
 	})
 	if err != nil {
 		return nil, localImageInvocationError(err)
 	}
 	if plan == nil || strings.TrimSpace(plan.ProcessKey()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_DRIVER_UNAVAILABLE)
+	}
+	if s.localImageHost == nil {
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_EXECUTION_LOAD_FAILED)
+	}
+	if err := s.localImageHost.AdmitImage(plan); err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CAPABILITY_MISMATCH, err, grpcerr.ReasonOptions{Message: "local image host/package recipe tuple is unsupported"})
 	}
 	resolvedAssembly, err := localResolvedAssemblyForImage(selected, capturedRequest, plan)
 	if err != nil {
@@ -152,11 +177,24 @@ func (s *Service) captureLocalImageEffectiveInputs(
 		requirements:           requirements,
 		exactBindings:          append([]capabilitydriver.InvocationExactBinding(nil), exactBindings...),
 		contentIDs:             append([]string(nil), contentIDs...),
-		supportedFeatures:      append([]string(nil), selected.SupportedFeatures...),
 		request:                capturedRequest,
 		plan:                   plan,
 		resolvedAssembly:       resolvedAssembly,
 	}, nil
+}
+
+func selectedImageRequirementCount(selected *localexecution.SelectedLocalExecution) int {
+	if selected == nil {
+		return 0
+	}
+	return len(selected.Requirements)
+}
+
+func selectedImageBindingCount(selected *localexecution.SelectedLocalExecution) int {
+	if selected == nil {
+		return 0
+	}
+	return len(selected.ExactBindings)
 }
 
 func (s *Service) localImageEffectiveInputsFromResolvedAssembly(assembly *localResolvedAssembly) (*localImageEffectiveInputs, error) {
@@ -180,6 +218,7 @@ func (s *Service) localImageEffectiveInputsFromResolvedAssembly(assembly *localR
 	case "text-to-image":
 	case "instruction-edit":
 		inputs = []capabilitydriver.ImageResolvedInput{{
+			Role:           capabilitydriver.ImageResolvedInputRoleSource,
 			SourceIdentity: assembly.LoadPlan.Image.Request.SourceIdentity,
 			ImageBytes:     append([]byte(nil), assembly.LoadPlan.Image.Request.SourceImage...),
 		}}
@@ -199,15 +238,22 @@ func (s *Service) localImageEffectiveInputsFromResolvedAssembly(assembly *localR
 		return nil, fmt.Errorf("captured local image Driver is unavailable")
 	}
 	plan, err := imageDriver.PlanImageInvocation(capabilitydriver.ImageInvocationInput{
-		RecipeID:          assembly.RecipeID,
-		PortableConfig:    portable,
-		SupportedFeatures: append([]string(nil), assembly.SupportedFeatures...),
-		ExactBindings:     resolvedAssemblyExactBindings(assembly),
-		Request:           request,
-		Inputs:            inputs,
+		RecipeID:               assembly.RecipeID,
+		PortableConfig:         portable,
+		SupportedFeatures:      append([]string(nil), assembly.ConfiguredFeatures...),
+		ExactBindings:          resolvedAssemblyExactBindings(assembly),
+		ExactDependencySources: resolvedAssemblyExactDependencySources(assembly),
+		Request:                request,
+		Inputs:                 inputs,
 	})
 	if err != nil {
 		return nil, err
+	}
+	if s.localImageHost == nil {
+		return nil, fmt.Errorf("local image execution host is unavailable")
+	}
+	if err := s.localImageHost.AdmitImage(plan); err != nil {
+		return nil, fmt.Errorf("local image host/package recipe admission: %w", err)
 	}
 	selected := selectedLocalExecutionFromResolvedAssembly(assembly)
 	selected.PortableConfig = portable
@@ -248,7 +294,7 @@ func requireSelectedImageRequestFeatures(spec *runtimev1.ImageGenerateScenarioSp
 	if len(spec.GetReferenceImages()) > 0 || strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" {
 		required = append(required, aicapabilities.FeatureInputImage)
 	}
-	if strings.TrimSpace(spec.GetMask()) != "" {
+	if strings.TrimSpace(spec.GetMask()) != "" || strings.TrimSpace(spec.GetMaskArtifactId()) != "" {
 		required = append(required, aicapabilities.FeatureInputMask)
 	}
 	if err := requireSelectedFeatures(required, supported); err != nil {
@@ -273,25 +319,38 @@ func (s *Service) resolveLocalImageInputs(
 		)
 	}
 	artifactID := strings.TrimSpace(spec.GetReferenceImageArtifactId())
-	if artifactID == "" {
-		return nil, nil
-	}
-	if artifactID != spec.GetReferenceImageArtifactId() {
+	maskArtifactID := strings.TrimSpace(spec.GetMaskArtifactId())
+	if artifactID != spec.GetReferenceImageArtifactId() || maskArtifactID != spec.GetMaskArtifactId() {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
 	}
-	input, err := s.resolveLocalImageArtifactInput(ctx, head, artifactID)
-	if err != nil {
-		return nil, err
+	inputs := make([]capabilitydriver.ImageResolvedInput, 0, 2)
+	if artifactID != "" {
+		input, err := s.resolveLocalImageArtifactInput(ctx, head, artifactID, capabilitydriver.ImageResolvedInputRoleSource)
+		if err != nil {
+			return nil, err
+		}
+		inputs = append(inputs, input)
 	}
-	return []capabilitydriver.ImageResolvedInput{input}, nil
+	if maskArtifactID != "" {
+		if artifactID == "" {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		input, err := s.resolveLocalImageArtifactInput(ctx, head, maskArtifactID, capabilitydriver.ImageResolvedInputRoleMask)
+		if err != nil {
+			return nil, err
+		}
+		inputs = append(inputs, input)
+	}
+	return inputs, nil
 }
 
 func (s *Service) resolveLocalImageArtifactInput(
 	ctx context.Context,
 	head *runtimev1.ScenarioRequestHead,
 	artifactID string,
+	role capabilitydriver.ImageResolvedInputRole,
 ) (capabilitydriver.ImageResolvedInput, error) {
-	if artifactID == "" {
+	if artifactID == "" || (role != capabilitydriver.ImageResolvedInputRoleSource && role != capabilitydriver.ImageResolvedInputRoleMask) {
 		return capabilitydriver.ImageResolvedInput{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
 	}
 	var source *runtimeartifact.ArtifactSource
@@ -332,7 +391,7 @@ func (s *Service) resolveLocalImageArtifactInput(
 		}
 		return capabilitydriver.ImageResolvedInput{}, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_ARTIFACT_NOT_FOUND)
 	}
-	return capabilitydriver.ImageResolvedInput{SourceIdentity: artifactID, ImageBytes: payload}, nil
+	return capabilitydriver.ImageResolvedInput{Role: role, SourceIdentity: artifactID, ImageBytes: payload}, nil
 }
 
 func normalizeLocalImageRequest(
@@ -480,7 +539,7 @@ func (s *Service) executeCapturedLocalImage(
 }
 
 func localImageArtifact(effective *localImageEffectiveInputs, produced localexecution.ImageArtifact) *runtimev1.ScenarioArtifact {
-	if effective == nil {
+	if effective == nil || produced.Seed < math.MinInt32 || produced.Seed > math.MaxInt32 {
 		return nil
 	}
 	metadata := map[string]any{
@@ -491,6 +550,7 @@ func localImageArtifact(effective *localImageEffectiveInputs, produced localexec
 		"size":            strings.TrimSpace(effective.request.GetSize()),
 	}
 	artifact := nimillm.BinaryArtifact(produced.MediaType, produced.Bytes, metadata)
+	artifact.Seed = proto.Int32(int32(produced.Seed))
 	nimillm.ApplyImageSpecMetadata(artifact, effective.request)
 	return artifact
 }

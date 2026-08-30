@@ -16,10 +16,18 @@ import { createDesktopProductionFirstRunPort } from '../src/shell/renderer/rende
 
 const TEST_FIRST_RUN = createUnavailableDesktopFirstRunPort('TEST_FIRST_RUN_UNADMITTED');
 
+type TestProductControlProjection = Omit<NimiProductControlRecordProjection, 'record'> & {
+  readonly record: null | (NonNullable<NimiProductControlRecordProjection['record']> & {
+    readonly dataRoot: null | (NonNullable<NonNullable<NimiProductControlRecordProjection['record']>['dataRoot']> & {
+      readonly rootActivationId: string;
+    });
+  });
+};
+
 function projectionFor(
   state: NimiProductControlState,
   error: string | null = null,
-): NimiProductControlRecordProjection {
+): TestProductControlProjection {
   const ready = state === 'ready_for_use';
   return {
     path: '/tmp/home/.nimi/nimi.json',
@@ -27,13 +35,14 @@ function projectionFor(
     state,
     error,
     record: {
-      schemaVersion: 1,
+      schemaVersion: 2,
       installId: 'install-1',
       productVersion: '0.1.0',
       state,
       dataRoot: state === 'config_missing' || state === 'data_root_missing' ? null : {
         path: '/tmp/nimi-data-explicit',
         status: ready ? 'ready' : 'selected',
+        rootActivationId: 'rootact_first_run',
         selectedAt: '2026-05-20T00:00:00.000Z',
         verifiedAt: '2026-05-20T00:00:00.000Z',
         selectedAtUnixMs: 1,

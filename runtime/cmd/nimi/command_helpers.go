@@ -163,8 +163,23 @@ func streamEventJSON(event *runtimev1.StreamScenarioEvent) map[string]any {
 	case runtimev1.StreamEventType_STREAM_EVENT_DELTA:
 		delta := event.GetDelta()
 		payloadDelta := map[string]any{}
-		if value, ok := delta.GetDelta().(*runtimev1.ScenarioStreamDelta_Text); ok {
-			payloadDelta["text"] = value.Text.GetText()
+		if item := delta.GetTextOutputItem(); item != nil {
+			payloadDelta["item_index"] = item.GetItemIndex()
+			payloadDelta["item_completed"] = item.GetItemCompleted()
+			switch value := item.GetDelta().(type) {
+			case *runtimev1.TextOutputItemDelta_Text:
+				payloadDelta["text"] = value.Text.GetText()
+			case *runtimev1.TextOutputItemDelta_ReasoningSummary:
+				payloadDelta["reasoning_summary"] = value.ReasoningSummary.GetText()
+			case *runtimev1.TextOutputItemDelta_ToolCall:
+				payloadDelta["tool_call"] = map[string]any{
+					"id": value.ToolCall.GetId(), "name": value.ToolCall.GetName(), "arguments_json": value.ToolCall.GetArgumentsJson(),
+				}
+			case *runtimev1.TextOutputItemDelta_ReasoningContinuity:
+				payloadDelta["reasoning_continuity"] = map[string]any{
+					"kind": value.ReasoningContinuity.GetKind(), "version": value.ReasoningContinuity.GetVersion(), "size_bytes": len(value.ReasoningContinuity.GetPayload()),
+				}
+			}
 		}
 		if value, ok := delta.GetDelta().(*runtimev1.ScenarioStreamDelta_Artifact); ok {
 			payloadDelta["mime_type"] = value.Artifact.GetMimeType()
@@ -182,17 +197,23 @@ func streamEventJSON(event *runtimev1.StreamScenarioEvent) map[string]any {
 			"finish_reason": event.GetCompleted().GetFinishReason().String(),
 		}
 	case runtimev1.StreamEventType_STREAM_EVENT_FAILED:
-		payload["failed"] = map[string]any{
+		failed := map[string]any{
 			"reason_code": event.GetFailed().GetReasonCode().String(),
 			"action_hint": event.GetFailed().GetActionHint(),
 		}
+		if interruption := event.GetFailed().GetInterruption(); interruption != nil {
+			failed["interruption"] = map[string]any{
+				"cause": interruption.GetCause().String(), "resubmit_disposition": interruption.GetResubmitDisposition().String(),
+			}
+		}
+		payload["failed"] = failed
 	}
 	return payload
 }
 
 func extractScenarioStreamTextDelta(delta *runtimev1.ScenarioStreamDelta) string {
-	if value, ok := delta.GetDelta().(*runtimev1.ScenarioStreamDelta_Text); ok {
-		return value.Text.GetText()
+	if item := delta.GetTextOutputItem(); item != nil {
+		return item.GetText().GetText()
 	}
 	return ""
 }

@@ -28,12 +28,10 @@ export interface NimiRuntimeLocalProviderHints {
     readonly backend: string;
     readonly preferredAdapter: string;
     readonly family?: string;
-    readonly imageDriver?: string;
-    readonly videoDriver?: string;
-    readonly device?: string;
-    readonly fallbackDriver?: string;
-    readonly fallbackReason?: string;
-    readonly policyGate?: string;
+		readonly imageDriver?: string;
+		readonly videoDriver?: string;
+		readonly device?: string;
+		readonly policyGate?: string;
   };
   readonly speech?: {
     readonly backend: string;
@@ -111,10 +109,9 @@ export interface NimiRuntimeLocalVerifiedAssetDescriptor {
   readonly totalSizeBytes?: number;
   readonly contentId: string;
   readonly tags: readonly string[];
-  readonly artifactRoles?: readonly string[];
-  readonly preferredEngine?: string;
-  readonly fallbackEngines?: readonly string[];
-  readonly engineConfig?: JsonObject;
+	readonly artifactRoles?: readonly string[];
+	readonly preferredEngine?: string;
+	readonly engineConfig?: JsonObject;
   readonly metadata?: JsonObject;
 }
 
@@ -124,6 +121,7 @@ export interface NimiRuntimeLocalCatalogItemDescriptor {
   readonly title: string;
   readonly description: string;
   readonly modelId: string;
+  readonly modelType?: string;
   readonly repo: string;
   readonly revision: string;
   readonly templateId?: string;
@@ -164,6 +162,7 @@ export interface NimiRuntimeLocalInstallPlanDescriptor {
   readonly source: 'verified' | 'huggingface' | string;
   readonly templateId?: string;
   readonly modelId: string;
+  readonly modelType?: string;
   readonly repo: string;
   readonly revision: string;
   readonly capabilities: readonly NimiRuntimeLocalCapabilityToken[];
@@ -324,6 +323,7 @@ export interface NimiRuntimeLocalResolveInstallPlanInput {
   readonly source?: 'verified' | 'huggingface' | string;
   readonly templateId?: string;
   readonly modelId?: string;
+  readonly modelType?: string;
   readonly repo?: string;
   readonly revision?: string;
   readonly capabilities?: readonly NimiRuntimeLocalCapabilityToken[];

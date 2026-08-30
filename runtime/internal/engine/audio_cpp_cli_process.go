@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 )
 
@@ -27,6 +28,7 @@ type audioCppProcessSpec struct {
 	cuda13Root        string
 	args              []string
 	stagingOutputPath string
+	modelBindings     []capabilitydriver.InvocationExactBinding
 }
 
 type audioCppProcessOutcome struct {
@@ -47,6 +49,12 @@ func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCpp
 	}
 	if info, err := os.Stat(filepath.Dir(output)); err != nil || !info.IsDir() {
 		return audioCppProcessOutcome{}, executionFailure(localexecution.FailureLoad, fmt.Errorf("audio.cpp staging directory is unavailable"))
+	}
+	if err := validateInvocationModelContentContext(ctx, spec.modelBindings); err != nil {
+		if ctx != nil && ctx.Err() != nil {
+			return audioCppProcessOutcome{}, audioCppContextFailure(ctx.Err())
+		}
+		return audioCppProcessOutcome{}, err
 	}
 
 	command := exec.Command(spec.executablePath, append([]string(nil), spec.args...)...)
@@ -94,11 +102,8 @@ func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCpp
 	_ = releaseSupervisorProcessLifecycle(lifecycle)
 	if waitErr != nil {
 		cleanupAudioCppStaging(output, tempOutput)
-		kind := localexecution.FailureProcessCrash
-		if stderr.OutOfMemory() {
-			kind = localexecution.FailureOutOfMemory
-		}
-		return audioCppProcessOutcome{}, executionFailure(kind, fmt.Errorf("audio.cpp CLI failed"))
+		kind, detail := classifyAudioCppProcessFailure(stdout, stderr)
+		return audioCppProcessOutcome{}, executionFailure(kind, fmt.Errorf("%s", detail))
 	}
 	outcome := audioCppProcessOutcome{computeMS: time.Since(started).Milliseconds()}
 	if info, statErr := os.Stat(output); statErr == nil && info.Mode().IsRegular() {
@@ -139,6 +144,38 @@ func audioCppContextFailure(err error) error {
 func audioCppOutOfMemory(stderr string) bool {
 	normalized := strings.ToLower(stderr)
 	return strings.Contains(normalized, "out of memory") || strings.Contains(normalized, "cuda_error_out_of_memory")
+}
+
+func classifyAudioCppProcessFailure(stdout, stderr *boundedAudioCppOutput) (localexecution.FailureKind, string) {
+	if (stdout != nil && stdout.OutOfMemory()) || (stderr != nil && stderr.OutOfMemory()) {
+		return localexecution.FailureOutOfMemory, "audio.cpp CLI ran out of memory"
+	}
+	diagnostic := ""
+	if stderr != nil {
+		diagnostic += " " + stderr.String()
+	}
+	if stdout != nil {
+		diagnostic += " " + stdout.String()
+	}
+	normalized := strings.ToLower(diagnostic)
+	for _, marker := range []string{
+		"could not load cuda", "failed to load cuda", "cuda driver version is insufficient",
+		"no cuda-capable device", "could not load dynamic library", "shared library",
+		"dll not found", "library not found", "dyld:",
+	} {
+		if strings.Contains(normalized, marker) {
+			return localexecution.FailureLoad, "audio.cpp CLI dependency initialization failed"
+		}
+	}
+	for _, marker := range []string{
+		"failed to load model", "could not load model", "invalid model", "invalid gguf",
+		"gguf_init_from_file: failed", "model file is invalid",
+	} {
+		if strings.Contains(normalized, marker) {
+			return localexecution.FailureLoad, "audio.cpp CLI model load failed"
+		}
+	}
+	return localexecution.FailureProcessCrash, "audio.cpp CLI process crashed"
 }
 
 type boundedAudioCppOutput struct {

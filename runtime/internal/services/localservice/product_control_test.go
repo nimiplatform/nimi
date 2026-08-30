@@ -1,6 +1,7 @@
 package localservice
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
@@ -116,6 +118,7 @@ func TestRuntimeProductControlSelectionSynchronizesModelsRootReaders(t *testing.
 	home := setProductControlHomeForTest(t)
 	service := newTestService(t)
 	service.SetProductControlDataRootConfigWriter(func(string) (bool, error) { return true, nil })
+	service.SetProductControlDataRootConfigValidator(func(string) error { return nil })
 	if _, err := service.EnsureProductControlRecordCreated(context.Background(), &runtimev1.EnsureProductControlRecordCreatedRequest{}); err != nil {
 		t.Fatal(err)
 	}
@@ -252,6 +255,774 @@ func TestRuntimeProductControlMissingReadyDataRootRequiresRepair(t *testing.T) {
 	}
 	if _, err := service.SelectProductControlDataRoot(context.Background(), &runtimev1.SelectProductControlDataRootRequest{DataRoot: filepath.Join(home, "forbidden-replacement")}); err == nil {
 		t.Fatal("ready data root replacement should fail closed")
+	}
+}
+
+type productControlRootHandoffForTest struct {
+	closed    int
+	aborted   int
+	committed int
+	closeErr  error
+}
+
+func (h *productControlRootHandoffForTest) CloseRootAdmission(context.Context) error {
+	h.closed++
+	return h.closeErr
+}
+
+func (h *productControlRootHandoffForTest) AbortRootHandoff()  { h.aborted++ }
+func (h *productControlRootHandoffForTest) CommitRootHandoff() { h.committed++ }
+
+type blockingProductControlEngineQuiesceForTest struct {
+	*mockEngineManager
+	started chan struct{}
+	release chan struct{}
+}
+
+func (m *blockingProductControlEngineQuiesceForTest) QuiesceDataRoot(ctx context.Context) error {
+	close(m.started)
+	select {
+	case <-m.release:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func TestRuntimeProductControlRootBoundWorkQuiesceRespectsContext(t *testing.T) {
+	service := newTestService(t)
+	manager := &blockingProductControlEngineQuiesceForTest{
+		mockEngineManager: &mockEngineManager{}, started: make(chan struct{}), release: make(chan struct{}),
+	}
+	service.SetEngineManager(manager)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	err := service.stopProductControlRootBoundWork(ctx)
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatalf("root-bound environment quiesce error = %v, want deadline exceeded", err)
+	}
+	select {
+	case <-manager.started:
+	default:
+		t.Fatal("environment owner quiesce was not attempted")
+	}
+	service.resumeProductControlRootBoundWork()
+}
+
+func readyProductControlForReplacementTest(t *testing.T, service *Service, root string) productControlRecordProjection {
+	t.Helper()
+	service.SetProductControlDataRootConfigWriter(func(string) (bool, error) { return true, nil })
+	service.SetProductControlDataRootConfigValidator(func(string) error { return nil })
+	response, err := service.SelectProductControlDataRoot(
+		context.Background(),
+		&runtimev1.SelectProductControlDataRootRequest{DataRoot: root},
+	)
+	selected := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	service.SetRuntimeAccountProjectionProvider(fakeRuntimeAccountProjectionProvider{
+		projection: &runtimev1.AccountProjection{AccountId: "acct-replacement"},
+		ok:         true,
+	})
+	response, err = service.AdmitProductControlReadyForUse(context.Background(), &runtimev1.AdmitProductControlReadyForUseRequest{})
+	ready := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if ready.State != productControlStateReadyForUse || ready.Record == nil {
+		t.Fatalf("ready projection = %+v (selected=%+v)", ready, selected)
+	}
+	return ready
+}
+
+func TestRuntimeProductControlInitializesLegacyRootActivationWithoutReadingRoot(t *testing.T) {
+	home := setProductControlHomeForTest(t)
+	service := newTestService(t)
+	root := filepath.Join(home, "legacy-activation-root")
+	ready := readyProductControlForReplacementTest(t, service, root)
+	path, err := service.productControlRecordPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := *ready.Record
+	dataRoot := *record.DataRoot
+	dataRoot.RootActivationID = ""
+	record.DataRoot = &dataRoot
+	record.SchemaVersion = productControlLegacySchemaVersion
+	if err := writeProductControlRecord(path, &record); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.RemoveAll(root); err != nil {
+		t.Fatal(err)
+	}
+
+	response, err := service.InitializeProductControlRootActivation(
+		context.Background(),
+		&runtimev1.InitializeProductControlRootActivationRequest{},
+	)
+	initialized := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if initialized.Record == nil || initialized.Record.SchemaVersion != productControlSchemaVersion || initialized.Record.DataRoot == nil || initialized.Record.DataRoot.RootActivationID == "" {
+		t.Fatalf("initialized legacy projection = %+v", initialized)
+	}
+	if initialized.Record.DataRoot.Path != root || initialized.Record.InstallID != ready.Record.InstallID || !initialized.Record.FirstRun.Completed {
+		t.Fatalf("legacy initialization changed canonical truth: %+v", initialized.Record)
+	}
+}
+
+func TestRuntimeProductControlReplacesReadyRootAndKeepsFormerRootDetached(t *testing.T) {
+	home := setProductControlHomeForTest(t)
+	service := newTestService(t)
+	current := filepath.Join(home, "ready-current-root")
+	ready := readyProductControlForReplacementTest(t, service, current)
+	formerPayload := filepath.Join(current, "accounts", "keep.txt")
+	if err := os.WriteFile(formerPayload, []byte("former-root-remains-user-owned"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	handoff := &productControlRootHandoffForTest{}
+	service.SetProductControlRootHandoff(handoff)
+	target := filepath.Join(home, "ready-target-root")
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	unknownTargetContent := filepath.Join(target, "third-party-owner-content.bin")
+	if err := os.WriteFile(unknownTargetContent, []byte("preserve"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	response, err := service.ReplaceProductControlDataRoot(
+		context.Background(),
+		&runtimev1.ReplaceProductControlDataRootRequest{TargetRoot: target},
+	)
+	replaced := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if replaced.State != productControlStateReadyForUse || replaced.Record == nil || replaced.Record.DataRoot == nil {
+		t.Fatalf("replacement projection = %+v", replaced)
+	}
+	if replaced.Activation == nil || !replaced.Activation.Activated || replaced.Activation.ReasonCode != productControlActivationReplacedReason {
+		t.Fatalf("replacement activation = %+v", replaced.Activation)
+	}
+	if replaced.Record.InstallID != ready.Record.InstallID || !replaced.Record.FirstRun.Completed || replaced.Record.FirstRun.CompletedAt == nil {
+		t.Fatalf("replacement reset Product Control completion: %+v", replaced.Record)
+	}
+	if replaced.Record.DataRoot.Path != target || replaced.Record.DataRoot.RootActivationID == "" || replaced.Record.DataRoot.RootActivationID == ready.Record.DataRoot.RootActivationID {
+		t.Fatalf("replacement data root = %+v", replaced.Record.DataRoot)
+	}
+	if handoff.closed != 1 || handoff.committed != 1 || handoff.aborted != 0 {
+		t.Fatalf("handoff disposition = %+v", handoff)
+	}
+	queriedResponse, queriedErr := service.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
+	queried := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, queriedResponse, queriedErr))
+	if queried.RootHandoff == nil || queried.RootHandoff.Disposition != "committed_restart_required" ||
+		queried.RootHandoff.RootActivationID != replaced.Record.DataRoot.RootActivationID ||
+		queried.Record == nil || queried.Record.DataRoot == nil || queried.Record.DataRoot.Path != target {
+		t.Fatalf("response-loss disposition query = %+v", queried)
+	}
+	if payload, err := os.ReadFile(formerPayload); err != nil || string(payload) != "former-root-remains-user-owned" {
+		t.Fatalf("former root changed after activation: payload=%q err=%v", payload, err)
+	}
+	if payload, err := os.ReadFile(unknownTargetContent); err != nil || string(payload) != "preserve" {
+		t.Fatalf("partial target content was changed: payload=%q err=%v", payload, err)
+	}
+
+	activationID := replaced.Record.DataRoot.RootActivationID
+	response, err = service.ReplaceProductControlDataRoot(
+		context.Background(),
+		&runtimev1.ReplaceProductControlDataRootRequest{TargetRoot: target},
+	)
+	unchanged := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if unchanged.Activation == nil || unchanged.Activation.Activated || unchanged.Activation.ReasonCode != productControlActivationUnchangedReason || unchanged.Record.DataRoot.RootActivationID != activationID {
+		t.Fatalf("same-root disposition = %+v", unchanged)
+	}
+	child := filepath.Join(target, "nested-target")
+	response, err = service.ReplaceProductControlDataRoot(
+		context.Background(),
+		&runtimev1.ReplaceProductControlDataRootRequest{TargetRoot: child},
+	)
+	overlap := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if overlap.Activation == nil || overlap.Activation.ReasonCode != productControlActivationOverlappingReason || overlap.Error == nil {
+		t.Fatalf("overlap disposition = %+v", overlap)
+	}
+	if _, err := os.Stat(child); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("overlap target mutated before rejection: %v", err)
+	}
+}
+
+func TestRuntimeProductControlPostCommitConfigFailureKeepsNewRoot(t *testing.T) {
+	home := setProductControlHomeForTest(t)
+	service := newTestService(t)
+	current := filepath.Join(home, "postcommit-current-root")
+	readyProductControlForReplacementTest(t, service, current)
+	handoff := &productControlRootHandoffForTest{}
+	service.SetProductControlRootHandoff(handoff)
+	service.SetProductControlDataRootConfigWriter(func(string) (bool, error) {
+		return false, errors.New("derived config unavailable")
+	})
+	target := filepath.Join(home, "postcommit-target-root")
+
+	response, err := service.ReplaceProductControlDataRoot(
+		context.Background(),
+		&runtimev1.ReplaceProductControlDataRootRequest{TargetRoot: target},
+	)
+	projection := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if projection.Activation == nil || !projection.Activation.Activated || projection.State != productControlStateRepairRequired || projection.Record == nil || projection.Record.DataRoot == nil || projection.Record.DataRoot.Path != target {
+		t.Fatalf("post-commit failure projection = %+v", projection)
+	}
+	if !projection.Record.FirstRun.Completed || projection.ConfigMutation == nil || projection.ConfigMutation.Disposition != "repair_required" {
+		t.Fatalf("post-commit failure lost completion or repair disposition: %+v", projection)
+	}
+	recordPath, err := service.productControlRecordPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	stored, err := readProductControlRecord(recordPath)
+	if err != nil || stored == nil || stored.DataRoot == nil || stored.DataRoot.Path != target {
+		t.Fatalf("post-commit failure rolled back activation: stored=%+v err=%v", stored, err)
+	}
+	queriedResponse, queriedErr := service.GetProductControlRecord(context.Background(), &runtimev1.GetProductControlRecordRequest{})
+	queried := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, queriedResponse, queriedErr))
+	if queried.RootHandoff == nil || queried.RootHandoff.Disposition != "committed_repair_required" ||
+		queried.RootHandoff.RootActivationID != stored.DataRoot.RootActivationID {
+		t.Fatalf("post-commit repair disposition query = %+v", queried)
+	}
+}
+
+func TestRuntimeProductControlConfigPreflightFailureLeavesCurrentActivationOpen(t *testing.T) {
+	home := setProductControlHomeForTest(t)
+	service := newTestService(t)
+	current := filepath.Join(home, "preflight-current-root")
+	ready := readyProductControlForReplacementTest(t, service, current)
+	handoff := &productControlRootHandoffForTest{}
+	service.SetProductControlRootHandoff(handoff)
+	service.SetProductControlDataRootConfigValidator(func(string) error { return errors.New("config document invalid") })
+	target := filepath.Join(home, "preflight-target-root")
+	if _, err := service.ReplaceProductControlDataRoot(context.Background(), &runtimev1.ReplaceProductControlDataRootRequest{TargetRoot: target}); err == nil || !strings.Contains(err.Error(), "config document invalid") {
+		t.Fatalf("config preflight error = %v", err)
+	}
+	if handoff.closed != 0 || handoff.committed != 0 || handoff.aborted != 0 {
+		t.Fatalf("config preflight crossed lifecycle boundary: %+v", handoff)
+	}
+	if _, err := os.Stat(target); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("config preflight mutated target: %v", err)
+	}
+	recordPath, _ := service.productControlRecordPath()
+	stored, err := readProductControlRecord(recordPath)
+	if err != nil || stored == nil || stored.DataRoot == nil || stored.DataRoot.RootActivationID != ready.Record.DataRoot.RootActivationID || stored.DataRoot.Path != current {
+		t.Fatalf("config preflight changed Product Control: stored=%+v err=%v", stored, err)
+	}
+}
+
+func productControlCheckSyncOwnerForTest(ownerID string, state string, reason string) ProductControlCheckSyncOwner {
+	return func(context.Context, ProductControlCheckSyncInput) ProductControlCheckSyncOwnerResult {
+		status := "available"
+		if state == "failed" {
+			status = "failed"
+		}
+		return ProductControlCheckSyncOwnerResult{
+			OwnerID: ownerID, State: state,
+			Resources: []ProductControlCheckSyncResourceResult{{Kind: "owner_state", Status: status, Reason: reason}},
+		}
+	}
+}
+
+func TestCloneProductControlCheckSyncRunPreservesEmptyArrayWireShape(t *testing.T) {
+	run := &productControlCheckSyncRun{
+		RunID: "sync-test", RootActivationID: "activation-test", Trigger: "manual", State: "running", StartedAt: time.Now().UTC().Format(time.RFC3339Nano),
+		Owners:    []ProductControlCheckSyncOwnerResult{{OwnerID: "owner", State: "pending", Resources: []ProductControlCheckSyncResourceResult{}}},
+		Unclaimed: []productControlCheckSyncUnclaimed{},
+	}
+	payload, err := json.Marshal(cloneProductControlCheckSyncRun(run))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(payload, []byte(`"resources":[]`)) || !bytes.Contains(payload, []byte(`"unclaimed":[]`)) || bytes.Contains(payload, []byte(`"resources":null`)) || bytes.Contains(payload, []byte(`"unclaimed":null`)) {
+		t.Fatalf("Check & Sync empty array wire shape = %s", payload)
+	}
+}
+
+func waitProductControlCheckSyncForTest(t *testing.T, service *Service) productControlCheckSyncProjection {
+	t.Helper()
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		projection, err := service.readProductControlCheckSyncProjection()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if projection.Run != nil && projection.Run.State != "running" {
+			return projection
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	t.Fatal("Check & Sync did not reach a terminal state")
+	return productControlCheckSyncProjection{}
+}
+
+func TestCheckSyncManagedAppStorageProjectionBecomesUnavailableAfterAccountGenerationChange(t *testing.T) {
+	home := setProductControlHomeForTest(t)
+	service := newTestService(t)
+	root := filepath.Join(home, "check-sync-account-generation-root")
+	readyProductControlForReplacementTest(t, service, root)
+	generation := uint64(1)
+	if err := service.SetProductControlCheckSyncRuntimeOwners(ProductControlCheckSyncRuntimeOwners{
+		RuntimeAgent:      productControlCheckSyncOwnerForTest("runtime_agent", "completed", "RUNTIME_AGENT_REOPENED"),
+		RegisteredApps:    productControlCheckSyncOwnerForTest("registered_apps", "completed", "REGISTERED_APPS_REOPENED"),
+		Cognition:         productControlCheckSyncOwnerForTest("cognition", "completed", "COGNITION_REOPENED"),
+		ManagedAppStorage: productControlCheckSyncOwnerForTest("managed_app_storage", "completed", "APP_STORAGE_REOPENED"),
+		AccountGeneration: func(context.Context) (uint64, bool) { return generation, true },
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.startProductControlCheckSync("manual", true); err != nil {
+		t.Fatal(err)
+	}
+	_ = waitProductControlCheckSyncForTest(t, service)
+	generation = 2
+	wire, err := service.GetProductControlCheckSync(context.Background(), &runtimev1.GetProductControlCheckSyncRequest{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var projection productControlCheckSyncProjection
+	if err := json.Unmarshal([]byte(wire.GetJson()), &projection); err != nil {
+		t.Fatal(err)
+	}
+	appStorageStale := false
+	runtimeAgentStale := false
+	for _, owner := range projection.Run.Owners {
+		if owner.OwnerID == "managed_app_storage" && len(owner.Resources) == 1 &&
+			owner.Resources[0].Status == "unavailable" && owner.Resources[0].Reason == "APP_STORAGE_ACCOUNT_CONTEXT_CHANGED" {
+			appStorageStale = true
+		}
+		if owner.OwnerID == "runtime_agent" && len(owner.Resources) == 1 &&
+			owner.Resources[0].Status == "unavailable" && owner.Resources[0].Reason == "RUNTIME_OWNER_ACCOUNT_CONTEXT_CHANGED" {
+			runtimeAgentStale = true
+		}
+	}
+	if !appStorageStale || !runtimeAgentStale {
+		t.Fatalf("stale account-scoped App storage result remained visible: %+v", projection.Run.Owners)
+	}
+}
+
+func TestRuntimeProductControlCheckSyncPersistsStartBeforeEnvironmentDetachment(t *testing.T) {
+	home := setProductControlHomeForTest(t)
+	service := newTestService(t)
+	root := filepath.Join(home, "check-sync-order-root")
+	readyProductControlForReplacementTest(t, service, root)
+	if err := service.SetProductControlCheckSyncRuntimeOwners(ProductControlCheckSyncRuntimeOwners{
+		RuntimeAgent:      productControlCheckSyncOwnerForTest("runtime_agent", "completed", "RUNTIME_AGENT_REOPENED"),
+		RegisteredApps:    productControlCheckSyncOwnerForTest("registered_apps", "completed", "REGISTERED_APPS_REOPENED"),
+		Cognition:         productControlCheckSyncOwnerForTest("cognition", "completed", "COGNITION_REOPENED"),
+		ManagedAppStorage: productControlCheckSyncOwnerForTest("managed_app_storage", "completed", "APP_STORAGE_REOPENED"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	formerRoot := filepath.Join(home, "former-check-sync-root")
+	formerCanonical := filepath.Join(formerRoot, "environments", "native", "engine-a")
+	currentCanonical := filepath.Join(root, "environments", "native", "engine-a")
+	if err := os.MkdirAll(currentCanonical, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		RecordID: "source-check-sync-order", DependencyFamily: localEnvironmentFamilyNativeLlama,
+		DependencyID: "llama.cpp.package", SourceKind: localEnvironmentSourceManaged,
+		EnvironmentKey: localEnvironmentKey(localEnvironmentFamilyNativeLlama, "llama.cpp.package", "old-host", "windows/amd64", formerRoot),
+		CanonicalRoot:  formerCanonical, VerifiedArtifacts: []string{filepath.Join(formerCanonical, "llama-server")},
+	})
+	service.mu.Lock()
+	service.localEnvironmentSelectedSources[localEnvironmentSelectedSourceRecordKey(record)] = record
+	if err := service.persistStateLocked(); err != nil {
+		service.mu.Unlock()
+		t.Fatal(err)
+	}
+	service.mu.Unlock()
+	stateBefore, err := os.ReadFile(service.stateStorePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	obligationPath, err := service.productControlCheckSyncObligationPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.RemoveAll(obligationPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(obligationPath, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.startProductControlCheckSync("manual", true); err == nil {
+		t.Fatal("Check & Sync start unexpectedly succeeded with an unwritable obligation target")
+	}
+	service.productControlCheckSyncMu.RLock()
+	failedRun := cloneProductControlCheckSyncRun(service.productControlCheckSyncRun)
+	service.productControlCheckSyncMu.RUnlock()
+	service.mu.RLock()
+	afterFailure := service.localEnvironmentSelectedSources[localEnvironmentSelectedSourceRecordKey(record)]
+	service.mu.RUnlock()
+	stateAfterFailure, err := os.ReadFile(service.stateStorePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if failedRun != nil || afterFailure.CanonicalRoot != formerCanonical || !bytes.Equal(stateBefore, stateAfterFailure) {
+		t.Fatalf("failed start left owner mutation without a run: run=%+v record=%+v", failedRun, afterFailure)
+	}
+
+	if err := os.RemoveAll(obligationPath); err != nil {
+		t.Fatal(err)
+	}
+	started, err := service.startProductControlCheckSync("manual", true)
+	if err != nil || started.Run == nil || started.Obligation == nil || started.Obligation.State != productControlCheckSyncRequired {
+		t.Fatalf("real Check & Sync start = %+v err=%v", started, err)
+	}
+	completed := waitProductControlCheckSyncForTest(t, service)
+	foundDetachment := false
+	for _, owner := range completed.Run.Owners {
+		if owner.OwnerID != "dependencies_environments" {
+			continue
+		}
+		for _, resource := range owner.Resources {
+			foundDetachment = foundDetachment || resource.Reference != nil && *resource.Reference == record.RecordID &&
+				resource.Change == nil && resource.Status == "unavailable" && resource.Reason == "ENVIRONMENT_OWNER_REOPEN_EVIDENCE_REQUIRED"
+		}
+	}
+	service.mu.RLock()
+	var rebasedRecord localEnvironmentSelectedSourceRecordState
+	for _, current := range service.localEnvironmentSelectedSources {
+		if current.RecordID == record.RecordID {
+			rebasedRecord = current
+		}
+	}
+	service.mu.RUnlock()
+	if !foundDetachment || rebasedRecord.CanonicalRoot != "" || rebasedRecord.RepairState != localEnvironmentRepairRequired {
+		t.Fatalf("foreign absolute owner locator was not detached: found=%t record=%+v run=%+v current-candidate=%q", foundDetachment, rebasedRecord, completed.Run, currentCanonical)
+	}
+}
+
+func TestRuntimeProductControlCheckSyncEnvironmentRebaseFailsClosedWhenPersistenceFails(t *testing.T) {
+	service := newTestService(t)
+	currentRoot := filepath.Join(t.TempDir(), "current-root")
+	formerRoot := filepath.Join(t.TempDir(), "former-root")
+	currentCanonical := filepath.Join(currentRoot, "environments", "native", "engine-a")
+	formerCanonical := filepath.Join(formerRoot, "environments", "native", "engine-a")
+	if err := os.MkdirAll(currentCanonical, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+		RecordID: "source-check-sync-persist-failure", DependencyFamily: localEnvironmentFamilyNativeLlama,
+		DependencyID: "llama.cpp.package", SourceKind: localEnvironmentSourceManaged,
+		EnvironmentKey: localEnvironmentKey(localEnvironmentFamilyNativeLlama, "llama.cpp.package", "old-host", "windows/amd64", formerRoot),
+		CanonicalRoot:  formerCanonical, VerifiedArtifacts: []string{filepath.Join(formerCanonical, "llama-server")},
+	})
+	service.mu.Lock()
+	service.localEnvironmentSelectedSources[localEnvironmentSelectedSourceRecordKey(record)] = record
+	service.mu.Unlock()
+	badStateTarget := filepath.Join(t.TempDir(), "state-target-is-directory")
+	if err := os.MkdirAll(badStateTarget, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	service.stateStorePath = badStateTarget
+
+	result := service.reconcileProductControlCheckSyncEnvironments(context.Background(), ProductControlCheckSyncInput{DataRoot: currentRoot})
+	if result.State != "failed" || len(result.Resources) != 1 || result.Resources[0].Reason != "ENVIRONMENT_STATE_PERSIST_FAILED" {
+		t.Fatalf("persistence failure result = %+v", result)
+	}
+	service.mu.RLock()
+	preserved := service.localEnvironmentSelectedSources[localEnvironmentSelectedSourceRecordKey(record)]
+	service.mu.RUnlock()
+	if preserved.CanonicalRoot != formerCanonical || preserved.EnvironmentKey != record.EnvironmentKey {
+		t.Fatalf("persistence failure committed in-memory rebase: %+v", preserved)
+	}
+}
+
+func TestRuntimeProductControlCheckSyncEnvironmentKeyCollisionPreservesBothIntents(t *testing.T) {
+	service := newTestService(t)
+	currentRoot := t.TempDir()
+	platform := "windows/amd64"
+	makeRecord := func(id, host, formerRoot, currentName string) localEnvironmentSelectedSourceRecordState {
+		root := filepath.Join(currentRoot, "environments", "native", currentName)
+		artifact := filepath.Join(root, "llama-server")
+		if err := os.MkdirAll(root, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(artifact, []byte(id), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
+			RecordID: id, DependencyFamily: localEnvironmentFamilyNativeLlama, DependencyID: "llama.cpp.package",
+			EnvironmentKey: strings.Join([]string{localEnvironmentFamilyNativeLlama, "llama.cpp.package", host, platform, formerRoot}, "|"),
+			Version:        "1.0.0", CanonicalRoot: root, VerifiedArtifacts: []string{artifact},
+		})
+		record.LastVerifiedAt = nowISO()
+		return record
+	}
+	one := makeRecord("source-collision-one", "host-one", `C:\former-one`, "one")
+	two := makeRecord("source-collision-two", "host-two", `D:\former-two`, "two")
+	service.mu.Lock()
+	service.localEnvironmentSelectedSources[localEnvironmentSelectedSourceRecordKey(one)] = one
+	service.localEnvironmentSelectedSources[localEnvironmentSelectedSourceRecordKey(two)] = two
+	service.mu.Unlock()
+
+	result := service.reconcileProductControlCheckSyncEnvironments(context.Background(), ProductControlCheckSyncInput{DataRoot: currentRoot})
+	conflicts := 0
+	for _, resource := range result.Resources {
+		if resource.Reason == "ENVIRONMENT_KEY_REWRITE_CONFLICT" && resource.Status == "conflict" {
+			conflicts++
+		}
+	}
+	service.mu.RLock()
+	preserved := make([]localEnvironmentSelectedSourceRecordState, 0, len(service.localEnvironmentSelectedSources))
+	for _, record := range service.localEnvironmentSelectedSources {
+		preserved = append(preserved, record)
+	}
+	service.mu.RUnlock()
+	if conflicts != 2 || len(preserved) != 2 {
+		t.Fatalf("portable EnvironmentKey collision = conflicts:%d records:%+v result:%+v", conflicts, preserved, result)
+	}
+	seen := map[string]bool{}
+	for _, record := range preserved {
+		seen[record.EnvironmentKey] = true
+		if record.RepairState != localEnvironmentRepairRequired {
+			t.Fatalf("colliding intent was not failed closed: %+v", record)
+		}
+	}
+	if !seen[one.EnvironmentKey] || !seen[two.EnvironmentKey] {
+		t.Fatalf("colliding EnvironmentKey intents were overwritten: %+v", preserved)
+	}
+}
+
+func TestRuntimeProductControlCheckSyncCanceledOwnersDoNotCommitPendingRebases(t *testing.T) {
+	service := newTestService(t)
+	service.mu.Lock()
+	service.modelAssetDirectories["asset-cancel"] = filepath.Join("former", "models", "resolved", "asset-cancel")
+	service.modelAssetPendingDirectoryRebases["asset-cancel"] = filepath.Join("current", "models", "resolved", "asset-cancel")
+	record := localEnvironmentSelectedSourceRecordState{
+		RecordID: "source-cancel", DependencyFamily: localEnvironmentFamilyNativeLlama,
+		DependencyID: "llama.cpp.package", EnvironmentKey: "old-key", CanonicalRoot: filepath.Join("former", "environments", "engine"),
+	}
+	service.localEnvironmentSelectedSources[localEnvironmentSelectedSourceRecordKey(record)] = record
+	service.mu.Unlock()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	modelResult := service.reconcileProductControlCheckSyncModelAssets(ctx, ProductControlCheckSyncInput{DataRoot: t.TempDir()})
+	environmentResult := service.reconcileProductControlCheckSyncEnvironments(ctx, ProductControlCheckSyncInput{DataRoot: t.TempDir()})
+	if modelResult.State != "failed" || environmentResult.State != "failed" {
+		t.Fatalf("canceled owner results = model:%+v environment:%+v", modelResult, environmentResult)
+	}
+	service.mu.RLock()
+	defer service.mu.RUnlock()
+	if service.modelAssetDirectories["asset-cancel"] != filepath.Join("former", "models", "resolved", "asset-cancel") ||
+		service.modelAssetPendingDirectoryRebases["asset-cancel"] == "" {
+		t.Fatalf("canceled model owner committed pending rebase: directories=%v pending=%v", service.modelAssetDirectories, service.modelAssetPendingDirectoryRebases)
+	}
+	preserved := service.localEnvironmentSelectedSources[localEnvironmentSelectedSourceRecordKey(record)]
+	if preserved.CanonicalRoot != record.CanonicalRoot || preserved.EnvironmentKey != record.EnvironmentKey {
+		t.Fatalf("canceled environment owner committed rebase: %+v", preserved)
+	}
+}
+
+func TestRuntimeProductControlCheckSyncAdoptsManifestIdentityAndCompletesWithOwnerIssue(t *testing.T) {
+	home := setProductControlHomeForTest(t)
+	service := newTestService(t)
+	root := filepath.Join(home, "check-sync-root")
+	readyProductControlForReplacementTest(t, service, root)
+	resolved := filepath.Join(root, "models", "resolved", "copied-model")
+	if err := os.MkdirAll(resolved, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(resolved, "model.gguf"), validTestGGUF(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	asset, _, err := service.adoptResolvedModelAssetDirectory(context.Background(), resolved, "copied model")
+	if err != nil {
+		t.Fatal(err)
+	}
+	service.modelAssetMutationMu.Lock()
+	service.mu.Lock()
+	service.modelAssets = make(map[string]*runtimev1.ModelAssetRecord)
+	service.modelAssetDirectories = make(map[string]string)
+	if err := service.persistModelAssetStoreLocked(); err != nil {
+		service.mu.Unlock()
+		service.modelAssetMutationMu.Unlock()
+		t.Fatal(err)
+	}
+	service.mu.Unlock()
+	service.modelAssetMutationMu.Unlock()
+	if err := os.WriteFile(filepath.Join(root, "third-party-note.txt"), []byte("preserve"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.SetProductControlCheckSyncRuntimeOwners(ProductControlCheckSyncRuntimeOwners{
+		RuntimeAgent:      productControlCheckSyncOwnerForTest("runtime_agent", "completed", "RUNTIME_AGENT_REOPENED"),
+		RegisteredApps:    productControlCheckSyncOwnerForTest("registered_apps", "completed", "REGISTERED_APPS_REOPENED"),
+		Cognition:         productControlCheckSyncOwnerForTest("cognition", "failed", "COGNITION_UNAVAILABLE"),
+		ManagedAppStorage: productControlCheckSyncOwnerForTest("managed_app_storage", "completed", "APP_STORAGE_REOPENED"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.StartProductControlCheckSync(context.Background(), &runtimev1.StartProductControlCheckSyncRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	projection := waitProductControlCheckSyncForTest(t, service)
+	if projection.Run == nil || projection.Run.State != "completed" || projection.Obligation == nil || projection.Obligation.State != productControlCheckSyncCompleted {
+		t.Fatalf("terminal Check & Sync projection = %+v", projection)
+	}
+	service.mu.RLock()
+	recovered := cloneModelAsset(service.modelAssets[asset.GetModelAssetId()])
+	service.mu.RUnlock()
+	if recovered == nil || recovered.GetContentId() != asset.GetContentId() {
+		t.Fatalf("manifest identity was not preserved: recovered=%+v original=%+v", recovered, asset)
+	}
+	foundUnknown := false
+	foundOwnerFailure := false
+	foundAdoption := false
+	for _, item := range projection.Run.Unclaimed {
+		foundUnknown = foundUnknown || item.Locator == "third-party-note.txt" && item.Status == "unknown"
+	}
+	for _, owner := range projection.Run.Owners {
+		foundOwnerFailure = foundOwnerFailure || owner.OwnerID == "cognition" && owner.State == "failed"
+		for _, resource := range owner.Resources {
+			foundAdoption = foundAdoption || resource.Reference != nil && *resource.Reference == asset.GetModelAssetId() && resource.Change != nil && *resource.Change == "adopted"
+		}
+	}
+	if !foundUnknown || !foundOwnerFailure || !foundAdoption {
+		t.Fatalf("Check & Sync lost independent unknown/failure outcomes: %+v", projection.Run)
+	}
+	if _, err := service.StartProductControlCheckSync(context.Background(), &runtimev1.StartProductControlCheckSyncRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	second := waitProductControlCheckSyncForTest(t, service)
+	if second.Run == nil {
+		t.Fatal("repeated Check & Sync returned no run")
+	}
+	foundReuse := false
+	for _, owner := range second.Run.Owners {
+		for _, resource := range owner.Resources {
+			foundReuse = foundReuse || resource.Reference != nil && *resource.Reference == asset.GetModelAssetId() && resource.Status == "available" && resource.Change == nil && resource.Reason == "MODEL_MANIFEST_REUSED"
+		}
+	}
+	if second.Run == nil || second.Run.RunID == projection.Run.RunID || !foundReuse {
+		t.Fatalf("repeated Check & Sync was not idempotent: first=%+v second=%+v", projection.Run, second.Run)
+	}
+}
+
+func TestRuntimeProductControlCheckSyncObligationRecoversInterruptedRunButSkipsCompletedRestart(t *testing.T) {
+	home := setProductControlHomeForTest(t)
+	service := newTestService(t)
+	root := filepath.Join(home, "check-sync-recovery-root")
+	ready := readyProductControlForReplacementTest(t, service, root)
+	if err := service.SetProductControlCheckSyncRuntimeOwners(ProductControlCheckSyncRuntimeOwners{
+		RuntimeAgent:      productControlCheckSyncOwnerForTest("runtime_agent", "completed", "RUNTIME_AGENT_REOPENED"),
+		RegisteredApps:    productControlCheckSyncOwnerForTest("registered_apps", "completed", "REGISTERED_APPS_REOPENED"),
+		Cognition:         productControlCheckSyncOwnerForTest("cognition", "completed", "COGNITION_REOPENED"),
+		ManagedAppStorage: productControlCheckSyncOwnerForTest("managed_app_storage", "completed", "APP_STORAGE_REOPENED"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.StartProductControlCheckSync(context.Background(), &runtimev1.StartProductControlCheckSyncRequest{}); err != nil {
+		t.Fatal(err)
+	}
+	completed := waitProductControlCheckSyncForTest(t, service)
+	if completed.Run == nil || completed.Obligation == nil || completed.Obligation.State != productControlCheckSyncCompleted {
+		runState := "<nil>"
+		if completed.Run != nil {
+			runState = completed.Run.State
+		}
+		t.Fatalf("initial completed obligation run_state=%q run=%+v obligation=%+v error=%v", runState, completed.Run, completed.Obligation, completed.Error)
+	}
+	service.productControlCheckSyncMu.Lock()
+	service.productControlCheckSyncRun = nil
+	service.productControlCheckSyncMu.Unlock()
+	if err := service.RecoverProductControlCheckSync(); err != nil {
+		t.Fatal(err)
+	}
+	projection, err := service.readProductControlCheckSyncProjection()
+	if err != nil || projection.Run != nil {
+		t.Fatalf("ordinary completed restart created a run: %+v err=%v", projection, err)
+	}
+	activationID := ready.Record.DataRoot.RootActivationID
+	if err := service.writeProductControlCheckSyncObligation(&productControlCheckSyncObligation{RootActivationID: activationID, State: productControlCheckSyncRequired}); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.RecoverProductControlCheckSync(); err != nil {
+		t.Fatal(err)
+	}
+	recovered := waitProductControlCheckSyncForTest(t, service)
+	if recovered.Run == nil || recovered.Run.Trigger != "interrupted_recovery" || recovered.Run.RunID == completed.Run.RunID || recovered.Obligation == nil || recovered.Obligation.State != productControlCheckSyncCompleted {
+		t.Fatalf("interrupted Check & Sync recovery = %+v", recovered)
+	}
+}
+
+func TestRuntimeProductControlCheckSyncAutomaticRecoveryDoesNotRequireEngineManager(t *testing.T) {
+	home := setProductControlHomeForTest(t)
+	service := newTestService(t)
+	root := filepath.Join(home, "check-sync-no-engine-manager")
+	readyProductControlForReplacementTest(t, service, root)
+	if err := service.SetProductControlCheckSyncRuntimeOwners(ProductControlCheckSyncRuntimeOwners{
+		RuntimeAgent:      productControlCheckSyncOwnerForTest("runtime_agent", "completed", "RUNTIME_AGENT_REOPENED"),
+		RegisteredApps:    productControlCheckSyncOwnerForTest("registered_apps", "completed", "REGISTERED_APPS_REOPENED"),
+		Cognition:         productControlCheckSyncOwnerForTest("cognition", "completed", "COGNITION_REOPENED"),
+		ManagedAppStorage: productControlCheckSyncOwnerForTest("managed_app_storage", "completed", "APP_STORAGE_REOPENED"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.RecoverProductControlCheckSync(); err != nil {
+		t.Fatalf("automatic recovery without engine manager: %v", err)
+	}
+	projection := waitProductControlCheckSyncForTest(t, service)
+	if projection.Run == nil || projection.Run.State != "completed" || projection.Obligation == nil || projection.Obligation.State != productControlCheckSyncCompleted {
+		t.Fatalf("automatic recovery projection = %+v", projection)
+	}
+	var environments *ProductControlCheckSyncOwnerResult
+	for index := range projection.Run.Owners {
+		if projection.Run.Owners[index].OwnerID == "dependencies_environments" {
+			environments = &projection.Run.Owners[index]
+			break
+		}
+	}
+	if environments == nil || environments.State != "completed" {
+		t.Fatalf("environment owner result = %+v", environments)
+	}
+	foundUnavailable := false
+	for _, resource := range environments.Resources {
+		if resource.Reason == "ENVIRONMENT_MANAGER_UNAVAILABLE" && resource.Status == "unavailable" {
+			foundUnavailable = true
+			break
+		}
+	}
+	if !foundUnavailable {
+		t.Fatalf("missing manager-unavailable resource = %+v", environments.Resources)
+	}
+}
+
+func TestRuntimeProductControlReplacementSupersedesOnlyAfterCommit(t *testing.T) {
+	home := setProductControlHomeForTest(t)
+	service := newTestService(t)
+	current := filepath.Join(home, "sync-supersede-current")
+	ready := readyProductControlForReplacementTest(t, service, current)
+	started := make(chan struct{})
+	blockingOwner := func(ctx context.Context, _ ProductControlCheckSyncInput) ProductControlCheckSyncOwnerResult {
+		close(started)
+		<-ctx.Done()
+		return failedProductControlCheckSyncOwner("runtime_agent", "RUN_INTERRUPTED")
+	}
+	if err := service.SetProductControlCheckSyncRuntimeOwners(ProductControlCheckSyncRuntimeOwners{
+		RuntimeAgent:      blockingOwner,
+		RegisteredApps:    productControlCheckSyncOwnerForTest("registered_apps", "completed", "REGISTERED_APPS_REOPENED"),
+		Cognition:         productControlCheckSyncOwnerForTest("cognition", "completed", "COGNITION_REOPENED"),
+		ManagedAppStorage: productControlCheckSyncOwnerForTest("managed_app_storage", "completed", "APP_STORAGE_REOPENED"),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	startedProjection, err := service.startProductControlCheckSync("manual", true)
+	if err != nil || startedProjection.Run == nil {
+		t.Fatalf("start current run = %+v err=%v", startedProjection, err)
+	}
+	<-started
+	handoff := &productControlRootHandoffForTest{}
+	service.SetProductControlRootHandoff(handoff)
+	target := filepath.Join(home, "sync-supersede-target")
+	response, err := service.ReplaceProductControlDataRoot(context.Background(), &runtimev1.ReplaceProductControlDataRootRequest{TargetRoot: target})
+	replaced := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if replaced.Activation == nil || !replaced.Activation.Activated || replaced.Record.DataRoot.RootActivationID == ready.Record.DataRoot.RootActivationID {
+		t.Fatalf("replacement activation = %+v", replaced)
+	}
+	service.productControlCheckSyncMu.RLock()
+	currentRun := cloneProductControlCheckSyncRun(service.productControlCheckSyncRun)
+	service.productControlCheckSyncMu.RUnlock()
+	if currentRun == nil || currentRun.RunID != startedProjection.Run.RunID || currentRun.State != "superseded" {
+		t.Fatalf("prior Check & Sync run was not superseded after commit: %+v", currentRun)
 	}
 }
 

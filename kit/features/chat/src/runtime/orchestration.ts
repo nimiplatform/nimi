@@ -146,6 +146,9 @@ export function createSimpleAiConversationProvider(
         const conversationEvent = toConversationTurnEvent(event, input);
         if (conversationEvent) {
           yield conversationEvent;
+          if (conversationEvent.type === 'turn-failed') {
+            return;
+          }
         }
       }
     },
@@ -198,9 +201,12 @@ function toConversationTurnEvent(
         turnId: input.turnId,
         textDelta: event.textDelta,
       };
+    case 'tool-call':
+      return unsupportedSimpleAITextBehavior(input.turnId, 'tool-call');
+    case 'reasoning-continuity':
+      return unsupportedSimpleAITextBehavior(input.turnId, 'reasoning-continuity');
     case 'structured-output-parsed':
     case 'structured-output-repair-required':
-    case 'tool-call':
     case 'warning':
     case 'artifact':
     case 'trace':
@@ -239,6 +245,21 @@ function toConversationTurnEvent(
       };
   }
   return null;
+}
+
+function unsupportedSimpleAITextBehavior(
+  turnId: string,
+  behavior: 'tool-call' | 'reasoning-continuity',
+): ConversationTurnEvent {
+  return {
+    type: 'turn-failed',
+    turnId,
+    error: {
+      code: 'AI_TEXT_BEHAVIOR_UNSUPPORTED',
+      message: `simple-ai conversation does not own ${behavior} workflow state`,
+      retriable: false,
+    },
+  };
 }
 
 function toConversationRuntimeUsage(
@@ -402,14 +423,10 @@ function toTextPart(text: string): NimiMessagePart {
 function toNimiRuntimeReasoning(
   reasoning: ConversationRuntimeTextRequest['reasoning'],
 ): NimiRuntimeAIReasoningOptions | undefined {
-  if (!reasoning) {
-    return undefined;
-  }
-  return {
-    mode: reasoning.mode === 'on' ? 'on' : reasoning.mode === 'off' ? 'off' : undefined,
-    traceMode: reasoning.traceMode,
-    budgetTokens: reasoning.budgetTokens,
-  };
+	if (!reasoning) {
+		return undefined;
+	}
+	return reasoning;
 }
 
 function toNimiJsonObject(value: Record<string, string> | undefined): NimiJsonObject | undefined {

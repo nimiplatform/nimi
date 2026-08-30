@@ -77,7 +77,7 @@ func prepareFailedScenarioJobProjection(job *runtimev1.ScenarioJob) error {
 		return fmt.Errorf("ScenarioJob is required")
 	}
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
-		return nil
+		return validateFailedScenarioJobProjection(job)
 	}
 	detail := strings.TrimSpace(job.GetReasonDetail())
 	if detail == "" {
@@ -93,6 +93,16 @@ func prepareFailedScenarioJobProjection(job *runtimev1.ScenarioJob) error {
 	return validateFailedScenarioJobProjection(job)
 }
 
+// @nimi-authority: rule.nimi.runtime.service-operations.r059
+// @nimi-authority: rule.nimi.runtime.service-operations.r072
+// @nimi-authority: rule.nimi.runtime.ai-provider.r122
+func runtimeRestartExecutionInterruption() *runtimev1.ExecutionInterruption {
+	return &runtimev1.ExecutionInterruption{
+		Cause:               runtimev1.ExecutionInterruptionCause_EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART,
+		ResubmitDisposition: runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT,
+	}
+}
+
 func defaultScenarioJobFailureMetadata(reasonCode runtimev1.ReasonCode) *structpb.Struct {
 	return scenarioJobReasonMetadata(grpcerr.WithReasonCode(codes.Internal, reasonCode), reasonCode)
 }
@@ -102,7 +112,23 @@ func validateFailedScenarioJobProjection(job *runtimev1.ScenarioJob) error {
 		return fmt.Errorf("ScenarioJob is required")
 	}
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED {
+		if job.GetReasonCode() == runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED {
+			return fmt.Errorf("non-failed ScenarioJob carries an interrupted reason")
+		}
+		if job.GetInterruption() != nil {
+			return fmt.Errorf("non-failed ScenarioJob carries an execution interruption")
+		}
 		return nil
+	}
+	if job.GetReasonCode() == runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED {
+		interruption := job.GetInterruption()
+		if interruption == nil ||
+			interruption.GetCause() != runtimev1.ExecutionInterruptionCause_EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART ||
+			interruption.GetResubmitDisposition() != runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT {
+			return fmt.Errorf("interrupted ScenarioJob has no canonical Runtime-restart disposition")
+		}
+	} else if job.GetInterruption() != nil {
+		return fmt.Errorf("non-interrupted ScenarioJob failure carries an execution interruption")
 	}
 	if detail := strings.TrimSpace(job.GetReasonDetail()); detail == "" || detail != job.GetReasonDetail() {
 		return fmt.Errorf("failed ScenarioJob has no canonical reason detail")
@@ -143,6 +169,8 @@ func (s *Service) finishLocalTextScenarioJobFailure(ctx context.Context, jobID s
 	jobStatus := runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
 	eventType := runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED
 	switch {
+	case s.isRuntimeRestartShutdown(ctx):
+		reason = runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED
 	case errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) || reason == runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
 		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT
@@ -153,8 +181,15 @@ func (s *Service) finishLocalTextScenarioJobFailure(ctx context.Context, jobID s
 	}
 	_, _, _ = s.transitionScenarioJob(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
 		job.ReasonCode = reason
-		job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reason)
-		job.ReasonMetadata = scenarioJobReasonMetadata(err, reason)
+		job.Interruption = nil
+		if reason == runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED {
+			job.ReasonDetail = interruptedCapturedAssemblyDetail(job)
+			job.ReasonMetadata = nil
+			job.Interruption = runtimeRestartExecutionInterruption()
+		} else {
+			job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reason)
+			job.ReasonMetadata = scenarioJobReasonMetadata(err, reason)
+		}
 	})
 }
 
@@ -169,6 +204,8 @@ func (s *Service) finishCloudScenarioJobFailure(ctx context.Context, jobID strin
 	jobStatus := runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED
 	eventType := runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_FAILED
 	switch {
+	case s.isRuntimeRestartShutdown(ctx):
+		reason = runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED
 	case errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) || reason == runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT:
 		jobStatus = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT
@@ -181,11 +218,18 @@ func (s *Service) finishCloudScenarioJobFailure(ctx context.Context, jobID strin
 	}
 	_, _, _ = s.transitionScenarioJob(jobID, jobStatus, eventType, func(job *runtimev1.ScenarioJob) {
 		job.ReasonCode = reason
-		job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reason)
-		if jobStatus == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		job.Interruption = nil
+		if reason == runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED {
+			job.ReasonDetail = interruptedCapturedAssemblyDetail(job)
 			job.ReasonMetadata = nil
+			job.Interruption = runtimeRestartExecutionInterruption()
 		} else {
-			job.ReasonMetadata = scenarioJobReasonMetadata(err, reason)
+			job.ReasonDetail = sanitizeScenarioJobReasonDetail(err, reason)
+			if jobStatus == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+				job.ReasonMetadata = nil
+			} else {
+				job.ReasonMetadata = scenarioJobReasonMetadata(err, reason)
+			}
 		}
 	})
 }

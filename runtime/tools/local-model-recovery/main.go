@@ -390,7 +390,6 @@ func migrateConfigurationsToLoadouts(root string, statePath string, commitConfig
 		CapabilityContract: draft.Capability,
 		RecipeId:           draft.Recipe.GetRecipeId(),
 		Options:            draft.Options,
-		SupportedFeatures:  append([]string(nil), draft.Features...),
 		DisplayName:        draft.DisplayName,
 		ModelAxes:          draft.Axes,
 		Provenance:         provenance,
@@ -555,7 +554,6 @@ func preflightConfigurationMigrationDrafts(svc *localservice.Service, drafts []c
 			CapabilityContract: draft.Capability,
 			RecipeId:           draft.Recipe.GetRecipeId(),
 			Options:            draft.Options,
-			SupportedFeatures:  append([]string(nil), draft.Features...),
 			DisplayName:        draft.DisplayName,
 			ModelAxes:          draft.Axes,
 		}); err != nil {

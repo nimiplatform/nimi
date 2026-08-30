@@ -12,6 +12,7 @@ import (
 type ProductControlDataRootBinding struct {
 	RecordExists bool
 	DataRoot     string
+	InstallID    string
 }
 
 // ProductControlDataRootSecurityBinding carries the already-verified
@@ -90,6 +91,7 @@ func LoadProductControlDataRootBinding(productControlRoot string, security Produ
 	return ProductControlDataRootBinding{
 		RecordExists: true,
 		DataRoot:     selectedRoot,
+		InstallID:    record.InstallID,
 	}, nil
 }
 

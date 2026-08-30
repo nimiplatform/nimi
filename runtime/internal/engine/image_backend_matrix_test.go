@@ -32,7 +32,7 @@ func TestResolveImageSupervisedMatrixRecognizesUnsupportedLinuxGGUF(t *testing.T
 	}
 }
 
-func TestResolveImageSupervisedMatrixSupportsWindowsGGUF(t *testing.T) {
+func TestResolveImageSupervisedMatrixSupportsAuthorityAdmittedWindowsGGUF(t *testing.T) {
 	selection := ResolveImageSupervisedMatrix(ImageSupervisedResolverInput{
 		OS:              "windows",
 		Arch:            "amd64",
@@ -52,14 +52,14 @@ func TestResolveImageSupervisedMatrixSupportsWindowsGGUF(t *testing.T) {
 		t.Fatalf("unexpected product state: %s", selection.ProductState)
 	}
 	if len(selection.SupportedCapabilities) == 0 {
-		t.Fatalf("expected supported capabilities, got %#v", selection.SupportedCapabilities)
+		t.Fatalf("supported cell omitted capabilities: %#v", selection.SupportedCapabilities)
 	}
 	if strings.TrimSpace(selection.CompatibilityDetail) != "" {
-		t.Fatalf("expected empty compatibility detail, got %q", selection.CompatibilityDetail)
+		t.Fatalf("supported cell returned compatibility detail: %q", selection.CompatibilityDetail)
 	}
 }
 
-func TestResolveImageSupervisedMatrixSupportedAppleGGUF(t *testing.T) {
+func TestResolveImageSupervisedMatrixSupportsAppleGGUF(t *testing.T) {
 	selection := ResolveImageSupervisedMatrix(ImageSupervisedResolverInput{
 		OS:              "darwin",
 		Arch:            "arm64",
@@ -69,7 +69,7 @@ func TestResolveImageSupervisedMatrixSupportedAppleGGUF(t *testing.T) {
 		ArtifactFormats: []string{"gguf"},
 	})
 	if !selection.Matched || selection.Conflict || selection.Entry == nil {
-		t.Fatalf("expected supported Apple GGUF topology, got %#v", selection)
+		t.Fatalf("expected recognized Apple GGUF topology, got %#v", selection)
 	}
 	if selection.EntryID != "macos-apple-silicon-gguf" {
 		t.Fatalf("unexpected entry id: %q", selection.EntryID)
@@ -77,11 +77,11 @@ func TestResolveImageSupervisedMatrixSupportedAppleGGUF(t *testing.T) {
 	if selection.ProductState != ImageProductStateSupported {
 		t.Fatalf("unexpected product state: %s", selection.ProductState)
 	}
-	if len(selection.SupportedCapabilities) == 0 {
-		t.Fatalf("expected supported capabilities, got %#v", selection.SupportedCapabilities)
+	if len(selection.SupportedCapabilities) != 1 || selection.SupportedCapabilities[0] != "image.generate" {
+		t.Fatalf("supported topology omitted capability: %#v", selection.SupportedCapabilities)
 	}
-	if strings.TrimSpace(selection.CompatibilityDetail) != "" {
-		t.Fatalf("expected empty compatibility detail, got %q", selection.CompatibilityDetail)
+	if selection.CompatibilityDetail != "" {
+		t.Fatalf("supported Apple topology returned compatibility blocker %q", selection.CompatibilityDetail)
 	}
 }
 

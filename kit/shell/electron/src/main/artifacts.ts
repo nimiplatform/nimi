@@ -42,7 +42,7 @@ export async function writeElectronShellArtifact(
       details: { command, path: filePath, cause: errorMessage(error) },
     });
   }
-  await host?.localAssetProtocolHost?.registerReadableFile(filePath);
+  await host?.localAssetProtocolHost?.registerReadableFile(filePath, 'data-root');
   return {
     path: filePath,
     byteSize: bytes.byteLength,

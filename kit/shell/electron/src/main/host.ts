@@ -479,41 +479,48 @@ export function registerNimiElectronRuntimeBridge(
       throw createElectronExternalDaemonRequiredError(command);
     }
     const standardPayload = standardNestedPayload(payload, command);
+    const runDataRootOperation = <T>(operation: () => Promise<T>): Promise<T> => (
+      effectiveStandardShellHost?.runDataRootOperation
+        ? effectiveStandardShellHost.runDataRootOperation(operation)
+        : operation()
+    );
     if (isElectronLocalAppAssetMediaCommand(command)) {
-      return dispatchElectronLocalAppAssetMediaCommand({
+      return runDataRootOperation(() => dispatchElectronLocalAppAssetMediaCommand({
         host: effectiveStandardShellHost?.localAppAssetMediaHost,
         command,
         payload: standardPayload,
         event,
-      });
+      }));
     }
     if (effectiveStandardShellHost?.localAppHost && isElectronLocalAppCommand(command)) {
-      const result = await dispatchElectronLocalAppCommand({
-        host: effectiveStandardShellHost.localAppHost,
-        payload: standardPayload,
-        command,
-        sendEvent: event.sender?.send
-          ? (eventName, eventPayload) => event.sender?.send?.(`${eventChannelPrefix}${eventName}`, eventPayload)
-          : undefined,
+      return runDataRootOperation(async () => {
+        const result = await dispatchElectronLocalAppCommand({
+          host: effectiveStandardShellHost.localAppHost,
+          payload: standardPayload,
+          command,
+          sendEvent: event.sender?.send
+            ? (eventName, eventPayload) => event.sender?.send?.(`${eventChannelPrefix}${eventName}`, eventPayload)
+            : undefined,
+        });
+        const mediaHost = effectiveStandardShellHost.localAppAssetMediaHost;
+        if (mediaHost) {
+          if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetRemove']) mediaHost.invalidatePath(String(standardPayload.relativePath));
+          if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetMove']) {
+            mediaHost.invalidatePath(String(standardPayload.fromRelativePath));
+            mediaHost.invalidatePath(String(standardPayload.toRelativePath));
+          }
+          if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetAdopt']) mediaHost.invalidatePath(String(standardPayload.relativePath));
+          if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteCommit'] && result && typeof result === 'object') {
+            mediaHost.invalidatePath(String((result as Record<string, unknown>).relativePath));
+          }
+        }
+        return result;
       });
-      const mediaHost = effectiveStandardShellHost.localAppAssetMediaHost;
-      if (mediaHost) {
-        if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetRemove']) mediaHost.invalidatePath(String(standardPayload.relativePath));
-        if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetMove']) {
-          mediaHost.invalidatePath(String(standardPayload.fromRelativePath));
-          mediaHost.invalidatePath(String(standardPayload.toRelativePath));
-        }
-        if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetAdopt']) mediaHost.invalidatePath(String(standardPayload.relativePath));
-        if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteCommit'] && result && typeof result === 'object') {
-          mediaHost.invalidatePath(String((result as Record<string, unknown>).relativePath));
-        }
-      }
-      return result;
     }
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve']) return resolveElectronStandardDataPath(effectiveStandardShellHost, standardPayload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.readJson']) return readElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']) return writeElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson']) return removeElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['data.pathResolve']) return runDataRootOperation(() => resolveElectronStandardDataPath(effectiveStandardShellHost, standardPayload, command));
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.readJson']) return runDataRootOperation(() => readElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command));
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson']) return runDataRootOperation(() => writeElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command));
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['storage.removeJson']) return runDataRootOperation(() => removeElectronStandardStorageJson(effectiveStandardShellHost, standardPayload, command));
     if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.openExternalUrl']) return openElectronExternalUrl(effectiveStandardShellHost, standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['oauth.listenForCode']) return listenElectronOauthForCode(standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent']) return openElectronDesktopIntent({ host: effectiveStandardShellHost, payload: standardPayload, command, appId: effectiveAppId });
@@ -527,11 +534,11 @@ export function registerNimiElectronRuntimeBridge(
     if (command === NIMI_STANDARD_SHELL_COMMANDS['shell-ui.focusMainWindow']) {
       return focusElectronMainWindow({ host: effectiveStandardShellHost, command, event, appId: effectiveAppId, runtimeEndpoint });
     }
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl']) return resolveElectronStandardLocalAssetUrl(effectiveStandardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['local-assets.resolveUrl']) return runDataRootOperation(() => resolveElectronStandardLocalAssetUrl(effectiveStandardShellHost, standardPayload, command));
     if (command === NIMI_STANDARD_SHELL_COMMANDS['file-dialog.open']) return openElectronShellFileDialog(effectiveStandardShellHost, standardPayload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal']) return revealElectronShellFile(effectiveStandardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['file-reveal.reveal']) return runDataRootOperation(() => revealElectronShellFile(effectiveStandardShellHost, standardPayload, command));
     if (command === NIMI_STANDARD_SHELL_COMMANDS['export.saveFile']) return saveElectronShellExportFile(effectiveStandardShellHost, standardPayload, command);
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['artifacts.write']) return writeElectronShellArtifact(effectiveStandardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['artifacts.write']) return runDataRootOperation(() => writeElectronShellArtifact(effectiveStandardShellHost, standardPayload, command));
     if (isElectronLocalAppCommand(command)) {
       return dispatchElectronLocalAppCommand({
         host: effectiveStandardShellHost?.localAppHost,
@@ -555,7 +562,7 @@ export function registerNimiElectronRuntimeBridge(
     if (isElectronFloatingWindowCommand(command)) {
       return dispatchElectronFloatingWindowCommand({ host: effectiveStandardShellHost, payload: standardPayload, command, event, appId: effectiveAppId, runtimeEndpoint });
     }
-    if (command === NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve']) return resolveElectronAvatarAssetUrl(effectiveStandardShellHost, standardPayload, command);
+    if (command === NIMI_STANDARD_SHELL_COMMANDS['avatar.assetResolve']) return runDataRootOperation(() => resolveElectronAvatarAssetUrl(effectiveStandardShellHost, standardPayload, command));
     if (command === NIMI_STANDARD_SHELL_COMMANDS['ai-profile.get']) return resolveElectronAiProfile(standardPayload, command);
     if (command === NIMI_STANDARD_SHELL_COMMANDS['platform-projection.get']) return resolveElectronPlatformProjection(standardPayload, command);
     if (!rendererProfile.bundledAvatarProfile && desktopAccountHost && isElectronDesktopAccountCommand(command)) {

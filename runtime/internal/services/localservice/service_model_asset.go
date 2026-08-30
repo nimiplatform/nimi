@@ -1132,6 +1132,9 @@ func (s *Service) retryModelAssetCleanupObligations() {
 	s.mu.RLock()
 	ids := make([]string, 0, len(s.modelAssetCleanupObligations))
 	for id := range s.modelAssetCleanupObligations {
+		if _, pending := s.modelAssetPendingCleanupRebases[id]; pending {
+			continue
+		}
 		ids = append(ids, id)
 	}
 	s.mu.RUnlock()
@@ -1141,7 +1144,10 @@ func (s *Service) retryModelAssetCleanupObligations() {
 }
 
 func (s *Service) persistModelAssetStoreLocked() error {
-	snapshot, err := buildModelAssetStoreSnapshot(s.modelAssets, s.modelAssetDirectories, s.modelAssetCleanupObligations)
+	if len(s.modelAssetPendingDirectoryRebases) > 0 || len(s.modelAssetPendingCleanupRebases) > 0 {
+		return errors.New("ModelAsset store requires Check & Sync reconciliation before mutation")
+	}
+	snapshot, err := buildModelAssetStoreSnapshot(s.modelAssets, s.modelAssetDirectories, s.modelAssetCleanupObligations, s.localModelsPath)
 	if err != nil {
 		return err
 	}
@@ -1162,9 +1168,11 @@ func (s *Service) restoreModelAssetStore() error {
 	s.modelAssets = decoded.Assets
 	s.modelAssetDirectories = decoded.Directories
 	s.modelAssetCleanupObligations = decoded.CleanupObligations
+	s.modelAssetPendingDirectoryRebases = decoded.PendingDirectoryRebases
+	s.modelAssetPendingCleanupRebases = decoded.PendingCleanupRebases
 	s.modelAssetRetainedRecords = cloneQuarantinedStateRecords(decoded.retainedRecords)
 	s.recordStartupStateIsolationDiagnostics(decoded.Diagnostics)
-	if decoded.RewriteRequired {
+	if decoded.RewriteRequired && len(decoded.PendingDirectoryRebases) == 0 && len(decoded.PendingCleanupRebases) == 0 {
 		err = s.persistModelAssetStoreLocked()
 	}
 	s.mu.Unlock()
@@ -1172,7 +1180,11 @@ func (s *Service) restoreModelAssetStore() error {
 		return err
 	}
 	for id, asset := range decoded.Assets {
-		s.restoreVerifiedModelAssetGeneration(asset, decoded.Directories[id])
+		directory := decoded.Directories[id]
+		if pending, ok := decoded.PendingDirectoryRebases[id]; ok {
+			directory = pending
+		}
+		s.restoreVerifiedModelAssetGeneration(asset, directory)
 	}
 	s.retryModelAssetCleanupObligations()
 	return nil

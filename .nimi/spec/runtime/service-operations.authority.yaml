@@ -571,11 +571,11 @@ units:
         target: definition.nimi.runtime.service-operations.daemon-plane
   - id: rule.nimi.runtime.service-operations.r056
     kind: rule
-    title: Supervised engine startup failures degrade with evidence
+    title: Supervised Host startup stays private and failure-evidenced
     modality: must
-    statement: When supervised mode is enabled Runtime creates the private ExecutionHost manager, starts configured enabled hosts, injects endpoint environment only after the private process handshake, and on startup failure records bounded bootstrap evidence and may mark daemon service operation DEGRADED; it never changes AIConfig, Loadout, machine selection, binding, or public capability readiness and never fabricates provider-unhealthy product truth.
-    condition: Whenever a configured supervised engine starts during daemon boot.
-    failure: Reject a public capability-health projection, configuration mutation, or unaudited process startup failure.
+    statement: Runtime creates the private ExecutionHost manager when supervised operation is enabled, starts a llama, media, or speech Host only from an admitted Job or explicit Runtime-owned lifecycle using its exact captured package and dependency inputs, retains the materialized endpoint only inside the typed private Host handle after handshake, never writes it to process-global environment or public configuration, and records bounded startup failure evidence while daemon operation may become DEGRADED; this lifecycle never changes AIConfig, Loadout, machine selection, binding, or public capability readiness or fabricates provider-unhealthy product truth.
+    condition: Whenever Runtime creates a supervised ExecutionHost manager or starts a supervised Host.
+    failure: Reject ambient endpoint injection, eager Host startup without exact admitted inputs, public capability-health projection, configuration mutation, or unaudited process startup failure.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.service-operations.daemon-plane
@@ -603,7 +603,7 @@ units:
     kind: rule
     title: STOPPING preempts active subsystems without fabricated terminals
     modality: must
-    statement: STOPPING rejects new Runtime Job, Memory delivery, Commit, and Recall work as unavailable, terminates in-flight synchronous and streaming scenarios with typed interruption, transitions persisted SUBMITTED, QUEUED, or RUNNING ScenarioJobs to FAILED with the same typed interruption cause and caller-resubmit disposition, emits no fabricated completion or later item, preserves every unreceived durable Memory outbox entry, delivery frontier, terminating fence, bounded owner operation state, completed Job and artifact record, canonical AIConfig, Loadout, selection, and ModelAsset for restart, terminates private supervised ExecutionHosts within bounded shutdown policy, and invalidates in-memory sessions on process exit; explicit user cancellation alone remains CANCELED.
+    statement: STOPPING rejects new Runtime Job, Memory delivery, Commit, and Recall work as unavailable, preserves every unreceived durable Memory outbox entry, delivery frontier, terminating fence, bounded owner operation state, completed Job and artifact record, canonical AIConfig, Loadout, selection, and ModelAsset, terminates private supervised ExecutionHosts within bounded shutdown policy, and invalidates in-memory sessions on process exit. When STOPPING belongs to a Runtime restart, it terminates in-flight synchronous and streaming scenarios with AI_EXECUTION_INTERRUPTED and transitions persisted SUBMITTED, QUEUED, or RUNNING ScenarioJobs to FAILED with the typed Runtime-restart cause and caller-may-resubmit disposition, emitting no fabricated completion or later item; a final stop may close active work through its existing typed termination semantics, and explicit user cancellation alone remains CANCELED.
     condition: Whenever daemon shutdown affects active child state machines.
     failure: Interrupt the active child path typed and reject automatic resume, fabricated completion, late items, new work, lingering subscription, lost completed custody, or an engine left beyond its timeout.
     relations:

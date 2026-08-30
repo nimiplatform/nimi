@@ -11,6 +11,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimeidentity"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -28,6 +29,9 @@ type ExactBinding struct {
 	DeclaredFiles     []string
 	VerifiedContentID string
 	EntrySHA256       string
+	// TemplateIdentity is the Runtime-private digest of an exact model-authored
+	// chat template. Empty is a valid base-text state with no behavior match.
+	TemplateIdentity string
 }
 
 type ExactDependencySource struct {
@@ -55,11 +59,13 @@ type SelectedLocalExecution struct {
 	PortableConfig     *structpb.Struct
 	// ModelContextWindowTokens is the exact bound model's authored capacity.
 	// Zero means the verified model does not expose a usable capacity fact.
-	ModelContextWindowTokens uint64
-	Requirements             []*runtimev1.LocalCapabilityRequirement
-	ExactBindings            []ExactBinding
-	ExactDependencySources   []ExactDependencySource
-	SupportedFeatures        []string
+	ModelContextWindowTokens        uint64
+	Requirements                    []*runtimev1.LocalCapabilityRequirement
+	ExactBindings                   []ExactBinding
+	ExactDependencySources          []ExactDependencySource
+	ImplementationSupportedFeatures []string
+	ConfiguredFeatures              []string
+	TextBehaviors                   []*runtimev1.TextBehaviorCapabilityProjection
 	// ExecutionTarget is the exact Runtime-private local target captured from
 	// the selected verified asset occurrence. It is used for cross-capability
 	// compatibility checks such as voice.create -> audio.synthesize and is
@@ -69,13 +75,15 @@ type SelectedLocalExecution struct {
 }
 
 type LoadoutOption struct {
-	LoadoutID          string
-	DisplayName        string
-	CapabilityContract string
-	Implementation     *runtimev1.CapabilityImplementationIdentity
-	SupportedFeatures  []string
-	ValidationState    runtimev1.LoadoutValidationState
-	Reasons            []runtimev1.ReasonCode
+	LoadoutID                       string
+	DisplayName                     string
+	CapabilityContract              string
+	Implementation                  *runtimev1.CapabilityImplementationIdentity
+	ImplementationSupportedFeatures []string
+	ConfiguredFeatures              []string
+	TextBehaviors                   []*runtimev1.TextBehaviorCapabilityProjection
+	ValidationState                 runtimev1.LoadoutValidationState
+	Reasons                         []runtimev1.ReasonCode
 }
 
 // Resolver is the private machine-configuration seam consumed by Runtime
@@ -101,12 +109,15 @@ const (
 type TextProgressFunc func(TextExecutionProgress)
 
 type TextDelta struct {
-	Text      string
-	Reasoning string
+	Text string
+	// Ordered is populated only by an exact TextBehaviorAdapter. Base llama v1
+	// continues to use Text. There is deliberately no raw-reasoning carrier.
+	Ordered *textbehavior.OrderedDelta
 }
 
 type TextResult struct {
 	Text         string
+	Items        []textbehavior.OrderedItem
 	InputTokens  int64
 	OutputTokens int64
 	ComputeMS    int64
@@ -161,6 +172,7 @@ type ImageProgressFunc func(ImageExecutionProgress)
 // captured Driver plan's requested artifact count.
 type ImageArtifact struct {
 	Index     int32
+	Seed      int64
 	Bytes     []byte
 	MediaType string
 	ComputeMS int64
@@ -181,6 +193,7 @@ type ImageExecutionStartFunc func() error
 // formed by an image Driver. It owns the private serial media lease and emits
 // each artifact at its production boundary.
 type ImageExecutionHost interface {
+	AdmitImage(*capabilitydriver.ImageInvocationPlan) error
 	ExecuteImage(context.Context, *capabilitydriver.ImageInvocationPlan, ImageExecutionStartFunc, ImageArtifactFunc, ImageProgressFunc) (ImageResult, error)
 }
 
@@ -260,6 +273,7 @@ type RawAVCandidate struct {
 // VideoExecutionHost executes one immutable Driver plan and returns only a raw
 // AV candidate. Services/encoding owners decide artifact publication.
 type VideoExecutionHost interface {
+	AdmitVideo(*capabilitydriver.VideoInvocationPlan) error
 	ExecuteVideo(context.Context, *capabilitydriver.VideoInvocationPlan, VideoExecutionStartFunc, VideoProgressFunc) (RawAVCandidate, error)
 }
 
@@ -300,13 +314,16 @@ type SpeechExecutionHost interface {
 type FailureKind string
 
 const (
-	FailureLoad            FailureKind = "load"
-	FailureContentMismatch FailureKind = "content_mismatch"
-	FailureInference       FailureKind = "inference"
-	FailureOutOfMemory     FailureKind = "out_of_memory"
-	FailureCanceled        FailureKind = "cancel"
-	FailureTimeout         FailureKind = "timeout"
-	FailureProcessCrash    FailureKind = "process_crash"
+	FailureLoad                 FailureKind = "load"
+	FailureContentMismatch      FailureKind = "content_mismatch"
+	FailureInference            FailureKind = "inference"
+	FailureOutOfMemory          FailureKind = "out_of_memory"
+	FailureCanceled             FailureKind = "cancel"
+	FailureTimeout              FailureKind = "timeout"
+	FailureProcessCrash         FailureKind = "process_crash"
+	FailureTextOutputIncomplete FailureKind = "text_output_incomplete"
+	FailureTextOutputInvalid    FailureKind = "text_output_invalid"
+	FailureToolCallInvalid      FailureKind = "tool_call_invalid"
 )
 
 // ExecutionError preserves the private failure phase so service boundaries can

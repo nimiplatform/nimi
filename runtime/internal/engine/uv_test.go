@@ -36,6 +36,9 @@ func TestEnsureUVToolDependencySerializesSharedExecutableMaterialization(t *test
 	if err := os.WriteFile(managedUVPath(uvRoot), []byte("verified test uv"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	if err := writeManagedUVManifest(uvRoot, spec); err != nil {
+		t.Fatal(err)
+	}
 
 	manager.uvToolMu.Lock()
 	locked := true

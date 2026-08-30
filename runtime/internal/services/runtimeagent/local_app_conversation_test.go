@@ -269,6 +269,11 @@ func TestLocalAppConversationHandleRevalidatesSessionAccountAndLifecycle(t *test
 }
 
 func TestLocalAppReferenceToConversationJourneyUsesTheOwnerEngine(t *testing.T) {
+	const (
+		reasoningSummaryCanary = "private-reasoning-summary-canary"
+		toolCallCanary         = "private-tool-call-canary"
+		continuityCanary       = "private-continuity-canary"
+	)
 	svc := newRuntimeAgentServiceForPublicChatTest(t)
 	capture := newPublicChatEmitCapture()
 	svc.SetPublicChatAppEmitter(capture.emit)
@@ -286,11 +291,26 @@ func TestLocalAppReferenceToConversationJourneyUsesTheOwnerEngine(t *testing.T) 
 				{
 					EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
 					TraceId:   "trace-local-app",
-					Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: &runtimev1.ScenarioStreamDelta{
-						Delta: &runtimev1.ScenarioStreamDelta_Text{Text: &runtimev1.TextStreamDelta{
-							Text: publicChatStructuredEnvelopeAPML("message-local-app", "hello from Runtime"),
-						}},
-					}},
+					Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentReasoningSummaryStreamDeltaAt(
+						0, true, reasoningSummaryCanary)},
+				},
+				{
+					EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+					TraceId:   "trace-local-app",
+					Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentToolCallStreamDelta(
+						1, &runtimev1.ToolCall{Id: "call-private", Name: toolCallCanary, ArgumentsJson: `{"canary":true}`})},
+				},
+				{
+					EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+					TraceId:   "trace-local-app",
+					Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentReasoningContinuityStreamDelta(
+						2, &runtimev1.ReasoningContinuityCarrier{Kind: "native", Version: 1, Payload: []byte(continuityCanary)})},
+				},
+				{
+					EventType: runtimev1.StreamEventType_STREAM_EVENT_DELTA,
+					TraceId:   "trace-local-app",
+					Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: runtimeAgentTextStreamDeltaAt(
+						3, true, publicChatStructuredEnvelopeAPML("message-local-app", "hello from Runtime"))},
 				},
 				{
 					EventType: runtimev1.StreamEventType_STREAM_EVENT_COMPLETED,
@@ -336,7 +356,7 @@ func TestLocalAppReferenceToConversationJourneyUsesTheOwnerEngine(t *testing.T) 
 	}))
 	stream := newLocalAppConversationCaptureStream(
 		accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), subscribeDecision),
-		6,
+		9,
 	)
 	streamDone := make(chan error, 1)
 	go func() {
@@ -372,12 +392,40 @@ func TestLocalAppReferenceToConversationJourneyUsesTheOwnerEngine(t *testing.T) 
 	case <-time.After(3 * time.Second):
 		t.Fatal("conversation stream did not reach terminal event")
 	}
-	if len(stream.events) != 6 || stream.events[5].GetTurnCompleted() == nil {
+	if len(stream.events) != 9 || stream.events[8].GetTurnCompleted() == nil {
 		t.Fatalf("typed conversation events = %+v", stream.events)
 	}
+	reasoningStatusCount := 0
 	for _, event := range stream.events {
 		if event.GetConversationAnchorId() != anchorID {
 			t.Fatalf("event escaped anchor scope: %+v", event)
+		}
+		if event.GetReasoningStatus() != nil {
+			reasoningStatusCount++
+		}
+		if event.GetLiveTool() != nil {
+			t.Fatalf("provider ToolCall escaped as protected Local App live tool: %+v", event)
+		}
+		for _, canary := range []string{reasoningSummaryCanary, toolCallCanary, continuityCanary} {
+			if strings.Contains(event.String(), canary) {
+				t.Fatalf("private stream item %q escaped protected Local App event: %+v", canary, event)
+			}
+		}
+	}
+	if reasoningStatusCount != 3 {
+		t.Fatalf("protected Local App reasoning status count = %d, want started/active/completed", reasoningStatusCount)
+	}
+	capture.mu.Lock()
+	publicEvents := append([]*runtimev1.SendAppMessageRequest(nil), capture.items...)
+	capture.mu.Unlock()
+	for _, event := range publicEvents {
+		if event.GetMessageType() == "runtime.agent.turn.reasoning_delta" {
+			t.Fatalf("retired reasoning content event escaped plain public chat: %+v", event)
+		}
+		for _, canary := range []string{reasoningSummaryCanary, toolCallCanary, continuityCanary} {
+			if strings.Contains(event.GetPayload().String(), canary) {
+				t.Fatalf("private stream item %q escaped plain public chat through %s", canary, event.GetMessageType())
+			}
 		}
 	}
 
@@ -390,6 +438,11 @@ func TestLocalAppReferenceToConversationJourneyUsesTheOwnerEngine(t *testing.T) 
 	if err != nil || len(snapshot.GetSnapshot().GetMessages()) != 2 ||
 		localAppConversationTestMessageText(snapshot.GetSnapshot().GetMessages()[1]) != "hello from Runtime" {
 		t.Fatalf("journey snapshot = %+v err=%v", snapshot, err)
+	}
+	for _, canary := range []string{reasoningSummaryCanary, toolCallCanary, continuityCanary} {
+		if strings.Contains(snapshot.String(), canary) {
+			t.Fatalf("private stream item %q escaped protected Local App snapshot: %+v", canary, snapshot)
+		}
 	}
 	committed := make([]*runtimev1.LocalAppConversationMessage, 0, 2)
 	for _, event := range stream.events {
@@ -1141,7 +1194,7 @@ func TestLocalAppConversationEventProjectionIsClosedTypedUnion(t *testing.T) {
 			test.assert(t, events[0])
 		})
 	}
-	if events, supported, err := svc.projectLocalAppConversationEvents(publicChatTurnReasoningDeltaType, base, 4); err != nil || supported || events != nil {
+	if events, supported, err := svc.projectLocalAppConversationEvents("runtime.agent.turn.reasoning_delta", base, 4); err != nil || supported || events != nil {
 		t.Fatalf("reasoning event escaped union: events=%+v supported=%v err=%v", events, supported, err)
 	}
 	malformed := map[string]any{}

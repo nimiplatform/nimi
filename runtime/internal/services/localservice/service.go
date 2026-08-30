@@ -31,6 +31,7 @@ const (
 type EngineManager interface {
 	ListEngines() []EngineInfo
 	EnsureEngineBinaryDependency(ctx context.Context, engine string, version string) (engine.EngineBinaryDependencyStatus, error)
+	VerifyEngineBinaryDependency(engine string, version string, expectedBinaryPath string) error
 	EnsureESpeakNGDependency(ctx context.Context) (engine.ESpeakNGDependencyStatus, error)
 	EnsureUVToolDependency(ctx context.Context) (engine.UVToolDependencyStatus, error)
 	EnsurePythonRuntimeDependency(ctx context.Context, uvPath string, engine string, version string, pythonVersion string) (engine.PythonRuntimeDependencyStatus, error)
@@ -53,27 +54,43 @@ type RuntimeAccountProjectionProvider interface {
 	AuthenticatedRuntimeProjection(context.Context) (*runtimev1.AccountProjection, bool)
 }
 
+// ProductControlRootHandoff is the concrete Runtime process boundary used by
+// Product Control replacement. It closes new root-bound RPC admission and
+// drains already admitted work without stopping the Product Control service
+// that owns the activation commit.
+type ProductControlRootHandoff interface {
+	CloseRootAdmission(context.Context) error
+	AbortRootHandoff()
+	CommitRootHandoff()
+}
+
 // @nimi-authority: definition.nimi.runtime.service-operations.local-service-plane
 // Service implements RuntimeLocalService with persisted local state.
 type Service struct {
 	runtimev1.UnimplementedRuntimeLocalServiceServer
 
-	logger                             *slog.Logger
-	auditStore                         *auditlog.Store
-	localProviderCatalog               *catalog.LocalProviderCatalog
-	runtimeAccountProvider             RuntimeAccountProjectionProvider
-	stateStorePath                     string
-	stateProcessLock                   *localStateProcessLock
-	productControlRoot                 string
-	productControlRootLocked           bool
-	productControlDataRootSecurity     ProductControlDataRootSecurityBinding
-	productControlDataRootConfigWriter func(string) (bool, error)
-	localAuditCap                      int
-	productVersion                     string
-	localModelsPath                    string
-	runtimeDataRoot                    string
+	logger                                *slog.Logger
+	auditStore                            *auditlog.Store
+	localProviderCatalog                  *catalog.LocalProviderCatalog
+	runtimeAccountProvider                RuntimeAccountProjectionProvider
+	stateStorePath                        string
+	stateProcessLock                      *localStateProcessLock
+	productControlRoot                    string
+	productControlRootLocked              bool
+	productControlDataRootSecurity        ProductControlDataRootSecurityBinding
+	productControlDataRootConfigWriter    func(string) (bool, error)
+	productControlDataRootConfigValidator func(string) error
+	productControlRootHandoff             ProductControlRootHandoff
+	productControlRootAdmissionClosed     bool
+	localAuditCap                         int
+	productVersion                        string
+	localModelsPath                       string
+	runtimeDataRoot                       string
+	llamaEngineVersion                    string
 
 	mu                                      sync.RWMutex
+	productControlReplacementMu             sync.Mutex
+	productControlCheckSyncStartMu          sync.Mutex
 	localEnvironmentPlanApplyMu             sync.Mutex
 	managedSpeechMu                         sync.Mutex
 	managedSpeechAdmissionToken             string
@@ -100,6 +117,8 @@ type Service struct {
 	modelAssets                             map[string]*runtimev1.ModelAssetRecord
 	modelAssetDirectories                   map[string]string
 	modelAssetCleanupObligations            map[string]modelAssetCleanupObligation
+	modelAssetPendingDirectoryRebases       map[string]string
+	modelAssetPendingCleanupRebases         map[string]modelAssetCleanupObligation
 	modelAssetStorePath                     string
 	saveModelAssetStore                     func(string, modelAssetStoreSnapshot) error
 	writeModelAssetManifest                 func(string, []byte) error
@@ -112,30 +131,35 @@ type Service struct {
 	jobLifetimeCtx                          context.Context
 	jobLifetimeCancel                       context.CancelFunc
 
-	hfCatalogSearch              hfCatalogSearchFunc
-	hfCatalogVariants            hfCatalogVariantsFunc
-	hfDownloadBaseURL            string
-	artifactDownloadTimeout      time.Duration
-	artifactDownloadMaxBodyBytes int64
-	modelDownloadTimeout         time.Duration
-	modelDownloadMaxBodyBytes    int64
-	modelDownloadMaxAttempts     int
-	modelDownloadRetryDelays     []time.Duration
-	transfers                    map[string]*runtimev1.LocalTransferSessionSummary
-	managedModelDownloadSpecs    map[string]managedDownloadedModelSpec
-	transferControls             map[string]*localTransferControl
-	transferRates                map[string]*transferRateTracker
-	transferSubscribers          map[uint64]chan *runtimev1.LocalTransferProgressEvent
-	transferSubscriberSeq        uint64
-	entryHashCache               map[string]entryHashCacheState
-	entryFileSHA256              func(string) (string, error)
-	adoptResolvedModelImports    bool
-	managedPortAvailable         func(int) bool
-	modelIndexRefreshMu          sync.Mutex
-	modelIndexRefreshInFlight    map[string]bool
-	deviceProfileMu              sync.Mutex
-	deviceProfileCached          *runtimev1.LocalDeviceProfile
-	deviceProfileCachedAt        time.Time
+	hfCatalogSearch               hfCatalogSearchFunc
+	hfCatalogVariants             hfCatalogVariantsFunc
+	hfDownloadBaseURL             string
+	artifactDownloadTimeout       time.Duration
+	artifactDownloadMaxBodyBytes  int64
+	modelDownloadTimeout          time.Duration
+	modelDownloadMaxBodyBytes     int64
+	modelDownloadMaxAttempts      int
+	modelDownloadRetryDelays      []time.Duration
+	transfers                     map[string]*runtimev1.LocalTransferSessionSummary
+	managedModelDownloadSpecs     map[string]managedDownloadedModelSpec
+	transferControls              map[string]*localTransferControl
+	transferRates                 map[string]*transferRateTracker
+	transferSubscribers           map[uint64]chan *runtimev1.LocalTransferProgressEvent
+	transferSubscriberSeq         uint64
+	entryHashCache                map[string]entryHashCacheState
+	entryFileSHA256               func(string) (string, error)
+	adoptResolvedModelImports     bool
+	managedPortAvailable          func(int) bool
+	modelIndexRefreshMu           sync.Mutex
+	modelIndexRefreshInFlight     map[string]bool
+	deviceProfileMu               sync.Mutex
+	deviceProfileCached           *runtimev1.LocalDeviceProfile
+	deviceProfileCachedAt         time.Time
+	productControlCheckSyncMu     sync.RWMutex
+	productControlCheckSyncClosed bool
+	productControlCheckSyncRun    *productControlCheckSyncRun
+	productControlCheckSyncError  string
+	productControlCheckSyncOwners productControlCheckSyncRuntimeOwners
 }
 
 type entryHashCacheState struct {
@@ -237,6 +261,7 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		localAuditCap:                           localAuditCapacity,
 		localModelsPath:                         resolveLocalModelsPath(localModelsPath),
 		runtimeDataRoot:                         resolveLocalEnvironmentRuntimeDataRoot(runtimeDataRoot),
+		llamaEngineVersion:                      engine.DefaultLlamaConfig().Version,
 		audits:                                  make([]*runtimev1.LocalAuditEvent, 0, localAuditCapacity),
 		verified:                                verified,
 		catalog:                                 make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(verified)),
@@ -254,6 +279,8 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		modelAssets:                             make(map[string]*runtimev1.ModelAssetRecord),
 		modelAssetDirectories:                   make(map[string]string),
 		modelAssetCleanupObligations:            make(map[string]modelAssetCleanupObligation),
+		modelAssetPendingDirectoryRebases:       make(map[string]string),
+		modelAssetPendingCleanupRebases:         make(map[string]modelAssetCleanupObligation),
 		modelAssetStorePath:                     resolveModelAssetStorePath(resolvedStateStorePath, resolveLocalModelsPath(localModelsPath)),
 		saveModelAssetStore:                     saveModelAssetStore,
 		writeModelAssetManifest: func(path string, payload []byte) error {
@@ -347,7 +374,26 @@ func (s *Service) SetProductControlDataRootConfigWriter(writer func(string) (boo
 	s.mu.Unlock()
 }
 
+func (s *Service) SetProductControlDataRootConfigValidator(validator func(string) error) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.productControlDataRootConfigValidator = validator
+	s.mu.Unlock()
+}
+
+func (s *Service) SetProductControlRootHandoff(handoff ProductControlRootHandoff) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.productControlRootHandoff = handoff
+	s.mu.Unlock()
+}
+
 func (s *Service) Close() {
+	s.StopProductControlCheckSync()
 	s.mu.Lock()
 	jobCancel := s.jobLifetimeCancel
 	s.jobLifetimeCancel = nil

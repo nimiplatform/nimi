@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"path/filepath"
 	"strings"
@@ -91,7 +92,7 @@ func TestResolveLocalEnvironmentPlanDefaultRuntimeDataRootUsesServiceDataRootIde
 		t.Fatalf("default runtime data root = %q, want data root %q", plan.RuntimeDataRoot, dataRoot)
 	}
 	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeLlama)
-	wantKey := localEnvironmentKey(dep.DependencyFamily, dep.DependencyID, plan.HostProfileID, plan.PlatformTuple, dataRoot)
+	wantKey := localEnvironmentNativeLlamaKey(engine.DefaultLlamaConfig().Version, plan.PlatformTuple)
 	if dep.EnvironmentKey != wantKey {
 		t.Fatalf("dependency environment key = %q, want %q", dep.EnvironmentKey, wantKey)
 	}
@@ -102,7 +103,7 @@ func TestResolveLocalEnvironmentPlanIncludesPythonManagedFamilies(t *testing.T) 
 	defer func() { svc.Close() }()
 	svc.SetEngineManager(&mockEngineManager{})
 
-	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
+	runtimeDataRoot := svc.runtimeDataRoot
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:          "local-image-python",
 		ConsumerScope:   "media.diffusers.cuda",
@@ -293,7 +294,7 @@ func TestResolvePythonProfileKeepsConsumptionEvidenceOutsideCanonicalTorchSource
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
 	svc.SetEngineManager(&mockEngineManager{})
-	runtimeDataRoot := filepath.Join(t.TempDir(), "runtime-data")
+	runtimeDataRoot := svc.runtimeDataRoot
 	profile := localEnvironmentNvidiaProfile()
 	profileRoot := filepath.Join(runtimeDataRoot, "environments", "python-profiles", "shared-media")
 	packageCacheRoot := filepath.Join(runtimeDataRoot, "dependencies", "python-package-cache")
@@ -387,7 +388,7 @@ func TestResolvePythonProfileKeepsConsumptionEvidenceOutsideCanonicalTorchSource
 	if err != nil {
 		t.Fatalf("start image profile repair projection: %v", err)
 	}
-	if _, ok := svc.transitionLocalEnvironmentDependencyJob(imageRepairJob.JobID, localEnvironmentStateRepairRequired, "image profile consumption requires repair", true); !ok {
+	if _, ok, _ := svc.transitionLocalEnvironmentDependencyJob(imageRepairJob.JobID, localEnvironmentStateRepairRequired, "image profile consumption requires repair", true); !ok {
 		t.Fatal("transition image profile consumption to repair_required")
 	}
 
@@ -503,8 +504,10 @@ func TestResolveLocalEnvironmentPlanAudioCppRequiresNativePackageAndCUDA13Only(t
 func TestSelectedMusicExecutionCapturesBothExactSelectedSources(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
+	manager := &mockEngineManager{}
+	svc.SetEngineManager(manager)
 	records := []localEnvironmentSelectedSourceRecordState{
-		{RecordID: "selected-audio", EnvironmentKey: "audio-env", DependencyFamily: localEnvironmentFamilyNativeAudioCPP, DependencyID: "audio.cpp.package", CanonicalRoot: filepath.Join(t.TempDir(), "audio-cpp"), VerifiedArtifacts: []string{"audiocpp_cli.exe"}, SelectedConsumers: audioCppSelectedConsumers()},
+		{RecordID: "selected-audio", EnvironmentKey: "audio-env", DependencyFamily: localEnvironmentFamilyNativeAudioCPP, DependencyID: "audio.cpp.package", CanonicalRoot: filepath.Join(t.TempDir(), "audio-cpp"), Version: "release-" + engine.AudioCppPackageVersion + "@" + engine.AudioCppPackageCommit, VerifiedArtifacts: []string{"audiocpp_cli.exe"}, SelectedConsumers: audioCppSelectedConsumers()},
 		{RecordID: "selected-cuda13", EnvironmentKey: "cuda13-env", DependencyFamily: localEnvironmentFamilyCUDA, DependencyID: cuda13UserSpaceRuntimeDependencyID, CanonicalRoot: filepath.Join(t.TempDir(), "cuda13"), VerifiedArtifacts: []string{"cublas64_13.dll", "cublasLt64_13.dll", "cufft64_12.dll"}, SelectedConsumers: audioCppSelectedConsumers()},
 	}
 	for _, record := range records {
@@ -513,7 +516,7 @@ func TestSelectedMusicExecutionCapturesBothExactSelectedSources(t *testing.T) {
 		svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 	}
 	musicIdentity := (&capabilitydriver.Identity{ImplementationID: capabilitydriver.MiniMaxMusic3ImplementationID, DriverID: capabilitydriver.MiniMaxMusic3DriverID, DriverDialect: capabilitydriver.MiniMaxMusic3DriverDialect}).Proto()
-	sources, err := svc.resolveSelectedLocalExecutionDependencySources(capabilitydriver.MiniMaxMusic3CapabilityContract, musicIdentity)
+	sources, err := svc.resolveSelectedLocalExecutionDependencySources(capabilitydriver.MiniMaxMusic3CapabilityContract, capabilitydriver.MiniMaxMusic3AudioCppDriver{}, musicIdentity)
 	if err != nil {
 		t.Fatalf("resolve dependency sources: %v", err)
 	}
@@ -521,9 +524,16 @@ func TestSelectedMusicExecutionCapturesBothExactSelectedSources(t *testing.T) {
 		t.Fatalf("captured selected sources = %+v", sources)
 	}
 	qwenIdentity := (&capabilitydriver.Identity{ImplementationID: capabilitydriver.Qwen3TTSAudioCppImplementationID, DriverID: capabilitydriver.Qwen3TTSAudioCppDriverID, DriverDialect: capabilitydriver.Qwen3TTSAudioCppDriverDialect}).Proto()
-	qwenSources, err := svc.resolveSelectedLocalExecutionDependencySources(capabilitydriver.AudioSynthesizeContract, qwenIdentity)
+	qwenSources, err := svc.resolveSelectedLocalExecutionDependencySources(capabilitydriver.AudioSynthesizeContract, capabilitydriver.Qwen3TTSAudioCppDriver{}, qwenIdentity)
 	if err != nil || len(qwenSources) != 2 || qwenSources[0].SelectedSourceRecordID != sources[0].SelectedSourceRecordID || qwenSources[1].SelectedSourceRecordID != sources[1].SelectedSourceRecordID || qwenSources[0].ConsumerScope != audioCppQwen3TTSCUDAConsumerID {
 		t.Fatalf("Qwen selected sources=%+v err=%v", qwenSources, err)
+	}
+	if manager.verifyEngineBinaryDependencyCalls != 2 {
+		t.Fatalf("native audio owner verification calls = %d, want 2", manager.verifyEngineBinaryDependencyCalls)
+	}
+	manager.verifyEngineBinaryDependencyErr = errors.New("audio.cpp DLL content drift")
+	if _, err := svc.resolveSelectedLocalExecutionDependencySources(capabilitydriver.AudioSynthesizeContract, capabilitydriver.Qwen3TTSAudioCppDriver{}, qwenIdentity); err == nil || !strings.Contains(err.Error(), "fresh owner verification") {
+		t.Fatalf("drifted native audio package reached execution capture: %v", err)
 	}
 }
 
@@ -601,6 +611,28 @@ func TestResolveLocalEnvironmentPlanPromotesFirstRunNvidiaCUDAToRequired(t *test
 	}
 }
 
+func TestResolveLocalEnvironmentPlanUsesMetalConsumerForAppleSiliconFirstRun(t *testing.T) {
+	svc := newLocalEnvironmentTestService(t)
+	defer func() { svc.Close() }()
+	svc.SetEngineManager(&mockEngineManager{})
+
+	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
+		PackID:          "local-text",
+		ConsumerScope:   "first-run",
+		HostProfile:     localEnvironmentAppleSilicon128GBProfile(),
+		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
+	})
+
+	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeLlama)
+	if dep.ConsumerScope != "llama.cpp.metal" {
+		t.Fatalf("Apple Silicon llama package consumer = %q, want llama.cpp.metal: %+v", dep.ConsumerScope, dep)
+	}
+	cuda := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
+	if cuda.Required {
+		t.Fatalf("Apple Silicon Metal plan required CUDA: %+v", cuda)
+	}
+}
+
 func TestResolveLocalEnvironmentPlanUsesEngineCUDASelectionWhenDetailedFirstRunProbeFails(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
@@ -670,21 +702,21 @@ func TestResolveLocalEnvironmentPlanKeepsFirstRunCUDAOptionalWhenEngineSelection
 	}
 }
 
-func TestResolveLocalEnvironmentPlanKeepsCPUConsumerCUDAOptional(t *testing.T) {
+func TestResolveLocalEnvironmentPlanKeepsMetalConsumerCUDAOptional(t *testing.T) {
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
 	svc.SetEngineManager(&mockEngineManager{})
 
 	plan := svc.resolveLocalEnvironmentPlan(localEnvironmentPlanRequest{
 		PackID:          "local-text",
-		ConsumerScope:   "llama.cpp.cpu",
-		HostProfile:     localEnvironmentNvidiaProfile(),
+		ConsumerScope:   "llama.cpp.metal",
+		HostProfile:     localEnvironmentAppleSilicon128GBProfile(),
 		RuntimeDataRoot: filepath.Join(t.TempDir(), "runtime-data"),
 	})
 
 	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyCUDA)
 	if dep.Required {
-		t.Fatalf("explicit CPU llama consumer must not require CUDA runtime dependency: %+v", dep)
+		t.Fatalf("explicit Metal llama consumer must not require CUDA runtime dependency: %+v", dep)
 	}
 }
 
@@ -783,7 +815,7 @@ func TestResolveLocalEnvironmentPlanRestoresReadySelectedSourceRecord(t *testing
 	runtimeDataRoot := filepath.Join(dir, "runtime-data")
 	profile := localEnvironmentNvidiaProfile()
 
-	svc, err := New(slog.Default(), nil, statePath, 10, runtimeDataRoot)
+	svc, err := NewWithProductControlDataRoot(slog.Default(), nil, statePath, 10, filepath.Join(runtimeDataRoot, "models"), runtimeDataRoot)
 	if err != nil {
 		t.Fatalf("new service: %v", err)
 	}
@@ -794,12 +826,14 @@ func TestResolveLocalEnvironmentPlanRestoresReadySelectedSourceRecord(t *testing
 		RuntimeDataRoot: runtimeDataRoot,
 	})
 	dep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyNativeLlama)
+	binaryPath := filepath.Join(runtimeDataRoot, "environments", "llama", engine.DefaultLlamaConfig().Version, "llama-server.exe")
 	record := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
-		DependencyFamily: dep.DependencyFamily,
-		DependencyID:     dep.DependencyID,
-		EnvironmentKey:   dep.EnvironmentKey,
-		SourceKind:       localEnvironmentSourceManaged,
-		CanonicalRoot:    filepath.Join(runtimeDataRoot, "engines", "llama"),
+		DependencyFamily:  dep.DependencyFamily,
+		DependencyID:      dep.DependencyID,
+		EnvironmentKey:    dep.EnvironmentKey,
+		SourceKind:        localEnvironmentSourceManaged,
+		CanonicalRoot:     binaryPath,
+		VerifiedArtifacts: []string{binaryPath},
 		SelectedConsumers: []string{
 			"llama.cpp.cuda",
 		},
@@ -808,7 +842,7 @@ func TestResolveLocalEnvironmentPlanRestoresReadySelectedSourceRecord(t *testing
 	svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 	svc.Close()
 
-	restored, err := New(slog.Default(), nil, statePath, 10, runtimeDataRoot)
+	restored, err := NewWithProductControlDataRoot(slog.Default(), nil, statePath, 10, filepath.Join(runtimeDataRoot, "models"), runtimeDataRoot)
 	if err != nil {
 		t.Fatalf("restore service: %v", err)
 	}
@@ -1002,7 +1036,7 @@ func TestResolveLocalEnvironmentPlanProjectsLatestFailedJob(t *testing.T) {
 	if err != nil {
 		t.Fatalf("start failed job seed: %v", err)
 	}
-	if _, ok := svc.transitionLocalEnvironmentDependencyJob(job.JobID, localEnvironmentStateFailed, "backend archive verification failed", true); !ok {
+	if _, ok, _ := svc.transitionLocalEnvironmentDependencyJob(job.JobID, localEnvironmentStateFailed, "backend archive verification failed", true); !ok {
 		t.Fatalf("failed to transition job")
 	}
 
@@ -1089,7 +1123,7 @@ func TestResolveLocalEnvironmentPlanDoesNotProjectLatestJobAcrossConsumers(t *te
 	if err != nil {
 		t.Fatalf("start unknown failed job seed: %v", err)
 	}
-	if _, ok := svc.transitionLocalEnvironmentDependencyJob(unknownJob.JobID, localEnvironmentStateFailed, "unknown consumer package failed", true); !ok {
+	if _, ok, _ := svc.transitionLocalEnvironmentDependencyJob(unknownJob.JobID, localEnvironmentStateFailed, "unknown consumer package failed", true); !ok {
 		t.Fatalf("failed to transition unknown job")
 	}
 

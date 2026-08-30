@@ -233,11 +233,11 @@ func (r publicChatRuntime) composeLocalAgentTurnContextWithRecall(
 }
 
 func publicChatReasoningReserveTokens(reasoning *publicChatReasoningConfig, reservedOutput uint64) uint64 {
-	if reasoning == nil || reasoning.Mode != runtimev1.ReasoningMode_REASONING_MODE_ON {
+	if reasoning == nil || reasoning.Activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED || reasoning.Activation == runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED {
 		return 0
 	}
-	if reasoning.BudgetTokens > 0 {
-		return uint64(reasoning.BudgetTokens)
+	if reasoning.ExactBudgetTokens > 0 {
+		return uint64(reasoning.ExactBudgetTokens)
 	}
 	// A provider-admitted reasoning mode without an explicit token budget is
 	// still capacity-bearing. Reuse this turn's captured output upper bound as

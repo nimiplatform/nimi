@@ -111,7 +111,7 @@ func TestCatalogResolverErrorsRetainModelNotFoundCause(t *testing.T) {
 func TestInvalidArtifactFileURLRetainsParseCauseWithoutPublishingInput(t *testing.T) {
 	const invalidURL = "file://%zz"
 
-	_, err := inlineRemoteTextGenerateImageURL(invalidURL, "image/png")
+	_, err := inlineTextGenerateImageURL(invalidURL, "image/png")
 	assertCatalogResolverCause(
 		t,
 		err,

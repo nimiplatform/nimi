@@ -318,7 +318,7 @@ function projectLocalOption(value: unknown, index: number): void {
   const option = asRecord(value);
   assertExactProjectionKeys(option, [
     'loadoutRef', 'label', 'capabilityContract', 'implementation',
-    'supportedFeatures', 'state', 'reasons',
+    'implementationSupportedFeatures', 'configuredFeatures', 'textBehaviors', 'state', 'reasons',
   ], `App AIConfig Local option ${index}`);
   projectionText(option.loadoutRef, `App AIConfig Local option ${index} loadoutRef`);
   projectionText(option.label, `App AIConfig Local option ${index} label`);
@@ -328,13 +328,59 @@ function projectLocalOption(value: unknown, index: number): void {
   projectionText(implementation.implementationId, `App AIConfig Local option ${index} implementationId`);
   projectionText(implementation.driverId, `App AIConfig Local option ${index} driverId`);
   projectionText(implementation.driverDialect, `App AIConfig Local option ${index} driverDialect`);
-  if (!Array.isArray(option.supportedFeatures)
-    || option.supportedFeatures.some((feature) => typeof feature !== 'string' || !feature || feature.trim() !== feature)
+  if (!validCanonicalStrings(option.implementationSupportedFeatures)
+    || !validCanonicalStrings(option.configuredFeatures)
+    || !Array.isArray(option.textBehaviors)
+    || !option.textBehaviors.every(validTextBehaviorProjection)
     || !Array.isArray(option.reasons)
     || option.reasons.some((reason) => typeof reason !== 'string' || !reason || reason.trim() !== reason)
     || (option.state !== 'ready' && option.state !== 'blocked')) {
     localAppProjectionError(`App AIConfig Local option ${index}`);
   }
+}
+
+function validCanonicalStrings(value: unknown): value is readonly string[] {
+  return Array.isArray(value)
+    && value.every((entry) => typeof entry === 'string' && entry.length > 0 && entry.trim() === entry);
+}
+
+function validTextBehaviorProjection(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const projection = value as Record<string, unknown>;
+  const keys = Object.keys(projection).sort();
+  const required = ['configurationState', 'implementationSupported', 'kind', 'reasons'];
+  const allowed = new Set([...required, 'configuredToolUse', 'implementationToolUse']);
+  const kind = String(projection.kind);
+  if (!required.every((key) => keys.includes(key)) || !keys.every((key) => allowed.has(key))
+    || !['tool-use', 'reasoning', 'structured-output'].includes(kind)
+    || typeof projection.implementationSupported !== 'boolean'
+    || !['unavailable', 'configured', 'ambiguous'].includes(String(projection.configurationState))
+    || !Array.isArray(projection.reasons)
+    || !projection.reasons.every((reason) => typeof reason === 'string' && reason.length > 0 && reason.trim() === reason)) {
+    return false;
+  }
+  if (kind !== 'tool-use') {
+    return projection.implementationToolUse == null && projection.configuredToolUse == null;
+  }
+  return (projection.implementationToolUse == null || validToolUseProjection(projection.implementationToolUse))
+    && (projection.configuredToolUse == null || validToolUseProjection(projection.configuredToolUse));
+}
+
+function validToolUseProjection(value: unknown): boolean {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const projection = value as Record<string, unknown>;
+  const expected = [
+    'supportedToolSpecKinds', 'supportedToolChoiceModes', 'supportsSingleCall', 'supportsMultipleCalls',
+    'supportsParallelCalls', 'supportsSync', 'supportsStream', 'supportsToolOnlyResponse',
+    'supportsToolResultRoundTrip', 'supportsMixedTextAndToolCalls',
+  ].sort();
+  const keys = Object.keys(projection).sort();
+  return keys.length === expected.length && keys.every((key, keyIndex) => key === expected[keyIndex])
+    && Array.isArray(projection.supportedToolSpecKinds)
+    && projection.supportedToolSpecKinds.every((kind) => kind === 'function' || kind === 'provider')
+    && Array.isArray(projection.supportedToolChoiceModes)
+    && projection.supportedToolChoiceModes.every((mode) => ['auto', 'none', 'required', 'tool'].includes(String(mode)))
+    && expected.slice(2).every((key) => typeof projection[key] === 'boolean');
 }
 
 function projectAppPresetVoiceOption(value: unknown, index: number) {

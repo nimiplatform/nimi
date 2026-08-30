@@ -10,6 +10,7 @@ import (
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -60,8 +61,9 @@ func (s *Service) StreamLocalAppTextTurn(req *runtimev1.StreamLocalAppTextTurnRe
 // terminal completed or failed event cross this boundary.
 type localAppTextTurnStreamBridge struct {
 	grpc.ServerStreamingServer[runtimev1.StreamLocalAppTextTurnEvent]
-	totalBytes int
-	sequence   uint64
+	totalBytes    int
+	sequence      uint64
+	textCompleted bool
 }
 
 func (b *localAppTextTurnStreamBridge) Send(event *runtimev1.StreamScenarioEvent) error {
@@ -84,10 +86,18 @@ func (b *localAppTextTurnStreamBridge) Send(event *runtimev1.StreamScenarioEvent
 	case *runtimev1.StreamScenarioEvent_Usage:
 		return nil
 	case *runtimev1.StreamScenarioEvent_Delta:
-		text := payload.Delta.GetText()
-		if text == nil {
+		item := payload.Delta.GetTextOutputItem()
+		if item == nil || item.GetItemIndex() != 0 || b.textCompleted {
 			// Artifact, reasoning, source, and raw deltas are owner-surface
 			// shapes; the trimmed text-turn stream fails closed on them.
+			return invalid()
+		}
+		text := item.GetText()
+		if text == nil {
+			if item.GetItemCompleted() && item.GetDelta() == nil {
+				b.textCompleted = true
+				return nil
+			}
 			return invalid()
 		}
 		deltaBytes := len([]byte(text.GetText()))
@@ -101,8 +111,11 @@ func (b *localAppTextTurnStreamBridge) Send(event *runtimev1.StreamScenarioEvent
 		out.Payload = &runtimev1.StreamLocalAppTextTurnEvent_Delta{
 			Delta: &runtimev1.LocalAppTextTurnDelta{Text: text.GetText()},
 		}
+		if item.GetItemCompleted() {
+			b.textCompleted = true
+		}
 	case *runtimev1.StreamScenarioEvent_Completed:
-		if !localAppTextCandidateFinishReason(payload.Completed.GetFinishReason()) {
+		if !b.textCompleted || b.totalBytes == 0 || !localAppTextCandidateFinishReason(payload.Completed.GetFinishReason()) {
 			return invalid()
 		}
 		out.Payload = &runtimev1.StreamLocalAppTextTurnEvent_Completed{
@@ -113,12 +126,14 @@ func (b *localAppTextTurnStreamBridge) Send(event *runtimev1.StreamScenarioEvent
 			!localAppOptionalExactText(payload.Failed.GetActionHint(), maxLocalAppTextTurnActionHintBytes) {
 			return invalid()
 		}
-		out.Payload = &runtimev1.StreamLocalAppTextTurnEvent_Failed{
-			Failed: &runtimev1.LocalAppTextTurnFailed{
-				ReasonCode: payload.Failed.GetReasonCode(),
-				ActionHint: payload.Failed.GetActionHint(),
-			},
+		failed := &runtimev1.LocalAppTextTurnFailed{
+			ReasonCode: payload.Failed.GetReasonCode(),
+			ActionHint: payload.Failed.GetActionHint(),
 		}
+		if interruption := payload.Failed.GetInterruption(); interruption != nil {
+			failed.Interruption, _ = proto.Clone(interruption).(*runtimev1.ExecutionInterruption)
+		}
+		out.Payload = &runtimev1.StreamLocalAppTextTurnEvent_Failed{Failed: failed}
 	default:
 		// Tool call, tool result, and tool approval events are owner-surface
 		// shapes; the trimmed text-turn stream fails closed on them.

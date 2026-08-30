@@ -598,10 +598,14 @@ func pythonMaterializerConsumerScope(consumer string) bool {
 
 func localEnvironmentConsumerScopeFromKey(environmentKey string) string {
 	parts := strings.Split(strings.TrimSpace(environmentKey), "|")
-	if len(parts) <= 5 {
+	if len(parts) == 0 {
 		return ""
 	}
-	return strings.TrimSpace(parts[len(parts)-1])
+	candidate := strings.TrimSpace(parts[len(parts)-1])
+	if !pythonMaterializerConsumerScope(candidate) {
+		return ""
+	}
+	return candidate
 }
 
 func pythonRuntimeEngineTarget(consumer string) (string, string) {

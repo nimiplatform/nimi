@@ -28,7 +28,9 @@ function localOption(
       driverId: 'driver.local',
       driverDialect: 'driver.local/v1',
     },
-    supportedFeatures: ['stream'],
+		implementationSupportedFeatures: ['stream'],
+		configuredFeatures: ['stream'],
+		textBehaviors: [],
     state,
     reasons: state === 'blocked' ? ['AI_LOADOUT_BLOCKED'] : [],
   };

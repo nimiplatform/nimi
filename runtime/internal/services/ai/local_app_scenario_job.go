@@ -11,6 +11,7 @@ import (
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
@@ -237,6 +238,17 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		}
 		artifacts = projected
 	}
+	var interruption *runtimev1.ExecutionInterruption
+	if job.GetReasonCode() == runtimev1.ReasonCode_AI_EXECUTION_INTERRUPTED {
+		if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED ||
+			job.GetInterruption().GetCause() != runtimev1.ExecutionInterruptionCause_EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART ||
+			job.GetInterruption().GetResubmitDisposition() != runtimev1.ExecutionResubmitDisposition_EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT {
+			return invalid()
+		}
+		interruption, _ = proto.Clone(job.GetInterruption()).(*runtimev1.ExecutionInterruption)
+	} else if job.GetInterruption() != nil {
+		return invalid()
+	}
 	return &runtimev1.LocalAppScenarioJob{
 		JobId:               job.GetJobId(),
 		ScenarioType:        job.GetScenarioType(),
@@ -251,6 +263,7 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		CreatedAt:           job.GetCreatedAt(),
 		UpdatedAt:           job.GetUpdatedAt(),
 		TranscriptionText:   transcriptionText,
+		Interruption:        interruption,
 	}, nil
 }
 

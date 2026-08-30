@@ -53,6 +53,105 @@ pub struct Ack {
     #[prost(string, tag = "3")]
     pub action_hint: ::prost::alloc::string::String,
 }
+/// Provider-neutral typed behaviors within text.generate. These do not create
+/// additional top-level CapabilityContract tokens.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum TextBehaviorKind {
+    Unspecified = 0,
+    ToolUse = 1,
+    Reasoning = 2,
+    StructuredOutput = 3,
+}
+impl TextBehaviorKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "TEXT_BEHAVIOR_KIND_UNSPECIFIED",
+            Self::ToolUse => "TEXT_BEHAVIOR_KIND_TOOL_USE",
+            Self::Reasoning => "TEXT_BEHAVIOR_KIND_REASONING",
+            Self::StructuredOutput => "TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TEXT_BEHAVIOR_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "TEXT_BEHAVIOR_KIND_TOOL_USE" => Some(Self::ToolUse),
+            "TEXT_BEHAVIOR_KIND_REASONING" => Some(Self::Reasoning),
+            "TEXT_BEHAVIOR_KIND_STRUCTURED_OUTPUT" => Some(Self::StructuredOutput),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ToolSpecKind {
+    Unspecified = 0,
+    Function = 1,
+    Provider = 2,
+}
+impl ToolSpecKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "TOOL_SPEC_KIND_UNSPECIFIED",
+            Self::Function => "TOOL_SPEC_KIND_FUNCTION",
+            Self::Provider => "TOOL_SPEC_KIND_PROVIDER",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TOOL_SPEC_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "TOOL_SPEC_KIND_FUNCTION" => Some(Self::Function),
+            "TOOL_SPEC_KIND_PROVIDER" => Some(Self::Provider),
+            _ => None,
+        }
+    }
+}
+/// How the model is allowed or required to select tools for a text scenario.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ToolChoiceMode {
+    Unspecified = 0,
+    Auto = 1,
+    None = 2,
+    Required = 3,
+    Tool = 4,
+}
+impl ToolChoiceMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "TOOL_CHOICE_MODE_UNSPECIFIED",
+            Self::Auto => "TOOL_CHOICE_MODE_AUTO",
+            Self::None => "TOOL_CHOICE_MODE_NONE",
+            Self::Required => "TOOL_CHOICE_MODE_REQUIRED",
+            Self::Tool => "TOOL_CHOICE_MODE_TOOL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TOOL_CHOICE_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "TOOL_CHOICE_MODE_AUTO" => Some(Self::Auto),
+            "TOOL_CHOICE_MODE_NONE" => Some(Self::None),
+            "TOOL_CHOICE_MODE_REQUIRED" => Some(Self::Required),
+            "TOOL_CHOICE_MODE_TOOL" => Some(Self::Tool),
+            _ => None,
+        }
+    }
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ReasonCode {
@@ -155,6 +254,13 @@ pub enum ReasonCode {
     AiProviderInternal = 392,
     AiProviderRateLimited = 393,
     AiProviderTimeout = 394,
+    /// TEXT_BEHAVIOR and execution interruption family (395+)
+    AiTextBehaviorUnsupported = 395,
+    AiTextBehaviorAmbiguous = 396,
+    AiTextOutputIncomplete = 397,
+    AiToolCallInvalid = 398,
+    AiReasoningContinuityInvalid = 399,
+    AiExecutionInterrupted = 402,
     /// MEDIA family (410+)
     AiMediaSpecInvalid = 410,
     AiMediaOptionUnsupported = 411,
@@ -477,6 +583,12 @@ impl ReasonCode {
             Self::AiProviderInternal => "AI_PROVIDER_INTERNAL",
             Self::AiProviderRateLimited => "AI_PROVIDER_RATE_LIMITED",
             Self::AiProviderTimeout => "AI_PROVIDER_TIMEOUT",
+            Self::AiTextBehaviorUnsupported => "AI_TEXT_BEHAVIOR_UNSUPPORTED",
+            Self::AiTextBehaviorAmbiguous => "AI_TEXT_BEHAVIOR_AMBIGUOUS",
+            Self::AiTextOutputIncomplete => "AI_TEXT_OUTPUT_INCOMPLETE",
+            Self::AiToolCallInvalid => "AI_TOOL_CALL_INVALID",
+            Self::AiReasoningContinuityInvalid => "AI_REASONING_CONTINUITY_INVALID",
+            Self::AiExecutionInterrupted => "AI_EXECUTION_INTERRUPTED",
             Self::AiMediaSpecInvalid => "AI_MEDIA_SPEC_INVALID",
             Self::AiMediaOptionUnsupported => "AI_MEDIA_OPTION_UNSUPPORTED",
             Self::AiMediaJobNotFound => "AI_MEDIA_JOB_NOT_FOUND",
@@ -823,6 +935,12 @@ impl ReasonCode {
             "AI_PROVIDER_INTERNAL" => Some(Self::AiProviderInternal),
             "AI_PROVIDER_RATE_LIMITED" => Some(Self::AiProviderRateLimited),
             "AI_PROVIDER_TIMEOUT" => Some(Self::AiProviderTimeout),
+            "AI_TEXT_BEHAVIOR_UNSUPPORTED" => Some(Self::AiTextBehaviorUnsupported),
+            "AI_TEXT_BEHAVIOR_AMBIGUOUS" => Some(Self::AiTextBehaviorAmbiguous),
+            "AI_TEXT_OUTPUT_INCOMPLETE" => Some(Self::AiTextOutputIncomplete),
+            "AI_TOOL_CALL_INVALID" => Some(Self::AiToolCallInvalid),
+            "AI_REASONING_CONTINUITY_INVALID" => Some(Self::AiReasoningContinuityInvalid),
+            "AI_EXECUTION_INTERRUPTED" => Some(Self::AiExecutionInterrupted),
             "AI_MEDIA_SPEC_INVALID" => Some(Self::AiMediaSpecInvalid),
             "AI_MEDIA_OPTION_UNSUPPORTED" => Some(Self::AiMediaOptionUnsupported),
             "AI_MEDIA_JOB_NOT_FOUND" => Some(Self::AiMediaJobNotFound),
@@ -2973,6 +3091,48 @@ pub struct CapabilityImplementationIdentity {
     #[prost(string, tag = "3")]
     pub driver_dialect: ::prost::alloc::string::String,
 }
+/// Read-only primitive Tool Use support. Exact model/template mapping and
+/// cross-behavior combination predicates remain Runtime-private Driver truth.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ToolUseCapabilityProjection {
+    #[prost(enumeration = "ToolSpecKind", repeated, tag = "1")]
+    pub supported_tool_spec_kinds: ::prost::alloc::vec::Vec<i32>,
+    #[prost(enumeration = "ToolChoiceMode", repeated, tag = "2")]
+    pub supported_tool_choice_modes: ::prost::alloc::vec::Vec<i32>,
+    #[prost(bool, tag = "3")]
+    pub supports_single_call: bool,
+    #[prost(bool, tag = "4")]
+    pub supports_multiple_calls: bool,
+    #[prost(bool, tag = "5")]
+    pub supports_parallel_calls: bool,
+    #[prost(bool, tag = "6")]
+    pub supports_sync: bool,
+    #[prost(bool, tag = "7")]
+    pub supports_stream: bool,
+    #[prost(bool, tag = "8")]
+    pub supports_tool_only_response: bool,
+    #[prost(bool, tag = "9")]
+    pub supports_tool_result_round_trip: bool,
+    #[prost(bool, tag = "10")]
+    pub supports_mixed_text_and_tool_calls: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TextBehaviorCapabilityProjection {
+    #[prost(enumeration = "TextBehaviorKind", tag = "1")]
+    pub kind: i32,
+    #[prost(bool, tag = "2")]
+    pub implementation_supported: bool,
+    #[prost(enumeration = "TextBehaviorConfigurationState", tag = "3")]
+    pub configuration_state: i32,
+    #[prost(enumeration = "LocalCapabilityReason", repeated, tag = "4")]
+    pub reasons: ::prost::alloc::vec::Vec<i32>,
+    /// Set only when kind is TOOL_USE.
+    #[prost(message, optional, tag = "5")]
+    pub implementation_tool_use: ::core::option::Option<ToolUseCapabilityProjection>,
+    /// Exact subset configured by the current Loadout's unique adapter mapping.
+    #[prost(message, optional, tag = "6")]
+    pub configured_tool_use: ::core::option::Option<ToolUseCapabilityProjection>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalCapabilityRequirement {
     #[prost(string, tag = "1")]
@@ -2993,6 +3153,11 @@ pub struct LocalCapabilityRequirement {
     pub occurrence_ordinal: u32,
     #[prost(string, tag = "8")]
     pub display_label: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalCapabilityRequirementPresence", tag = "9")]
+    pub presence: i32,
+    /// Non-empty exactly when presence is OPTIONAL_CONDITIONAL.
+    #[prost(string, repeated, tag = "10")]
+    pub conditional_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ModelAssetExactBinding {
@@ -3022,6 +3187,12 @@ pub struct LoadoutModelAxis {
     pub recipe_compatible: bool,
     #[prost(enumeration = "ReasonCode", repeated, tag = "6")]
     pub reasons: ::prost::alloc::vec::Vec<i32>,
+    #[prost(enumeration = "LocalCapabilityRequirementPresence", tag = "7")]
+    pub presence: i32,
+    #[prost(string, repeated, tag = "8")]
+    pub conditional_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(enumeration = "LocalCapabilityRequirementResolution", tag = "9")]
+    pub resolution: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LoadoutRecipeCustodyReference {
@@ -3048,8 +3219,6 @@ pub struct Loadout {
     pub model_axes: ::prost::alloc::vec::Vec<LoadoutModelAxis>,
     #[prost(message, repeated, tag = "8")]
     pub recipe_custody: ::prost::alloc::vec::Vec<LoadoutRecipeCustodyReference>,
-    #[prost(string, repeated, tag = "9")]
-    pub supported_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(enumeration = "LoadoutValidationState", tag = "10")]
     pub validation_state: i32,
     #[prost(enumeration = "ReasonCode", repeated, tag = "11")]
@@ -3062,6 +3231,15 @@ pub struct Loadout {
     pub created_at: ::prost::alloc::string::String,
     #[prost(string, tag = "15")]
     pub updated_at: ::prost::alloc::string::String,
+    /// Both projections are Runtime-derived and never accepted from a caller.
+    #[prost(string, repeated, tag = "16")]
+    pub implementation_supported_features: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, repeated, tag = "17")]
+    pub configured_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "18")]
+    pub text_behaviors: ::prost::alloc::vec::Vec<TextBehaviorCapabilityProjection>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadoutSelection {
@@ -3115,6 +3293,10 @@ pub struct LoadoutRecipeSlotDescriptor {
     pub recommended_variant_ids: ::prost::alloc::vec::Vec<
         ::prost::alloc::string::String,
     >,
+    #[prost(enumeration = "LocalCapabilityRequirementPresence", tag = "6")]
+    pub presence: i32,
+    #[prost(string, repeated, tag = "7")]
+    pub conditional_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadoutRecipeDescriptor {
@@ -3130,12 +3312,14 @@ pub struct LoadoutRecipeDescriptor {
     pub implementation: ::core::option::Option<CapabilityImplementationIdentity>,
     #[prost(message, optional, tag = "6")]
     pub default_options: ::core::option::Option<::prost_types::Struct>,
-    #[prost(string, repeated, tag = "7")]
-    pub supported_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, repeated, tag = "8")]
     pub slots: ::prost::alloc::vec::Vec<LoadoutRecipeSlotDescriptor>,
     #[prost(message, repeated, tag = "9")]
     pub custody: ::prost::alloc::vec::Vec<LoadoutRecipeCustodyDescriptor>,
+    #[prost(string, repeated, tag = "10")]
+    pub implementation_supported_features: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListLoadoutRecipesRequest {
@@ -3174,8 +3358,6 @@ pub struct PrepareLoadoutRequest {
     pub recipe_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "4")]
     pub options: ::core::option::Option<::prost_types::Struct>,
-    #[prost(string, repeated, tag = "5")]
-    pub supported_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, repeated, tag = "6")]
     pub model_axes: ::prost::alloc::vec::Vec<LoadoutModelAxisInput>,
     #[prost(string, tag = "7")]
@@ -3218,8 +3400,6 @@ pub struct UpdateLoadoutRequest {
     pub recipe_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "4")]
     pub options: ::core::option::Option<::prost_types::Struct>,
-    #[prost(string, repeated, tag = "5")]
-    pub supported_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, repeated, tag = "6")]
     pub model_axes: ::prost::alloc::vec::Vec<LoadoutModelAxisInput>,
     #[prost(string, tag = "7")]
@@ -3266,6 +3446,8 @@ pub struct LoadoutEffectiveModelAxisIdentity {
     pub model_asset_id: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub content_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalCapabilityRequirementPresence", tag = "4")]
+    pub presence: i32,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadoutEffectiveInputIdentity {
@@ -3285,6 +3467,10 @@ pub struct LoadoutEffectiveInputIdentity {
     pub model_axes: ::prost::alloc::vec::Vec<LoadoutEffectiveModelAxisIdentity>,
     #[prost(message, repeated, tag = "8")]
     pub recipe_custody: ::prost::alloc::vec::Vec<LoadoutRecipeCustodyReference>,
+    #[prost(string, repeated, tag = "9")]
+    pub admitted_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(enumeration = "TextBehaviorKind", repeated, tag = "10")]
+    pub admitted_text_behaviors: ::prost::alloc::vec::Vec<i32>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AiConfigAppOwner {
@@ -3360,7 +3546,7 @@ pub struct AiConfig {
     #[prost(message, repeated, tag = "2")]
     pub capabilities: ::prost::alloc::vec::Vec<AiConfigCapabilityIntent>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiConfigLocalResourceProjection {
     #[prost(string, tag = "1")]
     pub loadout_ref: ::prost::alloc::string::String,
@@ -3370,12 +3556,18 @@ pub struct AiConfigLocalResourceProjection {
     pub capability_contract: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "4")]
     pub implementation: ::core::option::Option<CapabilityImplementationIdentity>,
-    #[prost(string, repeated, tag = "5")]
-    pub supported_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(enumeration = "AiConfigEffectiveState", tag = "6")]
     pub state: i32,
     #[prost(string, repeated, tag = "7")]
     pub reasons: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "8")]
+    pub implementation_supported_features: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, repeated, tag = "9")]
+    pub configured_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "10")]
+    pub text_behaviors: ::prost::alloc::vec::Vec<TextBehaviorCapabilityProjection>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AiConfigCloudConnectorProjection {
@@ -3618,6 +3810,8 @@ pub enum LocalCapabilityRequirementResolution {
     Unspecified = 0,
     Unresolved = 1,
     Configured = 2,
+    /// Valid absent state for a Driver-declared optional-conditional slot.
+    NotConfigured = 3,
 }
 impl LocalCapabilityRequirementResolution {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -3629,6 +3823,9 @@ impl LocalCapabilityRequirementResolution {
             Self::Unspecified => "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNSPECIFIED",
             Self::Unresolved => "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_UNRESOLVED",
             Self::Configured => "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED",
+            Self::NotConfigured => {
+                "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_NOT_CONFIGURED"
+            }
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -3642,6 +3839,9 @@ impl LocalCapabilityRequirementResolution {
             }
             "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_CONFIGURED" => {
                 Some(Self::Configured)
+            }
+            "LOCAL_CAPABILITY_REQUIREMENT_RESOLUTION_NOT_CONFIGURED" => {
+                Some(Self::NotConfigured)
             }
             _ => None,
         }
@@ -3673,6 +3873,43 @@ impl LocalCapabilityRequirementPolicy {
             "LOCAL_CAPABILITY_REQUIREMENT_POLICY_STRICT" => Some(Self::Strict),
             "LOCAL_CAPABILITY_REQUIREMENT_POLICY_SUBSTITUTABLE" => {
                 Some(Self::Substitutable)
+            }
+            _ => None,
+        }
+    }
+}
+/// Presence is Driver dialect truth. Catalog metadata may project it but cannot
+/// author or override it.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalCapabilityRequirementPresence {
+    Unspecified = 0,
+    Required = 1,
+    OptionalConditional = 2,
+}
+impl LocalCapabilityRequirementPresence {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_UNSPECIFIED",
+            Self::Required => "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED",
+            Self::OptionalConditional => {
+                "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_UNSPECIFIED" => {
+                Some(Self::Unspecified)
+            }
+            "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED" => Some(Self::Required),
+            "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL" => {
+                Some(Self::OptionalConditional)
             }
             _ => None,
         }
@@ -3722,6 +3959,9 @@ pub enum LocalCapabilityReason {
     LocalAssetContentUnverified = 9,
     LocalAssetContentMismatch = 10,
     LocalAssetIncompatible = 11,
+    ConditionalBindingMissing = 12,
+    TextBehaviorUnavailable = 13,
+    TextBehaviorAmbiguous = 14,
 }
 impl LocalCapabilityReason {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -3755,6 +3995,15 @@ impl LocalCapabilityReason {
             }
             Self::LocalAssetIncompatible => {
                 "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE"
+            }
+            Self::ConditionalBindingMissing => {
+                "LOCAL_CAPABILITY_REASON_CONDITIONAL_BINDING_MISSING"
+            }
+            Self::TextBehaviorUnavailable => {
+                "LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_UNAVAILABLE"
+            }
+            Self::TextBehaviorAmbiguous => {
+                "LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_AMBIGUOUS"
             }
         }
     }
@@ -3791,6 +4040,47 @@ impl LocalCapabilityReason {
             "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE" => {
                 Some(Self::LocalAssetIncompatible)
             }
+            "LOCAL_CAPABILITY_REASON_CONDITIONAL_BINDING_MISSING" => {
+                Some(Self::ConditionalBindingMissing)
+            }
+            "LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_UNAVAILABLE" => {
+                Some(Self::TextBehaviorUnavailable)
+            }
+            "LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_AMBIGUOUS" => {
+                Some(Self::TextBehaviorAmbiguous)
+            }
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum TextBehaviorConfigurationState {
+    Unspecified = 0,
+    Unavailable = 1,
+    Configured = 2,
+    Ambiguous = 3,
+}
+impl TextBehaviorConfigurationState {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "TEXT_BEHAVIOR_CONFIGURATION_STATE_UNSPECIFIED",
+            Self::Unavailable => "TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE",
+            Self::Configured => "TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED",
+            Self::Ambiguous => "TEXT_BEHAVIOR_CONFIGURATION_STATE_AMBIGUOUS",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TEXT_BEHAVIOR_CONFIGURATION_STATE_UNSPECIFIED" => Some(Self::Unspecified),
+            "TEXT_BEHAVIOR_CONFIGURATION_STATE_UNAVAILABLE" => Some(Self::Unavailable),
+            "TEXT_BEHAVIOR_CONFIGURATION_STATE_CONFIGURED" => Some(Self::Configured),
+            "TEXT_BEHAVIOR_CONFIGURATION_STATE_AMBIGUOUS" => Some(Self::Ambiguous),
             _ => None,
         }
     }
@@ -4201,6 +4491,15 @@ impl VoiceAssetStatus {
         }
     }
 }
+/// Presence of this message is the canonical typed INTERRUPTED disposition. It
+/// does not add an INTERRUPTED Job status.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ExecutionInterruption {
+    #[prost(enumeration = "ExecutionInterruptionCause", tag = "1")]
+    pub cause: i32,
+    #[prost(enumeration = "ExecutionResubmitDisposition", tag = "2")]
+    pub resubmit_disposition: i32,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ChatMessage {
     #[prost(string, tag = "1")]
@@ -4211,16 +4510,11 @@ pub struct ChatMessage {
     pub name: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "4")]
     pub parts: ::prost::alloc::vec::Vec<ChatContentPart>,
-    /// Tool calls emitted by an assistant turn (carried back for multi-step loops).
-    #[prost(message, repeated, tag = "5")]
-    pub tool_calls: ::prost::alloc::vec::Vec<ToolCall>,
-    /// Tool call id this message answers (set on tool-role messages).
-    #[prost(string, tag = "6")]
-    pub tool_call_id: ::prost::alloc::string::String,
-    #[prost(message, repeated, tag = "7")]
-    pub tool_results: ::prost::alloc::vec::Vec<ToolResult>,
-    #[prost(message, repeated, tag = "8")]
-    pub tool_approval_responses: ::prost::alloc::vec::Vec<ToolApprovalResponse>,
+    /// Canonical ordered assistant/tool-result round-trip. When non-empty,
+    /// content and parts must be empty; convenience output views are never
+    /// accepted here as a second source of truth.
+    #[prost(message, repeated, tag = "9")]
+    pub turn_items: ::prost::alloc::vec::Vec<TextTurnItem>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ChatContentImageUrl {
@@ -4302,8 +4596,6 @@ pub struct ToolCall {
     pub name: ::prost::alloc::string::String,
     #[prost(string, tag = "3")]
     pub arguments_json: ::prost::alloc::string::String,
-    #[prost(bool, tag = "4")]
-    pub provider_executed: bool,
     #[prost(bool, tag = "5")]
     pub dynamic: bool,
     #[prost(message, optional, tag = "6")]
@@ -4326,25 +4618,104 @@ pub struct ToolResult {
     #[prost(message, optional, tag = "7")]
     pub provider_metadata: ::core::option::Option<::prost_types::Struct>,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ToolApprovalRequest {
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TextOutputText {
     #[prost(string, tag = "1")]
-    pub approval_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub tool_call_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "3")]
-    pub provider_metadata: ::core::option::Option<::prost_types::Struct>,
+    pub text: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ToolApprovalResponse {
+/// Only an implementation-authorized summary is carried here. Raw
+/// chain-of-thought has no canonical public field.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReasoningSummary {
     #[prost(string, tag = "1")]
-    pub approval_id: ::prost::alloc::string::String,
-    #[prost(bool, tag = "2")]
-    pub approved: bool,
-    #[prost(string, tag = "3")]
-    pub reason: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "4")]
-    pub provider_metadata: ::core::option::Option<::prost_types::Struct>,
+    pub text: ::prost::alloc::string::String,
+}
+/// Bounded self-contained native continuity state. Callers preserve the ordered
+/// bytes unchanged; Runtime does not interpret or persist a cross-request store.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReasoningContinuityCarrier {
+    #[prost(string, tag = "1")]
+    pub kind: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "2")]
+    pub version: u32,
+    #[prost(bytes = "vec", tag = "3")]
+    pub payload: ::prost::alloc::vec::Vec<u8>,
+}
+/// Canonical ordered text.generate output item used by sync and stream.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TextOutputItem {
+    #[prost(oneof = "text_output_item::Item", tags = "1, 2, 3, 6")]
+    pub item: ::core::option::Option<text_output_item::Item>,
+}
+/// Nested message and enum types in `TextOutputItem`.
+pub mod text_output_item {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Item {
+        #[prost(message, tag = "1")]
+        Text(super::TextOutputText),
+        #[prost(message, tag = "2")]
+        ReasoningSummary(super::ReasoningSummary),
+        #[prost(message, tag = "3")]
+        ToolCall(super::ToolCall),
+        #[prost(message, tag = "6")]
+        ReasoningContinuity(super::ReasoningContinuityCarrier),
+    }
+}
+/// Canonical ordered assistant transcript input. A ToolResult is supplied only
+/// by the external AI host in the later turn and is never Runtime output.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TextTurnItem {
+    #[prost(oneof = "text_turn_item::Item", tags = "1, 2")]
+    pub item: ::core::option::Option<text_turn_item::Item>,
+}
+/// Nested message and enum types in `TextTurnItem`.
+pub mod text_turn_item {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Item {
+        #[prost(message, tag = "1")]
+        Output(super::TextOutputItem),
+        #[prost(message, tag = "2")]
+        ToolResult(super::ToolResult),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct TextOutputTextDelta {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReasoningSummaryDelta {
+    #[prost(string, tag = "1")]
+    pub text: ::prost::alloc::string::String,
+}
+/// Streaming public-output counterpart of TextOutputItem. item_completed seals the item;
+/// engine fragments remain Runtime-private, and only a complete validated
+/// ToolCall may occupy the public tool_call branch.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct TextOutputItemDelta {
+    /// Zero-based global output-item index. Repeated deltas may address the same
+    /// open text/summary item; a completed item never accepts another delta.
+    #[prost(uint32, tag = "1")]
+    pub item_index: u32,
+    #[prost(bool, tag = "8")]
+    pub item_completed: bool,
+    #[prost(oneof = "text_output_item_delta::Delta", tags = "2, 3, 4, 7")]
+    pub delta: ::core::option::Option<text_output_item_delta::Delta>,
+}
+/// Nested message and enum types in `TextOutputItemDelta`.
+pub mod text_output_item_delta {
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Delta {
+        #[prost(message, tag = "2")]
+        Text(super::TextOutputTextDelta),
+        #[prost(message, tag = "3")]
+        ReasoningSummary(super::ReasoningSummaryDelta),
+        /// Complete validated items; both require item_completed=true.
+        #[prost(message, tag = "4")]
+        ToolCall(super::ToolCall),
+        #[prost(message, tag = "7")]
+        ReasoningContinuity(super::ReasoningContinuityCarrier),
+    }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TextSource {
@@ -4393,12 +4764,22 @@ pub struct IgnoredScenarioExtension {
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ReasoningConfig {
-    #[prost(enumeration = "ReasoningMode", tag = "1")]
-    pub mode: i32,
-    #[prost(enumeration = "ReasoningTraceMode", tag = "2")]
-    pub trace_mode: i32,
-    #[prost(int32, tag = "3")]
-    pub budget_tokens: i32,
+    #[prost(enumeration = "ReasoningActivation", tag = "4")]
+    pub activation: i32,
+    #[prost(enumeration = "ReasoningPresentation", tag = "7")]
+    pub presentation: i32,
+    #[prost(oneof = "reasoning_config::Intensity", tags = "5, 6")]
+    pub intensity: ::core::option::Option<reasoning_config::Intensity>,
+}
+/// Nested message and enum types in `ReasoningConfig`.
+pub mod reasoning_config {
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Intensity {
+        #[prost(enumeration = "super::ReasoningEffort", tag = "5")]
+        Effort(i32),
+        #[prost(uint32, tag = "6")]
+        ExactBudgetTokens(u32),
+    }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TextGenerateScenarioSpec {
@@ -4440,7 +4821,7 @@ pub struct TextEmbedScenarioSpec {
     #[prost(string, repeated, tag = "1")]
     pub inputs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ImageGenerateScenarioSpec {
     #[prost(string, tag = "1")]
     pub prompt: ::prost::alloc::string::String,
@@ -4466,6 +4847,10 @@ pub struct ImageGenerateScenarioSpec {
     pub response_format: ::prost::alloc::string::String,
     #[prost(string, tag = "12")]
     pub reference_image_artifact_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub mask_artifact_id: ::prost::alloc::string::String,
+    #[prost(float, optional, tag = "14")]
+    pub strength: ::core::option::Option<f32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct VideoGenerateScenarioSpec {
@@ -4664,18 +5049,22 @@ pub struct ExecuteScenarioRequest {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TextGenerateOutput {
+    /// Convenience views derived from items. They are never independent truth.
     #[prost(string, tag = "1")]
     pub text: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "2")]
     pub tool_calls: ::prost::alloc::vec::Vec<ToolCall>,
-    #[prost(message, repeated, tag = "3")]
-    pub tool_results: ::prost::alloc::vec::Vec<ToolResult>,
-    #[prost(message, repeated, tag = "4")]
-    pub tool_approval_requests: ::prost::alloc::vec::Vec<ToolApprovalRequest>,
     #[prost(message, repeated, tag = "5")]
     pub sources: ::prost::alloc::vec::Vec<TextSource>,
     #[prost(message, repeated, tag = "6")]
     pub raw_chunks: ::prost::alloc::vec::Vec<RawChunk>,
+    /// Sole primary content truth for text.generate synchronous output.
+    #[prost(message, repeated, tag = "7")]
+    pub items: ::prost::alloc::vec::Vec<TextOutputItem>,
+    /// Ordered concatenation of permitted ReasoningSummary items, derived from
+    /// items and empty when presentation is HIDDEN.
+    #[prost(string, tag = "8")]
+    pub reasoning_summary: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EmbeddingVector {
@@ -4790,6 +5179,9 @@ pub struct ExecuteScenarioResponse {
     pub trace_id: ::prost::alloc::string::String,
     #[prost(message, repeated, tag = "7")]
     pub ignored_extensions: ::prost::alloc::vec::Vec<IgnoredScenarioExtension>,
+    /// Public attribution of the exact Local request admission. Empty for Cloud.
+    #[prost(message, optional, tag = "9")]
+    pub effective_input_identity: ::core::option::Option<LoadoutEffectiveInputIdentity>,
 }
 /// Exact third-party Local App foreground text-candidate contract. Runtime
 /// derives account, App identity, permission and managed local route from the
@@ -4846,6 +5238,10 @@ pub struct LocalAppScenarioArtifact {
     pub sample_rate_hz: i32,
     #[prost(int32, tag = "10")]
     pub channels: i32,
+    /// Concrete image seed selected by the admitted Driver/ExecutionHost. This
+    /// is absent for non-image artifacts and does not expose free-form metadata.
+    #[prost(int32, optional, tag = "11")]
+    pub seed: ::core::option::Option<i32>,
 }
 /// Synchronous closed-set scenario specs admitted for ExecuteLocalAppScenario.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -4853,7 +5249,7 @@ pub struct LocalAppTextEmbedScenarioSpec {
     #[prost(string, repeated, tag = "1")]
     pub inputs: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppImageGenerateScenarioSpec {
     #[prost(string, tag = "1")]
     pub prompt: ::prost::alloc::string::String,
@@ -4879,15 +5275,19 @@ pub struct LocalAppImageGenerateScenarioSpec {
     pub response_format: ::prost::alloc::string::String,
     #[prost(string, tag = "12")]
     pub reference_image_artifact_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "13")]
+    pub mask_artifact_id: ::prost::alloc::string::String,
+    #[prost(float, optional, tag = "14")]
+    pub strength: ::core::option::Option<f32>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ExecuteLocalAppScenarioRequest {
     #[prost(oneof = "execute_local_app_scenario_request::Spec", tags = "1, 2")]
     pub spec: ::core::option::Option<execute_local_app_scenario_request::Spec>,
 }
 /// Nested message and enum types in `ExecuteLocalAppScenarioRequest`.
 pub mod execute_local_app_scenario_request {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Spec {
         #[prost(message, tag = "1")]
         TextEmbed(super::LocalAppTextEmbedScenarioSpec),
@@ -5096,6 +5496,9 @@ pub struct LocalAppScenarioJob {
     /// an artifact body.
     #[prost(string, tag = "13")]
     pub transcription_text: ::prost::alloc::string::String,
+    /// Set only with reason_code AI_EXECUTION_INTERRUPTED and status FAILED.
+    #[prost(message, optional, tag = "14")]
+    pub interruption: ::core::option::Option<ExecutionInterruption>,
 }
 /// Trimmed voice asset catalog projection. Provider, model, provider voice
 /// ref, and owner identity fields are never projected.
@@ -5205,6 +5608,8 @@ pub struct LocalAppTextTurnFailed {
     pub reason_code: i32,
     #[prost(string, tag = "2")]
     pub action_hint: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub interruption: ::core::option::Option<ExecutionInterruption>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct StreamLocalAppTextTurnEvent {
@@ -5290,7 +5695,7 @@ pub struct StreamScenarioRequest {
     #[prost(message, repeated, tag = "5")]
     pub extensions: ::prost::alloc::vec::Vec<ScenarioExtension>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioStreamStarted {
     #[prost(string, tag = "1")]
     pub model_resolved: ::prost::alloc::string::String,
@@ -5303,16 +5708,9 @@ pub struct ScenarioStreamStarted {
     /// native realtime from event shape or from ScenarioStreamCompleted.stream_simulated.
     #[prost(enumeration = "VoiceOutputMode", tag = "4")]
     pub voice_output_mode: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct TextStreamDelta {
-    #[prost(string, tag = "1")]
-    pub text: ::prost::alloc::string::String,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct ReasoningStreamDelta {
-    #[prost(string, tag = "1")]
-    pub text: ::prost::alloc::string::String,
+    /// Public attribution of the exact Local request admission. Empty for Cloud.
+    #[prost(message, optional, tag = "5")]
+    pub effective_input_identity: ::core::option::Option<LoadoutEffectiveInputIdentity>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ArtifactStreamDelta {
@@ -5323,23 +5721,22 @@ pub struct ArtifactStreamDelta {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioStreamDelta {
-    #[prost(oneof = "scenario_stream_delta::Delta", tags = "1, 2, 3, 4, 5")]
+    #[prost(oneof = "scenario_stream_delta::Delta", tags = "2, 4, 5, 6")]
     pub delta: ::core::option::Option<scenario_stream_delta::Delta>,
 }
 /// Nested message and enum types in `ScenarioStreamDelta`.
 pub mod scenario_stream_delta {
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Delta {
-        #[prost(message, tag = "1")]
-        Text(super::TextStreamDelta),
         #[prost(message, tag = "2")]
         Artifact(super::ArtifactStreamDelta),
-        #[prost(message, tag = "3")]
-        Reasoning(super::ReasoningStreamDelta),
         #[prost(message, tag = "4")]
         Source(super::TextSource),
+        /// RawChunk never carries hidden or raw chain-of-thought.
         #[prost(message, tag = "5")]
         Raw(super::RawChunk),
+        #[prost(message, tag = "6")]
+        TextOutputItem(super::TextOutputItemDelta),
     }
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -5361,6 +5758,8 @@ pub struct ScenarioStreamFailed {
     pub reason_code: i32,
     #[prost(string, tag = "2")]
     pub action_hint: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub interruption: ::core::option::Option<ExecutionInterruption>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamScenarioEvent {
@@ -5372,10 +5771,7 @@ pub struct StreamScenarioEvent {
     pub trace_id: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "4")]
     pub timestamp: ::core::option::Option<::prost_types::Timestamp>,
-    #[prost(
-        oneof = "stream_scenario_event::Payload",
-        tags = "10, 11, 14, 15, 16, 17, 18, 19"
-    )]
+    #[prost(oneof = "stream_scenario_event::Payload", tags = "10, 11, 14, 15, 16")]
     pub payload: ::core::option::Option<stream_scenario_event::Payload>,
 }
 /// Nested message and enum types in `StreamScenarioEvent`.
@@ -5392,12 +5788,6 @@ pub mod stream_scenario_event {
         Completed(super::ScenarioStreamCompleted),
         #[prost(message, tag = "16")]
         Failed(super::ScenarioStreamFailed),
-        #[prost(message, tag = "17")]
-        ToolCall(super::ToolCall),
-        #[prost(message, tag = "18")]
-        ToolResult(super::ToolResult),
-        #[prost(message, tag = "19")]
-        ToolApprovalRequest(super::ToolApprovalRequest),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -5430,6 +5820,10 @@ pub struct ScenarioArtifact {
     pub speech_alignment: ::core::option::Option<SpeechAlignment>,
     #[prost(message, optional, tag = "14")]
     pub metadata: ::core::option::Option<::prost_types::Struct>,
+    /// Concrete seed used to produce an image artifact. This is absent for
+    /// non-image artifacts and is the canonical seed result, not metadata.
+    #[prost(int32, optional, tag = "15")]
+    pub seed: ::core::option::Option<i32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioJob {
@@ -5486,6 +5880,9 @@ pub struct ScenarioJob {
     /// ResolvedAssembly captured before this Job was published.
     #[prost(message, optional, tag = "24")]
     pub effective_input_identity: ::core::option::Option<LoadoutEffectiveInputIdentity>,
+    /// Set only with reason_code AI_EXECUTION_INTERRUPTED and status FAILED.
+    #[prost(message, optional, tag = "25")]
+    pub interruption: ::core::option::Option<ExecutionInterruption>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitScenarioJobRequest {
@@ -5971,58 +6368,155 @@ impl FinishReason {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
-pub enum ReasoningMode {
+pub enum ReasoningActivation {
     Unspecified = 0,
-    Off = 1,
-    On = 2,
+    Disabled = 1,
+    Adaptive = 2,
+    Required = 3,
 }
-impl ReasoningMode {
+impl ReasoningActivation {
     /// String value of the enum field names used in the ProtoBuf definition.
     ///
     /// The values are not transformed in any way and thus are considered stable
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            Self::Unspecified => "REASONING_MODE_UNSPECIFIED",
-            Self::Off => "REASONING_MODE_OFF",
-            Self::On => "REASONING_MODE_ON",
+            Self::Unspecified => "REASONING_ACTIVATION_UNSPECIFIED",
+            Self::Disabled => "REASONING_ACTIVATION_DISABLED",
+            Self::Adaptive => "REASONING_ACTIVATION_ADAPTIVE",
+            Self::Required => "REASONING_ACTIVATION_REQUIRED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "REASONING_MODE_UNSPECIFIED" => Some(Self::Unspecified),
-            "REASONING_MODE_OFF" => Some(Self::Off),
-            "REASONING_MODE_ON" => Some(Self::On),
+            "REASONING_ACTIVATION_UNSPECIFIED" => Some(Self::Unspecified),
+            "REASONING_ACTIVATION_DISABLED" => Some(Self::Disabled),
+            "REASONING_ACTIVATION_ADAPTIVE" => Some(Self::Adaptive),
+            "REASONING_ACTIVATION_REQUIRED" => Some(Self::Required),
             _ => None,
         }
     }
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
-pub enum ReasoningTraceMode {
+pub enum ReasoningEffort {
     Unspecified = 0,
-    Hide = 1,
-    Separate = 2,
+    Minimal = 1,
+    Low = 2,
+    Medium = 3,
+    High = 4,
+    Maximum = 5,
 }
-impl ReasoningTraceMode {
+impl ReasoningEffort {
     /// String value of the enum field names used in the ProtoBuf definition.
     ///
     /// The values are not transformed in any way and thus are considered stable
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            Self::Unspecified => "REASONING_TRACE_MODE_UNSPECIFIED",
-            Self::Hide => "REASONING_TRACE_MODE_HIDE",
-            Self::Separate => "REASONING_TRACE_MODE_SEPARATE",
+            Self::Unspecified => "REASONING_EFFORT_UNSPECIFIED",
+            Self::Minimal => "REASONING_EFFORT_MINIMAL",
+            Self::Low => "REASONING_EFFORT_LOW",
+            Self::Medium => "REASONING_EFFORT_MEDIUM",
+            Self::High => "REASONING_EFFORT_HIGH",
+            Self::Maximum => "REASONING_EFFORT_MAXIMUM",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "REASONING_TRACE_MODE_UNSPECIFIED" => Some(Self::Unspecified),
-            "REASONING_TRACE_MODE_HIDE" => Some(Self::Hide),
-            "REASONING_TRACE_MODE_SEPARATE" => Some(Self::Separate),
+            "REASONING_EFFORT_UNSPECIFIED" => Some(Self::Unspecified),
+            "REASONING_EFFORT_MINIMAL" => Some(Self::Minimal),
+            "REASONING_EFFORT_LOW" => Some(Self::Low),
+            "REASONING_EFFORT_MEDIUM" => Some(Self::Medium),
+            "REASONING_EFFORT_HIGH" => Some(Self::High),
+            "REASONING_EFFORT_MAXIMUM" => Some(Self::Maximum),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ReasoningPresentation {
+    Unspecified = 0,
+    Hidden = 1,
+    Summary = 2,
+}
+impl ReasoningPresentation {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "REASONING_PRESENTATION_UNSPECIFIED",
+            Self::Hidden => "REASONING_PRESENTATION_HIDDEN",
+            Self::Summary => "REASONING_PRESENTATION_SUMMARY",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "REASONING_PRESENTATION_UNSPECIFIED" => Some(Self::Unspecified),
+            "REASONING_PRESENTATION_HIDDEN" => Some(Self::Hidden),
+            "REASONING_PRESENTATION_SUMMARY" => Some(Self::Summary),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ExecutionInterruptionCause {
+    Unspecified = 0,
+    RuntimeRestart = 1,
+}
+impl ExecutionInterruptionCause {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "EXECUTION_INTERRUPTION_CAUSE_UNSPECIFIED",
+            Self::RuntimeRestart => "EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "EXECUTION_INTERRUPTION_CAUSE_UNSPECIFIED" => Some(Self::Unspecified),
+            "EXECUTION_INTERRUPTION_CAUSE_RUNTIME_RESTART" => Some(Self::RuntimeRestart),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ExecutionResubmitDisposition {
+    Unspecified = 0,
+    CallerMayResubmit = 1,
+}
+impl ExecutionResubmitDisposition {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "EXECUTION_RESUBMIT_DISPOSITION_UNSPECIFIED",
+            Self::CallerMayResubmit => {
+                "EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT"
+            }
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "EXECUTION_RESUBMIT_DISPOSITION_UNSPECIFIED" => Some(Self::Unspecified),
+            "EXECUTION_RESUBMIT_DISPOSITION_CALLER_MAY_RESUBMIT" => {
+                Some(Self::CallerMayResubmit)
+            }
             _ => None,
         }
     }
@@ -6033,12 +6527,9 @@ pub enum StreamEventType {
     Unspecified = 0,
     StreamEventStarted = 1,
     StreamEventDelta = 2,
-    StreamEventToolCall = 3,
-    StreamEventToolResult = 4,
     StreamEventUsage = 5,
     StreamEventCompleted = 6,
     StreamEventFailed = 7,
-    StreamEventToolApprovalRequest = 8,
 }
 impl StreamEventType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -6050,12 +6541,9 @@ impl StreamEventType {
             Self::Unspecified => "STREAM_EVENT_TYPE_UNSPECIFIED",
             Self::StreamEventStarted => "STREAM_EVENT_STARTED",
             Self::StreamEventDelta => "STREAM_EVENT_DELTA",
-            Self::StreamEventToolCall => "STREAM_EVENT_TOOL_CALL",
-            Self::StreamEventToolResult => "STREAM_EVENT_TOOL_RESULT",
             Self::StreamEventUsage => "STREAM_EVENT_USAGE",
             Self::StreamEventCompleted => "STREAM_EVENT_COMPLETED",
             Self::StreamEventFailed => "STREAM_EVENT_FAILED",
-            Self::StreamEventToolApprovalRequest => "STREAM_EVENT_TOOL_APPROVAL_REQUEST",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -6064,14 +6552,9 @@ impl StreamEventType {
             "STREAM_EVENT_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
             "STREAM_EVENT_STARTED" => Some(Self::StreamEventStarted),
             "STREAM_EVENT_DELTA" => Some(Self::StreamEventDelta),
-            "STREAM_EVENT_TOOL_CALL" => Some(Self::StreamEventToolCall),
-            "STREAM_EVENT_TOOL_RESULT" => Some(Self::StreamEventToolResult),
             "STREAM_EVENT_USAGE" => Some(Self::StreamEventUsage),
             "STREAM_EVENT_COMPLETED" => Some(Self::StreamEventCompleted),
             "STREAM_EVENT_FAILED" => Some(Self::StreamEventFailed),
-            "STREAM_EVENT_TOOL_APPROVAL_REQUEST" => {
-                Some(Self::StreamEventToolApprovalRequest)
-            }
             _ => None,
         }
     }
@@ -6285,71 +6768,6 @@ impl ChatContentPartType {
             "CHAT_CONTENT_PART_TYPE_VIDEO_URL" => Some(Self::VideoUrl),
             "CHAT_CONTENT_PART_TYPE_AUDIO_URL" => Some(Self::AudioUrl),
             "CHAT_CONTENT_PART_TYPE_ARTIFACT_REF" => Some(Self::ArtifactRef),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum ToolSpecKind {
-    Unspecified = 0,
-    Function = 1,
-    Provider = 2,
-}
-impl ToolSpecKind {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "TOOL_SPEC_KIND_UNSPECIFIED",
-            Self::Function => "TOOL_SPEC_KIND_FUNCTION",
-            Self::Provider => "TOOL_SPEC_KIND_PROVIDER",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "TOOL_SPEC_KIND_UNSPECIFIED" => Some(Self::Unspecified),
-            "TOOL_SPEC_KIND_FUNCTION" => Some(Self::Function),
-            "TOOL_SPEC_KIND_PROVIDER" => Some(Self::Provider),
-            _ => None,
-        }
-    }
-}
-/// How the model is allowed or required to select tools for a text scenario.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum ToolChoiceMode {
-    Unspecified = 0,
-    Auto = 1,
-    None = 2,
-    Required = 3,
-    Tool = 4,
-}
-impl ToolChoiceMode {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "TOOL_CHOICE_MODE_UNSPECIFIED",
-            Self::Auto => "TOOL_CHOICE_MODE_AUTO",
-            Self::None => "TOOL_CHOICE_MODE_NONE",
-            Self::Required => "TOOL_CHOICE_MODE_REQUIRED",
-            Self::Tool => "TOOL_CHOICE_MODE_TOOL",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "TOOL_CHOICE_MODE_UNSPECIFIED" => Some(Self::Unspecified),
-            "TOOL_CHOICE_MODE_AUTO" => Some(Self::Auto),
-            "TOOL_CHOICE_MODE_NONE" => Some(Self::None),
-            "TOOL_CHOICE_MODE_REQUIRED" => Some(Self::Required),
-            "TOOL_CHOICE_MODE_TOOL" => Some(Self::Tool),
             _ => None,
         }
     }
@@ -7475,10 +7893,9 @@ pub struct LocalVerifiedAssetDescriptor {
     pub artifact_roles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(string, tag = "24")]
     pub preferred_engine: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "25")]
-    pub fallback_engines: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(message, optional, tag = "26")]
     pub engine_config: ::core::option::Option<::prost_types::Struct>,
+    /// Attached endpoint projection is valid only for sidecar assets.
     #[prost(string, tag = "27")]
     pub endpoint: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "28")]
@@ -7488,8 +7905,11 @@ pub struct LocalVerifiedAssetDescriptor {
 pub struct LocalProviderHintsLlama {
     #[prost(string, tag = "1")]
     pub backend: ::prost::alloc::string::String,
+    /// Recommendation label only; never a public TextBehaviorAdapter selector.
     #[prost(string, tag = "2")]
     pub preferred_adapter: ::prost::alloc::string::String,
+    /// Recommendation only; pairing and optional-conditional admission are
+    /// Driver and Model Contract truth.
     #[prost(string, tag = "3")]
     pub multimodal_projector: ::prost::alloc::string::String,
 }
@@ -7507,10 +7927,6 @@ pub struct LocalProviderHintsMedia {
     pub video_driver: ::prost::alloc::string::String,
     #[prost(string, tag = "6")]
     pub device: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub fallback_driver: ::prost::alloc::string::String,
-    #[prost(string, tag = "8")]
-    pub fallback_reason: ::prost::alloc::string::String,
     #[prost(string, tag = "9")]
     pub policy_gate: ::prost::alloc::string::String,
 }
@@ -7576,12 +7992,14 @@ pub struct LocalCatalogModelDescriptor {
     pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(string, tag = "10")]
     pub engine: ::prost::alloc::string::String,
+    /// ATTACHED_ENDPOINT is valid only when engine is sidecar.
     #[prost(enumeration = "LocalEngineRuntimeMode", tag = "11")]
     pub engine_runtime_mode: i32,
     #[prost(string, tag = "12")]
     pub install_kind: ::prost::alloc::string::String,
     #[prost(bool, tag = "13")]
     pub install_available: bool,
+    /// Populated only for an admitted sidecar ATTACHED_ENDPOINT descriptor.
     #[prost(string, tag = "14")]
     pub endpoint: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "15")]
@@ -7615,6 +8033,8 @@ pub struct LocalCatalogModelDescriptor {
     pub total_size_bytes: i64,
     #[prost(string, tag = "28")]
     pub source_provenance: ::prost::alloc::string::String,
+    #[prost(string, tag = "29")]
+    pub model_type: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalInstallPlanDescriptor {
@@ -7636,12 +8056,14 @@ pub struct LocalInstallPlanDescriptor {
     pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(string, tag = "9")]
     pub engine: ::prost::alloc::string::String,
+    /// ATTACHED_ENDPOINT is valid only when engine is sidecar.
     #[prost(enumeration = "LocalEngineRuntimeMode", tag = "10")]
     pub engine_runtime_mode: i32,
     #[prost(string, tag = "11")]
     pub install_kind: ::prost::alloc::string::String,
     #[prost(bool, tag = "12")]
     pub install_available: bool,
+    /// Populated only for an admitted sidecar ATTACHED_ENDPOINT install plan.
     #[prost(string, tag = "13")]
     pub endpoint: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "14")]
@@ -7667,6 +8089,8 @@ pub struct LocalInstallPlanDescriptor {
     pub total_size_bytes: i64,
     #[prost(string, tag = "23")]
     pub source_provenance: ::prost::alloc::string::String,
+    #[prost(string, tag = "24")]
+    pub model_type: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -7734,6 +8158,8 @@ impl LocalAssetKind {
 pub enum LocalEngineRuntimeMode {
     Unspecified = 0,
     Supervised = 1,
+    /// Public value retained for sidecar only. llama, media, and speech are
+    /// Runtime-owned supervised topologies and reject this value typed.
     AttachedEndpoint = 2,
 }
 impl LocalEngineRuntimeMode {
@@ -8680,10 +9106,14 @@ pub struct ResolveModelInstallPlanRequest {
         ::prost::alloc::string::String,
         ::prost::alloc::string::String,
     >,
+    /// Explicit configuration input for sidecar acquisition only. llama, media,
+    /// and speech reject endpoint-bearing install plans.
     #[prost(string, tag = "13")]
     pub endpoint: ::prost::alloc::string::String,
     #[prost(message, optional, tag = "14")]
     pub engine_config: ::core::option::Option<::prost_types::Struct>,
+    #[prost(string, tag = "15")]
+    pub model_type: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResolveModelInstallPlanResponse {
@@ -9024,6 +9454,15 @@ pub struct ProductControlProjectionJson {
     #[prost(string, tag = "1")]
     pub json: ::prost::alloc::string::String,
 }
+/// CheckSyncProjectionJson carries the protected Runtime Check & Sync
+/// projection. It is intentionally an opaque JSON envelope at the wire layer:
+/// owner result vocabularies stay Runtime/owner-defined and are not promoted to
+/// an ordinary App SDK entitlement.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CheckSyncProjectionJson {
+    #[prost(string, tag = "1")]
+    pub json: ::prost::alloc::string::String,
+}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetProductControlRecordRequest {}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -9035,6 +9474,17 @@ pub struct SelectProductControlDataRootRequest {
     #[prost(string, tag = "1")]
     pub data_root: ::prost::alloc::string::String,
 }
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct InitializeProductControlRootActivationRequest {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReplaceProductControlDataRootRequest {
+    #[prost(string, tag = "1")]
+    pub target_root: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartProductControlCheckSyncRequest {}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetProductControlCheckSyncRequest {}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SetProductControlFirstRunInstallLevelRequest {
     #[prost(string, tag = "1")]
@@ -10204,6 +10654,124 @@ pub mod runtime_local_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeLocalService",
                         "SelectProductControlDataRoot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn initialize_product_control_root_activation(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::InitializeProductControlRootActivationRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ProductControlProjectionJson>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "InitializeProductControlRootActivation",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn replace_product_control_data_root(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ReplaceProductControlDataRootRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ProductControlProjectionJson>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ReplaceProductControlDataRoot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn start_product_control_check_sync(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StartProductControlCheckSyncRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CheckSyncProjectionJson>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/StartProductControlCheckSync",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "StartProductControlCheckSync",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_product_control_check_sync(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetProductControlCheckSyncRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CheckSyncProjectionJson>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "GetProductControlCheckSync",
                     ),
                 );
             self.inner.unary(req, path, codec).await

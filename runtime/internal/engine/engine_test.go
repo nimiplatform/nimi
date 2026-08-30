@@ -16,6 +16,57 @@ import (
 	"time"
 )
 
+func setMediaHostGPUProbeForTest(t *testing.T, vendor string, driverVisible bool) {
+	t.Helper()
+	previous := mediaHostGPUProbe
+	mediaHostGPUProbe = func() (string, bool) { return vendor, driverVisible }
+	t.Cleanup(func() { mediaHostGPUProbe = previous })
+}
+
+func TestManagerDataRootQuiesceWaitsForInFlightStartAndAbortResumesAdmission(t *testing.T) {
+	mgr, err := NewManager(nil, testManagedRoots(t), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := mgr.beginEngineStart(EngineMedia); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	done := make(chan error, 1)
+	go func() { done <- mgr.QuiesceDataRoot(ctx) }()
+	deadline := time.Now().Add(time.Second)
+	for {
+		mgr.mu.RLock()
+		closed := mgr.dataRootAdmissionClosed
+		mgr.mu.RUnlock()
+		if closed {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("data-root quiesce did not close start admission")
+		}
+		time.Sleep(time.Millisecond)
+	}
+	select {
+	case err := <-done:
+		t.Fatalf("quiesce returned before in-flight start drained: %v", err)
+	default:
+	}
+	mgr.finishEngineStart(EngineMedia)
+	if err := <-done; err != nil {
+		t.Fatal(err)
+	}
+	if err := mgr.beginEngineStart(EngineMedia); !errors.Is(err, ErrEngineManagerDataRootQuiesced) {
+		t.Fatalf("closed data-root admission accepted start: %v", err)
+	}
+	mgr.ResumeDataRootAfterAbort()
+	if err := mgr.beginEngineStart(EngineMedia); err != nil {
+		t.Fatalf("abort did not reopen data-root admission: %v", err)
+	}
+	mgr.finishEngineStart(EngineMedia)
+}
+
 // --- Download URL tests ---
 
 func TestLlamaDownloadURL(t *testing.T) {
@@ -59,19 +110,16 @@ func TestLlamaDownloadURL(t *testing.T) {
 }
 
 func TestLlamaAssetName(t *testing.T) {
-	tests := []struct {
+	supported := []struct {
 		goos   string
 		goarch string
 		want   string
 	}{
 		{goos: "darwin", goarch: "arm64", want: "llama-b8575-bin-macos-arm64.tar.gz"},
-		{goos: "darwin", goarch: "amd64", want: "llama-b8575-bin-macos-x64.tar.gz"},
-		{goos: "linux", goarch: "amd64", want: "llama-b8575-bin-ubuntu-x64.tar.gz"},
-		{goos: "windows", goarch: "amd64", want: "llama-b8575-bin-win-cpu-x64.zip"},
-		{goos: "windows", goarch: "arm64", want: "llama-b8575-bin-win-cpu-arm64.zip"},
+		{goos: "windows", goarch: "amd64", want: "llama-b8575-bin-win-cuda-12.4-x64.zip"},
 	}
 
-	for _, tt := range tests {
+	for _, tt := range supported {
 		t.Run(tt.goos+"-"+tt.goarch, func(t *testing.T) {
 			got, err := llamaAssetNameFor("b8575", tt.goos, tt.goarch)
 			if err != nil {
@@ -82,6 +130,11 @@ func TestLlamaAssetName(t *testing.T) {
 			}
 		})
 	}
+	for _, tuple := range [][2]string{{"darwin", "amd64"}, {"linux", "amd64"}, {"windows", "arm64"}} {
+		if _, err := llamaAssetNameFor("b8575", tuple[0], tuple[1]); err == nil {
+			t.Fatalf("llamaAssetNameFor(%q,%q) unexpectedly admitted", tuple[0], tuple[1])
+		}
+	}
 }
 
 func TestLlamaAssetNameCandidatesPreferWindowsNvidiaCUDA(t *testing.T) {
@@ -89,20 +142,17 @@ func TestLlamaAssetNameCandidatesPreferWindowsNvidiaCUDA(t *testing.T) {
 	if err != nil {
 		t.Fatalf("llamaAssetNameCandidates: %v", err)
 	}
-	want := []string{
-		"llama-b8712-bin-win-cuda-12.4-x64.zip",
-		"llama-b8712-bin-win-cpu-x64.zip",
-	}
+	want := []string{"llama-b8712-bin-win-cuda-12.4-x64.zip"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("llamaAssetNameCandidates = %#v, want %#v", got, want)
 	}
 }
 
-func TestLlamaReleaseAssetPrefersWindowsNvidiaCUDAAndFallsBackToCPU(t *testing.T) {
+func TestLlamaReleaseAssetRequiresWindowsNvidiaCUDAWithoutCPUFallback(t *testing.T) {
 	if currentGOOS() != "windows" || currentGOARCH() != "amd64" {
 		t.Skip("Windows NVIDIA CUDA release selection is host-gated")
 	}
-	t.Setenv("NIMI_RUNTIME_GPU_VENDOR", "nvidia")
+	setMediaHostGPUProbeForTest(t, "nvidia", true)
 	const version = "b8712"
 	const cudaAsset = "llama-b8712-bin-win-cuda-12.4-x64.zip"
 	const cpuAsset = "llama-b8712-bin-win-cpu-x64.zip"
@@ -137,12 +187,8 @@ func TestLlamaReleaseAssetPrefersWindowsNvidiaCUDAAndFallsBackToCPU(t *testing.T
 	defer func() { fallbackServer.Close() }()
 	t.Cleanup(setLlamaReleaseSourceForTest(fallbackServer.URL, fallbackServer.Client()))
 
-	asset, err = llamaReleaseAsset(version)
-	if err != nil {
-		t.Fatalf("llamaReleaseAsset fallback: %v", err)
-	}
-	if asset.Name != cpuAsset || asset.SHA256 != cpuHash {
-		t.Fatalf("expected CPU fallback asset, got %#v", asset)
+	if _, err = llamaReleaseAsset(version); err == nil {
+		t.Fatal("expected missing CUDA asset to fail without CPU fallback")
 	}
 }
 
@@ -168,17 +214,41 @@ func TestLlamaSupervisedPlatformSupportedFor(t *testing.T) {
 		want   bool
 	}{
 		{goos: "darwin", goarch: "arm64", want: true},
-		{goos: "darwin", goarch: "amd64", want: true},
-		{goos: "linux", goarch: "amd64", want: true},
+		{goos: "darwin", goarch: "amd64", want: false},
+		{goos: "linux", goarch: "amd64", want: false},
 		{goos: "linux", goarch: "arm64", want: false},
 		{goos: "windows", goarch: "amd64", want: true},
-		{goos: "windows", goarch: "arm64", want: true},
+		{goos: "windows", goarch: "arm64", want: false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.goos+"-"+tt.goarch, func(t *testing.T) {
 			if got := LlamaSupervisedPlatformSupportedFor(tt.goos, tt.goarch); got != tt.want {
 				t.Fatalf("LlamaSupervisedPlatformSupportedFor(%q, %q) = %v, want %v", tt.goos, tt.goarch, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestLlamaSupervisedHostSupportedForExactBackend(t *testing.T) {
+	tests := []struct {
+		name      string
+		goos      string
+		goarch    string
+		vendor    string
+		cudaReady bool
+		want      bool
+	}{
+		{name: "windows cuda", goos: "windows", goarch: "amd64", vendor: "nvidia", cudaReady: true, want: true},
+		{name: "windows nvidia missing cuda", goos: "windows", goarch: "amd64", vendor: "nvidia", want: false},
+		{name: "windows cpu fallback forbidden", goos: "windows", goarch: "amd64", vendor: "intel", want: false},
+		{name: "macos metal target", goos: "darwin", goarch: "arm64", vendor: "apple", want: true},
+		{name: "linux not in first release", goos: "linux", goarch: "amd64", vendor: "nvidia", cudaReady: true, want: false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := LlamaSupervisedHostSupportedFor(test.goos, test.goarch, test.vendor, test.cudaReady); got != test.want {
+				t.Fatalf("LlamaSupervisedHostSupportedFor() = %t, want %t", got, test.want)
 			}
 		})
 	}
@@ -219,7 +289,7 @@ func TestMediaSupervisedPlatformSupportedFor(t *testing.T) {
 		{goos: "windows", goarch: "amd64", want: true},
 		{goos: "windows", goarch: "arm64", want: false},
 		{goos: "linux", goarch: "amd64", want: false},
-		{goos: "darwin", goarch: "arm64", want: false},
+		{goos: "darwin", goarch: "arm64", want: true},
 	}
 
 	for _, tt := range tests {
@@ -249,28 +319,36 @@ func TestClassifyMediaHost(t *testing.T) {
 			want:      MediaHostSupportSupportedSupervised,
 		},
 		{
-			name:      "windows non nvidia attached only",
+			name:      "windows non nvidia unsupported",
 			goos:      "windows",
 			goarch:    "amd64",
 			gpuVendor: "intel",
 			cudaReady: false,
-			want:      MediaHostSupportAttachedOnly,
+			want:      MediaHostSupportUnsupported,
 		},
 		{
-			name:      "windows nvidia without cuda supported supervised",
+			name:      "windows nvidia without cuda unsupported",
 			goos:      "windows",
 			goarch:    "amd64",
 			gpuVendor: "nvidia",
 			cudaReady: false,
+			want:      MediaHostSupportUnsupported,
+		},
+		{
+			name:      "macOS Apple Metal supported without CUDA",
+			goos:      "darwin",
+			goarch:    "arm64",
+			gpuVendor: "apple",
+			cudaReady: false,
 			want:      MediaHostSupportSupportedSupervised,
 		},
 		{
-			name:      "non windows attached only",
+			name:      "non windows unsupported",
 			goos:      "linux",
 			goarch:    "amd64",
 			gpuVendor: "nvidia",
 			cudaReady: true,
-			want:      MediaHostSupportAttachedOnly,
+			want:      MediaHostSupportUnsupported,
 		},
 	}
 

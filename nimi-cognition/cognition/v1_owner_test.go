@@ -1,6 +1,7 @@
 package cognition
 
 import (
+	"context"
 	"database/sql"
 	"os"
 	"path/filepath"
@@ -39,6 +40,41 @@ func TestV1OwnerFreshSchemaContainsOnlyAdmittedFamilies(t *testing.T) {
 			strings.HasPrefix(table, "knowledge_") || strings.HasPrefix(table, "skill_") || strings.HasPrefix(table, "digest_") {
 			t.Fatalf("legacy Cognition table %q is reachable from V1 owner", table)
 		}
+	}
+}
+
+func TestV1OwnerInspectionIsAggregateAndRejectsPartialOwnerStore(t *testing.T) {
+	root := t.TempDir()
+	owner, err := NewV1Owner(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	inspection, err := owner.InspectStore(context.Background())
+	if err != nil || len(inspection.Resources) != 2 {
+		t.Fatalf("fresh owner inspection=%+v err=%v", inspection, err)
+	}
+	for _, resource := range inspection.Resources {
+		if resource.Status != "available" || !strings.HasSuffix(resource.Reason, "_EMPTY") {
+			t.Fatalf("fresh owner resource=%+v", resource)
+		}
+	}
+	if err := owner.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(filepath.Join(root, "cognition-agent-source-v1.sqlite3")); err != nil {
+		t.Fatal(err)
+	}
+	partial, err := NewV1Owner(root)
+	if err != nil {
+		t.Fatalf("partial owner prevented independent family inspection: %v", err)
+	}
+	defer partial.Close()
+	inspection, err = partial.InspectStore(context.Background())
+	if err != nil || len(inspection.Resources) != 2 {
+		t.Fatalf("partial owner inspection=%+v err=%v", inspection, err)
+	}
+	if inspection.Resources[0].Status != "available" || inspection.Resources[1].Status != "unavailable" || inspection.Resources[1].Reason != "COGNITION_SOURCE_OWNER_FILE_MISSING" {
+		t.Fatalf("partial owner did not preserve per-family result: %+v", inspection.Resources)
 	}
 }
 

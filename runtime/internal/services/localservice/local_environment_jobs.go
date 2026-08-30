@@ -3,6 +3,7 @@ package localservice
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -147,7 +148,11 @@ func (s *Service) startLocalEnvironmentDependencyJob(_ context.Context, req loca
 		UpdatedAt:        now,
 	}
 	s.localEnvironmentDependencyJobs[job.JobID] = job
-	s.persistStateLocked()
+	if err := s.persistStateLocked(); err != nil {
+		delete(s.localEnvironmentDependencyJobs, job.JobID)
+		s.mu.Unlock()
+		return localEnvironmentDependencyJobState{}, fmt.Errorf("persist queued local environment dependency job: %w", err)
+	}
 
 	if executor == nil {
 		s.mu.Unlock()
@@ -187,9 +192,12 @@ func (s *Service) startLocalEnvironmentDependencyJob(_ context.Context, req loca
 }
 
 func (s *Service) runLocalEnvironmentDependencyJob(ctx context.Context, jobID string, executor localEnvironmentDependencyJobExecutor) (localEnvironmentDependencyJobState, error) {
-	job, ok := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateInstalling, "", true)
+	job, ok, persistErr := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateInstalling, "", true)
 	if !ok {
 		return localEnvironmentDependencyJobState{}, errors.New("local environment dependency job not found")
+	}
+	if persistErr != nil {
+		return job, persistErr
 	}
 	if executor == nil {
 		return job, nil
@@ -200,7 +208,7 @@ func (s *Service) runLocalEnvironmentDependencyJob(ctx context.Context, jobID st
 			coarse := strings.TrimSpace(state)
 			switch coarse {
 			case localEnvironmentStateDownloading, localEnvironmentStateVerifying, localEnvironmentStateInstalling:
-				s.transitionLocalEnvironmentDependencyJob(jobID, coarse, "", true)
+				_, _, _ = s.transitionLocalEnvironmentDependencyJob(jobID, coarse, "", true)
 			}
 		},
 		Progress: func(progress localEnvironmentDependencyJobProgress) {
@@ -215,26 +223,26 @@ func (s *Service) runLocalEnvironmentDependencyJob(ctx context.Context, jobID st
 	result, err := executor(ctx, job, reporter)
 	if err != nil {
 		if errors.Is(err, errLocalEnvironmentJobCancelled) || errors.Is(err, context.Canceled) {
-			cancelled, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateCancelled, err.Error(), true)
-			return cancelled, err
+			cancelled, _, transitionErr := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateCancelled, err.Error(), true)
+			return cancelled, errors.Join(err, transitionErr)
 		}
 		detail := err.Error()
 		failureKind := result.FailureKind
 		if failureKind == localEnvironmentDependencyJobFailureUnspecified {
 			failureKind = localEnvironmentDependencyJobFailureKindFromError(err)
 		}
-		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, detail, failureKind.retryable(), failureKind.reasonCode())
-		return failed, err
+		failed, _, transitionErr := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, detail, failureKind.retryable(), failureKind.reasonCode())
+		return failed, errors.Join(err, transitionErr)
 	}
 
 	resultState := strings.TrimSpace(result.State)
 	switch resultState {
 	case localEnvironmentStateUnsupported:
-		unsupported, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateUnsupported, localEnvironmentDependencyJobResultDetail(result), false, result.AuditReasonCode)
-		return unsupported, nil
+		unsupported, _, transitionErr := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateUnsupported, localEnvironmentDependencyJobResultDetail(result), false, result.AuditReasonCode)
+		return unsupported, transitionErr
 	case localEnvironmentStateRepairRequired:
-		repairRequired, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateRepairRequired, localEnvironmentDependencyJobResultDetail(result), false, result.AuditReasonCode)
-		return repairRequired, nil
+		repairRequired, _, transitionErr := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateRepairRequired, localEnvironmentDependencyJobResultDetail(result), false, result.AuditReasonCode)
+		return repairRequired, transitionErr
 	case localEnvironmentStateFailed:
 		detail := localEnvironmentDependencyJobResultDetail(result)
 		reasonCode := strings.TrimSpace(result.AuditReasonCode)
@@ -245,12 +253,12 @@ func (s *Service) runLocalEnvironmentDependencyJob(ctx context.Context, jobID st
 			// failure kind; a diagnostic/audit string cannot grant retry.
 			reasonCode = ""
 		}
-		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, detail, result.FailureKind.retryable(), reasonCode)
-		return failed, nil
+		failed, _, transitionErr := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, detail, result.FailureKind.retryable(), reasonCode)
+		return failed, transitionErr
 	case localEnvironmentStateReadySystem, localEnvironmentStateReadyManaged:
 	default:
-		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, "LOCAL_ENVIRONMENT_DEPENDENCY_VERIFICATION_INCOMPLETE", false)
-		return failed, nil
+		failed, _, transitionErr := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, "LOCAL_ENVIRONMENT_DEPENDENCY_VERIFICATION_INCOMPLETE", false)
+		return failed, transitionErr
 	}
 
 	sourceKind := strings.TrimSpace(result.SourceKind)
@@ -274,13 +282,13 @@ func (s *Service) runLocalEnvironmentDependencyJob(ctx context.Context, jobID st
 		result.VerificationEvidenceRef = localEnvironmentVerificationEvidenceRef(job, result)
 	}
 	if err := validateLocalEnvironmentDependencyJobReadyEvidence(job, result); err != nil {
-		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, err.Error(), false)
-		return failed, nil
+		failed, _, transitionErr := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, err.Error(), false)
+		return failed, transitionErr
 	}
 	if !localEnvironmentPythonSelectedSourceFamily(job.DependencyFamily) &&
 		!stringSliceContains(result.SelectedConsumers, job.ConsumerScope) {
-		failed, _ := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, "LOCAL_ENVIRONMENT_SELECTED_SOURCE_CONSUMER_SCOPE_MISMATCH", false)
-		return failed, nil
+		failed, _, transitionErr := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateFailed, "LOCAL_ENVIRONMENT_SELECTED_SOURCE_CONSUMER_SCOPE_MISMATCH", false)
+		return failed, transitionErr
 	}
 	// Promote the job to its terminal ready state, write the selected-source
 	// record, and write the job's selected-source promotion fields in a single
@@ -309,9 +317,16 @@ func (s *Service) runLocalEnvironmentDependencyJob(ctx context.Context, jobID st
 		ActivationEnvDelta:      normalizeStringSlice(result.ActivationEnvDelta),
 		AuditReasonCode:         strings.TrimSpace(result.AuditReasonCode),
 	}
-	promoted, ok := s.promoteLocalEnvironmentDependencyJobReady(jobID, resultState, sourceKind, strings.TrimSpace(result.CanonicalRoot), pendingRecord)
+	if err := validateLocalEnvironmentSelectedSourceRuntimePathsForPromotion(pendingRecord, s.localEnvironmentRuntimeDataRoot()); err != nil {
+		repairRequired, _, transitionErr := s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateRepairRequired, err.Error(), false, "LOCAL_ENVIRONMENT_SELECTED_SOURCE_OWNER_PATH_INVALID")
+		return repairRequired, errors.Join(err, transitionErr)
+	}
+	promoted, ok, promotionErr := s.promoteLocalEnvironmentDependencyJobReady(jobID, resultState, sourceKind, strings.TrimSpace(result.CanonicalRoot), pendingRecord)
 	if !ok {
 		return localEnvironmentDependencyJobState{}, errors.New("local environment dependency job not found")
+	}
+	if promotionErr != nil {
+		return promoted, fmt.Errorf("promote ready local environment dependency owner state: %w", promotionErr)
 	}
 	return promoted, nil
 }
@@ -370,7 +385,7 @@ func (s *Service) touchLocalEnvironmentDependencyJobHeartbeat(jobID string) bool
 // record. A job already at a terminal state (e.g. cancelled mid-flight) is left
 // untouched and pendingRecord is discarded.
 
-func (s *Service) cancelLocalEnvironmentDependencyJob(jobID string) (localEnvironmentDependencyJobState, bool) {
+func (s *Service) cancelLocalEnvironmentDependencyJob(jobID string) (localEnvironmentDependencyJobState, bool, error) {
 	// Abort the background executor goroutine first so its in-flight download /
 	// verification ctx is cancelled, then mark the job cancelled. The goroutine
 	// observes the terminal state via transitionLocalEnvironmentDependencyJob's
@@ -384,7 +399,7 @@ func (s *Service) cancelLocalEnvironmentDependencyJob(jobID string) (localEnviro
 	return s.transitionLocalEnvironmentDependencyJob(jobID, localEnvironmentStateCancelled, "", true)
 }
 
-func (s *Service) markLocalEnvironmentDependencyRepairRequired(environmentKey string, identityAndReason ...string) (localEnvironmentSelectedSourceRecordState, bool) {
+func (s *Service) markLocalEnvironmentDependencyRepairRequired(environmentKey string, identityAndReason ...string) (localEnvironmentSelectedSourceRecordState, bool, error) {
 	dependencyFamily := ""
 	dependencyID := ""
 	consumerScope := ""
@@ -426,32 +441,37 @@ func (s *Service) markLocalEnvironmentDependencyRepairRequired(environmentKey st
 			continue
 		}
 		if recordKey != "" {
-			return localEnvironmentSelectedSourceRecordState{}, false
+			return localEnvironmentSelectedSourceRecordState{}, false, nil
 		}
 		recordKey = key
 		record = candidate
 	}
 	if recordKey == "" {
-		return localEnvironmentSelectedSourceRecordState{}, false
+		return localEnvironmentSelectedSourceRecordState{}, false, nil
 	}
+	previous := record
 	record.RepairState = localEnvironmentRepairRequired
 	record.AuditReasonCode = strings.TrimSpace(reason)
 	record.LastVerifiedAt = time.Now().UTC().Format(time.RFC3339Nano)
 	s.localEnvironmentSelectedSources[recordKey] = record
-	s.persistStateLocked()
-	return record, true
+	if err := s.persistStateLocked(); err != nil {
+		s.localEnvironmentSelectedSources[recordKey] = previous
+		return previous, true, fmt.Errorf("persist local environment dependency repair state: %w", err)
+	}
+	return record, true, nil
 }
 
-func (s *Service) transitionLocalEnvironmentDependencyJob(jobID string, state string, detail string, retryable bool, reasonCodes ...string) (localEnvironmentDependencyJobState, bool) {
+func (s *Service) transitionLocalEnvironmentDependencyJob(jobID string, state string, detail string, retryable bool, reasonCodes ...string) (localEnvironmentDependencyJobState, bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	job, ok := s.localEnvironmentDependencyJobs[strings.TrimSpace(jobID)]
 	if !ok {
-		return localEnvironmentDependencyJobState{}, false
+		return localEnvironmentDependencyJobState{}, false, nil
 	}
 	if localEnvironmentDependencyJobTerminal(job.State) {
-		return job, true
+		return job, true, nil
 	}
+	previous := job
 	next := strings.TrimSpace(state)
 	job.State = next
 	job.FailureDetail = strings.TrimSpace(detail)
@@ -471,8 +491,11 @@ func (s *Service) transitionLocalEnvironmentDependencyJob(jobID string, state st
 	}
 	job.UpdatedAt = nowISO()
 	s.localEnvironmentDependencyJobs[job.JobID] = job
-	s.persistStateLocked()
-	return job, true
+	if err := s.persistStateLocked(); err != nil {
+		s.localEnvironmentDependencyJobs[job.JobID] = previous
+		return previous, true, fmt.Errorf("persist local environment dependency job transition: %w", err)
+	}
+	return job, true, nil
 }
 
 func localEnvironmentDependencyJobRecoveryProjection(job localEnvironmentDependencyJobState, state string, detail string, retryable bool, reasonCodes ...string) (string, string) {

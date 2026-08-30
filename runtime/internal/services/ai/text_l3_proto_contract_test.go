@@ -32,21 +32,13 @@ func TestTextL3ProtoFieldsRoundTrip(t *testing.T) {
 			Spec: &runtimev1.ScenarioSpec_TextGenerate{
 				TextGenerate: &runtimev1.TextGenerateScenarioSpec{
 					Input: []*runtimev1.ChatMessage{{
-						Role:    "tool",
-						Content: "",
-						ToolResults: []*runtimev1.ToolResult{{
-							ToolCallId:       "call-1",
-							ToolName:         "web_search",
-							Result:           resultValue,
-							Preliminary:      true,
-							Dynamic:          true,
-							ProviderMetadata: providerMeta,
-						}},
-						ToolApprovalResponses: []*runtimev1.ToolApprovalResponse{{
-							ApprovalId:       "approval-1",
-							Approved:         true,
-							Reason:           "allowed",
-							ProviderMetadata: providerMeta,
+						Role: "tool",
+						TurnItems: []*runtimev1.TextTurnItem{{
+							Item: &runtimev1.TextTurnItem_ToolResult{ToolResult: &runtimev1.ToolResult{
+								ToolCallId: "call-1",
+								ToolName:   "web_search",
+								Result:     resultValue,
+							}},
 						}},
 					}},
 					Tools: []*runtimev1.ToolSpec{{
@@ -56,6 +48,13 @@ func TestTextL3ProtoFieldsRoundTrip(t *testing.T) {
 						ProviderArgs:     providerArgs,
 						ProviderMetadata: providerMeta,
 					}},
+					Reasoning: &runtimev1.ReasoningConfig{
+						Activation:   runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED,
+						Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY,
+						Intensity: &runtimev1.ReasoningConfig_Effort{
+							Effort: runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH,
+						},
+					},
 					IncludeRawChunks: true,
 				},
 			},
@@ -74,8 +73,11 @@ func TestTextL3ProtoFieldsRoundTrip(t *testing.T) {
 	if !spec.GetIncludeRawChunks() || spec.GetTools()[0].GetKind() != runtimev1.ToolSpecKind_TOOL_SPEC_KIND_PROVIDER {
 		t.Fatalf("request L3 fields not preserved: %+v", spec)
 	}
-	if got := spec.GetInput()[0].GetToolResults()[0].GetResult().GetStructValue().AsMap()["ok"]; got != true {
+	if got := spec.GetInput()[0].GetTurnItems()[0].GetToolResult().GetResult().GetStructValue().AsMap()["ok"]; got != true {
 		t.Fatalf("tool result not preserved: %v", got)
+	}
+	if spec.GetReasoning().GetEffort() != runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH {
+		t.Fatalf("reasoning intensity not preserved: %+v", spec.GetReasoning())
 	}
 
 	jsonPayload, err := protojson.Marshal(req)
@@ -93,24 +95,20 @@ func TestTextL3ProtoFieldsRoundTrip(t *testing.T) {
 	output := &runtimev1.TextGenerateOutput{
 		Text: "done",
 		ToolCalls: []*runtimev1.ToolCall{{
-			Id:               "call-1",
-			Name:             "web_search",
-			ArgumentsJson:    `{"query":"nimi"}`,
-			ProviderExecuted: true,
-			Dynamic:          true,
-			ProviderMetadata: providerMeta,
+			Id:            "call-1",
+			Name:          "web_search",
+			ArgumentsJson: `{"query":"nimi"}`,
 		}},
-		ToolResults: []*runtimev1.ToolResult{{
-			ToolCallId:       "call-1",
-			ToolName:         "web_search",
-			Result:           resultValue,
-			ProviderMetadata: providerMeta,
-		}},
-		ToolApprovalRequests: []*runtimev1.ToolApprovalRequest{{
-			ApprovalId:       "approval-1",
-			ToolCallId:       "call-1",
-			ProviderMetadata: providerMeta,
-		}},
+		Items: []*runtimev1.TextOutputItem{
+			{Item: &runtimev1.TextOutputItem_Text{Text: &runtimev1.TextOutputText{Text: "done"}}},
+			{Item: &runtimev1.TextOutputItem_ToolCall{ToolCall: &runtimev1.ToolCall{
+				Id: "call-1", Name: "web_search", ArgumentsJson: `{"query":"nimi"}`,
+			}}},
+			{Item: &runtimev1.TextOutputItem_ReasoningContinuity{ReasoningContinuity: &runtimev1.ReasoningContinuityCarrier{
+				Kind: "provider-native", Version: 1, Payload: []byte("opaque"),
+			}}},
+		},
+		ReasoningSummary: "summary",
 		Sources: []*runtimev1.TextSource{{
 			Id:               "source-1",
 			SourceType:       runtimev1.TextSourceType_TEXT_SOURCE_TYPE_URL,
@@ -128,7 +126,8 @@ func TestTextL3ProtoFieldsRoundTrip(t *testing.T) {
 	if err := proto.Unmarshal(outputPayload, &outputRoundTrip); err != nil {
 		t.Fatalf("unmarshal output: %v", err)
 	}
-	if !outputRoundTrip.GetToolCalls()[0].GetProviderExecuted() ||
+	if outputRoundTrip.GetItems()[1].GetToolCall().GetId() != "call-1" ||
+		string(outputRoundTrip.GetItems()[2].GetReasoningContinuity().GetPayload()) != "opaque" ||
 		outputRoundTrip.GetSources()[0].GetSourceType() != runtimev1.TextSourceType_TEXT_SOURCE_TYPE_URL ||
 		outputRoundTrip.GetRawChunks()[0].GetValue().GetStructValue().AsMap()["provider"] != "raw" {
 		t.Fatalf("output L3 fields not preserved: %+v", &outputRoundTrip)
@@ -137,7 +136,13 @@ func TestTextL3ProtoFieldsRoundTrip(t *testing.T) {
 	event := &runtimev1.StreamScenarioEvent{
 		Payload: &runtimev1.StreamScenarioEvent_Delta{
 			Delta: &runtimev1.ScenarioStreamDelta{
-				Delta: &runtimev1.ScenarioStreamDelta_Raw{Raw: &runtimev1.RawChunk{Value: rawValue}},
+				Delta: &runtimev1.ScenarioStreamDelta_TextOutputItem{TextOutputItem: &runtimev1.TextOutputItemDelta{
+					ItemIndex: 1,
+					Delta: &runtimev1.TextOutputItemDelta_ToolCall{ToolCall: &runtimev1.ToolCall{
+						Id: "call-1", Name: "web_search", ArgumentsJson: `{"query":"nimi"}`,
+					}},
+					ItemCompleted: true,
+				}},
 			},
 		},
 	}
@@ -149,7 +154,8 @@ func TestTextL3ProtoFieldsRoundTrip(t *testing.T) {
 	if err := protojson.Unmarshal(eventPayload, &eventRoundTrip); err != nil {
 		t.Fatalf("json unmarshal stream event: %v", err)
 	}
-	if eventRoundTrip.GetDelta().GetRaw().GetValue().GetStructValue().AsMap()["provider"] != "raw" {
-		t.Fatalf("stream raw chunk not preserved: %+v", &eventRoundTrip)
+	if eventRoundTrip.GetDelta().GetTextOutputItem().GetToolCall().GetId() != "call-1" ||
+		!eventRoundTrip.GetDelta().GetTextOutputItem().GetItemCompleted() {
+		t.Fatalf("stream output item not preserved: %+v", &eventRoundTrip)
 	}
 }

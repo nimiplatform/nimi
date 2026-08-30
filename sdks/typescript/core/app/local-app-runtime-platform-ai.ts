@@ -77,6 +77,8 @@ export type NimiLocalAppImageGenerateSpec = {
   readonly referenceImages: readonly string[];
   readonly referenceImageArtifactId: string;
   readonly mask: string;
+  readonly maskArtifactId?: string;
+  readonly strength?: number;
   readonly responseFormat: '' | 'b64_json' | 'url';
 };
 
@@ -197,6 +199,7 @@ export type NimiLocalAppScenarioArtifact = {
   readonly height: number;
   readonly sampleRateHz: number;
   readonly channels: number;
+  readonly seed?: number;
 };
 
 export type NimiLocalAppScenarioJob = {
@@ -712,7 +715,7 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
       record.inputs.forEach((value, index) => boundedContent(value, `text embed input ${index}`, 32 * 1024));
       break;
     case 'image-generate':
-      assertExactKeys(record, ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'referenceImageArtifactId', 'mask', 'responseFormat'], 'image spec');
+      assertExactKeys(record, ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'referenceImageArtifactId', 'mask', 'maskArtifactId', 'strength', 'responseFormat'], 'image spec');
       boundedContent(record.prompt, 'image prompt', 32 * 1024);
       optionalBoundedText(record.negativePrompt, 'image negativePrompt', 32 * 1024);
       optionalBoundedInteger(record.n, 'image n', 0, 4);
@@ -729,6 +732,12 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
         invalidAIInput('image referenceImages and referenceImageArtifactId are mutually exclusive');
       }
       if (record.mask !== '') boundedHttpsUrl(record.mask, 'image mask');
+      if (record.maskArtifactId !== undefined && typeof record.maskArtifactId !== 'string') invalidAIInput('image maskArtifactId is invalid');
+      if (record.maskArtifactId !== undefined && record.maskArtifactId !== '') boundedIdentifier(record.maskArtifactId, 'image maskArtifactId');
+      if (record.mask !== '' && record.maskArtifactId !== undefined && record.maskArtifactId !== '') invalidAIInput('image mask and maskArtifactId are mutually exclusive');
+      if (record.maskArtifactId !== undefined && record.maskArtifactId !== '' && record.referenceImageArtifactId === '') invalidAIInput('image maskArtifactId requires referenceImageArtifactId');
+      if (record.strength !== undefined && (typeof record.strength !== 'number' || !Number.isFinite(record.strength))) invalidAIInput('image strength is invalid');
+      if (record.strength !== undefined && record.referenceImageArtifactId === '') invalidAIInput('image strength requires referenceImageArtifactId');
       if (!['', 'b64_json', 'url'].includes(String(record.responseFormat))) invalidAIInput('image responseFormat is invalid');
       break;
     case 'video-generate':
@@ -1000,13 +1009,22 @@ function projectArtifacts(value: unknown): readonly NimiLocalAppScenarioArtifact
   if (!Array.isArray(value) || value.length > 16) localAppProjectionError('scenario artifacts');
   return Object.freeze(value.map((entry) => {
     const record = asRecord(entry);
-    assertExactProjectionKeys(record, ['artifactId', 'mimeType', 'bytes', 'sizeBytes', 'sha256', 'durationMs', 'width', 'height', 'sampleRateHz', 'channels'], 'scenario artifact');
+    const hasSeed = Boolean(record && Object.hasOwn(record, 'seed'));
+    assertExactProjectionKeys(record, [
+      'artifactId', 'mimeType', 'bytes', 'sizeBytes', 'sha256', 'durationMs',
+      'width', 'height', 'sampleRateHz', 'channels', ...(hasSeed ? ['seed'] : []),
+    ], 'scenario artifact');
     const bytes = validateProjectionBytes(record.bytes, 'scenario artifact bytes');
     const sizeBytes = projectionInteger(record.sizeBytes, 'scenario artifact sizeBytes', 0, Number.MAX_SAFE_INTEGER);
     if (bytes.length > 0 && bytes.length !== sizeBytes) localAppProjectionError('scenario artifact byte size');
+    const mimeType = mimeProjection(record.mimeType);
+    const seed = hasSeed
+      ? projectionInteger(record.seed, 'scenario artifact seed', -2_147_483_648, 2_147_483_647)
+      : undefined;
+    if (hasSeed && !mimeType.startsWith('image/')) localAppProjectionError('scenario artifact seed mime');
     return Object.freeze({
       artifactId: boundedProjectionText(record.artifactId, 'scenario artifact id', MAX_IDENTIFIER_BYTES),
-      mimeType: mimeProjection(record.mimeType),
+      mimeType,
       bytes,
       sizeBytes,
       sha256: optionalProjectionText(record.sha256, 'scenario artifact sha256', 128),
@@ -1015,6 +1033,7 @@ function projectArtifacts(value: unknown): readonly NimiLocalAppScenarioArtifact
       height: projectionInteger(record.height, 'scenario artifact height', 0, Number.MAX_SAFE_INTEGER),
       sampleRateHz: projectionInteger(record.sampleRateHz, 'scenario artifact sampleRateHz', 0, Number.MAX_SAFE_INTEGER),
       channels: projectionInteger(record.channels, 'scenario artifact channels', 0, Number.MAX_SAFE_INTEGER),
+      ...(seed !== undefined ? { seed } : {}),
     });
   }));
 }
@@ -1255,6 +1274,8 @@ function runtimeImageSpec(spec: NimiLocalAppImageGenerateSpec) {
     ...(spec.seed === undefined ? {} : { seed: String(spec.seed) }),
     referenceImages: [...spec.referenceImages],
     mask: spec.mask,
+    maskArtifactId: spec.maskArtifactId ?? '',
+    ...(spec.strength === undefined ? {} : { strength: spec.strength }),
     responseFormat: spec.responseFormat,
     referenceImageArtifactId: spec.referenceImageArtifactId,
   };
@@ -1386,6 +1407,7 @@ function projectRuntimeLocalArtifact(
     height: artifact.height,
     sampleRateHz: artifact.sampleRateHz,
     channels: artifact.channels,
+    ...(artifact.seed !== undefined ? { seed: artifact.seed } : {}),
   };
 }
 
@@ -1516,6 +1538,8 @@ function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): Nimi
         referenceImages: spec.imageGenerate.referenceImages,
         referenceImageArtifactId: spec.imageGenerate.referenceImageArtifactId,
         mask: spec.imageGenerate.mask,
+        ...(spec.imageGenerate.maskArtifactId === '' ? {} : { maskArtifactId: spec.imageGenerate.maskArtifactId }),
+        ...(spec.imageGenerate.strength === undefined ? {} : { strength: spec.imageGenerate.strength }),
         responseFormat: spec.imageGenerate.responseFormat as '' | 'b64_json' | 'url',
       }, false);
     case 'videoGenerate':
@@ -1658,7 +1682,7 @@ function runtimeVoiceAssetFromLocal(asset: NimiLocalAppVoiceAsset): NimiProtecte
 }
 
 function runtimeArtifactFromLocal(artifact: NimiLocalAppScenarioArtifact, bytes: Uint8Array = Uint8Array.from(artifact.bytes), mimeType = artifact.mimeType, sizeBytes = artifact.sizeBytes): ScenarioArtifact {
-  return { artifactId: artifact.artifactId, mimeType, bytes, uri: '', sha256: artifact.sha256, sizeBytes: String(sizeBytes), durationMs: String(artifact.durationMs), fps: 0, width: artifact.width, height: artifact.height, sampleRateHz: artifact.sampleRateHz, channels: artifact.channels, speechAlignment: undefined, metadata: undefined };
+  return { artifactId: artifact.artifactId, mimeType, bytes, uri: '', sha256: artifact.sha256, sizeBytes: String(sizeBytes), durationMs: String(artifact.durationMs), fps: 0, width: artifact.width, height: artifact.height, sampleRateHz: artifact.sampleRateHz, channels: artifact.channels, speechAlignment: undefined, metadata: undefined, seed: artifact.seed };
 }
 
 function runtimeJobEventFromLocal(event: NimiLocalAppScenarioJobEvent): ScenarioJobEvent {

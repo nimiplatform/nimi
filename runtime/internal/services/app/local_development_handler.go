@@ -79,7 +79,7 @@ func (s *Service) RegisterLocalDevelopmentProject(ctx context.Context, req *runt
 	if err != nil {
 		return nil, localDevelopmentProjectAuthorityError(err)
 	}
-	registration, err := s.registerLocalDevelopmentProject(ctx, project)
+	registration, err := s.registerLocalDevelopmentProject(ctx, project, "")
 	if err != nil {
 		return nil, localDevelopmentStoreError(err)
 	}
@@ -158,7 +158,7 @@ func (s *Service) PrepareLocalAppLaunch(ctx context.Context, req *runtimev1.Prep
 	if err != nil {
 		return nil, localDevelopmentProjectAuthorityError(err)
 	}
-	registration, err = s.registerLocalDevelopmentProject(ctx, project)
+	registration, err = s.registerLocalDevelopmentProject(ctx, project, localDevelopmentRegistrationHandleRef(handle))
 	if err != nil || registration.RegistrationHandle != localDevelopmentRegistrationHandleRef(handle) {
 		return nil, localDevelopmentFailureFromCause(codes.FailedPrecondition, runtimev1.ReasonCode_LOCAL_APP_PROVENANCE_UNAVAILABLE, err)
 	}

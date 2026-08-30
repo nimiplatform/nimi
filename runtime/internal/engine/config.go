@@ -85,6 +85,10 @@ type ManagedImageBackendDependencyStatus struct {
 	PackageSource          string
 	PackageFormat          string
 	LaunchMode             string
+	ReleaseTag             string
+	SourceCommit           string
+	ArchiveURL             string
+	ArchiveSHA256          string
 	CanonicalRoot          string
 	VerifiedArtifacts      []string
 	SupportedModelFamilies []string
@@ -101,6 +105,16 @@ type EngineBinaryDependencyStatus struct {
 	AssetName        string
 	AcceleratorPlane string
 	Detail           string
+}
+
+type ManagedEnvironmentCheckResult struct {
+	Kind       string
+	Reference  string
+	Locator    string
+	Status     string
+	Change     string
+	Reason     string
+	NextAction string
 }
 
 type UVToolDependencyStatus struct {

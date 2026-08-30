@@ -15,29 +15,21 @@ func ManagedImageSupervisedPlatformSupported() bool {
 
 // ManagedImageSupervisedPlatformSupportedFor reports whether the daemon-managed
 // stablediffusion-ggml image backend can be supervised on the provided host tuple.
-func ManagedImageSupervisedPlatformSupportedFor(goos string, goarch string, _ string, _ string) bool {
+func ManagedImageSupervisedPlatformSupportedFor(goos string, goarch string, gpuVendor string, _ string) bool {
 	normalizedGOOS := strings.ToLower(strings.TrimSpace(goos))
 	normalizedGOARCH := strings.ToLower(strings.TrimSpace(goarch))
+	normalizedVendor := strings.ToLower(strings.TrimSpace(gpuVendor))
 	if normalizedGOOS == "" || normalizedGOARCH == "" {
 		return false
 	}
-	if !LlamaSupervisedPlatformSupportedFor(normalizedGOOS, normalizedGOARCH) {
-		return false
-	}
-	switch {
-	case normalizedGOOS == "darwin" && normalizedGOARCH == "arm64":
-		return true
-	case normalizedGOOS == "windows" && normalizedGOARCH == "amd64":
-		return true
-	default:
-		return false
-	}
+	return normalizedGOOS == "windows" && normalizedGOARCH == "amd64" && normalizedVendor == "nvidia" ||
+		normalizedGOOS == "darwin" && normalizedGOARCH == "arm64" && normalizedVendor == "apple"
 }
 
 // ManagedImageSupervisedPlatformSupportDetailFor returns the host compatibility
 // detail for the daemon-managed stablediffusion-ggml image backend.
-func ManagedImageSupervisedPlatformSupportDetailFor(goos string, goarch string, _ string, _ string) string {
-	if ManagedImageSupervisedPlatformSupportedFor(goos, goarch, "", "") {
+func ManagedImageSupervisedPlatformSupportDetailFor(goos string, goarch string, gpuVendor string, gpuModel string) string {
+	if ManagedImageSupervisedPlatformSupportedFor(goos, goarch, gpuVendor, gpuModel) {
 		return ""
 	}
 	return "managed image supervised mode is unavailable on this host for the daemon-managed stablediffusion-ggml backend"

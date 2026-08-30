@@ -3,6 +3,8 @@ package localservice
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -183,17 +185,36 @@ func localEnvironmentPlatformTuple(profile localEnvironmentHostProfileState) str
 }
 
 func localEnvironmentKey(dependencyFamily string, dependencyID string, hostProfileID string, platformTuple string, runtimeDataRoot string) string {
+	_ = hostProfileID
+	_ = runtimeDataRoot
 	parts := []string{
 		strings.TrimSpace(dependencyFamily),
 		strings.TrimSpace(dependencyID),
-		strings.TrimSpace(hostProfileID),
 		strings.TrimSpace(platformTuple),
-		strings.TrimSpace(runtimeDataRoot),
 	}
 	return strings.Join(parts, "|")
 }
 
+func localEnvironmentNativeLlamaKey(version string, platformTuple string) string {
+	return strings.Join([]string{
+		localEnvironmentFamilyNativeLlama,
+		"llama.cpp.package",
+		"version=" + strings.TrimSpace(version),
+		strings.TrimSpace(platformTuple),
+	}, "|")
+}
+
+func localEnvironmentNativeLlamaVersion(environmentKey string) (string, bool) {
+	parts := strings.Split(strings.TrimSpace(environmentKey), "|")
+	if len(parts) != 4 || parts[0] != localEnvironmentFamilyNativeLlama || parts[1] != "llama.cpp.package" || !strings.HasPrefix(parts[2], "version=") || strings.TrimSpace(parts[3]) == "" {
+		return "", false
+	}
+	version := strings.TrimSpace(strings.TrimPrefix(parts[2], "version="))
+	return version, version != ""
+}
+
 func localEnvironmentPythonTorchWheelKey(identity engine.PythonTorchWheelDependencyIdentity, platformTuple string, runtimeDataRoot string) string {
+	_ = runtimeDataRoot
 	parts := []string{
 		localEnvironmentFamilyPythonTorchWheel,
 		strings.TrimSpace(identity.TorchVersion),
@@ -203,35 +224,34 @@ func localEnvironmentPythonTorchWheelKey(identity engine.PythonTorchWheelDepende
 		strings.TrimSpace(identity.WheelIndex),
 		strings.TrimSpace(identity.PackageSource),
 		strings.TrimSpace(platformTuple),
-		strings.TrimSpace(runtimeDataRoot),
 	}
 	return strings.Join(parts, "|")
 }
 
 func localEnvironmentManagedUVKey(platformTuple string, runtimeDataRoot string) string {
+	_ = runtimeDataRoot
 	return strings.Join([]string{
 		localEnvironmentFamilyPythonUV,
 		engine.ManagedUVVersion,
 		strings.TrimSpace(platformTuple),
-		strings.TrimSpace(runtimeDataRoot),
 	}, "|")
 }
 
 func localEnvironmentPythonRuntimeKey(platformTuple string, runtimeDataRoot string) string {
+	_ = runtimeDataRoot
 	return strings.Join([]string{
 		localEnvironmentFamilyPythonRuntime,
 		engine.ManagedPythonVersion,
 		engine.ManagedPythonABI,
 		strings.TrimSpace(platformTuple),
-		strings.TrimSpace(runtimeDataRoot),
 	}, "|")
 }
 
 func localEnvironmentPythonProfileKey(family string, dependencyID string, runtimeDataRoot string) string {
+	_ = runtimeDataRoot
 	return strings.Join([]string{
 		strings.TrimSpace(family),
 		strings.TrimSpace(dependencyID),
-		strings.TrimSpace(runtimeDataRoot),
 	}, "|")
 }
 
@@ -400,6 +420,161 @@ func canonicalLocalEnvironmentPythonSelectedSourceRecord(record localEnvironment
 		record.ActivationEnvDelta = nil
 	}
 	return record
+}
+
+// selected-source paths are runtime-derived absolute paths in memory and
+// owner-relative locators on disk. A copied nimi_data root therefore reopens
+// without retaining a former machine/root address.
+func localEnvironmentSelectedSourceRecordForStorage(record localEnvironmentSelectedSourceRecordState, dataRoot string) localEnvironmentSelectedSourceRecordState {
+	record.VerifiedArtifacts = append([]string(nil), record.VerifiedArtifacts...)
+	if record.SourceKind == localEnvironmentSourceSystem {
+		detachLocalEnvironmentSelectedSourceForStorage(&record)
+		return record
+	}
+	if strings.TrimSpace(record.CanonicalRoot) != "" {
+		if locator, ok := localEnvironmentOwnerRelativeLocator(dataRoot, record.CanonicalRoot); ok {
+			if !localEnvironmentManagedOwnerLocator(locator) {
+				detachLocalEnvironmentSelectedSourceForStorage(&record)
+				return record
+			}
+			record.CanonicalRoot = locator
+		} else if _, ok := localEnvironmentOwnerPathFromLocator(dataRoot, record.CanonicalRoot); !ok || !localEnvironmentManagedOwnerLocator(record.CanonicalRoot) {
+			detachLocalEnvironmentSelectedSourceForStorage(&record)
+			return record
+		}
+	}
+	for index, artifact := range record.VerifiedArtifacts {
+		if !filepath.IsAbs(strings.TrimSpace(artifact)) {
+			continue
+		}
+		locator, ok := localEnvironmentOwnerRelativeLocator(dataRoot, artifact)
+		if !ok || !localEnvironmentManagedOwnerLocator(locator) {
+			detachLocalEnvironmentSelectedSourceForStorage(&record)
+			return record
+		}
+		record.VerifiedArtifacts[index] = locator
+	}
+	return record
+}
+
+func validateLocalEnvironmentSelectedSourceRuntimePathsForPromotion(record localEnvironmentSelectedSourceRecordState, dataRoot string) error {
+	if record.SourceKind == localEnvironmentSourceSystem {
+		return nil
+	}
+	rootLocator, ok := localEnvironmentOwnerRelativeLocator(dataRoot, record.CanonicalRoot)
+	if !ok || !localEnvironmentManagedOwnerLocator(rootLocator) {
+		return fmt.Errorf("LOCAL_ENVIRONMENT_SELECTED_SOURCE_OWNER_ROOT_NOT_PORTABLE")
+	}
+	for _, artifact := range record.VerifiedArtifacts {
+		trimmed := strings.TrimSpace(artifact)
+		if trimmed == "" || strings.Contains(trimmed, "=") {
+			continue
+		}
+		if !filepath.IsAbs(trimmed) {
+			if !localEnvironmentSelectedSourceCanonicalRootIsDirectory(record.DependencyFamily) {
+				return fmt.Errorf("LOCAL_ENVIRONMENT_SELECTED_SOURCE_ARTIFACT_MUST_BE_ABSOLUTE")
+			}
+			cleaned := filepath.Clean(filepath.FromSlash(trimmed))
+			if cleaned == "." || cleaned == ".." || filepath.IsAbs(cleaned) || strings.HasPrefix(cleaned, ".."+string(filepath.Separator)) {
+				return fmt.Errorf("LOCAL_ENVIRONMENT_SELECTED_SOURCE_ARTIFACT_LOCATOR_INVALID")
+			}
+			continue
+		}
+		locator, ok := localEnvironmentOwnerRelativeLocator(dataRoot, trimmed)
+		if !ok || !localEnvironmentManagedOwnerLocator(locator) {
+			return fmt.Errorf("LOCAL_ENVIRONMENT_SELECTED_SOURCE_ARTIFACT_NOT_PORTABLE")
+		}
+	}
+	return nil
+}
+
+func detachLocalEnvironmentSelectedSourceForStorage(record *localEnvironmentSelectedSourceRecordState) {
+	if record == nil {
+		return
+	}
+	record.CanonicalRoot = ""
+	record.VerifiedArtifacts = nil
+	record.CompatibilityEvidence = nil
+	record.LastVerifiedAt = ""
+	record.RepairState = localEnvironmentRepairRequired
+}
+
+func localEnvironmentSelectedSourceRecordFromStorage(record localEnvironmentSelectedSourceRecordState, dataRoot string) localEnvironmentSelectedSourceRecordState {
+	record.VerifiedArtifacts = append([]string(nil), record.VerifiedArtifacts...)
+	storedRoot := strings.TrimSpace(record.CanonicalRoot)
+	if path, ok := localEnvironmentOwnerPathFromLocator(dataRoot, record.CanonicalRoot); ok && localEnvironmentManagedOwnerLocator(record.CanonicalRoot) {
+		record.CanonicalRoot = path
+	} else if storedRoot != "" && !filepath.IsAbs(storedRoot) {
+		detachLocalEnvironmentSelectedSourceForStorage(&record)
+		return record
+	}
+	for index, artifact := range record.VerifiedArtifacts {
+		// Relative artifact names are interpreted from CanonicalRoot by the
+		// dependency owner. Only an artifact locator that was serialized as the
+		// canonical root itself or one of its descendants is data-root relative.
+		// Rehydrating every relative name against dataRoot turns
+		// "cudart64_12.dll" into "<dataRoot>/cudart64_12.dll" and falsely marks a
+		// healthy CUDA dependency for repair after Runtime restart.
+		if !localEnvironmentArtifactUsesOwnerLocator(storedRoot, artifact) {
+			continue
+		}
+		if path, ok := localEnvironmentOwnerPathFromLocator(dataRoot, artifact); ok {
+			record.VerifiedArtifacts[index] = path
+		}
+	}
+	return record
+}
+
+func localEnvironmentArtifactUsesOwnerLocator(storedRoot string, artifact string) bool {
+	value := filepath.ToSlash(filepath.Clean(filepath.FromSlash(strings.TrimSpace(artifact))))
+	if value == "." || filepath.IsAbs(filepath.FromSlash(value)) {
+		return false
+	}
+	return localEnvironmentManagedOwnerLocator(value)
+}
+
+func localEnvironmentManagedOwnerLocator(value string) bool {
+	cleaned := filepath.ToSlash(filepath.Clean(filepath.FromSlash(strings.TrimSpace(value))))
+	return cleaned == "environments" || strings.HasPrefix(cleaned, "environments/") || cleaned == "dependencies" || strings.HasPrefix(cleaned, "dependencies/")
+}
+
+func localEnvironmentOwnerRelativeLocator(dataRoot string, value string) (string, bool) {
+	root := filepath.Clean(strings.TrimSpace(dataRoot))
+	path := filepath.Clean(strings.TrimSpace(value))
+	if root == "." || path == "." || !filepath.IsAbs(root) || !filepath.IsAbs(path) {
+		return "", false
+	}
+	relative, err := filepath.Rel(root, path)
+	if err != nil || filepath.IsAbs(relative) || relative == "." || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return "", false
+	}
+	return filepath.ToSlash(relative), true
+}
+
+func localEnvironmentOwnerPathFromLocator(dataRoot string, value string) (string, bool) {
+	root := filepath.Clean(strings.TrimSpace(dataRoot))
+	value = strings.TrimSpace(value)
+	if root == "." || value == "" || filepath.IsAbs(value) {
+		return "", false
+	}
+	locator := filepath.Clean(filepath.FromSlash(value))
+	if locator == "." || locator == ".." || filepath.IsAbs(locator) || strings.HasPrefix(locator, ".."+string(filepath.Separator)) {
+		return "", false
+	}
+	return filepath.Join(root, locator), true
+}
+
+func cloneLocalEnvironmentSelectedSourceRecordsForMutation(input map[string]localEnvironmentSelectedSourceRecordState) map[string]localEnvironmentSelectedSourceRecordState {
+	output := make(map[string]localEnvironmentSelectedSourceRecordState, len(input))
+	for key, record := range input {
+		record.CompatibilityEvidence = append([]string(nil), record.CompatibilityEvidence...)
+		record.VerifiedArtifacts = append([]string(nil), record.VerifiedArtifacts...)
+		record.SelectedConsumers = append([]string(nil), record.SelectedConsumers...)
+		record.ActivationEnvDelta = append([]string(nil), record.ActivationEnvDelta...)
+		record.Hashes = cloneStringMap(record.Hashes)
+		output[key] = record
+	}
+	return output
 }
 
 func (s *Service) localEnvironmentSelectedSourceRecordForRepair(environmentKey string, dependencyFamily string, dependencyID string, consumerScope string) (localEnvironmentSelectedSourceRecordState, bool) {

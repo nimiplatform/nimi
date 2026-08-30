@@ -7,9 +7,9 @@
  * (`definition.nimi.platform.product-lifecycle.nimi-data-ownership`,
  * `P-MIG-006`, and `P-MIG-008`).
  *
- * This is the typed renderer surface for the admitted `P-MIG-008`
- * destructive-cleanup flow. Data-root relocation is not exposed in this
- * pre-launch product.
+ * This surface remains limited to the admitted `P-MIG-008`
+ * destructive-cleanup flow. Active-root replacement and Check & Sync use the
+ * separate Product Control bridge and never copy or clean the former root.
  */
 
 import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';

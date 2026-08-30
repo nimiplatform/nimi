@@ -201,7 +201,7 @@ describe('Desktop Electron local-development registration host', () => {
       payload: { selector: row!.selector },
     }) as Record<string, unknown>;
 
-    assert.deepEqual(captured, ['example.local-app', '/projects/example', 'electron', undefined, true]);
+    assert.deepEqual(captured, ['example.local-app', '/projects/example', 'electron', undefined, true, HANDLE]);
     assert.equal(result.state, 'running');
     assert.equal(result.appId, 'example.local-app');
   });
@@ -218,7 +218,7 @@ describe('Desktop Electron local-development registration host', () => {
     };
     internal.startIntent = async (...args) => {
       starts += 1;
-      assert.deepEqual(args, ['nimi.zhiyu', '/projects/example', 'electron', undefined, true]);
+      assert.deepEqual(args, ['nimi.zhiyu', '/projects/example', 'electron', undefined, true, HANDLE]);
       return { ...activeRun().status, appId: 'nimi.zhiyu' };
     };
     assert.equal(await host.startExactZhiyu(), true);
@@ -232,6 +232,67 @@ describe('Desktop Electron local-development registration host', () => {
       listRegistrations: async () => [zhiyu, duplicate],
     }), '/tmp');
     assert.equal(await ambiguous.startExactZhiyu(), false);
+  });
+
+  it('starts an existing registration by exact handle without registering a new Subject', async () => {
+    const existing = registration();
+    let registerCalls = 0;
+    let starts = 0;
+    const host = new ElectronLocalDevelopmentHost(control({
+      register: async () => {
+        registerCalls += 1;
+        throw new Error('existing registration must not be reminted');
+      },
+      listRegistrations: async () => [existing],
+    }), '/tmp');
+    const internal = host as unknown as {
+      startIntent: (...args: readonly unknown[]) => Promise<ReturnType<typeof activeRun>['status']>;
+    };
+    internal.startIntent = async (...args) => {
+      starts += 1;
+      assert.deepEqual(args, [
+        'example.local-app',
+        '/projects/example',
+        'electron',
+        undefined,
+        true,
+        HANDLE,
+      ]);
+      return activeRun().status;
+    };
+    const [row] = await host.invoke('local_development_registrations_list', {}) as Array<{ selector: string }>;
+
+    await host.invoke('local_development_registration_start', { payload: { selector: row!.selector } });
+
+    assert.equal(registerCalls, 0);
+    assert.equal(starts, 1);
+  });
+
+  it('does not remint after an ambiguous fresh-registration response loss', async () => {
+    let registerCalls = 0;
+    const host = new ElectronLocalDevelopmentHost(control({
+      register: async () => {
+        registerCalls += 1;
+        throw Object.assign(new Error('runtime response unavailable'), {
+          reasonCode: 'runtime-service-unavailable',
+        });
+      },
+    }), '/tmp');
+    const run = activeRun();
+    run.registrationHandle = undefined;
+    run.status.state = 'preparing';
+    const internal = host as unknown as {
+      resolveRegistration(context: typeof run): Promise<void>;
+      refreshRegistration(context: typeof run): Promise<void>;
+    };
+
+    await internal.resolveRegistration(run);
+    await internal.refreshRegistration(run);
+
+    assert.equal(registerCalls, 1);
+    assert.equal(run.registrationHandle, undefined);
+    assert.equal(run.status.state, 'registration-unavailable');
+    assert.equal(run.status.retryable, false);
   });
 
   it('projects only the latest run for an App', async () => {
