@@ -129,6 +129,31 @@ describe('Electron local-app standard-shell operations', () => {
     })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
   });
 
+  it('keeps exact presentation failures through the standard-shell envelope', async () => {
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentCommitPresentation'];
+    const payload = {
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      expectedPresentationRevision: '1',
+      intent: { clearResourcePackSelection: true },
+      importedAssets: [],
+    };
+    for (const [reasonCode, code, actionHint] of [
+      ['agent-presentation-revision-conflict', 'content-conflict', 'refresh_presentation_snapshot'],
+      ['agent-presentation-asset-structure-invalid', 'invalid-payload', 'repair_agent_presentation_material'],
+      ['agent-presentation-asset-integrity-mismatch', 'invalid-payload', 'repair_agent_presentation_material'],
+    ] as const) {
+      await expect(dispatchElectronLocalAppCommand({
+        command,
+        payload,
+        host: {
+          agentCommitPresentation: async () => {
+            throw new NimiElectronLocalAppHostError(reasonCode, false);
+          },
+        } as never,
+      })).rejects.toMatchObject({ reasonCode, code, actionHint });
+    }
+  });
+
   it('maps unavailable Manager owner state to the standard Runtime-unavailable code', async () => {
     const host = {
       agentManagerSnapshot: async () => {

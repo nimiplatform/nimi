@@ -150,6 +150,14 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         694 => LocalAppReasonCode::AiConfigInvalid,
         695 => LocalAppReasonCode::AiConfigNotFound,
         696 => LocalAppReasonCode::AiConfigPersistenceUnavailable,
+        614 => LocalAppReasonCode::AgentPresentationRevisionConflict,
+        672 => LocalAppReasonCode::AgentPresentationAssetTypeInvalid,
+        673 => LocalAppReasonCode::AgentPresentationAssetTooLarge,
+        674 => LocalAppReasonCode::AgentPresentationAssetStructureInvalid,
+        675 => LocalAppReasonCode::AgentPresentationAssetDependencyMissing,
+        676 => LocalAppReasonCode::AgentPresentationAssetIntegrityMismatch,
+        677 => LocalAppReasonCode::AgentPresentationBackendIncompatible,
+        678 => LocalAppReasonCode::AgentPresentationAssetNotValidated,
         706 => LocalAppReasonCode::SnapshotUnavailable,
         707 => LocalAppReasonCode::AccessDenied,
         708 => LocalAppReasonCode::OperationUnsupported,
@@ -266,6 +274,30 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_CONFIG_INVALID" => LocalAppReasonCode::AiConfigInvalid,
         "AI_CONFIG_NOT_FOUND" => LocalAppReasonCode::AiConfigNotFound,
         "AI_CONFIG_PERSISTENCE_UNAVAILABLE" => LocalAppReasonCode::AiConfigPersistenceUnavailable,
+        "AGENT_PRESENTATION_REVISION_CONFLICT" => {
+            LocalAppReasonCode::AgentPresentationRevisionConflict
+        }
+        "AGENT_PRESENTATION_ASSET_TYPE_INVALID" => {
+            LocalAppReasonCode::AgentPresentationAssetTypeInvalid
+        }
+        "AGENT_PRESENTATION_ASSET_TOO_LARGE" => {
+            LocalAppReasonCode::AgentPresentationAssetTooLarge
+        }
+        "AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID" => {
+            LocalAppReasonCode::AgentPresentationAssetStructureInvalid
+        }
+        "AGENT_PRESENTATION_ASSET_DEPENDENCY_MISSING" => {
+            LocalAppReasonCode::AgentPresentationAssetDependencyMissing
+        }
+        "AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH" => {
+            LocalAppReasonCode::AgentPresentationAssetIntegrityMismatch
+        }
+        "AGENT_PRESENTATION_BACKEND_INCOMPATIBLE" => {
+            LocalAppReasonCode::AgentPresentationBackendIncompatible
+        }
+        "AGENT_PRESENTATION_ASSET_NOT_VALIDATED" => {
+            LocalAppReasonCode::AgentPresentationAssetNotValidated
+        }
         "PROTOCOL_ENVELOPE_INVALID" => LocalAppReasonCode::InvalidPayload,
         "APP_STORAGE_PATH_INVALID" => LocalAppReasonCode::InvalidPath,
         "APP_STORAGE_ENTRY_ALREADY_EXISTS" => LocalAppReasonCode::AlreadyExists,
@@ -424,6 +456,43 @@ mod tests {
                 "AI_LOCAL_ASSET_INCOMPATIBLE",
                 692,
                 LocalAppReasonCode::AiLocalAssetIncompatible,
+            ),
+        ] {
+            assert_eq!(
+                local_app_reason_from_runtime_reason(runtime_reason),
+                Some(expected)
+            );
+            assert_eq!(local_app_reason_from_proto(proto_reason), Some(expected));
+        }
+    }
+
+    #[test]
+    fn presentation_conflict_and_validation_failures_keep_exact_public_reasons() {
+        for (runtime_reason, proto_reason, expected) in [
+            (
+                "AGENT_PRESENTATION_REVISION_CONFLICT",
+                614,
+                LocalAppReasonCode::AgentPresentationRevisionConflict,
+            ),
+            (
+                "AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID",
+                674,
+                LocalAppReasonCode::AgentPresentationAssetStructureInvalid,
+            ),
+            (
+                "AGENT_PRESENTATION_ASSET_TOO_LARGE",
+                673,
+                LocalAppReasonCode::AgentPresentationAssetTooLarge,
+            ),
+            (
+                "AGENT_PRESENTATION_ASSET_INTEGRITY_MISMATCH",
+                676,
+                LocalAppReasonCode::AgentPresentationAssetIntegrityMismatch,
+            ),
+            (
+                "AGENT_PRESENTATION_BACKEND_INCOMPATIBLE",
+                677,
+                LocalAppReasonCode::AgentPresentationBackendIncompatible,
             ),
         ] {
             assert_eq!(

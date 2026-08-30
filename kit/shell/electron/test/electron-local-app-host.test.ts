@@ -335,6 +335,31 @@ describe('Electron protected local-app host', () => {
     }
   });
 
+  it('preserves exact presentation conflict and validation failures', async () => {
+    for (const reasonCode of [
+      'agent-presentation-revision-conflict',
+      'agent-presentation-asset-structure-invalid',
+      'agent-presentation-asset-too-large',
+      'agent-presentation-asset-integrity-mismatch',
+      'agent-presentation-backend-incompatible',
+    ]) {
+      const candidate = {
+        ...binding([]),
+        localAppAgentCommitPresentation: async () => ({
+          status: 'error' as const,
+          reasonCode,
+          retryable: false,
+        }),
+      };
+      await expect(createNimiElectronLocalAppHostForBinding(candidate).agentCommitPresentation({
+        agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+        expectedPresentationRevision: '1',
+        intent: { clearResourcePackSelection: true },
+        importedAssets: [],
+      })).rejects.toMatchObject({ reasonCode, retryable: false });
+    }
+  });
+
   it('preserves exact typed voice failures', async () => {
     for (const reasonCode of [
       'ai-voice-input-invalid',

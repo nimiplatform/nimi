@@ -1177,19 +1177,31 @@ describe('AgentCenterSession', () => {
     });
   });
 
-  it('preserves a structured known Apply failure without ambiguous reread success', async () => {
+  it('rereads current owner truth after a structured known Apply conflict', async () => {
     const calls: unknown[] = [];
     const base = appClient(calls);
     let rejectKnownApply = false;
-    const knownFailure = Object.assign(new Error('Resource Pack operation is unavailable'), {
-      reasonCode: 'local-app-operation-unavailable',
+    const knownFailure = Object.assign(new Error('Resource Pack presentation revision conflicts'), {
+      reasonCode: 'agent-presentation-revision-conflict',
     });
     const client: NimiLocalAppAgentConfigureClient = {
       ...base,
       presentation: {
         ...base.presentation,
         async commit(input) {
-          if (rejectKnownApply && 'selectImportedResourcePack' in input.intent) throw knownFailure;
+          if (rejectKnownApply && 'selectImportedResourcePack' in input.intent) {
+            await base.presentation.commit({
+              agentHandle: HANDLE,
+              expectedPresentationRevision: input.expectedPresentationRevision,
+              intent: { selectImportedResourcePack: true },
+              importedAssets: [{
+                role: 'resource-pack', fileName: 'external-c.nimipack',
+                mediaType: 'application/vnd.nimi.resource-pack+zip',
+                content: Uint8Array.from([5, 6, 7]), sha256: 'e'.repeat(64),
+              }],
+            });
+            throw knownFailure;
+          }
           return base.presentation.commit(input);
         },
       },
@@ -1216,10 +1228,11 @@ describe('AgentCenterSession', () => {
     rejectKnownApply = true;
     const snapshotReads = calls.filter((entry) => Array.isArray(entry) && entry[0] === 'presentation.snapshot').length;
     await expect(session.appearance.applyResourcePack?.()).rejects.toBe(knownFailure);
-    expect(calls.filter((entry) => Array.isArray(entry) && entry[0] === 'presentation.snapshot')).toHaveLength(snapshotReads);
+    expect(calls.filter((entry) => Array.isArray(entry) && entry[0] === 'presentation.snapshot').length).toBeGreaterThan(snapshotReads);
     expect(session.getSnapshot().state.appearance).toMatchObject({
-      resourcePackSelection: { assetRef: `pack_${'c'.repeat(12)}` },
-      resourcePackTarget: { phase: 'selected' },
+      presentationRevision: '3',
+      resourcePackSelection: { assetRef: `pack_${'e'.repeat(12)}` },
+      resourcePackTarget: { phase: 'selected', effectiveResourceRef: `pack_${'e'.repeat(12)}` },
     });
   });
 
@@ -1295,6 +1308,189 @@ describe('AgentCenterSession', () => {
     });
   });
 
+  it('does not let a delayed successful Apply response overwrite a newer owner revision', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    let delayApply = false;
+    let applyStarted: (() => void) | undefined;
+    let releaseApply: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => { applyStarted = resolve; });
+    const applyGate = new Promise<void>((resolve) => { releaseApply = resolve; });
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      presentation: {
+        ...base.presentation,
+        async commit(input) {
+          const projection = await base.presentation.commit(input);
+          if (delayApply && 'selectImportedResourcePack' in input.intent) {
+            applyStarted?.();
+            await applyGate;
+          }
+          return projection;
+        },
+      },
+    };
+    const controller = new TestResourcePackTargetController();
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client,
+      hostMechanics: {
+        async selectResourcePack() {
+          return {
+            role: 'resource-pack', fileName: 'delayed-b.nimipack',
+            mediaType: 'application/vnd.nimi.resource-pack+zip',
+            content: Uint8Array.from([4, 5, 6]), sha256: 'd'.repeat(64),
+          };
+        },
+      },
+      resourcePackTargetController: controller,
+    });
+    await session.refresh();
+    await session.appearance.selectResourcePack?.();
+    delayApply = true;
+    const apply = session.appearance.applyResourcePack!();
+    await started;
+    await base.presentation.commit({
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '2',
+      intent: { selectImportedResourcePack: true },
+      importedAssets: [{
+        role: 'resource-pack', fileName: 'external-c.nimipack',
+        mediaType: 'application/vnd.nimi.resource-pack+zip',
+        content: Uint8Array.from([7, 8, 9]), sha256: 'e'.repeat(64),
+      }],
+    });
+    await session.refresh();
+    releaseApply?.();
+    await apply;
+
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      presentationRevision: '3',
+      resourcePackSelection: { assetRef: `pack_${'e'.repeat(12)}` },
+      resourcePackTarget: { phase: 'selected', effectiveResourceRef: `pack_${'e'.repeat(12)}` },
+    });
+  });
+
+  it('reconciles a newer owner revision that arrives during selected Pack rendering', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    const controller = new TestResourcePackTargetController();
+    let releaseRender: (() => void) | undefined;
+    controller.renderSelectedGate = new Promise<void>((resolve) => { releaseRender = resolve; });
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client: base,
+      hostMechanics: {
+        async selectResourcePack() {
+          return {
+            role: 'resource-pack', fileName: 'rendering-b.nimipack',
+            mediaType: 'application/vnd.nimi.resource-pack+zip',
+            content: Uint8Array.from([4, 5, 6]), sha256: 'd'.repeat(64),
+          };
+        },
+      },
+      resourcePackTargetController: controller,
+    });
+    await session.refresh();
+    await session.appearance.selectResourcePack?.();
+    const apply = session.appearance.applyResourcePack!();
+    while (!controller.calls.some((entry) => Array.isArray(entry) && entry[0] === 'renderSelected')) {
+      await Promise.resolve();
+    }
+    await base.presentation.commit({
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '2',
+      intent: { selectImportedResourcePack: true },
+      importedAssets: [{
+        role: 'resource-pack', fileName: 'external-c.nimipack',
+        mediaType: 'application/vnd.nimi.resource-pack+zip',
+        content: Uint8Array.from([7, 8, 9]), sha256: 'e'.repeat(64),
+      }],
+    });
+    await session.refresh();
+    releaseRender?.();
+    await apply;
+
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      presentationRevision: '3',
+      resourcePackSelection: { assetRef: `pack_${'e'.repeat(12)}` },
+      resourcePackTarget: { phase: 'selected', effectiveResourceRef: `pack_${'e'.repeat(12)}` },
+    });
+  });
+
+  it('does not let a stale ambiguous Apply reread overwrite a newer owner revision', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    let makeApplyAmbiguous = false;
+    let delayNextSnapshot = false;
+    let snapshotStarted: (() => void) | undefined;
+    let releaseSnapshot: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => { snapshotStarted = resolve; });
+    const snapshotGate = new Promise<void>((resolve) => { releaseSnapshot = resolve; });
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      presentation: {
+        ...base.presentation,
+        async snapshot(input) {
+          const projection = await base.presentation.snapshot(input);
+          if (delayNextSnapshot) {
+            delayNextSnapshot = false;
+            snapshotStarted?.();
+            await snapshotGate;
+          }
+          return projection;
+        },
+        async commit(input) {
+          const projection = await base.presentation.commit(input);
+          if (makeApplyAmbiguous && 'selectImportedResourcePack' in input.intent) {
+            delayNextSnapshot = true;
+            throw new Error('Apply response transport closed');
+          }
+          return projection;
+        },
+      },
+    };
+    const controller = new TestResourcePackTargetController();
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client,
+      hostMechanics: {
+        async selectResourcePack() {
+          return {
+            role: 'resource-pack', fileName: 'ambiguous-b.nimipack',
+            mediaType: 'application/vnd.nimi.resource-pack+zip',
+            content: Uint8Array.from([4, 5, 6]), sha256: 'd'.repeat(64),
+          };
+        },
+      },
+      resourcePackTargetController: controller,
+    });
+    await session.refresh();
+    await session.appearance.selectResourcePack?.();
+    makeApplyAmbiguous = true;
+    const apply = session.appearance.applyResourcePack!();
+    await started;
+    await base.presentation.commit({
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '2',
+      intent: { selectImportedResourcePack: true },
+      importedAssets: [{
+        role: 'resource-pack', fileName: 'external-c.nimipack',
+        mediaType: 'application/vnd.nimi.resource-pack+zip',
+        content: Uint8Array.from([7, 8, 9]), sha256: 'e'.repeat(64),
+      }],
+    });
+    await session.refresh();
+    releaseSnapshot?.();
+    await expect(apply).rejects.toThrow(/exact reviewed bytes/u);
+
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      presentationRevision: '3',
+      resourcePackSelection: { assetRef: `pack_${'e'.repeat(12)}` },
+      resourcePackTarget: { phase: 'selected', effectiveResourceRef: `pack_${'e'.repeat(12)}` },
+    });
+  });
+
   it('destroys Preview and returns to the selected Pack after a structured known Clear failure', async () => {
     const calls: unknown[] = [];
     const base = appClient(calls);
@@ -1340,7 +1536,7 @@ describe('AgentCenterSession', () => {
     const snapshotReads = calls.filter((entry) => Array.isArray(entry) && entry[0] === 'presentation.snapshot').length;
     await expect(session.appearance.clearResourcePack()).rejects.toBe(knownFailure);
 
-    expect(calls.filter((entry) => Array.isArray(entry) && entry[0] === 'presentation.snapshot')).toHaveLength(snapshotReads);
+    expect(calls.filter((entry) => Array.isArray(entry) && entry[0] === 'presentation.snapshot')).toHaveLength(snapshotReads + 1);
     expect(session.getSnapshot().state.appearance).toMatchObject({
       resourcePackSelection: { assetRef: `pack_${'c'.repeat(12)}` },
       resourcePackTarget: { phase: 'selected', effectiveResourceRef: `pack_${'c'.repeat(12)}` },
@@ -1696,6 +1892,70 @@ describe('AgentCenterSession', () => {
     });
   });
 
+  it('does not let a delayed successful Clear response overwrite a newer owner selection', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    let delayClear = false;
+    let clearStarted: (() => void) | undefined;
+    let releaseClear: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => { clearStarted = resolve; });
+    const clearGate = new Promise<void>((resolve) => { releaseClear = resolve; });
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      presentation: {
+        ...base.presentation,
+        async commit(input) {
+          const projection = await base.presentation.commit(input);
+          if (delayClear && 'clearResourcePackSelection' in input.intent) {
+            clearStarted?.();
+            await clearGate;
+          }
+          return projection;
+        },
+      },
+    };
+    const controller = new TestResourcePackTargetController();
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client,
+      hostMechanics: {
+        async selectResourcePack() {
+          return {
+            role: 'resource-pack', fileName: 'selected-a.nimipack',
+            mediaType: 'application/vnd.nimi.resource-pack+zip',
+            content: Uint8Array.from([1, 2, 3]), sha256: 'c'.repeat(64),
+          };
+        },
+      },
+      resourcePackTargetController: controller,
+    });
+    await session.refresh();
+    await session.appearance.selectResourcePack?.();
+    await session.appearance.applyResourcePack?.();
+    delayClear = true;
+    const clear = session.appearance.clearResourcePack();
+    await started;
+    await base.presentation.commit({
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '3',
+      intent: { selectImportedResourcePack: true },
+      importedAssets: [{
+        role: 'resource-pack', fileName: 'external-c.nimipack',
+        mediaType: 'application/vnd.nimi.resource-pack+zip',
+        content: Uint8Array.from([7, 8, 9]), sha256: 'e'.repeat(64),
+      }],
+    });
+    await session.refresh();
+    releaseClear?.();
+    await clear;
+
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      presentationRevision: '4',
+      resourcePackSelection: { assetRef: `pack_${'e'.repeat(12)}` },
+      resourcePackTarget: { phase: 'selected', effectiveResourceRef: `pack_${'e'.repeat(12)}` },
+    });
+  });
+
   it('keeps the reread canonical selection when an ambiguous Clear did not commit', async () => {
     const calls: unknown[] = [];
     const base = appClient(calls);
@@ -1786,6 +2046,70 @@ describe('AgentCenterSession', () => {
       state: { appearance: { resourcePackTarget: { phase: 'preview' } } },
     });
     expect(controller.calls.filter((entry) => Array.isArray(entry) && entry[0] === 'cancelPreview')).toHaveLength(cancels);
+  });
+
+  it('does not let an older refresh regress the Resource Pack cache or target controller', async () => {
+    const calls: unknown[] = [];
+    const base = appClient(calls);
+    let delayNextSnapshot = false;
+    let snapshotStarted: (() => void) | undefined;
+    let releaseSnapshot: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => { snapshotStarted = resolve; });
+    const snapshotGate = new Promise<void>((resolve) => { releaseSnapshot = resolve; });
+    const client: NimiLocalAppAgentConfigureClient = {
+      ...base,
+      presentation: {
+        ...base.presentation,
+        async snapshot(input) {
+          const projection = await base.presentation.snapshot(input);
+          if (delayNextSnapshot) {
+            delayNextSnapshot = false;
+            snapshotStarted?.();
+            await snapshotGate;
+          }
+          return projection;
+        },
+      },
+    };
+    const controller = new TestResourcePackTargetController();
+    const session = createAppAgentCenterSession({
+      handle: HANDLE,
+      client,
+      resourcePackTargetController: controller,
+    });
+    await session.refresh();
+    await base.presentation.commit({
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '1',
+      intent: { selectImportedResourcePack: true },
+      importedAssets: [{
+        role: 'resource-pack', fileName: 'external-b.nimipack',
+        mediaType: 'application/vnd.nimi.resource-pack+zip',
+        content: Uint8Array.from([4, 5, 6]), sha256: 'd'.repeat(64),
+      }],
+    });
+    delayNextSnapshot = true;
+    const staleRefresh = session.refresh();
+    await started;
+    await base.presentation.commit({
+      agentHandle: HANDLE,
+      expectedPresentationRevision: '2',
+      intent: { selectImportedResourcePack: true },
+      importedAssets: [{
+        role: 'resource-pack', fileName: 'external-c.nimipack',
+        mediaType: 'application/vnd.nimi.resource-pack+zip',
+        content: Uint8Array.from([7, 8, 9]), sha256: 'e'.repeat(64),
+      }],
+    });
+    await session.refresh();
+    releaseSnapshot?.();
+    await staleRefresh;
+
+    expect(session.getSnapshot().state.appearance).toMatchObject({
+      presentationRevision: '3',
+      resourcePackSelection: { assetRef: `pack_${'e'.repeat(12)}` },
+      resourcePackTarget: { phase: 'selected', effectiveResourceRef: `pack_${'e'.repeat(12)}` },
+    });
   });
 
   it('rejects a late Resource Pack preview after the presentation revision changes', async () => {

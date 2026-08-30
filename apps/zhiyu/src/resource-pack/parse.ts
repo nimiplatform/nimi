@@ -340,6 +340,9 @@ function validateDeclaration(declaration: Declaration, source: string): void {
   if ((!layoutProperties.has(property) && !visualProperties.has(property)) || property.startsWith('--')) {
     fail('style', source, `Property ${property} is not allowed in W1.`, 'Use bounded layout or visual properties on a semantic zone.');
   }
+  if (!value) {
+    fail('style', source, `Property ${property} has an empty value.`, 'Provide one bounded W1 value or remove the declaration.');
+  }
   if (declaration.important) {
     fail('style', source, '!important is not allowed.', 'Remove !important so the guarded Host boundary remains authoritative.');
   }

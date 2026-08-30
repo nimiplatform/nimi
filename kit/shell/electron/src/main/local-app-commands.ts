@@ -1831,6 +1831,7 @@ function standardCode(reasonCode: string) {
     case 'access-denied': return 'access-denied' as const;
     case 'owner-authority-missing': return 'owner-authority-missing' as const;
     case 'content-conflict': return 'content-conflict' as const;
+    case 'agent-presentation-revision-conflict': return 'content-conflict' as const;
     case 'realm-unavailable': return 'realm-unavailable' as const;
     case 'rate-limited': return 'rate-limited' as const;
     case 'upstream-failed': return 'upstream-failed' as const;
@@ -1845,6 +1846,10 @@ function standardCode(reasonCode: string) {
     case 'runtime-service-repair-required': return 'runtime-service-repair-required' as const;
     case 'runtime-unauthenticated': return 'runtime-unauthenticated' as const;
     case 'invalid-payload':
+    case 'agent-presentation-asset-type-invalid':
+    case 'agent-presentation-asset-structure-invalid':
+    case 'agent-presentation-asset-dependency-missing':
+    case 'agent-presentation-asset-not-validated':
     case 'ai-config-invalid':
     case 'ai-voice-input-invalid':
     case 'ai-voice-workflow-unsupported':
@@ -1857,6 +1862,9 @@ function standardCode(reasonCode: string) {
     case 'ai-voice-asset-not-found':
     case 'ai-voice-job-not-found': return 'not-found' as const;
     case 'ai-config-persistence-unavailable': return 'runtime-service-unavailable' as const;
+    case 'agent-presentation-asset-too-large': return 'resource-exhausted' as const;
+    case 'agent-presentation-asset-integrity-mismatch': return 'invalid-payload' as const;
+    case 'agent-presentation-backend-incompatible': return 'contract-invalid' as const;
     case 'resource-exhausted': return 'resource-exhausted' as const;
     default: return 'runtime-permission-denied' as const;
   }
@@ -1895,6 +1903,14 @@ function actionHint(reasonCode: string): string {
     case 'runtime-service-error-unclassified': return 'inspect_runtime_service_error';
     case 'runtime-service-repair-required': return 'repair_fixed_runtime_service';
     case 'runtime-unauthenticated': return 'open_request_empty_local_app_session';
+    case 'agent-presentation-revision-conflict': return 'refresh_presentation_snapshot';
+    case 'agent-presentation-asset-type-invalid':
+    case 'agent-presentation-asset-too-large':
+    case 'agent-presentation-asset-structure-invalid':
+    case 'agent-presentation-asset-dependency-missing':
+    case 'agent-presentation-asset-integrity-mismatch':
+    case 'agent-presentation-backend-incompatible':
+    case 'agent-presentation-asset-not-validated': return 'repair_agent_presentation_material';
     default: return 'refresh_local_app_runtime_projection';
   }
 }

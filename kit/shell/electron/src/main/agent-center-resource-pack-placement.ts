@@ -9,7 +9,8 @@ import type {
 } from './types.js';
 
 export const DESKTOP_AGENT_CENTER_RESOURCE_PACK_PLACEMENT_PATH = '/v1/agent-center-resource-pack-placement/request';
-const DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
+// Covers the Desktop Host's bounded 8s Zhiyu launch plus 15s destination request.
+const DEFAULT_REQUEST_TIMEOUT_MS = 25_000;
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-041a
 export async function requestElectronAgentCenterResourcePackPlacement(input: {

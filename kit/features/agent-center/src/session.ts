@@ -252,6 +252,14 @@ function resourcePackCommitOutcomeIsAmbiguous(error: unknown): boolean {
   ]).has(reasonCode);
 }
 
+function decimalRevisionIsNewer(candidate: string, baseline: string): boolean {
+  const normalizedCandidate = candidate.replace(/^0+/u, '') || '0';
+  const normalizedBaseline = baseline.replace(/^0+/u, '') || '0';
+  return normalizedCandidate.length !== normalizedBaseline.length
+    ? normalizedCandidate.length > normalizedBaseline.length
+    : normalizedCandidate > normalizedBaseline;
+}
+
 function resourcePackPlacementUnavailableError(
   availability: Extract<AgentCenterResourcePackPlacementAvailability, { state: 'unavailable' }>,
 ): Error & { readonly reasonCode: string; readonly actionHint: string } {
@@ -712,6 +720,9 @@ class ManagerSession {
 
   #replaceAppearance(projection: AgentCenterAppearanceProjection): void {
     if (this.#invalidated) return;
+    const currentRevision = this.#snapshot.state.appearance.presentationRevision;
+    if (currentRevision && projection.presentationRevision
+      && decimalRevisionIsNewer(currentRevision, projection.presentationRevision)) return;
     const availability = Object.freeze({
       ...this.#snapshot.availability,
       restorePreviousAppearance: projection.previousSelection
@@ -1051,6 +1062,24 @@ export function createAppAgentCenterSession(
     if (selectedResourceRef) await renderSelectedResourcePack(projection, syncEpoch);
   };
 
+  const adoptObservedPresentation = async (
+    candidate: NimiLocalAppAgentPresentationProjection,
+  ): Promise<NimiLocalAppAgentPresentationProjection> => {
+    let latest = presentation && decimalRevisionIsNewer(
+      presentation.presentationRevision,
+      candidate.presentationRevision,
+    ) ? presentation : candidate;
+    for (;;) {
+      presentation = latest;
+      await synchronizeResourcePackTarget(latest);
+      if (!presentation || !decimalRevisionIsNewer(
+        presentation.presentationRevision,
+        latest.presentationRevision,
+      )) return latest;
+      latest = presentation;
+    }
+  };
+
   const projectCurrentAppearance = async (
     projection: NimiLocalAppAgentPresentationProjection,
   ): Promise<AgentCenterAppearanceProjection> => projectAppAppearanceWithHostPreview(
@@ -1073,6 +1102,24 @@ export function createAppAgentCenterSession(
       return;
     }
     restorePreview();
+  };
+
+  const reconcileKnownResourcePackFailure = async (
+    expectedRevision: string,
+    commitError: unknown,
+    restorePreview: () => void,
+  ): Promise<ResourcePackMutationResolution> => {
+    try {
+      const projection = await input.client.presentation.snapshot({ agentHandle: handle });
+      return {
+        outcome: 'conflict',
+        projection,
+        error: commitError instanceof Error ? commitError : new Error(errorMessage(commitError)),
+      };
+    } catch {
+      await restoreResourcePackAfterKnownFailure(expectedRevision, restorePreview);
+      throw commitError;
+    }
   };
 
   const readSharedAIConfig = async (): Promise<SharedAIConfigRead> => {
@@ -1114,11 +1161,8 @@ export function createAppAgentCenterSession(
     if (voiceRead.status === 'fulfilled') voiceCatalog = voiceRead.value;
     let appearance: AgentCenterAppearanceProjection | undefined;
     if (presentationRead.status === 'fulfilled') {
-      presentation = presentationRead.value;
-      await synchronizeResourcePackTarget(presentationRead.value);
-      appearance = await projectCurrentAppearance(presentationRead.value);
-    } else {
-      presentation = null;
+      const current = await adoptObservedPresentation(presentationRead.value);
+      appearance = await projectCurrentAppearance(current);
     }
 
     const failedAvailability = (result: PromiseSettledResult<unknown>): AgentCenterActionAvailability => (
@@ -1191,21 +1235,19 @@ export function createAppAgentCenterSession(
 
   const currentPresentation = async (): Promise<NimiLocalAppAgentPresentationProjection> => {
     if (presentation) return presentation;
-    presentation = await input.client.presentation.snapshot({ agentHandle: handle });
-    return presentation;
+    return adoptObservedPresentation(await input.client.presentation.snapshot({ agentHandle: handle }));
   };
 
   const commitPresentation = async (
     mutation: AgentCenterPresentationCommitInput,
   ): Promise<AgentCenterAppearanceProjection> => {
-    presentation = await input.client.presentation.commit({
+    const committed = await input.client.presentation.commit({
       agentHandle: handle,
       expectedPresentationRevision: mutation.expectedRevision,
       intent: appPresentationPatch(mutation.intent),
       importedAssets: mutation.importedAssets,
     });
-    await synchronizeResourcePackTarget(presentation);
-    return projectCurrentAppearance(presentation);
+    return projectCurrentAppearance(await adoptObservedPresentation(committed));
   };
 
   const appearanceAdapter: AgentCenterAppearanceAdapter = {
@@ -1215,8 +1257,7 @@ export function createAppAgentCenterSession(
         readVoiceCatalog(),
       ]);
       voiceCatalog = nextVoiceCatalog;
-      await synchronizeResourcePackTarget(current);
-      return projectCurrentAppearance(current);
+      return projectCurrentAppearance(await adoptObservedPresentation(current));
     },
     ...(input.hostMechanics?.selectAvatar ? {
       async replaceAvatar(kind: 'live2d' | 'vrm') {
@@ -1330,7 +1371,6 @@ export function createAppAgentCenterSession(
     review: NonNullable<typeof resourcePackReview>,
     commitError: unknown,
   ): Promise<ResourcePackMutationResolution> => {
-    presentation = projection;
     const selection = projection.resourcePackSelection;
     if (selection && projection.presentationRevision !== review.expectedRevision) {
       try {
@@ -1416,10 +1456,9 @@ export function createAppAgentCenterSession(
       });
     } catch (error) {
       if (!resourcePackCommitOutcomeIsAmbiguous(error)) {
-        await restoreResourcePackAfterKnownFailure(review.expectedRevision, () => {
+        return reconcileKnownResourcePackFailure(review.expectedRevision, error, () => {
           resourcePackTargetController.applyFailed(errorMessage(error));
         });
-        throw error;
       }
       const resolution = await reconcileResourcePackApply(review, error);
       if (resolution.outcome === 'pending') resourcePackMutationInFlight = null;
@@ -1438,6 +1477,17 @@ export function createAppAgentCenterSession(
   const adoptResourcePackCommit = async (
     committed: NimiLocalAppAgentPresentationProjection,
   ): Promise<AgentCenterAppearanceProjection> => {
+    if (presentation && decimalRevisionIsNewer(
+      presentation.presentationRevision,
+      committed.presentationRevision,
+    )) {
+      const latest = presentation;
+      resourcePackReview = null;
+      resourcePackContext = null;
+      resourcePackMutationInFlight = null;
+      await synchronizeResourcePackTarget(latest);
+      return projectCurrentAppearance(latest);
+    }
     presentation = committed;
     const selection = committed.resourcePackSelection;
     if (!resourcePackTargetController || resourcePackDisposed || !selection) {
@@ -1457,28 +1507,25 @@ export function createAppAgentCenterSession(
         selectedResourceRef: selection.assetRef,
       });
       await renderSelectedResourcePack(committed, syncEpoch);
-      return projectCurrentAppearance(committed);
     } finally {
       resourcePackMutationInFlight = null;
     }
+    return projectCurrentAppearance(await adoptObservedPresentation(committed));
   };
 
   const adoptResourcePackReconciliation = async (
     reconciled: NimiLocalAppAgentPresentationProjection,
   ): Promise<AgentCenterAppearanceProjection> => {
-    presentation = reconciled;
     resourcePackReview = null;
     resourcePackContext = null;
     resourcePackMutationInFlight = null;
-    await synchronizeResourcePackTarget(reconciled);
-    return projectCurrentAppearance(reconciled);
+    return projectCurrentAppearance(await adoptObservedPresentation(reconciled));
   };
 
   const resolveResourcePackClearProjection = (
     projection: NimiLocalAppAgentPresentationProjection,
     commitError?: unknown,
   ): ResourcePackMutationResolution => {
-    presentation = projection;
     if (!projection.resourcePackSelection) return { outcome: 'committed', projection };
     const suffix = commitError ? ` after commit error: ${errorMessage(commitError)}` : '';
     return {
@@ -1502,10 +1549,9 @@ export function createAppAgentCenterSession(
       return resolveResourcePackClearProjection(committed);
     } catch (commitError) {
       if (!resourcePackCommitOutcomeIsAmbiguous(commitError)) {
-        await restoreResourcePackAfterKnownFailure(current.presentationRevision, () => {
+        return reconcileKnownResourcePackFailure(current.presentationRevision, commitError, () => {
           resourcePackTargetController?.cancelPreview();
         });
-        throw commitError;
       }
       try {
         const projection = await input.client.presentation.snapshot({ agentHandle: handle });
@@ -1529,19 +1575,20 @@ export function createAppAgentCenterSession(
   const adoptResourcePackClear = async (
     committed: NimiLocalAppAgentPresentationProjection,
   ): Promise<AgentCenterAppearanceProjection> => {
-    presentation = committed;
+    if (presentation && decimalRevisionIsNewer(
+      presentation.presentationRevision,
+      committed.presentationRevision,
+    )) {
+      const latest = presentation;
+      resourcePackReview = null;
+      resourcePackContext = null;
+      resourcePackMutationInFlight = null;
+      await synchronizeResourcePackTarget(latest);
+      return projectCurrentAppearance(latest);
+    }
     resourcePackReview = null;
     resourcePackMutationInFlight = null;
-    resourcePackContext = Object.freeze({
-      revision: committed.presentationRevision,
-      selectedResourceRef: null,
-    });
-    resourcePackSyncEpoch += 1;
-    resourcePackTargetController?.clearCommitted({
-      agentHandle: handle,
-      selectionRevision: committed.presentationRevision,
-    });
-    return projectCurrentAppearance(committed);
+    return projectCurrentAppearance(await adoptObservedPresentation(committed));
   };
 
   const retryResourcePack = async (): Promise<AgentCenterAppearanceProjection> => {
@@ -1600,14 +1647,13 @@ export function createAppAgentCenterSession(
       if (!current.previousProfile) {
         throw new Error('Agent Center previous presentation is unavailable.');
       }
-      presentation = await input.client.presentation.commit({
+      const committed = await input.client.presentation.commit({
         agentHandle: handle,
         expectedPresentationRevision: current.presentationRevision,
         intent: appPresentationIntent(current.previousProfile),
         importedAssets: [],
       });
-      await synchronizeResourcePackTarget(presentation);
-      return projectCurrentAppearance(presentation);
+      return projectCurrentAppearance(await adoptObservedPresentation(committed));
     },
     ...(selectResourcePack ? { selectResourcePack } : {}),
     cancelResourcePackPreview() {

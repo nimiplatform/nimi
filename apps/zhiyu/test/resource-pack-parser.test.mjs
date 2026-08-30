@@ -29,6 +29,13 @@ test('parses and scopes a real style-only .nimipack ZIP', async () => {
   assert.match(parsed.scopedCssText, /data-nimi-pack-zone="surface"/u);
 });
 
+test('accepts literal text containing url when it is not a CSS url function', async () => {
+  const parsed = await parseZhiyuResourcePack(packBytes({
+    css: '[data-nimi-pack-zone="surface"] { font-family: "Curlz MT"; }',
+  }));
+  assert.match(parsed.scopedCssText, /Curlz MT/u);
+});
+
 test('materializes only a declared signature-matched Pack image', async () => {
   const bytes = packBytes({
     css: '[data-nimi-pack-zone="surface"] { background-image: linear-gradient(#0008, #0008), url("assets/room.png"); }',
@@ -81,6 +88,7 @@ test('rejects remote CSS, descendant selectors, and guarded-control interception
     '[data-nimi-pack-zone="surface"] { pointer-events: none; }',
     '[data-nimi-pack-zone="surface"]::before { content: "online"; }',
     '[data-nimi-pack-zone="surface"] { display: none; }',
+    '[data-nimi-pack-zone="surface"] { color: ; }',
     '[data-nimi-pack-zone="surface"] { color: URL("assets/mark.png"); }',
     '[data-nimi-pack-zone="surface"] { background-image: \\75 \\72 \\6c ("https://example.com/x.png"); }',
   ];

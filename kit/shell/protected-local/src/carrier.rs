@@ -73,6 +73,14 @@ pub enum LocalAppReasonCode {
     AiConfigInvalid,
     AiConfigNotFound,
     AiConfigPersistenceUnavailable,
+    AgentPresentationRevisionConflict,
+    AgentPresentationAssetTypeInvalid,
+    AgentPresentationAssetTooLarge,
+    AgentPresentationAssetStructureInvalid,
+    AgentPresentationAssetDependencyMissing,
+    AgentPresentationAssetIntegrityMismatch,
+    AgentPresentationBackendIncompatible,
+    AgentPresentationAssetNotValidated,
     SnapshotUnavailable,
     AccessDenied,
     OperationUnsupported,
@@ -157,6 +165,24 @@ impl LocalAppReasonCode {
             Self::AiConfigInvalid => "ai-config-invalid",
             Self::AiConfigNotFound => "ai-config-not-found",
             Self::AiConfigPersistenceUnavailable => "ai-config-persistence-unavailable",
+            Self::AgentPresentationRevisionConflict => "agent-presentation-revision-conflict",
+            Self::AgentPresentationAssetTypeInvalid => "agent-presentation-asset-type-invalid",
+            Self::AgentPresentationAssetTooLarge => "agent-presentation-asset-too-large",
+            Self::AgentPresentationAssetStructureInvalid => {
+                "agent-presentation-asset-structure-invalid"
+            }
+            Self::AgentPresentationAssetDependencyMissing => {
+                "agent-presentation-asset-dependency-missing"
+            }
+            Self::AgentPresentationAssetIntegrityMismatch => {
+                "agent-presentation-asset-integrity-mismatch"
+            }
+            Self::AgentPresentationBackendIncompatible => {
+                "agent-presentation-backend-incompatible"
+            }
+            Self::AgentPresentationAssetNotValidated => {
+                "agent-presentation-asset-not-validated"
+            }
             Self::SnapshotUnavailable => "local-app-snapshot-unavailable",
             Self::AccessDenied => "local-app-access-denied",
             Self::OperationUnsupported => "local-app-operation-unsupported",

@@ -561,6 +561,88 @@ describe('AgentCenter UI session contract', () => {
     await flush();
   });
 
+  it('clears Resource Pack busy and ignores late errors when the Agent session changes', async () => {
+    const controllerA = new TestResourcePackTargetController();
+    let rejectSelectionA: ((reason?: unknown) => void) | undefined;
+    const selectionA = new Promise<never>((_resolve, reject) => { rejectSelectionA = reject; });
+    const sessionA = await sessionFor({}, {
+      selectResourcePack: () => selectionA,
+      async selectBackground() {
+        return {
+          intent: { backgroundAssetReference: 'asset://background/a' },
+          importedAssets: [{
+            role: 'background', fileName: 'a.png', mediaType: 'image/png',
+            content: Uint8Array.from([1]), sha256: 'a'.repeat(64),
+          }],
+        };
+      },
+    }, undefined, controllerA);
+    const sessionB = await sessionFor({}, {
+      async selectResourcePack() { return null; },
+      async selectBackground() {
+        return {
+          intent: { backgroundAssetReference: 'asset://background/b' },
+          importedAssets: [{
+            role: 'background', fileName: 'b.png', mediaType: 'image/png',
+            content: Uint8Array.from([2]), sha256: 'b'.repeat(64),
+          }],
+        };
+      },
+    }, undefined, new TestResourcePackTargetController());
+    const node = render(<AgentCenter activeSection="appearance" session={sessionA} />);
+    await flush();
+
+    act(() => {
+      (node.querySelector('[data-agent-center-resource-pack-action="select"]') as HTMLButtonElement).click();
+    });
+    await flush();
+    expect((node.querySelector('[data-agent-center-background-import="true"]') as HTMLButtonElement).disabled).toBe(true);
+
+    act(() => { root?.render(<AgentCenter activeSection="appearance" session={sessionB} />); });
+    await flush();
+    expect((node.querySelector('[data-agent-center-resource-pack-action="select"]') as HTMLButtonElement).disabled).toBe(false);
+    expect((node.querySelector('[data-agent-center-background-import="true"]') as HTMLButtonElement).disabled).toBe(false);
+
+    rejectSelectionA?.(new Error('Agent A picker failed late'));
+    await flush();
+    expect(node.textContent).not.toContain('Agent A picker failed late');
+  });
+
+  it('shows the current Resource Pack operation error alongside an existing fallback mismatch', async () => {
+    const controller = new TestResourcePackTargetController();
+    controller.renderFailure = new Error('Selected A cannot render.');
+    const session = await sessionFor({
+      appearance: {
+        status: 'not_configured',
+        presentationRevision: '4',
+        resourcePackSelection: {
+          assetRef: 'pack_0123456789ab',
+          targetId: 'zhiyu-experience-surface',
+          targetVersion: 1,
+        },
+      },
+    }, {
+      async selectResourcePack() {
+        return {
+          role: 'resource-pack', fileName: 'invalid-b.nimipack',
+          mediaType: 'application/vnd.nimi.resource-pack+zip',
+          content: Uint8Array.from([1, 2, 3]), sha256: 'invalid',
+        };
+      },
+    }, undefined, controller);
+    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    await flush();
+
+    await act(async () => {
+      (node.querySelector('[data-agent-center-resource-pack-action="select"]') as HTMLButtonElement).click();
+      await Promise.resolve();
+    });
+    await flush();
+
+    expect(node.textContent).toContain('selected Resource Pack is not rendering');
+    expect(node.textContent).toContain('Agent Center Host returned invalid Resource Pack material.');
+  });
+
   it('keeps an established Preview mounted across a background refresh', async () => {
     const controller = new TestResourcePackTargetController();
     const session = await sessionFor({}, {

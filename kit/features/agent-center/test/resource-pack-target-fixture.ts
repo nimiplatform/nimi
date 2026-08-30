@@ -24,6 +24,7 @@ export class TestResourcePackTargetController implements AgentCenterResourcePack
   #review: AgentCenterResourcePackApplyMaterial | null = null;
   #operationEpoch = 0;
   beginPreviewGate: Promise<void> | null = null;
+  renderSelectedGate: Promise<void> | null = null;
   renderFailure: Error | null = null;
 
   getSnapshot = (): AgentCenterResourcePackTargetSnapshot => this.#state;
@@ -150,6 +151,7 @@ export class TestResourcePackTargetController implements AgentCenterResourcePack
     readonly archiveBytes: Uint8Array;
   }): Promise<boolean> {
     this.calls.push(['renderSelected', { ...input, archiveBytes: Uint8Array.from(input.archiveBytes) }]);
+    await this.renderSelectedGate;
     if (this.renderFailure) throw this.renderFailure;
     if (this.#agentHandle !== input.agentHandle
       || this.#selectionRevision !== input.selectionRevision

@@ -595,7 +595,7 @@ func (p *resourcePackCSSParser) validateDeclaration(rawProperty, value string) e
 	if property == "background-image" {
 		return p.validateBackgroundImage(value)
 	}
-	if strings.Contains(lowerValue, "url") {
+	if strings.Contains(lowerValue, "url(") {
 		return invalidPresentationResourcePack("style", "Resource Pack URLs are allowed only in background-image.", "use_declared_resource_pack_image")
 	}
 	return nil

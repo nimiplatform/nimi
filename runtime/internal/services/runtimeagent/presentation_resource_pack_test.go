@@ -266,6 +266,7 @@ func TestResourcePackStyleParityAcceptsTechnicalPackA(t *testing.T) {
     background-color: #182032;
     background-image: linear-gradient(#0008, #0008), url("assets/room.png");
     color: #f8fafc;
+    font-family: "Curlz MT";
   }
 }`
 	content := buildTestResourcePack(t, testResourcePackManifest([]string{"assets/room.png"}), style, map[string][]byte{
@@ -292,6 +293,7 @@ func TestResourcePackStyleParityRejectsZhiyuDeniedShapes(t *testing.T) {
 		{name: "position interception", style: `[data-nimi-pack-zone="surface"] { position: fixed; }`},
 		{name: "pointer interception", style: `[data-nimi-pack-zone="surface"] { pointer-events: none; }`},
 		{name: "hidden surface", style: `[data-nimi-pack-zone="surface"] { display: none; }`},
+		{name: "empty value", style: `[data-nimi-pack-zone="surface"] { color: ; }`},
 		{name: "remote URL", style: `[data-nimi-pack-zone="surface"] { background-image: url("https://example.com/x.png"); }`},
 		{name: "data URL", style: `[data-nimi-pack-zone="surface"] { background-image: url("data:image/png;base64,AAAA"); }`},
 		{name: "file URL", style: `[data-nimi-pack-zone="surface"] { background-image: url("file:///tmp/x.png"); }`},

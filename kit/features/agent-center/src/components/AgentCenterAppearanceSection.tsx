@@ -94,13 +94,20 @@ function AgentCenterResourcePackCard({
   const [pending, setPending] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const statusRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => () => {
-    try {
-      session.appearance.cancelResourcePackPreview?.();
-    } catch {
-      // Session invalidation already destroyed the review.
-    }
-  }, [session]);
+  const activeSessionRef = useRef(session);
+  activeSessionRef.current = session;
+  useEffect(() => {
+    setPending(false);
+    setLocalError(null);
+    onBusyChange(false);
+    return () => {
+      try {
+        session.appearance.cancelResourcePackPreview?.();
+      } catch {
+        // Session invalidation already destroyed the review.
+      }
+    };
+  }, [onBusyChange, session]);
   const copy = useMemo(() => ({
     active: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.active', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.active']),
     apply: translateAgentCenter(i18n, 'AgentCenter.appearance.resourcePack.apply', agentCenterEnCatalog['AgentCenter.appearance.resourcePack.apply']),
@@ -130,18 +137,22 @@ function AgentCenterResourcePackCard({
   const busy = blocked || pending || Boolean(mutationPending)
     || target?.phase === 'apply-in-flight' || target?.phase === 'render-pending';
   const run = async (task: () => Promise<void>) => {
+    const operationSession = session;
     setPending(true);
     onBusyChange(true);
     setLocalError(null);
     try {
       await task();
     } catch (error) {
-      setLocalError(message(error).message);
+      if (activeSessionRef.current === operationSession) setLocalError(message(error).message);
     } finally {
-      setPending(false);
-      onBusyChange(false);
+      if (activeSessionRef.current === operationSession) {
+        setPending(false);
+        onBusyChange(false);
+      }
     }
   };
+  const persistentNotice = target?.mismatchReason ?? target?.error ?? null;
   const status = mutationPending === 'apply'
     ? copy.applyOutcomeUnknown
     : mutationPending === 'clear'
@@ -288,9 +299,8 @@ function AgentCenterResourcePackCard({
             : copy.placementUnavailable}
         </span>
       ) : null}
-      {target?.mismatchReason || target?.error || localError ? (
-        <InlineAlert tone="warning">{target?.mismatchReason || target?.error || localError}</InlineAlert>
-      ) : null}
+      {persistentNotice ? <InlineAlert tone="warning">{persistentNotice}</InlineAlert> : null}
+      {localError && localError !== persistentNotice ? <InlineAlert tone="warning">{localError}</InlineAlert> : null}
       </div>
     </Card>
   );
@@ -302,6 +312,13 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
   const [pendingKind, setPendingKind] = useState<PendingKind>(null);
   const [resourcePackCardBusy, setResourcePackCardBusy] = useState(false);
   const [operation, setOperation] = useState<OperationState>({ state: 'idle', message: '' });
+  const activeSessionRef = useRef(session);
+  activeSessionRef.current = session;
+  useEffect(() => {
+    setPendingKind(null);
+    setResourcePackCardBusy(false);
+    setOperation({ state: 'idle', message: '' });
+  }, [session]);
   const copy = useMemo(() => Object.fromEntries(
     Object.entries(AUTOSAVE_COPY_DEFAULTS).map(([key, fallback]) => [
       key,
@@ -367,6 +384,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
 
   const choose = (kind: 'live2d' | 'vrm') => setPendingKind(kind);
   const replace = async () => {
+    const operationSession = session;
     const kind = pendingKind;
     setPendingKind(null);
     if (!kind
@@ -379,6 +397,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
       } else {
         await session.appearance.replaceAvatar!(kind);
       }
+      if (activeSessionRef.current !== operationSession) return;
       const committed = session.getSnapshot().state.appearance;
       setOperation(committed.renderState === 'failed'
         || (committed.renderState === 'unavailable'
@@ -386,6 +405,7 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
         ? { state: 'render-failed', message: copy.savedRenderFailed }
         : { state: 'saved', message: copy.saved });
     } catch (error) {
+      if (activeSessionRef.current !== operationSession) return;
       const failure = message(error);
       setOperation({
         state: 'validation-failed',
@@ -395,33 +415,42 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
     }
   };
   const restore = async () => {
+    const operationSession = session;
     setOperation({ state: 'restoring', message: copy.restoring });
     try {
       await session.restorePreviousAppearance();
+      if (activeSessionRef.current !== operationSession) return;
       setOperation({ state: 'restored', message: copy.restored });
     } catch (error) {
+      if (activeSessionRef.current !== operationSession) return;
       const failure = message(error);
       setOperation({ state: 'validation-failed', reasonCode: failure.reasonCode, message: failure.message });
     }
   };
   const toggleAutoplay = async (next: boolean) => {
     if (!session.appearance.setAvatarAutoplay) return;
+    const operationSession = session;
     setOperation({ state: 'saving', message: copy.saving });
     try {
       await session.appearance.setAvatarAutoplay(next);
+      if (activeSessionRef.current !== operationSession) return;
       setOperation({ state: 'saved', message: copy.saved });
     } catch (error) {
+      if (activeSessionRef.current !== operationSession) return;
       const failure = message(error);
       setOperation({ state: 'validation-failed', reasonCode: failure.reasonCode, message: failure.message });
     }
   };
   const setDefaultVoice = async (reference: string) => {
     if (!session.appearance.setDefaultVoice) return;
+    const operationSession = session;
     setOperation({ state: 'saving', message: copy.saving });
     try {
       await session.appearance.setDefaultVoice(reference);
+      if (activeSessionRef.current !== operationSession) return;
       setOperation({ state: 'saved', message: copy.saved });
     } catch (error) {
+      if (activeSessionRef.current !== operationSession) return;
       const failure = message(error);
       setOperation({ state: 'validation-failed', reasonCode: failure.reasonCode, message: failure.message });
     }
