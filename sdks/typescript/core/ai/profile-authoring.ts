@@ -907,8 +907,8 @@ function normalizeLocalImplementationInput(
       `${capabilityContract} Runtime Recipe implementation`,
     ),
     supportedFeatures: normalizeFeatureSet(
-      recipe.supportedFeatures,
-      `${capabilityContract} Runtime Recipe supportedFeatures`,
+      recipe.implementationSupportedFeatures,
+      `${capabilityContract} Runtime Recipe implementationSupportedFeatures`,
     ),
     portableConfig: normalizeAuthoringJsonObject(
       input.portableConfig ?? recipe.defaultOptions,
@@ -1014,6 +1014,23 @@ function projectRuntimeRecipeRequirements(
   }
   const requirements = recipe.slots.map((slot, index) => {
     const value = requireRecord(slot, `Runtime Recipe ${recipeId} slot ${index}`);
+    const presence = requireExactNonEmptyText(
+      value.presence,
+      `Runtime Recipe ${recipeId} slot presence`,
+    );
+    if (presence !== 'required' && presence !== 'optional-conditional') {
+      return authoringError(`Runtime Recipe ${recipeId} slot presence is unsupported`);
+    }
+    const conditionalFeatures = normalizeFeatureSet(
+      value.conditionalFeatures,
+      `Runtime Recipe ${recipeId} conditionalFeatures`,
+    );
+    if (presence === 'required' && conditionalFeatures.length > 0) {
+      return authoringError(`Runtime Recipe ${recipeId} required slot cannot declare conditionalFeatures`);
+    }
+    if (presence === 'optional-conditional' && conditionalFeatures.length === 0) {
+      return authoringError(`Runtime Recipe ${recipeId} optional-conditional slot requires conditionalFeatures`);
+    }
     return Object.freeze({
       slotId: requireExactNonEmptyText(value.slotId, `Runtime Recipe ${recipeId} slotId`),
       displayLabel: requireExactNonEmptyText(
@@ -1032,6 +1049,8 @@ function projectRuntimeRecipeRequirements(
         value.modelContract,
         `Runtime Recipe ${recipeId} modelContract`,
       ),
+      presence,
+      conditionalFeatures,
     });
   });
   assertUnique(requirements.map((requirement) => requirement.slotId), `Runtime Recipe ${recipeId} slotId`);

@@ -34,6 +34,7 @@ export type RuntimeImageGenerateArtifactSummary = {
   readonly sizeBytes?: number;
   readonly width?: number;
   readonly height?: number;
+  readonly seed?: number;
 };
 
 export type RuntimeImageGenerateTrace = {
@@ -187,6 +188,7 @@ function toImageArtifactSummary(
   const uri = normalizeText(artifact.uri);
   const artifactId = normalizeText(artifact.artifactId);
   const sizeBytes = imageArtifactSize(artifact);
+  const seed = imageArtifactSeed(artifact);
   const base = {
     ...(artifactId ? { artifactId } : {}),
     mimeType,
@@ -194,6 +196,7 @@ function toImageArtifactSummary(
     ...(sizeBytes > 0 ? { sizeBytes } : {}),
     ...(artifact.width > 0 ? { width: artifact.width } : {}),
     ...(artifact.height > 0 ? { height: artifact.height } : {}),
+    ...(seed !== undefined ? { seed } : {}),
   };
   if (uri) {
     return { ...base, previewUrl: uri, previewSource: 'hosted-uri' };
@@ -208,6 +211,17 @@ function toImageArtifactSummary(
   // Kit never reads artifact bytes out-of-band; an artifactId-only projection
   // stays metadata-only until a runtime-artifact-read path is admitted.
   return { ...base, previewSource: 'metadata-only' };
+}
+
+function imageArtifactSeed(artifact: NimiRuntimeScenarioArtifact): number | undefined {
+  const value = artifact.seed;
+  if (value === undefined) return undefined;
+  if (!Number.isSafeInteger(value)
+    || value < -2_147_483_648
+    || value > 2_147_483_647) {
+    throw new Error('Runtime image artifact returned an invalid concrete seed.');
+  }
+  return value;
 }
 
 function imageArtifactSize(artifact: NimiRuntimeScenarioArtifact): number {

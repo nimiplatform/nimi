@@ -1,24 +1,36 @@
 import {
   ExecutionMode,
+  ExecutionInterruptionCause,
+  ExecutionResubmitDisposition,
   FinishReason,
-  ReasoningMode,
-  ReasoningTraceMode,
+  ReasoningActivation,
+  ReasoningEffort,
+  ReasoningPresentation,
   ResponseFormatKind,
   RoutePolicy,
   ScenarioType,
-  ToolChoiceMode,
   type ExecuteScenarioRequest,
   type ExecuteScenarioResponse,
+  type ExecutionInterruption,
+  type ReasoningConfig,
   type ResponseFormat,
   type StreamScenarioEvent,
   type StreamScenarioRequest,
 } from '../../core-generated/runtime-protobuf/runtime/v1/ai';
-import { ReasonCode as RuntimeGeneratedReasonCode, type UsageStats } from '../../core-generated/runtime-protobuf/runtime/v1/common';
+import {
+  ReasonCode as RuntimeGeneratedReasonCode,
+  TextBehaviorKind,
+  ToolChoiceMode,
+  type UsageStats,
+} from '../../core-generated/runtime-protobuf/runtime/v1/common';
+import type { LoadoutEffectiveInputIdentity } from '../../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
 import type { RuntimeTypedCallOptions } from '../../core-generated/runtime-typed-client';
 import { withNimiRuntimeIdempotencyMetadata } from '../../runtime/scenario-jobs';
 import { ReasonCode, createNimiClientId, createNimiError } from '../../types';
 import type {
   NimiFinishReason,
+  NimiAIExecutionAdmission,
+  NimiExecutionInterruption,
   NimiJsonObject,
   NimiJsonValue,
   NimiRunEvent,
@@ -34,27 +46,39 @@ import type {
 import {
   toNimiRawChunk,
   toNimiRawChunks,
+  toNimiReasoningContinuityCarrier,
   toNimiSource,
   toNimiSources,
-  toNimiToolApprovalRequest,
-  toNimiToolApprovalRequests,
+  toNimiTextOutputItems,
   toNimiToolCall,
-  toNimiToolCalls,
-  toNimiToolResult,
-  toNimiToolResults,
   toRuntimeMessages,
   toRuntimeStruct,
   toRuntimeTools,
 } from './runtime-model-text-projection';
 
-export type NimiRuntimeAIReasoningMode = 'off' | 'on';
-export type NimiRuntimeAIReasoningTraceMode = 'hide' | 'separate';
+export type NimiRuntimeAIReasoningActivation = 'disabled' | 'adaptive' | 'required';
+export type NimiRuntimeAIReasoningPresentation = 'hidden' | 'summary';
+export type NimiRuntimeAIReasoningEffort = 'minimal' | 'low' | 'medium' | 'high' | 'maximum';
 
-export interface NimiRuntimeAIReasoningOptions {
-  readonly mode?: NimiRuntimeAIReasoningMode;
-  readonly traceMode?: NimiRuntimeAIReasoningTraceMode;
-  readonly budgetTokens?: number;
-}
+export type NimiRuntimeAIReasoningOptions =
+  | {
+      readonly activation?: 'disabled';
+      readonly presentation?: 'hidden';
+      readonly effort?: never;
+      readonly exactBudgetTokens?: never;
+    }
+  | {
+      readonly activation: 'adaptive' | 'required';
+      readonly presentation?: NimiRuntimeAIReasoningPresentation;
+      readonly effort: NimiRuntimeAIReasoningEffort;
+      readonly exactBudgetTokens?: never;
+    }
+  | {
+      readonly activation: 'adaptive' | 'required';
+      readonly presentation?: NimiRuntimeAIReasoningPresentation;
+      readonly effort?: never;
+      readonly exactBudgetTokens: number;
+    };
 
 export interface NimiRuntimeAIScenarioClient {
   executeScenario(request: ExecuteScenarioRequest, options?: RuntimeTypedCallOptions): Promise<ExecuteScenarioResponse>;
@@ -65,6 +89,7 @@ export interface NimiRuntimeAIModelOptions {
   readonly runtime: { readonly ai: NimiRuntimeAIScenarioClient } | NimiRuntimeAIScenarioClient;
   readonly appId: string;
   readonly subjectUserId?: string;
+  readonly getSubjectUserId?: () => string | undefined | Promise<string | undefined>;
   readonly timeoutMs?: number;
   readonly metadata?: NimiJsonObject;
   readonly reasoning?: NimiRuntimeAIReasoningOptions;
@@ -76,6 +101,12 @@ const RUNTIME_TEXT_GENERATION_MODEL: NimiTextGenerationCapabilityRef = Object.fr
 
 // @nimi-authority: definition.nimi.sdks.feature-clients.ai-adapter-plane
 // @nimi-authority: rule.nimi.sdks.feature-clients.r001
+// @nimi-authority: rule.nimi.runtime.ai-provider.r081
+// @nimi-authority: rule.nimi.runtime.ai-provider.r087
+// @nimi-authority: rule.nimi.runtime.ai-provider.r088
+// @nimi-authority: rule.nimi.runtime.ai-provider.r119
+// @nimi-authority: rule.nimi.runtime.ai-provider.r122
+// @nimi-authority: rule.nimi.runtime.ai-provider.r123
 export function createNimiRuntimeAIModel(options: NimiRuntimeAIModelOptions): NimiAiModel {
   const scenarioClient = getScenarioClient(options.runtime);
   const model = RUNTIME_TEXT_GENERATION_MODEL;
@@ -84,10 +115,11 @@ export function createNimiRuntimeAIModel(options: NimiRuntimeAIModelOptions): Ni
     model,
     async generateText(request) {
       assertRuntimeSupportedTextRequest(request);
+      const requestOptions = await runtimeModelOptionsWithSubject(options);
       const response = await scenarioClient.executeScenario(
         buildRuntimeTextScenarioRequest({
           request,
-          options,
+          options: requestOptions,
           appId,
           executionMode: ExecutionMode.SYNC,
         }),
@@ -97,10 +129,11 @@ export function createNimiRuntimeAIModel(options: NimiRuntimeAIModelOptions): Ni
     },
     async *streamText(request) {
       assertRuntimeSupportedTextRequest(request);
+      const requestOptions = await runtimeModelOptionsWithSubject(options);
       const stream = scenarioClient.streamScenario(
         buildRuntimeTextScenarioRequest({
           request,
-          options,
+          options: requestOptions,
           appId,
           executionMode: ExecutionMode.STREAM,
         }),
@@ -109,6 +142,14 @@ export function createNimiRuntimeAIModel(options: NimiRuntimeAIModelOptions): Ni
       yield* runtimeScenarioStreamToNimiEvents(stream, model);
     },
   };
+}
+
+async function runtimeModelOptionsWithSubject(
+  options: NimiRuntimeAIModelOptions,
+): Promise<NimiRuntimeAIModelOptions> {
+  if (normalizeText(options.subjectUserId)) return options;
+  const subjectUserId = normalizeText(await options.getSubjectUserId?.());
+  return subjectUserId ? { ...options, subjectUserId } : options;
 }
 
 export function buildRuntimeTextScenarioRequest(input: {
@@ -124,6 +165,9 @@ export function buildRuntimeTextScenarioRequest(input: {
     .filter(Boolean)
     .join('\n\n');
   const conversation = messages.filter((message) => message.role !== 'system' && message.role !== 'developer');
+  if (conversation.length === 0) {
+    runtimeInputInvalid('Runtime text.generate requires at least one non-system input message');
+  }
   return {
     head: {
       appId: input.appId,
@@ -165,13 +209,24 @@ export async function* runtimeScenarioStreamToNimiEvents(
 ): AsyncIterable<NimiRunEvent> {
   let started = false;
   let usage: NimiUsage | undefined;
+  const outputItems = new Map<number, {
+    readonly kind: 'text' | 'reasoning-summary' | 'tool-call' | 'reasoning-continuity';
+    readonly completed: boolean;
+    readonly hasContent: boolean;
+  }>();
+  const seenToolCallIds = new Set<string>();
+  let nextItemIndex = 0;
   for await (const event of stream) {
     if (event.payload.oneofKind === 'started') {
+      if (started) {
+        runtimeStreamOutputInvalid('Runtime Scenario stream emitted started more than once');
+      }
       started = true;
       yield {
         type: 'start',
         traceId: normalizeText(event.traceId) || undefined,
         model,
+        admission: toNimiExecutionAdmission(event.payload.started.effectiveInputIdentity),
       };
       continue;
     }
@@ -181,20 +236,86 @@ export async function* runtimeScenarioStreamToNimiEvents(
     }
     if (event.payload.oneofKind === 'delta') {
       const delta = event.payload.delta.delta;
-      if (delta.oneofKind === 'text' && delta.text.text) {
-        yield { type: 'text-delta', text: delta.text.text };
-      } else if (delta.oneofKind === 'reasoning' && delta.reasoning.text) {
-        yield { type: 'reasoning-delta', text: delta.reasoning.text };
+      if (delta.oneofKind === 'textOutputItem') {
+        const item = delta.textOutputItem;
+        const itemDelta = item.delta;
+        if (itemDelta.oneofKind === undefined) {
+          const current = outputItems.get(item.itemIndex);
+          if (!item.itemCompleted || !current || current.completed
+            || (current.kind !== 'text' && current.kind !== 'reasoning-summary')) {
+            runtimeStreamOutputInvalid('Runtime text output item used an invalid completion-only seal');
+          }
+          outputItems.set(item.itemIndex, { ...current, completed: true });
+          continue;
+        }
+        const kind = itemDelta.oneofKind === 'text'
+          ? 'text'
+          : itemDelta.oneofKind === 'reasoningSummary'
+            ? 'reasoning-summary'
+            : itemDelta.oneofKind === 'toolCall'
+              ? 'tool-call'
+              : itemDelta.oneofKind === 'reasoningContinuity'
+                ? 'reasoning-continuity'
+                : runtimeStreamOutputInvalid('Runtime text output delta used an unknown typed item');
+        admitRuntimeStreamOutputItem(outputItems, item.itemIndex, kind, nextItemIndex);
+        if (!outputItems.has(item.itemIndex)) {
+          nextItemIndex += 1;
+        }
+        const current = outputItems.get(item.itemIndex);
+        const hasContent = current?.hasContent === true
+          || itemDelta.oneofKind === 'text' && itemDelta.text.text.length > 0
+          || itemDelta.oneofKind === 'reasoningSummary' && itemDelta.reasoningSummary.text.length > 0
+          || itemDelta.oneofKind === 'toolCall'
+          || itemDelta.oneofKind === 'reasoningContinuity';
+        outputItems.set(item.itemIndex, { kind, completed: item.itemCompleted, hasContent });
+        if (itemDelta.oneofKind === 'text') {
+          yield {
+            type: 'text-delta',
+            text: itemDelta.text.text,
+            itemIndex: item.itemIndex,
+            itemCompleted: item.itemCompleted,
+          };
+        } else if (itemDelta.oneofKind === 'reasoningSummary') {
+          yield {
+            type: 'reasoning-summary-delta',
+            text: itemDelta.reasoningSummary.text,
+            itemIndex: item.itemIndex,
+            itemCompleted: item.itemCompleted,
+          };
+        } else if (itemDelta.oneofKind === 'toolCall') {
+          if (!item.itemCompleted) {
+            runtimeStreamOutputInvalid('Runtime published an incomplete public ToolCall');
+          }
+          const toolCall = toNimiToolCall(itemDelta.toolCall);
+          if (seenToolCallIds.has(toolCall.id)) {
+            runtimeStreamOutputInvalid('Runtime text stream contained a duplicate ToolCall id');
+          }
+          seenToolCallIds.add(toolCall.id);
+          yield {
+            type: 'tool-call',
+            toolCall,
+            itemIndex: item.itemIndex,
+            itemCompleted: true,
+          };
+        } else if (itemDelta.oneofKind === 'reasoningContinuity') {
+          if (!item.itemCompleted) {
+            runtimeStreamOutputInvalid('Runtime published an incomplete reasoning continuity carrier');
+          }
+          yield {
+            type: 'reasoning-continuity',
+            carrier: toNimiReasoningContinuityCarrier(itemDelta.reasoningContinuity),
+            itemIndex: item.itemIndex,
+            itemCompleted: true,
+          };
+        }
       } else if (delta.oneofKind === 'artifact') {
-        yield {
-          type: 'artifact',
-          chunk: delta.artifact.chunk,
-          mimeType: requireRuntimeArtifactMimeType(delta.artifact.mimeType),
-        };
+        runtimeStreamOutputInvalid('Runtime text.generate stream returned media output');
       } else if (delta.oneofKind === 'source') {
         yield toNimiSource(delta.source);
       } else if (delta.oneofKind === 'raw') {
         yield toNimiRawChunk(delta.raw);
+      } else {
+        runtimeStreamOutputInvalid('Runtime Scenario stream delta omitted its typed payload');
       }
       continue;
     }
@@ -202,37 +323,122 @@ export async function* runtimeScenarioStreamToNimiEvents(
       usage = toNimiUsage(event.payload.usage);
       continue;
     }
-    if (event.payload.oneofKind === 'toolCall') {
-      yield { type: 'tool-call', toolCall: toNimiToolCall(event.payload.toolCall) };
-      continue;
-    }
-    if (event.payload.oneofKind === 'toolResult') {
-      yield { type: 'tool-result', toolResult: toNimiToolResult(event.payload.toolResult) };
-      continue;
-    }
-    if (event.payload.oneofKind === 'toolApprovalRequest') {
-      yield {
-        type: 'tool-approval-request',
-        toolApprovalRequest: toNimiToolApprovalRequest(event.payload.toolApprovalRequest),
-      };
-      continue;
-    }
     if (event.payload.oneofKind === 'completed') {
+      for (const item of outputItems.values()) {
+        if (!item.completed || !item.hasContent) {
+          runtimeStreamOutputInvalid('Runtime text stream completed with an open or empty output item');
+        }
+      }
+      if (![...outputItems.values()].some((item) => item.kind === 'tool-call' || item.kind === 'text')) {
+        runtimeStreamOutputInvalid('Runtime text stream completed without final text or a complete ToolCall item');
+      }
       yield {
         type: 'done',
         finishReason: toNimiFinishReason(event.payload.completed.finishReason),
         usage: usage ?? toNimiUsage(event.payload.completed.usage),
       };
-      continue;
+      return;
     }
     if (event.payload.oneofKind === 'failed') {
+      const interruption = toNimiExecutionInterruption(
+        event.payload.failed.reasonCode,
+        event.payload.failed.interruption,
+      );
       yield {
         type: 'error',
         code: runtimeReasonCodeName(event.payload.failed.reasonCode),
         message: normalizeText(event.payload.failed.actionHint) || 'Runtime Scenario stream failed',
+        ...(interruption ? { interruption } : {}),
       };
+      return;
     }
+    runtimeStreamOutputInvalid('Runtime Scenario stream event omitted its typed payload');
   }
+}
+
+function admitRuntimeStreamOutputItem(
+  items: ReadonlyMap<number, { readonly kind: string; readonly completed: boolean; readonly hasContent: boolean }>,
+  itemIndex: number,
+  kind: 'text' | 'reasoning-summary' | 'tool-call' | 'reasoning-continuity',
+  nextItemIndex: number,
+): void {
+  if (!Number.isSafeInteger(itemIndex) || itemIndex < 0) {
+    runtimeStreamOutputInvalid('Runtime text output item index is invalid');
+  }
+  const current = items.get(itemIndex);
+  if (!current) {
+    if (itemIndex !== nextItemIndex) {
+      runtimeStreamOutputInvalid('Runtime text output item indices are not in zero-based first-seen order');
+    }
+    return;
+  }
+  if (current.completed) {
+    runtimeStreamOutputInvalid('Runtime text output item received a delta after completion');
+  }
+  if (current.kind !== kind || (kind !== 'text' && kind !== 'reasoning-summary')) {
+    runtimeStreamOutputInvalid('Runtime text output item repeated with an illegal or conflicting kind');
+  }
+}
+
+function toNimiExecutionInterruption(
+  reasonCode: RuntimeGeneratedReasonCode,
+  interruption: ExecutionInterruption | undefined,
+): NimiExecutionInterruption | undefined {
+  if (reasonCode !== RuntimeGeneratedReasonCode.AI_EXECUTION_INTERRUPTED) {
+    if (interruption) {
+      runtimeStreamOutputInvalid('Runtime stream attached interruption detail to a non-interruption failure');
+    }
+    return undefined;
+  }
+  if (interruption?.cause !== ExecutionInterruptionCause.RUNTIME_RESTART
+    || interruption.resubmitDisposition !== ExecutionResubmitDisposition.CALLER_MAY_RESUBMIT) {
+    runtimeStreamOutputInvalid('Runtime interruption failure omitted its typed restart/resubmit disposition');
+  }
+  return {
+    cause: 'runtime-restart',
+    resubmitDisposition: 'caller-may-resubmit',
+  };
+}
+
+function toNimiExecutionAdmission(
+  identity: LoadoutEffectiveInputIdentity | undefined,
+): NimiAIExecutionAdmission | undefined {
+  if (!identity) {
+    return undefined;
+  }
+  if (!identity.implementation) {
+    runtimeOutputInvalid('Runtime Local execution admission omitted its implementation identity');
+  }
+  return Object.freeze({
+    loadoutId: requireRuntimeOutputText(identity.loadoutId, 'loadoutId'),
+    capabilityContract: requireRuntimeOutputText(identity.capabilityContract, 'capabilityContract'),
+    implementation: Object.freeze({
+      implementationId: requireRuntimeOutputText(identity.implementation.implementationId, 'implementationId'),
+      driverId: requireRuntimeOutputText(identity.implementation.driverId, 'driverId'),
+      driverDialect: requireRuntimeOutputText(identity.implementation.driverDialect, 'driverDialect'),
+    }),
+    recipeId: requireRuntimeOutputText(identity.recipeId, 'recipeId'),
+    recipeRevision: requireRuntimeOutputText(identity.recipeRevision, 'recipeRevision'),
+    admittedFeatures: Object.freeze([...identity.admittedFeatures]),
+    admittedTextBehaviors: Object.freeze(identity.admittedTextBehaviors.map(toNimiTextBehaviorKind)),
+  });
+}
+
+function toNimiTextBehaviorKind(kind: TextBehaviorKind): NimiAIExecutionAdmission['admittedTextBehaviors'][number] {
+  switch (kind) {
+    case TextBehaviorKind.TOOL_USE: return 'tool-use';
+    case TextBehaviorKind.REASONING: return 'reasoning';
+    case TextBehaviorKind.STRUCTURED_OUTPUT: return 'structured-output';
+    default: return runtimeOutputInvalid('Runtime text behavior admission kind is unspecified');
+  }
+}
+
+function requireRuntimeOutputText(value: unknown, field: string): string {
+  const normalized = normalizeText(value);
+  if (!normalized) {
+    runtimeOutputInvalid(`Runtime Local execution admission omitted ${field}`);
+  }
+  return normalized;
 }
 
 function runtimeReasonCodeName(value: unknown): string {
@@ -247,20 +453,6 @@ function runtimeReasonCodeName(value: unknown): string {
   return normalized || 'RUNTIME_SCENARIO_FAILED';
 }
 
-function requireRuntimeArtifactMimeType(value: string): string {
-  const mimeType = normalizeText(value);
-  if (!mimeType) {
-    throw createNimiError({
-      message: 'Runtime Scenario artifact delta did not include mimeType',
-      code: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
-      reasonCode: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
-      actionHint: 'check_runtime_artifact_mime_type',
-      source: 'sdk',
-    });
-  }
-  return mimeType;
-}
-
 function toGenerateTextResult(response: ExecuteScenarioResponse): NimiGenerateTextResult {
   const textOutput = response.output?.output;
   if (textOutput?.oneofKind !== 'textGenerate') {
@@ -273,29 +465,40 @@ function toGenerateTextResult(response: ExecuteScenarioResponse): NimiGenerateTe
     });
   }
   const output = textOutput.textGenerate;
-  const toolCalls = toNimiToolCalls(output.toolCalls);
-  const toolResults = toNimiToolResults(output.toolResults);
-  const toolApprovalRequests = toNimiToolApprovalRequests(output.toolApprovalRequests);
+  const outputItems = toNimiTextOutputItems(output.items);
+  const text = outputItems
+    .filter((item): item is Extract<(typeof outputItems)[number], { readonly type: 'text' }> => item.type === 'text')
+    .map((item) => item.text)
+    .join('');
+  const reasoningSummary = outputItems
+    .filter((item): item is Extract<(typeof outputItems)[number], { readonly type: 'reasoning-summary' }> => (
+      item.type === 'reasoning-summary'
+    ))
+    .map((item) => item.text)
+    .join('');
+  const toolCalls = outputItems
+    .filter((item): item is Extract<(typeof outputItems)[number], { readonly type: 'tool-call' }> => (
+      item.type === 'tool-call'
+    ))
+    .map((item) => item.toolCall);
+  if (!outputItems.some((item) => (item.type === 'text' && item.text.length > 0) || item.type === 'tool-call')) {
+    runtimeOutputInvalid('Runtime text.generate output contained no final text or complete ToolCall item');
+  }
   const sources = toNimiSources(output.sources);
   const rawChunks = toNimiRawChunks(output.rawChunks);
   const content: NimiGenerateTextContent[] = [
-    ...(output.text ? [{ type: 'text' as const, text: output.text }] : []),
+    ...outputItems,
     ...(sources ?? []),
-    ...(toolCalls ?? []).map((toolCall) => ({ type: 'tool-call' as const, toolCall })),
-    ...(toolResults ?? []).map((toolResult) => ({ type: 'tool-result' as const, toolResult })),
-    ...(toolApprovalRequests ?? []).map((toolApprovalRequest) => ({
-      type: 'tool-approval-request' as const,
-      toolApprovalRequest,
-    })),
     ...(rawChunks ?? []),
   ];
   return {
-    text: output.text,
+    text,
     finishReason: toNimiFinishReason(response.finishReason),
     usage: toNimiUsage(response.usage),
-    toolCalls,
-    toolResults,
-    toolApprovalRequests,
+    toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+    outputItems,
+    reasoningSummary: reasoningSummary || undefined,
+    admission: toNimiExecutionAdmission(response.effectiveInputIdentity),
     sources,
     rawChunks,
     content: content.length > 0 ? content : undefined,
@@ -323,8 +526,11 @@ function assertRuntimeSupportedTextRequest(request: NimiGenerateTextRequest): vo
   }
   for (const message of request.messages) {
     for (const part of message.content) {
-      if (part.type !== 'text' && part.type !== 'file') {
-        unsupportedRuntimeAI('message.content.data', 'Runtime-backed text model accepts text and file message parts only');
+      if (part.type !== 'text' && part.type !== 'file' && part.type !== 'artifact-ref') {
+        unsupportedRuntimeAI(
+          'message.content.data',
+          'Runtime-backed text model accepts text, media URL, and artifact-ref message parts only',
+        );
       }
     }
   }
@@ -383,16 +589,51 @@ function toRuntimeStop(stop: string | readonly string[] | undefined): string[] {
   return Array.isArray(stop) ? [...stop] : [stop as string];
 }
 
-function toRuntimeReasoningConfig(reasoning: NimiRuntimeAIReasoningOptions | undefined) {
+function toRuntimeReasoningConfig(reasoning: NimiRuntimeAIReasoningOptions | undefined): ReasoningConfig {
+  const activation = reasoning?.activation ?? 'disabled';
+  const presentation = reasoning?.presentation ?? 'hidden';
+  if (activation === 'disabled') {
+    if (presentation !== 'hidden' || reasoning?.effort !== undefined || reasoning?.exactBudgetTokens !== undefined) {
+      runtimeInputInvalid('Disabled Runtime reasoning admits no intensity and must remain hidden');
+    }
+    return {
+      activation: ReasoningActivation.DISABLED,
+      intensity: { oneofKind: undefined },
+      presentation: ReasoningPresentation.HIDDEN,
+    };
+  }
+  const hasEffort = reasoning?.effort !== undefined;
+  const hasExactBudget = reasoning?.exactBudgetTokens !== undefined;
+  if (hasEffort === hasExactBudget) {
+    runtimeInputInvalid('Adaptive or required Runtime reasoning requires exactly one effort or exactBudgetTokens intensity');
+  }
+  if (hasExactBudget) {
+    const exactBudgetTokens = Number(reasoning.exactBudgetTokens);
+    if (!Number.isSafeInteger(exactBudgetTokens) || exactBudgetTokens <= 0) {
+      runtimeInputInvalid('Runtime reasoning exactBudgetTokens must be a positive safe integer');
+    }
+    return {
+      activation: activation === 'adaptive' ? ReasoningActivation.ADAPTIVE : ReasoningActivation.REQUIRED,
+      intensity: { oneofKind: 'exactBudgetTokens', exactBudgetTokens },
+      presentation: presentation === 'summary' ? ReasoningPresentation.SUMMARY : ReasoningPresentation.HIDDEN,
+    };
+  }
   return {
-    mode: reasoning?.mode === 'on' ? ReasoningMode.ON : reasoning?.mode === 'off' ? ReasoningMode.OFF : ReasoningMode.UNSPECIFIED,
-    traceMode: reasoning?.traceMode === 'separate'
-      ? ReasoningTraceMode.SEPARATE
-      : reasoning?.traceMode === 'hide'
-        ? ReasoningTraceMode.HIDE
-        : ReasoningTraceMode.UNSPECIFIED,
-    budgetTokens: Number(reasoning?.budgetTokens ?? 0),
+    activation: activation === 'adaptive' ? ReasoningActivation.ADAPTIVE : ReasoningActivation.REQUIRED,
+    intensity: { oneofKind: 'effort', effort: toRuntimeReasoningEffort(reasoning?.effort) },
+    presentation: presentation === 'summary' ? ReasoningPresentation.SUMMARY : ReasoningPresentation.HIDDEN,
   };
+}
+
+function toRuntimeReasoningEffort(effort: NimiRuntimeAIReasoningEffort | undefined): ReasoningEffort {
+  switch (effort) {
+    case 'minimal': return ReasoningEffort.MINIMAL;
+    case 'low': return ReasoningEffort.LOW;
+    case 'medium': return ReasoningEffort.MEDIUM;
+    case 'high': return ReasoningEffort.HIGH;
+    case 'maximum': return ReasoningEffort.MAXIMUM;
+    default: return runtimeInputInvalid('Runtime reasoning effort is invalid');
+  }
 }
 
 function toRuntimeCallOptions(
@@ -422,7 +663,7 @@ function toNimiFinishReason(reason: FinishReason): NimiFinishReason {
   if (reason === FinishReason.TOOL_CALL) return 'tool-calls';
   if (reason === FinishReason.CONTENT_FILTER) return 'content-filter';
   if (reason === FinishReason.ERROR) return 'error';
-  return 'unknown';
+  return runtimeOutputInvalid('Runtime text Scenario used an unknown finish reason');
 }
 
 function toNimiUsage(usage: UsageStats | undefined): NimiUsage | undefined {
@@ -511,6 +752,36 @@ function unsupportedRuntimeAI(feature: string, detail: string): never {
     actionHint: 'use_agent_or_feature_layer_for_unsupported_ai_semantics',
     source: 'sdk',
     details: { feature },
+  });
+}
+
+function runtimeInputInvalid(message: string): never {
+  throw createNimiError({
+    message,
+    code: ReasonCode.SDK_AI_INPUT_INVALID,
+    reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
+    actionHint: 'provide_valid_runtime_text_behavior',
+    source: 'sdk',
+  });
+}
+
+function runtimeOutputInvalid(message: string): never {
+  throw createNimiError({
+    message,
+    code: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
+    reasonCode: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
+    actionHint: 'check_runtime_text_scenario_output',
+    source: 'sdk',
+  });
+}
+
+function runtimeStreamOutputInvalid(message: string): never {
+  throw createNimiError({
+    message,
+    code: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
+    reasonCode: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
+    actionHint: 'check_runtime_text_stream_output',
+    source: 'sdk',
   });
 }
 

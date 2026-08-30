@@ -11,7 +11,8 @@ use crate::generated::submit_local_app_scenario_job_request::Spec as JobSpec;
 use crate::generated::voice_reference::Reference as VoiceReferenceValue;
 use crate::generated::{
     CancelLocalAppScenarioJobRequest as ProtoCancelJobRequest,
-    ExecuteLocalAppScenarioRequest as ProtoExecuteRequest,
+    ExecuteLocalAppScenarioRequest as ProtoExecuteRequest, ExecutionInterruption,
+    ExecutionInterruptionCause, ExecutionResubmitDisposition,
     GetLocalAppScenarioJobRequest as ProtoGetJobRequest,
     ListLocalAppVoiceAssetsRequest as ProtoListVoiceAssetsRequest,
     LocalAppImageGenerateScenarioSpec, LocalAppMusicGenerateJobSpec, LocalAppScenarioArtifact,
@@ -419,6 +420,8 @@ fn parse_image_spec(
             "referenceImages",
             "referenceImageArtifactId",
             "mask",
+            "maskArtifactId",
+            "strength",
             "responseFormat",
         ],
         &[
@@ -453,6 +456,15 @@ fn parse_image_spec(
         return Err(invalid_payload());
     }
     let mask = optional_text_field(object, "mask", MAX_URI_BYTES)?;
+    let mask_artifact_id =
+        optional_present_text_field(object, "maskArtifactId", MAX_IDENTIFIER_BYTES)?;
+    let strength = optional_float_field(object, "strength", f32::MIN, f32::MAX)?;
+    if (!mask.is_empty() && !mask_artifact_id.is_empty())
+        || (!mask_artifact_id.is_empty() && reference_image_artifact_id.is_empty())
+        || (strength.is_some() && reference_image_artifact_id.is_empty())
+    {
+        return Err(invalid_payload());
+    }
     if (!mask.is_empty() && !is_https_url(&mask))
         || !matches!(
             string_field(object, "responseFormat")?,
@@ -474,6 +486,8 @@ fn parse_image_spec(
         reference_images,
         reference_image_artifact_id,
         mask,
+        mask_artifact_id,
+        strength,
         response_format: string_field(object, "responseFormat")?.to_string(),
     })
 }
@@ -954,12 +968,13 @@ fn project_artifacts(
                 || artifact.channels < 0
                 || artifact.sha256.len() > 128
                 || artifact.sha256.trim() != artifact.sha256
+                || (artifact.seed.is_some() && !artifact.mime_type.starts_with("image/"))
                 || (!artifact.bytes.is_empty()
                     && artifact.size_bytes as usize != artifact.bytes.len())
             {
                 return Err(untrusted());
             }
-            Ok(json!({
+            let mut projected = json!({
                 "artifactId": artifact.artifact_id,
                 "mimeType": artifact.mime_type,
                 "bytes": artifact.bytes,
@@ -970,7 +985,14 @@ fn project_artifacts(
                 "height": artifact.height,
                 "sampleRateHz": artifact.sample_rate_hz,
                 "channels": artifact.channels,
-            }))
+            });
+            if let Some(seed) = artifact.seed {
+                projected
+                    .as_object_mut()
+                    .ok_or_else(untrusted)?
+                    .insert("seed".to_string(), json!(seed));
+            }
+            Ok(projected)
         })
         .collect()
 }
@@ -1122,6 +1144,7 @@ fn project_text_turn_event(
         TextTurnPayload::Failed(LocalAppTextTurnFailed {
             reason_code,
             action_hint,
+            interruption,
         }) => {
             let reason =
                 crate::generated::ReasonCode::try_from(reason_code).map_err(|_| untrusted())?;
@@ -1129,12 +1152,36 @@ fn project_text_turn_event(
                 return Err(untrusted());
             }
             valid_optional_runtime_text(&action_hint, MAX_ACTION_HINT_BYTES)?;
+            let interruption = project_execution_interruption(interruption)?;
+            if (reason == crate::generated::ReasonCode::AiExecutionInterrupted)
+                != !interruption.is_null()
+            {
+                return Err(untrusted());
+            }
             Ok(
                 json!({"type": "failed", "sequence": event.sequence.to_string(), "traceId": event.trace_id,
-                "reasonCode": enum_token(reason.as_str_name(), "REASON_CODE_"), "actionHint": action_hint}),
+                "reasonCode": enum_token(reason.as_str_name(), "REASON_CODE_"), "actionHint": action_hint,
+                "interruption": interruption}),
             )
         }
     }
+}
+
+fn project_execution_interruption(
+    value: Option<ExecutionInterruption>,
+) -> Result<JsonValue, LocalAppOperationError> {
+    let Some(value) = value else {
+        return Ok(JsonValue::Null);
+    };
+    let cause = ExecutionInterruptionCause::try_from(value.cause).map_err(|_| untrusted())?;
+    let disposition = ExecutionResubmitDisposition::try_from(value.resubmit_disposition)
+        .map_err(|_| untrusted())?;
+    if cause != ExecutionInterruptionCause::RuntimeRestart
+        || disposition != ExecutionResubmitDisposition::CallerMayResubmit
+    {
+        return Err(untrusted());
+    }
+    Ok(json!({"cause": "runtime-restart", "resubmitDisposition": "caller-may-resubmit"}))
 }
 
 fn project_timestamp(
@@ -1215,6 +1262,18 @@ fn optional_text_field(
     let value = string_field(object, key)?;
     require_optional_trimmed_text(value, maximum)?;
     Ok(value.to_string())
+}
+
+fn optional_present_text_field(
+    object: &Map<String, JsonValue>,
+    key: &str,
+    maximum: usize,
+) -> Result<String, LocalAppOperationError> {
+    object
+        .get(key)
+        .map(|_| optional_text_field(object, key, maximum))
+        .transpose()
+        .map(|value| value.unwrap_or_default())
 }
 
 fn bounded_token_field(
@@ -1436,6 +1495,14 @@ mod tests {
             "mask": "", "responseFormat": ""
         });
         assert!(parse_job_spec(artifact_image).is_ok());
+        let inpaint_contract = json!({
+            "type": "image-generate", "prompt": "inpaint portrait", "negativePrompt": "",
+            "size": "1024x1024", "aspectRatio": "", "quality": "", "style": "",
+            "referenceImages": [], "referenceImageArtifactId": "artifact-image-source-1",
+            "mask": "", "maskArtifactId": "artifact-image-mask-1", "strength": 0.6,
+            "responseFormat": ""
+        });
+        assert!(parse_job_spec(inpaint_contract).is_ok());
         let mut conflicting = image.as_object().unwrap().clone();
         conflicting.insert(
             "referenceImageArtifactId".to_string(),
@@ -1523,6 +1590,28 @@ mod tests {
             ..Default::default()
         };
         assert!(project_artifacts(vec![artifact]).is_err());
+    }
+
+    #[test]
+    fn image_artifact_projection_preserves_only_the_typed_seed() {
+        let artifact = LocalAppScenarioArtifact {
+            artifact_id: "artifact-seeded".to_string(),
+            mime_type: "image/png".to_string(),
+            size_bytes: 1,
+            seed: Some(41),
+            ..Default::default()
+        };
+        let projected = project_artifacts(vec![artifact]).expect("project image seed");
+        assert_eq!(projected[0].get("seed"), Some(&json!(41)));
+
+        let non_image = LocalAppScenarioArtifact {
+            artifact_id: "artifact-audio".to_string(),
+            mime_type: "audio/wav".to_string(),
+            size_bytes: 1,
+            seed: Some(41),
+            ..Default::default()
+        };
+        assert!(project_artifacts(vec![non_image]).is_err());
     }
 
     #[test]

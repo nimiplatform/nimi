@@ -116,6 +116,92 @@ describe('createElectronShellFileProtocolHost', () => {
     });
   });
 
+  it('drains and retires only data-root readable grants while external grants remain available', async () => {
+    await withTempDir('file-protocol-data-root-grants', async (root) => {
+      const oldRootFile = path.join(root, 'old-root.txt');
+      const newRootFile = path.join(root, 'new-root.txt');
+      const externalFile = path.join(root, 'external.txt');
+      await writeFile(oldRootFile, 'old root bytes', 'utf8');
+      await writeFile(newRootFile, 'new root bytes', 'utf8');
+      await writeFile(externalFile, 'external bytes', 'utf8');
+
+      let releaseRead!: () => void;
+      let announceRead!: () => void;
+      const readStarted = new Promise<void>((resolve) => { announceRead = resolve; });
+      const readReleased = new Promise<void>((resolve) => { releaseRead = resolve; });
+      let delayOldRootRead = true;
+      const protocol = new FakeElectronProtocol();
+      const protocolHost = createElectronShellFileProtocolHost({
+        protocol,
+        readFile: async (filePath) => {
+          if (delayOldRootRead && filePath === await realpath(oldRootFile)) {
+            announceRead();
+            await readReleased;
+          }
+          return readFile(filePath);
+        },
+      });
+      protocolHost.registerProtocolHandler();
+      await protocolHost.registerReadableFile(oldRootFile, 'data-root');
+      await protocolHost.registerReadableFile(externalFile);
+
+      const activeRead = protocol.request(protocolHost.resolveLocalAssetUrl(oldRootFile));
+      await readStarted;
+      let quiesced = false;
+      const quiesce = protocolHost.quiesceDataRootReadableGrants().then(() => { quiesced = true; });
+      await Promise.resolve();
+      expect(quiesced).toBe(false);
+      expect(await protocolHost.hasReadableFile(oldRootFile)).toBe(false);
+      expect(await protocolHost.hasReadableFile(externalFile)).toBe(true);
+      await expect(protocol.request(protocolHost.resolveLocalAssetUrl(oldRootFile)))
+        .resolves.toMatchObject({ status: 403 });
+      await expect(protocol.request(protocolHost.resolveLocalAssetUrl(externalFile)))
+        .resolves.toMatchObject({ status: 200 });
+      await expect(protocolHost.registerReadableFile(newRootFile, 'data-root'))
+        .rejects.toThrow('electron-data-root-readable-grants-closed');
+
+      releaseRead();
+      expect(await activeRead).toMatchObject({ status: 200 });
+      await quiesce;
+      expect(quiesced).toBe(true);
+
+      protocolHost.resumeDataRootReadableGrants();
+      delayOldRootRead = false;
+      expect(await protocol.request(protocolHost.resolveLocalAssetUrl(oldRootFile)))
+        .toMatchObject({ status: 200 });
+
+      await protocolHost.quiesceDataRootReadableGrants();
+      protocolHost.retireDataRootReadableGrants();
+      protocolHost.resumeDataRootReadableGrants();
+      expect(await protocolHost.hasReadableFile(oldRootFile)).toBe(false);
+      expect(await protocol.request(protocolHost.resolveLocalAssetUrl(oldRootFile)))
+        .toMatchObject({ status: 403 });
+      expect(await protocol.request(protocolHost.resolveLocalAssetUrl(externalFile)))
+        .toMatchObject({ status: 200 });
+
+      protocolHost.activateDataRootReadableGrants();
+      expect(await protocolHost.hasReadableFile(oldRootFile)).toBe(false);
+      await protocolHost.registerReadableFile(newRootFile, 'data-root');
+      expect(await protocol.request(protocolHost.resolveLocalAssetUrl(newRootFile)))
+        .toMatchObject({ status: 200 });
+
+      const ancestorProtocol = new FakeElectronProtocol();
+      const ancestorHost = createElectronShellFileProtocolHost({ protocol: ancestorProtocol, roots: [root] });
+      ancestorHost.registerProtocolHandler();
+      await ancestorHost.registerReadableFile(oldRootFile, 'data-root');
+      expect(await ancestorProtocol.request(ancestorHost.resolveLocalAssetUrl(oldRootFile)))
+        .toMatchObject({ status: 200 });
+      await ancestorHost.quiesceDataRootReadableGrants();
+      ancestorHost.retireDataRootReadableGrants();
+      ancestorHost.activateDataRootReadableGrants();
+      expect(await ancestorProtocol.request(ancestorHost.resolveLocalAssetUrl(oldRootFile)))
+        .toMatchObject({ status: 403 });
+      await ancestorHost.registerReadableFile(oldRootFile, 'external');
+      expect(await ancestorProtocol.request(ancestorHost.resolveLocalAssetUrl(oldRootFile)))
+        .toMatchObject({ status: 200 });
+    });
+  });
+
   it('resolves standard local asset URLs through the protocol host without an app URL hook', async () => {
     await withTempDir('file-protocol-bridge', async (root) => {
       const assetRoot = path.join(root, 'assets');
@@ -125,8 +211,18 @@ describe('createElectronShellFileProtocolHost', () => {
       const canonicalAssetPath = await realpath(assetPath);
 
       const protocol = new FakeElectronProtocol();
-      const protocolHost = createElectronShellFileProtocolHost({ protocol, roots: [assetRoot] });
+      const protocolHost = createElectronShellFileProtocolHost({ protocol });
+      protocolHost.registerProtocolHandler();
+      const gateEvents: string[] = [];
       const ipcMain = registerFileSurfaceBridge({
+        runDataRootOperation: async (operation) => {
+          gateEvents.push('enter');
+          try {
+            return await operation();
+          } finally {
+            gateEvents.push('exit');
+          }
+        },
         localAssetRoots: [assetRoot],
         localAssetProtocolHost: protocolHost,
       });
@@ -139,6 +235,13 @@ describe('createElectronShellFileProtocolHost', () => {
         url: protocolHost.resolveLocalAssetUrl(canonicalAssetPath),
       });
       expect(await protocolHost.hasReadableFile(canonicalAssetPath)).toBe(true);
+      expect(gateEvents).toEqual(['enter', 'exit']);
+      await protocolHost.quiesceDataRootReadableGrants();
+      expect(await protocol.request(protocolHost.resolveLocalAssetUrl(canonicalAssetPath)))
+        .toMatchObject({ status: 403 });
+      protocolHost.resumeDataRootReadableGrants();
+      expect(await protocol.request(protocolHost.resolveLocalAssetUrl(canonicalAssetPath)))
+        .toMatchObject({ status: 200 });
     });
   });
 });
@@ -632,6 +735,10 @@ describe('nimi.shell.artifacts.write', () => {
       expect(result.byteSize).toBe(Buffer.byteLength('{"ok":true}'));
       expect(result.mimeType).toBe('application/json');
       expect(await readFile(result.path, 'utf8')).toBe('{"ok":true}');
+      expect(await protocolHost.hasReadableFile(result.path)).toBe(true);
+      await protocolHost.quiesceDataRootReadableGrants();
+      expect(await protocolHost.hasReadableFile(result.path)).toBe(false);
+      protocolHost.resumeDataRootReadableGrants();
       expect(await protocolHost.hasReadableFile(result.path)).toBe(true);
     });
   });

@@ -121,11 +121,21 @@ export enum EffectClass {
   UNSUPPORTED_EFFECT = 5,
 }
 
+export enum ExecutionInterruptionCause {
+  UNSPECIFIED = 0,
+  RUNTIME_RESTART = 1,
+}
+
 export enum ExecutionMode {
   UNSPECIFIED = 0,
   SYNC = 1,
   STREAM = 2,
   ASYNC_JOB = 3,
+}
+
+export enum ExecutionResubmitDisposition {
+  UNSPECIFIED = 0,
+  CALLER_MAY_RESUBMIT = 1,
 }
 
 export enum FinishReason {
@@ -242,16 +252,26 @@ export enum RealtimeTerminalReason {
   OWNER_FAILED = 11,
 }
 
-export enum ReasoningMode {
+export enum ReasoningActivation {
   UNSPECIFIED = 0,
-  OFF = 1,
-  ON = 2,
+  DISABLED = 1,
+  ADAPTIVE = 2,
+  REQUIRED = 3,
 }
 
-export enum ReasoningTraceMode {
+export enum ReasoningEffort {
   UNSPECIFIED = 0,
-  HIDE = 1,
-  SEPARATE = 2,
+  MINIMAL = 1,
+  LOW = 2,
+  MEDIUM = 3,
+  HIGH = 4,
+  MAXIMUM = 5,
+}
+
+export enum ReasoningPresentation {
+  UNSPECIFIED = 0,
+  HIDDEN = 1,
+  SUMMARY = 2,
 }
 
 export enum ResponseFormatKind {
@@ -339,12 +359,23 @@ export enum StreamEventType {
   STREAM_EVENT_TYPE_UNSPECIFIED = 0,
   STREAM_EVENT_STARTED = 1,
   STREAM_EVENT_DELTA = 2,
-  STREAM_EVENT_TOOL_CALL = 3,
-  STREAM_EVENT_TOOL_RESULT = 4,
   STREAM_EVENT_USAGE = 5,
   STREAM_EVENT_COMPLETED = 6,
   STREAM_EVENT_FAILED = 7,
-  STREAM_EVENT_TOOL_APPROVAL_REQUEST = 8,
+}
+
+export enum TextBehaviorConfigurationState {
+  UNSPECIFIED = 0,
+  UNAVAILABLE = 1,
+  CONFIGURED = 2,
+  AMBIGUOUS = 3,
+}
+
+export enum TextBehaviorKind {
+  UNSPECIFIED = 0,
+  TOOL_USE = 1,
+  REASONING = 2,
+  STRUCTURED_OUTPUT = 3,
 }
 
 export enum TextSourceType {

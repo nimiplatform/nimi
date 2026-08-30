@@ -624,6 +624,7 @@ test('Runtime ScenarioJob abort waits for the terminal event when cancel initial
     },
     async *subscribeScenarioJobEvents() {
       await cancellationRequested;
+      await new Promise((resolve) => setTimeout(resolve, 10));
       const job = createScenarioJob('job-1', ScenarioJobStatus.CANCELED);
       yield {
         eventType: scenarioJobEventTypeForStatus(job.status),
@@ -649,14 +650,18 @@ test('Runtime ScenarioJob abort waits for the terminal event when cancel initial
   assert.equal(queryCount, 1);
 });
 
-test('Runtime ScenarioJob stream interruption performs one bounded terminal lookup', async () => {
+test('Runtime ScenarioJob stream interruption reattaches once before returning typed failure', async () => {
   let queryCount = 0;
+  let subscriptionCount = 0;
   const runningJob = createScenarioJob('job-1', ScenarioJobStatus.RUNNING);
   const client: NimiRuntimeScenarioJobClient = {
     ...createScenarioJobClient([]),
     async getScenarioJob() {
       queryCount += 1;
       return { job: runningJob };
+    },
+    async *subscribeScenarioJobEvents() {
+      subscriptionCount += 1;
     },
   };
 
@@ -665,7 +670,38 @@ test('Runtime ScenarioJob stream interruption performs one bounded terminal look
     (error: unknown) => (error as { readonly reasonCode?: unknown }).reasonCode
       === 'SDK_RUNTIME_SCENARIO_JOB_STREAM_INTERRUPTED',
   );
-  assert.equal(queryCount, 1);
+  assert.equal(subscriptionCount, 2);
+  assert.equal(queryCount, 2);
+});
+
+test('Runtime ScenarioJob stream recovery reattaches to the same durable Job after a non-terminal lookup', async () => {
+  let queryCount = 0;
+  let subscriptionCount = 0;
+  const runningJob = createScenarioJob('job-1', ScenarioJobStatus.RUNNING);
+  const completedJob = createScenarioJob('job-1', ScenarioJobStatus.COMPLETED);
+  const client: NimiRuntimeScenarioJobClient = {
+    ...createScenarioJobClient([]),
+    async getScenarioJob() {
+      queryCount += 1;
+      return { job: queryCount === 1 ? runningJob : completedJob };
+    },
+    async *subscribeScenarioJobEvents() {
+      subscriptionCount += 1;
+      if (subscriptionCount === 2) {
+        yield {
+          eventType: scenarioJobEventTypeForStatus(completedJob.status),
+          sequence: '4',
+          traceId: 'trace-1',
+          job: completedJob,
+        };
+      }
+    },
+  };
+
+  const result = await runNimiRuntimeScenarioJob({ ai: client, request: createScenarioJobRequest() });
+  assert.equal(result.job.status, ScenarioJobStatus.COMPLETED);
+  assert.equal(subscriptionCount, 2);
+  assert.equal(queryCount, 2);
 });
 
 test('Runtime ScenarioJob stream recovery rejects a terminal lookup for another Job', async () => {

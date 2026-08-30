@@ -133,14 +133,26 @@ describe('renderer local-app standard-shell surface', () => {
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
       invoke: async (command: string, payload: unknown) => {
         invocations.push({ command, payload });
+        if (command === 'nimi.shell.localApp.aiConfigOverwrite') {
+          return { outcome: 'committed', config, revision: '2' };
+        }
         return { config, revision: '1', effectiveSelections: [] };
       },
       listen: () => () => {},
     };
     const aiConfig = createNimiLocalAppStandardShellSurface().aiConfig;
     await expect(aiConfig.get()).resolves.toEqual({ config, revision: '1', effectiveSelections: [] });
+    await expect(aiConfig.overwrite({ expectedRevision: '1', capabilities: [generatedIntent] }))
+      .resolves.toEqual({ outcome: 'committed', config, revision: '2' });
     expect(invocations).toEqual([
       { command: 'nimi.shell.localApp.aiConfigGet', payload: {} },
+      {
+        command: 'nimi.shell.localApp.aiConfigOverwrite',
+        payload: {
+          expectedRevision: '1',
+          capabilities: structuredClone([generatedIntent]),
+        },
+      },
     ]);
     expect(JSON.stringify(invocations)).not.toContain('app.example');
   });
@@ -185,6 +197,37 @@ describe('renderer local-app standard-shell surface', () => {
       providerModelId: 'deepseek-v4-flash',
       remoteModelCatalogId: 'catalog-deepseek-v4-flash',
     });
+  });
+
+  it('accepts canonical Local Loadout behaviors with Tool-Use-only fields omitted', async () => {
+    const option = {
+      loadoutRef: 'loadout-gemma',
+      label: 'Gemma',
+      capabilityContract: 'text.generate',
+      implementation: {
+        implementationId: 'local.text.generate.llama-cpp',
+        driverId: 'nimi.runtime.driver.llama-cpp',
+        driverDialect: 'llama.cpp/text-generate/v1',
+      },
+      implementationSupportedFeatures: [],
+      configuredFeatures: [],
+      textBehaviors: [
+        { kind: 'tool-use', implementationSupported: false, configurationState: 'unavailable', reasons: ['DRIVER_DIALECT_UNSUPPORTED'], implementationToolUse: null, configuredToolUse: null },
+        { kind: 'reasoning', implementationSupported: false, configurationState: 'unavailable', reasons: ['DRIVER_DIALECT_UNSUPPORTED'], implementationToolUse: null, configuredToolUse: null },
+        { kind: 'structured-output', implementationSupported: false, configurationState: 'unavailable', reasons: ['DRIVER_DIALECT_UNSUPPORTED'], implementationToolUse: null, configuredToolUse: null },
+      ],
+      state: 'ready',
+      reasons: [],
+    };
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async () => ({ kind: 'local-loadouts', options: [option], truncated: false }),
+      listen: () => () => {},
+    };
+
+    await expect(createNimiLocalAppStandardShellSurface().aiConfig.listOptions({
+      kind: 'local-loadouts',
+      capabilityContract: 'text.generate',
+    })).resolves.toEqual({ kind: 'local-loadouts', options: [option], truncated: false });
   });
 
   it('carries App preset voice options without a capability or owner selector', async () => {

@@ -1,3 +1,6 @@
+import type { NimiExecutionInterruption } from '../../types/errors';
+export type { NimiExecutionInterruption } from '../../types/errors';
+
 export type NimiJsonPrimitive = string | number | boolean | null;
 export type NimiJsonValue = NimiJsonPrimitive | readonly NimiJsonValue[] | { readonly [key: string]: NimiJsonValue };
 export type NimiJsonObject = { readonly [key: string]: NimiJsonValue };
@@ -23,14 +26,21 @@ export interface NimiFilePart {
   // IANA media type of the file (e.g. `image/png`, `audio/wav`). Routing onto a
   // Runtime multimodal channel is decided from this prefix.
   readonly mediaType: string;
-  // File payload as a string: an `http(s)://` URL, a `data:` URI, or raw base64.
-  // Raw base64 is wrapped into a `data:<mediaType>;base64,<data>` URI when the
-  // request is projected onto the Runtime chat content protocol.
+  // Adapter-specific file payload. Runtime text.generate admits only http(s)
+  // media URLs here; managed media uses NimiArtifactRefPart.
   readonly data: string;
   readonly filename?: string;
 }
 
-export type NimiMessagePart = NimiTextPart | NimiDataPart | NimiFilePart;
+export interface NimiArtifactRefPart {
+  readonly type: 'artifact-ref';
+  readonly artifactId?: string;
+  readonly localArtifactId?: string;
+  readonly mediaType: string;
+  readonly displayName?: string;
+}
+
+export type NimiMessagePart = NimiTextPart | NimiDataPart | NimiFilePart | NimiArtifactRefPart;
 
 export interface NimiToolCall {
   readonly id: string;
@@ -50,6 +60,22 @@ export interface NimiToolResult {
   readonly dynamic?: boolean;
   readonly providerMetadata?: NimiJsonObject;
 }
+
+export interface NimiReasoningContinuityCarrier {
+  readonly kind: string;
+  readonly version: number;
+  readonly payload: Uint8Array;
+}
+
+export type NimiTextOutputItem =
+  | { readonly type: 'text'; readonly text: string }
+  | { readonly type: 'reasoning-summary'; readonly text: string }
+  | { readonly type: 'tool-call'; readonly toolCall: NimiToolCall }
+  | { readonly type: 'reasoning-continuity'; readonly carrier: NimiReasoningContinuityCarrier };
+
+export type NimiTextTurnItem =
+  | { readonly type: 'output'; readonly output: NimiTextOutputItem }
+  | { readonly type: 'tool-result'; readonly toolResult: NimiToolResult };
 
 export interface NimiToolApprovalRequest {
   readonly approvalId: string;
@@ -96,6 +122,8 @@ export interface NimiMessage {
   readonly toolCalls?: readonly NimiToolCall[];
   readonly toolResults?: readonly NimiToolResult[];
   readonly toolApprovalResponses?: readonly NimiToolApprovalResponse[];
+  /** Canonical ordered assistant output and external-host ToolResult round-trip. */
+  readonly turnItems?: readonly NimiTextTurnItem[];
   readonly metadata?: NimiJsonObject;
 }
 
@@ -130,19 +158,44 @@ export interface NimiUsage {
   readonly reasoningOutputTokens?: number;
 }
 
+export type NimiTextBehaviorKind = 'tool-use' | 'reasoning' | 'structured-output';
+
+export interface NimiAIExecutionAdmission {
+  readonly loadoutId: string;
+  readonly capabilityContract: string;
+  readonly implementation: {
+    readonly implementationId: string;
+    readonly driverId: string;
+    readonly driverDialect: string;
+  };
+  readonly recipeId: string;
+  readonly recipeRevision: string;
+  readonly admittedFeatures: readonly string[];
+  readonly admittedTextBehaviors: readonly NimiTextBehaviorKind[];
+}
+
 export type NimiRunEvent =
   | {
       readonly type: 'start';
       readonly traceId?: string;
       readonly model?: NimiModelRef;
+      readonly admission?: NimiAIExecutionAdmission;
     }
   | {
       readonly type: 'text-delta';
       readonly text: string;
+      readonly itemIndex?: number;
+      readonly itemCompleted?: boolean;
     }
   | {
       readonly type: 'reasoning-delta';
       readonly text: string;
+    }
+  | {
+      readonly type: 'reasoning-summary-delta';
+      readonly text: string;
+      readonly itemIndex: number;
+      readonly itemCompleted: boolean;
     }
   | {
       readonly type: 'artifact';
@@ -152,6 +205,14 @@ export type NimiRunEvent =
   | {
       readonly type: 'tool-call';
       readonly toolCall: NimiToolCall;
+      readonly itemIndex?: number;
+      readonly itemCompleted?: boolean;
+    }
+  | {
+      readonly type: 'reasoning-continuity';
+      readonly carrier: NimiReasoningContinuityCarrier;
+      readonly itemIndex: number;
+      readonly itemCompleted: true;
     }
   | {
       readonly type: 'tool-result';
@@ -182,6 +243,7 @@ export type NimiRunEvent =
       readonly code: string;
       readonly message: string;
       readonly cause?: unknown;
+      readonly interruption?: NimiExecutionInterruption;
     };
 
 export interface NimiAiTraceStep {
@@ -213,4 +275,8 @@ export function filePart(mediaType: string, data: string, filename?: string): Ni
   return filename === undefined
     ? { type: 'file', mediaType, data }
     : { type: 'file', mediaType, data, filename };
+}
+
+export function artifactRefPart(input: Omit<NimiArtifactRefPart, 'type'>): NimiArtifactRefPart {
+  return { type: 'artifact-ref', ...input };
 }

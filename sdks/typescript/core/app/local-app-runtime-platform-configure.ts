@@ -62,10 +62,12 @@ import {
   type OverwriteLocalAppSharedLocalAgentAIConfigRequest,
   type OverwriteLocalAppSharedLocalAgentAIConfigResponse,
   type RuntimeTypedCallOptions,
+  type TextBehaviorCapabilityProjection,
   type SetLocalAppAgentMemoryEnabledRequest,
   type SetLocalAppAgentMemoryEnabledResponse,
   type UpdateLocalAppAgentAutonomyRequest,
 } from '../../core-generated/runtime-typed-client.js';
+import { projectNimiTextBehaviorCapabilities } from '../../runtime/text-behavior-projections.js';
 import {
   validateAgentHandle,
   type NimiLocalAppAgentHandle,
@@ -1181,7 +1183,9 @@ function runtimeLocalOption(value: {
   readonly label: string;
   readonly capabilityContract: string;
   readonly implementation?: { readonly implementationId: string; readonly driverId: string; readonly driverDialect: string };
-  readonly supportedFeatures: readonly string[];
+  readonly implementationSupportedFeatures: readonly string[];
+  readonly configuredFeatures: readonly string[];
+  readonly textBehaviors: readonly TextBehaviorCapabilityProjection[];
   readonly state: AIConfigEffectiveState;
   readonly reasons: readonly string[];
 }) {
@@ -1190,7 +1194,9 @@ function runtimeLocalOption(value: {
     label: value.label,
     capabilityContract: value.capabilityContract,
     implementation: runtimeImplementation(value.implementation, 'shared LocalAgent Local option implementation'),
-    supportedFeatures: [...value.supportedFeatures],
+    implementationSupportedFeatures: [...value.implementationSupportedFeatures],
+    configuredFeatures: [...value.configuredFeatures],
+    textBehaviors: projectNimiTextBehaviorCapabilities(value.textBehaviors),
     state: runtimeEffectiveState(value.state) === 'ready' ? 'ready' : 'blocked',
     reasons: [...value.reasons],
   };
@@ -2009,13 +2015,14 @@ function projectSharedLocalOption(value: unknown, index: number): void {
   const option = asRecord(value);
   assertExactProjectionKeys(option, [
     'loadoutRef', 'label', 'capabilityContract', 'implementation',
-    'supportedFeatures', 'state', 'reasons',
+    'implementationSupportedFeatures', 'configuredFeatures', 'textBehaviors', 'state', 'reasons',
   ], `shared AIConfig Local option ${index}`);
   if (typeof option.loadoutRef !== 'string' || !option.loadoutRef.trim()
     || typeof option.label !== 'string' || !option.label.trim()
     || typeof option.capabilityContract !== 'string' || !option.capabilityContract.trim()
     || !['ready', 'blocked'].includes(String(option.state))
-    || !Array.isArray(option.supportedFeatures) || !Array.isArray(option.reasons)) {
+    || !Array.isArray(option.implementationSupportedFeatures) || !Array.isArray(option.configuredFeatures)
+    || !Array.isArray(option.textBehaviors) || !Array.isArray(option.reasons)) {
     localAppProjectionError(`shared AIConfig Local option ${index}`);
   }
   const implementation = asRecord(option.implementation);

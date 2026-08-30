@@ -55,7 +55,19 @@ const runtimeModel = createNimiRuntimeAIModel({
     async executeScenario(request) {
       runtimeCalls.push(request);
       return {
-        output: { output: { oneofKind: 'textGenerate', textGenerate: { text: 'runtime text' } } },
+        output: {
+          output: {
+            oneofKind: 'textGenerate',
+            textGenerate: {
+              text: 'runtime text',
+              toolCalls: [],
+              sources: [],
+              rawChunks: [],
+              items: [{ item: { oneofKind: 'text', text: { text: 'runtime text' } } }],
+              reasoningSummary: '',
+            },
+          },
+        },
         finishReason: 1,
         usage: { inputTokens: '2', outputTokens: '3', computeMs: '4' },
         routeDecision: 1,
@@ -67,7 +79,24 @@ const runtimeModel = createNimiRuntimeAIModel({
     async *streamScenario(request) {
       runtimeCalls.push(request);
       yield { eventType: 1, sequence: '1', traceId: 'trace-stream', payload: { oneofKind: 'started', started: { modelResolved: 'runtime-owned-model', routeDecision: 1 } } };
-      yield { eventType: 2, sequence: '2', traceId: 'trace-stream', payload: { oneofKind: 'delta', delta: { delta: { oneofKind: 'text', text: { text: 'stream text' } } } } };
+      yield {
+        eventType: 2,
+        sequence: '2',
+        traceId: 'trace-stream',
+        payload: {
+          oneofKind: 'delta',
+          delta: {
+            delta: {
+              oneofKind: 'textOutputItem',
+              textOutputItem: {
+                itemIndex: 0,
+                delta: { oneofKind: 'text', text: { text: 'stream text' } },
+                itemCompleted: true,
+              },
+            },
+          },
+        },
+      };
       yield { eventType: 6, sequence: '3', traceId: 'trace-stream', payload: { oneofKind: 'completed', completed: { finishReason: 1, usage: { inputTokens: '1', outputTokens: '2', computeMs: '3' }, streamSimulated: false } } };
     },
   },
@@ -77,10 +106,12 @@ const generated = await runtimeModel.generateText({
   messages: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
 });
 assert.equal(generated.text, 'runtime text');
+assert.deepEqual(generated.outputItems, [{ type: 'text', text: 'runtime text' }]);
 const streamed = await collectNimiTextStream(await runtimeModel.streamText({
   messages: [{ role: 'user', content: [{ type: 'text', text: 'hello' }] }],
 }));
 assert.equal(streamed.text, 'stream text');
+assert.deepEqual(streamed.outputItems, [{ type: 'text', text: 'stream text' }]);
 assert.deepEqual(runtimeCalls[0].head, {
   appId: 'consumer-app',
   subjectUserId: 'consumer-user',

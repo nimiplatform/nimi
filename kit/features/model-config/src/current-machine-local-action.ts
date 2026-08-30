@@ -113,8 +113,11 @@ function assertCurrentLocalOption(value: unknown, capabilityContract: string): v
     || !exactText((implementation as Record<string, unknown>).driverId)
     || !exactText((implementation as Record<string, unknown>).driverDialect)
     || (option.state !== 'ready' && option.state !== 'blocked')
-    || !Array.isArray(option.supportedFeatures)
-    || !option.supportedFeatures.every(exactText)
+		|| !Array.isArray(option.implementationSupportedFeatures)
+		|| !option.implementationSupportedFeatures.every(exactText)
+		|| !Array.isArray(option.configuredFeatures)
+		|| !option.configuredFeatures.every(exactText)
+		|| !Array.isArray(option.textBehaviors)
     || !Array.isArray(option.reasons)
     || !option.reasons.every(exactText)
   ) {

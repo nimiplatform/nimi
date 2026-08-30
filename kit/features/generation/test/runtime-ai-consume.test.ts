@@ -21,8 +21,22 @@ function input(
 function runtimeStreamEvents() {
   const events = [
     { traceId: 'trace-stream-1', payload: { oneofKind: 'started', started: {} } },
-    { traceId: '', payload: { oneofKind: 'delta', delta: { delta: { oneofKind: 'text', text: { text: 'hello ' } } } } },
-    { traceId: '', payload: { oneofKind: 'delta', delta: { delta: { oneofKind: 'text', text: { text: 'runtime' } } } } },
+    { traceId: '', payload: { oneofKind: 'delta', delta: { delta: {
+      oneofKind: 'textOutputItem',
+      textOutputItem: {
+        itemIndex: 0,
+        delta: { oneofKind: 'text', text: { text: 'hello ' } },
+        itemCompleted: true,
+      },
+    } } } },
+    { traceId: '', payload: { oneofKind: 'delta', delta: { delta: {
+      oneofKind: 'textOutputItem',
+      textOutputItem: {
+        itemIndex: 1,
+        delta: { oneofKind: 'text', text: { text: 'runtime' } },
+        itemCompleted: true,
+      },
+    } } } },
     { traceId: '', payload: { oneofKind: 'completed', completed: {
       finishReason: 1, usage: { inputTokens: '2', outputTokens: '3', computeMs: '4' },
     } } },
@@ -38,7 +52,12 @@ describe('runtime AI consume contract', () => {
   it('dispatches text.generate without caller execution truth', async () => {
     const executeScenario = vi.fn<RuntimeAIConsumeRuntime['ai']['executeScenario']>(async (_request) => ({
       output: { output: { oneofKind: 'textGenerate', textGenerate: {
-        text: 'hello runtime', toolCalls: [], toolResults: [], toolApprovalRequests: [], sources: [], rawChunks: [],
+        text: 'hello runtime',
+        toolCalls: [],
+        sources: [],
+        rawChunks: [],
+        items: [{ item: { oneofKind: 'text', text: { text: 'hello runtime' } } }],
+        reasoningSummary: '',
       } } },
       finishReason: 1, usage: {
         inputTokens: '2', outputTokens: '3', cachedInputTokens: '0', reasoningOutputTokens: '0', computeMs: '4',

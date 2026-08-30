@@ -1,5 +1,7 @@
 import {
   LoadoutValidationState,
+  LocalCapabilityRequirementPresence,
+  LocalCapabilityRequirementResolution,
   ReasonCode as RuntimeGeneratedReasonCode,
   type Loadout,
   type LoadoutModelAxis,
@@ -11,8 +13,14 @@ import {
 import { createNimiClientId, createNimiError, ReasonCode as NimiReasonCode, type JsonObject } from '../types/index.js';
 import { fromNimiRuntimeProtoStruct, toNimiRuntimeProtoStruct } from './runtime-agent-values.js';
 import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs.js';
+import {
+  projectNimiTextBehaviorCapabilities,
+  type NimiTextBehaviorCapabilityProjection,
+} from './text-behavior-projections.js';
 
 export type NimiLoadoutValidationState = 'configured' | 'unresolved' | 'blocked';
+export type NimiLoadoutRequirementPresence = 'required' | 'optional-conditional';
+export type NimiLoadoutRequirementResolution = 'unresolved' | 'configured' | 'not-configured';
 
 export interface NimiLoadoutModelAxis {
   readonly slotId: string;
@@ -21,6 +29,9 @@ export interface NimiLoadoutModelAxis {
   readonly expectedContentId: string;
   readonly recipeCompatible: boolean;
   readonly reasons: readonly string[];
+  readonly presence: NimiLoadoutRequirementPresence;
+  readonly conditionalFeatures: readonly string[];
+  readonly resolution: NimiLoadoutRequirementResolution;
 }
 
 export interface NimiMachineLoadout {
@@ -36,7 +47,9 @@ export interface NimiMachineLoadout {
   readonly options: Readonly<JsonObject>;
   readonly modelAxes: readonly NimiLoadoutModelAxis[];
   readonly recipeCustody: readonly { readonly custodyId: string; readonly expectedContentId: string }[];
-  readonly supportedFeatures: readonly string[];
+  readonly implementationSupportedFeatures: readonly string[];
+  readonly configuredFeatures: readonly string[];
+  readonly textBehaviors: readonly NimiTextBehaviorCapabilityProjection[];
   readonly validationState: NimiLoadoutValidationState;
   readonly reasons: readonly string[];
   readonly displayName: string;
@@ -63,13 +76,15 @@ export interface NimiLoadoutRecipe {
   readonly capabilityContract: string;
   readonly implementation: NimiMachineLoadout['implementation'];
   readonly defaultOptions: Readonly<JsonObject>;
-  readonly supportedFeatures: readonly string[];
+  readonly implementationSupportedFeatures: readonly string[];
   readonly slots: readonly {
     readonly slotId: string;
     readonly displayLabel: string;
     readonly recommendedContentIds: readonly string[];
     readonly recommendedVariantIds: readonly string[];
     readonly modelContract: Readonly<JsonObject>;
+    readonly presence: NimiLoadoutRequirementPresence;
+    readonly conditionalFeatures: readonly string[];
   }[];
 }
 
@@ -78,7 +93,6 @@ export interface NimiPrepareLoadoutInput {
   readonly capabilityContract: string;
   readonly recipeId: string;
   readonly options?: Readonly<JsonObject>;
-  readonly supportedFeatures?: readonly string[];
   readonly modelAxes?: readonly { readonly slotId: string; readonly modelAssetId?: string; readonly expectedContentId?: string }[];
   readonly displayName: string;
   readonly provenance?: Readonly<JsonObject>;
@@ -197,7 +211,6 @@ function prepareRequest(value: NimiPrepareLoadoutInput) {
     capabilityContract: required(value.capabilityContract, 'capabilityContract'),
     recipeId: required(value.recipeId, 'recipeId'),
     options: toNimiRuntimeProtoStruct(value.options ?? {}),
-    supportedFeatures: strings(value.supportedFeatures),
     modelAxes: (value.modelAxes ?? []).map((axis) => ({
       slotId: required(axis.slotId, 'slotId'),
       modelAssetId: text(axis.modelAssetId),
@@ -223,7 +236,9 @@ function projectLoadout(value: Loadout): NimiMachineLoadout {
     options: Object.freeze(fromNimiRuntimeProtoStruct(value.options) as JsonObject),
     modelAxes: Object.freeze(value.modelAxes.map(projectAxis)),
     recipeCustody: Object.freeze(value.recipeCustody.map((item) => Object.freeze({ custodyId: item.custodyId, expectedContentId: item.expectedContentId }))),
-    supportedFeatures: Object.freeze([...value.supportedFeatures]),
+    implementationSupportedFeatures: Object.freeze([...value.implementationSupportedFeatures]),
+    configuredFeatures: Object.freeze([...value.configuredFeatures]),
+    textBehaviors: projectNimiTextBehaviorCapabilities(value.textBehaviors),
     validationState: validationState(value.validationState),
     reasons: Object.freeze(value.reasons.map((reason) => RuntimeGeneratedReasonCode[reason] || 'REASON_CODE_UNSPECIFIED')),
     displayName: requiredResponse(value.displayName, 'display_name'),
@@ -234,11 +249,15 @@ function projectLoadout(value: Loadout): NimiMachineLoadout {
 }
 
 function projectAxis(value: LoadoutModelAxis): NimiLoadoutModelAxis {
+  const presence = requirementPresence(value.presence);
   return Object.freeze({
     slotId: requiredResponse(value.slotId, 'slot_id'), displayLabel: requiredResponse(value.displayLabel, 'display_label'),
     modelAssetId: text(value.modelAssetId), expectedContentId: text(value.expectedContentId),
     recipeCompatible: value.recipeCompatible,
     reasons: Object.freeze(value.reasons.map((reason) => RuntimeGeneratedReasonCode[reason] || 'REASON_CODE_UNSPECIFIED')),
+    presence,
+    conditionalFeatures: projectConditionalFeatures(presence, value.conditionalFeatures),
+    resolution: requirementResolution(value.resolution, presence),
   });
 }
 
@@ -257,14 +276,57 @@ function projectRecipe(value: LoadoutRecipeDescriptor): NimiLoadoutRecipe {
     title: requiredResponse(value.title, 'title'), capabilityContract: requiredResponse(value.capabilityContract, 'capability_contract'),
     implementation: Object.freeze({ implementationId: value.implementation.implementationId, driverId: value.implementation.driverId, driverDialect: value.implementation.driverDialect }),
     defaultOptions: Object.freeze(fromNimiRuntimeProtoStruct(value.defaultOptions) as JsonObject),
-    supportedFeatures: Object.freeze([...value.supportedFeatures]),
-    slots: Object.freeze(value.slots.map((slot) => Object.freeze({
-      slotId: slot.slotId, displayLabel: slot.displayLabel,
-      recommendedContentIds: Object.freeze([...slot.recommendedContentIds]),
-      recommendedVariantIds: Object.freeze([...slot.recommendedVariantIds]),
-      modelContract: Object.freeze(fromNimiRuntimeProtoStruct(slot.modelContract) as JsonObject),
-    }))),
+    implementationSupportedFeatures: Object.freeze([...value.implementationSupportedFeatures]),
+    slots: Object.freeze(value.slots.map((slot) => {
+      const presence = requirementPresence(slot.presence);
+      return Object.freeze({
+        slotId: slot.slotId, displayLabel: slot.displayLabel,
+        recommendedContentIds: Object.freeze([...slot.recommendedContentIds]),
+        recommendedVariantIds: Object.freeze([...slot.recommendedVariantIds]),
+        modelContract: Object.freeze(fromNimiRuntimeProtoStruct(slot.modelContract) as JsonObject),
+        presence,
+        conditionalFeatures: projectConditionalFeatures(presence, slot.conditionalFeatures),
+      });
+    })),
   });
+}
+
+function requirementPresence(value: LocalCapabilityRequirementPresence): NimiLoadoutRequirementPresence {
+  switch (value) {
+    case LocalCapabilityRequirementPresence.REQUIRED: return 'required';
+    case LocalCapabilityRequirementPresence.OPTIONAL_CONDITIONAL: return 'optional-conditional';
+    default: throw responseError('Loadout requirement presence is unspecified');
+  }
+}
+
+function requirementResolution(
+  value: LocalCapabilityRequirementResolution,
+  presence: NimiLoadoutRequirementPresence,
+): NimiLoadoutRequirementResolution {
+  switch (value) {
+    case LocalCapabilityRequirementResolution.UNRESOLVED: return 'unresolved';
+    case LocalCapabilityRequirementResolution.CONFIGURED: return 'configured';
+    case LocalCapabilityRequirementResolution.NOT_CONFIGURED:
+      if (presence !== 'optional-conditional') {
+        throw responseError('Required Loadout requirement cannot be not-configured');
+      }
+      return 'not-configured';
+    default: throw responseError('Loadout requirement resolution is unspecified');
+  }
+}
+
+function projectConditionalFeatures(
+  presence: NimiLoadoutRequirementPresence,
+  values: readonly string[],
+): readonly string[] {
+  const features = Object.freeze(values.map((value) => requiredResponse(value, 'conditional_feature')));
+  if (presence === 'optional-conditional' && features.length === 0) {
+    throw responseError('Optional-conditional Loadout requirement is missing conditional features');
+  }
+  if (presence === 'required' && features.length > 0) {
+    throw responseError('Required Loadout requirement cannot declare conditional features');
+  }
+  return features;
 }
 
 function validationState(value: LoadoutValidationState): NimiLoadoutValidationState {
@@ -275,7 +337,6 @@ function validationState(value: LoadoutValidationState): NimiLoadoutValidationSt
     default: throw responseError('Loadout validation state is unspecified');
   }
 }
-function strings(values?: readonly string[]): string[] { return [...(values ?? [])].map((value) => required(value, 'list item')); }
 function text(value: unknown): string { return typeof value === 'string' ? value.trim() : ''; }
 function required(value: unknown, field: string): string { const result = text(value); if (!result) throw inputError(`${field} is required`); return result; }
 function requiredResponse(value: unknown, field: string): string { const result = text(value); if (!result) throw responseError(`${field} is missing`); return result; }

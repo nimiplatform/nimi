@@ -2,6 +2,11 @@ import type { JsonObject } from './json';
 
 export type NimiErrorSource = 'realm' | 'runtime' | 'sdk';
 
+export interface NimiExecutionInterruption {
+  readonly cause: 'runtime-restart';
+  readonly resubmitDisposition: 'caller-may-resubmit';
+}
+
 export type NimiError = Error & {
   code: string;
   reasonCode: string;
@@ -10,6 +15,7 @@ export type NimiError = Error & {
   retryable: boolean;
   source: NimiErrorSource;
   details?: JsonObject;
+  interruption?: NimiExecutionInterruption;
 };
 
 export interface CreateNimiErrorInput {
@@ -21,6 +27,7 @@ export interface CreateNimiErrorInput {
   readonly retryable?: boolean;
   readonly source?: NimiErrorSource;
   readonly details?: JsonObject;
+  readonly interruption?: NimiExecutionInterruption;
 }
 
 type ExtractedNimiErrorFields = {
@@ -31,6 +38,7 @@ type ExtractedNimiErrorFields = {
   retryable?: boolean;
   message?: string;
   details?: JsonObject;
+  interruption?: NimiExecutionInterruption;
 };
 
 export type NimiErrorFields = Omit<ExtractedNimiErrorFields, 'details'>;
@@ -43,6 +51,7 @@ export type CreateOfflineNimiErrorInput = {
   retryable?: boolean;
   traceId?: string;
   details?: JsonObject;
+  interruption?: NimiExecutionInterruption;
 };
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -74,6 +83,13 @@ function readBoolean(record: Record<string, unknown>, keys: readonly string[]): 
     }
   }
   return undefined;
+}
+
+function readExecutionInterruption(value: unknown): NimiExecutionInterruption | undefined {
+  const record = asRecord(value);
+  return record.cause === 'runtime-restart' && record.resubmitDisposition === 'caller-may-resubmit'
+    ? { cause: 'runtime-restart', resubmitDisposition: 'caller-may-resubmit' }
+    : undefined;
 }
 
 function parseJsonObject(input: unknown): Record<string, unknown> {
@@ -161,6 +177,7 @@ function extractErrorFields(error: unknown): ExtractedNimiErrorFields {
     result.actionHint ||= readString(candidate, ['actionHint', 'action_hint']);
     result.traceId ||= readString(candidate, ['traceId', 'trace_id']);
     result.retryable ??= readBoolean(candidate, ['retryable']);
+    result.interruption ??= readExecutionInterruption(candidate.interruption);
     result.message ||= readString(candidate, ['message']);
     const details = asRecord(candidate.details);
     if (!result.details && Object.keys(details).length > 0) {
@@ -186,6 +203,9 @@ export function createNimiError(input: CreateNimiErrorInput): NimiError {
   error.source = input.source || 'runtime';
   if (input.details && Object.keys(input.details).length > 0) {
     error.details = { ...input.details };
+  }
+  if (input.interruption) {
+    error.interruption = { ...input.interruption };
   }
   return error;
 }
@@ -230,6 +250,7 @@ export function asNimiError(error: unknown, defaults: Partial<CreateNimiErrorInp
     retryable: fields.retryable ?? defaults.retryable,
     source: defaults.source || 'runtime',
     details: fields.details || defaults.details,
+    interruption: fields.interruption || defaults.interruption,
   });
 }
 
@@ -253,5 +274,6 @@ export function createOfflineNimiError(input: CreateOfflineNimiErrorInput): Nimi
     retryable: input.retryable !== false,
     source: input.source,
     details: input.details,
+    interruption: input.interruption,
   });
 }

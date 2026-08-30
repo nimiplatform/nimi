@@ -174,6 +174,7 @@ export type {
 export { projectNimiRuntimeAgentPresentationRecord } from './runtime-agent-presentation-validation';
 export * from './scenario-jobs';
 export * from './speech';
+export * from './text-behavior-projections';
 
 export type RuntimeTransportConfig =
   | CoreTransport

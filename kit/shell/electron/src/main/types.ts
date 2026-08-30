@@ -241,13 +241,22 @@ export type NimiElectronShellFileProtocolApi = {
   ) => void;
 };
 
+export type NimiElectronShellFileReadableGrantScope = 'external' | 'data-root';
+
 export type NimiElectronShellFileProtocolHost = {
   readonly protocolScheme: string;
   readonly registerPrivilegedSchemes: () => void;
   readonly registerProtocolHandler: () => void;
-  readonly registerReadableFile: (absolutePath: string) => Promise<string>;
+  readonly registerReadableFile: (
+    absolutePath: string,
+    scope?: NimiElectronShellFileReadableGrantScope,
+  ) => Promise<string>;
   readonly resolveLocalAssetUrl: (absolutePath: string) => string;
   readonly hasReadableFile: (absolutePath: string) => Promise<boolean>;
+  readonly quiesceDataRootReadableGrants: () => Promise<void>;
+  readonly resumeDataRootReadableGrants: () => void;
+  readonly retireDataRootReadableGrants: () => void;
+  readonly activateDataRootReadableGrants: () => void;
 };
 
 export type NimiElectronFileDialogFilter = {
@@ -309,6 +318,7 @@ export type NimiElectronStandardShellHost = {
   readonly localAppHost?: import('./local-app-host.js').NimiElectronLocalAppHost;
   readonly localAppAssetMediaHost?: import('./app-asset-protocol.js').NimiElectronLocalAppAssetMediaHost;
   readonly standardDataRootBinding?: NimiElectronStandardDataRootBinding;
+  readonly runDataRootOperation?: <T>(operation: () => Promise<T>) => Promise<T>;
   readonly localAssetRoots?: readonly string[];
   readonly localAssetProtocolHost?: NimiElectronShellFileProtocolHost;
   readonly openFileDialog?: (

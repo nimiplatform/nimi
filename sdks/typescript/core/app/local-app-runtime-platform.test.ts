@@ -915,7 +915,13 @@ test('App AIConfig exposes self-owner CAS and bounded Local/Cloud/preset options
   const option = {
     loadoutRef: 'loadout:text', label: 'Local text', capabilityContract: 'text.generate',
     implementation: { implementationId: 'local.text', driverId: 'driver.local', driverDialect: 'v1' },
-    supportedFeatures: [], state: 'ready', reasons: [],
+    implementationSupportedFeatures: [], configuredFeatures: [],
+    textBehaviors: [
+      { kind: 'tool-use', implementationSupported: false, configurationState: 'unavailable', reasons: ['DRIVER_DIALECT_UNSUPPORTED'], implementationToolUse: null, configuredToolUse: null },
+      { kind: 'reasoning', implementationSupported: false, configurationState: 'unavailable', reasons: ['DRIVER_DIALECT_UNSUPPORTED'], implementationToolUse: null, configuredToolUse: null },
+      { kind: 'structured-output', implementationSupported: false, configurationState: 'unavailable', reasons: ['DRIVER_DIALECT_UNSUPPORTED'], implementationToolUse: null, configuredToolUse: null },
+    ],
+    state: 'ready', reasons: [],
   } as const;
   const cloudConnector = {
     connectorRef: 'connector:work', label: 'Work', provider: 'openai', state: 'ready', reasons: [],
@@ -1533,6 +1539,7 @@ test('local-app Scenario Job adapter runs the unchanged SDK image runner without
     artifacts: [{
       artifactId: 'artifact-1', mimeType: 'image/png', bytes: [], sizeBytes: 2,
       sha256: 'sha256', durationMs: 0, width: 1, height: 1, sampleRateHz: 0, channels: 0,
+      seed: 41,
     }],
     createdAt: null, updatedAt: null, transcriptionText: '',
   };
@@ -1576,6 +1583,8 @@ test('local-app Scenario Job adapter runs the unchanged SDK image runner without
 
   assert.equal(result.job.jobId, 'job-1');
   assert.deepEqual([...result.artifacts[0]!.bytes], []);
+  assert.equal(result.artifacts[0]!.seed, 41);
+  assert.equal(result.artifacts[0]!.metadata, undefined);
   assert.deepEqual(calls[0], ['submit', {
     type: 'image-generate', prompt: 'draw a moon', negativePrompt: '',
     size: '', aspectRatio: '', quality: '', style: '',

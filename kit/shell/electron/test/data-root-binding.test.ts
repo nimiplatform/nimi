@@ -84,6 +84,43 @@ describe('Electron standard data root binding', () => {
     });
   });
 
+  it('keeps the complete standard storage operation inside the product Host root gate', async () => {
+    await withTempDir('binding-product-control-gate', async (root) => {
+      const dataRoot = path.join(root, 'data');
+      let release: (() => void) | undefined;
+      const barrier = new Promise<void>((resolve) => { release = resolve; });
+      let entered = false;
+      let resolverCalls = 0;
+      const ipcMain = registerBindingBridge({
+        standardShellHost: {
+          runDataRootOperation: async (operation) => {
+            entered = true;
+            await barrier;
+            return operation();
+          },
+          standardDataRootBinding: {
+            source: 'product-control-projection',
+            resolveDataRoot: async () => {
+              resolverCalls += 1;
+              return dataRoot;
+            },
+          },
+        },
+      });
+      const pending = invokeBridge(ipcMain, createInvokeEvent().event, {
+        command: NIMI_STANDARD_SHELL_COMMANDS['storage.writeJson'],
+        payload: { relativePath: 'settings/profile.json', value: { enabled: true } },
+      });
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(entered).toBe(true);
+      expect(resolverCalls).toBe(0);
+      release?.();
+      await pending;
+      expect(resolverCalls).toBe(1);
+      expect(JSON.parse(await readFile(path.join(dataRoot, 'settings', 'profile.json'), 'utf8'))).toEqual({ enabled: true });
+    });
+  });
+
   it('fails closed when the Product Control binding has no selected data root', async () => {
     const ipcMain = registerBindingBridge({
       standardShellHost: {

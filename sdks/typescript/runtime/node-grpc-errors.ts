@@ -1,10 +1,16 @@
 import type { ServiceError } from '@grpc/grpc-js';
 import { BinaryReader, WireType } from '@protobuf-ts/runtime';
+import {
+  ExecutionInterruption as RuntimeExecutionInterruption,
+  ExecutionInterruptionCause,
+  ExecutionResubmitDisposition,
+} from '../core-generated/runtime-protobuf/runtime/v1/ai.js';
 import { asNimiError } from '../types';
 import type {
   CoreResponseMetadata,
   JsonObject,
   NimiError,
+  NimiExecutionInterruption,
 } from '../types';
 
 type GrpcModule = typeof import('@grpc/grpc-js');
@@ -18,10 +24,16 @@ type StructuredGrpcDetails = {
   readonly traceId?: string;
   readonly retryable?: boolean;
   readonly message?: string;
+  readonly interruption?: NimiExecutionInterruption;
 };
+
+type ParsedGrpcStatusDetail =
+  | { readonly kind: 'error-info'; readonly value: Omit<StructuredGrpcDetails, 'message' | 'interruption'> }
+  | { readonly kind: 'execution-interruption'; readonly value: NimiExecutionInterruption };
 
 const GRPC_STATUS_DETAILS_BIN = 'grpc-status-details-bin';
 const GOOGLE_RPC_ERROR_INFO_TYPE_URL = 'type.googleapis.com/google.rpc.ErrorInfo';
+const NIMI_EXECUTION_INTERRUPTION_TYPE_URL = 'type.googleapis.com/nimi.runtime.v1.ExecutionInterruption';
 const NIMI_RUNTIME_ERROR_INFO_DOMAIN = 'nimi.runtime.v1';
 const MAX_STATUS_DETAILS_BYTES = 64 * 1024;
 const MAX_STATUS_MESSAGE_BYTES = 2 * 1024;
@@ -116,7 +128,8 @@ export function normalizeServiceError(grpc: GrpcModule, error: ServiceError): Ni
   const retryableByStatus = isRetryableGrpcError(grpc, error);
   const retryable = typeof structured?.retryable === 'boolean'
     ? structured.retryable
-    : retryableByStatus || retryableTransportCancelled;
+    : structured?.interruption?.resubmitDisposition === 'caller-may-resubmit'
+      || retryableByStatus || retryableTransportCancelled;
   const reasonCode = structured?.reasonCode || reasonCodeFromServiceError(grpc, error, structured);
   const actionHint = structured?.actionHint || (
     retryable ? 'retry_or_check_runtime_daemon' : 'check_request_and_app_auth'
@@ -138,10 +151,17 @@ export function normalizeServiceError(grpc: GrpcModule, error: ServiceError): Ni
     actionHint,
     traceId: structured?.traceId,
     retryable,
+    interruption: structured?.interruption,
     source: 'runtime',
     details: {
       grpcCode: error.code,
       grpcDetails: String(error.details || '').trim(),
+      ...(structured?.interruption ? {
+        interruption: {
+          cause: structured.interruption.cause,
+          resubmitDisposition: structured.interruption.resubmitDisposition,
+        },
+      } : {}),
     },
   });
 }
@@ -207,6 +227,7 @@ function parseGoogleRpcStatus(bytes: Uint8Array, expectedCode: number): Structur
   let messageSeen = false;
   let detailCount = 0;
   let errorInfo: Omit<StructuredGrpcDetails, 'message'> | null = null;
+  let interruption: NimiExecutionInterruption | undefined;
 
   while (reader.pos < reader.len) {
     const [fieldNo, wireType] = reader.tag();
@@ -234,11 +255,16 @@ function parseGoogleRpcStatus(bytes: Uint8Array, expectedCode: number): Structur
         }
         const anyBytes = readBoundedBytes(reader, MAX_ANY_BYTES);
         const candidate = parseGoogleProtobufAny(anyBytes);
-        if (candidate) {
+        if (candidate?.kind === 'error-info') {
           if (errorInfo) {
             throw new Error('duplicate nimi.runtime.v1 ErrorInfo');
           }
-          errorInfo = candidate;
+          errorInfo = candidate.value;
+        } else if (candidate?.kind === 'execution-interruption') {
+          if (interruption) {
+            throw new Error('duplicate nimi.runtime.v1 ExecutionInterruption');
+          }
+          interruption = candidate.value;
         }
         break;
       }
@@ -250,9 +276,13 @@ function parseGoogleRpcStatus(bytes: Uint8Array, expectedCode: number): Structur
   if (statusCode !== expectedCode || !errorInfo) {
     return null;
   }
+  if ((errorInfo.reasonCode === 'AI_EXECUTION_INTERRUPTED') !== Boolean(interruption)) {
+    throw new Error('Runtime interruption reason/detail pair is incomplete or conflicting');
+  }
   return {
     ...errorInfo,
     message: publicStatusMessage(message) || undefined,
+    ...(interruption ? { interruption } : {}),
   };
 }
 
@@ -284,7 +314,7 @@ function publicStatusMessage(input: string): string {
   }
 }
 
-function parseGoogleProtobufAny(bytes: Uint8Array): Omit<StructuredGrpcDetails, 'message'> | null {
+function parseGoogleProtobufAny(bytes: Uint8Array): ParsedGrpcStatusDetail | null {
   const reader = new BinaryReader(bytes);
   let typeUrl = '';
   let typeUrlSeen = false;
@@ -313,13 +343,27 @@ function parseGoogleProtobufAny(bytes: Uint8Array): Omit<StructuredGrpcDetails, 
     }
   }
 
-  if (typeUrl !== GOOGLE_RPC_ERROR_INFO_TYPE_URL) {
-    return null;
-  }
   if (!value) {
-    throw new Error('google.rpc.ErrorInfo value is missing');
+    throw new Error('google.protobuf.Any value is missing');
   }
-  return parseGoogleRpcErrorInfo(value);
+  if (typeUrl === GOOGLE_RPC_ERROR_INFO_TYPE_URL) {
+    const errorInfo = parseGoogleRpcErrorInfo(value);
+    return errorInfo ? { kind: 'error-info', value: errorInfo } : null;
+  }
+  if (typeUrl === NIMI_EXECUTION_INTERRUPTION_TYPE_URL) {
+    return { kind: 'execution-interruption', value: parseRuntimeExecutionInterruption(value) };
+  }
+  return null;
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r122
+function parseRuntimeExecutionInterruption(bytes: Uint8Array): NimiExecutionInterruption {
+  const interruption = RuntimeExecutionInterruption.fromBinary(bytes);
+  if (interruption.cause !== ExecutionInterruptionCause.RUNTIME_RESTART
+    || interruption.resubmitDisposition !== ExecutionResubmitDisposition.CALLER_MAY_RESUBMIT) {
+    throw new Error('invalid nimi.runtime.v1 ExecutionInterruption');
+  }
+  return { cause: 'runtime-restart', resubmitDisposition: 'caller-may-resubmit' };
 }
 
 function parseGoogleRpcErrorInfo(bytes: Uint8Array): Omit<StructuredGrpcDetails, 'message'> | null {

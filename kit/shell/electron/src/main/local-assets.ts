@@ -12,7 +12,7 @@ export async function resolveElectronStandardLocalAssetUrl(
     throw createElectronCapabilityUnavailableError(command);
   }
   const filePath = await resolveElectronStandardLocalAssetPath(host, payload, command);
-  await protocolHost.registerReadableFile(filePath);
+  await protocolHost.registerReadableFile(filePath, 'data-root');
   const url = normalizeRequiredToken(protocolHost.resolveLocalAssetUrl(filePath), 'url');
   return { path: filePath, url };
 }

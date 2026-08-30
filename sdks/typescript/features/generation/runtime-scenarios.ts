@@ -30,6 +30,8 @@ export type NimiRuntimeGenerationScenario =
     readonly referenceImages?: readonly string[];
     readonly referenceImageArtifactId?: string;
     readonly mask?: string;
+    readonly maskArtifactId?: string;
+    readonly strength?: number;
     readonly responseFormat?: string;
   }
   | {
@@ -205,11 +207,35 @@ function toRuntimeImageGenerationSpec(
 ): ImageGenerateScenarioSpec {
   const referenceImages = [...(input.referenceImages ?? [])];
   const referenceImageArtifactId = normalizeImageArtifactId(input.referenceImageArtifactId);
+  const mask = normalizeScenarioText(input.mask);
+  const maskArtifactId = normalizeImageArtifactId(input.maskArtifactId, 'mask');
   if (referenceImages.length > 0 && referenceImageArtifactId) {
     throw generationScenarioError(
       'SDK_GENERATION_SCENARIO_INVALID',
       'Image generation accepts either referenceImages URLs or referenceImageArtifactId, not both',
       'choose_image_reference_carrier',
+    );
+  }
+  if (mask && maskArtifactId) {
+    throw generationScenarioError(
+      'SDK_GENERATION_SCENARIO_INVALID',
+      'Image generation accepts either mask URL or maskArtifactId, not both',
+      'choose_image_mask_carrier',
+    );
+  }
+  if (maskArtifactId && !referenceImageArtifactId) {
+    throw generationScenarioError(
+      'SDK_GENERATION_SCENARIO_INVALID',
+      'Local image maskArtifactId requires referenceImageArtifactId source custody',
+      'provide_image_source_artifact_id',
+    );
+  }
+  const strength = normalizeOptionalFiniteNumber(input.strength, 'image strength');
+  if (strength !== undefined && !referenceImageArtifactId) {
+    throw generationScenarioError(
+      'SDK_GENERATION_SCENARIO_INVALID',
+      'Local image strength requires referenceImageArtifactId source custody',
+      'provide_image_source_artifact_id',
     );
   }
   return {
@@ -223,7 +249,9 @@ function toRuntimeImageGenerationSpec(
     seed: normalizeOptionalScenarioInt64(input.seed),
     referenceImages,
     referenceImageArtifactId,
-    mask: normalizeScenarioText(input.mask),
+    mask,
+    maskArtifactId,
+    strength,
     responseFormat: normalizeScenarioText(input.responseFormat),
   };
 }
@@ -442,13 +470,25 @@ function normalizeScenarioText(value: unknown): string {
   return String(value ?? '').trim();
 }
 
-function normalizeImageArtifactId(value: unknown): string {
+function normalizeImageArtifactId(value: unknown, role: 'reference' | 'mask' = 'reference'): string {
   if (value === undefined || value === null || value === '') return '';
   if (typeof value !== 'string' || value.trim() !== value || value.length > 128 || /[\u0000-\u001f\u007f]/u.test(value)) {
     throw generationScenarioError(
       'SDK_GENERATION_SCENARIO_INVALID',
-      'Image reference artifact ID must be a canonical bounded identifier',
-      'provide_image_reference_artifact_id',
+      `Image ${role} artifact ID must be a canonical bounded identifier`,
+      `provide_image_${role}_artifact_id`,
+    );
+  }
+  return value;
+}
+
+function normalizeOptionalFiniteNumber(value: unknown, label: string): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw generationScenarioError(
+      'SDK_GENERATION_SCENARIO_INVALID',
+      `${label} must be a finite number`,
+      'provide_finite_image_strength',
     );
   }
   return value;

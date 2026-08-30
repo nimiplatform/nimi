@@ -2,17 +2,17 @@ import type { JsonValue as ProtoJsonValue } from '@protobuf-ts/runtime';
 import {
   ChatContentPartType,
   TextSourceType,
-  ToolSpecKind,
   type ChatContentPart,
   type ChatMessage,
   type RawChunk as RuntimeRawChunk,
+  type ReasoningContinuityCarrier as RuntimeReasoningContinuityCarrier,
+  type TextOutputItem as RuntimeTextOutputItem,
   type TextSource as RuntimeTextSource,
-  type ToolApprovalRequest as RuntimeToolApprovalRequest,
-  type ToolApprovalResponse as RuntimeToolApprovalResponse,
   type ToolCall,
   type ToolResult as RuntimeToolResult,
   type ToolSpec,
 } from '../../core-generated/runtime-protobuf/runtime/v1/ai';
+import { ToolSpecKind } from '../../core-generated/runtime-protobuf/runtime/v1/common';
 import type { Value as RuntimeValueMessage } from '../../core-generated/runtime-protobuf/google/protobuf/struct';
 import { Value as RuntimeValue } from '../../core-generated/runtime-protobuf/google/protobuf/struct';
 import { fromNimiRuntimeProtoStruct, toNimiRuntimeProtoStruct } from '../../runtime/runtime-agent-values';
@@ -23,9 +23,9 @@ import type {
   NimiMessage,
   NimiMessagePart,
   NimiRawChunk,
+  NimiTextOutputItem,
+  NimiTextTurnItem,
   NimiSource,
-  NimiToolApprovalRequest,
-  NimiToolApprovalResponse,
   NimiToolCall,
   NimiToolResult,
 } from '../contracts';
@@ -65,17 +65,43 @@ export function toRuntimeMessages(messages: readonly NimiMessage[]): ChatMessage
   }
   let hasContent = false;
   const runtimeMessages = messages.map((message): ChatMessage => {
+    if (message.toolCalls?.length || message.toolResults?.length || message.toolCallId
+      || message.toolApprovalResponses?.length) {
+      unsupportedRuntimeAI(
+        'message legacy tool fields',
+        'Runtime text continuation requires one canonical ordered turnItems sequence',
+      );
+    }
+    if (message.turnItems?.length) {
+      if (message.content.length > 0) {
+        unsupportedRuntimeAI(
+          'message.content with message.turnItems',
+          'Runtime assistant/tool continuation accepts one ordered content truth',
+        );
+      }
+      if (message.role !== 'assistant' && message.role !== 'tool') {
+        unsupportedRuntimeAI('message.turnItems', 'only assistant or tool continuation messages may carry turnItems');
+      }
+      hasContent = true;
+      return {
+        role: message.role,
+        content: '',
+        name: normalizeText(message.name),
+        parts: [],
+        turnItems: message.turnItems.map(toRuntimeTurnItem),
+      };
+    }
+    if (message.role === 'assistant' || message.role === 'tool') {
+      unsupportedRuntimeAI(
+        `message.role.${message.role}`,
+        'Runtime assistant/tool continuation requires canonical turnItems',
+      );
+    }
     const text = message.content.map((part) => part.type === 'text' ? part.text : '').join('');
     const parts = toRuntimeContentParts(message.content);
-    const toolCalls = toRuntimeMessageToolCalls(message.toolCalls);
-    const toolResults = toRuntimeMessageToolResults(message.toolResults);
-    const toolApprovalResponses = toRuntimeMessageToolApprovalResponses(message.toolApprovalResponses);
     if (
       text.trim()
       || parts.some((part) => part.type !== ChatContentPartType.TEXT)
-      || toolCalls.length > 0
-      || toolResults.length > 0
-      || toolApprovalResponses.length > 0
     ) {
       hasContent = true;
     }
@@ -84,10 +110,7 @@ export function toRuntimeMessages(messages: readonly NimiMessage[]): ChatMessage
       content: text,
       name: normalizeText(message.name),
       parts,
-      toolCalls,
-      toolCallId: normalizeText(message.toolCallId),
-      toolResults,
-      toolApprovalResponses,
+      turnItems: [],
     };
   });
   if (!hasContent) {
@@ -102,64 +125,77 @@ export function toRuntimeMessages(messages: readonly NimiMessage[]): ChatMessage
   return runtimeMessages;
 }
 
-export function toNimiToolCalls(toolCalls: readonly ToolCall[] | undefined): readonly NimiToolCall[] | undefined {
-  if (!toolCalls || toolCalls.length === 0) {
-    return undefined;
-  }
-  return toolCalls.map(toNimiToolCall);
-}
-
 export function toNimiToolCall(toolCall: ToolCall): NimiToolCall {
+  const id = normalizeText(toolCall.id);
+  const name = normalizeText(toolCall.name);
+  if (!id || !name) {
+    runtimeOutputInvalid('Runtime Scenario ToolCall omitted its stable id or name');
+  }
   const providerMetadata = fromRuntimeStruct(toolCall.providerMetadata);
   return {
-    id: toolCall.id,
-    name: toolCall.name,
+    id,
+    name,
     arguments: parseToolArguments(toolCall.argumentsJson),
-    ...(toolCall.providerExecuted ? { providerExecuted: true } : {}),
     ...(toolCall.dynamic ? { dynamic: true } : {}),
     ...(providerMetadata ? { providerMetadata } : {}),
   };
 }
 
-export function toNimiToolResults(
-  toolResults: readonly RuntimeToolResult[] | undefined,
-): readonly NimiToolResult[] | undefined {
-  if (!toolResults || toolResults.length === 0) {
-    return undefined;
+export function toNimiTextOutputItems(
+  items: readonly RuntimeTextOutputItem[] | undefined,
+): readonly NimiTextOutputItem[] {
+  const seenToolCallIds = new Set<string>();
+  return (items ?? []).map((item): NimiTextOutputItem => {
+    if (item.item.oneofKind === 'text') {
+      if (item.item.text.text.length === 0) {
+        runtimeOutputInvalid('Runtime text output item contained empty text');
+      }
+      return { type: 'text', text: item.item.text.text };
+    }
+    if (item.item.oneofKind === 'reasoningSummary') {
+      if (item.item.reasoningSummary.text.length === 0) {
+        runtimeOutputInvalid('Runtime reasoning summary item was empty');
+      }
+      return { type: 'reasoning-summary', text: item.item.reasoningSummary.text };
+    }
+    if (item.item.oneofKind === 'toolCall') {
+      const toolCall = toNimiToolCall(item.item.toolCall);
+      if (seenToolCallIds.has(toolCall.id)) {
+        runtimeOutputInvalid('Runtime text output contained a duplicate ToolCall id');
+      }
+      seenToolCallIds.add(toolCall.id);
+      return { type: 'tool-call', toolCall };
+    }
+    if (item.item.oneofKind === 'reasoningContinuity') {
+      return {
+        type: 'reasoning-continuity',
+        carrier: toNimiReasoningContinuityCarrier(item.item.reasoningContinuity),
+      };
+    }
+    throw runtimeOutputInvalid('Runtime text output item omitted its typed item');
+  });
+}
+
+const MAX_REASONING_CONTINUITY_KIND_BYTES = 128;
+const MAX_REASONING_CONTINUITY_PAYLOAD_BYTES = 64 * 1024;
+
+export function toNimiReasoningContinuityCarrier(
+  carrier: RuntimeReasoningContinuityCarrier,
+): Extract<NimiTextOutputItem, { readonly type: 'reasoning-continuity' }>['carrier'] {
+  const kind = typeof carrier.kind === 'string' ? carrier.kind : '';
+  const payload = carrier.payload;
+  if (!kind || kind !== kind.trim()
+    || new TextEncoder().encode(kind).byteLength > MAX_REASONING_CONTINUITY_KIND_BYTES
+    || /[\u0000-\u001f\u007f]/u.test(kind)
+    || !Number.isSafeInteger(carrier.version) || carrier.version < 1 || carrier.version > 0xffff_ffff
+    || !(payload instanceof Uint8Array) || payload.byteLength === 0
+    || payload.byteLength > MAX_REASONING_CONTINUITY_PAYLOAD_BYTES) {
+    runtimeOutputInvalid('Runtime reasoning continuity carrier identity or bounded payload is invalid');
   }
-  return toolResults.map(toNimiToolResult);
-}
-
-export function toNimiToolResult(toolResult: RuntimeToolResult): NimiToolResult {
-  const providerMetadata = fromRuntimeStruct(toolResult.providerMetadata);
   return {
-    toolCallId: toolResult.toolCallId,
-    toolName: toolResult.toolName,
-    result: fromRuntimeValue(toolResult.result),
-    ...(toolResult.isError ? { isError: true } : {}),
-    ...(toolResult.preliminary ? { preliminary: true } : {}),
-    ...(toolResult.dynamic ? { dynamic: true } : {}),
-    ...(providerMetadata ? { providerMetadata } : {}),
-  };
-}
-
-export function toNimiToolApprovalRequests(
-  approvalRequests: readonly RuntimeToolApprovalRequest[] | undefined,
-): readonly NimiToolApprovalRequest[] | undefined {
-  if (!approvalRequests || approvalRequests.length === 0) {
-    return undefined;
-  }
-  return approvalRequests.map(toNimiToolApprovalRequest);
-}
-
-export function toNimiToolApprovalRequest(
-  approvalRequest: RuntimeToolApprovalRequest,
-): NimiToolApprovalRequest {
-  const providerMetadata = fromRuntimeStruct(approvalRequest.providerMetadata);
-  return {
-    approvalId: approvalRequest.approvalId,
-    toolCallId: approvalRequest.toolCallId,
-    ...(providerMetadata ? { providerMetadata } : {}),
+    kind,
+    version: carrier.version,
+    payload: new Uint8Array(payload),
   };
 }
 
@@ -224,6 +260,26 @@ function toRuntimeContentParts(content: readonly NimiMessagePart[]): ChatContent
     }
     if (part.type === 'file') {
       parts.push(toRuntimeFileContentPart(part.mediaType, part.data));
+      continue;
+    }
+    if (part.type === 'artifact-ref') {
+      const artifactId = normalizeText(part.artifactId);
+      const localArtifactId = normalizeText(part.localArtifactId);
+      if ((!artifactId && !localArtifactId) || (artifactId && localArtifactId)) {
+        runtimeInputInvalid('Runtime artifact ref requires exactly one artifactId or localArtifactId');
+      }
+      parts.push({
+        type: ChatContentPartType.ARTIFACT_REF,
+        content: {
+          oneofKind: 'artifactRef',
+          artifactRef: {
+            artifactId,
+            localArtifactId,
+            mimeType: normalizeText(part.mediaType),
+            displayName: normalizeText(part.displayName),
+          },
+        },
+      });
     }
   }
   return parts;
@@ -256,53 +312,95 @@ function toRuntimeMediaLocation(mediaType: string, data: string): string {
     unsupportedRuntimeAI('message.content.file.data', 'file message part requires non-empty data');
   }
   const lower = trimmed.toLowerCase();
-  if (lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('data:')) {
+  if (lower.startsWith('http://') || lower.startsWith('https://')) {
     return trimmed;
   }
-  return `data:${mediaType};base64,${trimmed}`;
+  unsupportedRuntimeAI(
+    'message.content.file.data',
+    `Runtime-backed ${mediaType} input accepts only http(s) URLs; use artifact-ref for managed media`,
+  );
 }
 
-function toRuntimeMessageToolCalls(toolCalls: NimiMessage['toolCalls']): ToolCall[] {
-  if (!toolCalls || toolCalls.length === 0) {
-    return [];
+function toRuntimeTurnItem(turnItem: NimiTextTurnItem) {
+  if (turnItem.type === 'tool-result') {
+    return {
+      item: {
+        oneofKind: 'toolResult' as const,
+        toolResult: toRuntimeToolResult(turnItem.toolResult),
+      },
+    };
   }
-  return toolCalls.map((toolCall) => ({
-    id: toolCall.id,
-    name: toolCall.name,
+  const output = turnItem.output;
+  if (output.type === 'text') {
+    return { item: { oneofKind: 'output' as const, output: { item: { oneofKind: 'text' as const, text: { text: output.text } } } } };
+  }
+  if (output.type === 'reasoning-summary') {
+    return {
+      item: {
+        oneofKind: 'output' as const,
+        output: { item: { oneofKind: 'reasoningSummary' as const, reasoningSummary: { text: output.text } } },
+      },
+    };
+  }
+  if (output.type === 'reasoning-continuity') {
+    return {
+      item: {
+        oneofKind: 'output' as const,
+        output: {
+          item: {
+            oneofKind: 'reasoningContinuity' as const,
+            reasoningContinuity: {
+              kind: output.carrier.kind,
+              version: output.carrier.version,
+              payload: output.carrier.payload,
+            },
+          },
+        },
+      },
+    };
+  }
+  return {
+    item: {
+      oneofKind: 'output' as const,
+      output: { item: { oneofKind: 'toolCall' as const, toolCall: toRuntimeToolCall(output.toolCall) } },
+    },
+  };
+}
+
+function toRuntimeToolCall(toolCall: NimiToolCall): ToolCall {
+  if (toolCall.providerExecuted) {
+    unsupportedRuntimeAI('toolCall.providerExecuted', 'the external AI host owns every tool execution');
+  }
+  const id = normalizeText(toolCall.id);
+  const name = normalizeText(toolCall.name);
+  if (!id || !name || !toolCall.arguments || typeof toolCall.arguments !== 'object'
+    || Array.isArray(toolCall.arguments)) {
+    runtimeInputInvalid('Runtime ToolCall round-trip requires stable id, name, and one JSON object arguments value');
+  }
+  return {
+    id,
+    name,
     argumentsJson: JSON.stringify(toolCall.arguments),
-    providerExecuted: toolCall.providerExecuted ?? false,
     dynamic: toolCall.dynamic ?? false,
     providerMetadata: toOptionalRuntimeStruct(toolCall.providerMetadata),
-  }));
+  };
 }
 
-function toRuntimeMessageToolResults(toolResults: NimiMessage['toolResults']): RuntimeToolResult[] {
-  if (!toolResults || toolResults.length === 0) {
-    return [];
+function toRuntimeToolResult(toolResult: NimiToolResult): RuntimeToolResult {
+  const toolCallId = normalizeText(toolResult.toolCallId);
+  const toolName = normalizeText(toolResult.toolName);
+  if (!toolCallId || !toolName) {
+    runtimeInputInvalid('Runtime ToolResult round-trip requires toolCallId and toolName');
   }
-  return toolResults.map((toolResult) => ({
-    toolCallId: toolResult.toolCallId,
-    toolName: toolResult.toolName,
+  return {
+    toolCallId,
+    toolName,
     result: toRuntimeValue(toolResult.result),
     isError: toolResult.isError ?? false,
     preliminary: toolResult.preliminary ?? false,
     dynamic: toolResult.dynamic ?? false,
     providerMetadata: toOptionalRuntimeStruct(toolResult.providerMetadata),
-  }));
-}
-
-function toRuntimeMessageToolApprovalResponses(
-  approvalResponses: NimiMessage['toolApprovalResponses'],
-): RuntimeToolApprovalResponse[] {
-  if (!approvalResponses || approvalResponses.length === 0) {
-    return [];
-  }
-  return approvalResponses.map((approvalResponse) => ({
-    approvalId: approvalResponse.approvalId,
-    approved: approvalResponse.approved,
-    reason: approvalResponse.reason ?? '',
-    providerMetadata: toOptionalRuntimeStruct(approvalResponse.providerMetadata),
-  }));
+  };
 }
 
 export function toRuntimeStruct(value: NimiJsonObject): ReturnType<typeof toNimiRuntimeProtoStruct> {
@@ -332,7 +430,11 @@ function parseToolArguments(argumentsJson: string): NimiJsonValue {
     return {};
   }
   try {
-    return JSON.parse(trimmed) as NimiJsonValue;
+    const parsed = JSON.parse(trimmed) as NimiJsonValue;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('tool arguments must be one JSON object');
+    }
+    return parsed;
   } catch (error) {
     throw createNimiError({
       message: 'Runtime Scenario tool call argumentsJson is not valid JSON',
@@ -343,6 +445,26 @@ function parseToolArguments(argumentsJson: string): NimiJsonValue {
       details: { cause: error instanceof Error ? error.message : String(error) },
     });
   }
+}
+
+function runtimeOutputInvalid(message: string): never {
+  throw createNimiError({
+    message,
+    code: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
+    reasonCode: ReasonCode.SDK_AI_RUNTIME_OUTPUT_INVALID,
+    actionHint: 'check_runtime_text_output_items',
+    source: 'sdk',
+  });
+}
+
+function runtimeInputInvalid(message: string): never {
+  throw createNimiError({
+    message,
+    code: ReasonCode.SDK_AI_INPUT_INVALID,
+    reasonCode: ReasonCode.SDK_AI_INPUT_INVALID,
+    actionHint: 'provide_canonical_runtime_text_input',
+    source: 'sdk',
+  });
 }
 
 function unsupportedRuntimeAI(feature: string, detail: string): never {

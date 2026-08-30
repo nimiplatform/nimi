@@ -53,6 +53,7 @@ export type NimiElectronBundledAvatarAssetHost = {
   readonly readTextFile: (filePath: unknown) => Promise<string>;
   readonly scanNasHandlers: (nimiDir: unknown) => Promise<NimiElectronBundledAvatarNasHandlerManifest>;
   readonly assertAdmittedDirectory: (directoryPath: unknown) => Promise<string>;
+  readonly detachDataRoot: () => Promise<void>;
   readonly close: () => Promise<void>;
 };
 
@@ -93,6 +94,22 @@ export function createNimiElectronBundledAvatarAssetHost(
   const sessionId = randomUUID();
   let sessionRoot: string | undefined;
   let closed = false;
+
+  const closeHost = async (removeSessionRoot: boolean): Promise<void> => {
+    if (closed) return;
+    closed = true;
+    await Promise.allSettled([...materializations.values()]);
+    for (const root of admittedAssetRoots) {
+      const index = input.localAssetRoots.findIndex((candidate) => path.resolve(candidate) === path.resolve(root));
+      if (index >= 0) input.localAssetRoots.splice(index, 1);
+    }
+    admittedAssetRoots.clear();
+    materializations.clear();
+    if (sessionRoot && removeSessionRoot) {
+      await rm(sessionRoot, { recursive: true, force: true });
+    }
+    sessionRoot = undefined;
+  };
 
   const ensureSessionRoot = async (): Promise<string> => {
     if (sessionRoot) return sessionRoot;
@@ -210,21 +227,8 @@ export function createNimiElectronBundledAvatarAssetHost(
       };
     },
     assertAdmittedDirectory: (value) => assertAdmittedPath(value, true),
-    close: async () => {
-      if (closed) return;
-      closed = true;
-      await Promise.allSettled([...materializations.values()]);
-      for (const root of admittedAssetRoots) {
-        const index = input.localAssetRoots.findIndex((candidate) => path.resolve(candidate) === path.resolve(root));
-        if (index >= 0) input.localAssetRoots.splice(index, 1);
-      }
-      admittedAssetRoots.clear();
-      materializations.clear();
-      if (sessionRoot) {
-        await rm(sessionRoot, { recursive: true, force: true });
-        sessionRoot = undefined;
-      }
-    },
+    detachDataRoot: () => closeHost(false),
+    close: () => closeHost(true),
   };
 }
 
@@ -273,7 +277,7 @@ async function materializeRuntimeAsset(input: {
       if (!isSameOrChildPath(canonicalAssetRoot, readablePath)) {
         throw invalidPath(input.command, 'Avatar materialized file escaped its admitted root.');
       }
-      await input.localAssetProtocolHost.registerReadableFile(readablePath);
+      await input.localAssetProtocolHost.registerReadableFile(readablePath, 'data-root');
     }
     input.admittedAssetRoots.add(canonicalAssetRoot);
     if (!input.localAssetRoots.some((candidate) => path.resolve(candidate) === path.resolve(canonicalAssetRoot))) {

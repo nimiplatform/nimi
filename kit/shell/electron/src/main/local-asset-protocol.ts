@@ -37,16 +37,37 @@ export function createElectronShellFileProtocolHost(
 ): NimiElectronShellFileProtocolHost {
   const roots = (options.roots ?? []).map((root) => normalizeText(root)).filter(Boolean);
   const readFileBytes = options.readFile ?? (async (filePath: string) => readFile(filePath));
-  const readableFiles = new Set<string>();
+  const externalReadableFiles = new Set<string>();
+  const dataRootReadableFiles = new Set<string>();
+  const retiredDataRootReadableFiles = new Set<string>();
+  const dataRootIdleWaiters = new Set<() => void>();
+  let dataRootGrantState: 'open' | 'quiesced' | 'retired' = 'open';
+  let activeDataRootReads = 0;
 
   const canonicalRoots = async (): Promise<readonly string[]> =>
     Promise.all(roots.map((root) => canonicalCandidatePath(path.resolve(root))));
 
-  const isAllowedCanonicalPath = async (canonical: string): Promise<boolean> => {
-    if (readableFiles.has(canonical)) {
-      return true;
+  const readableAdmission = async (canonical: string): Promise<'external' | 'data-root' | null> => {
+    if (externalReadableFiles.has(canonical)) {
+      return 'external';
     }
-    return (await canonicalRoots()).some((root) => isSameOrChildPath(root, canonical));
+    if (retiredDataRootReadableFiles.has(canonical)) {
+      return null;
+    }
+    if ((await canonicalRoots()).some((root) => isSameOrChildPath(root, canonical))) {
+      return 'external';
+    }
+    if (dataRootGrantState === 'open' && dataRootReadableFiles.has(canonical)) {
+      return 'data-root';
+    }
+    return null;
+  };
+
+  const finishDataRootRead = (): void => {
+    activeDataRootReads -= 1;
+    if (activeDataRootReads !== 0) return;
+    for (const resolve of dataRootIdleWaiters) resolve();
+    dataRootIdleWaiters.clear();
   };
 
   return {
@@ -59,19 +80,25 @@ export function createElectronShellFileProtocolHost(
         try {
           const filePath = decodeElectronShellFileUrl(request.url);
           const canonical = await realpath(filePath);
-          if (!await isAllowedCanonicalPath(canonical)) {
+          const admission = await readableAdmission(canonical);
+          if (!admission) {
             return new Response('file is not admitted for the Electron shell file protocol', {
               status: 403,
               headers: { 'access-control-allow-origin': '*' },
             });
           }
-          return new Response(toArrayBufferView(await readFileBytes(canonical)), {
-            headers: {
-              'content-type': electronShellFileContentType(canonical),
-              'cache-control': 'no-store',
-              'access-control-allow-origin': '*',
-            },
-          });
+          if (admission === 'data-root') activeDataRootReads += 1;
+          try {
+            return new Response(toArrayBufferView(await readFileBytes(canonical)), {
+              headers: {
+                'content-type': electronShellFileContentType(canonical),
+                'cache-control': 'no-store',
+                'access-control-allow-origin': '*',
+              },
+            });
+          } finally {
+            if (admission === 'data-root') finishDataRootRead();
+          }
         } catch (error) {
           return new Response(error instanceof Error ? error.message : String(error || 'file read failed'), {
             status: 404,
@@ -80,9 +107,18 @@ export function createElectronShellFileProtocolHost(
         }
       });
     },
-    registerReadableFile: async (absolutePath) => {
+    registerReadableFile: async (absolutePath, scope = 'external') => {
       const canonical = await canonicalCandidatePath(normalizeRequiredToken(absolutePath, 'absolutePath'));
-      readableFiles.add(canonical);
+      if (scope === 'data-root') {
+        if (dataRootGrantState !== 'open') {
+          throw new Error('electron-data-root-readable-grants-closed');
+        }
+        retiredDataRootReadableFiles.delete(canonical);
+        dataRootReadableFiles.add(canonical);
+      } else {
+        retiredDataRootReadableFiles.delete(canonical);
+        externalReadableFiles.add(canonical);
+      }
       return canonical;
     },
     resolveLocalAssetUrl: (absolutePath) =>
@@ -92,7 +128,29 @@ export function createElectronShellFileProtocolHost(
       if (!normalized) {
         return false;
       }
-      return readableFiles.has(await canonicalCandidatePath(normalized));
+      const canonical = await canonicalCandidatePath(normalized);
+      return externalReadableFiles.has(canonical)
+        || (dataRootGrantState === 'open' && dataRootReadableFiles.has(canonical));
+    },
+    quiesceDataRootReadableGrants: async () => {
+      if (dataRootGrantState === 'retired') return;
+      dataRootGrantState = 'quiesced';
+      if (activeDataRootReads === 0) return;
+      await new Promise<void>((resolve) => dataRootIdleWaiters.add(resolve));
+    },
+    resumeDataRootReadableGrants: () => {
+      if (dataRootGrantState === 'quiesced') dataRootGrantState = 'open';
+    },
+    retireDataRootReadableGrants: () => {
+      dataRootGrantState = 'retired';
+      for (const canonical of dataRootReadableFiles) {
+        externalReadableFiles.delete(canonical);
+        retiredDataRootReadableFiles.add(canonical);
+      }
+      dataRootReadableFiles.clear();
+    },
+    activateDataRootReadableGrants: () => {
+      if (dataRootGrantState === 'retired') dataRootGrantState = 'open';
     },
   };
 }

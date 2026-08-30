@@ -141,14 +141,17 @@ describe('chat orchestration primitives', () => {
 });
 
 describe('simple-ai conversation provider', () => {
-  it('builds a history-aware request and keeps reasoning out of history', async () => {
+  it('builds a history-aware request and keeps canonical reasoning summary out of history', async () => {
     let capturedRequest: unknown = null;
     const runtimeAdapter: ConversationRuntimeAdapter = {
       streamText: vi.fn(async (request) => {
         capturedRequest = request;
         return sdkStream([
           { type: 'start', traceId: 'trace-1' },
-          { type: 'reasoning-delta', text: 'private-thought' },
+          {
+            type: 'reasoning-summary-delta', text: 'permitted-summary',
+            itemIndex: 0, itemCompleted: true,
+          },
           { type: 'text-delta', text: 'public-answer' },
           {
             type: 'done',
@@ -162,10 +165,11 @@ describe('simple-ai conversation provider', () => {
       runtimeAdapter,
       resolveSystemPrompt: () => 'desktop-app-preset',
       resolveRuntimeRequest: () => ({
-        reasoning: {
-          mode: 'on',
-          traceMode: 'separate',
-        },
+		reasoning: {
+			activation: 'required',
+			presentation: 'summary',
+			effort: 'medium',
+		},
       }),
     });
     const events = await collectEvents(provider.runTurn(createTurnInput({
@@ -202,11 +206,47 @@ describe('simple-ai conversation provider', () => {
       type: 'turn-completed',
       turnId: 'turn-1',
       outputText: 'public-answer',
-      reasoningText: 'private-thought',
+      reasoningText: 'permitted-summary',
       finishReason: 'stop',
       usage: { inputTokens: 10, outputTokens: 4, totalTokens: 14 },
       trace: { traceId: 'trace-1' },
     });
+  });
+
+  it('fails visibly instead of dropping ToolCall or opaque continuity items it does not own', async () => {
+    const unsupportedEvents: readonly NimiRunEvent[] = [
+      {
+        type: 'tool-call',
+        toolCall: { id: 'call-1', name: 'lookup', arguments: {} },
+        itemIndex: 0,
+        itemCompleted: true,
+      },
+      {
+        type: 'reasoning-continuity',
+        carrier: { kind: 'native', version: 1, payload: new Uint8Array([1]) },
+        itemIndex: 0,
+        itemCompleted: true,
+      },
+    ];
+    for (const unsupported of unsupportedEvents) {
+      const provider = createSimpleAiConversationProvider({
+        runtimeAdapter: {
+          async streamText() {
+            return sdkStream([
+              { type: 'start', traceId: 'trace-unsupported-item' },
+              unsupported,
+              { type: 'done', finishReason: 'stop' },
+            ]);
+          },
+        },
+      });
+      const events = await collectEvents(provider.runTurn(createTurnInput()));
+      expect(events.map((event) => event.type)).toEqual(['turn-started', 'turn-failed']);
+      expect(events[1]).toEqual(expect.objectContaining({
+        type: 'turn-failed',
+        error: expect.objectContaining({ code: 'AI_TEXT_BEHAVIOR_UNSUPPORTED' }),
+      }));
+    }
   });
 
   it('lets apps resolve current user runtime content without owning the provider loop', async () => {

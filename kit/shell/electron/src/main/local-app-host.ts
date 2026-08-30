@@ -1660,16 +1660,21 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
 function validateScenarioArtifacts(value: unknown): readonly NimiElectronLocalAppRecord[] {
   if (!Array.isArray(value) || value.length > 16) throw untrustedRuntimeError();
   return Object.freeze(value.map((entry) => {
-    if (!isPlainRecord(entry) || !hasExactKeys(entry, [
+    if (!isPlainRecord(entry)) throw untrustedRuntimeError();
+    const hasSeed = Object.hasOwn(entry, 'seed');
+    if (!hasExactKeys(entry, [
       'artifactId', 'mimeType', 'bytes', 'sizeBytes', 'sha256', 'durationMs',
-      'width', 'height', 'sampleRateHz', 'channels',
+      'width', 'height', 'sampleRateHz', 'channels', ...(hasSeed ? ['seed'] : []),
     ])) throw untrustedRuntimeError();
     const bytes = validateByteArray(entry.bytes);
     const sizeBytes = boundedInteger(entry.sizeBytes, 0, Number.MAX_SAFE_INTEGER);
     if (bytes.length > 0 && sizeBytes !== bytes.length) throw untrustedRuntimeError();
+    const mimeType = boundedMime(entry.mimeType);
+    const seed = hasSeed ? boundedInteger(entry.seed, -2_147_483_648, 2_147_483_647) : undefined;
+    if (hasSeed && !mimeType.startsWith('image/')) throw untrustedRuntimeError();
     return Object.freeze({
       artifactId: boundedExactText(entry.artifactId, 128, false),
-      mimeType: boundedMime(entry.mimeType),
+      mimeType,
       bytes,
       sizeBytes,
       sha256: boundedExactText(entry.sha256, 128, true),
@@ -1678,6 +1683,7 @@ function validateScenarioArtifacts(value: unknown): readonly NimiElectronLocalAp
       height: boundedInteger(entry.height, 0, Number.MAX_SAFE_INTEGER),
       sampleRateHz: boundedInteger(entry.sampleRateHz, 0, Number.MAX_SAFE_INTEGER),
       channels: boundedInteger(entry.channels, 0, Number.MAX_SAFE_INTEGER),
+      ...(seed !== undefined ? { seed } : {}),
     }) as NimiElectronLocalAppRecord;
   }));
 }

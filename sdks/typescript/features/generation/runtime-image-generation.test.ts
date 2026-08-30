@@ -83,6 +83,8 @@ test('runNimiRuntimeImageGeneration submits an image scenario job and returns im
     size: '1024x1024',
     seed: 42,
     referenceImageArtifactId: 'artifact-image-source-1',
+    maskArtifactId: 'artifact-image-mask-1',
+    strength: 0.7,
     responseFormat: 'b64_json',
     requestId: 'request-image-1',
     idempotencyKey: 'idem-image-1',
@@ -108,6 +110,8 @@ test('runNimiRuntimeImageGeneration submits an image scenario job and returns im
   assert.equal(submitted[0].request.spec.spec.imageGenerate.n, undefined);
   assert.equal(submitted[0].request.spec.spec.imageGenerate.seed, '42');
   assert.equal(submitted[0].request.spec.spec.imageGenerate.referenceImageArtifactId, 'artifact-image-source-1');
+  assert.equal(submitted[0].request.spec.spec.imageGenerate.maskArtifactId, 'artifact-image-mask-1');
+  assert.equal(submitted[0].request.spec.spec.imageGenerate.strength, 0.7);
   assert.equal(submitted[0].request.spec.spec.imageGenerate.responseFormat, 'b64_json');
   assert.equal(submitted[0].request.labels.gateway, 'openai-compatible');
   assert.equal(submitted[0].options.metadata['x-nimi-idempotency-key'], 'idem-image-1');
@@ -147,6 +151,30 @@ test('runNimiRuntimeImageGeneration rejects a non-canonical artifact custody ide
     }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_GENERATION_SCENARIO_INVALID',
   );
+});
+
+test('runNimiRuntimeImageGeneration rejects ambiguous or source-less mask custody', async () => {
+  for (const input of [
+    {
+      referenceImageArtifactId: 'artifact-image-source-1',
+      mask: 'https://example.test/mask.png',
+      maskArtifactId: 'artifact-image-mask-1',
+    },
+    { maskArtifactId: 'artifact-image-mask-1' },
+    { strength: 0.5 },
+  ]) {
+    await assert.rejects(
+      () => runNimiRuntimeImageGeneration({
+        runtime: {} as any,
+        head: { appId: 'app.test' },
+        prompt: 'edit this image',
+        ...input,
+        requestId: 'request-image-mask-invalid',
+        idempotencyKey: 'idem-image-mask-invalid',
+      }),
+      (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_GENERATION_SCENARIO_INVALID',
+    );
+  }
 });
 
 test('runNimiRuntimeVideoGeneration submits a video scenario job and returns video artifacts', async () => {

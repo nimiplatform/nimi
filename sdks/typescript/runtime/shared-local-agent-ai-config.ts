@@ -45,6 +45,7 @@ import {
 import { assertRouteOnlyLocalAIConfigIntents } from '../core/ai/capability-configuration-local-intent.js';
 import { createNimiClientId, createNimiError } from '../types';
 import { withNimiRuntimeIdempotencyMetadata } from './scenario-jobs';
+import { projectNimiTextBehaviorCapabilities } from './text-behavior-projections';
 import {
   resolveNimiRuntimeAgentSubjectUserId,
   withNimiRuntimeAgentScopes,
@@ -413,7 +414,7 @@ function projectCloudTargetOption(value: AIConfigCloudTargetProjection): NimiAIC
     capabilityContract: value.capabilityContract,
     implementation: Object.freeze({ ...value.implementation }),
     providerModelTarget: RuntimeStruct.toJson(value.providerModelTarget) as NimiAIConfigCloudTargetOption['providerModelTarget'],
-    supportedFeatures: Object.freeze([...value.supportedFeatures]),
+		supportedFeatures: Object.freeze([...value.supportedFeatures]),
     state,
     reasons: Object.freeze([...value.reasons]),
   });
@@ -430,7 +431,9 @@ function projectLocalOption(value: AIConfigLocalResourceProjection): NimiAIConfi
     label: value.label,
     capabilityContract: value.capabilityContract,
     implementation: Object.freeze({ ...value.implementation }),
-    supportedFeatures: Object.freeze([...value.supportedFeatures]),
+    implementationSupportedFeatures: Object.freeze([...value.implementationSupportedFeatures]),
+    configuredFeatures: Object.freeze([...value.configuredFeatures]),
+    textBehaviors: projectNimiTextBehaviorCapabilities(value.textBehaviors),
     state,
     reasons: Object.freeze([...value.reasons]),
   });
