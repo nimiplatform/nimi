@@ -10,7 +10,6 @@ function createController(input: { hostRuntime?: boolean; clickThroughRejectsOnc
   let clickThroughRejectsOnce = input.clickThroughRejectsOnce === true;
   const pointerInside: boolean[] = [];
   const pointerContact: boolean[] = [];
-  const constrainWindowToVisibleArea = vi.fn();
   const controller = new AvatarInteractionController({
     getHitRegionSnapshot: () => createAvatarHitRegionSnapshot({
       body: { x: 10, y: 20, width: 100, height: 200, region: 'body' },
@@ -32,7 +31,6 @@ function createController(input: { hostRuntime?: boolean; clickThroughRejectsOnc
         throw new Error('native click-through failed');
       }
     },
-    constrainWindowToVisibleArea,
     nowMs: () => now,
     hasHostRuntime: () => input.hostRuntime ?? false,
   });
@@ -42,7 +40,6 @@ function createController(input: { hostRuntime?: boolean; clickThroughRejectsOnc
     clickThrough,
     pointerInside,
     pointerContact,
-    constrainWindowToVisibleArea,
     tick(ms: number) {
       now += ms;
     },
@@ -78,7 +75,7 @@ describe('AvatarInteractionController', () => {
     expect(fixture.clickThrough.at(-1)).toBe(true);
   });
 
-  it('starts drag after threshold, throttles move, emits end, and applies edge constraints', () => {
+  it('starts drag after threshold, throttles move, and emits end', () => {
     const fixture = createController();
 
     fixture.controller.pointerDown({ clientX: 60, clientY: 180, button: 0 });
@@ -98,7 +95,6 @@ describe('AvatarInteractionController', () => {
       'avatar.user.drag.end',
     ]);
     expect(fixture.emitted.at(-1)?.detail).toMatchObject({ delta_x: 32, delta_y: 0 });
-    expect(fixture.constrainWindowToVisibleArea).toHaveBeenCalledTimes(1);
   });
 
   it('fails closed at the drag threshold when precision did not approve drag', () => {
@@ -111,7 +107,6 @@ describe('AvatarInteractionController', () => {
     fixture.controller.pointerUp({ clientX: 70, clientY: 180, button: 0 });
 
     expect(fixture.emitted.map((event) => event.name)).toEqual(['avatar.user.hover']);
-    expect(fixture.constrainWindowToVisibleArea).not.toHaveBeenCalled();
   });
 
   it('emits long press after 1s stationary hold without creating a click', () => {
@@ -163,7 +158,6 @@ describe('AvatarInteractionController', () => {
 
     expect(fixture.emitted.map((event) => event.name)).toEqual(['avatar.user.hover']);
     expect(fixture.pointerContact.at(-1)).toBe(false);
-    expect(fixture.constrainWindowToVisibleArea).not.toHaveBeenCalled();
   });
 
   it('confirms drag immediately on the Desktop Host (unified manual drag, no system handoff)', () => {
@@ -183,7 +177,6 @@ describe('AvatarInteractionController', () => {
       'avatar.user.drag.move',
       'avatar.user.drag.end',
     ]);
-    expect(fixture.constrainWindowToVisibleArea).toHaveBeenCalledTimes(1);
   });
 
   it('restores cursor handling during teardown instead of leaving click-through active', () => {

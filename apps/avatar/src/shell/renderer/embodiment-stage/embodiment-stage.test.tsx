@@ -632,7 +632,9 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
 
     fireEvent.pointerMove(stage, {
       button: 0,
-      buttons: 1,
+      // Electron may report buttons=0 for a captured native move even though
+      // the matching pointer remains down; pointerId + capture own continuity.
+      buttons: 0,
       pointerId: 7,
       clientX: 180,
       clientY: 260,
@@ -1007,6 +1009,176 @@ describe('EmbodimentStage — pointermove click-through (chunk 4-C)', () => {
       totalDeltaX: 100,
       totalDeltaY: 60,
     });
+  });
+
+  it('ignores captured hover movement after a manual drag has ended', async () => {
+    runtimeFlags.hostRuntime = true;
+    Object.defineProperty(window.navigator, 'platform', {
+      value: 'MacIntel',
+      configurable: true,
+    });
+    const moveResolvers: Array<() => void> = [];
+    moveManualDragWindowMock.mockImplementation(
+      () => new Promise<void>((resolve) => {
+        moveResolvers.push(resolve);
+      }),
+    );
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0, top: 0, right: 1, bottom: 1 },
+        drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        isOpaqueAtClientPoint: () => true,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    installStageRect(stage);
+
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 12,
+      clientX: 120,
+      clientY: 220,
+      screenX: 800,
+      screenY: 500,
+    });
+    await Promise.resolve();
+
+    fireEvent.pointerMove(stage, {
+      button: 0,
+      buttons: 0,
+      pointerId: 12,
+      clientX: 180,
+      clientY: 260,
+      screenX: 860,
+      screenY: 540,
+    });
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(moveManualDragWindowMock).toHaveBeenCalledTimes(1);
+
+    fireEvent.pointerMove(stage, {
+      button: 0,
+      buttons: 0,
+      pointerId: 12,
+      clientX: 220,
+      clientY: 280,
+      screenX: 900,
+      screenY: 560,
+    });
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(moveManualDragWindowMock).toHaveBeenCalledTimes(1);
+
+    fireEvent.pointerUp(stage, {
+      button: 0,
+      buttons: 0,
+      pointerId: 12,
+      clientX: 220,
+      clientY: 280,
+      screenX: 900,
+      screenY: 560,
+    });
+    fireEvent.pointerMove(stage, {
+      button: 0,
+      buttons: 0,
+      pointerId: 12,
+      clientX: 240,
+      clientY: 300,
+      screenX: 920,
+      screenY: 580,
+    });
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(moveManualDragWindowMock).toHaveBeenCalledTimes(1);
+    expect(constrainWindowToVisibleAreaMock).not.toHaveBeenCalled();
+
+    moveResolvers[0]?.();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(moveManualDragWindowMock).toHaveBeenCalledTimes(2);
+    expect(moveManualDragWindowMock).toHaveBeenLastCalledWith({
+      origin: { x: 1000, y: 700 },
+      totalDeltaX: 100,
+      totalDeltaY: 60,
+    });
+    expect(constrainWindowToVisibleAreaMock).not.toHaveBeenCalled();
+
+    moveResolvers[1]?.();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(constrainWindowToVisibleAreaMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops queued manual movement when the captured pointer is cancelled', async () => {
+    runtimeFlags.hostRuntime = true;
+    const moveResolvers: Array<() => void> = [];
+    moveManualDragWindowMock.mockImplementation(
+      () => new Promise<void>((resolve) => {
+        moveResolvers.push(resolve);
+      }),
+    );
+    const backend = createMockBackend({
+      hitRegion: {
+        body: { left: 0, top: 0, right: 1, bottom: 1 },
+        drag: { left: 0, top: 0, right: 1, bottom: 1 },
+        isOpaqueAtClientPoint: () => true,
+      },
+    });
+    render(<EmbodimentStage {...baseProps} backend={backend} />);
+    const stage = screen.getByTestId('avatar-embodiment-stage');
+    installStageRect(stage);
+
+    fireEvent.pointerDown(stage, {
+      button: 0,
+      buttons: 1,
+      pointerId: 13,
+      clientX: 120,
+      clientY: 220,
+      screenX: 800,
+      screenY: 500,
+    });
+    await Promise.resolve();
+
+    fireEvent.pointerMove(stage, {
+      button: 0,
+      buttons: 0,
+      pointerId: 13,
+      clientX: 180,
+      clientY: 260,
+      screenX: 860,
+      screenY: 540,
+    });
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    fireEvent.pointerMove(stage, {
+      button: 0,
+      buttons: 0,
+      pointerId: 13,
+      clientX: 220,
+      clientY: 280,
+      screenX: 900,
+      screenY: 560,
+    });
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
+    expect(moveManualDragWindowMock).toHaveBeenCalledTimes(1);
+
+    fireEvent.pointerCancel(stage, { pointerId: 13 });
+    moveResolvers[0]?.();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(moveManualDragWindowMock).toHaveBeenCalledTimes(1);
+    expect(constrainWindowToVisibleAreaMock).not.toHaveBeenCalled();
   });
 
   it('drag is unified to manual movement on every platform (no system start-dragging)', async () => {

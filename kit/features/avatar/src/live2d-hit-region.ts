@@ -144,6 +144,15 @@ function readAlphaByteFromCanvas(
     return null;
   }
   if (gl == null) return null;
+  // Cubism's shipping context uses preserveDrawingBuffer=false. Outside the
+  // renderer's own frame callback the default framebuffer may already be
+  // invalidated, so a zero alpha sample is not evidence of transparency.
+  // Report precision as unavailable and let the bounded body rectangle own
+  // hit-testing until the renderer supplies a current-frame alpha target.
+  const contextAttributes = typeof gl.getContextAttributes === 'function'
+    ? gl.getContextAttributes()
+    : null;
+  if (contextAttributes?.preserveDrawingBuffer === false) return null;
   try {
     const pixels = new Uint8Array(4);
     gl.readPixels(canvasX, canvasY, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);

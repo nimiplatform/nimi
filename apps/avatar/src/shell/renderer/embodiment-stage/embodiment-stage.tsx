@@ -434,7 +434,6 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
           setBodyPointerContact?.(contact);
         },
         setClickThrough,
-        constrainWindowToVisibleArea,
         nowMs: () => performance.now(),
         hasHostRuntime: hasAvatarHostRuntime,
         isClickThroughLocked: () => dragRef.current?.mode === 'manual',
@@ -539,7 +538,9 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         // IPC per event makes drag feel laggy. Coalescing to RAF cadence
         // matches the compositor refresh and keeps the window glued to
         // the cursor without saturating the IPC channel.
-        if (dragRef.current && (event.buttons & 1) === 1) {
+        if (dragRef.current
+          && !dragRef.current.ended
+          && dragRef.current.pointerId === event.pointerId) {
           const drag = dragRef.current;
           const dx = event.screenX - drag.lastScreenX;
           const dy = event.screenY - drag.lastScreenY;
@@ -722,6 +723,7 @@ export function EmbodimentStage(props: EmbodimentStageProps) {
         }
         if (drag) {
           drag.rafHandle = null;
+          drag.pendingTarget = null;
           drag.ended = true;
           drag.constrainOnEnd = false;
           finalizeManualDragIfDone(drag);

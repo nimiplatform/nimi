@@ -14,7 +14,6 @@ export type AvatarInteractionControllerDeps = {
   setPointerInside(inside: boolean): void;
   setPointerContact(contact: boolean): void;
   setClickThrough(ignore: boolean): Promise<void> | void;
-  constrainWindowToVisibleArea(): Promise<void> | void;
   nowMs(): number;
   hasHostRuntime(): boolean;
   isClickThroughLocked?(): boolean;
@@ -174,7 +173,6 @@ export class AvatarInteractionController {
           dx: Math.round(event.clientX - pending.startClientX),
           dy: Math.round(event.clientY - pending.startClientY),
         });
-        void this.deps.constrainWindowToVisibleArea();
       }
       return;
     }

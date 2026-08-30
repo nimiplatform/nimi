@@ -23,6 +23,7 @@ const VIEWPORT = { left: 100, top: 50, width: 400, height: 600 };
 type FakeGl = {
   RGBA: number;
   UNSIGNED_BYTE: number;
+  getContextAttributes?: () => { preserveDrawingBuffer: boolean };
   readPixels: (
     x: number,
     y: number,
@@ -34,10 +35,16 @@ type FakeGl = {
   ) => void;
 };
 
-function makeFakeGl(alphaByte: number | null, opts?: { throwOnRead?: boolean }): FakeGl {
+function makeFakeGl(
+  alphaByte: number | null,
+  opts?: { throwOnRead?: boolean; preserveDrawingBuffer?: boolean },
+): FakeGl {
   return {
     RGBA: 0x1908,
     UNSIGNED_BYTE: 0x1401,
+    ...(opts?.preserveDrawingBuffer !== undefined ? {
+      getContextAttributes: () => ({ preserveDrawingBuffer: opts.preserveDrawingBuffer! }),
+    } : {}),
     readPixels: vi.fn((_x, _y, _w, _h, _fmt, _type, out: Uint8Array) => {
       if (opts?.throwOnRead) throw new Error('readPixels failed');
       out[0] = 0;
@@ -220,6 +227,17 @@ describe('createLive2DHitRegion (tier A)', () => {
       deviceTier: 'A',
     });
     expect(region.isOpaqueAtClientPoint!(150, 200)).toBeNull();
+  });
+
+  it('returns null when the default framebuffer is not preserved', () => {
+    const gl = makeFakeGl(0, { preserveDrawingBuffer: false });
+    const region = createLive2DHitRegion({
+      getCanvas: () => makeFakeCanvas({ gl }),
+      getViewport: () => VIEWPORT,
+      deviceTier: 'A',
+    });
+    expect(region.isOpaqueAtClientPoint!(150, 200)).toBeNull();
+    expect(gl.readPixels).not.toHaveBeenCalled();
   });
 
   it('returns false for client coords outside viewport', () => {
