@@ -423,7 +423,10 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       const conversation = await localAppHost.conversationOpen({ agentHandle: selectedAgentHandle });
       const conversationAnchorId = normalizeText(conversation.conversationAnchorId);
       if (!conversationAnchorId) throw new Error('Avatar formal Conversation anchor is unavailable.');
-      const hostTarget = await localAppHost.avatarHostTargetResolve({ agentHandle: selectedAgentHandle });
+      const hostTarget = await localAppHost.avatarHostTargetResolve({
+        agentHandle: selectedAgentHandle,
+        conversationAnchorId,
+      });
       const launchResult = await bundledAvatarHost.hostHandoff({
         sourceApp: 'nimi.desktop',
         avatarHostTargetRef: normalizeText(hostTarget.avatarHostTargetRef),

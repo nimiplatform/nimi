@@ -874,6 +874,14 @@ test('bundled Avatar asset command carries the reminted formal App handle into H
   assert.ok(
     formalFence.indexOf('avatarHostTargetResolve') < formalFence.indexOf('agentPresentationSnapshot'),
   );
+  const avatarOnlyLaunch = mainSource.slice(
+    mainSource.indexOf('if (AVATAR_ONLY_DEVELOPMENT_MODE)'),
+    mainSource.indexOf("app.on('activate'"),
+  );
+  assert.match(
+    avatarOnlyLaunch,
+    /avatarHostTargetResolve\(\{\s*agentHandle: selectedAgentHandle,\s*conversationAnchorId,\s*\}\)/u,
+  );
   assert.doesNotMatch(source, /GetAgentPresentationAsset|bundledAvatarUnary/u);
   assert.doesNotMatch(source, /privateBinding|localAgentRef|ownerUserId|runtimeSourceRef/u);
   assert.doesNotMatch(source, /resolveSelectedDataRoot/u);
