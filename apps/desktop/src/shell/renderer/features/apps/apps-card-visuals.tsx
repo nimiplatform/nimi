@@ -4,6 +4,9 @@ import { BadgeCheck, Code2, LoaderCircle, PackageOpen } from 'lucide-react';
 import { StatusBadge } from '@nimiplatform/kit/ui';
 import {
   APP_RUN_BADGE_TONE,
+  appPackageFailureReason,
+  appPackagePhaseLocaleKey,
+  appPackageProgressText,
   appArtworkFor,
   appRunVisualState,
   deriveIconGlyph,
@@ -101,7 +104,7 @@ export function AppRunStatusLine({ entry }: { readonly entry: DesktopAppsEntry }
         : 'bg-[var(--nimi-text-muted)] opacity-50';
   return (
     <span
-      data-testid={`apps-entry-${entry.registration.appId}-state`}
+      data-testid={`apps-entry-${entry.identity.entryKey}-state`}
       data-run-visual={visual}
       title={visual === 'failed' ? entry.run?.message : undefined}
       className={`inline-flex items-center gap-1.5 text-[11px] font-medium ${visual === 'stopped' ? 'text-[color:var(--nimi-text-muted)]' : visual === 'running' ? 'text-[var(--nimi-status-success)]' : visual === 'failed' ? 'text-[var(--nimi-status-danger)]' : 'text-[var(--nimi-action-primary-bg)]'}`}
@@ -126,6 +129,36 @@ export function AppRunStatusBadge({ entry }: { readonly entry: DesktopAppsEntry 
       ) : null}
       {appRunStatusLabel(t, visual)}
     </StatusBadge>
+  );
+}
+
+export function AppPackageStatusLine({ entry }: { readonly entry: DesktopAppsEntry }): ReactElement | null {
+  const { t } = useTranslation();
+  if (entry.localDevelopment) return null;
+  const job = entry.packageJob;
+  const progress = job ? appPackageProgressText(job) : null;
+  const failureReason = job ? appPackageFailureReason(job) : null;
+  const versionLabel = entry.committedRelease
+    ? t('Apps.version.installed', { version: entry.committedRelease.version })
+    : t('Apps.version.notInstalled');
+  const phaseLocaleKey = job ? appPackagePhaseLocaleKey(job) : null;
+  const phaseLabel = job
+    ? phaseLocaleKey ? t(`Apps.phase.${phaseLocaleKey}`) : String(job.phase)
+    : null;
+  return (
+    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[color:var(--nimi-text-muted)]">
+      <span data-testid={`apps-entry-${entry.identity.entryKey}-installed-version`}>{versionLabel}</span>
+      {phaseLabel ? (
+        <span data-testid={`apps-entry-${entry.identity.entryKey}-package-job`} data-package-job-phase={job?.phase}>
+          {phaseLabel}{progress ? ` · ${progress}` : ''}
+        </span>
+      ) : null}
+      {failureReason ? (
+        <span className="text-[var(--nimi-status-danger)]" data-package-job-failure={failureReason}>
+          {failureReason}
+        </span>
+      ) : null}
+    </div>
   );
 }
 

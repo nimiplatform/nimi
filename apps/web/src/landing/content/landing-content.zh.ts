@@ -304,7 +304,7 @@ export const landingContentZh: LandingContent = {
   },
   apps: {
     eyebrow: 'Nimi Apps',
-    title: '把新的能力装进 Nimi。',
+    title: '把新的能力接入 Nimi。',
     subtitle:
       'Nimi App 是可以在 Nimi 里打开和使用的小应用：它可以带来新的工具、场景或本地 AI 体验。Nimi Home 会显示当前账号与本地工作区可用的内容；开发者用 SDK 构建，并按清晰的产品规则交付。',
     cta: '查看 Nimi App 文档',
@@ -330,7 +330,7 @@ export const landingContentZh: LandingContent = {
     ],
     notes: [
       '新的产品工作统一走 Nimi Apps 路径。',
-      'Nimi Apps 负责目录发现、带下载进度的普通安装、更新、启动与运行、修复、卸载，以及显式本地导入和 Developer Mode 入口。',
+      'Nimi Apps 定义目录、本地导入、安装、更新、启动、修复、卸载和 Developer Mode 的生命周期契约。当前预发布仅开放 Developer Mode 本地开发路径；公开目录、本地导入、普通安装、已安装 App 启动、发布者发布和 registry onboarding 尚不可用。',
       '首页不提前承诺尚未开放的公开应用目录；实际可打开内容以产品内显示为准。',
       '想构建 App，请从 SDK 与 Nimi App 文档开始。',
     ],

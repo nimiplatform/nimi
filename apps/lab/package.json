@@ -17,9 +17,7 @@
     "build:shell": "tauri build",
     "test": "node ../../scripts/with-workspace-surfaces.mjs -- node --test test/*.test.mjs",
     "check": "pnpm run test && pnpm run validate",
-    "validate": "node scripts/validate.mjs",
-    "doctor": "nimi-app doctor",
-    "update": "nimi-app update"
+    "validate": "node scripts/validate.mjs"
   },
   "dependencies": {
     "@nimiplatform/kit": "workspace:*",

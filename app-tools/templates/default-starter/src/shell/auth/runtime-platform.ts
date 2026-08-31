@@ -82,7 +82,7 @@ function unavailableFromError(error: unknown): RuntimePlatformUnavailableProject
 function messageFor(reasonCode: string): string {
   switch (reasonCode) {
     case 'local-development-registration-required':
-      return 'This development project must be registered through Nimi Desktop.';
+      return 'This development project must be registered through Nimi.';
     case 'local-development-session-revoked':
       return 'Nimi access for this running App is unavailable.';
     case 'local-development-project-changed':

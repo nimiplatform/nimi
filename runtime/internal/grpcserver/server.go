@@ -902,6 +902,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			}
 		}
 		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc, appOwnerAdmission, appSvc, rpcRegistry)
+		runtimev1.RegisterRuntimeAppPackageServiceServer(protectedGRPCServer, appSvc)
 		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, localSvc, aiSvc, agentSvc, appSvc, rpcRegistry)
 	}
 	appSvc.RegisterInternalConsumer("runtime.agent.internal.chat_track_sidecar", agentSvc.ConsumeChatTrackSidecarAppMessage)

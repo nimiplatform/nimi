@@ -36,6 +36,8 @@
     "userImported": "Imported",
     "verified": "Nimi certified"
   },
+  "catalogNotImplemented": "Public App catalog search is not implemented yet.",
+  "installedLaunchUnavailable": "Installed App launch is not implemented yet. Installation remains recorded, but only local-development Apps can currently be launched.",
   "listTitle": "App list",
   "listDescription": "Filter registered apps by whether they declare App Access domains.",
   "filter": {
@@ -253,6 +255,7 @@
     "evidence": "Recording install evidence",
     "installed": "Installed",
     "swap": "Swapping release",
+    "uninstalling": "Uninstalling",
     "failed": "Failed",
     "cancelled": "Cancelled",
     "uninstalled": "Uninstalled"
@@ -269,6 +272,8 @@
     "developerTab": "Developer info",
     "localSummary": "A local development app registered with Nimi.",
     "aboutTitle": "About this app",
+    "catalogVersion": "Version",
+    "releaseRef": "Release reference",
     "aboutDescription": "Registration and source information currently available for this local development app.",
     "registrationState": "Registration",
     "runState": "Run state",

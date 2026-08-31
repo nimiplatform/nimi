@@ -21,7 +21,7 @@ export interface DesktopAppsLiveBridge {
   listRegistrations(): Promise<readonly LocalDevelopmentRegistration[]>;
   listRuns(): Promise<readonly LocalDevelopmentRun[]>;
   startRegistration(selector: string): Promise<LocalDevelopmentRun>;
-  stopRun(appId: string): Promise<void>;
+  stopRun(selector: string): Promise<void>;
   removeRegistration(selector: string): Promise<void>;
   readProjectReadme(selector: string): Promise<LocalDevelopmentProjectReadme>;
 }

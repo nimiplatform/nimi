@@ -5,9 +5,11 @@ Nimi Home is its entry point, Realm owns ecosystem identity, and Runtime
 executes local and cloud AI capabilities across multiple providers. Characters,
 conversations, creations, stories, and worlds are experiences within Nimi;
 Nimi is not reducible to Runtime, a chat product, Avatar, or any one experience.
-Nimi Apps owns catalog discovery, ordinary installation with download progress,
-update, launch and run, repair, uninstall, explicit local import, and Developer
-Mode entry; the release index does not take over those product semantics.
+Nimi Apps is the canonical product path for catalog, local-import, installation,
+update, launch, repair, uninstall, and Developer Mode semantics. This pre-release
+currently exposes the Developer-Mode local-development path; public catalog,
+immutable local import, ordinary installation, update, installed launch, repair,
+uninstall, publisher publication, and registry onboarding remain unavailable.
 
 The broader project is an AI open world platform. It is built for long-lived
 worlds where people, AI agents, applications, and runtime services share the

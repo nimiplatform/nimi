@@ -13,6 +13,8 @@ type LocalAppTrustClass string
 const (
 	LocalAppTrustLocalDevelopment LocalAppTrustClass = "local_development"
 	LocalAppTrustBuiltIn          LocalAppTrustClass = "built_in"
+	LocalAppTrustVerified         LocalAppTrustClass = "verified"
+	LocalAppTrustUserImported     LocalAppTrustClass = "user_imported"
 )
 
 type VerifiedLocalAppLaunchPeer struct {
@@ -125,8 +127,8 @@ func EstablishLocalAppConnection(ctx context.Context, verifier LocalAppLaunchPee
 // registration handle and process witness; declaration, Effective App Access,
 // account, and exact operation admission remain ordinary session-kernel work.
 // @nimi-authority: rule.nimi.runtime.protected-session.r023
-func EstablishInstalledAppConnection(registrationHandle string, launchID, runtimeBootEpoch Identifier, process ProcessTuple, ownerDone <-chan struct{}) (*LocalAppConnection, error) {
-	if registrationHandle == "" || launchID == (Identifier{}) || runtimeBootEpoch == (Identifier{}) || ownerDone == nil {
+func EstablishInstalledAppConnection(registrationHandle string, trustClass LocalAppTrustClass, launchID, runtimeBootEpoch Identifier, process ProcessTuple, ownerDone <-chan struct{}) (*LocalAppConnection, error) {
+	if registrationHandle == "" || !trustClass.installed() || launchID == (Identifier{}) || runtimeBootEpoch == (Identifier{}) || ownerDone == nil {
 		return nil, fmt.Errorf("installed local-app launch binding is incomplete")
 	}
 	if err := process.validate(); err != nil {
@@ -134,7 +136,7 @@ func EstablishInstalledAppConnection(registrationHandle string, launchID, runtim
 	}
 	connection := &LocalAppConnection{
 		launchID: launchID, process: process, boot: runtimeBootEpoch,
-		installedRegistrationHandle: registrationHandle, trustClass: LocalAppTrustBuiltIn,
+		installedRegistrationHandle: registrationHandle, trustClass: trustClass,
 		done: make(chan struct{}),
 	}
 	connection.live.Store(true)
@@ -200,7 +202,7 @@ func (connection *LocalAppConnection) DirectLaunch() (DirectLocalAppLaunch, bool
 }
 
 func (connection *LocalAppConnection) InstalledRegistrationHandle() (string, bool) {
-	if connection == nil || !connection.live.Load() || connection.trustClass != LocalAppTrustBuiltIn || connection.installedRegistrationHandle == "" {
+	if connection == nil || !connection.live.Load() || !connection.trustClass.installed() || connection.installedRegistrationHandle == "" {
 		return "", false
 	}
 	return connection.installedRegistrationHandle, true
@@ -211,7 +213,11 @@ func (connection *LocalAppConnection) Live() bool {
 }
 
 func (trustClass LocalAppTrustClass) valid() bool {
-	return trustClass == LocalAppTrustLocalDevelopment || trustClass == LocalAppTrustBuiltIn
+	return trustClass == LocalAppTrustLocalDevelopment || trustClass.installed()
+}
+
+func (trustClass LocalAppTrustClass) installed() bool {
+	return trustClass == LocalAppTrustBuiltIn || trustClass == LocalAppTrustVerified || trustClass == LocalAppTrustUserImported
 }
 
 func (connection *LocalAppConnection) TrustClass() LocalAppTrustClass {

@@ -105,7 +105,7 @@ export interface DesktopRendererCommandPort {
   listLocalDevelopmentRegistrations(): Promise<LocalDevelopmentRegistration[]>;
   listLocalDevelopmentRuns(): Promise<LocalDevelopmentRun[]>;
   startLocalDevelopmentRegistration(selector: string): Promise<LocalDevelopmentRun>;
-  stopLocalDevelopmentRun(appId: string): Promise<void>;
+  stopLocalDevelopmentRun(selector: string): Promise<void>;
   removeLocalDevelopmentRegistration(selector: string): Promise<void>;
   refreshDeveloperMode(): Promise<DeveloperModeProjection>;
   setDeveloperMode(enabled: boolean): Promise<DeveloperModeProjection>;

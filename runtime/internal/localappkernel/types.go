@@ -21,9 +21,9 @@ var (
 type SourceClass string
 
 const (
-	SourceClassInstalled   SourceClass = "installed"
-	SourceClassLocalImport SourceClass = "local_import"
-	SourceClassDevelopment SourceClass = "development"
+	SourceClassVerified         SourceClass = "verified"
+	SourceClassUserImported     SourceClass = "user_imported"
+	SourceClassLocalDevelopment SourceClass = "local_development"
 )
 
 type RegistrationState string
@@ -34,29 +34,55 @@ const (
 )
 
 type Registration struct {
-	LocalOSUserAnchor     string
-	BindingSlot           string
-	RegistrationHandle    string
-	RegisteredAppSubject  string
-	AppID                 string
-	DisplayName           string
-	SourceClass           SourceClass
-	SourceRef             string
-	ProjectRoot           string
-	ManifestPath          string
-	ShellKind             int32
-	RawDeclaration        []string
-	ActivatedDomains      []string
-	SourceGeneration      uint64
-	DeclarationGeneration uint64
-	SourceDigest          string
-	DeclarationDigest     string
-	HostExecutableDigest  string
-	PayloadRootDigest     string
-	State                 RegistrationState
-	CreatedAt             time.Time
-	UpdatedAt             time.Time
-	TombstonedAt          *time.Time
+	LocalOSUserAnchor         string
+	BindingSlot               string
+	RegistrationHandle        string
+	RegisteredAppSubject      string
+	AppID                     string
+	DisplayName               string
+	SourceClass               SourceClass
+	SourceRef                 string
+	ProjectRoot               string
+	ManifestPath              string
+	ShellKind                 int32
+	RawDeclaration            []string
+	ActivatedDomains          []string
+	SourceGeneration          uint64
+	DeclarationGeneration     uint64
+	ImmutableLineageID        string
+	ProvenanceAttestationRefs []string
+	ProvenanceRevision        uint64
+	ExecutionProfileRef       string
+	DeclarationDigest         string
+	HostExecutableDigest      string
+	PayloadRootDigest         string
+	State                     RegistrationState
+	CreatedAt                 time.Time
+	UpdatedAt                 time.Time
+	TombstonedAt              *time.Time
+}
+
+// ImmutablePackageFactsComplete is the fail-closed canonical seam required
+// before a verified or user-imported registration may be reported available
+// or admitted to an installed session. Local development has no package seam.
+func (registration Registration) ImmutablePackageFactsComplete() bool {
+	if registration.SourceClass != SourceClassVerified && registration.SourceClass != SourceClassUserImported {
+		return false
+	}
+	if strings.TrimSpace(registration.ImmutableLineageID) == "" ||
+		registration.ProvenanceRevision == 0 ||
+		strings.TrimSpace(registration.ExecutionProfileRef) == "" {
+		return false
+	}
+	if registration.SourceClass == SourceClassVerified && len(registration.ProvenanceAttestationRefs) == 0 {
+		return false
+	}
+	for _, reference := range registration.ProvenanceAttestationRefs {
+		if strings.TrimSpace(reference) == "" || reference != strings.TrimSpace(reference) {
+			return false
+		}
+	}
+	return true
 }
 
 type RegisterDevelopmentInput struct {
@@ -85,7 +111,11 @@ type RegisterInstalledInput struct {
 	ManifestPath               string
 	ShellKind                  int32
 	RawDeclaration             []string
-	SourceDigest               string
+	SourceClass                SourceClass
+	ImmutableLineageID         string
+	ProvenanceAttestationRefs  []string
+	ProvenanceRevision         uint64
+	ExecutionProfileRef        string
 	HostExecutableDigest       string
 	PayloadRootDigest          string
 }
@@ -114,7 +144,7 @@ func validateDevelopmentInput(input RegisterDevelopmentInput) error {
 		return err
 	}
 	return validateRegistrationInput(input.AppID, input.DisplayName, input.SourceRef, input.ProjectRoot,
-		input.ManifestPath, input.ShellKind, "", false, input.HostExecutableDigest, "", false)
+		input.ManifestPath, input.ShellKind, input.HostExecutableDigest)
 }
 
 func validateInstalledInput(input RegisterInstalledInput) error {
@@ -124,8 +154,39 @@ func validateInstalledInput(input RegisterInstalledInput) error {
 	if err := validateOptionalBindingSlot(input.BindingSlot); err != nil {
 		return err
 	}
-	return validateRegistrationInput(input.AppID, input.DisplayName, input.SourceRef, input.ProjectRoot,
-		input.ManifestPath, input.ShellKind, input.SourceDigest, true, input.HostExecutableDigest, input.PayloadRootDigest, true)
+	if input.SourceClass != SourceClassVerified && input.SourceClass != SourceClassUserImported {
+		return fmt.Errorf("%w: source_class", ErrInvalidArgument)
+	}
+	if err := validateRegistrationInput(input.AppID, input.DisplayName, input.SourceRef, input.ProjectRoot,
+		input.ManifestPath, input.ShellKind, input.HostExecutableDigest); err != nil {
+		return err
+	}
+	for name, value := range map[string]string{
+		"immutable_lineage_id":  input.ImmutableLineageID,
+		"execution_profile_ref": input.ExecutionProfileRef,
+		"payload_root_digest":   input.PayloadRootDigest,
+	} {
+		if err := requireExactText(name, value); err != nil {
+			return err
+		}
+	}
+	if input.ProvenanceRevision == 0 {
+		return fmt.Errorf("%w: provenance_revision", ErrInvalidArgument)
+	}
+	seen := make(map[string]struct{}, len(input.ProvenanceAttestationRefs))
+	if input.SourceClass == SourceClassVerified && len(input.ProvenanceAttestationRefs) == 0 {
+		return fmt.Errorf("%w: provenance_attestation_refs", ErrInvalidArgument)
+	}
+	for _, ref := range input.ProvenanceAttestationRefs {
+		if err := requireExactText("provenance_attestation_ref", ref); err != nil {
+			return err
+		}
+		if _, duplicate := seen[ref]; duplicate {
+			return fmt.Errorf("%w: provenance_attestation_refs", ErrInvalidArgument)
+		}
+		seen[ref] = struct{}{}
+	}
+	return nil
 }
 
 func validateOptionalBindingSlot(slot string) error {
@@ -142,7 +203,7 @@ func validateOptionalRegistrationHandle(handle string) error {
 	return requireExactText("existing_registration_handle", handle)
 }
 
-func validateRegistrationInput(appID, displayName, sourceRef, projectRoot, manifestPath string, shellKind int32, sourceDigest string, requireSourceDigest bool, hostExecutableDigest, payloadRootDigest string, requirePayload bool) error {
+func validateRegistrationInput(appID, displayName, sourceRef, projectRoot, manifestPath string, shellKind int32, hostExecutableDigest string) error {
 	for name, value := range map[string]string{
 		"app_id":                 appID,
 		"display_name":           displayName,
@@ -152,16 +213,6 @@ func validateRegistrationInput(appID, displayName, sourceRef, projectRoot, manif
 		"host_executable_digest": hostExecutableDigest,
 	} {
 		if err := requireExactText(name, value); err != nil {
-			return err
-		}
-	}
-	if requireSourceDigest {
-		if err := requireExactText("source_digest", sourceDigest); err != nil {
-			return err
-		}
-	}
-	if requirePayload {
-		if err := requireExactText("payload_root_digest", payloadRootDigest); err != nil {
 			return err
 		}
 	}

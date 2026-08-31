@@ -96,6 +96,51 @@ export enum AppMessageEventType {
   APP_MESSAGE_EVENT_FAILED = 3,
 }
 
+export enum AppPackageJobKind {
+  UNSPECIFIED = 0,
+  INSTALL = 1,
+  UPDATE = 2,
+  REPAIR = 3,
+  UNINSTALL = 4,
+}
+
+export enum AppPackageJobPhase {
+  UNSPECIFIED = 0,
+  QUEUED = 1,
+  DOWNLOADING = 2,
+  READING_LOCAL = 3,
+  VERIFYING = 4,
+  VERIFYING_INSTALLED = 5,
+  ACQUIRING_MISSING = 6,
+  STAGING = 7,
+  COMMITTING = 8,
+  REMOVING_PACKAGE = 10,
+  UNREGISTERING = 11,
+  COMPLETED = 12,
+  FAILED = 13,
+  CANCELED = 14,
+}
+
+export enum AppPackageProgressBasis {
+  UNSPECIFIED = 0,
+  BYTES = 1,
+  STEPS = 2,
+  INDETERMINATE = 3,
+}
+
+export enum AppPackageSourceClass {
+  UNSPECIFIED = 0,
+  VERIFIED = 1,
+  USER_IMPORTED = 2,
+}
+
+export enum AppPackageTerminalResult {
+  UNSPECIFIED = 0,
+  COMPLETED = 1,
+  FAILED = 2,
+  CANCELED = 3,
+}
+
 export enum AppStorageState {
   UNSPECIFIED = 0,
   READY = 1,

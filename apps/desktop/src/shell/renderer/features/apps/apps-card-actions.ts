@@ -2,7 +2,7 @@
 // Package actions remain absent because local_development never enters the
 // immutable package lifecycle.
 
-export type AppCardActionId = 'details' | 'launch' | 'stop' | 'remove';
+export type AppCardActionId = 'details' | 'launch' | 'stop' | 'remove' | 'cancel-job';
 
 export interface AppCardAction {
   readonly id: AppCardActionId;
@@ -13,10 +13,17 @@ export interface AppCardActionPlan {
   readonly secondary: readonly AppCardAction[];
 }
 
+type AppsActionEntry = {
+  readonly localDevelopment: unknown | null;
+  readonly packageJob: { readonly cancelable: boolean } | null;
+  readonly run: { readonly state: string } | null;
+};
+
 const DETAILS: AppCardAction = { id: 'details' };
 const LAUNCH: AppCardAction = { id: 'launch' };
 const STOP: AppCardAction = { id: 'stop' };
 const REMOVE: AppCardAction = { id: 'remove' };
+const CANCEL_JOB: AppCardAction = { id: 'cancel-job' };
 const TERMINAL_RUN_STATES = Object.freeze([
   'stopped',
   'failed',
@@ -38,4 +45,13 @@ export function actionPlanForLocalDevelopmentEntry(runState: string | null): App
     primary: active ? STOP : LAUNCH,
     secondary: [DETAILS, REMOVE],
   };
+}
+
+export function actionPlanForEntry(entry: AppsActionEntry): AppCardActionPlan {
+  const base = entry.localDevelopment
+    ? actionPlanForLocalDevelopmentEntry(entry.run?.state ?? null)
+    : { primary: null, secondary: [DETAILS] };
+  return entry.packageJob?.cancelable
+    ? { ...base, secondary: [...base.secondary, CANCEL_JOB] }
+    : base;
 }

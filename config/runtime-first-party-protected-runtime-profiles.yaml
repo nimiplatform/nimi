@@ -61,6 +61,10 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken
       - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken
       - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens
+      - method_id: /nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases
+      - method_id: /nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs
+      - method_id: /nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob
+      - method_id: /nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob
   - profile_id: desktop_account_product_v1
     identity_class: account
     native_profile_marker: desktop-account-product-v1

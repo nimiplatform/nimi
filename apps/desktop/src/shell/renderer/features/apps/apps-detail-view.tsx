@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Square,
   Trash2,
+  X,
 } from 'lucide-react';
 import {
   ActionMenu,
@@ -34,11 +35,11 @@ import {
 } from './apps-ai-config-section.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
 import {
-  actionPlanForLocalDevelopmentEntry,
+  actionPlanForEntry,
   type AppCardActionId,
 } from './apps-card-actions.js';
-import { appRunVisualState, CURRENT_APP_SOURCE } from './apps-card-fields.js';
-import { AppArtworkIcon, AppRunStatusBadge, AppSourceBadge } from './apps-card-visuals.js';
+import { appRunVisualState, appSourceForEntry } from './apps-card-fields.js';
+import { AppArtworkIcon, AppPackageStatusLine, AppRunStatusBadge, AppSourceBadge } from './apps-card-visuals.js';
 import { AppsReadmeMarkdown } from './apps-readme-markdown.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 
@@ -72,6 +73,15 @@ export interface AppsDetailViewProps {
 
 export function AppsDetailView({
   entry,
+  ...props
+}: AppsDetailViewProps): ReactElement {
+  return entry.localDevelopment
+    ? <LocalDevelopmentAppsDetailView entry={entry} {...props} />
+    : <InstalledAppsDetailView entry={entry} {...props} />;
+}
+
+function LocalDevelopmentAppsDetailView({
+  entry,
   requestedSection,
   requestedNavigationRevision,
   onBack,
@@ -85,17 +95,19 @@ export function AppsDetailView({
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [copiedAppId, setCopiedAppId] = useState(false);
   const copyResetTimerRef = useRef<number | null>(null);
-  const { registration } = entry;
+  const registration = entry.localDevelopment;
+  if (!registration) throw new Error('Local-development App detail requires a registration');
+  const { identity } = entry;
   const aiConfigCapabilityContracts = appsAIConfigCapabilityContracts(registration.appAccess);
   const aiModelsAvailable = aiConfigCapabilityContracts.length > 0;
-  const actionPlan = actionPlanForLocalDevelopmentEntry(entry.run?.state ?? null);
+  const actionPlan = actionPlanForEntry(entry);
 
   const liveBridge = useMemo(() => createDesktopAppsLiveBridge(), []);
   const [readme, setReadme] = useState<ProjectReadmeState>({ status: 'loading' });
 
   useEffect(() => {
     setActiveTab(requestedSection === 'ai-models' && aiModelsAvailable ? 'ai-models' : 'overview');
-  }, [aiModelsAvailable, registration.appId, requestedNavigationRevision, requestedSection]);
+  }, [aiModelsAvailable, identity.appId, requestedNavigationRevision, requestedSection]);
 
   useEffect(() => {
     let alive = true;
@@ -123,7 +135,7 @@ export function AppsDetailView({
   const shellLabel = t(`LocalDevelopment.shell.${registration.shell}`, { defaultValue: registration.shell });
 
   const copyAppId = (): void => {
-    void navigator.clipboard?.writeText(registration.appId).then(() => {
+    void navigator.clipboard?.writeText(identity.appId).then(() => {
       setCopiedAppId(true);
       if (copyResetTimerRef.current !== null) window.clearTimeout(copyResetTimerRef.current);
       copyResetTimerRef.current = window.setTimeout(() => setCopiedAppId(false), 1_600);
@@ -148,6 +160,13 @@ export function AppsDetailView({
         disabled: activeAction !== null,
         onSelect: () => onAction('launch'),
       },
+    ...(actionPlan.secondary.some((action) => action.id === 'cancel-job') ? [{
+      id: 'cancel-job',
+      label: t('Apps.action.cancel'),
+      icon: <X className="h-4 w-4" aria-hidden="true" />,
+      disabled: activeAction !== null,
+      onSelect: () => onAction('cancel-job'),
+    }] : []),
     {
       id: 'copy-app-id',
       label: copiedAppId ? t('Apps.detail.appIdCopied') : t('Apps.detail.copyAppId'),
@@ -189,17 +208,17 @@ export function AppsDetailView({
 
         <div className="flex min-w-0 items-start gap-4">
           <AppArtworkIcon
-            appId={registration.appId}
-            displayName={registration.displayName}
+            appId={identity.appId}
+            displayName={identity.displayName}
             size="lg"
           />
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
               <h1 data-testid="apps-detail-title" className="break-words text-2xl font-semibold leading-8 text-[color:var(--nimi-text-primary)]">
-                {registration.displayName}
+                {identity.displayName}
               </h1>
               <AppRunStatusBadge entry={entry} />
-              <AppSourceBadge source={CURRENT_APP_SOURCE} className="px-2 py-1 text-xs" />
+              <AppSourceBadge source={appSourceForEntry(entry)} className="px-2 py-1 text-xs" />
             </div>
             <div className="mt-2.5 flex flex-wrap items-center gap-2">
               {actionPlan.primary?.id === 'stop' ? (
@@ -242,6 +261,9 @@ export function AppsDetailView({
                   <ActionMenu items={menuItems} ariaLabel={t('Apps.detail.moreActions')} />
                 </PopoverContent>
               </Popover>
+            </div>
+            <div className="mt-2.5">
+              <AppPackageStatusLine entry={entry} />
             </div>
           </div>
         </div>
@@ -287,7 +309,7 @@ export function AppsDetailView({
                     <div className="divide-y divide-[color:var(--nimi-border-subtle)]">
                       <div className="flex items-center justify-between gap-3 py-2">
                         <span className="shrink-0 text-xs text-[color:var(--nimi-text-muted)]">{t('Apps.detail.source')}</span>
-                        <AppSourceBadge source={CURRENT_APP_SOURCE} />
+                        <AppSourceBadge source={appSourceForEntry(entry)} />
                       </div>
                       <CardRow label={t('Apps.detail.registeredAt')} value={registeredAt} />
                       <CardRow label={t('Apps.detail.lastUpdated')} value={updatedAt} />
@@ -344,8 +366,8 @@ export function AppsDetailView({
           {activeTab === 'ai-models' && aiModelsAvailable ? (
             <div role="tabpanel" id="apps-detail-panel-ai-models" aria-labelledby="apps-detail-tab-ai-models" tabIndex={0} className="outline-none">
               <AppsAIConfigSection
-                appId={registration.appId}
-                appDisplayName={registration.displayName}
+                appId={identity.appId}
+                appDisplayName={identity.displayName}
                 allowedRoutes={registration.aiConfigAllowedRoutes}
                 onAIConfigChanged={onAIConfigChanged}
               />
@@ -356,7 +378,7 @@ export function AppsDetailView({
             <div role="tabpanel" id="apps-detail-panel-developer" aria-labelledby="apps-detail-tab-developer" tabIndex={0} className="space-y-7 outline-none">
               <DetailSection title={t('Apps.detail.developerInfoTitle')} description={t('Apps.detail.developerInfoDescription')}>
                 <dl className="mt-4 divide-y divide-[color:var(--nimi-border-subtle)] border-y border-[color:var(--nimi-border-subtle)]">
-                  <DetailRow label={t('LocalDevelopment.field.app')} value={registration.appId} mono />
+                  <DetailRow label={t('LocalDevelopment.field.app')} value={identity.appId} mono />
                   <DetailRow label={t('LocalDevelopment.field.projectRoot')} value={registration.canonicalProjectRoot} icon={<FolderOpen className="h-4 w-4" />} mono />
                   <DetailRow label={t('LocalDevelopment.field.shell')} value={shellLabel} />
                   <DetailRow label={t('LocalDevelopment.field.sourceGeneration')} value={String(registration.sourceGeneration)} mono />
@@ -385,7 +407,7 @@ export function AppsDetailView({
       <ConfirmDialog
         open={confirmingRemove}
         title={t('Apps.confirm.removeDevelopment.title')}
-        message={t('Apps.confirm.removeDevelopment.message', { app: registration.displayName })}
+        message={t('Apps.confirm.removeDevelopment.message', { app: identity.displayName })}
         confirmLabel={t('Apps.confirm.removeDevelopment.confirm')}
         cancelLabel={t('Common.cancel')}
         confirmTone="danger"
@@ -396,6 +418,91 @@ export function AppsDetailView({
         }}
         onClose={() => setConfirmingRemove(false)}
       />
+    </div>
+  );
+}
+
+function InstalledAppsDetailView({
+  entry,
+  onBack,
+  onAction,
+  activeAction,
+  actionError,
+}: AppsDetailViewProps): ReactElement {
+  const { t } = useTranslation();
+  const release = entry.committedRelease;
+
+  return (
+    <div data-testid="apps-detail-body" data-installed-detail className="flex min-h-0 flex-1 flex-col">
+      <header className="shrink-0 px-5 pt-4 sm:px-7 sm:pt-5">
+        <Button
+          data-testid="apps-detail-back"
+          tone="ghost"
+          size="sm"
+          onClick={onBack}
+          className="-ml-2 mb-3"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
+          {t('Apps.library.backToLibrary')}
+        </Button>
+
+        <div className="flex min-w-0 items-start gap-4">
+          <AppArtworkIcon
+            appId={entry.identity.appId}
+            displayName={entry.identity.displayName}
+            size="lg"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h1 data-testid="apps-detail-title" className="break-words text-2xl font-semibold leading-8 text-[color:var(--nimi-text-primary)]">
+                {entry.identity.displayName}
+              </h1>
+              <AppSourceBadge source={appSourceForEntry(entry)} className="px-2 py-1 text-xs" />
+            </div>
+            <p className="mt-2 font-mono text-xs text-[color:var(--nimi-text-muted)]">
+              {entry.identity.appId}
+            </p>
+            <div className="mt-2.5">
+              <AppPackageStatusLine entry={entry} />
+            </div>
+            <InlineAlert tone="info" className="mt-3" data-testid="apps-installed-launch-unavailable">
+              {t('Apps.installedLaunchUnavailable')}
+            </InlineAlert>
+            {entry.packageJob?.cancelable ? (
+              <Button
+                data-testid="apps-detail-cancel-job"
+                tone="secondary"
+                size="sm"
+                className="mt-3"
+                loading={activeAction === 'cancel-job'}
+                disabled={activeAction !== null}
+                onClick={() => onAction('cancel-job')}
+              >
+                <X className="mr-2 h-4 w-4" aria-hidden="true" />
+                {t('Apps.action.cancel')}
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </header>
+
+      <ScrollArea className="min-h-0 flex-1" viewportClassName="bg-transparent">
+        <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-7">
+          {actionError ? (
+            <InlineAlert tone="danger" data-testid="apps-action-error" className="mb-5">
+              {actionError}
+            </InlineAlert>
+          ) : null}
+          <OverviewCard title={t('Apps.detail.aboutTitle')}>
+            <dl className="divide-y divide-[color:var(--nimi-border-subtle)]">
+              <DetailRow label={t('LocalDevelopment.field.app')} value={entry.identity.appId} mono />
+              <DetailRow label={t('Apps.detail.source')} value={t(`Apps.sourceBadge.${entry.identity.sourceClass === 'user_imported' ? 'userImported' : 'verified'}`)} />
+              <DetailRow label={t('Apps.detail.catalogVersion', { defaultValue: 'Version' })} value={release?.version ?? t('Apps.version.notInstalled')} mono />
+              {release ? <DetailRow label={t('Apps.detail.releaseRef', { defaultValue: 'Release reference' })} value={release.releaseRef} mono /> : null}
+            </dl>
+          </OverviewCard>
+        </div>
+      </ScrollArea>
     </div>
   );
 }

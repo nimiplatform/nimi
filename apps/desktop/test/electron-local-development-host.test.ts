@@ -295,7 +295,7 @@ describe('Desktop Electron local-development registration host', () => {
     assert.equal(run.status.retryable, false);
   });
 
-  it('projects only the latest run for an App', async () => {
+  it('projects only the latest run for an exact registration selector', async () => {
     const host = new ElectronLocalDevelopmentHost(control(), '/tmp');
     const oldRun = activeRun();
     oldRun.status.runId = 'dev-run-old';
@@ -304,15 +304,71 @@ describe('Desktop Electron local-development registration host', () => {
     oldRun.stoppedCleanupComplete = true;
     const currentRun = activeRun();
     currentRun.status.runId = 'dev-run-current';
-    const internal = host as unknown as { runs: Map<string, ReturnType<typeof activeRun>> };
+    const internal = host as unknown as {
+      runs: Map<string, ReturnType<typeof activeRun>>;
+      registrationSelectors: Map<string, string>;
+    };
+    internal.registrationSelectors.set('dev-project-example', HANDLE);
     internal.runs.set(oldRun.status.runId, oldRun);
     internal.runs.set(currentRun.status.runId, currentRun);
 
     const runs = await host.invoke('local_development_runs_list', {}) as Array<Record<string, unknown>>;
 
     assert.equal(runs.length, 1);
+    assert.equal(runs[0]?.selector, 'dev-project-example');
     assert.equal(runs[0]?.appId, 'example.local-app');
     assert.equal(runs[0]?.state, 'running');
+  });
+
+  it('keeps same-app registrations distinct and stops only the selected run', async () => {
+    const secondHandle = '44'.repeat(32);
+    const secondSupervisor = '55'.repeat(32);
+    const first = registration();
+    const second = registration({ registrationHandle: secondHandle });
+    const terminated: string[] = [];
+    const ended: Array<readonly [string, string]> = [];
+    const host = new ElectronLocalDevelopmentHost(control({
+      listRegistrations: async () => [first, second],
+      terminateHost: async (supervisorRunId) => { terminated.push(supervisorRunId); },
+      endRun: async (registrationHandle, supervisorRunId) => {
+        ended.push([registrationHandle, supervisorRunId]);
+      },
+    }), '/tmp');
+    const registrations = await host.invoke(
+      'local_development_registrations_list',
+      {},
+    ) as Array<{ selector: string }>;
+    assert.equal(registrations.length, 2);
+
+    const firstRun = activeRun();
+    firstRun.status.runId = 'dev-run-first';
+    const secondRun = activeRun();
+    secondRun.status.runId = 'dev-run-second';
+    secondRun.supervisorRunId = secondSupervisor;
+    secondRun.registrationHandle = secondHandle;
+    const internal = host as unknown as {
+      runs: Map<string, ReturnType<typeof activeRun>>;
+    };
+    internal.runs.set(firstRun.status.runId, firstRun);
+    internal.runs.set(secondRun.status.runId, secondRun);
+
+    const projected = await host.invoke(
+      'local_development_runs_list',
+      {},
+    ) as Array<{ selector: string }>;
+    assert.deepEqual(
+      new Set(projected.map((run) => run.selector)),
+      new Set(registrations.map((row) => row.selector)),
+    );
+
+    await host.invoke('local_development_run_stop', {
+      payload: { selector: registrations[0]!.selector },
+    });
+
+    assert.equal(firstRun.stopped, true);
+    assert.equal(secondRun.stopped, false);
+    assert.deepEqual(terminated, [SUPERVISOR]);
+    assert.deepEqual(ended, [[HANDLE, SUPERVISOR]]);
   });
 
   it('treats stop as idempotent when a known run became terminal after projection', async () => {
@@ -326,16 +382,20 @@ describe('Desktop Electron local-development registration host', () => {
     stoppedRun.status.state = 'launcher-disconnected';
     stoppedRun.stopped = true;
     stoppedRun.stoppedCleanupComplete = true;
-    const internal = host as unknown as { runs: Map<string, ReturnType<typeof activeRun>> };
+    const internal = host as unknown as {
+      runs: Map<string, ReturnType<typeof activeRun>>;
+      registrationSelectors: Map<string, string>;
+    };
+    internal.registrationSelectors.set('dev-project-example', HANDLE);
     internal.runs.set(stoppedRun.status.runId, stoppedRun);
 
     assert.deepEqual(await host.invoke('local_development_run_stop', {
-      payload: { appId: 'example.local-app' },
-    }), { appId: 'example.local-app', stopped: true });
+      payload: { selector: 'dev-project-example' },
+    }), { selector: 'dev-project-example', stopped: true });
     assert.equal(terminateCalls, 0);
     assert.equal(endRunCalls, 0);
     await assert.rejects(
-      host.invoke('local_development_run_stop', { payload: { appId: 'missing.local-app' } }),
+      host.invoke('local_development_run_stop', { payload: { selector: 'dev-project-missing' } }),
       /local-development-run-not-found/u,
     );
   });

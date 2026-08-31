@@ -50,16 +50,18 @@ import type { DesktopAppsEntry, DesktopAppsPanelProjection } from './apps-panel-
 
 export interface AppsPanelViewProps {
   readonly projection: DesktopAppsPanelProjection | null;
-  readonly selectedAppId: string | null;
+  readonly searchQuery: string;
+  readonly onSearchChange: (query: string) => void;
+  readonly selectedEntryKey: string | null;
   readonly requestedDetailSection: NimiDesktopOpenAppsSection | null;
   readonly requestedDetailNavigationRevision: number;
-  readonly onCardAction: (appId: string, action: AppCardActionId) => void;
+  readonly onCardAction: (entryKey: string, action: AppCardActionId) => void;
   readonly onBack: () => void;
   readonly onOpenDeveloperMode: () => void;
   readonly onRetry: () => void;
-  readonly onAIConfigChanged: (appId: string, result: NimiAIConfigOverwriteResult) => void;
+  readonly onAIConfigChanged: (entryKey: string, result: NimiAIConfigOverwriteResult) => void;
   readonly actionError: string | null;
-  readonly activeAction: Readonly<{ appId: string; action: AppCardActionId }> | null;
+  readonly activeAction: Readonly<{ entryKey: string; action: AppCardActionId }> | null;
 }
 
 const SORT_IDS: readonly AppsSortId[] = ['updated', 'name', 'activity'];
@@ -71,7 +73,9 @@ const SORT_LABEL_KEYS: Readonly<Record<AppsSortId, string>> = {
 
 export function AppsPanelView({
   projection,
-  selectedAppId,
+  searchQuery,
+  onSearchChange,
+  selectedEntryKey,
   requestedDetailSection,
   requestedDetailNavigationRevision,
   onCardAction,
@@ -83,7 +87,6 @@ export function AppsPanelView({
   activeAction,
 }: AppsPanelViewProps): ReactElement {
   const { t } = useTranslation();
-  const [searchQuery, setSearchQuery] = useState('');
   const [sortId, setSortId] = useState<AppsSortId>('updated');
   const railSearchRef = useRef<HTMLInputElement>(null);
   const compactSearchRef = useRef<HTMLInputElement>(null);
@@ -94,7 +97,7 @@ export function AppsPanelView({
     [loadedEntries, searchQuery, sortId],
   );
   const selectedEntry = loadedEntries.find(
-    (entry) => entry.registration.appId === selectedAppId,
+    (entry) => entry.identity.entryKey === selectedEntryKey,
   ) ?? null;
   const detailMode = selectedEntry !== null;
 
@@ -123,10 +126,10 @@ export function AppsPanelView({
       <AppsRail
         projection={projection}
         visibleEntries={visibleEntries}
-        selectedAppId={selectedAppId}
+        selectedEntryKey={selectedEntryKey}
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        onClearSearch={() => setSearchQuery('')}
+        onSearchChange={onSearchChange}
+        onClearSearch={() => onSearchChange('')}
         searchInputRef={railSearchRef}
         sortId={sortId}
         sortMenuItems={sortMenuItems}
@@ -141,24 +144,31 @@ export function AppsPanelView({
         padding="none"
         className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
       >
+        {detailMode && projection?.status === 'loaded' && projection.runtimeError ? (
+          <div className="shrink-0 px-5 pt-4 sm:px-7">
+            <InlineAlert tone="danger" data-testid="apps-runtime-error">
+              {t('Apps.error', { detail: projection.runtimeError })}
+            </InlineAlert>
+          </div>
+        ) : null}
         {detailMode ? (
           <AppsDetailView
             entry={selectedEntry}
             requestedSection={requestedDetailSection}
             requestedNavigationRevision={requestedDetailNavigationRevision}
             onBack={onBack}
-            onAction={(action) => onCardAction(selectedEntry.registration.appId, action)}
-            activeAction={activeAction?.appId === selectedEntry.registration.appId ? activeAction.action : null}
+            onAction={(action) => onCardAction(selectedEntry.identity.entryKey, action)}
+            activeAction={activeAction && activeAction.entryKey === selectedEntry.identity.entryKey ? activeAction.action : null}
             actionError={actionError}
-            onAIConfigChanged={(result) => onAIConfigChanged(selectedEntry.registration.appId, result)}
+            onAIConfigChanged={(result) => onAIConfigChanged(selectedEntry.identity.entryKey, result)}
           />
         ) : (
           <LibraryContent
             projection={projection}
             visibleEntries={visibleEntries}
             searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            onClearSearch={() => setSearchQuery('')}
+            onSearchChange={onSearchChange}
+            onClearSearch={() => onSearchChange('')}
             searchInputRef={compactSearchRef}
             sortMenuItems={sortMenuItems}
             activeSortLabel={t(SORT_LABEL_KEYS[sortId])}
@@ -177,7 +187,7 @@ export function AppsPanelView({
 function AppsRail({
   projection,
   visibleEntries,
-  selectedAppId,
+  selectedEntryKey,
   searchQuery,
   onSearchChange,
   onClearSearch,
@@ -189,14 +199,14 @@ function AppsRail({
 }: {
   readonly projection: DesktopAppsPanelProjection | null;
   readonly visibleEntries: readonly DesktopAppsEntry[];
-  readonly selectedAppId: string | null;
+  readonly selectedEntryKey: string | null;
   readonly searchQuery: string;
   readonly onSearchChange: (value: string) => void;
   readonly onClearSearch: () => void;
   readonly searchInputRef: React.RefObject<HTMLInputElement | null>;
   readonly sortId: AppsSortId;
   readonly sortMenuItems: NimiMenuItem[];
-  readonly onCardAction: (appId: string, action: AppCardActionId) => void;
+  readonly onCardAction: (entryKey: string, action: AppCardActionId) => void;
   readonly onRetry: () => void;
 }): ReactElement {
   const { t } = useTranslation();
@@ -277,11 +287,11 @@ function AppsRail({
             <div className="space-y-0.5">
               {visibleEntries.map((entry, index) => (
                 <RailAppRow
-                  key={entry.registration.selector}
+                  key={entry.identity.entryKey}
                   entry={entry}
-                  active={entry.registration.appId === selectedAppId}
-                  tabIndex={entry.registration.appId === selectedAppId || (!selectedAppId && index === 0) ? 0 : -1}
-                  onOpen={() => onCardAction(entry.registration.appId, 'details')}
+                  active={entry.identity.entryKey === selectedEntryKey}
+                  tabIndex={entry.identity.entryKey === selectedEntryKey || (!selectedEntryKey && index === 0) ? 0 : -1}
+                  onOpen={() => onCardAction(entry.identity.entryKey, 'details')}
                   onKeyDown={handleRailKeyDown}
                 />
               ))}
@@ -312,7 +322,7 @@ function RailAppRow({
     <button
       type="button"
       data-app-row
-      data-testid={`apps-rail-entry-${entry.registration.appId}`}
+      data-testid={`apps-rail-entry-${entry.identity.entryKey}`}
       tabIndex={tabIndex}
       onClick={onOpen}
       onKeyDown={onKeyDown}
@@ -322,12 +332,12 @@ function RailAppRow({
       }`}
     >
       <AppArtworkIcon
-        appId={entry.registration.appId}
-        displayName={entry.registration.displayName}
+        appId={entry.identity.appId}
+        displayName={entry.identity.displayName}
         size="xs"
       />
       <span className={`min-w-0 flex-1 truncate text-[13px] leading-5 ${visual === 'running' ? 'font-semibold text-[color:var(--nimi-text-primary)]' : 'font-medium text-[color:var(--nimi-text-primary)]'}`}>
-        {entry.registration.displayName}
+        {entry.identity.displayName}
       </span>
       {visual === 'running' ? (
         <span className="inline-flex items-center gap-1">
@@ -368,8 +378,8 @@ function LibraryContent({
   readonly searchInputRef: React.RefObject<HTMLInputElement | null>;
   readonly sortMenuItems: NimiMenuItem[];
   readonly activeSortLabel: string;
-  readonly activeAction: Readonly<{ appId: string; action: AppCardActionId }> | null;
-  readonly onCardAction: (appId: string, action: AppCardActionId) => void;
+  readonly activeAction: Readonly<{ entryKey: string; action: AppCardActionId }> | null;
+  readonly onCardAction: (entryKey: string, action: AppCardActionId) => void;
   readonly onRetry: () => void;
   readonly onOpenDeveloperMode: () => void;
   readonly actionError: string | null;
@@ -431,6 +441,22 @@ function LibraryContent({
         </div>
       ) : null}
 
+      {projection?.status === 'loaded' && projection.catalogStatus === 'not-implemented' ? (
+        <div className="shrink-0 px-5 pt-4 sm:px-7">
+          <InlineAlert tone="info" data-testid="apps-catalog-unavailable">
+            {t('Apps.catalogNotImplemented')}
+          </InlineAlert>
+        </div>
+      ) : null}
+
+      {projection?.status === 'loaded' && projection.runtimeError ? (
+        <div className="shrink-0 px-5 pt-4 sm:px-7">
+          <InlineAlert tone="danger" data-testid="apps-runtime-error">
+            {t('Apps.error', { detail: projection.runtimeError })}
+          </InlineAlert>
+        </div>
+      ) : null}
+
       <ScrollArea className="min-h-0 flex-1" viewportClassName="bg-transparent">
         <LibraryBody
           projection={projection}
@@ -457,8 +483,8 @@ function LibraryBody({
 }: {
   readonly projection: DesktopAppsPanelProjection | null;
   readonly visibleEntries: readonly DesktopAppsEntry[];
-  readonly activeAction: Readonly<{ appId: string; action: AppCardActionId }> | null;
-  readonly onCardAction: (appId: string, action: AppCardActionId) => void;
+  readonly activeAction: Readonly<{ entryKey: string; action: AppCardActionId }> | null;
+  readonly onCardAction: (entryKey: string, action: AppCardActionId) => void;
   readonly onClearSearch: () => void;
   readonly onRetry: () => void;
   readonly onOpenDeveloperMode: () => void;
@@ -534,10 +560,10 @@ function LibraryBody({
     <div data-testid="apps-entry-list" data-app-list className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4 px-5 py-5 sm:px-7">
       {visibleEntries.map((entry) => (
         <AppGridCard
-          key={entry.registration.selector}
+          key={entry.identity.entryKey}
           entry={entry}
-          activeAction={activeAction?.appId === entry.registration.appId ? activeAction.action : null}
-          onAction={(action) => onCardAction(entry.registration.appId, action)}
+          activeAction={activeAction && activeAction.entryKey === entry.identity.entryKey ? activeAction.action : null}
+          onAction={(action) => onCardAction(entry.identity.entryKey, action)}
         />
       ))}
       <DashedAddButton

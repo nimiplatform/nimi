@@ -13,6 +13,7 @@ export type LocalDevelopmentRegistration = {
 };
 
 export type LocalDevelopmentRun = {
+  readonly selector: string;
   readonly appId: string;
   readonly displayName: string;
   readonly canonicalProjectRoot: string;

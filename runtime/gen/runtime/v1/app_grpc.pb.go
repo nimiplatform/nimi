@@ -19,6 +19,226 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	RuntimeAppPackageService_ListCommittedAppReleases_FullMethodName = "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases"
+	RuntimeAppPackageService_ListAppPackageJobs_FullMethodName       = "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs"
+	RuntimeAppPackageService_GetAppPackageJob_FullMethodName         = "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob"
+	RuntimeAppPackageService_CancelAppPackageJob_FullMethodName      = "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob"
+)
+
+// RuntimeAppPackageServiceClient is the client API for RuntimeAppPackageService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// Desktop-protected Runtime owner projection. This service deliberately has no
+// package mutation start RPC and excludes local_development from every enum.
+type RuntimeAppPackageServiceClient interface {
+	ListCommittedAppReleases(ctx context.Context, in *ListCommittedAppReleasesRequest, opts ...grpc.CallOption) (*ListCommittedAppReleasesResponse, error)
+	ListAppPackageJobs(ctx context.Context, in *ListAppPackageJobsRequest, opts ...grpc.CallOption) (*ListAppPackageJobsResponse, error)
+	GetAppPackageJob(ctx context.Context, in *GetAppPackageJobRequest, opts ...grpc.CallOption) (*GetAppPackageJobResponse, error)
+	CancelAppPackageJob(ctx context.Context, in *CancelAppPackageJobRequest, opts ...grpc.CallOption) (*CancelAppPackageJobResponse, error)
+}
+
+type runtimeAppPackageServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewRuntimeAppPackageServiceClient(cc grpc.ClientConnInterface) RuntimeAppPackageServiceClient {
+	return &runtimeAppPackageServiceClient{cc}
+}
+
+func (c *runtimeAppPackageServiceClient) ListCommittedAppReleases(ctx context.Context, in *ListCommittedAppReleasesRequest, opts ...grpc.CallOption) (*ListCommittedAppReleasesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListCommittedAppReleasesResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_ListCommittedAppReleases_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppPackageServiceClient) ListAppPackageJobs(ctx context.Context, in *ListAppPackageJobsRequest, opts ...grpc.CallOption) (*ListAppPackageJobsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAppPackageJobsResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_ListAppPackageJobs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppPackageServiceClient) GetAppPackageJob(ctx context.Context, in *GetAppPackageJobRequest, opts ...grpc.CallOption) (*GetAppPackageJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAppPackageJobResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_GetAppPackageJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppPackageServiceClient) CancelAppPackageJob(ctx context.Context, in *CancelAppPackageJobRequest, opts ...grpc.CallOption) (*CancelAppPackageJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CancelAppPackageJobResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_CancelAppPackageJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// RuntimeAppPackageServiceServer is the server API for RuntimeAppPackageService service.
+// All implementations should embed UnimplementedRuntimeAppPackageServiceServer
+// for forward compatibility.
+//
+// Desktop-protected Runtime owner projection. This service deliberately has no
+// package mutation start RPC and excludes local_development from every enum.
+type RuntimeAppPackageServiceServer interface {
+	ListCommittedAppReleases(context.Context, *ListCommittedAppReleasesRequest) (*ListCommittedAppReleasesResponse, error)
+	ListAppPackageJobs(context.Context, *ListAppPackageJobsRequest) (*ListAppPackageJobsResponse, error)
+	GetAppPackageJob(context.Context, *GetAppPackageJobRequest) (*GetAppPackageJobResponse, error)
+	CancelAppPackageJob(context.Context, *CancelAppPackageJobRequest) (*CancelAppPackageJobResponse, error)
+}
+
+// UnimplementedRuntimeAppPackageServiceServer should be embedded to have
+// forward compatible implementations.
+//
+// NOTE: this should be embedded by value instead of pointer to avoid a nil
+// pointer dereference when methods are called.
+type UnimplementedRuntimeAppPackageServiceServer struct{}
+
+func (UnimplementedRuntimeAppPackageServiceServer) ListCommittedAppReleases(context.Context, *ListCommittedAppReleasesRequest) (*ListCommittedAppReleasesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListCommittedAppReleases not implemented")
+}
+func (UnimplementedRuntimeAppPackageServiceServer) ListAppPackageJobs(context.Context, *ListAppPackageJobsRequest) (*ListAppPackageJobsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListAppPackageJobs not implemented")
+}
+func (UnimplementedRuntimeAppPackageServiceServer) GetAppPackageJob(context.Context, *GetAppPackageJobRequest) (*GetAppPackageJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAppPackageJob not implemented")
+}
+func (UnimplementedRuntimeAppPackageServiceServer) CancelAppPackageJob(context.Context, *CancelAppPackageJobRequest) (*CancelAppPackageJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CancelAppPackageJob not implemented")
+}
+func (UnimplementedRuntimeAppPackageServiceServer) testEmbeddedByValue() {}
+
+// UnsafeRuntimeAppPackageServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to RuntimeAppPackageServiceServer will
+// result in compilation errors.
+type UnsafeRuntimeAppPackageServiceServer interface {
+	mustEmbedUnimplementedRuntimeAppPackageServiceServer()
+}
+
+func RegisterRuntimeAppPackageServiceServer(s grpc.ServiceRegistrar, srv RuntimeAppPackageServiceServer) {
+	// If the following call panics, it indicates UnimplementedRuntimeAppPackageServiceServer was
+	// embedded by pointer and is nil.  This will cause panics if an
+	// unimplemented method is ever invoked, so we test this at initialization
+	// time to prevent it from happening at runtime later due to I/O.
+	if t, ok := srv.(interface{ testEmbeddedByValue() }); ok {
+		t.testEmbeddedByValue()
+	}
+	s.RegisterService(&RuntimeAppPackageService_ServiceDesc, srv)
+}
+
+func _RuntimeAppPackageService_ListCommittedAppReleases_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListCommittedAppReleasesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).ListCommittedAppReleases(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_ListCommittedAppReleases_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).ListCommittedAppReleases(ctx, req.(*ListCommittedAppReleasesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppPackageService_ListAppPackageJobs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAppPackageJobsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).ListAppPackageJobs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_ListAppPackageJobs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).ListAppPackageJobs(ctx, req.(*ListAppPackageJobsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppPackageService_GetAppPackageJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAppPackageJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).GetAppPackageJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_GetAppPackageJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).GetAppPackageJob(ctx, req.(*GetAppPackageJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppPackageService_CancelAppPackageJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelAppPackageJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).CancelAppPackageJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_CancelAppPackageJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).CancelAppPackageJob(ctx, req.(*CancelAppPackageJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// RuntimeAppPackageService_ServiceDesc is the grpc.ServiceDesc for RuntimeAppPackageService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var RuntimeAppPackageService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "nimi.runtime.v1.RuntimeAppPackageService",
+	HandlerType: (*RuntimeAppPackageServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListCommittedAppReleases",
+			Handler:    _RuntimeAppPackageService_ListCommittedAppReleases_Handler,
+		},
+		{
+			MethodName: "ListAppPackageJobs",
+			Handler:    _RuntimeAppPackageService_ListAppPackageJobs_Handler,
+		},
+		{
+			MethodName: "GetAppPackageJob",
+			Handler:    _RuntimeAppPackageService_GetAppPackageJob_Handler,
+		},
+		{
+			MethodName: "CancelAppPackageJob",
+			Handler:    _RuntimeAppPackageService_CancelAppPackageJob_Handler,
+		},
+	},
+	Streams:  []grpc.StreamDesc{},
+	Metadata: "runtime/v1/app.proto",
+}
+
+const (
 	RuntimeAppService_SendAppMessage_FullMethodName            = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
 	RuntimeAppService_SubscribeAppMessages_FullMethodName      = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
 	RuntimeAppService_GetAppStorage_FullMethodName             = "/nimi.runtime.v1.RuntimeAppService/GetAppStorage"

@@ -361,7 +361,7 @@ export const landingContentEn: LandingContent = {
     ],
     notes: [
       'New product work uses the Nimi Apps path.',
-      'Nimi Apps owns catalog discovery, ordinary install with download progress, update, launch and run, repair, uninstall, explicit local import, and Developer Mode entry.',
+      'Nimi Apps defines the catalog, local-import, installation, update, launch, repair, uninstall, and Developer Mode lifecycle contract. This pre-release exposes Developer Mode local development; public catalog, local import, ordinary install, installed launch, publisher publication, and registry onboarding are not available yet.',
       'The homepage does not promise a public app catalog before it opens; the product UI shows what users can open today.',
       'To build an app, start with the SDK and Nimi App docs.',
     ],

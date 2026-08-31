@@ -840,6 +840,38 @@ RUNTIME_METHODS = [
     "response_type": "UploadLocalAppArtifactResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
+    "service": "RuntimeAppPackageService",
+    "method": "CancelAppPackageJob",
+    "kind": "unary",
+    "request_type": "CancelAppPackageJobRequest",
+    "response_type": "CancelAppPackageJobResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob",
+    "service": "RuntimeAppPackageService",
+    "method": "GetAppPackageJob",
+    "kind": "unary",
+    "request_type": "GetAppPackageJobRequest",
+    "response_type": "GetAppPackageJobResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs",
+    "service": "RuntimeAppPackageService",
+    "method": "ListAppPackageJobs",
+    "kind": "unary",
+    "request_type": "ListAppPackageJobsRequest",
+    "response_type": "ListAppPackageJobsResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
+    "service": "RuntimeAppPackageService",
+    "method": "ListCommittedAppReleases",
+    "kind": "unary",
+    "request_type": "ListCommittedAppReleasesRequest",
+    "response_type": "ListCommittedAppReleasesResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
     "service": "RuntimeAppService",
     "method": "AdoptLocalAppArtifact",

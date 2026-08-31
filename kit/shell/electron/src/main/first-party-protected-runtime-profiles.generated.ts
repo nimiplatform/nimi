@@ -61,6 +61,10 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob": { kind: "unary" },
     },
   },
   "desktop_account_product_v1": {

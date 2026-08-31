@@ -5,7 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { parse as parseYaml } from 'yaml';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
 import { APP_ACCESS_DOMAINS, resolveAppAccessDeclaration } from '../lib/app-access-declaration.mjs';
 import {
@@ -234,6 +234,7 @@ function cliScaffold(profile, extraArgs = [], tempRootParent = os.tmpdir()) {
   const env = fakePnpmEnv(tempRoot);
   const result = runNimiApp(['create', '--dir', target, '--profile', profile, ...extraArgs], tempRoot, { env });
   assert.equal(result.status, 0, result.stderr);
+  writeInstalledLock(target);
   const init = runNimiApp(['init', '--dir', target], tempRoot, { env });
   assert.equal(init.status, 0, init.stderr);
   return {
@@ -247,6 +248,33 @@ function cliScaffold(profile, extraArgs = [], tempRootParent = os.tmpdir()) {
       rmSync(tempRoot, { recursive: true, force: true });
     },
   };
+}
+
+function writeInstalledLock(target) {
+  const packageJson = JSON.parse(readFileSync(path.join(target, 'package.json'), 'utf8'));
+  const importer = {};
+  for (const sectionName of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
+    const entries = Object.entries(packageJson[sectionName] || {});
+    if (entries.length === 0) continue;
+    importer[sectionName] = Object.fromEntries(entries.map(([name, specifier]) => [name, { specifier, version: specifier }]));
+  }
+  writeFileSync(path.join(target, 'pnpm-lock.yaml'), stringifyYaml({
+    lockfileVersion: '9.0',
+    importers: { '.': importer },
+  }));
+  const cargo = readFileSync(path.join(target, 'src-tauri', 'Cargo.toml'), 'utf8');
+  const shellVersion = cargo.match(/^nimi-shell-tauri\s*=\s*"([^"]+)"$/mu)?.[1];
+  assert.ok(shellVersion, 'generated Cargo manifest must use a registry nimi-shell-tauri version');
+  writeFileSync(path.join(target, 'src-tauri', 'Cargo.lock'), [
+    'version = 4',
+    '',
+    '[[package]]',
+    'name = "nimi-shell-tauri"',
+    `version = "${shellVersion}"`,
+    'source = "registry+https://github.com/rust-lang/crates.io-index"',
+    `checksum = "${'a'.repeat(64)}"`,
+    '',
+  ].join('\n'));
 }
 
 function assertTauriIconSupport(generated) {
@@ -287,9 +315,10 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
   try {
     const packageJson = JSON.parse(generated.read('package.json'));
     assert.equal(packageJson.name, 'acme-widget');
-    assert.equal(packageJson.private, false);
+    assert.equal(packageJson.version, '0.1.0');
+    assert.equal(packageJson.private, true);
     assert.equal(packageJson.packageManager, versions.packageManager);
-    assert.equal(packageJson.publishConfig.access, 'public');
+    assert.equal(Object.hasOwn(packageJson, 'publishConfig'), false);
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], versions.sdkVersion);
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], versions.kitVersion);
     for (const dependency of ['i18next', 'lucide-react', 'react-i18next', '@tauri-apps/api']) {
@@ -360,10 +389,11 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assertGeneratedPathMissing(generated, 'dist-electron');
     assertGeneratedPathMissing(generated, 'test/lab-contract.test.mjs');
     assertGeneratedPathMissing(generated, 'ADMISSION.md');
-    assertGeneratedPathMissing(generated, '.nimi/admission/submission.yaml');
-    assertGeneratedPathMissing(generated, '.nimi/admission/build-profile.yaml');
+    assertGeneratedPathExists(generated, '.nimi/admission/submission.yaml');
+    assertGeneratedPathExists(generated, '.nimi/config/build-profile.yaml');
+    assertGeneratedPathExists(generated, '.github/workflows/nimi-app-release.yml');
 
-    // Taxonomy: only the generated starter route is app-owned in default profiles.
+    // Taxonomy: product source and developer-owned package/build/submission inputs remain editable.
     const lock = generated.lock();
     const appOwned = lock.managedFileTaxonomy.appOwnedProductCode;
     assert.ok(appOwned.includes('src/shell/routes/product-area.tsx'));
@@ -385,8 +415,39 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.match(generated.read('src-tauri/src/main.rs'), /RuntimeBridgeLocalAppHost::platform_default\(\)/);
     assert.equal(lock.managedFileHashes['src/shell/workbench-target-adapter.ts'].class, 'scaffold-managed glue');
     assert.equal(Object.hasOwn(lock.managedFileHashes, 'src/shell/auth/auth-gate.tsx'), false);
-    assert.equal(lock.managedFileHashes['package.json'].class, 'scaffold-managed glue');
-    assert.equal(lock.managedFileHashes['.github/workflows/ci.yml'].class, 'scaffold-managed glue');
+    assert.equal(lock.appOwnedInitialHashes['package.json'].class, 'app-owned product code');
+    assert.equal(lock.appOwnedInitialHashes['.nimi/config/build-profile.yaml'].class, 'app-owned product code');
+    assert.equal(lock.appOwnedInitialHashes['.nimi/admission/submission.yaml'].class, 'app-owned product code');
+    assert.equal(lock.managedFileHashes['.github/workflows/nimi-app-release.yml'].class, 'scaffold-managed glue');
+    const workflowSource = generated.read('.github/workflows/nimi-app-release.yml');
+    const workflow = parseYaml(workflowSource);
+    assert.deepEqual(workflow.on.push.tags, ['v*']);
+    assert.deepEqual(workflow.on.workflow_dispatch, {});
+    assert.match(workflowSource, /pack --target \$env:NIMI_APP_TARGET --production/u);
+    assert.match(workflowSource, /actions\/attest@1e69f48acb82d1966a394da916b4c1698aa569d6/u);
+    assert.doesNotMatch(workflowSource, /^\s*- uses: [^\s]+@v\d+/mu);
+    assert.equal((workflowSource.match(/persist-credentials: false/gu) ?? []).length, 3);
+    assert.doesNotMatch(workflowSource, /run: .*\$\{\{ matrix\.target \}\}/u);
+    assert.match(workflowSource, /gh release create/u);
+    assert.match(workflowSource, /git status --porcelain/u);
+    assert.equal((workflowSource.match(/git status --porcelain/gu) ?? []).length, 2);
+    assert.doesNotMatch(workflowSource, /git diff --exit-code/u);
+    assert.match(workflowSource, /github\.event_name == 'push' && github\.ref_type == 'tag'/u);
+    assert.doesNotMatch(workflowSource, /^\s*if:\s*github\.ref_type == 'tag'\s*$/mu);
+    assert.deepEqual(workflow.jobs['build-target'].permissions, { contents: 'read' });
+    const productionBuild = workflow.jobs['build-target'].steps.find((step) => step.name === 'Build and sign production target');
+    assert.match(productionBuild.if, /event_name == 'push'/u);
+    assert.match(productionBuild.run, /build --target .* --production/u);
+    const developmentBuild = workflow.jobs['build-target'].steps.find((step) => step.name === 'Build development target');
+    assert.deepEqual(developmentBuild.env, { NIMI_APP_TARGET: '${{ matrix.target }}' });
+    assert.doesNotMatch(developmentBuild.run, /--production/u);
+    assert.equal(workflow.jobs['attest-target'].permissions['id-token'], 'write');
+    assert.equal(workflow.jobs.release.needs.includes('attest-target'), true);
+    assert.match(workflowSource, /repos\/\$GITHUB_REPOSITORY\/immutable-releases/u);
+    assert.match(workflowSource, /index\("creation"\).*index\("update"\).*index\("deletion"\)/u);
+    assert.match(workflowSource, /conditions\.ref_name\.exclude/u);
+    assert.match(workflowSource, /release_json=.*releases\/tags/u);
+    assert.doesNotMatch(workflowSource, /candidate-uploads|Account|Bearer|--clobber|publish:\s*true/u);
     assert.equal(Object.hasOwn(lock.managedFileHashes, 'src/lab/lab-workbench.tsx'), false);
 
     assertTauriIconSupport(generated);
@@ -441,6 +502,8 @@ test('standalone scaffold base remains empty while the public catalog exposes th
     assert.deepEqual(lock.directFeatures, []);
     assert.deepEqual(lock.resolvedModules, []);
     assert.deepEqual(lock.appAccessItems, []);
+    assert.equal(lock.dependencyMatrix.toolchain.node, '>=24');
+    assert.equal(lock.dependencyMatrix.toolchain.pnpm, versions.packageManager.replace(/^pnpm@/u, ''));
   } finally {
     generated.cleanup();
   }
@@ -467,6 +530,18 @@ test('standalone scaffold exposes every admitted feature while keeping internal 
   );
 });
 
+test('selected feature closure projects exact capability review inputs', () => {
+  const generated = scaffold('standalone', { features: ['studio-create'] });
+  try {
+    const submission = parseYaml(generated.read('.nimi/admission/submission.yaml'));
+    assert.deepEqual(submission.capability_contract_refs, ['text.generate', 'text.embed']);
+    assert.deepEqual(submission.required_standardized_feature_refs, []);
+    assert.deepEqual(generated.lock().capabilityContractRefs, ['text.generate', 'text.embed']);
+  } finally {
+    generated.cleanup();
+  }
+});
+
 test('default starter AGENTS stays generic and does not inherit Lab ownership', () => {
   const generated = scaffold('standalone');
   try {
@@ -487,17 +562,17 @@ test('default starter AGENTS stays generic and does not inherit Lab ownership', 
   }
 });
 
-test('app id maps losslessly to the Tauri bundle identifier', () => {
+test('dotted app id maps losslessly to the Tauri bundle identifier', () => {
   const generated = scaffold('standalone', {
-    appId: 'acme-widget',
+    appId: 'acme.widget',
     title: 'Acme Widget',
     packageName: 'acme-widget',
   });
   try {
-    assert.match(generated.read('nimi.app.yaml'), /app_id: acme-widget/);
-    assert.match(generated.read('src/shell/auth/app-identity.ts'), /appId = "acme-widget"/);
+    assert.match(generated.read('nimi.app.yaml'), /app_id: acme\.widget/);
+    assert.match(generated.read('src/shell/auth/app-identity.ts'), /appId = "acme\.widget"/);
     const tauri = JSON.parse(generated.read('src-tauri/tauri.conf.json'));
-    assert.equal(tauri.identifier, 'ai.nimi.apps.acme-widget');
+    assert.equal(tauri.identifier, 'ai.nimi.apps.acme.widget');
   } finally {
     generated.cleanup();
   }
@@ -666,14 +741,14 @@ test('cli help projects the current registry lifecycle and honest workflow witho
     'Candidate features (not public-selectable): (none)',
     'Internal modules (dependency-only): ai-studio-core',
     '--features all expands in order to: studio-create, studio-media, studio-voice, kit-recipes, agent-center, agent-conversation, agent-realtime',
-    'nimi-app doctor [--dir path] [--conformance simulator] [--json]',
+    'nimi-app check [--dir path] [--conformance simulator | --production] [--json]',
     '--author person-or-team',
     'identity-neutral Lab-derived workbench-core',
     'standalone: any empty target directory using public registry package versions only.',
     'Nimi workspace paths, local tarballs, downgrades, and private validation topology are never public create modes.',
     'App-owned: workbench-core and selected module product code',
     'Scaffold-managed: carrier, identity, manifest/native wiring, and generated composition glue.',
-    'nimi-app create -> pnpm install -> pnpm run init -> pnpm run doctor -> pnpm run build -> pnpm dev',
+    'create -> dependency install -> init -> sync -> check -> dev/test/build -> pack',
     'remain NOT-VERIFIED',
   ]) {
     assert.match(help, new RegExp(expected.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
@@ -688,19 +763,21 @@ test('cli help projects the current registry lifecycle and honest workflow witho
     assert.doesNotMatch(content, /conformance simulator|Simulator/u);
   }
   assert.match(readme, /author.*person.*team/isu);
-  assert.match(readme, /third-party[\s\S]*npm and Cargo dependencies[\s\S]*public registry versions/iu);
+  assert.match(readme, /third-party[\s\S]*public npm and Cargo dependency versions/iu);
   assert.match(readme, /non-public validation topology[\s\S]*not a public profile/u);
   assert.match(starterReadme, /App-owned product code/u);
-  assert.match(starterAgents, /create -> dependency install -> init -> doctor\/build -> Desktop-supervised dev/u);
+  assert.match(starterAgents, /create -> dependency install -> init -> sync -> check -> dev\/test\/build -> pack/u);
   for (const content of [readme, starterReadme]) {
     const installAt = content.indexOf('pnpm install');
     const initAt = content.indexOf('pnpm run init');
-    const doctorAt = content.indexOf('pnpm run doctor');
-    const buildAt = content.indexOf('pnpm run build');
+    const syncAt = content.indexOf('pnpm run sync');
+    const checkAt = content.indexOf('pnpm run check');
+    const buildAt = content.indexOf('pnpm run app:build');
     const devAt = content.indexOf('pnpm dev');
     assert.ok(installAt > -1 && installAt < initAt, 'install must be documented before init');
-    assert.ok(initAt < doctorAt, 'init must be documented before doctor');
-    assert.ok(doctorAt < buildAt, 'doctor must be documented before build');
+    assert.ok(initAt < syncAt, 'init must be documented before sync');
+    assert.ok(syncAt < checkAt, 'sync must be documented before check');
+    assert.ok(checkAt < buildAt, 'check must be documented before build');
     assert.ok(buildAt < devAt, 'build must be documented before dev');
   }
 });
@@ -748,6 +825,7 @@ test('create accepts explicit identity through structured carrier surfaces and c
       '--app-id', 'studio.canvas', '--title', 'Studio Canvas', '--package-name', 'studio-canvas',
     ], tempRoot, { env });
     assert.equal(result.status, 0, result.stderr);
+    writeInstalledLock(target);
     const init = runNimiApp(['init', '--dir', target], tempRoot, { env });
     assert.equal(init.status, 0, init.stderr);
 
@@ -764,7 +842,7 @@ test('create accepts explicit identity through structured carrier surfaces and c
     assert.match(readFileSync(path.join(target, 'src/shell/auth/app-identity.ts'), 'utf8'), /appId = "studio\.canvas"/);
     assert.match(readFileSync(path.join(target, 'src-tauri/Cargo.toml'), 'utf8'), /name = "studio-canvas-shell"/);
 
-    const doctor = runNimiApp(['doctor', '--dir', target], tempRoot, { env });
+    const doctor = runNimiApp(['check', '--dir', target], tempRoot, { env });
     assert.equal(doctor.status, 0, doctor.stderr);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
@@ -782,6 +860,7 @@ test('create accepts package author and scoped npm package metadata', () => {
       '--package-name', '@studio/canvas', '--author', 'Studio Maintainers',
     ], tempRoot, { env });
     assert.equal(result.status, 0, result.stderr);
+    writeInstalledLock(target);
     const init = runNimiApp(['init', '--dir', target], tempRoot, { env });
     assert.equal(init.status, 0, init.stderr);
 
@@ -792,7 +871,7 @@ test('create accepts package author and scoped npm package metadata', () => {
     assert.equal(lock.cargoPackageName, 'studio-canvas-shell');
     assert.match(readFileSync(path.join(target, 'src-tauri/Cargo.toml'), 'utf8'), /name = "studio-canvas-shell"/);
 
-    const doctor = runNimiApp(['doctor', '--dir', target], tempRoot, { env });
+    const doctor = runNimiApp(['check', '--dir', target], tempRoot, { env });
     assert.equal(doctor.status, 0, doctor.stderr);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
@@ -887,6 +966,7 @@ test('create accepts third-party workspaces without reading unrelated sibling Ap
     writeFileSync(path.join(existingDir, 'nimi.app.yaml'), [
       'app_id: existing.app',
       'display_name: Existing App',
+      'version: 0.1.0',
       'local_development:',
       '  electron:',
       '    renderer_origin: not-a-url',
@@ -1735,7 +1815,7 @@ test('unsupported previous app scaffold lock and intent fail closed', () => {
     const lock = JSON.parse(legacyLock.read('.nimi/app-scaffold/lock.json'));
     lock.lockVersion = 2;
     writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
-    const result = runNimiApp(['doctor', '--dir', legacyLock.target], legacyLock.tempRoot, { env: legacyLock.env });
+    const result = runNimiApp(['check', '--dir', legacyLock.target], legacyLock.tempRoot, { env: legacyLock.env });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Unsupported scaffold lock version: 2/);
   } finally {
@@ -1748,7 +1828,7 @@ test('unsupported previous app scaffold lock and intent fail closed', () => {
     const intent = JSON.parse(legacyIntent.read('.nimi/app-scaffold/intent.json'));
     intent.intentVersion = 2;
     writeFileSync(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
-    const result = runNimiApp(['update', '--dir', legacyIntent.target], legacyIntent.tempRoot, { env: legacyIntent.env });
+    const result = runNimiApp(['sync', '--dir', legacyIntent.target], legacyIntent.tempRoot, { env: legacyIntent.env });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Unsupported scaffold intent version: 2/);
     assert.throws(
@@ -1771,7 +1851,7 @@ test('unsupported previous app scaffold lock and intent fail closed', () => {
     lock.profile = 'workspace-app';
     writeFileSync(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
     writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
-    const result = runNimiApp(['update', '--dir', retiredProfile.target], retiredProfile.tempRoot, { env: retiredProfile.env });
+    const result = runNimiApp(['sync', '--dir', retiredProfile.target], retiredProfile.tempRoot, { env: retiredProfile.env });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Unsupported scaffold profile: workspace-app/);
     assert.equal(readFileSync(managedPath, 'utf8'), managedBefore);
@@ -1866,7 +1946,7 @@ test('create may target an otherwise empty git root but refuses other non-empty 
   }
 });
 
-test('update rejects missing or incomplete current intent before projection or managed writes', () => {
+test('sync rejects missing or incomplete current intent before projection or managed writes', () => {
   const incomplete = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-scaffold-incomplete-intent-'));
   const incompleteTarget = path.join(incomplete, 'app');
   const incompleteEnv = fakePnpmEnv(incomplete);
@@ -1892,7 +1972,7 @@ test('update rejects missing or incomplete current intent before projection or m
     const managedPath = path.join(generated.target, 'src', 'shell', 'auth', 'app-identity.ts');
     rmSync(intentPath);
     writeFileSync(managedPath, '// existing managed drift must not be overwritten\n');
-    const update = runNimiApp(['update', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    const update = runNimiApp(['sync', '--dir', generated.target], generated.tempRoot, { env: generated.env });
     assert.notEqual(update.status, 0);
     assert.match(update.stderr, /Missing scaffold init intent/);
     assert.equal(existsSync(intentPath), false);
@@ -1902,15 +1982,75 @@ test('update rejects missing or incomplete current intent before projection or m
   }
 });
 
-test('doctor fails closed on managed drift and update preserves app-owned product code', () => {
+test('sync rejects scaffold identity drift before managed writes', () => {
   const generated = cliScaffold('standalone');
   try {
-    let result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    const intentPath = path.join(generated.target, '.nimi/app-scaffold/intent.json');
+    const originalIntent = JSON.parse(readFileSync(intentPath, 'utf8'));
+    const managedPath = path.join(generated.target, 'src', 'shell', 'auth', 'app-identity.ts');
+    const managedBefore = readFileSync(managedPath, 'utf8');
+    for (const [field, value] of [
+      ['profile', 'workspace-app'],
+      ['appId', 'other.app'],
+      ['appTitle', 'Other App'],
+      ['packageName', 'other-app'],
+      ['packageAuthor', 'Other Maintainers'],
+      ['cargoPackageName', 'other-app-shell'],
+      ['tauriIdentifier', 'ai.nimi.apps.other.app'],
+      ['accentPack', 'other-accent'],
+    ]) {
+      writeFileSync(intentPath, `${JSON.stringify({ ...originalIntent, [field]: value }, null, 2)}\n`);
+      const result = runNimiApp(['sync', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+      assert.notEqual(result.status, 0, `${field} drift must fail`);
+      assert.match(result.stderr, /is immutable; create a fresh scaffold/u);
+      assert.equal(readFileSync(managedPath, 'utf8'), managedBefore);
+    }
+  } finally {
+    generated.cleanup();
+  }
+});
+
+test('sync advances the App version while preserving immutable scaffold identity', () => {
+  const generated = cliScaffold('standalone');
+  try {
+    const intentPath = path.join(generated.target, '.nimi/app-scaffold/intent.json');
+    const packagePath = path.join(generated.target, 'package.json');
+    const intent = JSON.parse(readFileSync(intentPath, 'utf8'));
+    const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
+    packageJson.version = '0.1.1';
+    writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
+
+    const sync = runNimiApp(['sync', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(sync.status, 0, sync.stderr);
+    const check = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(check.status, 0, check.stderr);
+
+    assert.equal(JSON.parse(generated.read('package.json')).version, '0.1.1');
+    assert.equal(parseYaml(generated.read('nimi.app.yaml')).version, '0.1.1');
+    assert.match(generated.read('src-tauri/Cargo.toml'), /^version = "0\.1\.1"$/mu);
+    assert.equal(JSON.parse(generated.read('src-tauri/tauri.conf.json')).version, '0.1.1');
+    assert.equal(parseYaml(generated.read('.nimi/config/app-identity.yaml')).version, '0.1.1');
+    assert.equal(parseYaml(generated.read('.nimi/admission/submission.yaml')).version, '0.1.1');
+    const synchronizedIntent = JSON.parse(generated.read('.nimi/app-scaffold/intent.json'));
+    assert.equal(synchronizedIntent.version, '0.1.1');
+    assert.equal(synchronizedIntent.appIdentity.version, '0.1.1');
+    const synchronizedLock = JSON.parse(generated.read('.nimi/app-scaffold/lock.json'));
+    assert.equal(synchronizedLock.version, '0.1.1');
+    assert.equal(synchronizedLock.appId, intent.appId);
+  } finally {
+    generated.cleanup();
+  }
+});
+
+test('check fails closed on managed drift and sync preserves app-owned product code', () => {
+  const generated = cliScaffold('standalone');
+  try {
+    let result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
     assert.equal(result.status, 0, result.stderr);
 
     const targetAdapterPath = path.join(generated.target, 'src/shell/workbench-target-adapter.ts');
     writeFileSync(targetAdapterPath, `${generated.read('src/shell/workbench-target-adapter.ts')}\n// drift\n`);
-    result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Managed scaffold drift detected/);
 
@@ -1925,18 +2065,39 @@ test('doctor fails closed on managed drift and update preserves app-owned produc
     ].join('\n');
     writeFileSync(productPath, productEdit);
 
-    result = runNimiApp(['update', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    const packagePath = path.join(generated.target, 'package.json');
+    const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
+    packageJson.dependencies['app-owned-library'] = '^1.0.0';
+    packageJson.scripts['test:app'] = 'node --test test/product.test.mjs';
+    writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
+    const buildProfilePath = path.join(generated.target, '.nimi/config/build-profile.yaml');
+    const buildProfile = parseYaml(readFileSync(buildProfilePath, 'utf8'));
+    buildProfile.test_command = 'pnpm run test:app';
+    buildProfile.targets['windows-x86_64'].payload_path = 'custom-output/app.exe';
+    buildProfile.targets['windows-x86_64'].runtime_entry = 'payload/app.exe';
+    writeFileSync(buildProfilePath, stringifyYaml(buildProfile));
+    const submissionPath = path.join(generated.target, '.nimi/admission/submission.yaml');
+    const submission = parseYaml(readFileSync(submissionPath, 'utf8'));
+    submission.support_manifest.escalation_path = 'https://example.test/support';
+    writeFileSync(submissionPath, stringifyYaml(submission));
+
+    result = runNimiApp(['sync', '--dir', generated.target], generated.tempRoot, { env: generated.env });
     assert.equal(result.status, 0, result.stderr);
-    result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
     assert.equal(result.status, 0, result.stderr);
     assert.equal(generated.read('src/shell/routes/product-area.tsx'), productEdit);
     assert.doesNotMatch(generated.read('src/shell/workbench-target-adapter.ts'), /\/\/ drift/);
+    const preservedPackage = JSON.parse(generated.read('package.json'));
+    assert.equal(preservedPackage.dependencies['app-owned-library'], '^1.0.0');
+    assert.equal(preservedPackage.scripts['test:app'], 'node --test test/product.test.mjs');
+    assert.equal(parseYaml(generated.read('.nimi/config/build-profile.yaml')).targets['windows-x86_64'].payload_path, 'custom-output/app.exe');
+    assert.equal(parseYaml(generated.read('.nimi/admission/submission.yaml')).support_manifest.escalation_path, 'https://example.test/support');
   } finally {
     generated.cleanup();
   }
 });
 
-test('phase 7 doctor rejects tampered resolved ownership projections in the scaffold lock', () => {
+test('phase 7 check rejects tampered resolved ownership projections in the scaffold lock', () => {
   const generated = cliScaffold('standalone');
   try {
     const lockPath = path.join(generated.target, SCAFFOLD_LOCK_PATH);
@@ -1952,7 +2113,7 @@ test('phase 7 doctor rejects tampered resolved ownership projections in the scaf
       const tampered = structuredClone(original);
       tampered[field] = [...tampered[field], `tampered-${field}`];
       writeFileSync(lockPath, `${JSON.stringify(tampered, null, 2)}\n`);
-      const result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+      const result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
       assert.notEqual(result.status, 0, `${field} tamper unexpectedly passed`);
       assert.match(result.stderr, new RegExp(`${label} does not match current scaffold generator`));
       writeFileSync(lockPath, `${JSON.stringify(original, null, 2)}\n`);
@@ -1981,16 +2142,16 @@ test('App access declaration activates the four canonical domains and keeps unkn
   });
 });
 
-test('update regenerates App access from canonical selected features', () => {
+test('sync regenerates App access from canonical selected features', () => {
   const generated = cliScaffold('standalone', [], testDir);
   try {
     const intentPath = path.join(generated.target, '.nimi/app-scaffold/intent.json');
     const intent = JSON.parse(generated.read('.nimi/app-scaffold/intent.json'));
     intent.appAccessItems = ['realm.data', 'future.experimental', 'agent.local', 'agent.configure'];
     writeFileSync(intentPath, `${JSON.stringify(intent, null, 2)}\n`);
-    let result = runNimiApp(['update', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    let result = runNimiApp(['sync', '--dir', generated.target], generated.tempRoot, { env: generated.env });
     assert.equal(result.status, 0, result.stderr);
-    result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
     assert.equal(result.status, 0, result.stderr);
     assert.match(
       generated.read('nimi.app.yaml'),
@@ -2010,28 +2171,44 @@ test('update regenerates App access from canonical selected features', () => {
   }
 });
 
-test('doctor audits an existing submitted app without converting it into a managed scaffold', () => {
+test('sync adopts and check audits an existing submitted App without creating a managed scaffold lock', () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-existing-doctor-'));
   const target = path.join(tempRoot, 'existing-app');
   const env = fakePnpmEnv(tempRoot);
+  const lifecycleVersions = JSON.parse(readFileSync(path.join(testDir, '..', 'package.json'), 'utf8')).nimiScaffoldVersions;
   try {
     mkdirSync(path.join(target, 'src'), { recursive: true });
+    mkdirSync(path.join(target, 'src-tauri'), { recursive: true });
+    mkdirSync(path.join(target, '.nimi', 'config'), { recursive: true });
     writeFileSync(path.join(target, 'package.json'), `${JSON.stringify({
       name: 'existing-app',
+      version: '0.1.0',
       private: true,
       type: 'module',
+      packageManager: lifecycleVersions.packageManager,
       scripts: {
         dev: 'nimi-app dev --shell electron',
         'dev:shell': 'nimi-app dev',
         'dev:electron': 'nimi-app dev --shell electron',
         'dev:renderer': 'vite --host 127.0.0.1 --port 1468 --strictPort',
         'build:electron': 'tsc -p tsconfig.electron.json',
+        'build:shell': 'node -e "process.exit(0)"',
+        'test:app': 'node -e "process.exit(0)"',
+      },
+      dependencies: {
+        '@nimiplatform/sdk': lifecycleVersions.sdkVersion,
+        '@nimiplatform/kit': lifecycleVersions.kitVersion,
+      },
+      devDependencies: {
+        '@nimiplatform/app-tools': lifecycleVersions.appToolsVersion,
+        '@nimiplatform/nimi-coding': lifecycleVersions.nimicodingVersion,
       },
     }, null, 2)}\n`);
     const manifestPath = path.join(target, 'nimi.app.yaml');
     const manifest = [
       'app_id: existing.app',
       'display_name: Existing App',
+      'version: 0.1.0',
       'profile: standalone',
       'manifest_role: submitted-input',
       'app_access: []',
@@ -2042,20 +2219,50 @@ test('doctor audits an existing submitted app without converting it into a manag
     ].join('\n');
     writeFileSync(manifestPath, manifest);
     writeFileSync(path.join(target, 'src', 'main.ts'), 'export const app = true;\n');
-    writeFileSync(path.join(target, 'pnpm-lock.yaml'), "packages:\n  '@grpc/grpc-js@1.14.4': {}\n");
+    writeFileSync(path.join(target, 'src-tauri', 'Cargo.toml'), [
+      '[package]',
+      'name = "existing-app-shell"',
+      'version = "0.1.0"',
+      '',
+      '[dependencies]',
+      `nimi-shell-tauri = "${lifecycleVersions.nimiShellTauriVersion}"`,
+      '',
+    ].join('\n'));
+    writeFileSync(path.join(target, 'src-tauri', 'tauri.conf.json'), `${JSON.stringify({
+      productName: 'Existing App',
+      version: '0.1.0',
+      identifier: 'ai.nimi.apps.existing.app',
+    }, null, 2)}\n`);
+    writeFileSync(path.join(target, '.nimi', 'config', 'build-profile.yaml'), [
+      'build_profile_ref: existing-test',
+      'test_command: pnpm run test:app',
+      'build_command: pnpm run build:shell',
+      'targets:',
+      '  windows-x86_64:',
+      '    os: windows',
+      '    arch: x86_64',
+      '    build_command: pnpm run build:shell',
+      '    payload_path: build/windows',
+      '    runtime_entry: payload/existing-app.exe',
+      'profile_role: developer-workflow-input',
+      '',
+    ].join('\n'));
+    writeInstalledLock(target);
 
-    let result = runNimiApp(['doctor', '--dir', target], tempRoot, { env });
+    let result = runNimiApp(['sync', '--dir', target], tempRoot, { env });
+    assert.equal(result.status, 0, result.stderr);
+    result = runNimiApp(['check', '--dir', target], tempRoot, { env });
     assert.equal(result.status, 0, result.stderr);
     assert.equal(existsSync(path.join(target, '.nimi', 'app-scaffold', 'lock.json')), false);
 
     writeFileSync(manifestPath, manifest.replace(':1468', ':1469'));
-    result = runNimiApp(['doctor', '--dir', target], tempRoot, { env });
+    result = runNimiApp(['check', '--dir', target], tempRoot, { env });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /dev:renderer.*1469/);
     writeFileSync(manifestPath, manifest);
 
     writeFileSync(path.join(target, 'src', 'bypass.ts'), "import '@grpc/grpc-js';\n");
-    result = runNimiApp(['doctor', '--dir', target], tempRoot, { env });
+    result = runNimiApp(['check', '--dir', target], tempRoot, { env });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /protected Runtime gRPC client/);
   } finally {
@@ -2063,11 +2270,11 @@ test('doctor audits an existing submitted app without converting it into a manag
   }
 });
 
-test('doctor fails closed on a missing scaffold lock', () => {
+test('check fails closed on a missing scaffold lock', () => {
   const missingLock = cliScaffold('standalone');
   try {
     rmSync(path.join(missingLock.target, '.nimi/app-scaffold/lock.json'), { force: true });
-    const result = runNimiApp(['doctor', '--dir', missingLock.target], missingLock.tempRoot, { env: missingLock.env });
+    const result = runNimiApp(['check', '--dir', missingLock.target], missingLock.tempRoot, { env: missingLock.env });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Missing initialized scaffold lock/);
   } finally {
@@ -2076,7 +2283,7 @@ test('doctor fails closed on a missing scaffold lock', () => {
 
 });
 
-test('doctor fails closed on provider/model hardcoding in product code but not in tests', () => {
+test('check fails closed on provider/model hardcoding in product code but not in tests', () => {
   const cases = [
     "export const route = { provider: 'anthropic', model: 'gpt-4o' };\n",
   ];
@@ -2084,7 +2291,7 @@ test('doctor fails closed on provider/model hardcoding in product code but not i
     const generated = cliScaffold('standalone');
     try {
       writeFileSync(path.join(generated.target, 'src/shell/routes/product-area.tsx'), source);
-      const result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+      const result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
       assert.notEqual(result.status, 0, source);
       assert.match(result.stderr, /provider\/model hardcoding/, source);
     } finally {
@@ -2096,14 +2303,14 @@ test('doctor fails closed on provider/model hardcoding in product code but not i
   // it must not trip the product-truth hardcoding scan.
   const clean = cliScaffold('standalone');
   try {
-    const result = runNimiApp(['doctor', '--dir', clean.target], clean.tempRoot, { env: clean.env });
+    const result = runNimiApp(['check', '--dir', clean.target], clean.tempRoot, { env: clean.env });
     assert.equal(result.status, 0, result.stderr);
   } finally {
     clean.cleanup();
   }
 });
 
-test('doctor fails closed on app-owned Realm permission grant shortcuts', () => {
+test('check fails closed on app-owned Realm permission grant shortcuts', () => {
   const cases = [
     { source: 'export async function bypass(realm) { return realm.permissionGrants.requestMyAppPermissionGrant({ path: {}, body: {} }); }\n', pattern: /Realm permission grant/ },
     { source: "export async function bypass() { return fetch('/api/human/me'); }\n", pattern: /Realm API/ },
@@ -2113,7 +2320,7 @@ test('doctor fails closed on app-owned Realm permission grant shortcuts', () => 
     const generated = cliScaffold('standalone');
     try {
       writeFileSync(path.join(generated.target, 'src/shell/routes/product-area.tsx'), source);
-      const result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+      const result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
       assert.notEqual(result.status, 0, source);
       assert.match(result.stderr, pattern, source);
     } finally {
@@ -2122,7 +2329,7 @@ test('doctor fails closed on app-owned Realm permission grant shortcuts', () => 
   }
 });
 
-test('doctor fails closed on installed-app custody bypasses', () => {
+test('check fails closed on installed-app custody bypasses', () => {
   const cases = [
     { source: "export const mode = 'ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL';\n", pattern: /external principal installed-app posture/ },
     { source: "import grpc from '@grpc/grpc-js';\nexport const client = grpc;\n", pattern: /protected Runtime gRPC client/ },
@@ -2134,7 +2341,7 @@ test('doctor fails closed on installed-app custody bypasses', () => {
     const generated = cliScaffold('standalone');
     try {
       writeFileSync(path.join(generated.target, 'src/shell/routes/product-area.tsx'), source);
-      const result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+      const result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
       assert.notEqual(result.status, 0, source);
       assert.match(result.stderr, pattern, source);
     } finally {
@@ -2143,7 +2350,7 @@ test('doctor fails closed on installed-app custody bypasses', () => {
   }
 });
 
-test('doctor requires official Desktop-supervised development scripts', () => {
+test('check requires official Desktop-supervised development scripts', () => {
   const cases = [
     {
       mutate(scripts) {
@@ -2171,7 +2378,7 @@ test('doctor requires official Desktop-supervised development scripts', () => {
       const packageJson = JSON.parse(generated.read('package.json'));
       testCase.mutate(packageJson.scripts);
       writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
-      const result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+      const result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
       assert.notEqual(result.status, 0);
       assert.match(result.stderr, testCase.pattern);
     } finally {
@@ -2180,7 +2387,7 @@ test('doctor requires official Desktop-supervised development scripts', () => {
   }
 });
 
-test('doctor rejects malformed App access declaration items', () => {
+test('check rejects malformed App access declaration items', () => {
   const cases = [
     {
       replace: 'app_access: []',
@@ -2204,7 +2411,7 @@ test('doctor rejects malformed App access declaration items', () => {
       const manifestPath = path.join(generated.target, 'nimi.app.yaml');
       const nextManifest = generated.read('nimi.app.yaml').replace(testCase.replace, testCase.with);
       writeFileSync(manifestPath, nextManifest);
-      const result = runNimiApp(['doctor', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+      const result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
       assert.notEqual(result.status, 0, testCase.with);
       assert.match(result.stderr, testCase.pattern, testCase.with);
     } finally {
@@ -2213,14 +2420,14 @@ test('doctor rejects malformed App access declaration items', () => {
   }
 });
 
-test('update fails closed on unsupported locks and classification conflicts', () => {
+test('sync fails closed on unsupported locks and classification conflicts', () => {
   const unsupported = cliScaffold('standalone');
   try {
     const lockPath = path.join(unsupported.target, '.nimi/app-scaffold/lock.json');
     const lock = JSON.parse(unsupported.read('.nimi/app-scaffold/lock.json'));
     lock.scaffoldVersion = 'unsupported-version';
     writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
-    const result = runNimiApp(['update', '--dir', unsupported.target], unsupported.tempRoot, { env: unsupported.env });
+    const result = runNimiApp(['sync', '--dir', unsupported.target], unsupported.tempRoot, { env: unsupported.env });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Unsupported scaffold version/);
   } finally {
@@ -2236,7 +2443,7 @@ test('update fails closed on unsupported locks and classification conflicts', ()
       sha256: 'conflict',
     };
     writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`);
-    const result = runNimiApp(['update', '--dir', conflict.target], conflict.tempRoot, { env: conflict.env });
+    const result = runNimiApp(['sync', '--dir', conflict.target], conflict.tempRoot, { env: conflict.env });
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Scaffold classification conflict/);
   } finally {

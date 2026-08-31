@@ -46,8 +46,9 @@ func TestFormalAppReleaseRegistrationUsesCanonicalDeclarationInput(t *testing.T)
 	release := FormalAppRelease{
 		AppID: "nimi.desktop", DisplayName: "Nimi Desktop", SourceRef: "platform-release:nimi.desktop:1",
 		InstallRoot: "C:/Program Files/Nimi", ManifestRef: "platform-release-manifest:nimi.desktop:1", ShellKind: 1,
-		Declaration:  []string{"runtime.consume", "agent.local", "future.inert"},
-		SourceDigest: "release-source-digest:desktop:1", PayloadRootDigest: "release-payload-digest:desktop:1",
+		Declaration:        []string{"runtime.consume", "agent.local", "future.inert"},
+		ImmutableLineageID: "lineage:desktop:1", ProvenanceAttestationRefs: []string{"attestation:desktop:1"},
+		ProvenanceRevision: 1, ExecutionProfileRef: "execution:desktop", PayloadRootDigest: "release-payload-digest:desktop:1",
 	}
 	resolverCalls := 0
 	account := newLocalAppSessionTestAccount("account-formal-release", "realm-formal-release")
@@ -75,7 +76,10 @@ func TestFormalAppReleaseRegistrationUsesCanonicalDeclarationInput(t *testing.T)
 		t.Fatal(err)
 	}
 	if resolverCalls != 1 || registration.AppID != release.AppID || registration.SourceRef != release.SourceRef ||
-		registration.SourceDigest != release.SourceDigest || registration.PayloadRootDigest != release.PayloadRootDigest ||
+		registration.ImmutableLineageID != release.ImmutableLineageID ||
+		!sameStrings(registration.ProvenanceAttestationRefs, release.ProvenanceAttestationRefs) ||
+		registration.ProvenanceRevision != release.ProvenanceRevision || registration.ExecutionProfileRef != release.ExecutionProfileRef ||
+		registration.PayloadRootDigest != release.PayloadRootDigest ||
 		registration.RegisteredAppSubject == "" || registration.DeclarationGeneration != 1 ||
 		!containsAll(registration.ActivatedDomains, "runtime.consume", "agent.local") ||
 		containsAll(registration.ActivatedDomains, "future.inert") {
@@ -87,6 +91,7 @@ func TestFormalAppReleaseRegistrationUsesCanonicalDeclarationInput(t *testing.T)
 	ownerDone := make(chan struct{})
 	connection, err := protectedlocal.EstablishInstalledAppConnection(
 		registration.RegistrationHandle,
+		protectedlocal.LocalAppTrustBuiltIn,
 		localAppSessionTestIdentifier(0x95),
 		localAppSessionTestIdentifier(0x96),
 		process,
@@ -111,7 +116,9 @@ func TestFormalAppReleaseRegistrationUsesCanonicalDeclarationInput(t *testing.T)
 		t.Fatalf("formal App authorization = %+v ok=%v", decision, ok)
 	}
 
-	release.SourceDigest = "release-source-digest:desktop:2"
+	release.ImmutableLineageID = "lineage:desktop:2"
+	release.ProvenanceAttestationRefs = []string{"attestation:desktop:2"}
+	release.ProvenanceRevision = 2
 	nextProcess := process
 	nextProcess.ExecutableDigest = localAppSessionTestIdentifier(0x97)
 	updated, err := service.registerFormalAppRelease(ctx, release.AppID, formalReleaseTestBindingSlot, nextProcess)
@@ -193,7 +200,8 @@ func TestManifestFormalAppReleaseResolverUsesManifestDeclarationAndPayload(t *te
 	if release.AppID != "nimi.avatar" || release.DisplayName != "Nimi Avatar" ||
 		release.SourceRef != "platform-app:nimi.avatar" || release.ShellKind != 1 ||
 		!containsAll(release.Declaration, "agent.local", "agent.configure") ||
-		strings.TrimSpace(release.SourceDigest) == "" || strings.TrimSpace(release.PayloadRootDigest) == "" ||
+		strings.TrimSpace(release.ImmutableLineageID) == "" || len(release.ProvenanceAttestationRefs) == 0 ||
+		release.ProvenanceRevision == 0 || strings.TrimSpace(release.ExecutionProfileRef) == "" || strings.TrimSpace(release.PayloadRootDigest) == "" ||
 		filepath.Base(release.ManifestRef) != "nimi.app.yaml" || filepath.Base(release.InstallRoot) != "avatar" {
 		t.Fatalf("formal manifest release = %+v", release)
 	}

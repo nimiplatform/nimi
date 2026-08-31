@@ -1,9 +1,9 @@
-// Package appstorage resolves and persists Runtime-owned Nimi App install
-// storage projections under the product-selected nimi_data root.
+// Package appstorage resolves Runtime-owned Nimi App payload and durable-data
+// roots under the product-selected nimi_data root. Canonical installed-release
+// and registration truth belongs to localappkernel, not filesystem metadata.
 package appstorage
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -11,9 +11,12 @@ import (
 	"strings"
 )
 
+const StoragePolicyNimiMediatedDefault = "nimi-mediated-default"
+
 type Plan struct {
 	DataRootRef      string `json:"dataRootRef"`
 	AppID            string `json:"appId"`
+	SourceClass      string `json:"sourceClass"`
 	Version          string `json:"version"`
 	AppRoot          string `json:"appRoot"`
 	ReleaseRoot      string `json:"releaseRoot"`
@@ -23,46 +26,15 @@ type Plan struct {
 	StoragePolicyRef string `json:"storagePolicyRef"`
 }
 
-type InstallEvidence struct {
-	AppID                string `json:"appId"`
-	ReleaseDescriptorRef string `json:"releaseDescriptorRef"`
-	StoragePolicyRef     string `json:"storagePolicyRef"`
-	InstalledVersion     string `json:"installedVersion"`
-	SHA256               string `json:"sha256"`
-	VerificationState    string `json:"verificationState"`
-	ReleaseRoot          string `json:"releaseRoot"`
-	DurableDataRoot      string `json:"durableDataRoot"`
-	CacheRoot            string `json:"cacheRoot"`
-	TempRoot             string `json:"tempRoot"`
-}
-
-type UninstallOptions struct {
-	DeleteDurableData             bool
-	DestructiveDataDeleteApproved bool
-}
-
-// ActiveReleasePointer is the app-root-level record of which materialized
-// release version is currently the active one. An update job swaps this
-// pointer atomically (P-NAPP-014 / K-APP-015) only after the new release is
-// fully materialized and digest-verified; the old release stays usable until
-// the swap commits.
-type ActiveReleasePointer struct {
-	AppID         string `json:"appId"`
-	ActiveVersion string `json:"activeVersion"`
-	ReleaseRoot   string `json:"releaseRoot"`
-	UpdatedAt     string `json:"updatedAt"`
-}
-
 var (
-	ErrDataRootRequired              = errors.New("app storage dataRootRef is required")
-	ErrDataRootMustBeAbsolute        = errors.New("app storage dataRootRef must be absolute")
-	ErrInvalidAppIDSegment           = errors.New("app storage app id is not a safe path segment")
-	ErrInvalidVersionSegment         = errors.New("app storage version is not a safe path segment")
-	ErrStoragePolicyUnsupported      = errors.New("app storage policy is not admitted")
-	ErrDestructiveDeleteConfirmation = errors.New("destructive app data deletion requires explicit confirmation")
-	ErrStorageRootSymlink            = errors.New("app storage root contains a symlink")
-	ErrStorageRootNotDirectory       = errors.New("app storage root component is not a directory")
-	ErrActiveReleaseNotFound         = errors.New("app storage active release pointer not found")
+	ErrDataRootRequired         = errors.New("app storage dataRootRef is required")
+	ErrDataRootMustBeAbsolute   = errors.New("app storage dataRootRef must be absolute")
+	ErrInvalidAppIDSegment      = errors.New("app storage app id is not a safe path segment")
+	ErrInvalidSourceClass       = errors.New("app storage source class is not admitted")
+	ErrInvalidVersionSegment    = errors.New("app storage version is not a safe path segment")
+	ErrStoragePolicyUnsupported = errors.New("app storage policy is not admitted")
+	ErrStorageRootSymlink       = errors.New("app storage root contains a symlink")
+	ErrStorageRootNotDirectory  = errors.New("app storage root component is not a directory")
 )
 
 // IsZero reports whether the plan was never resolved (no release root). It
@@ -71,7 +43,7 @@ func (p Plan) IsZero() bool {
 	return strings.TrimSpace(p.ReleaseRoot) == "" || strings.TrimSpace(p.AppRoot) == ""
 }
 
-func Resolve(dataRootRef string, appID string, version string, storagePolicyRef string) (Plan, error) {
+func Resolve(dataRootRef string, appID string, sourceClass string, version string, storagePolicyRef string) (Plan, error) {
 	dataRootRef, appID, storagePolicyRef, err := normalizeRootInputs(dataRootRef, appID, storagePolicyRef)
 	if err != nil {
 		return Plan{}, err
@@ -79,13 +51,17 @@ func Resolve(dataRootRef string, appID string, version string, storagePolicyRef 
 	if !safeSegment(version) {
 		return Plan{}, ErrInvalidVersionSegment
 	}
+	if sourceClass != "verified" && sourceClass != "user_imported" {
+		return Plan{}, ErrInvalidSourceClass
+	}
 	appRoot := filepath.Join(dataRootRef, "apps", appID)
 	plan := Plan{
 		DataRootRef:      dataRootRef,
 		AppID:            appID,
+		SourceClass:      sourceClass,
 		Version:          version,
 		AppRoot:          appRoot,
-		ReleaseRoot:      filepath.Join(appRoot, "releases", version),
+		ReleaseRoot:      filepath.Join(appRoot, "releases", sourceClass, version),
 		DurableDataRoot:  filepath.Join(appRoot, "data"),
 		CacheRoot:        filepath.Join(appRoot, "cache"),
 		TempRoot:         filepath.Join(appRoot, "tmp"),
@@ -138,140 +114,6 @@ func MaterializeAppRoots(plan Plan) error {
 	return nil
 }
 
-func WriteInstallEvidence(plan Plan, evidence InstallEvidence) error {
-	evidencePath := EvidencePath(plan)
-	evidenceDir := filepath.Dir(evidencePath)
-	if err := materializeRoot(plan.DataRootRef, evidenceDir); err != nil {
-		return fmt.Errorf("create app install evidence dir: %w", err)
-	}
-	if info, err := os.Lstat(evidencePath); err == nil && info.Mode()&os.ModeSymlink != 0 {
-		return ErrStorageRootSymlink
-	}
-	bytes, err := json.MarshalIndent(evidence, "", "  ")
-	if err != nil {
-		return fmt.Errorf("encode app install evidence: %w", err)
-	}
-	tmpFile, err := os.CreateTemp(evidenceDir, "install-evidence-*.tmp")
-	if err != nil {
-		return fmt.Errorf("write app install evidence: %w", err)
-	}
-	tmp := tmpFile.Name()
-	committed := false
-	defer func() {
-		if !committed {
-			_ = os.Remove(tmp)
-		}
-	}()
-	if _, err := tmpFile.Write(append(bytes, '\n')); err != nil {
-		_ = tmpFile.Close()
-		return fmt.Errorf("write app install evidence: %w", err)
-	}
-	if err := tmpFile.Close(); err != nil {
-		return fmt.Errorf("close app install evidence: %w", err)
-	}
-	if err := os.Rename(tmp, evidencePath); err != nil {
-		return fmt.Errorf("commit app install evidence: %w", err)
-	}
-	committed = true
-	return nil
-}
-
-func ReadInstallEvidence(plan Plan) (InstallEvidence, error) {
-	bytes, err := os.ReadFile(EvidencePath(plan))
-	if err != nil {
-		return InstallEvidence{}, err
-	}
-	var evidence InstallEvidence
-	if err := json.Unmarshal(bytes, &evidence); err != nil {
-		return InstallEvidence{}, err
-	}
-	return evidence, nil
-}
-
-func EvidencePath(plan Plan) string {
-	return filepath.Join(plan.ReleaseRoot, ".nimi", "install-evidence.json")
-}
-
-func Uninstall(plan Plan, options UninstallOptions) error {
-	if options.DeleteDurableData && !options.DestructiveDataDeleteApproved {
-		return ErrDestructiveDeleteConfirmation
-	}
-	if err := os.RemoveAll(plan.ReleaseRoot); err != nil {
-		return fmt.Errorf("remove app release payload: %w", err)
-	}
-	if options.DeleteDurableData {
-		if err := os.RemoveAll(plan.DurableDataRoot); err != nil {
-			return fmt.Errorf("remove app durable data: %w", err)
-		}
-	}
-	return nil
-}
-
-// ActiveReleasePath is the app-root-level active release pointer file path.
-func ActiveReleasePath(plan Plan) string {
-	return filepath.Join(plan.AppRoot, ".nimi", "active-release.json")
-}
-
-// ReadActiveRelease reads the active release pointer at the app root. It
-// returns ErrActiveReleaseNotFound when no pointer exists yet (the app has
-// never had a release activated).
-func ReadActiveRelease(plan Plan) (ActiveReleasePointer, error) {
-	bytes, err := os.ReadFile(ActiveReleasePath(plan))
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return ActiveReleasePointer{}, ErrActiveReleaseNotFound
-		}
-		return ActiveReleasePointer{}, fmt.Errorf("read app active release pointer: %w", err)
-	}
-	var pointer ActiveReleasePointer
-	if err := json.Unmarshal(bytes, &pointer); err != nil {
-		return ActiveReleasePointer{}, fmt.Errorf("decode app active release pointer: %w", err)
-	}
-	return pointer, nil
-}
-
-// WriteActiveRelease atomically writes the active release pointer at the app
-// root. It is the single commit point of an install/update activation: the
-// rename is the atomic swap of the active release. A failed write before the
-// rename leaves the previous pointer (and thus the previous release) intact.
-func WriteActiveRelease(plan Plan, pointer ActiveReleasePointer) error {
-	pointerPath := ActiveReleasePath(plan)
-	pointerDir := filepath.Dir(pointerPath)
-	if err := materializeRoot(plan.DataRootRef, pointerDir); err != nil {
-		return fmt.Errorf("create app active release pointer dir: %w", err)
-	}
-	if info, err := os.Lstat(pointerPath); err == nil && info.Mode()&os.ModeSymlink != 0 {
-		return ErrStorageRootSymlink
-	}
-	bytes, err := json.MarshalIndent(pointer, "", "  ")
-	if err != nil {
-		return fmt.Errorf("encode app active release pointer: %w", err)
-	}
-	tmpFile, err := os.CreateTemp(pointerDir, "active-release-*.tmp")
-	if err != nil {
-		return fmt.Errorf("write app active release pointer: %w", err)
-	}
-	tmp := tmpFile.Name()
-	committed := false
-	defer func() {
-		if !committed {
-			_ = os.Remove(tmp)
-		}
-	}()
-	if _, err := tmpFile.Write(append(bytes, '\n')); err != nil {
-		_ = tmpFile.Close()
-		return fmt.Errorf("write app active release pointer: %w", err)
-	}
-	if err := tmpFile.Close(); err != nil {
-		return fmt.Errorf("close app active release pointer: %w", err)
-	}
-	if err := os.Rename(tmp, pointerPath); err != nil {
-		return fmt.Errorf("commit app active release pointer: %w", err)
-	}
-	committed = true
-	return nil
-}
-
 // RemoveRelease removes a single release payload directory without touching
 // durable data, cache, tmp, or any other release. It is used to drop a failed
 // or superseded release materialization.
@@ -307,7 +149,7 @@ func normalizeRootInputs(dataRootRef string, appID string, storagePolicyRef stri
 	if !filepath.IsAbs(dataRootRef) {
 		return "", "", "", ErrDataRootMustBeAbsolute
 	}
-	if storagePolicyRef != "nimi-data-app-roots" {
+	if storagePolicyRef != StoragePolicyNimiMediatedDefault {
 		return "", "", "", ErrStoragePolicyUnsupported
 	}
 	if !safeSegment(appID) {

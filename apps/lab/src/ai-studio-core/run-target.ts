@@ -87,7 +87,7 @@ export function createStudioRunTargetSummary(input: {
       status: 'blocked',
       source: 'unknown',
       intentLabel: 'Not configured',
-      detail: 'This App AIConfig has no intent for the capability. Configure it here or in Nimi Desktop.',
+      detail: 'This App AIConfig has no intent for the capability. Configure it here or in Nimi.',
       canDispatch: false,
     };
   }

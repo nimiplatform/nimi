@@ -44,7 +44,7 @@ test('content keeps the consumer hero and SDK paths complete in both locales', a
   }
 });
 
-test('English homepage exposes fail-closed signing and separate preview status', async () => {
+test('English homepage exposes fail-closed signing, preview, and App lifecycle status', async () => {
   const content = await loadLandingContent('en');
   assert.ok(content.hero.eyebrow.includes('Open-source'));
   assert.ok(content.desktop.availability.items.includes(
@@ -53,7 +53,11 @@ test('English homepage exposes fail-closed signing and separate preview status',
   assert.ok(content.desktop.availability.items.includes(
     'Unsigned previews use explicit non-promotable vX.Y.Z-preview.N tags',
   ));
-  assert.ok(content.apps.notes.some((item) => item.includes('ordinary install with download progress')));
+  assert.ok(content.apps.notes.some((item) => (
+    item.includes('Developer Mode local development')
+    && item.includes('ordinary install')
+    && item.includes('not available yet')
+  )));
 });
 
 test('SDK landing content separates hero highlights from the full capability matrix', async () => {

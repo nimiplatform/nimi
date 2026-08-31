@@ -196,9 +196,15 @@ export class ElectronLocalDevelopmentHost {
   async invoke(command: string, payload: Readonly<Record<string, unknown>>): Promise<unknown> {
     if (!COMMANDS.has(command)) throw new Error('local-development-command-unavailable');
     if (command === 'local_development_runs_list') {
-      const latestByAppId = new Map<string, RunContext>();
-      for (const run of this.runs.values()) latestByAppId.set(run.status.appId, run);
-      return [...latestByAppId.values()].map((run) => projectRun(run.status));
+      await this.listRegistrations();
+      const latestBySelector = new Map<string, RunContext>();
+      for (const run of this.runs.values()) {
+        if (!run.registrationHandle) continue;
+        const selectorValue = [...this.registrationSelectors]
+          .find(([, handle]) => handle === run.registrationHandle)?.[0];
+        if (selectorValue) latestBySelector.set(selectorValue, run);
+      }
+      return [...latestBySelector].map(([selectorValue, run]) => projectRun(run.status, selectorValue));
     }
     if (command === 'local_development_registrations_list') return this.listRegistrations();
     const exactPayload = exactNestedPayload(payload);
@@ -525,17 +531,19 @@ export class ElectronLocalDevelopmentHost {
       true,
       registrationHandle,
     );
-    return projectRun(status);
+    return projectRun(status, selectorValue);
   }
 
-  private async stopRegistrationRun(payload: Readonly<Record<string, unknown>>): Promise<{ readonly appId: string; readonly stopped: true }> {
-    const value = exact(payload, ['appId']);
-    const appId = text(value.appId);
-    const matchingRuns = [...this.runs.values()].filter((run) => run.status.appId === appId);
+  private async stopRegistrationRun(payload: Readonly<Record<string, unknown>>): Promise<{ readonly selector: string; readonly stopped: true }> {
+    const value = exact(payload, ['selector']);
+    const selectorValue = selector(value.selector, 'dev-project');
+    const registrationHandle = this.registrationSelectors.get(selectorValue);
+    if (!registrationHandle) throw new Error('local-development-run-not-found');
+    const matchingRuns = [...this.runs.values()].filter((run) => run.registrationHandle === registrationHandle);
     if (matchingRuns.length === 0) throw new Error('local-development-run-not-found');
     const stoppableRuns = matchingRuns.filter((run) => !run.stopped || !run.stoppedCleanupComplete);
     await Promise.all(stoppableRuns.map((run) => this.stopRun(run, 'stopped')));
-    return { appId, stopped: true };
+    return { selector: selectorValue, stopped: true };
   }
 
   private startSupervisor(run: RunContext): void {
@@ -977,8 +985,9 @@ async function closeHttpServer(server: Server): Promise<void> {
   });
 }
 
-function projectRun(status: RunStatus) {
+function projectRun(status: RunStatus, selectorValue: string) {
   return {
+    selector: selectorValue,
     appId: status.appId,
     displayName: status.displayName,
     canonicalProjectRoot: status.canonicalProjectRoot,
