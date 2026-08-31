@@ -744,6 +744,18 @@ export enum ReasonCode {
      */
     APP_STORAGE_ARTIFACT_UNAVAILABLE = 586,
     /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_NOT_FOUND = 587;
+     */
+    APP_PACKAGE_JOB_NOT_FOUND = 587,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_CONFLICT = 588;
+     */
+    APP_PACKAGE_JOB_PHASE_CONFLICT = 588,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_NOT_CANCELABLE = 589;
+     */
+    APP_PACKAGE_JOB_NOT_CANCELABLE = 589,
+    /**
      * GRANT family (510+)
      *
      * @generated from protobuf enum value: GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND = 510;

@@ -722,6 +722,192 @@ export interface RebindLocalAppProcessResponse {
     reasonCode: ReasonCode;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.CommittedAppRelease
+ */
+export interface CommittedAppRelease {
+    /**
+     * @generated from protobuf field: string app_id = 1
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppPackageSourceClass source_class = 2
+     */
+    sourceClass: AppPackageSourceClass;
+    /**
+     * @generated from protobuf field: string version = 3
+     */
+    version: string;
+    /**
+     * @generated from protobuf field: string release_ref = 4
+     */
+    releaseRef: string;
+    /**
+     * @generated from protobuf field: bytes launch_selector = 5
+     */
+    launchSelector: Uint8Array;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp committed_at = 12
+     */
+    committedAt?: Timestamp;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AppPackageJob
+ */
+export interface AppPackageJob {
+    /**
+     * @generated from protobuf field: bytes job_id = 1
+     */
+    jobId: Uint8Array;
+    /**
+     * @generated from protobuf field: string app_id = 2
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppPackageSourceClass source_class = 3
+     */
+    sourceClass: AppPackageSourceClass;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppPackageJobKind kind = 4
+     */
+    kind: AppPackageJobKind;
+    /**
+     * @generated from protobuf field: string target_ref = 5
+     */
+    targetRef: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppPackageJobPhase phase = 6
+     */
+    phase: AppPackageJobPhase;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppPackageProgressBasis progress_basis = 7
+     */
+    progressBasis: AppPackageProgressBasis;
+    /**
+     * @generated from protobuf field: uint64 bytes_completed = 8
+     */
+    bytesCompleted: string;
+    /**
+     * @generated from protobuf field: optional uint64 bytes_total = 9
+     */
+    bytesTotal?: string;
+    /**
+     * @generated from protobuf field: uint64 steps_completed = 10
+     */
+    stepsCompleted: string;
+    /**
+     * @generated from protobuf field: optional uint64 steps_total = 11
+     */
+    stepsTotal?: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp started_at = 12
+     */
+    startedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp completed_at = 13
+     */
+    completedAt?: Timestamp;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppPackageTerminalResult terminal_result = 14
+     */
+    terminalResult: AppPackageTerminalResult;
+    /**
+     * @generated from protobuf field: string reason_code = 15
+     */
+    reasonCode: string;
+    /**
+     * @generated from protobuf field: bool cancelable = 16
+     */
+    cancelable: boolean;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListCommittedAppReleasesRequest
+ */
+export interface ListCommittedAppReleasesRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListCommittedAppReleasesResponse
+ */
+export interface ListCommittedAppReleasesResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.CommittedAppRelease releases = 1
+     */
+    releases: CommittedAppRelease[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListAppPackageJobsRequest
+ */
+export interface ListAppPackageJobsRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListAppPackageJobsResponse
+ */
+export interface ListAppPackageJobsResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.AppPackageJob jobs = 1
+     */
+    jobs: AppPackageJob[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAppPackageJobRequest
+ */
+export interface GetAppPackageJobRequest {
+    /**
+     * @generated from protobuf field: bytes job_id = 1
+     */
+    jobId: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetAppPackageJobResponse
+ */
+export interface GetAppPackageJobResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppPackageJob job = 1
+     */
+    job?: AppPackageJob;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CancelAppPackageJobRequest
+ */
+export interface CancelAppPackageJobRequest {
+    /**
+     * @generated from protobuf field: bytes job_id = 1
+     */
+    jobId: Uint8Array;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppPackageJobPhase expected_phase = 2
+     */
+    expectedPhase: AppPackageJobPhase;
+    /**
+     * @generated from protobuf field: string reason_code = 3
+     */
+    reasonCode: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CancelAppPackageJobResponse
+ */
+export interface CancelAppPackageJobResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppPackageJob job = 1
+     */
+    job?: AppPackageJob;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.AppMessageEventType
  */
 export enum AppMessageEventType {
@@ -765,6 +951,151 @@ export enum AppStorageState {
      * @generated from protobuf enum value: APP_STORAGE_STATE_STORAGE_UNAVAILABLE = 4;
      */
     STORAGE_UNAVAILABLE = 4
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AppPackageSourceClass
+ */
+export enum AppPackageSourceClass {
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_SOURCE_CLASS_VERIFIED = 1;
+     */
+    VERIFIED = 1,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED = 2;
+     */
+    USER_IMPORTED = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AppPackageJobKind
+ */
+export enum AppPackageJobKind {
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_KIND_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_KIND_INSTALL = 1;
+     */
+    INSTALL = 1,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_KIND_UPDATE = 2;
+     */
+    UPDATE = 2,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_KIND_REPAIR = 3;
+     */
+    REPAIR = 3,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_KIND_UNINSTALL = 4;
+     */
+    UNINSTALL = 4
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AppPackageJobPhase
+ */
+export enum AppPackageJobPhase {
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_QUEUED = 1;
+     */
+    QUEUED = 1,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_DOWNLOADING = 2;
+     */
+    DOWNLOADING = 2,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_READING_LOCAL = 3;
+     */
+    READING_LOCAL = 3,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_VERIFYING = 4;
+     */
+    VERIFYING = 4,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED = 5;
+     */
+    VERIFYING_INSTALLED = 5,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING = 6;
+     */
+    ACQUIRING_MISSING = 6,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_STAGING = 7;
+     */
+    STAGING = 7,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_COMMITTING = 8;
+     */
+    COMMITTING = 8,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_REMOVING_PACKAGE = 10;
+     */
+    REMOVING_PACKAGE = 10,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_UNREGISTERING = 11;
+     */
+    UNREGISTERING = 11,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_COMPLETED = 12;
+     */
+    COMPLETED = 12,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_FAILED = 13;
+     */
+    FAILED = 13,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_CANCELED = 14;
+     */
+    CANCELED = 14
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AppPackageProgressBasis
+ */
+export enum AppPackageProgressBasis {
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_PROGRESS_BASIS_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_PROGRESS_BASIS_BYTES = 1;
+     */
+    BYTES = 1,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_PROGRESS_BASIS_STEPS = 2;
+     */
+    STEPS = 2,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_PROGRESS_BASIS_INDETERMINATE = 3;
+     */
+    INDETERMINATE = 3
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.AppPackageTerminalResult
+ */
+export enum AppPackageTerminalResult {
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_TERMINAL_RESULT_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_TERMINAL_RESULT_COMPLETED = 1;
+     */
+    COMPLETED = 1,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_TERMINAL_RESULT_FAILED = 2;
+     */
+    FAILED = 2,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_TERMINAL_RESULT_CANCELED = 3;
+     */
+    CANCELED = 3
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class SendAppMessageRequest$Type extends MessageType<SendAppMessageRequest> {
@@ -3183,3 +3514,656 @@ class RebindLocalAppProcessResponse$Type extends MessageType<RebindLocalAppProce
  * @generated MessageType for protobuf message nimi.runtime.v1.RebindLocalAppProcessResponse
  */
 export const RebindLocalAppProcessResponse = new RebindLocalAppProcessResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CommittedAppRelease$Type extends MessageType<CommittedAppRelease> {
+    constructor() {
+        super("nimi.runtime.v1.CommittedAppRelease", [
+            { no: 1, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "source_class", kind: "enum", T: () => ["nimi.runtime.v1.AppPackageSourceClass", AppPackageSourceClass, "APP_PACKAGE_SOURCE_CLASS_"] },
+            { no: 3, name: "version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "release_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "launch_selector", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 12, name: "committed_at", kind: "message", T: () => Timestamp }
+        ]);
+    }
+    create(value?: PartialMessage<CommittedAppRelease>): CommittedAppRelease {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.appId = "";
+        message.sourceClass = 0;
+        message.version = "";
+        message.releaseRef = "";
+        message.launchSelector = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<CommittedAppRelease>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CommittedAppRelease): CommittedAppRelease {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string app_id */ 1:
+                    message.appId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AppPackageSourceClass source_class */ 2:
+                    message.sourceClass = reader.int32();
+                    break;
+                case /* string version */ 3:
+                    message.version = reader.string();
+                    break;
+                case /* string release_ref */ 4:
+                    message.releaseRef = reader.string();
+                    break;
+                case /* bytes launch_selector */ 5:
+                    message.launchSelector = reader.bytes();
+                    break;
+                case /* google.protobuf.Timestamp committed_at */ 12:
+                    message.committedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.committedAt);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CommittedAppRelease, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string app_id = 1; */
+        if (message.appId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.appId);
+        /* nimi.runtime.v1.AppPackageSourceClass source_class = 2; */
+        if (message.sourceClass !== 0)
+            writer.tag(2, WireType.Varint).int32(message.sourceClass);
+        /* string version = 3; */
+        if (message.version !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.version);
+        /* string release_ref = 4; */
+        if (message.releaseRef !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.releaseRef);
+        /* bytes launch_selector = 5; */
+        if (message.launchSelector.length)
+            writer.tag(5, WireType.LengthDelimited).bytes(message.launchSelector);
+        /* google.protobuf.Timestamp committed_at = 12; */
+        if (message.committedAt)
+            Timestamp.internalBinaryWrite(message.committedAt, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CommittedAppRelease
+ */
+export const CommittedAppRelease = new CommittedAppRelease$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AppPackageJob$Type extends MessageType<AppPackageJob> {
+    constructor() {
+        super("nimi.runtime.v1.AppPackageJob", [
+            { no: 1, name: "job_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "source_class", kind: "enum", T: () => ["nimi.runtime.v1.AppPackageSourceClass", AppPackageSourceClass, "APP_PACKAGE_SOURCE_CLASS_"] },
+            { no: 4, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.AppPackageJobKind", AppPackageJobKind, "APP_PACKAGE_JOB_KIND_"] },
+            { no: 5, name: "target_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "phase", kind: "enum", T: () => ["nimi.runtime.v1.AppPackageJobPhase", AppPackageJobPhase, "APP_PACKAGE_JOB_PHASE_"] },
+            { no: 7, name: "progress_basis", kind: "enum", T: () => ["nimi.runtime.v1.AppPackageProgressBasis", AppPackageProgressBasis, "APP_PACKAGE_PROGRESS_BASIS_"] },
+            { no: 8, name: "bytes_completed", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 9, name: "bytes_total", kind: "scalar", opt: true, T: 4 /*ScalarType.UINT64*/ },
+            { no: 10, name: "steps_completed", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 11, name: "steps_total", kind: "scalar", opt: true, T: 4 /*ScalarType.UINT64*/ },
+            { no: 12, name: "started_at", kind: "message", T: () => Timestamp },
+            { no: 13, name: "completed_at", kind: "message", T: () => Timestamp },
+            { no: 14, name: "terminal_result", kind: "enum", T: () => ["nimi.runtime.v1.AppPackageTerminalResult", AppPackageTerminalResult, "APP_PACKAGE_TERMINAL_RESULT_"] },
+            { no: 15, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 16, name: "cancelable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AppPackageJob>): AppPackageJob {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.jobId = new Uint8Array(0);
+        message.appId = "";
+        message.sourceClass = 0;
+        message.kind = 0;
+        message.targetRef = "";
+        message.phase = 0;
+        message.progressBasis = 0;
+        message.bytesCompleted = "0";
+        message.stepsCompleted = "0";
+        message.terminalResult = 0;
+        message.reasonCode = "";
+        message.cancelable = false;
+        if (value !== undefined)
+            reflectionMergePartial<AppPackageJob>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AppPackageJob): AppPackageJob {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes job_id */ 1:
+                    message.jobId = reader.bytes();
+                    break;
+                case /* string app_id */ 2:
+                    message.appId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AppPackageSourceClass source_class */ 3:
+                    message.sourceClass = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AppPackageJobKind kind */ 4:
+                    message.kind = reader.int32();
+                    break;
+                case /* string target_ref */ 5:
+                    message.targetRef = reader.string();
+                    break;
+                case /* nimi.runtime.v1.AppPackageJobPhase phase */ 6:
+                    message.phase = reader.int32();
+                    break;
+                case /* nimi.runtime.v1.AppPackageProgressBasis progress_basis */ 7:
+                    message.progressBasis = reader.int32();
+                    break;
+                case /* uint64 bytes_completed */ 8:
+                    message.bytesCompleted = reader.uint64().toString();
+                    break;
+                case /* optional uint64 bytes_total */ 9:
+                    message.bytesTotal = reader.uint64().toString();
+                    break;
+                case /* uint64 steps_completed */ 10:
+                    message.stepsCompleted = reader.uint64().toString();
+                    break;
+                case /* optional uint64 steps_total */ 11:
+                    message.stepsTotal = reader.uint64().toString();
+                    break;
+                case /* google.protobuf.Timestamp started_at */ 12:
+                    message.startedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.startedAt);
+                    break;
+                case /* google.protobuf.Timestamp completed_at */ 13:
+                    message.completedAt = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.completedAt);
+                    break;
+                case /* nimi.runtime.v1.AppPackageTerminalResult terminal_result */ 14:
+                    message.terminalResult = reader.int32();
+                    break;
+                case /* string reason_code */ 15:
+                    message.reasonCode = reader.string();
+                    break;
+                case /* bool cancelable */ 16:
+                    message.cancelable = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AppPackageJob, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes job_id = 1; */
+        if (message.jobId.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.jobId);
+        /* string app_id = 2; */
+        if (message.appId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.appId);
+        /* nimi.runtime.v1.AppPackageSourceClass source_class = 3; */
+        if (message.sourceClass !== 0)
+            writer.tag(3, WireType.Varint).int32(message.sourceClass);
+        /* nimi.runtime.v1.AppPackageJobKind kind = 4; */
+        if (message.kind !== 0)
+            writer.tag(4, WireType.Varint).int32(message.kind);
+        /* string target_ref = 5; */
+        if (message.targetRef !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.targetRef);
+        /* nimi.runtime.v1.AppPackageJobPhase phase = 6; */
+        if (message.phase !== 0)
+            writer.tag(6, WireType.Varint).int32(message.phase);
+        /* nimi.runtime.v1.AppPackageProgressBasis progress_basis = 7; */
+        if (message.progressBasis !== 0)
+            writer.tag(7, WireType.Varint).int32(message.progressBasis);
+        /* uint64 bytes_completed = 8; */
+        if (message.bytesCompleted !== "0")
+            writer.tag(8, WireType.Varint).uint64(message.bytesCompleted);
+        /* optional uint64 bytes_total = 9; */
+        if (message.bytesTotal !== undefined)
+            writer.tag(9, WireType.Varint).uint64(message.bytesTotal);
+        /* uint64 steps_completed = 10; */
+        if (message.stepsCompleted !== "0")
+            writer.tag(10, WireType.Varint).uint64(message.stepsCompleted);
+        /* optional uint64 steps_total = 11; */
+        if (message.stepsTotal !== undefined)
+            writer.tag(11, WireType.Varint).uint64(message.stepsTotal);
+        /* google.protobuf.Timestamp started_at = 12; */
+        if (message.startedAt)
+            Timestamp.internalBinaryWrite(message.startedAt, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
+        /* google.protobuf.Timestamp completed_at = 13; */
+        if (message.completedAt)
+            Timestamp.internalBinaryWrite(message.completedAt, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AppPackageTerminalResult terminal_result = 14; */
+        if (message.terminalResult !== 0)
+            writer.tag(14, WireType.Varint).int32(message.terminalResult);
+        /* string reason_code = 15; */
+        if (message.reasonCode !== "")
+            writer.tag(15, WireType.LengthDelimited).string(message.reasonCode);
+        /* bool cancelable = 16; */
+        if (message.cancelable !== false)
+            writer.tag(16, WireType.Varint).bool(message.cancelable);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AppPackageJob
+ */
+export const AppPackageJob = new AppPackageJob$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListCommittedAppReleasesRequest$Type extends MessageType<ListCommittedAppReleasesRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListCommittedAppReleasesRequest", []);
+    }
+    create(value?: PartialMessage<ListCommittedAppReleasesRequest>): ListCommittedAppReleasesRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ListCommittedAppReleasesRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListCommittedAppReleasesRequest): ListCommittedAppReleasesRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListCommittedAppReleasesRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListCommittedAppReleasesRequest
+ */
+export const ListCommittedAppReleasesRequest = new ListCommittedAppReleasesRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListCommittedAppReleasesResponse$Type extends MessageType<ListCommittedAppReleasesResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListCommittedAppReleasesResponse", [
+            { no: 1, name: "releases", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => CommittedAppRelease },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<ListCommittedAppReleasesResponse>): ListCommittedAppReleasesResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.releases = [];
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ListCommittedAppReleasesResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListCommittedAppReleasesResponse): ListCommittedAppReleasesResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.CommittedAppRelease releases */ 1:
+                    message.releases.push(CommittedAppRelease.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListCommittedAppReleasesResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.CommittedAppRelease releases = 1; */
+        for (let i = 0; i < message.releases.length; i++)
+            CommittedAppRelease.internalBinaryWrite(message.releases[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListCommittedAppReleasesResponse
+ */
+export const ListCommittedAppReleasesResponse = new ListCommittedAppReleasesResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListAppPackageJobsRequest$Type extends MessageType<ListAppPackageJobsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListAppPackageJobsRequest", []);
+    }
+    create(value?: PartialMessage<ListAppPackageJobsRequest>): ListAppPackageJobsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ListAppPackageJobsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListAppPackageJobsRequest): ListAppPackageJobsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListAppPackageJobsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListAppPackageJobsRequest
+ */
+export const ListAppPackageJobsRequest = new ListAppPackageJobsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListAppPackageJobsResponse$Type extends MessageType<ListAppPackageJobsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListAppPackageJobsResponse", [
+            { no: 1, name: "jobs", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => AppPackageJob },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<ListAppPackageJobsResponse>): ListAppPackageJobsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.jobs = [];
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ListAppPackageJobsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListAppPackageJobsResponse): ListAppPackageJobsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.AppPackageJob jobs */ 1:
+                    message.jobs.push(AppPackageJob.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListAppPackageJobsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.AppPackageJob jobs = 1; */
+        for (let i = 0; i < message.jobs.length; i++)
+            AppPackageJob.internalBinaryWrite(message.jobs[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListAppPackageJobsResponse
+ */
+export const ListAppPackageJobsResponse = new ListAppPackageJobsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAppPackageJobRequest$Type extends MessageType<GetAppPackageJobRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetAppPackageJobRequest", [
+            { no: 1, name: "job_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetAppPackageJobRequest>): GetAppPackageJobRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.jobId = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<GetAppPackageJobRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAppPackageJobRequest): GetAppPackageJobRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes job_id */ 1:
+                    message.jobId = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAppPackageJobRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes job_id = 1; */
+        if (message.jobId.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.jobId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAppPackageJobRequest
+ */
+export const GetAppPackageJobRequest = new GetAppPackageJobRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetAppPackageJobResponse$Type extends MessageType<GetAppPackageJobResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetAppPackageJobResponse", [
+            { no: 1, name: "job", kind: "message", T: () => AppPackageJob },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<GetAppPackageJobResponse>): GetAppPackageJobResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<GetAppPackageJobResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetAppPackageJobResponse): GetAppPackageJobResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AppPackageJob job */ 1:
+                    message.job = AppPackageJob.internalBinaryRead(reader, reader.uint32(), options, message.job);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetAppPackageJobResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AppPackageJob job = 1; */
+        if (message.job)
+            AppPackageJob.internalBinaryWrite(message.job, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetAppPackageJobResponse
+ */
+export const GetAppPackageJobResponse = new GetAppPackageJobResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CancelAppPackageJobRequest$Type extends MessageType<CancelAppPackageJobRequest> {
+    constructor() {
+        super("nimi.runtime.v1.CancelAppPackageJobRequest", [
+            { no: 1, name: "job_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "expected_phase", kind: "enum", T: () => ["nimi.runtime.v1.AppPackageJobPhase", AppPackageJobPhase, "APP_PACKAGE_JOB_PHASE_"] },
+            { no: 3, name: "reason_code", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CancelAppPackageJobRequest>): CancelAppPackageJobRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.jobId = new Uint8Array(0);
+        message.expectedPhase = 0;
+        message.reasonCode = "";
+        if (value !== undefined)
+            reflectionMergePartial<CancelAppPackageJobRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CancelAppPackageJobRequest): CancelAppPackageJobRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes job_id */ 1:
+                    message.jobId = reader.bytes();
+                    break;
+                case /* nimi.runtime.v1.AppPackageJobPhase expected_phase */ 2:
+                    message.expectedPhase = reader.int32();
+                    break;
+                case /* string reason_code */ 3:
+                    message.reasonCode = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CancelAppPackageJobRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes job_id = 1; */
+        if (message.jobId.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.jobId);
+        /* nimi.runtime.v1.AppPackageJobPhase expected_phase = 2; */
+        if (message.expectedPhase !== 0)
+            writer.tag(2, WireType.Varint).int32(message.expectedPhase);
+        /* string reason_code = 3; */
+        if (message.reasonCode !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CancelAppPackageJobRequest
+ */
+export const CancelAppPackageJobRequest = new CancelAppPackageJobRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CancelAppPackageJobResponse$Type extends MessageType<CancelAppPackageJobResponse> {
+    constructor() {
+        super("nimi.runtime.v1.CancelAppPackageJobResponse", [
+            { no: 1, name: "job", kind: "message", T: () => AppPackageJob },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<CancelAppPackageJobResponse>): CancelAppPackageJobResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<CancelAppPackageJobResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CancelAppPackageJobResponse): CancelAppPackageJobResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AppPackageJob job */ 1:
+                    message.job = AppPackageJob.internalBinaryRead(reader, reader.uint32(), options, message.job);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CancelAppPackageJobResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AppPackageJob job = 1; */
+        if (message.job)
+            AppPackageJob.internalBinaryWrite(message.job, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CancelAppPackageJobResponse
+ */
+export const CancelAppPackageJobResponse = new CancelAppPackageJobResponse$Type();

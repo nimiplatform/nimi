@@ -479,6 +479,61 @@ const (
 	APPMESSAGEEVENTFAILED          AppMessageEventType = "APP_MESSAGE_EVENT_FAILED"
 )
 
+type AppPackageJobKind string
+
+const (
+	APPPACKAGEJOBKINDUNSPECIFIED AppPackageJobKind = "APP_PACKAGE_JOB_KIND_UNSPECIFIED"
+	APPPACKAGEJOBKINDINSTALL     AppPackageJobKind = "APP_PACKAGE_JOB_KIND_INSTALL"
+	APPPACKAGEJOBKINDUPDATE      AppPackageJobKind = "APP_PACKAGE_JOB_KIND_UPDATE"
+	APPPACKAGEJOBKINDREPAIR      AppPackageJobKind = "APP_PACKAGE_JOB_KIND_REPAIR"
+	APPPACKAGEJOBKINDUNINSTALL   AppPackageJobKind = "APP_PACKAGE_JOB_KIND_UNINSTALL"
+)
+
+type AppPackageJobPhase string
+
+const (
+	APPPACKAGEJOBPHASEUNSPECIFIED        AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_UNSPECIFIED"
+	APPPACKAGEJOBPHASEQUEUED             AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_QUEUED"
+	APPPACKAGEJOBPHASEDOWNLOADING        AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_DOWNLOADING"
+	APPPACKAGEJOBPHASEREADINGLOCAL       AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_READING_LOCAL"
+	APPPACKAGEJOBPHASEVERIFYING          AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_VERIFYING"
+	APPPACKAGEJOBPHASEVERIFYINGINSTALLED AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED"
+	APPPACKAGEJOBPHASEACQUIRINGMISSING   AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING"
+	APPPACKAGEJOBPHASESTAGING            AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_STAGING"
+	APPPACKAGEJOBPHASECOMMITTING         AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_COMMITTING"
+	APPPACKAGEJOBPHASEREMOVINGPACKAGE    AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_REMOVING_PACKAGE"
+	APPPACKAGEJOBPHASEUNREGISTERING      AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_UNREGISTERING"
+	APPPACKAGEJOBPHASECOMPLETED          AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_COMPLETED"
+	APPPACKAGEJOBPHASEFAILED             AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_FAILED"
+	APPPACKAGEJOBPHASECANCELED           AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_CANCELED"
+)
+
+type AppPackageProgressBasis string
+
+const (
+	APPPACKAGEPROGRESSBASISUNSPECIFIED   AppPackageProgressBasis = "APP_PACKAGE_PROGRESS_BASIS_UNSPECIFIED"
+	APPPACKAGEPROGRESSBASISBYTES         AppPackageProgressBasis = "APP_PACKAGE_PROGRESS_BASIS_BYTES"
+	APPPACKAGEPROGRESSBASISSTEPS         AppPackageProgressBasis = "APP_PACKAGE_PROGRESS_BASIS_STEPS"
+	APPPACKAGEPROGRESSBASISINDETERMINATE AppPackageProgressBasis = "APP_PACKAGE_PROGRESS_BASIS_INDETERMINATE"
+)
+
+type AppPackageSourceClass string
+
+const (
+	APPPACKAGESOURCECLASSUNSPECIFIED  AppPackageSourceClass = "APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED"
+	APPPACKAGESOURCECLASSVERIFIED     AppPackageSourceClass = "APP_PACKAGE_SOURCE_CLASS_VERIFIED"
+	APPPACKAGESOURCECLASSUSERIMPORTED AppPackageSourceClass = "APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED"
+)
+
+type AppPackageTerminalResult string
+
+const (
+	APPPACKAGETERMINALRESULTUNSPECIFIED AppPackageTerminalResult = "APP_PACKAGE_TERMINAL_RESULT_UNSPECIFIED"
+	APPPACKAGETERMINALRESULTCOMPLETED   AppPackageTerminalResult = "APP_PACKAGE_TERMINAL_RESULT_COMPLETED"
+	APPPACKAGETERMINALRESULTFAILED      AppPackageTerminalResult = "APP_PACKAGE_TERMINAL_RESULT_FAILED"
+	APPPACKAGETERMINALRESULTCANCELED    AppPackageTerminalResult = "APP_PACKAGE_TERMINAL_RESULT_CANCELED"
+)
+
 type AppStorageState string
 
 const (
@@ -1495,6 +1550,9 @@ const (
 	APPSTORAGECURSORINVALID                         ReasonCode = "APP_STORAGE_CURSOR_INVALID"
 	APPSTORAGEINTEGRITYFAILURE                      ReasonCode = "APP_STORAGE_INTEGRITY_FAILURE"
 	APPSTORAGEARTIFACTUNAVAILABLE                   ReasonCode = "APP_STORAGE_ARTIFACT_UNAVAILABLE"
+	APPPACKAGEJOBNOTFOUND                           ReasonCode = "APP_PACKAGE_JOB_NOT_FOUND"
+	APPPACKAGEJOBPHASECONFLICT                      ReasonCode = "APP_PACKAGE_JOB_PHASE_CONFLICT"
+	APPPACKAGEJOBNOTCANCELABLE                      ReasonCode = "APP_PACKAGE_JOB_NOT_CANCELABLE"
 	GRANTTOKENCHAINROOTNOTFOUND                     ReasonCode = "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND"
 	GRANTTOKENCHAINROOTREQUIRED                     ReasonCode = "GRANT_TOKEN_CHAIN_ROOT_REQUIRED"
 	PAGETOKENINVALID                                ReasonCode = "PAGE_TOKEN_INVALID"
@@ -2567,6 +2625,25 @@ type AppMessageEvent struct {
 	Timestamp     string              `json:"timestamp,omitempty"`
 }
 
+type AppPackageJob struct {
+	JobId          []byte                   `json:"job_id,omitempty"`
+	AppId          string                   `json:"app_id,omitempty"`
+	SourceClass    AppPackageSourceClass    `json:"source_class,omitempty"`
+	Kind           AppPackageJobKind        `json:"kind,omitempty"`
+	TargetRef      string                   `json:"target_ref,omitempty"`
+	Phase          AppPackageJobPhase       `json:"phase,omitempty"`
+	ProgressBasis  AppPackageProgressBasis  `json:"progress_basis,omitempty"`
+	BytesCompleted uint64                   `json:"bytes_completed,omitempty"`
+	BytesTotal     *uint64                  `json:"bytes_total,omitempty"`
+	StepsCompleted uint64                   `json:"steps_completed,omitempty"`
+	StepsTotal     *uint64                  `json:"steps_total,omitempty"`
+	StartedAt      string                   `json:"started_at,omitempty"`
+	CompletedAt    string                   `json:"completed_at,omitempty"`
+	TerminalResult AppPackageTerminalResult `json:"terminal_result,omitempty"`
+	ReasonCode     string                   `json:"reason_code,omitempty"`
+	Cancelable     bool                     `json:"cancelable,omitempty"`
+}
+
 type AppStorageProjection struct {
 	AppId            string          `json:"app_id,omitempty"`
 	State            AppStorageState `json:"state,omitempty"`
@@ -2734,6 +2811,17 @@ type BindLocalAppProcessResponse struct {
 	LaunchId     []byte     `json:"launch_id,omitempty"`
 	BindDeadline string     `json:"bind_deadline,omitempty"`
 	ReasonCode   ReasonCode `json:"reason_code,omitempty"`
+}
+
+type CancelAppPackageJobRequest struct {
+	JobId         []byte             `json:"job_id,omitempty"`
+	ExpectedPhase AppPackageJobPhase `json:"expected_phase,omitempty"`
+	ReasonCode    string             `json:"reason_code,omitempty"`
+}
+
+type CancelAppPackageJobResponse struct {
+	Job        *AppPackageJob `json:"job,omitempty"`
+	ReasonCode ReasonCode     `json:"reason_code,omitempty"`
 }
 
 type CancelHookRequest struct {
@@ -3280,6 +3368,15 @@ type CommitLocalAppAgentPresentationRequest struct {
 	ImportedAssets               []AgentPresentationAssetMaterial `json:"imported_assets,omitempty"`
 }
 
+type CommittedAppRelease struct {
+	AppId          string                `json:"app_id,omitempty"`
+	SourceClass    AppPackageSourceClass `json:"source_class,omitempty"`
+	Version        string                `json:"version,omitempty"`
+	ReleaseRef     string                `json:"release_ref,omitempty"`
+	LaunchSelector []byte                `json:"launch_selector,omitempty"`
+	CommittedAt    string                `json:"committed_at,omitempty"`
+}
+
 type CompleteLoginRequest struct {
 	Caller                 *AccountCaller `json:"caller,omitempty"`
 	LoginAttemptId         string         `json:"login_attempt_id,omitempty"`
@@ -3788,6 +3885,15 @@ type GetAppAIConfigResponse struct {
 	EffectiveSelections []AIConfigEffectiveSelection `json:"effective_selections,omitempty"`
 }
 
+type GetAppPackageJobRequest struct {
+	JobId []byte `json:"job_id,omitempty"`
+}
+
+type GetAppPackageJobResponse struct {
+	Job        *AppPackageJob `json:"job,omitempty"`
+	ReasonCode ReasonCode     `json:"reason_code,omitempty"`
+}
+
 type GetAppStorageRequest struct {
 	AppId string `json:"app_id,omitempty"`
 }
@@ -4223,6 +4329,14 @@ type ListAppAIConfigOptionsResponse struct {
 	PresetVoices    *AppAIConfigPresetVoiceOptions `json:"preset_voices,omitempty"`
 }
 
+type ListAppPackageJobsRequest struct {
+}
+
+type ListAppPackageJobsResponse struct {
+	Jobs       []AppPackageJob `json:"jobs,omitempty"`
+	ReasonCode ReasonCode      `json:"reason_code,omitempty"`
+}
+
 type ListAuditEventsRequest struct {
 	AppId         string     `json:"app_id,omitempty"`
 	SubjectUserId string     `json:"subject_user_id,omitempty"`
@@ -4260,6 +4374,14 @@ type ListCatalogVariantsRequest struct {
 
 type ListCatalogVariantsResponse struct {
 	Variants []LocalCatalogVariantDescriptor `json:"variants,omitempty"`
+}
+
+type ListCommittedAppReleasesRequest struct {
+}
+
+type ListCommittedAppReleasesResponse struct {
+	Releases   []CommittedAppRelease `json:"releases,omitempty"`
+	ReasonCode ReasonCode            `json:"reason_code,omitempty"`
 }
 
 type ListConnectorModelsRequest struct {
@@ -8600,6 +8722,38 @@ func (c RuntimeTypedClient) UploadLocalAppArtifact(ctx context.Context, request 
 		return UploadLocalAppArtifactResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[UploadLocalAppArtifactResponse](raw, "UploadLocalAppArtifactResponse")
+}
+
+func (c RuntimeTypedClient) CancelAppPackageJob(ctx context.Context, request CancelAppPackageJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (CancelAppPackageJobResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob", request, metadata, timeoutMS)
+	if err != nil {
+		return CancelAppPackageJobResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[CancelAppPackageJobResponse](raw, "CancelAppPackageJobResponse")
+}
+
+func (c RuntimeTypedClient) GetAppPackageJob(ctx context.Context, request GetAppPackageJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppPackageJobResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob", request, metadata, timeoutMS)
+	if err != nil {
+		return GetAppPackageJobResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetAppPackageJobResponse](raw, "GetAppPackageJobResponse")
+}
+
+func (c RuntimeTypedClient) ListAppPackageJobs(ctx context.Context, request ListAppPackageJobsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListAppPackageJobsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs", request, metadata, timeoutMS)
+	if err != nil {
+		return ListAppPackageJobsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListAppPackageJobsResponse](raw, "ListAppPackageJobsResponse")
+}
+
+func (c RuntimeTypedClient) ListCommittedAppReleases(ctx context.Context, request ListCommittedAppReleasesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListCommittedAppReleasesResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases", request, metadata, timeoutMS)
+	if err != nil {
+		return ListCommittedAppReleasesResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListCommittedAppReleasesResponse](raw, "ListCommittedAppReleasesResponse")
 }
 
 func (c RuntimeTypedClient) AdoptLocalAppArtifact(ctx context.Context, request AdoptLocalAppArtifactRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AdoptLocalAppArtifactResponse, error) {
