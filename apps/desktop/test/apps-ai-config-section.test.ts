@@ -38,7 +38,7 @@ test('Apps detail mounts the Nimi-owned first-party surface with the exact app i
   const aiModelsPanelStart = detailSource.indexOf("activeTab === 'ai-models'");
   assert.ok(accessPanelStart >= 0 && aiModelsPanelStart > accessPanelStart);
   assert.doesNotMatch(detailSource.slice(accessPanelStart, aiModelsPanelStart), /AppsAIConfigSection/u);
-  assert.match(detailSource, /appId=\{registration\.appId\}/u);
+  assert.match(detailSource, /appId=\{identity\.appId\}/u);
   assert.match(detailSource, /allowedRoutes=\{registration\.aiConfigAllowedRoutes\}/u);
   assert.doesNotMatch(sectionSource, /consumer:\s*'nimi-first-party'/u);
   assert.match(sectionSource, /capabilityContracts=\{CANONICAL_CAPABILITY_IDS\}/u);
@@ -74,7 +74,7 @@ test('Apps AIConfig mutations refresh the canonical card summary lane', async ()
 
   assert.match(sectionSource, /onAIConfigChanged\(result\)/u);
   assert.match(detailSource, /onAIConfigChanged=\{onAIConfigChanged\}/u);
-  assert.match(viewSource, /onAIConfigChanged=\{\(result\) => onAIConfigChanged\(selectedEntry\.registration\.appId, result\)\}/u);
+  assert.match(viewSource, /onAIConfigChanged=\{\(result\) => onAIConfigChanged\(selectedEntry\.identity\.appId, result\)\}/u);
   assert.match(panelSource, /onAIConfigChanged=\{acknowledgeAIConfigMutation\}/u);
   assert.match(controllerSource, /applyAppsPanelAIConfigAcknowledgement\(projectionRef\.current, appId, result\)/u);
   assert.match(controllerSource, /setProjection\(acknowledged\)[\s\S]*void reload\(true\)/u);

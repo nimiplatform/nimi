@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AppCardActionId } from './apps-card-actions.js';
-import { resolveDetailAppId } from './apps-card-fields.js';
+import { resolveDetailEntryKey } from './apps-card-fields.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import {
   projectAppsPanel,
@@ -15,16 +15,19 @@ import type {
   NimiAIConfigOverwriteResult,
   NimiAIConfigSnapshot,
 } from '@nimiplatform/kit/core/sdk-contract';
+import type { AppPackageJob } from '@nimiplatform/sdk/runtime/wire-types';
 
 export interface AppsPanelState {
   readonly projection: DesktopAppsPanelProjection | null;
-  readonly detailAppId: string | null;
+  readonly detailEntryKey: string | null;
+  readonly searchQuery: string;
   readonly actionError: string | null;
-  readonly activeAction: Readonly<{ appId: string; action: AppCardActionId }> | null;
+  readonly activeAction: Readonly<{ entryKey: string; action: AppCardActionId }> | null;
 }
 
 export interface AppsPanelActions {
-  readonly runCardAction: (appId: string, action: AppCardActionId) => void;
+  readonly setSearchQuery: (query: string) => void;
+  readonly runCardAction: (entryKey: string, action: AppCardActionId) => void;
   readonly retryProjection: () => void;
   readonly closeDetail: () => void;
   readonly acknowledgeAIConfigMutation: (appId: string, result: NimiAIConfigOverwriteResult) => void;
@@ -34,6 +37,9 @@ export type AppsPanelController = AppsPanelState & AppsPanelActions;
 
 export interface AppsPanelControllerDeps {
   readonly buildLiveBridge?: typeof createDesktopAppsLiveBridge;
+  readonly listCommittedReleases: DesktopAppsProjectionSource['listCommittedReleases'];
+  readonly listPackageJobs: DesktopAppsProjectionSource['listPackageJobs'];
+  readonly cancelPackageJob: (job: AppPackageJob) => Promise<void>;
   readonly readAppAIConfig?: (
     appId: string,
     options: DesktopAppAIConfigReadOptions,
@@ -54,11 +60,13 @@ export function mergeAppsPanelProjection(
 ): DesktopAppsPanelProjection {
   if (current?.status !== 'loaded' || next.status !== 'loaded') return next;
   if (lane === 'lifecycle') {
-    const currentByAppId = new Map(current.entries.map((entry) => [entry.registration.appId, entry]));
+    const currentByKey = new Map(current.entries.map((entry) => [entry.identity.entryKey, entry]));
     return {
       status: 'loaded',
+      catalogStatus: next.catalogStatus,
+      runtimeError: next.runtimeError,
       entries: next.entries.map((entry) => {
-        const currentEntry = currentByAppId.get(entry.registration.appId);
+        const currentEntry = currentByKey.get(entry.identity.entryKey);
         return {
           ...entry,
           aiConfigSummary: currentEntry ? currentEntry.aiConfigSummary : entry.aiConfigSummary,
@@ -66,11 +74,13 @@ export function mergeAppsPanelProjection(
       }),
     };
   }
-  const refreshedByAppId = new Map(next.entries.map((entry) => [entry.registration.appId, entry]));
+  const refreshedByKey = new Map(next.entries.map((entry) => [entry.identity.entryKey, entry]));
   return {
     status: 'loaded',
+    catalogStatus: next.catalogStatus,
+    runtimeError: next.runtimeError,
     entries: current.entries.map((entry) => {
-      const refreshedEntry = refreshedByAppId.get(entry.registration.appId);
+      const refreshedEntry = refreshedByKey.get(entry.identity.entryKey);
       return {
         ...entry,
         aiConfigSummary: refreshedEntry ? refreshedEntry.aiConfigSummary : entry.aiConfigSummary,
@@ -92,11 +102,13 @@ export function applyAppsPanelAIConfigAcknowledgement(
     effectiveSelections: [],
   });
   const entries = current.entries.map((entry) => {
-    if (entry.registration.appId !== appId) return entry;
+    if (entry.identity.appId !== appId) return entry;
     matched = true;
     return { ...entry, aiConfigSummary };
   });
-  return matched ? { status: 'loaded', entries } : current;
+  return matched ? {
+    status: 'loaded', entries, catalogStatus: current.catalogStatus, runtimeError: current.runtimeError,
+  } : current;
 }
 
 export function createAppsPanelProjectionReloader(input: {
@@ -109,16 +121,24 @@ export function createAppsPanelProjectionReloader(input: {
     lifecycle: null,
     'ai-config': null,
   };
-
+  const latestRevision: Record<AppsPanelReloadLane, number> = {
+    lifecycle: 0,
+    'ai-config': 0,
+  };
   const reload = (refreshAIConfig = true): Promise<void> => {
     const lane: AppsPanelReloadLane = refreshAIConfig ? 'ai-config' : 'lifecycle';
     const existing = inFlight[lane];
     if (existing) return existing;
+    const revision = latestRevision[lane] + 1;
+    latestRevision[lane] = revision;
     const task = projectAppsPanel(input.source, {
       previous: input.getCurrent(),
       refreshAIConfig,
     }).then((next) => {
-      if (disposed) return;
+      if (
+        disposed
+        || latestRevision[lane] !== revision
+      ) return;
       input.commit(mergeAppsPanelProjection(input.getCurrent(), next, lane));
     }).finally(() => {
       if (inFlight[lane] === task) inFlight[lane] = null;
@@ -135,20 +155,23 @@ export function createAppsPanelProjectionReloader(input: {
   });
 }
 
-export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): AppsPanelController {
+export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanelController {
   const buildLiveBridge = deps.buildLiveBridge ?? createDesktopAppsLiveBridge;
   const liveBridge = useMemo(() => buildLiveBridge(), [buildLiveBridge]);
   const [projection, setProjection] = useState<DesktopAppsPanelProjection | null>(null);
   const projectionRef = useRef<DesktopAppsPanelProjection | null>(null);
-  const [detailAppId, setDetailAppId] = useState<string | null>(null);
+  const [detailEntryKey, setDetailEntryKey] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
   const [activeAction, setActiveAction] = useState<Readonly<{
-    appId: string;
+    entryKey: string;
     action: AppCardActionId;
   }> | null>(null);
   const reloader = useMemo(() => createAppsPanelProjectionReloader({
     source: {
       ...liveBridge,
+      listCommittedReleases: deps.listCommittedReleases,
+      listPackageJobs: deps.listPackageJobs,
       readAppAIConfig: deps.readAppAIConfig,
     },
     getCurrent: () => projectionRef.current,
@@ -156,7 +179,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
       projectionRef.current = next;
       setProjection(next);
     },
-  }), [deps.readAppAIConfig, liveBridge]);
+  }), [deps.listCommittedReleases, deps.listPackageJobs, deps.readAppAIConfig, liveBridge]);
   const reload = useCallback(
     (refreshAIConfig = true): Promise<void> => reloader.reload(refreshAIConfig),
     [reloader],
@@ -164,8 +187,9 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
 
   useEffect(() => {
     void reload(true);
-    return () => reloader.dispose();
-  }, [reload, reloader]);
+  }, [reload]);
+
+  useEffect(() => () => reloader.dispose(), [reloader]);
 
   useEffect(() => {
     const interval = window.setInterval(() => void reload(false), 2_000);
@@ -181,30 +205,36 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
     if (projection?.status !== 'loaded') return;
     // `null` detail id is the library view; the controller only clears a
     // selection whose entry actually disappeared and never auto-selects.
-    setDetailAppId((currentAppId) => resolveDetailAppId(projection.entries, currentAppId));
+    setDetailEntryKey((currentKey) => resolveDetailEntryKey(projection.entries, currentKey));
   }, [projection]);
 
-  const runCardAction = useCallback((appId: string, action: AppCardActionId): void => {
+  const runCardAction = useCallback((entryKey: string, action: AppCardActionId): void => {
     setActionError(null);
     if (action === 'details') {
-      setDetailAppId(appId);
+      setDetailEntryKey(entryKey);
       return;
     }
     if (activeAction || projection?.status !== 'loaded') return;
-    const entry = projection.entries.find((candidate) => candidate.registration.appId === appId);
+    const entry = projection.entries.find((candidate) => candidate.identity.entryKey === entryKey);
     if (!entry) {
-      setActionError(`App is no longer available: ${appId}`);
+      setActionError(`App source is no longer available: ${entryKey}`);
       return;
     }
-    setActiveAction({ appId, action });
+    setActiveAction({ entryKey, action });
     void (async () => {
       try {
         if (action === 'launch') {
-          await liveBridge.startRegistration(entry.registration.selector);
+          if (!entry.localDevelopment) throw new Error('Installed App launch is not implemented');
+          await liveBridge.startRegistration(entry.localDevelopment.selector);
         } else if (action === 'stop') {
-          await liveBridge.stopRun(appId);
+          if (!entry.localDevelopment) throw new Error('Catalog App has no supervised run');
+          await liveBridge.stopRun(entry.identity.appId);
         } else if (action === 'remove') {
-          await liveBridge.removeRegistration(entry.registration.selector);
+          if (!entry.localDevelopment) throw new Error('Catalog App has no local-development registration');
+          await liveBridge.removeRegistration(entry.localDevelopment.selector);
+        } else if (action === 'cancel-job') {
+          if (!entry.packageJob?.cancelable) throw new Error('App package job is not cancelable');
+          await deps.cancelPackageJob(entry.packageJob);
         } else {
           assertAppsAction(action);
         }
@@ -215,7 +245,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
         setActiveAction(null);
       }
     })();
-  }, [activeAction, liveBridge, projection, reload]);
+  }, [activeAction, deps.cancelPackageJob, liveBridge, projection, reload]);
 
   const retryProjection = useCallback((): void => {
     setProjection(null);
@@ -223,7 +253,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
     void reload(true);
   }, [reload]);
 
-  const closeDetail = useCallback((): void => setDetailAppId(null), []);
+  const closeDetail = useCallback((): void => setDetailEntryKey(null), []);
   const acknowledgeAIConfigMutation = useCallback((
     appId: string,
     result: NimiAIConfigOverwriteResult,
@@ -238,10 +268,12 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps = {}): Apps
 
   return {
     projection,
-    detailAppId,
+    detailEntryKey,
+    searchQuery,
     actionError,
     activeAction,
     runCardAction,
+    setSearchQuery,
     retryProjection,
     closeDetail,
     acknowledgeAIConfigMutation,
