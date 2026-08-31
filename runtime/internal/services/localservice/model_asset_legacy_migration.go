@@ -260,12 +260,11 @@ func readLegacyLocalAssetStateDocument(path string) (map[string]json.RawMessage,
 			return nil, nil, 0, fmt.Errorf("decode retired assets rows: %w", err)
 		}
 	}
-	mode := os.FileMode(0o600)
-	if info, err := os.Stat(path); err == nil {
-		mode = info.Mode().Perm()
-	} else {
+	info, err := os.Stat(path)
+	if err != nil {
 		return nil, nil, 0, err
 	}
+	mode := info.Mode().Perm()
 	return document, rows, mode, nil
 }
 

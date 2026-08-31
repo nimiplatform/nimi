@@ -233,7 +233,9 @@ func TestUpdateTransferProgressUsesRecentRate(t *testing.T) {
 		t.Fatalf("ETA must never be negative, got %d s", summary.GetEtaSeconds())
 	}
 
-	svc.completeTransfer(sessionID, "register", "model installed", nil)
+	if err := svc.completeTransfer(sessionID, "register", "model installed", nil); err != nil {
+		t.Fatalf("complete transfer: %v", err)
+	}
 	final := svc.localTransferSummary(sessionID)
 	if final.GetSpeedBytesPerSec() != 0 || final.GetEtaSeconds() != 0 {
 		t.Fatalf("a completed transfer must not report an active rate/ETA, got speed=%d eta=%d",

@@ -5,37 +5,36 @@ use std::fs;
 use std::os::windows::ffi::{OsStrExt, OsStringExt};
 use std::os::windows::fs::MetadataExt;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
 use std::ptr::{null_mut, NonNull};
-use std::thread;
-use std::time::{Duration, Instant};
 
 use windows_sys::Win32::Foundation::{
     CloseHandle, GetLastError, LocalFree, ERROR_INSUFFICIENT_BUFFER, ERROR_SUCCESS, HANDLE,
 };
 use windows_sys::Win32::Security::Authorization::{
-    ConvertStringSidToSidW, GetNamedSecurityInfoW, SE_FILE_OBJECT,
+    ConvertStringSidToSidW, GetNamedSecurityInfoW, SetEntriesInAclW, SetNamedSecurityInfoW,
+    ACCESS_MODE, EXPLICIT_ACCESS_W, NO_MULTIPLE_TRUSTEE, SET_ACCESS, SE_FILE_OBJECT,
+    TRUSTEE_IS_SID, TRUSTEE_IS_UNKNOWN, TRUSTEE_W,
 };
 use windows_sys::Win32::Security::{
-    EqualSid, GetAce, GetTokenInformation, TokenUser, ACCESS_ALLOWED_ACE, ACL,
-    CONTAINER_INHERIT_ACE, DACL_SECURITY_INFORMATION, NO_PROPAGATE_INHERIT_ACE, OBJECT_INHERIT_ACE,
-    OWNER_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR, PSID, TOKEN_QUERY, TOKEN_USER,
+    EqualSid, GetAce, ACCESS_ALLOWED_ACE, ACL, CONTAINER_INHERIT_ACE, DACL_SECURITY_INFORMATION,
+    INHERITED_ACE, NO_PROPAGATE_INHERIT_ACE, OBJECT_INHERIT_ACE, PSECURITY_DESCRIPTOR, PSID,
+    TOKEN_QUERY,
 };
 use windows_sys::Win32::Storage::FileSystem::{
     DELETE, FILE_ATTRIBUTE_REPARSE_POINT, FILE_GENERIC_EXECUTE, FILE_GENERIC_READ,
     FILE_GENERIC_WRITE,
 };
-use windows_sys::Win32::System::SystemInformation::GetSystemDirectoryW;
 use windows_sys::Win32::System::SystemServices::{ACCESS_ALLOWED_ACE_TYPE, ACCESS_DENIED_ACE_TYPE};
 use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 use windows_sys::Win32::UI::Shell::GetUserProfileDirectoryW;
 
 const FIXED_RUNTIME_SERVICE_SID: &str =
     "S-1-5-80-152272774-1324336204-4147968316-71209937-3548791786";
-const ACL_TOOL_TIMEOUT: Duration = Duration::from_secs(10);
-const ACL_TOOL_POLL_INTERVAL: Duration = Duration::from_millis(25);
 const FIXED_RUNTIME_SERVICE_MODIFY_ACCESS: u32 =
     FILE_GENERIC_READ | FILE_GENERIC_WRITE | FILE_GENERIC_EXECUTE | DELETE;
+const FIXED_RUNTIME_SERVICE_ROOT_INHERITANCE: u32 = OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE;
+const FIXED_RUNTIME_PRODUCT_CONTROL_INHERITANCE: u32 =
+    OBJECT_INHERIT_ACE | NO_PROPAGATE_INHERIT_ACE;
 
 #[derive(Debug)]
 pub struct FixedRuntimeDataRootError {
@@ -63,26 +62,6 @@ impl Display for FixedRuntimeDataRootError {
 }
 
 impl Error for FixedRuntimeDataRootError {}
-
-fn system_icacls_path() -> Result<PathBuf, FixedRuntimeDataRootError> {
-    let mut buffer = vec![0u16; 32_768];
-    // SAFETY: the writable buffer is valid for the supplied element count.
-    let length = unsafe { GetSystemDirectoryW(buffer.as_mut_ptr(), buffer.len() as u32) } as usize;
-    if length == 0 || length >= buffer.len() {
-        return Err(FixedRuntimeDataRootError::new(
-            "resolve-system-acl-tool",
-            "GetSystemDirectoryW failed",
-        ));
-    }
-    let tool = PathBuf::from(OsString::from_wide(&buffer[..length])).join("icacls.exe");
-    if !tool.is_absolute() || !tool.is_file() {
-        return Err(FixedRuntimeDataRootError::new(
-            "resolve-system-acl-tool",
-            "the trusted Windows ACL tool is unavailable",
-        ));
-    }
-    Ok(tool)
-}
 
 fn validate_selected_root(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
     if !path.is_absolute() || path.parent().is_none() {
@@ -138,29 +117,130 @@ fn validate_selected_root_chain(
     Ok(())
 }
 
-fn service_acl_grant() -> String {
-    format!("*{FIXED_RUNTIME_SERVICE_SID}:(OI)(CI)M")
-}
-
-fn product_control_acl_grant() -> String {
-    format!("*{FIXED_RUNTIME_SERVICE_SID}:(OI)(NP)M")
-}
-
 struct LocalAllocation(NonNull<c_void>);
 
 impl LocalAllocation {
     fn new(value: *mut c_void) -> Option<Self> {
         NonNull::new(value).map(Self)
     }
+
+    fn as_ptr(&self) -> *mut c_void {
+        self.0.as_ptr()
+    }
 }
 
 impl Drop for LocalAllocation {
     fn drop(&mut self) {
-        // SAFETY: both GetNamedSecurityInfoW and ConvertStringSidToSidW return
-        // LocalAlloc-owned memory that must be released exactly once.
+        // SAFETY: GetNamedSecurityInfoW, ConvertStringSidToSidW, and
+        // SetEntriesInAclW return LocalAlloc-owned memory that must be released
+        // exactly once.
         unsafe {
             let _ = LocalFree(self.0.as_ptr());
         }
+    }
+}
+
+fn fixed_runtime_service_sid(
+    stage: &'static str,
+) -> Result<LocalAllocation, FixedRuntimeDataRootError> {
+    let service_sid_wide = wide_null(std::ffi::OsStr::new(FIXED_RUNTIME_SERVICE_SID));
+    let mut service_sid: PSID = null_mut();
+    // SAFETY: service_sid_wide is nul-terminated and service_sid is a valid
+    // output pointer. The returned LocalAlloc-owned SID is adopted below.
+    if unsafe { ConvertStringSidToSidW(service_sid_wide.as_ptr(), &mut service_sid) } == 0 {
+        // SAFETY: GetLastError is read immediately after the failed Win32 call.
+        let error = unsafe { GetLastError() };
+        return Err(FixedRuntimeDataRootError::new(
+            stage,
+            format!("ConvertStringSidToSidW failed with {error}"),
+        ));
+    }
+    LocalAllocation::new(service_sid).ok_or_else(|| {
+        FixedRuntimeDataRootError::new(stage, "ConvertStringSidToSidW returned no SID")
+    })
+}
+
+struct DaclView {
+    _descriptor: LocalAllocation,
+    dacl: *mut ACL,
+}
+
+fn read_dacl(path: &Path, stage: &'static str) -> Result<DaclView, FixedRuntimeDataRootError> {
+    let path_wide = wide_null(path.as_os_str());
+    let mut dacl: *mut ACL = null_mut();
+    let mut descriptor: PSECURITY_DESCRIPTOR = null_mut();
+    // SAFETY: path_wide is nul-terminated and all output pointers are valid.
+    let status = unsafe {
+        GetNamedSecurityInfoW(
+            path_wide.as_ptr(),
+            SE_FILE_OBJECT,
+            DACL_SECURITY_INFORMATION,
+            null_mut(),
+            null_mut(),
+            &mut dacl,
+            null_mut(),
+            &mut descriptor,
+        )
+    };
+    if status != ERROR_SUCCESS {
+        return Err(FixedRuntimeDataRootError::new(
+            stage,
+            format!("GetNamedSecurityInfoW failed with {status}"),
+        ));
+    }
+    let descriptor = LocalAllocation::new(descriptor).ok_or_else(|| {
+        FixedRuntimeDataRootError::new(stage, "GetNamedSecurityInfoW returned no descriptor")
+    })?;
+    Ok(DaclView {
+        _descriptor: descriptor,
+        dacl,
+    })
+}
+
+fn set_dacl(
+    path: &Path,
+    dacl: *mut ACL,
+    stage: &'static str,
+) -> Result<(), FixedRuntimeDataRootError> {
+    let path_wide = wide_null(path.as_os_str());
+    // SAFETY: path_wide is nul-terminated. Only the supplied DACL is updated.
+    let status = unsafe {
+        SetNamedSecurityInfoW(
+            path_wide.as_ptr(),
+            SE_FILE_OBJECT,
+            DACL_SECURITY_INFORMATION,
+            null_mut(),
+            null_mut(),
+            dacl,
+            null_mut(),
+        )
+    };
+    if status != ERROR_SUCCESS {
+        return Err(FixedRuntimeDataRootError::new(
+            stage,
+            format!("SetNamedSecurityInfoW failed with {status}"),
+        ));
+    }
+    Ok(())
+}
+
+fn service_explicit_access(
+    sid: &LocalAllocation,
+    mode: ACCESS_MODE,
+    access: u32,
+    inheritance: u32,
+) -> EXPLICIT_ACCESS_W {
+    EXPLICIT_ACCESS_W {
+        grfAccessPermissions: access,
+        grfAccessMode: mode,
+        grfInheritance: inheritance,
+        Trustee: TRUSTEE_W {
+            pMultipleTrustee: null_mut(),
+            MultipleTrusteeOperation: NO_MULTIPLE_TRUSTEE,
+            TrusteeForm: TRUSTEE_IS_SID,
+            TrusteeType: TRUSTEE_IS_UNKNOWN,
+            ptstrName: sid.as_ptr().cast::<u16>(),
+        },
     }
 }
 
@@ -237,159 +317,31 @@ fn wide_null(value: &std::ffi::OsStr) -> Vec<u16> {
     value.encode_wide().chain(std::iter::once(0)).collect()
 }
 
-fn with_current_process_user_sid<T>(
-    use_sid: impl FnOnce(PSID) -> Result<T, FixedRuntimeDataRootError>,
-) -> Result<T, FixedRuntimeDataRootError> {
-    let token = current_process_token()?;
-
-    let mut required_bytes = 0u32;
-    // SAFETY: the first call intentionally supplies no buffer and obtains the
-    // required size for TOKEN_USER.
-    let first =
-        unsafe { GetTokenInformation(token.0, TokenUser, null_mut(), 0, &mut required_bytes) };
-    // SAFETY: GetLastError is read immediately after GetTokenInformation.
-    let first_error = unsafe { GetLastError() };
-    if first != 0 || first_error != ERROR_INSUFFICIENT_BUFFER || required_bytes == 0 {
-        return Err(FixedRuntimeDataRootError::new(
-            "resolve-interactive-user",
-            format!("query TokenUser size failed with {first_error}"),
-        ));
-    }
-    let word_bytes = std::mem::size_of::<usize>();
-    let word_count = (required_bytes as usize).div_ceil(word_bytes);
-    let mut buffer = vec![0usize; word_count];
-    // SAFETY: buffer is aligned for TOKEN_USER and has at least required_bytes
-    // writable bytes. The embedded SID remains valid while use_sid executes.
-    if unsafe {
-        GetTokenInformation(
-            token.0,
-            TokenUser,
-            buffer.as_mut_ptr().cast::<c_void>(),
-            required_bytes,
-            &mut required_bytes,
-        )
-    } == 0
-    {
-        // SAFETY: GetLastError is read immediately after the failed Win32 call.
-        let error = unsafe { GetLastError() };
-        return Err(FixedRuntimeDataRootError::new(
-            "resolve-interactive-user",
-            format!("read TokenUser failed with {error}"),
-        ));
-    }
-    // SAFETY: the successful call populated a TOKEN_USER at the aligned start
-    // of buffer and the buffer remains live through use_sid.
-    let token_user = unsafe { &*(buffer.as_ptr().cast::<TOKEN_USER>()) };
-    if token_user.User.Sid.is_null() {
-        return Err(FixedRuntimeDataRootError::new(
-            "resolve-interactive-user",
-            "TokenUser returned no SID",
-        ));
-    }
-    use_sid(token_user.User.Sid)
+struct FixedRuntimeServiceAclInspection {
+    exact: bool,
+    replaceable: bool,
 }
 
-fn validate_selected_root_owner(
-    path: &Path,
-    expected_owner: PSID,
-) -> Result<(), FixedRuntimeDataRootError> {
-    let path_wide = wide_null(path.as_os_str());
-    let mut owner: PSID = null_mut();
-    let mut descriptor: PSECURITY_DESCRIPTOR = null_mut();
-    // SAFETY: path_wide is nul-terminated and all output pointers remain valid
-    // until the returned descriptor is adopted below.
-    let status = unsafe {
-        GetNamedSecurityInfoW(
-            path_wide.as_ptr(),
-            SE_FILE_OBJECT,
-            OWNER_SECURITY_INFORMATION,
-            &mut owner,
-            null_mut(),
-            null_mut(),
-            null_mut(),
-            &mut descriptor,
-        )
-    };
-    if status != ERROR_SUCCESS {
-        return Err(FixedRuntimeDataRootError::new(
-            "validate-selected-root-owner",
-            format!("GetNamedSecurityInfoW failed with {status}"),
-        ));
-    }
-    let _descriptor_allocation = LocalAllocation::new(descriptor).ok_or_else(|| {
-        FixedRuntimeDataRootError::new(
-            "validate-selected-root-owner",
-            "GetNamedSecurityInfoW returned no security descriptor",
-        )
-    })?;
-    if owner.is_null() || unsafe { EqualSid(owner, expected_owner) } == 0 {
-        return Err(FixedRuntimeDataRootError::new(
-            "validate-selected-root-owner",
-            "selected root owner does not match the OS process user",
-        ));
-    }
-    Ok(())
-}
-
-fn fixed_runtime_service_acl_is_exact_with_flags(
+fn inspect_fixed_runtime_service_acl_with_flags(
     path: &Path,
     expected_flags: u8,
-) -> Result<bool, FixedRuntimeDataRootError> {
-    let path_wide = wide_null(path.as_os_str());
-    let mut dacl: *mut ACL = null_mut();
-    let mut descriptor: PSECURITY_DESCRIPTOR = null_mut();
-    // SAFETY: all output pointers are valid for the duration of the call and
-    // path_wide is a nul-terminated Windows path. The returned descriptor is
-    // held by descriptor_allocation until the DACL inspection completes.
-    let status = unsafe {
-        GetNamedSecurityInfoW(
-            path_wide.as_ptr(),
-            SE_FILE_OBJECT,
-            DACL_SECURITY_INFORMATION,
-            null_mut(),
-            null_mut(),
-            &mut dacl,
-            null_mut(),
-            &mut descriptor,
-        )
-    };
-    if status != ERROR_SUCCESS {
-        return Err(FixedRuntimeDataRootError::new(
-            "inspect-service-root-acl",
-            format!("GetNamedSecurityInfoW failed with {status}"),
-        ));
-    }
-    let _descriptor_allocation = LocalAllocation::new(descriptor).ok_or_else(|| {
-        FixedRuntimeDataRootError::new(
-            "inspect-service-root-acl",
-            "GetNamedSecurityInfoW returned no security descriptor",
-        )
-    })?;
+) -> Result<FixedRuntimeServiceAclInspection, FixedRuntimeDataRootError> {
+    let view = read_dacl(path, "inspect-service-root-acl")?;
+    let dacl = view.dacl;
     if dacl.is_null() {
-        return Ok(false);
+        // A Windows null DACL already grants the Runtime SID access. Preserve
+        // that user-selected sharing posture instead of narrowing it.
+        return Ok(FixedRuntimeServiceAclInspection {
+            exact: true,
+            replaceable: false,
+        });
     }
 
-    let service_sid_wide = wide_null(std::ffi::OsStr::new(FIXED_RUNTIME_SERVICE_SID));
-    let mut service_sid: PSID = null_mut();
-    // SAFETY: service_sid_wide is nul-terminated and service_sid is a valid
-    // output pointer. The returned SID is held by sid_allocation.
-    if unsafe { ConvertStringSidToSidW(service_sid_wide.as_ptr(), &mut service_sid) } == 0 {
-        // SAFETY: GetLastError is read immediately after the failed Win32 call.
-        let error = unsafe { GetLastError() };
-        return Err(FixedRuntimeDataRootError::new(
-            "inspect-service-root-acl",
-            format!("ConvertStringSidToSidW failed with {error}"),
-        ));
-    }
-    let _sid_allocation = LocalAllocation::new(service_sid).ok_or_else(|| {
-        FixedRuntimeDataRootError::new(
-            "inspect-service-root-acl",
-            "ConvertStringSidToSidW returned no SID",
-        )
-    })?;
+    let service_sid = fixed_runtime_service_sid("inspect-service-root-acl")?;
 
     let mut matching_entries = 0usize;
     let mut exact_entry = false;
+    let mut replaceable = true;
     // SAFETY: dacl belongs to the live security descriptor allocation. GetAce
     // validates each index, and standard allow/deny ACEs share the inspected
     // ACCESS_ALLOWED_ACE prefix containing Mask and SidStart.
@@ -409,10 +361,15 @@ fn fixed_runtime_service_acl_is_exact_with_flags(
                 continue;
             }
             let ace_sid = std::ptr::addr_of!(ace.SidStart).cast_mut().cast::<c_void>();
-            if EqualSid(ace_sid, service_sid) == 0 {
+            if EqualSid(ace_sid, service_sid.as_ptr()) == 0 {
                 continue;
             }
             matching_entries += 1;
+            if ace_type == ACCESS_DENIED_ACE_TYPE
+                || u32::from(ace.Header.AceFlags) & INHERITED_ACE != 0
+            {
+                replaceable = false;
+            }
             if ace_type == ACCESS_ALLOWED_ACE_TYPE
                 && ace.Header.AceFlags == expected_flags
                 && ace.Mask == FIXED_RUNTIME_SERVICE_MODIFY_ACCESS
@@ -421,73 +378,105 @@ fn fixed_runtime_service_acl_is_exact_with_flags(
             }
         }
     }
-    Ok(exact_entry && matching_entries == 1)
+    Ok(FixedRuntimeServiceAclInspection {
+        exact: exact_entry && matching_entries == 1,
+        replaceable,
+    })
 }
 
 fn fixed_runtime_service_acl_is_exact(path: &Path) -> Result<bool, FixedRuntimeDataRootError> {
-    fixed_runtime_service_acl_is_exact_with_flags(
+    Ok(inspect_fixed_runtime_service_acl_with_flags(
         path,
-        (OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE) as u8,
-    )
+        FIXED_RUNTIME_SERVICE_ROOT_INHERITANCE as u8,
+    )?
+    .exact)
 }
 
 fn fixed_runtime_product_control_acl_is_exact(
     path: &Path,
 ) -> Result<bool, FixedRuntimeDataRootError> {
-    fixed_runtime_service_acl_is_exact_with_flags(
+    Ok(inspect_fixed_runtime_service_acl_with_flags(
         path,
-        (OBJECT_INHERIT_ACE | NO_PROPAGATE_INHERIT_ACE) as u8,
-    )
+        FIXED_RUNTIME_PRODUCT_CONTROL_INHERITANCE as u8,
+    )?
+    .exact)
 }
 
 fn grant_fixed_runtime_service_acl_with(
     path: &Path,
-    grant: String,
+    access: u32,
+    inheritance: u32,
 ) -> Result<(), FixedRuntimeDataRootError> {
-    let mut child = Command::new(system_icacls_path()?)
-        .arg(path)
-        .arg("/grant:r")
-        .arg(grant)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .map_err(|error| {
-            FixedRuntimeDataRootError::new("prepare-service-root-acl", error.to_string())
+    let inspection = inspect_fixed_runtime_service_acl_with_flags(path, inheritance as u8)?;
+    if inspection.exact {
+        return Ok(());
+    }
+    if !inspection.replaceable {
+        return Err(FixedRuntimeDataRootError::new(
+            "prepare-service-root-acl",
+            "fixed Runtime SID has deny or inherited access that cannot be replaced safely",
+        ));
+    }
+
+    let view = read_dacl(path, "prepare-service-root-acl")?;
+    let current_dacl = view.dacl;
+    if current_dacl.is_null() {
+        return Ok(());
+    }
+
+    let service_sid = fixed_runtime_service_sid("prepare-service-root-acl")?;
+    let explicit_access = service_explicit_access(&service_sid, SET_ACCESS, access, inheritance);
+    let mut replacement_dacl: *mut ACL = null_mut();
+    // SAFETY: the preflight proved every supported matching service entry is
+    // an explicit allow. SET_ACCESS therefore replaces only those allows;
+    // other trustees and their inherited entries remain in current_dacl.
+    let status =
+        unsafe { SetEntriesInAclW(1, &explicit_access, current_dacl, &mut replacement_dacl) };
+    if status != ERROR_SUCCESS {
+        return Err(FixedRuntimeDataRootError::new(
+            "prepare-service-root-acl",
+            format!("SetEntriesInAclW failed with {status}"),
+        ));
+    }
+    let _replacement_dacl_allocation =
+        LocalAllocation::new(replacement_dacl.cast()).ok_or_else(|| {
+            FixedRuntimeDataRootError::new(
+                "prepare-service-root-acl",
+                "SetEntriesInAclW returned no ACL",
+            )
         })?;
 
-    let deadline = Instant::now() + ACL_TOOL_TIMEOUT;
-    loop {
-        let status = child.try_wait().map_err(|error| {
-            FixedRuntimeDataRootError::new("prepare-service-root-acl", error.to_string())
-        })?;
-        if let Some(status) = status {
-            if status.success() {
-                return Ok(());
-            }
-            return Err(FixedRuntimeDataRootError::new(
-                "prepare-service-root-acl",
-                format!("icacls exited with {status}"),
-            ));
-        }
-        if Instant::now() >= deadline {
-            let _ = child.kill();
-            let _ = child.wait();
-            return Err(FixedRuntimeDataRootError::new(
-                "prepare-service-root-acl",
-                "icacls exceeded the 10 second fixed-service root preparation deadline",
-            ));
-        }
-        thread::sleep(ACL_TOOL_POLL_INTERVAL);
-    }
+    set_dacl(path, replacement_dacl, "prepare-service-root-acl")
 }
 
 fn grant_fixed_runtime_service_acl(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
-    grant_fixed_runtime_service_acl_with(path, service_acl_grant())
+    grant_fixed_runtime_service_acl_with(
+        path,
+        FIXED_RUNTIME_SERVICE_MODIFY_ACCESS,
+        FIXED_RUNTIME_SERVICE_ROOT_INHERITANCE,
+    )?;
+    if fixed_runtime_service_acl_is_exact(path)? {
+        return Ok(());
+    }
+    Err(FixedRuntimeDataRootError::new(
+        "verify-service-root-acl",
+        "fixed Runtime service ACL did not read back as one exact allow entry",
+    ))
 }
 
 fn grant_fixed_runtime_product_control_acl(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
-    grant_fixed_runtime_service_acl_with(path, product_control_acl_grant())
+    grant_fixed_runtime_service_acl_with(
+        path,
+        FIXED_RUNTIME_SERVICE_MODIFY_ACCESS,
+        FIXED_RUNTIME_PRODUCT_CONTROL_INHERITANCE,
+    )?;
+    if fixed_runtime_product_control_acl_is_exact(path)? {
+        return Ok(());
+    }
+    Err(FixedRuntimeDataRootError::new(
+        "verify-service-root-acl",
+        "fixed Runtime Product Control ACL did not read back as one exact allow entry",
+    ))
 }
 
 fn prepare_fixed_runtime_data_root_with<F>(
@@ -526,35 +515,142 @@ pub fn prepare_fixed_runtime_data_root(path: &Path) -> Result<(), FixedRuntimeDa
 pub(crate) fn prepare_fixed_runtime_product_control_root() -> Result<(), FixedRuntimeDataRootError>
 {
     let root = current_process_profile_root()?.join(".nimi");
-    with_current_process_user_sid(|expected_owner| {
-        validate_selected_root(&root)?;
-        validate_selected_root_owner(&root, expected_owner)?;
-        if fixed_runtime_product_control_acl_is_exact(&root)? {
-            return Ok(());
-        }
-        grant_fixed_runtime_product_control_acl(&root)
-    })
+    // Windows assigns a new directory to the token's default owner, which may
+    // be Administrators for an elevated user rather than the token's user SID.
+    // The token-derived profile path and reparse-free chain bind this root.
+    validate_selected_root(&root)?;
+    if fixed_runtime_product_control_acl_is_exact(&root)? {
+        return Ok(());
+    }
+    grant_fixed_runtime_product_control_acl(&root)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::process::Command;
     use std::time::{SystemTime, UNIX_EPOCH};
+    use windows_sys::Win32::Security::Authorization::DENY_ACCESS;
+
+    fn fixture_root(label: &str) -> PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time")
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "nimi-fixed-runtime-{label}-{}-{nonce}",
+            std::process::id()
+        ))
+    }
+
+    fn dacl_snapshot(path: &Path) -> Result<Option<Vec<u8>>, FixedRuntimeDataRootError> {
+        let view = read_dacl(path, "inspect-test-root-acl")?;
+        let dacl = view.dacl;
+        if dacl.is_null() {
+            return Ok(None);
+        }
+        // SAFETY: dacl belongs to the live descriptor and AclSize is the
+        // complete byte length of that ACL.
+        let bytes = unsafe {
+            std::slice::from_raw_parts(dacl.cast::<u8>(), usize::from((*dacl).AclSize)).to_vec()
+        };
+        Ok(Some(bytes))
+    }
+
+    fn add_fixed_runtime_service_deny(
+        path: &Path,
+        access: u32,
+        inheritance: u32,
+    ) -> Result<(), FixedRuntimeDataRootError> {
+        let view = read_dacl(path, "prepare-test-service-deny")?;
+        let current_dacl = view.dacl;
+        let service_sid = fixed_runtime_service_sid("prepare-test-service-deny")?;
+        let deny = service_explicit_access(&service_sid, DENY_ACCESS, access, inheritance);
+        let mut replacement_dacl: *mut ACL = null_mut();
+        // SAFETY: current_dacl belongs to the live descriptor; deny points at
+        // the live service SID; replacement_dacl receives LocalAlloc memory.
+        let status = unsafe { SetEntriesInAclW(1, &deny, current_dacl, &mut replacement_dacl) };
+        if status != ERROR_SUCCESS {
+            return Err(FixedRuntimeDataRootError::new(
+                "prepare-test-service-deny",
+                format!("SetEntriesInAclW failed with {status}"),
+            ));
+        }
+        let _replacement_allocation =
+            LocalAllocation::new(replacement_dacl.cast()).ok_or_else(|| {
+                FixedRuntimeDataRootError::new(
+                    "prepare-test-service-deny",
+                    "SetEntriesInAclW returned no ACL",
+                )
+            })?;
+        set_dacl(path, replacement_dacl, "prepare-test-service-deny")
+    }
 
     #[test]
     fn exact_fixed_service_sid_receives_only_selected_tree_inheritance() {
         assert_eq!(
-            service_acl_grant(),
-            format!("*{FIXED_RUNTIME_SERVICE_SID}:(OI)(CI)M"),
+            FIXED_RUNTIME_SERVICE_ROOT_INHERITANCE,
+            OBJECT_INHERIT_ACE | CONTAINER_INHERIT_ACE,
+        );
+        assert_eq!(
+            FIXED_RUNTIME_SERVICE_MODIFY_ACCESS,
+            FILE_GENERIC_READ | FILE_GENERIC_WRITE | FILE_GENERIC_EXECUTE | DELETE,
         );
     }
 
     #[test]
     fn product_control_grant_stops_at_immediate_files() {
         assert_eq!(
-            product_control_acl_grant(),
-            format!("*{FIXED_RUNTIME_SERVICE_SID}:(OI)(NP)M"),
+            FIXED_RUNTIME_PRODUCT_CONTROL_INHERITANCE,
+            OBJECT_INHERIT_ACE | NO_PROPAGATE_INHERIT_ACE,
         );
+    }
+
+    #[test]
+    fn native_product_control_grant_writes_the_exact_immediate_file_acl() {
+        let root = fixture_root("product-control-acl");
+        fs::create_dir_all(&root).expect("create Product Control ACL test root");
+        let result = (|| {
+            grant_fixed_runtime_product_control_acl(&root)?;
+            if !fixed_runtime_product_control_acl_is_exact(&root)? {
+                return Err(FixedRuntimeDataRootError::new(
+                    "verify-service-root-acl",
+                    "Product Control ACL was not exact after native grant",
+                ));
+            }
+            Ok(())
+        })();
+        fs::remove_dir_all(&root).expect("remove Product Control ACL test root");
+        result.expect("grant fixed Runtime Product Control ACL");
+    }
+
+    #[test]
+    fn service_deny_is_preserved_and_prevents_exact_acl_acceptance() {
+        let root = fixture_root("data-root-service-deny");
+        fs::create_dir_all(&root).expect("create service-deny test root");
+        let deny_access = FILE_GENERIC_WRITE;
+        let flags = FIXED_RUNTIME_SERVICE_ROOT_INHERITANCE;
+        add_fixed_runtime_service_deny(&root, deny_access, flags).expect("add fixed-service deny");
+        let before = dacl_snapshot(&root)
+            .expect("inspect fixed-service deny before preparation")
+            .expect("service-deny test root has a DACL");
+        assert!(!fixed_runtime_service_acl_is_exact(&root).expect("inspect service deny"));
+
+        let error = prepare_fixed_runtime_data_root(&root)
+            .expect_err("service deny must block allow replacement before mutation");
+        assert_eq!(error.stage(), "prepare-service-root-acl");
+        let after = dacl_snapshot(&root)
+            .expect("inspect fixed-service deny after preparation")
+            .expect("service-deny test root retains a DACL");
+        assert_eq!(
+            after, before,
+            "preparation mutated a DACL containing a fixed-service deny",
+        );
+        assert!(
+            !fixed_runtime_service_acl_is_exact(&root).expect("inspect combined service ACL"),
+            "a preserved deny must keep the combined service ACL non-exact",
+        );
+        fs::remove_dir_all(&root).expect("remove service-deny test root");
     }
 
     #[test]
@@ -651,16 +747,7 @@ mod tests {
             fs::write(root.join("interactive-owner-write.txt"), b"owner-retained").map_err(
                 |error| FixedRuntimeDataRootError::new("verify-user-owner", error.to_string()),
             )?;
-            let listing = Command::new(system_icacls_path()?)
-                .arg(&root)
-                .output()
-                .map_err(|error| {
-                    FixedRuntimeDataRootError::new("verify-service-root-acl", error.to_string())
-                })?;
-            let text = String::from_utf8_lossy(&listing.stdout);
-            if !listing.status.success()
-                || (!text.contains(FIXED_RUNTIME_SERVICE_SID) && !text.contains("NimiRuntime"))
-            {
+            if !fixed_runtime_service_acl_is_exact(&root)? {
                 return Err(FixedRuntimeDataRootError::new(
                     "verify-service-root-acl",
                     "exact fixed service SID ACE was not observable",
@@ -710,27 +797,22 @@ mod tests {
             std::process::id()
         ));
         fs::create_dir_all(&root).expect("create test root");
-        let status = Command::new(system_icacls_path().expect("resolve icacls"))
-            .arg(&root)
-            .arg("/grant:r")
-            .arg(format!("*{FIXED_RUNTIME_SERVICE_SID}:(OI)(CI)RX"))
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .expect("grant insufficient service ACL");
-        assert!(status.success(), "grant insufficient service ACL failed");
+        grant_fixed_runtime_service_acl_with(
+            &root,
+            FILE_GENERIC_READ | FILE_GENERIC_EXECUTE,
+            FIXED_RUNTIME_SERVICE_ROOT_INHERITANCE,
+        )
+        .expect("grant insufficient service ACL");
         assert!(
             !fixed_runtime_service_acl_is_exact(&root).expect("inspect insufficient service ACL"),
             "read-only service ACL must not satisfy fixed Runtime preparation"
         );
-        let mutation_called = std::cell::Cell::new(false);
-        prepare_fixed_runtime_data_root_with(&root, |_| {
-            mutation_called.set(true);
-            Ok(())
-        })
-        .expect("insufficient ACL should route to the mutation owner");
-        assert!(mutation_called.get(), "mutation owner was not invoked");
+        prepare_fixed_runtime_data_root(&root)
+            .expect("insufficient explicit allow should be replaced exactly");
+        assert!(
+            fixed_runtime_service_acl_is_exact(&root).expect("inspect replacement service ACL"),
+            "replacement service ACL was not exact",
+        );
         fs::remove_dir_all(&root).expect("remove test root");
     }
 }

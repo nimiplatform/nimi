@@ -22,19 +22,17 @@ function releasePublishedTimestamp(release) {
   return Number.isFinite(stamp) ? stamp : 0;
 }
 
-function runtimeTrackPrefix(track) {
-  return `${normalizeText(track).replace(/\/+$/u, '')}/`;
-}
-
-function releaseTrackValues(release) {
-  return [
-    normalizeText(release?.tag_name),
-    normalizeText(release?.name),
-  ];
-}
-
 function isTruthyBoolean(value) {
   return value === true;
+}
+
+function versionFromGlobalTag(tagName) {
+  const match = /^v((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))(?:-rc\.[1-9]\d*)?$/u.exec(normalizeText(tagName));
+  return match?.[1] || '';
+}
+
+function matchesStableGlobalRelease(release) {
+  return /^v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/u.test(normalizeText(release?.tag_name));
 }
 
 export function githubReleaseApiUrl(env = {}) {
@@ -54,23 +52,21 @@ export function githubApiHeaders(env = {}) {
   return headers;
 }
 
-export function matchesReleaseTrack(release, track) {
-  const prefix = runtimeTrackPrefix(track).toLowerCase();
-  return releaseTrackValues(release).some((value) => value.toLowerCase().startsWith(prefix));
+export function matchesGlobalRelease(release) {
+  return Boolean(versionFromGlobalTag(release?.tag_name));
 }
 
-export function selectLatestRelease(releases, track) {
+export function selectLatestRelease(releases) {
   const candidates = Array.isArray(releases)
-    ? releases.filter((release) => !isTruthyBoolean(release?.draft) && matchesReleaseTrack(release, track))
+    ? releases.filter((release) => (
+      !isTruthyBoolean(release?.draft)
+      && !isTruthyBoolean(release?.prerelease)
+      && matchesStableGlobalRelease(release)
+      && hasCompleteRuntimeAssetSet(release)
+    ))
     : [];
   if (candidates.length === 0) {
     return null;
-  }
-  const stable = candidates
-    .filter((release) => !isTruthyBoolean(release?.prerelease))
-    .sort((left, right) => releasePublishedTimestamp(right) - releasePublishedTimestamp(left));
-  if (stable.length > 0) {
-    return stable[0];
   }
   return candidates.sort((left, right) => releasePublishedTimestamp(right) - releasePublishedTimestamp(left))[0] || null;
 }
@@ -94,12 +90,43 @@ function normalizeRuntimeArchivePlatform(os, arch) {
   return `${osKey}-${arch}`;
 }
 
-function inferRuntimeArchivePlatform(assetName) {
-  const match = /^nimi-runtime_[^_]+_(macos|linux|windows)_(amd64|arm64)\.(tar\.gz|zip)$/u.exec(normalizeText(assetName));
+function parseRuntimeArchiveAsset(assetName) {
+  const match = /^nimi-runtime_((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))_(macos|linux|windows)_(amd64|arm64)\.(tar\.gz|zip)$/u.exec(normalizeText(assetName));
   if (!match) {
-    return '';
+    return null;
   }
-  return normalizeRuntimeArchivePlatform(match[1], match[2]);
+  return {
+    version: match[1],
+    platform: normalizeRuntimeArchivePlatform(match[2], match[3]),
+  };
+}
+
+function runtimeReleaseAssets(release) {
+  const version = versionFromGlobalTag(release?.tag_name);
+  const assets = Array.isArray(release?.assets) ? release.assets : [];
+  const checksumsAsset = assets.find((asset) => (
+    normalizeText(asset?.name) === 'checksums.txt'
+    && Boolean(normalizeText(asset?.browser_download_url))
+  ));
+  const archives = {};
+  for (const asset of assets) {
+    const parsed = parseRuntimeArchiveAsset(asset?.name);
+    if (!parsed || parsed.version !== version || !normalizeText(asset?.browser_download_url)) {
+      continue;
+    }
+    archives[parsed.platform] = {
+      name: normalizeText(asset.name),
+      url: normalizeText(asset.browser_download_url),
+    };
+  }
+  return { archives, checksumsAsset, version };
+}
+
+export function hasCompleteRuntimeAssetSet(release) {
+  const { archives, checksumsAsset, version } = runtimeReleaseAssets(release);
+  return Boolean(version && checksumsAsset && REQUIRED_RUNTIME_ARCHIVES.every((platform) => (
+    Boolean(archives[platform]?.name && archives[platform]?.url)
+  )));
 }
 
 function parseRuntimeChecksumLine(line) {
@@ -148,35 +175,16 @@ async function fetchRuntimeChecksums(url, fetchImpl) {
   return checksums;
 }
 
-function versionFromTag(tagName, track) {
-  const prefix = runtimeTrackPrefix(track);
-  const raw = normalizeText(tagName);
-  if (!raw.startsWith(prefix)) {
-    return raw.replace(/^v/u, '');
-  }
-  return raw.slice(prefix.length).replace(/^v/u, '');
-}
-
 export async function buildRuntimeManifest(release, fetchImpl = fetch) {
-  const assets = Array.isArray(release?.assets) ? release.assets : [];
-  const checksumsAsset = assets.find((asset) => normalizeText(asset?.name) === 'checksums.txt');
+  const { archives, checksumsAsset, version } = runtimeReleaseAssets(release);
+  if (!version) {
+    throw new Error('RUNTIME_RELEASE_INVALID: global release tag is invalid');
+  }
   if (!checksumsAsset?.browser_download_url) {
     throw new Error('RUNTIME_RELEASE_INVALID: checksums.txt asset is missing');
   }
   const checksumsUrl = normalizeText(checksumsAsset.browser_download_url);
   const checksums = await fetchRuntimeChecksums(checksumsUrl, fetchImpl);
-
-  const archives = {};
-  for (const asset of assets) {
-    const platform = inferRuntimeArchivePlatform(asset?.name);
-    if (!platform) {
-      continue;
-    }
-    archives[platform] = {
-      name: normalizeText(asset.name),
-      url: normalizeText(asset.browser_download_url),
-    };
-  }
 
   for (const platform of REQUIRED_RUNTIME_ARCHIVES) {
     if (!archives[platform]?.name || !archives[platform]?.url) {
@@ -191,7 +199,7 @@ export async function buildRuntimeManifest(release, fetchImpl = fetch) {
 
   return {
     tag: normalizeText(release?.tag_name),
-    version: versionFromTag(release?.tag_name, 'runtime'),
+    version,
     checksumsUrl,
     archives,
   };

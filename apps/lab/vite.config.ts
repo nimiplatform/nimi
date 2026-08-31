@@ -37,10 +37,10 @@ function manualChunks(id: string) {
   if (isNimiSdk && normalized.includes(runtimeProtoPath)) {
     const protoFile = normalized.slice(normalized.indexOf(runtimeProtoPath) + runtimeProtoPath.length);
     if (protoFile.startsWith('ai') || protoFile === 'artifact_service.js' || protoFile === 'model.js' || protoFile === 'voice.js') {
-      return 'vendor-nimi-sdk-protobuf-runtime';
+      return 'vendor-nimi-sdk-protobuf-ai';
     }
     if (protoFile.startsWith('local_runtime')) {
-      return 'vendor-nimi-sdk-protobuf-runtime';
+      return 'vendor-nimi-sdk-protobuf-local-runtime';
     }
     if (protoFile.startsWith('agent_') || protoFile === 'external_agent.js' || protoFile === 'delegated_control.js') {
       return 'vendor-nimi-sdk-protobuf-agent';
@@ -48,12 +48,48 @@ function manualChunks(id: string) {
     if (protoFile === 'memory.js' || protoFile === 'knowledge.js') {
       return 'vendor-nimi-sdk-protobuf-memory';
     }
-    return 'vendor-nimi-sdk-protobuf-runtime';
+    return 'vendor-nimi-sdk-protobuf-core';
   }
   if (isNimiSdk) {
+    if (
+      normalized.includes('/core-generated/realm-')
+      || normalized.includes('/dist/realm/')
+      || normalized.includes('/dist/types/')
+      || normalized.includes('/dist/core-client/')
+    ) {
+      return 'vendor-nimi-sdk-realm';
+    }
     return 'vendor-nimi-sdk';
   }
-  if (normalized.includes('/node_modules/@nimiplatform/kit/') || normalized.startsWith(`${repoRootNormalized}/kit/`)) {
+  const isNimiKit =
+    normalized.includes('/node_modules/@nimiplatform/kit/')
+    || normalized.startsWith(`${repoRootNormalized}/kit/`);
+  if (isNimiKit && normalized.includes('/features/chat/')) {
+    return 'vendor-nimi-kit-chat';
+  }
+  if (isNimiKit && (
+    normalized.includes('/features/agent-center/')
+    || normalized.includes('/features/agent-realtime/')
+  )) {
+    return 'vendor-nimi-kit-agent';
+  }
+  if (isNimiKit && (
+    normalized.includes('/features/generation/')
+    || normalized.includes('/features/model-config/')
+    || normalized.includes('/features/model-picker/')
+  )) {
+    return 'vendor-nimi-kit-ai';
+  }
+  if (isNimiKit && normalized.includes('/shell/')) {
+    return 'vendor-nimi-kit-shell';
+  }
+  if (isNimiKit && normalized.includes('/ui/')) {
+    return 'vendor-nimi-kit-ui';
+  }
+  if (isNimiKit && normalized.includes('/core/')) {
+    return 'vendor-nimi-kit-core';
+  }
+  if (isNimiKit) {
     return 'vendor-nimi-kit';
   }
   if (normalized.includes('/apps/lab/src/shell/i18n/')) {

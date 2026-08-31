@@ -16,7 +16,11 @@ func TestV1OwnerFreshSchemaContainsOnlyAdmittedFamilies(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer owner.Close()
+	t.Cleanup(func() {
+		if err := owner.Close(); err != nil {
+			t.Errorf("close Cognition owner: %v", err)
+		}
+	})
 
 	if _, err := os.Stat(filepath.Join(root, "cognition.sqlite")); !os.IsNotExist(err) {
 		t.Fatalf("legacy Cognition store is reachable from V1 owner: err=%v", err)
@@ -68,7 +72,11 @@ func TestV1OwnerInspectionIsAggregateAndRejectsPartialOwnerStore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("partial owner prevented independent family inspection: %v", err)
 	}
-	defer partial.Close()
+	t.Cleanup(func() {
+		if err := partial.Close(); err != nil {
+			t.Errorf("close partial Cognition owner: %v", err)
+		}
+	})
 	inspection, err = partial.InspectStore(context.Background())
 	if err != nil || len(inspection.Resources) != 2 {
 		t.Fatalf("partial owner inspection=%+v err=%v", inspection, err)
@@ -84,12 +92,20 @@ func sqliteTableNames(t *testing.T, path string) []string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	t.Cleanup(func() {
+		if err := db.Close(); err != nil {
+			t.Errorf("close schema inspection database: %v", err)
+		}
+	})
 	rows, err := db.Query(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rows.Close()
+	t.Cleanup(func() {
+		if err := rows.Close(); err != nil {
+			t.Errorf("close schema inspection rows: %v", err)
+		}
+	})
 	var names []string
 	for rows.Next() {
 		var name string
@@ -99,6 +115,9 @@ func sqliteTableNames(t *testing.T, path string) []string {
 		names = append(names, name)
 	}
 	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	if err := rows.Close(); err != nil {
 		t.Fatal(err)
 	}
 	sort.Strings(names)

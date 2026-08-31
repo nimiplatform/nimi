@@ -117,7 +117,7 @@ func (s *SQLiteStore) Import(ctx context.Context, accountNamespace string, recor
 	return recordFromStorage(record.GetProfileId(), record.GetTitle(), record.GetProfileJson(), importedAt, now)
 }
 
-func (s *SQLiteStore) List(ctx context.Context, accountNamespace string) ([]*runtimev1.PortableAIProfileRecord, error) {
+func (s *SQLiteStore) List(ctx context.Context, accountNamespace string) (records []*runtimev1.PortableAIProfileRecord, resultErr error) {
 	if accountNamespace == "" {
 		return nil, fmt.Errorf("account namespace is required")
 	}
@@ -130,7 +130,12 @@ func (s *SQLiteStore) List(ctx context.Context, accountNamespace string) ([]*run
 	if err != nil {
 		return nil, fmt.Errorf("list AIProfiles: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); resultErr == nil && err != nil {
+			records = nil
+			resultErr = fmt.Errorf("close AIProfile rows: %w", err)
+		}
+	}()
 	out := make([]*runtimev1.PortableAIProfileRecord, 0)
 	for rows.Next() {
 		var profileID, title, importedAt, updatedAt string

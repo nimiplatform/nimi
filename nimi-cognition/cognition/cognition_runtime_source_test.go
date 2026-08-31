@@ -43,7 +43,11 @@ func TestCopiedCognitionOwnerRootReopensSnapshotIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer second.Close()
+	t.Cleanup(func() {
+		if err := second.Close(); err != nil {
+			t.Errorf("close copied Cognition owner: %v", err)
+		}
+	})
 	inspection, err := second.SourceBridge().InspectAgentSource(context.Background(), runtimeSourceTestAuthorization(scopeID, RuntimeBridgeOperationSearchAgentSource, RuntimeAuthorizationActionSearchAgentSource), scopeID, snapshot)
 	if err != nil || inspection.Status != "building" || inspection.SnapshotIdentity != snapshot || inspection.PartitionIdentity != partition || inspection.UnitCount != 1 {
 		t.Fatalf("copied Cognition owner state = %#v err=%v", inspection, err)
@@ -55,7 +59,11 @@ func TestRuntimeSourceBridgeEmbeddingGatesReadySearchAndSnapshotIsolation(t *tes
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer core.Close()
+	t.Cleanup(func() {
+		if err := core.Close(); err != nil {
+			t.Errorf("close Cognition owner: %v", err)
+		}
+	})
 	bridge := core.SourceBridge()
 	scopeID := "agent_source_test_alpha"
 	snapshot := strings.Repeat("a", 64)
@@ -119,7 +127,11 @@ func TestRuntimeSourceBridgeUnconfiguredIsNotNoHits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer core.Close()
+	t.Cleanup(func() {
+		if err := core.Close(); err != nil {
+			t.Errorf("close Cognition owner: %v", err)
+		}
+	})
 	bridge := core.SourceBridge()
 	scopeID := "agent_source_test_unconfigured"
 	snapshot := strings.Repeat("e", 64)
@@ -154,7 +166,11 @@ func TestRuntimeSourceBridgeRejectsDuplicateIndexedOrOmittedPathCoverage(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer core.Close()
+	t.Cleanup(func() {
+		if err := core.Close(); err != nil {
+			t.Errorf("close Cognition owner: %v", err)
+		}
+	})
 	scopeID := "agent_source_duplicate_coverage"
 	snapshot := strings.Repeat("2", 64)
 	ref := RuntimeSourceRef{Kind: "worldCore", WorldID: "world-1", RefID: "world-1", SchemaVersion: "realm.world-core/v1", ContentHash: strings.Repeat("3", 64)}
@@ -174,7 +190,11 @@ func TestRuntimeSourceBridgeRejectsInvalidProvenanceAndOverBoundSemanticText(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer core.Close()
+	t.Cleanup(func() {
+		if err := core.Close(); err != nil {
+			t.Errorf("close Cognition owner: %v", err)
+		}
+	})
 	scopeID := "agent_source_invalid_provenance"
 	ref := RuntimeSourceRef{Kind: "worldCore", WorldID: "world-1", RefID: "world-1", SchemaVersion: "realm.world-core/v1", ContentHash: strings.Repeat("5", 64)}
 	base := RuntimeSourceIngestionEnvelope{

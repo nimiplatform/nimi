@@ -13,6 +13,10 @@ import (
 // or starts an ExecutionHost; execution admission retains fresh verification.
 // @nimi-authority: rule.nimi.runtime.local-compute.r077
 func (m *Manager) CheckSyncManagedEnvironment(ctx context.Context, dataRoot string) []ManagedEnvironmentCheckResult {
+	return m.checkSyncManagedEnvironment(ctx, dataRoot, currentGOOS()+"/"+currentGOARCH())
+}
+
+func (m *Manager) checkSyncManagedEnvironment(ctx context.Context, dataRoot string, platform string) []ManagedEnvironmentCheckResult {
 	if m == nil {
 		return []ManagedEnvironmentCheckResult{{Kind: "environment_owner", Status: "failed", Reason: "ENVIRONMENT_MANAGER_UNAVAILABLE"}}
 	}
@@ -31,7 +35,7 @@ func (m *Manager) CheckSyncManagedEnvironment(ctx context.Context, dataRoot stri
 			Kind: "engine_registry", Reference: conflict.Reference, Status: "conflict", Reason: conflict.Reason,
 		})
 	}
-	platform := currentGOOS() + "/" + currentGOARCH()
+	platform = strings.ToLower(strings.TrimSpace(platform))
 	claimedEnvironmentEntries := map[string]struct{}{"registry.json": {}, "python-profiles": {}, "python": {}}
 	for _, entry := range m.registry.List() {
 		if ctx.Err() != nil {

@@ -1,6 +1,7 @@
 package localservice
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -224,7 +225,10 @@ func (s *Service) restoreState() error {
 		healedSnapshot = true
 	}
 	if healedSnapshot {
-		s.persistStateLocked()
+		if err := s.persistStateLocked(); err != nil {
+			s.mu.Unlock()
+			return fmt.Errorf("persist healed local state snapshot: %w", err)
+		}
 	}
 	s.mu.Unlock()
 	return nil

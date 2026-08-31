@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/kit-protected-local-darwin-arm64",
-  "version": "0.3.0-rc.1",
+  "version": "0.3.0",
   "private": false,
   "description": "Fixed macOS arm64 Node-API projection for Nimi protected-local carriers.",
   "main": "index.cjs",

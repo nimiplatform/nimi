@@ -37,7 +37,23 @@ test('content keeps the consumer hero and SDK paths complete in both locales', a
     assert.ok(content.modelCatalog.title.length > 0);
     assert.ok(content.modelCatalog.overview.modalitiesDescription.length > 0);
     assert.ok(content.sdk.tabs.some((tab) => tab.docsPath === 'sdk/ai-config-surface'));
+    assert.equal(content.security.statuses.length, 2);
+    assert.ok(content.security.links.some((link) => link.href === '/download'));
+    assert.ok(content.security.links.some((link) => link.href === '/code-signing'));
+    assert.ok(content.security.links.some((link) => link.href === 'mailto:security@nimi.ai'));
   }
+});
+
+test('English homepage exposes fail-closed signing and separate preview status', async () => {
+  const content = await loadLandingContent('en');
+  assert.ok(content.hero.eyebrow.includes('Open-source'));
+  assert.ok(content.desktop.availability.items.includes(
+    'Windows release pending production code-signing approval',
+  ));
+  assert.ok(content.desktop.availability.items.includes(
+    'Unsigned previews use explicit non-promotable vX.Y.Z-preview.N tags',
+  ));
+  assert.ok(content.apps.notes.some((item) => item.includes('ordinary install with download progress')));
 });
 
 test('SDK landing content separates hero highlights from the full capability matrix', async () => {

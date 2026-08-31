@@ -69,7 +69,7 @@ var nvidiaCUDA13UserSpaceRuntimeRequiredArtifacts = []string{
 var nvidiaCUDA13UserSpaceRuntimeManagedSource = sharedAcceleratorDependencyManagedSource{
 	SourceID:       "audiocpp-0.6.1-cuda13-win-x64-runtime",
 	ArchiveURL:     "https://github.com/0xShug0/audio.cpp/releases/download/release-0.6.1/audiocpp-windows-cuda-runtime.zip",
-	ArchiveSHA256:  "4104167de457dd3d20bd6e2de172c41f84cd15d0b3e8835649849710a863d10d",
+	ArchiveSHA256:  "4104167de457dd3d20bd6e2de172c41f84cd15d0b3e8835649849710a863d10d", // pragma: allowlist secret -- public archive checksum
 	ReleaseVersion: "release-0.6.1",
 	ReleaseAsset:   "audiocpp-windows-cuda-runtime.zip",
 	InstallDirName: NVIDIACUDA13UserSpaceRuntimeDependencyID,

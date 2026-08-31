@@ -22,7 +22,7 @@
   "peerDependencies": {
     "@ai-sdk/provider": "^3.0.0",
     "@mastra/core": "^1.41.0",
-    "@nimiplatform/sdk": "^0.7.0-rc.1"
+    "@nimiplatform/sdk": "^0.7.0"
   },
   "devDependencies": {
     "@ai-sdk/provider": "3.0.10",
@@ -34,7 +34,8 @@
     "zod": "4.5.4"
   },
   "scripts": {
-    "build": "pnpm --dir ../../../../ --filter @nimiplatform/sdk build && node ../../../../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",
+    "build": "node ../../../../scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",
+    "build:prepared": "node ../../../../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist",
     "lint": "pnpm exec tsc -p tsconfig.json",
     "test": "pnpm exec tsx --test mastra.test.ts",
     "test:upstream": "pnpm exec tsx --test mastra.upstream-compat.test.ts"

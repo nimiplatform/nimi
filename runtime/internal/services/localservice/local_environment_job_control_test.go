@@ -730,9 +730,9 @@ func TestRetryLocalEnvironmentDependencyJobRestoresConsumerScopeAfterRestart(t *
 			PackageFormat:     "direct_archive",
 			LaunchMode:        "runtime_wrapper",
 			ReleaseTag:        "master-813-bfbef5b",
-			SourceCommit:      "bfbef5b7e64e89a0205894853de25d19a7ba54b9",
+			SourceCommit:      "bfbef5b7e64e89a0205894853de25d19a7ba54b9", // pragma: allowlist secret -- public source commit
 			ArchiveURL:        "https://example.invalid/sd.zip",
-			ArchiveSHA256:     "e101fcd3ab323547ef8b4387b5edc6e4a1a70837d394ca744cd847a30e3a9a71",
+			ArchiveSHA256:     "e101fcd3ab323547ef8b4387b5edc6e4a1a70837d394ca744cd847a30e3a9a71", // pragma: allowlist secret -- public archive checksum
 			CanonicalRoot:     filepath.Join(runtimeDataRoot, "environments", "managed-image-backends", "sd-win-cuda12-x64-stablediffusion-ggml"),
 			VerifiedArtifacts: []string{"sd.exe", "metadata.json"},
 			Detail:            "managed image backend package verified from canonical_runtime_wrapper",
@@ -871,8 +871,8 @@ func TestRepairPythonPackageSetMarksCanonicalSourceAcrossRestart(t *testing.T) {
 	})
 	writeSelectedSourceLocalArtifactsForTest(t, record)
 	record = svc.upsertLocalEnvironmentSelectedSourceRecord(record)
-	recordReadyPythonPackageSetConsumptionJobForTest(svc, record, imageConsumer)
-	recordReadyPythonPackageSetConsumptionJobForTest(svc, record, videoConsumer)
+	recordReadyPythonPackageSetConsumptionJobForTest(t, svc, record, imageConsumer)
+	recordReadyPythonPackageSetConsumptionJobForTest(t, svc, record, videoConsumer)
 
 	resp, err := svc.RepairLocalEnvironmentDependency(context.Background(), &runtimev1.RepairLocalEnvironmentDependencyRequest{
 		EnvironmentKey:   environmentKey,
@@ -1018,9 +1018,9 @@ func TestStartNativeSDCPPDependencyJobPromotesWindowsRuntimeWrapperSelectedSourc
 			PackageFormat:     "direct_archive",
 			LaunchMode:        "runtime_wrapper",
 			ReleaseTag:        "master-813-bfbef5b",
-			SourceCommit:      "bfbef5b7e64e89a0205894853de25d19a7ba54b9",
+			SourceCommit:      "bfbef5b7e64e89a0205894853de25d19a7ba54b9", // pragma: allowlist secret -- public source commit
 			ArchiveURL:        "https://example.invalid/sd.zip",
-			ArchiveSHA256:     "e101fcd3ab323547ef8b4387b5edc6e4a1a70837d394ca744cd847a30e3a9a71",
+			ArchiveSHA256:     "e101fcd3ab323547ef8b4387b5edc6e4a1a70837d394ca744cd847a30e3a9a71", // pragma: allowlist secret -- public archive checksum
 			CanonicalRoot:     filepath.Join(svc.runtimeDataRoot, "environments", "managed-image-backends", "sd-win-cuda12-x64-stablediffusion-ggml"),
 			VerifiedArtifacts: []string{"sd.exe", "metadata.json"},
 			Detail:            "managed image backend package verified from canonical_runtime_wrapper",
@@ -1055,7 +1055,7 @@ func TestStartNativeSDCPPDependencyJobPromotesWindowsRuntimeWrapperSelectedSourc
 		t.Fatalf("selected consumers = %v, want stable-diffusion.cpp.cuda", got)
 	}
 	if source.Version != "master-813-bfbef5b" ||
-		source.Hashes["archive_sha256"] != "e101fcd3ab323547ef8b4387b5edc6e4a1a70837d394ca744cd847a30e3a9a71" ||
+		source.Hashes["archive_sha256"] != "e101fcd3ab323547ef8b4387b5edc6e4a1a70837d394ca744cd847a30e3a9a71" || // pragma: allowlist secret -- public archive checksum
 		!stringSliceContains(source.CompatibilityEvidence, "source_commit=bfbef5b7e64e89a0205894853de25d19a7ba54b9") ||
 		!stringSliceContains(source.CompatibilityEvidence, "package_format=direct_archive") ||
 		!stringSliceContains(source.CompatibilityEvidence, "launch_mode=runtime_wrapper") {
@@ -1160,9 +1160,9 @@ func TestNativeSDCPPDependencyJobProjectsManagedBackendDownloadProgress(t *testi
 			PackageFormat:     "direct_archive",
 			LaunchMode:        "runtime_wrapper",
 			ReleaseTag:        "master-813-bfbef5b",
-			SourceCommit:      "bfbef5b7e64e89a0205894853de25d19a7ba54b9",
+			SourceCommit:      "bfbef5b7e64e89a0205894853de25d19a7ba54b9", // pragma: allowlist secret -- public source commit
 			ArchiveURL:        "https://example.invalid/sd.zip",
-			ArchiveSHA256:     "e101fcd3ab323547ef8b4387b5edc6e4a1a70837d394ca744cd847a30e3a9a71",
+			ArchiveSHA256:     "e101fcd3ab323547ef8b4387b5edc6e4a1a70837d394ca744cd847a30e3a9a71", // pragma: allowlist secret -- public archive checksum
 			CanonicalRoot:     filepath.Join(svc.runtimeDataRoot, "environments", "managed-image-backends", "sd-win-cuda12-x64-stablediffusion-ggml"),
 			VerifiedArtifacts: []string{"sd.exe", "metadata.json"},
 			Detail:            "managed image backend package verified from canonical_runtime_wrapper",

@@ -62,7 +62,7 @@ func inferAssetKindFromCapabilities(capabilities []string) runtimev1.LocalAssetK
 	normalizedCapabilities := normalizeAssetCapabilities(capabilities)
 	resolved := runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED
 	for _, capability := range normalizedCapabilities {
-		kind := runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED
+		var kind runtimev1.LocalAssetKind
 		switch capability {
 		case "text.generate":
 			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT

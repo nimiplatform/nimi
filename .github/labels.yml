@@ -7,7 +7,7 @@
   description: "TypeScript SDK packages"
 - name: desktop
   color: "e4e669"
-  description: "Tauri desktop app"
+  description: "Electron desktop app"
 - name: docs
   color: "0e8a16"
   description: "Documentation"

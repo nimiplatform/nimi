@@ -1749,7 +1749,7 @@ func (s *Service) projectLocalAppConversationEvents(
 		if !ok {
 			return nil, true, localAppConversationOwnerUnavailable()
 		}
-		projection := runtimev1.LocalAppConversationReasoningState_LOCAL_APP_CONVERSATION_REASONING_STATE_UNSPECIFIED
+		var projection runtimev1.LocalAppConversationReasoningState
 		switch state {
 		case "started":
 			projection = runtimev1.LocalAppConversationReasoningState_LOCAL_APP_CONVERSATION_REASONING_STATE_STARTED

@@ -1,0 +1,558 @@
+name: release-preview
+run-name: unsigned-preview v${{ inputs.release_version }}-preview.${{ inputs.preview_number }} at ${{ inputs.commit_sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact lowercase 40-character main-ancestor commit SHA
+        required: true
+        type: string
+      release_version:
+        description: Stable release-train SemVer without a v prefix
+        required: true
+        type: string
+      preview_number:
+        description: Positive immutable preview sequence number
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: release-preview-${{ inputs.release_version }}-${{ inputs.preview_number }}
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      macos_artifact: ${{ steps.identity.outputs.macos_artifact }}
+      preview_tag: ${{ steps.identity.outputs.preview_tag }}
+      windows_artifact: ${{ steps.identity.outputs.windows_artifact }}
+    steps:
+      - name: Checkout exact preview commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.commit_sha }}
+          fetch-depth: 0
+
+      - name: Verify immutable unsigned-preview identity
+        id: identity
+        env:
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+          PREVIEW_NUMBER: ${{ inputs.preview_number }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          set -euo pipefail
+          if ! [[ "${COMMIT_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "commit_sha must be an exact lowercase 40-character Git SHA" >&2
+            exit 1
+          fi
+          test "$(git rev-parse HEAD)" = "${COMMIT_SHA}"
+          if ! [[ "${RELEASE_VERSION}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "release_version must be an exact stable SemVer" >&2
+            exit 1
+          fi
+          if ! [[ "${PREVIEW_NUMBER}" =~ ^[1-9][0-9]*$ ]]; then
+            echo "preview_number must be a positive integer" >&2
+            exit 1
+          fi
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor "${COMMIT_SHA}" origin/main
+          preview_tag="v${RELEASE_VERSION}-preview.${PREVIEW_NUMBER}"
+          identity="${RELEASE_VERSION}-preview.${PREVIEW_NUMBER}-${COMMIT_SHA}"
+          {
+            echo "preview_tag=${preview_tag}"
+            echo "windows_artifact=unsigned-preview-windows-${identity}"
+            echo "macos_artifact=unsigned-preview-macos-${identity}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.34.5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: runtime/go.mod
+          cache: false
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+
+      - name: Install deterministic Buf CLI
+        run: |
+          go install github.com/bufbuild/buf/cmd/buf@v1.70.0
+          echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run complete pre-release admission
+        env:
+          NIMI_RELEASE_TAG: v${{ inputs.release_version }}
+        run: pnpm pre-release
+
+  windows_build:
+    needs: gate
+    runs-on: windows-latest
+    steps:
+      - name: Checkout exact preview commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.commit_sha }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.34.5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Pack source-local Protected Local preview
+        shell: pwsh
+        env:
+          PREVIEW_NUMBER: ${{ inputs.preview_number }}
+          PREVIEW_TAG: ${{ needs.gate.outputs.preview_tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $outputRoot = Join-Path $env:GITHUB_WORKSPACE 'dist\release-preview\windows'
+          New-Item -ItemType Directory -Force -Path $outputRoot | Out-Null
+          node kit/shell/protected-local-node/scripts/build-windows-x64-source-local-development-package.mjs
+          if ($LASTEXITCODE -ne 0) { throw 'source-local Protected Local build failed' }
+          $sourceRoot = Join-Path $env:GITHUB_WORKSPACE 'kit\shell\protected-local-node\npm\win32-x64'
+          $packageRoot = Join-Path $env:RUNNER_TEMP 'nimi-protected-local-unsigned-preview'
+          Copy-Item -LiteralPath $sourceRoot -Destination $packageRoot -Recurse
+          $manifestPath = Join-Path $packageRoot 'package.json'
+          $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+          $manifest.version = "$($manifest.version)-preview.$env:PREVIEW_NUMBER"
+          $manifest | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $manifestPath -Encoding utf8NoBOM
+          $pack = @(
+            npm pack $packageRoot `
+              --pack-destination $outputRoot `
+              --ignore-scripts `
+              --json | ConvertFrom-Json
+          )
+          if ($LASTEXITCODE -ne 0 -or $pack.Count -ne 1) {
+            throw 'source-local Protected Local npm pack did not produce exactly one tarball'
+          }
+          $packed = Join-Path $outputRoot $pack[0].filename
+          $target = Join-Path $outputRoot "nimi-kit-protected-local-win32-x64-source-local-$env:PREVIEW_TAG-unsigned-preview.tgz"
+          Move-Item -LiteralPath $packed -Destination $target
+
+      - name: Describe explicit unsigned Windows developer preview
+        shell: pwsh
+        env:
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+          PREVIEW_TAG: ${{ needs.gate.outputs.preview_tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $outputRoot = Join-Path $env:GITHUB_WORKSPACE 'dist\release-preview\windows'
+          @"
+          UNSIGNED PREVIEW — NOT PROMOTABLE
+          tag=$env:PREVIEW_TAG
+          commit=$env:COMMIT_SHA
+          platform=windows/x64
+          This developer preview contains only the source-local Kit native package.
+          It does not contain a Nimi app, Runtime archive, installer, or Windows service package.
+          Its native PE file intentionally has no Authenticode signature.
+          The source-local package must not be published to npm.
+          "@ | Set-Content -LiteralPath (Join-Path $outputRoot 'UNSIGNED-PREVIEW-windows.txt') -Encoding utf8NoBOM
+
+      - name: Upload unsigned-preview Windows assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ needs.gate.outputs.windows_artifact }}
+          path: dist/release-preview/windows
+          if-no-files-found: error
+          retention-days: 30
+
+  windows_acceptance:
+    needs: [gate, windows_build]
+    runs-on: windows-latest
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Download exact unsigned-preview Windows assets
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.gate.outputs.windows_artifact }}
+          path: dist/release-preview/windows
+
+      - name: Install, require, and uninstall Windows developer package
+        shell: pwsh
+        env:
+          PREVIEW_NUMBER: ${{ inputs.preview_number }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $assetRoot = Resolve-Path 'dist\release-preview\windows'
+          $marker = Get-Content -LiteralPath (Join-Path $assetRoot 'UNSIGNED-PREVIEW-windows.txt') -TotalCount 1
+          if ($marker -ne 'UNSIGNED PREVIEW — NOT PROMOTABLE') { throw 'unsigned Windows marker is missing' }
+
+          $nativeTarball = @(Get-ChildItem -LiteralPath $assetRoot -File -Filter '*-source-local-*-unsigned-preview.tgz')
+          if ($nativeTarball.Count -ne 1) {
+            throw 'Windows preview asset set is incomplete or ambiguous'
+          }
+
+          $smokeRoot = Join-Path $env:RUNNER_TEMP 'nimi-unsigned-preview-native-install'
+          New-Item -ItemType Directory -Force -Path $smokeRoot | Out-Null
+          Set-Content -LiteralPath (Join-Path $smokeRoot 'package.json') -Value '{"private":true}' -Encoding utf8NoBOM
+          npm install --no-package-lock --prefix $smokeRoot $nativeTarball[0].FullName
+          if ($LASTEXITCODE -ne 0) { throw 'source-local native tarball install failed' }
+          $nativeIndex = Join-Path $smokeRoot 'node_modules\@nimiplatform\kit-protected-local-win32-x64\index.cjs'
+          $nativeImage = Join-Path $smokeRoot 'node_modules\@nimiplatform\kit-protected-local-win32-x64\nimi_shell_protected_local.node'
+          $nativeLicense = Join-Path $smokeRoot 'node_modules\@nimiplatform\kit-protected-local-win32-x64\LICENSE'
+          $licenseText = Get-Content -LiteralPath $nativeLicense -Raw
+          if (-not $licenseText.Contains('Copyright (c) 2026 Nimi Network Limited') -or
+              -not $licenseText.Contains('THE SOFTWARE IS PROVIDED "AS IS"')) {
+            throw 'installed source-local native tarball does not contain the complete MIT license'
+          }
+          if ((Get-AuthenticodeSignature -LiteralPath $nativeImage).Status -ne 'NotSigned') {
+            throw 'unsigned-preview Protected Local PE unexpectedly has an Authenticode signature'
+          }
+          node -e "const addon=require(process.argv[1]); if(typeof addon.localAppAIConfigGet!=='function') process.exit(1)" $nativeIndex
+          if ($LASTEXITCODE -ne 0) { throw 'installed source-local native tarball could not be required' }
+          $installedVersion = node -p "require(process.argv[1]).version" (Join-Path $smokeRoot 'node_modules\@nimiplatform\kit-protected-local-win32-x64\package.json')
+          if ($installedVersion -ne "0.3.0-preview.$env:PREVIEW_NUMBER") { throw "native preview package version mismatch: $installedVersion" }
+          npm uninstall --no-package-lock --prefix $smokeRoot '@nimiplatform/kit-protected-local-win32-x64'
+          if ($LASTEXITCODE -ne 0) { throw 'source-local native tarball uninstall failed' }
+          $installedPackage = Join-Path $smokeRoot 'node_modules\@nimiplatform\kit-protected-local-win32-x64'
+          if (Test-Path -LiteralPath $installedPackage) { throw 'native package remains after npm uninstall' }
+          Remove-Item -LiteralPath $smokeRoot -Recurse -Force
+          if (Test-Path -LiteralPath $smokeRoot) {
+            throw 'Windows developer package remains after uninstall cleanup'
+          }
+
+  macos_build:
+    needs: gate
+    runs-on: macos-15
+    steps:
+      - name: Checkout exact preview commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.commit_sha }}
+          fetch-depth: 0
+
+      - name: Require native Apple Silicon runner
+        run: test "$(uname -m)" = arm64
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.34.5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: runtime/go.mod
+          cache: false
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build existing ad-hoc local-development candidate
+        env:
+          NIMI_MACOS_RELEASE_OUTPUT: ${{ github.workspace }}/.nimi/local/release-preview/${{ needs.gate.outputs.preview_tag }}
+        run: pnpm build:macos:dev-candidate
+
+      - name: Package explicit unsigned macOS preview
+        env:
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+          PREVIEW_TAG: ${{ needs.gate.outputs.preview_tag }}
+        run: |
+          set -euo pipefail
+          candidate="${GITHUB_WORKSPACE}/.nimi/local/release-preview/${PREVIEW_TAG}"
+          test -d "${candidate}/Nimi Dev.app"
+          output_root="dist/release-preview/macos"
+          mkdir -p "${output_root}"
+          archive="${output_root}/Nimi-${PREVIEW_TAG}-macos-arm64-unsigned-preview.zip"
+          bundle="${RUNNER_TEMP}/Nimi-${PREVIEW_TAG}-macos-arm64-unsigned-preview"
+          test ! -e "${bundle}"
+          mkdir -p "${bundle}/LICENSES"
+          /usr/bin/ditto "${candidate}" "${bundle}/candidate"
+          cp licenses/MIT.txt "${bundle}/LICENSES/MIT.txt"
+          cp licenses/Apache-2.0.txt "${bundle}/LICENSES/Apache-2.0.txt"
+          cat > "${bundle}/LICENSES/README.txt" <<'LICENSES'
+          MIT.txt applies to Nimi Dev.app, its bundled Desktop, Kit, Avatar, local App host, installer, and launchd material.
+          Apache-2.0.txt applies to candidate/runtime/bin/nimi-runtime.
+          LICENSES
+          /usr/bin/ditto -c -k --sequesterRsrc --keepParent "${bundle}" "${archive}"
+          test -s "${archive}"
+          cat > "${output_root}/UNSIGNED-PREVIEW-macos.txt" <<EOF
+          UNSIGNED PREVIEW — NOT PROMOTABLE
+          tag=${PREVIEW_TAG}
+          commit=${COMMIT_SHA}
+          platform=macos/arm64
+          This local-development candidate is ad-hoc signed and has no Apple TeamIdentifier.
+          This is a repo-assisted developer candidate, not a standalone installer.
+          The archive includes complete MIT and Apache-2.0 texts under LICENSES/.
+          Install from an exact checkout of commit ${COMMIT_SHA}:
+            node scripts/accept-runtime-fixed-service.mjs --install-candidate /absolute/path/to/extracted/candidate
+          Uninstall from the same checkout:
+            node scripts/accept-runtime-fixed-service.mjs --uninstall
+          Installation creates _nimiruntimedev, ai.nimi.runtime.dev, /Applications/Nimi Dev.app,
+          /Library/Application Support/Nimi/RuntimeDev, /usr/local/libexec/nimi-macos-dev-security,
+          and local Runtime socket paths. Uninstall removes this development namespace; the empty,
+          root-owned /private/var/run/nimi-macos-dev-security.lock operation lock may remain until reboot.
+          EOF
+
+      - name: Upload unsigned-preview macOS assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ needs.gate.outputs.macos_artifact }}
+          path: dist/release-preview/macos
+          if-no-files-found: error
+          retention-days: 30
+
+  macos_acceptance:
+    needs: [gate, macos_build]
+    runs-on: macos-15
+    steps:
+      - name: Checkout exact preview commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.commit_sha }}
+
+      - name: Require native Apple Silicon runner
+        run: test "$(uname -m)" = arm64
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Download exact unsigned-preview macOS assets
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.gate.outputs.macos_artifact }}
+          path: dist/release-preview/macos
+
+      - name: Verify ad-hoc identity and exercise install lifecycle
+        env:
+          PREVIEW_TAG: ${{ needs.gate.outputs.preview_tag }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          set -euo pipefail
+          asset_root="dist/release-preview/macos"
+          test "$(head -n 1 "${asset_root}/UNSIGNED-PREVIEW-macos.txt")" = 'UNSIGNED PREVIEW — NOT PROMOTABLE'
+          grep -F 'repo-assisted developer candidate, not a standalone installer' "${asset_root}/UNSIGNED-PREVIEW-macos.txt"
+          archive="${asset_root}/Nimi-${PREVIEW_TAG}-macos-arm64-unsigned-preview.zip"
+          test -s "${archive}"
+          extract_root="${RUNNER_TEMP}/nimi-unsigned-preview-macos"
+          mkdir -p "${extract_root}"
+          /usr/bin/ditto -x -k "${archive}" "${extract_root}"
+          license_root="$(find "${extract_root}" -type d -name LICENSES -print -quit)"
+          test -n "${license_root}"
+          cmp -s "${license_root}/MIT.txt" licenses/MIT.txt
+          cmp -s "${license_root}/Apache-2.0.txt" licenses/Apache-2.0.txt
+          test "$(find "${extract_root}" -type d -name 'Nimi Dev.app' -print | wc -l | tr -d ' ')" -eq 1
+          app="$(find "${extract_root}" -type d -name 'Nimi Dev.app' -print -quit)"
+          candidate="$(dirname "${app}")"
+          /usr/bin/codesign --verify --deep --strict "${app}"
+          identity="$(/usr/bin/codesign -dvvv "${app}" 2>&1)"
+          grep -F 'Signature=adhoc' <<<"${identity}"
+          grep -F 'TeamIdentifier=not set' <<<"${identity}"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${app}/Contents/Info.plist")" = "${RELEASE_VERSION}"
+          runtime="${candidate}/runtime/bin/nimi-runtime"
+          test -x "${runtime}"
+          runtime_json="$("${runtime}" version --json)"
+          RUNTIME_JSON="${runtime_json}" node <<'NODE'
+          const value = JSON.parse(process.env.RUNTIME_JSON);
+          if (value.nimi !== process.env.RELEASE_VERSION || value.osArch !== 'darwin/arm64') {
+            throw new Error(`macOS preview Runtime identity mismatch: ${JSON.stringify(value)}`);
+          }
+          NODE
+
+          cleanup() {
+            pkill -TERM -f '/Applications/Nimi Dev.app/Contents/MacOS/Nimi Dev' >/dev/null 2>&1 || true
+            node scripts/accept-runtime-fixed-service.mjs --uninstall >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          node scripts/accept-runtime-fixed-service.mjs --install-candidate "${candidate}"
+          status_json="$(node scripts/accept-runtime-fixed-service.mjs --status)"
+          STATUS_JSON="${status_json}" node <<'NODE'
+          const status = JSON.parse(process.env.STATUS_JSON);
+          if (status.status !== 'present' || status.state !== 'running' || !Number.isInteger(status.pid) || status.pid <= 1) {
+            throw new Error(`installed macOS preview is not running: ${JSON.stringify(status)}`);
+          }
+          NODE
+          app_executable='/Applications/Nimi Dev.app/Contents/MacOS/Nimi Dev'
+          test -x "${app_executable}"
+          "${app_executable}" >"${RUNNER_TEMP}/nimi-preview-app.log" 2>&1 &
+          app_pid=$!
+          sleep 8
+          if ! kill -0 "${app_pid}" 2>/dev/null; then
+            cat "${RUNNER_TEMP}/nimi-preview-app.log" >&2
+            echo 'installed Nimi preview exited before launch acceptance' >&2
+            exit 1
+          fi
+          kill -TERM "${app_pid}"
+          wait "${app_pid}" || true
+          node scripts/accept-runtime-fixed-service.mjs --uninstall
+          absent_json="$(node scripts/accept-runtime-fixed-service.mjs --status)"
+          STATUS_JSON="${absent_json}" node <<'NODE'
+          const status = JSON.parse(process.env.STATUS_JSON);
+          if (status.status !== 'absent') {
+            throw new Error(`macOS preview remains after uninstall: ${JSON.stringify(status)}`);
+          }
+          NODE
+          trap - EXIT
+
+  publish:
+    needs: [gate, windows_acceptance, macos_acceptance]
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    steps:
+      - name: Checkout exact preview commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.commit_sha }}
+          fetch-depth: 0
+
+      - name: Download unsigned-preview Windows assets
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.gate.outputs.windows_artifact }}
+          path: dist/release-preview/publish/windows
+
+      - name: Download unsigned-preview macOS assets
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.gate.outputs.macos_artifact }}
+          path: dist/release-preview/publish/macos
+
+      - name: Assemble immutable unsigned-preview release assets
+        env:
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+          PREVIEW_TAG: ${{ needs.gate.outputs.preview_tag }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${COMMIT_SHA}"
+          source_root="dist/release-preview/publish"
+          output_root="dist/release-preview/release-assets"
+          mkdir -p "${output_root}"
+          while IFS= read -r -d '' source; do
+            name="$(basename "${source}")"
+            destination="${output_root}/${name}"
+            if [[ -e "${destination}" ]]; then
+              if ! cmp -s "${source}" "${destination}"; then
+                echo "conflicting duplicate unsigned-preview asset: ${name}" >&2
+                exit 1
+              fi
+              continue
+            fi
+            cp "${source}" "${destination}"
+          done < <(find "${source_root}" -type f -print0)
+          test -s "${output_root}/UNSIGNED-PREVIEW-windows.txt"
+          test -s "${output_root}/UNSIGNED-PREVIEW-macos.txt"
+          test -n "$(find "${output_root}" -maxdepth 1 -type f -name '*-macos-arm64-unsigned-preview.zip' -print -quit)"
+          test -n "$(find "${output_root}" -maxdepth 1 -type f -name '*-source-local-*-unsigned-preview.tgz' -print -quit)"
+          cat > "${RUNNER_TEMP}/unsigned-preview-notes.md" <<EOF
+          UNSIGNED PREVIEW — NOT PROMOTABLE
+
+          This immutable developer preview was built from ${COMMIT_SHA} and accepted on Windows x64 and macOS arm64.
+          Windows contains only the source-local Kit package; it includes no Nimi app, Runtime archive, installer, or service. Its native PE is intentionally not Authenticode signed.
+          macOS contains an ad-hoc repo-assisted candidate with no TeamIdentifier. It requires the exact source checkout for installation and uninstallation; see UNSIGNED-PREVIEW-macos.txt.
+          Linux has no preview asset. No standalone or portable Runtime archive is included on any platform.
+          These assets are not an RC, cannot be promoted to Stable, do not update latest, and are not published to npm, crates.io, or buf.build.
+          EOF
+
+      - name: Require unused immutable preview tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_TAG: ${{ needs.gate.outputs.preview_tag }}
+        run: |
+          set -euo pipefail
+          if git ls-remote --exit-code --tags origin "refs/tags/${PREVIEW_TAG}" >/dev/null 2>&1; then
+            echo "preview tag ${PREVIEW_TAG} already exists and must not be moved or reused" >&2
+            exit 1
+          fi
+          if gh release view "${PREVIEW_TAG}" >/dev/null 2>&1; then
+            echo "preview release ${PREVIEW_TAG} already exists and must not be overwritten" >&2
+            exit 1
+          fi
+
+      - name: Create exact immutable preview tag
+        env:
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_TAG: ${{ needs.gate.outputs.preview_tag }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          gh api "repos/${REPOSITORY}/git/refs" \
+            --method POST \
+            -f "ref=refs/tags/${PREVIEW_TAG}" \
+            -f "sha=${COMMIT_SHA}" >/dev/null
+          git fetch origin "refs/tags/${PREVIEW_TAG}:refs/tags/${PREVIEW_TAG}"
+          test "$(git rev-parse "refs/tags/${PREVIEW_TAG}^{commit}")" = "${COMMIT_SHA}"
+
+      - name: Publish immutable unsigned-preview GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_TAG: ${{ needs.gate.outputs.preview_tag }}
+        run: |
+          set -euo pipefail
+          mapfile -d '' assets < <(
+            find dist/release-preview/release-assets -maxdepth 1 -type f -print0 | sort -z
+          )
+          test "${#assets[@]}" -gt 0
+          gh release create "${PREVIEW_TAG}" "${assets[@]}" \
+            --verify-tag \
+            --prerelease \
+            --title "unsigned-preview ${PREVIEW_TAG} — NOT PROMOTABLE" \
+            --notes-file "${RUNNER_TEMP}/unsigned-preview-notes.md"
+
+      - name: Verify published preview is immutable
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREVIEW_TAG: ${{ needs.gate.outputs.preview_tag }}
+        run: test "$(gh release view "${PREVIEW_TAG}" --json isImmutable --jq '.isImmutable')" = true

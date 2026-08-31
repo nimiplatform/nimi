@@ -2,6 +2,8 @@ package nimillm
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -99,27 +101,32 @@ func TestCloudProviderAlwaysEnforcesEndpointSecurity(t *testing.T) {
 }
 
 func TestCloudProviderExecutionNeverInheritsConfiguredBackendFacts(t *testing.T) {
+	ambient := httptest.NewServer(http.NotFoundHandler())
+	defer ambient.Close()
+	exact := httptest.NewServer(http.NotFoundHandler())
+	defer exact.Close()
 	provider := NewCloudProvider(CloudConfig{
 		Providers: map[string]ProviderCredentials{
 			"openai": {
-				BaseURL: "https://ambient.example/v1",
+				BaseURL: ambient.URL,
 				APIKey:  "ambient-key",
 				Headers: map[string]string{
 					"X-Ambient": "forbidden",
 				},
 			},
 		},
+		AllowLoopbackEndpoint: true,
 	})
 	target := &RemoteTarget{
 		ProviderType:    "openai",
-		Endpoint:        "https://exact.example/v1",
+		Endpoint:        exact.URL,
 		ProviderModelID: "gpt-4o-mini",
 	}
 	backend, modelID := provider.ResolveMediaBackendWithTarget("gpt-4o-mini", target)
 	if backend == nil {
 		t.Fatal("exact target backend is nil")
 	}
-	if modelID != "gpt-4o-mini" || backend.baseURL != "https://exact.example" || backend.apiKey != "" || len(backend.headers) != 0 {
+	if modelID != "gpt-4o-mini" || backend.baseURL != exact.URL || backend.apiKey != "" || len(backend.headers) != 0 {
 		t.Fatalf("execution inherited ambient facts: model=%q endpoint=%q api_key=%q headers=%#v", modelID, backend.baseURL, backend.apiKey, backend.headers)
 	}
 

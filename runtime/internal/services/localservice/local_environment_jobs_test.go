@@ -437,7 +437,7 @@ func TestRestoreCanonicalizesPersistedPythonSelectedSourceOwnership(t *testing.T
 		SourceKind:         localEnvironmentSourceManaged,
 		CanonicalRoot:      filepath.Join(runtimeDataRoot, "environments", "python-profiles", "legacy"),
 		SelectedConsumers:  []string{"speech.qwen3-tts.python"},
-		ActivationEnvDelta: []string{"NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD=legacy-secret-bearing-command"},
+		ActivationEnvDelta: []string{"NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD=legacy-secret-bearing-command"}, // pragma: allowlist secret -- secret-removal fixture
 	}
 	if err := saveLocalStateSnapshot(statePath, localStateSnapshot{
 		SchemaVersion:                   localStateSchemaVersion,
@@ -1092,8 +1092,11 @@ func TestCopiedDataRootDerivesEnvironmentOwnerLocatorsAndDropsHostJobs(t *testin
 	record = first.mergeLocalEnvironmentSelectedSourceRecordLocked(record)
 	hostProfile := localEnvironmentHostProfileFromDeviceProfile(localEnvironmentNvidiaProfile())
 	first.localEnvironmentHostProfiles[hostProfile.HostProfileID] = hostProfile
-	first.persistStateLocked()
+	persistErr := first.persistStateLocked()
 	first.mu.Unlock()
+	if persistErr != nil {
+		t.Fatalf("persist copied data-root fixture: %v", persistErr)
+	}
 	stored, err := os.ReadFile(stateOne)
 	if err != nil {
 		t.Fatal(err)

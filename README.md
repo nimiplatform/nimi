@@ -1,9 +1,16 @@
 # Nimi
 
-**Nimi is an open-source, local-first, multi-provider personal AI runtime with
-Realm-owned ecosystem identity.** The broader project is an AI open world
-platform. It is built for long-lived worlds
-where people, AI agents, applications, and runtime services share the
+**Nimi is an open-source, local-first, installable personal AI product.**
+Nimi Home is its entry point, Realm owns ecosystem identity, and Runtime
+executes local and cloud AI capabilities across multiple providers. Characters,
+conversations, creations, stories, and worlds are experiences within Nimi;
+Nimi is not reducible to Runtime, a chat product, Avatar, or any one experience.
+Nimi Apps owns catalog discovery, ordinary installation with download progress,
+update, launch and run, repair, uninstall, explicit local import, and Developer
+Mode entry; the release index does not take over those product semantics.
+
+The broader project is an AI open world platform. It is built for long-lived
+worlds where people, AI agents, applications, and runtime services share the
 same social and semantic environment, instead of meeting only inside one
 isolated chat box or one isolated app.
 
@@ -21,6 +28,31 @@ creator sets the rules. Across worlds, only the protocol primitives are
 fixed. Underneath all of it, Realm holds the world's truth — so one
 surface can't quietly invent a version of the world that doesn't match
 what Realm says.
+
+## Public Project Links and Release Status
+
+- [Download](https://nimi.ai/download)
+- [Code signing policy](https://nimi.ai/code-signing)
+- [Documentation](https://docs.nimi.ai)
+- [Source code](https://github.com/nimiplatform/nimi)
+- [Security advisories](https://github.com/nimiplatform/nimi/security/advisories) and [`security@nimi.ai`](mailto:security@nimi.ai)
+
+**Windows release pending production code-signing approval.** Windows is not yet
+available as a production download, and no current Nimi Windows artifact should
+be treated as production signed. The SignPath Foundation application is
+pending; local development self-signing is never a production-signing claim.
+
+The Download and Code signing policy links above are the canonical public route
+targets. Repository changes do not make those routes live until the website is
+deployed.
+
+Unsigned previews, when published, use immutable `vX.Y.Z-preview.N` GitHub
+prereleases and are marked **UNSIGNED PREVIEW — NOT PROMOTABLE**. They do not
+update stable `latest`, publish registries, or become RC/Stable assets. The
+current developer-preview scope is a Windows source-local Kit package and a
+repo-assisted macOS candidate; it includes no standalone Runtime archive,
+Windows installer, or Linux asset. A future signed RC is rebuilt from the same
+source line after production platform signing is available.
 
 ## The Six Protocol Primitives
 
@@ -91,7 +123,8 @@ than to mix together.
 +---------------------------------------------------------------+
 ```
 
-Runtime executes AI workflows. SDK gives apps the integration boundary.
+Runtime executes local and cloud AI capabilities across providers. SDK gives
+apps the integration boundary.
 Desktop carries native and local behavior; Web is the constrained
 projection. Realm owns world truth. Avatar owns embodied presentation.
 Cognition owns memory and knowledge as a standalone authority that
@@ -267,7 +300,10 @@ The contributor code of conduct lives in
 
 Do not open public issues for security reports. Use the GitHub Security
 Advisory (preferred) or email `security@nimi.ai`. Full reporting
-guidance and supported-version policy live in [SECURITY.md](SECURITY.md).
+guidance, signed-artifact verification status, and supported-version policy live
+in [SECURITY.md](SECURITY.md). The canonical public
+[Code signing policy](https://nimi.ai/code-signing) records the Windows signing
+scope and current approval status once deployed.
 
 ## License
 
@@ -286,6 +322,14 @@ per-component map is in [LICENSE](LICENSE).
 
 - GitHub: [github.com/nimiplatform/nimi](https://github.com/nimiplatform/nimi)
 - Discord: [discord.gg/BQwHJvPn](https://discord.gg/BQwHJvPn)
+- Maintainer and trusted committer: [@snowzane](https://github.com/snowzane),
+  who also reviews external contributions and is the planned signing approver
+- Working entity: Nimi Network Limited, the registered company supporting the
+  project
+
+The GitHub organization enforces MFA. Production signing remains unavailable
+until the protected signing workflow and approval permission are configured;
+no future SignPath access may be granted without MFA.
 
 ## A Word On OASIS
 

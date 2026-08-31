@@ -657,7 +657,7 @@ func TestProjectLocalAppScenarioJobAdmitsCompletedMusicArtifact(t *testing.T) {
 		Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
 		TraceId: "trace-music", Artifacts: []*runtimev1.ScenarioArtifact{{
 			ArtifactId: "artifact-music", MimeType: "audio/wav", SizeBytes: 3530796,
-			Sha256:     "75b32ec1ad1fd80bccb8fb020a726616394412e81ffa3229fd60fcaa98a60db2",
+			Sha256:     strings.Repeat("a", 64),
 			DurationMs: 20015, SampleRateHz: 44100, Channels: 2,
 		}},
 	})

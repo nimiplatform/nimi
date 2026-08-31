@@ -174,7 +174,7 @@ func (b *SQLiteBackend) validateStoredRuntimeSourceUnits(scopeID string, state R
 	if err != nil {
 		return fmt.Errorf("storage: inspect runtime source units: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	count := 0
 	for rows.Next() {
 		var unit RuntimeSourceUnit
@@ -196,6 +196,9 @@ func (b *SQLiteBackend) validateStoredRuntimeSourceUnits(scopeID string, state R
 	}
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("storage: inspect runtime source units: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return fmt.Errorf("storage: close runtime source units: %w", err)
 	}
 	if count != state.UnitCount {
 		return errors.New("storage: runtime source unit count changed during inspection")
@@ -224,7 +227,7 @@ func (b *SQLiteBackend) SearchRuntimeSource(scopeID, snapshotIdentity, embedding
 	if err != nil {
 		return nil, state, fmt.Errorf("storage: search runtime source: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	units := make([]RuntimeSourceUnit, 0, state.UnitCount)
 	for rows.Next() {
 		var unit RuntimeSourceUnit
@@ -263,6 +266,9 @@ func (b *SQLiteBackend) SearchRuntimeSource(scopeID, snapshotIdentity, embedding
 	if err := rows.Err(); err != nil {
 		return nil, state, err
 	}
+	if err := rows.Close(); err != nil {
+		return nil, state, fmt.Errorf("storage: close runtime source search: %w", err)
+	}
 	sort.SliceStable(units, func(i, j int) bool {
 		if units[i].Score != units[j].Score {
 			return units[i].Score > units[j].Score
@@ -298,7 +304,7 @@ func (b *SQLiteBackend) validateStoredRuntimeSourceOmissions(scopeID string, exp
 	if err != nil {
 		return fmt.Errorf("storage: inspect runtime source omissions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	count := 0
 	for rows.Next() {
 		var omission RuntimeSourceOmission
@@ -316,6 +322,9 @@ func (b *SQLiteBackend) validateStoredRuntimeSourceOmissions(scopeID string, exp
 	}
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("storage: inspect runtime source omissions: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return fmt.Errorf("storage: close runtime source omissions: %w", err)
 	}
 	if count != expectedCount {
 		return errors.New("storage: runtime source omission count changed during inspection")

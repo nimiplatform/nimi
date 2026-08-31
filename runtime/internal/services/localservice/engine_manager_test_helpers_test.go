@@ -186,7 +186,7 @@ func (m *mockEngineManager) EnsureManagedImageBackendDependency(_ context.Contex
 		PackageFormat:     "direct_archive",
 		LaunchMode:        "runtime_wrapper",
 		ReleaseTag:        "test-release",
-		SourceCommit:      "0123456789abcdef0123456789abcdef01234567",
+		SourceCommit:      strings.Repeat("0", 40),
 		ArchiveURL:        "https://example.invalid/sd.zip",
 		ArchiveSHA256:     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 		CanonicalRoot:     "test-root",

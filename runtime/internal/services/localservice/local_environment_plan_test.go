@@ -335,7 +335,7 @@ func TestResolvePythonProfileKeepsConsumptionEvidenceOutsideCanonicalTorchSource
 			t.Fatalf("shared profile fixture received distinct profile digests: first=%s %s=%s", writtenProfileDigest, consumer, profileIdentity.ProfileDigest)
 		}
 		promotedProfile := svc.upsertLocalEnvironmentSelectedSourceRecord(profileRecord)
-		recordReadyPythonPackageSetConsumptionJobForTest(svc, promotedProfile, consumer)
+		recordReadyPythonPackageSetConsumptionJobForTest(t, svc, promotedProfile, consumer)
 
 		torchDep := findLocalEnvironmentDependency(t, plan, localEnvironmentFamilyPythonTorchWheel)
 		torchIdentity, err := engine.ResolvePythonTorchWheelDependencyIdentity(torchDep.ConsumerScope)

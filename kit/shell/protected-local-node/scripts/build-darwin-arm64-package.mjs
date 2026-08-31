@@ -29,7 +29,7 @@ if (!layoutOnly && !localDevelopment && !sourceLocalDevelopment) {
   }
 }
 
-const cargoArguments = ['build', '--release', '--manifest-path', path.join(crateRoot, 'Cargo.toml')];
+const cargoArguments = ['build', '--locked', '--release', '--manifest-path', path.join(crateRoot, 'Cargo.toml')];
 if (localDevelopment) cargoArguments.push('--features', 'macos-local-development');
 if (sourceLocalDevelopment) cargoArguments.push('--features', 'macos-source-local-development');
 const cargoEnvironment = {

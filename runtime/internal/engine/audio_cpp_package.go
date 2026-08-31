@@ -13,10 +13,10 @@ import (
 
 const (
 	AudioCppPackageVersion       = "0.6.1"
-	AudioCppPackageCommit        = "26dcb5c4cf5aa016ae6285096a7b45f2671e5d17"
+	AudioCppPackageCommit        = "26dcb5c4cf5aa016ae6285096a7b45f2671e5d17" // pragma: allowlist secret -- public source commit
 	AudioCppPackageAssetName     = "audiocpp-windows-cuda-balance-26dcb5c4.zip"
 	AudioCppPackageArchiveURL    = "https://github.com/0xShug0/audio.cpp/releases/download/release-0.6.1/audiocpp-windows-cuda-balance-26dcb5c4.zip"
-	AudioCppPackageArchiveSHA256 = "5e6b6389a05be228f89ba15c5f5f037351a8e2d2be82d1bec363d26dfa55b373"
+	AudioCppPackageArchiveSHA256 = "5e6b6389a05be228f89ba15c5f5f037351a8e2d2be82d1bec363d26dfa55b373" // pragma: allowlist secret -- public archive checksum
 	AudioCppPackageArchiveBytes  = int64(257604825)
 	AudioCppCLIExecutableName    = "audiocpp_cli.exe"
 )

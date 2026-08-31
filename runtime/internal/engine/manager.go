@@ -277,15 +277,15 @@ func (m *Manager) EnsureEngineBinaryDependency(ctx context.Context, cfg EngineCo
 }
 
 func (m *Manager) ensureLlama(ctx context.Context, cfg EngineConfig) (EngineConfig, error) {
-	preferredAssetName, preferredAssetErr := preferredLlamaAssetNameForCurrentHost(cfg.Version)
-	if preferredAssetErr != nil {
-		return cfg, fmt.Errorf("llama.cpp package is unsupported on the exact host backend: %w", preferredAssetErr)
-	}
 	if m.registry.PendingRebase(EngineLlama, cfg.Version) {
 		return cfg, fmt.Errorf("%w: engine=%s version=%s", ErrEngineRegistryReconciliationRequired, EngineLlama, cfg.Version)
 	}
 	if reason := m.registry.ConflictReason(EngineLlama, cfg.Version); reason != "" {
 		return cfg, fmt.Errorf("%w: engine=%s version=%s reason=%s", ErrEngineRegistryReconciliationRequired, EngineLlama, cfg.Version, reason)
+	}
+	preferredAssetName, preferredAssetErr := preferredLlamaAssetNameForCurrentHost(cfg.Version)
+	if preferredAssetErr != nil {
+		return cfg, fmt.Errorf("llama.cpp package is unsupported on the exact host backend: %w", preferredAssetErr)
 	}
 	// Check registry first.
 	entry := m.registry.Get(EngineLlama, cfg.Version)
@@ -338,10 +338,6 @@ func (m *Manager) requireLlamaBinaryDependency(cfg EngineConfig) (EngineConfig, 
 	if strings.TrimSpace(cfg.Version) == "" {
 		cfg.Version = DefaultLlamaConfig().Version
 	}
-	preferredAssetName, preferredAssetErr := preferredLlamaAssetNameForCurrentHost(cfg.Version)
-	if preferredAssetErr != nil {
-		return cfg, fmt.Errorf("%w: state=unsupported; dependency_family=native-engine-package.llama; dependency_id=llama.cpp.package; detail=%v", ErrEngineBinaryDependencyNotReady, preferredAssetErr)
-	}
 	if m.registry == nil {
 		return cfg, fmt.Errorf("%w: llama.cpp.package registry unavailable", ErrEngineBinaryDependencyNotReady)
 	}
@@ -350,6 +346,10 @@ func (m *Manager) requireLlamaBinaryDependency(cfg EngineConfig) (EngineConfig, 
 	}
 	if reason := m.registry.ConflictReason(EngineLlama, cfg.Version); reason != "" {
 		return cfg, fmt.Errorf("%w: state=conflict; dependency_family=native-engine-package.llama; dependency_id=llama.cpp.package; reason=%s", ErrEngineRegistryReconciliationRequired, reason)
+	}
+	preferredAssetName, preferredAssetErr := preferredLlamaAssetNameForCurrentHost(cfg.Version)
+	if preferredAssetErr != nil {
+		return cfg, fmt.Errorf("%w: state=unsupported; dependency_family=native-engine-package.llama; dependency_id=llama.cpp.package; detail=%v", ErrEngineBinaryDependencyNotReady, preferredAssetErr)
 	}
 	entry := m.registry.Get(EngineLlama, cfg.Version)
 	if entry == nil {

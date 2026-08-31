@@ -29,3 +29,299 @@
 .web-account-form input { border: 1px solid #b7d5d5; border-radius: .75rem; padding: .8rem 1rem; background: white; }
 .web-account-form button { border-radius: 999px; padding: .8rem 1rem; background: #087b87; color: white; font-weight: 600; }
 .web-account-secret { overflow-wrap: anywhere; border-radius: .75rem; background: #e8f5f5; padding: 1rem; font-family: monospace; }
+
+.release-page-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 12% -8%, rgba(56, 214, 163, .11), transparent 42%),
+    radial-gradient(ellipse at 88% 4%, rgba(14, 165, 233, .09), transparent 44%),
+    #f8fafc;
+  color: #0f172a;
+}
+
+.release-container {
+  width: min(1060px, calc(100% - 2rem));
+  margin: 0 auto;
+}
+
+.release-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  border-bottom: 1px solid rgba(15, 23, 42, .07);
+  background: rgba(255, 255, 255, .9);
+  backdrop-filter: blur(18px);
+}
+
+.release-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-height: 4.25rem;
+  padding: .65rem 0;
+}
+
+.release-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: .65rem;
+  color: #0f172a;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.release-header nav,
+.release-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .45rem 1rem;
+}
+
+.release-header nav {
+  margin-left: auto;
+}
+
+.release-header nav a,
+.release-footer nav a {
+  color: #475569;
+  font-size: .88rem;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.release-header nav a:hover,
+.release-footer nav a:hover {
+  color: #0f766e;
+}
+
+.release-main {
+  padding: 4rem 0 5rem;
+}
+
+.release-hero {
+  max-width: 54rem;
+}
+
+.release-kicker,
+.release-label {
+  color: #0f766e;
+  font-size: .76rem;
+  font-weight: 800;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.release-hero h1 {
+  margin: 1rem 0 0;
+  font-family: "Sora", "IBM Plex Sans", sans-serif;
+  font-size: clamp(2.6rem, 7vw, 5.6rem);
+  font-weight: 700;
+  letter-spacing: -.055em;
+  line-height: .98;
+}
+
+.release-intro {
+  margin: 1.5rem 0 0;
+  max-width: 50rem;
+  color: #475569;
+  font-size: 1.08rem;
+  line-height: 1.85;
+}
+
+.release-status {
+  display: grid;
+  gap: .55rem;
+  margin-top: 2rem;
+  border: 1px solid #fed7aa;
+  border-radius: 1.35rem;
+  background: rgba(255, 247, 237, .92);
+  padding: 1.25rem 1.35rem;
+  box-shadow: 0 18px 45px -32px rgba(154, 52, 18, .42);
+}
+
+.release-status > span {
+  color: #9a3412;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.release-status strong {
+  font-size: 1.12rem;
+}
+
+.release-status p,
+.release-reviewed {
+  margin: 0;
+  color: #7c2d12;
+  line-height: 1.65;
+}
+
+.release-primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1rem;
+  border-radius: 999px;
+  background: #0f766e;
+  padding: .78rem 1.15rem;
+  color: #fff;
+  font-size: .92rem;
+  font-weight: 750;
+  text-decoration: none;
+  box-shadow: 0 12px 28px -18px rgba(15, 118, 110, .75);
+}
+
+.release-primary-action:hover { background: #115e59; }
+.release-primary-action:focus-visible { outline: 3px solid #5eead4; outline-offset: 3px; }
+
+.release-reviewed {
+  margin-top: .85rem;
+  color: #64748b;
+  font-size: .85rem;
+}
+
+.release-card {
+  margin-top: 3rem;
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, .95);
+  border-radius: 2rem;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 30px 90px -48px rgba(15, 23, 42, .24);
+  padding: 1.75rem 1.35rem;
+}
+
+.release-section {
+  scroll-margin-top: 6rem;
+  padding: 1.7rem .15rem;
+}
+
+.release-section + .release-section {
+  border-top: 1px solid #e2e8f0;
+}
+
+.release-section h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+  letter-spacing: -.025em;
+}
+
+.release-section h3 {
+  margin: 1.3rem 0 .5rem;
+  font-size: 1rem;
+}
+
+.release-section p,
+.release-section li {
+  color: #475569;
+  line-height: 1.82;
+}
+
+.release-section p {
+  margin: .85rem 0 0;
+}
+
+.release-section ul {
+  margin: .8rem 0 0;
+  padding-left: 1.35rem;
+}
+
+.release-section a {
+  color: #087b87;
+  font-weight: 650;
+}
+
+.release-section pre {
+  overflow-x: auto;
+  margin: .9rem 0 0;
+  border: 1px solid #1e293b;
+  border-radius: .9rem;
+  background: #0f172a;
+  padding: 1rem;
+  color: #e2e8f0;
+  font-size: .86rem;
+  line-height: 1.7;
+}
+
+.release-warning {
+  border-left: 3px solid #f97316;
+  background: #fff7ed;
+  padding: .8rem 1rem;
+  color: #7c2d12 !important;
+}
+
+.release-platform-grid,
+.release-link-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.1rem;
+}
+
+.release-platform-grid article,
+.release-link-grid a {
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
+  background: #f8fafc;
+  padding: 1rem;
+}
+
+.release-platform-grid h3 {
+  margin: 0 0 .5rem;
+  font-size: 1.05rem;
+}
+
+.release-platform-grid strong {
+  color: #9a3412;
+  font-size: .86rem;
+}
+
+.release-platform-grid p {
+  margin-top: .6rem;
+  font-size: .92rem;
+}
+
+.release-link-grid a {
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+  text-decoration: none;
+}
+
+.release-link-grid span {
+  overflow-wrap: anywhere;
+  color: #64748b;
+  font-size: .78rem;
+  font-weight: 500;
+}
+
+.release-footer {
+  border-top: 1px solid rgba(15, 23, 42, .07);
+  background: rgba(255, 255, 255, .75);
+  color: #64748b;
+}
+
+.release-footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.5rem 0 2rem;
+  font-size: .9rem;
+}
+
+@media (min-width: 768px) {
+  .release-card { padding: 2.4rem 3rem; }
+}
+
+@media (max-width: 760px) {
+  .release-header-inner { align-items: flex-start; flex-wrap: wrap; }
+  .release-header nav { order: 3; width: 100%; margin-left: 0; }
+  .release-header fieldset { margin-left: auto; }
+  .release-main { padding-top: 2.8rem; }
+  .release-platform-grid,
+  .release-link-grid { grid-template-columns: 1fr; }
+  .release-footer-inner { align-items: flex-start; flex-direction: column; }
+}

@@ -25,7 +25,7 @@ test('direct Local App conversation voice render carries only the canonical comm
     },
   } as NimiLocalAppConversationRuntime;
   const client = createNimiLocalAppConversationRuntimeClient(runtime);
-  const agentHandle = 'agent_ref_abcdefghijklmnopqrstuvwxyzABCDEFGH123456789' as NimiLocalAppAgentHandle;
+  const agentHandle = `agent_ref_${'a'.repeat(43)}` as NimiLocalAppAgentHandle;
 
   assert.deepEqual(await client.renderVoice({
     agentHandle,

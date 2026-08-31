@@ -158,10 +158,20 @@ export type LandingContent = {
     title: string;
     subtitle: string;
     intro: string;
+    linksAriaLabel: string;
     pillars: Array<{
       label: string;
       title: string;
       points: string[];
+    }>;
+    statuses: ReadonlyArray<{
+      label: string;
+      value: string;
+    }>;
+    links: ReadonlyArray<{
+      label: string;
+      detail: string;
+      href: string;
     }>;
   };
   openSource: {
@@ -184,6 +194,9 @@ export type LandingContent = {
     line2: string;
     termsLabel: string;
     privacyLabel: string;
+    downloadLabel: string;
+    codeSigningLabel: string;
+    securityLabel: string;
   };
   localeToggleLabel: string;
   localeOptions: {

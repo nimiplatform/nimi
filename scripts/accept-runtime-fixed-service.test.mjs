@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {
   mkdirSync,
   mkdtempSync,
+  realpathSync,
   rmSync,
   writeFileSync,
 } from 'node:fs';
@@ -186,13 +187,20 @@ test('macOS install stops on candidate build failure before privileged mutation'
   assert.deepEqual(calls, ['build-candidate']);
 });
 
-test('macOS fixed-service acceptance accepts only the fixed current modes', () => {
+test('macOS fixed-service acceptance accepts only the fixed current modes', (context) => {
+  const candidateRoot = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'nimi-downloaded-candidate-')));
+  context.after(() => rmSync(candidateRoot, { recursive: true, force: true }));
   assert.deepEqual(parseMacOSDevRuntimeArguments([]), { mode: 'update' });
   assert.deepEqual(parseMacOSDevRuntimeArguments(['--status']), { mode: 'status' });
   assert.deepEqual(parseMacOSDevRuntimeArguments(['--', '--desktop']), { mode: 'desktop' });
+  assert.deepEqual(
+    parseMacOSDevRuntimeArguments(['--install-candidate', candidateRoot]),
+    { mode: 'install-candidate', candidatePath: candidateRoot },
+  );
   for (const args of [
     ['--development-data-root', '/tmp/nimi'],
     ['--install', '--status'],
+    ['--install-candidate'],
     ['--reset'],
   ]) {
     assert.throws(
@@ -200,6 +208,64 @@ test('macOS fixed-service acceptance accepts only the fixed current modes', () =
       (error) => error.reasonCode === 'dev-runtime-argument-invalid',
     );
   }
+  assert.throws(
+    () => parseMacOSDevRuntimeArguments(['--install-candidate', 'relative-candidate']),
+    (error) => error.reasonCode === 'dev-candidate-path-untrusted',
+  );
+});
+
+test('macOS downloaded candidate installs exact bytes without rebuild or cleanup', async (context) => {
+  const candidateRoot = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'nimi-downloaded-candidate-')));
+  context.after(() => rmSync(candidateRoot, { recursive: true, force: true }));
+  const calls = [];
+  const result = await runDevRuntimeService({
+    platform: 'darwin',
+    architecture: 'arm64',
+    mode: 'install-candidate',
+    candidatePath: candidateRoot,
+    queryStatus: async () => {
+      calls.push('status');
+      return { status: 'absent', state: 'stopped', serviceName: 'ai.nimi.runtime.dev' };
+    },
+    buildCandidate: async () => calls.push('build-candidate'),
+    invokeHelper: async (args) => {
+      calls.push(args);
+      return {
+        status: 'installed',
+        state: 'running',
+        pid: 456,
+        serviceName: 'ai.nimi.runtime.dev',
+      };
+    },
+  });
+  assert.deepEqual(calls, ['status', ['install-candidate', candidateRoot]]);
+  assert.equal(realpathSync(candidateRoot), candidateRoot);
+  assert.deepEqual(result, {
+    status: 'installed',
+    state: 'running',
+    pid: 456,
+    serviceName: 'ai.nimi.runtime.dev',
+  });
+});
+
+test('macOS downloaded candidate refuses a non-absent namespace before mutation', async (context) => {
+  const candidateRoot = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'nimi-downloaded-candidate-')));
+  context.after(() => rmSync(candidateRoot, { recursive: true, force: true }));
+  const calls = [];
+  await assert.rejects(
+    runDevRuntimeService({
+      platform: 'darwin',
+      architecture: 'arm64',
+      mode: 'install-candidate',
+      candidatePath: candidateRoot,
+      queryStatus: async () => ({ status: 'present', state: 'running', pid: 123 }),
+      buildCandidate: async () => calls.push('build-candidate'),
+      invokeHelper: async () => calls.push('sudo-helper'),
+    }),
+    (error) => error.reasonCode === 'runtime-service-repair-required'
+      && error.actionHint === 'run_pnpm_accept_runtime_fixed_service_uninstall_before_install',
+  );
+  assert.deepEqual(calls, []);
 });
 
 test('current macOS service update builds once and returns the helper result', async (context) => {

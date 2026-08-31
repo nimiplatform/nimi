@@ -213,7 +213,7 @@ func (s *TerminationService) deleteUnboundRuntimeStateTx(tx *sql.Tx, localAgentR
 	return err
 }
 
-func (s *TerminationService) AgentTerminationStates(ctx context.Context) ([]AgentTerminationState, error) {
+func (s *TerminationService) AgentTerminationStates(ctx context.Context) (states []AgentTerminationState, resultErr error) {
 	if s == nil || s.store == nil || s.store.backend == nil {
 		return nil, fmt.Errorf("list cognition memory terminations: service unavailable")
 	}
@@ -221,7 +221,12 @@ func (s *TerminationService) AgentTerminationStates(ctx context.Context) ([]Agen
 	if err != nil {
 		return nil, fmt.Errorf("list cognition memory terminations: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); resultErr == nil && err != nil {
+			states = nil
+			resultErr = fmt.Errorf("list cognition memory terminations: close rows: %w", err)
+		}
+	}()
 	var result []AgentTerminationState
 	for rows.Next() {
 		var item AgentTerminationState

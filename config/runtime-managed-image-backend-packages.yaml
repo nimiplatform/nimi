@@ -30,7 +30,7 @@ entries:
     package_source: canonical_runtime_wrapper
     package_format: direct_archive
     release_tag: master-813-bfbef5b
-    source_commit: bfbef5b7e64e89a0205894853de25d19a7ba54b9
+    source_commit: bfbef5b7e64e89a0205894853de25d19a7ba54b9 # pragma: allowlist secret
     install_dir_name: sd-macos-metal-arm64-stablediffusion-ggml-bfbef5b
     image_ref: ""
     archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-813-bfbef5b/sd-master-bfbef5b-bin-Darwin-macOS-26.5.2-arm64.zip
@@ -58,7 +58,7 @@ entries:
     package_source: canonical_runtime_wrapper
     package_format: direct_archive
     release_tag: master-813-bfbef5b
-    source_commit: bfbef5b7e64e89a0205894853de25d19a7ba54b9
+    source_commit: bfbef5b7e64e89a0205894853de25d19a7ba54b9 # pragma: allowlist secret
     install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml-bfbef5b
     image_ref: ""
     archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-813-bfbef5b/sd-master-bfbef5b-bin-win-cuda12-x64.zip

@@ -9,6 +9,8 @@ Discipline.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-08-31
+
 ### Added
 
 - Added the optional Electron main-process `runDataRootOperation` host seam so
@@ -192,13 +194,6 @@ Discipline.
 
 ### Changed
 
-- **Breaking (0.x):** Agent Center voice catalogs now expose typed per-source
-  availability for preset and custom voices, and
-  `createAppAgentCenterSession` accepts the canonical optional LocalApp
-  `ai.voiceAssets` client. Eligible consumers should pass that client to merge
-  at most 100 active `voice_asset_id` options with preset voices; a failure in
-  either source remains visible without hiding the successful source or the
-  rest of Appearance.
 - **Breaking (0.x):** protected Local App conversations now use ordered
   content parts, Runtime-issued message identities, durable image-action and
   final-voice projections, and the purpose-bound attachment upload/read and
@@ -214,7 +209,7 @@ Discipline.
   session factory with `createAppAgentCenterSession({ handle, client })` for
   every protected App whose current session has `agent.configure` coverage.
   The factory consumes the SDK's single nominal `NimiLocalAppAgentHandle` and
-  existing six-operation `NimiLocalAppAgentConfigureClient`; removed exports
+  typed `NimiLocalAppAgentConfigureClient`; removed exports
   include `createPermissionedAgentCenterSession`,
   `sealAgentCenterPermissionedSdkSurface`, permission-posture types, and the
   duplicate Kit Agent-handle brand. There is no compatibility path.

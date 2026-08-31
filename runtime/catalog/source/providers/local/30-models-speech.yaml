@@ -104,7 +104,7 @@ models:
       langs_ref: short_v1
     install:
       repo: audio-cpp/audio.cpp-gguf
-      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6
+      revision: 7e9a59c8aee65253851b91b7b9b8e206544ef1a6 # pragma: allowlist secret -- public immutable model revision
       license: Apache-2.0
       provenance: Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice converted by audio-cpp
       install_kind: verified-hf-multi-file
@@ -143,7 +143,7 @@ models:
       langs_ref: short_v1
     install:
       repo: Qwen/Qwen3-TTS-12Hz-0.6B-Base
-      revision: 5d83992436eae1d760afd27aff78a71d676296fc
+      revision: 5d83992436eae1d760afd27aff78a71d676296fc # pragma: allowlist secret -- public immutable model revision
       install_kind: verified-hf-multi-file
       entry: model.safetensors
       artifact_roles: [tts_model, tts_voice_clone_model, speech_tokenizer, tokenizer]
@@ -199,7 +199,7 @@ models:
       langs_ref: short_v1
     install:
       repo: Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign
-      revision: 5ecdb67327fd37bb2e042aab12ff7391903235d3
+      revision: 5ecdb67327fd37bb2e042aab12ff7391903235d3 # pragma: allowlist secret -- public immutable model revision
       install_kind: verified-hf-multi-file
       entry: model.safetensors
       artifact_roles: [tts_model, tts_voice_design_model, speech_tokenizer, tokenizer]
@@ -305,7 +305,7 @@ models:
       langs_ref: short_v1
     install:
       repo: openbmb/VoxCPM2
-      revision: bffb3df5a29440629464e5e839f4d214c8714c3d
+      revision: bffb3df5a29440629464e5e839f4d214c8714c3d # pragma: allowlist secret -- public immutable model revision
       install_kind: verified-hf-multi-file
       entry: model.safetensors
       artifact_roles: [tts_model]
@@ -361,7 +361,7 @@ models:
       - variant_id: local.tts.voxcpm2.mlx.metal
         quant: Q4_0
         repo: mlx-community/VoxCPM2-4bit
-        revision: dc9e5c187858da5f4a13dc4c247e297339216381
+        revision: dc9e5c187858da5f4a13dc4c247e297339216381 # pragma: allowlist secret -- public immutable model revision
         driver_backend: mlx
         files:
           - config.json

@@ -60,7 +60,7 @@ const versions = {
   tailwindcssVersion: '4.0.0',
   tailwindcssViteVersion: '4.0.0',
   tauriCliVersion: '2.0.0-cli',
-  nimiShellTauriVersion: '0.2.0-rc.1',
+  nimiShellTauriVersion: '0.2.0',
   electronVersion: '42.0.0-electron',
   esbuildVersion: '0.28.0-esbuild',
   typescriptVersion: '5.0.0',

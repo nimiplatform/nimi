@@ -127,8 +127,11 @@ func (s *Service) AppendInferenceAudit(ctx context.Context, req *runtimev1.Appen
 	}
 
 	s.mu.Lock()
-	s.appendRuntimeAuditLocked(event)
+	persistErr := s.appendRuntimeAuditLocked(event)
 	s.mu.Unlock()
+	if persistErr != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE, persistErr, grpcerr.ReasonOptions{Message: "local inference audit could not be persisted"})
+	}
 	return &runtimev1.Ack{Ok: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
@@ -161,8 +164,11 @@ func (s *Service) AppendRuntimeAudit(ctx context.Context, req *runtimev1.AppendR
 		SubjectUserId: boundedLocalAuditField(subjectUserID),
 	}
 	s.mu.Lock()
-	s.appendRuntimeAuditLocked(event)
+	persistErr := s.appendRuntimeAuditLocked(event)
 	s.mu.Unlock()
+	if persistErr != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE, persistErr, grpcerr.ReasonOptions{Message: "local runtime audit could not be persisted"})
+	}
 	return &runtimev1.Ack{Ok: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
@@ -179,10 +185,11 @@ func runtimeAuditReasonCodeFromPayload(payload interface {
 	return boundedLocalAuditField(value.GetStringValue())
 }
 
-func (s *Service) appendRuntimeAuditLocked(event *runtimev1.LocalAuditEvent) {
+func (s *Service) appendRuntimeAuditLocked(event *runtimev1.LocalAuditEvent) error {
 	if event == nil {
-		return
+		return nil
 	}
+	previous := append([]*runtimev1.LocalAuditEvent(nil), s.audits...)
 	eventCopy := cloneLocalAuditEvent(event)
 	// K-AUDIT-005 / K-AUDIT-017: mask sensitive payload fields at the audit
 	// write layer before persistence, matching the global audit store.
@@ -215,7 +222,11 @@ func (s *Service) appendRuntimeAuditLocked(event *runtimev1.LocalAuditEvent) {
 	if len(s.audits) > capacity {
 		s.audits = append([]*runtimev1.LocalAuditEvent(nil), s.audits[:capacity]...)
 	}
-	s.persistStateLocked()
+	if err := s.persistStateLocked(); err != nil {
+		s.audits = previous
+		return err
+	}
+	return nil
 }
 
 const localAuditFieldMaxLen = 1024

@@ -57,9 +57,13 @@ import { usePrefersReducedMotion } from './use-prefers-reduced-motion.js';
  */
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-design-027e
 export function useNimiReducedMotion(): boolean {
-  const { reducedMotion } = useContext(MotionConfigContext);
+  const motionConfig = useContext(MotionConfigContext);
+  const fromConfig = typeof motionConfig === 'object'
+    && motionConfig !== null
+    && 'reducedMotion' in motionConfig
+    && motionConfig.reducedMotion === 'always';
   const fromMedia = usePrefersReducedMotion();
-  return reducedMotion === 'always' || fromMedia;
+  return fromConfig || fromMedia;
 }
 
 export { NimiMotionProvider } from './provider.js';

@@ -361,7 +361,7 @@ def driver_work_root() -> pathlib.Path:
     work_root = pathlib.Path(raw_work_root)
     if not raw_work_root or not work_root.is_absolute() or work_root.is_symlink() or not work_root.is_dir():
         fail("Runtime-owned speech driver work root is unavailable")
-    return work_root
+    return work_root.resolve()
 
 
 def write_audio_artifact(wav: Any, sample_rate: int) -> tuple[str, str]:
@@ -379,7 +379,7 @@ def write_audio_artifact(wav: Any, sample_rate: int) -> tuple[str, str]:
     if not output_path.is_absolute() or output_path.is_symlink() or output_path.exists():
         fail("Runtime-owned speech output path is invalid")
     sf.write(str(output_path), wav, int(sample_rate))
-    return str(output_path), mimetypes.guess_type(str(output_path))[0] or "audio/wav"
+    return str(output_path), "audio/wav"
 
 
 def append_audio_artifact(path_value: str, wav: Any, sample_rate: int) -> None:

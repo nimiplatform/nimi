@@ -71,7 +71,7 @@ func (c *Core) inspectStatus(ctx context.Context, bindingRef, bankRef string, in
 	if err != nil {
 		return Status{}, fmt.Errorf("inspect memory status: count memories: %w", err)
 	}
-	defer countRows.Close()
+	defer func() { _ = countRows.Close() }()
 	for countRows.Next() {
 		var lifecycle Lifecycle
 		var count int
@@ -87,6 +87,12 @@ func (c *Core) inspectStatus(ctx context.Context, bindingRef, bankRef string, in
 			result.Forgotten = count
 		}
 	}
+	if err := countRows.Err(); err != nil {
+		return Status{}, fmt.Errorf("inspect memory status: iterate counts: %w", err)
+	}
+	if err := countRows.Close(); err != nil {
+		return Status{}, fmt.Errorf("inspect memory status: close counts: %w", err)
+	}
 	return result, nil
 }
 
@@ -100,7 +106,7 @@ func (c *Core) ListPendingEvents(ctx context.Context, bindingRef, bankRef string
 	if err != nil {
 		return nil, fmt.Errorf("list pending memory events: query: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var result []EventStatus
 	for rows.Next() {
 		var event EventStatus
@@ -111,6 +117,9 @@ func (c *Core) ListPendingEvents(ctx context.Context, bindingRef, bankRef string
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("list pending memory events: iterate: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("list pending memory events: close: %w", err)
 	}
 	return result, nil
 }
@@ -259,7 +268,7 @@ func (c *Core) loadLineage(ctx context.Context, memoryRef, refType string) ([]Ty
 	if err != nil {
 		return nil, fmt.Errorf("load memory lineage: query: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var result []TypedRef
 	for rows.Next() {
 		var ref TypedRef
@@ -268,5 +277,11 @@ func (c *Core) loadLineage(ctx context.Context, memoryRef, refType string) ([]Ty
 		}
 		result = append(result, ref)
 	}
-	return result, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("load memory lineage: iterate: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("load memory lineage: close: %w", err)
+	}
+	return result, nil
 }

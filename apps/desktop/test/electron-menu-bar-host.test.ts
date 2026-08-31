@@ -144,7 +144,7 @@ test('Electron menu bar projects the closed states and drops stale renderer deta
 
   assert.equal(host.snapshot().headerState, 'running');
   assert.equal(host.snapshot().restartEnabled, true);
-  assert.equal(FakeTray.current?.tooltip, 'Nimi Desktop');
+  assert.equal(FakeTray.current?.tooltip, 'Nimi');
   const labels = FakeTray.current?.menu.map((item) => item.label).filter(Boolean) ?? [];
   assert.doesNotMatch(labels.join('\n'), /grpc|pid|endpoint|path|127\.0\.0\.1/iu);
 

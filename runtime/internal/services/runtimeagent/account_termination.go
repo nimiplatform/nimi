@@ -193,7 +193,7 @@ func (s *Service) custodyObservedRealmAccountDeletedResult(ctx context.Context, 
 
 	fencedRefs := make([]string, 0, len(targets))
 	now := time.Now().UTC().Format(time.RFC3339Nano)
-	err := s.backend.WriteTx(ctx, func(tx *sql.Tx) error {
+	err := s.backend.WriteTx(ctx, func(tx *sql.Tx) (resultErr error) {
 		existing, found, err := loadRealmAccountTerminationTx(tx, accountID, operationID)
 		if err != nil {
 			return err
@@ -206,7 +206,11 @@ func (s *Service) custodyObservedRealmAccountDeletedResult(ctx context.Context, 
 			if err != nil {
 				return err
 			}
-			defer rows.Close()
+			defer func() {
+				if err := rows.Close(); resultErr == nil && err != nil {
+					resultErr = fmt.Errorf("close existing Realm Account termination rows: %w", err)
+				}
+			}()
 			for rows.Next() {
 				var ref string
 				if err := rows.Scan(&ref); err != nil {
@@ -339,12 +343,16 @@ func (s *Service) terminateRealmAccountOwnedAgent(ctx context.Context, item real
 	return string(memoryv1.OutcomeDeleted), nil
 }
 
-func (s *Service) loadRealmAccountTerminationState(ctx context.Context) error {
+func (s *Service) loadRealmAccountTerminationState(ctx context.Context) (resultErr error) {
 	rows, err := s.backend.DB().QueryContext(ctx, `SELECT t.account_id, i.local_agent_ref FROM runtime_realm_account_termination t LEFT JOIN runtime_realm_account_termination_item i ON i.operation_id = t.operation_id ORDER BY t.account_id, i.local_agent_ref`)
 	if err != nil {
 		return fmt.Errorf("load Realm Account termination fences: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); resultErr == nil && err != nil {
+			resultErr = fmt.Errorf("close Realm Account termination fence rows: %w", err)
+		}
+	}()
 	accounts := make(map[string]bool)
 	refs := make([]string, 0)
 	for rows.Next() {
@@ -376,12 +384,17 @@ func (s *Service) accountTerminationFencedLocked(accountID string) bool {
 	return s.accountTerminationFencedAccounts[strings.TrimSpace(accountID)]
 }
 
-func (s *Service) listFencedRealmAccountTerminations(ctx context.Context) ([]realmAccountTerminationRow, error) {
+func (s *Service) listFencedRealmAccountTerminations(ctx context.Context) (terminations []realmAccountTerminationRow, resultErr error) {
 	rows, err := s.backend.DB().QueryContext(ctx, `SELECT account_id, operation_id, deleted_at, phase FROM runtime_realm_account_termination WHERE phase = 'fenced' ORDER BY deleted_at, operation_id`)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); resultErr == nil && err != nil {
+			terminations = nil
+			resultErr = fmt.Errorf("close fenced Realm Account termination rows: %w", err)
+		}
+	}()
 	var result []realmAccountTerminationRow
 	for rows.Next() {
 		var row realmAccountTerminationRow
@@ -393,12 +406,17 @@ func (s *Service) listFencedRealmAccountTerminations(ctx context.Context) ([]rea
 	return result, rows.Err()
 }
 
-func (s *Service) listPendingRealmAccountTerminationItems(ctx context.Context, operationID string) ([]realmAccountTerminationItemRow, error) {
+func (s *Service) listPendingRealmAccountTerminationItems(ctx context.Context, operationID string) (items []realmAccountTerminationItemRow, resultErr error) {
 	rows, err := s.backend.DB().QueryContext(ctx, `SELECT operation_id, local_agent_ref, owner_account_id, runtime_source_ref, child_operation_id FROM runtime_realm_account_termination_item WHERE operation_id = ? AND phase = 'pending' ORDER BY local_agent_ref`, operationID)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); resultErr == nil && err != nil {
+			items = nil
+			resultErr = fmt.Errorf("close pending Realm Account termination item rows: %w", err)
+		}
+	}()
 	var result []realmAccountTerminationItemRow
 	for rows.Next() {
 		var row realmAccountTerminationItemRow

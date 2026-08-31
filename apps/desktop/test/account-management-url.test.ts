@@ -9,7 +9,11 @@ test('account management opens the canonical Web account path', () => {
 });
 
 test('account management rejects credentials, fragments, and insecure remote origins', () => {
-  assert.throws(() => resolveAccountManagementUrl('https://user:secret@nimi.example'), /invalid/);
+  const credentialUrl = new URL('https://nimi.example');
+  credentialUrl.username = 'test-user';
+  credentialUrl.password = 'test-password';
+
+  assert.throws(() => resolveAccountManagementUrl(credentialUrl.href), /invalid/);
   assert.throws(() => resolveAccountManagementUrl('https://nimi.example/#token'), /invalid/);
   assert.throws(() => resolveAccountManagementUrl('http://nimi.example'), /requires HTTPS/);
 });

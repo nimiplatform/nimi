@@ -150,10 +150,19 @@ func (s *Service) ListLoadoutRecipes(_ context.Context, request *runtimev1.ListL
 			return nil, loadoutError(codes.Internal, runtimev1.ReasonCode_AI_LOADOUT_CATALOG_SCHEMA_INVALID, err.Error(), nil)
 		}
 		authoringFeatures := normalizeStableStringSet(recipe.SupportedFeatures)
+		identity := capabilitydriver.Identity{ImplementationID: recipe.ImplementationID, DriverID: recipe.DriverID, DriverDialect: recipe.DriverDialect}
+		if driver, reason := s.capabilityDrivers.Resolve(recipe.CapabilityContract, identity); reason == runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED && driver != nil {
+			if hostDriver, ok := driver.(capabilitydriver.HostPlatformRecipeDriver); ok {
+				platformTuple := strings.ToLower(strings.TrimSpace(localRuntimeGOOS)) + "/" + strings.ToLower(strings.TrimSpace(localRuntimeGOARCH))
+				if _, hostReason := hostDriver.ProjectRecipeForHost(recipe.RecipeID, options, authoringFeatures, platformTuple); hostReason == runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED {
+					continue
+				}
+			}
+		}
 		_, requirements, implementationFeatures, err := s.projectRecipe(
 			recipe.RecipeID,
 			recipe.CapabilityContract,
-			(&capabilitydriver.Identity{ImplementationID: recipe.ImplementationID, DriverID: recipe.DriverID, DriverDialect: recipe.DriverDialect}).Proto(),
+			identity.Proto(),
 			options,
 			authoringFeatures,
 		)

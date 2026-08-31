@@ -1,9 +1,11 @@
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 use crate::{
     desktop_unary,
     first_party_profiles_generated::{bundled_avatar_method_profile, BundledAvatarMethodKind},
 };
 use std::{collections::BTreeMap, time::Duration};
 use tokio::sync::mpsc;
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 use tonic::transport::Channel;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -64,6 +66,7 @@ pub struct BundledAvatarRuntimeResponse {
 pub type BundledAvatarRuntimeStreamReceiver =
     mpsc::Receiver<Result<Vec<u8>, BundledAvatarRuntimeError>>;
 
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 pub(crate) async fn invoke(
     channel: Channel,
     request: BundledAvatarRuntimeRequest,
@@ -94,6 +97,7 @@ pub(crate) async fn invoke(
     Ok(BundledAvatarRuntimeResponse { response_bytes })
 }
 
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 pub(crate) async fn open_stream(
     channel: Channel,
     request: BundledAvatarRuntimeRequest,
@@ -119,6 +123,7 @@ pub(crate) async fn open_stream(
     .await
 }
 
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 pub(crate) async fn invoke_client_stream(
     channel: Channel,
     request: BundledAvatarRuntimeClientStreamRequest,
@@ -148,6 +153,7 @@ pub(crate) async fn invoke_client_stream(
     Ok(BundledAvatarRuntimeResponse { response_bytes })
 }
 
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 fn timeout_allowed(timeout: Option<Duration>) -> bool {
     timeout.is_none_or(|value| !value.is_zero() && value <= Duration::from_secs(300))
 }

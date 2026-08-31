@@ -569,18 +569,24 @@ func (s *Service) ResumeLocalTransfer(_ context.Context, req *runtimev1.ResumeLo
 			runtimev1.ReasonCode_AI_LOCAL_MODEL_INVALID_TRANSITION,
 			grpcerr.ReasonOptions{Message: "transfer executor did not survive the runtime restart"},
 		)
-		s.failTransferWithReason(sessionID, err.Error(), reason, false)
+		if persistErr := s.failTransferWithReason(sessionID, err.Error(), reason, false); persistErr != nil {
+			return nil, localTransferPersistenceError(persistErr)
+		}
 		return nil, err
 	}
 
 	plan, reason, err := s.rebuildManagedModelDownloadResumePlan(summary.GetAssetId(), summary.GetInstallSessionId())
 	if err != nil {
-		s.failTransferWithReason(sessionID, err.Error(), reason, false)
+		if persistErr := s.failTransferWithReason(sessionID, err.Error(), reason, false); persistErr != nil {
+			return nil, localTransferPersistenceError(persistErr)
+		}
 		return nil, err
 	}
 	resumed, err := s.startRestoredManagedModelDownload(sessionID, plan)
 	if err != nil {
-		s.failTransferWithReason(sessionID, err.Error(), runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String(), false)
+		if persistErr := s.failTransferWithReason(sessionID, err.Error(), runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE.String(), false); persistErr != nil {
+			return nil, localTransferPersistenceError(persistErr)
+		}
 		return nil, err
 	}
 	return &runtimev1.ResumeLocalTransferResponse{Transfer: resumed}, nil

@@ -8,12 +8,13 @@ builds:
     dir: runtime
     main: ./cmd/nimi
     binary: nimi
+    mod_timestamp: "{{ .CommitTimestamp }}"
     env:
       - CGO_ENABLED=0
     flags:
       - -trimpath
     ldflags:
-      - -s -w
+      - -s -w -X main.Version={{ .Version }}
     goos:
       - linux
       - darwin
@@ -28,6 +29,8 @@ archives:
       - nimi
     name_template: >-
       {{ .ProjectName }}_{{ .Version }}_{{ if eq .Os "darwin" }}macos{{ else }}{{ .Os }}{{ end }}_{{ .Arch }}
+    builds_info:
+      mtime: "{{ .CommitDate }}"
     format_overrides:
       - goos: windows
         formats:
@@ -35,31 +38,6 @@ archives:
 
 checksum:
   name_template: checksums.txt
-
-sboms:
-  - artifacts: archive
-
-signs:
-  - id: archives
-    cmd: cosign
-    args:
-      - sign-blob
-      - --bundle=${signature}
-      - ${artifact}
-      - --yes
-    artifacts: archive
-    output: true
-    signature: ${artifact}.sigstore.json
-  - id: checksums
-    cmd: cosign
-    args:
-      - sign-blob
-      - --bundle=${signature}
-      - ${artifact}
-      - --yes
-    artifacts: checksum
-    output: true
-    signature: ${artifact}.sigstore.json
 
 changelog:
   sort: asc
@@ -70,8 +48,12 @@ changelog:
       - "^test:"
 
 release:
-  name_template: runtime/v{{ .Version }}
-  prerelease: auto
+  # Global RC/stable tag and GitHub Release ownership stays in the workflow;
+  # GoReleaser is the reproducible Runtime archive builder only.
+  disable: true
 
 snapshot:
-  version_template: "0.0.0-next-{{ .ShortCommit }}-{{ .Timestamp }}"
+  # Canary builds pass the final stable version so RC and stable can promote
+  # the exact same archives. Ad-hoc local snapshots keep a unique fallback.
+  version_template: >-
+    {{ if index .Env "NIMI_RELEASE_VERSION" }}{{ .Env.NIMI_RELEASE_VERSION }}{{ else }}0.0.0-next-{{ .ShortCommit }}-{{ .Timestamp }}{{ end }}

@@ -1,6 +1,11 @@
 {
   "compilerOptions": {
     "paths": {
+      "react": ["./node_modules/@types/react/index.d.ts"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime.d.ts"],
+      "react-dom": ["./node_modules/@types/react-dom/index.d.ts"],
+      "react-dom/client": ["./node_modules/@types/react-dom/client.d.ts"],
+      "react-dom/server": ["./node_modules/@types/react-dom/server.d.ts"],
       "@nimiplatform/kit/auth": ["../../kit/auth/src/index.ts"],
       "@nimiplatform/kit/auth/*": ["../../kit/auth/src/*"],
       "@nimiplatform/kit/core/*": ["../../kit/core/src/*"]
@@ -27,7 +32,7 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "types": ["node"]
+    "types": ["node", "react", "react-dom"]
   },
   "include": [
     "src/**/*.d.ts",

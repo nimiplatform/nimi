@@ -61,8 +61,7 @@ func (s *Service) commitLocalAppConversationVoiceReady(
 	if err := s.commitLocalAppConversationVoiceSidecar(session, turn, voice); err != nil {
 		return err
 	}
-	s.publishLocalAppConversationVoice(session.SubjectUserID, session.ConversationAnchorID, voice)
-	return nil
+	return s.publishLocalAppConversationVoice(session.SubjectUserID, session.ConversationAnchorID, voice)
 }
 
 func (s *Service) commitLocalAppConversationVoiceFailed(
@@ -85,8 +84,7 @@ func (s *Service) commitLocalAppConversationVoiceFailed(
 	if err := s.commitLocalAppConversationVoiceSidecar(session, turn, voice); err != nil {
 		return err
 	}
-	s.publishLocalAppConversationVoice(session.SubjectUserID, session.ConversationAnchorID, voice)
-	return nil
+	return s.publishLocalAppConversationVoice(session.SubjectUserID, session.ConversationAnchorID, voice)
 }
 
 func localAppConversationVoiceState(turnID string, state string) *publicChatVoiceSidecarState {
@@ -167,9 +165,9 @@ func (s *Service) publishLocalAppConversationVoice(
 	subjectUserID string,
 	anchorID string,
 	voice *publicChatVoiceSidecarState,
-) {
+) error {
 	if voice == nil {
-		return
+		return nil
 	}
 	messageType := publicChatTurnVoiceReadyType
 	if voice.State == "failed" {
@@ -189,7 +187,7 @@ func (s *Service) publishLocalAppConversationVoice(
 	if voice.Message != "" {
 		detail["message"] = voice.Message
 	}
-	s.publishLocalAppConversationEvent(subjectUserID, messageType, map[string]any{
+	return s.publishLocalAppConversationEvent(subjectUserID, messageType, map[string]any{
 		"conversation_anchor_id": anchorID,
 		"turn_id":                voice.TurnID,
 		"detail":                 detail,

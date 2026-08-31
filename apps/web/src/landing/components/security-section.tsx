@@ -14,6 +14,7 @@ export function SecuritySection({ content }: SecuritySectionProps) {
     const netPath = netPathRef.current;
 
     if (!section || !netPath) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       const x = e.clientX / window.innerWidth;
@@ -139,6 +140,16 @@ export function SecuritySection({ content }: SecuritySectionProps) {
           70% { box-shadow: 0 0 0 8px rgba(168, 85, 247, 0); }
           100% { box-shadow: 0 0 0 0 rgba(168, 85, 247, 0); }
         }
+        @media (prefers-reduced-motion: reduce) {
+          #security *, #security *::before, #security *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
+          #security animate, #security animateMotion, #security animateTransform {
+            display: none;
+          }
+        }
       `}</style>
 
       {/* Top glowing line */}
@@ -219,6 +230,43 @@ export function SecuritySection({ content }: SecuritySectionProps) {
               </div>
             );
           })}
+        </div>
+
+        <div className="mt-10 rounded-[24px] border border-slate-200/80 bg-white/90 p-6 shadow-[0_18px_45px_-28px_rgba(15,23,42,0.28)] sm:p-8">
+          <div className="grid gap-4 md:grid-cols-2">
+            {content.statuses.map((status) => (
+              <div key={status.label} className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4">
+                <p className="text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-amber-800">
+                  {status.label}
+                </p>
+                <p className="mt-2 text-sm font-semibold leading-6 text-amber-950">
+                  {status.value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <nav aria-label={content.linksAriaLabel} className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {content.links.map((link) => {
+              const external = link.href.startsWith('http');
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target={external ? '_blank' : undefined}
+                  rel={external ? 'noreferrer' : undefined}
+                  className="group rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:-translate-y-0.5 hover:border-teal-300 hover:bg-white"
+                >
+                  <span className="block text-sm font-bold text-slate-900 group-hover:text-teal-700">
+                    {link.label}
+                  </span>
+                  <span className="mt-1 block text-xs leading-5 text-slate-500">
+                    {link.detail}
+                  </span>
+                </a>
+              );
+            })}
+          </nav>
         </div>
       </div>
     </section>

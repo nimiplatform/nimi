@@ -86,7 +86,7 @@ func localAppEmbodimentVoiceTimingToProto(input *localAppEmbodimentVoiceTiming) 
 	if input == nil {
 		return nil, nil
 	}
-	phase := runtimev1.LocalAppEmbodimentVoicePhase_LOCAL_APP_EMBODIMENT_VOICE_PHASE_UNSPECIFIED
+	var phase runtimev1.LocalAppEmbodimentVoicePhase
 	switch input.Phase {
 	case "active":
 		phase = runtimev1.LocalAppEmbodimentVoicePhase_LOCAL_APP_EMBODIMENT_VOICE_PHASE_ACTIVE

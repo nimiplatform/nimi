@@ -251,7 +251,7 @@ func markLocalEnvironmentPlanReadyForTest(t *testing.T, svc *Service, req localE
 		}
 		promoted := svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 		if localEnvironmentPythonSelectedSourceFamily(dep.DependencyFamily) {
-			recordReadyPythonSelectedSourceConsumptionJobForTest(svc, promoted, dep.ConsumerScope)
+			recordReadyPythonSelectedSourceConsumptionJobForTest(t, svc, promoted, dep.ConsumerScope)
 		}
 	}
 	return plan.Dependencies

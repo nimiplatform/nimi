@@ -100,6 +100,27 @@ test('root build holds the workspace surface lock across consumer builds', () =>
     packageJson.scripts['build:prepared'],
     'pnpm build:install-gateway && pnpm --filter @nimiplatform/desktop build && pnpm --filter @nimiplatform/web build && pnpm --filter @nimiplatform/lab build',
   );
+  assert.equal(
+    packageJson.scripts['build:all'],
+    'node scripts/with-workspace-surfaces.mjs -- pnpm --recursive --filter=!@nimiplatform/sdk --filter=!@nimiplatform/kit build',
+  );
+});
+
+test('SDK adapter builds consume one prepared workspace surface', () => {
+  for (const adapter of ['mastra', 'vercel-ai']) {
+    const packageJson = JSON.parse(readFileSync(
+      path.join(repoRoot, 'sdks', 'typescript', 'adapters', adapter, 'package.json'),
+      'utf8',
+    ));
+    assert.equal(
+      packageJson.scripts.build,
+      'node ../../../../scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared',
+    );
+    assert.equal(
+      packageJson.scripts['build:prepared'],
+      'node ../../../../scripts/build-typescript-package.mjs --tsconfig tsconfig.build.json --out-dir dist',
+    );
+  }
 });
 
 test('SDK dist lock immediately reclaims a fresh lock owned by a dead process', () => {

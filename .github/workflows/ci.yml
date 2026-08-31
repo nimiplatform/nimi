@@ -21,10 +21,10 @@ jobs:
       sdk_changed: ${{ steps.detect.outputs.sdk_changed }}
       sdk_adapter_upstream_changed: ${{ steps.detect.outputs.sdk_adapter_upstream_changed }}
       sdk_conformance_changed: ${{ steps.detect.outputs.sdk_conformance_changed }}
+      proto_changed: ${{ steps.detect.outputs.proto_changed }}
       runtime_changed: ${{ steps.detect.outputs.runtime_changed }}
       desktop_web_changed: ${{ steps.detect.outputs.desktop_web_changed }}
       kit_native_changed: ${{ steps.detect.outputs.kit_native_changed }}
-      avatar_native_changed: ${{ steps.detect.outputs.avatar_native_changed }}
       lab_native_changed: ${{ steps.detect.outputs.lab_native_changed }}
     steps:
       - name: Checkout
@@ -51,10 +51,10 @@ jobs:
               echo "sdk_changed=true"
               echo "sdk_adapter_upstream_changed=true"
               echo "sdk_conformance_changed=true"
+              echo "proto_changed=true"
               echo "runtime_changed=true"
               echo "desktop_web_changed=true"
               echo "kit_native_changed=true"
-              echo "avatar_native_changed=true"
               echo "lab_native_changed=true"
             } >> "${GITHUB_OUTPUT}"
             exit 0
@@ -83,10 +83,10 @@ jobs:
           sdk_changed=false
           sdk_adapter_upstream_changed=false
           sdk_conformance_changed=false
+          proto_changed=false
           runtime_changed=false
           desktop_web_changed=false
           kit_native_changed=false
-          avatar_native_changed=false
           lab_native_changed=false
 
           docs_regex='^(docs/|examples/|README\.md$|CHANGELOG\.md$)'
@@ -123,7 +123,22 @@ jobs:
                   "${file}" =~ ^\.nimi/spec/sdks/ ]]; then
               sdk_conformance_changed=true
             fi
-            if [[ "${file}" =~ ^runtime/ || "${file}" =~ ^proto/ || "${file}" == ".goreleaser.yml" ]]; then
+            if [[ "${file}" =~ ^proto/ ||
+                  "${file}" =~ ^runtime/gen/ ||
+                  "${file}" =~ ^runtime/proto/ ||
+                  "${file}" == "package.json" ||
+                  "${file}" == "pnpm-lock.yaml" ||
+                  "${file}" == "scripts/proto-breaking.mjs" ||
+                  "${file}" == "scripts/check-proto-drift.mjs" ||
+                  "${file}" =~ ^scripts/run-buf ]]; then
+              proto_changed=true
+            fi
+            if [[ "${file}" =~ ^runtime/ ||
+                  "${file}" =~ ^nimi-cognition/ ||
+                  "${file}" =~ ^proto/ ||
+                  "${file}" == "go.work" ||
+                  "${file}" == "go.work.sum" ||
+                  "${file}" == ".goreleaser.yml" ]]; then
               runtime_changed=true
             fi
             if [[ ( "${file}" =~ ^apps/desktop/ || "${file}" =~ ^apps/web/ ) && ! "${file}" =~ ^apps/(desktop|web)/AGENTS\.md$ ]]; then
@@ -131,18 +146,13 @@ jobs:
             fi
             if [[ "${file}" =~ ^kit/shell/(capabilities|protected-local|protected-local-node|tauri)/ ]]; then
               kit_native_changed=true
-              avatar_native_changed=true
               lab_native_changed=true
-            fi
-            if [[ "${file}" =~ ^apps/avatar/src-tauri/ ]]; then
-              avatar_native_changed=true
             fi
             if [[ "${file}" =~ ^apps/lab/src-tauri/ ]]; then
               lab_native_changed=true
             fi
             if [[ "${file}" =~ ${native_ci_regex} ]]; then
               kit_native_changed=true
-              avatar_native_changed=true
               lab_native_changed=true
             fi
           done < /tmp/nimi_changed_files.txt
@@ -171,10 +181,10 @@ jobs:
             echo "sdk_changed=${sdk_changed}"
             echo "sdk_adapter_upstream_changed=${sdk_adapter_upstream_changed}"
             echo "sdk_conformance_changed=${sdk_conformance_changed}"
+            echo "proto_changed=${proto_changed}"
             echo "runtime_changed=${runtime_changed}"
             echo "desktop_web_changed=${desktop_web_changed}"
             echo "kit_native_changed=${kit_native_changed}"
-            echo "avatar_native_changed=${avatar_native_changed}"
             echo "lab_native_changed=${lab_native_changed}"
           } >> "${GITHUB_OUTPUT}"
 
@@ -196,10 +206,10 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: package.json
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Compile examples
         run: pnpm check:examples
@@ -234,16 +244,21 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: package.json
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup Go for workflow lint
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
-          go-version: '1.26.6'
+          go-version-file: runtime/go.mod
           cache: false
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Linux native dependencies for Kit contracts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - name: gate.runtime.bridge-method-projection
         run: pnpm check:runtime-bridge-method-drift
@@ -251,6 +266,8 @@ jobs:
         run: pnpm check:runtime-broker-operation-policy
       - name: gate.realm.no-app-rest-bypass
         run: pnpm check:no-app-realm-rest-bypass
+      - name: Build SDK for Kit contracts
+        run: pnpm build:sdk
       - name: Check Kit contracts
         run: pnpm check:nimi-kit
       - name: Check license file map
@@ -282,18 +299,28 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: package.json
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Workspace owner tests
         run: pnpm test:workspace:full
 
+      - name: Build renderer surfaces for bundle budgets
+        run: |
+          pnpm dev:prepare
+          pnpm --filter @nimiplatform/desktop build:renderer
+          pnpm --filter @nimiplatform/web build
+          pnpm --filter @nimiplatform/lab build:prepared
+
+      - name: Enforce renderer bundle budgets
+        run: pnpm check:bundle-size
+
   kit-native-tests:
     needs: changes
     if: needs.changes.outputs.kit_native_changed == 'true'
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -313,44 +340,8 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Install Linux native dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
-      - name: Test Kit native crates
+      - name: Test Kit native crates on the supported Windows host
         run: pnpm test:kit:native
-
-  avatar-native-tests:
-    needs: changes
-    if: needs.changes.outputs.avatar_native_changed == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
-        with:
-          version: 10.34.5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: 24
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
-        with:
-          toolchain: stable
-
-      - name: Install Linux native dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
-      - name: Test Avatar native crate
-        run: pnpm test:avatar:native
 
   lab-native-tests:
     needs: changes
@@ -401,19 +392,21 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: package.json
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup Go for deterministic Buf
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
-          go-version: '1.26.6'
+          go-version-file: runtime/go.mod
           cache: false
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Install deterministic Buf CLI
-        run: go install github.com/bufbuild/buf/cmd/buf@v1.70.0
+        run: |
+          go install github.com/bufbuild/buf/cmd/buf@v1.70.0
+          echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
 
       - name: Build SDK
         run: pnpm build:sdk
@@ -450,13 +443,15 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: package.json
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup Go
         uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
         with:
-          go-version: '1.26.6'
-          cache-dependency-path: runtime/go.sum
+          go-version-file: runtime/go.mod
+          cache-dependency-path: |
+            runtime/go.sum
+            nimi-cognition/go.sum
 
       - name: Setup Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
@@ -464,7 +459,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Install Buf CLI
         run: go install github.com/bufbuild/buf/cmd/buf@v1.70.0
@@ -481,6 +476,52 @@ jobs:
         with:
           version: v2.12.2
           working-directory: runtime
+
+      - name: Cognition golangci-lint
+        run: pnpm check:cognition-golangci-lint
+
+  proto-quality:
+    needs: changes
+    if: needs.changes.outputs.proto_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.34.5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Setup Go for deterministic Buf
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: runtime/go.mod
+          cache: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install deterministic Buf CLI
+        run: |
+          go install github.com/bufbuild/buf/cmd/buf@v1.70.0
+          echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
+
+      - name: Proto breaking-change gate
+        run: pnpm proto:breaking
+
+      - name: Proto generated drift gate
+        run: pnpm proto:drift-check
+
+      - name: Proto lint gate
+        run: pnpm proto:lint
 
   desktop-web-quality:
     needs: changes
@@ -500,7 +541,7 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: package.json
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
@@ -509,7 +550,7 @@ jobs:
           components: clippy
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build workspace surfaces for Desktop/Web
         run: pnpm dev:prepare
@@ -541,10 +582,41 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          cache-dependency-path: package.json
+          cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Typecheck Zhiyu
         run: pnpm --filter @nimiplatform/zhiyu typecheck
+
+  required:
+    name: required
+    if: always()
+    needs:
+      - changes
+      - docs-contract
+      - core-static
+      - workspace-regression
+      - kit-native-tests
+      - lab-native-tests
+      - sdk-quality
+      - runtime-quality
+      - proto-quality
+      - desktop-web-quality
+      - zhiyu-quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every selected CI lane to pass
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          node <<'NODE'
+          const needs = JSON.parse(process.env.NEEDS_JSON);
+          const failed = Object.entries(needs)
+            .filter(([, value]) => !['success', 'skipped'].includes(value.result))
+            .map(([name, value]) => `${name}=${value.result}`);
+          if (failed.length > 0) {
+            throw new Error(`required CI lanes did not pass: ${failed.join(', ')}`);
+          }
+          NODE

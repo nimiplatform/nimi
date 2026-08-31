@@ -791,26 +791,28 @@ function simulatedAgentCenterBinding(
   const hostMechanics: AgentCenterHostMechanics = Object.freeze({
     async selectAvatar(kind: 'live2d' | 'vrm') {
       const extension = kind === 'vrm' ? 'vrm' : 'zip';
+      const content = new Uint8Array([1, 2, 3]);
       return Object.freeze({
         intent: Object.freeze({ backendKind: kind }),
         importedAssets: Object.freeze([Object.freeze({
           role: 'avatar' as const,
           fileName: `simulator-avatar.${extension}`,
           mediaType: kind === 'vrm' ? 'model/gltf-binary' : 'application/zip',
-          content: new Uint8Array([1, 2, 3]),
-          sha256: '039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81',
+          content,
+          sha256: await simulatedSha256(content),
         })]),
       });
     },
     async selectBackground() {
+      const content = new Uint8Array([4, 5, 6]);
       return Object.freeze({
         intent: Object.freeze({}),
         importedAssets: Object.freeze([Object.freeze({
           role: 'background' as const,
           fileName: 'simulator-background.png',
           mediaType: 'image/png',
-          content: new Uint8Array([4, 5, 6]),
-          sha256: '787c798e39a5bc1910355bae6d0cd87a36b2e10fd0202a83e3bb6b005da83472',
+          content,
+          sha256: await simulatedSha256(content),
         })]),
       });
     },

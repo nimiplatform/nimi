@@ -140,7 +140,7 @@ async function projectAppAIConfigSummary(input: {
     const timedOut = new Promise<never>((_resolve, reject) => {
       timeout = setTimeout(() => {
         controller.abort('desktop-app-ai-config-summary-timeout');
-        reject(new Error('Desktop App AIConfig summary read timed out'));
+        reject(new Error('Nimi App AIConfig summary read timed out'));
       }, input.timeoutMs);
     });
     const snapshot = await Promise.race([

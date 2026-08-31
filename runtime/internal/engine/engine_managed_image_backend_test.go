@@ -325,6 +325,7 @@ func TestManagedImageBackendDependencyStatusUsesResolvedWrapperExecutableOnly(t 
 	backendDir := filepath.Join(t.TempDir(), "sd-win-cuda12-x64-stablediffusion-ggml")
 	resolvedBackendExecutable := filepath.Join(backendDir, "sd-cli.exe")
 	wrapperExecutable := filepath.Join(t.TempDir(), "nimi.exe")
+	testSourceCommit := strings.Repeat("0", 40)
 
 	status := managedImageBackendDependencyStatusFromConfig(&ManagedImageBackendConfig{
 		BackendName: "stablediffusion-ggml",
@@ -344,7 +345,7 @@ func TestManagedImageBackendDependencyStatusUsesResolvedWrapperExecutableOnly(t 
 		PackageFormat:          managedImageBackendPackageFormatDirectArchive,
 		LaunchMode:             managedImageBackendLaunchModeRuntimeWrapper,
 		ReleaseTag:             "test-release",
-		SourceCommit:           "0123456789abcdef0123456789abcdef01234567",
+		SourceCommit:           testSourceCommit,
 		ArchiveURL:             "https://example.invalid/sd.zip",
 		ArchiveSHA256:          strings.Repeat("a", 64),
 		WrapperDriver:          "stable-diffusion.cpp",
@@ -374,7 +375,7 @@ func TestManagedImageBackendDependencyStatusUsesResolvedWrapperExecutableOnly(t 
 		managedImageBackendStringSliceContains(status.SupportedModelFamilies, "z-image-turbo") {
 		t.Fatalf("dependency status must carry only the canonical z-image family, got %v", status.SupportedModelFamilies)
 	}
-	if status.ReleaseTag != "test-release" || status.SourceCommit != "0123456789abcdef0123456789abcdef01234567" || status.ArchiveSHA256 != strings.Repeat("a", 64) {
+	if status.ReleaseTag != "test-release" || status.SourceCommit != testSourceCommit || status.ArchiveSHA256 != strings.Repeat("a", 64) {
 		t.Fatalf("dependency status lost exact package identity: %+v", status)
 	}
 }
@@ -682,8 +683,8 @@ func TestResolveManagedImageBackendPackageSpecForHostDarwinAppleUsesExactCanonic
 		t.Fatalf("darwin canonical package = %#v, ok=%v", spec, ok)
 	}
 	if spec.PackageSource != managedImageBackendPackageSourceCanonicalRuntimeWrapper || spec.ReleaseTag != "master-813-bfbef5b" ||
-		spec.SourceCommit != "bfbef5b7e64e89a0205894853de25d19a7ba54b9" ||
-		spec.ArchiveSHA256 != "efd0172b91a2491aeeb92e5ddfca16aa08273d5aa4889eaa6616f5e3242520e5" || spec.MinOSVersion != "26.0.0" {
+		spec.SourceCommit != "bfbef5b7e64e89a0205894853de25d19a7ba54b9" || // pragma: allowlist secret -- public source commit
+		spec.ArchiveSHA256 != "efd0172b91a2491aeeb92e5ddfca16aa08273d5aa4889eaa6616f5e3242520e5" || spec.MinOSVersion != "26.0.0" { // pragma: allowlist secret -- public archive checksum
 		t.Fatalf("darwin exact package identity = %#v", spec)
 	}
 	for version, want := range map[string]bool{"25.9.9": false, "26.0": true, "26.5.2": true, "27": true, "": false} {

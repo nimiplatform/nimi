@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import importlib.metadata
 import json
-import mimetypes
 import os
 import pathlib
 import sys
@@ -166,7 +165,7 @@ def handle_synthesize(request: dict[str, Any]) -> dict[str, Any]:
         fail("VoxCPM generation returned no audio")
     return {
         "audio_path": str(destination),
-        "content_type": mimetypes.guess_type(str(destination))[0] or "audio/wav",
+        "content_type": "audio/wav",
     }
 
 

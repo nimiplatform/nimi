@@ -1,6 +1,10 @@
 import { defineConfig } from 'vitest/config';
 import path from 'node:path';
 import fs from 'node:fs';
+import {
+  CUBISM_WEB_FRAMEWORK_CACHE_ROOT,
+  ensureCubismFrameworkCache,
+} from './scripts/cubism-web-sdk-cache.js';
 
 const repoRoot = path.resolve(__dirname, '../..');
 const pnpmRoot = path.join(repoRoot, 'node_modules/.pnpm');
@@ -23,6 +27,14 @@ function pnpmPackageRoot(packageName: string): string {
 }
 
 export default defineConfig({
+  plugins: [
+    {
+      name: 'nimi-avatar-cubism-framework-cache',
+      async configResolved() {
+        await ensureCubismFrameworkCache();
+      },
+    },
+  ],
   test: {
     globals: true,
     environment: 'jsdom',
@@ -41,7 +53,7 @@ export default defineConfig({
       { find: 'react', replacement: path.resolve(__dirname, 'node_modules/react/index.js') },
       { find: '@radix-ui/react-switch', replacement: pnpmPackageRoot('@radix-ui/react-switch') },
       { find: '@renderer', replacement: path.resolve(__dirname, 'src/shell/renderer') },
-      { find: '@framework', replacement: path.resolve(__dirname, '.cache/assets/js/CubismSdkForWeb-5-r.5/Framework/src') },
+      { find: '@framework', replacement: CUBISM_WEB_FRAMEWORK_CACHE_ROOT },
       { find: '@live2d', replacement: path.resolve(__dirname, 'src/shell/renderer/live2d') },
       { find: '@mock', replacement: path.resolve(__dirname, 'src/shell/renderer/mock') },
       { find: '@driver', replacement: path.resolve(__dirname, 'src/shell/renderer/driver') },

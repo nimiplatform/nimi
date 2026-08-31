@@ -11,7 +11,11 @@ func TestInspectRuntimeSourceStateRejectsCorruptCurrentScopeUnits(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer backend.Close()
+	t.Cleanup(func() {
+		if err := backend.Close(); err != nil {
+			t.Errorf("close Runtime Source backend: %v", err)
+		}
+	})
 	scopeID := "scope-inspection"
 	_, err = backend.ReplaceRuntimeSourceCorpus(
 		scopeID,

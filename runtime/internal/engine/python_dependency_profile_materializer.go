@@ -150,6 +150,28 @@ func (m *Manager) ensurePythonDependencyProfile(
 	if err != nil {
 		return PythonDependencyProfileStatus{}, err
 	}
+	return m.ensureResolvedPythonDependencyProfile(ctx, uvPath, pythonRuntimePath, trimmedConsumer, identity, run)
+}
+
+func (m *Manager) ensureResolvedPythonDependencyProfile(
+	ctx context.Context,
+	uvPath string,
+	pythonRuntimePath string,
+	consumer string,
+	identity PythonDependencyProfileIdentity,
+	run pythonDependencyProfileCommandRunner,
+) (PythonDependencyProfileStatus, error) {
+	if m == nil || run == nil {
+		return PythonDependencyProfileStatus{}, fmt.Errorf("python dependency profile materializer is unavailable")
+	}
+	trimmedConsumer := strings.TrimSpace(consumer)
+	expectedIdentity, err := ResolvePythonDependencyProfileIdentity(trimmedConsumer, identity.PlatformTuple, identity.AcceleratorPlane)
+	if err != nil {
+		return PythonDependencyProfileStatus{}, err
+	}
+	if expectedIdentity != identity {
+		return PythonDependencyProfileStatus{}, fmt.Errorf("python dependency profile identity does not match canonical inputs")
+	}
 	if err := m.validatePythonDependencyProfileTools(uvPath, pythonRuntimePath); err != nil {
 		return PythonDependencyProfileStatus{}, err
 	}

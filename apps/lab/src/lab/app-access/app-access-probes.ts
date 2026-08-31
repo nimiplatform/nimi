@@ -357,7 +357,7 @@ function labPersonaLorebookDeclaration(marker: { readonly ulid: string; readonly
 }
 
 function createLabPersonaMarker(): { readonly ulid: string; readonly handle: string } {
-  const alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+  const alphabet = '0123456789ABCDEFGHJKMNPQRSTVWXYZ'; // pragma: allowlist secret -- Crockford Base32 alphabet
   let time = Date.now();
   let encodedTime = '';
   for (let index = 0; index < 10; index += 1) {

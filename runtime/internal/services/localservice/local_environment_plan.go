@@ -162,7 +162,9 @@ func (s *Service) resolveLocalEnvironmentPlan(req localEnvironmentPlanRequest) l
 		s.localEnvironmentHostProfiles = make(map[string]localEnvironmentHostProfileState)
 	}
 	s.localEnvironmentHostProfiles[hostState.HostProfileID] = hostState
-	s.persistStateLocked()
+	if err := s.persistStateLocked(); err != nil {
+		s.logger.Error("persist local environment host profile", "host_profile_id", hostState.HostProfileID, "error", err)
+	}
 	s.mu.Unlock()
 
 	firstRunLlamaCUDARequired := s.localEnvironmentFirstRunLlamaCUDARequired(def, hostState, consumerScope)

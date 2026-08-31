@@ -12,7 +12,7 @@
     "generate-landing-data": "node scripts/generate-landing-data.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "pnpm run typecheck",
-    "test": "node ../../scripts/with-workspace-surfaces.mjs -- tsx --tsconfig tsconfig.json --test test/**/*.test.ts"
+    "test": "node ../../scripts/with-workspace-surfaces.mjs -- tsx --tsconfig tsconfig.test.json --test test/**/*.test.ts"
   },
   "dependencies": {
     "@nimiplatform/kit": "workspace:*",

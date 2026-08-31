@@ -110,7 +110,7 @@ func New(logger *slog.Logger, accounts AccountProvider) *Service {
 }
 
 // @nimi-authority: rule.nimi.runtime.realm-realtime.r001
-func (s *Service) ListRealmChats(ctx context.Context, req *runtimev1.ListRealmChatsRequest) (*runtimev1.ListRealmChatsResponse, error) {
+func (s *Service) ListRealmChats(ctx context.Context, req *runtimev1.ListRealmChatsRequest) (output *runtimev1.ListRealmChatsResponse, resultErr error) {
 	if req == nil || len(req.ProtoReflect().GetUnknown()) != 0 {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
@@ -149,7 +149,12 @@ func (s *Service) ListRealmChats(ctx context.Context, req *runtimev1.ListRealmCh
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REALM_UNAVAILABLE)
 	}
-	defer response.Body.Close()
+	defer func() {
+		if err := response.Body.Close(); resultErr == nil && err != nil {
+			output = nil
+			resultErr = grpcerr.WithReasonCode(codes.DataLoss, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		}
+	}()
 	limited := io.LimitReader(response.Body, realmHTTPResponseMax+1)
 	body, err := io.ReadAll(limited)
 	if err != nil || len(body) > realmHTTPResponseMax {
@@ -711,7 +716,7 @@ func (s *Service) sendTerminalControl(stream runtimev1.RuntimeRealmRealtimeServi
 	return stream.Send(event)
 }
 
-func (s *Service) fetchChatSnapshot(ctx context.Context, lease accountservice.RealmRealtimeAccountLease, chatID string) (*runtimev1.RealmChatSnapshot, error) {
+func (s *Service) fetchChatSnapshot(ctx context.Context, lease accountservice.RealmRealtimeAccountLease, chatID string) (output *runtimev1.RealmChatSnapshot, resultErr error) {
 	target, err := url.Parse(lease.RealmBaseURL + "/api/human/chats/" + url.PathEscape(chatID) + "/sync")
 	if err != nil {
 		return nil, err
@@ -730,7 +735,12 @@ func (s *Service) fetchChatSnapshot(ctx context.Context, lease accountservice.Re
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
+	defer func() {
+		if err := response.Body.Close(); resultErr == nil && err != nil {
+			output = nil
+			resultErr = fmt.Errorf("close Realm Chat snapshot response: %w", err)
+		}
+	}()
 	limited := io.LimitReader(response.Body, realmHTTPResponseMax+1)
 	body, err := io.ReadAll(limited)
 	if err != nil || len(body) > realmHTTPResponseMax {

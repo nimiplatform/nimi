@@ -206,7 +206,7 @@ func (c *Core) PendingEmbeddingRebuilds(ctx context.Context, bankRef string) ([]
 	if err != nil {
 		return nil, fmt.Errorf("inspect pending memory embedding builds: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var result []PendingEmbeddingRebuild
 	for rows.Next() {
 		var item PendingEmbeddingRebuild
@@ -223,6 +223,9 @@ func (c *Core) PendingEmbeddingRebuilds(ctx context.Context, bankRef string) ([]
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("inspect pending memory embedding builds: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("close pending memory embedding builds: %w", err)
 	}
 	return result, nil
 }
@@ -583,7 +586,7 @@ func (c *Core) derivedReadiness(ctx context.Context, bankRef string, snapshot Ca
 	if err != nil {
 		return 0, nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	result := map[string]string{}
 	for rows.Next() {
 		var kind, status, embeddingSpaceRef string
@@ -598,7 +601,13 @@ func (c *Core) derivedReadiness(ctx context.Context, bankRef string, snapshot Ca
 			result[kind] = status
 		}
 	}
-	return version, result, rows.Err()
+	if err := rows.Err(); err != nil {
+		return 0, nil, err
+	}
+	if err := rows.Close(); err != nil {
+		return 0, nil, fmt.Errorf("close memory derived readiness: %w", err)
+	}
+	return version, result, nil
 }
 
 func compatibleGenerationTx(ctx context.Context, tx *sql.Tx, bankRef, kind string) (uint64, error) {
@@ -647,7 +656,7 @@ func (c *Core) canonicalTexts(ctx context.Context, bankRef string) (uint64, stri
 	if err != nil {
 		return 0, "", nil, nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var refs, texts []string
 	for rows.Next() {
 		var ref, text string
@@ -656,11 +665,17 @@ func (c *Core) canonicalTexts(ctx context.Context, bankRef string) (uint64, stri
 		}
 		refs, texts = append(refs, ref), append(texts, text)
 	}
-	return version, lifecycleRef, refs, texts, rows.Err()
+	if err := rows.Err(); err != nil {
+		return 0, "", nil, nil, err
+	}
+	if err := rows.Close(); err != nil {
+		return 0, "", nil, nil, fmt.Errorf("close canonical memory texts: %w", err)
+	}
+	return version, lifecycleRef, refs, texts, nil
 }
 
 func scanMemories(rows *sql.Rows) ([]Memory, error) {
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var result []Memory
 	for rows.Next() {
 		var item Memory
@@ -679,7 +694,13 @@ func scanMemories(rows *sql.Rows) ([]Memory, error) {
 		}
 		result = append(result, item)
 	}
-	return result, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("close memory rows: %w", err)
+	}
+	return result, nil
 }
 
 func populateLineageTx(ctx context.Context, tx *sql.Tx, memories []Memory) error {

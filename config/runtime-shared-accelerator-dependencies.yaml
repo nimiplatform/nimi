@@ -136,7 +136,7 @@ dependencies:
         archive_name: audiocpp-windows-cuda-runtime.zip
         archive_url: https://github.com/0xShug0/audio.cpp/releases/download/release-0.6.1/audiocpp-windows-cuda-runtime.zip
         archive_bytes: 575505446
-        archive_sha256: 4104167de457dd3d20bd6e2de172c41f84cd15d0b3e8835649849710a863d10d
+        archive_sha256: 4104167de457dd3d20bd6e2de172c41f84cd15d0b3e8835649849710a863d10d # pragma: allowlist secret
         package_format: direct_archive
         stage_policy: staged_extract_verify_atomic_promote
         product_state: supported

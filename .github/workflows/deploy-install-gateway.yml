@@ -2,6 +2,11 @@ name: deploy-install-gateway
 
 on:
   workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact 40-character main commit to deploy
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -13,13 +18,25 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      NIMI_GITHUB_RELEASES_TOKEN: ${{ secrets.NIMI_GITHUB_RELEASES_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.commit_sha }}
+          fetch-depth: 0
+
+      - name: Verify exact main commit
+        env:
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+        run: |
+          set -euo pipefail
+          if ! [[ "${COMMIT_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "commit_sha must be an exact lowercase 40-character Git SHA" >&2
+            exit 1
+          fi
+          test "$(git rev-parse HEAD)" = "${COMMIT_SHA}"
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor "${COMMIT_SHA}" origin/main
 
       - name: Setup pnpm
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
@@ -32,8 +49,14 @@ jobs:
           node-version: 24
           package-manager-cache: false
 
+      - name: Setup Go required by the root install contract
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: runtime/go.mod
+          cache: false
+
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Test install gateway
         run: pnpm --filter @nimiplatform/install-gateway test
@@ -42,14 +65,22 @@ jobs:
         run: pnpm --filter @nimiplatform/install-gateway build
 
       - name: Sync optional GitHub release token secret
-        if: env.NIMI_GITHUB_RELEASES_TOKEN != ''
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          NIMI_GITHUB_RELEASES_TOKEN: ${{ secrets.NIMI_GITHUB_RELEASES_TOKEN }}
         run: |
           set -euo pipefail
-          cd apps/install-gateway
-          printf '%s' "${NIMI_GITHUB_RELEASES_TOKEN}" | pnpm dlx wrangler secret put NIMI_GITHUB_RELEASES_TOKEN --config wrangler.jsonc
+          if [[ -n "${NIMI_GITHUB_RELEASES_TOKEN:-}" ]]; then
+            cd apps/install-gateway
+            printf '%s' "${NIMI_GITHUB_RELEASES_TOKEN}" | pnpm dlx wrangler@4.127.1 secret put NIMI_GITHUB_RELEASES_TOKEN --config wrangler.jsonc
+          fi
 
       - name: Deploy install gateway worker
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           set -euo pipefail
           cd apps/install-gateway
-          pnpm dlx wrangler deploy --config wrangler.jsonc
+          pnpm dlx wrangler@4.127.1 deploy --config wrangler.jsonc

@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   filterSecretScanFiles,
-  generatedArtifactBaselineEntries,
-  generatedSecretScanExclusion,
+  excludedArtifactBaselineEntries,
+  secretScanExclusion,
 } from './lib/secret-scan-scope.mjs';
 import { shouldApplySecretBaselineUpdate } from './lib/secret-scan-result.mjs';
 
@@ -15,26 +15,30 @@ test('explicit baseline update never applies a partial scanner result', () => {
 
 test('generated protocol stubs are excluded from secret scanning', () => {
   assert.equal(
-    generatedSecretScanExclusion('runtime/gen/runtime/v1/account.pb.go')?.label,
+    secretScanExclusion('runtime/gen/runtime/v1/account.pb.go')?.label,
     'runtime Go protobuf stubs',
   );
   assert.equal(
-    generatedSecretScanExclusion('runtime/gen/runtime/v1/account_grpc.pb.go')?.label,
+    secretScanExclusion('runtime/gen/runtime/v1/account_grpc.pb.go')?.label,
     'runtime Go protobuf stubs',
   );
   assert.equal(
-    generatedSecretScanExclusion('sdks/typescript/core-generated/runtime-protobuf/runtime/v1/account.ts')?.label,
+    secretScanExclusion('sdks/typescript/core-generated/runtime-protobuf/runtime/v1/account.ts')?.label,
     'SDK vNext TypeScript protobuf stubs',
   );
   assert.equal(
-    generatedSecretScanExclusion('sdks/typescript/core-generated/runtime-protobuf/google/protobuf/timestamp.ts')?.label,
+    secretScanExclusion('sdks/typescript/core-generated/runtime-protobuf/google/protobuf/timestamp.ts')?.label,
     'SDK vNext TypeScript protobuf stubs',
+  );
+  assert.equal(
+    secretScanExclusion('runtime/gen/realm/v1/source_materialization_openapi.go')?.label,
+    'Realm source-materialization OpenAPI projection',
   );
 });
 
 test('the generated OAuth logo module is narrowly excluded while its source asset remains scanned', () => {
   assert.equal(
-    generatedSecretScanExclusion('kit/auth/src/logic/native-oauth-result-logo.ts')?.label,
+    secretScanExclusion('kit/auth/src/logic/native-oauth-result-logo.ts')?.label,
     'native OAuth result logo data module',
   );
 
@@ -60,7 +64,7 @@ test('generated Platform AI profile projection is excluded while sources remain 
 
   for (const generatedPath of generatedPaths) {
     assert.equal(
-      generatedSecretScanExclusion(generatedPath)?.label,
+      secretScanExclusion(generatedPath)?.label,
       'Platform AI profile catalog projection',
     );
   }
@@ -76,7 +80,7 @@ test('generated Platform AI profile projection is excluded while sources remain 
 
 test('generated Runtime provider catalogs are excluded while catalog sources remain scanned', () => {
   assert.equal(
-    generatedSecretScanExclusion('runtime/catalog/providers/local.yaml')?.label,
+    secretScanExclusion('runtime/catalog/providers/local.yaml')?.label,
     'Runtime provider catalog projection',
   );
 
@@ -97,6 +101,36 @@ test('generated Runtime provider catalogs are excluded while catalog sources rem
   ]);
 });
 
+test('generated managed image packages are excluded while their source remains scanned', () => {
+  const generatedPath = 'runtime/internal/engine/generated/managed-image-backend-packages.yaml';
+  assert.equal(
+    secretScanExclusion(generatedPath)?.label,
+    'managed image backend package projection',
+  );
+
+  const { scanned, excluded } = filterSecretScanFiles([
+    'config/runtime-managed-image-backend-packages.yaml',
+    generatedPath,
+  ]);
+  assert.deepEqual(scanned, ['config/runtime-managed-image-backend-packages.yaml']);
+  assert.deepEqual(excluded.map((entry) => entry.file), [generatedPath]);
+});
+
+test('signed reference vectors are narrowly excluded while ordinary testdata stays scanned', () => {
+  const { scanned, excluded } = filterSecretScanFiles([
+    'runtime/internal/services/runtimeagent/testdata/source-materialization-v3/persona-character.json',
+    'runtime/internal/services/runtimeagent/testdata/source-materialization-v3/world-character.json',
+    'runtime/internal/services/runtimeagent/testdata/source-materialization-v3/negative-mutations.json',
+  ]);
+  assert.deepEqual(scanned, [
+    'runtime/internal/services/runtimeagent/testdata/source-materialization-v3/negative-mutations.json',
+  ]);
+  assert.deepEqual(excluded.map((entry) => entry.file), [
+    'runtime/internal/services/runtimeagent/testdata/source-materialization-v3/persona-character.json',
+    'runtime/internal/services/runtimeagent/testdata/source-materialization-v3/world-character.json',
+  ]);
+});
+
 test('source proto files and ordinary source files remain in secret scan scope', () => {
   const { scanned, excluded } = filterSecretScanFiles([
     'proto/runtime/v1/account.proto',
@@ -111,11 +145,12 @@ test('source proto files and ordinary source files remain in secret scan scope',
   assert.deepEqual(excluded.map((entry) => entry.file), ['runtime/gen/runtime/v1/account.pb.go']);
 });
 
-test('baseline hygiene rejects generated artifact entries', () => {
-  const entries = generatedArtifactBaselineEntries({
+test('baseline hygiene rejects entries for excluded artifacts', () => {
+  const entries = excludedArtifactBaselineEntries({
     results: {
       'kit/auth/src/logic/native-oauth-result-logo.ts': [],
       'runtime/gen/runtime/v1/agent_service.pb.go': [],
+      'runtime/internal/services/runtimeagent/testdata/source-materialization-v3/persona-character.json': [],
       'sdks/typescript/core-generated/runtime-protobuf/runtime/v1/account.ts': [],
       'sdks/typescript/core/app/ai-profile-factory.generated.ts': [],
       'runtime/internal/auditlog/store.go': [],
@@ -125,6 +160,7 @@ test('baseline hygiene rejects generated artifact entries', () => {
   assert.deepEqual(entries, [
     'kit/auth/src/logic/native-oauth-result-logo.ts',
     'runtime/gen/runtime/v1/agent_service.pb.go',
+    'runtime/internal/services/runtimeagent/testdata/source-materialization-v3/persona-character.json',
     'sdks/typescript/core-generated/runtime-protobuf/runtime/v1/account.ts',
     'sdks/typescript/core/app/ai-profile-factory.generated.ts',
   ]);

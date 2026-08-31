@@ -103,7 +103,7 @@ func (s *Service) ResolveModelInstallPlan(ctx context.Context, req *runtimev1.Re
 		}
 		evaluateCatalogModelAcquisitionPlan(plan)
 		s.mu.Lock()
-		s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
+		persistErr := s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
 			Id:         "audit_" + ulid.Make().String(),
 			EventType:  "model_install_plan_resolved",
 			OccurredAt: now,
@@ -116,6 +116,9 @@ func (s *Service) ResolveModelInstallPlan(ctx context.Context, req *runtimev1.Re
 			}),
 		})
 		s.mu.Unlock()
+		if persistErr != nil {
+			return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE, persistErr, grpcerr.ReasonOptions{Message: "model install plan audit could not be persisted"})
+		}
 		s.holdModelInstallPlan(ctx, plan)
 		return &runtimev1.ResolveModelInstallPlanResponse{Plan: plan}, nil
 	}

@@ -273,7 +273,7 @@ type wireUserRef struct {
 }
 
 func convertAttachment(input wireAttachment) (*runtimev1.RealmChatAttachmentPayload, error) {
-	targetType := runtimev1.RealmAttachmentTargetType_REALM_ATTACHMENT_TARGET_TYPE_UNSPECIFIED
+	var targetType runtimev1.RealmAttachmentTargetType
 	switch input.TargetType {
 	case "RESOURCE":
 		targetType = runtimev1.RealmAttachmentTargetType_REALM_ATTACHMENT_TARGET_TYPE_RESOURCE

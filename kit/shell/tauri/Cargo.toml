@@ -1,6 +1,6 @@
 [package]
 name = "nimi-shell-tauri"
-version = "0.2.0-rc.1"
+version = "0.2.0"
 edition = "2021"
 description = "Shared Tauri host glue for Nimi apps — runtime bridge, daemon lifecycle, session logging, auth/oauth commands, runtime defaults."
 license = "MIT"
@@ -29,7 +29,7 @@ log = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
 image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp"] }
 zip = { version = "4.6.1", default-features = false, features = ["deflate"] }
-nimi-shell-protected-local = { version = "0.2.0-rc.1", path = "../protected-local" }
+nimi-shell-protected-local = { version = "0.2.0", path = "../protected-local" }
 
 [build-dependencies]
 tonic-prost-build = "0.14"

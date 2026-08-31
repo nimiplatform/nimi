@@ -27,7 +27,7 @@ export async function readDesktopNimiAppAIConfig(
 export function desktopNimiAppAIConfigQueryKey(appId: string) {
   const exactAppId = appId.trim();
   if (!exactAppId || exactAppId !== appId) {
-    throw new Error('Desktop App AIConfig requires one exact appId.');
+    throw new Error('Nimi App AIConfig requires one exact appId.');
   }
   return ['app-ai-config', exactAppId] as const;
 }

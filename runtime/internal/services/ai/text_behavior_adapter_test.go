@@ -37,7 +37,7 @@ func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 			RecipeID: "llama.text-generate.gemma-4-e2b-it.v1", RecipeRevision: "1",
 			ModelContents: []textBehaviorModelContent{{
 				SlotID: "main.gguf", ContentID: "sha256:9378bc471710229ef165709b62e34bfb62231420ddaf6d729e727305b5b8672d",
-				EntrySHA256: "9378bc471710229ef165709b62e34bfb62231420ddaf6d729e727305b5b8672d",
+				EntrySHA256: "9378bc471710229ef165709b62e34bfb62231420ddaf6d729e727305b5b8672d", // pragma: allowlist secret -- public model entry digest
 			}},
 			TemplateIdentity: gemma4E2BTemplateIdentity,
 		},

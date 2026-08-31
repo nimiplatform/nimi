@@ -41,11 +41,11 @@ async function fetchInstallScriptAsset(request, env, maxAgeSeconds) {
   return textResponse(await assetResponse.text(), maxAgeSeconds);
 }
 
-async function resolveLatestRelease(track, env, fetchImpl) {
+async function resolveLatestRuntimeRelease(env, fetchImpl) {
   const releases = await fetchRepositoryReleases(env, fetchImpl);
-  const release = selectLatestRelease(releases, track);
+  const release = selectLatestRelease(releases);
   if (!release) {
-    throw new Error(`${track.toUpperCase()}_RELEASE_NOT_FOUND`);
+    throw new Error('RUNTIME_RELEASE_NOT_FOUND');
   }
   return release;
 }
@@ -66,7 +66,7 @@ async function buildRouteResponse(request, env, fetchImpl) {
   }
 
   if (url.pathname === '/runtime/latest.json') {
-    const release = await resolveLatestRelease('runtime', env, fetchImpl);
+    const release = await resolveLatestRuntimeRelease(env, fetchImpl);
     return jsonResponse(await buildRuntimeManifest(release, fetchImpl), maxAgeSeconds);
   }
 

@@ -5,6 +5,7 @@ export type LandingLinks = {
   docsUrl: string;
   githubUrl: string;
   protocolUrl: string;
+  downloadUrl: string;
   desktopDownloadUrl: string;
 };
 
@@ -19,6 +20,7 @@ const DEFAULT_LINKS: LandingLinks = {
   docsUrl: 'https://docs.nimi.ai/',
   githubUrl: 'https://github.com/nimiplatform/nimi',
   protocolUrl: 'https://docs.nimi.ai/platform/protocol',
+  downloadUrl: '/download',
   desktopDownloadUrl: 'https://docs.nimi.ai/desktop/',
 };
 
@@ -86,6 +88,7 @@ export function resolveLandingLinks(env: Record<string, unknown> = {}): LandingL
     docsUrl: normalizeUrl(env.VITE_LANDING_DOCS_URL, DEFAULT_LINKS.docsUrl),
     githubUrl: normalizeUrl(env.VITE_LANDING_GITHUB_URL, DEFAULT_LINKS.githubUrl),
     protocolUrl: normalizeUrl(env.VITE_LANDING_PROTOCOL_URL, DEFAULT_LINKS.protocolUrl),
+    downloadUrl: DEFAULT_LINKS.downloadUrl,
     desktopDownloadUrl: normalizeUrl(
       env.VITE_LANDING_DESKTOP_DOWNLOAD_URL,
       DEFAULT_LINKS.desktopDownloadUrl,

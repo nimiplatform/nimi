@@ -1,0 +1,29 @@
+name: release-canary
+run-name: canary v${{ inputs.release_version }} at ${{ inputs.commit_sha }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: Exact 40-character commit SHA whose PR gates already passed
+        required: true
+        type: string
+      release_version:
+        description: Global release-train stable SemVer without a v prefix
+        required: true
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: release-canary
+  cancel-in-progress: true
+
+jobs:
+  build:
+    uses: ./.github/workflows/release-build.yml
+    with:
+      commit_sha: ${{ inputs.commit_sha }}
+      release_version: ${{ inputs.release_version }}
