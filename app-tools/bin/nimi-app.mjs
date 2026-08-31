@@ -3,15 +3,16 @@
 import process from 'node:process';
 import {
   APP_SCAFFOLD_FEATURE_IDS,
-  checkSubmittedApp,
+  buildApp,
+  checkApp,
   createApp,
-  doctorAppScaffold,
   initAppScaffold,
+  packApp,
   resolveAppCreateInput,
   resolveAppCreatePlan,
   runDevShell,
-  syncSubmittedApp,
-  updateAppScaffold,
+  syncApp,
+  testApp,
 } from '../lib/index.mjs';
 import { APP_SCAFFOLD_MODULE_REGISTRY } from '../lib/app-scaffold-capabilities.mjs';
 import { createInterface } from 'node:readline/promises';
@@ -19,8 +20,8 @@ import { createInterface } from 'node:readline/promises';
 function parseArgs(argv) {
   const [command = '', ...rest] = argv;
   const values = {
-    dir: '', profile: '', appId: '', title: '', packageName: '', author: '',
-    features: undefined, shell: '', cdpPort: undefined, noCdp: false, conformance: '', json: false,
+    dir: '', profile: '', appId: '', version: '', title: '', packageName: '', author: '',
+    features: undefined, shell: '', cdpPort: undefined, noCdp: false, conformance: '', target: '', aggregate: false, production: false, dryRun: false, json: false,
   };
   const seen = new Set();
   const readValue = (index, flag, key, preserve = false) => {
@@ -49,6 +50,10 @@ function parseArgs(argv) {
     }
     if (rest[index] === '--app-id') {
       index = readValue(index, '--app-id', 'appId', true);
+      continue;
+    }
+    if (rest[index] === '--version') {
+      index = readValue(index, '--version', 'version');
       continue;
     }
     if (rest[index] === '--title') {
@@ -85,6 +90,28 @@ function parseArgs(argv) {
       index = readValue(index, '--conformance', 'conformance');
       continue;
     }
+    if (rest[index] === '--target') {
+      index = readValue(index, '--target', 'target');
+      continue;
+    }
+    if (rest[index] === '--aggregate') {
+      if (seen.has('aggregate')) throw new Error('Duplicate option: --aggregate');
+      seen.add('aggregate');
+      values.aggregate = true;
+      continue;
+    }
+    if (rest[index] === '--production') {
+      if (seen.has('production')) throw new Error('Duplicate option: --production');
+      seen.add('production');
+      values.production = true;
+      continue;
+    }
+    if (rest[index] === '--dry-run') {
+      if (seen.has('dryRun')) throw new Error('Duplicate option: --dry-run');
+      seen.add('dryRun');
+      values.dryRun = true;
+      continue;
+    }
     if (rest[index] === '--json') {
       if (seen.has('json')) throw new Error('Duplicate option: --json');
       seen.add('json');
@@ -102,13 +129,15 @@ function parseArgs(argv) {
 
 function assertCommandOptions(command, providedOptions) {
   const allowed = {
-    create: new Set(['dir', 'profile', 'appId', 'title', 'packageName', 'author', 'features', 'json']),
+    create: new Set(['dir', 'profile', 'appId', 'version', 'title', 'packageName', 'author', 'features', 'json']),
     init: new Set(['dir', 'json']),
-    doctor: new Set(['dir', 'json', 'conformance']),
-    update: new Set(['dir', 'json']),
     sync: new Set(['dir', 'json']),
-    check: new Set(['dir', 'json']),
+    check: new Set(['dir', 'json', 'conformance', 'production']),
     dev: new Set(['dir', 'shell', 'cdpPort', 'noCdp']),
+    test: new Set(['dir', 'json']),
+    build: new Set(['dir', 'target', 'production', 'json']),
+    pack: new Set(['dir', 'target', 'aggregate', 'production', 'json']),
+    publish: new Set(['dir', 'dryRun', 'json']),
   }[command];
   if (!allowed) return;
   const invalid = providedOptions.find((key) => !allowed.has(key));
@@ -129,16 +158,18 @@ function printUsage() {
     : '(none)';
   process.stdout.write(
     [
-      'Nimi App scaffolding',
+      'Nimi App developer tools',
       '',
       'Usage:',
-      '  nimi-app create [--dir path] [--profile standalone] [--features admitted-ids|all] [--app-id id] [--title title] [--package-name name] [--author person-or-team] [--json]',
+      '  nimi-app create [--dir path] [--profile standalone] [--features admitted-ids|all] [--app-id dotted.id] [--version semver] [--title title] [--package-name name] [--author person-or-team] [--json]',
       '  nimi-app init [--dir path] [--json]',
-      '  nimi-app doctor [--dir path] [--conformance simulator] [--json]',
-      '  nimi-app update [--dir path] [--json]',
       '  nimi-app sync [--dir path] [--json]',
-      '  nimi-app check [--dir path] [--json]',
+      '  nimi-app check [--dir path] [--conformance simulator | --production] [--json]',
       '  nimi-app dev [--dir path] [--shell electron] [--cdp-port 1024..65535 | --no-cdp]',
+      '  nimi-app test [--dir path] [--json]',
+      '  nimi-app build [--dir path] [--target target-id] [--production] [--json]',
+      '  nimi-app pack [--dir path] (--target target-id [--production] | --aggregate) [--json]',
+      '  nimi-app publish [--dir path] [--dry-run] [--json]',
       '',
       'Current module registry:',
       `  Admitted features: ${featureList(admitted)}`,
@@ -162,12 +193,12 @@ function printUsage() {
       'Ownership:',
       '  App-owned: workbench-core and selected module product code under src/capabilities/**.',
       '  Scaffold-managed: carrier, identity, manifest/native wiring, and generated composition glue.',
-      '  doctor/update never overwrite app-owned product code.',
-      '  Simulator conformance remains an explicit doctor mode for existing Simulator Apps; this scaffold does not generate one.',
+      '  sync refreshes only scaffold-managed files; check is non-mutating.',
+      '  Simulator conformance remains an explicit check mode for existing Simulator Apps; this scaffold does not generate one.',
       '',
       'Required order:',
-      '  nimi-app create -> pnpm install -> pnpm run init -> pnpm run doctor -> pnpm run build -> pnpm dev',
-      '  Run init, doctor, and update only after dependency installation.',
+      '  create -> dependency install -> init -> sync -> check -> dev/test/build -> pack -> publish',
+      '  Run init and later commands only after dependency installation.',
       '',
       'Development CDP:',
       '  Electron CDP defaults to an automatically selected loopback port.',
@@ -209,7 +240,8 @@ async function collectCreateInput(cwd, initial) {
     }
   };
   try {
-    if (!raw.appId) await ask({ key: 'appId', label: 'App ID', fallback: 'my-nimi-app' });
+    if (!raw.appId) await ask({ key: 'appId', label: 'App ID', fallback: 'my.nimi-app' });
+    if (!raw.version) await ask({ key: 'version', label: 'Initial version', fallback: '0.1.0' });
     if (!raw.title) await ask({ key: 'title', label: 'Display Name', fallback: 'My Nimi App' });
     if (!raw.packageName) await ask({ key: 'packageName', label: 'Package name', fallback: defaultPackageName(raw.appId) });
     if (!initial.providedOptions.includes('author')) await ask({ key: 'author', label: 'Author (person or team)', optional: true });
@@ -253,6 +285,7 @@ try {
     dir,
     profile,
     appId,
+    version,
     title,
     packageName,
     author,
@@ -261,6 +294,10 @@ try {
     cdpPort,
     noCdp,
     conformance,
+    target,
+    aggregate,
+    production,
+    dryRun,
     json,
     providedOptions,
   } = parsedArgs;
@@ -283,6 +320,7 @@ try {
           dir,
           profile,
           appId,
+          version,
           title,
           packageName,
           author,
@@ -312,31 +350,36 @@ try {
         json,
       });
       break;
-    case 'doctor':
-      await doctorAppScaffold(process.cwd(), {
-        dir,
-        conformance,
-        json,
-      });
-      break;
-    case 'update':
-      updateAppScaffold(process.cwd(), {
-        dir,
-        json,
-      });
-      break;
     case 'sync':
-      syncSubmittedApp(process.cwd(), {
+      syncApp(process.cwd(), {
         dir,
         json,
       });
       break;
     case 'check':
-      checkSubmittedApp(process.cwd(), {
+      await checkApp(process.cwd(), {
         dir,
+        conformance,
+        production,
         json,
       });
       break;
+    case 'test':
+      testApp(process.cwd(), { dir, json });
+      break;
+    case 'build':
+      buildApp(process.cwd(), { dir, target, production, json });
+      break;
+    case 'pack':
+      if (aggregate && (target || production)) throw new Error('--aggregate cannot be combined with --target or --production');
+      {
+        const result = packApp(process.cwd(), { dir, target, aggregate, production });
+        if (json) process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+        else process.stdout.write(`[nimi-app] pack ${aggregate ? 'aggregate' : target} completed\n`);
+      }
+      break;
+    case 'publish':
+      throw new Error('github_publish_not_implemented');
     case 'dev':
       await runDevShell(process.cwd(), {
         dir,
@@ -350,6 +393,14 @@ try {
   }
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error || 'unknown error');
-  process.stderr.write(`[nimi-app] failed: ${message}\n`);
+  if (parsedArgs?.json) {
+    process.stdout.write(`${JSON.stringify({
+      ok: false,
+      command: parsedArgs.command || null,
+      error: { message },
+    }, null, 2)}\n`);
+  } else {
+    process.stderr.write(`[nimi-app] failed: ${message}\n`);
+  }
   process.exit(1);
 }

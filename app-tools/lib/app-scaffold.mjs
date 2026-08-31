@@ -20,11 +20,13 @@ import {
   buildDefaultStarterFiles,
 } from './app-scaffold-profiles.mjs';
 export { SUPPORTED_APP_SCAFFOLD_PROFILES };
-const DEFAULT_APP_ID = 'my-nimi-app';
+const DEFAULT_APP_ID = 'my.nimi-app';
 const DEFAULT_APP_TITLE = 'My Nimi App';
-export const SCAFFOLD_INTENT_VERSION = 3;
-export const SCAFFOLD_LOCK_VERSION = 3;
-export const SCAFFOLD_VERSION = '2026-08-20.module-composition-v2';
+const DEFAULT_APP_VERSION = '0.1.0';
+const SEMVER_PATTERN = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/u;
+export const SCAFFOLD_INTENT_VERSION = 4;
+export const SCAFFOLD_LOCK_VERSION = 4;
+export const SCAFFOLD_VERSION = '2026-08-31.app-lifecycle-v1';
 export const SCAFFOLD_STATE_DIR = '.nimi/app-scaffold';
 export const SCAFFOLD_INTENT_PATH = `${SCAFFOLD_STATE_DIR}/intent.json`;
 export const SCAFFOLD_LOCK_PATH = `${SCAFFOLD_STATE_DIR}/lock.json`;
@@ -45,25 +47,218 @@ const GENERATED_GITIGNORE = [
 const MINIMAL_TAURI_ICON_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGNgAAIAAAUAAXpeqz8AAAAASUVORK5CYII=', 'base64');
 const MINIMAL_TAURI_ICON_ICO = Buffer.from('AAABAAEAAQEAAAEAIABEAAAAFgAAAIlQTkcNChoKAAAADUlIRFIAAAABAAAAAQgGAAAAHxXEiQAAAAtJREFUeJxjYAACAAAFAAF6Xqs/AAAAAElFTkSuQmCC', 'base64');
 
-const CI_WORKFLOW = [
-  'name: local-development-check',
+const APP_RELEASE_WORKFLOW = [
+  'name: nimi-app-release',
   'on:',
   '  pull_request:',
   '  push:',
+  '    tags:',
+  "      - 'v*'",
+  '  workflow_dispatch:',
+  '    inputs:',
+  '      dry_run:',
+  '        description: Run the non-production App lifecycle',
+  '        required: true',
+  '        default: true',
+  '        type: boolean',
+  'permissions:',
+  '  contents: read',
   'jobs:',
-  '  check:',
+  '  prepare:',
+  "    if: github.event_name != 'workflow_dispatch' || inputs.dry_run == true",
+  '    runs-on: ubuntu-latest',
+  '    outputs:',
+  '      matrix: ${{ steps.matrix.outputs.matrix }}',
+  '    steps:',
+  '      - uses: actions/checkout@v7',
+  '        with:',
+  '          fetch-depth: 0',
+  '      - uses: actions/setup-node@v6',
+  '        with:',
+  '          node-version: 24',
+  '      - run: corepack enable',
+  '      - run: pnpm install --frozen-lockfile',
+  '      - run: pnpm exec nimi-app sync',
+  '      - run: git diff --exit-code',
+  '      - run: pnpm exec nimi-app check --json > .nimi-targets.json',
+  '      - run: pnpm exec nimi-app test',
+  '      - name: Require tag/version lockstep',
+  "        if: github.event_name == 'push' && github.ref_type == 'tag'",
+  '        run: node -e "const p=require(\'./package.json\'); if (process.env.GITHUB_REF_NAME !== `v${p.version}`) throw new Error(\'tag_version_mismatch\')"',
+  '      - name: Require annotated tag bound to this commit',
+  "        if: github.event_name == 'push' && github.ref_type == 'tag'",
+  '        shell: bash',
+  '        run: |',
+  '          test "$(git cat-file -t "refs/tags/$GITHUB_REF_NAME")" = tag',
+  '          test "$(git rev-parse "refs/tags/$GITHUB_REF_NAME^{}")" = "$GITHUB_SHA"',
+  '      - name: Require the shared installed App carrier',
+  "        if: github.event_name == 'push' && github.ref_type == 'tag'",
+  '        run: pnpm exec nimi-app check --production',
+  '      - name: Require protected tags and immutable releases',
+  "        if: github.event_name == 'push' && github.ref_type == 'tag'",
+  '        env:',
+  '          GH_TOKEN: ${{ secrets.GITHUB_REPOSITORY_ADMIN_TOKEN }}',
+  '        shell: bash',
+  '        run: |',
+  '          test -n "$GH_TOKEN"',
+  '          test "$(gh api "repos/$GITHUB_REPOSITORY/immutable-releases" --jq .enabled)" = true',
+  '          protected=false',
+  '          while read -r ruleset_id; do',
+  '            ruleset=$(gh api "repos/$GITHUB_REPOSITORY/rulesets/$ruleset_id")',
+  '            excluded=false',
+  '            while read -r pattern; do',
+  '              if [[ "refs/tags/$GITHUB_REF_NAME" == $pattern ]]; then excluded=true; break; fi',
+  '            done < <(jq -r \'.conditions.ref_name.exclude[]?\' <<<"$ruleset")',
+  '            if test "$excluded" = true; then continue; fi',
+  "            if jq -e '(.conditions.ref_name.include | index(\"refs/tags/v*\")) != null and ([.rules[].type] | index(\"creation\") != null and index(\"update\") != null and index(\"deletion\") != null)' <<<\"$ruleset\" >/dev/null; then",
+  '              protected=true',
+  '              break',
+  '            fi',
+  '          done < <(gh api "repos/$GITHUB_REPOSITORY/rulesets" --jq \'.[] | select(.target == "tag" and .enforcement == "active") | .id\')',
+  '          test "$protected" = true',
+  '      - name: Resolve declared target matrix',
+  '        id: matrix',
+  '        shell: bash',
+  '        run: |',
+  "          matrix=$(jq -c '{include: [.targets[] | {target: ., runner: (if . == \"windows-x86_64\" then \"windows-latest\" else error(\"unsupported target\") end)}]}' .nimi-targets.json)",
+  '          test "$(jq \'.include | length\' <<<"$matrix")" -gt 0',
+  '          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"',
+  '  build-target:',
+  '    needs: prepare',
+  '    runs-on: ${{ matrix.runner }}',
+  '    permissions:',
+  '      contents: read',
+  '    strategy:',
+  '      fail-fast: false',
+  '      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}',
+  '    steps:',
+  '      - uses: actions/checkout@v7',
+  '      - uses: actions/setup-node@v6',
+  '        with:',
+  '          node-version: 24',
+  '      - run: corepack enable',
+  '      - run: pnpm install --frozen-lockfile',
+  '      - name: Build development target',
+  "        if: github.event_name != 'push' || github.ref_type != 'tag'",
+  '        run: pnpm exec nimi-app build --target ${{ matrix.target }}',
+  '      - name: Build and sign production target',
+  "        if: github.event_name == 'push' && github.ref_type == 'tag'",
+  '        run: pnpm exec nimi-app build --target ${{ matrix.target }} --production',
+  '        env:',
+  '          NIMI_APP_PRODUCTION: true',
+  '          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}',
+  '          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}',
+  '          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}',
+  '          APPLE_ID: ${{ secrets.APPLE_ID }}',
+  '          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}',
+  '          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}',
+  '          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}',
+  '          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}',
+  '      - name: Pack development target',
+  "        if: github.event_name != 'push' || github.ref_type != 'tag'",
+  '        run: pnpm exec nimi-app pack --target ${{ matrix.target }}',
+  '      - name: Verify native trust and pack production target',
+  "        if: github.event_name == 'push' && github.ref_type == 'tag'",
+  '        run: pnpm exec nimi-app pack --target ${{ matrix.target }} --production',
+  '      - uses: actions/upload-artifact@v7',
+  '        with:',
+  '          name: nimi-app-${{ matrix.target }}',
+  '          path: |',
+  '            dist/nimi-app/*.nimiapp',
+  '            dist/nimi-app/*.target.json',
+  '          if-no-files-found: error',
+  '  attest-target:',
+  "    if: github.event_name == 'push' && github.ref_type == 'tag'",
+  '    needs: [prepare, build-target]',
+  '    runs-on: ubuntu-latest',
+  '    permissions:',
+  '      contents: read',
+  '      id-token: write',
+  '      attestations: write',
+  '      artifact-metadata: write',
+  '    strategy:',
+  '      fail-fast: false',
+  '      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}',
+  '    steps:',
+  '      - uses: actions/download-artifact@v8',
+  '        with:',
+  '          name: nimi-app-${{ matrix.target }}',
+  '          path: attest-assets',
+  '      - uses: actions/attest@v4',
+  '        with:',
+  '          subject-path: attest-assets/*.nimiapp',
+  '  aggregate:',
+  '    needs: build-target',
   '    runs-on: ubuntu-latest',
   '    steps:',
-  '      - uses: actions/checkout@v4',
-  '      - uses: pnpm/action-setup@v4',
+  '      - uses: actions/checkout@v7',
+  '      - uses: actions/setup-node@v6',
   '        with:',
-  '          version: 9',
-  '      - uses: actions/setup-node@v4',
+  '          node-version: 24',
+  '      - run: corepack enable',
+  '      - run: pnpm install --frozen-lockfile',
+  '      - uses: actions/download-artifact@v8',
   '        with:',
-  '          node-version: 22',
-  '      - run: pnpm install --no-frozen-lockfile',
-  '      - run: pnpm run init',
-  '      - run: pnpm run check',
+  '          pattern: nimi-app-*',
+  '          path: dist/nimi-app',
+  '          merge-multiple: true',
+  '      - run: pnpm exec nimi-app pack --aggregate',
+  '      - uses: actions/upload-artifact@v7',
+  '        with:',
+  '          name: nimi-app-release-candidate',
+  '          path: |',
+  '            dist/nimi-app/*.nimiapp',
+  '            dist/nimi-app/*.target.json',
+  '            dist/nimi-app/*.candidate.json',
+  '          if-no-files-found: error',
+  '  release:',
+  "    if: github.event_name == 'push' && github.ref_type == 'tag'",
+  '    needs: [aggregate, attest-target]',
+  '    runs-on: ubuntu-latest',
+  '    permissions:',
+  '      contents: write',
+  '    steps:',
+  '      - uses: actions/download-artifact@v8',
+  '        with:',
+  '          name: nimi-app-release-candidate',
+  '          path: release-assets',
+  '      - name: Publish the immutable GitHub Release set',
+  '        env:',
+  '          GH_TOKEN: ${{ github.token }}',
+  '        shell: bash',
+  '        run: |',
+  '          set -euo pipefail',
+  '          shopt -s nullglob',
+  '          assets=(release-assets/*.nimiapp release-assets/*.candidate.json)',
+  '          test "${#assets[@]}" -gt 0',
+  "          expected=$(printf '%s\\n' \"${assets[@]##*/}\" | jq -R -s -c 'split(\"\\n\")[:-1] | sort')",
+  '          if release_json=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME" 2>/dev/null); then',
+  '            existing=$(jq -c \'.assets | map(.name) | sort\' <<<"$release_json")',
+  "            unexpected=$(jq -n --argjson existing \"$existing\" --argjson expected \"$expected\" '$existing - $expected | length')",
+  '            test "$unexpected" -eq 0',
+  '            if test "$(jq -r .draft <<<"$release_json")" = false; then',
+  '              test "$existing" = "$expected"',
+  '              gh release verify "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY"',
+  '              for asset in "${assets[@]}"; do gh release verify-asset "$GITHUB_REF_NAME" "$asset" --repo "$GITHUB_REPOSITORY"; done',
+  '              exit 0',
+  '            fi',
+  '          else',
+  '            gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --verify-tag --title "$GITHUB_REF_NAME" --notes-from-tag',
+  '            release_json=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME")',
+  '          fi',
+  '          verify_dir=$(mktemp -d)',
+  '          for asset in "${assets[@]}"; do',
+  '            name=$(basename "$asset")',
+  '            if jq -e --arg name "$name" \'.assets[] | select(.name == $name)\' <<<"$release_json" >/dev/null; then',
+  '              gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern "$name" --dir "$verify_dir"',
+  '              cmp "$asset" "$verify_dir/$name"',
+  '            else',
+  '              gh release upload "$GITHUB_REF_NAME" "$asset" --repo "$GITHUB_REPOSITORY"',
+  '            fi',
+  '          done',
+  '          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false',
+  '          gh release verify "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY"',
+  '          for asset in "${assets[@]}"; do gh release verify-asset "$GITHUB_REF_NAME" "$asset" --repo "$GITHUB_REPOSITORY"; done',
   '',
 ].join('\n');
 
@@ -107,17 +302,25 @@ function normalizeExplicitAppId(input) {
   if (raw !== raw.trim() || raw !== raw.toLowerCase()) {
     throw new Error(`Invalid app id: ${input}`);
   }
-  if (!/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$/.test(raw)) {
+  if (!/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/.test(raw)) {
     throw new Error(`Invalid app id: ${input}`);
   }
   return raw;
+}
+
+function normalizeAppVersion(input) {
+  const value = String(input || DEFAULT_APP_VERSION);
+  if (value !== value.trim() || !SEMVER_PATTERN.test(value)) {
+    throw new Error(`Invalid initial App version: ${input}`);
+  }
+  return value;
 }
 
 function resolveAppId(options) {
   if (String(options.appId || '').trim()) {
     return normalizeExplicitAppId(options.appId);
   }
-  return slugify(options.name || DEFAULT_APP_ID);
+  return DEFAULT_APP_ID;
 }
 
 function packageSafeName(input) {
@@ -230,6 +433,7 @@ function buildAppIdentity(
   profile,
   appId,
   appTitle,
+  version,
   packageName,
   author = '',
   accentPack = 'nimi-accent',
@@ -241,6 +445,7 @@ function buildAppIdentity(
   const identity = {
     appId,
     appTitle,
+    version: normalizeAppVersion(version),
     profile,
     packageName: resolvedPackageName,
     cargoPackageName: `${cargoSafeNameFromPackageName(resolvedPackageName)}-shell`,
@@ -275,6 +480,7 @@ function resolveAppScaffoldCreateInputWithResolver(
   const profile = resolveProfile(options);
   const appId = resolveAppId(options);
   const appTitle = normalizeDisplayName(options.title || options.name || DEFAULT_APP_TITLE);
+  const version = normalizeAppVersion(options.version);
   const packageName = resolvePackageName(options, appId);
   const author = normalizeAuthor(options.author || '');
   const targetDir = path.resolve(cwd, String(options.dir || '').trim() || appId);
@@ -282,6 +488,7 @@ function resolveAppScaffoldCreateInputWithResolver(
     profile,
     appId,
     appTitle,
+    version,
     packageName,
     author,
     options.accentPack,
@@ -292,6 +499,7 @@ function resolveAppScaffoldCreateInputWithResolver(
     profile,
     appId,
     appTitle,
+    version,
     packageName,
     author,
     accentPack: identity.accentPack,
@@ -333,12 +541,10 @@ function buildPackageJson(profile, versions, identity) {
   }
   const packageJson = {
     name: identity.packageName,
-    private: false,
+    version: identity.version,
+    private: true,
     type: 'module',
     packageManager: versions.packageManager,
-    publishConfig: {
-      access: 'public',
-    },
     pnpm: {
       onlyBuiltDependencies: ['electron', 'esbuild', 'protobufjs'],
     },
@@ -348,15 +554,19 @@ function buildPackageJson(profile, versions, identity) {
       'dev:shell': 'nimi-app dev',
       'dev:electron': 'nimi-app dev --shell electron',
       init: 'nimi-app init',
+      sync: 'nimi-app sync',
+      check: 'nimi-app check',
+      test: 'nimi-app test',
+      'test:app': 'node --test test/*.test.mjs',
+      'app:build': 'nimi-app build',
+      pack: 'nimi-app pack',
+      publish: 'nimi-app publish',
       typecheck: 'tsc --noEmit',
       build: 'tsc --noEmit && vite build',
       'build:electron': 'tsc -p tsconfig.electron.json && node scripts/bundle-electron-preload.mjs',
       'build:shell': 'tauri build',
       postinstall: 'install-electron --no',
-      check: 'pnpm run doctor && pnpm run validate',
       validate: 'node scripts/validate.mjs',
-      doctor: 'nimi-app doctor',
-      update: 'nimi-app update',
     },
     dependencies,
     devDependencies,
@@ -455,10 +665,14 @@ export function renderCargoDependencyValue(value, label) {
   return `{ ${fields.join(', ')} }`;
 }
 
-function renderCargoManifest(content, profile, versions, capabilityResolution) {
+function renderCargoManifest(content, profile, versions, identity) {
   let rendered = content.replace(
     /^nimi-shell-tauri\s*=.*$/m,
     cargoShellDependencyLine(profile, versions),
+  );
+  rendered = rendered.replace(
+    /^(\[package\][\s\S]*?^version\s*=\s*)"[^"]+"/m,
+    `$1${JSON.stringify(identity.version)}`,
   );
   const baseNames = new Set([
     'tauri',
@@ -472,7 +686,7 @@ function renderCargoManifest(content, profile, versions, capabilityResolution) {
     'tauri-build',
   ]);
   const additions = [];
-  for (const [name, value] of Object.entries(capabilityResolution.cargoDependencies || {})) {
+  for (const [name, value] of Object.entries(identity.capabilityResolution.cargoDependencies || {})) {
     if (!/^[A-Za-z0-9_-]+$/u.test(name)) throw new Error(`Invalid Cargo dependency name: ${name}`);
     if (baseNames.has(name)) continue;
     additions.push(`${name} = ${renderCargoDependencyValue(value, name)}`);
@@ -491,6 +705,7 @@ function targetIdentityMap(identity) {
     cargoPackageName: identity.cargoPackageName,
     appId: identity.appId,
     appTitle: identity.appTitle,
+    appVersion: identity.version,
     appSlug: identity.appSlug,
     rendererEntryId: identity.rendererEntryId,
     accentPack: identity.accentPack,
@@ -581,6 +796,7 @@ function buildNimiAppManifest(identity) {
   return YAML.stringify({
     app_id: identity.appId,
     display_name: identity.appTitle,
+    version: identity.version,
     profile: identity.profile,
     manifest_role: 'submitted-input',
     app_access: identity.appAccessItems,
@@ -595,6 +811,7 @@ function buildNimiAppManifest(identity) {
 function renderTauriConfig(raw, identity) {
   const config = JSON.parse(raw);
   config.productName = identity.appTitle;
+  config.version = identity.version;
   config.identifier = identity.nativeBundleIdentifier;
   config.build = { ...config.build, devUrl: `http://127.0.0.1:${identity.devPort}` };
   config.app = {
@@ -643,7 +860,7 @@ function applyProfileSeam(relativePath, content, profile, versions, manifest, id
     return buildNimiAppManifest(identity);
   }
   if (relativePath === 'src-tauri/Cargo.toml') {
-    return renderCargoManifest(content, profile, versions, identity.capabilityResolution);
+    return renderCargoManifest(content, profile, versions, identity);
   }
   if (relativePath === 'README.md') {
     return content.replace(/Profile: `standalone`/, `Profile: \`${profile}\``);
@@ -723,6 +940,89 @@ function buildWorkbenchCoreFiles(identity, profile, versions) {
   }).sort((left, right) => left.path.localeCompare(right.path));
 }
 
+export function renderAppIdentityInput(identity) {
+  return YAML.stringify({
+    app_id: identity.appId,
+    display_name: identity.appTitle,
+    version: identity.version,
+    npm_package_name: identity.packageName,
+    cargo_package_name: identity.cargoPackageName,
+    tauri_identifier: identity.tauriIdentifier,
+    package_author: identity.author || null,
+    identity_role: 'scaffold-generated-authoring-input',
+  }, { lineWidth: 0 });
+}
+
+export function renderAppBuildProfile(options = {}) {
+  const identity = options.identity || null;
+  const targets = options.targets || (identity ? {
+    'windows-x86_64': {
+      os: 'windows',
+      arch: 'x86_64',
+      build_command: 'pnpm run build:shell',
+      payload_path: `src-tauri/target/release/${identity.cargoPackageName}.exe`,
+      runtime_entry: `payload/${identity.cargoPackageName}.exe`,
+    },
+  } : undefined);
+  return YAML.stringify({
+    build_profile_ref: 'tauri-pnpm-vite',
+    test_command: options.testCommand || 'pnpm run test:app',
+    build_command: options.buildCommand || 'pnpm run build:shell',
+    output_path: 'src-tauri/target/release',
+    lockfile_path: 'pnpm-lock.yaml',
+    lockfile_policy: LOCKFILE_POLICY,
+    ci_install_command: 'pnpm install --frozen-lockfile',
+    ...(targets ? { targets } : {}),
+    profile_role: 'developer-workflow-input',
+  }, { lineWidth: 0 });
+}
+
+export function managedAppReleaseWorkflowSource() {
+  return APP_RELEASE_WORKFLOW;
+}
+
+export function renderAppSubmissionInput(identity, options = {}) {
+  const supportManifest = options.supportManifest || {
+    diagnostics_bundle_fields: ['app_version', 'runtime_status'],
+    redaction_rules: ['credentials'],
+    user_visible_issue_categories: ['startup', 'runtime'],
+    escalation_path: 'README.md#support',
+    kill_switch_visibility: 'visible',
+    recovery_instructions: 'Restart the App from Nimi Desktop. If the problem persists, reinstall the current admitted release.',
+  };
+  return YAML.stringify({
+    app_id: identity.appId,
+    display_name: identity.appTitle,
+    version: identity.version,
+    profile: identity.profile,
+    npm_package_name: identity.packageName,
+    cargo_package_name: identity.cargoPackageName,
+    tauri_identifier: identity.tauriIdentifier,
+    package_author: identity.author || null,
+    submission_role: 'developer-submitted-input',
+    capability_contract_refs: options.capabilityContractRefs || [],
+    required_standardized_feature_refs: options.requiredStandardizedFeatureRefs || [],
+    ...(options.aiProfileRecommendationRef ? { ai_profile_recommendation_ref: options.aiProfileRecommendationRef } : {}),
+    storage_policy: options.storagePolicy || { kind: 'nimi-mediated-default' },
+    support_manifest: supportManifest,
+    review_inputs: {
+      manifest: 'nimi.app.yaml',
+      build_profile: '.nimi/config/build-profile.yaml',
+      scaffold_boundary: '.nimi/contracts/scaffold-boundary.yaml',
+    },
+    admission_truth: 'platform-owned-after-review',
+  }, { lineWidth: 0 });
+}
+
+function buildScaffoldBoundary() {
+  return YAML.stringify({
+    scaffold_contract: 'P-SCAF',
+    profile: 'standalone',
+    public_admission_truth: 'not-generated',
+    developer_release_input: 'candidate-only',
+  }, { lineWidth: 0 });
+}
+
 function buildStructuredFiles(identity, profile, versions) {
   const files = [
     {
@@ -733,16 +1033,39 @@ function buildStructuredFiles(identity, profile, versions) {
     {
       path: 'package.json',
       content: jsonFile(buildPackageJson(profile, versions, identity)),
-      mutationClass: 'scaffold-managed glue',
+      mutationClass: 'app-owned product code',
     },
     {
-      path: '.github/workflows/ci.yml',
-      content: CI_WORKFLOW,
+      path: '.github/workflows/nimi-app-release.yml',
+      content: APP_RELEASE_WORKFLOW,
       mutationClass: 'scaffold-managed glue',
     },
     {
       path: 'nimi.app.yaml',
       content: buildNimiAppManifest(identity),
+      mutationClass: 'scaffold-managed glue',
+    },
+    {
+      path: '.nimi/config/app-identity.yaml',
+      content: renderAppIdentityInput(identity),
+      mutationClass: 'scaffold-managed glue',
+    },
+    {
+      path: '.nimi/config/build-profile.yaml',
+      content: renderAppBuildProfile({ identity }),
+      mutationClass: 'app-owned product code',
+    },
+    {
+      path: '.nimi/admission/submission.yaml',
+      content: renderAppSubmissionInput(identity, {
+        capabilityContractRefs: identity.capabilityResolution.capabilityContractRefs,
+        requiredStandardizedFeatureRefs: identity.capabilityResolution.requiredStandardizedFeatureRefs,
+      }),
+      mutationClass: 'app-owned product code',
+    },
+    {
+      path: '.nimi/contracts/scaffold-boundary.yaml',
+      content: buildScaffoldBoundary(),
       mutationClass: 'scaffold-managed glue',
     },
     {
@@ -763,6 +1086,7 @@ function buildIdentityMapping(identity, targetDir = '') {
   return {
     appId: identity.appId,
     displayName: identity.appTitle,
+    version: identity.version,
     npmPackageName: identity.packageName,
     author: identity.author || null,
     cargoPackageName: identity.cargoPackageName,
@@ -787,6 +1111,7 @@ function buildScaffoldIntent(identity, versions, targetDir = '') {
     profile: identity.profile,
     appId: identity.appId,
     appTitle: identity.appTitle,
+    version: identity.version,
     packageName: identity.packageName,
     packageAuthor: identity.author || null,
     cargoPackageName: identity.cargoPackageName,
@@ -801,6 +1126,8 @@ function buildScaffoldIntent(identity, versions, targetDir = '') {
     resolvedAssets: identity.capabilityResolution.assets,
     hostAdapterContracts: identity.capabilityResolution.hostAdapterContracts,
     appAccessItems: identity.appAccessItems,
+    capabilityContractRefs: identity.capabilityResolution.capabilityContractRefs,
+    requiredStandardizedFeatureRefs: identity.capabilityResolution.requiredStandardizedFeatureRefs,
     devPort: identity.devPort,
     appIdentity: buildIdentityMapping(identity, targetDir),
     dependencyMatrix: buildDependencyMatrix(identity.profile, versions, identity.capabilityResolution),
@@ -957,12 +1284,15 @@ function buildScaffoldLock(identity, versions, files, targetDir = '') {
     profile: identity.profile,
     appId: identity.appId,
     appTitle: identity.appTitle,
+    version: identity.version,
     packageName: identity.packageName,
     packageAuthor: identity.author || null,
     cargoPackageName: identity.cargoPackageName,
     tauriIdentifier: identity.tauriIdentifier,
     accentPack: identity.accentPack,
     appAccessItems: identity.appAccessItems,
+    capabilityContractRefs: identity.capabilityResolution.capabilityContractRefs,
+    requiredStandardizedFeatureRefs: identity.capabilityResolution.requiredStandardizedFeatureRefs,
     features: identity.features,
     directFeatures: identity.capabilityResolution.directFeatureIds,
     resolvedModules: identity.capabilityResolution.resolvedModuleIds,
@@ -985,7 +1315,7 @@ function buildScaffoldLock(identity, versions, files, targetDir = '') {
       nimicodingProjectionOwner: '@nimiplatform/nimi-coding',
       nimicodingApplyCommand: 'pnpm exec nimicoding sync --apply --json',
       nimicodingCheckCommand: 'pnpm exec nimicoding sync --check --json',
-      doctorAndUpdateRole: 'developer-scaffold-check-only',
+      syncAndCheckRole: 'developer-scaffold-maintenance-only',
       lockfilePolicy: LOCKFILE_POLICY,
       ignoredVerificationArtifacts: ['dist/'],
       capabilityComposition: 'base-plus-selected-dependency-closure',
@@ -994,13 +1324,14 @@ function buildScaffoldLock(identity, versions, files, targetDir = '') {
 }
 
 function buildAppScaffoldSnapshotWithResolver(
-  { profile, versions, appId, appTitle, packageName, author, accentPack, features, targetDir = '' },
+  { profile, versions, appId, appTitle, version = DEFAULT_APP_VERSION, packageName, author, accentPack, features, targetDir = '' },
   featureResolver,
 ) {
   const identity = buildAppIdentity(
     profile,
     appId,
     appTitle,
+    version,
     packageName,
     author,
     accentPack,
@@ -1031,6 +1362,7 @@ function buildAppScaffoldSnapshotWithResolver(
   return {
     appId: identity.appId,
     appTitle: identity.appTitle,
+    version: identity.version,
     profile: identity.profile,
     packageName: identity.packageName,
     packageAuthor: identity.author || null,
@@ -1070,6 +1402,7 @@ export function buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir
     versions,
     appId: intent.appId,
     appTitle: intent.appTitle,
+    version: intent.version,
     packageName: intent.packageName,
     author: intent.packageAuthor || '',
     accentPack: intent.accentPack || 'nimi-accent',
@@ -1096,6 +1429,7 @@ function buildAppScaffoldCreatePlanWithResolver(
     versions,
     appId: resolvedInput.appId,
     appTitle: resolvedInput.appTitle,
+    version: resolvedInput.version,
     packageName: resolvedInput.packageName,
     author: resolvedInput.author,
     accentPack: resolvedInput.accentPack,

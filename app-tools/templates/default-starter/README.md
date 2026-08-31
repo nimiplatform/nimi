@@ -1,70 +1,41 @@
 # Acme Widget
 
-Profile: `standalone`
+This standalone App was generated as an identity-neutral base plus the explicitly selected admitted feature closure.
 
-This is a local-development Nimi App source project created from the identity-neutral, Lab-derived `workbench-core` plus the exact selected module dependency closure and generated target glue. It is a positive composition, not a full Lab copy, runtime-hidden feature set, or release/admission record.
+Profile: `standalone`.
 
-The canonical identity, direct feature selection, resolved modules, App Access declaration, dependency projection, and ownership inputs are recorded in `.nimi/app-scaffold/intent.json`. Selected product modules live under `src/capabilities/**`.
+- App-owned product code: `src/workbench-core/**`, selected `src/capabilities/**`, and subsequent product edits.
+- Scaffold-managed code: carrier/auth wiring, identity, manifests, build/release inputs, managed workflow and generated composition glue.
+- Package-owned projections: `.nimi/{config,contracts,methodology}/**`, materialized by the pinned local `nimicoding` package during `init`.
 
-## Ownership
+`sync` refreshes scaffold-managed files without overwriting App-owned code. `check` is non-mutating. Changing identity, profile or direct feature selection requires a fresh scaffold.
 
-- App-owned product code: `src/workbench-core/**`, selected `src/capabilities/**`, and App-author product edits.
-- Scaffold-managed code: carrier/auth wiring, identity, manifests, bounded native integration, project tooling, and `src/scaffold/generated/**`.
-- Package-owned projection: `.nimi/{config,contracts,methodology}/**`, created by the pinned local `nimicoding` package during explicit initialization.
+## Workflow
 
-`doctor` and `update` may inspect or refresh scaffold-managed output, but they do not overwrite app-owned skeleton or module code. Changing identity, profile, or feature selection requires a fresh scaffold.
-
-## Required workflow
-
-`create` has already completed for this source tree. Continue in this order:
+`create` has completed. Continue in this order:
 
 ```bash
-# 1. install dependencies
 pnpm install
-
-# 2. initialize package-owned projection and scaffold lock
 pnpm run init
-
-# 3. inspect and build
-pnpm run doctor
-pnpm run validate
-pnpm run build
-pnpm run build:electron
-
-# 4. launch through the Desktop supervisor
+pnpm run sync
+pnpm run check
+pnpm run test
+pnpm run app:build -- --target windows-x86_64
 pnpm dev
 ```
 
-Run `init`, `doctor`, and `update` only after dependency installation. Installation alone does not mutate `.nimi/**`. If managed output later needs refresh, run `pnpm run update` only in an installed project, then rerun doctor and the affected build.
+After a real target build, `pnpm run pack -- --target <target-id>` uses app-tools as the only package owner. `publish` prepares the protected-tag GitHub Release and registry-PR chain; it never uploads local artifacts or uses a Nimi Account token.
 
-`pnpm dev` selects the official Desktop-supervised Electron carrier. The explicit equivalent is:
+Before production, the public GitHub repository must enable a protected `v*` tag ruleset and immutable releases and provide a read-only repository-admin token for checking those settings. On Windows, the tag-only production build signs the exact declared Host with the publisher PFX; production pack only verifies the resulting Authenticode signature. Manual workflow dispatch remains dry-run only, including dispatch against a tag ref. Production remains fail-closed until the shared installed carrier is implemented.
 
-```bash
-pnpm dev:shell -- --shell electron
-```
+`pnpm dev` selects the official Desktop-supervised Electron development Host. Direct renderer, Electron or Tauri launch does not create protected Nimi access.
 
-CDP is enabled by default on an automatically selected loopback port, which the
-launcher prints after Electron binds it. For a stable observation port:
+Runtime, Realm, registry admission, installed state and process truth remain with their canonical owners. This repository stores no Runtime credentials or protected session material.
 
-```bash
-pnpm dev -- --cdp-port 9334
-```
+## Support
 
-Set `NIMI_APP_DEV_CDP_PORT=9334` in the project `.env` for the same stable override,
-or pass `--no-cdp` to disable CDP. The CLI option takes precedence over `.env`.
-Direct Electron or Tauri development launches are not substitutes for the
-Desktop-supervised journey.
-
-## Third-party topology evidence
-
-This standalone third-party project must resolve only the exact public npm and Cargo registry versions in its manifests. Workspace paths, local path overrides, tarballs, downgrades, and workspace links are not valid substitutes. A private Nimi-workspace validation run does not prove standalone.
-
-## Product boundary
-
-AI selections share the internal `ai-studio-core` once; it is dependency-only and not a direct public selection. Unselected modules are absent from source and navigation. Lab-only Settings/account, App Access diagnostics, Realm/Agent probes, World Tour, and native or diagnostic surfaces are not part of this generated App.
-
-Runtime, Realm, admission, listing, permission, install, and release truth remain platform-owned. The project never stores Runtime credentials or protected session material and does not create permission grants.
+Report startup or Runtime issues through this repository's issue tracker. Diagnostics must exclude credentials and other private data.
 
 ## Acceptance status
 
-This README does not certify the generated App. Install, init, doctor, build, Electron build, Desktop-supervised launch, responsive/accessibility states, and selected-module interactions remain `NOT-VERIFIED` until they are actually run. Focused tests or CDP visibility alone are not implementation or release acceptance.
+This README does not certify the App. Dependency install, test, build, target pack, GitHub Release, registry admission, Runtime install, Desktop launch and principal interactions remain `NOT-VERIFIED` until actually run. Focused tests or CDP visibility are not release acceptance.
