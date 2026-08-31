@@ -478,6 +478,21 @@ services:
       - name: EndLocalDevelopmentRun
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun
+  - name: RuntimeAppPackageService
+    source_rule: P-NAPP-040
+    methods:
+      - name: ListCommittedAppReleases
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases
+      - name: ListAppPackageJobs
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs
+      - name: GetAppPackageJob
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob
+      - name: CancelAppPackageJob
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob
   - name: RuntimeAgentService
     source_rule: K-RPC-004b
     methods:

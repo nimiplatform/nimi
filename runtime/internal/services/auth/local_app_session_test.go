@@ -12,34 +12,42 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func TestInstalledFormalAppConnectionMayEnterCommonSessionOwner(t *testing.T) {
-	ownerDone := make(chan struct{})
-	connection, err := protectedlocal.EstablishInstalledAppConnection(
-		"lar_v1_formal_app",
-		localAppSessionAuthTestIdentifier(0x21),
-		localAppSessionAuthTestIdentifier(0x22),
-		protectedlocal.ProcessTuple{
-			OS:                          protectedlocal.OSWindows,
-			PID:                         4321,
-			CreationMarker:              "formal-app-start",
-			OSLoginSession:              "interactive-login",
-			SecurityPrincipal:           "interactive-user",
-			CanonicalExecutableIdentity: "formal-app-executable",
-			ExecutableDigest:            localAppSessionAuthTestIdentifier(0x23),
-			ExecutableTrustSetID:        "formal-app-release",
-		},
-		ownerDone,
-	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(connection.Revoke)
-	if !localAppSessionConnectionAllowed(connection) {
-		t.Fatal("installed formal App connection was rejected before the common session owner")
-	}
-	connection.Revoke()
-	if localAppSessionConnectionAllowed(connection) {
-		t.Fatal("revoked installed connection remained eligible")
+func TestInstalledAppSourcesMayEnterCommonSessionOwner(t *testing.T) {
+	for _, trustClass := range []protectedlocal.LocalAppTrustClass{
+		protectedlocal.LocalAppTrustBuiltIn,
+		protectedlocal.LocalAppTrustVerified,
+		protectedlocal.LocalAppTrustUserImported,
+	} {
+		t.Run(string(trustClass), func(t *testing.T) {
+			ownerDone := make(chan struct{})
+			connection, err := protectedlocal.EstablishInstalledAppConnection(
+				"lar_v1_installed_app",
+				trustClass,
+				localAppSessionAuthTestIdentifier(0x21),
+				localAppSessionAuthTestIdentifier(0x22),
+				protectedlocal.ProcessTuple{
+					OS:                          protectedlocal.OSWindows,
+					PID:                         4321,
+					CreationMarker:              "installed-app-start",
+					OSLoginSession:              "interactive-login",
+					SecurityPrincipal:           "interactive-user",
+					CanonicalExecutableIdentity: "installed-app-executable",
+					ExecutableDigest:            localAppSessionAuthTestIdentifier(0x23),
+					ExecutableTrustSetID:        "installed-app-release",
+				},
+				ownerDone,
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !localAppSessionConnectionAllowed(connection) {
+				t.Fatalf("installed %s App connection was rejected before the common session owner", trustClass)
+			}
+			connection.Revoke()
+			if localAppSessionConnectionAllowed(connection) {
+				t.Fatal("revoked installed connection remained eligible")
+			}
+		})
 	}
 }
 

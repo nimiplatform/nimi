@@ -99,6 +99,11 @@ export type NimiDesktopMachineProductRuntimeClient = {
     | 'issueExternalAgentToken'
     | 'revokeExternalAgentToken'
     | 'listExternalAgentTokens'>;
+  readonly apps: Pick<DesktopMachineProductRuntimeMethods,
+    | 'listCommittedAppReleases'
+    | 'listAppPackageJobs'
+    | 'getAppPackageJob'
+    | 'cancelAppPackageJob'>;
   readonly scheduling: Pick<DesktopMachineProductRuntimeMethods, 'peekScheduling'>;
 };
 
@@ -472,6 +477,12 @@ export function createNimiDesktopFirstPartyRuntimeClients(
         issueExternalAgentToken: runtime.externalAgents.issueExternalAgentToken,
         revokeExternalAgentToken: runtime.externalAgents.revokeExternalAgentToken,
         listExternalAgentTokens: runtime.externalAgents.listExternalAgentTokens,
+      }),
+      apps: Object.freeze({
+        listCommittedAppReleases: machineProductRuntime.listCommittedAppReleases,
+        listAppPackageJobs: machineProductRuntime.listAppPackageJobs,
+        getAppPackageJob: machineProductRuntime.getAppPackageJob,
+        cancelAppPackageJob: machineProductRuntime.cancelAppPackageJob,
       }),
       scheduling: Object.freeze({
         peekScheduling: runtime.scheduling.peekScheduling,

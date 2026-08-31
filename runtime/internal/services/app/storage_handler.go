@@ -10,7 +10,6 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-const defaultAppStoragePolicyRef = "nimi-data-app-roots"
 const avatarAppID = "nimi.avatar"
 
 // GetAppStorage returns only current app-private data/cache/tmp roots. It never
@@ -36,7 +35,7 @@ func (s *Service) GetAppStorage(ctx context.Context, req *runtimev1.GetAppStorag
 		)}, nil
 	}
 
-	roots, err := appstorage.ResolveAppRoots(dataRootRef, appID, defaultAppStoragePolicyRef)
+	roots, err := appstorage.ResolveAppRoots(dataRootRef, appID, appstorage.StoragePolicyNimiMediatedDefault)
 	if err != nil {
 		return &runtimev1.GetAppStorageResponse{Projection: appStorageUnavailable(
 			appID,

@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import type { CoreTransport } from '../core-client';
 import type { AIConfigCapabilityIntent } from '../core-generated/runtime-protobuf/runtime/v1/capability_configuration';
+import { AppPackageJobPhase } from '../core-generated/runtime-protobuf/runtime/v1/app';
 import type { CoreStreamRequest, CoreUnaryRequest } from '../types';
 import { createNimiDesktopFirstPartyRuntimeClients } from './desktop-first-party-runtime';
 import { createNimiSharedLocalAgentAISurface } from './shared-local-agent-ai-config';
@@ -36,6 +37,57 @@ test('Desktop protected Host runtime does not expose an App Product Plane client
     assert.equal(retiredRawMethod in clients.agentPurpose, false);
   }
   assert.equal(calls.length, 0);
+});
+
+test('Desktop machine product exposes only the protected App package read and cancel facade', async () => {
+  const calls: CoreUnaryRequest[] = [];
+  const transport: CoreTransport = {
+    async unary<Response>(request: CoreUnaryRequest): Promise<Response> {
+      calls.push(request);
+      if (request.methodId.endsWith('/ListCommittedAppReleases')) {
+        return { releases: [], reasonCode: 1 } as Response;
+      }
+      if (request.methodId.endsWith('/ListAppPackageJobs')) {
+        return { jobs: [], reasonCode: 1 } as Response;
+      }
+      if (request.methodId.endsWith('/GetAppPackageJob')) {
+        return { job: { jobId: Uint8Array.from([1]), phase: AppPackageJobPhase.QUEUED }, reasonCode: 1 } as Response;
+      }
+      if (request.methodId.endsWith('/CancelAppPackageJob')) {
+        return { job: { jobId: Uint8Array.from([1]), phase: AppPackageJobPhase.CANCELED }, reasonCode: 1 } as Response;
+      }
+      throw new Error(`unexpected Runtime method: ${request.methodId}`);
+    },
+    async *serverStream<Response>(_request: CoreStreamRequest): AsyncIterable<Response> {
+      throw new Error('unexpected Runtime stream');
+    },
+  };
+  const clients = createNimiDesktopFirstPartyRuntimeClients({ appId: 'nimi.desktop', transport });
+
+  assert.deepEqual(Object.keys(clients.machineProduct.apps).sort(), [
+    'cancelAppPackageJob',
+    'getAppPackageJob',
+    'listAppPackageJobs',
+    'listCommittedAppReleases',
+  ]);
+  await clients.machineProduct.apps.listCommittedAppReleases({});
+  await clients.machineProduct.apps.listAppPackageJobs({});
+  await clients.machineProduct.apps.getAppPackageJob({ jobId: Uint8Array.from([1]) });
+  await clients.machineProduct.apps.cancelAppPackageJob({
+    jobId: Uint8Array.from([1]),
+    expectedPhase: AppPackageJobPhase.QUEUED,
+    reasonCode: 'user-canceled',
+  });
+
+  assert.deepEqual(calls.map((call) => call.methodId), [
+    '/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases',
+    '/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs',
+    '/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob',
+    '/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob',
+  ]);
+  for (const call of calls) {
+    assert.equal(call.metadata?.appId, undefined, 'protected host owns caller identity');
+  }
 });
 
 test('Desktop account product binds AIConfig to one explicit admitted App owner', async () => {

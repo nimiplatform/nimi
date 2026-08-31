@@ -109,14 +109,11 @@ func TestLocalAppJSONStorageRejectsSymlinkComponents(t *testing.T) {
 
 func TestLocalAppJSONStorageHardCutsSubjectOnlyLegacyPath(t *testing.T) {
 	dataRoot := t.TempDir()
-	legacy, err := ResolveAppRoots(dataRoot, "lap_v1_legacy", "nimi-data-app-roots")
-	if err != nil {
+	legacyDataRoot := filepath.Join(dataRoot, "apps", "lap_v1_legacy", "data")
+	if err := os.MkdirAll(legacyDataRoot, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := MaterializeAppRoots(legacy); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(legacy.DurableDataRoot, "legacy.json"), []byte(`{"legacy":true}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(legacyDataRoot, "legacy.json"), []byte(`{"legacy":true}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	owner := ManagedOwner{AccountID: "account-1", RegisteredAppSubject: "lap_v1_legacy"}

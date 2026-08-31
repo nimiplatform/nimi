@@ -65,7 +65,9 @@ func localAppSessionConnectionAllowed(connection *protectedlocal.LocalAppConnect
 		return true
 	}
 	_, installed := connection.InstalledRegistrationHandle()
-	return connection.TrustClass() == protectedlocal.LocalAppTrustBuiltIn && installed
+	return installed && (connection.TrustClass() == protectedlocal.LocalAppTrustBuiltIn ||
+		connection.TrustClass() == protectedlocal.LocalAppTrustVerified ||
+		connection.TrustClass() == protectedlocal.LocalAppTrustUserImported)
 }
 
 func localAppSessionResponse(projection LocalAppSessionProjection) *runtimev1.OpenLocalAppSessionResponse {

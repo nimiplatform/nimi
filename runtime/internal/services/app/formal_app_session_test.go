@@ -57,8 +57,9 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 	release := FormalAppRelease{
 		AppID: "nimi.desktop", DisplayName: "Nimi Desktop", SourceRef: "platform-app-release:nimi.desktop",
 		InstallRoot: t.TempDir(), ManifestRef: "formal-release:nimi.desktop", ShellKind: 1,
-		Declaration:  []string{"realm.data", "runtime.consume", "agent.local", "agent.configure"},
-		SourceDigest: "release-source:desktop", PayloadRootDigest: "release-payload:desktop",
+		Declaration:        []string{"realm.data", "runtime.consume", "agent.local", "agent.configure"},
+		ImmutableLineageID: "lineage:desktop:1", ProvenanceAttestationRefs: []string{"attestation:desktop:1"},
+		ProvenanceRevision: 1, ExecutionProfileRef: "execution:desktop", PayloadRootDigest: "release-payload:desktop",
 	}
 	service := New(nil,
 		WithRuntimeAccountProjectionProvider(account),
@@ -147,7 +148,7 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	if registration.SourceClass != localappkernel.SourceClassInstalled || registration.RegisteredAppSubject != decision.RegisteredAppSubject ||
+	if registration.SourceClass != localappkernel.SourceClassVerified || registration.RegisteredAppSubject != decision.RegisteredAppSubject ||
 		!containsAll(registration.ActivatedDomains, "realm.data", "runtime.consume", "agent.local", "agent.configure") {
 		t.Fatalf("built-in Desktop registration = %+v", registration)
 	}
@@ -172,7 +173,9 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 		t.Fatalf("protected App parity decision = %+v ok=%v", protectedDecision, ok)
 	}
 
-	release.SourceDigest = "release-source:desktop:2"
+	release.ImmutableLineageID = "lineage:desktop:2"
+	release.ProvenanceAttestationRefs = []string{"attestation:desktop:2"}
+	release.ProvenanceRevision = 2
 	release.PayloadRootDigest = "release-payload:desktop:2"
 	replacementProcess := client
 	replacementProcess.PID++

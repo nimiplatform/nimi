@@ -27,6 +27,12 @@ func TestCanonicalRegistrationDatabasePathAndHostInstallIDAreRequired(t *testing
 	}
 }
 
+func TestSourceClassUsesCanonicalLifecycleVocabulary(t *testing.T) {
+	if SourceClassVerified != "verified" || SourceClassUserImported != "user_imported" || SourceClassLocalDevelopment != "local_development" {
+		t.Fatalf("source classes = (%q, %q, %q)", SourceClassVerified, SourceClassUserImported, SourceClassLocalDevelopment)
+	}
+}
+
 func TestDevelopmentRegistrationUsesOnlyExactHandleForMutation(t *testing.T) {
 	ctx := context.Background()
 	kernel := openTestKernel(t, filepath.Join(t.TempDir(), "registered-app.db"),
@@ -43,7 +49,7 @@ func TestDevelopmentRegistrationUsesOnlyExactHandleForMutation(t *testing.T) {
 	if first.SourceGeneration != 1 || first.DeclarationGeneration != 1 {
 		t.Fatalf("initial generations = (%d,%d)", first.SourceGeneration, first.DeclarationGeneration)
 	}
-	if first.SourceDigest != "" || first.PayloadRootDigest != "" {
+	if first.ImmutableLineageID != "" || len(first.ProvenanceAttestationRefs) != 0 || first.ProvenanceRevision != 0 || first.ExecutionProfileRef != "" || first.PayloadRootDigest != "" {
 		t.Fatalf("mutable development persisted host/payload evidence in canonical state: %+v", first)
 	}
 
@@ -69,7 +75,7 @@ func TestDevelopmentRegistrationUsesOnlyExactHandleForMutation(t *testing.T) {
 		updated.SourceGeneration != 2 || updated.DeclarationGeneration != 2 {
 		t.Fatalf("exact-handle mutation = %+v", updated)
 	}
-	if updated.SourceDigest != "" || updated.PayloadRootDigest != "" {
+	if updated.ImmutableLineageID != "" || len(updated.ProvenanceAttestationRefs) != 0 || updated.ProvenanceRevision != 0 || updated.ExecutionProfileRef != "" || updated.PayloadRootDigest != "" {
 		t.Fatalf("development refresh persisted host/payload evidence in canonical state: %+v", updated)
 	}
 
@@ -103,7 +109,8 @@ func TestInstalledBindingSlotReopensOnlyCurrentHost(t *testing.T) {
 	}
 	refresh := input
 	refresh.ExistingRegistrationHandle = got.RegistrationHandle
-	refresh.SourceDigest = "source:installed:two"
+	refresh.ImmutableLineageID = "lineage:installed:two"
+	refresh.ProvenanceRevision = 2
 	updated, err := reopened.Registrations().RegisterInstalled(ctx, refresh)
 	if err != nil {
 		t.Fatal(err)
@@ -268,7 +275,8 @@ func TestCurrentHostBindingDoesNotCopyCanonicalIdentityOrLifecycle(t *testing.T)
 	_ = rows.Close()
 	for _, forbidden := range []string{
 		"registered_app_subject", "app_id", "source_class", "source_ref", "source_generation",
-		"declaration_generation", "source_digest", "declaration_digest", "state", "tombstoned_unix_nano",
+		"declaration_generation", "immutable_lineage_id", "provenance_attestation_refs_json",
+		"provenance_revision", "execution_profile_ref", "declaration_digest", "state", "tombstoned_unix_nano",
 	} {
 		if columns[forbidden] {
 			t.Fatalf("current-host binding copied canonical field %q", forbidden)
@@ -416,7 +424,9 @@ func installedInput() RegisterInstalledInput {
 	return RegisterInstalledInput{
 		AppID: "nimi.desktop", DisplayName: "Nimi Desktop", SourceRef: "formal-release:nimi.desktop",
 		ProjectRoot: "C:/Program Files/Nimi/Nimi.exe", ManifestPath: "formal-release-manifest:nimi.desktop",
-		ShellKind: 1, RawDeclaration: []string{"runtime.consume", "agent.local"}, SourceDigest: "source:installed:one",
+		ShellKind: 1, RawDeclaration: []string{"runtime.consume", "agent.local"}, SourceClass: SourceClassVerified,
+		ImmutableLineageID: "lineage:installed:one", ProvenanceAttestationRefs: []string{"attestation:installed:one"},
+		ProvenanceRevision: 1, ExecutionProfileRef: "execution:installed:one",
 		HostExecutableDigest: "host:installed:one", PayloadRootDigest: "payload:installed:one",
 	}
 }
