@@ -88,8 +88,8 @@ jobs:
           cargo audit --file kit/shell/protected-local-node/Cargo.lock
           cargo audit --file kit/shell/tauri/Cargo.lock
 
-  required:
-    name: required
+  security-required:
+    name: security-required
     if: always()
     needs:
       - detect-secrets

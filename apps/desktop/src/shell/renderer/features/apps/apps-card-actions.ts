@@ -27,8 +27,6 @@ const CANCEL_JOB: AppCardAction = { id: 'cancel-job' };
 const TERMINAL_RUN_STATES = Object.freeze([
   'stopped',
   'failed',
-  'build-failed',
-  'cleanup-failed',
   'project-changed',
   'registration-unavailable',
   'registration-removed',

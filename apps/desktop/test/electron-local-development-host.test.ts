@@ -74,9 +74,11 @@ function plan(): ElectronLocalDevelopmentPlan {
 
 function activeRun() {
   return {
+    intentSequence: 1,
     plan: plan(),
     supervisorRunId: SUPERVISOR,
     desktopManaged: false,
+    registrationOwnerHandle: HANDLE as string | undefined,
     registrationHandle: HANDLE as string | undefined,
     pendingEndRunRegistrationHandle: undefined as string | undefined,
     stopped: false,
@@ -92,6 +94,8 @@ function activeRun() {
     renderer: undefined as object | undefined,
     watcher: undefined as { close: () => void } | undefined,
     healthTimer: undefined as ReturnType<typeof setInterval> | undefined,
+    stopPromise: undefined as Promise<void> | undefined,
+    teardownPromise: undefined as Promise<void> | undefined,
     status: {
       schemaVersion: 1,
       runId: 'dev-run-example',
@@ -183,6 +187,62 @@ describe('Desktop Electron local-development registration host', () => {
       host.invoke('local_development_registration_remove', { payload: { selector: HANDLE } }),
       /local-development-selector-invalid/u,
     );
+  });
+
+  it('preserves the registration when removal cannot finish Host cleanup', async () => {
+    let cleanupFails = true;
+    const removed: string[] = [];
+    const host = new ElectronLocalDevelopmentHost(control({
+      terminateHost: async () => {
+        if (cleanupFails) throw new Error('terminate failed');
+      },
+      removeRegistration: async (handle) => { removed.push(handle); },
+    }), '/tmp');
+    const run = activeRun();
+    run.registrationHandle = undefined;
+    run.stopped = true;
+    run.stoppedCleanupComplete = false;
+    run.status.state = 'cleanup-failed';
+    const internal = host as unknown as {
+      runs: Map<string, ReturnType<typeof activeRun>>;
+      registrationSelectors: Map<string, string>;
+      resolveRegistration(context: typeof run): Promise<void>;
+      startSupervisor(context: typeof run): void;
+    };
+    internal.registrationSelectors.set('dev-project-example', HANDLE);
+    internal.runs.set(run.status.runId, run);
+
+    await assert.rejects(
+      host.invoke('local_development_registration_remove', {
+        payload: { selector: 'dev-project-example' },
+      }),
+      /local-development-process-cleanup-failed/u,
+    );
+    assert.deepEqual(removed, []);
+    assert.equal(internal.registrationSelectors.get('dev-project-example'), HANDLE);
+
+    const freshRun = activeRun();
+    freshRun.intentSequence = 2;
+    freshRun.status.runId = 'dev-run-after-remove-failure';
+    freshRun.status.state = 'preparing';
+    freshRun.status.hostGeneration = 0;
+    freshRun.registrationOwnerHandle = undefined;
+    freshRun.registrationHandle = undefined;
+    let supervisorStarts = 0;
+    internal.runs.set(freshRun.status.runId, freshRun);
+    internal.startSupervisor = () => { supervisorStarts += 1; };
+    await internal.resolveRegistration(freshRun);
+    assert.equal(supervisorStarts, 1);
+    assert.equal(freshRun.registrationHandle, HANDLE);
+
+    cleanupFails = false;
+    assert.deepEqual(await host.invoke('local_development_registration_remove', {
+      payload: { selector: 'dev-project-example' },
+    }), { selector: 'dev-project-example', removed: true });
+    assert.deepEqual(removed, [HANDLE]);
+    assert.equal(internal.registrationSelectors.has('dev-project-example'), false);
+    assert.equal(run.stoppedCleanupComplete, true);
+    assert.equal(freshRun.stoppedCleanupComplete, true);
   });
 
   it('starts a listed project as a Desktop-managed supervised run', async () => {
@@ -295,6 +355,214 @@ describe('Desktop Electron local-development registration host', () => {
     assert.equal(run.status.retryable, false);
   });
 
+  it('ends a registration that resolves after its preparing run was canceled', async () => {
+    let resolveRegister!: (value: NimiElectronLocalDevelopmentRegistration) => void;
+    let markRegisterStarted!: () => void;
+    const registerResult = new Promise<NimiElectronLocalDevelopmentRegistration>((resolve) => {
+      resolveRegister = resolve;
+    });
+    const registerStarted = new Promise<void>((resolve) => {
+      markRegisterStarted = resolve;
+    });
+    const ended: Array<readonly [string, string]> = [];
+    const host = new ElectronLocalDevelopmentHost(control({
+      register: async () => {
+        markRegisterStarted();
+        return registerResult;
+      },
+      endRun: async (registrationHandle, supervisorRunId) => {
+        ended.push([registrationHandle, supervisorRunId]);
+      },
+    }), '/tmp');
+    const run = activeRun();
+    run.registrationOwnerHandle = undefined;
+    run.registrationHandle = undefined;
+    run.status.state = 'preparing';
+    run.status.hostGeneration = 0;
+    const internal = host as unknown as {
+      resolveRegistration(context: typeof run): Promise<void>;
+      stopRun(context: typeof run, state: string): Promise<void>;
+    };
+
+    const resolving = internal.resolveRegistration(run);
+    await registerStarted;
+    await internal.stopRun(run, 'stopped');
+    resolveRegister(registration());
+    await resolving;
+
+    assert.equal(run.registrationOwnerHandle, HANDLE);
+    assert.equal(run.registrationHandle, undefined);
+    assert.equal(run.pendingEndRunRegistrationHandle, undefined);
+    assert.equal(run.stoppedCleanupComplete, true);
+    assert.deepEqual(ended, [[HANDLE, SUPERVISOR]]);
+  });
+
+  it('does not launch a registration removed before its fresh response returns', async () => {
+    let resolveRegister!: (value: NimiElectronLocalDevelopmentRegistration) => void;
+    let markRegisterStarted!: () => void;
+    const registerResult = new Promise<NimiElectronLocalDevelopmentRegistration>((resolve) => {
+      resolveRegister = resolve;
+    });
+    const registerStarted = new Promise<void>((resolve) => {
+      markRegisterStarted = resolve;
+    });
+    const removed: string[] = [];
+    const ended: Array<readonly [string, string]> = [];
+    const host = new ElectronLocalDevelopmentHost(control({
+      register: async () => {
+        markRegisterStarted();
+        return registerResult;
+      },
+      removeRegistration: async (handle) => { removed.push(handle); },
+      endRun: async (registrationHandle, supervisorRunId) => {
+        ended.push([registrationHandle, supervisorRunId]);
+      },
+    }), '/tmp');
+    const run = activeRun();
+    run.registrationOwnerHandle = undefined;
+    run.registrationHandle = undefined;
+    run.status.state = 'preparing';
+    run.status.hostGeneration = 0;
+    let supervisorStarts = 0;
+    const internal = host as unknown as {
+      runs: Map<string, ReturnType<typeof activeRun>>;
+      registrationSelectors: Map<string, string>;
+      resolveRegistration(context: typeof run): Promise<void>;
+      startSupervisor(context: typeof run): void;
+    };
+    internal.runs.set(run.status.runId, run);
+    internal.registrationSelectors.set('dev-project-example', HANDLE);
+    internal.startSupervisor = () => { supervisorStarts += 1; };
+
+    const resolving = internal.resolveRegistration(run);
+    await registerStarted;
+    assert.deepEqual(await host.invoke('local_development_registration_remove', {
+      payload: { selector: 'dev-project-example' },
+    }), { selector: 'dev-project-example', removed: true });
+    resolveRegister(registration());
+    await resolving;
+
+    assert.deepEqual(removed, [HANDLE]);
+    assert.deepEqual(ended, [[HANDLE, SUPERVISOR]]);
+    assert.equal(supervisorStarts, 0);
+    assert.equal(run.registrationHandle, undefined);
+    assert.equal(run.stoppedCleanupComplete, true);
+  });
+
+  it('keeps the old-response cutoff when an exact Launch fails after Remove', async () => {
+    let resolveRegister!: (value: NimiElectronLocalDevelopmentRegistration) => void;
+    let markRegisterStarted!: () => void;
+    const registerResult = new Promise<NimiElectronLocalDevelopmentRegistration>((resolve) => {
+      resolveRegister = resolve;
+    });
+    const registerStarted = new Promise<void>((resolve) => {
+      markRegisterStarted = resolve;
+    });
+    let endRunCalls = 0;
+    const host = new ElectronLocalDevelopmentHost(control({
+      register: async () => {
+        markRegisterStarted();
+        return registerResult;
+      },
+      listRegistrations: async () => { throw new Error('list failed'); },
+      removeRegistration: async () => { throw new Error('remove failed'); },
+      endRun: async () => { endRunCalls += 1; },
+    }), '/tmp');
+    const run = activeRun();
+    run.registrationOwnerHandle = undefined;
+    run.registrationHandle = undefined;
+    run.status.state = 'preparing';
+    run.status.hostGeneration = 0;
+    let supervisorStarts = 0;
+    const internal = host as unknown as {
+      runs: Map<string, ReturnType<typeof activeRun>>;
+      registrationSelectors: Map<string, string>;
+      resolveRegistration(context: typeof run): Promise<void>;
+      startSupervisor(context: typeof run): void;
+    };
+    internal.runs.set(run.status.runId, run);
+    internal.registrationSelectors.set('dev-project-example', HANDLE);
+    internal.startSupervisor = () => { supervisorStarts += 1; };
+
+    const resolving = internal.resolveRegistration(run);
+    await registerStarted;
+    await assert.rejects(
+      host.invoke('local_development_registration_remove', {
+        payload: { selector: 'dev-project-example' },
+      }),
+      /remove failed/u,
+    );
+    await assert.rejects(
+      host.invoke('local_development_registration_start', {
+        payload: { selector: 'dev-project-example' },
+      }),
+      /list failed/u,
+    );
+    resolveRegister(registration());
+    await resolving;
+
+    assert.equal(supervisorStarts, 0);
+    assert.equal(endRunCalls, 1);
+    assert.equal(run.registrationHandle, undefined);
+    assert.equal(run.stoppedCleanupComplete, true);
+  });
+
+  it('keeps the removal high-water mark after a newer changed-plan intent succeeds', async () => {
+    const registerResolvers: Array<(value: NimiElectronLocalDevelopmentRegistration) => void> = [];
+    const started: string[] = [];
+    let endRunCalls = 0;
+    const host = new ElectronLocalDevelopmentHost(control({
+      register: async () => new Promise<NimiElectronLocalDevelopmentRegistration>((resolve) => {
+        registerResolvers.push(resolve);
+      }),
+      removeRegistration: async () => { throw new Error('remove failed'); },
+      endRun: async () => { endRunCalls += 1; },
+    }), '/tmp');
+    const oldRun = activeRun();
+    oldRun.plan = { ...oldRun.plan, rendererOrigin: 'http://127.0.0.1:1421' };
+    oldRun.status.runId = 'dev-run-old-plan';
+    oldRun.status.state = 'preparing';
+    oldRun.registrationOwnerHandle = undefined;
+    oldRun.registrationHandle = undefined;
+    const newRun = activeRun();
+    newRun.intentSequence = 2;
+    newRun.status.runId = 'dev-run-new-plan';
+    newRun.status.state = 'preparing';
+    newRun.registrationOwnerHandle = undefined;
+    newRun.registrationHandle = undefined;
+    const internal = host as unknown as {
+      runs: Map<string, ReturnType<typeof activeRun>>;
+      registrationSelectors: Map<string, string>;
+      resolveRegistration(context: typeof oldRun): Promise<void>;
+      startSupervisor(context: typeof oldRun): void;
+    };
+    internal.runs.set(oldRun.status.runId, oldRun);
+    internal.runs.set(newRun.status.runId, newRun);
+    internal.registrationSelectors.set('dev-project-example', HANDLE);
+    internal.startSupervisor = (run) => { started.push(run.status.runId); };
+
+    const oldResolving = internal.resolveRegistration(oldRun);
+    await assert.rejects(
+      host.invoke('local_development_registration_remove', {
+        payload: { selector: 'dev-project-example' },
+      }),
+      /remove failed/u,
+    );
+    const newResolving = internal.resolveRegistration(newRun);
+    assert.equal(registerResolvers.length, 2);
+
+    registerResolvers[1]!(registration());
+    await newResolving;
+    registerResolvers[0]!(registration());
+    await oldResolving;
+
+    assert.deepEqual(started, ['dev-run-new-plan']);
+    assert.equal(newRun.registrationHandle, HANDLE);
+    assert.equal(oldRun.registrationHandle, undefined);
+    assert.equal(oldRun.stoppedCleanupComplete, true);
+    assert.equal(endRunCalls, 1);
+  });
+
   it('projects only the latest run for an exact registration selector', async () => {
     const host = new ElectronLocalDevelopmentHost(control(), '/tmp');
     const oldRun = activeRun();
@@ -345,6 +613,7 @@ describe('Desktop Electron local-development registration host', () => {
     const secondRun = activeRun();
     secondRun.status.runId = 'dev-run-second';
     secondRun.supervisorRunId = secondSupervisor;
+    secondRun.registrationOwnerHandle = secondHandle;
     secondRun.registrationHandle = secondHandle;
     const internal = host as unknown as {
       runs: Map<string, ReturnType<typeof activeRun>>;
@@ -371,7 +640,7 @@ describe('Desktop Electron local-development registration host', () => {
     assert.deepEqual(ended, [[HANDLE, SUPERVISOR]]);
   });
 
-  it('treats stop as idempotent when a known run became terminal after projection', async () => {
+  it('treats a repeated selector stop as idempotent after real teardown', async () => {
     let terminateCalls = 0;
     let endRunCalls = 0;
     const host = new ElectronLocalDevelopmentHost(control({
@@ -379,9 +648,6 @@ describe('Desktop Electron local-development registration host', () => {
       endRun: async () => { endRunCalls += 1; },
     }), '/tmp');
     const stoppedRun = activeRun();
-    stoppedRun.status.state = 'launcher-disconnected';
-    stoppedRun.stopped = true;
-    stoppedRun.stoppedCleanupComplete = true;
     const internal = host as unknown as {
       runs: Map<string, ReturnType<typeof activeRun>>;
       registrationSelectors: Map<string, string>;
@@ -392,12 +658,121 @@ describe('Desktop Electron local-development registration host', () => {
     assert.deepEqual(await host.invoke('local_development_run_stop', {
       payload: { selector: 'dev-project-example' },
     }), { selector: 'dev-project-example', stopped: true });
-    assert.equal(terminateCalls, 0);
-    assert.equal(endRunCalls, 0);
+    assert.equal(stoppedRun.registrationHandle, undefined);
+    assert.equal(stoppedRun.stoppedCleanupComplete, true);
+    assert.deepEqual(await host.invoke('local_development_run_stop', {
+      payload: { selector: 'dev-project-example' },
+    }), { selector: 'dev-project-example', stopped: true });
+    assert.equal(terminateCalls, 1);
+    assert.equal(endRunCalls, 1);
     await assert.rejects(
       host.invoke('local_development_run_stop', { payload: { selector: 'dev-project-missing' } }),
       /local-development-run-not-found/u,
     );
+  });
+
+  it('joins overlapping selector stops onto one teardown', async () => {
+    let terminateCalls = 0;
+    let endRunCalls = 0;
+    let releaseTerminate!: () => void;
+    let markTerminateStarted!: () => void;
+    const terminateGate = new Promise<void>((resolve) => {
+      releaseTerminate = resolve;
+    });
+    const terminateStarted = new Promise<void>((resolve) => {
+      markTerminateStarted = resolve;
+    });
+    const host = new ElectronLocalDevelopmentHost(control({
+      terminateHost: async () => {
+        terminateCalls += 1;
+        markTerminateStarted();
+        await terminateGate;
+      },
+      endRun: async () => { endRunCalls += 1; },
+    }), '/tmp');
+    const run = activeRun();
+    const internal = host as unknown as {
+      runs: Map<string, ReturnType<typeof activeRun>>;
+      registrationSelectors: Map<string, string>;
+    };
+    internal.registrationSelectors.set('dev-project-example', HANDLE);
+    internal.runs.set(run.status.runId, run);
+
+    const first = host.invoke('local_development_run_stop', {
+      payload: { selector: 'dev-project-example' },
+    });
+    await terminateStarted;
+    const second = host.invoke('local_development_run_stop', {
+      payload: { selector: 'dev-project-example' },
+    });
+    releaseTerminate();
+
+    assert.deepEqual(await Promise.all([first, second]), [
+      { selector: 'dev-project-example', stopped: true },
+      { selector: 'dev-project-example', stopped: true },
+    ]);
+    assert.equal(terminateCalls, 1);
+    assert.equal(endRunCalls, 1);
+    assert.equal(run.stoppedCleanupComplete, true);
+  });
+
+  it('serializes an explicit Stop after an in-flight fail-closed teardown', async () => {
+    let terminateCalls = 0;
+    let concurrentTerminateCalls = 0;
+    let maxConcurrentTerminateCalls = 0;
+    let endRunCalls = 0;
+    let releaseFirstTerminate!: () => void;
+    let markFirstTerminateStarted!: () => void;
+    const firstTerminateGate = new Promise<void>((resolve) => {
+      releaseFirstTerminate = resolve;
+    });
+    const firstTerminateStarted = new Promise<void>((resolve) => {
+      markFirstTerminateStarted = resolve;
+    });
+    const host = new ElectronLocalDevelopmentHost(control({
+      terminateHost: async () => {
+        terminateCalls += 1;
+        concurrentTerminateCalls += 1;
+        maxConcurrentTerminateCalls = Math.max(maxConcurrentTerminateCalls, concurrentTerminateCalls);
+        if (terminateCalls === 1) {
+          markFirstTerminateStarted();
+          await firstTerminateGate;
+        }
+        concurrentTerminateCalls -= 1;
+      },
+      endRun: async () => { endRunCalls += 1; },
+    }), '/tmp');
+    const run = activeRun();
+    const internal = host as unknown as {
+      failClosedRun(context: typeof run, outcome: {
+        state: string;
+        message: string;
+        reasonCode: string;
+        retryable: boolean;
+        endRun: boolean;
+        resumeRegistrationRefresh: boolean;
+      }): Promise<void>;
+      stopRun(context: typeof run, state: string): Promise<void>;
+    };
+
+    const failingClosed = internal.failClosedRun(run, {
+      state: 'runtime-unavailable',
+      message: 'runtime unavailable',
+      reasonCode: 'runtime-service-unavailable',
+      retryable: true,
+      endRun: false,
+      resumeRegistrationRefresh: true,
+    });
+    await firstTerminateStarted;
+    const stopping = internal.stopRun(run, 'stopped');
+    releaseFirstTerminate();
+    await Promise.all([failingClosed, stopping]);
+
+    assert.equal(terminateCalls, 2);
+    assert.equal(maxConcurrentTerminateCalls, 1);
+    assert.equal(endRunCalls, 1);
+    assert.equal(run.status.state, 'stopped');
+    assert.equal(run.stoppedCleanupComplete, true);
   });
 
   it('physically rejects retired decision commands', async () => {

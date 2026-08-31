@@ -590,8 +590,8 @@ jobs:
       - name: Typecheck Zhiyu
         run: pnpm --filter @nimiplatform/zhiyu typecheck
 
-  required:
-    name: required
+  ci-required:
+    name: ci-required
     if: always()
     needs:
       - changes

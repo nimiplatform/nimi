@@ -257,9 +257,12 @@ are available only to the protected workflow. These controls are requirements,
 not claims that the pending SignPath path has already been configured.
 
 Repository settings must configure `stable-release` with required reviewers;
-merely naming an environment in YAML does not create an approval policy. A
+merely naming an environment in YAML does not create an approval policy.
 GitHub immutable releases must remain enabled, and the active release-tag
 ruleset must prevent deletion or force-update of `v*` tags without bypass.
+The `main` branch ruleset must require pull requests and the existing `dco`,
+`ci-required`, and `security-required` checks; main ancestry alone is not
+release admission.
 
 GitHub jobs additionally require:
 

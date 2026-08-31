@@ -82,7 +82,7 @@ export function appArtworkFor(appId: string): AppArtwork {
 export type AppRunVisualState = 'running' | 'starting' | 'stopped' | 'failed';
 
 /**
- * Terminal run states that mean the last launch or rebuild actually failed.
+ * Run states that mean the last launch, rebuild, or cleanup actually failed.
  * They must stay visually distinct from a clean stop: collapsing them into
  * 'stopped' makes a failed launch look like nothing happened.
  */
@@ -95,8 +95,8 @@ const FAILED_RUN_STATES = Object.freeze([
 
 export function appRunVisualState(runState: string | null): AppRunVisualState {
   if (runState === 'running') return 'running';
-  if (isLocalDevelopmentRunActive(runState)) return 'starting';
   if (runState !== null && (FAILED_RUN_STATES as readonly string[]).includes(runState)) return 'failed';
+  if (isLocalDevelopmentRunActive(runState)) return 'starting';
   return 'stopped';
 }
 

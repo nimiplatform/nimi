@@ -32,6 +32,8 @@ describe('Desktop Apps controller action boundary', () => {
   it('maps stopped development apps to launch and running apps to stop', () => {
     assert.equal(actionPlanForLocalDevelopmentEntry(null).primary?.id, 'launch');
     assert.equal(actionPlanForLocalDevelopmentEntry('running').primary?.id, 'stop');
+    assert.equal(actionPlanForLocalDevelopmentEntry('build-failed').primary?.id, 'stop');
+    assert.equal(actionPlanForLocalDevelopmentEntry('cleanup-failed').primary?.id, 'stop');
     assert.equal(actionPlanForLocalDevelopmentEntry('launcher-disconnected').primary?.id, 'launch');
   });
 
