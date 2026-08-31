@@ -81,9 +81,7 @@ updates:
     open-pull-requests-limit: 4
     rebase-strategy: auto
     cooldown:
-      semver-major-days: 14
-      semver-minor-days: 7
-      semver-patch-days: 3
+      default-days: 7
     groups:
       github-actions-security:
         applies-to: security-updates
@@ -104,9 +102,7 @@ updates:
     open-pull-requests-limit: 2
     rebase-strategy: auto
     cooldown:
-      semver-major-days: 30
-      semver-minor-days: 7
-      semver-patch-days: 3
+      default-days: 7
     groups:
       docker-security:
         applies-to: security-updates
