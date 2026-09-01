@@ -42,7 +42,16 @@ const COMPONENTS = Object.freeze({
 });
 
 function run(command, args, options = {}) {
-  const result = spawnSync(command, args, {
+  const pinnedPnpm = command === 'pnpm' && process.env.npm_execpath && existsSync(process.env.npm_execpath)
+    ? process.env.npm_execpath
+    : null;
+  const bundledNpm = command === 'npm'
+    ? path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js')
+    : null;
+  const nodeCli = pinnedPnpm || (bundledNpm && existsSync(bundledNpm) ? bundledNpm : null);
+  const executable = nodeCli ? process.execPath : command;
+  const childArgs = nodeCli ? [nodeCli, ...args] : args;
+  const result = spawnSync(executable, childArgs, {
     cwd: options.cwd ?? repoRoot,
     env: options.env ?? process.env,
     encoding: options.encoding,
@@ -221,6 +230,7 @@ function buildSdk(version, outputDir) {
 function buildKit(version, outputDir, platform) {
   const versions = releaseVersions();
   if (!platform || platform === 'main') {
+    run('pnpm', ['--filter', '@nimiplatform/sdk', 'build']);
     run('pnpm', ['--filter', '@nimiplatform/kit', 'build']);
     const tarball = stageAndPackNpm({
       sourceRoot: path.join(repoRoot, 'kit'),
