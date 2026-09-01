@@ -147,7 +147,7 @@ jobs:
               --channel rc
           done
 
-      - name: Require publication credentials before creating stable tag
+      - name: Require publication credentials
         env:
           BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
@@ -157,38 +157,6 @@ jobs:
           test -n "${NPM_TOKEN:-}"
           test -n "${CARGO_REGISTRY_TOKEN:-}"
           test -n "${BUF_TOKEN:-}"
-
-      - name: Create or verify same-SHA stable tag
-        env:
-          COMMIT_SHA: ${{ steps.identity.outputs.commit_sha }}
-          GH_TOKEN: ${{ github.token }}
-          REPOSITORY: ${{ github.repository }}
-          STABLE_TAG: ${{ steps.release.outputs.stable_tag }}
-        run: |
-          set -euo pipefail
-          if git rev-parse --verify "refs/tags/${STABLE_TAG}^{commit}" >/dev/null 2>&1; then
-            test "$(git rev-parse "refs/tags/${STABLE_TAG}^{commit}")" = "${COMMIT_SHA}"
-          else
-            gh api "repos/${REPOSITORY}/git/refs" \
-              --method POST \
-              -f "ref=refs/tags/${STABLE_TAG}" \
-              -f "sha=${COMMIT_SHA}" >/dev/null
-            git fetch origin "refs/tags/${STABLE_TAG}:refs/tags/${STABLE_TAG}"
-          fi
-
-      - name: Verify same-SHA promotion contract
-        env:
-          STABLE_TAG: ${{ steps.release.outputs.stable_tag }}
-        run: |
-          set -euo pipefail
-          for manifest in dist/release-components/*/release-manifest-*.json; do
-            pnpm release:promotion:verify -- \
-              --manifest "${manifest}" \
-              --artifacts-dir "$(dirname "${manifest}")" \
-              --rc-tag "${RC_TAG}" \
-              --stable-tag "${STABLE_TAG}" \
-              --repo-root "${GITHUB_WORKSPACE}"
-          done
 
       - name: Publish exact npm dependency packages in dependency order
         env:
@@ -212,8 +180,8 @@ jobs:
             package_version="$(tar -xOf "${tarball}" package/package.json | node -e "let s=''; process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).version))")"
             package_spec="${requested_name}@${package_version}"
             local_sha1="$(shasum -a 1 "${tarball}" | awk '{print $1}')"
-            remote_sha1="$(npm view "${package_spec}" dist.shasum --json 2>/dev/null | tr -d '"[:space:]' || true)"
-            if [[ -n "${remote_sha1}" ]]; then
+            if remote_sha1="$(npm view "${package_spec}" dist.shasum --json 2>/dev/null)"; then
+              remote_sha1="$(printf '%s' "${remote_sha1}" | tr -d '"[:space:]')"
               test "${remote_sha1}" = "${local_sha1}"
               npm dist-tag add "${package_spec}" latest
             else
@@ -353,13 +321,45 @@ jobs:
           tarball="${tarballs[0]}"
           package_spec="$(tar -xOf "${tarball}" package/package.json | node -e "let s=''; process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s); process.stdout.write(p.name+'@'+p.version)})")"
           local_sha1="$(shasum -a 1 "${tarball}" | awk '{print $1}')"
-          remote_sha1="$(npm view "${package_spec}" dist.shasum --json 2>/dev/null | tr -d '"[:space:]' || true)"
-          if [[ -n "${remote_sha1}" ]]; then
+          if remote_sha1="$(npm view "${package_spec}" dist.shasum --json 2>/dev/null)"; then
+            remote_sha1="$(printf '%s' "${remote_sha1}" | tr -d '"[:space:]')"
             test "${remote_sha1}" = "${local_sha1}"
             npm dist-tag add "${package_spec}" latest
           else
             npm publish "${tarball}" --access public --tag latest --provenance
           fi
+
+      - name: Create or verify same-SHA stable tag
+        env:
+          COMMIT_SHA: ${{ steps.identity.outputs.commit_sha }}
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          STABLE_TAG: ${{ steps.release.outputs.stable_tag }}
+        run: |
+          set -euo pipefail
+          if git rev-parse --verify "refs/tags/${STABLE_TAG}^{commit}" >/dev/null 2>&1; then
+            test "$(git rev-parse "refs/tags/${STABLE_TAG}^{commit}")" = "${COMMIT_SHA}"
+          else
+            gh api "repos/${REPOSITORY}/git/refs" \
+              --method POST \
+              -f "ref=refs/tags/${STABLE_TAG}" \
+              -f "sha=${COMMIT_SHA}" >/dev/null
+            git fetch origin "refs/tags/${STABLE_TAG}:refs/tags/${STABLE_TAG}"
+          fi
+
+      - name: Verify same-SHA promotion contract
+        env:
+          STABLE_TAG: ${{ steps.release.outputs.stable_tag }}
+        run: |
+          set -euo pipefail
+          for manifest in dist/release-components/*/release-manifest-*.json; do
+            pnpm release:promotion:verify -- \
+              --manifest "${manifest}" \
+              --artifacts-dir "$(dirname "${manifest}")" \
+              --rc-tag "${RC_TAG}" \
+              --stable-tag "${STABLE_TAG}" \
+              --repo-root "${GITHUB_WORKSPACE}"
+          done
 
       - name: Create stable GitHub release from the same RC assets
         env:

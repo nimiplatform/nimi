@@ -170,24 +170,26 @@ npm provenance and promoted bytes remain bound to the same RC commit.
 Promotion:
 
 1. Downloads the published RC assets and verifies all component manifests.
-2. Creates or verifies global stable tag `vX.Y.Z` at the exact RC commit.
-3. Verifies the RC tag, stable tag, and every manifest name the same commit and
-   artifact bytes.
-4. Publishes the exact npm tarballs with provenance in dependency order.
-5. Rebuilds protected-local from the admitted SHA, requires its `.crate`
+2. Publishes the exact npm tarballs with provenance in dependency order.
+3. Rebuilds protected-local from the admitted SHA, requires its `.crate`
    SHA-256 to equal the RC asset, and publishes it first. It then packages and
    publishes Tauri from the exact sealed RC source archive after protected-local
    is visible; Cargo cannot package that path dependency before its registry
    version exists.
-6. Builds and lints Proto from the exact RC source archive, then pushes that
+4. Builds and lints Proto from the exact RC source archive, then pushes that
    source to buf.build.
-7. Publishes App Tools only after its embedded SDK, Kit, protected-local, and
+5. Publishes App Tools only after its embedded SDK, Kit, protected-local, and
    Tauri versions are visible in their registries.
-8. Creates the stable GitHub Release from the same RC assets and marks it
-   latest.
+6. Creates global stable tag `vX.Y.Z` at the exact RC commit, verifies both tags
+   and every manifest name that commit and the same artifact bytes, then creates
+   the stable GitHub Release and marks it latest.
 
 An already-published npm or Cargo version is accepted only when it is the same
 version and bytes; a conflicting immutable registry version fails promotion.
+If promotion fails before the stable tag exists, fix the canonical workflow and
+restart from a new canary and RC. Never move or reuse an immutable RC or stable
+tag. If a stable tag already exists without a completed Release, reserve that
+global version and restart the full train with the next global patch version.
 
 ### Runtime install gateway cutover (deferred)
 
