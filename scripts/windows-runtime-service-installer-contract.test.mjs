@@ -428,3 +428,213 @@ test('signed installer migrates existing Runtime state to the fixed local-develo
     rmSync(tempRoot, { recursive: true, force: true });
   }
 });
+
+const runtimeInstallerPath = fileURLToPath(
+  new URL('./install-windows-runtime-service.ps1', import.meta.url),
+);
+const powerShellLiteral = (value) => `'${value.replaceAll("'", "''")}'`;
+const runInstallerContract = (commands) => {
+  const result = spawnSync(resolveWindowsPowerShell7(), [
+    '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', commands.join('; '),
+  ], { encoding: 'utf8', windowsHide: true });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  return JSON.parse(result.stdout.trim());
+};
+
+test('uninstall removes only the fixed service and Program Files payload while preserving durable state and trust', {
+  skip: process.platform !== 'win32',
+}, () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-uninstall-test-'));
+  const installRoot = path.join(tempRoot, 'program-files', 'Nimi', 'Runtime');
+  const stateRoot = path.join(tempRoot, 'program-data', 'Nimi', 'Runtime', 'Protected');
+  const productControlPath = path.join(tempRoot, 'program-data', 'Nimi', 'product-control.json');
+  const trustPath = path.join(tempRoot, 'machine-trust.cer');
+  const candidate = 'runtime-candidate';
+  const binaryPath = path.join(installRoot, 'versions', candidate, 'nimi.exe');
+  mkdirSync(path.dirname(binaryPath), { recursive: true });
+  mkdirSync(stateRoot, { recursive: true });
+  writeFileSync(binaryPath, 'runtime payload', 'utf8');
+  writeFileSync(path.join(stateRoot, 'memory.db'), 'durable state', 'utf8');
+  writeFileSync(productControlPath, '{"state":"ready_for_use"}\n', 'utf8');
+  writeFileSync(trustPath, 'shared development trust', 'utf8');
+  try {
+    const calls = runInstallerContract([
+      `. ${powerShellLiteral(runtimeInstallerPath)}`,
+      `$InstallRoot = ${powerShellLiteral(installRoot)}`,
+      `$StateRoot = ${powerShellLiteral(stateRoot)}`,
+      `$script:servicePresent = $true`,
+      `$calls = [System.Collections.Generic.List[string]]::new()`,
+      `function Assert-Elevated { $calls.Add('elevated') }`,
+      `function Assert-SignedFile { param([string] $Path); $calls.Add('signed ' + $Path); [pscustomobject]@{} }`,
+      `function Get-Service { if ($script:servicePresent) { [pscustomobject]@{ Status = 'Running' } } }`,
+      `function Get-CimInstance { if ($script:servicePresent) { [pscustomobject]@{ PathName = ('"' + ${powerShellLiteral(binaryPath)} + '" serve') } } }`,
+      `function Stop-Service { $calls.Add('stop ' + $ServiceName) }`,
+      `function Wait-ServiceState { param([string] $Expected); $calls.Add('wait ' + $Expected) }`,
+      `function Invoke-ServiceControl { param([string[]] $Arguments, [string] $FailureMessage); $calls.Add('sc ' + ($Arguments -join ' ')); $script:servicePresent = $false }`,
+      `function Wait-ServiceAbsent { if ($script:servicePresent) { throw 'service remained' }; $calls.Add('wait absent') }`,
+      `$result = Uninstall-Service`,
+      `[ordered]@{ result = $result; calls = $calls; payloadExists = (Test-Path -LiteralPath ${powerShellLiteral(installRoot)}); stateExists = (Test-Path -LiteralPath (Join-Path ${powerShellLiteral(stateRoot)} 'memory.db')); productControlExists = (Test-Path -LiteralPath ${powerShellLiteral(productControlPath)}); trustExists = (Test-Path -LiteralPath ${powerShellLiteral(trustPath)}) } | ConvertTo-Json -Depth 6 -Compress`,
+    ]);
+    assert.deepEqual(calls.result, {
+      status: 'uninstalled',
+      serviceName: 'NimiRuntime',
+      serviceStopped: true,
+      serviceRemoved: true,
+      removedVersions: [candidate],
+      trustAction: 'preserved',
+      installRoot,
+      installRootRemoved: true,
+      stateRoot,
+      stateRootAction: 'preserved',
+      productControlAction: 'preserved',
+    });
+    assert.deepEqual(calls.calls, [
+      'elevated',
+      `signed ${runtimeInstallerPath}`,
+      'stop NimiRuntime',
+      'wait Stopped',
+      'sc delete NimiRuntime',
+      'wait absent',
+    ]);
+    assert.equal(calls.payloadExists, false);
+    assert.equal(calls.stateExists, true);
+    assert.equal(calls.productControlExists, true);
+    assert.equal(calls.trustExists, true);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('uninstall rejects a same-name service outside the fixed installer-owned versions root', {
+  skip: process.platform !== 'win32',
+}, () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-uninstall-foreign-test-'));
+  const installRoot = path.join(tempRoot, 'program-files', 'Nimi', 'Runtime');
+  const binaryPath = path.join(installRoot, 'versions', 'candidate', 'nimi.exe');
+  mkdirSync(path.dirname(binaryPath), { recursive: true });
+  writeFileSync(binaryPath, 'runtime payload', 'utf8');
+  try {
+    const result = runInstallerContract([
+      `. ${powerShellLiteral(runtimeInstallerPath)}`,
+      `$InstallRoot = ${powerShellLiteral(installRoot)}`,
+      `$mutations = [System.Collections.Generic.List[string]]::new()`,
+      `function Assert-Elevated { }`,
+      `function Assert-SignedFile { [pscustomobject]@{} }`,
+      `function Get-Service { [pscustomobject]@{ Status = 'Running' } }`,
+      `function Get-CimInstance { [pscustomobject]@{ PathName = '"C:\\Foreign\\nimi.exe" serve' } }`,
+      `function Stop-Service { $mutations.Add('stop') }`,
+      `function Invoke-ServiceControl { $mutations.Add('delete') }`,
+      `$message = try { Uninstall-Service; 'unexpected success' } catch { $_.Exception.Message }`,
+      `[ordered]@{ message = $message; mutations = $mutations; payloadExists = (Test-Path -LiteralPath ${powerShellLiteral(binaryPath)}) } | ConvertTo-Json -Compress`,
+    ]);
+    assert.match(result.message, /outside an installer-owned version payload/u);
+    assert.deepEqual(result.mutations, []);
+    assert.equal(result.payloadExists, true);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('uninstall verifies the signed installer before querying SCM or mutating payloads', {
+  skip: process.platform !== 'win32',
+}, () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-uninstall-signature-test-'));
+  const installRoot = path.join(tempRoot, 'program-files', 'Nimi', 'Runtime');
+  const binaryPath = path.join(installRoot, 'versions', 'candidate', 'nimi.exe');
+  mkdirSync(path.dirname(binaryPath), { recursive: true });
+  writeFileSync(binaryPath, 'runtime payload', 'utf8');
+  try {
+    const result = runInstallerContract([
+      `. ${powerShellLiteral(runtimeInstallerPath)}`,
+      `$InstallRoot = ${powerShellLiteral(installRoot)}`,
+      `$calls = [System.Collections.Generic.List[string]]::new()`,
+      `function Assert-Elevated { $calls.Add('elevated') }`,
+      `function Assert-SignedFile { param([string] $Path); $calls.Add('signature'); throw 'installer signature rejected' }`,
+      `function Get-Service { $calls.Add('get-service'); throw 'SCM must not be queried' }`,
+      `function Get-CimInstance { $calls.Add('get-cim'); throw 'SCM must not be queried' }`,
+      `function Stop-Service { $calls.Add('stop') }`,
+      `function Invoke-ServiceControl { $calls.Add('delete') }`,
+      `$message = try { Uninstall-Service; 'unexpected success' } catch { $_.Exception.Message }`,
+      `[ordered]@{ message = $message; calls = $calls; payloadExists = (Test-Path -LiteralPath ${powerShellLiteral(binaryPath)}) } | ConvertTo-Json -Compress`,
+    ]);
+    assert.equal(result.message, 'installer signature rejected');
+    assert.deepEqual(result.calls, ['elevated', 'signature']);
+    assert.equal(result.payloadExists, true);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('uninstall is idempotent when the service and installer payload are already absent', {
+  skip: process.platform !== 'win32',
+}, () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-uninstall-absent-test-'));
+  const installRoot = path.join(tempRoot, 'program-files', 'Nimi', 'Runtime');
+  const stateRoot = path.join(tempRoot, 'program-data', 'Nimi', 'Runtime', 'Protected');
+  mkdirSync(stateRoot, { recursive: true });
+  writeFileSync(path.join(stateRoot, 'installation.json'), 'durable state', 'utf8');
+  try {
+    const result = runInstallerContract([
+      `. ${powerShellLiteral(runtimeInstallerPath)}`,
+      `$InstallRoot = ${powerShellLiteral(installRoot)}`,
+      `$StateRoot = ${powerShellLiteral(stateRoot)}`,
+      `function Assert-Elevated { }`,
+      `function Assert-SignedFile { [pscustomobject]@{} }`,
+      `function Get-Service { }`,
+      `function Get-CimInstance { }`,
+      `$result = Uninstall-Service`,
+      `[ordered]@{ result = $result; stateExists = (Test-Path -LiteralPath (Join-Path ${powerShellLiteral(stateRoot)} 'installation.json')) } | ConvertTo-Json -Depth 5 -Compress`,
+    ]);
+    assert.equal(result.result.status, 'absent');
+    assert.equal(result.result.serviceRemoved, false);
+    assert.deepEqual(result.result.removedVersions, []);
+    assert.equal(result.result.trustAction, 'preserved');
+    assert.equal(result.result.stateRootAction, 'preserved');
+    assert.equal(result.result.productControlAction, 'preserved');
+    assert.equal(result.stateExists, true);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('uninstall rejects a reparse-point versions root before SCM mutation', {
+  skip: process.platform !== 'win32',
+}, () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-runtime-uninstall-reparse-test-'));
+  const installRoot = path.join(tempRoot, 'program-files', 'Nimi', 'Runtime');
+  const outsideRoot = path.join(tempRoot, 'outside-payload');
+  mkdirSync(installRoot, { recursive: true });
+  mkdirSync(outsideRoot, { recursive: true });
+  writeFileSync(path.join(outsideRoot, 'keep.txt'), 'outside payload', 'utf8');
+  try {
+    const result = runInstallerContract([
+      `New-Item -ItemType Junction -Path (Join-Path ${powerShellLiteral(installRoot)} 'versions') -Target ${powerShellLiteral(outsideRoot)} | Out-Null`,
+      `. ${powerShellLiteral(runtimeInstallerPath)}`,
+      `$InstallRoot = ${powerShellLiteral(installRoot)}`,
+      `$mutations = [System.Collections.Generic.List[string]]::new()`,
+      `function Assert-Elevated { }`,
+      `function Assert-SignedFile { [pscustomobject]@{} }`,
+      `function Get-Service { }`,
+      `function Get-CimInstance { }`,
+      `function Stop-Service { $mutations.Add('stop') }`,
+      `function Invoke-ServiceControl { $mutations.Add('delete') }`,
+      `$message = try { Uninstall-Service; 'unexpected success' } catch { $_.Exception.Message }`,
+      `[ordered]@{ message = $message; mutations = $mutations; outsideExists = (Test-Path -LiteralPath (Join-Path ${powerShellLiteral(outsideRoot)} 'keep.txt')) } | ConvertTo-Json -Compress`,
+    ]);
+    assert.match(result.message, /versions root must be a non-reparse directory/u);
+    assert.deepEqual(result.mutations, []);
+    assert.equal(result.outsideExists, true);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('uninstall is an explicit CLI mode with structured failure output', () => {
+  const source = readFileSync(runtimeInstallerPath, 'utf8');
+  assert.match(source, /\[ValidateSet\('Install', 'Status', 'Uninstall'\)\]/u);
+  assert.match(source, /'Uninstall' \{ Uninstall-Service \}/u);
+  assert.match(
+    source,
+    /\[ordered\]@\{ status = 'failed'; mode = \$Mode; error = \$_\.Exception\.Message \} \| ConvertTo-Json -Compress/u,
+  );
+});

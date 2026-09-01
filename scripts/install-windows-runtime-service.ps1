@@ -1,5 +1,5 @@
 param(
-  [ValidateSet('Install', 'Status')]
+  [ValidateSet('Install', 'Status', 'Uninstall')]
   [string] $Mode = 'Install',
 
   [string] $BinaryPath = '',
@@ -121,7 +121,7 @@ function Assert-Elevated {
   $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
   $principal = [Security.Principal.WindowsPrincipal]::new($identity)
   if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    throw 'Installing NimiRuntime requires an elevated Administrator process.'
+    throw 'Managing NimiRuntime requires an elevated Administrator process.'
   }
 }
 
@@ -348,6 +348,95 @@ function Remove-StaleInstalledVersions {
   return $removed.ToArray()
 }
 
+function Assert-InstallerRootSafe {
+  if (-not (Test-Path -LiteralPath $InstallRoot)) { return }
+  $item = Get-Item -LiteralPath $InstallRoot -Force
+  if (-not $item.PSIsContainer -or
+      ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+    throw "Windows Runtime installer root must be a non-reparse directory: $InstallRoot"
+  }
+  $expected = [IO.Path]::GetFullPath($InstallRoot).TrimEnd('\')
+  $actual = [IO.Path]::GetFullPath($item.FullName).TrimEnd('\')
+  if (-not [string]::Equals($actual, $expected, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "Windows Runtime installer root resolved outside its fixed path: $actual"
+  }
+}
+
+function Get-InstalledVersionPayloadRootsForRemoval {
+  Assert-InstallerRootSafe
+  $versionsPath = Join-Path $InstallRoot 'versions'
+  if (-not (Test-Path -LiteralPath $versionsPath)) { return @() }
+  $versionsItem = Get-Item -LiteralPath $versionsPath -Force
+  if (-not $versionsItem.PSIsContainer -or
+      ($versionsItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+    throw "Windows Runtime versions root must be a non-reparse directory: $versionsPath"
+  }
+  $expectedVersionsPath = [IO.Path]::GetFullPath($versionsPath).TrimEnd('\')
+  $actualVersionsPath = [IO.Path]::GetFullPath($versionsItem.FullName).TrimEnd('\')
+  if (-not [string]::Equals($actualVersionsPath, $expectedVersionsPath, [StringComparison]::OrdinalIgnoreCase)) {
+    throw "Windows Runtime versions root resolved outside its fixed path: $actualVersionsPath"
+  }
+  $unexpectedFiles = @(Get-ChildItem -LiteralPath $actualVersionsPath -Force -File)
+  if ($unexpectedFiles.Count -ne 0) {
+    throw "Refusing to remove unexpected files directly under the Runtime versions root: $($unexpectedFiles[0].FullName)"
+  }
+  $roots = [System.Collections.Generic.List[string]]::new()
+  foreach ($directory in @(Get-ChildItem -LiteralPath $actualVersionsPath -Force -Directory)) {
+    if (($directory.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+      throw "Refusing to remove a Runtime version payload through a reparse point: $($directory.FullName)"
+    }
+    $resolvedCandidate = [IO.Path]::GetFullPath($directory.FullName).TrimEnd('\')
+    $candidateParent = [IO.Path]::GetFullPath((Split-Path $resolvedCandidate -Parent)).TrimEnd('\')
+    if (-not [string]::Equals($candidateParent, $actualVersionsPath, [StringComparison]::OrdinalIgnoreCase)) {
+      throw "Refusing to remove Runtime payload outside the versions root: $resolvedCandidate"
+    }
+    $roots.Add($resolvedCandidate)
+  }
+  return $roots.ToArray()
+}
+
+function Remove-InstalledVersionPayloads {
+  param([Parameter(Mandatory = $true)] [AllowEmptyCollection()] [string[]] $PayloadRoots)
+  $versionsPath = [IO.Path]::GetFullPath((Join-Path $InstallRoot 'versions')).TrimEnd('\')
+  $removed = [System.Collections.Generic.List[string]]::new()
+  foreach ($root in $PayloadRoots) {
+    $candidate = [IO.Path]::GetFullPath($root).TrimEnd('\')
+    $candidateParent = [IO.Path]::GetFullPath((Split-Path $candidate -Parent)).TrimEnd('\')
+    if (-not [string]::Equals($candidateParent, $versionsPath, [StringComparison]::OrdinalIgnoreCase)) {
+      throw "Refusing to remove Runtime payload outside the preflighted versions root: $candidate"
+    }
+    if (-not (Test-Path -LiteralPath $candidate)) { continue }
+    $item = Get-Item -LiteralPath $candidate -Force
+    if (-not $item.PSIsContainer -or
+        ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+      throw "Refusing to remove changed Runtime version payload: $candidate"
+    }
+    Remove-Item -LiteralPath $candidate -Recurse -Force
+    if (Test-Path -LiteralPath $candidate) {
+      throw "Windows Runtime version payload remained after removal: $candidate"
+    }
+    $removed.Add((Split-Path $candidate -Leaf))
+  }
+  if (Test-Path -LiteralPath $versionsPath -PathType Container) {
+    $remaining = @(Get-ChildItem -LiteralPath $versionsPath -Force)
+    if ($remaining.Count -eq 0) {
+      Remove-Item -LiteralPath $versionsPath -Force
+    }
+  }
+  return $removed.ToArray()
+}
+
+function Remove-EmptyInstallerRoot {
+  if (-not (Test-Path -LiteralPath $InstallRoot -PathType Container)) { return $false }
+  Assert-InstallerRootSafe
+  if (@(Get-ChildItem -LiteralPath $InstallRoot -Force).Count -ne 0) { return $false }
+  Remove-Item -LiteralPath $InstallRoot -Force
+  if (Test-Path -LiteralPath $InstallRoot) {
+    throw "Windows Runtime installer root remained after empty-directory removal: $InstallRoot"
+  }
+  return $true
+}
+
 function Import-SignerForLocalSystem {
   param([Parameter(Mandatory = $true)] $Certificate)
   $temp = Join-Path ([IO.Path]::GetTempPath()) "nimi-runtime-signer-$($Certificate.Thumbprint).cer"
@@ -406,6 +495,16 @@ function Wait-ServiceState {
     Start-Sleep -Milliseconds 200
   }
   throw "$ServiceName did not reach $Expected within 35 seconds."
+}
+
+function Wait-ServiceAbsent {
+  $deadline = (Get-Date).AddSeconds(35)
+  while ((Get-Date) -lt $deadline) {
+    $record = Get-CimInstance Win32_Service -Filter "Name='$ServiceName'" -ErrorAction SilentlyContinue
+    if ($null -eq $record) { return }
+    Start-Sleep -Milliseconds 200
+  }
+  throw "$ServiceName remained registered for more than 35 seconds after deletion."
 }
 
 function Wait-ProtectedPipes {
@@ -1129,6 +1228,54 @@ function Install-Service {
   }
 }
 
+function Uninstall-Service {
+  Assert-Elevated
+  [void] (Assert-SignedFile -Path $PSCommandPath)
+  Assert-InstallerRootSafe
+  $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+  $serviceRecord = Get-CimInstance Win32_Service -Filter "Name='$ServiceName'" -ErrorAction SilentlyContinue
+  if ($null -eq $serviceRecord -and $null -ne $service) {
+    throw 'Windows service APIs disagree about whether NimiRuntime is installed.'
+  }
+  if ($null -ne $serviceRecord) {
+    $serviceVersionRoot = Resolve-InstalledVersionRootFromServicePath -ServiceBinaryPath ([string] $serviceRecord.PathName)
+    if ([string]::IsNullOrWhiteSpace($serviceVersionRoot)) {
+      throw 'Refusing to uninstall a NimiRuntime service whose executable is outside an installer-owned version payload.'
+    }
+  }
+
+  $payloadRoots = @(Get-InstalledVersionPayloadRootsForRemoval)
+  $serviceStopped = $false
+  $serviceRemoved = $false
+  if ($null -ne $serviceRecord) {
+    if ($null -ne $service -and [string] $service.Status -ne 'Stopped') {
+      Stop-Service -Name $ServiceName -ErrorAction Stop
+      Wait-ServiceState -Expected 'Stopped'
+      $serviceStopped = $true
+    }
+    Invoke-ServiceControl -Arguments @('delete', $ServiceName) -FailureMessage 'SCM failed to uninstall NimiRuntime.'
+    Wait-ServiceAbsent
+    $serviceRemoved = $true
+  }
+
+  $removedVersions = @(Remove-InstalledVersionPayloads -PayloadRoots $payloadRoots)
+  $installRootRemoved = Remove-EmptyInstallerRoot
+  $changed = $serviceRemoved -or $removedVersions.Count -ne 0 -or $installRootRemoved
+  return [ordered]@{
+    status = if ($changed) { 'uninstalled' } else { 'absent' }
+    serviceName = $ServiceName
+    serviceStopped = $serviceStopped
+    serviceRemoved = $serviceRemoved
+    removedVersions = $removedVersions
+    trustAction = 'preserved'
+    installRoot = $InstallRoot
+    installRootRemoved = $installRootRemoved
+    stateRoot = $StateRoot
+    stateRootAction = 'preserved'
+    productControlAction = 'preserved'
+  }
+}
+
 if ($MyInvocation.InvocationName -eq '.') {
   return
 }
@@ -1137,6 +1284,7 @@ try {
   $result = switch ($Mode) {
     'Install' { Install-Service }
     'Status' { Get-Status }
+    'Uninstall' { Uninstall-Service }
   }
   Write-Result -Value $result
 } catch {

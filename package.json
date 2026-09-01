@@ -20,6 +20,8 @@
     "build:macos:electron:layout": "pnpm --filter @nimiplatform/desktop build:macos:electron:layout",
     "build:macos:dev-candidate": "pnpm --filter @nimiplatform/desktop build:macos:electron:dev-candidate",
     "build:macos:dev-security-helper": "node scripts/build-macos-dev-security-helper.mjs",
+    "build:windows:electron:layout": "pnpm --filter @nimiplatform/desktop build:windows:electron:layout",
+    "build:windows:desktop:dev-candidate": "node scripts/build-windows-desktop-installer.mjs --local-development-candidate",
     "build:windows-runtime-service-installer": "node scripts/build-windows-runtime-service-installer.mjs",
     "provision:windows-dev-trust": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/lib/windows-dev-signing.ps1 -Mode Provision -Json",
     "doctor:windows-dev-signing": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/lib/windows-dev-signing.ps1 -Mode Diagnose -Path dist/nimi.exe -Json",
