@@ -6,6 +6,13 @@ The format follows Keep a Changelog and Semantic Versioning.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-02
+
+### Fixed
+
+- Stable release promotion now treats a missing npm version as unpublished and
+  creates the immutable stable tag only after all public registry writes succeed.
+
 ## [0.2.0] - 2026-08-31
 
 ### Added
