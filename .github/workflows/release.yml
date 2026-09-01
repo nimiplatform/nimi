@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - sdk/v*
-      - proto/v*
   pull_request:
     paths:
       - .github/workflows/release.yml
@@ -13,17 +12,13 @@ on:
       - proto/**
       - runtime/proto/**
       - scripts/check-sdk-kit-pack-audit.mjs
+      - scripts/lib/command-runner.mjs
       - scripts/release/build-component-package.mjs
       - sdks/typescript/**
   workflow_dispatch:
     inputs:
-      target:
-        description: Component dry-run target
-        required: true
-        type: choice
-        options: [sdk, proto]
       version:
-        description: Exact stable component SemVer
+        description: Exact stable SDK SemVer for a dry-run
         required: true
         type: string
 
@@ -31,70 +26,15 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.ref }}-${{ inputs.target || 'pr' }}
+  group: release-sdk-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  resolve:
-    runs-on: ubuntu-latest
-    outputs:
-      production: ${{ steps.release.outputs.production }}
-      target: ${{ steps.release.outputs.target }}
-      version: ${{ steps.release.outputs.version }}
-    steps:
-      - name: Checkout exact source
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-
-      - name: Resolve component release identity
-        id: release
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          FULL_REF: ${{ github.ref }}
-          INPUT_TARGET: ${{ inputs.target }}
-          INPUT_VERSION: ${{ inputs.version }}
-          REF_NAME: ${{ github.ref_name }}
-        run: |
-          set -euo pipefail
-          if [[ "${EVENT_NAME}" == "push" ]]; then
-            case "${REF_NAME}" in
-              sdk/v*) target=sdk; version="${REF_NAME#sdk/v}" ;;
-              proto/v*) target=proto; version="${REF_NAME#proto/v}" ;;
-              *) echo "unsupported component tag: ${REF_NAME}" >&2; exit 1 ;;
-            esac
-            test "${FULL_REF}" = "refs/tags/${target}/v${version}"
-            test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
-            production=true
-          elif [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
-            target="${INPUT_TARGET}"
-            version="${INPUT_VERSION#v}"
-            production=false
-          else
-            target=all
-            version="$(node -p "JSON.parse(require('node:fs').readFileSync('sdks/typescript/package.json','utf8')).version")"
-            production=false
-          fi
-          if ! [[ "${version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-            echo "component version must be a stable SemVer: ${version}" >&2
-            exit 1
-          fi
-          {
-            echo "production=${production}"
-            echo "target=${target}"
-            echo "version=${version}"
-          } >> "${GITHUB_OUTPUT}"
-
-  sdk:
-    needs: resolve
-    if: needs.resolve.outputs.target == 'sdk' || needs.resolve.outputs.target == 'all'
+  release:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
-    env:
-      PRODUCTION: ${{ needs.resolve.outputs.production }}
-      RELEASE_VERSION: ${{ needs.resolve.outputs.version }}
     steps:
       - name: Checkout exact source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -112,15 +52,34 @@ jobs:
           registry-url: https://registry.npmjs.org
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
-      - name: Verify SDK tag and package version
+      - name: Resolve and verify SDK component identity
+        id: release
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
           package_version="$(node -p "JSON.parse(require('node:fs').readFileSync('sdks/typescript/package.json','utf8')).version")"
-          test "${package_version}" = "${RELEASE_VERSION}"
-          if [[ "${PRODUCTION}" == "true" ]]; then
-            test "${GITHUB_REF}" = "refs/tags/sdk/v${RELEASE_VERSION}"
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            version="${GITHUB_REF_NAME#sdk/v}"
+            production=true
+            test "${GITHUB_REF}" = "refs/tags/sdk/v${version}"
             test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            version="${INPUT_VERSION#v}"
+            production=false
+          else
+            version="${package_version}"
+            production=false
           fi
+          if ! [[ "${version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "SDK version must be a stable SemVer: ${version}" >&2
+            exit 1
+          fi
+          test "${package_version}" = "${version}"
+          {
+            echo "production=${production}"
+            echo "version=${version}"
+          } >> "${GITHUB_OUTPUT}"
       - name: Test SDK
         run: |
           pnpm --filter @nimiplatform/sdk test
@@ -130,10 +89,12 @@ jobs:
       - name: Build deterministic SDK package
         run: pnpm release:component:pack -- --component sdk --output-dir dist/component-release/sdk
       - name: Dry-run SDK publication
-        if: env.PRODUCTION != 'true'
+        if: steps.release.outputs.production != 'true'
         run: npm publish dist/component-release/sdk/*.tgz --access public --dry-run
       - name: Publish or verify exact SDK package through npm OIDC
-        if: env.PRODUCTION == 'true'
+        if: steps.release.outputs.production == 'true'
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -147,48 +108,3 @@ jobs:
           else
             npm publish "${tarballs[0]}" --access public --provenance
           fi
-
-  proto:
-    needs: resolve
-    if: needs.resolve.outputs.target == 'proto' || needs.resolve.outputs.target == 'all'
-    runs-on: ubuntu-latest
-    env:
-      BUF_TOKEN: ${{ secrets.BUF_TOKEN }}
-      PRODUCTION: ${{ needs.resolve.outputs.production }}
-      RELEASE_VERSION: ${{ needs.resolve.outputs.version }}
-    steps:
-      - name: Checkout exact source
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-      - name: Setup pnpm
-        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
-        with:
-          version: 10.34.5
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: 24
-          package-manager-cache: false
-      - name: Setup Go
-        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
-        with:
-          go-version-file: runtime/go.mod
-          cache: false
-      - name: Install locked dependencies and Buf
-        run: |
-          pnpm install --frozen-lockfile
-          go install github.com/bufbuild/buf/cmd/buf@v1.70.0
-      - name: Verify Proto contracts
-        run: |
-          pnpm proto:breaking
-          pnpm proto:drift-check
-          pnpm proto:lint
-          "$(go env GOPATH)/bin/buf" build proto -o "${RUNNER_TEMP}/nimi-proto.binpb"
-      - name: Publish Proto from its component tag
-        if: env.PRODUCTION == 'true'
-        run: |
-          set -euo pipefail
-          test -n "${BUF_TOKEN:-}"
-          test "${GITHUB_REF}" = "refs/tags/proto/v${RELEASE_VERSION}"
-          "$(go env GOPATH)/bin/buf" push proto

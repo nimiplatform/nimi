@@ -15,7 +15,6 @@ Production publication is tag-only. Manual workflow dispatch is dry-run only.
 | Component | Production tag | Workflow | Destination |
 | --- | --- | --- | --- |
 | `@nimiplatform/sdk` | `sdk/v<version>` | `release.yml` | npm |
-| Proto | `proto/v<version>` | `release.yml` | buf.build |
 | `@nimiplatform/kit` | `kit/v<version>` | `release-kit.yml` | npm |
 | `nimi-shell-protected-local` | `nimi-shell-protected-local/v<version>` | `release-nimi-shell-protected-local.yml` | crates.io |
 | `nimi-shell-tauri` | `nimi-shell-tauri/v<version>` | `release-nimi-shell-tauri.yml` | crates.io |
@@ -32,8 +31,10 @@ publish with GitHub OIDC and npm provenance and do not use `NPM_TOKEN`.
 ## Pull request and dry-run boundary
 
 The component workflows run their affected build, tests, deterministic pack, and
-registry dry-run on pull requests. A release reconciliation PR is not merged
-until required repository checks and these component checks pass.
+available registry dry-run on pull requests. Tauri source tests run immediately;
+its cargo-package dry-run remains `NOT-VERIFIED` until its exact protected-local
+version is public. A release reconciliation PR is not merged until required
+repository checks and these component checks pass.
 
 After merge, a maintainer may run a component workflow manually for another
 dry-run. A manual dispatch cannot publish. Production publication starts only by
@@ -48,16 +49,15 @@ Kit native carriers do not enter these component releases.
 
 The two independent roots may begin separately:
 
-1. Publish Proto when its own version is selected.
-2. Publish SDK from `sdk/v<SDK version>`.
-3. Publish protected-local from
+1. Publish SDK from `sdk/v<SDK version>`.
+2. Publish protected-local from
    `nimi-shell-protected-local/v<protected-local version>`.
 
 Then publish dependants:
 
-4. Kit waits for its declared SDK version to be visible on npm.
-5. Tauri waits for its exact protected-local version to be visible on crates.io.
-6. App Tools waits for its embedded SDK, Kit, protected-local, and Tauri versions
+3. Kit waits for its declared SDK version to be visible on npm.
+4. Tauri waits for its exact protected-local version to be visible on crates.io.
+5. App Tools waits for its embedded SDK, Kit, protected-local, and Tauri versions
    to be visible in their public registries.
 
 For the current prepared versions, the intended tags are:
@@ -70,8 +70,9 @@ nimi-shell-tauri/v0.2.0
 app-tools/v0.2.0
 ```
 
-Proto has no package manifest version and receives a component tag only after its
-version is independently selected. It is not inferred from another component.
+Proto has no package manifest version and has no active production publisher in
+this release set. A future Proto publication identity requires separate authority
+and is not inferred from another component.
 
 ## Immutable tag recovery
 
@@ -102,7 +103,6 @@ production-ready.
 - npm: Trusted Publisher for `nimiplatform/nimi` and the exact component workflow
   filename; GitHub-hosted runner with `id-token: write`.
 - crates.io: repository `CARGO_REGISTRY_TOKEN` for the two shell workflows.
-- buf.build: repository `BUF_TOKEN` for Proto publication.
 - GitHub: component tag rules must prevent update and deletion while allowing the
   first tag creation.
 

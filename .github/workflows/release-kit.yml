@@ -11,6 +11,7 @@ on:
       - package.json
       - pnpm-lock.yaml
       - scripts/check-sdk-kit-pack-audit.mjs
+      - scripts/lib/command-runner.mjs
       - scripts/release/build-component-package.mjs
       - sdks/typescript/**
   workflow_dispatch:

@@ -8,11 +8,13 @@ on:
     paths:
       - .github/workflows/release-app-tools.yml
       - app-tools/**
+      - apps/lab/**
       - kit/package.json
       - kit/shell/protected-local/Cargo.toml
       - kit/shell/tauri/Cargo.toml
       - package.json
       - pnpm-lock.yaml
+      - scripts/lib/command-runner.mjs
       - scripts/release/build-component-package.mjs
       - sdks/typescript/package.json
   workflow_dispatch:

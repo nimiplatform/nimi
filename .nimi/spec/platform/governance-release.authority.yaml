@@ -153,13 +153,13 @@ units:
   - id: definition.nimi.platform.governance-release.first-party-public-component-release
     kind: definition
     title: First-party public component release
-    meaning: A first-party public component release is the independently versioned production publication identity rooted in one immutable repository tag and commit for exactly one Nimi-maintained public package family from @nimiplatform/sdk, @nimiplatform/kit, or @nimiplatform/app-tools; it is distinct from the installable Nimi release bundle and from a publisher-owned Nimi App release.
+    meaning: A first-party public component release is the independently versioned production publication identity rooted in one immutable repository tag and commit for exactly one Nimi-maintained public package family from @nimiplatform/sdk, @nimiplatform/kit, @nimiplatform/app-tools, nimi-shell-protected-local, or nimi-shell-tauri; it is distinct from the installable Nimi release bundle and from a publisher-owned Nimi App release.
   - id: rule.nimi.platform.governance-release.p-gov-027-component-release-identity
     kind: rule
     title: First-party public component release identity
     modality: must
-    statement: Production publication uses exactly sdk/v<SDK SemVer> for @nimiplatform/sdk, kit/v<Kit SemVer> for @nimiplatform/kit, or app-tools/v<App Tools SemVer> for @nimiplatform/app-tools, where the tag version equals that component's canonical package version and every published artifact resolves to the same component and commit; the three component families version and release independently, and a root vX.Y.Z global library train, shared release-train version, another component's tag, or a Nimi App publisher tag never identifies or publishes one of these component releases.
-    condition: Whenever SDK, Kit, or App Tools is tagged, released, or published for production.
+    statement: Production publication uses exactly sdk/v<SDK SemVer> for @nimiplatform/sdk, kit/v<Kit SemVer> for @nimiplatform/kit, app-tools/v<App Tools SemVer> for @nimiplatform/app-tools, nimi-shell-protected-local/v<protected-local Cargo SemVer> for nimi-shell-protected-local, or nimi-shell-tauri/v<Tauri Cargo SemVer> for nimi-shell-tauri, where the tag version equals that component's canonical package manifest version and every published artifact resolves to the same component and commit; the five component families version and release independently, and a root vX.Y.Z global library train, shared release-train version, another component's tag, Proto version, or Nimi App publisher tag never identifies or publishes one of these component releases.
+    condition: Whenever SDK, Kit, App Tools, protected-local, or Tauri shell is tagged, released, or published for production.
     failure: Reject before release or package-registry publication when the component family, tag, canonical package version, artifact owner, or commit mismatches, without falling back to a global or cross-component release train.
     relations:
       - type: applies_to
