@@ -157,8 +157,15 @@ Pre-release.
 
 ## 4. Stable Promotion
 
-Run `.github/workflows/release-promote.yml` with the accepted `rc_tag` and
-approve its `stable-release` environment.
+Dispatch `.github/workflows/release-promote.yml` from the accepted RC tag ref,
+pass the same tag as `rc_tag`, and approve its `stable-release` environment:
+
+```bash
+gh workflow run release-promote.yml --ref vX.Y.Z-rc.N -f rc_tag=vX.Y.Z-rc.N
+```
+
+The workflow rejects a dispatch from `main`, another branch, or another tag so
+npm provenance and promoted bytes remain bound to the same RC commit.
 
 Promotion:
 
@@ -265,14 +272,11 @@ GitHub jobs additionally require:
 - `contents: write` to create global RC/stable releases and the stable tag
 - `id-token: write` for npm provenance
 
-### Pending RC credential decision
+### RC credential boundary
 
-RC currently proves registry-ready package bytes locally and performs no
-registry authentication or mutation. Before the first RC, decide whether RC
-must also exercise real, read-only npm/crates.io/buf.build credential checks.
-Do not simulate a successful permission check and do not publish final package
-versions merely to test credentials; first registry writes remain stable-only
-unless that policy is explicitly changed.
+RC proves registry-ready package bytes locally and performs no registry
+authentication or mutation. The approved `stable-release` environment is the
+first credentialed registry gate, and first registry writes remain stable-only.
 
 ## Post-release Verification
 
