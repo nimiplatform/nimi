@@ -11,6 +11,7 @@ import {
   stat,
   writeFile,
 } from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -31,6 +32,7 @@ import {
   finalizeMacOSLocalDevelopmentCandidate,
 } from './lib/macos-local-development-release.mjs';
 
+const requireFromScript = createRequire(import.meta.url);
 const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(scriptRoot, '..');
 const repoRoot = path.resolve(desktopRoot, '../..');
@@ -184,7 +186,8 @@ async function buildReleaseInputs({
 }
 
 async function prepareElectronZip(electronVersionValue, electronZipRoot) {
-  const sourceApp = path.join(desktopRoot, 'node_modules', 'electron', 'dist', 'Electron.app');
+  const electronExecutable = requireFromScript('electron');
+  const sourceApp = path.resolve(electronExecutable, '..', '..', '..');
   await requireDirectory(sourceApp);
   const zipPath = path.join(electronZipRoot, `electron-v${electronVersionValue}-darwin-arm64.zip`);
   runReleaseCommand('/usr/bin/ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', sourceApp, zipPath]);
