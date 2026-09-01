@@ -1,0 +1,113 @@
+name: release-kit
+
+on:
+  push:
+    tags:
+      - kit/v*
+  pull_request:
+    paths:
+      - .github/workflows/release-kit.yml
+      - kit/**
+      - package.json
+      - pnpm-lock.yaml
+      - scripts/check-sdk-kit-pack-audit.mjs
+      - scripts/release/build-component-package.mjs
+      - sdks/typescript/**
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact stable Kit SemVer for a dry-run
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-kit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.34.5
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Resolve and verify Kit component identity
+        id: release
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          package_version="$(node -p "JSON.parse(require('node:fs').readFileSync('kit/package.json','utf8')).version")"
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            version="${GITHUB_REF_NAME#kit/v}"
+            production=true
+            test "${GITHUB_REF}" = "refs/tags/kit/v${version}"
+            test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            version="${INPUT_VERSION#v}"
+            production=false
+          else
+            version="${package_version}"
+            production=false
+          fi
+          if ! [[ "${version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Kit version must be a stable SemVer: ${version}" >&2
+            exit 1
+          fi
+          test "${package_version}" = "${version}"
+          {
+            echo "production=${production}"
+            echo "version=${version}"
+          } >> "${GITHUB_OUTPUT}"
+      - name: Test Kit
+        run: |
+          pnpm --filter @nimiplatform/sdk build
+          pnpm --filter @nimiplatform/kit typecheck
+          pnpm --filter @nimiplatform/kit test
+      - name: Build deterministic JS-only Kit package
+        run: pnpm release:component:pack -- --component kit --output-dir dist/component-release/kit
+      - name: Dry-run Kit publication
+        if: steps.release.outputs.production != 'true'
+        run: npm publish dist/component-release/kit/*.tgz --access public --dry-run
+      - name: Require public SDK dependency
+        if: steps.release.outputs.production == 'true'
+        run: |
+          set -euo pipefail
+          sdk_version="$(node -p "JSON.parse(require('node:fs').readFileSync('sdks/typescript/package.json','utf8')).version")"
+          npm view "@nimiplatform/sdk@${sdk_version}" version >/dev/null
+      - name: Publish or verify exact Kit package through npm OIDC
+        if: steps.release.outputs.production == 'true'
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          tarballs=(dist/component-release/kit/*.tgz)
+          test "${#tarballs[@]}" -eq 1
+          package_spec="@nimiplatform/kit@${RELEASE_VERSION}"
+          local_sha1="$(shasum -a 1 "${tarballs[0]}" | awk '{print $1}')"
+          if remote_sha1="$(npm view "${package_spec}" dist.shasum --json 2>/dev/null)"; then
+            remote_sha1="$(printf '%s' "${remote_sha1}" | tr -d '"[:space:]')"
+            test "${remote_sha1}" = "${local_sha1}"
+          else
+            npm publish "${tarballs[0]}" --access public --provenance
+          fi
