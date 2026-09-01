@@ -4,8 +4,8 @@ Nimi uses one repository-wide release train:
 
 ```text
 Release PR -> immutable unsigned preview (optional, never promotable)
-           -> signed canary for an exact commit -> immutable global RC tag
-           -> approved same-commit, same-signed-artifact stable promotion
+           -> sealed canary for an exact commit -> immutable global RC tag
+           -> approved same-commit, same-artifact stable promotion
 ```
 
 Release tags are global (`vX.Y.Z-preview.N`, `vX.Y.Z-rc.N`, and `vX.Y.Z`). Public packages
@@ -19,15 +19,16 @@ publish workflows and no alternate manual-publish path.
 | Runtime | Deferred | Raw Go archives are not a standalone protected Runtime distribution |
 | Runtime npm launcher | Deferred | Blocked with Runtime until supported platform service/bootstrap packages exist |
 | SDK | npm | `@nimiplatform/sdk` |
-| Kit | npm | `@nimiplatform/kit` plus admitted native packages |
+| Kit | npm | `@nimiplatform/kit` JavaScript package |
+| Kit protected-local Node carriers | Deferred | Windows production signing and macOS signing/notarization are not admitted |
 | App Tools | npm | `@nimiplatform/app-tools` |
 | Protected Local shell | crates.io | `nimi-shell-protected-local` |
 | Tauri shell | crates.io | `nimi-shell-tauri`, built from its sealed source archive after protected-local is visible |
 | Proto | buf.build | Module built from the sealed Proto source archive |
 | Desktop | Deferred | No production Electron distribution is admitted yet |
 
-Runtime and Proto use the global release version supplied to the canary
-workflow. npm and Cargo component versions come from their package manifests.
+Proto uses the global release version supplied to the canary workflow. npm and
+Cargo component versions come from their package manifests.
 
 ## 1. Release PR
 
@@ -95,8 +96,8 @@ App/Kit/Avatar and Runtime material.
 
 Preview assets are never published to npm, crates.io, or buf.build, never update
 the stable `latest` feed, and never become canary, RC, or Stable inputs. A future
-signed RC is rebuilt from the same source line after the production platform
-signers are available; preview tags and assets are never moved or overwritten.
+signed platform distribution is rebuilt after its production signers are
+available; preview tags and assets are never moved or overwritten.
 Repository immutable releases and the no-bypass `v*` tag ruleset are operational
 prerequisites before dispatch. The workflow verifies the published Release
 reports `isImmutable=true`; its ordinary `GITHUB_TOKEN` cannot read the
@@ -111,8 +112,9 @@ Run `.github/workflows/release-canary.yml` with:
 - `release_version`: global stable SemVer without `v`
 
 The workflow checks out that SHA, requires it to be on `main`, runs the full
-pre-release admission command, builds the real public artifacts, validates
-their packed payloads, and uploads a sealed Actions artifact named:
+pre-release admission command, builds SDK, Kit, App Tools, both public shell
+crates, and Proto, validates their packed payloads, and uploads a sealed Actions
+artifact named:
 
 ```text
 release-canary-<release_version>-<commit_sha>
@@ -123,13 +125,12 @@ an external registry. Re-running canary creates a new Actions artifact for the
 same identity; RC admits the latest successful, unexpired artifact with that
 exact name.
 
-Runtime canary is currently fail-closed before packaging because the raw
-GoReleaser archives cannot start the protected Runtime on their target
-platforms. A supported service/bootstrap distribution and a real
-start-health-stop acceptance path must replace that blocker before Runtime or
-its npm launcher can enter RC or Stable. GoReleaser remains configured as an
-archive builder with GitHub publishing disabled; its current version-only
-archive smoke is build diagnostics, not release acceptance.
+Runtime, its npm launcher, and Kit protected-local Node carriers are not members
+of this promotable bundle. Their deferred distribution and signing requirements
+therefore do not block the admitted libraries. A supported service/bootstrap
+distribution and real start-health-stop acceptance remain prerequisites before
+Runtime can enter this same release train; the Node carriers additionally
+require their platform production signing paths.
 
 ## 3. Immutable RC
 
@@ -146,20 +147,13 @@ git push origin vX.Y.Z-rc.N
    commit.
 2. Verifies every component manifest, artifact size, and SHA-256 digest.
 3. Reseals the same files as RC artifacts without rebuilding product bytes.
-4. Generates Runtime SPDX SBOMs, signs Runtime archives, SBOMs, and checksums,
-   and reseals the Runtime manifest.
-5. Installs the compatible npm tarballs locally and verifies the Runtime
-   launcher reports the intended version.
-6. Creates and publishes the real GitHub Pre-release for `vX.Y.Z-rc.N`.
+4. Installs the compatible npm tarballs locally and verifies the App Tools CLI.
+5. Creates and publishes the real GitHub Pre-release for `vX.Y.Z-rc.N`.
 
 RC does not currently publish to npm, crates.io, or buf.build. If an RC fails or
 needs a code change, fix the code, run a new canary for the new commit, and use
 `rc.N+1`. Do not move, replace, or reuse an existing RC tag or GitHub
 Pre-release.
-
-Ordinary `/runtime/latest.json` installation is stable-only and never falls
-back to an RC. Test an RC from its explicit GitHub Pre-release assets or the
-installer's explicit `--version vX.Y.Z-rc.N` path.
 
 ## 4. Stable Promotion
 
@@ -168,8 +162,7 @@ approve its `stable-release` environment.
 
 Promotion:
 
-1. Downloads the published RC assets and verifies all component manifests and
-   Runtime signatures.
+1. Downloads the published RC assets and verifies all component manifests.
 2. Creates or verifies global stable tag `vX.Y.Z` at the exact RC commit.
 3. Verifies the RC tag, stable tag, and every manifest name the same commit and
    artifact bytes.
@@ -189,10 +182,11 @@ Promotion:
 An already-published npm or Cargo version is accepted only when it is the same
 version and bytes; a conflicting immutable registry version fails promotion.
 
-### One-time Install Gateway global-tag cutover
+### Runtime install gateway cutover (deferred)
 
-The first global stable release also requires one explicit Worker deployment.
-After the stable GitHub Release exists, manually run
+Library-only promotion does not deploy or update the Runtime install gateway.
+When Runtime distribution is admitted to a later global release, that release
+requires one explicit Worker deployment after its stable GitHub Release. Run
 `.github/workflows/deploy-install-gateway.yml` with `commit_sha` set to the
 accepted RC commit SHA. The workflow checks out that exact main commit, tests
 and builds the Worker, and performs the real Cloudflare deployment. This
@@ -209,8 +203,8 @@ not a standing requirement to redeploy unchanged gateway code on every release.
 
 ## Platform Signing Status
 
-- Runtime macOS Go archives do not require Apple Developer ID and remain part
-  of canary, RC, and stable output.
+- Runtime archives and Runtime npm packages are excluded from the current
+  library bundle until a supported platform distribution is admitted.
 - Desktop Electron production distribution and the Kit macOS protected-local
   native package are deferred until the Apple signing/notarization path exists.
   Ad-hoc candidates may be published only through the explicit unsigned-preview
@@ -218,8 +212,8 @@ not a standing requirement to redeploy unchanged gateway code on every release.
 - The SignPath Foundation application is pending, no production Authenticode
   signer is configured, and no current Nimi Windows artifact is production
   signed. Kit Windows protected-local publication and the Windows Runtime
-  production release are therefore blocked; the signed canary lane intentionally
-  fails closed while the separate preview lane publishes only clearly marked,
+  production release are therefore deferred and excluded from the library
+  bundle; the separate preview lane publishes only clearly marked,
   non-promotable unsigned assets.
 - The repository's self-signed certificate flow is local-development only.
   `provision:windows-dev-trust` is not a release substitute and its certificate
@@ -230,8 +224,9 @@ not a standing requirement to redeploy unchanged gateway code on every release.
   installer, service helper, or repair helper joins that scope only if it is
   actually admitted to release. Third-party or upstream binaries must not be
   signed with Nimi's signing identity.
-- RC `.sig`/`.pem` cosign blob signatures authenticate release files but are not
-  Windows Authenticode signatures and do not establish a Windows Publisher.
+- Future Runtime RC `.sig`/`.pem` cosign blob signatures authenticate release
+  files but are not Windows Authenticode signatures and do not establish a
+  Windows Publisher.
 - Consistent Windows PE Product Name/Product Version enforcement and complete,
   tested installer/service uninstallation behavior are not yet admitted. Both
   remain release blockers before a production Windows download can be offered.
@@ -250,11 +245,12 @@ Stable promotion requires:
 - `BUF_TOKEN`
 - approval for the `stable-release` GitHub environment
 
-Production signing additionally requires verified MFA for every GitHub and
-SignPath member with signing access, a protected signing-approval permission
-separate from ordinary source-write operations, and signing credentials that
-are available only to the protected workflow. These controls are requirements,
-not claims that the pending SignPath path has already been configured.
+Production signing, when a signed platform artifact enters the train,
+additionally requires verified MFA for every GitHub and SignPath member with
+signing access, a protected signing-approval permission separate from ordinary
+source-write operations, and signing credentials that are available only to the
+protected workflow. These controls are not credentials for the current
+six-component library promotion.
 
 Repository settings must configure `stable-release` with required reviewers;
 merely naming an environment in YAML does not create an approval policy.
@@ -267,7 +263,7 @@ release admission.
 GitHub jobs additionally require:
 
 - `contents: write` to create global RC/stable releases and the stable tag
-- `id-token: write` for keyless cosign and npm provenance
+- `id-token: write` for npm provenance
 
 ### Pending RC credential decision
 
@@ -280,26 +276,11 @@ unless that policy is explicitly changed.
 
 ## Post-release Verification
 
-- `npm view @nimiplatform/nimi version`
 - `npm view @nimiplatform/sdk version`
 - `npm view @nimiplatform/kit version`
 - `npm view @nimiplatform/app-tools version`
 - `cargo search nimi-shell-protected-local --limit 1`
 - `cargo search nimi-shell-tauri --limit 1`
 - Verify the Proto module on buf.build.
-- Verify `/runtime/latest.json` resolves the global stable release and all six
-  Runtime archives.
-- Install one supported Runtime npm package and run `nimi version --json`.
-- Verify the GitHub stable release includes `checksums.txt`, Runtime SPDX SBOMs,
-  and `.sig` / `.pem` pairs for every signed Runtime file.
-
-Verify a Runtime file with:
-
-```bash
-cosign verify-blob \
-  --certificate <artifact>.pem \
-  --signature <artifact>.sig \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  --certificate-identity-regexp 'https://github.com/<org>/<repo>/.github/workflows/release-candidate.yml@.*' \
-  <artifact>
-```
+- Verify the stable GitHub Release contains the six admitted component
+  manifests and the exact RC assets.
