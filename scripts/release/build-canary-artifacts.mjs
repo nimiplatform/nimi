@@ -228,8 +228,7 @@ function buildKit(version, outputDir, platform) {
       mutate: (manifest) => {
         manifest.version = version;
         manifest.dependencies['@nimiplatform/sdk'] = `^${versions.sdk}`;
-        manifest.optionalDependencies['@nimiplatform/kit-protected-local-darwin-arm64'] = version;
-        manifest.optionalDependencies['@nimiplatform/kit-protected-local-win32-x64'] = version;
+        delete manifest.optionalDependencies;
       },
     });
     run(process.execPath, [

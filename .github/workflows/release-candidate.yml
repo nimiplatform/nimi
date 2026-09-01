@@ -116,7 +116,7 @@ jobs:
           const componentRoot = path.resolve('dist/release-components');
           const manifests = fs.readdirSync(sourceRoot)
             .filter((name) => /^release-manifest-.+\.json$/.test(name));
-          if (manifests.length !== 7) throw new Error(`expected 7 component manifests, found ${manifests.length}`);
+          if (manifests.length !== 6) throw new Error(`expected 6 component manifests, found ${manifests.length}`);
           const claimed = new Set();
           for (const manifestName of manifests) {
             const manifest = JSON.parse(fs.readFileSync(path.join(sourceRoot, manifestName), 'utf8'));
@@ -179,7 +179,6 @@ jobs:
     permissions:
       actions: read
       contents: write
-      id-token: write
     env:
       COMMIT_SHA: ${{ needs.resolve.outputs.commit_sha }}
       RELEASE_TAG: ${{ needs.resolve.outputs.release_tag }}
@@ -201,12 +200,6 @@ jobs:
           node-version: 24
           package-manager-cache: false
 
-      - name: Setup Go
-        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
-        with:
-          go-version-file: runtime/go.mod
-          cache: false
-
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
@@ -226,8 +219,8 @@ jobs:
           const componentRoot = path.resolve('dist/release-components');
           const manifests = fs.readdirSync(sourceRoot)
             .filter((name) => /^release-manifest-.+\.json$/.test(name));
-          if (manifests.length !== 7) {
-            throw new Error(`expected 7 component manifests, found ${manifests.length}`);
+          if (manifests.length !== 6) {
+            throw new Error(`expected 6 component manifests, found ${manifests.length}`);
           }
           const claimed = new Set();
           for (const manifestName of manifests) {
@@ -252,76 +245,7 @@ jobs:
               --channel rc
           done
 
-      - name: Install runtime signing tools
-        run: |
-          set -euo pipefail
-          GOBIN="$(go env GOPATH)/bin"
-          echo "${GOBIN}" >> "${GITHUB_PATH}"
-          go install github.com/sigstore/cosign/v2/cmd/cosign@v2.6.2
-          go install github.com/anchore/syft/cmd/syft@v1.42.2
-
-      - name: Resolve runtime archives
-        id: runtime
-        run: |
-          node <<'NODE'
-          const fs = require('node:fs');
-          const path = require('node:path');
-          const root = path.resolve('dist/release-components/runtime');
-          const archives = fs.readdirSync(root)
-            .filter((name) => name.endsWith('.tar.gz') || name.endsWith('.zip'))
-            .map((name) => path.join(root, name));
-          if (archives.length !== 6) throw new Error(`expected 6 runtime archives, found ${archives.length}`);
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `archives_json=${JSON.stringify(archives)}\n`);
-          NODE
-
-      - name: Sign runtime archives and generate SBOMs
-        env:
-          NIMI_ARTIFACT_PATHS_JSON: ${{ steps.runtime.outputs.archives_json }}
-          NIMI_SIGN_IDENTITY_REGEX: https://github.com/${{ github.repository }}/.github/workflows/release-candidate.yml@.*
-        run: pnpm check:runtime-release-signing
-
-      - name: Sign runtime checksums
-        run: |
-          set -euo pipefail
-          checksum_file="dist/release-components/runtime/checksums.txt"
-          cosign sign-blob \
-            --yes \
-            --output-signature "${checksum_file}.sig" \
-            --output-certificate "${checksum_file}.pem" \
-            "${checksum_file}"
-          cosign verify-blob \
-            --certificate "${checksum_file}.pem" \
-            --signature "${checksum_file}.sig" \
-            --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/release-candidate.yml@.*" \
-            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            "${checksum_file}"
-
-      - name: Reseal signed runtime component
-        run: |
-          set -euo pipefail
-          runtime_dir="dist/release-components/runtime"
-          runtime_manifest="${runtime_dir}/release-manifest-runtime.json"
-          rm "${runtime_manifest}"
-          pnpm release:artifact:manifest -- \
-            --component runtime \
-            --version "${{ needs.resolve.outputs.release_version }}" \
-            --commit "${COMMIT_SHA}" \
-            --channel rc \
-            --release-tag "${RELEASE_TAG}" \
-            --artifacts-dir "${runtime_dir}" \
-            --output "${runtime_manifest}"
-          pnpm release:artifact:verify -- \
-            --manifest "${runtime_manifest}" \
-            --artifacts-dir "${runtime_dir}" \
-            --component runtime \
-            --version "${{ needs.resolve.outputs.release_version }}" \
-            --commit "${COMMIT_SHA}" \
-            --channel rc
-          cp "${runtime_dir}"/* dist/release-train/
-
       - name: Install compatible npm tarballs from the RC bundle
-        env:
-          EXPECTED_RUNTIME_VERSION: ${{ needs.resolve.outputs.release_version }}
         run: |
           set -euo pipefail
           node <<'NODE'
@@ -353,15 +277,11 @@ jobs:
             { cwd: smokeRoot, encoding: 'utf8', stdio: 'inherit' },
           );
           if (install.status !== 0) throw new Error('installing compatible RC npm tarballs failed');
-          const launcher = path.join(smokeRoot, 'node_modules', '.bin', 'nimi');
-          const version = spawnSync(launcher, ['version'], { cwd: smokeRoot, encoding: 'utf8' });
-          process.stdout.write(version.stdout || '');
-          process.stderr.write(version.stderr || '');
-          if (version.status !== 0) throw new Error('installed RC runtime launcher failed its version smoke');
-          const versionOutput = `${version.stdout || ''}\n${version.stderr || ''}`;
-          if (!versionOutput.includes(process.env.EXPECTED_RUNTIME_VERSION)) {
-            throw new Error(`installed RC runtime reports the wrong version: ${versionOutput.trim()}`);
-          }
+          const appTools = path.join(smokeRoot, 'node_modules', '.bin', 'nimi-app');
+          const help = spawnSync(appTools, ['--help'], { cwd: smokeRoot, encoding: 'utf8' });
+          process.stdout.write(help.stdout || '');
+          process.stderr.write(help.stderr || '');
+          if (help.status !== 0) throw new Error('installed RC app-tools CLI failed its help smoke');
           NODE
 
       - name: Create draft GitHub prerelease with exact assets

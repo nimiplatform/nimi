@@ -93,18 +93,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - component: runtime
-            platform: main
-            runner: ubuntu-latest
           - component: sdk
             platform: main
             runner: ubuntu-latest
           - component: kit
             platform: main
             runner: ubuntu-latest
-          - component: kit
-            platform: win32-x64
-            runner: windows-latest
           - component: app-tools
             platform: main
             runner: ubuntu-latest
@@ -150,33 +144,6 @@ jobs:
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Require an admitted Windows production signer
-        if: matrix.component == 'kit' && matrix.platform == 'win32-x64'
-        shell: pwsh
-        run: |
-          throw @'
-          Windows release packaging is blocked: the repository only provides a local-development
-          self-signed certificate flow. A production signer/import contract must sign both the
-          protected-local native carrier and Windows Runtime release before this promotable lane
-          can run. Do not replace this gate with provision:windows-dev-trust.
-          '@
-
-      - name: Require an admitted Runtime distribution package
-        if: matrix.component == 'runtime'
-        shell: bash
-        run: |
-          echo 'Runtime release packaging is blocked: the current GoReleaser archives expose CLI diagnostics but cannot start the protected Runtime on Linux, macOS CGO=0, or Windows without an installed service.' >&2
-          echo 'Implement and accept supported platform service/bootstrap packages before removing this gate; a version-only archive smoke is insufficient.' >&2
-          exit 1
-
-      - name: Install pinned GoReleaser
-        if: matrix.component == 'runtime'
-        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
-        with:
-          distribution: goreleaser
-          version: v2.17.0
-          install-only: true
-
       - name: Build component candidate artifacts
         env:
           COMMIT_SHA: ${{ inputs.commit_sha }}
@@ -187,7 +154,7 @@ jobs:
         run: |
           set -euo pipefail
           args=(--component "${COMPONENT}" --commit "${COMMIT_SHA}")
-          if [[ "${COMPONENT}" == "runtime" || "${COMPONENT}" == "proto" ]]; then
+          if [[ "${COMPONENT}" == "proto" ]]; then
             args+=(--version "${RELEASE_VERSION}")
           fi
           if [[ "${COMPONENT}" == "kit" ]]; then
@@ -211,7 +178,6 @@ jobs:
       fail-fast: false
       matrix:
         component:
-          - runtime
           - sdk
           - kit
           - app-tools

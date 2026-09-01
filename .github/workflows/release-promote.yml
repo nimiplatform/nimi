@@ -114,8 +114,8 @@ jobs:
           const componentRoot = path.resolve('dist/release-components');
           const manifests = fs.readdirSync(sourceRoot)
             .filter((name) => /^release-manifest-.+\.json$/.test(name));
-          if (manifests.length !== 7) {
-            throw new Error(`expected 7 component manifests, found ${manifests.length}`);
+          if (manifests.length !== 6) {
+            throw new Error(`expected 6 component manifests, found ${manifests.length}`);
           }
           const claimed = new Set();
           for (const manifestName of manifests) {
@@ -139,32 +139,6 @@ jobs:
               --commit "${COMMIT_SHA}" \
               --channel rc
           done
-
-      - name: Verify Runtime RC signatures
-        run: |
-          set -euo pipefail
-          GOBIN="$(go env GOPATH)/bin"
-          go install github.com/sigstore/cosign/v2/cmd/cosign@v2.6.2
-          verify_blob() {
-            local artifact="$1"
-            "${GOBIN}/cosign" verify-blob \
-              --certificate "${artifact}.pem" \
-              --signature "${artifact}.sig" \
-              --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/release-candidate.yml@.*" \
-              --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-              "${artifact}"
-          }
-          runtime_dir="dist/release-components/runtime"
-          mapfile -d '' archives < <(
-            find "${runtime_dir}" -maxdepth 1 -type f \
-              \( -name '*.tar.gz' -o -name '*.zip' \) -print0 | sort -z
-          )
-          test "${#archives[@]}" -eq 6
-          for archive in "${archives[@]}"; do
-            verify_blob "${archive}"
-            verify_blob "${archive}.spdx.json"
-          done
-          verify_blob "${runtime_dir}/checksums.txt"
 
       - name: Require publication credentials before creating stable tag
         env:
@@ -249,19 +223,7 @@ jobs:
           }
 
           publish_exact_npm '@nimiplatform/sdk'
-          publish_exact_npm '@nimiplatform/kit-protected-local-win32-x64'
           publish_exact_npm '@nimiplatform/kit'
-          for package_name in \
-            '@nimiplatform/nimi-darwin-arm64' \
-            '@nimiplatform/nimi-darwin-x64' \
-            '@nimiplatform/nimi-linux-arm64' \
-            '@nimiplatform/nimi-linux-x64' \
-            '@nimiplatform/nimi-win32-arm64' \
-            '@nimiplatform/nimi-win32-x64'
-          do
-            publish_exact_npm "${package_name}"
-          done
-          publish_exact_npm '@nimiplatform/nimi'
 
       - name: Publish protected-local crate from the admitted SHA
         env:
