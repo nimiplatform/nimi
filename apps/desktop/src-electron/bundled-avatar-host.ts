@@ -2033,10 +2033,17 @@ function requiredText(value: unknown, field: string): string {
 
 function requiredExactText(value: unknown, field: string, maxLength: number): string {
   if (typeof value !== 'string' || value.length === 0 || value.length > maxLength
-    || value.trim() !== value || /[\u0000-\u001f\u007f]/u.test(value)) {
+    || value.trim() !== value || containsAsciiControlCharacter(value)) {
     throw new Error(`${field} is invalid`);
   }
   return value;
+}
+
+function containsAsciiControlCharacter(value: string): boolean {
+  return Array.from(value).some((character) => {
+    const code = character.charCodeAt(0);
+    return code <= 0x1f || code === 0x7f;
+  });
 }
 
 function requiredNumber(value: unknown, field: string): number {
@@ -2049,10 +2056,6 @@ function optionalNumber(value: unknown): number | undefined {
   if (value === undefined || value === null || value === '') return undefined;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
-}
-
-function optionalText(value: unknown): string | null {
-  return normalizeText(value) || null;
 }
 
 function normalizeText(value: unknown): string {

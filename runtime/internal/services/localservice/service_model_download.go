@@ -191,6 +191,13 @@ func (s *Service) installManagedDownloadedModel(
 	return s.installManagedDownloadedModelWithTransfer(ctx, spec, "")
 }
 
+func managedModelTransferTerminalError(cause error, persistenceErr error) error {
+	if persistenceErr != nil {
+		return localTransferPersistenceError(persistenceErr)
+	}
+	return cause
+}
+
 // installManagedDownloadedModelWithTransfer runs the managed download/install
 // pipeline either with a new transfer session or with an explicitly restored
 // session whose executor was rebuilt by ResumeLocalTransfer.
@@ -289,18 +296,17 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 	logicalModelID := storageID
 	modelDir, err := resolveRuntimeManagedModelBundleDir(modelsRoot, logicalModelID)
 	if err != nil {
-		s.failTransfer(transferID, err.Error(), false)
-		return nil, grpcerr.WrapWithReasonCode(
+		failure := grpcerr.WrapWithReasonCode(
 			codes.InvalidArgument,
 			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
 			err,
 			grpcerr.ReasonOptions{Message: "downloaded model storage identity is invalid"},
 		)
+		return nil, managedModelTransferTerminalError(failure, s.failTransfer(transferID, err.Error(), false))
 	}
 	stagingDir, err := prepareManagedModelDownloadStageDir(modelsRoot, storageID)
 	if err != nil {
-		s.failTransfer(transferID, err.Error(), false)
-		return nil, err
+		return nil, managedModelTransferTerminalError(err, s.failTransfer(transferID, err.Error(), false))
 	}
 
 	success := false
@@ -319,23 +325,20 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 	for index, file := range files {
 		relativeFile, err := normalizeArtifactRelativeFile(file)
 		if err != nil {
-			s.failTransfer(transferID, err.Error(), false)
-			return nil, err
+			return nil, managedModelTransferTerminalError(err, s.failTransfer(transferID, err.Error(), false))
 		}
 		targetPath := filepath.Join(stagingDir, filepath.FromSlash(relativeFile))
 		if err := os.MkdirAll(filepath.Dir(targetPath), 0o755); err != nil {
-			s.failTransfer(transferID, fmt.Sprintf("create model file dir %q: %v", relativeFile, err), false)
-			return nil, fmt.Errorf("create model file dir %q: %w", relativeFile, err)
+			failure := fmt.Errorf("create model file dir %q: %w", relativeFile, err)
+			return nil, managedModelTransferTerminalError(failure, s.failTransfer(transferID, failure.Error(), false))
 		}
 		completedSize, completed, completedErr := inspectCompletedManagedModelDownloadFile(targetPath, expectedModelSHA256(spec.hashes, relativeFile))
 		if completedErr != nil {
-			if isRetryableManagedModelDownloadError(completedErr) {
+			retryable := isRetryableManagedModelDownloadError(completedErr)
+			if retryable {
 				preserveStaging = true
-				s.failTransfer(transferID, completedErr.Error(), true)
-			} else {
-				s.failTransfer(transferID, completedErr.Error(), false)
 			}
-			return nil, completedErr
+			return nil, managedModelTransferTerminalError(completedErr, s.failTransfer(transferID, completedErr.Error(), retryable))
 		}
 		if completed {
 			completedBytes += completedSize
@@ -354,26 +357,27 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 			index == len(files)-1,
 		)
 		if err != nil {
+			var persistenceErr error
 			switch {
 			case errors.Is(err, errLocalTransferCancelled):
-				s.cancelTransfer(transferID, "transfer cancelled")
+				persistenceErr = s.cancelTransfer(transferID, "transfer cancelled")
 			case errors.Is(err, errModelDownloadHashMismatch):
-				s.failTransfer(transferID, err.Error(), false)
+				persistenceErr = s.failTransfer(transferID, err.Error(), false)
 			case errors.Is(err, context.Canceled) && rpcctx.WasServerShutdown(ctx):
 				preserveStaging = true
-				s.interruptTransfer(transferID, "transfer interrupted by runtime shutdown")
+				persistenceErr = s.interruptTransfer(transferID, "transfer interrupted by runtime shutdown")
 			case errors.Is(err, context.Canceled) && normalizeTransferState(s.localTransferSummary(transferID).GetState()) == localTransferStatePaused:
 				preserveStaging = true
 			case errors.Is(err, context.Canceled):
 				preserveStaging = true
-				s.failTransfer(transferID, err.Error(), true)
+				persistenceErr = s.failTransfer(transferID, err.Error(), true)
 			case isRetryableManagedModelDownloadError(err):
 				preserveStaging = true
-				s.failTransfer(transferID, err.Error(), true)
+				persistenceErr = s.failTransfer(transferID, err.Error(), true)
 			default:
-				s.failTransfer(transferID, err.Error(), false)
+				persistenceErr = s.failTransfer(transferID, err.Error(), false)
 			}
-			return nil, err
+			return nil, managedModelTransferTerminalError(err, persistenceErr)
 		}
 		info, statErr := os.Lstat(targetPath)
 		if statErr != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 {
@@ -381,15 +385,14 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 				statErr = errors.New("downloaded target is not a direct regular file")
 			}
 			preserveStaging = true
-			s.failTransfer(transferID, statErr.Error(), true)
-			return nil, fmt.Errorf("inspect downloaded model file %q: %w", relativeFile, statErr)
+			failure := fmt.Errorf("inspect downloaded model file %q: %w", relativeFile, statErr)
+			return nil, managedModelTransferTerminalError(failure, s.failTransfer(transferID, statErr.Error(), true))
 		}
 		completedBytes += info.Size()
 	}
 	if bundleTotal > 0 && completedBytes != bundleTotal {
 		err := fmt.Errorf("managed model bundle size mismatch: expected=%d actual=%d", bundleTotal, completedBytes)
-		s.failTransfer(transferID, err.Error(), false)
-		return nil, err
+		return nil, managedModelTransferTerminalError(err, s.failTransfer(transferID, err.Error(), false))
 	}
 	entryFile := strings.TrimSpace(spec.entry)
 	if entryFile == "" && len(files) > 0 {
@@ -397,13 +400,13 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 	}
 	entryPath := filepath.Join(stagingDir, filepath.FromSlash(entryFile))
 	if err := validateManagedModelEntryFile(entryPath); err != nil {
-		s.failTransfer(transferID, err.Error(), false)
-		return nil, grpcerr.WrapWithReasonCode(
+		failure := grpcerr.WrapWithReasonCode(
 			codes.InvalidArgument,
 			runtimev1.ReasonCode_AI_LOCAL_MANIFEST_INVALID,
 			err,
 			grpcerr.ReasonOptions{Message: "downloaded model entry is invalid"},
 		)
+		return nil, managedModelTransferTerminalError(failure, s.failTransfer(transferID, err.Error(), false))
 	}
 	activation, err := activateManagedModelBundle(modelDir, stagingDir)
 	if err != nil {
@@ -416,15 +419,14 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 			modelID,
 		)
 		if quarantineErr != nil {
-			s.failTransfer(transferID, fmt.Sprintf("activate managed model bundle: %v; quarantine=%v", err, quarantineErr), false)
-			return nil, fmt.Errorf("activate managed model bundle: %v; quarantine=%w", err, quarantineErr)
+			failure := fmt.Errorf("activate managed model bundle: %v; quarantine=%w", err, quarantineErr)
+			return nil, managedModelTransferTerminalError(failure, s.failTransfer(transferID, failure.Error(), false))
 		}
+		failureMessage := fmt.Sprintf("activate managed model bundle: %v", err)
 		if strings.TrimSpace(quarantinePath) != "" {
-			s.failTransfer(transferID, fmt.Sprintf("activate managed model bundle: %v; quarantine=%s", err, quarantinePath), false)
-		} else {
-			s.failTransfer(transferID, fmt.Sprintf("activate managed model bundle: %v", err), false)
+			failureMessage = fmt.Sprintf("%s; quarantine=%s", failureMessage, quarantinePath)
 		}
-		return nil, fmt.Errorf("activate managed model bundle: %w", err)
+		return nil, managedModelTransferTerminalError(fmt.Errorf("activate managed model bundle: %w", err), s.failTransfer(transferID, failureMessage, false))
 	}
 	success = true
 
@@ -481,15 +483,12 @@ func (s *Service) installManagedDownloadedModelWithTransfer(
 			}
 		}
 		if rollbackErr != nil {
-			s.failTransfer(transferID, fmt.Sprintf("%s; rollback=%v", err.Error(), rollbackErr), false)
-			return nil, err
+			return nil, managedModelTransferTerminalError(err, s.failTransfer(transferID, fmt.Sprintf("%s; rollback=%v", err.Error(), rollbackErr), false))
 		}
 		if strings.TrimSpace(quarantinePath) != "" {
-			s.failTransfer(transferID, fmt.Sprintf("%s; quarantine=%s", err.Error(), quarantinePath), false)
-			return nil, err
+			return nil, managedModelTransferTerminalError(err, s.failTransfer(transferID, fmt.Sprintf("%s; quarantine=%s", err.Error(), quarantinePath), false))
 		}
-		s.failTransfer(transferID, err.Error(), false)
-		return nil, err
+		return nil, managedModelTransferTerminalError(err, s.failTransfer(transferID, err.Error(), false))
 	}
 	if commitErr := activation.Commit(); commitErr != nil {
 		s.logger.Warn("cleanup managed bundle backup failed after download install", "logical_model_id", logicalModelID, "error", commitErr)

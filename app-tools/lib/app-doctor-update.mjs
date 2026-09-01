@@ -141,7 +141,7 @@ function assertSupportedLock(lock) {
   if (!SUPPORTED_APP_SCAFFOLD_PROFILES.includes(lock?.profile)) {
     throw new Error(`Unsupported scaffold profile: ${String(lock?.profile || 'missing')}`);
   }
-  if (!lock.appId || !lock.appTitle) {
+  if (!lock.appId || !lock.appTitle || !lock.version) {
     throw new Error('Scaffold lock missing app identity');
   }
 }
@@ -175,6 +175,23 @@ function expectedSnapshotFromLock(lock, versions, intent, targetDir, options = {
   if (!intent) {
     throw new Error(`Missing scaffold init intent: ${SCAFFOLD_INTENT_PATH}`);
   }
+  for (const [intentField, lockField, label] of [
+    ['profile', 'profile', 'profile'],
+    ['appId', 'appId', 'App ID'],
+    ['appTitle', 'appTitle', 'display name'],
+    ['packageName', 'packageName', 'package name'],
+    ['packageAuthor', 'packageAuthor', 'package author'],
+    ['cargoPackageName', 'cargoPackageName', 'Cargo package name'],
+    ['tauriIdentifier', 'tauriIdentifier', 'Tauri identifier'],
+    ['accentPack', 'accentPack', 'accent pack'],
+  ]) {
+    const expected = lockField.includes('.')
+      ? lockField.split('.').reduce((value, key) => value?.[key], lock)
+      : lock[lockField];
+    if (stableStringify(intent[intentField]) !== stableStringify(expected)) {
+      throw new Error(`Scaffold ${label} is immutable; create a fresh scaffold to change it`);
+    }
+  }
   const snapshot = buildAppScaffoldSnapshotFromIntent({
     intent,
     versions,
@@ -194,6 +211,7 @@ function readContentForHash(filePath) {
 function ensureLockMatchesCurrentGenerator(lock, snapshot) {
   assertSameJson(lock.scaffoldVersion, snapshot.lock.scaffoldVersion, 'Scaffold version');
   assertSameJson(lock.appIdentity, snapshot.lock.appIdentity, 'App identity');
+  assertSameJson(lock.version, snapshot.lock.version, 'App version');
   assertSameJson(lock.packageName, snapshot.lock.packageName, 'Package name');
   assertSameJson(lock.packageAuthor, snapshot.lock.packageAuthor, 'Package author');
   assertSameJson(lock.cargoPackageName, snapshot.lock.cargoPackageName, 'Cargo package name');
@@ -208,6 +226,8 @@ function ensureLockMatchesCurrentGenerator(lock, snapshot) {
   assertSameJson(lock.resolvedAssets, snapshot.lock.resolvedAssets, 'Resolved scaffold assets');
   assertSameJson(lock.hostAdapterContracts, snapshot.lock.hostAdapterContracts, 'Scaffold host adapter contracts');
   assertSameJson(lock.appAccessItems, snapshot.lock.appAccessItems, 'App access items');
+  assertSameJson(lock.capabilityContractRefs, snapshot.lock.capabilityContractRefs, 'Capability contract refs');
+  assertSameJson(lock.requiredStandardizedFeatureRefs, snapshot.lock.requiredStandardizedFeatureRefs, 'Required standardized feature refs');
   assertSameJson(lock.managedFileTaxonomy, snapshot.lock.managedFileTaxonomy, 'Managed file taxonomy');
   assertSameJson(lock.dependencyMatrix, snapshot.lock.dependencyMatrix, 'Dependency matrix');
   assertSameJson(lock.managedFileHashes, snapshot.lock.managedFileHashes, 'Managed file hashes');
@@ -512,7 +532,7 @@ function assertManagedFilesCurrent(targetDir, lock) {
   }
 }
 
-function validateDoctorState(targetDir, versions, runners = {}) {
+function validateAppProjectState(targetDir, versions, runners = {}) {
   if (!existsSync(path.join(targetDir, SCAFFOLD_LOCK_PATH))) {
     if (existsSync(path.join(targetDir, SCAFFOLD_INTENT_PATH))) {
       readLock(targetDir);
@@ -583,7 +603,7 @@ export function initApp(cwd, options = {}, versions, runners = {}) {
   for (const file of snapshot.initFiles) {
     writeScaffoldFile(targetDir, file);
   }
-  validateDoctorState(targetDir, versions, runners);
+  validateAppProjectState(targetDir, versions, runners);
   const payload = {
     ok: true,
     command: 'init',
@@ -603,7 +623,7 @@ export function initApp(cwd, options = {}, versions, runners = {}) {
   return payload;
 }
 
-export function doctorApp(cwd, options = {}, versions, runners = {}) {
+export function validateAppProject(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
   if (options.conformance) {
     if (options.conformance !== 'simulator') {
@@ -617,10 +637,10 @@ export function doctorApp(cwd, options = {}, versions, runners = {}) {
       return result;
     });
   }
-  const result = validateDoctorState(targetDir, versions, runners);
+  const result = validateAppProjectState(targetDir, versions, runners);
   const payload = {
     ok: true,
-    command: 'doctor',
+    command: 'check',
     dir: targetDir,
     scaffoldVersion: result.lock?.scaffoldVersion ?? null,
     profile: result.lock?.profile ?? result.profile,
@@ -635,7 +655,7 @@ export function doctorApp(cwd, options = {}, versions, runners = {}) {
   if (options.json) {
     process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
   } else {
-    process.stdout.write(`[nimi-app] doctor passed for ${targetDir}\n`);
+    process.stdout.write(`[nimi-app] check passed for ${targetDir}\n`);
   }
   return payload;
 }
@@ -675,11 +695,20 @@ function writeScaffoldFile(targetDir, file) {
   writeFileSync(targetPath, file.content);
 }
 
-export function updateApp(cwd, options = {}, versions, runners = {}) {
+export function syncManagedApp(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
   const lock = readLock(targetDir);
   const intent = readIntent(targetDir);
-  const snapshot = expectedSnapshotFromLock(lock, versions, intent, targetDir, { allowDerivedAppAccessDrift: true });
+  const packageJson = readJsonFile(path.join(targetDir, 'package.json'), 'package.json');
+  const versionedIntent = {
+    ...intent,
+    version: packageJson.version,
+    appIdentity: {
+      ...intent.appIdentity,
+      version: packageJson.version,
+    },
+  };
+  const snapshot = expectedSnapshotFromLock(lock, versions, versionedIntent, targetDir, { allowDerivedAppAccessDrift: true });
   assertNoClassificationConflict(lock, snapshot);
   if (!runners?.runNimicodingSync) {
     throw new Error('Missing nimicoding sync runner');
@@ -698,10 +727,10 @@ export function updateApp(cwd, options = {}, versions, runners = {}) {
     content: `${JSON.stringify(snapshot.lock, null, 2)}\n`,
   });
 
-  validateDoctorState(targetDir, versions, runners);
+  validateAppProjectState(targetDir, versions, runners);
   const payload = {
     ok: true,
-    command: 'update',
+    command: 'sync',
     dir: targetDir,
     scaffoldVersion: snapshot.lock.scaffoldVersion,
     profile: snapshot.lock.profile,
@@ -709,10 +738,13 @@ export function updateApp(cwd, options = {}, versions, runners = {}) {
     features: snapshot.lock.features,
     refreshedManagedFiles: Object.keys(snapshot.lock.managedFileHashes).length,
   };
+  if (options.silent) {
+    return payload;
+  }
   if (options.json) {
     process.stdout.write(`${JSON.stringify(payload, null, 2)}\n`);
   } else {
-    process.stdout.write(`[nimi-app] update refreshed managed scaffold files at ${targetDir}\n`);
+    process.stdout.write(`[nimi-app] sync refreshed managed scaffold files at ${targetDir}\n`);
   }
   return payload;
 }

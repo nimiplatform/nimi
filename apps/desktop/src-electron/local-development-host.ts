@@ -85,12 +85,14 @@ type RunStatus = {
 };
 
 type RunContext = {
+  readonly intentSequence: number;
   readonly status: RunStatus;
   readonly plan: ElectronLocalDevelopmentPlan;
   readonly requestedCdpPort?: number;
   cdpPort?: number;
   readonly supervisorRunId: string;
   desktopManaged: boolean;
+  registrationOwnerHandle?: string;
   registrationHandle?: string;
   pendingEndRunRegistrationHandle?: string;
   buildChild?: ChildProcessWithoutNullStreams;
@@ -99,6 +101,8 @@ type RunContext = {
   healthTimer?: ReturnType<typeof setInterval>;
   launcherLeaseTimer?: ReturnType<typeof setTimeout>;
   rebuildTimer?: ReturnType<typeof setTimeout>;
+  stopPromise?: Promise<void>;
+  teardownPromise?: Promise<void>;
   stopped: boolean;
   stoppedCleanupComplete: boolean;
   tearingDown: boolean;
@@ -159,6 +163,8 @@ export async function createDesktopElectronLocalDevelopmentHost(input: {
 export class ElectronLocalDevelopmentHost {
   private readonly runs = new Map<string, RunContext>();
   private readonly registrationSelectors = new Map<string, string>();
+  private readonly registrationRemovalSequences = new Map<string, number>();
+  private registrationIntentSequence = 0;
   private server: Server | undefined;
   private endpoint = '';
   private shutdownPromise: Promise<void> | undefined;
@@ -196,9 +202,16 @@ export class ElectronLocalDevelopmentHost {
   async invoke(command: string, payload: Readonly<Record<string, unknown>>): Promise<unknown> {
     if (!COMMANDS.has(command)) throw new Error('local-development-command-unavailable');
     if (command === 'local_development_runs_list') {
-      const latestByAppId = new Map<string, RunContext>();
-      for (const run of this.runs.values()) latestByAppId.set(run.status.appId, run);
-      return [...latestByAppId.values()].map((run) => projectRun(run.status));
+      await this.listRegistrations();
+      const latestBySelector = new Map<string, RunContext>();
+      for (const run of this.runs.values()) {
+        const registrationOwnerHandle = run.registrationOwnerHandle ?? run.registrationHandle;
+        if (!registrationOwnerHandle) continue;
+        const selectorValue = [...this.registrationSelectors]
+          .find(([, handle]) => handle === registrationOwnerHandle)?.[0];
+        if (selectorValue) latestBySelector.set(selectorValue, run);
+      }
+      return [...latestBySelector].map(([selectorValue, run]) => projectRun(run.status, selectorValue));
     }
     if (command === 'local_development_registrations_list') return this.listRegistrations();
     const exactPayload = exactNestedPayload(payload);
@@ -341,12 +354,16 @@ export class ElectronLocalDevelopmentHost {
     }
     const runId = randomSelector('dev-run');
     const run: RunContext = {
+      intentSequence: ++this.registrationIntentSequence,
       plan,
       requestedCdpPort,
       cdpPort: requestedCdpPort === 0 ? undefined : requestedCdpPort,
       supervisorRunId: randomIdentifier(),
       desktopManaged,
-      ...(existingRegistrationHandle === undefined ? {} : { registrationHandle: existingRegistrationHandle }),
+      ...(existingRegistrationHandle === undefined ? {} : {
+        registrationOwnerHandle: existingRegistrationHandle,
+        registrationHandle: existingRegistrationHandle,
+      }),
       stopped: false,
       stoppedCleanupComplete: false,
       tearingDown: false,
@@ -418,10 +435,23 @@ export class ElectronLocalDevelopmentHost {
       );
       return;
     }
+    const removalSequence = this.registrationRemovalSequences.get(registration.registrationHandle);
+    if (run.stopped || (removalSequence !== undefined && run.intentSequence <= removalSequence)) {
+      run.registrationOwnerHandle = registration.registrationHandle;
+      run.pendingEndRunRegistrationHandle = registration.registrationHandle;
+      run.stoppedCleanupComplete = false;
+      await this.stopRun(run, 'stopped');
+      if (run.pendingEndRunRegistrationHandle) {
+        run.stoppedCleanupComplete = false;
+        await this.stopRun(run, 'stopped');
+      }
+      return;
+    }
     if (!sameLocalDevelopmentProject(registration, run.plan)) {
       setRunState(run, 'project-changed', 'local-development-project-changed', 'local-development-project-changed', false);
       return;
     }
+    run.registrationOwnerHandle = registration.registrationHandle;
     run.registrationHandle = registration.registrationHandle;
     this.startSupervisor(run);
   }
@@ -497,8 +527,11 @@ export class ElectronLocalDevelopmentHost {
     const selectorValue = selector(payload.selector, 'dev-project');
     const registrationHandle = this.registrationSelectors.get(selectorValue);
     if (!registrationHandle) throw new Error('local-development-registration-not-found');
+    this.registrationRemovalSequences.set(registrationHandle, ++this.registrationIntentSequence);
     for (const run of this.runs.values()) {
-      if (run.registrationHandle === registrationHandle && !run.stopped) {
+      const registrationOwnerHandle = run.registrationOwnerHandle ?? run.registrationHandle;
+      const cleanupPending = !run.stoppedCleanupComplete || Boolean(run.pendingEndRunRegistrationHandle);
+      if (registrationOwnerHandle === registrationHandle && (!run.stopped || cleanupPending)) {
         await this.stopRun(run, 'registration-removed');
       }
     }
@@ -525,17 +558,21 @@ export class ElectronLocalDevelopmentHost {
       true,
       registrationHandle,
     );
-    return projectRun(status);
+    return projectRun(status, selectorValue);
   }
 
-  private async stopRegistrationRun(payload: Readonly<Record<string, unknown>>): Promise<{ readonly appId: string; readonly stopped: true }> {
-    const value = exact(payload, ['appId']);
-    const appId = text(value.appId);
-    const matchingRuns = [...this.runs.values()].filter((run) => run.status.appId === appId);
+  private async stopRegistrationRun(payload: Readonly<Record<string, unknown>>): Promise<{ readonly selector: string; readonly stopped: true }> {
+    const value = exact(payload, ['selector']);
+    const selectorValue = selector(value.selector, 'dev-project');
+    const registrationHandle = this.registrationSelectors.get(selectorValue);
+    if (!registrationHandle) throw new Error('local-development-run-not-found');
+    const matchingRuns = [...this.runs.values()].filter((run) => (
+      (run.registrationOwnerHandle ?? run.registrationHandle) === registrationHandle
+    ));
     if (matchingRuns.length === 0) throw new Error('local-development-run-not-found');
     const stoppableRuns = matchingRuns.filter((run) => !run.stopped || !run.stoppedCleanupComplete);
     await Promise.all(stoppableRuns.map((run) => this.stopRun(run, 'stopped')));
-    return { appId, stopped: true };
+    return { selector: selectorValue, stopped: true };
   }
 
   private startSupervisor(run: RunContext): void {
@@ -789,7 +826,7 @@ export class ElectronLocalDevelopmentHost {
     });
   }
 
-  private async failClosedRun(run: RunContext, outcome: {
+  private failClosedRun(run: RunContext, outcome: {
     readonly state: string;
     readonly message: string;
     readonly reasonCode: string;
@@ -797,13 +834,30 @@ export class ElectronLocalDevelopmentHost {
     readonly endRun: boolean;
     readonly resumeRegistrationRefresh: boolean;
   }): Promise<void> {
-    if (run.stopped || run.tearingDown) return;
+    if (run.stopped || run.tearingDown) return Promise.resolve();
     run.tearingDown = true;
     if (!outcome.resumeRegistrationRefresh) {
       run.stopped = true;
       run.stoppedCleanupComplete = false;
       this.clearLauncherLease(run);
     }
+    const tearingDown = this.failClosedRunOnce(run, outcome).finally(() => {
+      run.tearingDown = false;
+      if (run.teardownPromise === tearingDown) run.teardownPromise = undefined;
+      if (outcome.resumeRegistrationRefresh && !run.stopped) this.ensureHealthTimer(run);
+    });
+    run.teardownPromise = tearingDown;
+    return tearingDown;
+  }
+
+  private async failClosedRunOnce(run: RunContext, outcome: {
+    readonly state: string;
+    readonly message: string;
+    readonly reasonCode: string;
+    readonly retryable: boolean;
+    readonly endRun: boolean;
+    readonly resumeRegistrationRefresh: boolean;
+  }): Promise<void> {
     try {
       await this.teardownRun(run, outcome.endRun);
       if (!outcome.resumeRegistrationRefresh) run.stoppedCleanupComplete = true;
@@ -812,9 +866,6 @@ export class ElectronLocalDevelopmentHost {
       run.stopped = true;
       run.stoppedCleanupComplete = false;
       setRunState(run, 'cleanup-failed', 'local-development-process-cleanup-failed', 'local-development-process-cleanup-failed', false);
-    } finally {
-      run.tearingDown = false;
-      if (outcome.resumeRegistrationRefresh && !run.stopped) this.ensureHealthTimer(run);
     }
   }
 
@@ -843,8 +894,26 @@ export class ElectronLocalDevelopmentHost {
     return child;
   }
 
-  private async stopRun(run: RunContext, state: string): Promise<void> {
-    if (run.stopped && run.stoppedCleanupComplete) return;
+  private stopRun(run: RunContext, state: string): Promise<void> {
+    if (run.stopped && run.stoppedCleanupComplete && !run.pendingEndRunRegistrationHandle) {
+      return Promise.resolve();
+    }
+    if (run.stopPromise) return run.stopPromise;
+    const stopping = this.stopRunAfterCurrentTeardown(run, state).finally(() => {
+      if (run.stopPromise === stopping) run.stopPromise = undefined;
+    });
+    run.stopPromise = stopping;
+    return stopping;
+  }
+
+  private async stopRunAfterCurrentTeardown(run: RunContext, state: string): Promise<void> {
+    const currentTeardown = run.teardownPromise;
+    if (currentTeardown) await currentTeardown;
+    if (run.stopped && run.stoppedCleanupComplete && !run.pendingEndRunRegistrationHandle) return;
+    await this.stopRunOnce(run, state);
+  }
+
+  private async stopRunOnce(run: RunContext, state: string): Promise<void> {
     run.stopped = true;
     run.stoppedCleanupComplete = false;
     this.clearLauncherLease(run);
@@ -977,8 +1046,9 @@ async function closeHttpServer(server: Server): Promise<void> {
   });
 }
 
-function projectRun(status: RunStatus) {
+function projectRun(status: RunStatus, selectorValue: string) {
   return {
+    selector: selectorValue,
     appId: status.appId,
     displayName: status.displayName,
     canonicalProjectRoot: status.canonicalProjectRoot,

@@ -116,16 +116,18 @@ func upsertReadyPythonProfileForTest(t *testing.T, svc *Service, family string, 
 		Hashes:           pythonDependencyProfileHashes(identity),
 	})
 	if family == localEnvironmentFamilyPythonPackageSet {
-		recordReadyPythonPackageSetConsumptionJobForTest(svc, record, consumer)
+		recordReadyPythonPackageSetConsumptionJobForTest(t, svc, record, consumer)
 	}
 	return record
 }
 
-func recordReadyPythonPackageSetConsumptionJobForTest(svc *Service, record localEnvironmentSelectedSourceRecordState, consumer string) localEnvironmentDependencyJobState {
-	return recordReadyPythonSelectedSourceConsumptionJobForTest(svc, record, consumer)
+func recordReadyPythonPackageSetConsumptionJobForTest(t *testing.T, svc *Service, record localEnvironmentSelectedSourceRecordState, consumer string) localEnvironmentDependencyJobState {
+	t.Helper()
+	return recordReadyPythonSelectedSourceConsumptionJobForTest(t, svc, record, consumer)
 }
 
-func recordReadyPythonSelectedSourceConsumptionJobForTest(svc *Service, record localEnvironmentSelectedSourceRecordState, consumer string) localEnvironmentDependencyJobState {
+func recordReadyPythonSelectedSourceConsumptionJobForTest(t *testing.T, svc *Service, record localEnvironmentSelectedSourceRecordState, consumer string) localEnvironmentDependencyJobState {
+	t.Helper()
 	now := nowISO()
 	job := localEnvironmentDependencyJobState{
 		JobID:                  "test_profile_consumption_" + shortHash(record.RecordID+"|"+strings.TrimSpace(consumer)+"|"+now),
@@ -142,8 +144,11 @@ func recordReadyPythonSelectedSourceConsumptionJobForTest(svc *Service, record l
 	}
 	svc.mu.Lock()
 	svc.localEnvironmentDependencyJobs[job.JobID] = job
-	svc.persistStateLocked()
+	persistErr := svc.persistStateLocked()
 	svc.mu.Unlock()
+	if persistErr != nil {
+		t.Fatalf("persist ready Python selected-source consumption job: %v", persistErr)
+	}
 	return job
 }
 

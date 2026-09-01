@@ -50,6 +50,9 @@ if (!identityRegex) {
   process.exit(1);
 }
 
+const cosignCommand = String(process.env.NIMI_COSIGN_BIN || 'cosign').trim();
+const syftCommand = String(process.env.NIMI_SYFT_BIN || 'syft').trim();
+
 function runCommand(command, args, label) {
   const result = spawnSync(command, args, {
     env: process.env,
@@ -65,7 +68,7 @@ function signAndVerifyBlob(filePath) {
   const certificatePath = `${filePath}.pem`;
 
   runCommand(
-    'cosign',
+    cosignCommand,
     [
       'sign-blob',
       '--yes',
@@ -79,7 +82,7 @@ function signAndVerifyBlob(filePath) {
   );
 
   runCommand(
-    'cosign',
+    cosignCommand,
     [
       'verify-blob',
       '--certificate',
@@ -105,13 +108,13 @@ function generateSbom(artifactPath) {
 
   const scanArgs = ['scan', artifactPath, '-o', `spdx-json=${sbomPath}`];
   const legacyArgs = [artifactPath, '-o', `spdx-json=${sbomPath}`];
-  const scanResult = spawnSync('syft', scanArgs, {
+  const scanResult = spawnSync(syftCommand, scanArgs, {
     env: process.env,
     stdio: 'inherit',
   });
   if (scanResult.status !== 0) {
     runCommand(
-      'syft',
+      syftCommand,
       legacyArgs,
       `syft ${path.basename(artifactPath)}`,
     );

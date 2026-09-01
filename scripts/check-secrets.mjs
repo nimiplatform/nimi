@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   filterSecretScanFiles,
-  generatedArtifactBaselineEntries,
+  excludedArtifactBaselineEntries,
 } from './lib/secret-scan-scope.mjs';
 import { shouldApplySecretBaselineUpdate } from './lib/secret-scan-result.mjs';
 
@@ -38,8 +38,8 @@ function run(command, args, options = {}) {
   return result;
 }
 
-function trackedFiles() {
-  const result = run('git', ['ls-files', '-z']);
+function repositoryFiles() {
+  const result = run('git', ['ls-files', '--cached', '--others', '--exclude-standard', '-z']);
   if ((result.status ?? 1) !== 0) {
     process.stderr.write(result.stdout || '');
     process.stderr.write(result.stderr || '');
@@ -57,14 +57,14 @@ function assertBaselineScope() {
     fail(`failed to read ${baselinePath}: ${error.message}`);
   }
 
-  const generatedEntries = generatedArtifactBaselineEntries(baseline);
-  if (generatedEntries.length === 0) return;
+  const excludedEntries = excludedArtifactBaselineEntries(baseline);
+  if (excludedEntries.length === 0) return;
 
   fail([
-    `${baselinePath} contains generated artifact allowlist entries.`,
-    'Generated artifacts are excluded only when their source authority and drift gate are registered in scripts/lib/secret-scan-scope.mjs.',
+    `${baselinePath} contains entries for files excluded by scripts/lib/secret-scan-scope.mjs.`,
+    'Excluded files must name their source and direct drift or behavior gate instead of duplicating per-value baseline entries.',
     'Remove these baseline entries:',
-    ...generatedEntries.map((entry) => `  - ${entry}`),
+    ...excludedEntries.map((entry) => `  - ${entry}`),
   ].join('\n'));
 }
 
@@ -151,7 +151,7 @@ function printPortableBaselineDiff(scannerBaselinePath, tempDir) {
 function main() {
   assertBaselineScope();
 
-  const { scanned: scopedFiles, excluded } = filterSecretScanFiles(trackedFiles());
+  const { scanned: scopedFiles, excluded } = filterSecretScanFiles(repositoryFiles());
   const scanned = scopedFiles.filter((fileName) => fileName !== baselinePath);
   if (scanned.length === 0) {
     fail('secret scan scope resolved to zero files');
@@ -181,7 +181,7 @@ function main() {
     preparedBaseline.cleanup();
   }
 
-  process.stdout.write(`secret baseline gate passed: scanned ${scanned.length} tracked files; excluded ${excluded.length} generated artifacts\n`);
+  process.stdout.write(`secret baseline gate passed: scanned ${scanned.length} repository files; excluded ${excluded.length} registered files\n`);
 }
 
 main();

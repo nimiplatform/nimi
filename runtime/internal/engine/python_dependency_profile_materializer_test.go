@@ -32,6 +32,7 @@ type pythonDependencyProfileTestRunner struct {
 	failProbeCount     int
 	failSyncCheckCount int
 	torchVersion       string
+	platformTuple      string
 }
 
 func TestVerifyPythonDependencyProfileStaticContentRejectsLockAndDriverDrift(t *testing.T) {
@@ -172,9 +173,13 @@ func (runner *pythonDependencyProfileTestRunner) run(
 			if torchVersion == "" {
 				torchVersion = "2.11.0+cpu"
 			}
+			platformTuple := strings.ToLower(strings.TrimSpace(runner.platformTuple))
+			if platformTuple == "" {
+				platformTuple = currentGOOS() + "/" + currentGOARCH()
+			}
 			pythonPlatform := "win32"
 			pythonMachine := "AMD64"
-			if currentGOOS() == "darwin" {
+			if platformTuple == "darwin/arm64" {
 				pythonPlatform = "darwin"
 				pythonMachine = "arm64"
 			}
@@ -348,12 +353,15 @@ func TestEnsurePythonDependencyProfileStagesPromotesAndReusesReadOnly(t *testing
 }
 
 func TestEnsurePythonDependencyProfilePersistentEnvironmentMismatchFailsClosedAndIsCached(t *testing.T) {
-	platform := currentGOOS() + "/" + currentGOARCH()
+	identity, err := ResolvePythonDependencyProfileIdentity("speech.qwen3-tts.python", "darwin/arm64", "cpu")
+	if err != nil {
+		t.Fatal(err)
+	}
 	manager, uvPath, runtimePath := newPythonDependencyProfileTestManager(t)
-	runner := &pythonDependencyProfileTestRunner{t: t, uvPath: uvPath, runtimePath: runtimePath}
+	runner := &pythonDependencyProfileTestRunner{t: t, uvPath: uvPath, runtimePath: runtimePath, platformTuple: identity.PlatformTuple}
 
-	status, err := manager.ensurePythonDependencyProfile(
-		context.Background(), uvPath, runtimePath, "speech.qwen3-tts.python", platform, "cpu", runner.run,
+	status, err := manager.ensureResolvedPythonDependencyProfile(
+		context.Background(), uvPath, runtimePath, "speech.qwen3-tts.python", identity, runner.run,
 	)
 	if err != nil {
 		t.Fatalf("materialize Python dependency profile: %v", err)
@@ -366,8 +374,8 @@ func TestEnsurePythonDependencyProfilePersistentEnvironmentMismatchFailsClosedAn
 	runner.failSyncCheckCount = -1
 
 	for attempt := 0; attempt < 2; attempt++ {
-		_, err = manager.ensurePythonDependencyProfile(
-			context.Background(), uvPath, runtimePath, "speech.qwen3-tts.python", platform, "cpu", runner.run,
+		_, err = manager.ensureResolvedPythonDependencyProfile(
+			context.Background(), uvPath, runtimePath, "speech.qwen3-tts.python", identity, runner.run,
 		)
 		var verificationErr *PythonDependencyProfileVerificationError
 		if !errors.As(err, &verificationErr) {
@@ -435,12 +443,15 @@ func TestEnsurePythonDependencyProfileStaticMismatchFailsClosedWithoutRebuild(t 
 }
 
 func TestEnsurePythonDependencyProfileRuntimeMismatchFailsClosedAndCachesFailure(t *testing.T) {
-	platform := currentGOOS() + "/" + currentGOARCH()
+	identity, err := ResolvePythonDependencyProfileIdentity("speech.qwen3-tts.python", "darwin/arm64", "cpu")
+	if err != nil {
+		t.Fatal(err)
+	}
 	manager, uvPath, runtimePath := newPythonDependencyProfileTestManager(t)
-	runner := &pythonDependencyProfileTestRunner{t: t, uvPath: uvPath, runtimePath: runtimePath}
+	runner := &pythonDependencyProfileTestRunner{t: t, uvPath: uvPath, runtimePath: runtimePath, platformTuple: identity.PlatformTuple}
 
-	status, err := manager.ensurePythonDependencyProfile(
-		context.Background(), uvPath, runtimePath, "speech.qwen3-tts.python", platform, "cpu", runner.run,
+	status, err := manager.ensureResolvedPythonDependencyProfile(
+		context.Background(), uvPath, runtimePath, "speech.qwen3-tts.python", identity, runner.run,
 	)
 	if err != nil {
 		t.Fatalf("materialize Python dependency profile: %v", err)
@@ -454,8 +465,8 @@ func TestEnsurePythonDependencyProfileRuntimeMismatchFailsClosedAndCachesFailure
 	runner.failProbeCount = -1
 
 	for attempt := 0; attempt < 2; attempt++ {
-		_, err := manager.ensurePythonDependencyProfile(
-			context.Background(), uvPath, runtimePath, "speech.qwen3-tts.python", platform, "cpu", runner.run,
+		_, err := manager.ensureResolvedPythonDependencyProfile(
+			context.Background(), uvPath, runtimePath, "speech.qwen3-tts.python", identity, runner.run,
 		)
 		var verificationErr *PythonDependencyProfileVerificationError
 		if !errors.As(err, &verificationErr) || !strings.Contains(verificationErr.Mismatch, "Torch allocation failure") {

@@ -404,13 +404,17 @@ func TestTerminalTransferStateIsNotResurrected(t *testing.T) {
 		BytesTotal: 10,
 	})
 	sessionID := transfer.GetInstallSessionId()
-	svc.cancelTransfer(sessionID, "transfer cancelled")
+	if err := svc.cancelTransfer(sessionID, "transfer cancelled"); err != nil {
+		t.Fatalf("cancel transfer: %v", err)
+	}
 
 	svc.updateTransferProgress(sessionID, "copy", 5, 10, "staging local model file")
 	if summary := svc.localTransferSummary(sessionID); summary.GetState() != localTransferStateCancelled {
 		t.Fatalf("state after late progress = %q, want cancelled", summary.GetState())
 	}
-	svc.completeTransfer(sessionID, "register", "local model imported", nil)
+	if err := svc.completeTransfer(sessionID, "register", "local model imported", nil); err != nil {
+		t.Fatalf("complete cancelled transfer: %v", err)
+	}
 	if summary := svc.localTransferSummary(sessionID); summary.GetState() != localTransferStateCancelled {
 		t.Fatalf("state after late completion = %q, want cancelled", summary.GetState())
 	}
@@ -453,7 +457,9 @@ func TestCancelTransferClearsManagedDownloadStagingBySession(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	svc.cancelTransfer(transfer.GetInstallSessionId(), "transfer cancelled")
+	if err := svc.cancelTransfer(transfer.GetInstallSessionId(), "transfer cancelled"); err != nil {
+		t.Fatalf("cancel managed download transfer: %v", err)
+	}
 	if _, err := os.Stat(stageDir); !os.IsNotExist(err) {
 		t.Fatalf("worker cancellation retained per-session staging: %s err=%v", stageDir, err)
 	}

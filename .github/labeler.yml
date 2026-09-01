@@ -4,7 +4,7 @@ runtime:
 
 sdk:
   - changed-files:
-      - any-glob-to-any-file: 'sdk/**'
+      - any-glob-to-any-file: 'sdks/**'
 
 desktop:
   - changed-files:

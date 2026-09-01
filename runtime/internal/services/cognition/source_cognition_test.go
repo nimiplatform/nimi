@@ -24,7 +24,11 @@ func TestCognitionCheckSyncRootMatchesPortableRuntimeOwnerState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer service.Close()
+	t.Cleanup(func() {
+		if err := service.Close(); err != nil {
+			t.Errorf("close Cognition owner: %v", err)
+		}
+	})
 	resources, err := service.CheckSyncDataRoot(context.Background(), dataRoot)
 	if err != nil || len(resources) != 2 {
 		t.Fatalf("Cognition owner inspection=%+v err=%v", resources, err)

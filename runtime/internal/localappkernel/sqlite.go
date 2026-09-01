@@ -63,15 +63,16 @@ type Options struct {
 }
 
 type Kernel struct {
-	db            *sql.DB
-	anchor        string
-	hostInstallID string
-	dataRoot      string
-	random        io.Reader
-	now           func() time.Time
-	mu            sync.Mutex
-	registrations *RegistrationStore
-	keys          *KeyDeriver
+	db               *sql.DB
+	anchor           string
+	hostInstallID    string
+	dataRoot         string
+	random           io.Reader
+	now              func() time.Time
+	mu               sync.Mutex
+	registrations    *RegistrationStore
+	keys             *KeyDeriver
+	packageLifecycle *PackageLifecycleStore
 
 	// In-package failure injection proves canonical+binding transactionality
 	// without introducing a production harness or evidence surface.
@@ -147,6 +148,7 @@ func OpenSQLite(ctx context.Context, databasePath string, identity VerifiedLocal
 	}
 	kernel.registrations = &RegistrationStore{kernel: kernel}
 	kernel.keys = &KeyDeriver{kernel: kernel}
+	kernel.packageLifecycle = &PackageLifecycleStore{kernel: kernel}
 	return kernel, nil
 }
 
@@ -189,28 +191,83 @@ func (kernel *Kernel) decodeBindingLocator(value string) (string, error) {
 	return filepath.Join(kernel.dataRoot, relative), nil
 }
 
+const canonicalRegistrationCreateStatement = `CREATE TABLE IF NOT EXISTS canonical_registration (
+	registration_handle TEXT PRIMARY KEY,
+	registered_app_subject TEXT NOT NULL UNIQUE,
+	app_id TEXT NOT NULL,
+	display_name TEXT NOT NULL,
+	source_class TEXT NOT NULL CHECK(source_class IN ('verified','user_imported','local_development')),
+	source_ref TEXT NOT NULL,
+	shell_kind INTEGER NOT NULL CHECK(shell_kind > 0),
+	raw_declaration_json TEXT NOT NULL,
+	activated_domains_json TEXT NOT NULL,
+	source_generation INTEGER NOT NULL CHECK(source_generation > 0),
+	declaration_generation INTEGER NOT NULL CHECK(declaration_generation > 0),
+	immutable_lineage_id TEXT NOT NULL,
+	provenance_attestation_refs_json TEXT NOT NULL,
+	provenance_revision INTEGER NOT NULL CHECK(provenance_revision >= 0),
+	execution_profile_ref TEXT NOT NULL,
+	declaration_digest TEXT NOT NULL,
+	state TEXT NOT NULL CHECK(state IN ('active','tombstoned')),
+	created_unix_nano INTEGER NOT NULL,
+	updated_unix_nano INTEGER NOT NULL,
+	tombstoned_unix_nano INTEGER,
+	CHECK((state = 'active' AND tombstoned_unix_nano IS NULL) OR (state = 'tombstoned' AND tombstoned_unix_nano IS NOT NULL))
+)`
+
+func sqliteTableColumns(ctx context.Context, database *sql.DB, table string) (map[string]bool, error) {
+	rows, err := database.QueryContext(ctx, `PRAGMA table_info(`+table+`)`)
+	if err != nil {
+		return nil, fmt.Errorf("inspect registered App schema: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	columns := make(map[string]bool)
+	for rows.Next() {
+		var ordinal, notNull, primaryKey int
+		var name, columnType string
+		var defaultValue any
+		if err := rows.Scan(&ordinal, &name, &columnType, &notNull, &defaultValue, &primaryKey); err != nil {
+			return nil, fmt.Errorf("read registered App schema: %w", err)
+		}
+		columns[name] = true
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate registered App schema: %w", err)
+	}
+	return columns, nil
+}
+
+func (kernel *Kernel) requireCanonicalRegistrationSchema(ctx context.Context) error {
+	columns, err := sqliteTableColumns(ctx, kernel.db, "canonical_registration")
+	if err != nil {
+		return err
+	}
+	expected := []string{
+		"registration_handle", "registered_app_subject", "app_id", "display_name", "source_class",
+		"source_ref", "shell_kind", "raw_declaration_json", "activated_domains_json", "source_generation",
+		"declaration_generation", "immutable_lineage_id", "provenance_attestation_refs_json",
+		"provenance_revision", "execution_profile_ref", "declaration_digest", "state",
+		"created_unix_nano", "updated_unix_nano", "tombstoned_unix_nano",
+	}
+	if len(columns) != len(expected) {
+		return fmt.Errorf("initialize registered App schema: unsupported canonical_registration shape")
+	}
+	for _, name := range expected {
+		if !columns[name] {
+			return fmt.Errorf("initialize registered App schema: unsupported canonical_registration shape")
+		}
+	}
+	return nil
+}
+
 func (kernel *Kernel) initialize(ctx context.Context) error {
+	if _, err := kernel.db.ExecContext(ctx, canonicalRegistrationCreateStatement); err != nil {
+		return fmt.Errorf("initialize registered App schema: %w", err)
+	}
+	if err := kernel.requireCanonicalRegistrationSchema(ctx); err != nil {
+		return err
+	}
 	statements := []string{
-		`CREATE TABLE IF NOT EXISTS canonical_registration (
-			registration_handle TEXT PRIMARY KEY,
-			registered_app_subject TEXT NOT NULL UNIQUE,
-			app_id TEXT NOT NULL,
-			display_name TEXT NOT NULL,
-			source_class TEXT NOT NULL CHECK(source_class IN ('installed','local_import','development')),
-			source_ref TEXT NOT NULL,
-			shell_kind INTEGER NOT NULL CHECK(shell_kind > 0),
-			raw_declaration_json TEXT NOT NULL,
-			activated_domains_json TEXT NOT NULL,
-			source_generation INTEGER NOT NULL CHECK(source_generation > 0),
-			declaration_generation INTEGER NOT NULL CHECK(declaration_generation > 0),
-			source_digest TEXT NOT NULL,
-			declaration_digest TEXT NOT NULL,
-			state TEXT NOT NULL CHECK(state IN ('active','tombstoned')),
-			created_unix_nano INTEGER NOT NULL,
-			updated_unix_nano INTEGER NOT NULL,
-			tombstoned_unix_nano INTEGER,
-			CHECK((state = 'active' AND tombstoned_unix_nano IS NULL) OR (state = 'tombstoned' AND tombstoned_unix_nano IS NOT NULL))
-		)`,
 		`CREATE TABLE IF NOT EXISTS current_host_binding (
 			host_install_id TEXT NOT NULL,
 			local_os_user_scope TEXT NOT NULL,
@@ -255,6 +312,7 @@ func (kernel *Kernel) initialize(ctx context.Context) error {
 		BEFORE DELETE ON current_host_binding
 		BEGIN SELECT RAISE(ABORT, 'registered App current-host bindings are retained'); END`,
 	}
+	statements = append(statements, packageLifecycleSchemaStatements...)
 	for _, statement := range statements {
 		if _, err := kernel.db.ExecContext(ctx, statement); err != nil {
 			return fmt.Errorf("initialize registered App schema: %w", err)
@@ -289,6 +347,13 @@ func (kernel *Kernel) SecurityKeys() *KeyDeriver {
 		return nil
 	}
 	return kernel.keys
+}
+
+func (kernel *Kernel) PackageLifecycle() *PackageLifecycleStore {
+	if kernel == nil {
+		return nil
+	}
+	return kernel.packageLifecycle
 }
 
 func (kernel *Kernel) nextIdentifier(prefix string, exists func(string) (bool, error)) (string, error) {

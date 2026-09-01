@@ -11,7 +11,7 @@ import type { AgentLocalTargetSnapshot } from '../src/shell/renderer/bridge/runt
 
 function target(): AgentLocalTargetSnapshot {
   return {
-    agentHandle: 'agent_ref_abcdefghijklmnopqrstuvwxyzABCDEFGH123456789',
+    agentHandle: 'agent_ref_test-handle',
     displayName: 'Companion',
     handle: 'companion',
     avatarUrl: null,
@@ -74,7 +74,7 @@ test('desktop manual voice request targets a committed Runtime assistant message
     activeTarget: target(),
     activeConversationAnchorId: 'anchor-1',
   }), {
-    agentHandle: 'agent_ref_abcdefghijklmnopqrstuvwxyzABCDEFGH123456789',
+    agentHandle: 'agent_ref_test-handle',
     conversationAnchorId: 'anchor-1',
     messageId: 'message-1',
   });

@@ -438,10 +438,17 @@ function parsePlacementRequest(value: unknown): string {
 
 function boundedPlacementText(value: unknown, field: string): string {
   const text = typeof value === 'string' ? value.trim() : '';
-  if (!text || text !== value || text.length > 256 || /[\u0000-\u001f\u007f]/u.test(text)) {
+  if (!text || text !== value || text.length > 256 || containsAsciiControlCharacter(text)) {
     throw new Error(`desktop-zhiyu-placement-${field}-invalid`);
   }
   return text;
+}
+
+function containsAsciiControlCharacter(value: string): boolean {
+  return Array.from(value).some((character) => {
+    const code = character.charCodeAt(0);
+    return code <= 0x1f || code === 0x7f;
+  });
 }
 
 function placementUnavailable(

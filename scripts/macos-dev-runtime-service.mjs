@@ -44,9 +44,15 @@ export function parseMacOSDevRuntimeArguments(args) {
   const normalized = args.slice();
   while (normalized[0] === '--') normalized.shift();
   if (normalized.length === 0) return Object.freeze({ mode: 'update' });
+  if (normalized[0] === '--install-candidate' && normalized.length === 2) {
+    return Object.freeze({
+      mode: 'install-candidate',
+      candidatePath: requireDownloadedCandidateDirectory(normalized[1]),
+    });
+  }
   if (normalized.length !== 1 || !modes.has(normalized[0])) {
     throw workflowError(
-      'macOS fixed-service acceptance updates by default and otherwise accepts exactly one of --install, --status, --logs, --desktop, --restart, or --uninstall.',
+      'macOS fixed-service acceptance updates by default and otherwise accepts --install-candidate <absolute-canonical-directory> or exactly one of --install, --status, --logs, --desktop, --restart, or --uninstall.',
       'dev-runtime-argument-invalid',
       'use_one_documented_macos_dev_runtime_mode',
     );
@@ -78,8 +84,8 @@ export async function runMacOSDevRuntimeService(input = {}) {
   }
   const invokeHelper = input.invokeHelper ?? runPrivilegedHelper;
 
-  if (mode === 'install' || mode === 'update') {
-    if (mode === 'install' && initial.status !== 'absent') {
+  if (mode === 'install' || mode === 'install-candidate' || mode === 'update') {
+    if ((mode === 'install' || mode === 'install-candidate') && initial.status !== 'absent') {
       throw workflowError(
         'macOS development Runtime install requires an absent product namespace.',
         'runtime-service-repair-required',
@@ -89,6 +95,10 @@ export async function runMacOSDevRuntimeService(input = {}) {
     }
     if (mode === 'update') {
       assertUpdateReadyStatus(initial);
+    }
+    if (mode === 'install-candidate') {
+      const candidatePath = requireDownloadedCandidateDirectory(input.candidatePath);
+      return Object.freeze(await invokeHelper(['install-candidate', candidatePath]));
     }
     const buildCandidate = input.buildCandidate ?? buildDevelopmentCandidate;
     const candidate = await buildCandidate();
@@ -130,6 +140,25 @@ export async function runMacOSDevRuntimeService(input = {}) {
     'dev-runtime-argument-invalid',
     'use_one_documented_macos_dev_runtime_mode',
   );
+}
+
+function requireDownloadedCandidateDirectory(value) {
+  const candidate = String(value || '');
+  try {
+    if (!path.isAbsolute(candidate)
+      || !lstatSync(candidate).isDirectory()
+      || realpathSync(candidate) !== candidate) {
+      throw new Error('candidate path is not one canonical directory');
+    }
+  } catch {
+    throw workflowError(
+      'The downloaded macOS development candidate must be one existing absolute canonical directory.',
+      'dev-candidate-path-untrusted',
+      'extract_and_select_the_exact_downloaded_candidate_directory',
+      { candidate },
+    );
+  }
+  return candidate;
 }
 
 function assertUpdateReadyStatus(status) {

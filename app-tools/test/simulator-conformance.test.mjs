@@ -173,14 +173,14 @@ test('dynamic Tailwind utility interpolation is rejected', () => withFixture((ro
 test('CLI validates the current source and fails closed for a missing root', () => {
   const output = execFileSync(
     process.execPath,
-    [CLI_PATH, 'doctor', '--dir', FIXTURE_ROOT, '--conformance', 'simulator'],
+    [CLI_PATH, 'check', '--dir', FIXTURE_ROOT, '--conformance', 'simulator'],
     { encoding: 'utf8' },
   );
   assert.match(output, /Simulator source validation passed/u);
 
   const failure = spawnSync(
     process.execPath,
-    [CLI_PATH, 'doctor', '--dir', path.join(FIXTURE_ROOT, 'missing'), '--conformance', 'simulator'],
+    [CLI_PATH, 'check', '--dir', path.join(FIXTURE_ROOT, 'missing'), '--conformance', 'simulator'],
     { encoding: 'utf8' },
   );
   assert.equal(failure.status, 1);

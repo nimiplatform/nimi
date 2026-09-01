@@ -583,7 +583,7 @@ units:
     kind: rule
     title: P-NAPP-030 complete listing-closure field set
     modality: must
-    statement: The existing P-NAPP-009 ordinary-visible listing predicate evaluates at projection time the conjunction of admitted admission_status, ordinary-visible visibility, resolved trust tier, package kind, release descriptor, App access declaration including an empty list, Runtime registration mode, storage policy, and absence of unsupported or blocked listing facts; listing closure remains independent from current Host, Runtime session, snapshot, and owner-operation availability.
+    statement: The ordinary-visible listing predicate evaluates the composed Platform index and approved descriptor conjunction of admitted admission_status, ordinary-visible visibility, non-kill-switched posture, resolved trust tier, nimi-app package kind and signature policy, protected source and immutable GitHub Release, app-managed Runtime registration mode, App access declaration including empty, CapabilityContract and required standardized features, storage and support policy, at least one valid target, and absence of blocked facts; Runtime-local installation, health, Host, session, snapshot, access, and operation availability are independent annotations and never gate catalog discovery.
     condition: Whenever an Apps listing row is projected.
     failure: Exclude the row from ordinary-visible projection when any conjunct is absent, unresolved, or negative.
     relations:
@@ -593,7 +593,7 @@ units:
     kind: rule
     title: P-NAPP-030 no parallel or reduced listing predicate
     modality: must_not
-    statement: A listing implementation creates a predicate parallel to P-NAPP-009, removes a listing-closure conjunct, or treats one resolved field as implied by another.
+    statement: A listing implementation creates a predicate parallel to P-NAPP-009, removes a listing-closure conjunct, duplicates canonical descriptor facts into the index, treats one resolved field as implied by another, or uses Runtime-local health or installation as catalog visibility truth.
     condition: Whenever the ordinary-visible listing predicate is implemented or changed.
     failure: Fail the row out of ordinary-visible projection and restore the single complete conjunction.
     relations:
@@ -728,11 +728,11 @@ units:
   - id: definition.nimi.platform.app-ecosystem.registry-row
     kind: definition
     title: Verified app registry row
-    meaning: A verified app registry row is the closed Platform schema joining canonical App identity, publisher and trust references, release and update references, an optional non-binding AIProfile recommendation, CapabilityContract identities and contract-scoped required standardized features, the App access declaration for transparency, Runtime registration mode, storage policy, health projection, visibility, and admission status; marketplace listing and review contain no Runtime access, local compute pack, Runtime-private source, implementation, binding, or machine-selection authority.
+    meaning: A verified app registry row is the composed Platform listing truth from the static Git-reviewed nimiplatform/nimi-app-registry index and one approved immutable release descriptor; the index owns canonical display identity, ordinary visibility, admission status, operational kill-switch posture, and per-target latest admitted descriptor references, the descriptor owns publisher, trust, package, source, artifact, Runtime-registration, App access, capability, storage, support, review, and release facts, and Runtime-local health, installation, binding, access, and machine-selection truth remain outside the row.
   - id: definition.nimi.platform.app-ecosystem.release-descriptor
     kind: definition
     title: Immutable third-party release descriptor
-    meaning: An immutable Third-party App release descriptor is canonical Platform-owned versioned package-discovery and review truth whose closed publisher, source, artifact, assurance, Runtime, App access declaration, storage, update, rollback-review, decision, and support fields resolve before admission without becoming Runtime access semantics.
+    meaning: An immutable Third-party App release descriptor is canonical Platform-owned approved version truth that references one protected GitHub tag, its resolved commit and immutable publisher GitHub Release, closes publisher, source, aggregate per-target artifact, assurance, Runtime-registration, App access, capability, storage, update-channel, rollback, support, release-notes reference, and human-review fields, stores no artifact bytes or full changelog, and never becomes Runtime access or local lifecycle truth.
   - id: definition.nimi.platform.app-ecosystem.health-repair-projection
     kind: definition
     title: App health and repair projection
@@ -748,19 +748,19 @@ units:
   - id: definition.nimi.platform.app-ecosystem.app-lifecycle-job
     kind: definition
     title: App package lifecycle job
-    meaning: An App package lifecycle job contains job_id, install, update, repair, or uninstall kind, verified or user_imported source class, an exact candidate or release reference, queued, downloading, reading-local, verifying, verifying-installed, acquiring-missing, staging, committing, stopping-host, removing-package, unregistering, completed, failed, or canceled phase, bytes_completed, nullable bytes_total, bytes, steps, or indeterminate progress basis, started_at, nullable completed_at, nullable terminal result and typed reason, and cancelable, with local_development excluded from package jobs.
+    meaning: An App package lifecycle job contains job_id, install, update, repair, or uninstall kind, verified or user_imported source class, an exact candidate or release reference, queued, downloading, reading-local, verifying, verifying-installed, acquiring-missing, staging, committing, removing-package, unregistering, completed, failed, or canceled phase, bytes_completed, nullable bytes_total, bytes, steps, or indeterminate progress basis, started_at, nullable completed_at, nullable terminal result and typed reason, and cancelable, with local_development excluded from package jobs.
   - id: definition.nimi.platform.app-ecosystem.publisher-identity
     kind: definition
     title: Admitted publisher identity
-    meaning: Admitted publisher identity is reviewer-confirmed descriptor truth anchored by a GitHub user or organization namespace, a closed assurance value, and assurance-required verified domain and KYC references.
+    meaning: Admitted publisher identity is human-reviewer-confirmed descriptor truth anchored by a GitHub user or organization namespace, a closed assurance value, and assurance-required verified domain and KYC references; Nimi Account identity, membership, token, or private-backend state never substitutes for the GitHub namespace.
   - id: definition.nimi.platform.app-ecosystem.storage-posture
     kind: definition
     title: Third-party app storage posture
     meaning: Third-party app storage posture is exactly nimi-mediated-default with Runtime-derived collision-proof private JSON and binary asset namespaces partitioned by current account plus Registered App Subject, or app-owned-os-storage with explicit OS-path disclosure.
   - id: definition.nimi.platform.app-ecosystem.review-decision
     kind: definition
-    title: Terminal app admission review decision
-    meaning: A terminal app admission review decision is exactly approved, revision-requested, rejected, or kill-switched and records final security disposition without redefining the owning review state machine or adjudicator policy.
+    title: App registry review posture
+    meaning: App registry review posture is exactly submitted, under-review, revision-requested, approved, rejected, or kill-switched; submitted and under-review are pull-request states, revision-requested and rejected remain pull-request or closed-pull-request outcomes, approved is the only immutable descriptor decision admitted to registry main, kill-switched is current index policy, and deterministic automation never replaces the human adjudicator.
   - id: definition.nimi.platform.app-ecosystem.support-manifest
     kind: definition
     title: Admitted app support manifest
@@ -773,9 +773,9 @@ units:
     kind: rule
     title: P-NAPP-001 catalog authority and package kind
     modality: must
-    statement: The current Third-party App product scope admits approved ordinary-visible catalog releases through verified installation, explicitly selected immutable local packages through user_imported installation, and mutable projects through local_development; catalog or artifact presence alone creates no registration, subject, local record, declaration generation, Desktop launch, protected session, Effective App Access Snapshot, or runnable truth, and only a successful provenance-specific lifecycle commit may create or update the corresponding local record.
+    statement: The Third-party App product model contains approved ordinary-visible catalog releases through verified installation, explicitly selected immutable local packages through user_imported installation, and mutable projects through local_development; the current pre-release reaches only the local_development path, while verified and user_imported installation remain unavailable; catalog or artifact presence alone creates no registration, subject, local record, declaration generation, Desktop launch, protected session, Effective App Access Snapshot, or runnable truth, and only a successful provenance-specific lifecycle commit may create or update the corresponding local record.
     condition: Whenever current App scope, package admission, or local runnable posture is resolved.
-    failure: Reject another source class, bypassed provenance-specific admission, or local authority inferred before the successful lifecycle commit.
+    failure: Reject another source class, bypassed provenance-specific admission, an unavailable source path presented as current behavior, or local authority inferred before the successful lifecycle commit.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.catalog-admission
@@ -795,7 +795,7 @@ units:
     kind: rule
     title: P-NAPP-002 complete registry row schema
     modality: must
-    statement: Every verified registry row contains app_id, display_label, publisher, trust_tier_ref, package_kind, package_signature_policy_ref, update_channel_ref, optional ai_profile_recommendation_ref, capability_contract_refs, required_standardized_feature_refs, runtime_registration_mode, app_access_declaration, health_repair_projection, ordinary_visibility, release_descriptor_ref, install_storage_policy_ref, and admission_status with every present reference resolving to its admitted owner row; Runtime-local compute-pack references, access snapshots, and selection hints are outside the registry row.
+    statement: Every verified registry row composes an index entry containing app_id, display_label, ordinary_visibility, admission_status, explicit operational kill-switch posture, and latest_admitted_release_by_target mapping each target_id to an approved immutable descriptor, with that descriptor resolving publisher and trust references, package kind and signature policy, update channel, optional AIProfile recommendation, CapabilityContract and required standardized feature references, app-managed Runtime registration mode, App access declaration, install storage policy, support, and release facts; Runtime-local health, compute-pack, access-snapshot, binding, and selection truth remain outside the row.
     condition: Whenever a verified registry row is admitted or consumed.
     failure: Fail admission closed when a field or reference is missing or unresolved.
     relations:
@@ -805,7 +805,7 @@ units:
     kind: rule
     title: P-NAPP-002 closed registry field semantics
     modality: must
-    statement: A registry row uses nimi-app, app-managed registration, one closed App access declaration containing zero or more of realm.data, runtime.consume, agent.local, and agent.configure, ordinary_visibility from ordinary-visible, hidden-internal, developer-only, or not-admitted-visible, and admission_status from admitted, gated_by_avatar_master_gate, deferred, or retired; registry or review posture never creates Runtime access, and an empty declaration remains valid.
+    statement: A registry row uses nimi-app, app-managed registration, one closed App access declaration containing zero or more of realm.data, runtime.consume, agent.local, and agent.configure, ordinary_visibility from ordinary-visible, hidden-internal, developer-only, or not-admitted-visible, and admission_status from admitted, gated_by_avatar_master_gate, deferred, or retired; only admitted plus ordinary-visible plus a non-kill-switched complete descriptor may enter ordinary listing, every per-target update pointer resolves a descriptor containing that target, and registry or review posture never creates Runtime access.
     condition: Whenever registry values or visibility are evaluated.
     failure: Reject an unknown registry value or improperly visible row, keep an unknown declaration domain inert for its exact generation, and never infer Runtime access from listing or review posture.
     relations:
@@ -873,7 +873,7 @@ units:
     kind: rule
     title: P-NAPP-007 package trust and update boundary
     modality: must
-    statement: Platform owns catalog signature, attestation, and update metadata, the package lifecycle owner consumes one immutable descriptor and validated artifact to map the six opaque lineage, attestation, execution-profile, and digest slots, and every update selects and atomically commits a new immutable release without directly mutating Runtime-selected security truth or introducing parallel package trust.
+    statement: Platform owns registry admission, publisher GitHub provenance references, operational kill-switch policy, and latest_admitted_release_by_target metadata, the package lifecycle owner resolves only the current OS/arch pointer and consumes one immutable descriptor target and validated GitHub Release artifact to map the six opaque lineage, attestation, execution-profile, and digest slots, and every update atomically commits a new immutable release without parallel package trust.
     condition: Whenever verified package trust or update metadata meets local state.
     failure: Deny unmapped package use, selected-source mutation, or parallel trust.
     relations:
@@ -893,7 +893,7 @@ units:
     kind: rule
     title: P-NAPP-009 owner-only authority allocation
     modality: must
-    statement: Platform owns catalog, release, publisher and review posture, the closed declaration-domain vocabulary, and provenance taxonomy; Runtime and canonical domain owners retain registration, subjects, records, declaration generations, sessions, snapshots, credentials, admission, and operations; app-tools owns only authoring and build orchestration; Desktop owns verified exact-Host launch but not Runtime access; and Apps consumes only admitted registry, package, and SDK projections satisfying the complete listing closure.
+    statement: Platform owns catalog, descriptor, publisher and human review posture, the closed declaration-domain vocabulary, and provenance taxonomy; Runtime and canonical domain owners retain registration, source-qualified package jobs and committed releases, installed-child binding, sessions, snapshots, credentials, admission, and operations; app-tools owns developer-repository authoring, development and build orchestration, deterministic packaging, and managed GitHub workflow setup without owning or currently implementing publisher tag and Release orchestration, registry pull-request preparation, GitHub truth, review, registry-main, installation, or process truth; Desktop owns verified exact-Host launch and process supervision but not Runtime access.
     condition: Whenever app authority or ordinary visibility is allocated.
     failure: Reject ownership or visibility outside the canonical owner projection.
     relations:
@@ -915,11 +915,11 @@ units:
         target: definition.nimi.platform.app-ecosystem.registered-app-subject
   - id: rule.nimi.platform.app-ecosystem.p-napp-011
     kind: rule
-    title: P-NAPP-011 bundled seed and mutable-build isolation
+    title: P-NAPP-011 Nimi-owned App release and mutable-build isolation
     modality: must
-    statement: The catalog may retain admitted bundled Avatar, Realm Persona Studio, Realm World Studio, and Zhiyu rows with owner posture without third-party redesign or provenance, each shipped App supplies canonical registered release and declaration input and consumes its App Product Plane only through the same formal protected App subject, fresh session, Effective App Access Snapshot, and operation semantics as an equally covered ordinary App, Zhiyu's mutable integration build uses an isolated local-development subject inheriting no bundled identity, declaration coverage, storage, audience, session, snapshot, LocalAgent, or Memory state, and no bundled row, owner posture, native profile, or trust class creates extra product coverage or package readiness.
+    statement: Every new or updated Nimi-owned App release entering the verified catalog, including a previously bundled App, uses the same protected tag, publisher GitHub Actions, immutable GitHub Release, registry admission, Runtime install, and Desktop launch path as another ordinary App, while trust tier changes review depth only; each shipped App consumes its App Product Plane only through the same formal protected App subject, fresh session, Effective App Access Snapshot, and operation semantics, Zhiyu's mutable integration build uses an isolated local-development subject inheriting no bundled identity or state, and no bundled row, owner posture, native profile, or trust class creates release, package, or access readiness.
     condition: Whenever bundled rows or mutable integration builds are handled.
-    failure: Reject redesign, third-party mapping, inherited state, external principal, or inferred readiness.
+    failure: Reject a first-party release shortcut, inherited mutable-build state, external principal, or inferred readiness.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.local-app-provenance
@@ -959,7 +959,7 @@ units:
     kind: rule
     title: P-NAPP-013 immutable admission closure
     modality: must
-    statement: A verified third-party admission closes registry metadata, the App access declaration for transparency, Runtime requirements, AI profile requirements, exact version, immutable source, release descriptor, artifact digest and size, applicable signature or provenance, and storage policy in one immutable release record that owns discovery and review input only and never Runtime access.
+    statement: A verified third-party admission closes registry index metadata, App access and capability transparency, Runtime requirements, optional AIProfile recommendation, exact version, protected tag and resolved commit, immutable publisher GitHub Release, one aggregate descriptor with every admitted target's asset identity, digest, size, Runtime entry, provenance and native-trust posture, storage and support policy, release-notes reference, and human approved decision without becoming Runtime access.
     condition: Whenever a third-party release is admitted.
     failure: Fail closed when any package or schema fact is absent or mutable.
     relations:
@@ -981,7 +981,7 @@ units:
     kind: rule
     title: P-NAPP-014 immutable descriptor and digest verification
     modality: must
-    statement: Every catalog install or update resolves an immutable descriptor with exact app_id, version, source kind and ref, artifact locator, SHA-256, size, signature or provenance ref, Runtime kind and entry, App access declaration, and storage policy, downloads only from that source or admitted mirror, verifies exact size, SHA-256, signature or provenance, manifest, declaration, Runtime, and storage posture before staging and atomic commit, and an explicit local import reads only the user-selected immutable artifact through the same validation and staging boundary without a download phase; these checks do not define mutable-project peer proof or Runtime access.
+    statement: Every catalog install or update resolves the current target_id through latest_admitted_release_by_target to an immutable descriptor and target containing exact app_id, version, protected tag and commit, GitHub Release asset locator, SHA-256, size, applicable native trust, Runtime kind and entry, App access declaration, and storage policy, downloads only that publisher Release asset, verifies size, digest, native trust, manifest, declaration, Runtime, and storage posture before staging and atomic commit, while registry review separately validates GitHub build provenance; explicit local import uses the same validation boundary without download or catalog trust.
     condition: Whenever a catalog version or immutable mapping is admitted.
     failure: Fail closed before staging or commit on missing fields, wrong source, size or digest mismatch, signature or provenance failure, or another unresolved validation.
     relations:
@@ -1025,7 +1025,7 @@ units:
     kind: rule
     title: P-NAPP-018 complete third-party descriptor
     modality: must
-    statement: Every third-party descriptor resolves descriptor_id, app_id, exact version, ordinary-release-proof, publisher namespace, kind, assurance, domain, and KYC ref, immutable source kind and ref, artifact locator, digest, size, provenance ref and mirror ref, build, dependency, and platform-signing assurance, nimi-app Runtime kind, entry and sandbox refs, the exact App access declaration including empty, storage policy, update channel, rollback marker, terminal review decision, and support manifest without making review posture Runtime access truth.
+    statement: Every approved third-party descriptor resolves descriptor_id, app_id, exact version, ordinary-release-proof, publisher GitHub namespace, kind, trust tier, assurance and assurance-required domain or KYC ref, public source repository, protected version tag, resolved commit SHA, immutable GitHub Release identity and release_notes_url or bounded summary, build and dependency assurance, nimi-app package and Runtime kind, app-managed registration mode, sandbox and execution-profile refs, exact App access declaration including empty, CapabilityContract and required standardized feature refs, storage policy, update channel, rollback marker, support manifest, human approved decision, and a non-empty targets array whose unique target_id entries each resolve OS, architecture, Release asset identity and locator, file name, SHA-256, size, Runtime entry, GitHub build-provenance ref, and applicable native-signing or notarization posture; the descriptor stores no artifact bytes, full changelog, mirror ref, per-target review truth, or Runtime access truth.
     condition: Whenever a third-party descriptor is admitted.
     failure: Fail closed when a required field or reference is missing, malformed, mutable, or unresolved.
     relations:
@@ -1035,7 +1035,7 @@ units:
     kind: rule
     title: P-NAPP-018 descriptor is canonical truth
     modality: must_not
-    statement: Descriptor truth is collapsed into a developer manifest or parallel artifact, or a developer manifest is treated as admission truth.
+    statement: Descriptor truth is collapsed into a developer manifest, per-target descriptor, copied artifact, full changelog, Nimi rebuild, or other parallel artifact truth, or developer-authored candidate input or pull-request state is treated as approved admission truth.
     condition: Whenever descriptor truth is authored or consumed.
     failure: Reject parallel truth and consume only the Platform descriptor.
     relations:
@@ -1045,7 +1045,7 @@ units:
     kind: rule
     lifecycle: removed
     title: Retired P-NAPP-019 immutable package lifecycle non-admission
-    reason: Removed because the current App package lifecycle now admits truthful install, update, repair, uninstall, job, progress, active-release, rollback, and readiness projections while the six-field Runtime identity seam remains separately constrained.
+    reason: Removed because package-lifecycle state truth and the six-field Runtime identity seam are governed by P-NAPP-019b and P-NAPP-040; removal does not make install, update, repair, uninstall, or installed readiness currently available.
   - id: rule.nimi.platform.app-ecosystem.p-napp-019b
     kind: rule
     title: P-NAPP-019 frozen schema and non-local metadata
@@ -1060,7 +1060,7 @@ units:
     kind: rule
     title: P-NAPP-020 publisher identity requirements
     modality: must
-    statement: Every third-party descriptor carries publisher.github_namespace and publisher.namespace_kind from user or org, domain-verified and identity-verified carry a non-null DNS-verifiable domain bound to the GitHub organization namespace, and manifest fields, repository ownership, or package name never substitutes for reviewer-confirmed publisher truth.
+    statement: Every third-party descriptor carries human-reviewer-confirmed publisher.github_namespace and publisher.namespace_kind from a GitHub user or organization, domain-verified and identity-verified carry a non-null DNS-verifiable domain bound to the organization namespace, and Nimi Account identity, membership, token, private-backend state, manifest fields, repository presence, or package name never substitutes for publisher truth.
     condition: Whenever publisher identity is admitted.
     failure: Return publisher_identity_missing for absent or invalid namespace facts and verified_domain_unresolved for absent, unresolvable, or unbound domain.
     relations:
@@ -1078,19 +1078,14 @@ units:
         target: definition.nimi.platform.app-ecosystem.publisher-identity
   - id: rule.nimi.platform.app-ecosystem.p-napp-022
     kind: rule
-    title: P-NAPP-022 pre-mirror reference and license closure
-    modality: must
-    statement: Every third-party descriptor resolves artifact_mirror_ref to a Nimi-controlled immutable mirror locator and has mirror_license_cleared true before mirroring, keeps the ref stable across substrate migration, and preserves artifact_mirror_ref_unresolved and mirror_license_unclear as distinct pre-mirror failures.
-    condition: Whenever an artifact is admitted for mirroring.
-    failure: Return the exact failure and perform no mirror mutation.
-    relations:
-      - type: applies_to
-        target: definition.nimi.platform.app-ecosystem.release-descriptor
+    lifecycle: removed
+    title: Retired P-NAPP-022 Nimi artifact mirror requirement
+    reason: Removed because the publisher immutable GitHub Release is the sole canonical third-party artifact origin, the static registry stores only reviewed references and metadata, and a Nimi mirror or rebuild would create a forbidden second artifact owner.
   - id: rule.nimi.platform.app-ecosystem.p-napp-023
     kind: rule
     title: P-NAPP-023 third-party build assurance
     modality: must
-    statement: Third-party build_assurance is exactly nimi-built, reproducible-verified, or developer-attested, checksum-pinned remains restricted to first-party, internal, and developer-testing classes, and build assurance is review and display input rather than standalone automated install or runnable authority.
+    statement: Third-party build_assurance is developer-attested for a publisher tag-triggered GitHub Actions artifact by default, may be reproducible-verified only after a separate admitted reproducibility review, never claims nimi-built absent a future whole-topology artifact-owner redesign, and remains human-review input rather than standalone automated admission, installation, or runnable authority.
     condition: Whenever third-party build assurance is admitted or consumed.
     failure: Return build_assurance_third_party_violation for checksum-pinned or another invalid value and deny local-positive inference.
     relations:
@@ -1100,7 +1095,7 @@ units:
     kind: rule
     title: P-NAPP-024 platform signing assurance schema
     modality: must
-    statement: Every third-party descriptor carries macos_notarization from notarized, not-applicable, or not-required-internal, macos_developer_id_subject present unless not-applicable, windows_code_signing from signed, not-applicable, or not-required-internal, installer_signature from signed or unsigned-internal-only, entitlements_ref as admitted ref or null, and signing_subject as nimi or publisher.
+    statement: Every third-party v1 descriptor target carries signing_subject publisher and entitlements_ref as an admitted ref or null; a macOS target carries macos_notarization notarized, a non-null macos_developer_id_subject, and windows_code_signing not-applicable, while a Windows target carries windows_code_signing signed and macos_notarization and macos_developer_id_subject not-applicable, with no target asserting another platform's trust or an installer-signature posture for the nimiapp archive.
     condition: Whenever platform signing assurance is admitted.
     failure: Fail closed when the sub-object or a typed subfield is missing or inconsistent.
     relations:
@@ -1110,7 +1105,7 @@ units:
     kind: rule
     title: P-NAPP-024 ordinary signing and non-authority boundary
     modality: must
-    statement: Ordinary-user third-party macOS resolves notarized and Windows resolves signed with no not-applicable or internal-only substitute, while signing fields remain catalog input that alone creates no package signing identity, registered App subject, record, install, import, update, promotion, launch, ordinary visibility from non-product tracks, package readiness, or new admission_status value; only complete descriptor, signing, artifact validation, and atomic lifecycle commit creates local installed state, and Runtime registration receives only the six opaque seam facts.
+    statement: Every ordinary-user third-party macOS target is publisher-signed and notarized and every Windows target is publisher-signed with no internal-only substitute, while target signing fields remain catalog input that alone creates no registration, local record, install, update, launch, readiness, or admission status; registry review confirms posture, Runtime revalidates applicable native trust before atomic lifecycle commit, and Runtime registration receives only the six opaque seam facts.
     condition: Whenever ordinary release signing assurance is admitted or projected.
     failure: Return platform_signing_required for insufficient signing and deny every local-positive or enum-extension claim.
     relations:
@@ -1124,7 +1119,7 @@ units:
     kind: rule
     title: P-NAPP-025 terminal review decision semantics
     modality: must
-    statement: Every third-party descriptor records review.decision as approved, revision-requested, rejected, or kill-switched, only approved posture advances positive catalog admission, and rejected or kill-switched posture remains fail-closed.
+    statement: Every descriptor merged into registry main records review.decision exactly approved with the human adjudicator identity, typed reason, decision time, and exact candidate references after the required GitHub pull-request checks pass for that candidate; check runs remain review context and are not copied into descriptor truth, revision-requested and rejected remain pull-request outcomes, submitted and under-review remain transient pull-request states, operational kill-switch remains index policy, and none of those non-approved postures creates positive catalog admission.
     condition: Whenever terminal review disposition is enforced.
     failure: Reject an unknown decision or positive admission without approved posture.
     relations:
@@ -1134,7 +1129,7 @@ units:
     kind: rule
     title: P-NAPP-025 terminal subset preserves review ownership
     modality: must_not
-    statement: submitted or under-review appears as terminal review.decision, or this descriptor schema redefines the owning review-state set or tier-to-adjudicator policy.
+    statement: submitted, under-review, revision-requested, rejected, or kill-switched appears as descriptor review.decision in registry main, deterministic automation creates final approval, or pull-request and index policy carriers are collapsed into immutable descriptor truth.
     condition: Whenever review decision schema is consumed.
     failure: Reject the transient value or policy redefinition.
     relations:
@@ -1198,9 +1193,9 @@ units:
         target: definition.nimi.platform.app-ecosystem.storage-posture
   - id: rule.nimi.platform.app-ecosystem.p-napp-029a
     kind: rule
-    title: P-NAPP-029 public source by trust tier
+    title: P-NAPP-029 public source for every catalog App
     modality: must
-    statement: Every nimi-verified-partner or nimi-community descriptor resolves registry source_repo_url to a publicly visible GitHub repository at admission while nimi-first-party remains unconstrained, and an unresolvable URL is a distinct failure from source_repo_visibility_violation.
+    statement: Every ordinary-release-proof descriptor, including nimi-first-party, resolves registry source_repo_url to a publicly visible GitHub repository and a publicly downloadable immutable GitHub Release at admission, trust tier changes review depth rather than source or artifact topology, and an unresolvable URL is a distinct failure from source_repo_visibility_violation.
     condition: Whenever source URL and visibility are evaluated.
     failure: Return the distinct URL-resolution reason or source_repo_visibility_violation for a resolved non-public repository.
     relations:
@@ -1256,7 +1251,7 @@ units:
     kind: rule
     lifecycle: removed
     title: Retired P-NAPP-038 public App lifecycle deferral
-    reason: Removed because public catalog visibility and the ordinary install, update, repair, and uninstall lifecycle are current product behavior, while metadata-alone non-authority remains covered by P-NAPP-009.
+    reason: Removed because source-specific lifecycle semantics are governed by P-NAPP-040; removal does not make public catalog discovery or the ordinary install, update, installed launch, repair, and uninstall lifecycle currently available.
   - id: rule.nimi.platform.app-ecosystem.p-napp-039
     kind: rule
     title: P-NAPP-039 stable trust-tier transitions
@@ -1275,9 +1270,9 @@ units:
     kind: rule
     title: P-NAPP-040 closed App source entry paths
     modality: must
-    statement: verified installs use only an approved ordinary-visible catalog descriptor, user_imported installs use only an immutable artifact explicitly selected by the current user and fully validated without receiving catalog trust, and local_development uses only Developer Mode without package install, update, or repair truth; after its exact source lifecycle succeeds, every source shares the canonical registration, declaration, Desktop exact-Host launch, Runtime session, and App operation access seams.
+    statement: verified installs use only an approved ordinary-visible catalog descriptor, user_imported installs use only an immutable artifact explicitly selected by the current user and fully validated without receiving catalog trust, and local_development uses only Developer Mode without package install, update, or repair truth; after its exact source lifecycle succeeds, every source shares the canonical registration, declaration, Desktop exact-Host launch, Runtime session, and App operation access seams; in the current pre-release, public catalog discovery, immutable local import, ordinary installation, update, installed launch, repair, and uninstall remain unavailable, and lifecycle schemas, source-qualified package jobs, committed-release storage, and Desktop projections are fail-closed foundation rather than evidence of a reachable user lifecycle.
     condition: Whenever an App enters the local product lifecycle.
-    failure: Reject a source-class alias, bypass, or package-state claim outside its exact entry path.
+    failure: Reject a source-class alias, bypass, or package-state claim outside its exact entry path, reject an unavailable action before mutation, and correct any claim that presents lifecycle foundation as a reachable catalog, installation, or installed-launch path.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.app-local-lifecycle-projection
@@ -1289,7 +1284,7 @@ units:
     kind: rule
     title: P-NAPP-040 atomic package lifecycle jobs
     modality: must
-    statement: At most one package mutation job runs for one App source at a time, download or local read, verification, and staging never change the active release, only one atomic commit changes installed version and Runtime source generation, update or repair failure preserves the prior runnable release, uninstall stops the Host before removing the managed package and registration, cancellation before commit removes only transfer and staging state, and every byte or step progress value comes from observed work without synthetic success or a false one hundred percent.
+    statement: At most one package mutation job runs for one App source at a time, verified install or update resolves only the current OS/arch latest_admitted_release_by_target pointer and rejects an observed operational kill-switch before mutation, download or local read, verification, and staging never change the active release, only one atomic commit changes installed version and Runtime source generation, update or repair failure preserves the prior runnable release, uninstall proceeds only after Desktop has stopped the exact Host and otherwise returns host-running or stop-required without mutation, and every progress value comes from observed work without synthetic success.
     condition: Whenever an install, update, repair, uninstall, or cancellation job runs.
     failure: Reject concurrent mutation, non-atomic publication, stale-release loss, unrelated deletion, or simulated progress and return the exact failed or canceled job state.
     relations:
@@ -1303,7 +1298,7 @@ units:
     kind: rule
     title: P-NAPP-040 lifecycle owner and state separation
     modality: must
-    statement: Platform owns catalog, admission, descriptor, publisher, trust, and update metadata, Runtime owns local package jobs, committed installed-release and readiness projections, registered subject, source and declaration generations, session, snapshot, and App operation access, and Desktop owns exact Host launch, run, focus, stop, restart, and process supervision; catalog admitted is not installed, installed is not running, running is not Nimi Access available, transfer complete is not committed, and repair-required is not repaired.
+    statement: Platform owns registry index, admission, approved descriptor, publisher, trust, operational kill-switch, and per-target update metadata, Runtime owns source-qualified package jobs, committed installed releases and readiness, registered subjects, source and declaration generations, operational kill-switch enforcement for install, update, and installed-child bind at its observed registry revision, sessions, snapshots, and App operation access, and Desktop owns exact Host launch, child-process witness, run, focus, stop, restart, and supervision while only projecting kill-switch reasons; catalog admitted is not installed, installed is not bound or running, running is not Nimi Access available, and an already-running process is not silently killed by newly observed policy.
     condition: Whenever Apps composes discovery, package, Host, health, or access state or dispatches an action.
     failure: Reject an owner crossing or collapsed state and expose only the exact current projection from each owner.
     relations:
@@ -1334,7 +1329,7 @@ units:
     kind: rule
     title: P-AUDIT-001 admission outcomes preserve required truth
     modality: must
-    statement: A third-party admission outcome is positive only when the exact immutable candidate and manifest inputs satisfy schema, digest, provenance, license, dependency, composite audit, review, and canonical registry-and-descriptor admission truth, and no mutable-source, present-fields-only, self-attested, AI-only, app-local, repository, or package-name shortcut may project a pass.
+    statement: A third-party admission outcome is positive only when the exact protected tag, resolved SHA, immutable GitHub Release, target assets, manifest inputs, deterministic registry checks, human review, and canonical index-and-descriptor truth satisfy schema, digest, provenance, license, dependency, native trust, package structure, App access, capability, storage, support, and listing closure; developer output, repository presence, automation alone, or another shortcut cannot project a pass.
     condition: Whenever a third-party candidate admission outcome is produced.
     failure: Fail admission closed with the applicable typed reason when required truth is absent or a shortcut is attempted.
     relations:
@@ -1344,11 +1339,11 @@ units:
         target: definition.nimi.platform.app-ecosystem.release-descriptor
   - id: rule.nimi.platform.app-ecosystem.p-audit-002
     kind: rule
-    title: P-AUDIT-002 complete vendor-neutral audit risk classes
+    title: P-AUDIT-002 bounded deterministic registry checks
     modality: must
-    statement: Every third-party admission resolves independent vendor-neutral risk coverage for malicious packages, known vulnerabilities, static analysis, repository security posture, malware reputation, and AI semantic or malice triage against the exact reviewed commit and admitted artifact, with each class supplied by a replaceable admitted adapter and no class collapsed or omitted.
-    condition: Whenever third-party audit security coverage is evaluated.
-    failure: Fail admission closed with audit_class_coverage_missing when a class, admitted adapter, exact commit binding, or exact artifact binding is absent.
+    statement: Every third-party admission runs repository-local deterministic checks against the exact public repository, protected tag, resolved SHA, immutable GitHub Release, target asset identity, size, digest, build provenance, applicable native trust, nimiapp structure, Runtime entry, and closed registry fields, records their actual results for human review, and introduces no scanner-adapter platform, AI admission gate, validation service, or separate evidence store.
+    condition: Whenever registry automation evaluates a candidate.
+    failure: Keep the pull request unapproved when an exact binding, required check, or result is absent, failed, or mismatched and never fabricate a broader security verdict.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.release-descriptor
@@ -1358,19 +1353,19 @@ units:
     kind: rule
     title: P-AUDIT-003 AI and self-attested evidence cannot decide admission
     modality: must_not
-    statement: AI triage alone or developer-supplied scanner output substitutes for complete Nimi-run risk coverage or an admitted adjudicator, and developer context is represented as authoritative scanner evidence or an admission verdict.
-    condition: Whenever AI triage or developer-supplied audit context is consumed for third-party admission.
-    failure: Fail admission closed with ai_only_review_forbidden or self_attested_scan_forbidden as applicable.
+    statement: Repository automation, AI output, or developer-supplied checks create an approved decision, substitute for the human adjudicator, or are represented as broader authoritative security evidence than the exact result they produced.
+    condition: Whenever automated or developer-supplied context is consumed for third-party admission.
+    failure: Keep the candidate unapproved and expose the exact check context to the human reviewer without an automated admission fallback.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.review-decision
   - id: rule.nimi.platform.app-ecosystem.p-audit-004a
     kind: rule
-    title: P-AUDIT-004 community admission risk classification
+    title: P-AUDIT-004 tier review depth classification
     modality: must
-    statement: The Nimi-run AI-audit descriptor diff classifies every nimi-community admission into exactly one review risk class before adjudication, with a new App or any App access declaration, publisher-namespace, namespace-kind, or build-assurance change classified manual and only a clean descriptor diff preserving all of those fields classified automated; this review classification never changes Runtime declaration semantics or current App access.
-    condition: Whenever a nimi-community candidate is classified for adjudication.
-    failure: Fail admission closed with solo_reviewer_classification_unresolved when the diff is absent, ambiguous, or outside the automated-class boundary.
+    statement: Registry checks classify review depth without selecting the adjudicator outcome, highlight every new App and every App access, publisher namespace, namespace kind, build assurance, native trust, storage, or target-set change for human review, and may identify an unchanged-field update only as lower review depth; classification never changes Runtime declaration semantics, trust tier, or App access.
+    condition: Whenever candidate changes influence human review depth.
+    failure: Keep the candidate under review when the diff or review depth is absent or ambiguous and never convert a low-depth classification into approval.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.publisher-identity
@@ -1380,11 +1375,11 @@ units:
         target: definition.nimi.platform.app-ecosystem.review-decision
   - id: rule.nimi.platform.app-ecosystem.p-audit-004b
     kind: rule
-    title: P-AUDIT-004 adjudicator floors and escalation
+    title: P-AUDIT-004 human adjudicator floor
     modality: must
-    statement: The risk classification never changes nimi-first-party internal review or the nimi-verified-partner full-manual floor, while a nimi-community manual class uses human adjudication and its automated class uses the Nimi-run automated gate only while every scanner and AI-triage risk signal remains clear.
-    condition: Whenever risk classification influences adjudicator selection.
-    failure: Fail admission closed with tier_floor_violation for a weakened tier floor and escalate a flagged or risk-elevating community candidate to human adjudication.
+    statement: Every first-party, verified-partner, and community candidate requires a human CODEOWNER or maintainer for final approval, tier policy may require different review depth or reviewer set but never automated final admission, and any failed or risk-elevating deterministic check blocks approval until a human-reviewed revision resolves it.
+    condition: Whenever tier or check results influence adjudication.
+    failure: Keep the candidate unapproved when the human floor, required tier depth, or failed-check resolution is absent.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.catalog-admission
@@ -1394,9 +1389,9 @@ units:
     kind: rule
     title: P-AUDIT-005 and P-DEV-003 developer audit is context only
     modality: must_not
-    statement: A developer-side audit dry-run or local self-check is treated as an admission gate or as Nimi-run scanner output, even when its typed output accompanies a submission as developer-supplied context.
+    statement: A developer-side audit dry-run, local self-check, or publisher workflow output is treated as the registry's final admission gate or human decision, even when its typed output accompanies a submission as developer-supplied context.
     condition: Whenever developer-side audit output is consumed.
-    failure: Fail admission closed with developer_side_audit_not_gate and require authoritative coverage against the exact reviewed commit and admitted artifact.
+    failure: Keep the candidate unapproved and require the registry's exact deterministic checks plus human adjudication against the submitted Release and SHA.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.review-decision
@@ -1404,9 +1399,9 @@ units:
     kind: rule
     title: P-AUDIT-006 review decision security binding
     modality: must
-    statement: A terminal third-party review decision is Nimi-owned, distinct from developer-authored manifest truth, and binds the exact candidate, complete risk-class coverage, AI model identity and version when AI triage applies, deterministic scanner results, adjudicator kind and identity, and decision time without collapsing evidence meanings or redefining terminal decision semantics.
-    condition: Whenever a terminal third-party review decision is admitted or enforced.
-    failure: Fail admission closed when any required binding is absent, developer-inferred, collapsed, or inconsistent with the admitted decision schema.
+    statement: An approved third-party descriptor decision is registry-maintainer-owned, distinct from developer-authored input, and binds the exact publisher, app_id, version, protected tag, resolved SHA, immutable Release and targets, human adjudicator identity, typed reason, and decision time after required GitHub pull-request checks pass for that exact candidate, without copying check results into the descriptor or creating a scanner ledger, AI gate, or parallel evidence truth.
+    condition: Whenever an approved descriptor is merged or consumed.
+    failure: Keep the candidate out of registry main when any exact binding, required result, human adjudicator, reason, or time is absent or inconsistent.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.release-descriptor
@@ -1416,9 +1411,9 @@ units:
     kind: rule
     title: P-DEV-004 immutable candidate submission
     modality: must
-    statement: A submitted candidate artifact is built from either a protected immutable Git tag resolved to an unchangeable commit SHA or a reviewed commit SHA, records that exact source reference in submitted manifest input, and carries it unchanged into the immutable admitted release descriptor.
+    statement: A submitted candidate artifact is built only by the publisher's tag-triggered GitHub Actions from a protected immutable version tag resolved to one commit SHA, is published in the immutable GitHub Release for that tag, and is submitted through one publisher-owned registry fork branch bound to the same app_id, version, Release, tag, and SHA; a bare reviewed SHA, branch, mutable tag, local artifact upload, parallel retry pull request, or direct upstream-main push is not a production candidate source.
     condition: Whenever a third-party candidate artifact is submitted or admitted.
-    failure: Fail admission closed with mutable_submission_artifact for a branch, unprotected tag, dist-tag, version range, latest projection, or any other mutable resolver.
+    failure: Fail admission closed with mutable_submission_artifact or submission_identity_conflict before review when tag, SHA, Release, publisher branch, or candidate identity is absent, mutable, mismatched, or duplicated.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.release-descriptor
@@ -1435,7 +1430,7 @@ units:
   - id: definition.nimi.platform.app-ecosystem.scaffold-custody
     kind: definition
     title: Scaffold authoring and custody boundary
-    meaning: App Tools owns Scaffold creation, tool-owned initialization, local development launch, SDK and demand-driven Kit integration, Simulator preview and checks, and Nimi Home host glue for the current Desktop-hosted Third-party Local App flow while the App owns product logic and private data and Runtime owns protected identity, session, authorization, Realm mediation, and credentials.
+    meaning: App Tools owns third-party repository creation and initialization, scaffold synchronization and checks, Desktop-supervised local development, test and build orchestration, deterministic per-target packaging and aggregate candidate input, and a managed tag-only GitHub workflow foundation while the App owns product code and GitHub repository, Platform registry maintainers own review and main, Runtime owns source-qualified installation and protected access, and Desktop owns exact Host processes; local publish, publisher tag and Release orchestration, registry pull-request preparation, shared installed carrier, catalog lifecycle, and installed launch remain unavailable until their real owner paths are implemented.
   - id: definition.nimi.platform.app-ecosystem.nimi-lab
     kind: definition
     title: Nimi Lab full-capability development App
@@ -1476,7 +1471,7 @@ units:
     kind: rule
     title: P-SCAF-002 accepted bootstrap command and dependency boundaries
     modality: must
-    statement: App authoring remains under nimi-app create, init, doctor, and update; standalone Rust shell consumption uses the published nimi-shell-tauri channel only after its public mechanics are admitted, and workspace consumption uses its admitted Cargo path dependency.
+    statement: Third-party repository authoring, development, build, packaging, and managed workflow preparation remain under the exact nimi-app command family defined by P-SCAF-008, while local publish and registry pull-request preparation remain unavailable; standalone Rust shell consumption uses the published nimi-shell-tauri channel only after its public mechanics are admitted, and workspace consumption remains a non-public validation topology.
     condition: Whenever the app-authoring command or Rust-shell dependency surface is selected.
     failure: Reject a Runtime CLI takeover, unadmitted publication claim, or dependency path outside the applicable boundary.
     relations:
@@ -1528,11 +1523,11 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-008
     kind: rule
-    title: P-SCAF-008 app-authoring command family
+    title: P-SCAF-008 complete nimi-app command family
     modality: must
-    statement: The public developer-repository authoring command family is exactly nimi-app create, nimi-app init, nimi-app doctor, and nimi-app update, and the Runtime nimi CLI does not own scaffold templates, build inputs, publishing, admission, doctor, or update semantics.
-    condition: Whenever an app-authoring command is exposed or assigned an owner.
-    failure: Reject an additional command owner or Runtime CLI ownership of the authoring surface.
+    statement: The public nimi-app CLI is exactly two sub-families consisting of authoring create, init, and sync and development and build check, dev, test, build, and pack; public doctor, update, and publish commands, aliases, compatibility shims, additional command owners, and Runtime-CLI ownership of these semantics are forbidden until a separately aligned publisher and registry owner path is implemented.
+    condition: Whenever a third-party developer command is exposed or assigned an owner.
+    failure: Reject an unknown, duplicate, aliased, or out-of-owner command before mutation or execution.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
@@ -1540,7 +1535,7 @@ units:
     kind: rule
     title: P-SCAF-009 create and init custody
     modality: must
-    statement: nimi-app create writes only the source skeleton and explicit initialization intent, while nimi-app init consumes installed dependencies, performs pinned deterministic package projection sync, and writes scaffold-owned lock and developer-input state without template-copying package projections, hidden postinstall mutation, or interactive project reconstruction.
+    statement: nimi-app create writes the source skeleton, canonical identity and version inputs, developer manifest and build profile, explicit initialization intent, and managed workflow source without installing dependencies or creating release or admission truth, while nimi-app init consumes installed dependencies, performs pinned deterministic package projection sync, and writes scaffold-owned lock and developer-input state without hidden postinstall mutation or product-code reconstruction.
     condition: Whenever create or init mutates a developer repository.
     failure: Abort on uninstalled, hidden, interactive, template-owned, or out-of-custody mutation.
     relations:
@@ -1548,10 +1543,10 @@ units:
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
   - id: rule.nimi.platform.app-ecosystem.p-scaf-009b
     kind: rule
-    title: P-SCAF-009 update preservation and non-admission output
+    title: P-SCAF-009 maintenance build and release-preparation custody
     modality: must
-    statement: nimi-app update changes only scaffold-managed glue through admitted dependency updates and codemods, preserves app-owned product code, fails closed on conflicts or mixed and stale projection state, and no init, doctor, update, audit, reachability, file, or build result becomes public admission, installed-app health, launch, rollback, update, or kill-switch truth.
-    condition: Whenever scaffold maintenance output is produced or interpreted.
+    statement: nimi-app sync changes only scaffold-managed dependencies, configuration, workflow and glue and preserves app-owned product code, check is non-mutating, test and build invoke the App-declared owners, and pack deterministically emits one target package plus aggregate candidate input without publishing; local publish is unavailable, manual managed-workflow dispatch is non-production only, and tag publication remains fail closed until the shared installed carrier plus publisher GitHub Release and registry pull-request owner paths are implemented, without admitting local artifact upload, upstream-main push, admission, installation, process, or Runtime-access truth.
+    condition: Whenever sync, check, test, build, or pack runs, unavailable publication is requested, or lifecycle output is interpreted.
     failure: Stop the mutation on unsafe state and reject every projected owner-lifecycle claim.
     relations:
       - type: applies_to
@@ -1570,7 +1565,7 @@ units:
     kind: rule
     title: P-SCAF-012 separate scaffold and public admission surfaces
     modality: must
-    statement: Public app admission and developer-repository scaffold shape remain separate owner surfaces; scaffolding writes no admitted truth and cannot create registry, descriptor, mirror, review, visibility, install, or kill-switch truth.
+    statement: Public app admission and developer-repository tooling remain separate owner surfaces; app-tools may write developer candidate inputs, GitHub workflow source, and target packages, while registry pull-request preparation remains unavailable until its owner path exists, and app-tools cannot write registry main, approved descriptors, review decisions, visibility, kill-switch, update pointers, installed state, or Runtime access truth.
     condition: Whenever scaffolding creates or projects admission-related content.
     failure: Reject scaffold-created public truth or substitution for the public admission owner.
     relations:
@@ -1592,7 +1587,7 @@ units:
     kind: rule
     title: P-SCAF-016 protected launch and session custody
     modality: must
-    statement: A Scaffolded Third-party Local App is launched as the exact Host by Desktop and uses the standard SDK only to carry typed requests and results, while Runtime privately derives and interprets the current account, registered subject, protected session, Effective App Access Snapshot, and exact operation admission; the App and SDK receive no snapshot content or identifier, Realm or refresh token, Provider Credential, connector credential material, native peer proof, or internal authorization material.
+    statement: A Scaffolded Third-party App is launched as the exact Host by Desktop and uses the standard SDK only for typed requests and results; for an installed source Runtime issues a source-qualified opaque selector, Desktop launches the exact Runtime entry and returns the exact child-process witness, Runtime verifies an installed trust class and binds that witness to the installed registration before opening a session, and local-development launch bindings or trust cannot substitute; the App and SDK receive no subject, snapshot, credential, peer proof, or internal authorization material.
     condition: Whenever a scaffolded third-party app opens a protected local session.
     failure: Deny protected session creation or the exact operation when identity, context, snapshot, peer material, or credentials are App-supplied or exposed without requiring Host termination for ordinary access unavailability.
     relations:
@@ -1642,7 +1637,7 @@ units:
     kind: rule
     title: P-SCAF-018 synchronization preserves app custody
     modality: must
-    statement: Scaffold synchronization keeps the official launcher reference deterministic, never overwrites app-owned product files, and applies the same launcher, Kit, and Runtime boundary to Nimi Lab and external app consumers.
+    statement: nimi-app sync keeps official launcher, public dependency, managed workflow, and package-contract references deterministic, never overwrites app-owned product files, removes local, workspace, path, and parent-source overrides from standalone external App repositories rather than preserving a second release topology, preserves the Nimi Lab workspace validation topology allowed by P-SCAF-002, and applies the same Kit and Runtime product boundary to both consumers.
     condition: Whenever launcher glue is synchronized or consumed.
     failure: Reject non-deterministic glue, product-file overwrite, or consumer-specific authority bypass.
     relations:
@@ -1700,14 +1695,14 @@ units:
     kind: rule
     lifecycle: removed
     title: Retired P-ECO-002 public registry onboarding deferral
-    reason: Removed because canonical third-party registry onboarding, trust-tier review, descriptor admission, publication, and ordinary-user installation are current product behavior.
+    reason: Removed because the canonical registry onboarding contract is governed by P-ECO-002b; removal does not make onboarding, publisher publication, registry admission, or ordinary-user installation currently available.
   - id: rule.nimi.platform.app-ecosystem.p-eco-002b
     kind: rule
     title: P-ECO-002 canonical public registry onboarding
     modality: must
-    statement: A third-party developer enters the public catalog only through canonical registry submission, immutable candidate review, trust-tier resolution, complete descriptor admission, and publication, while repository presence, an App-local manifest, local_development registration, user_imported installation, or another registry-bypass alias never creates public admission.
+    statement: A third-party developer enters the public catalog only through one publisher-owned fork branch and pull request to the static Git-reviewed nimiplatform/nimi-app-registry main branch, deterministic checks against the exact protected tag, SHA, immutable publisher GitHub Release and target assets, required human CODEOWNER or maintainer review, trust-tier resolution, complete approved descriptor admission, and publication; the registry stores no artifact bytes or full changelog, Nimi source repository and private backend are not registry owners, and repository presence, App-local input, local_development, user_imported installation, or another bypass never creates admission; in the current pre-release, publisher publication, registry pull-request preparation, trust-tier review, descriptor admission, registry publication, and ordinary-user installation remain unavailable, and their authority contracts plus managed workflow foundation create no current admission, publication, or install path.
     condition: Whenever a third-party developer or release enters the public catalog.
-    failure: Reject incomplete onboarding or a registry bypass before publication.
+    failure: Reject incomplete onboarding or a registry bypass before publication, fail the currently unavailable path closed, and reject any registry, publication, admission, or installation success inferred from contracts, generated workflow source, or candidate packages alone.
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.catalog-admission
@@ -1729,7 +1724,7 @@ units:
     kind: rule
     title: P-ECO-004 typed review posture reference
     modality: must
-    statement: Ecosystem review posture references the closed submitted, under-review, revision-requested, approved, rejected, and kill-switched states, applies internal review to first-party, full manual review to verified partners, and automated review with manual kill-switch eligibility to community, with no silent transition and no automatic recovery from kill-switched.
+    statement: Ecosystem review posture is exactly submitted, under-review, revision-requested, approved, rejected, or kill-switched, repository automation performs only deterministic checks, a human CODEOWNER or maintainer owns every final admission decision, tier policy may vary required review depth without an automated approval path, and no transition is silent or automatically recovers from kill-switched.
     condition: Whenever ecosystem review posture is projected or changed.
     failure: Reject an unknown state, tier-policy mismatch, silent transition, or terminal-state recovery.
     relations:

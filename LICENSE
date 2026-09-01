@@ -2,8 +2,9 @@
 
 This repository is multi-licensed by component.
 
-- `runtime/**`, `sdks/typescript/**`, `proto/**`: Apache-2.0
-- `apps/desktop/**`, `apps/web/**`, `apps/_libs/**`: MIT
-- `docs/**`: CC-BY-4.0
+- `runtime/**`, `sdks/typescript/**`, `proto/**`, `app-tools/**`, `npm-packages/**`: Apache-2.0
+- `apps/**`, `kit/**`: MIT
+- `app-tools/templates/default-starter/**`, `app-tools/templates/app-source/**`: MIT (override the `app-tools/**` default)
+- `docs/**`, `.nimi/spec/**`: CC-BY-4.0
 
 Canonical texts are in `licenses/`.

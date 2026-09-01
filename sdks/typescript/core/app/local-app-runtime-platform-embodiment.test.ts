@@ -7,7 +7,7 @@ import {
   type NimiLocalAppEmbodimentShell,
 } from './local-app-runtime-platform-embodiment.js';
 
-const HANDLE = 'agent_ref_abcdefghijklmnopqrstuvwxyzABCDEFGH123456789' as NimiLocalAppAgentHandle;
+const HANDLE = `agent_ref_${'a'.repeat(43)}` as NimiLocalAppAgentHandle;
 
 function base(sequence: string) {
   return { sequence, observedAt: { seconds: '1', nanos: 2 }, provenance: 'runtime_agent_owner' };

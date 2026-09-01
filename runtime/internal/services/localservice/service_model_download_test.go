@@ -558,7 +558,7 @@ func TestPausedManagedModelDownloadStaysPausedWhenInstallCallIsCanceled(t *testi
 		done <- err
 	}()
 	<-requestStarted
-	transfer := transferForAssetForTest(t, svc, modelID)
+	transfer := awaitTransferBytesForTest(t, svc, modelID)
 	if _, err := svc.PauseLocalTransfer(context.Background(), &runtimev1.PauseLocalTransferRequest{
 		InstallSessionId: transfer.GetInstallSessionId(),
 	}); err != nil {

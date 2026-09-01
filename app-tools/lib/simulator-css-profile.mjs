@@ -10,7 +10,7 @@ import { SimulatorConformanceError } from './simulator-manifest.mjs';
 
 export const SIMULATOR_CSS_PROFILE_PROTOCOL = 'nimi.simulator.css-profile/v1';
 export const SIMULATOR_CSS_PROFILE_REVISION = 'tailwind-v4-canonical-closure-1';
-export const SIMULATOR_CSS_COMPILER_VERSION = '4.3.0';
+export const SIMULATOR_CSS_COMPILER_VERSION = '4.3.3';
 export const SIMULATOR_KIT_FOUNDATION_CSS_EXPORTS = Object.freeze([
   '@nimiplatform/kit/ui/styles.css',
   '@nimiplatform/kit/ui/themes/light.css',

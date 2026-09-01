@@ -38,7 +38,7 @@ func TestCUDA13AudioCppDependencyHasIndependentIdentityAndSource(t *testing.T) {
 		t.Fatalf("CUDA 13 dependency identity = %+v", spec)
 	}
 	if spec.ManagedSource.ArchiveURL != "https://github.com/0xShug0/audio.cpp/releases/download/release-0.6.1/audiocpp-windows-cuda-runtime.zip" ||
-		spec.ManagedSource.ArchiveSHA256 != "4104167de457dd3d20bd6e2de172c41f84cd15d0b3e8835649849710a863d10d" ||
+		spec.ManagedSource.ArchiveSHA256 != "4104167de457dd3d20bd6e2de172c41f84cd15d0b3e8835649849710a863d10d" || // pragma: allowlist secret -- public archive checksum
 		spec.ManagedSource.InstallDirName == NVIDIACUDAUserSpaceRuntimeDependencyID {
 		t.Fatalf("CUDA 13 managed source = %+v", spec.ManagedSource)
 	}

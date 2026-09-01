@@ -189,7 +189,9 @@ func TestAudioCppReferenceVoiceCreateDoesNotPublishAfterTimeout(t *testing.T) {
 	svc := newTestService(nil)
 	svc.localSpeechStagingRoot = t.TempDir()
 	svc.SetLocalExecutionResolver(&localVoiceExecutionResolver{selections: map[string]*localexecution.SelectedLocalExecution{capabilitydriver.VoiceCreateContract: selection}})
+	entered := make(chan struct{})
 	host := &localSpeechHostStub{voiceCreateResultCtxFn: func(ctx context.Context, plan *capabilitydriver.VoiceCreateInvocationPlan) (localexecution.VoiceCreateResult, error) {
+		close(entered)
 		<-ctx.Done()
 		id := strings.TrimPrefix(plan.AudioCppProviderVoiceRef(), capabilitydriver.AudioCppReferenceVoicePrefix)
 		if err := os.MkdirAll(plan.AudioCppReferenceRoot(), 0o700); err != nil {
@@ -216,11 +218,16 @@ func TestAudioCppReferenceVoiceCreateDoesNotPublishAfterTimeout(t *testing.T) {
 	ownerCtx := scenarioJobUserContext("app.local", "anonymous")
 	ctx := executionintent.WithIntent(ownerCtx, executionintent.Intent{CapabilityContract: capabilitydriver.VoiceCreateContract, LocalLoadoutRef: "audio-cpp-glm-voice-timeout", Route: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, RequiredFeatures: []string{"input.audio"}})
 	response, err := svc.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
-		Head: &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "anonymous", TimeoutMs: 10}, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+		Head: &runtimev1.ScenarioRequestHead{AppId: "app.local", SubjectUserId: "anonymous", TimeoutMs: 1000}, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE, ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VoiceCreate{VoiceCreate: &runtimev1.VoiceCreateScenarioSpec{Source: &runtimev1.VoiceCreateScenarioSpec_ReferenceAudio{ReferenceAudio: &runtimev1.VoiceV2VInput{ReferenceAudioBytes: wav, ReferenceAudioMime: "audio/wav", Text: "reference words"}}}}},
 	})
 	if err != nil {
 		t.Fatal(err)
+	}
+	select {
+	case <-entered:
+	case <-time.After(2 * time.Second):
+		t.Fatal("audio.cpp voice.create host was not entered before timeout")
 	}
 	job := waitLocalVoiceJobTerminal(t, svc, response.GetJob().GetJobId())
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT {

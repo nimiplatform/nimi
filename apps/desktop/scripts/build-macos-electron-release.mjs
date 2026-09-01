@@ -164,15 +164,15 @@ async function buildReleaseInputs({
     goArguments.push('-tags', 'nimi_macos_local_development');
     goArguments.push(
       '-ldflags',
-      `-X github.com/nimiplatform/nimi/runtime/cmd/nimi.Version=${version}`,
+      `-X main.Version=${version}`,
     );
   } else if (releaseInput) {
     goArguments.push('-ldflags', [
-      `-X github.com/nimiplatform/nimi/runtime/cmd/nimi.Version=${version}`,
+      `-X main.Version=${version}`,
       `-X github.com/nimiplatform/nimi/runtime/internal/protectedlocal.MacOSTeamID=${releaseInput.teamId}`,
     ].join(' '));
   } else {
-    goArguments.push('-ldflags', `-X github.com/nimiplatform/nimi/runtime/cmd/nimi.Version=${version}`);
+    goArguments.push('-ldflags', `-X main.Version=${version}`);
   }
   goArguments.push('./cmd/nimi');
   runReleaseCommand('go', goArguments, {

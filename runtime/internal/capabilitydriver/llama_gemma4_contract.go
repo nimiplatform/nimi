@@ -17,15 +17,15 @@ type Gemma4BehaviorCohortEntry struct {
 }
 
 var gemma4BehaviorCohort = [...]Gemma4BehaviorCohortEntry{
-	gemma4CohortEntry("31aeee4a8b5c4a743f51f4021c29cfaa809d31a892cf9b918b9bb40542941197", Gemma4E2BTemplateIdentity, Gemma4E2BProjectorContentID),
-	gemma4CohortEntry("9378bc471710229ef165709b62e34bfb62231420ddaf6d729e727305b5b8672d", Gemma4E2BTemplateIdentity, Gemma4E2BProjectorContentID),
-	gemma4CohortEntry("d8fc2ac6fd597481dfd9c5ef9543ea1f0bda8088086da3853ce5e5564ab43bf8", Gemma4E2BTemplateIdentity, Gemma4E2BProjectorContentID),
-	gemma4CohortEntry("b36824f13bf9fab2910cb7b4282a4d73b13799ee4126d4ec241309ce69c0e783", Gemma4E2BTemplateIdentity, Gemma4E2BProjectorContentID),
-	gemma4CohortEntry("0a8488b149e1f700712c35d5bf0a3795f9dcc2563b4944d5ef2fb89375f9483e", Gemma4E2BTemplateIdentity, Gemma4E2BProjectorContentID),
-	gemma4CohortEntry("34c746b1d50ab813e29cd46c4796e3f43c741901a582f93a67b55b9fc9687b35", Gemma426BTemplateIdentity, Gemma426BProjectorContentID),
-	gemma4CohortEntry("f2fe28fc1d82e7c74f47d570a8c8847513fe2712a1b3a5bcd869031d952c4936", Gemma426BTemplateIdentity, Gemma426BProjectorContentID),
-	gemma4CohortEntry("d3d9e6a63845bdc83e9f9fc5923e77c023ccc1197c9e145e6a8754bad80b5d75", Gemma426BTemplateIdentity, Gemma426BProjectorContentID),
-	gemma4CohortEntry("b26c56ea4bf724b4efa0161bb4615e974847ec64450a4dd49da8712614a128c7", Gemma426BTemplateIdentity, Gemma426BProjectorContentID),
+	gemma4CohortEntry("31aeee4a8b5c4a743f51f4021c29cfaa809d31a892cf9b918b9bb40542941197", Gemma4E2BTemplateIdentity, Gemma4E2BProjectorContentID), // pragma: allowlist secret -- public model entry digest
+	gemma4CohortEntry("9378bc471710229ef165709b62e34bfb62231420ddaf6d729e727305b5b8672d", Gemma4E2BTemplateIdentity, Gemma4E2BProjectorContentID), // pragma: allowlist secret -- public model entry digest
+	gemma4CohortEntry("d8fc2ac6fd597481dfd9c5ef9543ea1f0bda8088086da3853ce5e5564ab43bf8", Gemma4E2BTemplateIdentity, Gemma4E2BProjectorContentID), // pragma: allowlist secret -- public model entry digest
+	gemma4CohortEntry("b36824f13bf9fab2910cb7b4282a4d73b13799ee4126d4ec241309ce69c0e783", Gemma4E2BTemplateIdentity, Gemma4E2BProjectorContentID), // pragma: allowlist secret -- public model entry digest
+	gemma4CohortEntry("0a8488b149e1f700712c35d5bf0a3795f9dcc2563b4944d5ef2fb89375f9483e", Gemma4E2BTemplateIdentity, Gemma4E2BProjectorContentID), // pragma: allowlist secret -- public model entry digest
+	gemma4CohortEntry("34c746b1d50ab813e29cd46c4796e3f43c741901a582f93a67b55b9fc9687b35", Gemma426BTemplateIdentity, Gemma426BProjectorContentID), // pragma: allowlist secret -- public model entry digest
+	gemma4CohortEntry("f2fe28fc1d82e7c74f47d570a8c8847513fe2712a1b3a5bcd869031d952c4936", Gemma426BTemplateIdentity, Gemma426BProjectorContentID), // pragma: allowlist secret -- public model entry digest
+	gemma4CohortEntry("d3d9e6a63845bdc83e9f9fc5923e77c023ccc1197c9e145e6a8754bad80b5d75", Gemma426BTemplateIdentity, Gemma426BProjectorContentID), // pragma: allowlist secret -- public model entry digest
+	gemma4CohortEntry("b26c56ea4bf724b4efa0161bb4615e974847ec64450a4dd49da8712614a128c7", Gemma426BTemplateIdentity, Gemma426BProjectorContentID), // pragma: allowlist secret -- public model entry digest
 }
 
 func gemma4CohortEntry(entrySHA256, templateIdentity, projectorContentID string) Gemma4BehaviorCohortEntry {

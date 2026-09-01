@@ -271,6 +271,7 @@ fi
 if [ -n "$REQUESTED_VERSION" ]; then
   tag="$(normalize_tag "$REQUESTED_VERSION")"
   version="${tag#v}"
+  version="${version%-rc.*}"
   archive="nimi-runtime_${version}_${archive_platform}_${arch}.tar.gz"
   base_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${tag}"
   archive_url="${base_url}/${archive}"

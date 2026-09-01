@@ -307,6 +307,9 @@ pub enum ReasonCode {
     AppStorageCursorInvalid = 584,
     AppStorageIntegrityFailure = 585,
     AppStorageArtifactUnavailable = 586,
+    AppPackageJobNotFound = 587,
+    AppPackageJobPhaseConflict = 588,
+    AppPackageJobNotCancelable = 589,
     /// GRANT family (510+)
     GrantTokenChainRootNotFound = 510,
     GrantTokenChainRootRequired = 511,
@@ -634,6 +637,9 @@ impl ReasonCode {
             Self::AppStorageCursorInvalid => "APP_STORAGE_CURSOR_INVALID",
             Self::AppStorageIntegrityFailure => "APP_STORAGE_INTEGRITY_FAILURE",
             Self::AppStorageArtifactUnavailable => "APP_STORAGE_ARTIFACT_UNAVAILABLE",
+            Self::AppPackageJobNotFound => "APP_PACKAGE_JOB_NOT_FOUND",
+            Self::AppPackageJobPhaseConflict => "APP_PACKAGE_JOB_PHASE_CONFLICT",
+            Self::AppPackageJobNotCancelable => "APP_PACKAGE_JOB_NOT_CANCELABLE",
             Self::GrantTokenChainRootNotFound => "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND",
             Self::GrantTokenChainRootRequired => "GRANT_TOKEN_CHAIN_ROOT_REQUIRED",
             Self::PageTokenInvalid => "PAGE_TOKEN_INVALID",
@@ -992,6 +998,9 @@ impl ReasonCode {
             "APP_STORAGE_ARTIFACT_UNAVAILABLE" => {
                 Some(Self::AppStorageArtifactUnavailable)
             }
+            "APP_PACKAGE_JOB_NOT_FOUND" => Some(Self::AppPackageJobNotFound),
+            "APP_PACKAGE_JOB_PHASE_CONFLICT" => Some(Self::AppPackageJobPhaseConflict),
+            "APP_PACKAGE_JOB_NOT_CANCELABLE" => Some(Self::AppPackageJobNotCancelable),
             "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND" => Some(Self::GrantTokenChainRootNotFound),
             "GRANT_TOKEN_CHAIN_ROOT_REQUIRED" => Some(Self::GrantTokenChainRootRequired),
             "PAGE_TOKEN_INVALID" => Some(Self::PageTokenInvalid),
@@ -11401,6 +11410,102 @@ pub struct RebindLocalAppProcessResponse {
     #[prost(enumeration = "ReasonCode", tag = "3")]
     pub reason_code: i32,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CommittedAppRelease {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AppPackageSourceClass", tag = "2")]
+    pub source_class: i32,
+    #[prost(string, tag = "3")]
+    pub version: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub release_ref: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "5")]
+    pub launch_selector: ::prost::alloc::vec::Vec<u8>,
+    #[prost(message, optional, tag = "12")]
+    pub committed_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AppPackageJob {
+    #[prost(bytes = "vec", tag = "1")]
+    pub job_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "2")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "AppPackageSourceClass", tag = "3")]
+    pub source_class: i32,
+    #[prost(enumeration = "AppPackageJobKind", tag = "4")]
+    pub kind: i32,
+    #[prost(string, tag = "5")]
+    pub target_ref: ::prost::alloc::string::String,
+    #[prost(enumeration = "AppPackageJobPhase", tag = "6")]
+    pub phase: i32,
+    #[prost(enumeration = "AppPackageProgressBasis", tag = "7")]
+    pub progress_basis: i32,
+    #[prost(uint64, tag = "8")]
+    pub bytes_completed: u64,
+    #[prost(uint64, optional, tag = "9")]
+    pub bytes_total: ::core::option::Option<u64>,
+    #[prost(uint64, tag = "10")]
+    pub steps_completed: u64,
+    #[prost(uint64, optional, tag = "11")]
+    pub steps_total: ::core::option::Option<u64>,
+    #[prost(message, optional, tag = "12")]
+    pub started_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "13")]
+    pub completed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "AppPackageTerminalResult", tag = "14")]
+    pub terminal_result: i32,
+    #[prost(string, tag = "15")]
+    pub reason_code: ::prost::alloc::string::String,
+    #[prost(bool, tag = "16")]
+    pub cancelable: bool,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListCommittedAppReleasesRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListCommittedAppReleasesResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub releases: ::prost::alloc::vec::Vec<CommittedAppRelease>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListAppPackageJobsRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListAppPackageJobsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub jobs: ::prost::alloc::vec::Vec<AppPackageJob>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAppPackageJobRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub job_id: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAppPackageJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<AppPackageJob>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelAppPackageJobRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub job_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(enumeration = "AppPackageJobPhase", tag = "2")]
+    pub expected_phase: i32,
+    #[prost(string, tag = "3")]
+    pub reason_code: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CancelAppPackageJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<AppPackageJob>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AppMessageEventType {
@@ -11464,6 +11569,409 @@ impl AppStorageState {
             "APP_STORAGE_STATE_REPAIR_REQUIRED" => Some(Self::RepairRequired),
             "APP_STORAGE_STATE_STORAGE_UNAVAILABLE" => Some(Self::StorageUnavailable),
             _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppPackageSourceClass {
+    Unspecified = 0,
+    Verified = 1,
+    UserImported = 2,
+}
+impl AppPackageSourceClass {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED",
+            Self::Verified => "APP_PACKAGE_SOURCE_CLASS_VERIFIED",
+            Self::UserImported => "APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_PACKAGE_SOURCE_CLASS_VERIFIED" => Some(Self::Verified),
+            "APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED" => Some(Self::UserImported),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppPackageJobKind {
+    Unspecified = 0,
+    Install = 1,
+    Update = 2,
+    Repair = 3,
+    Uninstall = 4,
+}
+impl AppPackageJobKind {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_PACKAGE_JOB_KIND_UNSPECIFIED",
+            Self::Install => "APP_PACKAGE_JOB_KIND_INSTALL",
+            Self::Update => "APP_PACKAGE_JOB_KIND_UPDATE",
+            Self::Repair => "APP_PACKAGE_JOB_KIND_REPAIR",
+            Self::Uninstall => "APP_PACKAGE_JOB_KIND_UNINSTALL",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_PACKAGE_JOB_KIND_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_PACKAGE_JOB_KIND_INSTALL" => Some(Self::Install),
+            "APP_PACKAGE_JOB_KIND_UPDATE" => Some(Self::Update),
+            "APP_PACKAGE_JOB_KIND_REPAIR" => Some(Self::Repair),
+            "APP_PACKAGE_JOB_KIND_UNINSTALL" => Some(Self::Uninstall),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppPackageJobPhase {
+    Unspecified = 0,
+    Queued = 1,
+    Downloading = 2,
+    ReadingLocal = 3,
+    Verifying = 4,
+    VerifyingInstalled = 5,
+    AcquiringMissing = 6,
+    Staging = 7,
+    Committing = 8,
+    RemovingPackage = 10,
+    Unregistering = 11,
+    Completed = 12,
+    Failed = 13,
+    Canceled = 14,
+}
+impl AppPackageJobPhase {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_PACKAGE_JOB_PHASE_UNSPECIFIED",
+            Self::Queued => "APP_PACKAGE_JOB_PHASE_QUEUED",
+            Self::Downloading => "APP_PACKAGE_JOB_PHASE_DOWNLOADING",
+            Self::ReadingLocal => "APP_PACKAGE_JOB_PHASE_READING_LOCAL",
+            Self::Verifying => "APP_PACKAGE_JOB_PHASE_VERIFYING",
+            Self::VerifyingInstalled => "APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED",
+            Self::AcquiringMissing => "APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING",
+            Self::Staging => "APP_PACKAGE_JOB_PHASE_STAGING",
+            Self::Committing => "APP_PACKAGE_JOB_PHASE_COMMITTING",
+            Self::RemovingPackage => "APP_PACKAGE_JOB_PHASE_REMOVING_PACKAGE",
+            Self::Unregistering => "APP_PACKAGE_JOB_PHASE_UNREGISTERING",
+            Self::Completed => "APP_PACKAGE_JOB_PHASE_COMPLETED",
+            Self::Failed => "APP_PACKAGE_JOB_PHASE_FAILED",
+            Self::Canceled => "APP_PACKAGE_JOB_PHASE_CANCELED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_PACKAGE_JOB_PHASE_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_PACKAGE_JOB_PHASE_QUEUED" => Some(Self::Queued),
+            "APP_PACKAGE_JOB_PHASE_DOWNLOADING" => Some(Self::Downloading),
+            "APP_PACKAGE_JOB_PHASE_READING_LOCAL" => Some(Self::ReadingLocal),
+            "APP_PACKAGE_JOB_PHASE_VERIFYING" => Some(Self::Verifying),
+            "APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED" => Some(Self::VerifyingInstalled),
+            "APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING" => Some(Self::AcquiringMissing),
+            "APP_PACKAGE_JOB_PHASE_STAGING" => Some(Self::Staging),
+            "APP_PACKAGE_JOB_PHASE_COMMITTING" => Some(Self::Committing),
+            "APP_PACKAGE_JOB_PHASE_REMOVING_PACKAGE" => Some(Self::RemovingPackage),
+            "APP_PACKAGE_JOB_PHASE_UNREGISTERING" => Some(Self::Unregistering),
+            "APP_PACKAGE_JOB_PHASE_COMPLETED" => Some(Self::Completed),
+            "APP_PACKAGE_JOB_PHASE_FAILED" => Some(Self::Failed),
+            "APP_PACKAGE_JOB_PHASE_CANCELED" => Some(Self::Canceled),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppPackageProgressBasis {
+    Unspecified = 0,
+    Bytes = 1,
+    Steps = 2,
+    Indeterminate = 3,
+}
+impl AppPackageProgressBasis {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_PACKAGE_PROGRESS_BASIS_UNSPECIFIED",
+            Self::Bytes => "APP_PACKAGE_PROGRESS_BASIS_BYTES",
+            Self::Steps => "APP_PACKAGE_PROGRESS_BASIS_STEPS",
+            Self::Indeterminate => "APP_PACKAGE_PROGRESS_BASIS_INDETERMINATE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_PACKAGE_PROGRESS_BASIS_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_PACKAGE_PROGRESS_BASIS_BYTES" => Some(Self::Bytes),
+            "APP_PACKAGE_PROGRESS_BASIS_STEPS" => Some(Self::Steps),
+            "APP_PACKAGE_PROGRESS_BASIS_INDETERMINATE" => Some(Self::Indeterminate),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AppPackageTerminalResult {
+    Unspecified = 0,
+    Completed = 1,
+    Failed = 2,
+    Canceled = 3,
+}
+impl AppPackageTerminalResult {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "APP_PACKAGE_TERMINAL_RESULT_UNSPECIFIED",
+            Self::Completed => "APP_PACKAGE_TERMINAL_RESULT_COMPLETED",
+            Self::Failed => "APP_PACKAGE_TERMINAL_RESULT_FAILED",
+            Self::Canceled => "APP_PACKAGE_TERMINAL_RESULT_CANCELED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "APP_PACKAGE_TERMINAL_RESULT_UNSPECIFIED" => Some(Self::Unspecified),
+            "APP_PACKAGE_TERMINAL_RESULT_COMPLETED" => Some(Self::Completed),
+            "APP_PACKAGE_TERMINAL_RESULT_FAILED" => Some(Self::Failed),
+            "APP_PACKAGE_TERMINAL_RESULT_CANCELED" => Some(Self::Canceled),
+            _ => None,
+        }
+    }
+}
+/// Generated client implementations.
+pub mod runtime_app_package_service_client {
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
+    use tonic::codegen::*;
+    use tonic::codegen::http::Uri;
+    /// Desktop-protected Runtime owner projection. This service deliberately has no
+    /// package mutation start RPC and excludes local_development from every enum.
+    #[derive(Debug, Clone)]
+    pub struct RuntimeAppPackageServiceClient<T> {
+        inner: tonic::client::Grpc<T>,
+    }
+    impl RuntimeAppPackageServiceClient<tonic::transport::Channel> {
+        /// Attempt to create a new client by connecting to a given endpoint.
+        pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
+        where
+            D: TryInto<tonic::transport::Endpoint>,
+            D::Error: Into<StdError>,
+        {
+            let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
+            Ok(Self::new(conn))
+        }
+    }
+    impl<T> RuntimeAppPackageServiceClient<T>
+    where
+        T: tonic::client::GrpcService<tonic::body::Body>,
+        T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + std::marker::Send + 'static,
+        <T::ResponseBody as Body>::Error: Into<StdError> + std::marker::Send,
+    {
+        pub fn new(inner: T) -> Self {
+            let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
+            Self { inner }
+        }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> RuntimeAppPackageServiceClient<InterceptedService<T, F>>
+        where
+            F: tonic::service::Interceptor,
+            T::ResponseBody: Default,
+            T: tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+                Response = http::Response<
+                    <T as tonic::client::GrpcService<tonic::body::Body>>::ResponseBody,
+                >,
+            >,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::Body>,
+            >>::Error: Into<StdError> + std::marker::Send + std::marker::Sync,
+        {
+            RuntimeAppPackageServiceClient::new(
+                InterceptedService::new(inner, interceptor),
+            )
+        }
+        /// Compress requests with the given encoding.
+        ///
+        /// This requires the server to support it otherwise it might respond with an
+        /// error.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
+            self
+        }
+        /// Enable decompressing responses.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
+            self
+        }
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
+        #[must_use]
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_decoding_message_size(limit);
+            self
+        }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
+        #[must_use]
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_encoding_message_size(limit);
+            self
+        }
+        pub async fn list_committed_app_releases(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListCommittedAppReleasesRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListCommittedAppReleasesResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "ListCommittedAppReleases",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_app_package_jobs(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListAppPackageJobsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListAppPackageJobsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "ListAppPackageJobs",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_app_package_job(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetAppPackageJobRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAppPackageJobResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "GetAppPackageJob",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn cancel_app_package_job(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CancelAppPackageJobRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CancelAppPackageJobResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "CancelAppPackageJob",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
     }
 }

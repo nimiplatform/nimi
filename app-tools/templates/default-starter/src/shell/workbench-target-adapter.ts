@@ -13,7 +13,7 @@ export { appTitle };
 export const targetRuntimeGateCopy: WorkbenchRuntimeGateCopy = Object.freeze({
   checking: 'App-host check',
   setupRequired: 'Action required',
-  signInRequired: 'Sign in to Nimi Desktop',
+  signInRequired: 'Sign in to Nimi',
   connectionRequired: 'Runtime session unavailable',
   retry: 'Retry Runtime check',
   offlineTier: (tier) => `Offline tier: ${tier}`,

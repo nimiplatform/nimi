@@ -88,12 +88,9 @@ func llamaReleaseAssetByName(version string, assetName string) (managedBinaryRel
 }
 
 func llamaExpectedSHA256(version string, assetName string) (string, error) {
-	releaseAsset, err := llamaReleaseAsset(version)
+	releaseAsset, err := llamaReleaseAssetByName(version, assetName)
 	if err != nil {
 		return "", err
-	}
-	if strings.TrimSpace(releaseAsset.Name) != strings.TrimSpace(assetName) {
-		return "", fmt.Errorf("%w: release asset mismatch for %s", ErrEngineBinaryDownloadFailed, strings.TrimSpace(assetName))
 	}
 	return releaseAsset.SHA256, nil
 }

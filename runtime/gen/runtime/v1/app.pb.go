@@ -129,6 +129,296 @@ func (AppStorageState) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_app_proto_rawDescGZIP(), []int{1}
 }
 
+type AppPackageSourceClass int32
+
+const (
+	AppPackageSourceClass_APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED   AppPackageSourceClass = 0
+	AppPackageSourceClass_APP_PACKAGE_SOURCE_CLASS_VERIFIED      AppPackageSourceClass = 1
+	AppPackageSourceClass_APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED AppPackageSourceClass = 2
+)
+
+// Enum value maps for AppPackageSourceClass.
+var (
+	AppPackageSourceClass_name = map[int32]string{
+		0: "APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED",
+		1: "APP_PACKAGE_SOURCE_CLASS_VERIFIED",
+		2: "APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED",
+	}
+	AppPackageSourceClass_value = map[string]int32{
+		"APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED":   0,
+		"APP_PACKAGE_SOURCE_CLASS_VERIFIED":      1,
+		"APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED": 2,
+	}
+)
+
+func (x AppPackageSourceClass) Enum() *AppPackageSourceClass {
+	p := new(AppPackageSourceClass)
+	*p = x
+	return p
+}
+
+func (x AppPackageSourceClass) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AppPackageSourceClass) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_app_proto_enumTypes[2].Descriptor()
+}
+
+func (AppPackageSourceClass) Type() protoreflect.EnumType {
+	return &file_runtime_v1_app_proto_enumTypes[2]
+}
+
+func (x AppPackageSourceClass) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AppPackageSourceClass.Descriptor instead.
+func (AppPackageSourceClass) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{2}
+}
+
+type AppPackageJobKind int32
+
+const (
+	AppPackageJobKind_APP_PACKAGE_JOB_KIND_UNSPECIFIED AppPackageJobKind = 0
+	AppPackageJobKind_APP_PACKAGE_JOB_KIND_INSTALL     AppPackageJobKind = 1
+	AppPackageJobKind_APP_PACKAGE_JOB_KIND_UPDATE      AppPackageJobKind = 2
+	AppPackageJobKind_APP_PACKAGE_JOB_KIND_REPAIR      AppPackageJobKind = 3
+	AppPackageJobKind_APP_PACKAGE_JOB_KIND_UNINSTALL   AppPackageJobKind = 4
+)
+
+// Enum value maps for AppPackageJobKind.
+var (
+	AppPackageJobKind_name = map[int32]string{
+		0: "APP_PACKAGE_JOB_KIND_UNSPECIFIED",
+		1: "APP_PACKAGE_JOB_KIND_INSTALL",
+		2: "APP_PACKAGE_JOB_KIND_UPDATE",
+		3: "APP_PACKAGE_JOB_KIND_REPAIR",
+		4: "APP_PACKAGE_JOB_KIND_UNINSTALL",
+	}
+	AppPackageJobKind_value = map[string]int32{
+		"APP_PACKAGE_JOB_KIND_UNSPECIFIED": 0,
+		"APP_PACKAGE_JOB_KIND_INSTALL":     1,
+		"APP_PACKAGE_JOB_KIND_UPDATE":      2,
+		"APP_PACKAGE_JOB_KIND_REPAIR":      3,
+		"APP_PACKAGE_JOB_KIND_UNINSTALL":   4,
+	}
+)
+
+func (x AppPackageJobKind) Enum() *AppPackageJobKind {
+	p := new(AppPackageJobKind)
+	*p = x
+	return p
+}
+
+func (x AppPackageJobKind) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AppPackageJobKind) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_app_proto_enumTypes[3].Descriptor()
+}
+
+func (AppPackageJobKind) Type() protoreflect.EnumType {
+	return &file_runtime_v1_app_proto_enumTypes[3]
+}
+
+func (x AppPackageJobKind) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AppPackageJobKind.Descriptor instead.
+func (AppPackageJobKind) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{3}
+}
+
+type AppPackageJobPhase int32
+
+const (
+	AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_UNSPECIFIED         AppPackageJobPhase = 0
+	AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_QUEUED              AppPackageJobPhase = 1
+	AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_DOWNLOADING         AppPackageJobPhase = 2
+	AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_READING_LOCAL       AppPackageJobPhase = 3
+	AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_VERIFYING           AppPackageJobPhase = 4
+	AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED AppPackageJobPhase = 5
+	AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING   AppPackageJobPhase = 6
+	AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_STAGING             AppPackageJobPhase = 7
+	AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_COMMITTING          AppPackageJobPhase = 8
+	AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_REMOVING_PACKAGE    AppPackageJobPhase = 10
+	AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_UNREGISTERING       AppPackageJobPhase = 11
+	AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_COMPLETED           AppPackageJobPhase = 12
+	AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_FAILED              AppPackageJobPhase = 13
+	AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_CANCELED            AppPackageJobPhase = 14
+)
+
+// Enum value maps for AppPackageJobPhase.
+var (
+	AppPackageJobPhase_name = map[int32]string{
+		0:  "APP_PACKAGE_JOB_PHASE_UNSPECIFIED",
+		1:  "APP_PACKAGE_JOB_PHASE_QUEUED",
+		2:  "APP_PACKAGE_JOB_PHASE_DOWNLOADING",
+		3:  "APP_PACKAGE_JOB_PHASE_READING_LOCAL",
+		4:  "APP_PACKAGE_JOB_PHASE_VERIFYING",
+		5:  "APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED",
+		6:  "APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING",
+		7:  "APP_PACKAGE_JOB_PHASE_STAGING",
+		8:  "APP_PACKAGE_JOB_PHASE_COMMITTING",
+		10: "APP_PACKAGE_JOB_PHASE_REMOVING_PACKAGE",
+		11: "APP_PACKAGE_JOB_PHASE_UNREGISTERING",
+		12: "APP_PACKAGE_JOB_PHASE_COMPLETED",
+		13: "APP_PACKAGE_JOB_PHASE_FAILED",
+		14: "APP_PACKAGE_JOB_PHASE_CANCELED",
+	}
+	AppPackageJobPhase_value = map[string]int32{
+		"APP_PACKAGE_JOB_PHASE_UNSPECIFIED":         0,
+		"APP_PACKAGE_JOB_PHASE_QUEUED":              1,
+		"APP_PACKAGE_JOB_PHASE_DOWNLOADING":         2,
+		"APP_PACKAGE_JOB_PHASE_READING_LOCAL":       3,
+		"APP_PACKAGE_JOB_PHASE_VERIFYING":           4,
+		"APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED": 5,
+		"APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING":   6,
+		"APP_PACKAGE_JOB_PHASE_STAGING":             7,
+		"APP_PACKAGE_JOB_PHASE_COMMITTING":          8,
+		"APP_PACKAGE_JOB_PHASE_REMOVING_PACKAGE":    10,
+		"APP_PACKAGE_JOB_PHASE_UNREGISTERING":       11,
+		"APP_PACKAGE_JOB_PHASE_COMPLETED":           12,
+		"APP_PACKAGE_JOB_PHASE_FAILED":              13,
+		"APP_PACKAGE_JOB_PHASE_CANCELED":            14,
+	}
+)
+
+func (x AppPackageJobPhase) Enum() *AppPackageJobPhase {
+	p := new(AppPackageJobPhase)
+	*p = x
+	return p
+}
+
+func (x AppPackageJobPhase) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AppPackageJobPhase) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_app_proto_enumTypes[4].Descriptor()
+}
+
+func (AppPackageJobPhase) Type() protoreflect.EnumType {
+	return &file_runtime_v1_app_proto_enumTypes[4]
+}
+
+func (x AppPackageJobPhase) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AppPackageJobPhase.Descriptor instead.
+func (AppPackageJobPhase) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{4}
+}
+
+type AppPackageProgressBasis int32
+
+const (
+	AppPackageProgressBasis_APP_PACKAGE_PROGRESS_BASIS_UNSPECIFIED   AppPackageProgressBasis = 0
+	AppPackageProgressBasis_APP_PACKAGE_PROGRESS_BASIS_BYTES         AppPackageProgressBasis = 1
+	AppPackageProgressBasis_APP_PACKAGE_PROGRESS_BASIS_STEPS         AppPackageProgressBasis = 2
+	AppPackageProgressBasis_APP_PACKAGE_PROGRESS_BASIS_INDETERMINATE AppPackageProgressBasis = 3
+)
+
+// Enum value maps for AppPackageProgressBasis.
+var (
+	AppPackageProgressBasis_name = map[int32]string{
+		0: "APP_PACKAGE_PROGRESS_BASIS_UNSPECIFIED",
+		1: "APP_PACKAGE_PROGRESS_BASIS_BYTES",
+		2: "APP_PACKAGE_PROGRESS_BASIS_STEPS",
+		3: "APP_PACKAGE_PROGRESS_BASIS_INDETERMINATE",
+	}
+	AppPackageProgressBasis_value = map[string]int32{
+		"APP_PACKAGE_PROGRESS_BASIS_UNSPECIFIED":   0,
+		"APP_PACKAGE_PROGRESS_BASIS_BYTES":         1,
+		"APP_PACKAGE_PROGRESS_BASIS_STEPS":         2,
+		"APP_PACKAGE_PROGRESS_BASIS_INDETERMINATE": 3,
+	}
+)
+
+func (x AppPackageProgressBasis) Enum() *AppPackageProgressBasis {
+	p := new(AppPackageProgressBasis)
+	*p = x
+	return p
+}
+
+func (x AppPackageProgressBasis) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AppPackageProgressBasis) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_app_proto_enumTypes[5].Descriptor()
+}
+
+func (AppPackageProgressBasis) Type() protoreflect.EnumType {
+	return &file_runtime_v1_app_proto_enumTypes[5]
+}
+
+func (x AppPackageProgressBasis) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AppPackageProgressBasis.Descriptor instead.
+func (AppPackageProgressBasis) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{5}
+}
+
+type AppPackageTerminalResult int32
+
+const (
+	AppPackageTerminalResult_APP_PACKAGE_TERMINAL_RESULT_UNSPECIFIED AppPackageTerminalResult = 0
+	AppPackageTerminalResult_APP_PACKAGE_TERMINAL_RESULT_COMPLETED   AppPackageTerminalResult = 1
+	AppPackageTerminalResult_APP_PACKAGE_TERMINAL_RESULT_FAILED      AppPackageTerminalResult = 2
+	AppPackageTerminalResult_APP_PACKAGE_TERMINAL_RESULT_CANCELED    AppPackageTerminalResult = 3
+)
+
+// Enum value maps for AppPackageTerminalResult.
+var (
+	AppPackageTerminalResult_name = map[int32]string{
+		0: "APP_PACKAGE_TERMINAL_RESULT_UNSPECIFIED",
+		1: "APP_PACKAGE_TERMINAL_RESULT_COMPLETED",
+		2: "APP_PACKAGE_TERMINAL_RESULT_FAILED",
+		3: "APP_PACKAGE_TERMINAL_RESULT_CANCELED",
+	}
+	AppPackageTerminalResult_value = map[string]int32{
+		"APP_PACKAGE_TERMINAL_RESULT_UNSPECIFIED": 0,
+		"APP_PACKAGE_TERMINAL_RESULT_COMPLETED":   1,
+		"APP_PACKAGE_TERMINAL_RESULT_FAILED":      2,
+		"APP_PACKAGE_TERMINAL_RESULT_CANCELED":    3,
+	}
+)
+
+func (x AppPackageTerminalResult) Enum() *AppPackageTerminalResult {
+	p := new(AppPackageTerminalResult)
+	*p = x
+	return p
+}
+
+func (x AppPackageTerminalResult) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (AppPackageTerminalResult) Descriptor() protoreflect.EnumDescriptor {
+	return file_runtime_v1_app_proto_enumTypes[6].Descriptor()
+}
+
+func (AppPackageTerminalResult) Type() protoreflect.EnumType {
+	return &file_runtime_v1_app_proto_enumTypes[6]
+}
+
+func (x AppPackageTerminalResult) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use AppPackageTerminalResult.Descriptor instead.
+func (AppPackageTerminalResult) EnumDescriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{6}
+}
+
 type SendAppMessageRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	FromAppId     string                 `protobuf:"bytes,1,opt,name=from_app_id,json=fromAppId,proto3" json:"from_app_id,omitempty"`
@@ -2525,6 +2815,638 @@ func (x *RebindLocalAppProcessResponse) GetReasonCode() ReasonCode {
 	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
+type CommittedAppRelease struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	AppId          string                 `protobuf:"bytes,1,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	SourceClass    AppPackageSourceClass  `protobuf:"varint,2,opt,name=source_class,json=sourceClass,proto3,enum=nimi.runtime.v1.AppPackageSourceClass" json:"source_class,omitempty"`
+	Version        string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	ReleaseRef     string                 `protobuf:"bytes,4,opt,name=release_ref,json=releaseRef,proto3" json:"release_ref,omitempty"`
+	LaunchSelector []byte                 `protobuf:"bytes,5,opt,name=launch_selector,json=launchSelector,proto3" json:"launch_selector,omitempty"`
+	CommittedAt    *timestamppb.Timestamp `protobuf:"bytes,12,opt,name=committed_at,json=committedAt,proto3" json:"committed_at,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *CommittedAppRelease) Reset() {
+	*x = CommittedAppRelease{}
+	mi := &file_runtime_v1_app_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CommittedAppRelease) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CommittedAppRelease) ProtoMessage() {}
+
+func (x *CommittedAppRelease) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CommittedAppRelease.ProtoReflect.Descriptor instead.
+func (*CommittedAppRelease) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *CommittedAppRelease) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+func (x *CommittedAppRelease) GetSourceClass() AppPackageSourceClass {
+	if x != nil {
+		return x.SourceClass
+	}
+	return AppPackageSourceClass_APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED
+}
+
+func (x *CommittedAppRelease) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *CommittedAppRelease) GetReleaseRef() string {
+	if x != nil {
+		return x.ReleaseRef
+	}
+	return ""
+}
+
+func (x *CommittedAppRelease) GetLaunchSelector() []byte {
+	if x != nil {
+		return x.LaunchSelector
+	}
+	return nil
+}
+
+func (x *CommittedAppRelease) GetCommittedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CommittedAt
+	}
+	return nil
+}
+
+type AppPackageJob struct {
+	state          protoimpl.MessageState   `protogen:"open.v1"`
+	JobId          []byte                   `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	AppId          string                   `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
+	SourceClass    AppPackageSourceClass    `protobuf:"varint,3,opt,name=source_class,json=sourceClass,proto3,enum=nimi.runtime.v1.AppPackageSourceClass" json:"source_class,omitempty"`
+	Kind           AppPackageJobKind        `protobuf:"varint,4,opt,name=kind,proto3,enum=nimi.runtime.v1.AppPackageJobKind" json:"kind,omitempty"`
+	TargetRef      string                   `protobuf:"bytes,5,opt,name=target_ref,json=targetRef,proto3" json:"target_ref,omitempty"`
+	Phase          AppPackageJobPhase       `protobuf:"varint,6,opt,name=phase,proto3,enum=nimi.runtime.v1.AppPackageJobPhase" json:"phase,omitempty"`
+	ProgressBasis  AppPackageProgressBasis  `protobuf:"varint,7,opt,name=progress_basis,json=progressBasis,proto3,enum=nimi.runtime.v1.AppPackageProgressBasis" json:"progress_basis,omitempty"`
+	BytesCompleted uint64                   `protobuf:"varint,8,opt,name=bytes_completed,json=bytesCompleted,proto3" json:"bytes_completed,omitempty"`
+	BytesTotal     *uint64                  `protobuf:"varint,9,opt,name=bytes_total,json=bytesTotal,proto3,oneof" json:"bytes_total,omitempty"`
+	StepsCompleted uint64                   `protobuf:"varint,10,opt,name=steps_completed,json=stepsCompleted,proto3" json:"steps_completed,omitempty"`
+	StepsTotal     *uint64                  `protobuf:"varint,11,opt,name=steps_total,json=stepsTotal,proto3,oneof" json:"steps_total,omitempty"`
+	StartedAt      *timestamppb.Timestamp   `protobuf:"bytes,12,opt,name=started_at,json=startedAt,proto3" json:"started_at,omitempty"`
+	CompletedAt    *timestamppb.Timestamp   `protobuf:"bytes,13,opt,name=completed_at,json=completedAt,proto3" json:"completed_at,omitempty"`
+	TerminalResult AppPackageTerminalResult `protobuf:"varint,14,opt,name=terminal_result,json=terminalResult,proto3,enum=nimi.runtime.v1.AppPackageTerminalResult" json:"terminal_result,omitempty"`
+	ReasonCode     string                   `protobuf:"bytes,15,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
+	Cancelable     bool                     `protobuf:"varint,16,opt,name=cancelable,proto3" json:"cancelable,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *AppPackageJob) Reset() {
+	*x = AppPackageJob{}
+	mi := &file_runtime_v1_app_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AppPackageJob) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AppPackageJob) ProtoMessage() {}
+
+func (x *AppPackageJob) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AppPackageJob.ProtoReflect.Descriptor instead.
+func (*AppPackageJob) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *AppPackageJob) GetJobId() []byte {
+	if x != nil {
+		return x.JobId
+	}
+	return nil
+}
+
+func (x *AppPackageJob) GetAppId() string {
+	if x != nil {
+		return x.AppId
+	}
+	return ""
+}
+
+func (x *AppPackageJob) GetSourceClass() AppPackageSourceClass {
+	if x != nil {
+		return x.SourceClass
+	}
+	return AppPackageSourceClass_APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED
+}
+
+func (x *AppPackageJob) GetKind() AppPackageJobKind {
+	if x != nil {
+		return x.Kind
+	}
+	return AppPackageJobKind_APP_PACKAGE_JOB_KIND_UNSPECIFIED
+}
+
+func (x *AppPackageJob) GetTargetRef() string {
+	if x != nil {
+		return x.TargetRef
+	}
+	return ""
+}
+
+func (x *AppPackageJob) GetPhase() AppPackageJobPhase {
+	if x != nil {
+		return x.Phase
+	}
+	return AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_UNSPECIFIED
+}
+
+func (x *AppPackageJob) GetProgressBasis() AppPackageProgressBasis {
+	if x != nil {
+		return x.ProgressBasis
+	}
+	return AppPackageProgressBasis_APP_PACKAGE_PROGRESS_BASIS_UNSPECIFIED
+}
+
+func (x *AppPackageJob) GetBytesCompleted() uint64 {
+	if x != nil {
+		return x.BytesCompleted
+	}
+	return 0
+}
+
+func (x *AppPackageJob) GetBytesTotal() uint64 {
+	if x != nil && x.BytesTotal != nil {
+		return *x.BytesTotal
+	}
+	return 0
+}
+
+func (x *AppPackageJob) GetStepsCompleted() uint64 {
+	if x != nil {
+		return x.StepsCompleted
+	}
+	return 0
+}
+
+func (x *AppPackageJob) GetStepsTotal() uint64 {
+	if x != nil && x.StepsTotal != nil {
+		return *x.StepsTotal
+	}
+	return 0
+}
+
+func (x *AppPackageJob) GetStartedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.StartedAt
+	}
+	return nil
+}
+
+func (x *AppPackageJob) GetCompletedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CompletedAt
+	}
+	return nil
+}
+
+func (x *AppPackageJob) GetTerminalResult() AppPackageTerminalResult {
+	if x != nil {
+		return x.TerminalResult
+	}
+	return AppPackageTerminalResult_APP_PACKAGE_TERMINAL_RESULT_UNSPECIFIED
+}
+
+func (x *AppPackageJob) GetReasonCode() string {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ""
+}
+
+func (x *AppPackageJob) GetCancelable() bool {
+	if x != nil {
+		return x.Cancelable
+	}
+	return false
+}
+
+type ListCommittedAppReleasesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCommittedAppReleasesRequest) Reset() {
+	*x = ListCommittedAppReleasesRequest{}
+	mi := &file_runtime_v1_app_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCommittedAppReleasesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCommittedAppReleasesRequest) ProtoMessage() {}
+
+func (x *ListCommittedAppReleasesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCommittedAppReleasesRequest.ProtoReflect.Descriptor instead.
+func (*ListCommittedAppReleasesRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{41}
+}
+
+type ListCommittedAppReleasesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Releases      []*CommittedAppRelease `protobuf:"bytes,1,rep,name=releases,proto3" json:"releases,omitempty"`
+	ReasonCode    ReasonCode             `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCommittedAppReleasesResponse) Reset() {
+	*x = ListCommittedAppReleasesResponse{}
+	mi := &file_runtime_v1_app_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCommittedAppReleasesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCommittedAppReleasesResponse) ProtoMessage() {}
+
+func (x *ListCommittedAppReleasesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCommittedAppReleasesResponse.ProtoReflect.Descriptor instead.
+func (*ListCommittedAppReleasesResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *ListCommittedAppReleasesResponse) GetReleases() []*CommittedAppRelease {
+	if x != nil {
+		return x.Releases
+	}
+	return nil
+}
+
+func (x *ListCommittedAppReleasesResponse) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+type ListAppPackageJobsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAppPackageJobsRequest) Reset() {
+	*x = ListAppPackageJobsRequest{}
+	mi := &file_runtime_v1_app_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAppPackageJobsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAppPackageJobsRequest) ProtoMessage() {}
+
+func (x *ListAppPackageJobsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAppPackageJobsRequest.ProtoReflect.Descriptor instead.
+func (*ListAppPackageJobsRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{43}
+}
+
+type ListAppPackageJobsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Jobs          []*AppPackageJob       `protobuf:"bytes,1,rep,name=jobs,proto3" json:"jobs,omitempty"`
+	ReasonCode    ReasonCode             `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAppPackageJobsResponse) Reset() {
+	*x = ListAppPackageJobsResponse{}
+	mi := &file_runtime_v1_app_proto_msgTypes[44]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAppPackageJobsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAppPackageJobsResponse) ProtoMessage() {}
+
+func (x *ListAppPackageJobsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[44]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAppPackageJobsResponse.ProtoReflect.Descriptor instead.
+func (*ListAppPackageJobsResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{44}
+}
+
+func (x *ListAppPackageJobsResponse) GetJobs() []*AppPackageJob {
+	if x != nil {
+		return x.Jobs
+	}
+	return nil
+}
+
+func (x *ListAppPackageJobsResponse) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+type GetAppPackageJobRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         []byte                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAppPackageJobRequest) Reset() {
+	*x = GetAppPackageJobRequest{}
+	mi := &file_runtime_v1_app_proto_msgTypes[45]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAppPackageJobRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAppPackageJobRequest) ProtoMessage() {}
+
+func (x *GetAppPackageJobRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[45]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAppPackageJobRequest.ProtoReflect.Descriptor instead.
+func (*GetAppPackageJobRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{45}
+}
+
+func (x *GetAppPackageJobRequest) GetJobId() []byte {
+	if x != nil {
+		return x.JobId
+	}
+	return nil
+}
+
+type GetAppPackageJobResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Job           *AppPackageJob         `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	ReasonCode    ReasonCode             `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAppPackageJobResponse) Reset() {
+	*x = GetAppPackageJobResponse{}
+	mi := &file_runtime_v1_app_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAppPackageJobResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAppPackageJobResponse) ProtoMessage() {}
+
+func (x *GetAppPackageJobResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAppPackageJobResponse.ProtoReflect.Descriptor instead.
+func (*GetAppPackageJobResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *GetAppPackageJobResponse) GetJob() *AppPackageJob {
+	if x != nil {
+		return x.Job
+	}
+	return nil
+}
+
+func (x *GetAppPackageJobResponse) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
+type CancelAppPackageJobRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	JobId         []byte                 `protobuf:"bytes,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	ExpectedPhase AppPackageJobPhase     `protobuf:"varint,2,opt,name=expected_phase,json=expectedPhase,proto3,enum=nimi.runtime.v1.AppPackageJobPhase" json:"expected_phase,omitempty"`
+	ReasonCode    string                 `protobuf:"bytes,3,opt,name=reason_code,json=reasonCode,proto3" json:"reason_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CancelAppPackageJobRequest) Reset() {
+	*x = CancelAppPackageJobRequest{}
+	mi := &file_runtime_v1_app_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CancelAppPackageJobRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CancelAppPackageJobRequest) ProtoMessage() {}
+
+func (x *CancelAppPackageJobRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CancelAppPackageJobRequest.ProtoReflect.Descriptor instead.
+func (*CancelAppPackageJobRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *CancelAppPackageJobRequest) GetJobId() []byte {
+	if x != nil {
+		return x.JobId
+	}
+	return nil
+}
+
+func (x *CancelAppPackageJobRequest) GetExpectedPhase() AppPackageJobPhase {
+	if x != nil {
+		return x.ExpectedPhase
+	}
+	return AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_UNSPECIFIED
+}
+
+func (x *CancelAppPackageJobRequest) GetReasonCode() string {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ""
+}
+
+type CancelAppPackageJobResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Job           *AppPackageJob         `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	ReasonCode    ReasonCode             `protobuf:"varint,2,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CancelAppPackageJobResponse) Reset() {
+	*x = CancelAppPackageJobResponse{}
+	mi := &file_runtime_v1_app_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CancelAppPackageJobResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CancelAppPackageJobResponse) ProtoMessage() {}
+
+func (x *CancelAppPackageJobResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_app_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CancelAppPackageJobResponse.ProtoReflect.Descriptor instead.
+func (*CancelAppPackageJobResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_app_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *CancelAppPackageJobResponse) GetJob() *AppPackageJob {
+	if x != nil {
+		return x.Job
+	}
+	return nil
+}
+
+func (x *CancelAppPackageJobResponse) GetReasonCode() ReasonCode {
+	if x != nil {
+		return x.ReasonCode
+	}
+	return ReasonCode_REASON_CODE_UNSPECIFIED
+}
+
 var File_runtime_v1_app_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_app_proto_rawDesc = "" +
@@ -2726,6 +3648,66 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"\tlaunch_id\x18\x01 \x01(\fR\blaunchId\x12?\n" +
 	"\rbind_deadline\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\fbindDeadline\x12<\n" +
 	"\vreason_code\x18\x03 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\"\xc1\x03\n" +
+	"\x13CommittedAppRelease\x12\x15\n" +
+	"\x06app_id\x18\x01 \x01(\tR\x05appId\x12I\n" +
+	"\fsource_class\x18\x02 \x01(\x0e2&.nimi.runtime.v1.AppPackageSourceClassR\vsourceClass\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\tR\aversion\x12\x1f\n" +
+	"\vrelease_ref\x18\x04 \x01(\tR\n" +
+	"releaseRef\x12'\n" +
+	"\x0flaunch_selector\x18\x05 \x01(\fR\x0elaunchSelector\x12=\n" +
+	"\fcommitted_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\vcommittedAtJ\x04\b\x06\x10\fR\x13registration_handleR\x14immutable_lineage_idR\x1bprovenance_attestation_refsR\x13provenance_revisionR\x15execution_profile_refR\x16host_executable_digestR\x13payload_root_digest\"\xb8\x06\n" +
+	"\rAppPackageJob\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\fR\x05jobId\x12\x15\n" +
+	"\x06app_id\x18\x02 \x01(\tR\x05appId\x12I\n" +
+	"\fsource_class\x18\x03 \x01(\x0e2&.nimi.runtime.v1.AppPackageSourceClassR\vsourceClass\x126\n" +
+	"\x04kind\x18\x04 \x01(\x0e2\".nimi.runtime.v1.AppPackageJobKindR\x04kind\x12\x1d\n" +
+	"\n" +
+	"target_ref\x18\x05 \x01(\tR\ttargetRef\x129\n" +
+	"\x05phase\x18\x06 \x01(\x0e2#.nimi.runtime.v1.AppPackageJobPhaseR\x05phase\x12O\n" +
+	"\x0eprogress_basis\x18\a \x01(\x0e2(.nimi.runtime.v1.AppPackageProgressBasisR\rprogressBasis\x12'\n" +
+	"\x0fbytes_completed\x18\b \x01(\x04R\x0ebytesCompleted\x12$\n" +
+	"\vbytes_total\x18\t \x01(\x04H\x00R\n" +
+	"bytesTotal\x88\x01\x01\x12'\n" +
+	"\x0fsteps_completed\x18\n" +
+	" \x01(\x04R\x0estepsCompleted\x12$\n" +
+	"\vsteps_total\x18\v \x01(\x04H\x01R\n" +
+	"stepsTotal\x88\x01\x01\x129\n" +
+	"\n" +
+	"started_at\x18\f \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x12=\n" +
+	"\fcompleted_at\x18\r \x01(\v2\x1a.google.protobuf.TimestampR\vcompletedAt\x12R\n" +
+	"\x0fterminal_result\x18\x0e \x01(\x0e2).nimi.runtime.v1.AppPackageTerminalResultR\x0eterminalResult\x12\x1f\n" +
+	"\vreason_code\x18\x0f \x01(\tR\n" +
+	"reasonCode\x12\x1e\n" +
+	"\n" +
+	"cancelable\x18\x10 \x01(\bR\n" +
+	"cancelableB\x0e\n" +
+	"\f_bytes_totalB\x0e\n" +
+	"\f_steps_total\"!\n" +
+	"\x1fListCommittedAppReleasesRequest\"\xa2\x01\n" +
+	" ListCommittedAppReleasesResponse\x12@\n" +
+	"\breleases\x18\x01 \x03(\v2$.nimi.runtime.v1.CommittedAppReleaseR\breleases\x12<\n" +
+	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\"\x1b\n" +
+	"\x19ListAppPackageJobsRequest\"\x8e\x01\n" +
+	"\x1aListAppPackageJobsResponse\x122\n" +
+	"\x04jobs\x18\x01 \x03(\v2\x1e.nimi.runtime.v1.AppPackageJobR\x04jobs\x12<\n" +
+	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\"0\n" +
+	"\x17GetAppPackageJobRequest\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\fR\x05jobId\"\x8a\x01\n" +
+	"\x18GetAppPackageJobResponse\x120\n" +
+	"\x03job\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AppPackageJobR\x03job\x12<\n" +
+	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\"\xa0\x01\n" +
+	"\x1aCancelAppPackageJobRequest\x12\x15\n" +
+	"\x06job_id\x18\x01 \x01(\fR\x05jobId\x12J\n" +
+	"\x0eexpected_phase\x18\x02 \x01(\x0e2#.nimi.runtime.v1.AppPackageJobPhaseR\rexpectedPhase\x12\x1f\n" +
+	"\vreason_code\x18\x03 \x01(\tR\n" +
+	"reasonCode\"\x8d\x01\n" +
+	"\x1bCancelAppPackageJobResponse\x120\n" +
+	"\x03job\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.AppPackageJobR\x03job\x12<\n" +
+	"\vreason_code\x18\x02 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode*\x98\x01\n" +
 	"\x13AppMessageEventType\x12&\n" +
 	"\"APP_MESSAGE_EVENT_TYPE_UNSPECIFIED\x10\x00\x12\x1e\n" +
@@ -2736,7 +3718,48 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"\x1dAPP_STORAGE_STATE_UNSPECIFIED\x10\x00\x12\x1b\n" +
 	"\x17APP_STORAGE_STATE_READY\x10\x01\x12%\n" +
 	"!APP_STORAGE_STATE_REPAIR_REQUIRED\x10\x03\x12)\n" +
-	"%APP_STORAGE_STATE_STORAGE_UNAVAILABLE\x10\x04\"\x04\b\x02\x10\x02*\"APP_STORAGE_STATE_INSTALL_REQUIRED2\xa8\x0f\n" +
+	"%APP_STORAGE_STATE_STORAGE_UNAVAILABLE\x10\x04\"\x04\b\x02\x10\x02*\"APP_STORAGE_STATE_INSTALL_REQUIRED*\x94\x01\n" +
+	"\x15AppPackageSourceClass\x12(\n" +
+	"$APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED\x10\x00\x12%\n" +
+	"!APP_PACKAGE_SOURCE_CLASS_VERIFIED\x10\x01\x12*\n" +
+	"&APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED\x10\x02*\xc1\x01\n" +
+	"\x11AppPackageJobKind\x12$\n" +
+	" APP_PACKAGE_JOB_KIND_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cAPP_PACKAGE_JOB_KIND_INSTALL\x10\x01\x12\x1f\n" +
+	"\x1bAPP_PACKAGE_JOB_KIND_UPDATE\x10\x02\x12\x1f\n" +
+	"\x1bAPP_PACKAGE_JOB_KIND_REPAIR\x10\x03\x12\"\n" +
+	"\x1eAPP_PACKAGE_JOB_KIND_UNINSTALL\x10\x04*\xe2\x04\n" +
+	"\x12AppPackageJobPhase\x12%\n" +
+	"!APP_PACKAGE_JOB_PHASE_UNSPECIFIED\x10\x00\x12 \n" +
+	"\x1cAPP_PACKAGE_JOB_PHASE_QUEUED\x10\x01\x12%\n" +
+	"!APP_PACKAGE_JOB_PHASE_DOWNLOADING\x10\x02\x12'\n" +
+	"#APP_PACKAGE_JOB_PHASE_READING_LOCAL\x10\x03\x12#\n" +
+	"\x1fAPP_PACKAGE_JOB_PHASE_VERIFYING\x10\x04\x12-\n" +
+	")APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED\x10\x05\x12+\n" +
+	"'APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING\x10\x06\x12!\n" +
+	"\x1dAPP_PACKAGE_JOB_PHASE_STAGING\x10\a\x12$\n" +
+	" APP_PACKAGE_JOB_PHASE_COMMITTING\x10\b\x12*\n" +
+	"&APP_PACKAGE_JOB_PHASE_REMOVING_PACKAGE\x10\n" +
+	"\x12'\n" +
+	"#APP_PACKAGE_JOB_PHASE_UNREGISTERING\x10\v\x12#\n" +
+	"\x1fAPP_PACKAGE_JOB_PHASE_COMPLETED\x10\f\x12 \n" +
+	"\x1cAPP_PACKAGE_JOB_PHASE_FAILED\x10\r\x12\"\n" +
+	"\x1eAPP_PACKAGE_JOB_PHASE_CANCELED\x10\x0e\"\x04\b\t\x10\t*#APP_PACKAGE_JOB_PHASE_STOPPING_HOST*\xbf\x01\n" +
+	"\x17AppPackageProgressBasis\x12*\n" +
+	"&APP_PACKAGE_PROGRESS_BASIS_UNSPECIFIED\x10\x00\x12$\n" +
+	" APP_PACKAGE_PROGRESS_BASIS_BYTES\x10\x01\x12$\n" +
+	" APP_PACKAGE_PROGRESS_BASIS_STEPS\x10\x02\x12,\n" +
+	"(APP_PACKAGE_PROGRESS_BASIS_INDETERMINATE\x10\x03*\xc4\x01\n" +
+	"\x18AppPackageTerminalResult\x12+\n" +
+	"'APP_PACKAGE_TERMINAL_RESULT_UNSPECIFIED\x10\x00\x12)\n" +
+	"%APP_PACKAGE_TERMINAL_RESULT_COMPLETED\x10\x01\x12&\n" +
+	"\"APP_PACKAGE_TERMINAL_RESULT_FAILED\x10\x02\x12(\n" +
+	"$APP_PACKAGE_TERMINAL_RESULT_CANCELED\x10\x032\xe5\x03\n" +
+	"\x18RuntimeAppPackageService\x12\x7f\n" +
+	"\x18ListCommittedAppReleases\x120.nimi.runtime.v1.ListCommittedAppReleasesRequest\x1a1.nimi.runtime.v1.ListCommittedAppReleasesResponse\x12m\n" +
+	"\x12ListAppPackageJobs\x12*.nimi.runtime.v1.ListAppPackageJobsRequest\x1a+.nimi.runtime.v1.ListAppPackageJobsResponse\x12g\n" +
+	"\x10GetAppPackageJob\x12(.nimi.runtime.v1.GetAppPackageJobRequest\x1a).nimi.runtime.v1.GetAppPackageJobResponse\x12p\n" +
+	"\x13CancelAppPackageJob\x12+.nimi.runtime.v1.CancelAppPackageJobRequest\x1a,.nimi.runtime.v1.CancelAppPackageJobResponse2\xa8\x0f\n" +
 	"\x11RuntimeAppService\x12a\n" +
 	"\x0eSendAppMessage\x12&.nimi.runtime.v1.SendAppMessageRequest\x1a'.nimi.runtime.v1.SendAppMessageResponse\x12h\n" +
 	"\x14SubscribeAppMessages\x12,.nimi.runtime.v1.SubscribeAppMessagesRequest\x1a .nimi.runtime.v1.AppMessageEvent0\x01\x12^\n" +
@@ -2768,131 +3791,172 @@ func file_runtime_v1_app_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_app_proto_rawDescData
 }
 
-var file_runtime_v1_app_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_runtime_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 39)
+var file_runtime_v1_app_proto_enumTypes = make([]protoimpl.EnumInfo, 7)
+var file_runtime_v1_app_proto_msgTypes = make([]protoimpl.MessageInfo, 49)
 var file_runtime_v1_app_proto_goTypes = []any{
 	(AppMessageEventType)(0),                  // 0: nimi.runtime.v1.AppMessageEventType
 	(AppStorageState)(0),                      // 1: nimi.runtime.v1.AppStorageState
-	(*SendAppMessageRequest)(nil),             // 2: nimi.runtime.v1.SendAppMessageRequest
-	(*SendAppMessageResponse)(nil),            // 3: nimi.runtime.v1.SendAppMessageResponse
-	(*SubscribeAppMessagesRequest)(nil),       // 4: nimi.runtime.v1.SubscribeAppMessagesRequest
-	(*AppMessageEvent)(nil),                   // 5: nimi.runtime.v1.AppMessageEvent
-	(*AppStorageProjection)(nil),              // 6: nimi.runtime.v1.AppStorageProjection
-	(*GetAppStorageRequest)(nil),              // 7: nimi.runtime.v1.GetAppStorageRequest
-	(*GetAppStorageResponse)(nil),             // 8: nimi.runtime.v1.GetAppStorageResponse
-	(*ReadLocalAppStorageJsonRequest)(nil),    // 9: nimi.runtime.v1.ReadLocalAppStorageJsonRequest
-	(*ReadLocalAppStorageJsonResponse)(nil),   // 10: nimi.runtime.v1.ReadLocalAppStorageJsonResponse
-	(*WriteLocalAppStorageJsonRequest)(nil),   // 11: nimi.runtime.v1.WriteLocalAppStorageJsonRequest
-	(*WriteLocalAppStorageJsonResponse)(nil),  // 12: nimi.runtime.v1.WriteLocalAppStorageJsonResponse
-	(*RemoveLocalAppStorageJsonRequest)(nil),  // 13: nimi.runtime.v1.RemoveLocalAppStorageJsonRequest
-	(*RemoveLocalAppStorageJsonResponse)(nil), // 14: nimi.runtime.v1.RemoveLocalAppStorageJsonResponse
-	(*LocalAppAssetRecord)(nil),               // 15: nimi.runtime.v1.LocalAppAssetRecord
-	(*StatLocalAppAssetRequest)(nil),          // 16: nimi.runtime.v1.StatLocalAppAssetRequest
-	(*StatLocalAppAssetResponse)(nil),         // 17: nimi.runtime.v1.StatLocalAppAssetResponse
-	(*ListLocalAppAssetsRequest)(nil),         // 18: nimi.runtime.v1.ListLocalAppAssetsRequest
-	(*ListLocalAppAssetsResponse)(nil),        // 19: nimi.runtime.v1.ListLocalAppAssetsResponse
-	(*WriteLocalAppAssetMetadata)(nil),        // 20: nimi.runtime.v1.WriteLocalAppAssetMetadata
-	(*WriteLocalAppAssetRequest)(nil),         // 21: nimi.runtime.v1.WriteLocalAppAssetRequest
-	(*WriteLocalAppAssetResponse)(nil),        // 22: nimi.runtime.v1.WriteLocalAppAssetResponse
-	(*ReadLocalAppAssetRequest)(nil),          // 23: nimi.runtime.v1.ReadLocalAppAssetRequest
-	(*LocalAppAssetRange)(nil),                // 24: nimi.runtime.v1.LocalAppAssetRange
-	(*ReadLocalAppAssetMetadata)(nil),         // 25: nimi.runtime.v1.ReadLocalAppAssetMetadata
-	(*ReadLocalAppAssetResponse)(nil),         // 26: nimi.runtime.v1.ReadLocalAppAssetResponse
-	(*RemoveLocalAppAssetRequest)(nil),        // 27: nimi.runtime.v1.RemoveLocalAppAssetRequest
-	(*RemoveLocalAppAssetResponse)(nil),       // 28: nimi.runtime.v1.RemoveLocalAppAssetResponse
-	(*MoveLocalAppAssetRequest)(nil),          // 29: nimi.runtime.v1.MoveLocalAppAssetRequest
-	(*MoveLocalAppAssetResponse)(nil),         // 30: nimi.runtime.v1.MoveLocalAppAssetResponse
-	(*RevealLocalAppAssetRequest)(nil),        // 31: nimi.runtime.v1.RevealLocalAppAssetRequest
-	(*RevealLocalAppAssetResponse)(nil),       // 32: nimi.runtime.v1.RevealLocalAppAssetResponse
-	(*AdoptLocalAppArtifactRequest)(nil),      // 33: nimi.runtime.v1.AdoptLocalAppArtifactRequest
-	(*AdoptLocalAppArtifactResponse)(nil),     // 34: nimi.runtime.v1.AdoptLocalAppArtifactResponse
-	(*PrepareLocalAppLaunchRequest)(nil),      // 35: nimi.runtime.v1.PrepareLocalAppLaunchRequest
-	(*PrepareLocalAppLaunchResponse)(nil),     // 36: nimi.runtime.v1.PrepareLocalAppLaunchResponse
-	(*BindLocalAppProcessRequest)(nil),        // 37: nimi.runtime.v1.BindLocalAppProcessRequest
-	(*BindLocalAppProcessResponse)(nil),       // 38: nimi.runtime.v1.BindLocalAppProcessResponse
-	(*RebindLocalAppProcessRequest)(nil),      // 39: nimi.runtime.v1.RebindLocalAppProcessRequest
-	(*RebindLocalAppProcessResponse)(nil),     // 40: nimi.runtime.v1.RebindLocalAppProcessResponse
-	(*structpb.Struct)(nil),                   // 41: google.protobuf.Struct
-	(ReasonCode)(0),                           // 42: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),             // 43: google.protobuf.Timestamp
+	(AppPackageSourceClass)(0),                // 2: nimi.runtime.v1.AppPackageSourceClass
+	(AppPackageJobKind)(0),                    // 3: nimi.runtime.v1.AppPackageJobKind
+	(AppPackageJobPhase)(0),                   // 4: nimi.runtime.v1.AppPackageJobPhase
+	(AppPackageProgressBasis)(0),              // 5: nimi.runtime.v1.AppPackageProgressBasis
+	(AppPackageTerminalResult)(0),             // 6: nimi.runtime.v1.AppPackageTerminalResult
+	(*SendAppMessageRequest)(nil),             // 7: nimi.runtime.v1.SendAppMessageRequest
+	(*SendAppMessageResponse)(nil),            // 8: nimi.runtime.v1.SendAppMessageResponse
+	(*SubscribeAppMessagesRequest)(nil),       // 9: nimi.runtime.v1.SubscribeAppMessagesRequest
+	(*AppMessageEvent)(nil),                   // 10: nimi.runtime.v1.AppMessageEvent
+	(*AppStorageProjection)(nil),              // 11: nimi.runtime.v1.AppStorageProjection
+	(*GetAppStorageRequest)(nil),              // 12: nimi.runtime.v1.GetAppStorageRequest
+	(*GetAppStorageResponse)(nil),             // 13: nimi.runtime.v1.GetAppStorageResponse
+	(*ReadLocalAppStorageJsonRequest)(nil),    // 14: nimi.runtime.v1.ReadLocalAppStorageJsonRequest
+	(*ReadLocalAppStorageJsonResponse)(nil),   // 15: nimi.runtime.v1.ReadLocalAppStorageJsonResponse
+	(*WriteLocalAppStorageJsonRequest)(nil),   // 16: nimi.runtime.v1.WriteLocalAppStorageJsonRequest
+	(*WriteLocalAppStorageJsonResponse)(nil),  // 17: nimi.runtime.v1.WriteLocalAppStorageJsonResponse
+	(*RemoveLocalAppStorageJsonRequest)(nil),  // 18: nimi.runtime.v1.RemoveLocalAppStorageJsonRequest
+	(*RemoveLocalAppStorageJsonResponse)(nil), // 19: nimi.runtime.v1.RemoveLocalAppStorageJsonResponse
+	(*LocalAppAssetRecord)(nil),               // 20: nimi.runtime.v1.LocalAppAssetRecord
+	(*StatLocalAppAssetRequest)(nil),          // 21: nimi.runtime.v1.StatLocalAppAssetRequest
+	(*StatLocalAppAssetResponse)(nil),         // 22: nimi.runtime.v1.StatLocalAppAssetResponse
+	(*ListLocalAppAssetsRequest)(nil),         // 23: nimi.runtime.v1.ListLocalAppAssetsRequest
+	(*ListLocalAppAssetsResponse)(nil),        // 24: nimi.runtime.v1.ListLocalAppAssetsResponse
+	(*WriteLocalAppAssetMetadata)(nil),        // 25: nimi.runtime.v1.WriteLocalAppAssetMetadata
+	(*WriteLocalAppAssetRequest)(nil),         // 26: nimi.runtime.v1.WriteLocalAppAssetRequest
+	(*WriteLocalAppAssetResponse)(nil),        // 27: nimi.runtime.v1.WriteLocalAppAssetResponse
+	(*ReadLocalAppAssetRequest)(nil),          // 28: nimi.runtime.v1.ReadLocalAppAssetRequest
+	(*LocalAppAssetRange)(nil),                // 29: nimi.runtime.v1.LocalAppAssetRange
+	(*ReadLocalAppAssetMetadata)(nil),         // 30: nimi.runtime.v1.ReadLocalAppAssetMetadata
+	(*ReadLocalAppAssetResponse)(nil),         // 31: nimi.runtime.v1.ReadLocalAppAssetResponse
+	(*RemoveLocalAppAssetRequest)(nil),        // 32: nimi.runtime.v1.RemoveLocalAppAssetRequest
+	(*RemoveLocalAppAssetResponse)(nil),       // 33: nimi.runtime.v1.RemoveLocalAppAssetResponse
+	(*MoveLocalAppAssetRequest)(nil),          // 34: nimi.runtime.v1.MoveLocalAppAssetRequest
+	(*MoveLocalAppAssetResponse)(nil),         // 35: nimi.runtime.v1.MoveLocalAppAssetResponse
+	(*RevealLocalAppAssetRequest)(nil),        // 36: nimi.runtime.v1.RevealLocalAppAssetRequest
+	(*RevealLocalAppAssetResponse)(nil),       // 37: nimi.runtime.v1.RevealLocalAppAssetResponse
+	(*AdoptLocalAppArtifactRequest)(nil),      // 38: nimi.runtime.v1.AdoptLocalAppArtifactRequest
+	(*AdoptLocalAppArtifactResponse)(nil),     // 39: nimi.runtime.v1.AdoptLocalAppArtifactResponse
+	(*PrepareLocalAppLaunchRequest)(nil),      // 40: nimi.runtime.v1.PrepareLocalAppLaunchRequest
+	(*PrepareLocalAppLaunchResponse)(nil),     // 41: nimi.runtime.v1.PrepareLocalAppLaunchResponse
+	(*BindLocalAppProcessRequest)(nil),        // 42: nimi.runtime.v1.BindLocalAppProcessRequest
+	(*BindLocalAppProcessResponse)(nil),       // 43: nimi.runtime.v1.BindLocalAppProcessResponse
+	(*RebindLocalAppProcessRequest)(nil),      // 44: nimi.runtime.v1.RebindLocalAppProcessRequest
+	(*RebindLocalAppProcessResponse)(nil),     // 45: nimi.runtime.v1.RebindLocalAppProcessResponse
+	(*CommittedAppRelease)(nil),               // 46: nimi.runtime.v1.CommittedAppRelease
+	(*AppPackageJob)(nil),                     // 47: nimi.runtime.v1.AppPackageJob
+	(*ListCommittedAppReleasesRequest)(nil),   // 48: nimi.runtime.v1.ListCommittedAppReleasesRequest
+	(*ListCommittedAppReleasesResponse)(nil),  // 49: nimi.runtime.v1.ListCommittedAppReleasesResponse
+	(*ListAppPackageJobsRequest)(nil),         // 50: nimi.runtime.v1.ListAppPackageJobsRequest
+	(*ListAppPackageJobsResponse)(nil),        // 51: nimi.runtime.v1.ListAppPackageJobsResponse
+	(*GetAppPackageJobRequest)(nil),           // 52: nimi.runtime.v1.GetAppPackageJobRequest
+	(*GetAppPackageJobResponse)(nil),          // 53: nimi.runtime.v1.GetAppPackageJobResponse
+	(*CancelAppPackageJobRequest)(nil),        // 54: nimi.runtime.v1.CancelAppPackageJobRequest
+	(*CancelAppPackageJobResponse)(nil),       // 55: nimi.runtime.v1.CancelAppPackageJobResponse
+	(*structpb.Struct)(nil),                   // 56: google.protobuf.Struct
+	(ReasonCode)(0),                           // 57: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil),             // 58: google.protobuf.Timestamp
 }
 var file_runtime_v1_app_proto_depIdxs = []int32{
-	41, // 0: nimi.runtime.v1.SendAppMessageRequest.payload:type_name -> google.protobuf.Struct
-	42, // 1: nimi.runtime.v1.SendAppMessageResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	56, // 0: nimi.runtime.v1.SendAppMessageRequest.payload:type_name -> google.protobuf.Struct
+	57, // 1: nimi.runtime.v1.SendAppMessageResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	0,  // 2: nimi.runtime.v1.AppMessageEvent.event_type:type_name -> nimi.runtime.v1.AppMessageEventType
-	41, // 3: nimi.runtime.v1.AppMessageEvent.payload:type_name -> google.protobuf.Struct
-	42, // 4: nimi.runtime.v1.AppMessageEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	43, // 5: nimi.runtime.v1.AppMessageEvent.timestamp:type_name -> google.protobuf.Timestamp
+	56, // 3: nimi.runtime.v1.AppMessageEvent.payload:type_name -> google.protobuf.Struct
+	57, // 4: nimi.runtime.v1.AppMessageEvent.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	58, // 5: nimi.runtime.v1.AppMessageEvent.timestamp:type_name -> google.protobuf.Timestamp
 	1,  // 6: nimi.runtime.v1.AppStorageProjection.state:type_name -> nimi.runtime.v1.AppStorageState
-	42, // 7: nimi.runtime.v1.AppStorageProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	6,  // 8: nimi.runtime.v1.GetAppStorageResponse.projection:type_name -> nimi.runtime.v1.AppStorageProjection
-	42, // 9: nimi.runtime.v1.ReadLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	42, // 10: nimi.runtime.v1.WriteLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	42, // 11: nimi.runtime.v1.RemoveLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	43, // 12: nimi.runtime.v1.LocalAppAssetRecord.created_at:type_name -> google.protobuf.Timestamp
-	43, // 13: nimi.runtime.v1.LocalAppAssetRecord.updated_at:type_name -> google.protobuf.Timestamp
-	15, // 14: nimi.runtime.v1.StatLocalAppAssetResponse.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
-	42, // 15: nimi.runtime.v1.StatLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	15, // 16: nimi.runtime.v1.ListLocalAppAssetsResponse.assets:type_name -> nimi.runtime.v1.LocalAppAssetRecord
-	42, // 17: nimi.runtime.v1.ListLocalAppAssetsResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	20, // 18: nimi.runtime.v1.WriteLocalAppAssetRequest.metadata:type_name -> nimi.runtime.v1.WriteLocalAppAssetMetadata
-	15, // 19: nimi.runtime.v1.WriteLocalAppAssetResponse.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
-	42, // 20: nimi.runtime.v1.WriteLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	15, // 21: nimi.runtime.v1.ReadLocalAppAssetMetadata.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
-	24, // 22: nimi.runtime.v1.ReadLocalAppAssetMetadata.range:type_name -> nimi.runtime.v1.LocalAppAssetRange
-	25, // 23: nimi.runtime.v1.ReadLocalAppAssetResponse.metadata:type_name -> nimi.runtime.v1.ReadLocalAppAssetMetadata
-	42, // 24: nimi.runtime.v1.RemoveLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	15, // 25: nimi.runtime.v1.MoveLocalAppAssetResponse.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
-	42, // 26: nimi.runtime.v1.MoveLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	15, // 27: nimi.runtime.v1.RevealLocalAppAssetResponse.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
-	42, // 28: nimi.runtime.v1.RevealLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	15, // 29: nimi.runtime.v1.AdoptLocalAppArtifactResponse.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
-	42, // 30: nimi.runtime.v1.AdoptLocalAppArtifactResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	43, // 31: nimi.runtime.v1.PrepareLocalAppLaunchResponse.bind_deadline:type_name -> google.protobuf.Timestamp
-	42, // 32: nimi.runtime.v1.PrepareLocalAppLaunchResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	43, // 33: nimi.runtime.v1.BindLocalAppProcessResponse.bind_deadline:type_name -> google.protobuf.Timestamp
-	42, // 34: nimi.runtime.v1.BindLocalAppProcessResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	43, // 35: nimi.runtime.v1.RebindLocalAppProcessResponse.bind_deadline:type_name -> google.protobuf.Timestamp
-	42, // 36: nimi.runtime.v1.RebindLocalAppProcessResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	2,  // 37: nimi.runtime.v1.RuntimeAppService.SendAppMessage:input_type -> nimi.runtime.v1.SendAppMessageRequest
-	4,  // 38: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:input_type -> nimi.runtime.v1.SubscribeAppMessagesRequest
-	7,  // 39: nimi.runtime.v1.RuntimeAppService.GetAppStorage:input_type -> nimi.runtime.v1.GetAppStorageRequest
-	9,  // 40: nimi.runtime.v1.RuntimeAppService.ReadLocalAppStorageJson:input_type -> nimi.runtime.v1.ReadLocalAppStorageJsonRequest
-	11, // 41: nimi.runtime.v1.RuntimeAppService.WriteLocalAppStorageJson:input_type -> nimi.runtime.v1.WriteLocalAppStorageJsonRequest
-	13, // 42: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppStorageJson:input_type -> nimi.runtime.v1.RemoveLocalAppStorageJsonRequest
-	16, // 43: nimi.runtime.v1.RuntimeAppService.StatLocalAppAsset:input_type -> nimi.runtime.v1.StatLocalAppAssetRequest
-	18, // 44: nimi.runtime.v1.RuntimeAppService.ListLocalAppAssets:input_type -> nimi.runtime.v1.ListLocalAppAssetsRequest
-	21, // 45: nimi.runtime.v1.RuntimeAppService.WriteLocalAppAsset:input_type -> nimi.runtime.v1.WriteLocalAppAssetRequest
-	23, // 46: nimi.runtime.v1.RuntimeAppService.ReadLocalAppAsset:input_type -> nimi.runtime.v1.ReadLocalAppAssetRequest
-	27, // 47: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAsset:input_type -> nimi.runtime.v1.RemoveLocalAppAssetRequest
-	29, // 48: nimi.runtime.v1.RuntimeAppService.MoveLocalAppAsset:input_type -> nimi.runtime.v1.MoveLocalAppAssetRequest
-	31, // 49: nimi.runtime.v1.RuntimeAppService.RevealLocalAppAsset:input_type -> nimi.runtime.v1.RevealLocalAppAssetRequest
-	33, // 50: nimi.runtime.v1.RuntimeAppService.AdoptLocalAppArtifact:input_type -> nimi.runtime.v1.AdoptLocalAppArtifactRequest
-	35, // 51: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:input_type -> nimi.runtime.v1.PrepareLocalAppLaunchRequest
-	37, // 52: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:input_type -> nimi.runtime.v1.BindLocalAppProcessRequest
-	39, // 53: nimi.runtime.v1.RuntimeAppService.RebindLocalAppProcess:input_type -> nimi.runtime.v1.RebindLocalAppProcessRequest
-	3,  // 54: nimi.runtime.v1.RuntimeAppService.SendAppMessage:output_type -> nimi.runtime.v1.SendAppMessageResponse
-	5,  // 55: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:output_type -> nimi.runtime.v1.AppMessageEvent
-	8,  // 56: nimi.runtime.v1.RuntimeAppService.GetAppStorage:output_type -> nimi.runtime.v1.GetAppStorageResponse
-	10, // 57: nimi.runtime.v1.RuntimeAppService.ReadLocalAppStorageJson:output_type -> nimi.runtime.v1.ReadLocalAppStorageJsonResponse
-	12, // 58: nimi.runtime.v1.RuntimeAppService.WriteLocalAppStorageJson:output_type -> nimi.runtime.v1.WriteLocalAppStorageJsonResponse
-	14, // 59: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppStorageJson:output_type -> nimi.runtime.v1.RemoveLocalAppStorageJsonResponse
-	17, // 60: nimi.runtime.v1.RuntimeAppService.StatLocalAppAsset:output_type -> nimi.runtime.v1.StatLocalAppAssetResponse
-	19, // 61: nimi.runtime.v1.RuntimeAppService.ListLocalAppAssets:output_type -> nimi.runtime.v1.ListLocalAppAssetsResponse
-	22, // 62: nimi.runtime.v1.RuntimeAppService.WriteLocalAppAsset:output_type -> nimi.runtime.v1.WriteLocalAppAssetResponse
-	26, // 63: nimi.runtime.v1.RuntimeAppService.ReadLocalAppAsset:output_type -> nimi.runtime.v1.ReadLocalAppAssetResponse
-	28, // 64: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAsset:output_type -> nimi.runtime.v1.RemoveLocalAppAssetResponse
-	30, // 65: nimi.runtime.v1.RuntimeAppService.MoveLocalAppAsset:output_type -> nimi.runtime.v1.MoveLocalAppAssetResponse
-	32, // 66: nimi.runtime.v1.RuntimeAppService.RevealLocalAppAsset:output_type -> nimi.runtime.v1.RevealLocalAppAssetResponse
-	34, // 67: nimi.runtime.v1.RuntimeAppService.AdoptLocalAppArtifact:output_type -> nimi.runtime.v1.AdoptLocalAppArtifactResponse
-	36, // 68: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:output_type -> nimi.runtime.v1.PrepareLocalAppLaunchResponse
-	38, // 69: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:output_type -> nimi.runtime.v1.BindLocalAppProcessResponse
-	40, // 70: nimi.runtime.v1.RuntimeAppService.RebindLocalAppProcess:output_type -> nimi.runtime.v1.RebindLocalAppProcessResponse
-	54, // [54:71] is the sub-list for method output_type
-	37, // [37:54] is the sub-list for method input_type
-	37, // [37:37] is the sub-list for extension type_name
-	37, // [37:37] is the sub-list for extension extendee
-	0,  // [0:37] is the sub-list for field type_name
+	57, // 7: nimi.runtime.v1.AppStorageProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	11, // 8: nimi.runtime.v1.GetAppStorageResponse.projection:type_name -> nimi.runtime.v1.AppStorageProjection
+	57, // 9: nimi.runtime.v1.ReadLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	57, // 10: nimi.runtime.v1.WriteLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	57, // 11: nimi.runtime.v1.RemoveLocalAppStorageJsonResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	58, // 12: nimi.runtime.v1.LocalAppAssetRecord.created_at:type_name -> google.protobuf.Timestamp
+	58, // 13: nimi.runtime.v1.LocalAppAssetRecord.updated_at:type_name -> google.protobuf.Timestamp
+	20, // 14: nimi.runtime.v1.StatLocalAppAssetResponse.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
+	57, // 15: nimi.runtime.v1.StatLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	20, // 16: nimi.runtime.v1.ListLocalAppAssetsResponse.assets:type_name -> nimi.runtime.v1.LocalAppAssetRecord
+	57, // 17: nimi.runtime.v1.ListLocalAppAssetsResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	25, // 18: nimi.runtime.v1.WriteLocalAppAssetRequest.metadata:type_name -> nimi.runtime.v1.WriteLocalAppAssetMetadata
+	20, // 19: nimi.runtime.v1.WriteLocalAppAssetResponse.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
+	57, // 20: nimi.runtime.v1.WriteLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	20, // 21: nimi.runtime.v1.ReadLocalAppAssetMetadata.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
+	29, // 22: nimi.runtime.v1.ReadLocalAppAssetMetadata.range:type_name -> nimi.runtime.v1.LocalAppAssetRange
+	30, // 23: nimi.runtime.v1.ReadLocalAppAssetResponse.metadata:type_name -> nimi.runtime.v1.ReadLocalAppAssetMetadata
+	57, // 24: nimi.runtime.v1.RemoveLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	20, // 25: nimi.runtime.v1.MoveLocalAppAssetResponse.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
+	57, // 26: nimi.runtime.v1.MoveLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	20, // 27: nimi.runtime.v1.RevealLocalAppAssetResponse.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
+	57, // 28: nimi.runtime.v1.RevealLocalAppAssetResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	20, // 29: nimi.runtime.v1.AdoptLocalAppArtifactResponse.asset:type_name -> nimi.runtime.v1.LocalAppAssetRecord
+	57, // 30: nimi.runtime.v1.AdoptLocalAppArtifactResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	58, // 31: nimi.runtime.v1.PrepareLocalAppLaunchResponse.bind_deadline:type_name -> google.protobuf.Timestamp
+	57, // 32: nimi.runtime.v1.PrepareLocalAppLaunchResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	58, // 33: nimi.runtime.v1.BindLocalAppProcessResponse.bind_deadline:type_name -> google.protobuf.Timestamp
+	57, // 34: nimi.runtime.v1.BindLocalAppProcessResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	58, // 35: nimi.runtime.v1.RebindLocalAppProcessResponse.bind_deadline:type_name -> google.protobuf.Timestamp
+	57, // 36: nimi.runtime.v1.RebindLocalAppProcessResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	2,  // 37: nimi.runtime.v1.CommittedAppRelease.source_class:type_name -> nimi.runtime.v1.AppPackageSourceClass
+	58, // 38: nimi.runtime.v1.CommittedAppRelease.committed_at:type_name -> google.protobuf.Timestamp
+	2,  // 39: nimi.runtime.v1.AppPackageJob.source_class:type_name -> nimi.runtime.v1.AppPackageSourceClass
+	3,  // 40: nimi.runtime.v1.AppPackageJob.kind:type_name -> nimi.runtime.v1.AppPackageJobKind
+	4,  // 41: nimi.runtime.v1.AppPackageJob.phase:type_name -> nimi.runtime.v1.AppPackageJobPhase
+	5,  // 42: nimi.runtime.v1.AppPackageJob.progress_basis:type_name -> nimi.runtime.v1.AppPackageProgressBasis
+	58, // 43: nimi.runtime.v1.AppPackageJob.started_at:type_name -> google.protobuf.Timestamp
+	58, // 44: nimi.runtime.v1.AppPackageJob.completed_at:type_name -> google.protobuf.Timestamp
+	6,  // 45: nimi.runtime.v1.AppPackageJob.terminal_result:type_name -> nimi.runtime.v1.AppPackageTerminalResult
+	46, // 46: nimi.runtime.v1.ListCommittedAppReleasesResponse.releases:type_name -> nimi.runtime.v1.CommittedAppRelease
+	57, // 47: nimi.runtime.v1.ListCommittedAppReleasesResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	47, // 48: nimi.runtime.v1.ListAppPackageJobsResponse.jobs:type_name -> nimi.runtime.v1.AppPackageJob
+	57, // 49: nimi.runtime.v1.ListAppPackageJobsResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	47, // 50: nimi.runtime.v1.GetAppPackageJobResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
+	57, // 51: nimi.runtime.v1.GetAppPackageJobResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	4,  // 52: nimi.runtime.v1.CancelAppPackageJobRequest.expected_phase:type_name -> nimi.runtime.v1.AppPackageJobPhase
+	47, // 53: nimi.runtime.v1.CancelAppPackageJobResponse.job:type_name -> nimi.runtime.v1.AppPackageJob
+	57, // 54: nimi.runtime.v1.CancelAppPackageJobResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	48, // 55: nimi.runtime.v1.RuntimeAppPackageService.ListCommittedAppReleases:input_type -> nimi.runtime.v1.ListCommittedAppReleasesRequest
+	50, // 56: nimi.runtime.v1.RuntimeAppPackageService.ListAppPackageJobs:input_type -> nimi.runtime.v1.ListAppPackageJobsRequest
+	52, // 57: nimi.runtime.v1.RuntimeAppPackageService.GetAppPackageJob:input_type -> nimi.runtime.v1.GetAppPackageJobRequest
+	54, // 58: nimi.runtime.v1.RuntimeAppPackageService.CancelAppPackageJob:input_type -> nimi.runtime.v1.CancelAppPackageJobRequest
+	7,  // 59: nimi.runtime.v1.RuntimeAppService.SendAppMessage:input_type -> nimi.runtime.v1.SendAppMessageRequest
+	9,  // 60: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:input_type -> nimi.runtime.v1.SubscribeAppMessagesRequest
+	12, // 61: nimi.runtime.v1.RuntimeAppService.GetAppStorage:input_type -> nimi.runtime.v1.GetAppStorageRequest
+	14, // 62: nimi.runtime.v1.RuntimeAppService.ReadLocalAppStorageJson:input_type -> nimi.runtime.v1.ReadLocalAppStorageJsonRequest
+	16, // 63: nimi.runtime.v1.RuntimeAppService.WriteLocalAppStorageJson:input_type -> nimi.runtime.v1.WriteLocalAppStorageJsonRequest
+	18, // 64: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppStorageJson:input_type -> nimi.runtime.v1.RemoveLocalAppStorageJsonRequest
+	21, // 65: nimi.runtime.v1.RuntimeAppService.StatLocalAppAsset:input_type -> nimi.runtime.v1.StatLocalAppAssetRequest
+	23, // 66: nimi.runtime.v1.RuntimeAppService.ListLocalAppAssets:input_type -> nimi.runtime.v1.ListLocalAppAssetsRequest
+	26, // 67: nimi.runtime.v1.RuntimeAppService.WriteLocalAppAsset:input_type -> nimi.runtime.v1.WriteLocalAppAssetRequest
+	28, // 68: nimi.runtime.v1.RuntimeAppService.ReadLocalAppAsset:input_type -> nimi.runtime.v1.ReadLocalAppAssetRequest
+	32, // 69: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAsset:input_type -> nimi.runtime.v1.RemoveLocalAppAssetRequest
+	34, // 70: nimi.runtime.v1.RuntimeAppService.MoveLocalAppAsset:input_type -> nimi.runtime.v1.MoveLocalAppAssetRequest
+	36, // 71: nimi.runtime.v1.RuntimeAppService.RevealLocalAppAsset:input_type -> nimi.runtime.v1.RevealLocalAppAssetRequest
+	38, // 72: nimi.runtime.v1.RuntimeAppService.AdoptLocalAppArtifact:input_type -> nimi.runtime.v1.AdoptLocalAppArtifactRequest
+	40, // 73: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:input_type -> nimi.runtime.v1.PrepareLocalAppLaunchRequest
+	42, // 74: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:input_type -> nimi.runtime.v1.BindLocalAppProcessRequest
+	44, // 75: nimi.runtime.v1.RuntimeAppService.RebindLocalAppProcess:input_type -> nimi.runtime.v1.RebindLocalAppProcessRequest
+	49, // 76: nimi.runtime.v1.RuntimeAppPackageService.ListCommittedAppReleases:output_type -> nimi.runtime.v1.ListCommittedAppReleasesResponse
+	51, // 77: nimi.runtime.v1.RuntimeAppPackageService.ListAppPackageJobs:output_type -> nimi.runtime.v1.ListAppPackageJobsResponse
+	53, // 78: nimi.runtime.v1.RuntimeAppPackageService.GetAppPackageJob:output_type -> nimi.runtime.v1.GetAppPackageJobResponse
+	55, // 79: nimi.runtime.v1.RuntimeAppPackageService.CancelAppPackageJob:output_type -> nimi.runtime.v1.CancelAppPackageJobResponse
+	8,  // 80: nimi.runtime.v1.RuntimeAppService.SendAppMessage:output_type -> nimi.runtime.v1.SendAppMessageResponse
+	10, // 81: nimi.runtime.v1.RuntimeAppService.SubscribeAppMessages:output_type -> nimi.runtime.v1.AppMessageEvent
+	13, // 82: nimi.runtime.v1.RuntimeAppService.GetAppStorage:output_type -> nimi.runtime.v1.GetAppStorageResponse
+	15, // 83: nimi.runtime.v1.RuntimeAppService.ReadLocalAppStorageJson:output_type -> nimi.runtime.v1.ReadLocalAppStorageJsonResponse
+	17, // 84: nimi.runtime.v1.RuntimeAppService.WriteLocalAppStorageJson:output_type -> nimi.runtime.v1.WriteLocalAppStorageJsonResponse
+	19, // 85: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppStorageJson:output_type -> nimi.runtime.v1.RemoveLocalAppStorageJsonResponse
+	22, // 86: nimi.runtime.v1.RuntimeAppService.StatLocalAppAsset:output_type -> nimi.runtime.v1.StatLocalAppAssetResponse
+	24, // 87: nimi.runtime.v1.RuntimeAppService.ListLocalAppAssets:output_type -> nimi.runtime.v1.ListLocalAppAssetsResponse
+	27, // 88: nimi.runtime.v1.RuntimeAppService.WriteLocalAppAsset:output_type -> nimi.runtime.v1.WriteLocalAppAssetResponse
+	31, // 89: nimi.runtime.v1.RuntimeAppService.ReadLocalAppAsset:output_type -> nimi.runtime.v1.ReadLocalAppAssetResponse
+	33, // 90: nimi.runtime.v1.RuntimeAppService.RemoveLocalAppAsset:output_type -> nimi.runtime.v1.RemoveLocalAppAssetResponse
+	35, // 91: nimi.runtime.v1.RuntimeAppService.MoveLocalAppAsset:output_type -> nimi.runtime.v1.MoveLocalAppAssetResponse
+	37, // 92: nimi.runtime.v1.RuntimeAppService.RevealLocalAppAsset:output_type -> nimi.runtime.v1.RevealLocalAppAssetResponse
+	39, // 93: nimi.runtime.v1.RuntimeAppService.AdoptLocalAppArtifact:output_type -> nimi.runtime.v1.AdoptLocalAppArtifactResponse
+	41, // 94: nimi.runtime.v1.RuntimeAppService.PrepareLocalAppLaunch:output_type -> nimi.runtime.v1.PrepareLocalAppLaunchResponse
+	43, // 95: nimi.runtime.v1.RuntimeAppService.BindLocalAppProcess:output_type -> nimi.runtime.v1.BindLocalAppProcessResponse
+	45, // 96: nimi.runtime.v1.RuntimeAppService.RebindLocalAppProcess:output_type -> nimi.runtime.v1.RebindLocalAppProcessResponse
+	76, // [76:97] is the sub-list for method output_type
+	55, // [55:76] is the sub-list for method input_type
+	55, // [55:55] is the sub-list for extension type_name
+	55, // [55:55] is the sub-list for extension extendee
+	0,  // [0:55] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_app_proto_init() }
@@ -2910,15 +3974,16 @@ func file_runtime_v1_app_proto_init() {
 		(*ReadLocalAppAssetResponse_Metadata)(nil),
 		(*ReadLocalAppAssetResponse_BodyChunk)(nil),
 	}
+	file_runtime_v1_app_proto_msgTypes[40].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_app_proto_rawDesc), len(file_runtime_v1_app_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   39,
+			NumEnums:      7,
+			NumMessages:   49,
 			NumExtensions: 0,
-			NumServices:   1,
+			NumServices:   2,
 		},
 		GoTypes:           file_runtime_v1_app_proto_goTypes,
 		DependencyIndexes: file_runtime_v1_app_proto_depIdxs,

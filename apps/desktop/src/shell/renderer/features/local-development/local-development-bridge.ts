@@ -47,14 +47,14 @@ export async function startLocalDevelopmentRegistration(
   return parseRun(response);
 }
 
-export async function stopLocalDevelopmentRun(appId: string): Promise<void> {
+export async function stopLocalDevelopmentRun(selector: string): Promise<void> {
   const response = await invokeChecked(
     'local_development_run_stop',
-    { payload: { appId: requireText(appId) } },
+    { payload: { selector: requireSelector(selector) } },
     (value) => value,
   );
-  const record = exactRecord(response, ['appId', 'stopped']);
-  if (record.stopped !== true || record.appId !== appId) {
+  const record = exactRecord(response, ['selector', 'stopped']);
+  if (record.stopped !== true || record.selector !== selector) {
     throw new Error('Local development stop response is invalid');
   }
 }
@@ -149,6 +149,7 @@ function requireAIConfigAllowedRoutes(value: unknown): readonly ('local' | 'clou
 function parseRun(value: unknown): LocalDevelopmentRun {
   const record = requiredRecord(value);
   const expectedKeys = [
+    'selector',
     'appId',
     'canonicalProjectRoot',
     'displayName',
@@ -164,6 +165,7 @@ function parseRun(value: unknown): LocalDevelopmentRun {
     throw new Error('Local development run response is invalid');
   }
   return {
+    selector: requireSelector(record.selector),
     appId: requireText(record.appId),
     displayName: requireText(record.displayName),
     canonicalProjectRoot: requireText(record.canonicalProjectRoot),

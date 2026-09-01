@@ -23,10 +23,6 @@ import {
   workbenchNavGroups,
   type WorkbenchView,
 } from './workbench/workbench-context.js';
-import { AgentCenterCapability } from '../product-modules/agent-center/index.js';
-import { AgentConversationCapability } from '../product-modules/agent-conversation/index.js';
-import { AgentRealtimeCapability } from '../product-modules/agent-realtime/index.js';
-
 const initialCapabilityId: LabCapabilityId = 'text.generate';
 
 function restoredInitialCapabilityId(preferences: LabPreferences): LabCapabilityId {
@@ -43,6 +39,15 @@ const KitComponentGallery = lazy(async () => ({
 }));
 const LabAiConfigSettingsPanel = lazy(async () => ({
   default: (await import('./workbench/lab-ai-config-settings-panel.js')).LabAiConfigSettingsPanel,
+}));
+const AgentCenterCapability = lazy(async () => ({
+  default: (await import('../product-modules/agent-center/index.js')).AgentCenterCapability,
+}));
+const AgentConversationCapability = lazy(async () => ({
+  default: (await import('../product-modules/agent-conversation/index.js')).AgentConversationCapability,
+}));
+const AgentRealtimeCapability = lazy(async () => ({
+  default: (await import('../product-modules/agent-realtime/index.js')).AgentRealtimeCapability,
 }));
 
 type LabWorkbenchProps = { title: string };
@@ -191,11 +196,17 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
       {view.kind === 'settings' ? (
         <Suspense fallback={<LoadingFallback />}><SettingsRoute /></Suspense>
       ) : view.kind === 'agent-center' ? (
-        <div className="h-full overflow-y-auto p-5"><AgentCenterCapability client={rendererHost.sdk.localAppClient} /></div>
+        <Suspense fallback={<LoadingFallback />}>
+          <div className="h-full overflow-y-auto p-5"><AgentCenterCapability client={rendererHost.sdk.localAppClient} /></div>
+        </Suspense>
       ) : view.kind === 'agent-conversation' ? (
-        <div className="h-full overflow-y-auto p-5"><AgentConversationCapability client={rendererHost.sdk.localAppClient} /></div>
+        <Suspense fallback={<LoadingFallback />}>
+          <div className="h-full overflow-y-auto p-5"><AgentConversationCapability client={rendererHost.sdk.localAppClient} /></div>
+        </Suspense>
       ) : view.kind === 'agent-realtime' ? (
-        <div className="h-full overflow-y-auto p-5"><AgentRealtimeCapability client={rendererHost.sdk.localAppClient} /></div>
+        <Suspense fallback={<LoadingFallback />}>
+          <div className="h-full overflow-y-auto p-5"><AgentRealtimeCapability client={rendererHost.sdk.localAppClient} /></div>
+        </Suspense>
       ) : view.kind === 'app-access' ? (
         <AppAccessPanel />
       ) : view.kind === 'ui-recipes' ? (

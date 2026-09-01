@@ -1074,7 +1074,7 @@ class SpeechServerTests(unittest.TestCase):
             self.assertEqual(registration["status"], "registered")
             self.assertEqual(response.headers["x-local-model-id"], "model-asset/loadout-voxcpm")
             self.assertEqual(observed["model"].verified_content_id, verified_content_id)
-            self.assertEqual(observed["request"]["bundle_dir"], str(bundle_dir))
+            self.assertEqual(observed["request"]["bundle_dir"], str(bundle_dir.resolve()))
             self.assertEqual(observed["request"]["declared_files"], ["model.safetensors", "config.json"])
             artifact.cleanup()
 

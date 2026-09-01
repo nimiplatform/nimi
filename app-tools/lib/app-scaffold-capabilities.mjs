@@ -23,6 +23,8 @@ function frozenModule(definition) {
     requires: Object.freeze([...(definition.requires || [])]),
     sourceMappings: Object.freeze([...(definition.sourceMappings || [])]),
     appAccessItems: Object.freeze([...(definition.appAccessItems || [])]),
+    capabilityContractRefs: Object.freeze([...(definition.capabilityContractRefs || [])]),
+    requiredStandardizedFeatureRefs: Object.freeze([...(definition.requiredStandardizedFeatureRefs || [])]),
     npmDependencies: Object.freeze({ ...(definition.npmDependencies || {}) }),
     cargoDependencies: Object.freeze(cargoDependencies),
     views: Object.freeze([...(definition.views || [])]),
@@ -66,6 +68,8 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
     requires: ['ai-studio-core'],
     sourceMappings: [frozenSourceMapping('src/studio-modules/studio-create', 'src/capabilities/studio-create')],
     appAccessItems: ['runtime.consume'],
+    capabilityContractRefs: ['text.generate', 'text.embed'],
+    requiredStandardizedFeatureRefs: [],
     npmDependencies: {},
     cargoDependencies: {},
     hostAdapterContract: 'ai-studio-host-v1',
@@ -90,6 +94,8 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
     requires: ['ai-studio-core'],
     sourceMappings: [frozenSourceMapping('src/studio-modules/studio-media', 'src/capabilities/studio-media')],
     appAccessItems: ['runtime.consume'],
+    capabilityContractRefs: ['image.generate', 'video.generate', 'music.generate'],
+    requiredStandardizedFeatureRefs: [],
     npmDependencies: {},
     cargoDependencies: {},
     hostAdapterContract: 'ai-studio-host-v1',
@@ -114,6 +120,8 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
     requires: ['ai-studio-core'],
     sourceMappings: [frozenSourceMapping('src/studio-modules/studio-voice', 'src/capabilities/studio-voice')],
     appAccessItems: ['runtime.consume'],
+    capabilityContractRefs: ['audio.synthesize', 'audio.transcribe', 'voice.create'],
+    requiredStandardizedFeatureRefs: [],
     npmDependencies: {},
     cargoDependencies: {},
     hostAdapterContract: 'ai-studio-host-v1',
@@ -431,6 +439,8 @@ function assertModuleEntry(id, entry, registry) {
   }
   assertUniqueStrings(entry.requires, `${id} requires`);
   assertUniqueStrings(entry.appAccessItems, `${id} appAccessItems`);
+  assertUniqueStrings(entry.capabilityContractRefs || [], `${id} capabilityContractRefs`);
+  assertUniqueStrings(entry.requiredStandardizedFeatureRefs || [], `${id} requiredStandardizedFeatureRefs`);
   assertUniqueStrings(entry.views, `${id} views`);
   assertUniqueStrings(entry.navigation, `${id} navigation`);
   assertUniqueStrings(entry.styles, `${id} styles`);
@@ -644,12 +654,28 @@ function resolveAppScaffoldGraph(input, registry, mode) {
   const assets = [];
   const hostAdapterContracts = [];
   const hostAdapterSeen = new Set();
+  const capabilityContractRefs = [];
+  const capabilityContractSeen = new Set();
+  const requiredStandardizedFeatureRefs = [];
+  const requiredStandardizedFeatureSeen = new Set();
   for (const id of resolvedFeatureIds) {
     const entry = registry[id];
     for (const item of entry.appAccessItems) {
       if (!appAccessSeen.has(item)) {
         appAccessSeen.add(item);
         appAccessItems.push(item);
+      }
+    }
+    for (const item of entry.capabilityContractRefs || []) {
+      if (!capabilityContractSeen.has(item)) {
+        capabilityContractSeen.add(item);
+        capabilityContractRefs.push(item);
+      }
+    }
+    for (const item of entry.requiredStandardizedFeatureRefs || []) {
+      if (!requiredStandardizedFeatureSeen.has(item)) {
+        requiredStandardizedFeatureSeen.add(item);
+        requiredStandardizedFeatureRefs.push(item);
       }
     }
   }
@@ -683,6 +709,8 @@ function resolveAppScaffoldGraph(input, registry, mode) {
     resolvedModuleIds: Object.freeze(resolvedModuleIds),
     modules: Object.freeze(resolvedModuleIds.map((id) => registry[id])),
     appAccessItems: Object.freeze(appAccessItems),
+    capabilityContractRefs: Object.freeze(capabilityContractRefs),
+    requiredStandardizedFeatureRefs: Object.freeze(requiredStandardizedFeatureRefs),
     npmDependencies: Object.freeze(npmDependencies),
     cargoDependencies: Object.freeze(cargoDependencies),
     views: Object.freeze(views),

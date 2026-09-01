@@ -189,7 +189,7 @@ test('upstream: streaming tool loop honors stopWhen after a Nimi stream tool ste
   assert.equal(chunkTypes.includes('text-delta'), false);
 });
 
-test('upstream: streaming maxSteps overrides stopWhen in the published Mastra wrapper', async () => {
+test('upstream: streaming stopWhen remains authoritative when maxSteps is also provided', async () => {
   const fixture = createNimiFixtureModel({
     streams: [
       [
@@ -200,7 +200,7 @@ test('upstream: streaming maxSteps overrides stopWhen in the published Mastra wr
         { type: 'done', finishReason: 'tool-calls', usage: { promptTokens: 2, completionTokens: 1, totalTokens: 3 } },
       ],
       [
-        { type: 'text-delta', text: 'continued because maxSteps replaced stopWhen' },
+        { type: 'text-delta', text: 'must remain unread after stopWhen terminates the loop' },
         { type: 'done', finishReason: 'stop', usage: { promptTokens: 1, completionTokens: 7, totalTokens: 8 } },
       ],
     ],
@@ -232,11 +232,11 @@ test('upstream: streaming maxSteps overrides stopWhen in the published Mastra wr
     chunkTypes.push(chunk.type);
   }
 
-  assert.equal(fixture.calls.length, 2);
-  assert.deepEqual(stopWhenStepCounts, []);
+  assert.equal(fixture.calls.length, 1);
+  assert.deepEqual(stopWhenStepCounts, [1]);
   assert.ok(chunkTypes.includes('tool-call'));
   assert.ok(chunkTypes.includes('tool-result'));
-  assert.ok(chunkTypes.includes('text-delta'));
+  assert.equal(chunkTypes.includes('text-delta'), false);
 });
 
 test('upstream: Nimi voice can be passed directly to Agent.voice', async () => {

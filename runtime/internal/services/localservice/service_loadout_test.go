@@ -36,6 +36,7 @@ func selectedLoadoutRefForTest(t *testing.T, svc *Service, capabilityContract st
 }
 
 func TestLoadoutPrepareCommitSelectAndResolveEmbeddingModelAsset(t *testing.T) {
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	svc, asset := loadoutEmbeddingFixture(t)
 	prepared := prepareEmbeddingLoadoutForTest(t, svc, context.Background(), "", "Embedding primary", asset)
 	preparedAxis := prepared.GetProposedLoadout().GetModelAxes()[0]
@@ -193,6 +194,7 @@ func TestPrepareLoadoutExplicitAbsentAxisSuppressesReceiverRecommendation(t *tes
 }
 
 func TestStoredLoadoutSurvivesCatalogRecipeRevisionUpgradeAndRemovalWithoutExecutionCatalogReads(t *testing.T) {
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	svc, asset := loadoutEmbeddingFixture(t)
 	prepared := prepareEmbeddingLoadoutForTest(t, svc, context.Background(), "", "custody snapshot", asset)
 	fakeRecipe, ok := svc.localProviderCatalog.LoadoutRecipe(capabilitydriver.LlamaEmbedGGUFRecipeID)
@@ -439,6 +441,7 @@ func TestResolveLocalEnvironmentPlanForFreshCustomVoxCPMLoadoutUsesConsumerProfi
 }
 
 func TestLoadoutJobAdmissionRehashesEveryPayloadWhileProjectionUsesCache(t *testing.T) {
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
 	root := t.TempDir()
 	svc := newLoadoutTestService(t, root)
 	seedLlamaSelectedSourcesForLoadoutTest(t, svc, root, capabilitydriver.LlamaEmbedDriver{})
@@ -734,6 +737,8 @@ func TestZImageAndIdeogram4LoadoutsUseExactRecipeModelContracts(t *testing.T) {
 }
 
 func TestQwenImageLoadoutsShareCompanionsAndAdmitCustomMainByStructuralContract(t *testing.T) {
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
 	root := t.TempDir()
 	svc := newLoadoutTestService(t, root)
 	seedStableDiffusionSelectedSourcesForLoadoutTest(t, svc, root)
@@ -864,6 +869,8 @@ func TestQwenImageLoadoutMissingSlotCommitsUnresolvedWithoutDownloadAndCannotSel
 }
 
 func TestMiniMaxH3LoadoutCommitsFiveIndependentAxesWithoutCombinationPin(t *testing.T) {
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
 	root := t.TempDir()
 	svc := newLoadoutTestService(t, root)
 	seedStableDiffusionSelectedSourcesForLoadoutTest(t, svc, root)
@@ -1370,6 +1377,11 @@ func TestApplyLoadoutValidationProjectsOptionalConditionalAbsence(t *testing.T) 
 }
 
 func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
+	previousProbeRAM := localRuntimeProbeRAM
+	localRuntimeProbeRAM = func() (int64, int64) { return 128 << 30, 96 << 30 }
+	t.Cleanup(func() { localRuntimeProbeRAM = previousProbeRAM })
 	svc := newLoadoutTestService(t, t.TempDir())
 	list := func(contract string) []*runtimev1.LoadoutRecipeDescriptor {
 		t.Helper()

@@ -12,12 +12,17 @@ type modelAssetSourceFileIdentity struct {
 	info os.FileInfo
 }
 
-func preflightModelAssetSourceFile(path string, expected os.FileInfo) (modelAssetSourceFileIdentity, error) {
+func preflightModelAssetSourceFile(path string, expected os.FileInfo) (identity modelAssetSourceFileIdentity, resultErr error) {
 	file, err := openNoFollowModelAssetSourceFile(path)
 	if err != nil {
 		return modelAssetSourceFileIdentity{}, &modelAssetSourceSafetyError{Path: path, Reason: "open no-follow preflight handle", Cause: err}
 	}
-	defer file.Close()
+	defer func() {
+		if err := file.Close(); resultErr == nil && err != nil {
+			identity = modelAssetSourceFileIdentity{}
+			resultErr = &modelAssetSourceSafetyError{Path: path, Reason: "close preflight handle", Cause: err}
+		}
+	}()
 	opened, err := file.Stat()
 	if err != nil {
 		return modelAssetSourceFileIdentity{}, &modelAssetSourceSafetyError{Path: path, Reason: "inspect preflight handle", Cause: err}

@@ -293,7 +293,7 @@ export function createDesktopElectronMenuBarHost(
       }
       const icon = prepareTemplateIcon(input.icon);
       tray = new input.electron.Tray(icon);
-      tray.setToolTip('Nimi Desktop');
+      tray.setToolTip('Nimi');
       tray.on('click', () => {
         tray?.popUpContextMenu();
       });

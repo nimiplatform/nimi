@@ -120,7 +120,7 @@ func (s *Service) ensureFormalAppBinding(
 	}
 	launchID := formalAppLaunchIdentifier(connectionID, runtimeBootEpoch, appID, bindingSlot)
 	connection, err := protectedlocal.EstablishInstalledAppConnection(
-		registration.RegistrationHandle, launchID, runtimeBootEpoch, process, desktop.Done(),
+		registration.RegistrationHandle, protectedlocal.LocalAppTrustBuiltIn, launchID, runtimeBootEpoch, process, desktop.Done(),
 	)
 	if err != nil {
 		s.formalAppMu.Unlock()

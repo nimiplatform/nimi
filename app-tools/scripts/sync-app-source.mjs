@@ -220,6 +220,9 @@ function applySnapshot() {
     mkdirSync(path.dirname(targetPath), { recursive: true });
     cpSync(path.join(SOURCE_APP_DIR, relativePath), targetPath);
   }
+  // The baked snapshot is MIT distribution material; LICENSE is packaging
+  // metadata and never enters the scaffold source manifest.
+  cpSync(path.join(SOURCE_APP_DIR, 'LICENSE'), path.join(SNAPSHOT_DIR, 'LICENSE'));
   writeFileSync(MANIFEST_PATH, jsonFile(buildManifest(files, resolvedModuleIds)));
   return files;
 }

@@ -1020,6 +1020,48 @@
       ]
     },
     {
+      "name": "RuntimeAppPackageService",
+      "source_file": "proto/runtime/v1/app.proto",
+      "methods": [
+        {
+          "name": "ListCommittedAppReleases",
+          "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
+          "kind": "unary",
+          "request_type": "ListCommittedAppReleasesRequest",
+          "response_type": "ListCommittedAppReleasesResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ListAppPackageJobs",
+          "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs",
+          "kind": "unary",
+          "request_type": "ListAppPackageJobsRequest",
+          "response_type": "ListAppPackageJobsResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetAppPackageJob",
+          "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob",
+          "kind": "unary",
+          "request_type": "GetAppPackageJobRequest",
+          "response_type": "GetAppPackageJobResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "CancelAppPackageJob",
+          "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
+          "kind": "unary",
+          "request_type": "CancelAppPackageJobRequest",
+          "response_type": "CancelAppPackageJobResponse",
+          "request_stream": false,
+          "response_stream": false
+        }
+      ]
+    },
+    {
       "name": "RuntimeAppService",
       "source_file": "proto/runtime/v1/app.proto",
       "methods": [
@@ -2195,6 +2237,10 @@
     "/nimi.runtime.v1.RuntimeAiService/SubscribeScenarioJobEvents",
     "/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
     "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact",
+    "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
+    "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob",
+    "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs",
+    "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
     "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
     "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
     "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
@@ -3156,6 +3202,38 @@
       "kind": "unary",
       "request_type": "UploadLocalAppArtifactRequest",
       "response_type": "UploadLocalAppArtifactResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
+      "service": "RuntimeAppPackageService",
+      "method": "CancelAppPackageJob",
+      "kind": "unary",
+      "request_type": "CancelAppPackageJobRequest",
+      "response_type": "CancelAppPackageJobResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob",
+      "service": "RuntimeAppPackageService",
+      "method": "GetAppPackageJob",
+      "kind": "unary",
+      "request_type": "GetAppPackageJobRequest",
+      "response_type": "GetAppPackageJobResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs",
+      "service": "RuntimeAppPackageService",
+      "method": "ListAppPackageJobs",
+      "kind": "unary",
+      "request_type": "ListAppPackageJobsRequest",
+      "response_type": "ListAppPackageJobsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
+      "service": "RuntimeAppPackageService",
+      "method": "ListCommittedAppReleases",
+      "kind": "unary",
+      "request_type": "ListCommittedAppReleasesRequest",
+      "response_type": "ListCommittedAppReleasesResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
@@ -4904,6 +4982,38 @@
       "response_type": "UploadLocalAppArtifactResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
+      "service": "RuntimeAppPackageService",
+      "method": "CancelAppPackageJob",
+      "kind": "unary",
+      "request_type": "CancelAppPackageJobRequest",
+      "response_type": "CancelAppPackageJobResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob",
+      "service": "RuntimeAppPackageService",
+      "method": "GetAppPackageJob",
+      "kind": "unary",
+      "request_type": "GetAppPackageJobRequest",
+      "response_type": "GetAppPackageJobResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs",
+      "service": "RuntimeAppPackageService",
+      "method": "ListAppPackageJobs",
+      "kind": "unary",
+      "request_type": "ListAppPackageJobsRequest",
+      "response_type": "ListAppPackageJobsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
+      "service": "RuntimeAppPackageService",
+      "method": "ListCommittedAppReleases",
+      "kind": "unary",
+      "request_type": "ListCommittedAppReleasesRequest",
+      "response_type": "ListCommittedAppReleasesResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
       "service": "RuntimeAppService",
       "method": "AdoptLocalAppArtifact",
@@ -5883,6 +5993,7 @@
       "AppAIConfigPresetVoiceOptions",
       "AppAIConfigPresetVoiceOptionsQuery",
       "AppMessageEvent",
+      "AppPackageJob",
       "AppStorageProjection",
       "AppendInferenceAuditRequest",
       "AppendLocalAppAgentRealtimeInputRequest",
@@ -5903,6 +6014,8 @@
       "BeginLoginResponse",
       "BindLocalAppProcessRequest",
       "BindLocalAppProcessResponse",
+      "CancelAppPackageJobRequest",
+      "CancelAppPackageJobResponse",
       "CancelHookRequest",
       "CancelHookResponse",
       "CancelLocalAppScenarioJobRequest",
@@ -5988,6 +6101,7 @@
       "CommitLoadoutRequest",
       "CommitLoadoutResponse",
       "CommitLocalAppAgentPresentationRequest",
+      "CommittedAppRelease",
       "CompleteLoginRequest",
       "CompleteLoginResponse",
       "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
@@ -6059,6 +6173,8 @@
       "GetAgentStateResponse",
       "GetAppAIConfigRequest",
       "GetAppAIConfigResponse",
+      "GetAppPackageJobRequest",
+      "GetAppPackageJobResponse",
       "GetAppStorageRequest",
       "GetAppStorageResponse",
       "GetCatalogModelDetailRequest",
@@ -6142,12 +6258,16 @@
       "ListAgentsResponse",
       "ListAppAIConfigOptionsRequest",
       "ListAppAIConfigOptionsResponse",
+      "ListAppPackageJobsRequest",
+      "ListAppPackageJobsResponse",
       "ListAuditEventsRequest",
       "ListAuditEventsResponse",
       "ListCatalogProviderModelsRequest",
       "ListCatalogProviderModelsResponse",
       "ListCatalogVariantsRequest",
       "ListCatalogVariantsResponse",
+      "ListCommittedAppReleasesRequest",
+      "ListCommittedAppReleasesResponse",
       "ListConnectorModelsRequest",
       "ListConnectorModelsResponse",
       "ListConnectorsRequest",
@@ -6673,6 +6793,11 @@
       "AiRealtimeSpeechState",
       "AiRealtimeTurnDetectionMode",
       "AppMessageEventType",
+      "AppPackageJobKind",
+      "AppPackageJobPhase",
+      "AppPackageProgressBasis",
+      "AppPackageSourceClass",
+      "AppPackageTerminalResult",
       "AppStorageState",
       "CallerKind",
       "CatalogModelSource",
@@ -10390,6 +10515,124 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
+        "name": "AppPackageJob",
+        "fields": [
+          {
+            "name": "job_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "source_class",
+            "type": "AppPackageSourceClass",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "kind",
+            "type": "AppPackageJobKind",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "target_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "phase",
+            "type": "AppPackageJobPhase",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "progress_basis",
+            "type": "AppPackageProgressBasis",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "bytes_completed",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "bytes_total",
+            "type": "uint64",
+            "repeated": false,
+            "optional": true,
+            "number": 9
+          },
+          {
+            "name": "steps_completed",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "steps_total",
+            "type": "uint64",
+            "repeated": false,
+            "optional": true,
+            "number": 11
+          },
+          {
+            "name": "started_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "completed_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "terminal_result",
+            "type": "AppPackageTerminalResult",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          },
+          {
+            "name": "reason_code",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "cancelable",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 16
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "AppStorageProjection",
         "fields": [
           {
@@ -10942,6 +11185,53 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "CancelAppPackageJobRequest",
+        "fields": [
+          {
+            "name": "job_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "expected_phase",
+            "type": "AppPackageJobPhase",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reason_code",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "CancelAppPackageJobResponse",
+        "fields": [
+          {
+            "name": "job",
+            "type": "AppPackageJob",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -13479,6 +13769,54 @@
         "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
+        "name": "CommittedAppRelease",
+        "fields": [
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "source_class",
+            "type": "AppPackageSourceClass",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "version",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "release_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "launch_selector",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "committed_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "CompleteLoginRequest",
         "fields": [
           {
@@ -15966,6 +16304,39 @@
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
+        "name": "GetAppPackageJobRequest",
+        "fields": [
+          {
+            "name": "job_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "GetAppPackageJobResponse",
+        "fields": [
+          {
+            "name": "job",
+            "type": "AppPackageJob",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "GetAppStorageRequest",
         "fields": [
           {
@@ -17757,6 +18128,31 @@
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
+        "name": "ListAppPackageJobsRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "ListAppPackageJobsResponse",
+        "fields": [
+          {
+            "name": "jobs",
+            "type": "AppPackageJob",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "ListAuditEventsRequest",
         "fields": [
           {
@@ -17938,6 +18334,31 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "ListCommittedAppReleasesRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "ListCommittedAppReleasesResponse",
+        "fields": [
+          {
+            "name": "releases",
+            "type": "CommittedAppRelease",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "ListConnectorModelsRequest",
@@ -35515,6 +35936,66 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
+        "name": "AppPackageJobKind",
+        "values": [
+          "APP_PACKAGE_JOB_KIND_UNSPECIFIED",
+          "APP_PACKAGE_JOB_KIND_INSTALL",
+          "APP_PACKAGE_JOB_KIND_UPDATE",
+          "APP_PACKAGE_JOB_KIND_REPAIR",
+          "APP_PACKAGE_JOB_KIND_UNINSTALL"
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppPackageJobPhase",
+        "values": [
+          "APP_PACKAGE_JOB_PHASE_UNSPECIFIED",
+          "APP_PACKAGE_JOB_PHASE_QUEUED",
+          "APP_PACKAGE_JOB_PHASE_DOWNLOADING",
+          "APP_PACKAGE_JOB_PHASE_READING_LOCAL",
+          "APP_PACKAGE_JOB_PHASE_VERIFYING",
+          "APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED",
+          "APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING",
+          "APP_PACKAGE_JOB_PHASE_STAGING",
+          "APP_PACKAGE_JOB_PHASE_COMMITTING",
+          "APP_PACKAGE_JOB_PHASE_REMOVING_PACKAGE",
+          "APP_PACKAGE_JOB_PHASE_UNREGISTERING",
+          "APP_PACKAGE_JOB_PHASE_COMPLETED",
+          "APP_PACKAGE_JOB_PHASE_FAILED",
+          "APP_PACKAGE_JOB_PHASE_CANCELED"
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppPackageProgressBasis",
+        "values": [
+          "APP_PACKAGE_PROGRESS_BASIS_UNSPECIFIED",
+          "APP_PACKAGE_PROGRESS_BASIS_BYTES",
+          "APP_PACKAGE_PROGRESS_BASIS_STEPS",
+          "APP_PACKAGE_PROGRESS_BASIS_INDETERMINATE"
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppPackageSourceClass",
+        "values": [
+          "APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED",
+          "APP_PACKAGE_SOURCE_CLASS_VERIFIED",
+          "APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED"
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "AppPackageTerminalResult",
+        "values": [
+          "APP_PACKAGE_TERMINAL_RESULT_UNSPECIFIED",
+          "APP_PACKAGE_TERMINAL_RESULT_COMPLETED",
+          "APP_PACKAGE_TERMINAL_RESULT_FAILED",
+          "APP_PACKAGE_TERMINAL_RESULT_CANCELED"
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "AppStorageState",
         "values": [
           "APP_STORAGE_STATE_UNSPECIFIED",
@@ -36620,6 +37101,9 @@
           "APP_STORAGE_CURSOR_INVALID",
           "APP_STORAGE_INTEGRITY_FAILURE",
           "APP_STORAGE_ARTIFACT_UNAVAILABLE",
+          "APP_PACKAGE_JOB_NOT_FOUND",
+          "APP_PACKAGE_JOB_PHASE_CONFLICT",
+          "APP_PACKAGE_JOB_NOT_CANCELABLE",
           "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND",
           "GRANT_TOKEN_CHAIN_ROOT_REQUIRED",
           "PAGE_TOKEN_INVALID",

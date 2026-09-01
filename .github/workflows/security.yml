@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   detect-secrets:
     runs-on: ubuntu-latest
@@ -48,7 +52,7 @@ jobs:
           toolchain: stable
 
       - name: Install zizmor
-        run: cargo install --locked zizmor
+        run: cargo install --locked zizmor@1.29.0
 
       - name: Workflow and dependabot audit (high severity gate)
         run: >
@@ -73,11 +77,36 @@ jobs:
           toolchain: stable
 
       - name: Install cargo audit
-        run: cargo install cargo-audit --locked
+        run: cargo install --locked cargo-audit@0.22.2
 
       - name: Audit Electron native Rust dependencies
         run: |
           cargo audit --file apps/desktop/product-control-core/Cargo.lock
           cargo audit --file apps/desktop/product-control-node/Cargo.lock
+          cargo audit --file apps/lab/src-tauri/Cargo.lock
           cargo audit --file kit/shell/protected-local/Cargo.lock
           cargo audit --file kit/shell/protected-local-node/Cargo.lock
+          cargo audit --file kit/shell/tauri/Cargo.lock
+
+  security-required:
+    name: security-required
+    if: always()
+    needs:
+      - detect-secrets
+      - workflow-audit
+      - desktop-electron-native-dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every security lane to pass
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        run: |
+          node <<'NODE'
+          const needs = JSON.parse(process.env.NEEDS_JSON);
+          const failed = Object.entries(needs)
+            .filter(([, value]) => value.result !== 'success')
+            .map(([name, value]) => `${name}=${value.result}`);
+          if (failed.length > 0) {
+            throw new Error(`security lanes did not pass: ${failed.join(', ')}`);
+          }
+          NODE

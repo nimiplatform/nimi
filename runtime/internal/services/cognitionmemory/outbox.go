@@ -369,12 +369,17 @@ func (s *Store) SetEnabledTx(tx *sql.Tx, localAgentRef string, enabled bool) err
 	return nil
 }
 
-func (s *Store) ListOutbox(ctx context.Context, bindingRef string) ([]OutboxItem, error) {
+func (s *Store) ListOutbox(ctx context.Context, bindingRef string) (items []OutboxItem, resultErr error) {
 	rows, err := s.backend.DB().QueryContext(ctx, `SELECT operation_id, binding_ref, event_ref, delivery_sequence, state, COALESCE(outcome, ''), payload IS NOT NULL FROM runtime_cognition_memory_outbox WHERE binding_ref = ? ORDER BY delivery_sequence`, bindingRef)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); resultErr == nil && err != nil {
+			items = nil
+			resultErr = fmt.Errorf("list cognition memory outbox: close rows: %w", err)
+		}
+	}()
 	var result []OutboxItem
 	for rows.Next() {
 		var item OutboxItem
@@ -386,12 +391,17 @@ func (s *Store) ListOutbox(ctx context.Context, bindingRef string) ([]OutboxItem
 	return result, rows.Err()
 }
 
-func (s *Store) ActiveBindings(ctx context.Context) ([]Binding, error) {
+func (s *Store) ActiveBindings(ctx context.Context) (bindings []Binding, resultErr error) {
 	rows, err := s.backend.DB().QueryContext(ctx, `SELECT a.local_agent_ref, a.account_subject_ref, a.current_binding_ref, s.binding_operation_id, COALESCE(a.bank_ref, ''), COALESCE(a.lifecycle_ref, ''), a.enabled, a.adoption_required, a.state, s.next_delivery_sequence, s.delivery_frontier, s.state FROM runtime_cognition_memory_agent a JOIN runtime_cognition_memory_stream s ON s.binding_ref = a.current_binding_ref WHERE a.state = 'active' AND s.state = 'active' ORDER BY a.local_agent_ref`)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); resultErr == nil && err != nil {
+			bindings = nil
+			resultErr = fmt.Errorf("list active cognition memory bindings: close rows: %w", err)
+		}
+	}()
 	var result []Binding
 	for rows.Next() {
 		binding, err := scanBinding(rows)

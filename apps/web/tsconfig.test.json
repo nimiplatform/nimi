@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@nimiplatform/kit/auth": ["../../kit/auth/src/index.ts"],
+      "@nimiplatform/kit/auth/*": ["../../kit/auth/src/*"],
+      "@nimiplatform/kit/core/*": ["../../kit/core/src/*"]
+    }
+  }
+}

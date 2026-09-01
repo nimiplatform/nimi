@@ -272,10 +272,13 @@ func (s *Service) deriveLocalAppRuntimeSession(ctx context.Context, connection *
 	if registration.State != localappkernel.RegistrationStateActive {
 		return localAppRuntimeSession{}, localappkernel.ErrRegistrationTombstoned
 	}
-	if installedHandle, installed := connection.InstalledRegistrationHandle(); installed &&
-		(installedHandle != registration.RegistrationHandle || registration.SourceClass != localappkernel.SourceClassInstalled ||
-			registration.HostExecutableDigest != protectedExecutableDigestRef(connection.Process().ExecutableDigest)) {
-		return localAppRuntimeSession{}, errLocalDevelopmentSessionRevoked
+	if installedHandle, installed := connection.InstalledRegistrationHandle(); installed {
+		expectedSource, sourceOK := installedSourceClass(connection.TrustClass())
+		if !sourceOK || installedHandle != registration.RegistrationHandle || registration.SourceClass != expectedSource ||
+			!registration.ImmutablePackageFactsComplete() || strings.TrimSpace(registration.PayloadRootDigest) == "" ||
+			registration.HostExecutableDigest != protectedExecutableDigestRef(connection.Process().ExecutableDigest) {
+			return localAppRuntimeSession{}, errLocalDevelopmentSessionRevoked
+		}
 	}
 	if strings.TrimSpace(registration.RegisteredAppSubject) == "" {
 		return localAppRuntimeSession{}, errLocalDevelopmentSessionRevoked
@@ -303,9 +306,9 @@ func (s *Service) deriveLocalAppRuntimeSession(ctx context.Context, connection *
 		return localAppRuntimeSession{}, fmt.Errorf("derive Effective App Access Snapshot: %w", err)
 	}
 	currentUser, currentUserReason := s.currentUserDisplayProjection(ctx)
-	trustClass := accountservice.LocalAppTrustClassDevelopment
-	if registration.SourceClass == localappkernel.SourceClassInstalled {
-		trustClass = accountservice.LocalAppTrustClassBuiltIn
+	trustClass, trustOK := authorizationTrustClass(connection.TrustClass())
+	if !trustOK {
+		return localAppRuntimeSession{}, errLocalDevelopmentSessionRevoked
 	}
 	return localAppRuntimeSession{
 		handle: handle, launchCorrelation: launchCorrelation,
@@ -319,6 +322,32 @@ func (s *Service) deriveLocalAppRuntimeSession(ctx context.Context, connection *
 		trustClass: trustClass,
 		expiresAt:  s.now().UTC().Add(s.localAppSessionTTL),
 	}, nil
+}
+
+func installedSourceClass(trustClass protectedlocal.LocalAppTrustClass) (localappkernel.SourceClass, bool) {
+	switch trustClass {
+	case protectedlocal.LocalAppTrustBuiltIn, protectedlocal.LocalAppTrustVerified:
+		return localappkernel.SourceClassVerified, true
+	case protectedlocal.LocalAppTrustUserImported:
+		return localappkernel.SourceClassUserImported, true
+	default:
+		return "", false
+	}
+}
+
+func authorizationTrustClass(trustClass protectedlocal.LocalAppTrustClass) (accountservice.LocalAppTrustClass, bool) {
+	switch trustClass {
+	case protectedlocal.LocalAppTrustLocalDevelopment:
+		return accountservice.LocalAppTrustClassDevelopment, true
+	case protectedlocal.LocalAppTrustBuiltIn:
+		return accountservice.LocalAppTrustClassBuiltIn, true
+	case protectedlocal.LocalAppTrustVerified:
+		return accountservice.LocalAppTrustClassVerified, true
+	case protectedlocal.LocalAppTrustUserImported:
+		return accountservice.LocalAppTrustClassUserImported, true
+	default:
+		return "", false
+	}
 }
 
 func (s *Service) currentUserDisplayProjection(ctx context.Context) (*runtimev1.CurrentUserDisplayProjection, runtimev1.ReasonCode) {

@@ -197,10 +197,14 @@ func (s *Service) runImportModelAsset(ctx context.Context, transferID string, mo
 	_, err := s.importModelAssetSync(ctx, transferID, modelAssetID, source)
 	if err != nil {
 		if errors.Is(err, errLocalTransferCancelled) || errors.Is(err, context.Canceled) {
-			s.cancelTransfer(transferID, "ModelAsset import cancelled")
+			if persistErr := s.cancelTransfer(transferID, "ModelAsset import cancelled"); persistErr != nil {
+				s.logger.Error("persist cancelled ModelAsset import transfer", "transfer_id", transferID, "error", persistErr)
+			}
 			return
 		}
-		s.failTransfer(transferID, err.Error(), false)
+		if persistErr := s.failTransfer(transferID, err.Error(), false); persistErr != nil {
+			s.logger.Error("persist failed ModelAsset import transfer", "transfer_id", transferID, "error", persistErr)
+		}
 		return
 	}
 }
@@ -433,12 +437,21 @@ func (s *Service) copyModelAssetDistribution(ctx context.Context, source modelAs
 	return files, hashes, total, fingerprint, len(formatList) == 0, containsCode, nil
 }
 
-func copyAndHashModelAssetFile(sourcePath string, destinationPath string, expectedIdentity modelAssetSourceFileIdentity, onProgress func(int64) error) (string, int64, error) {
+func copyAndHashModelAssetFile(sourcePath string, destinationPath string, expectedIdentity modelAssetSourceFileIdentity, onProgress func(int64) error) (digest string, bytesCopied int64, resultErr error) {
 	source, err := openVerifiedModelAssetSourceFile(sourcePath, expectedIdentity)
 	if err != nil {
 		return "", 0, err
 	}
-	defer source.Close()
+	sourceClosed := false
+	defer func() {
+		if sourceClosed {
+			return
+		}
+		if err := source.Close(); resultErr == nil && err != nil {
+			digest = ""
+			resultErr = fmt.Errorf("close ModelAsset source file: %w", err)
+		}
+	}()
 	destination, err := os.OpenFile(destinationPath, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 	if err != nil {
 		return "", 0, err
@@ -480,6 +493,10 @@ func copyAndHashModelAssetFile(sourcePath string, destinationPath string, expect
 	if err := destination.Close(); err != nil {
 		return "", total, err
 	}
+	if err := source.Close(); err != nil {
+		return "", total, fmt.Errorf("close ModelAsset source file: %w", err)
+	}
+	sourceClosed = true
 	keep = true
 	return hex.EncodeToString(hasher.Sum(nil)), total, nil
 }
@@ -501,7 +518,7 @@ func boundedModelAssetFileFingerprint(path string, extension string) (string, ma
 		if err != nil {
 			return "", nil
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		summary, err := ggufmeta.Inspect(io.LimitReader(file, modelAssetFingerprintReadLimit))
 		if err != nil {
 			return "", nil
@@ -541,7 +558,7 @@ func boundedModelAssetFileFingerprint(path string, extension string) (string, ma
 		if err != nil {
 			return "", nil
 		}
-		defer file.Close()
+		defer func() { _ = file.Close() }()
 		lengthPrefix := make([]byte, 8)
 		if _, err := io.ReadFull(file, lengthPrefix); err != nil {
 			return "", nil

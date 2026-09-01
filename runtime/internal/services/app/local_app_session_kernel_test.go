@@ -18,6 +18,24 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func TestInstalledConnectionTrustPreservesPackageSource(t *testing.T) {
+	for _, test := range []struct {
+		connection protectedlocal.LocalAppTrustClass
+		source     localappkernel.SourceClass
+		auth       accountservice.LocalAppTrustClass
+	}{
+		{protectedlocal.LocalAppTrustBuiltIn, localappkernel.SourceClassVerified, accountservice.LocalAppTrustClassBuiltIn},
+		{protectedlocal.LocalAppTrustVerified, localappkernel.SourceClassVerified, accountservice.LocalAppTrustClassVerified},
+		{protectedlocal.LocalAppTrustUserImported, localappkernel.SourceClassUserImported, accountservice.LocalAppTrustClassUserImported},
+	} {
+		source, sourceOK := installedSourceClass(test.connection)
+		auth, authOK := authorizationTrustClass(test.connection)
+		if !sourceOK || !authOK || source != test.source || auth != test.auth {
+			t.Fatalf("trust %q mapped to source=%q/%v auth=%q/%v", test.connection, source, sourceOK, auth, authOK)
+		}
+	}
+}
+
 func TestLocalAppSessionInvalidationAndSameHostRebind(t *testing.T) {
 	fixture := newLocalAppSessionFixture(t, nil)
 	ctx := fixture.context

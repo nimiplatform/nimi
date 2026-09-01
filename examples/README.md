@@ -69,7 +69,6 @@ pnpm dlx --package @nimiplatform/app-tools nimi-app create --dir my-nimi-app --p
 Advanced examples live under `examples/sdk/advanced/`:
 
 - `app-access.ts`: session posture remains independent while protected App Access fails closed until ingress is available
-- `knowledge.ts`: private knowledge bank/page CRUD + keyword search
 - `custom-runtime.ts`: explicit Runtime transport configuration
 
 The onboarding ladder keeps execution requests limited to App identity, scenario content,

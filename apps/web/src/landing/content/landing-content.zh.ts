@@ -26,12 +26,12 @@ export const landingContentZh: LandingContent = {
     architecture: '平台',
     desktop: 'Desktop',
     apps: 'Apps',
-    security: 'Governance',
+    security: '信任',
     openSource: 'Source',
     faq: '常见问题',
   },
   hero: {
-    eyebrow: '',
+    eyebrow: '开源 · 本地优先 · 可安装的个人 AI',
     title: landingPositioningZh.hero.title,
     titleAccent: landingPositioningZh.hero.titleAccent,
     subtitle: landingPositioningZh.hero.subtitle,
@@ -292,28 +292,28 @@ export const landingContentZh: LandingContent = {
       { icon: 'models', title: '本地 AI 资源', description: '在一处安装和更新由 Runtime 管理的 AI 资源。' },
       { icon: 'apps', title: '应用启动器', description: '在同一个工作区打开可用的 Nimi App 与已连接的本地 App。' },
     ],
-    downloadCta: '阅读 Desktop 文档',
+    downloadCta: '查看下载状态',
     availability: {
-      eyebrow: '已可用',
+      eyebrow: '发布状态',
       items: [
-        '原生外壳，覆盖 macOS、Linux 与 Windows',
-        '通过 web mode 支持纯浏览器会话',
-        '本地 AI 与 runtime 内置',
+        'Windows release 正等待 production code-signing approval',
+        'Unsigned preview 只使用不可晋升的 vX.Y.Z-preview.N 显式 tag',
+        '目前没有已发布的 Nimi 稳定版',
       ],
     },
   },
   apps: {
     eyebrow: 'Nimi Apps',
-    title: '把新的能力装进 Nimi。',
+    title: '把新的能力接入 Nimi。',
     subtitle:
-      'Nimi App 是可以在 Nimi 里打开和使用的小应用：它可以带来新的工具、场景或本地 AI 体验。Desktop 会显示当前账号与本地工作区可用的内容；开发者用 SDK 构建，并按清晰的产品规则交付。',
-    cta: '查看 Desktop 文档',
+      'Nimi App 是可以在 Nimi 里打开和使用的小应用：它可以带来新的工具、场景或本地 AI 体验。Nimi Home 会显示当前账号与本地工作区可用的内容；开发者用 SDK 构建，并按清晰的产品规则交付。',
+    cta: '查看 Nimi App 文档',
     cards: [
       {
         label: '使用',
         title: '一个地方打开应用',
         description:
-          '在 Desktop 的 Apps 界面打开当前产品环境中可用的工具、场景或本地 AI 体验，不需要理解底层运行方式。',
+          '在 Nimi Home 的 Apps 界面打开当前产品环境中可用的工具、场景或本地 AI 体验，不需要理解底层运行方式。',
       },
       {
         label: '开发',
@@ -330,8 +330,9 @@ export const landingContentZh: LandingContent = {
     ],
     notes: [
       '新的产品工作统一走 Nimi Apps 路径。',
+      'Nimi Apps 定义目录、本地导入、安装、更新、启动、修复、卸载和 Developer Mode 的生命周期契约。当前预发布仅开放 Developer Mode 本地开发路径；公开目录、本地导入、普通安装、已安装 App 启动、发布者发布和 registry onboarding 尚不可用。',
       '首页不提前承诺尚未开放的公开应用目录；实际可打开内容以产品内显示为准。',
-      '想构建 App，请从 SDK 与 Desktop 文档开始。',
+      '想构建 App，请从 SDK 与 Nimi App 文档开始。',
     ],
   },
   faq: {
@@ -358,46 +359,62 @@ export const landingContentZh: LandingContent = {
       {
         question: 'Nimi 是开源的吗？',
         answer:
-          '是。Runtime 与 SDK 以 Apache-2.0 发布；桌面端与 app 层代码以 MIT 发布。完整源码在 GitHub 上。',
+          '是。Runtime 与 SDK 以 Apache-2.0 发布；Nimi App 与 app 层代码以 MIT 发布。完整源码在 GitHub 上。',
       },
       {
-        question: 'Desktop 与 Web mode 有什么区别？',
-        answer: landingPositioningZh.desktop.description,
+        question: 'Nimi Home 与 Web mode 有什么区别？',
+        answer: 'Nimi Home 是当前原生外壳承载的主要产品入口；Web mode 是受约束的浏览器投影，不能替代原生或本地 Runtime 行为。',
       },
       {
         question: '可以开发自己的 Nimi App 吗？',
         answer:
-          '可以。开发者可以从 SDK 与 Desktop 文档开始，通过 Nimi Apps 路径把工具、场景或本地 AI 体验接入 Nimi。',
+          '可以。开发者可以从 SDK 与 Nimi App 文档开始，通过 Nimi Apps 路径把工具、场景或本地 AI 体验接入 Nimi。',
       },
     ],
   },
   security: {
-    title: '规则公开，边界清楚。',
-    subtitle: '用户知道自己在用什么，开发者知道该从哪里接入。',
+    title: '信任、安全与发布完整性。',
+    subtitle: '查看源码、私下报告安全问题，并在下载前核对真实发布状态。',
     intro:
-      'Nimi 把运行时、SDK、桌面端和应用层分清楚：该开放的入口写清楚，该保护的私有实现不绕开。',
+      'Nimi 直接提供源码、安全报告、发布可用性和代码签名状态入口；尚未完成的工作会明确标为 pending。',
+    linksAriaLabel: 'Nimi 信任与安全入口',
     pillars: [
       {
-        label: '公开规则',
-        title: '关键规则写在仓库里',
+        label: '源码与文档',
+        title: '了解 Nimi 如何构建',
         points: [
-          '公开产品规则放在 .nimi/spec/** 中，可以被阅读和审查。',
-          '文档与首页跟随同一份来源更新，减少口径漂移。',
+          '源代码公开在 github.com/nimiplatform/nimi。',
+          '产品与开发者文档发布在 docs.nimi.ai。',
         ],
       },
       {
-        label: '清晰接入',
-        title: '该用公开接口就用公开接口',
+        label: '安全',
+        title: '私下报告安全问题',
         points: [
-          '开发者从 SDK、Desktop 与文档入口接入。',
-          '应用不需要碰私有实现，也不会绕过用户看不见的规则。',
+          '通过 GitHub Security Advisories 私下提交漏洞。',
+          '安全邮箱：security@nimi.ai。',
         ],
       },
       {
-        label: '目录可信',
-        title: '能力与实现目录来自数据',
-        points: ['Runtime 实现与能力信息由规范表生成。', '页面尽量少写空泛承诺，多展示可以追溯的内容。'],
+        label: '代码签名',
+        title: '验证具体制品，不依赖口头承诺',
+        points: [
+          'Windows production signing 与 SignPath Foundation 申请仍在 pending。',
+          'Authenticode 验证通过前，任何当前 Nimi 制品都不能被视为 SignPath-signed。',
+        ],
       },
+    ],
+    statuses: [
+      { label: 'Windows', value: 'Windows release 正等待 production code-signing approval' },
+      { label: 'SignPath Foundation', value: 'SignPath Foundation 申请待批准' },
+    ],
+    links: [
+      { label: '下载', detail: '稳定版与 unsigned preview 状态', href: '/download' },
+      { label: 'Code signing policy', detail: '范围、控制与验证说明', href: '/code-signing' },
+      { label: '源代码', detail: 'github.com/nimiplatform/nimi', href: 'https://github.com/nimiplatform/nimi' },
+      { label: '文档', detail: 'docs.nimi.ai', href: 'https://docs.nimi.ai' },
+      { label: 'GitHub Security Advisories', detail: '私下提交漏洞', href: 'https://github.com/nimiplatform/nimi/security/advisories/new' },
+      { label: 'security@nimi.ai', detail: '安全邮箱', href: 'mailto:security@nimi.ai' },
     ],
   },
   openSource: {
@@ -435,6 +452,9 @@ export const landingContentZh: LandingContent = {
     line2: '阅读文档了解当前可用功能与路线图。',
     termsLabel: '服务条款',
     privacyLabel: '隐私政策',
+    downloadLabel: '下载',
+    codeSigningLabel: '代码签名政策',
+    securityLabel: '安全报告',
   },
   localeToggleLabel: '语言',
   localeOptions: {

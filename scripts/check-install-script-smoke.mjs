@@ -155,4 +155,21 @@ if (output.includes('Run: nimi serve')) {
   process.exit(1);
 }
 
+const rcTag = `v${version}-rc.2`;
+const rcOutput = execFileSync(
+  posixShell,
+  ['scripts/install.sh', '--dry-run', '--target', smokeTarget, '--version', rcTag],
+  { cwd: repoRoot, encoding: 'utf8' },
+);
+for (const token of [`Installing Nimi ${rcTag}`, archiveName]) {
+  if (!rcOutput.includes(token)) {
+    process.stderr.write(`install script RC smoke failed: missing ${JSON.stringify(token)}\n`);
+    process.exit(1);
+  }
+}
+if (rcOutput.includes(`nimi-runtime_${version}-rc.2_`)) {
+  process.stderr.write('install script RC smoke failed: RC suffix leaked into final artifact name\n');
+  process.exit(1);
+}
+
 process.stdout.write('install script smoke ok\n');

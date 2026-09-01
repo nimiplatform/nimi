@@ -5,6 +5,13 @@
  */
 import { isLocalDevelopmentRunActive } from './apps-card-actions.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
+import {
+  AppPackageJobKind,
+  AppPackageJobPhase,
+  AppPackageProgressBasis,
+  AppPackageTerminalResult,
+  type AppPackageJob,
+} from '@nimiplatform/sdk/runtime/wire-types';
 
 /**
  * Stable identity fallback. The Runtime-projected display name is already
@@ -75,7 +82,7 @@ export function appArtworkFor(appId: string): AppArtwork {
 export type AppRunVisualState = 'running' | 'starting' | 'stopped' | 'failed';
 
 /**
- * Terminal run states that mean the last launch or rebuild actually failed.
+ * Run states that mean the last launch, rebuild, or cleanup actually failed.
  * They must stay visually distinct from a clean stop: collapsing them into
  * 'stopped' makes a failed launch look like nothing happened.
  */
@@ -88,8 +95,8 @@ const FAILED_RUN_STATES = Object.freeze([
 
 export function appRunVisualState(runState: string | null): AppRunVisualState {
   if (runState === 'running') return 'running';
-  if (isLocalDevelopmentRunActive(runState)) return 'starting';
   if (runState !== null && (FAILED_RUN_STATES as readonly string[]).includes(runState)) return 'failed';
+  if (isLocalDevelopmentRunActive(runState)) return 'starting';
   return 'stopped';
 }
 
@@ -106,12 +113,76 @@ export function isEntryRunActive(entry: DesktopAppsEntry): boolean {
 
 export type AppSourceId = 'local_development' | 'user_imported' | 'verified';
 
-/**
- * Only the local-development provenance is admitted in the current slice
- * (p-napp-001a); immutable-package provenances arrive with their Runtime
- * lifecycle owner. Callers render the badge from this single id.
- */
-export const CURRENT_APP_SOURCE: AppSourceId = 'local_development';
+export function appSourceForEntry(entry: DesktopAppsEntry): AppSourceId {
+  return entry.identity.sourceClass;
+}
+
+export type AppPackagePhaseLocaleKey =
+  | 'queued'
+  | 'resolve_descriptor'
+  | 'download'
+  | 'verify'
+  | 'materialize'
+  | 'swap'
+  | 'uninstalling'
+  | 'installed'
+  | 'failed'
+  | 'cancelled'
+  | 'uninstalled';
+
+export function appPackagePhaseLocaleKey(job: AppPackageJob): AppPackagePhaseLocaleKey | null {
+  switch (job.phase) {
+    case AppPackageJobPhase.QUEUED: return 'queued';
+    case AppPackageJobPhase.DOWNLOADING:
+    case AppPackageJobPhase.ACQUIRING_MISSING: return 'download';
+    case AppPackageJobPhase.READING_LOCAL: return 'resolve_descriptor';
+    case AppPackageJobPhase.VERIFYING:
+    case AppPackageJobPhase.VERIFYING_INSTALLED: return 'verify';
+    case AppPackageJobPhase.STAGING: return 'materialize';
+    case AppPackageJobPhase.COMMITTING: return 'swap';
+    case AppPackageJobPhase.REMOVING_PACKAGE:
+    case AppPackageJobPhase.UNREGISTERING: return 'uninstalling';
+    case AppPackageJobPhase.COMPLETED:
+      return job.kind === AppPackageJobKind.UNINSTALL ? 'uninstalled' : 'installed';
+    case AppPackageJobPhase.FAILED: return 'failed';
+    case AppPackageJobPhase.CANCELED: return 'cancelled';
+    default: return null;
+  }
+}
+
+export function appPackageProgressText(job: AppPackageJob): string | null {
+  if (job.progressBasis === AppPackageProgressBasis.BYTES && job.bytesTotal) {
+    const completed = safeUnsignedBigInt(job.bytesCompleted);
+    const total = safeUnsignedBigInt(job.bytesTotal);
+    if (completed !== null && total !== null && total > 0n) {
+      const percent = Number((completed * 100n) / total);
+      return `${Math.min(100, percent)}%`;
+    }
+  }
+  if (job.progressBasis === AppPackageProgressBasis.STEPS && job.stepsTotal) {
+    const completed = safeUnsignedBigInt(job.stepsCompleted);
+    const total = safeUnsignedBigInt(job.stepsTotal);
+    if (completed !== null && total !== null && total > 0n) return `${completed}/${total}`;
+  }
+  return null;
+}
+
+export function appPackageFailureReason(job: AppPackageJob): string | null {
+  if (
+    job.phase !== AppPackageJobPhase.FAILED
+    && job.terminalResult !== AppPackageTerminalResult.FAILED
+  ) return null;
+  return job.reasonCode.trim() || null;
+}
+
+function safeUnsignedBigInt(value: string): bigint | null {
+  if (!/^\d+$/u.test(value)) return null;
+  try {
+    return BigInt(value);
+  } catch {
+    return null;
+  }
+}
 
 export type AppsSortId = 'updated' | 'name' | 'activity';
 
@@ -121,9 +192,9 @@ export function filterAppsEntries(
 ): readonly DesktopAppsEntry[] {
   const normalized = query.trim().toLocaleLowerCase();
   if (!normalized) return entries;
-  return entries.filter(({ registration }) => (
-    registration.displayName.toLocaleLowerCase().includes(normalized)
-    || registration.appId.toLocaleLowerCase().includes(normalized)
+  return entries.filter(({ identity }) => (
+    identity.displayName.toLocaleLowerCase().includes(normalized)
+    || identity.appId.toLocaleLowerCase().includes(normalized)
   ));
 }
 
@@ -134,20 +205,20 @@ export function sortAppsEntries(
   const copy = [...entries];
   if (sort === 'name') {
     return copy.sort((left, right) => (
-      left.registration.displayName.localeCompare(right.registration.displayName)
-      || left.registration.appId.localeCompare(right.registration.appId)
+      left.identity.displayName.localeCompare(right.identity.displayName)
+      || left.identity.appId.localeCompare(right.identity.appId)
     ));
   }
   if (sort === 'activity') {
     return copy.sort((left, right) => (
       Number(isEntryRunActive(right)) - Number(isEntryRunActive(left))
-      || right.registration.updatedAtUnixMs - left.registration.updatedAtUnixMs
-      || left.registration.appId.localeCompare(right.registration.appId)
+      || right.identity.updatedAtUnixMs - left.identity.updatedAtUnixMs
+      || left.identity.appId.localeCompare(right.identity.appId)
     ));
   }
   return copy.sort((left, right) => (
-    right.registration.updatedAtUnixMs - left.registration.updatedAtUnixMs
-    || left.registration.appId.localeCompare(right.registration.appId)
+    right.identity.updatedAtUnixMs - left.identity.updatedAtUnixMs
+    || left.identity.appId.localeCompare(right.identity.appId)
   ));
 }
 
@@ -167,12 +238,12 @@ export function pinRunningAppsFirst(
  * The detail surface only exists while its entry is projected. `null` means
  * the library view; the controller never fabricates a fallback selection.
  */
-export function resolveDetailAppId(
+export function resolveDetailEntryKey(
   entries: readonly DesktopAppsEntry[],
-  currentAppId: string | null,
+  currentEntryKey: string | null,
 ): string | null {
-  if (currentAppId && entries.some((entry) => entry.registration.appId === currentAppId)) {
-    return currentAppId;
+  if (currentEntryKey && entries.some((entry) => entry.identity.entryKey === currentEntryKey)) {
+    return currentEntryKey;
   }
   return null;
 }

@@ -1,175 +1,305 @@
 # Release Process
 
-## Versioning
+Nimi uses one repository-wide release train:
 
-All components follow semantic versioning (`major.minor.patch`).
-Current public phase is `0.x` (pre-1.0 contract hardening):
-
-- **major**: Reserved for 1.0+ breaking changes
-- **minor**: New features; in `0.x`, minor bumps may include breaking changes under SemVer pre-1.0 rules
-- **patch**: Bug fixes
-
-The SDK, Kit, App Tools, Runtime, Proto, and shell crate publish independently.
-Each package declares its own supported dependency ranges. Cross-package
-lockstep is a directional release planning intent only, not a tag or versioning
-requirement.
-
-## Release Targets
-
-| Component | Registry | Format |
-|-----------|----------|--------|
-| runtime | GitHub Releases | Multi-platform binary (GoReleaser) |
-| sdk | npm | `@nimiplatform/sdk` |
-| kit | npm | `@nimiplatform/kit` |
-| app-tools | npm | `@nimiplatform/app-tools` |
-| nimi-shell-tauri | crates.io | `nimi-shell-tauri` |
-| proto | buf.build (`nimiplatform`) | Proto schema |
-| desktop | Deferred | Electron production distribution is not yet admitted and has no release workflow |
-
-## Release Steps
-
-### 1. Pre-release Checks
-
-Run the current owner tests and direct package checks:
-
-```bash
-pnpm test:full
-pnpm check:license-file-map
-pnpm check:sdk-kit-pack-audit
+```text
+Release PR -> immutable unsigned preview (optional, never promotable)
+           -> signed canary for an exact commit -> immutable global RC tag
+           -> approved same-commit, same-signed-artifact stable promotion
 ```
 
-调试单个 proto 步骤时，使用仓库脚本而不是在根目录或 `runtime/` 目录直接执行裸 `buf`：
+Release tags are global (`vX.Y.Z-preview.N`, `vX.Y.Z-rc.N`, and `vX.Y.Z`). Public packages
+keep independent versions in their own manifests. There are no component-tag
+publish workflows and no alternate manual-publish path.
+
+## Public Release Surfaces
+
+| Surface | Destination | Promoted artifact |
+|---|---|---|
+| Runtime | Deferred | Raw Go archives are not a standalone protected Runtime distribution |
+| Runtime npm launcher | Deferred | Blocked with Runtime until supported platform service/bootstrap packages exist |
+| SDK | npm | `@nimiplatform/sdk` |
+| Kit | npm | `@nimiplatform/kit` plus admitted native packages |
+| App Tools | npm | `@nimiplatform/app-tools` |
+| Protected Local shell | crates.io | `nimi-shell-protected-local` |
+| Tauri shell | crates.io | `nimi-shell-tauri`, built from its sealed source archive after protected-local is visible |
+| Proto | buf.build | Module built from the sealed Proto source archive |
+| Desktop | Deferred | No production Electron distribution is admitted yet |
+
+Runtime and Proto use the global release version supplied to the canary
+workflow. npm and Cargo component versions come from their package manifests.
+
+## 1. Release PR
+
+The Release PR freezes the exact commit that will become a canary. Before it is
+eligible:
+
+- Every public npm and Cargo manifest contains its final stable SemVer. RC
+  identity belongs only to the global Git tag, GitHub Pre-release, and any
+  explicitly admitted registry channel; package versions must not retain an
+  `-rc.N` suffix if the same package bytes will become stable.
+- Internal package references, native package versions, App Tools scaffold
+  versions, licenses, repository metadata, and npm provenance metadata are in
+  sync.
+- `CHANGELOG.md` has the global release version section, and
+  `kit/CHANGELOG.md` has the Kit package version section.
+- The complete local pre-release command passes:
 
 ```bash
-pnpm proto:generate
-pnpm proto:lint
-pnpm proto:breaking
-pnpm proto:drift-check
+NIMI_RELEASE_TAG=vX.Y.Z pnpm pre-release
 ```
 
-对应的裸命令目录约定是：
+That command binds the global changelog heading to the intended stable tag,
+fails fast on release metadata, then runs actionlint, Proto contract gates, all
+builds and bundle budgets, the full test suite, Runtime/Cognition lint and
+Runtime vulnerability checks, examples, licenses, and final SDK/Kit pack
+audits.
+The affected real journey or platform job remains required where a generic
+workspace build cannot exercise it.
 
-- `cd proto && buf generate`
-- `cd proto && buf lint`
-- `cd proto && buf breaking --against ../runtime/proto/runtime-v1.baseline.binpb`
+## Unsigned Preview
 
-当前 `runtime-v1.baseline.binpb` 对应的是 typed AI contract：
-`ExecuteScenarioResponse.output = ScenarioOutput`，以及
-`ScenarioStreamDelta.delta.oneof { text, artifact }`。
-如果这些 proto contract 有意变更，必须先更新实现与消费端，再同步重建 baseline。
+Run `.github/workflows/release-preview.yml` with the exact main-ancestor
+`commit_sha`, stable `release_version`, and a new positive `preview_number`.
+The workflow creates the immutable GitHub prerelease tag
+`vX.Y.Z-preview.N` only after all of these paths pass:
 
-`buf breaking proto/ --against .git#branch=main` 这种写法如果要用，必须从仓库根目录执行；但它不是本仓当前 release 主路径。
+- the complete `pnpm pre-release` gate;
+- Windows x64 source-local Kit npm download, `NotSigned` verification,
+  install/require/uninstall, and removal of the installed package path;
+- macOS arm64 ad-hoc identity verification, downloaded-candidate install,
+  Runtime and App version checks, App launch, status, uninstall, and final
+  absence through the exact source checkout's repo-assisted command.
 
-### 2. Version Bump
+The Windows preview contains only a source-local Kit native package; it does not
+contain the Nimi App, a Runtime archive, installer, or Windows service. No Linux
+preview asset is published. The macOS preview is a repo-assisted
+local-development candidate with `Signature=adhoc` and `TeamIdentifier=not set`;
+it is not a standalone installer, Developer ID signed, or notarized. From the
+exact candidate commit, install it with
+`node scripts/accept-runtime-fixed-service.mjs --install-candidate
+<absolute-candidate-path>` and uninstall it with
+`node scripts/accept-runtime-fixed-service.mjs --uninstall`.
 
-Runtime 版本不通过仓库内 `version.go` 固化，直接由 Git tag `runtime/v<major>.<minor>.<patch>` 推导。
+The macOS development install creates the `_nimiruntimedev` user and group,
+`ai.nimi.runtime.dev` LaunchDaemon, `/Applications/Nimi Dev.app`,
+`/Library/Application Support/Nimi/RuntimeDev`,
+`/usr/local/libexec/nimi-macos-dev-security`, and local Runtime socket paths.
+The accepted uninstall removes that development namespace. The empty,
+root-owned `/private/var/run/nimi-macos-dev-security.lock` operation lock may
+remain until reboot. Every release note and marker starts with
+`UNSIGNED PREVIEW — NOT PROMOTABLE`.
+The Windows tarball carries its complete MIT `LICENSE`; the macOS archive
+carries complete MIT and Apache-2.0 texts under `LICENSES/` for its
+App/Kit/Avatar and Runtime material.
 
-SDK 发布前必须更新：
+Preview assets are never published to npm, crates.io, or buf.build, never update
+the stable `latest` feed, and never become canary, RC, or Stable inputs. A future
+signed RC is rebuilt from the same source line after the production platform
+signers are available; preview tags and assets are never moved or overwritten.
+Repository immutable releases and the no-bypass `v*` tag ruleset are operational
+prerequisites before dispatch. The workflow verifies the published Release
+reports `isImmutable=true`; its ordinary `GITHUB_TOKEN` cannot read the
+administrator-only repository setting before publication, so do not dispatch
+after disabling that setting.
 
-- `sdks/typescript/package.json`
+## 2. Canary
 
-Kit 发布前必须更新：
+Run `.github/workflows/release-canary.yml` with:
 
-- `kit/package.json`
+- `commit_sha`: exact lowercase 40-character Git commit SHA
+- `release_version`: global stable SemVer without `v`
 
-App Tools 发布前必须更新：
+The workflow checks out that SHA, requires it to be on `main`, runs the full
+pre-release admission command, builds the real public artifacts, validates
+their packed payloads, and uploads a sealed Actions artifact named:
 
-- `app-tools/package.json`
+```text
+release-canary-<release_version>-<commit_sha>
+```
 
-Nimi shell Tauri crate 发布前必须更新：
+Canary does not create or move a Git tag, create a GitHub Release, or publish to
+an external registry. Re-running canary creates a new Actions artifact for the
+same identity; RC admits the latest successful, unexpired artifact with that
+exact name.
 
-- `kit/shell/tauri/Cargo.toml`
+Runtime canary is currently fail-closed before packaging because the raw
+GoReleaser archives cannot start the protected Runtime on their target
+platforms. A supported service/bootstrap distribution and a real
+start-health-stop acceptance path must replace that blocker before Runtime or
+its npm launcher can enter RC or Stable. GoReleaser remains configured as an
+archive builder with GitHub publishing disabled; its current version-only
+archive smoke is build diagnostics, not release acceptance.
 
-Desktop 当前只维护 `apps/desktop/package.json` 的产品版本。取得所需平台发布资质并完成
-Electron 生产分发 authority 与 workflow 之前，不创建 `desktop/v*` 发布 tag，也不把本地
-ad-hoc development candidate 表述为 release。
+## 3. Immutable RC
 
-Proto 发布由 tag 驱动（`proto/vX.Y.Z`），不依赖仓库内单独版本文件。
-
-### 3. Changelog
-
-Update `CHANGELOG.md` with the new version entry. Follow [Keep a Changelog](https://keepachangelog.com/) format.
-
-### 4. Tag and Release
-
-按组件打 tag 触发自动发布：
+After accepting a canary, create the next global RC tag on the same commit:
 
 ```bash
-git tag runtime/v0.x.x
-git push origin runtime/v0.x.x
-
-git tag sdk/v0.x.x
-git push origin sdk/v0.x.x
-
-git tag nimi-shell-tauri/v0.x.x
-git push origin nimi-shell-tauri/v0.x.x
-
-git tag kit/v0.x.x
-git push origin kit/v0.x.x
-
-git tag app-tools/v0.x.x
-git push origin app-tools/v0.x.x
-
-git tag proto/v0.x.x
-git push origin proto/v0.x.x
-
+git tag vX.Y.Z-rc.N <canary-commit-sha>
+git push origin vX.Y.Z-rc.N
 ```
 
-对应工作流行为：
+`.github/workflows/release-candidate.yml` then:
 
-- `runtime/v*` -> `.github/workflows/release-runtime.yml`（GoReleaser 多平台二进制）
-- `sdk/v*` -> `.github/workflows/release.yml` `release-sdk` job（发布 `@nimiplatform/sdk`）
-- `nimi-shell-tauri/v*` -> `.github/workflows/release-nimi-shell-tauri.yml`（发布 `nimi-shell-tauri` crate）
-- `kit/v*` -> `.github/workflows/release-kit.yml`（发布 `@nimiplatform/kit`）
-- `app-tools/v*` -> `.github/workflows/release-app-tools.yml`（发布 `@nimiplatform/app-tools`）
-- `proto/v*` -> `.github/workflows/release.yml` `release-proto` job（`buf push`）
+1. Finds the successful canary artifact for the exact global version and tag
+   commit.
+2. Verifies every component manifest, artifact size, and SHA-256 digest.
+3. Reseals the same files as RC artifacts without rebuilding product bytes.
+4. Generates Runtime SPDX SBOMs, signs Runtime archives, SBOMs, and checksums,
+   and reseals the Runtime manifest.
+5. Installs the compatible npm tarballs locally and verifies the Runtime
+   launcher reports the intended version.
+6. Creates and publishes the real GitHub Pre-release for `vX.Y.Z-rc.N`.
 
-必需 secrets：
+RC does not currently publish to npm, crates.io, or buf.build. If an RC fails or
+needs a code change, fix the code, run a new canary for the new commit, and use
+`rc.N+1`. Do not move, replace, or reuse an existing RC tag or GitHub
+Pre-release.
 
-- `NPM_TOKEN`（npm author package 发布）
-- `CARGO_REGISTRY_TOKEN`（crates.io crate 发布）
-- `BUF_TOKEN`（Proto 发布）
+Ordinary `/runtime/latest.json` installation is stable-only and never falls
+back to an RC. Test an RC from its explicit GitHub Pre-release assets or the
+installer's explicit `--version vX.Y.Z-rc.N` path.
 
-必需权限（workflow/job permissions）：
+## 4. Stable Promotion
 
-- `id-token: write`（runtime 发布产物的 keyless cosign 签名）
-- `contents: write`（向 GitHub Release 上传产物与签名/SBOM）
+Run `.github/workflows/release-promote.yml` with the accepted `rc_tag` and
+approve its `stable-release` environment.
 
-支持 dry-run：
+Promotion:
 
-- 手动触发 `.github/workflows/release.yml`，选择 `target + version + publish=false`。
+1. Downloads the published RC assets and verifies all component manifests and
+   Runtime signatures.
+2. Creates or verifies global stable tag `vX.Y.Z` at the exact RC commit.
+3. Verifies the RC tag, stable tag, and every manifest name the same commit and
+   artifact bytes.
+4. Publishes the exact npm tarballs with provenance in dependency order.
+5. Rebuilds protected-local from the admitted SHA, requires its `.crate`
+   SHA-256 to equal the RC asset, and publishes it first. It then packages and
+   publishes Tauri from the exact sealed RC source archive after protected-local
+   is visible; Cargo cannot package that path dependency before its registry
+   version exists.
+6. Builds and lints Proto from the exact RC source archive, then pushes that
+   source to buf.build.
+7. Publishes App Tools only after its embedded SDK, Kit, protected-local, and
+   Tauri versions are visible in their registries.
+8. Creates the stable GitHub Release from the same RC assets and marks it
+   latest.
 
-### 5. Post-release
+An already-published npm or Cargo version is accepted only when it is the same
+version and bytes; a conflicting immutable registry version fails promotion.
 
-- Verify npm packages: `npm view @nimiplatform/sdk version`
-- Verify npm packages: `npm view @nimiplatform/kit version`
-- Verify npm packages: `npm view @nimiplatform/app-tools version`
-- Verify crates.io package: `cargo search nimi-shell-tauri --limit 1`
-- Verify one-shot author entrypoints:
-  - `pnpm dlx @nimiplatform/app-tools nimi-app --help`
-- Verify proto module on buf.build
-- Verify runtime binaries on GitHub Releases
-- Verify `checksums.txt` exists in release assets
-- Verify runtime release assets include:
-  - `*.spdx.json` SBOM
-  - `*.sigstore.json` keyless signing bundles
-- Verify signatures:
-  - `cosign verify-blob --bundle <file>.sigstore.json --certificate-oidc-issuer https://token.actions.githubusercontent.com --certificate-identity-regexp 'https://github.com/<org>/<repo>/.github/workflows/release.*@.*' <file>`
+### One-time Install Gateway global-tag cutover
 
-## Hotfix Process
+The first global stable release also requires one explicit Worker deployment.
+After the stable GitHub Release exists, manually run
+`.github/workflows/deploy-install-gateway.yml` with `commit_sha` set to the
+accepted RC commit SHA. The workflow checks out that exact main commit, tests
+and builds the Worker, and performs the real Cloudflare deployment. This
+global-tag hard cut is not operationally complete until that deployment
+succeeds and `https://install.nimi.ai/runtime/latest.json` returns the new
+global stable tag with the complete Runtime archive set.
 
-For critical patches:
+The deployment requires repository `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID` secrets; `NIMI_GITHUB_RELEASES_TOKEN` remains optional
+for authenticated GitHub API reads.
 
-1. Branch from the release tag: `git checkout -b hotfix/<component>-v0.x.x+1 <component>/v0.x.x`
-2. Apply fix
-3. Run full test suite
-4. Bump patch version
-5. Tag and release (`<component>/v0.x.x+1`)
+The Worker resolves later stable releases dynamically from GitHub, so this is
+not a standing requirement to redeploy unchanged gateway code on every release.
 
-## Version Matrix
+## Platform Signing Status
 
-| SDK | Runtime | Proto | Status |
-|-----|---------|-------|--------|
-| 0.x | 0.x | 0.x | Supported |
-| 0.x | 1.x | — | Not supported |
-| 1.x | 0.x | — | Not supported |
+- Runtime macOS Go archives do not require Apple Developer ID and remain part
+  of canary, RC, and stable output.
+- Desktop Electron production distribution and the Kit macOS protected-local
+  native package are deferred until the Apple signing/notarization path exists.
+  Ad-hoc candidates may be published only through the explicit unsigned-preview
+  lane and are not production releases or signed-RC inputs.
+- The SignPath Foundation application is pending, no production Authenticode
+  signer is configured, and no current Nimi Windows artifact is production
+  signed. Kit Windows protected-local publication and the Windows Runtime
+  production release are therefore blocked; the signed canary lane intentionally
+  fails closed while the separate preview lane publishes only clearly marked,
+  non-promotable unsigned assets.
+- The repository's self-signed certificate flow is local-development only.
+  `provision:windows-dev-trust` is not a release substitute and its certificate
+  must never be distributed or installed into a user's Root or TrustedPublisher
+  stores by a production installer.
+- The planned Nimi-owned signing scope is the Windows Runtime `nimi.exe` for
+  amd64/arm64 and the Kit protected-local Node native `.node` carrier. An
+  installer, service helper, or repair helper joins that scope only if it is
+  actually admitted to release. Third-party or upstream binaries must not be
+  signed with Nimi's signing identity.
+- RC `.sig`/`.pem` cosign blob signatures authenticate release files but are not
+  Windows Authenticode signatures and do not establish a Windows Publisher.
+- Consistent Windows PE Product Name/Product Version enforcement and complete,
+  tested installer/service uninstallation behavior are not yet admitted. Both
+  remain release blockers before a production Windows download can be offered.
+
+The canonical public status and verification targets are the
+[Download page](https://nimi.ai/download) and
+[Code signing policy](https://nimi.ai/code-signing). Those URLs must not be
+described as deployed merely because their repository sources exist.
+
+## Required Credentials and Permissions
+
+Stable promotion requires:
+
+- `NPM_TOKEN`
+- `CARGO_REGISTRY_TOKEN`
+- `BUF_TOKEN`
+- approval for the `stable-release` GitHub environment
+
+Production signing additionally requires verified MFA for every GitHub and
+SignPath member with signing access, a protected signing-approval permission
+separate from ordinary source-write operations, and signing credentials that
+are available only to the protected workflow. These controls are requirements,
+not claims that the pending SignPath path has already been configured.
+
+Repository settings must configure `stable-release` with required reviewers;
+merely naming an environment in YAML does not create an approval policy.
+GitHub immutable releases must remain enabled, and the active release-tag
+ruleset must prevent deletion or force-update of `v*` tags without bypass.
+The `main` branch ruleset must require pull requests and the existing `dco`,
+`ci-required`, and `security-required` checks; main ancestry alone is not
+release admission.
+
+GitHub jobs additionally require:
+
+- `contents: write` to create global RC/stable releases and the stable tag
+- `id-token: write` for keyless cosign and npm provenance
+
+### Pending RC credential decision
+
+RC currently proves registry-ready package bytes locally and performs no
+registry authentication or mutation. Before the first RC, decide whether RC
+must also exercise real, read-only npm/crates.io/buf.build credential checks.
+Do not simulate a successful permission check and do not publish final package
+versions merely to test credentials; first registry writes remain stable-only
+unless that policy is explicitly changed.
+
+## Post-release Verification
+
+- `npm view @nimiplatform/nimi version`
+- `npm view @nimiplatform/sdk version`
+- `npm view @nimiplatform/kit version`
+- `npm view @nimiplatform/app-tools version`
+- `cargo search nimi-shell-protected-local --limit 1`
+- `cargo search nimi-shell-tauri --limit 1`
+- Verify the Proto module on buf.build.
+- Verify `/runtime/latest.json` resolves the global stable release and all six
+  Runtime archives.
+- Install one supported Runtime npm package and run `nimi version --json`.
+- Verify the GitHub stable release includes `checksums.txt`, Runtime SPDX SBOMs,
+  and `.sig` / `.pem` pairs for every signed Runtime file.
+
+Verify a Runtime file with:
+
+```bash
+cosign verify-blob \
+  --certificate <artifact>.pem \
+  --signature <artifact>.sig \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp 'https://github.com/<org>/<repo>/.github/workflows/release-candidate.yml@.*' \
+  <artifact>
+```

@@ -81,7 +81,7 @@ func TestVerifySourceMaterializationPacketV3ReferenceVectors(t *testing.T) {
 
 func TestVerifySourceMaterializationPacketV3NegativeManifest(t *testing.T) {
 	vector := loadSourceMaterializationReferenceVectorV3(t, "world-character")
-	manifestBytes, err := os.ReadFile(sourceMaterializationReferenceVectorPathV3(t, "negative-mutations"))
+	manifestBytes, err := os.ReadFile(sourceMaterializationReferenceVectorPathV3("negative-mutations"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -288,7 +288,7 @@ func TestSourceMaterializationRealmHashV3NormalizesLFAndNFC(t *testing.T) {
 
 func loadSourceMaterializationReferenceVectorV3(t *testing.T, name string) sourceMaterializationReferenceVectorV3 {
 	t.Helper()
-	raw, err := os.ReadFile(sourceMaterializationReferenceVectorPathV3(t, name))
+	raw, err := os.ReadFile(sourceMaterializationReferenceVectorPathV3(name))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -299,13 +299,26 @@ func loadSourceMaterializationReferenceVectorV3(t *testing.T, name string) sourc
 	return vector
 }
 
-func sourceMaterializationReferenceVectorPathV3(t *testing.T, name string) string {
-	t.Helper()
-	path, err := filepath.Abs(filepath.Join("..", "..", "..", "..", "..", "packages", "nimi-forge", "conformance", "source-materialization-v3", name+".json"))
+func sourceMaterializationReferenceVectorPathV3(name string) string {
+	return filepath.Join("testdata", "source-materialization-v3", name+".json")
+}
+
+func sourceMaterializationReferenceSourceRefV3(name string) sourceMaterializationCharacterSourceRefV3 {
+	raw, err := os.ReadFile(sourceMaterializationReferenceVectorPathV3(name))
 	if err != nil {
-		t.Fatal(err)
+		panic(err)
 	}
-	return path
+	var vector sourceMaterializationReferenceVectorV3
+	if err := json.Unmarshal(raw, &vector); err != nil {
+		panic(err)
+	}
+	var packet struct {
+		SourceRef sourceMaterializationCharacterSourceRefV3 `json:"sourceRef"`
+	}
+	if err := json.Unmarshal(vector.Packet, &packet); err != nil {
+		panic(err)
+	}
+	return packet.SourceRef
 }
 
 func sourceMaterializationExpectationFromVectorV3(t *testing.T, vector sourceMaterializationReferenceVectorV3) sourceMaterializationVerificationExpectationV3 {

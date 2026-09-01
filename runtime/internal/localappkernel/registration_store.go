@@ -17,19 +17,22 @@ import (
 type RegistrationStore struct{ kernel *Kernel }
 
 type registrationMutation struct {
-	existingHandle     string
-	bindingSlot        string
-	appID              string
-	displayName        string
-	sourceClass        SourceClass
-	sourceRef          string
-	projectRoot        string
-	manifestPath       string
-	shellKind          int32
-	rawDeclaration     []string
-	sourceDigest       string
-	hostExecutableFact string
-	payloadRootFact    string
+	existingHandle            string
+	bindingSlot               string
+	appID                     string
+	displayName               string
+	sourceClass               SourceClass
+	sourceRef                 string
+	projectRoot               string
+	manifestPath              string
+	shellKind                 int32
+	rawDeclaration            []string
+	immutableLineageID        string
+	provenanceAttestationRefs []string
+	provenanceRevision        uint64
+	executionProfileRef       string
+	hostExecutableFact        string
+	payloadRootFact           string
 }
 
 type currentHostBinding struct {
@@ -51,13 +54,19 @@ func (store *RegistrationStore) RegisterInstalled(ctx context.Context, input Reg
 	if err := validateInstalledInput(input); err != nil {
 		return Registration{}, err
 	}
-	return store.register(ctx, registrationMutation{
+	return store.register(ctx, installedRegistrationMutation(input))
+}
+
+func installedRegistrationMutation(input RegisterInstalledInput) registrationMutation {
+	return registrationMutation{
 		existingHandle: input.ExistingRegistrationHandle, bindingSlot: input.BindingSlot,
-		appID: input.AppID, displayName: input.DisplayName, sourceClass: SourceClassInstalled,
+		appID: input.AppID, displayName: input.DisplayName, sourceClass: input.SourceClass,
 		sourceRef: input.SourceRef, projectRoot: input.ProjectRoot, manifestPath: input.ManifestPath,
-		shellKind: input.ShellKind, rawDeclaration: input.RawDeclaration, sourceDigest: input.SourceDigest,
-		hostExecutableFact: input.HostExecutableDigest, payloadRootFact: input.PayloadRootDigest,
-	})
+		shellKind: input.ShellKind, rawDeclaration: input.RawDeclaration, immutableLineageID: input.ImmutableLineageID,
+		provenanceAttestationRefs: input.ProvenanceAttestationRefs, provenanceRevision: input.ProvenanceRevision,
+		executionProfileRef: input.ExecutionProfileRef,
+		hostExecutableFact:  input.HostExecutableDigest, payloadRootFact: input.PayloadRootDigest,
+	}
 }
 
 func (store *RegistrationStore) RegisterDevelopment(ctx context.Context, input RegisterDevelopmentInput) (Registration, error) {
@@ -69,7 +78,7 @@ func (store *RegistrationStore) RegisterDevelopment(ctx context.Context, input R
 	}
 	return store.register(ctx, registrationMutation{
 		existingHandle: input.ExistingRegistrationHandle,
-		appID:          input.AppID, displayName: input.DisplayName, sourceClass: SourceClassDevelopment,
+		appID:          input.AppID, displayName: input.DisplayName, sourceClass: SourceClassLocalDevelopment,
 		sourceRef: input.SourceRef, projectRoot: input.ProjectRoot, manifestPath: input.ManifestPath,
 		shellKind: input.ShellKind, rawDeclaration: input.RawDeclaration,
 		hostExecutableFact: input.HostExecutableDigest,
@@ -83,6 +92,24 @@ func (store *RegistrationStore) RegisterDevelopment(ctx context.Context, input R
 // the one selected by an exact opaque current-host handle. App ID, source ref,
 // and paths are validation facts after selection; none is a reopen key.
 func (store *RegistrationStore) register(ctx context.Context, input registrationMutation) (Registration, error) {
+	store.kernel.mu.Lock()
+	defer store.kernel.mu.Unlock()
+	tx, err := store.kernel.db.BeginTx(ctx, nil)
+	if err != nil {
+		return Registration{}, fmt.Errorf("begin registered App transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	registration, err := store.registerTx(ctx, tx, input)
+	if err != nil {
+		return Registration{}, err
+	}
+	if err := store.kernel.commitTransaction(tx); err != nil {
+		return Registration{}, fmt.Errorf("commit registered App transaction: %w", err)
+	}
+	return registration, nil
+}
+
+func (store *RegistrationStore) registerTx(ctx context.Context, tx *sql.Tx, input registrationMutation) (Registration, error) {
 	raw, activated, err := appaccess.ResolveDeclaration(input.rawDeclaration)
 	if err != nil {
 		return Registration{}, fmt.Errorf("%w: %v", ErrInvalidArgument, err)
@@ -90,6 +117,7 @@ func (store *RegistrationStore) register(ctx context.Context, input registration
 	declarationDigest := digestDeclaration(raw)
 	rawJSON, _ := json.Marshal(raw)
 	activatedJSON, _ := json.Marshal(activated)
+	provenanceJSON, _ := json.Marshal(input.provenanceAttestationRefs)
 	storedProjectRoot, err := store.kernel.encodeBindingLocator(input.projectRoot)
 	if err != nil {
 		return Registration{}, err
@@ -98,14 +126,6 @@ func (store *RegistrationStore) register(ctx context.Context, input registration
 	if err != nil {
 		return Registration{}, err
 	}
-
-	store.kernel.mu.Lock()
-	defer store.kernel.mu.Unlock()
-	tx, err := store.kernel.db.BeginTx(ctx, nil)
-	if err != nil {
-		return Registration{}, fmt.Errorf("begin registered App transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
 
 	if input.existingHandle != "" {
 		canonical, loadErr := loadCanonicalByHandle(ctx, tx, input.existingHandle)
@@ -126,8 +146,12 @@ func (store *RegistrationStore) register(ctx context.Context, input registration
 			return Registration{}, ErrStateConflict
 		}
 
-		sourceChanged := canonical.SourceDigest != input.sourceDigest
-		if input.sourceClass == SourceClassDevelopment {
+		sourceChanged := canonical.ImmutableLineageID != input.immutableLineageID ||
+			!equalStrings(canonical.ProvenanceAttestationRefs, input.provenanceAttestationRefs) ||
+			canonical.ProvenanceRevision != input.provenanceRevision ||
+			canonical.ExecutionProfileRef != input.executionProfileRef ||
+			binding.HostExecutableDigest != input.hostExecutableFact || binding.PayloadRootDigest != input.payloadRootFact
+		if input.sourceClass == SourceClassLocalDevelopment {
 			sourceChanged = canonical.ShellKind != input.shellKind ||
 				binding.ProjectRoot != input.projectRoot || binding.ManifestPath != input.manifestPath ||
 				binding.HostExecutableDigest != input.hostExecutableFact
@@ -143,12 +167,14 @@ func (store *RegistrationStore) register(ctx context.Context, input registration
 		now := store.kernel.now().UTC()
 		result, updateErr := tx.ExecContext(ctx, `UPDATE canonical_registration SET
 			display_name = ?, shell_kind = ?, raw_declaration_json = ?, activated_domains_json = ?,
-			source_generation = ?, declaration_generation = ?, source_digest = ?, declaration_digest = ?,
+			source_generation = ?, declaration_generation = ?, immutable_lineage_id = ?,
+			provenance_attestation_refs_json = ?, provenance_revision = ?, execution_profile_ref = ?, declaration_digest = ?,
 			updated_unix_nano = ?
 			WHERE registration_handle = ? AND state = 'active'
 			AND source_generation = ? AND declaration_generation = ?`,
 			input.displayName, input.shellKind, string(rawJSON), string(activatedJSON), sourceGeneration,
-			declarationGeneration, input.sourceDigest, declarationDigest, now.UnixNano(), canonical.RegistrationHandle,
+			declarationGeneration, input.immutableLineageID, string(provenanceJSON), input.provenanceRevision,
+			input.executionProfileRef, declarationDigest, now.UnixNano(), canonical.RegistrationHandle,
 			canonical.SourceGeneration, canonical.DeclarationGeneration)
 		if updateErr != nil {
 			return Registration{}, fmt.Errorf("update canonical registered App: %w", updateErr)
@@ -169,17 +195,16 @@ func (store *RegistrationStore) register(ctx context.Context, input registration
 		if rowsErr != nil || rows != 1 {
 			return Registration{}, ErrRevisionConflict
 		}
-		if err := store.kernel.commitTransaction(tx); err != nil {
-			return Registration{}, fmt.Errorf("commit registered App transaction: %w", err)
-		}
-
 		canonical.DisplayName = input.displayName
 		canonical.ShellKind = input.shellKind
 		canonical.RawDeclaration = raw
 		canonical.ActivatedDomains = activated
 		canonical.SourceGeneration = sourceGeneration
 		canonical.DeclarationGeneration = declarationGeneration
-		canonical.SourceDigest = input.sourceDigest
+		canonical.ImmutableLineageID = input.immutableLineageID
+		canonical.ProvenanceAttestationRefs = append([]string(nil), input.provenanceAttestationRefs...)
+		canonical.ProvenanceRevision = input.provenanceRevision
+		canonical.ExecutionProfileRef = input.executionProfileRef
 		canonical.DeclarationDigest = declarationDigest
 		canonical.UpdatedAt = now
 		binding.ProjectRoot = input.projectRoot
@@ -213,10 +238,12 @@ func (store *RegistrationStore) register(ctx context.Context, input registration
 	_, err = tx.ExecContext(ctx, `INSERT INTO canonical_registration(
 		registration_handle, registered_app_subject, app_id, display_name, source_class, source_ref,
 		shell_kind, raw_declaration_json, activated_domains_json, source_generation, declaration_generation,
-		source_digest, declaration_digest, state, created_unix_nano, updated_unix_nano, tombstoned_unix_nano
-	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?, 'active', ?, ?, NULL)`,
+		immutable_lineage_id, provenance_attestation_refs_json, provenance_revision, execution_profile_ref,
+		declaration_digest, state, created_unix_nano, updated_unix_nano, tombstoned_unix_nano
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, ?, ?, ?, ?, ?, 'active', ?, ?, NULL)`,
 		handle, subject, input.appID, input.displayName, string(input.sourceClass), input.sourceRef,
-		input.shellKind, string(rawJSON), string(activatedJSON), input.sourceDigest, declarationDigest,
+		input.shellKind, string(rawJSON), string(activatedJSON), input.immutableLineageID, string(provenanceJSON),
+		input.provenanceRevision, input.executionProfileRef, declarationDigest,
 		now.UnixNano(), now.UnixNano())
 	if err != nil {
 		return Registration{}, fmt.Errorf("insert canonical registered App: %w", err)
@@ -230,16 +257,16 @@ func (store *RegistrationStore) register(ctx context.Context, input registration
 	if err != nil {
 		return Registration{}, fmt.Errorf("insert current-host registered App binding: %w", err)
 	}
-	if err := store.kernel.commitTransaction(tx); err != nil {
-		return Registration{}, fmt.Errorf("commit registered App transaction: %w", err)
-	}
 	return Registration{
 		LocalOSUserAnchor: store.kernel.anchor, BindingSlot: input.bindingSlot,
 		RegistrationHandle: handle, RegisteredAppSubject: subject, AppID: input.appID,
 		DisplayName: input.displayName, SourceClass: input.sourceClass, SourceRef: input.sourceRef,
 		ProjectRoot: input.projectRoot, ManifestPath: input.manifestPath, ShellKind: input.shellKind,
 		RawDeclaration: raw, ActivatedDomains: activated, SourceGeneration: 1, DeclarationGeneration: 1,
-		SourceDigest: input.sourceDigest, DeclarationDigest: declarationDigest,
+		ImmutableLineageID:        input.immutableLineageID,
+		ProvenanceAttestationRefs: append([]string(nil), input.provenanceAttestationRefs...),
+		ProvenanceRevision:        input.provenanceRevision, ExecutionProfileRef: input.executionProfileRef,
+		DeclarationDigest:    declarationDigest,
 		HostExecutableDigest: input.hostExecutableFact, PayloadRootDigest: input.payloadRootFact,
 		State: RegistrationStateActive, CreatedAt: now, UpdatedAt: now,
 	}, nil
@@ -371,7 +398,7 @@ func (store *RegistrationStore) ListDevelopment(ctx context.Context) ([]Registra
 		FROM canonical_registration c
 		JOIN current_host_binding b ON b.registration_handle = c.registration_handle
 		WHERE b.host_install_id = ? AND b.local_os_user_scope = ?
-		  AND c.source_class = 'development' AND c.state = 'active'
+		  AND c.source_class = 'local_development' AND c.state = 'active'
 		ORDER BY c.created_unix_nano, c.registration_handle`, store.kernel.hostInstallID, store.kernel.anchor)
 	if err != nil {
 		return nil, fmt.Errorf("list development registrations: %w", err)
@@ -418,6 +445,16 @@ func (store *RegistrationStore) Tombstone(ctx context.Context, handle string) er
 		return fmt.Errorf("begin registered App tombstone: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := store.tombstoneTx(ctx, tx, handle); err != nil {
+		return err
+	}
+	if err := store.kernel.commitTransaction(tx); err != nil {
+		return fmt.Errorf("commit registered App tombstone: %w", err)
+	}
+	return nil
+}
+
+func (store *RegistrationStore) tombstoneTx(ctx context.Context, tx *sql.Tx, handle string) error {
 	canonical, err := loadCanonicalByHandle(ctx, tx, handle)
 	if err != nil {
 		return err
@@ -450,9 +487,6 @@ func (store *RegistrationStore) Tombstone(ctx context.Context, handle string) er
 	rows, err = result.RowsAffected()
 	if err != nil || rows != 1 {
 		return ErrRevisionConflict
-	}
-	if err := store.kernel.commitTransaction(tx); err != nil {
-		return fmt.Errorf("commit registered App tombstone: %w", err)
 	}
 	return nil
 }
@@ -507,7 +541,8 @@ func (store *RegistrationStore) lookupBindingHandleBySlot(ctx context.Context, q
 
 const canonicalRegistrationSelect = `SELECT registration_handle, registered_app_subject,
 	app_id, display_name, source_class, source_ref, shell_kind, raw_declaration_json,
-	activated_domains_json, source_generation, declaration_generation, source_digest,
+	activated_domains_json, source_generation, declaration_generation, immutable_lineage_id,
+	provenance_attestation_refs_json, provenance_revision, execution_profile_ref,
 	declaration_digest, state, created_unix_nano, updated_unix_nano, tombstoned_unix_nano
 	FROM canonical_registration `
 
@@ -521,13 +556,14 @@ func loadCanonicalBySubject(ctx context.Context, query registrationQuerier, subj
 
 func scanCanonicalRegistration(row interface{ Scan(...any) error }) (Registration, error) {
 	var registration Registration
-	var sourceClass, state, rawJSON, activatedJSON string
+	var sourceClass, state, rawJSON, activatedJSON, provenanceJSON string
 	var created, updated int64
 	var tombstoned sql.NullInt64
 	if err := row.Scan(&registration.RegistrationHandle, &registration.RegisteredAppSubject,
 		&registration.AppID, &registration.DisplayName, &sourceClass, &registration.SourceRef,
 		&registration.ShellKind, &rawJSON, &activatedJSON, &registration.SourceGeneration,
-		&registration.DeclarationGeneration, &registration.SourceDigest, &registration.DeclarationDigest,
+		&registration.DeclarationGeneration, &registration.ImmutableLineageID, &provenanceJSON,
+		&registration.ProvenanceRevision, &registration.ExecutionProfileRef, &registration.DeclarationDigest,
 		&state, &created, &updated, &tombstoned); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Registration{}, ErrNotFound
@@ -539,6 +575,9 @@ func scanCanonicalRegistration(row interface{ Scan(...any) error }) (Registratio
 	}
 	if err := json.Unmarshal([]byte(activatedJSON), &registration.ActivatedDomains); err != nil {
 		return Registration{}, fmt.Errorf("decode activated App access domains: %w", err)
+	}
+	if err := json.Unmarshal([]byte(provenanceJSON), &registration.ProvenanceAttestationRefs); err != nil {
+		return Registration{}, fmt.Errorf("decode provenance attestation refs: %w", err)
 	}
 	registration.SourceClass = SourceClass(sourceClass)
 	registration.State = RegistrationState(state)
@@ -562,11 +601,24 @@ func registrationFromCanonicalAndBinding(canonical Registration, binding current
 }
 
 func registrationStatusFromCanonical(canonical Registration, bound bool) RegistrationStatus {
+	sourceReady := canonical.SourceClass == SourceClassLocalDevelopment || canonical.ImmutablePackageFactsComplete()
 	return RegistrationStatus{
 		RegistrationHandle: canonical.RegistrationHandle, RegisteredAppSubject: canonical.RegisteredAppSubject,
 		AppID: canonical.AppID, SourceClass: canonical.SourceClass, State: canonical.State,
-		CurrentHostBound: bound, Available: bound && canonical.State == RegistrationStateActive,
+		CurrentHostBound: bound, Available: bound && sourceReady && canonical.State == RegistrationStateActive,
 	}
+}
+
+func equalStrings(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for index := range left {
+		if left[index] != right[index] {
+			return false
+		}
+	}
+	return true
 }
 
 func digestDeclaration(items []string) string {

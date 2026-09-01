@@ -36,6 +36,8 @@
     "userImported": "本地导入",
     "verified": "Nimi 认证"
   },
+  "catalogNotImplemented": "公共 App 目录搜索尚未实现。",
+  "installedLaunchUnavailable": "已安装 App 的启动链路尚未实现。安装记录仍然有效；当前只有本地开发 App 可以启动。",
   "listTitle": "应用列表",
   "listDescription": "按是否声明 App Access 域筛选已注册应用。",
   "filter": {
@@ -253,6 +255,7 @@
     "evidence": "正在记录安装凭证",
     "installed": "已安装",
     "swap": "正在切换发布",
+    "uninstalling": "正在卸载",
     "failed": "失败",
     "cancelled": "已取消",
     "uninstalled": "已卸载"
@@ -267,8 +270,10 @@
     "accessTab": "Nimi Access",
     "aiModelsTab": "AI 模型",
     "developerTab": "开发者信息",
-    "localSummary": "已注册到当前 Nimi Desktop 的本地开发 App。",
+    "localSummary": "已注册到当前 Nimi 的本地开发 App。",
     "aboutTitle": "关于此 App",
+    "catalogVersion": "版本",
+    "releaseRef": "发布引用",
     "aboutDescription": "当前可用于这个本地开发 App 的注册与来源信息。",
     "registrationState": "注册状态",
     "runState": "运行状态",

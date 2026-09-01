@@ -1,0 +1,350 @@
+name: release-build
+
+on:
+  workflow_call:
+    inputs:
+      commit_sha:
+        description: Exact 40-character candidate commit SHA
+        required: true
+        type: string
+      release_version:
+        description: Global release-train stable SemVer without a v prefix
+        required: true
+        type: string
+    outputs:
+      artifact_name:
+        description: Name of the sealed Actions artifact
+        value: ${{ jobs.bundle.outputs.artifact_name }}
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.commit_sha }}
+          fetch-depth: 0
+
+      - name: Verify candidate identity and release inputs
+        env:
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          set -euo pipefail
+          if ! [[ "${COMMIT_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "commit_sha must be an exact lowercase 40-character Git SHA" >&2
+            exit 1
+          fi
+          test "$(git rev-parse HEAD)" = "${COMMIT_SHA}"
+          if ! [[ "${RELEASE_VERSION}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "release_version must be an exact stable SemVer" >&2
+            exit 1
+          fi
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor "${COMMIT_SHA}" origin/main
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.34.5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: runtime/go.mod
+          cache: false
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Setup Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+
+      - name: Install deterministic Buf CLI
+        run: |
+          go install github.com/bufbuild/buf/cmd/buf@v1.70.0
+          echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run pre-release admission gate
+        env:
+          NIMI_RELEASE_TAG: v${{ inputs.release_version }}
+        run: pnpm pre-release
+
+  build:
+    needs: gate
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: runtime
+            platform: main
+            runner: ubuntu-latest
+          - component: sdk
+            platform: main
+            runner: ubuntu-latest
+          - component: kit
+            platform: main
+            runner: ubuntu-latest
+          - component: kit
+            platform: win32-x64
+            runner: windows-latest
+          - component: app-tools
+            platform: main
+            runner: ubuntu-latest
+          - component: nimi-shell-protected-local
+            platform: main
+            runner: ubuntu-latest
+          - component: nimi-shell-tauri
+            platform: main
+            runner: ubuntu-latest
+          - component: proto
+            platform: main
+            runner: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.commit_sha }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.34.5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: runtime/go.mod
+          cache: false
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Require an admitted Windows production signer
+        if: matrix.component == 'kit' && matrix.platform == 'win32-x64'
+        shell: pwsh
+        run: |
+          throw @'
+          Windows release packaging is blocked: the repository only provides a local-development
+          self-signed certificate flow. A production signer/import contract must sign both the
+          protected-local native carrier and Windows Runtime release before this promotable lane
+          can run. Do not replace this gate with provision:windows-dev-trust.
+          '@
+
+      - name: Require an admitted Runtime distribution package
+        if: matrix.component == 'runtime'
+        shell: bash
+        run: |
+          echo 'Runtime release packaging is blocked: the current GoReleaser archives expose CLI diagnostics but cannot start the protected Runtime on Linux, macOS CGO=0, or Windows without an installed service.' >&2
+          echo 'Implement and accept supported platform service/bootstrap packages before removing this gate; a version-only archive smoke is insufficient.' >&2
+          exit 1
+
+      - name: Install pinned GoReleaser
+        if: matrix.component == 'runtime'
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          distribution: goreleaser
+          version: v2.17.0
+          install-only: true
+
+      - name: Build component candidate artifacts
+        env:
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+          COMPONENT: ${{ matrix.component }}
+          PLATFORM: ${{ matrix.platform }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--component "${COMPONENT}" --commit "${COMMIT_SHA}")
+          if [[ "${COMPONENT}" == "runtime" || "${COMPONENT}" == "proto" ]]; then
+            args+=(--version "${RELEASE_VERSION}")
+          fi
+          if [[ "${COMPONENT}" == "kit" ]]; then
+            args+=(--platform "${PLATFORM}")
+          fi
+          pnpm release:canary:build -- "${args[@]}"
+
+      - name: Upload raw component artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: raw-${{ matrix.component }}-${{ matrix.platform }}-${{ inputs.commit_sha }}
+          path: |
+            dist/release-canary/${{ matrix.component }}/*
+            !dist/release-canary/${{ matrix.component }}/release-manifest.json
+          if-no-files-found: error
+          retention-days: 7
+
+  seal:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        component:
+          - runtime
+          - sdk
+          - kit
+          - app-tools
+          - nimi-shell-protected-local
+          - nimi-shell-tauri
+          - proto
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.commit_sha }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.34.5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+
+      - name: Download component artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: raw-${{ matrix.component }}-*-${{ inputs.commit_sha }}
+          path: dist/release-canary/${{ matrix.component }}
+          merge-multiple: true
+
+      - name: Resolve component version
+        id: version
+        env:
+          COMPONENT: ${{ matrix.component }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const component = process.env.COMPONENT;
+          let version = process.env.RELEASE_VERSION;
+          const jsonPaths = {
+            sdk: 'sdks/typescript/package.json',
+            kit: 'kit/package.json',
+            'app-tools': 'app-tools/package.json',
+          };
+          const cargoPaths = {
+            'nimi-shell-protected-local': 'kit/shell/protected-local/Cargo.toml',
+            'nimi-shell-tauri': 'kit/shell/tauri/Cargo.toml',
+          };
+          if (jsonPaths[component]) {
+            version = JSON.parse(fs.readFileSync(jsonPaths[component], 'utf8')).version;
+          } else if (cargoPaths[component]) {
+            const source = fs.readFileSync(cargoPaths[component], 'utf8');
+            version = source.match(/^version\s*=\s*"([^"]+)"\s*$/m)?.[1] || '';
+          }
+          if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(version)) {
+            throw new Error(`${component} does not resolve to a final stable SemVer: ${version}`);
+          }
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`);
+          NODE
+
+      - name: Seal component manifest
+        env:
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+          COMPONENT: ${{ matrix.component }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          artifact_dir="dist/release-canary/${COMPONENT}"
+          manifest="${artifact_dir}/release-manifest-${COMPONENT}.json"
+          args=(
+            --component "${COMPONENT}"
+            --version "${VERSION}"
+            --commit "${COMMIT_SHA}"
+            --channel canary
+            --artifacts-dir "${artifact_dir}"
+            --output "${manifest}"
+          )
+          pnpm release:artifact:manifest -- "${args[@]}"
+          pnpm release:artifact:verify -- \
+            --manifest "${manifest}" \
+            --artifacts-dir "${artifact_dir}" \
+            --component "${COMPONENT}" \
+            --version "${VERSION}" \
+            --commit "${COMMIT_SHA}" \
+            --channel canary
+
+      - name: Upload sealed component
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sealed-${{ matrix.component }}-${{ inputs.commit_sha }}
+          path: dist/release-canary/${{ matrix.component }}
+          if-no-files-found: error
+          retention-days: 14
+
+  bundle:
+    needs: seal
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_name: ${{ steps.name.outputs.artifact_name }}
+    steps:
+      - name: Download sealed components
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: sealed-*-${{ inputs.commit_sha }}
+          path: dist/release-staging
+
+      - name: Assemble flat release bundle
+        run: |
+          set -euo pipefail
+          mkdir -p dist/release-train
+          while IFS= read -r -d '' source; do
+            name="$(basename "${source}")"
+            destination="dist/release-train/${name}"
+            if [[ -e "${destination}" ]]; then
+              echo "duplicate release asset name: ${name}" >&2
+              exit 1
+            fi
+            cp "${source}" "${destination}"
+          done < <(find dist/release-staging -type f -print0)
+          test -n "$(find dist/release-train -maxdepth 1 -type f -print -quit)"
+
+      - name: Resolve artifact name
+        id: name
+        env:
+          COMMIT_SHA: ${{ inputs.commit_sha }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: echo "artifact_name=release-canary-${RELEASE_VERSION}-${COMMIT_SHA}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload sealed release bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.name.outputs.artifact_name }}
+          path: dist/release-train
+          if-no-files-found: error
+          retention-days: 30

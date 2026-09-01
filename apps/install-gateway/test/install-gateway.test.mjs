@@ -4,15 +4,16 @@ import test from 'node:test';
 import {
   buildRuntimeManifest,
   githubReleaseApiUrl,
-  matchesReleaseTrack,
+  hasCompleteRuntimeAssetSet,
+  matchesGlobalRelease,
   parseRuntimeChecksums,
   selectLatestRelease,
 } from '../src/release-feed.mjs';
 import { handleInstallGatewayRequest } from '../src/index.mjs';
 
 const runtimeRelease = {
-  tag_name: 'runtime/v1.2.3',
-  name: 'runtime/v1.2.3',
+  tag_name: 'v1.2.3',
+  name: 'Nimi v1.2.3',
   published_at: '2026-03-16T10:00:00Z',
   assets: [
     { name: 'checksums.txt', browser_download_url: 'https://example.com/checksums.txt' },
@@ -39,22 +40,38 @@ async function fetchRuntimeChecksumsFixture(url) {
   return new Response(runtimeChecksums);
 }
 
-test('matchesReleaseTrack checks tag and name prefixes', () => {
-  assert.equal(matchesReleaseTrack({ tag_name: 'runtime/v1.0.0' }, 'runtime'), true);
-  assert.equal(matchesReleaseTrack({ name: 'runtime/v1.0.0' }, 'runtime'), true);
-  assert.equal(matchesReleaseTrack({ tag_name: 'sdk/v1.0.0' }, 'runtime'), false);
+test('matchesGlobalRelease accepts only exact global stable and RC tags', () => {
+  assert.equal(matchesGlobalRelease({ tag_name: 'v1.0.0' }), true);
+  assert.equal(matchesGlobalRelease({ tag_name: 'v1.0.0-rc.2' }), true);
+  assert.equal(matchesGlobalRelease({ tag_name: 'v1.0.0-preview.1' }), false);
+  assert.equal(matchesGlobalRelease({ tag_name: 'runtime/v1.0.0' }), false);
+  assert.equal(matchesGlobalRelease({ name: 'v1.0.0' }), false);
 });
 
-test('selectLatestRelease prefers stable releases and falls back to prereleases', () => {
+test('selectLatestRelease admits only stable releases', () => {
   const releases = [
-    { tag_name: 'runtime/v2.0.0-rc.1', prerelease: true, published_at: '2026-03-18T00:00:00Z' },
-    { tag_name: 'runtime/v1.9.0', prerelease: false, published_at: '2026-03-17T00:00:00Z' },
+    runtimeReleaseFixture('2.1.0', { tag_name: 'v2.1.0-rc.1', prerelease: false, published_at: '2026-03-19T00:00:00Z' }),
+    runtimeReleaseFixture('2.0.0', { tag_name: 'v2.0.0-rc.1', prerelease: true, published_at: '2026-03-18T00:00:00Z' }),
+    runtimeReleaseFixture('1.9.0', { prerelease: false, published_at: '2026-03-17T00:00:00Z' }),
   ];
-  assert.equal(selectLatestRelease(releases, 'runtime')?.tag_name, 'runtime/v1.9.0');
-  assert.equal(
-    selectLatestRelease([{ tag_name: 'runtime/v2.0.0-rc.1', prerelease: true, published_at: '2026-03-18T00:00:00Z' }], 'runtime')?.tag_name,
-    'runtime/v2.0.0-rc.1',
-  );
+  assert.equal(selectLatestRelease(releases)?.tag_name, 'v1.9.0');
+  assert.equal(selectLatestRelease([
+    runtimeReleaseFixture('2.0.0', { tag_name: 'v2.0.0-rc.1', prerelease: true }),
+  ]), null);
+  assert.equal(selectLatestRelease([
+    runtimeReleaseFixture('2.0.0', { tag_name: 'v2.0.0-rc.1', prerelease: false }),
+  ]), null);
+});
+
+test('selectLatestRelease skips global releases without the complete Runtime payload', () => {
+  const valid = runtimeReleaseFixture('1.9.0', { published_at: '2026-03-17T00:00:00Z' });
+  const incomplete = runtimeReleaseFixture('2.0.0', {
+    published_at: '2026-03-18T00:00:00Z',
+    assets: runtimeAssets('2.0.0').filter((asset) => !asset.name.includes('windows_arm64')),
+  });
+  assert.equal(hasCompleteRuntimeAssetSet(valid), true);
+  assert.equal(hasCompleteRuntimeAssetSet(incomplete), false);
+  assert.equal(selectLatestRelease([incomplete, valid])?.tag_name, 'v1.9.0');
 });
 
 test('githubReleaseApiUrl uses the admitted release source and ignores deployment overrides', () => {
@@ -87,7 +104,7 @@ test('parseRuntimeChecksums accepts sha256sum and tagged checksum formats', () =
 
 test('buildRuntimeManifest returns manifest fields for all runtime archives', async () => {
   assert.deepEqual(await buildRuntimeManifest(runtimeRelease, fetchRuntimeChecksumsFixture), {
-    tag: 'runtime/v1.2.3',
+    tag: 'v1.2.3',
     version: '1.2.3',
     checksumsUrl: 'https://example.com/checksums.txt',
     archives: {
@@ -125,6 +142,16 @@ test('buildRuntimeManifest returns manifest fields for all runtime archives', as
   });
 });
 
+test('buildRuntimeManifest keeps final artifact version under a global RC tag', async () => {
+  const manifest = await buildRuntimeManifest({
+    ...runtimeRelease,
+    tag_name: 'v1.2.3-rc.4',
+    prerelease: true,
+  }, fetchRuntimeChecksumsFixture);
+  assert.equal(manifest.tag, 'v1.2.3-rc.4');
+  assert.equal(manifest.version, '1.2.3');
+});
+
 test('buildRuntimeManifest rejects incomplete runtime asset sets', async () => {
   await assert.rejects(
     buildRuntimeManifest({
@@ -144,6 +171,40 @@ test('buildRuntimeManifest rejects runtime archives without checksum evidence', 
   );
 });
 
+test('runtime latest route selects a complete global release', async () => {
+  const response = await handleInstallGatewayRequest(
+    new Request('https://install.nimi.ai/runtime/latest.json'),
+    {},
+    { waitUntil: () => undefined },
+    {
+      fetchImpl: async (url) => {
+        if (String(url).includes('/releases?')) {
+          return new Response(JSON.stringify([runtimeRelease]));
+        }
+        return fetchRuntimeChecksumsFixture(url);
+      },
+    },
+  );
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).tag, 'v1.2.3');
+});
+
+test('runtime latest route does not accept retired component release tags', async () => {
+  const response = await handleInstallGatewayRequest(
+    new Request('https://install.nimi.ai/runtime/latest.json'),
+    {},
+    { waitUntil: () => undefined },
+    {
+      fetchImpl: async () => new Response(JSON.stringify([{
+        ...runtimeRelease,
+        tag_name: 'runtime/v1.2.3',
+      }])),
+    },
+  );
+  assert.equal(response.status, 500);
+  assert.deepEqual(await response.json(), { error: 'RUNTIME_RELEASE_NOT_FOUND' });
+});
+
 test('retired Desktop updater feed is not routable', async () => {
   const response = await handleInstallGatewayRequest(
     new Request('https://install.nimi.ai/desktop/latest.json'),
@@ -154,3 +215,26 @@ test('retired Desktop updater feed is not routable', async () => {
   assert.equal(response.status, 404);
   assert.deepEqual(await response.json(), { error: 'NOT_FOUND' });
 });
+
+function runtimeReleaseFixture(version, overrides = {}) {
+  return {
+    tag_name: `v${version}`,
+    name: `Nimi v${version}`,
+    prerelease: false,
+    published_at: '2026-03-16T10:00:00Z',
+    assets: runtimeAssets(version),
+    ...overrides,
+  };
+}
+
+function runtimeAssets(version) {
+  return [
+    { name: 'checksums.txt', browser_download_url: 'https://example.com/checksums.txt' },
+    { name: `nimi-runtime_${version}_macos_amd64.tar.gz`, browser_download_url: 'https://example.com/macos-amd64.tar.gz' },
+    { name: `nimi-runtime_${version}_macos_arm64.tar.gz`, browser_download_url: 'https://example.com/macos-arm64.tar.gz' },
+    { name: `nimi-runtime_${version}_linux_amd64.tar.gz`, browser_download_url: 'https://example.com/linux-amd64.tar.gz' },
+    { name: `nimi-runtime_${version}_linux_arm64.tar.gz`, browser_download_url: 'https://example.com/linux-arm64.tar.gz' },
+    { name: `nimi-runtime_${version}_windows_amd64.zip`, browser_download_url: 'https://example.com/windows-amd64.zip' },
+    { name: `nimi-runtime_${version}_windows_arm64.zip`, browser_download_url: 'https://example.com/windows-arm64.zip' },
+  ];
+}

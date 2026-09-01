@@ -1,10 +1,19 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { landingLinkDefaults } from '../landing/config/landing-links.js';
 
-export type StaticPageKind = 'home' | 'apps' | 'download' | 'privacy' | 'terms';
+const DownloadPage = lazy(async () => {
+  const module = await import('./release-pages.js');
+  return { default: module.DownloadPage };
+});
+const CodeSigningPolicyPage = lazy(async () => {
+  const module = await import('./release-pages.js');
+  return { default: module.CodeSigningPolicyPage };
+});
 
-type InformationalPageKind = Exclude<StaticPageKind, 'privacy' | 'terms'>;
+export type StaticPageKind = 'home' | 'apps' | 'download' | 'code-signing' | 'privacy' | 'terms';
+
+type InformationalPageKind = Extract<StaticPageKind, 'home' | 'apps'>;
 
 type PageContent = {
   title: string;
@@ -32,15 +41,6 @@ const INFORMATIONAL_PAGES = {
     action: {
       href: landingLinkDefaults.docsUrl,
       label: 'Read the developer documentation',
-    },
-  },
-  download: {
-    title: 'Get Nimi Desktop',
-    description:
-      'Use the official Desktop guide for current platform requirements, installation instructions, and available release downloads.',
-    action: {
-      href: landingLinkDefaults.desktopDownloadUrl,
-      label: 'Open the Desktop guide',
     },
   },
 } satisfies Record<InformationalPageKind, PageContent>;
@@ -95,7 +95,9 @@ function InformationalPage({ kind }: { kind: InformationalPageKind }) {
         <Link to="/home">Home</Link>
         <Link to="/apps">Apps</Link>
         <Link to="/download">Download</Link>
+        <Link to="/code-signing">Code signing</Link>
         <Link to="/account">Account</Link>
+        <a href="https://github.com/nimiplatform/nimi/security/advisories/new">Security</a>
         <a href="/privacy.html">Privacy</a>
         <a href="/terms.html">Terms</a>
       </nav>
@@ -106,6 +108,14 @@ function InformationalPage({ kind }: { kind: InformationalPageKind }) {
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-web-005a
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-web-005e
 export function StaticPage({ kind }: { kind: StaticPageKind }) {
+  if (kind === 'download' || kind === 'code-signing') {
+    const Page = kind === 'download' ? DownloadPage : CodeSigningPolicyPage;
+    return (
+      <Suspense fallback={<main className="web-static-page" aria-busy="true" aria-label="Loading Nimi release information" />}>
+        <Page />
+      </Suspense>
+    );
+  }
   return isLegalPage(kind)
     ? <LegalDocumentRedirect document={LEGAL_DOCUMENTS[kind]} />
     : <InformationalPage kind={kind} />;

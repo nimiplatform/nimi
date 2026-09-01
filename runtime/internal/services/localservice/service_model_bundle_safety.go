@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -232,7 +233,7 @@ func (s *Service) quarantineManagedModelBundle(
 	}
 
 	s.mu.Lock()
-	s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
+	auditErr := s.appendRuntimeAuditLocked(&runtimev1.LocalAuditEvent{
 		Id:         "audit_" + ulid.Make().String(),
 		EventType:  "runtime_model_bundle_quarantined",
 		OccurredAt: nowISO(),
@@ -251,8 +252,8 @@ func (s *Service) quarantineManagedModelBundle(
 	})
 	s.mu.Unlock()
 
-	if marshalErr != nil {
-		return quarantineDir, fmt.Errorf("write quarantine manifest: %w", marshalErr)
+	if err := errors.Join(marshalErr, auditErr); err != nil {
+		return quarantineDir, fmt.Errorf("finalize managed model quarantine: %w", err)
 	}
 	return quarantineDir, nil
 }

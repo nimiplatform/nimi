@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/kit-protected-local-win32-x64",
-  "version": "0.3.0-rc.1",
+  "version": "0.3.0",
   "description": "Nimi Kit protected-local Node-API carrier for Windows x64 Electron hosts",
   "license": "MIT",
   "private": false,

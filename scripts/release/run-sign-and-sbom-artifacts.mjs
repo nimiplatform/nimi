@@ -17,7 +17,11 @@ function main() {
   const toolBinDir = syft.binDir || cosign.binDir;
   const result = spawnSync(process.execPath, [signScript], {
     cwd: repoRoot,
-    env: prependPath(process.env, toolBinDir),
+    env: {
+      ...prependPath(process.env, toolBinDir),
+      NIMI_COSIGN_BIN: cosign.binaryPath,
+      NIMI_SYFT_BIN: syft.binaryPath,
+    },
     stdio: 'inherit',
   });
   if (result.error) {

@@ -623,6 +623,7 @@ describe('App context menu overlay', () => {
         },
       });
     });
+    await readyEmbodimentStage();
     await waitFor(() => expect(voiceEventHandler).not.toBeNull());
     act(() => voiceEventHandler?.({
       event_id: 'voice-event-1',

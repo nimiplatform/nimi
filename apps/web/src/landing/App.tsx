@@ -83,6 +83,25 @@ export function App() {
   useEffect(() => {
     if (typeof document !== 'undefined') {
       document.documentElement.lang = locale;
+      const title = locale === 'zh' ? 'Nimi | 让 AI 真正属于你。' : 'Nimi | Make AI truly yours.';
+      const description = locale === 'zh'
+        ? 'Nimi 是可安装、开源、本地优先的个人 AI 产品；Nimi Home 是入口，Runtime 执行本地或云端的多提供商 AI 能力。'
+        : 'Nimi is an open-source, local-first, installable personal AI product with Nimi Home as its entry and a multi-provider Runtime for local and cloud AI.';
+      document.title = title;
+      const metadata = [
+        ['meta[name="description"]', description],
+        ['meta[property="og:title"]', title],
+        ['meta[property="og:description"]', description],
+        ['meta[property="og:url"]', 'https://nimi.ai'],
+        ['meta[name="twitter:title"]', title],
+        ['meta[name="twitter:description"]', description],
+        ['link[rel="canonical"]', 'https://nimi.ai'],
+      ] as const;
+      metadata.forEach(([selector, value]) => {
+        const element = document.head.querySelector<HTMLMetaElement | HTMLLinkElement>(selector);
+        if (element instanceof HTMLMetaElement) element.content = value;
+        else element?.setAttribute('href', value);
+      });
     }
   }, [locale]);
 
@@ -208,7 +227,19 @@ export function App() {
           </div>
           <div className="flex flex-col gap-2 text-sm text-slate-500 md:items-end">
             <p className="font-medium text-slate-600">Nimi Network Limited</p>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 md:justify-end">
+              <a href="/download" className="transition hover:text-slate-900">
+                {content.footer.downloadLabel}
+              </a>
+              <a href="/code-signing" className="transition hover:text-slate-900">
+                {content.footer.codeSigningLabel}
+              </a>
+              <a
+                href="https://github.com/nimiplatform/nimi/security/advisories/new"
+                className="transition hover:text-slate-900"
+              >
+                {content.footer.securityLabel}
+              </a>
               <a href="/terms.html" className="transition hover:text-slate-900">
                 {content.footer.termsLabel}
               </a>

@@ -16,9 +16,8 @@ import {
   ZhiyuResourcePackError,
 } from './contract.js';
 
-const textDecoder = new TextDecoder('utf-8', { fatal: true });
-const zoneSet = new Set<string>(ZHIYU_RESOURCE_PACK_ZONES);
-const layoutProperties = new Set([
+const allowedZones: readonly string[] = ZHIYU_RESOURCE_PACK_ZONES;
+const layoutProperties: readonly string[] = [
   'align-content',
   'align-items',
   'align-self',
@@ -44,8 +43,8 @@ const layoutProperties = new Set([
   'padding-top',
   'row-gap',
   'width',
-]);
-const visualProperties = new Set([
+];
+const visualProperties: readonly string[] = [
   'background-color',
   'background-image',
   'background-position',
@@ -69,8 +68,8 @@ const visualProperties = new Set([
   'letter-spacing',
   'line-height',
   'text-align',
-]);
-const alignmentValues = new Set([
+];
+const alignmentValues: readonly string[] = [
   'baseline',
   'center',
   'end',
@@ -81,7 +80,7 @@ const alignmentValues = new Set([
   'space-evenly',
   'start',
   'stretch',
-]);
+];
 const forbiddenValueFragments = [
   'attr(',
   'behavior:',
@@ -328,7 +327,7 @@ function validateAndScopeStyle(
 function scopeSelector(selector: string, source: string): string {
   const match = /^\[data-nimi-pack-zone=(?:"|')([a-z-]+)(?:"|')\]$/u.exec(selector);
   const zone = match?.[1];
-  if (!zone || !zoneSet.has(zone)) {
+  if (!zone || !allowedZones.includes(zone)) {
     fail('style', source, `Selector ${selector} is outside the W1 semantic zones.`, `Use one exact [data-nimi-pack-zone="${ZHIYU_RESOURCE_PACK_ZONES.join('"] or [data-nimi-pack-zone="')}"] selector without descendants or pseudo-elements.`);
   }
   return `:where([data-zhiyu-resource-pack-surface="true"]) ${selector}`;
@@ -337,7 +336,7 @@ function scopeSelector(selector: string, source: string): string {
 function validateDeclaration(declaration: Declaration, source: string): void {
   const property = declaration.prop.trim().toLowerCase();
   const value = declaration.value.trim();
-  if ((!layoutProperties.has(property) && !visualProperties.has(property)) || property.startsWith('--')) {
+  if ((!layoutProperties.includes(property) && !visualProperties.includes(property)) || property.startsWith('--')) {
     fail('style', source, `Property ${property} is not allowed in W1.`, 'Use bounded layout or visual properties on a semantic zone.');
   }
   if (!value) {
@@ -363,10 +362,10 @@ function validateDeclaration(declaration: Declaration, source: string): void {
   if (property === 'grid-auto-flow' && !['column', 'row'].includes(lowerValue)) {
     fail('style', source, `grid-auto-flow:${value} is not supported.`, 'Use row or column without dense reordering.');
   }
-  if ((property.startsWith('align-') || property.startsWith('justify-')) && !alignmentValues.has(lowerValue)) {
+  if ((property.startsWith('align-') || property.startsWith('justify-')) && !alignmentValues.includes(lowerValue)) {
     fail('style', source, `${property}:${value} is not supported.`, 'Use a bounded start, center, end, stretch, baseline, or space alignment.');
   }
-  if (layoutProperties.has(property) && !['display', 'flex-direction', 'flex-wrap', 'grid-auto-flow'].includes(property)
+  if (layoutProperties.includes(property) && !['display', 'flex-direction', 'flex-wrap', 'grid-auto-flow'].includes(property)
     && !(property.startsWith('align-') || property.startsWith('justify-'))) {
     validateLayoutValue(property, value, source);
   }
@@ -520,7 +519,7 @@ function normalizeEntryPath(rawPath: string): string {
 
 function decodeText(bytes: Uint8Array, source: string): string {
   try {
-    return textDecoder.decode(bytes);
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   } catch {
     fail(source === ZHIYU_RESOURCE_PACK_MANIFEST_PATH ? 'manifest' : 'style', source, 'The text entry is not valid UTF-8.', 'Save the file as UTF-8.');
   }

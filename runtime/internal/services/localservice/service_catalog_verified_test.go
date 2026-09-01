@@ -27,7 +27,7 @@ func TestProjectVerifiedVoxCPMAssetCarriesCanonicalFamilyAndPrivateBackend(t *te
 		Capabilities: []string{"audio.synthesize"},
 		Install: &catalog.LocalPlaneInstall{
 			Repo:            "openbmb/VoxCPM2",
-			Revision:        "bffb3df5a29440629464e5e839f4d214c8714c3d",
+			Revision:        "bffb3df5a29440629464e5e839f4d214c8714c3d", // pragma: allowlist secret -- public immutable model revision
 			InstallKind:     "verified-hf-multi-file",
 			Entry:           "model.safetensors",
 			ArtifactRoles:   []string{"tts_model"},
@@ -42,7 +42,7 @@ func TestProjectVerifiedVoxCPMAssetCarriesCanonicalFamilyAndPrivateBackend(t *te
 		Hashes:         map[string]string{"model.safetensors": "sha256:25bddc99a7cc6d28214f12dd676ed0afa9b0a805d6477f85c275bb113cb8acee"},
 		TotalSizeBytes: 2300904017,
 		Repo:           "mlx-community/VoxCPM2-4bit",
-		Revision:       "dc9e5c187858da5f4a13dc4c247e297339216381",
+		Revision:       "dc9e5c187858da5f4a13dc4c247e297339216381", // pragma: allowlist secret -- public immutable model revision
 		DriverBackend:  "mlx",
 		HostRequirement: catalog.LocalPlaneHostRequirement{
 			Accelerator:  "metal",
@@ -140,7 +140,7 @@ func TestProjectVerifiedAssetDescriptorOmitsUnknownCapacityMetadata(t *testing.T
 }
 
 func TestProjectVerifiedSingleFileDescriptorDoesNotDoublePrefixContentIdentity(t *testing.T) {
-	const digest = "25bddc99a7cc6d28214f12dd676ed0afa9b0a805d6477f85c275bb113cb8acee"
+	const digest = "25bddc99a7cc6d28214f12dd676ed0afa9b0a805d6477f85c275bb113cb8acee" // pragma: allowlist secret -- public model digest
 	descriptor, err := projectVerifiedAssetDescriptor(catalog.ModelEntry{
 		ModelID:      "single-file-chat",
 		Capabilities: []string{"text.generate"},
@@ -224,7 +224,7 @@ func TestVerifiedAssetsFromLocalCatalogProjectsIndependentModelAssetOffers(t *te
 			family:         "qwen-image",
 			artifactRole:   "diffusion_model",
 			repo:           "QuantStack/Qwen-Image-GGUF",
-			revision:       "257f261fa92593bed760aa6fa3f7921a49fea00f",
+			revision:       "257f261fa92593bed760aa6fa3f7921a49fea00f", // pragma: allowlist secret -- public immutable model revision
 			file:           "Qwen_Image-Q4_K_M.gguf",
 			hash:           "sha256:645473886d7dbb0103f84c563c798f7b0867293d919752d4d6be6a432b0bc988",
 			logicalModelID: "qwen-image-local",
@@ -237,7 +237,7 @@ func TestVerifiedAssetsFromLocalCatalogProjectsIndependentModelAssetOffers(t *te
 			family:         "qwen-image",
 			artifactRole:   "edit_diffusion_model",
 			repo:           "unsloth/Qwen-Image-Edit-2511-GGUF",
-			revision:       "0d33d9692b4b26212297240d87b0d4719aa4fd06",
+			revision:       "0d33d9692b4b26212297240d87b0d4719aa4fd06", // pragma: allowlist secret -- public immutable model revision
 			file:           "qwen-image-edit-2511-Q4_K_M.gguf",
 			hash:           "sha256:8677bac90627adbbc11efab87b1870e701c4eb3689ee865a3de8ab81b705a723",
 			logicalModelID: "qwen-image-edit-2511-local",
@@ -250,7 +250,7 @@ func TestVerifiedAssetsFromLocalCatalogProjectsIndependentModelAssetOffers(t *te
 			family:       "flux1-vae",
 			artifactRole: "vae",
 			repo:         "Comfy-Org/z_image_turbo",
-			revision:     "2f862278568d3f0a83167a16e5f11094da6dee72",
+			revision:     "2f862278568d3f0a83167a16e5f11094da6dee72", // pragma: allowlist secret -- public immutable model revision
 			file:         "split_files/vae/ae.safetensors",
 			hash:         "sha256:afc8e28272cd15db3919bacdb6918ce9c1ed22e96cb12c4d5ed0fba823529e38",
 		},
@@ -261,7 +261,7 @@ func TestVerifiedAssetsFromLocalCatalogProjectsIndependentModelAssetOffers(t *te
 			family:       "qwen",
 			artifactRole: "text_encoder",
 			repo:         "unsloth/Qwen3-4B-Instruct-2507-GGUF",
-			revision:     "a06e946bb6b655725eafa393f4a9745d460374c9",
+			revision:     "a06e946bb6b655725eafa393f4a9745d460374c9", // pragma: allowlist secret -- public immutable model revision
 			file:         "Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
 			hash:         "sha256:3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597",
 		},
@@ -272,7 +272,7 @@ func TestVerifiedAssetsFromLocalCatalogProjectsIndependentModelAssetOffers(t *te
 			family:       "qwen-image-vae",
 			artifactRole: "vae",
 			repo:         "QuantStack/Qwen-Image-GGUF",
-			revision:     "257f261fa92593bed760aa6fa3f7921a49fea00f",
+			revision:     "257f261fa92593bed760aa6fa3f7921a49fea00f", // pragma: allowlist secret -- public immutable model revision
 			file:         "VAE/Qwen_Image-VAE.safetensors",
 			hash:         "sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f",
 		},
@@ -283,7 +283,7 @@ func TestVerifiedAssetsFromLocalCatalogProjectsIndependentModelAssetOffers(t *te
 			family:       "qwen-vl",
 			artifactRole: "text_encoder",
 			repo:         "mradermacher/Qwen2.5-VL-7B-Instruct-GGUF",
-			revision:     "cfa2baa09946b211c107e6e104948987a64dd2c1",
+			revision:     "cfa2baa09946b211c107e6e104948987a64dd2c1", // pragma: allowlist secret -- public immutable model revision
 			file:         "Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf",
 			hash:         "sha256:0f00a930ba3108b6861ddadf74d8ebbd82e257c63eba728e62c3e8970f5eed94",
 		},
@@ -294,7 +294,7 @@ func TestVerifiedAssetsFromLocalCatalogProjectsIndependentModelAssetOffers(t *te
 			family:       "qwen-image-vae",
 			artifactRole: "vae",
 			repo:         "QuantStack/Qwen-Image-GGUF",
-			revision:     "257f261fa92593bed760aa6fa3f7921a49fea00f",
+			revision:     "257f261fa92593bed760aa6fa3f7921a49fea00f", // pragma: allowlist secret -- public immutable model revision
 			file:         "VAE/Qwen_Image-VAE.safetensors",
 			hash:         "sha256:a70580f0213e67967ee9c95f05bb400e8fb08307e017a924bf3441223e023d1f",
 		},
@@ -305,7 +305,7 @@ func TestVerifiedAssetsFromLocalCatalogProjectsIndependentModelAssetOffers(t *te
 			family:       "qwen-vl",
 			artifactRole: "text_encoder",
 			repo:         "mradermacher/Qwen2.5-VL-7B-Instruct-GGUF",
-			revision:     "cfa2baa09946b211c107e6e104948987a64dd2c1",
+			revision:     "cfa2baa09946b211c107e6e104948987a64dd2c1", // pragma: allowlist secret -- public immutable model revision
 			file:         "Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf",
 			hash:         "sha256:0f00a930ba3108b6861ddadf74d8ebbd82e257c63eba728e62c3e8970f5eed94",
 		},

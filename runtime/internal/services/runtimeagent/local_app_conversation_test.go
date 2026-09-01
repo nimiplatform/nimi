@@ -1222,12 +1222,14 @@ func TestLocalAppConversationStreamDeliversTypedEventAndClosesOnCancel(t *testin
 	done := make(chan error, 1)
 	go func() { done <- svc.SubscribeLocalAppConversationEvents(req, stream) }()
 	waitForLocalAppConversationSubscriber(t, svc)
-	svc.publishLocalAppConversationEvent("user-1", publicChatTurnStartedType, map[string]any{
+	if err := svc.publishLocalAppConversationEvent("user-1", publicChatTurnStartedType, map[string]any{
 		"conversation_anchor_id": anchorID,
 		"turn_id":                "agent_turn_01J",
 		"timeline":               map[string]any{"sequence": int64(1)},
 		"detail":                 map[string]any{},
-	})
+	}); err != nil {
+		t.Fatalf("publish started event: %v", err)
+	}
 	select {
 	case err := <-done:
 		if err != nil {
@@ -1323,12 +1325,14 @@ func TestLocalAppConversationStreamSendsHeaderOnEstablishmentBeforeEvents(t *tes
 		}
 		time.Sleep(5 * time.Millisecond)
 	}
-	svc.publishLocalAppConversationEvent("user-1", publicChatTurnStartedType, map[string]any{
+	if err := svc.publishLocalAppConversationEvent("user-1", publicChatTurnStartedType, map[string]any{
 		"conversation_anchor_id": anchorID,
 		"turn_id":                "agent_turn_01J",
 		"timeline":               map[string]any{"sequence": int64(1)},
 		"detail":                 map[string]any{},
-	})
+	}); err != nil {
+		t.Fatalf("publish started event after header: %v", err)
+	}
 	select {
 	case err := <-done:
 		if err != nil {
@@ -1376,12 +1380,14 @@ func TestDesktopConversationStreamRevalidatesFormalBuiltInAppSession(t *testing.
 	done := make(chan error, 1)
 	go func() { done <- svc.SubscribeLocalAppConversationEvents(req, stream) }()
 	waitForLocalAppConversationSubscriber(t, svc)
-	svc.publishLocalAppConversationEvent("user-1", publicChatTurnStartedType, map[string]any{
+	if err := svc.publishLocalAppConversationEvent("user-1", publicChatTurnStartedType, map[string]any{
 		"conversation_anchor_id": anchorID,
 		"turn_id":                "agent_turn_01J",
 		"timeline":               map[string]any{"sequence": int64(1)},
 		"detail":                 map[string]any{},
-	})
+	}); err != nil {
+		t.Fatalf("publish Desktop started event: %v", err)
+	}
 	select {
 	case err := <-done:
 		if err != nil {
@@ -1471,7 +1477,7 @@ func TestLocalAppConversationStreamSurfacesBoundedOwnerTerminalError(t *testing.
 	done := make(chan error, 1)
 	go func() { done <- svc.SubscribeLocalAppConversationEvents(req, stream) }()
 	waitForLocalAppConversationSubscriber(t, svc)
-	svc.publishLocalAppConversationEvent("user-1", publicChatTurnActionPlannedType, map[string]any{
+	_ = svc.publishLocalAppConversationEvent("user-1", publicChatTurnActionPlannedType, map[string]any{
 		"conversation_anchor_id": anchorID,
 		"turn_id":                "agent_turn_01J",
 		"timeline":               map[string]any{"sequence": int64(1)},

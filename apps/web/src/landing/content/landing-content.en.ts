@@ -28,12 +28,12 @@ export const landingContentEn: LandingContent = {
     architecture: 'Platform',
     desktop: 'Desktop',
     apps: 'Apps',
-    security: 'Governance',
+    security: 'Trust',
     openSource: 'Source',
     faq: 'FAQ',
   },
   hero: {
-    eyebrow: '',
+    eyebrow: 'Open-source · Local-first · Installable personal AI',
     title: landingPositioningEn.hero.title,
     titleAccent: landingPositioningEn.hero.titleAccent,
     subtitle: landingPositioningEn.hero.subtitle,
@@ -323,13 +323,13 @@ export const landingContentEn: LandingContent = {
         description: 'Open available Nimi Apps and your connected local apps from one workspace.',
       },
     ],
-    downloadCta: 'Read Desktop Docs',
+    downloadCta: 'View download status',
     availability: {
-      eyebrow: 'Available now',
+      eyebrow: 'Release status',
       items: [
-        'Native shell on macOS, Linux, and Windows',
-        'Browser-only sessions via web mode',
-        'Local AI + runtime built-in',
+        'Windows release pending production code-signing approval',
+        'Unsigned previews use explicit non-promotable vX.Y.Z-preview.N tags',
+        'No stable Nimi release is currently published',
       ],
     },
   },
@@ -337,14 +337,14 @@ export const landingContentEn: LandingContent = {
     eyebrow: 'Nimi Apps',
     title: 'Bring new abilities into Nimi.',
     subtitle:
-      'Nimi Apps are small apps you can open inside Nimi. They can add tools, scenes, or local AI experiences. Desktop shows what is available for your account and local workspace; developers build with the SDK and ship through clear product rules.',
-    cta: 'Read Desktop Docs',
+      'Nimi Apps are small apps you can open inside Nimi. They can add tools, scenes, or local AI experiences. Nimi Home shows what is available for your account and local workspace; developers build with the SDK and ship through clear product rules.',
+    cta: 'Read Nimi App docs',
     cards: [
       {
         label: 'Use',
         title: 'Open apps in one place',
         description:
-          'Use the Apps area in Desktop to open the tools, scenes, or local AI experiences that are available in your current product context.',
+          'Use the Apps area in Nimi Home to open the tools, scenes, or local AI experiences that are available in your current product context.',
       },
       {
         label: 'Build',
@@ -361,8 +361,9 @@ export const landingContentEn: LandingContent = {
     ],
     notes: [
       'New product work uses the Nimi Apps path.',
+      'Nimi Apps defines the catalog, local-import, installation, update, launch, repair, uninstall, and Developer Mode lifecycle contract. This pre-release exposes Developer Mode local development; public catalog, local import, ordinary install, installed launch, publisher publication, and registry onboarding are not available yet.',
       'The homepage does not promise a public app catalog before it opens; the product UI shows what users can open today.',
-      'To build an app, start with the SDK and Desktop docs.',
+      'To build an app, start with the SDK and Nimi App docs.',
     ],
   },
   faq: {
@@ -390,49 +391,68 @@ export const landingContentEn: LandingContent = {
       {
         question: 'Is Nimi open source?',
         answer:
-          'Yes. Runtime and SDK ship under Apache-2.0; desktop and app-layer code under MIT. The full source tree is on GitHub.',
+          'Yes. Runtime and SDK ship under Apache-2.0; Nimi app and app-layer code under MIT. The full source tree is on GitHub.',
       },
       {
-        question: 'Desktop vs Web mode?',
-        answer: landingPositioningEn.desktop.description,
+        question: 'Nimi Home vs Web mode?',
+        answer: 'Nimi Home is the primary product entry hosted by the current native shell. Web mode is a constrained browser projection and does not replace native or local Runtime behavior.',
       },
       {
         question: 'Can I build my own Nimi App?',
         answer:
-          'Yes. Developers can start from the SDK and Desktop docs, then connect tools, scenes, or local AI experiences to Nimi through the Nimi Apps path.',
+          'Yes. Developers can start from the SDK and Nimi App docs, then connect tools, scenes, or local AI experiences to Nimi through the Nimi Apps path.',
       },
     ],
   },
   security: {
-    title: 'Open rules. Clear boundaries.',
-    subtitle: 'Users know what they are using. Developers know where to integrate.',
+    title: 'Trust, security, and release integrity.',
+    subtitle: 'Review the source, report concerns privately, and verify release status before downloading.',
     intro:
-      'Nimi keeps the runtime, SDK, desktop app, and app layer separate: public entry points are documented, and private internals stay protected.',
+      'Nimi keeps public source, security reporting, release availability, and code-signing status directly accessible. Pending work stays visibly pending.',
+    linksAriaLabel: 'Nimi trust and security links',
     pillars: [
       {
-        label: 'Public rules',
-        title: 'Core rules live in the repo',
+        label: 'Source and docs',
+        title: 'Inspect how Nimi is built',
         points: [
-          'Public product rules live under .nimi/spec/**, where they can be read and reviewed.',
-          'Docs and landing copy follow the same source, so the story does not drift.',
+          'Source code is public at github.com/nimiplatform/nimi.',
+          'Product and developer documentation is published at docs.nimi.ai.',
         ],
       },
       {
-        label: 'Clear integration',
-        title: 'Use the public interfaces',
+        label: 'Security',
+        title: 'Report concerns privately',
         points: [
-          'Developers integrate through the SDK, Desktop, and documented entry points.',
-          'Apps do not need private internals or hidden shortcuts to work inside Nimi.',
+          'Use GitHub Security Advisories for private vulnerability reports.',
+          'Security email: security@nimi.ai.',
         ],
       },
       {
-        label: 'Trusted catalog',
-        title: 'Capability and implementation data comes from source',
+        label: 'Code signing',
+        title: 'Verify the release, not the promise',
         points: [
-          'Runtime implementation and capability information is generated from source tables.',
-          'The page favors traceable facts over broad marketing promises.',
+          'Windows production signing and the SignPath Foundation application are pending.',
+          'No current Nimi artifact should be treated as SignPath-signed without valid Authenticode verification.',
         ],
       },
+    ],
+    statuses: [
+      {
+        label: 'Windows',
+        value: 'Windows release pending production code-signing approval',
+      },
+      {
+        label: 'SignPath Foundation',
+        value: 'SignPath Foundation application pending',
+      },
+    ],
+    links: [
+      { label: 'Download', detail: 'Stable and unsigned-preview status', href: '/download' },
+      { label: 'Code signing policy', detail: 'Scope, controls, and verification', href: '/code-signing' },
+      { label: 'Source code', detail: 'github.com/nimiplatform/nimi', href: 'https://github.com/nimiplatform/nimi' },
+      { label: 'Documentation', detail: 'docs.nimi.ai', href: 'https://docs.nimi.ai' },
+      { label: 'GitHub Security Advisories', detail: 'Private vulnerability report', href: 'https://github.com/nimiplatform/nimi/security/advisories/new' },
+      { label: 'security@nimi.ai', detail: 'Private security email', href: 'mailto:security@nimi.ai' },
     ],
   },
   openSource: {
@@ -471,6 +491,9 @@ export const landingContentEn: LandingContent = {
     line2: 'Read the docs to see what ships today and what is on the roadmap.',
     termsLabel: 'Terms',
     privacyLabel: 'Privacy',
+    downloadLabel: 'Download',
+    codeSigningLabel: 'Code signing policy',
+    securityLabel: 'Security',
   },
   localeToggleLabel: 'Language',
   localeOptions: {

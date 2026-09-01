@@ -8,7 +8,7 @@ models:
     capabilities: []
     install:
       repo: Comfy-Org/z_image_turbo
-      revision: 2f862278568d3f0a83167a16e5f11094da6dee72
+      revision: 2f862278568d3f0a83167a16e5f11094da6dee72 # pragma: allowlist secret -- public immutable model revision
       install_kind: weights
       entry: split_files/vae/ae.safetensors
       artifact_roles:
@@ -45,7 +45,7 @@ models:
     capabilities: []
     install:
       repo: unsloth/Qwen3-4B-Instruct-2507-GGUF
-      revision: a06e946bb6b655725eafa393f4a9745d460374c9
+      revision: a06e946bb6b655725eafa393f4a9745d460374c9 # pragma: allowlist secret -- public immutable model revision
       install_kind: weights
       entry: Qwen3-4B-Instruct-2507-Q4_K_M.gguf
       artifact_roles:
@@ -154,7 +154,7 @@ models:
     capabilities: []
     install:
       repo: black-forest-labs/FLUX.2-dev
-      revision: 26afe3a78bb242c0a8bb181dcc8937bb16e5c66c
+      revision: 26afe3a78bb242c0a8bb181dcc8937bb16e5c66c # pragma: allowlist secret -- public immutable model revision
       install_kind: weights
       entry: ae.safetensors
       artifact_roles:
@@ -179,7 +179,7 @@ models:
     capabilities: []
     install:
       repo: QuantStack/Qwen-Image-GGUF
-      revision: 257f261fa92593bed760aa6fa3f7921a49fea00f
+      revision: 257f261fa92593bed760aa6fa3f7921a49fea00f # pragma: allowlist secret -- public immutable model revision
       install_kind: weights
       entry: VAE/Qwen_Image-VAE.safetensors
       artifact_roles:
@@ -204,7 +204,7 @@ models:
     capabilities: []
     install:
       repo: mradermacher/Qwen2.5-VL-7B-Instruct-GGUF
-      revision: cfa2baa09946b211c107e6e104948987a64dd2c1
+      revision: cfa2baa09946b211c107e6e104948987a64dd2c1 # pragma: allowlist secret -- public immutable model revision
       install_kind: weights
       entry: Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf
       artifact_roles:
@@ -229,7 +229,7 @@ models:
     capabilities: []
     install:
       repo: QuantStack/Qwen-Image-GGUF
-      revision: 257f261fa92593bed760aa6fa3f7921a49fea00f
+      revision: 257f261fa92593bed760aa6fa3f7921a49fea00f # pragma: allowlist secret -- public immutable model revision
       install_kind: weights
       entry: VAE/Qwen_Image-VAE.safetensors
       artifact_roles:
@@ -254,7 +254,7 @@ models:
     capabilities: []
     install:
       repo: mradermacher/Qwen2.5-VL-7B-Instruct-GGUF
-      revision: cfa2baa09946b211c107e6e104948987a64dd2c1
+      revision: cfa2baa09946b211c107e6e104948987a64dd2c1 # pragma: allowlist secret -- public immutable model revision
       install_kind: weights
       entry: Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf
       artifact_roles:
@@ -279,7 +279,7 @@ models:
     capabilities: []
     install:
       repo: Comfy-Org/MiniMax-H3
-      revision: d07f69bc8fa09c9717e1e47180034f9322e0e54d
+      revision: d07f69bc8fa09c9717e1e47180034f9322e0e54d # pragma: allowlist secret -- public immutable model revision
       install_kind: weights
       entry: vae/minimax_h3_video_vae_fp16.safetensors
       artifact_roles:
@@ -304,7 +304,7 @@ models:
     capabilities: []
     install:
       repo: Comfy-Org/MiniMax-H3
-      revision: d07f69bc8fa09c9717e1e47180034f9322e0e54d
+      revision: d07f69bc8fa09c9717e1e47180034f9322e0e54d # pragma: allowlist secret -- public immutable model revision
       install_kind: weights
       entry: vae/minimax_h3_audio_vae_fp32.safetensors
       artifact_roles:
@@ -329,7 +329,7 @@ models:
     capabilities: []
     install:
       repo: unsloth/gemma-4-E2B-it-GGUF
-      revision: 90f9618340396838ee7ff5b0ba2da27da62953d3
+      revision: 90f9618340396838ee7ff5b0ba2da27da62953d3 # pragma: allowlist secret -- public immutable model revision
       install_kind: weights
       entry: mmproj-F16.gguf
       artifact_roles:
@@ -362,7 +362,7 @@ models:
     capabilities: []
     install:
       repo: unsloth/gemma-4-26B-A4B-it-GGUF
-      revision: 3365c68df1a83799b846d05324ebfadbb8cc70b3
+      revision: 3365c68df1a83799b846d05324ebfadbb8cc70b3 # pragma: allowlist secret -- public immutable model revision
       install_kind: weights
       entry: mmproj-F16.gguf
       artifact_roles:

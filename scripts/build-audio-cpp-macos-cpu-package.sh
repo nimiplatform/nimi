@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-commit="26dcb5c4cf5aa016ae6285096a7b45f2671e5d17"
+commit="26dcb5c4cf5aa016ae6285096a7b45f2671e5d17" # pragma: allowlist secret -- public source commit
 version="0.6.1"
 archive_name="audiocpp-macos-arm64-cpu-release-${version}-${commit:0:8}.zip"
 

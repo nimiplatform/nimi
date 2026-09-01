@@ -890,6 +890,86 @@ impl Default for AppMessageEventType {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AppPackageJobKind {
+    APPPACKAGEJOBKINDUNSPECIFIED,
+    APPPACKAGEJOBKINDINSTALL,
+    APPPACKAGEJOBKINDUPDATE,
+    APPPACKAGEJOBKINDREPAIR,
+    APPPACKAGEJOBKINDUNINSTALL,
+}
+
+impl Default for AppPackageJobKind {
+    fn default() -> Self {
+        Self::APPPACKAGEJOBKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AppPackageJobPhase {
+    APPPACKAGEJOBPHASEUNSPECIFIED,
+    APPPACKAGEJOBPHASEQUEUED,
+    APPPACKAGEJOBPHASEDOWNLOADING,
+    APPPACKAGEJOBPHASEREADINGLOCAL,
+    APPPACKAGEJOBPHASEVERIFYING,
+    APPPACKAGEJOBPHASEVERIFYINGINSTALLED,
+    APPPACKAGEJOBPHASEACQUIRINGMISSING,
+    APPPACKAGEJOBPHASESTAGING,
+    APPPACKAGEJOBPHASECOMMITTING,
+    APPPACKAGEJOBPHASEREMOVINGPACKAGE,
+    APPPACKAGEJOBPHASEUNREGISTERING,
+    APPPACKAGEJOBPHASECOMPLETED,
+    APPPACKAGEJOBPHASEFAILED,
+    APPPACKAGEJOBPHASECANCELED,
+}
+
+impl Default for AppPackageJobPhase {
+    fn default() -> Self {
+        Self::APPPACKAGEJOBPHASEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AppPackageProgressBasis {
+    APPPACKAGEPROGRESSBASISUNSPECIFIED,
+    APPPACKAGEPROGRESSBASISBYTES,
+    APPPACKAGEPROGRESSBASISSTEPS,
+    APPPACKAGEPROGRESSBASISINDETERMINATE,
+}
+
+impl Default for AppPackageProgressBasis {
+    fn default() -> Self {
+        Self::APPPACKAGEPROGRESSBASISUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AppPackageSourceClass {
+    APPPACKAGESOURCECLASSUNSPECIFIED,
+    APPPACKAGESOURCECLASSVERIFIED,
+    APPPACKAGESOURCECLASSUSERIMPORTED,
+}
+
+impl Default for AppPackageSourceClass {
+    fn default() -> Self {
+        Self::APPPACKAGESOURCECLASSUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AppPackageTerminalResult {
+    APPPACKAGETERMINALRESULTUNSPECIFIED,
+    APPPACKAGETERMINALRESULTCOMPLETED,
+    APPPACKAGETERMINALRESULTFAILED,
+    APPPACKAGETERMINALRESULTCANCELED,
+}
+
+impl Default for AppPackageTerminalResult {
+    fn default() -> Self {
+        Self::APPPACKAGETERMINALRESULTUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AppStorageState {
     APPSTORAGESTATEUNSPECIFIED,
     APPSTORAGESTATEREADY,
@@ -2398,6 +2478,9 @@ pub enum ReasonCode {
     APPSTORAGECURSORINVALID,
     APPSTORAGEINTEGRITYFAILURE,
     APPSTORAGEARTIFACTUNAVAILABLE,
+    APPPACKAGEJOBNOTFOUND,
+    APPPACKAGEJOBPHASECONFLICT,
+    APPPACKAGEJOBNOTCANCELABLE,
     GRANTTOKENCHAINROOTNOTFOUND,
     GRANTTOKENCHAINROOTREQUIRED,
     PAGETOKENINVALID,
@@ -2799,6 +2882,12 @@ impl ReasonCode {
             "APPSTORAGEINTEGRITYFAILURE" => Some(Self::APPSTORAGEINTEGRITYFAILURE),
             "APP_STORAGE_ARTIFACT_UNAVAILABLE" => Some(Self::APPSTORAGEARTIFACTUNAVAILABLE),
             "APPSTORAGEARTIFACTUNAVAILABLE" => Some(Self::APPSTORAGEARTIFACTUNAVAILABLE),
+            "APP_PACKAGE_JOB_NOT_FOUND" => Some(Self::APPPACKAGEJOBNOTFOUND),
+            "APPPACKAGEJOBNOTFOUND" => Some(Self::APPPACKAGEJOBNOTFOUND),
+            "APP_PACKAGE_JOB_PHASE_CONFLICT" => Some(Self::APPPACKAGEJOBPHASECONFLICT),
+            "APPPACKAGEJOBPHASECONFLICT" => Some(Self::APPPACKAGEJOBPHASECONFLICT),
+            "APP_PACKAGE_JOB_NOT_CANCELABLE" => Some(Self::APPPACKAGEJOBNOTCANCELABLE),
+            "APPPACKAGEJOBNOTCANCELABLE" => Some(Self::APPPACKAGEJOBNOTCANCELABLE),
             "GRANT_TOKEN_CHAIN_ROOT_NOT_FOUND" => Some(Self::GRANTTOKENCHAINROOTNOTFOUND),
             "GRANTTOKENCHAINROOTNOTFOUND" => Some(Self::GRANTTOKENCHAINROOTNOTFOUND),
             "GRANT_TOKEN_CHAIN_ROOT_REQUIRED" => Some(Self::GRANTTOKENCHAINROOTREQUIRED),
@@ -4322,6 +4411,26 @@ pub struct AppMessageEvent {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppPackageJob {
+    pub job_id: Option<Vec<u8>>,
+    pub app_id: Option<String>,
+    pub source_class: Option<AppPackageSourceClass>,
+    pub kind: Option<AppPackageJobKind>,
+    pub target_ref: Option<String>,
+    pub phase: Option<AppPackageJobPhase>,
+    pub progress_basis: Option<AppPackageProgressBasis>,
+    pub bytes_completed: Option<u64>,
+    pub bytes_total: Option<u64>,
+    pub steps_completed: Option<u64>,
+    pub steps_total: Option<u64>,
+    pub started_at: Option<String>,
+    pub completed_at: Option<String>,
+    pub terminal_result: Option<AppPackageTerminalResult>,
+    pub reason_code: Option<String>,
+    pub cancelable: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppStorageProjection {
     pub app_id: Option<String>,
     pub state: Option<AppStorageState>,
@@ -4565,6 +4674,19 @@ pub struct BindLocalAppProcessRequest {
 pub struct BindLocalAppProcessResponse {
     pub launch_id: Option<Vec<u8>>,
     pub bind_deadline: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CancelAppPackageJobRequest {
+    pub job_id: Option<Vec<u8>>,
+    pub expected_phase: Option<AppPackageJobPhase>,
+    pub reason_code: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CancelAppPackageJobResponse {
+    pub job: Option<Box<AppPackageJob>>,
     pub reason_code: Option<ReasonCode>,
 }
 
@@ -5248,6 +5370,16 @@ pub struct CommitLocalAppAgentPresentationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CommittedAppRelease {
+    pub app_id: Option<String>,
+    pub source_class: Option<AppPackageSourceClass>,
+    pub version: Option<String>,
+    pub release_ref: Option<String>,
+    pub launch_selector: Option<Vec<u8>>,
+    pub committed_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CompleteLoginRequest {
     pub caller: Option<Box<AccountCaller>>,
     pub login_attempt_id: Option<String>,
@@ -5925,6 +6057,17 @@ pub struct GetAppAIConfigResponse {
     pub config: Option<Box<AIConfig>>,
     pub revision: Option<String>,
     pub effective_selections: Vec<Box<AIConfigEffectiveSelection>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAppPackageJobRequest {
+    pub job_id: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAppPackageJobResponse {
+    pub job: Option<Box<AppPackageJob>>,
+    pub reason_code: Option<ReasonCode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6645,6 +6788,17 @@ pub struct ListAppAIConfigOptionsResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListAppPackageJobsRequest {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListAppPackageJobsResponse {
+    pub jobs: Vec<Box<AppPackageJob>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListAuditEventsRequest {
     pub app_id: Option<String>,
     pub subject_user_id: Option<String>,
@@ -6687,6 +6841,17 @@ pub struct ListCatalogVariantsRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListCatalogVariantsResponse {
     pub variants: Vec<Box<LocalCatalogVariantDescriptor>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListCommittedAppReleasesRequest {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListCommittedAppReleasesResponse {
+    pub releases: Vec<Box<CommittedAppRelease>>,
+    pub reason_code: Option<ReasonCode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

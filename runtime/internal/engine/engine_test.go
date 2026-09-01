@@ -364,7 +364,7 @@ func TestClassifyMediaHost(t *testing.T) {
 func TestLlamaExpectedSHA256(t *testing.T) {
 	const version = "b8575"
 	const expectedHash = "aac7f1248948cf2e6b2ce1c86a311601b1e37154914397f602b1f6f4bfe2de00" // pragma: allowlist secret
-	asset, err := llamaAssetName(version)
+	asset, err := llamaAssetNameFor(version, "darwin", "arm64")
 	if err != nil {
 		t.Fatalf("llamaAssetName: %v", err)
 	}

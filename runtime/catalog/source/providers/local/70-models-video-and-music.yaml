@@ -165,7 +165,7 @@ models:
     source_ids: [minimax_music3_audio_cpp_gguf_modelcard]
     install:
       repo: audio-cpp/MiniMax-Music3-GGUF
-      revision: 2a19a42dd84d9ab9411316977ff3c9fd143ab214
+      revision: 2a19a42dd84d9ab9411316977ff3c9fd143ab214 # pragma: allowlist secret -- public immutable model revision
       license: MiniMax-Music3 Community License
       provenance: MiniMaxAI/MiniMax-Music3@fbdf52fbaaca799592917417eb05f1899f1255ec converted by audio-cpp
       install_kind: verified-hf-multi-file

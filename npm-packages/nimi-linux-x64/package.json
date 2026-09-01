@@ -3,8 +3,14 @@
   "version": "0.0.0-dev",
   "description": "Nimi runtime binary for Linux x64",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nimiplatform/nimi",
+    "directory": "npm-packages/nimi-linux-x64"
+  },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "os": ["linux"],
   "cpu": ["x64"],

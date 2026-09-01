@@ -121,7 +121,9 @@ func (s *Service) rememberLocalEnvironmentPlanDependencyContracts(deps []localEn
 		changed = true
 	}
 	if changed {
-		s.persistStateLocked()
+		if err := s.persistStateLocked(); err != nil {
+			s.logger.Error("persist local environment plan dependency contracts", "error", err)
+		}
 	}
 }
 
@@ -284,7 +286,9 @@ func (s *Service) upsertLocalEnvironmentSelectedSourceRecord(record localEnviron
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	merged := s.mergeLocalEnvironmentSelectedSourceRecordLocked(record)
-	s.persistStateLocked()
+	if err := s.persistStateLocked(); err != nil {
+		s.logger.Error("persist local environment selected source", "environment_key", merged.EnvironmentKey, "error", err)
+	}
 	return merged
 }
 

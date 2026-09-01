@@ -18,7 +18,12 @@ func TestManagedEnvironmentCheckSyncDoesNotPromoteStaticOnlyProfileAndPreservesU
 		t.Fatal(err)
 	}
 	consumer := "speech.qwen3-tts.python"
-	identity, err := ResolvePythonDependencyProfileIdentity(consumer, currentGOOS()+"/"+currentGOARCH(), "cpu")
+	profilePlatform := currentGOOS() + "/" + currentGOARCH()
+	identity, err := ResolvePythonDependencyProfileIdentity(consumer, profilePlatform, "cpu")
+	if err != nil {
+		profilePlatform = "darwin/arm64"
+		identity, err = ResolvePythonDependencyProfileIdentity(consumer, profilePlatform, "cpu")
+	}
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +45,7 @@ func TestManagedEnvironmentCheckSyncDoesNotPromoteStaticOnlyProfileAndPreservesU
 		t.Fatal(err)
 	}
 	otherPlatform := "darwin/arm64"
-	if otherPlatform == currentGOOS()+"/"+currentGOARCH() {
+	if otherPlatform == profilePlatform {
 		otherPlatform = "windows/amd64"
 	}
 	incompatibleIdentity, err := ResolvePythonDependencyProfileIdentity(consumer, otherPlatform, "cpu")
@@ -58,7 +63,7 @@ func TestManagedEnvironmentCheckSyncDoesNotPromoteStaticOnlyProfileAndPreservesU
 		t.Fatal(err)
 	}
 
-	results := manager.CheckSyncManagedEnvironment(context.Background(), dataRoot)
+	results := manager.checkSyncManagedEnvironment(context.Background(), dataRoot, profilePlatform)
 	profileUnavailable := false
 	unknownPreserved := false
 	incompatiblePreserved := false

@@ -23,13 +23,7 @@ func testLocalAgentContext(ownerUserID string, runtimeSourceRef string) *runtime
 }
 
 func testRuntimeAgentSourceRef(_ string) string {
-	verifiedSourceRef := sourceMaterializationCharacterSourceRefV3{
-		Kind:           "personaCharacter",
-		ID:             "persona-materialization-v3",
-		WorldID:        "world-materialization-v3",
-		OwnerAccountID: "source-owner-1",
-		SourceHash:     "0bab0c4faf1548436903d6f0c90f0f2a610ea5bc3f28796b3fd344bd7f1a1e20",
-	}
+	verifiedSourceRef := sourceMaterializationReferenceSourceRefV3("persona-character")
 	canonicalRuntimeSourceRef, err := runtimeSourceRefForRealmSourceV3(verifiedSourceRef)
 	if err != nil {
 		panic(err)

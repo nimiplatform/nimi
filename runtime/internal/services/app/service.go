@@ -115,6 +115,7 @@ type formalAppBinding struct {
 type Service struct {
 	runtimev1.UnimplementedRuntimeAppServiceServer
 	runtimev1.UnimplementedRuntimeDevelopmentServiceServer
+	runtimev1.UnimplementedRuntimeAppPackageServiceServer
 	logger *slog.Logger
 
 	mu                         sync.RWMutex

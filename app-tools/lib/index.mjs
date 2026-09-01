@@ -9,8 +9,14 @@ import {
   resolveAppScaffoldCandidateCreateInput,
   resolveAppScaffoldCreateInput,
 } from './app-scaffold.mjs';
-import { doctorApp, initApp, updateApp } from './app-doctor-update.mjs';
-import { checkAppProject, syncAppProject } from './app-project-lifecycle.mjs';
+import { initApp } from './app-doctor-update.mjs';
+import {
+  buildAppProject,
+  checkAppProject,
+  syncAppProject,
+  testAppProject,
+} from './app-project-lifecycle.mjs';
+import { aggregateAppTargetCandidates, packAppTarget } from './app-pack.mjs';
 export { runDevShell } from '../scripts/dev-shell.mjs';
 export {
   validateSimulatorAppSource,
@@ -84,8 +90,63 @@ function runNimicodingSync(targetDir, mode) {
   }
 }
 
+function runAppCommand(targetDir, command, options = {}) {
+  const result = spawnSync(command, {
+    cwd: targetDir,
+    shell: true,
+    encoding: 'utf8',
+    stdio: options.capture ? 'pipe' : 'inherit',
+  });
+  return {
+    status: result.status ?? 1,
+    stdout: result.stdout || '',
+    stderr: [result.error?.message, result.stderr].filter(Boolean).join('\n'),
+  };
+}
+
+function signWindowsTarget(targetDir, relativePayloadPath) {
+  const targetPath = path.resolve(targetDir, ...relativePayloadPath.split('/'));
+  const rootPrefix = `${path.resolve(targetDir)}${path.sep}`;
+  if (!targetPath.startsWith(rootPrefix) || !existsSync(targetPath) || !statSync(targetPath).isFile()) {
+    throw new Error(`Windows production signing target is missing: ${relativePayloadPath}`);
+  }
+  const script = [
+    "$ErrorActionPreference = 'Stop'",
+    "if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_BASE64) -or [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PASSWORD)) { throw 'Windows signing credentials are missing' }",
+    "$pfxPath = Join-Path ([IO.Path]::GetTempPath()) ('nimi-app-sign-' + [guid]::NewGuid().ToString('N') + '.pfx')",
+    '$cert = $null',
+    'try {',
+    '  [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))',
+    '  $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force',
+    "  $cert = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation 'Cert:\\CurrentUser\\My' -Password $password -Exportable:$false",
+    "  if (-not $cert) { throw 'Windows signing certificate import failed' }",
+    "  $kitsRoot = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\\10\\bin'",
+    "  $signTool = Get-ChildItem -LiteralPath $kitsRoot -Filter 'signtool.exe' -Recurse -File | Where-Object { $_.FullName -match '\\\\x64\\\\signtool\\.exe$' } | Sort-Object FullName -Descending | Select-Object -First 1",
+    "  if (-not $signTool) { throw 'signtool.exe was not found' }",
+    "  & $signTool.FullName sign /fd SHA256 /td SHA256 /tr 'http://timestamp.digicert.com' /sha1 $cert.Thumbprint $env:NIMI_APP_SIGN_TARGET",
+    "  if ($LASTEXITCODE -ne 0) { throw 'signtool failed' }",
+    '  $signature = Get-AuthenticodeSignature -LiteralPath $env:NIMI_APP_SIGN_TARGET',
+    "  if ($signature.Status -ne 'Valid') { throw ('Authenticode status: ' + $signature.Status) }",
+    '  $signature.SignerCertificate.Subject',
+    '} finally {',
+    "  if ($cert) { Remove-Item -LiteralPath ('Cert:\\CurrentUser\\My\\' + $cert.Thumbprint) -Force -ErrorAction SilentlyContinue }",
+    '  [IO.File]::Delete($pfxPath)',
+    '}',
+  ].join('\n');
+  const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+    cwd: targetDir,
+    encoding: 'utf8',
+    env: { ...process.env, NIMI_APP_SIGN_TARGET: targetPath },
+  });
+  if (result.status !== 0) {
+    const detail = [result.error?.message, result.stdout, result.stderr].filter(Boolean).join('\n').trim();
+    throw new Error(`Windows production signing failed${detail ? `: ${detail}` : ''}`);
+  }
+  return { subject: String(result.stdout || '').trim() };
+}
+
 function appToolRunners() {
-  return { runNimicodingSync };
+  return { runNimicodingSync, runAppCommand, signWindowsTarget };
 }
 
 export function createApp(cwd, options = {}) {
@@ -159,22 +220,28 @@ function resolveCreateTopology() {
   return Object.freeze({ profile: 'standalone' });
 }
 
-export function doctorAppScaffold(cwd, options = {}) {
-  return doctorApp(cwd, options, appScaffoldVersions(), appToolRunners());
-}
-
 export function initAppScaffold(cwd, options = {}) {
   return initApp(cwd, options, appScaffoldVersions(), appToolRunners());
 }
 
-export function updateAppScaffold(cwd, options = {}) {
-  return updateApp(cwd, options, appScaffoldVersions(), appToolRunners());
-}
-
-export function syncSubmittedApp(cwd, options = {}) {
+export function syncApp(cwd, options = {}) {
   return syncAppProject(cwd, options, appScaffoldVersions(), appToolRunners());
 }
 
-export function checkSubmittedApp(cwd, options = {}) {
+export function checkApp(cwd, options = {}) {
   return checkAppProject(cwd, options, appScaffoldVersions(), appToolRunners());
+}
+
+export function testApp(cwd, options = {}) {
+  return testAppProject(cwd, options, appToolRunners());
+}
+
+export function buildApp(cwd, options = {}) {
+  return buildAppProject(cwd, options, appToolRunners());
+}
+
+export function packApp(cwd, options = {}) {
+  return options.aggregate
+    ? aggregateAppTargetCandidates(cwd, options)
+    : packAppTarget(cwd, options);
 }

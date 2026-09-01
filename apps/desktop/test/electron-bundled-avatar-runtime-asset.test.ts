@@ -918,8 +918,7 @@ test('Host handoff serial tail orders concurrent confirmations and survives a re
 test('Host handoff shutdown closes enqueue and rejects a late active continuation', async () => {
   let release: (() => void) | undefined;
   const gate = new Promise<void>((resolve) => { release = resolve; });
-  let dispatch: ReturnType<typeof createDesktopAvatarHostHandoffSerialDispatcher>;
-  dispatch = createDesktopAvatarHostHandoffSerialDispatcher(async () => {
+  const dispatch = createDesktopAvatarHostHandoffSerialDispatcher(async () => {
     await gate;
     if (dispatch.isClosing()) throw new Error('desktop-bundled-avatar-host-shutting-down');
     return {

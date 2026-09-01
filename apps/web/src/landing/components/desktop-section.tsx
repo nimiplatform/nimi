@@ -58,9 +58,7 @@ export function DesktopSection(props: DesktopSectionProps) {
             <div className="mt-8">
               <a
                 className="inline-flex h-[52px] items-center justify-center rounded-[20px] bg-gradient-to-r from-[#38d6a3] to-[#0ea5e9] px-8 text-[15px] font-bold text-white shadow-[0_12px_30px_-10px_rgba(56,214,163,0.5)] transition hover:-translate-y-1 hover:shadow-[0_16px_40px_-10px_rgba(56,214,163,0.6)]"
-                href={props.links.docsUrl + 'desktop/'}
-                target="_blank"
-                rel="noreferrer"
+                href={props.links.downloadUrl}
               >
                 {props.content.downloadCta}
               </a>

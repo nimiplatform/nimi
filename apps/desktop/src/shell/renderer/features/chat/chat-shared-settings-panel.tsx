@@ -58,7 +58,7 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
   return useMemo(() => ({
     title: t('Chat.settingsAIModelTitle', { defaultValue: 'AI Model' }),
     description: t('Chat.settingsAppAIConfigOwnerHint', {
-      defaultValue: 'Nimi Desktop stores capability intent. Runtime validates the committed Local or Cloud choice when execution starts.',
+      defaultValue: 'Nimi stores capability intent. Runtime validates the committed Local or Cloud choice when execution starts.',
     }),
     backLabel: t('Chat.settingsModelConfigBack', { defaultValue: 'Back' }),
     detailTitle: (capabilityLabel: string) => t('Chat.settingsModelConfigTitle', {
@@ -168,10 +168,10 @@ function useNimiChatModelConfigCopy(): ModelConfigCopy {
     }),
     retryLabel: t('Common.retry', { defaultValue: 'Retry' }),
     loadFailed: t('Chat.settingsAppAIConfigUnavailable', {
-      defaultValue: 'Nimi Desktop AI intent could not be loaded from Runtime.',
+      defaultValue: 'Nimi AI intent could not be loaded from Runtime.',
     }),
     saveFailed: t('Chat.settingsAppAIConfigSaveFailed', {
-      defaultValue: 'Runtime could not save the Nimi Desktop AI intent.',
+      defaultValue: 'Runtime could not save the Nimi AI intent.',
     }),
     technicalDetailsLabel: t('Chat.settingsTechnicalDetails', { defaultValue: 'Technical details' }),
     unsupportedCapabilityLabel: t('Chat.settingsModelUnsupportedCapability', {
@@ -259,7 +259,7 @@ function AiModeSettings(props: {
           onOverwrite={(input) => overwriteAppAIConfig.mutateAsync(input)}
           onOpenMachineLoadout={openMachineLoadout}
           formatError={(error) => {
-            const fallback = copy.saveFailed || 'Runtime could not save the Nimi Desktop AI intent.';
+            const fallback = copy.saveFailed || 'Runtime could not save the Nimi AI intent.';
             const userFacing = toChatUserFacingRuntimeError(error, fallback, t);
             return {
               message: userFacing.message,

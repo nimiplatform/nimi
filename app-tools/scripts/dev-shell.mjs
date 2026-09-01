@@ -186,7 +186,7 @@ async function readPresenceDescriptor(descriptorPath, now) {
   } catch {
     throw new DevShellError(
       'local-development-desktop-not-running',
-      'Nimi Desktop is not running. Open Nimi Desktop, sign in, and run this command again.',
+      'Nimi is not running. Open Nimi, sign in, and run this command again.',
     );
   }
 }
@@ -218,16 +218,16 @@ async function postJson(fetchImpl, endpoint, route, body) {
   } catch {
     throw new DevShellError(
       'local-development-desktop-not-running',
-      'The Nimi Desktop development supervisor is unavailable.',
+      'The Nimi development supervisor is unavailable.',
     );
   }
   if (!response || response.status !== 200) {
-    throw new DevShellError('local-development-launcher-unavailable', 'Nimi Desktop rejected the development intent transport.');
+    throw new DevShellError('local-development-launcher-unavailable', 'Nimi rejected the development intent transport.');
   }
   try {
     return await response.json();
   } catch {
-    throw new DevShellError('local-development-launcher-unavailable', 'Nimi Desktop returned an invalid development response.');
+    throw new DevShellError('local-development-launcher-unavailable', 'Nimi returned an invalid development response.');
   }
 }
 
@@ -294,7 +294,7 @@ function bridgeError(response, run) {
   const reasonCode = typeof response?.reasonCode === 'string'
     ? response.reasonCode
     : run?.reasonCode || 'local-development-launcher-unavailable';
-  return new DevShellError(reasonCode, `Nimi Desktop rejected local development (${reasonCode}).`);
+  return new DevShellError(reasonCode, `Nimi rejected local development (${reasonCode}).`);
 }
 
 function printStatusTransition(output, status, previousState) {

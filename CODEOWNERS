@@ -1,11 +1,11 @@
 # Default owner
-* @hallida
+* @snowzane
 
 # Component ownership
-/runtime/ @hallida
-/sdk/ @hallida
-/apps/desktop/ @hallida
-/proto/ @hallida
-/docs/ @hallida
-/apps/web/ @hallida
-/.github/ @hallida
+/runtime/ @snowzane
+/sdks/ @snowzane
+/apps/desktop/ @snowzane
+/proto/ @snowzane
+/docs/ @snowzane
+/apps/web/ @snowzane
+/.github/ @snowzane

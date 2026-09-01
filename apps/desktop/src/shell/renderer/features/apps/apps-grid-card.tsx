@@ -1,6 +1,6 @@
 import type { MouseEvent, ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Info, MoreHorizontal, Play, Square } from 'lucide-react';
+import { Info, MoreHorizontal, Play, Square, X } from 'lucide-react';
 import {
   ActionMenu,
   AppCardSurface,
@@ -13,12 +13,13 @@ import {
   type NimiMenuItem,
 } from '@nimiplatform/kit/ui';
 import {
-  actionPlanForLocalDevelopmentEntry,
+  actionPlanForEntry,
   type AppCardActionId,
 } from './apps-card-actions.js';
-import { appRunVisualState, CURRENT_APP_SOURCE } from './apps-card-fields.js';
+import { appRunVisualState, appSourceForEntry } from './apps-card-fields.js';
 import {
   AppArtworkCover,
+  AppPackageStatusLine,
   AppRunStatusBadge,
   AppRunStatusLine,
   AppSourceBadge,
@@ -81,11 +82,11 @@ export function AppGridCard({
   readonly onAction: (action: AppCardActionId) => void;
 }): ReactElement {
   const { t } = useTranslation();
-  const { registration } = entry;
+  const { identity, localDevelopment } = entry;
   const visual = appRunVisualState(entry.run?.state ?? null);
   const aiConfigSummary = aiConfigSummaryPresentation(entry, t);
-  const actionPlan = actionPlanForLocalDevelopmentEntry(entry.run?.state ?? null);
-  const primary = actionPlan.primary?.id === 'stop' ? 'stop' : 'launch';
+  const actionPlan = actionPlanForEntry(entry);
+  const primary = actionPlan.primary?.id ?? null;
 
   const menuItems: NimiMenuItem[] = [
     {
@@ -94,7 +95,7 @@ export function AppGridCard({
       icon: <Info className="h-4 w-4" aria-hidden="true" />,
       onSelect: () => onAction('details'),
     },
-    primary === 'stop'
+    ...(primary === null ? [] : [primary === 'stop'
       ? {
         id: 'stop',
         label: t('Apps.action.stop'),
@@ -108,7 +109,14 @@ export function AppGridCard({
         icon: <Play className="h-4 w-4" aria-hidden="true" />,
         disabled: activeAction !== null,
         onSelect: () => onAction('launch'),
-      },
+      }]),
+    ...(actionPlan.secondary.some((action) => action.id === 'cancel-job') ? [{
+      id: 'cancel-job',
+      label: t('Apps.action.cancel'),
+      icon: <X className="h-4 w-4" aria-hidden="true" />,
+      disabled: activeAction !== null,
+      onSelect: () => onAction('cancel-job'),
+    }] : []),
   ];
 
   return (
@@ -117,15 +125,15 @@ export function AppGridCard({
       as="div"
       className="group relative flex flex-col overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--nimi-border-strong)] hover:shadow-[var(--nimi-elevation-raised)]"
       data-app-card
-      data-testid={`apps-entry-${registration.appId}`}
-      data-local-development-shell={registration.shell}
-      data-source-generation={registration.sourceGeneration}
-      data-declaration-generation={registration.declarationGeneration}
+      data-testid={`apps-entry-${identity.entryKey}`}
+      data-local-development-shell={localDevelopment?.shell}
+      data-source-generation={localDevelopment?.sourceGeneration}
+      data-declaration-generation={localDevelopment?.declarationGeneration}
     >
       <div className="relative">
         <AppArtworkCover
-          appId={registration.appId}
-          displayName={registration.displayName}
+          appId={identity.appId}
+          displayName={identity.displayName}
           className="aspect-[16/9] w-full"
         />
         {visual !== 'stopped' ? (
@@ -137,7 +145,7 @@ export function AppGridCard({
           <Popover>
             <PopoverTrigger asChild>
               <IconButton
-                data-testid={`apps-entry-${registration.appId}-menu`}
+                data-testid={`apps-entry-${identity.entryKey}-menu`}
                 icon={<MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
                 tone="secondary"
                 size="sm"
@@ -155,7 +163,7 @@ export function AppGridCard({
         <div className="absolute bottom-2.5 right-2.5 z-10 opacity-0 transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100">
           {primary === 'stop' ? (
             <Button
-              data-testid={`apps-entry-${registration.appId}-stop`}
+              data-testid={`apps-entry-${identity.entryKey}-stop`}
               tone="secondary"
               size="sm"
               loading={activeAction === 'stop'}
@@ -168,9 +176,9 @@ export function AppGridCard({
               <Square className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
               {t('Apps.action.stop')}
             </Button>
-          ) : (
+          ) : primary === 'launch' ? (
             <Button
-              data-testid={`apps-entry-${registration.appId}-launch`}
+              data-testid={`apps-entry-${identity.entryKey}-launch`}
               tone="primary"
               size="sm"
               loading={activeAction === 'launch'}
@@ -183,23 +191,24 @@ export function AppGridCard({
               <Play className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
               {t('Apps.action.launch')}
             </Button>
-          )}
+          ) : null}
         </div>
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1.5 px-3.5 py-3">
         <button
           type="button"
-          data-testid={`apps-entry-${registration.appId}-name`}
+          data-testid={`apps-entry-${identity.entryKey}-name`}
           className="block w-full truncate text-left text-sm font-semibold text-[color:var(--nimi-text-primary)] outline-none after:absolute after:inset-0 after:content-[''] focus-visible:text-[var(--nimi-action-primary-bg)]"
           onClick={() => onAction('details')}
         >
-          {registration.displayName}
+          {identity.displayName}
         </button>
         <div className="flex min-w-0 items-center justify-between gap-2">
-          <AppSourceBadge source={CURRENT_APP_SOURCE} />
-          <AppRunStatusLine entry={entry} />
+          <AppSourceBadge source={appSourceForEntry(entry)} />
+          {localDevelopment ? <AppRunStatusLine entry={entry} /> : null}
         </div>
+        <AppPackageStatusLine entry={entry} />
         {aiConfigSummary ? (
           <div
             className="mt-1 flex min-w-0 items-center"

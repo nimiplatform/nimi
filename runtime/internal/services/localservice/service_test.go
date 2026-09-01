@@ -20,6 +20,8 @@ import (
 
 func newTestService(t *testing.T) *Service {
 	t.Helper()
+	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
 	statePath := filepath.Join(t.TempDir(), "local-state.json")
 	testRuntimeRoot := t.TempDir()
 	svc, err := NewWithProductControlDataRoot(

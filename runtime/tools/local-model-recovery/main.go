@@ -44,13 +44,11 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		}
 	}
 	if modeCount > 1 {
-		fmt.Fprintln(stderr, "--adopt, --migrate-legacy-state-assets, --migrate-configurations, --commit-configuration, and --retire-legacy-state are mutually exclusive")
-		return 2
+		return writeFailure(stderr, 2, "--adopt, --migrate-legacy-state-assets, --migrate-configurations, --commit-configuration, and --retire-legacy-state are mutually exclusive")
 	}
 	root := filepath.Clean(strings.TrimSpace(*modelsRoot))
 	if root == "." || strings.TrimSpace(*modelsRoot) == "" {
-		fmt.Fprintln(stderr, "--models-root is required; recovery never infers or mutates user state")
-		return 2
+		return writeFailure(stderr, 2, "--models-root is required; recovery never infers or mutates user state")
 	}
 	if *migrateLegacy {
 		statePath, ok := requiredStatePath(*stateStore, "--migrate-legacy-state-assets", stderr)
@@ -58,8 +56,7 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			return 2
 		}
 		if err := migrateLegacyStateAssets(root, statePath, stdout, stderr); err != nil {
-			fmt.Fprintln(stderr, err)
-			return 1
+			return writeFailure(stderr, 1, err)
 		}
 		return 0
 	}
@@ -69,8 +66,7 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			return 2
 		}
 		if err := retireLegacyLocalModelState(root, statePath, stdout, stderr); err != nil {
-			fmt.Fprintln(stderr, err)
-			return 1
+			return writeFailure(stderr, 1, err)
 		}
 		return 0
 	}
@@ -80,20 +76,17 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 			return 2
 		}
 		if err := migrateConfigurationsToLoadouts(root, statePath, strings.TrimSpace(*commitConfiguration), stdout, stderr); err != nil {
-			fmt.Fprintln(stderr, err)
-			return 1
+			return writeFailure(stderr, 1, err)
 		}
 		return 0
 	}
 	items, err := localservice.ReportResolvedManifestDirectories(root)
 	if err != nil {
-		fmt.Fprintln(stderr, err)
-		return 1
+		return writeFailure(stderr, 1, err)
 	}
 	if !*adopt {
 		if err := writeReport(stdout, root, items); err != nil {
-			fmt.Fprintln(stderr, err)
-			return 1
+			return writeFailure(stderr, 1, err)
 		}
 		return 0
 	}
@@ -102,10 +95,16 @@ func run(args []string, stdout io.Writer, stderr io.Writer) int {
 		return 2
 	}
 	if err := adoptResolvedDirectories(root, statePath, items, stdout, stderr); err != nil {
-		fmt.Fprintln(stderr, err)
-		return 1
+		return writeFailure(stderr, 1, err)
 	}
 	return 0
+}
+
+func writeFailure(output io.Writer, exitCode int, values ...any) int {
+	if _, err := fmt.Fprintln(output, values...); err != nil {
+		return 1
+	}
+	return exitCode
 }
 
 func retireLegacyLocalModelState(root string, statePath string, stdout io.Writer, stderr io.Writer) error {
@@ -130,7 +129,9 @@ func retireLegacyLocalModelState(root string, statePath string, stdout io.Writer
 func requiredStatePath(value string, mode string, stderr io.Writer) (string, bool) {
 	statePath := filepath.Clean(strings.TrimSpace(value))
 	if statePath == "." || strings.TrimSpace(value) == "" {
-		fmt.Fprintf(stderr, "--state-store is required with %s; recovery never infers the inventory owner\n", mode)
+		if _, err := fmt.Fprintf(stderr, "--state-store is required with %s; recovery never infers the inventory owner\n", mode); err != nil {
+			return "", false
+		}
 		return "", false
 	}
 	return statePath, true

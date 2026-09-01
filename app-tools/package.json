@@ -1,8 +1,12 @@
 {
   "name": "@nimiplatform/app-tools",
-  "version": "0.2.0-rc.1",
+  "version": "0.2.0",
+  "description": "Public app-authoring CLI for Nimi App projects.",
   "license": "Apache-2.0",
   "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "private": false,
   "repository": {
     "type": "git",
@@ -14,11 +18,11 @@
     "provenance": true
   },
   "nimiScaffoldVersions": {
-    "sdkVersion": "^0.7.0-rc.1",
-    "appToolsVersion": "^0.2.0-rc.1",
+    "sdkVersion": "^0.7.0",
+    "appToolsVersion": "^0.2.0",
     "nimicodingVersion": "0.6.1",
     "aiSdkVersion": "^6.0.85",
-    "kitVersion": "^0.3.0-rc.1",
+    "kitVersion": "^0.3.0",
     "reactVersion": "^19.2.8",
     "reactDomVersion": "^19.2.8",
     "i18nextVersion": "^25.10.10",
@@ -34,7 +38,7 @@
     "tailwindcssViteVersion": "^4.3.3",
     "tauriCliVersion": "^2.11.4",
     "yamlVersion": "^2.9.0",
-    "nimiShellTauriVersion": "0.2.0-rc.1",
+    "nimiShellTauriVersion": "0.2.0",
     "electronVersion": "^42.10.1",
     "esbuildVersion": "^0.28.2",
     "packageManager": "pnpm@10.34.5"
@@ -52,8 +56,8 @@
     "sync:app-source": "node scripts/sync-app-source.mjs --apply",
     "prepack": "pnpm run build",
     "prepublishOnly": "pnpm run build",
-    "test": "node scripts/sync-scaffold-versions.mjs --check && node ../scripts/with-workspace-surfaces.mjs -- node --test test/simulator-conformance.test.mjs test/dev-shell.test.mjs && node ../scripts/with-workspace-surfaces.mjs -- node --test test/app-project-lifecycle.test.mjs test/app-scaffold.test.mjs",
-    "test:full": "node ../scripts/with-workspace-surfaces.mjs -- node --test --test-name-pattern=\"^(update regenerates|update rejects|unsupported previous app scaffold lock|doctor fails closed on a missing scaffold lock|doctor fails closed on provider/model hardcoding|doctor fails closed on app-owned Realm permission grant shortcuts|doctor fails closed on installed-app custody bypasses|doctor requires official Desktop-supervised development scripts|update fails closed on unsupported locks and classification conflicts|app source resolves only scaffoldable slices)\" test/app-scaffold.test.mjs"
+    "test": "node scripts/sync-scaffold-versions.mjs --check && node ../scripts/with-workspace-surfaces.mjs -- node --test test/simulator-conformance.test.mjs test/dev-shell.test.mjs && node ../scripts/with-workspace-surfaces.mjs -- node --test test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-scaffold.test.mjs",
+    "test:full": "node ../scripts/with-workspace-surfaces.mjs -- node --test --test-name-pattern=\"^(sync regenerates|sync rejects|unsupported previous app scaffold lock|check fails closed on a missing scaffold lock|check fails closed on provider/model hardcoding|check fails closed on app-owned Realm permission grant shortcuts|check fails closed on installed-app custody bypasses|check requires official Desktop-supervised development scripts|sync fails closed on unsupported locks and classification conflicts|app source resolves only scaffoldable slices)\" test/app-scaffold.test.mjs"
   },
   "files": [
     "bin",
@@ -69,7 +73,16 @@
     "typescript": "^5.9.3",
     "yaml": "^2.9.0"
   },
+  "peerDependencies": {
+    "vite": "^7.3.6"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  },
   "devDependencies": {
+    "@types/node": "^24.13.3",
     "vite": "7.3.6"
   }
 }

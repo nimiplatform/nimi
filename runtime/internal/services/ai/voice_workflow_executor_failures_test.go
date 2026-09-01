@@ -172,7 +172,12 @@ func TestCloudVoiceResolvedAssemblyCapturesGeneratedPreferredNameBeforeWorkerReb
 	if err := fixture.service.bindCloudCredentialCustody("job-voice-rebuild", effective.resolvedAssembly); err != nil {
 		t.Fatalf("bind Cloud voice credential custody: %v", err)
 	}
-	defer fixture.service.releaseCloudCredentialCustody(effective.resolvedAssembly.CredentialCustodyRef)
+	custodyRef := effective.resolvedAssembly.CredentialCustodyRef
+	t.Cleanup(func() {
+		if err := fixture.service.releaseCloudCredentialCustody(custodyRef); err != nil {
+			t.Errorf("release Cloud voice credential custody: %v", err)
+		}
+	})
 	rebuilt, err := fixture.service.cloudVoiceWorkflowEffectiveInputsFromResolvedAssembly(effective.resolvedAssembly)
 	if err != nil {
 		t.Fatalf("rebuild Cloud voice inputs: %v", err)

@@ -17,7 +17,7 @@ const (
 	ESpeakNGDependencyVersion       = "0.2.4"
 	ESpeakNGWheelName               = "espeakng_loader-0.2.4-py3-none-win_amd64.whl"
 	ESpeakNGWheelURL                = "https://files.pythonhosted.org/packages/9d/ed/a3d872fbad4f3a3f3db0e8c31768ab14e77cd77306de16b8b20b1e1df7ea/espeakng_loader-0.2.4-py3-none-win_amd64.whl"
-	ESpeakNGWheelSHA256             = "41f1e08ac9deda2efd1ea9de0b81dab9f5ae3c4b24284f76533d0a7b1dd7abd7"
+	ESpeakNGWheelSHA256             = "41f1e08ac9deda2efd1ea9de0b81dab9f5ae3c4b24284f76533d0a7b1dd7abd7" // pragma: allowlist secret -- public wheel checksum
 	ESpeakNGWheelBytes        int64 = 9437292
 )
 
@@ -29,10 +29,10 @@ var espeakNGRequiredArtifacts = []string{
 }
 
 var espeakNGRequiredArtifactSHA256 = map[string]string{
-	"espeak-ng.dll":                 "646d387acbc7ac2aa45e3625aa00a6835ae5d446ff8b0748298c3900b4dde258",
-	"espeak-ng-data/phontab":        "1b40690667e1e9aa1ba5e5234773c799e7e72ea751426e5150423d53c3f24fa2",
-	"espeak-ng-data/lang/gmw/en":    "4605d5330801de3641c6e366d15f129ea1f5ffbce8722642aba01ace07ab9c83",
-	"espeak-ng-data/lang/gmw/en-US": "41534c2a22df5dd4f1052ff9e1a33a3ea7bff5a26b5c02bdad5ba8ddb7524704",
+	"espeak-ng.dll":                 "646d387acbc7ac2aa45e3625aa00a6835ae5d446ff8b0748298c3900b4dde258", // pragma: allowlist secret -- public payload checksum
+	"espeak-ng-data/phontab":        "1b40690667e1e9aa1ba5e5234773c799e7e72ea751426e5150423d53c3f24fa2", // pragma: allowlist secret -- public payload checksum
+	"espeak-ng-data/lang/gmw/en":    "4605d5330801de3641c6e366d15f129ea1f5ffbce8722642aba01ace07ab9c83", // pragma: allowlist secret -- public payload checksum
+	"espeak-ng-data/lang/gmw/en-US": "41534c2a22df5dd4f1052ff9e1a33a3ea7bff5a26b5c02bdad5ba8ddb7524704", // pragma: allowlist secret -- public payload checksum
 }
 
 type ESpeakNGDependencyStatus struct {

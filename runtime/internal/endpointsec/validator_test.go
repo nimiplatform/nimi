@@ -249,7 +249,7 @@ func TestValidateWebSocketEndpointUsesHTTPSHostPolicyWithoutWideningHTTP(t *test
 	if err := ValidateWebSocketEndpoint(context.Background(), "wss://example.com/realtime?model=test", false); err != nil {
 		t.Fatalf("public WSS endpoint: %v", err)
 	}
-	for _, raw := range []string{"ws://example.com/realtime", "https://example.com/realtime", "wss://user:pass@example.com/realtime"} {
+	for _, raw := range []string{"ws://example.com/realtime", "https://example.com/realtime", "wss://user:pass@example.com/realtime"} { // pragma: allowlist secret -- credential rejection fixture
 		if err := ValidateWebSocketEndpoint(context.Background(), raw, false); err == nil {
 			t.Fatalf("unsafe/non-WebSocket endpoint admitted: %s", raw)
 		}

@@ -3,8 +3,14 @@
   "version": "0.0.0-dev",
   "description": "Nimi CLI and runtime launcher",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nimiplatform/nimi",
+    "directory": "npm-packages/nimi"
+  },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "bin": {
     "nimi": "bin/nimi.js"
