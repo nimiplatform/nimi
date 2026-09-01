@@ -3,7 +3,7 @@
 ## Scope
 - Applies to `app-tools/**`.
 - `@nimiplatform/app-tools` is the public full-stack developer toolkit for third-party Nimi Apps. Its closed CLI surface is `create`, `init`, `sync`, `check`, `dev`, `test`, `build`, and `pack`; `doctor`, `update`, and local `publish` are absent without aliases.
-- App Tools prepares repositories, deterministic packages, and a managed GitHub workflow foundation. Publisher tag/Release orchestration and registry submission remain unavailable until their real owner paths are implemented. App Tools does not own GitHub identity or repository truth, registry review/main, Runtime installed state, Desktop process truth, or Runtime access.
+- App Tools prepares repositories, production preflight, deterministic packages, and managed GitHub workflow source. Local `publish` and app-tools-owned tag orchestration do not exist; in an explicitly configured pilot repository, a publisher-owned protected tag may trigger the managed GitHub Actions, attestation, and immutable Release path. Registry submission, Runtime installation, Desktop installed launch, and Runtime access remain unavailable until their real owner paths are implemented. App Tools does not own GitHub identity or repository truth, registry review/main, Runtime installed state, Desktop process truth, or Runtime access.
 
 ## Hard Boundaries
 - `apps/lab` is the hand-authored full-capability development and incubation Nimi App. Its presence does not make the whole App, or every Lab surface, scaffoldable.

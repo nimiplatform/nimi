@@ -7,9 +7,11 @@ conversations, creations, stories, and worlds are experiences within Nimi;
 Nimi is not reducible to Runtime, a chat product, Avatar, or any one experience.
 Nimi Apps is the canonical product path for catalog, local-import, installation,
 update, launch, repair, uninstall, and Developer Mode semantics. This pre-release
-currently exposes the Developer-Mode local-development path; public catalog,
-immutable local import, ordinary installation, update, installed launch, repair,
-uninstall, publisher publication, and registry onboarding remain unavailable.
+currently exposes the Developer-Mode local-development path plus protected-tag
+GitHub Actions and immutable GitHub Release publication for explicitly configured
+pilot App repositories; public catalog, immutable local import, ordinary
+installation, update, installed launch, repair, uninstall, registry onboarding,
+and registry admission remain unavailable.
 
 The broader project is an AI open world platform. It is built for long-lived
 worlds where people, AI agents, applications, and runtime services share the

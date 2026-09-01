@@ -434,6 +434,8 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.doesNotMatch(workflowSource, /git diff --exit-code/u);
     assert.match(workflowSource, /github\.event_name == 'push' && github\.ref_type == 'tag'/u);
     assert.doesNotMatch(workflowSource, /^\s*if:\s*github\.ref_type == 'tag'\s*$/mu);
+    const productionPreflight = workflow.jobs.prepare.steps.find((step) => step.name === 'Run production release preflight');
+    assert.equal(productionPreflight.run, 'pnpm exec nimi-app check --production');
     assert.deepEqual(workflow.jobs['build-target'].permissions, { contents: 'read' });
     const productionBuild = workflow.jobs['build-target'].steps.find((step) => step.name === 'Build and sign production target');
     assert.match(productionBuild.if, /event_name == 'push'/u);
@@ -444,7 +446,8 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.equal(workflow.jobs['attest-target'].permissions['id-token'], 'write');
     assert.equal(workflow.jobs.release.needs.includes('attest-target'), true);
     assert.match(workflowSource, /repos\/\$GITHUB_REPOSITORY\/immutable-releases/u);
-    assert.match(workflowSource, /index\("creation"\).*index\("update"\).*index\("deletion"\)/u);
+    assert.match(workflowSource, /index\("update"\).*index\("deletion"\)/u);
+    assert.doesNotMatch(workflowSource, /index\("creation"\)/u);
     assert.match(workflowSource, /conditions\.ref_name\.exclude/u);
     assert.match(workflowSource, /release_json=.*releases\/tags/u);
     assert.doesNotMatch(workflowSource, /candidate-uploads|Account|Bearer|--clobber|publish:\s*true/u);
