@@ -24,9 +24,9 @@ pnpm run app:build -- --target windows-x86_64
 pnpm dev
 ```
 
-After a real target build, `pnpm run pack -- --target <target-id>` uses app-tools as the only package owner. Local publish is unavailable; protected-tag GitHub Release and registry pull-request orchestration remain fail-closed until their real owner paths exist.
+After a real target build, `pnpm run pack -- --target <target-id>` uses app-tools as the only package owner. Local publish is unavailable; a protected version tag runs the managed GitHub Release workflow, while registry pull-request orchestration remains unavailable until its owner path exists.
 
-Before production, the public GitHub repository must enable a protected `v*` tag ruleset and immutable releases and provide a read-only repository-admin token for checking those settings. On Windows, the future tag-only production build signs the exact declared Host with the publisher PFX; production pack only verifies the resulting Authenticode signature. Manual workflow dispatch runs only the non-production path. Production remains fail-closed until publisher Release/registry orchestration and the shared installed carrier are implemented.
+Before production, the public GitHub repository must enable a protected `v*` tag ruleset and immutable releases and provide a read-only repository-admin token for checking those settings. On Windows, the tag-only production build signs the exact declared Host with the publisher PFX; production pack only verifies the resulting Authenticode signature. Manual workflow dispatch runs only the non-production path. The resulting GitHub Release remains independent from registry admission, Runtime installation, Desktop launch, and Nimi Access.
 
 `pnpm dev` selects the official Desktop-supervised Electron development Host. Direct renderer, Electron or Tauri launch does not create protected Nimi access.
 

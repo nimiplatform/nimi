@@ -1082,9 +1082,6 @@ export function syncAppProject(cwd, options = {}, versions, runners = {}) {
 
 export function checkAppProject(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
-  if (options.production === true) {
-    throw new Error('installed_app_carrier_not_implemented');
-  }
   if (options.conformance) {
     return validateAppProject(cwd, { dir: targetDir, conformance: options.conformance, json: options.json }, versions, runners);
   }
@@ -1098,6 +1095,7 @@ export function checkAppProject(cwd, options = {}, versions, runners = {}) {
     ok: true,
     command: 'check',
     dir: targetDir,
+    production: options.production === true,
     managed,
     appId: descriptor.appId,
     profile: descriptor.profile,

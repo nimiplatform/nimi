@@ -22,8 +22,8 @@ create -> dependency install -> init -> sync -> check
 - `pack` is the sole local/CI `.nimiapp` packaging owner and never uploads.
 
 `doctor`, `update`, and local `publish` are absent without aliases. Use `check`
-and `sync`; production publication remains fail-closed until the publisher
-GitHub and registry pull-request owner paths are implemented.
+and `sync`; production publication runs only from a protected version tag in
+the publisher repository's managed GitHub workflow.
 
 Run the checked-in CLI help for the admitted feature catalog and exact options:
 
@@ -69,7 +69,9 @@ pnpm dev
 
 ## Canonical release boundary
 
-The intended production chain is singular but not yet enabled:
+The production chain is singular. Its publisher GitHub Release stage is
+available for explicitly configured pilot repositories; later registry and
+installed lifecycle stages remain unavailable:
 
 ```text
 public App repository
@@ -84,7 +86,7 @@ public App repository
 
 The registry references publisher Release assets and never mirrors bytes. GitHub Release is not catalog admission; catalog admission is not installed; installed is not running; running is not Nimi Access ready.
 
-Repository administration must enable a protected `v*` tag ruleset and GitHub immutable releases before production. A fine-grained `GITHUB_REPOSITORY_ADMIN_TOKEN` secret with repository Administration read permission lets the managed tag workflow verify those settings; it cannot enable or change them. Manual workflow dispatch runs only the non-production build/package path. On Windows, the future tag-only production build imports the publisher PFX from `WINDOWS_CERTIFICATE_BASE64`/`WINDOWS_CERTIFICATE_PASSWORD`, signs the exact declared Host, and removes the temporary certificate; production pack only re-verifies Authenticode and never signs. Tag publication, registry submission, the shared installed carrier, and installed launch are not implemented, so the production path remains fail-closed.
+Repository administration must enable a protected `v*` tag ruleset and GitHub immutable releases before production. A fine-grained `GITHUB_REPOSITORY_ADMIN_TOKEN` secret with repository Administration read permission lets the managed tag workflow verify those settings; it cannot enable or change them. Manual workflow dispatch runs only the non-production build/package path. On Windows, the tag-only production build imports the publisher PFX from `WINDOWS_CERTIFICATE_BASE64`/`WINDOWS_CERTIFICATE_PASSWORD`, signs the exact declared Host, and removes the temporary certificate; production pack only re-verifies Authenticode and never signs. A successful tag workflow creates the immutable publisher GitHub Release and no registry, installed, running, or Nimi Access truth. Registry submission, the shared installed carrier, and installed launch remain unavailable.
 
 ## Acceptance status
 

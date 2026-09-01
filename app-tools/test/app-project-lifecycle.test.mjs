@@ -359,7 +359,15 @@ test('check is read-only and rejects non-registry Nimi dependencies until sync n
     assert.equal(result.status, 0, result.stderr);
     const payload = JSON.parse(result.stdout);
     assert.equal(payload.command, 'check');
+    assert.equal(payload.production, false);
     assert.equal(payload.managed, false);
+    assert.deepEqual(snapshotTree(target), before);
+
+    result = runCli(['check', '--dir', target, '--production', '--json'], tempRoot, env);
+    assert.equal(result.status, 0, result.stderr);
+    const productionPayload = JSON.parse(result.stdout);
+    assert.equal(productionPayload.command, 'check');
+    assert.equal(productionPayload.production, true);
     assert.deepEqual(snapshotTree(target), before);
 
     const parallelWorkflow = path.join(target, '.github', 'workflows', 'release.yml');
@@ -405,12 +413,6 @@ test('CLI exposes exactly the eight-command family and hard-cuts unavailable com
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, new RegExp(`Unknown command: ${retired}`, 'u'));
   }
-});
-
-test('production preflight fails closed until the shared installed carrier exists', () => {
-  const result = runCli(['check', '--production'], testDir, process.env);
-  assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /installed_app_carrier_not_implemented/u);
 });
 
 test('test and build dispatch only the App-declared owner commands', () => {
