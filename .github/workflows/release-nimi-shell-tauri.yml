@@ -1,0 +1,124 @@
+name: release-nimi-shell-tauri
+
+on:
+  push:
+    tags:
+      - nimi-shell-tauri/v*
+  pull_request:
+    paths:
+      - .github/workflows/release-nimi-shell-tauri.yml
+      - kit/shell/protected-local/**
+      - kit/shell/tauri/**
+      - proto/**
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact stable Tauri shell SemVer for a dry-run
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-nimi-shell-tauri-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Tauri validate and dry-run
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+      - name: Install Linux Tauri dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - name: Resolve and verify Tauri shell component identity
+        id: release
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          metadata="$(cargo metadata --format-version 1 --no-deps --locked --manifest-path kit/shell/tauri/Cargo.toml)"
+          package_version="$(printf '%s' "${metadata}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s).packages.find(x=>x.name==='nimi-shell-tauri');process.stdout.write(p?.version || '')})")"
+          protected_requirement="$(printf '%s' "${metadata}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s).packages.find(x=>x.name==='nimi-shell-tauri');const d=p?.dependencies.find(x=>x.name==='nimi-shell-protected-local');process.stdout.write(d?.req || '')})")"
+          if ! [[ "${protected_requirement}" =~ ^\^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "protected-local dependency must be a stable caret range: ${protected_requirement}" >&2
+            exit 1
+          fi
+          protected_version="${protected_requirement#^}"
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            version="${GITHUB_REF_NAME#nimi-shell-tauri/v}"
+            production=true
+            test "${GITHUB_REF}" = "refs/tags/nimi-shell-tauri/v${version}"
+            test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+            git fetch --no-tags origin main:refs/remotes/origin/main
+            git merge-base --is-ancestor "${GITHUB_SHA}" refs/remotes/origin/main
+          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            version="${INPUT_VERSION#v}"
+            production=false
+          else
+            version="${package_version}"
+            production=false
+          fi
+          if ! [[ "${version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Tauri shell version must be a stable SemVer: ${version}" >&2
+            exit 1
+          fi
+          test "${package_version}" = "${version}"
+          {
+            echo "production=${production}"
+            echo "protected_version=${protected_version}"
+            echo "version=${version}"
+          } >> "${GITHUB_OUTPUT}"
+      - name: Test Tauri shell source
+        run: cargo test --manifest-path kit/shell/tauri/Cargo.toml --locked
+      - name: Report dry-run dependency boundary
+        if: steps.release.outputs.production != 'true'
+        env:
+          PROTECTED_VERSION: ${{ steps.release.outputs.protected_version }}
+        run: |
+          set -euo pipefail
+          if curl --fail --silent --show-error "https://crates.io/api/v1/crates/nimi-shell-protected-local/${PROTECTED_VERSION}" >/dev/null 2>&1; then
+            cargo publish --manifest-path kit/shell/tauri/Cargo.toml --locked --dry-run
+          else
+            echo "Tauri cargo-package dry-run is NOT-VERIFIED until nimi-shell-protected-local ${PROTECTED_VERSION} is public."
+          fi
+      - name: Require public protected-local dependency
+        if: steps.release.outputs.production == 'true'
+        env:
+          PROTECTED_VERSION: ${{ steps.release.outputs.protected_version }}
+        run: curl --fail --silent --show-error "https://crates.io/api/v1/crates/nimi-shell-protected-local/${PROTECTED_VERSION}" >/dev/null
+      - name: Package Tauri shell crate
+        if: steps.release.outputs.production == 'true'
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          cargo package --manifest-path kit/shell/tauri/Cargo.toml --locked --no-verify
+          test -f "kit/shell/tauri/target/package/nimi-shell-tauri-${RELEASE_VERSION}.crate"
+      - name: Publish or verify exact Tauri shell crate
+        if: steps.release.outputs.production == 'true'
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          crate="kit/shell/tauri/target/package/nimi-shell-tauri-${RELEASE_VERSION}.crate"
+          local_checksum="$(sha256sum "${crate}" | awk '{print $1}')"
+          url="https://crates.io/api/v1/crates/nimi-shell-tauri/${RELEASE_VERSION}"
+          if version_json="$(curl --fail --silent --show-error "${url}" 2>/dev/null)"; then
+            remote_checksum="$(printf '%s' "${version_json}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).version.checksum))")"
+            test "${remote_checksum}" = "${local_checksum}"
+          else
+            test -n "${CARGO_REGISTRY_TOKEN:-}"
+            cargo publish --manifest-path kit/shell/tauri/Cargo.toml --locked --no-verify --token "${CARGO_REGISTRY_TOKEN}"
+          fi

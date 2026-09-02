@@ -1,0 +1,96 @@
+name: release-nimi-shell-protected-local
+
+on:
+  push:
+    tags:
+      - nimi-shell-protected-local/v*
+  pull_request:
+    paths:
+      - .github/workflows/release-nimi-shell-protected-local.yml
+      - kit/shell/protected-local/**
+      - proto/**
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact stable protected-local SemVer for a dry-run
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-nimi-shell-protected-local-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Protected-local validate and dry-run
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+      - name: Resolve and verify protected-local component identity
+        id: release
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          package_version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' kit/shell/protected-local/Cargo.toml | head -1)"
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            version="${GITHUB_REF_NAME#nimi-shell-protected-local/v}"
+            production=true
+            test "${GITHUB_REF}" = "refs/tags/nimi-shell-protected-local/v${version}"
+            test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+            git fetch --no-tags origin main:refs/remotes/origin/main
+            git merge-base --is-ancestor "${GITHUB_SHA}" refs/remotes/origin/main
+          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            version="${INPUT_VERSION#v}"
+            production=false
+          else
+            version="${package_version}"
+            production=false
+          fi
+          if ! [[ "${version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "protected-local version must be a stable SemVer: ${version}" >&2
+            exit 1
+          fi
+          test "${package_version}" = "${version}"
+          {
+            echo "production=${production}"
+            echo "version=${version}"
+          } >> "${GITHUB_OUTPUT}"
+      - name: Test and package protected-local crate
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          cargo test --manifest-path kit/shell/protected-local/Cargo.toml --locked
+          cargo package --manifest-path kit/shell/protected-local/Cargo.toml --locked --no-verify
+          test -f "kit/shell/protected-local/target/package/nimi-shell-protected-local-${RELEASE_VERSION}.crate"
+      - name: Dry-run protected-local publication
+        if: steps.release.outputs.production != 'true'
+        run: cargo publish --manifest-path kit/shell/protected-local/Cargo.toml --locked --dry-run
+      - name: Publish or verify exact protected-local crate
+        if: steps.release.outputs.production == 'true'
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          crate="kit/shell/protected-local/target/package/nimi-shell-protected-local-${RELEASE_VERSION}.crate"
+          local_checksum="$(sha256sum "${crate}" | awk '{print $1}')"
+          url="https://crates.io/api/v1/crates/nimi-shell-protected-local/${RELEASE_VERSION}"
+          if version_json="$(curl --fail --silent --show-error "${url}" 2>/dev/null)"; then
+            remote_checksum="$(printf '%s' "${version_json}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).version.checksum))")"
+            test "${remote_checksum}" = "${local_checksum}"
+          else
+            test -n "${CARGO_REGISTRY_TOKEN:-}"
+            cargo publish --manifest-path kit/shell/protected-local/Cargo.toml --locked --no-verify --token "${CARGO_REGISTRY_TOKEN}"
+          fi
