@@ -13,6 +13,7 @@ import {
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { parse as parseYaml } from 'yaml';
+import { windowsPowerShellEnv } from './windows-powershell.mjs';
 
 const PACKAGE_FORMAT = 'nimi.app-package/v1';
 const TARGET_METADATA_FORMAT = 'nimi.app-target-candidate/v1';
@@ -308,7 +309,7 @@ function verifyWindowsNativeTrust(input) {
     "$signature = Get-AuthenticodeSignature -LiteralPath $env:NIMI_APP_SIGN_TARGET; if ($signature.Status -ne 'Valid' -or -not $signature.SignerCertificate) { Write-Error ('Authenticode status: ' + $signature.Status); exit 1 }; $signature.SignerCertificate.Subject",
   ], {
     encoding: 'utf8',
-    env: { ...process.env, NIMI_APP_SIGN_TARGET: input.runtimeHostPath },
+    env: windowsPowerShellEnv({ NIMI_APP_SIGN_TARGET: input.runtimeHostPath }),
   });
   const subject = requireCommand(result, 'Windows Authenticode verification').trim();
   if (!subject) throw new Error('Windows Authenticode verification returned no signer subject');
