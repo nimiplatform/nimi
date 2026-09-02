@@ -34,10 +34,12 @@ preceding job.
 ## Pull request and dry-run boundary
 
 The component workflows run their affected build, tests, deterministic pack, and
-available registry dry-run on pull requests. Tauri source tests run immediately;
-its cargo-package dry-run remains `NOT-VERIFIED` until its exact protected-local
-version is public. A release reconciliation PR is not merged until required
-repository checks and these component checks pass.
+registry dry-run on pull requests while a version is unpublished. Once that exact
+version is public, the same check requires the candidate tarball SHA-1 to equal
+the immutable registry package instead of attempting to overwrite it. Tauri
+source tests run immediately; its cargo-package dry-run requires its exact
+protected-local version to be public. A release reconciliation PR is not merged
+until required repository checks and these component checks pass.
 
 After merge, a maintainer may run a component workflow manually for another
 dry-run. A manual dispatch cannot publish. Production publication starts only by
@@ -115,7 +117,11 @@ native carrier publication remain deferred.
 
 - npm: Trusted Publisher for `nimiplatform/nimi` and the exact component workflow
   filename; GitHub-hosted runner with `id-token: write`.
-- crates.io: repository `CARGO_REGISTRY_TOKEN` for the two shell workflows.
+- crates.io: Trusted Publisher for `nimiplatform/nimi` and each exact shell
+  workflow filename; GitHub-hosted runner with `id-token: write` and the pinned
+  `rust-lang/crates-io-auth-action`. The protected-local 0.2.0 first publication
+  is the one-time API-token bootstrap required before its Trusted Publisher can
+  be configured; later shell publication does not use a repository token.
 - GitHub: component tag rules must prevent update and deletion while allowing the
   first tag creation.
 

@@ -93,7 +93,19 @@ jobs:
       - name: Build deterministic App Tools package and scaffold smoke
         run: pnpm release:component:pack -- --component app-tools --output-dir dist/component-release/app-tools
       - name: Dry-run App Tools publication
-        run: npm publish dist/component-release/app-tools/*.tgz --access public --dry-run
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          tarballs=(dist/component-release/app-tools/*.tgz)
+          test "${#tarballs[@]}" -eq 1
+          package_identity="$(tar -xOf "${tarballs[0]}" package/package.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s);process.stdout.write(p.name+'@'+p.version)})")"
+          local_sha1="$(shasum -a 1 "${tarballs[0]}" | awk '{print $1}')"
+          if remote_sha1="$(npm view "${package_identity}" dist.shasum --json 2>/dev/null)"; then
+            remote_sha1="$(printf '%s' "${remote_sha1}" | tr -d '"[:space:]')"
+            test "${remote_sha1}" = "${local_sha1}"
+          else
+            npm publish "${tarballs[0]}" --access public --dry-run
+          fi
       - name: Require every scaffolded public dependency for tag publication
         if: steps.release.outputs.production == 'true'
         run: |

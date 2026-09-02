@@ -94,7 +94,19 @@ jobs:
       - name: Build deterministic SDK package
         run: pnpm release:component:pack -- --component sdk --output-dir dist/component-release/sdk
       - name: Dry-run SDK publication
-        run: npm publish dist/component-release/sdk/*.tgz --access public --dry-run
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          tarballs=(dist/component-release/sdk/*.tgz)
+          test "${#tarballs[@]}" -eq 1
+          package_identity="$(tar -xOf "${tarballs[0]}" package/package.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s);process.stdout.write(p.name+'@'+p.version)})")"
+          local_sha1="$(shasum -a 1 "${tarballs[0]}" | awk '{print $1}')"
+          if remote_sha1="$(npm view "${package_identity}" dist.shasum --json 2>/dev/null)"; then
+            remote_sha1="$(printf '%s' "${remote_sha1}" | tr -d '"[:space:]')"
+            test "${remote_sha1}" = "${local_sha1}"
+          else
+            npm publish "${tarballs[0]}" --access public --dry-run
+          fi
       - name: Upload exact SDK package for tag publication
         if: steps.release.outputs.production == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

@@ -92,7 +92,19 @@ jobs:
       - name: Build deterministic JS-only Kit package
         run: pnpm release:component:pack -- --component kit --output-dir dist/component-release/kit
       - name: Dry-run Kit publication
-        run: npm publish dist/component-release/kit/*.tgz --access public --dry-run
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          tarballs=(dist/component-release/kit/*.tgz)
+          test "${#tarballs[@]}" -eq 1
+          package_identity="$(tar -xOf "${tarballs[0]}" package/package.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s);process.stdout.write(p.name+'@'+p.version)})")"
+          local_sha1="$(shasum -a 1 "${tarballs[0]}" | awk '{print $1}')"
+          if remote_sha1="$(npm view "${package_identity}" dist.shasum --json 2>/dev/null)"; then
+            remote_sha1="$(printf '%s' "${remote_sha1}" | tr -d '"[:space:]')"
+            test "${remote_sha1}" = "${local_sha1}"
+          else
+            npm publish "${tarballs[0]}" --access public --dry-run
+          fi
       - name: Require public SDK dependency for tag publication
         if: steps.release.outputs.production == 'true'
         run: |

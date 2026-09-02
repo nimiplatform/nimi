@@ -230,7 +230,7 @@ fn write_oauth_callback_page(stream: &mut std::net::TcpStream, success: bool) {
 const DESKTOP_OAUTH_RESULT_PAGE_TEMPLATE: &str =
     include_str!("native-oauth-result-page.template.html");
 const DESKTOP_OAUTH_RESULT_LOGO_PNG: &[u8] =
-    include_bytes!("../../../auth/src/logic/native-oauth-result-logo.png");
+    include_bytes!("native-oauth-result-logo.png");
 
 fn oauth_result_logo_data_uri() -> String {
     format!(
@@ -425,6 +425,7 @@ mod tests {
     use super::{
         is_desktop_open_reserved_oauth_url, normalize_oauth_callback_target,
         parse_oauth_callback_http_request, render_oauth_callback_page, validate_external_url,
+        DESKTOP_OAUTH_RESULT_LOGO_PNG,
     };
     use url::Url;
 
@@ -488,6 +489,9 @@ mod tests {
 
     #[test]
     fn render_oauth_callback_page_uses_current_png_logo_data_uri() {
+        const CANONICAL_AUTH_LOGO_PNG: &[u8] =
+            include_bytes!("../../../auth/src/logic/native-oauth-result-logo.png");
+        assert_eq!(DESKTOP_OAUTH_RESULT_LOGO_PNG, CANONICAL_AUTH_LOGO_PNG);
         let page = render_oauth_callback_page(true);
         assert!(page.contains(r#"<img class="logo" src="data:image/png;base64,"#));
         assert!(!page.contains("nimiLogoGradient"));
