@@ -92,17 +92,24 @@ global-library-train attempts. They remain immutable history and are not SDK,
 Kit, App Tools, shell, Proto, third-party App, or installable-product release
 truth. Do not promote, move, or reuse them.
 
-## Unsigned product preview
+## Unsigned developer preview
 
-`.github/workflows/release-preview.yml` remains a separate installable-product
-preview path. It accepts an exact main commit, product preview version, and
-sequence number and produces immutable unsigned preview assets. It does not
-publish npm packages, crates, or Proto and never becomes input to a component
-release.
+`.github/workflows/release-preview.yml` remains a separate unsigned developer
+preview path. It accepts an exact main commit, preview version, and sequence
+number and produces immutable development assets with different per-OS payloads:
 
+- Windows x64 contains only the source-local Kit package. It contains no Nimi
+  App, Runtime archive, installer, or Windows service package.
+- macOS arm64 contains an ad-hoc, repo-assisted `Nimi Dev.app` candidate and
+  Runtime payload. Installation and uninstallation require the exact source
+  checkout; the asset is not a standalone installer.
+- Linux has no preview asset.
+
+The preview does not publish npm packages, crates, or Proto and never becomes
+input to a component release. It does not establish a Nimi product release,
+public download, native installation, first launch, self-update, or uninstall.
 Runtime service distribution, Desktop production signing/notarization, and Kit
-native carrier publication remain deferred. The preview path does not make those
-production-ready.
+native carrier publication remain deferred.
 
 ## Credentials and external configuration
 
