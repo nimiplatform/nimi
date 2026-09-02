@@ -108,6 +108,8 @@ jobs:
           fi
       - name: Require every scaffolded public dependency for tag publication
         if: steps.release.outputs.production == 'true'
+        env:
+          CRATES_IO_USER_AGENT: nimi-component-release/1.0 (+https://github.com/nimiplatform/nimi)
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -122,7 +124,7 @@ jobs:
           if ! [[ "${tauri_version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then echo "invalid scaffold Tauri version: ${tauri_version}" >&2; exit 1; fi
           npm view "@nimiplatform/sdk@${sdk_range#^}" version >/dev/null
           npm view "@nimiplatform/kit@${kit_range#^}" version >/dev/null
-          curl --fail --silent --show-error "https://crates.io/api/v1/crates/nimi-shell-tauri/${tauri_version}" >/dev/null
+          curl --retry 3 --retry-delay 2 --retry-all-errors --fail --silent --show-error --user-agent "${CRATES_IO_USER_AGENT}" "https://crates.io/api/v1/crates/nimi-shell-tauri/${tauri_version}" >/dev/null
       - name: Upload exact App Tools package for tag publication
         if: steps.release.outputs.production == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

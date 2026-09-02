@@ -74,9 +74,14 @@ For the current prepared versions, the intended tags are:
 sdk/v0.7.0
 kit/v0.3.0
 nimi-shell-protected-local/v0.2.0
-nimi-shell-tauri/v0.2.0
+nimi-shell-tauri/v0.2.1
 app-tools/v0.2.0
 ```
+
+`nimi-shell-tauri/v0.2.0` is an immutable failed publication attempt. Its
+crates.io dependency preflight was rejected before package upload, so the tag
+remains reserved history and is never moved, deleted, or reused. Recovery uses
+the next component version, `nimi-shell-tauri/v0.2.1`.
 
 Proto has no package manifest version and has no active production publisher in
 this release set. A future Proto publication identity requires separate authority

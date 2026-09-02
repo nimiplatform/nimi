@@ -120,13 +120,14 @@ jobs:
       - name: Publish or verify exact protected-local crate
         env:
           CARGO_REGISTRY_TOKEN: ${{ steps.crates_io_auth.outputs.token }}
+          CRATES_IO_USER_AGENT: nimi-component-release/1.0 (+https://github.com/nimiplatform/nimi)
           RELEASE_VERSION: ${{ needs.release.outputs.version }}
         run: |
           set -euo pipefail
           crate="kit/shell/protected-local/target/package/nimi-shell-protected-local-${RELEASE_VERSION}.crate"
           local_checksum="$(sha256sum "${crate}" | awk '{print $1}')"
           url="https://crates.io/api/v1/crates/nimi-shell-protected-local/${RELEASE_VERSION}"
-          if version_json="$(curl --fail --silent --show-error "${url}" 2>/dev/null)"; then
+          if version_json="$(curl --retry 3 --retry-delay 2 --retry-all-errors --fail --silent --show-error --user-agent "${CRATES_IO_USER_AGENT}" "${url}" 2>/dev/null)"; then
             remote_checksum="$(printf '%s' "${version_json}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).version.checksum))")"
             test "${remote_checksum}" = "${local_checksum}"
           else
