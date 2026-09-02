@@ -115,7 +115,11 @@ native carrier publication remain deferred.
 
 - npm: Trusted Publisher for `nimiplatform/nimi` and the exact component workflow
   filename; GitHub-hosted runner with `id-token: write`.
-- crates.io: repository `CARGO_REGISTRY_TOKEN` for the two shell workflows.
+- crates.io: Trusted Publisher for `nimiplatform/nimi` and each exact shell
+  workflow filename; GitHub-hosted runner with `id-token: write` and the pinned
+  `rust-lang/crates-io-auth-action`. The protected-local 0.2.0 first publication
+  is the one-time API-token bootstrap required before its Trusted Publisher can
+  be configured; later shell publication does not use a repository token.
 - GitHub: component tag rules must prevent update and deletion while allowing the
   first tag creation.
 

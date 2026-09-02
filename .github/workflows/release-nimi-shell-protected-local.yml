@@ -27,6 +27,8 @@ jobs:
   release:
     name: Protected-local validate and dry-run
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.version }}
     steps:
       - name: Checkout exact source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -77,11 +79,48 @@ jobs:
       - name: Dry-run protected-local publication
         if: steps.release.outputs.production != 'true'
         run: cargo publish --manifest-path kit/shell/protected-local/Cargo.toml --locked --dry-run
-      - name: Publish or verify exact protected-local crate
-        if: steps.release.outputs.production == 'true'
+
+  publish:
+    name: Protected-local publish
+    needs: release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/nimi-shell-protected-local/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout exact tag source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Require immutable tag identity on main
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          RELEASE_VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF}" = "refs/tags/nimi-shell-protected-local/v${RELEASE_VERSION}"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor "${GITHUB_SHA}" refs/remotes/origin/main
+          test "$(sed -n 's/^version = "\([^"]*\)"/\1/p' kit/shell/protected-local/Cargo.toml | head -1)" = "${RELEASE_VERSION}"
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+      - name: Package exact protected-local crate
+        env:
+          RELEASE_VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          cargo package --manifest-path kit/shell/protected-local/Cargo.toml --locked --no-verify
+          test -f "kit/shell/protected-local/target/package/nimi-shell-protected-local-${RELEASE_VERSION}.crate"
+      - name: Authenticate with crates.io Trusted Publishing
+        id: crates_io_auth
+        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+      - name: Publish or verify exact protected-local crate
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates_io_auth.outputs.token }}
+          RELEASE_VERSION: ${{ needs.release.outputs.version }}
         run: |
           set -euo pipefail
           crate="kit/shell/protected-local/target/package/nimi-shell-protected-local-${RELEASE_VERSION}.crate"
@@ -91,6 +130,5 @@ jobs:
             remote_checksum="$(printf '%s' "${version_json}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).version.checksum))")"
             test "${remote_checksum}" = "${local_checksum}"
           else
-            test -n "${CARGO_REGISTRY_TOKEN:-}"
-            cargo publish --manifest-path kit/shell/protected-local/Cargo.toml --locked --no-verify --token "${CARGO_REGISTRY_TOKEN}"
+            cargo publish --manifest-path kit/shell/protected-local/Cargo.toml --locked --no-verify
           fi
