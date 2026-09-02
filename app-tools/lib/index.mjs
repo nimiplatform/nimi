@@ -17,6 +17,7 @@ import {
   testAppProject,
 } from './app-project-lifecycle.mjs';
 import { aggregateAppTargetCandidates, packAppTarget } from './app-pack.mjs';
+import { windowsPowerShellEnv } from './windows-powershell.mjs';
 export { runDevShell } from '../scripts/dev-shell.mjs';
 export {
   validateSimulatorAppSource,
@@ -136,7 +137,7 @@ function signWindowsTarget(targetDir, relativePayloadPath) {
   const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
     cwd: targetDir,
     encoding: 'utf8',
-    env: { ...process.env, NIMI_APP_SIGN_TARGET: targetPath },
+    env: windowsPowerShellEnv({ NIMI_APP_SIGN_TARGET: targetPath }),
   });
   if (result.status !== 0) {
     const detail = [result.error?.message, result.stdout, result.stderr].filter(Boolean).join('\n').trim();

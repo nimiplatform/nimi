@@ -9,6 +9,18 @@ import {
   packAppTarget,
   readNimiAppArchive,
 } from '../lib/app-pack.mjs';
+import { windowsPowerShellEnv } from '../lib/windows-powershell.mjs';
+
+test('Windows PowerShell child processes do not inherit PowerShell 7 module paths', () => {
+  const env = windowsPowerShellEnv(
+    { NIMI_APP_SIGN_TARGET: 'C:\\signed\\app.exe' },
+    { PATH: 'C:\\Windows', PSModulePath: 'C:\\Program Files\\PowerShell\\Modules', pSmOdUlEpAtH: 'duplicate' },
+  );
+  assert.deepEqual(env, {
+    PATH: 'C:\\Windows',
+    NIMI_APP_SIGN_TARGET: 'C:\\signed\\app.exe',
+  });
+});
 
 function fixture() {
   const root = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-pack-'));
