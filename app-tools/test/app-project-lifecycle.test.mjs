@@ -317,7 +317,13 @@ test('sync closes the former unknown-command path and only normalizes submitted 
     assert.equal(Object.hasOwn(packageJson.scripts, 'doctor'), false);
     assert.equal(packageJson.scripts.pack, 'nimi-app pack');
     assert.equal(Object.hasOwn(packageJson.scripts, 'publish'), false);
-    assert.equal(readFileSync(path.join(target, '.github', 'workflows', 'nimi-app-release.yml'), 'utf8').includes('name: nimi-app-release'), true);
+    const managedReleaseWorkflow = readFileSync(
+      path.join(target, '.github', 'workflows', 'nimi-app-release.yml'),
+      'utf8',
+    );
+    assert.match(managedReleaseWorkflow, /name: nimi-app-release/u);
+    assert.match(managedReleaseWorkflow, /Require tagged commit on canonical default branch/u);
+    assert.match(managedReleaseWorkflow, /git merge-base --is-ancestor/u);
     assert.doesNotMatch(readFileSync(path.join(target, 'vite.config.ts'), 'utf8'), /nimiRepoRoot|nimiSdkSourceRoot|@nimiplatform\\\/sdk/u);
     assert.match(readFileSync(path.join(target, 'src', 'styles.css'), 'utf8'), /node_modules\/@nimiplatform\/kit/u);
     const workspace = parseYaml(readFileSync(path.join(target, 'pnpm-workspace.yaml'), 'utf8'));
