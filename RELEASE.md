@@ -34,10 +34,12 @@ preceding job.
 ## Pull request and dry-run boundary
 
 The component workflows run their affected build, tests, deterministic pack, and
-available registry dry-run on pull requests. Tauri source tests run immediately;
-its cargo-package dry-run remains `NOT-VERIFIED` until its exact protected-local
-version is public. A release reconciliation PR is not merged until required
-repository checks and these component checks pass.
+registry dry-run on pull requests while a version is unpublished. Once that exact
+version is public, the same check requires the candidate tarball SHA-1 to equal
+the immutable registry package instead of attempting to overwrite it. Tauri
+source tests run immediately; its cargo-package dry-run requires its exact
+protected-local version to be public. A release reconciliation PR is not merged
+until required repository checks and these component checks pass.
 
 After merge, a maintainer may run a component workflow manually for another
 dry-run. A manual dispatch cannot publish. Production publication starts only by
