@@ -302,6 +302,22 @@ function runNimiApp(args, cwd, options = {}) {
   });
 }
 
+function runGit(cwd, args) {
+  return spawnSync('git', args, {
+    cwd,
+    encoding: 'utf8',
+  });
+}
+
+function requireGitSuccess(result, args) {
+  assert.equal(
+    result.status,
+    0,
+    `git ${args.join(' ')} failed:\n${result.stdout}\n${result.stderr}`,
+  );
+  return result.stdout.trim();
+}
+
 function runGeneratedNodeScript(generated, scriptPath) {
   return spawnSync(process.execPath, [scriptPath], {
     cwd: generated.target,
@@ -434,8 +450,29 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.doesNotMatch(workflowSource, /git diff --exit-code/u);
     assert.match(workflowSource, /github\.event_name == 'push' && github\.ref_type == 'tag'/u);
     assert.doesNotMatch(workflowSource, /^\s*if:\s*github\.ref_type == 'tag'\s*$/mu);
+    const canonicalMainPreflight = workflow.jobs.prepare.steps.find(
+      (step) => step.name === 'Require tagged commit on canonical default branch',
+    );
+    assert.ok(canonicalMainPreflight, 'generated workflow must enforce canonical-default-branch ancestry');
+    assert.match(canonicalMainPreflight.if, /event_name == 'push'/u);
+    assert.deepEqual(canonicalMainPreflight.env, {
+      NIMI_APP_CANONICAL_BRANCH: '${{ github.event.repository.default_branch }}',
+    });
+    assert.match(
+      canonicalMainPreflight.run,
+      /git fetch --no-tags origin "refs\/heads\/\$NIMI_APP_CANONICAL_BRANCH:refs\/remotes\/origin\/\$NIMI_APP_CANONICAL_BRANCH"/u,
+    );
+    assert.match(
+      canonicalMainPreflight.run,
+      /git merge-base --is-ancestor "\$GITHUB_SHA" "refs\/remotes\/origin\/\$NIMI_APP_CANONICAL_BRANCH"/u,
+    );
     const productionPreflight = workflow.jobs.prepare.steps.find((step) => step.name === 'Run production release preflight');
     assert.equal(productionPreflight.run, 'pnpm exec nimi-app check --production');
+    assert.ok(
+      workflow.jobs.prepare.steps.indexOf(canonicalMainPreflight)
+        < workflow.jobs.prepare.steps.indexOf(productionPreflight),
+      'canonical-main ancestry must fail before production preflight',
+    );
     assert.deepEqual(workflow.jobs['build-target'].permissions, { contents: 'read' });
     const productionBuild = workflow.jobs['build-target'].steps.find((step) => step.name === 'Build and sign production target');
     assert.match(productionBuild.if, /event_name == 'push'/u);
@@ -462,6 +499,50 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.doesNotMatch(runtimePlatform, /createNimiClient|developerRegistration|developer-registered-local-app/);
   } finally {
     generated.cleanup();
+  }
+});
+
+test('managed release ancestry preflight rejects an unmerged tag and accepts the same tag on canonical main', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-release-ancestry-'));
+  const origin = path.join(tempRoot, 'origin.git');
+  const publisher = path.join(tempRoot, 'publisher');
+  try {
+    requireGitSuccess(runGit(tempRoot, ['init', '--bare', origin]), ['init', '--bare', origin]);
+    requireGitSuccess(runGit(tempRoot, ['clone', origin, publisher]), ['clone', origin, publisher]);
+    requireGitSuccess(runGit(publisher, ['config', 'user.name', 'Nimi App Test']), ['config', 'user.name']);
+    requireGitSuccess(runGit(publisher, ['config', 'user.email', 'app-test@example.invalid']), ['config', 'user.email']);
+    requireGitSuccess(runGit(publisher, ['switch', '-c', 'main']), ['switch', '-c', 'main']);
+    requireGitSuccess(runGit(publisher, ['commit', '--allow-empty', '-m', 'reviewed main']), ['commit', '--allow-empty']);
+    requireGitSuccess(runGit(publisher, ['push', '-u', 'origin', 'main']), ['push', '-u', 'origin', 'main']);
+    requireGitSuccess(
+      runGit(publisher, ['commit', '--allow-empty', '-m', 'unmerged release candidate']),
+      ['commit', '--allow-empty'],
+    );
+    const tagCommit = requireGitSuccess(runGit(publisher, ['rev-parse', 'HEAD']), ['rev-parse', 'HEAD']);
+    requireGitSuccess(runGit(publisher, ['tag', '-a', 'v0.1.0', '-m', 'v0.1.0']), ['tag', '-a', 'v0.1.0']);
+    assert.equal(
+      requireGitSuccess(runGit(publisher, ['cat-file', '-t', 'refs/tags/v0.1.0']), ['cat-file', '-t']),
+      'tag',
+    );
+    assert.equal(
+      requireGitSuccess(runGit(publisher, ['rev-parse', 'refs/tags/v0.1.0^{}']), ['rev-parse']),
+      tagCommit,
+    );
+
+    const rejected = runGit(publisher, [
+      'merge-base', '--is-ancestor', tagCommit, 'refs/remotes/origin/main',
+    ]);
+    assert.equal(rejected.status, 1, 'an unmerged tag commit must fail canonical-main ancestry');
+
+    requireGitSuccess(runGit(publisher, ['push', 'origin', 'HEAD:main']), ['push', 'origin', 'HEAD:main']);
+    requireGitSuccess(runGit(publisher, [
+      'fetch', '--no-tags', 'origin', 'refs/heads/main:refs/remotes/origin/main',
+    ]), ['fetch', '--no-tags', 'origin']);
+    requireGitSuccess(runGit(publisher, [
+      'merge-base', '--is-ancestor', tagCommit, 'refs/remotes/origin/main',
+    ]), ['merge-base', '--is-ancestor']);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
   }
 });
 
