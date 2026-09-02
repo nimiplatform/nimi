@@ -26,7 +26,10 @@ manifest, RC bundle, or global promotion workflow identifies those packages.
 
 The npm workflows retain their historical filenames because npm Trusted
 Publisher configuration binds the repository and exact workflow identity. They
-publish with GitHub OIDC and npm provenance and do not use `NPM_TOKEN`.
+publish with GitHub OIDC and npm provenance and do not use `NPM_TOKEN`. Pull
+request and manual dry-run jobs have no OIDC permission; only the tag-only publish
+job receives `id-token: write` and it publishes the exact tarball validated by the
+preceding job.
 
 ## Pull request and dry-run boundary
 
@@ -38,7 +41,7 @@ repository checks and these component checks pass.
 
 After merge, a maintainer may run a component workflow manually for another
 dry-run. A manual dispatch cannot publish. Production publication starts only by
-pushing the exact component tag.
+pushing the exact component tag at a commit already contained in `origin/main`.
 
 Every npm package is packed before publication. The Kit tarball is the current
 JS-only public package: it rewrites the workspace SDK dependency to its public
@@ -56,9 +59,12 @@ The two independent roots may begin separately:
 Then publish dependants:
 
 3. Kit waits for its declared SDK version to be visible on npm.
-4. Tauri waits for its exact protected-local version to be visible on crates.io.
-5. App Tools waits for its embedded SDK, Kit, protected-local, and Tauri versions
-   to be visible in their public registries.
+4. Tauri reads the protected-local version declared by its own Cargo dependency
+   and waits for that version to be visible on crates.io; it does not reuse the
+   Tauri component version as protected-local identity.
+5. App Tools waits for the SDK, Kit, and Tauri versions embedded in its packed
+   scaffold contract to be visible in their public registries. The Tauri
+   publisher has already closed its protected-local dependency.
 
 For the current prepared versions, the intended tags are:
 

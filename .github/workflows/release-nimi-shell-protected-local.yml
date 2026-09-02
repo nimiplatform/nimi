@@ -25,6 +25,7 @@ concurrency:
 
 jobs:
   release:
+    name: Protected-local validate and dry-run
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact source
@@ -47,6 +48,8 @@ jobs:
             production=true
             test "${GITHUB_REF}" = "refs/tags/nimi-shell-protected-local/v${version}"
             test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+            git fetch --no-tags origin main:refs/remotes/origin/main
+            git merge-base --is-ancestor "${GITHUB_SHA}" refs/remotes/origin/main
           elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             version="${INPUT_VERSION#v}"
             production=false

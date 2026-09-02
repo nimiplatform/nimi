@@ -10,7 +10,6 @@ on:
       - app-tools/**
       - apps/lab/**
       - kit/package.json
-      - kit/shell/protected-local/Cargo.toml
       - kit/shell/tauri/Cargo.toml
       - package.json
       - pnpm-lock.yaml
@@ -32,11 +31,15 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  validate:
+    name: App Tools validate and dry-run
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
+      id-token: none
+    outputs:
+      artifact_name: ${{ steps.release.outputs.artifact_name }}
+      version: ${{ steps.release.outputs.version }}
     steps:
       - name: Checkout exact source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -54,7 +57,7 @@ jobs:
           registry-url: https://registry.npmjs.org
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
-      - name: Resolve and verify App Tools component identity
+      - name: Resolve App Tools component identity
         id: release
         env:
           INPUT_VERSION: ${{ inputs.version }}
@@ -79,6 +82,7 @@ jobs:
           fi
           test "${package_version}" = "${version}"
           {
+            echo "artifact_name=app-tools-component-package-${GITHUB_SHA}-${GITHUB_RUN_ATTEMPT}"
             echo "production=${production}"
             echo "version=${version}"
           } >> "${GITHUB_OUTPUT}"
@@ -89,32 +93,78 @@ jobs:
       - name: Build deterministic App Tools package and scaffold smoke
         run: pnpm release:component:pack -- --component app-tools --output-dir dist/component-release/app-tools
       - name: Dry-run App Tools publication
-        if: steps.release.outputs.production != 'true'
         run: npm publish dist/component-release/app-tools/*.tgz --access public --dry-run
-      - name: Require every scaffolded public dependency
+      - name: Require every scaffolded public dependency for tag publication
         if: steps.release.outputs.production == 'true'
-        run: |
-          set -euo pipefail
-          sdk_version="$(node -p "JSON.parse(require('node:fs').readFileSync('sdks/typescript/package.json','utf8')).version")"
-          kit_version="$(node -p "JSON.parse(require('node:fs').readFileSync('kit/package.json','utf8')).version")"
-          protected_version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' kit/shell/protected-local/Cargo.toml | head -1)"
-          tauri_version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' kit/shell/tauri/Cargo.toml | head -1)"
-          npm view "@nimiplatform/sdk@${sdk_version}" version >/dev/null
-          npm view "@nimiplatform/kit@${kit_version}" version >/dev/null
-          curl --fail --silent --show-error "https://crates.io/api/v1/crates/nimi-shell-protected-local/${protected_version}" >/dev/null
-          curl --fail --silent --show-error "https://crates.io/api/v1/crates/nimi-shell-tauri/${tauri_version}" >/dev/null
-      - name: Publish or verify exact App Tools package through npm OIDC
-        if: steps.release.outputs.production == 'true'
-        env:
-          RELEASE_VERSION: ${{ steps.release.outputs.version }}
         run: |
           set -euo pipefail
           shopt -s nullglob
           tarballs=(dist/component-release/app-tools/*.tgz)
           test "${#tarballs[@]}" -eq 1
-          package_spec="@nimiplatform/app-tools@${RELEASE_VERSION}"
+          package_json="$(tar -xOf "${tarballs[0]}" package/package.json)"
+          sdk_range="$(printf '%s' "${package_json}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).nimiScaffoldVersions.sdkVersion || ''))")"
+          kit_range="$(printf '%s' "${package_json}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).nimiScaffoldVersions.kitVersion || ''))")"
+          tauri_version="$(printf '%s' "${package_json}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).nimiScaffoldVersions.nimiShellTauriVersion || ''))")"
+          if ! [[ "${sdk_range}" =~ ^\^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then echo "invalid scaffold SDK range: ${sdk_range}" >&2; exit 1; fi
+          if ! [[ "${kit_range}" =~ ^\^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then echo "invalid scaffold Kit range: ${kit_range}" >&2; exit 1; fi
+          if ! [[ "${tauri_version}" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then echo "invalid scaffold Tauri version: ${tauri_version}" >&2; exit 1; fi
+          npm view "@nimiplatform/sdk@${sdk_range#^}" version >/dev/null
+          npm view "@nimiplatform/kit@${kit_range#^}" version >/dev/null
+          curl --fail --silent --show-error "https://crates.io/api/v1/crates/nimi-shell-tauri/${tauri_version}" >/dev/null
+      - name: Upload exact App Tools package for tag publication
+        if: steps.release.outputs.production == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.release.outputs.artifact_name }}
+          path: dist/component-release/app-tools/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: App Tools publish
+    needs: validate
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/app-tools/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout exact tag source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+      - name: Require immutable tag identity on main
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF}" = "refs/tags/app-tools/v${RELEASE_VERSION}"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          git fetch --no-tags origin main:refs/remotes/origin/main
+          git merge-base --is-ancestor "${GITHUB_SHA}" refs/remotes/origin/main
+      - name: Setup Node.js for npm OIDC
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+      - name: Download exact validated App Tools package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.validate.outputs.artifact_name }}
+          path: dist/component-release/app-tools
+      - name: Publish or verify exact App Tools package through npm OIDC
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          tarballs=(dist/component-release/app-tools/*.tgz)
+          test "${#tarballs[@]}" -eq 1
+          package_identity="$(tar -xOf "${tarballs[0]}" package/package.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s);process.stdout.write(p.name+'@'+p.version)})")"
+          test "${package_identity}" = "@nimiplatform/app-tools@${RELEASE_VERSION}"
           local_sha1="$(shasum -a 1 "${tarballs[0]}" | awk '{print $1}')"
-          if remote_sha1="$(npm view "${package_spec}" dist.shasum --json 2>/dev/null)"; then
+          if remote_sha1="$(npm view "${package_identity}" dist.shasum --json 2>/dev/null)"; then
             remote_sha1="$(printf '%s' "${remote_sha1}" | tr -d '"[:space:]')"
             test "${remote_sha1}" = "${local_sha1}"
           else

@@ -26,6 +26,7 @@ concurrency:
 
 jobs:
   release:
+    name: Tauri validate and dry-run
     runs-on: ubuntu-latest
     steps:
       - name: Checkout exact source
@@ -46,13 +47,21 @@ jobs:
           INPUT_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          package_version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' kit/shell/tauri/Cargo.toml | head -1)"
-          protected_version="$(sed -n 's/^version = "\([^"]*\)"/\1/p' kit/shell/protected-local/Cargo.toml | head -1)"
+          metadata="$(cargo metadata --format-version 1 --no-deps --locked --manifest-path kit/shell/tauri/Cargo.toml)"
+          package_version="$(printf '%s' "${metadata}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s).packages.find(x=>x.name==='nimi-shell-tauri');process.stdout.write(p?.version || '')})")"
+          protected_requirement="$(printf '%s' "${metadata}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s).packages.find(x=>x.name==='nimi-shell-tauri');const d=p?.dependencies.find(x=>x.name==='nimi-shell-protected-local');process.stdout.write(d?.req || '')})")"
+          if ! [[ "${protected_requirement}" =~ ^\^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "protected-local dependency must be a stable caret range: ${protected_requirement}" >&2
+            exit 1
+          fi
+          protected_version="${protected_requirement#^}"
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
             version="${GITHUB_REF_NAME#nimi-shell-tauri/v}"
             production=true
             test "${GITHUB_REF}" = "refs/tags/nimi-shell-tauri/v${version}"
             test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+            git fetch --no-tags origin main:refs/remotes/origin/main
+            git merge-base --is-ancestor "${GITHUB_SHA}" refs/remotes/origin/main
           elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             version="${INPUT_VERSION#v}"
             production=false
@@ -65,9 +74,9 @@ jobs:
             exit 1
           fi
           test "${package_version}" = "${version}"
-          test "${protected_version}" = "${version}"
           {
             echo "production=${production}"
+            echo "protected_version=${protected_version}"
             echo "version=${version}"
           } >> "${GITHUB_OUTPUT}"
       - name: Test Tauri shell source
@@ -75,19 +84,19 @@ jobs:
       - name: Report dry-run dependency boundary
         if: steps.release.outputs.production != 'true'
         env:
-          RELEASE_VERSION: ${{ steps.release.outputs.version }}
+          PROTECTED_VERSION: ${{ steps.release.outputs.protected_version }}
         run: |
           set -euo pipefail
-          if curl --fail --silent --show-error "https://crates.io/api/v1/crates/nimi-shell-protected-local/${RELEASE_VERSION}" >/dev/null 2>&1; then
+          if curl --fail --silent --show-error "https://crates.io/api/v1/crates/nimi-shell-protected-local/${PROTECTED_VERSION}" >/dev/null 2>&1; then
             cargo publish --manifest-path kit/shell/tauri/Cargo.toml --locked --dry-run
           else
-            echo "Tauri cargo-package dry-run is NOT-VERIFIED until nimi-shell-protected-local ${RELEASE_VERSION} is public."
+            echo "Tauri cargo-package dry-run is NOT-VERIFIED until nimi-shell-protected-local ${PROTECTED_VERSION} is public."
           fi
       - name: Require public protected-local dependency
         if: steps.release.outputs.production == 'true'
         env:
-          RELEASE_VERSION: ${{ steps.release.outputs.version }}
-        run: curl --fail --silent --show-error "https://crates.io/api/v1/crates/nimi-shell-protected-local/${RELEASE_VERSION}" >/dev/null
+          PROTECTED_VERSION: ${{ steps.release.outputs.protected_version }}
+        run: curl --fail --silent --show-error "https://crates.io/api/v1/crates/nimi-shell-protected-local/${PROTECTED_VERSION}" >/dev/null
       - name: Package Tauri shell crate
         if: steps.release.outputs.production == 'true'
         env:
