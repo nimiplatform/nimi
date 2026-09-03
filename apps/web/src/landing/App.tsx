@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AppsSection } from './components/apps-section.js';
 import { DesktopSection } from './components/desktop-section.js';
+import { ExperiencesSection } from './components/experiences-section.js';
 import { FaqSection } from './components/faq-section.js';
 import { HeroSection } from './components/hero-section.js';
 import { ArchitectureSection } from './components/architecture-section.js';
@@ -123,15 +124,14 @@ export function App() {
     return null;
   }
   const sectionNavItems: Array<{ href: string; label: string; external?: boolean }> = [
-    { href: '#hero', label: content.nav.install },
-    { href: '#architecture', label: content.nav.architecture },
-    { href: '#sdk', label: content.nav.sdk },
+    { href: '#experiences', label: content.nav.experiences },
     { href: '#catalog', label: content.nav.catalog },
     { href: '#desktop', label: content.nav.desktop },
     { href: '#apps', label: content.nav.apps },
+    { href: '#sdk', label: content.nav.sdk },
     { href: '#security', label: content.nav.security },
-    { href: '#open-source', label: content.nav.openSource },
     { href: '#faq', label: content.nav.faq },
+    { href: links.docsUrl, label: content.nav.docs, external: true },
   ];
 
   return (
@@ -192,10 +192,10 @@ export function App() {
               <GithubIcon />
             </a>
             <a
-              href={links.webAppUrl}
+              href={links.downloadUrl}
               className="inline-flex h-10 items-center justify-center rounded-full bg-slate-900 px-4 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#2ba980]"
             >
-              {content.nav.enterNimi}
+              {content.nav.download}
             </a>
           </div>
         </div>
@@ -203,15 +203,16 @@ export function App() {
 
       <main id="main-content">
         <HeroSection content={content.hero} links={links} />
-        <SdkSection content={content.sdk} links={links} />
+        <ExperiencesSection content={content.experiences} />
         <ModelCatalogOverviewSection
           content={content.modelCatalog}
           query={catalogQuery}
           onQueryChange={setCatalogQuery}
         />
-        <ArchitectureSection content={content.architecture} />
         <DesktopSection content={content.desktop} links={links} />
         <AppsSection content={content.apps} links={links} />
+        <SdkSection content={content.sdk} links={links} />
+        <ArchitectureSection content={content.architecture} />
         <SecuritySection content={content.security} />
         <OpenSourceSection content={content.openSource} links={links} />
         <FaqSection content={content.faq} links={links} />

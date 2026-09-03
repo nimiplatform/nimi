@@ -4,25 +4,36 @@ import type { AdmittedCapability } from '../generated/index.js';
 export type LandingContent = {
   skipToContent: string;
   nav: {
-    enterNimi: string;
-    install: string;
-    sdk: string;
+    experiences: string;
     catalog: string;
-    architecture: string;
     desktop: string;
     apps: string;
+    sdk: string;
     security: string;
-    openSource: string;
     faq: string;
+    docs: string;
+    download: string;
   };
   hero: {
-    eyebrow: string;
     title: string;
     titleAccent: string;
     subtitle: string;
     primaryCta: string;
     secondaryCta: string;
     proofPoints: ReadonlyArray<string>;
+  };
+  experiences: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    cards: ReadonlyArray<{
+      id: string;
+      label: string;
+      title: string;
+      description: string;
+      scenario: string;
+      points: ReadonlyArray<string>;
+    }>;
   };
   architecture: {
     title: string;
@@ -121,6 +132,10 @@ export type LandingContent = {
       localIntent: string;
       cloudIntent: string;
     };
+    capabilitiesList: ReadonlyArray<{
+      name: string;
+      intent: 'local' | 'cloud';
+    }>;
     features: ReadonlyArray<{
       icon: string;
       title: string;
