@@ -1,13 +1,22 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '../../app-shell/providers/app-store';
 
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
-import { characterSourceMaterializationFailureMessage } from '../explore/character-source-materialization';
+import {
+  characterSourceMaterializationFailureMessage,
+  characterSourceRefKey,
+  discoverCharacterSourceLocalAgents,
+  resolveCharacterSourceState,
+} from '../explore/character-source-materialization';
 import { ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
+import { localAgentListQueryKey } from '../agents/local-agent-list-model';
+import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversation-source-resolution.js';
+import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
+import { EMPTY_AGENT_CONVERSATION_SELECTION } from '../chat/chat-shell-types.js';
 import {
   NarrativeWorldDetailPage,
   OasisWorldDetailPage,
@@ -44,6 +53,12 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
   const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const setChatMode = useAppStore((state) => state.setChatMode);
+  const setSelectedTargetForSource = useAppStore((state) => state.setSelectedTargetForSource);
+  const setAgentConversationSelection = useAppStore((state) => state.setAgentConversationSelection);
+  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
+  const setPendingAgentComposerPrefill = useAppStore((state) => state.setPendingAgentComposerPrefill);
   const detailViewportRef = useRef<HTMLDivElement | null>(null);
   const isReady = authStatus === 'authenticated' && !!world.id;
   const setFeedback = emitFeedbackToast;
@@ -89,6 +104,39 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
   const pageError = initialError;
   const worldData = primaryDisplay?.world ?? toWorldDisplayFallback(world);
   const characters: WorldCharacter[] = primaryDisplay?.characters ?? [];
+  // Realm does not know about device-local Runtime LocalAgents, so the realm
+  // payload's relation.state alone can never mark an already-added character as
+  // connected. Join the owner-scope runtime inventory here (same seam as
+  // Explore / SourceDetail) before rendering connect/chat actions.
+  const characterDiscoveryKey = useMemo(
+    () => characters.map((character) => characterSourceRefKey(character.sourceRef)).join('|'),
+    [characters],
+  );
+  const worldCharactersLocalAgentsQuery = useQuery({
+    queryKey: ['world-detail-local-agents', ownerUserId, world.id, characterDiscoveryKey],
+    queryFn: async () => (await Promise.all(
+      characters.map((character) => discoverCharacterSourceLocalAgents(character, ownerUserId, bindings.sdk)),
+    )).flat(),
+    enabled: isReady && Boolean(ownerUserId) && characters.length > 0,
+    staleTime: 10_000,
+  });
+  const charactersWithRelation = useMemo(() => {
+    const localAgents = worldCharactersLocalAgentsQuery.data;
+    if (!localAgents) {
+      return characters;
+    }
+    return characters.map((character) => {
+      const sourceState = resolveCharacterSourceState(character, localAgents);
+      const connected = sourceState === 'local_agent_available' || sourceState === 'local_agent_ambiguous';
+      if (!connected || character.relation?.state === 'connected') {
+        return character;
+      }
+      return {
+        ...character,
+        relation: { ...character.relation, state: 'connected' as const },
+      };
+    });
+  }, [characters, worldCharactersLocalAgentsQuery.data]);
   const safeHistory = supplementalDisplay?.history ?? { items: [], summary: null };
   const safeSemantic = supplementalDisplay?.semantic ?? {
     operationTitle: null,
@@ -222,6 +270,8 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
         sourceId: character.sourceRef.id,
         sourceHash: character.sourceRef.sourceHash,
       }, ownerUserId, i18n.t, bindings.sdk);
+      await queryClient.invalidateQueries({ queryKey: ['world-detail-local-agents'], exact: false });
+      await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
       setFeedback({
         kind: 'success',
         message: i18n.t('Explore.characterSourceMaterializedFeedback', {
@@ -234,6 +284,41 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
     }
   };
 
+  // Connected characters skip the materialize CTA and launch the canonical
+  // agent Conversation directly; any target-resolution miss fails closed to
+  // the agent chat list.
+  const handleOpenCharacterConversation = async (character: WorldCharacter) => {
+    const conversationTarget = await resolveAgentTargetSnapshotForSourceRef({
+      sourceRef: character.sourceRef,
+      ownerUserId,
+      sdk: bindings.sdk,
+    }).catch((error: unknown) => {
+      logRendererEvent({
+        level: 'warn',
+        area: 'world-detail',
+        message: 'action:character-conversation-resolve:failed',
+        details: { error: error instanceof Error ? error.message : String(error || '') },
+      });
+      return null;
+    });
+    if (conversationTarget) {
+      await launchAgentConversationFromDisplay({
+        target: conversationTarget,
+        setActiveTab,
+        setChatMode,
+        setSelectedTargetForSource,
+        setAgentConversationSelection,
+        setAgentConversationTargetSnapshot,
+        setPendingAgentComposerPrefill,
+      });
+      return;
+    }
+    setAgentConversationSelection(EMPTY_AGENT_CONVERSATION_SELECTION);
+    setSelectedTargetForSource('agent', null);
+    setChatMode('agent');
+    setActiveTab('chat');
+  };
+
   return (
     <ScrollArea
       className="h-full bg-transparent"
@@ -243,7 +328,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
       {worldData.type === 'OASIS' ? (
         <OasisWorldDetailPage
           world={worldData}
-          characters={characters}
+          characters={charactersWithRelation}
           history={safeHistory}
           semantic={safeSemantic}
           audits={safeAudits}
@@ -258,6 +343,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
           onBack={onBack}
           onViewCharacter={handleViewCharacter}
           onMaterializeSource={handleMaterializeSource}
+          onOpenConversation={handleOpenCharacterConversation}
           onFollowWorld={handleFollowWorld}
           worldFollowed={worldFollowed}
           initialSubpage={initialSubpage}
@@ -266,7 +352,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
       ) : (
         <NarrativeWorldDetailPage
           world={worldData}
-          characters={characters}
+          characters={charactersWithRelation}
           history={safeHistory}
           semantic={safeSemantic}
           audits={safeAudits}
@@ -281,6 +367,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
           onBack={onBack}
           onViewCharacter={handleViewCharacter}
           onMaterializeSource={handleMaterializeSource}
+          onOpenConversation={handleOpenCharacterConversation}
           onFollowWorld={handleFollowWorld}
           worldFollowed={worldFollowed}
           initialSubpage={initialSubpage}

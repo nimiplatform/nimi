@@ -6,6 +6,7 @@ import { WorldDetail } from './world-detail';
 import { WorldCatalogRail } from './world-list-rail';
 import { useFollowedWorlds } from './world-follow-store-context.js';
 import { WORLD_EXPLORER_THEME } from './world-list-theme';
+import { useAppStore } from '../../app-shell/providers/app-store';
 import type { WorldListItem } from './world-list-model';
 
 export function WorldsLoadingSkeleton({ embedded = false }: { embedded?: boolean }) {
@@ -73,17 +74,23 @@ export function WorldCatalogContent({
   onSearchQueryChange?: (value: string) => void;
   railFlap?: ReactNode;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const visibleWorlds = useMemo(() => worlds.filter(isWorldVisibleInAtlas), [worlds]);
-  const [sort, setSort] = useState<SortId>('active');
-  const [selectedWorldId, setSelectedWorldId] = useState<string | null>(() => selectInitialWorld(visibleWorlds));
+  const [sort, setSort] = useState<SortId>('recent');
+  // The catalog selection lives in the UI slice so it survives the Explore
+  // panel unmount during the source-detail round trip (navigateBack restores
+  // only the tab; local state would reset to selectInitialWorld).
+  const storeSelectedWorldId = useAppStore((state) => state.exploreSelectedWorldId);
+  const setExploreSelectedWorldId = useAppStore((state) => state.setExploreSelectedWorldId);
+  const fallbackWorldId = useMemo(() => selectInitialWorld(visibleWorlds), [visibleWorlds]);
+  const selectedWorldId = storeSelectedWorldId ?? fallbackWorldId;
   const query = searchQuery ?? '';
   const followed = useFollowedWorlds();
 
   const filteredWorlds = useMemo(() => {
     const searched = visibleWorlds.filter((world) => matchesQuery(world, query));
-    return pinFollowedFirst(sortWorlds(searched, sort), followed.isFollowed);
-  }, [query, sort, visibleWorlds, followed]);
+    return pinFollowedFirst(sortWorlds(searched, sort, i18n.language), followed.isFollowed);
+  }, [query, sort, visibleWorlds, followed, i18n.language]);
 
   const selectedWorld = useMemo(() => {
     return (
@@ -114,7 +121,7 @@ export function WorldCatalogContent({
         sort={sort}
         onSortChange={setSort}
         selectedWorldId={selectedWorld?.id ?? null}
-        onSelectWorld={setSelectedWorldId}
+        onSelectWorld={setExploreSelectedWorldId}
         isFollowed={followed.isFollowed}
         followAvailable={followed.available}
         onToggleFollow={followed.toggle}

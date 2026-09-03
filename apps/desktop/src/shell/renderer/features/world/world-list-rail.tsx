@@ -1,5 +1,5 @@
-import type { KeyboardEvent, ReactNode } from 'react';
-import { ArrowUpDown, Check, Heart } from 'lucide-react';
+import { Fragment, type KeyboardEvent, type ReactNode } from 'react';
+import { Check, Heart, ListFilter } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   ActionMenu,
@@ -17,9 +17,9 @@ import { displayTags, type SortId } from './world-list-catalog-model';
 import { WorldCover } from './world-list-cover';
 import type { WorldListItem } from './world-list-model';
 
-const SORT_IDS: readonly SortId[] = ['active', 'recent', 'sources', 'alpha'];
-const SORT_LABEL_KEYS: Readonly<Record<SortId, string>> = {
-  active: 'World.atlas.sort.active',
+const SORT_MENU_IDS = ['recent', 'sources', 'alpha'] as const;
+type SortMenuId = (typeof SORT_MENU_IDS)[number];
+const SORT_LABEL_KEYS: Readonly<Record<SortMenuId, string>> = {
   recent: 'World.atlas.sort.recent',
   sources: 'World.atlas.sort.sources',
   alpha: 'World.atlas.sort.alpha',
@@ -57,12 +57,17 @@ export function WorldCatalogRail({
   flap,
 }: WorldCatalogRailProps) {
   const { t } = useTranslation();
-  const sortMenuItems: NimiMenuItem[] = SORT_IDS.map((id) => ({
+  // The rail menu never offers the internal 'active' score ranking; fall back
+  // to the default criterion for display if a caller still passes it.
+  const menuSort: SortMenuId = sort === 'active' ? 'recent' : sort;
+  const sortMenuItems: NimiMenuItem[] = SORT_MENU_IDS.map((id) => ({
     id,
     label: t(SORT_LABEL_KEYS[id]),
-    icon: id === sort ? <Check className="h-4 w-4" aria-hidden="true" /> : undefined,
+    trailingIcon: id === menuSort ? <Check className="h-4 w-4" aria-hidden="true" /> : undefined,
     onSelect: () => onSortChange(id),
   }));
+  const pinnedCount = worlds.reduce((count, item) => (isFollowed(item.id) ? count + 1 : count), 0);
+  const showFollowedGroup = pinnedCount > 0 && pinnedCount < worlds.length;
 
   const renderRow = (world: WorldListItem, index: number) => (
     <RailWorldRow
@@ -108,11 +113,11 @@ export function WorldCatalogRail({
           <PopoverTrigger asChild>
             <IconButton
               data-testid="world-rail-sort-menu"
-              icon={<ArrowUpDown className="h-3.5 w-3.5" aria-hidden="true" />}
+              icon={<ListFilter className="h-3.5 w-3.5" aria-hidden="true" />}
               tone="ghost"
               size="sm"
               aria-label={t('World.toolbar.sortLabel')}
-              title={t(SORT_LABEL_KEYS[sort])}
+              title={`${t('World.toolbar.sortLabel')} · ${t(SORT_LABEL_KEYS[menuSort])}`}
               className="h-8 w-8 shrink-0"
             />
           </PopoverTrigger>
@@ -130,7 +135,22 @@ export function WorldCatalogRail({
           <EmptyState className="m-2 lg:mx-1" title={listEmptyLabel} />
         ) : (
           <div className="flex gap-2 lg:flex-col lg:gap-0.5">
-            {worlds.map((world, index) => renderRow(world, index))}
+            {showFollowedGroup ? (
+              <div className="hidden px-2 pb-1 text-[11px] font-medium text-[color:var(--nimi-text-muted)] lg:block">
+                {t('World.atlas.category.followed')}
+              </div>
+            ) : null}
+            {worlds.map((world, index) => (
+              <Fragment key={world.id}>
+                {showFollowedGroup && index === pinnedCount ? (
+                  <div
+                    aria-hidden="true"
+                    className="mx-2 my-1 hidden border-t border-[color:var(--nimi-border-subtle)] lg:block"
+                  />
+                ) : null}
+                {renderRow(world, index)}
+              </Fragment>
+            ))}
           </div>
         )}
       </div>

@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MapPin, Network, UserRound } from 'lucide-react';
 import type {
@@ -42,13 +42,53 @@ function RelationshipTargetIcon({
   return <Icon size={size} strokeWidth={strokeWidth} />;
 }
 
-function relationshipGraphPath(slot: { x: number; y: number }): string {
-  const controlX = (RELATIONSHIP_GRAPH_CENTER.x + slot.x) / 2;
-  return `M ${RELATIONSHIP_GRAPH_CENTER.x} ${RELATIONSHIP_GRAPH_CENTER.y} C ${controlX} ${RELATIONSHIP_GRAPH_CENTER.y} ${controlX} ${slot.y} ${slot.x} ${slot.y}`;
+function relationshipGraphPath(end: { x: number; y: number }): string {
+  const controlX = (RELATIONSHIP_GRAPH_CENTER.x + end.x) / 2;
+  return `M ${RELATIONSHIP_GRAPH_CENTER.x} ${RELATIONSHIP_GRAPH_CENTER.y} C ${controlX} ${RELATIONSHIP_GRAPH_CENTER.y} ${controlX} ${end.y} ${end.x} ${end.y}`;
 }
 
 function relationshipGraphSlot(index: number): { x: number; y: number } {
   return RELATIONSHIP_GRAPH_SLOTS[index % RELATIONSHIP_GRAPH_SLOTS.length] ?? { x: 50, y: 18 };
+}
+
+type RelationshipGraphSize = { width: number; height: number };
+
+const RELATIONSHIP_NODE_WIDTH_PX = 168;
+const RELATIONSHIP_NODE_COMPACT_WIDTH_PX = 138;
+const RELATIONSHIP_NODE_COMPACT_CONTAINER_PX = 620;
+const RELATIONSHIP_NODE_HALF_HEIGHT_PX = 33;
+
+function relationshipGraphEdgeEnd(
+  slot: { x: number; y: number },
+  size: RelationshipGraphSize | null,
+): { x: number; y: number } {
+  if (!size || size.width <= 0 || size.height <= 0) {
+    return slot;
+  }
+  const halfWidth = (size.width <= RELATIONSHIP_NODE_COMPACT_CONTAINER_PX
+    ? RELATIONSHIP_NODE_COMPACT_WIDTH_PX
+    : RELATIONSHIP_NODE_WIDTH_PX) / 2;
+  const centerX = (RELATIONSHIP_GRAPH_CENTER.x / 100) * size.width;
+  const centerY = (RELATIONSHIP_GRAPH_CENTER.y / 100) * size.height;
+  const slotX = (slot.x / 100) * size.width;
+  const slotY = (slot.y / 100) * size.height;
+  const deltaX = slotX - centerX;
+  const deltaY = slotY - centerY;
+  // Ray-vs-box slab test: the ray enters the node pill at the LATER of the
+  // per-axis entry points, so take the max. A negative ratio means the center
+  // is already inside that axis slab and must not constrain the endpoint.
+  let scale = 0;
+  if (deltaX !== 0) {
+    scale = Math.max(scale, (slotX - Math.sign(deltaX) * halfWidth - centerX) / deltaX);
+  }
+  if (deltaY !== 0) {
+    scale = Math.max(scale, (slotY - Math.sign(deltaY) * RELATIONSHIP_NODE_HALF_HEIGHT_PX - centerY) / deltaY);
+  }
+  const clamped = Math.min(scale, 1);
+  return {
+    x: RELATIONSHIP_GRAPH_CENTER.x + (slot.x - RELATIONSHIP_GRAPH_CENTER.x) * clamped,
+    y: RELATIONSHIP_GRAPH_CENTER.y + (slot.y - RELATIONSHIP_GRAPH_CENTER.y) * clamped,
+  };
 }
 
 function relationshipEdgeLabelPosition(slot: { x: number; y: number }): { left: string; top: string } {
@@ -64,6 +104,7 @@ function buildRelationshipMapItems(
   sourceName: string,
   notes: readonly CharacterProfileRelationshipProjection[],
   clues: readonly SourceDetailRelationshipClue[],
+  targetLabels: Record<string, string>,
   t: ReturnType<typeof useTranslation>['t'],
 ): RelationshipMapItem[] {
   const seen = new Set<string>();
@@ -89,10 +130,13 @@ function buildRelationshipMapItems(
   }
 
   for (const note of notes) {
+    const graphTitle = normalizeRelationshipGraphName(note.targetRef ? targetLabels[note.targetRef] : null)
+      ?? extractRelatedPersonName(sourceName, note.summary)
+      ?? relationKindLabel(note.type, t);
     add({
       id: note.id,
       type: note.type,
-      graphTitle: simplifyDisplayText(note.targetRef ?? relationKindLabel(note.type, t)),
+      graphTitle: simplifyDisplayText(graphTitle),
       evidenceText: simplifyDisplayText(note.summary),
     });
   }
@@ -156,9 +200,19 @@ function isSpecificRelationshipLabel(label: string, graphTitle: string): boolean
   ].some((token) => label.includes(token));
 }
 
+function isMachineReference(value: string): boolean {
+  if (!/^[a-z0-9]+(?:[-_][a-z0-9]+)+$/u.test(value)) {
+    return false;
+  }
+  return value.split(/[-_]/u).length >= 3 || /\d/u.test(value);
+}
+
 function normalizeRelationshipGraphName(value: string | null | undefined): string | null {
   const normalized = String(value || '').trim();
   if (!normalized || /^[A-Za-z]$/u.test(normalized) || normalized.includes('Y')) {
+    return null;
+  }
+  if (isMachineReference(normalized)) {
     return null;
   }
   return normalized;
@@ -207,9 +261,22 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
   const { t } = useTranslation();
   const notes = source.characterProfile.relationshipNotes;
   const clues = source.relationshipClues;
-  const items = buildRelationshipMapItems(source.displayName, notes, clues, t);
+  const items = buildRelationshipMapItems(source.displayName, notes, clues, source.relationshipTargetLabels, t);
   const relationTypes = uniqueStrings(items.map((item) => item.type));
   const [activeType, setActiveType] = useState('all');
+  const [graphSize, setGraphSize] = useState<RelationshipGraphSize | null>(null);
+  const graphRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const element = graphRef.current;
+    if (!element || typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const observer = new ResizeObserver(() => {
+      setGraphSize({ width: element.clientWidth, height: element.clientHeight });
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
   const filteredItems = activeType === 'all'
     ? items
     : items.filter((item) => item.type === activeType);
@@ -257,6 +324,7 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
       </div>
 
       <div
+        ref={graphRef}
         data-testid="world-character-relationship-map"
         className="relative mt-5 min-h-[330px] overflow-hidden rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-4"
         style={{
@@ -275,7 +343,7 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
             return (
               <path
                 key={`${item.id}-edge`}
-                d={relationshipGraphPath(slot)}
+                d={relationshipGraphPath(relationshipGraphEdgeEnd(slot, graphSize))}
                 fill="none"
                 stroke={theme.accent}
                 strokeDasharray={theme.dash}
@@ -298,7 +366,7 @@ export function WorldCharacterRelationshipCluesSection({ source }: { source: Sou
                 ...labelPosition,
                 color: theme.ink,
                 borderColor: theme.border,
-                background: theme.softBg,
+                background: `color-mix(in srgb, ${theme.accent} 10%, var(--nimi-surface-card))`,
               }}
               className="absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full border px-2 py-0.5 text-[11px] font-semibold"
             >

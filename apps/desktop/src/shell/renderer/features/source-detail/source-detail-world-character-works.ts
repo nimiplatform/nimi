@@ -45,22 +45,27 @@ function toWorkCollectionFromRelationship(row: JsonObject, index: number): Sourc
   const title = readWorkTitle(attributes)
     ?? readOptionalString(presentation, 'title')
     ?? readRelationshipTargetLabel(row)
-    ?? readRelationshipLabel(row)
     ?? readWorkTitleFromText(summary);
-  if (!title) {
+  // Rows without an identifiable work title are literary-exchange evidence,
+  // not works. Keep them as text clues titled by the generic relation label
+  // (e.g. 著述线索) so they render separately from real work cards.
+  const textClue = !title;
+  const resolvedTitle = title ?? readRelationshipLabel(row) ?? summary;
+  if (!resolvedTitle || (textClue && !summary)) {
     return null;
   }
   return {
-    id: readRelationshipId(row, textId ? ['text', textId].join('-') : slug(title, String(index + 1))),
-    title,
+    id: readRelationshipId(row, textId ? ['text', textId].join('-') : slug(resolvedTitle, String(index + 1))),
+    title: resolvedTitle,
     romanizedTitle: readOptionalString(attributes, 'title')
       ?? readOptionalString(attributes, 'romanizedTitle'),
     textId,
     rowRef: readScalarString(attributes.rowRef),
     role: readOptionalString(attributes, 'role') ?? readOptionalString(attributes, 'relationRole'),
     status: normalizeWorkStatus(attributes.joinStatus ?? row.joinStatus ?? attributes.status),
-    summary: isGenericWorkSummary(title, summary) ? null : summary,
-    timeLabel: readMilestoneTimeLabel([attributes, presentation, core, row], [title, summary]),
+    summary: textClue || !isGenericWorkSummary(resolvedTitle, summary) ? summary : null,
+    timeLabel: readMilestoneTimeLabel([attributes, presentation, core, row], [resolvedTitle, summary]),
+    ...(textClue ? { textClue: true } : {}),
   };
 }
 
@@ -73,6 +78,11 @@ function worksReferToSameCollection(
   }
   if (left.rowRef && right.rowRef && left.rowRef === right.rowRef) {
     return true;
+  }
+  // Text clues all share the same generic relation label, so title equality
+  // would wrongly collapse distinct evidence rows; only explicit ids merge.
+  if (left.textClue || right.textClue) {
+    return false;
   }
   const leftTitle = normalizedWorkMergeText(left.title);
   const rightTitle = normalizedWorkMergeText(right.title);

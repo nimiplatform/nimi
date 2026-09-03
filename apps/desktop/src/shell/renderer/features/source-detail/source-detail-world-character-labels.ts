@@ -1,6 +1,7 @@
 import type { useTranslation } from 'react-i18next';
 import type { describeCharacterPrimaryAction } from '../explore/character-source-materialization';
 import type { SourceDetailData } from './source-detail-model.js';
+import { personaStyleDisplayText } from './source-detail-persona-style-labels.js';
 import { simplifySourceDetailChineseText as simplifyDisplayText } from './source-detail-simplified-chinese.js';
 
 type TranslationFn = ReturnType<typeof useTranslation>['t'];
@@ -153,10 +154,10 @@ function trimHeroPhrase(value: string): string {
   return value.replace(/^[，,；;\s]+/u, '').replace(/[，,；;\s]+$/u, '').trim();
 }
 
-function conciseRoleText(source: SourceDetailData): string | null {
+function conciseRoleText(source: SourceDetailData, t: TranslationFn): string | null {
   const role = simplifyDisplayText(String(source.characterProfile.role || '').trim()).replace(/、/gu, '，');
   if (role) {
-    return role;
+    return personaStyleDisplayText(role, t);
   }
   const fallback = simplifyDisplayText(String(source.bio || source.entity?.summary || '').trim())
     .replace(new RegExp(`^${escapeRegExp(source.displayName)}[，,\\s]*`, 'u'), '')
@@ -171,7 +172,7 @@ function dynastyDescriptionPrefix(dynastyLabel: string | null): string | null {
   return dynastyLabel?.split('/')[0]?.trim() || null;
 }
 
-export function worldCharacterHeroDescription(source: SourceDetailData, dynastyLabel: string | null): string | null {
+export function worldCharacterHeroDescription(source: SourceDetailData, dynastyLabel: string | null, t: TranslationFn): string | null {
   const textSources = [
     source.entity?.summary,
     source.bio,
@@ -182,7 +183,7 @@ export function worldCharacterHeroDescription(source: SourceDetailData, dynastyL
     ?? readDelimitedNamePart(textSources, '字');
   const hao = readNamedFact(source, [/^(?:hao|artName|art_name)$/iu, /(?:^|[^一-龥])art(?:\s+name)?/iu, /号|號/u])
     ?? readDelimitedNamePart(textSources, '号');
-  const role = conciseRoleText(source);
+  const role = conciseRoleText(source, t);
   const dynastyPrefix = dynastyDescriptionPrefix(dynastyLabel);
   const roleWithDynasty = role
     ? dynastyPrefix && !role.includes(dynastyPrefix) ? `${dynastyPrefix}${role}` : role
@@ -195,17 +196,17 @@ export function worldCharacterHeroDescription(source: SourceDetailData, dynastyL
   return parts.length > 0 ? parts.join('，') : null;
 }
 
-export function topicChips(source: SourceDetailData): string[] {
+export function topicChips(source: SourceDetailData, t: TranslationFn): string[] {
   return [
     source.characterProfile.role,
     source.characterProfile.archetype,
     ...source.characterProfile.traits,
     ...source.characterProfile.knowledgeTopics,
     ...source.characterProfile.interactionModes,
-    ...source.works.map((work) => work.title),
+    ...source.works.filter((work) => !work.textClue).map((work) => work.title),
   ]
     .filter((value): value is string => Boolean(value))
-    .map(simplifyDisplayText)
+    .map((value) => personaStyleDisplayText(simplifyDisplayText(value), t))
     .filter((value, index, all) => all.indexOf(value) === index)
     .slice(0, 8);
 }

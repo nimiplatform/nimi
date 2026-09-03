@@ -83,6 +83,7 @@ export function relationKindLabel(
   t: TranslationFn,
 ): string {
   const labels: Record<string, string> = {
+    kinship: t('SourceDetail.worldCharacter.relationshipKind.kinship', { defaultValue: 'Kinship' }),
     status: t('SourceDetail.worldCharacter.relationshipKind.status', { defaultValue: 'Status' }),
     postedToOffice: t('SourceDetail.worldCharacter.relationshipKind.office', { defaultValue: 'Office' }),
     association: t('SourceDetail.worldCharacter.relationshipKind.association', { defaultValue: 'Association' }),

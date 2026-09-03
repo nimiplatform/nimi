@@ -8,6 +8,7 @@ import type {
 export {
   readRelationshipClues,
   readRelationshipRows,
+  readRelationshipTargetLabels,
 } from './source-detail-world-character-relationships.js';
 export {
   dedupeWorks,

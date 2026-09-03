@@ -24,7 +24,6 @@ function renderToStaticMarkup(element: React.ReactNode): string {
 type SourceDetailLocaleProbe = {
   worldCharacter?: {
     mediaEyebrow?: unknown;
-    mediaTitle?: unknown;
   };
 };
 
@@ -230,10 +229,15 @@ test('world character detail renders reference image and voice sample controls',
   assert.match(markup, /data-testid="world-character-opening-line"/);
   assert.match(markup, /data-testid="world-character-speech-profile-trigger"/);
   assert.match(markup, /data-testid="world-character-voice-sample-audio"/);
-  assert.match(markup, />Look and voice<\/h2>/);
+  assert.doesNotMatch(markup, />Look and voice</);
   assert.doesNotMatch(markup, />Presence<\/p>/);
   assert.doesNotMatch(markup, /Character media/);
-  assert.match(markup, /data-testid="world-character-media-frame"[\s\S]*data-testid="world-character-reference-image"[\s\S]*data-testid="world-character-opening-line"[\s\S]*data-testid="world-character-voice-sample-audio"/);
+  assert.match(markup, /data-testid="world-character-media-section"[\s\S]*data-testid="world-character-opening-line"[\s\S]*data-testid="world-character-voice-sample-audio"/);
+  assert.match(markup, /data-testid="world-character-media-frame"[\s\S]*data-testid="world-character-reference-image"/);
+  assert.match(markup, /data-testid="world-character-reference-image"[\s\S]*data-testid="world-character-opening-line"[\s\S]*data-testid="world-character-voice-play-button"[\s\S]*data-testid="world-character-voice-sample-audio"/);
+  assert.match(markup, /data-testid="world-character-reference-image"[^>]*class="[^"]*relative/);
+  assert.match(markup, /bg-gradient-to-t from-black\/80/);
+  assert.match(markup, /data-testid="world-character-voice-play-button"[^>]*aria-label="Play voice"/);
   assert.match(markup, /data-testid="world-character-opening-line"[\s\S]*data-testid="world-character-speech-profile-trigger"[\s\S]*>i<\/button>[\s\S]*The archives are quiet; ask, and I will open them\./);
   assert.match(markup, /The archives are quiet; ask, and I will open them\./);
   assert.match(markup, /A measured Song dynasty scholar voice\./);
@@ -265,9 +269,8 @@ test('world character detail renders reference image and voice sample controls',
   assert.doesNotMatch(markup, /\/tmp\/nimi-forge/);
 });
 
-test('world character zh media section names presence instead of internal media assets', () => {
+test('world character zh media locale names presence instead of internal media assets', () => {
   const locale = readSourceDetailZhLocale();
 
   assert.equal(locale.worldCharacter?.mediaEyebrow, '形象');
-  assert.equal(locale.worldCharacter?.mediaTitle, '形象与声音');
 });

@@ -63,14 +63,17 @@ function PeopleCard({
   onSelect,
   onViewCharacter,
   onMaterializeSource,
+  onOpenConversation,
 }: {
   character: WorldCharacter;
   onSelect: (characterId: string) => void;
   onViewCharacter?: (character: WorldCharacter) => void;
   onMaterializeSource?: (character: WorldCharacter) => Promise<void> | void;
+  onOpenConversation?: (character: WorldCharacter) => Promise<void> | void;
 }) {
   const { t } = useTranslation();
   const connectable = character.relation?.state === 'connectable';
+  const connected = character.relation?.state === 'connected';
   const tier = tierBadgeTone[character.importance];
   const cardStyle: CSSProperties = {
     background: 'var(--nimi-surface-panel)',
@@ -130,22 +133,39 @@ function PeopleCard({
       <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
         <button
           type="button"
-          disabled={!connectable}
-          onClick={() => onMaterializeSource?.(character)}
+          disabled={!connectable && !connected}
+          onClick={() => (connected ? onOpenConversation?.(character) : onMaterializeSource?.(character))}
           style={{
             ...paperPrimaryButton,
             flex: 1,
-            background: connectable ? 'var(--nimi-action-primary-bg)' : 'var(--nimi-border-subtle)',
-            color: connectable ? 'var(--nimi-action-primary-text)' : 'var(--nimi-text-muted)',
-            cursor: connectable ? 'pointer' : 'default',
+            // Solid fill marks the ready-to-chat state; the add action stays an
+            // outlined tint so the two are visually distinct.
+            border: connected
+              ? 'none'
+              : connectable
+                ? '1px solid color-mix(in srgb, var(--nimi-action-primary-bg) 32%, transparent)'
+                : 'none',
+            background: connected
+              ? 'var(--nimi-action-primary-bg)'
+              : connectable
+                ? 'color-mix(in srgb, var(--nimi-action-primary-bg) 8%, transparent)'
+                : 'var(--nimi-border-subtle)',
+            color: connected
+              ? 'var(--nimi-action-primary-text)'
+              : connectable
+                ? 'var(--nimi-action-primary-bg)'
+                : 'var(--nimi-text-muted)',
+            cursor: connectable || connected ? 'pointer' : 'default',
           }}
         >
-          {relationLabel(character, t)}
+          {connected ? t('WorldDetail.paper.characters.chatNow') : relationLabel(character, t)}
         </button>
-        <button type="button" onClick={() => onSelect(character.id)} style={{ ...paperGhostButton, flex: 1 }}>
-          <IconChat size={14} color="var(--nimi-text-primary)" strokeWidth={1.7} />
-          {t('WorldDetail.paper.characters.chat')}
-        </button>
+        {connected ? null : (
+          <button type="button" onClick={() => onSelect(character.id)} style={{ ...paperGhostButton, flex: 1 }}>
+            <IconChat size={14} color="var(--nimi-text-primary)" strokeWidth={1.7} />
+            {t('WorldDetail.paper.characters.chat')}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -197,12 +217,14 @@ export function WorldPeopleGallery({
   onSelect,
   onViewCharacter,
   onMaterializeSource,
+  onOpenConversation,
 }: {
   characters: readonly WorldCharacter[];
   onClose: () => void;
   onSelect: (characterId: string) => void;
   onViewCharacter?: (character: WorldCharacter) => void;
   onMaterializeSource?: (character: WorldCharacter) => Promise<void> | void;
+  onOpenConversation?: (character: WorldCharacter) => Promise<void> | void;
 }) {
   const { t } = useTranslation();
   const axes = useMemo(() => availableGroupBys(characters), [characters]);
@@ -221,6 +243,7 @@ export function WorldPeopleGallery({
       groups={groups}
       onAction={onClose}
       onMaterializeSource={onMaterializeSource}
+      onOpenConversation={onOpenConversation}
       onViewCharacter={onViewCharacter}
       onGroupByChange={setGroupBy}
       onQueryChange={setQuery}
@@ -243,6 +266,7 @@ function PeopleArchiveShell({
   modal,
   onAction,
   onMaterializeSource,
+  onOpenConversation,
   onGroupByChange,
   onQueryChange,
   onSelect,
@@ -258,6 +282,7 @@ function PeopleArchiveShell({
   modal?: boolean;
   onAction: () => void;
   onMaterializeSource?: (character: WorldCharacter) => Promise<void> | void;
+  onOpenConversation?: (character: WorldCharacter) => Promise<void> | void;
   onGroupByChange: (axis: PeopleGroupBy) => void;
   onQueryChange: (value: string) => void;
   onSelect: (characterId: string) => void;
@@ -361,6 +386,7 @@ function PeopleArchiveShell({
                       onSelect={onSelect}
                       onViewCharacter={onViewCharacter}
                       onMaterializeSource={onMaterializeSource}
+                      onOpenConversation={onOpenConversation}
                     />
                   ))}
                 </div>
@@ -416,12 +442,14 @@ export function WorldPeopleArchivePage({
   onSelect,
   onViewCharacter,
   onMaterializeSource,
+  onOpenConversation,
 }: {
   characters: readonly WorldCharacter[];
   onBack: () => void;
   onSelect: (characterId: string) => void;
   onViewCharacter?: (character: WorldCharacter) => void;
   onMaterializeSource?: (character: WorldCharacter) => Promise<void> | void;
+  onOpenConversation?: (character: WorldCharacter) => Promise<void> | void;
 }) {
   const { t } = useTranslation();
   const axes = useMemo(() => availableGroupBys(characters), [characters]);
@@ -453,6 +481,7 @@ export function WorldPeopleArchivePage({
           groups={groups}
           onAction={onBack}
           onMaterializeSource={onMaterializeSource}
+          onOpenConversation={onOpenConversation}
           onViewCharacter={onViewCharacter}
           onGroupByChange={setGroupBy}
           onQueryChange={setQuery}

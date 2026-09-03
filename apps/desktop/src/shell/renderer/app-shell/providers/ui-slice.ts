@@ -94,6 +94,7 @@ type UiSlice = Pick<AppStoreState,
   | 'selectedWorldInitialSubpage'
   | 'exploreActiveSection'
   | 'exploreSearchText'
+  | 'exploreSelectedWorldId'
   | 'appsDetailAppId'
   | 'appsDetailSection'
   | 'appsDetailNavigationRevision'
@@ -121,6 +122,7 @@ type UiSlice = Pick<AppStoreState,
   | 'setSelectedWorldId'
   | 'setExploreActiveSection'
   | 'setExploreSearchText'
+  | 'setExploreSelectedWorldId'
   | 'setAppsDetailAppId'
   | 'setProfileDetailOverlayOpen'
   | 'setChatProfilePanelTarget'
@@ -159,6 +161,7 @@ export function createUiSlice(
     selectedWorldInitialSubpage: null,
     exploreActiveSection: 'worlds' as ExploreSectionId,
     exploreSearchText: '',
+    exploreSelectedWorldId: null,
     appsDetailAppId: null,
     appsDetailSection: null,
     appsDetailNavigationRevision: 0,
@@ -270,12 +273,18 @@ export function createUiSlice(
     setPendingAgentComposerPrefill: (input) =>
       set((state) => {
         const agentHandle = String(input.agentHandle || '').trim();
+        const sourceKey = String(input.sourceKey || '').trim();
         const text = String(input.text || '').trim();
         const requestId = state.agentComposerPrefillSerial + 1;
         return {
           agentComposerPrefillSerial: requestId,
-          pendingAgentComposerPrefill: agentHandle && text
-            ? { agentHandle, text, requestId }
+          pendingAgentComposerPrefill: text && (agentHandle || sourceKey)
+            ? {
+                ...(agentHandle ? { agentHandle } : {}),
+                ...(sourceKey ? { sourceKey } : {}),
+                text,
+                requestId,
+              }
             : null,
         };
       }),
@@ -304,6 +313,7 @@ export function createUiSlice(
     setSelectedWorldId: (worldId) => set({ selectedWorldId: worldId, selectedWorldInitialSubpage: null }),
     setExploreActiveSection: (section) => set({ exploreActiveSection: section }),
     setExploreSearchText: (text) => set({ exploreSearchText: String(text || '') }),
+    setExploreSelectedWorldId: (worldId) => set({ exploreSelectedWorldId: worldId }),
     setAppsDetailAppId: (appId, section = null) => {
       const normalizedAppId = String(appId || '').trim();
       set((state) => ({

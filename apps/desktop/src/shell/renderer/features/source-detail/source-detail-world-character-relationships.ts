@@ -133,6 +133,21 @@ export function readRelationshipTargetLabel(row: JsonObject): string | null {
     ?? readOptionalString(presentation, 'targetName');
 }
 
+export function readRelationshipTargetLabels(relationships: JsonObject[]): Record<string, string> {
+  const labels: Record<string, string> = {};
+  for (const row of relationships) {
+    const entityId = readRelationshipTargetEntityId(row);
+    if (!entityId || labels[entityId]) {
+      continue;
+    }
+    const label = readRelationshipTargetLabel(row) ?? readRelationshipLabel(row);
+    if (label) {
+      labels[entityId] = label;
+    }
+  }
+  return labels;
+}
+
 export function readRelationshipClues(relationships: JsonObject[]): SourceDetailRelationshipClue[] {
   const seen = new Set<string>();
   return relationships

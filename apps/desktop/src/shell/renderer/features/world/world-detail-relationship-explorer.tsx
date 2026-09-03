@@ -223,7 +223,7 @@ function PeoplePanel({
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 10, scrollbarGutter: 'stable' }}>
         {buckets.length > 0 ? (
-          <div style={{ display: 'grid', gap: 4 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 4 }}>
             {buckets.map((bucket) => {
               const selected = bucket.character.id === selectedId;
               const count = clueCount(bucket);

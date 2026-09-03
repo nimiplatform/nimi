@@ -87,10 +87,9 @@
       "anime": "Anime"
     },
     "sort": {
-      "active": "Recently Active",
       "recent": "Recently Updated",
-      "sources": "Most Sources",
-      "alpha": "A-Z"
+      "sources": "Most People",
+      "alpha": "Name"
     },
     "actions": {
       "shareWorld": "Share world",

@@ -87,10 +87,9 @@
       "anime": "动画"
     },
     "sort": {
-      "active": "最近活跃",
       "recent": "最近更新",
-      "sources": "Source 最多",
-      "alpha": "A-Z"
+      "sources": "人物最多",
+      "alpha": "名称"
     },
     "actions": {
       "shareWorld": "分享世界",

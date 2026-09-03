@@ -1,7 +1,7 @@
-import type { CSSProperties } from 'react';
+import { useRef, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, ScrollArea, Tooltip, TooltipProvider } from '@nimiplatform/kit/ui';
-import { ArrowLeft, CirclePlus, MessageCircle } from 'lucide-react';
+import { ArrowLeft, CirclePlus, MessageCircle, Pause, Play, ScrollText } from 'lucide-react';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { toSafeBackgroundImage } from '../explore/explore-background-image.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
@@ -14,7 +14,6 @@ import {
   type SourceDetailBiographicalTimelineSection,
 } from './source-detail-world-character-biographical-timeline.js';
 import {
-  topicChips,
   worldCharacterHeroDescription,
   worldCharacterHeroSubtitle,
   worldCharacterPrimaryActionLabel,
@@ -35,83 +34,46 @@ type CharacterSourceDetailPageProps = {
   onOpenWorld: () => void;
   onPrimaryAction: () => void;
   onStartChat?: (initialComposerText?: string) => void;
+  primaryActionJoining?: boolean;
 };
 
-function WorldCharacterIdentityCoordinates({ source }: { source: SourceDetailData }) {
+function WorldCharacterWorksBlock({ source }: { source: SourceDetailData }) {
   const { t } = useTranslation();
-  const character = source.characterProfile;
-  const coordinates = [
-    {
-      label: t('SourceDetail.worldCharacter.identityRole', { defaultValue: 'Role' }),
-      value: character.role,
-    },
-    {
-      label: t('SourceDetail.character.identityArchetype', { defaultValue: 'Archetype' }),
-      value: character.archetype,
-    },
-    {
-      label: t('SourceDetail.character.identityTraits', { defaultValue: 'Traits' }),
-      value: character.traits.join(' / ') || null,
-    },
-    {
-      label: t('SourceDetail.character.identityModes', { defaultValue: 'Interaction modes' }),
-      value: character.interactionModes.join(' / ') || null,
-    },
-  ].filter((item): item is { label: string; value: string } => Boolean(item.value));
-
-  if (coordinates.length === 0) {
-    return null;
-  }
-
+  const works = source.works.filter((work) => !work.textClue);
+  const textClues = source.works.filter((work) => work.textClue === true);
+  const countText = works.length > 0
+    ? t('SourceDetail.works.count', {
+        count: works.length,
+        defaultValue: '{{count}} related works collected',
+      })
+    : textClues.length === 0
+      ? t('SourceDetail.works.unavailable', {
+          defaultValue: 'Works collection data is not available for this source yet.',
+        })
+      : null;
   return (
-    <div data-testid="world-character-identity-coordinates" className="mt-5">
-      <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-        {t('SourceDetail.worldCharacter.identityCoordinatesTitle', { defaultValue: 'Identity coordinates' })}
-      </h3>
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
-        {coordinates.map((item) => (
-          <div key={item.label} className="rounded-[12px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-normal text-[var(--nimi-text-muted)]">{item.label}</p>
-            <p className="mt-1 text-sm font-semibold leading-6 text-[var(--nimi-text-primary)]">{simplifyDisplayText(item.value)}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function WorldCharacterWorksSection({ source }: { source: SourceDetailData }) {
-  const { t } = useTranslation();
-  return (
-    <section data-testid="world-character-works-section" className="rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-base)]">
+    <div data-testid="world-character-works-section" className="mt-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
+          <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
             {t('SourceDetail.works.title', { defaultValue: 'Works collections' })}
-          </h2>
-          <p className="mt-1 text-sm leading-6 text-[var(--nimi-text-muted)]">
-            {source.works.length > 0
-              ? t('SourceDetail.works.count', {
-                  count: source.works.length,
-                  defaultValue: '{{count}} related works collected',
-                })
-              : t('SourceDetail.works.unavailable', {
-                  defaultValue: 'Works collection data is not available for this source yet.',
-                })}
-          </p>
+          </h3>
+          {countText ? (
+            <p className="mt-1 text-sm leading-6 text-[var(--nimi-text-muted)]">{countText}</p>
+          ) : null}
         </div>
         <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] px-3 py-1 text-xs font-semibold text-[var(--nimi-action-primary-bg)]">
           {t('SourceDetail.works.badge', { defaultValue: 'Texts' })}
         </span>
       </div>
 
-      {source.works.length > 0 ? (
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          {source.works.map((work) => (
+      {works.length > 0 ? (
+        <div data-testid="world-character-works-grid" className="mt-4 grid gap-3 md:grid-cols-2">
+          {works.map((work) => (
             <article key={work.id} className="rounded-[14px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h3 className="truncate text-base font-semibold text-[var(--nimi-text-primary)]">{simplifyDisplayText(work.title)}</h3>
+                  <h4 className="truncate text-base font-semibold text-[var(--nimi-text-primary)]">{simplifyDisplayText(work.title)}</h4>
                   {work.romanizedTitle ? (
                     <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{simplifyDisplayText(work.romanizedTitle)}</p>
                   ) : null}
@@ -127,7 +89,32 @@ function WorldCharacterWorksSection({ source }: { source: SourceDetailData }) {
           ))}
         </div>
       ) : null}
-    </section>
+
+      {textClues.length > 0 ? (
+        <div
+          data-testid="world-character-text-clues"
+          className="mt-4 rounded-[14px] border border-dashed border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_55%,transparent)] px-4 py-3"
+        >
+          <div className="flex items-center gap-1.5 text-[var(--nimi-text-muted)]">
+            <ScrollText aria-hidden className="h-3.5 w-3.5" />
+            <h4 className="text-xs font-semibold">
+              {t('SourceDetail.works.textCluesTitle', { defaultValue: 'Writing clues' })}
+            </h4>
+          </div>
+          <ul className="mt-2 space-y-1.5">
+            {textClues.map((clue) => (
+              <li
+                key={clue.id}
+                className="flex items-start gap-2 text-sm leading-6 text-[var(--nimi-text-muted)]"
+              >
+                <span aria-hidden className="mt-[11px] h-1 w-1 shrink-0 rounded-full bg-current" />
+                <span className="min-w-0">{simplifyDisplayText(clue.summary ?? clue.title)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -273,161 +260,16 @@ function WorldCharacterMilestonesSection({ source }: { source: SourceDetailData 
   );
 }
 
-type WorldCharacterQuestionTopicKind = 'relationship' | 'work' | 'role' | 'faction' | 'rank' | 'scene' | 'topic';
-
-type WorldCharacterQuestionTopic = {
-  kind: WorldCharacterQuestionTopicKind;
-  text: string;
-};
-
-function cleanQuestionTopicText(value: string): string {
-  return simplifyDisplayText(value).replace(/[。.!！?？]+$/u, '').trim();
-}
-
-function isReadableRelationshipQuestionTopic(value: string): boolean {
-  const text = cleanQuestionTopicText(value);
-  if (!text || text.length > 18) {
-    return false;
-  }
-  if (/[XYＸＹ]/u.test(text) || /[A-Za-z]/u.test(text) || /[()（）:：]/u.test(text)) {
-    return false;
-  }
-  return !/(所作|收到|得到|赠言|贺词|画赞|畫贊|图像|圖像|墓志|墓誌|墓表|神道碑|生祠|作序|由.+作|为.+作)/u.test(text);
-}
-
-function uniqueQuestionTopics(topics: WorldCharacterQuestionTopic[]): WorldCharacterQuestionTopic[] {
-  const seen = new Set<string>();
-  return topics
-    .map((topic) => ({
-      ...topic,
-      text: cleanQuestionTopicText(topic.text),
-    }))
-    .filter((topic) => {
-      if (!topic.text || seen.has(topic.text)) {
-        return false;
-      }
-      seen.add(topic.text);
-      return true;
-    });
-}
-
-function worldCharacterQuestionText(
-  topic: WorldCharacterQuestionTopic,
-  t: ReturnType<typeof useTranslation>['t'],
-): string {
-  if (topic.kind === 'relationship') {
-    return t('SourceDetail.worldCharacter.relationshipQuestion', {
-      topic: topic.text,
-      defaultValue: `How are they connected to ${topic.text}?`,
-    });
-  }
-  if (topic.kind === 'work') {
-    return t('SourceDetail.worldCharacter.workQuestion', {
-      topic: topic.text,
-      defaultValue: `Why does ${topic.text} matter?`,
-    });
-  }
-  if (topic.kind === 'role') {
-    return t('SourceDetail.worldCharacter.roleQuestion', {
-      topic: topic.text,
-      defaultValue: `Why are they known as ${topic.text}?`,
-    });
-  }
-  if (topic.kind === 'faction') {
-    return t('SourceDetail.worldCharacter.factionQuestion', {
-      topic: topic.text,
-      defaultValue: `How did ${topic.text} shape their life?`,
-    });
-  }
-  if (topic.kind === 'rank') {
-    return t('SourceDetail.worldCharacter.rankQuestion', {
-      topic: topic.text,
-      defaultValue: `What did they experience while serving as ${topic.text}?`,
-    });
-  }
-  if (topic.kind === 'scene') {
-    return t('SourceDetail.worldCharacter.sceneQuestion', {
-      topic: topic.text,
-      defaultValue: `What did they experience in ${topic.text}?`,
-    });
-  }
-  return t('SourceDetail.worldCharacter.topicQuestion', {
-    topic: topic.text,
-    defaultValue: `How would they explain ${topic.text}?`,
-  });
-}
-
-function WorldCharacterConversationSection({
-  source,
-  onStartChat,
-  disabled,
-}: {
-  source: SourceDetailData;
-  onStartChat?: (initialComposerText?: string) => void;
-  disabled?: boolean;
-}) {
-  const { t } = useTranslation();
-  const relationshipTopics = source.relationshipClues
-    .map((clue): WorldCharacterQuestionTopic | null => {
-      const targetLabel = clue.targetLabel ? cleanQuestionTopicText(clue.targetLabel) : '';
-      if (targetLabel && isReadableRelationshipQuestionTopic(targetLabel)) {
-        return { kind: clue.type === 'status' ? 'role' : 'relationship', text: targetLabel };
-      }
-      const label = cleanQuestionTopicText(clue.label);
-      if (!isReadableRelationshipQuestionTopic(label)) {
-        return null;
-      }
-      return { kind: clue.type === 'status' ? 'role' : 'relationship', text: label };
-    })
-    .filter((topic): topic is WorldCharacterQuestionTopic => Boolean(topic));
-  const questionTopics = uniqueQuestionTopics([
-    source.characterProfile.role ? { kind: 'role' as const, text: source.characterProfile.role } : null,
-    source.characterProfile.archetype ? { kind: 'topic' as const, text: source.characterProfile.archetype } : null,
-    ...source.characterProfile.traits.map((trait) => ({ kind: 'topic' as const, text: trait })),
-    ...source.characterProfile.interactionModes.map((mode) => ({ kind: 'topic' as const, text: mode })),
-    ...source.works.map((work) => ({ kind: 'work' as const, text: work.title })),
-    ...relationshipTopics,
-    ...topicChips(source).map((topic) => ({ kind: 'topic' as const, text: topic })),
-  ].filter((topic): topic is WorldCharacterQuestionTopic => Boolean(topic)));
-  const questions = questionTopics
-    .map((topic) => worldCharacterQuestionText(topic, t))
-    .slice(0, 8);
-
-  return (
-    <section data-testid="world-character-ask-section" className="rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-base)]">
-      <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
-        {t('SourceDetail.worldCharacter.talkTitle', { defaultValue: 'You can ask them' })}
-      </h2>
-      {questions.length > 0 ? (
-        <div data-testid="world-character-question-list" className="mt-3 grid gap-2">
-          {questions.map((question) => (
-            <button
-              key={question}
-              type="button"
-              data-testid="world-character-question"
-              onClick={() => onStartChat?.(question)}
-              disabled={disabled || !onStartChat}
-              className="rounded-[12px] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] px-3 py-2 text-left text-xs font-semibold leading-5 text-[var(--nimi-action-primary-bg)] transition hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_22%,transparent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--nimi-action-primary-bg)] disabled:cursor-default disabled:opacity-60"
-            >
-              {question}
-            </button>
-          ))}
-        </div>
-      ) : (
-        <p className="mt-2 text-sm leading-6 text-[var(--nimi-text-muted)]">
-          {t('SourceDetail.worldCharacter.noAnchors', { defaultValue: 'No suggested questions are available yet.' })}
-        </p>
-      )}
-    </section>
-  );
-}
-
 function WorldCharacterOpeningLine({
   source,
   className,
+  onImage = false,
 }: {
   source: SourceDetailData;
   className?: string;
+  // onImage renders the line over the portrait scrim, so the text switches to
+  // an inverse color that stays readable on the dark mask.
+  onImage?: boolean;
 }) {
   const { t } = useTranslation();
   const interaction = source.characterProfile.interaction;
@@ -479,59 +321,155 @@ function WorldCharacterOpeningLine({
           </Tooltip>
         </TooltipProvider>
       ) : null}
-      <p className="min-w-0 text-sm leading-6 text-[var(--nimi-text-secondary)]">{openingLine}</p>
+      <p className={`min-w-0 text-sm leading-6 ${onImage ? 'text-white/90' : 'text-[var(--nimi-text-secondary)]'}`}>{openingLine}</p>
     </div>
   );
 }
 
-function WorldCharacterMediaSection({ source }: { source: SourceDetailData }) {
+// The voice sample renders as a single round play/pause button; the backing
+// audio element stays hidden and mirrors its playback state into the button.
+function WorldCharacterVoicePlayButton({
+  src,
+  className,
+}: {
+  src: string;
+  className?: string;
+}) {
+  const { t } = useTranslation();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playing, setPlaying] = useState(false);
+  const label = playing
+    ? t('SourceDetail.worldCharacter.voicePause', { defaultValue: 'Pause voice' })
+    : t('SourceDetail.worldCharacter.voicePlay', { defaultValue: 'Play voice' });
+
+  return (
+    <>
+      <button
+        type="button"
+        data-testid="world-character-voice-play-button"
+        aria-label={label}
+        aria-pressed={playing}
+        onClick={() => {
+          const audio = audioRef.current;
+          if (!audio) {
+            return;
+          }
+          if (playing) {
+            audio.pause();
+          } else {
+            void audio.play();
+          }
+        }}
+        className={`z-10 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${className ?? ''}`}
+      >
+        {playing ? (
+          <Pause aria-hidden className="h-4 w-4" strokeWidth={2.2} />
+        ) : (
+          <Play aria-hidden className="h-4 w-4" strokeWidth={2.2} />
+        )}
+      </button>
+      <audio
+        ref={audioRef}
+        data-testid="world-character-voice-sample-audio"
+        className="hidden"
+        preload="metadata"
+        src={src}
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onEnded={() => setPlaying(false)}
+      />
+    </>
+  );
+}
+
+// The overview section owns the character summary, the works collection, and
+// the look-and-voice presence as one integrated part. Works sit under the
+// summary in the text column so the space beside the portrait stays filled.
+// With a portrait, the opening line sits on a dark frosted scrim inside the
+// portrait's lower edge and the voice sample is a round play button floating on
+// the portrait's top-right corner; without a portrait, the voice presence falls
+// back to an inline row inside the text column.
+function WorldCharacterOverviewSection({
+  source,
+  onOpenWorld,
+}: {
+  source: SourceDetailData;
+  onOpenWorld: () => void;
+}) {
   const { t } = useTranslation();
   const referenceImageUrl = source.referenceImageUrl;
   const voiceSample = source.voiceSample;
   const hasOpeningLine = Boolean(source.characterProfile.interaction?.greeting);
-
-  if (!referenceImageUrl && !voiceSample && !hasOpeningLine) {
-    return null;
-  }
+  const hasSummary = Boolean(source.entity?.summary);
+  const showInlineVoice = !referenceImageUrl && (voiceSample || hasOpeningLine);
 
   return (
-    <section data-testid="world-character-media-section" className="rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-base)]">
-      <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
-        {t('SourceDetail.worldCharacter.mediaTitle', { defaultValue: 'Look and voice' })}
-      </h2>
-
-      <div
-        data-testid="world-character-media-frame"
-        className="mx-auto mt-4 w-full max-w-[320px] overflow-hidden rounded-[14px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-2"
-      >
-        {referenceImageUrl ? (
-          <div
-            data-testid="world-character-reference-image"
-            className="flex aspect-[2/3] w-full items-center justify-center overflow-hidden rounded-[10px] bg-[var(--nimi-surface-card)]"
+    <section data-testid="world-character-overview-section" className="rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-base)]">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">{t('SourceDetail.worldCharacter.overviewTitle', { defaultValue: 'Character overview' })}</h2>
+        </div>
+        {source.worldId ? (
+          <button
+            type="button"
+            onClick={onOpenWorld}
+            className="rounded-[10px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-xs font-semibold text-[var(--nimi-action-primary-bg)]"
           >
-            <img
-              src={referenceImageUrl}
-              alt=""
-              className="h-full w-full object-contain"
-            />
+            {t('SourceDetail.openWorld', { defaultValue: 'Open World' })}
+          </button>
+        ) : null}
+      </div>
+      <div className={referenceImageUrl ? 'mt-4 grid gap-6 min-[900px]:grid-cols-[minmax(0,1fr)_280px]' : 'mt-4'}>
+        <div className="min-w-0">
+          {source.entity?.summary ? (
+            <p className="text-sm leading-7 text-[var(--nimi-text-secondary)]">{simplifyDisplayText(source.entity.summary)}</p>
+          ) : null}
+          {showInlineVoice ? (
+            <div data-testid="world-character-media-section" className={hasSummary ? 'mt-4' : ''}>
+              <div className="flex items-start gap-3">
+                {voiceSample ? (
+                  <WorldCharacterVoicePlayButton
+                    src={voiceSample.url}
+                    className="mt-0.5 border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)] hover:bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent)]"
+                  />
+                ) : null}
+                {hasOpeningLine ? (
+                  <WorldCharacterOpeningLine source={source} className="min-w-0 flex-1" />
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+          <WorldCharacterWorksBlock source={source} />
+        </div>
+        {referenceImageUrl ? (
+          <div data-testid="world-character-media-section" className="min-w-0">
+            <div
+              data-testid="world-character-media-frame"
+              className="mx-auto w-full max-w-[280px]"
+            >
+              <div
+                data-testid="world-character-reference-image"
+                className="relative aspect-[2/3] w-full overflow-hidden rounded-[14px] bg-[var(--nimi-surface-panel)]"
+              >
+                <img
+                  src={referenceImageUrl}
+                  alt=""
+                  className="h-full w-full object-contain"
+                />
+                {hasOpeningLine ? (
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/45 to-transparent px-3.5 pb-3 pt-9 backdrop-blur-[2px]">
+                    <WorldCharacterOpeningLine source={source} onImage />
+                  </div>
+                ) : null}
+                {voiceSample ? (
+                  <WorldCharacterVoicePlayButton
+                    src={voiceSample.url}
+                    className="absolute right-3 top-3 border border-white/35 bg-black/45 text-white shadow-[var(--nimi-elevation-raised)] backdrop-blur-md hover:bg-black/60"
+                  />
+                ) : null}
+              </div>
+            </div>
           </div>
-        ) : null}
-
-        {hasOpeningLine ? (
-          <WorldCharacterOpeningLine
-            source={source}
-            className={referenceImageUrl ? 'mt-3' : ''}
-          />
-        ) : null}
-
-        {voiceSample ? (
-          <audio
-            data-testid="world-character-voice-sample-audio"
-            className={(referenceImageUrl || hasOpeningLine) ? 'mt-3 w-full' : 'w-full'}
-            controls
-            preload="metadata"
-            src={voiceSample.url}
-          />
         ) : null}
       </div>
     </section>
@@ -548,8 +486,9 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
   );
   const primaryAction = describeCharacterPrimaryAction(source.sourceState, t);
   const canStartChat = primaryAction.action === 'open_partner';
+  const primaryActionJoining = props.primaryActionJoining === true && !canStartChat;
   const dynastyLabel = worldCharacterHeroSubtitle(source);
-  const heroDescription = worldCharacterHeroDescription(source, dynastyLabel);
+  const heroDescription = worldCharacterHeroDescription(source, dynastyLabel, t);
   const statItems = props.stats
     ? [
         {
@@ -676,12 +615,14 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                         tone="secondary"
                         size="lg"
                         onClick={props.onPrimaryAction}
-                        disabled={primaryAction.disabled}
+                        disabled={primaryAction.disabled || primaryActionJoining}
                         data-source-state={source.sourceState}
                         data-primary-action={primaryAction.action}
                       >
                         <CirclePlus aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
-                        {worldCharacterPrimaryActionLabel(primaryAction, t)}
+                        {primaryActionJoining
+                          ? t('SourceDetail.worldCharacter.primaryActionJoining', { defaultValue: 'Adding…' })
+                          : worldCharacterPrimaryActionLabel(primaryAction, t)}
                       </Button>
                     )}
                   </div>
@@ -690,43 +631,11 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
             </div>
           </section>
 
-          <div className="grid grid-cols-[minmax(0,1fr)_330px] gap-5 max-[980px]:grid-cols-1">
-            <main className="grid min-w-0 gap-5">
-              <section className="rounded-[18px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-base)]">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">{t('SourceDetail.worldCharacter.overviewTitle', { defaultValue: 'Character overview' })}</h2>
-                  </div>
-                  {source.worldId ? (
-                    <button
-                      type="button"
-                      onClick={props.onOpenWorld}
-                      className="rounded-[10px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-3 py-2 text-xs font-semibold text-[var(--nimi-action-primary-bg)]"
-                    >
-                      {t('SourceDetail.openWorld', { defaultValue: 'Open World' })}
-                    </button>
-                  ) : null}
-                </div>
-                {source.entity?.summary ? (
-                  <p className="mt-4 text-sm leading-7 text-[var(--nimi-text-secondary)]">{simplifyDisplayText(source.entity.summary)}</p>
-                ) : null}
-                <WorldCharacterIdentityCoordinates source={source} />
-              </section>
-
-              <WorldCharacterMilestonesSection source={source} />
-              <WorldCharacterWorksSection source={source} />
-              <WorldCharacterRelationshipCluesSection source={source} />
-            </main>
-
-            <aside className="grid content-start gap-5">
-              <WorldCharacterMediaSection source={source} />
-              <WorldCharacterConversationSection
-                source={source}
-                onStartChat={props.onStartChat}
-                disabled={primaryAction.disabled}
-              />
-            </aside>
-          </div>
+          <main className="grid min-w-0 gap-5">
+            <WorldCharacterOverviewSection source={source} onOpenWorld={props.onOpenWorld} />
+            <WorldCharacterMilestonesSection source={source} />
+            <WorldCharacterRelationshipCluesSection source={source} />
+          </main>
         </div>
       </ScrollArea>
     </div>

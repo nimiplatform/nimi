@@ -16,6 +16,7 @@ import {
   readCharacterProfile,
   readRelationshipClues,
   readRelationshipRows,
+  readRelationshipTargetLabels,
   readWorldCharacterWorksFromRelationships,
 } from './source-detail-world-character-model.js';
 import type {
@@ -56,6 +57,7 @@ export type SourceDetailData = {
   characterProfile: CharacterProfileProjection;
   worldCharacterAugmentation: SourceDetailWorldCharacterAugmentation | null;
   relationshipClues: SourceDetailRelationshipClue[];
+  relationshipTargetLabels: Record<string, string>;
   works: SourceDetailWorkCollection[];
   worksAvailability: 'available' | 'unavailable';
   sourceState: CharacterSourceState;
@@ -72,6 +74,10 @@ export type SourceDetailWorkCollection = {
   status: 'resolved' | 'unresolved' | 'unknown';
   summary?: string | null;
   timeLabel?: string | null;
+  // True when the row is literary-exchange evidence without an identifiable
+  // work title; its title is the generic relation label (e.g. 著述线索) and it
+  // renders as a text clue, not as a work card.
+  textClue?: boolean;
 };
 
 export type SourceDetailEntity = {
@@ -261,6 +267,14 @@ function simplifySourceDetailRelationshipClues(
   }));
 }
 
+function simplifySourceDetailRelationshipTargetLabels(
+  labels: Record<string, string>,
+): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(labels).map(([entityId, label]) => [entityId, simplifySourceDetailChineseText(label)]),
+  );
+}
+
 function simplifySourceDetailVoiceSample(
   voiceSample: SourceDetailVoiceSample | null,
 ): SourceDetailVoiceSample | null {
@@ -287,6 +301,7 @@ function simplifySourceDetailData(detail: SourceDetailData): SourceDetailData {
     characterProfile: simplifySourceDetailCharacterProfile(detail.characterProfile),
     worldCharacterAugmentation: simplifyWorldCharacterAugmentation(detail.worldCharacterAugmentation),
     relationshipClues: simplifySourceDetailRelationshipClues(detail.relationshipClues),
+    relationshipTargetLabels: simplifySourceDetailRelationshipTargetLabels(detail.relationshipTargetLabels),
     works: simplifySourceDetailWorks(detail.works),
   };
 }
@@ -386,6 +401,7 @@ export function toSourceDetailData(
       ? { careerMilestones }
       : null,
     relationshipClues: sourceKind === 'worldCharacter' ? readRelationshipClues(relationships) : [],
+    relationshipTargetLabels: sourceKind === 'worldCharacter' ? readRelationshipTargetLabels(relationships) : {},
     works,
     worksAvailability: works.length > 0 ? 'available' : 'unavailable',
     sourceState,
