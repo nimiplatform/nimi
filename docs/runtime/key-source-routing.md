@@ -75,7 +75,7 @@ The App never receives the raw key or the connector identity used for execution.
 5. A machine administrator repairs Runtime configuration through the separate
    administration surface.
 
-## Public Boundary
+## Key Points
 
 - Ordinary App and Agent requests contain no credential-source metadata.
 - Connector ids, provider ids, endpoints, API keys, and native provider handles

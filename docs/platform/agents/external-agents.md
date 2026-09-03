@@ -1,20 +1,22 @@
 # External Participation
 
-External action or participation integrations are not part of the current
-LocalAgent core. Their absence does not block Local AI, LocalAgent Conversation,
-Memory, Knowledge, voice, SDK use, Nimi Home, Avatar, or ordinary App capability execution.
+External agents and external action integrations are not part of today's
+LocalAgent core. Their absence holds nothing back: local AI, LocalAgent
+conversations, Memory, Knowledge, voice, SDK use, Nimi Home, Avatar, and
+ordinary App capability execution all work without them.
 
-If an external integration is separately admitted in the future, it remains an
-external security principal or bounded participant projection. It does not
-become a Character, LocalAgent, Character owner, Conversation owner, or a new
-platform-wide Agent ontology.
+If an external integration joins in the future, it joins on Nimi's terms: as
+an outside security principal with explicit limits, or as a bounded
+participant view. It would not become a Character, a LocalAgent, the owner of
+either, or a Conversation owner, and it would not create a new platform-wide
+Agent concept.
 
-External input must enter through an explicit typed Runtime and SDK boundary.
-Provider-native payloads, tool schemas, transport credentials, and external
-execution state do not become public product truth merely because a consumer
-can display them.
+External input must come in through the explicit, typed Runtime and SDK
+boundary. Provider-native payloads, tool schemas, transport credentials, and
+external execution state do not become public product facts just because some
+screen can display them.
 
-No current App should depend on an external action plane for basic LocalAgent
+No current App should need an external action plane for basic LocalAgent
 operation.
 
 ## Source Basis

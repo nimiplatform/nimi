@@ -1,8 +1,8 @@
 # 外部 Agent 接入
 
-> 状态：契约说明；当前没有公开生产 action plane。桌面端保留 Runtime Config 中的 External Agent Access 位置，但在 Runtime-owned gateway/action plane 暴露前，Token 签发与 action registry 必须失败关闭。
+> 状态：暂未开放。桌面端在 Runtime Config 里为 External Agent Access 保留了位置，但在 Runtime 的网关与 action plane 就绪之前，Token 签发保持关闭。
 
-External Agent Access 是为未来 `ExternalPrincipal` 管理预留的桌面端表面。当前产品构建可以展示 Runtime 状态和空账本投影，但不能暗示外部 AI 宿主现在已经能拿到可用的限定作用域 Token。
+External Agent Access 是为未来能力预留的设置区：管理 `ExternalPrincipal`，也就是让外部 AI 工具带着限定范围的 Token 连进 Nimi。当前版本可以显示 Runtime 状态和一个空的 Token 账本，但你今天还签不出可用的 Token。
 
 平台模型见 [平台 → Agent → 外部 Agent](/zh/platform/agents/external-agents)。
 
@@ -15,22 +15,22 @@ External Agent Access 是为未来 `ExternalPrincipal` 管理预留的桌面端�
 | Token 账本 | 在 Runtime 准入 action registry 与 gateway server 前保持为空 |
 | 签发 / 撤销 | 当前构建不是已交付的用户工作流 |
 
-这块面板是有意失败关闭的。启动 Runtime daemon 并不足以让 External Agent Access 可用；Runtime 必须先持有 action descriptor registry、gateway server、token ledger 与审计血缘。
+这块面板是有意锁住的。光启动 Runtime daemon 还不够；Runtime 必须先提供 action descriptor registry、gateway server、token ledger 和审计记录，这项能力才能用。
 
 ## 为什么仍然可见
 
-桌面端保留这个位置，是为了给未来能力一个稳定入口，并让 Runtime 能投影明确的禁用原因。这不同于交付 Token 签发能力。
+保留这个区域，是给未来的能力一个固定的家，也让你能看到它当前不可用的确切原因。把原因摆出来，不等于 Token 签发已经上线。
 
-面板必须清楚表达禁用原因：
+你永远不会从这块面板看到：
 
-- 没有静默成功，
-- 没有合成 Token，
-- 没有 Desktop-local token ledger，
-- 没有 renderer 或 Tauri 里的备用 action registry。
+- 不声不响的「成功」，
+- 凭空造出来的 Token，
+- 桌面端本地的 Token 账本，
+- 藏在 renderer 或 Tauri 里的备用 action registry。
 
 ## 未来能力边界
 
-能力准入后，External Agent Access 由 Runtime 持有：
+能力上线后，它的核心部件都在 Runtime：
 
 | 关注点 | Owner |
 | --- | --- |
@@ -41,7 +41,7 @@ External Agent Access 是为未来 `ExternalPrincipal` 管理预留的桌面端�
 | UI 位置与控件 | Desktop |
 | 强类型投影 | SDK |
 
-桌面端仍是用户可见位置，但不持有 action 权威或 token 真相。
+桌面端仍是你管理它的入口，但 action 与 Token 本身都归 Runtime。
 
 ## 来源依据
 

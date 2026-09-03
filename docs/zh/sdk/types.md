@@ -32,7 +32,7 @@ types 子路径导出使用方在不导入私有内部的前提下谈论 Nimi �
 | `types` 不依赖传输（`@nimiplatform/sdk/runtime`）或适配（`@nimiplatform/sdk/realm`） | 保持类型可移植 |
 | 新增类型需要内核准入 | 与其他 surface 同样的准入纪律 |
 
-## 场景：保持身份 owner 分离
+## 读者场景：保持身份 owner 分离
 
 App 通过 Realm surface 读取 Character reference，随后使用 Runtime 返回的 LocalAgent reference 执行。
 
@@ -43,7 +43,7 @@ App 通过 Realm surface 读取 Character reference，随后使用 Runtime 返�
 
 共享类型层保留 Realm/Runtime owner 边界。
 
-## 场景：强类型错误传到 App 代码
+## 读者场景：强类型错误传到 App 代码
 
 一次 runtime 调用以契约失败告终。
 
@@ -67,7 +67,7 @@ try {
 
 错误是强类型的，因为它来自 `@nimiplatform/sdk/types`，不是因为 App 自己猜出来的。具体的 reason code 清单由 SDK 内核准入。
 
-## 场景：库作者新增 helper
+## 读者场景：库作者新增 helper
 
 一位库作者想写一个接受任意 Nimi 标识的 helper。
 

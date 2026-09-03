@@ -1,13 +1,13 @@
 # Message Actions
 
-> Status: Running today. The Desktop agent chat behavior contract
-> + agent chat message action contract are shipped under
+> Status: Running today. The behavior and per-message action rules for
+> Desktop agent chat ship under
 > `desktop/kernel/agent-chat-{behavior,message-action}-contract.md`.
 
-Per-message actions in Desktop chat (regenerate, fork, edit, etc.)
-are admitted under typed contracts that govern what each action
-does, what conversation continuity it preserves, and how it
-participates in admitted runtime turn semantics.
+Every message in Desktop chat comes with actions — regenerate, fork,
+edit, and more. Each action has a precisely defined behavior: what it
+does, what conversation continuity it keeps, and how it runs through
+Runtime's turn semantics.
 
 ## Behavior + Message Action Split
 
@@ -16,9 +16,9 @@ participates in admitted runtime turn semantics.
 | Agent chat behavior | Generic behavior across messages (turn admission, retry posture, mid-stream stop) |
 | Agent chat message action | Per-message typed actions (regenerate, fork, edit) |
 
-Generic behavior (e.g., "stopping mid-stream preserves partial reply")
-is the behavior contract. Per-message actions (e.g., "the user
-clicked regenerate on this message") are the message action contract.
+Generic behavior — like "stopping mid-stream keeps the partial reply" —
+lives in the behavior contract. Per-message actions — like "you clicked
+regenerate on this message" — live in the message action contract.
 
 ## Admitted Message Actions
 
@@ -29,7 +29,7 @@ clicked regenerate on this message") are the message action contract.
 | Edit | Edit the user's prior message and re-derive |
 | Other admitted actions per `agent-chat-message-action-contract.md` |
 
-Each action is typed; app code does not invent new actions.
+The action set is fixed and typed; app code can't invent new actions.
 
 ## Boundary
 
@@ -64,10 +64,10 @@ point.
 
 ## What Message Actions Do Not Do
 
-- They do not let app code invent new actions.
-- They do not bypass turn lifecycle.
-- They do not silently mutate Realm chat thread truth.
-- They do not redefine `ConversationAnchor` shape.
+- App code can't invent new actions.
+- They don't bypass the turn lifecycle.
+- They don't silently change the human chat history stored in Realm.
+- They don't redefine the `ConversationAnchor` shape.
 
 ## Source Basis
 

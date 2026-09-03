@@ -83,7 +83,7 @@ NAS 处理器自动注册：Runtime 扫描 `<model>/runtime/nimi/`，发现处�
 
 不放转录长面板，不做工作站式配置。Avatar App 是一个 applet，不是工作站。
 
-## 场景：从桌面端打开 Avatar
+## 读者场景：从桌面端打开 Avatar
 
 桌面端聊天里有一个 Agent，你想把它请到屏幕上。
 
@@ -96,7 +96,7 @@ NAS 处理器自动注册：Runtime 扫描 `<model>/runtime/nimi/`，发现处�
 
 桌面端是发起方，Avatar 是 Carrier，Runtime 是权威。
 
-## 场景：通过 NAS 反应点击
+## 读者场景：通过 NAS 反应点击
 
 用户点击 Agent 的头部，希望 Agent 有反应。
 
@@ -108,7 +108,7 @@ NAS 处理器自动注册：Runtime 扫描 `<model>/runtime/nimi/`，发现处�
 
 Avatar 包作者只是把处理器放在约定路径下，没有任何注册仪式。
 
-## 场景：Runtime 不可达
+## 读者场景：Runtime 不可达
 
 Avatar 运行期间 Runtime 守护进程停了。
 

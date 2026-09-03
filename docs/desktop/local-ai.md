@@ -1,8 +1,9 @@
 # Local AI
 
-Desktop's Local Model Center is a machine-administration surface for Runtime
-owned local AI assets. It can browse, install, import, remove, and inspect those
-assets, but it does not choose the implementation for an App request.
+The Local Model Center is where you manage local AI on this machine.
+You can browse, install, import, remove, and inspect Runtime's local
+assets — but installing something here never picks which
+implementation answers an App's request.
 
 ## Surface Boundary
 
@@ -14,13 +15,14 @@ assets, but it does not choose the implementation for an App request.
 | Recommendation feed | Runtime-ordered installation suggestions and evidence |
 | Capability intent | An owner's Local or Cloud preference in `AIConfig` |
 
-The asset catalog is machine configuration. Selecting a bundle in the Local
-Model Center means selecting something to install or remove, not pinning a
-model, engine, or route for later App calls.
+The asset catalog is machine setup, nothing more. Picking a bundle in
+the Local Model Center means "install this" or "remove this" — it
+doesn't pin a model, engine, or route for later App calls.
 
 ## Runtime Truth Projection
 
-Desktop projects Runtime truth and does not reconstruct it locally.
+Everything on this page comes from Runtime; Desktop doesn't
+reconstruct or second-guess it locally.
 
 | Concern | Owner |
 | --- | --- |
@@ -30,19 +32,21 @@ Desktop projects Runtime truth and does not reconstruct it locally.
 | Device and dependency diagnostics | Runtime |
 | Implementation selection for each request | Runtime |
 
-Desktop preserves Runtime recommendation order. It may present Runtime-issued
-reasons or compatibility evidence, but it does not score, grade, group, or
-rerank models on the client.
+Recommendations appear in the order Runtime gives them, with Runtime's
+own reasons and compatibility evidence attached. Desktop doesn't
+score, grade, group, or reshuffle the list on the client.
 
 ## Dependency Setup
 
-Engines that require system dependencies use a Runtime materializer. Desktop
-shows typed installation progress and failures; it does not execute arbitrary
-PowerShell or shell commands. A user confirmation starts the admitted Runtime
-operation, and Runtime owns download, verification, installation, and cleanup.
+Engines that need system dependencies install through a Runtime
+materializer. You confirm, and Runtime runs the whole operation —
+download, verification, installation, and cleanup. Desktop shows typed
+progress and failures along the way; it never executes arbitrary
+PowerShell or shell commands itself.
 
-Dependency installation status is machine-administration evidence. It is not a
-model-readiness signal that an App can use to select an implementation.
+A finished dependency install is machine-setup evidence. It isn't a
+signal that a particular model is ready, and Apps can't use it to pick
+an implementation.
 
 ## Reader Scenario: Install a Local Asset
 
@@ -70,20 +74,21 @@ expose an embedding-model picker or a client-computed readiness state.
 
 ## Realm Connectivity
 
-Realm connectivity and local Runtime reachability are separate concerns. A
-Realm outage does not by itself disable local AI. Local execution still requires
-the Runtime to be reachable, the owner intent to admit Local use, and Runtime to
-find a valid implementation. Missing prerequisites produce a typed failure; the
-client does not fabricate fallback success.
+Your Realm connection and your local Runtime are separate things. A
+Realm outage doesn't by itself disable local AI. Local execution still
+needs the Runtime to be reachable, your Local preference to allow it,
+and Runtime to find a valid implementation. When a prerequisite is
+missing you get a typed failure — never a fabricated success.
 
-## Public Boundary
+## Key Points
 
-- Local Model Center manages Runtime-owned machine assets.
-- `AIConfig` expresses owner-scoped Local or Cloud capability intent.
-- Apps do not receive model activation, warming, engine binding, route
+- The Local Model Center manages machine assets owned by Runtime.
+- `AIConfig` records your Local or Cloud preference per capability.
+- Apps get no model activation, warming, engine binding, route
   readiness, or per-model health controls.
-- Runtime alone selects the implementation for each request.
-- Runtime diagnostics and recommendation evidence never become request input.
+- Runtime alone picks the implementation for each request.
+- Runtime diagnostics and recommendation evidence never become request
+  input.
 
 ## Source Basis
 

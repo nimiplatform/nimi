@@ -1,23 +1,23 @@
 # Host-Agnostic Architecture
 
 > Status: Running today. The host-agnostic projection layer is the
-> shipped core of Avatar; backend branches plug into it.
+> live core of Avatar; backend branches plug into it.
 
 Avatar is built around one architectural commitment: **agent semantics
-do not belong to a renderer**. The agent's activity, expression, pose,
-gaze, and speech are platform-owned facts; Live2D, VRM, and any future
-backend are interchangeable execution branches behind a single
-backend-agnostic projection layer.
+do not belong to a renderer**. What the agent is doing — its activity,
+expression, pose, gaze, and speech — is a fact the Runtime maintains.
+Live2D, VRM, and any future backend are interchangeable execution
+branches behind a single backend-agnostic projection layer.
 
-The canonical teaching model is:
+The teaching model is:
 
 ```
 agent semantics  →  embodiment projection  →  backend-specific execution
 ```
 
-- **Agent semantics** belong to runtime / SDK. The runtime owns
-  activity ids, the presentation stream, emotion state, and the
-  conversation anchor. Avatar never invents semantic truth.
+- **Agent semantics** live on the Runtime / SDK side: activity ids,
+  the presentation stream, emotion state, and the conversation anchor.
+  Avatar never invents semantic truth.
 - **Embodiment projection** is Avatar's host-agnostic API. It consumes
   the runtime bundle and event stream and translates them into
   backend-neutral cues: `activity`, `expression`, `pose`, `lookat`,

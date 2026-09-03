@@ -21,7 +21,7 @@ App 应使用：
 
 组合必须保持权威线可见。Realm 仍持有真值，Runtime 仍持有执行。SDK helper 不会变成第三个真值来源。
 
-## 场景：先读状态，再运行 Agent 工作
+## 读者场景：先读状态，再运行 Agent 工作
 
 1. App 通过 `client.realm` 或 `@nimiplatform/sdk/realm` 读取世界状态。
 2. App 通过 `client.runtime`、`@nimiplatform/sdk/runtime`，或已准入的 `@nimiplatform/sdk/ai-runner` / feature helper 运行 Agent 工作。

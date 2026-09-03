@@ -64,3 +64,8 @@ mutation 会 fail closed；生产凭据和配置继续由 protected Connector se
 - 不通过 `doctor`、`version`、Desktop、SDK 或 app surface 暴露生产私有配置路径。
 - 不允许 portable config 覆盖 Product Control 或 protected Runtime 的派生
   data-root 验证状态。
+
+## 来源依据
+
+- [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)
+- [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)

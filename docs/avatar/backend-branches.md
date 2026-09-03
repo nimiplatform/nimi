@@ -1,9 +1,9 @@
 # Backend Branches
 
-Avatar has a closed backend union with exactly three kinds:
-`live2d | vrm | nimi2d`. One Avatar-owned factory validates the model and
-selects the matching branch exhaustively. A package or third-party App cannot
-register another renderer at runtime.
+Avatar supports exactly three backend kinds, and the list is closed:
+`live2d | vrm | nimi2d`. A single Avatar-owned factory validates the
+model and picks the matching branch. A package or third-party App
+cannot register another renderer at runtime.
 
 ## Shared Branch Contract
 
