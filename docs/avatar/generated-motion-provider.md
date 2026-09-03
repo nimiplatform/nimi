@@ -1,15 +1,15 @@
 # Generated Motion Provider
 
-> Status: Running today. The provider contract is admitted as the
-> runtime proof path for APML-driven motion; capability profiles and
-> mapping sidecars are the shipped backend authority surface.
+> Status: Running today. The provider contract is the runtime proof
+> path for APML-driven motion; capability profiles and mapping
+> sidecars define what each backend can do.
 
-The generated motion provider is the line that turns runtime-typed
-motion / expression / pose / lookat / activity intent into executable
-backend output without depending on physical `.vrma` (or other
-authoring artifact) files. It is what makes "the agent's motion is
-alive" — it generates motion at runtime instead of replaying a
-hand-authored asset.
+The generated motion provider turns the Runtime's typed motion,
+expression, pose, lookat, and activity intent into executable backend
+output — without depending on physical `.vrma` files or other
+hand-authored artifacts. It is what makes the agent's motion feel
+alive: motion is generated at runtime instead of replayed from a
+fixed asset.
 
 ## Authority Boundary
 

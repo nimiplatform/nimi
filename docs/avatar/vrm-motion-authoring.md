@@ -3,7 +3,7 @@
 VRM motion in Avatar has two separate paths:
 
 - Runtime motion proof comes from the generated motion provider,
-  capability profiles, mapping sidecars, and admitted backend routes.
+  capability profiles, mapping sidecars, and supported backend routes.
 - `.vrma` files are authoring and interchange assets. They can be
   loaded as motion presets, but their existence does not prove that a
   package supports runtime-driven motion.

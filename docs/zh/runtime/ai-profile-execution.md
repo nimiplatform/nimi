@@ -52,7 +52,7 @@ Runtime 管理面可以报告 daemon 连通性、已安装资源状态、资源�
 3. Runtime 为本次尝试提供强类型诊断或审计证据。
 4. Owner 可以展示或保存证据，但不能用它固定后续请求。
 
-## 公共边界
+## 记住这几点
 
 - `AIProfile` 和 `LocalProfileDescriptor` 属于机器配置。
 - `AIConfig` 是 owner 范围内的能力意图，不是执行配置文件。

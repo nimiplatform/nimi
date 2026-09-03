@@ -1,7 +1,7 @@
 # Test Fixtures
 
-> Status: Running today. The mock fixture contract is shipped; mock
-> scenarios run today in dev and CI for fixture regression evidence.
+> Status: Running today. The mock fixture contract is live; mock
+> scenarios run in dev and CI for fixture regression evidence.
 
 Test fixtures in Avatar exist for one reason: **deterministic
 regression evidence without silent fallback into the production

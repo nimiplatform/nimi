@@ -30,7 +30,7 @@ Kit 可以持有可复用呈现与宿主无关交互行为，但不持有：
 App 通过公共 subpath 引入 Kit，并在本地组合 primitive。App 不导入 Kit
 私有路径，也不在 App 本地重复建立共享 primitive owner。
 
-## 场景：复用共享 Dialog
+## 读者场景：复用共享 Dialog
 
 一个 App 需要使用第一方表面已有的无障碍确认 Dialog。
 

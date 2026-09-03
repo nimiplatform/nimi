@@ -1,13 +1,13 @@
 # Relationships And Social
 
-Desktop no longer has a standalone Contacts page. Relationship and
-social behavior appears only where the user is already acting: profile
-details, chat relationship rail, Explore discovery, Home profile cards,
-and notifications.
+There is no standalone Contacts page in Desktop. Relationship actions
+show up where you're already acting: profile details, the chat
+relationship rail, Explore discovery, Home profile cards, and
+notifications.
 
-Realm owns the social graph. Desktop reads the projected relationship
-state, renders contextual actions, and sends typed mutations back
-through the admitted Realm/SDK path.
+Your social graph lives in Realm. Desktop reads the current
+relationship state, offers the actions that fit the context, and sends
+changes back through the standard Realm/SDK path.
 
 ## What Desktop Projects
 
@@ -19,16 +19,16 @@ through the admitted Realm/SDK path.
 | Notifications | Accept, reject, or review incoming friend requests |
 | AgentFriend gating | Enforce agent friend quota and local-agent launch preconditions |
 
-There is no primary navigation tab, lazy route, page shell, or
-standalone sidebar for Contacts. Those shapes were retired so the
-product concept stays centered on relationships, profiles, and the
-current task surface.
+You won't find a Contacts tab in the main navigation, a separate page
+shell, or a sidebar entry. That shape was retired on purpose, so
+relationships stay attached to profiles and to whatever you're doing
+right now.
 
 ## Friendship As Canonical Truth
 
-Friendship in Nimi is canonical platform truth. Once admitted, it is
-not world-local, session-local, or app-local. It is visible in every
-world Alice and Bob both visit and every Nimi app they both use.
+Friendship in Nimi is platform-wide. Once it's established, it isn't
+tied to one world, one session, or one app. It's visible in every
+world you both visit and every Nimi app you both use.
 
 | Property | Value |
 | --- | --- |
@@ -39,8 +39,8 @@ world Alice and Bob both visit and every Nimi app they both use.
 | Mutation | Through admitted Realm contracts |
 
 Desktop never treats relationship state as a private local cache. It
-projects Realm truth and fails closed when the projection or mutation
-precondition is missing.
+shows the state stored in Realm — and when that state can't be read or
+a change isn't allowed, the action doesn't go through.
 
 ## Reader Scenario: Sending A Friend Request
 

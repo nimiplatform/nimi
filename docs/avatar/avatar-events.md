@@ -1,9 +1,10 @@
 # Avatar Events
 
-Avatar events are typed, bounded observations of local presentation. They let
-Avatar-owned handlers and components react to rendering, playback,
-interaction, backend, and lifecycle results. They are not a public driver API,
-a cross-app event bus, or a source of Runtime LocalAgent truth.
+Avatar events are typed, bounded observations of what the local
+presentation is doing. They let Avatar's own handlers and components
+react to rendering, playback, interaction, backend, and lifecycle
+results. They are not a public driver API, not a cross-app event bus,
+and not a source of Runtime LocalAgent truth.
 
 ## Observation Families
 

@@ -1,13 +1,14 @@
 # External Agent Access
 
-> Status: Contract-only. Desktop contains the Runtime Config placement for
-> External Agent Access, but token issuance and the action registry stay
-> fail-closed until the Runtime-owned gateway/action plane is exposed.
+> Status: Not available yet. Desktop has a dedicated place for External
+> Agent Access in Runtime Config, but token issuance stays off until
+> Runtime ships its gateway and action plane.
 
-External Agent Access is a reserved Desktop surface for future
-`ExternalPrincipal` management. The current product build may display
-Runtime status and an empty ledger projection, but it must not pretend
-that external AI hosts can receive usable scoped tokens today.
+External Agent Access is a reserved settings area for a future
+capability: managing `ExternalPrincipal`s — external AI tools
+connecting to Nimi with scoped tokens. The current build can show
+Runtime status and an empty token ledger, but you can't issue usable
+scoped tokens today.
 
 For the platform model, see
 [Platform → Agents → External Agents](/platform/agents/external-agents).
@@ -21,27 +22,27 @@ For the platform model, see
 | Token ledger | Empty until Runtime admits the action registry and gateway server |
 | Issue / revoke | Not a shipped user workflow in this build |
 
-The panel is intentionally fail-closed. Starting the runtime daemon is
-not enough to make External Agent Access usable; Runtime must first own
-the action descriptor registry, gateway server, token ledger, and audit
-lineage for this capability.
+The panel is intentionally locked. Starting the runtime daemon isn't
+enough to make External Agent Access usable; Runtime first has to
+provide the action descriptor registry, gateway server, token ledger,
+and audit trail for this capability.
 
 ## Why It Is Still Visible
 
-Desktop keeps the placement so the product has a stable home for the
-future capability and so Runtime can project an explicit disabled
-reason. That is different from shipping token issuance.
+Desktop keeps this area so the capability has a stable home when it
+arrives — and so you can see the exact reason it's disabled. Showing
+the reason is not the same as shipping token issuance.
 
-The panel should communicate the disabled reason clearly:
+You will never see from this panel:
 
-- no silent success,
-- no synthesized token,
-- no Desktop-local token ledger,
-- no fallback action registry in renderer or Tauri.
+- a silent success,
+- a made-up token,
+- a Desktop-local token ledger,
+- a fallback action registry in the renderer or Tauri.
 
 ## Future Capability Boundary
 
-When admitted, External Agent Access will be Runtime-owned:
+When this capability ships, its moving parts live in Runtime:
 
 | Concern | Owner |
 | --- | --- |
@@ -52,8 +53,8 @@ When admitted, External Agent Access will be Runtime-owned:
 | UI placement and controls | Desktop |
 | Typed projection | SDK |
 
-Desktop remains the user-facing placement. It does not own action
-authority or token truth.
+Desktop stays the place where you manage it. The actions and tokens
+themselves belong to Runtime.
 
 ## Source Basis
 

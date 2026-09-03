@@ -64,7 +64,7 @@ App 支持的信号只有：
 4. App 展示操作结果，不提供 provider 切换器，也不伪造成功。
 5. 机器管理员可以在管理界面检查并修复 Runtime 配置。
 
-## 公共边界
+## 记住这几点
 
 - Connector、provider 目录、凭据、endpoint 和 Driver 都属于 Runtime 配置。
 - `AIConfig` 的 Cloud 意图不选择其中任何一项。

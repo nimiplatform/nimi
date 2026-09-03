@@ -1,12 +1,12 @@
 # Realm Truth Boundary
 
-Realm truth is owned by the external Realm authority. This repository
-does not define Realm server records, world lifecycle rules, social/economy
-invariants, or Realm domain semantics.
+Realm, the external service, decides what is true about worlds: the records,
+the world lifecycle rules, the social and economic invariants. This repository
+defines none of those.
 
-Nimi consumes Realm through SDK-owned generated clients and typed facades. That
-means app code should treat Realm facts as API output from the configured Realm
-service, not as local Nimi spec truth.
+Nimi reaches Realm through generated SDK clients with typed wrappers around
+them. For app code, that means a Realm fact is data returned by the Realm
+service you are connected to — never something Nimi defines locally.
 
 ## What Nimi Owns
 

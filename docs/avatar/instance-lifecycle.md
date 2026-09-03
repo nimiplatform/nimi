@@ -1,9 +1,10 @@
 # Instance Lifecycle
 
 An Avatar instance is a running Avatar process that presents one
-Runtime-authorized LocalAgent. The launch may also select an existing Avatar
-instance. Runtime owns the active binding and continuity; Avatar owns only the
-local shell and rendering lifecycle.
+Runtime-authorized LocalAgent. A launch can also reattach to an existing
+Avatar instance. Runtime keeps the active binding and conversation
+continuity; Avatar handles only the local shell and the rendering
+lifecycle.
 
 ## Minimal Launch Intent
 

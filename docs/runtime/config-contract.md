@@ -72,3 +72,8 @@ hot-reload.
   `doctor`, `version`, Desktop, SDK, or app surfaces.
 - It does not allow a portable config to override Product Control or protected
   Runtime-derived data-root verification.
+
+## Source Basis
+
+- [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)
+- [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)

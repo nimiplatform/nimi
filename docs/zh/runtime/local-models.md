@@ -81,7 +81,7 @@ Runtime 可以在同一台机器上管理多个 engine family，并在内部仲�
 
 部分 engine 需要额外机器依赖。Runtime 通过已准入 materializer 完成下载、校验、安装、取消和清理。Desktop 可以展示强类型操作进度和失败，但不会执行任意 shell 命令，也不会把依赖进度投影成 App execution readiness。
 
-## 公共边界
+## 记住这几点
 
 - 本地 model 和 engine 目录属于 Runtime 机器配置。
 - 安装资源不等于 model activation、warming 或 request binding。

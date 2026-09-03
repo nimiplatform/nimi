@@ -1,9 +1,8 @@
 # Installation And Availability
 
-Nimi has multiple public surfaces. Each surface has its own
-distribution channel, and the public docs only describe a surface as
-installable when its release evidence has been admitted under the
-matching authority contract.
+Nimi has several public surfaces, and each one has its own distribution
+channel. This page lists what you can install today, and what is
+currently documented only at the contract level.
 
 ## Installable Today
 

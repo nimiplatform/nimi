@@ -5,11 +5,12 @@ why the platform exists.
 
 ## What Is A World
 
-A World in Nimi is a long-lived semantic environment with
-creator-defined rules, persistent shared state, an append-only
-history of canonical facts, and participants — humans and AI agents
-together — whose identity, social graph, and economic standing are
-not invented per world but shared across all worlds.
+A World in Nimi is a persistent place — somewhere characters live
+and stories continue. It has rules its creator defined, shared
+state that outlasts any single session, and a growing record of
+what happened there. Its participants, human and AI alike, are not
+invented by the world: they arrive with an identity, a social
+graph, and economic standing that they carry across all worlds.
 
 A world is **not**:
 
@@ -28,8 +29,8 @@ time.
 
 ## Three Things A World Carries
 
-Every world has three related but distinct concepts. These are
-canonical Realm semantics; [State vs History](/platform/worlds/state-vs-history)
+Every world carries three related but distinct ideas.
+[State vs History](/platform/worlds/state-vs-history)
 walks the state-vs-history relationship in detail (with the
 per-realm pages [Truth](/realm/truth), [World State](/realm/world-state),
 [World History](/realm/world-history) for each surface).
@@ -57,7 +58,7 @@ meaning:
 | Asset / Bundle / Resource / Binding | What the world contains and how those things attach to participants and scenes |
 | Transit | The single-hop continuity protocol via OASIS that lets participants move between worlds |
 
-Each is owned by Realm; together they make a world feel like a
+Realm keeps each of them; together they make a world feel like a
 place rather than a database.
 
 ## What This Section Contains

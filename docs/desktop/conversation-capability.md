@@ -1,18 +1,18 @@
 # Conversation Capability Projection
 
-> Status: Running today. Desktop projects capability availability for the
-> active Runtime-owned conversation anchor.
+> Status: Running today. Desktop shows which capabilities are available
+> for the conversation you currently have open.
 
-The projection combines typed Runtime operation results with bounded Desktop
-controls for the active conversation. It does not define a capability set,
-participation profile, implementation selection, or durable Conversation truth.
+This surface combines what Runtime reports with a small set of
+per-conversation controls. It doesn't define a capability set, a
+participation profile, an implementation choice, or any permanent
+Conversation state.
 
 ## Why Per-Conversation
 
-A user may choose voice playback or attachments for one active conversation
-without changing another. Keeping those controls scoped to the Runtime
-conversation anchor prevents ephemeral UI choices from becoming global
-LocalAgent state.
+You might want voice playback or attachments in one conversation and
+not in another. Scoping these controls to the conversation you have
+open keeps a quick UI choice from hardening into agent-wide state.
 
 ## Boundary
 
@@ -22,8 +22,8 @@ LocalAgent state.
 | Typed unavailable and setup UI | Voice, media, tool, implementation, Quota, and Budget decisions (Runtime) |
 | Attachment selection before submission | Committed attachment and turn truth (Runtime) |
 
-Desktop may cache projection state for rendering, but the cache is not
-Runtime or Realm truth and cannot prove that a future operation will execute.
+Desktop may cache what it renders for speed, but that cache is never
+the real state — and it can't prove a future operation will execute.
 
 ## Reader Scenario: User Toggles Voice For A Conversation
 
@@ -36,9 +36,10 @@ Runtime or Realm truth and cannot prove that a future operation will execute.
 
 ## Runtime Ownership
 
-The projection remains separate from LocalAgent presentation and participation
-profiles. Voice, media, tool, implementation, and authorization semantics stay
-with Runtime. UI and cached state never become Conversation or LocalAgent truth.
+These controls stay separate from the agent's presentation and
+participation profiles. Voice, media, tool, implementation, and
+authorization semantics all stay with Runtime. UI and cached state
+never rewrite the Conversation or the LocalAgent.
 
 ## Source Basis
 

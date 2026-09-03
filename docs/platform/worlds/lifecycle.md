@@ -1,10 +1,10 @@
 # World Lifecycle
 
-A Nimi world is a long-lived thing. This page walks the lifecycle
-from "an idea a creator has" through "a published world participants
-can visit" through "a world an extension-app is bound to" through
-"a world that can be suspended or revoked." The state machinery
-behind each step is admitted in the realm kernel.
+A world in Nimi is built to last. This page follows one through its
+whole life: from an idea in a creator's head, to a published place
+participants can visit, to a world with an extension-app bound to
+it, to one that can be suspended or revoked. Realm keeps the state
+machinery behind every step.
 
 For schema-level state field definitions, see
 [Reference → State Machines](/reference/state-machines) and

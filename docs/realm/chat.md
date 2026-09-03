@@ -1,9 +1,9 @@
 # Chat
 
-Realm Chat owns canonical direct human thread, message, read-state,
-membership, and synchronization truth. It is **canonical** — not
-Desktop-local and not session-local. The direct thread is platform
-truth.
+Realm Chat is where direct messages between two people live. The
+thread, its messages, its membership, and its read state all exist
+exactly once — in Realm, not on your desktop and not inside one
+login session. That single thread is what every surface reads.
 
 ## Substrate
 

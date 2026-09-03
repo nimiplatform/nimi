@@ -51,7 +51,7 @@ App 订阅接口，更不是 Avatar 自己维护的 Agent 事实。
 这些内容，只显示对应的加载、降级、错误或重启界面。Avatar 不会根据缓存或
 测试夹具推断已经就绪。
 
-## 场景：桌面端打开 Avatar
+## 读者场景：桌面端打开 Avatar
 
 1. 桌面端发送 `{ agentId: "local-agent:ren" }`。
 2. Avatar 验证载荷结构，并保持 `loading`。
@@ -62,7 +62,7 @@ App 订阅接口，更不是 Avatar 自己维护的 Agent 事实。
 
 桌面端不会通过启动载荷向 Avatar 传递视觉包、凭据、账户、模型或对话事实。
 
-## 场景：Runtime 暂时不可用
+## 读者场景：Runtime 暂时不可用
 
 1. Avatar 运行期间，一个必需的 Runtime 条件失败。
 2. 外壳进入 `degraded:runtime-unavailable`。

@@ -2,72 +2,78 @@
 
 ## Identity and execution
 
-**Character.** Realm-owned persistent identity and social/world truth.
-PersonaCharacter and WorldCharacter are Character forms.
+**Character.** A durable participant with a persistent identity, kept by
+Realm. PersonaCharacter and WorldCharacter are forms of Character.
 
-**Character Source.** Realm-issued identity source from which Runtime may
-materialize a LocalAgent.
+**Character Source.** The character description Realm issues; Runtime runs a
+LocalAgent from it.
 
-**World Source.** Realm-owned World context source. It may contribute context
-but cannot establish LocalAgent identity by itself.
+**World Source.** Realm's description of a world's context. It can inform a
+LocalAgent, but on its own it cannot create one.
 
-**LocalAgent.** Owner-scoped Runtime materialization for local AI execution. It
-owns no Realm identity or World truth.
+**LocalAgent.** A character brought to life locally by Runtime, scoped to the
+user it runs for. It holds no Realm identity or world facts of its own.
 
-**Conversation anchor.** Explicit Runtime-owned identity for one LocalAgent
-Conversation. A LocalAgent may have more than one Conversation.
+**Conversation anchor.** The explicit name Runtime gives one LocalAgent
+conversation. A LocalAgent can have more than one conversation.
 
-**Operational Memory.** Runtime-owned LocalAgent recall, retention, isolation,
-and authorized projection.
+**Operational Memory.** What a LocalAgent remembers while it runs: recall,
+retention, isolation, and the authorized views Runtime provides of it.
 
-**Operational Knowledge.** Runtime-owned LocalAgent ingestion, retrieval,
-isolation, lifecycle, and authorized projection.
+**Operational Knowledge.** What a LocalAgent knows: how Runtime ingests it,
+retrieves it, keeps it isolated, manages its lifecycle, and shares authorized
+views of it.
 
 ## Product surfaces
 
-**SDK.** Typed public access boundary for Runtime and Realm consumers.
+**SDK.** The typed public boundary Apps use to talk to Runtime and Realm.
 
-**Kit.** Demand-driven shared UI and host composition. It is not a prebuilt
-catalog of every possible product capability.
+**Kit.** Shared UI and host composition, added when a product surface actually
+needs it — not a catalog of prebuilt capabilities.
 
-**Nimi Home.** Current product home and Desktop host surface. Hosting does not
-make it the Realm or Runtime owner.
+**Nimi Home.** The product's front door and the current Desktop host surface.
+Hosting the experience does not make it the keeper of Realm or Runtime.
 
-**Avatar.** Embodiment shell and rendering owner. Avatar consumes typed Runtime
-presentation input and owns renderer-local behavior.
+**Avatar.** The embodiment shell: it renders a character from the typed
+presentation Runtime sends and manages its own renderer-local behavior.
 
-**Simulator.** Development qualification tool for selected App modules, not a
-current product platform or product host.
+**Simulator.** A development and qualification tool for selected App modules,
+not a current product platform or product host.
 
 ## Access and failure
 
-**Session-derived access.** Runtime derives account, App identity,
-authorization, target LocalAgent or scope, and operation from the active
-session.
+**Session-derived access.** Runtime works out the account, App identity,
+authorization, target LocalAgent or scope, and operation from your active
+sign-in session.
 
-**Typed unavailable.** Explicit result indicating that an optional or
-inapplicable capability is not available. It is not synthetic success.
+**Typed unavailable.** An explicit answer saying an optional or inapplicable
+capability is not available — an honest "no", not a synthetic success.
 
-**Projection.** Bounded owner-provided view. A projection does not transfer
-ownership to its consumer.
+**Projection.** A bounded view provided by whoever keeps the data. Seeing a
+projection never transfers ownership to the viewer.
 
-**Owner.** The domain responsible for a product truth and its mutation rules.
-Code location, package name, docs, cache, or host role does not create
-ownership.
+**Owner.** The part of the system responsible for a product fact and the rules
+for changing it. Code location, package name, docs, cache, or host role never
+creates ownership.
 
 ## Six protocol primitives
 
-**State.** Current owner-controlled product condition.
+**State.** The current condition of something, controlled by the part of the
+system that keeps it.
 
-**Event.** Typed occurrence projected by its owner.
+**Event.** A typed notice that something happened, published by its keeper.
 
-**Intent.** Typed requested outcome, not an authorization proof.
+**Intent.** A typed request for an outcome. Asking is not proof of
+authorization.
 
-**Action.** Admitted operation performed by the owning domain.
+**Action.** An operation the responsible part of the system has accepted and
+performed.
 
-**Audit.** Owner-controlled record of security or product-relevant activity.
+**Audit.** A record of security- or product-relevant activity, kept by the
+responsible part of the system.
 
-**Permission.** Owner decision authorizing a scoped operation.
+**Permission.** A decision by the responsible part of the system authorizing a
+scoped operation.
 
 ## Source Basis
 

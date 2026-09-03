@@ -1,9 +1,9 @@
 # Profile
 
-Desktop's profile surface lets a user view and edit their own
-profile, update their avatar, see the agents they own, and see the
-worlds they have created or visited. The profile is canonical
-identity — the same identity that travels across every world.
+Your profile in Desktop is where you see and edit how you appear:
+display name, avatar, and bio. It also lists the agents you own and
+the worlds you've created or visited. Your profile is the one identity
+that travels with you across every world.
 
 ## What The Profile Carries
 
@@ -16,15 +16,15 @@ identity — the same identity that travels across every world.
 | Visited worlds | Realm world history projection |
 | Bio / description | User-editable profile field |
 
-Profile is canonical, not Desktop-local. Editing the profile
-mutates Realm under admitted profile contracts; Desktop is the
-editor surface, not the truth holder.
+Your profile isn't stored on this one machine. Saving an edit updates
+Realm through its profile flows; Desktop is the editor, not the
+storage.
 
 ## Profile Detail As A Shared Surface
 
-Other parts of Desktop (chat profile preview, explore profile
-preview) consume the same profile detail seam. The profile detail
-read is one shape; consumers project as needed.
+Other parts of Desktop — the profile preview in chat, the preview in
+Explore — read the same profile detail. One profile shape, presented
+wherever it's needed.
 
 ## Reader Scenario: Editing Your Profile
 
@@ -58,8 +58,8 @@ by the seam, not by client-side filtering.
 
 ## Profile And Identity
 
-Profile is the user-editable surface around an identity that is
-itself canonical and not directly mutable from the profile.
+Your profile is the editable layer around an identity that itself
+doesn't change from here.
 
 | Concept | Mutable from Profile? |
 | --- | --- |

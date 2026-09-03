@@ -1,10 +1,8 @@
 # Agent Script（NAS）
 
-## 状态：现在 (Running today)
+> 状态：现已可用。NimiAgentScript（NAS）1.0 是正在使用的处理器约定；自动发现和热重载都已开启。
 
-NimiAgentScript (NAS) 1.0 是已交付的 handler 约定；自动发现与热重载已上线。
-
-NimiAgentScript（NAS）是一套基于约定的 JS 处理器系统，由它驱动 Avatar 的具身化表现。Avatar 包作者把 JS 文件放到约定路径下，Runtime 自动注册；Tauri notify watcher 负责热加载。
+NimiAgentScript（NAS）是一套基于约定的 JS 处理器系统，Avatar 的具身化表现由它驱动。包作者把 JS 文件放到约定路径下，Runtime 会自动找到并注册；改动通过 Tauri notify watcher 热加载。
 
 ## 三类处理器
 
@@ -44,7 +42,7 @@ NAS 处理器通过具身化语义层访问这些 API。它不会直接调用 Li
 
 Live2D 专用处理器在类型收窄之后可以用 `live2dExtension`。VRM 上线后，VRM 专用处理器也会有自己的扩展，使用前同样要先做类型收窄。跨后端的处理器只用宿主无关 API。
 
-## 场景：Activity 处理器播放挥手动画
+## 读者场景：Activity 处理器播放挥手动画
 
 某个包作者希望 Agent 在 `wave` 活动触发时挥手。
 
@@ -56,7 +54,7 @@ Live2D 专用处理器在类型收窄之后可以用 `live2dExtension`。VRM 上
 
 作者只是把一个 JS 文件放到约定路径下，剩下的交给系统。
 
-## 场景：Event 处理器响应点击
+## 读者场景：Event 处理器响应点击
 
 某个包作者希望 Agent 在头部被点击时有反应。
 
@@ -67,7 +65,7 @@ Live2D 专用处理器在类型收窄之后可以用 `live2dExtension`。VRM 上
 
 整个过程作者没有显式订阅事件，约定路径已经够用。
 
-## 场景：Continuous 处理器维持呼吸
+## 读者场景：Continuous 处理器维持呼吸
 
 某个包作者希望 Agent 持续呼吸。
 

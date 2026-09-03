@@ -1,66 +1,30 @@
-# 起步
+# 开始使用
 
-请选择适合您当前角色的阅读路径。每条路径均从平台模型出发，逐步深入至相应的技术实现。
+Nimi 是一款开源的个人 AI 产品，装在你自己的设备上，本地优先。Nimi Home 是它的入口，目前由桌面端承载；背后是一个支持多个 provider 的 Runtime，负责执行本地和云端的 AI。角色、对话、创作、故事和世界，都是你在 Nimi 里能获得的体验。
 
-如需查看针对特定受众的详细路径，请参阅 [用户画像](/zh/start/personas)。了解已开放安装的组件及其获取方式，请参阅 [安装与可用性](/zh/start/install)。如果你要创建 App，从 [创建 Nimi App](/zh/start/create-an-app) 开始。如果 SDK 调用、Nimi Lab lane 或生成的 App scaffold 失败，用 [故障排查](/zh/start/troubleshooting) 将可见错误映射到负责它的公开表面。
+## 今天可以做什么
 
-## 首次接触 Nimi
+- **关注发布。** 正式版下载还没有开放。可以在 [GitHub](https://github.com/nimiplatform/nimi) 上关注仓库，或加入 [Discord](https://discord.gg/BQwHJvPn) 等发布公告。
+- **动手开发。** 开发者现在就能走 Developer Mode 的本地开发路径创建 Nimi App，从[创建 Nimi App](/zh/start/create-an-app)开始。
+- **先了解产品。** 读[平台概览](/zh/platform/)，弄清楚 Nimi 是什么、各个部分怎么配合。
 
-建议按照以下顺序阅读：
+## 按目标选一条路
 
-1. [平台](/zh/platform/)：了解产品模型、以“世界”为核心的基础概念，以及跨域的六项基础协议。
-2. [Runtime](/zh/runtime/)：了解 AI 任务的实际调度与执行机制。
-3. [SDK](/zh/sdk/)：掌握应用接入 Nimi 平台的标准化边界与集成规范。
-4. [桌面端](/zh/desktop/)：了解第一方原生外壳（Shell）；网页端的差异请参阅 [Web 模式](/zh/desktop/web-mode)。
-5. [Realm](/zh/realm/)：理解语义真相、世界状态以及不可篡改的世界历史。
+- **第一次接触 Nimi**：先读[平台](/zh/platform/)了解产品想法，再读 [Runtime](/zh/runtime/) 看 AI 怎么跑起来，然后读 [SDK](/zh/sdk/) 看 App 怎么接入。[桌面端](/zh/desktop/)和 [Realm](/zh/realm/) 可以补全画面；遇到生词就查[术语表](/zh/reference/glossary)。
+- **在评估这个项目**：读[平台愿景](/zh/platform/vision)和[平台架构](/zh/platform/architecture/)，再看 [Runtime](/zh/runtime/) 与 [SDK 边界](/zh/sdk/boundaries)。阅读量大约相当于一篇长博客。
+- **要写 App**：从[创建 Nimi App](/zh/start/create-an-app)开始，然后读 [SDK](/zh/sdk/)。想看一个能跑的能力演示，读[使用 Nimi Lab](/zh/start/use-nimi-lab)；出错了就查[故障排查](/zh/start/troubleshooting)。
+- **要用 Nimi Coding**：Nimi Coding 是 Nimi 仓库自己用来管理规范的工具，以 npm 包发布。读[概览](/zh/nimicoding/)、[安装指南](/zh/nimicoding/installation)和 [CLI 参考](/zh/nimicoding/cli-reference)。
 
-该路径旨在帮助构建全局的心智模型，随后深入实现细节，厘清平台架构、AI 执行流程及应用交互方式。若遇生僻术语，可查阅跨章节通用的[术语表](/zh/reference/glossary)。
+想看针对特定角色（世界创作者、App 开发者、审计者等）的完整路径，见[用户画像](/zh/start/personas)。想知道现在能装什么，见[安装与可用性](/zh/start/install)。
 
-## 评估项目架构
+## 读者场景：听说 Nimi 之后，现在能用吗
 
-如果您正在评估本项目架构与核心价值，建议按照以下顺序阅读：
+你从朋友那里听说了 Nimi，想知道自己今天能不能用上。
 
-1. [平台愿景](/zh/platform/vision)：项目核心目标与产品定位。
-2. [平台架构](/zh/platform/architecture/)：明确各组件权责边界的跨层架构图。
-3. [Runtime 概览](/zh/runtime/) 与 [Memory 与 Knowledge](/zh/runtime/memory-and-knowledge)：底层 AI 执行引擎的核心 owner 边界。
-4. [SDK 概览](/zh/sdk/) 与 [SDK 边界](/zh/sdk/boundaries)：外部应用接入平台时需遵守的规范与边界。
-5. [Nimi Coding 概览](/zh/nimicoding/)：本仓库如何集成 canonical authority 工具。
-
-上述内容的阅读量大致相当于一篇技术文章，能清晰呈现 Nimi 当前架构的全貌。
-
-## 基于平台进行构建
-
-如果需要新的开发者仓库，从 [创建 Nimi App](/zh/start/create-an-app) 开始。如果是从已有 App 接入，先读 [SDK](/zh/sdk/) 与 [Runtime](/zh/runtime/)。SDK 是应用与平台交互的官方途径。应用代码不应跨越 Runtime 与 Realm 的私有边界。
-
-如果眼前任务只是从 TypeScript App 发起一次 Runtime-backed 文本生成，在 Runtime 已运行后读 [第一次 AI 调用](/zh/sdk/first-ai-call)。
-
-如果需要一个具体的能力集成 App，读 [使用 Nimi Lab](/zh/start/use-nimi-lab)。共享 UI、auth、shell、telemetry 与 AIConfig composition 先读 [在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)。
-
-如果本地运行、SDK 调用或 app-tools scaffold check 失败，先读 [故障排查](/zh/start/troubleshooting)，再决定是否修改 App 代码。
-
-了解原生外壳的具体行为，请查阅 [桌面端](/zh/desktop/)。关于网页端的受限呈现模式，请研读 [Web 模式](/zh/desktop/web-mode)。网页端不会自动继承桌面端的原生扩展能力。
-
-## 采用 Nimi Coding
-
-Nimi Coding 作为独立于宿主环境的 canonical-authority 工具，已作为标准 npm 软件包发布。建议按照以下顺序了解：
-
-1. [Nimi Coding 概览](/zh/nimicoding/)：authority 工具与仓库边界。
-2. [安装指南](/zh/nimicoding/installation)：受管宿主集成。
-3. [CLI 参考](/zh/nimicoding/cli-reference)：受支持的 authority 命令。
-
-## 场景：应用开发者的阅读路径
-
-假设您是一名新接触 Nimi 的应用开发者，推荐的首次阅读路径如下：
-
-1. 阅读 [平台](/zh/platform/)，确立“世界”而非“会话”是平台核心运转对象的基础认知。
-2. 阅读 [Runtime](/zh/runtime/)，理解 Provider 调度、LocalAgent、Conversation、Memory、Knowledge、流式传输及多模态产物等逻辑均由 Runtime 契约统筹，而非应用代码。
-3. 阅读 [SDK](/zh/sdk/)，掌握如何通过 root `@nimiplatform/sdk` client、`@nimiplatform/sdk/runtime`、`@nimiplatform/sdk/realm`、feature module 与独立 adapter package 合规消费底层能力，避免直接导入私有模块。
-4. 写 app-local shell、AI capability configuration 或共享 UI 前，阅读 [创建 Nimi App](/zh/start/create-an-app)、[使用 Nimi Lab](/zh/start/use-nimi-lab) 和 [在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)。
-5. Runtime、SDK、AIConfig 或 scaffold check 失败时，保持 [故障排查](/zh/start/troubleshooting) 打开。
-6. 阅读 [桌面端](/zh/desktop/) 与 [Web 模式](/zh/desktop/web-mode)，明晰两种呈现形态的能力边界差异，以评估其对应用分发计划的影响。
-7. 准备进行代码贡献时，阅读 [Nimi Coding](/zh/nimicoding/)。处理高风险变更或跨模块重构时，需遵循此标准工作流。
-
-全景阅读完成后，可通过 [权威域](/zh/reference/authority-domains) 确认每类问题应由哪个产品 owner 回答。
+1. 打开[平台概览](/zh/platform/)，了解到 Nimi 是装在自己设备上的个人 AI 产品，角色、对话和世界都优先保存在本地。
+2. 查看[安装与可用性](/zh/start/install)，确认面向普通用户的正式版下载还没有发布。
+3. 在 [GitHub](https://github.com/nimiplatform/nimi) 上 star 仓库，加入 [Discord](https://discord.gg/BQwHJvPn)，发布公告时就不会错过。
+4. 如果你也写代码，其实不用等：Developer Mode 的本地开发路径现在已经可以[创建 Nimi App](/zh/start/create-an-app)并跑起来。
 
 ## 来源依据
 

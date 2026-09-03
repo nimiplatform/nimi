@@ -1,28 +1,37 @@
 # Character 与 LocalAgent
 
-Nimi 将持久身份与本地 AI 执行明确分开。
+角色是 Nimi 里持久的参与者。一个角色有稳定的身份：无论在哪个世界、哪段
+对话里，它都是同一个，而且这份身份一直延续。Realm 保存这份身份。
 
-- **Character** 是 Realm 持有的身份、社交与世界真相。PersonaCharacter 和
-  WorldCharacter 是 Character 的不同形态，不是独立的本地 Agent 类型。
-- **Character Source** 是 Runtime 物化 LocalAgent 时使用的 Realm 来源。
-- **LocalAgent** 是有明确 owner 的 Runtime 物化。Runtime 持有其生命周期、
-  Conversation、运行态 Memory 与 Knowledge、AI 路由、readiness、预算和状态。
+LocalAgent 是 Runtime 把角色在本地运行起来的方式。当你开始一段体验，
+Runtime 读取角色的描述，也就是 Realm 签发的 Character Source，在你的机器
+上把它运行起来。LocalAgent 持有这次运行的对话、记忆和知识。角色本身的身
+份始终留在 Realm。
 
-Character 与 LocalAgent 之间不存在额外的平台级 `Agent`、`AgentFamily` 或
+- **Character** 是由 Realm 保存的身份、关系和世界成员关系。
+  PersonaCharacter 和 WorldCharacter 是 Character 的形态，不是独立的本地
+  Agent 类型。
+- **Character Source** 是 Realm 签发、供 Runtime 运行角色的描述。
+- **LocalAgent** 是 Runtime 为你创建的运行实例。Runtime 管理它的生命周
+  期、Conversation、运行态 Memory 与 Knowledge、模型路由、readiness、预
+  算和状态。
+
+Character 与 LocalAgent 之间没有额外的平台级 `Agent`、`AgentFamily` 或
 `AgentPersona` 身份层。
 
 ## Owner 边界
 
-Realm 持有 Character 身份、社交关系、World 成员关系，以及 canonical
-Character Source 与 World Source。Runtime 消费已准入的 Character Source
-并物化 LocalAgent，但不会接管 Realm 真相。
+Realm 是角色身份的家：角色是谁、它的关系、它的世界成员关系，以及其他
+部分赖以构建的角色与世界描述，都归 Realm 保管。Runtime 拿着 Realm 签发
+的 Character Source 运行出 LocalAgent，但不接管 Realm 保存的任何东西。
 
-App、Nimi Home、Desktop 和 Avatar 只能取得当前 session 已授权的投影。它们
-不能签发 LocalAgent 身份、从本地历史重建 Runtime 状态，也不会取得 Realm
-JWT、Provider Credential、Runtime proof 或账号级 LocalAgent 全量清单。
+App、Nimi Home、桌面端和 Avatar 只能看到当前会话授权它们看到的内容。
+它们不能创建 LocalAgent 身份，不能从本地历史重建 Runtime 状态，也拿不
+到 Realm 凭证、Provider 密钥、Runtime 内部凭据或账号级 LocalAgent 全量
+清单。
 
-Avatar 只渲染 Runtime 的强类型 presentation 输入，并保留 renderer-local
-状态；它既不是 LocalAgent owner，也不是 AI 的直接 driver。
+Avatar 渲染 Runtime 发来的强类型呈现内容，并保留自己 renderer 本地的状
+态。它不运行 LocalAgent，也不直接驱动 AI。
 
 ## 继续阅读
 

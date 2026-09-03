@@ -1,13 +1,14 @@
 # Realm
 
-Realm is the external server and domain authority for world truth. In this
-repository, Nimi consumes Realm through the SDK Realm boundary instead of
-redefining Realm server rules locally.
+Realm is the server side of the Nimi ecosystem. It is where shared world
+truth lives: accounts and identity, friendships, chat, money, worlds, and
+the characters in them. Nimi does not re-implement any of that locally —
+it connects to Realm through the SDK and plays by Realm's rules.
 
-Runtime executes AI work. SDK gives apps an access boundary. Desktop and Web
-render experiences. Shared world truth remains anchored in the external Realm
-authority; Nimi-owned code works with typed consumer
-projections.
+The split of labor is simple. Runtime executes AI work. The SDK gives apps
+a safe way to reach Realm. Desktop and Web render the experience. The
+shared truth of a world stays in Realm; Nimi code only ever works with the
+typed view it receives.
 
 ## What This Section Contains
 
@@ -17,10 +18,10 @@ Realm consumer entry points:
   consuming external Realm truth.
 - [Realm Consumer Projection](/realm/projection) — how Nimi consumers receive
   Realm API output through the SDK boundary.
-- [World State](/realm/world-state) — reader-facing context for current world
-  state.
-- [World History](/realm/world-history) — reader-facing context for append-only
-  world history.
+- [World State](/realm/world-state) — what the current state of a world is
+  and how it changes.
+- [World History](/realm/world-history) — the append-only record of what
+  happened in a world.
 
 Domain reading map:
 
@@ -45,14 +46,15 @@ cross-domain [Glossary](/reference/glossary) explains "world," "truth," and
 
 ## Why Realm Matters To Nimi Apps
 
-Nimi apps can operate in many surfaces: desktop, web, avatar, creator tools,
-and world-specific extension apps. Those surfaces can show different views, but
-they cannot invent Realm truth locally. They consume Realm through generated SDK
-clients and typed facades.
+A Nimi app can live in many places: Desktop, Web, Avatar, creator tools, or
+an extension app built for one specific world. Each surface may show things
+differently, but none of them get to invent shared truth on their own. They
+all read Realm through generated SDK clients with typed wrappers.
 
-If Realm output cannot be fetched, authenticated, decoded, or reconciled with
-local projection state, the Nimi consumer must expose a typed unavailable/error
-state. It must not synthesize Realm success.
+If Realm data cannot be fetched, authenticated, or decoded, or it no longer
+matches what the app last saw, the app has to say so — with a typed
+unavailable or error state the user can see. It must never fake a successful
+read.
 
 ## Reader Scenario: An App Reads Realm Data
 

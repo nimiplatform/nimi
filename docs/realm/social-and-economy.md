@@ -1,14 +1,15 @@
 # Social And Economy
 
-Social and Economy are the two canonical Realm surfaces for who
-relates to whom and how value moves. Both are append-only at
-their authoritative layer; both are platform truth.
+Two of Realm's jobs are remembering who relates to whom and
+tracking how value moves. Social covers the first, Economy the
+second. Once either one records something, the record is never
+rewritten — both only ever append.
 
 ## Social
 
-Friendship is the canonical admission graph. Ordered-pair
-uniqueness — one friendship between Alice and Bob, recorded
-canonically.
+Friendship in Realm is one record per pair of people. Alice and
+Bob share exactly one friendship, no matter how many worlds or
+apps they both use.
 
 | Property | Value |
 | --- | --- |

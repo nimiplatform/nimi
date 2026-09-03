@@ -1,6 +1,6 @@
 # 世界生命周期
 
-Nimi 的世界是长时存活的对象。这一页走完它的生命周期：从「创作者有一个想法」到「参与者可以到访的已发布世界」，到「绑定了 extension-app 的世界」，再到「被暂停或撤销的世界」。每一步背后的状态机都在 Realm 内核里有准入。
+Nimi 的世界是为长久存在而建的。这一页跟随一个世界走完它的整段生命：从创作者脑中的一个想法，到参与者可以到访的已发布世界，到绑定了 extension-app 的世界，再到可能被暂停或撤销的世界。每一步背后的状态机都由 Realm 维护。
 
 字段层面的状态定义见 [Reference → State Machines](/zh/reference/state-machines) 与 [Reference → World Fields](/zh/reference/world-fields)。
 
@@ -75,7 +75,7 @@ Lorebook 文本与 prompt payload 永远不是这个包的规范化中心。它�
 
 如果创作者把世界下线，原本在那个世界里的参与者默认回到 OASIS。他们的身份与标识不受影响。
 
-## 场景：把一个世界从头发布出去
+## 读者场景：把一个世界从头发布出去
 
 某创作者完成世界设计，准备发布。
 
@@ -88,7 +88,7 @@ Lorebook 文本与 prompt payload 永远不是这个包的规范化中心。它�
 
 原子事务的形态是关键性质。平台不准入半发布的世界。
 
-## 场景：替换活跃的 extension-app
+## 读者场景：替换活跃的 extension-app
 
 某创作者想把活跃绑定从 extension-app A 切到 extension-app B。
 

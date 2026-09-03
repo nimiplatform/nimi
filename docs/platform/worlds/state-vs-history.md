@@ -1,13 +1,13 @@
 # State vs History
 
 > Status: Running today. World State (`R-WSTATE-*`) and World
-> History (`R-WHIST-*`) are shipped Realm authority surfaces with
-> distinct, complementary roles.
+> History (`R-WHIST-*`) are live Realm surfaces with distinct,
+> complementary roles.
 
-A world has two durable Realm-owned surfaces: **state** (what is
-true now) and **history** (what happened). They are not the same
-thing, they don't replace each other, and the rule for when an
-event affects which surface is contractual.
+A world keeps two durable records in Realm: its **state** — what is
+true right now — and its **history** — what happened. They are not
+the same thing, neither replaces the other, and an explicit rule
+decides which one an event touches.
 
 ## What State Is
 
@@ -34,10 +34,10 @@ attributes. State changes only through the commit envelope.
 | Provenance per event | `appId`, `sessionId`, `actorRefs`, `reason`, `evidenceRefs`, related state/truth anchors |
 | Mutation | Append-only; corrections via supersede or invalidation; no silent hard delete |
 
-History stores the canonical record of what happened: this turn
-committed this mutation, this event was admitted by this app under
-this run mode. It is not a log of every model token. It is the
-admitted record of canonical events.
+History stores the agreed record of what happened: this turn
+committed this mutation, this event was written by this app under
+this run mode. It is not a log of every model token — it is the
+official record of events the platform has accepted.
 
 ## The `effectClass` Determines Which Surface Updates
 
@@ -54,11 +54,11 @@ enum is the contract.
 
 ## Run Mode Authorization
 
-State writes require explicit app authorization through an
+State writes need explicit app authorization, checked against an
 `(appId, schemaId, schemaVersion, effectClass) -> runMode` matrix
-plus fail-close schema validation. Missing schema fields,
-unrecognized scope, unverifiable provenance, or unauthorized run
-mode reject the commit.
+with strict schema validation. Missing schema fields, an
+unrecognized scope, unverifiable provenance, or an unauthorized run
+mode all reject the commit.
 
 History append constraints:
 

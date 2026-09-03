@@ -2,19 +2,19 @@
 
 ## Status: Admitted as platform direction
 
-The Realm economy contracts (`R-ECON-*`) and the
-`creator-revenue-policy.md` / `world-creator-economy.md` framings
-are admitted at the spec level. Payout flows, settlement cadence
-operationalization, and withdrawal UI are admitted as direction;
-the user-facing payout surface is not a public app API.
+The economy core that payouts build on — the `R-ECON-*` contracts
+and the revenue-policy and creator-economy definitions — is settled.
+The payout pipeline itself (how settlements run on a cadence, how
+withdrawals appear in the UI) is agreed direction, and the
+user-facing payout surface is not a public app API.
 
 ## What "Payouts" Means
 
-A creator who builds a world earns from admitted revenue sources
-and share-plan settlements made within that world. **Payouts** are the
-typed pipeline from those earnings to the creator's withdrawn
-funds — accruing in append-only events, settling per share plan,
-withdrawn through admitted flows.
+A creator who builds a world earns from the revenue sources active
+in that world, settled under a share plan. **Payouts** are the
+pipeline from those earnings to money the creator actually
+withdraws — revenue accrues as append-only events, a share plan
+settles them, and the creator withdraws the result.
 
 This page explains the pieces. It does not promise dates.
 

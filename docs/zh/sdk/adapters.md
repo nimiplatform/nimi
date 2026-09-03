@@ -30,7 +30,7 @@ source directory 或 capability ledger row，不代表该 adapter 已成为当�
 
 适配器遇到不支持的框架能力必须 fail closed。它不得伪造成功、发明 provider capability，也不得绕过 Runtime readiness。
 
-## 场景：Vercel AI 迁移
+## 读者场景：Vercel AI 迁移
 
 使用 Vercel AI 的 App 应安装独立 adapter package，并显式保留 base SDK 依赖：
 
@@ -41,7 +41,7 @@ import { createNimiClient } from '@nimiplatform/sdk';
 
 适配器把 Vercel 调用形状映射到 Nimi 的 AI/runtime surface。Runtime 仍拥有路由和执行，适配器只拥有框架投影。
 
-## 场景：OpenAI-compatible 迁移桥
+## 读者场景：OpenAI-compatible 迁移桥
 
 已有 OpenAI-compatible chat-completion 调用点的 App 可以通过 OpenAI-compatible adapter boundary 迁移。这个桥只在明确支持的范围内保留兼容形状。不支持的 OpenAI-compatible 特性会返回强类型失败，而不是掉到 raw Runtime 或 provider-native bypass。
 

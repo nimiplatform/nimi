@@ -1,12 +1,12 @@
 # Agent Script
 
-> Status: Running today. NimiAgentScript (NAS) 1.0 is the shipped
-> convention; auto-discovery and hot reload are live.
+> Status: Running today. NimiAgentScript (NAS) 1.0 is the live
+> convention; auto-discovery and hot reload are on.
 
 NimiAgentScript (NAS) is the convention-based JS handler system
-that drives an embodiment. Embodiment package creators write JS
-files at convention paths; runtime auto-registers them; hot
-reload via Tauri notify watcher.
+that drives an embodiment. Package creators write JS files at
+convention paths; the runtime finds and registers them; edits
+hot-reload through a Tauri notify watcher.
 
 For the full authoring walkthrough — handler shape, available API
 surface, hot reload behavior, type narrowing — see

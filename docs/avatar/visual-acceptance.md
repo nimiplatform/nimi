@@ -2,17 +2,18 @@
 
 ## Status: Admitted Contract; Release-Gated Surface
 
-The Avatar carrier visual acceptance contract is admitted at the
-kernel level. The evidence taxonomy, fail-closed boundary, and
-multi-backend evidence shape are fixed. Automated acceptance
-harnesses are Avatar-owned test surfaces; not every evidence class is
-available as a public app API.
+The Avatar carrier visual acceptance contract defines what evidence
+is allowed to prove that the carrier really renders. The evidence
+classes, the fail-closed boundary, and the multi-backend evidence
+shape are fixed. The automated acceptance harnesses are Avatar's own
+test surfaces; not every evidence class is available as a public app
+API.
 
 ## What "Visual Acceptance" Means
 
 The Avatar app's carrier — the canvas / WebGL surface owned by
 `apps/avatar` — must produce visible non-placeholder pixels for the
-admitted backend, with deterministic, auditable evidence. Visual
+active backend, with deterministic, auditable evidence. Visual
 acceptance is the contract that says **what evidence is allowed to
 close that proof**.
 

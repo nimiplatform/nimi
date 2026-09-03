@@ -1,8 +1,8 @@
 # Home And Notification
 
-Desktop's Home surface is the social feed and shortcuts entry; the
-Notification surface is the unread-count and recent notifications
-view. Together they form Desktop's "what's new" surface.
+Home is your social feed plus shortcuts to the places you use most.
+Notifications collect your unread count and recent events. Together
+they answer "what's new?"
 
 ## Home
 
@@ -13,21 +13,21 @@ view. Together they form Desktop's "what's new" surface.
 | Recommended content | Surface curated content |
 | Cross-domain post cards | Surface post cards from other domains (chat, profile, etc.) |
 
-Home is a destination, not an authority. It reads from Realm
-social, Realm posts, Realm world / agent surfaces, and projects.
+Home is a reading surface, not a data source. It pulls together social
+posts and world / agent updates from your Nimi account and lays them
+out for you.
 
 ## Cross-Domain Entry Points
 
-Home post cards may surface entry points to other domains —
-"Open chat with X" or "View Z's profile". A key
-design choice: **Home does not directly own those mutations**.
+A Home card can point into another feature — "Open chat with X" or
+"View Z's profile". One design choice worth knowing: **Home doesn't
+perform those actions itself**.
 
-Cross-domain actions are injected via explicit owner callbacks.
-Home presents the entry point; the owner domain (chat, economy,
-profile) handles the actual flow.
+When you tap, Home hands off to the feature that owns the action —
+chat, economy, or profile — and that feature runs the flow.
 
-This is what keeps Home from becoming an accidental shadow
-authority for every surface in Desktop.
+That's why a shortcut on Home always behaves exactly like doing the
+same thing inside the owning feature.
 
 ## Notification
 
@@ -38,9 +38,9 @@ authority for every surface in Desktop.
 | Mark as read | Per-notification or all |
 | Polling | Polling-based for unread count |
 
-The unread count is polling-based — small operational detail, but
-it matters for what apps can rely on. Realtime push for
-unread is not admitted; the polling model is.
+The unread count refreshes by polling. A small operational detail, but
+it sets expectations: unread counts update on a polling cadence, not
+via realtime push.
 
 ## Reader Scenario: Acting On A Home Card
 

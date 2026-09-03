@@ -1,40 +1,37 @@
 # Web Mode
 
-Web mode is a constrained projection of Nimi. It can present selected
-platform and product surfaces in the browser, but it does not inherit
-Desktop-native runtime, local, window, or shell capabilities.
+Web mode brings selected Nimi surfaces to the browser. It doesn't
+include the desktop-only pieces: the native runtime, local
+capabilities, native windows, or shell integrations.
 
-The kernel rules behind Web behavior live under the Web release
+Under the hood, what Web can and can't do is set by the Web release
 contract and the Desktop web adapter.
 
 ## What Is Disabled In Web
 
-The Web adapter disables surfaces that depend on Desktop or Tauri-like
-capabilities:
+The Web adapter turns off surfaces that depend on Desktop or
+Tauri-like capabilities:
 
 - Native runtime bootstrap.
 - External-agent bridges that depend on native processes.
 - Native window management and OS integrations.
 - Sensitive token persistence beyond what browsers can safely offer.
 
-These constraints are not arbitrary. Each one corresponds to a contract
-that the browser cannot satisfy without weakening user safety or
-content integrity.
+These limits aren't arbitrary. Each one exists because a browser can't
+meet the same bar for user safety or content integrity.
 
 ## What Web Can Still Do
 
-Web can present admitted surfaces that are safe in a constrained
-projection:
+Web still works well for what's safe in a constrained browser
+environment:
 
-- Explain the platform, route users through public docs, and host
-  browser-safe product surfaces when those surfaces are admitted.
-- Surface read-oriented experiences whose contracts have been admitted
-  as web-safe.
-- Provide entry points back into the Desktop shell for users who need
-  full capability.
+- Introduce the platform, guide you through the public docs, and host
+  product surfaces that are cleared for browser use.
+- Offer read-oriented experiences that are confirmed web-safe.
+- Point you back to the Desktop app when you need full capability.
 
-The Web role is to be a real surface, but a deliberately smaller one
-than Desktop.
+Web is a real Nimi surface — just a deliberately smaller one than
+Desktop.
 
 ## Reader Scenario: A Capability Available Only On Desktop
 

@@ -1,14 +1,13 @@
 # Agent Avatar (Desktop Chat Surface)
 
-> Status: Running today. Desktop chat consumes the runtime-owned
-> avatar transient surface authority; the carrier app (Avatar) is a
-> separate first-party app.
+> Status: Running today. The avatar status display in Desktop chat is
+> driven by Runtime; the full embodiment carrier is the separate,
+> first-party Avatar app.
 
-Desktop's agent chat shows an avatar transient surface — the small
-visual signal that the agent is idle, thinking, listening, speaking,
-or transitioning. It is intentionally **not** an embodiment carrier.
-The Avatar app is the embodiment carrier; Desktop's chat is a
-**bridge**.
+While you chat with an agent in Desktop, a small visual signal shows
+what it's doing: idle, thinking, listening, speaking, or transitioning.
+It is deliberately **not** an embodiment carrier. The Avatar app is the
+carrier; Desktop chat is a **bridge** to it.
 
 ## What This Surface Is
 
@@ -21,8 +20,8 @@ The Avatar app is the embodiment carrier; Desktop's chat is a
 | `attentionTarget` | Optional gaze / attention target |
 | `visemeId` / `amplitude` | Optional lipsync-related fields |
 
-This surface is transient: it lives in Desktop chat for the current
-anchor / surface only. It does not become canonical truth.
+This indicator is temporary: it reflects the conversation you currently
+have open, and it isn't stored as lasting state.
 
 ## Why Desktop Chat Is Not the Embodiment Carrier
 
@@ -36,12 +35,12 @@ anchor / surface only. It does not become canonical truth.
 | Desktop chat avatar transient surface | Desktop (this surface) |
 | Reusable kit avatar module | `kit/features/avatar` (consumes normalized inputs only) |
 
-The owner cut is fixed. Desktop chat does not host a Live2D / VRM
-carrier; if the user wants embodiment, the Avatar app surfaces it.
+This split is fixed. Desktop chat doesn't host a Live2D / VRM carrier;
+if you want embodiment, open the Avatar app.
 
 ## How Desktop Chat Bridges Into Avatar
 
-1. **Runtime emits transient projection.**
+1. **Runtime emits status events.**
    `runtime.agent.presentation.*` and `runtime.agent.state.*` events
    carry phase, emotion, action cue, attention target, lipsync
    frames.
@@ -52,9 +51,9 @@ carrier; if the user wants embodiment, the Avatar app surfaces it.
    `apps/avatar` both consume the normalized surface inputs. Neither
    reaches behind the contract for hidden Desktop semantics.
 
-This is why the chat surface and the standalone Avatar carrier stay
-in sync without coordinating with each other — they consume the same
-runtime projection.
+That's how the chat window and the standalone Avatar carrier stay in
+sync without talking to each other — both listen to the same Runtime
+events.
 
 ## Reader Scenario: A Voice Turn Drives Both Surfaces
 
@@ -78,14 +77,14 @@ surface continues to render — it is its own surface.
 
 ## What This Surface Does Not Do
 
-- It does not host Live2D / VRM rendering — that's `apps/avatar`.
-- It does not own persistent presentation profile — that's runtime.
-- It does not own message / action envelope — that's Desktop chat
-  message / action contract.
-- It does not own voice session / workflow — those are Desktop voice
-  contracts.
-- It does not become canonical truth — `AvatarInteractionState` is
-  transient, not durable.
+- It doesn't render Live2D / VRM — that's `apps/avatar`.
+- It doesn't store the persistent presentation profile — that's Runtime.
+- It doesn't define the message / action envelope — that's the Desktop
+  chat message / action contract.
+- It doesn't run the voice session / workflow — those are the Desktop
+  voice contracts.
+- It isn't saved as lasting state — `AvatarInteractionState` is
+  temporary, not durable.
 
 ## Boundary Summary
 

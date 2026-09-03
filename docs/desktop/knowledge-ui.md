@@ -1,11 +1,13 @@
 # Knowledge UI
 
-Desktop owns the user-facing Knowledge experience: navigation, search and
-curation controls, loading and error presentation, and ephemeral UI state.
+The Knowledge page is where you browse, search, and curate what your
+agent knows. Desktop runs the whole experience: navigation, search and
+curation controls, loading and error presentation, and transient UI
+state.
 
-Runtime owns LocalAgent operational Knowledge. Desktop reaches it through the
-standard SDK and authorized Runtime surface; it does not define a second
-Knowledge service or maintain canonical Knowledge data locally.
+The knowledge itself lives in Runtime. Desktop reaches it through the
+standard SDK and the authorized Runtime surface; it doesn't run a
+second Knowledge service or keep its own copy of record.
 
 ## Boundary
 
@@ -15,13 +17,14 @@ Knowledge service or maintain canonical Knowledge data locally.
 | Draft input and local presentation state | Session-derived authorization and LocalAgent scope |
 | Typed unavailable and failure presentation | Admitted results and failure semantics |
 
-Desktop submits typed user intent and renders the returned projection. A local
-cache cannot become Knowledge, Conversation, Memory, source, or authorization
-truth.
+Desktop sends your request in and renders what Runtime returns. A local
+cache never counts as the real Knowledge, Conversation, Memory, source,
+or authorization state.
 
-When a request is unauthorized, unavailable, pending, or failed, the UI keeps
-the typed result visible and does not bypass Runtime through a private store,
-provider call, or app-local service.
+If a request comes back unauthorized, unavailable, pending, or failed,
+the UI shows you exactly that state. Desktop never works around Runtime
+with a private store, a side-channel provider call, or an app-local
+service.
 
 ## Source Basis
 

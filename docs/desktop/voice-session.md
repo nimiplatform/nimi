@@ -1,13 +1,13 @@
 # Voice Session
 
-> Status: Running today. Desktop's agent chat voice session, voice
-> executor, and voice workflow contracts are shipped at the
-> kernel level (`agent-chat-voice-*-contract.md`).
+> Status: Running today. Voice sessions in Desktop agent chat are live;
+> the session, executor, and workflow pieces are defined at the kernel
+> level (`agent-chat-voice-*-contract.md`).
 
-The Desktop voice session is the surface where a user holds a voice
-conversation with their agent: speech in, agent reply out, captions
-synchronized, lifecycle states explicit. The contracts split
-deliberately into session, executor, and workflow.
+A voice session is where you talk with your agent out loud: you speak,
+the agent replies in voice, captions stay in sync, and the session
+state is always visible. The underlying contracts split deliberately
+into session, executor, and workflow.
 
 ## Three Contracts
 
@@ -17,9 +17,9 @@ deliberately into session, executor, and workflow.
 | Voice executor | Per-turn voice execution mechanics |
 | Voice workflow | Cross-turn workflow + identity binding |
 
-The split keeps "did the user start a voice conversation" separate
-from "how is one turn executing" separate from "how does the agent's
-voice identity bind across turns."
+The split keeps three questions apart: "did you start a voice
+conversation", "how is one turn executing", and "how does the agent's
+voice identity carry across turns".
 
 ## Boundary
 
@@ -29,9 +29,9 @@ voice identity bind across turns."
 | Per-turn voice executor in chat | TTS / STT provider semantics (Runtime) |
 | Workflow + identity binding in chat | Avatar lipsync (Avatar) |
 
-The Desktop voice surface consumes runtime voice + projects through
-the captioned chat UI. It does not invent voice cloning or asset
-storage.
+The Desktop voice surface plays Runtime's voice capabilities through
+the captioned chat UI. It doesn't do voice cloning or asset storage
+itself.
 
 ## Reader Scenario: User Voice Turn
 
@@ -49,10 +49,10 @@ User taps voice in chat and speaks.
 
 ## What Voice Session Does Not Do
 
-- It does not own voice creation (`K-VOICE-*` runtime).
-- It does not redefine TTS / STT provider semantics.
-- It does not bypass `RuntimeAgentService` turn lifecycle.
-- It does not own Avatar lipsync.
+- It doesn't create voice assets (`K-VOICE-*` lives in Runtime).
+- It doesn't redefine TTS / STT provider semantics.
+- It doesn't bypass the `RuntimeAgentService` turn lifecycle.
+- It doesn't drive Avatar lipsync.
 
 ## Source Basis
 

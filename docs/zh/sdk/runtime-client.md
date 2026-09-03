@@ -32,7 +32,7 @@ Runtime client 有意隐藏：
 
 如果某个 runtime 能力让人觉得"必须直接导入才能用"，那是 SDK 转换需要新的准入 surface 的信号，而不是边界应被绕开的信号。
 
-## 场景：通过 client 跑流式生成
+## 读者场景：通过 client 跑流式生成
 
 某个 App 通过 `@nimiplatform/sdk/runtime` 发起一次流式生成：
 
@@ -44,7 +44,7 @@ Runtime client 有意隐藏：
 
 这样的流程让 App 在 Runtime 内部演进时仍然可移植。
 
-## 场景：方法尚未在 client 上
+## 读者场景：方法尚未在 client 上
 
 假设 Runtime 在内核里准入了一个新能力，但 SDK 转换还未准入。App 不能从私有内部合成调用。正确做法是：
 

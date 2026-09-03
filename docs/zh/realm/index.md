@@ -1,8 +1,8 @@
 # Realm
 
-Realm 是外部 server/domain authority，负责世界真相。在本仓库中，Nimi 通过 SDK Realm boundary 消费 Realm，而不是在本地重新定义 Realm server rules。
+Realm 是 Nimi 生态的服务端。世界共享的真相都放在这里：账号与身份、朋友关系、聊天、经济、世界，以及世界里的角色。Nimi 不在本地重新实现这些规则，而是通过 SDK 连接 Realm，按 Realm 的规则来。
 
-Runtime 负责执行 AI work。SDK 为 App 提供访问边界。Desktop 与 Web 负责呈现体验。共享世界真相仍锚定于外部 Realm authority；Nimi-owned code 只处理 typed consumer projections。
+分工很直白：Runtime 执行 AI 任务；SDK 为 App 提供访问 Realm 的通道；桌面端和网页端负责呈现体验。世界的共享真相始终保存在 Realm 一侧，Nimi 的代码只处理从 SDK 拿到的强类型视图。
 
 ## 本节包含的内容
 
@@ -10,8 +10,8 @@ Realm consumer 入口：
 
 - [Realm 真相边界](/zh/realm/truth)：Nimi 消费外部 Realm truth 时拥有什么、不拥有什么。
 - [Realm 消费者投影](/zh/realm/projection)：Nimi consumer 如何通过 SDK boundary 接收 Realm API output。
-- [世界状态](/zh/realm/world-state)：当前世界状态的 reader-facing context。
-- [世界历史](/zh/realm/world-history)：append-only world history 的 reader-facing context。
+- [世界状态](/zh/realm/world-state)：世界的当前状态是什么、怎么变。
+- [世界历史](/zh/realm/world-history)：一个世界里发生过的事，只追加不改写。
 
 Domain reading map：
 
@@ -29,9 +29,9 @@ Domain reading map：
 
 ## 为什么 Nimi App 需要 Realm
 
-Nimi App 可以运行在多个 surface 中：desktop、web、avatar、creator tools 以及 world-specific extension apps。这些 surface 可以呈现不同视图，但不能在本地发明 Realm truth。它们通过 generated SDK clients 和 typed facades 消费 Realm。
+Nimi App 可以出现在很多地方：桌面端、网页端、Avatar、创作者工具，或者为某个世界专门写的扩展应用。每个地方的界面可以不一样，但谁也不能在本地编造共享真相，大家都通过 SDK 生成的客户端和强类型封装来读 Realm。
 
-如果 Realm output 无法 fetch、authenticate、decode，或无法与 local projection state reconcile，Nimi consumer 必须暴露 typed unavailable/error state，不能合成 Realm success。
+如果 Realm 数据取不到、验证不了、解不开，或者和 App 上次看到的不一致，App 必须如实告诉用户——给出一个明确的"不可用"或错误状态，绝不能假装读取成功。
 
 ## 读者场景：App 读取 Realm 数据
 

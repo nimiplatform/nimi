@@ -1,13 +1,13 @@
 # Embodiment Projection
 
-> Status: Running today. The projection layer is the shipped
+> Status: Running today. The projection layer is the live
 > backend-agnostic seam between agent semantics and backend
 > execution.
 
-Embodiment Projection is the **backend-agnostic API surface** for
-how an agent's truth turns into visual output on a carrier. NAS
-handlers consume the projection; the projection produces
-backend-specific calls (Live2D today, VRM admitted as future).
+Embodiment Projection is the **backend-agnostic API surface** where
+what the agent is doing becomes visible output on a carrier. NAS
+handlers call the projection; the projection turns those calls into
+backend-specific work (Live2D today, VRM next).
 For the broader architectural framing see
 [Host-Agnostic Architecture](/avatar/host-agnostic-architecture.md).
 
