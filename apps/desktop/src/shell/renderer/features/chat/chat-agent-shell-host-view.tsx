@@ -37,6 +37,11 @@ export function resolveAgentConversationHostView(input: {
     todayLabel: string;
     yesterdayLabel: string;
   };
+  emptyStateAgent?: {
+    displayName: string;
+    avatarUrl?: string | null;
+  } | null;
+  emptyStateContent?: ReactNode;
   transcriptWidthClassName?: string;
   transcriptWidthPositionClassName?: string;
   transcriptScrollViewportWidthClassName?: string;
@@ -71,7 +76,8 @@ export function resolveAgentConversationHostView(input: {
       emptyEyebrow: input.labels.emptyEyebrow,
       emptyTitle: input.labels.emptyTitle,
       emptyDescription: input.labels.emptyDescription,
-      emptyStateVariant: 'compact',
+      emptyStateAgent: input.emptyStateAgent ?? null,
+      emptyStateContent: input.emptyStateContent ?? null,
       loadingLabel: input.labels.loadingLabel,
       pendingAgentRoleLabel: input.labels.pendingAgentRoleLabel,
       pendingThinkingLabel: input.labels.pendingThinkingLabel,

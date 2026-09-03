@@ -50,6 +50,7 @@ export interface DesktopAppsProjectionSource {
   listRegistrations(): Promise<readonly LocalDevelopmentRegistration[]>;
   listRuns(): Promise<readonly LocalDevelopmentRun[]>;
   readAppAIConfig?(appId: string, options: DesktopAppAIConfigReadOptions): Promise<NimiAIConfigSnapshot>;
+  readAppIcon?(selector: string): Promise<string | null>;
 }
 
 export interface DesktopAppsCommonIdentity {
@@ -75,6 +76,12 @@ export interface DesktopAppsEntry {
   readonly packageJob: AppPackageJob | null;
   readonly run: LocalDevelopmentRun | null;
   readonly aiConfigSummary: DesktopAppAIConfigSummary | null;
+  /**
+   * Host-read project icon (PNG data URL) for identity visuals, or null when
+   * the project has no conventional icon. Presentation content only, exactly
+   * like the project README; never runnable truth.
+   */
+  readonly iconUrl: string | null;
 }
 
 export type DesktopAppsPanelProjection =
@@ -155,6 +162,7 @@ export async function projectAppsPanel(
         packageJob: null,
         run: runs.find((run) => run.selector === registration.selector) ?? null,
         aiConfigSummary: null,
+        iconUrl: null,
       });
     }
     for (const [entryKey, committedRelease] of runtimeRows.releasesByKey) {
@@ -193,6 +201,11 @@ export async function projectAppsPanel(
     ));
     const entries = await projectEntriesBounded(mergedEntries, async (entry) => ({
       ...entry,
+      iconUrl: await projectAppIconUrl({
+        entry,
+        source,
+        previous: previousIconUrl(previousEntries.get(entry.identity.entryKey) ?? null, entry),
+      }),
       aiConfigSummary: appAccessForAIConfig(entry).includes('runtime.consume')
         ? await projectAppAIConfigSummary({
             appId: entry.identity.appId,
@@ -229,6 +242,7 @@ function emptyRuntimeAppsEntry(appId: string, sourceClass: Exclude<DesktopAppSou
     packageJob: null,
     run: null,
     aiConfigSummary: null,
+    iconUrl: null,
   };
 }
 
@@ -316,6 +330,35 @@ function timestampUnixMs(timestamp: { readonly seconds: string; readonly nanos: 
 function appAccessForAIConfig(entry: DesktopAppsEntry): readonly string[] {
   if (entry.localDevelopment) return entry.localDevelopment.appAccess;
   return [];
+}
+
+/**
+ * Icon reads repeat only when the registration itself changed; an unchanged
+ * registration reuses the previous projection, including a previous null.
+ */
+function previousIconUrl(
+  previousEntry: DesktopAppsEntry | null,
+  entry: DesktopAppsEntry,
+): string | null | undefined {
+  if (!previousEntry) return undefined;
+  return previousEntry.identity.updatedAtUnixMs === entry.identity.updatedAtUnixMs
+    ? previousEntry.iconUrl
+    : undefined;
+}
+
+async function projectAppIconUrl(input: {
+  readonly entry: DesktopAppsEntry;
+  readonly source: DesktopAppsProjectionSource;
+  readonly previous: string | null | undefined;
+}): Promise<string | null> {
+  if (!input.entry.localDevelopment) return null;
+  if (input.previous !== undefined) return input.previous;
+  if (!input.source.readAppIcon) return null;
+  try {
+    return await input.source.readAppIcon(input.entry.localDevelopment.selector);
+  } catch {
+    return null;
+  }
 }
 
 async function projectEntriesBounded<TInput, TOutput>(

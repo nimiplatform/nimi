@@ -222,7 +222,7 @@ test('Apps library renders bounded App AIConfig posture without opening the App'
   }));
   assert.ok(markup.includes('data-app-ai-config-summary="partial-cloud"'));
   assert.ok(markup.includes('data-app-ai-config-health="blocked"'));
-  assert.ok(markup.includes('部分云端 · 2/9 · 1 项受阻'));
+  assert.ok(markup.includes('AI：部分云端 · 2/9 · 1 项受阻'));
 });
 
 test('Apps rail pins running apps first without group sections', async () => {

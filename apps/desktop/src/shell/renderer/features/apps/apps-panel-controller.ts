@@ -173,6 +173,9 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
       listCommittedReleases: deps.listCommittedReleases,
       listPackageJobs: deps.listPackageJobs,
       readAppAIConfig: deps.readAppAIConfig,
+      readAppIcon: async (selector: string) => (
+        (await liveBridge.readProjectIcon(selector)).iconDataUrl
+      ),
     },
     getCurrent: () => projectionRef.current,
     commit(next) {

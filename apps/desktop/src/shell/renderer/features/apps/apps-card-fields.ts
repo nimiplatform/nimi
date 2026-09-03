@@ -1,7 +1,9 @@
 /**
- * Presentation derivations for Apps cards. Apps must not inspect app-local
- * files for artwork or icons; identity visuals are derived deterministically
- * from Runtime-projected owner data (appId, displayName) only.
+ * Presentation derivations for Apps cards. The renderer never inspects
+ * app-local files for artwork or icons: a project's real icon arrives as
+ * bounded host-read presentation content projected onto the entry (like the
+ * project README), and everything else is derived deterministically from
+ * Runtime-projected owner data (appId, displayName) as the stable fallback.
  */
 import { isLocalDevelopmentRunActive } from './apps-card-actions.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';

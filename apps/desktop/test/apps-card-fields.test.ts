@@ -72,6 +72,7 @@ function entry(
         hostGeneration: 1,
       },
     aiConfigSummary: null,
+    iconUrl: null,
   };
 }
 

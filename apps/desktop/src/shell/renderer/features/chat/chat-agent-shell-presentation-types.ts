@@ -20,6 +20,7 @@ import type {
   AgentVoiceSessionShellState,
   AgentVoiceTranscriptProjection,
 } from './chat-agent-voice-session.js';
+import type { AgentEmptyStateCharacterPresence } from './chat-agent-empty-state-character-presence.js';
 
 export type UseAgentConversationPresentationInput = {
   activeTarget: AgentLocalTargetSnapshot | null;
@@ -43,6 +44,8 @@ export type UseAgentConversationPresentationInput = {
   pendingAttachments: readonly PendingAttachment[];
   onDismissHostFeedback: () => void;
   onAttachmentsChange: (attachments: readonly PendingAttachment[]) => void;
+  onComposerPrefillRequest?: (text: string) => void;
+  emptyStateCharacterPresence?: AgentEmptyStateCharacterPresence | null;
   reasoningLabel: string;
   renderMessageAccessory?: CanonicalMessageAccessorySlot;
   renderMessageContent: CanonicalMessageContentSlot;

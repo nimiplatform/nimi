@@ -59,6 +59,10 @@ export function useAiConversationModeHost(
   const queryClient = useQueryClient();
   const chatThinkingPreference = useAppStore((state) => state.chatThinkingPreference);
   const setChatThinkingPreference = useAppStore((state) => state.setChatThinkingPreference);
+  const authUser = useAppStore((state) => state.auth.user);
+  const userDisplayName = authUser && (authUser.displayName || authUser.handle)
+    ? String(authUser.displayName || authUser.handle)
+    : null;
   const appAIConfig = useDesktopNimiAppAIConfig(DESKTOP_NIMI_APP_ID);
   const textIntent = findDesktopNimiTextIntent(appAIConfig.data?.config);
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
@@ -385,6 +389,7 @@ export function useAiConversationModeHost(
     thinkingSupported: thinkingSupport.supported,
     thinkingUnsupportedReason,
     threads,
+    userDisplayName,
   });
 
   return { host };

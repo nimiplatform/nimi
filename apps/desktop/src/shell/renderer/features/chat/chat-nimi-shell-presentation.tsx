@@ -57,6 +57,7 @@ type UseAiConversationPresentationInput = {
   thinkingSupported: boolean;
   thinkingUnsupportedReason: string | null;
   threads: readonly ChatAiThreadSummary[];
+  userDisplayName: string | null;
 };
 
 export function useAiConversationPresentation(
@@ -104,7 +105,39 @@ export function useAiConversationPresentation(
       : null,
   }), [input.bundle, input.composerReady, input.handleSubmit, input.messages, input.setupState, input.submittingThreadId, input.t, input.threads]);
 
-  return useMemo(() => ({
+  return useMemo(() => {
+    const centerComposer = Boolean(
+      adapter.composerAdapter
+        && !input.isBundleLoading
+        && !input.bundleError
+        && input.canonicalMessages.length === 0,
+    );
+    const composerNode = adapter.composerAdapter ? (
+      <div className="space-y-3">
+        {hostFeedbackNode}
+        <CanonicalComposer
+          key={`${input.activeThreadId || 'none'}:${input.bundle?.draft?.updatedAtMs || 0}`}
+          adapter={adapter.composerAdapter}
+          initialText={input.bundle?.draft?.text || ''}
+          disabled={Boolean(input.submittingThreadId)}
+          placeholder={input.t('Chat.nimiComposerPlaceholder', { defaultValue: 'Ask Nimi anything…' })}
+          layout="stacked"
+          className={centerComposer ? 'px-0 pb-0' : undefined}
+          widthClassName={CHAT_CONTENT_WIDTH_CLASS}
+          widthPositionClassName={CHAT_CONTENT_POSITION_CLASS}
+          onInputCaptureText={(text) => {
+            input.currentDraftTextRef.current = text;
+          }}
+        />
+      </div>
+    ) : null;
+    const emptyTitle = input.userDisplayName
+      ? input.t('Chat.nimiEmptyGreetingNamed', {
+        name: input.userDisplayName,
+        defaultValue: 'Hi, {{name}}! Where would you like to start?',
+      })
+      : input.t('Chat.nimiEmptyGreeting', { defaultValue: 'Hi! Where would you like to start?' });
+    return {
     mode: 'ai' as const,
     availability: {
       mode: 'ai',
@@ -130,9 +163,10 @@ export function useAiConversationPresentation(
     transcriptProps: {
       loading: input.isBundleLoading,
       error: input.bundleError instanceof Error ? input.bundleError.message : input.bundleError ? String(input.bundleError) : null,
-      emptyEyebrow: 'Nimi',
-      emptyTitle: input.t('Chat.nimiTranscriptEmptyTitle', { defaultValue: 'Start a Nimi Chat' }),
-      emptyDescription: input.t('Chat.nimiTranscriptEmpty', { defaultValue: 'Send a message to start this conversation.' }),
+      emptyEyebrow: '',
+      emptyTitle,
+      emptyDescription: '',
+      emptyStateContent: centerComposer ? composerNode : null,
       loadingLabel: input.t('Chat.nimiTranscriptLoading', { defaultValue: 'Loading conversation…' }),
       footerContent: input.footerContent,
       renderMessageContent: input.renderMessageContent,
@@ -150,26 +184,7 @@ export function useAiConversationPresentation(
       pendingFirstBeat: input.pendingFirstBeat,
       disableRpContent: true,
     },
-    composerContent: (
-      adapter.composerAdapter ? (
-        <div className="space-y-3">
-          {hostFeedbackNode}
-          <CanonicalComposer
-            key={`${input.activeThreadId || 'none'}:${input.bundle?.draft?.updatedAtMs || 0}`}
-            adapter={adapter.composerAdapter}
-            initialText={input.bundle?.draft?.text || ''}
-            disabled={Boolean(input.submittingThreadId)}
-            placeholder={input.t('Chat.nimiComposerPlaceholder', { defaultValue: 'Ask Nimi anything…' })}
-            layout="stacked"
-            widthClassName={CHAT_CONTENT_WIDTH_CLASS}
-            widthPositionClassName={CHAT_CONTENT_POSITION_CLASS}
-            onInputCaptureText={(text) => {
-              input.currentDraftTextRef.current = text;
-            }}
-          />
-        </div>
-      ) : null
-    ),
+    composerContent: centerComposer ? null : composerNode,
     setupDescription: input.setupPending
       ? null
       : input.t('Chat.nimiIntentRequired', {
@@ -187,7 +202,8 @@ export function useAiConversationPresentation(
     onThinkingToggle: () => input.setChatThinkingPreference(input.thinkingPreference === 'on' ? 'off' : 'on'),
     onSelectThread: input.handleSelectThread,
     onCreateThread: input.handleCreateThread,
-  }), [
+    };
+  }, [
     adapter,
     diagnosticsContent,
     hostFeedbackNode,
@@ -216,5 +232,6 @@ export function useAiConversationPresentation(
     input.thinkingSupported,
     input.thinkingUnsupportedReason,
     input.threads.length,
+    input.userDisplayName,
   ]);
 }
