@@ -1349,7 +1349,6 @@
     "colRecommendation": "Recommendation",
     "providerFilter": "Provider",
     "licenseFilter": "License",
-    "providersAll": "All",
     "capability": {
       "chat": "Chat",
       "image": "Image",

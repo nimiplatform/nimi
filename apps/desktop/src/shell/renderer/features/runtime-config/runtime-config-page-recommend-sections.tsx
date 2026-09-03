@@ -319,48 +319,6 @@ export function CapabilityTabs({
 }
 
 // ---------------------------------------------------------------------------
-// ProviderChipRow — horizontally scrollable toggle chips
-// ---------------------------------------------------------------------------
-
-export function ProviderChipRow({
-  allLabel,
-  options,
-  selected,
-  onToggle,
-  onClear,
-}: {
-  allLabel: string;
-  options: string[];
-  selected: Set<string>;
-  onToggle: (value: string) => void;
-  onClear: () => void;
-}) {
-  const chipClass = (active: boolean) => `inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-    active
-      ? 'border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_32%,transparent)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,transparent)] text-[var(--nimi-action-primary-bg)]'
-      : 'border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] text-[var(--nimi-text-secondary)] hover:border-[var(--nimi-border-strong)]'
-  }`;
-  return (
-    <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5">
-      <button type="button" className={chipClass(selected.size === 0)} onClick={onClear}>
-        {allLabel}
-      </button>
-      {options.map((option) => (
-        <button
-          key={option}
-          type="button"
-          aria-pressed={selected.has(option)}
-          className={chipClass(selected.has(option))}
-          onClick={() => onToggle(option)}
-        >
-          {option}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
 // ModelCard — card-based list item (replaces the former table row)
 // ---------------------------------------------------------------------------
 
