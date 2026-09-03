@@ -16,7 +16,8 @@ export type AgentConversationSelection = {
 };
 
 export type AgentComposerPrefill = {
-  agentHandle: string;
+  agentHandle?: string;
+  sourceKey?: string;
   text: string;
   requestId: number;
 };

@@ -27,11 +27,13 @@ export type AppArtworkIconSize = keyof typeof ICON_SIZE_CLASS;
 export function AppArtworkIcon({
   appId,
   displayName,
+  iconUrl = null,
   size = 'md',
   className = '',
 }: {
   readonly appId: string;
   readonly displayName: string;
+  readonly iconUrl?: string | null;
   readonly size?: AppArtworkIconSize;
   readonly className?: string;
 }): ReactElement {
@@ -39,49 +41,20 @@ export function AppArtworkIcon({
   return (
     <span
       aria-hidden="true"
-      className={`inline-flex shrink-0 select-none items-center justify-center font-semibold text-white ${ICON_SIZE_CLASS[size]} ${className}`}
+      className={`relative inline-flex shrink-0 select-none items-center justify-center overflow-hidden font-semibold text-white ${ICON_SIZE_CLASS[size]} ${className}`}
       style={{
-        background: artwork.iconBackground,
+        // Real project icons sit on a white tile so transparent PNGs never
+        // leak the fallback gradient through; the gradient remains the
+        // glyph-only fallback background.
+        background: iconUrl ? '#ffffff' : artwork.iconBackground,
         fontFamily: 'var(--nimi-font-display)',
         boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.35), inset 0 -2px 6px rgba(15,23,42,0.18)',
       }}
     >
-      {deriveIconGlyph(displayName)}
+      {iconUrl ? (
+        <img src={iconUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      ) : deriveIconGlyph(displayName)}
     </span>
-  );
-}
-
-export function AppArtworkCover({
-  appId,
-  displayName,
-  className = '',
-  showIcon = true,
-}: {
-  readonly appId: string;
-  readonly displayName: string;
-  readonly className?: string;
-  readonly showIcon?: boolean;
-}): ReactElement {
-  const artwork = appArtworkFor(appId);
-  return (
-    <div
-      aria-hidden="true"
-      className={`relative select-none overflow-hidden ${className}`}
-      style={{ background: artwork.coverBackground }}
-    >
-      <div className="pointer-events-none absolute -right-10 -top-12 h-32 w-32 rounded-full bg-white/50 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-14 -left-8 h-28 w-28 rounded-full bg-white/40 blur-3xl" />
-      {showIcon ? (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <AppArtworkIcon
-            appId={appId}
-            displayName={displayName}
-            size="lg"
-            className="shadow-[var(--nimi-elevation-raised)]"
-          />
-        </div>
-      ) : null}
-    </div>
   );
 }
 
@@ -166,34 +139,45 @@ const SOURCE_BADGE_META = Object.freeze({
   local_development: {
     icon: Code2,
     labelKey: 'Apps.sourceBadge.localDevelopment',
-    className: 'border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)] text-[color:var(--nimi-text-secondary)]',
+    pillClassName: 'border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)] text-[color:var(--nimi-text-secondary)]',
+    quietClassName: 'text-[color:var(--nimi-text-muted)]',
   },
   user_imported: {
     icon: PackageOpen,
     labelKey: 'Apps.sourceBadge.userImported',
-    className: 'border-[color:var(--nimi-status-info-soft-border)] bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]',
+    pillClassName: 'border-[color:var(--nimi-status-info-soft-border)] bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]',
+    quietClassName: 'text-[var(--nimi-status-info-soft-text)]',
   },
   verified: {
     icon: BadgeCheck,
     labelKey: 'Apps.sourceBadge.verified',
-    className: 'border-[color:var(--nimi-status-success-soft-border)] bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]',
+    pillClassName: 'border-[color:var(--nimi-status-success-soft-border)] bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]',
+    quietClassName: 'text-[var(--nimi-status-success-soft-text)]',
   },
 } as const);
 
 export function AppSourceBadge({
   source,
+  variant = 'pill',
   className = '',
 }: {
   readonly source: AppSourceId;
+  readonly variant?: 'pill' | 'quiet';
   readonly className?: string;
 }): ReactElement {
   const { t } = useTranslation();
   const meta = SOURCE_BADGE_META[source];
   const Icon = meta.icon;
+  // Source is static provenance, not a live status: the quiet variant keeps
+  // the same icon and copy as inline metadata so status pills stand out.
+  const variantClassName = variant === 'quiet'
+    ? meta.quietClassName
+    : `border px-1.5 py-0.5 ${meta.pillClassName}`;
   return (
     <span
       data-source-badge={source}
-      className={`inline-flex shrink-0 items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium leading-4 ${meta.className} ${className}`}
+      data-source-badge-variant={variant}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-md text-[11px] font-medium leading-4 ${variantClassName} ${className}`}
     >
       <Icon className="h-3 w-3" aria-hidden="true" />
       {t(meta.labelKey)}

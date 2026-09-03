@@ -210,6 +210,7 @@ function LocalDevelopmentAppsDetailView({
           <AppArtworkIcon
             appId={identity.appId}
             displayName={identity.displayName}
+            iconUrl={entry.iconUrl}
             size="lg"
           />
           <div className="min-w-0 flex-1">
@@ -450,6 +451,7 @@ function InstalledAppsDetailView({
           <AppArtworkIcon
             appId={entry.identity.appId}
             displayName={entry.identity.displayName}
+            iconUrl={entry.iconUrl}
             size="lg"
           />
           <div className="min-w-0 flex-1">

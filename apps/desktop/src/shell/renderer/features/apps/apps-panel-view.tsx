@@ -10,10 +10,10 @@ import { useTranslation } from 'react-i18next';
 import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
 import type { NimiAIConfigOverwriteResult } from '@nimiplatform/kit/core/sdk-contract';
 import {
-  ArrowUpDown,
   Box,
   Check,
   Code2,
+  ListFilter,
   LoaderCircle,
   SearchX,
 } from 'lucide-react';
@@ -117,7 +117,7 @@ export function AppsPanelView({
   const sortMenuItems: NimiMenuItem[] = SORT_IDS.map((id) => ({
     id,
     label: t(SORT_LABEL_KEYS[id]),
-    icon: id === sortId ? <Check className="h-4 w-4" aria-hidden="true" /> : undefined,
+    trailingIcon: id === sortId ? <Check className="h-4 w-4" aria-hidden="true" /> : undefined,
     onSelect: () => setSortId(id),
   }));
 
@@ -242,11 +242,11 @@ function AppsRail({
           <PopoverTrigger asChild>
             <IconButton
               data-testid="apps-sort-menu"
-              icon={<ArrowUpDown className="h-3.5 w-3.5" aria-hidden="true" />}
+              icon={<ListFilter className="h-3.5 w-3.5" aria-hidden="true" />}
               tone="ghost"
               size="sm"
               aria-label={t('Apps.library.sortLabel')}
-              title={t(SORT_LABEL_KEYS[sortId])}
+              title={`${t('Apps.library.sortLabel')} · ${t(SORT_LABEL_KEYS[sortId])}`}
               className="h-8 w-8 shrink-0"
             />
           </PopoverTrigger>
@@ -334,6 +334,7 @@ function RailAppRow({
       <AppArtworkIcon
         appId={entry.identity.appId}
         displayName={entry.identity.displayName}
+        iconUrl={entry.iconUrl}
         size="xs"
       />
       <span className={`min-w-0 flex-1 truncate text-[13px] leading-5 ${visual === 'running' ? 'font-semibold text-[color:var(--nimi-text-primary)]' : 'font-medium text-[color:var(--nimi-text-primary)]'}`}>
@@ -415,15 +416,15 @@ function LibraryContent({
             </div>
             <Popover>
               <PopoverTrigger asChild>
-                <Button
+                <IconButton
                   data-testid="apps-sort-menu-compact"
-                  tone="secondary"
+                  icon={<ListFilter className="h-3.5 w-3.5" aria-hidden="true" />}
+                  tone="ghost"
                   size="sm"
                   aria-label={t('Apps.library.sortLabel')}
-                >
-                  <ArrowUpDown className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
-                  {activeSortLabel}
-                </Button>
+                  title={`${t('Apps.library.sortLabel')} · ${activeSortLabel}`}
+                  className="h-8 w-8 shrink-0"
+                />
               </PopoverTrigger>
               <PopoverContent align="end" sideOffset={6} className="p-1">
                 <ActionMenu items={sortMenuItems} ariaLabel={t('Apps.library.sortLabel')} />
@@ -495,11 +496,13 @@ function LibraryBody({
     return (
       <div data-testid="apps-panel-loading" aria-label={t('Apps.loading')} className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4 px-5 py-5 sm:px-7">
         {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="animate-pulse overflow-hidden rounded-2xl border border-[color:var(--nimi-border-subtle)]">
-            <div className="aspect-[16/9] w-full bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
-            <div className="space-y-2 px-3.5 py-3">
-              <div className="h-4 w-2/3 rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
-              <div className="h-3 w-1/2 rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
+          <div key={index} className="animate-pulse rounded-2xl border border-[color:var(--nimi-border-subtle)] p-4">
+            <div className="flex items-center gap-3">
+              <div className="h-16 w-16 shrink-0 rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-4 w-2/3 rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
+                <div className="h-3 w-1/2 rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
+              </div>
             </div>
           </div>
         ))}
