@@ -50,9 +50,19 @@ const COMMANDS = new Set([
   'local_development_registration_start',
   'local_development_run_stop',
   'local_development_project_readme',
+  'local_development_project_icon',
 ]);
 const PROJECT_README_CANDIDATES = ['README.md', 'README.zh-CN.md', 'README.zh.md', 'readme.md'] as const;
 const PROJECT_README_MAX_BYTES = 96 * 1024;
+// Conventional icon locations produced by the supported project shapes:
+// scaffolded Apps keep their Tauri icon set, first-party Electron Apps keep
+// the shell asset that also feeds their window icon.
+const PROJECT_ICON_CANDIDATES = [
+  'src-tauri/icons/icon.png',
+  path.join('src', 'shell', 'assets', 'app-icon.png'),
+] as const;
+const PROJECT_ICON_MAX_BYTES = 1024 * 1024;
+const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const HEALTH_MS = 2_000;
 const LAUNCHER_LEASE_MS = 10_000;
 const REBUILD_DEBOUNCE_MS = 450;
@@ -218,6 +228,7 @@ export class ElectronLocalDevelopmentHost {
     if (command === 'local_development_registration_remove') return this.removeRegistration(exactPayload);
     if (command === 'local_development_registration_start') return this.startRegistration(exactPayload);
     if (command === 'local_development_project_readme') return this.readProjectReadme(exactPayload);
+    if (command === 'local_development_project_icon') return this.readProjectIcon(exactPayload);
     return this.stopRegistrationRun(exactPayload);
   }
 
@@ -490,14 +501,7 @@ export class ElectronLocalDevelopmentHost {
   }> {
     const value = exact(payload, ['selector']);
     const selectorValue = selector(value.selector, 'dev-project');
-    const registrationHandle = this.registrationSelectors.get(selectorValue);
-    if (!registrationHandle) throw new Error('local-development-registration-not-found');
-    const registration = (await this.control.listRegistrations())
-      .find((candidate) => candidate.registrationHandle === registrationHandle);
-    if (!registration || registration.project.shell !== 'electron') {
-      throw new Error('local-development-registration-not-found');
-    }
-    const projectRoot = registration.project.canonicalProjectRoot;
+    const projectRoot = await this.registeredProjectRoot(selectorValue);
     for (const fileName of PROJECT_README_CANDIDATES) {
       try {
         const handle = await open(path.join(projectRoot, fileName), 'r');
@@ -520,6 +524,54 @@ export class ElectronLocalDevelopmentHost {
       }
     }
     return { selector: selectorValue, content: null, fileName: null };
+  }
+
+  // The project icon is presentation content for Apps identity visuals, never
+  // runnable truth; reads stay bounded, PNG-only, and inside the registered
+  // root, exactly like the project README above.
+  private async readProjectIcon(payload: Readonly<Record<string, unknown>>): Promise<{
+    readonly selector: string;
+    readonly iconDataUrl: string | null;
+  }> {
+    const value = exact(payload, ['selector']);
+    const selectorValue = selector(value.selector, 'dev-project');
+    const projectRoot = await this.registeredProjectRoot(selectorValue);
+    for (const candidate of PROJECT_ICON_CANDIDATES) {
+      try {
+        const handle = await open(path.join(projectRoot, candidate), 'r');
+        try {
+          const stat = await handle.stat();
+          if (!stat.isFile()) continue;
+          const size = Math.min(stat.size, PROJECT_ICON_MAX_BYTES);
+          const buffer = Buffer.alloc(size);
+          const { bytesRead } = await handle.read(buffer, 0, size, 0);
+          const content = buffer.subarray(0, bytesRead);
+          if (bytesRead < PNG_SIGNATURE.length || !content.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
+            continue;
+          }
+          return {
+            selector: selectorValue,
+            iconDataUrl: `data:image/png;base64,${content.toString('base64')}`,
+          };
+        } finally {
+          await handle.close();
+        }
+      } catch {
+        // Missing or unreadable candidate: try the next conventional name.
+      }
+    }
+    return { selector: selectorValue, iconDataUrl: null };
+  }
+
+  private async registeredProjectRoot(selectorValue: string): Promise<string> {
+    const registrationHandle = this.registrationSelectors.get(selectorValue);
+    if (!registrationHandle) throw new Error('local-development-registration-not-found');
+    const registration = (await this.control.listRegistrations())
+      .find((candidate) => candidate.registrationHandle === registrationHandle);
+    if (!registration || registration.project.shell !== 'electron') {
+      throw new Error('local-development-registration-not-found');
+    }
+    return registration.project.canonicalProjectRoot;
   }
 
   private async removeRegistration(payload: Readonly<Record<string, unknown>>): Promise<{ readonly selector: string; readonly removed: true }> {

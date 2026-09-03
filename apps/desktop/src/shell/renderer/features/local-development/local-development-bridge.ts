@@ -74,6 +74,32 @@ export type LocalDevelopmentProjectReadme = {
   readonly fileName: string | null;
 };
 
+export type LocalDevelopmentProjectIcon = {
+  readonly iconDataUrl: string | null;
+};
+
+export async function readLocalDevelopmentProjectIcon(
+  selector: string,
+): Promise<LocalDevelopmentProjectIcon> {
+  const response = await invokeChecked(
+    'local_development_project_icon',
+    { payload: { selector: requireSelector(selector) } },
+    (value) => value,
+  );
+  const record = exactRecord(response, ['iconDataUrl', 'selector']);
+  if (record.selector !== selector) throw new Error('Local development icon response is invalid');
+  return { iconDataUrl: requireIconDataUrl(record.iconDataUrl) };
+}
+
+function requireIconDataUrl(value: unknown): string | null {
+  if (value === null) return null;
+  // PNG data URLs stay bounded by the host-side read cap (1 MiB binary).
+  if (typeof value !== 'string' || value.length > 1_500_000 || !value.startsWith('data:image/png;base64,')) {
+    throw new Error('Local development icon response is invalid');
+  }
+  return value;
+}
+
 export async function readLocalDevelopmentProjectReadme(
   selector: string,
 ): Promise<LocalDevelopmentProjectReadme> {
