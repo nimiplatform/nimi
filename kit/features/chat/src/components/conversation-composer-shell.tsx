@@ -25,7 +25,7 @@ export function ConversationComposerShell({
     <Surface
       material="glass-chrome"
       tone="card"
-      elevation="floating"
+      elevation="raised"
       padding="none"
       className={cn(
         'shrink-0 rounded-[var(--nimi-radius-xl)]',
