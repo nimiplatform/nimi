@@ -1,9 +1,5 @@
 import type { LandingContent } from './landing-content.js';
 
-const EN_SPEC_NOTE = `Authority: .nimi/spec/**
-Docs: /docs/reference/spec-map
-Boundary: public projection, not independent truth`;
-
 export const landingPositioningEn = {
   hero: {
     title: 'Make AI',
@@ -21,25 +17,70 @@ export const landingPositioningEn = {
 export const landingContentEn: LandingContent = {
   skipToContent: 'Skip to main content',
   nav: {
-    enterNimi: 'Enter Nimi',
-    install: 'Start',
-    sdk: 'SDK',
-    catalog: 'Runtime',
-    architecture: 'Platform',
-    desktop: 'Desktop',
+    experiences: 'Experiences',
+    catalog: 'Your AI',
+    desktop: 'Nimi Home',
     apps: 'Apps',
+    sdk: 'Builders',
     security: 'Trust',
-    openSource: 'Source',
     faq: 'FAQ',
+    docs: 'Docs',
+    download: 'Download',
   },
   hero: {
-    eyebrow: 'Open-source · Local-first · Installable personal AI',
     title: landingPositioningEn.hero.title,
     titleAccent: landingPositioningEn.hero.titleAccent,
     subtitle: landingPositioningEn.hero.subtitle,
     primaryCta: 'Get Nimi',
     secondaryCta: 'See what Nimi can do',
     proofPoints: ['Open source', 'Local-first', 'Choose your AI'],
+  },
+  experiences: {
+    eyebrow: 'What you can do',
+    title: 'One home for your AI life.',
+    subtitle:
+      'Conversations, characters, creations, and worlds no longer live in separate apps. In Nimi they come together in one personal space—connected, persistent, and yours.',
+    cards: [
+      {
+        id: 'talk',
+        label: 'Talk',
+        title: 'Conversations that stay with you',
+        description:
+          'Chat with characters who keep their personality and remember your history—not stateless bots that reset every session.',
+        scenario: 'Maya picks up yesterday’s conversation right where you left it—in her own voice.',
+        points: [
+          'Characters with persistent identity',
+          'Text and voice',
+          'Runs locally or in the cloud',
+        ],
+      },
+      {
+        id: 'create',
+        label: 'Create',
+        title: 'Create with your cast',
+        description:
+          'Give your characters a face and a voice. Generate images, video, speech, and music with the AI providers you choose, without leaving Nimi.',
+        scenario: 'Sketch a companion, give her a voice, and let her star in the story you write together.',
+        points: [
+          'Image, video, voice, and music',
+          'Your characters, your style',
+          'You pick the AI provider',
+        ],
+      },
+      {
+        id: 'explore',
+        label: 'Explore',
+        title: 'Step into living worlds',
+        description:
+          'Enter persistent worlds where characters have lives of their own. One identity travels with you across every world and story.',
+        scenario: 'The world keeps turning while you’re away. Come back to what changed.',
+        points: [
+          'Worlds that keep evolving',
+          'One identity, many worlds',
+          'Stories that continue',
+        ],
+      },
+    ],
   },
   architecture: {
     title: 'One Nimi, many possibilities.',
@@ -91,21 +132,21 @@ export const landingContentEn: LandingContent = {
     },
   },
   modelCatalog: {
-    kicker: 'Runtime implementation catalog',
-    title: 'One capability API. Runtime selects the implementation.',
+    kicker: 'Your AI, your choice',
+    title: 'Works with the AI you already use.',
     subtitle:
-      'Explore Runtime-managed Cloud implementations and Local asset compatibility. App requests stay capability-shaped.',
+      'Nimi speaks one capability language; Runtime routes each request to the provider you choose—dozens of cloud services, or models running on your own device.',
     overview: {
-      searchPlaceholder: 'Search implementation families and capabilities',
-      cloudProvidersLabel: 'Cloud Implementations',
-      localModelsLabel: 'Local Assets',
+      searchPlaceholder: 'Search providers and capabilities',
+      cloudProvidersLabel: 'Cloud providers',
+      localModelsLabel: 'Local models',
       modalitiesLabel: 'Capabilities',
       modalitiesDescription: 'Text · Embeddings · Image · Video · Audio · Music · Voice · World',
       shortcutLabel: '⌘K',
       clearSearchLabel: 'Clear',
       matchingProvidersLabel: 'matching catalog entries',
-      liveCatalogLabel: 'Runtime catalog',
-      supportedByLabel: 'Admitted implementation families',
+      liveCatalogLabel: 'Live catalog',
+      supportedByLabel: 'Provider families',
     },
     capabilityLabels: {
       'text.generate': 'Text generation',
@@ -122,7 +163,7 @@ export const landingContentEn: LandingContent = {
     providerDetailSuffix: 'capabilities',
     noResultsTitle: 'No catalog entries match.',
     noResultsDescription:
-      'Try a capability or implementation-family keyword.',
+      'Try a provider or capability name.',
     providerDisplayNames: {
       anthropic: 'Anthropic',
       aws_polly: 'AWS Polly',
@@ -165,7 +206,7 @@ export const landingContentEn: LandingContent = {
     marqueeProviderOrder: ['openai', 'anthropic', 'gemini', 'deepseek', 'dashscope', 'volcengine'],
   },
   sdk: {
-    eyebrow: 'One typed SDK',
+    eyebrow: 'For builders',
     title: 'One SDK.',
     titleAccent: 'Multiple ways to run AI.',
     subtitle:
@@ -176,9 +217,9 @@ export const landingContentEn: LandingContent = {
     codeWindowTitle: 'Nimi SDK / agent runtime',
     codeWindowCaption: 'One typed call surface for agent context, Runtime tasks, and Local or Cloud capability intent.',
     matrixEyebrow: 'SDK capability matrix',
-    matrixTitle: 'The detailed SDK surface moves below the hero.',
+    matrixTitle: 'The full SDK surface, scannable.',
     matrixSubtitle:
-      'The hero stays focused; the original capability points remain available as a scannable matrix with direct reference links.',
+      'Every SDK capability area, with a direct link into the reference docs.',
     runtimeBadges: ['Type-safe SDK', 'Runtime-backed', 'Local-first', 'Agent Context'],
     heroHighlights: [
       {
@@ -295,31 +336,36 @@ export const landingContentEn: LandingContent = {
     subtitle: landingPositioningEn.desktop.description,
     chromeLabels: {
       appName: 'Nimi',
-      runtime: 'Runtime',
+      runtime: 'AI engine',
       workspace: 'Workspace',
-      capabilities: 'Capability intent',
-      localIntent: 'Local intent',
-      cloudIntent: 'Cloud intent',
+      capabilities: 'What runs where',
+      localIntent: 'On this device',
+      cloudIntent: 'In the cloud',
     },
+    capabilitiesList: [
+      { name: 'Chat & text', intent: 'local' },
+      { name: 'Image creation', intent: 'cloud' },
+      { name: 'Voice & speech', intent: 'local' },
+    ],
     features: [
       {
         icon: 'dashboard',
-        title: 'Runtime Overview',
-        description: 'Review Runtime activity, resource usage, and active sessions at a glance.',
+        title: 'One calm overview',
+        description: 'See active sessions, AI usage, and device load at a glance.',
       },
       {
         icon: 'chat',
-        title: 'Built-in Chat',
-        description: 'Use the same conversation surface with Local or Cloud capability intent.',
+        title: 'Chat, built in',
+        description: 'Talk to people, AI assistants, and Nimi agents from the same window.',
       },
       {
         icon: 'models',
-        title: 'Local AI Assets',
-        description: 'Install and update Runtime-managed AI assets from one place.'
+        title: 'Local AI, managed',
+        description: 'Install and update on-device AI models from one place.'
       },
       {
         icon: 'apps',
-        title: 'App Launcher',
+        title: 'Apps in one place',
         description: 'Open available Nimi Apps and your connected local apps from one workspace.',
       },
     ],
@@ -362,7 +408,7 @@ export const landingContentEn: LandingContent = {
     notes: [
       'New product work uses the Nimi Apps path.',
       'Nimi Apps defines the catalog, local-import, installation, update, launch, repair, uninstall, and Developer Mode lifecycle contract. This pre-release exposes Developer Mode local development; public catalog, local import, ordinary install, installed launch, publisher publication, and registry onboarding are not available yet.',
-      'The homepage does not promise a public app catalog before it opens; the product UI shows what users can open today.',
+      'The public app catalog has not opened; Nimi only shows what you can actually open today.',
       'To build an app, start with the SDK and Nimi App docs.',
     ],
   },
@@ -370,37 +416,38 @@ export const landingContentEn: LandingContent = {
     eyebrow: 'FAQ',
     title: 'Common questions',
     description:
-      'Quick answers for builders and product readers — read the docs for the full picture.',
+      'What people usually ask before they dive in—the docs have the full picture.',
     communityCta: 'Join Discord',
     items: [
       {
         question: 'What is Nimi?',
         answer:
-          'Nimi is an open-source, local-first personal AI product—a single place to talk, create, meet characters, and explore worlds, with the freedom to use local or cloud AI.',
+          'Nimi is an open-source, local-first personal AI product—one home where you talk, create, meet characters, and explore worlds, with the freedom to use local or cloud AI.',
       },
       {
-        question: 'How do I start integrating?',
+        question: 'Can I download Nimi today?',
         answer:
-          'Read the SDK docs, install the typed client, and connect to the runtime locally or in your own cloud — same SDK, same contracts.',
+          'Not yet. No stable Nimi release is currently published: Windows signing is still pending and only unsigned developer previews exist. Watch GitHub or join Discord to hear the moment a stable build lands.',
       },
       {
-        question: 'Can AI capabilities run locally?',
+        question: 'Is my data private?',
         answer:
-          'Yes. An owner can express Local capability intent, and Runtime can execute with admitted assets on the machine without changing the App request shape.',
+          'Nimi is local-first: conversations and AI work can run entirely on your own device with local models. Cloud providers are only used when you choose them.',
+      },
+      {
+        question: 'Which AI providers does Nimi work with?',
+        answer:
+          'Dozens of cloud providers—OpenAI, Anthropic, Gemini, DeepSeek, and more—plus models that run fully on your own machine. You choose per capability, and Runtime executes your choice.',
       },
       {
         question: 'Is Nimi open source?',
         answer:
-          'Yes. Runtime and SDK ship under Apache-2.0; Nimi app and app-layer code under MIT. The full source tree is on GitHub.',
+          'Yes. Runtime and SDK ship under Apache-2.0; the app layer ships under MIT. The full source tree is on GitHub.',
       },
       {
-        question: 'Nimi Home vs Web mode?',
-        answer: 'Nimi Home is the primary product entry hosted by the current native shell. Web mode is a constrained browser projection and does not replace native or local Runtime behavior.',
-      },
-      {
-        question: 'Can I build my own Nimi App?',
+        question: 'I’m a developer. Where do I start?',
         answer:
-          'Yes. Developers can start from the SDK and Nimi App docs, then connect tools, scenes, or local AI experiences to Nimi through the Nimi Apps path.',
+          'Start with the SDK docs and the Developer Mode local-development path: scaffold a Nimi App locally and build against the typed SDK. Public catalog distribution is not open yet.',
       },
     ],
   },
