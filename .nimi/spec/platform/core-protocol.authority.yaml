@@ -1103,7 +1103,7 @@ units:
   - id: definition.nimi.platform.core-protocol.ai-profile-selection
     kind: definition
     title: AIProfile recommendation result
-    meaning: An AIProfile recommendation result is a typed factory AIProfile reference and reason produced from explicit user posture and bounded catalog or host facts without becoming AIConfig route choice, Loadout, machine selection, binding, installation, admission, or execution truth.
+    meaning: An AIProfile recommendation result is a typed canonical factory AIProfile alias plus per-CapabilityContract applicability and reasons produced from an optional explicit CapabilityContract filter and bounded catalog or host facts; a filter admits only rows declaring that contract and uses only that contract for its recommendation bucket, while an unfiltered read preserves canonical factory order and exposes independent capability limitations without a profile-level reducer, score, or aggregate status, and no result becomes AIConfig route choice, Loadout, machine selection, binding, installation, admission, or execution truth.
   - id: definition.nimi.platform.core-protocol.ai-profile-apply-state
     kind: definition
     lifecycle: removed
@@ -1251,9 +1251,9 @@ units:
     kind: rule
     title: P-AIPS-004 recommendations are bounded and non-binding
     modality: must
-    statement: A factory Profile recommendation consumes only explicit user posture and bounded catalog or host facts, returns a typed recommendation and reason, and never reads chat selection, active App state, inventory order, current machine selection, process health, or other ambient state as authority.
+    statement: A factory Profile recommendation consumes only an optional explicit canonical CapabilityContract filter and bounded catalog or host facts and returns canonical factory aliases with per-contract typed applicability and reasons; when a filter is present, only rows declaring that contract are admitted and that contract alone determines supported, unknown, or unsupported presentation, while an unfiltered read preserves canonical factory order and never reduces mixed capability outcomes into a profile score, aggregate status, or host-ranked order. The recommendation never reads model-index, chat selection, active App state, inventory order, current machine selection, process health, or other ambient state as authority.
     condition: Whenever a Profile recommendation is evaluated.
-    failure: Reject an unresolved reference, implicit posture input, ambient selection, or recommendation presented as committed configuration.
+    failure: Reject an unresolved alias, unknown filter, undeclared filtered contract, profile-level reducer, ambient input, reordered unfiltered catalog, or recommendation presented as committed configuration.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.ai-profile-selection

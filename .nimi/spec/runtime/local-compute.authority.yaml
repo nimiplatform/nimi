@@ -13,7 +13,7 @@ units:
   - id: definition.nimi.runtime.local-compute.catalog-recommendation-plane
     kind: definition
     title: Runtime local catalog recommendation plane
-    meaning: The Runtime local catalog recommendation plane owns non-binding catalog search ordering, recommendation payloads, format-aware variant descriptors, media and LLM fit evidence, community catalog access, and local download planning without selecting a Loadout, CapabilityImplementation, Driver, binding, route, or standardized-feature support.
+    meaning: The Runtime local catalog recommendation plane owns independent full catalog search with browse-only model locators, the model-index-backed ModelAsset featured source observation, Runtime-issued opaque entry-level offer references on exact featured entries and selected variants, non-binding host applicability, format-aware variant descriptors, community catalog access, and local download planning without selecting a Loadout, CapabilityImplementation, Driver, binding, route, or standardized-feature support.
   - id: definition.nimi.runtime.local-compute.category-capability-plane
     kind: definition
     title: Runtime ModelAsset inventory plane
@@ -170,9 +170,9 @@ units:
     kind: rule
     title: Catalog install descriptors project catalog truth
     modality: must
-    statement: Every catalog install descriptor derives its offer, files, per-file hashes, total size, host recommendation inputs, non-binding content reference, and provenance from the local provider catalog recipe and slot metadata, Runtime keeps no in-process hardcoded verified offer metadata, and a catalog offer missing complete integrity hashes fails closed without becoming an installed ModelAsset or placeholder descriptor; a successful install mints a separate per-import ModelAsset identity.
+    statement: Every catalog install descriptor derives its exact entry-level offer, files, per-file hashes, total size, host recommendation inputs, non-binding content reference, and provenance from an adopted Runtime catalog source; the public Market projection exposes a Runtime-issued opaque offer_ref and display-safe metadata, while the existing catalog and portable-source acquisition input remains an independently validated non-Market entry. Runtime keeps no parallel hardcoded verified offer metadata, a catalog offer missing complete integrity hashes fails closed without an install action or placeholder descriptor, and a successful install mints a separate per-import ModelAsset identity.
     condition: Whenever catalog ModelAsset offers are projected or listed.
-    failure: Fail closed on missing transfer-integrity material, parallel hardcoded catalog truth, or conflation of a catalog offer with an installed ModelAsset instance.
+    failure: Fail closed on missing transfer-integrity material, unvalidated caller-carried acquisition facts, parallel hardcoded catalog truth, or conflation of offer_ref with a plan or installed ModelAsset instance.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.category-capability-plane
@@ -180,9 +180,9 @@ units:
     kind: rule
     title: Server-held install plans gate catalog installation only
     modality: must
-    statement: ResolveModelInstallPlan resolves only a user-explicit catalog ModelAsset acquisition, captures exact catalog source, file hashes, size, provenance, non-binding host warnings, owner and session, and stores the complete plan server-side behind an opaque plan_id with bounded TTL, single use, owner-session scope, and daemon-restart invalidation; InstallModelFromPlan accepts only plan_id, revalidates the held plan and per-file integrity, and atomically commits one ModelAsset, while ImportModelAsset remains a separate safe intake path that never requires or accepts a catalog install plan.
+    statement: ResolveModelInstallPlan preserves the existing validated catalog and Hugging Face acquisition input and also accepts a Runtime-issued opaque offer_ref from the currently adopted catalog or its active last-known-good source for recommendation-driven Market acquisition; the two input forms are mutually exclusive and both resolve into the same complete plan descriptor, owner-session scope, bounded TTL, single-use, daemon-restart invalidation, and InstallModelFromPlan lifecycle. Runtime revalidates source revision, entry, files, hashes, size, provenance, and non-binding host warnings before holding the plan; InstallModelFromPlan accepts only plan_id, revalidates the held plan and per-file integrity, and atomically commits one ModelAsset, while ImportModelAsset remains a separate safe intake path that never requires or accepts a catalog install plan.
     condition: Whenever a catalog ModelAsset install plan is resolved or consumed.
-    failure: Reject expired, replayed, foreign-owner, foreign-session, restart-stale, caller-reconstructed, hash-mismatched, or non-catalog plans without partial commit, and reject install-plan gating of manual import.
+    failure: Reject mixed acquisition and offer_ref inputs, missing, removed, changed, or caller-fabricated offer_ref values, unvalidated acquisition input, and expired, replayed, foreign-owner, foreign-session, restart-stale, caller-reconstructed, hash-mismatched, or non-catalog plans without partial commit, and reject install-plan gating of manual import.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.category-capability-plane
@@ -215,9 +215,9 @@ units:
     kind: rule
     title: Catalog search ordering is fixed
     modality: must
-    statement: SearchCatalogModels orders verified rows before unverified rows and sorts case-insensitively by ascending title within each group, and neither recommendation metadata nor the recommendation feed surface rewrites this ordering.
+    statement: SearchCatalogModels requires a non-empty query, combines the canonical Runtime catalog with direct normalized Hugging Face search under its existing bounded pagination without a GGUF-only library filter, returns browse-only model rows with a Runtime-issued model_locator, orders verified rows before unverified rows and case-insensitively by ascending title within each group, and remains available and independently ordered when the model-index featured source is stale or unavailable. A search row opens revision-bound detail or variant listing, and an exact selected variant receives an offer_ref and install action only when its owning source adapter supplies complete validated install facts; neither featured metadata nor recommendation surfaces rewrite search ordering or trigger eager variant expansion.
     condition: Whenever catalog search results are ordered or presented.
-    failure: Reject reordered results and recommendation-driven ordering rewrites.
+    failure: Reject empty queries, eager variant expansion, an installable model-level search row, reordered results, and recommendation-driven ordering rewrites.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
@@ -265,9 +265,9 @@ units:
     kind: rule
     title: Recommendation feed stays a bounded read surface
     modality: must
-    statement: A capability-scoped recommendation feed may exist beside the catalog surface only when its candidate pools output install-bridge-ready entry metadata, RuntimeLocalService owns model index caches, installed-state projection, device-profile fit evaluation, and the final tier, host support, and confidence ordering with Desktop consuming SDK projections for rendering only, worker and index layers never become host-fit, readiness, or install action truth, and feed items reuse the same recommendation payload semantics without a second recommendation contract.
+    statement: A model-index-backed featured ModelAsset read may exist beside full catalog search only when Worker schema version, lowercase UUID-v4 generation, plural presentation-only categories, lowercase forty-hex immutable source revision, exact Worker entryId and download entry, source-available file integrity, paired optional non-negative featured ordinal and non-empty editorial reason, and popularity facts validate before adoption; a candidate with missing source hashes remains browseable but non-installable. RuntimeLocalService owns an atomically replaced last-known-good cache and source observation where an adopted snapshot returns generation with fresh or stale items, cache persistence failure or invalid replacement keeps the prior snapshot stale, no usable snapshot is unavailable rather than successful empty, empty means only an adopted snapshot with no featured items, an older generatedAt never rolls back the adopted generation, and once a generation is marked stale, refetching that same immutable generation does not make it fresh. Runtime derives any capability interpretation from source pipeline and tag facts rather than categories; generation and categories never become offer identity or CapabilityContract, Profile and Recipe recommendations never depend on this source, full catalog and Hugging Face search remain an independent failure domain, Runtime alone owns exact-slot admission and host applicability, and SDK or Desktop only preserves the projection.
     condition: Whenever a recommendation feed surface is served or consumed.
-    failure: Reject feed-owned fit truth, second recommendation contracts, and worker-owned readiness.
+    failure: Reject an invalid, non-UUID, mutated, partially persisted, or older generation without replacing last-known-good, source failure disguised as empty, stale data marked fresh, categories promoted to CapabilityContract, missing hashes promoted to installability, generation-derived offer identity, Profile or Recipe curation, search failure coupled to featured state, feed-owned fit truth, second recommendation contracts, and worker-owned readiness.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
@@ -275,9 +275,9 @@ units:
     kind: rule
     title: Hugging Face access is direct and normalized
     modality: must
-    statement: Hugging Face is the sole community catalog source accessed through direct REST calls without hf-hub or Hugging Face hub SDK dependencies, repo identifiers in hf scheme, full URL, or bare org slash model form normalize internally to org slash model, artifact downloads construct resolve URLs from repo, revision, and file path on the huggingface.co host, and community search uses the models REST API with search, pipeline tag, and library filters under a twenty-second timeout and a result limit between one and eighty.
+    statement: Hugging Face is the sole community catalog source accessed through direct REST calls without hf-hub or Hugging Face hub SDK dependencies, repo identifiers in hf scheme, full URL, or bare org slash model form normalize internally to org slash model, artifact downloads and detail reads bind repo, exact resolved revision, and file path on the huggingface.co host, and community search uses the models REST API with search and presentation-category-derived pipeline tag under a twenty-second timeout and a result limit between one and eighty without a universal library filter that would exclude valid GGUF or SafeTensors results.
     condition: Whenever Runtime searches or downloads from the Hugging Face catalog.
-    failure: Reject undeclared SDK dependencies, unnormalized repo identity, and out-of-bounds search parameters.
+    failure: Reject undeclared SDK dependencies, unnormalized repo identity, unbound or changed source revision, a GGUF-only global search filter, and out-of-bounds search parameters.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.catalog-recommendation-plane
