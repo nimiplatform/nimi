@@ -82,12 +82,7 @@ export function HeroSection(props: HeroSectionProps) {
       {/* Layer z=10: content */}
       <div className="container-nimi relative z-10">
         <div className="reveal mx-auto max-w-[1200px] text-center">
-          {props.content.eyebrow ? (
-            <p className="mx-auto inline-flex rounded-full border border-slate-200/70 bg-white/70 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600 shadow-sm nimi-material-glass-regular backdrop-blur-[var(--nimi-backdrop-blur-regular)]">
-              {props.content.eyebrow}
-            </p>
-          ) : null}
-          <h1 className="mt-6 font-heading text-5xl font-semibold leading-[0.95] tracking-tight text-slate-900 md:text-7xl">
+          <h1 className="font-heading text-5xl font-semibold leading-[0.95] tracking-tight text-slate-900 md:text-7xl">
             <span className="block text-balance text-slate-900">
               {props.content.title}
             </span>
@@ -109,7 +104,7 @@ export function HeroSection(props: HeroSectionProps) {
               {props.content.primaryCta}
             </a>
             <a
-              href="#architecture"
+              href="#experiences"
               className="inline-flex min-w-44 items-center justify-center rounded-full border border-slate-300 bg-white/75 px-7 py-3.5 text-base font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-white"
             >
               {props.content.secondaryCta}

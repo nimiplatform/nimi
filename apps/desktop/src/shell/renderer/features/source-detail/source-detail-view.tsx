@@ -8,6 +8,7 @@ type SourceDetailViewProps = {
   stats?: { friendsCount: number; postsCount: number; likesCount: number } | null;
   loading: boolean;
   error: boolean;
+  primaryActionJoining?: boolean;
   onBack?: () => void;
   onOpenWorld: () => void;
   onPrimaryAction: () => void;

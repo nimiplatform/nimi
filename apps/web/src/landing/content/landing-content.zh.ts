@@ -1,9 +1,5 @@
 import type { LandingContent } from './landing-content.js';
 
-const ZH_SPEC_NOTE = `权威路径：.nimi/spec/**
-文档入口：/docs/reference/spec-map
-边界：公开展示面，不是独立真相`;
-
 export const landingPositioningZh = {
   hero: {
     title: '让 AI 真正',
@@ -19,25 +15,70 @@ export const landingPositioningZh = {
 export const landingContentZh: LandingContent = {
   skipToContent: '跳转到主要内容',
   nav: {
-    enterNimi: '进入 Nimi',
-    install: '开始',
-    sdk: 'SDK',
-    catalog: 'Runtime',
-    architecture: '平台',
-    desktop: 'Desktop',
-    apps: 'Apps',
+    experiences: '体验',
+    catalog: '你的 AI',
+    desktop: 'Nimi Home',
+    apps: '应用',
+    sdk: '开发者',
     security: '信任',
-    openSource: 'Source',
     faq: '常见问题',
+    docs: '文档',
+    download: '下载',
   },
   hero: {
-    eyebrow: '开源 · 本地优先 · 可安装的个人 AI',
     title: landingPositioningZh.hero.title,
     titleAccent: landingPositioningZh.hero.titleAccent,
     subtitle: landingPositioningZh.hero.subtitle,
     primaryCta: '获取 Nimi',
     secondaryCta: '看看 Nimi 能做什么',
     proofPoints: ['开源', '本地优先', '自由选择 AI'],
+  },
+  experiences: {
+    eyebrow: '你可以这样用 Nimi',
+    title: '聊天、创作，或者去新的世界看看。',
+    subtitle:
+      '继续上次的对话，把灵感做成图片、视频和声音，或者选一个世界，体验新的故事。想做什么，都可以从这里开始。',
+    cards: [
+      {
+        id: 'talk',
+        label: '对话',
+        title: '下次见面，接着聊',
+        description:
+          '角色设定和对话中的重要内容都会保留下来。不管是打字还是语音，下次回来都不用再把背景从头说一遍。',
+        scenario: '昨天没聊完的话题，今天打开就能继续。',
+        points: [
+          '保留角色设定与重要记忆',
+          '支持文字和语音',
+          '本地和云端 AI 都能用',
+        ],
+      },
+      {
+        id: 'create',
+        label: '创作',
+        title: '把想法一步步做出来',
+        description:
+          '先确定角色的形象、声音和风格，再用你选择的 AI 生成图片、视频、语音或音乐。',
+        scenario: '从一段故事开始，再补上画面、配音和音乐。',
+        points: [
+          '支持图片、视频、语音和音乐',
+          '围绕同一角色继续创作',
+          '自由选择 AI 服务',
+        ],
+      },
+      {
+        id: 'explore',
+        label: '探索',
+        title: '进入不同的世界',
+        description:
+          '每个世界都有自己的设定、角色和故事。你可以自由探索，认识新的角色，看看故事会怎样发展。',
+        scenario: '选一个感兴趣的世界，先认识一个新角色。',
+        points: [
+          '多种主题和世界设定',
+          '认识不同性格的角色',
+          '按自己的方式体验故事',
+        ],
+      },
+    ],
   },
   architecture: {
     title: '一个 Nimi，无限可能。',
@@ -89,20 +130,21 @@ export const landingContentZh: LandingContent = {
     },
   },
   modelCatalog: {
-    kicker: 'Runtime 实现目录',
-    title: '一套能力 API，由 Runtime 选择具体实现。',
-    subtitle: '浏览 Runtime 管理的 Cloud 实现和 Local 资源兼容性；App 请求始终以能力为单位。',
+    kicker: '你的 AI，你来选',
+    title: '和你已经在用的 AI 一起工作。',
+    subtitle:
+      'Nimi 用同一套能力语言工作，由 Runtime 把每次请求路由到你选择的提供商：几十家云服务，或你自己设备上的模型。',
     overview: {
-      searchPlaceholder: '搜索实现家族与能力',
-      cloudProvidersLabel: 'Cloud 实现',
-      localModelsLabel: 'Local 资源',
+      searchPlaceholder: '搜索提供商与能力',
+      cloudProvidersLabel: '云提供商',
+      localModelsLabel: '本地模型',
       modalitiesLabel: '能力',
       modalitiesDescription: '文本 · Embedding · 图像 · 视频 · 音频 · 音乐 · 语音 · 世界',
       shortcutLabel: '⌘K',
       clearSearchLabel: '清除',
       matchingProvidersLabel: '项匹配目录记录',
-      liveCatalogLabel: 'Runtime 目录',
-      supportedByLabel: '已准入实现家族',
+      liveCatalogLabel: '实时目录',
+      supportedByLabel: '提供商家族',
     },
     capabilityLabels: {
       'text.generate': '文本生成',
@@ -118,7 +160,7 @@ export const landingContentZh: LandingContent = {
     },
     providerDetailSuffix: '项能力',
     noResultsTitle: '没有匹配的目录记录。',
-    noResultsDescription: '可改用能力或实现家族关键词。',
+    noResultsDescription: '可以试试提供商或能力名称。',
     providerDisplayNames: {
       anthropic: 'Anthropic',
       aws_polly: 'AWS Polly',
@@ -161,7 +203,7 @@ export const landingContentZh: LandingContent = {
     marqueeProviderOrder: ['openai', 'anthropic', 'gemini', 'deepseek', 'dashscope', 'volcengine'],
   },
   sdk: {
-    eyebrow: '一套强类型 SDK',
+    eyebrow: '开发者专区',
     title: '一个 SDK，',
     titleAccent: '多种运行 AI 的方式。',
     subtitle: '通过统一的强类型接入面组合源自 Character 的智能体、能力、对话和共享环境；Runtime 管理 Local 或 Cloud 执行。',
@@ -171,8 +213,8 @@ export const landingContentZh: LandingContent = {
     codeWindowTitle: 'Nimi SDK / 智能体运行时',
     codeWindowCaption: '用一个强类型接入面连接智能体上下文、Runtime 任务和 Local 或 Cloud 能力意图。',
     matrixEyebrow: 'SDK 能力矩阵',
-    matrixTitle: '详细能力点移动到下一屏。',
-    matrixSubtitle: '首屏保持产品叙事；原来的 SDK 能力点保留为可扫描的矩阵，并直接链接到参考文档。',
+    matrixTitle: '完整 SDK 能力一览。',
+    matrixSubtitle: 'SDK 的每个能力域都列在这里，并直接链接到参考文档。',
     runtimeBadges: ['Type-safe SDK', 'Runtime-backed', 'Local-first', 'Agent Context'],
     heroHighlights: [
       {
@@ -276,21 +318,26 @@ export const landingContentZh: LandingContent = {
     subtitle: landingPositioningZh.desktop.description,
     chromeLabels: {
       appName: 'Nimi',
-      runtime: 'Runtime',
+      runtime: 'AI 引擎',
       workspace: '工作区',
-      capabilities: '能力意图',
-      localIntent: '本地意图',
-      cloudIntent: '云端意图',
+      capabilities: '谁在哪里运行',
+      localIntent: '在这台设备上',
+      cloudIntent: '在云端',
     },
+    capabilitiesList: [
+      { name: '对话与文本', intent: 'local' },
+      { name: '图像创作', intent: 'cloud' },
+      { name: '语音与声音', intent: 'local' },
+    ],
     features: [
       {
         icon: 'dashboard',
-        title: 'Runtime 概览',
-        description: '一眼查看 Runtime 活动、资源占用和活跃会话。',
+        title: '一眼看清全局',
+        description: '活跃会话、AI 用量和设备负载，都在同一个视图里。',
       },
-      { icon: 'chat', title: '内置聊天', description: '同一个对话界面支持本地或云端能力意图。' },
-      { icon: 'models', title: '本地 AI 资源', description: '在一处安装和更新由 Runtime 管理的 AI 资源。' },
-      { icon: 'apps', title: '应用启动器', description: '在同一个工作区打开可用的 Nimi App 与已连接的本地 App。' },
+      { icon: 'chat', title: '内置聊天', description: '在同一个窗口里和人、AI 助手和 Nimi 智能体对话。' },
+      { icon: 'models', title: '本地 AI 管理', description: '在一处安装和更新设备上的 AI 模型。' },
+      { icon: 'apps', title: '应用都在一处', description: '在同一个工作区打开可用的 Nimi App 和已连接的本地应用。' },
     ],
     downloadCta: '查看下载状态',
     availability: {
@@ -331,44 +378,45 @@ export const landingContentZh: LandingContent = {
     notes: [
       '新的产品工作统一走 Nimi Apps 路径。',
       'Nimi Apps 定义目录、本地导入、安装、更新、启动、修复、卸载和 Developer Mode 的生命周期契约。当前预发布仅开放 Developer Mode 本地开发路径；公开目录、本地导入、普通安装、已安装 App 启动、发布者发布和 registry onboarding 尚不可用。',
-      '首页不提前承诺尚未开放的公开应用目录；实际可打开内容以产品内显示为准。',
+      '公开应用目录尚未开放；Nimi 只显示你今天真正能打开的内容。',
       '想构建 App，请从 SDK 与 Nimi App 文档开始。',
     ],
   },
   faq: {
     eyebrow: 'FAQ',
     title: '常见问题',
-    description: '面向构建者与产品用户的快速答案 —— 完整内容请阅读文档。',
+    description: '大多数人在深入了解前会问的问题，完整内容请阅读文档。',
     communityCta: '加入 Discord',
     items: [
       {
         question: 'Nimi 是什么？',
         answer:
-          'Nimi 是一个开源、本地优先的个人 AI 产品——你可以在同一个地方对话、创作、遇见角色并探索世界，也可以自由选择使用本地或云端 AI。',
+          'Nimi 是一个开源、本地优先的个人 AI 产品：在同一个地方对话、创作、遇见角色、探索世界，并自由选择本地或云端 AI。',
       },
       {
-        question: '如何开始接入？',
+        question: '今天能下载 Nimi 吗？',
         answer:
-          '阅读 SDK 文档并安装强类型客户端，再连接 Local 或 Cloud Runtime；两种环境使用同一套 SDK 和契约。',
+          '还不能。目前没有已发布的 Nimi 稳定版：Windows 签名仍在审批，只有未签名的开发者预览版。关注 GitHub 或加入 Discord，稳定版发布时会第一时间公布。',
       },
       {
-        question: 'AI 能力可以在本地执行吗？',
+        question: '我的数据私密吗？',
         answer:
-          '可以。Owner 表达 Local 能力意图后，Runtime 可以使用机器上的已准入资源执行，App 请求形态保持不变。',
+          'Nimi 是本地优先的：对话和 AI 工作可以完全用本地模型在你自己的设备上运行。只有你主动选择时，才会用到云提供商。',
+      },
+      {
+        question: 'Nimi 支持哪些 AI 提供商？',
+        answer:
+          '几十家云提供商：OpenAI、Anthropic、Gemini、DeepSeek 等等，加上完全在你自己机器上运行的本地模型。每项能力由你选，Runtime 负责执行。',
       },
       {
         question: 'Nimi 是开源的吗？',
         answer:
-          '是。Runtime 与 SDK 以 Apache-2.0 发布；Nimi App 与 app 层代码以 MIT 发布。完整源码在 GitHub 上。',
+          '是。Runtime 与 SDK 以 Apache-2.0 发布，应用层以 MIT 发布，完整源码在 GitHub 上。',
       },
       {
-        question: 'Nimi Home 与 Web mode 有什么区别？',
-        answer: 'Nimi Home 是当前原生外壳承载的主要产品入口；Web mode 是受约束的浏览器投影，不能替代原生或本地 Runtime 行为。',
-      },
-      {
-        question: '可以开发自己的 Nimi App 吗？',
+        question: '我是开发者，从哪里开始？',
         answer:
-          '可以。开发者可以从 SDK 与 Nimi App 文档开始，通过 Nimi Apps 路径把工具、场景或本地 AI 体验接入 Nimi。',
+          '从 SDK 文档和 Developer Mode 本地开发路径开始：在本地搭一个 Nimi App，用强类型 SDK 构建。公开目录分发尚未开放。',
       },
     ],
   },
@@ -429,13 +477,13 @@ export const landingContentZh: LandingContent = {
       {
         label: 'Runtime + SDK',
         value: 'Apache-2.0',
-        detail: '核心 runtime 与 SDK 开放可审 —— clone、构建、本地运行皆可。',
+        detail: '核心 runtime 与 SDK 开放可审，clone、构建、本地运行皆可。',
         icon: 'runtime',
       },
       {
         label: '应用层',
         value: 'MIT',
-        detail: '桌面端与 app 层以宽松许可证发布 —— fork、上线、嵌入。',
+        detail: '桌面端与 app 层以宽松许可证发布，fork、上线、嵌入。',
         icon: 'apps',
       },
       {

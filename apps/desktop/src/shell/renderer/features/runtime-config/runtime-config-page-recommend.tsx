@@ -32,7 +32,6 @@ import {
   DeviceProfileBar,
   FilterChip,
   ModelCard,
-  ProviderChipRow,
   SelectChip,
 } from './runtime-config-page-recommend-sections';
 import { RecommendDetailPage } from './runtime-config-page-recommend-detail';
@@ -114,10 +113,6 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
       if (next.has(provider)) next.delete(provider); else next.add(provider);
       return { ...prev, providers: next };
     });
-  }, []);
-
-  const clearProviders = useCallback(() => {
-    setFilters((prev) => ({ ...prev, providers: new Set() }));
   }, []);
 
   const toggleLicense = useCallback((license: string) => {
@@ -245,6 +240,16 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
           />
         ) : null}
 
+        {/* Provider filter */}
+        {uniqueProviders.length > 0 ? (
+          <FilterChip
+            label={t('runtimeConfig.recommend.providerFilter', { defaultValue: 'Provider' })}
+            options={uniqueProviders}
+            selected={filters.providers}
+            onToggle={toggleProvider}
+          />
+        ) : null}
+
         {/* Result count */}
         {!loading ? (
           <span className="text-xs text-[var(--nimi-text-muted)]">
@@ -254,17 +259,6 @@ export function RecommendPage({ model, state }: RecommendPageProps) {
           </span>
         ) : null}
       </div>
-
-      {/* Provider chips — one horizontally scrollable row */}
-      {uniqueProviders.length > 0 ? (
-        <ProviderChipRow
-          allLabel={t('runtimeConfig.recommend.providersAll', { defaultValue: 'All' })}
-          options={uniqueProviders}
-          selected={filters.providers}
-          onToggle={toggleProvider}
-          onClear={clearProviders}
-        />
-      ) : null}
 
       {/* Stale notice */}
       {cacheState === 'stale' ? (

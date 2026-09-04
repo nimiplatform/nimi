@@ -17,7 +17,7 @@ export function worldThumbBackground(imageUrl: string | null): string {
   return imageUrl ? `url(${imageUrl}) center/cover no-repeat` : WORLD_MEDIA_PLACEHOLDER;
 }
 
-export function sortWorlds(list: WorldListItem[], sort: SortId): WorldListItem[] {
+export function sortWorlds(list: WorldListItem[], sort: SortId, locale?: string): WorldListItem[] {
   const arr = [...list];
   if (sort === 'active') {
     arr.sort((a, b) => (b.scoreEwma ?? 0) - (a.scoreEwma ?? 0));
@@ -28,7 +28,8 @@ export function sortWorlds(list: WorldListItem[], sort: SortId): WorldListItem[]
       return tb - ta;
     });
   } else if (sort === 'alpha') {
-    arr.sort((a, b) => a.name.localeCompare(b.name));
+    const collator = new Intl.Collator(locale, { numeric: true, sensitivity: 'base' });
+    arr.sort((a, b) => collator.compare(a.name, b.name));
   } else {
     arr.sort((a, b) => sourceCount(b) - sourceCount(a));
   }
@@ -36,7 +37,7 @@ export function sortWorlds(list: WorldListItem[], sort: SortId): WorldListItem[]
 }
 
 // Followed worlds pin to the top of the rail (WeChat-style sticky); the
-// active sort still applies within the pinned and unpinned groups.
+// selected sort still applies within the pinned and unpinned groups.
 export function pinFollowedFirst(list: WorldListItem[], isFollowed: (worldId: string) => boolean): WorldListItem[] {
   const pinned = list.filter((world) => isFollowed(world.id));
   const rest = list.filter((world) => !isFollowed(world.id));

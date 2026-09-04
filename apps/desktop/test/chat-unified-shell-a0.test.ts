@@ -107,6 +107,25 @@ test('A0 ui slice stages agent composer prefill as one-shot local UI state', () 
   assert.equal(harness.getState().pendingAgentComposerPrefill, null);
 });
 
+test('A0 ui slice stages agent composer prefill by character source key', () => {
+  const harness = createUiSliceHarness();
+  const state = harness.getState();
+
+  state.setPendingAgentComposerPrefill({
+    sourceKey: ' worldCharacter:world-1:source-1:entity-1:hash ',
+    text: '  他为什么被称为边塞诗人、七绝圣手？  ',
+  });
+
+  assert.deepEqual(harness.getState().pendingAgentComposerPrefill, {
+    sourceKey: 'worldCharacter:world-1:source-1:entity-1:hash',
+    text: '他为什么被称为边塞诗人、七绝圣手？',
+    requestId: 1,
+  });
+
+  harness.getState().setPendingAgentComposerPrefill({ text: 'no routing key at all' });
+  assert.equal(harness.getState().pendingAgentComposerPrefill, null);
+});
+
 test('A0 world navigation opens world detail instead of chat', () => {
   const harness = createUiSliceHarness();
   const state = harness.getState();
@@ -179,6 +198,31 @@ test('A0 nested world character detail back returns to the world list origin', (
 
   assert.equal(harness.getState().activeTab, 'explore');
   assert.equal(harness.getState().selectedWorldId, null);
+});
+
+test('A0 explore catalog world selection survives the source-detail round trip', () => {
+  const harness = createUiSliceHarness();
+  const state = harness.getState();
+
+  assert.equal(state.exploreSelectedWorldId, null);
+
+  state.setActiveTab('explore');
+  state.setExploreSelectedWorldId('world-tang-literati');
+  state.navigateToSourceDetail({
+    kind: 'worldCharacter',
+    id: 'character-alpha',
+    worldId: 'world-tang-literati',
+    worldEntityRef: { kind: 'worldEntity', worldId: 'world-tang-literati', entityId: 'entity-alpha' },
+    sourceHash: 'a'.repeat(64),
+  });
+
+  assert.equal(harness.getState().activeTab, 'source-detail');
+  assert.equal(harness.getState().exploreSelectedWorldId, 'world-tang-literati');
+
+  harness.getState().navigateBack();
+
+  assert.equal(harness.getState().activeTab, 'explore');
+  assert.equal(harness.getState().exploreSelectedWorldId, 'world-tang-literati');
 });
 
 test('A0 nested world navigation back restores the exact source detail selection', () => {

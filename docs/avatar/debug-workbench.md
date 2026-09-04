@@ -2,10 +2,10 @@
 
 ## Status: Admitted as platform direction
 
-The Avatar debug workbench surface is admitted at the contract level
-across Avatar (intake + backend evidence) and Runtime (probe envelope
-+ replay authority). User-facing workbench tooling is admitted as
-direction; it is not a public app API today.
+The debug workbench is defined as a contract across Avatar (intake
+and backend evidence) and Runtime (probe envelopes and replay). The
+user-facing workbench tooling is agreed direction; it is not a public
+app API today.
 
 ## What the Debug Workbench Is
 
@@ -14,18 +14,18 @@ Avatar instance — ask "does this backend support generated motion?",
 "does this voice route lipsync?", "does this hit region resolve?" —
 and get a typed result with replayable evidence.
 
-Authority over probes is split deliberately so the answers stay
+Responsibility for probes is split deliberately, so the answers stay
 trustworthy:
 
-- **Runtime owns** probe request / result / replay semantics. A probe
-  is an admitted runtime-typed envelope. Runtime validates
-  authorization before projecting it.
-- **Avatar owns** backend evidence. When a probe asks something
-  backend-specific (capability profile validation, generated motion
-  route support, carrier diagnostics), Avatar produces evidence
-  refs.
-- **Desktop owns** workbench layout — the eventual UI that initiates
-  probes and renders results.
+- **Runtime** defines the probe request / result / replay semantics.
+  A probe is a runtime-typed envelope, and Runtime validates the
+  caller before projecting it.
+- **Avatar** produces the backend evidence. When a probe asks
+  something backend-specific (capability profile validation,
+  generated motion route support, carrier diagnostics), Avatar
+  supplies the evidence refs.
+- **Desktop** owns the workbench layout — the eventual UI that
+  initiates probes and renders results.
 
 ## Probe Request Envelope (Runtime-Owned)
 

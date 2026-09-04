@@ -7,6 +7,7 @@ type DomainKey =
   | 'desktop'
   | 'realm'
   | 'avatar'
+  | 'cognition'
   | 'nimicoding'
 
 interface DomainEntry {
@@ -260,6 +261,15 @@ const avatarGroups: DefaultTheme.SidebarItem[] = [
   },
 ]
 
+const cognitionGroups: DefaultTheme.SidebarItem[] = [
+  {
+    text: '总览',
+    items: [
+      { text: '总览', link: '/zh/cognition/' },
+    ],
+  },
+]
+
 const nimicodingGroups: DefaultTheme.SidebarItem[] = [
   {
     text: 'Nimi Coding',
@@ -278,6 +288,7 @@ const DOMAINS: DomainEntry[] = [
   { key: 'desktop', text: '桌面端', groups: desktopGroups },
   { key: 'realm', text: 'Realm', groups: realmGroups },
   { key: 'avatar', text: 'Avatar', groups: avatarGroups },
+  { key: 'cognition', text: 'Cognition', groups: cognitionGroups },
   { key: 'nimicoding', text: 'Nimi Coding', groups: nimicodingGroups },
 ]
 
@@ -322,6 +333,7 @@ export const sidebarZh: DefaultTheme.Sidebar = {
   '/zh/desktop/': buildDocsSidebar('desktop'),
   '/zh/realm/': buildDocsSidebar('realm'),
   '/zh/avatar/': buildDocsSidebar('avatar'),
+  '/zh/cognition/': buildDocsSidebar('cognition'),
   '/zh/nimicoding/': buildDocsSidebar('nimicoding'),
 
   '/zh/reference/': [

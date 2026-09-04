@@ -1,9 +1,9 @@
 # App Interconnect
 
-`app-interconnect-model.md` and `realm-interop-mapping.md` describe
-how apps connect into Realm and how the realm primitive
-interoperability mapping works. This page is the reader's view of
-how an app crosses into Realm.
+A Nimi app does not live inside Realm — it connects to it. This
+page explains how that connection works: how an app reads Realm,
+how it earns the right to write, and how Realm concepts translate
+for outside systems.
 
 ## How Apps Connect To Realm
 

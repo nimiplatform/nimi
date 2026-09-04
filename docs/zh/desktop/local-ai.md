@@ -1,6 +1,6 @@
 # 本地 AI
 
-Desktop 的本地模型中心是 Runtime 本地 AI 资源的机器管理界面。用户可以在这里浏览、安装、导入、删除和查看资源，但不能为 App 请求选择具体实现。
+本地模型中心是你管理这台机器上本地 AI 的地方。你可以浏览、安装、导入、删除和查看 Runtime 的本地资源；但在这里装了什么，都不会替 App 的请求选定具体实现。
 
 ## 界面边界
 
@@ -12,11 +12,11 @@ Desktop 的本地模型中心是 Runtime 本地 AI 资源的机器管理界面�
 | 推荐列表 | Runtime 排好顺序的安装建议及证据 |
 | 能力意图 | Owner 在 `AIConfig` 中表达的 Local 或 Cloud 偏好 |
 
-资源目录属于机器配置。在本地模型中心选择 bundle，表示选择要安装或删除的资源，不表示为后续 App 调用固定 model、engine 或 route。
+资源目录只是机器配置。在本地模型中心选一个 bundle，意思是「装上它」或「删掉它」，不是为之后的 App 调用钉死某个 model、engine 或 route。
 
 ## 呈现 Runtime 真相
 
-Desktop 只呈现 Runtime 真相，不在本地重建另一套判断。
+这个页面上的一切都来自 Runtime，桌面端不在本地另做一套判断。
 
 | 关注点 | 归属 |
 | --- | --- |
@@ -26,13 +26,13 @@ Desktop 只呈现 Runtime 真相，不在本地重建另一套判断。
 | 设备及依赖诊断 | Runtime |
 | 每次请求的实现选择 | Runtime |
 
-Desktop 保持 Runtime 提供的推荐顺序。界面可以展示 Runtime 给出的原因或兼容性证据，但不会在客户端为模型打分、分级、分组或重新排序。
+推荐按 Runtime 给出的顺序排列，理由和兼容性证据也是 Runtime 的。桌面端不会在客户端给模型打分、分级、分组或重新排序。
 
 ## 依赖装配
 
-需要系统依赖的引擎通过 Runtime materializer 完成装配。Desktop 展示强类型的安装进度和失败，不直接执行任意 PowerShell 或 shell 命令。用户确认后，下载、校验、安装和清理由 Runtime 管理的准入操作完成。
+需要系统依赖的引擎，由 Runtime 的 materializer 来装。你确认之后，下载、校验、安装、清理整个流程都由 Runtime 完成。桌面端沿途显示类型化的进度和失败信息，自己绝不执行任意的 PowerShell 或 shell 命令。
 
-依赖安装状态只是机器管理证据，不是 App 可以用来选择实现的模型 readiness 信号。
+依赖装完，说明机器配置到位了；它不代表某个模型已就绪，App 也不能拿它去挑选实现。
 
 ## 读者场景：安装本地资源
 
@@ -50,15 +50,15 @@ Owner 可以为已准入的记忆或 embedding 能力表达 Local 意图。配�
 
 ## Realm 连通性
 
-Realm 连通性和本地 Runtime 连通性是两个独立问题。Realm 中断本身不会禁用本地 AI。本地执行仍要求 Runtime 可达、owner 意图允许 Local，并且 Runtime 能找到有效实现。缺少条件时返回强类型失败，客户端不会伪造 fallback 成功。
+Realm 连接和本地 Runtime 是两回事。Realm 断了，本地 AI 不一定受影响。本地执行仍需要：Runtime 可达、你的意图设置允许 Local、Runtime 能找到可用的实现。条件缺了，你会收到明确的失败信息，而不是一个假装的「成功」。
 
-## 公共边界
+## 记住这几点
 
-- 本地模型中心管理 Runtime 拥有的机器资源。
-- `AIConfig` 表达 owner 范围内的 Local 或 Cloud 能力意图。
-- App 不接收模型激活、热加载、引擎绑定、route readiness 或单模型 health 控制。
-- 每次请求的具体实现只由 Runtime 选择。
-- Runtime 诊断和推荐证据不会成为请求输入。
+- 本地模型中心管理的是 Runtime 的机器资源。
+- `AIConfig` 记录你对每项能力的 Local 或 Cloud 偏好。
+- App 拿不到模型激活、预热、引擎绑定、路由就绪或单模型健康这类开关。
+- 每个请求由哪个实现处理，只有 Runtime 能定。
+- Runtime 的诊断和推荐证据不会变成请求的输入。
 
 ## 来源依据
 

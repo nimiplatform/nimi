@@ -1,8 +1,8 @@
 # NAS 处理器编写指南
 
-> 状态：运行中 (Running)。NimiAgentScript (NAS) 1.0 是已发布的处理器约定；自动发现和热重载功能已上线。
+> 状态：现已可用。NimiAgentScript（NAS）1.0 是正在使用的处理器约定；自动发现和热重载都已开启。
 
-NimiAgentScript (NAS) 遵循**约定优于配置**的原则：Avatar 包作者只需将 JS 文件放入固定的目录结构中，Avatar 运行时便会自动发现它们。无需清单文件。文件路径即注册方式。
+NimiAgentScript（NAS）奉行**约定优于配置**：包作者把 JS 文件放进固定的目录结构，Avatar 的 Runtime 会自动发现它们。没有清单文件。文件路径本身就是注册。
 
 ## 目录结构
 

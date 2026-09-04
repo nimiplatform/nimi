@@ -1,9 +1,8 @@
 # Explore And Worlds
 
-Desktop's explore surface is the entry point to discover content —
-worlds, agents, social posts. World detail and agent detail
-surfaces let users dive deeper. Each is a projection of canonical
-Realm truth.
+Explore is where you discover things in Nimi — worlds, agents, and
+social posts. World detail and agent detail pages let you look closer
+before you step in.
 
 ## Explore
 
@@ -14,15 +13,14 @@ Realm truth.
 | World details preview | Bounded world profile preview |
 | Social feed | Posts and updates from your social graph |
 
-Explore is a navigation entry point. Clicking through delegates
-to other domain data flows — world flow, agent flow, post / feed
-flow. Explore does not own those flows; it is the discoverable
-surface.
+Explore is a starting point. Clicking through takes you into the
+world, agent, or post flow itself — Explore makes things findable; it
+doesn't replace those destinations.
 
 ## World Detail
 
-When a user navigates into a specific world, World Detail is the
-projection that shows them what they need to know.
+Open a world and World Detail shows you what you need to know about
+it.
 
 | Surface | Content |
 | --- | --- |
@@ -32,17 +30,15 @@ projection that shows them what they need to know.
 | Scenes | Scenes available in this world |
 | Transit | Portal / teleport entry to the world |
 
-World Detail consumes a bounded `WorldDisplayDetail` seam.
-Multiple raw reads (truth, world-state, world-history, projection)
-roll up into one display authority. The reader sees a coherent
-world page; Desktop consumes the seam, not the raw realm
-contracts directly.
+Behind the page sits a single bounded read, `WorldDisplayDetail`.
+Several underlying reads (truth, world-state, world-history,
+projection) roll up into one coherent world page, so Desktop consumes
+that one seam instead of stitching raw Realm reads together itself.
 
 ## Agent Detail
 
-When a user navigates into a specific agent, Agent Detail shows
-the agent's public profile via a bounded `AgentDisplayDetail`
-seam.
+Open an agent and Agent Detail shows its public profile, read through
+the bounded `AgentDisplayDetail` seam.
 
 | Surface | Content |
 | --- | --- |
@@ -50,9 +46,9 @@ seam.
 | Owner | Who owns this agent |
 | Agents the user can see | Public agent list |
 
-Desktop core only carries Character/LocalAgent list projections and
-public detail reads. **It does not own LocalAgent Memory or
-Conversation truth** — those remain in Runtime.
+Desktop carries Character/LocalAgent lists and public detail reads
+only. **An agent's Memory and its conversations stay in Runtime** —
+Desktop doesn't hold them.
 
 ## Reader Scenario: Discovering And Entering A World
 
@@ -95,7 +91,7 @@ seam level, not by client filtering.
 
 ## Cross-Domain Touchpoints
 
-Explore reads from many places to compose its feed:
+Explore composes its feed from several sources:
 
 | Source | What it provides |
 | --- | --- |
@@ -103,8 +99,8 @@ Explore reads from many places to compose its feed:
 | Runtime | LocalAgent presentation profile previews |
 | Realm chat / social | Social post stream |
 
-The composition is bounded by admitted seams; Explore does not
-invent its own caches that diverge from upstream truth.
+Everything on Explore arrives through those bounded reads; it doesn't
+build private caches that could drift from the source.
 
 ## Source Basis
 

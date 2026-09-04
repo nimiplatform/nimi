@@ -113,6 +113,7 @@ export type AppStoreState = {
   selectedWorldInitialSubpage: WorldDetailInitialSubpage | null;
   exploreActiveSection: ExploreSectionId;
   exploreSearchText: string;
+  exploreSelectedWorldId: string | null;
   appsDetailAppId: string | null;
   appsDetailSection: NimiDesktopOpenAppsSection | null;
   appsDetailNavigationRevision: number;
@@ -143,7 +144,7 @@ export type AppStoreState = {
   setNimiConversationSelection: (selection: NimiConversationSelection) => void;
   setAgentConversationSelection: (selection: AgentConversationSelection) => void;
   setAgentConversationTargetSnapshot: (target: AgentLocalTargetSnapshot) => void;
-  setPendingAgentComposerPrefill: (input: { agentHandle: string; text: string }) => void;
+  setPendingAgentComposerPrefill: (input: { agentHandle?: string | null; sourceKey?: string | null; text: string }) => void;
   clearPendingAgentComposerPrefill: (requestId: number) => void;
   setChatSetupState: (mode: ConversationMode, setupState: ConversationSetupState | null) => void;
   setSelectedChatId: (chatId: string | null) => void;
@@ -151,6 +152,7 @@ export type AppStoreState = {
   setSelectedWorldId: (worldId: string | null) => void;
   setExploreActiveSection: (section: ExploreSectionId) => void;
   setExploreSearchText: (text: string) => void;
+  setExploreSelectedWorldId: (worldId: string | null) => void;
   setAppsDetailAppId: (
     appId: string | null,
     section?: NimiDesktopOpenAppsSection | null,

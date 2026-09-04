@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { IconToggleAction, ScrollArea } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
+import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { E2E_IDS } from '../../testability/e2e-ids';
 import {
   RelationshipHoverCard,
@@ -9,8 +10,13 @@ import {
   clampHoverCardTop,
   type RelationshipHoverCardPosition,
 } from './chat-relationship-hover-card.js';
+import { resolveAgentTargetSourceRef } from '../agents/agent-conversation-source-resolution.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
+
+function normalizeText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -43,15 +49,21 @@ function RelationshipAvatar({
   const bindings = useDesktopRendererBindings();
   const navigateToProfile = useAppStore((state) => state.navigateToProfile);
   const navigateToSourceDetail = useAppStore((state) => state.navigateToSourceDetail);
+  const ownerUserId = useAppStore((state) => normalizeText(state.auth.user?.id));
   const { t } = useTranslation();
   const ref = useRef<HTMLButtonElement>(null);
   const cancelHideRef = useRef<(() => void) | null>(null);
+  const profileOpenPendingRef = useRef(false);
   const [hoverCardPos, setHoverCardPos] = useState<RelationshipHoverCardPosition | null>(null);
 
   const initial = (target.avatarFallback || target.title || '?').charAt(0).toUpperCase();
   const unread = target.unreadCount && target.unreadCount > 0 ? target.unreadCount : null;
   const profileTarget = buildRelationshipProfileNavigationTarget(target);
   const canShowHoverCard = target.source !== 'ai';
+  // Sidebar agent references carry no source identity; the character profile
+  // opens through an on-demand owner-scope resolution on click instead.
+  const canResolveAgentProfile = target.source === 'agent'
+    && Boolean(normalizeText(target.metadata?.agentHandle));
   const testId = target.source === 'human'
     ? E2E_IDS.chatRow(String(target.canonicalSessionId || target.id))
     : target.source === 'agent' || target.source === 'ai'
@@ -110,17 +122,45 @@ function RelationshipAvatar({
   };
 
   const handleOpenProfile = () => {
-    if (!profileTarget) {
+    if (!profileTarget && !canResolveAgentProfile) {
       onSelect();
       return;
     }
     cancelHide();
     setHoverCardPos(null);
-    if (profileTarget.kind === 'character') {
-      navigateToSourceDetail(profileTarget.sourceRef);
+    if (profileTarget) {
+      if (profileTarget.kind === 'character') {
+        navigateToSourceDetail(profileTarget.sourceRef);
+        return;
+      }
+      navigateToProfile(profileTarget.profileId);
       return;
     }
-    navigateToProfile(profileTarget.profileId);
+    if (profileOpenPendingRef.current) {
+      return;
+    }
+    profileOpenPendingRef.current = true;
+    void resolveAgentTargetSourceRef({
+      agentHandle: normalizeText(target.metadata?.agentHandle),
+      ownerUserId,
+      sdk: bindings.sdk,
+    }).then((sourceRef) => {
+      if (sourceRef) {
+        navigateToSourceDetail(sourceRef);
+        return;
+      }
+      onSelect();
+    }).catch((error: unknown) => {
+      logRendererEvent({
+        level: 'warn',
+        area: 'chat',
+        message: 'action:relationship-hover-card-open-profile:failed',
+        details: { error: error instanceof Error ? error.message : String(error || '') },
+      });
+      onSelect();
+    }).finally(() => {
+      profileOpenPendingRef.current = false;
+    });
   };
 
   return (
@@ -194,7 +234,7 @@ function RelationshipAvatar({
           onMouseEnter={cancelHide}
           onMouseLeave={scheduleHide}
           onSelect={onSelect}
-          onOpenProfile={profileTarget ? handleOpenProfile : undefined}
+          onOpenProfile={profileTarget || canResolveAgentProfile ? handleOpenProfile : undefined}
         />
       ) : null}
     </>

@@ -1,9 +1,9 @@
 # Carrier Visual Acceptance
 
-A **carrier** is the host surface that renders an embodiment. The
-carrier visual acceptance contract decides whether a given
-embodiment can be displayed on a given carrier. It is the
-admission gate for "this agent can be shown here."
+A **carrier** is the host surface that renders an embodiment — the
+place where the agent actually appears. The carrier visual acceptance
+contract decides whether a given embodiment can be displayed on a
+given carrier. It is the check behind "this agent can be shown here."
 
 ## What Carrier Acceptance Decides
 

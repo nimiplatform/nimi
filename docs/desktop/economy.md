@@ -1,10 +1,9 @@
 # Economy
 
-Desktop's economy surface — the Wallet — projects the user's
-canonical economic standing from Realm. Currency balance,
-transaction history, top-up, subscription state, and withdrawal
-surface here. Realm `R-ECON-*` is the source of truth; Desktop is
-the consumer.
+The Wallet is Desktop's economy page. It shows your balance,
+transaction history, top-up, subscription state, and withdrawals. The
+figures come from your Nimi account (Realm `R-ECON-*`); Desktop
+displays them.
 
 ## What The Wallet Surfaces
 
@@ -16,15 +15,14 @@ the consumer.
 | Subscription state | Active subscription (if any) |
 | Withdrawal | Withdraw funds (under admitted withdraw flow) |
 
-All economic operations require a valid bearer token. Realm
-`R-ECON-003` is the source of truth for revenue and settlement
-logic.
+All economic operations require a valid bearer token. Revenue and
+settlement rules live in Realm `R-ECON-003`.
 
 ## Append-Only Economy
 
-Realm economy is **append-only**. Currency transactions, revenue
-attribution, and settlement use typed events with explicit semantics.
-Nothing silently rewrites.
+The Realm economy is **append-only**. Every currency transaction,
+revenue attribution, and settlement is recorded as a typed event with
+explicit meaning. Nothing is silently rewritten.
 
 | Property | Value |
 | --- | --- |
@@ -33,19 +31,16 @@ Nothing silently rewrites.
 | Settlement | Typed events, not free-form journal entries |
 | Audit | Every change is reconstructible |
 
-This is why "transaction history" in Desktop is a real reference,
-not a reconstructed view. The events are canonical.
+That's why the transaction history in Desktop is the actual record,
+not a reconstructed view.
 
 ## AI Compute Cost Is Not Realm Truth
 
-A non-obvious design choice: AI compute cost is **not** modeled as
-Realm core truth. Cost accounting is a separate concern from the
-canonical economy.
-
-The canonical economy is about platform-level value: subscriptions,
-revenue settlements, creator economy events, and currency
-transactions. AI compute cost is a runtime concern with its own
-accounting. The two do not collapse into one ledger.
+One design choice worth knowing: AI compute cost is **not** part of
+the platform economy. The platform economy tracks platform-level
+value: subscriptions, revenue settlements, creator economy events, and
+currency transactions. AI compute cost is accounted for separately by
+Runtime. The two never collapse into one ledger.
 
 ## Reader Scenario: A Creator Receives Revenue Settlement
 

@@ -6,7 +6,7 @@ import { sidebarZh } from './sidebar-zh'
 
 export default defineConfig({
   title: 'Nimi',
-  description: 'Public docs for the Nimi AI open world platform.',
+  description: 'Documentation for Nimi — the installable, open-source, local-first personal AI product.',
   head: [
     ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
     ['link', { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/favicon-32x32.png' }],
@@ -34,7 +34,7 @@ export default defineConfig({
       label: '中文',
       lang: 'zh-CN',
       title: 'Nimi',
-      description: 'Nimi AI 开放世界平台公共文档。',
+      description: 'Nimi 文档：可安装、开源、本地优先的个人 AI 产品。',
       themeConfig: {
         nav: navZh,
         sidebar: sidebarZh,
@@ -56,6 +56,10 @@ export default defineConfig({
         sidebarMenuLabel: '菜单',
         darkModeSwitchLabel: '深色模式',
         langMenuLabel: '语言',
+        footer: {
+          message: 'Nimi 文档：可安装、开源、本地优先的个人 AI 产品。',
+          copyright: 'Copyright 2026-present Nimi Platform',
+        },
       },
     },
   },
@@ -99,7 +103,7 @@ export default defineConfig({
     },
 
     footer: {
-      message: 'Nimi AI open world platform documentation.',
+      message: 'Documentation for Nimi — the installable, open-source, local-first personal AI product.',
       copyright: 'Copyright 2026-present Nimi Platform',
     },
   },

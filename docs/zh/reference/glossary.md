@@ -2,69 +2,70 @@
 
 ## 身份与执行
 
-**Character。** Realm 持有的持久 identity 与 social/world truth。
-PersonaCharacter 与 WorldCharacter 是 Character 形态。
+**Character。** 有持久身份的长期参与者，由 Realm 保存。PersonaCharacter
+和 WorldCharacter 是 Character 的形态。
 
-**Character Source。** Realm 签发、可供 Runtime 物化 LocalAgent 的身份来源。
+**Character Source。** Realm 签发的角色描述，Runtime 据此运行出
+LocalAgent。
 
-**World Source。** Realm 持有的 World 上下文来源。它可以贡献 context，但不能
-单独建立 LocalAgent identity。
+**World Source。** Realm 保存的世界上下文描述。它可以为 LocalAgent 提供
+信息，但单靠它自己创建不出 LocalAgent。
 
-**LocalAgent。** 有明确 owner 的 Runtime 本地 AI 执行物化。它不持有 Realm
-identity 或 World truth。
+**LocalAgent。** Runtime 把角色在本地运行起来的实例，范围限定在它为之服
+务的用户。它自己不持有 Realm 身份或世界事实。
 
-**Conversation anchor。** 一条 LocalAgent Conversation 的显式 Runtime-owned
-identity。一个 LocalAgent 可以有多条 Conversation。
+**Conversation anchor。** Runtime 给一段 LocalAgent 对话起的显式名字。一
+个 LocalAgent 可以有多段对话。
 
-**运行态 Memory。** Runtime 持有的 LocalAgent recall、retention、isolation
-与 authorized projection。
+**运行态 Memory。** LocalAgent 运行时记住的东西：怎么回忆、保留多久、如
+何隔离，以及 Runtime 对外提供的已授权视图。
 
-**运行态 Knowledge。** Runtime 持有的 LocalAgent ingestion、retrieval、
-isolation、lifecycle 与 authorized projection。
+**运行态 Knowledge。** LocalAgent 知道的东西：怎么摄入、怎么检索、如何
+隔离、生命周期怎么管，以及 Runtime 对外提供的已授权视图。
 
 ## 产品 Surface
 
-**SDK。** Runtime 与 Realm consumer 的强类型公共访问边界。
+**SDK。** App 与 Runtime、Realm 打交道的强类型公共入口。
 
-**Kit。** Demand-driven 共享 UI 与 host composition，不是预建所有可能产品
-capability 的 catalog。
+**Kit。** 共享 UI 与宿主组合，产品界面真正需要时才加入，不是预置各种能
+力的目录。
 
-**Nimi Home。** 当前产品 home 与 Desktop host surface。Host 角色不会使它
-成为 Realm 或 Runtime owner。
+**Nimi Home。** 产品的入口，也是当前桌面端的宿主界面。负责承载体验，并
+不等于它保管 Realm 或 Runtime。
 
-**Avatar。** Embodiment shell 与 rendering owner。Avatar 消费强类型 Runtime
-presentation input，并持有 renderer-local behavior。
+**Avatar。** 角色的具身外壳：按 Runtime 发来的强类型呈现内容渲染角色，
+并管理自己 renderer 本地的行为。
 
-**Simulator。** Selected App module 的开发 qualification 工具，不是当前产品
-平台或产品 host。
+**Simulator。** 给选定 App 模块用的开发与验证工具，不是当前的产品平
+台，也不是产品宿主。
 
 ## 访问与失败
 
-**Session-derived access。** Runtime 从 active session 推导 account、App
-identity、authorization、目标 LocalAgent 或 scope，以及 operation。
+**Session-derived access。** Runtime 根据你当前的登录会话判断账号、
+App 身份、授权、目标 LocalAgent 或范围，以及操作。
 
-**Typed unavailable。** 明确表示可选或不适用 capability 不可用的结果，不是
-synthetic success。
+**Typed unavailable。** 一个明确的答复，表示某个可选或不适用的能力当前
+不可用。这是诚实的「没有」，不是假装的「成功」。
 
-**Projection。** Owner 提供的有限视图。Projection 不会把 ownership 转移给
-consumer。
+**Projection。** 由数据保管方提供的一份有限视图。看到视图，不等于拿到
+所有权。
 
-**Owner。** 对某项产品真相及其 mutation rule 负责的 domain。Code location、
-package name、docs、cache 或 host role 都不能创建 ownership。
+**Owner。** 对某项产品事实及其修改规则负责的部分。代码位置、包名、文
+档、缓存或宿主角色，都不会产生所有权。
 
 ## 六项协议基础
 
-**State。** 由 owner 控制的当前产品条件。
+**State。** 某个东西此刻的状态，由保管它的部分控制。
 
-**Event。** Owner 投影的强类型 occurrence。
+**Event。** 一条强类型通知，表示有事发生，由保管方发出。
 
-**Intent。** 请求结果的强类型表达，不是 authorization proof。
+**Intent。** 对某个结果的强类型请求。提出请求不等于获得授权。
 
-**Action。** 由 owning domain 执行的已准入 operation。
+**Action。** 由负责方接受并执行的操作。
 
-**Audit。** Owner 控制的安全或产品相关活动记录。
+**Audit。** 由负责方保存的安全或产品相关活动记录。
 
-**Permission。** Owner 对 scoped operation 作出的授权决定。
+**Permission。** 负责方作出的决定，授权一次有范围限定的操作。
 
 ## 来源依据
 

@@ -1,10 +1,10 @@
 # Asset And Binding
 
-Realm separates Resource, Asset, Bundle, and Binding into distinct
-typed concepts. Most platforms collapse these into "files." Nimi
-keeps them separate so a Resource can attach to many surfaces
-without becoming an Asset, and an Asset can compose into a Bundle
-without losing its independent ownership identity.
+Realm keeps four ideas separate that most platforms mash together
+as "files": Resource, Asset, Bundle, and Binding. Keeping them
+separate is what lets one Resource appear in many places without
+becoming an Asset, and lets an Asset join a Bundle without giving
+up its own ownership.
 
 ## Resource
 

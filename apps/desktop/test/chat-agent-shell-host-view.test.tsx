@@ -151,3 +151,39 @@ test('agent host view renders interrupted footer copy when the footer state is i
   assert.ok(React.isValidElement(hostView.transcriptProps?.footerContent));
   assert.equal(hostView.transcriptProps?.footerContent.props['data-testid'], 'footer-interrupted');
 });
+
+test('agent host view forwards the empty-state agent identity and suggestion content', () => {
+  const hostView = resolveAgentConversationHostView({
+    threads: targetSummaries(),
+    selectedTargetId: 'agent-1',
+    loading: false,
+    error: null,
+    footerViewState: {
+      displayState: 'hidden',
+      pendingFirstBeat: false,
+    },
+    footerContent: null,
+    labels: {
+      emptyEyebrow: 'Agent',
+      emptyTitle: 'Start the local agent conversation',
+      emptyDescription: 'Send a message to start the local agent conversation.',
+      loadingLabel: 'Loading local agent conversation…',
+      pendingAgentRoleLabel: 'Agent is replying',
+      pendingThinkingLabel: 'Thinking...',
+      pendingStopLabel: 'Stop generating',
+      todayLabel: 'Today',
+      yesterdayLabel: 'Yesterday',
+    },
+    emptyStateAgent: { displayName: '栖澜', avatarUrl: 'https://example.com/avatar.png' },
+    emptyStateContent: <span data-testid="empty-suggestions">Suggestions</span>,
+    renderMessageContent,
+  });
+
+  assert.deepEqual(hostView.transcriptProps?.emptyStateAgent, {
+    displayName: '栖澜',
+    avatarUrl: 'https://example.com/avatar.png',
+  });
+  assert.ok(React.isValidElement(hostView.transcriptProps?.emptyStateContent));
+  assert.equal(hostView.transcriptProps?.emptyStateContent?.props['data-testid'], 'empty-suggestions');
+  assert.equal(hostView.transcriptProps?.emptyStateVariant, undefined);
+});

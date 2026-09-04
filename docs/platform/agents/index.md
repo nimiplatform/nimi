@@ -1,31 +1,43 @@
 # Character and LocalAgent
 
-Nimi separates persistent identity from local AI execution.
+Characters are the durable participants in Nimi. A character has a persistent
+identity: it is the same individual in every world and every conversation, and
+it stays that way over time. Realm keeps that identity.
 
-- A **Character** is Realm-owned identity and social/world truth. PersonaCharacter
-  and WorldCharacter are Character forms, not separate local agent types.
-- A **Character Source** is the Realm-issued source used when Runtime
-  materializes a LocalAgent.
-- A **LocalAgent** is an owner-scoped Runtime materialization. Runtime owns its
-  lifecycle, Conversation, operational Memory and Knowledge, AI routing,
-  readiness, budget, and state.
+A LocalAgent is how Runtime brings a character to life locally. When you start
+an experience, Runtime reads the character's Realm-issued description — the
+Character Source — and runs it on your machine. The LocalAgent holds the live
+conversation, working memory, and knowledge for that run. The character's
+identity itself stays in Realm.
 
-There is no additional platform-wide `Agent`, `AgentFamily`, or `AgentPersona`
+- A **Character** is identity, relationships, and world membership kept by
+  Realm. PersonaCharacter and WorldCharacter are forms of Character, not
+  separate local agent types.
+- A **Character Source** is the description Realm issues for Runtime to run a
+  character from.
+- A **LocalAgent** is the running instance Runtime creates for you. Runtime
+  manages its lifecycle, Conversation, operational Memory and Knowledge, model
+  routing, readiness, budget, and state.
+
+There is no extra platform-wide `Agent`, `AgentFamily`, or `AgentPersona`
 identity layer between Character and LocalAgent.
 
 ## Owner boundaries
 
-Realm owns Character identity, social relationships, World membership, and
-canonical Character and World source truth. Runtime consumes an admitted
-Character Source and materializes a LocalAgent without taking over Realm truth.
+Realm is the home of character identity: who a character is, its
+relationships, its world memberships, and the character and world descriptions
+everything else builds from. Runtime takes the Character Source Realm issues
+and runs a LocalAgent from it, without taking over anything Realm keeps.
 
-Apps, Nimi Home, Desktop, and Avatar receive only the projections authorized for
-their active session. They do not mint LocalAgent identity, reconstruct Runtime
-state from local history, or receive Realm JWTs, provider credentials, Runtime
-proofs, or account-wide LocalAgent inventory.
+Apps, Nimi Home, Desktop, and Avatar only see what the current session
+authorizes them to see. They cannot create LocalAgent identities or rebuild
+Runtime state from local history, and they never receive Realm credentials,
+provider keys, Runtime-internal proofs, or an account-wide list of
+LocalAgents.
 
-Avatar renders typed Runtime presentation input and keeps renderer-local state.
-It does not become a LocalAgent owner or a direct AI driver.
+Avatar renders the typed presentation Runtime sends it and keeps its own
+renderer-local state. It does not run the LocalAgent and does not drive the AI
+directly.
 
 ## Continue reading
 

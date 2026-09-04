@@ -1,8 +1,9 @@
 # OASIS
 
-OASIS is the unique system main world in Nimi. It is part of
-canonical truth, formally specified, and cannot be replaced by any
-app convention.
+OASIS is the one world every Nimi user passes through: the system
+main world. It is written into the platform itself — there is
+exactly one, it belongs to no creator, and no app can swap it out
+for its own convention.
 
 ## What OASIS Is
 

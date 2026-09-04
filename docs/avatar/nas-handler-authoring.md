@@ -1,12 +1,12 @@
 # NAS Handler Authoring
 
-> Status: Running today. NimiAgentScript (NAS) 1.0 is the shipped
-> handler convention; auto-discovery and hot reload are live.
+> Status: Running today. NimiAgentScript (NAS) 1.0 is the live
+> handler convention; auto-discovery and hot reload are on.
 
-NimiAgentScript (NAS) is **convention over configuration**: an
-embodiment package author drops JS files into a fixed directory layout
-and the Avatar runtime auto-discovers them. There is no manifest. The
-file path is the registration.
+NimiAgentScript (NAS) is **convention over configuration**: a package
+author drops JS files into a fixed directory layout and the Avatar
+runtime auto-discovers them. There is no manifest. The file path is
+the registration.
 
 ## Directory Layout
 

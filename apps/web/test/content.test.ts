@@ -46,7 +46,6 @@ test('content keeps the consumer hero and SDK paths complete in both locales', a
 
 test('English homepage exposes fail-closed signing, preview, and App lifecycle status', async () => {
   const content = await loadLandingContent('en');
-  assert.ok(content.hero.eyebrow.includes('Open-source'));
   assert.ok(content.desktop.availability.items.includes(
     'Windows signed RC and Stable pending production code signing',
   ));
@@ -79,6 +78,33 @@ test('SDK landing content separates hero highlights from the full capability mat
     assert.deepEqual(
       sdk.capabilityMatrix?.map((item) => item.docsPath),
       content.sdk.tabs.map((tab) => tab.docsPath),
+    );
+  }
+});
+
+test('homepage leads with consumer experiences and keeps download honesty', async () => {
+  for (const locale of ['en', 'zh'] as const) {
+    const content = await loadLandingContent(locale);
+
+    assert.equal(content.experiences.cards.length, 3);
+    assert.ok(content.experiences.cards.every((card) => (
+      card.title.length > 0
+      && card.description.length > 0
+      && card.scenario.length > 0
+      && card.points.length >= 3
+    )));
+
+    assert.ok(content.nav.experiences.length > 0);
+    assert.ok(content.nav.docs.length > 0);
+    assert.ok(content.nav.download.length > 0);
+
+    const downloadFaq = content.faq.items.find((item) => (
+      item.question === (locale === 'zh' ? '今天能下载 Nimi 吗？' : 'Can I download Nimi today?')
+    ));
+    assert.ok(downloadFaq);
+    assert.match(
+      downloadFaq.answer,
+      locale === 'zh' ? /没有已发布的 Nimi 稳定版/ : /No stable Nimi release is currently published/,
     );
   }
 });

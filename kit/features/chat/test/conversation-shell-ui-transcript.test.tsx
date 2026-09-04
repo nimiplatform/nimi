@@ -778,4 +778,28 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(container.textContent).toContain('Show less');
     expect(container.textContent).toContain('line 24');
   });
+
+  it('shows the agent identity instead of the eyebrow in the empty state', async () => {
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root?.render(
+        <CanonicalTranscriptView
+          messages={[]}
+          emptyEyebrow="ZHIYU"
+          emptyTitle="开始一段对话"
+          emptyDescription="提个问题、分享想法，或者告诉这个伙伴你想探索什么。"
+          emptyStateAgent={{ displayName: '栖澜', avatarUrl: null }}
+        />,
+      );
+      await flush();
+    });
+
+    expect(container.querySelector('[data-canonical-empty-agent="true"]')).not.toBeNull();
+    expect(container.textContent).toContain('栖澜');
+    expect(container.textContent).toContain('开始一段对话');
+    expect(container.textContent).not.toContain('ZHIYU');
+  });
 });

@@ -9,6 +9,21 @@ Discipline.
 
 ## [Unreleased]
 
+### Added
+
+- Added the optional `emptyStateAgent` identity and `emptyStateContent` slot to
+  the chat `CanonicalTranscriptView` empty state, so a host can render the
+  agent avatar/name and centered content (such as a composer) in place of the
+  eyebrow overline. An explicitly empty `emptyTitle` now suppresses the empty
+  heading instead of rendering an empty element.
+- Added the optional `trailingIcon` slot to `NimiMenuItem` for trailing
+  affordances such as a selected-state check icon.
+
+### Changed
+
+- Lowered the chat `ConversationComposerShell` surface elevation from
+  `floating` to `raised`.
+
 ## [0.3.0] - 2026-08-31
 
 ### Added

@@ -7,6 +7,7 @@ export type NimiMenuItem = {
   id: string;
   label: ReactNode;
   icon?: ReactNode;
+  trailingIcon?: ReactNode;
   tone?: 'default' | 'danger';
   disabled?: boolean;
   onSelect?: () => void;
@@ -39,7 +40,8 @@ export function ActionMenu({
           onClick={item.onSelect}
         >
           {item.icon ? <span className="nimi-action-menu__icon inline-flex shrink-0 items-center justify-center">{item.icon}</span> : null}
-          <span className="truncate">{item.label}</span>
+          <span className="min-w-0 flex-1 truncate">{item.label}</span>
+          {item.trailingIcon ? <span className="nimi-action-menu__trailing-icon inline-flex shrink-0 items-center justify-center">{item.trailingIcon}</span> : null}
         </button>
       ))}
     </Surface>

@@ -94,7 +94,7 @@ or switch a provider, connector, model, route, or endpoint on the next request.
 5. A machine administrator can inspect and repair Runtime configuration through
    the administration surface.
 
-## Public Boundary
+## Key Points
 
 - Connectors, provider catalogs, credentials, endpoints, and Drivers belong to
   Runtime configuration.

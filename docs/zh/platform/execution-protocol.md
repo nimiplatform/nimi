@@ -33,7 +33,7 @@ authority。
 这条边界不等于通用 Workflow、MCP、A2A 或公共 Action Registry。未来
 adapter 若使用它，仍需单独 owner，并保持非阻塞。
 
-## 场景：经过 Verify 的写操作
+## 读者场景：经过 Verify 的写操作
 
 一项可选外部 action surface 提出写操作。
 
