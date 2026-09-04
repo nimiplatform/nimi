@@ -25,12 +25,12 @@
     "@nimiplatform/sdk": "^0.8.0"
   },
   "devDependencies": {
-    "@ai-sdk/provider": "3.0.10",
+    "@ai-sdk/provider": "4.0.5",
     "@mastra/core": "1.63.2",
     "@nimiplatform/sdk": "workspace:*",
-    "@types/node": "^24.13.3",
+    "@types/node": "^26.1.2",
     "tsx": "^4.23.13",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "zod": "4.5.4"
   },
   "scripts": {

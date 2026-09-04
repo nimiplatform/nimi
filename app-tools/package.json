@@ -71,7 +71,7 @@
     "postcss": "^8.5.26",
     "postcss-selector-parser": "^7.1.5",
     "semver": "^7.8.5",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "yaml": "^2.9.0"
   },
   "peerDependencies": {
@@ -83,7 +83,7 @@
     }
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
-    "vite": "7.3.6"
+    "@types/node": "^26.1.2",
+    "vite": "8.2.0"
   }
 }
