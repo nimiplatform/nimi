@@ -23,12 +23,14 @@
     "accessDeclarationsDetail": "declared by projects"
   },
   "library": {
+    "pageTitle": "App Center",
+    "pageSubtitle": "Manage and launch your AI apps",
     "sortLabel": "Sort apps",
     "sortUpdated": "Recently updated",
     "sortName": "Name",
     "sortActivity": "Running first",
     "backToLibrary": "Back to Apps",
-    "connectLocalTitle": "Connect a local project",
+    "connectLocalTitle": "Add App",
     "cardMenuLabel": "App actions"
   },
   "sourceBadge": {
@@ -188,12 +190,12 @@
     "configuredSummary": "Model settings complete",
     "emptySummary": "No model selected",
     "summary": {
-      "local": "AI: Local · {{summaryCount}}",
-      "cloud": "AI: Cloud · {{summaryCount}}",
-      "mixed": "AI: Mixed · {{summaryCount}}",
-      "partialLocal": "AI: Partial Local · {{summaryCount}}",
-      "partialCloud": "AI: Partial Cloud · {{summaryCount}}",
-      "partialMixed": "AI: Partial Mixed · {{summaryCount}}",
+      "local": "AI Local · {{summaryCount}}",
+      "cloud": "AI Cloud · {{summaryCount}}",
+      "mixed": "AI Local + Cloud · {{summaryCount}}",
+      "partialLocal": "AI Local · {{summaryCount}}",
+      "partialCloud": "AI Cloud · {{summaryCount}}",
+      "partialMixed": "AI Local + Cloud · {{summaryCount}}",
       "blocked": "{{routeLabel}} · {{blockedCount}} blocked",
       "healthUnavailable": "{{routeLabel}} · health unavailable",
       "unconfigured": "AI not configured",

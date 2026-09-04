@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import type { LocalDevelopmentRegistration, LocalDevelopmentRun } from '../src/shell/renderer/features/local-development/local-development-types.js';
-import { desktopAppsEntryKey, projectAppsPanel } from '../src/shell/renderer/features/apps/apps-panel-projection.js';
+import { deriveAppSummary, desktopAppsEntryKey, projectAppsPanel } from '../src/shell/renderer/features/apps/apps-panel-projection.js';
 import {
   AppPackageJobKind,
   AppPackageJobPhase,
@@ -114,5 +114,106 @@ describe('Desktop Apps source-qualified projection', () => {
   it('marks catalog search unimplemented instead of calling Realm or returning fake rows', async () => {
     const projection = await projectAppsPanel({ ...emptyLocal, listCommittedReleases: async () => [], listPackageJobs: async () => [] });
     assert.deepEqual(projection, { status: 'loaded', entries: [], catalogStatus: 'not-implemented', runtimeError: null });
+  });
+});
+
+describe('Desktop Apps project summary projection', () => {
+  it('derives the card summary from the host-read project README', async () => {
+    const projection = await projectAppsPanel({
+      ...emptyLocal,
+      listRegistrations: async () => [registration()],
+      listCommittedReleases: async () => [],
+      listPackageJobs: async () => [],
+      readProjectReadme: async (selector: string) => {
+        assert.equal(selector, 'dev-example-shared');
+        return { content: '# Example App\n\n[![badge](img)](link)\n\n本地示例 App，用来演示平台能力。\n\n## Usage\n' };
+      },
+    });
+    assert.equal(projection.status, 'loaded');
+    if (projection.status !== 'loaded') return;
+    assert.equal(projection.entries[0]?.summary, '本地示例 App，用来演示平台能力。');
+  });
+
+  it('keeps the summary null when the README bridge or prose is absent', async () => {
+    const withoutBridge = await projectAppsPanel({
+      ...emptyLocal,
+      listRegistrations: async () => [registration()],
+      listCommittedReleases: async () => [],
+      listPackageJobs: async () => [],
+    });
+    assert.equal(withoutBridge.status, 'loaded');
+    if (withoutBridge.status !== 'loaded') return;
+    assert.equal(withoutBridge.entries[0]?.summary, null);
+
+    const emptyReadme = await projectAppsPanel({
+      ...emptyLocal,
+      listRegistrations: async () => [registration()],
+      listCommittedReleases: async () => [],
+      listPackageJobs: async () => [],
+      readProjectReadme: async () => ({ content: '# Only a title\n\n- bullet list is not an intro\n' }),
+    });
+    assert.equal(emptyReadme.status, 'loaded');
+    if (emptyReadme.status !== 'loaded') return;
+    assert.equal(emptyReadme.entries[0]?.summary, null);
+  });
+
+  it('reuses the previous summary while the registration is unchanged', async () => {
+    let reads = 0;
+    const source = {
+      ...emptyLocal,
+      listRegistrations: async () => [registration()],
+      listCommittedReleases: async () => [],
+      listPackageJobs: async () => [],
+      readProjectReadme: async () => {
+        reads += 1;
+        return { content: '第一段简介。' };
+      },
+    };
+    const first = await projectAppsPanel(source);
+    assert.equal(first.status, 'loaded');
+    if (first.status !== 'loaded') return;
+    assert.equal(first.entries[0]?.summary, '第一段简介。');
+    const second = await projectAppsPanel(source, { previous: first });
+    assert.equal(second.status, 'loaded');
+    if (second.status !== 'loaded') return;
+    assert.equal(second.entries[0]?.summary, '第一段简介。');
+    assert.equal(reads, 1, 'unchanged registration must not re-read the README');
+  });
+});
+
+describe('deriveAppSummary', () => {
+  it('skips headings, badges, HTML, and fences to reach the first prose paragraph', () => {
+    const readme = [
+      '# Title',
+      '',
+      '<p align="center"><img src="x.png" /></p>',
+      '',
+      '[![ci](badge.svg)](ci)',
+      '',
+      '```sh',
+      'npm install',
+      '```',
+      '',
+      '第一行简介。',
+      '第二行继续。',
+      '',
+      '## 安装',
+    ].join('\n');
+    assert.equal(deriveAppSummary(readme), '第一行简介。 第二行继续。');
+  });
+
+  it('strips inline markdown and bounds the excerpt', () => {
+    assert.equal(
+      deriveAppSummary('使用 [Nimi SDK](https://example.com) 和 `nimi-app` 构建 **本地** App。'),
+      '使用 Nimi SDK 和 nimi-app 构建 本地 App。',
+    );
+    const long = deriveAppSummary(`开头${'很长的介绍'.repeat(40)}`);
+    assert.ok(long !== null && long.length <= 161 && long.endsWith('…'), 'expected a bounded excerpt');
+  });
+
+  it('returns null for empty or non-prose content', () => {
+    assert.equal(deriveAppSummary(null), null);
+    assert.equal(deriveAppSummary(''), null);
+    assert.equal(deriveAppSummary('# 只有标题\n\n- 只有列表\n'), null);
   });
 });
