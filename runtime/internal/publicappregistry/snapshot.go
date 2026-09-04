@@ -3,6 +3,7 @@ package publicappregistry
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -38,6 +39,7 @@ const (
 	maxIndexDocumentBytes    = int64(4 * 1024 * 1024)
 	maxDescriptorDocumentLen = int64(1024 * 1024)
 	canonicalRequestTimeout  = 15 * time.Second
+	approvedSelectorPrefix   = "nats_v1_"
 )
 
 var (
@@ -173,6 +175,51 @@ type ApprovedTargetSelector struct {
 func (s ApprovedTargetSelector) DescriptorID() string           { return s.descriptorID }
 func (s ApprovedTargetSelector) TargetID() string               { return s.targetID }
 func (s ApprovedTargetSelector) ObservedRegistryCommit() string { return s.observedRegistryCommit }
+
+func (s ApprovedTargetSelector) Encode() (string, error) {
+	if !s.valid() {
+		return "", ErrInvalidSelector
+	}
+	encode := base64.RawURLEncoding.EncodeToString
+	return approvedSelectorPrefix + encode([]byte(s.descriptorID)) + "." + encode([]byte(s.targetID)) + "." + encode([]byte(s.observedRegistryCommit)), nil
+}
+
+func ParseApprovedTargetSelector(value string) (ApprovedTargetSelector, error) {
+	if !strings.HasPrefix(value, approvedSelectorPrefix) || value != strings.TrimSpace(value) {
+		return ApprovedTargetSelector{}, ErrInvalidSelector
+	}
+	parts := strings.Split(strings.TrimPrefix(value, approvedSelectorPrefix), ".")
+	if len(parts) != 3 {
+		return ApprovedTargetSelector{}, ErrInvalidSelector
+	}
+	decode := func(part string) (string, error) {
+		raw, err := base64.RawURLEncoding.DecodeString(part)
+		if err != nil || len(raw) == 0 {
+			return "", ErrInvalidSelector
+		}
+		return string(raw), nil
+	}
+	descriptorID, err := decode(parts[0])
+	if err != nil {
+		return ApprovedTargetSelector{}, err
+	}
+	targetID, err := decode(parts[1])
+	if err != nil {
+		return ApprovedTargetSelector{}, err
+	}
+	revision, err := decode(parts[2])
+	if err != nil {
+		return ApprovedTargetSelector{}, err
+	}
+	selector := ApprovedTargetSelector{
+		descriptorID: descriptorID, targetID: targetID, observedRegistryCommit: revision,
+	}
+	canonical, err := selector.Encode()
+	if err != nil || canonical != value {
+		return ApprovedTargetSelector{}, ErrInvalidSelector
+	}
+	return selector, nil
+}
 
 func (s ApprovedTargetSelector) valid() bool {
 	return validDescriptorID(s.descriptorID) && targetIDPattern.MatchString(s.targetID) &&

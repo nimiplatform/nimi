@@ -54,6 +54,7 @@ func TestInspectAndMaterializeCanonicalNimiApp(t *testing.T) {
 	destination := filepath.Join(ownerPath, "job-01")
 	if materialized.Root != destination || materialized.Files != len(entries) || materialized.Bytes != inspection.UncompressedBytes ||
 		materialized.HostExecutableSHA256 == ([sha256.Size]byte{}) || materialized.PayloadRootSHA256 == ([sha256.Size]byte{}) ||
+		!strings.HasPrefix(PayloadRootDigestRef(materialized.PayloadRootSHA256), "sha256:") ||
 		!equalStrings(materialized.RawDeclaration, expected.AppAccess) {
 		t.Fatalf("materialized = %+v", materialized)
 	}

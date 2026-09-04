@@ -383,6 +383,16 @@ func (kernel *Kernel) PackageLifecycle() *PackageLifecycleStore {
 	return kernel.packageLifecycle
 }
 
+// DataRoot returns the canonical Runtime-owned root already bound to this
+// kernel. Package lifecycle owners derive their managed filesystem paths from
+// this value instead of accepting a second caller-selected root.
+func (kernel *Kernel) DataRoot() string {
+	if kernel == nil {
+		return ""
+	}
+	return kernel.dataRoot
+}
+
 func (kernel *Kernel) nextIdentifier(prefix string, exists func(string) (bool, error)) (string, error) {
 	for attempt := 0; attempt < identifierAllocationAttempts; attempt++ {
 		entropy := make([]byte, 32)

@@ -72,6 +72,21 @@ func TestCanonicalSnapshotResolvesOneExactApprovedTarget(t *testing.T) {
 	if err != nil || string(encodedSelector) != "{}" {
 		t.Fatalf("selector exposed caller-authorable fields: %s err=%v", encodedSelector, err)
 	}
+	selectorText, err := resolved.Selector.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+	parsedSelector, err := ParseApprovedTargetSelector(selectorText)
+	if err != nil || parsedSelector != resolved.Selector {
+		t.Fatalf("selector round trip = %+v err=%v", parsedSelector, err)
+	}
+	for _, invalid := range []string{
+		"", selectorText + "=", strings.ToUpper(selectorText), strings.Replace(selectorText, ".", "..", 1),
+	} {
+		if _, err := ParseApprovedTargetSelector(invalid); !errors.Is(err, ErrInvalidSelector) {
+			t.Fatalf("invalid selector %q error = %v", invalid, err)
+		}
+	}
 	for _, read := range source.reads {
 		if read.revision != testRevisionA || strings.HasPrefix(read.path, "submissions/") {
 			t.Fatalf("noncanonical snapshot read = %+v", read)

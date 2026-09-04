@@ -125,6 +125,13 @@ type RuntimeEntryProbe struct {
 	HostExecutableSHA256 [sha256.Size]byte
 }
 
+func PayloadRootDigestRef(value [sha256.Size]byte) string {
+	if value == ([sha256.Size]byte{}) {
+		return ""
+	}
+	return "sha256:" + hex.EncodeToString(value[:])
+}
+
 type inspectedArchive struct {
 	file       *os.File
 	reader     *zip.Reader

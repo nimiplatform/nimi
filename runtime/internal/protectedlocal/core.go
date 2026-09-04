@@ -17,6 +17,16 @@ const IdentifierBytes = 32
 
 type Identifier [IdentifierBytes]byte
 
+// ExecutableDigestRef is the single canonical durable representation of a
+// protected-process executable digest. Package installation stores this exact
+// value so later process admission compares the same raw SHA-256 identity.
+func ExecutableDigestRef(value Identifier) string {
+	if value == (Identifier{}) {
+		return ""
+	}
+	return "bii_v1_" + base64.RawURLEncoding.EncodeToString(value[:])
+}
+
 func NewBootEpoch(random io.Reader) (Identifier, error) {
 	identifier, err := readIdentifier(random)
 	if err != nil {
