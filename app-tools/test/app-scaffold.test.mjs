@@ -36,6 +36,7 @@ import {
   validateAppScaffoldCargoDependencyValue,
   validateAppScaffoldModuleRegistry,
 } from '../lib/app-scaffold-capabilities.mjs';
+import { resolveWindowsResourceVersion } from '../lib/app-scaffold-profiles.mjs';
 import { initApp } from '../lib/app-doctor-update.mjs';
 import { resolveAppCreatePlan, resolveCandidateAppCreatePlan } from '../lib/index.mjs';
 import { resolveAppSource } from '../scripts/sync-app-source.mjs';
@@ -61,6 +62,7 @@ const versions = {
   tailwindcssViteVersion: '4.0.0',
   tauriCliVersion: '2.0.0-cli',
   nimiShellTauriVersion: '0.2.0',
+  electronPackagerVersion: '20.0.0-packager',
   electronVersion: '42.0.0-electron',
   esbuildVersion: '0.28.0-esbuild',
   typescriptVersion: '5.0.0',
@@ -326,7 +328,36 @@ function runGeneratedNodeScript(generated, scriptPath) {
   });
 }
 
-test('standalone scaffold creates a generic starter with rewritten identity', () => {
+test('Electron production maps exact App SemVer to bounded Windows resource metadata', () => {
+  const appVersion = '1.2.3-alpha.1.2+build.9.8';
+  assert.equal(resolveWindowsResourceVersion(appVersion), '1.2.3.0');
+  assert.equal(resolveWindowsResourceVersion('65535.0.42'), '65535.0.42.0');
+  assert.throws(
+    () => resolveWindowsResourceVersion('65536.0.0'),
+    /core components in the 0\.\.65535 range/u,
+  );
+
+  const snapshot = buildAppScaffoldSnapshot({
+    profile: 'standalone',
+    versions,
+    appId: 'acme.prerelease',
+    appTitle: 'Acme Prerelease',
+    version: appVersion,
+    packageName: 'acme-prerelease',
+  });
+  const packageJson = JSON.parse(snapshot.filesByPath.get('package.json').content);
+  const packagerSource = snapshot.filesByPath.get('scripts/package-electron-production.mjs').content;
+
+  assert.equal(packageJson.version, appVersion, 'package metadata must retain the exact product SemVer');
+  assert.match(packagerSource, /const APP_VERSION = "1\.2\.3-alpha\.1\.2\+build\.9\.8";/u);
+  assert.match(packagerSource, /const WINDOWS_RESOURCE_VERSION = resolveWindowsResourceVersion\(APP_VERSION\);/u);
+  assert.match(packagerSource, /appVersion: WINDOWS_RESOURCE_VERSION,/u);
+  assert.match(packagerSource, /buildVersion: WINDOWS_RESOURCE_VERSION,/u);
+  assert.match(packagerSource, /afterInitialize: \[async \(\{ buildPath \}\) => \{/u);
+  assert.match(packagerSource, /packagedManifest\.version = APP_VERSION;/u);
+});
+
+test('standalone scaffold creates a generic starter with rewritten identity', async () => {
   const generated = scaffold('standalone');
   try {
     const packageJson = JSON.parse(generated.read('package.json'));
@@ -335,12 +366,14 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.equal(packageJson.private, true);
     assert.equal(packageJson.packageManager, versions.packageManager);
     assert.equal(Object.hasOwn(packageJson, 'publishConfig'), false);
+    assert.match(generated.read('.gitignore'), /^dist-electron-package\/$/m);
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], versions.sdkVersion);
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], versions.kitVersion);
     for (const dependency of ['i18next', 'lucide-react', 'react-i18next', '@tauri-apps/api']) {
       assert.equal(Object.hasOwn(packageJson.dependencies, dependency), false);
     }
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], versions.appToolsVersion);
+    assert.equal(packageJson.devDependencies['@electron/packager'], versions.electronPackagerVersion);
     assert.equal(Object.hasOwn(packageJson.devDependencies, '@types/three'), false);
     assert.equal(packageJson.devDependencies.yaml, versions.yamlVersion);
     assert.match(packageJson.scripts['dev:renderer'], /^vite --host 127\.0\.0\.1 --port \d+ --strictPort$/);
@@ -402,7 +435,11 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assertGeneratedPathMissing(generated, 'src-tauri/src/world_tour.rs');
     assertGeneratedPathExists(generated, 'src-electron/main.ts');
     assertGeneratedPathExists(generated, 'src-electron/preload.cts');
+    assertGeneratedPathExists(generated, 'scripts/clean-electron-production.mjs');
+    assertGeneratedPathMissing(generated, 'scripts/electron-production-copy-filter.mjs');
+    assertGeneratedPathExists(generated, 'scripts/package-electron-production.mjs');
     assertGeneratedPathMissing(generated, 'dist-electron');
+    assertGeneratedPathMissing(generated, 'dist-electron-package');
     assertGeneratedPathMissing(generated, 'test/lab-contract.test.mjs');
     assertGeneratedPathMissing(generated, 'ADMISSION.md');
     assertGeneratedPathExists(generated, '.nimi/admission/submission.yaml');
@@ -426,9 +463,86 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
     assert.equal(electronMain.match(/\[rendererUrl\]/g)?.length, 1);
     assert.match(electronMain, /registerNimiElectronAppAssetProtocolScheme\(protocol\)/);
     assert.match(electronMain, /app\.setAppUserModelId\(NATIVE_BUNDLE_IDENTIFIER\)/);
+    assert.match(electronMain, /declare const __NIMI_ELECTRON_PRODUCTION__: boolean/);
+    assert.match(electronMain, /IS_PRODUCTION_BUNDLE && hasDevelopmentRendererArgument/);
+    assert.match(electronMain, /production Electron bundle rejects --nimi-dev-renderer-url/);
+    assert.doesNotMatch(electronMain, /app\.isPackaged/);
+    assert.match(electronMain, /pathToFileURL\(path\.join\(appRoot, 'dist', 'index\.html'\)\)/);
     assert.doesNotMatch(electronMain, /onProtectedSessionFailure/);
     assert.doesNotMatch(electronMain, /runtimeEndpoint|sessionProof|launchTicket/);
+    const electronProductionPackager = generated.read('scripts/package-electron-production.mjs');
+    const staleProductionPath = path.join(
+      generated.target,
+      'dist-electron-package',
+      'acme-widget-shell-win32-x64',
+      'stale.txt',
+    );
+    mkdirSync(path.dirname(staleProductionPath), { recursive: true });
+    writeFileSync(staleProductionPath, 'stale\n');
+    const productionClean = runGeneratedNodeScript(
+      generated,
+      path.join(generated.target, 'scripts/clean-electron-production.mjs'),
+    );
+    assert.equal(productionClean.status, 0, productionClean.stderr);
+    assert.equal(
+      existsSync(path.join(generated.target, 'dist-electron-package')),
+      false,
+      'the first production-build step must remove every stale package before later commands can fail',
+    );
+    const productionPackagerSyntax = spawnSync(
+      process.execPath,
+      ['--check', path.join(generated.target, 'scripts/package-electron-production.mjs')],
+      { cwd: generated.target, encoding: 'utf8' },
+    );
+    assert.equal(productionPackagerSyntax.status, 0, productionPackagerSyntax.stderr);
+    assert.match(electronProductionPackager, /import \{ packager \} from '@electron\/packager'/);
+    assert.match(electronProductionPackager, /define: \{ __NIMI_ELECTRON_PRODUCTION__: 'true' \}/);
+    assert.match(electronProductionPackager, /await rm\(outputRoot, \{ recursive: true, force: true \}\)/);
+    assert.match(electronProductionPackager, /mkdtemp\(path\.join\(tmpdir\(\), 'nimi-electron-packager-'\)\)/);
+    assert.match(electronProductionPackager, /const productionSourceRoot = path\.join\(stagingRoot, 'app'\)/);
+    assert.match(electronProductionPackager, /tmpdir: packagerTempRoot/);
+    assert.doesNotMatch(electronProductionPackager, /\.nimi['"], ['"]local['"], ['"]electron-packager-stage/);
+    assert.match(electronProductionPackager, /platform: 'win32'/);
+    assert.match(electronProductionPackager, /arch: 'x64'/);
+    assert.match(electronProductionPackager, /asar: false/);
+    assert.match(electronProductionPackager, /name: APP_EXECUTABLE_NAME/);
+    assert.match(electronProductionPackager, /executableName: APP_EXECUTABLE_NAME/);
+    assert.match(electronProductionPackager, /Kit does not declare the windows-x64 protected native binding as optional/);
+    assert.match(electronProductionPackager, /pnpm install --prod --frozen-lockfile --ignore-scripts --node-linker=hoisted/);
+    assert.match(electronProductionPackager, /dir: productionSourceRoot/);
+    assert.match(electronProductionPackager, /prune: false/);
+    assert.match(electronProductionPackager, /delete productionManifest\.devDependencies/);
+    assert.match(electronProductionPackager, /await rm\(path\.join\(productionSourceRoot, 'pnpm-lock\.yaml'\)\)/);
+    assert.match(electronProductionPackager, /await cp\(nativePackageRoot, nativeDestination/);
+    assert.match(electronProductionPackager, /let packageCompleted = false/);
+    assert.match(electronProductionPackager, /packageCompleted = true/);
+    assert.match(electronProductionPackager, /if \(!packageCompleted\) cleanupTasks\.push\(rm\(outputRoot, \{ recursive: true, force: true \}\)\)/);
+    assert.match(electronProductionPackager, /await Promise\.all\(cleanupTasks\)/);
+    assert.doesNotMatch(electronProductionPackager, /afterPrune|ignoreElectronProductionSource|dir: appRoot|prune: true/);
+    assert.doesNotMatch(electronProductionPackager, /path\.relative\(appRoot, candidate\)/);
+    for (const sectionName of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
+      assert.equal(
+        Object.hasOwn(packageJson[sectionName] || {}, '@nimiplatform/kit-protected-local-win32-x64'),
+        false,
+        `App must not directly declare the Kit-owned native binding in ${sectionName}`,
+      );
+    }
+    const buildProfile = parseYaml(generated.read('.nimi/config/build-profile.yaml'));
+    assert.equal(buildProfile.build_profile_ref, 'electron-packager-pnpm-vite');
+    assert.equal(buildProfile.build_command, 'pnpm run build:electron:production');
+    assert.equal(buildProfile.output_path, 'dist-electron-package');
+    assert.deepEqual(buildProfile.targets['windows-x86_64'], {
+      os: 'windows',
+      arch: 'x86_64',
+      build_command: 'pnpm run build:electron:production',
+      payload_path: 'dist-electron-package/acme-widget-shell-win32-x64',
+      runtime_entry: 'payload/acme-widget-shell.exe',
+    });
     assert.match(generated.read('src-tauri/src/main.rs'), /RuntimeBridgeLocalAppHost::platform_default\(\)/);
+    const tauriBuildScript = generated.read('src-tauri/build.rs');
+    assert.match(tauriBuildScript, /requestedExecutionLevel level="asInvoker" uiAccess="false"/u);
+    assert.match(tauriBuildScript, /WindowsAttributes::new\(\)\.app_manifest\(WINDOWS_APP_MANIFEST\)/u);
+    assert.doesNotMatch(tauriBuildScript, /requireAdministrator|highestAvailable|uiAccess="true"/u);
     assert.equal(lock.managedFileHashes['src/shell/workbench-target-adapter.ts'].class, 'scaffold-managed glue');
     assert.equal(Object.hasOwn(lock.managedFileHashes, 'src/shell/auth/auth-gate.tsx'), false);
     assert.equal(lock.appOwnedInitialHashes['package.json'].class, 'app-owned product code');
@@ -474,9 +588,18 @@ test('standalone scaffold creates a generic starter with rewritten identity', ()
       'canonical-main ancestry must fail before production preflight',
     );
     assert.deepEqual(workflow.jobs['build-target'].permissions, { contents: 'read' });
-    const productionBuild = workflow.jobs['build-target'].steps.find((step) => step.name === 'Build and sign production target');
+    const productionBuild = workflow.jobs['build-target'].steps.find((step) => step.name === 'Build production target');
+    assert.ok(productionBuild, 'generated workflow must include the tag-only production build');
     assert.match(productionBuild.if, /event_name == 'push'/u);
     assert.match(productionBuild.run, /build --target .* --production/u);
+    assert.deepEqual(productionBuild.env, {
+      NIMI_APP_TARGET: '${{ matrix.target }}',
+      NIMI_APP_PRODUCTION: true,
+    });
+    assert.doesNotMatch(
+      workflowSource,
+      /WINDOWS_CERTIFICATE_BASE64|WINDOWS_CERTIFICATE_PASSWORD|\bPFX\b|Build and sign production target/iu,
+    );
     const developmentBuild = workflow.jobs['build-target'].steps.find((step) => step.name === 'Build development target');
     assert.deepEqual(developmentBuild.env, { NIMI_APP_TARGET: '${{ matrix.target }}' });
     assert.doesNotMatch(developmentBuild.run, /--production/u);
@@ -712,6 +835,12 @@ test('generated package.json scripts reference only commands and existing local 
     assert.equal(packageJson.scripts.dev, 'nimi-app dev --shell electron');
     assert.equal(packageJson.scripts['dev:shell'], 'nimi-app dev');
     assert.equal(packageJson.scripts['dev:electron'], 'nimi-app dev --shell electron');
+    assert.equal(packageJson.main, 'dist-electron/main.js');
+    assert.equal(packageJson.scripts['build:electron'], 'tsc -p tsconfig.electron.json && node scripts/bundle-electron-preload.mjs');
+    assert.equal(packageJson.scripts['build:electron:production'], 'node scripts/clean-electron-production.mjs && pnpm run build && pnpm run build:electron && node scripts/package-electron-production.mjs');
+    assert.match(packageJson.scripts['build:electron:production'], /^node scripts\/clean-electron-production\.mjs && /);
+    assert.equal(packageJson.scripts['build:tauri:production'], 'tauri build');
+    assert.equal(packageJson.scripts['build:shell'], undefined);
     assert.equal(packageJson.scripts.postinstall, 'install-electron --no');
     assert.doesNotMatch(JSON.stringify(packageJson.scripts), /--shell\s+tauri/);
     assert.doesNotMatch(JSON.stringify(packageJson.scripts), /(?:^|\s)tauri dev(?:\s|$)/);
@@ -798,14 +927,17 @@ test('cli standalone scaffold uses current public dependency version sources', (
     const expectedSdkVersion = appToolsPackageJson.nimiScaffoldVersions.sdkVersion;
     const expectedKitVersion = appToolsPackageJson.nimiScaffoldVersions.kitVersion;
     const expectedNimicodingVersion = appToolsPackageJson.nimiScaffoldVersions.nimicodingVersion;
+    const expectedElectronPackagerVersion = appToolsPackageJson.nimiScaffoldVersions.electronPackagerVersion;
     assert.equal(expectedNimicodingVersion, rootPackageJson.devDependencies['@nimiplatform/nimi-coding']);
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], expectedSdkVersion);
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], expectedKitVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/app-tools'], expectedAppToolsVersion);
     assert.equal(packageJson.devDependencies['@nimiplatform/nimi-coding'], expectedNimicodingVersion);
+    assert.equal(packageJson.devDependencies['@electron/packager'], expectedElectronPackagerVersion);
     assert.equal(packageJson.devDependencies.yaml, '^2.9.0');
     assert.equal(lock.dependencyMatrix.npm['@nimiplatform/sdk'], expectedSdkVersion);
     assert.equal(lock.dependencyMatrix.npm['@nimiplatform/app-tools'], expectedAppToolsVersion);
+    assert.equal(lock.dependencyMatrix.npm['@electron/packager'], expectedElectronPackagerVersion);
     assert.equal(lock.dependencyMatrix.npm.yaml, '^2.9.0');
   } finally {
     generated.cleanup();
@@ -850,6 +982,8 @@ test('cli help projects the current registry lifecycle and honest workflow witho
   assert.match(readme, /third-party[\s\S]*public npm and Cargo dependency versions/iu);
   assert.match(readme, /non-public validation topology[\s\S]*not a public profile/u);
   assert.match(starterReadme, /App-owned product code/u);
+  assert.match(starterReadme, /publisher may sign[\s\S]*explicit unsigned posture/iu);
+  assert.doesNotMatch(starterReadme, /WINDOWS_CERTIFICATE_BASE64|WINDOWS_CERTIFICATE_PASSWORD|publisher PFX/iu);
   assert.match(starterAgents, /create -> dependency install -> init -> sync -> check -> dev\/test\/build -> pack/u);
   for (const content of [readme, starterReadme]) {
     const installAt = content.indexOf('pnpm install');
@@ -2318,7 +2452,7 @@ test('sync adopts and check audits an existing submitted App without creating a 
       identifier: 'ai.nimi.apps.existing.app',
     }, null, 2)}\n`);
     writeFileSync(path.join(target, '.nimi', 'config', 'build-profile.yaml'), [
-      'build_profile_ref: existing-test',
+      'build_profile_ref: tauri-pnpm-vite',
       'test_command: pnpm run test:app',
       'build_command: pnpm run build:shell',
       'targets:',

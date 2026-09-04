@@ -1,5 +1,9 @@
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-009b
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-014a
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-018a
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-024a
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-024b
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-034a
 
 import { createHash } from 'node:crypto';
 import {
@@ -11,14 +15,15 @@ import {
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 import { parse as parseYaml } from 'yaml';
-import { windowsPowerShellEnv } from './windows-powershell.mjs';
+import { observeWindowsExecutableFacts } from './windows-powershell.mjs';
 
 const PACKAGE_FORMAT = 'nimi.app-package/v1';
 const TARGET_METADATA_FORMAT = 'nimi.app-target-candidate/v1';
 const AGGREGATE_FORMAT = 'nimi.app-release-candidate/v1';
 const BUILD_PROFILE_PATH = '.nimi/config/build-profile.yaml';
+const ELECTRON_BUILD_PROFILE_REF = 'electron-packager-pnpm-vite';
+const TAURI_BUILD_PROFILE_REF = 'tauri-pnpm-vite';
 const OUTPUT_DIR = 'dist/nimi-app';
 const SEMVER_PATTERN = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/u;
 const TARGETS = Object.freeze({
@@ -37,6 +42,10 @@ function sortedValue(value) {
 
 function canonicalJson(value) {
   return `${JSON.stringify(sortedValue(value), null, 2)}\n`;
+}
+
+function sameCanonicalValue(left, right) {
+  return JSON.stringify(sortedValue(left)) === JSON.stringify(sortedValue(right));
 }
 
 function canonicalRelative(value, field) {
@@ -262,20 +271,30 @@ function readPackInputs(targetDir, targetId) {
   }
   const manifestPath = path.join(targetDir, 'nimi.app.yaml');
   const manifest = readYaml(manifestPath, 'nimi.app.yaml');
-  const cargoPath = path.join(targetDir, 'src-tauri', 'Cargo.toml');
-  if (!existsSync(cargoPath)) throw new Error('src-tauri/Cargo.toml is missing');
-  const tauriConfig = readJson(path.join(targetDir, 'src-tauri', 'tauri.conf.json'), 'src-tauri/tauri.conf.json');
   const buildProfile = readYaml(path.join(targetDir, BUILD_PROFILE_PATH), BUILD_PROFILE_PATH);
+  const buildProfileRef = buildProfile.build_profile_ref;
+  if (buildProfileRef !== ELECTRON_BUILD_PROFILE_REF && buildProfileRef !== TAURI_BUILD_PROFILE_REF) {
+    throw new Error(`${BUILD_PROFILE_PATH} build_profile_ref is unsupported: ${String(buildProfileRef)}`);
+  }
+  const requiresTauri = buildProfileRef === TAURI_BUILD_PROFILE_REF;
   const appId = String(manifest.app_id || '');
   const version = String(packageJson.version || '');
   if (!/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/u.test(appId)) throw new Error('nimi.app.yaml app_id must be canonical and dotted');
-  if (
-    !SEMVER_PATTERN.test(version)
-    || manifest.version !== version
-    || readCargoPackageVersion(readFileSync(cargoPath, 'utf8')) !== version
-    || tauriConfig.version !== version
-  ) {
-    throw new Error('package.json, nimi.app.yaml, Cargo.toml, and tauri.conf.json versions must be exact and lockstep before pack');
+  if (!SEMVER_PATTERN.test(version) || manifest.version !== version) {
+    throw new Error('package.json and nimi.app.yaml versions must be exact and lockstep before pack');
+  }
+  if (requiresTauri) {
+    const cargoPath = path.join(targetDir, 'src-tauri', 'Cargo.toml');
+    const tauriPath = path.join(targetDir, 'src-tauri', 'tauri.conf.json');
+    if (!existsSync(cargoPath)) throw new Error('src-tauri/Cargo.toml is missing');
+    if (!existsSync(tauriPath)) throw new Error('src-tauri/tauri.conf.json is missing');
+    const tauriConfig = readJson(tauriPath, 'src-tauri/tauri.conf.json');
+    if (
+      readCargoPackageVersion(readFileSync(cargoPath, 'utf8')) !== version
+      || tauriConfig.version !== version
+    ) {
+      throw new Error('package.json, nimi.app.yaml, Cargo.toml, and tauri.conf.json versions must be exact and lockstep before pack');
+    }
   }
   const configured = buildProfile.targets?.[targetId];
   if (!configured || typeof configured !== 'object' || Array.isArray(configured)) throw new Error(`Build profile does not declare target: ${targetId}`);
@@ -292,37 +311,111 @@ function readPackInputs(targetDir, targetId) {
   return { target, targetId, targetDir, packageJson, licensePath, manifestPath, appId, version, payloadPath: payload.resolved, runtimeEntry, runtimeHostPath };
 }
 
-function requireCommand(result, label) {
-  if (result.status !== 0) {
-    const detail = [result.error?.message, result.stdout, result.stderr].filter(Boolean).join('\n').trim();
-    throw new Error(`${label} failed${detail ? `: ${detail}` : ''}`);
+export function classifyWindowsNativeTrustObservation(observation) {
+  const {
+    status,
+    signature_type: signatureType,
+    certificate_subject: certificateSubject,
+  } = observation || {};
+  if (status === 'NotSigned' && signatureType === 'None' && certificateSubject === null) {
+    return Object.freeze({
+      posture: 'production-unsigned',
+      windows_authenticode: 'unsigned',
+      certificate_subject: null,
+    });
   }
-  return [result.stdout, result.stderr].filter(Boolean).join('\n');
+  if (
+    status === 'Valid'
+    && signatureType === 'Authenticode'
+    && typeof certificateSubject === 'string'
+    && certificateSubject.length > 0
+    && certificateSubject === certificateSubject.trim()
+  ) {
+    return Object.freeze({
+      posture: 'observed-valid-native-signature',
+      windows_authenticode: 'valid',
+      certificate_subject: certificateSubject,
+    });
+  }
+  throw new Error(`Windows Authenticode verification failed: status=${String(status)}, type=${String(signatureType)}, signer=${certificateSubject === null ? 'absent' : 'present'}`);
 }
 
-function verifyWindowsNativeTrust(input) {
+function observeProductionWindowsFacts(input, archivedRuntimeEntryBytes) {
   if (process.platform !== 'win32' || process.arch !== 'x64') throw new Error('Production Windows pack must run on windows-x86_64');
-  const result = spawnSync('powershell.exe', [
-    '-NoProfile',
-    '-NonInteractive',
-    '-Command',
-    "$signature = Get-AuthenticodeSignature -LiteralPath $env:NIMI_APP_SIGN_TARGET; if ($signature.Status -ne 'Valid' -or -not $signature.SignerCertificate) { Write-Error ('Authenticode status: ' + $signature.Status); exit 1 }; $signature.SignerCertificate.Subject",
-  ], {
-    encoding: 'utf8',
-    env: windowsPowerShellEnv({ NIMI_APP_SIGN_TARGET: input.runtimeHostPath }),
-  });
-  const subject = requireCommand(result, 'Windows Authenticode verification').trim();
-  if (!subject) throw new Error('Windows Authenticode verification returned no signer subject');
-  return {
-    posture: 'observed-valid-native-signature',
-    windows_authenticode: 'valid',
-    certificate_subject: subject,
-  };
+  const observed = observeWindowsExecutableFacts(input.runtimeHostPath);
+  const currentRuntimeEntryBytes = readFileSync(input.runtimeHostPath);
+  if (!archivedRuntimeEntryBytes.equals(currentRuntimeEntryBytes)) {
+    throw new Error('Production Runtime entry changed while native and execution facts were observed');
+  }
+  const nativeTrust = classifyWindowsNativeTrustObservation(observed.authenticode);
+  return { nativeTrust, executionProfile: observed.execution_profile };
 }
 
-function resolveNativeTrust(input, production) {
-  if (!production) return { posture: 'development-unsigned' };
-  return verifyWindowsNativeTrust(input);
+function resolveTargetFacts(input, production, archivedRuntimeEntryBytes) {
+  if (!production) {
+    return {
+      nativeTrust: { posture: 'development-unsigned' },
+      executionProfile: null,
+    };
+  }
+  return observeProductionWindowsFacts(input, archivedRuntimeEntryBytes);
+}
+
+function validateNativeExecutionFacts(nativeTrust, executionProfile, label) {
+  if (!nativeTrust || typeof nativeTrust !== 'object' || Array.isArray(nativeTrust)) {
+    throw new Error(`${label} native_trust must be an object`);
+  }
+  if (nativeTrust.posture === 'development-unsigned') {
+    if (executionProfile !== null || Object.keys(nativeTrust).length !== 1) {
+      throw new Error(`${label} development native/execution posture is inconsistent`);
+    }
+    return;
+  }
+  if (
+    !executionProfile
+    || typeof executionProfile !== 'object'
+    || Array.isArray(executionProfile)
+    || executionProfile.requested_execution_level !== 'asInvoker'
+    || executionProfile.ui_access !== false
+    || Object.keys(executionProfile).sort().join(',') !== 'requested_execution_level,ui_access'
+  ) {
+    throw new Error(`${label} ordinary Windows execution_profile must be exactly asInvoker with ui_access=false`);
+  }
+  if (nativeTrust.posture === 'production-unsigned') {
+    if (
+      nativeTrust.windows_authenticode !== 'unsigned'
+      || nativeTrust.certificate_subject !== null
+      || Object.keys(nativeTrust).sort().join(',') !== 'certificate_subject,posture,windows_authenticode'
+    ) {
+      throw new Error(`${label} production unsigned native_trust is inconsistent`);
+    }
+    return;
+  }
+  if (nativeTrust.posture === 'observed-valid-native-signature') {
+    if (
+      nativeTrust.windows_authenticode !== 'valid'
+      || typeof nativeTrust.certificate_subject !== 'string'
+      || !nativeTrust.certificate_subject
+      || nativeTrust.certificate_subject !== nativeTrust.certificate_subject.trim()
+      || Object.keys(nativeTrust).sort().join(',') !== 'certificate_subject,posture,windows_authenticode'
+    ) {
+      throw new Error(`${label} signed native_trust is inconsistent`);
+    }
+    return;
+  }
+  throw new Error(`${label} native_trust posture is unsupported`);
+}
+
+function readPackageManifestFromArchive(entries, label) {
+  const entry = entries.get('manifest.json');
+  if (!entry) throw new Error(`${label} archive manifest.json is missing`);
+  try {
+    const manifest = JSON.parse(entry.bytes.toString('utf8'));
+    if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) throw new Error('root must be an object');
+    return manifest;
+  } catch (error) {
+    throw new Error(`${label} archive manifest.json is invalid: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 export function packAppTarget(cwd, options = {}) {
@@ -334,8 +427,9 @@ export function packAppTarget(cwd, options = {}) {
     const name = `payload/${entry.relative.replaceAll('\\', '/')}`;
     return { name, bytes: entry.bytes, mode: name === input.runtimeEntry ? 0o755 : entry.mode };
   });
-  if (!payloadEntries.some((entry) => entry.name === input.runtimeEntry)) throw new Error(`runtime_entry is missing from target payload: ${input.runtimeEntry}`);
-  const nativeTrust = resolveNativeTrust(input, options.production === true);
+  const runtimeEntry = payloadEntries.find((entry) => entry.name === input.runtimeEntry);
+  if (!runtimeEntry) throw new Error(`runtime_entry is missing from target payload: ${input.runtimeEntry}`);
+  const { nativeTrust, executionProfile } = resolveTargetFacts(input, options.production === true, runtimeEntry.bytes);
   const packageManifest = {
     format: PACKAGE_FORMAT,
     app_id: input.appId,
@@ -345,6 +439,7 @@ export function packAppTarget(cwd, options = {}) {
     arch: input.target.arch,
     runtime_entry: input.runtimeEntry,
     native_trust: nativeTrust,
+    execution_profile: executionProfile,
   };
   const archive = writeNimiAppArchive([
     { name: 'LICENSE', bytes: readFileSync(input.licensePath), mode: 0o644 },
@@ -371,6 +466,7 @@ export function packAppTarget(cwd, options = {}) {
     sha256,
     runtime_entry: input.runtimeEntry,
     native_trust: packageManifest.native_trust,
+    execution_profile: packageManifest.execution_profile,
   };
   writeFileSync(metadataPath, canonicalJson(metadata));
   return { ok: true, command: 'pack', dir: targetDir, artifactPath, metadataPath, ...metadata };
@@ -387,13 +483,39 @@ export function aggregateAppTargetCandidates(cwd, options = {}) {
   const version = targets[0].version;
   const seen = new Set();
   for (const target of targets) {
+    const metadataLabel = `${target.target_id || 'unknown'} target metadata`;
     if (target.format !== TARGET_METADATA_FORMAT || target.app_id !== appId || target.version !== version) throw new Error('Target metadata cannot be aggregated across App releases');
     if (seen.has(target.target_id)) throw new Error(`Duplicate target metadata: ${target.target_id}`);
     seen.add(target.target_id);
-    const artifactPath = path.join(outputDir, target.asset_name);
+    const expectedTarget = TARGETS[target.target_id];
+    if (!expectedTarget || target.os !== expectedTarget.os || target.arch !== expectedTarget.arch) {
+      throw new Error(`Target metadata identity is invalid: ${target.target_id}`);
+    }
+    const assetName = canonicalRelative(target.asset_name, `${metadataLabel}.asset_name`);
+    if (assetName !== path.basename(assetName)) throw new Error(`Target asset_name must be a direct file name: ${assetName}`);
+    if (!Number.isSafeInteger(target.size) || target.size <= 0 || !/^[a-f0-9]{64}$/u.test(target.sha256)) {
+      throw new Error(`Target artifact size or SHA-256 is invalid: ${assetName}`);
+    }
+    const runtimeEntry = canonicalRelative(target.runtime_entry, `${metadataLabel}.runtime_entry`);
+    if (!runtimeEntry.startsWith('payload/')) throw new Error(`Target runtime_entry must resolve inside payload: ${runtimeEntry}`);
+    validateNativeExecutionFacts(target.native_trust, target.execution_profile, metadataLabel);
+    const artifactPath = path.join(outputDir, assetName);
     if (!existsSync(artifactPath)) throw new Error(`Target artifact is missing: ${target.asset_name}`);
     const bytes = readFileSync(artifactPath);
     if (bytes.length !== target.size || createHash('sha256').update(bytes).digest('hex') !== target.sha256) throw new Error(`Target artifact changed after pack: ${target.asset_name}`);
+    const entries = readNimiAppArchive(bytes);
+    const manifest = readPackageManifestFromArchive(entries, metadataLabel);
+    if (manifest.format !== PACKAGE_FORMAT) throw new Error(`Target archive manifest format is invalid: ${target.asset_name}`);
+    for (const field of ['app_id', 'version', 'target_id', 'os', 'arch', 'runtime_entry', 'native_trust', 'execution_profile']) {
+      if (!sameCanonicalValue(target[field], manifest[field])) {
+        throw new Error(`Target metadata does not match archive manifest ${field}: ${target.asset_name}`);
+      }
+    }
+    validateNativeExecutionFacts(manifest.native_trust, manifest.execution_profile, `${target.asset_name} archive manifest`);
+    const runtimeEntryArchive = entries.get(runtimeEntry);
+    if (!runtimeEntryArchive || runtimeEntryArchive.mode !== 0o755) {
+      throw new Error(`Target archive runtime_entry is missing or non-executable: ${runtimeEntry}`);
+    }
   }
   const candidate = { format: AGGREGATE_FORMAT, app_id: appId, version, targets: targets.sort((left, right) => compareText(left.target_id, right.target_id)) };
   const candidatePath = path.join(outputDir, `${appId}-${version}.candidate.json`);
