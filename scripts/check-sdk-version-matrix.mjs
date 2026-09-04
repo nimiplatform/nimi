@@ -319,16 +319,22 @@ async function main() {
       violations.push(`${crate.path}: failed to read (${String(error)})`);
     }
   }
-  const shellVersion = shellCrates[0]?.version || '';
-  for (const crate of shellCrates.slice(1)) {
-    if (crate.version !== shellVersion) {
-      violations.push(`${crate.name} version ${crate.version || '<missing>'} must match nimi-shell-protected-local ${shellVersion}`);
-    }
+  const shellCratesByName = new Map(shellCrates.map((crate) => [crate.name, crate]));
+  const protectedLocalVersion = shellCratesByName.get('nimi-shell-protected-local')?.version || '';
+  const protectedLocalNode = shellCratesByName.get('nimi-shell-protected-local-node');
+  const tauriVersion = shellCratesByName.get('nimi-shell-tauri')?.version || '';
+  if (protectedLocalNode && protectedLocalNode.version !== protectedLocalVersion) {
+    violations.push(
+      `${protectedLocalNode.name} version ${protectedLocalNode.version || '<missing>'} `
+      + `must match nimi-shell-protected-local ${protectedLocalVersion}`,
+    );
   }
   for (const crate of shellCrates.filter((item) => item.name !== 'nimi-shell-protected-local')) {
     const dependencyVersion = readInlineCargoDependencyVersion(crate.source, 'nimi-shell-protected-local');
-    if (dependencyVersion !== shellVersion) {
-      violations.push(`${crate.name} dependency nimi-shell-protected-local must be exact version ${shellVersion}`);
+    if (dependencyVersion !== protectedLocalVersion) {
+      violations.push(
+        `${crate.name} dependency nimi-shell-protected-local must be exact version ${protectedLocalVersion}`,
+      );
     }
   }
 
@@ -342,8 +348,8 @@ async function main() {
   if (scaffoldVersions?.appToolsVersion !== expectedAppToolsRange) {
     violations.push(`app-tools/package.json nimiScaffoldVersions.appToolsVersion must be "${expectedAppToolsRange}"`);
   }
-  if (scaffoldVersions?.nimiShellTauriVersion !== shellVersion) {
-    violations.push(`app-tools/package.json nimiScaffoldVersions.nimiShellTauriVersion must be "${shellVersion}"`);
+  if (scaffoldVersions?.nimiShellTauriVersion !== tauriVersion) {
+    violations.push(`app-tools/package.json nimiScaffoldVersions.nimiShellTauriVersion must be "${tauriVersion}"`);
   }
 
   if (sdkPackage?.version) {
