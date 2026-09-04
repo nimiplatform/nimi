@@ -1470,7 +1470,6 @@ impl LocalAppSessionState {
 pub enum LocalAppTrustClass {
     Unspecified = 0,
     Verified = 1,
-    UserImported = 2,
     LocalDevelopment = 3,
 }
 impl LocalAppTrustClass {
@@ -1482,7 +1481,6 @@ impl LocalAppTrustClass {
         match self {
             Self::Unspecified => "LOCAL_APP_TRUST_CLASS_UNSPECIFIED",
             Self::Verified => "LOCAL_APP_TRUST_CLASS_VERIFIED",
-            Self::UserImported => "LOCAL_APP_TRUST_CLASS_USER_IMPORTED",
             Self::LocalDevelopment => "LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT",
         }
     }
@@ -1491,7 +1489,6 @@ impl LocalAppTrustClass {
         match value {
             "LOCAL_APP_TRUST_CLASS_UNSPECIFIED" => Some(Self::Unspecified),
             "LOCAL_APP_TRUST_CLASS_VERIFIED" => Some(Self::Verified),
-            "LOCAL_APP_TRUST_CLASS_USER_IMPORTED" => Some(Self::UserImported),
             "LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT" => Some(Self::LocalDevelopment),
             _ => None,
         }
@@ -11577,7 +11574,6 @@ impl AppStorageState {
 pub enum AppPackageSourceClass {
     Unspecified = 0,
     Verified = 1,
-    UserImported = 2,
 }
 impl AppPackageSourceClass {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -11588,7 +11584,6 @@ impl AppPackageSourceClass {
         match self {
             Self::Unspecified => "APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED",
             Self::Verified => "APP_PACKAGE_SOURCE_CLASS_VERIFIED",
-            Self::UserImported => "APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -11596,7 +11591,6 @@ impl AppPackageSourceClass {
         match value {
             "APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED" => Some(Self::Unspecified),
             "APP_PACKAGE_SOURCE_CLASS_VERIFIED" => Some(Self::Verified),
-            "APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED" => Some(Self::UserImported),
             _ => None,
         }
     }
@@ -11642,7 +11636,6 @@ pub enum AppPackageJobPhase {
     Unspecified = 0,
     Queued = 1,
     Downloading = 2,
-    ReadingLocal = 3,
     Verifying = 4,
     VerifyingInstalled = 5,
     AcquiringMissing = 6,
@@ -11664,7 +11657,6 @@ impl AppPackageJobPhase {
             Self::Unspecified => "APP_PACKAGE_JOB_PHASE_UNSPECIFIED",
             Self::Queued => "APP_PACKAGE_JOB_PHASE_QUEUED",
             Self::Downloading => "APP_PACKAGE_JOB_PHASE_DOWNLOADING",
-            Self::ReadingLocal => "APP_PACKAGE_JOB_PHASE_READING_LOCAL",
             Self::Verifying => "APP_PACKAGE_JOB_PHASE_VERIFYING",
             Self::VerifyingInstalled => "APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED",
             Self::AcquiringMissing => "APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING",
@@ -11683,7 +11675,6 @@ impl AppPackageJobPhase {
             "APP_PACKAGE_JOB_PHASE_UNSPECIFIED" => Some(Self::Unspecified),
             "APP_PACKAGE_JOB_PHASE_QUEUED" => Some(Self::Queued),
             "APP_PACKAGE_JOB_PHASE_DOWNLOADING" => Some(Self::Downloading),
-            "APP_PACKAGE_JOB_PHASE_READING_LOCAL" => Some(Self::ReadingLocal),
             "APP_PACKAGE_JOB_PHASE_VERIFYING" => Some(Self::Verifying),
             "APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED" => Some(Self::VerifyingInstalled),
             "APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING" => Some(Self::AcquiringMissing),
