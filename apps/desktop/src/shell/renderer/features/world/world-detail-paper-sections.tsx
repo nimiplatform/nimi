@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, NimiText, Statistic, Surface, cn } from '@nimiplatform/kit/ui';
+import { EmptyState, NimiText, Statistic, Surface, cn } from '@nimiplatform/kit/ui';
 import type { WorldAssetExternalRef, WorldCharacter, WorldHistoryBundle, WorldSceneItem, WorldSemanticData } from './world-detail-types.js';
 import { characterMeta, sceneImageRef } from './world-detail-template-model';
 import {
@@ -15,10 +15,12 @@ import {
 import {
   IconArrow,
   IconBook,
+  IconChat,
   IconCompass,
   IconLanguages,
   IconLayers,
   IconMilestone,
+  IconPlus,
   IconScene,
   IconScrollText,
   IconShield,
@@ -221,7 +223,7 @@ function characterStatRow(character: WorldCharacter, t: ReturnType<typeof useTra
     return null;
   }
   return (
-    <div style={{ display: 'flex', gap: 18, margin: '14px 0 13px', padding: '10px 0', borderTop: '1px solid var(--nimi-border-subtle)', borderBottom: '1px solid var(--nimi-border-subtle)' }}>
+    <div style={{ display: 'flex', gap: 18, margin: '14px 0 0', padding: '10px 0', borderTop: '1px solid var(--nimi-border-subtle)' }}>
       {stats.map((stat) => (
         <div key={stat.label}>
           <span style={{ fontSize: 11, color: 'var(--nimi-text-muted)' }}>{stat.label} </span>
@@ -232,12 +234,100 @@ function characterStatRow(character: WorldCharacter, t: ReturnType<typeof useTra
   );
 }
 
+/** Compact header control for the character card — a small pill instead of a full-width primary button. */
+function PaperCharacterAction({
+  character,
+  onMaterializeSource,
+  onOpenConversation,
+}: {
+  character: WorldCharacter;
+  onMaterializeSource?: (character: WorldCharacter) => Promise<void> | void;
+  onOpenConversation?: (character: WorldCharacter) => Promise<void> | void;
+}) {
+  const { t } = useTranslation();
+  const state = character.relation?.state;
+  if (state === 'connected') {
+    return (
+      <button
+        type="button"
+        onClick={() => onOpenConversation?.(character)}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          flexShrink: 0,
+          padding: '5px 11px',
+          borderRadius: 999,
+          border: '1px solid var(--nimi-action-primary-bg)',
+          background: 'var(--nimi-action-primary-bg)',
+          color: 'var(--nimi-action-primary-text)',
+          fontFamily: 'var(--nimi-font-sans)',
+          fontSize: 12,
+          fontWeight: 600,
+          cursor: 'pointer',
+        }}
+      >
+        <IconChat size={13} color="currentColor" strokeWidth={2.2} />
+        {t('WorldDetail.paper.characters.chatNow')}
+      </button>
+    );
+  }
+  if (state === 'unavailable') {
+    return (
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          flexShrink: 0,
+          padding: '4px 9px',
+          borderRadius: 999,
+          fontSize: 11,
+          fontWeight: 600,
+          color: 'var(--nimi-text-muted)',
+          background: 'color-mix(in srgb, var(--nimi-text-muted) 10%, transparent)',
+        }}
+      >
+        {paperRelationLabel(character, t)}
+      </span>
+    );
+  }
+  const connectable = state === 'connectable';
+  return (
+    <button
+      type="button"
+      disabled={!connectable}
+      onClick={() => onMaterializeSource?.(character)}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        flexShrink: 0,
+        padding: '5px 11px',
+        borderRadius: 999,
+        border: '1px solid color-mix(in srgb, var(--nimi-action-primary-bg) 32%, transparent)',
+        background: 'color-mix(in srgb, var(--nimi-action-primary-bg) 8%, transparent)',
+        color: 'var(--nimi-action-primary-bg)',
+        fontFamily: 'var(--nimi-font-sans)',
+        fontSize: 12,
+        fontWeight: 600,
+        cursor: connectable ? 'pointer' : 'default',
+        opacity: connectable ? 1 : 0.55,
+      }}
+    >
+      <IconPlus size={13} color="currentColor" strokeWidth={2.2} />
+      {t('WorldDetail.paper.characters.connect')}
+    </button>
+  );
+}
+
 export function PaperCharactersSection({
   characters,
   loading,
   onSelect,
   onViewCharacter,
   onMaterializeSource,
+  onOpenConversation,
   onViewAll,
 }: {
   characters: readonly WorldCharacter[];
@@ -245,6 +335,7 @@ export function PaperCharactersSection({
   onSelect: (characterId: string) => void;
   onViewCharacter?: (character: WorldCharacter) => void;
   onMaterializeSource?: (character: WorldCharacter) => Promise<void> | void;
+  onOpenConversation?: (character: WorldCharacter) => Promise<void> | void;
   onViewAll: () => void;
 }) {
   const { t } = useTranslation();
@@ -267,64 +358,43 @@ export function PaperCharactersSection({
         <EmptyState title={t('WorldDetail.paper.characters.empty')} />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(232px,1fr))', gap: 13 }}>
-          {featured.map((character) => {
-            const connectable = character.relation?.state === 'connectable';
-            return (
-              <PaperCardSurface key={character.id} className="p-4">
-                <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                  <button
-                    type="button"
-                    aria-label={t('WorldDetail.paper.characters.openProfile', {
-                      name: character.name,
-                      defaultValue: `Open ${character.name} profile`,
-                    })}
-                    onClick={() => (onViewCharacter ? onViewCharacter(character) : onSelect(character.id))}
-                    style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer' }}
-                  >
-                    <PaperAvatar name={character.name} imageUrl={character.avatarUrl} size={54} />
-                  </button>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        aria-label={t('WorldDetail.paper.characters.openProfile', {
-                          name: character.name,
-                          defaultValue: `Open ${character.name} profile`,
-                        })}
-                        onClick={() => (onViewCharacter ? onViewCharacter(character) : onSelect(character.id))}
-                        style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 17, fontWeight: 700, color: 'var(--nimi-text-primary)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                      >
-                        {character.name}
-                      </button>
-                    </div>
-                    <NimiText as="div" role="helper" className="mt-1 truncate" style={{ color: 'var(--nimi-text-secondary)' }}>
-                      {characterMeta(character)}
-                    </NimiText>
+          {featured.map((character) => (
+            <PaperCardSurface key={character.id} className="p-4">
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <button
+                  type="button"
+                  aria-label={t('WorldDetail.paper.characters.openProfile', {
+                    name: character.name,
+                    defaultValue: `Open ${character.name} profile`,
+                  })}
+                  onClick={() => (onViewCharacter ? onViewCharacter(character) : onSelect(character.id))}
+                  style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer' }}
+                >
+                  <PaperAvatar name={character.name} imageUrl={character.avatarUrl} size={54} />
+                </button>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      aria-label={t('WorldDetail.paper.characters.openProfile', {
+                        name: character.name,
+                        defaultValue: `Open ${character.name} profile`,
+                      })}
+                      onClick={() => (onViewCharacter ? onViewCharacter(character) : onSelect(character.id))}
+                      style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 17, fontWeight: 700, color: 'var(--nimi-text-primary)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    >
+                      {character.name}
+                    </button>
                   </div>
+                  <NimiText as="div" role="helper" className="mt-1 truncate" style={{ color: 'var(--nimi-text-secondary)' }}>
+                    {characterMeta(character)}
+                  </NimiText>
                 </div>
-                {characterStatRow(character, t) ?? <div style={{ height: 14 }} />}
-                <div style={{ display: 'flex' }}>
-                  <Button
-                    type="button"
-                    tone="primary"
-                    size="sm"
-                    fullWidth
-                    disabled={!connectable}
-                    onClick={() => onMaterializeSource?.(character)}
-                    className="flex-1"
-                    style={{
-                      background: connectable ? 'var(--nimi-action-primary-bg)' : 'var(--nimi-border-subtle)',
-                      borderColor: connectable ? 'var(--nimi-action-primary-bg)' : 'var(--nimi-border-subtle)',
-                      color: connectable ? 'var(--nimi-action-primary-text)' : 'var(--nimi-text-muted)',
-                      cursor: connectable ? 'pointer' : 'default',
-                    }}
-                  >
-                    {paperRelationLabel(character, t)}
-                  </Button>
-                </div>
-              </PaperCardSurface>
-            );
-          })}
+                <PaperCharacterAction character={character} onMaterializeSource={onMaterializeSource} onOpenConversation={onOpenConversation} />
+              </div>
+              {characterStatRow(character, t)}
+            </PaperCardSurface>
+          ))}
         </div>
       )}
     </PaperSection>

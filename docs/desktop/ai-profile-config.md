@@ -2,20 +2,23 @@
 
 ## Status: Desktop-Owned Configuration Surfaces
 
-Desktop exposes two distinct configuration concerns:
+Desktop has two separate kinds of AI settings:
 
-- Agent Center presents owner-scoped `AIConfig` capability intent.
-- Runtime configuration manages machine profiles, providers, engines, and local
-  assets.
+- Agent Center, where you set Local or Cloud intent per capability for
+  a specific App or Agent.
+- Runtime configuration, where you manage machine profiles, providers,
+  engines, and local assets.
 
-They must remain separate. Applying machine configuration does not create an
-App- or Agent-visible execution binding.
+Keep the two apart in your mental model. Applying machine
+configuration never creates an execution binding that an App or Agent
+can see.
 
 ## Agent Center AIConfig
 
-For an exact App or Agent owner, the AIConfig section presents each admitted
-capability and its Local or Cloud intent. Saving replaces that owner's complete
-capability list through the authorized session.
+Pick an App or Agent owner, and the AIConfig section shows each
+available capability with its Local or Cloud intent. Saving replaces
+that owner's complete capability list, and it goes through the
+authorized session.
 
 | AIConfig owns | AIConfig does not own |
 | --- | --- |
@@ -24,19 +27,20 @@ capability list through the authorized session.
 | Local or Cloud intent | Engine or asset binding |
 | Authorized overwrite action | Readiness, health, or fallback policy |
 
-Local and Cloud are capability intents. They do not identify which model,
-provider, connector, endpoint, or machine route will execute a request.
+Local and Cloud are intents, not bindings. They never identify which
+model, provider, connector, endpoint, or machine route will execute a
+request.
 
 ## Runtime Machine Profiles
 
-Desktop may provide a separate administration UI for portable `AIProfile`
-packages and machine-local resources. That UI can validate, import, install, or
-remove Runtime configuration. The resulting state belongs to Runtime and may
-influence Runtime's future implementation selection.
+A separate administration UI handles portable `AIProfile` packages and
+machine-local resources. You can validate, import, install, or remove
+Runtime configuration there. The resulting state belongs to Runtime
+and can influence which implementation Runtime picks later.
 
-A machine profile is not copied into owner `AIConfig`, attached to an
-`AIScopeRef`, or sent with an App request. Runtime chooses among its admitted
-implementations when the request arrives.
+A machine profile is never copied into an owner's `AIConfig`, attached
+to an `AIScopeRef`, or sent along with an App request. When a request
+arrives, Runtime chooses among its available implementations.
 
 ## Reader Scenario: Set Agent Capability Intent
 
@@ -60,14 +64,15 @@ implementations when the request arrives.
 4. **Future request.** Runtime can consider the new machine state while retaining
    sole implementation-selection authority.
 
-## Public Boundary
+## Key Points
 
-- Agent Center edits owner capability intent, not execution profiles.
-- Runtime configuration manages machine resources, not App request controls.
-- Desktop does not expose per-owner profile binding, model routing, connector
-  selection, readiness, or fallback UI.
-- Runtime-issued execution evidence may be displayed for diagnostics, but it
-  cannot become the next request's input.
+- Agent Center edits your capability intent, not execution profiles.
+- Runtime configuration manages machine resources, not App request
+  controls.
+- Desktop intentionally has no UI for per-owner profile binding, model
+  routing, connector selection, readiness, or fallback.
+- Runtime's execution evidence can be displayed for diagnostics, but
+  it never becomes the next request's input.
 
 ## Source Basis
 

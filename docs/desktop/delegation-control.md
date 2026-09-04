@@ -2,24 +2,23 @@
 
 ## Status: Admitted Contract; Desktop-Owned Surface
 
-The Desktop agent delegation control surface contract
-(`canonical/desktop/agent-projection.authority.yaml`) is
-admitted at the kernel level. The user-facing approval +
-quarantine UI is admitted as direction; public behavior belongs to Desktop,
-not to app-owned SDK code.
+Delegation Control is a Desktop surface, defined at the kernel level
+(`canonical/desktop/agent-projection.authority.yaml`). The approval
+and quarantine UI you use belongs to Desktop itself, not to app-owned
+SDK code.
 
 ## What Delegation Control Is
 
-The Desktop Delegation Control surface is the **user-facing
-control plane** for delegated capability — where a user sees an
-approval prompt for an external AI's suggestion, where the user
-reviews quarantined evidence, where the user approves or denies a
-delegated action.
+Delegation Control is where **you stay in charge** of delegated
+capability. When an external AI suggests an action, the approval
+prompt appears here. When an output is quarantined, you review the
+evidence here. You approve or deny — nothing proceeds on your behalf
+without you.
 
 The runtime side (gateway + output firewall + verdicts) lives in
 [Runtime → Delegated Capability](/runtime/delegated-capability).
-This page covers the Desktop control surface that surfaces those
-verdicts to the user.
+This page covers the Desktop control surface that brings those
+verdicts to you.
 
 ## Boundary
 
@@ -30,8 +29,8 @@ verdicts to the user.
 | User-facing reason copy | Reason code semantics (Runtime) |
 | Per-user policy preferences for approval defaults | Trust tier admission (Runtime) |
 
-The control surface is rendering + decision capture. Verdicts and
-quarantine logic are runtime authority.
+This surface renders the situation and captures your decision. The
+verdicts and quarantine logic themselves come from Runtime.
 
 ## Reader Scenario: Approval Prompt
 
@@ -62,12 +61,11 @@ Provider drift or sensitivity classification quarantines an output.
 
 ## What Delegation Control Does Not Do
 
-- It does not invent firewall verdicts.
-- It does not silently change quarantine semantics.
-- It does not allow approval-bypass shortcuts.
-- It does not let user-preference policy override runtime-admitted
-  approval requirements (preferences live within the admitted
-  policy envelope).
+- It never makes up a firewall verdict.
+- It never quietly changes quarantine semantics.
+- It offers no approval-bypass shortcuts.
+- Your preference policy can streamline prompts, but it can't override
+  an approval Runtime requires.
 
 ## Source Basis
 

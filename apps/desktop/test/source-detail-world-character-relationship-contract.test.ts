@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   React,
   SourceDetailView,
+  changeLocale,
   initI18n,
   ouYangDeRaw,
   renderToStaticMarkup,
@@ -132,6 +133,80 @@ test('world character relationship map renders posted address clues with locatio
   assert.doesNotMatch(cardMarkup, /lucide-user-round/);
 });
 
+test('world character relationship map localizes kinship kind labels', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData({
+      ...ouYangDeRaw,
+      characterProfile: {
+        ...ouYangDeRaw.characterProfile,
+        relationshipNotes: [],
+      },
+      relationships: [
+        {
+          id: 'cbdb-rel-99984-kinship-wen-shi-1',
+          type: 'kinship',
+          sourceEntityId: 'cbdb-person-99984',
+          targetEntityId: 'cbdb-person-wen-shi',
+          contentHash: 'rel-kinship-wen-shi-hash',
+          core: {
+            presentation: {
+              summary: '温氏与欧阳德存在亲属关系。',
+            },
+            attributes: {
+              targetLabel: '温氏',
+              rowRef: 'cbdb:KINSHIP_DATA:99984:wen-shi:1',
+              joinStatus: 'resolved',
+            },
+          },
+        },
+      ],
+    }, 'source_materialization_available');
+    const markup = renderToStaticMarkup(
+      React.createElement(SourceDetailView, {
+        source,
+        stats: null,
+        loading: false,
+        error: false,
+        onBack: () => {},
+        onOpenWorld: () => {},
+        onPrimaryAction: () => {},
+      }),
+    );
+
+    assert.match(markup, />亲属</);
+    assert.doesNotMatch(markup, />kinship</);
+    assert.match(markup, /围绕亲属展开/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('world character relationship map never renders raw target entity ids from profile notes', () => {
+  const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
+  const markup = renderToStaticMarkup(
+    React.createElement(SourceDetailView, {
+      source,
+      stats: null,
+      loading: false,
+      error: false,
+      onBack: () => {},
+      onOpenWorld: () => {},
+      onPrimaryAction: () => {},
+    }),
+  );
+
+  const mapStart = markup.indexOf('data-testid="world-character-relationship-map"');
+  const mapEnd = markup.indexOf('<div class="mt-4 flex flex-wrap gap-2">', mapStart);
+  const mapMarkup = markup.slice(mapStart, mapEnd);
+
+  assert.doesNotMatch(mapMarkup, /cbdb-status-181/);
+  assert.doesNotMatch(mapMarkup, /cbdb-office-70625/);
+  assert.doesNotMatch(mapMarkup, /cbdb-text-28102/);
+  assert.match(mapMarkup, /<h3 class="truncate text-sm font-semibold leading-5">礼部尚书<\/h3>/);
+  assert.match(mapMarkup, /<h3 class="truncate text-sm font-semibold leading-5">理学家 - 阳明学派<\/h3>/);
+});
+
 test('world character source detail renders dossier sections without exposing raw relationship source fields', () => {
   const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
   const markup = renderToStaticMarkup(
@@ -147,11 +222,9 @@ test('world character source detail renders dossier sections without exposing ra
   );
   const visibleMarkup = markup.replace(/\sdata-[^=]+="[^"]*"/gu, '');
 
-  assert.match(markup, /Identity coordinates/);
   assert.match(markup, /Life milestones/);
   assert.match(markup, /data-testid="world-character-milestones-timeline"/);
   assert.match(markup, /Relationship clues/);
-  assert.match(markup, /阳明学派思想家与朝廷重臣/);
   assert.match(markup, /嘉靖二年（1523）中进士/);
   assert.match(markup, /1554/);
   assert.match(markup, /1545/);

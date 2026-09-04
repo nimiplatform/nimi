@@ -1,48 +1,46 @@
 # Avatar
 
-Avatar covers how an Agent gets shown — in a window, in a virtual
+Avatar covers how an Agent gets shown — in a window, as a virtual
 character, in an animation. The rule is simple: presentation can vary,
 but the Agent itself doesn't become a different Agent just because
 rendering changed.
 
-This is an authority overview, not a complete public-product promise.
-
 ## What An Avatar Actually Is
 
-An avatar isn't just an image. It's a governed presentation layer for an
-AI participant. It can include the visual body, motion, events, what
-each carrier surface is willing to display, and backend-specific
-rendering branches.
+An avatar isn't just an image. It's the whole presentation layer for an
+AI participant: the visual body, the motion, the events, what each
+carrier surface is willing to display, and the rendering branches of
+each backend.
 
-Avatar is its own authority domain because presentation has to follow
-the agent's truth, not make up its own. If an avatar stops moving
-because the renderer hit a bug, that's a presentation problem — the
-agent itself didn't go offline. If a carrier shows a different look from
-what the agent's profile says, that's a renderer mismatch — the agent
-didn't change.
+Presentation has to follow the agent's truth, not make up its own. If
+an avatar stops moving because the renderer hit a bug, that's a
+presentation problem — the agent itself didn't go offline. If a carrier
+shows a different look from what the agent's profile says, that's a
+renderer mismatch — the agent didn't change.
 
 ## What Avatar Owns And What It Does Not Own
 
 Avatar owns:
 
-- embodiment projection contracts (how the agent is projected onto a
-  carrier);
-- carrier visual acceptance contracts (whether a carrier can display
-  this embodiment under admitted shapes);
-- shell-specific rendering branches (Desktop avatars and other shells
-  have their own admitted contracts).
+- how an agent's embodiment is presented onto a carrier;
+- whether a carrier can display that embodiment, and in what shape;
+- the shell-specific rendering branches (Desktop avatars and other
+  shells each have their own rules).
 
 Avatar doesn't own:
 
-- Character identity (Realm owns durable identity) and LocalAgent
-  execution identity (Runtime owns materialization and lifecycle);
-- LocalAgent memory (Runtime owns Memory authority);
-- the world's social relationships (Realm owns those);
-- generation and execution (Runtime owns that).
+- Character identity (Realm keeps durable identity) or LocalAgent
+  execution identity (Runtime materializes the agent and runs its
+  lifecycle);
+- LocalAgent long-term memory (Cognition keeps long-term Memory;
+  Runtime keeps its own runtime state);
+- the world's social relationships (Realm keeps those);
+- generation and execution (Runtime does that).
 
-This split is important. An Avatar surface that drifted into agent
-identity or memory authority would be a parallel authority, not a
-presentation domain.
+This split matters. An Avatar surface that started deciding who an
+agent is, or what it remembers, would stop being a presentation layer
+and start competing with the parts of the platform those facts belong
+to.
 
 ## Reader Scenario: An Embodiment That A Carrier Cannot Display
 

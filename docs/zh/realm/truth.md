@@ -1,8 +1,8 @@
 # Realm 真相边界
 
-Realm 真相由外部 Realm 权威拥有。本仓库不定义 Realm server records、world lifecycle rules、social/economy invariants 或 Realm domain semantics。
+世界里什么是真的，由外部的 Realm 服务说了算：数据记录、世界生命周期规则、社交与经济的不变量，都归它定。本仓库不定义其中任何一条。
 
-Nimi 通过 SDK 拥有的 generated clients 和 typed facades 消费 Realm。这意味着 App 代码应该把 Realm facts 当作配置的 Realm service 返回的 API 输出，而不是本地 Nimi spec truth。
+Nimi 通过 SDK 生成的客户端和强类型封装访问 Realm。对 App 代码来说，一条 Realm 事实就是你连接的 Realm 服务返回的数据，而不是 Nimi 在本地定义的东西。
 
 ## Nimi 拥有什么
 

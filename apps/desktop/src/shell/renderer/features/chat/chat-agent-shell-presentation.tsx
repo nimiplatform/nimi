@@ -21,7 +21,9 @@ import {
   resolveAgentTargetSummaries,
 } from './chat-agent-shell-view-model';
 import { InlineFeedback } from '../../ui/feedback/inline-feedback';
+import { ChevronRight } from 'lucide-react';
 import { AgentCanonicalComposer } from './chat-agent-canonical-composer';
+import { AgentEmptyCharacterVoiceButton } from './chat-agent-empty-character-voice.js';
 import { AgentConversationSettingsContent } from './chat-agent-shell-presentation-settings';
 import { useAgentConversationLocalAvatarControls } from './chat-agent-shell-local-avatar-controls';
 import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar';
@@ -150,6 +152,128 @@ export function useAgentConversationPresentation(
       streamController.cancelStream(input.activeThreadId);
     }
   }, [input.activeThreadId, stopGeneratingReady, streamController]);
+  const emptyStateAgent = useMemo(() => {
+    const presence = input.emptyStateCharacterPresence;
+    if (presence && (presence.referenceImageUrl || presence.greeting || presence.voiceSampleUrl)) {
+      return null;
+    }
+    return {
+      displayName: resolvedAgentDisplayName,
+      avatarUrl: characterData.avatarUrl || null,
+    };
+  }, [characterData.avatarUrl, input.emptyStateCharacterPresence, resolvedAgentDisplayName]);
+  const emptyStateSuggestions = useMemo(() => {
+    const onPrefillRequest = input.onComposerPrefillRequest;
+    if (!input.activeTarget || !surfaceState.composer || surfaceState.composer.disabled || !onPrefillRequest) {
+      return null;
+    }
+    const presence = input.emptyStateCharacterPresence ?? null;
+    const suggestions = presence && presence.questions.length > 0
+      ? presence.questions
+      : [
+        input.t('Chat.agentEmptySuggestionIntroduce', { defaultValue: 'Introduce yourself' }),
+        input.t('Chat.agentEmptySuggestionCasual', { defaultValue: 'Chat with me for a while' }),
+        input.t('Chat.agentEmptySuggestionStory', { defaultValue: 'Tell me an interesting story' }),
+      ];
+    const suggestionChips = (
+      <div className="flex flex-wrap items-center justify-center gap-2.5" data-agent-empty-suggestions="true">
+        {suggestions.map((suggestion) => (
+          <button
+            key={suggestion}
+            type="button"
+            onClick={() => onPrefillRequest(suggestion)}
+            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_72%,transparent)] pl-4 pr-3 text-sm font-medium text-[var(--nimi-text-secondary)] transition-[background-color,border-color,color,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,transparent)] hover:bg-[var(--nimi-surface-card)] hover:text-[var(--nimi-text-primary)] active:scale-[var(--nimi-motion-pressed-scale)]"
+          >
+            {suggestion}
+            <ChevronRight aria-hidden className="h-[14px] w-[14px] opacity-50" strokeWidth={2.2} />
+          </button>
+        ))}
+      </div>
+    );
+    const hasPresenceMedia = Boolean(
+      presence && (presence.referenceImageUrl || presence.greeting || presence.voiceSampleUrl),
+    );
+    if (!presence || !hasPresenceMedia) {
+      return suggestionChips;
+    }
+    return (
+      <div className="flex w-full flex-col items-center gap-6">
+        <div className="flex flex-col items-center gap-1.5" data-agent-empty-character-header="true">
+          <h2 className="text-[length:var(--nimi-type-hero-title-size)] font-[var(--nimi-type-hero-title-weight)] leading-tight tracking-tight text-[var(--nimi-text-primary)]">
+            {resolvedAgentDisplayName}
+          </h2>
+          {presence.heroSubtitle ? (
+            <p className="text-sm text-[var(--nimi-text-muted)]">{presence.heroSubtitle}</p>
+          ) : null}
+        </div>
+        <div className="relative flex w-full max-w-[420px] flex-col" data-agent-empty-character-media="true">
+          <div
+            aria-hidden="true"
+            className="absolute -inset-8 -z-10 rounded-[40px] bg-[radial-gradient(closest-side,color-mix(in_srgb,var(--nimi-action-primary-bg)_16%,transparent),transparent)] blur-2xl"
+          />
+          {presence.referenceImageUrl ? (
+            <div
+              data-agent-empty-character-image="true"
+              className="relative aspect-square w-full overflow-hidden rounded-[24px] bg-[var(--nimi-surface-panel)] shadow-[0_24px_56px_-20px_rgba(15,23,42,0.30)] ring-1 ring-black/5"
+            >
+              <img
+                src={presence.referenceImageUrl}
+                alt=""
+                className="h-full w-full object-cover object-top"
+              />
+              {presence.voiceSampleUrl ? (
+                <div className="absolute right-3.5 top-3.5">
+                  <AgentEmptyCharacterVoiceButton
+                    src={presence.voiceSampleUrl}
+                    durationSec={presence.voiceSampleDurationSec}
+                    autoPlay
+                    variant="overlay"
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+          {presence.greeting ? (
+            <p
+              data-agent-empty-character-greeting="true"
+              className={`${presence.referenceImageUrl ? 'mt-5 ' : ''}w-full text-center text-[15px] leading-7 text-[var(--nimi-text-primary)]`}
+            >
+              {presence.greeting}
+            </p>
+          ) : null}
+          {!presence.referenceImageUrl && presence.voiceSampleUrl ? (
+            <div className="mt-2.5 flex justify-center">
+              <AgentEmptyCharacterVoiceButton
+                src={presence.voiceSampleUrl}
+                durationSec={presence.voiceSampleDurationSec}
+                autoPlay
+              />
+            </div>
+          ) : null}
+        </div>
+        {suggestionChips}
+      </div>
+    );
+  }, [input.activeTarget, input.emptyStateCharacterPresence, input.onComposerPrefillRequest, input.t, resolvedAgentDisplayName, surfaceState.composer]);
+  const emptyStateHeaderLabels = useMemo(() => {
+    const presence = input.emptyStateCharacterPresence;
+    const hasPresenceMedia = Boolean(
+      presence && (presence.referenceImageUrl || presence.greeting || presence.voiceSampleUrl),
+    );
+    return {
+      emptyEyebrow: hasPresenceMedia ? '' : resolvedAgentDisplayName,
+      emptyTitle: hasPresenceMedia
+        ? ''
+        : input.t('Chat.agentTranscriptEmptyTitle', {
+          defaultValue: 'Start a conversation',
+        }),
+      emptyDescription: hasPresenceMedia
+        ? ''
+        : input.t('Chat.agentTranscriptEmpty', {
+          defaultValue: 'Ask a question, share an idea, or tell this agent what you want to explore.',
+        }),
+    };
+  }, [input.emptyStateCharacterPresence, input.t, resolvedAgentDisplayName]);
   const hostView = useMemo(() => resolveAgentConversationHostView({
     threads: targetSummaries,
     selectedTargetId,
@@ -182,13 +306,7 @@ export function useAgentConversationPresentation(
       )
       : null,
     labels: {
-      emptyEyebrow: resolvedAgentDisplayName,
-      emptyTitle: input.t('Chat.agentTranscriptEmptyTitle', {
-        defaultValue: 'Start a conversation',
-      }),
-      emptyDescription: input.t('Chat.agentTranscriptEmpty', {
-        defaultValue: 'Ask a question, share an idea, or tell this agent what you want to explore.',
-      }),
+      ...emptyStateHeaderLabels,
       loadingLabel: input.t('Chat.agentTranscriptLoading', { defaultValue: 'Loading local agent conversation…' }),
       pendingAgentRoleLabel: input.t('Chat.agentTranscriptPendingRole', { defaultValue: 'Agent is replying' }),
       pendingThinkingLabel: input.t('Chat.agentTranscriptThinking', { defaultValue: 'Thinking...' }),
@@ -196,6 +314,8 @@ export function useAgentConversationPresentation(
       todayLabel: input.t('Chat.today', { defaultValue: 'Today' }),
       yesterdayLabel: input.t('Chat.yesterday', { defaultValue: 'Yesterday' }),
     },
+    emptyStateAgent,
+    emptyStateContent: emptyStateSuggestions,
     transcriptWidthClassName: CHAT_CONTENT_WIDTH_CLASS,
     transcriptWidthPositionClassName: CHAT_CONTENT_POSITION_CLASS,
     transcriptContentPaddingBottomClassName: CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS,
@@ -219,6 +339,9 @@ export function useAgentConversationPresentation(
     surfaceState.footer,
     targetSummaries,
     resolvedAgentDisplayName,
+    emptyStateAgent,
+    emptyStateHeaderLabels,
+    emptyStateSuggestions,
   ]);
   const hostSnapshot = useMemo(() => resolveAgentConversationHostSnapshot({
     activeThreadId: input.activeThreadId,

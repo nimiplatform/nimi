@@ -55,7 +55,7 @@ App 不会收到原始 key，也不会获得本次执行使用的 connector 身�
 4. App 保留该失败，不注入 inline key，不选择 connector，也不伪造 Local fallback。
 5. 机器管理员通过独立管理界面修复 Runtime 配置。
 
-## 公共边界
+## 记住这几点
 
 - 普通 App 和 Agent 请求不包含 credential-source metadata。
 - Connector id、provider id、endpoint、API key 和 provider 原生句柄都属于 Runtime 配置。

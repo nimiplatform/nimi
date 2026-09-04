@@ -481,6 +481,7 @@
       "vitality": "Vitality",
       "connect": "Add character",
       "connected": "Local agent ready",
+      "chatNow": "Chat now",
       "unavailable": "Unavailable"
     },
     "gallery": {

@@ -1,10 +1,9 @@
 # Chat
 
-Desktop's chat is a unified surface across three host modes:
-**human**, **AI**, and **agent**. It is where a user
-talks to other people, talks to a generic AI assistant, and talks
-to a Nimi agent. Same UI shell, three different conversation
-shapes.
+Chat in Desktop is one surface with three kinds of conversation:
+**human**, **AI**, and **agent**. You can message another person,
+prompt a general AI assistant, or talk to a specific Nimi agent.
+Same window, three conversation shapes.
 
 ## Three Host Modes
 
@@ -14,20 +13,21 @@ shapes.
 | AI | A generic AI assistant | Runtime via SDK |
 | Agent | A specific Nimi agent | Runtime + ConversationAnchor |
 
-The mode determines what the chat shell shows: target rail (who),
-canonical conversation shell, transcript, composer.
+The mode decides what the chat window shows: the target rail (who
+you're talking to), the conversation shell, the transcript, and the
+composer.
 
 ## Realtime Delivery
 
-Live chat events sync via Socket.IO. New messages, typing
-indicators, presence, read state — all delivered as realtime
-events rather than polled. The realtime path is admitted; chat
-does not invent its own protocol.
+Live chat events sync over Socket.IO. New messages, typing indicators,
+presence, and read state all arrive as realtime events instead of
+polling. Chat uses Nimi's standard realtime channel; it doesn't invent
+its own protocol.
 
 ## Streaming Chat
 
-When the chat target is AI or agent, the assistant message
-streams from Runtime under the streaming contract.
+When you're talking to an AI or an agent, the reply streams in from
+Runtime as it's generated.
 
 | Property | Value |
 | --- | --- |
@@ -37,15 +37,15 @@ streams from Runtime under the streaming contract.
 | Partial content | Preserved on interrupt |
 | Backpressure | End-to-end via SDK |
 
-A user who clicks "stop" mid-stream gets the partial reply
-preserved; the next interaction starts cleanly.
+If you click "stop" mid-stream, whatever has arrived so far is kept,
+and the next turn starts cleanly.
 
 ## Turn Lifecycle Ownership
 
-Desktop chat renders the conversation shell and forwards user intent
-through the SDK. Runtime owns the model call, streaming lifecycle,
-ConversationAnchor continuity, and agent track execution. Desktop does
-not expose a local turn interception surface.
+Desktop chat draws the conversation and forwards your intent through
+the SDK. Runtime handles the model call, the streaming lifecycle,
+ConversationAnchor continuity, and agent track execution. Desktop has
+no local surface for intercepting a turn.
 
 ## Reader Scenario: Talking To An Agent
 
@@ -76,10 +76,9 @@ conversation does not create a Realm human-chat thread.
 | Turn execution authority | Runtime agent service |
 | Streaming semantics | Runtime streaming contract |
 
-If the user wants embodiment, they go to Avatar. Desktop chat may
-show non-carrier presentation projection (e.g., expression
-indicator) but the chat surface is no longer the Live2D/VRM
-carrier.
+If you want embodiment, the Avatar app is the place. Desktop chat can
+show small non-carrier cues (like an expression indicator), but the
+chat window itself is no longer the Live2D/VRM carrier.
 
 ## Source Basis
 

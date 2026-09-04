@@ -1,33 +1,36 @@
 # Conversation Anchor
 
-A Conversation anchor identifies one Runtime-owned LocalAgent Conversation. It
-is not the LocalAgent identity itself and it is never inferred from a UI route,
-Avatar instance, transcript cache, or the last LocalAgent a surface displayed.
+A Conversation anchor names one specific conversation with a LocalAgent.
+Runtime issues it, and it is the only reliable way to refer to that
+conversation later. It is not the LocalAgent's identity, and it can never be
+guessed from a UI route, an Avatar instance, a cached transcript, or whatever
+LocalAgent a screen happened to show last.
 
-Runtime owns opening, committing, snapshotting, recovering, interrupting, and
-projecting a Conversation. More than one Conversation may exist for the same
-LocalAgent, so consumers must keep the explicit anchor returned through the
-standard SDK surface.
+Runtime opens, commits, snapshots, recovers, and interrupts conversations, and
+provides typed views of them. One LocalAgent can have many conversations, so
+consumers must hold on to the explicit anchor the standard SDK surface
+returns.
 
 ## Opening and recovery
 
-The caller supplies typed intent and an explicit LocalAgent target. Runtime
-derives the account, App identity, authorization, ownership or access, and
-current session before it creates or recovers a Conversation.
+The caller passes typed intent and an explicit LocalAgent target. Before
+creating or recovering a conversation, Runtime works out the account, the App
+identity, the authorization, and the ownership or access from the active
+session.
 
-Recovery uses Runtime-owned anchors and snapshots. Local message history is a UI
-cache only; it cannot prove continuity or reconstruct Conversation, Memory, or
-Knowledge truth.
+Recovery uses anchors and snapshots that Runtime keeps. Local message history
+is a UI cache only: it cannot prove continuity, and it cannot rebuild what the
+conversation, memory, or knowledge actually hold.
 
 ## Projection boundary
 
-An authorized consumer may receive committed turns and bounded status for the
-active Conversation. Raw provider output, parser payloads, credentials,
-internal prompts, and Runtime proof remain private.
+An authorized consumer can receive committed turns and bounded status for the
+active conversation. Raw provider output, parser payloads, credentials,
+internal prompts, and Runtime-internal proofs stay private.
 
-Avatar may attach a visible instance to an authorized Conversation for
-presentation. Its launch ID and renderer state do not create or prove the
-Conversation.
+Avatar can attach a visible instance to an authorized conversation for
+presentation. Its launch ID and renderer state neither create nor prove the
+conversation.
 
 ## Source Basis
 

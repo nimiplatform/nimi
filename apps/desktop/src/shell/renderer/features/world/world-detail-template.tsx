@@ -51,6 +51,7 @@ export type WorldDetailPageProps = {
   // Chat is materialized only after Runtime creates a device-local LocalAgent.
   onViewCharacter?: (character: WorldCharacter) => void;
   onMaterializeSource?: (character: WorldCharacter) => Promise<void> | void;
+  onOpenConversation?: (character: WorldCharacter) => Promise<void> | void;
   onFollowWorld?: (world: WorldDetailData) => Promise<void> | void;
   worldFollowed?: boolean;
   initialSubpage?: InitialPaperSubpage | null;
@@ -298,6 +299,7 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
           onSelect={setSelectedCharacterId}
           onViewCharacter={props.onViewCharacter}
           onMaterializeSource={props.onMaterializeSource}
+          onOpenConversation={props.onOpenConversation}
         />
 
         {selectedCharacter ? (
@@ -389,6 +391,7 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
               onSelect={setSelectedCharacterId}
               onViewCharacter={props.onViewCharacter}
               onMaterializeSource={props.onMaterializeSource}
+              onOpenConversation={props.onOpenConversation}
               onViewAll={nav.onViewAllPeople}
             />
             <PaperScenesSection

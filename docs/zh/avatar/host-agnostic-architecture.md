@@ -1,18 +1,18 @@
 # 宿主无关架构
 
-> 状态：运行中 (Running) 今日已投入运行。宿主无关的映射层是 Avatar 已发布的核心；后端分支均接入此层。
+> 状态：现已可用。宿主无关的映射层是 Avatar 正在运行的核心；后端分支都接在这一层上。
 
-Avatar 的架构围绕一个核心承诺构建：**智能体语义不属于任何渲染器**。智能体的活动、表情、姿态、凝视和语音都是平台自有事实；Live2D、VRM 以及任何未来的后端，都是单一后端无关映射层背后的可互换执行分支。
+Avatar 的架构只围绕一个承诺：**Agent 语义不属于任何渲染器**。Agent 在做什么——它的活动、表情、姿态、视线和语音——是 Runtime 维护的事实。Live2D、VRM 以及未来的任何后端，都是同一层后端无关映射之下可以互换的执行分支。
 
-规范教学模型如下：
+教学模型如下：
 
 ```
-智能体语义  →  具身映射  →  后端特定执行
+agent semantics  →  embodiment projection  →  backend-specific execution
 ```
 
--   **智能体语义**属于运行时 / SDK。运行时拥有活动 ID、呈现流、情感状态和对话锚点。Avatar 从不引入语义真相。
--   **具身映射**是 Avatar 的宿主无关 API。它消费运行时捆绑包和事件流，并将其转换为后端中立的提示：`activity`（活动）、`expression`（表情）、`pose`（姿态）、`lookat`（凝视）、`status_text`（状态文本）、`speak`（说话）、命中区域意图和外壳意图。
--   **后端执行**是当前挂载的任何分支：目前通过 Cubism SDK for Web 实现 Live2D；未来通过 three-vrm 实现 VRM。每个后端都实现相同的 `BackendBranch` 接口。
+- **Agent 语义**在 Runtime / SDK 一侧：活动 id、呈现流、情绪状态和对话锚点都在那里。Avatar 从不自己发明语义真相。
+- **具身映射**是 Avatar 的宿主无关 API。它消费 Runtime 的语义包和事件流，翻译成后端中立的提示：`activity`、`expression`、`pose`、`lookat`、`status_text`、`speak`、命中区域意图和外壳意图。
+- **后端执行**看当前挂载的是哪个分支：今天是经 Cubism SDK for Web 的 Live2D；明天是经 three-vrm 的 VRM。每个后端都实现同一个 `BackendBranch` 接口。
 
 ## 映射层的所有权
 

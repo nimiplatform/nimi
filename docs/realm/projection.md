@@ -1,12 +1,12 @@
 # Realm Consumer Projection
 
-Realm projection in this repository means the shape Nimi consumers receive
-through the SDK Realm boundary. It is not a second source of Realm truth and it
-is not a local Realm domain model.
+When a Nimi app reads Realm data, what it receives through the SDK is a typed
+local view of that data. That view is not a second source of Realm truth, and
+it is not a local copy of Realm's domain model.
 
-Apps, Runtime, Desktop, and Web should consume Realm through SDK-owned typed
-clients. Local state can cache or present Realm output, but it must not become
-canonical Realm truth.
+Apps, Runtime, Desktop, and Web all read Realm through the SDK's typed
+clients. Local state may cache or display what Realm returned, but it can
+never become the truth itself.
 
 ## Consumer Rules
 

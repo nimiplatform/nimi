@@ -2,16 +2,16 @@
 
 ## 状态：Desktop 拥有的配置界面
 
-Desktop 展示两类彼此独立的配置：
+桌面端有两类互不相干的 AI 设置：
 
-- Agent Center 展示 owner 范围内的 `AIConfig` 能力意图。
-- Runtime 配置界面管理机器 profile、provider、engine 和本地资源。
+- Agent Center：给某个具体的 App 或 Agent 设置每项能力的 Local 或 Cloud 意图。
+- Runtime 配置：管理机器 profile、provider、engine 和本地资源。
 
-两者不能混为一体。应用机器配置不会创建 App 或 Agent 可见的 execution binding。
+心里要把两者分开。改了机器配置，并不会给任何 App 或 Agent 绑上一个看得见的执行方式。
 
 ## Agent Center AIConfig
 
-对于准确的 App 或 Agent owner，AIConfig section 展示各项已准入能力及其 Local 或 Cloud 意图。保存操作通过已授权 session，整体替换该 owner 的完整能力列表。
+选定一个 App 或 Agent owner，AIConfig 区会列出各项可用能力和它当前的 Local 或 Cloud 意图。保存会整体替换这个 owner 的完整能力列表，且需要已授权的会话。
 
 | AIConfig 拥有 | AIConfig 不拥有 |
 | --- | --- |
@@ -20,13 +20,13 @@ Desktop 展示两类彼此独立的配置：
 | Local 或 Cloud 意图 | engine 或资源 binding |
 | 已授权的整体覆盖操作 | readiness、health 或 fallback policy |
 
-Local 和 Cloud 是能力意图，不标识执行请求的 model、provider、connector、endpoint 或机器 route。
+Local 和 Cloud 是意图，不是绑定。它们从不指明某个请求会由哪个 model、provider、connector、endpoint 或机器 route 执行。
 
 ## Runtime 机器配置文件
 
-Desktop 可以为可移植 `AIProfile` 包和机器本地资源提供独立管理界面。该界面可以校验、导入、安装或删除 Runtime 配置。结果归 Runtime 所有，并可能影响 Runtime 对后续请求的实现选择。
+另有一个管理界面负责可移植的 `AIProfile` 包和机器本地资源，可以在那里校验、导入、安装或删除 Runtime 配置。装好的状态归 Runtime，可能影响它之后挑选实现的结果。
 
-机器 profile 不会复制到 owner `AIConfig`，不会附着到 `AIScopeRef`，也不会随 App 请求发送。请求到达时，Runtime 从已准入实现中自行选择。
+机器 profile 不会复制进 owner 的 `AIConfig`，不会挂到 `AIScopeRef` 上，也不会随 App 请求一起发出。请求到达时，Runtime 从可用的实现里自己挑。
 
 ## 读者场景：设置 Agent 能力意图
 
@@ -43,12 +43,12 @@ Desktop 可以为可移植 `AIProfile` 包和机器本地资源提供独立管�
 3. **Owner 意图保持不变。** App 或 Agent 配置不会被重新绑定。
 4. **后续请求。** Runtime 可以考虑新的机器状态，同时继续独占实现选择权。
 
-## 公共边界
+## 记住这几点
 
-- Agent Center 编辑 owner 能力意图，不编辑执行 profile。
-- Runtime 配置管理机器资源，不提供 App 请求控制项。
-- Desktop 不提供 owner 级 profile binding、model routing、connector 选择、readiness 或 fallback UI。
-- Runtime 执行证据可以用于诊断展示，但不能成为下一次请求的输入。
+- Agent Center 改的是你的能力意图，不是执行 profile。
+- Runtime 配置管的是机器资源，不提供 App 请求的控制项。
+- Desktop 有意不提供 owner 级 profile 绑定、model 路由、connector 选择、readiness 或 fallback 的界面。
+- Runtime 的执行证据可以展示用于诊断，但不会成为下一次请求的输入。
 
 ## 来源依据
 

@@ -1,11 +1,8 @@
 # Knowledge UI
 
-Desktop 持有面向用户的 Knowledge 体验：导航、搜索与整理控制、loading 与 error
-呈现，以及短暂 UI 状态。
+Knowledge 页是你查看和整理 Agent 知识的地方。在桌面端，整个使用体验由 Desktop 负责：导航、搜索与整理、加载与错误提示，以及临时的界面状态。
 
-Runtime 持有 LocalAgent 运行态 Knowledge。Desktop 通过标准 SDK 与已授权的
-Runtime surface 访问它；Desktop 不会定义第二套 Knowledge service，也不会
-在本地维护 canonical Knowledge 数据。
+知识数据本身由 Runtime 管理。桌面端通过标准 SDK 和已授权的 Runtime 界面访问它，不会另起一套 Knowledge 服务，也不会在本地保存正式数据。
 
 ## 边界
 
@@ -15,11 +12,9 @@ Runtime surface 访问它；Desktop 不会定义第二套 Knowledge service，�
 | 输入草稿与本地呈现状态 | 从 session 推导的 authorization 与 LocalAgent scope |
 | 强类型 unavailable 与 failure 呈现 | 已准入结果与失败语义 |
 
-Desktop 提交强类型 user intent 并渲染返回的投影。本地 cache 不能成为
-Knowledge、Conversation、Memory、source 或 authorization 真相。
+桌面端把你的操作提交上去，再呈现 Runtime 返回的结果。本地缓存永远只是缓存，不会变成 Knowledge、Conversation、Memory、来源或授权状态的正式记录。
 
-当请求处于 unauthorized、unavailable、pending 或 failed 时，UI 保留强类型
-结果，不会通过 private store、Provider call 或 app-local service 绕过 Runtime。
+请求未授权、不可用、处理中或失败时，界面会如实显示对应状态。桌面端不会绕过 Runtime，用私有存储、额外的 Provider 调用或应用内服务另搞一套。
 
 ## 来源依据
 

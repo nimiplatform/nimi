@@ -1,6 +1,6 @@
 # Live2D Integration
 
-Live2D is one of Avatar's admitted rendering backends. It uses the
+Live2D is one of Avatar's rendering backends. It uses the
 official Cubism SDK for Web, but package behavior is not inferred from
 Cubism files alone. Avatar validates the package, computes the proven
 compatibility tier, and then exposes the model through the shared

@@ -1349,7 +1349,6 @@
     "colRecommendation": "Runtime 推荐",
     "providerFilter": "提供商",
     "licenseFilter": "许可证",
-    "providersAll": "全部",
     "capability": {
       "chat": "聊天",
       "image": "图像",

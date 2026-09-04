@@ -8,10 +8,12 @@
 import {
   listLocalDevelopmentRegistrations,
   listLocalDevelopmentRuns,
+  readLocalDevelopmentProjectIcon,
   readLocalDevelopmentProjectReadme,
   removeLocalDevelopmentRegistration,
   startLocalDevelopmentRegistration,
   stopLocalDevelopmentRun,
+  type LocalDevelopmentProjectIcon,
   type LocalDevelopmentProjectReadme,
   type LocalDevelopmentRegistration,
   type LocalDevelopmentRun,
@@ -24,6 +26,7 @@ export interface DesktopAppsLiveBridge {
   stopRun(selector: string): Promise<void>;
   removeRegistration(selector: string): Promise<void>;
   readProjectReadme(selector: string): Promise<LocalDevelopmentProjectReadme>;
+  readProjectIcon(selector: string): Promise<LocalDevelopmentProjectIcon>;
 }
 
 export function createDesktopAppsLiveBridge(): DesktopAppsLiveBridge {
@@ -34,5 +37,6 @@ export function createDesktopAppsLiveBridge(): DesktopAppsLiveBridge {
     stopRun: stopLocalDevelopmentRun,
     removeRegistration: removeLocalDevelopmentRegistration,
     readProjectReadme: readLocalDevelopmentProjectReadme,
+    readProjectIcon: readLocalDevelopmentProjectIcon,
   };
 }

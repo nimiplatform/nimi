@@ -589,3 +589,111 @@ test('public biography explicitly distinguishes work and office milestones', () 
     '咸通年间任同州刺史',
   ]);
 });
+
+test('world character works keep label-only text relationships as text clues instead of works', () => {
+  const detail = toSourceDetailData({
+    ...liBaiRaw,
+    relationships: [
+      {
+        id: 'cbdb-rel-text-exchange-1',
+        type: 'text',
+        sourceEntityId: 'cbdb-person-zhu-kejiu',
+        contentHash: 'rel-text-exchange-1-hash',
+        core: {
+          presentation: {
+            summary: '朱可久曾向白居易赠送诗文，与这位文坛巨擘有文学往来。',
+          },
+          attributes: {
+            sourceRelationLabelChn: '著述线索',
+            rowRef: 'cbdb:TEXT_REL:zhu-kejiu:exchange:1',
+            joinStatus: 'resolved',
+          },
+        },
+      },
+      {
+        id: 'cbdb-rel-text-exchange-2',
+        type: 'text',
+        sourceEntityId: 'cbdb-person-zhu-kejiu',
+        contentHash: 'rel-text-exchange-2-hash',
+        core: {
+          presentation: {
+            summary: '朱可久与元稹唱和颇多，诗名渐起于士大夫之间。',
+          },
+          attributes: {
+            sourceRelationLabelChn: '著述线索',
+            rowRef: 'cbdb:TEXT_REL:zhu-kejiu:exchange:2',
+            joinStatus: 'resolved',
+          },
+        },
+      },
+      {
+        id: 'cbdb-rel-text-exchange-3',
+        type: 'text',
+        sourceEntityId: 'cbdb-person-zhu-kejiu',
+        contentHash: 'rel-text-exchange-3-hash',
+        core: {
+          presentation: {},
+          attributes: {
+            sourceRelationLabelChn: '著述线索',
+            rowRef: 'cbdb:TEXT_REL:zhu-kejiu:exchange:3',
+            joinStatus: 'resolved',
+          },
+        },
+      },
+    ],
+  }, 'source_materialization_available');
+
+  // Real works keep their titles; label-only rows stay as distinct text clues
+  // (no title-based merge) and rows without any evidence prose are dropped.
+  assert.deepEqual(detail.works.map((work) => work.title), ['李太白集', '草堂集(李白)', '著述线索', '著述线索']);
+  assert.deepEqual(detail.works.map((work) => work.textClue === true), [false, false, true, true]);
+  assert.deepEqual(detail.works.slice(2).map((work) => work.summary), [
+    '朱可久曾向白居易赠送诗文，与这位文坛巨擘有文学往来。',
+    '朱可久与元稹唱和颇多，诗名渐起于士大夫之间。',
+  ]);
+});
+
+test('world character works render text clues apart from work cards and exclude them from the count', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData({
+      ...liBaiRaw,
+      relationships: [
+        {
+          id: 'cbdb-rel-text-exchange-1',
+          type: 'text',
+          sourceEntityId: 'cbdb-person-zhu-kejiu',
+          contentHash: 'rel-text-exchange-1-hash',
+          core: {
+            presentation: {
+              summary: '朱可久曾向白居易赠送诗文，与这位文坛巨擘有文学往来。',
+            },
+            attributes: {
+              sourceRelationLabelChn: '著述线索',
+              rowRef: 'cbdb:TEXT_REL:zhu-kejiu:exchange:1',
+              joinStatus: 'resolved',
+            },
+          },
+        },
+      ],
+    }, 'source_materialization_available');
+    const markup = renderToStaticMarkup(
+      React.createElement(SourceDetailView, {
+        source,
+        stats: null,
+        loading: false,
+        error: false,
+        onBack: () => {},
+        onOpenWorld: () => {},
+        onPrimaryAction: () => {},
+      }),
+    );
+
+    assert.match(markup, /收录 2 部相关作品/);
+    assert.match(markup, /data-testid="world-character-text-clues"/);
+    assert.match(markup, /朱可久曾向白居易赠送诗文/);
+    assert.doesNotMatch(markup, /收录 3 部相关作品/);
+  } finally {
+    await changeLocale('en');
+  }
+});
