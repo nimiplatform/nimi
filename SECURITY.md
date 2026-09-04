@@ -34,29 +34,29 @@ After mitigation is available, we coordinate responsible disclosure and publish 
 ## Signed Artifact Verification
 
 Windows production signing is not active. The SignPath Foundation application
-is waiting for the required public unsigned bootstrap release; there is no
-production Authenticode signer configured, and no
-current Nimi Windows artifact should be treated as production signed or
-SignPath-signed. The repository's self-signed development certificate path is
-for local testing only and is never a release-signing substitute.
+has not yet been submitted. Its required bootstrap is now public in the
+immutable [v0.2.2-preview.1 prerelease](https://github.com/nimiplatform/nimi/releases/tag/v0.2.2-preview.1),
+but there is no production Authenticode signer configured and no current Nimi
+Windows artifact should be treated as production signed or SignPath-signed. The
+repository's self-signed development certificate path is for local testing only
+and is never a release-signing substitute.
 
 Explicit `vX.Y.Z-preview.N` GitHub prereleases are unsigned previews, not RC or
-Stable releases. The current Windows preview contains only the source-local Kit
-native package, whose PE file must report `NotSigned`; it contains no Runtime,
-installer, service, or Nimi App. The macOS candidate is ad-hoc signed with no
-TeamIdentifier and requires the exact source checkout for installation and
-uninstallation. Preview assets are marked `UNSIGNED PREVIEW — NOT PROMOTABLE`,
-never update `latest`, and are never retroactively described as signed.
+Stable releases. The current `v0.2.2-preview.1` Windows preview contains the
+source-local Kit package and a separate portable unsigned Runtime
+[ZIP](https://github.com/nimiplatform/nimi/releases/download/v0.2.2-preview.1/Nimi-Runtime-v0.2.2-preview.1-windows-x64-unsigned-bootstrap.zip);
+both PE files must report `NotSigned`. It contains no Nimi Home app, installer,
+or service package. The macOS candidate is ad-hoc signed with no TeamIdentifier
+and requires the exact source checkout for installation and uninstallation.
+Preview assets are marked `UNSIGNED PREVIEW — NOT PROMOTABLE`, never update
+`latest`, and are never retroactively described as signed.
 
-The next reviewed preview workflow is planned to add a portable unsigned
-Windows x64 Runtime archive with `nimi.exe`, the Apache-2.0 license, and explicit
-bootstrap instructions. This source change does not mean that archive has been
-published: it becomes a current artifact only after the workflow runs and an
-immutable GitHub prerelease is visible. The bootstrap has no installer or
-service path. A user extracts it, runs `.\nimi.exe version --json`, and removes
-it by closing the process and deleting the extracted directory. It does not
-modify `PATH`, Program Files, ProgramData, or Windows certificate stores, and it
-does not make protected-local production available.
+The Runtime bootstrap contains `nimi.exe`, the Apache-2.0 license, and explicit
+bootstrap instructions. It has no installer or service path. A user extracts
+it, runs `.\nimi.exe version --json`, and removes it by closing the process and
+deleting the extracted directory. It does not modify `PATH`, Program Files,
+ProgramData, or Windows certificate stores, and it does not make protected-local
+production available.
 
 The initial SignPath application scope is only the Nimi-owned Windows x64
 Runtime executable `nimi.exe`. Nimi's signing identity is never used for a
