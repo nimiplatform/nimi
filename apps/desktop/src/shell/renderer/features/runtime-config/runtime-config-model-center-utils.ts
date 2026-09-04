@@ -1,43 +1,14 @@
 import type {
-  NimiRuntimeLocalCatalogItemDescriptor,
   NimiRuntimeLocalTransferSessionSummary,
   NimiRuntimeLocalDownloadState,
   NimiRuntimeLocalTransferProgressEvent,
-  NimiRuntimeLocalInstallPlanDescriptor,
 } from '@nimiplatform/sdk/runtime';
 import { isNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import type { TFunction } from 'i18next';
 import {
   getNimiRuntimeReasonCodeMessage,
   NIMI_RUNTIME_REASON_CODES,
-  NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS,
-  normalizeNimiRuntimeLocalRunnableAssetKindId,
-  type NimiRuntimeLocalRunnableAssetKindId,
 } from '@nimiplatform/sdk/runtime';
-import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
-
-export type LocalModelCenterProps = {
-  state: RuntimeConfigStateV11;
-  runtimeWritesDisabled: boolean;
-  openDiscoverRequest: boolean;
-  onOpenDiscoverRequestConsumed: () => void;
-  showCatalogOverridesAction: boolean;
-  onOpenCatalogOverrides: () => void;
-  onInstallCatalogItem: (
-    item: NimiRuntimeLocalCatalogItemDescriptor,
-    options?: {
-      entry?: string;
-      files?: string[];
-      hashes?: Record<string, string>;
-      capabilities?: string[];
-      engine?: string;
-    },
-  ) => Promise<void>;
-  onInstallCatalogAsset: (templateId: string) => Promise<void>;
-};
-
-export const CAPABILITY_OPTIONS = NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS;
-export type CapabilityOption = NimiRuntimeLocalRunnableAssetKindId;
 export type ProgressSessionState = {
   event: NimiRuntimeLocalTransferProgressEvent;
   updatedAtMs: number;
@@ -47,7 +18,6 @@ export type ProgressSessionState = {
 
 export const PROGRESS_SESSION_LIMIT = 6;
 export const PROGRESS_RETENTION_MS = 15 * 60 * 1000;
-export const HIGHLIGHT_CLEAR_MS = 8000;
 
 export function isDownloadTerminal(state: NimiRuntimeLocalDownloadState): boolean {
   return state === 'completed' || state === 'failed' || state === 'cancelled';
@@ -108,6 +78,24 @@ export function formatBytes(value: number | undefined): string {
   return `${next.toFixed(precision)} ${units[unitIndex]}`;
 }
 
+// Compact stat count for market cards (HuggingFace style): 951 -> "951",
+// 1630 -> "1.63k", 12331673 -> "12.3M". Returns '' for absent/invalid input so
+// callers can skip the stat entirely.
+export function formatCompactCount(value: number | undefined): string {
+  const safe = Number(value);
+  if (!Number.isFinite(safe) || safe <= 0) return '';
+  if (safe < 1000) return String(Math.round(safe));
+  const units: ReadonlyArray<readonly [number, string]> = [[1e9, 'B'], [1e6, 'M'], [1e3, 'k']];
+  for (const [divisor, suffix] of units) {
+    if (safe >= divisor) {
+      const scaled = safe / divisor;
+      const text = scaled >= 100 ? scaled.toFixed(0) : scaled >= 10 ? scaled.toFixed(1) : scaled.toFixed(2);
+      return `${text}${suffix}`;
+    }
+  }
+  return String(Math.round(safe));
+}
+
 export function formatKnownDownloadSize(value: number | undefined, unknownLabel: string): string {
   const safe = Number(value);
   return Number.isFinite(safe) && safe > 0 ? formatBytes(safe) : unknownLabel;
@@ -150,10 +138,6 @@ export function formatImportPhaseLabel(phase: string | undefined, t: TFunction):
   return normalized || t('runtimeConfig.localModelCenter.importPhase.preparing', { defaultValue: 'Preparing' });
 }
 
-export function normalizeCapabilityOption(value: string | undefined): CapabilityOption {
-  return normalizeNimiRuntimeLocalRunnableAssetKindId(value);
-}
-
 export function basenameFromRuntimePath(value: string | undefined): string {
   const normalized = String(value || '').trim().replace(/\\/g, '/');
   if (!normalized) {
@@ -161,14 +145,6 @@ export function basenameFromRuntimePath(value: string | undefined): string {
   }
   const parts = normalized.split('/').filter(Boolean);
   return String(parts[parts.length - 1] || '').trim();
-}
-
-export function planRequiresAttachedEndpointInput(plan: NimiRuntimeLocalInstallPlanDescriptor | null | undefined): boolean {
-  return Boolean(plan && plan.engineRuntimeMode === 'attached-endpoint');
-}
-
-export function planInstallAvailable(plan: NimiRuntimeLocalInstallPlanDescriptor | null | undefined): boolean {
-  return plan == null ? true : Boolean(plan.installAvailable);
 }
 
 export function localSpeechReasonSummary(reasonCode: string | undefined): string {
@@ -201,36 +177,6 @@ export function assetUnhealthyReasonSummary(reasonCode: string | undefined): str
     return speechSummary;
   }
   return getNimiRuntimeReasonCodeMessage(reasonCode)?.defaultMessage || '';
-}
-
-export function planBlocksCanonicalImageImport(plan: NimiRuntimeLocalInstallPlanDescriptor | null | undefined): boolean {
-  const reasonCode = String(plan?.reasonCode || '').trim();
-  return reasonCode === ReasonCode.AI_LOCAL_MODEL_UNAVAILABLE;
-}
-
-export function planCanonicalImageCompatibilityHint(plan: NimiRuntimeLocalInstallPlanDescriptor | null | undefined): string {
-  if (!planBlocksCanonicalImageImport(plan)) {
-    return '';
-  }
-  return planBlockingHint(plan);
-}
-
-export function planBlockingHint(plan: NimiRuntimeLocalInstallPlanDescriptor | null | undefined): string {
-  if (planInstallAvailable(plan)) {
-    return '';
-  }
-  const warning = String(plan?.warnings?.[0] || '').trim();
-  if (warning) {
-    return warning;
-  }
-  const speechReasonSummary = localSpeechReasonSummary(plan?.reasonCode);
-  if (speechReasonSummary) {
-    return speechReasonSummary;
-  }
-  if (planRequiresAttachedEndpointInput(plan)) {
-    return `Attached endpoint required for ${String(plan?.engine || 'this runtime').trim() || 'this runtime'}.`;
-  }
-  return 'This asset is not available on the current host.';
 }
 
 export function parseTimestamp(value: string | undefined): number {

@@ -44,7 +44,7 @@ const DESKTOP_OPEN_TARGETS: readonly DesktopOpenTarget[] = [
   { rowId: 'target.explore-activity', intent: { kind: 'open-explore', section: 'activity', productIntent: 'view-activity' }, expected: { activeTab: 'explore', section: 'activity' } },
   { rowId: 'target.explore-search', intent: { kind: 'open-explore', section: 'personas', query: 'mentor' }, expected: { activeTab: 'explore', section: 'personas', query: 'mentor' } },
   { rowId: 'target.runtime-connector', intent: { kind: 'open-runtime-config', page: 'cloud', action: 'add-connector' }, expected: { activeTab: 'runtime', page: 'cloud' } },
-  { rowId: 'target.runtime-model', intent: { kind: 'open-runtime-config', page: 'models', action: 'install-model' }, expected: { activeTab: 'runtime', page: 'localModels' } },
+  { rowId: 'target.runtime-model', intent: { kind: 'open-runtime-config', page: 'models', action: 'install-model' }, expected: { activeTab: 'runtime', page: 'modelMarket' } },
   { rowId: 'target.apps-surface', intent: { kind: 'open-apps' }, expected: { activeTab: 'apps' } },
   { rowId: 'target.app-selection', intent: { kind: 'open-apps', appId: 'nimi.example' }, expected: { activeTab: 'apps', appId: 'nimi.example' } },
   { rowId: 'target.app-ai-models', intent: { kind: 'open-apps', appId: 'nimi.example', section: 'ai-models' }, expected: { activeTab: 'apps', appId: 'nimi.example', appsSection: 'ai-models' } },
@@ -155,13 +155,7 @@ for (const target of DESKTOP_OPEN_TARGETS) {
           focus: 'runtime-config-action-focus.cloud-connector-draft',
         });
       }
-      if (target.rowId === 'target.runtime-model') {
-        assert.deepEqual(runtimeState.actionFocus, {
-          page: 'localModels',
-          action: 'install-model',
-          focus: 'runtime-config-action-focus.local-models-discover',
-        });
-      }
+      if (target.rowId === 'target.runtime-model') assert.equal(runtimeState.actionFocus, null);
     }
 
     if (target.expected.activeTab === 'apps') {
@@ -202,7 +196,7 @@ test('Desktop Open Intent maps runtime connector actions to Runtime Cloud state'
   });
 });
 
-test('Desktop Open Intent maps runtime model install actions to Local Models discovery', () => {
+test('Desktop Open Intent maps runtime model install actions to Model Market', () => {
   applyDesktopOpenIntentToAppStore({
     kind: 'open-runtime-config',
     page: 'models',
@@ -210,21 +204,13 @@ test('Desktop Open Intent maps runtime model install actions to Local Models dis
   });
 
   assert.equal(productionAppStore.getState().activeTab, 'runtime');
-  assert.equal(loadRuntimeConfigStateV11().activePage, 'localModels');
-  assert.deepEqual(loadRuntimeConfigStateV11().actionFocus, {
-    page: 'localModels',
-    action: 'install-model',
-    focus: 'runtime-config-action-focus.local-models-discover',
-  });
+  assert.equal(loadRuntimeConfigStateV11().activePage, 'modelMarket');
+  assert.equal(loadRuntimeConfigStateV11().actionFocus, null);
   assert.deepEqual(runtimeConfigNavigation.get(), {
-    revision: 2,
+    revision: 1,
     intent: {
-      kind: 'focus-action',
-      actionFocus: {
-        page: 'localModels',
-        action: 'install-model',
-        focus: 'runtime-config-action-focus.local-models-discover',
-      },
+      kind: 'open-page',
+      page: 'modelMarket',
     },
   });
 });

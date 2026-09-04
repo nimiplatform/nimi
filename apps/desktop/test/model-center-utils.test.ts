@@ -4,8 +4,8 @@ import type { TFunction } from 'i18next';
 
 import {
   assetUnhealthyReasonSummary,
-  CAPABILITY_OPTIONS,
   formatBytes,
+  formatCompactCount,
   formatDownloadPhaseLabel,
   formatEta,
   formatKnownDownloadSize,
@@ -13,9 +13,6 @@ import {
   isRuntimeInstallCancellation,
   localSpeechReasonSummary,
   partitionTransferSessionsByDisplayState,
-  planBlockingHint,
-  normalizeCapabilityOption,
-  HIGHLIGHT_CLEAR_MS,
   parseTimestamp,
   PROGRESS_RETENTION_MS,
   PROGRESS_SESSION_LIMIT,
@@ -85,6 +82,39 @@ describe('formatBytes', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// formatCompactCount
+// ---------------------------------------------------------------------------
+
+describe('formatCompactCount', () => {
+  test('undefined / 0 / negative / NaN → ""', () => {
+    assert.equal(formatCompactCount(undefined), '');
+    assert.equal(formatCompactCount(0), '');
+    assert.equal(formatCompactCount(-5), '');
+    assert.equal(formatCompactCount(NaN), '');
+  });
+
+  test('below 1000 stays raw', () => {
+    assert.equal(formatCompactCount(951), '951');
+  });
+
+  test('thousands use k with up to 3 significant digits', () => {
+    assert.equal(formatCompactCount(1630), '1.63k');
+    assert.equal(formatCompactCount(13900), '13.9k');
+    assert.equal(formatCompactCount(151000), '151k');
+  });
+
+  test('millions use M with up to 3 significant digits', () => {
+    assert.equal(formatCompactCount(5250000), '5.25M');
+    assert.equal(formatCompactCount(12331673), '12.3M');
+    assert.equal(formatCompactCount(246000000), '246M');
+  });
+
+  test('billions use B', () => {
+    assert.equal(formatCompactCount(1200000000), '1.20B');
+  });
+});
+
 describe('formatKnownDownloadSize', () => {
   test('formats a positive Runtime-projected total', () => {
     assert.equal(formatKnownDownloadSize(1610612736, 'size unknown'), '1.50 GB');
@@ -139,7 +169,7 @@ describe('formatSpeed', () => {
 });
 
 // ---------------------------------------------------------------------------
-// localSpeechReasonSummary / planBlockingHint
+// localSpeechReasonSummary
 // ---------------------------------------------------------------------------
 
 describe('speech blocking summaries', () => {
@@ -150,19 +180,6 @@ describe('speech blocking summaries', () => {
     );
   });
 
-  test('planBlockingHint prefers speech reason summary over generic host fallback', () => {
-    const plan = {
-      installAvailable: false,
-      warnings: [],
-      reasonCode: ReasonCode.AI_LOCAL_SPEECH_HOST_INIT_FAILED,
-      engineRuntimeMode: 'supervised',
-      engine: 'speech',
-    } as unknown as NonNullable<Parameters<typeof planBlockingHint>[0]>;
-    assert.equal(
-      planBlockingHint(plan),
-      'Runtime could not start the local speech capability.',
-    );
-  });
 });
 
 describe('assetUnhealthyReasonSummary', () => {
@@ -247,29 +264,6 @@ describe('formatDownloadPhaseLabel', () => {
 
   test('unknown phase falls back to normalized text', () => {
     assert.equal(formatDownloadPhaseLabel('queued', testTranslate), 'queued');
-  });
-});
-
-// ---------------------------------------------------------------------------
-// capability / engine normalization
-// ---------------------------------------------------------------------------
-
-describe('normalizeCapabilityOption', () => {
-  test('keeps supported capability', () => {
-    assert.equal(normalizeCapabilityOption('tts'), 'tts');
-  });
-
-  test('normalizes case and whitespace', () => {
-    assert.equal(normalizeCapabilityOption('  STT '), 'stt');
-  });
-
-  test('falls back to chat for unknown values', () => {
-    assert.equal(normalizeCapabilityOption('rerank'), 'chat');
-  });
-
-  test('exposes the canonical Runtime music asset kind in desktop local catalog filters', () => {
-    assert.equal(CAPABILITY_OPTIONS.includes('music'), true);
-    assert.equal(normalizeCapabilityOption('music'), 'music');
   });
 });
 
@@ -552,7 +546,4 @@ describe('constants', () => {
     assert.equal(PROGRESS_RETENTION_MS, 15 * 60 * 1000);
   });
 
-  test('HIGHLIGHT_CLEAR_MS is 8 seconds', () => {
-    assert.equal(HIGHLIGHT_CLEAR_MS, 8000);
-  });
 });

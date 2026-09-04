@@ -4,7 +4,7 @@ export const MENU_BAR_OPEN_TAB_EVENT = 'menu-bar://open-tab';
 export const MENU_BAR_RUNTIME_PAGES = [
   'overview',
   'profiles',
-  'models',
+  'modelMarket',
   'cloud',
   'environment',
 ] as const;

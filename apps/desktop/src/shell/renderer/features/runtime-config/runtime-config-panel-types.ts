@@ -5,10 +5,25 @@ import type {
 import type { RuntimeBridgeDaemonStatus } from '../../bridge';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
 import type {
-  NimiRuntimeLocalCatalogItemDescriptor,
   NimiRuntimeLocalInstallPlanDescriptor,
+  NimiRuntimeModelAssetMarketCandidate,
 } from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigInstallConfirmationRequest } from './runtime-config-panel-controller-install-actions';
+
+export type RuntimeConfigLoadoutNavigationContext = {
+  readonly capabilityContract: string;
+  readonly recipeId?: string;
+  readonly recipeRevision?: string;
+  readonly slotId?: string;
+};
+
+export type RuntimeConfigModelMarketContext = {
+  readonly capabilityContract: string;
+  readonly recipeId: string;
+  readonly recipeRevision: string;
+  readonly slotId: string;
+  readonly candidate: NimiRuntimeModelAssetMarketCandidate;
+};
 
 export type RuntimeConfigPanelControllerModel = {
   state: RuntimeConfigStateV11 | null;
@@ -29,25 +44,19 @@ export type RuntimeConfigPanelControllerModel = {
   runtimeDaemonBusyAction: 'start' | 'restart' | 'stop' | null;
   runtimeDaemonError: string;
   runtimeDaemonUpdatedAt: string | null;
+  loadoutNavigationContext: RuntimeConfigLoadoutNavigationContext | null;
+  modelMarketContext: RuntimeConfigModelMarketContext | null;
   setShowCloudApiKey: (value: boolean | ((prev: boolean) => boolean)) => void;
   setConnectorModelQuery: (value: string) => void;
   setPageFeedback: (value: InlineFeedbackState | null) => void;
   onChangePage: (pageId: RuntimeConfigStateV11['activePage']) => void;
+  onOpenLoadouts: (context?: RuntimeConfigLoadoutNavigationContext) => void;
+  onOpenModelMarket: (context: RuntimeConfigModelMarketContext) => void;
+  onReturnToContextualLoadout: () => void;
   updateState: (updater: (prev: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void;
   runLocalHealthCheck: () => Promise<void>;
   testSelectedConnector: () => Promise<void>;
-  installCatalogLocalModel: (
-    item: NimiRuntimeLocalCatalogItemDescriptor,
-    options?: {
-      entry?: string;
-      files?: string[];
-      hashes?: Record<string, string>;
-      capabilities?: string[];
-      engine?: string;
-    },
-  ) => Promise<void>;
   installResolvedModelPlan: (plan: NimiRuntimeLocalInstallPlanDescriptor) => Promise<void>;
-  installCatalogModelAsset: (templateId: string) => Promise<void>;
   installConfirmation: RuntimeConfigInstallConfirmationRequest | null;
   resolveInstallConfirmation: (confirmed: boolean) => void;
   refreshRuntimeDaemonStatus: () => Promise<void>;

@@ -1,9 +1,6 @@
 import { createNimiClientId } from '@nimiplatform/sdk';
 import type { TFunction } from 'i18next';
 import {
-  NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS,
-  normalizeNimiRuntimeLocalRunnableAssetKindId,
-  type NimiRuntimeLocalRunnableAssetKindId,
   createNimiRuntimeConfigConnectorDraft,
   normalizeNimiRuntimeConfigConnectorAuthMode,
   normalizeNimiRuntimeConfigConnectorModels,
@@ -21,20 +18,13 @@ import {
   type NimiRuntimeConnectorScope,
 } from '@nimiplatform/sdk/runtime';
 
-export const CAPABILITIES_V11 = NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_IDS;
-export type CapabilityV11 = NimiRuntimeLocalRunnableAssetKindId;
-
 export type SourceIdV11 = 'local' | 'cloud';
-/**
- * Runtime top-level pages. Model discovery and catalog-backed installation
- * stay inside Local Models; provider-scoped catalog overrides are contextual
- * actions rather than a first-level page.
- */
+/** Runtime top-level pages, split by product owner. */
 export type RuntimePageIdV11 =
   | 'overview'
   | 'profiles'
   | 'modelMarket'
-  | 'localModels'
+  | 'localAssets'
   | 'loadouts'
   | 'cloud'
   | 'environment';
@@ -48,11 +38,6 @@ export type RuntimeConfigActionFocus =
     page: 'cloud';
     action: 'add-connector';
     focus: 'runtime-config-action-focus.cloud-connector-draft';
-  }
-  | {
-    page: 'localModels';
-    action: 'install-model';
-    focus: 'runtime-config-action-focus.local-models-discover';
   }
   | {
     page: 'loadouts';
@@ -69,13 +54,12 @@ export type LocalStateV11 = {
 export type ApiConnector = NimiRuntimeConfigConnectorProjection;
 
 export type RuntimeConfigStateV11 = {
-  version: 11 | 12;
+  version: 13;
   initializedByV11: boolean;
   activePage: RuntimePageIdV11;
   actionFocus: RuntimeConfigActionFocus | null;
   diagnosticsCollapsed: boolean;
   selectedSource: SourceIdV11;
-  activeCapability: CapabilityV11;
   uiMode: UiModeV11;
   local: LocalStateV11;
   connectors: ApiConnector[];
@@ -89,18 +73,11 @@ export function normalizeSourceV11(value: unknown): SourceIdV11 {
 }
 
 export function normalizePageIdV11(value: unknown): RuntimePageIdV11 {
-  // Retired model navigation resolves to the nearest current task owner.
-  if (value === 'models') {
-    return 'localModels';
-  }
-  if (value === 'modelCatalog') {
-    return 'cloud';
-  }
   if (
     value === 'overview'
     || value === 'profiles'
     || value === 'modelMarket'
-    || value === 'localModels'
+    || value === 'localAssets'
     || value === 'loadouts'
     || value === 'cloud'
     || value === 'environment'
@@ -127,17 +104,6 @@ export function normalizeRuntimeConfigActionFocus(value: unknown): RuntimeConfig
     };
   }
   if (
-    record.page === 'localModels'
-    && record.action === 'install-model'
-    && record.focus === 'runtime-config-action-focus.local-models-discover'
-  ) {
-    return {
-      page: 'localModels',
-      action: 'install-model',
-      focus: 'runtime-config-action-focus.local-models-discover',
-    };
-  }
-  if (
     record.page === 'loadouts'
     && record.action === 'open-loadouts'
     && record.focus === 'runtime-config-action-focus.loadouts'
@@ -149,10 +115,6 @@ export function normalizeRuntimeConfigActionFocus(value: unknown): RuntimeConfig
     };
   }
   return null;
-}
-
-export function normalizeCapabilityV11(value: unknown): CapabilityV11 {
-  return normalizeNimiRuntimeLocalRunnableAssetKindId(value);
 }
 
 export function normalizeUiModeV11(value: unknown): UiModeV11 {

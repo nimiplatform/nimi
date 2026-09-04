@@ -1,5 +1,4 @@
 import {
-  normalizeCapabilityV11,
   normalizePageIdV11,
   normalizeRuntimeConfigActionFocus,
   normalizeSourceV11,
@@ -35,14 +34,13 @@ export function normalizeStoredStateV11(parsed: StoredStateV11): RuntimeConfigSt
   // Runtime bridge config and Runtime SDK projections are the single source of
   // truth. Renderer storage keeps UI preferences only.
   return {
-    version: 12,
+    version: 13,
     initializedByV11: Boolean(parsed.initializedByV11),
     activePage: normalizePageIdV11(rawActivePage),
     actionFocus: normalizeRuntimeConfigActionFocus(parsedRecord.actionFocus),
     diagnosticsCollapsed: parsed.diagnosticsCollapsed !== false,
     uiMode: normalizeUiModeV11(parsed.uiMode || fallback.uiMode),
     selectedSource: normalizeSourceV11(parsed.selectedSource || fallback.selectedSource),
-    activeCapability: normalizeCapabilityV11(parsed.activeCapability || fallback.activeCapability),
     local,
     connectors: [],
     selectedConnectorId: '',

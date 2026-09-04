@@ -1,10 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import type { RuntimePageIdV11 } from './runtime-config-state-types';
 import { persistRuntimeConfigStateV11 } from './runtime-config-storage-persist';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { useRuntimeConfigPanelEffects } from './runtime-config-panel-effects';
-import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
+import type {
+  RuntimeConfigLoadoutNavigationContext,
+  RuntimeConfigModelMarketContext,
+  RuntimeConfigPanelControllerModel,
+} from './runtime-config-panel-types';
 import { createRuntimeConfigPanelCommands } from './runtime-config-panel-commands';
 import { useRuntimeConfigPanelDerived } from './runtime-config-panel-derived';
 import { useRuntimeConfigPanelState } from './runtime-config-panel-state';
@@ -18,6 +22,8 @@ export type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-t
 const RUNTIME_DAEMON_STATUS_POLL_INTERVAL_MS = 30_000;
 
 export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerModel {
+  const [loadoutNavigationContext, setLoadoutNavigationContext] = useState<RuntimeConfigLoadoutNavigationContext | null>(null);
+  const [modelMarketContext, setModelMarketContext] = useState<RuntimeConfigModelMarketContext | null>(null);
   const bindings = useDesktopRendererBindings();
   const runtimeConnectorSdk = useRuntimeConfigConnectorSdk();
   const runtimeConfigNavigation = bindings.app.commands.runtimeConfigNavigation;
@@ -98,19 +104,39 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   }, [panelState.setVaultVersion]);
 
   const onChangePage = useCallback((pageId: RuntimePageIdV11) => {
+    setLoadoutNavigationContext(null);
+    setModelMarketContext(null);
     panelState.updateState((prev) => ({
       ...prev,
       activePage: pageId,
     }));
   }, [panelState.updateState]);
 
-  const onOpenLoadouts = useCallback(() => {
-    onChangePage('loadouts');
-  }, [onChangePage]);
+  const onOpenLoadouts = useCallback((context?: RuntimeConfigLoadoutNavigationContext) => {
+    setLoadoutNavigationContext(context ?? null);
+    setModelMarketContext(null);
+    panelState.updateState((previous) => ({ ...previous, activePage: 'loadouts', actionFocus: null }));
+  }, [panelState.updateState]);
+
+  const onOpenModelMarket = useCallback((context: RuntimeConfigModelMarketContext) => {
+    setModelMarketContext(context);
+    panelState.updateState((previous) => ({ ...previous, activePage: 'modelMarket', actionFocus: null }));
+  }, [panelState.updateState]);
+
+  const onReturnToContextualLoadout = useCallback(() => {
+    const context = modelMarketContext;
+    setModelMarketContext(null);
+    onOpenLoadouts(context ? {
+      capabilityContract: context.capabilityContract,
+      recipeId: context.recipeId,
+      recipeRevision: context.recipeRevision,
+      slotId: context.slotId,
+    } : undefined);
+  }, [modelMarketContext, onOpenLoadouts]);
 
   const installActions = useRuntimeConfigInstallActions({
     setStatusBanner: setPageFeedback,
-    onOpenLoadouts,
+    onOpenLoadouts: () => onOpenLoadouts(),
   });
 
   useRuntimeConfigPanelEffects({
@@ -160,6 +186,8 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
       const navigation = runtimeConfigNavigation.get();
       if (navigation.revision === 0 || !navigation.intent) return;
       const intent = navigation.intent;
+      setLoadoutNavigationContext(null);
+      setModelMarketContext(null);
       if (intent.kind === 'open-page') {
         panelState.updateState((prev) => ({
           ...prev,
@@ -196,16 +224,19 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
     runtimeDaemonBusyAction: daemon.runtimeDaemonBusyAction,
     runtimeDaemonError: daemon.runtimeDaemonError,
     runtimeDaemonUpdatedAt: daemon.runtimeDaemonUpdatedAt,
+    loadoutNavigationContext,
+    modelMarketContext,
     setShowCloudApiKey: panelState.setShowCloudApiKey,
     setConnectorModelQuery: panelState.setConnectorModelQuery,
     setPageFeedback,
     onChangePage,
+    onOpenLoadouts,
+    onOpenModelMarket,
+    onReturnToContextualLoadout,
     updateState: panelState.updateState,
     runLocalHealthCheck: commands.runLocalHealthCheck,
     testSelectedConnector: commands.testSelectedConnector,
-    installCatalogLocalModel: installActions.installCatalogLocalModel,
     installResolvedModelPlan: installActions.installResolvedModelPlan,
-    installCatalogModelAsset: installActions.installCatalogModelAsset,
     installConfirmation: installActions.installConfirmation,
     resolveInstallConfirmation: installActions.resolveInstallConfirmation,
     refreshRuntimeDaemonStatus: daemon.refreshRuntimeDaemonStatus,

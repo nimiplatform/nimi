@@ -1,21 +1,11 @@
 import { useCallback, useState } from 'react';
-import type {
-  NimiRuntimeLocalCatalogItemDescriptor,
-  NimiRuntimeLocalCatalogVariantDescriptor,
-} from '@nimiplatform/sdk/runtime';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
-import { useTranslation } from 'react-i18next';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
-import {
-  basenameFromRuntimePath,
-  type LocalModelCenterProps,
-} from './runtime-config-model-center-utils';
+import { basenameFromRuntimePath } from './runtime-config-model-center-utils';
 import { useLocalModelCenterDownloads } from './runtime-config-use-local-model-center-downloads';
 
 type UseLocalModelCenterImportActionsInput = {
-  onRefreshAssetSections: () => Promise<void>;
-  onRefreshVerifiedModels: () => Promise<void>;
-  props: LocalModelCenterProps;
+  onRefreshAssets: () => Promise<void>;
 };
 
 export function toAssetImportUserMessage(error: unknown): string {
@@ -31,11 +21,6 @@ export function toAssetImportUserMessage(error: unknown): string {
 export function useLocalModelCenterImportActions(input: UseLocalModelCenterImportActionsInput) {
   const localEnvironmentClient = useRuntimeConfigLocalEnvironmentClient();
   const commands = useDesktopRendererCommands();
-  const { t } = useTranslation();
-  const [variantPickerItem, setVariantPickerItem] = useState<NimiRuntimeLocalCatalogItemDescriptor | null>(null);
-  const [variantList, setVariantList] = useState<NimiRuntimeLocalCatalogVariantDescriptor[]>([]);
-  const [variantError, setVariantError] = useState('');
-  const [loadingVariants, setLoadingVariants] = useState(false);
   const [importingAssetPath, setImportingAssetPath] = useState<string | null>(null);
   const [assetImportError, setAssetImportError] = useState('');
 
@@ -54,8 +39,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     onDismissSession,
   } = useLocalModelCenterDownloads({
     onProgressSettled: () => {
-      void input.onRefreshVerifiedModels();
-      void input.onRefreshAssetSections();
+      void input.onRefreshAssets();
     },
   });
 
@@ -67,7 +51,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
         sourcePath: assetPath,
         displayName: basenameFromRuntimePath(assetPath) || undefined,
       }, { caller: 'core' });
-      await input.onRefreshAssetSections();
+      await input.onRefreshAssets();
       return imported;
     } catch (error: unknown) {
       setAssetImportError(toAssetImportUserMessage(error));
@@ -75,7 +59,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     } finally {
       setImportingAssetPath(null);
     }
-  }, [input.onRefreshAssetSections, localEnvironmentClient]);
+  }, [input.onRefreshAssets, localEnvironmentClient]);
 
   const importPickedAssetFile = useCallback(async () => {
     setAssetImportError('');
@@ -91,72 +75,20 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
     return importAssetFromPath(directoryPath);
   }, [commands, importAssetFromPath]);
 
-  const closeVariantPicker = useCallback(() => {
-    setVariantPickerItem(null);
-    setVariantList([]);
-  }, []);
-
-  const toggleVariantPicker = useCallback((item: NimiRuntimeLocalCatalogItemDescriptor) => {
-    if (variantPickerItem?.itemId === item.itemId) {
-      closeVariantPicker();
-      return;
-    }
-    setVariantPickerItem(item);
-    setVariantList([]);
-    setVariantError('');
-    setLoadingVariants(true);
-    void localEnvironmentClient.listCatalogVariants(item.repo).then((variants) => {
-      setVariantList([...variants]);
-      setLoadingVariants(false);
-    }).catch((error) => {
-      setVariantList([]);
-      setVariantError(
-        error instanceof Error
-          ? error.message
-          : String(error || t('runtimeConfig.local.unknownError', {
-            defaultValue: 'Unknown error',
-          })),
-      );
-      setLoadingVariants(false);
-    });
-  }, [closeVariantPicker, t, variantPickerItem?.itemId]);
-
-  const installCatalogVariant = useCallback(async (
-    item: NimiRuntimeLocalCatalogItemDescriptor,
-    variantFilename: string,
-  ) => {
-    const selectedVariant = variantList.find((variant) => variant.filename === variantFilename) || null;
-    const entry = selectedVariant?.entry || variantFilename;
-    await input.props.onInstallCatalogItem(item, {
-      entry,
-      files: selectedVariant ? [...selectedVariant.files] : [variantFilename],
-      hashes: selectedVariant?.sha256 ? { [entry]: selectedVariant.sha256 } : undefined,
-      capabilities: [String(item.capabilities[0] || 'chat').trim() || 'chat'],
-      engine: String(item.engine || '').trim(),
-    });
-  }, [input, variantList]);
-
   return {
     activeDownloads,
     activeImports,
     terminalDownloads,
     terminalImports,
-    closeVariantPicker,
     importAssetFromPath,
     importPickedAssetFile,
     importPickedAssetDirectory,
     assetImportError,
     dismissAssetImportError,
     importingAssetPath,
-    installCatalogVariant,
-    loadingVariants,
     onCancelDownload,
     onDismissSession,
     onPauseDownload,
     onResumeDownload,
-    toggleVariantPicker,
-    variantError,
-    variantList,
-    variantPickerItem,
   };
 }

@@ -7,7 +7,7 @@ import {
 } from '../src/shell/renderer/features/runtime-config/runtime-config-state-types';
 import {
   createDefaultStateV11,
-  RUNTIME_CONFIG_STORAGE_KEY_V12,
+  RUNTIME_CONFIG_STORAGE_KEY_V13,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-defaults';
 import { normalizeStoredStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-normalize';
 import { persistRuntimeConfigStateV11 } from '../src/shell/renderer/features/runtime-config/runtime-config-storage-persist';
@@ -22,18 +22,16 @@ test('normalizePageIdV11: canonical page ids pass through unchanged', () => {
   assert.equal(normalizePageIdV11('overview'), 'overview');
   assert.equal(normalizePageIdV11('profiles'), 'profiles');
   assert.equal(normalizePageIdV11('modelMarket'), 'modelMarket');
-  assert.equal(normalizePageIdV11('localModels'), 'localModels');
+  assert.equal(normalizePageIdV11('localAssets'), 'localAssets');
   assert.equal(normalizePageIdV11('loadouts'), 'loadouts');
   assert.equal(normalizePageIdV11('cloud'), 'cloud');
   assert.equal(normalizePageIdV11('environment'), 'environment');
 });
 
-test('normalizePageIdV11: retired "models" section migrates to "localModels"', () => {
-  assert.equal(normalizePageIdV11('models'), 'localModels');
-});
-
-test('normalizePageIdV11: retired model catalog page migrates to cloud connectors', () => {
-  assert.equal(normalizePageIdV11('modelCatalog'), 'cloud');
+test('normalizePageIdV11 does not preserve retired model page ids', () => {
+  assert.equal(normalizePageIdV11('models'), 'overview');
+  assert.equal(normalizePageIdV11('localModels'), 'overview');
+  assert.equal(normalizePageIdV11('modelCatalog'), 'overview');
 });
 
 test('normalizePageIdV11: unknown values fall back to "overview"', () => {
@@ -66,7 +64,7 @@ test('createDefaultStateV11: activePage defaults to "overview"', () => {
   const state = createDefaultStateV11();
 
   assert.equal(state.activePage, 'overview');
-  assert.equal(state.version, 12);
+  assert.equal(state.version, 13);
   assert.equal(state.local.status, 'idle');
 });
 
@@ -81,15 +79,15 @@ test('ordinary Runtime sidebar lists the expected pages without Mods/developer p
   assert.deepEqual(pageIds, [
     'overview',
     'profiles',
-    'modelMarket',
-    'localModels',
     'loadouts',
+    'modelMarket',
+    'localAssets',
     'cloud',
     'environment',
   ]);
   // Retired top-level entries must not survive the T2.4 hard cut; the single
   // 'models' section is now split into task-owned Runtime pages above.
-  for (const retired of ['recommend', 'catalog', 'data-management', 'performance', 'local', 'runtime', 'mods', 'mod-developer', 'advanced', 'models', 'localAiConfig']) {
+  for (const retired of ['recommend', 'catalog', 'data-management', 'performance', 'local', 'runtime', 'mods', 'mod-developer', 'advanced', 'models', 'localModels', 'localAiConfig']) {
     assert.equal((pageIds as string[]).includes(retired), false, `retired id "${retired}" must not be a top-level section`);
   }
   assert.equal(labels.includes('Mods'), false);
@@ -99,13 +97,12 @@ test('ordinary Runtime sidebar lists the expected pages without Mods/developer p
 
 test('normalizeStoredStateV11: connectors always empty (bridge is source of truth)', () => {
   const stored = {
-    version: 11 as const,
+    version: 13 as const,
     initializedByV11: true,
     activePage: 'overview',
     diagnosticsCollapsed: true,
     uiMode: 'simple',
     selectedSource: 'local',
-    activeCapability: 'chat',
     local: {
       endpoint: 'http://127.0.0.1:1234/v1',
       nodeMatrix: [],
@@ -143,11 +140,10 @@ test('state round-trip: persist activePage then normalize back correctly', () =>
     const original = createDefaultStateV11();
     original.activePage = 'environment';
     original.uiMode = 'advanced';
-    original.activeCapability = 'image';
 
     persistRuntimeConfigStateV11(original);
 
-    const raw = store.get(RUNTIME_CONFIG_STORAGE_KEY_V12);
+    const raw = store.get(RUNTIME_CONFIG_STORAGE_KEY_V13);
     assert.ok(raw);
 
     const parsed = JSON.parse(raw);
@@ -155,7 +151,6 @@ test('state round-trip: persist activePage then normalize back correctly', () =>
 
     assert.equal(restored.activePage, 'environment');
     assert.equal(restored.uiMode, 'advanced');
-    assert.equal(restored.activeCapability, 'image');
     assert.deepEqual(restored.connectors, [], 'connectors should be empty after round-trip');
   } finally {
     delete (globalThis as Record<string, unknown>).localStorage;

@@ -63,10 +63,9 @@ export function applyDesktopOpenIntentToAppStore(
 function resolveRuntimePageForIntent(
   intent: Extract<NimiDesktopOpenIntent, { kind: 'open-runtime-config' }>,
 ): RuntimePageIdV11 {
-  // The SDK contract still targets the retired single "models" section;
-  // route it to the page that serves the requested action.
+  // Model discovery and acquisition have one owner surface.
   if (intent.page === 'models') {
-    return 'localModels';
+    return 'modelMarket';
   }
   return 'cloud';
 }
@@ -79,13 +78,6 @@ function runtimeConfigActionFocusForIntent(
       page: 'cloud',
       action: 'add-connector',
       focus: 'runtime-config-action-focus.cloud-connector-draft',
-    } as const;
-  }
-  if (intent.page === 'models' && intent.action === 'install-model') {
-    return {
-      page: 'localModels',
-      action: 'install-model',
-      focus: 'runtime-config-action-focus.local-models-discover',
     } as const;
   }
   return null;

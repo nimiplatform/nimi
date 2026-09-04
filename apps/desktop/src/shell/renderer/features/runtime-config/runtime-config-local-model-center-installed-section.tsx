@@ -48,7 +48,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
             <PackageIcon className="h-4 w-4" />
           </div>
           <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.localModelCenter.myModels', { defaultValue: 'My Models' })}
+            {t('runtimeConfig.localModelCenter.myModels', { defaultValue: 'Installed Assets' })}
           </h3>
           <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] px-2.5 py-0.5 text-xs font-medium text-[var(--nimi-status-success)]">
             {props.modelAssets.length}
@@ -76,10 +76,10 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
         <div className="px-5 py-8 text-center">
           <FolderOpenIcon className="mx-auto mb-3 h-6 w-6 text-[var(--nimi-text-muted)]" />
           <h4 className="text-sm font-medium text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.localModelCenter.noInstalledModels', { defaultValue: 'No models installed' })}
+              {t('runtimeConfig.localModelCenter.noInstalledModels', { defaultValue: 'No local assets' })}
           </h4>
           <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-            {t('runtimeConfig.localModelCenter.noModelAssetsDescription', { defaultValue: 'Install a model from the recommendations above, or import your own model files.' })}
+            {t('runtimeConfig.localModelCenter.noModelAssetsDescription', { defaultValue: 'Download from Model Market, or import your own model files.' })}
           </p>
         </div>
       ) : (

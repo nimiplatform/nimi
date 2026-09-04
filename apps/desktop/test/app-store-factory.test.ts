@@ -522,6 +522,6 @@ test('runtime config navigation retains pre-subscription intent and isolates ren
   assert.deepEqual(revisions, [2]);
 
   unsubscribe();
-  first.openPage('localModels');
+  first.openPage('localAssets');
   assert.deepEqual(revisions, [2]);
 });

@@ -35,28 +35,6 @@ export const TONE_STYLES: Record<RuntimeTone, {
   },
 };
 
-// Unified recommendation-tier tone mapping. `runnable` maps to `info`
-// (wins over the legacy success mapping used by the recommend page).
-export function recommendationTierTone(tier?: string | null): 'success' | 'info' | 'warning' | 'danger' | 'neutral' {
-  if (tier === 'recommended') return 'success';
-  if (tier === 'runnable') return 'info';
-  if (tier === 'tight') return 'warning';
-  if (tier === 'not_recommended') return 'danger';
-  return 'neutral';
-}
-
-const TIER_PILL_CLASSES: Record<'success' | 'info' | 'warning' | 'danger' | 'neutral', string> = {
-  success: 'bg-[var(--nimi-status-success-soft-bg)] text-[var(--nimi-status-success-soft-text)]',
-  info: 'bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]',
-  warning: 'bg-[var(--nimi-status-warning-soft-bg)] text-[var(--nimi-status-warning-soft-text)]',
-  danger: 'bg-[var(--nimi-status-danger-soft-bg)] text-[var(--nimi-status-danger-soft-text)]',
-  neutral: 'bg-[var(--nimi-status-neutral-soft-bg)] text-[var(--nimi-status-neutral-soft-text)]',
-};
-
-export function tierPillClass(tier?: string | null): string {
-  return TIER_PILL_CLASSES[recommendationTierTone(tier)];
-}
-
 type StatusDotTone = 'success' | 'warning' | 'danger' | 'muted';
 
 export function StatusDot({ tone }: { tone: StatusDotTone; pulse?: boolean }) {
