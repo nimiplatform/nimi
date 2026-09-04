@@ -62,7 +62,9 @@ methods:
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants
     posture: anonymous_read
-  - method_id: /nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets
+    posture: anonymous_read
+  - method_id: /nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan
     posture: anonymous_read
