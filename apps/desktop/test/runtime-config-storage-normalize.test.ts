@@ -5,13 +5,12 @@ import { normalizeStoredStateV11 } from '../src/shell/renderer/features/runtime-
 
 test('runtime config storage normalization drops retired local node state', () => {
   const normalized = normalizeStoredStateV11({
-    version: 12,
+    version: 13,
     initializedByV11: true,
     activePage: 'environment',
     diagnosticsCollapsed: false,
     uiMode: 'advanced',
     selectedSource: 'local',
-    activeCapability: 'chat',
     local: {
       endpoint: 'http://127.0.0.1:11434',
       nodeMatrix: [{

@@ -5,8 +5,7 @@ import {
 } from '@nimiplatform/kit/core/storage-json';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import {
-  RUNTIME_CONFIG_STORAGE_KEY_V11,
-  RUNTIME_CONFIG_STORAGE_KEY_V12,
+  RUNTIME_CONFIG_STORAGE_KEY_V13,
   createDefaultStateV11,
   type StoredStateV11,
 } from './runtime-config-storage-defaults';
@@ -14,15 +13,10 @@ import { normalizeStoredStateV11 } from './runtime-config-storage-normalize';
 
 export function loadRuntimeConfigStateV11(): RuntimeConfigStateV11 {
   const storage = resolveBrowserStorage('local');
-  const v12 = readStorageJsonFrom<StoredStateV11>(storage, RUNTIME_CONFIG_STORAGE_KEY_V12);
-  const v11 = v12.state === 'ready'
-    ? v12
-    : readStorageJsonFrom<StoredStateV11>(storage, RUNTIME_CONFIG_STORAGE_KEY_V11);
-  if (v11.state === 'ready' && v11.value && typeof v11.value === 'object') {
-    const parsed = v11.value;
-    if (parsed.version === 11 || parsed.version === 12) {
-      return normalizeStoredStateV11(parsed);
-    }
+  const stored = readStorageJsonFrom<StoredStateV11>(storage, RUNTIME_CONFIG_STORAGE_KEY_V13);
+  if (stored.state === 'ready' && stored.value && typeof stored.value === 'object') {
+    const parsed = stored.value;
+    if (parsed.version === 13) return normalizeStoredStateV11(parsed);
   }
   return createDefaultStateV11();
 }
@@ -32,14 +26,13 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
   // Runtime bridge config / Runtime SDK projections are the single source of
   // truth. Renderer storage keeps UI preferences only.
   const payload: StoredStateV11 = {
-    version: 12,
+    version: 13,
     initializedByV11: Boolean(state.initializedByV11),
     activePage: state.activePage,
     actionFocus: state.actionFocus,
     diagnosticsCollapsed: Boolean(state.diagnosticsCollapsed),
     uiMode: state.uiMode,
     selectedSource: state.selectedSource,
-    activeCapability: state.activeCapability,
     local: {
       status: 'idle',
       lastCheckedAt: null,
@@ -48,7 +41,7 @@ export function persistRuntimeConfigStateV11(state: RuntimeConfigStateV11): void
   };
   writeStorageJsonTo(
     resolveBrowserStorage('local'),
-    RUNTIME_CONFIG_STORAGE_KEY_V12,
+    RUNTIME_CONFIG_STORAGE_KEY_V13,
     payload,
   );
 }

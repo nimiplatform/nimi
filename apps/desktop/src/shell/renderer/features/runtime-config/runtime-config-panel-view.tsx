@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   ConfirmDialog,
   ScrollArea,
@@ -17,13 +16,6 @@ import { RuntimeHealthBadge } from './runtime-config-primitives';
 import { resetRuntimePageViewport } from './runtime-config-page-shell';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { useRuntimeConfigPanelController } from './runtime-config-panel-controller';
-import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
-import {
-  RECOMMEND_FEED_FRESH_STALE_MS,
-  RECOMMEND_FEED_PAGE_SIZE,
-  normalizeRecommendPageCapability,
-  recommendationFeedQueryKey,
-} from './runtime-config-page-recommend-utils';
 
 const OverviewPage = lazy(async () => ({
   default: (await import('./runtime-config-page-overview')).OverviewPage,
@@ -36,8 +28,8 @@ const importRecommendPageModule = () => import('./runtime-config-page-recommend'
 const RecommendPage = lazy(async () => ({
   default: (await importRecommendPageModule()).RecommendPage,
 }));
-const LocalPage = lazy(async () => ({
-  default: (await import('./runtime-config-page-local')).LocalPage,
+const LocalAssetsPage = lazy(async () => ({
+  default: (await import('./runtime-config-page-local')).LocalAssetsPage,
 }));
 const LoadoutsPage = lazy(async () => ({
   default: (await import('./runtime-config-page-loadouts.js')).LoadoutsPage,
@@ -103,8 +95,8 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
     }
   };
 
-  // Local Models and Cloud consume their own action focus after applying the
-  // requested UI state. Loadouts only needs page selection, so clear it here.
+  // Cloud consumes its own action focus after applying the requested UI state.
+  // Loadouts only needs page selection, so clear it here.
   const actionFocus = state?.actionFocus;
   const { updateState } = model;
   useEffect(() => {
@@ -116,25 +108,11 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
     updateState((prev) => (prev.actionFocus ? { ...prev, actionFocus: null } : prev));
   }, [updateState, actionFocus]);
 
-  // Warm the model market before first open: prefetch the lazy chunk and the
-  // recommendation feed with the same query contract the page itself uses, so
-  // the first tab click renders from memory instead of waiting on RPC + chunk.
-  const queryClient = useQueryClient();
-  const localEnvironmentClient = useRuntimeConfigLocalEnvironmentClient();
-  const recommendCapability = normalizeRecommendPageCapability(state?.activeCapability);
+  // Warm only the page chunk. Data ownership and source status stay with the
+  // page's scoped Runtime queries.
   useEffect(() => {
     void importRecommendPageModule();
-    if (!recommendCapability) return;
-    void queryClient.prefetchQuery({
-      queryKey: recommendationFeedQueryKey(recommendCapability),
-      queryFn: () => localEnvironmentClient.getRecommendationFeed({
-        capability: recommendCapability,
-        pageSize: RECOMMEND_FEED_PAGE_SIZE,
-      }),
-      staleTime: RECOMMEND_FEED_FRESH_STALE_MS,
-      gcTime: Infinity,
-    });
-  }, [queryClient, localEnvironmentClient, recommendCapability]);
+  }, []);
 
   if (!state) {
     return (
@@ -249,22 +227,32 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             )}
             {activePage === 'profiles' && (
               <div data-testid={E2E_IDS.runtimePageRoot('profiles')} className="min-w-0">
-                <ProfileCatalogPage />
+                <ProfileCatalogPage onOpenLoadouts={(capabilityContract) => model.onOpenLoadouts(
+                  capabilityContract ? { capabilityContract } : undefined,
+                )} />
               </div>
             )}
             {activePage === 'modelMarket' && (
               <div data-testid={E2E_IDS.runtimePageRoot('modelMarket')} className="min-w-0">
-                <RecommendPage model={model} state={state} />
+                <RecommendPage
+                  model={model}
+                  context={model.modelMarketContext}
+                  onReturnToLoadout={model.onReturnToContextualLoadout}
+                />
               </div>
             )}
-            {activePage === 'localModels' && (
-              <div data-testid={E2E_IDS.runtimePageRoot('localModels')} className="flex min-h-0 min-w-0 flex-1 flex-col">
-                <LocalPage model={model} state={state} />
+            {activePage === 'localAssets' && (
+              <div data-testid={E2E_IDS.runtimePageRoot('localAssets')} className="flex min-h-0 min-w-0 flex-1 flex-col">
+                <LocalAssetsPage model={model} />
               </div>
             )}
             {activePage === 'loadouts' && (
               <div data-testid={E2E_IDS.runtimePageRoot('loadouts')} className="min-w-0">
-                <LoadoutsPage onOpenEnvironment={() => model.onChangePage('environment')} />
+                <LoadoutsPage
+                  navigationContext={model.loadoutNavigationContext}
+                  onOpenEnvironment={() => model.onChangePage('environment')}
+                  onOpenModelMarket={model.onOpenModelMarket}
+                />
               </div>
             )}
             {activePage === 'cloud' && (

@@ -1,15 +1,11 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { TFunction } from 'i18next';
 
 import type { NimiRuntimeLocalTransferProgressEvent } from '@nimiplatform/sdk/runtime';
 import {
   FolderOpenIcon,
   DownloadIcon,
-  assetTaskStatusLabel,
-  isAssetTaskTerminal,
-  localizedAssetKindLabel,
-  type AssetTaskEntry,
 } from './runtime-config-local-model-center-helpers';
 import { ProgressIndicator } from '@nimiplatform/kit/ui';
 import { Button } from './runtime-config-primitives';
@@ -231,108 +227,24 @@ function LocalTransferImportCard(props: TransferCardProps) {
   );
 }
 
-function LocalAssetTaskCard(props: {
-  task: AssetTaskEntry;
-  pendingRetry: boolean;
-  isAssetInstalled: (assetId: string) => boolean;
-  t: TFunction;
-  runtimeWritesDisabled: boolean;
-  onRetryTask: (templateId: string) => void;
-  onDismissTask: (templateId: string) => void;
-}) {
-  const { task, t } = props;
-  // Render-layer reconciliation: the runtime queues catalog asset installs, so a
-  // task can stay 'running' forever. Once the asset shows up in the installed
-  // inventory, present the task as installed and auto-dismiss it shortly after.
-  const installed = props.isAssetInstalled(task.assetId);
-  const effectiveState: AssetTaskEntry['state'] = installed ? 'completed' : task.state;
-  useEffect(() => {
-    if (!installed) {
-      return undefined;
-    }
-    const timer = setTimeout(() => props.onDismissTask(task.templateId), 5000);
-    return () => clearTimeout(timer);
-  }, [installed, props.onDismissTask, task.templateId]);
-  const isRunning = effectiveState === 'running';
-  const isFailed = effectiveState === 'failed';
-  const isTerminal = isAssetTaskTerminal(effectiveState);
-  return (
-    <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]">
-      <div className="flex items-center gap-3">
-        <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-          isFailed ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : isRunning ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]' : 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]'
-        }`}>
-          <FolderOpenIcon className="h-4 w-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="truncate text-sm font-medium text-[var(--nimi-text-primary)]">{task.title}</p>
-            <span className="rounded bg-[color-mix(in_srgb,var(--nimi-surface-card)_78%,var(--nimi-surface-panel))] px-1.5 py-0.5 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-secondary)]">
-              {localizedAssetKindLabel(task.kind, t)}
-            </span>
-          </div>
-          <p className="truncate text-xs text-[var(--nimi-text-muted)]">{task.assetId}</p>
-          {task.detail && !installed ? <p className={`mt-0.5 truncate text-[length:var(--nimi-type-caption-size)] ${isFailed ? 'text-[var(--nimi-status-danger)]' : 'text-[color-mix(in_srgb,var(--nimi-text-muted)_80%,transparent)]'}`}>{task.detail}</p> : null}
-        </div>
-        <span className={`rounded-full px-2 py-1 text-[length:var(--nimi-type-caption-size)] font-medium ${
-          isFailed ? 'bg-[color-mix(in_srgb,var(--nimi-status-danger)_18%,transparent)] text-[var(--nimi-status-danger)]' : isRunning ? 'bg-[color-mix(in_srgb,var(--nimi-status-warning)_18%,transparent)] text-[var(--nimi-status-warning)]' : 'bg-[color-mix(in_srgb,var(--nimi-status-success)_18%,transparent)] text-[var(--nimi-status-success)]'
-        }`}>
-          {assetTaskStatusLabel(effectiveState, t)}
-        </span>
-        {isTerminal ? (
-          <button
-            type="button"
-            aria-label={t('runtimeConfig.localModelCenter.dismissTransfer', { defaultValue: 'Dismiss transfer' })}
-            className="ml-1 rounded-md px-1.5 py-0.5 text-xs text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-surface-hover)] hover:text-[var(--nimi-text-secondary)]"
-            onClick={() => props.onDismissTask(task.templateId)}
-          >
-            {'\u00d7'}
-          </button>
-        ) : null}
-      </div>
-      {isFailed && task.taskKind === 'catalog-install' ? (
-        <div className="mt-3 flex items-center justify-end">
-          <button
-            type="button"
-            onClick={() => props.onRetryTask(task.templateId)}
-            disabled={props.pendingRetry || props.runtimeWritesDisabled}
-            className="rounded-lg border border-[color-mix(in_srgb,var(--nimi-status-danger)_28%,transparent)] bg-[var(--nimi-surface-card)] px-3 py-1.5 text-xs font-medium text-[var(--nimi-status-danger)] hover:bg-[color-mix(in_srgb,var(--nimi-status-danger)_12%,transparent)] disabled:opacity-50"
-          >
-            {props.pendingRetry
-              ? t('runtimeConfig.localModelCenter.retrying', { defaultValue: 'Retrying...' })
-              : t('runtimeConfig.localModelCenter.retry', { defaultValue: 'Retry' })}
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
 type InProgressSectionProps = {
   downloads: NimiRuntimeLocalTransferProgressEvent[];
   imports: NimiRuntimeLocalTransferProgressEvent[];
   terminalDownloads: NimiRuntimeLocalTransferProgressEvent[];
   terminalImports: NimiRuntimeLocalTransferProgressEvent[];
-  tasks: AssetTaskEntry[];
-  pendingTemplateIds: string[];
-  isAssetInstalled: (assetId: string) => boolean;
   runtimeWritesDisabled: boolean;
   onPause: (installSessionId: string) => void;
   onResume: (installSessionId: string) => void;
   onCancel: (installSessionId: string) => void;
   onDismiss: (installSessionId: string) => void;
-  onRetryTask: (templateId: string) => void;
-  onDismissTask: (templateId: string) => void;
 };
 
 function LocalModelCenterInProgressSection(props: InProgressSectionProps) {
   const i18n = useDesktopI18nResource().instance;
   const t = i18n.t.bind(i18n);
   const [recentOpen, setRecentOpen] = useState(false);
-  const activeAssetTasks = props.tasks.filter((task) => !isAssetTaskTerminal(task.state));
-  const terminalAssetTasks = props.tasks.filter((task) => isAssetTaskTerminal(task.state));
-  const activeCount = props.downloads.length + props.imports.length + activeAssetTasks.length;
-  const terminalCount = props.terminalDownloads.length + props.terminalImports.length + terminalAssetTasks.length;
+  const activeCount = props.downloads.length + props.imports.length;
+  const terminalCount = props.terminalDownloads.length + props.terminalImports.length;
   if (activeCount === 0 && terminalCount === 0) {
     return null;
   }
@@ -340,9 +252,6 @@ function LocalModelCenterInProgressSection(props: InProgressSectionProps) {
   const clearAllTerminal = () => {
     for (const event of [...props.terminalDownloads, ...props.terminalImports]) {
       props.onDismiss(event.installSessionId);
-    }
-    for (const task of terminalAssetTasks) {
-      props.onDismissTask(task.templateId);
     }
   };
 
@@ -378,18 +287,6 @@ function LocalModelCenterInProgressSection(props: InProgressSectionProps) {
           {props.imports.map((event) => (
             <LocalTransferImportCard key={event.installSessionId} event={event} {...transferCardCallbacks} />
           ))}
-          {activeAssetTasks.map((task) => (
-            <LocalAssetTaskCard
-              key={`asset-task-${task.templateId}`}
-              task={task}
-              pendingRetry={props.pendingTemplateIds.includes(task.templateId)}
-              isAssetInstalled={props.isAssetInstalled}
-              t={t}
-              runtimeWritesDisabled={props.runtimeWritesDisabled}
-              onRetryTask={props.onRetryTask}
-              onDismissTask={props.onDismissTask}
-            />
-          ))}
         </div>
       ) : null}
       {terminalCount > 0 ? (
@@ -422,18 +319,6 @@ function LocalModelCenterInProgressSection(props: InProgressSectionProps) {
               ))}
               {props.terminalImports.map((event) => (
                 <LocalTransferImportCard key={event.installSessionId} event={event} {...transferCardCallbacks} />
-              ))}
-              {terminalAssetTasks.map((task) => (
-                <LocalAssetTaskCard
-                  key={`asset-task-${task.templateId}`}
-                  task={task}
-                  pendingRetry={props.pendingTemplateIds.includes(task.templateId)}
-                  isAssetInstalled={props.isAssetInstalled}
-                  t={t}
-                  runtimeWritesDisabled={props.runtimeWritesDisabled}
-                  onRetryTask={props.onRetryTask}
-                  onDismissTask={props.onDismissTask}
-                />
               ))}
             </div>
           ) : null}
