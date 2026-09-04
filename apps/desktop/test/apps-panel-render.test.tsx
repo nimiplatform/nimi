@@ -2,10 +2,10 @@
  * Apps panel library/detail render proof.
  *
  * Mounts AppsPanelView through the real i18n instance and asserts the loading,
- * error, empty, grid, running-rail, and detail states render with resolved
- * copy. Effects do not run under `renderToStaticMarkup`, so this covers static
- * structure and translation wiring; live polling and host actions are covered
- * by the controller/projection tests.
+ * error, empty, app-center grid, running-first ordering, and detail states
+ * render with resolved copy. Effects do not run under `renderToStaticMarkup`,
+ * so this covers static structure and translation wiring; live polling and
+ * host actions are covered by the controller/projection tests.
  */
 
 import assert from 'node:assert/strict';
@@ -82,6 +82,7 @@ function entry(
         hostGeneration: 1,
       },
     aiConfigSummary: null,
+    summary: null,
   };
 }
 
@@ -99,6 +100,7 @@ function installedRuntimeEntry(overrides: Partial<AppPackageJob> = {}): DesktopA
     packageJob: null,
     run: null,
     aiConfigSummary: null,
+    summary: null,
   };
   const committedRelease: CommittedAppRelease = {
     appId: entry.identity.appId,
@@ -182,19 +184,25 @@ test('Apps library renders the empty state with the developer-mode action', asyn
   assert.ok(markup.includes('打开开发者模式'), 'expected zh developer action');
 });
 
-test('Apps library renders cover grid cards with resolved zh copy', async () => {
+test('Apps library renders the app-center header and compact grid cards with resolved zh copy', async () => {
   await initI18n();
   await changeLocale('zh');
   const markup = renderView(baseProps());
+  assert.ok(markup.includes('data-testid="apps-library-title"'), 'expected page title');
+  assert.ok(markup.includes('应用中心'), 'expected app-center title copy');
+  assert.ok(markup.includes('管理和启动你的 AI 应用'), 'expected app-center subtitle copy');
   assert.ok(markup.includes('data-testid="apps-entry-list"'), 'expected entry collection');
   assert.ok(markup.includes('data-testid="apps-entry-local_development:nimi.lab:dev-project-example"'), 'expected first card');
   assert.ok(markup.includes('data-testid="apps-entry-local_development:nimi.zhiyu:dev-project-zhiyu"'), 'expected second card');
   assert.ok(markup.includes('Nimi Lab'), 'expected first display name');
   assert.ok(markup.includes('织羽 Zhiyu'), 'expected second display name');
-  assert.ok(markup.includes('data-source-badge="local_development"'), 'expected source badge');
-  assert.ok(markup.includes('本地开发'), 'expected source badge copy');
+  assert.equal(markup.includes('data-source-badge="local_development"'), false, 'local-development source tag hidden on cards');
+  assert.equal(markup.includes('本地开发'), false, 'local-development source tag copy hidden on cards');
   assert.ok(markup.includes('linear-gradient'), 'expected generated artwork gradients');
-  assert.ok(markup.includes('未运行'), 'expected stopped status copy');
+  assert.equal(markup.includes('未运行'), false, 'stopped pill hidden: the launch button already implies not running');
+  assert.ok(markup.includes('启动'), 'expected launch action copy');
+  assert.ok(markup.includes('data-testid="apps-connect-local"'), 'expected dashed add-app tile');
+  assert.ok(markup.includes('添加应用'), 'expected add-app tile copy');
   assert.ok(markup.includes('搜索 App 或 App ID'), 'expected search placeholder');
   assert.ok(markup.includes('最近更新'), 'expected default sort copy');
   assert.equal(markup.includes('-installed-version"'), false, 'local-development cards have no package state');
@@ -222,10 +230,59 @@ test('Apps library renders bounded App AIConfig posture without opening the App'
   }));
   assert.ok(markup.includes('data-app-ai-config-summary="partial-cloud"'));
   assert.ok(markup.includes('data-app-ai-config-health="blocked"'));
-  assert.ok(markup.includes('AI：部分云端 · 2/9 · 1 项受阻'));
+  assert.ok(markup.includes('AI 云端 · 2/9 · 1 项受阻'));
 });
 
-test('Apps rail pins running apps first without group sections', async () => {
+test('Apps library hides the unconfigured AI pill as a default empty state', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const unconfigured = {
+    ...entry(),
+    aiConfigSummary: {
+      routePosture: 'unconfigured' as const,
+      healthPosture: 'healthy' as const,
+      intentCount: 0,
+      total: 9,
+      blockedCount: 0,
+      localCount: 0,
+      cloudCount: 0,
+    },
+  };
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [unconfigured], catalogStatus: 'not-implemented', runtimeError: null },
+  }));
+  assert.equal(markup.includes('AI 未配置'), false, 'unconfigured AI pill hidden on cards');
+});
+
+test('Apps library renders the host-read project summary under the app title', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const withSummary = {
+    ...entry(),
+    summary: '面向本地项目的示例 App，演示 Nimi 平台能力。',
+  };
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [withSummary], catalogStatus: 'not-implemented', runtimeError: null },
+  }));
+  assert.ok(markup.includes('data-testid="apps-entry-local_development:nimi.lab:dev-project-example-summary"'), 'expected summary element');
+  assert.ok(markup.includes('面向本地项目的示例 App，演示 Nimi 平台能力。'), 'expected summary copy under the title');
+  const withoutSummary = renderView(baseProps());
+  assert.equal(withoutSummary.includes('-summary"'), false, 'no summary element when the project has none');
+});
+
+test('Apps search fields render a clear button only when the query is non-empty', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const withQuery = renderView(baseProps({ searchQuery: 'lab' }));
+  assert.ok(withQuery.includes('data-testid="apps-search-clear"'), 'expected rail clear button');
+  assert.ok(withQuery.includes('data-testid="apps-search-clear-compact"'), 'expected compact clear button');
+  assert.ok(withQuery.includes('清除搜索'), 'expected zh clear copy');
+  const emptyQuery = renderView(baseProps({ searchQuery: '' }));
+  assert.equal(emptyQuery.includes('data-testid="apps-search-clear"'), false, 'no rail clear button when empty');
+  assert.equal(emptyQuery.includes('data-testid="apps-search-clear-compact"'), false, 'no compact clear button when empty');
+});
+
+test('Apps rail and grid pin running apps first without group sections', async () => {
   await initI18n();
   await changeLocale('zh');
   const running = entry({ updatedAtUnixMs: 1_721_000_000_000 }, 'running');
@@ -241,10 +298,15 @@ test('Apps rail pins running apps first without group sections', async () => {
   assert.ok(!markup.includes('data-testid="apps-running-group"'), 'no running group section');
   assert.ok(!markup.includes('正在运行'), 'no group title copy');
   assert.ok(markup.includes('运行中'), 'expected running status copy');
+  assert.ok(markup.includes('打开'), 'expected open action copy for the running app');
   const runningIndex = markup.indexOf('data-testid="apps-rail-entry-local_development:nimi.lab:dev-project-example"');
   const stoppedIndex = markup.indexOf('data-testid="apps-rail-entry-local_development:nimi.zhiyu:dev-project-zhiyu"');
   assert.ok(runningIndex !== -1 && stoppedIndex !== -1, 'expected both rail rows');
   assert.ok(runningIndex < stoppedIndex, 'running app pinned before the stopped app');
+  const runningCardIndex = markup.indexOf('data-testid="apps-entry-local_development:nimi.lab:dev-project-example"');
+  const stoppedCardIndex = markup.indexOf('data-testid="apps-entry-local_development:nimi.zhiyu:dev-project-zhiyu"');
+  assert.ok(runningCardIndex !== -1 && stoppedCardIndex !== -1, 'expected both grid cards');
+  assert.ok(runningCardIndex < stoppedCardIndex, 'running card pinned before the stopped card');
 });
 
 test('Apps detail mode renders the header, tabs, and README surface', async () => {
@@ -367,8 +429,11 @@ test('Apps library renders with resolved en copy after locale switch', async () 
   await initI18n();
   await changeLocale('en');
   const markup = renderView(baseProps());
+  assert.ok(markup.includes('App Center'), 'expected en page title');
+  assert.ok(markup.includes('Manage and launch your AI apps'), 'expected en page subtitle');
+  assert.ok(markup.includes('Add App'), 'expected en add-app tile copy');
   assert.ok(markup.includes('Search apps or App ID'), 'expected en search placeholder');
   assert.ok(markup.includes('Recently updated'), 'expected en sort copy');
-  assert.ok(markup.includes('Not running'), 'expected en stopped status copy');
+  assert.equal(markup.includes('Not running'), false, 'en stopped pill hidden: the launch button already implies not running');
   await changeLocale('zh');
 });

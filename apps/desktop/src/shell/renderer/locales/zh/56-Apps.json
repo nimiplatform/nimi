@@ -23,12 +23,14 @@
     "accessDeclarationsDetail": "由项目声明"
   },
   "library": {
+    "pageTitle": "应用中心",
+    "pageSubtitle": "管理和启动你的 AI 应用",
     "sortLabel": "排序方式",
     "sortUpdated": "最近更新",
     "sortName": "名称",
     "sortActivity": "运行优先",
     "backToLibrary": "返回应用库",
-    "connectLocalTitle": "接入本地项目",
+    "connectLocalTitle": "添加应用",
     "cardMenuLabel": "App 操作"
   },
   "sourceBadge": {
@@ -188,12 +190,12 @@
     "configuredSummary": "模型配置已完成",
     "emptySummary": "尚未选择模型",
     "summary": {
-      "local": "AI：本地 · {{summaryCount}}",
-      "cloud": "AI：云端 · {{summaryCount}}",
-      "mixed": "AI：混合 · {{summaryCount}}",
-      "partialLocal": "AI：部分本地 · {{summaryCount}}",
-      "partialCloud": "AI：部分云端 · {{summaryCount}}",
-      "partialMixed": "AI：部分混合 · {{summaryCount}}",
+      "local": "AI 本地 · {{summaryCount}}",
+      "cloud": "AI 云端 · {{summaryCount}}",
+      "mixed": "AI 本地+云端 · {{summaryCount}}",
+      "partialLocal": "AI 本地 · {{summaryCount}}",
+      "partialCloud": "AI 云端 · {{summaryCount}}",
+      "partialMixed": "AI 本地+云端 · {{summaryCount}}",
       "blocked": "{{routeLabel}} · {{blockedCount}} 项受阻",
       "healthUnavailable": "{{routeLabel}} · 健康状态不可用",
       "unconfigured": "AI 未配置",

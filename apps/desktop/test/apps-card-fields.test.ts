@@ -73,6 +73,7 @@ function entry(
       },
     aiConfigSummary: null,
     iconUrl: null,
+    summary: null,
   };
 }
 

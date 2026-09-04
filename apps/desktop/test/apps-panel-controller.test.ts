@@ -134,6 +134,7 @@ describe('Desktop Apps controller action boundary', () => {
       run: null,
       aiConfigSummary: null,
       iconUrl: null,
+      summary: null,
     });
     const local = entry('local_development:example.shared:dev-example', 'local_development');
     const verified = entry('verified:example.shared', 'verified');

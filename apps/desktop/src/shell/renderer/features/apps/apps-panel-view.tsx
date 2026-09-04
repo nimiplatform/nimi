@@ -16,6 +16,7 @@ import {
   ListFilter,
   LoaderCircle,
   SearchX,
+  X,
 } from 'lucide-react';
 import {
   ActionMenu,
@@ -233,6 +234,7 @@ function AppsRail({
           onKeyDown={(event) => {
             if (event.key === 'Escape') onClearSearch();
           }}
+          trailing={searchQuery ? <SearchClearButton testId="apps-search-clear" onClear={onClearSearch} /> : undefined}
           placeholder={t('Apps.sidebar.searchPlaceholder')}
           aria-label={t('Apps.sidebar.searchLabel')}
           className="min-h-8 flex-1"
@@ -388,19 +390,21 @@ function LibraryContent({
   const { t } = useTranslation();
   return (
     <>
-      <div className="shrink-0 border-b border-[color:var(--nimi-border-subtle)] px-5 pb-4 pt-5 lg:hidden">
-        <div className="min-w-0">
-          <h1 className="text-xl font-semibold leading-7 text-[color:var(--nimi-text-primary)]">
-            {t('Navigation.apps', { defaultValue: 'Apps' })}
-          </h1>
-          <p className="mt-0.5 text-xs text-[color:var(--nimi-text-muted)]">
-            {projection?.status === 'loaded'
-              ? t('Apps.inventoryCount', { count: projection.entries.length })
-              : t('Apps.sidebar.subtitle')}
-          </p>
-        </div>
-        {projection?.status === 'loaded' && projection.entries.length > 0 ? (
-          <div className="mt-4 flex min-w-0 items-center gap-2">
+      <div className="shrink-0 px-5 pt-6 sm:px-7">
+        <h1
+          data-testid="apps-library-title"
+          className="text-2xl font-semibold leading-8 text-[color:var(--nimi-text-primary)]"
+        >
+          {t('Apps.library.pageTitle')}
+        </h1>
+        <p className="mt-1 text-xs leading-5 text-[color:var(--nimi-text-muted)]">
+          {t('Apps.library.pageSubtitle')}
+        </p>
+      </div>
+
+      {projection?.status === 'loaded' && projection.entries.length > 0 ? (
+        <div className="shrink-0 px-5 pt-4 sm:px-7 lg:hidden">
+          <div className="flex min-w-0 items-center gap-2">
             <div className="min-w-0 flex-1">
               <SearchField
                 ref={searchInputRef}
@@ -409,6 +413,7 @@ function LibraryContent({
                 onKeyDown={(event) => {
                   if (event.key === 'Escape') onClearSearch();
                 }}
+                trailing={searchQuery ? <SearchClearButton testId="apps-search-clear-compact" onClear={onClearSearch} /> : undefined}
                 placeholder={t('Apps.sidebar.searchPlaceholder')}
                 aria-label={t('Apps.sidebar.searchLabel')}
                 inputClassName="text-xs"
@@ -431,8 +436,8 @@ function LibraryContent({
               </PopoverContent>
             </Popover>
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {actionError ? (
         <div className="shrink-0 px-5 pt-4 sm:px-7">
@@ -495,15 +500,16 @@ function LibraryBody({
   if (projection === null) {
     return (
       <div data-testid="apps-panel-loading" aria-label={t('Apps.loading')} className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4 px-5 py-5 sm:px-7">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="animate-pulse rounded-2xl border border-[color:var(--nimi-border-subtle)] p-4">
+        {Array.from({ length: 8 }).map((_, index) => (
+          <div key={index} className="animate-pulse rounded-xl border border-[color:var(--nimi-border-subtle)] p-4">
             <div className="flex items-center gap-3">
-              <div className="h-16 w-16 shrink-0 rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
+              <div className="h-12 w-12 shrink-0 rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
               <div className="min-w-0 flex-1 space-y-2">
                 <div className="h-4 w-2/3 rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
                 <div className="h-3 w-1/2 rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
               </div>
             </div>
+            <div className="mt-4 h-8 rounded-lg bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
           </div>
         ))}
       </div>
@@ -572,12 +578,33 @@ function LibraryBody({
       <DashedAddButton
         shape="tile"
         data-testid="apps-connect-local"
-        icon={<Code2 className="h-5 w-5" aria-hidden="true" />}
         label={t('Apps.library.connectLocalTitle')}
         onClick={onOpenDeveloperMode}
-        className="h-full min-h-[150px]"
+        className="h-full min-h-[156px]"
       />
     </div>
+  );
+}
+
+function SearchClearButton({
+  testId,
+  onClear,
+}: {
+  readonly testId: string;
+  readonly onClear: () => void;
+}): ReactElement {
+  const { t } = useTranslation();
+  return (
+    <IconButton
+      data-testid={testId}
+      icon={<X className="h-3 w-3" aria-hidden="true" />}
+      tone="ghost"
+      size="sm"
+      aria-label={t('Apps.sidebar.clearSearch')}
+      title={t('Apps.sidebar.clearSearch')}
+      className="h-5 w-5 min-h-0 shrink-0 rounded-full text-[var(--nimi-text-muted)]"
+      onClick={onClear}
+    />
   );
 }
 
