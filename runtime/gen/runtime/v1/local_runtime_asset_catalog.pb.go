@@ -1415,6 +1415,7 @@ type LocalInstallPlanDescriptor struct {
 	TotalSizeBytes   int64               `protobuf:"varint,22,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
 	SourceProvenance string              `protobuf:"bytes,23,opt,name=source_provenance,json=sourceProvenance,proto3" json:"source_provenance,omitempty"`
 	ModelType        string              `protobuf:"bytes,24,opt,name=model_type,json=modelType,proto3" json:"model_type,omitempty"`
+	OfferRef         string              `protobuf:"bytes,25,opt,name=offer_ref,json=offerRef,proto3" json:"offer_ref,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -1617,6 +1618,13 @@ func (x *LocalInstallPlanDescriptor) GetModelType() string {
 	return ""
 }
 
+func (x *LocalInstallPlanDescriptor) GetOfferRef() string {
+	if x != nil {
+		return x.OfferRef
+	}
+	return ""
+}
+
 var File_runtime_v1_local_runtime_asset_catalog_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
@@ -1760,7 +1768,7 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"model_type\x18\x1d \x01(\tR\tmodelType\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xe2\a\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xff\a\n" +
 	"\x1aLocalInstallPlanDescriptor\x12\x17\n" +
 	"\aplan_id\x18\x01 \x01(\tR\x06planId\x12\x17\n" +
 	"\aitem_id\x18\x02 \x01(\tR\x06itemId\x12\x16\n" +
@@ -1789,7 +1797,8 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\x10total_size_bytes\x18\x16 \x01(\x03R\x0etotalSizeBytes\x12+\n" +
 	"\x11source_provenance\x18\x17 \x01(\tR\x10sourceProvenance\x12\x1d\n" +
 	"\n" +
-	"model_type\x18\x18 \x01(\tR\tmodelType\x1a9\n" +
+	"model_type\x18\x18 \x01(\tR\tmodelType\x12\x1b\n" +
+	"\toffer_ref\x18\x19 \x01(\tR\bofferRef\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*\x86\x03\n" +

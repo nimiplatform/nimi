@@ -2,6 +2,7 @@ package localservice
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -45,77 +46,68 @@ func (s *Service) ListVerifiedAssets(_ context.Context, req *runtimev1.ListVerif
 
 func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.SearchCatalogModelsRequest) (*runtimev1.SearchCatalogModelsResponse, error) {
 	query := strings.ToLower(strings.TrimSpace(req.GetQuery()))
-	capability := strings.ToLower(strings.TrimSpace(req.GetCapability()))
-	categoryFilter := strings.ToLower(strings.TrimSpace(req.GetCategoryFilter()))
-	engineFilter := strings.ToLower(strings.TrimSpace(req.GetEngineFilter()))
+	category := strings.ToLower(strings.TrimSpace(req.GetCategory()))
 	if query == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	if category != "" {
+		if _, err := normalizeModelIndexCategory(category); err != nil {
+			return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{Message: "catalog category is invalid"})
+		}
+	}
 	pageSize := normalizeCatalogSearchPageSize(req.GetPageSize())
-	filterDigest := pagination.FilterDigest(query, capability, categoryFilter, engineFilter)
+	filterDigest := pagination.FilterDigest(query, category)
 	if _, err := pagination.ValidatePageToken(req.GetPageToken(), filterDigest); err != nil {
 		return nil, err
 	}
 
-	localCatalog := s.catalogSnapshot()
-
-	items := make([]*runtimev1.LocalCatalogModelDescriptor, 0, len(localCatalog)+hfCatalogDefaultLimit)
-	for _, item := range localCatalog {
-		if !matchesCatalogFilters(item, query, capability, categoryFilter, engineFilter) {
+	internal := make([]*runtimev1.LocalCatalogModelDescriptor, 0)
+	for _, item := range s.catalogSnapshot() {
+		if !matchesCatalogBrowse(item, query, category) {
 			continue
 		}
-		items = append(items, item)
+		internal = append(internal, item)
 	}
-
 	hfItems, err := s.searchHFCatalog(ctx, hfCatalogSearchRequest{
 		Query:          query,
-		Capability:     capability,
-		CategoryFilter: categoryFilter,
-		EngineFilter:   engineFilter,
+		CategoryFilter: category,
 		Limit:          int32(pageSize),
 	})
 	if err != nil {
 		if strings.Contains(err.Error(), errHfRepoInvalid.Error()) {
-			return nil, grpcerr.WrapWithReasonCode(
-				codes.InvalidArgument,
-				runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID,
-				err,
-				grpcerr.ReasonOptions{Message: "catalog repository is invalid"},
-			)
+			return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID, err, grpcerr.ReasonOptions{Message: "catalog repository is invalid"})
 		}
-		return nil, grpcerr.WrapWithReasonCode(
-			codes.Unavailable,
-			runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED,
-			err,
-			grpcerr.ReasonOptions{Message: "catalog search failed"},
-		)
+		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED, err, grpcerr.ReasonOptions{Message: "catalog search failed"})
 	}
 	for _, item := range hfItems {
-		if !matchesCatalogFilters(item, query, capability, categoryFilter, engineFilter) {
-			continue
+		if matchesCatalogBrowse(item, query, category) {
+			internal = append(internal, cloneCatalogItem(item))
 		}
-		items = append(items, cloneCatalogItem(item))
 	}
-
-	sort.Slice(items, func(i, j int) bool {
-		if items[i].GetVerified() != items[j].GetVerified() {
-			return items[i].GetVerified()
+	sort.Slice(internal, func(i, j int) bool {
+		if internal[i].GetVerified() != internal[j].GetVerified() {
+			return internal[i].GetVerified()
 		}
-		if strings.EqualFold(items[i].GetTitle(), items[j].GetTitle()) {
-			return items[i].GetItemId() < items[j].GetItemId()
+		if strings.EqualFold(internal[i].GetTitle(), internal[j].GetTitle()) {
+			return internal[i].GetItemId() < internal[j].GetItemId()
 		}
-		return strings.ToLower(items[i].GetTitle()) < strings.ToLower(items[j].GetTitle())
+		return strings.ToLower(internal[i].GetTitle()) < strings.ToLower(internal[j].GetTitle())
 	})
-	items = dedupeCatalogItems(items)
+	internal = dedupeCatalogItems(internal)
 
-	start, end, next, err := resolvePageBounds(req.GetPageToken(), filterDigest, int32(pageSize), 50, 200, len(items))
+	start, end, next, err := resolvePageBounds(req.GetPageToken(), filterDigest, int32(pageSize), 50, 200, len(internal))
 	if err != nil {
 		return nil, err
 	}
-	return &runtimev1.SearchCatalogModelsResponse{
-		Items:         items[start:end],
-		NextPageToken: next,
-	}, nil
+	items := make([]*runtimev1.ModelAssetCatalogSearchResult, 0, end-start)
+	for _, item := range internal[start:end] {
+		projected, err := projectCatalogSearchResult(item)
+		if err != nil {
+			return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_CATALOG_SCHEMA_INVALID, err, grpcerr.ReasonOptions{Message: "catalog search result identity is invalid"})
+		}
+		items = append(items, projected)
+	}
+	return &runtimev1.SearchCatalogModelsResponse{Items: items, NextPageToken: next}, nil
 }
 
 func normalizeCatalogSearchPageSize(raw int32) int {
@@ -129,47 +121,227 @@ func normalizeCatalogSearchPageSize(raw int32) int {
 }
 
 func (s *Service) ListCatalogVariants(ctx context.Context, req *runtimev1.ListCatalogVariantsRequest) (*runtimev1.ListCatalogVariantsResponse, error) {
-	variants, err := s.listHFCatalogVariants(ctx, req.GetRepo())
+	sourceKind, locator, revision, err := parseModelAssetModelLocator(req.GetModelLocator())
 	if err != nil {
-		if strings.Contains(err.Error(), errHfRepoInvalid.Error()) {
-			return nil, grpcerr.WrapWithReasonCode(
-				codes.InvalidArgument,
-				runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID,
-				err,
-				grpcerr.ReasonOptions{Message: "catalog repository is invalid"},
-			)
-		}
-		return nil, grpcerr.WrapWithReasonCode(
-			codes.Unavailable,
-			runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED,
-			err,
-			grpcerr.ReasonOptions{Message: "catalog search failed"},
-		)
+		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{Message: "catalog model locator is invalid"})
 	}
-	return &runtimev1.ListCatalogVariantsResponse{Variants: variants}, nil
+	offers := make([]catalogOffer, 0)
+	switch sourceKind {
+	case "huggingface":
+		offers = s.modelIndexOffersForLocator(locator, revision)
+		if len(offers) > 0 {
+			break
+		}
+		variants, err := s.listHFCatalogVariants(ctx, locator, revision)
+		if err != nil {
+			if strings.Contains(err.Error(), errHfRepoInvalid.Error()) {
+				return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID, err, grpcerr.ReasonOptions{Message: "catalog repository is invalid"})
+			}
+			return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED, err, grpcerr.ReasonOptions{Message: "catalog variant lookup failed"})
+		}
+		for _, variant := range variants {
+			offer, err := catalogOfferFromHFVariant(locator, variant.Revision, variant)
+			if err != nil {
+				continue
+			}
+			offers = append(offers, offer)
+		}
+	case "verified":
+		for _, item := range s.catalogSnapshot() {
+			itemLocator := catalogItemLocator(item)
+			if itemLocator != locator || defaultString(strings.TrimSpace(item.GetRevision()), "main") != revision {
+				continue
+			}
+			offer, err := catalogOfferFromCatalogItem(item)
+			if err == nil {
+				offers = append(offers, offer)
+			}
+		}
+	default:
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, grpcerr.ReasonOptions{Message: "catalog source is unsupported"})
+	}
+	sort.Slice(offers, func(i, j int) bool {
+		if offers[i].totalSizeBytes != offers[j].totalSizeBytes {
+			return offers[i].totalSizeBytes < offers[j].totalSizeBytes
+		}
+		return offers[i].offerRef < offers[j].offerRef
+	})
+	result := make([]*runtimev1.ModelAssetMarketCandidate, 0, len(offers))
+	for _, offer := range offers {
+		result = append(result, s.projectMarketCandidate(offer))
+	}
+	return &runtimev1.ListCatalogVariantsResponse{Variants: result}, nil
 }
 
-func matchesCatalogFilters(item *runtimev1.LocalCatalogModelDescriptor, query string, capability string, categoryFilter string, engineFilter string) bool {
-	if !matchesCatalogSearch(item, query, capability) {
+func matchesCatalogBrowse(item *runtimev1.LocalCatalogModelDescriptor, query string, category string) bool {
+	if !matchesCatalogSearch(item, query, "") {
 		return false
 	}
-	if engineFilter != "" && strings.ToLower(strings.TrimSpace(item.GetEngine())) != engineFilter {
-		return false
+	return category == "" || stringSetContains(marketCategoriesForCatalogItem(item), category)
+}
+
+func projectCatalogSearchResult(item *runtimev1.LocalCatalogModelDescriptor) (*runtimev1.ModelAssetCatalogSearchResult, error) {
+	if item == nil {
+		return nil, fmt.Errorf("catalog item is required")
 	}
-	if categoryFilter == "" {
-		return true
+	sourceKind := strings.ToLower(strings.TrimSpace(item.GetSource()))
+	if sourceKind == "" {
+		sourceKind = "verified"
 	}
-	for _, tag := range item.GetTags() {
-		if strings.EqualFold(strings.TrimSpace(tag), categoryFilter) {
-			return true
+	locator := catalogItemLocator(item)
+	revision := defaultString(strings.TrimSpace(item.GetRevision()), "main")
+	modelLocator, err := newModelAssetModelLocator(sourceKind, locator, revision)
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.ModelAssetCatalogSearchResult{
+		ModelLocator: modelLocator,
+		SourceLabel:  sourceKind,
+		Title:        defaultString(item.GetTitle(), locator),
+		Description:  strings.TrimSpace(item.GetDescription()),
+		Categories:   marketCategoriesForCatalogItem(item),
+		ModelType:    strings.TrimSpace(item.GetModelType()),
+		Author:       catalogLocatorOwner(locator),
+		License:      strings.TrimSpace(item.GetLicense()),
+		Tags:         normalizeStringSlice(item.GetTags()),
+		Downloads:    item.GetDownloads(),
+		Likes:        item.GetLikes(),
+		LastModified: strings.TrimSpace(item.GetLastModified()),
+		Verified:     item.GetVerified(),
+	}, nil
+}
+
+func catalogItemLocator(item *runtimev1.LocalCatalogModelDescriptor) string {
+	if item == nil {
+		return ""
+	}
+	return defaultString(strings.TrimSpace(item.GetRepo()), defaultString(strings.TrimSpace(item.GetModelId()), strings.TrimSpace(item.GetTemplateId())))
+}
+
+func marketCategoriesForCatalogItem(item *runtimev1.LocalCatalogModelDescriptor) []string {
+	if item == nil {
+		return nil
+	}
+	categories := make([]string, 0, 3)
+	for _, capability := range item.GetCapabilities() {
+		switch normalizeLocalCapabilityToken(capability) {
+		case "image.generate":
+			categories = append(categories, "image")
+		case "video.generate":
+			categories = append(categories, "video")
+		case "text.generate", "text.embed":
+			categories = append(categories, "chat")
 		}
 	}
-	for _, capName := range item.GetCapabilities() {
-		if strings.EqualFold(strings.TrimSpace(capName), categoryFilter) {
-			return true
+	switch strings.ToLower(strings.TrimSpace(item.GetModelType())) {
+	case "image":
+		categories = append(categories, "image")
+	case "video":
+		categories = append(categories, "video")
+	case "chat", "llm":
+		categories = append(categories, "chat")
+	}
+	return normalizeStringSlice(categories)
+}
+
+func catalogOfferFromCatalogItem(item *runtimev1.LocalCatalogModelDescriptor) (catalogOffer, error) {
+	if item == nil {
+		return catalogOffer{}, fmt.Errorf("catalog item is required")
+	}
+	sourceKind := strings.ToLower(strings.TrimSpace(item.GetSource()))
+	if sourceKind == "" {
+		sourceKind = "verified"
+	}
+	identity := modelAssetOfferIdentity{
+		sourceKind: sourceKind,
+		locator:    catalogItemLocator(item),
+		revision:   defaultString(strings.TrimSpace(item.GetRevision()), "main"),
+		entryID:    defaultString(strings.TrimSpace(item.GetTemplateId()), defaultString(strings.TrimSpace(item.GetItemId()), strings.TrimSpace(item.GetEntry()))),
+	}
+	offerRef, err := newModelAssetOfferRef(identity)
+	if err != nil {
+		return catalogOffer{}, err
+	}
+	return catalogOffer{
+		identity:         identity,
+		entryPath:        strings.TrimSpace(item.GetEntry()),
+		offerRef:         offerRef,
+		itemID:           strings.TrimSpace(item.GetItemId()),
+		templateID:       strings.TrimSpace(item.GetTemplateId()),
+		modelID:          strings.TrimSpace(item.GetModelId()),
+		title:            strings.TrimSpace(item.GetTitle()),
+		description:      strings.TrimSpace(item.GetDescription()),
+		categories:       marketCategoriesForCatalogItem(item),
+		capabilities:     normalizeAssetCapabilities(item.GetCapabilities()),
+		modelType:        strings.TrimSpace(item.GetModelType()),
+		format:           catalogOfferFormat(item.GetEntry()),
+		files:            append([]string(nil), item.GetFiles()...),
+		hashes:           cloneStringMap(item.GetHashes()),
+		totalSizeBytes:   item.GetTotalSizeBytes(),
+		license:          strings.TrimSpace(item.GetLicense()),
+		tags:             normalizeStringSlice(item.GetTags()),
+		downloads:        item.GetDownloads(),
+		likes:            item.GetLikes(),
+		lastModified:     strings.TrimSpace(item.GetLastModified()),
+		verified:         item.GetVerified(),
+		sourceProvenance: strings.TrimSpace(item.GetSourceProvenance()),
+		hostRequirements: cloneHostRequirements(item.GetHostRequirements()),
+	}, nil
+}
+
+func catalogOfferFromHFVariant(repo string, revision string, variant hfCatalogVariant) (catalogOffer, error) {
+	identity := modelAssetOfferIdentity{
+		sourceKind: "huggingface",
+		locator:    strings.TrimSpace(repo),
+		revision:   defaultString(strings.TrimSpace(revision), "main"),
+		entryID:    hfVariantEntryIdentity(variant.Format, variant.Entry),
+	}
+	offerRef, err := newModelAssetOfferRef(identity)
+	if err != nil {
+		return catalogOffer{}, err
+	}
+	hash := normalizeExactSHA256Hex(variant.SHA256)
+	hashes := cloneStringMap(variant.Hashes)
+	totalSizeBytes := variant.SizeBytes
+	if len(variant.Files) == 0 {
+		totalSizeBytes = 0
+	}
+	for _, file := range variant.Files {
+		if file == strings.TrimSpace(variant.Entry) && hashes[file] == "" && hash != "" {
+			hashes[file] = hash
 		}
 	}
-	return false
+	return catalogOffer{
+		identity:       identity,
+		entryPath:      strings.TrimSpace(variant.Entry),
+		offerRef:       offerRef,
+		modelID:        identity.locator,
+		title:          defaultString(variant.Title, identity.locator),
+		description:    strings.TrimSpace(variant.Description),
+		categories:     normalizeStringSlice(variant.Categories),
+		capabilities:   normalizeAssetCapabilities(variant.Capabilities),
+		modelType:      strings.TrimSpace(variant.ModelType),
+		format:         defaultString(variant.Format, catalogOfferFormat(variant.Entry)),
+		files:          append([]string(nil), variant.Files...),
+		hashes:         hashes,
+		totalSizeBytes: totalSizeBytes,
+		license:        defaultString(strings.TrimSpace(variant.License), "unknown"),
+		tags:           normalizeStringSlice(variant.Tags),
+		downloads:      variant.Downloads,
+		likes:          variant.Likes,
+		lastModified:   strings.TrimSpace(variant.LastModified),
+	}, nil
+}
+
+func hfVariantEntryIdentity(format string, entry string) string {
+	normalizedFormat := strings.ToLower(strings.TrimSpace(format))
+	if normalizedFormat == "" {
+		normalizedFormat = catalogOfferFormat(entry)
+	}
+	if normalizedFormat == "" {
+		return strings.TrimSpace(entry)
+	}
+	return normalizedFormat + ":" + strings.TrimSpace(entry)
 }
 
 func dedupeCatalogItems(items []*runtimev1.LocalCatalogModelDescriptor) []*runtimev1.LocalCatalogModelDescriptor {
@@ -179,10 +351,7 @@ func dedupeCatalogItems(items []*runtimev1.LocalCatalogModelDescriptor) []*runti
 		if item == nil {
 			continue
 		}
-		key := strings.ToLower(strings.TrimSpace(item.GetModelId()) + "|" + strings.TrimSpace(item.GetEngine()))
-		if key == "|" {
-			key = strings.ToLower(strings.TrimSpace(item.GetItemId()))
-		}
+		key := strings.ToLower(strings.TrimSpace(item.GetSource()) + "|" + catalogItemLocator(item))
 		if seen[key] {
 			continue
 		}

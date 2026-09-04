@@ -8,165 +8,151 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 )
 
 const (
-	modelIndexBaseURLEnv       = "NIMI_MODEL_INDEX_BASE_URL"
-	defaultModelIndexBaseURL   = "https://models.nimi.ai"
-	modelIndexCacheFile        = "model-index-feed-cache.json"
-	modelIndexDefaultPageSize  = 40
-	modelIndexMaxPageSize      = 80
-	modelIndexFetchTimeout     = 5 * time.Second
-	modelIndexFreshWindow      = 6 * time.Hour
-	recommendationBytesPerGiB  = 1024 * 1024 * 1024
-	reasonBaselineImageDefault = "baseline_image_default_v1"
-	reasonBaselineVideoDefault = "baseline_video_default_v1"
-	reasonEngineOverhead       = "engine_overhead_applied"
-	reasonPrereqOverhead       = "hard_prerequisite_overhead_applied"
-	reasonGPUMemoryUnknown     = "gpu_memory_unknown"
-	reasonHostAttachedOnly     = "host_attached_only"
-	reasonHostUnsupported      = "host_unsupported"
-	reasonMainSizeUnknown      = "main_size_unknown"
-	reasonMetadataIncomplete   = "metadata_incomplete"
-	reasonMemoryExceeded       = "memory_budget_exceeded"
-	reasonMemoryRecommended    = "memory_headroom_recommended"
-	reasonMemoryRunnable       = "memory_headroom_runnable"
-	reasonMemoryTight          = "memory_headroom_tight"
-	reasonRepoLevelEstimate    = "safetensors_repo_level_estimate"
-	reasonUnifiedMemory        = "unified_memory_estimate"
-	reasonVariantQuantParsed   = "variant_quant_parsed"
-	reasonLLMFITCPUOnly        = "llmfit_cpu_only"
-	reasonLLMFITCPUOffload     = "llmfit_cpu_offload"
-	reasonLLMFITGPUPath        = "llmfit_gpu_path"
-	reasonLLMFITMarginal       = "llmfit_marginal"
-	reasonLLMFITParamsFile     = "llmfit_params_from_filename"
-	reasonLLMFITParamsSize     = "llmfit_params_from_filesize"
-	reasonLLMFITQuantFile      = "llmfit_quant_from_filename"
-	reasonLLMFITRecommended    = "llmfit_recommended"
-	reasonLLMFITRunnable       = "llmfit_runnable"
-	reasonLLMFITTight          = "llmfit_tight"
-	reasonLLMFITCtxDefaulted   = "llmfit_context_defaulted"
-	reasonLLMFITVision         = "llmfit_vision_model"
-	reasonLLMFITTpsEstimated   = "llmfit_tps_estimated"
+	modelIndexBaseURLEnv      = "NIMI_MODEL_INDEX_BASE_URL"
+	defaultModelIndexBaseURL  = "https://models.nimi.ai"
+	modelIndexCacheFile       = "model-index-v3-cache.json"
+	modelIndexDefaultPageSize = 40
+	modelIndexMaxPageSize     = 80
+	modelIndexFetchTimeout    = 5 * time.Second
+	modelIndexFreshWindow     = 24 * time.Hour
+	modelIndexSchemaVersion   = "3.0.0"
 )
 
+var modelIndexPresentationCategories = map[string]struct{}{
+	"chat":  {},
+	"image": {},
+	"video": {},
+}
+
+var modelIndexGenerationPattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
+
+type remoteModelIndexSource struct {
+	Provider string
+	Formats  []string
+	Strategy string
+}
+
 type remoteModelFile struct {
-	Path      string `json:"path"`
-	SizeBytes int64  `json:"size_bytes"`
-	SHA256    string `json:"sha256"`
+	Path        string
+	SizeBytes   int64
+	DownloadURL string
+	SHA256      string
 }
 
 type remoteInstallEntry struct {
-	EntryID        string            `json:"entry_id"`
-	Format         string            `json:"format"`
-	Entry          string            `json:"entry"`
-	Files          []remoteModelFile `json:"files"`
-	TotalSizeBytes int64             `json:"total_size_bytes"`
-	SHA256         string            `json:"sha256"`
+	EntryID        string
+	Format         string
+	Entry          string
+	Files          []remoteModelFile
+	TotalSizeBytes int64
+	SHA256         string
+	Quantization   string
+	BitsPerWeight  float64
+	Quality        string
 }
 
 type remoteModelEntry struct {
-	Repo         string               `json:"repo"`
-	Revision     string               `json:"revision"`
-	Title        string               `json:"title"`
-	Description  string               `json:"description"`
-	Capabilities []string             `json:"capabilities"`
-	Tags         []string             `json:"tags"`
-	Formats      []string             `json:"formats"`
-	Downloads    int64                `json:"downloads"`
-	Likes        int64                `json:"likes"`
-	LastModified string               `json:"last_modified"`
-	Entries      []remoteInstallEntry `json:"entries"`
+	Repo            string
+	Author          string
+	Title           string
+	ModelName       string
+	Description     string
+	Revision        string
+	License         string
+	Categories      []string
+	Tags            []string
+	Formats         []string
+	ParameterCount  float64
+	Architecture    string
+	ContextLength   int64
+	PipelineTag     string
+	Downloads       int64
+	Likes           int64
+	LastModified    string
+	Entries         []remoteInstallEntry
+	FeaturedOrdinal *int32
+	EditorialReason string
 }
 
-type remoteLeaderboardResponse struct {
-	SchemaVersion string             `json:"schema_version"`
-	GeneratedAt   string             `json:"generated_at"`
-	Capability    string             `json:"capability"`
-	Page          int                `json:"page"`
-	PageSize      int                `json:"page_size"`
-	Total         int                `json:"total"`
-	Items         []remoteModelEntry `json:"items"`
+type remoteModelIndex struct {
+	SchemaVersion   string
+	Generation      string
+	GeneratedAt     string
+	ModelCount      int
+	Source          remoteModelIndexSource
+	SelectionPolicy json.RawMessage
+	Build           json.RawMessage
+	Models          []remoteModelEntry
 }
 
 type modelIndexCacheRecord struct {
-	FetchedAt string                               `json:"fetched_at"`
-	Feeds     map[string]remoteLeaderboardResponse `json:"feeds"`
+	FetchedAt string
+	Index     *remoteModelIndex
+	Stale     bool
 }
 
-type recommendationCandidate struct {
-	modelID             string
-	repo                string
-	title               string
-	capability          string
-	engine              string
-	entry               string
-	format              runtimev1.LocalRecommendationFormat
-	mainSizeBytes       int64
-	knownTotalSizeBytes int64
-	fallbackEntries     []string
-	tags                []string
-}
-
-type hostSupportDescriptor struct {
-	class  runtimev1.LocalHostSupportClass
-	detail string
-}
-
-func (s *Service) GetRecommendationFeed(ctx context.Context, req *runtimev1.GetRecommendationFeedRequest) (*runtimev1.GetRecommendationFeedResponse, error) {
-	capability := normalizeRecommendationFeedCapability(req.GetCapability())
-	pageSize := normalizeRecommendationFeedPageSize(req.GetPageSize())
-	deviceProfile := s.deviceProfileSnapshot()
-	installedAssets := s.installedModelAssetsSnapshot()
-	cache := s.loadModelIndexCache()
-	if cached, ok := cache.Feeds[capability]; ok && modelIndexCacheFresh(cache.FetchedAt) {
-		s.triggerModelIndexBackgroundRefresh(ctx, capability, pageSize)
-		return &runtimev1.GetRecommendationFeedResponse{
-			Feed: materializeRecommendationFeed(&cached, runtimev1.LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH, capability, deviceProfile, installedAssets, s.verified),
-		}, nil
+func (s *Service) ListFeaturedModelAssets(ctx context.Context, req *runtimev1.ListFeaturedModelAssetsRequest) (*runtimev1.ListFeaturedModelAssetsResponse, error) {
+	category, err := normalizeModelIndexCategory(req.GetCategory())
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID, err, grpcerr.ReasonOptions{Message: "featured ModelAsset category is invalid"})
 	}
-	feed, cacheState := s.resolveRecommendationRemoteFeed(ctx, capability, pageSize, cache)
-	if feed == nil {
-		return &runtimev1.GetRecommendationFeedResponse{
-			Feed: &runtimev1.LocalRecommendationFeedDescriptor{
-				DeviceProfile:    cloneDeviceProfile(deviceProfile),
-				ActiveCapability: recommendationFeedCapability(capability),
-				CacheState:       runtimev1.LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY,
-				Items:            []*runtimev1.LocalRecommendationFeedItemDescriptor{},
+	pageSize := normalizeModelIndexPageSize(req.GetPageSize())
+	index, freshness, reason := s.resolveModelIndex(ctx)
+	if index == nil {
+		return &runtimev1.ListFeaturedModelAssetsResponse{
+			Source: &runtimev1.ModelAssetFeaturedSourceObservation{
+				Availability: runtimev1.ModelAssetSourceAvailability_MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE,
+				ReasonCode:   reason,
 			},
+			Items: []*runtimev1.ModelAssetMarketCandidate{},
 		}, nil
 	}
-	if cacheState == runtimev1.LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH {
-		next := cache
-		if next.Feeds == nil {
-			next.Feeds = make(map[string]remoteLeaderboardResponse)
-		}
-		next.FetchedAt = nowISO()
-		next.Feeds[capability] = *feed
-		_ = s.saveModelIndexCache(next)
+	offers, err := modelIndexOffers(index)
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOADOUT_CATALOG_SCHEMA_INVALID, err, grpcerr.ReasonOptions{Message: "adopted model-index generation is invalid"})
 	}
-	return &runtimev1.GetRecommendationFeedResponse{
-		Feed: materializeRecommendationFeed(feed, cacheState, capability, deviceProfile, installedAssets, s.verified),
+	items := make([]*runtimev1.ModelAssetMarketCandidate, 0, pageSize)
+	for _, offer := range offers {
+		if !stringSetContains(offer.categories, category) {
+			continue
+		}
+		items = append(items, s.projectMarketCandidate(offer))
+		if len(items) == pageSize {
+			break
+		}
+	}
+	return &runtimev1.ListFeaturedModelAssetsResponse{
+		Source: &runtimev1.ModelAssetFeaturedSourceObservation{
+			Availability: runtimev1.ModelAssetSourceAvailability_MODEL_ASSET_SOURCE_AVAILABILITY_AVAILABLE,
+			Freshness:    freshness,
+			Generation:   strings.TrimSpace(index.Generation),
+			ReasonCode:   reason,
+		},
+		Items: items,
 	}, nil
 }
 
-func normalizeRecommendationFeedCapability(value string) string {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "image":
-		return "image"
-	case "video":
-		return "video"
-	default:
-		return "chat"
+func normalizeModelIndexCategory(value string) (string, error) {
+	category := strings.ToLower(strings.TrimSpace(value))
+	if _, ok := modelIndexPresentationCategories[category]; !ok {
+		return "", fmt.Errorf("unsupported presentation category %q", value)
 	}
+	return category, nil
 }
 
-func normalizeRecommendationFeedPageSize(value int32) int {
+func normalizeModelIndexPageSize(value int32) int {
 	if value <= 0 {
 		return modelIndexDefaultPageSize
 	}
@@ -176,70 +162,263 @@ func normalizeRecommendationFeedPageSize(value int32) int {
 	return int(value)
 }
 
-func recommendationFeedCapability(value string) runtimev1.LocalRecommendationFeedCapability {
-	switch normalizeRecommendationFeedCapability(value) {
-	case "image":
-		return runtimev1.LocalRecommendationFeedCapability_LOCAL_RECOMMENDATION_FEED_CAPABILITY_IMAGE
-	case "video":
-		return runtimev1.LocalRecommendationFeedCapability_LOCAL_RECOMMENDATION_FEED_CAPABILITY_VIDEO
-	default:
-		return runtimev1.LocalRecommendationFeedCapability_LOCAL_RECOMMENDATION_FEED_CAPABILITY_CHAT
-	}
-}
+func (s *Service) resolveModelIndex(ctx context.Context) (*remoteModelIndex, runtimev1.ModelAssetSourceFreshness, runtimev1.ReasonCode) {
+	s.modelIndexRefreshMu.Lock()
+	defer s.modelIndexRefreshMu.Unlock()
 
-func preferredEngineForRecommendationCapability(capability string) string {
-	switch normalizeRecommendationFeedCapability(capability) {
-	case "image", "video":
-		return "media"
-	default:
-		return "llama"
-	}
-}
-
-func recommendationAssetKind(capability string) runtimev1.LocalAssetKind {
-	switch normalizeRecommendationFeedCapability(capability) {
-	case "image":
-		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE
-	case "video":
-		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO
-	default:
-		return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
-	}
-}
-
-func recommendationFormat(value string) runtimev1.LocalRecommendationFormat {
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "gguf":
-		return runtimev1.LocalRecommendationFormat_LOCAL_RECOMMENDATION_FORMAT_GGUF
-	case "safetensors":
-		return runtimev1.LocalRecommendationFormat_LOCAL_RECOMMENDATION_FORMAT_SAFETENSORS
-	default:
-		return runtimev1.LocalRecommendationFormat_LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED
-	}
-}
-
-func formatFromEntry(entry string) runtimev1.LocalRecommendationFormat {
-	lower := strings.ToLower(strings.TrimSpace(entry))
-	if strings.HasSuffix(lower, ".gguf") {
-		return runtimev1.LocalRecommendationFormat_LOCAL_RECOMMENDATION_FORMAT_GGUF
-	}
-	if strings.HasSuffix(lower, ".safetensors") {
-		return runtimev1.LocalRecommendationFormat_LOCAL_RECOMMENDATION_FORMAT_SAFETENSORS
-	}
-	return runtimev1.LocalRecommendationFormat_LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED
-}
-
-func (s *Service) installedModelAssetsSnapshot() []*runtimev1.ModelAssetRecord {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	items := make([]*runtimev1.ModelAssetRecord, 0, len(s.modelAssets))
-	for _, asset := range s.modelAssets {
-		if asset == nil {
-			continue
+	cache := s.loadModelIndexCache()
+	fetched, fetchErr := fetchModelIndex(ctx, modelIndexBaseURL())
+	if fetchErr == nil {
+		if validationErr := validateRemoteModelIndex(fetched, cache.Index); validationErr == nil {
+			if cache.Index != nil && fetched.Generation == cache.Index.Generation {
+				if !cache.Stale && modelIndexSnapshotFresh(cache.Index.GeneratedAt) {
+					return cache.Index, runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_FRESH, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+				}
+				s.markModelIndexCacheStale(cache)
+				return cache.Index, runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_STALE, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE
+			}
+			if saveErr := s.saveModelIndexCache(modelIndexCacheRecord{FetchedAt: nowISO(), Index: fetched}); saveErr != nil {
+				if cache.Index != nil {
+					s.markModelIndexCacheStale(cache)
+					return cache.Index, runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_STALE, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE
+				}
+				return nil, runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE
+			}
+			if modelIndexSnapshotFresh(fetched.GeneratedAt) {
+				return fetched, runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_FRESH, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
+			}
+			return fetched, runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_STALE, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE
 		}
-		items = append(items, cloneModelAsset(asset))
 	}
-	return items
+	if cache.Index != nil && validateRemoteModelIndex(cache.Index, nil) == nil {
+		s.markModelIndexCacheStale(cache)
+		return cache.Index, runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_STALE, runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE
+	}
+	return nil, runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE
+}
+
+func (s *Service) markModelIndexCacheStale(cache modelIndexCacheRecord) {
+	if cache.Index == nil || cache.Stale {
+		return
+	}
+	cache.Stale = true
+	_ = s.saveModelIndexCache(cache)
+}
+
+func modelIndexSnapshotFresh(generatedAt string) bool {
+	generated, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(generatedAt))
+	if err != nil {
+		return false
+	}
+	age := time.Since(generated)
+	return age >= 0 && age < modelIndexFreshWindow
+}
+
+func validateRemoteModelIndex(index *remoteModelIndex, previous *remoteModelIndex) error {
+	if index == nil || strings.TrimSpace(index.SchemaVersion) != modelIndexSchemaVersion {
+		return fmt.Errorf("model-index schemaVersion must be %s", modelIndexSchemaVersion)
+	}
+	if !modelIndexGenerationPattern.MatchString(strings.TrimSpace(index.Generation)) {
+		return fmt.Errorf("model-index generation must be a lowercase UUID v4")
+	}
+	if _, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(index.GeneratedAt)); err != nil {
+		return fmt.Errorf("model-index generatedAt is invalid: %w", err)
+	}
+	if !strings.EqualFold(strings.TrimSpace(index.Source.Provider), "huggingface") {
+		return fmt.Errorf("model-index source provider is invalid")
+	}
+	if index.ModelCount != len(index.Models) {
+		return fmt.Errorf("model-index modelCount does not match models")
+	}
+	offers, err := modelIndexOffers(index)
+	if err != nil {
+		return err
+	}
+	if previous == nil {
+		return nil
+	}
+	currentGeneratedAt, _ := time.Parse(time.RFC3339Nano, strings.TrimSpace(index.GeneratedAt))
+	previousGeneratedAt, previousTimeErr := time.Parse(time.RFC3339Nano, strings.TrimSpace(previous.GeneratedAt))
+	if previousTimeErr == nil {
+		if index.Generation == previous.Generation {
+			if !reflect.DeepEqual(index, previous) {
+				return fmt.Errorf("model-index generation mutated without a new identity")
+			}
+		} else if !currentGeneratedAt.After(previousGeneratedAt) {
+			return fmt.Errorf("model-index generation rollback is not allowed")
+		}
+	}
+	previousOffers, err := modelIndexOffers(previous)
+	if err != nil {
+		return nil
+	}
+	previousByRef := make(map[string]catalogOffer, len(previousOffers))
+	for _, offer := range previousOffers {
+		previousByRef[offer.offerRef] = offer
+	}
+	for _, offer := range offers {
+		if prior, ok := previousByRef[offer.offerRef]; ok && !reflect.DeepEqual(canonicalOfferFacts(prior), canonicalOfferFacts(offer)) {
+			return fmt.Errorf("model-index offer_ref collision for %s", offer.offerRef)
+		}
+	}
+	return nil
+}
+
+func modelIndexOffers(index *remoteModelIndex) ([]catalogOffer, error) {
+	if index == nil {
+		return nil, nil
+	}
+	result := make([]catalogOffer, 0)
+	seen := map[string][]string{}
+	for modelIndex := range index.Models {
+		model := index.Models[modelIndex]
+		categories := normalizeStringSlice(model.Categories)
+		if len(categories) == 0 {
+			return nil, fmt.Errorf("model-index model %q has no categories", model.Repo)
+		}
+		for _, category := range categories {
+			if _, ok := modelIndexPresentationCategories[category]; !ok {
+				return nil, fmt.Errorf("model-index model %q has unknown category %q", model.Repo, category)
+			}
+		}
+		if strings.TrimSpace(model.Repo) == "" || !hfCommitRevisionPattern.MatchString(strings.TrimSpace(model.Revision)) {
+			return nil, fmt.Errorf("model-index model identity is incomplete")
+		}
+		if model.FeaturedOrdinal != nil && *model.FeaturedOrdinal < 0 {
+			return nil, fmt.Errorf("model-index featured ordinal is invalid")
+		}
+		if (model.FeaturedOrdinal != nil) != (strings.TrimSpace(model.EditorialReason) != "") {
+			return nil, fmt.Errorf("model-index featured ordinal and editorial reason must appear together")
+		}
+		capabilities := inferCapabilitiesFromHF(model.PipelineTag, model.Tags)
+		modelType := catalogModelTypeForAssetKind(inferAssetKindFromCapabilities(capabilities))
+		for entryIndex := range model.Entries {
+			entry := model.Entries[entryIndex]
+			if strings.TrimSpace(entry.EntryID) == "" || strings.TrimSpace(entry.Entry) == "" || len(entry.Files) == 0 {
+				return nil, fmt.Errorf("model-index entry identity is incomplete")
+			}
+			files := make([]string, 0, len(entry.Files))
+			hashes := make(map[string]string, len(entry.Files))
+			var total int64
+			for _, file := range entry.Files {
+				path := strings.TrimSpace(file.Path)
+				hash := normalizeExactSHA256Hex(file.SHA256)
+				if path == "" || file.SizeBytes < 0 {
+					return nil, fmt.Errorf("model-index entry %q has invalid file facts", entry.EntryID)
+				}
+				files = append(files, path)
+				if hash != "" {
+					hashes[path] = hash
+				}
+				total += file.SizeBytes
+			}
+			if entry.TotalSizeBytes <= 0 || total != entry.TotalSizeBytes {
+				return nil, fmt.Errorf("model-index entry %q total size is invalid", entry.EntryID)
+			}
+			identity := modelAssetOfferIdentity{
+				sourceKind: "model-index",
+				locator:    strings.TrimSpace(model.Repo),
+				revision:   strings.TrimSpace(model.Revision),
+				entryID:    strings.TrimSpace(entry.EntryID),
+			}
+			offerRef, err := newModelAssetOfferRef(identity)
+			if err != nil {
+				return nil, err
+			}
+			offer := catalogOffer{
+				identity:         identity,
+				entryPath:        strings.TrimSpace(entry.Entry),
+				offerRef:         offerRef,
+				modelID:          strings.TrimSpace(model.Repo),
+				title:            defaultString(model.Title, model.Repo),
+				description:      strings.TrimSpace(model.Description),
+				categories:       categories,
+				capabilities:     capabilities,
+				modelType:        modelType,
+				architecture:     strings.TrimSpace(model.Architecture),
+				format:           defaultString(entry.Format, catalogOfferFormat(entry.Entry)),
+				author:           strings.TrimSpace(model.Author),
+				files:            files,
+				hashes:           hashes,
+				totalSizeBytes:   entry.TotalSizeBytes,
+				license:          strings.TrimSpace(model.License),
+				tags:             normalizeStringSlice(model.Tags),
+				downloads:        model.Downloads,
+				likes:            model.Likes,
+				lastModified:     strings.TrimSpace(model.LastModified),
+				sourceProvenance: "model-index",
+				featuredOrdinal:  model.FeaturedOrdinal,
+				editorialReason:  strings.TrimSpace(model.EditorialReason),
+			}
+			facts := canonicalOfferFacts(offer)
+			if prior, exists := seen[offerRef]; exists && !reflect.DeepEqual(prior, facts) {
+				return nil, fmt.Errorf("model-index generation contains colliding offer_ref %s", offerRef)
+			}
+			seen[offerRef] = facts
+			result = append(result, offer)
+		}
+	}
+	sort.SliceStable(result, func(i, j int) bool {
+		left, right := result[i], result[j]
+		if (left.featuredOrdinal == nil) != (right.featuredOrdinal == nil) {
+			return left.featuredOrdinal != nil
+		}
+		if left.featuredOrdinal != nil && right.featuredOrdinal != nil && *left.featuredOrdinal != *right.featuredOrdinal {
+			return *left.featuredOrdinal < *right.featuredOrdinal
+		}
+		if left.downloads != right.downloads {
+			return left.downloads > right.downloads
+		}
+		if left.likes != right.likes {
+			return left.likes > right.likes
+		}
+		return left.offerRef < right.offerRef
+	})
+	return result, nil
+}
+
+func stringSetContains(values []string, expected string) bool {
+	for _, value := range values {
+		if strings.EqualFold(strings.TrimSpace(value), strings.TrimSpace(expected)) {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Service) modelIndexOfferByRef(offerRef string) (catalogOffer, bool) {
+	cache := s.loadModelIndexCache()
+	if cache.Index == nil {
+		return catalogOffer{}, false
+	}
+	offers, err := modelIndexOffers(cache.Index)
+	if err != nil {
+		return catalogOffer{}, false
+	}
+	for _, offer := range offers {
+		if offer.offerRef == strings.TrimSpace(offerRef) {
+			return offer.clone(), true
+		}
+	}
+	return catalogOffer{}, false
+}
+
+func (s *Service) modelIndexOffersForLocator(locator string, revision string) []catalogOffer {
+	cache := s.loadModelIndexCache()
+	if cache.Index == nil {
+		return nil
+	}
+	offers, err := modelIndexOffers(cache.Index)
+	if err != nil {
+		return nil
+	}
+	result := make([]catalogOffer, 0)
+	for _, offer := range offers {
+		if offer.identity.locator == strings.TrimSpace(locator) && offer.identity.revision == strings.TrimSpace(revision) {
+			result = append(result, offer.clone())
+		}
+	}
+	return result
 }
 
 func (s *Service) modelIndexCachePath() string {
@@ -258,18 +437,15 @@ func (s *Service) modelIndexCachePath() string {
 func (s *Service) loadModelIndexCache() modelIndexCacheRecord {
 	path := s.modelIndexCachePath()
 	if path == "" {
-		return modelIndexCacheRecord{Feeds: map[string]remoteLeaderboardResponse{}}
+		return modelIndexCacheRecord{}
 	}
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		return modelIndexCacheRecord{Feeds: map[string]remoteLeaderboardResponse{}}
+		return modelIndexCacheRecord{}
 	}
 	var cache modelIndexCacheRecord
-	if err := json.Unmarshal(raw, &cache); err != nil {
-		return modelIndexCacheRecord{Feeds: map[string]remoteLeaderboardResponse{}}
-	}
-	if cache.Feeds == nil {
-		cache.Feeds = map[string]remoteLeaderboardResponse{}
+	if err := json.Unmarshal(raw, &cache); err != nil || validateRemoteModelIndex(cache.Index, nil) != nil {
+		return modelIndexCacheRecord{}
 	}
 	return cache
 }
@@ -286,17 +462,31 @@ func (s *Service) saveModelIndexCache(cache modelIndexCacheRecord) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, raw, 0o644)
+	if s != nil && s.modelIndexCacheWrite != nil {
+		return s.modelIndexCacheWrite(path, raw)
+	}
+	return writeModelIndexCacheAtomically(path, raw)
 }
 
-func (s *Service) resolveRecommendationRemoteFeed(ctx context.Context, capability string, pageSize int, cache modelIndexCacheRecord) (*remoteLeaderboardResponse, runtimev1.LocalRecommendationFeedCacheState) {
-	if feed, err := fetchRecommendationLeaderboard(ctx, modelIndexBaseURL(), capability, pageSize); err == nil && feed != nil {
-		return feed, runtimev1.LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH
+func writeModelIndexCacheAtomically(path string, raw []byte) error {
+	temp, err := os.CreateTemp(filepath.Dir(path), ".model-index-v3-*.tmp")
+	if err != nil {
+		return err
 	}
-	if cached, ok := cache.Feeds[capability]; ok {
-		return &cached, runtimev1.LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_STALE
+	tempPath := temp.Name()
+	defer func() { _ = os.Remove(tempPath) }()
+	if err := temp.Chmod(0o644); err != nil {
+		_ = temp.Close()
+		return err
 	}
-	return nil, runtimev1.LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY
+	if _, err := temp.Write(raw); err != nil {
+		_ = temp.Close()
+		return err
+	}
+	if err := temp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tempPath, path)
 }
 
 func modelIndexBaseURL() string {
@@ -307,63 +497,11 @@ func modelIndexBaseURL() string {
 	return baseURL
 }
 
-// modelIndexCacheFresh reports whether the disk cache was fetched within
-// modelIndexFreshWindow and can therefore be served directly as FRESH.
-func modelIndexCacheFresh(fetchedAt string) bool {
-	parsed, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(fetchedAt))
-	if err != nil {
-		return false
-	}
-	return time.Since(parsed) < modelIndexFreshWindow
-}
-
-// triggerModelIndexBackgroundRefresh starts a single-flight asynchronous
-// refresh of the cached model-index feed for capability. At most one
-// background refresh per capability runs at a time.
-func (s *Service) triggerModelIndexBackgroundRefresh(ctx context.Context, capability string, pageSize int) {
-	s.modelIndexRefreshMu.Lock()
-	if s.modelIndexRefreshInFlight[capability] {
-		s.modelIndexRefreshMu.Unlock()
-		return
-	}
-	s.modelIndexRefreshInFlight[capability] = true
-	s.modelIndexRefreshMu.Unlock()
-	refreshCtx := context.WithoutCancel(ctx)
-	go func() {
-		defer func() {
-			s.modelIndexRefreshMu.Lock()
-			delete(s.modelIndexRefreshInFlight, capability)
-			s.modelIndexRefreshMu.Unlock()
-		}()
-		s.refreshModelIndexCache(refreshCtx, capability, pageSize)
-	}()
-}
-
-func (s *Service) refreshModelIndexCache(ctx context.Context, capability string, pageSize int) {
-	feed, err := fetchRecommendationLeaderboard(ctx, modelIndexBaseURL(), capability, pageSize)
-	if err != nil || feed == nil {
-		return
-	}
-	cache := s.loadModelIndexCache()
-	if cache.Feeds == nil {
-		cache.Feeds = make(map[string]remoteLeaderboardResponse)
-	}
-	cache.FetchedAt = nowISO()
-	cache.Feeds[capability] = *feed
-	_ = s.saveModelIndexCache(cache)
-}
-
-func fetchRecommendationLeaderboard(ctx context.Context, baseURL string, capability string, pageSize int) (feedResponse *remoteLeaderboardResponse, err error) {
-	parsed, err := url.Parse(strings.TrimRight(baseURL, "/") + "/leaderboard")
+func fetchModelIndex(ctx context.Context, baseURL string) (index *remoteModelIndex, err error) {
+	parsed, err := url.Parse(strings.TrimRight(baseURL, "/") + "/index.json")
 	if err != nil {
 		return nil, err
 	}
-	query := parsed.Query()
-	query.Set("capability", capability)
-	query.Set("page", "1")
-	query.Set("pageSize", fmt.Sprintf("%d", pageSize))
-	parsed.RawQuery = query.Encode()
-
 	fetchCtx, cancel := context.WithTimeout(ctx, modelIndexFetchTimeout)
 	defer cancel()
 	req, err := http.NewRequestWithContext(fetchCtx, http.MethodGet, parsed.String(), nil)
@@ -383,309 +521,11 @@ func fetchRecommendationLeaderboard(ctx context.Context, baseURL string, capabil
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, fmt.Errorf("model index status %d", resp.StatusCode)
 	}
-	var feed remoteLeaderboardResponse
-	if err := json.NewDecoder(resp.Body).Decode(&feed); err != nil {
+	var result remoteModelIndex
+	decoder := json.NewDecoder(resp.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&result); err != nil {
 		return nil, err
 	}
-	return &feed, nil
-}
-
-func materializeRecommendationFeed(
-	feed *remoteLeaderboardResponse,
-	cacheState runtimev1.LocalRecommendationFeedCacheState,
-	capability string,
-	deviceProfile *runtimev1.LocalDeviceProfile,
-	installedAssets []*runtimev1.ModelAssetRecord,
-	verifiedAssets []*runtimev1.LocalVerifiedAssetDescriptor,
-) *runtimev1.LocalRecommendationFeedDescriptor {
-	items := make([]*runtimev1.LocalRecommendationFeedItemDescriptor, 0, len(feed.Items))
-	sourceRank := make(map[string]int, len(feed.Items))
-	for index, item := range feed.Items {
-		sourceRank[strings.ToLower(strings.TrimSpace(item.Repo))] = index
-		items = append(items, buildRecommendationFeedItem(&item, capability, deviceProfile, installedAssets, verifiedAssets, index))
-	}
-	sort.SliceStable(items, func(i, j int) bool {
-		leftRank := sourceRank[strings.ToLower(strings.TrimSpace(items[i].GetRepo()))]
-		rightRank := sourceRank[strings.ToLower(strings.TrimSpace(items[j].GetRepo()))]
-		leftKey := recommendationFeedItemSortKey(items[i], leftRank)
-		rightKey := recommendationFeedItemSortKey(items[j], rightRank)
-		if leftKey != rightKey {
-			return leftKey.less(rightKey)
-		}
-		return strings.ToLower(items[i].GetTitle()) < strings.ToLower(items[j].GetTitle())
-	})
-	return &runtimev1.LocalRecommendationFeedDescriptor{
-		DeviceProfile:    cloneDeviceProfile(deviceProfile),
-		ActiveCapability: recommendationFeedCapability(capability),
-		GeneratedAt:      strings.TrimSpace(feed.GeneratedAt),
-		CacheState:       cacheState,
-		Items:            items,
-	}
-}
-
-type recommendationRank struct {
-	tier       int
-	host       int
-	confidence int
-	verified   int
-	sizeBytes  int64
-	sourceRank int
-}
-
-func (r recommendationRank) less(other recommendationRank) bool {
-	if r.tier != other.tier {
-		return r.tier < other.tier
-	}
-	if r.host != other.host {
-		return r.host < other.host
-	}
-	if r.confidence != other.confidence {
-		return r.confidence < other.confidence
-	}
-	if r.verified != other.verified {
-		return r.verified < other.verified
-	}
-	if r.sizeBytes != other.sizeBytes {
-		return r.sizeBytes < other.sizeBytes
-	}
-	return r.sourceRank < other.sourceRank
-}
-
-func recommendationSortKey(recommendation *runtimev1.LocalCatalogRecommendation, verified bool, sourceRank int) recommendationRank {
-	tierRank := 4
-	switch recommendation.GetTier() {
-	case runtimev1.LocalRecommendationTier_LOCAL_RECOMMENDATION_TIER_RECOMMENDED:
-		tierRank = 0
-	case runtimev1.LocalRecommendationTier_LOCAL_RECOMMENDATION_TIER_RUNNABLE:
-		tierRank = 1
-	case runtimev1.LocalRecommendationTier_LOCAL_RECOMMENDATION_TIER_TIGHT:
-		tierRank = 2
-	case runtimev1.LocalRecommendationTier_LOCAL_RECOMMENDATION_TIER_NOT_RECOMMENDED:
-		tierRank = 3
-	}
-	hostRank := 3
-	switch recommendation.GetHostSupportClass() {
-	case runtimev1.LocalHostSupportClass_LOCAL_HOST_SUPPORT_CLASS_SUPPORTED_SUPERVISED:
-		hostRank = 0
-	case runtimev1.LocalHostSupportClass_LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY:
-		hostRank = 1
-	case runtimev1.LocalHostSupportClass_LOCAL_HOST_SUPPORT_CLASS_UNSUPPORTED:
-		hostRank = 2
-	}
-	confidenceRank := 3
-	switch recommendation.GetConfidence() {
-	case runtimev1.LocalRecommendationConfidence_LOCAL_RECOMMENDATION_CONFIDENCE_HIGH:
-		confidenceRank = 0
-	case runtimev1.LocalRecommendationConfidence_LOCAL_RECOMMENDATION_CONFIDENCE_MEDIUM:
-		confidenceRank = 1
-	case runtimev1.LocalRecommendationConfidence_LOCAL_RECOMMENDATION_CONFIDENCE_LOW:
-		confidenceRank = 2
-	}
-	verifiedRank := 1
-	if verified {
-		verifiedRank = 0
-	}
-	return recommendationRank{tier: tierRank, host: hostRank, confidence: confidenceRank, verified: verifiedRank, sizeBytes: 0, sourceRank: sourceRank}
-}
-
-func recommendationFeedItemSortKey(item *runtimev1.LocalRecommendationFeedItemDescriptor, sourceRank int) recommendationRank {
-	key := recommendationSortKey(item.GetRecommendation(), item.GetVerified(), sourceRank)
-	key.sizeBytes = recommendationFeedItemSmallestEntrySize(item)
-	return key
-}
-
-func recommendationFeedItemSmallestEntrySize(item *runtimev1.LocalRecommendationFeedItemDescriptor) int64 {
-	const unknownSizeRank = int64(1 << 62)
-	best := unknownSizeRank
-	for _, entry := range item.GetEntries() {
-		size := entry.GetTotalSizeBytes()
-		if size > 0 && size < best {
-			best = size
-		}
-	}
-	return best
-}
-
-func buildRecommendationFeedItem(
-	item *remoteModelEntry,
-	capability string,
-	profile *runtimev1.LocalDeviceProfile,
-	installedAssets []*runtimev1.ModelAssetRecord,
-	verifiedAssets []*runtimev1.LocalVerifiedAssetDescriptor,
-	sourceRank int,
-) *runtimev1.LocalRecommendationFeedItemDescriptor {
-	engine := preferredEngineForRecommendationCapability(capability)
-	entries := make([]*runtimev1.LocalRecommendationFeedEntryDescriptor, 0, len(item.Entries))
-	for _, entry := range item.Entries {
-		format := recommendationFormat(entry.Format)
-		if format == runtimev1.LocalRecommendationFormat_LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED {
-			continue
-		}
-		entries = append(entries, &runtimev1.LocalRecommendationFeedEntryDescriptor{
-			EntryId:        strings.TrimSpace(entry.EntryID),
-			Format:         format,
-			Entry:          strings.TrimSpace(entry.Entry),
-			Files:          recommendationEntryFiles(entry),
-			TotalSizeBytes: entry.TotalSizeBytes,
-			Sha256:         strings.TrimSpace(entry.SHA256),
-		})
-	}
-
-	bestEntry := remoteInstallEntry{}
-	if len(item.Entries) > 0 {
-		bestEntry = item.Entries[0]
-	}
-	var bestRecommendation *runtimev1.LocalCatalogRecommendation
-	for _, entry := range item.Entries {
-		candidate := buildRecommendationCandidate(item, capability, engine, entry)
-		recommendation := buildFeedRecommendation(candidate, profile)
-		if recommendation == nil {
-			continue
-		}
-		if bestRecommendation == nil || recommendationSortKey(recommendation, false, sourceRank).less(recommendationSortKey(bestRecommendation, false, sourceRank)) {
-			bestRecommendation = recommendation
-			bestEntry = entry
-		}
-	}
-	if bestRecommendation != nil && strings.TrimSpace(bestRecommendation.GetRecommendedEntry()) != "" {
-		for _, entry := range item.Entries {
-			if strings.TrimSpace(entry.Entry) == strings.TrimSpace(bestRecommendation.GetRecommendedEntry()) {
-				bestEntry = entry
-				break
-			}
-		}
-	}
-
-	installedState := recommendationInstalledState(item, installedAssets)
-	verified := recommendationVerified(item, verifiedAssets)
-	actionState := &runtimev1.LocalRecommendationActionState{
-		CanReviewInstallPlan: !installedState.GetInstalled() && strings.TrimSpace(bestEntry.Entry) != "",
-		CanOpenVariants:      len(item.Entries) > 1,
-		CanOpenModelAsset:    installedState.GetInstalled(),
-	}
-	installPayload := &runtimev1.LocalRecommendationInstallPayload{
-		ModelId:      strings.TrimSpace(item.Repo),
-		Kind:         recommendationAssetKind(capability),
-		Repo:         strings.TrimSpace(item.Repo),
-		Revision:     defaultString(item.Revision, "main"),
-		Capabilities: normalizeStringSlice(item.Capabilities),
-		Engine:       engine,
-		Entry:        strings.TrimSpace(bestEntry.Entry),
-		Files:        recommendationEntryFiles(bestEntry),
-		License:      "",
-		Hashes:       recommendationEntryHashes(bestEntry),
-	}
-	formats := make([]runtimev1.LocalRecommendationFormat, 0, len(item.Formats))
-	for _, format := range item.Formats {
-		parsed := recommendationFormat(format)
-		if parsed != runtimev1.LocalRecommendationFormat_LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED {
-			formats = append(formats, parsed)
-		}
-	}
-	return &runtimev1.LocalRecommendationFeedItemDescriptor{
-		ItemId:          fmt.Sprintf("model-index:%s:%s", capability, strings.TrimSpace(item.Repo)),
-		Source:          runtimev1.LocalRecommendationFeedSource_LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX,
-		Repo:            strings.TrimSpace(item.Repo),
-		Revision:        defaultString(item.Revision, "main"),
-		Title:           defaultString(item.Title, item.Repo),
-		Description:     strings.TrimSpace(item.Description),
-		Capabilities:    normalizeStringSlice(item.Capabilities),
-		Tags:            normalizeStringSlice(item.Tags),
-		Formats:         formats,
-		Downloads:       item.Downloads,
-		Likes:           item.Likes,
-		LastModified:    strings.TrimSpace(item.LastModified),
-		PreferredEngine: engine,
-		Verified:        verified,
-		Entries:         entries,
-		Recommendation:  bestRecommendation,
-		InstalledState:  installedState,
-		ActionState:     actionState,
-		InstallPayload:  installPayload,
-	}
-}
-
-func buildRecommendationCandidate(item *remoteModelEntry, capability string, engine string, entry remoteInstallEntry) recommendationCandidate {
-	fallback := make([]string, 0, len(item.Entries))
-	for _, other := range item.Entries {
-		if other.EntryID == entry.EntryID {
-			continue
-		}
-		fallback = append(fallback, strings.TrimSpace(other.Entry))
-	}
-	format := recommendationFormat(entry.Format)
-	if format == runtimev1.LocalRecommendationFormat_LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED {
-		format = formatFromEntry(entry.Entry)
-	}
-	return recommendationCandidate{
-		modelID:             strings.TrimSpace(item.Repo),
-		repo:                strings.TrimSpace(item.Repo),
-		title:               defaultString(item.Title, item.Repo),
-		capability:          capability,
-		engine:              engine,
-		entry:               strings.TrimSpace(entry.Entry),
-		format:              format,
-		mainSizeBytes:       entry.TotalSizeBytes,
-		knownTotalSizeBytes: entry.TotalSizeBytes,
-		fallbackEntries:     fallback,
-		tags:                normalizeStringSlice(item.Tags),
-	}
-}
-
-func buildFeedRecommendation(candidate recommendationCandidate, profile *runtimev1.LocalDeviceProfile) *runtimev1.LocalCatalogRecommendation {
-	switch normalizeRecommendationFeedCapability(candidate.capability) {
-	case "image", "video":
-		return buildMediaRecommendation(candidate, profile)
-	default:
-		return buildLLMRecommendation(candidate, profile)
-	}
-}
-
-func recommendationEntryFiles(entry remoteInstallEntry) []string {
-	files := make([]string, 0, len(entry.Files))
-	for _, file := range entry.Files {
-		if path := strings.TrimSpace(file.Path); path != "" {
-			files = append(files, path)
-		}
-	}
-	return files
-}
-
-func recommendationEntryHashes(entry remoteInstallEntry) map[string]string {
-	hashes := map[string]string{}
-	for _, file := range entry.Files {
-		if strings.TrimSpace(file.Path) == "" || strings.TrimSpace(file.SHA256) == "" {
-			continue
-		}
-		hashes[strings.TrimSpace(file.Path)] = strings.TrimSpace(file.SHA256)
-	}
-	return hashes
-}
-
-func recommendationInstalledState(item *remoteModelEntry, installedAssets []*runtimev1.ModelAssetRecord) *runtimev1.LocalRecommendationInstalledState {
-	for _, asset := range installedAssets {
-		if asset == nil || asset.GetProvenance() == nil {
-			continue
-		}
-		repo := strings.TrimSpace(asset.GetProvenance().GetFields()["source_repo"].GetStringValue())
-		if strings.EqualFold(repo, strings.TrimSpace(item.Repo)) {
-			return &runtimev1.LocalRecommendationInstalledState{
-				Installed: true,
-			}
-		}
-	}
-	return &runtimev1.LocalRecommendationInstalledState{}
-}
-
-func recommendationVerified(item *remoteModelEntry, verifiedAssets []*runtimev1.LocalVerifiedAssetDescriptor) bool {
-	for _, asset := range verifiedAssets {
-		if asset == nil {
-			continue
-		}
-		if strings.EqualFold(strings.TrimSpace(asset.GetRepo()), strings.TrimSpace(item.Repo)) ||
-			strings.EqualFold(strings.TrimSpace(asset.GetAssetId()), strings.TrimSpace(item.Repo)) {
-			return true
-		}
-	}
-	return false
+	return &result, nil
 }

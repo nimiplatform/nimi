@@ -190,6 +190,20 @@ type LocalPlaneVariant struct {
 	DriverBackend   string                    `yaml:"driver_backend,omitempty" json:"driver_backend,omitempty"`
 }
 
+type LocalVariantApplicability string
+
+const (
+	LocalVariantApplicabilitySupported   LocalVariantApplicability = "supported"
+	LocalVariantApplicabilityUnknown     LocalVariantApplicability = "unknown"
+	LocalVariantApplicabilityUnsupported LocalVariantApplicability = "unsupported"
+)
+
+type RankedLocalVariant struct {
+	Variant       LocalPlaneVariant
+	Applicability LocalVariantApplicability
+	Ordinal       int
+}
+
 // LocalPlaneInstall is the K-MCAT-032 installable-fact block shared by every
 // variant of a local-plane model row.
 type LocalPlaneInstall struct {

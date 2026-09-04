@@ -9,7 +9,6 @@ package runtimev1
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
-	structpb "google.golang.org/protobuf/types/known/structpb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -22,492 +21,184 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type LocalRecommendationSource int32
+// Runtime-owned applicability for one exact recommendation context. It is
+// neither configuration, readiness, selection, nor execution truth.
+type LocalRecommendationApplicability int32
 
 const (
-	LocalRecommendationSource_LOCAL_RECOMMENDATION_SOURCE_UNSPECIFIED LocalRecommendationSource = 0
-	LocalRecommendationSource_LOCAL_RECOMMENDATION_SOURCE_LLMFIT      LocalRecommendationSource = 1
-	LocalRecommendationSource_LOCAL_RECOMMENDATION_SOURCE_MEDIA_FIT   LocalRecommendationSource = 2
+	LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSPECIFIED LocalRecommendationApplicability = 0
+	LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED   LocalRecommendationApplicability = 1
+	LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN     LocalRecommendationApplicability = 2
+	LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED LocalRecommendationApplicability = 3
 )
 
-// Enum value maps for LocalRecommendationSource.
+// Enum value maps for LocalRecommendationApplicability.
 var (
-	LocalRecommendationSource_name = map[int32]string{
-		0: "LOCAL_RECOMMENDATION_SOURCE_UNSPECIFIED",
-		1: "LOCAL_RECOMMENDATION_SOURCE_LLMFIT",
-		2: "LOCAL_RECOMMENDATION_SOURCE_MEDIA_FIT",
+	LocalRecommendationApplicability_name = map[int32]string{
+		0: "LOCAL_RECOMMENDATION_APPLICABILITY_UNSPECIFIED",
+		1: "LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED",
+		2: "LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN",
+		3: "LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED",
 	}
-	LocalRecommendationSource_value = map[string]int32{
-		"LOCAL_RECOMMENDATION_SOURCE_UNSPECIFIED": 0,
-		"LOCAL_RECOMMENDATION_SOURCE_LLMFIT":      1,
-		"LOCAL_RECOMMENDATION_SOURCE_MEDIA_FIT":   2,
+	LocalRecommendationApplicability_value = map[string]int32{
+		"LOCAL_RECOMMENDATION_APPLICABILITY_UNSPECIFIED": 0,
+		"LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED":   1,
+		"LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN":     2,
+		"LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED": 3,
 	}
 )
 
-func (x LocalRecommendationSource) Enum() *LocalRecommendationSource {
-	p := new(LocalRecommendationSource)
+func (x LocalRecommendationApplicability) Enum() *LocalRecommendationApplicability {
+	p := new(LocalRecommendationApplicability)
 	*p = x
 	return p
 }
 
-func (x LocalRecommendationSource) String() string {
+func (x LocalRecommendationApplicability) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (LocalRecommendationSource) Descriptor() protoreflect.EnumDescriptor {
+func (LocalRecommendationApplicability) Descriptor() protoreflect.EnumDescriptor {
 	return file_runtime_v1_local_runtime_recommendation_proto_enumTypes[0].Descriptor()
 }
 
-func (LocalRecommendationSource) Type() protoreflect.EnumType {
+func (LocalRecommendationApplicability) Type() protoreflect.EnumType {
 	return &file_runtime_v1_local_runtime_recommendation_proto_enumTypes[0]
 }
 
-func (x LocalRecommendationSource) Number() protoreflect.EnumNumber {
+func (x LocalRecommendationApplicability) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use LocalRecommendationSource.Descriptor instead.
-func (LocalRecommendationSource) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use LocalRecommendationApplicability.Descriptor instead.
+func (LocalRecommendationApplicability) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{0}
 }
 
-type LocalRecommendationFormat int32
+type ModelAssetSourceAvailability int32
 
 const (
-	LocalRecommendationFormat_LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED LocalRecommendationFormat = 0
-	LocalRecommendationFormat_LOCAL_RECOMMENDATION_FORMAT_GGUF        LocalRecommendationFormat = 1
-	LocalRecommendationFormat_LOCAL_RECOMMENDATION_FORMAT_SAFETENSORS LocalRecommendationFormat = 2
+	ModelAssetSourceAvailability_MODEL_ASSET_SOURCE_AVAILABILITY_UNSPECIFIED ModelAssetSourceAvailability = 0
+	ModelAssetSourceAvailability_MODEL_ASSET_SOURCE_AVAILABILITY_AVAILABLE   ModelAssetSourceAvailability = 1
+	ModelAssetSourceAvailability_MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE ModelAssetSourceAvailability = 2
 )
 
-// Enum value maps for LocalRecommendationFormat.
+// Enum value maps for ModelAssetSourceAvailability.
 var (
-	LocalRecommendationFormat_name = map[int32]string{
-		0: "LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED",
-		1: "LOCAL_RECOMMENDATION_FORMAT_GGUF",
-		2: "LOCAL_RECOMMENDATION_FORMAT_SAFETENSORS",
+	ModelAssetSourceAvailability_name = map[int32]string{
+		0: "MODEL_ASSET_SOURCE_AVAILABILITY_UNSPECIFIED",
+		1: "MODEL_ASSET_SOURCE_AVAILABILITY_AVAILABLE",
+		2: "MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE",
 	}
-	LocalRecommendationFormat_value = map[string]int32{
-		"LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED": 0,
-		"LOCAL_RECOMMENDATION_FORMAT_GGUF":        1,
-		"LOCAL_RECOMMENDATION_FORMAT_SAFETENSORS": 2,
+	ModelAssetSourceAvailability_value = map[string]int32{
+		"MODEL_ASSET_SOURCE_AVAILABILITY_UNSPECIFIED": 0,
+		"MODEL_ASSET_SOURCE_AVAILABILITY_AVAILABLE":   1,
+		"MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE": 2,
 	}
 )
 
-func (x LocalRecommendationFormat) Enum() *LocalRecommendationFormat {
-	p := new(LocalRecommendationFormat)
+func (x ModelAssetSourceAvailability) Enum() *ModelAssetSourceAvailability {
+	p := new(ModelAssetSourceAvailability)
 	*p = x
 	return p
 }
 
-func (x LocalRecommendationFormat) String() string {
+func (x ModelAssetSourceAvailability) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (LocalRecommendationFormat) Descriptor() protoreflect.EnumDescriptor {
+func (ModelAssetSourceAvailability) Descriptor() protoreflect.EnumDescriptor {
 	return file_runtime_v1_local_runtime_recommendation_proto_enumTypes[1].Descriptor()
 }
 
-func (LocalRecommendationFormat) Type() protoreflect.EnumType {
+func (ModelAssetSourceAvailability) Type() protoreflect.EnumType {
 	return &file_runtime_v1_local_runtime_recommendation_proto_enumTypes[1]
 }
 
-func (x LocalRecommendationFormat) Number() protoreflect.EnumNumber {
+func (x ModelAssetSourceAvailability) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use LocalRecommendationFormat.Descriptor instead.
-func (LocalRecommendationFormat) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use ModelAssetSourceAvailability.Descriptor instead.
+func (ModelAssetSourceAvailability) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{1}
 }
 
-type LocalRecommendationTier int32
+type ModelAssetSourceFreshness int32
 
 const (
-	LocalRecommendationTier_LOCAL_RECOMMENDATION_TIER_UNSPECIFIED     LocalRecommendationTier = 0
-	LocalRecommendationTier_LOCAL_RECOMMENDATION_TIER_RECOMMENDED     LocalRecommendationTier = 1
-	LocalRecommendationTier_LOCAL_RECOMMENDATION_TIER_RUNNABLE        LocalRecommendationTier = 2
-	LocalRecommendationTier_LOCAL_RECOMMENDATION_TIER_TIGHT           LocalRecommendationTier = 3
-	LocalRecommendationTier_LOCAL_RECOMMENDATION_TIER_NOT_RECOMMENDED LocalRecommendationTier = 4
+	ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED ModelAssetSourceFreshness = 0
+	ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_FRESH       ModelAssetSourceFreshness = 1
+	ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_STALE       ModelAssetSourceFreshness = 2
 )
 
-// Enum value maps for LocalRecommendationTier.
+// Enum value maps for ModelAssetSourceFreshness.
 var (
-	LocalRecommendationTier_name = map[int32]string{
-		0: "LOCAL_RECOMMENDATION_TIER_UNSPECIFIED",
-		1: "LOCAL_RECOMMENDATION_TIER_RECOMMENDED",
-		2: "LOCAL_RECOMMENDATION_TIER_RUNNABLE",
-		3: "LOCAL_RECOMMENDATION_TIER_TIGHT",
-		4: "LOCAL_RECOMMENDATION_TIER_NOT_RECOMMENDED",
+	ModelAssetSourceFreshness_name = map[int32]string{
+		0: "MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED",
+		1: "MODEL_ASSET_SOURCE_FRESHNESS_FRESH",
+		2: "MODEL_ASSET_SOURCE_FRESHNESS_STALE",
 	}
-	LocalRecommendationTier_value = map[string]int32{
-		"LOCAL_RECOMMENDATION_TIER_UNSPECIFIED":     0,
-		"LOCAL_RECOMMENDATION_TIER_RECOMMENDED":     1,
-		"LOCAL_RECOMMENDATION_TIER_RUNNABLE":        2,
-		"LOCAL_RECOMMENDATION_TIER_TIGHT":           3,
-		"LOCAL_RECOMMENDATION_TIER_NOT_RECOMMENDED": 4,
+	ModelAssetSourceFreshness_value = map[string]int32{
+		"MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED": 0,
+		"MODEL_ASSET_SOURCE_FRESHNESS_FRESH":       1,
+		"MODEL_ASSET_SOURCE_FRESHNESS_STALE":       2,
 	}
 )
 
-func (x LocalRecommendationTier) Enum() *LocalRecommendationTier {
-	p := new(LocalRecommendationTier)
+func (x ModelAssetSourceFreshness) Enum() *ModelAssetSourceFreshness {
+	p := new(ModelAssetSourceFreshness)
 	*p = x
 	return p
 }
 
-func (x LocalRecommendationTier) String() string {
+func (x ModelAssetSourceFreshness) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (LocalRecommendationTier) Descriptor() protoreflect.EnumDescriptor {
+func (ModelAssetSourceFreshness) Descriptor() protoreflect.EnumDescriptor {
 	return file_runtime_v1_local_runtime_recommendation_proto_enumTypes[2].Descriptor()
 }
 
-func (LocalRecommendationTier) Type() protoreflect.EnumType {
+func (ModelAssetSourceFreshness) Type() protoreflect.EnumType {
 	return &file_runtime_v1_local_runtime_recommendation_proto_enumTypes[2]
 }
 
-func (x LocalRecommendationTier) Number() protoreflect.EnumNumber {
+func (x ModelAssetSourceFreshness) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use LocalRecommendationTier.Descriptor instead.
-func (LocalRecommendationTier) EnumDescriptor() ([]byte, []int) {
+// Deprecated: Use ModelAssetSourceFreshness.Descriptor instead.
+func (ModelAssetSourceFreshness) EnumDescriptor() ([]byte, []int) {
 	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{2}
 }
 
-type LocalRecommendationConfidence int32
-
-const (
-	LocalRecommendationConfidence_LOCAL_RECOMMENDATION_CONFIDENCE_UNSPECIFIED LocalRecommendationConfidence = 0
-	LocalRecommendationConfidence_LOCAL_RECOMMENDATION_CONFIDENCE_HIGH        LocalRecommendationConfidence = 1
-	LocalRecommendationConfidence_LOCAL_RECOMMENDATION_CONFIDENCE_MEDIUM      LocalRecommendationConfidence = 2
-	LocalRecommendationConfidence_LOCAL_RECOMMENDATION_CONFIDENCE_LOW         LocalRecommendationConfidence = 3
-)
-
-// Enum value maps for LocalRecommendationConfidence.
-var (
-	LocalRecommendationConfidence_name = map[int32]string{
-		0: "LOCAL_RECOMMENDATION_CONFIDENCE_UNSPECIFIED",
-		1: "LOCAL_RECOMMENDATION_CONFIDENCE_HIGH",
-		2: "LOCAL_RECOMMENDATION_CONFIDENCE_MEDIUM",
-		3: "LOCAL_RECOMMENDATION_CONFIDENCE_LOW",
-	}
-	LocalRecommendationConfidence_value = map[string]int32{
-		"LOCAL_RECOMMENDATION_CONFIDENCE_UNSPECIFIED": 0,
-		"LOCAL_RECOMMENDATION_CONFIDENCE_HIGH":        1,
-		"LOCAL_RECOMMENDATION_CONFIDENCE_MEDIUM":      2,
-		"LOCAL_RECOMMENDATION_CONFIDENCE_LOW":         3,
-	}
-)
-
-func (x LocalRecommendationConfidence) Enum() *LocalRecommendationConfidence {
-	p := new(LocalRecommendationConfidence)
-	*p = x
-	return p
+// Source observation is scoped only to the model-index featured section.
+// generation never participates in offer identity.
+type ModelAssetFeaturedSourceObservation struct {
+	state         protoimpl.MessageState       `protogen:"open.v1"`
+	Availability  ModelAssetSourceAvailability `protobuf:"varint,1,opt,name=availability,proto3,enum=nimi.runtime.v1.ModelAssetSourceAvailability" json:"availability,omitempty"`
+	Freshness     ModelAssetSourceFreshness    `protobuf:"varint,2,opt,name=freshness,proto3,enum=nimi.runtime.v1.ModelAssetSourceFreshness" json:"freshness,omitempty"`
+	Generation    string                       `protobuf:"bytes,3,opt,name=generation,proto3" json:"generation,omitempty"`
+	ReasonCode    ReasonCode                   `protobuf:"varint,4,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x LocalRecommendationConfidence) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (LocalRecommendationConfidence) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_local_runtime_recommendation_proto_enumTypes[3].Descriptor()
-}
-
-func (LocalRecommendationConfidence) Type() protoreflect.EnumType {
-	return &file_runtime_v1_local_runtime_recommendation_proto_enumTypes[3]
-}
-
-func (x LocalRecommendationConfidence) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use LocalRecommendationConfidence.Descriptor instead.
-func (LocalRecommendationConfidence) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{3}
-}
-
-type LocalHostSupportClass int32
-
-const (
-	LocalHostSupportClass_LOCAL_HOST_SUPPORT_CLASS_UNSPECIFIED          LocalHostSupportClass = 0
-	LocalHostSupportClass_LOCAL_HOST_SUPPORT_CLASS_SUPPORTED_SUPERVISED LocalHostSupportClass = 1
-	LocalHostSupportClass_LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY        LocalHostSupportClass = 2
-	LocalHostSupportClass_LOCAL_HOST_SUPPORT_CLASS_UNSUPPORTED          LocalHostSupportClass = 3
-)
-
-// Enum value maps for LocalHostSupportClass.
-var (
-	LocalHostSupportClass_name = map[int32]string{
-		0: "LOCAL_HOST_SUPPORT_CLASS_UNSPECIFIED",
-		1: "LOCAL_HOST_SUPPORT_CLASS_SUPPORTED_SUPERVISED",
-		2: "LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY",
-		3: "LOCAL_HOST_SUPPORT_CLASS_UNSUPPORTED",
-	}
-	LocalHostSupportClass_value = map[string]int32{
-		"LOCAL_HOST_SUPPORT_CLASS_UNSPECIFIED":          0,
-		"LOCAL_HOST_SUPPORT_CLASS_SUPPORTED_SUPERVISED": 1,
-		"LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY":        2,
-		"LOCAL_HOST_SUPPORT_CLASS_UNSUPPORTED":          3,
-	}
-)
-
-func (x LocalHostSupportClass) Enum() *LocalHostSupportClass {
-	p := new(LocalHostSupportClass)
-	*p = x
-	return p
-}
-
-func (x LocalHostSupportClass) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (LocalHostSupportClass) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_local_runtime_recommendation_proto_enumTypes[4].Descriptor()
-}
-
-func (LocalHostSupportClass) Type() protoreflect.EnumType {
-	return &file_runtime_v1_local_runtime_recommendation_proto_enumTypes[4]
-}
-
-func (x LocalHostSupportClass) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use LocalHostSupportClass.Descriptor instead.
-func (LocalHostSupportClass) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{4}
-}
-
-type LocalRecommendationBaseline int32
-
-const (
-	LocalRecommendationBaseline_LOCAL_RECOMMENDATION_BASELINE_UNSPECIFIED      LocalRecommendationBaseline = 0
-	LocalRecommendationBaseline_LOCAL_RECOMMENDATION_BASELINE_IMAGE_DEFAULT_V1 LocalRecommendationBaseline = 1
-	LocalRecommendationBaseline_LOCAL_RECOMMENDATION_BASELINE_VIDEO_DEFAULT_V1 LocalRecommendationBaseline = 2
-)
-
-// Enum value maps for LocalRecommendationBaseline.
-var (
-	LocalRecommendationBaseline_name = map[int32]string{
-		0: "LOCAL_RECOMMENDATION_BASELINE_UNSPECIFIED",
-		1: "LOCAL_RECOMMENDATION_BASELINE_IMAGE_DEFAULT_V1",
-		2: "LOCAL_RECOMMENDATION_BASELINE_VIDEO_DEFAULT_V1",
-	}
-	LocalRecommendationBaseline_value = map[string]int32{
-		"LOCAL_RECOMMENDATION_BASELINE_UNSPECIFIED":      0,
-		"LOCAL_RECOMMENDATION_BASELINE_IMAGE_DEFAULT_V1": 1,
-		"LOCAL_RECOMMENDATION_BASELINE_VIDEO_DEFAULT_V1": 2,
-	}
-)
-
-func (x LocalRecommendationBaseline) Enum() *LocalRecommendationBaseline {
-	p := new(LocalRecommendationBaseline)
-	*p = x
-	return p
-}
-
-func (x LocalRecommendationBaseline) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (LocalRecommendationBaseline) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_local_runtime_recommendation_proto_enumTypes[5].Descriptor()
-}
-
-func (LocalRecommendationBaseline) Type() protoreflect.EnumType {
-	return &file_runtime_v1_local_runtime_recommendation_proto_enumTypes[5]
-}
-
-func (x LocalRecommendationBaseline) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use LocalRecommendationBaseline.Descriptor instead.
-func (LocalRecommendationBaseline) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{5}
-}
-
-type LocalRecommendationFeedCacheState int32
-
-const (
-	LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_UNSPECIFIED LocalRecommendationFeedCacheState = 0
-	LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH       LocalRecommendationFeedCacheState = 1
-	LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_STALE       LocalRecommendationFeedCacheState = 2
-	LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY       LocalRecommendationFeedCacheState = 3
-)
-
-// Enum value maps for LocalRecommendationFeedCacheState.
-var (
-	LocalRecommendationFeedCacheState_name = map[int32]string{
-		0: "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_UNSPECIFIED",
-		1: "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH",
-		2: "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_STALE",
-		3: "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY",
-	}
-	LocalRecommendationFeedCacheState_value = map[string]int32{
-		"LOCAL_RECOMMENDATION_FEED_CACHE_STATE_UNSPECIFIED": 0,
-		"LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH":       1,
-		"LOCAL_RECOMMENDATION_FEED_CACHE_STATE_STALE":       2,
-		"LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY":       3,
-	}
-)
-
-func (x LocalRecommendationFeedCacheState) Enum() *LocalRecommendationFeedCacheState {
-	p := new(LocalRecommendationFeedCacheState)
-	*p = x
-	return p
-}
-
-func (x LocalRecommendationFeedCacheState) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (LocalRecommendationFeedCacheState) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_local_runtime_recommendation_proto_enumTypes[6].Descriptor()
-}
-
-func (LocalRecommendationFeedCacheState) Type() protoreflect.EnumType {
-	return &file_runtime_v1_local_runtime_recommendation_proto_enumTypes[6]
-}
-
-func (x LocalRecommendationFeedCacheState) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use LocalRecommendationFeedCacheState.Descriptor instead.
-func (LocalRecommendationFeedCacheState) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{6}
-}
-
-type LocalRecommendationFeedCapability int32
-
-const (
-	LocalRecommendationFeedCapability_LOCAL_RECOMMENDATION_FEED_CAPABILITY_UNSPECIFIED LocalRecommendationFeedCapability = 0
-	LocalRecommendationFeedCapability_LOCAL_RECOMMENDATION_FEED_CAPABILITY_CHAT        LocalRecommendationFeedCapability = 1
-	LocalRecommendationFeedCapability_LOCAL_RECOMMENDATION_FEED_CAPABILITY_IMAGE       LocalRecommendationFeedCapability = 2
-	LocalRecommendationFeedCapability_LOCAL_RECOMMENDATION_FEED_CAPABILITY_VIDEO       LocalRecommendationFeedCapability = 3
-)
-
-// Enum value maps for LocalRecommendationFeedCapability.
-var (
-	LocalRecommendationFeedCapability_name = map[int32]string{
-		0: "LOCAL_RECOMMENDATION_FEED_CAPABILITY_UNSPECIFIED",
-		1: "LOCAL_RECOMMENDATION_FEED_CAPABILITY_CHAT",
-		2: "LOCAL_RECOMMENDATION_FEED_CAPABILITY_IMAGE",
-		3: "LOCAL_RECOMMENDATION_FEED_CAPABILITY_VIDEO",
-	}
-	LocalRecommendationFeedCapability_value = map[string]int32{
-		"LOCAL_RECOMMENDATION_FEED_CAPABILITY_UNSPECIFIED": 0,
-		"LOCAL_RECOMMENDATION_FEED_CAPABILITY_CHAT":        1,
-		"LOCAL_RECOMMENDATION_FEED_CAPABILITY_IMAGE":       2,
-		"LOCAL_RECOMMENDATION_FEED_CAPABILITY_VIDEO":       3,
-	}
-)
-
-func (x LocalRecommendationFeedCapability) Enum() *LocalRecommendationFeedCapability {
-	p := new(LocalRecommendationFeedCapability)
-	*p = x
-	return p
-}
-
-func (x LocalRecommendationFeedCapability) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (LocalRecommendationFeedCapability) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_local_runtime_recommendation_proto_enumTypes[7].Descriptor()
-}
-
-func (LocalRecommendationFeedCapability) Type() protoreflect.EnumType {
-	return &file_runtime_v1_local_runtime_recommendation_proto_enumTypes[7]
-}
-
-func (x LocalRecommendationFeedCapability) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use LocalRecommendationFeedCapability.Descriptor instead.
-func (LocalRecommendationFeedCapability) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{7}
-}
-
-type LocalRecommendationFeedSource int32
-
-const (
-	LocalRecommendationFeedSource_LOCAL_RECOMMENDATION_FEED_SOURCE_UNSPECIFIED LocalRecommendationFeedSource = 0
-	LocalRecommendationFeedSource_LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX LocalRecommendationFeedSource = 1
-)
-
-// Enum value maps for LocalRecommendationFeedSource.
-var (
-	LocalRecommendationFeedSource_name = map[int32]string{
-		0: "LOCAL_RECOMMENDATION_FEED_SOURCE_UNSPECIFIED",
-		1: "LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX",
-	}
-	LocalRecommendationFeedSource_value = map[string]int32{
-		"LOCAL_RECOMMENDATION_FEED_SOURCE_UNSPECIFIED": 0,
-		"LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX": 1,
-	}
-)
-
-func (x LocalRecommendationFeedSource) Enum() *LocalRecommendationFeedSource {
-	p := new(LocalRecommendationFeedSource)
-	*p = x
-	return p
-}
-
-func (x LocalRecommendationFeedSource) String() string {
-	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
-}
-
-func (LocalRecommendationFeedSource) Descriptor() protoreflect.EnumDescriptor {
-	return file_runtime_v1_local_runtime_recommendation_proto_enumTypes[8].Descriptor()
-}
-
-func (LocalRecommendationFeedSource) Type() protoreflect.EnumType {
-	return &file_runtime_v1_local_runtime_recommendation_proto_enumTypes[8]
-}
-
-func (x LocalRecommendationFeedSource) Number() protoreflect.EnumNumber {
-	return protoreflect.EnumNumber(x)
-}
-
-// Deprecated: Use LocalRecommendationFeedSource.Descriptor instead.
-func (LocalRecommendationFeedSource) EnumDescriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{8}
-}
-
-type LocalCatalogRecommendation struct {
-	state            protoimpl.MessageState        `protogen:"open.v1"`
-	Source           LocalRecommendationSource     `protobuf:"varint,1,opt,name=source,proto3,enum=nimi.runtime.v1.LocalRecommendationSource" json:"source,omitempty"`
-	Format           LocalRecommendationFormat     `protobuf:"varint,2,opt,name=format,proto3,enum=nimi.runtime.v1.LocalRecommendationFormat" json:"format,omitempty"`
-	Tier             LocalRecommendationTier       `protobuf:"varint,3,opt,name=tier,proto3,enum=nimi.runtime.v1.LocalRecommendationTier" json:"tier,omitempty"`
-	HostSupportClass LocalHostSupportClass         `protobuf:"varint,4,opt,name=host_support_class,json=hostSupportClass,proto3,enum=nimi.runtime.v1.LocalHostSupportClass" json:"host_support_class,omitempty"`
-	Confidence       LocalRecommendationConfidence `protobuf:"varint,5,opt,name=confidence,proto3,enum=nimi.runtime.v1.LocalRecommendationConfidence" json:"confidence,omitempty"`
-	ReasonCodes      []string                      `protobuf:"bytes,6,rep,name=reason_codes,json=reasonCodes,proto3" json:"reason_codes,omitempty"`
-	RecommendedEntry string                        `protobuf:"bytes,7,opt,name=recommended_entry,json=recommendedEntry,proto3" json:"recommended_entry,omitempty"`
-	FallbackEntries  []string                      `protobuf:"bytes,8,rep,name=fallback_entries,json=fallbackEntries,proto3" json:"fallback_entries,omitempty"`
-	SuggestedNotes   []string                      `protobuf:"bytes,10,rep,name=suggested_notes,json=suggestedNotes,proto3" json:"suggested_notes,omitempty"`
-	Baseline         LocalRecommendationBaseline   `protobuf:"varint,11,opt,name=baseline,proto3,enum=nimi.runtime.v1.LocalRecommendationBaseline" json:"baseline,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
-}
-
-func (x *LocalCatalogRecommendation) Reset() {
-	*x = LocalCatalogRecommendation{}
+func (x *ModelAssetFeaturedSourceObservation) Reset() {
+	*x = ModelAssetFeaturedSourceObservation{}
 	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalCatalogRecommendation) String() string {
+func (x *ModelAssetFeaturedSourceObservation) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalCatalogRecommendation) ProtoMessage() {}
+func (*ModelAssetFeaturedSourceObservation) ProtoMessage() {}
 
-func (x *LocalCatalogRecommendation) ProtoReflect() protoreflect.Message {
+func (x *ModelAssetFeaturedSourceObservation) ProtoReflect() protoreflect.Message {
 	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -519,107 +210,76 @@ func (x *LocalCatalogRecommendation) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalCatalogRecommendation.ProtoReflect.Descriptor instead.
-func (*LocalCatalogRecommendation) Descriptor() ([]byte, []int) {
+// Deprecated: Use ModelAssetFeaturedSourceObservation.ProtoReflect.Descriptor instead.
+func (*ModelAssetFeaturedSourceObservation) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *LocalCatalogRecommendation) GetSource() LocalRecommendationSource {
+func (x *ModelAssetFeaturedSourceObservation) GetAvailability() ModelAssetSourceAvailability {
 	if x != nil {
-		return x.Source
+		return x.Availability
 	}
-	return LocalRecommendationSource_LOCAL_RECOMMENDATION_SOURCE_UNSPECIFIED
+	return ModelAssetSourceAvailability_MODEL_ASSET_SOURCE_AVAILABILITY_UNSPECIFIED
 }
 
-func (x *LocalCatalogRecommendation) GetFormat() LocalRecommendationFormat {
+func (x *ModelAssetFeaturedSourceObservation) GetFreshness() ModelAssetSourceFreshness {
 	if x != nil {
-		return x.Format
+		return x.Freshness
 	}
-	return LocalRecommendationFormat_LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED
+	return ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED
 }
 
-func (x *LocalCatalogRecommendation) GetTier() LocalRecommendationTier {
+func (x *ModelAssetFeaturedSourceObservation) GetGeneration() string {
 	if x != nil {
-		return x.Tier
-	}
-	return LocalRecommendationTier_LOCAL_RECOMMENDATION_TIER_UNSPECIFIED
-}
-
-func (x *LocalCatalogRecommendation) GetHostSupportClass() LocalHostSupportClass {
-	if x != nil {
-		return x.HostSupportClass
-	}
-	return LocalHostSupportClass_LOCAL_HOST_SUPPORT_CLASS_UNSPECIFIED
-}
-
-func (x *LocalCatalogRecommendation) GetConfidence() LocalRecommendationConfidence {
-	if x != nil {
-		return x.Confidence
-	}
-	return LocalRecommendationConfidence_LOCAL_RECOMMENDATION_CONFIDENCE_UNSPECIFIED
-}
-
-func (x *LocalCatalogRecommendation) GetReasonCodes() []string {
-	if x != nil {
-		return x.ReasonCodes
-	}
-	return nil
-}
-
-func (x *LocalCatalogRecommendation) GetRecommendedEntry() string {
-	if x != nil {
-		return x.RecommendedEntry
+		return x.Generation
 	}
 	return ""
 }
 
-func (x *LocalCatalogRecommendation) GetFallbackEntries() []string {
+func (x *ModelAssetFeaturedSourceObservation) GetReasonCode() ReasonCode {
 	if x != nil {
-		return x.FallbackEntries
+		return x.ReasonCode
 	}
-	return nil
+	return ReasonCode_REASON_CODE_UNSPECIFIED
 }
 
-func (x *LocalCatalogRecommendation) GetSuggestedNotes() []string {
-	if x != nil {
-		return x.SuggestedNotes
-	}
-	return nil
+// Browse-only search result. model_locator opens detail or variant listing and
+// never authorizes installation.
+type ModelAssetCatalogSearchResult struct {
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	ModelLocator string                 `protobuf:"bytes,1,opt,name=model_locator,json=modelLocator,proto3" json:"model_locator,omitempty"`
+	SourceLabel  string                 `protobuf:"bytes,2,opt,name=source_label,json=sourceLabel,proto3" json:"source_label,omitempty"`
+	Title        string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Description  string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	Categories   []string               `protobuf:"bytes,5,rep,name=categories,proto3" json:"categories,omitempty"`
+	ModelType    string                 `protobuf:"bytes,6,opt,name=model_type,json=modelType,proto3" json:"model_type,omitempty"`
+	License      string                 `protobuf:"bytes,7,opt,name=license,proto3" json:"license,omitempty"`
+	Tags         []string               `protobuf:"bytes,8,rep,name=tags,proto3" json:"tags,omitempty"`
+	Downloads    int64                  `protobuf:"varint,9,opt,name=downloads,proto3" json:"downloads,omitempty"`
+	Likes        int64                  `protobuf:"varint,10,opt,name=likes,proto3" json:"likes,omitempty"`
+	LastModified string                 `protobuf:"bytes,11,opt,name=last_modified,json=lastModified,proto3" json:"last_modified,omitempty"`
+	Verified     bool                   `protobuf:"varint,12,opt,name=verified,proto3" json:"verified,omitempty"`
+	// Publishing organization or author label (for example the repository
+	// owner). Presentation only; never part of offer identity.
+	Author        string `protobuf:"bytes,13,opt,name=author,proto3" json:"author,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *LocalCatalogRecommendation) GetBaseline() LocalRecommendationBaseline {
-	if x != nil {
-		return x.Baseline
-	}
-	return LocalRecommendationBaseline_LOCAL_RECOMMENDATION_BASELINE_UNSPECIFIED
-}
-
-type LocalRecommendationFeedEntryDescriptor struct {
-	state          protoimpl.MessageState    `protogen:"open.v1"`
-	EntryId        string                    `protobuf:"bytes,1,opt,name=entry_id,json=entryId,proto3" json:"entry_id,omitempty"`
-	Format         LocalRecommendationFormat `protobuf:"varint,2,opt,name=format,proto3,enum=nimi.runtime.v1.LocalRecommendationFormat" json:"format,omitempty"`
-	Entry          string                    `protobuf:"bytes,3,opt,name=entry,proto3" json:"entry,omitempty"`
-	Files          []string                  `protobuf:"bytes,4,rep,name=files,proto3" json:"files,omitempty"`
-	TotalSizeBytes int64                     `protobuf:"varint,5,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
-	Sha256         string                    `protobuf:"bytes,6,opt,name=sha256,proto3" json:"sha256,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *LocalRecommendationFeedEntryDescriptor) Reset() {
-	*x = LocalRecommendationFeedEntryDescriptor{}
+func (x *ModelAssetCatalogSearchResult) Reset() {
+	*x = ModelAssetCatalogSearchResult{}
 	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalRecommendationFeedEntryDescriptor) String() string {
+func (x *ModelAssetCatalogSearchResult) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalRecommendationFeedEntryDescriptor) ProtoMessage() {}
+func (*ModelAssetCatalogSearchResult) ProtoMessage() {}
 
-func (x *LocalRecommendationFeedEntryDescriptor) ProtoReflect() protoreflect.Message {
+func (x *ModelAssetCatalogSearchResult) ProtoReflect() protoreflect.Message {
 	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -631,502 +291,488 @@ func (x *LocalRecommendationFeedEntryDescriptor) ProtoReflect() protoreflect.Mes
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalRecommendationFeedEntryDescriptor.ProtoReflect.Descriptor instead.
-func (*LocalRecommendationFeedEntryDescriptor) Descriptor() ([]byte, []int) {
+// Deprecated: Use ModelAssetCatalogSearchResult.ProtoReflect.Descriptor instead.
+func (*ModelAssetCatalogSearchResult) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *LocalRecommendationFeedEntryDescriptor) GetEntryId() string {
+func (x *ModelAssetCatalogSearchResult) GetModelLocator() string {
 	if x != nil {
-		return x.EntryId
+		return x.ModelLocator
 	}
 	return ""
 }
 
-func (x *LocalRecommendationFeedEntryDescriptor) GetFormat() LocalRecommendationFormat {
+func (x *ModelAssetCatalogSearchResult) GetSourceLabel() string {
 	if x != nil {
-		return x.Format
-	}
-	return LocalRecommendationFormat_LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED
-}
-
-func (x *LocalRecommendationFeedEntryDescriptor) GetEntry() string {
-	if x != nil {
-		return x.Entry
+		return x.SourceLabel
 	}
 	return ""
 }
 
-func (x *LocalRecommendationFeedEntryDescriptor) GetFiles() []string {
-	if x != nil {
-		return x.Files
-	}
-	return nil
-}
-
-func (x *LocalRecommendationFeedEntryDescriptor) GetTotalSizeBytes() int64 {
-	if x != nil {
-		return x.TotalSizeBytes
-	}
-	return 0
-}
-
-func (x *LocalRecommendationFeedEntryDescriptor) GetSha256() string {
-	if x != nil {
-		return x.Sha256
-	}
-	return ""
-}
-
-type LocalRecommendationInstalledState struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Installed     bool                   `protobuf:"varint,1,opt,name=installed,proto3" json:"installed,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LocalRecommendationInstalledState) Reset() {
-	*x = LocalRecommendationInstalledState{}
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalRecommendationInstalledState) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalRecommendationInstalledState) ProtoMessage() {}
-
-func (x *LocalRecommendationInstalledState) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalRecommendationInstalledState.ProtoReflect.Descriptor instead.
-func (*LocalRecommendationInstalledState) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *LocalRecommendationInstalledState) GetInstalled() bool {
-	if x != nil {
-		return x.Installed
-	}
-	return false
-}
-
-type LocalRecommendationActionState struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	CanReviewInstallPlan bool                   `protobuf:"varint,1,opt,name=can_review_install_plan,json=canReviewInstallPlan,proto3" json:"can_review_install_plan,omitempty"`
-	CanOpenVariants      bool                   `protobuf:"varint,2,opt,name=can_open_variants,json=canOpenVariants,proto3" json:"can_open_variants,omitempty"`
-	CanOpenModelAsset    bool                   `protobuf:"varint,3,opt,name=can_open_model_asset,json=canOpenModelAsset,proto3" json:"can_open_model_asset,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
-}
-
-func (x *LocalRecommendationActionState) Reset() {
-	*x = LocalRecommendationActionState{}
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalRecommendationActionState) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalRecommendationActionState) ProtoMessage() {}
-
-func (x *LocalRecommendationActionState) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalRecommendationActionState.ProtoReflect.Descriptor instead.
-func (*LocalRecommendationActionState) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *LocalRecommendationActionState) GetCanReviewInstallPlan() bool {
-	if x != nil {
-		return x.CanReviewInstallPlan
-	}
-	return false
-}
-
-func (x *LocalRecommendationActionState) GetCanOpenVariants() bool {
-	if x != nil {
-		return x.CanOpenVariants
-	}
-	return false
-}
-
-func (x *LocalRecommendationActionState) GetCanOpenModelAsset() bool {
-	if x != nil {
-		return x.CanOpenModelAsset
-	}
-	return false
-}
-
-type LocalRecommendationInstallPayload struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ModelId       string                 `protobuf:"bytes,1,opt,name=model_id,json=modelId,proto3" json:"model_id,omitempty"`
-	Kind          LocalAssetKind         `protobuf:"varint,2,opt,name=kind,proto3,enum=nimi.runtime.v1.LocalAssetKind" json:"kind,omitempty"`
-	Repo          string                 `protobuf:"bytes,3,opt,name=repo,proto3" json:"repo,omitempty"`
-	Revision      string                 `protobuf:"bytes,4,opt,name=revision,proto3" json:"revision,omitempty"`
-	Capabilities  []string               `protobuf:"bytes,5,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
-	Engine        string                 `protobuf:"bytes,6,opt,name=engine,proto3" json:"engine,omitempty"`
-	Entry         string                 `protobuf:"bytes,7,opt,name=entry,proto3" json:"entry,omitempty"`
-	Files         []string               `protobuf:"bytes,8,rep,name=files,proto3" json:"files,omitempty"`
-	License       string                 `protobuf:"bytes,9,opt,name=license,proto3" json:"license,omitempty"`
-	Hashes        map[string]string      `protobuf:"bytes,10,rep,name=hashes,proto3" json:"hashes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	Endpoint      string                 `protobuf:"bytes,11,opt,name=endpoint,proto3" json:"endpoint,omitempty"`
-	EngineConfig  *structpb.Struct       `protobuf:"bytes,12,opt,name=engine_config,json=engineConfig,proto3" json:"engine_config,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *LocalRecommendationInstallPayload) Reset() {
-	*x = LocalRecommendationInstallPayload{}
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalRecommendationInstallPayload) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalRecommendationInstallPayload) ProtoMessage() {}
-
-func (x *LocalRecommendationInstallPayload) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalRecommendationInstallPayload.ProtoReflect.Descriptor instead.
-func (*LocalRecommendationInstallPayload) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *LocalRecommendationInstallPayload) GetModelId() string {
-	if x != nil {
-		return x.ModelId
-	}
-	return ""
-}
-
-func (x *LocalRecommendationInstallPayload) GetKind() LocalAssetKind {
-	if x != nil {
-		return x.Kind
-	}
-	return LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED
-}
-
-func (x *LocalRecommendationInstallPayload) GetRepo() string {
-	if x != nil {
-		return x.Repo
-	}
-	return ""
-}
-
-func (x *LocalRecommendationInstallPayload) GetRevision() string {
-	if x != nil {
-		return x.Revision
-	}
-	return ""
-}
-
-func (x *LocalRecommendationInstallPayload) GetCapabilities() []string {
-	if x != nil {
-		return x.Capabilities
-	}
-	return nil
-}
-
-func (x *LocalRecommendationInstallPayload) GetEngine() string {
-	if x != nil {
-		return x.Engine
-	}
-	return ""
-}
-
-func (x *LocalRecommendationInstallPayload) GetEntry() string {
-	if x != nil {
-		return x.Entry
-	}
-	return ""
-}
-
-func (x *LocalRecommendationInstallPayload) GetFiles() []string {
-	if x != nil {
-		return x.Files
-	}
-	return nil
-}
-
-func (x *LocalRecommendationInstallPayload) GetLicense() string {
-	if x != nil {
-		return x.License
-	}
-	return ""
-}
-
-func (x *LocalRecommendationInstallPayload) GetHashes() map[string]string {
-	if x != nil {
-		return x.Hashes
-	}
-	return nil
-}
-
-func (x *LocalRecommendationInstallPayload) GetEndpoint() string {
-	if x != nil {
-		return x.Endpoint
-	}
-	return ""
-}
-
-func (x *LocalRecommendationInstallPayload) GetEngineConfig() *structpb.Struct {
-	if x != nil {
-		return x.EngineConfig
-	}
-	return nil
-}
-
-type LocalRecommendationFeedItemDescriptor struct {
-	state           protoimpl.MessageState                    `protogen:"open.v1"`
-	ItemId          string                                    `protobuf:"bytes,1,opt,name=item_id,json=itemId,proto3" json:"item_id,omitempty"`
-	Source          LocalRecommendationFeedSource             `protobuf:"varint,2,opt,name=source,proto3,enum=nimi.runtime.v1.LocalRecommendationFeedSource" json:"source,omitempty"`
-	Repo            string                                    `protobuf:"bytes,3,opt,name=repo,proto3" json:"repo,omitempty"`
-	Revision        string                                    `protobuf:"bytes,4,opt,name=revision,proto3" json:"revision,omitempty"`
-	Title           string                                    `protobuf:"bytes,5,opt,name=title,proto3" json:"title,omitempty"`
-	Description     string                                    `protobuf:"bytes,6,opt,name=description,proto3" json:"description,omitempty"`
-	Capabilities    []string                                  `protobuf:"bytes,7,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
-	Tags            []string                                  `protobuf:"bytes,8,rep,name=tags,proto3" json:"tags,omitempty"`
-	Formats         []LocalRecommendationFormat               `protobuf:"varint,9,rep,packed,name=formats,proto3,enum=nimi.runtime.v1.LocalRecommendationFormat" json:"formats,omitempty"`
-	Downloads       int64                                     `protobuf:"varint,10,opt,name=downloads,proto3" json:"downloads,omitempty"`
-	Likes           int64                                     `protobuf:"varint,11,opt,name=likes,proto3" json:"likes,omitempty"`
-	LastModified    string                                    `protobuf:"bytes,12,opt,name=last_modified,json=lastModified,proto3" json:"last_modified,omitempty"`
-	PreferredEngine string                                    `protobuf:"bytes,13,opt,name=preferred_engine,json=preferredEngine,proto3" json:"preferred_engine,omitempty"`
-	Verified        bool                                      `protobuf:"varint,14,opt,name=verified,proto3" json:"verified,omitempty"`
-	Entries         []*LocalRecommendationFeedEntryDescriptor `protobuf:"bytes,15,rep,name=entries,proto3" json:"entries,omitempty"`
-	Recommendation  *LocalCatalogRecommendation               `protobuf:"bytes,16,opt,name=recommendation,proto3" json:"recommendation,omitempty"`
-	InstalledState  *LocalRecommendationInstalledState        `protobuf:"bytes,17,opt,name=installed_state,json=installedState,proto3" json:"installed_state,omitempty"`
-	ActionState     *LocalRecommendationActionState           `protobuf:"bytes,18,opt,name=action_state,json=actionState,proto3" json:"action_state,omitempty"`
-	InstallPayload  *LocalRecommendationInstallPayload        `protobuf:"bytes,19,opt,name=install_payload,json=installPayload,proto3" json:"install_payload,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *LocalRecommendationFeedItemDescriptor) Reset() {
-	*x = LocalRecommendationFeedItemDescriptor{}
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *LocalRecommendationFeedItemDescriptor) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*LocalRecommendationFeedItemDescriptor) ProtoMessage() {}
-
-func (x *LocalRecommendationFeedItemDescriptor) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use LocalRecommendationFeedItemDescriptor.ProtoReflect.Descriptor instead.
-func (*LocalRecommendationFeedItemDescriptor) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *LocalRecommendationFeedItemDescriptor) GetItemId() string {
-	if x != nil {
-		return x.ItemId
-	}
-	return ""
-}
-
-func (x *LocalRecommendationFeedItemDescriptor) GetSource() LocalRecommendationFeedSource {
-	if x != nil {
-		return x.Source
-	}
-	return LocalRecommendationFeedSource_LOCAL_RECOMMENDATION_FEED_SOURCE_UNSPECIFIED
-}
-
-func (x *LocalRecommendationFeedItemDescriptor) GetRepo() string {
-	if x != nil {
-		return x.Repo
-	}
-	return ""
-}
-
-func (x *LocalRecommendationFeedItemDescriptor) GetRevision() string {
-	if x != nil {
-		return x.Revision
-	}
-	return ""
-}
-
-func (x *LocalRecommendationFeedItemDescriptor) GetTitle() string {
+func (x *ModelAssetCatalogSearchResult) GetTitle() string {
 	if x != nil {
 		return x.Title
 	}
 	return ""
 }
 
-func (x *LocalRecommendationFeedItemDescriptor) GetDescription() string {
+func (x *ModelAssetCatalogSearchResult) GetDescription() string {
 	if x != nil {
 		return x.Description
 	}
 	return ""
 }
 
-func (x *LocalRecommendationFeedItemDescriptor) GetCapabilities() []string {
+func (x *ModelAssetCatalogSearchResult) GetCategories() []string {
 	if x != nil {
-		return x.Capabilities
+		return x.Categories
 	}
 	return nil
 }
 
-func (x *LocalRecommendationFeedItemDescriptor) GetTags() []string {
+func (x *ModelAssetCatalogSearchResult) GetModelType() string {
+	if x != nil {
+		return x.ModelType
+	}
+	return ""
+}
+
+func (x *ModelAssetCatalogSearchResult) GetLicense() string {
+	if x != nil {
+		return x.License
+	}
+	return ""
+}
+
+func (x *ModelAssetCatalogSearchResult) GetTags() []string {
 	if x != nil {
 		return x.Tags
 	}
 	return nil
 }
 
-func (x *LocalRecommendationFeedItemDescriptor) GetFormats() []LocalRecommendationFormat {
-	if x != nil {
-		return x.Formats
-	}
-	return nil
-}
-
-func (x *LocalRecommendationFeedItemDescriptor) GetDownloads() int64 {
+func (x *ModelAssetCatalogSearchResult) GetDownloads() int64 {
 	if x != nil {
 		return x.Downloads
 	}
 	return 0
 }
 
-func (x *LocalRecommendationFeedItemDescriptor) GetLikes() int64 {
+func (x *ModelAssetCatalogSearchResult) GetLikes() int64 {
 	if x != nil {
 		return x.Likes
 	}
 	return 0
 }
 
-func (x *LocalRecommendationFeedItemDescriptor) GetLastModified() string {
+func (x *ModelAssetCatalogSearchResult) GetLastModified() string {
 	if x != nil {
 		return x.LastModified
 	}
 	return ""
 }
 
-func (x *LocalRecommendationFeedItemDescriptor) GetPreferredEngine() string {
-	if x != nil {
-		return x.PreferredEngine
-	}
-	return ""
-}
-
-func (x *LocalRecommendationFeedItemDescriptor) GetVerified() bool {
+func (x *ModelAssetCatalogSearchResult) GetVerified() bool {
 	if x != nil {
 		return x.Verified
 	}
 	return false
 }
 
-func (x *LocalRecommendationFeedItemDescriptor) GetEntries() []*LocalRecommendationFeedEntryDescriptor {
+func (x *ModelAssetCatalogSearchResult) GetAuthor() string {
 	if x != nil {
-		return x.Entries
+		return x.Author
+	}
+	return ""
+}
+
+// Exact entry-level offer. The opaque offer_ref is the only install-plan input
+// exposed to SDK and Desktop.
+type ModelAssetMarketCandidate struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	OfferRef        string                 `protobuf:"bytes,1,opt,name=offer_ref,json=offerRef,proto3" json:"offer_ref,omitempty"`
+	SourceLabel     string                 `protobuf:"bytes,2,opt,name=source_label,json=sourceLabel,proto3" json:"source_label,omitempty"`
+	Title           string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Description     string                 `protobuf:"bytes,4,opt,name=description,proto3" json:"description,omitempty"`
+	Categories      []string               `protobuf:"bytes,5,rep,name=categories,proto3" json:"categories,omitempty"`
+	ModelType       string                 `protobuf:"bytes,6,opt,name=model_type,json=modelType,proto3" json:"model_type,omitempty"`
+	VariantLabel    string                 `protobuf:"bytes,7,opt,name=variant_label,json=variantLabel,proto3" json:"variant_label,omitempty"`
+	Format          string                 `protobuf:"bytes,8,opt,name=format,proto3" json:"format,omitempty"`
+	TotalSizeBytes  int64                  `protobuf:"varint,9,opt,name=total_size_bytes,json=totalSizeBytes,proto3" json:"total_size_bytes,omitempty"`
+	License         string                 `protobuf:"bytes,10,opt,name=license,proto3" json:"license,omitempty"`
+	Tags            []string               `protobuf:"bytes,11,rep,name=tags,proto3" json:"tags,omitempty"`
+	Downloads       int64                  `protobuf:"varint,12,opt,name=downloads,proto3" json:"downloads,omitempty"`
+	Likes           int64                  `protobuf:"varint,13,opt,name=likes,proto3" json:"likes,omitempty"`
+	LastModified    string                 `protobuf:"bytes,14,opt,name=last_modified,json=lastModified,proto3" json:"last_modified,omitempty"`
+	Verified        bool                   `protobuf:"varint,15,opt,name=verified,proto3" json:"verified,omitempty"`
+	Installed       bool                   `protobuf:"varint,16,opt,name=installed,proto3" json:"installed,omitempty"`
+	Installable     bool                   `protobuf:"varint,17,opt,name=installable,proto3" json:"installable,omitempty"`
+	FeaturedOrdinal *int32                 `protobuf:"varint,18,opt,name=featured_ordinal,json=featuredOrdinal,proto3,oneof" json:"featured_ordinal,omitempty"`
+	EditorialReason string                 `protobuf:"bytes,19,opt,name=editorial_reason,json=editorialReason,proto3" json:"editorial_reason,omitempty"`
+	// Publishing organization or author label (for example the repository
+	// owner). Presentation only; never part of offer identity.
+	Author        string `protobuf:"bytes,20,opt,name=author,proto3" json:"author,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ModelAssetMarketCandidate) Reset() {
+	*x = ModelAssetMarketCandidate{}
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ModelAssetMarketCandidate) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ModelAssetMarketCandidate) ProtoMessage() {}
+
+func (x *ModelAssetMarketCandidate) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ModelAssetMarketCandidate.ProtoReflect.Descriptor instead.
+func (*ModelAssetMarketCandidate) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *ModelAssetMarketCandidate) GetOfferRef() string {
+	if x != nil {
+		return x.OfferRef
+	}
+	return ""
+}
+
+func (x *ModelAssetMarketCandidate) GetSourceLabel() string {
+	if x != nil {
+		return x.SourceLabel
+	}
+	return ""
+}
+
+func (x *ModelAssetMarketCandidate) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *ModelAssetMarketCandidate) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *ModelAssetMarketCandidate) GetCategories() []string {
+	if x != nil {
+		return x.Categories
 	}
 	return nil
 }
 
-func (x *LocalRecommendationFeedItemDescriptor) GetRecommendation() *LocalCatalogRecommendation {
+func (x *ModelAssetMarketCandidate) GetModelType() string {
 	if x != nil {
-		return x.Recommendation
+		return x.ModelType
+	}
+	return ""
+}
+
+func (x *ModelAssetMarketCandidate) GetVariantLabel() string {
+	if x != nil {
+		return x.VariantLabel
+	}
+	return ""
+}
+
+func (x *ModelAssetMarketCandidate) GetFormat() string {
+	if x != nil {
+		return x.Format
+	}
+	return ""
+}
+
+func (x *ModelAssetMarketCandidate) GetTotalSizeBytes() int64 {
+	if x != nil {
+		return x.TotalSizeBytes
+	}
+	return 0
+}
+
+func (x *ModelAssetMarketCandidate) GetLicense() string {
+	if x != nil {
+		return x.License
+	}
+	return ""
+}
+
+func (x *ModelAssetMarketCandidate) GetTags() []string {
+	if x != nil {
+		return x.Tags
 	}
 	return nil
 }
 
-func (x *LocalRecommendationFeedItemDescriptor) GetInstalledState() *LocalRecommendationInstalledState {
+func (x *ModelAssetMarketCandidate) GetDownloads() int64 {
 	if x != nil {
-		return x.InstalledState
+		return x.Downloads
+	}
+	return 0
+}
+
+func (x *ModelAssetMarketCandidate) GetLikes() int64 {
+	if x != nil {
+		return x.Likes
+	}
+	return 0
+}
+
+func (x *ModelAssetMarketCandidate) GetLastModified() string {
+	if x != nil {
+		return x.LastModified
+	}
+	return ""
+}
+
+func (x *ModelAssetMarketCandidate) GetVerified() bool {
+	if x != nil {
+		return x.Verified
+	}
+	return false
+}
+
+func (x *ModelAssetMarketCandidate) GetInstalled() bool {
+	if x != nil {
+		return x.Installed
+	}
+	return false
+}
+
+func (x *ModelAssetMarketCandidate) GetInstallable() bool {
+	if x != nil {
+		return x.Installable
+	}
+	return false
+}
+
+func (x *ModelAssetMarketCandidate) GetFeaturedOrdinal() int32 {
+	if x != nil && x.FeaturedOrdinal != nil {
+		return *x.FeaturedOrdinal
+	}
+	return 0
+}
+
+func (x *ModelAssetMarketCandidate) GetEditorialReason() string {
+	if x != nil {
+		return x.EditorialReason
+	}
+	return ""
+}
+
+func (x *ModelAssetMarketCandidate) GetAuthor() string {
+	if x != nil {
+		return x.Author
+	}
+	return ""
+}
+
+type ListFeaturedModelAssetsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Category      string                 `protobuf:"bytes,1,opt,name=category,proto3" json:"category,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFeaturedModelAssetsRequest) Reset() {
+	*x = ListFeaturedModelAssetsRequest{}
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFeaturedModelAssetsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFeaturedModelAssetsRequest) ProtoMessage() {}
+
+func (x *ListFeaturedModelAssetsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFeaturedModelAssetsRequest.ProtoReflect.Descriptor instead.
+func (*ListFeaturedModelAssetsRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ListFeaturedModelAssetsRequest) GetCategory() string {
+	if x != nil {
+		return x.Category
+	}
+	return ""
+}
+
+func (x *ListFeaturedModelAssetsRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+type ListFeaturedModelAssetsResponse struct {
+	state         protoimpl.MessageState               `protogen:"open.v1"`
+	Source        *ModelAssetFeaturedSourceObservation `protobuf:"bytes,1,opt,name=source,proto3" json:"source,omitempty"`
+	Items         []*ModelAssetMarketCandidate         `protobuf:"bytes,2,rep,name=items,proto3" json:"items,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFeaturedModelAssetsResponse) Reset() {
+	*x = ListFeaturedModelAssetsResponse{}
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFeaturedModelAssetsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFeaturedModelAssetsResponse) ProtoMessage() {}
+
+func (x *ListFeaturedModelAssetsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFeaturedModelAssetsResponse.ProtoReflect.Descriptor instead.
+func (*ListFeaturedModelAssetsResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *ListFeaturedModelAssetsResponse) GetSource() *ModelAssetFeaturedSourceObservation {
+	if x != nil {
+		return x.Source
 	}
 	return nil
 }
 
-func (x *LocalRecommendationFeedItemDescriptor) GetActionState() *LocalRecommendationActionState {
+func (x *ListFeaturedModelAssetsResponse) GetItems() []*ModelAssetMarketCandidate {
 	if x != nil {
-		return x.ActionState
+		return x.Items
 	}
 	return nil
 }
 
-func (x *LocalRecommendationFeedItemDescriptor) GetInstallPayload() *LocalRecommendationInstallPayload {
+type FactoryProfileCapabilityApplicability struct {
+	state              protoimpl.MessageState           `protogen:"open.v1"`
+	CapabilityContract string                           `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
+	Applicability      LocalRecommendationApplicability `protobuf:"varint,2,opt,name=applicability,proto3,enum=nimi.runtime.v1.LocalRecommendationApplicability" json:"applicability,omitempty"`
+	Reasons            []ReasonCode                     `protobuf:"varint,3,rep,packed,name=reasons,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reasons,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *FactoryProfileCapabilityApplicability) Reset() {
+	*x = FactoryProfileCapabilityApplicability{}
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FactoryProfileCapabilityApplicability) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FactoryProfileCapabilityApplicability) ProtoMessage() {}
+
+func (x *FactoryProfileCapabilityApplicability) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[5]
 	if x != nil {
-		return x.InstallPayload
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FactoryProfileCapabilityApplicability.ProtoReflect.Descriptor instead.
+func (*FactoryProfileCapabilityApplicability) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *FactoryProfileCapabilityApplicability) GetCapabilityContract() string {
+	if x != nil {
+		return x.CapabilityContract
+	}
+	return ""
+}
+
+func (x *FactoryProfileCapabilityApplicability) GetApplicability() LocalRecommendationApplicability {
+	if x != nil {
+		return x.Applicability
+	}
+	return LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSPECIFIED
+}
+
+func (x *FactoryProfileCapabilityApplicability) GetReasons() []ReasonCode {
+	if x != nil {
+		return x.Reasons
 	}
 	return nil
 }
 
-type LocalRecommendationFeedDescriptor struct {
-	state            protoimpl.MessageState                   `protogen:"open.v1"`
-	DeviceProfile    *LocalDeviceProfile                      `protobuf:"bytes,1,opt,name=device_profile,json=deviceProfile,proto3" json:"device_profile,omitempty"`
-	ActiveCapability LocalRecommendationFeedCapability        `protobuf:"varint,2,opt,name=active_capability,json=activeCapability,proto3,enum=nimi.runtime.v1.LocalRecommendationFeedCapability" json:"active_capability,omitempty"`
-	GeneratedAt      string                                   `protobuf:"bytes,3,opt,name=generated_at,json=generatedAt,proto3" json:"generated_at,omitempty"`
-	CacheState       LocalRecommendationFeedCacheState        `protobuf:"varint,4,opt,name=cache_state,json=cacheState,proto3,enum=nimi.runtime.v1.LocalRecommendationFeedCacheState" json:"cache_state,omitempty"`
-	Items            []*LocalRecommendationFeedItemDescriptor `protobuf:"bytes,5,rep,name=items,proto3" json:"items,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+type FactoryProfileRecommendation struct {
+	state         protoimpl.MessageState                   `protogen:"open.v1"`
+	ProfileAlias  string                                   `protobuf:"bytes,1,opt,name=profile_alias,json=profileAlias,proto3" json:"profile_alias,omitempty"`
+	Capabilities  []*FactoryProfileCapabilityApplicability `protobuf:"bytes,2,rep,name=capabilities,proto3" json:"capabilities,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
-func (x *LocalRecommendationFeedDescriptor) Reset() {
-	*x = LocalRecommendationFeedDescriptor{}
+func (x *FactoryProfileRecommendation) Reset() {
+	*x = FactoryProfileRecommendation{}
 	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LocalRecommendationFeedDescriptor) String() string {
+func (x *FactoryProfileRecommendation) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LocalRecommendationFeedDescriptor) ProtoMessage() {}
+func (*FactoryProfileRecommendation) ProtoMessage() {}
 
-func (x *LocalRecommendationFeedDescriptor) ProtoReflect() protoreflect.Message {
+func (x *FactoryProfileRecommendation) ProtoReflect() protoreflect.Message {
 	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -1138,42 +784,109 @@ func (x *LocalRecommendationFeedDescriptor) ProtoReflect() protoreflect.Message 
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LocalRecommendationFeedDescriptor.ProtoReflect.Descriptor instead.
-func (*LocalRecommendationFeedDescriptor) Descriptor() ([]byte, []int) {
+// Deprecated: Use FactoryProfileRecommendation.ProtoReflect.Descriptor instead.
+func (*FactoryProfileRecommendation) Descriptor() ([]byte, []int) {
 	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *LocalRecommendationFeedDescriptor) GetDeviceProfile() *LocalDeviceProfile {
+func (x *FactoryProfileRecommendation) GetProfileAlias() string {
 	if x != nil {
-		return x.DeviceProfile
-	}
-	return nil
-}
-
-func (x *LocalRecommendationFeedDescriptor) GetActiveCapability() LocalRecommendationFeedCapability {
-	if x != nil {
-		return x.ActiveCapability
-	}
-	return LocalRecommendationFeedCapability_LOCAL_RECOMMENDATION_FEED_CAPABILITY_UNSPECIFIED
-}
-
-func (x *LocalRecommendationFeedDescriptor) GetGeneratedAt() string {
-	if x != nil {
-		return x.GeneratedAt
+		return x.ProfileAlias
 	}
 	return ""
 }
 
-func (x *LocalRecommendationFeedDescriptor) GetCacheState() LocalRecommendationFeedCacheState {
+func (x *FactoryProfileRecommendation) GetCapabilities() []*FactoryProfileCapabilityApplicability {
 	if x != nil {
-		return x.CacheState
+		return x.Capabilities
 	}
-	return LocalRecommendationFeedCacheState_LOCAL_RECOMMENDATION_FEED_CACHE_STATE_UNSPECIFIED
+	return nil
 }
 
-func (x *LocalRecommendationFeedDescriptor) GetItems() []*LocalRecommendationFeedItemDescriptor {
+type ListFactoryProfileRecommendationsRequest struct {
+	state              protoimpl.MessageState `protogen:"open.v1"`
+	CapabilityContract string                 `protobuf:"bytes,1,opt,name=capability_contract,json=capabilityContract,proto3" json:"capability_contract,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
+}
+
+func (x *ListFactoryProfileRecommendationsRequest) Reset() {
+	*x = ListFactoryProfileRecommendationsRequest{}
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFactoryProfileRecommendationsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFactoryProfileRecommendationsRequest) ProtoMessage() {}
+
+func (x *ListFactoryProfileRecommendationsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[7]
 	if x != nil {
-		return x.Items
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFactoryProfileRecommendationsRequest.ProtoReflect.Descriptor instead.
+func (*ListFactoryProfileRecommendationsRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListFactoryProfileRecommendationsRequest) GetCapabilityContract() string {
+	if x != nil {
+		return x.CapabilityContract
+	}
+	return ""
+}
+
+type ListFactoryProfileRecommendationsResponse struct {
+	state         protoimpl.MessageState          `protogen:"open.v1"`
+	Profiles      []*FactoryProfileRecommendation `protobuf:"bytes,1,rep,name=profiles,proto3" json:"profiles,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListFactoryProfileRecommendationsResponse) Reset() {
+	*x = ListFactoryProfileRecommendationsResponse{}
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListFactoryProfileRecommendationsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListFactoryProfileRecommendationsResponse) ProtoMessage() {}
+
+func (x *ListFactoryProfileRecommendationsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_local_runtime_recommendation_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListFactoryProfileRecommendationsResponse.ProtoReflect.Descriptor instead.
+func (*ListFactoryProfileRecommendationsResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ListFactoryProfileRecommendationsResponse) GetProfiles() []*FactoryProfileRecommendation {
+	if x != nil {
+		return x.Profiles
 	}
 	return nil
 }
@@ -1182,121 +895,89 @@ var File_runtime_v1_local_runtime_recommendation_proto protoreflect.FileDescript
 
 const file_runtime_v1_local_runtime_recommendation_proto_rawDesc = "" +
 	"\n" +
-	"-runtime/v1/local_runtime_recommendation.proto\x12\x0fnimi.runtime.v1\x1a\x1cgoogle/protobuf/struct.proto\x1a,runtime/v1/local_runtime_asset_catalog.proto\x1a1runtime/v1/local_runtime_device_environment.proto\"\x8e\x05\n" +
-	"\x1aLocalCatalogRecommendation\x12B\n" +
-	"\x06source\x18\x01 \x01(\x0e2*.nimi.runtime.v1.LocalRecommendationSourceR\x06source\x12B\n" +
-	"\x06format\x18\x02 \x01(\x0e2*.nimi.runtime.v1.LocalRecommendationFormatR\x06format\x12<\n" +
-	"\x04tier\x18\x03 \x01(\x0e2(.nimi.runtime.v1.LocalRecommendationTierR\x04tier\x12T\n" +
-	"\x12host_support_class\x18\x04 \x01(\x0e2&.nimi.runtime.v1.LocalHostSupportClassR\x10hostSupportClass\x12N\n" +
+	"-runtime/v1/local_runtime_recommendation.proto\x12\x0fnimi.runtime.v1\x1a\x17runtime/v1/common.proto\"\xa0\x02\n" +
+	"#ModelAssetFeaturedSourceObservation\x12Q\n" +
+	"\favailability\x18\x01 \x01(\x0e2-.nimi.runtime.v1.ModelAssetSourceAvailabilityR\favailability\x12H\n" +
+	"\tfreshness\x18\x02 \x01(\x0e2*.nimi.runtime.v1.ModelAssetSourceFreshnessR\tfreshness\x12\x1e\n" +
 	"\n" +
-	"confidence\x18\x05 \x01(\x0e2..nimi.runtime.v1.LocalRecommendationConfidenceR\n" +
-	"confidence\x12!\n" +
-	"\freason_codes\x18\x06 \x03(\tR\vreasonCodes\x12+\n" +
-	"\x11recommended_entry\x18\a \x01(\tR\x10recommendedEntry\x12)\n" +
-	"\x10fallback_entries\x18\b \x03(\tR\x0ffallbackEntries\x12'\n" +
-	"\x0fsuggested_notes\x18\n" +
-	" \x03(\tR\x0esuggestedNotes\x12H\n" +
-	"\bbaseline\x18\v \x01(\x0e2,.nimi.runtime.v1.LocalRecommendationBaselineR\bbaselineJ\x04\b\t\x10\n" +
-	"R\x10suggested_assets\"\xf5\x01\n" +
-	"&LocalRecommendationFeedEntryDescriptor\x12\x19\n" +
-	"\bentry_id\x18\x01 \x01(\tR\aentryId\x12B\n" +
-	"\x06format\x18\x02 \x01(\x0e2*.nimi.runtime.v1.LocalRecommendationFormatR\x06format\x12\x14\n" +
-	"\x05entry\x18\x03 \x01(\tR\x05entry\x12\x14\n" +
-	"\x05files\x18\x04 \x03(\tR\x05files\x12(\n" +
-	"\x10total_size_bytes\x18\x05 \x01(\x03R\x0etotalSizeBytes\x12\x16\n" +
-	"\x06sha256\x18\x06 \x01(\tR\x06sha256\"e\n" +
-	"!LocalRecommendationInstalledState\x12\x1c\n" +
-	"\tinstalled\x18\x01 \x01(\bR\tinstalledJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04R\x0elocal_asset_idR\x06status\"\xca\x01\n" +
-	"\x1eLocalRecommendationActionState\x125\n" +
-	"\x17can_review_install_plan\x18\x01 \x01(\bR\x14canReviewInstallPlan\x12*\n" +
-	"\x11can_open_variants\x18\x02 \x01(\bR\x0fcanOpenVariants\x12/\n" +
-	"\x14can_open_model_asset\x18\x03 \x01(\bR\x11canOpenModelAssetR\x14can_open_local_asset\"\x92\x04\n" +
-	"!LocalRecommendationInstallPayload\x12\x19\n" +
-	"\bmodel_id\x18\x01 \x01(\tR\amodelId\x123\n" +
-	"\x04kind\x18\x02 \x01(\x0e2\x1f.nimi.runtime.v1.LocalAssetKindR\x04kind\x12\x12\n" +
-	"\x04repo\x18\x03 \x01(\tR\x04repo\x12\x1a\n" +
-	"\brevision\x18\x04 \x01(\tR\brevision\x12\"\n" +
-	"\fcapabilities\x18\x05 \x03(\tR\fcapabilities\x12\x16\n" +
-	"\x06engine\x18\x06 \x01(\tR\x06engine\x12\x14\n" +
-	"\x05entry\x18\a \x01(\tR\x05entry\x12\x14\n" +
-	"\x05files\x18\b \x03(\tR\x05files\x12\x18\n" +
-	"\alicense\x18\t \x01(\tR\alicense\x12V\n" +
-	"\x06hashes\x18\n" +
-	" \x03(\v2>.nimi.runtime.v1.LocalRecommendationInstallPayload.HashesEntryR\x06hashes\x12\x1a\n" +
-	"\bendpoint\x18\v \x01(\tR\bendpoint\x12<\n" +
-	"\rengine_config\x18\f \x01(\v2\x17.google.protobuf.StructR\fengineConfig\x1a9\n" +
-	"\vHashesEntry\x12\x10\n" +
-	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xc4\a\n" +
-	"%LocalRecommendationFeedItemDescriptor\x12\x17\n" +
-	"\aitem_id\x18\x01 \x01(\tR\x06itemId\x12F\n" +
-	"\x06source\x18\x02 \x01(\x0e2..nimi.runtime.v1.LocalRecommendationFeedSourceR\x06source\x12\x12\n" +
-	"\x04repo\x18\x03 \x01(\tR\x04repo\x12\x1a\n" +
-	"\brevision\x18\x04 \x01(\tR\brevision\x12\x14\n" +
-	"\x05title\x18\x05 \x01(\tR\x05title\x12 \n" +
-	"\vdescription\x18\x06 \x01(\tR\vdescription\x12\"\n" +
-	"\fcapabilities\x18\a \x03(\tR\fcapabilities\x12\x12\n" +
-	"\x04tags\x18\b \x03(\tR\x04tags\x12D\n" +
-	"\aformats\x18\t \x03(\x0e2*.nimi.runtime.v1.LocalRecommendationFormatR\aformats\x12\x1c\n" +
-	"\tdownloads\x18\n" +
-	" \x01(\x03R\tdownloads\x12\x14\n" +
-	"\x05likes\x18\v \x01(\x03R\x05likes\x12#\n" +
-	"\rlast_modified\x18\f \x01(\tR\flastModified\x12)\n" +
-	"\x10preferred_engine\x18\r \x01(\tR\x0fpreferredEngine\x12\x1a\n" +
-	"\bverified\x18\x0e \x01(\bR\bverified\x12Q\n" +
-	"\aentries\x18\x0f \x03(\v27.nimi.runtime.v1.LocalRecommendationFeedEntryDescriptorR\aentries\x12S\n" +
-	"\x0erecommendation\x18\x10 \x01(\v2+.nimi.runtime.v1.LocalCatalogRecommendationR\x0erecommendation\x12[\n" +
-	"\x0finstalled_state\x18\x11 \x01(\v22.nimi.runtime.v1.LocalRecommendationInstalledStateR\x0einstalledState\x12R\n" +
-	"\faction_state\x18\x12 \x01(\v2/.nimi.runtime.v1.LocalRecommendationActionStateR\vactionState\x12[\n" +
-	"\x0finstall_payload\x18\x13 \x01(\v22.nimi.runtime.v1.LocalRecommendationInstallPayloadR\x0einstallPayload\"\x96\x03\n" +
-	"!LocalRecommendationFeedDescriptor\x12J\n" +
-	"\x0edevice_profile\x18\x01 \x01(\v2#.nimi.runtime.v1.LocalDeviceProfileR\rdeviceProfile\x12_\n" +
-	"\x11active_capability\x18\x02 \x01(\x0e22.nimi.runtime.v1.LocalRecommendationFeedCapabilityR\x10activeCapability\x12!\n" +
-	"\fgenerated_at\x18\x03 \x01(\tR\vgeneratedAt\x12S\n" +
-	"\vcache_state\x18\x04 \x01(\x0e22.nimi.runtime.v1.LocalRecommendationFeedCacheStateR\n" +
-	"cacheState\x12L\n" +
-	"\x05items\x18\x05 \x03(\v26.nimi.runtime.v1.LocalRecommendationFeedItemDescriptorR\x05items*\x9b\x01\n" +
-	"\x19LocalRecommendationSource\x12+\n" +
-	"'LOCAL_RECOMMENDATION_SOURCE_UNSPECIFIED\x10\x00\x12&\n" +
-	"\"LOCAL_RECOMMENDATION_SOURCE_LLMFIT\x10\x01\x12)\n" +
-	"%LOCAL_RECOMMENDATION_SOURCE_MEDIA_FIT\x10\x02*\x9b\x01\n" +
-	"\x19LocalRecommendationFormat\x12+\n" +
-	"'LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED\x10\x00\x12$\n" +
-	" LOCAL_RECOMMENDATION_FORMAT_GGUF\x10\x01\x12+\n" +
-	"'LOCAL_RECOMMENDATION_FORMAT_SAFETENSORS\x10\x02*\xeb\x01\n" +
-	"\x17LocalRecommendationTier\x12)\n" +
-	"%LOCAL_RECOMMENDATION_TIER_UNSPECIFIED\x10\x00\x12)\n" +
-	"%LOCAL_RECOMMENDATION_TIER_RECOMMENDED\x10\x01\x12&\n" +
-	"\"LOCAL_RECOMMENDATION_TIER_RUNNABLE\x10\x02\x12#\n" +
-	"\x1fLOCAL_RECOMMENDATION_TIER_TIGHT\x10\x03\x12-\n" +
-	")LOCAL_RECOMMENDATION_TIER_NOT_RECOMMENDED\x10\x04*\xcf\x01\n" +
-	"\x1dLocalRecommendationConfidence\x12/\n" +
-	"+LOCAL_RECOMMENDATION_CONFIDENCE_UNSPECIFIED\x10\x00\x12(\n" +
-	"$LOCAL_RECOMMENDATION_CONFIDENCE_HIGH\x10\x01\x12*\n" +
-	"&LOCAL_RECOMMENDATION_CONFIDENCE_MEDIUM\x10\x02\x12'\n" +
-	"#LOCAL_RECOMMENDATION_CONFIDENCE_LOW\x10\x03*\xca\x01\n" +
-	"\x15LocalHostSupportClass\x12(\n" +
-	"$LOCAL_HOST_SUPPORT_CLASS_UNSPECIFIED\x10\x00\x121\n" +
-	"-LOCAL_HOST_SUPPORT_CLASS_SUPPORTED_SUPERVISED\x10\x01\x12*\n" +
-	"&LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY\x10\x02\x12(\n" +
-	"$LOCAL_HOST_SUPPORT_CLASS_UNSUPPORTED\x10\x03*\xb4\x01\n" +
-	"\x1bLocalRecommendationBaseline\x12-\n" +
-	")LOCAL_RECOMMENDATION_BASELINE_UNSPECIFIED\x10\x00\x122\n" +
-	".LOCAL_RECOMMENDATION_BASELINE_IMAGE_DEFAULT_V1\x10\x01\x122\n" +
-	".LOCAL_RECOMMENDATION_BASELINE_VIDEO_DEFAULT_V1\x10\x02*\xed\x01\n" +
-	"!LocalRecommendationFeedCacheState\x125\n" +
-	"1LOCAL_RECOMMENDATION_FEED_CACHE_STATE_UNSPECIFIED\x10\x00\x12/\n" +
-	"+LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH\x10\x01\x12/\n" +
-	"+LOCAL_RECOMMENDATION_FEED_CACHE_STATE_STALE\x10\x02\x12/\n" +
-	"+LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY\x10\x03*\xe8\x01\n" +
-	"!LocalRecommendationFeedCapability\x124\n" +
-	"0LOCAL_RECOMMENDATION_FEED_CAPABILITY_UNSPECIFIED\x10\x00\x12-\n" +
-	")LOCAL_RECOMMENDATION_FEED_CAPABILITY_CHAT\x10\x01\x12.\n" +
-	"*LOCAL_RECOMMENDATION_FEED_CAPABILITY_IMAGE\x10\x02\x12.\n" +
-	"*LOCAL_RECOMMENDATION_FEED_CAPABILITY_VIDEO\x10\x03*\x83\x01\n" +
-	"\x1dLocalRecommendationFeedSource\x120\n" +
-	",LOCAL_RECOMMENDATION_FEED_SOURCE_UNSPECIFIED\x10\x00\x120\n" +
-	",LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX\x10\x01B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"generation\x18\x03 \x01(\tR\n" +
+	"generation\x12<\n" +
+	"\vreason_code\x18\x04 \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
+	"reasonCode\"\x99\x03\n" +
+	"\x1dModelAssetCatalogSearchResult\x12#\n" +
+	"\rmodel_locator\x18\x01 \x01(\tR\fmodelLocator\x12!\n" +
+	"\fsource_label\x18\x02 \x01(\tR\vsourceLabel\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x1e\n" +
+	"\n" +
+	"categories\x18\x05 \x03(\tR\n" +
+	"categories\x12\x1d\n" +
+	"\n" +
+	"model_type\x18\x06 \x01(\tR\tmodelType\x12\x18\n" +
+	"\alicense\x18\a \x01(\tR\alicense\x12\x12\n" +
+	"\x04tags\x18\b \x03(\tR\x04tags\x12\x1c\n" +
+	"\tdownloads\x18\t \x01(\x03R\tdownloads\x12\x14\n" +
+	"\x05likes\x18\n" +
+	" \x01(\x03R\x05likes\x12#\n" +
+	"\rlast_modified\x18\v \x01(\tR\flastModified\x12\x1a\n" +
+	"\bverified\x18\f \x01(\bR\bverified\x12\x16\n" +
+	"\x06author\x18\r \x01(\tR\x06author\"\xa4\x05\n" +
+	"\x19ModelAssetMarketCandidate\x12\x1b\n" +
+	"\toffer_ref\x18\x01 \x01(\tR\bofferRef\x12!\n" +
+	"\fsource_label\x18\x02 \x01(\tR\vsourceLabel\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12 \n" +
+	"\vdescription\x18\x04 \x01(\tR\vdescription\x12\x1e\n" +
+	"\n" +
+	"categories\x18\x05 \x03(\tR\n" +
+	"categories\x12\x1d\n" +
+	"\n" +
+	"model_type\x18\x06 \x01(\tR\tmodelType\x12#\n" +
+	"\rvariant_label\x18\a \x01(\tR\fvariantLabel\x12\x16\n" +
+	"\x06format\x18\b \x01(\tR\x06format\x12(\n" +
+	"\x10total_size_bytes\x18\t \x01(\x03R\x0etotalSizeBytes\x12\x18\n" +
+	"\alicense\x18\n" +
+	" \x01(\tR\alicense\x12\x12\n" +
+	"\x04tags\x18\v \x03(\tR\x04tags\x12\x1c\n" +
+	"\tdownloads\x18\f \x01(\x03R\tdownloads\x12\x14\n" +
+	"\x05likes\x18\r \x01(\x03R\x05likes\x12#\n" +
+	"\rlast_modified\x18\x0e \x01(\tR\flastModified\x12\x1a\n" +
+	"\bverified\x18\x0f \x01(\bR\bverified\x12\x1c\n" +
+	"\tinstalled\x18\x10 \x01(\bR\tinstalled\x12 \n" +
+	"\vinstallable\x18\x11 \x01(\bR\vinstallable\x12.\n" +
+	"\x10featured_ordinal\x18\x12 \x01(\x05H\x00R\x0ffeaturedOrdinal\x88\x01\x01\x12)\n" +
+	"\x10editorial_reason\x18\x13 \x01(\tR\x0feditorialReason\x12\x16\n" +
+	"\x06author\x18\x14 \x01(\tR\x06authorB\x13\n" +
+	"\x11_featured_ordinal\"Y\n" +
+	"\x1eListFeaturedModelAssetsRequest\x12\x1a\n" +
+	"\bcategory\x18\x01 \x01(\tR\bcategory\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"\xb1\x01\n" +
+	"\x1fListFeaturedModelAssetsResponse\x12L\n" +
+	"\x06source\x18\x01 \x01(\v24.nimi.runtime.v1.ModelAssetFeaturedSourceObservationR\x06source\x12@\n" +
+	"\x05items\x18\x02 \x03(\v2*.nimi.runtime.v1.ModelAssetMarketCandidateR\x05items\"\xe8\x01\n" +
+	"%FactoryProfileCapabilityApplicability\x12/\n" +
+	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\x12W\n" +
+	"\rapplicability\x18\x02 \x01(\x0e21.nimi.runtime.v1.LocalRecommendationApplicabilityR\rapplicability\x125\n" +
+	"\areasons\x18\x03 \x03(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\areasons\"\x9f\x01\n" +
+	"\x1cFactoryProfileRecommendation\x12#\n" +
+	"\rprofile_alias\x18\x01 \x01(\tR\fprofileAlias\x12Z\n" +
+	"\fcapabilities\x18\x02 \x03(\v26.nimi.runtime.v1.FactoryProfileCapabilityApplicabilityR\fcapabilities\"[\n" +
+	"(ListFactoryProfileRecommendationsRequest\x12/\n" +
+	"\x13capability_contract\x18\x01 \x01(\tR\x12capabilityContract\"v\n" +
+	")ListFactoryProfileRecommendationsResponse\x12I\n" +
+	"\bprofiles\x18\x01 \x03(\v2-.nimi.runtime.v1.FactoryProfileRecommendationR\bprofiles*\xec\x01\n" +
+	" LocalRecommendationApplicability\x122\n" +
+	".LOCAL_RECOMMENDATION_APPLICABILITY_UNSPECIFIED\x10\x00\x120\n" +
+	",LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED\x10\x01\x12.\n" +
+	"*LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN\x10\x02\x122\n" +
+	".LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED\x10\x03*\xaf\x01\n" +
+	"\x1cModelAssetSourceAvailability\x12/\n" +
+	"+MODEL_ASSET_SOURCE_AVAILABILITY_UNSPECIFIED\x10\x00\x12-\n" +
+	")MODEL_ASSET_SOURCE_AVAILABILITY_AVAILABLE\x10\x01\x12/\n" +
+	"+MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE\x10\x02*\x99\x01\n" +
+	"\x19ModelAssetSourceFreshness\x12,\n" +
+	"(MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED\x10\x00\x12&\n" +
+	"\"MODEL_ASSET_SOURCE_FRESHNESS_FRESH\x10\x01\x12&\n" +
+	"\"MODEL_ASSET_SOURCE_FRESHNESS_STALE\x10\x02B?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_local_runtime_recommendation_proto_rawDescOnce sync.Once
@@ -1310,57 +991,38 @@ func file_runtime_v1_local_runtime_recommendation_proto_rawDescGZIP() []byte {
 	return file_runtime_v1_local_runtime_recommendation_proto_rawDescData
 }
 
-var file_runtime_v1_local_runtime_recommendation_proto_enumTypes = make([]protoimpl.EnumInfo, 9)
-var file_runtime_v1_local_runtime_recommendation_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_runtime_v1_local_runtime_recommendation_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_runtime_v1_local_runtime_recommendation_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_runtime_v1_local_runtime_recommendation_proto_goTypes = []any{
-	(LocalRecommendationSource)(0),                 // 0: nimi.runtime.v1.LocalRecommendationSource
-	(LocalRecommendationFormat)(0),                 // 1: nimi.runtime.v1.LocalRecommendationFormat
-	(LocalRecommendationTier)(0),                   // 2: nimi.runtime.v1.LocalRecommendationTier
-	(LocalRecommendationConfidence)(0),             // 3: nimi.runtime.v1.LocalRecommendationConfidence
-	(LocalHostSupportClass)(0),                     // 4: nimi.runtime.v1.LocalHostSupportClass
-	(LocalRecommendationBaseline)(0),               // 5: nimi.runtime.v1.LocalRecommendationBaseline
-	(LocalRecommendationFeedCacheState)(0),         // 6: nimi.runtime.v1.LocalRecommendationFeedCacheState
-	(LocalRecommendationFeedCapability)(0),         // 7: nimi.runtime.v1.LocalRecommendationFeedCapability
-	(LocalRecommendationFeedSource)(0),             // 8: nimi.runtime.v1.LocalRecommendationFeedSource
-	(*LocalCatalogRecommendation)(nil),             // 9: nimi.runtime.v1.LocalCatalogRecommendation
-	(*LocalRecommendationFeedEntryDescriptor)(nil), // 10: nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor
-	(*LocalRecommendationInstalledState)(nil),      // 11: nimi.runtime.v1.LocalRecommendationInstalledState
-	(*LocalRecommendationActionState)(nil),         // 12: nimi.runtime.v1.LocalRecommendationActionState
-	(*LocalRecommendationInstallPayload)(nil),      // 13: nimi.runtime.v1.LocalRecommendationInstallPayload
-	(*LocalRecommendationFeedItemDescriptor)(nil),  // 14: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor
-	(*LocalRecommendationFeedDescriptor)(nil),      // 15: nimi.runtime.v1.LocalRecommendationFeedDescriptor
-	nil,                        // 16: nimi.runtime.v1.LocalRecommendationInstallPayload.HashesEntry
-	(LocalAssetKind)(0),        // 17: nimi.runtime.v1.LocalAssetKind
-	(*structpb.Struct)(nil),    // 18: google.protobuf.Struct
-	(*LocalDeviceProfile)(nil), // 19: nimi.runtime.v1.LocalDeviceProfile
+	(LocalRecommendationApplicability)(0),             // 0: nimi.runtime.v1.LocalRecommendationApplicability
+	(ModelAssetSourceAvailability)(0),                 // 1: nimi.runtime.v1.ModelAssetSourceAvailability
+	(ModelAssetSourceFreshness)(0),                    // 2: nimi.runtime.v1.ModelAssetSourceFreshness
+	(*ModelAssetFeaturedSourceObservation)(nil),       // 3: nimi.runtime.v1.ModelAssetFeaturedSourceObservation
+	(*ModelAssetCatalogSearchResult)(nil),             // 4: nimi.runtime.v1.ModelAssetCatalogSearchResult
+	(*ModelAssetMarketCandidate)(nil),                 // 5: nimi.runtime.v1.ModelAssetMarketCandidate
+	(*ListFeaturedModelAssetsRequest)(nil),            // 6: nimi.runtime.v1.ListFeaturedModelAssetsRequest
+	(*ListFeaturedModelAssetsResponse)(nil),           // 7: nimi.runtime.v1.ListFeaturedModelAssetsResponse
+	(*FactoryProfileCapabilityApplicability)(nil),     // 8: nimi.runtime.v1.FactoryProfileCapabilityApplicability
+	(*FactoryProfileRecommendation)(nil),              // 9: nimi.runtime.v1.FactoryProfileRecommendation
+	(*ListFactoryProfileRecommendationsRequest)(nil),  // 10: nimi.runtime.v1.ListFactoryProfileRecommendationsRequest
+	(*ListFactoryProfileRecommendationsResponse)(nil), // 11: nimi.runtime.v1.ListFactoryProfileRecommendationsResponse
+	(ReasonCode)(0), // 12: nimi.runtime.v1.ReasonCode
 }
 var file_runtime_v1_local_runtime_recommendation_proto_depIdxs = []int32{
-	0,  // 0: nimi.runtime.v1.LocalCatalogRecommendation.source:type_name -> nimi.runtime.v1.LocalRecommendationSource
-	1,  // 1: nimi.runtime.v1.LocalCatalogRecommendation.format:type_name -> nimi.runtime.v1.LocalRecommendationFormat
-	2,  // 2: nimi.runtime.v1.LocalCatalogRecommendation.tier:type_name -> nimi.runtime.v1.LocalRecommendationTier
-	4,  // 3: nimi.runtime.v1.LocalCatalogRecommendation.host_support_class:type_name -> nimi.runtime.v1.LocalHostSupportClass
-	3,  // 4: nimi.runtime.v1.LocalCatalogRecommendation.confidence:type_name -> nimi.runtime.v1.LocalRecommendationConfidence
-	5,  // 5: nimi.runtime.v1.LocalCatalogRecommendation.baseline:type_name -> nimi.runtime.v1.LocalRecommendationBaseline
-	1,  // 6: nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor.format:type_name -> nimi.runtime.v1.LocalRecommendationFormat
-	17, // 7: nimi.runtime.v1.LocalRecommendationInstallPayload.kind:type_name -> nimi.runtime.v1.LocalAssetKind
-	16, // 8: nimi.runtime.v1.LocalRecommendationInstallPayload.hashes:type_name -> nimi.runtime.v1.LocalRecommendationInstallPayload.HashesEntry
-	18, // 9: nimi.runtime.v1.LocalRecommendationInstallPayload.engine_config:type_name -> google.protobuf.Struct
-	8,  // 10: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.source:type_name -> nimi.runtime.v1.LocalRecommendationFeedSource
-	1,  // 11: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.formats:type_name -> nimi.runtime.v1.LocalRecommendationFormat
-	10, // 12: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.entries:type_name -> nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor
-	9,  // 13: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.recommendation:type_name -> nimi.runtime.v1.LocalCatalogRecommendation
-	11, // 14: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.installed_state:type_name -> nimi.runtime.v1.LocalRecommendationInstalledState
-	12, // 15: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.action_state:type_name -> nimi.runtime.v1.LocalRecommendationActionState
-	13, // 16: nimi.runtime.v1.LocalRecommendationFeedItemDescriptor.install_payload:type_name -> nimi.runtime.v1.LocalRecommendationInstallPayload
-	19, // 17: nimi.runtime.v1.LocalRecommendationFeedDescriptor.device_profile:type_name -> nimi.runtime.v1.LocalDeviceProfile
-	7,  // 18: nimi.runtime.v1.LocalRecommendationFeedDescriptor.active_capability:type_name -> nimi.runtime.v1.LocalRecommendationFeedCapability
-	6,  // 19: nimi.runtime.v1.LocalRecommendationFeedDescriptor.cache_state:type_name -> nimi.runtime.v1.LocalRecommendationFeedCacheState
-	14, // 20: nimi.runtime.v1.LocalRecommendationFeedDescriptor.items:type_name -> nimi.runtime.v1.LocalRecommendationFeedItemDescriptor
-	21, // [21:21] is the sub-list for method output_type
-	21, // [21:21] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	1,  // 0: nimi.runtime.v1.ModelAssetFeaturedSourceObservation.availability:type_name -> nimi.runtime.v1.ModelAssetSourceAvailability
+	2,  // 1: nimi.runtime.v1.ModelAssetFeaturedSourceObservation.freshness:type_name -> nimi.runtime.v1.ModelAssetSourceFreshness
+	12, // 2: nimi.runtime.v1.ModelAssetFeaturedSourceObservation.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	3,  // 3: nimi.runtime.v1.ListFeaturedModelAssetsResponse.source:type_name -> nimi.runtime.v1.ModelAssetFeaturedSourceObservation
+	5,  // 4: nimi.runtime.v1.ListFeaturedModelAssetsResponse.items:type_name -> nimi.runtime.v1.ModelAssetMarketCandidate
+	0,  // 5: nimi.runtime.v1.FactoryProfileCapabilityApplicability.applicability:type_name -> nimi.runtime.v1.LocalRecommendationApplicability
+	12, // 6: nimi.runtime.v1.FactoryProfileCapabilityApplicability.reasons:type_name -> nimi.runtime.v1.ReasonCode
+	8,  // 7: nimi.runtime.v1.FactoryProfileRecommendation.capabilities:type_name -> nimi.runtime.v1.FactoryProfileCapabilityApplicability
+	9,  // 8: nimi.runtime.v1.ListFactoryProfileRecommendationsResponse.profiles:type_name -> nimi.runtime.v1.FactoryProfileRecommendation
+	9,  // [9:9] is the sub-list for method output_type
+	9,  // [9:9] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_local_runtime_recommendation_proto_init() }
@@ -1368,15 +1030,15 @@ func file_runtime_v1_local_runtime_recommendation_proto_init() {
 	if File_runtime_v1_local_runtime_recommendation_proto != nil {
 		return
 	}
-	file_runtime_v1_local_runtime_asset_catalog_proto_init()
-	file_runtime_v1_local_runtime_device_environment_proto_init()
+	file_runtime_v1_common_proto_init()
+	file_runtime_v1_local_runtime_recommendation_proto_msgTypes[2].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_local_runtime_recommendation_proto_rawDesc), len(file_runtime_v1_local_runtime_recommendation_proto_rawDesc)),
-			NumEnums:      9,
-			NumMessages:   8,
+			NumEnums:      3,
+			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

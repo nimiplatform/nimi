@@ -10670,8 +10670,10 @@ func (*ListSharedLocalAgentAIConfigOptionsResponse_CloudTargets) isListSharedLoc
 func (*ListSharedLocalAgentAIConfigOptionsResponse_PresetVoices) isListSharedLocalAgentAIConfigOptionsResponse_Result() {
 }
 
-// AIProfile remains a portable template. Apply writes complete current owner
-// intent only; it never materializes Local bindings or waits for readiness.
+// AIProfile remains a portable template. Preview and Apply return
+// non-committing editor prefill only; canonical AIConfig overwrite is the sole
+// owner mutation and neither operation materializes Local bindings or waits for
+// readiness.
 type PreviewSharedLocalAgentAIProfileRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Context       *AgentRequestContext   `protobuf:"bytes,1,opt,name=context,proto3" json:"context,omitempty"`

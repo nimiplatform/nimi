@@ -103,7 +103,9 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed":
+		case "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan":
 			return FirstPartyMethodUnary, true
@@ -566,7 +568,8 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers", Kind: FirstPartyMethodUnary},
