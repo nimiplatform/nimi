@@ -117,18 +117,19 @@ export function DesktopSection(props: DesktopSectionProps) {
                     <div className="flex flex-col gap-[14px]">
                       <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#9ca3af]">{chromeLabels.capabilities}</p>
                       <div className="flex flex-col rounded-[14px] border border-white/5 bg-[#20232b] py-2">
-                        <div className="flex items-center justify-between px-4 py-2">
-                          <span className="font-mono text-[11px] text-slate-300">text.generate</span>
-                          <span className="text-[11px] font-semibold text-[#4ade80]">{chromeLabels.localIntent}</span>
-                        </div>
-                        <div className="flex items-center justify-between border-t border-white/5 px-4 py-2">
-                          <span className="font-mono text-[11px] text-slate-300">image.generate</span>
-                          <span className="text-[11px] font-semibold text-[#38bdf8]">{chromeLabels.cloudIntent}</span>
-                        </div>
-                        <div className="flex items-center justify-between border-t border-white/5 px-4 py-2">
-                          <span className="font-mono text-[11px] text-slate-300">audio.synthesize</span>
-                          <span className="text-[11px] font-semibold text-[#4ade80]">{chromeLabels.localIntent}</span>
-                        </div>
+                        {props.content.capabilitiesList.map((capability, capabilityIndex) => (
+                          <div
+                            key={capability.name}
+                            className={`flex items-center justify-between px-4 py-2 ${capabilityIndex > 0 ? 'border-t border-white/5' : ''}`}
+                          >
+                            <span className="text-[12px] font-medium text-slate-300">{capability.name}</span>
+                            <span
+                              className={`text-[11px] font-semibold ${capability.intent === 'local' ? 'text-[#4ade80]' : 'text-[#38bdf8]'}`}
+                            >
+                              {capability.intent === 'local' ? chromeLabels.localIntent : chromeLabels.cloudIntent}
+                            </span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>

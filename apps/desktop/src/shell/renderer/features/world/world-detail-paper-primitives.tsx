@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   ArrowRight,
   BookOpen,
+  Check,
   ChevronRight,
   Clock3,
   Compass,
@@ -13,6 +14,7 @@ import {
   Languages,
   Milestone,
   MessageSquare,
+  Plus,
   Shield,
   Stamp,
   ScrollText,
@@ -80,6 +82,14 @@ export function IconChat(props: IconProps) {
 
 export function IconArrow(props: IconProps) {
   return kitIcon(ArrowRight, props);
+}
+
+export function IconPlus(props: IconProps) {
+  return kitIcon(Plus, props);
+}
+
+export function IconCheck(props: IconProps) {
+  return kitIcon(Check, props);
 }
 
 export function IconChevron(props: IconProps) {

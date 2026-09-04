@@ -38,13 +38,12 @@ test('world character source detail hides generic system and affordance tags fro
   assert.doesNotMatch(markup, /Interactive character/);
 });
 
-test('world character source detail renders circular banner-overlap avatar and simplified Chinese scene labels', () => {
+test('world character source detail renders circular banner-overlap avatar and simplified Chinese labels', () => {
   const source = toSourceDetailData({
     ...ouYangDeRaw,
     characterProfile: {
       ...ouYangDeRaw.characterProfile,
       archetype: '元代文人网络',
-      interactionModes: ['文人交游', '书院雅集', '朝廷议事'],
     },
   }, 'source_materialization_available');
   const markup = renderToStaticMarkup(
@@ -59,7 +58,6 @@ test('world character source detail renders circular banner-overlap avatar and s
     }),
   );
 
-  assert.match(markup, /文人交游 \/ 书院雅集 \/ 朝廷议事/);
   assert.doesNotMatch(markup, /yuan-literati-network/);
   assert.doesNotMatch(markup, /yuan-academy-gathering/);
   assert.doesNotMatch(markup, /yuan-official-court/);
@@ -142,6 +140,40 @@ test('world character hero shows chat instead of join after the character is alr
     assert.doesNotMatch(markup, /加入我的角色/);
     assert.doesNotMatch(markup, /打开伙伴/);
     assert.doesNotMatch(markup, /data-primary-action="open_partner"/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('world character hero shows a disabled joining state while the join is in flight', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData({
+      ...ouYangDeRaw,
+      displayName: '同恕',
+      handle: '同恕',
+      entity: {
+        ...ouYangDeRaw.entity,
+        name: '同恕',
+      },
+    }, 'source_materialization_available');
+    const markup = renderToStaticMarkup(
+      React.createElement(SourceDetailView, {
+        source,
+        stats: { friendsCount: 0, postsCount: 0, likesCount: 0 },
+        loading: false,
+        error: false,
+        primaryActionJoining: true,
+        onBack: () => {},
+        onOpenWorld: () => {},
+        onPrimaryAction: () => {},
+      }),
+    );
+
+    assert.match(markup, /正在加入…/);
+    assert.match(markup, /disabled[^>]*data-primary-action="become_partner"/);
+    assert.doesNotMatch(markup, /加入我的角色/);
+    assert.doesNotMatch(markup, /立即对话/);
   } finally {
     await changeLocale('en');
   }

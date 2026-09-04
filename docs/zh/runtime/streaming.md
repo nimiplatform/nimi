@@ -53,7 +53,7 @@
 
 重试只救得回传输级失败，不救契约失败。schema 违例属于契约失败，按 fail-closed 处理，不会被重试救成"成功"。
 
-## 场景：Mode A 文本流
+## 读者场景：Mode A 文本流
 
 App 发起一次会流式返回的文本生成。
 
@@ -66,7 +66,7 @@ App 发起一次会流式返回的文本生成。
 
 没有发生过的事情：流从未静默截断。要么到达 `STREAM_EVENT_COMPLETED / STREAM_EVENT_FAILED`，要么发出了强类型失败。
 
-## 场景：Mode B ScenarioJob 事件流
+## 读者场景：Mode B ScenarioJob 事件流
 
 App 订阅某个 ScenarioJob 的事件流。
 
@@ -77,7 +77,7 @@ App 订阅某个 ScenarioJob 的事件流。
 
 App 的 UI 随事件到达增量更新。无须轮询；事件流就是“这个 job 在干什么”的真值来源。
 
-## 场景：慢消费者引发反压
+## 读者场景：慢消费者引发反压
 
 App 正在消费一段长 Mode A 流。用户打开了一个重型 modal，渲染暂停。
 

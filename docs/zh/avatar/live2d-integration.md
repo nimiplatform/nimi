@@ -1,8 +1,8 @@
 # Live2D 集成
 
-Live2D 是 Avatar 已准入的渲染后端之一。它使用官方 Cubism SDK for Web，但 Avatar 不会只凭 Cubism 文件推断一个包能做什么。Avatar 会验证包、计算已证明的兼容层级，然后把模型接入统一的具身化表面。
+Live2D 是 Avatar 的渲染后端之一。它使用官方 Cubism SDK for Web，但 Avatar 不会只凭 Cubism 文件推断一个包能做什么。Avatar 会验证包、算出实际证明的兼容层级，然后把模型接入统一的具身化表面。
 
-这一页也说明 Live2D adapter manifest 的编写方式。adapter 是包作者描述模型能力的文件，用来说明一个现有 Cubism 模型如何映射到 Avatar 的活动、表情、口型同步、物理、姿态和点击区域行为，而不要求改写原始模型文件。
+这一页也说明 Live2D adapter manifest 的编写方式。adapter 是包作者描述模型能力的文件：一个现成的 Cubism 模型怎么对应到 Avatar 的活动、表情、口型同步、物理、姿态和点击区域行为，而不需要改写原始模型文件。
 
 ## SDK 边界
 
@@ -182,7 +182,7 @@ export default {
 
 直接写入适合后端专属效果。可移植处理器应优先使用宿主无关的 NAS 表面。
 
-## 场景：包以正确层级加载
+## 读者场景：包以正确层级加载
 
 作者导入一个 Live2D 包，并附上请求 `companion_complete` 的 adapter。
 

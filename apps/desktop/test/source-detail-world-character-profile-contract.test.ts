@@ -90,6 +90,59 @@ test('persona character source detail uses the same shared profile and page surf
   assert.match(markup, /且饮一杯，再谈诗。/);
 });
 
+test('persona character source detail does not surface persona style fields', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData({
+      ...liBaiRaw,
+      id: 'persona-qilan',
+      displayName: '栖澜',
+      handle: 'qilan-indexer',
+      sourceKind: 'personaCharacter',
+      sourceId: 'persona-qilan',
+      sourceRef: {
+        kind: 'personaCharacter',
+        id: 'persona-qilan',
+        worldId: liBaiRaw.worldId,
+        ownerAccountId: 'account-owner',
+        sourceHash: liBaiRaw.sourceHash,
+      },
+      source: undefined,
+      characterProfile: {
+        ...liBaiRaw.characterProfile,
+        role: 'INTELLECTUAL',
+        archetype: 'INTELLECTUAL',
+        traits: ['DIRECT', 'GENTLE', 'WISE'],
+        knowledgeTopics: [],
+        interactionModes: ['conversation'],
+        milestones: [],
+        conversationAnchors: [],
+      },
+    }, 'source_materialization_available');
+    const markup = renderToStaticMarkup(
+      React.createElement(SourceDetailView, {
+        source,
+        stats: null,
+        loading: false,
+        error: false,
+        onBack: () => {},
+        onOpenWorld: () => {},
+        onPrimaryAction: () => {},
+        onStartChat: () => {},
+      }),
+    );
+    assert.doesNotMatch(markup, /world-character-identity-coordinates/);
+    // The hero dossier line keeps showing the localized role; the removed
+    // identity grid was the only surface for archetype/traits/interactionModes.
+    assert.match(markup, /理智型/);
+    assert.doesNotMatch(markup, /直率|温和|睿智/);
+    assert.doesNotMatch(markup, /INTELLECTUAL|DIRECT|GENTLE|WISE/);
+    assert.doesNotMatch(markup, /conversation/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
 test('world character source detail keeps section titles without eyebrow labels', async () => {
   await changeLocale('zh');
   try {
@@ -110,7 +163,7 @@ test('world character source detail keeps section titles without eyebrow labels'
     assert.match(markup, /生涯节点/);
     assert.match(markup, /作品/);
     assert.match(markup, /关系线索/);
-    assert.match(markup, /形象与声音/);
+    assert.doesNotMatch(markup, /形象与声音/);
     assert.doesNotMatch(markup, /人物档案/);
     assert.doesNotMatch(markup, /相关阅读/);
     assert.doesNotMatch(markup, /人物生平/);
@@ -150,7 +203,7 @@ test('world character source detail reuses the shared dossier and keeps career a
   assert.match(detail.characterProfile.conversationAnchors.join('\n'), /想问诗文、仕途还是人生起落/);
 });
 
-test('world character conversation rail renders direct questions instead of raw clue list', async () => {
+test('world character profile page omits the ask-questions section and nests media inside the overview', async () => {
   await changeLocale('zh');
   try {
     const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
@@ -166,91 +219,19 @@ test('world character conversation rail renders direct questions instead of raw 
         onStartChat: () => {},
       }),
     );
-    const askStart = markup.indexOf('data-testid="world-character-ask-section"');
-    const askMarkup = markup.slice(askStart, markup.indexOf('</section>', askStart));
 
-    assert.match(markup, /你可以问他/);
-    assert.doesNotMatch(markup, /可聊线索/);
-    assert.match(askMarkup, /<button[^>]*type="button"[^>]*data-testid="world-character-question"/);
-    assert.doesNotMatch(askMarkup, /<p[^>]*data-testid="world-character-question"/);
-    assert.doesNotMatch(markup, /你可以讲讲/);
-    assert.doesNotMatch(markup, /欧阳德会先请你说明想问诗文、仕途还是人生起落/);
-    assert.match(markup, /他为什么被称为阳明学派思想家与朝廷重臣？/);
-    assert.match(markup, /他会如何解释阳明学派？/);
-    assert.match(markup, /他会如何解释礼部尚书？/);
-    assert.match(markup, /他会如何解释文人交游？/);
-    assert.match(markup, /欧阳南野先生文集为什么重要？/);
-  } finally {
-    await changeLocale('en');
-  }
-});
-
-test('world character conversation rail filters raw CBDB relationship templates from suggestions', async () => {
-  await changeLocale('zh');
-  try {
-    const source = toSourceDetailData({
-      ...ouYangDeRaw,
-      displayName: '同恕',
-      entity: {
-        ...ouYangDeRaw.entity,
-        name: '同恕',
-      },
-      characterProfile: {
-        ...ouYangDeRaw.characterProfile,
-        role: '思想家、书院山长',
-        archetype: '元代文人书院网络',
-        traits: ['书院山长、太子左赞善'],
-        interactionModes: ['书院雅集', '朝廷议事', '文人交游'],
-      },
-      relationships: [
-        {
-          id: 'raw-association-farewell',
-          type: 'association',
-          core: {
-            attributes: {
-              sourceRelationLabelChn: '临别得到Y所作赠言（送别诗、序）',
-            },
-          },
-        },
-        {
-          id: 'raw-association-occasion',
-          type: 'association',
-          core: {
-            attributes: {
-              sourceRelationLabel: '从Y处收到贺词（occasion）',
-            },
-          },
-        },
-        {
-          id: 'raw-association-image-record',
-          type: 'association',
-          core: {
-            attributes: {
-              sourceRelationLabelChn: '画赞（图像记）由Y所作',
-            },
-          },
-        },
-      ],
-    }, 'source_materialization_available');
-    const markup = renderToStaticMarkup(
-      React.createElement(SourceDetailView, {
-        source,
-        stats: null,
-        loading: false,
-        error: false,
-        onBack: () => {},
-        onOpenWorld: () => {},
-        onPrimaryAction: () => {},
-      }),
+    assert.doesNotMatch(markup, /data-testid="world-character-ask-section"/);
+    assert.doesNotMatch(markup, /data-testid="world-character-question"/);
+    assert.doesNotMatch(markup, /你可以问他/);
+    const overviewStart = markup.indexOf('data-testid="world-character-overview-section"');
+    const milestonesStart = markup.indexOf('data-testid="world-character-milestones-section"');
+    const mediaStart = markup.indexOf('data-testid="world-character-media-section"');
+    assert.ok(overviewStart !== -1, 'overview section should render');
+    assert.ok(mediaStart !== -1, 'media content should render');
+    assert.ok(
+      overviewStart < mediaStart && (milestonesStart === -1 || mediaStart < milestonesStart),
+      'media content should be nested inside the overview section',
     );
-    const askStart = markup.indexOf('data-testid="world-character-ask-section"');
-    const askMarkup = markup.slice(askStart, markup.indexOf('</section>', askStart));
-
-    assert.match(askMarkup, /他为什么被称为思想家、书院山长？/);
-    assert.match(askMarkup, /他会如何解释元代文人书院网络？/);
-    assert.match(askMarkup, /他会如何解释书院山长、太子左赞善？/);
-    assert.match(askMarkup, /他会如何解释书院雅集？/);
-    assert.doesNotMatch(askMarkup, /Y所作|occasion|图像记|送别诗、序|他和临别|他和从Y处|他和画赞/);
   } finally {
     await changeLocale('en');
   }

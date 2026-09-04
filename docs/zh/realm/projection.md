@@ -1,8 +1,8 @@
 # Realm 消费者投影
 
-本仓库里的 Realm projection 指 Nimi consumer 通过 SDK Realm boundary 接收到的形状。它不是第二套 Realm truth，也不是本地 Realm domain model。
+Nimi App 读 Realm 数据时，通过 SDK 拿到的是一份强类型的本地视图。这份视图不是第二份真相，也不是 Realm 领域模型的本地副本。
 
-Apps、Runtime、Desktop 和 Web 应通过 SDK 拥有的 typed clients 消费 Realm。本地状态可以缓存或呈现 Realm output，但不能成为 canonical Realm truth。
+App、Runtime、桌面端和网页端都通过 SDK 的强类型客户端读 Realm。本地状态可以缓存或展示 Realm 返回的内容，但本地的东西永远不能变成真相本身。
 
 ## 消费者规则
 

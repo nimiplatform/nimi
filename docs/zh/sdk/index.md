@@ -58,7 +58,7 @@ Desktop 持有原生 shell 行为。App 需要稳定使用这些域，而不是�
 SDK 就是这条边界。它把已准入的 owner-domain 行为投影成开发者可用的
 TypeScript API。它不自创 Runtime、Realm 或 Desktop 真值。
 
-## 场景：第一次接入
+## 读者场景：第一次接入
 
 一个同时需要 Realm 数据和 Runtime-backed generation 的 App 应该：
 

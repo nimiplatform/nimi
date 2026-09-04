@@ -66,6 +66,9 @@ import {
   resolveDesktopAgentSessionRebind,
 } from './chat-agent-session-rebind.js';
 import type { ReportAgentConversationHostError } from './chat-agent-shell-adapter-host-feedback.js';
+import { useAgentEmptyStateCharacterPresence } from './chat-agent-empty-state-character-presence.js';
+import { useActiveAgentConversationSourceRef } from '../agents/agent-conversation-source-resolution.js';
+import { characterSourceRefKey } from '../realm-source/realm-source-identity.js';
 
 type UseAgentConversationModeHostInput = {
   authStatus: AuthStatus;
@@ -98,6 +101,7 @@ export function useAgentConversationModeHost(
   );
   const pendingAgentComposerPrefill = useAppStore((state) => state.pendingAgentComposerPrefill);
   const clearPendingAgentComposerPrefill = useAppStore((state) => state.clearPendingAgentComposerPrefill);
+  const setPendingAgentComposerPrefill = useAppStore((state) => state.setPendingAgentComposerPrefill);
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
   const [behaviorSettings, setBehaviorSettingsState] = useState<AgentChatExperienceSettings>(
     () => createDefaultAgentChatExperienceSettings(),
@@ -271,12 +275,29 @@ export function useAgentConversationModeHost(
     () => mergeAgentTargetWithPresentationProfile(shellActiveTarget, runtimePresentationProfile),
     [runtimePresentationProfile, shellActiveTarget],
   );
+  const activeConversationSourceRef = useActiveAgentConversationSourceRef({
+    activeTarget,
+    authStatus: input.authStatus,
+  });
+  const emptyStateCharacterPresence = useAgentEmptyStateCharacterPresence({
+    sourceRef: activeConversationSourceRef,
+    authStatus: input.authStatus,
+  });
+  const activeTargetSourceKey = activeConversationSourceRef
+    ? characterSourceRefKey(activeConversationSourceRef)
+    : null;
 
   useEffect(() => {
     if (!activeTarget?.agentHandle || !pendingAgentComposerPrefill) {
       return;
     }
-    if (pendingAgentComposerPrefill.agentHandle !== activeTarget.agentHandle) {
+    const handleMatches = pendingAgentComposerPrefill.agentHandle
+      ? pendingAgentComposerPrefill.agentHandle === activeTarget.agentHandle
+      : false;
+    const sourceMatches = pendingAgentComposerPrefill.sourceKey
+      ? pendingAgentComposerPrefill.sourceKey === activeTargetSourceKey
+      : false;
+    if (!handleMatches && !sourceMatches) {
       return;
     }
     currentComposerTextRef.current = pendingAgentComposerPrefill.text;
@@ -284,9 +305,17 @@ export function useAgentConversationModeHost(
     clearPendingAgentComposerPrefill(pendingAgentComposerPrefill.requestId);
   }, [
     activeTarget?.agentHandle,
+    activeTargetSourceKey,
     clearPendingAgentComposerPrefill,
     pendingAgentComposerPrefill,
   ]);
+  const handleComposerPrefillRequest = useCallback((text: string) => {
+    const agentHandle = activeTarget?.agentHandle;
+    if (!agentHandle || !text.trim()) {
+      return;
+    }
+    setPendingAgentComposerPrefill({ agentHandle, text });
+  }, [activeTarget?.agentHandle, setPendingAgentComposerPrefill]);
 
   useAgentRuntimeSessionSnapshotHydration({
     activeAgentHandle: activeTarget?.agentHandle || null,
@@ -504,6 +533,8 @@ export function useAgentConversationModeHost(
     pendingAttachments: activePendingAttachments,
     onDismissHostFeedback: () => setHostFeedback(null),
     onAttachmentsChange: (nextAttachments) => setPendingAttachmentsForThread(activeThreadId, nextAttachments),
+    onComposerPrefillRequest: handleComposerPrefillRequest,
+    emptyStateCharacterPresence,
     reasoningLabel,
     renderMessageAccessory,
     renderMessageContent,

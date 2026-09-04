@@ -4,28 +4,28 @@ Avatar 关心的是 Agent 怎么被呈现——在某个窗口里、在虚拟形
 
 ## Avatar 究竟是什么
 
-Avatar 不只是一张图。它是 AI 参与者的呈现层，并且这一层是受治理的。它涵盖视觉外形、动作、事件、每个 Carrier 表面愿意展示哪些部分，以及不同后端的渲染分支。
+Avatar 不只是一张图。它是 AI 参与者的整个呈现层：视觉外形、动作、事件、每个 Carrier 表面愿意展示哪些部分，以及不同后端的渲染分支。
 
-Avatar 之所以独立成为一个权威域，是因为呈现必须忠于 Agent 的真相，不能自己另搞一套。如果 Avatar 不动了，那是渲染的问题，Agent 并没有掉线；如果某个 Carrier 显示出来的样子和 Agent 的画像不一致，那是渲染层的差异，Agent 没有改变。
+呈现必须忠于 Agent 的真相，不能自己另搞一套。如果 Avatar 不动了，那是渲染的问题，Agent 并没有掉线；如果某个 Carrier 显示出来的样子和 Agent 的画像不一致，那是渲染层的差异，Agent 没有改变。
 
 ## Avatar 拥有什么、不拥有什么
 
-Avatar 拥有：
+Avatar 负责：
 
-- 具身化语义层契约：Agent 如何被呈现到 Carrier 上；
-- Carrier 视觉接受契约：Carrier 在准入的形态下能否展示这套具身化；
-- 各 Shell 自身的渲染分支：桌面端 Avatar 与其它 Shell 各有准入契约。
+- Agent 的具身化怎么呈现到 Carrier 上；
+- Carrier 能不能展示这套具身化、以什么形态展示；
+- 各 Shell 自己的渲染分支：桌面端 Avatar 和其它 Shell 各有各的规则。
 
-Avatar 不拥有：
+Avatar 不负责：
 
-- Character 持久身份归 Realm；LocalAgent 执行身份与生命周期归 Runtime；
-- LocalAgent 的 Memory 权威归 Runtime；
-- 世界中的社交关系：归 Realm；
-- 生成与执行：归 Runtime。
+- Character 的持久身份（归 Realm）和 LocalAgent 的执行身份（Runtime 负责实例化与生命周期）；
+- LocalAgent 的长期 Memory（长期 Memory 归 Cognition；Runtime 保留自己的运行时状态）；
+- 世界里的社交关系（归 Realm）；
+- 生成与执行（归 Runtime）。
 
-这条切分很重要。一个跑去管理 Character/LocalAgent 身份或 Memory 的 Avatar 表面就成了平行权威，而不再是呈现域。
+这条切分很重要。如果一个 Avatar 表面开始决定"这个 Agent 是谁""它记得什么"，它就不再是呈现层，而是在和平台里真正负责这些事实的部分抢活干。
 
-## 场景：某个 Carrier 没法显示一份具身化
+## 读者场景：某个 Carrier 没法显示一份具身化
 
 某个 Agent 的具身化定义包含了当前 Carrier 渲染不了的动作。按 Avatar 契约处理：
 
@@ -35,7 +35,7 @@ Avatar 不拥有：
 
 呈现的问题留在 Avatar，Agent 仍然是 Agent。
 
-## 场景：Avatar 为何独立于 Runtime
+## 读者场景：Avatar 为何独立于 Runtime
 
 有人可能会问：呈现为什么不直接放在 Runtime 里？理由有三：
 

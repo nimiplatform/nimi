@@ -1,126 +1,63 @@
 # Start
 
-Pick a reading path that matches your role. Each path moves you from
-the platform model into the part of Nimi you actually need.
+Nimi is the installable, open-source, local-first personal AI product.
+Nimi Home is the entry point, currently hosted by the Desktop app, and a
+multi-provider Runtime runs local and cloud AI behind it. Characters,
+conversations, creations, stories, and worlds are the experiences you
+meet inside Nimi.
 
-For specific personas (newcomer evaluator, world creator, app
-developer, AI agent integrator, Nimi Coding adopter,
-auditor / reviewer), see [Personas](/start/personas).
+## What You Can Do Today
 
-For installable surfaces and where each one lives, see
-[Installation And Availability](/start/install).
+- **Follow the release.** No stable download is published yet. Watch the
+  [GitHub repository](https://github.com/nimiplatform/nimi) or join the
+  [Discord](https://discord.gg/BQwHJvPn) for the announcement.
+- **Build an app.** Developers can already create Nimi Apps through the
+  Developer Mode local-development path. Start with
+  [Create A Nimi App](/start/create-an-app).
+- **Understand the product first.** The [Platform overview](/platform/)
+  explains what Nimi is and how its pieces fit together.
 
-If you are creating an app, start with
-[Create A Nimi App](/start/create-an-app) before reading the deeper SDK,
-Runtime, and Kit sections.
+## Choose Your Path
 
-If an SDK call, Nimi Lab lane, or generated App scaffold fails, use
-[Troubleshooting](/start/troubleshooting) to map the visible error to the
-public surface that owns it.
+- **New to Nimi?** Read [Platform](/platform/) for the product model, then
+  [Runtime](/runtime/) for how AI work runs, then [SDK](/sdk/) for how
+  apps plug in. [Desktop](/desktop/) and [Realm](/realm/) round out the
+  picture, and the [Glossary](/reference/glossary) explains any
+  unfamiliar term.
+- **Evaluating the project?** Read [Platform Vision](/platform/vision) and
+  [Platform Architecture](/platform/architecture/), then
+  [Runtime](/runtime/) and [SDK Boundaries](/sdk/boundaries). About the
+  length of a long blog post.
+- **Building an app?** Start with [Create A Nimi App](/start/create-an-app),
+  then the [SDK](/sdk/) docs. For a working capability demo see
+  [Use Nimi Lab](/start/use-nimi-lab); when something fails, open
+  [Troubleshooting](/start/troubleshooting).
+- **Adopting Nimi Coding?** Nimi Coding is the specification-management
+  tooling the Nimi repository itself uses, published as an npm package.
+  Read the [overview](/nimicoding/), the
+  [installation guide](/nimicoding/installation), and the
+  [CLI reference](/nimicoding/cli-reference).
 
-## If You Are New To Nimi
+For role-specific walkthroughs (world creator, app developer, auditor,
+and more), see [Personas](/start/personas). For what is installable
+right now, see [Installation And Availability](/start/install).
 
-Read in this order:
+## Reader Scenario: Can I Use Nimi Today?
 
-1. [Platform](/platform/) for the product model, the world idea, and
-   the six protocol primitives.
-2. [Runtime](/runtime/) for how AI work is executed.
-3. [SDK](/sdk/) for the app-facing access boundary.
-4. [Desktop](/desktop/) for the native shell, and
-   [Web Mode](/desktop/web-mode) for how Web differs.
-5. [Realm](/realm/) for semantic truth, world state, and world
-   history.
+You heard about Nimi from a friend and want to know if you can use it
+right now.
 
-That order builds the mental model from "what kind of system this is"
-into "how AI work gets done" and then into "how apps see it." When a
-term is unfamiliar, [Glossary](/reference/glossary) collects the
-cross-domain vocabulary every section uses.
-
-## If You Are Evaluating The Project
-
-For an evaluation pass:
-
-1. [Platform Vision](/platform/vision) — the north-star framing.
-2. [Platform Architecture](/platform/architecture/) — the cross-layer
-   map.
-3. [Runtime Overview](/runtime/) and
-   [Memory And Knowledge](/runtime/memory-and-knowledge) — what the AI
-   substrate owns.
-4. [SDK Overview](/sdk/) and
-   [SDK Boundaries](/sdk/boundaries) — the integration discipline
-   expected of apps.
-5. [Nimi Coding Overview](/nimicoding/) — how canonical authority
-   tooling is integrated in this repository.
-
-This path takes about as long as reading a long blog post and gives a
-faithful picture of what the public surface contains today.
-
-## If You Are Building Against Nimi
-
-Start with [Create A Nimi App](/start/create-an-app) if you need a new
-developer repository. Start with [SDK](/sdk/) and [Runtime](/runtime/) if you
-are integrating from an existing app. The SDK is the public access surface for
-applications. Runtime and Realm private boundaries should not be crossed
-directly from apps; the SDK exists exactly so that apps do not have to.
-
-If the immediate task is one Runtime-backed text generation call from a
-TypeScript app, use [First AI Call](/sdk/first-ai-call) after Runtime is
-running.
-
-For a concrete capability integration app, read
-[Use Nimi Lab](/start/use-nimi-lab). For shared UI,
-auth, shell, telemetry, and AIConfig composition, read
-[Use Kit In An App](/platform/kit/use-kit-in-app).
-
-For a failing local run, SDK call, or app-tools scaffold check, read
-[Troubleshooting](/start/troubleshooting) before changing app code.
-
-For native shell behavior, read [Desktop](/desktop/). For Web
-behavior, read [Web Mode](/desktop/web-mode). Web is a constrained
-projection and does not inherit Desktop-native capabilities by
-implication.
-
-## If You Are Adopting Nimi Coding
-
-Nimi Coding is admitted as host-agnostic canonical-authority tooling and a
-publishable npm package. Read in this order:
-
-1. [Nimi Coding Overview](/nimicoding/) — authority tooling and
-   repository boundaries.
-2. [Installation](/nimicoding/installation) — managed host integration.
-3. [CLI Reference](/nimicoding/cli-reference) — supported authority
-   commands.
-
-## Reader Scenario: An App Author Walks Through The Docs
-
-Suppose you are an app author who just heard about Nimi. A useful
-first walkthrough:
-
-1. Read [Platform](/platform/) to find that worlds, not chat sessions,
-   are the central object.
-2. Read [Runtime](/runtime/) to find that providers, LocalAgent,
-   Conversation, Memory, Knowledge, streaming, and multimodal artifacts
-   follow Runtime contracts, not app code.
-3. Read [SDK](/sdk/) to find that your app should consume those
-   contracts through the root `@nimiplatform/sdk` client, public subpaths such
-   as `@nimiplatform/sdk/runtime` and `@nimiplatform/sdk/realm`, feature
-   modules, and independent adapter packages, not by importing private
-   internals.
-4. Read [Create A Nimi App](/start/create-an-app),
-    [Use Nimi Lab](/start/use-nimi-lab), and
-    [Use Kit In An App](/platform/kit/use-kit-in-app) before writing app-local
-    shell, AI capability configuration, or shared UI code.
-5. Keep [Troubleshooting](/start/troubleshooting) open while wiring Runtime,
-   SDK, AIConfig, and scaffold checks.
-6. Read [Desktop](/desktop/) and [Web Mode](/desktop/web-mode) to
-    learn why Desktop and Web do not have the same capability envelope
-    and what that means for your distribution plans.
-7. Read [Nimi Coding](/nimicoding/) once you start contributing,
-    because that is the workflow other contributors expect for
-    high-risk or cross-surface changes.
-
-After that walkthrough, [Authority Domains](/reference/authority-domains)
-shows which product owner answers each class of question.
+1. You open the [Platform overview](/platform/) and learn what Nimi is:
+   a personal AI product that installs on your own machine, with your
+   characters, conversations, and worlds kept local-first.
+2. You check [Installation And Availability](/start/install) and see that
+   no stable end-user download is published yet.
+3. You star the [GitHub repository](https://github.com/nimiplatform/nimi)
+   and join the [Discord](https://discord.gg/BQwHJvPn), so the release
+   announcement reaches you when it lands.
+4. If you also write code, you don't have to wait: the Developer Mode
+   path already lets you [create a Nimi App](/start/create-an-app) and
+   run it locally.
 
 ## Source Basis
 

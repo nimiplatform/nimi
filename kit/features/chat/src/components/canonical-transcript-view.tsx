@@ -1,5 +1,5 @@
 import { useCallback, useLayoutEffect, useRef, type ReactNode, type UIEvent } from 'react';
-import { cn } from '@nimiplatform/kit/ui';
+import { Avatar, cn } from '@nimiplatform/kit/ui';
 import { resolveChatCopy, type ChatCopy } from '../copy.js';
 import type {
   CanonicalMessageAccessorySlot,
@@ -40,8 +40,15 @@ export type CanonicalTranscriptViewProps = {
   emptyEyebrow?: string;
   emptyTitle?: string;
   emptyDescription?: string;
+  /** Agent identity (avatar + display name) shown in the empty state above the title; replaces `emptyEyebrow` when set. */
+  emptyStateAgent?: {
+    displayName: string;
+    avatarUrl?: string | null;
+  } | null;
   /** Label for the empty-state call-to-action shown when `onSeedFirstTurn` is set. */
   emptyActionLabel?: string;
+  /** Content rendered inside the empty state below the copy (e.g. a centered composer). */
+  emptyStateContent?: ReactNode;
   emptyStateVariant?: 'default' | 'compact';
   historyIntro?: string | null;
   /** Non-blocking banner rendered above the message list (does not replace messages). */
@@ -88,7 +95,9 @@ export function CanonicalTranscriptView({
   emptyEyebrow = 'This Moment',
   emptyTitle = 'Start the first turn',
   emptyDescription = 'The transcript stays empty until the first exchange is created.',
+  emptyStateAgent = null,
   emptyActionLabel = 'Start the conversation',
+  emptyStateContent,
   emptyStateVariant = 'default',
   historyIntro = null,
   bannerContent,
@@ -287,7 +296,13 @@ export function CanonicalTranscriptView({
       >
         <div
           ref={contentRootRef}
-          className={cn(widthPositionClassName, 'space-y-5 pt-1', widthClassName, contentPaddingBottomClassName)}
+          className={cn(
+            widthPositionClassName,
+            'space-y-5 pt-1',
+            widthClassName,
+            contentPaddingBottomClassName,
+            showEmptyState ? 'flex min-h-full flex-col' : '',
+          )}
           data-canonical-transcript-width={widthClassName}
         >
         {loading ? (
@@ -310,45 +325,71 @@ export function CanonicalTranscriptView({
         ) : null}
 
         {!loading && !error && showEmptyState ? (
-          <section
-            className={cn(
-              'border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_92%,transparent)] shadow-[var(--nimi-elevation-floating)]',
-              compactEmptyState
-                ? 'mr-auto max-w-[620px] rounded-[var(--nimi-radius-xl)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)] px-5 py-4 text-left shadow-[var(--nimi-elevation-raised)]'
-                : 'rounded-[var(--nimi-radius-xl)] px-6 py-7 text-center',
-            )}
-          >
-            <p className={cn(
-              'font-semibold uppercase tracking-[0.2em] text-[var(--nimi-action-primary-bg)]/70',
-              'text-[length:var(--nimi-type-overline-size)]',
-            )}>
-              {emptyEyebrow}
-            </p>
-            <h2 className={cn(
-              'mt-3 font-black tracking-tight text-[var(--nimi-text-primary)]',
-              compactEmptyState ? 'text-[length:var(--nimi-type-page-title-size)]' : 'text-[length:var(--nimi-type-hero-title-size)]',
-            )}>
-              {emptyTitle}
-            </h2>
-            <p className={cn(
-              'mt-3 text-[var(--nimi-text-secondary)]',
-              compactEmptyState ? 'max-w-[520px] text-[length:var(--nimi-type-body-size)] leading-6 text-[var(--nimi-text-muted)]' : 'mx-auto max-w-xl text-sm leading-7',
-            )}>
-              {emptyDescription}
-            </p>
-            {onSeedFirstTurn ? (
-              <button
-                type="button"
-                onClick={onSeedFirstTurn}
-                className={cn(
-                  'mt-5 inline-flex h-11 items-center rounded-full bg-[var(--nimi-action-primary-bg)] px-5 text-sm font-semibold text-[var(--nimi-action-primary-text)] shadow-[0_18px_36px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] transition-[box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] hover:bg-[var(--nimi-action-primary-bg-hover)] hover:shadow-[0_22px_44px_color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)]',
-                  compactEmptyState ? 'self-start' : '',
-                )}
-              >
-                {emptyActionLabel}
-              </button>
-            ) : null}
-          </section>
+          <div className="flex w-full flex-1 items-center justify-center">
+            <section
+              className={cn(
+                'w-full',
+                compactEmptyState
+                  ? 'mr-auto max-w-[620px] rounded-[var(--nimi-radius-xl)] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)] px-5 py-4 text-left shadow-[var(--nimi-elevation-raised)]'
+                  : 'px-6 py-7 text-center',
+              )}
+            >
+              <div className={cn(compactEmptyState ? '' : 'mx-auto max-w-[560px]')}>
+                {emptyStateAgent ? (
+                  <div className="flex flex-col items-center gap-3" data-canonical-empty-agent="true">
+                    <Avatar
+                      src={emptyStateAgent.avatarUrl ?? null}
+                      alt={emptyStateAgent.displayName}
+                      size="lg"
+                      tone="neutral"
+                      className="h-14 w-14 shadow-[var(--nimi-elevation-raised)] ring-1 ring-[var(--nimi-border-subtle)]"
+                    />
+                    <p className="text-sm font-medium text-[var(--nimi-text-secondary)]">
+                      {emptyStateAgent.displayName}
+                    </p>
+                  </div>
+                ) : emptyEyebrow ? (
+                  <p className={cn(
+                    'font-semibold uppercase tracking-[0.2em] text-[var(--nimi-action-primary-bg)]/70',
+                    'text-[length:var(--nimi-type-overline-size)]',
+                  )}>
+                    {emptyEyebrow}
+                  </p>
+                ) : null}
+                {emptyTitle ? (
+                  <h2 className={cn(
+                    'mt-3 text-[length:var(--nimi-type-page-title-size)] text-[var(--nimi-text-primary)]',
+                    compactEmptyState ? 'font-black tracking-tight' : 'font-semibold',
+                  )}>
+                    {emptyTitle}
+                  </h2>
+                ) : null}
+                {emptyDescription ? (
+                  <p className={cn(
+                    'mt-3 text-[var(--nimi-text-secondary)]',
+                    compactEmptyState ? 'max-w-[520px] text-[length:var(--nimi-type-body-size)] leading-6 text-[var(--nimi-text-muted)]' : 'mx-auto max-w-xl text-sm leading-7',
+                  )}>
+                    {emptyDescription}
+                  </p>
+                ) : null}
+                {onSeedFirstTurn ? (
+                  <button
+                    type="button"
+                    onClick={onSeedFirstTurn}
+                    className={cn(
+                      'mt-5 inline-flex h-11 items-center rounded-full bg-[var(--nimi-action-primary-bg)] px-5 text-sm font-semibold text-[var(--nimi-action-primary-text)] shadow-[0_18px_36px_color-mix(in_srgb,var(--nimi-action-primary-bg)_30%,transparent)] transition-[box-shadow,transform] duration-[var(--nimi-motion-fast)] ease-[var(--nimi-motion-ease-standard)] active:scale-[var(--nimi-motion-pressed-scale)] hover:bg-[var(--nimi-action-primary-bg-hover)] hover:shadow-[0_22px_44px_color-mix(in_srgb,var(--nimi-action-primary-bg)_40%,transparent)]',
+                      compactEmptyState ? 'self-start' : '',
+                    )}
+                  >
+                    {emptyActionLabel}
+                  </button>
+                ) : null}
+              </div>
+              {emptyStateContent ? (
+                <div className={cn('mt-6 text-left', compactEmptyState ? '-mx-5' : '-mx-6')}>{emptyStateContent}</div>
+              ) : null}
+            </section>
+          </div>
         ) : null}
 
         {!loading && !error && messages.length > 0 && historyIntro ? (

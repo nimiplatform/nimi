@@ -113,7 +113,7 @@ materializer. Desktop can display typed operation progress and failure, but does
 not run arbitrary shell commands or project dependency progress as App execution
 readiness.
 
-## Public Boundary
+## Key Points
 
 - Local model and engine catalogs are Runtime machine configuration.
 - Asset installation is not model activation, warming, or request binding.

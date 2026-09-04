@@ -1,18 +1,19 @@
 # 外部参与
 
-外部 action 或 participation 集成不属于当前 LocalAgent 核心。它们缺失时，
-不会阻塞 Local AI、LocalAgent Conversation、Memory、Knowledge、voice、
-SDK 使用、Nimi Home、Avatar 或普通 App 能力执行。
+外部 Agent 和外部行动集成都不在今天的 LocalAgent 核心里。没有它们，什么
+都不耽误：本地 AI、LocalAgent 对话、Memory、Knowledge、语音、SDK、
+Nimi Home、Avatar，以及普通 App 的能力执行，都照常运转。
 
-如果未来有外部集成被单独准入，它仍然只是 external security principal 或
-有限 participant projection，不会成为 Character、LocalAgent、Character
-owner、Conversation owner，也不会创建新的平台级 Agent ontology。
+如果未来有外部集成加入，它会按 Nimi 的规矩来：以一个有明确限制的外部安
+全主体身份，或者以一份有限的参与者视图加入。它不会成为 Character、
+LocalAgent、这两者的拥有者或 Conversation 的拥有者，也不会造出一个新的
+平台级 Agent 概念。
 
-外部输入必须经过显式、强类型的 Runtime 与 SDK 边界。Provider-native
-payload、tool schema、transport credential 与外部 execution state 不会因为
-某个 consumer 能展示它们就成为公共产品真相。
+外部输入必须经过显式、强类型的 Runtime 与 SDK 边界。服务商原生负载、工
+具 schema、传输凭证和外部执行状态，不会因为某个界面能展示它们，就变成
+公开的产品事实。
 
-当前 App 的基础 LocalAgent 操作不应依赖 external action plane。
+当前的 App 做基础 LocalAgent 操作，不需要依赖外部行动面。
 
 ## 来源依据
 

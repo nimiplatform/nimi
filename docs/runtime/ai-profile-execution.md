@@ -77,7 +77,7 @@ and [AIConfig Surface](/sdk/ai-config-surface) for owner capability intent.
 4. The owner may display or retain that evidence, but cannot reuse it to pin a
    later request.
 
-## Public Boundary
+## Key Points
 
 - `AIProfile` and `LocalProfileDescriptor` are machine-configuration concepts.
 - `AIConfig` is owner-scoped capability intent, not an execution profile.
