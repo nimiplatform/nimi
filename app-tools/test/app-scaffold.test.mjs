@@ -540,7 +540,10 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     });
     assert.match(generated.read('src-tauri/src/main.rs'), /RuntimeBridgeLocalAppHost::platform_default\(\)/);
     const tauriBuildScript = generated.read('src-tauri/build.rs');
-    assert.match(tauriBuildScript, /requestedExecutionLevel level="asInvoker" uiAccess="false"/u);
+    assert.match(tauriBuildScript, /<requestedExecutionLevel level="asInvoker" uiAccess="false" \/>/u);
+    for (const [, commentBody] of tauriBuildScript.matchAll(/<!--([\s\S]*?)-->/gu)) {
+      assert.equal(commentBody.includes('--'), false, 'XML comments must not contain internal double hyphens');
+    }
     assert.match(tauriBuildScript, /WindowsAttributes::new\(\)\.app_manifest\(WINDOWS_APP_MANIFEST\)/u);
     assert.doesNotMatch(tauriBuildScript, /requireAdministrator|highestAvailable|uiAccess="true"/u);
     assert.equal(lock.managedFileHashes['src/shell/workbench-target-adapter.ts'].class, 'scaffold-managed glue');
