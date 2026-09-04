@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/app-tools",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Public app-authoring CLI for Nimi App projects.",
   "license": "Apache-2.0",
   "type": "module",
@@ -19,7 +19,7 @@
   },
   "nimiScaffoldVersions": {
     "sdkVersion": "^0.8.0",
-    "appToolsVersion": "^0.2.2",
+    "appToolsVersion": "^0.2.3",
     "nimicodingVersion": "0.6.1",
     "aiSdkVersion": "^6.0.85",
     "kitVersion": "^0.4.0",

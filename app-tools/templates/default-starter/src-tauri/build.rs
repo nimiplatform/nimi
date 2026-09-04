@@ -17,7 +17,7 @@ const WINDOWS_APP_MANIFEST: &str = r#"
         version="6.0.0.0"
         processorArchitecture="*"
         language="*"
-        publicKeyToken="6595b64144ccf1df" /> <!-- pragma: allowlist secret -- public Microsoft Common Controls token -->
+        publicKeyToken="6595b64144ccf1df" /> <!-- pragma: allowlist secret; public Microsoft Common Controls token. -->
     </dependentAssembly>
   </dependency>
 </assembly>
