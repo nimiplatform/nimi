@@ -53,23 +53,19 @@ const emptyLocal = {
 };
 
 describe('Desktop Apps source-qualified projection', () => {
-  it('keeps local-development, verified, and user-imported rows distinct for one appId', async () => {
+  it('keeps local-development and verified rows distinct for one appId', async () => {
     const projection = await projectAppsPanel({
       listRegistrations: async () => [registration()], listRuns: async () => [run()],
-      listCommittedReleases: async () => [
-        release(AppPackageSourceClass.VERIFIED, '1.0.0'),
-        release(AppPackageSourceClass.USER_IMPORTED, '2.0.0'),
-      ],
-      listPackageJobs: async () => [job(AppPackageSourceClass.VERIFIED), job(AppPackageSourceClass.USER_IMPORTED)],
+      listCommittedReleases: async () => [release(AppPackageSourceClass.VERIFIED, '1.0.0')],
+      listPackageJobs: async () => [job(AppPackageSourceClass.VERIFIED)],
     });
     assert.equal(projection.status, 'loaded');
     if (projection.status !== 'loaded') return;
     assert.equal(projection.catalogStatus, 'not-implemented');
-    assert.deepEqual(projection.entries.map((entry) => entry.identity.sourceClass).sort(), ['local_development', 'user_imported', 'verified']);
-    assert.equal(new Set(projection.entries.map((entry) => entry.identity.entryKey)).size, 3);
+    assert.deepEqual(projection.entries.map((entry) => entry.identity.sourceClass).sort(), ['local_development', 'verified']);
+    assert.equal(new Set(projection.entries.map((entry) => entry.identity.entryKey)).size, 2);
     assert.equal(projection.entries.find((entry) => entry.identity.sourceClass === 'local_development')?.run?.state, 'running');
     assert.equal(projection.entries.find((entry) => entry.identity.sourceClass === 'verified')?.committedRelease?.version, '1.0.0');
-    assert.equal(projection.entries.find((entry) => entry.identity.sourceClass === 'user_imported')?.committedRelease?.version, '2.0.0');
   });
 
   it('joins same-app local-development runs only by exact selector', async () => {
@@ -93,8 +89,8 @@ describe('Desktop Apps source-qualified projection', () => {
     assert.equal(other?.run, null);
   });
 
-  it('permits one active job per source and rejects duplicates only within that source', async () => {
-    const allowed = await projectAppsPanel({ ...emptyLocal, listCommittedReleases: async () => [], listPackageJobs: async () => [job(AppPackageSourceClass.VERIFIED), job(AppPackageSourceClass.USER_IMPORTED)] });
+  it('permits one verified active job and rejects duplicates', async () => {
+    const allowed = await projectAppsPanel({ ...emptyLocal, listCommittedReleases: async () => [], listPackageJobs: async () => [job(AppPackageSourceClass.VERIFIED)] });
     assert.equal(allowed.status, 'loaded');
     const conflict = await projectAppsPanel({ ...emptyLocal, listCommittedReleases: async () => [], listPackageJobs: async () => [job(AppPackageSourceClass.VERIFIED), job(AppPackageSourceClass.VERIFIED, AppPackageJobPhase.VERIFYING)] });
     assert.equal(conflict.status, 'error');
@@ -102,13 +98,23 @@ describe('Desktop Apps source-qualified projection', () => {
   });
 
   it('projects installed rows without fabricating catalog or running truth', async () => {
-    const projection = await projectAppsPanel({ ...emptyLocal, listCommittedReleases: async () => [release(AppPackageSourceClass.USER_IMPORTED, '2.0.0')], listPackageJobs: async () => [] });
+    const projection = await projectAppsPanel({ ...emptyLocal, listCommittedReleases: async () => [release(AppPackageSourceClass.VERIFIED, '2.0.0')], listPackageJobs: async () => [] });
     assert.equal(projection.status, 'loaded');
     if (projection.status !== 'loaded') return;
-    assert.equal(projection.entries[0]?.identity.entryKey, desktopAppsEntryKey('example.shared', 'user_imported'));
+    assert.equal(projection.entries[0]?.identity.entryKey, desktopAppsEntryKey('example.shared', 'verified'));
     assert.equal(projection.entries[0]?.localDevelopment, null);
     assert.equal(projection.entries[0]?.run, null);
     assert.equal(projection.entries[0]?.aiConfigSummary, null);
+  });
+
+  it('fails closed on the retired package source wire value', async () => {
+    const projection = await projectAppsPanel({
+      ...emptyLocal,
+      listCommittedReleases: async () => [release(2 as AppPackageSourceClass, '2.0.0')],
+      listPackageJobs: async () => [],
+    });
+    assert.equal(projection.status, 'error');
+    if (projection.status === 'error') assert.match(projection.detail, /unsupported Runtime App package source: 2/iu);
   });
 
   it('marks catalog search unimplemented instead of calling Realm or returning fake rows', async () => {

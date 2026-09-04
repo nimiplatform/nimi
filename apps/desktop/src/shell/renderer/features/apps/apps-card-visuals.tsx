@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BadgeCheck, Code2, LoaderCircle, PackageOpen } from 'lucide-react';
+import { BadgeCheck, Code2, LoaderCircle } from 'lucide-react';
 import { StatusBadge } from '@nimiplatform/kit/ui';
 import {
   APP_RUN_BADGE_TONE,
@@ -141,12 +141,6 @@ const SOURCE_BADGE_META = Object.freeze({
     labelKey: 'Apps.sourceBadge.localDevelopment',
     pillClassName: 'border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)] text-[color:var(--nimi-text-secondary)]',
     quietClassName: 'text-[color:var(--nimi-text-muted)]',
-  },
-  user_imported: {
-    icon: PackageOpen,
-    labelKey: 'Apps.sourceBadge.userImported',
-    pillClassName: 'border-[color:var(--nimi-status-info-soft-border)] bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]',
-    quietClassName: 'text-[var(--nimi-status-info-soft-text)]',
   },
   verified: {
     icon: BadgeCheck,

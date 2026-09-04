@@ -127,19 +127,19 @@ describe('Apps run visual state', () => {
 });
 
 describe('Apps Runtime package presentation', () => {
-  const importedRelease = {
+  const verifiedRelease = {
     appId: 'example.local-app',
-    sourceClass: AppPackageSourceClass.USER_IMPORTED,
+    sourceClass: AppPackageSourceClass.VERIFIED,
     version: '1.0.0',
-    releaseRef: 'release:imported',
+    releaseRef: 'release:verified',
     launchSelector: new Uint8Array([1]),
   } as CommittedAppRelease;
   const uninstallingJob = {
     jobId: new Uint8Array([1]),
-    appId: importedRelease.appId,
-    sourceClass: importedRelease.sourceClass,
+    appId: verifiedRelease.appId,
+    sourceClass: verifiedRelease.sourceClass,
     kind: AppPackageJobKind.UNINSTALL,
-    targetRef: importedRelease.releaseRef,
+    targetRef: verifiedRelease.releaseRef,
     phase: AppPackageJobPhase.REMOVING_PACKAGE,
     progressBasis: AppPackageProgressBasis.INDETERMINATE,
     bytesCompleted: '0',
@@ -149,16 +149,16 @@ describe('Apps Runtime package presentation', () => {
     cancelable: false,
   } as AppPackageJob;
 
-  it('preserves local-development priority and maps imported committed releases', () => {
+  it('preserves local-development and verified package sources', () => {
     const local = entry();
     assert.equal(appSourceForEntry(local), 'local_development');
     assert.equal(appSourceForEntry({
       ...local,
-      identity: { ...local.identity, entryKey: 'user_imported:example.local-app', sourceClass: 'user_imported' },
+      identity: { ...local.identity, entryKey: 'verified:example.local-app', sourceClass: 'verified' },
       localDevelopment: null,
-      committedRelease: importedRelease,
+      committedRelease: verifiedRelease,
       run: null,
-    }), 'user_imported');
+    }), 'verified');
   });
 
   it('keeps active uninstall phases distinct from terminal uninstalled', () => {

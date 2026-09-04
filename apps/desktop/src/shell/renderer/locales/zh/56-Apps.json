@@ -33,7 +33,6 @@
   },
   "sourceBadge": {
     "localDevelopment": "本地开发",
-    "userImported": "本地导入",
     "verified": "Nimi 认证"
   },
   "catalogNotImplemented": "公共 App 目录搜索尚未实现。",

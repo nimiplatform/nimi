@@ -35,7 +35,6 @@ type PackageJobPhase string
 const (
 	PackageJobQueued             PackageJobPhase = "queued"
 	PackageJobDownloading        PackageJobPhase = "downloading"
-	PackageJobReadingLocal       PackageJobPhase = "reading-local"
 	PackageJobVerifying          PackageJobPhase = "verifying"
 	PackageJobVerifyingInstalled PackageJobPhase = "verifying-installed"
 	PackageJobAcquiringMissing   PackageJobPhase = "acquiring-missing"
@@ -126,10 +125,10 @@ var packageLifecycleSchemaStatements = []string{
 	`CREATE TABLE IF NOT EXISTS app_package_job (
 		job_id TEXT PRIMARY KEY,
 		app_id TEXT NOT NULL,
-		source_class TEXT NOT NULL CHECK(source_class IN ('verified','user_imported')),
+		source_class TEXT NOT NULL CHECK(source_class IN ('verified')),
 		kind TEXT NOT NULL CHECK(kind IN ('install','update','repair','uninstall')),
 		target_ref TEXT NOT NULL,
-		phase TEXT NOT NULL CHECK(phase IN ('queued','downloading','reading-local','verifying','verifying-installed','acquiring-missing','staging','committing','removing-package','unregistering','completed','failed','canceled')),
+		phase TEXT NOT NULL CHECK(phase IN ('queued','downloading','verifying','verifying-installed','acquiring-missing','staging','committing','removing-package','unregistering','completed','failed','canceled')),
 		progress_basis TEXT NOT NULL CHECK(progress_basis IN ('bytes','steps','indeterminate')),
 		bytes_completed INTEGER NOT NULL CHECK(bytes_completed >= 0),
 		bytes_total INTEGER CHECK(bytes_total IS NULL OR bytes_total >= 0),
@@ -148,7 +147,7 @@ var packageLifecycleSchemaStatements = []string{
 		WHERE phase NOT IN ('completed','failed','canceled')`,
 	`CREATE TABLE IF NOT EXISTS committed_app_release (
 		app_id TEXT NOT NULL,
-		source_class TEXT NOT NULL CHECK(source_class IN ('verified','user_imported')),
+		source_class TEXT NOT NULL CHECK(source_class IN ('verified')),
 		version TEXT NOT NULL,
 		release_ref TEXT NOT NULL,
 		registration_handle TEXT NOT NULL,
@@ -162,6 +161,25 @@ var packageLifecycleSchemaStatements = []string{
 		PRIMARY KEY(app_id, source_class),
 		FOREIGN KEY(registration_handle) REFERENCES canonical_registration(registration_handle)
 	)`,
+}
+
+func (kernel *Kernel) requirePackageLifecycleSchema(ctx context.Context) error {
+	for _, table := range []string{"app_package_job", "committed_app_release"} {
+		if err := requireSQLiteConstraint(ctx, kernel.db, table, "source-class", "check(source_classin('verified'))", "user_imported"); err != nil {
+			return fmt.Errorf("initialize App package lifecycle schema: %w", err)
+		}
+	}
+	if err := requireSQLiteConstraint(
+		ctx,
+		kernel.db,
+		"app_package_job",
+		"phase",
+		"check(phasein('queued','downloading','verifying','verifying-installed','acquiring-missing','staging','committing','removing-package','unregistering','completed','failed','canceled'))",
+		"reading-local",
+	); err != nil {
+		return fmt.Errorf("initialize App package lifecycle schema: %w", err)
+	}
+	return nil
 }
 
 func (store *PackageLifecycleStore) Begin(ctx context.Context, input BeginPackageJobInput) (PackageJob, error) {
@@ -580,9 +598,8 @@ func allowedPackagePhaseTransition(kind PackageJobKind, from, to PackageJobPhase
 		return false
 	}
 	allowed := map[PackageJobPhase]map[PackageJobPhase]bool{
-		PackageJobQueued:             {PackageJobDownloading: true, PackageJobReadingLocal: true, PackageJobVerifying: true, PackageJobVerifyingInstalled: true, PackageJobRemovingPackage: true},
+		PackageJobQueued:             {PackageJobDownloading: true, PackageJobVerifying: true, PackageJobVerifyingInstalled: true, PackageJobRemovingPackage: true},
 		PackageJobDownloading:        {PackageJobVerifying: true},
-		PackageJobReadingLocal:       {PackageJobVerifying: true},
 		PackageJobVerifying:          {PackageJobAcquiringMissing: true, PackageJobStaging: true},
 		PackageJobVerifyingInstalled: {PackageJobAcquiringMissing: true, PackageJobStaging: true},
 		PackageJobAcquiringMissing:   {PackageJobStaging: true},
@@ -663,7 +680,7 @@ func scanCommittedRelease(row packageLifecycleRowScanner) (CommittedRelease, err
 }
 
 func packageSourceClass(value SourceClass) bool {
-	return value == SourceClassVerified || value == SourceClassUserImported
+	return value == SourceClassVerified
 }
 func packageJobKind(value PackageJobKind) bool {
 	return value == PackageJobInstall || value == PackageJobUpdate || value == PackageJobRepair || value == PackageJobUninstall

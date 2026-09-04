@@ -16,7 +16,6 @@ func TestInstalledAppSourcesMayEnterCommonSessionOwner(t *testing.T) {
 	for _, trustClass := range []protectedlocal.LocalAppTrustClass{
 		protectedlocal.LocalAppTrustBuiltIn,
 		protectedlocal.LocalAppTrustVerified,
-		protectedlocal.LocalAppTrustUserImported,
 	} {
 		t.Run(string(trustClass), func(t *testing.T) {
 			ownerDone := make(chan struct{})
@@ -48,6 +47,16 @@ func TestInstalledAppSourcesMayEnterCommonSessionOwner(t *testing.T) {
 				t.Fatal("revoked installed connection remained eligible")
 			}
 		})
+	}
+	if _, err := protectedlocal.EstablishInstalledAppConnection(
+		"lar_v1_retired_source",
+		protectedlocal.LocalAppTrustClass("user_imported"),
+		localAppSessionAuthTestIdentifier(0x31),
+		localAppSessionAuthTestIdentifier(0x32),
+		protectedlocal.ProcessTuple{},
+		make(chan struct{}),
+	); err == nil {
+		t.Fatal("retired user-imported installed connection was accepted")
 	}
 }
 

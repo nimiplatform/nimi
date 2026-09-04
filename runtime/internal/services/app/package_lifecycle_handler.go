@@ -201,8 +201,6 @@ func packageSourceClassToProto(value localappkernel.SourceClass) (runtimev1.AppP
 	switch value {
 	case localappkernel.SourceClassVerified:
 		return runtimev1.AppPackageSourceClass_APP_PACKAGE_SOURCE_CLASS_VERIFIED, true
-	case localappkernel.SourceClassUserImported:
-		return runtimev1.AppPackageSourceClass_APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED, true
 	default:
 		return runtimev1.AppPackageSourceClass_APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED, false
 	}
@@ -227,7 +225,6 @@ func packageJobPhaseToProto(value localappkernel.PackageJobPhase) (runtimev1.App
 	values := map[localappkernel.PackageJobPhase]runtimev1.AppPackageJobPhase{
 		localappkernel.PackageJobQueued:             runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_QUEUED,
 		localappkernel.PackageJobDownloading:        runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_DOWNLOADING,
-		localappkernel.PackageJobReadingLocal:       runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_READING_LOCAL,
 		localappkernel.PackageJobVerifying:          runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_VERIFYING,
 		localappkernel.PackageJobVerifyingInstalled: runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED,
 		localappkernel.PackageJobAcquiringMissing:   runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING,
@@ -247,7 +244,6 @@ func packageJobPhaseFromProto(value runtimev1.AppPackageJobPhase) (localappkerne
 	values := map[runtimev1.AppPackageJobPhase]localappkernel.PackageJobPhase{
 		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_QUEUED:              localappkernel.PackageJobQueued,
 		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_DOWNLOADING:         localappkernel.PackageJobDownloading,
-		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_READING_LOCAL:       localappkernel.PackageJobReadingLocal,
 		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_VERIFYING:           localappkernel.PackageJobVerifying,
 		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED: localappkernel.PackageJobVerifyingInstalled,
 		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING:   localappkernel.PackageJobAcquiringMissing,

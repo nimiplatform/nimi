@@ -963,11 +963,7 @@ export enum AppPackageSourceClass {
     /**
      * @generated from protobuf enum value: APP_PACKAGE_SOURCE_CLASS_VERIFIED = 1;
      */
-    VERIFIED = 1,
-    /**
-     * @generated from protobuf enum value: APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED = 2;
-     */
-    USER_IMPORTED = 2
+    VERIFIED = 1
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AppPackageJobKind
@@ -1010,10 +1006,6 @@ export enum AppPackageJobPhase {
      * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_DOWNLOADING = 2;
      */
     DOWNLOADING = 2,
-    /**
-     * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_READING_LOCAL = 3;
-     */
-    READING_LOCAL = 3,
     /**
      * @generated from protobuf enum value: APP_PACKAGE_JOB_PHASE_VERIFYING = 4;
      */

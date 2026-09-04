@@ -113,7 +113,7 @@ export function isEntryRunActive(entry: DesktopAppsEntry): boolean {
   return isLocalDevelopmentRunActive(entry.run?.state ?? null);
 }
 
-export type AppSourceId = 'local_development' | 'user_imported' | 'verified';
+export type AppSourceId = 'local_development' | 'verified';
 
 export function appSourceForEntry(entry: DesktopAppsEntry): AppSourceId {
   return entry.identity.sourceClass;
@@ -137,7 +137,6 @@ export function appPackagePhaseLocaleKey(job: AppPackageJob): AppPackagePhaseLoc
     case AppPackageJobPhase.QUEUED: return 'queued';
     case AppPackageJobPhase.DOWNLOADING:
     case AppPackageJobPhase.ACQUIRING_MISSING: return 'download';
-    case AppPackageJobPhase.READING_LOCAL: return 'resolve_descriptor';
     case AppPackageJobPhase.VERIFYING:
     case AppPackageJobPhase.VERIFYING_INSTALLED: return 'verify';
     case AppPackageJobPhase.STAGING: return 'materialize';

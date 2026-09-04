@@ -14,7 +14,6 @@ const (
 	LocalAppTrustLocalDevelopment LocalAppTrustClass = "local_development"
 	LocalAppTrustBuiltIn          LocalAppTrustClass = "built_in"
 	LocalAppTrustVerified         LocalAppTrustClass = "verified"
-	LocalAppTrustUserImported     LocalAppTrustClass = "user_imported"
 )
 
 type VerifiedLocalAppLaunchPeer struct {
@@ -217,7 +216,7 @@ func (trustClass LocalAppTrustClass) valid() bool {
 }
 
 func (trustClass LocalAppTrustClass) installed() bool {
-	return trustClass == LocalAppTrustBuiltIn || trustClass == LocalAppTrustVerified || trustClass == LocalAppTrustUserImported
+	return trustClass == LocalAppTrustBuiltIn || trustClass == LocalAppTrustVerified
 }
 
 func (connection *LocalAppConnection) TrustClass() LocalAppTrustClass {
