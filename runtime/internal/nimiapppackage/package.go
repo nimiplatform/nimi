@@ -117,6 +117,14 @@ type Materialized struct {
 	Bytes                uint64
 }
 
+type RuntimeEntryVerifier interface {
+	Verify(ctx context.Context, executablePath string, executableSHA256 [sha256.Size]byte) error
+}
+
+type RuntimeEntryProbe struct {
+	HostExecutableSHA256 [sha256.Size]byte
+}
+
 type inspectedArchive struct {
 	file       *os.File
 	reader     *zip.Reader
@@ -133,6 +141,89 @@ func Inspect(ctx context.Context, archivePath string, expected Expected) (Inspec
 	}
 	defer func() { _ = archive.file.Close() }()
 	return archive.inspection, nil
+}
+
+// ProbeRuntimeEntry copies only the exact archive Runtime entry into an
+// ephemeral owner-root child for native observation. The probe is removed
+// before this function returns and never becomes release staging or state.
+func ProbeRuntimeEntry(
+	ctx context.Context,
+	archivePath string,
+	ownerRoot *os.Root,
+	probeChild string,
+	expected Expected,
+	verifier RuntimeEntryVerifier,
+) (result RuntimeEntryProbe, err error) {
+	if verifier == nil {
+		return RuntimeEntryProbe{}, fmt.Errorf("probe nimiapp Runtime entry: verifier is required: %w", ErrInvalidPackage)
+	}
+	archive, err := openAndInspect(ctx, archivePath, expected)
+	if err != nil {
+		return RuntimeEntryProbe{}, err
+	}
+	defer func() { _ = archive.file.Close() }()
+	if _, err := validateStagingDestination(ownerRoot, probeChild); err != nil {
+		return RuntimeEntryProbe{}, err
+	}
+	if err := ctx.Err(); err != nil {
+		return RuntimeEntryProbe{}, err
+	}
+	if err := ownerRoot.Mkdir(probeChild, 0o700); err != nil {
+		if errors.Is(err, fs.ErrExist) {
+			return RuntimeEntryProbe{}, ErrDestinationExists
+		}
+		return RuntimeEntryProbe{}, fmt.Errorf("create nimiapp Runtime-entry probe root: %w", err)
+	}
+	created := true
+	defer func() {
+		if !created {
+			return
+		}
+		if cleanupErr := ownerRoot.RemoveAll(probeChild); cleanupErr != nil {
+			err = errors.Join(err, fmt.Errorf("remove nimiapp Runtime-entry probe root: %w", cleanupErr))
+		}
+	}()
+	entry := findArchiveEntry(archive.reader, expected.RuntimeEntry)
+	if entry == nil {
+		return RuntimeEntryProbe{}, fmt.Errorf("locate nimiapp Runtime entry: %w", ErrPackageIntegrity)
+	}
+	probeRoot, err := ownerRoot.OpenRoot(probeChild)
+	if err != nil {
+		return RuntimeEntryProbe{}, fmt.Errorf("open nimiapp Runtime-entry probe root: %w", err)
+	}
+	probeName := filepath.Base(filepath.FromSlash(expected.RuntimeEntry))
+	input, err := entry.Open()
+	if err != nil {
+		_ = probeRoot.Close()
+		return RuntimeEntryProbe{}, fmt.Errorf("open nimiapp Runtime entry: %w", err)
+	}
+	output, err := probeRoot.OpenFile(probeName, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		_ = input.Close()
+		_ = probeRoot.Close()
+		return RuntimeEntryProbe{}, fmt.Errorf("create nimiapp Runtime-entry probe: %w", err)
+	}
+	digest := sha256.New()
+	copyErr := copyWithContext(ctx, io.MultiWriter(output, digest), input, entry.UncompressedSize64)
+	syncErr := output.Sync()
+	closeOutputErr := output.Close()
+	closeInputErr := input.Close()
+	closeRootErr := probeRoot.Close()
+	if copyErr != nil || syncErr != nil || closeOutputErr != nil || closeInputErr != nil || closeRootErr != nil {
+		return RuntimeEntryProbe{}, fmt.Errorf("write nimiapp Runtime-entry probe: %w",
+			errors.Join(copyErr, syncErr, closeOutputErr, closeInputErr, closeRootErr))
+	}
+	var executableDigest [sha256.Size]byte
+	copy(executableDigest[:], digest.Sum(nil))
+	probePath := filepath.Join(ownerRoot.Name(), probeChild, probeName)
+	if err := verifier.Verify(ctx, probePath, executableDigest); err != nil {
+		return RuntimeEntryProbe{}, fmt.Errorf("verify nimiapp Runtime-entry probe: %w", err)
+	}
+	observedDigest, err := digestOwnerRootFile(ctx, ownerRoot, filepath.Join(probeChild, probeName), entry.UncompressedSize64)
+	if err != nil || observedDigest != executableDigest {
+		return RuntimeEntryProbe{}, fmt.Errorf("reverify nimiapp Runtime-entry probe: %w", errors.Join(ErrPackageIntegrity, err))
+	}
+	return RuntimeEntryProbe{HostExecutableSHA256: executableDigest}, nil
 }
 
 // Materialize performs the same complete preflight before it creates a fresh
@@ -373,6 +464,18 @@ func recordEntryPathRoles(roles map[string]entryPathRole, name, targetOS string)
 			continue
 		}
 		roles[key] = entryPathRole{spelling: prefix, file: isFile}
+	}
+	return nil
+}
+
+func findArchiveEntry(reader *zip.Reader, name string) *zip.File {
+	if reader == nil {
+		return nil
+	}
+	for _, entry := range reader.File {
+		if entry.Name == name {
+			return entry
+		}
 	}
 	return nil
 }
@@ -745,6 +848,29 @@ func digestFile(ctx context.Context, filePath string) ([sha256.Size]byte, error)
 		if readErr != nil {
 			return [sha256.Size]byte{}, readErr
 		}
+	}
+	var result [sha256.Size]byte
+	copy(result[:], digest.Sum(nil))
+	return result, nil
+}
+
+func digestOwnerRootFile(ctx context.Context, ownerRoot *os.Root, name string, expectedSize uint64) ([sha256.Size]byte, error) {
+	if ownerRoot == nil {
+		return [sha256.Size]byte{}, ErrPackageIntegrity
+	}
+	info, err := ownerRoot.Lstat(name)
+	if err != nil || !info.Mode().IsRegular() || info.Mode()&os.ModeSymlink != 0 || info.Size() < 0 || uint64(info.Size()) != expectedSize {
+		return [sha256.Size]byte{}, errors.Join(ErrPackageIntegrity, err)
+	}
+	file, err := ownerRoot.Open(name)
+	if err != nil {
+		return [sha256.Size]byte{}, err
+	}
+	digest := sha256.New()
+	copyErr := copyWithContext(ctx, digest, file, expectedSize)
+	closeErr := file.Close()
+	if copyErr != nil || closeErr != nil {
+		return [sha256.Size]byte{}, errors.Join(copyErr, closeErr)
 	}
 	var result [sha256.Size]byte
 	copy(result[:], digest.Sum(nil))

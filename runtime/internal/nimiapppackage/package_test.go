@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"hash/crc32"
 	"os"
 	"path/filepath"
@@ -26,6 +27,12 @@ type archiveFixtureEntry struct {
 	extra          []byte
 	comment        string
 	crc32          *uint32
+}
+
+type runtimeEntryVerifierFunc func(context.Context, string, [sha256.Size]byte) error
+
+func (verify runtimeEntryVerifierFunc) Verify(ctx context.Context, path string, digest [sha256.Size]byte) error {
+	return verify(ctx, path, digest)
 }
 
 func TestInspectAndMaterializeCanonicalNimiApp(t *testing.T) {
@@ -61,6 +68,92 @@ func TestInspectAndMaterializeCanonicalNimiApp(t *testing.T) {
 	}
 	if got, err := os.ReadFile(materialized.RuntimeEntryPath); err != nil || string(got) != "MZ-runtime" {
 		t.Fatalf("existing staging root was mutated: %q err=%v", got, err)
+	}
+}
+
+func TestProbeRuntimeEntryIsExactScopedAndEphemeral(t *testing.T) {
+	archivePath, expected := writeArchiveFixture(t, validArchiveEntries(t))
+	ownerRoot, ownerPath := openOwnerRoot(t)
+	var observedPath string
+	probe, err := ProbeRuntimeEntry(
+		context.Background(), archivePath, ownerRoot, "native-probe", expected,
+		runtimeEntryVerifierFunc(func(_ context.Context, path string, digest [sha256.Size]byte) error {
+			observedPath = path
+			raw, err := os.ReadFile(path)
+			if err != nil || string(raw) != "MZ-runtime" || sha256.Sum256(raw) != digest {
+				return errors.New("observer did not receive the exact Runtime entry")
+			}
+			return nil
+		}),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if observedPath != filepath.Join(ownerPath, "native-probe", "example-app.exe") ||
+		probe.HostExecutableSHA256 != sha256.Sum256([]byte("MZ-runtime")) {
+		t.Fatalf("probe = %+v path=%q", probe, observedPath)
+	}
+	if _, err := os.Stat(filepath.Join(ownerPath, "native-probe")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("successful probe root remained: %v", err)
+	}
+
+	materialized, err := Materialize(context.Background(), archivePath, ownerRoot, "stage", expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if materialized.HostExecutableSHA256 != probe.HostExecutableSHA256 {
+		t.Fatal("staged Runtime entry differs from the observed probe")
+	}
+}
+
+func TestProbeRuntimeEntryRejectsMutationErrorAndCancellationWithoutResidue(t *testing.T) {
+	archivePath, expected := writeArchiveFixture(t, validArchiveEntries(t))
+	ownerRoot, ownerPath := openOwnerRoot(t)
+	tests := []struct {
+		name     string
+		ctx      context.Context
+		verifier RuntimeEntryVerifier
+		want     error
+	}{
+		{
+			name: "observer mutation",
+			ctx:  context.Background(),
+			verifier: runtimeEntryVerifierFunc(func(_ context.Context, path string, _ [sha256.Size]byte) error {
+				return os.WriteFile(path, []byte("mutated"), 0o600)
+			}),
+			want: ErrPackageIntegrity,
+		},
+		{
+			name: "observer failure",
+			ctx:  context.Background(),
+			verifier: runtimeEntryVerifierFunc(func(context.Context, string, [sha256.Size]byte) error {
+				return ErrUnsupportedTarget
+			}),
+			want: ErrUnsupportedTarget,
+		},
+		{
+			name: "canceled",
+			ctx: func() context.Context {
+				ctx, cancel := context.WithCancel(context.Background())
+				cancel()
+				return ctx
+			}(),
+			verifier: runtimeEntryVerifierFunc(func(context.Context, string, [sha256.Size]byte) error {
+				return nil
+			}),
+			want: context.Canceled,
+		},
+	}
+	for index, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			child := fmt.Sprintf("native-probe-%d", index)
+			if _, err := ProbeRuntimeEntry(test.ctx, archivePath, ownerRoot, child, expected, test.verifier); !errors.Is(err, test.want) {
+				t.Fatalf("probe error = %v", err)
+			}
+			if _, err := os.Stat(filepath.Join(ownerPath, child)); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("failed probe root remained: %v", err)
+			}
+		})
 	}
 }
 
