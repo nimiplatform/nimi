@@ -55,6 +55,7 @@ function entry(
       displayName: row.displayName,
       updatedAtUnixMs: row.updatedAtUnixMs,
     },
+    catalogTarget: null,
     localDevelopment: row,
     committedRelease: null,
     packageJob: null,

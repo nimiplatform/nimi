@@ -1,8 +1,8 @@
-// Desktop Apps action projection for the current local-development source.
-// Package actions remain absent because local_development never enters the
-// immutable package lifecycle.
+import { AppPackageJobPhase, type AppPackageJob } from '@nimiplatform/sdk/runtime/wire-types';
 
-export type AppCardActionId = 'details' | 'launch' | 'stop' | 'remove' | 'cancel-job';
+// @nimi-authority: rule.nimi.desktop.shell-ui.r053
+
+export type AppCardActionId = 'details' | 'install' | 'launch' | 'stop' | 'remove' | 'cancel-job';
 
 export interface AppCardAction {
   readonly id: AppCardActionId;
@@ -14,8 +14,10 @@ export interface AppCardActionPlan {
 }
 
 type AppsActionEntry = {
+  readonly catalogTarget: { readonly policyBlocked: boolean } | null;
+  readonly committedRelease: unknown | null;
   readonly localDevelopment: unknown | null;
-  readonly packageJob: { readonly cancelable: boolean } | null;
+  readonly packageJob: Pick<AppPackageJob, 'cancelable' | 'phase'> | null;
   readonly run: { readonly state: string } | null;
 };
 
@@ -52,4 +54,13 @@ export function actionPlanForEntry(entry: AppsActionEntry): AppCardActionPlan {
   return entry.packageJob?.cancelable
     ? { ...base, secondary: [...base.secondary, CANCEL_JOB] }
     : base;
+}
+
+export function canRequestCatalogInstall(entry: AppsActionEntry): boolean {
+  const packageJobActive = entry.packageJob !== null && ![
+    AppPackageJobPhase.COMPLETED,
+    AppPackageJobPhase.FAILED,
+    AppPackageJobPhase.CANCELED,
+  ].includes(entry.packageJob.phase);
+  return Boolean(entry.catalogTarget && !entry.catalogTarget.policyBlocked && !entry.committedRelease && !packageJobActive);
 }

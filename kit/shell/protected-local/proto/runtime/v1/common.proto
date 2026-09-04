@@ -433,14 +433,16 @@ enum ReasonCode {
   // Canonical App or shared subsystem AIConfig optimistic concurrency.
   AI_CONFIG_REVISION_CONFLICT = 726;
 
-  // Verified public App selector and install-start outcomes. The mutation
-  // method remains excluded from product profiles until Desktop confirmation.
+  // Verified public App Catalog, selector, and install-start outcomes. The
+  // Catalog and mutation methods remain excluded from product profiles until
+  // Desktop confirmation and availability cutover.
   APP_PACKAGE_SELECTION_INVALID = 727;
   APP_PACKAGE_SELECTION_STALE = 728;
   APP_PACKAGE_POLICY_BLOCKED = 729;
   APP_PACKAGE_ALREADY_INSTALLED = 730;
   APP_PACKAGE_INSTALL_UNAVAILABLE = 731;
   APP_PACKAGE_JOB_ACTIVE = 732;
+  APP_CATALOG_UNAVAILABLE = 733;
 
   // Reserved: old values of renumbered codes.
   // 104=APP_SCOPE_FORBIDDEN→503, 106=APP_SCOPE_REVOKED→504,

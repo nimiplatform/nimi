@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	goruntime "runtime"
 	"sort"
 	"strings"
 	"time"
@@ -111,6 +112,29 @@ func NewCanonicalClient() *Client {
 		transport = defaultTransport.Clone()
 	}
 	return &Client{source: newCanonicalGitHubSource(transport)}
+}
+
+// ListCurrentPlatformTargets projects the canonical Registry for the exact
+// package target implemented by this Runtime build. Adding a future platform
+// extends this closed mapping; callers never choose a target, origin, branch,
+// or Registry revision.
+func (c *Client) ListCurrentPlatformTargets(ctx context.Context) ([]ResolvedApprovedTarget, error) {
+	targetID, expectedOS, expectedArch, err := currentPlatformTarget(goruntime.GOOS, goruntime.GOARCH)
+	if err != nil {
+		return nil, err
+	}
+	snapshot, err := c.Load(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return snapshot.ListVisible(ctx, targetID, expectedOS, expectedArch)
+}
+
+func currentPlatformTarget(goos, goarch string) (string, string, string, error) {
+	if goos == "windows" && goarch == "amd64" {
+		return "windows-x86_64", "windows", "x86_64", nil
+	}
+	return "", "", "", fmt.Errorf("public App Catalog is unavailable for %s/%s: %w", goos, goarch, ErrCatalogTargetNotFound)
 }
 
 func newCanonicalGitHubSource(transport http.RoundTripper) *canonicalGitHubSource {

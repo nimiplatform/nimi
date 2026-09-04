@@ -1348,8 +1348,9 @@ export enum ReasonCode {
      */
     AI_CONFIG_REVISION_CONFLICT = 726,
     /**
-     * Verified public App selector and install-start outcomes. The mutation
-     * method remains excluded from product profiles until Desktop confirmation.
+     * Verified public App Catalog, selector, and install-start outcomes. The
+     * Catalog and mutation methods remain excluded from product profiles until
+     * Desktop confirmation and availability cutover.
      *
      * @generated from protobuf enum value: APP_PACKAGE_SELECTION_INVALID = 727;
      */
@@ -1373,7 +1374,11 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: APP_PACKAGE_JOB_ACTIVE = 732;
      */
-    APP_PACKAGE_JOB_ACTIVE = 732
+    APP_PACKAGE_JOB_ACTIVE = 732,
+    /**
+     * @generated from protobuf enum value: APP_CATALOG_UNAVAILABLE = 733;
+     */
+    APP_CATALOG_UNAVAILABLE = 733
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

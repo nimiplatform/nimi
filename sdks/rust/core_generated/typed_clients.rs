@@ -2616,6 +2616,7 @@ pub enum ReasonCode {
     APPPACKAGEALREADYINSTALLED,
     APPPACKAGEINSTALLUNAVAILABLE,
     APPPACKAGEJOBACTIVE,
+    APPCATALOGUNAVAILABLE,
 }
 
 impl Default for ReasonCode {
@@ -3167,6 +3168,8 @@ impl ReasonCode {
             "APPPACKAGEINSTALLUNAVAILABLE" => Some(Self::APPPACKAGEINSTALLUNAVAILABLE),
             "APP_PACKAGE_JOB_ACTIVE" => Some(Self::APPPACKAGEJOBACTIVE),
             "APPPACKAGEJOBACTIVE" => Some(Self::APPPACKAGEJOBACTIVE),
+            "APP_CATALOG_UNAVAILABLE" => Some(Self::APPCATALOGUNAVAILABLE),
+            "APPCATALOGUNAVAILABLE" => Some(Self::APPCATALOGUNAVAILABLE),
             _ => None,
         }
     }
@@ -4534,6 +4537,43 @@ pub struct ApplySharedLocalAgentAIProfileRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ApplySharedLocalAgentAIProfileResponse {
     pub config: Option<Box<AIConfig>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ApprovedAppCatalogStorageDisclosure {
+    pub path_pattern: Option<String>,
+    pub purpose: Option<String>,
+    pub retention: Option<String>,
+    pub removal: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ApprovedAppCatalogTarget {
+    pub approved_target_selector: Option<Vec<u8>>,
+    pub observed_registry_revision: Option<String>,
+    pub descriptor_id: Option<String>,
+    pub app_id: Option<String>,
+    pub display_name: Option<String>,
+    pub version: Option<String>,
+    pub publisher_github_namespace: Option<String>,
+    pub source_repository: Option<String>,
+    pub source_license_spdx_expression: Option<String>,
+    pub app_access: Vec<String>,
+    pub capability_contract_refs: Vec<String>,
+    pub required_standardized_feature_refs: Vec<String>,
+    pub storage_policy_kind: Option<String>,
+    pub os_storage_disclosures: Vec<Box<ApprovedAppCatalogStorageDisclosure>>,
+    pub target_id: Option<String>,
+    pub os: Option<String>,
+    pub arch: Option<String>,
+    pub asset_name: Option<String>,
+    pub asset_size: Option<i64>,
+    pub execution_profile_ref: Option<String>,
+    pub windows_code_signing: Option<String>,
+    pub observed_signing_subject: Option<String>,
+    pub policy_blocked: Option<bool>,
+    pub policy_reason: Option<String>,
+    pub policy_revision: Option<u64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6810,6 +6850,17 @@ pub struct ListAppPackageJobsRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListAppPackageJobsResponse {
     pub jobs: Vec<Box<AppPackageJob>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListApprovedAppCatalogTargetsRequest {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListApprovedAppCatalogTargetsResponse {
+    pub targets: Vec<Box<ApprovedAppCatalogTarget>>,
     pub reason_code: Option<ReasonCode>,
 }
 

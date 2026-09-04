@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeAppPackageService_ListCommittedAppReleases_FullMethodName = "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases"
-	RuntimeAppPackageService_ListAppPackageJobs_FullMethodName       = "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs"
-	RuntimeAppPackageService_GetAppPackageJob_FullMethodName         = "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob"
-	RuntimeAppPackageService_StartAppPackageInstall_FullMethodName   = "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall"
-	RuntimeAppPackageService_CancelAppPackageJob_FullMethodName      = "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob"
+	RuntimeAppPackageService_ListApprovedAppCatalogTargets_FullMethodName = "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets"
+	RuntimeAppPackageService_ListCommittedAppReleases_FullMethodName      = "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases"
+	RuntimeAppPackageService_ListAppPackageJobs_FullMethodName            = "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs"
+	RuntimeAppPackageService_GetAppPackageJob_FullMethodName              = "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob"
+	RuntimeAppPackageService_StartAppPackageInstall_FullMethodName        = "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall"
+	RuntimeAppPackageService_CancelAppPackageJob_FullMethodName           = "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob"
 )
 
 // RuntimeAppPackageServiceClient is the client API for RuntimeAppPackageService service.
@@ -35,6 +36,7 @@ const (
 // and install-availability cutover land together. local_development is absent
 // from every package enum and request.
 type RuntimeAppPackageServiceClient interface {
+	ListApprovedAppCatalogTargets(ctx context.Context, in *ListApprovedAppCatalogTargetsRequest, opts ...grpc.CallOption) (*ListApprovedAppCatalogTargetsResponse, error)
 	ListCommittedAppReleases(ctx context.Context, in *ListCommittedAppReleasesRequest, opts ...grpc.CallOption) (*ListCommittedAppReleasesResponse, error)
 	ListAppPackageJobs(ctx context.Context, in *ListAppPackageJobsRequest, opts ...grpc.CallOption) (*ListAppPackageJobsResponse, error)
 	GetAppPackageJob(ctx context.Context, in *GetAppPackageJobRequest, opts ...grpc.CallOption) (*GetAppPackageJobResponse, error)
@@ -48,6 +50,16 @@ type runtimeAppPackageServiceClient struct {
 
 func NewRuntimeAppPackageServiceClient(cc grpc.ClientConnInterface) RuntimeAppPackageServiceClient {
 	return &runtimeAppPackageServiceClient{cc}
+}
+
+func (c *runtimeAppPackageServiceClient) ListApprovedAppCatalogTargets(ctx context.Context, in *ListApprovedAppCatalogTargetsRequest, opts ...grpc.CallOption) (*ListApprovedAppCatalogTargetsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListApprovedAppCatalogTargetsResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_ListApprovedAppCatalogTargets_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *runtimeAppPackageServiceClient) ListCommittedAppReleases(ctx context.Context, in *ListCommittedAppReleasesRequest, opts ...grpc.CallOption) (*ListCommittedAppReleasesResponse, error) {
@@ -109,6 +121,7 @@ func (c *runtimeAppPackageServiceClient) CancelAppPackageJob(ctx context.Context
 // and install-availability cutover land together. local_development is absent
 // from every package enum and request.
 type RuntimeAppPackageServiceServer interface {
+	ListApprovedAppCatalogTargets(context.Context, *ListApprovedAppCatalogTargetsRequest) (*ListApprovedAppCatalogTargetsResponse, error)
 	ListCommittedAppReleases(context.Context, *ListCommittedAppReleasesRequest) (*ListCommittedAppReleasesResponse, error)
 	ListAppPackageJobs(context.Context, *ListAppPackageJobsRequest) (*ListAppPackageJobsResponse, error)
 	GetAppPackageJob(context.Context, *GetAppPackageJobRequest) (*GetAppPackageJobResponse, error)
@@ -123,6 +136,9 @@ type RuntimeAppPackageServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRuntimeAppPackageServiceServer struct{}
 
+func (UnimplementedRuntimeAppPackageServiceServer) ListApprovedAppCatalogTargets(context.Context, *ListApprovedAppCatalogTargetsRequest) (*ListApprovedAppCatalogTargetsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListApprovedAppCatalogTargets not implemented")
+}
 func (UnimplementedRuntimeAppPackageServiceServer) ListCommittedAppReleases(context.Context, *ListCommittedAppReleasesRequest) (*ListCommittedAppReleasesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListCommittedAppReleases not implemented")
 }
@@ -156,6 +172,24 @@ func RegisterRuntimeAppPackageServiceServer(s grpc.ServiceRegistrar, srv Runtime
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&RuntimeAppPackageService_ServiceDesc, srv)
+}
+
+func _RuntimeAppPackageService_ListApprovedAppCatalogTargets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListApprovedAppCatalogTargetsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).ListApprovedAppCatalogTargets(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_ListApprovedAppCatalogTargets_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).ListApprovedAppCatalogTargets(ctx, req.(*ListApprovedAppCatalogTargetsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _RuntimeAppPackageService_ListCommittedAppReleases_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -255,6 +289,10 @@ var RuntimeAppPackageService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "nimi.runtime.v1.RuntimeAppPackageService",
 	HandlerType: (*RuntimeAppPackageServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListApprovedAppCatalogTargets",
+			Handler:    _RuntimeAppPackageService_ListApprovedAppCatalogTargets_Handler,
+		},
 		{
 			MethodName: "ListCommittedAppReleases",
 			Handler:    _RuntimeAppPackageService_ListCommittedAppReleases_Handler,

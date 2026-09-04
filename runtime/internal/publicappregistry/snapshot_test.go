@@ -99,6 +99,18 @@ func TestCanonicalSnapshotResolvesOneExactApprovedTarget(t *testing.T) {
 	}
 }
 
+func TestCurrentPlatformTargetIsClosedToImplementedCatalogTargets(t *testing.T) {
+	targetID, expectedOS, expectedArch, err := currentPlatformTarget("windows", "amd64")
+	if err != nil || targetID != "windows-x86_64" || expectedOS != "windows" || expectedArch != "x86_64" {
+		t.Fatalf("windows target = %q %q %q err=%v", targetID, expectedOS, expectedArch, err)
+	}
+	for _, unsupported := range [][2]string{{"windows", "386"}, {"darwin", "arm64"}, {"linux", "amd64"}} {
+		if _, _, _, err := currentPlatformTarget(unsupported[0], unsupported[1]); !errors.Is(err, ErrCatalogTargetNotFound) {
+			t.Fatalf("unsupported %s/%s error = %v", unsupported[0], unsupported[1], err)
+		}
+	}
+}
+
 func TestRevalidateProjectsPolicyBeforeStalenessAndNeverSubstitutesLatest(t *testing.T) {
 	descriptor := validDescriptorDocument()
 	source := validMemorySource(t, testRevisionA, descriptor)

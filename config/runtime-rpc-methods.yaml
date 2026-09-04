@@ -481,6 +481,9 @@ services:
   - name: RuntimeAppPackageService
     source_rule: P-NAPP-040
     methods:
+      - name: ListApprovedAppCatalogTargets
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets
       - name: ListCommittedAppReleases
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases

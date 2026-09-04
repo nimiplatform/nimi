@@ -7,6 +7,7 @@ import {
   BookOpen,
   Check,
   Copy,
+  Download,
   FolderOpen,
   Info,
   MoreHorizontal,
@@ -36,6 +37,7 @@ import {
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
 import {
   actionPlanForEntry,
+  canRequestCatalogInstall,
   type AppCardActionId,
 } from './apps-card-actions.js';
 import { appRunVisualState, appSourceForEntry } from './apps-card-fields.js';
@@ -432,6 +434,7 @@ function InstalledAppsDetailView({
 }: AppsDetailViewProps): ReactElement {
   const { t } = useTranslation();
   const release = entry.committedRelease;
+  const catalog = entry.catalogTarget;
 
   return (
     <div data-testid="apps-detail-body" data-installed-detail className="flex min-h-0 flex-1 flex-col">
@@ -467,9 +470,37 @@ function InstalledAppsDetailView({
             <div className="mt-2.5">
               <AppPackageStatusLine entry={entry} />
             </div>
-            <InlineAlert tone="info" className="mt-3" data-testid="apps-installed-launch-unavailable">
-              {t('Apps.installedLaunchUnavailable')}
-            </InlineAlert>
+            {catalog?.policyBlocked ? (
+              <InlineAlert tone="danger" className="mt-3" data-testid="apps-catalog-policy-blocked">
+                {t('Apps.catalog.policyBlocked', {
+                  reason: catalog.policyReason ?? t('Apps.catalog.policyBlockedFallback'),
+                  revision: catalog.policyRevision,
+                })}
+              </InlineAlert>
+            ) : catalog ? (
+              <InlineAlert tone="info" className="mt-3" data-testid="apps-catalog-approved">
+                {t('Apps.catalog.registryApproved')}
+              </InlineAlert>
+            ) : null}
+            {release ? (
+              <InlineAlert tone="info" className="mt-3" data-testid="apps-installed-launch-unavailable">
+                {t('Apps.installedLaunchUnavailable')}
+              </InlineAlert>
+            ) : null}
+            {canRequestCatalogInstall(entry) ? (
+              <Button
+                data-testid="apps-detail-install"
+                tone="primary"
+                size="sm"
+                className="mt-3"
+                loading={activeAction === 'install'}
+                disabled={activeAction !== null}
+                onClick={() => onAction('install')}
+              >
+                <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+                {t('Apps.action.install')}
+              </Button>
+            ) : null}
             {entry.packageJob?.cancelable ? (
               <Button
                 data-testid="apps-detail-cancel-job"
@@ -499,8 +530,30 @@ function InstalledAppsDetailView({
             <dl className="divide-y divide-[color:var(--nimi-border-subtle)]">
               <DetailRow label={t('LocalDevelopment.field.app')} value={entry.identity.appId} mono />
               <DetailRow label={t('Apps.detail.source')} value={t('Apps.sourceBadge.verified')} />
-              <DetailRow label={t('Apps.detail.catalogVersion', { defaultValue: 'Version' })} value={release?.version ?? t('Apps.version.notInstalled')} mono />
+              <DetailRow label={t('Apps.detail.catalogVersion', { defaultValue: 'Version' })} value={release?.version ?? catalog?.version ?? t('Apps.version.notInstalled')} mono />
               {release ? <DetailRow label={t('Apps.detail.releaseRef', { defaultValue: 'Release reference' })} value={release.releaseRef} mono /> : null}
+              {catalog ? (
+                <>
+                  <DetailRow label={t('Apps.catalog.publisher')} value={`@${catalog.publisherGithubNamespace}`} mono />
+                  <DetailRow label={t('Apps.catalog.sourceRepository')} value={catalog.sourceRepository} mono />
+                  <DetailRow label={t('Apps.catalog.license')} value={catalog.sourceLicenseSpdxExpression} mono />
+                  <DetailRow label={t('Apps.catalog.target')} value={`${catalog.targetId} · ${catalog.os}/${catalog.arch}`} mono />
+                  <DetailRow label={t('Apps.catalog.asset')} value={`${catalog.assetName} · ${catalog.assetSize} bytes`} mono />
+                  <DetailRow label={t('Apps.catalog.nativePosture')} value={catalog.observedSigningSubject ? `${catalog.windowsCodeSigning} · ${catalog.observedSigningSubject}` : catalog.windowsCodeSigning} mono />
+                  <DetailRow label={t('Apps.catalog.executionProfile')} value={catalog.executionProfileRef} mono />
+                  <DetailRow label={t('Apps.catalog.appAccess')} value={catalog.appAccess.join(', ') || t('Apps.catalog.none')} mono />
+                  <DetailRow label={t('Apps.catalog.capabilities')} value={catalog.capabilityContractRefs.join(', ') || t('Apps.catalog.none')} mono />
+                  <DetailRow label={t('Apps.catalog.requiredFeatures')} value={catalog.requiredStandardizedFeatureRefs.join(', ') || t('Apps.catalog.none')} mono />
+                  <DetailRow label={t('Apps.catalog.storage')} value={catalog.storagePolicyKind} mono />
+                  <DetailRow
+                    label={t('Apps.catalog.storageDisclosures')}
+                    value={catalog.osStorageDisclosures.map((disclosure) => (
+                      `${disclosure.pathPattern}: ${disclosure.purpose}; ${disclosure.retention}; ${disclosure.removal}`
+                    )).join(' · ') || t('Apps.catalog.none')}
+                    mono
+                  />
+                </>
+              ) : null}
             </dl>
           </OverviewCard>
         </div>

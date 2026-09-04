@@ -1024,6 +1024,15 @@
       "source_file": "proto/runtime/v1/app.proto",
       "methods": [
         {
+          "name": "ListApprovedAppCatalogTargets",
+          "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets",
+          "kind": "unary",
+          "request_type": "ListApprovedAppCatalogTargetsRequest",
+          "response_type": "ListApprovedAppCatalogTargetsResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "ListCommittedAppReleases",
           "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
           "kind": "unary",
@@ -2249,6 +2258,7 @@
     "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
     "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob",
     "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs",
+    "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets",
     "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
     "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
     "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
@@ -3236,6 +3246,14 @@
       "kind": "unary",
       "request_type": "ListAppPackageJobsRequest",
       "response_type": "ListAppPackageJobsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets",
+      "service": "RuntimeAppPackageService",
+      "method": "ListApprovedAppCatalogTargets",
+      "kind": "unary",
+      "request_type": "ListApprovedAppCatalogTargetsRequest",
+      "response_type": "ListApprovedAppCatalogTargetsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
@@ -5024,6 +5042,14 @@
       "response_type": "ListAppPackageJobsResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets",
+      "service": "RuntimeAppPackageService",
+      "method": "ListApprovedAppCatalogTargets",
+      "kind": "unary",
+      "request_type": "ListApprovedAppCatalogTargetsRequest",
+      "response_type": "ListApprovedAppCatalogTargetsResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
       "service": "RuntimeAppPackageService",
       "method": "ListCommittedAppReleases",
@@ -6031,6 +6057,8 @@
       "ApplyLocalEnvironmentPlanResponse",
       "ApplySharedLocalAgentAIProfileRequest",
       "ApplySharedLocalAgentAIProfileResponse",
+      "ApprovedAppCatalogStorageDisclosure",
+      "ApprovedAppCatalogTarget",
       "ArtifactChunk",
       "ArtifactStreamDelta",
       "AudioChunks",
@@ -6286,6 +6314,8 @@
       "ListAppAIConfigOptionsResponse",
       "ListAppPackageJobsRequest",
       "ListAppPackageJobsResponse",
+      "ListApprovedAppCatalogTargetsRequest",
+      "ListApprovedAppCatalogTargetsResponse",
       "ListAuditEventsRequest",
       "ListAuditEventsResponse",
       "ListCatalogProviderModelsRequest",
@@ -10656,6 +10686,221 @@
             "repeated": false,
             "optional": false,
             "number": 16
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "ApprovedAppCatalogStorageDisclosure",
+        "fields": [
+          {
+            "name": "path_pattern",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "purpose",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "retention",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "removal",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "ApprovedAppCatalogTarget",
+        "fields": [
+          {
+            "name": "approved_target_selector",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "observed_registry_revision",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "descriptor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "version",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "publisher_github_namespace",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "source_repository",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "source_license_spdx_expression",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "app_access",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "capability_contract_refs",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "required_standardized_feature_refs",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "storage_policy_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "os_storage_disclosures",
+            "type": "ApprovedAppCatalogStorageDisclosure",
+            "repeated": true,
+            "optional": false,
+            "number": 14
+          },
+          {
+            "name": "target_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "os",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 16
+          },
+          {
+            "name": "arch",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 17
+          },
+          {
+            "name": "asset_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 18
+          },
+          {
+            "name": "asset_size",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 19
+          },
+          {
+            "name": "execution_profile_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 20
+          },
+          {
+            "name": "windows_code_signing",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 21
+          },
+          {
+            "name": "observed_signing_subject",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 22
+          },
+          {
+            "name": "policy_blocked",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 23
+          },
+          {
+            "name": "policy_reason",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 24
+          },
+          {
+            "name": "policy_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 25
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -18166,6 +18411,31 @@
           {
             "name": "jobs",
             "type": "AppPackageJob",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "ListApprovedAppCatalogTargetsRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "ListApprovedAppCatalogTargetsResponse",
+        "fields": [
+          {
+            "name": "targets",
+            "type": "ApprovedAppCatalogTarget",
             "repeated": true,
             "optional": false,
             "number": 1
@@ -37299,7 +37569,8 @@
           "APP_PACKAGE_POLICY_BLOCKED",
           "APP_PACKAGE_ALREADY_INSTALLED",
           "APP_PACKAGE_INSTALL_UNAVAILABLE",
-          "APP_PACKAGE_JOB_ACTIVE"
+          "APP_PACKAGE_JOB_ACTIVE",
+          "APP_CATALOG_UNAVAILABLE"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

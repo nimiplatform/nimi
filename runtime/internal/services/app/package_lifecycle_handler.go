@@ -17,6 +17,39 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+type ApprovedAppCatalogProvider interface {
+	ListCurrentPlatformTargets(context.Context) ([]publicappregistry.ResolvedApprovedTarget, error)
+}
+
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-013a
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-018a
+func (s *Service) ListApprovedAppCatalogTargets(
+	ctx context.Context,
+	req *runtimev1.ListApprovedAppCatalogTargetsRequest,
+) (*runtimev1.ListApprovedAppCatalogTargetsResponse, error) {
+	if req == nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if s == nil || s.approvedAppCatalog == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_CATALOG_UNAVAILABLE)
+	}
+	targets, err := s.approvedAppCatalog.ListCurrentPlatformTargets(ctx)
+	if err != nil {
+		return nil, approvedAppCatalogError(err)
+	}
+	projected := make([]*runtimev1.ApprovedAppCatalogTarget, 0, len(targets))
+	for _, target := range targets {
+		value, projectErr := approvedAppCatalogTargetProjection(target)
+		if projectErr != nil {
+			return nil, approvedAppCatalogError(projectErr)
+		}
+		projected = append(projected, value)
+	}
+	return &runtimev1.ListApprovedAppCatalogTargetsResponse{
+		Targets: projected, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+	}, nil
+}
+
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040a
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040b
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040c
@@ -189,6 +222,21 @@ func appPackageInstallStartError(err error) error {
 	}
 }
 
+func approvedAppCatalogError(err error) error {
+	switch {
+	case errors.Is(err, context.Canceled):
+		return status.Error(codes.Canceled, "public App Catalog read canceled")
+	case errors.Is(err, context.DeadlineExceeded):
+		return status.Error(codes.DeadlineExceeded, "public App Catalog read deadline exceeded")
+	case errors.Is(err, publicappregistry.ErrCatalogTargetNotFound):
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_CATALOG_UNAVAILABLE, err, grpcerr.ReasonOptions{})
+	case errors.Is(err, publicappregistry.ErrRegistryUnavailable), errors.Is(err, publicappregistry.ErrInvalidRegistrySnapshot):
+		return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_APP_CATALOG_UNAVAILABLE, err, grpcerr.ReasonOptions{})
+	default:
+		return fmt.Errorf("list approved public App Catalog targets: %w", err)
+	}
+}
+
 func (s *Service) packageLifecycleStore() (*localappkernel.PackageLifecycleStore, error) {
 	if s == nil || s.localAppKernel == nil || s.localAppKernel.PackageLifecycle() == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
@@ -230,6 +278,59 @@ func committedAppReleaseProjection(release localappkernel.CommittedRelease) (*ru
 		LaunchSelector: []byte(release.RegistrationHandle),
 		CommittedAt:    timestamppb.New(release.CommittedAt),
 	}, nil
+}
+
+func approvedAppCatalogTargetProjection(target publicappregistry.ResolvedApprovedTarget) (*runtimev1.ApprovedAppCatalogTarget, error) {
+	selector, err := target.Selector.Encode()
+	if err != nil || target.DescriptorID != target.Selector.DescriptorID() ||
+		target.Target.TargetID != target.Selector.TargetID() ||
+		target.RegistryRevision != target.Selector.ObservedRegistryCommit() {
+		return nil, fmt.Errorf("project approved App Catalog target: inconsistent selector: %w", publicappregistry.ErrInvalidRegistrySnapshot)
+	}
+	storage := make([]*runtimev1.ApprovedAppCatalogStorageDisclosure, 0, len(target.StoragePolicy.OSStorageDisclosure))
+	for _, disclosure := range target.StoragePolicy.OSStorageDisclosure {
+		storage = append(storage, &runtimev1.ApprovedAppCatalogStorageDisclosure{
+			PathPattern: disclosure.PathPattern,
+			Purpose:     disclosure.Purpose,
+			Retention:   disclosure.Retention,
+			Removal:     disclosure.Removal,
+		})
+	}
+	return &runtimev1.ApprovedAppCatalogTarget{
+		ApprovedTargetSelector:          []byte(selector),
+		ObservedRegistryRevision:        target.RegistryRevision,
+		DescriptorId:                    target.DescriptorID,
+		AppId:                           target.AppID,
+		DisplayName:                     target.DisplayName,
+		Version:                         target.Version,
+		PublisherGithubNamespace:        target.Publisher.GitHubNamespace,
+		SourceRepository:                target.Source.Repository,
+		SourceLicenseSpdxExpression:     target.Source.License.SPDXExpression,
+		AppAccess:                       append([]string(nil), target.AppAccess...),
+		CapabilityContractRefs:          append([]string(nil), target.CapabilityContractRefs...),
+		RequiredStandardizedFeatureRefs: append([]string(nil), target.RequiredStandardizedFeatureRefs...),
+		StoragePolicyKind:               target.StoragePolicy.Kind,
+		OsStorageDisclosures:            storage,
+		TargetId:                        target.Target.TargetID,
+		Os:                              target.Target.OS,
+		Arch:                            target.Target.Arch,
+		AssetName:                       target.Target.AssetName,
+		AssetSize:                       target.Target.Size,
+		ExecutionProfileRef:             target.Target.ExecutionProfileRef,
+		WindowsCodeSigning:              target.Target.NativeTrust.WindowsCodeSigning,
+		ObservedSigningSubject:          cloneStringPointer(target.Target.NativeTrust.ObservedSubject),
+		PolicyBlocked:                   target.KillSwitch.Active,
+		PolicyReason:                    cloneStringPointer(target.KillSwitch.Reason),
+		PolicyRevision:                  target.KillSwitch.Revision,
+	}, nil
+}
+
+func cloneStringPointer(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+	return &cloned
 }
 
 func appPackageJobProjection(job localappkernel.PackageJob) (*runtimev1.AppPackageJob, error) {

@@ -16,6 +16,63 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+type staticApprovedAppCatalogProvider struct {
+	targets []publicappregistry.ResolvedApprovedTarget
+	err     error
+}
+
+func (provider staticApprovedAppCatalogProvider) ListCurrentPlatformTargets(context.Context) ([]publicappregistry.ResolvedApprovedTarget, error) {
+	return provider.targets, provider.err
+}
+
+func TestApprovedAppCatalogProjectionKeepsSelectorAndDisplayFactsOwnerIssued(t *testing.T) {
+	encode := base64.RawURLEncoding.EncodeToString
+	revision := strings.Repeat("a", 40)
+	descriptorID := "publisher.example@1.2.3"
+	selectorText := "nats_v1_" + encode([]byte(descriptorID)) + "." +
+		encode([]byte("windows-x86_64")) + "." + encode([]byte(revision))
+	selector, err := publicappregistry.ParseApprovedTargetSelector(selectorText)
+	if err != nil {
+		t.Fatal(err)
+	}
+	policyReason := "security-review-revoked"
+	targets := []publicappregistry.ResolvedApprovedTarget{{
+		Selector: selector, RegistryRevision: revision, DescriptorID: descriptorID,
+		AppID: "publisher.example", DisplayName: "Example App", Version: "1.2.3", Visibility: "public",
+		KillSwitch: publicappregistry.KillSwitch{Active: true, Reason: &policyReason, Revision: 4},
+		Publisher:  publicappregistry.Publisher{GitHubNamespace: "publisher", NamespaceKind: "organization", Assurance: "pseudonymous"},
+		Source: publicappregistry.Source{Repository: "https://github.com/publisher/example", License: publicappregistry.SourceLicense{
+			SPDXExpression: "MIT", Files: []publicappregistry.LicenseFile{{Path: "LICENSE", SHA256: strings.Repeat("b", 64)}},
+		}},
+		Release:   publicappregistry.Release{Tag: "v1.2.3", CommitSHA: strings.Repeat("c", 40), ReleaseURL: "https://github.com/publisher/example/releases/tag/v1.2.3", ReleaseNotesURL: "https://github.com/publisher/example/releases/tag/v1.2.3"},
+		AppAccess: []string{"runtime.consume"}, CapabilityContractRefs: []string{"text.generate"},
+		StoragePolicy: publicappregistry.StoragePolicy{Kind: "nimi-mediated-default", OSStorageDisclosure: []publicappregistry.StorageDisclosure{{
+			PathPattern: "%LOCALAPPDATA%/Example", Purpose: "cache", Retention: "until-uninstall", Removal: "removed-with-package",
+		}}},
+		UpdateChannel: "stable", Support: publicappregistry.Support{EscalationURL: "https://github.com/publisher/example/issues", RecoveryInstructions: "Reinstall."},
+		Target: publicappregistry.Target{TargetID: "windows-x86_64", OS: "windows", Arch: "x86_64", AssetName: "example.nimiapp", Size: 42,
+			RuntimeEntry: "payload/example.exe", ExecutionProfileRef: "windows-user-mode-as-invoker-v1",
+			NativeTrust: publicappregistry.NativeTrust{WindowsCodeSigning: "unsigned", MacOSNotarization: "not-applicable"}},
+	}}
+	service := New(nil, WithApprovedAppCatalogProvider(staticApprovedAppCatalogProvider{targets: targets}))
+	response, err := service.ListApprovedAppCatalogTargets(context.Background(), &runtimev1.ListApprovedAppCatalogTargetsRequest{})
+	if err != nil || response.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED || len(response.GetTargets()) != 1 {
+		t.Fatalf("Catalog response = %+v err=%v", response, err)
+	}
+	projected := response.GetTargets()[0]
+	if string(projected.GetApprovedTargetSelector()) != selectorText || projected.GetObservedRegistryRevision() != revision ||
+		projected.GetDescriptorId() != descriptorID || projected.GetPublisherGithubNamespace() != "publisher" ||
+		projected.GetSourceLicenseSpdxExpression() != "MIT" || projected.GetWindowsCodeSigning() != "unsigned" ||
+		!projected.GetPolicyBlocked() || projected.GetPolicyReason() != policyReason || projected.GetPolicyRevision() != 4 {
+		t.Fatalf("Catalog target = %+v", projected)
+	}
+	targets[0].AppAccess[0] = "mutated"
+	targets[0].StoragePolicy.OSStorageDisclosure[0].Purpose = "mutated"
+	if projected.GetAppAccess()[0] != "runtime.consume" || projected.GetOsStorageDisclosures()[0].GetPurpose() != "cache" {
+		t.Fatalf("Catalog projection retained mutable provider slices: %+v", projected)
+	}
+}
+
 func TestRuntimeAppPackageProjectionRejectsRetiredLocalImportValues(t *testing.T) {
 	if _, ok := packageSourceClassToProto(localappkernel.SourceClass("user_imported")); ok {
 		t.Fatal("retired user-imported source projected onto Runtime proto")
@@ -53,6 +110,38 @@ func TestAppPackageInstallStartErrorsRemainTyped(t *testing.T) {
 				t.Fatalf("start error code=%s reason=%s err=%v", status.Code(err), reasonCode, err)
 			}
 		})
+	}
+}
+
+func TestApprovedAppCatalogErrorsRemainTyped(t *testing.T) {
+	tests := []struct {
+		name       string
+		err        error
+		code       codes.Code
+		reasonCode runtimev1.ReasonCode
+	}{
+		{name: "unsupported target", err: publicappregistry.ErrCatalogTargetNotFound, code: codes.FailedPrecondition, reasonCode: runtimev1.ReasonCode_APP_CATALOG_UNAVAILABLE},
+		{name: "Registry unavailable", err: publicappregistry.ErrRegistryUnavailable, code: codes.Unavailable, reasonCode: runtimev1.ReasonCode_APP_CATALOG_UNAVAILABLE},
+		{name: "invalid snapshot", err: publicappregistry.ErrInvalidRegistrySnapshot, code: codes.Unavailable, reasonCode: runtimev1.ReasonCode_APP_CATALOG_UNAVAILABLE},
+		{name: "canceled", err: context.Canceled, code: codes.Canceled},
+		{name: "deadline", err: context.DeadlineExceeded, code: codes.DeadlineExceeded},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := approvedAppCatalogError(test.err)
+			reasonCode, hasReason := grpcerr.ExtractReasonCode(err)
+			if status.Code(err) != test.code || test.reasonCode != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED && reasonCode != test.reasonCode ||
+				test.reasonCode == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED && hasReason {
+				t.Fatalf("Catalog error code=%s reason=%s err=%v", status.Code(err), reasonCode, err)
+			}
+		})
+	}
+
+	service := New(nil)
+	_, err := service.ListApprovedAppCatalogTargets(context.Background(), &runtimev1.ListApprovedAppCatalogTargetsRequest{})
+	reasonCode, _ := grpcerr.ExtractReasonCode(err)
+	if status.Code(err) != codes.FailedPrecondition || reasonCode != runtimev1.ReasonCode_APP_CATALOG_UNAVAILABLE {
+		t.Fatalf("unwired Catalog code=%s reason=%s err=%v", status.Code(err), reasonCode, err)
 	}
 }
 
