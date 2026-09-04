@@ -343,6 +343,7 @@ export const landingContentZh: LandingContent = {
     availability: {
       eyebrow: '发布状态',
       items: [
+        'Unsigned Windows x64 Runtime bootstrap v0.2.2-preview.1 已发布',
         'Windows signed RC 与 Stable 等待 production code signing',
         'Unsigned preview 只使用不可晋升的 vX.Y.Z-preview.N 显式 tag',
         '目前没有已发布的 Nimi 稳定版',
@@ -377,7 +378,7 @@ export const landingContentZh: LandingContent = {
     ],
     notes: [
       '新的产品工作统一走 Nimi Apps 路径。',
-      'Nimi Apps 定义目录、本地导入、安装、更新、启动、修复、卸载和 Developer Mode 的生命周期契约。当前预发布仅开放 Developer Mode 本地开发路径；公开目录、本地导入、普通安装、已安装 App 启动、发布者发布和 registry onboarding 尚不可用。',
+      'Nimi Apps 定义 Registry-approved verified package 的目录、安装、更新、启动、修复和卸载生命周期；Developer Mode 是独立的非 package 本地开发路径。当前预发布仅开放 Developer Mode；公开目录、普通安装、已安装 App 启动、发布者发布和 registry onboarding 尚不可用。',
       '公开应用目录尚未开放；Nimi 只显示你今天真正能打开的内容。',
       '想构建 App，请从 SDK 与 Nimi App 文档开始。',
     ],
@@ -396,7 +397,7 @@ export const landingContentZh: LandingContent = {
       {
         question: '今天能下载 Nimi 吗？',
         answer:
-          '还不能。目前没有已发布的 Nimi 稳定版：Windows 签名仍在审批，只有未签名的开发者预览版。关注 GitHub 或加入 Discord，稳定版发布时会第一时间公布。',
+          '目前没有已发布的 Nimi 稳定版或 installer。明确标注为 unsigned 的 portable Windows x64 Runtime bootstrap v0.2.2-preview.1 已可用于 bootstrap 测试，但它不是 Nimi Home 或 production 安装；准确范围请查看下载页。',
       },
       {
         question: '我的数据私密吗？',
@@ -447,17 +448,18 @@ export const landingContentZh: LandingContent = {
         label: '代码签名',
         title: '验证具体制品，不依赖口头承诺',
         points: [
-          'Windows production signing 尚不可用；SignPath Foundation 申请将在公开 unsigned Runtime bootstrap 之后进行。',
+          '公开 unsigned Runtime bootstrap v0.2.2-preview.1 已发布；SignPath Foundation 申请尚未提交。',
           'Authenticode 验证通过前，任何当前 Nimi 制品都不能被视为 SignPath-signed。',
         ],
       },
     ],
     statuses: [
-      { label: 'Windows', value: 'Windows signed RC 与 Stable 等待 production code signing' },
-      { label: 'SignPath Foundation', value: '申请尚未提交；计划在 unsigned bootstrap 之后进行' },
+      { label: 'Windows', value: 'Unsigned Runtime bootstrap v0.2.2-preview.1 已发布；signed RC 与 Stable 仍待签名' },
+      { label: 'SignPath Foundation', value: '申请尚未提交；bootstrap 前置已发布' },
     ],
     links: [
       { label: '下载', detail: '稳定版与 unsigned preview 状态', href: '/download' },
+      { label: 'Unsigned Runtime preview', detail: 'v0.2.2-preview.1 · 不可晋升', href: 'https://github.com/nimiplatform/nimi/releases/tag/v0.2.2-preview.1' },
       { label: 'Code signing policy', detail: '范围、控制与验证说明', href: '/code-signing' },
       { label: '源代码', detail: 'github.com/nimiplatform/nimi', href: 'https://github.com/nimiplatform/nimi' },
       { label: '文档', detail: 'docs.nimi.ai', href: 'https://docs.nimi.ai' },

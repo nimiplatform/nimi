@@ -373,6 +373,7 @@ export const landingContentEn: LandingContent = {
     availability: {
       eyebrow: 'Release status',
       items: [
+        'Unsigned Windows x64 Runtime bootstrap v0.2.2-preview.1 available',
         'Windows signed RC and Stable pending production code signing',
         'Unsigned previews use explicit non-promotable vX.Y.Z-preview.N tags',
         'No stable Nimi release is currently published',
@@ -407,7 +408,7 @@ export const landingContentEn: LandingContent = {
     ],
     notes: [
       'New product work uses the Nimi Apps path.',
-      'Nimi Apps defines the catalog, local-import, installation, update, launch, repair, uninstall, and Developer Mode lifecycle contract. This pre-release exposes Developer Mode local development; public catalog, local import, ordinary install, installed launch, publisher publication, and registry onboarding are not available yet.',
+      'Nimi Apps defines the Registry-approved verified package catalog, installation, update, launch, repair, and uninstall lifecycle, with Developer Mode as a separate non-package local-development path. This pre-release exposes Developer Mode; public catalog, ordinary install, installed launch, publisher publication, and registry onboarding are not available yet.',
       'The public app catalog has not opened; Nimi only shows what you can actually open today.',
       'To build an app, start with the SDK and Nimi App docs.',
     ],
@@ -427,7 +428,7 @@ export const landingContentEn: LandingContent = {
       {
         question: 'Can I download Nimi today?',
         answer:
-          'Not yet. No stable Nimi release is currently published: Windows signing is still pending and only unsigned developer previews exist. Watch GitHub or join Discord to hear the moment a stable build lands.',
+          'No stable Nimi release or installer is currently published. The explicitly unsigned portable Windows x64 Runtime bootstrap v0.2.2-preview.1 is available for bootstrap testing, but it is not Nimi Home or a production install. See Download for the exact scope.',
       },
       {
         question: 'Is my data private?',
@@ -478,7 +479,7 @@ export const landingContentEn: LandingContent = {
         label: 'Code signing',
         title: 'Verify the release, not the promise',
         points: [
-          'Windows production signing is unavailable; the SignPath Foundation application follows the planned public unsigned Runtime bootstrap.',
+          'The public unsigned Runtime bootstrap is available at v0.2.2-preview.1; the SignPath Foundation application has not yet been submitted.',
           'No current Nimi artifact should be treated as SignPath-signed without valid Authenticode verification.',
         ],
       },
@@ -486,15 +487,16 @@ export const landingContentEn: LandingContent = {
     statuses: [
       {
         label: 'Windows',
-        value: 'Windows signed RC and Stable pending production code signing',
+        value: 'Unsigned Runtime bootstrap v0.2.2-preview.1 available; signed RC and Stable pending',
       },
       {
         label: 'SignPath Foundation',
-        value: 'Application not yet submitted; planned after unsigned bootstrap',
+        value: 'Application not submitted; bootstrap prerequisite published',
       },
     ],
     links: [
       { label: 'Download', detail: 'Stable and unsigned-preview status', href: '/download' },
+      { label: 'Unsigned Runtime preview', detail: 'v0.2.2-preview.1 · not promotable', href: 'https://github.com/nimiplatform/nimi/releases/tag/v0.2.2-preview.1' },
       { label: 'Code signing policy', detail: 'Scope, controls, and verification', href: '/code-signing' },
       { label: 'Source code', detail: 'github.com/nimiplatform/nimi', href: 'https://github.com/nimiplatform/nimi' },
       { label: 'Documentation', detail: 'docs.nimi.ai', href: 'https://docs.nimi.ai' },

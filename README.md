@@ -43,12 +43,10 @@ what Realm says.
 
 **Windows production signing is pending.** Windows is not yet available as a
 production download, and no current Nimi Windows artifact should be treated as
-production signed or SignPath-signed. The SignPath Foundation application is
-waiting for the required public unsigned bootstrap release; local development
-self-signing is never a production-signing claim.
-An explicitly unsigned bootstrap preview does not require a production signer,
-but it is not publicly available until its reviewed workflow has completed and
-the immutable GitHub prerelease is visible.
+production signed or SignPath-signed. The required unsigned bootstrap is now
+public in the immutable [v0.2.2-preview.1 prerelease](https://github.com/nimiplatform/nimi/releases/tag/v0.2.2-preview.1),
+but the SignPath Foundation application has not yet been submitted. Local
+development self-signing is never a production-signing claim.
 
 The Download and Code signing policy links above are the live canonical public
 routes. Changes in a source checkout do not change those pages until the website
@@ -57,20 +55,20 @@ is deployed.
 Unsigned previews, when published, use immutable `vX.Y.Z-preview.N` GitHub
 prereleases and are marked **UNSIGNED PREVIEW — NOT PROMOTABLE**. They do not
 update stable `latest`, publish registries, or become RC/Stable assets. The
-current developer-preview scope is a Windows source-local Kit package and a
-repo-assisted macOS candidate; it includes no standalone Runtime archive,
-Windows installer, or Linux asset. The next reviewed preview workflow is planned
-to add a portable unsigned Windows x64 Runtime archive containing `nimi.exe`,
-its Apache-2.0 license, and explicit bootstrap instructions. Until that workflow
-runs externally, this is a release plan rather than a downloadable artifact.
+current `v0.2.2-preview.1` scope is a Windows source-local Kit package, a
+repo-assisted macOS candidate, and a portable unsigned Windows x64 Runtime ZIP;
+it includes no Nimi Home installer or Linux asset. Download the exact
+[Runtime bootstrap ZIP](https://github.com/nimiplatform/nimi/releases/download/v0.2.2-preview.1/Nimi-Runtime-v0.2.2-preview.1-windows-x64-unsigned-bootstrap.zip)
+only from that prerelease.
 
 The portable bootstrap is not an installer or protected Runtime service: use it
 by extracting the archive and running `.\nimi.exe version --json`, then remove
 it by closing the process and deleting the extracted directory. It does not
 create a service, modify `PATH`, write Program Files or ProgramData, or install a
-certificate. After that unsigned release exists, the project can apply to
-SignPath Foundation. Approval and a SignPath-provided certificate then precede
-the first formally signed Windows x64 Runtime and the leaf certificate
+certificate. With that unsigned release now public, the project can apply to
+SignPath Foundation; submitting the application is the next separate owner
+action. Approval and a
+SignPath-provided certificate then precede the first formally signed Windows x64 Runtime and the leaf certificate
 SubjectPublicKeyInfo (SPKI) SHA-256 consumed by the protected-local package.
 Preview bytes are never promoted or retrospectively described as signed.
 
