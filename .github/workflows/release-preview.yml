@@ -184,7 +184,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $version = "$env:RELEASE_VERSION-preview.$env:PREVIEW_NUMBER"
-          pnpm build:windows-runtime-unsigned-bootstrap -- --version $version
+          pnpm build:windows-runtime-unsigned-bootstrap --version $version
           if ($LASTEXITCODE -ne 0) { throw 'unsigned Windows Runtime bootstrap build failed' }
 
       - name: Describe explicit unsigned Windows developer preview
