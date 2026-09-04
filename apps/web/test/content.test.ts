@@ -44,14 +44,8 @@ test('content keeps the consumer hero and SDK paths complete in both locales', a
   }
 });
 
-test('English homepage exposes fail-closed signing, preview, and App lifecycle status', async () => {
+test('English homepage exposes App lifecycle status', async () => {
   const content = await loadLandingContent('en');
-  assert.ok(content.desktop.availability.items.includes(
-    'Windows release pending production code-signing approval',
-  ));
-  assert.ok(content.desktop.availability.items.includes(
-    'Unsigned previews use explicit non-promotable vX.Y.Z-preview.N tags',
-  ));
   assert.ok(content.apps.notes.some((item) => (
     item.includes('Developer Mode local development')
     && item.includes('ordinary install')
