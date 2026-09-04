@@ -108,7 +108,6 @@ type RegisterInstalledInput struct {
 	SourceRef                  string
 	ProjectRoot                string
 	ManifestPath               string
-	ShellKind                  int32
 	RawDeclaration             []string
 	SourceClass                SourceClass
 	ImmutableLineageID         string
@@ -142,8 +141,11 @@ func validateDevelopmentInput(input RegisterDevelopmentInput) error {
 	if err := validateOptionalRegistrationHandle(input.ExistingRegistrationHandle); err != nil {
 		return err
 	}
+	if input.ShellKind <= 0 {
+		return fmt.Errorf("%w: shell_kind", ErrInvalidArgument)
+	}
 	return validateRegistrationInput(input.AppID, input.DisplayName, input.SourceRef, input.ProjectRoot,
-		input.ManifestPath, input.ShellKind, input.HostExecutableDigest)
+		input.ManifestPath, input.HostExecutableDigest)
 }
 
 func validateInstalledInput(input RegisterInstalledInput) error {
@@ -157,7 +159,7 @@ func validateInstalledInput(input RegisterInstalledInput) error {
 		return fmt.Errorf("%w: source_class", ErrInvalidArgument)
 	}
 	if err := validateRegistrationInput(input.AppID, input.DisplayName, input.SourceRef, input.ProjectRoot,
-		input.ManifestPath, input.ShellKind, input.HostExecutableDigest); err != nil {
+		input.ManifestPath, input.HostExecutableDigest); err != nil {
 		return err
 	}
 	for name, value := range map[string]string{
@@ -202,7 +204,7 @@ func validateOptionalRegistrationHandle(handle string) error {
 	return requireExactText("existing_registration_handle", handle)
 }
 
-func validateRegistrationInput(appID, displayName, sourceRef, projectRoot, manifestPath string, shellKind int32, hostExecutableDigest string) error {
+func validateRegistrationInput(appID, displayName, sourceRef, projectRoot, manifestPath string, hostExecutableDigest string) error {
 	for name, value := range map[string]string{
 		"app_id":                 appID,
 		"display_name":           displayName,
@@ -214,9 +216,6 @@ func validateRegistrationInput(appID, displayName, sourceRef, projectRoot, manif
 		if err := requireExactText(name, value); err != nil {
 			return err
 		}
-	}
-	if shellKind <= 0 {
-		return fmt.Errorf("%w: shell_kind", ErrInvalidArgument)
 	}
 	return nil
 }

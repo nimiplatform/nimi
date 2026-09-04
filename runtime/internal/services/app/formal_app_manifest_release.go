@@ -142,14 +142,13 @@ func loadManifestFormalAppRelease(releaseRoot string, manifestPath string) (Form
 	_, _ = sourceHash.Write([]byte{0})
 	_, _ = sourceHash.Write(manifestDigest[:])
 	_, _ = sourceHash.Write(payloadDigest[:])
-	executionProfileDigest := sha256.Sum256([]byte("nimi.formal-app-execution-profile.v1\x00shell-kind:1"))
+	executionProfileDigest := sha256.Sum256([]byte("nimi.formal-app-execution-profile.v1\x00runtime-kind:native"))
 	return FormalAppRelease{
 		AppID:                     appID,
 		DisplayName:               displayName,
 		SourceRef:                 "platform-app:" + appID,
 		InstallRoot:               canonicalRoot,
 		ManifestRef:               canonicalManifest,
-		ShellKind:                 1,
 		Declaration:               append([]string(nil), (*manifest.AppAccess)...),
 		ImmutableLineageID:        "ail_v1_" + base64.RawURLEncoding.EncodeToString(sourceHash.Sum(nil)),
 		ProvenanceAttestationRefs: []string{"paa_v1_" + base64.RawURLEncoding.EncodeToString(manifestDigest[:])},

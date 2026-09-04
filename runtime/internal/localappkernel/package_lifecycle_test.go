@@ -282,7 +282,7 @@ func verifiedRegistrationInput(lineage string, provenanceRevision uint64) Regist
 	return RegisterInstalledInput{
 		AppID: "nimi.example", DisplayName: "Example", SourceClass: SourceClassVerified,
 		SourceRef: "platform-app:nimi.example", ProjectRoot: "C:/Program Files/Nimi Apps/Example",
-		ManifestPath: "C:/Program Files/Nimi Apps/Example/nimi.app.yaml", ShellKind: 1,
+		ManifestPath:   "C:/Program Files/Nimi Apps/Example/nimi.app.yaml",
 		RawDeclaration: []string{"runtime.consume"}, ImmutableLineageID: lineage,
 		ProvenanceAttestationRefs: []string{"attestation:" + lineage}, ProvenanceRevision: provenanceRevision,
 		ExecutionProfileRef: "execution:electron", HostExecutableDigest: "host:" + lineage,
