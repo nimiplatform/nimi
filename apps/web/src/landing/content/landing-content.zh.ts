@@ -7,8 +7,8 @@ export const landingPositioningZh = {
     subtitle: '在 Nimi 中对话、创作和探索，让你的对话、角色、作品与世界，在同一个地方自然延续。',
   },
   desktop: {
-    title: 'Nimi，离你更近。',
-    description: '把你的对话、创作、角色与世界带到同一个流畅的桌面体验中。',
+    title: '你的 AI 之家。',
+    description: '看状态、接着聊、管模型、开应用——都从 Nimi Home 开始。',
   },
 } as const;
 
@@ -34,48 +34,48 @@ export const landingContentZh: LandingContent = {
     proofPoints: ['开源', '本地优先', '自由选择 AI'],
   },
   experiences: {
-    eyebrow: '你可以这样用 Nimi',
-    title: '聊天、创作，或者去新的世界看看。',
+    eyebrow: '不止一次对话',
+    title: '它记得你，也有自己的节奏。',
     subtitle:
-      '继续上次的对话，把灵感做成图片、视频和声音，或者选一个世界，体验新的故事。想做什么，都可以从这里开始。',
+      '对话会延续，记忆由你管理。开启主动陪伴，它也会先来找你。',
     cards: [
       {
-        id: 'talk',
-        label: '对话',
-        title: '下次见面，接着聊',
+        id: 'conversation',
+        label: '对话延续',
+        title: '聊过的，不必重来',
         description:
-          '角色设定和对话中的重要内容都会保留下来。不管是打字还是语音，下次回来都不用再把背景从头说一遍。',
-        scenario: '昨天没聊完的话题，今天打开就能继续。',
+          '每个伙伴都保留自己的对话。回来就从上次继续。',
+        scenario: '不用一次次从“你好”开始。',
         points: [
-          '保留角色设定与重要记忆',
-          '支持文字和语音',
-          '本地和云端 AI 都能用',
+          '回看过往对话',
+          '沿已有上下文继续',
+          '支持文字与语音',
         ],
       },
       {
-        id: 'create',
-        label: '创作',
-        title: '把想法一步步做出来',
+        id: 'memory',
+        label: '记忆管理',
+        title: '记住什么，你说了算',
         description:
-          '先确定角色的形象、声音和风格，再用你选择的 AI 生成图片、视频、语音或音乐。',
-        scenario: '从一段故事开始，再补上画面、配音和音乐。',
+          '开启记忆后，你可以查看、纠正，或让它忘记。',
+        scenario: '记错了，就改；不想留，就删。',
         points: [
-          '支持图片、视频、语音和音乐',
-          '围绕同一角色继续创作',
-          '自由选择 AI 服务',
+          '查看当前记忆',
+          '纠正错误信息',
+          '忘记单条或清空全部',
         ],
       },
       {
-        id: 'explore',
-        label: '探索',
-        title: '进入不同的世界',
+        id: 'proactive-companion',
+        label: '主动陪伴',
+        title: '这一次，让它先开口',
         description:
-          '每个世界都有自己的设定、角色和故事。你可以自由探索，认识新的角色，看看故事会怎样发展。',
-        scenario: '选一个感兴趣的世界，先认识一个新角色。',
+          '开启主动陪伴并保持 Nimi 运行，它会按你的设置主动联系你。',
+        scenario: '想安静时，随时暂停。',
         points: [
-          '多种主题和世界设定',
-          '认识不同性格的角色',
-          '按自己的方式体验故事',
+          '主动程度可调',
+          '久未互动时主动问候',
+          '每日与单次用量可控',
         ],
       },
     ],
@@ -130,10 +130,9 @@ export const landingContentZh: LandingContent = {
     },
   },
   modelCatalog: {
-    kicker: '你的 AI，你来选',
-    title: '和你已经在用的 AI 一起工作。',
+    title: '你的 AI，你来选',
     subtitle:
-      'Nimi 用同一套能力语言工作，由 Runtime 把每次请求路由到你选择的提供商：几十家云服务，或你自己设备上的模型。',
+      '云端模型，本地模型——想用哪个，随时换',
     overview: {
       searchPlaceholder: '搜索提供商与能力',
       cloudProvidersLabel: '云提供商',
@@ -332,22 +331,14 @@ export const landingContentZh: LandingContent = {
     features: [
       {
         icon: 'dashboard',
-        title: '一眼看清全局',
-        description: '活跃会话、AI 用量和设备负载，都在同一个视图里。',
+        title: '状态与用量，一眼看清',
+        description: '查看运行状态和 AI 用量；异常也会明确提示。',
       },
-      { icon: 'chat', title: '内置聊天', description: '在同一个窗口里和人、AI 助手和 Nimi 智能体对话。' },
-      { icon: 'models', title: '本地 AI 管理', description: '在一处安装和更新设备上的 AI 模型。' },
-      { icon: 'apps', title: '应用都在一处', description: '在同一个工作区打开可用的 Nimi App 和已连接的本地应用。' },
+      { icon: 'chat', title: '想聊的，直接开聊', description: '和朋友聊天，也和 AI 伙伴继续对话。' },
+      { icon: 'models', title: '本地模型，自己掌握', description: '浏览、安装或导入本地模型。' },
+      { icon: 'apps', title: 'Nimi App，从这里开', description: '打开当前可用的 App，也能连接本地开发项目。' },
     ],
     downloadCta: '查看下载状态',
-    availability: {
-      eyebrow: '发布状态',
-      items: [
-        'Windows release 正等待 production code-signing approval',
-        'Unsigned preview 只使用不可晋升的 vX.Y.Z-preview.N 显式 tag',
-        '目前没有已发布的 Nimi 稳定版',
-      ],
-    },
   },
   apps: {
     eyebrow: 'Nimi Apps',

@@ -132,10 +132,9 @@ export const landingContentEn: LandingContent = {
     },
   },
   modelCatalog: {
-    kicker: 'Your AI, your choice',
-    title: 'Works with the AI you already use.',
+    title: 'Your AI, your choice',
     subtitle:
-      'Nimi speaks one capability language; Runtime routes each request to the provider you choose—dozens of cloud services, or models running on your own device.',
+      'Cloud models, local models—use whichever you like, switch anytime',
     overview: {
       searchPlaceholder: 'Search providers and capabilities',
       cloudProvidersLabel: 'Cloud providers',
@@ -370,14 +369,6 @@ export const landingContentEn: LandingContent = {
       },
     ],
     downloadCta: 'View download status',
-    availability: {
-      eyebrow: 'Release status',
-      items: [
-        'Windows release pending production code-signing approval',
-        'Unsigned previews use explicit non-promotable vX.Y.Z-preview.N tags',
-        'No stable Nimi release is currently published',
-      ],
-    },
   },
   apps: {
     eyebrow: 'Nimi Apps',
