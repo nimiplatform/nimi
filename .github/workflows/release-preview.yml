@@ -478,9 +478,9 @@ jobs:
       - name: Verify ad-hoc identity and exercise install lifecycle
         env:
           PREVIEW_TAG: ${{ needs.gate.outputs.preview_tag }}
-          RELEASE_VERSION: ${{ inputs.release_version }}
         run: |
           set -euo pipefail
+          desktop_version="$(node -p "JSON.parse(require('node:fs').readFileSync('apps/desktop/package.json','utf8')).version")"
           asset_root="dist/release-preview/macos"
           test "$(head -n 1 "${asset_root}/UNSIGNED-PREVIEW-macos.txt")" = 'UNSIGNED PREVIEW — NOT PROMOTABLE'
           grep -F 'repo-assisted developer candidate, not a standalone installer' "${asset_root}/UNSIGNED-PREVIEW-macos.txt"
@@ -500,13 +500,13 @@ jobs:
           identity="$(/usr/bin/codesign -dvvv "${app}" 2>&1)"
           grep -F 'Signature=adhoc' <<<"${identity}"
           grep -F 'TeamIdentifier=not set' <<<"${identity}"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${app}/Contents/Info.plist")" = "${RELEASE_VERSION}"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${app}/Contents/Info.plist")" = "${desktop_version}"
           runtime="${candidate}/runtime/bin/nimi-runtime"
           test -x "${runtime}"
           runtime_json="$("${runtime}" version --json)"
-          RUNTIME_JSON="${runtime_json}" node <<'NODE'
+          DESKTOP_VERSION="${desktop_version}" RUNTIME_JSON="${runtime_json}" node <<'NODE'
           const value = JSON.parse(process.env.RUNTIME_JSON);
-          if (value.nimi !== process.env.RELEASE_VERSION || value.osArch !== 'darwin/arm64') {
+          if (value.nimi !== process.env.DESKTOP_VERSION || value.osArch !== 'darwin/arm64') {
             throw new Error(`macOS preview Runtime identity mismatch: ${JSON.stringify(value)}`);
           }
           NODE
