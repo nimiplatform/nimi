@@ -373,7 +373,7 @@ export const landingContentEn: LandingContent = {
     availability: {
       eyebrow: 'Release status',
       items: [
-        'Windows release pending production code-signing approval',
+        'Windows signed RC and Stable pending production code signing',
         'Unsigned previews use explicit non-promotable vX.Y.Z-preview.N tags',
         'No stable Nimi release is currently published',
       ],
@@ -478,7 +478,7 @@ export const landingContentEn: LandingContent = {
         label: 'Code signing',
         title: 'Verify the release, not the promise',
         points: [
-          'Windows production signing and the SignPath Foundation application are pending.',
+          'Windows production signing is unavailable; the SignPath Foundation application follows the planned public unsigned Runtime bootstrap.',
           'No current Nimi artifact should be treated as SignPath-signed without valid Authenticode verification.',
         ],
       },
@@ -486,11 +486,11 @@ export const landingContentEn: LandingContent = {
     statuses: [
       {
         label: 'Windows',
-        value: 'Windows release pending production code-signing approval',
+        value: 'Windows signed RC and Stable pending production code signing',
       },
       {
         label: 'SignPath Foundation',
-        value: 'SignPath Foundation application pending',
+        value: 'Application not yet submitted; planned after unsigned bootstrap',
       },
     ],
     links: [

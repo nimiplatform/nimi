@@ -38,36 +38,62 @@ test('download copy separates stable, unsigned preview, and signed RC paths', ()
 
   const windows = page.platforms.find((item) => item.name === 'Windows');
   assert.match(windows?.detail ?? '', /does not contain a Nimi app, Runtime archive, installer, or Windows service/);
+  assert.match(windows?.detail ?? '', /not a published fact until the workflow runs externally/);
   const macos = page.platforms.find((item) => item.name === 'macOS');
   assert.match(macos?.detail ?? '', /ad-hoc candidate/);
   assert.match(macos?.detail ?? '', /exact source checkout/);
   const linux = page.platforms.find((item) => item.name === 'Linux');
   assert.match(linux?.detail ?? '', /no Linux Runtime archive/);
-  assert.match(page.verification.paragraphs.join('\n'), /no Runtime archive/);
+  assert.match(page.verification.paragraphs.join('\n'), /no standalone Runtime archive/);
+  assert.match(page.verification.paragraphs.join('\n'), /no downloadable Windows Runtime bootstrap/);
   assert.match(page.verification.paragraphs.join('\n'), /does not claim a checksum or SBOM/);
   assert.match(page.verification.paragraphs.join('\n'), /complete MIT and Apache-2\.0 texts/);
   assert.match(page.systemChanges.paragraphs.join('\n'), /_nimiruntimedev/);
   assert.match(page.systemChanges.paragraphs.join('\n'), /nimi-macos-dev-security\.lock/);
   assert.match(page.uninstall.paragraphs.join('\n'), /accept-runtime-fixed-service\.mjs --uninstall/);
+  assert.match(page.uninstall.paragraphs.join('\n'), /delete the extracted directory/);
 });
 
 test('code signing copy names current blockers without claiming SignPath approval', () => {
   const page = PUBLIC_PAGE_CONTENT.en.policy;
   const serialized = JSON.stringify(page);
-  assert.match(serialized, /Pending SignPath Foundation approval/);
+  assert.match(serialized, /SignPath Foundation application preparation/);
   assert.match(serialized, /There is no production-signed Windows release/);
-  assert.match(serialized, /application is pending/);
+  assert.match(serialized, /application awaits the required public unsigned Runtime bootstrap release/);
+  assert.match(serialized, /application has not yet been submitted/);
+  assert.doesNotMatch(serialized, /application pending/i);
   assert.match(serialized, /GitHub Actions is the only production build system/);
   assert.match(serialized, /vX\.Y\.Z-preview\.N/);
   assert.match(serialized, /never a promotion input/);
   assert.match(serialized, /expected to report NotSigned/);
-  assert.match(serialized, /nimi\.exe for Windows amd64 and arm64/);
-  assert.match(serialized, /win32-x64 Node \.node binary/);
+  assert.match(serialized, /initial SignPath application scope is one Nimi-owned Windows x64 Runtime executable named nimi\.exe/);
+  assert.match(serialized, /Authenticode on that \.node file is not a Phase 4A release gate/);
+  assert.match(serialized, /never signs a third-party App or upstream binary/);
+  assert.match(serialized, /first publish the reviewed unsigned Windows x64 Runtime preview; then apply to SignPath Foundation/);
+  assert.doesNotMatch(serialized, /Runtime executables named nimi\.exe for amd64 and arm64/);
   assert.match(serialized, /no complete product uninstall path|no admitted production uninstall flow/i);
-  assert.match(serialized, /production SignPath signing, post-signature verification and repackaging gates are not integrated/);
+  assert.match(serialized, /SignPath approval, production signing, post-signature verification, and repackaging are not integrated/);
   assert.match(serialized, /repair-local-agent-chat\.exe/);
   assert.match(serialized, /restricted service SID/);
   assert.doesNotMatch(serialized, /SignPath (has|is) approved/i);
+});
+
+test('pre-publication copy keeps the planned Runtime bootstrap distinct from current release fact', () => {
+  for (const locale of ['en', 'zh'] as const) {
+    const copy = PUBLIC_PAGE_CONTENT[locale];
+    const download = JSON.stringify(copy.download);
+    const policy = JSON.stringify(copy.policy);
+    assert.match(download, /source-local Kit/);
+    assert.match(download, /workflow/);
+    assert.match(download, /version --json/);
+    assert.match(download, /delete the extracted directory|删除解压目录/u);
+    assert.match(policy, /Windows x64 Runtime/);
+    assert.match(policy, /Phase 4A/);
+    assert.match(policy, /third-party App|第三方 App/u);
+    assert.match(policy, /SubjectPublicKeyInfo/);
+    assert.match(policy, /SPKI/);
+    assert.doesNotMatch(policy, /current admitted Windows release scope|当前准入的 Windows release 签名范围/u);
+  }
 });
 
 test('clean public routes have route declarations, crawlable metadata, and sitemap entries', () => {

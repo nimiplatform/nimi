@@ -39,6 +39,7 @@
     "tauriCliVersion": "^2.11.4",
     "yamlVersion": "^2.9.0",
     "nimiShellTauriVersion": "0.2.1",
+    "electronPackagerVersion": "^20.3.0",
     "electronVersion": "^42.10.1",
     "esbuildVersion": "^0.28.2",
     "packageManager": "pnpm@10.34.5"

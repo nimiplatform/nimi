@@ -107,7 +107,7 @@ const goBuildArguments = ['build'];
 if (windowsSignerIdentity) {
   goBuildArguments.push(
     '-ldflags',
-    `-X github.com/nimiplatform/nimi/runtime/internal/protectedlocal.WindowsProductionSignerCertSHA256=${windowsSignerIdentity.certificateSha256}`,
+    `-X github.com/nimiplatform/nimi/runtime/internal/protectedlocal.WindowsProductionSignerSPKISHA256=${windowsSignerIdentity.spkiSha256}`,
   );
 }
 goBuildArguments.push('-o', outputPath, './cmd/nimi');
@@ -131,8 +131,11 @@ try {
   assertWindowsRuntimeBinaryNotRunning(outputPath);
   if (process.platform === 'win32') {
     const payload = signWindowsDevFiles([outputPath], { cwd: repoRoot });
-    if (payload.certificateSha256 !== windowsSignerIdentity.certificateSha256) {
-      throw new Error('build-time Runtime signer identity changed before signing');
+    if (
+      payload.certificateSha256 !== windowsSignerIdentity.certificateSha256
+      || payload.spkiSha256 !== windowsSignerIdentity.spkiSha256
+    ) {
+      throw new Error('build-time Runtime signer certificate or SPKI identity changed before signing');
     }
     assertRuntimeBuildSourceUnchanged(buildSource, repoRoot, { pathspecs: WINDOWS_RUNTIME_BUILD_SOURCE_PATHS });
     const buildRecord = createRuntimeBuildRecord({

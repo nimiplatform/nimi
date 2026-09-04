@@ -131,6 +131,12 @@ jobs:
           node-version: 24
           package-manager-cache: false
 
+      - name: Setup Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: runtime/go.mod
+          cache: false
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
         with:
@@ -170,6 +176,17 @@ jobs:
           $target = Join-Path $outputRoot "nimi-kit-protected-local-win32-x64-source-local-$env:PREVIEW_TAG-unsigned-preview.tgz"
           Move-Item -LiteralPath $packed -Destination $target
 
+      - name: Build portable unsigned Windows Runtime bootstrap
+        shell: pwsh
+        env:
+          PREVIEW_NUMBER: ${{ inputs.preview_number }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = "$env:RELEASE_VERSION-preview.$env:PREVIEW_NUMBER"
+          pnpm build:windows-runtime-unsigned-bootstrap -- --version $version
+          if ($LASTEXITCODE -ne 0) { throw 'unsigned Windows Runtime bootstrap build failed' }
+
       - name: Describe explicit unsigned Windows developer preview
         shell: pwsh
         env:
@@ -183,9 +200,10 @@ jobs:
           tag=$env:PREVIEW_TAG
           commit=$env:COMMIT_SHA
           platform=windows/x64
-          This developer preview contains only the source-local Kit native package.
-          It does not contain a Nimi app, Runtime archive, installer, or Windows service package.
-          Its native PE file intentionally has no Authenticode signature.
+          This developer preview contains a portable unsigned Nimi Runtime bootstrap archive
+          and the source-local Kit native package. It contains no Nimi Desktop App, installer,
+          or Windows service package, and protected-local production remains unavailable.
+          Both Windows PE files intentionally have no Authenticode signature.
           The source-local package must not be published to npm.
           "@ | Set-Content -LiteralPath (Join-Path $outputRoot 'UNSIGNED-PREVIEW-windows.txt') -Encoding utf8NoBOM
 
@@ -213,12 +231,14 @@ jobs:
           name: ${{ needs.gate.outputs.windows_artifact }}
           path: dist/release-preview/windows
 
-      - name: Install, require, and uninstall Windows developer package
+      - name: Validate portable Runtime and native developer package
         shell: pwsh
         env:
           PREVIEW_NUMBER: ${{ inputs.preview_number }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
         run: |
           $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $false
           $assetRoot = Resolve-Path 'dist\release-preview\windows'
           $marker = Get-Content -LiteralPath (Join-Path $assetRoot 'UNSIGNED-PREVIEW-windows.txt') -TotalCount 1
           if ($marker -ne 'UNSIGNED PREVIEW — NOT PROMOTABLE') { throw 'unsigned Windows marker is missing' }
@@ -226,6 +246,87 @@ jobs:
           $nativeTarball = @(Get-ChildItem -LiteralPath $assetRoot -File -Filter '*-source-local-*-unsigned-preview.tgz')
           if ($nativeTarball.Count -ne 1) {
             throw 'Windows preview asset set is incomplete or ambiguous'
+          }
+
+          $runtimeArchive = @(Get-ChildItem -LiteralPath $assetRoot -File -Filter 'Nimi-Runtime-*-windows-x64-unsigned-bootstrap.zip')
+          if ($runtimeArchive.Count -ne 1) {
+            throw 'Windows Runtime bootstrap asset set is incomplete or ambiguous'
+          }
+
+          $runtimeExtractRoot = Join-Path $env:RUNNER_TEMP 'nimi-unsigned-runtime-bootstrap'
+          if (Test-Path -LiteralPath $runtimeExtractRoot) {
+            Remove-Item -LiteralPath $runtimeExtractRoot -Recurse -Force
+          }
+          Expand-Archive -LiteralPath $runtimeArchive[0].FullName -DestinationPath $runtimeExtractRoot
+          $runtimeExecutable = Join-Path $runtimeExtractRoot 'nimi.exe'
+          $runtimeLicense = Join-Path $runtimeExtractRoot 'LICENSE'
+          $runtimeMarker = Join-Path $runtimeExtractRoot 'UNSIGNED-BOOTSTRAP-windows.txt'
+          foreach ($required in @($runtimeExecutable, $runtimeLicense, $runtimeMarker)) {
+            if (-not (Test-Path -LiteralPath $required -PathType Leaf)) {
+              throw "Windows Runtime bootstrap is missing $required"
+            }
+          }
+          $runtimeEntries = @((Get-ChildItem -LiteralPath $runtimeExtractRoot -Force).Name | Sort-Object)
+          if (($runtimeEntries -join "`n") -ne (('LICENSE', 'nimi.exe', 'UNSIGNED-BOOTSTRAP-windows.txt' | Sort-Object) -join "`n")) {
+            throw "Windows Runtime bootstrap contains unexpected files: $($runtimeEntries -join ', ')"
+          }
+          $runtimeSignature = Get-AuthenticodeSignature -LiteralPath $runtimeExecutable
+          if ($runtimeSignature.Status -ne 'NotSigned' -or
+              $runtimeSignature.SignatureType -ne 'None' -or
+              $null -ne $runtimeSignature.SignerCertificate) {
+            throw 'Windows Runtime bootstrap unexpectedly has an Authenticode signer'
+          }
+          $expectedVersion = "$($env:RELEASE_VERSION)-preview.$($env:PREVIEW_NUMBER)"
+          $expectedFileVersion = "$($env:RELEASE_VERSION).$($env:PREVIEW_NUMBER)"
+          $runtimeItem = Get-Item -LiteralPath $runtimeExecutable
+          if ($runtimeItem.VersionInfo.ProductName -ne 'Nimi' -or
+              $runtimeItem.VersionInfo.ProductVersion -ne $expectedVersion -or
+              $runtimeItem.VersionInfo.FileVersion -ne $expectedFileVersion -or
+              $runtimeItem.VersionInfo.OriginalFilename -ne 'nimi.exe') {
+            throw 'Windows Runtime bootstrap version metadata is invalid'
+          }
+          $runtimeVersion = & $runtimeExecutable version --json | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0 -or
+              $runtimeVersion.nimi -ne $expectedVersion -or
+              $runtimeVersion.osArch -ne 'windows/amd64') {
+            throw 'Windows Runtime bootstrap reported the wrong executable identity'
+          }
+          $usageOutput = (& $runtimeExecutable 2>&1 | Out-String)
+          $usageExit = $LASTEXITCODE
+          if ($usageExit -ne 2 -or $usageOutput -notmatch 'Usage: nimi <command>') {
+            throw 'Windows Runtime bootstrap usage surface is unavailable'
+          }
+          $serviceBefore = ConvertTo-Json -Compress -InputObject @(
+            Get-CimInstance Win32_Service -Filter "Name='NimiRuntime'" -ErrorAction SilentlyContinue |
+              Select-Object Name, State, StartMode, PathName
+          )
+          $serveOutput = (& $runtimeExecutable serve 2>&1 | Out-String)
+          $serveExit = $LASTEXITCODE
+          if ($serveExit -eq 0 -or
+              $serveOutput -notmatch 'PROTECTED_LOCAL_RUNTIME_PRINCIPAL_REQUIRED' -or
+              $serveOutput -notmatch 'fixed Windows service') {
+            throw 'Unsigned Runtime bootstrap did not keep protected production startup unavailable'
+          }
+          $serviceAfter = ConvertTo-Json -Compress -InputObject @(
+            Get-CimInstance Win32_Service -Filter "Name='NimiRuntime'" -ErrorAction SilentlyContinue |
+              Select-Object Name, State, StartMode, PathName
+          )
+          if ($serviceAfter -ne $serviceBefore) {
+            throw 'Unsigned Runtime bootstrap changed NimiRuntime service state'
+          }
+          $runtimeLicenseText = Get-Content -LiteralPath $runtimeLicense -Raw
+          if (-not $runtimeLicenseText.Contains('Apache License') -or
+              -not $runtimeLicenseText.Contains('Version 2.0, January 2004')) {
+            throw 'Windows Runtime bootstrap does not contain the complete Apache-2.0 license'
+          }
+          $runtimeMarkerText = Get-Content -LiteralPath $runtimeMarker -Raw
+          if (-not $runtimeMarkerText.Contains('NOT PROMOTABLE') -or
+              -not $runtimeMarkerText.Contains('Production protected-local startup remains unavailable.')) {
+            throw 'Windows Runtime bootstrap marker is incomplete'
+          }
+          Remove-Item -LiteralPath $runtimeExtractRoot -Recurse -Force
+          if (Test-Path -LiteralPath $runtimeExtractRoot) {
+            throw 'Windows Runtime bootstrap remains after portable removal'
           }
 
           $smokeRoot = Join-Path $env:RUNNER_TEMP 'nimi-unsigned-preview-native-install'
@@ -495,15 +596,25 @@ jobs:
           test -s "${output_root}/UNSIGNED-PREVIEW-windows.txt"
           test -s "${output_root}/UNSIGNED-PREVIEW-macos.txt"
           test -n "$(find "${output_root}" -maxdepth 1 -type f -name '*-macos-arm64-unsigned-preview.zip' -print -quit)"
+          test -n "$(find "${output_root}" -maxdepth 1 -type f -name 'Nimi-Runtime-*-windows-x64-unsigned-bootstrap.zip' -print -quit)"
           test -n "$(find "${output_root}" -maxdepth 1 -type f -name '*-source-local-*-unsigned-preview.tgz' -print -quit)"
           cat > "${RUNNER_TEMP}/unsigned-preview-notes.md" <<EOF
           UNSIGNED PREVIEW — NOT PROMOTABLE
 
           This immutable developer preview was built from ${COMMIT_SHA} and accepted on Windows x64 and macOS arm64.
-          Windows contains only the source-local Kit package; it includes no Nimi app, Runtime archive, installer, or service. Its native PE is intentionally not Authenticode signed.
+          Windows contains a portable Nimi Runtime bootstrap archive and the source-local Kit developer package. Their PE files are intentionally not Authenticode signed. The bootstrap is not Nimi Desktop, an installer, a Windows service, a protected-local production release, or third-party App Registry admission.
+          To use the Windows Runtime bootstrap, extract the ZIP and run .\\nimi.exe version --json. To remove it, close any running nimi.exe process and delete the extracted directory. It does not install a service, modify PATH, write Program Files or ProgramData, or install a certificate.
           macOS contains an ad-hoc repo-assisted candidate with no TeamIdentifier. It requires the exact source checkout for installation and uninstallation; see UNSIGNED-PREVIEW-macos.txt.
-          Linux has no preview asset. No standalone or portable Runtime archive is included on any platform.
+          Linux has no preview asset.
           These assets are not an RC, cannot be promoted to Stable, do not update latest, and are not published to npm, crates.io, or buf.build.
+
+          The SignPath Foundation application has not yet been submitted. It is planned after this public bootstrap release. No asset in this release is SignPath-signed.
+          Planned attribution after approval: Free code signing provided by SignPath.io, certificate by SignPath Foundation.
+          Nimi project and functionality: https://nimi.ai/
+          Download status: https://nimi.ai/download
+          Code signing policy: https://nimi.ai/code-signing
+          Privacy: https://nimi.ai/privacy
+          Source and license: https://github.com/nimiplatform/nimi/blob/${COMMIT_SHA}/LICENSE
           EOF
 
       - name: Require unused immutable preview tag and release

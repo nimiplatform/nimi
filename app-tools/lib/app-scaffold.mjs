@@ -19,6 +19,8 @@ import {
   SUPPORTED_APP_SCAFFOLD_PROFILES,
   buildDefaultStarterFiles,
 } from './app-scaffold-profiles.mjs';
+
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-009b
 export { SUPPORTED_APP_SCAFFOLD_PROFILES };
 const DEFAULT_APP_ID = 'my.nimi-app';
 const DEFAULT_APP_TITLE = 'My Nimi App';
@@ -35,6 +37,7 @@ const GENERATED_GITIGNORE = [
   'node_modules/',
   'dist/',
   'dist-electron/',
+  'dist-electron-package/',
   'src-tauri/target/',
   '.env.local',
   '.env.*.local',
@@ -151,13 +154,11 @@ const APP_RELEASE_WORKFLOW = [
   '          NIMI_APP_TARGET: ${{ matrix.target }}',
   '        shell: pwsh',
   '        run: pnpm exec nimi-app build --target $env:NIMI_APP_TARGET',
-  '      - name: Build and sign production target',
+  '      - name: Build production target',
   "        if: github.event_name == 'push' && github.ref_type == 'tag'",
   '        env:',
   '          NIMI_APP_TARGET: ${{ matrix.target }}',
   '          NIMI_APP_PRODUCTION: true',
-  '          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}',
-  '          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}',
   '        shell: pwsh',
   '        run: pnpm exec nimi-app build --target $env:NIMI_APP_TARGET --production',
   '      - name: Require build to preserve the tracked source tree',
@@ -539,6 +540,7 @@ export function resolveAppScaffoldCandidateCreateInput(input) {
 function buildPackageJson(profile, versions, identity) {
   const dependencies = buildRuntimeDependencies(profile, versions, identity.capabilityResolution);
   const devDependencies = {
+    '@electron/packager': versions.electronPackagerVersion,
     '@nimiplatform/app-tools': versions.appToolsVersion,
     '@nimiplatform/nimi-coding': versions.nimicodingVersion,
     '@tailwindcss/vite': versions.tailwindcssViteVersion,
@@ -562,6 +564,7 @@ function buildPackageJson(profile, versions, identity) {
     version: identity.version,
     private: true,
     type: 'module',
+    main: 'dist-electron/main.js',
     packageManager: versions.packageManager,
     pnpm: {
       onlyBuiltDependencies: ['electron', 'esbuild', 'protobufjs'],
@@ -581,7 +584,8 @@ function buildPackageJson(profile, versions, identity) {
       typecheck: 'tsc --noEmit',
       build: 'tsc --noEmit && vite build',
       'build:electron': 'tsc -p tsconfig.electron.json && node scripts/bundle-electron-preload.mjs',
-      'build:shell': 'tauri build',
+      'build:electron:production': 'node scripts/clean-electron-production.mjs && pnpm run build && pnpm run build:electron && node scripts/package-electron-production.mjs',
+      'build:tauri:production': 'tauri build',
       postinstall: 'install-electron --no',
       validate: 'node scripts/validate.mjs',
     },
@@ -976,16 +980,16 @@ export function renderAppBuildProfile(options = {}) {
     'windows-x86_64': {
       os: 'windows',
       arch: 'x86_64',
-      build_command: 'pnpm run build:shell',
-      payload_path: `src-tauri/target/release/${identity.cargoPackageName}.exe`,
+      build_command: 'pnpm run build:electron:production',
+      payload_path: `dist-electron-package/${identity.cargoPackageName}-win32-x64`,
       runtime_entry: `payload/${identity.cargoPackageName}.exe`,
     },
   } : undefined);
   return YAML.stringify({
-    build_profile_ref: 'tauri-pnpm-vite',
+    build_profile_ref: 'electron-packager-pnpm-vite',
     test_command: options.testCommand || 'pnpm run test:app',
-    build_command: options.buildCommand || 'pnpm run build:shell',
-    output_path: 'src-tauri/target/release',
+    build_command: options.buildCommand || 'pnpm run build:electron:production',
+    output_path: 'dist-electron-package',
     lockfile_path: 'pnpm-lock.yaml',
     lockfile_policy: LOCKFILE_POLICY,
     ci_install_command: 'pnpm install --frozen-lockfile',
@@ -1255,6 +1259,7 @@ function buildDependencyMatrix(profile, versions, capabilityResolution) {
       '@tauri-apps/cli': versions.tauriCliVersion,
       '@tailwindcss/vite': versions.tailwindcssViteVersion,
       '@vitejs/plugin-react': versions.viteReactPluginVersion,
+      '@electron/packager': versions.electronPackagerVersion,
       electron: versions.electronVersion,
       esbuild: versions.esbuildVersion,
       yaml: versions.yamlVersion,
