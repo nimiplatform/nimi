@@ -4,9 +4,10 @@ use std::os::windows::fs::OpenOptionsExt;
 use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle};
 use std::path::PathBuf;
 
+use sha2::{Digest, Sha256};
 use windows_sys::Win32::Foundation::{HANDLE, WAIT_TIMEOUT};
 use windows_sys::Win32::Security::Cryptography::{
-    CertGetCertificateContextProperty, CERT_SHA256_HASH_PROP_ID,
+    CryptEncodeObjectEx, CERT_PUBLIC_KEY_INFO, X509_ASN_ENCODING, X509_PUBLIC_KEY_INFO,
 };
 use windows_sys::Win32::Security::WinTrust::{
     WTHelperGetProvCertFromChain, WTHelperGetProvSignerFromChain, WTHelperProvDataFromStateData,
@@ -21,8 +22,10 @@ use windows_sys::Win32::System::Threading::{
 use crate::{ProtectedCarrierError, ProtectedCarrierReasonCode};
 
 const FILE_SHARE_READ: u32 = 0x0000_0001;
-const EXPECTED_SIGNER_CERT_SHA256: Option<&str> =
-    option_env!("NIMI_WINDOWS_PRODUCTION_SIGNER_CERT_SHA256");
+const EXPECTED_SIGNER_SPKI_SHA256: Option<&str> =
+    option_env!("NIMI_WINDOWS_PRODUCTION_SIGNER_SPKI_SHA256");
+
+// @nimi-authority: rule.nimi.runtime.service-operations.r054
 
 pub(super) struct VerifiedRuntimePeer {
     _process: OwnedHandle,
@@ -38,7 +41,7 @@ impl VerifiedRuntimePeer {
 pub(super) fn verify_runtime_peer(
     process_id: u32,
 ) -> Result<VerifiedRuntimePeer, ProtectedCarrierError> {
-    let expected = EXPECTED_SIGNER_CERT_SHA256
+    let expected = EXPECTED_SIGNER_SPKI_SHA256
         .filter(|value| valid_sha256(value))
         .ok_or_else(|| {
             diagnose_peer_trust("expected-signer-missing");
@@ -102,9 +105,9 @@ fn runtime_process_path(process: &OwnedHandle) -> Result<PathBuf, ProtectedCarri
 
 fn verify_authenticode_on_open_file(
     file: &File,
-    expected_signer_cert_sha256: &str,
+    expected_signer_spki_sha256: &str,
 ) -> Result<(), ProtectedCarrierError> {
-    if !valid_sha256(expected_signer_cert_sha256) {
+    if !valid_sha256(expected_signer_spki_sha256) {
         return Err(untrusted());
     }
     let handle = file.as_raw_handle() as HANDLE;
@@ -149,11 +152,11 @@ fn verify_authenticode_on_open_file(
         diagnose_peer_trust(&format!("winverifytrust-status-{status}"));
     }
     let result = if status == 0 {
-        verified_leaf_cert_sha256(&trust_data).and_then(|observed| {
-            if constant_time_eq_hex(&observed, expected_signer_cert_sha256) {
+        verified_leaf_spki_sha256(&trust_data).and_then(|observed| {
+            if constant_time_eq_hex(&observed, expected_signer_spki_sha256) {
                 Ok(())
             } else {
-                diagnose_peer_trust("signer-certificate-mismatch");
+                diagnose_peer_trust("signer-spki-mismatch");
                 Err(untrusted())
             }
         })
@@ -180,7 +183,7 @@ fn diagnose_peer_trust(stage: &str) {
     }
 }
 
-fn verified_leaf_cert_sha256(trust_data: &WINTRUST_DATA) -> Result<String, ProtectedCarrierError> {
+fn verified_leaf_spki_sha256(trust_data: &WINTRUST_DATA) -> Result<String, ProtectedCarrierError> {
     if trust_data.hWVTStateData.is_null() {
         return Err(untrusted());
     }
@@ -201,22 +204,51 @@ fn verified_leaf_cert_sha256(trust_data: &WINTRUST_DATA) -> Result<String, Prote
         }
         (*provider_cert).pCert
     };
-    let mut bytes = [0u8; 32];
-    let mut length = bytes.len() as u32;
-    // SAFETY: cert is valid while WinTrust state is live and the output buffer
-    // is writable for the supplied length.
-    let succeeded = unsafe {
-        CertGetCertificateContextProperty(
-            cert,
-            CERT_SHA256_HASH_PROP_ID,
-            bytes.as_mut_ptr().cast::<c_void>(),
+    // SAFETY: the certificate context and CERT_INFO remain owned by the live
+    // WinTrust state until WTD_STATEACTION_CLOSE.
+    let public_key_info: *const CERT_PUBLIC_KEY_INFO = unsafe {
+        let cert_info = (*cert).pCertInfo;
+        if cert_info.is_null() {
+            return Err(untrusted());
+        }
+        &(*cert_info).SubjectPublicKeyInfo as *const _
+    };
+    let mut length = 0u32;
+    // SAFETY: this first call requests the exact DER buffer size for the live
+    // CERT_PUBLIC_KEY_INFO value and writes only the length.
+    let sized = unsafe {
+        CryptEncodeObjectEx(
+            X509_ASN_ENCODING,
+            X509_PUBLIC_KEY_INFO,
+            public_key_info.cast::<c_void>(),
+            0,
+            std::ptr::null(),
+            std::ptr::null_mut(),
             &mut length,
         )
     };
-    if succeeded == 0 || length as usize != bytes.len() {
+    if sized == 0 || length == 0 || length > 64 * 1024 {
         return Err(untrusted());
     }
-    Ok(encode_hex(&bytes))
+    let mut encoded = vec![0u8; length as usize];
+    // SAFETY: the buffer is writable for the size returned by the first call,
+    // and the public-key structure remains live throughout the encoding.
+    let encoded_ok = unsafe {
+        CryptEncodeObjectEx(
+            X509_ASN_ENCODING,
+            X509_PUBLIC_KEY_INFO,
+            public_key_info.cast::<c_void>(),
+            0,
+            std::ptr::null(),
+            encoded.as_mut_ptr().cast::<c_void>(),
+            &mut length,
+        )
+    };
+    if encoded_ok == 0 || length as usize != encoded.len() {
+        return Err(untrusted());
+    }
+    let digest = Sha256::digest(&encoded);
+    Ok(encode_hex(&digest))
 }
 
 fn valid_sha256(value: &str) -> bool {
@@ -255,7 +287,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn signer_identity_is_exact_lowercase_sha256() {
+    fn signer_spki_identity_is_exact_lowercase_sha256() {
         let digest = "ab".repeat(32);
         assert!(valid_sha256(&digest));
         assert!(constant_time_eq_hex(&digest, &digest));
@@ -265,7 +297,7 @@ mod tests {
     }
 
     #[test]
-    fn certificate_hash_encoding_is_stable() {
+    fn spki_hash_encoding_is_stable() {
         assert_eq!(encode_hex(&[0x00, 0x1f, 0xa0, 0xff]), "001fa0ff");
     }
 }

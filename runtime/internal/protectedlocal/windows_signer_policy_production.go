@@ -1,11 +1,11 @@
 package protectedlocal
 
-// WindowsProductionSignerCertSHA256 is injected by the production build from
-// the installer signing policy. It is a public certificate identity, never a
+// WindowsProductionSignerSPKISHA256 is injected by the production build from
+// the installer signing policy. It is a public-key identity, never a
 // credential or caller-controlled configuration value. An empty or malformed
 // value keeps native admission closed.
-var WindowsProductionSignerCertSHA256 string
+var WindowsProductionSignerSPKISHA256 string
 
-func activeWindowsSignerCertSHA256() string {
-	return WindowsProductionSignerCertSHA256
+func activeWindowsSignerSPKISHA256() string {
+	return WindowsProductionSignerSPKISHA256
 }

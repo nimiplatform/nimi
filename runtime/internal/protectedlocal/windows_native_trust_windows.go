@@ -25,7 +25,7 @@ var (
 )
 
 type windowsNativeExecutableTrustVerifier struct {
-	signerCertSHA256 [sha256.Size]byte
+	signerSPKISHA256 [sha256.Size]byte
 }
 
 type windowsCryptAttribute struct {
@@ -50,16 +50,17 @@ type windowsCMSGSignerInfo struct {
 	unauthAttributes        windowsCryptAttributes
 }
 
+// @nimi-authority: rule.nimi.runtime.service-operations.r054
 // NewWindowsNativeExecutableTrustVerifier returns the verifier compiled for
 // this binary's fixed production or separately tagged E2E profile. Trust comes
 // from the platform chain plus the build-admitted signer and executable role;
 // no runtime selector, portable record, or caller-selected trust root exists.
 func NewWindowsNativeExecutableTrustVerifier() (WindowsExecutableTrustVerifier, error) {
-	digest, err := decodeWindowsSignerCertSHA256(activeWindowsSignerCertSHA256())
+	digest, err := decodeWindowsSignerSPKISHA256(activeWindowsSignerSPKISHA256())
 	if err != nil {
 		return nil, windowsExecutableTrustFailure("load Windows signer policy", err)
 	}
-	return &windowsNativeExecutableTrustVerifier{signerCertSHA256: digest}, nil
+	return &windowsNativeExecutableTrustVerifier{signerSPKISHA256: digest}, nil
 }
 
 func (verifier *windowsNativeExecutableTrustVerifier) VerifyWindowsExecutable(ctx context.Context, role WindowsExecutableRole, executable WindowsLockedExecutable) (string, error) {
@@ -80,12 +81,12 @@ func (verifier *windowsNativeExecutableTrustVerifier) VerifyWindowsExecutable(ct
 	if err := verifyWindowsAuthenticode(executable, evidence.Path); err != nil {
 		return "", err
 	}
-	observed, err := windowsEmbeddedSignerCertSHA256(evidence.Path)
+	observed, err := windowsEmbeddedSignerSPKISHA256(evidence.Path)
 	if err != nil {
 		return "", err
 	}
-	if subtle.ConstantTimeCompare(observed[:], verifier.signerCertSHA256[:]) != 1 {
-		return "", windowsExecutableTrustFailure("verify Windows signer identity", fmt.Errorf("signer certificate mismatch"))
+	if subtle.ConstantTimeCompare(observed[:], verifier.signerSPKISHA256[:]) != 1 {
+		return "", windowsExecutableTrustFailure("verify Windows signer identity", fmt.Errorf("signer SubjectPublicKeyInfo mismatch"))
 	}
 	return trustSetID, nil
 }
@@ -135,7 +136,7 @@ func verifyWindowsAuthenticode(executable WindowsLockedExecutable, path string) 
 	return nil
 }
 
-func windowsEmbeddedSignerCertSHA256(path string) ([sha256.Size]byte, error) {
+func windowsEmbeddedSignerSPKISHA256(path string) ([sha256.Size]byte, error) {
 	var digest [sha256.Size]byte
 	pathPointer, err := windows.UTF16PtrFromString(path)
 	if err != nil {
@@ -184,7 +185,7 @@ func windowsEmbeddedSignerCertSHA256(path string) ([sha256.Size]byte, error) {
 	}
 	defer func() { _ = windows.CertFreeCertificateContext(certificate) }()
 	encoded := unsafe.Slice(certificate.EncodedCert, certificate.Length)
-	return sha256.Sum256(encoded), nil
+	return windowsSignerSPKISHA256FromCertificateDER(encoded)
 }
 
 var _ WindowsExecutableTrustVerifier = (*windowsNativeExecutableTrustVerifier)(nil)
