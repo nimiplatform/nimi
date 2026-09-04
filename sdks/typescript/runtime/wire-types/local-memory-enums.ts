@@ -139,7 +139,6 @@ export enum LocalAppSessionState {
 export enum LocalAppTrustClass {
   UNSPECIFIED = 0,
   VERIFIED = 1,
-  USER_IMPORTED = 2,
   LOCAL_DEVELOPMENT = 3,
 }
 

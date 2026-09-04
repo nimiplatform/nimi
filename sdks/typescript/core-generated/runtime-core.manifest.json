@@ -35952,7 +35952,6 @@
           "APP_PACKAGE_JOB_PHASE_UNSPECIFIED",
           "APP_PACKAGE_JOB_PHASE_QUEUED",
           "APP_PACKAGE_JOB_PHASE_DOWNLOADING",
-          "APP_PACKAGE_JOB_PHASE_READING_LOCAL",
           "APP_PACKAGE_JOB_PHASE_VERIFYING",
           "APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED",
           "APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING",
@@ -35980,8 +35979,7 @@
         "name": "AppPackageSourceClass",
         "values": [
           "APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED",
-          "APP_PACKAGE_SOURCE_CLASS_VERIFIED",
-          "APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED"
+          "APP_PACKAGE_SOURCE_CLASS_VERIFIED"
         ],
         "source_file": "proto/runtime/v1/app.proto"
       },
@@ -36591,7 +36589,6 @@
         "values": [
           "LOCAL_APP_TRUST_CLASS_UNSPECIFIED",
           "LOCAL_APP_TRUST_CLASS_VERIFIED",
-          "LOCAL_APP_TRUST_CLASS_USER_IMPORTED",
           "LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT"
         ],
         "source_file": "proto/runtime/v1/auth.proto"

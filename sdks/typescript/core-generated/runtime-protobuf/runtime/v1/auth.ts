@@ -254,10 +254,6 @@ export enum LocalAppTrustClass {
      */
     VERIFIED = 1,
     /**
-     * @generated from protobuf enum value: LOCAL_APP_TRUST_CLASS_USER_IMPORTED = 2;
-     */
-    USER_IMPORTED = 2,
-    /**
      * @generated from protobuf enum value: LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT = 3;
      */
     LOCAL_DEVELOPMENT = 3

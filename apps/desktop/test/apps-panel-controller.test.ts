@@ -137,10 +137,9 @@ describe('Desktop Apps controller action boundary', () => {
     });
     const local = entry('local_development:example.shared:dev-example', 'local_development');
     const verified = entry('verified:example.shared', 'verified');
-    const imported = entry('user_imported:example.shared', 'user_imported');
     const current: DesktopAppsPanelProjection = {
       status: 'loaded',
-      entries: [local, verified, imported],
+      entries: [local, verified],
       catalogStatus: 'not-implemented',
       runtimeError: null,
     };
@@ -160,6 +159,5 @@ describe('Desktop Apps controller action boundary', () => {
     if (acknowledged?.status !== 'loaded') return;
     assert.notEqual(acknowledged.entries[0]?.aiConfigSummary, null);
     assert.equal(acknowledged.entries[1], verified);
-    assert.equal(acknowledged.entries[2], imported);
   });
 });

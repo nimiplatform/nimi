@@ -328,8 +328,6 @@ func installedSourceClass(trustClass protectedlocal.LocalAppTrustClass) (localap
 	switch trustClass {
 	case protectedlocal.LocalAppTrustBuiltIn, protectedlocal.LocalAppTrustVerified:
 		return localappkernel.SourceClassVerified, true
-	case protectedlocal.LocalAppTrustUserImported:
-		return localappkernel.SourceClassUserImported, true
 	default:
 		return "", false
 	}
@@ -343,8 +341,6 @@ func authorizationTrustClass(trustClass protectedlocal.LocalAppTrustClass) (acco
 		return accountservice.LocalAppTrustClassBuiltIn, true
 	case protectedlocal.LocalAppTrustVerified:
 		return accountservice.LocalAppTrustClassVerified, true
-	case protectedlocal.LocalAppTrustUserImported:
-		return accountservice.LocalAppTrustClassUserImported, true
 	default:
 		return "", false
 	}

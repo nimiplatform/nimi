@@ -26,7 +26,6 @@ func TestInstalledConnectionTrustPreservesPackageSource(t *testing.T) {
 	}{
 		{protectedlocal.LocalAppTrustBuiltIn, localappkernel.SourceClassVerified, accountservice.LocalAppTrustClassBuiltIn},
 		{protectedlocal.LocalAppTrustVerified, localappkernel.SourceClassVerified, accountservice.LocalAppTrustClassVerified},
-		{protectedlocal.LocalAppTrustUserImported, localappkernel.SourceClassUserImported, accountservice.LocalAppTrustClassUserImported},
 	} {
 		source, sourceOK := installedSourceClass(test.connection)
 		auth, authOK := authorizationTrustClass(test.connection)

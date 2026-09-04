@@ -33,7 +33,6 @@
   },
   "sourceBadge": {
     "localDevelopment": "Local development",
-    "userImported": "Imported",
     "verified": "Nimi certified"
   },
   "catalogNotImplemented": "Public App catalog search is not implemented yet.",

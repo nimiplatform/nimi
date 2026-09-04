@@ -61,7 +61,7 @@ export interface DesktopAppsCommonIdentity {
   readonly updatedAtUnixMs: number;
 }
 
-export type DesktopAppSourceClass = 'local_development' | 'verified' | 'user_imported';
+export type DesktopAppSourceClass = 'local_development' | 'verified';
 
 export function desktopAppsEntryKey(appId: string, sourceClass: DesktopAppSourceClass, selector = ''): string {
   return sourceClass === 'local_development'
@@ -299,9 +299,8 @@ function indexRuntimeLifecycle(
   return { releasesByKey, jobsByKey, conflict: null };
 }
 
-function runtimeSourceClass(sourceClass: AppPackageSourceClass): 'verified' | 'user_imported' {
+function runtimeSourceClass(sourceClass: AppPackageSourceClass): 'verified' {
   if (sourceClass === AppPackageSourceClass.VERIFIED) return 'verified';
-  if (sourceClass === AppPackageSourceClass.USER_IMPORTED) return 'user_imported';
   throw new Error(`Unsupported Runtime App package source: ${String(sourceClass)}`);
 }
 

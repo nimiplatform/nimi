@@ -12,6 +12,15 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func TestRuntimeAppPackageProjectionRejectsRetiredLocalImportValues(t *testing.T) {
+	if _, ok := packageSourceClassToProto(localappkernel.SourceClass("user_imported")); ok {
+		t.Fatal("retired user-imported source projected onto Runtime proto")
+	}
+	if _, ok := packageJobPhaseToProto(localappkernel.PackageJobPhase("reading-local")); ok {
+		t.Fatal("retired reading-local phase projected onto Runtime proto")
+	}
+}
+
 func TestRuntimeAppPackageReadAndCancelUseCommittedStore(t *testing.T) {
 	ctx := context.Background()
 	identity, err := localappkernel.ValidateVerifiedMacOSInteractiveUser(501, 77)

@@ -196,7 +196,7 @@ const canonicalRegistrationCreateStatement = `CREATE TABLE IF NOT EXISTS canonic
 	registered_app_subject TEXT NOT NULL UNIQUE,
 	app_id TEXT NOT NULL,
 	display_name TEXT NOT NULL,
-	source_class TEXT NOT NULL CHECK(source_class IN ('verified','user_imported','local_development')),
+	source_class TEXT NOT NULL CHECK(source_class IN ('verified','local_development')),
 	source_ref TEXT NOT NULL,
 	shell_kind INTEGER NOT NULL CHECK(shell_kind > 0),
 	raw_declaration_json TEXT NOT NULL,
@@ -256,6 +256,26 @@ func (kernel *Kernel) requireCanonicalRegistrationSchema(ctx context.Context) er
 		if !columns[name] {
 			return fmt.Errorf("initialize registered App schema: unsupported canonical_registration shape")
 		}
+	}
+	if err := requireSQLiteConstraint(ctx, kernel.db, "canonical_registration", "source-class", "check(source_classin('verified','local_development'))", "user_imported"); err != nil {
+		return fmt.Errorf("initialize registered App schema: %w", err)
+	}
+	return nil
+}
+
+func requireSQLiteConstraint(ctx context.Context, database *sql.DB, table string, label string, expected string, forbidden ...string) error {
+	var statement string
+	if err := database.QueryRowContext(ctx, `SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?`, table).Scan(&statement); err != nil {
+		return fmt.Errorf("inspect %s %s constraint: %w", table, label, err)
+	}
+	compact := strings.ToLower(strings.NewReplacer(" ", "", "\t", "", "\r", "", "\n", "").Replace(statement))
+	for _, value := range forbidden {
+		if strings.Contains(compact, value) {
+			return fmt.Errorf("unsupported %s %s constraint", table, label)
+		}
+	}
+	if !strings.Contains(compact, expected) {
+		return fmt.Errorf("unsupported %s %s constraint", table, label)
 	}
 	return nil
 }
@@ -317,6 +337,9 @@ func (kernel *Kernel) initialize(ctx context.Context) error {
 		if _, err := kernel.db.ExecContext(ctx, statement); err != nil {
 			return fmt.Errorf("initialize registered App schema: %w", err)
 		}
+	}
+	if err := kernel.requirePackageLifecycleSchema(ctx); err != nil {
+		return err
 	}
 	return nil
 }
