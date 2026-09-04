@@ -11,511 +11,353 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { LocalDeviceProfile } from "./local_runtime_device_environment";
-import { Struct } from "../../google/protobuf/struct";
-import { LocalAssetKind } from "./local_runtime_asset_catalog";
+import { ReasonCode } from "./common";
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalCatalogRecommendation
+ * Source observation is scoped only to the model-index featured section.
+ * generation never participates in offer identity.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ModelAssetFeaturedSourceObservation
  */
-export interface LocalCatalogRecommendation {
+export interface ModelAssetFeaturedSourceObservation {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationSource source = 1
+     * @generated from protobuf field: nimi.runtime.v1.ModelAssetSourceAvailability availability = 1
      */
-    source: LocalRecommendationSource;
+    availability: ModelAssetSourceAvailability;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationFormat format = 2
+     * @generated from protobuf field: nimi.runtime.v1.ModelAssetSourceFreshness freshness = 2
      */
-    format: LocalRecommendationFormat;
+    freshness: ModelAssetSourceFreshness;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationTier tier = 3
+     * @generated from protobuf field: string generation = 3
      */
-    tier: LocalRecommendationTier;
+    generation: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalHostSupportClass host_support_class = 4
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 4
      */
-    hostSupportClass: LocalHostSupportClass;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationConfidence confidence = 5
-     */
-    confidence: LocalRecommendationConfidence;
-    /**
-     * @generated from protobuf field: repeated string reason_codes = 6
-     */
-    reasonCodes: string[];
-    /**
-     * @generated from protobuf field: string recommended_entry = 7
-     */
-    recommendedEntry: string;
-    /**
-     * @generated from protobuf field: repeated string fallback_entries = 8
-     */
-    fallbackEntries: string[];
-    /**
-     * @generated from protobuf field: repeated string suggested_notes = 10
-     */
-    suggestedNotes: string[];
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationBaseline baseline = 11
-     */
-    baseline: LocalRecommendationBaseline;
+    reasonCode: ReasonCode;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor
+ * Browse-only search result. model_locator opens detail or variant listing and
+ * never authorizes installation.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ModelAssetCatalogSearchResult
  */
-export interface LocalRecommendationFeedEntryDescriptor {
+export interface ModelAssetCatalogSearchResult {
     /**
-     * @generated from protobuf field: string entry_id = 1
+     * @generated from protobuf field: string model_locator = 1
      */
-    entryId: string;
+    modelLocator: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationFormat format = 2
+     * @generated from protobuf field: string source_label = 2
      */
-    format: LocalRecommendationFormat;
+    sourceLabel: string;
     /**
-     * @generated from protobuf field: string entry = 3
-     */
-    entry: string;
-    /**
-     * @generated from protobuf field: repeated string files = 4
-     */
-    files: string[];
-    /**
-     * @generated from protobuf field: int64 total_size_bytes = 5
-     */
-    totalSizeBytes: string;
-    /**
-     * @generated from protobuf field: string sha256 = 6
-     */
-    sha256: string;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.LocalRecommendationInstalledState
- */
-export interface LocalRecommendationInstalledState {
-    /**
-     * @generated from protobuf field: bool installed = 1
-     */
-    installed: boolean;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.LocalRecommendationActionState
- */
-export interface LocalRecommendationActionState {
-    /**
-     * @generated from protobuf field: bool can_review_install_plan = 1
-     */
-    canReviewInstallPlan: boolean;
-    /**
-     * @generated from protobuf field: bool can_open_variants = 2
-     */
-    canOpenVariants: boolean;
-    /**
-     * @generated from protobuf field: bool can_open_model_asset = 3
-     */
-    canOpenModelAsset: boolean;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.LocalRecommendationInstallPayload
- */
-export interface LocalRecommendationInstallPayload {
-    /**
-     * @generated from protobuf field: string model_id = 1
-     */
-    modelId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalAssetKind kind = 2
-     */
-    kind: LocalAssetKind;
-    /**
-     * @generated from protobuf field: string repo = 3
-     */
-    repo: string;
-    /**
-     * @generated from protobuf field: string revision = 4
-     */
-    revision: string;
-    /**
-     * @generated from protobuf field: repeated string capabilities = 5
-     */
-    capabilities: string[];
-    /**
-     * @generated from protobuf field: string engine = 6
-     */
-    engine: string;
-    /**
-     * @generated from protobuf field: string entry = 7
-     */
-    entry: string;
-    /**
-     * @generated from protobuf field: repeated string files = 8
-     */
-    files: string[];
-    /**
-     * @generated from protobuf field: string license = 9
-     */
-    license: string;
-    /**
-     * @generated from protobuf field: map<string, string> hashes = 10
-     */
-    hashes: {
-        [key: string]: string;
-    };
-    /**
-     * @generated from protobuf field: string endpoint = 11
-     */
-    endpoint: string;
-    /**
-     * @generated from protobuf field: google.protobuf.Struct engine_config = 12
-     */
-    engineConfig?: Struct;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.LocalRecommendationFeedItemDescriptor
- */
-export interface LocalRecommendationFeedItemDescriptor {
-    /**
-     * @generated from protobuf field: string item_id = 1
-     */
-    itemId: string;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationFeedSource source = 2
-     */
-    source: LocalRecommendationFeedSource;
-    /**
-     * @generated from protobuf field: string repo = 3
-     */
-    repo: string;
-    /**
-     * @generated from protobuf field: string revision = 4
-     */
-    revision: string;
-    /**
-     * @generated from protobuf field: string title = 5
+     * @generated from protobuf field: string title = 3
      */
     title: string;
     /**
-     * @generated from protobuf field: string description = 6
+     * @generated from protobuf field: string description = 4
      */
     description: string;
     /**
-     * @generated from protobuf field: repeated string capabilities = 7
+     * @generated from protobuf field: repeated string categories = 5
      */
-    capabilities: string[];
+    categories: string[];
+    /**
+     * @generated from protobuf field: string model_type = 6
+     */
+    modelType: string;
+    /**
+     * @generated from protobuf field: string license = 7
+     */
+    license: string;
     /**
      * @generated from protobuf field: repeated string tags = 8
      */
     tags: string[];
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalRecommendationFormat formats = 9
-     */
-    formats: LocalRecommendationFormat[];
-    /**
-     * @generated from protobuf field: int64 downloads = 10
+     * @generated from protobuf field: int64 downloads = 9
      */
     downloads: string;
     /**
-     * @generated from protobuf field: int64 likes = 11
+     * @generated from protobuf field: int64 likes = 10
      */
     likes: string;
     /**
-     * @generated from protobuf field: string last_modified = 12
+     * @generated from protobuf field: string last_modified = 11
      */
     lastModified: string;
     /**
-     * @generated from protobuf field: string preferred_engine = 13
-     */
-    preferredEngine: string;
-    /**
-     * @generated from protobuf field: bool verified = 14
+     * @generated from protobuf field: bool verified = 12
      */
     verified: boolean;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor entries = 15
+     * Publishing organization or author label (for example the repository
+     * owner). Presentation only; never part of offer identity.
+     *
+     * @generated from protobuf field: string author = 13
      */
-    entries: LocalRecommendationFeedEntryDescriptor[];
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalCatalogRecommendation recommendation = 16
-     */
-    recommendation?: LocalCatalogRecommendation;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationInstalledState installed_state = 17
-     */
-    installedState?: LocalRecommendationInstalledState;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationActionState action_state = 18
-     */
-    actionState?: LocalRecommendationActionState;
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationInstallPayload install_payload = 19
-     */
-    installPayload?: LocalRecommendationInstallPayload;
+    author: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalRecommendationFeedDescriptor
+ * Exact entry-level offer. The opaque offer_ref is the only install-plan input
+ * exposed to SDK and Desktop.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ModelAssetMarketCandidate
  */
-export interface LocalRecommendationFeedDescriptor {
+export interface ModelAssetMarketCandidate {
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalDeviceProfile device_profile = 1
+     * @generated from protobuf field: string offer_ref = 1
      */
-    deviceProfile?: LocalDeviceProfile;
+    offerRef: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationFeedCapability active_capability = 2
+     * @generated from protobuf field: string source_label = 2
      */
-    activeCapability: LocalRecommendationFeedCapability;
+    sourceLabel: string;
     /**
-     * @generated from protobuf field: string generated_at = 3
+     * @generated from protobuf field: string title = 3
      */
-    generatedAt: string;
+    title: string;
     /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationFeedCacheState cache_state = 4
+     * @generated from protobuf field: string description = 4
      */
-    cacheState: LocalRecommendationFeedCacheState;
+    description: string;
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalRecommendationFeedItemDescriptor items = 5
+     * @generated from protobuf field: repeated string categories = 5
      */
-    items: LocalRecommendationFeedItemDescriptor[];
+    categories: string[];
+    /**
+     * @generated from protobuf field: string model_type = 6
+     */
+    modelType: string;
+    /**
+     * @generated from protobuf field: string variant_label = 7
+     */
+    variantLabel: string;
+    /**
+     * @generated from protobuf field: string format = 8
+     */
+    format: string;
+    /**
+     * @generated from protobuf field: int64 total_size_bytes = 9
+     */
+    totalSizeBytes: string;
+    /**
+     * @generated from protobuf field: string license = 10
+     */
+    license: string;
+    /**
+     * @generated from protobuf field: repeated string tags = 11
+     */
+    tags: string[];
+    /**
+     * @generated from protobuf field: int64 downloads = 12
+     */
+    downloads: string;
+    /**
+     * @generated from protobuf field: int64 likes = 13
+     */
+    likes: string;
+    /**
+     * @generated from protobuf field: string last_modified = 14
+     */
+    lastModified: string;
+    /**
+     * @generated from protobuf field: bool verified = 15
+     */
+    verified: boolean;
+    /**
+     * @generated from protobuf field: bool installed = 16
+     */
+    installed: boolean;
+    /**
+     * @generated from protobuf field: bool installable = 17
+     */
+    installable: boolean;
+    /**
+     * @generated from protobuf field: optional int32 featured_ordinal = 18
+     */
+    featuredOrdinal?: number;
+    /**
+     * @generated from protobuf field: string editorial_reason = 19
+     */
+    editorialReason: string;
+    /**
+     * Publishing organization or author label (for example the repository
+     * owner). Presentation only; never part of offer identity.
+     *
+     * @generated from protobuf field: string author = 20
+     */
+    author: string;
 }
-// === Recommendation Feed ===
-
 /**
- * @generated from protobuf enum nimi.runtime.v1.LocalRecommendationSource
+ * @generated from protobuf message nimi.runtime.v1.ListFeaturedModelAssetsRequest
  */
-export enum LocalRecommendationSource {
+export interface ListFeaturedModelAssetsRequest {
     /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_SOURCE_UNSPECIFIED = 0;
+     * @generated from protobuf field: string category = 1
+     */
+    category: string;
+    /**
+     * @generated from protobuf field: int32 page_size = 2
+     */
+    pageSize: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListFeaturedModelAssetsResponse
+ */
+export interface ListFeaturedModelAssetsResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ModelAssetFeaturedSourceObservation source = 1
+     */
+    source?: ModelAssetFeaturedSourceObservation;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ModelAssetMarketCandidate items = 2
+     */
+    items: ModelAssetMarketCandidate[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.FactoryProfileCapabilityApplicability
+ */
+export interface FactoryProfileCapabilityApplicability {
+    /**
+     * @generated from protobuf field: string capability_contract = 1
+     */
+    capabilityContract: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationApplicability applicability = 2
+     */
+    applicability: LocalRecommendationApplicability;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ReasonCode reasons = 3
+     */
+    reasons: ReasonCode[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.FactoryProfileRecommendation
+ */
+export interface FactoryProfileRecommendation {
+    /**
+     * @generated from protobuf field: string profile_alias = 1
+     */
+    profileAlias: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.FactoryProfileCapabilityApplicability capabilities = 2
+     */
+    capabilities: FactoryProfileCapabilityApplicability[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListFactoryProfileRecommendationsRequest
+ */
+export interface ListFactoryProfileRecommendationsRequest {
+    /**
+     * @generated from protobuf field: string capability_contract = 1
+     */
+    capabilityContract: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListFactoryProfileRecommendationsResponse
+ */
+export interface ListFactoryProfileRecommendationsResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.FactoryProfileRecommendation profiles = 1
+     */
+    profiles: FactoryProfileRecommendation[];
+}
+/**
+ * Runtime-owned applicability for one exact recommendation context. It is
+ * neither configuration, readiness, selection, nor execution truth.
+ *
+ * @generated from protobuf enum nimi.runtime.v1.LocalRecommendationApplicability
+ */
+export enum LocalRecommendationApplicability {
+    /**
+     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_APPLICABILITY_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_SOURCE_LLMFIT = 1;
+     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED = 1;
      */
-    LLMFIT = 1,
+    SUPPORTED = 1,
     /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_SOURCE_MEDIA_FIT = 2;
+     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN = 2;
      */
-    MEDIA_FIT = 2
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.LocalRecommendationFormat
- */
-export enum LocalRecommendationFormat {
+    UNKNOWN = 2,
     /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_FORMAT_GGUF = 1;
-     */
-    GGUF = 1,
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_FORMAT_SAFETENSORS = 2;
-     */
-    SAFETENSORS = 2
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.LocalRecommendationTier
- */
-export enum LocalRecommendationTier {
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_TIER_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_TIER_RECOMMENDED = 1;
-     */
-    RECOMMENDED = 1,
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_TIER_RUNNABLE = 2;
-     */
-    RUNNABLE = 2,
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_TIER_TIGHT = 3;
-     */
-    TIGHT = 3,
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_TIER_NOT_RECOMMENDED = 4;
-     */
-    NOT_RECOMMENDED = 4
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.LocalRecommendationConfidence
- */
-export enum LocalRecommendationConfidence {
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_CONFIDENCE_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_CONFIDENCE_HIGH = 1;
-     */
-    HIGH = 1,
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_CONFIDENCE_MEDIUM = 2;
-     */
-    MEDIUM = 2,
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_CONFIDENCE_LOW = 3;
-     */
-    LOW = 3
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.LocalHostSupportClass
- */
-export enum LocalHostSupportClass {
-    /**
-     * @generated from protobuf enum value: LOCAL_HOST_SUPPORT_CLASS_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: LOCAL_HOST_SUPPORT_CLASS_SUPPORTED_SUPERVISED = 1;
-     */
-    SUPPORTED_SUPERVISED = 1,
-    /**
-     * @generated from protobuf enum value: LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY = 2;
-     */
-    ATTACHED_ONLY = 2,
-    /**
-     * @generated from protobuf enum value: LOCAL_HOST_SUPPORT_CLASS_UNSUPPORTED = 3;
+     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED = 3;
      */
     UNSUPPORTED = 3
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.LocalRecommendationBaseline
+ * @generated from protobuf enum nimi.runtime.v1.ModelAssetSourceAvailability
  */
-export enum LocalRecommendationBaseline {
+export enum ModelAssetSourceAvailability {
     /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_BASELINE_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: MODEL_ASSET_SOURCE_AVAILABILITY_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_BASELINE_IMAGE_DEFAULT_V1 = 1;
+     * @generated from protobuf enum value: MODEL_ASSET_SOURCE_AVAILABILITY_AVAILABLE = 1;
      */
-    IMAGE_DEFAULT_V1 = 1,
+    AVAILABLE = 1,
     /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_BASELINE_VIDEO_DEFAULT_V1 = 2;
+     * @generated from protobuf enum value: MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE = 2;
      */
-    VIDEO_DEFAULT_V1 = 2
+    UNAVAILABLE = 2
 }
 /**
- * @generated from protobuf enum nimi.runtime.v1.LocalRecommendationFeedCacheState
+ * @generated from protobuf enum nimi.runtime.v1.ModelAssetSourceFreshness
  */
-export enum LocalRecommendationFeedCacheState {
+export enum ModelAssetSourceFreshness {
     /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_FEED_CACHE_STATE_UNSPECIFIED = 0;
+     * @generated from protobuf enum value: MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED = 0;
      */
     UNSPECIFIED = 0,
     /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH = 1;
+     * @generated from protobuf enum value: MODEL_ASSET_SOURCE_FRESHNESS_FRESH = 1;
      */
     FRESH = 1,
     /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_FEED_CACHE_STATE_STALE = 2;
+     * @generated from protobuf enum value: MODEL_ASSET_SOURCE_FRESHNESS_STALE = 2;
      */
-    STALE = 2,
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY = 3;
-     */
-    EMPTY = 3
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.LocalRecommendationFeedCapability
- */
-export enum LocalRecommendationFeedCapability {
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_FEED_CAPABILITY_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_FEED_CAPABILITY_CHAT = 1;
-     */
-    CHAT = 1,
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_FEED_CAPABILITY_IMAGE = 2;
-     */
-    IMAGE = 2,
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_FEED_CAPABILITY_VIDEO = 3;
-     */
-    VIDEO = 3
-}
-/**
- * @generated from protobuf enum nimi.runtime.v1.LocalRecommendationFeedSource
- */
-export enum LocalRecommendationFeedSource {
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_FEED_SOURCE_UNSPECIFIED = 0;
-     */
-    UNSPECIFIED = 0,
-    /**
-     * @generated from protobuf enum value: LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX = 1;
-     */
-    MODEL_INDEX = 1
+    STALE = 2
 }
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalCatalogRecommendation$Type extends MessageType<LocalCatalogRecommendation> {
+class ModelAssetFeaturedSourceObservation$Type extends MessageType<ModelAssetFeaturedSourceObservation> {
     constructor() {
-        super("nimi.runtime.v1.LocalCatalogRecommendation", [
-            { no: 1, name: "source", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationSource", LocalRecommendationSource, "LOCAL_RECOMMENDATION_SOURCE_"] },
-            { no: 2, name: "format", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationFormat", LocalRecommendationFormat, "LOCAL_RECOMMENDATION_FORMAT_"] },
-            { no: 3, name: "tier", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationTier", LocalRecommendationTier, "LOCAL_RECOMMENDATION_TIER_"] },
-            { no: 4, name: "host_support_class", kind: "enum", T: () => ["nimi.runtime.v1.LocalHostSupportClass", LocalHostSupportClass, "LOCAL_HOST_SUPPORT_CLASS_"] },
-            { no: 5, name: "confidence", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationConfidence", LocalRecommendationConfidence, "LOCAL_RECOMMENDATION_CONFIDENCE_"] },
-            { no: 6, name: "reason_codes", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "recommended_entry", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "fallback_entries", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "suggested_notes", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "baseline", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationBaseline", LocalRecommendationBaseline, "LOCAL_RECOMMENDATION_BASELINE_"] }
+        super("nimi.runtime.v1.ModelAssetFeaturedSourceObservation", [
+            { no: 1, name: "availability", kind: "enum", T: () => ["nimi.runtime.v1.ModelAssetSourceAvailability", ModelAssetSourceAvailability, "MODEL_ASSET_SOURCE_AVAILABILITY_"] },
+            { no: 2, name: "freshness", kind: "enum", T: () => ["nimi.runtime.v1.ModelAssetSourceFreshness", ModelAssetSourceFreshness, "MODEL_ASSET_SOURCE_FRESHNESS_"] },
+            { no: 3, name: "generation", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
         ]);
     }
-    create(value?: PartialMessage<LocalCatalogRecommendation>): LocalCatalogRecommendation {
+    create(value?: PartialMessage<ModelAssetFeaturedSourceObservation>): ModelAssetFeaturedSourceObservation {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.source = 0;
-        message.format = 0;
-        message.tier = 0;
-        message.hostSupportClass = 0;
-        message.confidence = 0;
-        message.reasonCodes = [];
-        message.recommendedEntry = "";
-        message.fallbackEntries = [];
-        message.suggestedNotes = [];
-        message.baseline = 0;
+        message.availability = 0;
+        message.freshness = 0;
+        message.generation = "";
+        message.reasonCode = 0;
         if (value !== undefined)
-            reflectionMergePartial<LocalCatalogRecommendation>(this, message, value);
+            reflectionMergePartial<ModelAssetFeaturedSourceObservation>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalCatalogRecommendation): LocalCatalogRecommendation {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ModelAssetFeaturedSourceObservation): ModelAssetFeaturedSourceObservation {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalRecommendationSource source */ 1:
-                    message.source = reader.int32();
+                case /* nimi.runtime.v1.ModelAssetSourceAvailability availability */ 1:
+                    message.availability = reader.int32();
                     break;
-                case /* nimi.runtime.v1.LocalRecommendationFormat format */ 2:
-                    message.format = reader.int32();
+                case /* nimi.runtime.v1.ModelAssetSourceFreshness freshness */ 2:
+                    message.freshness = reader.int32();
                     break;
-                case /* nimi.runtime.v1.LocalRecommendationTier tier */ 3:
-                    message.tier = reader.int32();
+                case /* string generation */ 3:
+                    message.generation = reader.string();
                     break;
-                case /* nimi.runtime.v1.LocalHostSupportClass host_support_class */ 4:
-                    message.hostSupportClass = reader.int32();
-                    break;
-                case /* nimi.runtime.v1.LocalRecommendationConfidence confidence */ 5:
-                    message.confidence = reader.int32();
-                    break;
-                case /* repeated string reason_codes */ 6:
-                    message.reasonCodes.push(reader.string());
-                    break;
-                case /* string recommended_entry */ 7:
-                    message.recommendedEntry = reader.string();
-                    break;
-                case /* repeated string fallback_entries */ 8:
-                    message.fallbackEntries.push(reader.string());
-                    break;
-                case /* repeated string suggested_notes */ 10:
-                    message.suggestedNotes.push(reader.string());
-                    break;
-                case /* nimi.runtime.v1.LocalRecommendationBaseline baseline */ 11:
-                    message.baseline = reader.int32();
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 4:
+                    message.reasonCode = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -528,37 +370,19 @@ class LocalCatalogRecommendation$Type extends MessageType<LocalCatalogRecommenda
         }
         return message;
     }
-    internalBinaryWrite(message: LocalCatalogRecommendation, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalRecommendationSource source = 1; */
-        if (message.source !== 0)
-            writer.tag(1, WireType.Varint).int32(message.source);
-        /* nimi.runtime.v1.LocalRecommendationFormat format = 2; */
-        if (message.format !== 0)
-            writer.tag(2, WireType.Varint).int32(message.format);
-        /* nimi.runtime.v1.LocalRecommendationTier tier = 3; */
-        if (message.tier !== 0)
-            writer.tag(3, WireType.Varint).int32(message.tier);
-        /* nimi.runtime.v1.LocalHostSupportClass host_support_class = 4; */
-        if (message.hostSupportClass !== 0)
-            writer.tag(4, WireType.Varint).int32(message.hostSupportClass);
-        /* nimi.runtime.v1.LocalRecommendationConfidence confidence = 5; */
-        if (message.confidence !== 0)
-            writer.tag(5, WireType.Varint).int32(message.confidence);
-        /* repeated string reason_codes = 6; */
-        for (let i = 0; i < message.reasonCodes.length; i++)
-            writer.tag(6, WireType.LengthDelimited).string(message.reasonCodes[i]);
-        /* string recommended_entry = 7; */
-        if (message.recommendedEntry !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.recommendedEntry);
-        /* repeated string fallback_entries = 8; */
-        for (let i = 0; i < message.fallbackEntries.length; i++)
-            writer.tag(8, WireType.LengthDelimited).string(message.fallbackEntries[i]);
-        /* repeated string suggested_notes = 10; */
-        for (let i = 0; i < message.suggestedNotes.length; i++)
-            writer.tag(10, WireType.LengthDelimited).string(message.suggestedNotes[i]);
-        /* nimi.runtime.v1.LocalRecommendationBaseline baseline = 11; */
-        if (message.baseline !== 0)
-            writer.tag(11, WireType.Varint).int32(message.baseline);
+    internalBinaryWrite(message: ModelAssetFeaturedSourceObservation, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ModelAssetSourceAvailability availability = 1; */
+        if (message.availability !== 0)
+            writer.tag(1, WireType.Varint).int32(message.availability);
+        /* nimi.runtime.v1.ModelAssetSourceFreshness freshness = 2; */
+        if (message.freshness !== 0)
+            writer.tag(2, WireType.Varint).int32(message.freshness);
+        /* string generation = 3; */
+        if (message.generation !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.generation);
+        /* nimi.runtime.v1.ReasonCode reason_code = 4; */
+        if (message.reasonCode !== 0)
+            writer.tag(4, WireType.Varint).int32(message.reasonCode);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -566,467 +390,90 @@ class LocalCatalogRecommendation$Type extends MessageType<LocalCatalogRecommenda
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalCatalogRecommendation
+ * @generated MessageType for protobuf message nimi.runtime.v1.ModelAssetFeaturedSourceObservation
  */
-export const LocalCatalogRecommendation = new LocalCatalogRecommendation$Type();
+export const ModelAssetFeaturedSourceObservation = new ModelAssetFeaturedSourceObservation$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalRecommendationFeedEntryDescriptor$Type extends MessageType<LocalRecommendationFeedEntryDescriptor> {
+class ModelAssetCatalogSearchResult$Type extends MessageType<ModelAssetCatalogSearchResult> {
     constructor() {
-        super("nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor", [
-            { no: 1, name: "entry_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "format", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationFormat", LocalRecommendationFormat, "LOCAL_RECOMMENDATION_FORMAT_"] },
-            { no: 3, name: "entry", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "files", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "total_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 6, name: "sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<LocalRecommendationFeedEntryDescriptor>): LocalRecommendationFeedEntryDescriptor {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.entryId = "";
-        message.format = 0;
-        message.entry = "";
-        message.files = [];
-        message.totalSizeBytes = "0";
-        message.sha256 = "";
-        if (value !== undefined)
-            reflectionMergePartial<LocalRecommendationFeedEntryDescriptor>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalRecommendationFeedEntryDescriptor): LocalRecommendationFeedEntryDescriptor {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string entry_id */ 1:
-                    message.entryId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.LocalRecommendationFormat format */ 2:
-                    message.format = reader.int32();
-                    break;
-                case /* string entry */ 3:
-                    message.entry = reader.string();
-                    break;
-                case /* repeated string files */ 4:
-                    message.files.push(reader.string());
-                    break;
-                case /* int64 total_size_bytes */ 5:
-                    message.totalSizeBytes = reader.int64().toString();
-                    break;
-                case /* string sha256 */ 6:
-                    message.sha256 = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: LocalRecommendationFeedEntryDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string entry_id = 1; */
-        if (message.entryId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.entryId);
-        /* nimi.runtime.v1.LocalRecommendationFormat format = 2; */
-        if (message.format !== 0)
-            writer.tag(2, WireType.Varint).int32(message.format);
-        /* string entry = 3; */
-        if (message.entry !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.entry);
-        /* repeated string files = 4; */
-        for (let i = 0; i < message.files.length; i++)
-            writer.tag(4, WireType.LengthDelimited).string(message.files[i]);
-        /* int64 total_size_bytes = 5; */
-        if (message.totalSizeBytes !== "0")
-            writer.tag(5, WireType.Varint).int64(message.totalSizeBytes);
-        /* string sha256 = 6; */
-        if (message.sha256 !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.sha256);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor
- */
-export const LocalRecommendationFeedEntryDescriptor = new LocalRecommendationFeedEntryDescriptor$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class LocalRecommendationInstalledState$Type extends MessageType<LocalRecommendationInstalledState> {
-    constructor() {
-        super("nimi.runtime.v1.LocalRecommendationInstalledState", [
-            { no: 1, name: "installed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
-        ]);
-    }
-    create(value?: PartialMessage<LocalRecommendationInstalledState>): LocalRecommendationInstalledState {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.installed = false;
-        if (value !== undefined)
-            reflectionMergePartial<LocalRecommendationInstalledState>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalRecommendationInstalledState): LocalRecommendationInstalledState {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* bool installed */ 1:
-                    message.installed = reader.bool();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: LocalRecommendationInstalledState, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* bool installed = 1; */
-        if (message.installed !== false)
-            writer.tag(1, WireType.Varint).bool(message.installed);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalRecommendationInstalledState
- */
-export const LocalRecommendationInstalledState = new LocalRecommendationInstalledState$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class LocalRecommendationActionState$Type extends MessageType<LocalRecommendationActionState> {
-    constructor() {
-        super("nimi.runtime.v1.LocalRecommendationActionState", [
-            { no: 1, name: "can_review_install_plan", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 2, name: "can_open_variants", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 3, name: "can_open_model_asset", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
-        ]);
-    }
-    create(value?: PartialMessage<LocalRecommendationActionState>): LocalRecommendationActionState {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.canReviewInstallPlan = false;
-        message.canOpenVariants = false;
-        message.canOpenModelAsset = false;
-        if (value !== undefined)
-            reflectionMergePartial<LocalRecommendationActionState>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalRecommendationActionState): LocalRecommendationActionState {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* bool can_review_install_plan */ 1:
-                    message.canReviewInstallPlan = reader.bool();
-                    break;
-                case /* bool can_open_variants */ 2:
-                    message.canOpenVariants = reader.bool();
-                    break;
-                case /* bool can_open_model_asset */ 3:
-                    message.canOpenModelAsset = reader.bool();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: LocalRecommendationActionState, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* bool can_review_install_plan = 1; */
-        if (message.canReviewInstallPlan !== false)
-            writer.tag(1, WireType.Varint).bool(message.canReviewInstallPlan);
-        /* bool can_open_variants = 2; */
-        if (message.canOpenVariants !== false)
-            writer.tag(2, WireType.Varint).bool(message.canOpenVariants);
-        /* bool can_open_model_asset = 3; */
-        if (message.canOpenModelAsset !== false)
-            writer.tag(3, WireType.Varint).bool(message.canOpenModelAsset);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalRecommendationActionState
- */
-export const LocalRecommendationActionState = new LocalRecommendationActionState$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class LocalRecommendationInstallPayload$Type extends MessageType<LocalRecommendationInstallPayload> {
-    constructor() {
-        super("nimi.runtime.v1.LocalRecommendationInstallPayload", [
-            { no: 1, name: "model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "kind", kind: "enum", T: () => ["nimi.runtime.v1.LocalAssetKind", LocalAssetKind, "LOCAL_ASSET_KIND_"] },
-            { no: 3, name: "repo", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "entry", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "files", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 9, name: "license", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "hashes", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
-            { no: 11, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 12, name: "engine_config", kind: "message", T: () => Struct }
-        ]);
-    }
-    create(value?: PartialMessage<LocalRecommendationInstallPayload>): LocalRecommendationInstallPayload {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.modelId = "";
-        message.kind = 0;
-        message.repo = "";
-        message.revision = "";
-        message.capabilities = [];
-        message.engine = "";
-        message.entry = "";
-        message.files = [];
-        message.license = "";
-        message.hashes = {};
-        message.endpoint = "";
-        if (value !== undefined)
-            reflectionMergePartial<LocalRecommendationInstallPayload>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalRecommendationInstallPayload): LocalRecommendationInstallPayload {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string model_id */ 1:
-                    message.modelId = reader.string();
-                    break;
-                case /* nimi.runtime.v1.LocalAssetKind kind */ 2:
-                    message.kind = reader.int32();
-                    break;
-                case /* string repo */ 3:
-                    message.repo = reader.string();
-                    break;
-                case /* string revision */ 4:
-                    message.revision = reader.string();
-                    break;
-                case /* repeated string capabilities */ 5:
-                    message.capabilities.push(reader.string());
-                    break;
-                case /* string engine */ 6:
-                    message.engine = reader.string();
-                    break;
-                case /* string entry */ 7:
-                    message.entry = reader.string();
-                    break;
-                case /* repeated string files */ 8:
-                    message.files.push(reader.string());
-                    break;
-                case /* string license */ 9:
-                    message.license = reader.string();
-                    break;
-                case /* map<string, string> hashes */ 10:
-                    this.binaryReadMap10(message.hashes, reader, options);
-                    break;
-                case /* string endpoint */ 11:
-                    message.endpoint = reader.string();
-                    break;
-                case /* google.protobuf.Struct engine_config */ 12:
-                    message.engineConfig = Struct.internalBinaryRead(reader, reader.uint32(), options, message.engineConfig);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    private binaryReadMap10(map: LocalRecommendationInstallPayload["hashes"], reader: IBinaryReader, options: BinaryReadOptions): void {
-        let len = reader.uint32(), end = reader.pos + len, key: keyof LocalRecommendationInstallPayload["hashes"] | undefined, val: LocalRecommendationInstallPayload["hashes"][any] | undefined;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case 1:
-                    key = reader.string();
-                    break;
-                case 2:
-                    val = reader.string();
-                    break;
-                default: throw new globalThis.Error("unknown map entry field for nimi.runtime.v1.LocalRecommendationInstallPayload.hashes");
-            }
-        }
-        map[key ?? ""] = val ?? "";
-    }
-    internalBinaryWrite(message: LocalRecommendationInstallPayload, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string model_id = 1; */
-        if (message.modelId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.modelId);
-        /* nimi.runtime.v1.LocalAssetKind kind = 2; */
-        if (message.kind !== 0)
-            writer.tag(2, WireType.Varint).int32(message.kind);
-        /* string repo = 3; */
-        if (message.repo !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.repo);
-        /* string revision = 4; */
-        if (message.revision !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.revision);
-        /* repeated string capabilities = 5; */
-        for (let i = 0; i < message.capabilities.length; i++)
-            writer.tag(5, WireType.LengthDelimited).string(message.capabilities[i]);
-        /* string engine = 6; */
-        if (message.engine !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.engine);
-        /* string entry = 7; */
-        if (message.entry !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.entry);
-        /* repeated string files = 8; */
-        for (let i = 0; i < message.files.length; i++)
-            writer.tag(8, WireType.LengthDelimited).string(message.files[i]);
-        /* string license = 9; */
-        if (message.license !== "")
-            writer.tag(9, WireType.LengthDelimited).string(message.license);
-        /* map<string, string> hashes = 10; */
-        for (let k of globalThis.Object.keys(message.hashes))
-            writer.tag(10, WireType.LengthDelimited).fork().tag(1, WireType.LengthDelimited).string(k).tag(2, WireType.LengthDelimited).string(message.hashes[k]).join();
-        /* string endpoint = 11; */
-        if (message.endpoint !== "")
-            writer.tag(11, WireType.LengthDelimited).string(message.endpoint);
-        /* google.protobuf.Struct engine_config = 12; */
-        if (message.engineConfig)
-            Struct.internalBinaryWrite(message.engineConfig, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalRecommendationInstallPayload
- */
-export const LocalRecommendationInstallPayload = new LocalRecommendationInstallPayload$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class LocalRecommendationFeedItemDescriptor$Type extends MessageType<LocalRecommendationFeedItemDescriptor> {
-    constructor() {
-        super("nimi.runtime.v1.LocalRecommendationFeedItemDescriptor", [
-            { no: 1, name: "item_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "source", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationFeedSource", LocalRecommendationFeedSource, "LOCAL_RECOMMENDATION_FEED_SOURCE_"] },
-            { no: 3, name: "repo", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 6, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "capabilities", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+        super("nimi.runtime.v1.ModelAssetCatalogSearchResult", [
+            { no: 1, name: "model_locator", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "source_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "categories", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "model_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "license", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "tags", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 9, name: "formats", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.LocalRecommendationFormat", LocalRecommendationFormat, "LOCAL_RECOMMENDATION_FORMAT_"] },
-            { no: 10, name: "downloads", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 11, name: "likes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 12, name: "last_modified", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 13, name: "preferred_engine", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 14, name: "verified", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 15, name: "entries", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalRecommendationFeedEntryDescriptor },
-            { no: 16, name: "recommendation", kind: "message", T: () => LocalCatalogRecommendation },
-            { no: 17, name: "installed_state", kind: "message", T: () => LocalRecommendationInstalledState },
-            { no: 18, name: "action_state", kind: "message", T: () => LocalRecommendationActionState },
-            { no: 19, name: "install_payload", kind: "message", T: () => LocalRecommendationInstallPayload }
+            { no: 9, name: "downloads", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 10, name: "likes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 11, name: "last_modified", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "verified", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 13, name: "author", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalRecommendationFeedItemDescriptor>): LocalRecommendationFeedItemDescriptor {
+    create(value?: PartialMessage<ModelAssetCatalogSearchResult>): ModelAssetCatalogSearchResult {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.itemId = "";
-        message.source = 0;
-        message.repo = "";
-        message.revision = "";
+        message.modelLocator = "";
+        message.sourceLabel = "";
         message.title = "";
         message.description = "";
-        message.capabilities = [];
+        message.categories = [];
+        message.modelType = "";
+        message.license = "";
         message.tags = [];
-        message.formats = [];
         message.downloads = "0";
         message.likes = "0";
         message.lastModified = "";
-        message.preferredEngine = "";
         message.verified = false;
-        message.entries = [];
+        message.author = "";
         if (value !== undefined)
-            reflectionMergePartial<LocalRecommendationFeedItemDescriptor>(this, message, value);
+            reflectionMergePartial<ModelAssetCatalogSearchResult>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalRecommendationFeedItemDescriptor): LocalRecommendationFeedItemDescriptor {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ModelAssetCatalogSearchResult): ModelAssetCatalogSearchResult {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string item_id */ 1:
-                    message.itemId = reader.string();
+                case /* string model_locator */ 1:
+                    message.modelLocator = reader.string();
                     break;
-                case /* nimi.runtime.v1.LocalRecommendationFeedSource source */ 2:
-                    message.source = reader.int32();
+                case /* string source_label */ 2:
+                    message.sourceLabel = reader.string();
                     break;
-                case /* string repo */ 3:
-                    message.repo = reader.string();
-                    break;
-                case /* string revision */ 4:
-                    message.revision = reader.string();
-                    break;
-                case /* string title */ 5:
+                case /* string title */ 3:
                     message.title = reader.string();
                     break;
-                case /* string description */ 6:
+                case /* string description */ 4:
                     message.description = reader.string();
                     break;
-                case /* repeated string capabilities */ 7:
-                    message.capabilities.push(reader.string());
+                case /* repeated string categories */ 5:
+                    message.categories.push(reader.string());
+                    break;
+                case /* string model_type */ 6:
+                    message.modelType = reader.string();
+                    break;
+                case /* string license */ 7:
+                    message.license = reader.string();
                     break;
                 case /* repeated string tags */ 8:
                     message.tags.push(reader.string());
                     break;
-                case /* repeated nimi.runtime.v1.LocalRecommendationFormat formats */ 9:
-                    if (wireType === WireType.LengthDelimited)
-                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
-                            message.formats.push(reader.int32());
-                    else
-                        message.formats.push(reader.int32());
-                    break;
-                case /* int64 downloads */ 10:
+                case /* int64 downloads */ 9:
                     message.downloads = reader.int64().toString();
                     break;
-                case /* int64 likes */ 11:
+                case /* int64 likes */ 10:
                     message.likes = reader.int64().toString();
                     break;
-                case /* string last_modified */ 12:
+                case /* string last_modified */ 11:
                     message.lastModified = reader.string();
                     break;
-                case /* string preferred_engine */ 13:
-                    message.preferredEngine = reader.string();
-                    break;
-                case /* bool verified */ 14:
+                case /* bool verified */ 12:
                     message.verified = reader.bool();
                     break;
-                case /* repeated nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor entries */ 15:
-                    message.entries.push(LocalRecommendationFeedEntryDescriptor.internalBinaryRead(reader, reader.uint32(), options));
-                    break;
-                case /* nimi.runtime.v1.LocalCatalogRecommendation recommendation */ 16:
-                    message.recommendation = LocalCatalogRecommendation.internalBinaryRead(reader, reader.uint32(), options, message.recommendation);
-                    break;
-                case /* nimi.runtime.v1.LocalRecommendationInstalledState installed_state */ 17:
-                    message.installedState = LocalRecommendationInstalledState.internalBinaryRead(reader, reader.uint32(), options, message.installedState);
-                    break;
-                case /* nimi.runtime.v1.LocalRecommendationActionState action_state */ 18:
-                    message.actionState = LocalRecommendationActionState.internalBinaryRead(reader, reader.uint32(), options, message.actionState);
-                    break;
-                case /* nimi.runtime.v1.LocalRecommendationInstallPayload install_payload */ 19:
-                    message.installPayload = LocalRecommendationInstallPayload.internalBinaryRead(reader, reader.uint32(), options, message.installPayload);
+                case /* string author */ 13:
+                    message.author = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1039,68 +486,46 @@ class LocalRecommendationFeedItemDescriptor$Type extends MessageType<LocalRecomm
         }
         return message;
     }
-    internalBinaryWrite(message: LocalRecommendationFeedItemDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string item_id = 1; */
-        if (message.itemId !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.itemId);
-        /* nimi.runtime.v1.LocalRecommendationFeedSource source = 2; */
-        if (message.source !== 0)
-            writer.tag(2, WireType.Varint).int32(message.source);
-        /* string repo = 3; */
-        if (message.repo !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.repo);
-        /* string revision = 4; */
-        if (message.revision !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.revision);
-        /* string title = 5; */
+    internalBinaryWrite(message: ModelAssetCatalogSearchResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string model_locator = 1; */
+        if (message.modelLocator !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.modelLocator);
+        /* string source_label = 2; */
+        if (message.sourceLabel !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.sourceLabel);
+        /* string title = 3; */
         if (message.title !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.title);
-        /* string description = 6; */
+            writer.tag(3, WireType.LengthDelimited).string(message.title);
+        /* string description = 4; */
         if (message.description !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.description);
-        /* repeated string capabilities = 7; */
-        for (let i = 0; i < message.capabilities.length; i++)
-            writer.tag(7, WireType.LengthDelimited).string(message.capabilities[i]);
+            writer.tag(4, WireType.LengthDelimited).string(message.description);
+        /* repeated string categories = 5; */
+        for (let i = 0; i < message.categories.length; i++)
+            writer.tag(5, WireType.LengthDelimited).string(message.categories[i]);
+        /* string model_type = 6; */
+        if (message.modelType !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.modelType);
+        /* string license = 7; */
+        if (message.license !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.license);
         /* repeated string tags = 8; */
         for (let i = 0; i < message.tags.length; i++)
             writer.tag(8, WireType.LengthDelimited).string(message.tags[i]);
-        /* repeated nimi.runtime.v1.LocalRecommendationFormat formats = 9; */
-        if (message.formats.length) {
-            writer.tag(9, WireType.LengthDelimited).fork();
-            for (let i = 0; i < message.formats.length; i++)
-                writer.int32(message.formats[i]);
-            writer.join();
-        }
-        /* int64 downloads = 10; */
+        /* int64 downloads = 9; */
         if (message.downloads !== "0")
-            writer.tag(10, WireType.Varint).int64(message.downloads);
-        /* int64 likes = 11; */
+            writer.tag(9, WireType.Varint).int64(message.downloads);
+        /* int64 likes = 10; */
         if (message.likes !== "0")
-            writer.tag(11, WireType.Varint).int64(message.likes);
-        /* string last_modified = 12; */
+            writer.tag(10, WireType.Varint).int64(message.likes);
+        /* string last_modified = 11; */
         if (message.lastModified !== "")
-            writer.tag(12, WireType.LengthDelimited).string(message.lastModified);
-        /* string preferred_engine = 13; */
-        if (message.preferredEngine !== "")
-            writer.tag(13, WireType.LengthDelimited).string(message.preferredEngine);
-        /* bool verified = 14; */
+            writer.tag(11, WireType.LengthDelimited).string(message.lastModified);
+        /* bool verified = 12; */
         if (message.verified !== false)
-            writer.tag(14, WireType.Varint).bool(message.verified);
-        /* repeated nimi.runtime.v1.LocalRecommendationFeedEntryDescriptor entries = 15; */
-        for (let i = 0; i < message.entries.length; i++)
-            LocalRecommendationFeedEntryDescriptor.internalBinaryWrite(message.entries[i], writer.tag(15, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalCatalogRecommendation recommendation = 16; */
-        if (message.recommendation)
-            LocalCatalogRecommendation.internalBinaryWrite(message.recommendation, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalRecommendationInstalledState installed_state = 17; */
-        if (message.installedState)
-            LocalRecommendationInstalledState.internalBinaryWrite(message.installedState, writer.tag(17, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalRecommendationActionState action_state = 18; */
-        if (message.actionState)
-            LocalRecommendationActionState.internalBinaryWrite(message.actionState, writer.tag(18, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalRecommendationInstallPayload install_payload = 19; */
-        if (message.installPayload)
-            LocalRecommendationInstallPayload.internalBinaryWrite(message.installPayload, writer.tag(19, WireType.LengthDelimited).fork(), options).join();
+            writer.tag(12, WireType.Varint).bool(message.verified);
+        /* string author = 13; */
+        if (message.author !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.author);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1108,49 +533,124 @@ class LocalRecommendationFeedItemDescriptor$Type extends MessageType<LocalRecomm
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalRecommendationFeedItemDescriptor
+ * @generated MessageType for protobuf message nimi.runtime.v1.ModelAssetCatalogSearchResult
  */
-export const LocalRecommendationFeedItemDescriptor = new LocalRecommendationFeedItemDescriptor$Type();
+export const ModelAssetCatalogSearchResult = new ModelAssetCatalogSearchResult$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalRecommendationFeedDescriptor$Type extends MessageType<LocalRecommendationFeedDescriptor> {
+class ModelAssetMarketCandidate$Type extends MessageType<ModelAssetMarketCandidate> {
     constructor() {
-        super("nimi.runtime.v1.LocalRecommendationFeedDescriptor", [
-            { no: 1, name: "device_profile", kind: "message", T: () => LocalDeviceProfile },
-            { no: 2, name: "active_capability", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationFeedCapability", LocalRecommendationFeedCapability, "LOCAL_RECOMMENDATION_FEED_CAPABILITY_"] },
-            { no: 3, name: "generated_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "cache_state", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationFeedCacheState", LocalRecommendationFeedCacheState, "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_"] },
-            { no: 5, name: "items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalRecommendationFeedItemDescriptor }
+        super("nimi.runtime.v1.ModelAssetMarketCandidate", [
+            { no: 1, name: "offer_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "source_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "title", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "description", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "categories", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "model_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "variant_label", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "format", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "total_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 10, name: "license", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "tags", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "downloads", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 13, name: "likes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 14, name: "last_modified", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 15, name: "verified", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 16, name: "installed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 17, name: "installable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 18, name: "featured_ordinal", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ },
+            { no: 19, name: "editorial_reason", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 20, name: "author", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<LocalRecommendationFeedDescriptor>): LocalRecommendationFeedDescriptor {
+    create(value?: PartialMessage<ModelAssetMarketCandidate>): ModelAssetMarketCandidate {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.activeCapability = 0;
-        message.generatedAt = "";
-        message.cacheState = 0;
-        message.items = [];
+        message.offerRef = "";
+        message.sourceLabel = "";
+        message.title = "";
+        message.description = "";
+        message.categories = [];
+        message.modelType = "";
+        message.variantLabel = "";
+        message.format = "";
+        message.totalSizeBytes = "0";
+        message.license = "";
+        message.tags = [];
+        message.downloads = "0";
+        message.likes = "0";
+        message.lastModified = "";
+        message.verified = false;
+        message.installed = false;
+        message.installable = false;
+        message.editorialReason = "";
+        message.author = "";
         if (value !== undefined)
-            reflectionMergePartial<LocalRecommendationFeedDescriptor>(this, message, value);
+            reflectionMergePartial<ModelAssetMarketCandidate>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalRecommendationFeedDescriptor): LocalRecommendationFeedDescriptor {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ModelAssetMarketCandidate): ModelAssetMarketCandidate {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalDeviceProfile device_profile */ 1:
-                    message.deviceProfile = LocalDeviceProfile.internalBinaryRead(reader, reader.uint32(), options, message.deviceProfile);
+                case /* string offer_ref */ 1:
+                    message.offerRef = reader.string();
                     break;
-                case /* nimi.runtime.v1.LocalRecommendationFeedCapability active_capability */ 2:
-                    message.activeCapability = reader.int32();
+                case /* string source_label */ 2:
+                    message.sourceLabel = reader.string();
                     break;
-                case /* string generated_at */ 3:
-                    message.generatedAt = reader.string();
+                case /* string title */ 3:
+                    message.title = reader.string();
                     break;
-                case /* nimi.runtime.v1.LocalRecommendationFeedCacheState cache_state */ 4:
-                    message.cacheState = reader.int32();
+                case /* string description */ 4:
+                    message.description = reader.string();
                     break;
-                case /* repeated nimi.runtime.v1.LocalRecommendationFeedItemDescriptor items */ 5:
-                    message.items.push(LocalRecommendationFeedItemDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated string categories */ 5:
+                    message.categories.push(reader.string());
+                    break;
+                case /* string model_type */ 6:
+                    message.modelType = reader.string();
+                    break;
+                case /* string variant_label */ 7:
+                    message.variantLabel = reader.string();
+                    break;
+                case /* string format */ 8:
+                    message.format = reader.string();
+                    break;
+                case /* int64 total_size_bytes */ 9:
+                    message.totalSizeBytes = reader.int64().toString();
+                    break;
+                case /* string license */ 10:
+                    message.license = reader.string();
+                    break;
+                case /* repeated string tags */ 11:
+                    message.tags.push(reader.string());
+                    break;
+                case /* int64 downloads */ 12:
+                    message.downloads = reader.int64().toString();
+                    break;
+                case /* int64 likes */ 13:
+                    message.likes = reader.int64().toString();
+                    break;
+                case /* string last_modified */ 14:
+                    message.lastModified = reader.string();
+                    break;
+                case /* bool verified */ 15:
+                    message.verified = reader.bool();
+                    break;
+                case /* bool installed */ 16:
+                    message.installed = reader.bool();
+                    break;
+                case /* bool installable */ 17:
+                    message.installable = reader.bool();
+                    break;
+                case /* optional int32 featured_ordinal */ 18:
+                    message.featuredOrdinal = reader.int32();
+                    break;
+                case /* string editorial_reason */ 19:
+                    message.editorialReason = reader.string();
+                    break;
+                case /* string author */ 20:
+                    message.author = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1163,22 +663,67 @@ class LocalRecommendationFeedDescriptor$Type extends MessageType<LocalRecommenda
         }
         return message;
     }
-    internalBinaryWrite(message: LocalRecommendationFeedDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalDeviceProfile device_profile = 1; */
-        if (message.deviceProfile)
-            LocalDeviceProfile.internalBinaryWrite(message.deviceProfile, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        /* nimi.runtime.v1.LocalRecommendationFeedCapability active_capability = 2; */
-        if (message.activeCapability !== 0)
-            writer.tag(2, WireType.Varint).int32(message.activeCapability);
-        /* string generated_at = 3; */
-        if (message.generatedAt !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.generatedAt);
-        /* nimi.runtime.v1.LocalRecommendationFeedCacheState cache_state = 4; */
-        if (message.cacheState !== 0)
-            writer.tag(4, WireType.Varint).int32(message.cacheState);
-        /* repeated nimi.runtime.v1.LocalRecommendationFeedItemDescriptor items = 5; */
-        for (let i = 0; i < message.items.length; i++)
-            LocalRecommendationFeedItemDescriptor.internalBinaryWrite(message.items[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+    internalBinaryWrite(message: ModelAssetMarketCandidate, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string offer_ref = 1; */
+        if (message.offerRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.offerRef);
+        /* string source_label = 2; */
+        if (message.sourceLabel !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.sourceLabel);
+        /* string title = 3; */
+        if (message.title !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.title);
+        /* string description = 4; */
+        if (message.description !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.description);
+        /* repeated string categories = 5; */
+        for (let i = 0; i < message.categories.length; i++)
+            writer.tag(5, WireType.LengthDelimited).string(message.categories[i]);
+        /* string model_type = 6; */
+        if (message.modelType !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.modelType);
+        /* string variant_label = 7; */
+        if (message.variantLabel !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.variantLabel);
+        /* string format = 8; */
+        if (message.format !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.format);
+        /* int64 total_size_bytes = 9; */
+        if (message.totalSizeBytes !== "0")
+            writer.tag(9, WireType.Varint).int64(message.totalSizeBytes);
+        /* string license = 10; */
+        if (message.license !== "")
+            writer.tag(10, WireType.LengthDelimited).string(message.license);
+        /* repeated string tags = 11; */
+        for (let i = 0; i < message.tags.length; i++)
+            writer.tag(11, WireType.LengthDelimited).string(message.tags[i]);
+        /* int64 downloads = 12; */
+        if (message.downloads !== "0")
+            writer.tag(12, WireType.Varint).int64(message.downloads);
+        /* int64 likes = 13; */
+        if (message.likes !== "0")
+            writer.tag(13, WireType.Varint).int64(message.likes);
+        /* string last_modified = 14; */
+        if (message.lastModified !== "")
+            writer.tag(14, WireType.LengthDelimited).string(message.lastModified);
+        /* bool verified = 15; */
+        if (message.verified !== false)
+            writer.tag(15, WireType.Varint).bool(message.verified);
+        /* bool installed = 16; */
+        if (message.installed !== false)
+            writer.tag(16, WireType.Varint).bool(message.installed);
+        /* bool installable = 17; */
+        if (message.installable !== false)
+            writer.tag(17, WireType.Varint).bool(message.installable);
+        /* optional int32 featured_ordinal = 18; */
+        if (message.featuredOrdinal !== undefined)
+            writer.tag(18, WireType.Varint).int32(message.featuredOrdinal);
+        /* string editorial_reason = 19; */
+        if (message.editorialReason !== "")
+            writer.tag(19, WireType.LengthDelimited).string(message.editorialReason);
+        /* string author = 20; */
+        if (message.author !== "")
+            writer.tag(20, WireType.LengthDelimited).string(message.author);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1186,6 +731,335 @@ class LocalRecommendationFeedDescriptor$Type extends MessageType<LocalRecommenda
     }
 }
 /**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalRecommendationFeedDescriptor
+ * @generated MessageType for protobuf message nimi.runtime.v1.ModelAssetMarketCandidate
  */
-export const LocalRecommendationFeedDescriptor = new LocalRecommendationFeedDescriptor$Type();
+export const ModelAssetMarketCandidate = new ModelAssetMarketCandidate$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListFeaturedModelAssetsRequest$Type extends MessageType<ListFeaturedModelAssetsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListFeaturedModelAssetsRequest", [
+            { no: 1, name: "category", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListFeaturedModelAssetsRequest>): ListFeaturedModelAssetsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.category = "";
+        message.pageSize = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ListFeaturedModelAssetsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListFeaturedModelAssetsRequest): ListFeaturedModelAssetsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string category */ 1:
+                    message.category = reader.string();
+                    break;
+                case /* int32 page_size */ 2:
+                    message.pageSize = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListFeaturedModelAssetsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string category = 1; */
+        if (message.category !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.category);
+        /* int32 page_size = 2; */
+        if (message.pageSize !== 0)
+            writer.tag(2, WireType.Varint).int32(message.pageSize);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListFeaturedModelAssetsRequest
+ */
+export const ListFeaturedModelAssetsRequest = new ListFeaturedModelAssetsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListFeaturedModelAssetsResponse$Type extends MessageType<ListFeaturedModelAssetsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListFeaturedModelAssetsResponse", [
+            { no: 1, name: "source", kind: "message", T: () => ModelAssetFeaturedSourceObservation },
+            { no: 2, name: "items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ModelAssetMarketCandidate }
+        ]);
+    }
+    create(value?: PartialMessage<ListFeaturedModelAssetsResponse>): ListFeaturedModelAssetsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.items = [];
+        if (value !== undefined)
+            reflectionMergePartial<ListFeaturedModelAssetsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListFeaturedModelAssetsResponse): ListFeaturedModelAssetsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ModelAssetFeaturedSourceObservation source */ 1:
+                    message.source = ModelAssetFeaturedSourceObservation.internalBinaryRead(reader, reader.uint32(), options, message.source);
+                    break;
+                case /* repeated nimi.runtime.v1.ModelAssetMarketCandidate items */ 2:
+                    message.items.push(ModelAssetMarketCandidate.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListFeaturedModelAssetsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ModelAssetFeaturedSourceObservation source = 1; */
+        if (message.source)
+            ModelAssetFeaturedSourceObservation.internalBinaryWrite(message.source, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.ModelAssetMarketCandidate items = 2; */
+        for (let i = 0; i < message.items.length; i++)
+            ModelAssetMarketCandidate.internalBinaryWrite(message.items[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListFeaturedModelAssetsResponse
+ */
+export const ListFeaturedModelAssetsResponse = new ListFeaturedModelAssetsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class FactoryProfileCapabilityApplicability$Type extends MessageType<FactoryProfileCapabilityApplicability> {
+    constructor() {
+        super("nimi.runtime.v1.FactoryProfileCapabilityApplicability", [
+            { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "applicability", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationApplicability", LocalRecommendationApplicability, "LOCAL_RECOMMENDATION_APPLICABILITY_"] },
+            { no: 3, name: "reasons", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<FactoryProfileCapabilityApplicability>): FactoryProfileCapabilityApplicability {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.capabilityContract = "";
+        message.applicability = 0;
+        message.reasons = [];
+        if (value !== undefined)
+            reflectionMergePartial<FactoryProfileCapabilityApplicability>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: FactoryProfileCapabilityApplicability): FactoryProfileCapabilityApplicability {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string capability_contract */ 1:
+                    message.capabilityContract = reader.string();
+                    break;
+                case /* nimi.runtime.v1.LocalRecommendationApplicability applicability */ 2:
+                    message.applicability = reader.int32();
+                    break;
+                case /* repeated nimi.runtime.v1.ReasonCode reasons */ 3:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.reasons.push(reader.int32());
+                    else
+                        message.reasons.push(reader.int32());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: FactoryProfileCapabilityApplicability, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string capability_contract = 1; */
+        if (message.capabilityContract !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.capabilityContract);
+        /* nimi.runtime.v1.LocalRecommendationApplicability applicability = 2; */
+        if (message.applicability !== 0)
+            writer.tag(2, WireType.Varint).int32(message.applicability);
+        /* repeated nimi.runtime.v1.ReasonCode reasons = 3; */
+        if (message.reasons.length) {
+            writer.tag(3, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.reasons.length; i++)
+                writer.int32(message.reasons[i]);
+            writer.join();
+        }
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.FactoryProfileCapabilityApplicability
+ */
+export const FactoryProfileCapabilityApplicability = new FactoryProfileCapabilityApplicability$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class FactoryProfileRecommendation$Type extends MessageType<FactoryProfileRecommendation> {
+    constructor() {
+        super("nimi.runtime.v1.FactoryProfileRecommendation", [
+            { no: 1, name: "profile_alias", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "capabilities", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => FactoryProfileCapabilityApplicability }
+        ]);
+    }
+    create(value?: PartialMessage<FactoryProfileRecommendation>): FactoryProfileRecommendation {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.profileAlias = "";
+        message.capabilities = [];
+        if (value !== undefined)
+            reflectionMergePartial<FactoryProfileRecommendation>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: FactoryProfileRecommendation): FactoryProfileRecommendation {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string profile_alias */ 1:
+                    message.profileAlias = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.FactoryProfileCapabilityApplicability capabilities */ 2:
+                    message.capabilities.push(FactoryProfileCapabilityApplicability.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: FactoryProfileRecommendation, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string profile_alias = 1; */
+        if (message.profileAlias !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.profileAlias);
+        /* repeated nimi.runtime.v1.FactoryProfileCapabilityApplicability capabilities = 2; */
+        for (let i = 0; i < message.capabilities.length; i++)
+            FactoryProfileCapabilityApplicability.internalBinaryWrite(message.capabilities[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.FactoryProfileRecommendation
+ */
+export const FactoryProfileRecommendation = new FactoryProfileRecommendation$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListFactoryProfileRecommendationsRequest$Type extends MessageType<ListFactoryProfileRecommendationsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListFactoryProfileRecommendationsRequest", [
+            { no: 1, name: "capability_contract", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ListFactoryProfileRecommendationsRequest>): ListFactoryProfileRecommendationsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.capabilityContract = "";
+        if (value !== undefined)
+            reflectionMergePartial<ListFactoryProfileRecommendationsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListFactoryProfileRecommendationsRequest): ListFactoryProfileRecommendationsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string capability_contract */ 1:
+                    message.capabilityContract = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListFactoryProfileRecommendationsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string capability_contract = 1; */
+        if (message.capabilityContract !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.capabilityContract);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListFactoryProfileRecommendationsRequest
+ */
+export const ListFactoryProfileRecommendationsRequest = new ListFactoryProfileRecommendationsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListFactoryProfileRecommendationsResponse$Type extends MessageType<ListFactoryProfileRecommendationsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListFactoryProfileRecommendationsResponse", [
+            { no: 1, name: "profiles", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => FactoryProfileRecommendation }
+        ]);
+    }
+    create(value?: PartialMessage<ListFactoryProfileRecommendationsResponse>): ListFactoryProfileRecommendationsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.profiles = [];
+        if (value !== undefined)
+            reflectionMergePartial<ListFactoryProfileRecommendationsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListFactoryProfileRecommendationsResponse): ListFactoryProfileRecommendationsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.FactoryProfileRecommendation profiles */ 1:
+                    message.profiles.push(FactoryProfileRecommendation.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListFactoryProfileRecommendationsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.FactoryProfileRecommendation profiles = 1; */
+        for (let i = 0; i < message.profiles.length; i++)
+            FactoryProfileRecommendation.internalBinaryWrite(message.profiles[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListFactoryProfileRecommendationsResponse
+ */
+export const ListFactoryProfileRecommendationsResponse = new ListFactoryProfileRecommendationsResponse$Type();

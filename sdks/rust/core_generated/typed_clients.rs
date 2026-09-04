@@ -1983,124 +1983,16 @@ impl Default for LocalEngineRuntimeMode {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalHostSupportClass {
-    LOCALHOSTSUPPORTCLASSUNSPECIFIED,
-    LOCALHOSTSUPPORTCLASSSUPPORTEDSUPERVISED,
-    LOCALHOSTSUPPORTCLASSATTACHEDONLY,
-    LOCALHOSTSUPPORTCLASSUNSUPPORTED,
+pub enum LocalRecommendationApplicability {
+    LOCALRECOMMENDATIONAPPLICABILITYUNSPECIFIED,
+    LOCALRECOMMENDATIONAPPLICABILITYSUPPORTED,
+    LOCALRECOMMENDATIONAPPLICABILITYUNKNOWN,
+    LOCALRECOMMENDATIONAPPLICABILITYUNSUPPORTED,
 }
 
-impl Default for LocalHostSupportClass {
+impl Default for LocalRecommendationApplicability {
     fn default() -> Self {
-        Self::LOCALHOSTSUPPORTCLASSUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalRecommendationBaseline {
-    LOCALRECOMMENDATIONBASELINEUNSPECIFIED,
-    LOCALRECOMMENDATIONBASELINEIMAGEDEFAULTV1,
-    LOCALRECOMMENDATIONBASELINEVIDEODEFAULTV1,
-}
-
-impl Default for LocalRecommendationBaseline {
-    fn default() -> Self {
-        Self::LOCALRECOMMENDATIONBASELINEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalRecommendationConfidence {
-    LOCALRECOMMENDATIONCONFIDENCEUNSPECIFIED,
-    LOCALRECOMMENDATIONCONFIDENCEHIGH,
-    LOCALRECOMMENDATIONCONFIDENCEMEDIUM,
-    LOCALRECOMMENDATIONCONFIDENCELOW,
-}
-
-impl Default for LocalRecommendationConfidence {
-    fn default() -> Self {
-        Self::LOCALRECOMMENDATIONCONFIDENCEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalRecommendationFeedCacheState {
-    LOCALRECOMMENDATIONFEEDCACHESTATEUNSPECIFIED,
-    LOCALRECOMMENDATIONFEEDCACHESTATEFRESH,
-    LOCALRECOMMENDATIONFEEDCACHESTATESTALE,
-    LOCALRECOMMENDATIONFEEDCACHESTATEEMPTY,
-}
-
-impl Default for LocalRecommendationFeedCacheState {
-    fn default() -> Self {
-        Self::LOCALRECOMMENDATIONFEEDCACHESTATEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalRecommendationFeedCapability {
-    LOCALRECOMMENDATIONFEEDCAPABILITYUNSPECIFIED,
-    LOCALRECOMMENDATIONFEEDCAPABILITYCHAT,
-    LOCALRECOMMENDATIONFEEDCAPABILITYIMAGE,
-    LOCALRECOMMENDATIONFEEDCAPABILITYVIDEO,
-}
-
-impl Default for LocalRecommendationFeedCapability {
-    fn default() -> Self {
-        Self::LOCALRECOMMENDATIONFEEDCAPABILITYUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalRecommendationFeedSource {
-    LOCALRECOMMENDATIONFEEDSOURCEUNSPECIFIED,
-    LOCALRECOMMENDATIONFEEDSOURCEMODELINDEX,
-}
-
-impl Default for LocalRecommendationFeedSource {
-    fn default() -> Self {
-        Self::LOCALRECOMMENDATIONFEEDSOURCEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalRecommendationFormat {
-    LOCALRECOMMENDATIONFORMATUNSPECIFIED,
-    LOCALRECOMMENDATIONFORMATGGUF,
-    LOCALRECOMMENDATIONFORMATSAFETENSORS,
-}
-
-impl Default for LocalRecommendationFormat {
-    fn default() -> Self {
-        Self::LOCALRECOMMENDATIONFORMATUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalRecommendationSource {
-    LOCALRECOMMENDATIONSOURCEUNSPECIFIED,
-    LOCALRECOMMENDATIONSOURCELLMFIT,
-    LOCALRECOMMENDATIONSOURCEMEDIAFIT,
-}
-
-impl Default for LocalRecommendationSource {
-    fn default() -> Self {
-        Self::LOCALRECOMMENDATIONSOURCEUNSPECIFIED
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum LocalRecommendationTier {
-    LOCALRECOMMENDATIONTIERUNSPECIFIED,
-    LOCALRECOMMENDATIONTIERRECOMMENDED,
-    LOCALRECOMMENDATIONTIERRUNNABLE,
-    LOCALRECOMMENDATIONTIERTIGHT,
-    LOCALRECOMMENDATIONTIERNOTRECOMMENDED,
-}
-
-impl Default for LocalRecommendationTier {
-    fn default() -> Self {
-        Self::LOCALRECOMMENDATIONTIERUNSPECIFIED
+        Self::LOCALRECOMMENDATIONAPPLICABILITYUNSPECIFIED
     }
 }
 
@@ -2159,6 +2051,32 @@ pub enum ModelAssetCatalogVerification {
 impl Default for ModelAssetCatalogVerification {
     fn default() -> Self {
         Self::MODELASSETCATALOGVERIFICATIONUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ModelAssetSourceAvailability {
+    MODELASSETSOURCEAVAILABILITYUNSPECIFIED,
+    MODELASSETSOURCEAVAILABILITYAVAILABLE,
+    MODELASSETSOURCEAVAILABILITYUNAVAILABLE,
+}
+
+impl Default for ModelAssetSourceAvailability {
+    fn default() -> Self {
+        Self::MODELASSETSOURCEAVAILABILITYUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ModelAssetSourceFreshness {
+    MODELASSETSOURCEFRESHNESSUNSPECIFIED,
+    MODELASSETSOURCEFRESHNESSFRESH,
+    MODELASSETSOURCEFRESHNESSSTALE,
+}
+
+impl Default for ModelAssetSourceFreshness {
+    fn default() -> Self {
+        Self::MODELASSETSOURCEFRESHNESSUNSPECIFIED
     }
 }
 
@@ -5967,6 +5885,19 @@ pub struct ExternalAgentTokenRecord {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct FactoryProfileCapabilityApplicability {
+    pub capability_contract: Option<String>,
+    pub applicability: Option<LocalRecommendationApplicability>,
+    pub reasons: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct FactoryProfileRecommendation {
+    pub profile_alias: Option<String>,
+    pub capabilities: Vec<Box<FactoryProfileCapabilityApplicability>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ForgetLocalAppAgentMemoryRequest {
     pub agent_handle: Option<String>,
     pub memory_ids: Vec<String>,
@@ -6346,17 +6277,6 @@ pub struct GetPublicChatSessionSnapshotRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetPublicChatSessionSnapshotResponse {
     pub snapshot: Option<BTreeMap<String, String>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetRecommendationFeedRequest {
-    pub capability: Option<String>,
-    pub page_size: Option<i32>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct GetRecommendationFeedResponse {
-    pub feed: Option<Box<LocalRecommendationFeedDescriptor>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6835,12 +6755,12 @@ pub struct ListCatalogProviderModelsResponse {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListCatalogVariantsRequest {
-    pub repo: Option<String>,
+    pub model_locator: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListCatalogVariantsResponse {
-    pub variants: Vec<Box<LocalCatalogVariantDescriptor>>,
+    pub variants: Vec<Box<ModelAssetMarketCandidate>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6937,6 +6857,28 @@ pub struct ListDesktopAuditEventsRequest {
 pub struct ListDesktopAuditEventsResponse {
     pub events: Vec<Box<DesktopAuditEventProjection>>,
     pub next_page_token: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListFactoryProfileRecommendationsRequest {
+    pub capability_contract: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListFactoryProfileRecommendationsResponse {
+    pub profiles: Vec<Box<FactoryProfileRecommendation>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListFeaturedModelAssetsRequest {
+    pub category: Option<String>,
+    pub page_size: Option<i32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListFeaturedModelAssetsResponse {
+    pub source: Option<Box<ModelAssetFeaturedSourceObservation>>,
+    pub items: Vec<Box<ModelAssetMarketCandidate>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7329,6 +7271,16 @@ pub struct LoadoutRecipeDescriptor {
     pub slots: Vec<Box<LoadoutRecipeSlotDescriptor>>,
     pub custody: Vec<Box<LoadoutRecipeCustodyDescriptor>>,
     pub implementation_supported_features: Vec<String>,
+    pub applicability: Option<LocalRecommendationApplicability>,
+    pub reasons: Vec<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LoadoutRecipeOfferDescriptor {
+    pub candidate: Option<Box<ModelAssetMarketCandidate>>,
+    pub applicability: Option<LocalRecommendationApplicability>,
+    pub reasons: Vec<ReasonCode>,
+    pub installed_model_asset_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7340,6 +7292,9 @@ pub struct LoadoutRecipeSlotDescriptor {
     pub recommended_variant_ids: Vec<String>,
     pub presence: Option<LocalCapabilityRequirementPresence>,
     pub conditional_features: Vec<String>,
+    pub offers: Vec<Box<LoadoutRecipeOfferDescriptor>>,
+    pub applicability: Option<LocalRecommendationApplicability>,
+    pub reasons: Vec<ReasonCode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8121,30 +8076,6 @@ pub struct LocalCatalogModelDescriptor {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalCatalogRecommendation {
-    pub source: Option<LocalRecommendationSource>,
-    pub format: Option<LocalRecommendationFormat>,
-    pub tier: Option<LocalRecommendationTier>,
-    pub host_support_class: Option<LocalHostSupportClass>,
-    pub confidence: Option<LocalRecommendationConfidence>,
-    pub reason_codes: Vec<String>,
-    pub recommended_entry: Option<String>,
-    pub fallback_entries: Vec<String>,
-    pub suggested_notes: Vec<String>,
-    pub baseline: Option<LocalRecommendationBaseline>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalCatalogVariantDescriptor {
-    pub filename: Option<String>,
-    pub entry: Option<String>,
-    pub files: Vec<String>,
-    pub format: Option<String>,
-    pub size_bytes: Option<i64>,
-    pub sha256: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalDevelopmentProjectProjection {
     pub app_id: Option<String>,
     pub display_name: Option<String>,
@@ -8315,6 +8246,7 @@ pub struct LocalInstallPlanDescriptor {
     pub total_size_bytes: Option<i64>,
     pub source_provenance: Option<String>,
     pub model_type: Option<String>,
+    pub offer_ref: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8380,76 +8312,6 @@ pub struct LocalProviderHintsSpeech {
 pub struct LocalPythonProfile {
     pub available: Option<bool>,
     pub version: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalRecommendationActionState {
-    pub can_review_install_plan: Option<bool>,
-    pub can_open_variants: Option<bool>,
-    pub can_open_model_asset: Option<bool>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalRecommendationFeedDescriptor {
-    pub device_profile: Option<Box<LocalDeviceProfile>>,
-    pub active_capability: Option<LocalRecommendationFeedCapability>,
-    pub generated_at: Option<String>,
-    pub cache_state: Option<LocalRecommendationFeedCacheState>,
-    pub items: Vec<Box<LocalRecommendationFeedItemDescriptor>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalRecommendationFeedEntryDescriptor {
-    pub entry_id: Option<String>,
-    pub format: Option<LocalRecommendationFormat>,
-    pub entry: Option<String>,
-    pub files: Vec<String>,
-    pub total_size_bytes: Option<i64>,
-    pub sha256: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalRecommendationFeedItemDescriptor {
-    pub item_id: Option<String>,
-    pub source: Option<LocalRecommendationFeedSource>,
-    pub repo: Option<String>,
-    pub revision: Option<String>,
-    pub title: Option<String>,
-    pub description: Option<String>,
-    pub capabilities: Vec<String>,
-    pub tags: Vec<String>,
-    pub formats: Vec<LocalRecommendationFormat>,
-    pub downloads: Option<i64>,
-    pub likes: Option<i64>,
-    pub last_modified: Option<String>,
-    pub preferred_engine: Option<String>,
-    pub verified: Option<bool>,
-    pub entries: Vec<Box<LocalRecommendationFeedEntryDescriptor>>,
-    pub recommendation: Option<Box<LocalCatalogRecommendation>>,
-    pub installed_state: Option<Box<LocalRecommendationInstalledState>>,
-    pub action_state: Option<Box<LocalRecommendationActionState>>,
-    pub install_payload: Option<Box<LocalRecommendationInstallPayload>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalRecommendationInstallPayload {
-    pub model_id: Option<String>,
-    pub kind: Option<LocalAssetKind>,
-    pub repo: Option<String>,
-    pub revision: Option<String>,
-    pub capabilities: Vec<String>,
-    pub engine: Option<String>,
-    pub entry: Option<String>,
-    pub files: Vec<String>,
-    pub license: Option<String>,
-    pub hashes: BTreeMap<String, String>,
-    pub endpoint: Option<String>,
-    pub engine_config: Option<BTreeMap<String, String>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct LocalRecommendationInstalledState {
-    pub installed: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8660,6 +8522,23 @@ pub struct MemoryEmbeddingProfile {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ModelAssetCatalogSearchResult {
+    pub model_locator: Option<String>,
+    pub source_label: Option<String>,
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub categories: Vec<String>,
+    pub model_type: Option<String>,
+    pub license: Option<String>,
+    pub tags: Vec<String>,
+    pub downloads: Option<i64>,
+    pub likes: Option<i64>,
+    pub last_modified: Option<String>,
+    pub verified: Option<bool>,
+    pub author: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ModelAssetExactBinding {
     pub requirement_id: Option<String>,
     pub model_asset_id: Option<String>,
@@ -8668,11 +8547,43 @@ pub struct ModelAssetExactBinding {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ModelAssetFeaturedSourceObservation {
+    pub availability: Option<ModelAssetSourceAvailability>,
+    pub freshness: Option<ModelAssetSourceFreshness>,
+    pub generation: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ModelAssetFile {
     pub relative_path: Option<String>,
     pub sha256: Option<String>,
     pub size_bytes: Option<i64>,
     pub non_executable_content: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ModelAssetMarketCandidate {
+    pub offer_ref: Option<String>,
+    pub source_label: Option<String>,
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub categories: Vec<String>,
+    pub model_type: Option<String>,
+    pub variant_label: Option<String>,
+    pub format: Option<String>,
+    pub total_size_bytes: Option<i64>,
+    pub license: Option<String>,
+    pub tags: Vec<String>,
+    pub downloads: Option<i64>,
+    pub likes: Option<i64>,
+    pub last_modified: Option<String>,
+    pub verified: Option<bool>,
+    pub installed: Option<bool>,
+    pub installable: Option<bool>,
+    pub featured_ordinal: Option<i32>,
+    pub editorial_reason: Option<String>,
+    pub author: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9825,6 +9736,7 @@ pub struct ResolveModelInstallPlanRequest {
     pub endpoint: Option<String>,
     pub engine_config: Option<BTreeMap<String, String>>,
     pub model_type: Option<String>,
+    pub offer_ref: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10119,16 +10031,14 @@ pub struct SchedulingTargetJudgement {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SearchCatalogModelsRequest {
     pub query: Option<String>,
-    pub capability: Option<String>,
-    pub category_filter: Option<String>,
-    pub engine_filter: Option<String>,
+    pub category: Option<String>,
     pub page_size: Option<i32>,
     pub page_token: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SearchCatalogModelsResponse {
-    pub items: Vec<Box<LocalCatalogModelDescriptor>>,
+    pub items: Vec<Box<ModelAssetCatalogSearchResult>>,
     pub next_page_token: Option<String>,
 }
 

@@ -2,104 +2,149 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  createNimiRuntimeLocalEnvironmentClient,
-  isNimiRuntimeLocalEnvironmentDependencyJobActiveState,
-  isNimiRuntimeLocalEnvironmentDependencyJobRetryableState,
-  type NimiRuntimeLocalEnvironmentRpc,
-} from './runtime-local-environment-client';
+  ModelAssetSourceAvailability,
+  ModelAssetSourceFreshness,
+  ReasonCode,
+} from '../core-generated/runtime-typed-client.js';
+import { createNimiRuntimeLocalEnvironmentClient } from './runtime-local-environment-client.js';
+import type { NimiRuntimeLocalEnvironmentRpc } from './runtime-local-environment-client.js';
+import { projectNimiRuntimeLocalInstallPlanDescriptor } from './runtime-local-environment-client-projections.js';
 import {
-  projectNimiRuntimeLocalCatalogItemDescriptor,
-  projectNimiRuntimeLocalInstallPlanDescriptor,
-  projectNimiRuntimeLocalVerifiedAssetDescriptor,
-} from './runtime-local-environment-client-projections';
-import { LocalAssetKind, LocalEngineRuntimeMode } from '../core-generated/runtime-typed-client';
+  projectNimiRuntimeFeaturedModelAssets,
+  projectNimiRuntimeModelAssetMarketCandidate,
+  projectNimiRuntimeModelAssetSearchResult,
+} from './runtime-local-recommendation.js';
 
-test('Runtime local environment client does not expose the retired LocalAsset and local Profile planes', () => {
-  const client = createNimiRuntimeLocalEnvironmentClient({
-    local: {} as NimiRuntimeLocalEnvironmentRpc,
-  });
+test('Runtime local environment client hard-cuts aggregate and legacy recommendation methods', () => {
+  const client = createNimiRuntimeLocalEnvironmentClient({ local: {} as NimiRuntimeLocalEnvironmentRpc });
+  for (const method of ['listAssets', 'applyProfile', 'getRecommendationFeed', 'installAndBind']) {
+    assert.equal(method in client, false);
+  }
   for (const method of [
-    'listAssets',
-    'snapshot',
-    'rescanBundle',
-    'inspectRemoval',
-    'remove',
-    'start',
-    'stop',
-    'scanUnregisteredAssets',
-    'resolveProfile',
-    'applyProfile',
+    'searchCatalog',
+    'listCatalogVariants',
+    'listFeaturedModelAssets',
+    'listFactoryProfileRecommendations',
+    'resolveInstallPlan',
+    'resolveOfferInstallPlan',
   ]) {
-    assert.equal(method in client, false, `${method} must stay outside the canonical client`);
+    assert.equal(method in client, true);
   }
 });
 
-test('Runtime local environment state helpers retain Runtime-owned state semantics', () => {
-  assert.equal(isNimiRuntimeLocalEnvironmentDependencyJobActiveState('DOWNLOADING'), true);
-  assert.equal(isNimiRuntimeLocalEnvironmentDependencyJobActiveState('ready'), false);
-  assert.equal(isNimiRuntimeLocalEnvironmentDependencyJobRetryableState('failed'), true);
-  assert.equal(isNimiRuntimeLocalEnvironmentDependencyJobRetryableState('running'), false);
-});
+test('Market projections separate browse locators, exact offers, and server-held plans', () => {
+  const browse = projectNimiRuntimeModelAssetSearchResult({
+    modelLocator: 'model_ref',
+    sourceLabel: 'huggingface',
+    title: 'Model',
+    description: '',
+    categories: ['chat'],
+    modelType: 'chat',
+    license: 'apache-2.0',
+    tags: [],
+    downloads: 4,
+    likes: 1,
+    lastModified: '',
+    verified: false,
+  });
+  assert.equal(browse.modelLocator, 'model_ref');
+  assert.equal('offerRef' in browse, false);
 
-test('Runtime local projections retain canonical content identity and exact acquisition size', () => {
-  const verified = projectNimiRuntimeLocalVerifiedAssetDescriptor({
-    templateId: 'template.multi', assetId: 'template.multi', kind: LocalAssetKind.CHAT,
-    contentId: `sha256:${'c'.repeat(64)}`, totalSizeBytes: '123', files: ['model.bin'],
-    hashes: { 'model.bin': `sha256:${'a'.repeat(64)}` }, fileCount: 1,
+  const offer = projectNimiRuntimeModelAssetMarketCandidate({
+    offerRef: 'offer_ref',
+    sourceLabel: 'huggingface',
+    title: 'Model',
+    description: '',
+    categories: ['chat'],
+    modelType: 'chat',
+    variantLabel: 'model.gguf',
+    format: 'gguf',
+    totalSizeBytes: '123',
+    license: 'apache-2.0',
+    tags: [],
+    downloads: 4,
+    likes: 1,
+    lastModified: '',
+    verified: false,
+    installed: false,
+    installable: true,
+    editorialReason: '',
   } as never);
-  assert.equal(verified.contentId, `sha256:${'c'.repeat(64)}`);
-  assert.equal(verified.totalSizeBytes, 123);
-
-  const catalog = projectNimiRuntimeLocalCatalogItemDescriptor({
-    itemId: 'catalog.multi', capabilities: ['text.generate'], totalSizeBytes: '123',
-    engineRuntimeMode: LocalEngineRuntimeMode.SUPERVISED,
-  } as never);
-  assert.equal(catalog.totalSizeBytes, 123);
+  assert.equal(offer.offerRef, 'offer_ref');
+  assert.equal(offer.totalSizeBytes, 123);
+  assert.equal('files' in offer, false);
+  assert.equal('hashes' in offer, false);
 
   const plan = projectNimiRuntimeLocalInstallPlanDescriptor({
-    planId: 'plan.multi', capabilities: ['text.generate'], totalSizeBytes: '123',
-    engineRuntimeMode: LocalEngineRuntimeMode.SUPERVISED,
+    planId: 'plan_ref',
+    itemId: 'catalog_model',
+    source: 'huggingface',
+    modelId: 'owner/model',
+    repo: 'owner/model',
+    revision: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    capabilities: ['text.generate'],
+    installKind: 'download',
+    installAvailable: true,
+    entry: 'model.gguf',
+    files: ['model.gguf'],
+    hashes: { 'model.gguf': 'a'.repeat(64) },
+    warnings: ['WARN_GPU_REQUIRED'],
+    totalSizeBytes: '123',
+    offerRef: 'offer_ref',
   } as never);
+  assert.equal(plan.planId, 'plan_ref');
+  assert.equal(plan.offerRef, 'offer_ref');
   assert.equal(plan.totalSizeBytes, 123);
+  assert.equal(plan.installAvailable, true);
+  assert.deepEqual(plan.warnings, ['WARN_GPU_REQUIRED']);
 });
 
-test('Runtime local projections preserve engine-neutral acquisition without accepting unknown modes', () => {
-  const catalog = projectNimiRuntimeLocalCatalogItemDescriptor({
-    itemId: 'catalog.engine-neutral', capabilities: ['text.generate'],
-    engineRuntimeMode: LocalEngineRuntimeMode.UNSPECIFIED,
-  } as never);
-  assert.equal(catalog.engineRuntimeMode, undefined);
+test('Market offer resolution is additive to the existing install-plan input', async () => {
+  const requests: Record<string, unknown>[] = [];
+  const local = {
+    async resolveModelInstallPlan(request: Record<string, unknown>) {
+      requests.push(request);
+      return { plan: { planId: `plan_${requests.length}` } };
+    },
+  } as unknown as NimiRuntimeLocalEnvironmentRpc;
+  const client = createNimiRuntimeLocalEnvironmentClient({ local });
 
-  const plan = projectNimiRuntimeLocalInstallPlanDescriptor({
-    planId: 'plan.engine-neutral', engineRuntimeMode: LocalEngineRuntimeMode.UNSPECIFIED,
-  } as never);
-  assert.equal(plan.engineRuntimeMode, undefined);
+  await client.resolveInstallPlan({ templateId: 'template_existing' });
+  await client.resolveOfferInstallPlan('offer_exact');
 
-  assert.throws(() => projectNimiRuntimeLocalCatalogItemDescriptor({
-    itemId: 'catalog.unknown-mode', capabilities: ['text.generate'], engineRuntimeMode: 99,
-  } as never), /unknown engine runtime mode/);
-  assert.throws(() => projectNimiRuntimeLocalInstallPlanDescriptor({
-    planId: 'plan.unknown-mode', engineRuntimeMode: 99,
-  } as never), /unknown engine runtime mode/);
+  assert.equal(requests[0]?.templateId, 'template_existing');
+  assert.equal(requests[0]?.offerRef, '');
+  assert.equal(requests[1]?.offerRef, 'offer_exact');
+  assert.equal(requests[1]?.templateId, '');
 });
 
-test('Runtime local catalog projects passive install-only model_type without capability inference', () => {
-	const auxiliary = projectNimiRuntimeLocalCatalogItemDescriptor({
-		itemId: 'catalog.mmproj', modelType: 'auxiliary', capabilities: [],
-		engineRuntimeMode: LocalEngineRuntimeMode.UNSPECIFIED,
-	} as never);
-	assert.equal(auxiliary.modelType, 'auxiliary');
-	assert.deepEqual(auxiliary.capabilities, []);
-	assert.equal(auxiliary.tags.includes('auxiliary'), true);
-
-	const plan = projectNimiRuntimeLocalInstallPlanDescriptor({
-		planId: 'plan.mmproj', modelType: 'auxiliary', capabilities: [],
-		engineRuntimeMode: LocalEngineRuntimeMode.UNSPECIFIED,
-	} as never);
-	assert.equal(plan.modelType, 'auxiliary');
-
-	assert.throws(() => projectNimiRuntimeLocalCatalogItemDescriptor({
-		itemId: 'catalog.unknown-passive', modelType: 'mystery', capabilities: [],
-		engineRuntimeMode: LocalEngineRuntimeMode.UNSPECIFIED,
-	} as never), /unknown or ambiguous capabilities/);
+test('Featured source projection distinguishes stale LKG from unavailable', () => {
+  const stale = projectNimiRuntimeFeaturedModelAssets({
+    source: {
+      availability: ModelAssetSourceAvailability.AVAILABLE,
+      freshness: ModelAssetSourceFreshness.STALE,
+      generation: 'generation-1',
+      reasonCode: ReasonCode.AI_REMOTE_MODEL_CATALOG_STALE,
+    },
+    items: [],
+  });
+  assert.deepEqual(stale.source, {
+    availability: 'available',
+    freshness: 'stale',
+    generation: 'generation-1',
+    reasonCode: 'AI_REMOTE_MODEL_CATALOG_STALE',
+  });
+  const unavailable = projectNimiRuntimeFeaturedModelAssets({
+    source: {
+      availability: ModelAssetSourceAvailability.UNAVAILABLE,
+      freshness: ModelAssetSourceFreshness.UNSPECIFIED,
+      generation: '',
+      reasonCode: ReasonCode.AI_LOCAL_MODEL_UNAVAILABLE,
+    },
+    items: [],
+  });
+  assert.deepEqual(unavailable.source, {
+    availability: 'unavailable',
+    reasonCode: 'AI_LOCAL_MODEL_UNAVAILABLE',
+  });
 });

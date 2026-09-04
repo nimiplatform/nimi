@@ -1464,14 +1464,6 @@ RUNTIME_METHODS = [
     "response_type": "ProductControlProjectionJson"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
-    "service": "RuntimeLocalService",
-    "method": "GetRecommendationFeed",
-    "kind": "unary",
-    "request_type": "GetRecommendationFeedRequest",
-    "response_type": "GetRecommendationFeedResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset",
     "service": "RuntimeLocalService",
     "method": "ImportModelAsset",
@@ -1502,6 +1494,22 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "ListCatalogVariantsRequest",
     "response_type": "ListCatalogVariantsResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations",
+    "service": "RuntimeLocalService",
+    "method": "ListFactoryProfileRecommendations",
+    "kind": "unary",
+    "request_type": "ListFactoryProfileRecommendationsRequest",
+    "response_type": "ListFactoryProfileRecommendationsResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets",
+    "service": "RuntimeLocalService",
+    "method": "ListFeaturedModelAssets",
+    "kind": "unary",
+    "request_type": "ListFeaturedModelAssetsRequest",
+    "response_type": "ListFeaturedModelAssetsResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes",

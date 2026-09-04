@@ -1173,81 +1173,13 @@ const (
 	LOCALENGINERUNTIMEMODEATTACHEDENDPOINT LocalEngineRuntimeMode = "LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT"
 )
 
-type LocalHostSupportClass string
+type LocalRecommendationApplicability string
 
 const (
-	LOCALHOSTSUPPORTCLASSUNSPECIFIED         LocalHostSupportClass = "LOCAL_HOST_SUPPORT_CLASS_UNSPECIFIED"
-	LOCALHOSTSUPPORTCLASSSUPPORTEDSUPERVISED LocalHostSupportClass = "LOCAL_HOST_SUPPORT_CLASS_SUPPORTED_SUPERVISED"
-	LOCALHOSTSUPPORTCLASSATTACHEDONLY        LocalHostSupportClass = "LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY"
-	LOCALHOSTSUPPORTCLASSUNSUPPORTED         LocalHostSupportClass = "LOCAL_HOST_SUPPORT_CLASS_UNSUPPORTED"
-)
-
-type LocalRecommendationBaseline string
-
-const (
-	LOCALRECOMMENDATIONBASELINEUNSPECIFIED    LocalRecommendationBaseline = "LOCAL_RECOMMENDATION_BASELINE_UNSPECIFIED"
-	LOCALRECOMMENDATIONBASELINEIMAGEDEFAULTV1 LocalRecommendationBaseline = "LOCAL_RECOMMENDATION_BASELINE_IMAGE_DEFAULT_V1"
-	LOCALRECOMMENDATIONBASELINEVIDEODEFAULTV1 LocalRecommendationBaseline = "LOCAL_RECOMMENDATION_BASELINE_VIDEO_DEFAULT_V1"
-)
-
-type LocalRecommendationConfidence string
-
-const (
-	LOCALRECOMMENDATIONCONFIDENCEUNSPECIFIED LocalRecommendationConfidence = "LOCAL_RECOMMENDATION_CONFIDENCE_UNSPECIFIED"
-	LOCALRECOMMENDATIONCONFIDENCEHIGH        LocalRecommendationConfidence = "LOCAL_RECOMMENDATION_CONFIDENCE_HIGH"
-	LOCALRECOMMENDATIONCONFIDENCEMEDIUM      LocalRecommendationConfidence = "LOCAL_RECOMMENDATION_CONFIDENCE_MEDIUM"
-	LOCALRECOMMENDATIONCONFIDENCELOW         LocalRecommendationConfidence = "LOCAL_RECOMMENDATION_CONFIDENCE_LOW"
-)
-
-type LocalRecommendationFeedCacheState string
-
-const (
-	LOCALRECOMMENDATIONFEEDCACHESTATEUNSPECIFIED LocalRecommendationFeedCacheState = "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_UNSPECIFIED"
-	LOCALRECOMMENDATIONFEEDCACHESTATEFRESH       LocalRecommendationFeedCacheState = "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH"
-	LOCALRECOMMENDATIONFEEDCACHESTATESTALE       LocalRecommendationFeedCacheState = "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_STALE"
-	LOCALRECOMMENDATIONFEEDCACHESTATEEMPTY       LocalRecommendationFeedCacheState = "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY"
-)
-
-type LocalRecommendationFeedCapability string
-
-const (
-	LOCALRECOMMENDATIONFEEDCAPABILITYUNSPECIFIED LocalRecommendationFeedCapability = "LOCAL_RECOMMENDATION_FEED_CAPABILITY_UNSPECIFIED"
-	LOCALRECOMMENDATIONFEEDCAPABILITYCHAT        LocalRecommendationFeedCapability = "LOCAL_RECOMMENDATION_FEED_CAPABILITY_CHAT"
-	LOCALRECOMMENDATIONFEEDCAPABILITYIMAGE       LocalRecommendationFeedCapability = "LOCAL_RECOMMENDATION_FEED_CAPABILITY_IMAGE"
-	LOCALRECOMMENDATIONFEEDCAPABILITYVIDEO       LocalRecommendationFeedCapability = "LOCAL_RECOMMENDATION_FEED_CAPABILITY_VIDEO"
-)
-
-type LocalRecommendationFeedSource string
-
-const (
-	LOCALRECOMMENDATIONFEEDSOURCEUNSPECIFIED LocalRecommendationFeedSource = "LOCAL_RECOMMENDATION_FEED_SOURCE_UNSPECIFIED"
-	LOCALRECOMMENDATIONFEEDSOURCEMODELINDEX  LocalRecommendationFeedSource = "LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX"
-)
-
-type LocalRecommendationFormat string
-
-const (
-	LOCALRECOMMENDATIONFORMATUNSPECIFIED LocalRecommendationFormat = "LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED"
-	LOCALRECOMMENDATIONFORMATGGUF        LocalRecommendationFormat = "LOCAL_RECOMMENDATION_FORMAT_GGUF"
-	LOCALRECOMMENDATIONFORMATSAFETENSORS LocalRecommendationFormat = "LOCAL_RECOMMENDATION_FORMAT_SAFETENSORS"
-)
-
-type LocalRecommendationSource string
-
-const (
-	LOCALRECOMMENDATIONSOURCEUNSPECIFIED LocalRecommendationSource = "LOCAL_RECOMMENDATION_SOURCE_UNSPECIFIED"
-	LOCALRECOMMENDATIONSOURCELLMFIT      LocalRecommendationSource = "LOCAL_RECOMMENDATION_SOURCE_LLMFIT"
-	LOCALRECOMMENDATIONSOURCEMEDIAFIT    LocalRecommendationSource = "LOCAL_RECOMMENDATION_SOURCE_MEDIA_FIT"
-)
-
-type LocalRecommendationTier string
-
-const (
-	LOCALRECOMMENDATIONTIERUNSPECIFIED    LocalRecommendationTier = "LOCAL_RECOMMENDATION_TIER_UNSPECIFIED"
-	LOCALRECOMMENDATIONTIERRECOMMENDED    LocalRecommendationTier = "LOCAL_RECOMMENDATION_TIER_RECOMMENDED"
-	LOCALRECOMMENDATIONTIERRUNNABLE       LocalRecommendationTier = "LOCAL_RECOMMENDATION_TIER_RUNNABLE"
-	LOCALRECOMMENDATIONTIERTIGHT          LocalRecommendationTier = "LOCAL_RECOMMENDATION_TIER_TIGHT"
-	LOCALRECOMMENDATIONTIERNOTRECOMMENDED LocalRecommendationTier = "LOCAL_RECOMMENDATION_TIER_NOT_RECOMMENDED"
+	LOCALRECOMMENDATIONAPPLICABILITYUNSPECIFIED LocalRecommendationApplicability = "LOCAL_RECOMMENDATION_APPLICABILITY_UNSPECIFIED"
+	LOCALRECOMMENDATIONAPPLICABILITYSUPPORTED   LocalRecommendationApplicability = "LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED"
+	LOCALRECOMMENDATIONAPPLICABILITYUNKNOWN     LocalRecommendationApplicability = "LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN"
+	LOCALRECOMMENDATIONAPPLICABILITYUNSUPPORTED LocalRecommendationApplicability = "LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED"
 )
 
 type MemoryDistanceMetric string
@@ -1286,6 +1218,22 @@ const (
 	MODELASSETCATALOGVERIFICATIONUNSPECIFIED ModelAssetCatalogVerification = "MODEL_ASSET_CATALOG_VERIFICATION_UNSPECIFIED"
 	MODELASSETCATALOGVERIFICATIONMATCHED     ModelAssetCatalogVerification = "MODEL_ASSET_CATALOG_VERIFICATION_MATCHED"
 	MODELASSETCATALOGVERIFICATIONNOTMATCHED  ModelAssetCatalogVerification = "MODEL_ASSET_CATALOG_VERIFICATION_NOT_MATCHED"
+)
+
+type ModelAssetSourceAvailability string
+
+const (
+	MODELASSETSOURCEAVAILABILITYUNSPECIFIED ModelAssetSourceAvailability = "MODEL_ASSET_SOURCE_AVAILABILITY_UNSPECIFIED"
+	MODELASSETSOURCEAVAILABILITYAVAILABLE   ModelAssetSourceAvailability = "MODEL_ASSET_SOURCE_AVAILABILITY_AVAILABLE"
+	MODELASSETSOURCEAVAILABILITYUNAVAILABLE ModelAssetSourceAvailability = "MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE"
+)
+
+type ModelAssetSourceFreshness string
+
+const (
+	MODELASSETSOURCEFRESHNESSUNSPECIFIED ModelAssetSourceFreshness = "MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED"
+	MODELASSETSOURCEFRESHNESSFRESH       ModelAssetSourceFreshness = "MODEL_ASSET_SOURCE_FRESHNESS_FRESH"
+	MODELASSETSOURCEFRESHNESSSTALE       ModelAssetSourceFreshness = "MODEL_ASSET_SOURCE_FRESHNESS_STALE"
 )
 
 type ModelCatalogProviderSource string
@@ -3806,6 +3754,17 @@ type ExternalAgentTokenRecord struct {
 	Issuer           string                     `json:"issuer,omitempty"`
 }
 
+type FactoryProfileCapabilityApplicability struct {
+	CapabilityContract string                           `json:"capability_contract,omitempty"`
+	Applicability      LocalRecommendationApplicability `json:"applicability,omitempty"`
+	Reasons            []ReasonCode                     `json:"reasons,omitempty"`
+}
+
+type FactoryProfileRecommendation struct {
+	ProfileAlias string                                  `json:"profile_alias,omitempty"`
+	Capabilities []FactoryProfileCapabilityApplicability `json:"capabilities,omitempty"`
+}
+
 type ForgetLocalAppAgentMemoryRequest struct {
 	AgentHandle string   `json:"agent_handle,omitempty"`
 	MemoryIds   []string `json:"memory_ids,omitempty"`
@@ -4066,15 +4025,6 @@ type GetPublicChatSessionSnapshotRequest struct {
 
 type GetPublicChatSessionSnapshotResponse struct {
 	Snapshot map[string]any `json:"snapshot,omitempty"`
-}
-
-type GetRecommendationFeedRequest struct {
-	Capability string `json:"capability,omitempty"`
-	PageSize   int32  `json:"page_size,omitempty"`
-}
-
-type GetRecommendationFeedResponse struct {
-	Feed *LocalRecommendationFeedDescriptor `json:"feed,omitempty"`
 }
 
 type GetRuntimeHealthRequest struct {
@@ -4369,11 +4319,11 @@ type ListCatalogProviderModelsResponse struct {
 }
 
 type ListCatalogVariantsRequest struct {
-	Repo string `json:"repo,omitempty"`
+	ModelLocator string `json:"model_locator,omitempty"`
 }
 
 type ListCatalogVariantsResponse struct {
-	Variants []LocalCatalogVariantDescriptor `json:"variants,omitempty"`
+	Variants []ModelAssetMarketCandidate `json:"variants,omitempty"`
 }
 
 type ListCommittedAppReleasesRequest struct {
@@ -4455,6 +4405,24 @@ type ListDesktopAuditEventsRequest struct {
 type ListDesktopAuditEventsResponse struct {
 	Events        []DesktopAuditEventProjection `json:"events,omitempty"`
 	NextPageToken string                        `json:"next_page_token,omitempty"`
+}
+
+type ListFactoryProfileRecommendationsRequest struct {
+	CapabilityContract string `json:"capability_contract,omitempty"`
+}
+
+type ListFactoryProfileRecommendationsResponse struct {
+	Profiles []FactoryProfileRecommendation `json:"profiles,omitempty"`
+}
+
+type ListFeaturedModelAssetsRequest struct {
+	Category string `json:"category,omitempty"`
+	PageSize int32  `json:"page_size,omitempty"`
+}
+
+type ListFeaturedModelAssetsResponse struct {
+	Source *ModelAssetFeaturedSourceObservation `json:"source,omitempty"`
+	Items  []ModelAssetMarketCandidate          `json:"items,omitempty"`
 }
 
 type ListLoadoutRecipesRequest struct {
@@ -4789,6 +4757,15 @@ type LoadoutRecipeDescriptor struct {
 	Slots                           []LoadoutRecipeSlotDescriptor     `json:"slots,omitempty"`
 	Custody                         []LoadoutRecipeCustodyDescriptor  `json:"custody,omitempty"`
 	ImplementationSupportedFeatures []string                          `json:"implementation_supported_features,omitempty"`
+	Applicability                   LocalRecommendationApplicability  `json:"applicability,omitempty"`
+	Reasons                         []ReasonCode                      `json:"reasons,omitempty"`
+}
+
+type LoadoutRecipeOfferDescriptor struct {
+	Candidate             *ModelAssetMarketCandidate       `json:"candidate,omitempty"`
+	Applicability         LocalRecommendationApplicability `json:"applicability,omitempty"`
+	Reasons               []ReasonCode                     `json:"reasons,omitempty"`
+	InstalledModelAssetId string                           `json:"installed_model_asset_id,omitempty"`
 }
 
 type LoadoutRecipeSlotDescriptor struct {
@@ -4799,6 +4776,9 @@ type LoadoutRecipeSlotDescriptor struct {
 	RecommendedVariantIds []string                           `json:"recommended_variant_ids,omitempty"`
 	Presence              LocalCapabilityRequirementPresence `json:"presence,omitempty"`
 	ConditionalFeatures   []string                           `json:"conditional_features,omitempty"`
+	Offers                []LoadoutRecipeOfferDescriptor     `json:"offers,omitempty"`
+	Applicability         LocalRecommendationApplicability   `json:"applicability,omitempty"`
+	Reasons               []ReasonCode                       `json:"reasons,omitempty"`
 }
 
 type LoadoutSelection struct {
@@ -5494,28 +5474,6 @@ type LocalCatalogModelDescriptor struct {
 	ModelType         string                 `json:"model_type,omitempty"`
 }
 
-type LocalCatalogRecommendation struct {
-	Source           LocalRecommendationSource     `json:"source,omitempty"`
-	Format           LocalRecommendationFormat     `json:"format,omitempty"`
-	Tier             LocalRecommendationTier       `json:"tier,omitempty"`
-	HostSupportClass LocalHostSupportClass         `json:"host_support_class,omitempty"`
-	Confidence       LocalRecommendationConfidence `json:"confidence,omitempty"`
-	ReasonCodes      []string                      `json:"reason_codes,omitempty"`
-	RecommendedEntry string                        `json:"recommended_entry,omitempty"`
-	FallbackEntries  []string                      `json:"fallback_entries,omitempty"`
-	SuggestedNotes   []string                      `json:"suggested_notes,omitempty"`
-	Baseline         LocalRecommendationBaseline   `json:"baseline,omitempty"`
-}
-
-type LocalCatalogVariantDescriptor struct {
-	Filename  string   `json:"filename,omitempty"`
-	Entry     string   `json:"entry,omitempty"`
-	Files     []string `json:"files,omitempty"`
-	Format    string   `json:"format,omitempty"`
-	SizeBytes int64    `json:"size_bytes,omitempty"`
-	Sha256    string   `json:"sha256,omitempty"`
-}
-
 type LocalDevelopmentProjectProjection struct {
 	AppId                 string                    `json:"app_id,omitempty"`
 	DisplayName           string                    `json:"display_name,omitempty"`
@@ -5676,6 +5634,7 @@ type LocalInstallPlanDescriptor struct {
 	TotalSizeBytes    int64                  `json:"total_size_bytes,omitempty"`
 	SourceProvenance  string                 `json:"source_provenance,omitempty"`
 	ModelType         string                 `json:"model_type,omitempty"`
+	OfferRef          string                 `json:"offer_ref,omitempty"`
 }
 
 type LocalNpuProfile struct {
@@ -5733,70 +5692,6 @@ type LocalProviderHintsSpeech struct {
 type LocalPythonProfile struct {
 	Available bool   `json:"available,omitempty"`
 	Version   string `json:"version,omitempty"`
-}
-
-type LocalRecommendationActionState struct {
-	CanReviewInstallPlan bool `json:"can_review_install_plan,omitempty"`
-	CanOpenVariants      bool `json:"can_open_variants,omitempty"`
-	CanOpenModelAsset    bool `json:"can_open_model_asset,omitempty"`
-}
-
-type LocalRecommendationFeedDescriptor struct {
-	DeviceProfile    *LocalDeviceProfile                     `json:"device_profile,omitempty"`
-	ActiveCapability LocalRecommendationFeedCapability       `json:"active_capability,omitempty"`
-	GeneratedAt      string                                  `json:"generated_at,omitempty"`
-	CacheState       LocalRecommendationFeedCacheState       `json:"cache_state,omitempty"`
-	Items            []LocalRecommendationFeedItemDescriptor `json:"items,omitempty"`
-}
-
-type LocalRecommendationFeedEntryDescriptor struct {
-	EntryId        string                    `json:"entry_id,omitempty"`
-	Format         LocalRecommendationFormat `json:"format,omitempty"`
-	Entry          string                    `json:"entry,omitempty"`
-	Files          []string                  `json:"files,omitempty"`
-	TotalSizeBytes int64                     `json:"total_size_bytes,omitempty"`
-	Sha256         string                    `json:"sha256,omitempty"`
-}
-
-type LocalRecommendationFeedItemDescriptor struct {
-	ItemId          string                                   `json:"item_id,omitempty"`
-	Source          LocalRecommendationFeedSource            `json:"source,omitempty"`
-	Repo            string                                   `json:"repo,omitempty"`
-	Revision        string                                   `json:"revision,omitempty"`
-	Title           string                                   `json:"title,omitempty"`
-	Description     string                                   `json:"description,omitempty"`
-	Capabilities    []string                                 `json:"capabilities,omitempty"`
-	Tags            []string                                 `json:"tags,omitempty"`
-	Formats         []LocalRecommendationFormat              `json:"formats,omitempty"`
-	Downloads       int64                                    `json:"downloads,omitempty"`
-	Likes           int64                                    `json:"likes,omitempty"`
-	LastModified    string                                   `json:"last_modified,omitempty"`
-	PreferredEngine string                                   `json:"preferred_engine,omitempty"`
-	Verified        bool                                     `json:"verified,omitempty"`
-	Entries         []LocalRecommendationFeedEntryDescriptor `json:"entries,omitempty"`
-	Recommendation  *LocalCatalogRecommendation              `json:"recommendation,omitempty"`
-	InstalledState  *LocalRecommendationInstalledState       `json:"installed_state,omitempty"`
-	ActionState     *LocalRecommendationActionState          `json:"action_state,omitempty"`
-	InstallPayload  *LocalRecommendationInstallPayload       `json:"install_payload,omitempty"`
-}
-
-type LocalRecommendationInstallPayload struct {
-	ModelId      string            `json:"model_id,omitempty"`
-	Kind         LocalAssetKind    `json:"kind,omitempty"`
-	Repo         string            `json:"repo,omitempty"`
-	Revision     string            `json:"revision,omitempty"`
-	Capabilities []string          `json:"capabilities,omitempty"`
-	Engine       string            `json:"engine,omitempty"`
-	Entry        string            `json:"entry,omitempty"`
-	Files        []string          `json:"files,omitempty"`
-	License      string            `json:"license,omitempty"`
-	Hashes       map[string]string `json:"hashes,omitempty"`
-	Endpoint     string            `json:"endpoint,omitempty"`
-	EngineConfig map[string]any    `json:"engine_config,omitempty"`
-}
-
-type LocalRecommendationInstalledState struct {
-	Installed bool `json:"installed,omitempty"`
 }
 
 type LocalTransferProgressEvent struct {
@@ -5911,6 +5806,22 @@ type MemoryEmbeddingProfile struct {
 	CloudBinding    *MemoryEmbeddingCloudBindingRef `json:"cloud_binding,omitempty"`
 }
 
+type ModelAssetCatalogSearchResult struct {
+	ModelLocator string   `json:"model_locator,omitempty"`
+	SourceLabel  string   `json:"source_label,omitempty"`
+	Title        string   `json:"title,omitempty"`
+	Description  string   `json:"description,omitempty"`
+	Categories   []string `json:"categories,omitempty"`
+	ModelType    string   `json:"model_type,omitempty"`
+	License      string   `json:"license,omitempty"`
+	Tags         []string `json:"tags,omitempty"`
+	Downloads    int64    `json:"downloads,omitempty"`
+	Likes        int64    `json:"likes,omitempty"`
+	LastModified string   `json:"last_modified,omitempty"`
+	Verified     bool     `json:"verified,omitempty"`
+	Author       string   `json:"author,omitempty"`
+}
+
 type ModelAssetExactBinding struct {
 	RequirementId     string `json:"requirement_id,omitempty"`
 	ModelAssetId      string `json:"model_asset_id,omitempty"`
@@ -5918,11 +5829,41 @@ type ModelAssetExactBinding struct {
 	EntrySha256       string `json:"entry_sha256,omitempty"`
 }
 
+type ModelAssetFeaturedSourceObservation struct {
+	Availability ModelAssetSourceAvailability `json:"availability,omitempty"`
+	Freshness    ModelAssetSourceFreshness    `json:"freshness,omitempty"`
+	Generation   string                       `json:"generation,omitempty"`
+	ReasonCode   ReasonCode                   `json:"reason_code,omitempty"`
+}
+
 type ModelAssetFile struct {
 	RelativePath         string `json:"relative_path,omitempty"`
 	Sha256               string `json:"sha256,omitempty"`
 	SizeBytes            int64  `json:"size_bytes,omitempty"`
 	NonExecutableContent bool   `json:"non_executable_content,omitempty"`
+}
+
+type ModelAssetMarketCandidate struct {
+	OfferRef        string   `json:"offer_ref,omitempty"`
+	SourceLabel     string   `json:"source_label,omitempty"`
+	Title           string   `json:"title,omitempty"`
+	Description     string   `json:"description,omitempty"`
+	Categories      []string `json:"categories,omitempty"`
+	ModelType       string   `json:"model_type,omitempty"`
+	VariantLabel    string   `json:"variant_label,omitempty"`
+	Format          string   `json:"format,omitempty"`
+	TotalSizeBytes  int64    `json:"total_size_bytes,omitempty"`
+	License         string   `json:"license,omitempty"`
+	Tags            []string `json:"tags,omitempty"`
+	Downloads       int64    `json:"downloads,omitempty"`
+	Likes           int64    `json:"likes,omitempty"`
+	LastModified    string   `json:"last_modified,omitempty"`
+	Verified        bool     `json:"verified,omitempty"`
+	Installed       bool     `json:"installed,omitempty"`
+	Installable     bool     `json:"installable,omitempty"`
+	FeaturedOrdinal *int32   `json:"featured_ordinal,omitempty"`
+	EditorialReason string   `json:"editorial_reason,omitempty"`
+	Author          string   `json:"author,omitempty"`
 }
 
 type ModelAssetRecord struct {
@@ -6699,6 +6640,7 @@ type ResolveModelInstallPlanRequest struct {
 	Endpoint     string            `json:"endpoint,omitempty"`
 	EngineConfig map[string]any    `json:"engine_config,omitempty"`
 	ModelType    string            `json:"model_type,omitempty"`
+	OfferRef     string            `json:"offer_ref,omitempty"`
 }
 
 type ResolveModelInstallPlanResponse struct {
@@ -6917,17 +6859,15 @@ type SchedulingTargetJudgement struct {
 }
 
 type SearchCatalogModelsRequest struct {
-	Query          string `json:"query,omitempty"`
-	Capability     string `json:"capability,omitempty"`
-	CategoryFilter string `json:"category_filter,omitempty"`
-	EngineFilter   string `json:"engine_filter,omitempty"`
-	PageSize       int32  `json:"page_size,omitempty"`
-	PageToken      string `json:"page_token,omitempty"`
+	Query     string `json:"query,omitempty"`
+	Category  string `json:"category,omitempty"`
+	PageSize  int32  `json:"page_size,omitempty"`
+	PageToken string `json:"page_token,omitempty"`
 }
 
 type SearchCatalogModelsResponse struct {
-	Items         []LocalCatalogModelDescriptor `json:"items,omitempty"`
-	NextPageToken string                        `json:"next_page_token,omitempty"`
+	Items         []ModelAssetCatalogSearchResult `json:"items,omitempty"`
+	NextPageToken string                          `json:"next_page_token,omitempty"`
 }
 
 type SelectLoadoutRequest struct {
@@ -9344,14 +9284,6 @@ func (c RuntimeTypedClient) GetProductControlSelectedDataRoot(ctx context.Contex
 	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
 }
 
-func (c RuntimeTypedClient) GetRecommendationFeed(ctx context.Context, request GetRecommendationFeedRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetRecommendationFeedResponse, error) {
-	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed", request, metadata, timeoutMS)
-	if err != nil {
-		return GetRecommendationFeedResponse{}, err
-	}
-	return decodeRuntimeTypedResponse[GetRecommendationFeedResponse](raw, "GetRecommendationFeedResponse")
-}
-
 func (c RuntimeTypedClient) ImportModelAsset(ctx context.Context, request ImportModelAssetRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ImportModelAssetResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset", request, metadata, timeoutMS)
 	if err != nil {
@@ -9382,6 +9314,22 @@ func (c RuntimeTypedClient) ListCatalogVariants(ctx context.Context, request Lis
 		return ListCatalogVariantsResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ListCatalogVariantsResponse](raw, "ListCatalogVariantsResponse")
+}
+
+func (c RuntimeTypedClient) ListFactoryProfileRecommendations(ctx context.Context, request ListFactoryProfileRecommendationsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListFactoryProfileRecommendationsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations", request, metadata, timeoutMS)
+	if err != nil {
+		return ListFactoryProfileRecommendationsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListFactoryProfileRecommendationsResponse](raw, "ListFactoryProfileRecommendationsResponse")
+}
+
+func (c RuntimeTypedClient) ListFeaturedModelAssets(ctx context.Context, request ListFeaturedModelAssetsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListFeaturedModelAssetsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets", request, metadata, timeoutMS)
+	if err != nil {
+		return ListFeaturedModelAssetsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ListFeaturedModelAssetsResponse](raw, "ListFeaturedModelAssetsResponse")
 }
 
 func (c RuntimeTypedClient) ListLoadoutRecipes(ctx context.Context, request ListLoadoutRecipesRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ListLoadoutRecipesResponse, error) {
