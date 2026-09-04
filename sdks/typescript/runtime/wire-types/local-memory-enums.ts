@@ -220,69 +220,29 @@ export enum LocalEngineRuntimeMode {
   ATTACHED_ENDPOINT = 2,
 }
 
-export enum LocalHostSupportClass {
+export enum LocalRecommendationApplicability {
   UNSPECIFIED = 0,
-  SUPPORTED_SUPERVISED = 1,
-  ATTACHED_ONLY = 2,
+  SUPPORTED = 1,
+  UNKNOWN = 2,
   UNSUPPORTED = 3,
-}
-
-export enum LocalRecommendationBaseline {
-  UNSPECIFIED = 0,
-  IMAGE_DEFAULT_V1 = 1,
-  VIDEO_DEFAULT_V1 = 2,
-}
-
-export enum LocalRecommendationConfidence {
-  UNSPECIFIED = 0,
-  HIGH = 1,
-  MEDIUM = 2,
-  LOW = 3,
-}
-
-export enum LocalRecommendationFeedCacheState {
-  UNSPECIFIED = 0,
-  FRESH = 1,
-  STALE = 2,
-  EMPTY = 3,
-}
-
-export enum LocalRecommendationFeedCapability {
-  UNSPECIFIED = 0,
-  CHAT = 1,
-  IMAGE = 2,
-  VIDEO = 3,
-}
-
-export enum LocalRecommendationFeedSource {
-  UNSPECIFIED = 0,
-  MODEL_INDEX = 1,
-}
-
-export enum LocalRecommendationFormat {
-  UNSPECIFIED = 0,
-  GGUF = 1,
-  SAFETENSORS = 2,
-}
-
-export enum LocalRecommendationSource {
-  UNSPECIFIED = 0,
-  LLMFIT = 1,
-  MEDIA_FIT = 2,
-}
-
-export enum LocalRecommendationTier {
-  UNSPECIFIED = 0,
-  RECOMMENDED = 1,
-  RUNNABLE = 2,
-  TIGHT = 3,
-  NOT_RECOMMENDED = 4,
 }
 
 export enum ModelAssetCatalogVerification {
   UNSPECIFIED = 0,
   MATCHED = 1,
   NOT_MATCHED = 2,
+}
+
+export enum ModelAssetSourceAvailability {
+  UNSPECIFIED = 0,
+  AVAILABLE = 1,
+  UNAVAILABLE = 2,
+}
+
+export enum ModelAssetSourceFreshness {
+  UNSPECIFIED = 0,
+  FRESH = 1,
+  STALE = 2,
 }
 
 export enum ModelCatalogProviderSource {

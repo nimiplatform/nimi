@@ -3,6 +3,10 @@
 // tslint:disable
 // @ts-nocheck
 import { Ack } from "./common";
+import { ListFactoryProfileRecommendationsResponse } from "./local_runtime_recommendation";
+import { ListFactoryProfileRecommendationsRequest } from "./local_runtime_recommendation";
+import { ListFeaturedModelAssetsResponse } from "./local_runtime_recommendation";
+import { ListFeaturedModelAssetsRequest } from "./local_runtime_recommendation";
 import { DeleteLoadoutResponse } from "./capability_configuration";
 import { DeleteLoadoutRequest } from "./capability_configuration";
 import { SelectLoadoutResponse } from "./capability_configuration";
@@ -37,8 +41,8 @@ import { LocalEnvironmentPlan } from "./local_runtime_device_environment";
 import { LocalDeviceProfile } from "./local_runtime_device_environment";
 import { LocalInstallPlanDescriptor } from "./local_runtime_asset_catalog";
 import { Struct } from "../../google/protobuf/struct";
-import { LocalRecommendationFeedDescriptor } from "./local_runtime_recommendation";
-import { LocalCatalogModelDescriptor } from "./local_runtime_asset_catalog";
+import { ModelAssetMarketCandidate } from "./local_runtime_recommendation";
+import { ModelAssetCatalogSearchResult } from "./local_runtime_recommendation";
 import { ModelAssetRecord } from "./local_runtime_asset_catalog";
 import { LocalVerifiedAssetDescriptor } from "./local_runtime_asset_catalog";
 import { LocalAssetKind } from "./local_runtime_asset_catalog";
@@ -191,17 +195,9 @@ export interface SearchCatalogModelsRequest {
      */
     query: string;
     /**
-     * @generated from protobuf field: string capability = 2
+     * @generated from protobuf field: string category = 4
      */
-    capability: string;
-    /**
-     * @generated from protobuf field: string category_filter = 4
-     */
-    categoryFilter: string;
-    /**
-     * @generated from protobuf field: string engine_filter = 5
-     */
-    engineFilter: string;
+    category: string;
     /**
      * @generated from protobuf field: int32 page_size = 6
      */
@@ -216,82 +212,31 @@ export interface SearchCatalogModelsRequest {
  */
 export interface SearchCatalogModelsResponse {
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalCatalogModelDescriptor items = 1
+     * @generated from protobuf field: repeated nimi.runtime.v1.ModelAssetCatalogSearchResult items = 1
      */
-    items: LocalCatalogModelDescriptor[];
+    items: ModelAssetCatalogSearchResult[];
     /**
      * @generated from protobuf field: string next_page_token = 2
      */
     nextPageToken: string;
 }
 /**
- * @generated from protobuf message nimi.runtime.v1.LocalCatalogVariantDescriptor
- */
-export interface LocalCatalogVariantDescriptor {
-    /**
-     * @generated from protobuf field: string filename = 1
-     */
-    filename: string;
-    /**
-     * @generated from protobuf field: string entry = 2
-     */
-    entry: string;
-    /**
-     * @generated from protobuf field: repeated string files = 3
-     */
-    files: string[];
-    /**
-     * @generated from protobuf field: string format = 4
-     */
-    format: string;
-    /**
-     * @generated from protobuf field: int64 size_bytes = 5
-     */
-    sizeBytes: string;
-    /**
-     * @generated from protobuf field: string sha256 = 6
-     */
-    sha256: string;
-}
-/**
  * @generated from protobuf message nimi.runtime.v1.ListCatalogVariantsRequest
  */
 export interface ListCatalogVariantsRequest {
     /**
-     * @generated from protobuf field: string repo = 1
+     * @generated from protobuf field: string model_locator = 1
      */
-    repo: string;
+    modelLocator: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListCatalogVariantsResponse
  */
 export interface ListCatalogVariantsResponse {
     /**
-     * @generated from protobuf field: repeated nimi.runtime.v1.LocalCatalogVariantDescriptor variants = 1
+     * @generated from protobuf field: repeated nimi.runtime.v1.ModelAssetMarketCandidate variants = 1
      */
-    variants: LocalCatalogVariantDescriptor[];
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.GetRecommendationFeedRequest
- */
-export interface GetRecommendationFeedRequest {
-    /**
-     * @generated from protobuf field: string capability = 1
-     */
-    capability: string;
-    /**
-     * @generated from protobuf field: int32 page_size = 2
-     */
-    pageSize: number;
-}
-/**
- * @generated from protobuf message nimi.runtime.v1.GetRecommendationFeedResponse
- */
-export interface GetRecommendationFeedResponse {
-    /**
-     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationFeedDescriptor feed = 1
-     */
-    feed?: LocalRecommendationFeedDescriptor;
+    variants: ModelAssetMarketCandidate[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ResolveModelInstallPlanRequest
@@ -362,6 +307,10 @@ export interface ResolveModelInstallPlanRequest {
      * @generated from protobuf field: string model_type = 15
      */
     modelType: string;
+    /**
+     * @generated from protobuf field: string offer_ref = 16
+     */
+    offerRef: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ResolveModelInstallPlanResponse
@@ -1667,9 +1616,7 @@ class SearchCatalogModelsRequest$Type extends MessageType<SearchCatalogModelsReq
     constructor() {
         super("nimi.runtime.v1.SearchCatalogModelsRequest", [
             { no: 1, name: "query", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "category_filter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "engine_filter", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "category", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 7, name: "page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -1677,9 +1624,7 @@ class SearchCatalogModelsRequest$Type extends MessageType<SearchCatalogModelsReq
     create(value?: PartialMessage<SearchCatalogModelsRequest>): SearchCatalogModelsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.query = "";
-        message.capability = "";
-        message.categoryFilter = "";
-        message.engineFilter = "";
+        message.category = "";
         message.pageSize = 0;
         message.pageToken = "";
         if (value !== undefined)
@@ -1694,14 +1639,8 @@ class SearchCatalogModelsRequest$Type extends MessageType<SearchCatalogModelsReq
                 case /* string query */ 1:
                     message.query = reader.string();
                     break;
-                case /* string capability */ 2:
-                    message.capability = reader.string();
-                    break;
-                case /* string category_filter */ 4:
-                    message.categoryFilter = reader.string();
-                    break;
-                case /* string engine_filter */ 5:
-                    message.engineFilter = reader.string();
+                case /* string category */ 4:
+                    message.category = reader.string();
                     break;
                 case /* int32 page_size */ 6:
                     message.pageSize = reader.int32();
@@ -1724,15 +1663,9 @@ class SearchCatalogModelsRequest$Type extends MessageType<SearchCatalogModelsReq
         /* string query = 1; */
         if (message.query !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.query);
-        /* string capability = 2; */
-        if (message.capability !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.capability);
-        /* string category_filter = 4; */
-        if (message.categoryFilter !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.categoryFilter);
-        /* string engine_filter = 5; */
-        if (message.engineFilter !== "")
-            writer.tag(5, WireType.LengthDelimited).string(message.engineFilter);
+        /* string category = 4; */
+        if (message.category !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.category);
         /* int32 page_size = 6; */
         if (message.pageSize !== 0)
             writer.tag(6, WireType.Varint).int32(message.pageSize);
@@ -1753,7 +1686,7 @@ export const SearchCatalogModelsRequest = new SearchCatalogModelsRequest$Type();
 class SearchCatalogModelsResponse$Type extends MessageType<SearchCatalogModelsResponse> {
     constructor() {
         super("nimi.runtime.v1.SearchCatalogModelsResponse", [
-            { no: 1, name: "items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalCatalogModelDescriptor },
+            { no: 1, name: "items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ModelAssetCatalogSearchResult },
             { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -1770,8 +1703,8 @@ class SearchCatalogModelsResponse$Type extends MessageType<SearchCatalogModelsRe
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* repeated nimi.runtime.v1.LocalCatalogModelDescriptor items */ 1:
-                    message.items.push(LocalCatalogModelDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.ModelAssetCatalogSearchResult items */ 1:
+                    message.items.push(ModelAssetCatalogSearchResult.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 case /* string next_page_token */ 2:
                     message.nextPageToken = reader.string();
@@ -1788,9 +1721,9 @@ class SearchCatalogModelsResponse$Type extends MessageType<SearchCatalogModelsRe
         return message;
     }
     internalBinaryWrite(message: SearchCatalogModelsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* repeated nimi.runtime.v1.LocalCatalogModelDescriptor items = 1; */
+        /* repeated nimi.runtime.v1.ModelAssetCatalogSearchResult items = 1; */
         for (let i = 0; i < message.items.length; i++)
-            LocalCatalogModelDescriptor.internalBinaryWrite(message.items[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+            ModelAssetCatalogSearchResult.internalBinaryWrite(message.items[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         /* string next_page_token = 2; */
         if (message.nextPageToken !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
@@ -1805,102 +1738,15 @@ class SearchCatalogModelsResponse$Type extends MessageType<SearchCatalogModelsRe
  */
 export const SearchCatalogModelsResponse = new SearchCatalogModelsResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
-class LocalCatalogVariantDescriptor$Type extends MessageType<LocalCatalogVariantDescriptor> {
-    constructor() {
-        super("nimi.runtime.v1.LocalCatalogVariantDescriptor", [
-            { no: 1, name: "filename", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "entry", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "files", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "format", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 6, name: "sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
-        ]);
-    }
-    create(value?: PartialMessage<LocalCatalogVariantDescriptor>): LocalCatalogVariantDescriptor {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.filename = "";
-        message.entry = "";
-        message.files = [];
-        message.format = "";
-        message.sizeBytes = "0";
-        message.sha256 = "";
-        if (value !== undefined)
-            reflectionMergePartial<LocalCatalogVariantDescriptor>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalCatalogVariantDescriptor): LocalCatalogVariantDescriptor {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string filename */ 1:
-                    message.filename = reader.string();
-                    break;
-                case /* string entry */ 2:
-                    message.entry = reader.string();
-                    break;
-                case /* repeated string files */ 3:
-                    message.files.push(reader.string());
-                    break;
-                case /* string format */ 4:
-                    message.format = reader.string();
-                    break;
-                case /* int64 size_bytes */ 5:
-                    message.sizeBytes = reader.int64().toString();
-                    break;
-                case /* string sha256 */ 6:
-                    message.sha256 = reader.string();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: LocalCatalogVariantDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string filename = 1; */
-        if (message.filename !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.filename);
-        /* string entry = 2; */
-        if (message.entry !== "")
-            writer.tag(2, WireType.LengthDelimited).string(message.entry);
-        /* repeated string files = 3; */
-        for (let i = 0; i < message.files.length; i++)
-            writer.tag(3, WireType.LengthDelimited).string(message.files[i]);
-        /* string format = 4; */
-        if (message.format !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.format);
-        /* int64 size_bytes = 5; */
-        if (message.sizeBytes !== "0")
-            writer.tag(5, WireType.Varint).int64(message.sizeBytes);
-        /* string sha256 = 6; */
-        if (message.sha256 !== "")
-            writer.tag(6, WireType.LengthDelimited).string(message.sha256);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.LocalCatalogVariantDescriptor
- */
-export const LocalCatalogVariantDescriptor = new LocalCatalogVariantDescriptor$Type();
-// @generated message type with reflection information, may provide speed optimized methods
 class ListCatalogVariantsRequest$Type extends MessageType<ListCatalogVariantsRequest> {
     constructor() {
         super("nimi.runtime.v1.ListCatalogVariantsRequest", [
-            { no: 1, name: "repo", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "model_locator", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ListCatalogVariantsRequest>): ListCatalogVariantsRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.repo = "";
+        message.modelLocator = "";
         if (value !== undefined)
             reflectionMergePartial<ListCatalogVariantsRequest>(this, message, value);
         return message;
@@ -1910,8 +1756,8 @@ class ListCatalogVariantsRequest$Type extends MessageType<ListCatalogVariantsReq
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* string repo */ 1:
-                    message.repo = reader.string();
+                case /* string model_locator */ 1:
+                    message.modelLocator = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1925,9 +1771,9 @@ class ListCatalogVariantsRequest$Type extends MessageType<ListCatalogVariantsReq
         return message;
     }
     internalBinaryWrite(message: ListCatalogVariantsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string repo = 1; */
-        if (message.repo !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.repo);
+        /* string model_locator = 1; */
+        if (message.modelLocator !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.modelLocator);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1942,7 +1788,7 @@ export const ListCatalogVariantsRequest = new ListCatalogVariantsRequest$Type();
 class ListCatalogVariantsResponse$Type extends MessageType<ListCatalogVariantsResponse> {
     constructor() {
         super("nimi.runtime.v1.ListCatalogVariantsResponse", [
-            { no: 1, name: "variants", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LocalCatalogVariantDescriptor }
+            { no: 1, name: "variants", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ModelAssetMarketCandidate }
         ]);
     }
     create(value?: PartialMessage<ListCatalogVariantsResponse>): ListCatalogVariantsResponse {
@@ -1957,8 +1803,8 @@ class ListCatalogVariantsResponse$Type extends MessageType<ListCatalogVariantsRe
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* repeated nimi.runtime.v1.LocalCatalogVariantDescriptor variants */ 1:
-                    message.variants.push(LocalCatalogVariantDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated nimi.runtime.v1.ModelAssetMarketCandidate variants */ 1:
+                    message.variants.push(ModelAssetMarketCandidate.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1972,9 +1818,9 @@ class ListCatalogVariantsResponse$Type extends MessageType<ListCatalogVariantsRe
         return message;
     }
     internalBinaryWrite(message: ListCatalogVariantsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* repeated nimi.runtime.v1.LocalCatalogVariantDescriptor variants = 1; */
+        /* repeated nimi.runtime.v1.ModelAssetMarketCandidate variants = 1; */
         for (let i = 0; i < message.variants.length; i++)
-            LocalCatalogVariantDescriptor.internalBinaryWrite(message.variants[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+            ModelAssetMarketCandidate.internalBinaryWrite(message.variants[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1985,107 +1831,6 @@ class ListCatalogVariantsResponse$Type extends MessageType<ListCatalogVariantsRe
  * @generated MessageType for protobuf message nimi.runtime.v1.ListCatalogVariantsResponse
  */
 export const ListCatalogVariantsResponse = new ListCatalogVariantsResponse$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class GetRecommendationFeedRequest$Type extends MessageType<GetRecommendationFeedRequest> {
-    constructor() {
-        super("nimi.runtime.v1.GetRecommendationFeedRequest", [
-            { no: 1, name: "capability", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "page_size", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
-        ]);
-    }
-    create(value?: PartialMessage<GetRecommendationFeedRequest>): GetRecommendationFeedRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.capability = "";
-        message.pageSize = 0;
-        if (value !== undefined)
-            reflectionMergePartial<GetRecommendationFeedRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetRecommendationFeedRequest): GetRecommendationFeedRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* string capability */ 1:
-                    message.capability = reader.string();
-                    break;
-                case /* int32 page_size */ 2:
-                    message.pageSize = reader.int32();
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: GetRecommendationFeedRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* string capability = 1; */
-        if (message.capability !== "")
-            writer.tag(1, WireType.LengthDelimited).string(message.capability);
-        /* int32 page_size = 2; */
-        if (message.pageSize !== 0)
-            writer.tag(2, WireType.Varint).int32(message.pageSize);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.GetRecommendationFeedRequest
- */
-export const GetRecommendationFeedRequest = new GetRecommendationFeedRequest$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class GetRecommendationFeedResponse$Type extends MessageType<GetRecommendationFeedResponse> {
-    constructor() {
-        super("nimi.runtime.v1.GetRecommendationFeedResponse", [
-            { no: 1, name: "feed", kind: "message", T: () => LocalRecommendationFeedDescriptor }
-        ]);
-    }
-    create(value?: PartialMessage<GetRecommendationFeedResponse>): GetRecommendationFeedResponse {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        if (value !== undefined)
-            reflectionMergePartial<GetRecommendationFeedResponse>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetRecommendationFeedResponse): GetRecommendationFeedResponse {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* nimi.runtime.v1.LocalRecommendationFeedDescriptor feed */ 1:
-                    message.feed = LocalRecommendationFeedDescriptor.internalBinaryRead(reader, reader.uint32(), options, message.feed);
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: GetRecommendationFeedResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* nimi.runtime.v1.LocalRecommendationFeedDescriptor feed = 1; */
-        if (message.feed)
-            LocalRecommendationFeedDescriptor.internalBinaryWrite(message.feed, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.GetRecommendationFeedResponse
- */
-export const GetRecommendationFeedResponse = new GetRecommendationFeedResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ResolveModelInstallPlanRequest$Type extends MessageType<ResolveModelInstallPlanRequest> {
     constructor() {
@@ -2104,7 +1849,8 @@ class ResolveModelInstallPlanRequest$Type extends MessageType<ResolveModelInstal
             { no: 12, name: "hashes", kind: "map", K: 9 /*ScalarType.STRING*/, V: { kind: "scalar", T: 9 /*ScalarType.STRING*/ } },
             { no: 13, name: "endpoint", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 14, name: "engine_config", kind: "message", T: () => Struct },
-            { no: 15, name: "model_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 15, name: "model_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 16, name: "offer_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ResolveModelInstallPlanRequest>): ResolveModelInstallPlanRequest {
@@ -2123,6 +1869,7 @@ class ResolveModelInstallPlanRequest$Type extends MessageType<ResolveModelInstal
         message.hashes = {};
         message.endpoint = "";
         message.modelType = "";
+        message.offerRef = "";
         if (value !== undefined)
             reflectionMergePartial<ResolveModelInstallPlanRequest>(this, message, value);
         return message;
@@ -2176,6 +1923,9 @@ class ResolveModelInstallPlanRequest$Type extends MessageType<ResolveModelInstal
                     break;
                 case /* string model_type */ 15:
                     message.modelType = reader.string();
+                    break;
+                case /* string offer_ref */ 16:
+                    message.offerRef = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2250,6 +2000,9 @@ class ResolveModelInstallPlanRequest$Type extends MessageType<ResolveModelInstal
         /* string model_type = 15; */
         if (message.modelType !== "")
             writer.tag(15, WireType.LengthDelimited).string(message.modelType);
+        /* string offer_ref = 16; */
+        if (message.offerRef !== "")
+            writer.tag(16, WireType.LengthDelimited).string(message.offerRef);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

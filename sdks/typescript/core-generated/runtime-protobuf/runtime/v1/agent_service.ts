@@ -2937,8 +2937,10 @@ export interface ListSharedLocalAgentAIConfigOptionsResponse {
     truncated: boolean;
 }
 /**
- * AIProfile remains a portable template. Apply writes complete current owner
- * intent only; it never materializes Local bindings or waits for readiness.
+ * AIProfile remains a portable template. Preview and Apply return
+ * non-committing editor prefill only; canonical AIConfig overwrite is the sole
+ * owner mutation and neither operation materializes Local bindings or waits for
+ * readiness.
  *
  * @generated from protobuf message nimi.runtime.v1.PreviewSharedLocalAgentAIProfileRequest
  */

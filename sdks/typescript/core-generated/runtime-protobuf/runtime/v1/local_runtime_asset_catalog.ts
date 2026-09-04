@@ -605,6 +605,10 @@ export interface LocalInstallPlanDescriptor {
      * @generated from protobuf field: string model_type = 24
      */
     modelType: string;
+    /**
+     * @generated from protobuf field: string offer_ref = 25
+     */
+    offerRef: string;
 }
 // === Asset Kind & Status (unified from Model + Artifact) ===
 
@@ -1977,7 +1981,8 @@ class LocalInstallPlanDescriptor$Type extends MessageType<LocalInstallPlanDescri
             { no: 21, name: "engine_config", kind: "message", T: () => Struct },
             { no: 22, name: "total_size_bytes", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
             { no: 23, name: "source_provenance", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 24, name: "model_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 24, name: "model_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 25, name: "offer_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<LocalInstallPlanDescriptor>): LocalInstallPlanDescriptor {
@@ -2004,6 +2009,7 @@ class LocalInstallPlanDescriptor$Type extends MessageType<LocalInstallPlanDescri
         message.totalSizeBytes = "0";
         message.sourceProvenance = "";
         message.modelType = "";
+        message.offerRef = "";
         if (value !== undefined)
             reflectionMergePartial<LocalInstallPlanDescriptor>(this, message, value);
         return message;
@@ -2084,6 +2090,9 @@ class LocalInstallPlanDescriptor$Type extends MessageType<LocalInstallPlanDescri
                     break;
                 case /* string model_type */ 24:
                     message.modelType = reader.string();
+                    break;
+                case /* string offer_ref */ 25:
+                    message.offerRef = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2185,6 +2194,9 @@ class LocalInstallPlanDescriptor$Type extends MessageType<LocalInstallPlanDescri
         /* string model_type = 24; */
         if (message.modelType !== "")
             writer.tag(24, WireType.LengthDelimited).string(message.modelType);
+        /* string offer_ref = 25; */
+        if (message.offerRef !== "")
+            writer.tag(25, WireType.LengthDelimited).string(message.offerRef);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

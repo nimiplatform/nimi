@@ -9,8 +9,10 @@ import type {
   NimiRuntimeLocalRunnableAssetKindId,
 } from './local-asset-vocabulary';
 import type {
-  NimiRuntimeLocalCatalogRecommendation,
-  NimiRuntimeLocalRecommendationFeed,
+  NimiRuntimeFactoryProfileRecommendation,
+  NimiRuntimeFeaturedModelAssets,
+  NimiRuntimeModelAssetCatalogSearchResult,
+  NimiRuntimeModelAssetMarketCandidate,
 } from './runtime-local-recommendation';
 
 export type NimiRuntimeLocalAssetKind = NimiRuntimeLocalAssetKindId;
@@ -115,47 +117,6 @@ export interface NimiRuntimeLocalVerifiedAssetDescriptor {
   readonly metadata?: JsonObject;
 }
 
-export interface NimiRuntimeLocalCatalogItemDescriptor {
-  readonly itemId: string;
-  readonly source: 'verified' | 'huggingface' | string;
-  readonly title: string;
-  readonly description: string;
-  readonly modelId: string;
-  readonly modelType?: string;
-  readonly repo: string;
-  readonly revision: string;
-  readonly templateId?: string;
-  readonly capabilities: readonly NimiRuntimeLocalCapabilityToken[];
-  readonly engine: string;
-  readonly engineRuntimeMode?: NimiRuntimeLocalEngineRuntimeModeId;
-  readonly installKind: string;
-  readonly installAvailable: boolean;
-  readonly endpoint?: string;
-  readonly providerHints?: NimiRuntimeLocalProviderHints;
-  readonly entry?: string;
-  readonly files: readonly string[];
-  readonly license?: string;
-  readonly hashes: Record<string, string>;
-  readonly tags: readonly string[];
-  readonly downloads?: number;
-  readonly likes?: number;
-  readonly lastModified?: string;
-  readonly verified: boolean;
-  readonly engineConfig?: JsonObject;
-  readonly recommendation?: NimiRuntimeLocalCatalogRecommendation;
-  readonly totalSizeBytes?: number;
-}
-
-export interface NimiRuntimeLocalCatalogVariantDescriptor {
-  readonly filename: string;
-  readonly entry: string;
-  readonly files: readonly string[];
-  readonly format?: string;
-  readonly sizeBytes?: number;
-  readonly sha256?: string;
-  readonly recommendation?: NimiRuntimeLocalCatalogRecommendation;
-}
-
 export interface NimiRuntimeLocalInstallPlanDescriptor {
   readonly planId: string;
   readonly itemId: string;
@@ -180,6 +141,7 @@ export interface NimiRuntimeLocalInstallPlanDescriptor {
   readonly reasonCode?: string;
   readonly engineConfig?: JsonObject;
   readonly totalSizeBytes?: number;
+  readonly offerRef?: string;
 }
 
 export interface NimiRuntimeLocalDeviceProfile {
@@ -313,9 +275,10 @@ export interface NimiRuntimeLocalEnvironmentDependencyJob {
 }
 
 export interface NimiRuntimeLocalCatalogSearchInput {
-  readonly query?: string;
-  readonly capability?: NimiRuntimeLocalCapabilityToken;
-  readonly limit?: number;
+  readonly query: string;
+  readonly category?: string;
+  readonly pageSize?: number;
+  readonly maxPages?: number;
 }
 
 export interface NimiRuntimeLocalResolveInstallPlanInput {
@@ -376,7 +339,8 @@ export type NimiRuntimeLocalEnvironmentRpc = Pick<
   | 'listVerifiedAssets'
   | 'searchCatalogModels'
   | 'listCatalogVariants'
-  | 'getRecommendationFeed'
+  | 'listFeaturedModelAssets'
+  | 'listFactoryProfileRecommendations'
   | 'resolveModelInstallPlan'
   | 'installModelFromPlan'
   | 'listLocalTransfers'
@@ -406,9 +370,17 @@ export interface NimiRuntimeLocalEnvironmentClient {
     readonly pageSize?: number;
     readonly maxPages?: number;
   }): Promise<readonly NimiRuntimeLocalVerifiedAssetDescriptor[]>;
-  searchCatalog(input?: NimiRuntimeLocalCatalogSearchInput): Promise<readonly NimiRuntimeLocalCatalogItemDescriptor[]>;
-  listCatalogVariants(repo: string): Promise<readonly NimiRuntimeLocalCatalogVariantDescriptor[]>;
+  searchCatalog(input: NimiRuntimeLocalCatalogSearchInput): Promise<readonly NimiRuntimeModelAssetCatalogSearchResult[]>;
+  listCatalogVariants(modelLocator: string): Promise<readonly NimiRuntimeModelAssetMarketCandidate[]>;
+  listFeaturedModelAssets(input: {
+    readonly category: string;
+    readonly pageSize?: number;
+  }): Promise<NimiRuntimeFeaturedModelAssets>;
+  listFactoryProfileRecommendations(input?: {
+    readonly capabilityContract?: string;
+  }): Promise<readonly NimiRuntimeFactoryProfileRecommendation[]>;
   resolveInstallPlan(input: NimiRuntimeLocalResolveInstallPlanInput): Promise<NimiRuntimeLocalInstallPlanDescriptor>;
+  resolveOfferInstallPlan(offerRef: string): Promise<NimiRuntimeLocalInstallPlanDescriptor>;
   install(planId: string, options?: NimiRuntimeLocalWriteOptions):
     Promise<NimiRuntimeModelAssetRecord>;
   listTransfers(): Promise<readonly NimiRuntimeLocalTransferSessionSummary[]>;
@@ -423,10 +395,6 @@ export interface NimiRuntimeLocalEnvironmentClient {
     options?: NimiRuntimeLocalTransferWatchOptions,
   ): Promise<() => void>;
   collectDeviceProfile(input?: { readonly extraPorts?: readonly number[] }): Promise<NimiRuntimeLocalDeviceProfile>;
-  getRecommendationFeed(input?: {
-    readonly capability?: string;
-    readonly pageSize?: number;
-  }): Promise<NimiRuntimeLocalRecommendationFeed<NimiRuntimeLocalDeviceProfile>>;
   resolveEnvironmentPlan(input: NimiRuntimeLocalEnvironmentPlanInput): Promise<NimiRuntimeLocalEnvironmentPlan>;
   applyEnvironmentPlan(input: NimiRuntimeLocalEnvironmentPlanApplyInput, options?: NimiRuntimeLocalWriteOptions):
     Promise<NimiRuntimeLocalEnvironmentPlanApplyResult>;
