@@ -48,7 +48,7 @@ test('English homepage exposes fail-closed signing, preview, and App lifecycle s
   const content = await loadLandingContent('en');
   assert.ok(content.hero.eyebrow.includes('Open-source'));
   assert.ok(content.desktop.availability.items.includes(
-    'Windows release pending production code-signing approval',
+    'Windows signed RC and Stable pending production code signing',
   ));
   assert.ok(content.desktop.availability.items.includes(
     'Unsigned previews use explicit non-promotable vX.Y.Z-preview.N tags',

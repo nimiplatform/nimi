@@ -5,13 +5,13 @@ Nimi Home is its entry point, Realm owns ecosystem identity, and Runtime
 executes local and cloud AI capabilities across multiple providers. Characters,
 conversations, creations, stories, and worlds are experiences within Nimi;
 Nimi is not reducible to Runtime, a chat product, Avatar, or any one experience.
-Nimi Apps is the canonical product path for catalog, local-import, installation,
-update, launch, repair, uninstall, and Developer Mode semantics. This pre-release
-currently exposes the Developer-Mode local-development path plus protected-tag
-GitHub Actions and immutable GitHub Release publication for explicitly configured
-pilot App repositories; public catalog, immutable local import, ordinary
-installation, update, installed launch, repair, uninstall, registry onboarding,
-and registry admission remain unavailable.
+Nimi Apps is the canonical product path for Registry-approved verified package
+catalog, installation, update, launch, repair, and uninstall semantics, with
+Developer Mode as a separate non-package local-development path. This pre-release
+currently exposes Developer Mode plus protected-tag GitHub Actions and immutable
+GitHub Release publication for explicitly configured pilot App repositories;
+public catalog, ordinary installation, update, installed launch, repair,
+uninstall, registry onboarding, and registry admission remain unavailable.
 
 The broader project is an AI open world platform. It is built for long-lived
 worlds where people, AI agents, applications, and runtime services share the
@@ -41,22 +41,38 @@ what Realm says.
 - [Source code](https://github.com/nimiplatform/nimi)
 - [Security advisories](https://github.com/nimiplatform/nimi/security/advisories) and [`security@nimi.ai`](mailto:security@nimi.ai)
 
-**Windows release pending production code-signing approval.** Windows is not yet
-available as a production download, and no current Nimi Windows artifact should
-be treated as production signed. The SignPath Foundation application is
-pending; local development self-signing is never a production-signing claim.
+**Windows production signing is pending.** Windows is not yet available as a
+production download, and no current Nimi Windows artifact should be treated as
+production signed or SignPath-signed. The SignPath Foundation application is
+waiting for the required public unsigned bootstrap release; local development
+self-signing is never a production-signing claim.
+An explicitly unsigned bootstrap preview does not require a production signer,
+but it is not publicly available until its reviewed workflow has completed and
+the immutable GitHub prerelease is visible.
 
-The Download and Code signing policy links above are the canonical public route
-targets. Repository changes do not make those routes live until the website is
-deployed.
+The Download and Code signing policy links above are the live canonical public
+routes. Changes in a source checkout do not change those pages until the website
+is deployed.
 
 Unsigned previews, when published, use immutable `vX.Y.Z-preview.N` GitHub
 prereleases and are marked **UNSIGNED PREVIEW — NOT PROMOTABLE**. They do not
 update stable `latest`, publish registries, or become RC/Stable assets. The
 current developer-preview scope is a Windows source-local Kit package and a
 repo-assisted macOS candidate; it includes no standalone Runtime archive,
-Windows installer, or Linux asset. A future signed RC is rebuilt from the same
-source line after production platform signing is available.
+Windows installer, or Linux asset. The next reviewed preview workflow is planned
+to add a portable unsigned Windows x64 Runtime archive containing `nimi.exe`,
+its Apache-2.0 license, and explicit bootstrap instructions. Until that workflow
+runs externally, this is a release plan rather than a downloadable artifact.
+
+The portable bootstrap is not an installer or protected Runtime service: use it
+by extracting the archive and running `.\nimi.exe version --json`, then remove
+it by closing the process and deleting the extracted directory. It does not
+create a service, modify `PATH`, write Program Files or ProgramData, or install a
+certificate. After that unsigned release exists, the project can apply to
+SignPath Foundation. Approval and a SignPath-provided certificate then precede
+the first formally signed Windows x64 Runtime and the leaf certificate
+SubjectPublicKeyInfo (SPKI) SHA-256 consumed by the protected-local package.
+Preview bytes are never promoted or retrospectively described as signed.
 
 ## The Six Protocol Primitives
 

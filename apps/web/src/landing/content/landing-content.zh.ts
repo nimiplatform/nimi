@@ -296,7 +296,7 @@ export const landingContentZh: LandingContent = {
     availability: {
       eyebrow: '发布状态',
       items: [
-        'Windows release 正等待 production code-signing approval',
+        'Windows signed RC 与 Stable 等待 production code signing',
         'Unsigned preview 只使用不可晋升的 vX.Y.Z-preview.N 显式 tag',
         '目前没有已发布的 Nimi 稳定版',
       ],
@@ -399,14 +399,14 @@ export const landingContentZh: LandingContent = {
         label: '代码签名',
         title: '验证具体制品，不依赖口头承诺',
         points: [
-          'Windows production signing 与 SignPath Foundation 申请仍在 pending。',
+          'Windows production signing 尚不可用；SignPath Foundation 申请将在公开 unsigned Runtime bootstrap 之后进行。',
           'Authenticode 验证通过前，任何当前 Nimi 制品都不能被视为 SignPath-signed。',
         ],
       },
     ],
     statuses: [
-      { label: 'Windows', value: 'Windows release 正等待 production code-signing approval' },
-      { label: 'SignPath Foundation', value: 'SignPath Foundation 申请待批准' },
+      { label: 'Windows', value: 'Windows signed RC 与 Stable 等待 production code signing' },
+      { label: 'SignPath Foundation', value: '申请尚未提交；计划在 unsigned bootstrap 之后进行' },
     ],
     links: [
       { label: '下载', detail: '稳定版与 unsigned preview 状态', href: '/download' },

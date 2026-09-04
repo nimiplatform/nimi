@@ -17,6 +17,7 @@
     "build:sdk": "pnpm --filter @nimiplatform/sdk build",
     "build:kit": "pnpm --filter @nimiplatform/kit build",
     "build:runtime": "node scripts/build-runtime.mjs",
+    "build:windows-runtime-unsigned-bootstrap": "node scripts/build-windows-runtime-unsigned-bootstrap.mjs",
     "build:macos:electron:layout": "pnpm --filter @nimiplatform/desktop build:macos:electron:layout",
     "build:macos:dev-candidate": "pnpm --filter @nimiplatform/desktop build:macos:electron:dev-candidate",
     "build:macos:dev-security-helper": "node scripts/build-macos-dev-security-helper.mjs",
@@ -190,6 +191,7 @@
   },
   "devDependencies": {
     "@nimiplatform/nimi-coding": "0.6.1",
-    "@protobuf-ts/plugin": "2.11.1"
+    "@protobuf-ts/plugin": "2.11.1",
+    "resedit": "3.1.0"
   }
 }
