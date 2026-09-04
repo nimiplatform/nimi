@@ -278,6 +278,62 @@ func TestRecoveryContinuesOtherJobsWhenCommittedPayloadIsMissing(t *testing.T) {
 	}
 }
 
+func TestRecoveryReopensKernelAndFailsInterruptedJob(t *testing.T) {
+	coordinator, client, kernel, _ := newInstallFixture(t, false)
+	selector := resolveInstallFixture(t, client)
+	selectorText, _ := selector.Encode()
+	steps := installProgressSteps
+	interrupted, err := kernel.PackageLifecycle().Begin(context.Background(), localappkernel.BeginPackageJobInput{
+		AppID: "publisher.restart-app", SourceClass: localappkernel.SourceClassVerified,
+		Kind: localappkernel.PackageJobInstall, TargetRef: selectorText,
+		ProgressBasis: localappkernel.PackageProgressSteps, StepsTotal: &steps, Cancelable: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataRoot := kernel.DataRoot()
+	workPath := filepath.Join(dataRoot, "apps", "packages", packageWorkDirectory, interrupted.JobID)
+	if err := os.Mkdir(workPath, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := coordinator.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if err := kernel.Close(); err != nil {
+		t.Fatal(err)
+	}
+	identity, err := localappkernel.ValidateVerifiedWindowsInteractiveUserSID("S-1-5-21-100-200-300-1001")
+	if err != nil {
+		t.Fatal(err)
+	}
+	databasePath, err := localappkernel.CanonicalRegistrationDatabasePath(dataRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reopenedKernel, err := localappkernel.OpenSQLite(context.Background(), databasePath, identity, localappkernel.Options{
+		HostInstallID: "install-fixture-host", DataRoot: dataRoot,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = reopenedKernel.Close() }()
+	reopenedCoordinator, err := NewCoordinator(client, reopenedKernel)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = reopenedCoordinator.Close() }()
+	if err := reopenedCoordinator.Recover(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	recovered, err := reopenedKernel.PackageLifecycle().GetJob(context.Background(), interrupted.JobID)
+	if err != nil || recovered.Phase != localappkernel.PackageJobFailed || recovered.ReasonCode != "runtime-restarted" {
+		t.Fatalf("reopened recovery job=%+v err=%v", recovered, err)
+	}
+	if _, err := os.Stat(workPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("reopened recovery left work root: %v", err)
+	}
+}
+
 func newInstallFixture(t *testing.T, switchAfterAsset bool) (*Coordinator, *publicappregistry.Client, *localappkernel.Kernel, *installFixtureTransport) {
 	t.Helper()
 	packageBytes := buildInstallTestPackage(t)

@@ -184,7 +184,6 @@ func (coordinator *Coordinator) Recover(ctx context.Context) error {
 	if err != nil {
 		return errors.Join(recoveryErr, fmt.Errorf("list App install jobs for recovery: %w", err))
 	}
-	completed := make(map[string]struct{})
 	for _, job := range jobs {
 		if err := ctx.Err(); err != nil {
 			return errors.Join(recoveryErr, err)
@@ -194,7 +193,6 @@ func (coordinator *Coordinator) Recover(ctx context.Context) error {
 			continue
 		}
 		if job.Phase == localappkernel.PackageJobCompleted {
-			completed[job.JobID] = struct{}{}
 			if err := coordinator.cleanupJobArtifacts(job.JobID, false); err != nil {
 				recoveryErr = errors.Join(recoveryErr, ErrInstallRecoveryRequired, err)
 			}
@@ -217,11 +215,8 @@ func (coordinator *Coordinator) Recover(ctx context.Context) error {
 	if err := coordinator.removeOrphanChildren(packageWorkDirectory, nil, true); err != nil {
 		recoveryErr = errors.Join(recoveryErr, err)
 	}
-	keepReleases := make(map[string]struct{}, len(protected)+len(completed))
+	keepReleases := make(map[string]struct{}, len(protected))
 	for name := range protected {
-		keepReleases[name] = struct{}{}
-	}
-	for name := range completed {
 		keepReleases[name] = struct{}{}
 	}
 	if allowReleaseSweep {
