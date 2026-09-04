@@ -49,6 +49,7 @@ var (
 	ErrInvalidSelector         = errors.New("invalid approved target selector")
 	ErrStaleSelection          = errors.New("approved target selection is stale")
 	ErrPolicyBlocked           = errors.New("public App Registry target is policy blocked")
+	ErrRegistryUnavailable     = errors.New("public App Registry is unavailable")
 
 	commitSHAPattern     = regexp.MustCompile(`^[0-9a-f]{40}$`)
 	appIDPattern         = regexp.MustCompile(`^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)+$`)
@@ -742,19 +743,19 @@ func (s *canonicalGitHubSource) readURL(ctx context.Context, target string, limi
 	}
 	response, err := s.httpClient.Do(request)
 	if err != nil {
-		return nil, fmt.Errorf("request public App Registry document: %w", err)
+		return nil, fmt.Errorf("request public App Registry document: %w", errors.Join(ErrRegistryUnavailable, err))
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
 		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
-		return nil, fmt.Errorf("request public App Registry document: HTTP %d", response.StatusCode)
+		return nil, fmt.Errorf("request public App Registry document: %w: HTTP %d", ErrRegistryUnavailable, response.StatusCode)
 	}
 	if response.ContentLength > limit {
 		return nil, fmt.Errorf("read public App Registry document: %w", ErrInvalidRegistrySnapshot)
 	}
 	raw, err := io.ReadAll(io.LimitReader(response.Body, limit+1))
 	if err != nil {
-		return nil, fmt.Errorf("read public App Registry document: %w", err)
+		return nil, fmt.Errorf("read public App Registry document: %w", errors.Join(ErrRegistryUnavailable, err))
 	}
 	if int64(len(raw)) == 0 || int64(len(raw)) > limit {
 		return nil, fmt.Errorf("read public App Registry document: %w", ErrInvalidRegistrySnapshot)

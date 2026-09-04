@@ -2610,6 +2610,12 @@ pub enum ReasonCode {
     AILOADOUTCATALOGSCHEMAINVALID,
     AILOCALEXECUTIONOUTOFMEMORY,
     AICONFIGREVISIONCONFLICT,
+    APPPACKAGESELECTIONINVALID,
+    APPPACKAGESELECTIONSTALE,
+    APPPACKAGEPOLICYBLOCKED,
+    APPPACKAGEALREADYINSTALLED,
+    APPPACKAGEINSTALLUNAVAILABLE,
+    APPPACKAGEJOBACTIVE,
 }
 
 impl Default for ReasonCode {
@@ -3149,6 +3155,18 @@ impl ReasonCode {
             "AILOCALEXECUTIONOUTOFMEMORY" => Some(Self::AILOCALEXECUTIONOUTOFMEMORY),
             "AI_CONFIG_REVISION_CONFLICT" => Some(Self::AICONFIGREVISIONCONFLICT),
             "AICONFIGREVISIONCONFLICT" => Some(Self::AICONFIGREVISIONCONFLICT),
+            "APP_PACKAGE_SELECTION_INVALID" => Some(Self::APPPACKAGESELECTIONINVALID),
+            "APPPACKAGESELECTIONINVALID" => Some(Self::APPPACKAGESELECTIONINVALID),
+            "APP_PACKAGE_SELECTION_STALE" => Some(Self::APPPACKAGESELECTIONSTALE),
+            "APPPACKAGESELECTIONSTALE" => Some(Self::APPPACKAGESELECTIONSTALE),
+            "APP_PACKAGE_POLICY_BLOCKED" => Some(Self::APPPACKAGEPOLICYBLOCKED),
+            "APPPACKAGEPOLICYBLOCKED" => Some(Self::APPPACKAGEPOLICYBLOCKED),
+            "APP_PACKAGE_ALREADY_INSTALLED" => Some(Self::APPPACKAGEALREADYINSTALLED),
+            "APPPACKAGEALREADYINSTALLED" => Some(Self::APPPACKAGEALREADYINSTALLED),
+            "APP_PACKAGE_INSTALL_UNAVAILABLE" => Some(Self::APPPACKAGEINSTALLUNAVAILABLE),
+            "APPPACKAGEINSTALLUNAVAILABLE" => Some(Self::APPPACKAGEINSTALLUNAVAILABLE),
+            "APP_PACKAGE_JOB_ACTIVE" => Some(Self::APPPACKAGEJOBACTIVE),
+            "APPPACKAGEJOBACTIVE" => Some(Self::APPPACKAGEJOBACTIVE),
             _ => None,
         }
     }
@@ -10392,6 +10410,17 @@ pub struct SpeechTranscriptionAudioSource {
     pub audio_bytes: Option<Vec<u8>>,
     pub audio_uri: Option<String>,
     pub audio_chunks: Option<Box<AudioChunks>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartAppPackageInstallRequest {
+    pub approved_target_selector: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartAppPackageInstallResponse {
+    pub job: Option<Box<AppPackageJob>>,
+    pub reason_code: Option<ReasonCode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

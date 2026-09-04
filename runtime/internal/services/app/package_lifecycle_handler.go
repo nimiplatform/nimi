@@ -4,12 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
+	"github.com/nimiplatform/nimi/runtime/internal/nimiappinstall"
+	"github.com/nimiplatform/nimi/runtime/internal/publicappregistry"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -99,6 +103,35 @@ func (s *Service) GetAppPackageJob(
 	}, nil
 }
 
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-014a
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040a
+func (s *Service) StartAppPackageInstall(
+	ctx context.Context,
+	req *runtimev1.StartAppPackageInstallRequest,
+) (*runtimev1.StartAppPackageInstallResponse, error) {
+	if req == nil || len(req.GetApprovedTargetSelector()) == 0 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	selector, err := publicappregistry.ParseApprovedTargetSelector(string(req.GetApprovedTargetSelector()))
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_PACKAGE_SELECTION_INVALID, err, grpcerr.ReasonOptions{})
+	}
+	if s == nil || s.appInstallCoordinator == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE)
+	}
+	job, err := s.appInstallCoordinator.StartInstall(ctx, selector)
+	if err != nil {
+		return nil, appPackageInstallStartError(err)
+	}
+	projected, err := appPackageJobProjection(job)
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.StartAppPackageInstallResponse{
+		Job: projected, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+	}, nil
+}
+
 func (s *Service) CancelAppPackageJob(
 	ctx context.Context,
 	req *runtimev1.CancelAppPackageJobRequest,
@@ -110,11 +143,10 @@ func (s *Service) CancelAppPackageJob(
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	store, err := s.packageLifecycleStore()
-	if err != nil {
-		return nil, err
+	if s == nil || s.appInstallCoordinator == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE)
 	}
-	job, err := store.Cancel(ctx, string(req.GetJobId()), expected, req.GetReasonCode())
+	job, err := s.appInstallCoordinator.CancelInstall(ctx, string(req.GetJobId()), expected, req.GetReasonCode())
 	if err != nil {
 		return nil, appPackageLifecycleError("cancel App package job", err)
 	}
@@ -128,6 +160,35 @@ func (s *Service) CancelAppPackageJob(
 	}, nil
 }
 
+func appPackageInstallStartError(err error) error {
+	var blocked *publicappregistry.PolicyBlockedError
+	switch {
+	case errors.Is(err, context.Canceled):
+		return status.Error(codes.Canceled, "public App install start canceled")
+	case errors.Is(err, context.DeadlineExceeded):
+		return status.Error(codes.DeadlineExceeded, "public App install start deadline exceeded")
+	case errors.Is(err, publicappregistry.ErrInvalidSelector), errors.Is(err, nimiappinstall.ErrInstallTarget):
+		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_PACKAGE_SELECTION_INVALID, err, grpcerr.ReasonOptions{})
+	case errors.Is(err, publicappregistry.ErrStaleSelection):
+		return grpcerr.WrapWithReasonCode(codes.Aborted, runtimev1.ReasonCode_APP_PACKAGE_SELECTION_STALE, err, grpcerr.ReasonOptions{})
+	case errors.As(err, &blocked):
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_POLICY_BLOCKED, err, grpcerr.ReasonOptions{Metadata: map[string]string{
+			"policy_reason": blocked.Reason, "policy_revision": strconv.FormatUint(blocked.Revision, 10),
+		}})
+	case errors.Is(err, nimiappinstall.ErrAppAlreadyInstalled):
+		return grpcerr.WrapWithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_APP_PACKAGE_ALREADY_INSTALLED, err, grpcerr.ReasonOptions{})
+	case errors.Is(err, localappkernel.ErrPackageJobActive):
+		return grpcerr.WrapWithReasonCode(codes.Aborted, runtimev1.ReasonCode_APP_PACKAGE_JOB_ACTIVE, err, grpcerr.ReasonOptions{})
+	case errors.Is(err, nimiappinstall.ErrInvalidCoordinator), errors.Is(err, nimiappinstall.ErrUnsupportedInstallPlatform):
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE, err, grpcerr.ReasonOptions{})
+	case errors.Is(err, publicappregistry.ErrRegistryUnavailable), errors.Is(err, publicappregistry.ErrInvalidRegistrySnapshot),
+		errors.Is(err, nimiappinstall.ErrInstallPersistenceUnavailable):
+		return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE, err, grpcerr.ReasonOptions{})
+	default:
+		return fmt.Errorf("start public App package install: %w", err)
+	}
+}
+
 func (s *Service) packageLifecycleStore() (*localappkernel.PackageLifecycleStore, error) {
 	if s == nil || s.localAppKernel == nil || s.localAppKernel.PackageLifecycle() == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
@@ -137,6 +198,12 @@ func (s *Service) packageLifecycleStore() (*localappkernel.PackageLifecycleStore
 
 func appPackageLifecycleError(operation string, err error) error {
 	switch {
+	case errors.Is(err, context.Canceled):
+		return status.Error(codes.Canceled, operation+" canceled")
+	case errors.Is(err, context.DeadlineExceeded):
+		return status.Error(codes.DeadlineExceeded, operation+" deadline exceeded")
+	case errors.Is(err, nimiappinstall.ErrInvalidCoordinator):
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE, err, grpcerr.ReasonOptions{})
 	case errors.Is(err, localappkernel.ErrInvalidArgument):
 		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, err, grpcerr.ReasonOptions{})
 	case errors.Is(err, localappkernel.ErrPackageJobNotFound):

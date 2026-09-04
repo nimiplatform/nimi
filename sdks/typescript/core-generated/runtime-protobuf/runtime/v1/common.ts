@@ -1346,7 +1346,34 @@ export enum ReasonCode {
      *
      * @generated from protobuf enum value: AI_CONFIG_REVISION_CONFLICT = 726;
      */
-    AI_CONFIG_REVISION_CONFLICT = 726
+    AI_CONFIG_REVISION_CONFLICT = 726,
+    /**
+     * Verified public App selector and install-start outcomes. The mutation
+     * method remains excluded from product profiles until Desktop confirmation.
+     *
+     * @generated from protobuf enum value: APP_PACKAGE_SELECTION_INVALID = 727;
+     */
+    APP_PACKAGE_SELECTION_INVALID = 727,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_SELECTION_STALE = 728;
+     */
+    APP_PACKAGE_SELECTION_STALE = 728,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_POLICY_BLOCKED = 729;
+     */
+    APP_PACKAGE_POLICY_BLOCKED = 729,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_ALREADY_INSTALLED = 730;
+     */
+    APP_PACKAGE_ALREADY_INSTALLED = 730,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_INSTALL_UNAVAILABLE = 731;
+     */
+    APP_PACKAGE_INSTALL_UNAVAILABLE = 731,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_ACTIVE = 732;
+     */
+    APP_PACKAGE_JOB_ACTIVE = 732
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

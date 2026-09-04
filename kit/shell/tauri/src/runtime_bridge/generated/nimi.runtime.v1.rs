@@ -486,6 +486,14 @@ pub enum ReasonCode {
     AiLocalExecutionOutOfMemory = 725,
     /// Canonical App or shared subsystem AIConfig optimistic concurrency.
     AiConfigRevisionConflict = 726,
+    /// Verified public App selector and install-start outcomes. The mutation
+    /// method remains excluded from product profiles until Desktop confirmation.
+    AppPackageSelectionInvalid = 727,
+    AppPackageSelectionStale = 728,
+    AppPackagePolicyBlocked = 729,
+    AppPackageAlreadyInstalled = 730,
+    AppPackageInstallUnavailable = 731,
+    AppPackageJobActive = 732,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -826,6 +834,12 @@ impl ReasonCode {
             Self::AiLoadoutCatalogSchemaInvalid => "AI_LOADOUT_CATALOG_SCHEMA_INVALID",
             Self::AiLocalExecutionOutOfMemory => "AI_LOCAL_EXECUTION_OUT_OF_MEMORY",
             Self::AiConfigRevisionConflict => "AI_CONFIG_REVISION_CONFLICT",
+            Self::AppPackageSelectionInvalid => "APP_PACKAGE_SELECTION_INVALID",
+            Self::AppPackageSelectionStale => "APP_PACKAGE_SELECTION_STALE",
+            Self::AppPackagePolicyBlocked => "APP_PACKAGE_POLICY_BLOCKED",
+            Self::AppPackageAlreadyInstalled => "APP_PACKAGE_ALREADY_INSTALLED",
+            Self::AppPackageInstallUnavailable => "APP_PACKAGE_INSTALL_UNAVAILABLE",
+            Self::AppPackageJobActive => "APP_PACKAGE_JOB_ACTIVE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1231,6 +1245,12 @@ impl ReasonCode {
             }
             "AI_LOCAL_EXECUTION_OUT_OF_MEMORY" => Some(Self::AiLocalExecutionOutOfMemory),
             "AI_CONFIG_REVISION_CONFLICT" => Some(Self::AiConfigRevisionConflict),
+            "APP_PACKAGE_SELECTION_INVALID" => Some(Self::AppPackageSelectionInvalid),
+            "APP_PACKAGE_SELECTION_STALE" => Some(Self::AppPackageSelectionStale),
+            "APP_PACKAGE_POLICY_BLOCKED" => Some(Self::AppPackagePolicyBlocked),
+            "APP_PACKAGE_ALREADY_INSTALLED" => Some(Self::AppPackageAlreadyInstalled),
+            "APP_PACKAGE_INSTALL_UNAVAILABLE" => Some(Self::AppPackageInstallUnavailable),
+            "APP_PACKAGE_JOB_ACTIVE" => Some(Self::AppPackageJobActive),
             _ => None,
         }
     }
@@ -11488,6 +11508,18 @@ pub struct GetAppPackageJobResponse {
     pub reason_code: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartAppPackageInstallRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub approved_target_selector: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartAppPackageInstallResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<AppPackageJob>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CancelAppPackageJobRequest {
     #[prost(bytes = "vec", tag = "1")]
     pub job_id: ::prost::alloc::vec::Vec<u8>,
@@ -11764,8 +11796,10 @@ pub mod runtime_app_package_service_client {
     )]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
-    /// Desktop-protected Runtime owner projection. This service deliberately has no
-    /// package mutation start RPC and excludes local_development from every enum.
+    /// Desktop-protected Runtime owner projection. StartAppPackageInstall remains
+    /// excluded from every shipped protected profile until the Desktop confirmation
+    /// and install-availability cutover land together. local_development is absent
+    /// from every package enum and request.
     #[derive(Debug, Clone)]
     pub struct RuntimeAppPackageServiceClient<T> {
         inner: tonic::client::Grpc<T>,
@@ -11931,6 +11965,35 @@ pub mod runtime_app_package_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAppPackageService",
                         "GetAppPackageJob",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn start_app_package_install(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StartAppPackageInstallRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::StartAppPackageInstallResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "StartAppPackageInstall",
                     ),
                 );
             self.inner.unary(req, path, codec).await

@@ -872,6 +872,14 @@ RUNTIME_METHODS = [
     "response_type": "ListCommittedAppReleasesResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
+    "service": "RuntimeAppPackageService",
+    "method": "StartAppPackageInstall",
+    "kind": "unary",
+    "request_type": "StartAppPackageInstallRequest",
+    "response_type": "StartAppPackageInstallResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
     "service": "RuntimeAppService",
     "method": "AdoptLocalAppArtifact",

@@ -20,6 +20,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/publicappregistry"
@@ -44,6 +45,7 @@ type installFixtureTransport struct {
 	switchAfterAsset bool
 	blockAfterAsset  bool
 	blocked          bool
+	stallAsset       bool
 }
 
 func (transport *installFixtureTransport) RoundTrip(request *http.Request) (*http.Response, error) {
@@ -77,6 +79,12 @@ func (transport *installFixtureTransport) RoundTrip(request *http.Request) (*htt
 		return fixtureHTTPResponse(request, http.StatusOK, raw), nil
 	}
 	if request.URL.String() == transport.assetURL {
+		if transport.stallAsset {
+			response := fixtureHTTPResponse(request, http.StatusOK, nil)
+			response.ContentLength = int64(len(transport.asset))
+			response.Body = &contextBlockingBody{ctx: request.Context()}
+			return response, nil
+		}
 		response := fixtureHTTPResponse(request, http.StatusOK, transport.asset)
 		if transport.switchAfterAsset {
 			transport.revision = installTestNextRevision
@@ -154,6 +162,26 @@ func TestCoordinatorPersistsSecondRevalidationPolicyBlockDistinctFromStaleness(t
 	if _, err := kernel.PackageLifecycle().GetCommittedRelease(context.Background(), installTestAppID, localappkernel.SourceClassVerified); !errors.Is(err, localappkernel.ErrCommittedReleaseNotFound) {
 		t.Fatalf("policy block created committed release: %v", err)
 	}
+}
+
+func TestCoordinatorStartAndCancelWaitsForCleanupBeforeTerminalState(t *testing.T) {
+	coordinator, client, kernel, transport := newInstallFixture(t, false)
+	selector := resolveInstallFixture(t, client)
+	transport.stallAsset = true
+	started, err := coordinator.StartInstall(context.Background(), selector)
+	if err != nil {
+		t.Fatal(err)
+	}
+	job := waitForInstallPhase(t, kernel, started.JobID, localappkernel.PackageJobDownloading)
+	canceled, err := coordinator.CancelInstall(context.Background(), job.JobID, job.Phase, "user-canceled")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if canceled.Phase != localappkernel.PackageJobCanceled || canceled.ReasonCode != "user-canceled" || canceled.Cancelable {
+		t.Fatalf("canceled job = %+v", canceled)
+	}
+	assertInstallDirectoryNames(t, filepath.Join(kernel.DataRoot(), "apps", "packages", packageWorkDirectory), nil)
+	assertInstallDirectoryNames(t, filepath.Join(kernel.DataRoot(), "apps", "packages", packageReleaseDirectory), nil)
 }
 
 func TestCoordinatorRecoveryFailsInterruptedJobAndPreservesCommittedRelease(t *testing.T) {
@@ -559,4 +587,24 @@ func assertInstallDirectoryNames(t *testing.T, directory string, expected []stri
 	if strings.Join(names, "\x00") != strings.Join(expected, "\x00") {
 		t.Fatalf("directory %s entries=%v want=%v", directory, names, expected)
 	}
+}
+
+func waitForInstallPhase(
+	t *testing.T,
+	kernel *localappkernel.Kernel,
+	jobID string,
+	want localappkernel.PackageJobPhase,
+) localappkernel.PackageJob {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		job, err := kernel.PackageLifecycle().GetJob(context.Background(), jobID)
+		if err == nil && job.Phase == want {
+			return job
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	job, err := kernel.PackageLifecycle().GetJob(context.Background(), jobID)
+	t.Fatalf("job did not reach %s: %+v err=%v", want, job, err)
+	return localappkernel.PackageJob{}
 }

@@ -34,7 +34,7 @@ func (coordinator *Coordinator) failInstall(
 		return cause
 	}
 	if callerContext != nil && (errors.Is(callerContext.Err(), context.Canceled) || errors.Is(callerContext.Err(), context.DeadlineExceeded)) && current.Cancelable {
-		_, err = coordinator.lifecycle.Cancel(cleanupContext, current.JobID, current.Phase, "install-canceled")
+		_, err = coordinator.lifecycle.Cancel(cleanupContext, current.JobID, current.Phase, coordinator.workerCancellationReason(current.JobID))
 	} else {
 		_, err = coordinator.lifecycle.Fail(cleanupContext, current.JobID, current.Phase, installFailureReason(cause))
 	}

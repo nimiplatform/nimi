@@ -20,6 +20,8 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus

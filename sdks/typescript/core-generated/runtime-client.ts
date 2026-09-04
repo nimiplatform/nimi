@@ -895,6 +895,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListCommittedAppReleasesResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
+    "service": "RuntimeAppPackageService",
+    "method": "StartAppPackageInstall",
+    "kind": "unary",
+    "requestType": "StartAppPackageInstallRequest",
+    "responseType": "StartAppPackageInstallResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
     "service": "RuntimeAppService",
     "method": "AdoptLocalAppArtifact",

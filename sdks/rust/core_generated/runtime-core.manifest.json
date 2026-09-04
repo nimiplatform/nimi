@@ -1034,6 +1034,15 @@
           "response_stream": false
         },
         {
+          "name": "StartAppPackageInstall",
+          "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
+          "kind": "unary",
+          "request_type": "StartAppPackageInstallRequest",
+          "response_type": "StartAppPackageInstallResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "CancelAppPackageJob",
           "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
           "kind": "unary",
@@ -2222,6 +2231,7 @@
     "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob",
     "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs",
     "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
+    "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
     "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
     "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
     "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
@@ -3199,6 +3209,14 @@
       "kind": "unary",
       "request_type": "ListCommittedAppReleasesRequest",
       "response_type": "ListCommittedAppReleasesResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
+      "service": "RuntimeAppPackageService",
+      "method": "StartAppPackageInstall",
+      "kind": "unary",
+      "request_type": "StartAppPackageInstallRequest",
+      "response_type": "StartAppPackageInstallResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
@@ -4963,6 +4981,14 @@
       "response_type": "ListCommittedAppReleasesResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
+      "service": "RuntimeAppPackageService",
+      "method": "StartAppPackageInstall",
+      "kind": "unary",
+      "request_type": "StartAppPackageInstallRequest",
+      "response_type": "StartAppPackageInstallResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
       "service": "RuntimeAppService",
       "method": "AdoptLocalAppArtifact",
@@ -6585,6 +6611,8 @@
       "SpeechTranscribeResult",
       "SpeechTranscribeScenarioSpec",
       "SpeechTranscriptionAudioSource",
+      "StartAppPackageInstallRequest",
+      "StartAppPackageInstallResponse",
       "StartLocalEnvironmentDependencyJobRequest",
       "StartLocalEnvironmentDependencyJobResponse",
       "StartProductControlCheckSyncRequest",
@@ -31777,6 +31805,39 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "StartAppPackageInstallRequest",
+        "fields": [
+          {
+            "name": "approved_target_selector",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "StartAppPackageInstallResponse",
+        "fields": [
+          {
+            "name": "job",
+            "type": "AppPackageJob",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "StartLocalEnvironmentDependencyJobRequest",
         "fields": [
           {
@@ -37118,7 +37179,13 @@
           "AI_LOADOUT_NOT_CONFIGURED",
           "AI_LOADOUT_CATALOG_SCHEMA_INVALID",
           "AI_LOCAL_EXECUTION_OUT_OF_MEMORY",
-          "AI_CONFIG_REVISION_CONFLICT"
+          "AI_CONFIG_REVISION_CONFLICT",
+          "APP_PACKAGE_SELECTION_INVALID",
+          "APP_PACKAGE_SELECTION_STALE",
+          "APP_PACKAGE_POLICY_BLOCKED",
+          "APP_PACKAGE_ALREADY_INSTALLED",
+          "APP_PACKAGE_INSTALL_UNAVAILABLE",
+          "APP_PACKAGE_JOB_ACTIVE"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

@@ -230,7 +230,12 @@ func (store *PackageLifecycleStore) Begin(ctx context.Context, input BeginPackag
 	if err := store.kernel.commitTransaction(tx); err != nil {
 		return PackageJob{}, fmt.Errorf("commit App package job: %w", err)
 	}
-	return store.GetJob(ctx, jobID)
+	return PackageJob{
+		JobID: jobID, AppID: input.AppID, SourceClass: input.SourceClass, Kind: input.Kind,
+		TargetRef: input.TargetRef, Phase: PackageJobQueued, ProgressBasis: input.ProgressBasis,
+		BytesTotal: cloneUint64(input.BytesTotal), StepsTotal: cloneUint64(input.StepsTotal),
+		StartedAt: now, Cancelable: input.Cancelable,
+	}, nil
 }
 
 func (store *PackageLifecycleStore) GetJob(ctx context.Context, jobID string) (PackageJob, error) {
@@ -568,6 +573,14 @@ func validateBeginPackageJob(input BeginPackageJobInput) error {
 		return ErrPackageJobProgress
 	}
 	return nil
+}
+
+func cloneUint64(value *uint64) *uint64 {
+	if value == nil {
+		return nil
+	}
+	result := *value
+	return &result
 }
 
 func validateProgressAdvance(job PackageJob, progress PackageJobProgress) error {

@@ -1682,6 +1682,12 @@ const (
 	AILOADOUTCATALOGSCHEMAINVALID                   ReasonCode = "AI_LOADOUT_CATALOG_SCHEMA_INVALID"
 	AILOCALEXECUTIONOUTOFMEMORY                     ReasonCode = "AI_LOCAL_EXECUTION_OUT_OF_MEMORY"
 	AICONFIGREVISIONCONFLICT                        ReasonCode = "AI_CONFIG_REVISION_CONFLICT"
+	APPPACKAGESELECTIONINVALID                      ReasonCode = "APP_PACKAGE_SELECTION_INVALID"
+	APPPACKAGESELECTIONSTALE                        ReasonCode = "APP_PACKAGE_SELECTION_STALE"
+	APPPACKAGEPOLICYBLOCKED                         ReasonCode = "APP_PACKAGE_POLICY_BLOCKED"
+	APPPACKAGEALREADYINSTALLED                      ReasonCode = "APP_PACKAGE_ALREADY_INSTALLED"
+	APPPACKAGEINSTALLUNAVAILABLE                    ReasonCode = "APP_PACKAGE_INSTALL_UNAVAILABLE"
+	APPPACKAGEJOBACTIVE                             ReasonCode = "APP_PACKAGE_JOB_ACTIVE"
 )
 
 type ReasoningActivation string
@@ -7095,6 +7101,15 @@ type SpeechTranscriptionAudioSource struct {
 	AudioChunks *AudioChunks `json:"audio_chunks,omitempty"`
 }
 
+type StartAppPackageInstallRequest struct {
+	ApprovedTargetSelector []byte `json:"approved_target_selector,omitempty"`
+}
+
+type StartAppPackageInstallResponse struct {
+	Job        *AppPackageJob `json:"job,omitempty"`
+	ReasonCode ReasonCode     `json:"reason_code,omitempty"`
+}
+
 type StartLocalEnvironmentDependencyJobRequest struct {
 	EnvironmentKey   string `json:"environment_key,omitempty"`
 	DependencyFamily string `json:"dependency_family,omitempty"`
@@ -8751,6 +8766,14 @@ func (c RuntimeTypedClient) ListCommittedAppReleases(ctx context.Context, reques
 		return ListCommittedAppReleasesResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ListCommittedAppReleasesResponse](raw, "ListCommittedAppReleasesResponse")
+}
+
+func (c RuntimeTypedClient) StartAppPackageInstall(ctx context.Context, request StartAppPackageInstallRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartAppPackageInstallResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall", request, metadata, timeoutMS)
+	if err != nil {
+		return StartAppPackageInstallResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[StartAppPackageInstallResponse](raw, "StartAppPackageInstallResponse")
 }
 
 func (c RuntimeTypedClient) AdoptLocalAppArtifact(ctx context.Context, request AdoptLocalAppArtifactRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AdoptLocalAppArtifactResponse, error) {

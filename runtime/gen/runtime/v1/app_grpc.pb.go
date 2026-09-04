@@ -22,6 +22,7 @@ const (
 	RuntimeAppPackageService_ListCommittedAppReleases_FullMethodName = "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases"
 	RuntimeAppPackageService_ListAppPackageJobs_FullMethodName       = "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs"
 	RuntimeAppPackageService_GetAppPackageJob_FullMethodName         = "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob"
+	RuntimeAppPackageService_StartAppPackageInstall_FullMethodName   = "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall"
 	RuntimeAppPackageService_CancelAppPackageJob_FullMethodName      = "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob"
 )
 
@@ -29,12 +30,15 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// Desktop-protected Runtime owner projection. This service deliberately has no
-// package mutation start RPC and excludes local_development from every enum.
+// Desktop-protected Runtime owner projection. StartAppPackageInstall remains
+// excluded from every shipped protected profile until the Desktop confirmation
+// and install-availability cutover land together. local_development is absent
+// from every package enum and request.
 type RuntimeAppPackageServiceClient interface {
 	ListCommittedAppReleases(ctx context.Context, in *ListCommittedAppReleasesRequest, opts ...grpc.CallOption) (*ListCommittedAppReleasesResponse, error)
 	ListAppPackageJobs(ctx context.Context, in *ListAppPackageJobsRequest, opts ...grpc.CallOption) (*ListAppPackageJobsResponse, error)
 	GetAppPackageJob(ctx context.Context, in *GetAppPackageJobRequest, opts ...grpc.CallOption) (*GetAppPackageJobResponse, error)
+	StartAppPackageInstall(ctx context.Context, in *StartAppPackageInstallRequest, opts ...grpc.CallOption) (*StartAppPackageInstallResponse, error)
 	CancelAppPackageJob(ctx context.Context, in *CancelAppPackageJobRequest, opts ...grpc.CallOption) (*CancelAppPackageJobResponse, error)
 }
 
@@ -76,6 +80,16 @@ func (c *runtimeAppPackageServiceClient) GetAppPackageJob(ctx context.Context, i
 	return out, nil
 }
 
+func (c *runtimeAppPackageServiceClient) StartAppPackageInstall(ctx context.Context, in *StartAppPackageInstallRequest, opts ...grpc.CallOption) (*StartAppPackageInstallResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StartAppPackageInstallResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_StartAppPackageInstall_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAppPackageServiceClient) CancelAppPackageJob(ctx context.Context, in *CancelAppPackageJobRequest, opts ...grpc.CallOption) (*CancelAppPackageJobResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CancelAppPackageJobResponse)
@@ -90,12 +104,15 @@ func (c *runtimeAppPackageServiceClient) CancelAppPackageJob(ctx context.Context
 // All implementations should embed UnimplementedRuntimeAppPackageServiceServer
 // for forward compatibility.
 //
-// Desktop-protected Runtime owner projection. This service deliberately has no
-// package mutation start RPC and excludes local_development from every enum.
+// Desktop-protected Runtime owner projection. StartAppPackageInstall remains
+// excluded from every shipped protected profile until the Desktop confirmation
+// and install-availability cutover land together. local_development is absent
+// from every package enum and request.
 type RuntimeAppPackageServiceServer interface {
 	ListCommittedAppReleases(context.Context, *ListCommittedAppReleasesRequest) (*ListCommittedAppReleasesResponse, error)
 	ListAppPackageJobs(context.Context, *ListAppPackageJobsRequest) (*ListAppPackageJobsResponse, error)
 	GetAppPackageJob(context.Context, *GetAppPackageJobRequest) (*GetAppPackageJobResponse, error)
+	StartAppPackageInstall(context.Context, *StartAppPackageInstallRequest) (*StartAppPackageInstallResponse, error)
 	CancelAppPackageJob(context.Context, *CancelAppPackageJobRequest) (*CancelAppPackageJobResponse, error)
 }
 
@@ -114,6 +131,9 @@ func (UnimplementedRuntimeAppPackageServiceServer) ListAppPackageJobs(context.Co
 }
 func (UnimplementedRuntimeAppPackageServiceServer) GetAppPackageJob(context.Context, *GetAppPackageJobRequest) (*GetAppPackageJobResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAppPackageJob not implemented")
+}
+func (UnimplementedRuntimeAppPackageServiceServer) StartAppPackageInstall(context.Context, *StartAppPackageInstallRequest) (*StartAppPackageInstallResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartAppPackageInstall not implemented")
 }
 func (UnimplementedRuntimeAppPackageServiceServer) CancelAppPackageJob(context.Context, *CancelAppPackageJobRequest) (*CancelAppPackageJobResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CancelAppPackageJob not implemented")
@@ -192,6 +212,24 @@ func _RuntimeAppPackageService_GetAppPackageJob_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAppPackageService_StartAppPackageInstall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartAppPackageInstallRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).StartAppPackageInstall(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_StartAppPackageInstall_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).StartAppPackageInstall(ctx, req.(*StartAppPackageInstallRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAppPackageService_CancelAppPackageJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CancelAppPackageJobRequest)
 	if err := dec(in); err != nil {
@@ -228,6 +266,10 @@ var RuntimeAppPackageService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAppPackageJob",
 			Handler:    _RuntimeAppPackageService_GetAppPackageJob_Handler,
+		},
+		{
+			MethodName: "StartAppPackageInstall",
+			Handler:    _RuntimeAppPackageService_StartAppPackageInstall_Handler,
 		},
 		{
 			MethodName: "CancelAppPackageJob",

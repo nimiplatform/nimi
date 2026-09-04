@@ -114,6 +114,7 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases": "protected_origin_required",
+  "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAppService/GetAppStorage": "authenticated_required",

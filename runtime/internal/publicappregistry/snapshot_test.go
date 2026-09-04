@@ -352,6 +352,12 @@ func TestCanonicalClientUsesFixedHostsExactRevisionAndRejectsRedirect(t *testing
 	if _, err := redirectClient.Load(context.Background()); err == nil {
 		t.Fatal("redirected canonical Registry request succeeded")
 	}
+	unavailableClient := &Client{source: newCanonicalGitHubSource(roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return nil, errors.New("network unavailable")
+	}))}
+	if _, err := unavailableClient.Load(context.Background()); !errors.Is(err, ErrRegistryUnavailable) {
+		t.Fatalf("Registry transport error = %v", err)
+	}
 }
 
 func TestSchemaCompilerRejectsUnregisteredRemoteReference(t *testing.T) {
