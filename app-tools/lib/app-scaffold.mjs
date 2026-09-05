@@ -82,7 +82,7 @@ const APP_RELEASE_WORKFLOW = [
   '      - run: pnpm exec nimi-app test',
   '      - name: Require tag/version lockstep',
   "        if: github.event_name == 'push' && github.ref_type == 'tag'",
-  '        run: node -e "const p=require(\'./package.json\'); if (process.env.GITHUB_REF_NAME !== `v${p.version}`) throw new Error(\'tag_version_mismatch\')"',
+  '        run: node -e "const p=require(\'./package.json\'); if (process.env.GITHUB_REF_NAME !== (\'v\' + p.version)) throw new Error(\'tag_version_mismatch\')"',
   '      - name: Require annotated tag bound to this commit',
   "        if: github.event_name == 'push' && github.ref_type == 'tag'",
   '        shell: bash',

@@ -554,6 +554,22 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.equal(lock.managedFileHashes['.github/workflows/nimi-app-release.yml'].class, 'scaffold-managed glue');
     const workflowSource = generated.read('.github/workflows/nimi-app-release.yml');
     const workflow = parseYaml(workflowSource);
+    const tagVersionPreflight = workflow.jobs.prepare.steps.find((step) => step.name === 'Require tag/version lockstep');
+    assert.ok(tagVersionPreflight, 'generated workflow must enforce tag/version lockstep');
+    const bashExecutable = process.platform === 'win32'
+      ? path.resolve(runGit(generated.target, ['--exec-path']).stdout.trim(), '..', '..', '..', 'bin', 'bash.exe')
+      : 'bash';
+    const generatedVersion = JSON.parse(generated.read('package.json')).version;
+    for (const [tag, expectedStatus] of [[`v${generatedVersion}`, 0], ['v99.99.99', 1]]) {
+      const tagCheck = spawnSync(bashExecutable, ['--noprofile', '--norc', '-c', tagVersionPreflight.run], {
+        cwd: generated.target,
+        env: { ...process.env, GITHUB_REF_NAME: tag },
+        encoding: 'utf8',
+      });
+      assert.ifError(tagCheck.error);
+      assert.equal(tagCheck.status, expectedStatus, tagCheck.stderr);
+      if (expectedStatus !== 0) assert.match(tagCheck.stderr, /tag_version_mismatch/u);
+    }
     assert.deepEqual(workflow.on.push.tags, ['v*']);
     assert.deepEqual(workflow.on.workflow_dispatch, {});
     const repositoryProtectionPreflight = workflow.jobs.prepare.steps.find(
