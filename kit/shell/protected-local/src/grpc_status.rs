@@ -32,6 +32,27 @@ pub(crate) fn runtime_reason(status: &Status) -> Option<String> {
     runtime_error_info(status).map(|info| info.reason)
 }
 
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040b
+pub(crate) fn desktop_runtime_reason_metadata(status: &Status) -> BTreeMap<String, String> {
+    let Some(info) = runtime_error_info(status) else {
+        return BTreeMap::new();
+    };
+    if info.reason != "APP_PACKAGE_POLICY_BLOCKED" {
+        return BTreeMap::new();
+    }
+    ["policy_reason", "policy_revision"]
+        .into_iter()
+        .filter_map(|key| {
+            let value = info.metadata.get(key)?;
+            (!value.is_empty()
+                && value.trim() == value
+                && value.len() <= 2048
+                && !value.chars().any(char::is_control))
+            .then(|| (key.to_string(), value.clone()))
+        })
+        .collect()
+}
+
 pub(crate) fn bundled_avatar_runtime_reason(status: &Status) -> Option<String> {
     runtime_reason(status).or_else(|| match status.code() {
         Code::NotFound => Some("RUNTIME_GRPC_NOT_FOUND".to_string()),
@@ -280,9 +301,7 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AGENT_PRESENTATION_ASSET_TYPE_INVALID" => {
             LocalAppReasonCode::AgentPresentationAssetTypeInvalid
         }
-        "AGENT_PRESENTATION_ASSET_TOO_LARGE" => {
-            LocalAppReasonCode::AgentPresentationAssetTooLarge
-        }
+        "AGENT_PRESENTATION_ASSET_TOO_LARGE" => LocalAppReasonCode::AgentPresentationAssetTooLarge,
         "AGENT_PRESENTATION_ASSET_STRUCTURE_INVALID" => {
             LocalAppReasonCode::AgentPresentationAssetStructureInvalid
         }
@@ -614,6 +633,50 @@ mod tests {
         );
         assert!(error.reason_metadata().is_empty());
         assert!(!error.to_string().contains("private-provider"));
+    }
+
+    #[test]
+    fn desktop_app_policy_keeps_only_public_reason_and_revision() {
+        let info = GoogleRpcErrorInfo {
+            reason: "APP_PACKAGE_POLICY_BLOCKED".to_string(),
+            domain: ERROR_INFO_DOMAIN.to_string(),
+            metadata: HashMap::from([
+                (
+                    "policy_reason".to_string(),
+                    "maintainer-suspended".to_string(),
+                ),
+                ("policy_revision".to_string(), "7".to_string()),
+                ("private_detail".to_string(), "not-public".to_string()),
+            ]),
+        };
+        let details = GoogleRpcStatus {
+            code: Code::FailedPrecondition as i32,
+            message: "private-status-message".to_string(),
+            details: vec![prost_types::Any {
+                type_url: ERROR_INFO_TYPE_URL.to_string(),
+                value: info.encode_to_vec(),
+            }],
+        };
+        let status = Status::with_details(
+            Code::FailedPrecondition,
+            "private-status-message",
+            details.encode_to_vec().into(),
+        );
+        assert_eq!(
+            runtime_reason(&status).as_deref(),
+            Some("APP_PACKAGE_POLICY_BLOCKED")
+        );
+        assert_eq!(
+            desktop_runtime_reason_metadata(&status),
+            BTreeMap::from([
+                (
+                    "policy_reason".to_string(),
+                    "maintainer-suspended".to_string()
+                ),
+                ("policy_revision".to_string(), "7".to_string()),
+            ])
+        );
+        assert!(desktop_runtime_reason_metadata(&Status::internal("not-public")).is_empty());
     }
 
     #[test]

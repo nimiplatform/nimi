@@ -7,8 +7,9 @@ import type {
   AppsInstallIntentController,
   AppsInstallIntentResult,
   AppsInstallIntentSnapshot,
+  AppsInstallStartResult,
 } from './apps-install-intent.js';
-import { approvedCatalogTargetMatchesIntent } from './apps-install-intent.js';
+import { approvedCatalogTargetMatchesIntent, createAppsInstallIntentController } from './apps-install-intent.js';
 import { resolveDetailEntryKey } from './apps-card-fields.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import {
@@ -53,7 +54,7 @@ export interface AppsPanelControllerDeps {
   readonly listPackageJobs: DesktopAppsProjectionSource['listPackageJobs'];
   readonly listApprovedCatalogTargets?: DesktopAppsProjectionSource['listApprovedCatalogTargets'];
   readonly cancelPackageJob: (job: AppPackageJob) => Promise<void>;
-  readonly installIntentController?: AppsInstallIntentController;
+  readonly startInstall?: (approvedTargetSelector: Uint8Array) => Promise<AppsInstallStartResult>;
   readonly readAppAIConfig?: (
     appId: string,
     options: DesktopAppAIConfigReadOptions,
@@ -213,6 +214,9 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     (refreshAIConfig = true): Promise<void> => reloader.reload(refreshAIConfig),
     [reloader],
   );
+  const installIntentController = useMemo(() => deps.startInstall
+    ? createAppsInstallIntentController({ startInstall: deps.startInstall, refresh: () => reload(false) })
+    : undefined, [deps.startInstall, reload]);
 
   useEffect(() => {
     void reload(true);
@@ -243,9 +247,9 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
       entry.identity.entryKey === desktopAppsEntryKey(installConfirmation.appId, 'verified')
     ))?.catalogTarget;
     if (current && approvedCatalogTargetMatchesIntent(current, installConfirmation)) return;
-    deps.installIntentController?.cancel();
+    installIntentController?.cancel();
     setInstallConfirmation(null);
-  }, [deps.installIntentController, installConfirmation, projection]);
+  }, [installIntentController, installConfirmation, projection]);
 
   const runCardAction = useCallback((entryKey: string, action: AppCardActionId): void => {
     setActionError(null);
@@ -263,8 +267,8 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     void (async () => {
       try {
         if (action === 'install') {
-          if (!deps.installIntentController) throw new Error('Approved App install is not product-enabled');
-          const result = await requestAppsInstallFromDetail(entry, deps.installIntentController);
+          if (!installIntentController) throw new Error('Approved App install is not product-enabled');
+          const result = await requestAppsInstallFromDetail(entry, installIntentController);
           if (result.kind === 'confirmation-required') {
             setInstallConfirmation(result.intent);
           } else {
@@ -292,7 +296,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
         setActiveAction(null);
       }
     })();
-  }, [activeAction, deps.cancelPackageJob, deps.installIntentController, liveBridge, projection, reload]);
+  }, [activeAction, deps.cancelPackageJob, installIntentController, liveBridge, projection, reload]);
 
   const retryProjection = useCallback((): void => {
     setProjection(null);
@@ -314,23 +318,23 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
   }, [reload]);
 
   const confirmInstall = useCallback((): void => {
-    if (!installConfirmation || !deps.installIntentController || activeAction) return;
+    if (!installConfirmation || !installIntentController || activeAction) return;
     const entryKey = desktopAppsEntryKey(installConfirmation.appId, 'verified');
     setInstallConfirmation(null);
     setActionError(null);
     setActiveAction({ entryKey, action: 'install' });
-    void deps.installIntentController.confirm().then(async (result) => {
+    void installIntentController.confirm().then(async (result) => {
       setActionError(appsInstallIntentFailure(result));
       await reload(false);
     }).catch((error: unknown) => {
       setActionError(error instanceof Error ? error.message : String(error));
     }).finally(() => setActiveAction(null));
-  }, [activeAction, deps.installIntentController, installConfirmation, reload]);
+  }, [activeAction, installIntentController, installConfirmation, reload]);
 
   const cancelInstall = useCallback((): void => {
-    deps.installIntentController?.cancel();
+    installIntentController?.cancel();
     setInstallConfirmation(null);
-  }, [deps.installIntentController]);
+  }, [installIntentController]);
 
   return {
     projection,

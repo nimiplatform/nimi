@@ -99,7 +99,10 @@ export type NimiDesktopMachineProductRuntimeClient = {
     | 'issueExternalAgentToken'
     | 'revokeExternalAgentToken'
     | 'listExternalAgentTokens'>;
+  // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040a
   readonly apps: Pick<DesktopMachineProductRuntimeMethods,
+    | 'listApprovedAppCatalogTargets'
+    | 'startAppPackageInstall'
     | 'listCommittedAppReleases'
     | 'listAppPackageJobs'
     | 'getAppPackageJob'
@@ -479,6 +482,8 @@ export function createNimiDesktopFirstPartyRuntimeClients(
         listExternalAgentTokens: runtime.externalAgents.listExternalAgentTokens,
       }),
       apps: Object.freeze({
+        listApprovedAppCatalogTargets: machineProductRuntime.listApprovedAppCatalogTargets,
+        startAppPackageInstall: machineProductRuntime.startAppPackageInstall,
         listCommittedAppReleases: machineProductRuntime.listCommittedAppReleases,
         listAppPackageJobs: machineProductRuntime.listAppPackageJobs,
         getAppPackageJob: machineProductRuntime.getAppPackageJob,
