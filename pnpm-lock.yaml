@@ -23,8 +23,8 @@ importers:
         version: 2.9.0
     devDependencies:
       '@nimiplatform/nimi-coding':
-        specifier: 0.6.1
-        version: 0.6.1
+        specifier: 0.6.2
+        version: 0.6.2
       '@protobuf-ts/plugin':
         specifier: 2.11.1
         version: 2.11.1
@@ -328,8 +328,8 @@ importers:
         specifier: workspace:*
         version: link:../../app-tools
       '@nimiplatform/nimi-coding':
-        specifier: 0.6.1
-        version: 0.6.1
+        specifier: 0.6.2
+        version: 0.6.2
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@7.3.6(@types/node@24.13.3)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0))
@@ -1862,8 +1862,8 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@nimiplatform/nimi-coding@0.6.1':
-    resolution: {integrity: sha512-EouOXkPsnmLCxE7xTbXtZoAk00yv9/jXhrb/N617mcRWyaeoQYhh0RQKYzXJBI6utJsUIPOvYs0jJ3TlZF3Zsg==}
+  '@nimiplatform/nimi-coding@0.6.2':
+    resolution: {integrity: sha512-8mFwjcF0tYJB3MeOlDdL7ZNfP6CixW8wJq0OircmnZGdhk7aZeMCZU5bpRGj2v2Q/b1Xqw4hy0qY+74vy1LcAQ==}
     engines: {node: '>=24.0.0', pnpm: '>=10.0.0'}
     hasBin: true
 
@@ -6336,7 +6336,7 @@ snapshots:
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
 
-  '@nimiplatform/nimi-coding@0.6.1':
+  '@nimiplatform/nimi-coding@0.6.2':
     dependencies:
       typescript: 5.9.3
       yaml: 2.9.0
