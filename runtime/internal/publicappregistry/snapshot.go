@@ -4,15 +4,16 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"regexp"
 	goruntime "runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -25,7 +26,8 @@ import (
 const (
 	canonicalRepository      = "nimiplatform/nimi-app-registry"
 	canonicalBranch          = "main"
-	canonicalGitHubAPIBase   = "https://api.github.com/repos/" + canonicalRepository
+	canonicalGitRefsURL      = "https://github.com/" + canonicalRepository + ".git/info/refs?service=git-upload-pack"
+	gitRefsMediaType         = "application/x-git-upload-pack-advertisement"
 	canonicalRawContentBase  = "https://raw.githubusercontent.com/" + canonicalRepository
 	canonicalSchemaDraftID   = "https://json-schema.org/draft/2020-12/schema"
 	canonicalCommonSchemaID  = "https://registry.nimi.ai/schema/common.schema.json"
@@ -722,25 +724,69 @@ func (s *canonicalGitHubSource) resolveMainRevision(ctx context.Context) (string
 	if s == nil || s.httpClient == nil {
 		return "", ErrInvalidRegistrySnapshot
 	}
-	raw, err := s.readURL(ctx, canonicalGitHubAPIBase+"/git/ref/heads/"+canonicalBranch, maxCommitDocumentBytes, "application/vnd.github+json")
+	raw, err := s.readURL(ctx, canonicalGitRefsURL, maxCommitDocumentBytes, gitRefsMediaType)
 	if err != nil {
 		return "", err
 	}
-	if err := jsonstrict.RejectDuplicateKeys(raw); err != nil {
-		return "", errors.Join(ErrInvalidRegistrySnapshot, err)
+	return mainRevisionFromGitRefs(raw)
+}
+
+// mainRevisionFromGitRefs reads only the standard upload-pack ref advertisement.
+// It needs no Git executable, API credential, clone, or alternative Registry.
+func mainRevisionFromGitRefs(raw []byte) (string, error) {
+	rest := raw
+	packet := func() ([]byte, bool, error) {
+		if len(rest) < 4 {
+			return nil, false, ErrInvalidRegistrySnapshot
+		}
+		size, err := strconv.ParseUint(string(rest[:4]), 16, 16)
+		if err != nil || (size != 0 && size < 4) || size > uint64(len(rest)) {
+			return nil, false, ErrInvalidRegistrySnapshot
+		}
+		if size == 0 {
+			rest = rest[4:]
+			return nil, true, nil
+		}
+		payload := rest[4:size]
+		rest = rest[size:]
+		return payload, false, nil
 	}
-	var response struct {
-		Ref    string `json:"ref"`
-		Object struct {
-			Type string `json:"type"`
-			SHA  string `json:"sha"`
-		} `json:"object"`
-	}
-	if err := json.Unmarshal(raw, &response); err != nil || response.Ref != "refs/heads/"+canonicalBranch ||
-		response.Object.Type != "commit" || !commitSHAPattern.MatchString(response.Object.SHA) {
+	header, flush, err := packet()
+	if err != nil || flush || strings.TrimSuffix(string(header), "\n") != "# service=git-upload-pack" {
 		return "", ErrInvalidRegistrySnapshot
 	}
-	return response.Object.SHA, nil
+	if _, flush, err = packet(); err != nil || !flush {
+		return "", ErrInvalidRegistrySnapshot
+	}
+	mainRevision := ""
+	first := true
+	for {
+		payload, flush, err := packet()
+		if err != nil {
+			return "", err
+		}
+		if flush {
+			if len(rest) != 0 || mainRevision == "" {
+				return "", ErrInvalidRegistrySnapshot
+			}
+			return mainRevision, nil
+		}
+		ref, _, hasCapabilities := strings.Cut(string(payload), "\x00")
+		if hasCapabilities != first {
+			return "", ErrInvalidRegistrySnapshot
+		}
+		first = false
+		revision, name, ok := strings.Cut(strings.TrimSuffix(ref, "\n"), " ")
+		if !ok || !commitSHAPattern.MatchString(revision) || name == "" || strings.ContainsAny(name, " \r\n\x00") {
+			return "", ErrInvalidRegistrySnapshot
+		}
+		if name == "refs/heads/"+canonicalBranch {
+			if mainRevision != "" {
+				return "", ErrInvalidRegistrySnapshot
+			}
+			mainRevision = revision
+		}
+	}
 }
 
 func (s *canonicalGitHubSource) readAt(ctx context.Context, revision, relativePath string, limit int64) ([]byte, error) {
@@ -762,9 +808,6 @@ func (s *canonicalGitHubSource) readURL(ctx context.Context, target string, limi
 	}
 	request.Header.Set("Accept", accept)
 	request.Header.Set("User-Agent", "nimi-runtime-public-app-registry/1")
-	if strings.HasPrefix(target, canonicalGitHubAPIBase) {
-		request.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-	}
 	response, err := s.httpClient.Do(request)
 	if err != nil {
 		return nil, fmt.Errorf("request public App Registry document: %w", errors.Join(ErrRegistryUnavailable, err))
@@ -773,6 +816,12 @@ func (s *canonicalGitHubSource) readURL(ctx context.Context, target string, limi
 	if response.StatusCode != http.StatusOK {
 		_, _ = io.Copy(io.Discard, io.LimitReader(response.Body, 4096))
 		return nil, fmt.Errorf("request public App Registry document: %w: HTTP %d", ErrRegistryUnavailable, response.StatusCode)
+	}
+	if accept == gitRefsMediaType {
+		mediaType, _, err := mime.ParseMediaType(response.Header.Get("Content-Type"))
+		if err != nil || mediaType != gitRefsMediaType {
+			return nil, fmt.Errorf("read public App Registry Git refs: %w", ErrInvalidRegistrySnapshot)
+		}
 	}
 	if response.ContentLength > limit {
 		return nil, fmt.Errorf("read public App Registry document: %w", ErrInvalidRegistrySnapshot)

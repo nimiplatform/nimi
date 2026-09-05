@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -324,8 +325,13 @@ func TestCanonicalClientUsesFixedHostsExactRevisionAndRejectsRedirect(t *testing
 	requested := make([]string, 0)
 	transport := roundTripFunc(func(request *http.Request) (*http.Response, error) {
 		requested = append(requested, request.URL.String())
-		if request.URL.String() == canonicalGitHubAPIBase+"/git/ref/heads/main" {
-			return response(http.StatusOK, `{"ref":"refs/heads/main","object":{"type":"commit","sha":"`+testRevisionA+`"}}`), nil
+		if request.URL.String() == canonicalGitRefsURL {
+			if request.Header.Get("Accept") != gitRefsMediaType || request.Header.Get("Authorization") != "" {
+				t.Fatal("canonical Git refs request used the wrong media type or an API credential")
+			}
+			result := response(http.StatusOK, gitRefAdvertisement(testRevisionA+" refs/heads/main"))
+			result.Header.Set("Content-Type", gitRefsMediaType)
+			return result, nil
 		}
 		prefix := canonicalRawContentBase + "/" + testRevisionA + "/"
 		if !strings.HasPrefix(request.URL.String(), prefix) {
@@ -358,7 +364,7 @@ func TestCanonicalClientUsesFixedHostsExactRevisionAndRejectsRedirect(t *testing
 	redirectClient := &Client{source: newCanonicalGitHubSource(roundTripFunc(func(*http.Request) (*http.Response, error) {
 		result := response(http.StatusFound, "")
 		result.Header = make(http.Header)
-		result.Header.Set("Location", canonicalGitHubAPIBase+"/git/ref/heads/main")
+		result.Header.Set("Location", canonicalGitRefsURL)
 		return result, nil
 	}))}
 	if _, err := redirectClient.Load(context.Background()); err == nil {
@@ -432,13 +438,26 @@ func TestSchemaCompilerUsesECMAPatternRelativeReferenceAndFormatAssertions(t *te
 }
 
 func TestCanonicalSourceRejectsInvalidMainIdentityAndOversizedBody(t *testing.T) {
+	validRefs := gitRefAdvertisement(testRevisionA+" HEAD", testRevisionB+" refs/heads/main")
+	if revision, err := mainRevisionFromGitRefs([]byte(validRefs)); err != nil || revision != testRevisionB {
+		t.Fatalf("exact main ref = %q err=%v", revision, err)
+	}
 	for _, body := range []string{
 		`{"ref":"refs/heads/develop","object":{"type":"commit","sha":"` + testRevisionA + `"}}`,
-		`{"ref":"refs/heads/main","object":{"type":"tag","sha":"` + testRevisionA + `"}}`,
-		`{"ref":"refs/heads/main","object":{"type":"commit","sha":"ABC"}}`,
+		gitRefAdvertisement(testRevisionA + " refs/heads/develop"),
+		gitRefAdvertisement(testRevisionA + " refs/tags/main"),
+		gitRefAdvertisement("ABC refs/heads/main"),
+		gitRefAdvertisement(testRevisionA+" refs/heads/main", testRevisionB+" refs/heads/main"),
+		strings.TrimSuffix(validRefs, "0000"),
+		validRefs + "trailing",
+		"zzzz" + validRefs[4:],
+		"0001" + validRefs[4:],
+		strings.Replace(validRefs, "git-upload-pack", "git-receive-pack", 1),
 	} {
 		source := &canonicalGitHubSource{httpClient: &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
-			return response(http.StatusOK, body), nil
+			result := response(http.StatusOK, body)
+			result.Header.Set("Content-Type", gitRefsMediaType)
+			return result, nil
 		})}}
 		if _, err := source.resolveMainRevision(context.Background()); !errors.Is(err, ErrInvalidRegistrySnapshot) {
 			t.Fatalf("invalid main identity error = %v", err)
@@ -456,6 +475,20 @@ func TestCanonicalSourceRejectsInvalidMainIdentityAndOversizedBody(t *testing.T)
 			t.Fatalf("oversized Registry body error = %v", err)
 		}
 	}
+}
+
+func gitRefAdvertisement(refs ...string) string {
+	var body strings.Builder
+	body.WriteString("001e# service=git-upload-pack\n0000")
+	for index, ref := range refs {
+		if index == 0 {
+			ref += "\x00object-format=sha1"
+		}
+		ref += "\n"
+		fmt.Fprintf(&body, "%04x%s", len(ref)+4, ref)
+	}
+	body.WriteString("0000")
+	return body.String()
 }
 
 func validMemorySource(t *testing.T, revision string, descriptor approvedDescriptorDocument) *memoryDocumentSource {
