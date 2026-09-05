@@ -133,6 +133,10 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs":
@@ -581,6 +585,8 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob", Kind: FirstPartyMethodUnary},

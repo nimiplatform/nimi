@@ -15,6 +15,20 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/publicappregistry"
 )
 
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040a
+// Recover reconciles the Runtime package store before a Registry client or
+// install coordinator is exposed by the protected product service.
+func Recover(ctx context.Context, kernel *localappkernel.Kernel) error {
+	if ctx == nil {
+		return ErrInvalidCoordinator
+	}
+	owner, err := openPackageOwner(kernel)
+	if err != nil {
+		return err
+	}
+	return errors.Join(owner.Recover(ctx), owner.Close())
+}
+
 func (coordinator *Coordinator) failInstall(
 	callerContext context.Context,
 	job localappkernel.PackageJob,

@@ -4,6 +4,7 @@ import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../rendere
 import type { AppCardActionId } from './apps-card-actions.js';
 import { useAppsPanelController } from './apps-panel-controller.js';
 import { AppsPanelView } from './apps-panel-view.js';
+import { startAppsPackageInstall } from './apps-install-runtime.js';
 import {
   AppPackageJobPhase,
   ReasonCode,
@@ -63,6 +64,16 @@ export function AppsPanel(): ReactElement {
     }
     return response.releases;
   }, [sdk]);
+  const listApprovedCatalogTargets = useCallback(async () => {
+    const response = await sdk.machineProduct().apps.listApprovedAppCatalogTargets({});
+    if (response.reasonCode !== ReasonCode.ACTION_EXECUTED) {
+      throw new Error(`Runtime rejected approved App Catalog: ${String(response.reasonCode)}`);
+    }
+    return response.targets;
+  }, [sdk]);
+  const startInstall = useCallback((approvedTargetSelector: Uint8Array) => (
+    startAppsPackageInstall(sdk.machineProduct().apps.startAppPackageInstall, approvedTargetSelector)
+  ), [sdk]);
   const listPackageJobs = useCallback(async () => {
     const response = await sdk.machineProduct().apps.listAppPackageJobs({});
     if (response.reasonCode !== ReasonCode.ACTION_EXECUTED) {
@@ -80,6 +91,8 @@ export function AppsPanel(): ReactElement {
   }, [sdk]);
   const controller = useAppsPanelController({
     cancelPackageJob,
+    listApprovedCatalogTargets,
+    startInstall,
     listCommittedReleases,
     listPackageJobs,
     readAppAIConfig,

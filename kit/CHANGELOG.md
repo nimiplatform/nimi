@@ -11,6 +11,11 @@ Discipline.
 
 ### Added
 
+- Added protected Desktop machine-product Catalog listing and verified package
+  install methods, with exact public Registry policy reason/revision forwarding.
+  This public method-set widening belongs to Kit 0.6.0; hosts with exhaustive
+  native method matches must handle the two new variants. Installed launch and
+  App Access remain separate owner operations.
 - Added the public Windows x64 D2 native dependency and packaged Electron D2
   binding resolution. Installed Apps use their own native payload and retain
   Runtime peer, registration, exact Desktop launch, and App Access checks;

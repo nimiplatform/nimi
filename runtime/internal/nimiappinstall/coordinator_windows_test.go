@@ -345,12 +345,7 @@ func TestRecoveryReopensKernelAndFailsInterruptedJob(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = reopenedKernel.Close() }()
-	reopenedCoordinator, err := NewCoordinator(client, reopenedKernel)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = reopenedCoordinator.Close() }()
-	if err := reopenedCoordinator.Recover(context.Background()); err != nil {
+	if err := Recover(context.Background(), reopenedKernel); err != nil {
 		t.Fatal(err)
 	}
 	recovered, err := reopenedKernel.PackageLifecycle().GetJob(context.Background(), interrupted.JobID)
