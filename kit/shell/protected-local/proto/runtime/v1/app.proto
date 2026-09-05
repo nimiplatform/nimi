@@ -377,6 +377,51 @@ message AppPackageJob {
   bool cancelable = 16;
 }
 
+message ApprovedAppCatalogStorageDisclosure {
+  string path_pattern = 1;
+  string purpose = 2;
+  string retention = 3;
+  string removal = 4;
+}
+
+// Runtime projects one target from one immutable Registry snapshot. The
+// selector is opaque to Desktop and is the only input accepted by install
+// start; display fields never authorize a package mutation by themselves.
+message ApprovedAppCatalogTarget {
+  bytes approved_target_selector = 1;
+  string observed_registry_revision = 2;
+  string descriptor_id = 3;
+  string app_id = 4;
+  string display_name = 5;
+  string version = 6;
+  string publisher_github_namespace = 7;
+  string source_repository = 8;
+  string source_license_spdx_expression = 9;
+  repeated string app_access = 10;
+  repeated string capability_contract_refs = 11;
+  repeated string required_standardized_feature_refs = 12;
+  string storage_policy_kind = 13;
+  repeated ApprovedAppCatalogStorageDisclosure os_storage_disclosures = 14;
+  string target_id = 15;
+  string os = 16;
+  string arch = 17;
+  string asset_name = 18;
+  int64 asset_size = 19;
+  string execution_profile_ref = 20;
+  string windows_code_signing = 21;
+  optional string observed_signing_subject = 22;
+  bool policy_blocked = 23;
+  optional string policy_reason = 24;
+  uint64 policy_revision = 25;
+}
+
+message ListApprovedAppCatalogTargetsRequest {}
+
+message ListApprovedAppCatalogTargetsResponse {
+  repeated ApprovedAppCatalogTarget targets = 1;
+  ReasonCode reason_code = 2;
+}
+
 message ListCommittedAppReleasesRequest {}
 
 message ListCommittedAppReleasesResponse {
@@ -400,6 +445,15 @@ message GetAppPackageJobResponse {
   ReasonCode reason_code = 2;
 }
 
+message StartAppPackageInstallRequest {
+  bytes approved_target_selector = 1;
+}
+
+message StartAppPackageInstallResponse {
+  AppPackageJob job = 1;
+  ReasonCode reason_code = 2;
+}
+
 message CancelAppPackageJobRequest {
   bytes job_id = 1;
   AppPackageJobPhase expected_phase = 2;
@@ -411,12 +465,16 @@ message CancelAppPackageJobResponse {
   ReasonCode reason_code = 2;
 }
 
-// Desktop-protected Runtime owner projection. This service deliberately has no
-// package mutation start RPC and excludes local_development from every enum.
+// Desktop-protected Runtime owner projection. StartAppPackageInstall remains
+// excluded from every shipped protected profile until the Desktop confirmation
+// and install-availability cutover land together. local_development is absent
+// from every package enum and request.
 service RuntimeAppPackageService {
+  rpc ListApprovedAppCatalogTargets(ListApprovedAppCatalogTargetsRequest) returns (ListApprovedAppCatalogTargetsResponse);
   rpc ListCommittedAppReleases(ListCommittedAppReleasesRequest) returns (ListCommittedAppReleasesResponse);
   rpc ListAppPackageJobs(ListAppPackageJobsRequest) returns (ListAppPackageJobsResponse);
   rpc GetAppPackageJob(GetAppPackageJobRequest) returns (GetAppPackageJobResponse);
+  rpc StartAppPackageInstall(StartAppPackageInstallRequest) returns (StartAppPackageInstallResponse);
   rpc CancelAppPackageJob(CancelAppPackageJobRequest) returns (CancelAppPackageJobResponse);
 }
 

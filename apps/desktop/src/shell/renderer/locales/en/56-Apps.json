@@ -33,7 +33,28 @@
   },
   "sourceBadge": {
     "localDevelopment": "Local development",
-    "verified": "Nimi certified"
+    "verified": "Registry approved"
+  },
+  "catalog": {
+    "registryApproved": "This release was approved through the public Nimi App Registry. Its descriptor binds the exact Release asset, digest, and provenance, and Runtime verifies the downloaded package again. Approval and verification are not a malware-free or operating-system execution guarantee.",
+    "policyBlocked": "Installation is blocked by the current Registry policy (revision {{revision}}): {{reason}}",
+    "policyBlockedFallback": "No reason was provided.",
+    "publisher": "Publisher on GitHub",
+    "sourceRepository": "Public source",
+    "license": "Open-source license",
+    "target": "Exact target",
+    "asset": "Release asset",
+    "nativePosture": "Native signing posture",
+    "executionProfile": "Execution profile",
+    "appAccess": "Requested App Access",
+    "capabilities": "Capabilities",
+    "requiredFeatures": "Required platform features",
+    "storage": "Storage policy",
+    "storageDisclosures": "OS storage disclosures",
+    "none": "None",
+    "unsignedConfirmTitle": "Install an unsigned Windows App?",
+    "unsignedConfirmMessage": "This exact Registry-approved release was not signed by its publisher with Authenticode. Its Registry descriptor binds the exact asset digest and provenance, and Runtime verifies the download again, but neither that nor Nimi review guarantees safety or creates a sandbox. Windows or your organization may warn or block it. Continuing asks Runtime to install this exact package; it does not grant the App administrator access, and any later launch is a separate current-user, non-elevated action.",
+    "unsignedConfirmAction": "Continue and install"
   },
   "catalogNotImplemented": "Public App catalog search is not implemented yet.",
   "installedLaunchUnavailable": "Installed App launch is not implemented yet. Installation remains recorded, but only local-development Apps can currently be launched.",

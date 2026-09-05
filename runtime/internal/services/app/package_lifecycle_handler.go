@@ -4,14 +4,51 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
+	"github.com/nimiplatform/nimi/runtime/internal/nimiappinstall"
+	"github.com/nimiplatform/nimi/runtime/internal/publicappregistry"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+type ApprovedAppCatalogProvider interface {
+	ListCurrentPlatformTargets(context.Context) ([]publicappregistry.ResolvedApprovedTarget, error)
+}
+
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-013a
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-018a
+func (s *Service) ListApprovedAppCatalogTargets(
+	ctx context.Context,
+	req *runtimev1.ListApprovedAppCatalogTargetsRequest,
+) (*runtimev1.ListApprovedAppCatalogTargetsResponse, error) {
+	if req == nil {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	if s == nil || s.approvedAppCatalog == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_CATALOG_UNAVAILABLE)
+	}
+	targets, err := s.approvedAppCatalog.ListCurrentPlatformTargets(ctx)
+	if err != nil {
+		return nil, approvedAppCatalogError(err)
+	}
+	projected := make([]*runtimev1.ApprovedAppCatalogTarget, 0, len(targets))
+	for _, target := range targets {
+		value, projectErr := approvedAppCatalogTargetProjection(target)
+		if projectErr != nil {
+			return nil, approvedAppCatalogError(projectErr)
+		}
+		projected = append(projected, value)
+	}
+	return &runtimev1.ListApprovedAppCatalogTargetsResponse{
+		Targets: projected, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+	}, nil
+}
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040a
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040b
@@ -99,6 +136,35 @@ func (s *Service) GetAppPackageJob(
 	}, nil
 }
 
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-014a
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040a
+func (s *Service) StartAppPackageInstall(
+	ctx context.Context,
+	req *runtimev1.StartAppPackageInstallRequest,
+) (*runtimev1.StartAppPackageInstallResponse, error) {
+	if req == nil || len(req.GetApprovedTargetSelector()) == 0 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+	}
+	selector, err := publicappregistry.ParseApprovedTargetSelector(string(req.GetApprovedTargetSelector()))
+	if err != nil {
+		return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_PACKAGE_SELECTION_INVALID, err, grpcerr.ReasonOptions{})
+	}
+	if s == nil || s.appInstallCoordinator == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE)
+	}
+	job, err := s.appInstallCoordinator.StartInstall(ctx, selector)
+	if err != nil {
+		return nil, appPackageInstallStartError(err)
+	}
+	projected, err := appPackageJobProjection(job)
+	if err != nil {
+		return nil, err
+	}
+	return &runtimev1.StartAppPackageInstallResponse{
+		Job: projected, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+	}, nil
+}
+
 func (s *Service) CancelAppPackageJob(
 	ctx context.Context,
 	req *runtimev1.CancelAppPackageJobRequest,
@@ -110,11 +176,10 @@ func (s *Service) CancelAppPackageJob(
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	store, err := s.packageLifecycleStore()
-	if err != nil {
-		return nil, err
+	if s == nil || s.appInstallCoordinator == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE)
 	}
-	job, err := store.Cancel(ctx, string(req.GetJobId()), expected, req.GetReasonCode())
+	job, err := s.appInstallCoordinator.CancelInstall(ctx, string(req.GetJobId()), expected, req.GetReasonCode())
 	if err != nil {
 		return nil, appPackageLifecycleError("cancel App package job", err)
 	}
@@ -128,6 +193,50 @@ func (s *Service) CancelAppPackageJob(
 	}, nil
 }
 
+func appPackageInstallStartError(err error) error {
+	var blocked *publicappregistry.PolicyBlockedError
+	switch {
+	case errors.Is(err, context.Canceled):
+		return status.Error(codes.Canceled, "public App install start canceled")
+	case errors.Is(err, context.DeadlineExceeded):
+		return status.Error(codes.DeadlineExceeded, "public App install start deadline exceeded")
+	case errors.Is(err, publicappregistry.ErrInvalidSelector), errors.Is(err, nimiappinstall.ErrInstallTarget):
+		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_PACKAGE_SELECTION_INVALID, err, grpcerr.ReasonOptions{})
+	case errors.Is(err, publicappregistry.ErrStaleSelection):
+		return grpcerr.WrapWithReasonCode(codes.Aborted, runtimev1.ReasonCode_APP_PACKAGE_SELECTION_STALE, err, grpcerr.ReasonOptions{})
+	case errors.As(err, &blocked):
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_POLICY_BLOCKED, err, grpcerr.ReasonOptions{Metadata: map[string]string{
+			"policy_reason": blocked.Reason, "policy_revision": strconv.FormatUint(blocked.Revision, 10),
+		}})
+	case errors.Is(err, nimiappinstall.ErrAppAlreadyInstalled):
+		return grpcerr.WrapWithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_APP_PACKAGE_ALREADY_INSTALLED, err, grpcerr.ReasonOptions{})
+	case errors.Is(err, localappkernel.ErrPackageJobActive):
+		return grpcerr.WrapWithReasonCode(codes.Aborted, runtimev1.ReasonCode_APP_PACKAGE_JOB_ACTIVE, err, grpcerr.ReasonOptions{})
+	case errors.Is(err, nimiappinstall.ErrInvalidCoordinator), errors.Is(err, nimiappinstall.ErrUnsupportedInstallPlatform):
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE, err, grpcerr.ReasonOptions{})
+	case errors.Is(err, publicappregistry.ErrRegistryUnavailable), errors.Is(err, publicappregistry.ErrInvalidRegistrySnapshot),
+		errors.Is(err, nimiappinstall.ErrInstallPersistenceUnavailable):
+		return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE, err, grpcerr.ReasonOptions{})
+	default:
+		return fmt.Errorf("start public App package install: %w", err)
+	}
+}
+
+func approvedAppCatalogError(err error) error {
+	switch {
+	case errors.Is(err, context.Canceled):
+		return status.Error(codes.Canceled, "public App Catalog read canceled")
+	case errors.Is(err, context.DeadlineExceeded):
+		return status.Error(codes.DeadlineExceeded, "public App Catalog read deadline exceeded")
+	case errors.Is(err, publicappregistry.ErrCatalogTargetNotFound):
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_CATALOG_UNAVAILABLE, err, grpcerr.ReasonOptions{})
+	case errors.Is(err, publicappregistry.ErrRegistryUnavailable), errors.Is(err, publicappregistry.ErrInvalidRegistrySnapshot):
+		return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_APP_CATALOG_UNAVAILABLE, err, grpcerr.ReasonOptions{})
+	default:
+		return fmt.Errorf("list approved public App Catalog targets: %w", err)
+	}
+}
+
 func (s *Service) packageLifecycleStore() (*localappkernel.PackageLifecycleStore, error) {
 	if s == nil || s.localAppKernel == nil || s.localAppKernel.PackageLifecycle() == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_STORAGE_UNAVAILABLE)
@@ -137,6 +246,12 @@ func (s *Service) packageLifecycleStore() (*localappkernel.PackageLifecycleStore
 
 func appPackageLifecycleError(operation string, err error) error {
 	switch {
+	case errors.Is(err, context.Canceled):
+		return status.Error(codes.Canceled, operation+" canceled")
+	case errors.Is(err, context.DeadlineExceeded):
+		return status.Error(codes.DeadlineExceeded, operation+" deadline exceeded")
+	case errors.Is(err, nimiappinstall.ErrInvalidCoordinator):
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE, err, grpcerr.ReasonOptions{})
 	case errors.Is(err, localappkernel.ErrInvalidArgument):
 		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, err, grpcerr.ReasonOptions{})
 	case errors.Is(err, localappkernel.ErrPackageJobNotFound):
@@ -163,6 +278,59 @@ func committedAppReleaseProjection(release localappkernel.CommittedRelease) (*ru
 		LaunchSelector: []byte(release.RegistrationHandle),
 		CommittedAt:    timestamppb.New(release.CommittedAt),
 	}, nil
+}
+
+func approvedAppCatalogTargetProjection(target publicappregistry.ResolvedApprovedTarget) (*runtimev1.ApprovedAppCatalogTarget, error) {
+	selector, err := target.Selector.Encode()
+	if err != nil || target.DescriptorID != target.Selector.DescriptorID() ||
+		target.Target.TargetID != target.Selector.TargetID() ||
+		target.RegistryRevision != target.Selector.ObservedRegistryCommit() {
+		return nil, fmt.Errorf("project approved App Catalog target: inconsistent selector: %w", publicappregistry.ErrInvalidRegistrySnapshot)
+	}
+	storage := make([]*runtimev1.ApprovedAppCatalogStorageDisclosure, 0, len(target.StoragePolicy.OSStorageDisclosure))
+	for _, disclosure := range target.StoragePolicy.OSStorageDisclosure {
+		storage = append(storage, &runtimev1.ApprovedAppCatalogStorageDisclosure{
+			PathPattern: disclosure.PathPattern,
+			Purpose:     disclosure.Purpose,
+			Retention:   disclosure.Retention,
+			Removal:     disclosure.Removal,
+		})
+	}
+	return &runtimev1.ApprovedAppCatalogTarget{
+		ApprovedTargetSelector:          []byte(selector),
+		ObservedRegistryRevision:        target.RegistryRevision,
+		DescriptorId:                    target.DescriptorID,
+		AppId:                           target.AppID,
+		DisplayName:                     target.DisplayName,
+		Version:                         target.Version,
+		PublisherGithubNamespace:        target.Publisher.GitHubNamespace,
+		SourceRepository:                target.Source.Repository,
+		SourceLicenseSpdxExpression:     target.Source.License.SPDXExpression,
+		AppAccess:                       append([]string(nil), target.AppAccess...),
+		CapabilityContractRefs:          append([]string(nil), target.CapabilityContractRefs...),
+		RequiredStandardizedFeatureRefs: append([]string(nil), target.RequiredStandardizedFeatureRefs...),
+		StoragePolicyKind:               target.StoragePolicy.Kind,
+		OsStorageDisclosures:            storage,
+		TargetId:                        target.Target.TargetID,
+		Os:                              target.Target.OS,
+		Arch:                            target.Target.Arch,
+		AssetName:                       target.Target.AssetName,
+		AssetSize:                       target.Target.Size,
+		ExecutionProfileRef:             target.Target.ExecutionProfileRef,
+		WindowsCodeSigning:              target.Target.NativeTrust.WindowsCodeSigning,
+		ObservedSigningSubject:          cloneStringPointer(target.Target.NativeTrust.ObservedSubject),
+		PolicyBlocked:                   target.KillSwitch.Active,
+		PolicyReason:                    cloneStringPointer(target.KillSwitch.Reason),
+		PolicyRevision:                  target.KillSwitch.Revision,
+	}, nil
+}
+
+func cloneStringPointer(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+	return &cloned
 }
 
 func appPackageJobProjection(job localappkernel.PackageJob) (*runtimev1.AppPackageJob, error) {

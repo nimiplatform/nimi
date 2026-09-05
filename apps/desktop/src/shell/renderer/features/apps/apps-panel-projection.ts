@@ -1,8 +1,9 @@
 // Runtime owns source-qualified installed/package state; local-development
 // registration remains a separate source; Desktop owns supervised run state.
-// Public catalog search has no admitted consumer yet and is projected only as
-// explicitly unavailable. Presentation may group visually later, but owner
-// rows and actions remain keyed by source identity.
+// Public Catalog facts are accepted only through the Runtime SDK projection.
+// The production Apps consumer does not supply that port until availability
+// cutover; isolated owner tests can exercise the merge without creating a
+// second Registry source. Rows and actions remain keyed by source identity.
 
 import type {
   LocalDevelopmentRegistration,
@@ -14,6 +15,7 @@ import {
   AppPackageJobPhase,
   AppPackageSourceClass,
   AppPackageTerminalResult,
+  type ApprovedAppCatalogTarget,
   type AppPackageJob,
   type CommittedAppRelease,
 } from '@nimiplatform/sdk/runtime/wire-types';
@@ -45,6 +47,7 @@ export interface DesktopAppAIConfigReadOptions {
 }
 
 export interface DesktopAppsProjectionSource {
+  listApprovedCatalogTargets?(): Promise<readonly ApprovedAppCatalogTarget[]>;
   listCommittedReleases(): Promise<readonly CommittedAppRelease[]>;
   listPackageJobs(): Promise<readonly AppPackageJob[]>;
   listRegistrations(): Promise<readonly LocalDevelopmentRegistration[]>;
@@ -71,6 +74,7 @@ export function desktopAppsEntryKey(appId: string, sourceClass: DesktopAppSource
 
 export interface DesktopAppsEntry {
   readonly identity: DesktopAppsCommonIdentity;
+  readonly catalogTarget: ApprovedAppCatalogTarget | null;
   readonly localDevelopment: LocalDevelopmentRegistration | null;
   readonly committedRelease: CommittedAppRelease | null;
   readonly packageJob: AppPackageJob | null;
@@ -88,7 +92,7 @@ export type DesktopAppsPanelProjection =
   | {
       readonly status: 'loaded';
       readonly entries: readonly DesktopAppsEntry[];
-      readonly catalogStatus: 'not-implemented';
+      readonly catalogStatus: 'not-implemented' | 'loaded' | 'unavailable';
       readonly runtimeError: string | null;
     }
   | { readonly status: 'error'; readonly detail: string };
@@ -120,10 +124,16 @@ export async function projectAppsPanel(
       source.listPackageJobs(),
     ]).then(([releases, jobs]) => ({ ok: true as const, releases, jobs }))
       .catch((error: unknown) => ({ ok: false as const, error }));
-    const [registrations, runs, runtimeResult] = await Promise.all([
+    const catalogRequest = source.listApprovedCatalogTargets
+      ? source.listApprovedCatalogTargets()
+        .then((targets) => ({ status: 'loaded' as const, targets }))
+        .catch((error: unknown) => ({ status: 'unavailable' as const, targets: [] as const, error }))
+      : Promise.resolve({ status: 'not-implemented' as const, targets: [] as const });
+    const [registrations, runs, runtimeResult, catalogResult] = await Promise.all([
       source.listRegistrations(),
       source.listRuns(),
       runtimeRequest,
+      catalogRequest,
     ]);
     const previousEntries = options.previous?.status === 'loaded'
       ? new Map(options.previous.entries.map((entry) => [entry.identity.entryKey, entry]))
@@ -147,6 +157,28 @@ export async function projectAppsPanel(
     if (runtimeRows.conflict) {
       return { status: 'error', detail: runtimeRows.conflict };
     }
+    const catalogRows = indexRuntimeCatalog(catalogResult.targets);
+    if (catalogRows.conflict) {
+      return { status: 'error', detail: catalogRows.conflict };
+    }
+    for (const [entryKey, catalogTarget] of catalogRows.targetsByKey) {
+      entriesByKey.set(entryKey, {
+        identity: {
+          entryKey,
+          appId: catalogTarget.appId,
+          sourceClass: 'verified',
+          displayName: catalogTarget.displayName,
+          updatedAtUnixMs: 0,
+        },
+        catalogTarget,
+        localDevelopment: null,
+        committedRelease: null,
+        packageJob: null,
+        run: null,
+        aiConfigSummary: null,
+        iconUrl: null,
+      });
+    }
     for (const registration of registrations) {
       const entryKey = desktopAppsEntryKey(registration.appId, 'local_development', registration.selector);
       entriesByKey.set(entryKey, {
@@ -157,6 +189,7 @@ export async function projectAppsPanel(
           displayName: registration.displayName,
           updatedAtUnixMs: registration.updatedAtUnixMs,
         },
+        catalogTarget: null,
         localDevelopment: registration,
         committedRelease: null,
         packageJob: null,
@@ -220,10 +253,11 @@ export async function projectAppsPanel(
     return {
       status: 'loaded',
       entries,
-      catalogStatus: 'not-implemented',
-      runtimeError: runtimeResult.ok
-        ? null
-        : `Runtime Apps lifecycle list failed: ${errorMessage(runtimeResult.error)}`,
+      catalogStatus: catalogResult.status,
+      runtimeError: [
+        runtimeResult.ok ? null : `Runtime Apps lifecycle list failed: ${errorMessage(runtimeResult.error)}`,
+        catalogResult.status === 'unavailable' ? `Runtime Apps Catalog list failed: ${errorMessage(catalogResult.error)}` : null,
+      ].filter((message): message is string => message !== null).join('; ') || null,
     };
   } catch (error) {
     return {
@@ -237,12 +271,39 @@ function emptyRuntimeAppsEntry(appId: string, sourceClass: Exclude<DesktopAppSou
   const entryKey = desktopAppsEntryKey(appId, sourceClass);
   return {
     identity: { entryKey, appId, sourceClass, displayName: appId, updatedAtUnixMs: 0 },
+    catalogTarget: null,
     localDevelopment: null,
     committedRelease: null,
     packageJob: null,
     run: null,
     aiConfigSummary: null,
     iconUrl: null,
+  };
+}
+
+function indexRuntimeCatalog(targets: readonly ApprovedAppCatalogTarget[]): {
+  readonly targetsByKey: Map<string, ApprovedAppCatalogTarget>;
+  readonly conflict: string | null;
+} {
+  const targetsByKey = new Map<string, ApprovedAppCatalogTarget>();
+  for (const target of targets) {
+    const entryKey = desktopAppsEntryKey(target.appId, 'verified');
+    if (targetsByKey.has(entryKey)) {
+      return { targetsByKey, conflict: `Runtime Apps Catalog conflict: multiple targets for ${entryKey}` };
+    }
+    targetsByKey.set(entryKey, cloneApprovedAppCatalogTarget(target));
+  }
+  return { targetsByKey, conflict: null };
+}
+
+function cloneApprovedAppCatalogTarget(target: ApprovedAppCatalogTarget): ApprovedAppCatalogTarget {
+  return {
+    ...target,
+    approvedTargetSelector: target.approvedTargetSelector.slice(),
+    appAccess: [...target.appAccess],
+    capabilityContractRefs: [...target.capabilityContractRefs],
+    requiredStandardizedFeatureRefs: [...target.requiredStandardizedFeatureRefs],
+    osStorageDisclosures: target.osStorageDisclosures.map((disclosure) => ({ ...disclosure })),
   };
 }
 

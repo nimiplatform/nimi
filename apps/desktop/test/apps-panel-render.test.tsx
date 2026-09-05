@@ -29,6 +29,7 @@ import {
   AppPackageProgressBasis,
   AppPackageSourceClass,
   AppPackageTerminalResult,
+  type ApprovedAppCatalogTarget,
   type AppPackageJob,
   type CommittedAppRelease,
 } from '@nimiplatform/sdk/runtime/wire-types';
@@ -65,6 +66,7 @@ function entry(
       displayName: row.displayName,
       updatedAtUnixMs: row.updatedAtUnixMs,
     },
+    catalogTarget: null,
     localDevelopment: row,
     committedRelease: null,
     packageJob: null,
@@ -82,6 +84,7 @@ function entry(
         hostGeneration: 1,
       },
     aiConfigSummary: null,
+    iconUrl: null,
   };
 }
 
@@ -94,11 +97,13 @@ function installedRuntimeEntry(overrides: Partial<AppPackageJob> = {}): DesktopA
       displayName: 'example.catalog-app',
       updatedAtUnixMs: 1_788_134_400_000,
     },
+    catalogTarget: null,
     localDevelopment: null,
     committedRelease: null,
     packageJob: null,
     run: null,
     aiConfigSummary: null,
+    iconUrl: null,
   };
   const committedRelease: CommittedAppRelease = {
     appId: entry.identity.appId,
@@ -127,6 +132,31 @@ function installedRuntimeEntry(overrides: Partial<AppPackageJob> = {}): DesktopA
   return { ...entry, committedRelease, packageJob };
 }
 
+function catalogRuntimeEntry(policyBlocked = false): DesktopAppsEntry {
+  const catalogTarget = {
+    approvedTargetSelector: new Uint8Array([1, 2, 3]), observedRegistryRevision: 'a'.repeat(40),
+    descriptorId: 'example.catalog-app@1.0.0', appId: 'example.catalog-app', displayName: 'Example Catalog App', version: '1.0.0',
+    publisherGithubNamespace: 'publisher', sourceRepository: 'https://github.com/publisher/example', sourceLicenseSpdxExpression: 'MIT', targetId: 'windows-x86_64', os: 'windows', arch: 'x86_64',
+    assetName: 'example.catalog-app-1.0.0-windows-x86_64.nimiapp', assetSize: '42', executionProfileRef: 'windows-user-mode-as-invoker-v1',
+    windowsCodeSigning: 'unsigned', appAccess: ['runtime.consume'], capabilityContractRefs: ['text.generate'], requiredStandardizedFeatureRefs: ['app.storage'],
+    storagePolicyKind: 'nimi-mediated-default', osStorageDisclosures: [{ pathPattern: '%LOCALAPPDATA%/Example', purpose: 'cache', retention: 'until-uninstall', removal: 'removed-with-package' }],
+    policyBlocked, policyReason: policyBlocked ? 'security-review-revoked' : undefined, policyRevision: policyBlocked ? '7' : '0',
+  } as ApprovedAppCatalogTarget;
+  return {
+    identity: {
+      entryKey: 'verified:example.catalog-app', appId: catalogTarget.appId, sourceClass: 'verified',
+      displayName: catalogTarget.displayName, updatedAtUnixMs: 0,
+    },
+    catalogTarget,
+    localDevelopment: null,
+    committedRelease: null,
+    packageJob: null,
+    run: null,
+    aiConfigSummary: null,
+    iconUrl: null,
+  };
+}
+
 const ENTRIES: DesktopAppsEntry[] = [
   entry(),
   entry({ selector: 'dev-project-zhiyu', appId: 'nimi.zhiyu', displayName: '织羽 Zhiyu' }),
@@ -147,6 +177,9 @@ function baseProps(overrides: Partial<AppsPanelViewProps> = {}): AppsPanelViewPr
     onAIConfigChanged: () => {},
     actionError: null,
     activeAction: null,
+    installConfirmation: null,
+    onConfirmInstall: () => {},
+    onCancelInstall: () => {},
     ...overrides,
   };
 }
@@ -295,6 +328,38 @@ test('Runtime committed version and cancelable package job render without enabli
   await changeLocale('zh');
 });
 
+test('approved Catalog facts render an install intent without claiming certification', async () => {
+  await initI18n();
+  await changeLocale('en');
+  const catalog = catalogRuntimeEntry();
+  const cardMarkup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [catalog], catalogStatus: 'loaded', runtimeError: null },
+  }));
+  assert.equal(cardMarkup.includes(`data-testid="apps-entry-${catalog.identity.entryKey}-install"`), false);
+  assert.ok(cardMarkup.includes('Registry approved'));
+  assert.equal(cardMarkup.includes('Nimi certified'), false);
+
+  const detailMarkup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [catalog], catalogStatus: 'loaded', runtimeError: null },
+    selectedEntryKey: catalog.identity.entryKey,
+  }));
+  assert.ok(detailMarkup.includes('data-testid="apps-catalog-approved"'));
+  assert.ok(detailMarkup.includes('data-testid="apps-detail-install"'));
+  assert.ok(detailMarkup.includes('@publisher'));
+  assert.ok(detailMarkup.includes('MIT'));
+  assert.ok(detailMarkup.includes('unsigned'));
+
+  const blocked = catalogRuntimeEntry(true);
+  const blockedMarkup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [blocked], catalogStatus: 'loaded', runtimeError: null },
+    selectedEntryKey: blocked.identity.entryKey,
+  }));
+  assert.ok(blockedMarkup.includes('data-testid="apps-catalog-policy-blocked"'));
+  assert.ok(blockedMarkup.includes('security-review-revoked'));
+  assert.equal(blockedMarkup.includes('data-testid="apps-detail-install"'), false);
+  await changeLocale('zh');
+});
+
 test('installed App detail keeps action and Runtime lifecycle failures visible', async () => {
   await initI18n();
   await changeLocale('en');
@@ -313,6 +378,23 @@ test('installed App detail keeps action and Runtime lifecycle failures visible',
   assert.ok(markup.includes('package lifecycle unavailable'));
   assert.ok(markup.includes('data-testid="apps-action-error"'));
   assert.ok(markup.includes('package job phase changed'));
+  await changeLocale('zh');
+});
+
+test('an installed App keeps a later Registry policy block visible as an independent fact', async () => {
+  await initI18n();
+  await changeLocale('en');
+  const blocked = catalogRuntimeEntry(true);
+  const installed = installedRuntimeEntry();
+  const entry: DesktopAppsEntry = { ...blocked, committedRelease: installed.committedRelease };
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [entry], catalogStatus: 'loaded', runtimeError: null },
+    selectedEntryKey: entry.identity.entryKey,
+  }));
+  assert.ok(markup.includes('data-testid="apps-catalog-policy-blocked"'));
+  assert.ok(markup.includes('security-review-revoked'));
+  assert.ok(markup.includes('data-testid="apps-installed-launch-unavailable"'));
+  assert.equal(markup.includes('data-testid="apps-detail-install"'), false);
   await changeLocale('zh');
 });
 

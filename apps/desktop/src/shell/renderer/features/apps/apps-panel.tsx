@@ -90,11 +90,14 @@ export function AppsPanel(): ReactElement {
     searchQuery,
     actionError,
     activeAction,
+    installConfirmation,
     runCardAction,
     setSearchQuery,
     retryProjection,
     closeDetail,
     acknowledgeAIConfigMutation,
+    confirmInstall,
+    cancelInstall,
   } = controller;
   const handleCardAction = useCallback((entryKey: string, action: AppCardActionId): void => {
     const entry = projection?.status === 'loaded'
@@ -142,6 +145,9 @@ export function AppsPanel(): ReactElement {
         onAIConfigChanged={acknowledgeAIConfigMutation}
         actionError={actionError}
         activeAction={activeAction}
+        installConfirmation={installConfirmation}
+        onConfirmInstall={confirmInstall}
+        onCancelInstall={cancelInstall}
       />
     </div>
   );

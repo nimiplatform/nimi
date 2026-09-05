@@ -887,12 +887,28 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListAppPackageJobsResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets",
+    "service": "RuntimeAppPackageService",
+    "method": "ListApprovedAppCatalogTargets",
+    "kind": "unary",
+    "requestType": "ListApprovedAppCatalogTargetsRequest",
+    "responseType": "ListApprovedAppCatalogTargetsResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
     "service": "RuntimeAppPackageService",
     "method": "ListCommittedAppReleases",
     "kind": "unary",
     "requestType": "ListCommittedAppReleasesRequest",
     "responseType": "ListCommittedAppReleasesResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
+    "service": "RuntimeAppPackageService",
+    "method": "StartAppPackageInstall",
+    "kind": "unary",
+    "requestType": "StartAppPackageInstallRequest",
+    "responseType": "StartAppPackageInstallResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",

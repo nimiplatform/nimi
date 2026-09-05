@@ -56,7 +56,7 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 	account := newLocalAppSessionTestAccount("account-built-in", "realm-built-in")
 	release := FormalAppRelease{
 		AppID: "nimi.desktop", DisplayName: "Nimi Desktop", SourceRef: "platform-app-release:nimi.desktop",
-		InstallRoot: t.TempDir(), ManifestRef: "formal-release:nimi.desktop", ShellKind: 1,
+		InstallRoot: t.TempDir(), ManifestRef: "formal-release:nimi.desktop",
 		Declaration:        []string{"realm.data", "runtime.consume", "agent.local", "agent.configure"},
 		ImmutableLineageID: "lineage:desktop:1", ProvenanceAttestationRefs: []string{"attestation:desktop:1"},
 		ProvenanceRevision: 1, ExecutionProfileRef: "execution:desktop", PayloadRootDigest: "release-payload:desktop",

@@ -872,12 +872,28 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ListAppPackageJobsResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets",
+        service: "RuntimeAppPackageService",
+        method: "ListApprovedAppCatalogTargets",
+        kind: "unary",
+        request_type: "ListApprovedAppCatalogTargetsRequest",
+        response_type: "ListApprovedAppCatalogTargetsResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
         service: "RuntimeAppPackageService",
         method: "ListCommittedAppReleases",
         kind: "unary",
         request_type: "ListCommittedAppReleasesRequest",
         response_type: "ListCommittedAppReleasesResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
+        service: "RuntimeAppPackageService",
+        method: "StartAppPackageInstall",
+        kind: "unary",
+        request_type: "StartAppPackageInstallRequest",
+        response_type: "StartAppPackageInstallResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",

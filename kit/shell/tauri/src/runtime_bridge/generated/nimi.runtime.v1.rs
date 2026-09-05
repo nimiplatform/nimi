@@ -486,6 +486,16 @@ pub enum ReasonCode {
     AiLocalExecutionOutOfMemory = 725,
     /// Canonical App or shared subsystem AIConfig optimistic concurrency.
     AiConfigRevisionConflict = 726,
+    /// Verified public App Catalog, selector, and install-start outcomes. The
+    /// Catalog and mutation methods remain excluded from product profiles until
+    /// Desktop confirmation and availability cutover.
+    AppPackageSelectionInvalid = 727,
+    AppPackageSelectionStale = 728,
+    AppPackagePolicyBlocked = 729,
+    AppPackageAlreadyInstalled = 730,
+    AppPackageInstallUnavailable = 731,
+    AppPackageJobActive = 732,
+    AppCatalogUnavailable = 733,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -826,6 +836,13 @@ impl ReasonCode {
             Self::AiLoadoutCatalogSchemaInvalid => "AI_LOADOUT_CATALOG_SCHEMA_INVALID",
             Self::AiLocalExecutionOutOfMemory => "AI_LOCAL_EXECUTION_OUT_OF_MEMORY",
             Self::AiConfigRevisionConflict => "AI_CONFIG_REVISION_CONFLICT",
+            Self::AppPackageSelectionInvalid => "APP_PACKAGE_SELECTION_INVALID",
+            Self::AppPackageSelectionStale => "APP_PACKAGE_SELECTION_STALE",
+            Self::AppPackagePolicyBlocked => "APP_PACKAGE_POLICY_BLOCKED",
+            Self::AppPackageAlreadyInstalled => "APP_PACKAGE_ALREADY_INSTALLED",
+            Self::AppPackageInstallUnavailable => "APP_PACKAGE_INSTALL_UNAVAILABLE",
+            Self::AppPackageJobActive => "APP_PACKAGE_JOB_ACTIVE",
+            Self::AppCatalogUnavailable => "APP_CATALOG_UNAVAILABLE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1231,6 +1248,13 @@ impl ReasonCode {
             }
             "AI_LOCAL_EXECUTION_OUT_OF_MEMORY" => Some(Self::AiLocalExecutionOutOfMemory),
             "AI_CONFIG_REVISION_CONFLICT" => Some(Self::AiConfigRevisionConflict),
+            "APP_PACKAGE_SELECTION_INVALID" => Some(Self::AppPackageSelectionInvalid),
+            "APP_PACKAGE_SELECTION_STALE" => Some(Self::AppPackageSelectionStale),
+            "APP_PACKAGE_POLICY_BLOCKED" => Some(Self::AppPackagePolicyBlocked),
+            "APP_PACKAGE_ALREADY_INSTALLED" => Some(Self::AppPackageAlreadyInstalled),
+            "APP_PACKAGE_INSTALL_UNAVAILABLE" => Some(Self::AppPackageInstallUnavailable),
+            "APP_PACKAGE_JOB_ACTIVE" => Some(Self::AppPackageJobActive),
+            "APP_CATALOG_UNAVAILABLE" => Some(Self::AppCatalogUnavailable),
             _ => None,
         }
     }
@@ -11457,6 +11481,88 @@ pub struct AppPackageJob {
     #[prost(bool, tag = "16")]
     pub cancelable: bool,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ApprovedAppCatalogStorageDisclosure {
+    #[prost(string, tag = "1")]
+    pub path_pattern: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub purpose: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub retention: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub removal: ::prost::alloc::string::String,
+}
+/// Runtime projects one target from one immutable Registry snapshot. The
+/// selector is opaque to Desktop and is the only input accepted by install
+/// start; display fields never authorize a package mutation by themselves.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ApprovedAppCatalogTarget {
+    #[prost(bytes = "vec", tag = "1")]
+    pub approved_target_selector: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "2")]
+    pub observed_registry_revision: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub descriptor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub version: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub publisher_github_namespace: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub source_repository: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub source_license_spdx_expression: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "10")]
+    pub app_access: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "11")]
+    pub capability_contract_refs: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, repeated, tag = "12")]
+    pub required_standardized_feature_refs: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, tag = "13")]
+    pub storage_policy_kind: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "14")]
+    pub os_storage_disclosures: ::prost::alloc::vec::Vec<
+        ApprovedAppCatalogStorageDisclosure,
+    >,
+    #[prost(string, tag = "15")]
+    pub target_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "16")]
+    pub os: ::prost::alloc::string::String,
+    #[prost(string, tag = "17")]
+    pub arch: ::prost::alloc::string::String,
+    #[prost(string, tag = "18")]
+    pub asset_name: ::prost::alloc::string::String,
+    #[prost(int64, tag = "19")]
+    pub asset_size: i64,
+    #[prost(string, tag = "20")]
+    pub execution_profile_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "21")]
+    pub windows_code_signing: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "22")]
+    pub observed_signing_subject: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(bool, tag = "23")]
+    pub policy_blocked: bool,
+    #[prost(string, optional, tag = "24")]
+    pub policy_reason: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(uint64, tag = "25")]
+    pub policy_revision: u64,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListApprovedAppCatalogTargetsRequest {}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListApprovedAppCatalogTargetsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub targets: ::prost::alloc::vec::Vec<ApprovedAppCatalogTarget>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListCommittedAppReleasesRequest {}
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -11482,6 +11588,18 @@ pub struct GetAppPackageJobRequest {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetAppPackageJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<AppPackageJob>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartAppPackageInstallRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub approved_target_selector: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartAppPackageInstallResponse {
     #[prost(message, optional, tag = "1")]
     pub job: ::core::option::Option<AppPackageJob>,
     #[prost(enumeration = "ReasonCode", tag = "2")]
@@ -11764,8 +11882,10 @@ pub mod runtime_app_package_service_client {
     )]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
-    /// Desktop-protected Runtime owner projection. This service deliberately has no
-    /// package mutation start RPC and excludes local_development from every enum.
+    /// Desktop-protected Runtime owner projection. StartAppPackageInstall remains
+    /// excluded from every shipped protected profile until the Desktop confirmation
+    /// and install-availability cutover land together. local_development is absent
+    /// from every package enum and request.
     #[derive(Debug, Clone)]
     pub struct RuntimeAppPackageServiceClient<T> {
         inner: tonic::client::Grpc<T>,
@@ -11847,6 +11967,35 @@ pub mod runtime_app_package_service_client {
         pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
+        }
+        pub async fn list_approved_app_catalog_targets(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ListApprovedAppCatalogTargetsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListApprovedAppCatalogTargetsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "ListApprovedAppCatalogTargets",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
         pub async fn list_committed_app_releases(
             &mut self,
@@ -11931,6 +12080,35 @@ pub mod runtime_app_package_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAppPackageService",
                         "GetAppPackageJob",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn start_app_package_install(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StartAppPackageInstallRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::StartAppPackageInstallResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "StartAppPackageInstall",
                     ),
                 );
             self.inner.unary(req, path, codec).await

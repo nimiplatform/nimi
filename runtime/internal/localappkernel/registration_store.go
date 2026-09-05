@@ -62,7 +62,7 @@ func installedRegistrationMutation(input RegisterInstalledInput) registrationMut
 		existingHandle: input.ExistingRegistrationHandle, bindingSlot: input.BindingSlot,
 		appID: input.AppID, displayName: input.DisplayName, sourceClass: input.SourceClass,
 		sourceRef: input.SourceRef, projectRoot: input.ProjectRoot, manifestPath: input.ManifestPath,
-		shellKind: input.ShellKind, rawDeclaration: input.RawDeclaration, immutableLineageID: input.ImmutableLineageID,
+		shellKind: 0, rawDeclaration: input.RawDeclaration, immutableLineageID: input.ImmutableLineageID,
 		provenanceAttestationRefs: input.ProvenanceAttestationRefs, provenanceRevision: input.ProvenanceRevision,
 		executionProfileRef: input.ExecutionProfileRef,
 		hostExecutableFact:  input.HostExecutableDigest, payloadRootFact: input.PayloadRootDigest,

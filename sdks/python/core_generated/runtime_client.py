@@ -864,12 +864,28 @@ RUNTIME_METHODS = [
     "response_type": "ListAppPackageJobsResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets",
+    "service": "RuntimeAppPackageService",
+    "method": "ListApprovedAppCatalogTargets",
+    "kind": "unary",
+    "request_type": "ListApprovedAppCatalogTargetsRequest",
+    "response_type": "ListApprovedAppCatalogTargetsResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
     "service": "RuntimeAppPackageService",
     "method": "ListCommittedAppReleases",
     "kind": "unary",
     "request_type": "ListCommittedAppReleasesRequest",
     "response_type": "ListCommittedAppReleasesResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
+    "service": "RuntimeAppPackageService",
+    "method": "StartAppPackageInstall",
+    "kind": "unary",
+    "request_type": "StartAppPackageInstallRequest",
+    "response_type": "StartAppPackageInstallResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",

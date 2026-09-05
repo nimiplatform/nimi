@@ -198,7 +198,7 @@ const canonicalRegistrationCreateStatement = `CREATE TABLE IF NOT EXISTS canonic
 	display_name TEXT NOT NULL,
 	source_class TEXT NOT NULL CHECK(source_class IN ('verified','local_development')),
 	source_ref TEXT NOT NULL,
-	shell_kind INTEGER NOT NULL CHECK(shell_kind > 0),
+	shell_kind INTEGER NOT NULL,
 	raw_declaration_json TEXT NOT NULL,
 	activated_domains_json TEXT NOT NULL,
 	source_generation INTEGER NOT NULL CHECK(source_generation > 0),
@@ -212,6 +212,7 @@ const canonicalRegistrationCreateStatement = `CREATE TABLE IF NOT EXISTS canonic
 	created_unix_nano INTEGER NOT NULL,
 	updated_unix_nano INTEGER NOT NULL,
 	tombstoned_unix_nano INTEGER,
+	CHECK((source_class = 'verified' AND shell_kind = 0) OR (source_class = 'local_development' AND shell_kind > 0)),
 	CHECK((state = 'active' AND tombstoned_unix_nano IS NULL) OR (state = 'tombstoned' AND tombstoned_unix_nano IS NOT NULL))
 )`
 
@@ -258,6 +259,9 @@ func (kernel *Kernel) requireCanonicalRegistrationSchema(ctx context.Context) er
 		}
 	}
 	if err := requireSQLiteConstraint(ctx, kernel.db, "canonical_registration", "source-class", "check(source_classin('verified','local_development'))", "user_imported"); err != nil {
+		return fmt.Errorf("initialize registered App schema: %w", err)
+	}
+	if err := requireSQLiteConstraint(ctx, kernel.db, "canonical_registration", "shell-kind-owner", "check((source_class='verified'andshell_kind=0)or(source_class='local_development'andshell_kind>0))"); err != nil {
 		return fmt.Errorf("initialize registered App schema: %w", err)
 	}
 	return nil
@@ -377,6 +381,16 @@ func (kernel *Kernel) PackageLifecycle() *PackageLifecycleStore {
 		return nil
 	}
 	return kernel.packageLifecycle
+}
+
+// DataRoot returns the canonical Runtime-owned root already bound to this
+// kernel. Package lifecycle owners derive their managed filesystem paths from
+// this value instead of accepting a second caller-selected root.
+func (kernel *Kernel) DataRoot() string {
+	if kernel == nil {
+		return ""
+	}
+	return kernel.dataRoot
 }
 
 func (kernel *Kernel) nextIdentifier(prefix string, exists func(string) (bool, error)) (string, error) {
