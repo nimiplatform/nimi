@@ -524,6 +524,31 @@ unsafe extern "system" fn find_process_window(window: HWND, parameter: LPARAM) -
 mod tests {
     use super::*;
 
+    // An elevated or non-interactive runner must prove rejection. The same
+    // tests exercise actual child/job mechanics in an admitted user context;
+    // no CI flag changes the production token checks or reports a fake spawn.
+    fn assert_context_result(
+        result: Result<SupervisedDevelopmentProcess, NimiHostError>,
+    ) -> Option<SupervisedDevelopmentProcess> {
+        let allowed = matches!(current_process_user(), Ok((_, false, _)));
+        match (allowed, result) {
+            (true, Ok(process)) => Some(process),
+            (false, Err(error)) => {
+                assert_eq!(
+                    error.reason_code(),
+                    NimiHostErrorReasonCode::ProcessContextRejected
+                );
+                eprintln!("observed forbidden execution context; verified ProcessContextRejected");
+                None
+            }
+            (true, Err(error)) => panic!("admitted process creation failed: {error:?}"),
+            (false, Ok(mut process)) => {
+                let _ = process.terminate();
+                panic!("forbidden execution context created a child");
+            }
+        }
+    }
+
     #[test]
     fn windows_argument_quoting_preserves_spaces_quotes_and_trailing_slashes() {
         assert_eq!(quote_windows_argument("plain"), "plain");
@@ -551,12 +576,15 @@ mod tests {
         let executable = std::env::current_exe().expect("current test executable");
         let working_directory = std::env::temp_dir();
         assert!(!executable.starts_with(&working_directory));
-        let process = SupervisedDevelopmentProcess::create_runtime_authorized(
-            &executable,
-            &[],
-            &working_directory,
-        )
-        .expect("create exact Runtime-authorized external host");
+        let Some(process) =
+            assert_context_result(SupervisedDevelopmentProcess::create_runtime_authorized(
+                &executable,
+                &[],
+                &working_directory,
+            ))
+        else {
+            return;
+        };
         assert!(process.id() > 0);
         assert!(process.running());
     }
@@ -565,12 +593,15 @@ mod tests {
     fn termination_waits_for_process_exit_before_returning() {
         let executable = std::env::current_exe().expect("current test executable");
         let working_directory = std::env::temp_dir();
-        let mut process = SupervisedDevelopmentProcess::create_runtime_authorized(
-            &executable,
-            &[],
-            &working_directory,
-        )
-        .expect("create suspended child");
+        let Some(mut process) =
+            assert_context_result(SupervisedDevelopmentProcess::create_runtime_authorized(
+                &executable,
+                &[],
+                &working_directory,
+            ))
+        else {
+            return;
+        };
         assert!(process.running());
 
         process.terminate().expect("terminate child");
@@ -581,12 +612,15 @@ mod tests {
     #[test]
     fn closing_owner_job_kills_child_without_process_destructor() {
         let executable = std::env::current_exe().expect("current test executable");
-        let mut process = SupervisedDevelopmentProcess::create_runtime_authorized(
-            &executable,
-            &[],
-            &std::env::temp_dir(),
-        )
-        .expect("create suspended child in owner job");
+        let Some(mut process) =
+            assert_context_result(SupervisedDevelopmentProcess::create_runtime_authorized(
+                &executable,
+                &[],
+                &std::env::temp_dir(),
+            ))
+        else {
+            return;
+        };
         drop(process.job.take());
         assert_eq!(
             unsafe { WaitForSingleObject(process.process, TERMINATION_WAIT_MS) },
@@ -614,12 +648,15 @@ mod tests {
             );
         }
         let executable = std::env::current_exe().expect("test executable");
-        let mut child = SupervisedDevelopmentProcess::create_verified_installed(
-            &executable,
-            &[],
-            &std::env::temp_dir(),
-        )
-        .expect("create installed child with Unicode environment");
+        let Some(mut child) =
+            assert_context_result(SupervisedDevelopmentProcess::create_verified_installed(
+                &executable,
+                &[],
+                &std::env::temp_dir(),
+            ))
+        else {
+            return;
+        };
         child.terminate().expect("stop installed child");
         assert!(!child.running());
     }
@@ -642,6 +679,13 @@ mod tests {
         );
         std::fs::remove_file(&path).expect("remove test input");
         let error = result.err().expect("Windows rejects invalid executable");
+        if !matches!(current_process_user(), Ok((_, false, _))) {
+            assert_eq!(
+                error.reason_code(),
+                NimiHostErrorReasonCode::ProcessContextRejected
+            );
+            return;
+        }
         assert_eq!(
             error.reason_code(),
             NimiHostErrorReasonCode::ProcessStartFailed

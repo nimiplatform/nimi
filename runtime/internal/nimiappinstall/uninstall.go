@@ -125,7 +125,7 @@ func (coordinator *Coordinator) CompleteUninstall(ctx context.Context, jobID, ha
 	if err != nil {
 		return localappkernel.PackageJob{}, errors.Join(ErrUninstall, err)
 	}
-	defer root.Close()
+	defer func() { _ = root.Close() }()
 	quarantine := uninstallRootPrefix + jobID
 	job, err = coordinator.lifecycle.Advance(ctx, jobID, job.Phase, localappkernel.PackageJobRemovingPackage, localappkernel.PackageJobProgress{})
 	if err != nil {
@@ -183,7 +183,7 @@ func (coordinator *Coordinator) restoreUninstallRoot(job localappkernel.PackageJ
 	if err != nil {
 		return err
 	}
-	defer root.Close()
+	defer func() { _ = root.Close() }()
 	quarantine := uninstallRootPrefix + job.JobID
 	if _, err := root.Lstat(quarantine); errors.Is(err, os.ErrNotExist) {
 		info, err := root.Lstat(reservation.releaseName)

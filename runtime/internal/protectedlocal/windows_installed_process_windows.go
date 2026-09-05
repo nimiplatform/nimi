@@ -30,7 +30,7 @@ func VerifyInstalledAppProcess(ctx context.Context, pid uint32, policy Installed
 	if err != nil {
 		return ProcessTuple{}, nil, err
 	}
-	defer windows.CloseHandle(parentHandle)
+	defer func() { _ = windows.CloseHandle(parentHandle) }()
 	var token windows.Token
 	if err := windows.OpenProcessToken(parentHandle, windows.TOKEN_QUERY, &token); err != nil {
 		return ProcessTuple{}, nil, err
@@ -62,7 +62,7 @@ func windowsSourceParentProcessID(pid uint32) (uint32, error) {
 	if err != nil {
 		return 0, fmt.Errorf("snapshot Windows processes: %w", err)
 	}
-	defer windows.CloseHandle(snapshot)
+	defer func() { _ = windows.CloseHandle(snapshot) }()
 	entry := windows.ProcessEntry32{Size: uint32(unsafe.Sizeof(windows.ProcessEntry32{}))}
 	if err := windows.Process32First(snapshot, &entry); err != nil {
 		return 0, fmt.Errorf("read Windows process snapshot: %w", err)
