@@ -599,7 +599,6 @@ func TestRuntimeProductControlCheckSyncPersistsStartBeforeEnvironmentDetachment(
 	home := setProductControlHomeForTest(t)
 	service := newTestService(t)
 	root := filepath.Join(home, "check-sync-order-root")
-	readyProductControlForReplacementTest(t, service, root)
 	if err := service.SetProductControlCheckSyncRuntimeOwners(ProductControlCheckSyncRuntimeOwners{
 		RuntimeAgent:      productControlCheckSyncOwnerForTest("runtime_agent", "completed", "RUNTIME_AGENT_REOPENED"),
 		RegisteredApps:    productControlCheckSyncOwnerForTest("registered_apps", "completed", "REGISTERED_APPS_REOPENED"),
@@ -608,6 +607,10 @@ func TestRuntimeProductControlCheckSyncPersistsStartBeforeEnvironmentDetachment(
 	}); err != nil {
 		t.Fatal(err)
 	}
+	readyProductControlForReplacementTest(t, service, root)
+	// Finish the activation-triggered run before injecting the manual start
+	// failure. Otherwise setup can detach this test's newly inserted record.
+	activation := waitProductControlCheckSyncForTest(t, service)
 	formerRoot := filepath.Join(home, "former-check-sync-root")
 	formerCanonical := filepath.Join(formerRoot, "environments", "native", "engine-a")
 	currentCanonical := filepath.Join(root, "environments", "native", "engine-a")
@@ -655,8 +658,8 @@ func TestRuntimeProductControlCheckSyncPersistsStartBeforeEnvironmentDetachment(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if failedRun != nil || afterFailure.CanonicalRoot != formerCanonical || !bytes.Equal(stateBefore, stateAfterFailure) {
-		t.Fatalf("failed start left owner mutation without a run: run=%+v record=%+v", failedRun, afterFailure)
+	if failedRun == nil || failedRun.RunID != activation.Run.RunID || afterFailure.CanonicalRoot != formerCanonical || !bytes.Equal(stateBefore, stateAfterFailure) {
+		t.Fatalf("failed manual start changed the prior run or owner state: run=%+v record=%+v", failedRun, afterFailure)
 	}
 
 	if err := os.RemoveAll(obligationPath); err != nil {
