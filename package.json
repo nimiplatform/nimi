@@ -190,7 +190,7 @@
     "yaml": "^2.9.0"
   },
   "devDependencies": {
-    "@nimiplatform/nimi-coding": "0.6.1",
+    "@nimiplatform/nimi-coding": "0.6.2",
     "@protobuf-ts/plugin": "2.11.1",
     "resedit": "3.1.0"
   }

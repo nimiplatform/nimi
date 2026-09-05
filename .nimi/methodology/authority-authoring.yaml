@@ -1,4 +1,4 @@
-version: 7
+version: 8
 id: nimicoding.authority-authoring
 purpose: Author explicit authority and navigate current implementation without inference.
 authority_boundary:
@@ -11,18 +11,18 @@ authority_boundary:
 cli_execution:
   cwd: repository_root
   command_prefix: pnpm exec nimicoding
-  rule: Resolve the pinned local package; never probe global PATH. Failure blocks only the requested CLI product.
+  rule: Use the pinned local package, never global PATH. Refused, missing or partial results block dependent decisions, not independent authorized work. No guessed/corpus-wide/fallback context; repair only from task/product authority.
 
 daily_workflow:
-  - Without an exact ID, run pnpm exec nimicoding authority discover <path> <query> --max-candidates 10 --max-snippet-terms 24 --max-bytes 131072 --json. It returns candidates, never selection or absence proof.
+  - For needed authority selection without an ID, use pnpm exec nimicoding authority discover <path> <query> --max-candidates 10 --max-snippet-terms 24 --max-bytes 131072 --json. Candidates never prove selection or absence.
   - Select IDs only from task/product authority. pnpm exec nimicoding authority query <path> <id> --max-bytes <n> --json returns one unit; pnpm exec nimicoding authority context <path> <id> --max-units <n> --max-bytes <n> --json returns its outgoing applies_to/supersedes closure, not task context.
   - Modify only project authority; never infer product values or relations.
   - Run pnpm exec nimicoding authority fmt <changed-file> for each changed file.
   - Run pnpm exec nimicoding authority check <complete-path> [--scope-bindings <file>] --json, then pnpm exec nimicoding authority compile <complete-path> --json. For anchors run pnpm exec nimicoding authority anchors <repo> --spec <corpus> [--scope-bindings <file>] --max-units <n> --max-anchors <n> --max-bytes <n> --json.
   - For semantic changes, run complete-input diff and impact with budgets; obligations are host follow-up targets, not results.
-  - Never continue from diagnostics, unknown IDs, budget failures, or guessed/partial results.
 
 implementation_navigation:
+  query_use: Query for unresolved task questions; reuse sufficient current evidence. Use code context for remaining TS/TSX static-dependency questions. Hypotheses are not authority.
   authority_to_code: pnpm exec nimicoding code authority --repo <root> --authority <exact-id> --max-files <n> --max-bytes <n>
   code_to_authority: pnpm exec nimicoding code authority --repo <root> --source <tracked-path> --max-files <n> --max-bytes <n>
   context: pnpm exec nimicoding code context <ts-or-tsx-path> --repo <root> --symbol <top-level-identifier> --tsconfig <path> --max-bytes <n>
@@ -32,14 +32,14 @@ implementation_navigation:
     deprecated_slash: "// @nimi-deprecated: <same-exact-id>"
     authority_python: "# @nimi-authority: <exact-id>"
     deprecated_python: "# @nimi-deprecated: <same-exact-id>"
-  rule: Optional markers are reserved standalone physical lines near key semantic owners; comment context is not proved. Deprecated requires direct authority/product failure and is removed with hard cut.
+  rule: Optional markers are reserved standalone physical lines at key semantic owners; comment context is not proved. Deprecation needs authority/product failure evidence; remove with hard cut.
   boundary: Marker lines return locations/lifecycle; TypeScript context is root-direct static outbound only. Neither evaluates unannotated code, conformance, inbound impact, runtime dispatch, or completion.
 
 managed_surfaces:
   check: pnpm exec nimicoding sync --check
   restore: pnpm exec nimicoding sync --apply
   doctor: pnpm exec nimicoding doctor
-  boundary: Sync diagnoses exact package-owned projection/block drift and apply restores it; doctor diagnoses package/managed compatibility. Neither validates authority, code, or task readiness.
+  boundary: Sync checks/restores owned projections; doctor checks compatibility. Neither validates authority, code, or task readiness.
 
 source_profiles:
   yaml:
@@ -89,7 +89,6 @@ formatter_and_diagnostics:
   - fmt canonicalizes v2 and strips redundant unit defaults.
   - Non-v2 input fails fmt/check/compile/diff/impact/review.
   - check/compile use complete paths and emit no public/partial AuthorityIR.
-  - Diagnostics give locations and repair categories, never product values.
 
 change_workflow:
   diff: pnpm exec nimicoding authority diff <before-path> <after-path> --max-bytes <positive-integer> --json
@@ -142,4 +141,4 @@ canonical_examples:
             target: rule.checkout-no-anonymous-v0
 
 final_boundaries:
-  - Only project-authored sources under .nimi/spec are authority; derived/local output is not.
+  - Derived/local output is never authority.
