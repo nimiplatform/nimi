@@ -18,10 +18,10 @@ const npmRequire = createRequire(npmManifestPath);
 const name = '@nimiplatform/kit-protected-local-win32-x64';
 const version = '0.5.0';
 const repository = 'https://github.com/nimiplatform/nimi';
-const sourceCommit = 'bd24f96ddaace66bab43529a08ec1c62f23cb02b';
+const sourceCommit = 'bd24f96ddaace66bab43529a08ec1c62f23cb02b'; // pragma: allowlist secret; public tag commit
 const tagRef = 'refs/tags/kit/v0.5.0';
 const workflowPath = '.github/workflows/release-kit.yml';
-const shasum = '232ac9d906aaafbb158c997e313e7ac95ad8246f';
+const shasum = '232ac9d906aaafbb158c997e313e7ac95ad8246f'; // pragma: allowlist secret; public artifact digest
 const tarball = readFileSync(tarballPath);
 assert.equal(tarball.length, 3971378);
 assert.equal(createHash('sha1').update(tarball).digest('hex'), shasum);
