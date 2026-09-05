@@ -104,7 +104,7 @@ const APP_RELEASE_WORKFLOW = [
   '      - name: Require protected tags and immutable releases',
   "        if: github.event_name == 'push' && github.ref_type == 'tag'",
   '        env:',
-  '          GH_TOKEN: ${{ secrets.GITHUB_REPOSITORY_ADMIN_TOKEN }}',
+  '          GH_TOKEN: ${{ secrets.NIMI_REPOSITORY_ADMIN_TOKEN }}',
   '        shell: bash',
   '        run: |',
   '          test -n "$GH_TOKEN"',

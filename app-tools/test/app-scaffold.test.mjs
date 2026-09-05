@@ -556,6 +556,11 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     const workflow = parseYaml(workflowSource);
     assert.deepEqual(workflow.on.push.tags, ['v*']);
     assert.deepEqual(workflow.on.workflow_dispatch, {});
+    const repositoryProtectionPreflight = workflow.jobs.prepare.steps.find(
+      (step) => step.name === 'Require protected tags and immutable releases',
+    );
+    assert.equal(repositoryProtectionPreflight.env.GH_TOKEN, '${{ secrets.NIMI_REPOSITORY_ADMIN_TOKEN }}');
+    assert.doesNotMatch(workflowSource, /secrets\.GITHUB_/u);
     assert.match(workflowSource, /pack --target \$env:NIMI_APP_TARGET --production/u);
     assert.match(workflowSource, /actions\/attest@1e69f48acb82d1966a394da916b4c1698aa569d6/u);
     assert.doesNotMatch(workflowSource, /^\s*- uses: [^\s]+@v\d+/mu);
@@ -2555,6 +2560,7 @@ test('check fails closed on installed-app custody bypasses', () => {
     { source: "export const mode = 'ACCOUNT_CALLER_MODE_EXTERNAL_PRINCIPAL';\n", pattern: /external principal installed-app posture/ },
     { source: "import grpc from '@grpc/grpc-js';\nexport const client = grpc;\n", pattern: /protected Runtime gRPC client/ },
     { source: "localStorage.setItem('nimi-access-token', value);\n", pattern: /storage of protected material/ },
+    { source: "export const token = process.env.NIMI_REPOSITORY_ADMIN_TOKEN;\n", pattern: /environment custody of protected material/ },
     { source: "export const command = 'auth.sessionLoad';\n", pattern: /forbidden installed-app shell capability/ },
   ];
 
