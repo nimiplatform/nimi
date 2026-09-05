@@ -37,7 +37,7 @@
   },
   "catalog": {
     "registryApproved": "This release was approved through the public Nimi App Registry. Its descriptor binds the exact Release asset, digest, and provenance, and Runtime verifies the downloaded package again. Approval and verification are not a malware-free or operating-system execution guarantee.",
-    "policyBlocked": "Installation is blocked by the current Registry policy (revision {{revision}}): {{reason}}",
+    "policyBlocked": "New installation or launch is blocked by the current Registry policy (revision {{revision}}): {{reason}}",
     "policyBlockedFallback": "No reason was provided.",
     "publisher": "Publisher on GitHub",
     "sourceRepository": "Public source",
@@ -57,7 +57,7 @@
     "unsignedConfirmAction": "Continue and install"
   },
   "catalogNotImplemented": "Public App catalog search is not implemented yet.",
-  "installedLaunchUnavailable": "Installed App launch is not implemented yet. Installation remains recorded, but only local-development Apps can currently be launched.",
+  "installedAccess": { "ready": "Nimi Access ready", "unavailable": "Nimi Access unavailable" },
   "listTitle": "App list",
   "listDescription": "Filter registered apps by whether they declare App Access domains.",
   "filter": {
@@ -158,6 +158,7 @@
     "uninstalling": "Uninstalling"
   },
   "action": {
+    "focus": "Show window",
     "install": "Install",
     "open": "Open",
     "connectLocal": "Connect local app",
@@ -358,6 +359,10 @@
     }
   },
   "confirm": {
+    "uninstall": {
+      "title": "Uninstall App",
+      "message": "Stop {{app}} and remove its local package? App data, shared models and account data will be retained."
+    },
     "removeDevelopment": {
       "title": "Remove local project",
       "message": "Remove {{app}} from Apps? This stops its current run and removes the local development registration without deleting project files.",

@@ -277,6 +277,62 @@ message BindLocalAppProcessRequest {
   uint32 child_process_id = 2;
 }
 
+// Desktop main/native Host Control only. The renderer forwards the opaque
+// committed selector as intent and never receives the lease material.
+message PrepareInstalledAppLaunchRequest {
+  bytes launch_selector = 1;
+}
+
+message PrepareInstalledAppLaunchResponse {
+  bytes launch_id = 1;
+  string app_id = 2;
+  string version = 3;
+  string executable_path = 4;
+  string working_directory = 5;
+  repeated string arguments = 6;
+  bytes executable_sha256 = 7;
+  string execution_profile_ref = 8;
+  google.protobuf.Timestamp bind_deadline = 9;
+  ReasonCode reason_code = 10;
+}
+
+message EndInstalledAppRunRequest {
+  bytes launch_id = 1;
+}
+
+message StartAppPackageUninstallRequest {
+  bytes launch_selector = 1;
+}
+
+message StartAppPackageUninstallResponse {
+  AppPackageJob job = 1;
+  ReasonCode reason_code = 2;
+}
+
+// Desktop main completes this exact reservation only after stopping the Host.
+message CompleteAppPackageUninstallRequest {
+  bytes job_id = 1;
+  bytes launch_selector = 2;
+}
+
+message CompleteAppPackageUninstallResponse {
+  AppPackageJob job = 1;
+  ReasonCode reason_code = 2;
+}
+
+message EndInstalledAppRunResponse {
+  ReasonCode reason_code = 1;
+}
+
+message GetInstalledAppRunAccessRequest {
+  bytes launch_id = 1;
+}
+
+message GetInstalledAppRunAccessResponse {
+  bool available = 1;
+  ReasonCode reason_code = 2;
+}
+
 message BindLocalAppProcessResponse {
   bytes launch_id = 1;
   google.protobuf.Timestamp bind_deadline = 2;
@@ -475,6 +531,7 @@ service RuntimeAppPackageService {
   rpc ListAppPackageJobs(ListAppPackageJobsRequest) returns (ListAppPackageJobsResponse);
   rpc GetAppPackageJob(GetAppPackageJobRequest) returns (GetAppPackageJobResponse);
   rpc StartAppPackageInstall(StartAppPackageInstallRequest) returns (StartAppPackageInstallResponse);
+  rpc StartAppPackageUninstall(StartAppPackageUninstallRequest) returns (StartAppPackageUninstallResponse);
   rpc CancelAppPackageJob(CancelAppPackageJobRequest) returns (CancelAppPackageJobResponse);
 }
 
@@ -495,6 +552,10 @@ service RuntimeAppService {
   rpc RevealLocalAppAsset(RevealLocalAppAssetRequest) returns (RevealLocalAppAssetResponse);
   rpc AdoptLocalAppArtifact(AdoptLocalAppArtifactRequest) returns (AdoptLocalAppArtifactResponse);
   rpc PrepareLocalAppLaunch(PrepareLocalAppLaunchRequest) returns (PrepareLocalAppLaunchResponse);
+  rpc PrepareInstalledAppLaunch(PrepareInstalledAppLaunchRequest) returns (PrepareInstalledAppLaunchResponse);
   rpc BindLocalAppProcess(BindLocalAppProcessRequest) returns (BindLocalAppProcessResponse);
+  rpc EndInstalledAppRun(EndInstalledAppRunRequest) returns (EndInstalledAppRunResponse);
+  rpc GetInstalledAppRunAccess(GetInstalledAppRunAccessRequest) returns (GetInstalledAppRunAccessResponse);
+  rpc CompleteAppPackageUninstall(CompleteAppPackageUninstallRequest) returns (CompleteAppPackageUninstallResponse);
   rpc RebindLocalAppProcess(RebindLocalAppProcessRequest) returns (RebindLocalAppProcessResponse);
 }

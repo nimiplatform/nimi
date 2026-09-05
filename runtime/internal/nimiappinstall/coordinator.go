@@ -49,6 +49,7 @@ var (
 
 type registryResolver interface {
 	Revalidate(context.Context, publicappregistry.ApprovedTargetSelector) (publicappregistry.ResolvedApprovedTarget, error)
+	RevalidateInstalled(context.Context, publicappregistry.ApprovedTargetSelector) (publicappregistry.ResolvedApprovedTarget, error)
 }
 
 type targetDownloader interface {
@@ -57,6 +58,8 @@ type targetDownloader interface {
 
 type Coordinator struct {
 	operations   sync.RWMutex
+	launchMu     sync.Mutex
+	uninstalls   map[string]uninstallReservation
 	workersMu    sync.Mutex
 	workers      map[string]*installWorker
 	workersWG    sync.WaitGroup
@@ -131,7 +134,7 @@ func openPackageOwner(kernel *localappkernel.Kernel) (*Coordinator, error) {
 	}
 	return &Coordinator{
 		kernel: kernel, lifecycle: kernel.PackageLifecycle(),
-		packagesRoot: packagesRoot, packagesPath: packagesPath, workers: make(map[string]*installWorker),
+		packagesRoot: packagesRoot, packagesPath: packagesPath, workers: make(map[string]*installWorker), uninstalls: make(map[string]uninstallReservation),
 	}, nil
 }
 

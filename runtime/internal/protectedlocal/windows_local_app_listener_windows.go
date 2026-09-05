@@ -72,9 +72,14 @@ func (listener *windowsVerifiedLocalAppListener) Accept() (net.Conn, error) {
 			continue
 		}
 		expected, policy, bound := listener.state.localAppLaunches.BoundProcessPolicy(native.ClientProcessID())
+		installedProcess, installedPolicy, installed := listener.state.localAppLaunches.BoundInstalledProcessPolicy(native.ClientProcessID())
 		var peer ProcessTuple
 		var pipeLiveness DesktopProcessLiveness
-		if bound {
+		if installed {
+			peer, pipeLiveness, err = native.verifyAndBindAppClientProcess(listener.ctx, installedProcess, func(ctx context.Context, pid uint32) (ProcessTuple, DesktopProcessLiveness, error) {
+				return VerifyInstalledAppProcess(ctx, pid, installedPolicy)
+			})
+		} else if bound {
 			developmentVerifier := listener.developmentVerifier
 			if developmentVerifier == nil {
 				developmentVerifier, err = NewWindowsLocalDevelopmentProcessVerifier(listener.state.desktopIdentity)

@@ -1052,6 +1052,15 @@
           "response_stream": false
         },
         {
+          "name": "StartAppPackageUninstall",
+          "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall",
+          "kind": "unary",
+          "request_type": "StartAppPackageUninstallRequest",
+          "response_type": "StartAppPackageUninstallResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "CancelAppPackageJob",
           "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
           "kind": "unary",
@@ -1202,11 +1211,47 @@
           "response_stream": false
         },
         {
+          "name": "PrepareInstalledAppLaunch",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch",
+          "kind": "unary",
+          "request_type": "PrepareInstalledAppLaunchRequest",
+          "response_type": "PrepareInstalledAppLaunchResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "BindLocalAppProcess",
           "method_id": "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
           "kind": "unary",
           "request_type": "BindLocalAppProcessRequest",
           "response_type": "BindLocalAppProcessResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "EndInstalledAppRun",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun",
+          "kind": "unary",
+          "request_type": "EndInstalledAppRunRequest",
+          "response_type": "EndInstalledAppRunResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetInstalledAppRunAccess",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess",
+          "kind": "unary",
+          "request_type": "GetInstalledAppRunAccessRequest",
+          "response_type": "GetInstalledAppRunAccessResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "CompleteAppPackageUninstall",
+          "method_id": "/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall",
+          "kind": "unary",
+          "request_type": "CompleteAppPackageUninstallRequest",
+          "response_type": "CompleteAppPackageUninstallResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -2242,11 +2287,16 @@
     "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets",
     "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
     "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
+    "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall",
     "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
     "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
+    "/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall",
+    "/nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun",
     "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
+    "/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess",
     "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
     "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset",
+    "/nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch",
     "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
     "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset",
     "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson",
@@ -3237,6 +3287,14 @@
       "response_type": "StartAppPackageInstallResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall",
+      "service": "RuntimeAppPackageService",
+      "method": "StartAppPackageUninstall",
+      "kind": "unary",
+      "request_type": "StartAppPackageUninstallRequest",
+      "response_type": "StartAppPackageUninstallResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
       "service": "RuntimeAppService",
       "method": "AdoptLocalAppArtifact",
@@ -3253,12 +3311,36 @@
       "response_type": "BindLocalAppProcessResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall",
+      "service": "RuntimeAppService",
+      "method": "CompleteAppPackageUninstall",
+      "kind": "unary",
+      "request_type": "CompleteAppPackageUninstallRequest",
+      "response_type": "CompleteAppPackageUninstallResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun",
+      "service": "RuntimeAppService",
+      "method": "EndInstalledAppRun",
+      "kind": "unary",
+      "request_type": "EndInstalledAppRunRequest",
+      "response_type": "EndInstalledAppRunResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
       "service": "RuntimeAppService",
       "method": "GetAppStorage",
       "kind": "unary",
       "request_type": "GetAppStorageRequest",
       "response_type": "GetAppStorageResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess",
+      "service": "RuntimeAppService",
+      "method": "GetInstalledAppRunAccess",
+      "kind": "unary",
+      "request_type": "GetInstalledAppRunAccessRequest",
+      "response_type": "GetInstalledAppRunAccessResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
@@ -3275,6 +3357,14 @@
       "kind": "unary",
       "request_type": "MoveLocalAppAssetRequest",
       "response_type": "MoveLocalAppAssetResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch",
+      "service": "RuntimeAppService",
+      "method": "PrepareInstalledAppLaunch",
+      "kind": "unary",
+      "request_type": "PrepareInstalledAppLaunchRequest",
+      "response_type": "PrepareInstalledAppLaunchResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
@@ -5015,6 +5105,14 @@
       "response_type": "StartAppPackageInstallResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall",
+      "service": "RuntimeAppPackageService",
+      "method": "StartAppPackageUninstall",
+      "kind": "unary",
+      "request_type": "StartAppPackageUninstallRequest",
+      "response_type": "StartAppPackageUninstallResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
       "service": "RuntimeAppService",
       "method": "AdoptLocalAppArtifact",
@@ -5031,12 +5129,36 @@
       "response_type": "BindLocalAppProcessResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall",
+      "service": "RuntimeAppService",
+      "method": "CompleteAppPackageUninstall",
+      "kind": "unary",
+      "request_type": "CompleteAppPackageUninstallRequest",
+      "response_type": "CompleteAppPackageUninstallResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun",
+      "service": "RuntimeAppService",
+      "method": "EndInstalledAppRun",
+      "kind": "unary",
+      "request_type": "EndInstalledAppRunRequest",
+      "response_type": "EndInstalledAppRunResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
       "service": "RuntimeAppService",
       "method": "GetAppStorage",
       "kind": "unary",
       "request_type": "GetAppStorageRequest",
       "response_type": "GetAppStorageResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess",
+      "service": "RuntimeAppService",
+      "method": "GetInstalledAppRunAccess",
+      "kind": "unary",
+      "request_type": "GetInstalledAppRunAccessRequest",
+      "response_type": "GetInstalledAppRunAccessResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
@@ -5053,6 +5175,14 @@
       "kind": "unary",
       "request_type": "MoveLocalAppAssetRequest",
       "response_type": "MoveLocalAppAssetResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch",
+      "service": "RuntimeAppService",
+      "method": "PrepareInstalledAppLaunch",
+      "kind": "unary",
+      "request_type": "PrepareInstalledAppLaunchRequest",
+      "response_type": "PrepareInstalledAppLaunchResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
@@ -6105,6 +6235,8 @@
       "CommitLoadoutResponse",
       "CommitLocalAppAgentPresentationRequest",
       "CommittedAppRelease",
+      "CompleteAppPackageUninstallRequest",
+      "CompleteAppPackageUninstallResponse",
       "CompleteLoginRequest",
       "CompleteLoginResponse",
       "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
@@ -6143,6 +6275,8 @@
       "EmbeddingVector",
       "EnableAutonomyRequest",
       "EnableAutonomyResponse",
+      "EndInstalledAppRunRequest",
+      "EndInstalledAppRunResponse",
       "EndLocalDevelopmentRunRequest",
       "EndLocalDevelopmentRunResponse",
       "EnsureProductControlRecordCreatedRequest",
@@ -6192,6 +6326,8 @@
       "GetDelegatedReplayTraceResponse",
       "GetDeveloperModeStatusRequest",
       "GetDeveloperModeStatusResponse",
+      "GetInstalledAppRunAccessRequest",
+      "GetInstalledAppRunAccessResponse",
       "GetLoadoutRequest",
       "GetLoadoutResponse",
       "GetLocalAppAgentAutonomySnapshotRequest",
@@ -6498,6 +6634,8 @@
       "PendingHook",
       "PersonaCharacterSourceRefV3",
       "PortableAIProfileRecord",
+      "PrepareInstalledAppLaunchRequest",
+      "PrepareInstalledAppLaunchResponse",
       "PrepareLoadoutRequest",
       "PrepareLoadoutResponse",
       "PrepareLocalAppLaunchRequest",
@@ -6643,6 +6781,8 @@
       "SpeechTranscriptionAudioSource",
       "StartAppPackageInstallRequest",
       "StartAppPackageInstallResponse",
+      "StartAppPackageUninstallRequest",
+      "StartAppPackageUninstallResponse",
       "StartLocalEnvironmentDependencyJobRequest",
       "StartLocalEnvironmentDependencyJobResponse",
       "StartProductControlCheckSyncRequest",
@@ -14035,6 +14175,46 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
+        "name": "CompleteAppPackageUninstallRequest",
+        "fields": [
+          {
+            "name": "job_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "launch_selector",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "CompleteAppPackageUninstallResponse",
+        "fields": [
+          {
+            "name": "job",
+            "type": "AppPackageJob",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "CompleteLoginRequest",
         "fields": [
           {
@@ -15556,6 +15736,32 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "EndInstalledAppRunRequest",
+        "fields": [
+          {
+            "name": "launch_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "EndInstalledAppRunResponse",
+        "fields": [
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "EndLocalDevelopmentRunRequest",
         "fields": [
           {
@@ -16818,6 +17024,39 @@
           }
         ],
         "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
+        "name": "GetInstalledAppRunAccessRequest",
+        "fields": [
+          {
+            "name": "launch_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "GetInstalledAppRunAccessResponse",
+        "fields": [
+          {
+            "name": "available",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "GetLoadoutRequest",
@@ -27722,6 +27961,95 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "PrepareInstalledAppLaunchRequest",
+        "fields": [
+          {
+            "name": "launch_selector",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "PrepareInstalledAppLaunchResponse",
+        "fields": [
+          {
+            "name": "launch_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "version",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "executable_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "working_directory",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "arguments",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "executable_sha256",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "execution_profile_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "bind_deadline",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "PrepareLoadoutRequest",
         "fields": [
           {
@@ -32089,6 +32417,39 @@
       },
       {
         "name": "StartAppPackageInstallResponse",
+        "fields": [
+          {
+            "name": "job",
+            "type": "AppPackageJob",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "StartAppPackageUninstallRequest",
+        "fields": [
+          {
+            "name": "launch_selector",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "StartAppPackageUninstallResponse",
         "fields": [
           {
             "name": "job",
@@ -37456,7 +37817,10 @@
           "APP_PACKAGE_ALREADY_INSTALLED",
           "APP_PACKAGE_INSTALL_UNAVAILABLE",
           "APP_PACKAGE_JOB_ACTIVE",
-          "APP_CATALOG_UNAVAILABLE"
+          "APP_CATALOG_UNAVAILABLE",
+          "APP_PACKAGE_UNINSTALL_UNAVAILABLE",
+          "APP_PACKAGE_HOST_RUNNING",
+          "APP_PACKAGE_UNINSTALL_FAILED"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

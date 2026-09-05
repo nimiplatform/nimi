@@ -5,8 +5,12 @@ import type { AppCardActionId } from './apps-card-actions.js';
 import { useAppsPanelController } from './apps-panel-controller.js';
 import { AppsPanelView } from './apps-panel-view.js';
 import { startAppsPackageInstall } from './apps-install-runtime.js';
+import { finishInstalledAppUninstall } from './apps-installed-bridge.js';
+import type { DesktopAppsEntry } from './apps-panel-projection.js';
 import {
   AppPackageJobPhase,
+  AppPackageJobKind,
+  AppPackageSourceClass,
   ReasonCode,
   type AppPackageJob,
   type CancelAppPackageJobResponse,
@@ -89,10 +93,32 @@ export function AppsPanel(): ReactElement {
     });
     assertCanceledPackageJobResponse(job, response);
   }, [sdk]);
+  const uninstall = useCallback(async (entry: DesktopAppsEntry) => {
+    const release = entry.committedRelease;
+    if (!release) throw new Error('App is not installed');
+    const selector = release.launchSelector.slice();
+    const response = await sdk.machineProduct().apps.startAppPackageUninstall({ launchSelector: selector });
+    const job = response.job;
+    if (response.reasonCode !== ReasonCode.ACTION_EXECUTED || !job || job.jobId.length === 0
+      || job.appId !== entry.identity.appId || job.targetRef !== release.releaseRef || job.kind !== AppPackageJobKind.UNINSTALL
+      || job.sourceClass !== AppPackageSourceClass.VERIFIED || job.phase !== AppPackageJobPhase.QUEUED) {
+      throw new Error('Runtime did not reserve the exact App uninstall');
+    }
+    try {
+      await finishInstalledAppUninstall(job.jobId.slice(), selector);
+    } catch (error) {
+      const current = await sdk.machineProduct().apps.getAppPackageJob({ jobId: job.jobId }).catch(() => null);
+      if (current?.job?.phase === AppPackageJobPhase.QUEUED && current.job.cancelable) {
+        await sdk.machineProduct().apps.cancelAppPackageJob({ jobId: job.jobId, expectedPhase: AppPackageJobPhase.QUEUED, reasonCode: 'uninstall-not-completed' }).catch(() => undefined);
+      }
+      throw error;
+    }
+  }, [sdk]);
   const controller = useAppsPanelController({
     cancelPackageJob,
     listApprovedCatalogTargets,
     startInstall,
+    uninstall,
     listCommittedReleases,
     listPackageJobs,
     readAppAIConfig,

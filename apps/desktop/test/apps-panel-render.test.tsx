@@ -393,7 +393,8 @@ test('an installed App keeps a later Registry policy block visible as an indepen
   }));
   assert.ok(markup.includes('data-testid="apps-catalog-policy-blocked"'));
   assert.ok(markup.includes('security-review-revoked'));
-  assert.ok(markup.includes('data-testid="apps-installed-launch-unavailable"'));
+  assert.ok(markup.includes('data-testid="apps-installed-access"'));
+  assert.ok(!markup.includes('data-testid="apps-installed-launch"'));
   assert.equal(markup.includes('data-testid="apps-detail-install"'), false);
   await changeLocale('zh');
 });

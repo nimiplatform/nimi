@@ -888,6 +888,14 @@ RUNTIME_METHODS = [
     "response_type": "StartAppPackageInstallResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall",
+    "service": "RuntimeAppPackageService",
+    "method": "StartAppPackageUninstall",
+    "kind": "unary",
+    "request_type": "StartAppPackageUninstallRequest",
+    "response_type": "StartAppPackageUninstallResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
     "service": "RuntimeAppService",
     "method": "AdoptLocalAppArtifact",
@@ -904,12 +912,36 @@ RUNTIME_METHODS = [
     "response_type": "BindLocalAppProcessResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall",
+    "service": "RuntimeAppService",
+    "method": "CompleteAppPackageUninstall",
+    "kind": "unary",
+    "request_type": "CompleteAppPackageUninstallRequest",
+    "response_type": "CompleteAppPackageUninstallResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun",
+    "service": "RuntimeAppService",
+    "method": "EndInstalledAppRun",
+    "kind": "unary",
+    "request_type": "EndInstalledAppRunRequest",
+    "response_type": "EndInstalledAppRunResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
     "service": "RuntimeAppService",
     "method": "GetAppStorage",
     "kind": "unary",
     "request_type": "GetAppStorageRequest",
     "response_type": "GetAppStorageResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess",
+    "service": "RuntimeAppService",
+    "method": "GetInstalledAppRunAccess",
+    "kind": "unary",
+    "request_type": "GetInstalledAppRunAccessRequest",
+    "response_type": "GetInstalledAppRunAccessResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
@@ -926,6 +958,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "MoveLocalAppAssetRequest",
     "response_type": "MoveLocalAppAssetResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch",
+    "service": "RuntimeAppService",
+    "method": "PrepareInstalledAppLaunch",
+    "kind": "unary",
+    "request_type": "PrepareInstalledAppLaunchRequest",
+    "response_type": "PrepareInstalledAppLaunchResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",

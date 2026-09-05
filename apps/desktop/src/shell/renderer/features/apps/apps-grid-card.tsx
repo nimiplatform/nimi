@@ -111,11 +111,15 @@ export function AppGridCard({
       }
       : {
         id: 'launch',
-        label: t('Apps.action.launch'),
+        label: t(entry.committedRelease && entry.run?.state === 'running' ? 'Apps.action.focus' : 'Apps.action.launch'),
         icon: <Play className="h-4 w-4" aria-hidden="true" />,
         disabled: activeAction !== null,
         onSelect: () => onAction('launch'),
       }]),
+    ...(primary !== 'stop' && actionPlan.secondary.some((action) => action.id === 'stop') ? [{
+      id: 'stop', label: t('Apps.action.stop'), icon: <Square className="h-4 w-4" aria-hidden="true" />,
+      disabled: activeAction !== null, onSelect: () => onAction('stop'),
+    }] : []),
     ...(actionPlan.secondary.some((action) => action.id === 'cancel-job') ? [{
       id: 'cancel-job',
       label: t('Apps.action.cancel'),
@@ -184,7 +188,7 @@ export function AppGridCard({
             }}
           >
             <Play className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-            {t('Apps.action.launch')}
+            {t(entry.committedRelease && entry.run?.state === 'running' ? 'Apps.action.focus' : 'Apps.action.launch')}
           </Button>
         ) : null}
       </div>

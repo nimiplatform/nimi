@@ -38,6 +38,7 @@ import type { DesktopAppsEntry } from './apps-panel-projection.js';
 import {
   actionPlanForEntry,
   canRequestCatalogInstall,
+  canRequestUninstall,
   type AppCardActionId,
 } from './apps-card-actions.js';
 import { appRunVisualState, appSourceForEntry } from './apps-card-fields.js';
@@ -435,6 +436,8 @@ function InstalledAppsDetailView({
   const { t } = useTranslation();
   const release = entry.committedRelease;
   const catalog = entry.catalogTarget;
+  const installedRun = entry.run && 'accessAvailable' in entry.run ? entry.run : null;
+  const [confirmingUninstall, setConfirmingUninstall] = useState(false);
 
   return (
     <div data-testid="apps-detail-body" data-installed-detail className="flex min-h-0 flex-1 flex-col">
@@ -483,9 +486,40 @@ function InstalledAppsDetailView({
               </InlineAlert>
             ) : null}
             {release ? (
-              <InlineAlert tone="info" className="mt-3" data-testid="apps-installed-launch-unavailable">
-                {t('Apps.installedLaunchUnavailable')}
-              </InlineAlert>
+              <div className="mt-3 space-y-3" data-testid="apps-installed-run">
+                <div className="flex flex-wrap items-center gap-3">
+                  <AppRunStatusBadge entry={entry} />
+                  <span className="text-sm" data-testid="apps-installed-access">
+                    {t(installedRun?.accessAvailable ? 'Apps.installedAccess.ready' : 'Apps.installedAccess.unavailable')}
+                  </span>
+                </div>
+                {installedRun?.message ? <InlineAlert tone="danger">{installedRun.message}</InlineAlert> : null}
+                <div className="flex gap-2">
+                  {actionPlanForEntry(entry).primary ? (
+                    <Button tone="primary" size="sm" data-testid="apps-installed-launch"
+                      loading={activeAction === 'launch'} disabled={activeAction !== null} onClick={() => onAction('launch')}>
+                      {t(installedRun?.state === 'running' ? 'Apps.action.focus' : 'Apps.action.launch')}
+                    </Button>
+                  ) : null}
+                  {installedRun?.state === 'running' ? (
+                    <Button tone="secondary" size="sm" data-testid="apps-installed-stop"
+                      loading={activeAction === 'stop'} disabled={activeAction !== null} onClick={() => onAction('stop')}>
+                      {t('Apps.action.stop')}
+                    </Button>
+                  ) : null}
+                  {canRequestUninstall(entry) ? (
+                    <Button tone="danger" size="sm" data-testid="apps-installed-uninstall" disabled={activeAction !== null}
+                      loading={activeAction === 'uninstall'} onClick={() => setConfirmingUninstall(true)}>
+                      {t('Apps.action.uninstall')}
+                    </Button>
+                  ) : null}
+                </div>
+                <ConfirmDialog open={confirmingUninstall} title={t('Apps.confirm.uninstall.title')}
+                  message={t('Apps.confirm.uninstall.message', { app: entry.identity.displayName })}
+                  confirmLabel={t('Apps.action.uninstall')} cancelLabel={t('Common.cancel')} confirmTone="danger"
+                  pending={activeAction === 'uninstall'} onClose={() => setConfirmingUninstall(false)}
+                  onConfirm={() => { setConfirmingUninstall(false); onAction('uninstall'); }} />
+              </div>
             ) : null}
             {canRequestCatalogInstall(entry) ? (
               <Button

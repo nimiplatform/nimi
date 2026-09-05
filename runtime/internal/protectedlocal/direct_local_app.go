@@ -2,8 +2,10 @@ package protectedlocal
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -44,17 +46,19 @@ func (witness DirectLocalAppProcessWitness) valid() bool {
 // join a Desktop-prepared launch to a native local-endpoint peer. It is
 // in-memory only.
 type DirectLocalAppLaunch struct {
-	LaunchID              Identifier
-	RegistrationHandle    Identifier
-	SupervisorRunID       Identifier
-	SourceGeneration      uint64
-	DeclarationGeneration uint64
-	DesktopPID            uint32
-	ExpectedUID           uint32
-	HostExecutablePath    string
-	Process               DirectLocalAppProcessWitness
-	ExpiresAt             time.Time
-	BindDeadline          time.Time
+	LaunchID                    Identifier
+	RegistrationHandle          Identifier
+	SupervisorRunID             Identifier
+	SourceGeneration            uint64
+	DeclarationGeneration       uint64
+	DesktopPID                  uint32
+	ExpectedUID                 uint32
+	HostExecutablePath          string
+	Process                     DirectLocalAppProcessWitness
+	ExpiresAt                   time.Time
+	BindDeadline                time.Time
+	InstalledRegistrationHandle string
+	InstalledProcess            ProcessTuple
 }
 
 func (launch DirectLocalAppLaunch) valid() bool {
@@ -195,6 +199,35 @@ func (launches *DirectLocalAppLaunches) Bind(
 	pending.BindDeadline = bindDeadline
 	launches.byPID[process.PID] = pending
 	return bindDeadline, nil
+}
+
+// BindInstalled joins a separately verified installed process to the same
+// native peer map. No development registration or Developer Mode is involved.
+func (launches *DirectLocalAppLaunches) BindInstalled(launchID Identifier, policy InstalledAppProcessPolicy, process ProcessTuple, uid uint32, deadline time.Time) (time.Time, error) {
+	if launches == nil || !policy.valid() || process.validate() != nil || process.ExecutableDigest != policy.HostExecutableDigest ||
+		process.CanonicalExecutablePath != policy.HostExecutablePath || uid == 0 {
+		return time.Time{}, fmt.Errorf("installed process binding is incomplete")
+	}
+	start, err := strconv.ParseUint(process.CreationMarker, 16, 64)
+	if err != nil || start == 0 {
+		return time.Time{}, fmt.Errorf("installed process creation marker is invalid")
+	}
+	witness := DirectLocalAppProcessWitness{PID: process.PID, ParentPID: policy.SupervisorProcess.PID, UID: uid,
+		StartSeconds: start, ExecutablePath: policy.HostExecutablePath}
+	bound, err := launches.Bind(launchID, witness, policy.SupervisorProcess.PID, uid, deadline)
+	if err != nil {
+		return time.Time{}, err
+	}
+	launches.mu.Lock()
+	defer launches.mu.Unlock()
+	pending := launches.byLaunch[launchID]
+	if pending == nil || policy.RegistrationHandle != "rar_v1_"+base64.RawURLEncoding.EncodeToString(pending.RegistrationHandle[:]) ||
+		pending.SourceGeneration != policy.SourceGeneration || pending.DeclarationGeneration != policy.DeclarationGeneration {
+		return time.Time{}, fmt.Errorf("installed launch generation changed")
+	}
+	pending.InstalledRegistrationHandle = policy.RegistrationHandle
+	pending.InstalledProcess = process
+	return bound, nil
 }
 
 func (launches *DirectLocalAppLaunches) Bound(childPID uint32, uid uint32) (DirectLocalAppLaunch, bool) {

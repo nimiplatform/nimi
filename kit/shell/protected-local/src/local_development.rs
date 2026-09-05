@@ -146,6 +146,13 @@ pub enum NimiHostErrorReasonCode {
     LocalAppPresenceRequired,
     LocalAppPresenceExpired,
     LocalAppOperationUnavailable,
+    ProcessStartFailed,
+    OsPolicyBlocked,
+    ElevationRequired,
+    ProcessContextRejected,
+    ProcessStopFailed,
+    ProcessFocusFailed,
+    InstalledAppLaunchFailed,
 }
 
 impl NimiHostErrorReasonCode {
@@ -183,6 +190,13 @@ impl NimiHostErrorReasonCode {
             Self::LocalAppPresenceRequired => "local-app-presence-required",
             Self::LocalAppPresenceExpired => "local-app-presence-expired",
             Self::LocalAppOperationUnavailable => "local-app-operation-unavailable",
+            Self::ProcessStartFailed => "process-start-failed",
+            Self::OsPolicyBlocked => "os-policy-blocked",
+            Self::ElevationRequired => "elevation-required",
+            Self::ProcessContextRejected => "process-context-rejected",
+            Self::ProcessStopFailed => "process-stop-failed",
+            Self::ProcessFocusFailed => "process-focus-failed",
+            Self::InstalledAppLaunchFailed => "installed-app-launch-failed",
         }
     }
 }

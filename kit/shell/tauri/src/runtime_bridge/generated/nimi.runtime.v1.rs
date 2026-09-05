@@ -496,6 +496,9 @@ pub enum ReasonCode {
     AppPackageInstallUnavailable = 731,
     AppPackageJobActive = 732,
     AppCatalogUnavailable = 733,
+    AppPackageUninstallUnavailable = 734,
+    AppPackageHostRunning = 735,
+    AppPackageUninstallFailed = 736,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -843,6 +846,9 @@ impl ReasonCode {
             Self::AppPackageInstallUnavailable => "APP_PACKAGE_INSTALL_UNAVAILABLE",
             Self::AppPackageJobActive => "APP_PACKAGE_JOB_ACTIVE",
             Self::AppCatalogUnavailable => "APP_CATALOG_UNAVAILABLE",
+            Self::AppPackageUninstallUnavailable => "APP_PACKAGE_UNINSTALL_UNAVAILABLE",
+            Self::AppPackageHostRunning => "APP_PACKAGE_HOST_RUNNING",
+            Self::AppPackageUninstallFailed => "APP_PACKAGE_UNINSTALL_FAILED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1255,6 +1261,11 @@ impl ReasonCode {
             "APP_PACKAGE_INSTALL_UNAVAILABLE" => Some(Self::AppPackageInstallUnavailable),
             "APP_PACKAGE_JOB_ACTIVE" => Some(Self::AppPackageJobActive),
             "APP_CATALOG_UNAVAILABLE" => Some(Self::AppCatalogUnavailable),
+            "APP_PACKAGE_UNINSTALL_UNAVAILABLE" => {
+                Some(Self::AppPackageUninstallUnavailable)
+            }
+            "APP_PACKAGE_HOST_RUNNING" => Some(Self::AppPackageHostRunning),
+            "APP_PACKAGE_UNINSTALL_FAILED" => Some(Self::AppPackageUninstallFailed),
             _ => None,
         }
     }
@@ -11402,6 +11413,85 @@ pub struct BindLocalAppProcessRequest {
     #[prost(uint32, tag = "2")]
     pub child_process_id: u32,
 }
+/// Desktop main/native Host Control only. The renderer forwards the opaque
+/// committed selector as intent and never receives the lease material.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PrepareInstalledAppLaunchRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub launch_selector: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PrepareInstalledAppLaunchResponse {
+    #[prost(bytes = "vec", tag = "1")]
+    pub launch_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "2")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub version: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub executable_path: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub working_directory: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "6")]
+    pub arguments: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(bytes = "vec", tag = "7")]
+    pub executable_sha256: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "8")]
+    pub execution_profile_ref: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "9")]
+    pub bind_deadline: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(enumeration = "ReasonCode", tag = "10")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct EndInstalledAppRunRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub launch_id: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartAppPackageUninstallRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub launch_selector: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartAppPackageUninstallResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<AppPackageJob>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+/// Desktop main completes this exact reservation only after stopping the Host.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CompleteAppPackageUninstallRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub job_id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub launch_selector: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct CompleteAppPackageUninstallResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<AppPackageJob>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct EndInstalledAppRunResponse {
+    #[prost(enumeration = "ReasonCode", tag = "1")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetInstalledAppRunAccessRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub launch_id: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetInstalledAppRunAccessResponse {
+    #[prost(bool, tag = "1")]
+    pub available: bool,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct BindLocalAppProcessResponse {
     #[prost(bytes = "vec", tag = "1")]
@@ -12113,6 +12203,35 @@ pub mod runtime_app_package_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn start_app_package_uninstall(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StartAppPackageUninstallRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::StartAppPackageUninstallResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "StartAppPackageUninstall",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn cancel_app_package_job(
             &mut self,
             request: impl tonic::IntoRequest<super::CancelAppPackageJobRequest>,
@@ -12669,6 +12788,35 @@ pub mod runtime_app_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn prepare_installed_app_launch(
+            &mut self,
+            request: impl tonic::IntoRequest<super::PrepareInstalledAppLaunchRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::PrepareInstalledAppLaunchResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "PrepareInstalledAppLaunch",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn bind_local_app_process(
             &mut self,
             request: impl tonic::IntoRequest<super::BindLocalAppProcessRequest>,
@@ -12694,6 +12842,93 @@ pub mod runtime_app_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAppService",
                         "BindLocalAppProcess",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn end_installed_app_run(
+            &mut self,
+            request: impl tonic::IntoRequest<super::EndInstalledAppRunRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::EndInstalledAppRunResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "EndInstalledAppRun",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_installed_app_run_access(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetInstalledAppRunAccessRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetInstalledAppRunAccessResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "GetInstalledAppRunAccess",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn complete_app_package_uninstall(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CompleteAppPackageUninstallRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::CompleteAppPackageUninstallResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppService",
+                        "CompleteAppPackageUninstall",
                     ),
                 );
             self.inner.unary(req, path, codec).await

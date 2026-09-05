@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
+	"github.com/nimiplatform/nimi/runtime/internal/nimiapppackage"
 	"github.com/nimiplatform/nimi/runtime/internal/publicappregistry"
 	"golang.org/x/sys/windows"
 )
@@ -131,6 +132,150 @@ func TestCoordinatorInstallsExactApprovedPackageAndRegistersAfterPublication(t *
 	jobs, err := kernel.PackageLifecycle().ListJobs(context.Background())
 	if err != nil || len(jobs) != 1 {
 		t.Fatalf("jobs=%+v err=%v", jobs, err)
+	}
+}
+
+func TestInstalledLaunchRechecksFullPayloadCurrentPolicyAndReservation(t *testing.T) {
+	ctx := context.Background()
+	coordinator, client, kernel, transport := newInstallFixture(t, false)
+	result, err := coordinator.Install(ctx, resolveInstallFixture(t, client))
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle := result.Registration.RegistrationHandle
+	called := false
+	bind := func(launch VerifiedInstalledLaunch) error {
+		called = true
+		if launch.RuntimeEntry != filepath.Join(result.Registration.ProjectRoot, "payload", "example-app.exe") || launch.Release.RegistrationHandle != handle {
+			t.Fatalf("wrong exact entry: %+v", launch)
+		}
+		return nil
+	}
+	if err := coordinator.WithVerifiedInstalledLaunch(ctx, handle, bind); err != nil || !called {
+		t.Fatalf("verified launch: %v", err)
+	}
+	transport.revision = installTestNextRevision
+	if err := coordinator.WithVerifiedInstalledLaunch(ctx, handle, bind); err != nil {
+		t.Fatalf("Registry head alone invalidated installed release: %v", err)
+	}
+	called = false
+	transport.blocked = true
+	if err := coordinator.WithVerifiedInstalledLaunch(ctx, handle, bind); !errors.Is(err, publicappregistry.ErrPolicyBlocked) || called {
+		t.Fatalf("policy bypass: %v", err)
+	}
+	transport.blocked = false
+	job, err := kernel.PackageLifecycle().Begin(ctx, localappkernel.BeginPackageJobInput{
+		AppID: result.Release.AppID, SourceClass: localappkernel.SourceClassVerified, Kind: localappkernel.PackageJobUninstall,
+		TargetRef: result.Release.ReleaseRef, ProgressBasis: localappkernel.PackageProgressIndeterminate, Cancelable: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := coordinator.WithVerifiedInstalledLaunch(ctx, handle, bind); !errors.Is(err, localappkernel.ErrPackageJobActive) || called {
+		t.Fatalf("uninstall reservation bypass: %v", err)
+	}
+	if _, err := kernel.PackageLifecycle().Cancel(ctx, job.JobID, job.Phase, "user-canceled"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(result.Registration.ProjectRoot, "payload", "resources", "index.html"), []byte("changed non-executable payload"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := coordinator.WithVerifiedInstalledLaunch(ctx, handle, bind); !errors.Is(err, nimiapppackage.ErrPackageIntegrity) || called {
+		t.Fatalf("non-EXE mutation bypass: %v", err)
+	}
+}
+
+func TestUninstallReservesCancelsAndRemovesOnlyExactManagedRelease(t *testing.T) {
+	ctx := context.Background()
+	coordinator, client, kernel, _ := newInstallFixture(t, false)
+	installed, err := coordinator.Install(ctx, resolveInstallFixture(t, client))
+	if err != nil {
+		t.Fatal(err)
+	}
+	marker := filepath.Join(kernel.DataRoot(), "shared-model-marker")
+	if err := os.WriteFile(marker, []byte("retain"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	handle := installed.Registration.RegistrationHandle
+	first, err := coordinator.StartUninstall(ctx, handle)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := coordinator.CancelUninstall(ctx, first.JobID, first.Phase, "user-canceled"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(installed.Registration.ProjectRoot); err != nil {
+		t.Fatal("cancellation removed package", err)
+	}
+	job, err := coordinator.StartUninstall(ctx, handle)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := coordinator.CompleteUninstall(ctx, job.JobID, "wrong-selector"); !errors.Is(err, ErrUninstall) {
+		t.Fatalf("wrong selector accepted: %v", err)
+	}
+	if err := coordinator.WithVerifiedInstalledLaunch(ctx, handle, func(VerifiedInstalledLaunch) error { t.Fatal("uninstall reservation admitted launch"); return nil }); !errors.Is(err, localappkernel.ErrPackageJobActive) {
+		t.Fatal(err)
+	}
+	completed, err := coordinator.CompleteUninstall(ctx, job.JobID, handle)
+	if err != nil || completed.Phase != localappkernel.PackageJobCompleted || completed.StepsCompleted != 2 {
+		t.Fatalf("uninstall = %+v %v", completed, err)
+	}
+	if _, err := os.Stat(installed.Registration.ProjectRoot); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("package remains: %v", err)
+	}
+	if _, err := kernel.PackageLifecycle().GetCommittedRelease(ctx, installed.Release.AppID, localappkernel.SourceClassVerified); !errors.Is(err, localappkernel.ErrCommittedReleaseNotFound) {
+		t.Fatal(err)
+	}
+	if _, err := kernel.Registrations().GetActiveByHandle(ctx, handle); !errors.Is(err, localappkernel.ErrRegistrationTombstoned) {
+		t.Fatal(err)
+	}
+	if err := coordinator.Recover(ctx); err != nil {
+		t.Fatal("recovery after canceled then completed uninstall", err)
+	}
+	if data, err := os.ReadFile(marker); err != nil || string(data) != "retain" {
+		t.Fatal("unrelated data changed")
+	}
+	if _, err := client.RevalidateInstalled(ctx, resolveInstallFixture(t, client)); err != nil {
+		t.Fatal("uninstall changed Registry admission", err)
+	}
+}
+
+func TestUninstallRestartRestoresDetachedRootBeforeFailingJob(t *testing.T) {
+	ctx := context.Background()
+	coordinator, client, kernel, _ := newInstallFixture(t, false)
+	installed, err := coordinator.Install(ctx, resolveInstallFixture(t, client))
+	if err != nil {
+		t.Fatal(err)
+	}
+	job, err := coordinator.StartUninstall(ctx, installed.Registration.RegistrationHandle)
+	if err != nil {
+		t.Fatal(err)
+	}
+	job, err = coordinator.lifecycle.Advance(ctx, job.JobID, job.Phase, localappkernel.PackageJobRemovingPackage, localappkernel.PackageJobProgress{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	root, err := coordinator.packagesRoot.OpenRoot(packageReleaseDirectory)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := publishStagedRelease(root, filepath.Base(installed.Registration.ProjectRoot), uninstallRootPrefix+job.JobID); err != nil {
+		t.Fatal(err)
+	}
+	_ = root.Close()
+	if err := coordinator.Recover(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(installed.Registration.ProjectRoot); err != nil {
+		t.Fatal("detached package was not restored", err)
+	}
+	current, err := kernel.PackageLifecycle().GetJob(ctx, job.JobID)
+	if err != nil || current.Phase != localappkernel.PackageJobFailed || current.ReasonCode != "runtime-restarted" {
+		t.Fatalf("recovered uninstall = %+v %v", current, err)
+	}
+	if _, err := kernel.Registrations().GetActiveByHandle(ctx, installed.Registration.RegistrationHandle); err != nil {
+		t.Fatal(err)
 	}
 }
 
