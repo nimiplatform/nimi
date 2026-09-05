@@ -42,6 +42,14 @@ rebind. App code receives no session material or authority selector.
 This entrypoint deliberately has no Runtime endpoint, ordinary gRPC factory,
 native-host injection, capability-set selection, or command-handler input.
 
+The public Windows native package targets the existing D2 Runtime. A
+Desktop-launched installed App loads that binding from its own package;
+workspace native-entry overrides remain limited to the default Electron
+development host. Both use the current non-elevated Runtime peer checks,
+Desktop parent supervision, and Runtime-owned registration/session/App Access.
+This carrier does not enable Catalog or installed launch by itself, and does
+not claim compatibility with the separately governed production Runtime service.
+
 ## Boundary
 
 - Main process code owns app-scoped IPC command registration, origin

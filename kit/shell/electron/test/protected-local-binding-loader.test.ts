@@ -40,6 +40,24 @@ test('packaged macOS Electron resolves only its sealed native carrier resource',
 const macOSTest = process.platform === 'darwin' ? test : test.skip;
 const windowsTest = process.platform === 'win32' ? test : test.skip;
 
+test('Windows D2 installed hosts use the packaged binding and reject workspace overrides', () => {
+  const installedHost = {
+    architecture: 'x64',
+    platform: 'win32',
+    sourceDefaultApp: false,
+    sourceSourceLocalDevelopment: '1',
+  };
+  assert.equal(resolveNimiElectronProtectedLocalPackageSpecifier(windowsPackage, installedHost), windowsPackage);
+  for (const invalid of [
+    { ...installedHost, sourceEntry: 'D:/nimi/kit/shell/protected-local-node/npm/win32-x64/index.cjs' },
+    { ...installedHost, sourceSourceLocalDevelopment: '0' },
+    { ...installedHost, architecture: 'arm64' },
+  ]) {
+    assert.throws(() => resolveNimiElectronProtectedLocalPackageSpecifier(windowsPackage, invalid), /protected-carrier-required/u);
+  }
+  assert.throws(() => resolveNimiElectronProtectedLocalPackageSpecifier(darwinPackage, installedHost), /protected-carrier-required/u);
+});
+
 macOSTest('source macOS D2 requires an explicit default-App carrier path', async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-electron-native-source-'));
   try {

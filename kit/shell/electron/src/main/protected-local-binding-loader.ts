@@ -46,9 +46,13 @@ export function resolveNimiElectronProtectedLocalPackageSpecifier(
     if (!sourceRequested) return packageName;
     if (input.architecture !== 'x64'
       || packageName !== WINDOWS_X64_BINDING_PACKAGE
-      || input.sourceDefaultApp !== true
       || input.sourceSourceLocalDevelopment !== '1') {
       throw new Error('protected-carrier-required');
+    }
+    // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-037a
+    if (input.sourceDefaultApp !== true) {
+      if (input.sourceEntry !== undefined) throw new Error('protected-carrier-required');
+      return packageName;
     }
     const entry = path.resolve(exactText(input.sourceEntry));
     const expectedTail = path.join(
