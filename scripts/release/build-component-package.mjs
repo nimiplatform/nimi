@@ -121,12 +121,18 @@ function buildSdk(outputDir) {
 function buildKit(outputDir) {
   const version = packageVersion('kit/package.json');
   const sdkVersion = packageVersion('sdks/typescript/package.json');
+  const nativeManifest = readJson('kit/shell/protected-local-node/npm/win32-x64/package.json');
+  if (nativeManifest.name !== '@nimiplatform/kit-protected-local-win32-x64' || nativeManifest.version !== version) {
+    throw new Error('Windows native package identity must match the Kit component version');
+  }
   run('pnpm', ['--filter', '@nimiplatform/sdk', 'build']);
   run('pnpm', ['--filter', '@nimiplatform/kit', 'build']);
   const tarball = stageAndPack(path.join(repoRoot, 'kit'), outputDir, (manifest) => {
     manifest.version = version;
     manifest.dependencies['@nimiplatform/sdk'] = `^${sdkVersion}`;
-    delete manifest.optionalDependencies;
+    manifest.optionalDependencies = {
+      '@nimiplatform/kit-protected-local-win32-x64': `^${version}`,
+    };
   });
   run(process.execPath, [
     path.join(repoRoot, 'scripts', 'check-sdk-kit-pack-audit.mjs'),

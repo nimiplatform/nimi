@@ -139,11 +139,13 @@ function startSourceLocalDevelopmentParentMonitor(): void {
     && process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT === '1'
   );
   if (!sourceProfile) return;
-  const sourceProcess = process as NodeJS.Process & { readonly defaultApp?: boolean };
+  const sourceDefaultApp = (process as NodeJS.Process & { readonly defaultApp?: boolean }).defaultApp === true;
   const desktopPid = process.ppid;
-  if (sourceProcess.defaultApp !== true || !Number.isSafeInteger(desktopPid) || desktopPid <= 1) {
+  // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-037a
+  if ((process.platform === 'darwin' && !sourceDefaultApp)
+    || !Number.isSafeInteger(desktopPid) || desktopPid <= 1) {
     throw appBridgeInputError(
-      'Source local development requires one live Desktop parent',
+      'A D2 App requires one live Desktop parent',
       'electron-local-app-parent-required',
       'relaunch_local_app_from_desktop',
     );

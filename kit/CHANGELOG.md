@@ -11,6 +11,10 @@ Discipline.
 
 ### Added
 
+- Added the public Windows x64 D2 native dependency and packaged Electron D2
+  binding resolution. Installed Apps use their own native payload and retain
+  Runtime peer, registration, exact Desktop launch, and App Access checks;
+  Catalog/install/launch availability remains a separate product cutover.
 - Added the optional `emptyStateAgent` identity and `emptyStateContent` slot to
   the chat `CanonicalTranscriptView` empty state, so a host can render the
   agent avatar/name and centered content (such as a composer) in place of the
