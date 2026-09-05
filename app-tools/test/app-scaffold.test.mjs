@@ -633,7 +633,13 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.match(workflowSource, /index\("update"\).*index\("deletion"\)/u);
     assert.doesNotMatch(workflowSource, /index\("creation"\)/u);
     assert.match(workflowSource, /conditions\.ref_name\.exclude/u);
-    assert.match(workflowSource, /release_json=.*releases\/tags/u);
+    const releaseStep = workflow.jobs.release.steps.find((step) => step.name === 'Publish the immutable GitHub Release set');
+    const releaseCreate = releaseStep.run.split('\n').find((line) => line.trimStart().startsWith('gh release create '));
+    assert.ok(releaseCreate);
+    assert.equal(/--repo\b/u.test(releaseCreate) && /--notes-from-tag\b/u.test(releaseCreate), false,
+      'gh release create rejects combining --repo with --notes-from-tag');
+    assert.doesNotMatch(releaseStep.run, /releases\/tags\//u,
+      'draft lookup must not use the published-release-only tag endpoint');
     assert.doesNotMatch(workflowSource, /candidate-uploads|Account|Bearer|--clobber|publish:\s*true/u);
     assert.equal(Object.hasOwn(lock.managedFileHashes, 'src/lab/lab-workbench.tsx'), false);
 
