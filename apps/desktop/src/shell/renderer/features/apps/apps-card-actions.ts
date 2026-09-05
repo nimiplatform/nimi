@@ -2,7 +2,7 @@ import { AppPackageJobPhase, type AppPackageJob } from '@nimiplatform/sdk/runtim
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.r053
 
-export type AppCardActionId = 'details' | 'install' | 'launch' | 'stop' | 'remove' | 'cancel-job';
+export type AppCardActionId = 'details' | 'install' | 'launch' | 'stop' | 'remove' | 'uninstall' | 'cancel-job';
 
 export interface AppCardAction {
   readonly id: AppCardActionId;
@@ -29,6 +29,7 @@ const CANCEL_JOB: AppCardAction = { id: 'cancel-job' };
 const TERMINAL_RUN_STATES = Object.freeze([
   'stopped',
   'failed',
+  'crashed',
   'project-changed',
   'registration-unavailable',
   'registration-removed',
@@ -50,17 +51,27 @@ export function actionPlanForLocalDevelopmentEntry(runState: string | null): App
 export function actionPlanForEntry(entry: AppsActionEntry): AppCardActionPlan {
   const base = entry.localDevelopment
     ? actionPlanForLocalDevelopmentEntry(entry.run?.state ?? null)
-    : { primary: null, secondary: [DETAILS] };
+    : entry.committedRelease && (!packageJobActive(entry.packageJob) || isLocalDevelopmentRunActive(entry.run?.state ?? null))
+      ? { primary: entry.catalogTarget?.policyBlocked && !isLocalDevelopmentRunActive(entry.run?.state ?? null) ? null : LAUNCH,
+          secondary: isLocalDevelopmentRunActive(entry.run?.state ?? null) ? [DETAILS, STOP] : [DETAILS] }
+      : { primary: null, secondary: [DETAILS] };
   return entry.packageJob?.cancelable
     ? { ...base, secondary: [...base.secondary, CANCEL_JOB] }
     : base;
 }
 
 export function canRequestCatalogInstall(entry: AppsActionEntry): boolean {
-  const packageJobActive = entry.packageJob !== null && ![
+  return Boolean(entry.catalogTarget && !entry.catalogTarget.policyBlocked && !entry.committedRelease && !packageJobActive(entry.packageJob));
+}
+
+function packageJobActive(job: AppsActionEntry['packageJob']): boolean {
+  return job !== null && ![
     AppPackageJobPhase.COMPLETED,
     AppPackageJobPhase.FAILED,
     AppPackageJobPhase.CANCELED,
-  ].includes(entry.packageJob.phase);
-  return Boolean(entry.catalogTarget && !entry.catalogTarget.policyBlocked && !entry.committedRelease && !packageJobActive);
+  ].includes(job.phase);
+}
+
+export function canRequestUninstall(entry: AppsActionEntry): boolean {
+  return Boolean(entry.committedRelease && !entry.localDevelopment && !packageJobActive(entry.packageJob));
 }

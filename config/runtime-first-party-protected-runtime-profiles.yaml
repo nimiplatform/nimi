@@ -63,6 +63,7 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens
       - method_id: /nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets
       - method_id: /nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall
+      - method_id: /nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall
       - method_id: /nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases
       - method_id: /nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs
       - method_id: /nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob

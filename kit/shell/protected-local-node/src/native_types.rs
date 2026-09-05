@@ -150,6 +150,22 @@ pub struct NativeLocalDevelopmentRunInput {
 }
 
 #[napi(object)]
+pub struct NativeInstalledAppLaunchInput {
+    pub launch_selector: String,
+}
+
+#[napi(object)]
+pub struct NativeInstalledAppRunInput {
+    pub launch_id: String,
+}
+
+#[napi(object)]
+pub struct NativeInstalledAppUninstallInput {
+    pub job_id: String,
+    pub launch_selector: String,
+}
+
+#[napi(object)]
 pub struct NativeLocalDevelopmentEndRunInput {
     pub registration_handle: String,
     pub supervisor_run_id: String,

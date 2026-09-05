@@ -1,14 +1,14 @@
 // Runtime owns source-qualified installed/package state; local-development
 // registration remains a separate source; Desktop owns supervised run state.
 // Public Catalog facts are accepted only through the Runtime SDK projection.
-// The production Apps consumer does not supply that port until availability
-// cutover; isolated owner tests can exercise the merge without creating a
-// second Registry source. Rows and actions remain keyed by source identity.
+// The production Apps consumer supplies the sole Runtime Catalog port.
+// Rows and actions remain keyed by source identity.
 
 import type {
   LocalDevelopmentRegistration,
   LocalDevelopmentRun,
 } from '../local-development/local-development-types.js';
+import type { InstalledAppRun } from '../../../shared/installed-app-types.js';
 import { CANONICAL_CAPABILITY_IDS } from '@nimiplatform/kit/core/runtime-capabilities';
 import type { NimiAIConfigSnapshot } from '@nimiplatform/kit/core/sdk-contract';
 import {
@@ -52,6 +52,7 @@ export interface DesktopAppsProjectionSource {
   listPackageJobs(): Promise<readonly AppPackageJob[]>;
   listRegistrations(): Promise<readonly LocalDevelopmentRegistration[]>;
   listRuns(): Promise<readonly LocalDevelopmentRun[]>;
+  listInstalledRuns?(): Promise<readonly InstalledAppRun[]>;
   readAppAIConfig?(appId: string, options: DesktopAppAIConfigReadOptions): Promise<NimiAIConfigSnapshot>;
   readAppIcon?(selector: string): Promise<string | null>;
 }
@@ -78,7 +79,7 @@ export interface DesktopAppsEntry {
   readonly localDevelopment: LocalDevelopmentRegistration | null;
   readonly committedRelease: CommittedAppRelease | null;
   readonly packageJob: AppPackageJob | null;
-  readonly run: LocalDevelopmentRun | null;
+  readonly run: LocalDevelopmentRun | InstalledAppRun | null;
   readonly aiConfigSummary: DesktopAppAIConfigSummary | null;
   /**
    * Host-read project icon (PNG data URL) for identity visuals, or null when
@@ -129,11 +130,12 @@ export async function projectAppsPanel(
         .then((targets) => ({ status: 'loaded' as const, targets }))
         .catch((error: unknown) => ({ status: 'unavailable' as const, targets: [] as const, error }))
       : Promise.resolve({ status: 'not-implemented' as const, targets: [] as const });
-    const [registrations, runs, runtimeResult, catalogResult] = await Promise.all([
+    const [registrations, runs, runtimeResult, catalogResult, installedRuns] = await Promise.all([
       source.listRegistrations(),
       source.listRuns(),
       runtimeRequest,
       catalogRequest,
+      source.listInstalledRuns?.() ?? Promise.resolve([] as readonly InstalledAppRun[]),
     ]);
     const previousEntries = options.previous?.status === 'loaded'
       ? new Map(options.previous.entries.map((entry) => [entry.identity.entryKey, entry]))
@@ -211,6 +213,8 @@ export async function projectAppsPanel(
           ),
         },
         committedRelease,
+        run: installedRuns.find((run) => run.launchSelector.length === committedRelease.launchSelector.length
+          && run.launchSelector.every((byte, index) => byte === committedRelease.launchSelector[index])) ?? null,
       });
     }
     for (const [entryKey, packageJob] of runtimeRows.jobsByKey) {

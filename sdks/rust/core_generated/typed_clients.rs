@@ -2617,6 +2617,9 @@ pub enum ReasonCode {
     APPPACKAGEINSTALLUNAVAILABLE,
     APPPACKAGEJOBACTIVE,
     APPCATALOGUNAVAILABLE,
+    APPPACKAGEUNINSTALLUNAVAILABLE,
+    APPPACKAGEHOSTRUNNING,
+    APPPACKAGEUNINSTALLFAILED,
 }
 
 impl Default for ReasonCode {
@@ -3170,6 +3173,12 @@ impl ReasonCode {
             "APPPACKAGEJOBACTIVE" => Some(Self::APPPACKAGEJOBACTIVE),
             "APP_CATALOG_UNAVAILABLE" => Some(Self::APPCATALOGUNAVAILABLE),
             "APPCATALOGUNAVAILABLE" => Some(Self::APPCATALOGUNAVAILABLE),
+            "APP_PACKAGE_UNINSTALL_UNAVAILABLE" => Some(Self::APPPACKAGEUNINSTALLUNAVAILABLE),
+            "APPPACKAGEUNINSTALLUNAVAILABLE" => Some(Self::APPPACKAGEUNINSTALLUNAVAILABLE),
+            "APP_PACKAGE_HOST_RUNNING" => Some(Self::APPPACKAGEHOSTRUNNING),
+            "APPPACKAGEHOSTRUNNING" => Some(Self::APPPACKAGEHOSTRUNNING),
+            "APP_PACKAGE_UNINSTALL_FAILED" => Some(Self::APPPACKAGEUNINSTALLFAILED),
+            "APPPACKAGEUNINSTALLFAILED" => Some(Self::APPPACKAGEUNINSTALLFAILED),
             _ => None,
         }
     }
@@ -5435,6 +5444,18 @@ pub struct CommittedAppRelease {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CompleteAppPackageUninstallRequest {
+    pub job_id: Option<Vec<u8>>,
+    pub launch_selector: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CompleteAppPackageUninstallResponse {
+    pub job: Option<Box<AppPackageJob>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CompleteLoginRequest {
     pub caller: Option<Box<AccountCaller>>,
     pub login_attempt_id: Option<String>,
@@ -5808,6 +5829,16 @@ pub struct EnableAutonomyRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct EnableAutonomyResponse {
     pub autonomy: Option<Box<AgentAutonomyState>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct EndInstalledAppRunRequest {
+    pub launch_id: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct EndInstalledAppRunResponse {
+    pub reason_code: Option<ReasonCode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6235,6 +6266,17 @@ impl GetDeveloperModeStatusResponse {
         out.reason_code = pairs.get("reason_code").and_then(|value| ReasonCode::from_transport(value));
         out
     }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetInstalledAppRunAccessRequest {
+    pub launch_id: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetInstalledAppRunAccessResponse {
+    pub available: Option<bool>,
+    pub reason_code: Option<ReasonCode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9098,6 +9140,25 @@ pub struct PortableAIProfileRecord {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrepareInstalledAppLaunchRequest {
+    pub launch_selector: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrepareInstalledAppLaunchResponse {
+    pub launch_id: Option<Vec<u8>>,
+    pub app_id: Option<String>,
+    pub version: Option<String>,
+    pub executable_path: Option<String>,
+    pub working_directory: Option<String>,
+    pub arguments: Vec<String>,
+    pub executable_sha256: Option<Vec<u8>>,
+    pub execution_profile_ref: Option<String>,
+    pub bind_deadline: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PrepareLoadoutRequest {
     pub loadout_id: Option<String>,
     pub capability_contract: Option<String>,
@@ -10470,6 +10531,17 @@ pub struct StartAppPackageInstallRequest {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct StartAppPackageInstallResponse {
+    pub job: Option<Box<AppPackageJob>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartAppPackageUninstallRequest {
+    pub launch_selector: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartAppPackageUninstallResponse {
     pub job: Option<Box<AppPackageJob>>,
     pub reason_code: Option<ReasonCode>,
 }

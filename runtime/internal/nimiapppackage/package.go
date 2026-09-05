@@ -320,6 +320,33 @@ func Materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 	}, nil
 }
 
+// VerifyMaterialized reuses the installation digest over every managed file.
+// The digest is the existing committed release fact, never a separate ledger.
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-034a
+func VerifyMaterialized(ctx context.Context, rootPath string, expected Expected, payloadDigest string, hostDigest [sha256.Size]byte) (Materialized, error) {
+	if ctx == nil || !filepath.IsAbs(rootPath) || payloadDigest == "" || hostDigest == ([sha256.Size]byte{}) {
+		return Materialized{}, ErrPackageIntegrity
+	}
+	if err := validateExpected(expected); err != nil {
+		return Materialized{}, err
+	}
+	info, err := os.Lstat(rootPath)
+	if err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return Materialized{}, errors.Join(ErrPackageIntegrity, err)
+	}
+	digest, observedHost, names, total, err := digestMaterializedRoot(ctx, rootPath, expected.OS, expected.RuntimeEntry)
+	if err != nil || PayloadRootDigestRef(digest) != payloadDigest || observedHost != hostDigest {
+		return Materialized{}, errors.Join(ErrPackageIntegrity, err)
+	}
+	return Materialized{
+		Root: rootPath, ManifestPath: filepath.Join(rootPath, "manifest.json"),
+		DeclarationPath:      filepath.Join(rootPath, "nimi.app.yaml"),
+		RuntimeEntryPath:     filepath.Join(rootPath, filepath.FromSlash(expected.RuntimeEntry)),
+		RawDeclaration:       append([]string(nil), expected.AppAccess...),
+		HostExecutableSHA256: observedHost, PayloadRootSHA256: digest, Files: len(names), Bytes: total,
+	}, nil
+}
+
 func openAndInspect(ctx context.Context, archivePath string, expected Expected) (*inspectedArchive, error) {
 	if ctx == nil {
 		return nil, fmt.Errorf("inspect nimiapp archive: %w", ErrInvalidPackage)

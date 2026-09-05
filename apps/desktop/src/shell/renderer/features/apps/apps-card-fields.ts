@@ -90,6 +90,7 @@ export type AppRunVisualState = 'running' | 'starting' | 'stopped' | 'failed';
  */
 const FAILED_RUN_STATES = Object.freeze([
   'failed',
+  'crashed',
   'build-failed',
   'cleanup-failed',
   'registration-unavailable',

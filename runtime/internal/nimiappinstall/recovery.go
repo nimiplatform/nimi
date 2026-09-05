@@ -193,12 +193,22 @@ func (coordinator *Coordinator) Recover(ctx context.Context) error {
 	if coordinator.packagesRoot == nil || coordinator.lifecycle == nil || coordinator.kernel == nil {
 		return ErrInvalidCoordinator
 	}
-	protected, allowReleaseSweep, recoveryErr := coordinator.protectedReleaseRoots(ctx)
 	jobs, err := coordinator.lifecycle.ListJobs(ctx)
 	if err != nil {
-		return errors.Join(recoveryErr, fmt.Errorf("list App install jobs for recovery: %w", err))
+		return fmt.Errorf("list App package jobs for recovery: %w", err)
 	}
 	for _, job := range jobs {
+		if job.Kind == localappkernel.PackageJobUninstall {
+			if err := coordinator.recoverUninstall(ctx, job); err != nil {
+				return errors.Join(ErrInstallRecoveryRequired, err)
+			}
+		}
+	}
+	protected, allowReleaseSweep, recoveryErr := coordinator.protectedReleaseRoots(ctx)
+	for _, job := range jobs {
+		if job.Kind == localappkernel.PackageJobUninstall {
+			continue
+		}
 		if err := ctx.Err(); err != nil {
 			return errors.Join(recoveryErr, err)
 		}

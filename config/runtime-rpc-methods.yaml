@@ -439,6 +439,18 @@ services:
       - name: PrepareLocalAppLaunch
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch
+      - name: PrepareInstalledAppLaunch
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch
+      - name: CompleteAppPackageUninstall
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall
+      - name: EndInstalledAppRun
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun
+      - name: GetInstalledAppRunAccess
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess
       - name: BindLocalAppProcess
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess
@@ -496,6 +508,9 @@ services:
       - name: StartAppPackageInstall
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall
+      - name: StartAppPackageUninstall
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall
       - name: CancelAppPackageJob
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob

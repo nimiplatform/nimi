@@ -1378,7 +1378,19 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: APP_CATALOG_UNAVAILABLE = 733;
      */
-    APP_CATALOG_UNAVAILABLE = 733
+    APP_CATALOG_UNAVAILABLE = 733,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_UNINSTALL_UNAVAILABLE = 734;
+     */
+    APP_PACKAGE_UNINSTALL_UNAVAILABLE = 734,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_HOST_RUNNING = 735;
+     */
+    APP_PACKAGE_HOST_RUNNING = 735,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_UNINSTALL_FAILED = 736;
+     */
+    APP_PACKAGE_UNINSTALL_FAILED = 736
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

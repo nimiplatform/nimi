@@ -245,6 +245,22 @@ func (store *PackageLifecycleStore) GetJob(ctx context.Context, jobID string) (P
 	return loadPackageJob(ctx, store.kernel.db, jobID)
 }
 
+func (store *PackageLifecycleStore) GetActiveJob(ctx context.Context, appID string, sourceClass SourceClass) (PackageJob, error) {
+	if store == nil || store.kernel == nil || requireExactText("app_id", appID) != nil || !packageSourceClass(sourceClass) {
+		return PackageJob{}, ErrInvalidArgument
+	}
+	var jobID string
+	err := store.kernel.db.QueryRowContext(ctx, `SELECT job_id FROM app_package_job
+		WHERE app_id = ? AND source_class = ? AND phase NOT IN ('completed','failed','canceled')`, appID, string(sourceClass)).Scan(&jobID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return PackageJob{}, ErrPackageJobNotFound
+	}
+	if err != nil {
+		return PackageJob{}, fmt.Errorf("read active App package job: %w", err)
+	}
+	return store.GetJob(ctx, jobID)
+}
+
 func (store *PackageLifecycleStore) ListJobs(ctx context.Context) ([]PackageJob, error) {
 	if store == nil || store.kernel == nil {
 		return nil, ErrInvalidArgument
@@ -497,8 +513,8 @@ func sameCommittedReleaseRepair(current CommittedRelease, targetRef string, inpu
 // caller has stopped the host and removed its package. Durable registration
 // and binding history remain tombstoned; this method does not touch payloads.
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040c
-func (store *PackageLifecycleStore) CompleteUninstall(ctx context.Context, jobID string) (PackageJob, error) {
-	if store == nil || store.kernel == nil || requireExactText("job_id", jobID) != nil {
+func (store *PackageLifecycleStore) CompleteUninstall(ctx context.Context, jobID, registrationHandle string, sourceGeneration, declarationGeneration uint64) (PackageJob, error) {
+	if store == nil || store.kernel == nil || requireExactText("job_id", jobID) != nil || registrationHandle == "" || sourceGeneration == 0 || declarationGeneration == 0 {
 		return PackageJob{}, ErrInvalidArgument
 	}
 	store.kernel.mu.Lock()
@@ -522,6 +538,17 @@ func (store *PackageLifecycleStore) CompleteUninstall(ctx context.Context, jobID
 	if err != nil {
 		return PackageJob{}, err
 	}
+	if release.RegistrationHandle != registrationHandle || release.ReleaseRef != job.TargetRef {
+		return PackageJob{}, ErrRevisionConflict
+	}
+	var currentSource, currentDeclaration uint64
+	var registrationState string
+	if err := tx.QueryRowContext(ctx, `SELECT source_generation, declaration_generation, state FROM canonical_registration WHERE registration_handle = ?`, registrationHandle).Scan(&currentSource, &currentDeclaration, &registrationState); err != nil {
+		return PackageJob{}, fmt.Errorf("read uninstall registration generation: %w", err)
+	}
+	if currentSource != sourceGeneration || currentDeclaration != declarationGeneration || registrationState != string(RegistrationStateActive) {
+		return PackageJob{}, ErrRevisionConflict
+	}
 	if err := store.kernel.registrations.tombstoneTx(ctx, tx, release.RegistrationHandle); err != nil {
 		return PackageJob{}, err
 	}
@@ -535,7 +562,7 @@ func (store *PackageLifecycleStore) CompleteUninstall(ctx context.Context, jobID
 	}
 	now := store.kernel.now().UTC()
 	result, err = tx.ExecContext(ctx, `UPDATE app_package_job SET phase = 'completed', completed_unix_nano = ?,
-		terminal_result = 'completed', reason_code = '', cancelable = 0
+		terminal_result = 'completed', reason_code = '', cancelable = 0, steps_completed = COALESCE(steps_total, steps_completed)
 		WHERE job_id = ? AND phase = 'unregistering' AND completed_unix_nano IS NULL`, now.UnixNano(), job.JobID)
 	if err != nil {
 		return PackageJob{}, fmt.Errorf("complete App uninstall job: %w", err)

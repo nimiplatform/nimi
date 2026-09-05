@@ -17,11 +17,14 @@ const (
 )
 
 type VerifiedLocalAppLaunchPeer struct {
-	LaunchID         Identifier
-	Process          ProcessTuple
-	RuntimeBootEpoch Identifier
-	ProcessLiveness  DesktopProcessLiveness
-	TrustClass       LocalAppTrustClass
+	LaunchID                    Identifier
+	Process                     ProcessTuple
+	RuntimeBootEpoch            Identifier
+	ProcessLiveness             DesktopProcessLiveness
+	TrustClass                  LocalAppTrustClass
+	InstalledRegistrationHandle string
+	SourceGeneration            uint64
+	DeclarationGeneration       uint64
 }
 
 // LocalAppSessionHandle is Runtime-private technical session material for an
@@ -55,23 +58,25 @@ func (verifier staticLocalAppPeerVerifier) VerifyLocalAppLaunchPeer(context.Cont
 }
 
 type LocalAppConnection struct {
-	launchID                    Identifier
-	process                     ProcessTuple
-	boot                        Identifier
-	liveness                    DesktopProcessLiveness
-	directPeer                  *DirectLocalAppPeer
-	directLaunch                *DirectLocalAppLaunch
-	installedRegistrationHandle string
-	trustClass                  LocalAppTrustClass
-	live                        atomic.Bool
-	done                        chan struct{}
-	revokeMu                    sync.Mutex
-	hooks                       []func()
-	sessionMu                   sync.RWMutex
-	session                     *LocalAppSessionHandle
-	sessionInvalidated          *localAppSessionInvalidation
-	sessionResources            map[string]func()
-	directAuthorized            bool
+	launchID                       Identifier
+	process                        ProcessTuple
+	boot                           Identifier
+	liveness                       DesktopProcessLiveness
+	directPeer                     *DirectLocalAppPeer
+	directLaunch                   *DirectLocalAppLaunch
+	installedRegistrationHandle    string
+	installedSourceGeneration      uint64
+	installedDeclarationGeneration uint64
+	trustClass                     LocalAppTrustClass
+	live                           atomic.Bool
+	done                           chan struct{}
+	revokeMu                       sync.Mutex
+	hooks                          []func()
+	sessionMu                      sync.RWMutex
+	session                        *LocalAppSessionHandle
+	sessionInvalidated             *localAppSessionInvalidation
+	sessionResources               map[string]func()
+	directAuthorized               bool
 }
 
 type localAppSessionInvalidation struct {
@@ -110,6 +115,15 @@ func EstablishLocalAppConnection(ctx context.Context, verifier LocalAppLaunchPee
 		return nil, fail(ReasonDesktopExecutableTrustFailed, false, "relaunch_app", fmt.Errorf("validate local-app process: %w", err))
 	}
 	connection := &LocalAppConnection{launchID: peer.LaunchID, process: peer.Process, boot: peer.RuntimeBootEpoch, liveness: peer.ProcessLiveness, trustClass: peer.TrustClass, done: make(chan struct{})}
+	if peer.TrustClass == LocalAppTrustVerified {
+		if peer.InstalledRegistrationHandle == "" || peer.SourceGeneration == 0 || peer.DeclarationGeneration == 0 {
+			_ = peer.ProcessLiveness.Close()
+			return nil, fmt.Errorf("verified installed peer registration is incomplete")
+		}
+		connection.installedRegistrationHandle = peer.InstalledRegistrationHandle
+		connection.installedSourceGeneration = peer.SourceGeneration
+		connection.installedDeclarationGeneration = peer.DeclarationGeneration
+	}
 	connection.live.Store(true)
 	go func() {
 		select {
@@ -161,6 +175,16 @@ func newDirectLocalAppConnection(peer DirectLocalAppPeer, launch DirectLocalAppL
 		boot:       runtimeGeneration,
 		trustClass: LocalAppTrustLocalDevelopment, done: make(chan struct{}),
 	}
+	if launch.InstalledRegistrationHandle != "" {
+		if launch.InstalledProcess.validate() != nil || launch.InstalledProcess.PID != peer.PID {
+			return nil, fmt.Errorf("verified installed direct peer is incomplete")
+		}
+		connection.trustClass = LocalAppTrustVerified
+		connection.process = launch.InstalledProcess
+		connection.installedRegistrationHandle = launch.InstalledRegistrationHandle
+		connection.installedSourceGeneration = launch.SourceGeneration
+		connection.installedDeclarationGeneration = launch.DeclarationGeneration
+	}
 	connection.live.Store(true)
 	return connection, nil
 }
@@ -205,6 +229,13 @@ func (connection *LocalAppConnection) InstalledRegistrationHandle() (string, boo
 		return "", false
 	}
 	return connection.installedRegistrationHandle, true
+}
+
+func (connection *LocalAppConnection) InstalledLaunchGenerations() (uint64, uint64, bool) {
+	if connection == nil || !connection.Live() || connection.installedSourceGeneration == 0 || connection.installedDeclarationGeneration == 0 {
+		return 0, 0, false
+	}
+	return connection.installedSourceGeneration, connection.installedDeclarationGeneration, true
 }
 
 func (connection *LocalAppConnection) Live() bool {

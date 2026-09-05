@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiappinstall"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/publicappregistry"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -179,7 +180,21 @@ func (s *Service) CancelAppPackageJob(
 	if s == nil || s.appInstallCoordinator == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE)
 	}
-	job, err := s.appInstallCoordinator.CancelInstall(ctx, string(req.GetJobId()), expected, req.GetReasonCode())
+	store, err := s.packageLifecycleStore()
+	if err != nil {
+		return nil, err
+	}
+	job, err := store.GetJob(ctx, string(req.GetJobId()))
+	if err == nil && job.Kind == localappkernel.PackageJobUninstall {
+		job, err = s.appInstallCoordinator.CancelUninstall(ctx, job.JobID, expected, req.GetReasonCode())
+		if err == nil {
+			if owner, ok := protectedlocal.DesktopConnectionFromContext(ctx); ok {
+				owner.UnbindRevocationHook(uninstallJobHook(job.JobID))
+			}
+		}
+	} else if err == nil {
+		job, err = s.appInstallCoordinator.CancelInstall(ctx, job.JobID, expected, req.GetReasonCode())
+	}
 	if err != nil {
 		return nil, appPackageLifecycleError("cancel App package job", err)
 	}

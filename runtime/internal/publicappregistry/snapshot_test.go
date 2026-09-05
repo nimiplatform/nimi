@@ -146,6 +146,42 @@ func TestRevalidateProjectsPolicyBeforeStalenessAndNeverSubstitutesLatest(t *tes
 	}
 }
 
+func TestInstalledRevalidationKeepsFrozenReleaseWhilePolicyAndLatestChange(t *testing.T) {
+	ctx := context.Background()
+	descriptor := validDescriptorDocument()
+	source := validMemorySource(t, testRevisionA, descriptor)
+	client := &Client{source: source}
+	initial, err := client.Load(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolved, err := initial.Resolve(ctx, descriptor.Candidate.AppID, "windows-x86_64", "windows", "x86_64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source.revision = testRevisionB
+	index := validIndexDocument(descriptor)
+	row := index.Apps[descriptor.Candidate.AppID]
+	row.DisplayName = "New catalog display"
+	row.Visibility = "hidden"
+	row.LatestAdmittedReleaseByTarget["windows-x86_64"] = descriptorPointer{DescriptorID: descriptor.Candidate.AppID + "@2.0.0", Path: expectedDescriptorPath(descriptor.Candidate.AppID, "2.0.0")}
+	index.Apps[descriptor.Candidate.AppID] = row
+	source.documents[indexDocumentPath] = mustJSON(t, index)
+	installed, err := client.RevalidateInstalled(ctx, resolved.Selector)
+	if err != nil || installed.Version != "1.2.3" || installed.Selector != resolved.Selector || installed.RegistryRevision != testRevisionB {
+		t.Fatalf("installed target was substituted or tied to latest: %+v %v", installed, err)
+	}
+	reason := "security-review-revoked"
+	row.KillSwitch = KillSwitch{Active: true, Reason: &reason, Revision: 9}
+	index.Apps[descriptor.Candidate.AppID] = row
+	source.documents[indexDocumentPath] = mustJSON(t, index)
+	_, err = client.RevalidateInstalled(ctx, resolved.Selector)
+	var blocked *PolicyBlockedError
+	if !errors.As(err, &blocked) || blocked.Reason != reason || blocked.Revision != 9 {
+		t.Fatalf("current policy = %v", err)
+	}
+}
+
 func TestSnapshotRejectsLocalPointerUnknownFieldsAndCrossDocumentDrift(t *testing.T) {
 	descriptor := validDescriptorDocument()
 	tests := []struct {

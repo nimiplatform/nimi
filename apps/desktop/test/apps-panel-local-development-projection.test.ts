@@ -118,7 +118,7 @@ describe('Desktop Apps source-qualified projection', () => {
     if (projection.status !== 'loaded') return;
     const first = projection.entries.find((entry) => entry.localDevelopment?.selector === 'dev-example-shared');
     const other = projection.entries.find((entry) => entry.localDevelopment?.selector === 'dev-example-shared-second');
-    assert.equal(first?.run?.selector, 'dev-example-shared');
+    assert.equal(first?.run && 'selector' in first.run ? first.run.selector : undefined, 'dev-example-shared');
     assert.equal(other?.run, null);
   });
 

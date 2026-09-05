@@ -543,7 +543,10 @@ func (s *Snapshot) resolve(ctx context.Context, appID, targetID string) (Resolve
 	if err := jsonstrict.Decode(rawDescriptor, &descriptor); err != nil {
 		return ResolvedApprovedTarget{}, fmt.Errorf("decode approved App descriptor: %w", errors.Join(ErrInvalidRegistrySnapshot, err))
 	}
-	target, err := validateDescriptor(descriptor, pointer.Path, appID, targetID, row)
+	if descriptor.Candidate.DisplayName != row.DisplayName {
+		return ResolvedApprovedTarget{}, ErrInvalidRegistrySnapshot
+	}
+	target, err := validateDescriptor(descriptor, pointer.Path, appID, targetID)
 	if err != nil {
 		return ResolvedApprovedTarget{}, err
 	}
@@ -597,6 +600,52 @@ func (c *Client) Revalidate(ctx context.Context, selector ApprovedTargetSelector
 		return ResolvedApprovedTarget{}, ErrStaleSelection
 	}
 	return resolved, nil
+}
+
+// RevalidateInstalled keeps the installed descriptor/target frozen while
+// observing current policy. A changed latest pointer is not an App update or
+// permission to launch a different release. Only the package owner calls this
+// after resolving an active committed registration; it does not admit installs.
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040c
+func (c *Client) RevalidateInstalled(ctx context.Context, selector ApprovedTargetSelector) (ResolvedApprovedTarget, error) {
+	if !selector.valid() {
+		return ResolvedApprovedTarget{}, ErrInvalidSelector
+	}
+	appID, ok := descriptorAppID(selector.descriptorID)
+	if !ok {
+		return ResolvedApprovedTarget{}, ErrInvalidSelector
+	}
+	snapshot, err := c.Load(ctx)
+	if err != nil {
+		return ResolvedApprovedTarget{}, err
+	}
+	row, ok := snapshot.index.Apps[appID]
+	if !ok {
+		return ResolvedApprovedTarget{}, ErrCatalogAppNotFound
+	}
+	if row.KillSwitch.Active {
+		return ResolvedApprovedTarget{}, &PolicyBlockedError{Reason: *row.KillSwitch.Reason, Revision: row.KillSwitch.Revision}
+	}
+	path := expectedDescriptorPath(appID, selector.descriptorID[len(appID)+1:])
+	raw, err := snapshot.source.readAt(ctx, snapshot.revision, path, maxDescriptorDocumentLen)
+	if err != nil {
+		return ResolvedApprovedTarget{}, err
+	}
+	if err := validateSchemaDocument(snapshot.descriptorSchema, raw); err != nil {
+		return ResolvedApprovedTarget{}, err
+	}
+	var descriptor approvedDescriptorDocument
+	if err := jsonstrict.Decode(raw, &descriptor); err != nil {
+		return ResolvedApprovedTarget{}, errors.Join(ErrInvalidRegistrySnapshot, err)
+	}
+	if descriptor.DescriptorID != selector.descriptorID {
+		return ResolvedApprovedTarget{}, ErrInvalidRegistrySnapshot
+	}
+	target, err := validateDescriptor(descriptor, path, appID, selector.targetID)
+	if err != nil {
+		return ResolvedApprovedTarget{}, err
+	}
+	return resolvedApprovedTarget(selector, descriptor, target, row, snapshot.revision), nil
 }
 
 func resolvedApprovedTarget(selector ApprovedTargetSelector, descriptor approvedDescriptorDocument, target Target, row registryAppRow, revision string) ResolvedApprovedTarget {

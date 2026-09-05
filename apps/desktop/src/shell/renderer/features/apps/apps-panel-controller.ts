@@ -55,6 +55,7 @@ export interface AppsPanelControllerDeps {
   readonly listApprovedCatalogTargets?: DesktopAppsProjectionSource['listApprovedCatalogTargets'];
   readonly cancelPackageJob: (job: AppPackageJob) => Promise<void>;
   readonly startInstall?: (approvedTargetSelector: Uint8Array) => Promise<AppsInstallStartResult>;
+  readonly uninstall?: (entry: DesktopAppsEntry) => Promise<void>;
   readonly readAppAIConfig?: (
     appId: string,
     options: DesktopAppAIConfigReadOptions,
@@ -274,12 +275,19 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
           } else {
             setActionError(appsInstallIntentFailure(result));
           }
+        } else if (action === 'uninstall') {
+          if (!entry.committedRelease || !deps.uninstall) throw new Error('App uninstall is unavailable');
+          await deps.uninstall(entry);
         } else if (action === 'launch') {
-          if (!entry.localDevelopment) throw new Error('Installed App launch is not implemented');
-          await liveBridge.startRegistration(entry.localDevelopment.selector);
+          if (entry.localDevelopment) await liveBridge.startRegistration(entry.localDevelopment.selector);
+          else if (entry.committedRelease && liveBridge.launchInstalled) {
+            const run = await liveBridge.launchInstalled(entry.committedRelease.launchSelector.slice());
+            if (run.state === 'crashed') setActionError(run.message || run.reasonCode || 'Installed App launch failed');
+          } else throw new Error('Installed App launch is unavailable');
         } else if (action === 'stop') {
-          if (!entry.localDevelopment) throw new Error('Catalog App has no supervised run');
-          await liveBridge.stopRun(entry.localDevelopment.selector);
+          if (entry.localDevelopment) await liveBridge.stopRun(entry.localDevelopment.selector);
+          else if (entry.committedRelease && liveBridge.stopInstalled) await liveBridge.stopInstalled(entry.committedRelease.launchSelector.slice());
+          else throw new Error('Installed App has no supervised run');
         } else if (action === 'remove') {
           if (!entry.localDevelopment) throw new Error('Catalog App has no local-development registration');
           await liveBridge.removeRegistration(entry.localDevelopment.selector);
@@ -296,7 +304,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
         setActiveAction(null);
       }
     })();
-  }, [activeAction, deps.cancelPackageJob, installIntentController, liveBridge, projection, reload]);
+  }, [activeAction, deps.cancelPackageJob, deps.uninstall, installIntentController, liveBridge, projection, reload]);
 
   const retryProjection = useCallback((): void => {
     setProjection(null);

@@ -45,11 +45,11 @@ func validateDescriptorPointer(appID string, pointer descriptorPointer) error {
 	return nil
 }
 
-func validateDescriptor(descriptor approvedDescriptorDocument, descriptorPath, appID, targetID string, row registryAppRow) (Target, error) {
+func validateDescriptor(descriptor approvedDescriptorDocument, descriptorPath, appID, targetID string) (Target, error) {
 	candidate := descriptor.Candidate
 	expectedID := candidate.AppID + "@" + candidate.Version
 	if descriptor.SchemaVersion != 1 || descriptor.DescriptorID != expectedID || descriptorPath != expectedDescriptorPath(candidate.AppID, candidate.Version) ||
-		candidate.AppID != appID || candidate.DisplayName != row.DisplayName || descriptor.Admission.Review.Decision != "approved" ||
+		candidate.AppID != appID || descriptor.Admission.Review.Decision != "approved" ||
 		!descriptor.Admission.OrdinaryReleaseProof || descriptor.Admission.BuildAssurance != "developer-attested" ||
 		!descriptor.Admission.DependencyAssurance.LockfileReviewed {
 		return Target{}, fmt.Errorf("validate approved App descriptor identity: %w", ErrInvalidRegistrySnapshot)
