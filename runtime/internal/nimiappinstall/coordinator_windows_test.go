@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"hash/crc32"
 	"io"
 	"net/http"
@@ -51,10 +52,12 @@ type installFixtureTransport struct {
 func (transport *installFixtureTransport) RoundTrip(request *http.Request) (*http.Response, error) {
 	transport.mu.Lock()
 	defer transport.mu.Unlock()
-	if request.URL.String() == "https://api.github.com/repos/nimiplatform/nimi-app-registry/git/ref/heads/main" {
-		return fixtureHTTPResponse(request, http.StatusOK, mustFixtureJSON(map[string]any{
-			"ref": "refs/heads/main", "object": map[string]any{"type": "commit", "sha": transport.revision},
-		})), nil
+	if request.URL.String() == "https://github.com/nimiplatform/nimi-app-registry.git/info/refs?service=git-upload-pack" {
+		ref := transport.revision + " refs/heads/main\x00object-format=sha1\n"
+		advertisement := fmt.Sprintf("001e# service=git-upload-pack\n0000%04x%s0000", len(ref)+4, ref)
+		response := fixtureHTTPResponse(request, http.StatusOK, []byte(advertisement))
+		response.Header.Set("Content-Type", "application/x-git-upload-pack-advertisement")
+		return response, nil
 	}
 	if request.URL.Host == "raw.githubusercontent.com" {
 		prefix := "/nimiplatform/nimi-app-registry/" + transport.revision + "/"
