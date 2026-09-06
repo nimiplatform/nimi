@@ -11,6 +11,7 @@ import {
 
 type InstalledAssetsSectionProps = {
   modelAssets: NimiRuntimeModelAssetRecord[];
+  query?: string;
   loadingInstalledAssets: boolean;
   assetBusy: boolean;
   runtimeWritesDisabled: boolean;
@@ -22,6 +23,8 @@ type InstalledAssetsSectionProps = {
 export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSectionProps) {
   const i18n = useDesktopI18nResource().instance;
   const t = i18n.t.bind(i18n);
+  const query = props.query?.trim().toLocaleLowerCase() ?? '';
+  const visibleAssets = props.modelAssets.filter((asset) => [asset.displayName, asset.modelAssetId, asset.entry].join(' ').toLocaleLowerCase().includes(query));
   const [confirmRemoveAssetId, setConfirmRemoveAssetId] = useState('');
   const [removeReferences, setRemoveReferences] = useState<string[]>([]);
   const [expandedAssetId, setExpandedAssetId] = useState('');
@@ -72,11 +75,11 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
         <div className="px-5 py-8 text-center text-sm text-[var(--nimi-text-muted)]">
           {t('runtimeConfig.localModelCenter.loadingModelAssets', { defaultValue: 'Loading Model Assets...' })}
         </div>
-      ) : props.modelAssets.length === 0 ? (
+      ) : visibleAssets.length === 0 ? (
         <div className="px-5 py-8 text-center">
           <FolderOpenIcon className="mx-auto mb-3 h-6 w-6 text-[var(--nimi-text-muted)]" />
           <h4 className="text-sm font-medium text-[var(--nimi-text-primary)]">
-              {t('runtimeConfig.localModelCenter.noInstalledModels', { defaultValue: 'No local assets' })}
+              {query ? t('runtimeConfig.localModelCenter.noMatchingAssets') : t('runtimeConfig.localModelCenter.noInstalledModels', { defaultValue: 'No local assets' })}
           </h4>
           <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
             {t('runtimeConfig.localModelCenter.noModelAssetsDescription', { defaultValue: 'Download from Model Market, or import your own model files.' })}
@@ -84,7 +87,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
         </div>
       ) : (
         <div className="divide-y divide-[var(--nimi-border-subtle)]">
-          {props.modelAssets.map((asset) => {
+          {visibleAssets.map((asset) => {
             const confirmationVisible = confirmRemoveAssetId === asset.modelAssetId;
             const detailsVisible = expandedAssetId === asset.modelAssetId;
             const provenance = asset.provenance ?? {};

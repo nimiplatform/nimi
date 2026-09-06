@@ -181,12 +181,12 @@ func TestListFeaturedModelAssetsProjectsFreshAndStaleLKG(t *testing.T) {
 	}
 
 	serveOK = true
-	stillStale, err := svc.ListFeaturedModelAssets(context.Background(), &runtimev1.ListFeaturedModelAssetsRequest{Category: "chat"})
+	revalidated, err := svc.ListFeaturedModelAssets(context.Background(), &runtimev1.ListFeaturedModelAssetsRequest{Category: "chat"})
 	if err != nil {
 		t.Fatalf("same generation refetch: %v", err)
 	}
-	if stillStale.GetSource().GetFreshness() != runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_STALE {
-		t.Fatalf("same generation refetch changed stale source to fresh: %+v", stillStale.GetSource())
+	if revalidated.GetSource().GetFreshness() != runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_FRESH || svc.loadModelIndexCache().Stale {
+		t.Fatalf("same generation revalidation did not recover freshness: %+v", revalidated.GetSource())
 	}
 }
 
@@ -272,6 +272,16 @@ func TestRemovedModelIndexOfferRefFailsTypedAfterGenerationAdoption(t *testing.T
 		t.Fatalf("removed offer resolve=%v, want typed NotFound", err)
 	}
 	assertGRPCReasonCode(t, err, "removed model-index offer", runtimev1.ReasonCode_AI_LOCAL_TEMPLATE_NOT_FOUND)
+	model := generationB.Models[0]
+	locator, err := newModelAssetModelLocator("huggingface", model.Repo, model.Revision)
+	if err != nil {
+		t.Fatal(err)
+	}
+	variants, err := svc.ListCatalogVariants(context.Background(), &runtimev1.ListCatalogVariantsRequest{ModelLocator: locator})
+	if err != nil || len(variants.GetVariants()) != 0 {
+		t.Fatalf("adopted empty offers must not fall through to HF: %+v err=%v", variants, err)
+	}
+
 }
 
 func TestModelIndexAdoptionRejectsRollbackAndCacheWriteFailure(t *testing.T) {

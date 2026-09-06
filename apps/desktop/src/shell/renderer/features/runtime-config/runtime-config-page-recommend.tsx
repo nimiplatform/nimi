@@ -7,6 +7,7 @@ import {
   InlineAlert,
   LoadingSkeleton,
   SearchField,
+  SelectField,
   StatusBadge,
   Surface,
 } from '@nimiplatform/kit/ui';
@@ -37,8 +38,21 @@ import type {
 } from './runtime-config-panel-types';
 import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell';
 
-const MARKET_CATEGORIES = ['chat', 'image', 'video'] as const;
+const MARKET_CATEGORIES = ['all', 'chat', 'image', 'video'] as const;
 type MarketCategory = typeof MARKET_CATEGORIES[number];
+
+export function filterModelMarketRows<T extends { title: string; author?: string; license?: string; downloads?: number; totalSizeBytes?: number }>(
+  rows: readonly T[], author: string, license: string, sort: string,
+): T[] {
+  const filtered = rows.filter((row) => (author === 'all' || `author:${row.author}` === author)
+    && (license === 'all' || `license:${row.license}` === license));
+  if (sort === 'default') return filtered;
+  return filtered.sort((a, b) => {
+    if (sort === 'downloads') return (b.downloads ?? 0) - (a.downloads ?? 0) || a.title.localeCompare(b.title);
+    if (sort === 'size') return (a.totalSizeBytes ?? Infinity) - (b.totalSizeBytes ?? Infinity) || a.title.localeCompare(b.title);
+    return a.title.localeCompare(b.title);
+  });
+}
 
 type RecommendPageProps = {
   readonly model: RuntimeConfigPanelControllerModel;
@@ -51,6 +65,9 @@ export function RecommendPage(props: RecommendPageProps) {
   const client = useRuntimeConfigLocalEnvironmentClient();
   const [category, setCategory] = useState<MarketCategory>('chat');
   const [query, setQuery] = useState('');
+  const [author, setAuthor] = useState('all');
+  const [license, setLicense] = useState('all');
+  const [sort, setSort] = useState('default');
   const [selectedSearchResult, setSelectedSearchResult] = useState<NimiRuntimeModelAssetCatalogSearchResult | null>(null);
   const [selectedCandidate, setSelectedCandidate] = useState<NimiRuntimeModelAssetMarketCandidate | null>(null);
   const normalizedQuery = query.trim();
@@ -58,16 +75,19 @@ export function RecommendPage(props: RecommendPageProps) {
   useEffect(() => {
     setSelectedSearchResult(null);
     setSelectedCandidate(null);
+    setAuthor('all');
+    setLicense('all');
   }, [category]);
 
   const featuredQuery = useQuery({
     queryKey: ['model-market', 'featured', category],
     queryFn: () => client.listFeaturedModelAssets({ category, pageSize: 80 }),
+    enabled: category !== 'all',
     refetchOnWindowFocus: false,
   });
   const searchQuery = useQuery({
     queryKey: ['model-market', 'search', category, normalizedQuery],
-    queryFn: () => client.searchCatalog({ query: normalizedQuery, category, pageSize: 50 }),
+    queryFn: () => client.searchCatalog({ query: normalizedQuery, category: category === 'all' ? undefined : category, pageSize: 50 }),
     enabled: normalizedQuery.length > 0,
     refetchOnWindowFocus: false,
   });
@@ -102,7 +122,10 @@ export function RecommendPage(props: RecommendPageProps) {
 
   const featured = featuredQuery.data;
   const showSearch = normalizedQuery.length > 0;
-  const rows = showSearch ? searchQuery.data ?? [] : featured?.items ?? [];
+  const rawRows = showSearch ? searchQuery.data ?? [] : featured?.items ?? [];
+  const rows = filterModelMarketRows<NimiRuntimeModelAssetCatalogSearchResult | NimiRuntimeModelAssetMarketCandidate>(rawRows, author, license, sort);
+  const authors = [...new Set(rawRows.map((row) => row.author).filter((value): value is string => Boolean(value)))].sort();
+  const licenses = [...new Set(rawRows.map((row) => row.license).filter((value): value is string => Boolean(value)))].sort();
   const showStaleSnapshot = !showSearch && featured?.source.availability === 'available' && featured.source.freshness === 'stale';
   const candidateSourceCount = showSearch
     ? 0
@@ -149,6 +172,17 @@ export function RecommendPage(props: RecommendPageProps) {
         />
       </div>
 
+      {rawRows.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          <SelectField aria-label={t('runtimeConfig.recommend.filterAuthor')} value={author} onValueChange={setAuthor}
+            options={[{ value: 'all', label: t('runtimeConfig.recommend.allAuthors') }, ...authors.map((value) => ({ value: `author:${value}`, label: value }))]} />
+          <SelectField aria-label={t('runtimeConfig.recommend.filterLicense')} value={license} onValueChange={setLicense}
+            options={[{ value: 'all', label: t('runtimeConfig.recommend.allLicenses') }, ...licenses.map((value) => ({ value: `license:${value}`, label: value }))]} />
+          <SelectField aria-label={t('runtimeConfig.recommend.sortResults')} value={sort} onValueChange={setSort}
+            options={['default', 'title', 'downloads', ...(rawRows.some((row) => 'totalSizeBytes' in row && row.totalSizeBytes) ? ['size'] : [])].map((value) => ({ value, label: t(`runtimeConfig.recommend.resultSort.${value}`) }))} />
+        </div>
+      ) : null}
+
       {!showSearch && featured?.source.availability === 'unavailable' ? (
         <InlineAlert tone="warning">
           {t('runtimeConfig.recommend.recommendationsUnavailable', {
@@ -164,7 +198,9 @@ export function RecommendPage(props: RecommendPageProps) {
         </InlineAlert>
       ) : null}
 
-      {(showSearch ? searchQuery.isPending : featuredQuery.isPending) ? (
+      {category === 'all' && !showSearch ? (
+        <Surface tone="card" className="p-6 text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.recommend.searchAllHint')}</Surface>
+      ) : (showSearch ? searchQuery.isPending : featuredQuery.isPending) ? (
         <ModelMarketLoadingState />
       ) : rows.length === 0 ? (
         <Surface tone="card" className="border-dashed p-6 text-sm text-[var(--nimi-text-muted)]">

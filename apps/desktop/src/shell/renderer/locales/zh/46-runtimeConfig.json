@@ -1333,7 +1333,8 @@
     "category": {
       "chat": "对话",
       "image": "图像",
-      "video": "视频"
+      "video": "视频",
+      "all": "全部模型"
     },
     "recommendationsUnavailable": "模型推荐暂不可用；完整目录搜索仍可使用。",
     "loadingTitle": "正在查询最新的模型市场数据…",
@@ -1483,7 +1484,19 @@
     "modelCardSource": "在 Hugging Face 查看",
     "modelCardFailed": "模型介绍加载失败。",
     "modelCardRetry": "重试",
-    "modelCardEmpty": "该仓库暂无模型介绍正文。"
+    "modelCardEmpty": "该仓库暂无模型介绍正文。",
+    "filterAuthor": "作者",
+    "filterLicense": "许可证",
+    "allAuthors": "全部作者",
+    "allLicenses": "全部许可证",
+    "sortResults": "结果排序",
+    "searchAllHint": "搜索所有模型类型，包括语音模型和辅助资产。",
+    "resultSort": {
+      "default": "默认排序",
+      "title": "名称",
+      "downloads": "下载量优先",
+      "size": "下载体积从小到大"
+    }
   },
   "localModelCenter": {
     "activeDownloads": "下载任务（{{count}}）",
@@ -1683,7 +1696,9 @@
       "attached_only": "仅接入",
       "unsupported": "不支持",
       "unknown": "宿主未知"
-    }
+    },
+    "noMatchingAssets": "没有匹配的已安装资产",
+    "searchInstalled": "搜索已安装资产"
   },
   "delegation": {
     "title": "委托能力控制",
