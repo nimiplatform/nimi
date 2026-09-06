@@ -88,7 +88,7 @@ describe('Desktop Apps source-qualified projection', () => {
       listRegistrations: async () => [registration()], listRuns: async () => [run()],
       listCommittedReleases: async () => [release(AppPackageSourceClass.VERIFIED, '2.0.0')],
       listPackageJobs: async () => [],
-    });
+    }, { catalog: { status: 'loaded', targets: [target] } });
     assert.equal(projection.status, 'loaded');
     if (projection.status !== 'loaded') return;
     assert.equal(projection.catalogStatus, 'loaded');
@@ -147,7 +147,7 @@ describe('Desktop Apps source-qualified projection', () => {
       listApprovedCatalogTargets: async () => [catalogTarget()],
       listCommittedReleases: async () => [release(AppPackageSourceClass.VERIFIED, '2.0.0'), release(AppPackageSourceClass.USER_IMPORTED, '1.0.0')],
       listPackageJobs: async () => [],
-    });
+    }, { catalog: { status: 'loaded', targets: [catalogTarget()] } });
     assert.equal(projection.status, 'loaded');
     if (projection.status !== 'loaded') return;
     assert.deepEqual(projection.entries.map((entry) => entry.identity.sourceClass).sort(), ['local_development', 'user_imported', 'verified']);

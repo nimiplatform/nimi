@@ -563,3 +563,22 @@ test('an installed App keeps a later Registry policy block visible as an indepen
   assert.equal(markup.includes('data-testid="apps-detail-install"'), false);
   await changeLocale('zh');
 });
+
+test('imported package details never claim Registry approval', async () => {
+  await initI18n();
+  await changeLocale('en');
+  const installed = installedRuntimeEntry();
+  const imported: DesktopAppsEntry = {
+    ...installed,
+    identity: { ...installed.identity, entryKey: 'user_imported:example.catalog-app', sourceClass: 'user_imported' },
+    committedRelease: { ...installed.committedRelease!, sourceClass: AppPackageSourceClass.USER_IMPORTED },
+    packageJob: null,
+  };
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [imported], catalogStatus: 'loaded', runtimeError: null },
+    selectedEntryKey: imported.identity.entryKey,
+  }));
+  assert.ok(markup.includes('Imported'));
+  assert.ok(!markup.includes('Registry approved'));
+  await changeLocale('zh');
+});

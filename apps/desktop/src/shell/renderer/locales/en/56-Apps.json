@@ -44,6 +44,7 @@
     "verified": "Registry approved"
   },
   "catalog": {
+    "loading": "Loading the App Catalog…",
     "registryApproved": "This release was approved through the public Nimi App Registry. Its descriptor binds the exact Release asset, digest, and provenance, and Runtime verifies the downloaded package again. Approval and verification are not a malware-free or operating-system execution guarantee.",
     "policyBlocked": "New installation or launch is blocked by the current Registry policy (revision {{revision}}): {{reason}}",
     "policyBlockedFallback": "No reason was provided.",

@@ -23,6 +23,7 @@ export function createDesktopInstalledAppHost(control: NimiElectronInstalledAppC
       await control.stop(id);
       await control.end(id).catch(() => undefined);
       if (run.pending || run.launchId !== id || run.view !== before) return project(run);
+      run.launchId = undefined;
       run.view = { ...run.view, state: run.view.state === 'stopped' || status.exitCode === null || status.exitCode === 0 ? 'stopped' : 'crashed', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED' };
       return project(run);
     }
