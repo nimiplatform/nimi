@@ -914,6 +914,122 @@ pub async fn desktop_remove_local_development_registration(
     .await
 }
 
+#[napi(js_name = "desktopLaunchInstalledApp")]
+pub async fn desktop_launch_installed_app(
+    input: NativeInstalledAppLaunchInput,
+) -> NativeJsonOutcome {
+    if input.launch_selector.is_empty() || input.launch_selector.len() > 160 {
+        return NativeJsonOutcome::host_reason("installed-app-launch-failed", false);
+    }
+    invoke_desktop_json(|control| async move {
+        control.launch_installed_app(input.launch_selector.into_bytes()).await.map(|result| json!({
+            "launchId": encode_identifier(&result.launch_id), "processId": result.process_id,
+            "appId": result.app_id, "version": result.version,
+        }))
+    })
+    .await
+}
+
+#[napi(js_name = "desktopInstalledAppStatus")]
+pub fn desktop_installed_app_status(input: NativeInstalledAppRunInput) -> NativeJsonOutcome {
+    let Some(id) = decode_identifier(&input.launch_id) else {
+        return NativeJsonOutcome::host_reason("installed-app-launch-failed", false);
+    };
+    #[cfg(target_os = "windows")]
+    return match nimi_shell_protected_local::installed_app_process_status(id) {
+        Ok((running, exit_code)) => {
+            NativeJsonOutcome::success(json!({"running": running, "exitCode": exit_code}))
+        }
+        Err(error) => NativeJsonOutcome::host_error(error),
+    };
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = id;
+        NativeJsonOutcome::host_reason("local-app-operation-unavailable", false)
+    }
+}
+
+#[napi(js_name = "desktopFocusInstalledApp")]
+pub fn desktop_focus_installed_app(input: NativeInstalledAppRunInput) -> NativeJsonOutcome {
+    let Some(id) = decode_identifier(&input.launch_id) else {
+        return NativeJsonOutcome::host_reason("installed-app-launch-failed", false);
+    };
+    #[cfg(target_os = "windows")]
+    return match nimi_shell_protected_local::focus_installed_app_process(id) {
+        Ok(()) => NativeJsonOutcome::success(json!({"focused": true})),
+        Err(error) => NativeJsonOutcome::host_error(error),
+    };
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = id;
+        NativeJsonOutcome::host_reason("local-app-operation-unavailable", false)
+    }
+}
+
+#[napi(js_name = "desktopStopInstalledApp")]
+pub fn desktop_stop_installed_app(input: NativeInstalledAppRunInput) -> NativeJsonOutcome {
+    let Some(id) = decode_identifier(&input.launch_id) else {
+        return NativeJsonOutcome::host_reason("installed-app-launch-failed", false);
+    };
+    #[cfg(target_os = "windows")]
+    return match nimi_shell_protected_local::stop_installed_app_process(id) {
+        Ok(()) => NativeJsonOutcome::success(json!({"stopped": true})),
+        Err(error) => NativeJsonOutcome::host_error(error),
+    };
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = id;
+        NativeJsonOutcome::host_reason("local-app-operation-unavailable", false)
+    }
+}
+
+#[napi(js_name = "desktopCompleteAppUninstall")]
+pub async fn desktop_complete_app_uninstall(
+    input: NativeInstalledAppUninstallInput,
+) -> NativeJsonOutcome {
+    invoke_desktop_json(|control| async move {
+        control
+            .complete_app_uninstall(
+                input.job_id.into_bytes(),
+                input.launch_selector.into_bytes(),
+            )
+            .await
+            .map(|()| json!({"completed": true}))
+    })
+    .await
+}
+
+#[napi(js_name = "desktopEndInstalledAppRun")]
+pub async fn desktop_end_installed_app_run(input: NativeInstalledAppRunInput) -> NativeJsonOutcome {
+    let Some(id) = decode_identifier(&input.launch_id) else {
+        return NativeJsonOutcome::host_reason("installed-app-launch-failed", false);
+    };
+    invoke_desktop_json(|control| async move {
+        control
+            .end_installed_app_run(id)
+            .await
+            .map(|()| json!({"ended": true}))
+    })
+    .await
+}
+
+#[napi(js_name = "desktopInstalledAppRunAccess")]
+pub async fn desktop_installed_app_run_access(
+    input: NativeInstalledAppRunInput,
+) -> NativeJsonOutcome {
+    let Some(id) = decode_identifier(&input.launch_id) else {
+        return NativeJsonOutcome::host_reason("installed-app-launch-failed", false);
+    };
+    invoke_desktop_json(|control| async move {
+        control.installed_app_run_access(id).await.map(|result| {
+            json!({
+                "available": result.available, "reasonCode": result.reason_code,
+            })
+        })
+    })
+    .await
+}
+
 #[napi(js_name = "desktopLaunchLocalDevelopmentHost")]
 pub async fn desktop_launch_local_development_host(
     input: NativeLocalDevelopmentLaunchInput,

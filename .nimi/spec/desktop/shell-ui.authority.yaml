@@ -444,10 +444,12 @@ units:
     kind: rule
     title: Local-app launch remains Desktop verified and renderer safe
     modality: must
-    statement: Desktop launches or focuses the exact App Host selected by the current registered source, correlates the connected native peer with that exact launch, and opens or revalidates a fresh Runtime protected App session whose access comes only from the current Registered App Subject, declaration generation, Effective App Access Snapshot, and central App Operation Contract; for the bounded AgentCenter Resource Pack placement Desktop accepts only a direct-user request to the exact registered Zhiyu App plus a Host-private non-authorizing one-use placement correlation derived without transferring the source Agent handle, returns typed lifecycle readiness or failure, transfers no source session, owner authority, raw identity, candidate bytes, or correlation to either App, and does not claim destination product readiness until the Zhiyu protected session and current Agent target are independently resolved; Desktop and the renderer otherwise expose only typed App-running, Nimi-access, and official-tooling facts plus supported SDK results, and neither a particular Electron or Tauri topology nor a user-mediated access workflow or durable access state is required by the product contract.
+    statement: Desktop launches or focuses the exact App Host selected by the current registered source, for an ordinary verified Windows target completes launch only when Desktop and the exact child are in the same current user and session and both are non-elevated without invoking an elevation path, correlates the connected native peer with that exact launch, and opens or revalidates a fresh Runtime protected App session whose access comes only from the current Registered App Subject, declaration generation, Effective App Access Snapshot, and central App Operation Contract; when exact Host creation does not complete because of an operating-system policy, elevation requirement, unreadable execution context, or another process-start failure, Desktop returns os-policy-blocked only from direct policy evidence, elevation-required only from the corresponding direct result, and otherwise process-start-failed, preserves installed truth, creates no running, launch-witness, session, or App Access truth, and never instructs the user to disable platform protection; for the bounded AgentCenter Resource Pack placement Desktop accepts only a direct-user request to the exact registered Zhiyu App plus a Host-private non-authorizing one-use placement correlation derived without transferring the source Agent handle, returns typed lifecycle readiness or failure, transfers no source session, owner authority, raw identity, candidate bytes, or correlation to either App, and does not claim destination product readiness until the Zhiyu protected session and current Agent target are independently resolved; Desktop and the renderer otherwise expose only typed App-running, Nimi-access, and official-tooling facts plus supported SDK results, and neither a particular Electron or Tauri topology nor a durable access state is required by the product contract.
     condition: Whenever Desktop presents or performs local-app launch.
-    failure: Reject unverified launch, focus, placement, or protected access; reject target readiness inferred from process existence, source-handle transfer or reuse, an exposed or reusable placement correlation, a generic target-App launcher, an App-private launch bridge, candidate-byte transfer, or destination action before typed ready; and prevent renderer exposure of account authority, credential, subject, principal, decision, endpoint, launch witness, session, snapshot, or internal operation material without treating access failure as automatic App termination.
+    failure: Reject unverified launch, focus, placement, or protected access; reject target readiness inferred from process existence, source-handle transfer or reuse, an exposed or reusable placement correlation, a generic target-App launcher, an App-private launch bridge, candidate-byte transfer, or destination action before typed ready; preserve exact operating-system or process-start failure and independent installed, running, and Access state; and prevent renderer exposure of account authority, credential, subject, principal, decision, endpoint, launch witness, session, snapshot, or internal operation material without treating access failure as automatic App termination.
     relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.shell-plane
       - type: applies_to
@@ -598,7 +600,7 @@ units:
     kind: rule
     title: Apps consumes unified SDK inventory only
     modality: must
-    statement: Apps is an ordinary Desktop entry whose runnable rows and source state come from owner registration projections shared by installed, local-import, and developer sources; marketplace listing, review, account display, and package metadata remain presentation inputs only and never establish a Registered App Subject, declaration coverage, protected session, Effective App Access Snapshot, or Runtime admission, while Desktop never scans app-local specs, workspaces, package-manager roots, or files as runnable truth.
+    statement: Apps is an ordinary Desktop entry whose runnable rows and source state come from owner registration projections shared by verified-installed, local-import, and local-development sources plus separately governed bundled and platform sources; marketplace listing, review, account display, and package metadata remain presentation inputs only and never establish a Registered App Subject, declaration coverage, protected session, Effective App Access Snapshot, or Runtime admission, while Desktop never scans app-local specs, workspaces, package-manager roots, or files as runnable truth.
     condition: Whenever Nimi Home lists Apps.
     failure: Reject non-SDK inventory and keep unverifiable Apps absent or explicitly unavailable.
     relations:
@@ -610,12 +612,16 @@ units:
     kind: rule
     title: Apps states and actions remain owner-projected
     modality: must
-    statement: Apps presents App running, Nimi access available or unavailable, and official tooling active or inactive as three independent immediate facts, preserves exact owner-projected source, unsupported, unavailable, and failure reasons, keeps install, update, repair, and launch success absent until the owning operation succeeds, and never infers access from a catalog row, capability set, declaration text, prior success, process liveness, or renderer state.
+    statement: Apps presents App running, Nimi access available or unavailable, and official tooling active or inactive as three independent immediate facts, preserves exact owner-projected source, unsupported, unavailable, and failure reasons, and for an approved target with absent publisher native identity or notarization presents a Nimi-owned disclosure bound to the exact descriptor, target, and observed Registry revision and requires explicit current-user Continue or Cancel before requesting install; Cancel creates no package job, confirmation grants no native trust, admission, elevation, sandbox, registration, session, or App Access, an active Platform kill-switch offers no confirm-through path, install, update, repair, and launch success remain absent until the owning operation succeeds, and Apps never infers access from a catalog row, capability set, declaration text, prior success, process liveness, or renderer state.
     condition: Whenever an Apps card or detail surface renders state or action.
-    failure: Reject collapsed facts, renderer-inferred access, local scanning, renderer-created access controls, and pseudo-success.
+    failure: Reject collapsed facts, missing or stale disclosure binding, confirmation bypass, policy override, renderer-inferred access, local scanning, renderer-created access controls, and pseudo-success.
     relations:
       - type: applies_to
+        target: definition.nimi.desktop.shell-ui.error-boundary
+      - type: applies_to
         target: definition.nimi.desktop.shell-ui.home-shell
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.release-descriptor
   - id: rule.nimi.desktop.shell-ui.r054
     kind: rule
     title: LocalAgent Conversation is an in-shell reference surface only

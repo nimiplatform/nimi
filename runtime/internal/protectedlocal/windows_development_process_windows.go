@@ -72,6 +72,11 @@ func (verifier *windowsLocalDevelopmentProcessVerifier) VerifyLocalDevelopmentPr
 }
 
 func verifyWindowsLocalDevelopmentProcess(ctx context.Context, pid uint32, identity WindowsDesktopIdentity, policy LocalDevelopmentProcessPolicy) (ProcessTuple, DesktopProcessLiveness, error) {
+	verifier := windowsLocalDevelopmentExecutableVerifier{projectRoot: policy.ProjectRoot, hostPath: policy.HostExecutablePath}
+	return verifyWindowsAppProcess(ctx, pid, identity, policy.HostExecutablePath, verifier, WindowsLocalDevelopmentTrustSetID, false)
+}
+
+func verifyWindowsAppProcess(ctx context.Context, pid uint32, identity WindowsDesktopIdentity, hostPath string, executableVerifier WindowsExecutableTrustVerifier, expectedTrustSetID string, requireNonElevated bool) (ProcessTuple, DesktopProcessLiveness, error) {
 	if err := ctx.Err(); err != nil || pid == 0 {
 		return ProcessTuple{}, nil, windowsPipeFailure("verify Windows local-development process", fmt.Errorf("live process and context are required: %w", err))
 	}
@@ -96,6 +101,13 @@ func verifyWindowsLocalDevelopmentProcess(ctx context.Context, pid uint32, ident
 		return ProcessTuple{}, nil, windowsPipeOperationFailure(WindowsPipeStageClientTokenOpen, "open Windows local-development process token", err)
 	}
 	observed, err := inspectWindowsDesktopToken(token, identity)
+	if err == nil && requireNonElevated {
+		var elevated uint32
+		elevated, err = readWindowsTokenUint32(token, windows.TokenElevation)
+		if err == nil && elevated != 0 {
+			err = fmt.Errorf("installed App process must be non-elevated")
+		}
+	}
 	_ = token.Close()
 	if err != nil {
 		return ProcessTuple{}, nil, err
@@ -104,8 +116,7 @@ func verifyWindowsLocalDevelopmentProcess(ctx context.Context, pid uint32, ident
 	if err != nil {
 		return ProcessTuple{}, nil, windowsPipeFailure("read Windows local-development process creation marker", err)
 	}
-	executableVerifier := windowsLocalDevelopmentExecutableVerifier{projectRoot: policy.ProjectRoot, hostPath: policy.HostExecutablePath}
-	evidence, trustSetID, err := verifyWindowsLockedExecutable(ctx, process, pid, creationMarker, WindowsExecutableRoleLocalApp, executableVerifier, WindowsLocalDevelopmentTrustSetID)
+	evidence, trustSetID, err := verifyWindowsLockedExecutable(ctx, process, pid, creationMarker, WindowsExecutableRoleLocalApp, executableVerifier, expectedTrustSetID)
 	if err != nil {
 		return ProcessTuple{}, nil, err
 	}
@@ -121,7 +132,7 @@ func verifyWindowsLocalDevelopmentProcess(ctx context.Context, pid uint32, ident
 		OSLoginSession:              observed.logonLUID,
 		SecurityPrincipal:           observed.userSID,
 		CanonicalExecutableIdentity: evidence.CanonicalFileIdentity,
-		CanonicalExecutablePath:     policy.HostExecutablePath,
+		CanonicalExecutablePath:     hostPath,
 		ExecutableDigest:            evidence.Digest,
 		ExecutableTrustSetID:        trustSetID,
 	}
@@ -200,7 +211,16 @@ func windowsPathWithinRoot(root string, candidate string) bool {
 }
 
 func (connection *WindowsDesktopPipeConnection) verifyAndBindLocalDevelopmentClientProcess(ctx context.Context, verifier LocalDevelopmentProcessVerifier, policy LocalDevelopmentProcessPolicy, expected ProcessTuple) (ProcessTuple, DesktopProcessLiveness, error) {
-	if connection == nil || connection.instance == nil || connection.clientPID == 0 || verifier == nil {
+	if verifier == nil {
+		return ProcessTuple{}, nil, fmt.Errorf("development process verifier is required")
+	}
+	return connection.verifyAndBindAppClientProcess(ctx, expected, func(ctx context.Context, pid uint32) (ProcessTuple, DesktopProcessLiveness, error) {
+		return verifier.VerifyLocalDevelopmentProcess(ctx, pid, policy)
+	})
+}
+
+func (connection *WindowsDesktopPipeConnection) verifyAndBindAppClientProcess(ctx context.Context, expected ProcessTuple, verify func(context.Context, uint32) (ProcessTuple, DesktopProcessLiveness, error)) (ProcessTuple, DesktopProcessLiveness, error) {
+	if connection == nil || connection.instance == nil || connection.clientPID == 0 || verify == nil {
 		return ProcessTuple{}, nil, windowsPipeFailure("verify Windows local-development pipe client", fmt.Errorf("connected pipe and verifier are required"))
 	}
 	connection.verificationMu.Lock()
@@ -208,7 +228,7 @@ func (connection *WindowsDesktopPipeConnection) verifyAndBindLocalDevelopmentCli
 	if connection.verifiedClientHealth != nil || connection.verifiedClient != (ProcessTuple{}) {
 		return ProcessTuple{}, nil, windowsPipeFailure("verify Windows local-development pipe client", fmt.Errorf("client process capability is already bound"))
 	}
-	process, liveness, err := verifier.VerifyLocalDevelopmentProcess(ctx, connection.clientPID, policy)
+	process, liveness, err := verify(ctx, connection.clientPID)
 	if err != nil {
 		return ProcessTuple{}, nil, err
 	}

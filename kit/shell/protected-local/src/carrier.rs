@@ -177,12 +177,8 @@ impl LocalAppReasonCode {
             Self::AgentPresentationAssetIntegrityMismatch => {
                 "agent-presentation-asset-integrity-mismatch"
             }
-            Self::AgentPresentationBackendIncompatible => {
-                "agent-presentation-backend-incompatible"
-            }
-            Self::AgentPresentationAssetNotValidated => {
-                "agent-presentation-asset-not-validated"
-            }
+            Self::AgentPresentationBackendIncompatible => "agent-presentation-backend-incompatible",
+            Self::AgentPresentationAssetNotValidated => "agent-presentation-asset-not-validated",
             Self::SnapshotUnavailable => "local-app-snapshot-unavailable",
             Self::AccessDenied => "local-app-access-denied",
             Self::OperationUnsupported => "local-app-operation-unsupported",
@@ -1234,6 +1230,61 @@ pub trait NimiDesktopControl: Send + Sync {
         &self,
         request: LocalDevelopmentEndRunRequest,
     ) -> Pin<Box<dyn Future<Output = Result<(), NimiHostError>> + Send + '_>>;
+
+    fn launch_installed_app(
+        &self,
+        _selector: Vec<u8>,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<crate::InstalledAppLaunchOutcome, NimiHostError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async {
+            Err(NimiHostError::new(
+                crate::NimiHostErrorReasonCode::LocalAppOperationUnavailable,
+                false,
+            ))
+        })
+    }
+    fn installed_app_run_access(
+        &self,
+        _launch_id: [u8; 32],
+    ) -> Pin<
+        Box<dyn Future<Output = Result<crate::InstalledAppRunAccess, NimiHostError>> + Send + '_>,
+    > {
+        Box::pin(async {
+            Err(NimiHostError::new(
+                crate::NimiHostErrorReasonCode::LocalAppOperationUnavailable,
+                false,
+            ))
+        })
+    }
+    fn complete_app_uninstall(
+        &self,
+        _job_id: Vec<u8>,
+        _selector: Vec<u8>,
+    ) -> Pin<Box<dyn Future<Output = Result<(), NimiHostError>> + Send + '_>> {
+        Box::pin(async {
+            Err(NimiHostError::new(
+                crate::NimiHostErrorReasonCode::LocalAppOperationUnavailable,
+                false,
+            ))
+        })
+    }
+
+    fn end_installed_app_run(
+        &self,
+        _launch_id: [u8; 32],
+    ) -> Pin<Box<dyn Future<Output = Result<(), NimiHostError>> + Send + '_>> {
+        Box::pin(async {
+            Err(NimiHostError::new(
+                crate::NimiHostErrorReasonCode::LocalAppOperationUnavailable,
+                false,
+            ))
+        })
+    }
 }
 
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-044

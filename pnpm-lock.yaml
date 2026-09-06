@@ -23,11 +23,14 @@ importers:
         version: 2.9.0
     devDependencies:
       '@nimiplatform/nimi-coding':
-        specifier: 0.6.1
-        version: 0.6.1
+        specifier: 0.6.2
+        version: 0.6.2
       '@protobuf-ts/plugin':
         specifier: 2.11.1
         version: 2.11.1
+      resedit:
+        specifier: 3.1.0
+        version: 3.1.0
 
   app-tools:
     dependencies:
@@ -334,8 +337,8 @@ importers:
         specifier: workspace:*
         version: link:../../app-tools
       '@nimiplatform/nimi-coding':
-        specifier: 0.6.1
-        version: 0.6.1
+        specifier: 0.6.2
+        version: 0.6.2
       '@tailwindcss/vite':
         specifier: ^4.3.3
         version: 4.3.3(vite@7.3.6(@types/node@24.13.3)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0))
@@ -665,7 +668,7 @@ importers:
         specifier: ^1.14.4
         version: 1.14.4
       '@nimiplatform/sdk':
-        specifier: workspace:^0.7.0
+        specifier: workspace:^0.8.0
         version: link:../sdks/typescript
       '@radix-ui/react-avatar':
         specifier: ^1.2.6
@@ -1868,8 +1871,8 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@nimiplatform/nimi-coding@0.6.1':
-    resolution: {integrity: sha512-EouOXkPsnmLCxE7xTbXtZoAk00yv9/jXhrb/N617mcRWyaeoQYhh0RQKYzXJBI6utJsUIPOvYs0jJ3TlZF3Zsg==}
+  '@nimiplatform/nimi-coding@0.6.2':
+    resolution: {integrity: sha512-8mFwjcF0tYJB3MeOlDdL7ZNfP6CixW8wJq0OircmnZGdhk7aZeMCZU5bpRGj2v2Q/b1Xqw4hy0qY+74vy1LcAQ==}
     engines: {node: '>=24.0.0', pnpm: '>=10.0.0'}
     hasBin: true
 
@@ -4478,6 +4481,10 @@ packages:
     resolution: {integrity: sha512-nh39Mo1eGWmZS7y+mK/dQIqg7S1lp38DpRxkyoHf0ZcUs/HDc+yyTjuOtTvSMZHmfSLuSQaX945u05Y2Q6UWZg==}
     engines: {node: '>=14', npm: '>=7'}
 
+  pe-library@2.0.1:
+    resolution: {integrity: sha512-/qjYFqNSlq59B5DI36am++5/3gMgh02QnzpYigrwrW6s+QpU0mHf09/iA4wjTu21UUxodyV7ZCetV5MiDhaN/A==}
+    engines: {node: '>=20'}
+
   perfect-debounce@1.0.0:
     resolution: {integrity: sha512-xCy9V055GLEqoFaHoC1SoLIaLmWctgCUaBaWxDZ7/Zx4CTyX7cJQLJOok/orfjZAh9kEYpjJa4d0KcJmCbctZA==}
 
@@ -4741,6 +4748,10 @@ packages:
   resedit@2.0.3:
     resolution: {integrity: sha512-oTeemxwoMuxxTYxXUwjkrOPfngTQehlv0/HoYFNkB4uzsP1Un1A9nI8JQKGOFkxpqkC7qkMs0lUsGrvUlbLNUA==}
     engines: {node: '>=14', npm: '>=7'}
+
+  resedit@3.1.0:
+    resolution: {integrity: sha512-i6CN8E6FzTpzsGq/oUnm2GTWhddpZEbnAE+zeNwqTppucTK7xd178q1xWEMrFb+nLnCh+geDqZ4QwhFN8VEgVQ==}
+    engines: {node: '>=20'}
 
   retry@0.12.0:
     resolution: {integrity: sha512-9LkiTwjUh6rT555DtE9rTX+BKByPfrMzEAtnlEtdEwr3Nkffwiihqe2bWADg+OQRjt9gl6ICdmB/ZFDCGAtSow==}
@@ -6383,7 +6394,7 @@ snapshots:
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
 
-  '@nimiplatform/nimi-coding@0.6.1':
+  '@nimiplatform/nimi-coding@0.6.2':
     dependencies:
       typescript: 5.9.3
       yaml: 2.9.0
@@ -9260,6 +9271,8 @@ snapshots:
 
   pe-library@1.0.1: {}
 
+  pe-library@2.0.1: {}
+
   perfect-debounce@1.0.0: {}
 
   picocolors@1.1.1: {}
@@ -9554,6 +9567,10 @@ snapshots:
   resedit@2.0.3:
     dependencies:
       pe-library: 1.0.1
+
+  resedit@3.1.0:
+    dependencies:
+      pe-library: 2.0.1
 
   retry@0.12.0: {}
 

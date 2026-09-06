@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { chmodSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -7,7 +7,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 
-import { buildAppProject } from '../lib/app-project-lifecycle.mjs';
+import { observeWindowsExecutableFacts } from '../lib/windows-powershell.mjs';
 
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const appToolsRoot = path.join(testDir, '..');
@@ -212,7 +212,7 @@ function writeExistingSubmittedApp(tempRoot, options = {}) {
   writeFileSync(path.join(target, 'scripts', 'owner-test.mjs'), 'process.stdout.write("owner test ran\\n");\n');
   writeFileSync(path.join(target, 'scripts', 'owner-build.mjs'), 'process.stdout.write("owner build ran\\n");\n');
   writeFileSync(path.join(target, '.nimi', 'config', 'build-profile.yaml'), [
-    'build_profile_ref: focused-test',
+    `build_profile_ref: ${options.buildProfileRef || 'tauri-pnpm-vite'}`,
     'test_command: node scripts/owner-test.mjs',
     'build_command: node scripts/owner-build.mjs',
     'targets:',
@@ -343,6 +343,39 @@ test('sync closes the former unknown-command path and only normalizes submitted 
   }
 });
 
+test('Electron lifecycle sync and check do not require or rewrite optional Tauri source and Cargo state', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-project-electron-lifecycle-'));
+  const target = writeExistingSubmittedApp(tempRoot, {
+    buildProfileRef: 'electron-packager-pnpm-vite',
+  });
+  const env = fakeNimicodingEnv(tempRoot);
+  rmSync(path.join(target, 'src-tauri'), { recursive: true, force: true });
+  try {
+    let result = runCli(['sync', '--dir', target, '--json'], tempRoot, env);
+    assert.equal(result.status, 0, result.stderr);
+    const synced = JSON.parse(result.stdout);
+    assert.equal(synced.managed, false);
+    assert.equal(synced.synchronizedFiles.some((entry) => entry.startsWith('src-tauri/')), false);
+    assert.deepEqual(synced.nextSteps, ['pnpm install', 'nimi-app sync', 'nimi-app check']);
+    assert.equal(existsSync(path.join(target, 'src-tauri')), false);
+
+    const identity = parseYaml(readFileSync(path.join(target, '.nimi', 'config', 'app-identity.yaml'), 'utf8'));
+    const submission = parseYaml(readFileSync(path.join(target, '.nimi', 'admission', 'submission.yaml'), 'utf8'));
+    assert.equal(identity.cargo_package_name, 'focused-existing-app-shell');
+    assert.equal(identity.tauri_identifier, 'ai.nimi.apps.focused.existing');
+    assert.equal(submission.cargo_package_name, identity.cargo_package_name);
+    assert.equal(submission.tauri_identifier, identity.tauri_identifier);
+
+    writePublicRegistryLock(target);
+    result = runCli(['check', '--dir', target, '--production', '--json'], tempRoot, env);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout).production, true);
+    assert.equal(existsSync(path.join(target, 'src-tauri')), false);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
 test('check is read-only and rejects non-registry Nimi dependencies until sync normalizes them', () => {
   const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-project-check-'));
   const target = writeExistingSubmittedApp(tempRoot, { packageManager: versions.packageManager });
@@ -446,29 +479,85 @@ test('test and build dispatch only the App-declared owner commands', () => {
   }
 });
 
-test('production build signs the exact Runtime entry inside a directory payload', () => {
-  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-owner-sign-target-'));
-  const target = writeExistingSubmittedApp(tempRoot);
+test('production build validates the exact Runtime entry without signing or certificate credentials', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-owner-production-target-'));
+  const target = writeExistingSubmittedApp(tempRoot, {
+    buildProfileRef: 'electron-packager-pnpm-vite',
+  });
   mkdirSync(path.join(target, 'build', 'windows'), { recursive: true });
-  writeFileSync(path.join(target, 'build', 'windows', 'focused-existing.exe'), 'signed target');
-  let observed = null;
+  const runtimeEntry = path.join(target, 'build', 'windows', 'focused-existing.exe');
+  const publisherOutput = Buffer.from('publisher-owned production target');
+  writeFileSync(runtimeEntry, publisherOutput);
+  const env = { ...process.env };
+  delete env.WINDOWS_CERTIFICATE_BASE64;
+  delete env.WINDOWS_CERTIFICATE_PASSWORD;
   try {
-    buildAppProject(tempRoot, {
-      dir: target,
-      target: 'windows-x86_64',
-      production: true,
-      json: true,
-    }, {
-      runAppCommand: () => ({ status: 0, stdout: '', stderr: '' }),
-      signWindowsTarget: (root, relativePath) => {
-        observed = { root, relativePath };
-      },
-    });
-    assert.deepEqual(observed, {
-      root: target,
-      relativePath: 'build/windows/focused-existing.exe',
-    });
+    const result = runCli([
+      'build', '--dir', target, '--target', 'windows-x86_64', '--production', '--json',
+    ], tempRoot, env);
+    assert.equal(result.status, 0, result.stderr);
+    const payload = JSON.parse(result.stdout);
+    assert.equal(payload.command, 'build');
+    assert.equal(payload.target, 'windows-x86_64');
+    assert.match(payload.stdout, /owner build ran/u);
+    assert.deepEqual(readFileSync(runtimeEntry), publisherOutput);
+
+    rmSync(runtimeEntry);
+    writeFileSync(path.join(target, 'build', 'windows', 'different.exe'), publisherOutput);
+    const missingExactEntry = runCli([
+      'build', '--dir', target, '--target', 'windows-x86_64', '--production', '--json',
+    ], tempRoot, env);
+    assert.notEqual(missingExactEntry.status, 0);
+    assert.match(jsonErrorMessage(missingExactEntry), /Production Runtime entry is missing or noncanonical/u);
+
+    const signingOwnerSources = [
+      readFileSync(path.join(appToolsRoot, 'lib', 'app-project-lifecycle.mjs'), 'utf8'),
+      readFileSync(path.join(appToolsRoot, 'lib', 'index.mjs'), 'utf8'),
+      readFileSync(path.join(appToolsRoot, 'lib', 'windows-powershell.mjs'), 'utf8'),
+    ].join('\n');
+    assert.doesNotMatch(signingOwnerSources, /WINDOWS_CERTIFICATE_BASE64|WINDOWS_CERTIFICATE_PASSWORD|NIMI_APP_SIGN_TARGET|Import-PfxCertificate|signtool(?:\.exe)?|signWindowsTarget/iu);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
+});
+
+test('lifecycle commands reject unknown build profile refs before dispatching an owner command', () => {
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-owner-profile-ref-'));
+  const target = writeExistingSubmittedApp(tempRoot, { buildProfileRef: 'unknown-packager' });
+  try {
+    const result = runCli(['build', '--dir', target, '--target', 'windows-x86_64', '--json'], tempRoot, process.env);
+    assert.notEqual(result.status, 0);
+    assert.match(jsonErrorMessage(result), /build_profile_ref is unsupported: unknown-packager/u);
+    assert.doesNotMatch(result.stdout, /owner build ran/u);
+  } finally {
+    rmSync(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('Windows executable observer reads the exact embedded asInvoker profile and signature facts', {
+  skip: process.platform !== 'win32' || process.arch !== 'x64',
+}, () => {
+  const windowsRoot = process.env.SystemRoot || process.env.WINDIR;
+  assert.ok(windowsRoot, 'Windows root is unavailable');
+  const executablePath = path.join(windowsRoot, 'System32', 'cmd.exe');
+  const observed = observeWindowsExecutableFacts(executablePath);
+  assert.deepEqual(observed.execution_profile, {
+    requested_execution_level: 'asInvoker',
+    ui_access: false,
+  });
+  assert.equal(observed.authenticode.status, 'Valid');
+  assert.equal(observed.authenticode.signature_type, 'Catalog');
+  assert.equal(typeof observed.authenticode.certificate_subject, 'string');
+  assert.ok(observed.authenticode.certificate_subject.length > 0);
+});
+
+test('Windows executable observer rejects an elevation-capable embedded manifest', {
+  skip: process.platform !== 'win32' || process.arch !== 'x64',
+}, () => {
+  const windowsRoot = process.env.SystemRoot || process.env.WINDIR;
+  assert.ok(windowsRoot, 'Windows root is unavailable');
+  assert.throws(
+    () => observeWindowsExecutableFacts(path.join(windowsRoot, 'regedit.exe')),
+    /requestedExecutionLevel=asInvoker and uiAccess=false/u,
+  );
 });

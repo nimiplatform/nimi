@@ -45,7 +45,7 @@ func TestFormalAppReleaseRegistrationUsesCanonicalDeclarationInput(t *testing.T)
 	t.Cleanup(func() { _ = kernel.Close() })
 	release := FormalAppRelease{
 		AppID: "nimi.desktop", DisplayName: "Nimi Desktop", SourceRef: "platform-release:nimi.desktop:1",
-		InstallRoot: "C:/Program Files/Nimi", ManifestRef: "platform-release-manifest:nimi.desktop:1", ShellKind: 1,
+		InstallRoot: "C:/Program Files/Nimi", ManifestRef: "platform-release-manifest:nimi.desktop:1",
 		Declaration:        []string{"runtime.consume", "agent.local", "future.inert"},
 		ImmutableLineageID: "lineage:desktop:1", ProvenanceAttestationRefs: []string{"attestation:desktop:1"},
 		ProvenanceRevision: 1, ExecutionProfileRef: "execution:desktop", PayloadRootDigest: "release-payload-digest:desktop:1",
@@ -198,7 +198,7 @@ func TestManifestFormalAppReleaseResolverUsesManifestDeclarationAndPayload(t *te
 		t.Fatal(err)
 	}
 	if release.AppID != "nimi.avatar" || release.DisplayName != "Nimi Avatar" ||
-		release.SourceRef != "platform-app:nimi.avatar" || release.ShellKind != 1 ||
+		release.SourceRef != "platform-app:nimi.avatar" ||
 		!containsAll(release.Declaration, "agent.local", "agent.configure") ||
 		strings.TrimSpace(release.ImmutableLineageID) == "" || len(release.ProvenanceAttestationRefs) == 0 ||
 		release.ProvenanceRevision == 0 || strings.TrimSpace(release.ExecutionProfileRef) == "" || strings.TrimSpace(release.PayloadRootDigest) == "" ||

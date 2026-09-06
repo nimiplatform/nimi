@@ -97,6 +97,9 @@ func TestInstalledBindingSlotReopensOnlyCurrentHost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if first.ShellKind != 0 {
+		t.Fatalf("verified installed registration retained Developer Mode shell kind: %d", first.ShellKind)
+	}
 	if err := firstKernel.Close(); err != nil {
 		t.Fatal(err)
 	}
@@ -424,7 +427,7 @@ func installedInput() RegisterInstalledInput {
 	return RegisterInstalledInput{
 		AppID: "nimi.desktop", DisplayName: "Nimi Desktop", SourceRef: "formal-release:nimi.desktop",
 		ProjectRoot: "C:/Program Files/Nimi/Nimi.exe", ManifestPath: "formal-release-manifest:nimi.desktop",
-		ShellKind: 1, RawDeclaration: []string{"runtime.consume", "agent.local"}, SourceClass: SourceClassVerified,
+		RawDeclaration: []string{"runtime.consume", "agent.local"}, SourceClass: SourceClassVerified,
 		ImmutableLineageID: "lineage:installed:one", ProvenanceAttestationRefs: []string{"attestation:installed:one"},
 		ProvenanceRevision: 1, ExecutionProfileRef: "execution:installed:one",
 		HostExecutableDigest: "host:installed:one", PayloadRootDigest: "payload:installed:one",

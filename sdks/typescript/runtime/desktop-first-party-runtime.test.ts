@@ -39,11 +39,17 @@ test('Desktop protected Host runtime does not expose an App Product Plane client
   assert.equal(calls.length, 0);
 });
 
-test('Desktop machine product exposes only the protected App package read and cancel facade', async () => {
+test('Desktop machine product exposes Catalog and package intents without native completion', async () => {
   const calls: CoreUnaryRequest[] = [];
   const transport: CoreTransport = {
     async unary<Response>(request: CoreUnaryRequest): Promise<Response> {
       calls.push(request);
+      if (request.methodId.endsWith('/ListApprovedAppCatalogTargets')) {
+        return { targets: [], reasonCode: 1 } as Response;
+      }
+      if (request.methodId.endsWith('/StartAppPackageInstall') || request.methodId.endsWith('/StartAppPackageUninstall')) {
+        return { job: { jobId: Uint8Array.from([1]), phase: AppPackageJobPhase.QUEUED }, reasonCode: 1 } as Response;
+      }
       if (request.methodId.endsWith('/ListCommittedAppReleases')) {
         return { releases: [], reasonCode: 1 } as Response;
       }
@@ -68,8 +74,18 @@ test('Desktop machine product exposes only the protected App package read and ca
     'cancelAppPackageJob',
     'getAppPackageJob',
     'listAppPackageJobs',
+    'listApprovedAppCatalogTargets',
     'listCommittedAppReleases',
+    'startAppPackageInstall',
+    'startAppPackageUninstall',
   ]);
+  const approvedTargetSelector = Uint8Array.from([4, 8, 15, 16, 23, 42]);
+  await clients.machineProduct.apps.listApprovedAppCatalogTargets({});
+  await clients.machineProduct.apps.startAppPackageInstall({ approvedTargetSelector });
+  assert.deepEqual(calls[1]?.body, { approvedTargetSelector });
+  const launchSelector = Uint8Array.from([17, 29, 37]);
+  await clients.machineProduct.apps.startAppPackageUninstall({ launchSelector });
+  assert.deepEqual(calls[2]?.body, { launchSelector });
   await clients.machineProduct.apps.listCommittedAppReleases({});
   await clients.machineProduct.apps.listAppPackageJobs({});
   await clients.machineProduct.apps.getAppPackageJob({ jobId: Uint8Array.from([1]) });
@@ -80,6 +96,9 @@ test('Desktop machine product exposes only the protected App package read and ca
   });
 
   assert.deepEqual(calls.map((call) => call.methodId), [
+    '/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets',
+    '/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall',
+    '/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall',
     '/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases',
     '/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs',
     '/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob',

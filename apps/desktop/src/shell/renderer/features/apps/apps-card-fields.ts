@@ -90,6 +90,7 @@ export type AppRunVisualState = 'running' | 'starting' | 'stopped' | 'failed';
  */
 const FAILED_RUN_STATES = Object.freeze([
   'failed',
+  'crashed',
   'build-failed',
   'cleanup-failed',
   'registration-unavailable',
@@ -136,8 +137,8 @@ export function appPackagePhaseLocaleKey(job: AppPackageJob): AppPackagePhaseLoc
   switch (job.phase) {
     case AppPackageJobPhase.QUEUED: return 'queued';
     case AppPackageJobPhase.DOWNLOADING:
+    case AppPackageJobPhase.READING_LOCAL:
     case AppPackageJobPhase.ACQUIRING_MISSING: return 'download';
-    case AppPackageJobPhase.READING_LOCAL: return 'resolve_descriptor';
     case AppPackageJobPhase.VERIFYING:
     case AppPackageJobPhase.VERIFYING_INSTALLED: return 'verify';
     case AppPackageJobPhase.STAGING: return 'materialize';

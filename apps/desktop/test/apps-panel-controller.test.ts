@@ -1,9 +1,11 @@
+import { createAppsInstallIntentController } from '../src/shell/renderer/features/apps/apps-install-intent.js';
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { readFileSync } from 'node:fs';
 import {
   applyAppsPanelAIConfigAcknowledgement,
   assertAppsAction,
+  requestAppsInstallFromDetail,
 } from '../src/shell/renderer/features/apps/apps-panel-controller.js';
 import type {
   DesktopAppsEntry,
@@ -12,6 +14,8 @@ import type {
 import type { NimiAIConfigOverwriteResult } from '@nimiplatform/kit/core/sdk-contract';
 import {
   actionPlanForEntry,
+  canRequestCatalogInstall,
+  canRequestUninstall,
   actionPlanForLocalDevelopmentEntry,
 } from '../src/shell/renderer/features/apps/apps-card-actions.js';
 import {
@@ -26,6 +30,7 @@ import {
   AppPackageTerminalResult,
   ReasonCode,
   type AppPackageJob,
+  type ApprovedAppCatalogTarget,
 } from '@nimiplatform/sdk/runtime/wire-types';
 
 describe('Desktop Apps controller action boundary', () => {
@@ -39,22 +44,61 @@ describe('Desktop Apps controller action boundary', () => {
 
   it('fails closed if an untyped lifecycle action reaches the controller', () => {
     const unsafe = assertAppsAction as unknown as (action: string) => void;
-    assert.throws(() => unsafe('install'), /Unsupported Apps action/);
     assert.throws(() => unsafe('update'), /Unsupported Apps action/);
     assert.throws(() => unsafe('repair'), /Unsupported Apps action/);
   });
 
   it('keeps non-development entries browse-only until installed lifecycle actions exist', () => {
-    assert.deepEqual(actionPlanForEntry({ localDevelopment: null, packageJob: null, run: null }), {
+    assert.deepEqual(actionPlanForEntry({ catalogTarget: null, committedRelease: null, localDevelopment: null, packageJob: null, run: null }), {
       primary: null,
       secondary: [{ id: 'details' }],
     });
   });
 
+  it('keeps Catalog cards browse-only and enables install only from eligible detail facts', () => {
+    const installable = {
+      catalogTarget: { policyBlocked: false }, committedRelease: null, localDevelopment: null, packageJob: null, run: null,
+    };
+    assert.equal(actionPlanForEntry(installable).primary, null);
+    assert.equal(canRequestCatalogInstall(installable), true);
+    assert.equal(canRequestCatalogInstall({
+      catalogTarget: { policyBlocked: true }, committedRelease: null, localDevelopment: null, packageJob: null, run: null,
+    }), false);
+    assert.equal(canRequestCatalogInstall({
+      catalogTarget: { policyBlocked: false }, committedRelease: null, localDevelopment: null,
+      packageJob: { cancelable: false, phase: AppPackageJobPhase.COMMITTING }, run: null,
+    }), false);
+  });
+
+  it('composes detail Install with the exact unsigned intent controller without a product SDK port', async () => {
+    const target = {
+      approvedTargetSelector: new Uint8Array([1, 2, 3]), observedRegistryRevision: 'a'.repeat(40),
+      descriptorId: 'publisher.example@1.0.0', appId: 'publisher.example', displayName: 'Example App', version: '1.0.0',
+      publisherGithubNamespace: 'publisher', targetId: 'windows-x86_64', os: 'windows', arch: 'x86_64',
+      assetName: 'example.nimiapp', assetSize: '42', windowsCodeSigning: 'unsigned', policyBlocked: false, policyRevision: '0',
+    } as ApprovedAppCatalogTarget;
+    const entry: DesktopAppsEntry = {
+      identity: { entryKey: 'verified:publisher.example', appId: target.appId, sourceClass: 'verified', displayName: target.displayName, updatedAtUnixMs: 0 },
+      catalogTarget: target, localDevelopment: null, committedRelease: null, packageJob: null, run: null, aiConfigSummary: null, iconUrl: null, summary: null,
+    };
+    const starts: Uint8Array[] = [];
+    const controller = createAppsInstallIntentController({
+      startInstall: async (selector) => { starts.push(selector); return { kind: 'started' }; },
+      refresh: () => undefined,
+    });
+    const requested = await requestAppsInstallFromDetail(entry, controller);
+    assert.equal(requested.kind, 'confirmation-required');
+    assert.equal(starts.length, 0);
+    await controller.confirm();
+    assert.deepEqual(starts.map((selector) => [...selector]), [[1, 2, 3]]);
+  });
+
   it('exposes cancel only for a Runtime-cancelable package job', () => {
     const cancelable = actionPlanForEntry({
+      catalogTarget: null,
       localDevelopment: null,
-      packageJob: { cancelable: true },
+      committedRelease: null,
+      packageJob: { cancelable: true, phase: AppPackageJobPhase.DOWNLOADING },
       run: null,
     });
     assert.deepEqual(cancelable.secondary.map((action) => action.id), ['details', 'cancel-job']);
@@ -146,6 +190,7 @@ describe('Desktop Apps controller action boundary', () => {
         displayName: 'Example Shared',
         updatedAtUnixMs: 1,
       },
+      catalogTarget: null,
       localDevelopment: null,
       committedRelease: null,
       packageJob: null,
@@ -181,4 +226,15 @@ describe('Desktop Apps controller action boundary', () => {
     assert.equal(acknowledged.entries[1], verified);
     assert.equal(acknowledged.entries[2], imported);
   });
+});
+
+it('limits the current installed lifecycle to verified packages without promoting local imports', () => {
+  const entry = { catalogTarget: null, committedRelease: { sourceClass: AppPackageSourceClass.USER_IMPORTED }, localDevelopment: null, packageJob: null, run: null };
+  assert.equal(actionPlanForEntry(entry).primary, null);
+  assert.equal(canRequestCatalogInstall(entry), false);
+  assert.equal(canRequestUninstall(entry), false);
+  const verified = { ...entry, committedRelease: { sourceClass: AppPackageSourceClass.VERIFIED } };
+  assert.equal(actionPlanForEntry(verified).primary?.id, 'launch');
+  assert.equal(canRequestUninstall(verified), true);
+  assert.deepEqual(actionPlanForEntry({ ...verified, run: { state: 'running' } }).secondary.map((action) => action.id), ['details', 'stop']);
 });

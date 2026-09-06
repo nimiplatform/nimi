@@ -17,6 +17,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
+	"github.com/nimiplatform/nimi/runtime/internal/nimiappinstall"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
@@ -136,6 +137,8 @@ type Service struct {
 	perUserRuntimeRebind       bool
 	localDevelopmentArtifacts  runtimeartifactservice.Store
 	localAppKernel             *localappkernel.Kernel
+	approvedAppCatalog         ApprovedAppCatalogProvider
+	appInstallCoordinator      *nimiappinstall.Coordinator
 	formalAppReleaseResolver   FormalAppReleaseResolver
 	localAppStorageMu          sync.RWMutex
 	localAppAssetStoreOnce     sync.Once
@@ -148,6 +151,8 @@ type Service struct {
 	localAppSessionTTL         time.Duration
 	localAppRuntimeGeneration  uint64
 	installedAppRegistrationMu sync.Mutex
+	installedLaunchMu          sync.Mutex
+	installedLaunches          map[protectedlocal.Identifier]*installedAppLaunch
 	formalAppMu                sync.Mutex
 	formalApps                 map[formalAppConnectionKey]*formalAppBinding
 }
@@ -210,6 +215,18 @@ func WithPerUserRuntimeRebind(enabled bool) Option {
 func WithLocalAppKernel(kernel *localappkernel.Kernel) Option {
 	return func(s *Service) {
 		s.localAppKernel = kernel
+	}
+}
+
+func WithApprovedAppCatalogProvider(provider ApprovedAppCatalogProvider) Option {
+	return func(s *Service) {
+		s.approvedAppCatalog = provider
+	}
+}
+
+func WithAppInstallCoordinator(coordinator *nimiappinstall.Coordinator) Option {
+	return func(s *Service) {
+		s.appInstallCoordinator = coordinator
 	}
 }
 

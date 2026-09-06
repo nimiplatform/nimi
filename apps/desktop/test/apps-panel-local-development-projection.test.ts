@@ -9,6 +9,7 @@ import {
   AppPackageProgressBasis,
   AppPackageSourceClass,
   AppPackageTerminalResult,
+  type ApprovedAppCatalogTarget,
   type AppPackageJob,
   type CommittedAppRelease,
 } from '@nimiplatform/sdk/runtime/wire-types';
@@ -47,29 +48,57 @@ function job(sourceClass: AppPackageSourceClass, phase = AppPackageJobPhase.DOWN
   };
 }
 
+function catalogTarget(overrides: Partial<ApprovedAppCatalogTarget> = {}): ApprovedAppCatalogTarget {
+  return {
+    approvedTargetSelector: new Uint8Array([1, 2, 3]), observedRegistryRevision: 'a'.repeat(40),
+    descriptorId: 'example.shared@2.0.0', appId: 'example.shared', displayName: 'Example Catalog App', version: '2.0.0',
+    publisherGithubNamespace: 'publisher', sourceRepository: 'https://github.com/publisher/example.shared', sourceLicenseSpdxExpression: 'MIT', appAccess: ['runtime.consume'],
+    capabilityContractRefs: [], requiredStandardizedFeatureRefs: [], storagePolicyKind: 'nimi-mediated-default', osStorageDisclosures: [],
+    targetId: 'windows-x86_64', os: 'windows', arch: 'x86_64', assetName: 'example.shared-2.0.0-windows-x86_64.nimiapp',
+    assetSize: '42', executionProfileRef: 'windows-user-mode-as-invoker-v1', windowsCodeSigning: 'unsigned', policyBlocked: false, policyRevision: '0',
+    ...overrides,
+  };
+}
+
 const emptyLocal = {
   listRegistrations: async () => [] as LocalDevelopmentRegistration[],
   listRuns: async () => [] as LocalDevelopmentRun[],
 };
 
 describe('Desktop Apps source-qualified projection', () => {
-  it('keeps local-development, verified, and user-imported rows distinct for one appId', async () => {
+  it('keeps local-development and verified rows distinct for one appId', async () => {
     const projection = await projectAppsPanel({
       listRegistrations: async () => [registration()], listRuns: async () => [run()],
-      listCommittedReleases: async () => [
-        release(AppPackageSourceClass.VERIFIED, '1.0.0'),
-        release(AppPackageSourceClass.USER_IMPORTED, '2.0.0'),
-      ],
-      listPackageJobs: async () => [job(AppPackageSourceClass.VERIFIED), job(AppPackageSourceClass.USER_IMPORTED)],
+      listCommittedReleases: async () => [release(AppPackageSourceClass.VERIFIED, '1.0.0')],
+      listPackageJobs: async () => [job(AppPackageSourceClass.VERIFIED)],
     });
     assert.equal(projection.status, 'loaded');
     if (projection.status !== 'loaded') return;
     assert.equal(projection.catalogStatus, 'not-implemented');
-    assert.deepEqual(projection.entries.map((entry) => entry.identity.sourceClass).sort(), ['local_development', 'user_imported', 'verified']);
-    assert.equal(new Set(projection.entries.map((entry) => entry.identity.entryKey)).size, 3);
+    assert.deepEqual(projection.entries.map((entry) => entry.identity.sourceClass).sort(), ['local_development', 'verified']);
+    assert.equal(new Set(projection.entries.map((entry) => entry.identity.entryKey)).size, 2);
     assert.equal(projection.entries.find((entry) => entry.identity.sourceClass === 'local_development')?.run?.state, 'running');
     assert.equal(projection.entries.find((entry) => entry.identity.sourceClass === 'verified')?.committedRelease?.version, '1.0.0');
-    assert.equal(projection.entries.find((entry) => entry.identity.sourceClass === 'user_imported')?.committedRelease?.version, '2.0.0');
+  });
+
+  it('merges one Catalog target with the same verified lifecycle row without collapsing Developer Mode', async () => {
+    const target = catalogTarget();
+    const projection = await projectAppsPanel({
+      listApprovedCatalogTargets: async () => [target],
+      listRegistrations: async () => [registration()], listRuns: async () => [run()],
+      listCommittedReleases: async () => [release(AppPackageSourceClass.VERIFIED, '2.0.0')],
+      listPackageJobs: async () => [],
+    });
+    assert.equal(projection.status, 'loaded');
+    if (projection.status !== 'loaded') return;
+    assert.equal(projection.catalogStatus, 'loaded');
+    assert.equal(projection.entries.length, 2);
+    const verified = projection.entries.find((entry) => entry.identity.sourceClass === 'verified');
+    assert.equal(verified?.identity.displayName, 'Example Catalog App');
+    assert.equal(verified?.catalogTarget?.descriptorId, 'example.shared@2.0.0');
+    assert.equal(verified?.committedRelease?.version, '2.0.0');
+    target.approvedTargetSelector[0] = 9;
+    assert.deepEqual([...(verified?.catalogTarget?.approvedTargetSelector ?? [])], [1, 2, 3]);
   });
 
   it('joins same-app local-development runs only by exact selector', async () => {
@@ -89,12 +118,12 @@ describe('Desktop Apps source-qualified projection', () => {
     if (projection.status !== 'loaded') return;
     const first = projection.entries.find((entry) => entry.localDevelopment?.selector === 'dev-example-shared');
     const other = projection.entries.find((entry) => entry.localDevelopment?.selector === 'dev-example-shared-second');
-    assert.equal(first?.run?.selector, 'dev-example-shared');
+    assert.equal(first?.run && 'selector' in first.run ? first.run.selector : undefined, 'dev-example-shared');
     assert.equal(other?.run, null);
   });
 
-  it('permits one active job per source and rejects duplicates only within that source', async () => {
-    const allowed = await projectAppsPanel({ ...emptyLocal, listCommittedReleases: async () => [], listPackageJobs: async () => [job(AppPackageSourceClass.VERIFIED), job(AppPackageSourceClass.USER_IMPORTED)] });
+  it('permits one verified active job and rejects duplicates', async () => {
+    const allowed = await projectAppsPanel({ ...emptyLocal, listCommittedReleases: async () => [], listPackageJobs: async () => [job(AppPackageSourceClass.VERIFIED)] });
     assert.equal(allowed.status, 'loaded');
     const conflict = await projectAppsPanel({ ...emptyLocal, listCommittedReleases: async () => [], listPackageJobs: async () => [job(AppPackageSourceClass.VERIFIED), job(AppPackageSourceClass.VERIFIED, AppPackageJobPhase.VERIFYING)] });
     assert.equal(conflict.status, 'error');
@@ -102,13 +131,39 @@ describe('Desktop Apps source-qualified projection', () => {
   });
 
   it('projects installed rows without fabricating catalog or running truth', async () => {
-    const projection = await projectAppsPanel({ ...emptyLocal, listCommittedReleases: async () => [release(AppPackageSourceClass.USER_IMPORTED, '2.0.0')], listPackageJobs: async () => [] });
+    const projection = await projectAppsPanel({ ...emptyLocal, listCommittedReleases: async () => [release(AppPackageSourceClass.VERIFIED, '2.0.0')], listPackageJobs: async () => [] });
     assert.equal(projection.status, 'loaded');
     if (projection.status !== 'loaded') return;
-    assert.equal(projection.entries[0]?.identity.entryKey, desktopAppsEntryKey('example.shared', 'user_imported'));
+    assert.equal(projection.entries[0]?.identity.entryKey, desktopAppsEntryKey('example.shared', 'verified'));
     assert.equal(projection.entries[0]?.localDevelopment, null);
     assert.equal(projection.entries[0]?.run, null);
     assert.equal(projection.entries[0]?.aiConfigSummary, null);
+  });
+
+  it('keeps imported, verified and development sources independent for the same app', async () => {
+    const projection = await projectAppsPanel({
+      ...emptyLocal,
+      listRegistrations: async () => [registration()],
+      listApprovedCatalogTargets: async () => [catalogTarget()],
+      listCommittedReleases: async () => [release(AppPackageSourceClass.VERIFIED, '2.0.0'), release(AppPackageSourceClass.USER_IMPORTED, '1.0.0')],
+      listPackageJobs: async () => [],
+    });
+    assert.equal(projection.status, 'loaded');
+    if (projection.status !== 'loaded') return;
+    assert.deepEqual(projection.entries.map((entry) => entry.identity.sourceClass).sort(), ['local_development', 'user_imported', 'verified']);
+    const imported = projection.entries.find((entry) => entry.identity.sourceClass === 'user_imported');
+    assert.equal(imported?.catalogTarget, null);
+    assert.equal(imported?.committedRelease?.version, '1.0.0');
+  });
+
+  it('fails closed on the unknown package source wire value', async () => {
+    const projection = await projectAppsPanel({
+      ...emptyLocal,
+      listCommittedReleases: async () => [release(99 as AppPackageSourceClass, '2.0.0')],
+      listPackageJobs: async () => [],
+    });
+    assert.equal(projection.status, 'error');
+    if (projection.status === 'error') assert.match(projection.detail, /unsupported Runtime App package source: 99/iu);
   });
 
   it('marks catalog search unimplemented instead of calling Realm or returning fake rows', async () => {

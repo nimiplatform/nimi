@@ -7,6 +7,7 @@ import {
   BookOpen,
   Check,
   Copy,
+  Download,
   FolderOpen,
   Info,
   MoreHorizontal,
@@ -36,6 +37,8 @@ import {
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
 import {
   actionPlanForEntry,
+  canRequestCatalogInstall,
+  canRequestUninstall,
   type AppCardActionId,
 } from './apps-card-actions.js';
 import { appRunVisualState, appSourceForEntry } from './apps-card-fields.js';
@@ -431,6 +434,9 @@ function InstalledAppsDetailView({
 }: AppsDetailViewProps): ReactElement {
   const { t } = useTranslation();
   const release = entry.committedRelease;
+  const catalog = entry.catalogTarget;
+  const installedRun = entry.run && 'accessAvailable' in entry.run ? entry.run : null;
+  const [confirmingUninstall, setConfirmingUninstall] = useState(false);
 
   return (
     <div data-testid="apps-detail-body" data-installed-detail className="flex min-h-0 flex-1 flex-col">
@@ -466,9 +472,68 @@ function InstalledAppsDetailView({
             <div className="mt-2.5">
               <AppPackageStatusLine entry={entry} />
             </div>
-            <InlineAlert tone="info" className="mt-3" data-testid="apps-installed-launch-unavailable">
-              {t('Apps.installedLaunchUnavailable')}
-            </InlineAlert>
+            {catalog?.policyBlocked ? (
+              <InlineAlert tone="danger" className="mt-3" data-testid="apps-catalog-policy-blocked">
+                {t('Apps.catalog.policyBlocked', {
+                  reason: catalog.policyReason ?? t('Apps.catalog.policyBlockedFallback'),
+                  revision: catalog.policyRevision,
+                })}
+              </InlineAlert>
+            ) : catalog ? (
+              <InlineAlert tone="info" className="mt-3" data-testid="apps-catalog-approved">
+                {t('Apps.catalog.registryApproved')}
+              </InlineAlert>
+            ) : null}
+            {release ? (
+              <div className="mt-3 space-y-3" data-testid="apps-installed-run">
+                <div className="flex flex-wrap items-center gap-3">
+                  <AppRunStatusBadge entry={entry} />
+                  <span className="text-sm" data-testid="apps-installed-access">
+                    {t(installedRun?.accessAvailable ? 'Apps.installedAccess.ready' : 'Apps.installedAccess.unavailable')}
+                  </span>
+                </div>
+                {installedRun?.message ? <InlineAlert tone="danger">{installedRun.message}</InlineAlert> : null}
+                <div className="flex gap-2">
+                  {actionPlanForEntry(entry).primary ? (
+                    <Button tone="primary" size="sm" data-testid="apps-installed-launch"
+                      loading={activeAction === 'launch'} disabled={activeAction !== null} onClick={() => onAction('launch')}>
+                      {t(installedRun?.state === 'running' ? 'Apps.action.focus' : 'Apps.action.launch')}
+                    </Button>
+                  ) : null}
+                  {installedRun?.state === 'running' ? (
+                    <Button tone="secondary" size="sm" data-testid="apps-installed-stop"
+                      loading={activeAction === 'stop'} disabled={activeAction !== null} onClick={() => onAction('stop')}>
+                      {t('Apps.action.stop')}
+                    </Button>
+                  ) : null}
+                  {canRequestUninstall(entry) ? (
+                    <Button tone="danger" size="sm" data-testid="apps-installed-uninstall" disabled={activeAction !== null}
+                      loading={activeAction === 'uninstall'} onClick={() => setConfirmingUninstall(true)}>
+                      {t('Apps.action.uninstall')}
+                    </Button>
+                  ) : null}
+                </div>
+                <ConfirmDialog open={confirmingUninstall} title={t('Apps.confirm.uninstall.title')}
+                  message={t('Apps.confirm.uninstall.message', { app: entry.identity.displayName })}
+                  confirmLabel={t('Apps.action.uninstall')} cancelLabel={t('Common.cancel')} confirmTone="danger"
+                  pending={activeAction === 'uninstall'} onClose={() => setConfirmingUninstall(false)}
+                  onConfirm={() => { setConfirmingUninstall(false); onAction('uninstall'); }} />
+              </div>
+            ) : null}
+            {canRequestCatalogInstall(entry) ? (
+              <Button
+                data-testid="apps-detail-install"
+                tone="primary"
+                size="sm"
+                className="mt-3"
+                loading={activeAction === 'install'}
+                disabled={activeAction !== null}
+                onClick={() => onAction('install')}
+              >
+                <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+                {t('Apps.action.install')}
+              </Button>
+            ) : null}
             {entry.packageJob?.cancelable ? (
               <Button
                 data-testid="apps-detail-cancel-job"
@@ -497,9 +562,31 @@ function InstalledAppsDetailView({
           <OverviewCard title={t('Apps.detail.aboutTitle')}>
             <dl className="divide-y divide-[color:var(--nimi-border-subtle)]">
               <DetailRow label={t('LocalDevelopment.field.app')} value={entry.identity.appId} mono />
-              <DetailRow label={t('Apps.detail.source')} value={t(`Apps.sourceBadge.${entry.identity.sourceClass === 'user_imported' ? 'userImported' : 'verified'}`)} />
-              <DetailRow label={t('Apps.detail.catalogVersion', { defaultValue: 'Version' })} value={release?.version ?? t('Apps.version.notInstalled')} mono />
+              <DetailRow label={t('Apps.detail.source')} value={t('Apps.sourceBadge.verified')} />
+              <DetailRow label={t('Apps.detail.catalogVersion', { defaultValue: 'Version' })} value={release?.version ?? catalog?.version ?? t('Apps.version.notInstalled')} mono />
               {release ? <DetailRow label={t('Apps.detail.releaseRef', { defaultValue: 'Release reference' })} value={release.releaseRef} mono /> : null}
+              {catalog ? (
+                <>
+                  <DetailRow label={t('Apps.catalog.publisher')} value={`@${catalog.publisherGithubNamespace}`} mono />
+                  <DetailRow label={t('Apps.catalog.sourceRepository')} value={catalog.sourceRepository} mono />
+                  <DetailRow label={t('Apps.catalog.license')} value={catalog.sourceLicenseSpdxExpression} mono />
+                  <DetailRow label={t('Apps.catalog.target')} value={`${catalog.targetId} · ${catalog.os}/${catalog.arch}`} mono />
+                  <DetailRow label={t('Apps.catalog.asset')} value={`${catalog.assetName} · ${catalog.assetSize} bytes`} mono />
+                  <DetailRow label={t('Apps.catalog.nativePosture')} value={catalog.observedSigningSubject ? `${catalog.windowsCodeSigning} · ${catalog.observedSigningSubject}` : catalog.windowsCodeSigning} mono />
+                  <DetailRow label={t('Apps.catalog.executionProfile')} value={catalog.executionProfileRef} mono />
+                  <DetailRow label={t('Apps.catalog.appAccess')} value={catalog.appAccess.join(', ') || t('Apps.catalog.none')} mono />
+                  <DetailRow label={t('Apps.catalog.capabilities')} value={catalog.capabilityContractRefs.join(', ') || t('Apps.catalog.none')} mono />
+                  <DetailRow label={t('Apps.catalog.requiredFeatures')} value={catalog.requiredStandardizedFeatureRefs.join(', ') || t('Apps.catalog.none')} mono />
+                  <DetailRow label={t('Apps.catalog.storage')} value={catalog.storagePolicyKind} mono />
+                  <DetailRow
+                    label={t('Apps.catalog.storageDisclosures')}
+                    value={catalog.osStorageDisclosures.map((disclosure) => (
+                      `${disclosure.pathPattern}: ${disclosure.purpose}; ${disclosure.retention}; ${disclosure.removal}`
+                    )).join(' · ') || t('Apps.catalog.none')}
+                    mono
+                  />
+                </>
+              ) : null}
             </dl>
           </OverviewCard>
         </div>

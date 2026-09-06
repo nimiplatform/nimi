@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/app-tools",
-  "version": "0.2.1",
+  "version": "0.2.8",
   "description": "Public app-authoring CLI for Nimi App projects.",
   "license": "Apache-2.0",
   "type": "module",
@@ -18,11 +18,11 @@
     "provenance": true
   },
   "nimiScaffoldVersions": {
-    "sdkVersion": "^0.7.0",
-    "appToolsVersion": "^0.2.1",
-    "nimicodingVersion": "0.6.1",
+    "sdkVersion": "^0.10.0",
+    "appToolsVersion": "^0.2.8",
+    "nimicodingVersion": "0.6.2",
     "aiSdkVersion": "^6.0.85",
-    "kitVersion": "^0.3.0",
+    "kitVersion": "^0.6.0",
     "reactVersion": "^19.2.8",
     "reactDomVersion": "^19.2.8",
     "i18nextVersion": "^25.10.10",
@@ -39,6 +39,7 @@
     "tauriCliVersion": "^2.11.4",
     "yamlVersion": "^2.9.0",
     "nimiShellTauriVersion": "0.2.1",
+    "electronPackagerVersion": "^20.3.0",
     "electronVersion": "^42.10.1",
     "esbuildVersion": "^0.28.2",
     "packageManager": "pnpm@10.34.5"

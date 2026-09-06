@@ -39,12 +39,33 @@
     "filterNeedsAttention": "需处理"
   },
   "sourceBadge": {
-    "localDevelopment": "本地开发",
     "userImported": "本地导入",
-    "verified": "Nimi 认证"
+    "localDevelopment": "本地开发",
+    "verified": "已通过 Registry 审核"
+  },
+  "catalog": {
+    "registryApproved": "这个版本已通过公共 Nimi App Registry 审核。Descriptor 冻结准确的 Release asset、digest 和 provenance，Runtime 还会再次验证下载的包；审核和验证都不等于无恶意代码保证，也不保证操作系统一定允许执行。",
+    "policyBlocked": "当前 Registry 策略已阻止新的安装或启动（修订 {{revision}}）：{{reason}}",
+    "policyBlockedFallback": "未提供原因。",
+    "publisher": "GitHub Publisher",
+    "sourceRepository": "公开源码",
+    "license": "开源许可证",
+    "target": "准确目标",
+    "asset": "Release 资产",
+    "nativePosture": "原生签名状态",
+    "executionProfile": "执行配置",
+    "appAccess": "请求的 App Access",
+    "capabilities": "能力",
+    "requiredFeatures": "所需平台功能",
+    "storage": "存储策略",
+    "storageDisclosures": "系统存储披露",
+    "none": "无",
+    "unsignedConfirmTitle": "安装未签名的 Windows App？",
+    "unsignedConfirmMessage": "这个准确的 Registry-approved 版本没有由 publisher 使用 Authenticode 签名。Registry descriptor 冻结准确的 asset digest 和 provenance，Runtime 还会再次验证下载，但这些事实和 Nimi 审核都不保证安全，也不会创建 sandbox；Windows 或组织策略可能警告或直接阻止。继续会请求 Runtime 安装这个准确包，但不会向 App 授予管理员权限；之后的启动是另一个独立的当前用户、非提权操作。",
+    "unsignedConfirmAction": "继续并安装"
   },
   "catalogNotImplemented": "公共 App 目录搜索尚未实现。",
-  "installedLaunchUnavailable": "已安装 App 的启动链路尚未实现。安装记录仍然有效；当前只有本地开发 App 可以启动。",
+  "installedAccess": { "ready": "Nimi Access 已就绪", "unavailable": "Nimi Access 不可用" },
   "listTitle": "应用列表",
   "listDescription": "按是否声明 App Access 域筛选已注册应用。",
   "filter": {
@@ -145,6 +166,7 @@
     "uninstalling": "卸载中"
   },
   "action": {
+    "focus": "显示窗口",
     "install": "安装",
     "open": "打开",
     "connectLocal": "接入本地 App",
@@ -346,6 +368,10 @@
     }
   },
   "confirm": {
+    "uninstall": {
+      "title": "卸载 App",
+      "message": "停止 {{app}} 并移除本机安装包？App 数据、共享模型和账户数据将保留。"
+    },
     "removeDevelopment": {
       "title": "移除本地项目",
       "message": "从 Apps 移除 {{app}}？这会停止当前运行并移除本地开发注册，但不会删除项目文件。",

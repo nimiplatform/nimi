@@ -36,49 +36,34 @@ export const landingContentEn: LandingContent = {
     proofPoints: ['Open source', 'Local-first', 'Choose your AI'],
   },
   experiences: {
-    eyebrow: 'What you can do',
-    title: 'One home for your AI life.',
+    eyebrow: 'Beyond a single conversation',
+    title: 'It remembers you, and has a rhythm of its own.',
     subtitle:
-      'Conversations, characters, creations, and worlds no longer live in separate apps. In Nimi they come together in one personal space—connected, persistent, and yours.',
+      'Conversations continue, and you control the memories. Turn on proactive companionship to let it reach out first.',
     cards: [
       {
-        id: 'talk',
-        label: 'Talk',
-        title: 'Conversations that stay with you',
-        description:
-          'Chat with characters who keep their personality and remember your history—not stateless bots that reset every session.',
-        scenario: 'Maya picks up yesterday’s conversation right where you left it—in her own voice.',
-        points: [
-          'Characters with persistent identity',
-          'Text and voice',
-          'Runs locally or in the cloud',
-        ],
+        id: 'conversation',
+        label: 'Continuing conversations',
+        title: 'Pick up where you left off',
+        description: 'Each companion keeps its own conversation. Come back and continue from last time.',
+        scenario: 'No need to start with hello every time.',
+        points: ['Revisit past conversations', 'Continue with the existing context', 'Text and voice supported'],
       },
       {
-        id: 'create',
-        label: 'Create',
-        title: 'Create with your cast',
-        description:
-          'Give your characters a face and a voice. Generate images, video, speech, and music with the AI providers you choose, without leaving Nimi.',
-        scenario: 'Sketch a companion, give her a voice, and let her star in the story you write together.',
-        points: [
-          'Image, video, voice, and music',
-          'Your characters, your style',
-          'You pick the AI provider',
-        ],
+        id: 'memory',
+        label: 'Memory management',
+        title: 'You decide what stays',
+        description: 'With memory enabled, you can inspect it, correct it, or ask it to forget.',
+        scenario: 'Correct what is wrong. Delete what you no longer want to keep.',
+        points: ['Inspect current memories', 'Correct inaccurate information', 'Forget one item or clear everything'],
       },
       {
-        id: 'explore',
-        label: 'Explore',
-        title: 'Step into living worlds',
-        description:
-          'Enter persistent worlds where characters have lives of their own. One identity travels with you across every world and story.',
-        scenario: 'The world keeps turning while you’re away. Come back to what changed.',
-        points: [
-          'Worlds that keep evolving',
-          'One identity, many worlds',
-          'Stories that continue',
-        ],
+        id: 'proactive-companion',
+        label: 'Proactive companionship',
+        title: 'Let it speak first this time',
+        description: 'Enable proactive companionship and keep Nimi running. Your companion will reach out according to your settings.',
+        scenario: 'Pause whenever you want some quiet.',
+        points: ['Adjust how proactive it is', 'Greetings after time apart', 'Control daily and per-interaction usage'],
       },
     ],
   },
@@ -398,8 +383,8 @@ export const landingContentEn: LandingContent = {
     ],
     notes: [
       'New product work uses the Nimi Apps path.',
-      'Nimi Apps defines the catalog, local-import, installation, update, launch, repair, uninstall, and Developer Mode lifecycle contract. This pre-release exposes Developer Mode local development; public catalog, local import, ordinary install, installed launch, publisher publication, and registry onboarding are not available yet.',
-      'The public app catalog has not opened; Nimi only shows what you can actually open today.',
+      'Nimi Apps has separate Registry-approved package, explicit immutable local-package import, and Developer Mode paths. This pre-release supports verified Catalog discovery, installation, launch and uninstall on Windows x86_64, plus local development. The local-package import entry, other-platform package lifecycle, update and repair remain unavailable.',
+      'Catalog actions reflect the current platform and Runtime state; an installed App and its Nimi access are separate facts.',
       'To build an app, start with the SDK and Nimi App docs.',
     ],
   },
@@ -418,7 +403,7 @@ export const landingContentEn: LandingContent = {
       {
         question: 'Can I download Nimi today?',
         answer:
-          'Not yet. No stable Nimi release is currently published: Windows signing is still pending and only unsigned developer previews exist. Watch GitHub or join Discord to hear the moment a stable build lands.',
+          'No stable Nimi release or installer is currently published. The explicitly unsigned portable Windows x64 Runtime bootstrap v0.2.2-preview.1 is available for bootstrap testing, but it is not Nimi Home or a production install. See Download for the exact scope.',
       },
       {
         question: 'Is my data private?',
@@ -469,7 +454,7 @@ export const landingContentEn: LandingContent = {
         label: 'Code signing',
         title: 'Verify the release, not the promise',
         points: [
-          'Windows production signing and the SignPath Foundation application are pending.',
+          'The public unsigned Runtime bootstrap is available at v0.2.2-preview.1; the SignPath Foundation application has not yet been submitted.',
           'No current Nimi artifact should be treated as SignPath-signed without valid Authenticode verification.',
         ],
       },
@@ -477,15 +462,16 @@ export const landingContentEn: LandingContent = {
     statuses: [
       {
         label: 'Windows',
-        value: 'Windows release pending production code-signing approval',
+        value: 'Unsigned Runtime bootstrap v0.2.2-preview.1 available; signed RC and Stable pending',
       },
       {
         label: 'SignPath Foundation',
-        value: 'SignPath Foundation application pending',
+        value: 'Application not submitted; bootstrap prerequisite published',
       },
     ],
     links: [
       { label: 'Download', detail: 'Stable and unsigned-preview status', href: '/download' },
+      { label: 'Unsigned Runtime preview', detail: 'v0.2.2-preview.1 · not promotable', href: 'https://github.com/nimiplatform/nimi/releases/tag/v0.2.2-preview.1' },
       { label: 'Code signing policy', detail: 'Scope, controls, and verification', href: '/code-signing' },
       { label: 'Source code', detail: 'github.com/nimiplatform/nimi', href: 'https://github.com/nimiplatform/nimi' },
       { label: 'Documentation', detail: 'docs.nimi.ai', href: 'https://docs.nimi.ai' },

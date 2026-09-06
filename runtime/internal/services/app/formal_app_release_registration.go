@@ -22,7 +22,6 @@ type FormalAppRelease struct {
 	SourceRef                 string
 	InstallRoot               string
 	ManifestRef               string
-	ShellKind                 int32
 	Declaration               []string
 	ImmutableLineageID        string
 	ProvenanceAttestationRefs []string
@@ -88,7 +87,7 @@ func sameFormalAppReleaseRegistration(
 	if current.SourceClass != localappkernel.SourceClassVerified || current.AppID != input.AppID ||
 		current.DisplayName != input.DisplayName || current.SourceRef != input.SourceRef ||
 		filepath.Clean(current.ProjectRoot) != filepath.Clean(input.ProjectRoot) ||
-		current.ManifestPath != input.ManifestPath || current.ShellKind != input.ShellKind ||
+		current.ManifestPath != input.ManifestPath || current.ShellKind != 0 ||
 		current.ImmutableLineageID != input.ImmutableLineageID ||
 		!sameStrings(current.ProvenanceAttestationRefs, input.ProvenanceAttestationRefs) ||
 		current.ProvenanceRevision != input.ProvenanceRevision || current.ExecutionProfileRef != input.ExecutionProfileRef ||
@@ -117,7 +116,7 @@ func formalAppInstalledRegistrationInput(
 		release.PayloadRootDigest != strings.TrimSpace(release.PayloadRootDigest) ||
 		release.AppID == "" || release.DisplayName == "" || release.SourceRef == "" || release.InstallRoot == "" ||
 		release.ManifestRef == "" || release.ImmutableLineageID == "" || release.ProvenanceRevision == 0 ||
-		release.ExecutionProfileRef == "" || release.PayloadRootDigest == "" || release.ShellKind <= 0 ||
+		release.ExecutionProfileRef == "" || release.PayloadRootDigest == "" ||
 		executableDigest == (protectedlocal.Identifier{}) {
 		return localappkernel.RegisterInstalledInput{}, errFormalAppReleaseUnavailable
 	}
@@ -127,7 +126,6 @@ func formalAppInstalledRegistrationInput(
 		SourceRef:                 release.SourceRef,
 		ProjectRoot:               filepath.Clean(release.InstallRoot),
 		ManifestPath:              release.ManifestRef,
-		ShellKind:                 release.ShellKind,
 		RawDeclaration:            append([]string(nil), release.Declaration...),
 		SourceClass:               localappkernel.SourceClassVerified,
 		ImmutableLineageID:        release.ImmutableLineageID,

@@ -870,12 +870,36 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListAppPackageJobsResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets",
+    "service": "RuntimeAppPackageService",
+    "method": "ListApprovedAppCatalogTargets",
+    "kind": "unary",
+    "requestType": "ListApprovedAppCatalogTargetsRequest",
+    "responseType": "ListApprovedAppCatalogTargetsResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
     "service": "RuntimeAppPackageService",
     "method": "ListCommittedAppReleases",
     "kind": "unary",
     "requestType": "ListCommittedAppReleasesRequest",
     "responseType": "ListCommittedAppReleasesResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
+    "service": "RuntimeAppPackageService",
+    "method": "StartAppPackageInstall",
+    "kind": "unary",
+    "requestType": "StartAppPackageInstallRequest",
+    "responseType": "StartAppPackageInstallResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall",
+    "service": "RuntimeAppPackageService",
+    "method": "StartAppPackageUninstall",
+    "kind": "unary",
+    "requestType": "StartAppPackageUninstallRequest",
+    "responseType": "StartAppPackageUninstallResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
@@ -894,12 +918,36 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "BindLocalAppProcessResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall",
+    "service": "RuntimeAppService",
+    "method": "CompleteAppPackageUninstall",
+    "kind": "unary",
+    "requestType": "CompleteAppPackageUninstallRequest",
+    "responseType": "CompleteAppPackageUninstallResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun",
+    "service": "RuntimeAppService",
+    "method": "EndInstalledAppRun",
+    "kind": "unary",
+    "requestType": "EndInstalledAppRunRequest",
+    "responseType": "EndInstalledAppRunResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
     "service": "RuntimeAppService",
     "method": "GetAppStorage",
     "kind": "unary",
     "requestType": "GetAppStorageRequest",
     "responseType": "GetAppStorageResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess",
+    "service": "RuntimeAppService",
+    "method": "GetInstalledAppRunAccess",
+    "kind": "unary",
+    "requestType": "GetInstalledAppRunAccessRequest",
+    "responseType": "GetInstalledAppRunAccessResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
@@ -916,6 +964,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "MoveLocalAppAssetRequest",
     "responseType": "MoveLocalAppAssetResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch",
+    "service": "RuntimeAppService",
+    "method": "PrepareInstalledAppLaunch",
+    "kind": "unary",
+    "requestType": "PrepareInstalledAppLaunchRequest",
+    "responseType": "PrepareInstalledAppLaunchResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",

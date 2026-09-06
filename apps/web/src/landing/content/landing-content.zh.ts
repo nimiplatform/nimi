@@ -368,8 +368,8 @@ export const landingContentZh: LandingContent = {
     ],
     notes: [
       '新的产品工作统一走 Nimi Apps 路径。',
-      'Nimi Apps 定义目录、本地导入、安装、更新、启动、修复、卸载和 Developer Mode 的生命周期契约。当前预发布仅开放 Developer Mode 本地开发路径；公开目录、本地导入、普通安装、已安装 App 启动、发布者发布和 registry onboarding 尚不可用。',
-      '公开应用目录尚未开放；Nimi 只显示你今天真正能打开的内容。',
+      'Nimi Apps 保留 Registry 已验证安装包、明确选择的不可变本地包导入和 Developer Mode 三条独立路径。当前预发布支持 Windows x86_64 的已验证目录发现、安装、启动与卸载，以及本地开发；本地包导入入口、其他平台的包生命周期、更新与修复仍待实现。',
+      '目录操作取决于当前平台与 Runtime 状态；App 已安装和拥有 Nimi 访问能力是两项独立事实。',
       '想构建 App，请从 SDK 与 Nimi App 文档开始。',
     ],
   },
@@ -387,7 +387,7 @@ export const landingContentZh: LandingContent = {
       {
         question: '今天能下载 Nimi 吗？',
         answer:
-          '还不能。目前没有已发布的 Nimi 稳定版：Windows 签名仍在审批，只有未签名的开发者预览版。关注 GitHub 或加入 Discord，稳定版发布时会第一时间公布。',
+          '目前没有已发布的 Nimi 稳定版或 installer。明确标注为 unsigned 的 portable Windows x64 Runtime bootstrap v0.2.2-preview.1 已可用于 bootstrap 测试，但它不是 Nimi Home 或 production 安装；准确范围请查看下载页。',
       },
       {
         question: '我的数据私密吗？',
@@ -438,17 +438,18 @@ export const landingContentZh: LandingContent = {
         label: '代码签名',
         title: '验证具体制品，不依赖口头承诺',
         points: [
-          'Windows production signing 与 SignPath Foundation 申请仍在 pending。',
+          '公开 unsigned Runtime bootstrap v0.2.2-preview.1 已发布；SignPath Foundation 申请尚未提交。',
           'Authenticode 验证通过前，任何当前 Nimi 制品都不能被视为 SignPath-signed。',
         ],
       },
     ],
     statuses: [
-      { label: 'Windows', value: 'Windows release 正等待 production code-signing approval' },
-      { label: 'SignPath Foundation', value: 'SignPath Foundation 申请待批准' },
+      { label: 'Windows', value: 'Unsigned Runtime bootstrap v0.2.2-preview.1 已发布；signed RC 与 Stable 仍待签名' },
+      { label: 'SignPath Foundation', value: '申请尚未提交；bootstrap 前置已发布' },
     ],
     links: [
       { label: '下载', detail: '稳定版与 unsigned preview 状态', href: '/download' },
+      { label: 'Unsigned Runtime preview', detail: 'v0.2.2-preview.1 · 不可晋升', href: 'https://github.com/nimiplatform/nimi/releases/tag/v0.2.2-preview.1' },
       { label: 'Code signing policy', detail: '范围、控制与验证说明', href: '/code-signing' },
       { label: '源代码', detail: 'github.com/nimiplatform/nimi', href: 'https://github.com/nimiplatform/nimi' },
       { label: '文档', detail: 'docs.nimi.ai', href: 'https://docs.nimi.ai' },

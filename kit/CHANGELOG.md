@@ -11,6 +11,24 @@ Discipline.
 
 ### Added
 
+- Added main-only verified installed App launch, focus, stop and Runtime session
+  Access projection. Windows launch checks exact lease bytes, current-user
+  non-elevated tokens and an owner-scoped Job Object before resuming the child.
+  Kit/native 0.6.0 adds host error variants for direct process failures; hosts
+  with exhaustive error matches must handle them. Renderer SDK profiles expose
+  neither the launch lease nor executable paths or process identifiers.
+- Added verified uninstall reservation to the Desktop machine-product facade.
+  Desktop main stops the exact Host before Runtime atomically unregisters and
+  removes its managed package; interrupted detachment is restored at startup.
+- Added protected Desktop machine-product Catalog listing and verified package
+  install methods, with exact public Registry policy reason/revision forwarding.
+  This public method-set widening belongs to Kit 0.6.0; hosts with exhaustive
+  native method matches must handle the two new variants. Installed launch and
+  App Access remain separate owner operations.
+- Added the public Windows x64 D2 native dependency and packaged Electron D2
+  binding resolution. Installed Apps use their own native payload and retain
+  Runtime peer, registration, exact Desktop launch, and App Access checks;
+  Catalog/install/launch availability remains a separate product cutover.
 - Added the optional `emptyStateAgent` identity and `emptyStateContent` slot to
   the chat `CanonicalTranscriptView` empty state, so a host can render the
   agent avatar/name and centered content (such as a composer) in place of the

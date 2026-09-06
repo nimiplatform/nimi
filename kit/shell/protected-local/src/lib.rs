@@ -12,7 +12,9 @@ mod first_party_product;
 mod first_party_profiles_generated;
 mod grpc_limits;
 mod grpc_status;
+mod installed_app;
 mod local_development;
+pub use installed_app::{InstalledAppLaunchOutcome, InstalledAppRunAccess};
 #[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
 mod macos_data_root;
@@ -70,6 +72,8 @@ mod windows_data_root;
 mod windows_data_root;
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 mod windows_desktop_account;
+#[cfg(target_os = "windows")]
+mod windows_installed_app;
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 #[allow(unsafe_code)]
 mod windows_local_app;
@@ -89,10 +93,17 @@ mod windows_peer_trust;
 mod windows_peer_trust;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
+mod windows_process_identity;
+#[cfg(target_os = "windows")]
+#[allow(unsafe_code)]
 mod windows_service_control;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_supervised_process;
+#[cfg(target_os = "windows")]
+pub use windows_installed_app::{
+    focus_installed_app_process, installed_app_process_status, stop_installed_app_process,
+};
 
 #[cfg(not(target_os = "macos"))]
 pub use adapters::MacOsLocalAppCarrier;
