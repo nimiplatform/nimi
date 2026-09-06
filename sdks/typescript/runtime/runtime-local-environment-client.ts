@@ -190,6 +190,13 @@ export function createNimiRuntimeLocalEnvironmentClient(
       }
       return dedupeBy(items, (item) => item.modelLocator);
     },
+    async getCatalogModelCard(input) {
+      const response = await resolveLocal().getCatalogModelCard({
+        modelLocator: input.modelLocator ?? '',
+        offerRef: input.offerRef ?? '',
+      }, callOptions());
+      return Object.freeze({ markdown: response.markdown, sourceUrl: response.sourceUrl, baseUrl: response.baseUrl });
+    },
     async listCatalogVariants(modelLocator) {
       const response = await resolveLocal().listCatalogVariants({
         modelLocator: requireLocalText(modelLocator, 'Runtime catalog model locator is required', 'provide_catalog_model_locator'),

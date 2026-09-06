@@ -33,6 +33,7 @@ const (
 	RuntimeLocalService_GetModelAsset_FullMethodName                                       = "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset"
 	RuntimeLocalService_RemoveModelAsset_FullMethodName                                    = "/nimi.runtime.v1.RuntimeLocalService/RemoveModelAsset"
 	RuntimeLocalService_SearchCatalogModels_FullMethodName                                 = "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels"
+	RuntimeLocalService_GetCatalogModelCard_FullMethodName                                 = "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard"
 	RuntimeLocalService_ListCatalogVariants_FullMethodName                                 = "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants"
 	RuntimeLocalService_ListFeaturedModelAssets_FullMethodName                             = "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets"
 	RuntimeLocalService_ListFactoryProfileRecommendations_FullMethodName                   = "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations"
@@ -92,6 +93,7 @@ type RuntimeLocalServiceClient interface {
 	RemoveModelAsset(ctx context.Context, in *RemoveModelAssetRequest, opts ...grpc.CallOption) (*RemoveModelAssetResponse, error)
 	// Catalog & Install
 	SearchCatalogModels(ctx context.Context, in *SearchCatalogModelsRequest, opts ...grpc.CallOption) (*SearchCatalogModelsResponse, error)
+	GetCatalogModelCard(ctx context.Context, in *GetCatalogModelCardRequest, opts ...grpc.CallOption) (*GetCatalogModelCardResponse, error)
 	ListCatalogVariants(ctx context.Context, in *ListCatalogVariantsRequest, opts ...grpc.CallOption) (*ListCatalogVariantsResponse, error)
 	ListFeaturedModelAssets(ctx context.Context, in *ListFeaturedModelAssetsRequest, opts ...grpc.CallOption) (*ListFeaturedModelAssetsResponse, error)
 	ListFactoryProfileRecommendations(ctx context.Context, in *ListFactoryProfileRecommendationsRequest, opts ...grpc.CallOption) (*ListFactoryProfileRecommendationsResponse, error)
@@ -276,6 +278,16 @@ func (c *runtimeLocalServiceClient) SearchCatalogModels(ctx context.Context, in 
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SearchCatalogModelsResponse)
 	err := c.cc.Invoke(ctx, RuntimeLocalService_SearchCatalogModels_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeLocalServiceClient) GetCatalogModelCard(ctx context.Context, in *GetCatalogModelCardRequest, opts ...grpc.CallOption) (*GetCatalogModelCardResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetCatalogModelCardResponse)
+	err := c.cc.Invoke(ctx, RuntimeLocalService_GetCatalogModelCard_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -663,6 +675,7 @@ type RuntimeLocalServiceServer interface {
 	RemoveModelAsset(context.Context, *RemoveModelAssetRequest) (*RemoveModelAssetResponse, error)
 	// Catalog & Install
 	SearchCatalogModels(context.Context, *SearchCatalogModelsRequest) (*SearchCatalogModelsResponse, error)
+	GetCatalogModelCard(context.Context, *GetCatalogModelCardRequest) (*GetCatalogModelCardResponse, error)
 	ListCatalogVariants(context.Context, *ListCatalogVariantsRequest) (*ListCatalogVariantsResponse, error)
 	ListFeaturedModelAssets(context.Context, *ListFeaturedModelAssetsRequest) (*ListFeaturedModelAssetsResponse, error)
 	ListFactoryProfileRecommendations(context.Context, *ListFactoryProfileRecommendationsRequest) (*ListFactoryProfileRecommendationsResponse, error)
@@ -753,6 +766,9 @@ func (UnimplementedRuntimeLocalServiceServer) RemoveModelAsset(context.Context, 
 }
 func (UnimplementedRuntimeLocalServiceServer) SearchCatalogModels(context.Context, *SearchCatalogModelsRequest) (*SearchCatalogModelsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method SearchCatalogModels not implemented")
+}
+func (UnimplementedRuntimeLocalServiceServer) GetCatalogModelCard(context.Context, *GetCatalogModelCardRequest) (*GetCatalogModelCardResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetCatalogModelCard not implemented")
 }
 func (UnimplementedRuntimeLocalServiceServer) ListCatalogVariants(context.Context, *ListCatalogVariantsRequest) (*ListCatalogVariantsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListCatalogVariants not implemented")
@@ -1127,6 +1143,24 @@ func _RuntimeLocalService_SearchCatalogModels_Handler(srv interface{}, ctx conte
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeLocalServiceServer).SearchCatalogModels(ctx, req.(*SearchCatalogModelsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeLocalService_GetCatalogModelCard_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetCatalogModelCardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeLocalServiceServer).GetCatalogModelCard(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeLocalService_GetCatalogModelCard_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeLocalServiceServer).GetCatalogModelCard(ctx, req.(*GetCatalogModelCardRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -1816,6 +1850,10 @@ var RuntimeLocalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SearchCatalogModels",
 			Handler:    _RuntimeLocalService_SearchCatalogModels_Handler,
+		},
+		{
+			MethodName: "GetCatalogModelCard",
+			Handler:    _RuntimeLocalService_GetCatalogModelCard_Handler,
 		},
 		{
 			MethodName: "ListCatalogVariants",

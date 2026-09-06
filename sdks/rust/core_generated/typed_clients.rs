@@ -6012,6 +6012,55 @@ pub struct GetAppStorageResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetCatalogModelCardRequest {
+    pub model_locator: Option<String>,
+    pub offer_ref: Option<String>,
+}
+
+impl GetCatalogModelCardRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.model_locator { pairs.push(format!("model_locator={}", value)); }
+        if let Some(value) = &self.offer_ref { pairs.push(format!("offer_ref={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.model_locator = pairs.get("model_locator").cloned();
+        out.offer_ref = pairs.get("offer_ref").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetCatalogModelCardResponse {
+    pub markdown: Option<String>,
+    pub source_url: Option<String>,
+    pub base_url: Option<String>,
+}
+
+impl GetCatalogModelCardResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        let mut pairs: Vec<String> = Vec::new();
+        if let Some(value) = &self.markdown { pairs.push(format!("markdown={}", value)); }
+        if let Some(value) = &self.source_url { pairs.push(format!("source_url={}", value)); }
+        if let Some(value) = &self.base_url { pairs.push(format!("base_url={}", value)); }
+        pairs.join(";").into_bytes()
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Self {
+        let pairs = parse_pairs(raw);
+        let mut out = Self::default();
+        out.markdown = pairs.get("markdown").cloned();
+        out.source_url = pairs.get("source_url").cloned();
+        out.base_url = pairs.get("base_url").cloned();
+        out
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetCatalogModelDetailRequest {
     pub provider: Option<String>,
     pub model_id: Option<String>,
@@ -11304,6 +11353,12 @@ impl From<Vec<u8>> for DeleteLoadoutResponse {
     }
 }
 
+impl From<Vec<u8>> for GetCatalogModelCardResponse {
+    fn from(body: Vec<u8>) -> Self {
+        Self::from_transport(&body)
+    }
+}
+
 impl From<Vec<u8>> for CheckSyncProjectionJson {
     fn from(body: Vec<u8>) -> Self {
         Self::from_transport(&body)
@@ -11550,6 +11605,16 @@ where
             timeout,
         })?;
         Ok(ProductControlProjectionJson::from_transport(&raw))
+    }
+
+    pub fn get_catalog_model_card(&self, request: GetCatalogModelCardRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetCatalogModelCardResponse, T::Error> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        })?;
+        Ok(GetCatalogModelCardResponse::from_transport(&raw))
     }
 
     pub fn get_product_control_check_sync(&self, request: GetProductControlCheckSyncRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<CheckSyncProjectionJson, T::Error> {

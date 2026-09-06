@@ -70,6 +70,7 @@ pub const RUNTIME_BRIDGE_ALLOWLISTED_METHODS: &[&str] = &[
     "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken",
     "/nimi.runtime.v1.RuntimeLocalService/AppendInferenceAudit",
     "/nimi.runtime.v1.RuntimeLocalService/AppendRuntimeAudit",
+    "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
     "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants",
     "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations",
     "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets",

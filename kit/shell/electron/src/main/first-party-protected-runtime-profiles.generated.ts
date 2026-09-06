@@ -46,6 +46,7 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan": { kind: "unary" },

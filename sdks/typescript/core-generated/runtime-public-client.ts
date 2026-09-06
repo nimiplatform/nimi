@@ -1422,6 +1422,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
+    "service": "RuntimeLocalService",
+    "method": "GetCatalogModelCard",
+    "kind": "unary",
+    "requestType": "GetCatalogModelCardRequest",
+    "responseType": "GetCatalogModelCardResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
     "service": "RuntimeLocalService",
     "method": "GetLoadout",

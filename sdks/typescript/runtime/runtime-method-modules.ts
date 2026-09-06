@@ -173,6 +173,7 @@ export const RUNTIME_LOCAL_METHODS = [
   'listVerifiedAssets',
   'searchCatalogModels',
   'listCatalogVariants',
+  'getCatalogModelCard',
   'listFeaturedModelAssets',
   'listFactoryProfileRecommendations',
   'resolveModelInstallPlan',

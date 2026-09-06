@@ -1730,6 +1730,15 @@
           "response_stream": false
         },
         {
+          "name": "GetCatalogModelCard",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
+          "kind": "unary",
+          "request_type": "GetCatalogModelCardRequest",
+          "response_type": "GetCatalogModelCardResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "ListCatalogVariants",
           "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants",
           "kind": "unary",
@@ -2299,6 +2308,7 @@
     "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
     "/nimi.runtime.v1.RuntimeLocalService/DeleteLoadout",
     "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
+    "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
     "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
     "/nimi.runtime.v1.RuntimeLocalService/GetMachineLoadouts",
     "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset",
@@ -3753,6 +3763,14 @@
       "kind": "unary",
       "request_type": "EnsureProductControlRecordCreatedRequest",
       "response_type": "ProductControlProjectionJson"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
+      "service": "RuntimeLocalService",
+      "method": "GetCatalogModelCard",
+      "kind": "unary",
+      "request_type": "GetCatalogModelCardRequest",
+      "response_type": "GetCatalogModelCardResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
@@ -5525,6 +5543,14 @@
       "response_type": "ProductControlProjectionJson"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
+      "service": "RuntimeLocalService",
+      "method": "GetCatalogModelCard",
+      "kind": "unary",
+      "request_type": "GetCatalogModelCardRequest",
+      "response_type": "GetCatalogModelCardResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
       "service": "RuntimeLocalService",
       "method": "GetLoadout",
@@ -6154,6 +6180,8 @@
       "GetAppPackageJobResponse",
       "GetAppStorageRequest",
       "GetAppStorageResponse",
+      "GetCatalogModelCardRequest",
+      "GetCatalogModelCardResponse",
       "GetCatalogModelDetailRequest",
       "GetCatalogModelDetailResponse",
       "GetConnectorRequest",
@@ -16373,6 +16401,53 @@
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "GetCatalogModelCardRequest",
+        "fields": [
+          {
+            "name": "model_locator",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "offer_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "GetCatalogModelCardResponse",
+        "fields": [
+          {
+            "name": "markdown",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "source_url",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "base_url",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
         "name": "GetCatalogModelDetailRequest",

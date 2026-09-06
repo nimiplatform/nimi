@@ -75,6 +75,7 @@ export type NimiDesktopMachineProductRuntimeClient = {
     | 'listVerifiedAssets'
     | 'searchCatalogModels'
     | 'listCatalogVariants'
+    | 'getCatalogModelCard'
     | 'listFeaturedModelAssets'
     | 'listFactoryProfileRecommendations'
     | 'resolveModelInstallPlan'
@@ -452,6 +453,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
         listVerifiedAssets: runtime.local.listVerifiedAssets,
         searchCatalogModels: runtime.local.searchCatalogModels,
         listCatalogVariants: runtime.local.listCatalogVariants,
+        getCatalogModelCard: runtime.local.getCatalogModelCard,
         listFeaturedModelAssets: runtime.local.listFeaturedModelAssets,
         listFactoryProfileRecommendations: runtime.local.listFactoryProfileRecommendations,
         resolveModelInstallPlan: runtime.local.resolveModelInstallPlan,

@@ -83,6 +83,18 @@ message SearchCatalogModelsResponse {
   string next_page_token = 2;
 }
 
+// Read-only model card for either a browse result or an exact market offer.
+message GetCatalogModelCardRequest {
+  string model_locator = 1;
+  string offer_ref = 2;
+}
+
+message GetCatalogModelCardResponse {
+  string markdown = 1;
+  string source_url = 2;
+  string base_url = 3;
+}
+
 message ListCatalogVariantsRequest {
   string model_locator = 1;
 }
@@ -439,6 +451,7 @@ service RuntimeLocalService {
 
   // Catalog & Install
   rpc SearchCatalogModels(SearchCatalogModelsRequest) returns (SearchCatalogModelsResponse);
+  rpc GetCatalogModelCard(GetCatalogModelCardRequest) returns (GetCatalogModelCardResponse);
   rpc ListCatalogVariants(ListCatalogVariantsRequest) returns (ListCatalogVariantsResponse);
   rpc ListFeaturedModelAssets(ListFeaturedModelAssetsRequest) returns (ListFeaturedModelAssetsResponse);
   rpc ListFactoryProfileRecommendations(ListFactoryProfileRecommendationsRequest) returns (ListFactoryProfileRecommendationsResponse);

@@ -148,3 +148,18 @@ test('Featured source projection distinguishes stale LKG from unavailable', () =
     reasonCode: 'AI_LOCAL_MODEL_UNAVAILABLE',
   });
 });
+
+test('model card reads preserve Runtime content and propagate read failures', async () => {
+  const calls: unknown[] = [];
+  const response = { markdown: '# Model\n![Architecture](./architecture.png)', sourceUrl: 'https://huggingface.co/org/model/blob/revision/README.md', baseUrl: 'https://huggingface.co/org/model/resolve/revision/' };
+  const client = createNimiRuntimeLocalEnvironmentClient({ local: {
+    getCatalogModelCard: async (input: unknown) => { calls.push(input); return response; },
+  } as unknown as NimiRuntimeLocalEnvironmentRpc });
+  assert.deepEqual(await client.getCatalogModelCard({ offerRef: 'offer_ref' }), response);
+  assert.deepEqual(calls, [{ modelLocator: '', offerRef: 'offer_ref' }]);
+  const failure = new Error('upstream unavailable');
+  const failed = createNimiRuntimeLocalEnvironmentClient({ local: {
+    getCatalogModelCard: async () => { throw failure; },
+  } as unknown as NimiRuntimeLocalEnvironmentRpc });
+  await assert.rejects(failed.getCatalogModelCard({ modelLocator: 'model_ref' }), failure);
+});

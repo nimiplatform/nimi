@@ -1416,6 +1416,14 @@ RUNTIME_METHODS = [
     "response_type": "ProductControlProjectionJson"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
+    "service": "RuntimeLocalService",
+    "method": "GetCatalogModelCard",
+    "kind": "unary",
+    "request_type": "GetCatalogModelCardRequest",
+    "response_type": "GetCatalogModelCardResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
     "service": "RuntimeLocalService",
     "method": "GetLoadout",
