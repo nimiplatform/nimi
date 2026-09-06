@@ -24,14 +24,19 @@
   },
   "library": {
     "pageTitle": "应用中心",
-    "pageSubtitle": "管理和启动你的 AI 应用",
     "sortLabel": "排序方式",
     "sortUpdated": "最近更新",
     "sortName": "名称",
     "sortActivity": "运行优先",
     "backToLibrary": "返回应用库",
     "connectLocalTitle": "添加应用",
-    "cardMenuLabel": "App 操作"
+    "cardMenuLabel": "App 操作",
+    "searchPlaceholder": "搜索已安装的应用",
+    "frequentTitle": "常用",
+    "allAppsTitle": "所有应用",
+    "allAppsCount": "{{count}} 个",
+    "filterRunning": "运行中",
+    "filterNeedsAttention": "需处理"
   },
   "sourceBadge": {
     "localDevelopment": "本地开发",
@@ -201,6 +206,7 @@
       "unconfigured": "AI 未配置",
       "unavailable": "AI 配置不可用"
     },
+    "openSettings": "打开 AI 模型设置",
     "loadFailed": "无法从 Runtime 加载此 App 的 AI 配置。",
     "saveFailed": "Runtime 无法保存此 App 的 AI 配置。",
     "capability": {

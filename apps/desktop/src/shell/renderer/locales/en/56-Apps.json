@@ -24,14 +24,19 @@
   },
   "library": {
     "pageTitle": "App Center",
-    "pageSubtitle": "Manage and launch your AI apps",
     "sortLabel": "Sort apps",
     "sortUpdated": "Recently updated",
     "sortName": "Name",
     "sortActivity": "Running first",
     "backToLibrary": "Back to Apps",
     "connectLocalTitle": "Add App",
-    "cardMenuLabel": "App actions"
+    "cardMenuLabel": "App actions",
+    "searchPlaceholder": "Search installed apps",
+    "frequentTitle": "Frequently Used",
+    "allAppsTitle": "All Apps",
+    "allAppsCount": "{{count}}",
+    "filterRunning": "Running",
+    "filterNeedsAttention": "Needs Attention"
   },
   "sourceBadge": {
     "localDevelopment": "Local development",
@@ -201,6 +206,7 @@
       "unconfigured": "AI not configured",
       "unavailable": "AI config unavailable"
     },
+    "openSettings": "Open AI model settings",
     "loadFailed": "This app's AI configuration could not be loaded from Runtime.",
     "saveFailed": "Runtime could not save this app's AI configuration.",
     "capability": {

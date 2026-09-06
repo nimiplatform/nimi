@@ -236,6 +236,34 @@ export function pinRunningAppsFirst(
   return [...running, ...stopped];
 }
 
+export type AppsLibraryFilterId = 'all' | 'running' | 'attention';
+
+/**
+ * "Needs attention" is a pure presentation derivation from owner data: a
+ * failed supervised run, a failed Runtime package job, or an app AIConfig
+ * posture that blocks usage. There is no renderer-local health truth.
+ */
+export function entryNeedsAttention(entry: DesktopAppsEntry): boolean {
+  if (appRunVisualState(entry.run?.state ?? null) === 'failed') return true;
+  const job = entry.packageJob;
+  if (
+    job
+    && (job.phase === AppPackageJobPhase.FAILED
+      || job.terminalResult === AppPackageTerminalResult.FAILED)
+  ) return true;
+  const health = entry.aiConfigSummary?.healthPosture;
+  return health === 'blocked' || health === 'unavailable';
+}
+
+export function filterAppsEntriesByStatus(
+  entries: readonly DesktopAppsEntry[],
+  filter: AppsLibraryFilterId,
+): readonly DesktopAppsEntry[] {
+  if (filter === 'running') return entries.filter(isEntryRunActive);
+  if (filter === 'attention') return entries.filter(entryNeedsAttention);
+  return entries;
+}
+
 /**
  * The detail surface only exists while its entry is projected. `null` means
  * the library view; the controller never fabricates a fallback selection.

@@ -13,15 +13,16 @@ import {
   Box,
   Check,
   Code2,
+  Info,
   ListFilter,
   LoaderCircle,
+  Plus,
   SearchX,
   X,
 } from 'lucide-react';
 import {
   ActionMenu,
   Button,
-  DashedAddButton,
   EmptyState,
   IconButton,
   InlineAlert,
@@ -38,12 +39,15 @@ import type { AppCardActionId } from './apps-card-actions.js';
 import {
   appRunVisualState,
   filterAppsEntries,
+  filterAppsEntriesByStatus,
   pinRunningAppsFirst,
   sortAppsEntries,
+  type AppsLibraryFilterId,
   type AppsSortId,
 } from './apps-card-fields.js';
 import { AppArtworkIcon } from './apps-card-visuals.js';
-import { AppGridCard } from './apps-grid-card.js';
+import { AppListRow } from './apps-list-row.js';
+import { FrequentAppsSection } from './apps-frequent-section.js';
 import { AppsDetailView } from './apps-detail-view.js';
 import type { DesktopAppsEntry, DesktopAppsPanelProjection } from './apps-panel-projection.js';
 
@@ -72,6 +76,16 @@ const SORT_LABEL_KEYS: Readonly<Record<AppsSortId, string>> = {
   activity: 'Apps.library.sortActivity',
 };
 
+const LIBRARY_FILTER_IDS: readonly AppsLibraryFilterId[] = ['all', 'running', 'attention'];
+const LIBRARY_FILTER_LABEL_KEYS: Readonly<Record<AppsLibraryFilterId, string>> = {
+  all: 'Apps.filter.all',
+  running: 'Apps.library.filterRunning',
+  attention: 'Apps.library.filterNeedsAttention',
+};
+
+/** The 常用 strip stays a quick-launch subset, not a second full list. */
+const FREQUENT_ENTRIES_LIMIT = 3;
+
 export function AppsPanelView({
   projection,
   searchQuery,
@@ -89,14 +103,28 @@ export function AppsPanelView({
 }: AppsPanelViewProps): ReactElement {
   const { t } = useTranslation();
   const [sortId, setSortId] = useState<AppsSortId>('updated');
+  const [libraryFilterId, setLibraryFilterId] = useState<AppsLibraryFilterId>('all');
   const railSearchRef = useRef<HTMLInputElement>(null);
-  const compactSearchRef = useRef<HTMLInputElement>(null);
+  const librarySearchRef = useRef<HTMLInputElement>(null);
 
   const loadedEntries = projection?.status === 'loaded' ? projection.entries : [];
-  const visibleEntries = useMemo(
+  const searchedEntries = useMemo(
     () => pinRunningAppsFirst(sortAppsEntries(filterAppsEntries(loadedEntries, searchQuery), sortId)),
     [loadedEntries, searchQuery, sortId],
   );
+  const visibleEntries = useMemo(
+    () => filterAppsEntriesByStatus(searchedEntries, libraryFilterId),
+    [searchedEntries, libraryFilterId],
+  );
+  const frequentEntries = useMemo(
+    () => pinRunningAppsFirst(sortAppsEntries(loadedEntries, 'updated')).slice(0, FREQUENT_ENTRIES_LIMIT),
+    [loadedEntries],
+  );
+  // 常用 only earns its strip when the full list is long enough that a subset
+  // adds value, and stays out of the way of search/filter results.
+  const showFrequent = libraryFilterId === 'all'
+    && searchQuery.trim() === ''
+    && loadedEntries.length > FREQUENT_ENTRIES_LIMIT;
   const selectedEntry = loadedEntries.find(
     (entry) => entry.identity.entryKey === selectedEntryKey,
   ) ?? null;
@@ -105,7 +133,7 @@ export function AppsPanelView({
   useEffect(() => {
     const focusAppsSearch = (event: globalThis.KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey) || event.key.toLocaleLowerCase() !== 'f') return;
-      const input = railSearchRef.current ?? compactSearchRef.current;
+      const input = librarySearchRef.current ?? railSearchRef.current;
       if (!input) return;
       event.preventDefault();
       input.focus();
@@ -126,7 +154,7 @@ export function AppsPanelView({
     <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 px-3 pb-3 pt-2 lg:flex-row">
       <AppsRail
         projection={projection}
-        visibleEntries={visibleEntries}
+        visibleEntries={searchedEntries}
         selectedEntryKey={selectedEntryKey}
         searchQuery={searchQuery}
         onSearchChange={onSearchChange}
@@ -167,12 +195,17 @@ export function AppsPanelView({
           <LibraryContent
             projection={projection}
             visibleEntries={visibleEntries}
+            frequentEntries={frequentEntries}
+            showFrequent={showFrequent}
             searchQuery={searchQuery}
             onSearchChange={onSearchChange}
-            onClearSearch={() => onSearchChange('')}
-            searchInputRef={compactSearchRef}
-            sortMenuItems={sortMenuItems}
-            activeSortLabel={t(SORT_LABEL_KEYS[sortId])}
+            onClearFilters={() => {
+              onSearchChange('');
+              setLibraryFilterId('all');
+            }}
+            searchInputRef={librarySearchRef}
+            libraryFilterId={libraryFilterId}
+            onLibraryFilterChange={setLibraryFilterId}
             activeAction={activeAction}
             onCardAction={onCardAction}
             onRetry={onRetry}
@@ -361,12 +394,14 @@ function RailAppRow({
 function LibraryContent({
   projection,
   visibleEntries,
+  frequentEntries,
+  showFrequent,
   searchQuery,
   onSearchChange,
-  onClearSearch,
+  onClearFilters,
   searchInputRef,
-  sortMenuItems,
-  activeSortLabel,
+  libraryFilterId,
+  onLibraryFilterChange,
   activeAction,
   onCardAction,
   onRetry,
@@ -375,12 +410,14 @@ function LibraryContent({
 }: {
   readonly projection: DesktopAppsPanelProjection | null;
   readonly visibleEntries: readonly DesktopAppsEntry[];
+  readonly frequentEntries: readonly DesktopAppsEntry[];
+  readonly showFrequent: boolean;
   readonly searchQuery: string;
   readonly onSearchChange: (value: string) => void;
-  readonly onClearSearch: () => void;
+  readonly onClearFilters: () => void;
   readonly searchInputRef: React.RefObject<HTMLInputElement | null>;
-  readonly sortMenuItems: NimiMenuItem[];
-  readonly activeSortLabel: string;
+  readonly libraryFilterId: AppsLibraryFilterId;
+  readonly onLibraryFilterChange: (value: AppsLibraryFilterId) => void;
   readonly activeAction: Readonly<{ entryKey: string; action: AppCardActionId }> | null;
   readonly onCardAction: (entryKey: string, action: AppCardActionId) => void;
   readonly onRetry: () => void;
@@ -391,66 +428,47 @@ function LibraryContent({
   return (
     <>
       <div className="shrink-0 px-5 pt-6 sm:px-7">
-        <h1
-          data-testid="apps-library-title"
-          className="text-2xl font-semibold leading-8 text-[color:var(--nimi-text-primary)]"
-        >
-          {t('Apps.library.pageTitle')}
-        </h1>
-        <p className="mt-1 text-xs leading-5 text-[color:var(--nimi-text-muted)]">
-          {t('Apps.library.pageSubtitle')}
-        </p>
-      </div>
-
-      {projection?.status === 'loaded' && projection.entries.length > 0 ? (
-        <div className="shrink-0 px-5 pt-4 sm:px-7 lg:hidden">
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+          <div className="min-w-0">
+            <h1
+              data-testid="apps-library-title"
+              className="text-2xl font-bold leading-8 text-[color:var(--nimi-text-primary)]"
+            >
+              {t('Apps.library.pageTitle')}
+            </h1>
+          </div>
           <div className="flex min-w-0 items-center gap-2">
-            <div className="min-w-0 flex-1">
-              <SearchField
-                ref={searchInputRef}
-                value={searchQuery}
-                onChange={(event) => onSearchChange(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Escape') onClearSearch();
-                }}
-                trailing={searchQuery ? <SearchClearButton testId="apps-search-clear-compact" onClear={onClearSearch} /> : undefined}
-                placeholder={t('Apps.sidebar.searchPlaceholder')}
-                aria-label={t('Apps.sidebar.searchLabel')}
-                inputClassName="text-xs"
-              />
-            </div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <IconButton
-                  data-testid="apps-sort-menu-compact"
-                  icon={<ListFilter className="h-3.5 w-3.5" aria-hidden="true" />}
-                  tone="ghost"
-                  size="sm"
-                  aria-label={t('Apps.library.sortLabel')}
-                  title={`${t('Apps.library.sortLabel')} · ${activeSortLabel}`}
-                  className="h-8 w-8 shrink-0"
-                />
-              </PopoverTrigger>
-              <PopoverContent align="end" sideOffset={6} className="p-1">
-                <ActionMenu items={sortMenuItems} ariaLabel={t('Apps.library.sortLabel')} />
-              </PopoverContent>
-            </Popover>
+            <SearchField
+              ref={searchInputRef}
+              value={searchQuery}
+              onChange={(event) => onSearchChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Escape') onClearFilters();
+              }}
+              trailing={searchQuery ? <SearchClearButton testId="apps-search-clear-library" onClear={onClearFilters} /> : undefined}
+              placeholder={t('Apps.library.searchPlaceholder')}
+              aria-label={t('Apps.library.searchPlaceholder')}
+              className="min-h-9 w-44 sm:w-64"
+              inputClassName="text-xs"
+            />
+            <Button
+              data-testid="apps-connect-local"
+              tone="primary"
+              size="md"
+              className="text-white"
+              leadingIcon={<Plus className="h-4 w-4" aria-hidden="true" />}
+              onClick={onOpenDeveloperMode}
+            >
+              {t('Apps.library.connectLocalTitle')}
+            </Button>
           </div>
         </div>
-      ) : null}
+      </div>
 
       {actionError ? (
         <div className="shrink-0 px-5 pt-4 sm:px-7">
           <InlineAlert tone="danger" data-testid="apps-action-error">
             {actionError}
-          </InlineAlert>
-        </div>
-      ) : null}
-
-      {projection?.status === 'loaded' && projection.catalogStatus === 'not-implemented' ? (
-        <div className="shrink-0 px-5 pt-4 sm:px-7">
-          <InlineAlert tone="info" data-testid="apps-catalog-unavailable">
-            {t('Apps.catalogNotImplemented')}
           </InlineAlert>
         </div>
       ) : null}
@@ -467,13 +485,30 @@ function LibraryContent({
         <LibraryBody
           projection={projection}
           visibleEntries={visibleEntries}
+          frequentEntries={frequentEntries}
+          showFrequent={showFrequent}
+          searchQuery={searchQuery}
+          libraryFilterId={libraryFilterId}
+          onLibraryFilterChange={onLibraryFilterChange}
           activeAction={activeAction}
           onCardAction={onCardAction}
-          onClearSearch={onClearSearch}
+          onClearFilters={onClearFilters}
           onRetry={onRetry}
           onOpenDeveloperMode={onOpenDeveloperMode}
         />
       </ScrollArea>
+
+      {projection?.status === 'loaded' && projection.catalogStatus === 'not-implemented' ? (
+        <div className="shrink-0 px-5 pb-4 sm:px-7">
+          <p
+            data-testid="apps-catalog-unavailable"
+            className="flex items-center gap-1.5 text-[11px] leading-4 text-[color:var(--nimi-text-muted)]"
+          >
+            <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            {t('Apps.catalogNotImplemented')}
+          </p>
+        </div>
+      ) : null}
     </>
   );
 }
@@ -481,17 +516,27 @@ function LibraryContent({
 function LibraryBody({
   projection,
   visibleEntries,
+  frequentEntries,
+  showFrequent,
+  searchQuery,
+  libraryFilterId,
+  onLibraryFilterChange,
   activeAction,
   onCardAction,
-  onClearSearch,
+  onClearFilters,
   onRetry,
   onOpenDeveloperMode,
 }: {
   readonly projection: DesktopAppsPanelProjection | null;
   readonly visibleEntries: readonly DesktopAppsEntry[];
+  readonly frequentEntries: readonly DesktopAppsEntry[];
+  readonly showFrequent: boolean;
+  readonly searchQuery: string;
+  readonly libraryFilterId: AppsLibraryFilterId;
+  readonly onLibraryFilterChange: (value: AppsLibraryFilterId) => void;
   readonly activeAction: Readonly<{ entryKey: string; action: AppCardActionId }> | null;
   readonly onCardAction: (entryKey: string, action: AppCardActionId) => void;
-  readonly onClearSearch: () => void;
+  readonly onClearFilters: () => void;
   readonly onRetry: () => void;
   readonly onOpenDeveloperMode: () => void;
 }): ReactElement {
@@ -499,17 +544,15 @@ function LibraryBody({
 
   if (projection === null) {
     return (
-      <div data-testid="apps-panel-loading" aria-label={t('Apps.loading')} className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4 px-5 py-5 sm:px-7">
-        {Array.from({ length: 8 }).map((_, index) => (
-          <div key={index} className="animate-pulse rounded-xl border border-[color:var(--nimi-border-subtle)] p-4">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 shrink-0 rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
-              <div className="min-w-0 flex-1 space-y-2">
-                <div className="h-4 w-2/3 rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
-                <div className="h-3 w-1/2 rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
-              </div>
+      <div data-testid="apps-panel-loading" aria-label={t('Apps.loading')} className="space-y-2 px-5 py-5 sm:px-7">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div key={index} className="flex animate-pulse items-center gap-4 rounded-2xl px-3 py-3">
+            <div className="h-16 w-16 shrink-0 rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="h-4 w-1/3 rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
+              <div className="h-3 w-1/2 rounded bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
             </div>
-            <div className="mt-4 h-8 rounded-lg bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
+            <div className="h-8 w-16 shrink-0 rounded-full bg-[color-mix(in_srgb,var(--nimi-surface-active)_54%,transparent)]" />
           </div>
         ))}
       </div>
@@ -554,34 +597,86 @@ function LibraryBody({
     );
   }
 
-  if (visibleEntries.length === 0) {
-    return (
-      <div data-testid="apps-filter-empty" className="px-5 py-10 text-center sm:px-7">
-        <SearchX className="mx-auto h-7 w-7 text-[var(--nimi-text-muted)]" aria-hidden="true" />
-        <p className="mt-3 text-sm font-semibold text-[color:var(--nimi-text-primary)]">{t('Apps.sidebar.noResultsTitle')}</p>
-        <p className="mt-1 text-xs leading-5 text-[color:var(--nimi-text-muted)]">{t('Apps.sidebar.noResultsDescription')}</p>
-        <Button tone="ghost" size="sm" className="mt-2" onClick={onClearSearch}>{t('Apps.sidebar.clearSearch')}</Button>
-      </div>
-    );
-  }
-
   return (
-    <div data-testid="apps-entry-list" data-app-list className="grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-4 px-5 py-5 sm:px-7">
-      {visibleEntries.map((entry) => (
-        <AppGridCard
-          key={entry.identity.entryKey}
-          entry={entry}
-          activeAction={activeAction && activeAction.entryKey === entry.identity.entryKey ? activeAction.action : null}
-          onAction={(action) => onCardAction(entry.identity.entryKey, action)}
+    <div className="space-y-8 px-5 py-5 sm:px-7">
+      {showFrequent ? (
+        <FrequentAppsSection
+          entries={frequentEntries}
+          activeAction={activeAction}
+          onAction={onCardAction}
         />
-      ))}
-      <DashedAddButton
-        shape="tile"
-        data-testid="apps-connect-local"
-        label={t('Apps.library.connectLocalTitle')}
-        onClick={onOpenDeveloperMode}
-        className="h-full min-h-[156px]"
-      />
+      ) : null}
+
+      <section data-testid="apps-entry-list" data-app-list aria-label={t('Apps.library.allAppsTitle')}>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 px-1">
+          <h2 className="flex min-w-0 items-baseline gap-2 text-base font-semibold leading-6 text-[color:var(--nimi-text-primary)]">
+            <span className="truncate">{t('Apps.library.allAppsTitle')}</span>
+            <span className="shrink-0 text-xs font-normal text-[color:var(--nimi-text-muted)]">
+              {t('Apps.library.allAppsCount', { count: visibleEntries.length })}
+            </span>
+          </h2>
+          <div className="flex items-center gap-1" role="group" aria-label={t('Apps.filter.label')}>
+            {LIBRARY_FILTER_IDS.map((filterId) => (
+              <button
+                key={filterId}
+                type="button"
+                data-testid={`apps-filter-${filterId}`}
+                aria-pressed={filterId === libraryFilterId}
+                onClick={() => onLibraryFilterChange(filterId)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] ${filterId === libraryFilterId
+                  ? 'bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_12%,transparent)] text-[var(--nimi-action-primary-bg)]'
+                  : 'text-[color:var(--nimi-text-muted)] hover:text-[color:var(--nimi-text-primary)]'
+                }`}
+              >
+                {t(LIBRARY_FILTER_LABEL_KEYS[filterId])}
+              </button>
+            ))}
+          </div>
+        </div>
+        {visibleEntries.length === 0 ? (
+          <LibraryListEmpty
+            searching={searchQuery.trim() !== ''}
+            onClearFilters={onClearFilters}
+          />
+        ) : (
+          <div className="mt-3 grid grid-cols-1 gap-1 xl:grid-cols-2 xl:gap-x-4">
+            {visibleEntries.map((entry) => (
+              <AppListRow
+                key={entry.identity.entryKey}
+                entry={entry}
+                activeAction={activeAction && activeAction.entryKey === entry.identity.entryKey ? activeAction.action : null}
+                onAction={(action) => onCardAction(entry.identity.entryKey, action)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function LibraryListEmpty({
+  searching,
+  onClearFilters,
+}: {
+  readonly searching: boolean;
+  readonly onClearFilters: () => void;
+}): ReactElement {
+  const { t } = useTranslation();
+  return (
+    <div data-testid="apps-filter-empty" className="py-10 text-center">
+      <SearchX className="mx-auto h-7 w-7 text-[var(--nimi-text-muted)]" aria-hidden="true" />
+      <p className="mt-3 text-sm font-semibold text-[color:var(--nimi-text-primary)]">
+        {searching ? t('Apps.sidebar.noResultsTitle') : t('Apps.filter.empty')}
+      </p>
+      {searching ? (
+        <p className="mt-1 text-xs leading-5 text-[color:var(--nimi-text-muted)]">
+          {t('Apps.sidebar.noResultsDescription')}
+        </p>
+      ) : null}
+      <Button tone="ghost" size="sm" className="mt-2" onClick={onClearFilters}>
+        {searching ? t('Apps.sidebar.clearSearch') : t('Apps.filter.reset')}
+      </Button>
     </div>
   );
 }
