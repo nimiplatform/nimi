@@ -512,6 +512,9 @@ function LibraryContent({
         />
       </ScrollArea>
 
+      {projection?.status === 'loaded' && projection.catalogStatus === 'loading' ? (
+        <p role="status" className="shrink-0 px-5 pb-4 text-xs text-[var(--nimi-text-muted)] sm:px-7">{t('Apps.catalog.loading')}</p>
+      ) : null}
       {projection?.status === 'loaded' && projection.catalogStatus === 'not-implemented' ? (
         <div className="shrink-0 px-5 pb-4 sm:px-7">
           <p

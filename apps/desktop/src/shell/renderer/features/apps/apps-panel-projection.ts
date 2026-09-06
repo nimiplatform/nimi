@@ -46,6 +46,12 @@ export interface DesktopAppAIConfigReadOptions {
   readonly signal: AbortSignal;
 }
 
+export interface DesktopAppsCatalogProjection {
+  readonly status: 'loading' | 'not-implemented' | 'loaded' | 'unavailable';
+  readonly targets: readonly ApprovedAppCatalogTarget[];
+  readonly error?: unknown;
+}
+
 export interface DesktopAppsProjectionSource {
   listApprovedCatalogTargets?(): Promise<readonly ApprovedAppCatalogTarget[]>;
   listCommittedReleases(): Promise<readonly CommittedAppRelease[]>;
@@ -100,7 +106,7 @@ export type DesktopAppsPanelProjection =
   | {
       readonly status: 'loaded';
       readonly entries: readonly DesktopAppsEntry[];
-      readonly catalogStatus: 'not-implemented' | 'loaded' | 'unavailable';
+      readonly catalogStatus: DesktopAppsCatalogProjection['status'];
       readonly runtimeError: string | null;
     }
   | { readonly status: 'error'; readonly detail: string };
@@ -114,6 +120,7 @@ export async function projectAppsPanel(
     readonly previous?: DesktopAppsPanelProjection | null;
     readonly refreshAIConfig?: boolean;
     readonly aiConfigReadTimeoutMs?: number;
+    readonly catalog?: DesktopAppsCatalogProjection;
   } = {},
 ): Promise<DesktopAppsPanelProjection> {
   if (
@@ -132,16 +139,13 @@ export async function projectAppsPanel(
       source.listPackageJobs(),
     ]).then(([releases, jobs]) => ({ ok: true as const, releases, jobs }))
       .catch((error: unknown) => ({ ok: false as const, error }));
-    const catalogRequest = source.listApprovedCatalogTargets
-      ? source.listApprovedCatalogTargets()
-        .then((targets) => ({ status: 'loaded' as const, targets }))
-        .catch((error: unknown) => ({ status: 'unavailable' as const, targets: [] as const, error }))
-      : Promise.resolve({ status: 'not-implemented' as const, targets: [] as const });
-    const [registrations, runs, runtimeResult, catalogResult, installedRuns] = await Promise.all([
+    const catalogResult: DesktopAppsCatalogProjection = options.catalog ?? {
+      status: source.listApprovedCatalogTargets ? 'loading' : 'not-implemented', targets: [],
+    };
+    const [registrations, runs, runtimeResult, installedRuns] = await Promise.all([
       source.listRegistrations(),
       source.listRuns(),
       runtimeRequest,
-      catalogRequest,
       source.listInstalledRuns?.() ?? Promise.resolve([] as readonly InstalledAppRun[]),
     ]);
     const previousEntries = options.previous?.status === 'loaded'

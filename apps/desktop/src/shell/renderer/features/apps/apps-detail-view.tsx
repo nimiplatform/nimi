@@ -562,7 +562,7 @@ function InstalledAppsDetailView({
           <OverviewCard title={t('Apps.detail.aboutTitle')}>
             <dl className="divide-y divide-[color:var(--nimi-border-subtle)]">
               <DetailRow label={t('LocalDevelopment.field.app')} value={entry.identity.appId} mono />
-              <DetailRow label={t('Apps.detail.source')} value={t('Apps.sourceBadge.verified')} />
+              <DetailRow label={t('Apps.detail.source')} value={t(appSourceForEntry(entry) === 'user_imported' ? 'Apps.sourceBadge.userImported' : 'Apps.sourceBadge.verified')} />
               <DetailRow label={t('Apps.detail.catalogVersion', { defaultValue: 'Version' })} value={release?.version ?? catalog?.version ?? t('Apps.version.notInstalled')} mono />
               {release ? <DetailRow label={t('Apps.detail.releaseRef', { defaultValue: 'Release reference' })} value={release.releaseRef} mono /> : null}
               {catalog ? (

@@ -4,6 +4,7 @@ import { describe, it } from 'node:test';
 import { readFileSync } from 'node:fs';
 import {
   applyAppsPanelAIConfigAcknowledgement,
+  createAppsPanelProjectionReloader,
   assertAppsAction,
   requestAppsInstallFromDetail,
 } from '../src/shell/renderer/features/apps/apps-panel-controller.js';
@@ -237,4 +238,41 @@ it('limits the current installed lifecycle to verified packages without promotin
   assert.equal(actionPlanForEntry(verified).primary?.id, 'launch');
   assert.equal(canRequestUninstall(verified), true);
   assert.deepEqual(actionPlanForEntry({ ...verified, run: { state: 'running' } }).secondary.map((action) => action.id), ['details', 'stop']);
+});
+
+it('local lifecycle refresh completes while Catalog is pending and does not refetch it', async () => {
+  let resolveCatalog!: (value: ApprovedAppCatalogTarget[]) => void;
+  let catalogCalls = 0;
+  let version = '1.0.0';
+  let current: DesktopAppsPanelProjection | null = null;
+  const observations: DesktopAppsPanelProjection[] = [];
+  const reloader = createAppsPanelProjectionReloader({
+    source: {
+      listApprovedCatalogTargets: () => { catalogCalls += 1; return new Promise((resolve) => { resolveCatalog = resolve; }); },
+      listCommittedReleases: async () => [{ appId: 'example.app', sourceClass: AppPackageSourceClass.VERIFIED, version, releaseRef: 'release', launchSelector: new Uint8Array([1]) }],
+      listPackageJobs: async () => [], listRegistrations: async () => [], listRuns: async () => [],
+    },
+    getCurrent: () => current,
+    commit: (next) => { current = next; observations.push(next); },
+  });
+  const catalog = reloader.refreshCatalog();
+  await reloader.reload(false);
+  const initial = observations.at(-1)!;
+  assert.equal(initial.status, 'loaded');
+  if (initial.status !== 'loaded') throw new Error('local projection failed');
+  assert.equal(initial.catalogStatus, 'loading');
+  assert.equal(initial.entries[0]?.committedRelease?.version, '1.0.0');
+  version = '2.0.0';
+  await reloader.reload(false);
+  const updated = observations.at(-1)!;
+  if (updated.status !== 'loaded') throw new Error('local projection failed');
+  assert.equal(updated.entries[0]?.committedRelease?.version, '2.0.0');
+  assert.equal(catalogCalls, 1);
+  resolveCatalog([]);
+  await catalog;
+  const final = observations.at(-1)!;
+  if (final.status !== 'loaded') throw new Error('local projection failed');
+  assert.equal(final.catalogStatus, 'loaded');
+  assert.equal(final.entries[0]?.committedRelease?.version, '2.0.0');
+  reloader.dispose();
 });

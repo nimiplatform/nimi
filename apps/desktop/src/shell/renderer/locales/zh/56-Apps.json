@@ -44,6 +44,7 @@
     "verified": "已通过 Registry 审核"
   },
   "catalog": {
+    "loading": "正在加载应用目录…",
     "registryApproved": "这个版本已通过公共 Nimi App Registry 审核。Descriptor 冻结准确的 Release asset、digest 和 provenance，Runtime 还会再次验证下载的包；审核和验证都不等于无恶意代码保证，也不保证操作系统一定允许执行。",
     "policyBlocked": "当前 Registry 策略已阻止新的安装或启动（修订 {{revision}}）：{{reason}}",
     "policyBlockedFallback": "未提供原因。",

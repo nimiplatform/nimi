@@ -56,3 +56,31 @@ test('installed host keeps exact process, focus, stop and Access independent', a
   assert.equal(launches, 1);
   await host.shutdown();
 });
+
+test('installed host preserves an abnormal exit across later polls and resets it on relaunch', async () => {
+  let running = false;
+  let tracked = false;
+  let statuses = 0;
+  const control: NimiElectronInstalledAppControl = {
+    async launch() { running = true; tracked = true; return { launchId: '22'.repeat(32), processId: 234, appId: 'example', version: '1.0.0' }; },
+    async status() { statuses += 1; return { running, exitCode: tracked && !running ? 17 : null }; },
+    async focus() {},
+    async stop() { running = false; tracked = false; },
+    async end() {},
+    async completeUninstall() {},
+    async access() { return { available: false, reasonCode: 'LOCAL_APP_SESSION_REVOKED' }; },
+  };
+  const host = createDesktopInstalledAppHost(control);
+  const payload = { payload: { launchSelector: [1] } };
+  await host.commandHandlers.installed_app_launch!({ payload });
+  running = false;
+  const first = await host.commandHandlers.installed_app_runs_list!({ payload: {} }) as InstalledAppRun[];
+  assert.equal(first[0]?.state, 'crashed');
+  const readsAtExit = statuses;
+  const next = await host.commandHandlers.installed_app_runs_list!({ payload: {} }) as InstalledAppRun[];
+  assert.equal(next[0]?.state, 'crashed');
+  assert.equal(statuses, readsAtExit);
+  const restarted = await host.commandHandlers.installed_app_launch!({ payload }) as InstalledAppRun;
+  assert.equal(restarted.state, 'running');
+  await host.shutdown();
+});

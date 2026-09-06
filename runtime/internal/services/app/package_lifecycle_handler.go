@@ -177,22 +177,29 @@ func (s *Service) CancelAppPackageJob(
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if s == nil || s.appInstallCoordinator == nil {
-		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE)
-	}
 	store, err := s.packageLifecycleStore()
 	if err != nil {
 		return nil, err
 	}
 	job, err := store.GetJob(ctx, string(req.GetJobId()))
-	if err == nil && job.Kind == localappkernel.PackageJobUninstall {
+	if err != nil {
+		return nil, appPackageLifecycleError("cancel App package job", err)
+	}
+	registryOwned := job.SourceClass == localappkernel.SourceClassVerified &&
+		(job.Kind == localappkernel.PackageJobInstall || job.Kind == localappkernel.PackageJobUninstall)
+	if registryOwned && s.appInstallCoordinator == nil {
+		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE)
+	}
+	if !registryOwned {
+		job, err = store.Cancel(ctx, job.JobID, expected, req.GetReasonCode())
+	} else if job.Kind == localappkernel.PackageJobUninstall {
 		job, err = s.appInstallCoordinator.CancelUninstall(ctx, job.JobID, expected, req.GetReasonCode())
 		if err == nil {
 			if owner, ok := protectedlocal.DesktopConnectionFromContext(ctx); ok {
 				owner.UnbindRevocationHook(uninstallJobHook(job.JobID))
 			}
 		}
-	} else if err == nil {
+	} else {
 		job, err = s.appInstallCoordinator.CancelInstall(ctx, job.JobID, expected, req.GetReasonCode())
 	}
 	if err != nil {
