@@ -1,4 +1,4 @@
-import { useState, type RefObject } from 'react';
+import { useState, type ReactNode, type RefObject } from 'react';
 import type {
   NimiRuntimeLocalTransferProgressEvent,
   NimiRuntimeModelAssetRecord,
@@ -12,6 +12,7 @@ import { LocalModelCenterInProgressSection } from './runtime-config-local-model-
 import { RUNTIME_PAGE_WIDTH_CLASS, RuntimePageHeader } from './runtime-config-page-shell';
 
 type LocalAssetsRuntimeViewProps = {
+  readonly catalogContent: ReactNode;
   readonly assetBusy: boolean;
   readonly assetImportError: string;
   readonly loadingInstalledAssets: boolean;
@@ -102,6 +103,7 @@ export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) 
           onInspectRemoval={props.onInspectRemoval}
           onRemoveAsset={props.onRemoveAsset}
         />
+        {props.catalogContent}
       </ScrollArea>
     </div>
   );

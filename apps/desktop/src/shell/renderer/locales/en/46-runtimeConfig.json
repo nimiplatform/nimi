@@ -1698,7 +1698,11 @@
       "unknown": "Host Unknown"
     },
     "noMatchingAssets": "No installed assets match this search",
-    "searchInstalled": "Search installed assets"
+    "searchInstalled": "Search installed assets",
+    "builtinCatalog": "Built-in catalog",
+    "builtinCatalogDescription": "Browse built-in models and supporting assets independently of community search. Downloads still need access to the model source.",
+    "searchBuiltinCatalog": "Search the built-in catalog",
+    "builtinCatalogEmpty": "No built-in catalog assets match this search."
   },
   "delegation": {
     "title": "Delegated capability control",
