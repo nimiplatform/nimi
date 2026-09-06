@@ -24,6 +24,8 @@ import {
   milestoneTheme,
 } from './source-detail-world-character-theme.js';
 import { composeWorldCharacterMilestones } from './source-detail-world-character-milestones.js';
+import { personaStyleDisplayText } from './source-detail-persona-style-labels.js';
+import { buildWorldCharacterQuestions } from './source-detail-world-character-questions.js';
 
 type CharacterSourceDetailPageProps = {
   source: SourceDetailData;
@@ -633,11 +635,49 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
 
           <main className="grid min-w-0 gap-5">
             <WorldCharacterOverviewSection source={source} onOpenWorld={props.onOpenWorld} />
+            <WorldCharacterProfileDetails source={source} />
+            <WorldCharacterQuestions source={source} onStartChat={canStartChat ? props.onStartChat : undefined} />
             <WorldCharacterMilestonesSection source={source} />
             <WorldCharacterRelationshipCluesSection source={source} />
           </main>
         </div>
       </ScrollArea>
     </div>
+  );
+}
+
+function WorldCharacterProfileDetails({ source }: { source: SourceDetailData }) {
+  const { t } = useTranslation();
+  const profile = source.characterProfile;
+  const fields = [
+    ['profileRole', profile.role ? personaStyleDisplayText(profile.role, t) : ''],
+    ['profileArchetype', profile.archetype ? personaStyleDisplayText(profile.archetype, t) : ''],
+    ['profileTraits', profile.traits.map((value) => personaStyleDisplayText(value, t)).join(' · ')],
+    ['profileInteractionModes', profile.interactionModes.map((value) => personaStyleDisplayText(value, t)).join(' · ')],
+  ].filter(([, value]) => value);
+  if (fields.length === 0) return null;
+  return (
+    <details data-testid="world-character-profile-details" className="rounded-xl border border-[var(--nimi-border-subtle)] p-4">
+      <summary className="cursor-pointer text-sm font-semibold">{t('SourceDetail.worldCharacter.profileDetails')}</summary>
+      <dl className="mt-3 space-y-2 text-sm">
+        {fields.map(([key, value]) => <div key={key} className="flex gap-4"><dt className="shrink-0 text-[var(--nimi-text-muted)]">{t(`SourceDetail.worldCharacter.${key}`)}</dt><dd className="min-w-0 break-words">{value}</dd></div>)}
+      </dl>
+    </details>
+  );
+}
+
+export function WorldCharacterQuestions({ source, onStartChat }: {
+  source: SourceDetailData;
+  onStartChat?: (text?: string) => void;
+}) {
+  const { t } = useTranslation();
+  const questions = buildWorldCharacterQuestions(source, t);
+  if (questions.length === 0) return null;
+  return (
+    <section data-testid="world-character-question-suggestions" className="space-y-3 rounded-xl border border-[var(--nimi-border-subtle)] p-4">
+      <h2 className="text-sm font-semibold">{t('SourceDetail.worldCharacter.questionSuggestions')}</h2>
+      <div className="flex flex-wrap gap-2">{questions.map((question) => <Button key={question} tone="secondary" size="sm" disabled={!onStartChat} onClick={() => onStartChat?.(question)}>{question}</Button>)}</div>
+      {!onStartChat ? <p className="text-xs text-[var(--nimi-text-muted)]">{t('SourceDetail.worldCharacter.addToAsk')}</p> : null}
+    </section>
   );
 }

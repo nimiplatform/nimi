@@ -196,7 +196,7 @@ const canonicalRegistrationCreateStatement = `CREATE TABLE IF NOT EXISTS canonic
 	registered_app_subject TEXT NOT NULL UNIQUE,
 	app_id TEXT NOT NULL,
 	display_name TEXT NOT NULL,
-	source_class TEXT NOT NULL CHECK(source_class IN ('verified','local_development')),
+	source_class TEXT NOT NULL CHECK(source_class IN ('verified','user_imported','local_development')),
 	source_ref TEXT NOT NULL,
 	shell_kind INTEGER NOT NULL,
 	raw_declaration_json TEXT NOT NULL,
@@ -212,7 +212,7 @@ const canonicalRegistrationCreateStatement = `CREATE TABLE IF NOT EXISTS canonic
 	created_unix_nano INTEGER NOT NULL,
 	updated_unix_nano INTEGER NOT NULL,
 	tombstoned_unix_nano INTEGER,
-	CHECK((source_class = 'verified' AND shell_kind = 0) OR (source_class = 'local_development' AND shell_kind > 0)),
+	CHECK((source_class IN ('verified','user_imported') AND shell_kind = 0) OR (source_class = 'local_development' AND shell_kind > 0)),
 	CHECK((state = 'active' AND tombstoned_unix_nano IS NULL) OR (state = 'tombstoned' AND tombstoned_unix_nano IS NOT NULL))
 )`
 
@@ -258,10 +258,10 @@ func (kernel *Kernel) requireCanonicalRegistrationSchema(ctx context.Context) er
 			return fmt.Errorf("initialize registered App schema: unsupported canonical_registration shape")
 		}
 	}
-	if err := requireSQLiteConstraint(ctx, kernel.db, "canonical_registration", "source-class", "check(source_classin('verified','local_development'))", "user_imported"); err != nil {
+	if err := requireSQLiteConstraint(ctx, kernel.db, "canonical_registration", "source-class", "check(source_classin('verified','user_imported','local_development'))"); err != nil {
 		return fmt.Errorf("initialize registered App schema: %w", err)
 	}
-	if err := requireSQLiteConstraint(ctx, kernel.db, "canonical_registration", "shell-kind-owner", "check((source_class='verified'andshell_kind=0)or(source_class='local_development'andshell_kind>0))"); err != nil {
+	if err := requireSQLiteConstraint(ctx, kernel.db, "canonical_registration", "shell-kind-owner", "check((source_classin('verified','user_imported')andshell_kind=0)or(source_class='local_development'andshell_kind>0))"); err != nil {
 		return fmt.Errorf("initialize registered App schema: %w", err)
 	}
 	return nil
@@ -341,9 +341,6 @@ func (kernel *Kernel) initialize(ctx context.Context) error {
 		if _, err := kernel.db.ExecContext(ctx, statement); err != nil {
 			return fmt.Errorf("initialize registered App schema: %w", err)
 		}
-	}
-	if err := kernel.requirePackageLifecycleSchema(ctx); err != nil {
-		return err
 	}
 	return nil
 }

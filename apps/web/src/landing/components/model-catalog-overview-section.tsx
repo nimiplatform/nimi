@@ -158,9 +158,6 @@ export function ModelCatalogOverviewSection(props: ModelCatalogOverviewSectionPr
 
           <div className="relative text-center">
             <div className="mb-18 space-y-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">
-                {props.content.kicker}
-              </p>
               <h2 className="font-heading text-4xl font-extrabold tracking-tight text-slate-900 md:text-5xl">
                 {props.content.title}
               </h2>

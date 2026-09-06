@@ -90,9 +90,9 @@ AiRealtimeSpeechState = Literal["AI_REALTIME_SPEECH_STATE_UNSPECIFIED", "AI_REAL
 AiRealtimeTurnDetectionMode = Literal["AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED", "AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD", "AI_REALTIME_TURN_DETECTION_MODE_MANUAL"]
 AppMessageEventType = Literal["APP_MESSAGE_EVENT_TYPE_UNSPECIFIED", "APP_MESSAGE_EVENT_RECEIVED", "APP_MESSAGE_EVENT_ACKED", "APP_MESSAGE_EVENT_FAILED"]
 AppPackageJobKind = Literal["APP_PACKAGE_JOB_KIND_UNSPECIFIED", "APP_PACKAGE_JOB_KIND_INSTALL", "APP_PACKAGE_JOB_KIND_UPDATE", "APP_PACKAGE_JOB_KIND_REPAIR", "APP_PACKAGE_JOB_KIND_UNINSTALL"]
-AppPackageJobPhase = Literal["APP_PACKAGE_JOB_PHASE_UNSPECIFIED", "APP_PACKAGE_JOB_PHASE_QUEUED", "APP_PACKAGE_JOB_PHASE_DOWNLOADING", "APP_PACKAGE_JOB_PHASE_VERIFYING", "APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED", "APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING", "APP_PACKAGE_JOB_PHASE_STAGING", "APP_PACKAGE_JOB_PHASE_COMMITTING", "APP_PACKAGE_JOB_PHASE_REMOVING_PACKAGE", "APP_PACKAGE_JOB_PHASE_UNREGISTERING", "APP_PACKAGE_JOB_PHASE_COMPLETED", "APP_PACKAGE_JOB_PHASE_FAILED", "APP_PACKAGE_JOB_PHASE_CANCELED"]
+AppPackageJobPhase = Literal["APP_PACKAGE_JOB_PHASE_UNSPECIFIED", "APP_PACKAGE_JOB_PHASE_QUEUED", "APP_PACKAGE_JOB_PHASE_DOWNLOADING", "APP_PACKAGE_JOB_PHASE_READING_LOCAL", "APP_PACKAGE_JOB_PHASE_VERIFYING", "APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED", "APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING", "APP_PACKAGE_JOB_PHASE_STAGING", "APP_PACKAGE_JOB_PHASE_COMMITTING", "APP_PACKAGE_JOB_PHASE_REMOVING_PACKAGE", "APP_PACKAGE_JOB_PHASE_UNREGISTERING", "APP_PACKAGE_JOB_PHASE_COMPLETED", "APP_PACKAGE_JOB_PHASE_FAILED", "APP_PACKAGE_JOB_PHASE_CANCELED"]
 AppPackageProgressBasis = Literal["APP_PACKAGE_PROGRESS_BASIS_UNSPECIFIED", "APP_PACKAGE_PROGRESS_BASIS_BYTES", "APP_PACKAGE_PROGRESS_BASIS_STEPS", "APP_PACKAGE_PROGRESS_BASIS_INDETERMINATE"]
-AppPackageSourceClass = Literal["APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED", "APP_PACKAGE_SOURCE_CLASS_VERIFIED"]
+AppPackageSourceClass = Literal["APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED", "APP_PACKAGE_SOURCE_CLASS_VERIFIED", "APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED"]
 AppPackageTerminalResult = Literal["APP_PACKAGE_TERMINAL_RESULT_UNSPECIFIED", "APP_PACKAGE_TERMINAL_RESULT_COMPLETED", "APP_PACKAGE_TERMINAL_RESULT_FAILED", "APP_PACKAGE_TERMINAL_RESULT_CANCELED"]
 AppStorageState = Literal["APP_STORAGE_STATE_UNSPECIFIED", "APP_STORAGE_STATE_READY", "APP_STORAGE_STATE_REPAIR_REQUIRED", "APP_STORAGE_STATE_STORAGE_UNAVAILABLE"]
 CallerKind = Literal["CALLER_KIND_UNSPECIFIED", "CALLER_KIND_DESKTOP_CORE", "CALLER_KIND_THIRD_PARTY_APP", "CALLER_KIND_THIRD_PARTY_SERVICE"]
@@ -150,7 +150,7 @@ LocalAppConversationVoiceState = Literal["LOCAL_APP_CONVERSATION_VOICE_STATE_UNS
 LocalAppEmbodimentEventKind = Literal["LOCAL_APP_EMBODIMENT_EVENT_KIND_UNSPECIFIED", "LOCAL_APP_EMBODIMENT_EVENT_KIND_ACTIVITY", "LOCAL_APP_EMBODIMENT_EVENT_KIND_EMOTION", "LOCAL_APP_EMBODIMENT_EVENT_KIND_POSTURE", "LOCAL_APP_EMBODIMENT_EVENT_KIND_VOICE_TIMING"]
 LocalAppEmbodimentVoicePhase = Literal["LOCAL_APP_EMBODIMENT_VOICE_PHASE_UNSPECIFIED", "LOCAL_APP_EMBODIMENT_VOICE_PHASE_ACTIVE", "LOCAL_APP_EMBODIMENT_VOICE_PHASE_COMPLETED", "LOCAL_APP_EMBODIMENT_VOICE_PHASE_FAILED", "LOCAL_APP_EMBODIMENT_VOICE_PHASE_INTERRUPTED", "LOCAL_APP_EMBODIMENT_VOICE_PHASE_CANCELED"]
 LocalAppSessionState = Literal["LOCAL_APP_SESSION_STATE_UNSPECIFIED", "LOCAL_APP_SESSION_STATE_READY", "LOCAL_APP_SESSION_STATE_RUNTIME_UNAVAILABLE", "LOCAL_APP_SESSION_STATE_REVOKED", "LOCAL_APP_SESSION_STATE_ACCOUNT_CHANGED", "LOCAL_APP_SESSION_STATE_PROCESS_REPLACED"]
-LocalAppTrustClass = Literal["LOCAL_APP_TRUST_CLASS_UNSPECIFIED", "LOCAL_APP_TRUST_CLASS_VERIFIED", "LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT"]
+LocalAppTrustClass = Literal["LOCAL_APP_TRUST_CLASS_UNSPECIFIED", "LOCAL_APP_TRUST_CLASS_VERIFIED", "LOCAL_APP_TRUST_CLASS_USER_IMPORTED", "LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT"]
 LocalAssetKind = Literal["LOCAL_ASSET_KIND_UNSPECIFIED", "LOCAL_ASSET_KIND_CHAT", "LOCAL_ASSET_KIND_IMAGE", "LOCAL_ASSET_KIND_VIDEO", "LOCAL_ASSET_KIND_TTS", "LOCAL_ASSET_KIND_STT", "LOCAL_ASSET_KIND_EMBEDDING", "LOCAL_ASSET_KIND_MUSIC", "LOCAL_ASSET_KIND_VAE", "LOCAL_ASSET_KIND_CLIP", "LOCAL_ASSET_KIND_LORA", "LOCAL_ASSET_KIND_CONTROLNET", "LOCAL_ASSET_KIND_AUXILIARY"]
 LocalCapabilityInterpretability = Literal["LOCAL_CAPABILITY_INTERPRETABILITY_UNSPECIFIED", "LOCAL_CAPABILITY_INTERPRETABILITY_INTERPRETABLE", "LOCAL_CAPABILITY_INTERPRETABILITY_UNAVAILABLE"]
 LocalCapabilityReason = Literal["LOCAL_CAPABILITY_REASON_UNSPECIFIED", "LOCAL_CAPABILITY_REASON_DRIVER_NOT_FOUND", "LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED", "LOCAL_CAPABILITY_REASON_IMPLEMENTATION_UNSUPPORTED", "LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID", "LOCAL_CAPABILITY_REASON_FEATURE_UNSUPPORTED", "LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING", "LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS", "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_NOT_FOUND", "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_UNVERIFIED", "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_CONTENT_MISMATCH", "LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE", "LOCAL_CAPABILITY_REASON_CONDITIONAL_BINDING_MISSING", "LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_UNAVAILABLE", "LOCAL_CAPABILITY_REASON_TEXT_BEHAVIOR_AMBIGUOUS"]
@@ -160,19 +160,13 @@ LocalCapabilityRequirementResolution = Literal["LOCAL_CAPABILITY_REQUIREMENT_RES
 LocalCapabilityRequirementRole = Literal["LOCAL_CAPABILITY_REQUIREMENT_ROLE_UNSPECIFIED", "LOCAL_CAPABILITY_REQUIREMENT_ROLE_MAIN", "LOCAL_CAPABILITY_REQUIREMENT_ROLE_COMPANION"]
 LocalDevelopmentShellKind = Literal["LOCAL_DEVELOPMENT_SHELL_KIND_UNSPECIFIED", "LOCAL_DEVELOPMENT_SHELL_KIND_ELECTRON", "LOCAL_DEVELOPMENT_SHELL_KIND_TAURI"]
 LocalEngineRuntimeMode = Literal["LOCAL_ENGINE_RUNTIME_MODE_UNSPECIFIED", "LOCAL_ENGINE_RUNTIME_MODE_SUPERVISED", "LOCAL_ENGINE_RUNTIME_MODE_ATTACHED_ENDPOINT"]
-LocalHostSupportClass = Literal["LOCAL_HOST_SUPPORT_CLASS_UNSPECIFIED", "LOCAL_HOST_SUPPORT_CLASS_SUPPORTED_SUPERVISED", "LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY", "LOCAL_HOST_SUPPORT_CLASS_UNSUPPORTED"]
-LocalRecommendationBaseline = Literal["LOCAL_RECOMMENDATION_BASELINE_UNSPECIFIED", "LOCAL_RECOMMENDATION_BASELINE_IMAGE_DEFAULT_V1", "LOCAL_RECOMMENDATION_BASELINE_VIDEO_DEFAULT_V1"]
-LocalRecommendationConfidence = Literal["LOCAL_RECOMMENDATION_CONFIDENCE_UNSPECIFIED", "LOCAL_RECOMMENDATION_CONFIDENCE_HIGH", "LOCAL_RECOMMENDATION_CONFIDENCE_MEDIUM", "LOCAL_RECOMMENDATION_CONFIDENCE_LOW"]
-LocalRecommendationFeedCacheState = Literal["LOCAL_RECOMMENDATION_FEED_CACHE_STATE_UNSPECIFIED", "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH", "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_STALE", "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY"]
-LocalRecommendationFeedCapability = Literal["LOCAL_RECOMMENDATION_FEED_CAPABILITY_UNSPECIFIED", "LOCAL_RECOMMENDATION_FEED_CAPABILITY_CHAT", "LOCAL_RECOMMENDATION_FEED_CAPABILITY_IMAGE", "LOCAL_RECOMMENDATION_FEED_CAPABILITY_VIDEO"]
-LocalRecommendationFeedSource = Literal["LOCAL_RECOMMENDATION_FEED_SOURCE_UNSPECIFIED", "LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX"]
-LocalRecommendationFormat = Literal["LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED", "LOCAL_RECOMMENDATION_FORMAT_GGUF", "LOCAL_RECOMMENDATION_FORMAT_SAFETENSORS"]
-LocalRecommendationSource = Literal["LOCAL_RECOMMENDATION_SOURCE_UNSPECIFIED", "LOCAL_RECOMMENDATION_SOURCE_LLMFIT", "LOCAL_RECOMMENDATION_SOURCE_MEDIA_FIT"]
-LocalRecommendationTier = Literal["LOCAL_RECOMMENDATION_TIER_UNSPECIFIED", "LOCAL_RECOMMENDATION_TIER_RECOMMENDED", "LOCAL_RECOMMENDATION_TIER_RUNNABLE", "LOCAL_RECOMMENDATION_TIER_TIGHT", "LOCAL_RECOMMENDATION_TIER_NOT_RECOMMENDED"]
+LocalRecommendationApplicability = Literal["LOCAL_RECOMMENDATION_APPLICABILITY_UNSPECIFIED", "LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED", "LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN", "LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED"]
 MemoryDistanceMetric = Literal["MEMORY_DISTANCE_METRIC_UNSPECIFIED", "MEMORY_DISTANCE_METRIC_COSINE", "MEMORY_DISTANCE_METRIC_EUCLIDEAN"]
 MemoryMigrationPolicy = Literal["MEMORY_MIGRATION_POLICY_UNSPECIFIED", "MEMORY_MIGRATION_POLICY_REINDEX", "MEMORY_MIGRATION_POLICY_FREEZE"]
 Modal = Literal["MODAL_UNSPECIFIED", "MODAL_TEXT", "MODAL_IMAGE", "MODAL_VIDEO", "MODAL_TTS", "MODAL_STT", "MODAL_EMBEDDING", "MODAL_MUSIC", "MODAL_WORLD"]
 ModelAssetCatalogVerification = Literal["MODEL_ASSET_CATALOG_VERIFICATION_UNSPECIFIED", "MODEL_ASSET_CATALOG_VERIFICATION_MATCHED", "MODEL_ASSET_CATALOG_VERIFICATION_NOT_MATCHED"]
+ModelAssetSourceAvailability = Literal["MODEL_ASSET_SOURCE_AVAILABILITY_UNSPECIFIED", "MODEL_ASSET_SOURCE_AVAILABILITY_AVAILABLE", "MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE"]
+ModelAssetSourceFreshness = Literal["MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED", "MODEL_ASSET_SOURCE_FRESHNESS_FRESH", "MODEL_ASSET_SOURCE_FRESHNESS_STALE"]
 ModelCatalogProviderSource = Literal["MODEL_CATALOG_PROVIDER_SOURCE_UNSPECIFIED", "MODEL_CATALOG_PROVIDER_SOURCE_BUILTIN", "MODEL_CATALOG_PROVIDER_SOURCE_CUSTOM", "MODEL_CATALOG_PROVIDER_SOURCE_REMOTE", "MODEL_CATALOG_PROVIDER_SOURCE_OVERRIDDEN"]
 PresenceVerificationMethod = Literal["PRESENCE_VERIFICATION_METHOD_UNSPECIFIED", "PRESENCE_VERIFICATION_METHOD_OS_CREDENTIAL", "PRESENCE_VERIFICATION_METHOD_NIMI_REAUTH", "PRESENCE_VERIFICATION_METHOD_TEST_HARNESS"]
 PresenceVerificationState = Literal["PRESENCE_VERIFICATION_STATE_UNSPECIFIED", "PRESENCE_VERIFICATION_STATE_REJECTED", "PRESENCE_VERIFICATION_STATE_VERIFIED", "PRESENCE_VERIFICATION_STATE_UNAVAILABLE"]
@@ -2103,6 +2097,17 @@ class ExternalAgentTokenRecord:
     issuer: str | None = None
 
 @dataclass(frozen=True)
+class FactoryProfileCapabilityApplicability:
+    capability_contract: str | None = None
+    applicability: LocalRecommendationApplicability | None = None
+    reasons: tuple[ReasonCode, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class FactoryProfileRecommendation:
+    profile_alias: str | None = None
+    capabilities: tuple[FactoryProfileCapabilityApplicability, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
 class ForgetLocalAppAgentMemoryRequest:
     agent_handle: str | None = None
     memory_ids: tuple[str, ...] = field(default_factory=tuple)
@@ -2197,6 +2202,17 @@ class GetAppStorageRequest:
 @dataclass(frozen=True)
 class GetAppStorageResponse:
     projection: AppStorageProjection | None = None
+
+@dataclass(frozen=True)
+class GetCatalogModelCardRequest:
+    model_locator: str | None = None
+    offer_ref: str | None = None
+
+@dataclass(frozen=True)
+class GetCatalogModelCardResponse:
+    markdown: str | None = None
+    source_url: str | None = None
+    base_url: str | None = None
 
 @dataclass(frozen=True)
 class GetCatalogModelDetailRequest:
@@ -2378,15 +2394,6 @@ class GetPublicChatSessionSnapshotRequest:
 @dataclass(frozen=True)
 class GetPublicChatSessionSnapshotResponse:
     snapshot: Mapping[str, object] | None = None
-
-@dataclass(frozen=True)
-class GetRecommendationFeedRequest:
-    capability: str | None = None
-    page_size: int | None = None
-
-@dataclass(frozen=True)
-class GetRecommendationFeedResponse:
-    feed: LocalRecommendationFeedDescriptor | None = None
 
 @dataclass(frozen=True)
 class GetRuntimeHealthRequest:
@@ -2694,11 +2701,11 @@ class ListCatalogProviderModelsResponse:
 
 @dataclass(frozen=True)
 class ListCatalogVariantsRequest:
-    repo: str | None = None
+    model_locator: str | None = None
 
 @dataclass(frozen=True)
 class ListCatalogVariantsResponse:
-    variants: tuple[LocalCatalogVariantDescriptor, ...] = field(default_factory=tuple)
+    variants: tuple[ModelAssetMarketCandidate, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class ListCommittedAppReleasesRequest:
@@ -2781,6 +2788,24 @@ class ListDesktopAuditEventsRequest:
 class ListDesktopAuditEventsResponse:
     events: tuple[DesktopAuditEventProjection, ...] = field(default_factory=tuple)
     next_page_token: str | None = None
+
+@dataclass(frozen=True)
+class ListFactoryProfileRecommendationsRequest:
+    capability_contract: str | None = None
+
+@dataclass(frozen=True)
+class ListFactoryProfileRecommendationsResponse:
+    profiles: tuple[FactoryProfileRecommendation, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class ListFeaturedModelAssetsRequest:
+    category: str | None = None
+    page_size: int | None = None
+
+@dataclass(frozen=True)
+class ListFeaturedModelAssetsResponse:
+    source: ModelAssetFeaturedSourceObservation | None = None
+    items: tuple[ModelAssetMarketCandidate, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class ListLoadoutRecipesRequest:
@@ -3120,6 +3145,15 @@ class LoadoutRecipeDescriptor:
     slots: tuple[LoadoutRecipeSlotDescriptor, ...] = field(default_factory=tuple)
     custody: tuple[LoadoutRecipeCustodyDescriptor, ...] = field(default_factory=tuple)
     implementation_supported_features: tuple[str, ...] = field(default_factory=tuple)
+    applicability: LocalRecommendationApplicability | None = None
+    reasons: tuple[ReasonCode, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class LoadoutRecipeOfferDescriptor:
+    candidate: ModelAssetMarketCandidate | None = None
+    applicability: LocalRecommendationApplicability | None = None
+    reasons: tuple[ReasonCode, ...] = field(default_factory=tuple)
+    installed_model_asset_id: str | None = None
 
 @dataclass(frozen=True)
 class LoadoutRecipeSlotDescriptor:
@@ -3130,6 +3164,9 @@ class LoadoutRecipeSlotDescriptor:
     recommended_variant_ids: tuple[str, ...] = field(default_factory=tuple)
     presence: LocalCapabilityRequirementPresence | None = None
     conditional_features: tuple[str, ...] = field(default_factory=tuple)
+    offers: tuple[LoadoutRecipeOfferDescriptor, ...] = field(default_factory=tuple)
+    applicability: LocalRecommendationApplicability | None = None
+    reasons: tuple[ReasonCode, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class LoadoutSelection:
@@ -3825,28 +3862,6 @@ class LocalCatalogModelDescriptor:
     model_type: str | None = None
 
 @dataclass(frozen=True)
-class LocalCatalogRecommendation:
-    source: LocalRecommendationSource | None = None
-    format: LocalRecommendationFormat | None = None
-    tier: LocalRecommendationTier | None = None
-    host_support_class: LocalHostSupportClass | None = None
-    confidence: LocalRecommendationConfidence | None = None
-    reason_codes: tuple[str, ...] = field(default_factory=tuple)
-    recommended_entry: str | None = None
-    fallback_entries: tuple[str, ...] = field(default_factory=tuple)
-    suggested_notes: tuple[str, ...] = field(default_factory=tuple)
-    baseline: LocalRecommendationBaseline | None = None
-
-@dataclass(frozen=True)
-class LocalCatalogVariantDescriptor:
-    filename: str | None = None
-    entry: str | None = None
-    files: tuple[str, ...] = field(default_factory=tuple)
-    format: str | None = None
-    size_bytes: int | None = None
-    sha256: str | None = None
-
-@dataclass(frozen=True)
 class LocalDevelopmentProjectProjection:
     app_id: str | None = None
     display_name: str | None = None
@@ -4007,6 +4022,7 @@ class LocalInstallPlanDescriptor:
     total_size_bytes: int | None = None
     source_provenance: str | None = None
     model_type: str | None = None
+    offer_ref: str | None = None
 
 @dataclass(frozen=True)
 class LocalNpuProfile:
@@ -4064,70 +4080,6 @@ class LocalProviderHintsSpeech:
 class LocalPythonProfile:
     available: bool | None = None
     version: str | None = None
-
-@dataclass(frozen=True)
-class LocalRecommendationActionState:
-    can_review_install_plan: bool | None = None
-    can_open_variants: bool | None = None
-    can_open_model_asset: bool | None = None
-
-@dataclass(frozen=True)
-class LocalRecommendationFeedDescriptor:
-    device_profile: LocalDeviceProfile | None = None
-    active_capability: LocalRecommendationFeedCapability | None = None
-    generated_at: str | None = None
-    cache_state: LocalRecommendationFeedCacheState | None = None
-    items: tuple[LocalRecommendationFeedItemDescriptor, ...] = field(default_factory=tuple)
-
-@dataclass(frozen=True)
-class LocalRecommendationFeedEntryDescriptor:
-    entry_id: str | None = None
-    format: LocalRecommendationFormat | None = None
-    entry: str | None = None
-    files: tuple[str, ...] = field(default_factory=tuple)
-    total_size_bytes: int | None = None
-    sha256: str | None = None
-
-@dataclass(frozen=True)
-class LocalRecommendationFeedItemDescriptor:
-    item_id: str | None = None
-    source: LocalRecommendationFeedSource | None = None
-    repo: str | None = None
-    revision: str | None = None
-    title: str | None = None
-    description: str | None = None
-    capabilities: tuple[str, ...] = field(default_factory=tuple)
-    tags: tuple[str, ...] = field(default_factory=tuple)
-    formats: tuple[LocalRecommendationFormat, ...] = field(default_factory=tuple)
-    downloads: int | None = None
-    likes: int | None = None
-    last_modified: str | None = None
-    preferred_engine: str | None = None
-    verified: bool | None = None
-    entries: tuple[LocalRecommendationFeedEntryDescriptor, ...] = field(default_factory=tuple)
-    recommendation: LocalCatalogRecommendation | None = None
-    installed_state: LocalRecommendationInstalledState | None = None
-    action_state: LocalRecommendationActionState | None = None
-    install_payload: LocalRecommendationInstallPayload | None = None
-
-@dataclass(frozen=True)
-class LocalRecommendationInstallPayload:
-    model_id: str | None = None
-    kind: LocalAssetKind | None = None
-    repo: str | None = None
-    revision: str | None = None
-    capabilities: tuple[str, ...] = field(default_factory=tuple)
-    engine: str | None = None
-    entry: str | None = None
-    files: tuple[str, ...] = field(default_factory=tuple)
-    license: str | None = None
-    hashes: Mapping[str, str] = field(default_factory=dict)
-    endpoint: str | None = None
-    engine_config: Mapping[str, object] | None = None
-
-@dataclass(frozen=True)
-class LocalRecommendationInstalledState:
-    installed: bool | None = None
 
 @dataclass(frozen=True)
 class LocalTransferProgressEvent:
@@ -4242,6 +4194,22 @@ class MemoryEmbeddingProfile:
     cloud_binding: MemoryEmbeddingCloudBindingRef | None = None
 
 @dataclass(frozen=True)
+class ModelAssetCatalogSearchResult:
+    model_locator: str | None = None
+    source_label: str | None = None
+    title: str | None = None
+    description: str | None = None
+    categories: tuple[str, ...] = field(default_factory=tuple)
+    model_type: str | None = None
+    license: str | None = None
+    tags: tuple[str, ...] = field(default_factory=tuple)
+    downloads: int | None = None
+    likes: int | None = None
+    last_modified: str | None = None
+    verified: bool | None = None
+    author: str | None = None
+
+@dataclass(frozen=True)
 class ModelAssetExactBinding:
     requirement_id: str | None = None
     model_asset_id: str | None = None
@@ -4249,11 +4217,41 @@ class ModelAssetExactBinding:
     entry_sha256: str | None = None
 
 @dataclass(frozen=True)
+class ModelAssetFeaturedSourceObservation:
+    availability: ModelAssetSourceAvailability | None = None
+    freshness: ModelAssetSourceFreshness | None = None
+    generation: str | None = None
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
 class ModelAssetFile:
     relative_path: str | None = None
     sha256: str | None = None
     size_bytes: int | None = None
     non_executable_content: bool | None = None
+
+@dataclass(frozen=True)
+class ModelAssetMarketCandidate:
+    offer_ref: str | None = None
+    source_label: str | None = None
+    title: str | None = None
+    description: str | None = None
+    categories: tuple[str, ...] = field(default_factory=tuple)
+    model_type: str | None = None
+    variant_label: str | None = None
+    format: str | None = None
+    total_size_bytes: int | None = None
+    license: str | None = None
+    tags: tuple[str, ...] = field(default_factory=tuple)
+    downloads: int | None = None
+    likes: int | None = None
+    last_modified: str | None = None
+    verified: bool | None = None
+    installed: bool | None = None
+    installable: bool | None = None
+    featured_ordinal: int | None = None
+    editorial_reason: str | None = None
+    author: str | None = None
 
 @dataclass(frozen=True)
 class ModelAssetRecord:
@@ -5018,6 +5016,14 @@ class RequestRuntimeRestartResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
+class ResolveDesktopAgentReferenceRequest:
+    local_agent_ref: str | None = None
+
+@dataclass(frozen=True)
+class ResolveDesktopAgentReferenceResponse:
+    reference: LocalAppAgentReference | None = None
+
+@dataclass(frozen=True)
 class ResolveLocalEnvironmentActivationGateRequest:
     consumer_id: str | None = None
     pack_id: str | None = None
@@ -5055,6 +5061,7 @@ class ResolveModelInstallPlanRequest:
     endpoint: str | None = None
     engine_config: Mapping[str, object] | None = None
     model_type: str | None = None
+    offer_ref: str | None = None
 
 @dataclass(frozen=True)
 class ResolveModelInstallPlanResponse:
@@ -5274,15 +5281,13 @@ class SchedulingTargetJudgement:
 @dataclass(frozen=True)
 class SearchCatalogModelsRequest:
     query: str | None = None
-    capability: str | None = None
-    category_filter: str | None = None
-    engine_filter: str | None = None
+    category: str | None = None
     page_size: int | None = None
     page_token: str | None = None
 
 @dataclass(frozen=True)
 class SearchCatalogModelsResponse:
-    items: tuple[LocalCatalogModelDescriptor, ...] = field(default_factory=tuple)
+    items: tuple[ModelAssetCatalogSearchResult, ...] = field(default_factory=tuple)
     next_page_token: str | None = None
 
 @dataclass(frozen=True)
@@ -6441,6 +6446,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RenderLocalAppConversationVoiceResponse, raw)
 
+    async def resolve_desktop_agent_reference(self, request: ResolveDesktopAgentReferenceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveDesktopAgentReferenceResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ResolveDesktopAgentReferenceResponse, raw)
+
     async def send_local_app_conversation_turn(self, request: SendLocalAppConversationTurnRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SendLocalAppConversationTurnResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SendLocalAppConversationTurnResponse, raw)
@@ -6931,6 +6940,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ProductControlProjectionJson, raw)
 
+    async def get_catalog_model_card(self, request: GetCatalogModelCardRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetCatalogModelCardResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetCatalogModelCardResponse, raw)
+
     async def get_loadout(self, request: GetLoadoutRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLoadoutResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/GetLoadout", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetLoadoutResponse, raw)
@@ -6955,10 +6968,6 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ProductControlProjectionJson, raw)
 
-    async def get_recommendation_feed(self, request: GetRecommendationFeedRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetRecommendationFeedResponse:
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(GetRecommendationFeedResponse, raw)
-
     async def import_model_asset(self, request: ImportModelAssetRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ImportModelAssetResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ImportModelAssetResponse, raw)
@@ -6974,6 +6983,14 @@ class RuntimeTypedClient:
     async def list_catalog_variants(self, request: ListCatalogVariantsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListCatalogVariantsResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListCatalogVariantsResponse, raw)
+
+    async def list_factory_profile_recommendations(self, request: ListFactoryProfileRecommendationsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListFactoryProfileRecommendationsResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListFactoryProfileRecommendationsResponse, raw)
+
+    async def list_featured_model_assets(self, request: ListFeaturedModelAssetsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListFeaturedModelAssetsResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ListFeaturedModelAssetsResponse, raw)
 
     async def list_loadout_recipes(self, request: ListLoadoutRecipesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListLoadoutRecipesResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

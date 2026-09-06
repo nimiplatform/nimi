@@ -1,3 +1,13 @@
+/* macOS root-scroller rubber-banding: a downward fling on a non-scrollable
+   region pulls the whole document upward, and because body is transparent it
+   reveals the Electron window's white backing as a full-width strip. Disable
+   the root overscroll affordance; inner scroll containers keep their own
+   overscroll-contain behavior. */
+html,
+body {
+  overscroll-behavior: none;
+}
+
 @scope (.nimi-ui-module--desktop) {
 :scope[data-nimi-semantic-id="desktop-main-root"] {
   display: flex;

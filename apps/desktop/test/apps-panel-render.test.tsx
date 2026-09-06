@@ -2,10 +2,10 @@
  * Apps panel library/detail render proof.
  *
  * Mounts AppsPanelView through the real i18n instance and asserts the loading,
- * error, empty, grid, running-rail, and detail states render with resolved
- * copy. Effects do not run under `renderToStaticMarkup`, so this covers static
- * structure and translation wiring; live polling and host actions are covered
- * by the controller/projection tests.
+ * error, empty, app-center grid, running-first ordering, and detail states
+ * render with resolved copy. Effects do not run under `renderToStaticMarkup`,
+ * so this covers static structure and translation wiring; live polling and
+ * host actions are covered by the controller/projection tests.
  */
 
 import assert from 'node:assert/strict';
@@ -29,8 +29,8 @@ import {
   AppPackageProgressBasis,
   AppPackageSourceClass,
   AppPackageTerminalResult,
-  type ApprovedAppCatalogTarget,
   type AppPackageJob,
+  type ApprovedAppCatalogTarget,
   type CommittedAppRelease,
 } from '@nimiplatform/sdk/runtime/wire-types';
 
@@ -84,7 +84,7 @@ function entry(
         hostGeneration: 1,
       },
     aiConfigSummary: null,
-    iconUrl: null,
+    summary: null,
   };
 }
 
@@ -103,7 +103,7 @@ function installedRuntimeEntry(overrides: Partial<AppPackageJob> = {}): DesktopA
     packageJob: null,
     run: null,
     aiConfigSummary: null,
-    iconUrl: null,
+    summary: null,
   };
   const committedRelease: CommittedAppRelease = {
     appId: entry.identity.appId,
@@ -149,6 +149,7 @@ function catalogRuntimeEntry(policyBlocked = false): DesktopAppsEntry {
     },
     catalogTarget,
     localDevelopment: null,
+    summary: null,
     committedRelease: null,
     packageJob: null,
     run: null,
@@ -178,8 +179,8 @@ function baseProps(overrides: Partial<AppsPanelViewProps> = {}): AppsPanelViewPr
     actionError: null,
     activeAction: null,
     installConfirmation: null,
-    onConfirmInstall: () => {},
-    onCancelInstall: () => {},
+    onConfirmInstall: () => undefined,
+    onCancelInstall: () => undefined,
     ...overrides,
   };
 }
@@ -215,22 +216,36 @@ test('Apps library renders the empty state with the developer-mode action', asyn
   assert.ok(markup.includes('打开开发者模式'), 'expected zh developer action');
 });
 
-test('Apps library renders cover grid cards with resolved zh copy', async () => {
+test('Apps library renders the app-center header and App Store style list rows with resolved zh copy', async () => {
   await initI18n();
   await changeLocale('zh');
   const markup = renderView(baseProps());
+  assert.ok(markup.includes('data-testid="apps-library-title"'), 'expected page title');
+  assert.ok(markup.includes('应用中心'), 'expected app-center title copy');
   assert.ok(markup.includes('data-testid="apps-entry-list"'), 'expected entry collection');
-  assert.ok(markup.includes('data-testid="apps-entry-local_development:nimi.lab:dev-project-example"'), 'expected first card');
-  assert.ok(markup.includes('data-testid="apps-entry-local_development:nimi.zhiyu:dev-project-zhiyu"'), 'expected second card');
+  assert.ok(markup.includes('所有应用'), 'expected all-apps section title');
+  assert.ok(markup.includes('2 个'), 'expected all-apps count copy');
+  assert.ok(markup.includes('data-testid="apps-filter-all"'), 'expected all filter chip');
+  assert.ok(markup.includes('data-testid="apps-filter-running"'), 'expected running filter chip');
+  assert.ok(markup.includes('data-testid="apps-filter-attention"'), 'expected attention filter chip');
+  assert.ok(markup.includes('全部'), 'expected all chip copy');
+  assert.ok(markup.includes('需处理'), 'expected attention chip copy');
+  assert.ok(markup.includes('data-testid="apps-entry-local_development:nimi.lab:dev-project-example"'), 'expected first row');
+  assert.ok(markup.includes('data-testid="apps-entry-local_development:nimi.zhiyu:dev-project-zhiyu"'), 'expected second row');
   assert.ok(markup.includes('Nimi Lab'), 'expected first display name');
   assert.ok(markup.includes('织羽 Zhiyu'), 'expected second display name');
-  assert.ok(markup.includes('data-source-badge="local_development"'), 'expected source badge');
-  assert.ok(markup.includes('本地开发'), 'expected source badge copy');
+  assert.equal(markup.includes('data-source-badge="local_development"'), false, 'local-development source tag hidden on rows');
+  assert.equal(markup.includes('本地开发'), false, 'local-development source tag copy hidden on rows');
   assert.ok(markup.includes('linear-gradient'), 'expected generated artwork gradients');
-  assert.ok(markup.includes('未运行'), 'expected stopped status copy');
-  assert.ok(markup.includes('搜索 App 或 App ID'), 'expected search placeholder');
+  assert.ok(markup.includes('未运行'), 'expected stopped status copy on rows');
+  assert.ok(markup.includes('启动'), 'expected launch action copy');
+  assert.ok(markup.includes('data-testid="apps-connect-local"'), 'expected header add-app action');
+  assert.ok(markup.includes('添加应用'), 'expected add-app action copy');
+  assert.ok(markup.includes('搜索 App 或 App ID'), 'expected rail search placeholder');
+  assert.ok(markup.includes('搜索已安装的应用'), 'expected library search placeholder');
   assert.ok(markup.includes('最近更新'), 'expected default sort copy');
-  assert.equal(markup.includes('-installed-version"'), false, 'local-development cards have no package state');
+  assert.equal(markup.includes('data-testid="apps-frequent-section"'), false, 'frequent section hidden below the minimum entry count');
+  assert.equal(markup.includes('-installed-version"'), false, 'local-development rows have no package state');
   assert.equal(markup.includes('Apps.library.'), false, 'no raw i18n keys');
   assert.equal(markup.includes('Apps.sourceBadge.'), false, 'no raw i18n keys');
 });
@@ -255,10 +270,64 @@ test('Apps library renders bounded App AIConfig posture without opening the App'
   }));
   assert.ok(markup.includes('data-app-ai-config-summary="partial-cloud"'));
   assert.ok(markup.includes('data-app-ai-config-health="blocked"'));
-  assert.ok(markup.includes('AI：部分云端 · 2/9 · 1 项受阻'));
+  assert.ok(markup.includes('AI 云端 · 2/9 · 1 项受阻'));
+  assert.ok(
+    markup.includes('data-testid="apps-entry-local_development:nimi.lab:dev-project-example-ai-config-open"'),
+    'expected the AI pill to be an actionable button',
+  );
+  assert.ok(markup.includes('打开 AI 模型设置'), 'expected the AI pill open-settings hint');
 });
 
-test('Apps rail pins running apps first without group sections', async () => {
+test('Apps library hides the unconfigured AI pill as a default empty state', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const unconfigured = {
+    ...entry(),
+    aiConfigSummary: {
+      routePosture: 'unconfigured' as const,
+      healthPosture: 'healthy' as const,
+      intentCount: 0,
+      total: 9,
+      blockedCount: 0,
+      localCount: 0,
+      cloudCount: 0,
+    },
+  };
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [unconfigured], catalogStatus: 'not-implemented', runtimeError: null },
+  }));
+  assert.equal(markup.includes('AI 未配置'), false, 'unconfigured AI pill hidden on cards');
+});
+
+test('Apps library renders the host-read project summary under the app title', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const withSummary = {
+    ...entry(),
+    summary: '面向本地项目的示例 App，演示 Nimi 平台能力。',
+  };
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [withSummary], catalogStatus: 'not-implemented', runtimeError: null },
+  }));
+  assert.ok(markup.includes('data-testid="apps-entry-local_development:nimi.lab:dev-project-example-summary"'), 'expected summary element');
+  assert.ok(markup.includes('面向本地项目的示例 App，演示 Nimi 平台能力。'), 'expected summary copy under the title');
+  const withoutSummary = renderView(baseProps());
+  assert.equal(withoutSummary.includes('-summary"'), false, 'no summary element when the project has none');
+});
+
+test('Apps search fields render a clear button only when the query is non-empty', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const withQuery = renderView(baseProps({ searchQuery: 'lab' }));
+  assert.ok(withQuery.includes('data-testid="apps-search-clear"'), 'expected rail clear button');
+  assert.ok(withQuery.includes('data-testid="apps-search-clear-library"'), 'expected library clear button');
+  assert.ok(withQuery.includes('清除搜索'), 'expected zh clear copy');
+  const emptyQuery = renderView(baseProps({ searchQuery: '' }));
+  assert.equal(emptyQuery.includes('data-testid="apps-search-clear"'), false, 'no rail clear button when empty');
+  assert.equal(emptyQuery.includes('data-testid="apps-search-clear-library"'), false, 'no library clear button when empty');
+});
+
+test('Apps rail and library list pin running apps first without group sections', async () => {
   await initI18n();
   await changeLocale('zh');
   const running = entry({ updatedAtUnixMs: 1_721_000_000_000 }, 'running');
@@ -274,10 +343,17 @@ test('Apps rail pins running apps first without group sections', async () => {
   assert.ok(!markup.includes('data-testid="apps-running-group"'), 'no running group section');
   assert.ok(!markup.includes('正在运行'), 'no group title copy');
   assert.ok(markup.includes('运行中'), 'expected running status copy');
+  assert.ok(markup.includes('停止'), 'expected stop action copy for the running app');
   const runningIndex = markup.indexOf('data-testid="apps-rail-entry-local_development:nimi.lab:dev-project-example"');
   const stoppedIndex = markup.indexOf('data-testid="apps-rail-entry-local_development:nimi.zhiyu:dev-project-zhiyu"');
   assert.ok(runningIndex !== -1 && stoppedIndex !== -1, 'expected both rail rows');
   assert.ok(runningIndex < stoppedIndex, 'running app pinned before the stopped app');
+  const runningCardIndex = markup.indexOf('data-testid="apps-entry-local_development:nimi.lab:dev-project-example"');
+  const stoppedCardIndex = markup.indexOf('data-testid="apps-entry-local_development:nimi.zhiyu:dev-project-zhiyu"');
+  assert.ok(runningCardIndex !== -1 && stoppedCardIndex !== -1, 'expected both list rows');
+  assert.ok(runningCardIndex < stoppedCardIndex, 'running row pinned before the stopped row');
+  assert.ok(markup.includes('data-testid="apps-entry-local_development:nimi.lab:dev-project-example-stop"'), 'running app exposes the supported stop action');
+  assert.equal(markup.includes('data-testid="apps-entry-local_development:nimi.lab:dev-project-example-open"'), false, 'startRegistration does not focus an existing window');
 });
 
 test('Apps detail mode renders the header, tabs, and README surface', async () => {
@@ -328,38 +404,6 @@ test('Runtime committed version and cancelable package job render without enabli
   await changeLocale('zh');
 });
 
-test('approved Catalog facts render an install intent without claiming certification', async () => {
-  await initI18n();
-  await changeLocale('en');
-  const catalog = catalogRuntimeEntry();
-  const cardMarkup = renderView(baseProps({
-    projection: { status: 'loaded', entries: [catalog], catalogStatus: 'loaded', runtimeError: null },
-  }));
-  assert.equal(cardMarkup.includes(`data-testid="apps-entry-${catalog.identity.entryKey}-install"`), false);
-  assert.ok(cardMarkup.includes('Registry approved'));
-  assert.equal(cardMarkup.includes('Nimi certified'), false);
-
-  const detailMarkup = renderView(baseProps({
-    projection: { status: 'loaded', entries: [catalog], catalogStatus: 'loaded', runtimeError: null },
-    selectedEntryKey: catalog.identity.entryKey,
-  }));
-  assert.ok(detailMarkup.includes('data-testid="apps-catalog-approved"'));
-  assert.ok(detailMarkup.includes('data-testid="apps-detail-install"'));
-  assert.ok(detailMarkup.includes('@publisher'));
-  assert.ok(detailMarkup.includes('MIT'));
-  assert.ok(detailMarkup.includes('unsigned'));
-
-  const blocked = catalogRuntimeEntry(true);
-  const blockedMarkup = renderView(baseProps({
-    projection: { status: 'loaded', entries: [blocked], catalogStatus: 'loaded', runtimeError: null },
-    selectedEntryKey: blocked.identity.entryKey,
-  }));
-  assert.ok(blockedMarkup.includes('data-testid="apps-catalog-policy-blocked"'));
-  assert.ok(blockedMarkup.includes('security-review-revoked'));
-  assert.equal(blockedMarkup.includes('data-testid="apps-detail-install"'), false);
-  await changeLocale('zh');
-});
-
 test('installed App detail keeps action and Runtime lifecycle failures visible', async () => {
   await initI18n();
   await changeLocale('en');
@@ -378,24 +422,6 @@ test('installed App detail keeps action and Runtime lifecycle failures visible',
   assert.ok(markup.includes('package lifecycle unavailable'));
   assert.ok(markup.includes('data-testid="apps-action-error"'));
   assert.ok(markup.includes('package job phase changed'));
-  await changeLocale('zh');
-});
-
-test('an installed App keeps a later Registry policy block visible as an independent fact', async () => {
-  await initI18n();
-  await changeLocale('en');
-  const blocked = catalogRuntimeEntry(true);
-  const installed = installedRuntimeEntry();
-  const entry: DesktopAppsEntry = { ...blocked, committedRelease: installed.committedRelease };
-  const markup = renderView(baseProps({
-    projection: { status: 'loaded', entries: [entry], catalogStatus: 'loaded', runtimeError: null },
-    selectedEntryKey: entry.identity.entryKey,
-  }));
-  assert.ok(markup.includes('data-testid="apps-catalog-policy-blocked"'));
-  assert.ok(markup.includes('security-review-revoked'));
-  assert.ok(markup.includes('data-testid="apps-installed-access"'));
-  assert.ok(!markup.includes('data-testid="apps-installed-launch"'));
-  assert.equal(markup.includes('data-testid="apps-detail-install"'), false);
   await changeLocale('zh');
 });
 
@@ -443,15 +469,116 @@ test('Apps library surfaces a terminal launch failure instead of a silent stop',
   }));
   assert.ok(markup.includes('data-run-visual="failed"'), 'expected failed run visual');
   assert.ok(markup.includes('启动失败'), 'expected zh failed status copy');
+  assert.ok(markup.includes('重试'), 'expected zh retry action copy for the failed row');
   assert.ok(!markup.includes('Apps.runState.'), 'no raw i18n keys');
+});
+
+test('Apps library renders the 常用 quick-launch strip once enough apps are connected', async () => {
+  await initI18n();
+  await changeLocale('zh');
+  const running = entry({ selector: 'dev-project-running', appId: 'nimi.running', displayName: 'Running App', updatedAtUnixMs: 1_721_000_000_000 }, 'running');
+  const recent = entry({ selector: 'dev-project-recent', appId: 'nimi.recent', displayName: 'Recent App', updatedAtUnixMs: 1_999_000_000_000 });
+  const older = entry({ selector: 'dev-project-older', appId: 'nimi.older', displayName: 'Older App', updatedAtUnixMs: 1_900_000_000_000 });
+  const oldest = entry({ selector: 'dev-project-oldest', appId: 'nimi.oldest', displayName: 'Oldest App', updatedAtUnixMs: 1_800_000_000_000 });
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [oldest, older, recent, running], catalogStatus: 'not-implemented', runtimeError: null },
+  }));
+  assert.ok(markup.includes('data-testid="apps-frequent-section"'), 'expected frequent section');
+  assert.ok(markup.includes('常用'), 'expected frequent section copy');
+  const runningTile = markup.indexOf('data-testid="apps-frequent-local_development:nimi.running:dev-project-running"');
+  const recentTile = markup.indexOf('data-testid="apps-frequent-local_development:nimi.recent:dev-project-recent"');
+  const olderTile = markup.indexOf('data-testid="apps-frequent-local_development:nimi.older:dev-project-older"');
+  assert.ok(runningTile !== -1 && recentTile !== -1 && olderTile !== -1, 'expected three frequent tiles');
+  assert.ok(runningTile < recentTile && recentTile < olderTile, 'frequent tiles order running first, then recently updated');
+  assert.equal(markup.includes('data-testid="apps-frequent-local_development:nimi.oldest:dev-project-oldest"'), false, 'frequent strip capped at three apps');
+  const searching = renderView(baseProps({
+    searchQuery: 'running',
+    projection: { status: 'loaded', entries: [oldest, older, recent, running], catalogStatus: 'not-implemented', runtimeError: null },
+  }));
+  assert.equal(searching.includes('data-testid="apps-frequent-section"'), false, 'frequent section hidden while searching');
 });
 
 test('Apps library renders with resolved en copy after locale switch', async () => {
   await initI18n();
   await changeLocale('en');
   const markup = renderView(baseProps());
-  assert.ok(markup.includes('Search apps or App ID'), 'expected en search placeholder');
+  assert.ok(markup.includes('App Center'), 'expected en page title');
+  assert.ok(markup.includes('Add App'), 'expected en add-app action copy');
+  assert.ok(markup.includes('Search apps or App ID'), 'expected en rail search placeholder');
+  assert.ok(markup.includes('Search installed apps'), 'expected en library search placeholder');
+  assert.ok(markup.includes('All Apps'), 'expected en all-apps section title');
+  assert.ok(markup.includes('Needs Attention'), 'expected en attention chip copy');
   assert.ok(markup.includes('Recently updated'), 'expected en sort copy');
-  assert.ok(markup.includes('Not running'), 'expected en stopped status copy');
+  assert.ok(markup.includes('Not running'), 'expected en stopped status copy on rows');
+  await changeLocale('zh');
+});
+
+test('approved Catalog facts render an install intent without claiming certification', async () => {
+  await initI18n();
+  await changeLocale('en');
+  const catalog = catalogRuntimeEntry();
+  const cardMarkup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [catalog], catalogStatus: 'loaded', runtimeError: null },
+  }));
+  assert.equal(cardMarkup.includes(`data-testid="apps-entry-${catalog.identity.entryKey}-install"`), false);
+  assert.ok(cardMarkup.includes('Registry approved'));
+  assert.equal(cardMarkup.includes('Nimi certified'), false);
+
+  const detailMarkup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [catalog], catalogStatus: 'loaded', runtimeError: null },
+    selectedEntryKey: catalog.identity.entryKey,
+  }));
+  assert.ok(detailMarkup.includes('data-testid="apps-catalog-approved"'));
+  assert.ok(detailMarkup.includes('data-testid="apps-detail-install"'));
+  assert.ok(detailMarkup.includes('@publisher'));
+  assert.ok(detailMarkup.includes('MIT'));
+  assert.ok(detailMarkup.includes('unsigned'));
+
+  const blocked = catalogRuntimeEntry(true);
+  const blockedMarkup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [blocked], catalogStatus: 'loaded', runtimeError: null },
+    selectedEntryKey: blocked.identity.entryKey,
+  }));
+  assert.ok(blockedMarkup.includes('data-testid="apps-catalog-policy-blocked"'));
+  assert.ok(blockedMarkup.includes('security-review-revoked'));
+  assert.equal(blockedMarkup.includes('data-testid="apps-detail-install"'), false);
+  await changeLocale('zh');
+});
+
+
+test('an installed App keeps a later Registry policy block visible as an independent fact', async () => {
+  await initI18n();
+  await changeLocale('en');
+  const blocked = catalogRuntimeEntry(true);
+  const installed = installedRuntimeEntry();
+  const entry: DesktopAppsEntry = { ...blocked, committedRelease: installed.committedRelease };
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [entry], catalogStatus: 'loaded', runtimeError: null },
+    selectedEntryKey: entry.identity.entryKey,
+  }));
+  assert.ok(markup.includes('data-testid="apps-catalog-policy-blocked"'));
+  assert.ok(markup.includes('security-review-revoked'));
+  assert.ok(markup.includes('data-testid="apps-installed-access"'));
+  assert.ok(!markup.includes('data-testid="apps-installed-launch"'));
+  assert.equal(markup.includes('data-testid="apps-detail-install"'), false);
+  await changeLocale('zh');
+});
+
+test('imported package details never claim Registry approval', async () => {
+  await initI18n();
+  await changeLocale('en');
+  const installed = installedRuntimeEntry();
+  const imported: DesktopAppsEntry = {
+    ...installed,
+    identity: { ...installed.identity, entryKey: 'user_imported:example.catalog-app', sourceClass: 'user_imported' },
+    committedRelease: { ...installed.committedRelease!, sourceClass: AppPackageSourceClass.USER_IMPORTED },
+    packageJob: null,
+  };
+  const markup = renderView(baseProps({
+    projection: { status: 'loaded', entries: [imported], catalogStatus: 'loaded', runtimeError: null },
+    selectedEntryKey: imported.identity.entryKey,
+  }));
+  assert.ok(markup.includes('Imported'));
+  assert.ok(!markup.includes('Registry approved'));
   await changeLocale('zh');
 });

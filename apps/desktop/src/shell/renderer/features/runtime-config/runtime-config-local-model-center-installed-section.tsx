@@ -11,6 +11,7 @@ import {
 
 type InstalledAssetsSectionProps = {
   modelAssets: NimiRuntimeModelAssetRecord[];
+  query?: string;
   loadingInstalledAssets: boolean;
   assetBusy: boolean;
   runtimeWritesDisabled: boolean;
@@ -19,9 +20,20 @@ type InstalledAssetsSectionProps = {
   onRemoveAsset: (modelAssetId: string) => Promise<void>;
 };
 
+export function filterModelAssetsForSearch(assets: readonly NimiRuntimeModelAssetRecord[], query: string): NimiRuntimeModelAssetRecord[] {
+  const normalized = query.trim().toLowerCase();
+  const terms = normalized.split(/[\s._-]+/u).filter(Boolean);
+  return assets.filter((asset) => {
+    const facts = [asset.displayName, asset.modelAssetId, asset.entry, asset.contentId].join(' ').toLowerCase();
+    return terms.every((term) => facts.includes(term));
+  });
+}
+
 export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSectionProps) {
   const i18n = useDesktopI18nResource().instance;
   const t = i18n.t.bind(i18n);
+  const query = props.query?.trim().toLowerCase() ?? '';
+  const visibleAssets = filterModelAssetsForSearch(props.modelAssets, query);
   const [confirmRemoveAssetId, setConfirmRemoveAssetId] = useState('');
   const [removeReferences, setRemoveReferences] = useState<string[]>([]);
   const [expandedAssetId, setExpandedAssetId] = useState('');
@@ -48,7 +60,7 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
             <PackageIcon className="h-4 w-4" />
           </div>
           <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.localModelCenter.myModels', { defaultValue: 'My Models' })}
+            {t('runtimeConfig.localModelCenter.myModels', { defaultValue: 'Installed Assets' })}
           </h3>
           <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-status-success)_14%,transparent)] px-2.5 py-0.5 text-xs font-medium text-[var(--nimi-status-success)]">
             {props.modelAssets.length}
@@ -72,19 +84,19 @@ export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSec
         <div className="px-5 py-8 text-center text-sm text-[var(--nimi-text-muted)]">
           {t('runtimeConfig.localModelCenter.loadingModelAssets', { defaultValue: 'Loading Model Assets...' })}
         </div>
-      ) : props.modelAssets.length === 0 ? (
+      ) : visibleAssets.length === 0 ? (
         <div className="px-5 py-8 text-center">
           <FolderOpenIcon className="mx-auto mb-3 h-6 w-6 text-[var(--nimi-text-muted)]" />
           <h4 className="text-sm font-medium text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.localModelCenter.noInstalledModels', { defaultValue: 'No models installed' })}
+              {query ? t('runtimeConfig.localModelCenter.noMatchingAssets') : t('runtimeConfig.localModelCenter.noInstalledModels', { defaultValue: 'No local assets' })}
           </h4>
           <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
-            {t('runtimeConfig.localModelCenter.noModelAssetsDescription', { defaultValue: 'Install a model from the recommendations above, or import your own model files.' })}
+            {t('runtimeConfig.localModelCenter.noModelAssetsDescription', { defaultValue: 'Download from Model Market, or import your own model files.' })}
           </p>
         </div>
       ) : (
         <div className="divide-y divide-[var(--nimi-border-subtle)]">
-          {props.modelAssets.map((asset) => {
+          {visibleAssets.map((asset) => {
             const confirmationVisible = confirmRemoveAssetId === asset.modelAssetId;
             const detailsVisible = expandedAssetId === asset.modelAssetId;
             const provenance = asset.provenance ?? {};

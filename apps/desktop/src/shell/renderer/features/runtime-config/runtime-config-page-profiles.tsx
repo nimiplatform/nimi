@@ -6,17 +6,18 @@ import { AIProfileAuthoringPage } from './runtime-config-page-profile-authoring.
 import { ProfileLibraryPage } from './runtime-config-profile-library.js';
 import { ProfileExportPanel } from './runtime-config-profile-export-panel.js';
 import { ProfileImportWizard } from './runtime-config-profile-import-wizard.js';
+import { ProfileRecommendationsPage } from './runtime-config-profile-recommendations.js';
 
-type ProfileSection = 'library' | 'generate' | 'manual';
+type ProfileSection = 'recommended' | 'library' | 'generate' | 'manual';
 
 type ProfileWizardRequest = {
   readonly nonce: number;
   readonly sourceText: string | null;
 };
 
-export function ProfileCatalogPage() {
+export function ProfileCatalogPage(props: { readonly onOpenLoadouts: (capabilityContract?: string) => void }) {
   const { t } = useTranslation();
-  const [section, setSection] = useState<ProfileSection>('library');
+  const [section, setSection] = useState<ProfileSection>('recommended');
   const [wizardRequest, setWizardRequest] = useState<ProfileWizardRequest | null>(null);
   const [libraryRefreshNonce, setLibraryRefreshNonce] = useState(0);
 
@@ -42,14 +43,17 @@ export function ProfileCatalogPage() {
             value={section}
             onValueChange={(value) => setSection(value as ProfileSection)}
             items={[
-              { value: 'library', label: t('runtimeConfig.profiles.useProfileTab') },
+              { value: 'recommended', label: t('runtimeConfig.profiles.recommendedTab', { defaultValue: 'Recommended' }) },
+              { value: 'library', label: t('runtimeConfig.profiles.myProfilesTab', { defaultValue: 'My Profiles' }) },
               { value: 'generate', label: t('runtimeConfig.profiles.generateFromCurrentTab', { defaultValue: 'From current model setup' }) },
               { value: 'manual', label: t('runtimeConfig.profiles.authoringManualTab', { defaultValue: 'Author manually' }) },
             ]}
           />
         </div>
       </div>
-      {section === 'generate' ? (
+      {section === 'recommended' ? (
+        <ProfileRecommendationsPage onOpenLoadouts={props.onOpenLoadouts} />
+      ) : section === 'generate' ? (
         <RuntimePageShell>
           <ProfileExportPanel />
         </RuntimePageShell>

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { createNimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
-import type { NimiLocalAppAgentHandle, NimiLocalAppAgentReference } from '@nimiplatform/sdk/app';
+import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
@@ -92,12 +92,9 @@ export async function resolveAgentTargetSourceRef(input: {
   });
 }
 
-// Inverse of resolveAgentTargetSourceRef for character-source launch paths
-// (profile "chat now"). The owning LocalAgent is resolved from the owner-scope
-// runtime list, each current-session App reference is opened (idempotent
-// canonical Conversation) to obtain the shared anchor token, and the single
-// reference whose anchor appears in the LocalAgent's owner-scope summaries
-// wins. Any miss fails closed to null.
+// @nimi-authority: rule.nimi.runtime.agent-participation.r197
+// Desktop resolves the selected owner's current-session handle without opening
+// unrelated conversations. The ordinary App reference projection stays opaque.
 export async function resolveAgentTargetSnapshotForSourceRef(input: {
   sourceRef: CharacterSourceRefV3;
   ownerUserId: string;
@@ -114,52 +111,21 @@ export async function resolveAgentTargetSnapshotForSourceRef(input: {
     return null;
   }
   const agent = agents[0]!;
-  const opened: Array<{
-    reference: NimiLocalAppAgentReference;
-    conversationAnchorId: string;
-  }> = [];
-  for (const reference of await input.sdk.appProduct().agents.listReferences()) {
-    const openedConversation = await input.sdk.conversation().open({
-      agentHandle: reference.agentHandle,
-    });
-    const conversationAnchorId = normalizeText(openedConversation.conversationAnchorId);
-    if (conversationAnchorId) {
-      opened.push({ reference, conversationAnchorId });
-    }
-  }
-  if (opened.length === 0) {
-    return null;
-  }
-  const consume = createNimiRuntimeAgentConsumeClient({
-    runtimeAppId: input.sdk.appId(),
-    runtime: { agents: input.sdk.accountProduct().agents },
+  const { reference } = await input.sdk.accountProduct().agents.resolveDesktopAgentReference({
+    localAgentRef: agent.localAgentRef,
   });
-  const result = await input.sdk.withRuntimeProtectedScopes(
-    ['runtime.agent.read'],
-    (callOptions) => consume.anchors.listSummaries({
-      ownerUserId,
-      runtimeSourceRef: agent.runtimeSourceRef,
-      localAgentRef: agent.localAgentRef,
-      statusFilter: ['active'],
-      pageSize: 10,
-    }, callOptions),
-  );
-  const anchorIds = new Set(
-    result.summaries
-      .map((summary) => normalizeText(summary.anchor?.conversationAnchorId))
-      .filter(Boolean),
-  );
-  const matches = opened.filter((entry) => anchorIds.has(entry.conversationAnchorId));
-  if (matches.length !== 1) {
-    return null;
-  }
-  const match = matches[0]!;
+  if (!reference?.agentHandle) return null;
+  const opened = await input.sdk.conversation().open({
+    agentHandle: reference.agentHandle as NimiLocalAppAgentHandle,
+  });
+  const conversationAnchorId = normalizeText(opened.conversationAnchorId);
+  if (!conversationAnchorId) return null;
   return {
-    agentHandle: match.reference.agentHandle,
-    conversationAnchorId: match.conversationAnchorId,
-    displayName: normalizeText(match.reference.displayName) || agent.displayName,
+    agentHandle: reference.agentHandle,
+    conversationAnchorId,
+    displayName: normalizeText(reference.displayName) || agent.displayName,
     handle: '',
-    avatarUrl: match.reference.avatarUrl,
+    avatarUrl: reference.avatarUrl ?? null,
     worldId: null,
     worldName: null,
     bio: null,

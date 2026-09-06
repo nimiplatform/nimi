@@ -472,6 +472,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RenderLocalAppConversationVoiceResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
+        service: "RuntimeAgentService",
+        method: "ResolveDesktopAgentReference",
+        kind: "unary",
+        request_type: "ResolveDesktopAgentReferenceRequest",
+        response_type: "ResolveDesktopAgentReferenceResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
         service: "RuntimeAgentService",
         method: "SendLocalAppConversationTurn",
@@ -1480,6 +1488,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ProductControlProjectionJson",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
+        service: "RuntimeLocalService",
+        method: "GetCatalogModelCard",
+        kind: "unary",
+        request_type: "GetCatalogModelCardRequest",
+        response_type: "GetCatalogModelCardResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
         service: "RuntimeLocalService",
         method: "GetLoadout",
@@ -1528,14 +1544,6 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ProductControlProjectionJson",
     },
     RuntimeMethodDescriptor {
-        method_id: "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
-        service: "RuntimeLocalService",
-        method: "GetRecommendationFeed",
-        kind: "unary",
-        request_type: "GetRecommendationFeedRequest",
-        response_type: "GetRecommendationFeedResponse",
-    },
-    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset",
         service: "RuntimeLocalService",
         method: "ImportModelAsset",
@@ -1566,6 +1574,22 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "ListCatalogVariantsRequest",
         response_type: "ListCatalogVariantsResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations",
+        service: "RuntimeLocalService",
+        method: "ListFactoryProfileRecommendations",
+        kind: "unary",
+        request_type: "ListFactoryProfileRecommendationsRequest",
+        response_type: "ListFactoryProfileRecommendationsResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets",
+        service: "RuntimeLocalService",
+        method: "ListFeaturedModelAssets",
+        kind: "unary",
+        request_type: "ListFeaturedModelAssetsRequest",
+        response_type: "ListFeaturedModelAssetsResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes",

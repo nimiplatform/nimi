@@ -8,6 +8,7 @@ import {
   appSourceForEntry,
   deriveIconGlyph,
   filterAppsEntries,
+  filterAppsEntriesByStatus,
   resolveDetailEntryKey,
   sortAppsEntries,
 } from '../src/shell/renderer/features/apps/apps-card-fields.js';
@@ -74,6 +75,7 @@ function entry(
       },
     aiConfigSummary: null,
     iconUrl: null,
+    summary: null,
   };
 }
 
@@ -128,19 +130,19 @@ describe('Apps run visual state', () => {
 });
 
 describe('Apps Runtime package presentation', () => {
-  const verifiedRelease = {
+  const importedRelease = {
     appId: 'example.local-app',
-    sourceClass: AppPackageSourceClass.VERIFIED,
+    sourceClass: AppPackageSourceClass.USER_IMPORTED,
     version: '1.0.0',
-    releaseRef: 'release:verified',
+    releaseRef: 'release:imported',
     launchSelector: new Uint8Array([1]),
   } as CommittedAppRelease;
   const uninstallingJob = {
     jobId: new Uint8Array([1]),
-    appId: verifiedRelease.appId,
-    sourceClass: verifiedRelease.sourceClass,
+    appId: importedRelease.appId,
+    sourceClass: importedRelease.sourceClass,
     kind: AppPackageJobKind.UNINSTALL,
-    targetRef: verifiedRelease.releaseRef,
+    targetRef: importedRelease.releaseRef,
     phase: AppPackageJobPhase.REMOVING_PACKAGE,
     progressBasis: AppPackageProgressBasis.INDETERMINATE,
     bytesCompleted: '0',
@@ -150,16 +152,17 @@ describe('Apps Runtime package presentation', () => {
     cancelable: false,
   } as AppPackageJob;
 
-  it('preserves local-development and verified package sources', () => {
+  it('preserves local-development priority and maps imported committed releases', () => {
     const local = entry();
     assert.equal(appSourceForEntry(local), 'local_development');
     assert.equal(appSourceForEntry({
       ...local,
-      identity: { ...local.identity, entryKey: 'verified:example.local-app', sourceClass: 'verified' },
-      localDevelopment: null,
-      committedRelease: verifiedRelease,
+      identity: { ...local.identity, entryKey: 'user_imported:example.local-app', sourceClass: 'user_imported' },
+      catalogTarget: null,
+    localDevelopment: null,
+      committedRelease: importedRelease,
       run: null,
-    }), 'verified');
+    }), 'user_imported');
   });
 
   it('keeps active uninstall phases distinct from terminal uninstalled', () => {
@@ -187,6 +190,31 @@ describe('Apps library filtering', () => {
     assert.equal(filterAppsEntries(entries, 'LAB')[0]?.identity.appId, 'nimi.lab');
     assert.equal(filterAppsEntries(entries, 'MIRROR')[0]?.identity.appId, 'example.mirror');
     assert.equal(filterAppsEntries(entries, 'nothing').length, 0);
+  });
+});
+
+describe('Apps library status filter', () => {
+  const running = entry({ appId: 'nimi.running', displayName: 'Running App' }, 'running');
+  const failed = entry({ appId: 'nimi.failed', displayName: 'Failed App' }, 'failed');
+  const stopped = entry({ appId: 'nimi.stopped', displayName: 'Stopped App' });
+  const entries = [running, failed, stopped];
+
+  it('keeps every entry for the all filter', () => {
+    assert.equal(filterAppsEntriesByStatus(entries, 'all').length, 3);
+  });
+
+  it('keeps only active runs for the running filter', () => {
+    assert.deepEqual(
+      filterAppsEntriesByStatus(entries, 'running').map((row) => row.identity.appId),
+      ['nimi.running'],
+    );
+  });
+
+  it('keeps only attention entries for the attention filter', () => {
+    assert.deepEqual(
+      filterAppsEntriesByStatus(entries, 'attention').map((row) => row.identity.appId),
+      ['nimi.failed'],
+    );
   });
 });
 

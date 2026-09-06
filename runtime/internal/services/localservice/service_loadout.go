@@ -144,20 +144,26 @@ func (s *Service) ListLoadoutRecipes(_ context.Context, request *runtimev1.ListL
 		if contract != "" && recipe.CapabilityContract != contract {
 			continue
 		}
-		recipe = s.projectHostRecommendedLoadoutRecipe(recipe, hostProfile)
+		hostRecommendedRecipe := s.projectHostRecommendedLoadoutRecipe(recipe, hostProfile)
 		options, err := structpb.NewStruct(recipe.DefaultOptions)
 		if err != nil {
 			return nil, loadoutError(codes.Internal, runtimev1.ReasonCode_AI_LOADOUT_CATALOG_SCHEMA_INVALID, err.Error(), nil)
 		}
 		authoringFeatures := normalizeStableStringSet(recipe.SupportedFeatures)
 		identity := capabilitydriver.Identity{ImplementationID: recipe.ImplementationID, DriverID: recipe.DriverID, DriverDialect: recipe.DriverDialect}
+		applicability := runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED
+		reasons := []runtimev1.ReasonCode{}
 		if driver, reason := s.capabilityDrivers.Resolve(recipe.CapabilityContract, identity); reason == runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED && driver != nil {
 			if hostDriver, ok := driver.(capabilitydriver.HostPlatformRecipeDriver); ok {
 				platformTuple := strings.ToLower(strings.TrimSpace(localRuntimeGOOS)) + "/" + strings.ToLower(strings.TrimSpace(localRuntimeGOARCH))
 				if _, hostReason := hostDriver.ProjectRecipeForHost(recipe.RecipeID, options, authoringFeatures, platformTuple); hostReason == runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED {
-					continue
+					applicability = runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED
+					reasons = append(reasons, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE)
 				}
 			}
+		} else {
+			applicability = runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN
+			reasons = append(reasons, runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE)
 		}
 		_, requirements, implementationFeatures, err := s.projectRecipe(
 			recipe.RecipeID,
@@ -169,17 +175,21 @@ func (s *Service) ListLoadoutRecipes(_ context.Context, request *runtimev1.ListL
 		if err != nil {
 			return nil, err
 		}
-		projected, err := projectLoadoutRecipeDescriptor(recipe, requirements, implementationFeatures)
+		projected, err := s.projectLoadoutRecipeDescriptor(recipe, hostRecommendedRecipe, requirements, implementationFeatures, hostProfile, applicability, reasons)
 		if err != nil {
 			return nil, loadoutError(codes.Internal, runtimev1.ReasonCode_AI_LOADOUT_CATALOG_SCHEMA_INVALID, err.Error(), nil)
 		}
 		items = append(items, projected)
 	}
-	sort.Slice(items, func(i, j int) bool { return items[i].GetRecipeId() < items[j].GetRecipeId() })
+	sortLoadoutRecipeRecommendations(items)
 	return &runtimev1.ListLoadoutRecipesResponse{Recipes: items}, nil
 }
 
 func (s *Service) projectHostRecommendedLoadoutRecipe(recipe catalog.LocalLoadoutRecipe, profile *runtimev1.LocalDeviceProfile) catalog.LocalLoadoutRecipe {
+	// LocalLoadoutRecipe is passed by value, but SlotMetadata is a slice. Copy
+	// the slot records before narrowing the legacy host-picked projection so the
+	// parallel ordered-offer read still sees the catalog-authored candidates.
+	recipe.SlotMetadata = append([]catalog.LocalRecipeSlotMetadata(nil), recipe.SlotMetadata...)
 	for index := range recipe.SlotMetadata {
 		slot := &recipe.SlotMetadata[index]
 		variantID, ok := s.localProviderCatalog.RecommendVariantForHost(slot.RecommendedVariantIDs, profile)
@@ -222,7 +232,15 @@ func loadoutRecipeCustodyReferences(recipe catalog.LocalLoadoutRecipe) []*runtim
 	return result
 }
 
-func projectLoadoutRecipeDescriptor(recipe catalog.LocalLoadoutRecipe, requirements []*runtimev1.LocalCapabilityRequirement, implementationFeatures []string) (*runtimev1.LoadoutRecipeDescriptor, error) {
+func (s *Service) projectLoadoutRecipeDescriptor(
+	recipe catalog.LocalLoadoutRecipe,
+	hostRecommendedRecipe catalog.LocalLoadoutRecipe,
+	requirements []*runtimev1.LocalCapabilityRequirement,
+	implementationFeatures []string,
+	hostProfile *runtimev1.LocalDeviceProfile,
+	applicability runtimev1.LocalRecommendationApplicability,
+	reasons []runtimev1.ReasonCode,
+) (*runtimev1.LoadoutRecipeDescriptor, error) {
 	options, err := structpb.NewStruct(recipe.DefaultOptions)
 	if err != nil {
 		return nil, err
@@ -233,6 +251,8 @@ func projectLoadoutRecipeDescriptor(recipe catalog.LocalLoadoutRecipe, requireme
 		Implementation:                  (&capabilitydriver.Identity{ImplementationID: recipe.ImplementationID, DriverID: recipe.DriverID, DriverDialect: recipe.DriverDialect}).Proto(),
 		DefaultOptions:                  options,
 		ImplementationSupportedFeatures: append([]string(nil), implementationFeatures...),
+		Applicability:                   applicability,
+		Reasons:                         append([]runtimev1.ReasonCode(nil), reasons...),
 	}
 	for _, custody := range recipe.Custody {
 		result.Custody = append(result.Custody, &runtimev1.LoadoutRecipeCustodyDescriptor{
@@ -243,6 +263,10 @@ func projectLoadoutRecipeDescriptor(recipe catalog.LocalLoadoutRecipe, requireme
 	for _, slot := range recipe.SlotMetadata {
 		metadataBySlot[slot.SlotID] = slot
 	}
+	hostRecommendationBySlot := make(map[string]catalog.LocalRecipeSlotMetadata, len(hostRecommendedRecipe.SlotMetadata))
+	for _, slot := range hostRecommendedRecipe.SlotMetadata {
+		hostRecommendationBySlot[slot.SlotID] = slot
+	}
 	for _, requirement := range requirements {
 		slot, ok := metadataBySlot[requirement.GetRequirementId()]
 		if !ok {
@@ -252,18 +276,185 @@ func projectLoadoutRecipeDescriptor(recipe catalog.LocalLoadoutRecipe, requireme
 		if err != nil {
 			return nil, err
 		}
+		hostRecommendation, ok := hostRecommendationBySlot[requirement.GetRequirementId()]
+		if !ok {
+			return nil, fmt.Errorf("host recommendation is missing Driver slot %q", requirement.GetRequirementId())
+		}
+		offers := s.projectRecipeSlotOffers(
+			slot.RecommendedVariantIDs,
+			hostProfile,
+		)
+		slotApplicability, slotReasons := recipeSlotApplicability(offers)
 		result.Slots = append(result.Slots, &runtimev1.LoadoutRecipeSlotDescriptor{
 			SlotId: slot.SlotID, DisplayLabel: slot.DisplayLabel,
-			RecommendedContentIds: append([]string(nil), slot.RecommendedContentIDs...), ModelContract: contract,
-			RecommendedVariantIds: append([]string(nil), slot.RecommendedVariantIDs...),
-			Presence:              requirement.GetPresence(), ConditionalFeatures: append([]string(nil), requirement.GetConditionalFeatures()...),
+			RecommendedContentIds: append([]string(nil), hostRecommendation.RecommendedContentIDs...), ModelContract: contract,
+			RecommendedVariantIds: append([]string(nil), hostRecommendation.RecommendedVariantIDs...), Offers: offers,
+			Presence: requirement.GetPresence(), ConditionalFeatures: append([]string(nil), requirement.GetConditionalFeatures()...),
+			Applicability: slotApplicability, Reasons: slotReasons,
 		})
 		delete(metadataBySlot, slot.SlotID)
 	}
 	if len(metadataBySlot) != 0 {
 		return nil, fmt.Errorf("recipe slot metadata contains slots outside the Driver projection")
 	}
+	reduceRecipeApplicability(result)
 	return result, nil
+}
+
+func recipeApplicabilityRank(value runtimev1.LocalRecommendationApplicability) int {
+	switch value {
+	case runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED:
+		return 0
+	case runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN:
+		return 1
+	default:
+		return 2
+	}
+}
+
+func sortLoadoutRecipeRecommendations(items []*runtimev1.LoadoutRecipeDescriptor) {
+	sort.SliceStable(items, func(i, j int) bool {
+		return recipeApplicabilityRank(items[i].GetApplicability()) < recipeApplicabilityRank(items[j].GetApplicability())
+	})
+}
+
+type rankedRecipeSlotOffer struct {
+	offer             catalogOffer
+	applicability     runtimev1.LocalRecommendationApplicability
+	reasons           []runtimev1.ReasonCode
+	canonicalOrdinal  int
+	hasCanonicalOrder bool
+}
+
+func (s *Service) projectRecipeSlotOffers(
+	variantIDs []string,
+	hostProfile *runtimev1.LocalDeviceProfile,
+) []*runtimev1.LoadoutRecipeOfferDescriptor {
+	ranked := s.localProviderCatalog.RankVariantsForHost(variantIDs, hostProfile)
+	candidates := make([]rankedRecipeSlotOffer, 0, len(ranked))
+	for _, candidate := range ranked {
+		offer, ok := s.catalogOfferForLocalVariant(candidate.Variant.VariantID)
+		if !ok || !catalogOfferInstallable(offer) {
+			continue
+		}
+		applicability := runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN
+		reasons := []runtimev1.ReasonCode{}
+		switch candidate.Applicability {
+		case catalog.LocalVariantApplicabilitySupported:
+			applicability = runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED
+		case catalog.LocalVariantApplicabilityUnsupported:
+			applicability = runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED
+			reasons = append(reasons, runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE)
+		default:
+			reasons = append(reasons, runtimev1.ReasonCode_AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN)
+		}
+		candidates = append(candidates, rankedRecipeSlotOffer{
+			offer: offer, applicability: applicability, reasons: reasons,
+			canonicalOrdinal: candidate.Ordinal, hasCanonicalOrder: true,
+		})
+	}
+	sort.SliceStable(candidates, func(i, j int) bool {
+		left, right := candidates[i], candidates[j]
+		if recipeApplicabilityRank(left.applicability) != recipeApplicabilityRank(right.applicability) {
+			return recipeApplicabilityRank(left.applicability) < recipeApplicabilityRank(right.applicability)
+		}
+		if left.hasCanonicalOrder != right.hasCanonicalOrder {
+			return left.hasCanonicalOrder
+		}
+		if left.hasCanonicalOrder && left.canonicalOrdinal != right.canonicalOrdinal {
+			return left.canonicalOrdinal < right.canonicalOrdinal
+		}
+		return left.offer.offerRef < right.offer.offerRef
+	})
+	result := make([]*runtimev1.LoadoutRecipeOfferDescriptor, 0, len(candidates))
+	for _, candidate := range candidates {
+		result = append(result, &runtimev1.LoadoutRecipeOfferDescriptor{
+			Candidate:             s.projectMarketCandidate(candidate.offer),
+			Applicability:         candidate.applicability,
+			Reasons:               append([]runtimev1.ReasonCode(nil), candidate.reasons...),
+			InstalledModelAssetId: s.catalogOfferInstalledAssetID(candidate.offer),
+		})
+	}
+	return result
+}
+
+func recipeSlotApplicability(offers []*runtimev1.LoadoutRecipeOfferDescriptor) (runtimev1.LocalRecommendationApplicability, []runtimev1.ReasonCode) {
+	if len(offers) == 0 {
+		return runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN,
+			[]runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN}
+	}
+	hasUnknown := false
+	for _, offer := range offers {
+		switch offer.GetApplicability() {
+		case runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED:
+			return runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED, nil
+		case runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN:
+			hasUnknown = true
+		}
+	}
+	if hasUnknown {
+		return runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN,
+			[]runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOCAL_COMPONENT_COMPATIBILITY_UNKNOWN}
+	}
+	return runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED,
+		[]runtimev1.ReasonCode{runtimev1.ReasonCode_AI_LOCAL_MODEL_UNAVAILABLE}
+}
+
+func reduceRecipeApplicability(recipe *runtimev1.LoadoutRecipeDescriptor) {
+	if recipe == nil || recipe.GetApplicability() == runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED {
+		return
+	}
+	reduced := recipe.GetApplicability()
+	reasons := append([]runtimev1.ReasonCode(nil), recipe.GetReasons()...)
+	for _, slot := range recipe.GetSlots() {
+		if slot.GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED {
+			continue
+		}
+		switch slot.GetApplicability() {
+		case runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED:
+			reduced = runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED
+		case runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN:
+			if reduced != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED {
+				reduced = runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN
+			}
+		}
+		reasons = append(reasons, slot.GetReasons()...)
+	}
+	recipe.Applicability = reduced
+	recipe.Reasons = normalizeReasonCodes(reasons)
+}
+
+func normalizeReasonCodes(values []runtimev1.ReasonCode) []runtimev1.ReasonCode {
+	seen := map[runtimev1.ReasonCode]bool{}
+	result := make([]runtimev1.ReasonCode, 0, len(values))
+	for _, value := range values {
+		if value == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED || seen[value] {
+			continue
+		}
+		seen[value] = true
+		result = append(result, value)
+	}
+	return result
+}
+
+func (s *Service) catalogOfferForLocalVariant(variantID string) (catalogOffer, bool) {
+	variantID = strings.TrimSpace(variantID)
+	for _, item := range s.catalogSnapshot() {
+		if strings.TrimSpace(item.GetTemplateId()) != variantID {
+			continue
+		}
+		offer, err := catalogOfferFromCatalogItem(item)
+		if err != nil {
+			return catalogOffer{}, false
+		}
+		return offer, true
+	}
+	return catalogOffer{}, false
+}
+
+func capabilityCategories(capabilities []string) []string {
+	item := &runtimev1.LocalCatalogModelDescriptor{Capabilities: append([]string(nil), capabilities...)}
+	return marketCategoriesForCatalogItem(item)
 }
 
 func (s *Service) GetMachineLoadouts(_ context.Context, _ *runtimev1.GetMachineLoadoutsRequest) (*runtimev1.GetMachineLoadoutsResponse, error) {

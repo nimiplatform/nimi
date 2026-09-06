@@ -198,6 +198,9 @@ func (coordinator *Coordinator) Recover(ctx context.Context) error {
 		return fmt.Errorf("list App package jobs for recovery: %w", err)
 	}
 	for _, job := range jobs {
+		if job.SourceClass != localappkernel.SourceClassVerified {
+			continue
+		}
 		if job.Kind == localappkernel.PackageJobUninstall {
 			if err := coordinator.recoverUninstall(ctx, job); err != nil {
 				return errors.Join(ErrInstallRecoveryRequired, err)
@@ -206,6 +209,9 @@ func (coordinator *Coordinator) Recover(ctx context.Context) error {
 	}
 	protected, allowReleaseSweep, recoveryErr := coordinator.protectedReleaseRoots(ctx)
 	for _, job := range jobs {
+		if job.SourceClass != localappkernel.SourceClassVerified {
+			continue
+		}
 		if job.Kind == localappkernel.PackageJobUninstall {
 			continue
 		}
@@ -259,6 +265,9 @@ func (coordinator *Coordinator) protectedReleaseRoots(ctx context.Context) (map[
 	allowSweep := true
 	var integrityErr error
 	for _, release := range releases {
+		if release.SourceClass != localappkernel.SourceClassVerified {
+			continue
+		}
 		registration, err := coordinator.kernel.Registrations().GetByHandle(ctx, release.RegistrationHandle)
 		if err != nil {
 			allowSweep = false

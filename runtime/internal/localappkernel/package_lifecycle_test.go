@@ -296,9 +296,9 @@ func TestVerifiedRegistrationRequiresProvenanceAttestation(t *testing.T) {
 	if err := validateInstalledInput(input); !errors.Is(err, ErrInvalidArgument) {
 		t.Fatalf("verified empty provenance error = %v", err)
 	}
-	input.SourceClass = SourceClass("user_imported")
-	if err := validateInstalledInput(input); !errors.Is(err, ErrInvalidArgument) {
-		t.Fatalf("retired user-imported source error = %v", err)
+	input.SourceClass = SourceClassUserImported
+	if err := validateInstalledInput(input); err != nil {
+		t.Fatalf("user-imported empty provenance error = %v", err)
 	}
 }
 

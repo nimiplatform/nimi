@@ -35,12 +35,25 @@ const TEXT_RECIPE: NimiLoadoutRecipe = Object.freeze({
   }),
   defaultOptions: Object.freeze({ contextSize: 8192, scheduler: { kind: 'balanced' } }),
   implementationSupportedFeatures: Object.freeze(['input.image']),
+  applicability: 'supported',
+  reasons: Object.freeze([]),
   slots: Object.freeze([
     Object.freeze({
       slotId: 'main.weights',
       displayLabel: 'Main weights',
       recommendedContentIds: Object.freeze(['sha256:main']),
       recommendedVariantIds: Object.freeze(['variant.main']),
+      offers: Object.freeze([Object.freeze({
+        candidate: Object.freeze({
+          offerRef: 'offer_main', sourceLabel: 'verified', title: 'Main weights', description: '',
+          categories: Object.freeze(['chat']), variantLabel: 'main.weights', tags: Object.freeze([]),
+          verified: true, installed: false, installable: true,
+        }),
+        applicability: 'supported',
+        reasons: Object.freeze([]),
+      })]),
+      applicability: 'supported',
+      reasons: Object.freeze([]),
       modelContract: Object.freeze({ format: 'test-bundle', architecture: 'text-v3' }),
       presence: 'required',
       conditionalFeatures: Object.freeze([]),
@@ -50,6 +63,9 @@ const TEXT_RECIPE: NimiLoadoutRecipe = Object.freeze({
       displayLabel: 'Vision projector',
       recommendedContentIds: Object.freeze([]),
       recommendedVariantIds: Object.freeze([]),
+      offers: Object.freeze([]),
+      applicability: 'unknown',
+      reasons: Object.freeze([]),
       modelContract: Object.freeze({ format: 'test-projector' }),
       presence: 'optional-conditional',
       conditionalFeatures: Object.freeze(['input.image']),
@@ -305,7 +321,15 @@ test('Local configuration preview reuses generic Recipe slots and keeps decision
   assert.equal(add.decision.kind, 'add-new');
   assert.equal(add.requirementProjection.source, 'runtime-recipe');
   assert.equal(add.requirementProjection.recipeId, TEXT_RECIPE.recipeId);
-  assert.deepEqual(add.requirementProjection.requirements, TEXT_RECIPE.slots);
+  assert.deepEqual(add.requirementProjection.requirements, TEXT_RECIPE.slots.map((slot) => ({
+    slotId: slot.slotId,
+    displayLabel: slot.displayLabel,
+    recommendedContentIds: slot.recommendedContentIds,
+    recommendedVariantIds: slot.recommendedVariantIds,
+    modelContract: slot.modelContract,
+    presence: slot.presence,
+    conditionalFeatures: slot.conditionalFeatures,
+  })));
   assert.equal(add.runtimeMayConfigureExactPreferredContentAtCommit, true);
 
   const equivalentMachine: NimiAIProfileAuthoringMachineProjection = {
@@ -407,6 +431,9 @@ test('a new multi-axis Recipe needs no SDK Driver branch or field inventory', ()
         displayLabel: 'Primary encoder',
         recommendedContentIds: Object.freeze([]),
         recommendedVariantIds: Object.freeze([]),
+        offers: Object.freeze([]),
+        applicability: 'unknown',
+        reasons: Object.freeze([]),
         modelContract: Object.freeze({ format: 'bundle-a' }),
         presence: 'required',
         conditionalFeatures: Object.freeze([]),
@@ -416,6 +443,9 @@ test('a new multi-axis Recipe needs no SDK Driver branch or field inventory', ()
         displayLabel: 'Secondary decoder',
         recommendedContentIds: Object.freeze([]),
         recommendedVariantIds: Object.freeze([]),
+        offers: Object.freeze([]),
+        applicability: 'unknown',
+        reasons: Object.freeze([]),
         modelContract: Object.freeze({ format: 'bundle-b' }),
         presence: 'required',
         conditionalFeatures: Object.freeze([]),
@@ -425,6 +455,9 @@ test('a new multi-axis Recipe needs no SDK Driver branch or field inventory', ()
         displayLabel: 'Vocoder',
         recommendedContentIds: Object.freeze([]),
         recommendedVariantIds: Object.freeze([]),
+        offers: Object.freeze([]),
+        applicability: 'unknown',
+        reasons: Object.freeze([]),
         modelContract: Object.freeze({ format: 'bundle-c' }),
         presence: 'optional-conditional',
         conditionalFeatures: Object.freeze(['input.audio']),

@@ -416,16 +416,45 @@ func TestResolveModelInstallPlanRejectsCallerReconstructedTopology(t *testing.T)
 	}
 }
 
+func TestResolveModelInstallPlanOfferBridgeUsesExistingPlanLifecycleAndRejectsMixedInput(t *testing.T) {
+	svc := newTestService(t)
+	item := installableCatalogItemForTest("catalog.offer-bridge", "owner/model", "model.gguf", "a")
+	item.TotalSizeBytes = 2048
+	svc.mu.Lock()
+	svc.catalog = append(svc.catalog, item)
+	svc.mu.Unlock()
+	offerRef := catalogItemOfferRefForTest(t, item)
+
+	resolved, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{OfferRef: offerRef})
+	if err != nil {
+		t.Fatalf("resolve offer bridge: %v", err)
+	}
+	plan := resolved.GetPlan()
+	if plan.GetOfferRef() != offerRef || plan.GetItemId() != item.GetItemId() || plan.GetRepo() != item.GetRepo() ||
+		plan.GetEntry() != item.GetEntry() || plan.GetTotalSizeBytes() != item.GetTotalSizeBytes() || !plan.GetInstallAvailable() {
+		t.Fatalf("offer bridge did not produce the existing complete plan descriptor: %+v", plan)
+	}
+	if _, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
+		OfferRef: offerRef,
+		ItemId:   item.GetItemId(),
+	}); status.Code(err) != codes.InvalidArgument {
+		t.Fatalf("mixed offer and existing acquisition input error=%v", err)
+	}
+}
+
 func TestResolveModelInstallPlanHFCatalogSourceIsEngineNeutral(t *testing.T) {
 	svc := newTestService(t)
 	svc.hfCatalogSearch = func(context.Context, hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
 		return []*runtimev1.LocalCatalogModelDescriptor{{
 			ItemId: "hf_example_model", Source: "huggingface", ModelId: "example/model", Repo: "example/model",
-			Revision: "commit-1", Capabilities: []string{"text.generate"}, Engine: "llama",
+			Revision: immutableHFRevisionForTest, Capabilities: []string{"text.generate"}, Engine: "llama",
 		}}, nil
 	}
-	svc.hfCatalogVariants = func(context.Context, string) ([]*runtimev1.LocalCatalogVariantDescriptor, error) {
-		return []*runtimev1.LocalCatalogVariantDescriptor{{Filename: "model.gguf", Entry: "model.gguf", Files: []string{"model.gguf"}, Sha256: strings.Repeat("a", 64)}}, nil
+	svc.hfCatalogVariants = func(context.Context, string, string) ([]hfCatalogVariant, error) {
+		return []hfCatalogVariant{{
+			Filename: "model.gguf", Entry: "model.gguf", Files: []string{"model.gguf"},
+			Hashes: map[string]string{"model.gguf": strings.Repeat("a", 64)}, SHA256: strings.Repeat("a", 64), Revision: immutableHFRevisionForTest,
+		}}, nil
 	}
 	resp, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{
 		Source: "huggingface", Repo: "example/model", Revision: "main", ModelId: "caller-value",
@@ -444,6 +473,9 @@ func TestResolveModelInstallPlanHFCatalogSourceIsEngineNeutral(t *testing.T) {
 	}
 	if plan.GetModelId() != "example/model" || plan.GetHashes()["model.gguf"] != strings.Repeat("a", 64) {
 		t.Fatalf("plan did not use catalog identity: %+v", plan)
+	}
+	if plan.GetSource() != "huggingface" || plan.GetRevision() != "main" {
+		t.Fatalf("legacy catalog acquisition identity changed: %+v", plan)
 	}
 }
 

@@ -45,7 +45,7 @@ export function AgentConversationSettingsContent({ input }: AgentConversationSet
     close: input.onCloseAgentCenter,
     openRuntimeSettings: () => {
       setActiveTab('runtime');
-      runtimeConfigNavigation.openPage('localModels');
+      runtimeConfigNavigation.openPage('localAssets');
     },
     openMachineLoadout: () => {
       setActiveTab('runtime');

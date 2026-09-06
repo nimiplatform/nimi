@@ -46,7 +46,9 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets
       - method_id: /nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants
-      - method_id: /nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan
       - method_id: /nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers
@@ -183,6 +185,7 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput
       - method_id: /nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference
       # Host-private Avatar target correlation; never projected to the Desktop renderer.
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget
       # Desktop-Host-private current companion revalidation; never part of the

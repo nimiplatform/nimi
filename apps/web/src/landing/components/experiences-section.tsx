@@ -34,17 +34,19 @@ const ACCENTS: ReadonlyArray<CardAccent> = [
 
 function CardIcon({ id }: { id: string }) {
   const className = 'h-6 w-6';
-  if (id === 'create') {
+  if (id === 'memory') {
     return (
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className={className} aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M19 6c0 1.8-3.13 3.25-7 3.25S5 7.8 5 6s3.13-3.25 7-3.25S19 4.2 19 6Z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 6v6c0 1.8 3.13 3.25 7 3.25s7-1.45 7-3.25V6M5 12v6c0 1.8 3.13 3.25 7 3.25s7-1.45 7-3.25v-6" />
       </svg>
     );
   }
-  if (id === 'explore') {
+  if (id === 'proactive-companion') {
     return (
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} className={className} aria-hidden="true">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m-18.432 0A8.959 8.959 0 013 12c0-.778.099-1.533.284-2.253" />
+        <circle cx="12" cy="12" r="8.5" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 7.5V12l3 1.75" />
       </svg>
     );
   }

@@ -35,6 +35,7 @@ const (
 	protectedRevealLocalAppAssetMethod            = "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset"
 	protectedAdoptLocalAppArtifactMethod          = "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact"
 	protectedAgentReferenceListMethod             = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences"
+	protectedDesktopAgentReferenceResolveMethod   = "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference"
 	protectedAvatarHostTargetResolveMethod        = "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget"
 	protectedAvatarHostTargetRevalidateMethod     = "/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget"
 	protectedOpenConversationMethod               = "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation"
@@ -463,7 +464,7 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressArtifactUpload
 	case protectedListLocalAppVoiceAssetsMethod:
 		return localappop.IngressVoiceAssetsList
-	case protectedAgentReferenceListMethod:
+	case protectedAgentReferenceListMethod, protectedDesktopAgentReferenceResolveMethod:
 		return localappop.IngressAgentReferenceList
 	case protectedAvatarHostTargetResolveMethod:
 		return localappop.IngressAgentReferenceList

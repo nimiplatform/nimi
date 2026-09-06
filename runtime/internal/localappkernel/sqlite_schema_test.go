@@ -72,7 +72,7 @@ func TestOpenSQLiteRejectsLegacyInstalledShellKindConstraint(t *testing.T) {
 	legacy := strings.Replace(canonicalRegistrationCreateStatement,
 		"shell_kind INTEGER NOT NULL,", "shell_kind INTEGER NOT NULL CHECK(shell_kind > 0),", 1)
 	legacy = strings.Replace(legacy,
-		"\tCHECK((source_class = 'verified' AND shell_kind = 0) OR (source_class = 'local_development' AND shell_kind > 0)),\n", "", 1)
+		"\tCHECK((source_class IN ('verified','user_imported') AND shell_kind = 0) OR (source_class = 'local_development' AND shell_kind > 0)),\n", "", 1)
 	if _, err := database.Exec(legacy); err != nil {
 		_ = database.Close()
 		t.Fatal(err)

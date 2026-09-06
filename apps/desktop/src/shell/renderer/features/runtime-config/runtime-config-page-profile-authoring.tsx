@@ -37,6 +37,7 @@ import {
   type RuntimeConfigAIProfileAuthoringCurrentProjection,
   type RuntimeConfigAIProfileAuthoringDraft,
   type RuntimeConfigAIProfileAuthoringInspection,
+  type RuntimeConfigAIProfileAuthoringRequirementView,
   type RuntimeConfigAIProfileAuthoringState,
   type RuntimeConfigAIProfileCapabilityContract,
   type RuntimeConfigAIProfileCapabilityDraft,
@@ -386,12 +387,7 @@ function CapabilityAuthoringCard(props: {
   readonly draft: RuntimeConfigAIProfileAuthoringDraft;
   readonly recipes: readonly NimiLoadoutRecipe[];
   readonly capabilityContracts: readonly string[];
-  readonly requirement: {
-    readonly supportedFeatures: readonly string[];
-    readonly projection: {
-      readonly requirements: NimiLoadoutRecipe['slots'];
-    };
-  } | undefined;
+  readonly requirement: RuntimeConfigAIProfileAuthoringRequirementView | undefined;
   readonly onChange: (draft: RuntimeConfigAIProfileAuthoringDraft) => void;
   readonly t: TFunction;
 }) {
@@ -640,10 +636,7 @@ function CloudRecommendationFields(props: {
 }
 
 function RequirementProjectionSurface(props: {
-  readonly requirement: {
-    readonly supportedFeatures: readonly string[];
-    readonly projection: { readonly requirements: NimiLoadoutRecipe['slots'] };
-  } | undefined;
+  readonly requirement: RuntimeConfigAIProfileAuthoringRequirementView | undefined;
   readonly t: TFunction;
 }) {
   return (

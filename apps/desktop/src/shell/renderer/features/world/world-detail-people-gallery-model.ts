@@ -5,8 +5,10 @@ import type { WorldCharacter } from './world-detail-types.js';
  *
  * The full-roster surface is not a flat list — characters are clustered along a
  * switchable logical axis so a 50-person world reads as a structured social
- * network rather than an undifferentiated grid. All grouping/sorting is pure
- * and derived from real character fields; nothing is fabricated.
+ * network rather than an undifferentiated grid. Characters already added
+ * locally pin to a leading "connected" group above every axis. All
+ * grouping/sorting is pure and derived from real character fields; nothing is
+ * fabricated.
  */
 
 export type PeopleGroupBy = 'faction' | 'tier' | 'status';
@@ -142,11 +144,20 @@ export function buildPeopleGroups(
   characters: readonly WorldCharacter[],
   groupBy: PeopleGroupBy,
 ): PeopleGroup[] {
-  if (groupBy === 'faction') {
-    return groupByFaction(characters);
+  // Locally added characters pin to a leading group above every axis so their
+  // chat entry is always at the top.
+  const connected = characters.filter((character) => relationState(character) === 'connected').sort(sortWithinGroup);
+  const rest = characters.filter((character) => relationState(character) !== 'connected');
+  const axisGroups = groupBy === 'faction'
+    ? groupByFaction(rest)
+    : groupBy === 'tier'
+      ? groupByFixedAxis(rest, 'tier', TIER_ORDER, (character) => character.importance)
+      : groupByFixedAxis(rest, 'status', STATUS_ORDER, relationState);
+  if (connected.length === 0) {
+    return axisGroups;
   }
-  if (groupBy === 'tier') {
-    return groupByFixedAxis(characters, 'tier', TIER_ORDER, (character) => character.importance);
-  }
-  return groupByFixedAxis(characters, 'status', STATUS_ORDER, relationState);
+  return [
+    { id: 'connected', kind: 'status', labelKey: 'connected', characters: connected },
+    ...axisGroups,
+  ];
 }

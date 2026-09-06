@@ -114,7 +114,7 @@ export function isEntryRunActive(entry: DesktopAppsEntry): boolean {
   return isLocalDevelopmentRunActive(entry.run?.state ?? null);
 }
 
-export type AppSourceId = 'local_development' | 'verified';
+export type AppSourceId = 'local_development' | 'user_imported' | 'verified';
 
 export function appSourceForEntry(entry: DesktopAppsEntry): AppSourceId {
   return entry.identity.sourceClass;
@@ -137,6 +137,7 @@ export function appPackagePhaseLocaleKey(job: AppPackageJob): AppPackagePhaseLoc
   switch (job.phase) {
     case AppPackageJobPhase.QUEUED: return 'queued';
     case AppPackageJobPhase.DOWNLOADING:
+    case AppPackageJobPhase.READING_LOCAL:
     case AppPackageJobPhase.ACQUIRING_MISSING: return 'download';
     case AppPackageJobPhase.VERIFYING:
     case AppPackageJobPhase.VERIFYING_INSTALLED: return 'verify';
@@ -234,6 +235,34 @@ export function pinRunningAppsFirst(
   const running = entries.filter(isEntryRunActive);
   const stopped = entries.filter((entry) => !isEntryRunActive(entry));
   return [...running, ...stopped];
+}
+
+export type AppsLibraryFilterId = 'all' | 'running' | 'attention';
+
+/**
+ * "Needs attention" is a pure presentation derivation from owner data: a
+ * failed supervised run, a failed Runtime package job, or an app AIConfig
+ * posture that blocks usage. There is no renderer-local health truth.
+ */
+export function entryNeedsAttention(entry: DesktopAppsEntry): boolean {
+  if (appRunVisualState(entry.run?.state ?? null) === 'failed') return true;
+  const job = entry.packageJob;
+  if (
+    job
+    && (job.phase === AppPackageJobPhase.FAILED
+      || job.terminalResult === AppPackageTerminalResult.FAILED)
+  ) return true;
+  const health = entry.aiConfigSummary?.healthPosture;
+  return health === 'blocked' || health === 'unavailable';
+}
+
+export function filterAppsEntriesByStatus(
+  entries: readonly DesktopAppsEntry[],
+  filter: AppsLibraryFilterId,
+): readonly DesktopAppsEntry[] {
+  if (filter === 'running') return entries.filter(isEntryRunActive);
+  if (filter === 'attention') return entries.filter(entryNeedsAttention);
+  return entries;
 }
 
 /**

@@ -37,9 +37,7 @@ export function connectMenuBarNavigation(
         return;
       }
       const state = loadRuntimeConfigStateV11();
-      // The menu-bar wire contract still emits the retired single "models"
-      // page id (menu item "Local Models"); route it to the Local Models page.
-      const page = payload.page === 'models' ? 'localModels' : payload.page;
+      const page = payload.page;
       persistRuntimeConfigStateV11({
         ...state,
         activePage: page,

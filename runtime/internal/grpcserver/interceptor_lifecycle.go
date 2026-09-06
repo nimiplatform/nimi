@@ -12,6 +12,7 @@ import (
 
 // readOnlyMethods are gRPC methods allowed during STOPPING/STOPPED states.
 var readOnlyMethods = map[string]bool{
+	"/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference":          true,
 	"/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth":                      true,
 	"/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents":                       true,
 	"/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents":                true,
@@ -47,7 +48,10 @@ var readOnlyMethods = map[string]bool{
 	"/nimi.runtime.v1.RuntimeLocalService/GetLoadout":                            true,
 	"/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets":                    true,
 	"/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels":                   true,
-	"/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed":                 true,
+	"/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants":                   true,
+	"/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard":                   true,
+	"/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets":               true,
+	"/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations":     true,
 	"/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan":               true,
 	"/nimi.runtime.v1.RuntimeLocalService/CollectDeviceProfile":                  true,
 	"/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord":               true,

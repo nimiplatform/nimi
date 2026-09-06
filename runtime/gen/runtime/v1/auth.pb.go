@@ -131,6 +131,7 @@ type LocalAppTrustClass int32
 const (
 	LocalAppTrustClass_LOCAL_APP_TRUST_CLASS_UNSPECIFIED       LocalAppTrustClass = 0
 	LocalAppTrustClass_LOCAL_APP_TRUST_CLASS_VERIFIED          LocalAppTrustClass = 1
+	LocalAppTrustClass_LOCAL_APP_TRUST_CLASS_USER_IMPORTED     LocalAppTrustClass = 2
 	LocalAppTrustClass_LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT LocalAppTrustClass = 3
 )
 
@@ -139,11 +140,13 @@ var (
 	LocalAppTrustClass_name = map[int32]string{
 		0: "LOCAL_APP_TRUST_CLASS_UNSPECIFIED",
 		1: "LOCAL_APP_TRUST_CLASS_VERIFIED",
+		2: "LOCAL_APP_TRUST_CLASS_USER_IMPORTED",
 		3: "LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT",
 	}
 	LocalAppTrustClass_value = map[string]int32{
 		"LOCAL_APP_TRUST_CLASS_UNSPECIFIED":       0,
 		"LOCAL_APP_TRUST_CLASS_VERIFIED":          1,
+		"LOCAL_APP_TRUST_CLASS_USER_IMPORTED":     2,
 		"LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT": 3,
 	}
 )
@@ -863,11 +866,12 @@ const file_runtime_v1_auth_proto_rawDesc = "" +
 	"+LOCAL_APP_SESSION_STATE_RUNTIME_UNAVAILABLE\x10\x02\x12#\n" +
 	"\x1fLOCAL_APP_SESSION_STATE_REVOKED\x10\x03\x12+\n" +
 	"'LOCAL_APP_SESSION_STATE_ACCOUNT_CHANGED\x10\x04\x12,\n" +
-	"(LOCAL_APP_SESSION_STATE_PROCESS_REPLACED\x10\x05*\xb7\x01\n" +
+	"(LOCAL_APP_SESSION_STATE_PROCESS_REPLACED\x10\x05*\xb5\x01\n" +
 	"\x12LocalAppTrustClass\x12%\n" +
 	"!LOCAL_APP_TRUST_CLASS_UNSPECIFIED\x10\x00\x12\"\n" +
-	"\x1eLOCAL_APP_TRUST_CLASS_VERIFIED\x10\x01\x12+\n" +
-	"'LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT\x10\x03\"\x04\b\x02\x10\x02*#LOCAL_APP_TRUST_CLASS_USER_IMPORTED2\xec\x05\n" +
+	"\x1eLOCAL_APP_TRUST_CLASS_VERIFIED\x10\x01\x12'\n" +
+	"#LOCAL_APP_TRUST_CLASS_USER_IMPORTED\x10\x02\x12+\n" +
+	"'LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT\x10\x032\xec\x05\n" +
 	"\x12RuntimeAuthService\x12m\n" +
 	"\x12OpenDesktopSession\x12*.nimi.runtime.v1.OpenDesktopSessionRequest\x1a+.nimi.runtime.v1.OpenDesktopSessionResponse\x12p\n" +
 	"\x13OpenLocalAppSession\x12+.nimi.runtime.v1.OpenLocalAppSessionRequest\x1a,.nimi.runtime.v1.OpenLocalAppSessionResponse\x12r\n" +

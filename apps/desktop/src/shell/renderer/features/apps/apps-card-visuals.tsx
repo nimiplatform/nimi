@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BadgeCheck, Code2, LoaderCircle } from 'lucide-react';
-import { StatusBadge } from '@nimiplatform/kit/ui';
+import { BadgeCheck, Code2, LoaderCircle, PackageOpen } from 'lucide-react';
+import { StatusBadge, type StatusBadgeShape } from '@nimiplatform/kit/ui';
 import {
   APP_RUN_BADGE_TONE,
   appPackageFailureReason,
@@ -20,6 +20,7 @@ const ICON_SIZE_CLASS = Object.freeze({
   sm: 'h-8 w-8 rounded-lg text-sm',
   md: 'h-10 w-10 rounded-xl text-base',
   lg: 'h-16 w-16 rounded-2xl text-2xl',
+  xl: 'h-12 w-12 rounded-xl text-lg',
 } as const);
 
 export type AppArtworkIconSize = keyof typeof ICON_SIZE_CLASS;
@@ -65,39 +66,23 @@ export function appRunStatusLabel(
   return t(`Apps.runState.${visual}`);
 }
 
-export function AppRunStatusLine({ entry }: { readonly entry: DesktopAppsEntry }): ReactElement {
+export function AppRunStatusBadge({
+  entry,
+  shape = 'soft',
+}: {
+  readonly entry: DesktopAppsEntry;
+  readonly shape?: StatusBadgeShape;
+}): ReactElement {
   const { t } = useTranslation();
   const visual = appRunVisualState(entry.run?.state ?? null);
-  const dotClass = visual === 'running'
-    ? 'bg-[var(--nimi-status-success)]'
-    : visual === 'starting'
-      ? 'bg-[var(--nimi-action-primary-bg)]'
-      : visual === 'failed'
-        ? 'bg-[var(--nimi-status-danger)]'
-        : 'bg-[var(--nimi-text-muted)] opacity-50';
   return (
-    <span
-      data-testid={`apps-entry-${entry.identity.entryKey}-state`}
+    <StatusBadge
+      tone={APP_RUN_BADGE_TONE[visual]}
+      shape={shape}
       data-run-visual={visual}
       title={visual === 'failed' ? entry.run?.message : undefined}
-      className={`inline-flex items-center gap-1.5 text-[11px] font-medium ${visual === 'stopped' ? 'text-[color:var(--nimi-text-muted)]' : visual === 'running' ? 'text-[var(--nimi-status-success)]' : visual === 'failed' ? 'text-[var(--nimi-status-danger)]' : 'text-[var(--nimi-action-primary-bg)]'}`}
     >
-      {visual === 'starting' ? (
-        <LoaderCircle className="h-3 w-3 animate-spin" aria-hidden="true" />
-      ) : (
-        <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} aria-hidden="true" />
-      )}
-      {appRunStatusLabel(t, visual)}
-    </span>
-  );
-}
-
-export function AppRunStatusBadge({ entry }: { readonly entry: DesktopAppsEntry }): ReactElement {
-  const { t } = useTranslation();
-  const visual = appRunVisualState(entry.run?.state ?? null);
-  return (
-    <StatusBadge tone={APP_RUN_BADGE_TONE[visual]} data-run-visual={visual}>
-      {visual === 'starting' ? (
+      {visual === 'starting' && shape !== 'dot' ? (
         <LoaderCircle className="mr-1 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
       ) : null}
       {appRunStatusLabel(t, visual)}
@@ -141,6 +126,12 @@ const SOURCE_BADGE_META = Object.freeze({
     labelKey: 'Apps.sourceBadge.localDevelopment',
     pillClassName: 'border-[color:var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)] text-[color:var(--nimi-text-secondary)]',
     quietClassName: 'text-[color:var(--nimi-text-muted)]',
+  },
+  user_imported: {
+    icon: PackageOpen,
+    labelKey: 'Apps.sourceBadge.userImported',
+    pillClassName: 'border-[color:var(--nimi-status-info-soft-border)] bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]',
+    quietClassName: 'text-[var(--nimi-status-info-soft-text)]',
   },
   verified: {
     icon: BadgeCheck,

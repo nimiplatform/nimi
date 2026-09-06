@@ -13,6 +13,7 @@ import (
 )
 
 var publicTransportBlockedMethods = map[string]runtimev1.ReasonCode{
+	"/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference":              runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall":                 runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
 	"/nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch":                   runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,
 	"/nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun":                          runtimev1.ReasonCode_DESKTOP_CONTROL_TRANSPORT_REQUIRED,

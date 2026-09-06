@@ -17,6 +17,7 @@ import {
   projectAppsPanel,
   summarizeAppAIConfig,
   type DesktopAppAIConfigReadOptions,
+  type DesktopAppsCatalogProjection,
   type DesktopAppsEntry,
   type DesktopAppsPanelProjection,
   type DesktopAppsProjectionSource,
@@ -66,6 +67,7 @@ type AppsPanelReloadLane = 'lifecycle' | 'ai-config';
 
 export interface AppsPanelProjectionReloader {
   reload(refreshAIConfig?: boolean): Promise<void>;
+  refreshCatalog(): Promise<void>;
   dispose(): void;
 }
 
@@ -93,8 +95,8 @@ export function mergeAppsPanelProjection(
   const refreshedByKey = new Map(next.entries.map((entry) => [entry.identity.entryKey, entry]));
   return {
     status: 'loaded',
-    catalogStatus: next.catalogStatus,
-    runtimeError: next.runtimeError,
+    catalogStatus: current.catalogStatus,
+    runtimeError: current.runtimeError,
     entries: current.entries.map((entry) => {
       const refreshedEntry = refreshedByKey.get(entry.identity.entryKey);
       return {
@@ -143,6 +145,10 @@ export function createAppsPanelProjectionReloader(input: {
   readonly commit: (projection: DesktopAppsPanelProjection) => void;
 }): AppsPanelProjectionReloader {
   let disposed = false;
+  let catalog: DesktopAppsCatalogProjection = {
+    status: input.source.listApprovedCatalogTargets ? 'loading' : 'not-implemented', targets: [],
+  };
+  let catalogInFlight: Promise<void> | null = null;
   const inFlight: Record<AppsPanelReloadLane, Promise<void> | null> = {
     lifecycle: null,
     'ai-config': null,
@@ -160,6 +166,7 @@ export function createAppsPanelProjectionReloader(input: {
     const task = projectAppsPanel(input.source, {
       previous: input.getCurrent(),
       refreshAIConfig,
+      catalog,
     }).then((next) => {
       if (
         disposed
@@ -175,6 +182,20 @@ export function createAppsPanelProjectionReloader(input: {
 
   return Object.freeze({
     reload,
+    refreshCatalog(): Promise<void> {
+      if (!input.source.listApprovedCatalogTargets || disposed) return Promise.resolve();
+      if (catalogInFlight) return catalogInFlight;
+      const task = input.source.listApprovedCatalogTargets().then((targets) => {
+        catalog = { status: 'loaded', targets };
+      }).catch((error: unknown) => {
+        catalog = { status: 'unavailable', targets: [], error };
+      }).then(async () => {
+        await inFlight.lifecycle;
+        if (!disposed) await reload(false);
+      }).finally(() => { if (catalogInFlight === task) catalogInFlight = null; });
+      catalogInFlight = task;
+      return task;
+    },
     dispose() {
       disposed = true;
     },
@@ -216,12 +237,18 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     [reloader],
   );
   const installIntentController = useMemo(() => deps.startInstall
-    ? createAppsInstallIntentController({ startInstall: deps.startInstall, refresh: () => reload(false) })
-    : undefined, [deps.startInstall, reload]);
+    ? createAppsInstallIntentController({ startInstall: deps.startInstall, refresh: () => reloader.refreshCatalog() })
+    : undefined, [deps.startInstall, reloader]);
 
   useEffect(() => {
     void reload(true);
-  }, [reload]);
+    void reloader.refreshCatalog();
+  }, [reload, reloader]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => void reloader.refreshCatalog(), 60_000);
+    return () => window.clearInterval(interval);
+  }, [reloader]);
 
   useEffect(() => () => reloader.dispose(), [reloader]);
 
@@ -254,7 +281,10 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
 
   const runCardAction = useCallback((entryKey: string, action: AppCardActionId): void => {
     setActionError(null);
-    if (action === 'details') {
+    if (action === 'details' || action === 'open-ai-config') {
+      // 'open-ai-config' is detail navigation with an AI-models section
+      // request; the section itself is store-level and set by the dispatch
+      // layer in apps-panel.tsx.
       setDetailEntryKey(entryKey);
       return;
     }
@@ -310,7 +340,8 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     setProjection(null);
     setActionError(null);
     void reload(true);
-  }, [reload]);
+    void reloader.refreshCatalog();
+  }, [reload, reloader]);
 
   const closeDetail = useCallback((): void => setDetailEntryKey(null), []);
   const acknowledgeAIConfigMutation = useCallback((

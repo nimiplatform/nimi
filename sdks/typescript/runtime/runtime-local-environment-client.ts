@@ -1,18 +1,16 @@
 import {
-  type LocalDeviceProfile as GeneratedLocalDeviceProfile,
-  type LocalRecommendationFeedDescriptor as GeneratedLocalRecommendationFeedDescriptor,
   type ResolveLocalEnvironmentPlanRequest,
   type RuntimeTypedCallOptions,
 } from '../core-generated/runtime-typed-client';
 import { toNimiRuntimeProtoStruct } from './runtime-agent-values';
 import { toNimiRuntimeLocalAssetKindRequestValue } from './local-asset-vocabulary';
 import {
-  projectNimiRuntimeLocalRecommendationFeed,
-  toNimiRuntimeLocalRecommendationFeedCapabilityRequestValue,
+  projectNimiRuntimeFactoryProfileRecommendation,
+  projectNimiRuntimeFeaturedModelAssets,
+  projectNimiRuntimeModelAssetMarketCandidate,
+  projectNimiRuntimeModelAssetSearchResult,
 } from './runtime-local-recommendation';
 import {
-  projectNimiRuntimeLocalCatalogItemDescriptor,
-  projectNimiRuntimeLocalCatalogVariantDescriptor,
   projectNimiRuntimeLocalDeviceProfile,
   projectNimiRuntimeLocalEnvironmentDependencyJob,
   projectNimiRuntimeLocalEnvironmentPlan,
@@ -58,8 +56,6 @@ export {
   isNimiRuntimeLocalEnvironmentDependencyRepairRequiredState,
   isNimiRuntimeLocalEnvironmentDependencyStartableState,
   isNimiRuntimeLocalEnvironmentDependencyUnsupportedState,
-  projectNimiRuntimeLocalCatalogItemDescriptor,
-  projectNimiRuntimeLocalCatalogVariantDescriptor,
   projectNimiRuntimeLocalDeviceProfile,
   projectNimiRuntimeLocalEnvironmentDependencyJob,
   projectNimiRuntimeLocalEnvironmentPlan,
@@ -175,22 +171,50 @@ export function createNimiRuntimeLocalEnvironmentClient(
       }
       return dedupeBy(assets, (asset) => asset.templateId || asset.assetId);
     },
-    async searchCatalog(input = {}) {
-      const response = await resolveLocal().searchCatalogModels({
-        query: normalizeText(input.query),
-        capability: normalizeText(input.capability),
-        categoryFilter: '',
-        engineFilter: '',
-        pageSize: normalizePageSize(input.limit ?? 50),
-        pageToken: '',
-      }, defaultCallOptions);
-      return response.items.map(projectNimiRuntimeLocalCatalogItemDescriptor);
+    async searchCatalog(input) {
+      const query = requireLocalText(input?.query, 'Runtime catalog query is required', 'provide_catalog_query');
+      const items = [];
+      let pageToken = '';
+      const pageSize = normalizePageSize(input.pageSize);
+      const maxPages = normalizeMaxPages(input.maxPages);
+      for (let pageIndex = 0; pageIndex < maxPages; pageIndex += 1) {
+        const response = await resolveLocal().searchCatalogModels({
+          query,
+          category: normalizeText(input.category),
+          pageSize,
+          pageToken,
+        }, defaultCallOptions);
+        items.push(...response.items.map(projectNimiRuntimeModelAssetSearchResult));
+        pageToken = normalizeText(response.nextPageToken);
+        if (!pageToken) break;
+      }
+      return dedupeBy(items, (item) => item.modelLocator);
     },
-    async listCatalogVariants(repo) {
+    async getCatalogModelCard(input) {
+      const response = await resolveLocal().getCatalogModelCard({
+        modelLocator: input.modelLocator ?? '',
+        offerRef: input.offerRef ?? '',
+      }, callOptions());
+      return Object.freeze({ markdown: response.markdown, sourceUrl: response.sourceUrl, baseUrl: response.baseUrl });
+    },
+    async listCatalogVariants(modelLocator) {
       const response = await resolveLocal().listCatalogVariants({
-        repo: requireLocalText(repo, 'Runtime local catalog repo is required', 'provide_local_catalog_repo'),
+        modelLocator: requireLocalText(modelLocator, 'Runtime catalog model locator is required', 'provide_catalog_model_locator'),
       }, defaultCallOptions);
-      return response.variants.map(projectNimiRuntimeLocalCatalogVariantDescriptor);
+      return Object.freeze(response.variants.map(projectNimiRuntimeModelAssetMarketCandidate));
+    },
+    async listFeaturedModelAssets(input) {
+      const response = await resolveLocal().listFeaturedModelAssets({
+        category: requireLocalText(input?.category, 'Runtime featured category is required', 'provide_featured_category'),
+        pageSize: normalizePageSize(input?.pageSize),
+      }, defaultCallOptions);
+      return projectNimiRuntimeFeaturedModelAssets(response);
+    },
+    async listFactoryProfileRecommendations(input = {}) {
+      const response = await resolveLocal().listFactoryProfileRecommendations({
+        capabilityContract: normalizeText(input.capabilityContract),
+      }, defaultCallOptions);
+      return Object.freeze(response.profiles.map(projectNimiRuntimeFactoryProfileRecommendation));
     },
     async resolveInstallPlan(input) {
       const response = await resolveLocal().resolveModelInstallPlan({
@@ -198,7 +222,7 @@ export function createNimiRuntimeLocalEnvironmentClient(
         source: normalizeText(input.source),
         templateId: normalizeText(input.templateId),
         modelId: normalizeText(input.modelId),
-			modelType: normalizeText(input.modelType),
+        modelType: normalizeText(input.modelType),
         repo: normalizeText(input.repo),
         revision: normalizeText(input.revision),
         capabilities: textList(input.capabilities),
@@ -209,6 +233,33 @@ export function createNimiRuntimeLocalEnvironmentClient(
         hashes: stringRecord(input.hashes),
         endpoint: normalizeText(input.endpoint),
         engineConfig: input.engineConfig ? toNimiRuntimeProtoStruct(input.engineConfig) : undefined,
+        offerRef: '',
+      }, defaultCallOptions);
+      return projectRequiredLocal(
+        response.plan,
+        projectNimiRuntimeLocalInstallPlanDescriptor,
+        'Runtime local install plan response is missing plan',
+        'check_runtime_local_install_plan_response',
+      );
+    },
+    async resolveOfferInstallPlan(offerRef) {
+      const response = await resolveLocal().resolveModelInstallPlan({
+        itemId: '',
+        source: '',
+        templateId: '',
+        modelId: '',
+        repo: '',
+        revision: '',
+        capabilities: [],
+        engine: '',
+        entry: '',
+        files: [],
+        license: '',
+        hashes: {},
+        endpoint: '',
+        engineConfig: undefined,
+        modelType: '',
+        offerRef: requireLocalText(offerRef, 'Runtime ModelAsset offer ref is required', 'provide_model_asset_offer_ref'),
       }, defaultCallOptions);
       return projectRequiredLocal(
         response.plan,
@@ -305,21 +356,6 @@ export function createNimiRuntimeLocalEnvironmentClient(
         projectNimiRuntimeLocalDeviceProfile,
         'Runtime local device profile response is missing profile',
         'check_runtime_local_device_profile_response',
-      );
-    },
-    async getRecommendationFeed(input = {}) {
-      const response = await resolveLocal().getRecommendationFeed({
-        capability: toNimiRuntimeLocalRecommendationFeedCapabilityRequestValue(input.capability),
-        pageSize: normalizePageSize(input.pageSize ?? 0),
-      }, defaultCallOptions);
-      return projectRequiredLocal(
-        response.feed,
-        (feed: GeneratedLocalRecommendationFeedDescriptor) => projectNimiRuntimeLocalRecommendationFeed(
-          feed,
-          (profile) => projectNimiRuntimeLocalDeviceProfile(profile as GeneratedLocalDeviceProfile),
-        ),
-        'Runtime local recommendation feed response is missing feed',
-        'check_runtime_local_recommendation_feed_response',
       );
     },
     async resolveEnvironmentPlan(input) {

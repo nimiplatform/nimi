@@ -22,6 +22,7 @@ type SourceClass string
 
 const (
 	SourceClassVerified         SourceClass = "verified"
+	SourceClassUserImported     SourceClass = "user_imported"
 	SourceClassLocalDevelopment SourceClass = "local_development"
 )
 
@@ -62,10 +63,10 @@ type Registration struct {
 }
 
 // ImmutablePackageFactsComplete is the fail-closed canonical seam required
-// before a verified registration may be reported available
+// before a verified or user-imported registration may be reported available
 // or admitted to an installed session. Local development has no package seam.
 func (registration Registration) ImmutablePackageFactsComplete() bool {
-	if registration.SourceClass != SourceClassVerified {
+	if registration.SourceClass != SourceClassVerified && registration.SourceClass != SourceClassUserImported {
 		return false
 	}
 	if strings.TrimSpace(registration.ImmutableLineageID) == "" ||
@@ -73,7 +74,7 @@ func (registration Registration) ImmutablePackageFactsComplete() bool {
 		strings.TrimSpace(registration.ExecutionProfileRef) == "" {
 		return false
 	}
-	if len(registration.ProvenanceAttestationRefs) == 0 {
+	if registration.SourceClass == SourceClassVerified && len(registration.ProvenanceAttestationRefs) == 0 {
 		return false
 	}
 	for _, reference := range registration.ProvenanceAttestationRefs {
@@ -155,7 +156,7 @@ func validateInstalledInput(input RegisterInstalledInput) error {
 	if err := validateOptionalBindingSlot(input.BindingSlot); err != nil {
 		return err
 	}
-	if input.SourceClass != SourceClassVerified {
+	if input.SourceClass != SourceClassVerified && input.SourceClass != SourceClassUserImported {
 		return fmt.Errorf("%w: source_class", ErrInvalidArgument)
 	}
 	if err := validateRegistrationInput(input.AppID, input.DisplayName, input.SourceRef, input.ProjectRoot,

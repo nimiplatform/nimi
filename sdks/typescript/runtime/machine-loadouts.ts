@@ -2,6 +2,7 @@ import {
   LoadoutValidationState,
   LocalCapabilityRequirementPresence,
   LocalCapabilityRequirementResolution,
+  LocalRecommendationApplicability,
   ReasonCode as RuntimeGeneratedReasonCode,
   type Loadout,
   type LoadoutModelAxis,
@@ -17,10 +18,22 @@ import {
   projectNimiTextBehaviorCapabilities,
   type NimiTextBehaviorCapabilityProjection,
 } from './text-behavior-projections.js';
+import {
+  projectNimiRuntimeModelAssetMarketCandidate,
+  type NimiRuntimeModelAssetMarketCandidate,
+} from './runtime-local-recommendation.js';
 
 export type NimiLoadoutValidationState = 'configured' | 'unresolved' | 'blocked';
 export type NimiLoadoutRequirementPresence = 'required' | 'optional-conditional';
 export type NimiLoadoutRequirementResolution = 'unresolved' | 'configured' | 'not-configured';
+export type NimiLoadoutRecommendationApplicability = 'supported' | 'unknown' | 'unsupported';
+
+export interface NimiLoadoutRecipeOffer {
+  readonly candidate: NimiRuntimeModelAssetMarketCandidate;
+  readonly applicability: NimiLoadoutRecommendationApplicability;
+  readonly reasons: readonly string[];
+  readonly installedModelAssetId?: string;
+}
 
 export interface NimiLoadoutModelAxis {
   readonly slotId: string;
@@ -77,11 +90,16 @@ export interface NimiLoadoutRecipe {
   readonly implementation: NimiMachineLoadout['implementation'];
   readonly defaultOptions: Readonly<JsonObject>;
   readonly implementationSupportedFeatures: readonly string[];
+  readonly applicability: NimiLoadoutRecommendationApplicability;
+  readonly reasons: readonly string[];
   readonly slots: readonly {
     readonly slotId: string;
     readonly displayLabel: string;
     readonly recommendedContentIds: readonly string[];
     readonly recommendedVariantIds: readonly string[];
+    readonly offers: readonly NimiLoadoutRecipeOffer[];
+    readonly applicability: NimiLoadoutRecommendationApplicability;
+    readonly reasons: readonly string[];
     readonly modelContract: Readonly<JsonObject>;
     readonly presence: NimiLoadoutRequirementPresence;
     readonly conditionalFeatures: readonly string[];
@@ -277,18 +295,41 @@ function projectRecipe(value: LoadoutRecipeDescriptor): NimiLoadoutRecipe {
     implementation: Object.freeze({ implementationId: value.implementation.implementationId, driverId: value.implementation.driverId, driverDialect: value.implementation.driverDialect }),
     defaultOptions: Object.freeze(fromNimiRuntimeProtoStruct(value.defaultOptions) as JsonObject),
     implementationSupportedFeatures: Object.freeze([...value.implementationSupportedFeatures]),
+    applicability: recommendationApplicability(value.applicability),
+    reasons: Object.freeze(value.reasons.map((reason) => RuntimeGeneratedReasonCode[reason] || 'REASON_CODE_UNSPECIFIED')),
     slots: Object.freeze(value.slots.map((slot) => {
       const presence = requirementPresence(slot.presence);
       return Object.freeze({
         slotId: slot.slotId, displayLabel: slot.displayLabel,
         recommendedContentIds: Object.freeze([...slot.recommendedContentIds]),
         recommendedVariantIds: Object.freeze([...slot.recommendedVariantIds]),
+        offers: Object.freeze(slot.offers.map((offer) => Object.freeze({
+          candidate: offer.candidate
+            ? projectNimiRuntimeModelAssetMarketCandidate(offer.candidate)
+            : responseError('Loadout recipe offer is missing candidate'),
+          applicability: recommendationApplicability(offer.applicability),
+          reasons: Object.freeze(offer.reasons.map((reason) => RuntimeGeneratedReasonCode[reason] || 'REASON_CODE_UNSPECIFIED')),
+          ...(text(offer.installedModelAssetId) ? { installedModelAssetId: text(offer.installedModelAssetId) } : {}),
+        }))),
+        applicability: recommendationApplicability(slot.applicability),
+        reasons: Object.freeze(slot.reasons.map((reason) => RuntimeGeneratedReasonCode[reason] || 'REASON_CODE_UNSPECIFIED')),
         modelContract: Object.freeze(fromNimiRuntimeProtoStruct(slot.modelContract) as JsonObject),
         presence,
         conditionalFeatures: projectConditionalFeatures(presence, slot.conditionalFeatures),
       });
     })),
   });
+}
+
+function recommendationApplicability(
+  value: LocalRecommendationApplicability,
+): NimiLoadoutRecommendationApplicability {
+  switch (value) {
+    case LocalRecommendationApplicability.SUPPORTED: return 'supported';
+    case LocalRecommendationApplicability.UNKNOWN: return 'unknown';
+    case LocalRecommendationApplicability.UNSUPPORTED: return 'unsupported';
+    default: throw responseError('Recommendation applicability is unspecified');
+  }
 }
 
 function requirementPresence(value: LocalCapabilityRequirementPresence): NimiLoadoutRequirementPresence {

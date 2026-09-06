@@ -82,6 +82,14 @@ test('menu-bar navigation accepts only the closed runtime pages and Settings sha
     parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'environment' }),
     { tab: 'runtime', page: 'environment' },
   );
+  assert.deepEqual(
+    parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'modelMarket' }),
+    { tab: 'runtime', page: 'modelMarket' },
+  );
+  assert.throws(
+    () => parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'models' }),
+    /menu-bar-open-tab-payload-invalid/u,
+  );
   assert.throws(
     () => parseMenuBarOpenTabPayload({ tab: 'runtime', page: 'advanced' }),
     /menu-bar-open-tab-payload-invalid/u,

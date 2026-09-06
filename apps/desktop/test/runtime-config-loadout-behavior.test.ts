@@ -13,12 +13,13 @@ import { createNimiError } from '@nimiplatform/sdk/types';
 import { runtimeConfigLoadoutCatalogBadge } from '../src/shell/renderer/features/runtime-config/runtime-config-loadout-catalog-badge.js';
 import {
   installAndBindRuntimeConfigRecommendedLoadout,
-  recommendedInstallMessage,
-  recommendedInstallItems,
   loadoutAssetLabel,
   loadoutCapabilityLabelKey,
+  partitionRuntimeConfigRecipeTemplates,
+  recommendedInstallItems,
+  recommendedInstallMessage,
   runtimeConfigLoadoutCandidateAssets,
-  runtimeConfigRecommendedLoadoutModelAxes,
+  summarizeRuntimeConfigRecipeDownloads,
   runtimeConfigLoadoutUpdateModelAxes,
   runtimeConfigLoadoutErrorMessage,
   runtimeConfigTextBehaviorPresentationState,
@@ -31,6 +32,32 @@ import {
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const rendererDir = path.join(testDir, '..', 'src', 'shell', 'renderer');
 const localePath = (locale: 'en' | 'zh') => path.join(rendererDir, 'locales', locale, '46-runtimeConfig.json');
+
+function recipeOffer(
+  offerRef: string,
+  applicability: 'supported' | 'unknown' | 'unsupported' = 'supported',
+  installedModelAssetId?: string,
+  totalSizeBytes?: number,
+) {
+  return {
+    candidate: {
+      offerRef,
+      sourceLabel: 'model-index',
+      title: offerRef,
+      description: '',
+      categories: ['image'],
+      variantLabel: 'default',
+      tags: [],
+      verified: true,
+      installed: Boolean(installedModelAssetId),
+      installable: true,
+      ...(totalSizeBytes ? { totalSizeBytes } : {}),
+    },
+    applicability,
+    reasons: [],
+    ...(installedModelAssetId ? { installedModelAssetId } : {}),
+  } as const;
+}
 
 test('Loadout mutations invalidate App effective projections and one-click selection reads', async () => {
   const source = await readFile(path.join(
@@ -134,102 +161,6 @@ test('Loadout card and manage view present canonical text behavior truth without
   }
 });
 
-test('single-slot recipes render the recommended combination and install entry only with a recommended variant', async () => {
-  const singleSlotRecipe: NimiLoadoutRecipe = {
-    recipeId: 'local.audio.speech.voxcpm2',
-    revision: '1',
-    title: 'VoxCPM2',
-    capabilityContract: 'audio.speech',
-    implementation: {
-      implementationId: 'local.audio.speech.voxcpm2',
-      driverId: 'nimi.runtime.driver.voxcpm2',
-      driverDialect: 'voxcpm2/tts/v1',
-    },
-    defaultOptions: {},
-    implementationSupportedFeatures: [],
-    slots: [{
-      slotId: 'tts.model',
-      displayLabel: 'TTS model',
-      recommendedContentIds: [`sha256:${'a'.repeat(64)}`],
-      recommendedVariantIds: ['local.audio.speech.voxcpm2'],
-      modelContract: {},
-      presence: 'required',
-      conditionalFeatures: [],
-    }],
-  };
-  const recommendations = recommendedInstallItems(singleSlotRecipe, [], []);
-  assert.equal(recommendations.length, 1);
-  assert.equal(recommendations[0]?.variantId, 'local.audio.speech.voxcpm2');
-  assert.equal(recommendations[0]?.installed, false);
-
-  const recipeWithoutRecommendedVariant: NimiLoadoutRecipe = {
-    ...singleSlotRecipe,
-    recipeId: 'local.audio.speech.custom',
-    slots: singleSlotRecipe.slots.map((slot) => ({
-      ...slot,
-      recommendedVariantIds: [],
-    })),
-  };
-  assert.deepEqual(recommendedInstallItems(recipeWithoutRecommendedVariant, [], []), []);
-
-  const runtimeProjectedRecipe: NimiLoadoutRecipe = {
-    ...singleSlotRecipe,
-    recipeId: 'local.audio.speech.runtime-projected',
-    slots: singleSlotRecipe.slots.map((slot) => ({
-      ...slot,
-      recommendedVariantIds: ['runtime.projected.variant', 'desktop.must-not-reselect'],
-    })),
-  };
-  assert.equal(
-    recommendedInstallItems(runtimeProjectedRecipe, [], [])[0]?.variantId,
-    'runtime.projected.variant',
-  );
-
-});
-
-test('an explicitly selected local ModelAsset suppresses the recipe download recommendation', () => {
-  const recommendedContentId = `sha256:${'a'.repeat(64)}`;
-  const selectedContentId = `sha256:${'b'.repeat(64)}`;
-  const recipe = {
-    recipeId: 'llama.text-generate.gemma-4-26b-a4b-it.v1',
-    revision: '1',
-    title: 'Gemma 4 26B-A4B text generation',
-    capabilityContract: 'text.generate',
-    implementation: {
-      implementationId: 'local.text.generate.llama-cpp',
-      driverId: 'nimi.runtime.driver.llama-cpp',
-      driverDialect: 'llama.cpp/text-generate/v1',
-    },
-    defaultOptions: {},
-    implementationSupportedFeatures: [],
-    slots: [{
-      slotId: 'main.gguf',
-      displayLabel: 'Main model',
-      recommendedContentIds: [recommendedContentId],
-      recommendedVariantIds: ['local.chat.gemma-4-26b-a4b-it.q8-0'],
-      modelContract: { format: 'gguf', gguf_architectures: ['gemma4'] },
-      presence: 'required',
-      conditionalFeatures: [],
-    }],
-  } as NimiLoadoutRecipe;
-  const selectedAsset = {
-    modelAssetId: 'gemma-4-26B-A4B-it-Q8_0',
-    contentId: selectedContentId,
-  } as NimiRuntimeModelAssetRecord;
-
-  assert.deepEqual(recommendedInstallItems(
-    recipe,
-    [selectedAsset],
-    [{
-      templateId: 'local.chat.gemma-4-26b-a4b-it.q8-0',
-      totalSizeBytes: 26_859_859_744,
-    }] as never,
-    { 'main.gguf': selectedAsset.modelAssetId },
-  ), []);
-
-  assert.equal(recommendedInstallItems(recipe, [selectedAsset], [], {}).length, 1);
-});
-
 test('Desktop only presents bounded Runtime-projected per-slot candidates', () => {
   const recommendedContentId = `sha256:${'a'.repeat(64)}`;
   const customContentId = `sha256:${'b'.repeat(64)}`;
@@ -259,22 +190,117 @@ test('Desktop only presents bounded Runtime-projected per-slot candidates', () =
   );
 });
 
+test('Recipe template grouping preserves multiple image plans in canonical order', () => {
+  const recipe = (recipeId: string, applicability: NimiLoadoutRecipe['applicability']) => ({
+    recipeId,
+    revision: '1',
+    title: recipeId,
+    capabilityContract: 'image.generate',
+    implementation: { implementationId: 'local.image', driverId: 'driver.image', driverDialect: 'image/v1' },
+    defaultOptions: {},
+    implementationSupportedFeatures: [],
+    applicability,
+    reasons: [],
+    slots: [],
+  }) as NimiLoadoutRecipe;
+  const first = recipe('image.plan.first', 'supported');
+  const second = recipe('image.plan.second', 'supported');
+  const unknown = recipe('image.plan.unknown', 'unknown');
+
+  const grouped = partitionRuntimeConfigRecipeTemplates([first, second, unknown]);
+  assert.deepEqual(grouped.supported.map((item) => item.recipeId), ['image.plan.first', 'image.plan.second']);
+  assert.deepEqual(grouped.unknown.map((item) => item.recipeId), ['image.plan.unknown']);
+});
+
+test('Recipe download estimate uses the first admissible offer per missing required slot', () => {
+  const candidate = (offerRef: string, totalSizeBytes?: number) => ({
+    candidate: {
+      offerRef,
+      sourceLabel: 'model-index',
+      title: offerRef,
+      description: '',
+      categories: ['image'],
+      variantLabel: 'default',
+      tags: [],
+      verified: true,
+      installed: false,
+      installable: true,
+      ...(totalSizeBytes ? { totalSizeBytes } : {}),
+    },
+    applicability: 'supported' as const,
+    reasons: [],
+  });
+  const recipe = {
+    slots: [
+      { presence: 'required', offers: [candidate('main', 100)] },
+      { presence: 'required', offers: [candidate('companion', 50)] },
+    ],
+  } as unknown as NimiLoadoutRecipe;
+
+  assert.deepEqual(summarizeRuntimeConfigRecipeDownloads(recipe), { count: 2, totalSizeBytes: 150 });
+  const unknown = {
+    ...recipe,
+    slots: [...recipe.slots, { presence: 'required', offers: [candidate('unknown')] }],
+  } as unknown as NimiLoadoutRecipe;
+  assert.deepEqual(summarizeRuntimeConfigRecipeDownloads(unknown), { count: 3, totalSizeBytes: null });
+});
+
+test('recommended Loadout install resolves the exact offer then updates the unresolved slot', async () => {
+  const contentId = `sha256:${'e'.repeat(64)}`;
+  const offer = recipeOffer('offer:text', 'supported', undefined, 1024);
+  const recipe = {
+    recipeId: 'text.recommended',
+    revision: '1',
+    title: 'Text recommended',
+    capabilityContract: 'text.generate',
+    implementation: { implementationId: 'local.text', driverId: 'driver.text', driverDialect: 'text/v1' },
+    defaultOptions: {},
+    implementationSupportedFeatures: [],
+    applicability: 'supported',
+    reasons: [],
+    slots: [{
+      slotId: 'model', displayLabel: 'Model',
+      recommendedContentIds: [contentId], recommendedVariantIds: ['variant:text'],
+      offers: [offer], applicability: 'supported', reasons: [],
+      modelContract: {}, presence: 'required', conditionalFeatures: [],
+    }],
+  } as unknown as NimiLoadoutRecipe;
+  const loadout = {
+    loadoutId: 'loadout-text',
+    capabilityContract: 'text.generate',
+    recipeId: recipe.recipeId,
+    options: {},
+    displayName: 'Text use',
+    provenance: {},
+    modelAxes: [{ slotId: 'model', modelAssetId: '', expectedContentId: contentId }],
+  } as unknown as NimiMachineLoadout;
+  const installed = { modelAssetId: 'asset-text', contentId } as NimiRuntimeModelAssetRecord;
+  const updates: unknown[] = [];
+  const items = recommendedInstallItems(recipe);
+
+  await installAndBindRuntimeConfigRecommendedLoadout({
+    items,
+    recipe,
+    loadout,
+    assets: [],
+    async installOffer(offerRef) {
+      assert.equal(offerRef, 'offer:text');
+      return installed;
+    },
+    async updateLoadout(next) { updates.push(next); },
+  });
+
+  assert.deepEqual((updates[0] as { modelAxes: unknown }).modelAxes, [
+    { slotId: 'model', modelAssetId: installed.modelAssetId, expectedContentId: contentId },
+  ]);
+  assert.match(recommendedInstallMessage(items, {
+    heading: 'Download models', installed: 'installed', download: 'download', total: 'Total', unknownSize: 'unknown',
+  }), /Total: 1\.0 KB/u);
+});
+
 test('optional-conditional slots stay absent until explicitly bound and can be cleared', () => {
   const mainContentId = `sha256:${'d'.repeat(64)}`;
   const projectorContentId = `sha256:${'e'.repeat(64)}`;
-  const recipe = {
-    recipeId: 'llama.text-generate.gemma4.v1',
-    revision: '1',
-    title: 'Gemma 4',
-    capabilityContract: 'text.generate',
-    implementation: { implementationId: 'local.text', driverId: 'driver.text', driverDialect: 'text/v2' },
-    defaultOptions: {},
-    implementationSupportedFeatures: ['input.image'],
-    slots: [
-      { slotId: 'main.gguf', displayLabel: 'Main', recommendedContentIds: [mainContentId], recommendedVariantIds: ['main-v1'], modelContract: {}, presence: 'required', conditionalFeatures: [] },
-      { slotId: 'companion.mmproj', displayLabel: 'Projector', recommendedContentIds: [projectorContentId], recommendedVariantIds: ['projector-v1'], modelContract: {}, presence: 'optional-conditional', conditionalFeatures: ['input.image'] },
-    ],
-  } as NimiLoadoutRecipe;
   const assets = [
     { modelAssetId: 'main', contentId: mainContentId },
     { modelAssetId: 'projector', contentId: projectorContentId },
@@ -285,18 +311,6 @@ test('optional-conditional slots stay absent until explicitly bound and can be c
       { slotId: 'companion.mmproj', displayLabel: 'Projector', modelAssetId: '', expectedContentId: '', recipeCompatible: true, reasons: [], presence: 'optional-conditional', conditionalFeatures: ['input.image'], resolution: 'not-configured' },
     ],
   } satisfies Pick<NimiMachineLoadout, 'modelAxes'>;
-
-  assert.deepEqual(recommendedInstallItems(recipe, [], []), [{
-    slotId: 'main.gguf',
-    displayLabel: 'Main',
-    contentId: mainContentId,
-    variantId: 'main-v1',
-    descriptor: undefined,
-    installed: false,
-  }]);
-  assert.deepEqual(runtimeConfigRecommendedLoadoutModelAxes(absent, recipe, assets), [
-    { slotId: 'main.gguf', modelAssetId: 'main', expectedContentId: mainContentId },
-  ]);
 
   const bound = {
     modelAxes: [
@@ -311,36 +325,6 @@ test('optional-conditional slots stay absent until explicitly bound and can be c
     { slotId: 'main.gguf', modelAssetId: 'main', expectedContentId: mainContentId },
     { slotId: 'companion.mmproj', modelAssetId: 'projector', expectedContentId: projectorContentId },
   ]);
-});
-
-test('recommended install confirmation never presents a known subtotal as the total', () => {
-  const message = recommendedInstallMessage([
-    {
-      slotId: 'known',
-      displayLabel: 'Known model',
-      contentId: `sha256:${'a'.repeat(64)}`,
-      variantId: 'known-variant',
-      descriptor: { title: 'Known', totalSizeBytes: 1024 },
-      installed: false,
-    },
-    {
-      slotId: 'unknown',
-      displayLabel: 'Unknown model',
-      contentId: `sha256:${'b'.repeat(64)}`,
-      variantId: 'unknown-variant',
-      installed: false,
-    },
-  ] as never, {
-    heading: 'Install the recommended models',
-    installed: 'installed',
-    download: 'download',
-    total: 'Total download',
-    unknownSize: 'unknown size',
-  });
-
-  assert.match(message, /Unknown model: unknown-variant · unknown size · download/u);
-  assert.match(message, /Total download: unknown size/u);
-  assert.doesNotMatch(message, /Total download: 1\.0 KB/u);
 });
 
 test('NOT_MATCHED ModelAsset axes render catalog_not_matched and never catalog_verified', async () => {
@@ -448,92 +432,4 @@ test('Loadout axis update preserves unresolved and inventory-missing sibling int
       { slotId: 'custom', modelAssetId: 'asset-stale', expectedContentId: staleContentId },
     ],
   );
-});
-
-test('recommended install binds missing axes without replacing custom sibling intent', () => {
-  const mainContentId = `sha256:${'a'.repeat(64)}`;
-  const companionContentId = `sha256:${'b'.repeat(64)}`;
-  const customContentId = `sha256:${'c'.repeat(64)}`;
-  const recipe = {
-    recipeId: 'image.multi',
-    revision: '1',
-    title: 'Image multi',
-    capabilityContract: 'image.generate',
-    implementation: { implementationId: 'local.image', driverId: 'driver.image', driverDialect: 'image/v1' },
-    defaultOptions: {},
-    implementationSupportedFeatures: [],
-    slots: [
-      { slotId: 'main', displayLabel: 'Main', recommendedContentIds: [mainContentId], recommendedVariantIds: ['main-v1'], modelContract: {}, presence: 'required', conditionalFeatures: [] },
-      { slotId: 'companion', displayLabel: 'Companion', recommendedContentIds: [companionContentId], recommendedVariantIds: ['companion-v1'], modelContract: {}, presence: 'required', conditionalFeatures: [] },
-      { slotId: 'custom', displayLabel: 'Custom', recommendedContentIds: [mainContentId], recommendedVariantIds: ['main-v1'], modelContract: {}, presence: 'required', conditionalFeatures: [] },
-    ],
-  } as NimiLoadoutRecipe;
-  const loadout = {
-    modelAxes: [
-      { slotId: 'main', displayLabel: 'Main', modelAssetId: '', expectedContentId: mainContentId, recipeCompatible: false, reasons: [], presence: 'required', conditionalFeatures: [], resolution: 'unresolved' },
-      { slotId: 'custom', displayLabel: 'Custom', modelAssetId: 'asset-custom', expectedContentId: customContentId, recipeCompatible: true, reasons: [], presence: 'required', conditionalFeatures: [], resolution: 'configured' },
-    ],
-  } satisfies Pick<NimiMachineLoadout, 'modelAxes'>;
-  const assets = [
-    { modelAssetId: 'asset-main', contentId: mainContentId },
-    { modelAssetId: 'asset-companion', contentId: companionContentId },
-  ] as NimiRuntimeModelAssetRecord[];
-
-  assert.deepEqual(runtimeConfigRecommendedLoadoutModelAxes(loadout, recipe, assets), [
-    { slotId: 'main', modelAssetId: 'asset-main', expectedContentId: mainContentId },
-    { slotId: 'companion', modelAssetId: 'asset-companion', expectedContentId: companionContentId },
-    { slotId: 'custom', modelAssetId: 'asset-custom', expectedContentId: customContentId },
-  ]);
-});
-
-test('recommended install continues through the formal Loadout update after download', async () => {
-  const contentId = `sha256:${'e'.repeat(64)}`;
-  const recipe = {
-    recipeId: 'text.recommended',
-    revision: '1',
-    title: 'Text recommended',
-    capabilityContract: 'text.generate',
-    implementation: { implementationId: 'local.text', driverId: 'driver.text', driverDialect: 'text/v1' },
-    defaultOptions: {},
-    implementationSupportedFeatures: [],
-    slots: [{ slotId: 'model', displayLabel: 'Model', recommendedContentIds: [contentId], recommendedVariantIds: ['text-v1'], modelContract: {}, presence: 'required', conditionalFeatures: [] }],
-  } as NimiLoadoutRecipe;
-  const loadout = {
-    loadoutId: 'loadout-text',
-    capabilityContract: 'text.generate',
-    implementation: recipe.implementation,
-    recipeId: recipe.recipeId,
-    recipeRevision: recipe.revision,
-    options: {},
-    modelAxes: [{ slotId: 'model', displayLabel: 'Model', modelAssetId: '', expectedContentId: contentId, recipeCompatible: false, reasons: [], presence: 'required', conditionalFeatures: [], resolution: 'unresolved' }],
-    recipeCustody: [],
-    implementationSupportedFeatures: [],
-    configuredFeatures: [],
-    textBehaviors: [],
-    validationState: 'unresolved',
-    reasons: [],
-    displayName: 'Text use',
-    provenance: {},
-    createdAt: '2026-08-19T00:00:00Z',
-    updatedAt: '2026-08-19T00:00:00Z',
-  } as NimiMachineLoadout;
-  const installed = { modelAssetId: 'asset-text', contentId } as NimiRuntimeModelAssetRecord;
-  const updates: unknown[] = [];
-
-  await installAndBindRuntimeConfigRecommendedLoadout({
-    items: [{ slotId: 'model', displayLabel: 'Model', contentId, variantId: 'text-v1', installed: false }],
-    recipe,
-    loadout,
-    assets: [],
-    async installCatalogAsset(templateId) {
-      assert.equal(templateId, 'text-v1');
-      return installed;
-    },
-    async updateLoadout(next) { updates.push(next); },
-  });
-
-  assert.equal(updates.length, 1);
-  assert.deepEqual((updates[0] as { modelAxes: unknown }).modelAxes, [
-    { slotId: 'model', modelAssetId: installed.modelAssetId, expectedContentId: contentId },
-  ]);
 });

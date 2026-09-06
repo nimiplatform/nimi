@@ -258,7 +258,7 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
             title={t('runtimeConfig.overview.installedAssets', { defaultValue: 'Installed Assets' })}
             value={installedAssetCount}
             subtitle={t('runtimeConfig.overview.runtimeManagedInventory', { defaultValue: 'ModelAsset inventory' })}
-            onClick={() => model.onChangePage('localModels')}
+            onClick={() => model.onChangePage('localAssets')}
           />
           <StatTile
             icon={<CloudIcon />}
@@ -284,24 +284,30 @@ export function OverviewPage({ model, state }: OverviewPageProps) {
         <SectionTitle>
           {t('runtimeConfig.overview.quickNavigationTitle', { defaultValue: 'Quick Navigation' })}
         </SectionTitle>
-        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
           <QuickLinkCard
-            icon={<BoxIcon />}
-            title={t('runtimeConfig.overview.manageModels', { defaultValue: 'Manage Models' })}
-            description={t('runtimeConfig.overview.manageModelsDescription', { defaultValue: 'Import, install, and manage ModelAssets' })}
-            onClick={() => model.onChangePage('localModels')}
+            icon={<ScrollTextIcon />}
+            title={t('runtimeConfig.overview.profiles', { defaultValue: 'Profiles' })}
+            description={t('runtimeConfig.overview.profilesDescription', { defaultValue: 'Choose a portable AI experience' })}
+            onClick={() => model.onChangePage('profiles')}
           />
           <QuickLinkCard
             icon={<SlidersIcon />}
-            title={t('runtimeConfig.overview.configureCloud', { defaultValue: 'Configure Cloud' })}
-            description={t('runtimeConfig.overview.configureCloudDescription', { defaultValue: 'API keys and connectors' })}
-            onClick={() => model.onChangePage('cloud')}
+            title={t('runtimeConfig.overview.loadouts', { defaultValue: 'Loadouts' })}
+            description={t('runtimeConfig.overview.loadoutsDescription', { defaultValue: 'Choose a capability plan for this machine' })}
+            onClick={() => model.onChangePage('loadouts')}
           />
           <QuickLinkCard
-            icon={<ScrollTextIcon />}
-            title={t('runtimeConfig.overview.runtimeAudit', { defaultValue: 'Runtime & Audit' })}
-            description={t('runtimeConfig.overview.runtimeAuditDescription', { defaultValue: 'Health, logs, EAA tokens' })}
-            onClick={() => model.onChangePage('environment')}
+            icon={<BoxIcon />}
+            title={t('runtimeConfig.overview.modelMarket', { defaultValue: 'Model Market' })}
+            description={t('runtimeConfig.overview.modelMarketDescription', { defaultValue: 'Discover, search, and download ModelAssets' })}
+            onClick={() => model.onChangePage('modelMarket')}
+          />
+          <QuickLinkCard
+            icon={<ServerIcon />}
+            title={t('runtimeConfig.overview.localAssets', { defaultValue: 'Local Assets' })}
+            description={t('runtimeConfig.overview.localAssetsDescription', { defaultValue: 'Manage inventory, transfers, imports, and storage' })}
+            onClick={() => model.onChangePage('localAssets')}
           />
         </div>
       </motion.section>

@@ -7,15 +7,15 @@ export const RUNTIME_PAGE_META: Record<RuntimePageIdV11, { name: string; descrip
   },
   profiles: {
     name: 'Profiles',
-    description: 'Export portable Loadout intent and import it through explicit model acquisition, Loadout, AIConfig, and selection confirmations.',
+    description: 'Browse canonical recommendations and import or export portable Loadout intent through the existing explicit workflow.',
   },
   modelMarket: {
     name: 'Model Market',
-    description: 'Recommended local models for this machine.',
+    description: 'Discover, search, inspect, and download ModelAssets.',
   },
-  localModels: {
-    name: 'Local Models',
-    description: 'Install, import, start, stop, and remove local models.',
+  localAssets: {
+    name: 'Local Assets',
+    description: 'Inspect inventory, transfers, imports, references, and storage.',
   },
   loadouts: {
     name: 'Loadouts',

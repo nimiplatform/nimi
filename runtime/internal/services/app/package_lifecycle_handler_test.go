@@ -73,15 +73,6 @@ func TestApprovedAppCatalogProjectionKeepsSelectorAndDisplayFactsOwnerIssued(t *
 	}
 }
 
-func TestRuntimeAppPackageProjectionRejectsRetiredLocalImportValues(t *testing.T) {
-	if _, ok := packageSourceClassToProto(localappkernel.SourceClass("user_imported")); ok {
-		t.Fatal("retired user-imported source projected onto Runtime proto")
-	}
-	if _, ok := packageJobPhaseToProto(localappkernel.PackageJobPhase("reading-local")); ok {
-		t.Fatal("retired reading-local phase projected onto Runtime proto")
-	}
-}
-
 func TestAppPackageInstallStartErrorsRemainTyped(t *testing.T) {
 	reason := "security-review-revoked"
 	tests := []struct {
@@ -146,73 +137,86 @@ func TestApprovedAppCatalogErrorsRemainTyped(t *testing.T) {
 }
 
 func TestRuntimeAppPackageReadAndUnwiredMutationStaySeparated(t *testing.T) {
-	ctx := context.Background()
-	identity, err := localappkernel.ValidateVerifiedMacOSInteractiveUser(501, 77)
-	if err != nil {
-		t.Fatal(err)
-	}
-	dataRoot := t.TempDir()
-	databasePath, err := localappkernel.CanonicalRegistrationDatabasePath(dataRoot)
-	if err != nil {
-		t.Fatal(err)
-	}
-	kernel, err := localappkernel.OpenSQLite(ctx, databasePath, identity, localappkernel.Options{
-		Random: bytes.NewReader(bytes.Repeat([]byte{0xd1}, 1024)), HostInstallID: "package-handler-host", DataRoot: dataRoot,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = kernel.Close() })
-	job, err := kernel.PackageLifecycle().Begin(ctx, localappkernel.BeginPackageJobInput{
-		AppID: "nimi.example", SourceClass: localappkernel.SourceClassVerified,
-		Kind: localappkernel.PackageJobRepair, TargetRef: "descriptor:nimi.example:1.0.0",
-		ProgressBasis: localappkernel.PackageProgressIndeterminate, Cancelable: true,
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-	service := New(nil, WithLocalAppKernel(kernel))
+	for _, source := range []localappkernel.SourceClass{localappkernel.SourceClassVerified, localappkernel.SourceClassUserImported} {
+		t.Run(string(source), func(t *testing.T) {
+			sourceProto, _ := packageSourceClassToProto(source)
+			ctx := context.Background()
+			identity, err := localappkernel.ValidateVerifiedMacOSInteractiveUser(501, 77)
+			if err != nil {
+				t.Fatal(err)
+			}
+			dataRoot := t.TempDir()
+			databasePath, err := localappkernel.CanonicalRegistrationDatabasePath(dataRoot)
+			if err != nil {
+				t.Fatal(err)
+			}
+			kernel, err := localappkernel.OpenSQLite(ctx, databasePath, identity, localappkernel.Options{
+				Random: bytes.NewReader(bytes.Repeat([]byte{0xd1}, 1024)), HostInstallID: "package-handler-host", DataRoot: dataRoot,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Cleanup(func() { _ = kernel.Close() })
+			job, err := kernel.PackageLifecycle().Begin(ctx, localappkernel.BeginPackageJobInput{
+				AppID: "nimi.example", SourceClass: source,
+				Kind: localappkernel.PackageJobRepair, TargetRef: "descriptor:nimi.example:1.0.0",
+				ProgressBasis: localappkernel.PackageProgressIndeterminate, Cancelable: true,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			service := New(nil, WithLocalAppKernel(kernel))
 
-	releases, err := service.ListCommittedAppReleases(ctx, &runtimev1.ListCommittedAppReleasesRequest{})
-	if err != nil || len(releases.GetReleases()) != 0 || releases.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
-		t.Fatalf("committed releases = %+v err=%v", releases, err)
-	}
-	jobs, err := service.ListAppPackageJobs(ctx, &runtimev1.ListAppPackageJobsRequest{})
-	if err != nil || len(jobs.GetJobs()) != 1 || string(jobs.GetJobs()[0].GetJobId()) != job.JobID ||
-		jobs.GetJobs()[0].GetSourceClass() != runtimev1.AppPackageSourceClass_APP_PACKAGE_SOURCE_CLASS_VERIFIED {
-		t.Fatalf("package jobs = %+v err=%v", jobs, err)
-	}
-	loaded, err := service.GetAppPackageJob(ctx, &runtimev1.GetAppPackageJobRequest{JobId: []byte(job.JobID)})
-	if err != nil || loaded.GetJob().GetPhase() != runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_QUEUED {
-		t.Fatalf("loaded package job = %+v err=%v", loaded, err)
-	}
+			releases, err := service.ListCommittedAppReleases(ctx, &runtimev1.ListCommittedAppReleasesRequest{})
+			if err != nil || len(releases.GetReleases()) != 0 || releases.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED {
+				t.Fatalf("committed releases = %+v err=%v", releases, err)
+			}
+			jobs, err := service.ListAppPackageJobs(ctx, &runtimev1.ListAppPackageJobsRequest{})
+			if err != nil || len(jobs.GetJobs()) != 1 || string(jobs.GetJobs()[0].GetJobId()) != job.JobID ||
+				jobs.GetJobs()[0].GetSourceClass() != sourceProto {
+				t.Fatalf("package jobs = %+v err=%v", jobs, err)
+			}
+			loaded, err := service.GetAppPackageJob(ctx, &runtimev1.GetAppPackageJobRequest{JobId: []byte(job.JobID)})
+			if err != nil || loaded.GetJob().GetPhase() != runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_QUEUED {
+				t.Fatalf("loaded package job = %+v err=%v", loaded, err)
+			}
 
-	_, err = service.CancelAppPackageJob(ctx, &runtimev1.CancelAppPackageJobRequest{
-		JobId: []byte(job.JobID), ExpectedPhase: runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_VERIFYING,
-		ReasonCode: "user-canceled",
-	})
-	reason, _ := grpcerr.ExtractReasonCode(err)
-	if status.Code(err) != codes.FailedPrecondition || reason != runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE {
-		t.Fatalf("unwired cancel = code=%s reason=%s err=%v", status.Code(err), reason, err)
-	}
-	loaded, err = service.GetAppPackageJob(ctx, &runtimev1.GetAppPackageJobRequest{JobId: []byte(job.JobID)})
-	if err != nil || loaded.GetJob().GetPhase() != runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_QUEUED {
-		t.Fatalf("unwired cancel mutated job = %+v err=%v", loaded, err)
-	}
+			_, err = service.CancelAppPackageJob(ctx, &runtimev1.CancelAppPackageJobRequest{
+				JobId: []byte(job.JobID), ExpectedPhase: runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_VERIFYING,
+				ReasonCode: "user-canceled",
+			})
+			reason, _ := grpcerr.ExtractReasonCode(err)
+			if status.Code(err) != codes.Aborted || reason != runtimev1.ReasonCode_APP_PACKAGE_JOB_PHASE_CONFLICT {
+				t.Fatalf("unwired cancel = code=%s reason=%s err=%v", status.Code(err), reason, err)
+			}
+			loaded, err = service.GetAppPackageJob(ctx, &runtimev1.GetAppPackageJobRequest{JobId: []byte(job.JobID)})
+			if err != nil || loaded.GetJob().GetPhase() != runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_QUEUED {
+				t.Fatalf("unwired cancel mutated job = %+v err=%v", loaded, err)
+			}
 
-	_, err = service.StartAppPackageInstall(ctx, &runtimev1.StartAppPackageInstallRequest{ApprovedTargetSelector: []byte("invalid")})
-	reason, _ = grpcerr.ExtractReasonCode(err)
-	if status.Code(err) != codes.InvalidArgument || reason != runtimev1.ReasonCode_APP_PACKAGE_SELECTION_INVALID {
-		t.Fatalf("invalid start = code=%s reason=%s err=%v", status.Code(err), reason, err)
-	}
-	encode := base64.RawURLEncoding.EncodeToString
-	selector := "nats_v1_" + encode([]byte("publisher.example@1.2.3")) + "." +
-		encode([]byte("windows-x86_64")) + "." + encode([]byte(strings.Repeat("a", 40)))
-	_, err = service.StartAppPackageInstall(ctx, &runtimev1.StartAppPackageInstallRequest{
-		ApprovedTargetSelector: []byte(selector),
-	})
-	reason, _ = grpcerr.ExtractReasonCode(err)
-	if status.Code(err) != codes.FailedPrecondition || reason != runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE {
-		t.Fatalf("unwired start = code=%s reason=%s err=%v", status.Code(err), reason, err)
+			canceled, err := service.CancelAppPackageJob(ctx, &runtimev1.CancelAppPackageJobRequest{
+				JobId: []byte(job.JobID), ExpectedPhase: runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_QUEUED, ReasonCode: "user-canceled",
+			})
+			if err != nil || canceled.GetJob().GetPhase() != runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_CANCELED {
+				t.Fatalf("owner cancellation = %+v err=%v", canceled, err)
+			}
+
+			_, err = service.StartAppPackageInstall(ctx, &runtimev1.StartAppPackageInstallRequest{ApprovedTargetSelector: []byte("invalid")})
+			reason, _ = grpcerr.ExtractReasonCode(err)
+			if status.Code(err) != codes.InvalidArgument || reason != runtimev1.ReasonCode_APP_PACKAGE_SELECTION_INVALID {
+				t.Fatalf("invalid start = code=%s reason=%s err=%v", status.Code(err), reason, err)
+			}
+			encode := base64.RawURLEncoding.EncodeToString
+			selector := "nats_v1_" + encode([]byte("publisher.example@1.2.3")) + "." +
+				encode([]byte("windows-x86_64")) + "." + encode([]byte(strings.Repeat("a", 40)))
+			_, err = service.StartAppPackageInstall(ctx, &runtimev1.StartAppPackageInstallRequest{
+				ApprovedTargetSelector: []byte(selector),
+			})
+			reason, _ = grpcerr.ExtractReasonCode(err)
+			if status.Code(err) != codes.FailedPrecondition || reason != runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE {
+				t.Fatalf("unwired start = code=%s reason=%s err=%v", status.Code(err), reason, err)
+			}
+
+		})
 	}
 }

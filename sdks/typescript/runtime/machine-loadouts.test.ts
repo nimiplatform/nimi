@@ -6,6 +6,7 @@ import {
   LocalCapabilityReason,
   LocalCapabilityRequirementPresence,
   LocalCapabilityRequirementResolution,
+  LocalRecommendationApplicability,
   TextBehaviorConfigurationState,
   TextBehaviorKind,
   ToolChoiceMode,
@@ -73,15 +74,30 @@ const loadout = {
 const recipe = {
   recipeId: loadout.recipeId, revision: '1', title: 'Gemma 4 E2B text generation', capabilityContract: 'text.generate',
   implementation: loadout.implementation, defaultOptions: undefined, implementationSupportedFeatures: [],
+  applicability: LocalRecommendationApplicability.SUPPORTED,
+  reasons: [],
   slots: [
     {
-      slotId: 'main.gguf', displayLabel: 'Main model', recommendedContentIds: [contentId], modelContract: undefined,
-      recommendedVariantIds: ['local.chat.gemma-test'], presence: LocalCapabilityRequirementPresence.REQUIRED,
+      slotId: 'main.gguf', displayLabel: 'Main model', modelContract: undefined,
+      recommendedContentIds: [contentId], recommendedVariantIds: ['variant_main'],
+      offers: [{
+        candidate: {
+          offerRef: 'offer_main', sourceLabel: 'verified', title: 'Gemma', description: '',
+          categories: ['chat'], modelType: 'chat', variantLabel: 'model.gguf', format: 'gguf',
+          totalSizeBytes: 2048n, license: 'apache-2.0', tags: [], downloads: 10n, likes: 1n,
+          lastModified: '', verified: true, installed: true, installable: true,
+        },
+        applicability: LocalRecommendationApplicability.SUPPORTED,
+        reasons: [], installedModelAssetId: 'model_1',
+      }], applicability: LocalRecommendationApplicability.SUPPORTED, reasons: [],
+      presence: LocalCapabilityRequirementPresence.REQUIRED,
       conditionalFeatures: [],
     },
     {
-      slotId: 'companion.mmproj', displayLabel: 'Vision projector', recommendedContentIds: [], modelContract: undefined,
-      recommendedVariantIds: [], presence: LocalCapabilityRequirementPresence.OPTIONAL_CONDITIONAL,
+      slotId: 'companion.mmproj', displayLabel: 'Vision projector', modelContract: undefined,
+      recommendedContentIds: [], recommendedVariantIds: [],
+      offers: [], applicability: LocalRecommendationApplicability.UNKNOWN, reasons: [],
+      presence: LocalCapabilityRequirementPresence.OPTIONAL_CONDITIONAL,
       conditionalFeatures: ['input.image'],
     },
   ],
@@ -104,12 +120,37 @@ test('Loadout SDK exposes only prepare/commit/update/select/delete mutation sema
 
   const listedRecipe = (await client.listRecipes('text.generate'))[0];
   assert.equal(listedRecipe?.recipeId, recipe.recipeId);
-  assert.deepEqual(listedRecipe?.slots[0]?.recommendedVariantIds, ['local.chat.gemma-test']);
+  assert.equal(listedRecipe?.applicability, 'supported');
   assert.deepEqual(listedRecipe?.slots[0], {
     slotId: 'main.gguf',
     displayLabel: 'Main model',
     recommendedContentIds: [contentId],
-    recommendedVariantIds: ['local.chat.gemma-test'],
+    recommendedVariantIds: ['variant_main'],
+    offers: [{
+      candidate: {
+        offerRef: 'offer_main',
+        sourceLabel: 'verified',
+        title: 'Gemma',
+        description: '',
+        categories: ['chat'],
+        modelType: 'chat',
+        variantLabel: 'model.gguf',
+        format: 'gguf',
+        totalSizeBytes: 2048,
+        license: 'apache-2.0',
+        tags: [],
+        downloads: 10,
+        likes: 1,
+        verified: true,
+        installed: true,
+        installable: true,
+      },
+      applicability: 'supported',
+      reasons: [],
+      installedModelAssetId: 'model_1',
+    }],
+    applicability: 'supported',
+    reasons: [],
     modelContract: {},
     presence: 'required',
     conditionalFeatures: [],
@@ -119,6 +160,9 @@ test('Loadout SDK exposes only prepare/commit/update/select/delete mutation sema
     displayLabel: 'Vision projector',
     recommendedContentIds: [],
     recommendedVariantIds: [],
+    offers: [],
+    applicability: 'unknown',
+    reasons: [],
     modelContract: {},
     presence: 'optional-conditional',
     conditionalFeatures: ['input.image'],

@@ -1,5 +1,5 @@
 import { Fragment, type KeyboardEvent, type ReactNode } from 'react';
-import { Check, Heart, ListFilter } from 'lucide-react';
+import { Check, Heart, ListFilter, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
   ActionMenu,
@@ -104,6 +104,18 @@ export function WorldCatalogRail({
           onKeyDown={(event) => {
             if (event.key === 'Escape') onSearchChange('');
           }}
+          trailing={searchQuery ? (
+            <IconButton
+              data-testid="world-rail-search-clear"
+              icon={<X className="h-3 w-3" aria-hidden="true" />}
+              tone="ghost"
+              size="sm"
+              aria-label={t('World.clearSearch')}
+              title={t('World.clearSearch')}
+              className="h-5 w-5 min-h-0 shrink-0 rounded-full text-[var(--nimi-text-muted)]"
+              onClick={() => onSearchChange('')}
+            />
+          ) : undefined}
           placeholder={t('World.searchPlaceholder')}
           aria-label={t('World.searchPlaceholder')}
           className="min-h-8 flex-1"

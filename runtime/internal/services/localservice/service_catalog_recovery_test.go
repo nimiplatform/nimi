@@ -2,7 +2,11 @@ package localservice
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -21,6 +25,7 @@ func TestSearchCatalogModelsMergesVerifiedAndHuggingFaceSorted(t *testing.T) {
 				Title:        "Zeta Model",
 				ModelId:      "org/zeta-model",
 				Repo:         "org/zeta-model",
+				Revision:     immutableHFRevisionForTest,
 				Capabilities: []string{"text.generate"},
 				Engine:       "llama",
 				Verified:     false,
@@ -31,6 +36,7 @@ func TestSearchCatalogModelsMergesVerifiedAndHuggingFaceSorted(t *testing.T) {
 				Title:        "Alpha Community",
 				ModelId:      "org/alpha-community",
 				Repo:         "org/alpha-community",
+				Revision:     immutableHFRevisionForTest,
 				Capabilities: []string{"text.generate"},
 				Engine:       "llama",
 				Verified:     false,
@@ -75,7 +81,7 @@ func TestSearchCatalogModelsMergesVerifiedAndHuggingFaceSorted(t *testing.T) {
 	}
 }
 
-func TestSearchCatalogModelsDedupesByModelAndEngine(t *testing.T) {
+func TestSearchCatalogModelsReturnsUniqueBrowseLocators(t *testing.T) {
 	svc := newTestService(t)
 	svc.hfCatalogSearch = func(_ context.Context, _ hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
 		return []*runtimev1.LocalCatalogModelDescriptor{
@@ -85,6 +91,7 @@ func TestSearchCatalogModelsDedupesByModelAndEngine(t *testing.T) {
 				Title:        "Community Llama Dup",
 				ModelId:      "local/llama3.1",
 				Repo:         "nimiplatform/llama3.1-8b-instruct",
+				Revision:     immutableHFRevisionForTest,
 				Capabilities: []string{"text.generate"},
 				Engine:       "llama",
 				Verified:     false,
@@ -96,14 +103,15 @@ func TestSearchCatalogModelsDedupesByModelAndEngine(t *testing.T) {
 	if err != nil {
 		t.Fatalf("search catalog models: %v", err)
 	}
-	count := 0
+	seen := map[string]bool{}
 	for _, item := range resp.GetItems() {
-		if item.GetModelId() == "local/llama3.1" && strings.EqualFold(item.GetEngine(), "llama") {
-			count++
+		if item.GetModelLocator() == "" {
+			t.Fatal("search result is missing model_locator")
 		}
-	}
-	if count != 1 {
-		t.Fatalf("expected deduped model count=1 for local/llama3.1 llama, got %d", count)
+		if seen[item.GetModelLocator()] {
+			t.Fatalf("duplicate model_locator %q", item.GetModelLocator())
+		}
+		seen[item.GetModelLocator()] = true
 	}
 }
 
@@ -165,10 +173,9 @@ func TestSearchCatalogModelsPassesHFRequestShape(t *testing.T) {
 	}
 
 	if _, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{
-		Query:        "Llama",
-		Capability:   "image",
-		EngineFilter: "media",
-		PageSize:     7,
+		Query:    "Llama",
+		Category: "image",
+		PageSize: 7,
 	}); err != nil {
 		t.Fatalf("search catalog models: %v", err)
 	}
@@ -176,11 +183,8 @@ func TestSearchCatalogModelsPassesHFRequestShape(t *testing.T) {
 	if captured.Query != "llama" {
 		t.Fatalf("query should be normalized to lowercase, got %q", captured.Query)
 	}
-	if captured.Capability != "image" {
-		t.Fatalf("capability mismatch: %q", captured.Capability)
-	}
-	if captured.EngineFilter != "media" {
-		t.Fatalf("engine filter mismatch: %q", captured.EngineFilter)
+	if captured.CategoryFilter != "image" {
+		t.Fatalf("category mismatch: %q", captured.CategoryFilter)
 	}
 	if captured.Limit != 7 {
 		t.Fatalf("hf limit mismatch: got=%d want=7", captured.Limit)
@@ -225,23 +229,29 @@ func TestSearchCatalogModelsClampsPageSizeBeforeExternalSearch(t *testing.T) {
 func TestListCatalogVariantsReturnsRuntimeOwnedHFVariants(t *testing.T) {
 	svc := newTestService(t)
 	var capturedRepo string
-	svc.hfCatalogVariants = func(_ context.Context, repo string) ([]*runtimev1.LocalCatalogVariantDescriptor, error) {
+	svc.hfCatalogVariants = func(_ context.Context, repo string, revision string) ([]hfCatalogVariant, error) {
 		capturedRepo = repo
-		return []*runtimev1.LocalCatalogVariantDescriptor{
+		return []hfCatalogVariant{
 			{
-				Filename:  "model-q4.gguf",
-				Entry:     "model-q4.gguf",
-				Files:     []string{"model-q4.gguf"},
-				Format:    "gguf",
-				SizeBytes: 2048,
-				Sha256:    "abc",
+				Filename:     "model-q4.gguf",
+				Entry:        "model-q4.gguf",
+				Files:        []string{"model-q4.gguf"},
+				Hashes:       map[string]string{"model-q4.gguf": strings.Repeat("a", 64)},
+				Format:       "gguf",
+				SizeBytes:    2048,
+				SHA256:       strings.Repeat("a", 64),
+				Revision:     revision,
+				Capabilities: []string{"text.generate"},
+				ModelType:    "chat",
 			},
 		}, nil
 	}
 
-	resp, err := svc.ListCatalogVariants(context.Background(), &runtimev1.ListCatalogVariantsRequest{
-		Repo: "Qwen/Qwen2.5-7B-Instruct-GGUF",
-	})
+	locator, locatorErr := newModelAssetModelLocator("huggingface", "Qwen/Qwen2.5-7B-Instruct-GGUF", immutableHFRevisionForTest)
+	if locatorErr != nil {
+		t.Fatal(locatorErr)
+	}
+	resp, err := svc.ListCatalogVariants(context.Background(), &runtimev1.ListCatalogVariantsRequest{ModelLocator: locator})
 	if err != nil {
 		t.Fatalf("list catalog variants: %v", err)
 	}
@@ -252,11 +262,11 @@ func TestListCatalogVariantsReturnsRuntimeOwnedHFVariants(t *testing.T) {
 		t.Fatalf("expected one variant, got %d", len(resp.GetVariants()))
 	}
 	got := resp.GetVariants()[0]
-	if got.GetFilename() != "model-q4.gguf" || got.GetEntry() != "model-q4.gguf" || got.GetFormat() != "gguf" {
+	if got.GetSourceLabel() != "huggingface" || got.GetVariantLabel() != "model-q4.gguf" || got.GetFormat() != "gguf" || got.GetOfferRef() == "" {
 		t.Fatalf("unexpected variant descriptor: %+v", got)
 	}
-	if got.GetSizeBytes() != 2048 || got.GetSha256() != "abc" {
-		t.Fatalf("variant metadata mismatch: size=%d sha=%q", got.GetSizeBytes(), got.GetSha256())
+	if got.GetTotalSizeBytes() != 2048 || !got.GetInstallable() {
+		t.Fatalf("variant metadata mismatch: %+v", got)
 	}
 }
 
@@ -264,9 +274,11 @@ func TestListCatalogVariantsInvalidRepoReturnsReasonCode(t *testing.T) {
 	svc := newTestService(t)
 	svc.hfCatalogVariants = defaultHFCatalogVariants
 
-	_, err := svc.ListCatalogVariants(context.Background(), &runtimev1.ListCatalogVariantsRequest{
-		Repo: "invalid_repo_format",
-	})
+	locator, locatorErr := newModelAssetModelLocator("huggingface", "invalid_repo_format", immutableHFRevisionForTest)
+	if locatorErr != nil {
+		t.Fatal(locatorErr)
+	}
+	_, err := svc.ListCatalogVariants(context.Background(), &runtimev1.ListCatalogVariantsRequest{ModelLocator: locator})
 	if err == nil {
 		t.Fatalf("expected invalid hf repo error")
 	}
@@ -283,7 +295,7 @@ func TestListCatalogVariantsInvalidRepoReturnsReasonCode(t *testing.T) {
 	}
 }
 
-func TestListHFCatalogVariantsFromDetailsSelectsFilesAndSorts(t *testing.T) {
+func TestListHFCatalogVariantsFromDetailsFailsClosedForUnresolvedSafetensorsBundles(t *testing.T) {
 	variants := listHFCatalogVariantsFromDetails(&hfModelDetails{
 		ID:          "org/model",
 		PipelineTag: "text-generation",
@@ -300,21 +312,104 @@ func TestListHFCatalogVariantsFromDetailsSelectsFilesAndSorts(t *testing.T) {
 	if len(variants) != 3 {
 		t.Fatalf("expected three installable variants, got %d", len(variants))
 	}
-	if variants[0].GetFilename() != "model-q4.gguf" || variants[1].GetFilename() != "adapter/model.safetensors" || variants[2].GetFilename() != "model-q8.gguf" {
+	if variants[0].Filename != "model-q4.gguf" || variants[1].Filename != "adapter/model.safetensors" || variants[2].Filename != "model-q8.gguf" {
 		t.Fatalf("variants should sort by size and skip unsafe files, got %v", []string{
-			variants[0].GetFilename(),
-			variants[1].GetFilename(),
-			variants[2].GetFilename(),
+			variants[0].Filename,
+			variants[1].Filename,
+			variants[2].Filename,
 		})
 	}
-	if got := variants[0].GetFiles(); len(got) != 1 || got[0] != "model-q4.gguf" {
+	if got := variants[0].Files; len(got) != 1 || got[0] != "model-q4.gguf" {
 		t.Fatalf("llama gguf manual variant should install only selected entry, got %v", got)
 	}
-	if got := variants[1].GetFiles(); len(got) < 3 || got[0] != "adapter/model.safetensors" || got[1] != "config.json" || got[2] != "tokenizer.json" {
-		t.Fatalf("safetensors variant should include preferred companion files, got %v", got)
+	if got := variants[1].Files; len(got) != 0 {
+		t.Fatalf("unresolved safetensors bundle must remain browse-only, got files %v", got)
 	}
-	if variants[1].GetFormat() != "safetensors" || variants[1].GetSha256() != "safe" {
-		t.Fatalf("safetensors metadata mismatch: %+v", variants[1])
+	if variants[1].Format != "safetensors" || variants[1].SizeBytes != 2000 || variants[1].SHA256 != "safe" {
+		t.Fatalf("safetensors browse-only metadata mismatch: %+v", variants[1])
+	}
+	safeOffer, err := catalogOfferFromHFVariant("org/model", immutableHFRevisionForTest, variants[1])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if catalogOfferInstallable(safeOffer) || safeOffer.totalSizeBytes != 0 {
+		t.Fatalf("direct HF safetensors component was promoted to an install offer: %+v", safeOffer)
+	}
+}
+
+func TestHFCatalogRequestURLsUseImmutableRevisionAndRequiredSourceFacts(t *testing.T) {
+	searchURL, err := hfCatalogSearchURL(hfCatalogSearchRequest{Query: "flux", CategoryFilter: "image", Limit: 12})
+	if err != nil {
+		t.Fatal(err)
+	}
+	query := searchURL.Query()
+	if query.Get("library") != "" || query.Get("pipeline_tag") != "text-to-image" {
+		t.Fatalf("search query=%v", query)
+	}
+	wantExpand := map[string]bool{"sha": true, "pipeline_tag": true, "tags": true, "downloads": true, "likes": true, "lastModified": true, "cardData": true}
+	for _, value := range query["expand[]"] {
+		delete(wantExpand, value)
+	}
+	if len(wantExpand) != 0 {
+		t.Fatalf("search query missing expanded source facts: %v", wantExpand)
+	}
+
+	var seen *url.URL
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		copy := *r.URL
+		seen = &copy
+		_ = json.NewEncoder(w).Encode(hfModelDetails{
+			ID: "org/model", ModelID: "org/model", Sha: immutableHFRevisionForTest,
+			PipelineTag: "text-generation", Downloads: 42, Likes: 7, LastModified: "2026-09-03T00:00:00Z",
+			CardData: map[string]any{"license": "apache-2.0"},
+			Siblings: []hfModelSibling{{Rfilename: "model.gguf", Lfs: &hfModelSiblingLFS{Size: 8, Sha256: strings.Repeat("b", 64)}}},
+		})
+	}))
+	defer server.Close()
+	variants, err := fetchHFCatalogVariants(context.Background(), server.URL+"/api/models", "org/model", immutableHFRevisionForTest)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if seen == nil || seen.Path != "/api/models/org/model/revision/"+immutableHFRevisionForTest || seen.Query().Get("blobs") != "true" {
+		t.Fatalf("variant request URL=%v", seen)
+	}
+	if len(variants) != 1 || variants[0].Revision != immutableHFRevisionForTest || variants[0].SizeBytes != 8 ||
+		variants[0].Title != "org/model" || variants[0].License != "apache-2.0" || variants[0].Downloads != 42 || variants[0].Likes != 7 {
+		t.Fatalf("revision-bound variants=%+v", variants)
+	}
+}
+
+func TestHFCatalogRevisionMismatchFailsClosed(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(hfModelDetails{
+			ID: "org/model", ModelID: "org/model", Sha: strings.Repeat("b", 40), PipelineTag: "text-generation",
+		})
+	}))
+	defer server.Close()
+	if _, err := fetchHFCatalogVariants(context.Background(), server.URL+"/api/models", "org/model", immutableHFRevisionForTest); err == nil {
+		t.Fatal("revision-bound HF detail accepted a mismatched source revision")
+	}
+}
+
+func TestResolveHFCatalogOfferKeepsRevisionBoundParentFacts(t *testing.T) {
+	svc := newTestService(t)
+	svc.hfCatalogVariants = func(context.Context, string, string) ([]hfCatalogVariant, error) {
+		return []hfCatalogVariant{{
+			Filename: "model.gguf", Entry: "model.gguf", Files: []string{"model.gguf"},
+			Hashes: map[string]string{"model.gguf": strings.Repeat("a", 64)}, Format: "gguf", SizeBytes: 8,
+			SHA256: strings.Repeat("a", 64), Revision: immutableHFRevisionForTest,
+			Title: "Pinned title", Capabilities: []string{"text.generate"}, ModelType: "chat", License: "apache-2.0",
+		}}, nil
+	}
+	identity := modelAssetOfferIdentity{
+		sourceKind: "huggingface", locator: "org/model", revision: immutableHFRevisionForTest, entryID: "gguf:model.gguf",
+	}
+	offer, err := svc.resolveHFCatalogOffer(context.Background(), identity)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if offer.title != "Pinned title" || offer.modelType != "chat" || offer.license != "apache-2.0" || !stringSetContains(offer.capabilities, "text.generate") {
+		t.Fatalf("revision-bound parent facts changed: %+v", offer)
 	}
 }
 
@@ -339,9 +434,13 @@ func TestHFCatalogProjectsExternalPipelineCategoriesToCanonicalCapabilities(t *t
 		want     string
 	}{
 		{pipeline: "text-generation", want: "text.generate"},
+		{pipeline: "image-text-to-text", want: "text.generate"},
+		{pipeline: "visual-question-answering", want: "text.generate"},
 		{pipeline: "feature-extraction", want: "text.embed"},
 		{pipeline: "text-to-image", want: "image.generate"},
+		{pipeline: "image-to-image", want: "image.generate"},
 		{pipeline: "text-to-video", want: "video.generate"},
+		{pipeline: "image-to-video", want: "video.generate"},
 		{pipeline: "text-to-speech", want: "audio.synthesize"},
 		{pipeline: "automatic-speech-recognition", want: "audio.transcribe"},
 	}
@@ -363,5 +462,51 @@ func TestHFCatalogAmbiguousCrossKindRowFailsClosed(t *testing.T) {
 	}, "")
 	if ok || item != nil {
 		t.Fatalf("cross-kind inferred row must be blocked, got ok=%v item=%v", ok, item)
+	}
+}
+
+func TestUnfilteredCatalogSearchIncludesSpeechAndPassiveAssets(t *testing.T) {
+	svc := newTestService(t)
+	svc.catalog = []*runtimev1.LocalCatalogModelDescriptor{
+		{ItemId: "speech-asset", Source: "verified", Title: "Speech asset", Repo: "org/speech", Revision: immutableHFRevisionForTest, ModelType: "tts", Capabilities: []string{"audio.synthesize"}},
+		{ItemId: "vae-asset", Source: "verified", Title: "VAE asset", Repo: "org/vae", Revision: immutableHFRevisionForTest, ModelType: "vae"},
+	}
+	svc.hfCatalogSearch = func(_ context.Context, request hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+		if request.CategoryFilter != "" {
+			t.Fatalf("unfiltered search gained a pipeline category: %q", request.CategoryFilter)
+		}
+		return nil, nil
+	}
+	result, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{Query: "asset"})
+	if err != nil || len(result.GetItems()) != 2 {
+		t.Fatalf("speech/passive search = %+v err=%v", result, err)
+	}
+}
+
+func TestVerifiedAssetDiscoverySurvivesHuggingFaceSearchFailure(t *testing.T) {
+	svc := newTestService(t)
+	svc.hfCatalogSearch = func(context.Context, hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+		return nil, errors.New("Hugging Face unavailable")
+	}
+	_, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{Query: "qwen"})
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("HF failure = %v", err)
+	}
+	assets, err := svc.ListVerifiedAssets(context.Background(), &runtimev1.ListVerifiedAssetsRequest{PageSize: 200})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, asset := range assets.GetAssets() {
+		if asset.GetTemplateId() == "test.chat.qwen2" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("HF failure hid the independent built-in catalog")
+	}
+	plan, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{Source: "verified", TemplateId: "test.chat.qwen2"})
+	if err != nil || plan.GetPlan().GetTemplateId() != "test.chat.qwen2" || plan.GetPlan().GetPlanId() == "" {
+		t.Fatalf("built-in selection did not resolve its exact plan: %+v, %v", plan, err)
 	}
 }

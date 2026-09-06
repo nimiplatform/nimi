@@ -108,6 +108,7 @@ export enum AppPackageJobPhase {
   UNSPECIFIED = 0,
   QUEUED = 1,
   DOWNLOADING = 2,
+  READING_LOCAL = 3,
   VERIFYING = 4,
   VERIFYING_INSTALLED = 5,
   ACQUIRING_MISSING = 6,
@@ -130,6 +131,7 @@ export enum AppPackageProgressBasis {
 export enum AppPackageSourceClass {
   UNSPECIFIED = 0,
   VERIFIED = 1,
+  USER_IMPORTED = 2,
 }
 
 export enum AppPackageTerminalResult {

@@ -108,6 +108,30 @@ func TestRecommendVariantForHostUsesRuntimeCatalogPolicy(t *testing.T) {
 	}
 }
 
+func TestRankVariantsForHostUsesApplicabilityThenCanonicalOrdinal(t *testing.T) {
+	local := &LocalProviderCatalog{models: []ModelEntry{{
+		ModelID: "ranking-test",
+		Install: &LocalPlaneInstall{Repo: "owner/model", Revision: "revision"},
+		Variants: []LocalPlaneVariant{
+			{VariantID: "cuda-first", HostRequirement: LocalPlaneHostRequirement{Accelerator: "cuda", MinVRAMBytes: 4 * gib}},
+			{VariantID: "unknown-second", HostRequirement: LocalPlaneHostRequirement{Accelerator: "cpu"}},
+			{VariantID: "cpu-third", HostRequirement: LocalPlaneHostRequirement{Accelerator: "cpu", MinRAMBytes: gib}},
+		},
+	}}}
+	ranked := local.RankVariantsForHost(
+		[]string{"cuda-first", "unknown-second", "cpu-third"},
+		cpuHost(16),
+	)
+	if len(ranked) != 3 {
+		t.Fatalf("ranked variants=%d", len(ranked))
+	}
+	if ranked[0].Variant.VariantID != "cpu-third" || ranked[0].Applicability != LocalVariantApplicabilitySupported ||
+		ranked[1].Variant.VariantID != "unknown-second" || ranked[1].Applicability != LocalVariantApplicabilityUnknown ||
+		ranked[2].Variant.VariantID != "cuda-first" || ranked[2].Applicability != LocalVariantApplicabilityUnsupported {
+		t.Fatalf("ranked variants=%+v", ranked)
+	}
+}
+
 func cudaHost(ramGiB int64, vramGiB int64) *runtimev1.LocalDeviceProfile {
 	return &runtimev1.LocalDeviceProfile{
 		Os:            "linux",

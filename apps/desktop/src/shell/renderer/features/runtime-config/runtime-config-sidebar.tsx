@@ -78,8 +78,8 @@ const ICON_ENVIRONMENT = (
 );
 
 /**
- * Runtime sidebar entries. Catalog-backed discovery and provider overrides
- * are contextual actions inside Local Models and Cloud Connectors.
+ * Runtime sidebar entries. Discovery belongs to Model Market; Local Assets
+ * presents Runtime-owned inventory and transfer state.
  * Developer-only local-development operations live in Settings > Developer
  * and are not Runtime navigation entries.
  */
@@ -102,22 +102,22 @@ export const RUNTIME_SIDEBAR_ITEMS: Array<{
     icon: ICON_PROFILES,
   },
   {
+    id: 'loadouts',
+    section: 'Runtime',
+    label: 'Loadouts',
+    icon: ICON_LOCAL_AI_CONFIG,
+  },
+  {
     id: 'modelMarket',
     section: 'Runtime',
     label: 'Model Market',
     icon: ICON_MODEL_MARKET,
   },
   {
-    id: 'localModels',
+    id: 'localAssets',
     section: 'Runtime',
-    label: 'Local Models',
+    label: 'Local Assets',
     icon: ICON_MODELS,
-  },
-  {
-    id: 'loadouts',
-    section: 'Runtime',
-    label: 'Loadouts',
-    icon: ICON_LOCAL_AI_CONFIG,
   },
   {
     id: 'cloud',
@@ -137,7 +137,7 @@ export function getRuntimeSidebarBadge(
   item: (typeof RUNTIME_SIDEBAR_ITEMS)[number],
   props: RuntimeSidebarProps,
 ): string | null {
-  if (item.id === 'localModels') {
+  if (item.id === 'localAssets') {
     return `${props.activeModelCount}/${props.installedModelCount}`;
   }
   if (item.id === 'cloud') {

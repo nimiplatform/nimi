@@ -70,12 +70,12 @@ const world: WorldListItem = {
   },
 };
 
-function renderRail(overrides: { worlds?: WorldListItem[] } = {}) {
+function renderRail(overrides: { worlds?: WorldListItem[]; searchQuery?: string } = {}) {
   return renderToStaticMarkup(
     React.createElement(WorldCatalogRail, {
       totalCount: (overrides.worlds ?? [world]).length,
       worlds: overrides.worlds ?? [world],
-      searchQuery: '',
+      searchQuery: overrides.searchQuery ?? '',
       onSearchChange: () => {},
       sort: 'active',
       onSortChange: () => {},
@@ -142,6 +142,14 @@ test('world rail renders search and sort without the category filter', () => {
   assert.doesNotMatch(markup, /精选世界/);
   assert.doesNotMatch(markup, /视图模式/);
   assert.doesNotMatch(markup, /更多/);
+});
+
+test('world rail search renders a clear button only when the query is non-empty', () => {
+  const withQuery = renderRail({ searchQuery: '唐' });
+  assert.match(withQuery, /data-testid="world-rail-search-clear"/);
+  assert.match(withQuery, /清除搜索/);
+  const emptyQuery = renderRail();
+  assert.doesNotMatch(emptyQuery, /data-testid="world-rail-search-clear"/);
 });
 
 test('followed worlds pin to the top of the rail ordering', () => {

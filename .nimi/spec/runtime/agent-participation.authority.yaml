@@ -2,6 +2,16 @@ format: nimicoding.authority/v2
 owner: team.runtime
 scope: runtime.agent-participation
 units:
+  - id: rule.nimi.runtime.agent-participation.r197
+    kind: rule
+    title: Desktop resolves one current Agent reference without creating conversations
+    modality: must
+    statement: ResolveDesktopAgentReference is a read-only Desktop account-product operation that accepts one owner-projected local_agent_ref, revalidates current-account active ownership and current built-in Desktop formal-session agent.local reference coverage, and returns only the same session-scoped agentHandle, displayName and nullable avatarUrl as the ordinary reference list. It creates no conversation anchor, thread or durable mapping, exposes no raw identity in its response, is absent from ordinary App and Avatar transport profiles and App product clients, and lets Desktop open only the explicitly selected Agent conversation after resolution.
+    condition: Whenever Desktop resolves an owner-projected character target to its current formal-App Agent reference.
+    failure: Reject non-Desktop, stale-session, foreign-account, inactive or missing Agent requests without creating a conversation or widening ordinary App identity access.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-participation.conversation-anchor-plane
   - id: definition.nimi.runtime.agent-participation.conversation-anchor-plane
     kind: definition
     title: Runtime LocalAgent conversation continuity plane
