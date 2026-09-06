@@ -1,10 +1,11 @@
-import { Fragment, useEffect, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import {
   Button,
   InlineAlert,
+  LoadingSkeleton,
   SearchField,
   StatusBadge,
   Surface,
@@ -17,9 +18,19 @@ import type {
 } from '@nimiplatform/sdk/runtime';
 
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
-import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
-import { formatBytes, formatCompactCount } from './runtime-config-model-center-utils';
+import { ModelAboutCard } from './runtime-config-model-card';
+import { formatBytes } from './runtime-config-model-center-utils';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
+import {
+  AuthorAvatar,
+  MarketDetailColumns,
+  MarketMeta,
+  ModelIdentityHeader,
+  ModelSpecsCard,
+  ModelStatsCard,
+  ModelTagRow,
+} from './runtime-config-model-market-detail';
+import type { ModelSpecEntry } from './runtime-config-model-market-detail';
 import type {
   RuntimeConfigModelMarketContext,
   RuntimeConfigPanelControllerModel,
@@ -154,7 +165,7 @@ export function RecommendPage(props: RecommendPageProps) {
       ) : null}
 
       {(showSearch ? searchQuery.isPending : featuredQuery.isPending) ? (
-        <p className="text-sm text-[var(--nimi-text-muted)]">{t('Common.loading', { defaultValue: 'Loading…' })}</p>
+        <ModelMarketLoadingState />
       ) : rows.length === 0 ? (
         <Surface tone="card" className="border-dashed p-6 text-sm text-[var(--nimi-text-muted)]">
           {showSearch
@@ -175,6 +186,38 @@ export function RecommendPage(props: RecommendPageProps) {
         </div>
       )}
     </RuntimePageShell>
+  );
+}
+
+function ModelMarketLoadingState() {
+  const { t } = useTranslation();
+  return (
+    <div role="status" aria-live="polite" className="space-y-3">
+      <div className="flex items-center gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-4 py-3 shadow-[var(--nimi-elevation-base)]">
+        <span
+          className="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-[var(--nimi-border-strong)] border-t-transparent"
+          aria-hidden="true"
+        />
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
+            {t('runtimeConfig.recommend.loadingTitle', { defaultValue: 'Fetching the latest model market data…' })}
+          </p>
+          <p className="mt-0.5 text-xs text-[var(--nimi-text-muted)]">
+            {t('runtimeConfig.recommend.loadingDescription', { defaultValue: 'Syncing catalog recommendations and installable variants. This usually takes a few seconds.' })}
+          </p>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2" aria-hidden="true">
+        {Array.from({ length: 4 }).map((_, index) => (
+          <div
+            key={index}
+            className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]"
+          >
+            <LoadingSkeleton lines={3} className="animate-pulse motion-reduce:animate-none" />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -248,20 +291,40 @@ function CatalogSearchDetail(props: {
     queryFn: () => client.listCatalogVariants(props.result.modelLocator),
     refetchOnWindowFocus: false,
   });
+  const result = props.result;
   return (
     <RuntimePageShell>
       <Button size="sm" tone="ghost" onClick={props.onBack}>{t('Common.back', { defaultValue: 'Back' })}</Button>
-      <RuntimePageHeader title={props.result.title} description={props.result.description} />
-      <MarketMeta categories={props.result.categories} license={props.result.license} updatedAt={props.result.lastModified} downloads={props.result.downloads} likes={props.result.likes} />
-      <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.recommend.variantsTitle', { defaultValue: 'Exact variants' })}</h3>
-      {variants.isPending ? <p className="text-sm text-[var(--nimi-text-muted)]">{t('Common.loading', { defaultValue: 'Loading…' })}</p> : null}
-      {variants.isError ? <InlineAlert tone="danger">{t('runtimeConfig.recommend.variantsFailed', { defaultValue: 'Variants could not be loaded.' })}</InlineAlert> : null}
-      {variants.data?.length === 0 ? <InlineAlert tone="info">{t('runtimeConfig.recommend.variantsUnavailable', { defaultValue: 'No installable variants were returned.' })}</InlineAlert> : null}
-      <div className="grid gap-3">
-        {variants.data?.map((candidate) => (
-          <CandidateCard key={candidate.offerRef} candidate={candidate} onOpen={() => props.onSelectCandidate(candidate)} />
-        ))}
-      </div>
+      <ModelIdentityHeader author={result.author} title={result.title} verified={result.verified} />
+      <MarketMeta categories={result.categories} license={result.license} updatedAt={result.lastModified} downloads={result.downloads} likes={result.likes} />
+      <ModelTagRow tags={result.tags} />
+      <MarketDetailColumns
+        main={(
+          <>
+            <ModelAboutCard modelLocator={result.modelLocator} />
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.recommend.variantsTitle', { defaultValue: 'Exact variants' })}</h3>
+              {variants.isPending ? <p className="text-sm text-[var(--nimi-text-muted)]">{t('Common.loading', { defaultValue: 'Loading…' })}</p> : null}
+              {variants.isError ? <InlineAlert tone="danger">{t('runtimeConfig.recommend.variantsFailed', { defaultValue: 'Variants could not be loaded.' })}</InlineAlert> : null}
+              {variants.data?.length === 0 ? <InlineAlert tone="info">{t('runtimeConfig.recommend.variantsUnavailable', { defaultValue: 'No installable variants were returned.' })}</InlineAlert> : null}
+              <div className="grid gap-3">
+                {variants.data?.map((candidate) => (
+                  <CandidateCard key={candidate.offerRef} candidate={candidate} onOpen={() => props.onSelectCandidate(candidate)} />
+                ))}
+              </div>
+            </section>
+          </>
+        )}
+        sidebar={(
+          <>
+            <ModelStatsCard downloads={result.downloads} likes={result.likes} updatedAt={result.lastModified} />
+            <ModelSpecsCard
+              title={t('runtimeConfig.recommend.specsTitle', { defaultValue: 'Specifications' })}
+              entries={searchResultSpecEntries(result, t)}
+            />
+          </>
+        )}
+      />
     </RuntimePageShell>
   );
 }
@@ -302,22 +365,40 @@ function MarketCandidateDetail(props: {
     }
   };
 
+  const candidate = props.candidate;
   return (
     <RuntimePageShell>
       <Button size="sm" tone="ghost" onClick={props.onBack}>{t('Common.back', { defaultValue: 'Back' })}</Button>
-      <RuntimePageHeader title={props.candidate.title} description={props.candidate.description} />
-      <MarketMeta categories={props.candidate.categories} format={props.candidate.format} size={props.candidate.totalSizeBytes} license={props.candidate.license} updatedAt={props.candidate.lastModified} downloads={props.candidate.downloads} likes={props.candidate.likes} />
-      {props.candidate.editorialReason ? <InlineAlert tone="info">{props.candidate.editorialReason}</InlineAlert> : null}
-      <InstallPlanPanel
-        installed={props.candidate.installed}
-        installable={props.candidate.installable}
-        plan={plan}
-        error={error}
-        busy={busy}
-        runtimeWritesDisabled={props.model.runtimeWritesDisabled}
-        onReview={() => { void review(); }}
-        onInstall={() => { void install(); }}
-        onOpenLocalAssets={() => props.model.onChangePage('localAssets')}
+      <ModelIdentityHeader author={candidate.author} title={candidate.title} verified={candidate.verified} />
+      <MarketMeta categories={candidate.categories} format={candidate.format} size={candidate.totalSizeBytes} license={candidate.license} updatedAt={candidate.lastModified} downloads={candidate.downloads} likes={candidate.likes} />
+      <ModelTagRow tags={candidate.tags} />
+      {candidate.editorialReason ? <InlineAlert tone="info">{candidate.editorialReason}</InlineAlert> : null}
+      <MarketDetailColumns
+        main={(
+          <>
+            <ModelAboutCard offerRef={candidate.offerRef} />
+            <InstallPlanPanel
+              installed={candidate.installed}
+              installable={candidate.installable}
+              plan={plan}
+              error={error}
+              busy={busy}
+              runtimeWritesDisabled={props.model.runtimeWritesDisabled}
+              onReview={() => { void review(); }}
+              onInstall={() => { void install(); }}
+              onOpenLocalAssets={() => props.model.onChangePage('localAssets')}
+            />
+          </>
+        )}
+        sidebar={(
+          <>
+            <ModelStatsCard downloads={candidate.downloads} likes={candidate.likes} updatedAt={candidate.lastModified} installed={candidate.installed} />
+            <ModelSpecsCard
+              title={t('runtimeConfig.recommend.specsTitle', { defaultValue: 'Specifications' })}
+              entries={candidateSpecEntries(candidate, t)}
+            />
+          </>
+        )}
       />
     </RuntimePageShell>
   );
@@ -383,40 +464,67 @@ function ContextualMarketDetail(props: {
     }
   };
 
+  const candidate = props.context.candidate;
   return (
     <RuntimePageShell>
       <Button size="sm" tone="ghost" onClick={props.onBack}>{t('runtimeConfig.recommend.backToPlan', { defaultValue: 'Back to capability plan' })}</Button>
-      <RuntimePageHeader
-        title={props.context.candidate.title || slot?.displayLabel || t('runtimeConfig.recommend.contextTitle', { defaultValue: 'Model for this capability slot' })}
-        description={recipe
-          ? `${recipe.title} · ${slot?.displayLabel || props.context.slotId} · ${props.context.candidate.variantLabel}`
-          : `${props.context.slotId} · ${props.context.candidate.variantLabel}`}
+      <ModelIdentityHeader
+        author={candidate.author}
+        title={candidate.title || slot?.displayLabel || t('runtimeConfig.recommend.contextTitle', { defaultValue: 'Model for this capability slot' })}
+        verified={candidate.verified}
       />
+      <p className="text-sm text-[var(--nimi-text-muted)]">
+        {recipe
+          ? `${recipe.title} · ${slot?.displayLabel || props.context.slotId} · ${candidate.variantLabel}`
+          : `${props.context.slotId} · ${candidate.variantLabel}`}
+      </p>
       <MarketMeta
-        categories={props.context.candidate.categories}
-        format={props.context.candidate.format}
-        size={props.context.candidate.totalSizeBytes}
-        license={props.context.candidate.license}
-        updatedAt={props.context.candidate.lastModified}
-        downloads={props.context.candidate.downloads}
-        likes={props.context.candidate.likes}
+        categories={candidate.categories}
+        format={candidate.format}
+        size={candidate.totalSizeBytes}
+        license={candidate.license}
+        updatedAt={candidate.lastModified}
+        downloads={candidate.downloads}
+        likes={candidate.likes}
       />
+      <ModelTagRow tags={candidate.tags} />
       {recipesQuery.isPending ? <p className="text-sm text-[var(--nimi-text-muted)]">{t('Common.loading', { defaultValue: 'Loading…' })}</p> : null}
       {!recipesQuery.isPending && !contextValid ? (
         <InlineAlert tone="danger">{t('runtimeConfig.recommend.contextInvalid', { defaultValue: 'This offer is no longer admitted for the selected Recipe slot.' })}</InlineAlert>
       ) : null}
       {offer ? <ApplicabilityNotice applicability={offer.applicability} reasons={offer.reasons} /> : null}
       {offer ? (
-        <InstallPlanPanel
-          installed={Boolean(offer.installedModelAssetId) || offer.candidate.installed}
-          installable={offer.applicability !== 'unsupported' && offer.candidate.installable}
-          plan={plan}
-          error={planError}
-          busy={busy || planLoading}
-          runtimeWritesDisabled={props.model.runtimeWritesDisabled}
-          onReview={() => { void review(); }}
-          onInstall={() => { void install(); }}
-          onOpenLocalAssets={() => props.model.onChangePage('localAssets')}
+        <MarketDetailColumns
+          main={(
+            <>
+              <ModelAboutCard offerRef={candidate.offerRef} />
+              <InstallPlanPanel
+                installed={Boolean(offer.installedModelAssetId) || offer.candidate.installed}
+                installable={offer.applicability !== 'unsupported' && offer.candidate.installable}
+                plan={plan}
+                error={planError}
+                busy={busy || planLoading}
+                runtimeWritesDisabled={props.model.runtimeWritesDisabled}
+                onReview={() => { void review(); }}
+                onInstall={() => { void install(); }}
+                onOpenLocalAssets={() => props.model.onChangePage('localAssets')}
+              />
+            </>
+          )}
+          sidebar={(
+            <>
+              <ModelStatsCard
+                downloads={candidate.downloads}
+                likes={candidate.likes}
+                updatedAt={candidate.lastModified}
+                installed={Boolean(offer.installedModelAssetId) || offer.candidate.installed}
+              />
+              <ModelSpecsCard
+                title={t('runtimeConfig.recommend.specsTitle', { defaultValue: 'Specifications' })}
+                entries={candidateSpecEntries(candidate, t)}
+              />
+            </>
+          )}
         />
       ) : null}
     </RuntimePageShell>
@@ -457,15 +565,42 @@ function InstallPlanPanel(props: {
       </Surface>
     );
   }
+  const plan = props.plan;
   return (
     <Surface tone="card" className="space-y-3 p-4">
+      <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.recommend.detailInstallTitle', { defaultValue: 'Install' })}</h3>
       {props.error ? <InlineAlert tone="danger">{props.error}</InlineAlert> : null}
-      {props.plan ? (
-        <div className="space-y-1 text-xs text-[var(--nimi-text-secondary)]">
-          <p className="font-semibold text-[var(--nimi-text-primary)]">{props.plan.entry || props.plan.modelId}</p>
-          <p>{props.plan.repo}@{props.plan.revision}</p>
-          <p>{props.plan.totalSizeBytes ? formatBytes(props.plan.totalSizeBytes) : t('runtimeConfig.recommend.unknownDownloadSize', { defaultValue: 'Download size unknown' })} · {props.plan.files.length} {t('runtimeConfig.recommend.files', { defaultValue: 'files' })}</p>
-          {props.plan.warnings.length > 0 ? <p className="text-[var(--nimi-status-warning)]">{props.plan.warnings.join(' · ')}</p> : null}
+      {plan ? (
+        <div className="space-y-2 text-xs text-[var(--nimi-text-secondary)]">
+          <p className="font-medium text-[var(--nimi-text-primary)]">{t('runtimeConfig.recommend.installPlanReady', { defaultValue: 'Install plan ready' })}</p>
+          <dl className="space-y-1.5">
+            <PlanRow label={t('runtimeConfig.recommend.planEntry', { defaultValue: 'Entry' })} value={plan.entry || plan.modelId} mono />
+            <PlanRow label={t('runtimeConfig.recommend.planRepo', { defaultValue: 'Repo' })} value={plan.repo ? `${plan.repo}@${plan.revision}` : ''} mono />
+            {plan.engine ? <PlanRow label={t('runtimeConfig.recommend.planEngine', { defaultValue: 'Engine' })} value={plan.engine} /> : null}
+            <PlanRow
+              label={t('runtimeConfig.recommend.colSize', { defaultValue: 'Size' })}
+              value={plan.totalSizeBytes ? formatBytes(plan.totalSizeBytes) : t('runtimeConfig.recommend.unknownDownloadSize', { defaultValue: 'Download size unknown' })}
+            />
+            <PlanRow label={t('runtimeConfig.recommend.planFiles', { defaultValue: 'File count' })} value={String(plan.files.length)} />
+            {plan.license ? <PlanRow label={t('runtimeConfig.recommend.specLicense', { defaultValue: 'License' })} value={plan.license} /> : null}
+          </dl>
+          {plan.files.length > 0 ? (
+            <details className="rounded-lg border border-[var(--nimi-border-subtle)] px-2.5 py-1.5">
+              <summary className="cursor-pointer select-none font-medium text-[var(--nimi-text-secondary)]">
+                {t('runtimeConfig.recommend.planFileList', { count: plan.files.length, defaultValue: '{{count}} files' })}
+              </summary>
+              <ul className="mt-1.5 max-h-44 space-y-0.5 overflow-auto font-mono text-[11px] text-[var(--nimi-text-muted)]">
+                {plan.files.map((file) => (
+                  <li key={file} className="break-all">{file}</li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+          {plan.warnings.length > 0 ? (
+            <p className="text-[var(--nimi-status-warning)]">
+              {t('runtimeConfig.recommend.planWarnings', { defaultValue: 'Warnings' })}: {plan.warnings.join(' · ')}
+            </p>
+          ) : null}
         </div>
       ) : null}
       {!props.installable ? (
@@ -485,141 +620,46 @@ function InstallPlanPanel(props: {
   );
 }
 
-// HuggingFace-style market card meta row: one inline line of icon+text items
-// joined by dot separators instead of chip badges.
-function MarketMeta(props: {
-  readonly categories: readonly string[];
-  readonly format?: string;
-  readonly size?: number;
-  readonly license?: string;
-  readonly updatedAt?: string;
-  readonly downloads?: number;
-  readonly likes?: number;
+function PlanRow(props: {
+  readonly label: string;
+  readonly value: string;
+  readonly mono?: boolean;
 }) {
-  const { t } = useTranslation();
-  const i18n = useDesktopI18nResource();
-  const items: Array<{ key: string; node: ReactNode }> = [];
-  const categoryLabel = props.categories
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <dt className="shrink-0 text-[var(--nimi-text-muted)]">{props.label}</dt>
+      <dd className={`min-w-0 break-all text-right ${props.mono ? 'font-mono text-[11px]' : 'font-medium'}`}>{props.value}</dd>
+    </div>
+  );
+}
+
+function categoryLabels(categories: readonly string[], t: TFunction): string {
+  return categories
     .map((value) => t(`runtimeConfig.recommend.capability.${value}`, { defaultValue: value }))
     .join(' / ');
-  if (categoryLabel) {
-    items.push({
-      key: 'category',
-      node: (
-        <span className="inline-flex items-center gap-1">
-          <TaskTypeIcon className="h-3.5 w-3.5" />
-          {categoryLabel}
-        </span>
-      ),
-    });
-  }
-  if (props.format) {
-    items.push({ key: 'format', node: <span>{props.format}</span> });
-  }
-  if (props.size) {
-    items.push({ key: 'size', node: <span>{formatBytes(props.size)}</span> });
-  }
-  if (props.license) {
-    items.push({ key: 'license', node: <span>{props.license}</span> });
-  }
-  if (props.updatedAt) {
-    items.push({
-      key: 'updated',
-      node: <span>{t('runtimeConfig.recommend.updatedAt', { when: i18n.formatRelativeTime(props.updatedAt), defaultValue: 'Updated {{when}}' })}</span>,
-    });
-  }
-  if (props.downloads) {
-    items.push({
-      key: 'downloads',
-      node: (
-        <span
-          className="inline-flex items-center gap-1"
-          title={t('runtimeConfig.recommend.downloads', { count: props.downloads, defaultValue: '{{count}} downloads' })}
-        >
-          <DownloadIcon className="h-3.5 w-3.5" />
-          {formatCompactCount(props.downloads)}
-        </span>
-      ),
-    });
-  }
-  if (props.likes) {
-    items.push({
-      key: 'likes',
-      node: (
-        <span
-          className="inline-flex items-center gap-1"
-          title={t('runtimeConfig.recommend.likes', { count: props.likes, defaultValue: '{{count}} likes' })}
-        >
-          <HeartIcon className="h-3.5 w-3.5" />
-          {formatCompactCount(props.likes)}
-        </span>
-      ),
-    });
-  }
-  return items.length > 0 ? (
-    <div className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-[var(--nimi-text-muted)]">
-      {items.map((item, index) => (
-        <Fragment key={item.key}>
-          {index > 0 ? <span aria-hidden="true">·</span> : null}
-          {item.node}
-        </Fragment>
-      ))}
-    </div>
-  ) : null;
 }
 
-// Local stand-in for organization avatars: deterministic color tile with the
-// author's initial, so cards keep the HuggingFace-style org marker without any
-// remote image dependency. Swap for an <img> once the model-index feed carries
-// real avatar URLs.
-function AuthorAvatar(props: { readonly author?: string }) {
-  const author = (props.author ?? '').trim();
-  const initial = author ? (Array.from(author)[0] ?? '').toUpperCase() : '';
-  if (!initial) {
-    return null;
-  }
-  let hash = 0;
-  for (const ch of author) {
-    hash = (hash * 31 + (ch.codePointAt(0) ?? 0)) >>> 0;
-  }
-  return (
-    <span
-      aria-hidden="true"
-      title={author}
-      className="flex h-5 w-5 shrink-0 select-none items-center justify-center rounded-md text-[11px] font-semibold text-white"
-      style={{ backgroundColor: `hsl(${hash % 360} 45% 42%)` }}
-    >
-      {initial}
-    </span>
-  );
+function searchResultSpecEntries(result: NimiRuntimeModelAssetCatalogSearchResult, t: TFunction): ModelSpecEntry[] {
+  return [
+    { key: 'capability', label: t('runtimeConfig.recommend.capabilityLabel', { defaultValue: 'Capability' }), value: categoryLabels(result.categories, t) },
+    { key: 'modelType', label: t('runtimeConfig.recommend.specModelType', { defaultValue: 'Model Type' }), value: result.modelType },
+    { key: 'license', label: t('runtimeConfig.recommend.specLicense', { defaultValue: 'License' }), value: result.license },
+    { key: 'author', label: t('runtimeConfig.recommend.specAuthor', { defaultValue: 'Author' }), value: result.author },
+    { key: 'source', label: t('runtimeConfig.recommend.specSource', { defaultValue: 'Source' }), value: result.sourceLabel },
+  ];
 }
 
-function TaskTypeIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="12 2 2 7 12 12 22 7 12 2" />
-      <polyline points="2 17 12 22 22 17" />
-      <polyline points="2 12 12 17 22 12" />
-    </svg>
-  );
-}
-
-function DownloadIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  );
-}
-
-function HeartIcon({ className = '' }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
-    </svg>
-  );
+function candidateSpecEntries(candidate: NimiRuntimeModelAssetMarketCandidate, t: TFunction): ModelSpecEntry[] {
+  return [
+    { key: 'capability', label: t('runtimeConfig.recommend.capabilityLabel', { defaultValue: 'Capability' }), value: categoryLabels(candidate.categories, t) },
+    { key: 'variant', label: t('runtimeConfig.recommend.specVariant', { defaultValue: 'Variant' }), value: candidate.variantLabel },
+    { key: 'format', label: t('runtimeConfig.recommend.specFormats', { defaultValue: 'Formats' }), value: candidate.format },
+    { key: 'modelType', label: t('runtimeConfig.recommend.specModelType', { defaultValue: 'Model Type' }), value: candidate.modelType },
+    { key: 'size', label: t('runtimeConfig.recommend.colSize', { defaultValue: 'Size' }), value: candidate.totalSizeBytes ? formatBytes(candidate.totalSizeBytes) : undefined },
+    { key: 'license', label: t('runtimeConfig.recommend.specLicense', { defaultValue: 'License' }), value: candidate.license },
+    { key: 'author', label: t('runtimeConfig.recommend.specAuthor', { defaultValue: 'Author' }), value: candidate.author },
+    { key: 'source', label: t('runtimeConfig.recommend.specSource', { defaultValue: 'Source' }), value: candidate.sourceLabel },
+  ];
 }
 
 function errorMessage(error: unknown): string {
