@@ -9874,6 +9874,16 @@ impl RequestRuntimeRestartResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ResolveDesktopAgentReferenceRequest {
+    pub local_agent_ref: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ResolveDesktopAgentReferenceResponse {
+    pub reference: Option<Box<LocalAppAgentReference>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ResolveLocalEnvironmentActivationGateRequest {
     pub consumer_id: Option<String>,
     pub pack_id: Option<String>,

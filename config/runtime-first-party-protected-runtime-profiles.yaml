@@ -185,6 +185,7 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput
       - method_id: /nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference
       # Host-private Avatar target correlation; never projected to the Desktop renderer.
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget
       # Desktop-Host-private current companion revalidation; never part of the

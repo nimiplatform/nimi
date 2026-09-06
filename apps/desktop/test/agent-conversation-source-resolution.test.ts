@@ -221,190 +221,46 @@ test('agent target source resolution fails closed without a canonical handle and
   assert.equal(opened, 0);
 });
 
-function createSourceTargetSdkStub(input: {
-  references: Array<{ agentHandle: string; displayName: string; avatarUrl?: string | null }>;
-  anchorByAgentHandle: Record<string, string>;
-  summariesByLocalAgentRef: Record<string, Array<{ conversationAnchorId: string }>>;
-  onOpen?: (agentHandle: string) => void;
-}) {
-  const base = createSdkStub({ summariesByLocalAgentRef: input.summariesByLocalAgentRef });
+
+function sourceTargetSdk(reference: { agentHandle: string; displayName: string; avatarUrl?: string } | undefined, opened: string[], lookedUp: string[]) {
+  const base = createAgentTargetSdkStub({ conversationAnchorId: 'anchor-b', summariesByLocalAgentRef: {} });
   return {
     ...base,
-    appProduct: () => ({
-      agents: {
-        listReferences: async () => input.references.map((reference) => ({
-          agentHandle: reference.agentHandle,
-          displayName: reference.displayName,
-          avatarUrl: reference.avatarUrl ?? null,
-        })),
+    accountProduct: () => ({ agents: {
+      resolveDesktopAgentReference: async ({ localAgentRef }: { localAgentRef: string }) => {
+        lookedUp.push(localAgentRef);
+        return { reference };
       },
-    }),
-    conversation: () => ({
-      open: async ({ agentHandle }: { agentHandle: string }) => {
-        input.onOpen?.(agentHandle);
-        return {
-          conversationAnchorId: input.anchorByAgentHandle[agentHandle] ?? '',
-          activeTurnId: null,
-        };
-      },
-    }),
-    runtimeAgentDiscovery: () => ({
-      listLocalAgents: async () => [
-        {
-          localAgentRef: 'local-agent:agent-a',
-          ownerUserId: 'owner-1',
-          runtimeSourceRef: 'runtime-source:agent-a',
-          displayName: 'Agent A',
-          sourceContextStatus: {
-            ready: true,
-            localAgentRef: 'local-agent:agent-a',
-            sourceRef: sourceRefA,
-          },
-        },
-        {
-          localAgentRef: 'local-agent:agent-b',
-          ownerUserId: 'owner-1',
-          runtimeSourceRef: 'runtime-source:agent-b',
-          displayName: 'Agent B',
-          sourceContextStatus: {
-            ready: true,
-            localAgentRef: 'local-agent:agent-b',
-            sourceRef: sourceRefB,
-          },
-        },
-      ],
-    }),
+    } }),
+    appProduct: () => ({ agents: { listReferences: async () => { throw new Error('must not enumerate App references'); } } }),
+    conversation: () => ({ open: async ({ agentHandle }: { agentHandle: string }) => {
+      opened.push(agentHandle);
+      return { conversationAnchorId: 'anchor-b', activeTurnId: null };
+    } }),
   } as unknown as DesktopRendererSdkPort;
 }
 
-test('source target snapshot resolution joins the source LocalAgent anchor to its App reference', async () => {
+test('source target resolution opens only the explicitly selected Agent', async () => {
   const opened: string[] = [];
-  const sdk = createSourceTargetSdkStub({
-    references: [
-      { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent A' },
-      { agentHandle: 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB', displayName: 'Agent B', avatarUrl: 'https://example.com/b.png' },
-    ],
-    anchorByAgentHandle: {
-      agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA: 'anchor-a',
-      agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB: 'anchor-b',
-    },
-    summariesByLocalAgentRef: {
-      'local-agent:agent-b': [{ conversationAnchorId: 'anchor-b' }],
-    },
-    onOpen: (agentHandle) => {
-      opened.push(agentHandle);
-    },
-  });
-
-  const resolved = await resolveAgentTargetSnapshotForSourceRef({
-    sourceRef: sourceRefB,
-    ownerUserId: 'owner-1',
-    sdk,
-  });
-
-  assert.equal(resolved?.agentHandle, 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB');
-  assert.equal(resolved?.conversationAnchorId, 'anchor-b');
-  assert.equal(resolved?.displayName, 'Agent B');
-  assert.equal(resolved?.avatarUrl, 'https://example.com/b.png');
-  assert.equal(opened.length, 2);
+  const lookedUp: string[] = [];
+  const reference = { agentHandle: 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB', displayName: 'Agent B', avatarUrl: 'https://example.com/b.png' };
+  const sdk = sourceTargetSdk(reference, opened, lookedUp);
+  const result = await resolveAgentTargetSnapshotForSourceRef({ sourceRef: sourceRefB, ownerUserId: 'owner-1', sdk });
+  assert.deepEqual(lookedUp, ['local-agent:agent-b']);
+  assert.deepEqual(opened, [reference.agentHandle]);
+  assert.equal(result?.conversationAnchorId, 'anchor-b');
+  assert.equal(result?.avatarUrl, reference.avatarUrl);
 });
 
-test('source target snapshot resolution fails closed when no reference anchor matches', async () => {
-  const sdk = createSourceTargetSdkStub({
-    references: [
-      { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent A' },
-    ],
-    anchorByAgentHandle: {
-      agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA: 'anchor-a',
-    },
-    summariesByLocalAgentRef: {
-      'local-agent:agent-b': [{ conversationAnchorId: 'anchor-b' }],
-    },
-  });
-
-  const resolved = await resolveAgentTargetSnapshotForSourceRef({
-    sourceRef: sourceRefB,
-    ownerUserId: 'owner-1',
-    sdk,
-  });
-
-  assert.equal(resolved, null);
-});
-
-test('source target snapshot resolution fails closed when the source owns no LocalAgent', async () => {
-  let opened = 0;
-  const sdk = createSourceTargetSdkStub({
-    references: [
-      { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent A' },
-    ],
-    anchorByAgentHandle: {
-      agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA: 'anchor-a',
-    },
-    summariesByLocalAgentRef: {
-      'local-agent:agent-a': [{ conversationAnchorId: 'anchor-a' }],
-    },
-    onOpen: () => {
-      opened += 1;
-    },
-  });
-
-  const resolved = await resolveAgentTargetSnapshotForSourceRef({
-    sourceRef: characterSourceRef('cbdb-person-c', 'c'.repeat(64)),
-    ownerUserId: 'owner-1',
-    sdk,
-  });
-
-  assert.equal(resolved, null);
-  assert.equal(opened, 0);
-});
-
-test('source target snapshot resolution fails closed on ambiguous anchor matches', async () => {
-  const sdk = createSourceTargetSdkStub({
-    references: [
-      { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', displayName: 'Agent A' },
-      { agentHandle: 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB', displayName: 'Agent B' },
-    ],
-    anchorByAgentHandle: {
-      agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA: 'anchor-b',
-      agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB: 'anchor-b',
-    },
-    summariesByLocalAgentRef: {
-      'local-agent:agent-b': [{ conversationAnchorId: 'anchor-b' }],
-    },
-  });
-
-  const resolved = await resolveAgentTargetSnapshotForSourceRef({
-    sourceRef: sourceRefB,
-    ownerUserId: 'owner-1',
-    sdk,
-  });
-
-  assert.equal(resolved, null);
-});
-
-test('source target snapshot resolution fails closed without an owner and never opens a conversation', async () => {
-  let opened = 0;
-  const sdk = createSourceTargetSdkStub({
-    references: [
-      { agentHandle: 'agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB', displayName: 'Agent B' },
-    ],
-    anchorByAgentHandle: {
-      agent_ref_BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB: 'anchor-b',
-    },
-    summariesByLocalAgentRef: {
-      'local-agent:agent-b': [{ conversationAnchorId: 'anchor-b' }],
-    },
-    onOpen: () => {
-      opened += 1;
-    },
-  });
-
-  const resolved = await resolveAgentTargetSnapshotForSourceRef({
-    sourceRef: sourceRefB,
-    ownerUserId: '',
-    sdk,
-  });
-
-  assert.equal(resolved, null);
-  assert.equal(opened, 0);
+test('source target resolution never opens a conversation without an exact owner or reference', async () => {
+  const opened: string[] = [];
+  const lookedUp: string[] = [];
+  const sdk = sourceTargetSdk(undefined, opened, lookedUp);
+  for (const input of [
+    { sourceRef: sourceRefB, ownerUserId: '' },
+    { sourceRef: characterSourceRef('missing', 'c'.repeat(64)), ownerUserId: 'owner-1' },
+    { sourceRef: sourceRefB, ownerUserId: 'owner-1' },
+  ]) assert.equal(await resolveAgentTargetSnapshotForSourceRef({ ...input, sdk }), null);
+  assert.deepEqual(opened, []);
+  assert.deepEqual(lookedUp, ['local-agent:agent-b']);
 });

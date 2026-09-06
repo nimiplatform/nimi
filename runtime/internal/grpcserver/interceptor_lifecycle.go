@@ -12,6 +12,7 @@ import (
 
 // readOnlyMethods are gRPC methods allowed during STOPPING/STOPPED states.
 var readOnlyMethods = map[string]bool{
+	"/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference":          true,
 	"/nimi.runtime.v1.RuntimeAuditService/GetRuntimeHealth":                      true,
 	"/nimi.runtime.v1.RuntimeAuditService/ListAuditEvents":                       true,
 	"/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents":                true,

@@ -18731,6 +18731,17 @@ pub struct ListLocalAppAgentReferencesResponse {
     #[prost(message, repeated, tag = "1")]
     pub references: ::prost::alloc::vec::Vec<LocalAppAgentReference>,
 }
+/// Desktop account-product lookup; absent from ordinary App transport profiles.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResolveDesktopAgentReferenceRequest {
+    #[prost(string, tag = "1")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResolveDesktopAgentReferenceResponse {
+    #[prost(message, optional, tag = "1")]
+    pub reference: ::core::option::Option<LocalAppAgentReference>,
+}
 /// Host-private Avatar correlation. This wire is reachable only through the
 /// protected native Host binding and is never an App product operation.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -21196,6 +21207,35 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "ListLocalAppAgentReferences",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn resolve_desktop_agent_reference(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ResolveDesktopAgentReferenceRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ResolveDesktopAgentReferenceResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ResolveDesktopAgentReference",
                     ),
                 );
             self.inner.unary(req, path, codec).await

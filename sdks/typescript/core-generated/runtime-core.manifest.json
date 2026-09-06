@@ -169,6 +169,15 @@
           "response_stream": false
         },
         {
+          "name": "ResolveDesktopAgentReference",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
+          "kind": "unary",
+          "request_type": "ResolveDesktopAgentReferenceRequest",
+          "response_type": "ResolveDesktopAgentReferenceResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "ResolveLocalAppAvatarHostTarget",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget",
           "kind": "unary",
@@ -2269,6 +2278,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact",
     "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
     "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
+    "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
     "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget",
     "/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget",
     "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
@@ -2900,6 +2910,14 @@
       "kind": "unary",
       "request_type": "RenderLocalAppConversationVoiceRequest",
       "response_type": "RenderLocalAppConversationVoiceResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
+      "service": "RuntimeAgentService",
+      "method": "ResolveDesktopAgentReference",
+      "kind": "unary",
+      "request_type": "ResolveDesktopAgentReferenceRequest",
+      "response_type": "ResolveDesktopAgentReferenceResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget",
@@ -4750,6 +4768,14 @@
       "kind": "unary",
       "request_type": "RenderLocalAppConversationVoiceRequest",
       "response_type": "RenderLocalAppConversationVoiceResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
+      "service": "RuntimeAgentService",
+      "method": "ResolveDesktopAgentReference",
+      "kind": "unary",
+      "request_type": "ResolveDesktopAgentReferenceRequest",
+      "response_type": "ResolveDesktopAgentReferenceResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget",
@@ -6820,6 +6846,8 @@
       "RequestPresenceVerificationResponse",
       "RequestRuntimeRestartRequest",
       "RequestRuntimeRestartResponse",
+      "ResolveDesktopAgentReferenceRequest",
+      "ResolveDesktopAgentReferenceResponse",
       "ResolveLocalAppAvatarHostTargetRequest",
       "ResolveLocalAppAvatarHostTargetResponse",
       "ResolveLocalEnvironmentActivationGateRequest",
@@ -30409,6 +30437,32 @@
           }
         ],
         "source_file": "proto/runtime/v1/runtime_service_control.proto"
+      },
+      {
+        "name": "ResolveDesktopAgentReferenceRequest",
+        "fields": [
+          {
+            "name": "local_agent_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "ResolveDesktopAgentReferenceResponse",
+        "fields": [
+          {
+            "name": "reference",
+            "type": "LocalAppAgentReference",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
         "name": "ResolveLocalAppAvatarHostTargetRequest",

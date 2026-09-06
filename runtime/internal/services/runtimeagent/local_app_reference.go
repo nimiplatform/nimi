@@ -13,11 +13,36 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
+	"github.com/nimiplatform/nimi/runtime/internal/protocol/envelope"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 )
 
 const localAppAgentHandlePrefix = "agent_ref_"
+
+// @nimi-authority: rule.nimi.runtime.agent-participation.r197
+func (s *Service) ResolveDesktopAgentReference(ctx context.Context, req *runtimev1.ResolveDesktopAgentReferenceRequest) (*runtimev1.ResolveDesktopAgentReferenceResponse, error) {
+	decision, ok := authorizedLocalAppAgentDecision(ctx, accountservice.LocalAppOperationReferenceList)
+	if !ok || decision.AppID != envelope.ProtectedDesktopAppID || decision.TrustClass != accountservice.LocalAppTrustClassBuiltIn ||
+		req == nil || req.GetLocalAgentRef() == "" || strings.TrimSpace(req.GetLocalAgentRef()) != req.GetLocalAgentRef() {
+		return nil, localAppAgentAccessDenied()
+	}
+	inventory, err := s.ListOwnedActiveLocalAgents(ctx, decision.AccountID)
+	if err != nil {
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
+	}
+	for _, item := range inventory {
+		if item.LocalAgentID != req.GetLocalAgentRef() {
+			continue
+		}
+		references, valid := projectLocalAppAgentReferences(decision, []accountservice.LocalAgentOwnerProjection{item})
+		if !valid {
+			return nil, localAppAgentAccessDenied()
+		}
+		return &runtimev1.ResolveDesktopAgentReferenceResponse{Reference: references[0]}, nil
+	}
+	return nil, localAppAgentAccessDenied()
+}
 
 // @nimi-authority: definition.nimi.runtime.agent-participation.app-consume-plane
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-agid-009a

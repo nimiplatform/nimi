@@ -319,7 +319,8 @@ func generatedRuntimeFullMethods() []string {
 
 func isKnownReadOperation(operation string) bool {
 	switch operation {
-	case "RevealLocalAppAsset",
+	case "ResolveDesktopAgentReference",
+		"RevealLocalAppAsset",
 		"ResolveLocalAppAvatarHostTarget",
 		"RevalidateLocalAppAvatarHostTarget",
 		"ResolveLocalEnvironmentPlan",

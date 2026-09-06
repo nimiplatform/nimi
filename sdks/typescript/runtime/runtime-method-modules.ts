@@ -45,6 +45,7 @@ export const RUNTIME_AGENT_METHODS = [
   'importPortableAIProfile',
   'listPortableAIProfiles',
   'listLocalAppAgentReferences',
+  'resolveDesktopAgentReference',
   'getLocalAppAgentManagerSnapshot',
   'getLocalAppSharedLocalAgentAIConfig',
   'overwriteLocalAppSharedLocalAgentAIConfig',

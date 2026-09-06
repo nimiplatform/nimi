@@ -588,6 +588,9 @@ services:
       - name: ListLocalAppAgentReferences
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
+      - name: ResolveDesktopAgentReference
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference
       - name: ResolveLocalAppAvatarHostTarget
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget

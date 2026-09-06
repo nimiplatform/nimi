@@ -118,3 +118,42 @@ func localAppReferenceDecision(seed byte, accountID string) accountservice.Local
 	}
 	return decision
 }
+
+func TestDesktopAgentReferenceResolutionIsReadOnlyAndOwnerScoped(t *testing.T) {
+	svc := &Service{agents: map[string]*agentEntry{
+		"selected": {Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: "selected", DisplayName: "Selected", OwnerUserId: "account-1", LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE}},
+		"foreign":  {Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: "foreign", DisplayName: "Foreign", OwnerUserId: "account-2", LifecycleStatus: runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_ACTIVE}},
+	}}
+	decision := localAppReferenceDecision(0x71, "account-1")
+	decision.AppID = "nimi.desktop"
+	decision.TrustClass = accountservice.LocalAppTrustClassBuiltIn
+	ctx := accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), decision)
+	result, err := svc.ResolveDesktopAgentReference(ctx, &runtimev1.ResolveDesktopAgentReferenceRequest{LocalAgentRef: "selected"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	listed, err := svc.ListLocalAppAgentReferences(ctx, &runtimev1.ListLocalAppAgentReferencesRequest{})
+	if err != nil || len(listed.GetReferences()) != 1 || result.GetReference().GetAgentHandle() != listed.GetReferences()[0].GetAgentHandle() {
+		t.Fatalf("selected reference differs from current-session projection: %+v, %v", result, err)
+	}
+	if len(svc.chatAnchors) != 0 {
+		t.Fatal("identity lookup created a conversation")
+	}
+	for _, ref := range []string{"foreign", "missing", ""} {
+		if _, err := svc.ResolveDesktopAgentReference(ctx, &runtimev1.ResolveDesktopAgentReferenceRequest{LocalAgentRef: ref}); err == nil {
+			t.Fatalf("resolved unowned reference %q", ref)
+		}
+	}
+	for _, invalid := range []accountservice.LocalAppCallerDecision{
+		localAppReferenceDecision(0x71, "account-1"),
+		func() accountservice.LocalAppCallerDecision {
+			d := decision
+			d.TrustClass = accountservice.LocalAppTrustClassDevelopment
+			return d
+		}(),
+	} {
+		if _, err := svc.ResolveDesktopAgentReference(accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), invalid), &runtimev1.ResolveDesktopAgentReferenceRequest{LocalAgentRef: "selected"}); err == nil {
+			t.Fatal("non-Desktop caller used owner lookup")
+		}
+	}
+}

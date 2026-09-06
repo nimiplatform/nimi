@@ -5016,6 +5016,14 @@ class RequestRuntimeRestartResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
+class ResolveDesktopAgentReferenceRequest:
+    local_agent_ref: str | None = None
+
+@dataclass(frozen=True)
+class ResolveDesktopAgentReferenceResponse:
+    reference: LocalAppAgentReference | None = None
+
+@dataclass(frozen=True)
 class ResolveLocalEnvironmentActivationGateRequest:
     consumer_id: str | None = None
     pack_id: str | None = None
@@ -6437,6 +6445,10 @@ class RuntimeTypedClient:
     async def render_local_app_conversation_voice(self, request: RenderLocalAppConversationVoiceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RenderLocalAppConversationVoiceResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RenderLocalAppConversationVoiceResponse, raw)
+
+    async def resolve_desktop_agent_reference(self, request: ResolveDesktopAgentReferenceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResolveDesktopAgentReferenceResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ResolveDesktopAgentReferenceResponse, raw)
 
     async def send_local_app_conversation_turn(self, request: SendLocalAppConversationTurnRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SendLocalAppConversationTurnResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

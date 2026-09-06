@@ -472,6 +472,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "RenderLocalAppConversationVoiceResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
+        service: "RuntimeAgentService",
+        method: "ResolveDesktopAgentReference",
+        kind: "unary",
+        request_type: "ResolveDesktopAgentReferenceRequest",
+        response_type: "ResolveDesktopAgentReferenceResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
         service: "RuntimeAgentService",
         method: "SendLocalAppConversationTurn",
