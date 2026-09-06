@@ -20,11 +20,20 @@ type InstalledAssetsSectionProps = {
   onRemoveAsset: (modelAssetId: string) => Promise<void>;
 };
 
+export function filterModelAssetsForSearch(assets: readonly NimiRuntimeModelAssetRecord[], query: string): NimiRuntimeModelAssetRecord[] {
+  const normalized = query.trim().toLowerCase();
+  const terms = normalized.split(/[\s._-]+/u).filter(Boolean);
+  return assets.filter((asset) => {
+    const facts = [asset.displayName, asset.modelAssetId, asset.entry, asset.contentId].join(' ').toLowerCase();
+    return terms.every((term) => facts.includes(term));
+  });
+}
+
 export function LocalModelCenterInstalledAssetsSection(props: InstalledAssetsSectionProps) {
   const i18n = useDesktopI18nResource().instance;
   const t = i18n.t.bind(i18n);
-  const query = props.query?.trim().toLocaleLowerCase() ?? '';
-  const visibleAssets = props.modelAssets.filter((asset) => [asset.displayName, asset.modelAssetId, asset.entry].join(' ').toLocaleLowerCase().includes(query));
+  const query = props.query?.trim().toLowerCase() ?? '';
+  const visibleAssets = filterModelAssetsForSearch(props.modelAssets, query);
   const [confirmRemoveAssetId, setConfirmRemoveAssetId] = useState('');
   const [removeReferences, setRemoveReferences] = useState<string[]>([]);
   const [expandedAssetId, setExpandedAssetId] = useState('');

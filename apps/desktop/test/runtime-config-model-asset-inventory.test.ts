@@ -39,6 +39,7 @@ test('ModelAsset inventory does not project execution environment readiness', ()
     { resource: TEST_I18N_RESOURCE },
     React.createElement(LocalModelCenterInstalledAssetsSection, {
       modelAssets: [asset],
+      query: 'image-model sha256:aaaa',
       loadingInstalledAssets: false,
       assetBusy: false,
       onRefreshAssets: () => {},
