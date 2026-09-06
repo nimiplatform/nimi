@@ -4,6 +4,7 @@ go 1.26.6
 
 require (
 	github.com/Microsoft/go-winio v0.6.2
+	github.com/dlclark/regexp2 v1.11.0
 	github.com/fsnotify/fsnotify v1.10.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/nimiplatform/nimi/nimi-cognition v0.0.0

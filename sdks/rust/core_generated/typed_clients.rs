@@ -2531,6 +2531,16 @@ pub enum ReasonCode {
     AILOADOUTCATALOGSCHEMAINVALID,
     AILOCALEXECUTIONOUTOFMEMORY,
     AICONFIGREVISIONCONFLICT,
+    APPPACKAGESELECTIONINVALID,
+    APPPACKAGESELECTIONSTALE,
+    APPPACKAGEPOLICYBLOCKED,
+    APPPACKAGEALREADYINSTALLED,
+    APPPACKAGEINSTALLUNAVAILABLE,
+    APPPACKAGEJOBACTIVE,
+    APPCATALOGUNAVAILABLE,
+    APPPACKAGEUNINSTALLUNAVAILABLE,
+    APPPACKAGEHOSTRUNNING,
+    APPPACKAGEUNINSTALLFAILED,
 }
 
 impl Default for ReasonCode {
@@ -3070,6 +3080,26 @@ impl ReasonCode {
             "AILOCALEXECUTIONOUTOFMEMORY" => Some(Self::AILOCALEXECUTIONOUTOFMEMORY),
             "AI_CONFIG_REVISION_CONFLICT" => Some(Self::AICONFIGREVISIONCONFLICT),
             "AICONFIGREVISIONCONFLICT" => Some(Self::AICONFIGREVISIONCONFLICT),
+            "APP_PACKAGE_SELECTION_INVALID" => Some(Self::APPPACKAGESELECTIONINVALID),
+            "APPPACKAGESELECTIONINVALID" => Some(Self::APPPACKAGESELECTIONINVALID),
+            "APP_PACKAGE_SELECTION_STALE" => Some(Self::APPPACKAGESELECTIONSTALE),
+            "APPPACKAGESELECTIONSTALE" => Some(Self::APPPACKAGESELECTIONSTALE),
+            "APP_PACKAGE_POLICY_BLOCKED" => Some(Self::APPPACKAGEPOLICYBLOCKED),
+            "APPPACKAGEPOLICYBLOCKED" => Some(Self::APPPACKAGEPOLICYBLOCKED),
+            "APP_PACKAGE_ALREADY_INSTALLED" => Some(Self::APPPACKAGEALREADYINSTALLED),
+            "APPPACKAGEALREADYINSTALLED" => Some(Self::APPPACKAGEALREADYINSTALLED),
+            "APP_PACKAGE_INSTALL_UNAVAILABLE" => Some(Self::APPPACKAGEINSTALLUNAVAILABLE),
+            "APPPACKAGEINSTALLUNAVAILABLE" => Some(Self::APPPACKAGEINSTALLUNAVAILABLE),
+            "APP_PACKAGE_JOB_ACTIVE" => Some(Self::APPPACKAGEJOBACTIVE),
+            "APPPACKAGEJOBACTIVE" => Some(Self::APPPACKAGEJOBACTIVE),
+            "APP_CATALOG_UNAVAILABLE" => Some(Self::APPCATALOGUNAVAILABLE),
+            "APPCATALOGUNAVAILABLE" => Some(Self::APPCATALOGUNAVAILABLE),
+            "APP_PACKAGE_UNINSTALL_UNAVAILABLE" => Some(Self::APPPACKAGEUNINSTALLUNAVAILABLE),
+            "APPPACKAGEUNINSTALLUNAVAILABLE" => Some(Self::APPPACKAGEUNINSTALLUNAVAILABLE),
+            "APP_PACKAGE_HOST_RUNNING" => Some(Self::APPPACKAGEHOSTRUNNING),
+            "APPPACKAGEHOSTRUNNING" => Some(Self::APPPACKAGEHOSTRUNNING),
+            "APP_PACKAGE_UNINSTALL_FAILED" => Some(Self::APPPACKAGEUNINSTALLFAILED),
+            "APPPACKAGEUNINSTALLFAILED" => Some(Self::APPPACKAGEUNINSTALLFAILED),
             _ => None,
         }
     }
@@ -4440,6 +4470,43 @@ pub struct ApplySharedLocalAgentAIProfileResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ApprovedAppCatalogStorageDisclosure {
+    pub path_pattern: Option<String>,
+    pub purpose: Option<String>,
+    pub retention: Option<String>,
+    pub removal: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ApprovedAppCatalogTarget {
+    pub approved_target_selector: Option<Vec<u8>>,
+    pub observed_registry_revision: Option<String>,
+    pub descriptor_id: Option<String>,
+    pub app_id: Option<String>,
+    pub display_name: Option<String>,
+    pub version: Option<String>,
+    pub publisher_github_namespace: Option<String>,
+    pub source_repository: Option<String>,
+    pub source_license_spdx_expression: Option<String>,
+    pub app_access: Vec<String>,
+    pub capability_contract_refs: Vec<String>,
+    pub required_standardized_feature_refs: Vec<String>,
+    pub storage_policy_kind: Option<String>,
+    pub os_storage_disclosures: Vec<Box<ApprovedAppCatalogStorageDisclosure>>,
+    pub target_id: Option<String>,
+    pub os: Option<String>,
+    pub arch: Option<String>,
+    pub asset_name: Option<String>,
+    pub asset_size: Option<i64>,
+    pub execution_profile_ref: Option<String>,
+    pub windows_code_signing: Option<String>,
+    pub observed_signing_subject: Option<String>,
+    pub policy_blocked: Option<bool>,
+    pub policy_reason: Option<String>,
+    pub policy_revision: Option<u64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ArtifactChunk {
     pub artifact_id: Option<String>,
     pub mime_type: Option<String>,
@@ -5298,6 +5365,18 @@ pub struct CommittedAppRelease {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct CompleteAppPackageUninstallRequest {
+    pub job_id: Option<Vec<u8>>,
+    pub launch_selector: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CompleteAppPackageUninstallResponse {
+    pub job: Option<Box<AppPackageJob>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct CompleteLoginRequest {
     pub caller: Option<Box<AccountCaller>>,
     pub login_attempt_id: Option<String>,
@@ -5671,6 +5750,16 @@ pub struct EnableAutonomyRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct EnableAutonomyResponse {
     pub autonomy: Option<Box<AgentAutonomyState>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct EndInstalledAppRunRequest {
+    pub launch_id: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct EndInstalledAppRunResponse {
+    pub reason_code: Option<ReasonCode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6160,6 +6249,17 @@ impl GetDeveloperModeStatusResponse {
         out.reason_code = pairs.get("reason_code").and_then(|value| ReasonCode::from_transport(value));
         out
     }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetInstalledAppRunAccessRequest {
+    pub launch_id: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetInstalledAppRunAccessResponse {
+    pub available: Option<bool>,
+    pub reason_code: Option<ReasonCode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6764,6 +6864,17 @@ pub struct ListAppPackageJobsRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListAppPackageJobsResponse {
     pub jobs: Vec<Box<AppPackageJob>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListApprovedAppCatalogTargetsRequest {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ListApprovedAppCatalogTargetsResponse {
+    pub targets: Vec<Box<ApprovedAppCatalogTarget>>,
     pub reason_code: Option<ReasonCode>,
 }
 
@@ -8992,6 +9103,25 @@ pub struct PortableAIProfileRecord {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrepareInstalledAppLaunchRequest {
+    pub launch_selector: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrepareInstalledAppLaunchResponse {
+    pub launch_id: Option<Vec<u8>>,
+    pub app_id: Option<String>,
+    pub version: Option<String>,
+    pub executable_path: Option<String>,
+    pub working_directory: Option<String>,
+    pub arguments: Vec<String>,
+    pub executable_sha256: Option<Vec<u8>>,
+    pub execution_profile_ref: Option<String>,
+    pub bind_deadline: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PrepareLoadoutRequest {
     pub loadout_id: Option<String>,
     pub capability_contract: Option<String>,
@@ -10354,6 +10484,28 @@ pub struct SpeechTranscriptionAudioSource {
     pub audio_bytes: Option<Vec<u8>>,
     pub audio_uri: Option<String>,
     pub audio_chunks: Option<Box<AudioChunks>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartAppPackageInstallRequest {
+    pub approved_target_selector: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartAppPackageInstallResponse {
+    pub job: Option<Box<AppPackageJob>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartAppPackageUninstallRequest {
+    pub launch_selector: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartAppPackageUninstallResponse {
+    pub job: Option<Box<AppPackageJob>>,
+    pub reason_code: Option<ReasonCode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

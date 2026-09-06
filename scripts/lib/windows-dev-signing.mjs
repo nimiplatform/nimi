@@ -62,11 +62,17 @@ function runSigningHelper(mode, paths = [], options = {}) {
 
 export function requireWindowsDevSigningIdentity(options = {}) {
   const payload = runSigningHelper('Diagnose', [], options);
+  return parseWindowsDevSigningIdentity(payload);
+}
+
+export function parseWindowsDevSigningIdentity(payload) {
   const certificate = payload?.certificate;
-  const sha256 = String(certificate?.certificateSha256 || '').trim();
+  const certificateSha256 = String(certificate?.certificateSha256 || '').trim();
+  const spkiSha256 = String(certificate?.spkiSha256 || '').trim();
   if (
     certificate?.status !== 'present'
-    || !SHA256_PATTERN.test(sha256)
+    || !SHA256_PATTERN.test(certificateSha256)
+    || !SHA256_PATTERN.test(spkiSha256)
     || certificate?.stores?.currentUserMy !== true
     || certificate?.stores?.currentUserRoot !== true
     || certificate?.stores?.currentUserTrustedPublisher !== true
@@ -78,7 +84,8 @@ export function requireWindowsDevSigningIdentity(options = {}) {
   return Object.freeze({
     subject: String(certificate.subject),
     thumbprint: String(certificate.thumbprint),
-    certificateSha256: sha256,
+    certificateSha256,
+    spkiSha256,
   });
 }
 
@@ -87,8 +94,13 @@ export function signWindowsDevFiles(paths, options = {}) {
     throw new Error('at least one Windows development signing path is required');
   }
   const payload = runSigningHelper('Sign', paths, options);
-  const sha256 = String(payload?.certificateSha256 || '').trim();
-  if (payload?.status !== 'signed' || !SHA256_PATTERN.test(sha256)) {
+  const certificateSha256 = String(payload?.certificateSha256 || '').trim();
+  const spkiSha256 = String(payload?.spkiSha256 || '').trim();
+  if (
+    payload?.status !== 'signed'
+    || !SHA256_PATTERN.test(certificateSha256)
+    || !SHA256_PATTERN.test(spkiSha256)
+  ) {
     throw new Error('Windows signing helper did not return a verified signer identity');
   }
   return payload;

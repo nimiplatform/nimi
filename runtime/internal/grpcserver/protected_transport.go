@@ -75,6 +75,10 @@ func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool)
 		"/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents":
 		return protectedlocal.RoleDesktopAccountHost, true
 	case "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
+		"/nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch",
+		"/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall",
+		"/nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun",
+		"/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess",
 		"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
 		"/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus",

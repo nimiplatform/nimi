@@ -17,7 +17,6 @@ import {
   testAppProject,
 } from './app-project-lifecycle.mjs';
 import { aggregateAppTargetCandidates, packAppTarget } from './app-pack.mjs';
-import { windowsPowerShellEnv } from './windows-powershell.mjs';
 export { runDevShell } from '../scripts/dev-shell.mjs';
 export {
   validateSimulatorAppSource,
@@ -105,49 +104,8 @@ function runAppCommand(targetDir, command, options = {}) {
   };
 }
 
-function signWindowsTarget(targetDir, relativePayloadPath) {
-  const targetPath = path.resolve(targetDir, ...relativePayloadPath.split('/'));
-  const rootPrefix = `${path.resolve(targetDir)}${path.sep}`;
-  if (!targetPath.startsWith(rootPrefix) || !existsSync(targetPath) || !statSync(targetPath).isFile()) {
-    throw new Error(`Windows production signing target is missing: ${relativePayloadPath}`);
-  }
-  const script = [
-    "$ErrorActionPreference = 'Stop'",
-    "if ([string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_BASE64) -or [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PASSWORD)) { throw 'Windows signing credentials are missing' }",
-    "$pfxPath = Join-Path ([IO.Path]::GetTempPath()) ('nimi-app-sign-' + [guid]::NewGuid().ToString('N') + '.pfx')",
-    '$cert = $null',
-    'try {',
-    '  [IO.File]::WriteAllBytes($pfxPath, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))',
-    '  $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force',
-    "  $cert = Import-PfxCertificate -FilePath $pfxPath -CertStoreLocation 'Cert:\\CurrentUser\\My' -Password $password -Exportable:$false",
-    "  if (-not $cert) { throw 'Windows signing certificate import failed' }",
-    "  $kitsRoot = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\\10\\bin'",
-    "  $signTool = Get-ChildItem -LiteralPath $kitsRoot -Filter 'signtool.exe' -Recurse -File | Where-Object { $_.FullName -match '\\\\x64\\\\signtool\\.exe$' } | Sort-Object FullName -Descending | Select-Object -First 1",
-    "  if (-not $signTool) { throw 'signtool.exe was not found' }",
-    "  & $signTool.FullName sign /fd SHA256 /td SHA256 /tr 'http://timestamp.digicert.com' /sha1 $cert.Thumbprint $env:NIMI_APP_SIGN_TARGET",
-    "  if ($LASTEXITCODE -ne 0) { throw 'signtool failed' }",
-    '  $signature = Get-AuthenticodeSignature -LiteralPath $env:NIMI_APP_SIGN_TARGET',
-    "  if ($signature.Status -ne 'Valid') { throw ('Authenticode status: ' + $signature.Status) }",
-    '  $signature.SignerCertificate.Subject',
-    '} finally {',
-    "  if ($cert) { Remove-Item -LiteralPath ('Cert:\\CurrentUser\\My\\' + $cert.Thumbprint) -Force -ErrorAction SilentlyContinue }",
-    '  [IO.File]::Delete($pfxPath)',
-    '}',
-  ].join('\n');
-  const result = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
-    cwd: targetDir,
-    encoding: 'utf8',
-    env: windowsPowerShellEnv({ NIMI_APP_SIGN_TARGET: targetPath }),
-  });
-  if (result.status !== 0) {
-    const detail = [result.error?.message, result.stdout, result.stderr].filter(Boolean).join('\n').trim();
-    throw new Error(`Windows production signing failed${detail ? `: ${detail}` : ''}`);
-  }
-  return { subject: String(result.stdout || '').trim() };
-}
-
 function appToolRunners() {
-  return { runNimicodingSync, runAppCommand, signWindowsTarget };
+  return { runNimicodingSync, runAppCommand };
 }
 
 export function createApp(cwd, options = {}) {

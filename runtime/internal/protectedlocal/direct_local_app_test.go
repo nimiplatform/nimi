@@ -1,6 +1,7 @@
 package protectedlocal
 
 import (
+	"encoding/base64"
 	"os"
 	"path/filepath"
 	"testing"
@@ -77,6 +78,51 @@ func TestDirectLocalAppLaunchIsIdempotentAndPIDReuseSafe(t *testing.T) {
 	}
 	if _, err := launches.Consume(witness.PID, witness.UID); err == nil {
 		t.Fatal("one-time launch was replayed")
+	}
+}
+
+func TestDirectInstalledBindingPreservesVerifiedSourceGenerationsAndOneUse(t *testing.T) {
+	launches := NewDirectLocalAppLaunches()
+	registration := Identifier{11}
+	handle := "rar_v1_" + base64.RawURLEncoding.EncodeToString(registration[:])
+	executable := filepath.Join(os.TempDir(), "installed", "app.exe")
+	parent := localAppRegistryProcess(7101, 0x72)
+	process := localAppRegistryProcess(7102, 0x73)
+	process.CreationMarker = "1234"
+	process.CanonicalExecutablePath = executable
+	policy := InstalledAppProcessPolicy{RegistrationHandle: handle, SourceGeneration: 3, DeclarationGeneration: 4,
+		HostExecutablePath: executable, HostExecutableDigest: process.ExecutableDigest, ExecutionProfileRef: "windows-user-mode-as-invoker-v1", SupervisorProcess: parent}
+	prepared, err := launches.Prepare(registration, Identifier{12}, 3, 4, parent.PID, 1, executable, time.Now().Add(time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrong := process
+	wrong.ExecutableDigest = Identifier{13}
+	if _, err := launches.BindInstalled(prepared.LaunchID, policy, wrong, 1, time.Now().Add(time.Second)); err == nil {
+		t.Fatal("mismatched installed executable bound")
+	}
+	if _, err := launches.BindInstalled(prepared.LaunchID, policy, process, 1, time.Now().Add(time.Second)); err != nil {
+		t.Fatal(err)
+	}
+	bound, err := launches.Consume(process.PID, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	connection, err := newDirectLocalAppConnection(DirectLocalAppPeer{OS: OSWindows, PID: process.PID, UID: 1}, bound, Identifier{14})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer connection.Revoke()
+	actual, ok := connection.InstalledRegistrationHandle()
+	if !ok || actual != handle || connection.TrustClass() != LocalAppTrustVerified || connection.Process() != process {
+		t.Fatal("installed binding became development or lost exact process")
+	}
+	source, declaration, ok := connection.InstalledLaunchGenerations()
+	if !ok || source != 3 || declaration != 4 {
+		t.Fatal("installed generations were lost")
+	}
+	if _, err := launches.Consume(process.PID, 1); err == nil {
+		t.Fatal("installed peer replay succeeded")
 	}
 }
 

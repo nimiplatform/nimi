@@ -49,6 +49,8 @@ import { AppArtworkIcon } from './apps-card-visuals.js';
 import { AppListRow } from './apps-list-row.js';
 import { FrequentAppsSection } from './apps-frequent-section.js';
 import { AppsDetailView } from './apps-detail-view.js';
+import { AppsInstallConfirmationDialog } from './apps-install-confirmation.js';
+import type { AppsInstallIntentSnapshot } from './apps-install-intent.js';
 import type { DesktopAppsEntry, DesktopAppsPanelProjection } from './apps-panel-projection.js';
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-001a
@@ -67,6 +69,9 @@ export interface AppsPanelViewProps {
   readonly onAIConfigChanged: (entryKey: string, result: NimiAIConfigOverwriteResult) => void;
   readonly actionError: string | null;
   readonly activeAction: Readonly<{ entryKey: string; action: AppCardActionId }> | null;
+  readonly installConfirmation: AppsInstallIntentSnapshot | null;
+  readonly onConfirmInstall: () => void;
+  readonly onCancelInstall: () => void;
 }
 
 const SORT_IDS: readonly AppsSortId[] = ['updated', 'name', 'activity'];
@@ -100,6 +105,9 @@ export function AppsPanelView({
   onAIConfigChanged,
   actionError,
   activeAction,
+  installConfirmation,
+  onConfirmInstall,
+  onCancelInstall,
 }: AppsPanelViewProps): ReactElement {
   const { t } = useTranslation();
   const [sortId, setSortId] = useState<AppsSortId>('updated');
@@ -214,6 +222,12 @@ export function AppsPanelView({
           />
         )}
       </Surface>
+      <AppsInstallConfirmationDialog
+        intent={installConfirmation}
+        pending={activeAction?.action === 'install'}
+        onConfirm={onConfirmInstall}
+        onClose={onCancelInstall}
+      />
     </div>
   );
 }

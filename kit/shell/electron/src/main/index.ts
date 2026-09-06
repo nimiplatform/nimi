@@ -54,3 +54,8 @@ export {
   type NimiElectronDesktopAccountHost,
 } from './desktop-account-host.js';
 export * from './types.js';
+export {
+  createNimiElectronInstalledAppControl,
+  NimiElectronInstalledAppError,
+  type NimiElectronInstalledAppControl,
+} from './installed-app-control.js';

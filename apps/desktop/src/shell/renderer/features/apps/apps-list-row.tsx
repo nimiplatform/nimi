@@ -143,7 +143,26 @@ export function AppRowActionButton({
   const { t } = useTranslation();
   const { identity, localDevelopment } = entry;
   const visual = appRunVisualState(entry.run?.state ?? null);
-  if (localDevelopment === null) return null;
+  if (localDevelopment === null) {
+    const action = actionPlanForEntry(entry).primary?.id;
+    if (action !== 'launch') return null;
+    return (
+      <Button
+        data-testid={`apps-entry-${identity.entryKey}-${action}`}
+        tone="secondary"
+        size="sm"
+        className={launchCapsuleClassName}
+        loading={activeAction === action}
+        disabled={activeAction !== null}
+        onClick={(event) => {
+          event.stopPropagation();
+          onAction(action);
+        }}
+      >
+        {t(visual === 'running' ? 'Apps.action.focus' : 'Apps.action.launch')}
+      </Button>
+    );
+  }
 
   const launch = (event: MouseEvent): void => {
     event.stopPropagation();
@@ -266,11 +285,18 @@ export function AppListRow({
       }
       : {
         id: 'launch',
-        label: t('Apps.action.launch'),
+        label: t(entry.committedRelease && entry.run?.state === 'running' ? 'Apps.action.focus' : 'Apps.action.launch'),
         icon: <Play className="h-4 w-4" aria-hidden="true" />,
         disabled: activeAction !== null,
         onSelect: () => onAction('launch'),
       }] : []),
+    ...(actionPlan.primary?.id !== 'stop' && actionPlan.secondary.some((action) => action.id === 'stop') ? [{
+      id: 'stop',
+      label: t('Apps.action.stop'),
+      icon: <Square className="h-4 w-4" aria-hidden="true" />,
+      disabled: activeAction !== null,
+      onSelect: () => onAction('stop'),
+    }] : []),
     ...(actionPlan.secondary.some((action) => action.id === 'cancel-job') ? [{
       id: 'cancel-job',
       label: t('Apps.action.cancel'),
@@ -335,7 +361,12 @@ export function AppListRow({
           </p>
         ) : null}
         <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-          {localDevelopment !== null ? <AppRunStatusText entry={entry} /> : null}
+          {localDevelopment !== null || entry.run ? <AppRunStatusText entry={entry} /> : null}
+          {entry.run && 'accessAvailable' in entry.run ? (
+            <span className="text-xs text-[var(--nimi-text-muted)]">
+              {t(entry.run.accessAvailable ? 'Apps.installedAccess.ready' : 'Apps.installedAccess.unavailable')}
+            </span>
+          ) : null}
           {aiConfigSummary ? (
             <button
               type="button"

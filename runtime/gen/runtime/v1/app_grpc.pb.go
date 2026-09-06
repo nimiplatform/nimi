@@ -19,22 +19,30 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	RuntimeAppPackageService_ListCommittedAppReleases_FullMethodName = "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases"
-	RuntimeAppPackageService_ListAppPackageJobs_FullMethodName       = "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs"
-	RuntimeAppPackageService_GetAppPackageJob_FullMethodName         = "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob"
-	RuntimeAppPackageService_CancelAppPackageJob_FullMethodName      = "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob"
+	RuntimeAppPackageService_ListApprovedAppCatalogTargets_FullMethodName = "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets"
+	RuntimeAppPackageService_ListCommittedAppReleases_FullMethodName      = "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases"
+	RuntimeAppPackageService_ListAppPackageJobs_FullMethodName            = "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs"
+	RuntimeAppPackageService_GetAppPackageJob_FullMethodName              = "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob"
+	RuntimeAppPackageService_StartAppPackageInstall_FullMethodName        = "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall"
+	RuntimeAppPackageService_StartAppPackageUninstall_FullMethodName      = "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall"
+	RuntimeAppPackageService_CancelAppPackageJob_FullMethodName           = "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob"
 )
 
 // RuntimeAppPackageServiceClient is the client API for RuntimeAppPackageService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// Desktop-protected Runtime owner projection. This service deliberately has no
-// package mutation start RPC and excludes local_development from every enum.
+// Desktop-protected Runtime owner projection. StartAppPackageInstall remains
+// excluded from every shipped protected profile until the Desktop confirmation
+// and install-availability cutover land together. local_development is absent
+// from every package enum and request.
 type RuntimeAppPackageServiceClient interface {
+	ListApprovedAppCatalogTargets(ctx context.Context, in *ListApprovedAppCatalogTargetsRequest, opts ...grpc.CallOption) (*ListApprovedAppCatalogTargetsResponse, error)
 	ListCommittedAppReleases(ctx context.Context, in *ListCommittedAppReleasesRequest, opts ...grpc.CallOption) (*ListCommittedAppReleasesResponse, error)
 	ListAppPackageJobs(ctx context.Context, in *ListAppPackageJobsRequest, opts ...grpc.CallOption) (*ListAppPackageJobsResponse, error)
 	GetAppPackageJob(ctx context.Context, in *GetAppPackageJobRequest, opts ...grpc.CallOption) (*GetAppPackageJobResponse, error)
+	StartAppPackageInstall(ctx context.Context, in *StartAppPackageInstallRequest, opts ...grpc.CallOption) (*StartAppPackageInstallResponse, error)
+	StartAppPackageUninstall(ctx context.Context, in *StartAppPackageUninstallRequest, opts ...grpc.CallOption) (*StartAppPackageUninstallResponse, error)
 	CancelAppPackageJob(ctx context.Context, in *CancelAppPackageJobRequest, opts ...grpc.CallOption) (*CancelAppPackageJobResponse, error)
 }
 
@@ -44,6 +52,16 @@ type runtimeAppPackageServiceClient struct {
 
 func NewRuntimeAppPackageServiceClient(cc grpc.ClientConnInterface) RuntimeAppPackageServiceClient {
 	return &runtimeAppPackageServiceClient{cc}
+}
+
+func (c *runtimeAppPackageServiceClient) ListApprovedAppCatalogTargets(ctx context.Context, in *ListApprovedAppCatalogTargetsRequest, opts ...grpc.CallOption) (*ListApprovedAppCatalogTargetsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListApprovedAppCatalogTargetsResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_ListApprovedAppCatalogTargets_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *runtimeAppPackageServiceClient) ListCommittedAppReleases(ctx context.Context, in *ListCommittedAppReleasesRequest, opts ...grpc.CallOption) (*ListCommittedAppReleasesResponse, error) {
@@ -76,6 +94,26 @@ func (c *runtimeAppPackageServiceClient) GetAppPackageJob(ctx context.Context, i
 	return out, nil
 }
 
+func (c *runtimeAppPackageServiceClient) StartAppPackageInstall(ctx context.Context, in *StartAppPackageInstallRequest, opts ...grpc.CallOption) (*StartAppPackageInstallResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StartAppPackageInstallResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_StartAppPackageInstall_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppPackageServiceClient) StartAppPackageUninstall(ctx context.Context, in *StartAppPackageUninstallRequest, opts ...grpc.CallOption) (*StartAppPackageUninstallResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StartAppPackageUninstallResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_StartAppPackageUninstall_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAppPackageServiceClient) CancelAppPackageJob(ctx context.Context, in *CancelAppPackageJobRequest, opts ...grpc.CallOption) (*CancelAppPackageJobResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CancelAppPackageJobResponse)
@@ -90,12 +128,17 @@ func (c *runtimeAppPackageServiceClient) CancelAppPackageJob(ctx context.Context
 // All implementations should embed UnimplementedRuntimeAppPackageServiceServer
 // for forward compatibility.
 //
-// Desktop-protected Runtime owner projection. This service deliberately has no
-// package mutation start RPC and excludes local_development from every enum.
+// Desktop-protected Runtime owner projection. StartAppPackageInstall remains
+// excluded from every shipped protected profile until the Desktop confirmation
+// and install-availability cutover land together. local_development is absent
+// from every package enum and request.
 type RuntimeAppPackageServiceServer interface {
+	ListApprovedAppCatalogTargets(context.Context, *ListApprovedAppCatalogTargetsRequest) (*ListApprovedAppCatalogTargetsResponse, error)
 	ListCommittedAppReleases(context.Context, *ListCommittedAppReleasesRequest) (*ListCommittedAppReleasesResponse, error)
 	ListAppPackageJobs(context.Context, *ListAppPackageJobsRequest) (*ListAppPackageJobsResponse, error)
 	GetAppPackageJob(context.Context, *GetAppPackageJobRequest) (*GetAppPackageJobResponse, error)
+	StartAppPackageInstall(context.Context, *StartAppPackageInstallRequest) (*StartAppPackageInstallResponse, error)
+	StartAppPackageUninstall(context.Context, *StartAppPackageUninstallRequest) (*StartAppPackageUninstallResponse, error)
 	CancelAppPackageJob(context.Context, *CancelAppPackageJobRequest) (*CancelAppPackageJobResponse, error)
 }
 
@@ -106,6 +149,9 @@ type RuntimeAppPackageServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRuntimeAppPackageServiceServer struct{}
 
+func (UnimplementedRuntimeAppPackageServiceServer) ListApprovedAppCatalogTargets(context.Context, *ListApprovedAppCatalogTargetsRequest) (*ListApprovedAppCatalogTargetsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListApprovedAppCatalogTargets not implemented")
+}
 func (UnimplementedRuntimeAppPackageServiceServer) ListCommittedAppReleases(context.Context, *ListCommittedAppReleasesRequest) (*ListCommittedAppReleasesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListCommittedAppReleases not implemented")
 }
@@ -114,6 +160,12 @@ func (UnimplementedRuntimeAppPackageServiceServer) ListAppPackageJobs(context.Co
 }
 func (UnimplementedRuntimeAppPackageServiceServer) GetAppPackageJob(context.Context, *GetAppPackageJobRequest) (*GetAppPackageJobResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAppPackageJob not implemented")
+}
+func (UnimplementedRuntimeAppPackageServiceServer) StartAppPackageInstall(context.Context, *StartAppPackageInstallRequest) (*StartAppPackageInstallResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartAppPackageInstall not implemented")
+}
+func (UnimplementedRuntimeAppPackageServiceServer) StartAppPackageUninstall(context.Context, *StartAppPackageUninstallRequest) (*StartAppPackageUninstallResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartAppPackageUninstall not implemented")
 }
 func (UnimplementedRuntimeAppPackageServiceServer) CancelAppPackageJob(context.Context, *CancelAppPackageJobRequest) (*CancelAppPackageJobResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CancelAppPackageJob not implemented")
@@ -136,6 +188,24 @@ func RegisterRuntimeAppPackageServiceServer(s grpc.ServiceRegistrar, srv Runtime
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&RuntimeAppPackageService_ServiceDesc, srv)
+}
+
+func _RuntimeAppPackageService_ListApprovedAppCatalogTargets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListApprovedAppCatalogTargetsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).ListApprovedAppCatalogTargets(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_ListApprovedAppCatalogTargets_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).ListApprovedAppCatalogTargets(ctx, req.(*ListApprovedAppCatalogTargetsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _RuntimeAppPackageService_ListCommittedAppReleases_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -192,6 +262,42 @@ func _RuntimeAppPackageService_GetAppPackageJob_Handler(srv interface{}, ctx con
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAppPackageService_StartAppPackageInstall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartAppPackageInstallRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).StartAppPackageInstall(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_StartAppPackageInstall_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).StartAppPackageInstall(ctx, req.(*StartAppPackageInstallRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppPackageService_StartAppPackageUninstall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartAppPackageUninstallRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).StartAppPackageUninstall(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_StartAppPackageUninstall_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).StartAppPackageUninstall(ctx, req.(*StartAppPackageUninstallRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAppPackageService_CancelAppPackageJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CancelAppPackageJobRequest)
 	if err := dec(in); err != nil {
@@ -218,6 +324,10 @@ var RuntimeAppPackageService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*RuntimeAppPackageServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "ListApprovedAppCatalogTargets",
+			Handler:    _RuntimeAppPackageService_ListApprovedAppCatalogTargets_Handler,
+		},
+		{
 			MethodName: "ListCommittedAppReleases",
 			Handler:    _RuntimeAppPackageService_ListCommittedAppReleases_Handler,
 		},
@@ -230,6 +340,14 @@ var RuntimeAppPackageService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAppPackageService_GetAppPackageJob_Handler,
 		},
 		{
+			MethodName: "StartAppPackageInstall",
+			Handler:    _RuntimeAppPackageService_StartAppPackageInstall_Handler,
+		},
+		{
+			MethodName: "StartAppPackageUninstall",
+			Handler:    _RuntimeAppPackageService_StartAppPackageUninstall_Handler,
+		},
+		{
 			MethodName: "CancelAppPackageJob",
 			Handler:    _RuntimeAppPackageService_CancelAppPackageJob_Handler,
 		},
@@ -239,23 +357,27 @@ var RuntimeAppPackageService_ServiceDesc = grpc.ServiceDesc{
 }
 
 const (
-	RuntimeAppService_SendAppMessage_FullMethodName            = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
-	RuntimeAppService_SubscribeAppMessages_FullMethodName      = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
-	RuntimeAppService_GetAppStorage_FullMethodName             = "/nimi.runtime.v1.RuntimeAppService/GetAppStorage"
-	RuntimeAppService_ReadLocalAppStorageJson_FullMethodName   = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
-	RuntimeAppService_WriteLocalAppStorageJson_FullMethodName  = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
-	RuntimeAppService_RemoveLocalAppStorageJson_FullMethodName = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
-	RuntimeAppService_StatLocalAppAsset_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset"
-	RuntimeAppService_ListLocalAppAssets_FullMethodName        = "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets"
-	RuntimeAppService_WriteLocalAppAsset_FullMethodName        = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset"
-	RuntimeAppService_ReadLocalAppAsset_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset"
-	RuntimeAppService_RemoveLocalAppAsset_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset"
-	RuntimeAppService_MoveLocalAppAsset_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset"
-	RuntimeAppService_RevealLocalAppAsset_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset"
-	RuntimeAppService_AdoptLocalAppArtifact_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact"
-	RuntimeAppService_PrepareLocalAppLaunch_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch"
-	RuntimeAppService_BindLocalAppProcess_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess"
-	RuntimeAppService_RebindLocalAppProcess_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess"
+	RuntimeAppService_SendAppMessage_FullMethodName              = "/nimi.runtime.v1.RuntimeAppService/SendAppMessage"
+	RuntimeAppService_SubscribeAppMessages_FullMethodName        = "/nimi.runtime.v1.RuntimeAppService/SubscribeAppMessages"
+	RuntimeAppService_GetAppStorage_FullMethodName               = "/nimi.runtime.v1.RuntimeAppService/GetAppStorage"
+	RuntimeAppService_ReadLocalAppStorageJson_FullMethodName     = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson"
+	RuntimeAppService_WriteLocalAppStorageJson_FullMethodName    = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson"
+	RuntimeAppService_RemoveLocalAppStorageJson_FullMethodName   = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson"
+	RuntimeAppService_StatLocalAppAsset_FullMethodName           = "/nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset"
+	RuntimeAppService_ListLocalAppAssets_FullMethodName          = "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets"
+	RuntimeAppService_WriteLocalAppAsset_FullMethodName          = "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset"
+	RuntimeAppService_ReadLocalAppAsset_FullMethodName           = "/nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset"
+	RuntimeAppService_RemoveLocalAppAsset_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset"
+	RuntimeAppService_MoveLocalAppAsset_FullMethodName           = "/nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset"
+	RuntimeAppService_RevealLocalAppAsset_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset"
+	RuntimeAppService_AdoptLocalAppArtifact_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact"
+	RuntimeAppService_PrepareLocalAppLaunch_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch"
+	RuntimeAppService_PrepareInstalledAppLaunch_FullMethodName   = "/nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch"
+	RuntimeAppService_BindLocalAppProcess_FullMethodName         = "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess"
+	RuntimeAppService_EndInstalledAppRun_FullMethodName          = "/nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun"
+	RuntimeAppService_GetInstalledAppRunAccess_FullMethodName    = "/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess"
+	RuntimeAppService_CompleteAppPackageUninstall_FullMethodName = "/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall"
+	RuntimeAppService_RebindLocalAppProcess_FullMethodName       = "/nimi.runtime.v1.RuntimeAppService/RebindLocalAppProcess"
 )
 
 // RuntimeAppServiceClient is the client API for RuntimeAppService service.
@@ -277,7 +399,11 @@ type RuntimeAppServiceClient interface {
 	RevealLocalAppAsset(ctx context.Context, in *RevealLocalAppAssetRequest, opts ...grpc.CallOption) (*RevealLocalAppAssetResponse, error)
 	AdoptLocalAppArtifact(ctx context.Context, in *AdoptLocalAppArtifactRequest, opts ...grpc.CallOption) (*AdoptLocalAppArtifactResponse, error)
 	PrepareLocalAppLaunch(ctx context.Context, in *PrepareLocalAppLaunchRequest, opts ...grpc.CallOption) (*PrepareLocalAppLaunchResponse, error)
+	PrepareInstalledAppLaunch(ctx context.Context, in *PrepareInstalledAppLaunchRequest, opts ...grpc.CallOption) (*PrepareInstalledAppLaunchResponse, error)
 	BindLocalAppProcess(ctx context.Context, in *BindLocalAppProcessRequest, opts ...grpc.CallOption) (*BindLocalAppProcessResponse, error)
+	EndInstalledAppRun(ctx context.Context, in *EndInstalledAppRunRequest, opts ...grpc.CallOption) (*EndInstalledAppRunResponse, error)
+	GetInstalledAppRunAccess(ctx context.Context, in *GetInstalledAppRunAccessRequest, opts ...grpc.CallOption) (*GetInstalledAppRunAccessResponse, error)
+	CompleteAppPackageUninstall(ctx context.Context, in *CompleteAppPackageUninstallRequest, opts ...grpc.CallOption) (*CompleteAppPackageUninstallResponse, error)
 	RebindLocalAppProcess(ctx context.Context, in *RebindLocalAppProcessRequest, opts ...grpc.CallOption) (*RebindLocalAppProcessResponse, error)
 }
 
@@ -460,10 +586,50 @@ func (c *runtimeAppServiceClient) PrepareLocalAppLaunch(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *runtimeAppServiceClient) PrepareInstalledAppLaunch(ctx context.Context, in *PrepareInstalledAppLaunchRequest, opts ...grpc.CallOption) (*PrepareInstalledAppLaunchResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PrepareInstalledAppLaunchResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_PrepareInstalledAppLaunch_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAppServiceClient) BindLocalAppProcess(ctx context.Context, in *BindLocalAppProcessRequest, opts ...grpc.CallOption) (*BindLocalAppProcessResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(BindLocalAppProcessResponse)
 	err := c.cc.Invoke(ctx, RuntimeAppService_BindLocalAppProcess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) EndInstalledAppRun(ctx context.Context, in *EndInstalledAppRunRequest, opts ...grpc.CallOption) (*EndInstalledAppRunResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EndInstalledAppRunResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_EndInstalledAppRun_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) GetInstalledAppRunAccess(ctx context.Context, in *GetInstalledAppRunAccessRequest, opts ...grpc.CallOption) (*GetInstalledAppRunAccessResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetInstalledAppRunAccessResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_GetInstalledAppRunAccess_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppServiceClient) CompleteAppPackageUninstall(ctx context.Context, in *CompleteAppPackageUninstallRequest, opts ...grpc.CallOption) (*CompleteAppPackageUninstallResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CompleteAppPackageUninstallResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppService_CompleteAppPackageUninstall_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -499,7 +665,11 @@ type RuntimeAppServiceServer interface {
 	RevealLocalAppAsset(context.Context, *RevealLocalAppAssetRequest) (*RevealLocalAppAssetResponse, error)
 	AdoptLocalAppArtifact(context.Context, *AdoptLocalAppArtifactRequest) (*AdoptLocalAppArtifactResponse, error)
 	PrepareLocalAppLaunch(context.Context, *PrepareLocalAppLaunchRequest) (*PrepareLocalAppLaunchResponse, error)
+	PrepareInstalledAppLaunch(context.Context, *PrepareInstalledAppLaunchRequest) (*PrepareInstalledAppLaunchResponse, error)
 	BindLocalAppProcess(context.Context, *BindLocalAppProcessRequest) (*BindLocalAppProcessResponse, error)
+	EndInstalledAppRun(context.Context, *EndInstalledAppRunRequest) (*EndInstalledAppRunResponse, error)
+	GetInstalledAppRunAccess(context.Context, *GetInstalledAppRunAccessRequest) (*GetInstalledAppRunAccessResponse, error)
+	CompleteAppPackageUninstall(context.Context, *CompleteAppPackageUninstallRequest) (*CompleteAppPackageUninstallResponse, error)
 	RebindLocalAppProcess(context.Context, *RebindLocalAppProcessRequest) (*RebindLocalAppProcessResponse, error)
 }
 
@@ -555,8 +725,20 @@ func (UnimplementedRuntimeAppServiceServer) AdoptLocalAppArtifact(context.Contex
 func (UnimplementedRuntimeAppServiceServer) PrepareLocalAppLaunch(context.Context, *PrepareLocalAppLaunchRequest) (*PrepareLocalAppLaunchResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method PrepareLocalAppLaunch not implemented")
 }
+func (UnimplementedRuntimeAppServiceServer) PrepareInstalledAppLaunch(context.Context, *PrepareInstalledAppLaunchRequest) (*PrepareInstalledAppLaunchResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PrepareInstalledAppLaunch not implemented")
+}
 func (UnimplementedRuntimeAppServiceServer) BindLocalAppProcess(context.Context, *BindLocalAppProcessRequest) (*BindLocalAppProcessResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method BindLocalAppProcess not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) EndInstalledAppRun(context.Context, *EndInstalledAppRunRequest) (*EndInstalledAppRunResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method EndInstalledAppRun not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) GetInstalledAppRunAccess(context.Context, *GetInstalledAppRunAccessRequest) (*GetInstalledAppRunAccessResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetInstalledAppRunAccess not implemented")
+}
+func (UnimplementedRuntimeAppServiceServer) CompleteAppPackageUninstall(context.Context, *CompleteAppPackageUninstallRequest) (*CompleteAppPackageUninstallResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CompleteAppPackageUninstall not implemented")
 }
 func (UnimplementedRuntimeAppServiceServer) RebindLocalAppProcess(context.Context, *RebindLocalAppProcessRequest) (*RebindLocalAppProcessResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RebindLocalAppProcess not implemented")
@@ -826,6 +1008,24 @@ func _RuntimeAppService_PrepareLocalAppLaunch_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAppService_PrepareInstalledAppLaunch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PrepareInstalledAppLaunchRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).PrepareInstalledAppLaunch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_PrepareInstalledAppLaunch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).PrepareInstalledAppLaunch(ctx, req.(*PrepareInstalledAppLaunchRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAppService_BindLocalAppProcess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(BindLocalAppProcessRequest)
 	if err := dec(in); err != nil {
@@ -840,6 +1040,60 @@ func _RuntimeAppService_BindLocalAppProcess_Handler(srv interface{}, ctx context
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAppServiceServer).BindLocalAppProcess(ctx, req.(*BindLocalAppProcessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_EndInstalledAppRun_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EndInstalledAppRunRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).EndInstalledAppRun(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_EndInstalledAppRun_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).EndInstalledAppRun(ctx, req.(*EndInstalledAppRunRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_GetInstalledAppRunAccess_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetInstalledAppRunAccessRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).GetInstalledAppRunAccess(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_GetInstalledAppRunAccess_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).GetInstalledAppRunAccess(ctx, req.(*GetInstalledAppRunAccessRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppService_CompleteAppPackageUninstall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompleteAppPackageUninstallRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppServiceServer).CompleteAppPackageUninstall(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppService_CompleteAppPackageUninstall_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppServiceServer).CompleteAppPackageUninstall(ctx, req.(*CompleteAppPackageUninstallRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -918,8 +1172,24 @@ var RuntimeAppService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RuntimeAppService_PrepareLocalAppLaunch_Handler,
 		},
 		{
+			MethodName: "PrepareInstalledAppLaunch",
+			Handler:    _RuntimeAppService_PrepareInstalledAppLaunch_Handler,
+		},
+		{
 			MethodName: "BindLocalAppProcess",
 			Handler:    _RuntimeAppService_BindLocalAppProcess_Handler,
+		},
+		{
+			MethodName: "EndInstalledAppRun",
+			Handler:    _RuntimeAppService_EndInstalledAppRun_Handler,
+		},
+		{
+			MethodName: "GetInstalledAppRunAccess",
+			Handler:    _RuntimeAppService_GetInstalledAppRunAccess_Handler,
+		},
+		{
+			MethodName: "CompleteAppPackageUninstall",
+			Handler:    _RuntimeAppService_CompleteAppPackageUninstall_Handler,
 		},
 		{
 			MethodName: "RebindLocalAppProcess",

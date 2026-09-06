@@ -135,6 +135,24 @@ function Get-CertificateSha256 {
   }
 }
 
+function Get-CertificateSpkiSha256 {
+  param(
+    [System.Security.Cryptography.X509Certificates.X509Certificate2] $Cert
+  )
+
+  if ($null -eq $Cert) {
+    return $null
+  }
+  $sha256 = [System.Security.Cryptography.SHA256]::Create()
+  try {
+    $subjectPublicKeyInfo = $Cert.PublicKey.ExportSubjectPublicKeyInfo()
+    $bytes = $sha256.ComputeHash($subjectPublicKeyInfo)
+    return ([System.BitConverter]::ToString($bytes)).Replace('-', '').ToLowerInvariant()
+  } finally {
+    $sha256.Dispose()
+  }
+}
+
 function Convert-CertSummary {
   param(
     [System.Security.Cryptography.X509Certificates.X509Certificate2] $Cert,
@@ -147,6 +165,7 @@ function Convert-CertSummary {
       subject = $Subject
       thumbprint = $null
       certificateSha256 = $null
+      spkiSha256 = $null
       notBefore = $null
       notAfter = $null
       stores = Get-StoreStatus -Cert $null
@@ -158,6 +177,7 @@ function Convert-CertSummary {
     subject = $Cert.Subject
     thumbprint = $Cert.Thumbprint
     certificateSha256 = Get-CertificateSha256 -Cert $Cert
+    spkiSha256 = Get-CertificateSpkiSha256 -Cert $Cert
     notBefore = $Cert.NotBefore.ToString('o')
     notAfter = $Cert.NotAfter.ToString('o')
     stores = Get-StoreStatus -Cert $Cert
@@ -190,6 +210,7 @@ function Get-SignatureSummary {
       signerSubject = $null
       signerThumbprint = $null
       signerCertificateSha256 = $null
+      signerSpkiSha256 = $null
     }
   }
 
@@ -202,6 +223,7 @@ function Get-SignatureSummary {
     signerSubject = if ($signature.SignerCertificate) { $signature.SignerCertificate.Subject } else { $null }
     signerThumbprint = if ($signature.SignerCertificate) { $signature.SignerCertificate.Thumbprint } else { $null }
     signerCertificateSha256 = if ($signature.SignerCertificate) { Get-CertificateSha256 -Cert $signature.SignerCertificate } else { $null }
+    signerSpkiSha256 = if ($signature.SignerCertificate) { Get-CertificateSpkiSha256 -Cert $signature.SignerCertificate } else { $null }
   }
 }
 
@@ -325,6 +347,7 @@ function Invoke-Sign {
     subject = $cert.Subject
     thumbprint = $cert.Thumbprint
     certificateSha256 = Get-CertificateSha256 -Cert $cert
+    spkiSha256 = Get-CertificateSpkiSha256 -Cert $cert
     signatures = @($signatures)
   })
 }

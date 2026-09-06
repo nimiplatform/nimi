@@ -1,8 +1,8 @@
-// Desktop Apps action projection for the current local-development source.
-// Package actions remain absent because local_development never enters the
-// immutable package lifecycle.
+import { AppPackageJobPhase, AppPackageSourceClass, type AppPackageJob, type CommittedAppRelease } from '@nimiplatform/sdk/runtime/wire-types';
 
-export type AppCardActionId = 'details' | 'open-ai-config' | 'launch' | 'stop' | 'remove' | 'cancel-job';
+// @nimi-authority: rule.nimi.desktop.shell-ui.r053
+
+export type AppCardActionId = 'details' | 'open-ai-config' | 'install' | 'launch' | 'stop' | 'remove' | 'uninstall' | 'cancel-job';
 
 export interface AppCardAction {
   readonly id: AppCardActionId;
@@ -14,8 +14,10 @@ export interface AppCardActionPlan {
 }
 
 type AppsActionEntry = {
+  readonly catalogTarget: { readonly policyBlocked: boolean } | null;
+  readonly committedRelease: Pick<CommittedAppRelease, 'sourceClass'> | null;
   readonly localDevelopment: unknown | null;
-  readonly packageJob: { readonly cancelable: boolean } | null;
+  readonly packageJob: Pick<AppPackageJob, 'cancelable' | 'phase'> | null;
   readonly run: { readonly state: string } | null;
 };
 
@@ -27,6 +29,7 @@ const CANCEL_JOB: AppCardAction = { id: 'cancel-job' };
 const TERMINAL_RUN_STATES = Object.freeze([
   'stopped',
   'failed',
+  'crashed',
   'project-changed',
   'registration-unavailable',
   'registration-removed',
@@ -48,8 +51,27 @@ export function actionPlanForLocalDevelopmentEntry(runState: string | null): App
 export function actionPlanForEntry(entry: AppsActionEntry): AppCardActionPlan {
   const base = entry.localDevelopment
     ? actionPlanForLocalDevelopmentEntry(entry.run?.state ?? null)
-    : { primary: null, secondary: [DETAILS] };
+    : entry.committedRelease?.sourceClass === AppPackageSourceClass.VERIFIED && (!packageJobActive(entry.packageJob) || isLocalDevelopmentRunActive(entry.run?.state ?? null))
+      ? { primary: entry.catalogTarget?.policyBlocked && !isLocalDevelopmentRunActive(entry.run?.state ?? null) ? null : LAUNCH,
+          secondary: isLocalDevelopmentRunActive(entry.run?.state ?? null) ? [DETAILS, STOP] : [DETAILS] }
+      : { primary: null, secondary: [DETAILS] };
   return entry.packageJob?.cancelable
     ? { ...base, secondary: [...base.secondary, CANCEL_JOB] }
     : base;
+}
+
+export function canRequestCatalogInstall(entry: AppsActionEntry): boolean {
+  return Boolean(entry.catalogTarget && !entry.catalogTarget.policyBlocked && !entry.committedRelease && !packageJobActive(entry.packageJob));
+}
+
+function packageJobActive(job: AppsActionEntry['packageJob']): boolean {
+  return job !== null && ![
+    AppPackageJobPhase.COMPLETED,
+    AppPackageJobPhase.FAILED,
+    AppPackageJobPhase.CANCELED,
+  ].includes(job.phase);
+}
+
+export function canRequestUninstall(entry: AppsActionEntry): boolean {
+  return Boolean(entry.committedRelease?.sourceClass === AppPackageSourceClass.VERIFIED && !entry.localDevelopment && !packageJobActive(entry.packageJob));
 }

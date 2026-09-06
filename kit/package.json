@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/kit",
-  "version": "0.3.0",
+  "version": "0.6.0",
   "description": "The product-grade cross-app toolkit for Nimi apps.",
   "license": "MIT",
   "private": false,
@@ -358,7 +358,7 @@
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.4",
-    "@nimiplatform/sdk": "workspace:^0.7.0",
+    "@nimiplatform/sdk": "workspace:^0.8.0",
     "@radix-ui/react-avatar": "^1.2.6",
     "@radix-ui/react-dialog": "^1.1.23",
     "@radix-ui/react-popover": "^1.1.23",

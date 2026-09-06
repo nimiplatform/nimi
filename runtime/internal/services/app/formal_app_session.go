@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/base64"
 	"errors"
 	"strings"
 
@@ -141,7 +140,7 @@ func (s *Service) ensureFormalAppBinding(
 }
 
 func protectedExecutableDigestRef(value protectedlocal.Identifier) string {
-	return "bii_v1_" + base64.RawURLEncoding.EncodeToString(value[:])
+	return protectedlocal.ExecutableDigestRef(value)
 }
 
 func formalAppLaunchIdentifier(connectionID, runtimeBootEpoch protectedlocal.Identifier, appID string, bindingSlot string) protectedlocal.Identifier {

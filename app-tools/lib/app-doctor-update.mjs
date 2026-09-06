@@ -4,6 +4,7 @@ import { parse as parseYaml } from 'yaml';
 import {
   buildAppScaffoldSnapshotFromIntent,
   hashScaffoldContent,
+  managedAppReleaseWorkflowSource,
   SCAFFOLD_INTENT_PATH,
   SCAFFOLD_LOCK_VERSION,
   SCAFFOLD_LOCK_PATH,
@@ -363,6 +364,8 @@ function scanForbiddenPatterns(targetDir, profile, selectedLabels = null) {
   for (const filePath of collectTextFiles(targetDir)) {
     const relativePath = path.relative(targetDir, filePath).split(path.sep).join('/');
     const text = readFileSync(filePath, 'utf8');
+    const isManagedReleaseWorkflow = relativePath === '.github/workflows/nimi-app-release.yml'
+      && text.replaceAll('\r\n', '\n') === managedAppReleaseWorkflowSource();
     const isTestFile = relativePath.startsWith('test/') || /(?:^|\/)\w[^/]*\.(?:test|spec)\.[cm]?[jt]sx?$/i.test(relativePath);
     for (const [label, pattern] of patterns) {
       if (selectedLabels && !selectedLabels.has(label)) {
@@ -378,6 +381,11 @@ function scanForbiddenPatterns(targetDir, profile, selectedLabels = null) {
         continue;
       }
       if (isTestFile && testFileAllowedLabels.has(label)) {
+        continue;
+      }
+      // The exact managed workflow uses a GitHub repository-read credential,
+      // not App-owned Runtime protected material.
+      if (label === 'environment custody of protected material' && isManagedReleaseWorkflow) {
         continue;
       }
       if (pattern.test(text)) {

@@ -305,29 +305,6 @@ func sameWindowsSourceExecutable(observed, expected string) bool {
 	return observedErr == nil && expectedErr == nil && observedInfo.Mode().IsRegular() && expectedInfo.Mode().IsRegular() && os.SameFile(observedInfo, expectedInfo)
 }
 
-func windowsSourceParentProcessID(pid uint32) (uint32, error) {
-	snapshot, err := windows.CreateToolhelp32Snapshot(windows.TH32CS_SNAPPROCESS, 0)
-	if err != nil {
-		return 0, fmt.Errorf("snapshot Windows processes: %w", err)
-	}
-	defer func() { _ = windows.CloseHandle(snapshot) }()
-	entry := windows.ProcessEntry32{Size: uint32(unsafe.Sizeof(windows.ProcessEntry32{}))}
-	if err := windows.Process32First(snapshot, &entry); err != nil {
-		return 0, fmt.Errorf("read Windows process snapshot: %w", err)
-	}
-	for {
-		if entry.ProcessID == pid {
-			if entry.ParentProcessID == 0 {
-				return 0, fmt.Errorf("source process parent is unavailable")
-			}
-			return entry.ParentProcessID, nil
-		}
-		if err := windows.Process32Next(snapshot, &entry); err != nil {
-			return 0, fmt.Errorf("locate source process parent: %w", err)
-		}
-	}
-}
-
 func prepareWindowsSourceStateRoot(userSID string) (WindowsProtectedStateRoot, error) {
 	localAppData, err := windows.KnownFolderPath(windows.FOLDERID_LocalAppData, windows.KF_FLAG_DEFAULT)
 	if err != nil {

@@ -21,6 +21,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/health"
 	"github.com/nimiplatform/nimi/runtime/internal/idempotency"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
+	"github.com/nimiplatform/nimi/runtime/internal/nimiappinstall"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
@@ -66,6 +67,7 @@ type Server struct {
 	realmRealtimeService  *realmrealtimeservice.Service
 	localDevelopmentStore interface{ Close() error }
 	localAppKernel        *localappkernel.Kernel
+	appInstallCoordinator *nimiappinstall.Coordinator
 }
 
 const (
@@ -478,6 +480,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	appRegistry := appregistry.New()
 	var localDevelopmentStore *appservice.LocalDevelopmentStore
 	var localAppKernel *localappkernel.Kernel
+	var appInstallCoordinator *nimiappinstall.Coordinator
 	if protected != nil {
 		var developmentStore *appservice.LocalDevelopmentStore
 		var developmentErr error
@@ -518,6 +521,9 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	}
 	keepLocalDevelopmentStore := false
 	defer func() {
+		if !keepLocalDevelopmentStore && appInstallCoordinator != nil {
+			_ = appInstallCoordinator.Close()
+		}
 		if !keepLocalDevelopmentStore && localDevelopmentStore != nil {
 			_ = localDevelopmentStore.Close()
 		}
@@ -848,6 +854,16 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		appservice.WithAppStorageDataRoot(cfg.DataRootRef),
 		appservice.WithRuntimeAccountProjectionProvider(accountSvc),
 	}
+	if protected != nil && localAppKernel != nil {
+		catalog, coordinator := composeVerifiedAppPackages(context.Background(), logger, localAppKernel)
+		if coordinator != nil {
+			appInstallCoordinator = coordinator
+			appOptions = append(appOptions,
+				appservice.WithApprovedAppCatalogProvider(catalog),
+				appservice.WithAppInstallCoordinator(coordinator),
+			)
+		}
+	}
 	if bundledRoot := strings.TrimSpace(cfg.AppBundledArtifactsRoot); bundledRoot != "" {
 		formalAppReleases, releaseErr := appservice.NewManifestFormalAppReleaseResolver(bundledRoot)
 		if releaseErr != nil {
@@ -951,6 +967,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		realmRealtimeService:  realmRealtimeSvc,
 		localDevelopmentStore: localDevelopmentStore,
 		localAppKernel:        localAppKernel,
+		appInstallCoordinator: appInstallCoordinator,
 	}
 	s.SyncServingState()
 	keepLocalDevelopmentStore = true

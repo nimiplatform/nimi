@@ -1346,7 +1346,51 @@ export enum ReasonCode {
      *
      * @generated from protobuf enum value: AI_CONFIG_REVISION_CONFLICT = 726;
      */
-    AI_CONFIG_REVISION_CONFLICT = 726
+    AI_CONFIG_REVISION_CONFLICT = 726,
+    /**
+     * Verified public App Catalog, selector, and install-start outcomes. The
+     * Catalog and mutation methods remain excluded from product profiles until
+     * Desktop confirmation and availability cutover.
+     *
+     * @generated from protobuf enum value: APP_PACKAGE_SELECTION_INVALID = 727;
+     */
+    APP_PACKAGE_SELECTION_INVALID = 727,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_SELECTION_STALE = 728;
+     */
+    APP_PACKAGE_SELECTION_STALE = 728,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_POLICY_BLOCKED = 729;
+     */
+    APP_PACKAGE_POLICY_BLOCKED = 729,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_ALREADY_INSTALLED = 730;
+     */
+    APP_PACKAGE_ALREADY_INSTALLED = 730,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_INSTALL_UNAVAILABLE = 731;
+     */
+    APP_PACKAGE_INSTALL_UNAVAILABLE = 731,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_JOB_ACTIVE = 732;
+     */
+    APP_PACKAGE_JOB_ACTIVE = 732,
+    /**
+     * @generated from protobuf enum value: APP_CATALOG_UNAVAILABLE = 733;
+     */
+    APP_CATALOG_UNAVAILABLE = 733,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_UNINSTALL_UNAVAILABLE = 734;
+     */
+    APP_PACKAGE_UNINSTALL_UNAVAILABLE = 734,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_HOST_RUNNING = 735;
+     */
+    APP_PACKAGE_HOST_RUNNING = 735,
+    /**
+     * @generated from protobuf enum value: APP_PACKAGE_UNINSTALL_FAILED = 736;
+     */
+    APP_PACKAGE_UNINSTALL_FAILED = 736
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

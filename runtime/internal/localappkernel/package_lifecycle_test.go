@@ -109,7 +109,7 @@ func TestPackageLifecycleCommitAndUninstallBoundariesRejectCancel(t *testing.T) 
 	if _, err := store.Cancel(ctx, uninstall.JobID, PackageJobUnregistering, "too-late"); !errors.Is(err, ErrPackageJobNotCancelable) {
 		t.Fatalf("cancel after uninstall boundary error = %v", err)
 	}
-	completed, err := store.CompleteUninstall(ctx, uninstall.JobID)
+	completed, err := store.CompleteUninstall(ctx, uninstall.JobID, committed.Registration.RegistrationHandle, committed.Registration.SourceGeneration, committed.Registration.DeclarationGeneration)
 	if err != nil || completed.Phase != PackageJobCompleted {
 		t.Fatalf("complete uninstall = %+v err=%v", completed, err)
 	}
@@ -282,7 +282,7 @@ func verifiedRegistrationInput(lineage string, provenanceRevision uint64) Regist
 	return RegisterInstalledInput{
 		AppID: "nimi.example", DisplayName: "Example", SourceClass: SourceClassVerified,
 		SourceRef: "platform-app:nimi.example", ProjectRoot: "C:/Program Files/Nimi Apps/Example",
-		ManifestPath: "C:/Program Files/Nimi Apps/Example/nimi.app.yaml", ShellKind: 1,
+		ManifestPath:   "C:/Program Files/Nimi Apps/Example/nimi.app.yaml",
 		RawDeclaration: []string{"runtime.consume"}, ImmutableLineageID: lineage,
 		ProvenanceAttestationRefs: []string{"attestation:" + lineage}, ProvenanceRevision: provenanceRevision,
 		ExecutionProfileRef: "execution:electron", HostExecutableDigest: "host:" + lineage,

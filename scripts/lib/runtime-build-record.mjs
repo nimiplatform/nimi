@@ -14,6 +14,7 @@ export const WINDOWS_RUNTIME_BUILD_SOURCE_PATHS = Object.freeze([
   'scripts/build-runtime.mjs',
   'scripts/lib/runtime-build-record.mjs',
   'scripts/lib/windows-dev-signing.mjs',
+  'scripts/lib/windows-dev-signing.ps1',
 ]);
 
 function sha256(value) {

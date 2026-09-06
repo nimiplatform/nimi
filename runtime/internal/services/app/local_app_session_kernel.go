@@ -273,6 +273,10 @@ func (s *Service) deriveLocalAppRuntimeSession(ctx context.Context, connection *
 		return localAppRuntimeSession{}, localappkernel.ErrRegistrationTombstoned
 	}
 	if installedHandle, installed := connection.InstalledRegistrationHandle(); installed {
+		if sourceGeneration, declarationGeneration, bound := connection.InstalledLaunchGenerations(); bound &&
+			(sourceGeneration != registration.SourceGeneration || declarationGeneration != registration.DeclarationGeneration) {
+			return localAppRuntimeSession{}, errLocalAppRegistrationGenerationChanged
+		}
 		expectedSource, sourceOK := installedSourceClass(connection.TrustClass())
 		if !sourceOK || installedHandle != registration.RegistrationHandle || registration.SourceClass != expectedSource ||
 			!registration.ImmutablePackageFactsComplete() || strings.TrimSpace(registration.PayloadRootDigest) == "" ||

@@ -14,11 +14,17 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/EndLocalDevelopmentRun
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob
     posture: protected_origin_required
@@ -67,6 +73,14 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess
     posture: protected_origin_required

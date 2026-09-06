@@ -56,6 +56,7 @@ function entry(
       displayName: row.displayName,
       updatedAtUnixMs: row.updatedAtUnixMs,
     },
+    catalogTarget: null,
     localDevelopment: row,
     committedRelease: null,
     packageJob: null,
@@ -157,7 +158,8 @@ describe('Apps Runtime package presentation', () => {
     assert.equal(appSourceForEntry({
       ...local,
       identity: { ...local.identity, entryKey: 'user_imported:example.local-app', sourceClass: 'user_imported' },
-      localDevelopment: null,
+      catalogTarget: null,
+    localDevelopment: null,
       committedRelease: importedRelease,
       run: null,
     }), 'user_imported');

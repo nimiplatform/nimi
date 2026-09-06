@@ -169,15 +169,16 @@ describe('AppConversationEntry', () => {
     const select = container.querySelector(`[data-nimi-app-conversation-agent-handle="${HANDLE_A}"]`) as HTMLButtonElement;
     await act(async () => {
       select.click();
-      await Promise.resolve();
+      await Promise.all([
+        import('../src/components/canonical-character-rail.js'),
+        import('../src/components/canonical-stage-panel.js'),
+      ]);
     });
-    await vi.waitFor(() => {
-      expect(container?.querySelector('[data-conversation-shell="canonical"]')).toBeTruthy();
-    });
+    expect(container?.querySelector('[data-canonical-stage-root="true"]')).toBeTruthy();
     expect(harness.calls.map((call) => call.method).filter((method) => (
       method === 'open' || method === 'subscribe' || method === 'snapshot'
     ))).toEqual(['open', 'subscribe', 'snapshot']);
-    await vi.waitFor(() => expect(container?.textContent).toContain('已提交消息'));
+    expect(container.textContent).toContain('已提交消息');
     expect(container.textContent).toContain('播放语音');
     expect(container.textContent).toContain('添加图片');
     expect(container.textContent).toContain('录制语音');

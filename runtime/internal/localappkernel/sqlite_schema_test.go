@@ -55,3 +55,38 @@ func TestOpenSQLiteRejectsNonCanonicalRegistrationSchema(t *testing.T) {
 		t.Fatalf("schema rejection mutated the existing table: %#v", columns)
 	}
 }
+
+func TestOpenSQLiteRejectsLegacyInstalledShellKindConstraint(t *testing.T) {
+	dataRoot := t.TempDir()
+	databasePath, err := CanonicalRegistrationDatabasePath(dataRoot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(databasePath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	database, err := sql.Open("sqlite", "file:"+filepath.ToSlash(databasePath))
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy := strings.Replace(canonicalRegistrationCreateStatement,
+		"shell_kind INTEGER NOT NULL,", "shell_kind INTEGER NOT NULL CHECK(shell_kind > 0),", 1)
+	legacy = strings.Replace(legacy,
+		"\tCHECK((source_class IN ('verified','user_imported') AND shell_kind = 0) OR (source_class = 'local_development' AND shell_kind > 0)),\n", "", 1)
+	if _, err := database.Exec(legacy); err != nil {
+		_ = database.Close()
+		t.Fatal(err)
+	}
+	if err := database.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	identity := mustWindowsIdentity(t, "S-1-5-21-1000-1001-1002-1003")
+	_, err = OpenSQLite(context.Background(), databasePath, identity, Options{
+		HostInstallID: "host-install-shell-kind-cut",
+		DataRoot:      dataRoot,
+	})
+	if err == nil || !strings.Contains(err.Error(), "shell-kind-owner") {
+		t.Fatalf("legacy shell-kind schema error = %v", err)
+	}
+}

@@ -37,6 +37,7 @@ import {
   type DesktopElectronLocalDevelopmentHost,
 } from './local-development-host.js';
 import { createDesktopElectronProductControlHost } from './product-control-host.js';
+import { createDesktopInstalledAppHost, type DesktopInstalledAppHost } from './installed-app-host.js';
 import {
   requireDesktopSourceRuntime,
   sourceRuntimeBootstrapFailureMessage,
@@ -148,6 +149,7 @@ const localAssetProtocolHost: NimiElectronShellFileProtocolHost = createElectron
 let mainWindow: BrowserWindow | undefined;
 const desktopSenderInvalidationListeners = new Set<() => void>();
 let localDevelopmentHost: DesktopElectronLocalDevelopmentHost | undefined;
+let installedAppHost: DesktopInstalledAppHost | undefined;
 let desktopOpenIntentHost: DesktopElectronOpenIntentHost | undefined;
 let bundledAvatarHost: DesktopElectronBundledAvatarHost | undefined;
 let chatAiStoreHost: DesktopElectronChatAiStoreHost | undefined;
@@ -200,6 +202,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       homeDirectory: app.getPath('home'),
     });
     const dataRootOperationGate = createDesktopDataRootOperationGate();
+    installedAppHost = createDesktopInstalledAppHost();
     const runtimeDeploymentProfile = resolveElectronRuntimeDeploymentProfile({
       electronDevelopmentBuild: ELECTRON_DEVELOPMENT_BUILD,
       macOSLocalDevelopmentBuild: MACOS_LOCAL_DEVELOPMENT_BUILD,
@@ -220,15 +223,18 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       runtimeLifecycleProfile,
       restartRuntime: () => invokeRuntimeLifecycle(runtimeCommandNames.restart),
       quiesceHostDataRoot: async () => {
+        await installedAppHost?.shutdown();
         await bundledAvatarHost?.quiesceDataRoot();
         await localAssetProtocolHost.quiesceDataRootReadableGrants();
       },
       abortHostDataRoot: () => {
+        installedAppHost?.resume();
         localAssetProtocolHost.resumeDataRootReadableGrants();
         bundledAvatarHost?.resumeDataRoot();
       },
       commitHostDataRoot: () => localAssetProtocolHost.retireDataRootReadableGrants(),
       activateHostDataRoot: () => {
+        installedAppHost?.resume();
         localAssetProtocolHost.activateDataRootReadableGrants();
         bundledAvatarHost?.resumeDataRoot();
       },
@@ -410,6 +416,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       },
       commandHandlers: {
         ...localDevelopmentHost.commandHandlers,
+        ...installedAppHost.commandHandlers,
         ...desktopOpenIntentHost.commandHandlers,
         ...productControlHost.commandHandlers,
         ...chatAiStoreHost.commandHandlers,
@@ -562,6 +569,7 @@ app.on('before-quit', (event) => {
 
 async function shutdownBeforeQuit(): Promise<void> {
   const localHost = localDevelopmentHost;
+  const installedHost = installedAppHost;
   const openIntentHost = desktopOpenIntentHost;
   const avatarHost = bundledAvatarHost;
   const chatStoreHost = chatAiStoreHost;
@@ -569,6 +577,7 @@ async function shutdownBeforeQuit(): Promise<void> {
   const connectorAuthHost = connectorAuthAcquisitionHost;
   const runtimeBridge = registeredRuntimeBridge;
   await localHost?.shutdown();
+  await installedHost?.shutdown();
   const cleanupResults = await Promise.allSettled([
     boundDesktopShutdownCleanup(
       runtimeBridge?.disposeFormalAppResources?.(),
@@ -593,6 +602,7 @@ async function shutdownBeforeQuit(): Promise<void> {
     cleanupResults.push({ status: 'rejected', reason: error });
   }
   if (localDevelopmentHost === localHost) localDevelopmentHost = undefined;
+  if (installedAppHost === installedHost) installedAppHost = undefined;
   if (desktopOpenIntentHost === openIntentHost) desktopOpenIntentHost = undefined;
   if (bundledAvatarHost === avatarHost) bundledAvatarHost = undefined;
   if (chatAiStoreHost === chatStoreHost) chatAiStoreHost = undefined;

@@ -1,7 +1,16 @@
 # nimi-shell-protected-local-node
 
 Host-only Node-API projection of the shared Nimi protected carrier for Electron
-main processes. The addon exposes exact Local App operations, including:
+main processes.
+
+The current public Windows npm artifact is built for D2 Runtime using the
+existing `windows-source-local-development` Cargo feature. It supports the
+shared caller contract for separately admitted installed and Developer Mode
+Apps, with their source/admission distinction preserved by Runtime. The formal
+production Runtime carrier and its signer-SPKI verifier remain separately built
+and fail closed; publishing a D2 artifact does not change that service boundary.
+
+The addon exposes exact Local App operations, including:
 
 - session status and renewal;
 - read-only App AIConfig;

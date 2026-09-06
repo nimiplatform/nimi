@@ -82,5 +82,10 @@ func verifyWindowsSourceDirectLocalAppPeer(
 	if launch.Process != witness || launch.DesktopPID != process.parentPID || launch.ExpectedUID != process.sessionID {
 		return DirectLocalAppPeer{}, fmt.Errorf("Windows local-app peer process witness mismatch")
 	}
+	if launch.InstalledRegistrationHandle != "" && (launch.InstalledProcess.ExecutableDigest != process.executableDigest ||
+		launch.InstalledProcess.CanonicalExecutableIdentity != process.canonicalExecutableIdentity ||
+		launch.InstalledProcess.SecurityPrincipal != process.userSID || launch.InstalledProcess.OSLoginSession != process.logonLUID) {
+		return DirectLocalAppPeer{}, fmt.Errorf("installed App native peer changed after bind")
+	}
 	return DirectLocalAppPeer{OS: OSWindows, PID: process.pid, UID: process.sessionID}, nil
 }

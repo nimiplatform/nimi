@@ -50,6 +50,10 @@ func TestLocalAppSessionWireKeepsPrivateAuthorityOutOfMessages(t *testing.T) {
 
 func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 	desktopMethods := []string{
+		"/nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch",
+		"/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall",
+		"/nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun",
+		"/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess",
 		"/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
 		"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus",
@@ -68,6 +72,12 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 		}
 		if protectedLocalAppUnaryMethodAllowed(method) || protectedLocalAppStreamMethodAllowed(method) {
 			t.Fatalf("Desktop local-app control method %s leaked onto the app-host transport", method)
+		}
+		if _, leaked := protectedlocal.FirstPartyProfileMethod(protectedlocal.DesktopMachineProductProfileID, method); leaked {
+			t.Fatalf("main-only Host Control method %s leaked into the renderer product profile", method)
+		}
+		if _, leaked := protectedlocal.FirstPartyProfileMethod(protectedlocal.DesktopAccountProductProfileID, method); leaked {
+			t.Fatalf("main-only Host Control method %s leaked into the account renderer profile", method)
 		}
 	}
 

@@ -670,6 +670,153 @@ export interface BindLocalAppProcessRequest {
     childProcessId: number;
 }
 /**
+ * Desktop main/native Host Control only. The renderer forwards the opaque
+ * committed selector as intent and never receives the lease material.
+ *
+ * @generated from protobuf message nimi.runtime.v1.PrepareInstalledAppLaunchRequest
+ */
+export interface PrepareInstalledAppLaunchRequest {
+    /**
+     * @generated from protobuf field: bytes launch_selector = 1
+     */
+    launchSelector: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.PrepareInstalledAppLaunchResponse
+ */
+export interface PrepareInstalledAppLaunchResponse {
+    /**
+     * @generated from protobuf field: bytes launch_id = 1
+     */
+    launchId: Uint8Array;
+    /**
+     * @generated from protobuf field: string app_id = 2
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string version = 3
+     */
+    version: string;
+    /**
+     * @generated from protobuf field: string executable_path = 4
+     */
+    executablePath: string;
+    /**
+     * @generated from protobuf field: string working_directory = 5
+     */
+    workingDirectory: string;
+    /**
+     * @generated from protobuf field: repeated string arguments = 6
+     */
+    arguments: string[];
+    /**
+     * @generated from protobuf field: bytes executable_sha256 = 7
+     */
+    executableSha256: Uint8Array;
+    /**
+     * @generated from protobuf field: string execution_profile_ref = 8
+     */
+    executionProfileRef: string;
+    /**
+     * @generated from protobuf field: google.protobuf.Timestamp bind_deadline = 9
+     */
+    bindDeadline?: Timestamp;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 10
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.EndInstalledAppRunRequest
+ */
+export interface EndInstalledAppRunRequest {
+    /**
+     * @generated from protobuf field: bytes launch_id = 1
+     */
+    launchId: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.StartAppPackageUninstallRequest
+ */
+export interface StartAppPackageUninstallRequest {
+    /**
+     * @generated from protobuf field: bytes launch_selector = 1
+     */
+    launchSelector: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.StartAppPackageUninstallResponse
+ */
+export interface StartAppPackageUninstallResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppPackageJob job = 1
+     */
+    job?: AppPackageJob;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * Desktop main completes this exact reservation only after stopping the Host.
+ *
+ * @generated from protobuf message nimi.runtime.v1.CompleteAppPackageUninstallRequest
+ */
+export interface CompleteAppPackageUninstallRequest {
+    /**
+     * @generated from protobuf field: bytes job_id = 1
+     */
+    jobId: Uint8Array;
+    /**
+     * @generated from protobuf field: bytes launch_selector = 2
+     */
+    launchSelector: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.CompleteAppPackageUninstallResponse
+ */
+export interface CompleteAppPackageUninstallResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppPackageJob job = 1
+     */
+    job?: AppPackageJob;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.EndInstalledAppRunResponse
+ */
+export interface EndInstalledAppRunResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 1
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetInstalledAppRunAccessRequest
+ */
+export interface GetInstalledAppRunAccessRequest {
+    /**
+     * @generated from protobuf field: bytes launch_id = 1
+     */
+    launchId: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetInstalledAppRunAccessResponse
+ */
+export interface GetInstalledAppRunAccessResponse {
+    /**
+     * @generated from protobuf field: bool available = 1
+     */
+    available: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.BindLocalAppProcessResponse
  */
 export interface BindLocalAppProcessResponse {
@@ -820,6 +967,154 @@ export interface AppPackageJob {
     cancelable: boolean;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.ApprovedAppCatalogStorageDisclosure
+ */
+export interface ApprovedAppCatalogStorageDisclosure {
+    /**
+     * @generated from protobuf field: string path_pattern = 1
+     */
+    pathPattern: string;
+    /**
+     * @generated from protobuf field: string purpose = 2
+     */
+    purpose: string;
+    /**
+     * @generated from protobuf field: string retention = 3
+     */
+    retention: string;
+    /**
+     * @generated from protobuf field: string removal = 4
+     */
+    removal: string;
+}
+/**
+ * Runtime projects one target from one immutable Registry snapshot. The
+ * selector is opaque to Desktop and is the only input accepted by install
+ * start; display fields never authorize a package mutation by themselves.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ApprovedAppCatalogTarget
+ */
+export interface ApprovedAppCatalogTarget {
+    /**
+     * @generated from protobuf field: bytes approved_target_selector = 1
+     */
+    approvedTargetSelector: Uint8Array;
+    /**
+     * @generated from protobuf field: string observed_registry_revision = 2
+     */
+    observedRegistryRevision: string;
+    /**
+     * @generated from protobuf field: string descriptor_id = 3
+     */
+    descriptorId: string;
+    /**
+     * @generated from protobuf field: string app_id = 4
+     */
+    appId: string;
+    /**
+     * @generated from protobuf field: string display_name = 5
+     */
+    displayName: string;
+    /**
+     * @generated from protobuf field: string version = 6
+     */
+    version: string;
+    /**
+     * @generated from protobuf field: string publisher_github_namespace = 7
+     */
+    publisherGithubNamespace: string;
+    /**
+     * @generated from protobuf field: string source_repository = 8
+     */
+    sourceRepository: string;
+    /**
+     * @generated from protobuf field: string source_license_spdx_expression = 9
+     */
+    sourceLicenseSpdxExpression: string;
+    /**
+     * @generated from protobuf field: repeated string app_access = 10
+     */
+    appAccess: string[];
+    /**
+     * @generated from protobuf field: repeated string capability_contract_refs = 11
+     */
+    capabilityContractRefs: string[];
+    /**
+     * @generated from protobuf field: repeated string required_standardized_feature_refs = 12
+     */
+    requiredStandardizedFeatureRefs: string[];
+    /**
+     * @generated from protobuf field: string storage_policy_kind = 13
+     */
+    storagePolicyKind: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ApprovedAppCatalogStorageDisclosure os_storage_disclosures = 14
+     */
+    osStorageDisclosures: ApprovedAppCatalogStorageDisclosure[];
+    /**
+     * @generated from protobuf field: string target_id = 15
+     */
+    targetId: string;
+    /**
+     * @generated from protobuf field: string os = 16
+     */
+    os: string;
+    /**
+     * @generated from protobuf field: string arch = 17
+     */
+    arch: string;
+    /**
+     * @generated from protobuf field: string asset_name = 18
+     */
+    assetName: string;
+    /**
+     * @generated from protobuf field: int64 asset_size = 19
+     */
+    assetSize: string;
+    /**
+     * @generated from protobuf field: string execution_profile_ref = 20
+     */
+    executionProfileRef: string;
+    /**
+     * @generated from protobuf field: string windows_code_signing = 21
+     */
+    windowsCodeSigning: string;
+    /**
+     * @generated from protobuf field: optional string observed_signing_subject = 22
+     */
+    observedSigningSubject?: string;
+    /**
+     * @generated from protobuf field: bool policy_blocked = 23
+     */
+    policyBlocked: boolean;
+    /**
+     * @generated from protobuf field: optional string policy_reason = 24
+     */
+    policyReason?: string;
+    /**
+     * @generated from protobuf field: uint64 policy_revision = 25
+     */
+    policyRevision: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListApprovedAppCatalogTargetsRequest
+ */
+export interface ListApprovedAppCatalogTargetsRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ListApprovedAppCatalogTargetsResponse
+ */
+export interface ListApprovedAppCatalogTargetsResponse {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ApprovedAppCatalogTarget targets = 1
+     */
+    targets: ApprovedAppCatalogTarget[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ListCommittedAppReleasesRequest
  */
 export interface ListCommittedAppReleasesRequest {
@@ -868,6 +1163,28 @@ export interface GetAppPackageJobRequest {
  * @generated from protobuf message nimi.runtime.v1.GetAppPackageJobResponse
  */
 export interface GetAppPackageJobResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AppPackageJob job = 1
+     */
+    job?: AppPackageJob;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.StartAppPackageInstallRequest
+ */
+export interface StartAppPackageInstallRequest {
+    /**
+     * @generated from protobuf field: bytes approved_target_selector = 1
+     */
+    approvedTargetSelector: Uint8Array;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.StartAppPackageInstallResponse
+ */
+export interface StartAppPackageInstallResponse {
     /**
      * @generated from protobuf field: nimi.runtime.v1.AppPackageJob job = 1
      */
@@ -3336,6 +3653,577 @@ class BindLocalAppProcessRequest$Type extends MessageType<BindLocalAppProcessReq
  */
 export const BindLocalAppProcessRequest = new BindLocalAppProcessRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class PrepareInstalledAppLaunchRequest$Type extends MessageType<PrepareInstalledAppLaunchRequest> {
+    constructor() {
+        super("nimi.runtime.v1.PrepareInstalledAppLaunchRequest", [
+            { no: 1, name: "launch_selector", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<PrepareInstalledAppLaunchRequest>): PrepareInstalledAppLaunchRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.launchSelector = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<PrepareInstalledAppLaunchRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PrepareInstalledAppLaunchRequest): PrepareInstalledAppLaunchRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes launch_selector */ 1:
+                    message.launchSelector = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PrepareInstalledAppLaunchRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes launch_selector = 1; */
+        if (message.launchSelector.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.launchSelector);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PrepareInstalledAppLaunchRequest
+ */
+export const PrepareInstalledAppLaunchRequest = new PrepareInstalledAppLaunchRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PrepareInstalledAppLaunchResponse$Type extends MessageType<PrepareInstalledAppLaunchResponse> {
+    constructor() {
+        super("nimi.runtime.v1.PrepareInstalledAppLaunchResponse", [
+            { no: 1, name: "launch_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "executable_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "working_directory", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "arguments", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "executable_sha256", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 8, name: "execution_profile_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "bind_deadline", kind: "message", T: () => Timestamp },
+            { no: 10, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<PrepareInstalledAppLaunchResponse>): PrepareInstalledAppLaunchResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.launchId = new Uint8Array(0);
+        message.appId = "";
+        message.version = "";
+        message.executablePath = "";
+        message.workingDirectory = "";
+        message.arguments = [];
+        message.executableSha256 = new Uint8Array(0);
+        message.executionProfileRef = "";
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<PrepareInstalledAppLaunchResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PrepareInstalledAppLaunchResponse): PrepareInstalledAppLaunchResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes launch_id */ 1:
+                    message.launchId = reader.bytes();
+                    break;
+                case /* string app_id */ 2:
+                    message.appId = reader.string();
+                    break;
+                case /* string version */ 3:
+                    message.version = reader.string();
+                    break;
+                case /* string executable_path */ 4:
+                    message.executablePath = reader.string();
+                    break;
+                case /* string working_directory */ 5:
+                    message.workingDirectory = reader.string();
+                    break;
+                case /* repeated string arguments */ 6:
+                    message.arguments.push(reader.string());
+                    break;
+                case /* bytes executable_sha256 */ 7:
+                    message.executableSha256 = reader.bytes();
+                    break;
+                case /* string execution_profile_ref */ 8:
+                    message.executionProfileRef = reader.string();
+                    break;
+                case /* google.protobuf.Timestamp bind_deadline */ 9:
+                    message.bindDeadline = Timestamp.internalBinaryRead(reader, reader.uint32(), options, message.bindDeadline);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 10:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PrepareInstalledAppLaunchResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes launch_id = 1; */
+        if (message.launchId.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.launchId);
+        /* string app_id = 2; */
+        if (message.appId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.appId);
+        /* string version = 3; */
+        if (message.version !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.version);
+        /* string executable_path = 4; */
+        if (message.executablePath !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.executablePath);
+        /* string working_directory = 5; */
+        if (message.workingDirectory !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.workingDirectory);
+        /* repeated string arguments = 6; */
+        for (let i = 0; i < message.arguments.length; i++)
+            writer.tag(6, WireType.LengthDelimited).string(message.arguments[i]);
+        /* bytes executable_sha256 = 7; */
+        if (message.executableSha256.length)
+            writer.tag(7, WireType.LengthDelimited).bytes(message.executableSha256);
+        /* string execution_profile_ref = 8; */
+        if (message.executionProfileRef !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.executionProfileRef);
+        /* google.protobuf.Timestamp bind_deadline = 9; */
+        if (message.bindDeadline)
+            Timestamp.internalBinaryWrite(message.bindDeadline, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 10; */
+        if (message.reasonCode !== 0)
+            writer.tag(10, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PrepareInstalledAppLaunchResponse
+ */
+export const PrepareInstalledAppLaunchResponse = new PrepareInstalledAppLaunchResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class EndInstalledAppRunRequest$Type extends MessageType<EndInstalledAppRunRequest> {
+    constructor() {
+        super("nimi.runtime.v1.EndInstalledAppRunRequest", [
+            { no: 1, name: "launch_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<EndInstalledAppRunRequest>): EndInstalledAppRunRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.launchId = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<EndInstalledAppRunRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: EndInstalledAppRunRequest): EndInstalledAppRunRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes launch_id */ 1:
+                    message.launchId = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: EndInstalledAppRunRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes launch_id = 1; */
+        if (message.launchId.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.launchId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.EndInstalledAppRunRequest
+ */
+export const EndInstalledAppRunRequest = new EndInstalledAppRunRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class StartAppPackageUninstallRequest$Type extends MessageType<StartAppPackageUninstallRequest> {
+    constructor() {
+        super("nimi.runtime.v1.StartAppPackageUninstallRequest", [
+            { no: 1, name: "launch_selector", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<StartAppPackageUninstallRequest>): StartAppPackageUninstallRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.launchSelector = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<StartAppPackageUninstallRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StartAppPackageUninstallRequest): StartAppPackageUninstallRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes launch_selector */ 1:
+                    message.launchSelector = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: StartAppPackageUninstallRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes launch_selector = 1; */
+        if (message.launchSelector.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.launchSelector);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.StartAppPackageUninstallRequest
+ */
+export const StartAppPackageUninstallRequest = new StartAppPackageUninstallRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class StartAppPackageUninstallResponse$Type extends MessageType<StartAppPackageUninstallResponse> {
+    constructor() {
+        super("nimi.runtime.v1.StartAppPackageUninstallResponse", [
+            { no: 1, name: "job", kind: "message", T: () => AppPackageJob },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<StartAppPackageUninstallResponse>): StartAppPackageUninstallResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<StartAppPackageUninstallResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StartAppPackageUninstallResponse): StartAppPackageUninstallResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AppPackageJob job */ 1:
+                    message.job = AppPackageJob.internalBinaryRead(reader, reader.uint32(), options, message.job);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: StartAppPackageUninstallResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AppPackageJob job = 1; */
+        if (message.job)
+            AppPackageJob.internalBinaryWrite(message.job, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.StartAppPackageUninstallResponse
+ */
+export const StartAppPackageUninstallResponse = new StartAppPackageUninstallResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CompleteAppPackageUninstallRequest$Type extends MessageType<CompleteAppPackageUninstallRequest> {
+    constructor() {
+        super("nimi.runtime.v1.CompleteAppPackageUninstallRequest", [
+            { no: 1, name: "job_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "launch_selector", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<CompleteAppPackageUninstallRequest>): CompleteAppPackageUninstallRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.jobId = new Uint8Array(0);
+        message.launchSelector = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<CompleteAppPackageUninstallRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CompleteAppPackageUninstallRequest): CompleteAppPackageUninstallRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes job_id */ 1:
+                    message.jobId = reader.bytes();
+                    break;
+                case /* bytes launch_selector */ 2:
+                    message.launchSelector = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CompleteAppPackageUninstallRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes job_id = 1; */
+        if (message.jobId.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.jobId);
+        /* bytes launch_selector = 2; */
+        if (message.launchSelector.length)
+            writer.tag(2, WireType.LengthDelimited).bytes(message.launchSelector);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CompleteAppPackageUninstallRequest
+ */
+export const CompleteAppPackageUninstallRequest = new CompleteAppPackageUninstallRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class CompleteAppPackageUninstallResponse$Type extends MessageType<CompleteAppPackageUninstallResponse> {
+    constructor() {
+        super("nimi.runtime.v1.CompleteAppPackageUninstallResponse", [
+            { no: 1, name: "job", kind: "message", T: () => AppPackageJob },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<CompleteAppPackageUninstallResponse>): CompleteAppPackageUninstallResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<CompleteAppPackageUninstallResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CompleteAppPackageUninstallResponse): CompleteAppPackageUninstallResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AppPackageJob job */ 1:
+                    message.job = AppPackageJob.internalBinaryRead(reader, reader.uint32(), options, message.job);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: CompleteAppPackageUninstallResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AppPackageJob job = 1; */
+        if (message.job)
+            AppPackageJob.internalBinaryWrite(message.job, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.CompleteAppPackageUninstallResponse
+ */
+export const CompleteAppPackageUninstallResponse = new CompleteAppPackageUninstallResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class EndInstalledAppRunResponse$Type extends MessageType<EndInstalledAppRunResponse> {
+    constructor() {
+        super("nimi.runtime.v1.EndInstalledAppRunResponse", [
+            { no: 1, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<EndInstalledAppRunResponse>): EndInstalledAppRunResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<EndInstalledAppRunResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: EndInstalledAppRunResponse): EndInstalledAppRunResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 1:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: EndInstalledAppRunResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ReasonCode reason_code = 1; */
+        if (message.reasonCode !== 0)
+            writer.tag(1, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.EndInstalledAppRunResponse
+ */
+export const EndInstalledAppRunResponse = new EndInstalledAppRunResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetInstalledAppRunAccessRequest$Type extends MessageType<GetInstalledAppRunAccessRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetInstalledAppRunAccessRequest", [
+            { no: 1, name: "launch_id", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetInstalledAppRunAccessRequest>): GetInstalledAppRunAccessRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.launchId = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<GetInstalledAppRunAccessRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetInstalledAppRunAccessRequest): GetInstalledAppRunAccessRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes launch_id */ 1:
+                    message.launchId = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetInstalledAppRunAccessRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes launch_id = 1; */
+        if (message.launchId.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.launchId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetInstalledAppRunAccessRequest
+ */
+export const GetInstalledAppRunAccessRequest = new GetInstalledAppRunAccessRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetInstalledAppRunAccessResponse$Type extends MessageType<GetInstalledAppRunAccessResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetInstalledAppRunAccessResponse", [
+            { no: 1, name: "available", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<GetInstalledAppRunAccessResponse>): GetInstalledAppRunAccessResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.available = false;
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<GetInstalledAppRunAccessResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetInstalledAppRunAccessResponse): GetInstalledAppRunAccessResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool available */ 1:
+                    message.available = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetInstalledAppRunAccessResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool available = 1; */
+        if (message.available !== false)
+            writer.tag(1, WireType.Varint).bool(message.available);
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetInstalledAppRunAccessResponse
+ */
+export const GetInstalledAppRunAccessResponse = new GetInstalledAppRunAccessResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class BindLocalAppProcessResponse$Type extends MessageType<BindLocalAppProcessResponse> {
     constructor() {
         super("nimi.runtime.v1.BindLocalAppProcessResponse", [
@@ -3764,6 +4652,407 @@ class AppPackageJob$Type extends MessageType<AppPackageJob> {
  */
 export const AppPackageJob = new AppPackageJob$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ApprovedAppCatalogStorageDisclosure$Type extends MessageType<ApprovedAppCatalogStorageDisclosure> {
+    constructor() {
+        super("nimi.runtime.v1.ApprovedAppCatalogStorageDisclosure", [
+            { no: 1, name: "path_pattern", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "purpose", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "retention", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "removal", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ApprovedAppCatalogStorageDisclosure>): ApprovedAppCatalogStorageDisclosure {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.pathPattern = "";
+        message.purpose = "";
+        message.retention = "";
+        message.removal = "";
+        if (value !== undefined)
+            reflectionMergePartial<ApprovedAppCatalogStorageDisclosure>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ApprovedAppCatalogStorageDisclosure): ApprovedAppCatalogStorageDisclosure {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string path_pattern */ 1:
+                    message.pathPattern = reader.string();
+                    break;
+                case /* string purpose */ 2:
+                    message.purpose = reader.string();
+                    break;
+                case /* string retention */ 3:
+                    message.retention = reader.string();
+                    break;
+                case /* string removal */ 4:
+                    message.removal = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ApprovedAppCatalogStorageDisclosure, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string path_pattern = 1; */
+        if (message.pathPattern !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.pathPattern);
+        /* string purpose = 2; */
+        if (message.purpose !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.purpose);
+        /* string retention = 3; */
+        if (message.retention !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.retention);
+        /* string removal = 4; */
+        if (message.removal !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.removal);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ApprovedAppCatalogStorageDisclosure
+ */
+export const ApprovedAppCatalogStorageDisclosure = new ApprovedAppCatalogStorageDisclosure$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ApprovedAppCatalogTarget$Type extends MessageType<ApprovedAppCatalogTarget> {
+    constructor() {
+        super("nimi.runtime.v1.ApprovedAppCatalogTarget", [
+            { no: 1, name: "approved_target_selector", kind: "scalar", T: 12 /*ScalarType.BYTES*/ },
+            { no: 2, name: "observed_registry_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "descriptor_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "app_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "version", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "publisher_github_namespace", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "source_repository", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "source_license_spdx_expression", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 10, name: "app_access", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "capability_contract_refs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "required_standardized_feature_refs", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "storage_policy_kind", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 14, name: "os_storage_disclosures", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ApprovedAppCatalogStorageDisclosure },
+            { no: 15, name: "target_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 16, name: "os", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 17, name: "arch", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 18, name: "asset_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 19, name: "asset_size", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
+            { no: 20, name: "execution_profile_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 21, name: "windows_code_signing", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 22, name: "observed_signing_subject", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 23, name: "policy_blocked", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 24, name: "policy_reason", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 25, name: "policy_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ApprovedAppCatalogTarget>): ApprovedAppCatalogTarget {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.approvedTargetSelector = new Uint8Array(0);
+        message.observedRegistryRevision = "";
+        message.descriptorId = "";
+        message.appId = "";
+        message.displayName = "";
+        message.version = "";
+        message.publisherGithubNamespace = "";
+        message.sourceRepository = "";
+        message.sourceLicenseSpdxExpression = "";
+        message.appAccess = [];
+        message.capabilityContractRefs = [];
+        message.requiredStandardizedFeatureRefs = [];
+        message.storagePolicyKind = "";
+        message.osStorageDisclosures = [];
+        message.targetId = "";
+        message.os = "";
+        message.arch = "";
+        message.assetName = "";
+        message.assetSize = "0";
+        message.executionProfileRef = "";
+        message.windowsCodeSigning = "";
+        message.policyBlocked = false;
+        message.policyRevision = "0";
+        if (value !== undefined)
+            reflectionMergePartial<ApprovedAppCatalogTarget>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ApprovedAppCatalogTarget): ApprovedAppCatalogTarget {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes approved_target_selector */ 1:
+                    message.approvedTargetSelector = reader.bytes();
+                    break;
+                case /* string observed_registry_revision */ 2:
+                    message.observedRegistryRevision = reader.string();
+                    break;
+                case /* string descriptor_id */ 3:
+                    message.descriptorId = reader.string();
+                    break;
+                case /* string app_id */ 4:
+                    message.appId = reader.string();
+                    break;
+                case /* string display_name */ 5:
+                    message.displayName = reader.string();
+                    break;
+                case /* string version */ 6:
+                    message.version = reader.string();
+                    break;
+                case /* string publisher_github_namespace */ 7:
+                    message.publisherGithubNamespace = reader.string();
+                    break;
+                case /* string source_repository */ 8:
+                    message.sourceRepository = reader.string();
+                    break;
+                case /* string source_license_spdx_expression */ 9:
+                    message.sourceLicenseSpdxExpression = reader.string();
+                    break;
+                case /* repeated string app_access */ 10:
+                    message.appAccess.push(reader.string());
+                    break;
+                case /* repeated string capability_contract_refs */ 11:
+                    message.capabilityContractRefs.push(reader.string());
+                    break;
+                case /* repeated string required_standardized_feature_refs */ 12:
+                    message.requiredStandardizedFeatureRefs.push(reader.string());
+                    break;
+                case /* string storage_policy_kind */ 13:
+                    message.storagePolicyKind = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.ApprovedAppCatalogStorageDisclosure os_storage_disclosures */ 14:
+                    message.osStorageDisclosures.push(ApprovedAppCatalogStorageDisclosure.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* string target_id */ 15:
+                    message.targetId = reader.string();
+                    break;
+                case /* string os */ 16:
+                    message.os = reader.string();
+                    break;
+                case /* string arch */ 17:
+                    message.arch = reader.string();
+                    break;
+                case /* string asset_name */ 18:
+                    message.assetName = reader.string();
+                    break;
+                case /* int64 asset_size */ 19:
+                    message.assetSize = reader.int64().toString();
+                    break;
+                case /* string execution_profile_ref */ 20:
+                    message.executionProfileRef = reader.string();
+                    break;
+                case /* string windows_code_signing */ 21:
+                    message.windowsCodeSigning = reader.string();
+                    break;
+                case /* optional string observed_signing_subject */ 22:
+                    message.observedSigningSubject = reader.string();
+                    break;
+                case /* bool policy_blocked */ 23:
+                    message.policyBlocked = reader.bool();
+                    break;
+                case /* optional string policy_reason */ 24:
+                    message.policyReason = reader.string();
+                    break;
+                case /* uint64 policy_revision */ 25:
+                    message.policyRevision = reader.uint64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ApprovedAppCatalogTarget, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes approved_target_selector = 1; */
+        if (message.approvedTargetSelector.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.approvedTargetSelector);
+        /* string observed_registry_revision = 2; */
+        if (message.observedRegistryRevision !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.observedRegistryRevision);
+        /* string descriptor_id = 3; */
+        if (message.descriptorId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.descriptorId);
+        /* string app_id = 4; */
+        if (message.appId !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.appId);
+        /* string display_name = 5; */
+        if (message.displayName !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.displayName);
+        /* string version = 6; */
+        if (message.version !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.version);
+        /* string publisher_github_namespace = 7; */
+        if (message.publisherGithubNamespace !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.publisherGithubNamespace);
+        /* string source_repository = 8; */
+        if (message.sourceRepository !== "")
+            writer.tag(8, WireType.LengthDelimited).string(message.sourceRepository);
+        /* string source_license_spdx_expression = 9; */
+        if (message.sourceLicenseSpdxExpression !== "")
+            writer.tag(9, WireType.LengthDelimited).string(message.sourceLicenseSpdxExpression);
+        /* repeated string app_access = 10; */
+        for (let i = 0; i < message.appAccess.length; i++)
+            writer.tag(10, WireType.LengthDelimited).string(message.appAccess[i]);
+        /* repeated string capability_contract_refs = 11; */
+        for (let i = 0; i < message.capabilityContractRefs.length; i++)
+            writer.tag(11, WireType.LengthDelimited).string(message.capabilityContractRefs[i]);
+        /* repeated string required_standardized_feature_refs = 12; */
+        for (let i = 0; i < message.requiredStandardizedFeatureRefs.length; i++)
+            writer.tag(12, WireType.LengthDelimited).string(message.requiredStandardizedFeatureRefs[i]);
+        /* string storage_policy_kind = 13; */
+        if (message.storagePolicyKind !== "")
+            writer.tag(13, WireType.LengthDelimited).string(message.storagePolicyKind);
+        /* repeated nimi.runtime.v1.ApprovedAppCatalogStorageDisclosure os_storage_disclosures = 14; */
+        for (let i = 0; i < message.osStorageDisclosures.length; i++)
+            ApprovedAppCatalogStorageDisclosure.internalBinaryWrite(message.osStorageDisclosures[i], writer.tag(14, WireType.LengthDelimited).fork(), options).join();
+        /* string target_id = 15; */
+        if (message.targetId !== "")
+            writer.tag(15, WireType.LengthDelimited).string(message.targetId);
+        /* string os = 16; */
+        if (message.os !== "")
+            writer.tag(16, WireType.LengthDelimited).string(message.os);
+        /* string arch = 17; */
+        if (message.arch !== "")
+            writer.tag(17, WireType.LengthDelimited).string(message.arch);
+        /* string asset_name = 18; */
+        if (message.assetName !== "")
+            writer.tag(18, WireType.LengthDelimited).string(message.assetName);
+        /* int64 asset_size = 19; */
+        if (message.assetSize !== "0")
+            writer.tag(19, WireType.Varint).int64(message.assetSize);
+        /* string execution_profile_ref = 20; */
+        if (message.executionProfileRef !== "")
+            writer.tag(20, WireType.LengthDelimited).string(message.executionProfileRef);
+        /* string windows_code_signing = 21; */
+        if (message.windowsCodeSigning !== "")
+            writer.tag(21, WireType.LengthDelimited).string(message.windowsCodeSigning);
+        /* optional string observed_signing_subject = 22; */
+        if (message.observedSigningSubject !== undefined)
+            writer.tag(22, WireType.LengthDelimited).string(message.observedSigningSubject);
+        /* bool policy_blocked = 23; */
+        if (message.policyBlocked !== false)
+            writer.tag(23, WireType.Varint).bool(message.policyBlocked);
+        /* optional string policy_reason = 24; */
+        if (message.policyReason !== undefined)
+            writer.tag(24, WireType.LengthDelimited).string(message.policyReason);
+        /* uint64 policy_revision = 25; */
+        if (message.policyRevision !== "0")
+            writer.tag(25, WireType.Varint).uint64(message.policyRevision);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ApprovedAppCatalogTarget
+ */
+export const ApprovedAppCatalogTarget = new ApprovedAppCatalogTarget$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListApprovedAppCatalogTargetsRequest$Type extends MessageType<ListApprovedAppCatalogTargetsRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ListApprovedAppCatalogTargetsRequest", []);
+    }
+    create(value?: PartialMessage<ListApprovedAppCatalogTargetsRequest>): ListApprovedAppCatalogTargetsRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ListApprovedAppCatalogTargetsRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListApprovedAppCatalogTargetsRequest): ListApprovedAppCatalogTargetsRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListApprovedAppCatalogTargetsRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListApprovedAppCatalogTargetsRequest
+ */
+export const ListApprovedAppCatalogTargetsRequest = new ListApprovedAppCatalogTargetsRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ListApprovedAppCatalogTargetsResponse$Type extends MessageType<ListApprovedAppCatalogTargetsResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ListApprovedAppCatalogTargetsResponse", [
+            { no: 1, name: "targets", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ApprovedAppCatalogTarget },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<ListApprovedAppCatalogTargetsResponse>): ListApprovedAppCatalogTargetsResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.targets = [];
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ListApprovedAppCatalogTargetsResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ListApprovedAppCatalogTargetsResponse): ListApprovedAppCatalogTargetsResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.ApprovedAppCatalogTarget targets */ 1:
+                    message.targets.push(ApprovedAppCatalogTarget.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ListApprovedAppCatalogTargetsResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.ApprovedAppCatalogTarget targets = 1; */
+        for (let i = 0; i < message.targets.length; i++)
+            ApprovedAppCatalogTarget.internalBinaryWrite(message.targets[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ListApprovedAppCatalogTargetsResponse
+ */
+export const ListApprovedAppCatalogTargetsResponse = new ListApprovedAppCatalogTargetsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ListCommittedAppReleasesRequest$Type extends MessageType<ListCommittedAppReleasesRequest> {
     constructor() {
         super("nimi.runtime.v1.ListCommittedAppReleasesRequest", []);
@@ -4050,6 +5339,107 @@ class GetAppPackageJobResponse$Type extends MessageType<GetAppPackageJobResponse
  * @generated MessageType for protobuf message nimi.runtime.v1.GetAppPackageJobResponse
  */
 export const GetAppPackageJobResponse = new GetAppPackageJobResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class StartAppPackageInstallRequest$Type extends MessageType<StartAppPackageInstallRequest> {
+    constructor() {
+        super("nimi.runtime.v1.StartAppPackageInstallRequest", [
+            { no: 1, name: "approved_target_selector", kind: "scalar", T: 12 /*ScalarType.BYTES*/ }
+        ]);
+    }
+    create(value?: PartialMessage<StartAppPackageInstallRequest>): StartAppPackageInstallRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.approvedTargetSelector = new Uint8Array(0);
+        if (value !== undefined)
+            reflectionMergePartial<StartAppPackageInstallRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StartAppPackageInstallRequest): StartAppPackageInstallRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bytes approved_target_selector */ 1:
+                    message.approvedTargetSelector = reader.bytes();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: StartAppPackageInstallRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bytes approved_target_selector = 1; */
+        if (message.approvedTargetSelector.length)
+            writer.tag(1, WireType.LengthDelimited).bytes(message.approvedTargetSelector);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.StartAppPackageInstallRequest
+ */
+export const StartAppPackageInstallRequest = new StartAppPackageInstallRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class StartAppPackageInstallResponse$Type extends MessageType<StartAppPackageInstallResponse> {
+    constructor() {
+        super("nimi.runtime.v1.StartAppPackageInstallResponse", [
+            { no: 1, name: "job", kind: "message", T: () => AppPackageJob },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<StartAppPackageInstallResponse>): StartAppPackageInstallResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<StartAppPackageInstallResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: StartAppPackageInstallResponse): StartAppPackageInstallResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.AppPackageJob job */ 1:
+                    message.job = AppPackageJob.internalBinaryRead(reader, reader.uint32(), options, message.job);
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: StartAppPackageInstallResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.AppPackageJob job = 1; */
+        if (message.job)
+            AppPackageJob.internalBinaryWrite(message.job, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.StartAppPackageInstallResponse
+ */
+export const StartAppPackageInstallResponse = new StartAppPackageInstallResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class CancelAppPackageJobRequest$Type extends MessageType<CancelAppPackageJobRequest> {
     constructor() {

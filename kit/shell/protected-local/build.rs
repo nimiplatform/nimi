@@ -44,7 +44,7 @@ fn verify_packaged_runtime_protos(canonical_root: &Path, packaged_root: &Path) {
 }
 
 fn main() {
-    println!("cargo:rerun-if-env-changed=NIMI_WINDOWS_PRODUCTION_SIGNER_CERT_SHA256");
+    println!("cargo:rerun-if-env-changed=NIMI_WINDOWS_PRODUCTION_SIGNER_SPKI_SHA256");
     println!("cargo:rerun-if-env-changed=NIMI_MACOS_TEAM_ID");
     let target = std::env::var("TARGET").expect("target triple");
     if target.contains("apple-darwin") {

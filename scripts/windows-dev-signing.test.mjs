@@ -1,11 +1,17 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
+import { parseWindowsDevSigningIdentity } from './lib/windows-dev-signing.mjs';
 import {
   parseFirstJsonDocument,
   parsePowerShellJsonResult,
   resolveWindowsPowerShell7,
 } from './lib/windows-powershell.mjs';
+
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 test('PowerShell JSON result separates localized diagnostics from the receipt', () => {
   const stdout = '\ufeff警告: optional formatting data was unavailable\r\n'
@@ -59,4 +65,79 @@ test('Windows signing helper rejects a missing explicit PowerShell path', () => 
     }),
     /existing absolute PowerShell 7 executable/u,
   );
+});
+
+test('Windows development signer identity requires exact certificate and SPKI digests', () => {
+  const payload = {
+    certificate: {
+      status: 'present',
+      subject: 'CN=Nimi Local Development Code Signing',
+      thumbprint: 'ABCDEF',
+      certificateSha256: '1'.repeat(64),
+      spkiSha256: 'ab'.repeat(32),
+      stores: {
+        currentUserMy: true,
+        currentUserRoot: true,
+        currentUserTrustedPublisher: true,
+      },
+    },
+  };
+  assert.deepEqual(parseWindowsDevSigningIdentity(payload), {
+    subject: payload.certificate.subject,
+    thumbprint: payload.certificate.thumbprint,
+    certificateSha256: payload.certificate.certificateSha256,
+    spkiSha256: payload.certificate.spkiSha256,
+  });
+  assert.throws(
+    () => parseWindowsDevSigningIdentity({
+      certificate: { ...payload.certificate, spkiSha256: payload.certificate.spkiSha256.toUpperCase() },
+    }),
+    /not fully provisioned/u,
+  );
+  assert.throws(
+    () => parseWindowsDevSigningIdentity({
+      certificate: { ...payload.certificate, spkiSha256: undefined },
+    }),
+    /not fully provisioned/u,
+  );
+});
+
+test('Windows protected-local production build rejects retired and malformed SPKI inputs', {
+  skip: process.platform !== 'win32',
+}, () => {
+  const scriptPath = path.join(
+    repoRoot,
+    'kit',
+    'shell',
+    'protected-local-node',
+    'scripts',
+    'build-windows-x64-package.mjs',
+  );
+  const inputs = [
+    {
+      NIMI_WINDOWS_PRODUCTION_SIGNER_CERT_SHA256: 'a'.repeat(64),
+      NIMI_WINDOWS_PRODUCTION_SIGNER_SPKI_SHA256: undefined,
+    },
+    {
+      NIMI_WINDOWS_PRODUCTION_SIGNER_CERT_SHA256: undefined,
+      NIMI_WINDOWS_PRODUCTION_SIGNER_SPKI_SHA256: 'A'.repeat(64),
+    },
+  ];
+  for (const input of inputs) {
+    const env = { ...process.env };
+    for (const [name, value] of Object.entries(input)) {
+      if (value === undefined) delete env[name];
+      else env[name] = value;
+    }
+    const result = spawnSync(process.execPath, [scriptPath], {
+      cwd: repoRoot,
+      env,
+      encoding: 'utf8',
+    });
+    assert.notEqual(result.status, 0);
+    assert.match(
+      `${result.stderr}\n${result.stdout}`,
+      /NIMI_WINDOWS_PRODUCTION_SIGNER_SPKI_SHA256 must be an exact lowercase SHA-256 SubjectPublicKeyInfo identity/u,
+    );
+  }
 });

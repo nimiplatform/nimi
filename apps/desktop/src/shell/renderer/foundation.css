@@ -6,3 +6,13 @@
 @import "@nimiplatform/kit/auth/styles.css";
 @import "tailwindcss" source(none);
 @source "./**/*.{ts,tsx}";
+
+/* macOS root-scroller rubber-banding: a downward fling on a non-scrollable
+   region pulls the whole document upward, and because body is transparent it
+   reveals the Electron window's white backing as a full-width strip. Disable
+   the Host document affordance; inner scroll containers keep their own
+   overscroll-contain behavior. */
+html,
+body {
+  overscroll-behavior: none;
+}
