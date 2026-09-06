@@ -464,6 +464,14 @@ RUNTIME_METHODS = [
     "response_type": "RenderLocalAppConversationVoiceResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
+    "service": "RuntimeAgentService",
+    "method": "ResolveDesktopAgentReference",
+    "kind": "unary",
+    "request_type": "ResolveDesktopAgentReferenceRequest",
+    "response_type": "ResolveDesktopAgentReferenceResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
     "service": "RuntimeAgentService",
     "method": "SendLocalAppConversationTurn",

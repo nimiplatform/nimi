@@ -1548,6 +1548,26 @@ export interface ListLocalAppAgentReferencesResponse {
     references: LocalAppAgentReference[];
 }
 /**
+ * Desktop account-product lookup; absent from ordinary App transport profiles.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ResolveDesktopAgentReferenceRequest
+ */
+export interface ResolveDesktopAgentReferenceRequest {
+    /**
+     * @generated from protobuf field: string local_agent_ref = 1
+     */
+    localAgentRef: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ResolveDesktopAgentReferenceResponse
+ */
+export interface ResolveDesktopAgentReferenceResponse {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalAppAgentReference reference = 1
+     */
+    reference?: LocalAppAgentReference;
+}
+/**
  * Host-private Avatar correlation. This wire is reachable only through the
  * protected native Host binding and is never an App product operation.
  *
@@ -8570,6 +8590,99 @@ class ListLocalAppAgentReferencesResponse$Type extends MessageType<ListLocalAppA
  * @generated MessageType for protobuf message nimi.runtime.v1.ListLocalAppAgentReferencesResponse
  */
 export const ListLocalAppAgentReferencesResponse = new ListLocalAppAgentReferencesResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveDesktopAgentReferenceRequest$Type extends MessageType<ResolveDesktopAgentReferenceRequest> {
+    constructor() {
+        super("nimi.runtime.v1.ResolveDesktopAgentReferenceRequest", [
+            { no: 1, name: "local_agent_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ResolveDesktopAgentReferenceRequest>): ResolveDesktopAgentReferenceRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.localAgentRef = "";
+        if (value !== undefined)
+            reflectionMergePartial<ResolveDesktopAgentReferenceRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResolveDesktopAgentReferenceRequest): ResolveDesktopAgentReferenceRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string local_agent_ref */ 1:
+                    message.localAgentRef = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ResolveDesktopAgentReferenceRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string local_agent_ref = 1; */
+        if (message.localAgentRef !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.localAgentRef);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ResolveDesktopAgentReferenceRequest
+ */
+export const ResolveDesktopAgentReferenceRequest = new ResolveDesktopAgentReferenceRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ResolveDesktopAgentReferenceResponse$Type extends MessageType<ResolveDesktopAgentReferenceResponse> {
+    constructor() {
+        super("nimi.runtime.v1.ResolveDesktopAgentReferenceResponse", [
+            { no: 1, name: "reference", kind: "message", T: () => LocalAppAgentReference }
+        ]);
+    }
+    create(value?: PartialMessage<ResolveDesktopAgentReferenceResponse>): ResolveDesktopAgentReferenceResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<ResolveDesktopAgentReferenceResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ResolveDesktopAgentReferenceResponse): ResolveDesktopAgentReferenceResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.LocalAppAgentReference reference */ 1:
+                    message.reference = LocalAppAgentReference.internalBinaryRead(reader, reader.uint32(), options, message.reference);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ResolveDesktopAgentReferenceResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.LocalAppAgentReference reference = 1; */
+        if (message.reference)
+            LocalAppAgentReference.internalBinaryWrite(message.reference, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ResolveDesktopAgentReferenceResponse
+ */
+export const ResolveDesktopAgentReferenceResponse = new ResolveDesktopAgentReferenceResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ResolveLocalAppAvatarHostTargetRequest$Type extends MessageType<ResolveLocalAppAvatarHostTargetRequest> {
     constructor() {

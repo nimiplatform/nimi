@@ -176,6 +176,7 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation": { kind: "unary" },

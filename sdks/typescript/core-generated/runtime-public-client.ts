@@ -470,6 +470,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RenderLocalAppConversationVoiceResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
+    "service": "RuntimeAgentService",
+    "method": "ResolveDesktopAgentReference",
+    "kind": "unary",
+    "requestType": "ResolveDesktopAgentReferenceRequest",
+    "responseType": "ResolveDesktopAgentReferenceResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
     "service": "RuntimeAgentService",
     "method": "SendLocalAppConversationTurn",

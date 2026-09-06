@@ -6711,6 +6711,14 @@ type RequestRuntimeRestartResponse struct {
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 }
 
+type ResolveDesktopAgentReferenceRequest struct {
+	LocalAgentRef string `json:"local_agent_ref,omitempty"`
+}
+
+type ResolveDesktopAgentReferenceResponse struct {
+	Reference *LocalAppAgentReference `json:"reference,omitempty"`
+}
+
 type ResolveLocalEnvironmentActivationGateRequest struct {
 	ConsumerId      string              `json:"consumer_id,omitempty"`
 	PackId          string              `json:"pack_id,omitempty"`
@@ -8416,6 +8424,14 @@ func (c RuntimeTypedClient) RenderLocalAppConversationVoice(ctx context.Context,
 		return RenderLocalAppConversationVoiceResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[RenderLocalAppConversationVoiceResponse](raw, "RenderLocalAppConversationVoiceResponse")
+}
+
+func (c RuntimeTypedClient) ResolveDesktopAgentReference(ctx context.Context, request ResolveDesktopAgentReferenceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResolveDesktopAgentReferenceResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference", request, metadata, timeoutMS)
+	if err != nil {
+		return ResolveDesktopAgentReferenceResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ResolveDesktopAgentReferenceResponse](raw, "ResolveDesktopAgentReferenceResponse")
 }
 
 func (c RuntimeTypedClient) SendLocalAppConversationTurn(ctx context.Context, request SendLocalAppConversationTurnRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SendLocalAppConversationTurnResponse, error) {

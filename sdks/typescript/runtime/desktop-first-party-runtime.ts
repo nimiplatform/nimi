@@ -118,6 +118,7 @@ export type NimiDesktopAccountProductRuntimeClient = {
   readonly profiles: NimiDesktopPortableAIProfileCatalogClient;
   readonly agents: Pick<DesktopAccountProductRuntimeMethods,
     | 'listAgents'
+    | 'resolveDesktopAgentReference'
     | 'getAgent'
     | 'openConversationAnchor'
     | 'getConversationAnchorSnapshot'
@@ -335,6 +336,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
   );
   const accountAgents: NimiDesktopAccountProductRuntimeClient['agents'] = Object.freeze({
     listAgents: protectedAgents.listAgents,
+    resolveDesktopAgentReference: protectedAgents.resolveDesktopAgentReference,
     getAgent: protectedAgent(protectedAgents.getAgent),
     openConversationAnchor: protectedAgents.openConversationAnchor,
     getConversationAnchorSnapshot: protectedAgents.getConversationAnchorSnapshot,

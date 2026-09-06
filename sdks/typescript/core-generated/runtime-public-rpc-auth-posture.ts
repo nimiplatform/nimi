@@ -61,6 +61,7 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice": "protected_origin_required",
+  "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeAgentService/SetAgentPresentationProfile": "authenticated_required",
   "/nimi.runtime.v1.RuntimeAgentService/SetAutonomyConfig": "anonymous_read",
