@@ -3861,6 +3861,17 @@ type GetAppStorageResponse struct {
 	Projection *AppStorageProjection `json:"projection,omitempty"`
 }
 
+type GetCatalogModelCardRequest struct {
+	ModelLocator string `json:"model_locator,omitempty"`
+	OfferRef     string `json:"offer_ref,omitempty"`
+}
+
+type GetCatalogModelCardResponse struct {
+	Markdown  string `json:"markdown,omitempty"`
+	SourceUrl string `json:"source_url,omitempty"`
+	BaseUrl   string `json:"base_url,omitempty"`
+}
+
 type GetCatalogModelDetailRequest struct {
 	Provider string `json:"provider,omitempty"`
 	ModelId  string `json:"model_id,omitempty"`
@@ -9234,6 +9245,14 @@ func (c RuntimeTypedClient) EnsureProductControlRecordCreated(ctx context.Contex
 		return ProductControlProjectionJson{}, err
 	}
 	return decodeRuntimeTypedResponse[ProductControlProjectionJson](raw, "ProductControlProjectionJson")
+}
+
+func (c RuntimeTypedClient) GetCatalogModelCard(ctx context.Context, request GetCatalogModelCardRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetCatalogModelCardResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard", request, metadata, timeoutMS)
+	if err != nil {
+		return GetCatalogModelCardResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetCatalogModelCardResponse](raw, "GetCatalogModelCardResponse")
 }
 
 func (c RuntimeTypedClient) GetLoadout(ctx context.Context, request GetLoadoutRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLoadoutResponse, error) {

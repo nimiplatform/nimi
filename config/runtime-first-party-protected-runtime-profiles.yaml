@@ -46,6 +46,7 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets
       - method_id: /nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants
+      - method_id: /nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations
       - method_id: /nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan

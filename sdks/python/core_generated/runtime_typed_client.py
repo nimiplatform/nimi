@@ -2151,6 +2151,17 @@ class GetAppStorageResponse:
     projection: AppStorageProjection | None = None
 
 @dataclass(frozen=True)
+class GetCatalogModelCardRequest:
+    model_locator: str | None = None
+    offer_ref: str | None = None
+
+@dataclass(frozen=True)
+class GetCatalogModelCardResponse:
+    markdown: str | None = None
+    source_url: str | None = None
+    base_url: str | None = None
+
+@dataclass(frozen=True)
 class GetCatalogModelDetailRequest:
     provider: str | None = None
     model_id: str | None = None
@@ -6782,6 +6793,10 @@ class RuntimeTypedClient:
     async def ensure_product_control_record_created(self, request: EnsureProductControlRecordCreatedRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ProductControlProjectionJson:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ProductControlProjectionJson, raw)
+
+    async def get_catalog_model_card(self, request: GetCatalogModelCardRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetCatalogModelCardResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetCatalogModelCardResponse, raw)
 
     async def get_loadout(self, request: GetLoadoutRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetLoadoutResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeLocalService/GetLoadout", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

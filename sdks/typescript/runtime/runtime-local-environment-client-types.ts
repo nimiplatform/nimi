@@ -339,6 +339,7 @@ export type NimiRuntimeLocalEnvironmentRpc = Pick<
   | 'listVerifiedAssets'
   | 'searchCatalogModels'
   | 'listCatalogVariants'
+  | 'getCatalogModelCard'
   | 'listFeaturedModelAssets'
   | 'listFactoryProfileRecommendations'
   | 'resolveModelInstallPlan'
@@ -371,6 +372,7 @@ export interface NimiRuntimeLocalEnvironmentClient {
     readonly maxPages?: number;
   }): Promise<readonly NimiRuntimeLocalVerifiedAssetDescriptor[]>;
   searchCatalog(input: NimiRuntimeLocalCatalogSearchInput): Promise<readonly NimiRuntimeModelAssetCatalogSearchResult[]>;
+  getCatalogModelCard(input: { readonly modelLocator?: string; readonly offerRef?: string }): Promise<{ readonly markdown: string; readonly sourceUrl: string; readonly baseUrl: string }>;
   listCatalogVariants(modelLocator: string): Promise<readonly NimiRuntimeModelAssetMarketCandidate[]>;
   listFeaturedModelAssets(input: {
     readonly category: string;

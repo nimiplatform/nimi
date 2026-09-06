@@ -221,6 +221,38 @@ export interface SearchCatalogModelsResponse {
     nextPageToken: string;
 }
 /**
+ * Read-only model card for either a browse result or an exact market offer.
+ *
+ * @generated from protobuf message nimi.runtime.v1.GetCatalogModelCardRequest
+ */
+export interface GetCatalogModelCardRequest {
+    /**
+     * @generated from protobuf field: string model_locator = 1
+     */
+    modelLocator: string;
+    /**
+     * @generated from protobuf field: string offer_ref = 2
+     */
+    offerRef: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetCatalogModelCardResponse
+ */
+export interface GetCatalogModelCardResponse {
+    /**
+     * @generated from protobuf field: string markdown = 1
+     */
+    markdown: string;
+    /**
+     * @generated from protobuf field: string source_url = 2
+     */
+    sourceUrl: string;
+    /**
+     * @generated from protobuf field: string base_url = 3
+     */
+    baseUrl: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ListCatalogVariantsRequest
  */
 export interface ListCatalogVariantsRequest {
@@ -1737,6 +1769,124 @@ class SearchCatalogModelsResponse$Type extends MessageType<SearchCatalogModelsRe
  * @generated MessageType for protobuf message nimi.runtime.v1.SearchCatalogModelsResponse
  */
 export const SearchCatalogModelsResponse = new SearchCatalogModelsResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetCatalogModelCardRequest$Type extends MessageType<GetCatalogModelCardRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetCatalogModelCardRequest", [
+            { no: 1, name: "model_locator", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "offer_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetCatalogModelCardRequest>): GetCatalogModelCardRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.modelLocator = "";
+        message.offerRef = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetCatalogModelCardRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetCatalogModelCardRequest): GetCatalogModelCardRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string model_locator */ 1:
+                    message.modelLocator = reader.string();
+                    break;
+                case /* string offer_ref */ 2:
+                    message.offerRef = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetCatalogModelCardRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string model_locator = 1; */
+        if (message.modelLocator !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.modelLocator);
+        /* string offer_ref = 2; */
+        if (message.offerRef !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.offerRef);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetCatalogModelCardRequest
+ */
+export const GetCatalogModelCardRequest = new GetCatalogModelCardRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetCatalogModelCardResponse$Type extends MessageType<GetCatalogModelCardResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetCatalogModelCardResponse", [
+            { no: 1, name: "markdown", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "source_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "base_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetCatalogModelCardResponse>): GetCatalogModelCardResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.markdown = "";
+        message.sourceUrl = "";
+        message.baseUrl = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetCatalogModelCardResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetCatalogModelCardResponse): GetCatalogModelCardResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string markdown */ 1:
+                    message.markdown = reader.string();
+                    break;
+                case /* string source_url */ 2:
+                    message.sourceUrl = reader.string();
+                    break;
+                case /* string base_url */ 3:
+                    message.baseUrl = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetCatalogModelCardResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string markdown = 1; */
+        if (message.markdown !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.markdown);
+        /* string source_url = 2; */
+        if (message.sourceUrl !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.sourceUrl);
+        /* string base_url = 3; */
+        if (message.baseUrl !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.baseUrl);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetCatalogModelCardResponse
+ */
+export const GetCatalogModelCardResponse = new GetCatalogModelCardResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ListCatalogVariantsRequest$Type extends MessageType<ListCatalogVariantsRequest> {
     constructor() {

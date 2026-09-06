@@ -1424,6 +1424,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "ProductControlProjectionJson",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
+        service: "RuntimeLocalService",
+        method: "GetCatalogModelCard",
+        kind: "unary",
+        request_type: "GetCatalogModelCardRequest",
+        response_type: "GetCatalogModelCardResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
         service: "RuntimeLocalService",
         method: "GetLoadout",

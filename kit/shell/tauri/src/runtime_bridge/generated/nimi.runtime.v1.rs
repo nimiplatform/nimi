@@ -8873,6 +8873,23 @@ pub struct SearchCatalogModelsResponse {
     #[prost(string, tag = "2")]
     pub next_page_token: ::prost::alloc::string::String,
 }
+/// Read-only model card for either a browse result or an exact market offer.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetCatalogModelCardRequest {
+    #[prost(string, tag = "1")]
+    pub model_locator: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub offer_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetCatalogModelCardResponse {
+    #[prost(string, tag = "1")]
+    pub markdown: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub source_url: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub base_url: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListCatalogVariantsRequest {
     #[prost(string, tag = "1")]
@@ -9803,6 +9820,35 @@ pub mod runtime_local_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeLocalService",
                         "SearchCatalogModels",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_catalog_model_card(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetCatalogModelCardRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetCatalogModelCardResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "GetCatalogModelCard",
                     ),
                 );
             self.inner.unary(req, path, codec).await

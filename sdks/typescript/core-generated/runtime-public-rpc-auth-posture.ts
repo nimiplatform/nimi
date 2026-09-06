@@ -180,6 +180,7 @@ const RUNTIME_RPC_AUTH_POSTURES: Readonly<Record<string, RuntimeRpcAuthPosture>>
   "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeLocalService/DeleteLoadout": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated": "protected_origin_required",
+  "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard": "anonymous_read",
   "/nimi.runtime.v1.RuntimeLocalService/GetLoadout": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeLocalService/GetMachineLoadouts": "protected_origin_required",
   "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset": "protected_origin_required",
