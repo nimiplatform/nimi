@@ -1333,7 +1333,8 @@
     "category": {
       "chat": "Chat",
       "image": "Image",
-      "video": "Video"
+      "video": "Video",
+      "all": "All models"
     },
     "recommendationsUnavailable": "Model recommendations are unavailable. Full catalog search is still available.",
     "loadingTitle": "Fetching the latest model market data…",
@@ -1483,7 +1484,19 @@
     "modelCardSource": "View on Hugging Face",
     "modelCardFailed": "The model card could not be loaded.",
     "modelCardRetry": "Retry",
-    "modelCardEmpty": "This repository has no model card content."
+    "modelCardEmpty": "This repository has no model card content.",
+    "filterAuthor": "Author",
+    "filterLicense": "License",
+    "allAuthors": "All authors",
+    "allLicenses": "All licenses",
+    "sortResults": "Sort results",
+    "searchAllHint": "Search all model types, including speech and supporting assets.",
+    "resultSort": {
+      "default": "Default order",
+      "title": "Name",
+      "downloads": "Most downloads",
+      "size": "Smallest download"
+    }
   },
   "localModelCenter": {
     "activeDownloads": "Download Tasks ({{count}})",
@@ -1683,7 +1696,9 @@
       "attached_only": "Attached Only",
       "unsupported": "Unsupported",
       "unknown": "Host Unknown"
-    }
+    },
+    "noMatchingAssets": "No installed assets match this search",
+    "searchInstalled": "Search installed assets"
   },
   "delegation": {
     "title": "Delegated capability control",

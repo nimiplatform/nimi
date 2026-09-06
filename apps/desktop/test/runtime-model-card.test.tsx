@@ -41,3 +41,16 @@ test('HF tables immediately after a list render as tables without changing code 
   const fenced = '```markdown\n' + markdown + '\n```';
   assert.equal(modelCardBody(fenced), fenced);
 });
+
+test('market filters and user ordering preserve exact candidates and source order', async () => {
+  const { filterModelMarketRows } = await import('../src/shell/renderer/features/runtime-config/runtime-config-page-recommend');
+  const rows = [
+    { offerRef: 'offer-z', title: 'Zulu', author: 'One', license: 'MIT', downloads: 50, totalSizeBytes: 300 },
+    { offerRef: 'offer-a', title: 'Alpha', author: 'Two', license: 'MIT', downloads: 100, totalSizeBytes: 200 },
+    { offerRef: 'offer-b', title: 'Beta', author: 'One', license: 'Apache-2.0', downloads: 10 },
+  ];
+  assert.deepEqual(filterModelMarketRows(rows, 'author:One', 'license:MIT', 'default'), [rows[0]]);
+  assert.deepEqual(filterModelMarketRows(rows, 'all', 'all', 'downloads').map((row) => row.offerRef), ['offer-a', 'offer-z', 'offer-b']);
+  assert.deepEqual(filterModelMarketRows(rows, 'all', 'all', 'size').map((row) => row.offerRef), ['offer-a', 'offer-z', 'offer-b']);
+  assert.deepEqual(rows.map((row) => row.offerRef), ['offer-z', 'offer-a', 'offer-b']);
+});

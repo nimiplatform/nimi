@@ -464,3 +464,21 @@ func TestHFCatalogAmbiguousCrossKindRowFailsClosed(t *testing.T) {
 		t.Fatalf("cross-kind inferred row must be blocked, got ok=%v item=%v", ok, item)
 	}
 }
+
+func TestUnfilteredCatalogSearchIncludesSpeechAndPassiveAssets(t *testing.T) {
+	svc := newTestService(t)
+	svc.catalog = []*runtimev1.LocalCatalogModelDescriptor{
+		{ItemId: "speech-asset", Source: "verified", Title: "Speech asset", Repo: "org/speech", Revision: immutableHFRevisionForTest, ModelType: "tts", Capabilities: []string{"audio.synthesize"}},
+		{ItemId: "vae-asset", Source: "verified", Title: "VAE asset", Repo: "org/vae", Revision: immutableHFRevisionForTest, ModelType: "vae"},
+	}
+	svc.hfCatalogSearch = func(_ context.Context, request hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+		if request.CategoryFilter != "" {
+			t.Fatalf("unfiltered search gained a pipeline category: %q", request.CategoryFilter)
+		}
+		return nil, nil
+	}
+	result, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{Query: "asset"})
+	if err != nil || len(result.GetItems()) != 2 {
+		t.Fatalf("speech/passive search = %+v err=%v", result, err)
+	}
+}

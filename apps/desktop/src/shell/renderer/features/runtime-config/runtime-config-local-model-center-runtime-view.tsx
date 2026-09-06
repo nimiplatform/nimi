@@ -1,9 +1,9 @@
-import type { RefObject } from 'react';
+import { useState, type RefObject } from 'react';
 import type {
   NimiRuntimeLocalTransferProgressEvent,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
-import { ScrollArea } from '@nimiplatform/kit/ui';
+import { ScrollArea, SearchField } from '@nimiplatform/kit/ui';
 
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { LocalModelCenterImportControls } from './runtime-config-local-model-center-import-controls';
@@ -40,6 +40,7 @@ type LocalAssetsRuntimeViewProps = {
 
 export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) {
   const i18n = useDesktopI18nResource().instance;
+  const [query, setQuery] = useState('');
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ScrollArea className="flex-1" contentClassName={`mx-auto ${RUNTIME_PAGE_WIDTH_CLASS} space-y-4 px-4 pb-4`}>
@@ -88,8 +89,12 @@ export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) 
           onCancel={props.onCancelDownload}
           onDismiss={props.onDismissSession}
         />
+        <SearchField value={query} onChange={(event) => setQuery(event.currentTarget.value)}
+          aria-label={i18n.t('runtimeConfig.localModelCenter.searchInstalled')}
+          placeholder={i18n.t('runtimeConfig.localModelCenter.searchInstalled')} />
         <LocalModelCenterInstalledAssetsSection
           modelAssets={[...props.modelAssets]}
+          query={query}
           loadingInstalledAssets={props.loadingInstalledAssets}
           assetBusy={props.assetBusy}
           runtimeWritesDisabled={props.runtimeWritesDisabled}

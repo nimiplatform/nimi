@@ -128,8 +128,9 @@ func (s *Service) ListCatalogVariants(ctx context.Context, req *runtimev1.ListCa
 	offers := make([]catalogOffer, 0)
 	switch sourceKind {
 	case "huggingface":
-		offers = s.modelIndexOffersForLocator(locator, revision)
-		if len(offers) > 0 {
+		var found bool
+		offers, found = s.modelIndexOffersForLocator(locator, revision)
+		if found {
 			break
 		}
 		variants, err := s.listHFCatalogVariants(ctx, locator, revision)

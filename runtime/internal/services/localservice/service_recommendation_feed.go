@@ -1,6 +1,7 @@
 package localservice
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -171,7 +172,13 @@ func (s *Service) resolveModelIndex(ctx context.Context) (*remoteModelIndex, run
 	if fetchErr == nil {
 		if validationErr := validateRemoteModelIndex(fetched, cache.Index); validationErr == nil {
 			if cache.Index != nil && fetched.Generation == cache.Index.Generation {
-				if !cache.Stale && modelIndexSnapshotFresh(cache.Index.GeneratedAt) {
+				if modelIndexSnapshotFresh(cache.Index.GeneratedAt) {
+					if cache.Stale {
+						cache.Stale = false
+						if err := s.saveModelIndexCache(cache); err != nil {
+							return cache.Index, runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_STALE, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_PERSISTENCE_UNAVAILABLE
+						}
+					}
 					return cache.Index, runtimev1.ModelAssetSourceFreshness_MODEL_ASSET_SOURCE_FRESHNESS_FRESH, runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED
 				}
 				s.markModelIndexCacheStale(cache)
@@ -241,7 +248,10 @@ func validateRemoteModelIndex(index *remoteModelIndex, previous *remoteModelInde
 	previousGeneratedAt, previousTimeErr := time.Parse(time.RFC3339Nano, strings.TrimSpace(previous.GeneratedAt))
 	if previousTimeErr == nil {
 		if index.Generation == previous.Generation {
-			if !reflect.DeepEqual(index, previous) {
+			current, prior := *index, *previous
+			current.SelectionPolicy, prior.SelectionPolicy = nil, nil
+			current.Build, prior.Build = nil, nil
+			if !reflect.DeepEqual(current, prior) || !sameModelIndexJSON(index.SelectionPolicy, previous.SelectionPolicy) || !sameModelIndexJSON(index.Build, previous.Build) {
 				return fmt.Errorf("model-index generation mutated without a new identity")
 			}
 		} else if !currentGeneratedAt.After(previousGeneratedAt) {
@@ -262,6 +272,26 @@ func validateRemoteModelIndex(index *remoteModelIndex, previous *remoteModelInde
 		}
 	}
 	return nil
+}
+
+// JSON metadata is compared as values: cache indentation is not source mutation.
+func sameModelIndexJSON(left, right json.RawMessage) bool {
+	if len(left) == 0 || len(right) == 0 {
+		return len(left) == len(right)
+	}
+	decode := func(raw json.RawMessage) (any, error) {
+		decoder := json.NewDecoder(bytes.NewReader(raw))
+		decoder.UseNumber()
+		var value any
+		err := decoder.Decode(&value)
+		return value, err
+	}
+	a, err := decode(left)
+	if err != nil {
+		return false
+	}
+	b, err := decode(right)
+	return err == nil && reflect.DeepEqual(a, b)
 }
 
 func modelIndexOffers(index *remoteModelIndex) ([]catalogOffer, error) {
@@ -403,14 +433,24 @@ func (s *Service) modelIndexOfferByRef(offerRef string) (catalogOffer, bool) {
 	return catalogOffer{}, false
 }
 
-func (s *Service) modelIndexOffersForLocator(locator string, revision string) []catalogOffer {
+func (s *Service) modelIndexOffersForLocator(locator string, revision string) ([]catalogOffer, bool) {
 	cache := s.loadModelIndexCache()
 	if cache.Index == nil {
-		return nil
+		return nil, false
+	}
+	found := false
+	for _, model := range cache.Index.Models {
+		if model.Repo == strings.TrimSpace(locator) && model.Revision == strings.TrimSpace(revision) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil, false
 	}
 	offers, err := modelIndexOffers(cache.Index)
 	if err != nil {
-		return nil
+		return nil, true
 	}
 	result := make([]catalogOffer, 0)
 	for _, offer := range offers {
@@ -418,7 +458,7 @@ func (s *Service) modelIndexOffersForLocator(locator string, revision string) []
 			result = append(result, offer.clone())
 		}
 	}
-	return result
+	return result, true
 }
 
 func (s *Service) modelIndexCachePath() string {
