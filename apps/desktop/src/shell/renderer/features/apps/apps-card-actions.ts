@@ -2,7 +2,7 @@
 // Package actions remain absent because local_development never enters the
 // immutable package lifecycle.
 
-export type AppCardActionId = 'details' | 'launch' | 'stop' | 'remove' | 'cancel-job';
+export type AppCardActionId = 'details' | 'open-ai-config' | 'launch' | 'stop' | 'remove' | 'cancel-job';
 
 export interface AppCardAction {
   readonly id: AppCardActionId;

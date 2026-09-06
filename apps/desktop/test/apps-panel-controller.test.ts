@@ -119,6 +119,24 @@ describe('Desktop Apps controller action boundary', () => {
     ]);
   });
 
+  it('requests the ai-models section when the AI config pill opens the detail', () => {
+    const events: string[] = [];
+    dispatchAppsPanelCardAction({
+      entryKey: 'local_development:nimi.parentos:dev-parentos',
+      appId: 'nimi.parentos',
+      action: 'open-ai-config',
+      setAppsDetailAppId: (appId, section) => {
+        events.push(`request:${String(appId)}:${String(section ?? null)}`);
+      },
+      runCardAction: (entryKey, action) => events.push(`controller:${entryKey}:${action}`),
+    });
+
+    assert.deepEqual(events, [
+      'request:nimi.parentos:ai-models',
+      'controller:local_development:nimi.parentos:dev-parentos:open-ai-config',
+    ]);
+  });
+
   it('acknowledges AIConfig only on the exact source entry', () => {
     const entry = (entryKey: string, sourceClass: DesktopAppsEntry['identity']['sourceClass']): DesktopAppsEntry => ({
       identity: {

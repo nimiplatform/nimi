@@ -213,7 +213,10 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
 
   const runCardAction = useCallback((entryKey: string, action: AppCardActionId): void => {
     setActionError(null);
-    if (action === 'details') {
+    if (action === 'details' || action === 'open-ai-config') {
+      // 'open-ai-config' is detail navigation with an AI-models section
+      // request; the section itself is store-level and set by the dispatch
+      // layer in apps-panel.tsx.
       setDetailEntryKey(entryKey);
       return;
     }

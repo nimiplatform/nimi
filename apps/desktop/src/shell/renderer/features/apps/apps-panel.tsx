@@ -1,4 +1,5 @@
 import { useCallback, useEffect, type ReactElement } from 'react';
+import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import type { AppCardActionId } from './apps-card-actions.js';
@@ -33,11 +34,17 @@ export function dispatchAppsPanelCardAction(input: {
   readonly entryKey: string;
   readonly appId: string;
   readonly action: AppCardActionId;
-  readonly setAppsDetailAppId: (appId: string | null) => void;
+  readonly setAppsDetailAppId: (
+    appId: string | null,
+    section?: NimiDesktopOpenAppsSection | null,
+  ) => void;
   readonly runCardAction: (entryKey: string, action: AppCardActionId) => void;
 }): void {
-  if (input.action === 'details') {
-    input.setAppsDetailAppId(input.appId);
+  if (input.action === 'details' || input.action === 'open-ai-config') {
+    input.setAppsDetailAppId(
+      input.appId,
+      input.action === 'open-ai-config' ? 'ai-models' : null,
+    );
   }
   input.runCardAction(input.entryKey, input.action);
 }

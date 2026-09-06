@@ -8,6 +8,7 @@ import {
   appSourceForEntry,
   deriveIconGlyph,
   filterAppsEntries,
+  filterAppsEntriesByStatus,
   resolveDetailEntryKey,
   sortAppsEntries,
 } from '../src/shell/renderer/features/apps/apps-card-fields.js';
@@ -187,6 +188,31 @@ describe('Apps library filtering', () => {
     assert.equal(filterAppsEntries(entries, 'LAB')[0]?.identity.appId, 'nimi.lab');
     assert.equal(filterAppsEntries(entries, 'MIRROR')[0]?.identity.appId, 'example.mirror');
     assert.equal(filterAppsEntries(entries, 'nothing').length, 0);
+  });
+});
+
+describe('Apps library status filter', () => {
+  const running = entry({ appId: 'nimi.running', displayName: 'Running App' }, 'running');
+  const failed = entry({ appId: 'nimi.failed', displayName: 'Failed App' }, 'failed');
+  const stopped = entry({ appId: 'nimi.stopped', displayName: 'Stopped App' });
+  const entries = [running, failed, stopped];
+
+  it('keeps every entry for the all filter', () => {
+    assert.equal(filterAppsEntriesByStatus(entries, 'all').length, 3);
+  });
+
+  it('keeps only active runs for the running filter', () => {
+    assert.deepEqual(
+      filterAppsEntriesByStatus(entries, 'running').map((row) => row.identity.appId),
+      ['nimi.running'],
+    );
+  });
+
+  it('keeps only attention entries for the attention filter', () => {
+    assert.deepEqual(
+      filterAppsEntriesByStatus(entries, 'attention').map((row) => row.identity.appId),
+      ['nimi.failed'],
+    );
   });
 });
 
