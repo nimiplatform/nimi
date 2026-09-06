@@ -475,7 +475,6 @@
       "title": "可结识的人物",
       "subtitle": "先把人物加入本地成为本地 Agent，再进入聊天——每个人都带着自己的生平与交游。",
       "empty": "这个世界还没有公开 Character 或 Persona Source。",
-      "chat": "和他聊聊",
       "openProfile": "打开 {{name}} 详情",
       "engagement": "互动",
       "vitality": "活力",

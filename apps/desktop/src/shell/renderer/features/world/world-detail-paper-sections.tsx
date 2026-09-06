@@ -234,7 +234,7 @@ function characterStatRow(character: WorldCharacter, t: ReturnType<typeof useTra
   );
 }
 
-/** Compact header control for the character card — a small pill instead of a full-width primary button. */
+/** Compact header control for the character card — icon-only round buttons keep the card row uncluttered. */
 function PaperCharacterAction({
   character,
   onMaterializeSource,
@@ -247,28 +247,29 @@ function PaperCharacterAction({
   const { t } = useTranslation();
   const state = character.relation?.state;
   if (state === 'connected') {
+    const label = t('WorldDetail.paper.characters.chatNow');
     return (
       <button
         type="button"
+        aria-label={label}
+        title={label}
         onClick={() => onOpenConversation?.(character)}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          gap: 4,
+          justifyContent: 'center',
           flexShrink: 0,
-          padding: '5px 11px',
+          width: 28,
+          height: 28,
+          padding: 0,
           borderRadius: 999,
           border: '1px solid var(--nimi-action-primary-bg)',
           background: 'var(--nimi-action-primary-bg)',
           color: 'var(--nimi-action-primary-text)',
-          fontFamily: 'var(--nimi-font-sans)',
-          fontSize: 12,
-          fontWeight: 600,
           cursor: 'pointer',
         }}
       >
-        <IconChat size={13} color="currentColor" strokeWidth={2.2} />
-        {t('WorldDetail.paper.characters.chatNow')}
+        <IconChat size={14} color="currentColor" strokeWidth={2.2} />
       </button>
     );
   }
@@ -293,30 +294,31 @@ function PaperCharacterAction({
     );
   }
   const connectable = state === 'connectable';
+  const label = t('WorldDetail.paper.characters.connect');
   return (
     <button
       type="button"
+      aria-label={label}
+      title={label}
       disabled={!connectable}
       onClick={() => onMaterializeSource?.(character)}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: 4,
+        justifyContent: 'center',
         flexShrink: 0,
-        padding: '5px 11px',
+        width: 28,
+        height: 28,
+        padding: 0,
         borderRadius: 999,
         border: '1px solid color-mix(in srgb, var(--nimi-action-primary-bg) 32%, transparent)',
         background: 'color-mix(in srgb, var(--nimi-action-primary-bg) 8%, transparent)',
         color: 'var(--nimi-action-primary-bg)',
-        fontFamily: 'var(--nimi-font-sans)',
-        fontSize: 12,
-        fontWeight: 600,
         cursor: connectable ? 'pointer' : 'default',
         opacity: connectable ? 1 : 0.55,
       }}
     >
-      <IconPlus size={13} color="currentColor" strokeWidth={2.2} />
-      {t('WorldDetail.paper.characters.connect')}
+      <IconPlus size={14} color="currentColor" strokeWidth={2.2} />
     </button>
   );
 }
