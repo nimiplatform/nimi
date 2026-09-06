@@ -107,7 +107,14 @@
     "interactionTitle": "开场语气",
     "greeting": "开场白",
     "tone": "语气",
-    "cadence": "节奏"
+    "cadence": "节奏",
+    "profileDetails": "人物特征",
+    "profileRole": "身份",
+    "profileArchetype": "类型",
+    "profileTraits": "特征",
+    "profileInteractionModes": "互动方式",
+    "questionSuggestions": "可以聊聊",
+    "addToAsk": "添加这个角色后即可提问。"
   },
   "friends": "好友",
   "posts": "帖子",
