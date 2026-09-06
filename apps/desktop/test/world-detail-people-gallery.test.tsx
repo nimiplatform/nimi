@@ -57,23 +57,27 @@ test('default axis prefers faction when ≥2 factions exist', () => {
   assert.deepEqual(availableGroupBys(noFaction), ['tier', 'status']);
 });
 
-test('faction grouping sinks the unaffiliated bucket last and sorts circles by size', () => {
+test('faction grouping pins connected people above circles sorted by size', () => {
   const groups = buildPeopleGroups(roster, 'faction');
+  // 吴全节 is already local → pinned to the leading connected group on every axis.
+  assert.equal(groups[0].labelKey, 'connected');
+  assert.deepEqual(groups[0].characters.map((c) => c.name), ['吴全节']);
   // Largest real circle first; '李存' (no faction) lands in the trailing ungrouped bucket.
-  assert.equal(groups[0].label, '文人交游圈');
+  assert.equal(groups[1].label, '文人交游圈');
   assert.equal(groups[groups.length - 1].id, 'ungrouped');
   assert.equal(groups[groups.length - 1].labelKey, 'ungrouped');
-  assert.deepEqual(groups[0].characters.map((c) => c.name), ['姚燧', '同恕']);
+  assert.deepEqual(groups[1].characters.map((c) => c.name), ['姚燧', '同恕']);
 });
 
-test('tier grouping orders core → active → background and skips empty tiers', () => {
+test('tier grouping pins connected first, then core → active → background', () => {
   const groups = buildPeopleGroups(roster, 'tier');
-  assert.deepEqual(groups.map((g) => g.labelKey), ['PRIMARY', 'SECONDARY', 'BACKGROUND']);
-  assert.equal(groups[0].characters[0].name, '姚燧');
+  assert.deepEqual(groups.map((g) => g.labelKey), ['connected', 'PRIMARY', 'SECONDARY', 'BACKGROUND']);
+  assert.equal(groups[1].characters[0].name, '姚燧');
 });
 
 test('status grouping splits connectable / connected / unavailable', () => {
   const groups = buildPeopleGroups(roster, 'status');
+  assert.deepEqual(groups.map((g) => g.labelKey), ['connected', 'connectable', 'unavailable']);
   const byKey = Object.fromEntries(groups.map((g) => [g.labelKey, g.characters.length]));
   assert.equal(byKey.connectable, 3);
   assert.equal(byKey.connected, 1);
@@ -108,6 +112,9 @@ test('gallery overlay renders grouped roster with resolved copy', () => {
   // Controls + every character present.
   assert.match(markup, /姚燧/);
   assert.match(markup, /李存/);
+  // Connected people pin to the leading group and get a compact chat pill.
+  assert.match(markup, /Local agent ready/);
+  assert.match(markup, /Chat now/);
   // No raw i18n keys leak.
   assert.doesNotMatch(markup, /WorldDetail\.paper\.gallery\./);
 });
