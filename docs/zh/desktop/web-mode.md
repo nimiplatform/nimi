@@ -1,42 +1,27 @@
-# 网页端模式
+# 网页端与 Nimi Home
 
-网页端把 Nimi 的一部分能力带进了浏览器。桌面端独有的部分不在其中：原生 Runtime、本地能力、原生窗口和外壳集成。
+Nimi 网站与 Nimi Home 服务不同的任务。公开网站介绍产品、提供下载与政策信息，并承载由 Realm 支持的账户登录和安全交互。Nimi Home 是安装后的产品入口，目前由 Desktop 承载。
 
-网页端能做什么、不能做什么，由 Web 发布契约和桌面端的 Web 适配器规定。
+## 浏览器中的任务
 
-## 网页端关闭的能力
+公开网页提供产品与 App 介绍、账户登录和安全操作、法律条款、下载状态及导航。App 介绍页用于说明产品，不在浏览器里运行 Nimi Home，也不会建立 App 安装、Registry 准入或 Runtime 访问事实。
 
-Web 适配器会关掉依赖桌面端或 Tauri 类能力的界面：
+Realm 仍负责账户与生态身份。网页端呈现账户交互；Desktop 使用已准入的浏览器交接流程，不嵌入凭据表单，也不自行拼出另一条登录路径。
 
-- 原生 Runtime 启动。
-- 依赖原生进程的外部 Agent 桥。
-- 原生窗口管理与系统集成。
-- 超出浏览器安全能力的敏感令牌持久化。
+## Nimi Home 中的任务
 
-这些限制不是随意定的。每一条都对应一个浏览器达不到的标准：要么关乎你的安全，要么关乎内容完整性。
+通过 Desktop 监督的宿主运行本地 App 开发，使用 App 的公开 SDK/Kit 绑定。Runtime 负责能力执行与访问决定。公开网站不承载 Desktop renderer，也不通过 Desktop Web 适配器提供桌面端的缩小版本。
 
-## 网页端仍然能做的事
+第三方 App 代码使用公开 SDK 与 Kit，不导入 Desktop renderer 私有实现，也不借公开网站绕过 Runtime 授权。
 
-在受限的浏览器环境里，网页端依然好用：
+## 读者场景：在浏览器登录，再返回 App
 
-- 介绍平台、带你翻阅公开文档，并承载已确认可在浏览器中使用的产品界面。
-- 提供以查看为主的体验，前提是这些体验已确认在浏览器中安全。
-- 在你需要完整能力时，指引你回到桌面端。
+用户可以在浏览器完成账户交互后返回 Nimi Home。这次网页交互本身不证明某个 App 已安装、正在运行或有权调用 AI 能力。App 仍需使用当前宿主会话，并处理真实的访问或执行结果。
 
-网页端是 Nimi 真实的一端，只是有意比桌面端小。
-
-## 读者场景：某项能力只在桌面端可用
-
-某用户在浏览器打开一份 Nimi 的公开链接，页面引用了一项依赖原生 Runtime 的能力。Web 适配器不会偷偷退化为弱化版。契约下的预期行为是：
-
-- 浏览器面明确说明此能力需要桌面端。
-- 不会让用户误以为可以原生启动。
-- 不让用户误以为浏览器在跑这项能力。
-
-这种诚实是有意义的。一次静默退化就等于在系统姿态上撒谎。
+开发 App 请从[创建 Nimi App](/zh/start/create-an-app)开始；产品构建的可用范围以[下载页](https://nimi.ai/download)为准。
 
 ## 来源依据
 
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
-- [`.nimi/spec/desktop/shell-ui.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-ui.authority.yaml)
-- [`.nimi/spec/desktop/shell-runtime.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-runtime.authority.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
+- [`apps/web/src/site-router.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/web/src/site-router.tsx)

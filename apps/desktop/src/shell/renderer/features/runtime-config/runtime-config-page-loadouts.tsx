@@ -454,6 +454,9 @@ export function LoadoutsPage(props: {
       {technicalError ? (
         <InlineAlert tone="danger">
           <p>{t('runtimeConfig.loadouts.loadFailed')}</p>
+          <Button size="sm" className="mt-2" loading={loading} disabled={Boolean(busy)} onClick={() => { void refresh(); }}>
+            {t('Common.retry', { defaultValue: 'Retry' })}
+          </Button>
           <details className="mt-2 text-xs">
             <summary className="cursor-pointer">{t('runtimeConfig.loadouts.technicalDetails')}</summary>
             <p className="mt-2 break-all">{technicalError}</p>
@@ -783,6 +786,7 @@ export function LoadoutsPage(props: {
                   <div key={axis.slotId} className="grid gap-1">
                     <p>{axis.displayLabel}: {axis.modelAssetId || axis.expectedContentId || t('runtimeConfig.loadouts.unresolved')}</p>
                     <div className="flex flex-wrap gap-1"><StatusBadge tone={asset?.contentVerified ? 'success' : 'warning'} shape="soft">{t('runtimeConfig.loadouts.contentVerified')}</StatusBadge><StatusBadge tone={catalogBadge.tone} shape="soft">{t(`runtimeConfig.loadouts.catalogBadge.${catalogBadge.label}`)}</StatusBadge><StatusBadge tone={axis.recipeCompatible ? 'success' : 'warning'} shape="soft">{t('runtimeConfig.loadouts.recipeCompatible')}</StatusBadge></div>
+                    <p className="font-mono">{catalogBadge.label}</p>
                     {error ? <p className="break-all text-[var(--nimi-status-danger)]">{error}</p> : null}
                   </div>
                 );
@@ -930,8 +934,8 @@ function RecipeTemplateGroup(props: {
                   : t('runtimeConfig.loadouts.downloadSizeUnknown', { defaultValue: 'size unknown' })}`
                 : t('runtimeConfig.loadouts.noAdmittedOffer', { defaultValue: 'No compatible model candidate is currently available' });
               return (
-                <div key={slot.slotId} className="flex items-center gap-3 text-xs">
-                  <span className="shrink-0 font-medium text-[var(--nimi-text-primary)]">{slot.displayLabel}</span>
+                <div key={slot.slotId} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                  <LoadoutSlotLabel slot={slot} />
                   <span className="min-w-0 flex-1 truncate text-[var(--nimi-text-muted)]" title={modelText}>{modelText}</span>
                   <StatusBadge tone={installed ? 'success' : supportedOffers > 0 ? 'info' : 'warning'} shape="soft">
                     {installed
@@ -1033,12 +1037,14 @@ function LoadoutCard(props: {
       <div className="grid gap-2 sm:grid-cols-3">
         {props.loadout.modelAxes.map((axis) => {
           const asset = props.assets.find((item) => item.modelAssetId === axis.modelAssetId);
-          const label = asset
+          const label = axis.resolution === 'not-configured'
+            ? t('runtimeConfig.loadouts.optionalNotConfigured')
+            : asset
             ? loadoutAssetLabel(asset, props.verifiedAssets)
             : t('runtimeConfig.loadouts.unresolved');
           return (
             <div key={axis.slotId} className="min-w-0 rounded-lg bg-[var(--nimi-surface-subtle)] px-3 py-2">
-              <div className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{axis.displayLabel}</div>
+              <LoadoutSlotLabel slot={axis} />
               <div className="mt-0.5 truncate text-xs font-medium text-[var(--nimi-text-primary)]" title={label}>{label}</div>
             </div>
           );
@@ -1093,7 +1099,7 @@ function runtimeConfigTextBehaviorTone(
   return behavior.configurationState === 'ambiguous' ? 'danger' : 'warning';
 }
 
-function RuntimeConfigLoadoutTextBehaviors(props: {
+export function RuntimeConfigLoadoutTextBehaviors(props: {
   readonly loadoutId: string;
   readonly behaviors: readonly NimiTextBehaviorCapabilityProjection[];
   readonly compact?: boolean;
@@ -1127,15 +1133,38 @@ function RuntimeConfigLoadoutTextBehaviors(props: {
                 </StatusBadge>
               </div>
               {behavior.reasons.length > 0 ? (
-                <p className="mt-1 break-all text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
-                  {t('runtimeConfig.loadouts.textBehaviors.typedReasons')}: <span className="font-mono">{behavior.reasons.join(' · ')}</span>
-                </p>
+                <details className="mt-2 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
+                  <summary className="cursor-pointer">{t('runtimeConfig.loadouts.technicalDetails')}</summary>
+                  <p className="mt-1 break-all">{t('runtimeConfig.loadouts.textBehaviors.typedReasons')}: <span className="font-mono">{behavior.reasons.join(' · ')}</span></p>
+                </details>
               ) : null}
             </div>
           );
         })}
       </div>
     </div>
+  );
+}
+
+export function LoadoutSlotLabel({ slot }: {
+  readonly slot: Pick<NimiLoadoutRecipe['slots'][number], 'displayLabel' | 'presence' | 'conditionalFeatures'>;
+}) {
+  const { t, i18n } = useTranslation();
+  const optional = slot.presence === 'optional-conditional';
+  const features = new Intl.ListFormat(i18n.resolvedLanguage || i18n.language || 'en').format(
+    slot.conditionalFeatures.map((feature) => feature === 'input.image'
+      ? t('runtimeConfig.loadouts.imageInput')
+      : feature),
+  );
+  return (
+    <span className="inline-flex min-w-0 flex-wrap items-baseline gap-x-2 text-xs" data-requirement-presence={slot.presence}>
+      <span className="font-medium text-[var(--nimi-text-primary)]">{slot.displayLabel}</span>
+      <span className="text-[var(--nimi-text-muted)]">
+        {optional
+          ? features ? t('runtimeConfig.loadouts.optionalFor', { features }) : t('runtimeConfig.loadouts.optional')
+          : t('runtimeConfig.loadouts.required')}
+      </span>
+    </span>
   );
 }
 

@@ -60,6 +60,14 @@ type DownloadCopy = {
   statusTitle: string;
   statusBody: string;
   releaseAction: string;
+  preview: {
+    title: string;
+    scope: string;
+    warning: string;
+    usage: string;
+    releaseLink: string;
+    detailsLink: string;
+  };
   release: TextSection;
   platformTitle: string;
   platforms: ReadonlyArray<{
@@ -146,17 +154,26 @@ const EN_COPY: PublicPageCopy = {
     kicker: 'Release status',
     title: 'Download Nimi',
     intro:
-      'Nimi is an open-source, local-first, installable personal AI product. Nimi Home is its entry, Realm owns ecosystem identity, and Runtime executes local and cloud multi-provider AI. This page separates stable availability from explicit unsigned previews.',
+      'Check what you can download today, which platforms it works on, and what to expect before you run it.',
     statusTitle: 'Stable release: Not yet available',
     statusBody:
-      'No stable Nimi GitHub Release has been published. The immutable v0.2.2-preview.1 prerelease now provides an explicitly unsigned portable Windows x64 Runtime bootstrap; it is not promotable and never enters the stable latest path. Signed RC and Stable remain blocked until production platform signing is available.',
-    releaseAction: 'Download unsigned Windows Runtime v0.2.2-preview.1',
+      'There is no stable Nimi release or Nimi Home installer to download yet. The developer preview below only tests the Windows Runtime; it will not give you the Nimi Home experience. Signed release candidates and stable releases still require production platform signing.',
+    releaseAction: 'Download unsigned Runtime ZIP · v0.2.2-preview.1',
+    preview: {
+      title: 'For developers: Windows x64 Runtime preview',
+      scope: 'This portable bootstrap is for Runtime startup testing. It contains no Nimi Home app, installer, or Windows service. It does not enable protected-local production.',
+      warning: 'Because it is unsigned, Windows SmartScreen, Smart App Control, or an organization policy may warn or block it. Do not disable Windows security controls to run this preview.',
+      usage: 'Extract the ZIP and run .\\nimi.exe version --json. This command does not install a service, change PATH, or add a certificate. To remove it, close the process and delete the extracted directory.',
+      releaseLink: 'Release notes and all preview assets',
+      detailsLink: 'Verification, system changes, and cleanup',
+    },
     release: {
-      title: 'Stable release status',
+      title: 'Product and release details',
       paragraphs: [
-        'Nimi Home brings conversations, characters, creations, stories, worlds, settings, and Nimi Apps into one personal AI product. Runtime executes the user-selected local or cloud AI capability while Realm owns account and ecosystem identity.',
+        'Nimi is an open-source, local-first personal AI product. Nimi Home is its installable desktop entry for conversations, characters, creations, stories, worlds, settings, and Nimi Apps. Runtime executes the user-selected local or cloud multi-provider AI capability while Realm owns account and ecosystem identity.',
         'The ordinary latest path is stable-only. It never treats a release candidate as the latest stable release.',
         'No platform currently has an official stable Nimi download. The immutable v0.2.2-preview.1 unsigned developer preview is available from GitHub Releases; it contains only the artifacts listed below and is not a standalone product installer.',
+        'Nimi Apps have three separate lifecycle paths: Registry-approved packages, explicit immutable local-package import, and Developer Mode. The current pilot uses protected Git tags, GitHub Actions and Releases, followed by human admission to a static Registry. Windows x86_64 supports Registry discovery, installation, launch, focus, stop, Access management, and uninstall; local development is also supported. The local-package import entry, other platforms’ package lifecycle, update, and repair remain unavailable. Installing an App does not grant Nimi access; account and Runtime conditions still apply.',
       ],
     },
     platformTitle: 'Platform availability',
@@ -204,7 +221,6 @@ const EN_COPY: PublicPageCopy = {
       paragraphs: [
         'The current Windows developer preview contains the portable Runtime ZIP and the separate Kit tarball, but no release-owned checksums file. Together with the macOS candidate, they are identified by their unsigned-preview marker and scoped platform acceptance; this preview does not claim a release checksum set or complete SBOM.',
         'The exact Nimi-Runtime-v0.2.2-preview.1-windows-x64-unsigned-bootstrap.zip contains the real Windows x64 Runtime executable, its Apache-2.0 license, and explicit unsigned-bootstrap instructions.',
-        'Because it is unsigned, Windows SmartScreen, Smart App Control, or an organization policy may warn or block it. Do not disable Windows security controls to run this preview.',
         'The Windows package carries its complete MIT LICENSE. The macOS archive carries complete MIT and Apache-2.0 texts under LICENSES for its App/Kit/Avatar and Runtime material.',
         'For Windows preview PE files, Authenticode must report NotSigned. For the macOS preview, codesign must report Signature=adhoc and TeamIdentifier=not set. Either result proves only preview identity, never production trust.',
       ],
@@ -422,17 +438,26 @@ const ZH_COPY: PublicPageCopy = {
     kicker: '发布状态',
     title: '下载 Nimi',
     intro:
-      'Nimi 是可安装、开源、本地优先的个人 AI 产品。Nimi Home 是产品入口，Realm 负责生态身份，Runtime 执行本地或云端的多提供商 AI 能力。本页明确区分稳定版与 unsigned preview。',
+      '查看今天能下载什么、适用哪些平台，以及运行前需要了解的限制。',
     statusTitle: '稳定版：尚未提供',
     statusBody:
-      'GitHub 上还没有 Nimi 稳定版 Release。不可变 prerelease v0.2.2-preview.1 已提供明确标注为 unsigned 的 portable Windows x64 Runtime bootstrap；它不可晋升，也不进入 stable latest。Production 平台签名可用前，signed RC 与 Stable 继续 fail closed。',
-    releaseAction: '下载 unsigned Windows Runtime v0.2.2-preview.1',
+      '目前还没有可下载的 Nimi 稳定版或 Nimi Home 安装包。下方开发预览仅用于测试 Windows Runtime，不能用来体验 Nimi Home。正式平台签名完成前，也不会提供已签名候选版或稳定版。',
+    releaseAction: '下载未签名 Runtime ZIP · v0.2.2-preview.1',
+    preview: {
+      title: '开发者预览：Windows x64 Runtime',
+      scope: '这个便携启动包用于测试 Runtime 启动，不包含 Nimi Home、安装程序或 Windows 服务，也不会使 protected-local production 可用。',
+      warning: '由于该制品未签名，Windows SmartScreen、Smart App Control 或组织策略可能给出警告或直接阻止执行。不要为了运行此 preview 而关闭 Windows 安全能力。',
+      usage: '解压 ZIP 后运行 .\\nimi.exe version --json。此命令不会安装服务、修改 PATH 或添加证书。移除时，关闭进程并删除解压目录即可。',
+      releaseLink: '发布说明与全部预览制品',
+      detailsLink: '验证、系统改动与清理说明',
+    },
     release: {
-      title: '稳定版状态',
+      title: '产品与发布详情',
       paragraphs: [
-        'Nimi Home 把对话、角色、创作、故事、世界、设置与 Nimi Apps 连接在同一个个人 AI 产品中。Runtime 执行用户选择的本地或云端 AI 能力，Realm 负责账号与生态身份。',
+        'Nimi 是开源、本地优先的个人 AI 产品。Nimi Home 是可安装的桌面入口，将对话、角色、创作、故事、世界、设置与 Nimi Apps 连接在一起。Runtime 执行用户选择的本地或云端多提供商 AI 能力，Realm 负责账号与生态身份。',
         '普通 latest 路径只表示稳定版，不会把 RC 当作最新稳定版。',
         '目前没有任何平台提供正式稳定版下载。不可变的 v0.2.2-preview.1 unsigned developer preview 已可从 GitHub Releases 下载；它只包含下方列出的制品，不是独立产品 installer。',
+        'Nimi Apps 保留 Registry 已验证安装包、明确选择的不可变本地包导入和 Developer Mode 三条独立路径。当前试点通过受保护 Git tag、GitHub Actions 和 Releases 交付，再由人工准入静态 Registry。Windows x86_64 支持目录发现、安装、启动、聚焦、停止、Access 管理与卸载，也支持本地开发；本地包导入入口、其他平台的包生命周期、更新与修复仍不可用。安装 App 不等于授予 Nimi 访问能力，相关操作仍需满足账号与 Runtime 条件。',
       ],
     },
     platformTitle: '平台可用性',
@@ -477,7 +502,6 @@ const ZH_COPY: PublicPageCopy = {
       paragraphs: [
         '当前 Windows developer preview 包含 portable Runtime ZIP 和独立 Kit tarball，但没有 release-owned checksums 文件。它们与 macOS candidate 都由 unsigned-preview marker 和范围内的平台验收识别；该 preview 不声称具有 release checksum 集合或完整 SBOM。',
         '准确的 Nimi-Runtime-v0.2.2-preview.1-windows-x64-unsigned-bootstrap.zip 包含真实 Windows x64 Runtime executable、Apache-2.0 license 与明确的 unsigned-bootstrap 说明。',
-        '由于该制品未签名，Windows SmartScreen、Smart App Control 或组织策略可能给出警告或直接阻止执行。不要为了运行此 preview 而关闭 Windows 安全能力。',
         'Windows package 携带完整 MIT LICENSE；macOS archive 在 LICENSES 下携带完整 MIT 与 Apache-2.0 文本，分别覆盖 App/Kit/Avatar 与 Runtime material。',
         'Windows preview PE 的 Authenticode 应显示 NotSigned；macOS preview 的 codesign 应显示 Signature=adhoc 且 TeamIdentifier=not set。这些结果只能证明 preview 身份，不能建立 production trust。',
       ],
@@ -831,26 +855,42 @@ function PageShell(props: {
 
 export function DownloadPage() {
   const [locale, setLocale] = usePublicPageLocale();
+  return <DownloadPageView locale={locale} onLocaleChange={setLocale} />;
+}
+
+export function DownloadPageView({ locale, onLocaleChange }: {
+  locale: LandingLocale;
+  onLocaleChange: (locale: LandingLocale) => void;
+}) {
   const page = PUBLIC_PAGE_CONTENT[locale].download;
   const shared = PUBLIC_PAGE_CONTENT[locale].shared;
 
   return (
     <PageShell
       locale={locale}
-      onLocaleChange={setLocale}
+      onLocaleChange={onLocaleChange}
       meta={page.meta}
       kicker={page.kicker}
       title={page.title}
       intro={page.intro}
       statusTitle={page.statusTitle}
       statusBody={page.statusBody}
-      action={<a className="release-primary-action" href={UNSIGNED_BOOTSTRAP_ASSET_URL}>{page.releaseAction}</a>}
+      action={(
+        <section className="release-preview" aria-labelledby="preview-title">
+          <h2 id="preview-title">{page.preview.title}</h2>
+          <p id="preview-scope">{page.preview.scope}</p>
+          <p id="preview-warning" className="release-warning">{page.preview.warning}</p>
+          <p>{page.preview.usage}</p>
+          <a className="release-primary-action" href={UNSIGNED_BOOTSTRAP_ASSET_URL} aria-describedby="preview-scope preview-warning">
+            {page.releaseAction}
+          </a>
+          <div className="release-preview-links">
+            <a href={UNSIGNED_BOOTSTRAP_RELEASE_URL}>{page.preview.releaseLink}</a>
+            <a href="#developer-details">{page.preview.detailsLink}</a>
+          </div>
+        </section>
+      )}
     >
-      <PageSection title={page.release.title}>
-        <TextSectionContent section={page.release} />
-        <p><a href={UNSIGNED_BOOTSTRAP_RELEASE_URL}>GitHub Release v0.2.2-preview.1</a></p>
-      </PageSection>
-
       <PageSection title={page.platformTitle}>
         <div className="release-platform-grid">
           {page.platforms.map((platform) => (
@@ -867,22 +907,22 @@ export function DownloadPage() {
         <p className="release-label">{page.providerLabel}</p>
         <p><strong>{page.attribution}</strong></p>
         <p className="release-warning">{page.disclaimer}</p>
-        <p><Link to="/code-signing">Code signing policy</Link></p>
+        <p><Link to="/code-signing">{shared.policy}</Link></p>
       </PageSection>
 
-      {[page.prerelease, page.sourceBuild, page.verification].map((section) => (
-        <PageSection key={section.title} title={section.title}>
-          <TextSectionContent section={section} />
-        </PageSection>
-      ))}
+      <details className="release-details">
+        <summary>{page.preview.detailsLink}</summary>
+        {[page.verification, page.systemChanges, page.uninstall, page.prerelease, page.sourceBuild].map((section) => (
+          <PageSection key={section.title} id={section === page.verification ? 'developer-details' : undefined} title={section.title}>
+            <TextSectionContent section={section} />
+          </PageSection>
+        ))}
+      </details>
 
-      <PageSection title={page.systemChanges.title}>
-        <TextSectionContent section={page.systemChanges} />
-      </PageSection>
-
-      <PageSection title={page.uninstall.title}>
-        <TextSectionContent section={page.uninstall} />
-      </PageSection>
+      <details className="release-details">
+        <summary>{page.release.title}</summary>
+        <TextSectionContent section={page.release} />
+      </details>
 
       <PageSection title={page.linksTitle}>
         <OfficialLinks copy={shared} />

@@ -1,43 +1,22 @@
-# 桌面端
+# Nimi Home 与 App 开发
 
-桌面端是 Nimi 自家的原生应用，装在你的电脑上。它能做到浏览器版本做不到的事：内置 Runtime、本地 AI、真正的窗口和菜单，以及需要真实操作系统配合的工作流。
+Nimi Home 是 Nimi 个人 AI 产品的桌面入口，将对话、角色、作品、世界、设置和 Nimi App 放在一起。Runtime 执行本地或云端 AI，Realm 负责账号与生态身份。
 
-这一节介绍桌面端里能做什么、网页端和它差在哪，以及各项功能的数据存在哪里。
+## 在本地运行 App
 
-## 本节包含的内容
+第三方 App 开发从[创建 Nimi App](/zh/start/create-an-app)开始。受支持的开发命令会在 Desktop 监督的 Electron 宿主中启动 App。直接用浏览器打开渲染页面，不能建立这个 App 会话，也不能获得它的受保护 Runtime 访问能力。
 
-- [Web 模式](/zh/desktop/web-mode) — 在浏览器里使用桌面端的部分能力，范围更小。
+本地运行不等于公开发布。Registry 已验证安装包、明确选择的不可变本地包导入、Developer Mode 是三条独立路径。当前预发布支持 Windows x86_64 的 Registry 包生命周期和本地开发；本地包导入入口、其他平台的包生命周期、更新与修复仍不可用。试点分发和准入条件见 [App 分发](/zh/start/#本地开发与分发)。
 
-## 桌面端与网页端不一样
+## 按任务选择入口
 
-Nimi 既有桌面端也有网页端，但两者能做的事不一样多。网页端是有意做小的版本，原生和本地的能力都在桌面端。
-
-| 能力域 | 桌面端 | 网页端 |
-| --- | --- | --- |
-| 原生 Runtime 启动 | 可用 | 不可用 |
-| 本地 AI 能力面 | 准入后可用 | 不可用 |
-| 原生窗口与外壳行为 | 可用 | 不可用 |
-| 敏感令牌持久化 | 系统级安全存储 | 受限 |
-| 公共读取（浏览、聊天、世界视图） | 可用 | 准入后可用 |
-
-选择在哪里使用 Nimi 时，记住这一点：浏览器里能打开的页面，不一定带桌面端才有的能力，哪怕两边看起来一样。
-
-## 桌面端拥有的范围
-
-桌面端负责外壳本身：窗口、菜单、原生桥接、本地集成，以及你日常使用的第一方工作流。它建立在 Runtime 和 SDK 的契约之上，而不是另起一套。
-
-## 读者场景：双端都在的页面
-
-假设某个公开读取页面（比如浏览一个世界）在桌面端与网页端都准入：
-
-- 桌面端在原生外壳里渲染，使用原生导航；准入时启用本地增强。
-- 网页端在浏览器里渲染，没有原生启动，敏感令牌只能落在浏览器允许的范围。
-
-读者在做分发判断时需要明白一件事：双端都在不等于双端一致。
+- **开发 App：**先[创建、检查并运行项目](/zh/start/create-an-app)，再完成[第一次 AI 调用](/zh/sdk/first-ai-call)。
+- **接入 AI 设置：**使用 [Kit App 模式](/zh/platform/kit/use-kit-in-app)，通过受支持的 SDK 和宿主路径处理 Runtime 访问与权限。
+- **下载产品：**查看[当前发布状态](https://nimi.ai/download)。Windows Runtime bootstrap 不会安装 Nimi Home。
+- **了解网页端：**[网页端与 Nimi Home](/zh/desktop/web-mode)说明公开／账号网站与桌面入口各自的用途。
 
 ## 来源依据
 
-- [`.nimi/spec/desktop/shell-ui.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-ui.authority.yaml)
-- [`.nimi/spec/desktop/shell-runtime.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-runtime.authority.yaml)
-- [`.nimi/spec/desktop/bridge-ipc.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/bridge-ipc.authority.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
+- [`.nimi/spec/start/#本地开发与分发.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/start/#本地开发与分发.authority.yaml)

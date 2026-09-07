@@ -15,6 +15,10 @@
 - Start in the observed Web route, `apps/web/src/landing/**`, or the Web-owned account adapter and follow only public Kit/SDK contracts.
 - Skip Desktop renderer, Runtime internals, Simulator source, generated SDK output, and unrelated product layers unless a direct public-contract failure points there.
 
+## Public Presentation
+- Organize product entry pages around an ordinary visitor's purpose and the actual result of the next action. Explain current availability and consequential restrictions before that action; identify developer previews by their audience and contents.
+- Keep complete public claims and required policy disclosures accurate and reachable. Facts, owner boundaries, and safety obligations remain binding; equal-meaning wording, grouping, and visual hierarchy are Web-owned presentation decisions, not reasons to copy every internal term into the hero.
+
 ## Verification Commands
 - `pnpm --filter @nimiplatform/web typecheck`
 - `pnpm --filter @nimiplatform/web test`

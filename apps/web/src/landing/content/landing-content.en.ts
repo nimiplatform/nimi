@@ -31,7 +31,8 @@ export const landingContentEn: LandingContent = {
     title: landingPositioningEn.hero.title,
     titleAccent: landingPositioningEn.hero.titleAccent,
     subtitle: landingPositioningEn.hero.subtitle,
-    primaryCta: 'Get Nimi',
+    primaryCta: 'See download options',
+    availability: 'Nimi Home is not available to install yet. A limited developer preview is available.',
     secondaryCta: 'See what Nimi can do',
     proofPoints: ['Open source', 'Local-first', 'Choose your AI'],
   },
@@ -423,7 +424,7 @@ export const landingContentEn: LandingContent = {
       {
         question: 'I’m a developer. Where do I start?',
         answer:
-          'Start with the SDK docs and the Developer Mode local-development path: scaffold a Nimi App locally and build against the typed SDK. Public catalog distribution is not open yet.',
+          'Start with the Create a Nimi App guide and run your project locally in Developer Mode. Distribution is a separate step: the current pilot uses protected Git tags, GitHub Actions and Releases, followed by human admission to the static Registry. Package discovery and installation currently support Windows x86_64; other platforms, local-package import, update, and repair remain unavailable.',
       },
     ],
   },

@@ -190,9 +190,9 @@
     "commit": "Save Setup",
     "cancel": "Cancel",
     "saved": "Model setup saved",
-    "selected": "In use",
+    "selected": "Current selection",
     "select": "Use This Setup",
-    "clear": "Stop Using",
+    "clear": "Clear selection",
     "update": "Change Model",
     "delete": "Delete Setup",
     "unresolved": "No model selected",
@@ -205,9 +205,9 @@
     "contentVerified": "Model file verified",
     "recipeCompatible": "Template compatible",
     "catalogBadge": {
-      "catalog_verified": "catalog_verified",
-      "catalog_not_matched": "catalog_not_matched",
-      "catalog_verification_unknown": "catalog_verification_unknown"
+      "catalog_verified": "Verified catalog match",
+      "catalog_not_matched": "No verified catalog match",
+      "catalog_verification_unknown": "Catalog match unconfirmed"
     },
     "installed": "Installed",
     "downloadRequired": "Download required",
@@ -259,7 +259,12 @@
       "videoGenerate": "Video generation",
       "musicGenerate": "Music generation",
       "other": "Other local AI capability"
-    }
+    },
+    "required": "Required",
+    "optional": "Optional",
+    "optionalFor": "Optional for {{features}}",
+    "imageInput": "image input",
+    "optionalNotConfigured": "Not enabled"
   },
   "environment": {
     "tabData": "Data & Storage",
@@ -779,7 +784,7 @@
     "recommendedTab": "Recommended",
     "myProfilesTab": "My Profiles",
     "recommendedTitle": "Recommended Profiles",
-    "recommendedDescription": "Portable factory Profiles stay canonical. A capability filter changes only that capability’s host assessment.",
+    "recommendedDescription": "Compare portable AI setups for different uses. Compatibility does not mean models or cloud services are configured yet.",
     "capabilityFilter": "Capability filter",
     "allCapabilities": "All capabilities",
     "recommendationsFailed": "Profile recommendations are unavailable.",
@@ -787,9 +792,9 @@
     "unknownGroup": "Needs host information",
     "unsupportedGroup": "Limited on this host",
     "applicability": {
-      "supported": "Supported",
-      "unknown": "Unknown",
-      "unsupported": "Unsupported"
+      "supported": "Compatible",
+      "unknown": "Unconfirmed",
+      "unsupported": "Incompatible"
     },
     "portableTitle": "Import an AI setup file",
     "portableDescription": "Choose a setup file and review what this computer needs. No model is downloaded and no current choice is changed until you confirm.",
@@ -885,7 +890,7 @@
     "wizardApplyTitle": "Use these models now?",
     "wizardDoneTitle": "Import finished",
     "wizardClose": "Close",
-    "openLoadouts": "View capability plans",
+    "openLoadouts": "View local model setups",
     "sourceFromFile": "From a file",
     "sourcePasteJson": "Paste JSON",
     "profileNameLabel": "Profile name",
@@ -902,7 +907,7 @@
       "importAction": "Import for editing…",
       "exportAction": "Export portable file",
       "importSuccess": "The portable AIProfile was imported into this editor. No configuration record was created.",
-      "exportSuccess": "The validated portable AIProfile file was exported.",
+      "exportStarted": "Portable file download started. Confirm that the file was saved.",
       "importFailed": "This AIProfile could not be imported for editing.",
       "exportFailed": "This AIProfile could not be exported.",
       "metadataTitle": "Profile metadata",
@@ -1006,6 +1011,7 @@
       "sharedOwner": "Shared LocalAgent",
       "applyIdentical": "Before and after AIConfig intent are equivalent.",
       "applyChanges": "The projected AIConfig intent differs from the current owner projection.",
+      "applyUnchanged": "No capability intent changes.",
       "added": "Added",
       "changed": "Changed",
       "removed": "Removed",
@@ -1163,7 +1169,15 @@
     },
     "exportEmpty": "No editable profiles to export.",
     "importNone": "No valid profiles found.",
-    "invalidJson": "Invalid JSON"
+    "invalidJson": "Invalid JSON",
+    "routingSummary": {
+      "cloud-first": "Prefer cloud AI services.",
+      "local-first": "Prefer AI on this computer.",
+      "hybrid-explicit": "Choose local or cloud AI explicitly for each use."
+    },
+    "privacyPostureLabel": "Data preference",
+    "computePostureLabel": "Compute requirements",
+    "routingPolicyLabel": "Routing policy"
   },
   "catalog": {
     "providerCatalog": "Provider Catalog",

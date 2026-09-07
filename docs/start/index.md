@@ -1,63 +1,32 @@
-# Start
+# Build A Nimi App
 
-Nimi is the installable, open-source, local-first personal AI product.
-Nimi Home is the entry point, currently hosted by the Desktop app, and a
-multi-provider Runtime runs local and cloud AI behind it. Characters,
-conversations, creations, stories, and worlds are the experiences you
-meet inside Nimi.
+Use these guides to build a third-party app for the Nimi ecosystem. Start with a local project, connect the capabilities it needs, and check the separate requirements before distributing it.
 
-## What You Can Do Today
+## Your First Development Steps
 
-- **Follow the release.** No stable download is published yet. Watch the
-  [GitHub repository](https://github.com/nimiplatform/nimi) or join the
-  [Discord](https://discord.gg/BQwHJvPn) for the announcement.
-- **Build an app.** Developers can already create Nimi Apps through the
-  Developer Mode local-development path. Start with
-  [Create A Nimi App](/start/create-an-app).
-- **Understand the product first.** The [Platform overview](/platform/)
-  explains what Nimi is and how its pieces fit together.
+1. [Check the development setup](/start/install). Project creation and static checks need Node.js and pnpm; supervised execution also needs a compatible Nimi Home development instance and Runtime.
+2. [Create your App](/start/create-an-app). Install dependencies, initialize the generated project, and run its checks before starting the development host.
+3. [Make your first AI call](/sdk/first-ai-call). Understand the App identity, capability intent, access requirements, and typed result. In a generated App, keep the provided SDK/Kit host binding.
+4. [Troubleshoot integration](/start/troubleshooting) when a step fails. Check the actual error before changing configuration or retrying.
 
-## Choose Your Path
+For shared UI and host integration, read [Use Kit in an App](/platform/kit/use-kit-in-app). For concrete capability examples, see [Nimi Lab](/start/use-nimi-lab).
 
-- **New to Nimi?** Read [Platform](/platform/) for the product model, then
-  [Runtime](/runtime/) for how AI work runs, then [SDK](/sdk/) for how
-  apps plug in. [Desktop](/desktop/) and [Realm](/realm/) round out the
-  picture, and the [Glossary](/reference/glossary) explains any
-  unfamiliar term.
-- **Evaluating the project?** Read [Platform Vision](/platform/vision) and
-  [Platform Architecture](/platform/architecture/), then
-  [Runtime](/runtime/) and [SDK Boundaries](/sdk/boundaries). About the
-  length of a long blog post.
-- **Building an app?** Start with [Create A Nimi App](/start/create-an-app),
-  then the [SDK](/sdk/) docs. For a working capability demo see
-  [Use Nimi Lab](/start/use-nimi-lab); when something fails, open
-  [Troubleshooting](/start/troubleshooting).
-- **Adopting Nimi Coding?** Nimi Coding is the specification-management
-  tooling the Nimi repository itself uses, published as an npm package.
-  Read the [overview](/nimicoding/), the
-  [installation guide](/nimicoding/installation), and the
-  [CLI reference](/nimicoding/cli-reference).
+## Local Development And Distribution
 
-For role-specific walkthroughs (world creator, app developer, auditor,
-and more), see [Personas](/start/personas). For what is installable
-right now, see [Installation And Availability](/start/install).
+Nimi Apps have three distinct paths: Registry-approved packages, explicitly selected immutable local-package imports, and non-package Developer Mode projects. This guide starts with Developer Mode; creating a project or opening its window does not grant Nimi Access or publish it.
 
-## Reader Scenario: Can I Use Nimi Today?
+The current pre-release supports protected-tag GitHub Actions and immutable GitHub Release publication for explicitly configured pilot App repositories, protected static Registry onboarding with human-approved descriptors, and verified Catalog discovery, installation, launch/focus/stop, protected-session Access, and uninstall on Windows x86_64. The local-package import entry, other-platform package lifecycle, ordinary update, and repair remain unavailable. Bundled/platform Apps follow their own rules.
 
-You heard about Nimi from a friend and want to know if you can use it
-right now.
+Read the [App Tools release guidance](https://github.com/nimiplatform/nimi/tree/main/app-tools#canonical-release-boundary) before preparing distribution. Keep local execution, published assets, Registry admission, installed state, and access as separate results.
 
-1. You open the [Platform overview](/platform/) and learn what Nimi is:
-   a personal AI product that installs on your own machine, with your
-   characters, conversations, and worlds kept local-first.
-2. You check [Installation And Availability](/start/install) and see that
-   no stable end-user download is published yet.
-3. You star the [GitHub repository](https://github.com/nimiplatform/nimi)
-   and join the [Discord](https://discord.gg/BQwHJvPn), so the release
-   announcement reaches you when it lands.
-4. If you also write code, you don't have to wait: the Developer Mode
-   path already lets you [create a Nimi App](/start/create-an-app) and
-   run it locally.
+## Reference When You Need It
+
+- [SDK](/sdk/) and [SDK boundaries](/sdk/boundaries): public integration interfaces.
+- [Runtime](/runtime/): execution, configuration, and failure behavior.
+- [Platform](/platform/) and [Glossary](/reference/glossary): product concepts and terminology.
+- [Nimi Coding](/nimicoding/): using the authority tooling directly. Generated App initialization already handles its required toolchain integration.
+
+For the personal AI product and ordinary-user download status, visit [nimi.ai](https://nimi.ai) and [Download](https://nimi.ai/download).
 
 ## Source Basis
 

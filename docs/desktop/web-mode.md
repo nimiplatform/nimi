@@ -1,54 +1,27 @@
-# Web Mode
+# Web And Nimi Home
 
-Web mode brings selected Nimi surfaces to the browser. It doesn't
-include the desktop-only pieces: the native runtime, local
-capabilities, native windows, or shell integrations.
+The Nimi website and Nimi Home serve different tasks. The public website introduces the product, provides download and policy information, and handles account authentication and account-security interactions backed by Realm. Nimi Home is the installed product entry, currently hosted by Desktop.
 
-Under the hood, what Web can and can't do is set by the Web release
-contract and the Desktop web adapter.
+## What Happens In The Browser
 
-## What Is Disabled In Web
+Use the public Web surface for product and App information, account sign-in and security, legal pages, download status, and navigation. Web App pages are informational; they do not provide a browser-hosted Nimi Home or establish App installation, Registry admission, or Runtime access.
 
-The Web adapter turns off surfaces that depend on Desktop or
-Tauri-like capabilities:
+Realm remains the account and ecosystem identity owner. Web presents the account interaction; Desktop uses the admitted browser handoff rather than embedding credential forms or assembling a separate login path.
 
-- Native runtime bootstrap.
-- External-agent bridges that depend on native processes.
-- Native window management and OS integrations.
-- Sensitive token persistence beyond what browsers can safely offer.
+## What Happens In Nimi Home
 
-These limits aren't arbitrary. Each one exists because a browser can't
-meet the same bar for user safety or content integrity.
+Run local App development through the Desktop-supervised host and use the App's public SDK/Kit binding. Runtime owns capability execution and access decisions. The public site does not host the Desktop renderer or a Desktop Web adapter.
 
-## What Web Can Still Do
+For third-party App code, consume the public SDK and Kit. Do not import Desktop renderer internals or use the public website as a shortcut around Runtime authorization.
 
-Web still works well for what's safe in a constrained browser
-environment:
+## Reader Scenario: Finish Sign-in, Then Continue In The App
 
-- Introduce the platform, guide you through the public docs, and host
-  product surfaces that are cleared for browser use.
-- Offer read-oriented experiences that are confirmed web-safe.
-- Point you back to the Desktop app when you need full capability.
+A user may complete an account interaction in the browser and return to Nimi Home. The browser interaction does not itself prove that a particular App is installed, running, or allowed to call an AI capability. The App must use the current host session and handle the real access or execution result.
 
-Web is a real Nimi surface — just a deliberately smaller one than
-Desktop.
-
-## Reader Scenario: A Capability Available Only On Desktop
-
-Suppose a user follows a public link to a Nimi page in a browser, and
-the page references a feature that depends on a native runtime
-capability. The Web adapter does not silently fall back to a degraded
-version. The expected behavior under the contract is:
-
-- The browser surface explains that the feature requires Desktop.
-- Native bootstrap is not implied.
-- The user is not led to believe the browser is running the feature.
-
-This honesty matters. A silent fallback would lie about the actual
-posture of the system.
+To start developing an App, follow [Create a Nimi App](/start/create-an-app). For available product builds, check [Download](https://nimi.ai/download).
 
 ## Source Basis
 
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
-- [`.nimi/spec/desktop/shell-ui.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-ui.authority.yaml)
-- [`.nimi/spec/desktop/shell-runtime.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-runtime.authority.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
+- [`apps/web/src/site-router.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/web/src/site-router.tsx)

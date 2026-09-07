@@ -1,58 +1,22 @@
-# Desktop
+# Nimi Home and App Development
 
-Desktop is Nimi's own native app for your computer. It can do things
-the browser version can't safely offer: a built-in Runtime, local AI,
-real windows and menus, and workflows that need access to a real OS.
+Nimi Home is the desktop entry for the Nimi personal AI product. It brings conversations, characters, creations, worlds, settings, and Nimi Apps together. Runtime executes local and cloud AI; Realm owns account and ecosystem identity.
 
-This section covers what you can do in Desktop, how Web mode differs,
-and where each feature's data actually lives.
+## Run Your App Locally
 
-## What This Section Contains
+For third-party App development, start with [Create a Nimi App](/start/create-an-app). The supported development command launches your App in a Desktop-supervised Electron host. Opening its renderer URL in a browser does not establish that App session or provide its protected Runtime access.
 
-- [Web Mode](/desktop/web-mode) — a smaller, browser-based way to use
-  selected Desktop surfaces.
+A local development session does not publish your App. Registry-approved packages, explicit immutable local-package import, and Developer Mode are separate lifecycle paths. The current pre-release supports the Windows x86_64 Registry lifecycle and local development; the local-package import entry, other platforms' package lifecycle, update, and repair remain unavailable. See [App Distribution](/start/#local-development-and-distribution) for the current pilot and admission requirements.
 
-## Desktop And Web Are Different
+## Use the Right Entry
 
-Nimi runs on both Desktop and Web, but the two don't offer the same
-capabilities. Web mode is a deliberately smaller experience. Desktop
-carries the native and local features.
-
-| Capability area | Desktop | Web |
-| --- | --- | --- |
-| Native runtime bootstrap | Available | Disabled |
-| Local AI capability surfaces | Available when admitted | Disabled |
-| Native window and shell behavior | Available | Disabled |
-| Sensitive token persistence | Native-secure | Constrained |
-| Public product reads (browse, chat, world view) | Available | Available when admitted as projection |
-
-Keep this in mind when you choose where to run Nimi. A page that works
-in the browser doesn't automatically come with the desktop-only
-features behind it, even when the two look the same.
-
-## What Desktop Owns
-
-Desktop handles the shell itself: windows, menus, native bridging,
-local integration, and the first-party workflows you use every day. It
-builds on Runtime and SDK contracts rather than replacing them.
-
-## Reader Scenario: A Surface That Is "Available On Both"
-
-Suppose a public read surface (for example, browsing a world) is
-admitted on both Desktop and Web. Even then:
-
-- Desktop renders the surface inside the native shell with native
-  navigation and (when admitted) local enhancement.
-- Web renders the surface inside the browser without native bootstrap
-  and without sensitive token persistence beyond
-  what browsers can safely offer.
-
-A reader who is making a distribution decision needs to understand that
-"available on both" does not mean "identical on both."
+- **Develop an App:** [Create, check, and run a project](/start/create-an-app), then [make your first AI call](/sdk/first-ai-call).
+- **Connect AI settings:** use the [Kit App pattern](/platform/kit/use-kit-in-app); keep Runtime access and permission checks in the supported SDK and host path.
+- **Find a product download:** check the [current release status](https://nimi.ai/download). The Windows Runtime bootstrap does not install Nimi Home.
+- **Understand the website:** [Web and Nimi Home](/desktop/web-mode) explains the public/account website and the separate desktop entry.
 
 ## Source Basis
 
-- [`.nimi/spec/desktop/shell-ui.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-ui.authority.yaml)
-- [`.nimi/spec/desktop/shell-runtime.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-runtime.authority.yaml)
-- [`.nimi/spec/desktop/bridge-ipc.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/bridge-ipc.authority.yaml)
+- [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
+- [`.nimi/spec/start/#local-development-and-distribution.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/start/#local-development-and-distribution.authority.yaml)
