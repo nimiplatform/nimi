@@ -792,6 +792,35 @@ test('Lab chat.stream runs the Kit streaming face and forwards accumulated parti
   });
 });
 
+test('Lab chat.stream preserves cancellation when the subscription ends after a partial', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  const controller = new AbortController();
+  const partials = [];
+  let cancelCalls = 0;
+  const client = fakeLocalAppClient({
+    async streamTurn() {
+      let finish;
+      const ended = new Promise((resolve) => { finish = resolve; });
+      return {
+        async *[Symbol.asyncIterator]() {
+          yield { type: 'delta', sequence: '1', traceId: 'trace-cancel', text: 'partial text' };
+          await ended;
+        },
+        async cancel() { cancelCalls += 1; finish(); },
+      };
+    },
+  });
+  const result = await runLabCapability({
+    capabilityId: 'chat.stream', prompt: 'keep streaming', signal: controller.signal,
+    onPartial(value) { partials.push(value); controller.abort('lab-user-canceled'); },
+  }, readyRuntimeDependencies(client));
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'operation-aborted');
+  assert.equal(result.diagnostics.reasonCode, 'OPERATION_ABORTED');
+  assert.deepEqual(partials, ['partial text']);
+  assert.equal(cancelCalls, 1);
+});
+
 test('Lab chat.stream forwards the caller cancellation signal to the Kit streaming face', async () => {
   const { runLabCapability } = await importLabRuntime();
   const controller = new AbortController();

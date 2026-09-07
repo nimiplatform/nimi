@@ -133,7 +133,9 @@ export function ZhiyuAgentChatSurface({
       <div className="zhiyu-no-local-partner-empty__inner">
         <p className="zhiyu-no-local-partner-empty__eyebrow">ZHI YU</p>
         <h2>还没有本地伙伴</h2>
-        <p className="zhiyu-no-local-partner-empty__copy">{evidence.inventory.message}</p>
+        <p className="zhiyu-no-local-partner-empty__copy">
+          {evidence.inventory.ready ? emptyDescription : evidence.inventory.message}
+        </p>
         <button
           type="button"
           className="zhiyu-no-local-partner-empty__action"

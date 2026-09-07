@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import React, { Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
@@ -19,7 +20,7 @@ import { installDocumentLangSync } from './shell/i18n/document-lang.js';
 // the fixed local-app SDK client is constructed. The renderer receives only the
 // typed local-app command set, never transport or session authority material.
 installNimiShellRuntimeBridge();
-installDocumentLangSync();
+const disposeDocumentLangSync = installDocumentLangSync();
 
 const entryModuleLoader = createRendererEntryModuleLoader({
   retryDelaysMs: DEFAULT_DEV_RENDERER_ENTRY_IMPORT_RETRY_DELAYS_MS,
@@ -31,6 +32,7 @@ const App = lazy(async () => {
 });
 
 const rendererRoot = document.getElementById('root') as HTMLElement;
+document.body.classList.add('nimi-ui-module--lab');
 rendererRoot.classList.add('nimi-workbench-host', 'nimi-ui-module--lab');
 const overlayRoot = document.createElement('div');
 overlayRoot.id = 'lab-production-overlays';
@@ -59,10 +61,20 @@ const rendererHost = createNimiRendererHostBinding<NimiRendererHostMethodMap>({
   surfaceLifecycle: { reportReadyCandidate: () => undefined },
 });
 
-createRoot(rendererRoot).render(
+const reactRoot = createRoot(rendererRoot);
+reactRoot.render(
   <React.StrictMode>
     <Suspense fallback={null}>
       <App rendererHost={rendererHost} />
     </Suspense>
   </React.StrictMode>,
 );
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    reactRoot.unmount();
+    overlayRoot.remove();
+    document.body.classList.remove('nimi-ui-module--lab');
+    disposeDocumentLangSync();
+  });
+}

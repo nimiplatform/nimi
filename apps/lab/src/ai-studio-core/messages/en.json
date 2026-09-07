@@ -165,6 +165,7 @@
     "expandImage": "Expand image",
     "expandGeneratedImage": "Expand generated image",
     "imagePreview": "Image preview",
+    "imagePreviewFailed": "The image preview could not be opened. Please try again.",
     "closeImagePreview": "Close image preview",
     "emptyBody": "(empty body)",
     "emptyTranscript": "(empty transcript)",

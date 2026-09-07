@@ -35,6 +35,7 @@ function TextStudioShell({
   verboseConsole,
   draftPersistence,
   onOpenConfig,
+  configOpen,
   history,
   historySelectionRequest,
   onSelectHistoryRun,
@@ -48,6 +49,7 @@ function TextStudioShell({
   verboseConsole: boolean;
   draftPersistence: boolean;
   onOpenConfig?: () => void;
+  configOpen: boolean;
   history: StudioRunHistory | null;
   historySelectionRequest: { requestId: number; record: StudioRunHistoryRecord } | null;
   onSelectHistoryRun: (record: StudioRunHistoryRecord) => void;
@@ -99,7 +101,7 @@ function TextStudioShell({
       : null)
     : lastResult?.capabilityId === capability.id ? lastResult : null;
   const headerResult = hasActiveRun ? currentResult : null;
-  const runTarget = useStudioRunTargetSummary(registration, runtime);
+  const runTarget = useStudioRunTargetSummary(registration, runtime, configOpen);
   const admission = statusForCapability(registration, runTarget, headerResult, t);
   const requiresPrompt = profile.inputKind !== 'none';
   const supportsMedia = profile.supportsAttachments;
@@ -466,6 +468,7 @@ export function SectionAITesting({
           verboseConsole={verboseConsole}
           draftPersistence={draftPersistence}
           onOpenConfig={renderAIConfigPanel ? () => setConfigOpen(true) : undefined}
+          configOpen={configOpen}
           history={history}
           historySelectionRequest={historySelectionRequest}
           onSelectHistoryRun={onSelectHistoryRun}
