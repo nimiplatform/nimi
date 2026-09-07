@@ -68,6 +68,15 @@ pnpm dev
 
 `dev` uses the Desktop supervisor. Direct Electron, Tauri or renderer launch cannot claim protected Nimi access. Process running and Nimi Access ready remain separate states.
 
+To continue an existing development App and its data, select a registration explicitly:
+
+```bash
+pnpm dev -- --list-registrations
+pnpm dev -- --resume <selector>
+```
+
+The list shows the current project's registrations and creation times. Copy the desired selector from that list; Desktop resolves it to the exact existing Runtime-owned registration. Selectors last for the current Desktop session, so list again after restarting Desktop. No selector is stored in the App repository, and no App ID or path automatically reopens a subject. Plain `pnpm dev` keeps its fresh-registration behavior when no matching run is active. These options require a Desktop build that supports explicit launcher selection.
+
 The default `windows-x86_64` build profile runs `build:electron:production`. It rebuilds the renderer and Electron main/preload, then creates a fresh, non-installer `dist-electron-package/<app>-shell-win32-x64/` directory with `asar` disabled and an App-specific `<app>-shell.exe`. The production main bundle has a compile-time production marker and rejects every `--nimi-dev-renderer-url` argument; packaged renderer assets stay relative under `dist/`. The protected native binding is resolved from Kit's optional dependency and is never declared directly by the App.
 
 Tauri remains an explicit alternative through `pnpm run build:tauri:production`; selecting it requires an explicit Tauri build profile rather than changing the default Electron carrier.

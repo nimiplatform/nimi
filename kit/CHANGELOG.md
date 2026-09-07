@@ -7,6 +7,17 @@ The project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 with the pre-1.0 discipline documented in `kit/AGENTS.md` §Semver
 Discipline.
 
+## [0.5.1] - 2026-09-08
+
+### Fixed
+
+- Preview Runtime audio artifacts declared as `audio/x-wav`, with the same
+  RIFF/WAVE and immutable asset checks as `audio/wav`.
+- Keep an Agent Realtime media session open when a successful individual turn
+  completes, allowing the next turn on the same connection.
+- Share overlapping Desktop development registration reads without retaining
+  completed snapshots, reducing repeated native calls during inventory loading.
+
 ## [Unreleased]
 
 ### Added

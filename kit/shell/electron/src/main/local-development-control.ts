@@ -63,6 +63,7 @@ export type NimiElectronLocalDevelopmentControl = {
 };
 
 class ElectronLocalDevelopmentControl implements NimiElectronLocalDevelopmentControl {
+  private registrationListInFlight: Promise<readonly NimiElectronLocalDevelopmentRegistration[]> | null = null;
   constructor(private readonly binding: NimiElectronLocalDevelopmentBinding) {}
 
   async register(input: Parameters<NimiElectronLocalDevelopmentControl['register']>[0]) {
@@ -77,13 +78,17 @@ class ElectronLocalDevelopmentControl implements NimiElectronLocalDevelopmentCon
     ));
   }
 
-  async listRegistrations() {
-    const value = await invokeNative(
+  listRegistrations() {
+    if (this.registrationListInFlight) return this.registrationListInFlight;
+    const request = invokeNative(
       () => this.binding.desktopListLocalDevelopmentRegistrations(),
       'list_local_development_registrations',
-    );
-    if (!Array.isArray(value)) invalid();
-    return value.map(parseRegistration);
+    ).then((value) => {
+      if (!Array.isArray(value)) invalid();
+      return value.map(parseRegistration);
+    }).finally(() => { this.registrationListInFlight = null; });
+    this.registrationListInFlight = request;
+    return request;
   }
 
   async removeRegistration(registrationHandle: string) {

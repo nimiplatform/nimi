@@ -1617,7 +1617,7 @@ units:
     kind: rule
     title: P-SCAF-018 official local development launcher
     modality: must
-    statement: Fresh scaffolds expose their dev and dev:shell package scripts through the same official nimi-app dev launcher, whose role is limited to parsing, validation, build coordination, launch request, and truthful tooling status and which cannot create a registered subject, declaration coverage, session, snapshot, protected endpoint, credential, release trust, or product evidence.
+    statement: Fresh scaffolds expose their dev and dev:shell package scripts through the same official nimi-app dev launcher, whose role is limited to parsing, validation, build coordination, launch request, and truthful tooling status and which cannot create a registered subject, declaration coverage, session, snapshot, protected endpoint, credential, release trust, or product evidence. The launcher may list current-host development registrations for the selected project and explicitly resume a Desktop-issued selector; Desktop resolves that selector to the exact Runtime-owned current-host binding and validates the selected project after identity selection, without selecting or reopening by App ID, path, display name, or copied bytes, persisting selectors in App files, or falling back from a rejected resume to fresh registration.
     condition: Whenever a scaffolded local-development command runs.
     failure: Reject a private launcher or launcher-created protected access while keeping tooling active or inactive independent from App running and Nimi access available or unavailable.
     relations:

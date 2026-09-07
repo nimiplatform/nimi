@@ -6,6 +6,11 @@ on:
       - kit/v*
   pull_request:
     paths:
+      - .github/workflows/release-security.yml
+      - scripts/lib/secret-scan-scope.mjs
+      - scripts/lib/secret-scan-result.mjs
+      - scripts/check-secrets.mjs
+      - .secrets.baseline
       - .github/workflows/release-kit.yml
       - kit/**
       - package.json
@@ -29,6 +34,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  security:
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/release-security.yml
+    with:
+      component: kit
+
   validate:
     name: Kit validate and dry-run
     runs-on: ubuntu-latest
@@ -55,6 +66,8 @@ jobs:
           registry-url: https://registry.npmjs.org
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
+      - name: Check package licensing
+        run: pnpm check:license-file-map
       - name: Resolve Kit component identity
         id: release
         env:
@@ -84,9 +97,14 @@ jobs:
             echo "production=${production}"
             echo "version=${version}"
           } >> "${GITHUB_OUTPUT}"
+      - name: Install Linux dependencies for Rust bridge generation
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - name: Test Kit
         run: |
           pnpm --filter @nimiplatform/sdk build
+          pnpm check:nimi-kit
           pnpm --filter @nimiplatform/kit typecheck
           pnpm --filter @nimiplatform/kit test
       - name: Build deterministic Kit package with Windows native dependency
@@ -97,14 +115,7 @@ jobs:
           shopt -s nullglob
           tarballs=(dist/component-release/kit/*.tgz)
           test "${#tarballs[@]}" -eq 1
-          package_identity="$(tar -xOf "${tarballs[0]}" package/package.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s);process.stdout.write(p.name+'@'+p.version)})")"
-          local_sha1="$(shasum -a 1 "${tarballs[0]}" | awk '{print $1}')"
-          if remote_sha1="$(npm view "${package_identity}" dist.shasum --json 2>/dev/null)"; then
-            remote_sha1="$(printf '%s' "${remote_sha1}" | tr -d '"[:space:]')"
-            test "${remote_sha1}" = "${local_sha1}"
-          else
-            npm publish "${tarballs[0]}" --access public --dry-run
-          fi
+          npm publish "${tarballs[0]}" --access public --dry-run
       - name: Require public SDK dependency for tag publication
         if: steps.release.outputs.production == 'true'
         run: |
@@ -171,6 +182,9 @@ jobs:
           if ($env:GITHUB_EVENT_NAME -eq 'push' -and $env:GITHUB_REF -ne "refs/tags/kit/v$($kit.version)") { throw 'Kit tag/version mismatch' }
           if ($env:GITHUB_EVENT_NAME -eq 'workflow_dispatch' -and $env:INPUT_VERSION.TrimStart('v') -ne $kit.version) { throw 'Kit dispatch/version mismatch' }
           "artifact_name=kit-windows-native-package-$env:GITHUB_SHA-$env:GITHUB_RUN_ATTEMPT" >> $env:GITHUB_OUTPUT
+      - name: Test the Windows native crates for publication
+        if: github.event_name != 'pull_request'
+        run: pnpm test:kit:native
       - name: Build the public Windows D2 carrier
         run: node kit/shell/protected-local-node/scripts/build-windows-x64-source-local-development-package.mjs
       - name: Test the real release native binding
@@ -202,7 +216,7 @@ jobs:
 
   publish:
     name: Kit publish
-    needs: [validate, validate-windows]
+    needs: [validate, validate-windows, security]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/kit/v')
     runs-on: ubuntu-latest
     permissions:
