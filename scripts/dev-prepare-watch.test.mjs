@@ -48,6 +48,16 @@ test('build scheduling waits for quiet after both edits and the previous build',
   );
 });
 
+test('metadata-only events during a completed build do not leave its surface unstamped', () => {
+  const metadataOnly = findMetadataOnlySurfaces(new Map([
+    ['sdk', { structural: false, newestMtimeMs: 60_000 }],
+    ['kit', { structural: false, newestMtimeMs: 101_000 }],
+  ]), { sdk: 100_000, kit: 100_000 }, 30_000);
+  assert.deepEqual(stableBuildSurfaces(
+    ['sdk', 'kit'], { sdk: 1, kit: 1 }, { sdk: 2, kit: 2 }, metadataOnly,
+  ), ['sdk']);
+});
+
 test('metadata-only watch events are droppable while edits and structural changes rebuild', () => {
   const graceMs = 30_000;
   const baselines = { sdk: 100_000, kit: 50_000 };
