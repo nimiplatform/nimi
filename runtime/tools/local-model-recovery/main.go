@@ -343,19 +343,11 @@ func migrateConfigurationsToLoadouts(root string, statePath string, commitConfig
 	if err != nil {
 		return err
 	}
-	recipesResponse, err := svc.ListLoadoutRecipes(context.Background(), &runtimev1.ListLoadoutRecipesRequest{})
-	if err != nil {
-		return fmt.Errorf("list Loadout recipes: %w", err)
-	}
 	assetsResponse, err := svc.ListModelAssets(context.Background(), &runtimev1.ListModelAssetsRequest{PageSize: 1000})
 	if err != nil {
 		return fmt.Errorf("list ModelAssets: %w", err)
 	}
-	drafts := buildConfigurationMigrationDrafts(
-		configurations,
-		recipesResponse.GetRecipes(),
-		assetsResponse.GetAssets(),
-	)
+	drafts := resolveConfigurationMigrationDrafts(configurations, assetsResponse.GetAssets(), svc.ListLoadoutRecipes)
 	drafts = append(drafts, loadFailures...)
 	sort.Slice(drafts, func(i, j int) bool { return drafts[i].SourceRowIndex < drafts[j].SourceRowIndex })
 	preflightConfigurationMigrationDrafts(svc, drafts)
@@ -407,6 +399,35 @@ func migrateConfigurationsToLoadouts(root string, statePath string, commitConfig
 		"loadoutId": committed.GetLoadout().GetLoadoutId(), "validationState": committed.GetLoadout().GetValidationState().String(),
 		"selected": false, "noOp": false,
 	})
+}
+
+// Recovery only inspects capabilities present in the input. An unavailable
+// Driver produces a failed row instead of hiding unrelated configurations.
+func resolveConfigurationMigrationDrafts(
+	configurations []legacyConfiguration,
+	assets []*runtimev1.ModelAssetRecord,
+	listRecipes func(context.Context, *runtimev1.ListLoadoutRecipesRequest) (*runtimev1.ListLoadoutRecipesResponse, error),
+) []configurationMigrationDraft {
+	byCapability := make(map[string][]*runtimev1.LoadoutRecipeDescriptor)
+	failures := make(map[string]error)
+	drafts := make([]configurationMigrationDraft, 0, len(configurations))
+	for _, configuration := range configurations {
+		if _, loaded := byCapability[configuration.Capability]; !loaded {
+			response, err := listRecipes(context.Background(), &runtimev1.ListLoadoutRecipesRequest{CapabilityContract: configuration.Capability})
+			byCapability[configuration.Capability] = response.GetRecipes()
+			failures[configuration.Capability] = err
+		}
+		if err := failures[configuration.Capability]; err != nil {
+			drafts = append(drafts, configurationMigrationDraft{
+				SourceRowIndex: configuration.SourceRowIndex, ConfigurationID: configuration.ConfigurationID,
+				DisplayName: configuration.DisplayName, Capability: configuration.Capability,
+				FailureReason: fmt.Sprintf("list Loadout recipes for %s: %v", configuration.Capability, err),
+			})
+			continue
+		}
+		drafts = append(drafts, buildConfigurationMigrationDrafts([]legacyConfiguration{configuration}, byCapability[configuration.Capability], assets)...)
+	}
+	return drafts
 }
 
 func buildConfigurationMigrationDrafts(

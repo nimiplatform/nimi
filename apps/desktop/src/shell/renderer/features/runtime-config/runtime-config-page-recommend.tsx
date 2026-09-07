@@ -615,7 +615,7 @@ function InstallPlanPanel(props: {
             {plan.engine ? <PlanRow label={t('runtimeConfig.recommend.planEngine', { defaultValue: 'Engine' })} value={plan.engine} /> : null}
             <PlanRow
               label={t('runtimeConfig.recommend.colSize', { defaultValue: 'Size' })}
-              value={plan.totalSizeBytes ? formatBytes(plan.totalSizeBytes) : t('runtimeConfig.recommend.unknownDownloadSize', { defaultValue: 'Download size unknown' })}
+              value={plan.totalSizeBytes ? formatBytes(plan.totalSizeBytes) : t('runtimeConfig.local.unknownDownloadSize')}
             />
             <PlanRow label={t('runtimeConfig.recommend.planFiles', { defaultValue: 'File count' })} value={String(plan.files.length)} />
             {plan.license ? <PlanRow label={t('runtimeConfig.recommend.specLicense', { defaultValue: 'License' })} value={plan.license} /> : null}
