@@ -6,6 +6,11 @@ on:
       - nimi-shell-tauri/v*
   pull_request:
     paths:
+      - .github/workflows/release-security.yml
+      - scripts/lib/secret-scan-scope.mjs
+      - scripts/lib/secret-scan-result.mjs
+      - scripts/check-secrets.mjs
+      - .secrets.baseline
       - .github/workflows/release-nimi-shell-tauri.yml
       - kit/shell/protected-local/**
       - kit/shell/tauri/**
@@ -25,9 +30,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  security:
+    if: github.event_name != 'pull_request'
+    uses: ./.github/workflows/release-security.yml
+    with:
+      component: tauri
+
   release:
     name: Tauri validate and dry-run
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest","windows-latest"]') }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
     outputs:
       protected_version: ${{ steps.release.outputs.protected_version }}
       version: ${{ steps.release.outputs.version }}
@@ -41,6 +58,7 @@ jobs:
         with:
           toolchain: stable
       - name: Install Linux Tauri dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
@@ -113,7 +131,7 @@ jobs:
 
   publish:
     name: Tauri publish
-    needs: release
+    needs: [release, security]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/nimi-shell-tauri/v')
     runs-on: ubuntu-latest
     permissions:

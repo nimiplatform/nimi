@@ -26,6 +26,14 @@ const buildArguments = process.argv.slice(2);
 if (buildArguments.length > 0) {
   throw new Error(`Unsupported Runtime build arguments: ${buildArguments.join(', ')}`);
 }
+const goEnvironment = spawnSync(process.execPath, [path.join(scriptDir, 'check-go-env.mjs')], {
+  cwd: repoRoot,
+  stdio: 'inherit',
+  env: process.env,
+});
+if (goEnvironment.error) throw goEnvironment.error;
+if (goEnvironment.status !== 0) process.exit(goEnvironment.status ?? 1);
+
 const buildSource = process.platform === 'win32'
   ? captureRuntimeBuildSource(repoRoot, { pathspecs: WINDOWS_RUNTIME_BUILD_SOURCE_PATHS })
   : null;

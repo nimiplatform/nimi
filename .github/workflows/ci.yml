@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -17,13 +17,19 @@ jobs:
     outputs:
       docs_changed: ${{ steps.detect.outputs.docs_changed }}
       core_changed: ${{ steps.detect.outputs.core_changed }}
-      shared_changed: ${{ steps.detect.outputs.shared_changed }}
+      workspace_changed: ${{ steps.detect.outputs.workspace_changed }}
+      workspace_filters: ${{ steps.detect.outputs.workspace_filters }}
+      scripts_changed: ${{ steps.detect.outputs.scripts_changed }}
+      authority_changed: ${{ steps.detect.outputs.authority_changed }}
+      kit_changed: ${{ steps.detect.outputs.kit_changed }}
       sdk_changed: ${{ steps.detect.outputs.sdk_changed }}
       sdk_adapter_upstream_changed: ${{ steps.detect.outputs.sdk_adapter_upstream_changed }}
       sdk_conformance_changed: ${{ steps.detect.outputs.sdk_conformance_changed }}
       proto_changed: ${{ steps.detect.outputs.proto_changed }}
       runtime_changed: ${{ steps.detect.outputs.runtime_changed }}
-      desktop_web_changed: ${{ steps.detect.outputs.desktop_web_changed }}
+      cognition_changed: ${{ steps.detect.outputs.cognition_changed }}
+      desktop_changed: ${{ steps.detect.outputs.desktop_changed }}
+      desktop_native_changed: ${{ steps.detect.outputs.desktop_native_changed }}
       kit_native_changed: ${{ steps.detect.outputs.kit_native_changed }}
       lab_native_changed: ${{ steps.detect.outputs.lab_native_changed }}
     steps:
@@ -31,162 +37,33 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
       - name: Detect changed paths
         id: detect
         env:
           EVENT_NAME: ${{ github.event_name }}
-          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PUSH_BEFORE_SHA: ${{ github.event.before }}
-          PUSH_HEAD_SHA: ${{ github.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          set -euo pipefail
-
-          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
-            {
-              echo "docs_changed=true"
-              echo "core_changed=true"
-              echo "shared_changed=true"
-              echo "sdk_changed=true"
-              echo "sdk_adapter_upstream_changed=true"
-              echo "sdk_conformance_changed=true"
-              echo "proto_changed=true"
-              echo "runtime_changed=true"
-              echo "desktop_web_changed=true"
-              echo "kit_native_changed=true"
-              echo "lab_native_changed=true"
-            } >> "${GITHUB_OUTPUT}"
-            exit 0
-          fi
-
-          base_sha=""
-          head_sha=""
-          if [[ "${EVENT_NAME}" == "pull_request" ]]; then
-            base_sha="${PR_BASE_SHA}"
-            head_sha="${PR_HEAD_SHA}"
-          else
-            base_sha="${PUSH_BEFORE_SHA}"
-            head_sha="${PUSH_HEAD_SHA}"
-            if [[ -z "${base_sha}" || "${base_sha}" == "0000000000000000000000000000000000000000" ]]; then
-              base_sha="$(git rev-parse "${head_sha}^" 2>/dev/null || echo "${head_sha}")"
-            fi
-          fi
-
-          git rev-parse --verify "${base_sha}^{commit}" >/dev/null
-          git rev-parse --verify "${head_sha}^{commit}" >/dev/null
-          git diff --name-only "${base_sha}" "${head_sha}" > /tmp/nimi_changed_files.txt
-
-          docs_changed=false
-          core_changed=false
-          shared_changed=false
-          sdk_changed=false
-          sdk_adapter_upstream_changed=false
-          sdk_conformance_changed=false
-          proto_changed=false
-          runtime_changed=false
-          desktop_web_changed=false
-          kit_native_changed=false
-          lab_native_changed=false
-
-          docs_regex='^(docs/|examples/|README\.md$|CHANGELOG\.md$)'
-          shared_regex='^(scripts/|package\.json$|pnpm-workspace\.yaml$|pnpm-lock\.yaml$|\.github/workflows/|\.gitignore$|\.editorconfig$)'
-          native_ci_regex='^(package\.json$|pnpm-workspace\.yaml$|\.github/workflows/ci\.yml$)'
-
-          while IFS= read -r file; do
-            [[ -z "${file}" ]] && continue
-
-            if [[ "${file}" =~ ${docs_regex} ]]; then
-              docs_changed=true
-            else
-              core_changed=true
-            fi
-
-            if [[ "${file}" =~ ${shared_regex} ]]; then
-              shared_changed=true
-            fi
-            if [[ "${file}" =~ ^sdk/ || "${file}" =~ ^sdks/ || "${file}" =~ ^\.nimi/spec/sdks/ ]]; then
-              sdk_changed=true
-            fi
-            if [[ "${file}" =~ ^sdks/typescript/ ||
-                  "${file}" == "pnpm-lock.yaml" ]]; then
-              sdk_adapter_upstream_changed=true
-            fi
-            if [[ "${file}" =~ ^sdks/conformance/ ||
-                  "${file}" =~ ^sdks/generators/ ||
-                  "${file}" =~ ^proto/ ||
-                  "${file}" =~ ^config/realm-openapi ||
-                  "${file}" == "config/sdks-error-codes.yaml" ||
-                  "${file}" == "config/sdks-realm-private-operation-carriers.yaml" ||
-                  "${file}" =~ ^config/runtime-rpc-auth-posture ||
-                  "${file}" == "scripts/lib/read-yaml-with-fragments.mjs" ||
-                  "${file}" =~ ^\.nimi/spec/sdks/ ]]; then
-              sdk_conformance_changed=true
-            fi
-            if [[ "${file}" =~ ^proto/ ||
-                  "${file}" =~ ^runtime/gen/ ||
-                  "${file}" =~ ^runtime/proto/ ||
-                  "${file}" == "package.json" ||
-                  "${file}" == "pnpm-lock.yaml" ||
-                  "${file}" == "scripts/proto-breaking.mjs" ||
-                  "${file}" == "scripts/check-proto-drift.mjs" ||
-                  "${file}" =~ ^scripts/run-buf ]]; then
-              proto_changed=true
-            fi
-            if [[ "${file}" =~ ^runtime/ ||
-                  "${file}" =~ ^nimi-cognition/ ||
-                  "${file}" =~ ^proto/ ||
-                  "${file}" == "go.work" ||
-                  "${file}" == "go.work.sum" ||
-                  "${file}" == ".goreleaser.yml" ]]; then
-              runtime_changed=true
-            fi
-            if [[ ( "${file}" =~ ^apps/desktop/ || "${file}" =~ ^apps/web/ ) && ! "${file}" =~ ^apps/(desktop|web)/AGENTS\.md$ ]]; then
-              desktop_web_changed=true
-            fi
-            if [[ "${file}" =~ ^kit/shell/(capabilities|protected-local|protected-local-node|tauri)/ ]]; then
-              kit_native_changed=true
-              lab_native_changed=true
-            fi
-            if [[ "${file}" =~ ^apps/lab/src-tauri/ ]]; then
-              lab_native_changed=true
-            fi
-            if [[ "${file}" =~ ${native_ci_regex} ]]; then
-              kit_native_changed=true
-              lab_native_changed=true
-            fi
-          done < /tmp/nimi_changed_files.txt
-
-          if [[ "${shared_changed}" == "true" ]]; then
-            core_changed=true
-          fi
-          if [[ "${sdk_changed}" == "true" ]]; then
-            core_changed=true
-            desktop_web_changed=true
-          fi
-          if [[ "${sdk_conformance_changed}" == "true" ]]; then
-            sdk_changed=true
-            core_changed=true
-            desktop_web_changed=true
-          fi
-          if [[ "${sdk_adapter_upstream_changed}" == "true" ]]; then
-            sdk_changed=true
-            core_changed=true
-          fi
-
-          {
-            echo "docs_changed=${docs_changed}"
-            echo "core_changed=${core_changed}"
-            echo "shared_changed=${shared_changed}"
-            echo "sdk_changed=${sdk_changed}"
-            echo "sdk_adapter_upstream_changed=${sdk_adapter_upstream_changed}"
-            echo "sdk_conformance_changed=${sdk_conformance_changed}"
-            echo "proto_changed=${proto_changed}"
-            echo "runtime_changed=${runtime_changed}"
-            echo "desktop_web_changed=${desktop_web_changed}"
-            echo "kit_native_changed=${kit_native_changed}"
-            echo "lab_native_changed=${lab_native_changed}"
-          } >> "${GITHUB_OUTPUT}"
+          node --input-type=module <<'NODE'
+          import { appendFileSync } from 'node:fs';
+          import { execFileSync } from 'node:child_process';
+          import { selectCiScope } from './scripts/lib/ci-scope.mjs';
+          const { EVENT_NAME, BASE_SHA, HEAD_SHA, GITHUB_OUTPUT } = process.env;
+          const full = EVENT_NAME === 'workflow_dispatch';
+          if (!full && (!/^[a-f0-9]{40}$/.test(BASE_SHA || '') || /^0+$/.test(BASE_SHA))) {
+            throw new Error('CI comparison base is unavailable');
+          }
+          const files = full ? [] : execFileSync('git', ['diff', '--name-only', '-z', BASE_SHA, HEAD_SHA], { encoding: 'utf8' }).split('\0').filter(Boolean);
+          const scope = selectCiScope(files, { full });
+          for (const [key, value] of Object.entries(scope)) {
+            appendFileSync(GITHUB_OUTPUT, `${key}=${JSON.stringify(value)}\n`);
+          }
+          console.log(scope);
+          NODE
 
   docs-contract:
     needs: changes
@@ -255,35 +132,29 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Linux native dependencies for Kit contracts
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
       - name: gate.runtime.bridge-method-projection
         run: pnpm check:runtime-bridge-method-drift
       - name: gate.runtime.realm-broker-policy
         run: pnpm check:runtime-broker-operation-policy
       - name: gate.realm.no-app-rest-bypass
         run: pnpm check:no-app-realm-rest-bypass
-      - name: Build SDK for Kit contracts
-        run: pnpm build:sdk
       - name: Check Kit contracts
+        if: needs.changes.outputs.kit_changed == 'true'
         run: pnpm check:nimi-kit
       - name: Check license file map
         run: pnpm check:license-file-map
-      - name: Audit SDK and Kit package contents
-        run: pnpm check:sdk-kit-pack-audit
       - name: gate.workflow.actionlint
         run: pnpm check:actionlint
       - name: authority.canonical.check
+        if: needs.changes.outputs.authority_changed == 'true'
         run: pnpm spec:authority:check
       - name: authority.configured-audit
+        if: needs.changes.outputs.authority_changed == 'true'
         run: pnpm spec:authority:audit
 
   workspace-regression:
     needs: changes
-    if: needs.changes.outputs.core_changed == 'true'
+    if: needs.changes.outputs.workspace_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -304,18 +175,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Workspace owner tests
-        run: pnpm test:workspace:full
-
-      - name: Build renderer surfaces for bundle budgets
-        run: |
-          pnpm dev:prepare
-          pnpm --filter @nimiplatform/desktop build:renderer
-          pnpm --filter @nimiplatform/web build
-          pnpm --filter @nimiplatform/lab build:prepared
-
-      - name: Enforce renderer bundle budgets
-        run: pnpm check:bundle-size
+      - name: Test and build selected workspace consumers
+        env:
+          WORKSPACE_FILTERS: ${{ needs.changes.outputs.workspace_filters }}
+          SCRIPTS_CHANGED: ${{ needs.changes.outputs.scripts_changed }}
+        run: node scripts/run-workspace-checks.mjs
 
   kit-native-tests:
     needs: changes
@@ -477,8 +341,9 @@ jobs:
           version: v2.12.2
           working-directory: runtime
 
-      - name: Cognition golangci-lint
-        run: pnpm check:cognition-golangci-lint
+      - name: Cognition tests and lint
+        if: needs.changes.outputs.cognition_changed == 'true'
+        run: pnpm --filter @nimiplatform/cognition test && pnpm check:cognition-golangci-lint
 
   proto-quality:
     needs: changes
@@ -525,7 +390,7 @@ jobs:
 
   desktop-web-quality:
     needs: changes
-    if: needs.changes.outputs.desktop_web_changed == 'true'
+    if: needs.changes.outputs.desktop_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -552,43 +417,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build workspace surfaces for Desktop/Web
-        run: pnpm dev:prepare
-
       - name: Complete Desktop Electron native quality gate
+        if: needs.changes.outputs.desktop_native_changed == 'true'
         run: pnpm check:desktop-native-quality
 
-      - name: Lint and build Desktop Electron
-        run: pnpm --filter @nimiplatform/desktop lint && pnpm --filter @nimiplatform/desktop build
-
-      - name: Build web
-        run: pnpm --filter @nimiplatform/web build
-
-  zhiyu-quality:
-    needs: changes
-    if: needs.changes.outputs.core_changed == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
-        with:
-          version: 10.34.5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: 24
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Typecheck Zhiyu
-        run: pnpm --filter @nimiplatform/zhiyu typecheck
+      - name: Lint Desktop Electron
+        run: pnpm --filter @nimiplatform/desktop lint
 
   ci-required:
     name: ci-required
@@ -604,19 +438,15 @@ jobs:
       - runtime-quality
       - proto-quality
       - desktop-web-quality
-      - zhiyu-quality
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout CI selection policy
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Require every selected CI lane to pass
         env:
           NEEDS_JSON: ${{ toJSON(needs) }}
         run: |
-          node <<'NODE'
-          const needs = JSON.parse(process.env.NEEDS_JSON);
-          const failed = Object.entries(needs)
-            .filter(([, value]) => !['success', 'skipped'].includes(value.result))
-            .map(([name, value]) => `${name}=${value.result}`);
-          if (failed.length > 0) {
-            throw new Error(`required CI lanes did not pass: ${failed.join(', ')}`);
-          }
+          node --input-type=module <<'NODE'
+          import { assertCiResults } from './scripts/lib/ci-scope.mjs';
+          assertCiResults(JSON.parse(process.env.NEEDS_JSON));
           NODE

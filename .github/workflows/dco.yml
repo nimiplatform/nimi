@@ -3,14 +3,59 @@ name: dco
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
-  pull-requests: read
-  statuses: write
+
+concurrency:
+  group: dco-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
   dco:
     runs-on: ubuntu-latest
     steps:
-      - uses: tisonkun/actions-dco@f1024cd563550b5632e754df11b7d30b73be54a5 # v1.1
+      - name: Checkout validator
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.34.5
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+      - name: Install validator dependencies without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Check contribution sign-offs on every new commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { dcoFailures } from './scripts/lib/dco.mjs';
+          const { BASE_SHA, HEAD_SHA, GH_TOKEN, GITHUB_API_URL, GITHUB_REPOSITORY } = process.env;
+          for (const sha of [BASE_SHA, HEAD_SHA]) {
+            if (!/^[0-9a-f]{40}$/.test(sha || '') || /^0+$/.test(sha)) throw new Error('DCO comparison commit is unavailable');
+          }
+          const commits = [];
+          for (let page = 1; ; page++) {
+            const response = await fetch(`${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/compare/${BASE_SHA}...${HEAD_SHA}?per_page=100&page=${page}`, {
+              headers: { Authorization: `Bearer ${GH_TOKEN}`, Accept: 'application/vnd.github+json' },
+            });
+            if (!response.ok) throw new Error(`DCO commit lookup failed: HTTP ${response.status}`);
+            const data = await response.json();
+            if (!Array.isArray(data.commits) || !Number.isSafeInteger(data.total_commits)) throw new Error('DCO commit lookup returned an incomplete result');
+            commits.push(...data.commits);
+            if (commits.length >= data.total_commits) break;
+            if (data.commits.length === 0) throw new Error('DCO commit lookup ended before every commit was read');
+          }
+          const failures = dcoFailures(commits);
+          if (failures.length) throw new Error(failures.map(({ sha, reason }) => `${sha}: ${reason}`).join('\n'));
+          console.log(`DCO passed for ${commits.length} new commits; no sign-offs were added or changed.`);
+          NODE

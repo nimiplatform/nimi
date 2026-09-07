@@ -110,7 +110,13 @@ async function main() {
   const minReductionPercent = Number(baseline.minimumReductionPercent || 20);
   const targets = baseline.targets || {};
   const failures = [];
-  const targetNames = ['desktop', 'web', 'lab'].filter((targetName) => Object.hasOwn(targets, targetName));
+  const requested = process.argv.slice(2);
+  const targetNames = requested.length > 0 ? [...new Set(requested)] : ['desktop', 'web', 'lab'];
+  for (const name of targetNames) {
+    if (!Object.hasOwn(TARGET_DIR_CANDIDATES, name) || !Object.hasOwn(targets, name)) {
+      throw new Error(`unknown bundle budget target: ${name}`);
+    }
+  }
 
   for (const targetName of targetNames) {
     const targetBaseline = targets[targetName];
