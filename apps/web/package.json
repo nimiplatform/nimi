@@ -21,25 +21,25 @@
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.7.0",
     "@react-three/postprocessing": "^3.1.1",
-    "i18next": "25.10.10",
+    "i18next": "26.3.6",
     "postprocessing": "^6.39.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "react-i18next": "16.6.6",
+    "react-i18next": "17.0.11",
     "react-router-dom": "^7.18.3",
     "three": "^0.185.1"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^24.13.3",
+    "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
     "@types/three": "^0.185.4",
-    "@vitejs/plugin-react": "^5.2.0",
+    "@vitejs/plugin-react": "^6.0.5",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.13",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.6",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1",
     "yaml": "^2.9.0"
   }
 }

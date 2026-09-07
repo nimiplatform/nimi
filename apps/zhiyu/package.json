@@ -20,7 +20,7 @@
     "@nimiplatform/kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "fflate": "0.8.3",
-    "lucide-react": "0.577.0",
+    "lucide-react": "1.30.0",
     "postcss": "8.5.26",
     "react": "19.2.8",
     "react-dom": "19.2.8"
@@ -28,15 +28,15 @@
   "devDependencies": {
     "@nimiplatform/app-tools": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
-    "@types/node": "^24.13.3",
+    "@types/node": "^26.2.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
-    "@vitejs/plugin-react": "^5.2.0",
-    "electron": "^42.10.1",
+    "@vitejs/plugin-react": "^6.0.5",
+    "electron": "^43.3.0",
     "esbuild": "^0.28.2",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.13",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.6"
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1"
   }
 }
