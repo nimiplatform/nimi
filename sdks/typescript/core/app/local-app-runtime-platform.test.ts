@@ -995,7 +995,16 @@ test('WorldCore list accepts the exact owner DTO and rejects raw or credential-a
   const listed = await createNimiLocalAppClient({ standardShell: exact }).realm.worldCore.list();
   assert.equal(listed[0]?.id, 'world-1');
 
+  const nullable: NimiLocalAppStandardShell = {
+    ...base,
+    realm: { ...base.realm, worldCore: { ...base.realm.worldCore, list: async () => [{ ...world, lorebookDeclaration: null }] } },
+  };
+  const existing = await createNimiLocalAppClient({ standardShell: nullable }).realm.worldCore.list();
+  assert.equal(existing[0]?.lorebookDeclaration, null);
+
   for (const malformed of [
+    { ...world, lorebookDeclaration: undefined },
+    { ...world, lorebookDeclaration: {} },
     { ...world, rawBody: '{}' },
     { ...world, core: { ...world.core, authorization: 'Bearer private' } },
   ]) {
