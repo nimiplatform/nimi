@@ -111,8 +111,7 @@ func managedCommandTimeout(args []string) time.Duration {
 }
 
 func managedPythonInstallationDir(root string) string {
-	parent := filepath.Dir(filepath.Clean(root))
-	return filepath.Join(parent, "_python-installations")
+	return filepath.Join(filepath.Clean(root), "_python-installations")
 }
 
 func managedPythonInterpreterPath(installationRoot string) string {

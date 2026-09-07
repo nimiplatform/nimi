@@ -125,6 +125,12 @@ func TestDiscoverManagedPythonRuntimeRequiresCanonicalPayloadFiles(t *testing.T)
 	if err != nil || !found || path != required[0] {
 		t.Fatalf("discover managed python = (%q, %v, %v), want %q", path, found, err, required[0])
 	}
+	if err := writeManagedPythonRuntimeManifest(root, path, ManagedPythonVersion); err != nil {
+		t.Fatalf("write discovered interpreter owner manifest: %v", err)
+	}
+	if !verifyManagedPythonRuntimeManifest(root, path) {
+		t.Fatal("discovered interpreter did not satisfy its owner manifest")
+	}
 	if err := os.Remove(required[len(required)-1]); err != nil {
 		t.Fatal(err)
 	}

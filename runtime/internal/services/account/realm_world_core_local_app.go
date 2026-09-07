@@ -152,6 +152,9 @@ func (validation *worldCoreDTOValidation) worldCore(value any, depth int) bool {
 }
 
 func (validation *worldCoreDTOValidation) worldLorebookDeclaration(value any, depth int) bool {
+	if value == nil {
+		return true
+	}
 	object, ok := validation.object(value, depth,
 		[]string{"identityBaseSetting", "rolePlacements", "worldRules"},
 		[]string{"identityBaseSetting", "rolePlacements", "worldRules"})
