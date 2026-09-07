@@ -68,8 +68,8 @@
     "README.md"
   ],
   "dependencies": {
-    "postcss": "^8.5.26",
-    "postcss-selector-parser": "^7.1.5",
+    "postcss": "^8.5.28",
+    "postcss-selector-parser": "^7.1.6",
     "semver": "^7.8.5",
     "typescript": "^5.9.3",
     "yaml": "^2.9.0"
