@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "postinstall": "node scripts/ensure-rust.mjs",
     "dev": "pnpm run dev:electron",
     "dev:renderer": "node scripts/ensure-dev-renderer-port.mjs -- vite --host 127.0.0.1 --port 1420 --strictPort",
     "dev:electron": "node scripts/run-electron-dev.mjs",

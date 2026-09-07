@@ -26,6 +26,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  security:
+    uses: ./.github/workflows/release-security.yml
+    with:
+      component: preview
+      source_ref: ${{ inputs.commit_sha }}
+
   gate:
     runs-on: ubuntu-latest
     outputs:
@@ -70,6 +76,15 @@ jobs:
             echo "macos_artifact=unsigned-preview-macos-${identity}"
           } >> "${GITHUB_OUTPUT}"
 
+  validate:
+    needs: gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact preview commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.commit_sha }}
+          fetch-depth: 0
       - name: Setup pnpm
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
         with:
@@ -547,7 +562,7 @@ jobs:
           trap - EXIT
 
   publish:
-    needs: [gate, windows_acceptance, macos_acceptance]
+    needs: [gate, validate, security, windows_acceptance, macos_acceptance]
     runs-on: ubuntu-latest
     permissions:
       actions: read

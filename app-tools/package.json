@@ -57,8 +57,8 @@
     "sync:app-source": "node scripts/sync-app-source.mjs --apply",
     "prepack": "pnpm run build",
     "prepublishOnly": "pnpm run build",
-    "test": "node scripts/sync-scaffold-versions.mjs --check && node ../scripts/with-workspace-surfaces.mjs -- node --test test/simulator-conformance.test.mjs test/dev-shell.test.mjs && node ../scripts/with-workspace-surfaces.mjs -- node --test test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-scaffold.test.mjs",
-    "test:full": "node ../scripts/with-workspace-surfaces.mjs -- node --test --test-name-pattern=\"^(sync regenerates|sync rejects|unsupported previous app scaffold lock|check fails closed on a missing scaffold lock|check fails closed on provider/model hardcoding|check fails closed on app-owned Realm permission grant shortcuts|check fails closed on installed-app custody bypasses|check requires official Desktop-supervised development scripts|sync fails closed on unsupported locks and classification conflicts|app source resolves only scaffoldable slices)\" test/app-scaffold.test.mjs"
+    "test": "node ../scripts/with-workspace-surfaces.mjs -- pnpm run test:prepared",
+    "test:prepared": "node scripts/sync-scaffold-versions.mjs --check && node --test test/simulator-conformance.test.mjs test/dev-shell.test.mjs && node --test test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-scaffold.test.mjs"
   },
   "files": [
     "bin",

@@ -28,6 +28,9 @@ importers:
       '@protobuf-ts/plugin':
         specifier: 2.11.1
         version: 2.11.1
+      email-validator:
+        specifier: 2.0.4
+        version: 2.0.4
       resedit:
         specifier: 3.1.0
         version: 3.1.0
@@ -3441,6 +3444,10 @@ packages:
     resolution: {integrity: sha512-ITc1HPeoDzsxCCaH6MFsN67Nq2nUiJf5N9pBWxzhUpFfKJF0IwiAkKT3emg1lPbvC4OfFE+Cdwe4vhgdOZ1YKg==}
     engines: {node: '>= 22.12.0'}
     hasBin: true
+
+  email-validator@2.0.4:
+    resolution: {integrity: sha512-gYCwo7kh5S3IDyZPLZf6hSS0MnZT8QmJFqYvbqlDZSbwdZlY6QZWxJ4i/6UhITOJ4XzyI647Bm2MXKCLqnJ4nQ==}
+    engines: {node: '>4.0'}
 
   emoji-regex-xs@1.0.0:
     resolution: {integrity: sha512-LRlerrMYoIDrT6jgpeZ2YYl/L8EulRTt5hQcYjy5AInh7HWXKimpqx68aknBFpGL2+/IcogTcaydJEgaTmOpDg==}
@@ -7948,6 +7955,8 @@ snapshots:
       '@types/node': 24.13.3
     transitivePeerDependencies:
       - supports-color
+
+  email-validator@2.0.4: {}
 
   emoji-regex-xs@1.0.0: {}
 

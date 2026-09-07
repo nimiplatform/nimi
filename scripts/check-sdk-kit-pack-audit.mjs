@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { spawnSyncCommand } from './lib/command-runner.mjs';
+import { withWorkspaceSurfaces } from './lib/workspace-surfaces.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -163,16 +164,22 @@ function findPackedTarball(packDir, packageName) {
   return path.join(packDir, matches[0]);
 }
 
-function auditWorkspacePackages() {
+async function auditWorkspacePackages() {
   const tempRoot = path.join(repoRoot, '.tmp');
   mkdirSync(tempRoot, { recursive: true });
   const packDir = mkdtempSync(path.join(tempRoot, 'nimi-sdk-kit-pack-audit-'));
   try {
-    runPnpm(['--filter', '@nimiplatform/sdk', 'build'], 'SDK build');
-    runPnpm(['--filter', '@nimiplatform/sdk', 'pack', '--pack-destination', packDir], 'SDK pack');
-    runPnpm(['--filter', '@nimiplatform/kit', 'pack', '--pack-destination', packDir], 'Kit pack');
-    auditTarball('sdk', findPackedTarball(packDir, 'sdk'));
-    auditTarball('kit', findPackedTarball(packDir, 'kit'));
+    await withWorkspaceSurfaces({ repoRoot, label: 'SDK/Kit package audit' }, () => {
+      // The current SDK/Kit outputs stay locked through packing and inspection.
+      // Only skip lifecycle builds after the guarded preparation above.
+      for (const name of ['sdk', 'kit']) {
+        runPnpm([
+          '--filter', `@nimiplatform/${name}`, '--config.ignore-scripts=true',
+          'pack', '--pack-destination', packDir,
+        ], `${name} pack`);
+        auditTarball(name, findPackedTarball(packDir, name));
+      }
+    });
   } finally {
     rmSync(packDir, { recursive: true, force: true });
   }
@@ -183,7 +190,7 @@ try {
   if (parsed) {
     auditTarball(parsed.packageName, parsed.tarball);
   } else {
-    auditWorkspacePackages();
+    await auditWorkspacePackages();
   }
 } catch (error) {
   process.stderr.write(`check-sdk-kit-pack-audit failed: ${error instanceof Error ? error.message : String(error)}\n`);

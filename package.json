@@ -7,7 +7,6 @@
     "pnpm": ">=10.0.0"
   },
   "scripts": {
-    "preinstall": "node scripts/check-go-env.mjs",
     "build": "node scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",
     "build:prepared": "pnpm build:install-gateway && pnpm --filter @nimiplatform/desktop build && pnpm --filter @nimiplatform/web build && pnpm --filter @nimiplatform/lab build",
     "build:all": "node scripts/with-workspace-surfaces.mjs -- pnpm --recursive --filter=!@nimiplatform/sdk --filter=!@nimiplatform/kit build",
@@ -96,7 +95,7 @@
     "check:managed-image-backend-package-drift": "node --test scripts/generate-managed-image-backend-packages.test.mjs && node scripts/generate-managed-image-backend-packages.mjs --check",
     "check:sdk-connector-auth-acquisition-profile-drift": "node scripts/generate-sdk-connector-auth-acquisition-profiles.mjs --check",
     "check:desktop-design-contract": "node scripts/check-desktop-design-contract.mjs",
-    "check:nimi-kit": "pnpm --filter @nimiplatform/kit build && pnpm check:nimi-kit:prepared",
+    "check:nimi-kit": "node scripts/with-workspace-surfaces.mjs -- pnpm check:nimi-kit:prepared",
     "check:nimi-kit:prepared": "node scripts/check-nimi-kit.mjs && pnpm check:runtime-bridge-generated-drift && pnpm check:nimi-design-artifacts && pnpm check:kit-feature-adapter-boundary && pnpm check:kit-ui-consistency && node scripts/check-kit-package-dist.mjs && node scripts/check-canonical-capability-catalog.mjs",
     "check:canonical-capability-catalog": "node scripts/check-canonical-capability-catalog.mjs",
     "gen:canonical-capability-catalog": "node scripts/gen-canonical-capability-catalog.mjs",
@@ -170,7 +169,7 @@
     "docs:preview": "pnpm --filter @nimiplatform/docs preview",
     "lint": "pnpm check:no-app-realm-rest-bypass && pnpm check:actionlint",
     "test:workspace:prepared": "pnpm --recursive --filter=!@nimiplatform/nimi --if-present test",
-    "test:extended:prepared": "pnpm --filter @nimiplatform/app-tools run test:full && pnpm --filter @nimiplatform/simulator run test:full:prepared",
+    "test:extended:prepared": "pnpm --filter @nimiplatform/simulator run test:full:prepared",
     "test:full:prepared": "pnpm run test:workspace:prepared && pnpm run test:extended:prepared && node scripts/run-script-tests.mjs",
     "test:workspace:full": "node scripts/with-workspace-surfaces.mjs -- pnpm run test:full:prepared",
     "test": "node scripts/with-workspace-surfaces.mjs -- pnpm run test:workspace:prepared",
@@ -192,6 +191,7 @@
   "devDependencies": {
     "@nimiplatform/nimi-coding": "0.6.2",
     "@protobuf-ts/plugin": "2.11.1",
+    "email-validator": "2.0.4",
     "resedit": "3.1.0"
   }
 }
