@@ -6,8 +6,8 @@ Thanks for contributing to Nimi.
 
 - Node.js `>=24`
 - pnpm `>=10`
-- Go `1.24+`
-- Rust (for Desktop native packages and Tauri apps)
+- Go for Runtime, proto tooling, and Go SDK conformance (see `runtime/go.mod`)
+- Rust for native packages and Tauri apps
 - Buf CLI (for proto work)
 
 ## Repository Setup
@@ -33,13 +33,13 @@ pnpm build
 
 - For desktop runtime debugging, use Desktop Runtime settings and app-specific dev docs.
 - For proto changes, run `pnpm proto:generate` and ensure no generated drift is left.
-- For runtime changes, run `cd runtime && go test ./...` and `go vet ./...`.
+- For Runtime changes, start with the affected Go package test. Use all Runtime tests for Runtime-wide changes; add vet/build when the changed boundary requires them.
 - For kit changes, run `pnpm --filter @nimiplatform/kit build && pnpm --filter @nimiplatform/kit test`.
 - For Tauri app development, use the app-specific script documented by that active app.
 - For full onboarding flow and environment template details, follow [ONBOARDING.md](./ONBOARDING.md).
 - For test strategy details, follow [TESTING.md](./TESTING.md).
 
-Optional (recommended) pre-commit hook setup:
+Optional pre-commit hook setup:
 
 ```bash
 python3 -m pip install --user pipx
@@ -49,10 +49,11 @@ pre-commit install
 
 ## Development Workflow
 
-1. Create a feature branch from `main`.
-2. Keep scope focused and update docs when behavior changes.
-3. Run relevant tests/lint/type checks before opening a PR.
-4. Open a PR with clear change summary and verification steps.
+1. Keep scope focused and update docs when behavior changes. Use a branch or worktree when it helps isolate concurrent work.
+2. Run the affected behavior and relevant local tests/type checks.
+3. Ordinary changes may be pushed directly to `main`. Follow the push CI results and repair or revert failures; `main` is an integration branch, not a promise that every commit is releasable.
+4. Use a PR for shared public contracts, native installation, data handling, and release workflow changes. Complete the relevant remote checks before merging; no independent human approval is required. Do not assume optional auto-merge waits for checks after branch rules change.
+5. Publication needs explicit authorization for the version and channel, plus that version's required validation. A commit being on `main` does not authorize its release. Authorization to publish after successful validation need not be requested again; authorization only to prepare a candidate is not publication authorization.
 
 ## AI-Assisted Contributions
 
