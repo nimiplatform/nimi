@@ -73,6 +73,19 @@ beforeEach(() => {
 });
 
 describe('Electron local-app opaque asset media protocol', () => {
+  it.each(['audio/wav', 'audio/x-wav'])('serves verified WAV bytes declared as %s', async (mediaType) => {
+    const bytes = Uint8Array.from([82, 73, 70, 70, 4, 0, 0, 0, 87, 65, 86, 69]);
+    const fixture = createAssetHostFixture(bytes, mediaType);
+    const mediaHost = createNimiElectronLocalAppAssetMediaHost({ localAppHost: fixture.host, platform });
+    const opened = await mediaHost.open(RELATIVE_PATH, 7);
+    const response = await requestMedia(opened.url, 7);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe(mediaType);
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(bytes);
+    expect(fixture.openCalls[0]).toEqual({ relativePath: RELATIVE_PATH, offset: 0, length: 12 });
+    mediaHost.close();
+  });
+
   it('registers an independent scheme, bounds signature reads, and re-enters typed Base read for every range', async () => {
     registerNimiElectronAppAssetProtocolScheme(platform.protocol);
     const fixture = createAssetHostFixture(PNG_BYTES);

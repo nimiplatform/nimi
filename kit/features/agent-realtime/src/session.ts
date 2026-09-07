@@ -386,6 +386,9 @@ export function createNimiAgentRealtimeSession(
         await projectHostPlayback(scope, envelope.event);
         await enforceBlockedPressure(scope);
         if (envelope.event.type === 'terminal') {
+          // A completed Agent turn does not close its still-active media session.
+          if (envelope.event.reasonCode === 'ACTION_EXECUTED'
+            && ['ready', 'degraded', 'reconnecting'].includes(envelope.control.lifecycle)) continue;
           if (envelope.control.lifecycle !== 'closed') {
             recordIssue(createNimiError({
               message: envelope.event.reasonCode || 'Agent Realtime session failed.',

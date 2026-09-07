@@ -11,7 +11,7 @@ export const NIMI_ELECTRON_APP_ASSET_PROTOCOL_REGISTRATION = Object.freeze({
 
 const SAFE_MEDIA_TYPES = new Set([
   'image/png', 'image/jpeg', 'image/webp', 'image/gif',
-  'audio/wav', 'audio/mpeg', 'audio/ogg',
+  'audio/wav', 'audio/x-wav', 'audio/mpeg', 'audio/ogg',
   'video/mp4', 'video/webm',
 ]);
 const MAX_CONTAINER_SIGNATURE_BYTES = 64 * 1024;
@@ -315,7 +315,7 @@ function validSignature(mediaType: string, bytes: Uint8Array): boolean {
   if (mediaType === 'image/jpeg') return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
   if (mediaType === 'image/gif') return bytes.length >= 6 && (ascii(0, 'GIF87a') || ascii(0, 'GIF89a'));
   if (mediaType === 'image/webp') return bytes.length >= 12 && ascii(0, 'RIFF') && ascii(8, 'WEBP');
-  if (mediaType === 'audio/wav') return bytes.length >= 12 && ascii(0, 'RIFF') && ascii(8, 'WAVE');
+  if (mediaType === 'audio/wav' || mediaType === 'audio/x-wav') return bytes.length >= 12 && ascii(0, 'RIFF') && ascii(8, 'WAVE');
   if (mediaType === 'audio/ogg') return bytes.length >= 4 && ascii(0, 'OggS')
     && (findAscii(bytes, 'OpusHead') >= 0 || findBytes(bytes, Uint8Array.of(1, 118, 111, 114, 98, 105, 115)) >= 0);
   if (mediaType === 'audio/mpeg') return bytes.length >= 3 && (ascii(0, 'ID3') || hasMpegAudioFrame(bytes));
@@ -330,7 +330,7 @@ function signatureReadBytes(mediaType: string): number {
   if (mediaType === 'image/png') return 8;
   if (mediaType === 'image/jpeg') return 3;
   if (mediaType === 'image/gif') return 6;
-  if (mediaType === 'image/webp' || mediaType === 'audio/wav') return 12;
+  if (mediaType === 'image/webp' || mediaType === 'audio/wav' || mediaType === 'audio/x-wav') return 12;
   return MAX_CONTAINER_SIGNATURE_BYTES;
 }
 
