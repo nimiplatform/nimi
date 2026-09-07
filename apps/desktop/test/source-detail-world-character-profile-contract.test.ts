@@ -90,7 +90,7 @@ test('persona character source detail uses the same shared profile and page surf
   assert.match(markup, /且饮一杯，再谈诗。/);
 });
 
-test('persona character source detail preserves localized style fields in a disclosure', async () => {
+test('persona character source detail localizes style fields without the profile disclosure', async () => {
   await changeLocale('zh');
   try {
     const source = toSourceDetailData({
@@ -132,10 +132,8 @@ test('persona character source detail preserves localized style fields in a disc
       }),
     );
     assert.doesNotMatch(markup, /world-character-identity-coordinates/);
-    // The compact disclosure keeps the authored profile fields reachable.
     assert.match(markup, /理智型/);
-    assert.match(markup, /直率.*温和.*睿智/);
-    assert.match(markup, /world-character-profile-details/);
+    assert.doesNotMatch(markup, /world-character-profile-details/);
     assert.doesNotMatch(markup, /INTELLECTUAL|DIRECT|GENTLE|WISE/);
     assert.doesNotMatch(markup, /conversation/);
   } finally {
@@ -203,7 +201,7 @@ test('world character source detail reuses the shared dossier and keeps career a
   assert.match(detail.characterProfile.conversationAnchors.join('\n'), /想问诗文、仕途还是人生起落/);
 });
 
-test('world character profile page keeps question suggestions and nests media inside the overview', async () => {
+test('world character profile page omits question suggestions and nests media inside the overview', async () => {
   await changeLocale('zh');
   try {
     const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
@@ -220,7 +218,8 @@ test('world character profile page keeps question suggestions and nests media in
       }),
     );
 
-    assert.match(markup, /data-testid="world-character-question-suggestions"/);
+    assert.doesNotMatch(markup, /data-testid="world-character-question-suggestions"/);
+    assert.doesNotMatch(markup, /data-testid="world-character-profile-details"/);
     assert.doesNotMatch(markup, /data-testid="world-character-question"/);
     assert.doesNotMatch(markup, /你可以问他/);
     const overviewStart = markup.indexOf('data-testid="world-character-overview-section"');

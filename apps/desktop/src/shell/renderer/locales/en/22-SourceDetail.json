@@ -107,14 +107,7 @@
     "interactionTitle": "Opening voice",
     "greeting": "Greeting",
     "tone": "Tone",
-    "cadence": "Cadence",
-    "profileDetails": "Character details",
-    "profileRole": "Role",
-    "profileArchetype": "Archetype",
-    "profileTraits": "Traits",
-    "profileInteractionModes": "Interactions",
-    "questionSuggestions": "Things to ask",
-    "addToAsk": "Add this character to ask a question."
+    "cadence": "Cadence"
   },
   "friends": "Friends",
   "posts": "Posts",
