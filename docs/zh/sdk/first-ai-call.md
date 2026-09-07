@@ -2,15 +2,17 @@
 
 使用 App 已绑定宿主的 SDK client，发起一次真实文本生成。Nimi Home 建立 App 会话，Runtime 在执行时读取该 App 已保存的 AI 配置并选择实现。
 
-本页承接[创建 Nimi App](/zh/start/create-an-app)，示例对应公开 App Tools 0.2.7 默认模板。保留生成的 SDK/Kit 绑定；App 渲染进程不需要自行取得 gRPC 地址、账号 ID、会话 token 或指定调用者身份。
+本页承接[创建 Nimi App](/zh/start/create-an-app)中的 `--features studio-create` 示例，使用公开 App Tools 0.2.7。保留生成的 SDK/Kit 绑定；App 渲染进程不需要自行取得 gRPC 地址、账号 ID、会话 token 或指定调用者身份。
 
 ## 调用前准备
 
 1. 在兼容的 Nimi Home 开发环境中运行项目的 `pnpm dev`，使用它启动的受管 Electron 窗口，不要直接用浏览器打开渲染页面。
-2. 在 `nimi.app.yaml` 声明 `runtime.consume`，并通过宿主完成 App 所需的访问授权。声明权限与实际获得访问能力是两件事。
+2. 确认生成的 `nimi.app.yaml` 已包含 `runtime.consume`，再通过宿主完成 App 所需的访问授权。选择 `studio-create` 会生成这项声明，但不会自动授予访问能力。
 3. 在 App 的 AI 设置或 Nimi Home 的 App 设置中配置 `text.generate`。本地路线使用这台机器当前选择的模型；云端路线需要相应的连接器和目标配置。保存配置不等于生成已经成功。
 
 环境要求见[开发环境与当前可用范围](/zh/start/install)，共享设置和宿主接入见[在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)。
+
+如果生成的 manifest 是 `app_access: []`，说明项目创建时没有选择本例需要的功能。请按创建指南在空目录中建立 AI 示例，不要手改受管 manifest 或其锁定记录。`sync` 会保持原有功能选择，不会补加这项权限。
 
 ## 发起文本生成
 

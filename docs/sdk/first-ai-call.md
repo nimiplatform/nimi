@@ -2,15 +2,17 @@
 
 Use the App's host-bound SDK client to make one real text-generation request. Nimi Home establishes the App session; Runtime reads that App's saved AI configuration and chooses the implementation when execution starts.
 
-This guide continues [Create a Nimi App](/start/create-an-app) with the public App Tools 0.2.7 starter. Keep the generated SDK/Kit binding. The App renderer does not need a gRPC endpoint, account ID, session token, or a caller-selected App identity.
+This guide continues the `--features studio-create` example in [Create a Nimi App](/start/create-an-app), using public App Tools 0.2.7. Keep the generated SDK/Kit binding. The App renderer does not need a gRPC endpoint, account ID, session token, or a caller-selected App identity.
 
 ## Before the Call
 
 1. Start the project with `pnpm dev` in a compatible Nimi Home development environment. Use its supervised Electron window, not the renderer URL in a browser.
-2. Declare `runtime.consume` in `nimi.app.yaml` and establish the App's required access through the host. Declaring access and obtaining it are separate results.
+2. Confirm that the generated `nimi.app.yaml` includes `runtime.consume`, then establish the App's required access through the host. The `studio-create` selection supplies the declaration; it does not grant access by itself.
 3. Configure `text.generate` for this App through its AI settings or Nimi Home's App settings. A local route uses the machine's current model selection; a cloud route needs the appropriate configured connector and target. Saving configuration does not prove that generation will succeed.
 
 Use [development setup](/start/install) for prerequisites and [Use Kit in an App](/platform/kit/use-kit-in-app) for shared settings and host integration.
+
+If the generated manifest has `app_access: []`, the project was created without the feature required by this example. Follow the creation guide's AI example in an empty directory rather than hand-editing the managed manifest or its lock. `sync` maintains the original feature selection; it does not add this permission.
 
 ## Generate Text
 

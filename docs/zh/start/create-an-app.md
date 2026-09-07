@@ -10,14 +10,18 @@
 
 ## 创建并初始化
 
+本例包含文本生成功能，便于接着完成第一次 AI 调用。`studio-create` 会加入 Create 功能、它依赖的 AI Studio 基础模块，并生成 `runtime.consume` 声明。它会带入功能代码和界面，不是单独的权限开关。
+
 ```bash
-pnpm dlx --package @nimiplatform/app-tools@0.2.7 nimi-app create --dir my-nimi-app --profile standalone --app-id example.app --version 0.1.0 --title "My Nimi App" --package-name my-nimi-app
+pnpm dlx --package @nimiplatform/app-tools@0.2.7 nimi-app create --dir my-nimi-app --profile standalone --features studio-create --app-id example.app --version 0.1.0 --title "My Nimi App" --package-name my-nimi-app
 cd my-nimi-app
 pnpm install
 pnpm run init
 ```
 
 将目录、身份和标题换成你的项目值。Standalone 项目使用公开依赖；`init` 会显式同步随工具链提供的 nimicoding 投影，并初始化 App 的受管配置。使用这一入口前，无需先单独学习或执行 Nimi 主仓的治理流程。
+
+如果只需要空白 App，可省略 `--features studio-create`。此时生成的 `app_access: []` 不包含文本生成示例所需的权限声明。在受管脚手架中，`nimi.app.yaml` 按所选功能生成；手改其中的权限会导致 `check` 失败，`sync` 会恢复生成的声明。App Tools 0.2.7 的 `sync` 不接受 `--features`。如果已经创建空白项目，想继续本例，请保留原项目，将上面的命令指向另一个空目录。
 
 ## 检查并运行
 
@@ -37,7 +41,7 @@ Tauri 仍可作为明确配置的生产构建选项，但它不是默认开发�
 
 | 命令或文件 | 用途 |
 | --- | --- |
-| `nimi.app.yaml` | App 身份与提交配置，不是 Registry 批准的描述符 |
+| `nimi.app.yaml` | 生成的 App 身份与提交配置，并非 Registry 批准的描述符；App Access 声明来自所选功能，不通过手改该受管文件添加 |
 | `pnpm run init` | 安装依赖后初始化项目，包括 nimicoding 集成 |
 | `pnpm run sync` | 更新脚手架管理的配置与依赖，保留 App 自己的代码 |
 | `pnpm run check` | 检查项目、受管文件和依赖是否一致，不写入改动 |
