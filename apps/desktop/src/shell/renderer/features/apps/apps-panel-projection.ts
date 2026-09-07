@@ -1,14 +1,14 @@
 // Runtime owns source-qualified installed/package state; local-development
 // registration remains a separate source; Desktop owns supervised run state.
 // Public Catalog facts are accepted only through the Runtime SDK projection.
-// The production Apps consumer does not supply that port until availability
-// cutover; isolated owner tests can exercise the merge without creating a
-// second Registry source. Rows and actions remain keyed by source identity.
+// The production Apps consumer supplies the sole Runtime Catalog port.
+// Rows and actions remain keyed by source identity.
 
 import type {
   LocalDevelopmentRegistration,
   LocalDevelopmentRun,
 } from '../local-development/local-development-types.js';
+import type { InstalledAppRun } from '../../../shared/installed-app-types.js';
 import { CANONICAL_CAPABILITY_IDS } from '@nimiplatform/kit/core/runtime-capabilities';
 import type { NimiAIConfigSnapshot } from '@nimiplatform/kit/core/sdk-contract';
 import {
@@ -46,14 +46,22 @@ export interface DesktopAppAIConfigReadOptions {
   readonly signal: AbortSignal;
 }
 
+export interface DesktopAppsCatalogProjection {
+  readonly status: 'loading' | 'not-implemented' | 'loaded' | 'unavailable';
+  readonly targets: readonly ApprovedAppCatalogTarget[];
+  readonly error?: unknown;
+}
+
 export interface DesktopAppsProjectionSource {
   listApprovedCatalogTargets?(): Promise<readonly ApprovedAppCatalogTarget[]>;
   listCommittedReleases(): Promise<readonly CommittedAppRelease[]>;
   listPackageJobs(): Promise<readonly AppPackageJob[]>;
   listRegistrations(): Promise<readonly LocalDevelopmentRegistration[]>;
   listRuns(): Promise<readonly LocalDevelopmentRun[]>;
+  listInstalledRuns?(): Promise<readonly InstalledAppRun[]>;
   readAppAIConfig?(appId: string, options: DesktopAppAIConfigReadOptions): Promise<NimiAIConfigSnapshot>;
   readAppIcon?(selector: string): Promise<string | null>;
+  readProjectReadme?(selector: string): Promise<{ readonly content: string | null }>;
 }
 
 export interface DesktopAppsCommonIdentity {
@@ -64,7 +72,7 @@ export interface DesktopAppsCommonIdentity {
   readonly updatedAtUnixMs: number;
 }
 
-export type DesktopAppSourceClass = 'local_development' | 'verified';
+export type DesktopAppSourceClass = 'local_development' | 'user_imported' | 'verified';
 
 export function desktopAppsEntryKey(appId: string, sourceClass: DesktopAppSourceClass, selector = ''): string {
   return sourceClass === 'local_development'
@@ -78,7 +86,7 @@ export interface DesktopAppsEntry {
   readonly localDevelopment: LocalDevelopmentRegistration | null;
   readonly committedRelease: CommittedAppRelease | null;
   readonly packageJob: AppPackageJob | null;
-  readonly run: LocalDevelopmentRun | null;
+  readonly run: LocalDevelopmentRun | InstalledAppRun | null;
   readonly aiConfigSummary: DesktopAppAIConfigSummary | null;
   /**
    * Host-read project icon (PNG data URL) for identity visuals, or null when
@@ -86,13 +94,19 @@ export interface DesktopAppsEntry {
    * like the project README; never runnable truth.
    */
   readonly iconUrl: string | null;
+  /**
+   * Short intro excerpt derived from the host-read project README, or null
+   * when the project has no README prose. Presentation content only; the
+   * formal catalog owns release descriptions for installed Apps.
+   */
+  readonly summary: string | null;
 }
 
 export type DesktopAppsPanelProjection =
   | {
       readonly status: 'loaded';
       readonly entries: readonly DesktopAppsEntry[];
-      readonly catalogStatus: 'not-implemented' | 'loaded' | 'unavailable';
+      readonly catalogStatus: DesktopAppsCatalogProjection['status'];
       readonly runtimeError: string | null;
     }
   | { readonly status: 'error'; readonly detail: string };
@@ -106,6 +120,7 @@ export async function projectAppsPanel(
     readonly previous?: DesktopAppsPanelProjection | null;
     readonly refreshAIConfig?: boolean;
     readonly aiConfigReadTimeoutMs?: number;
+    readonly catalog?: DesktopAppsCatalogProjection;
   } = {},
 ): Promise<DesktopAppsPanelProjection> {
   if (
@@ -124,16 +139,14 @@ export async function projectAppsPanel(
       source.listPackageJobs(),
     ]).then(([releases, jobs]) => ({ ok: true as const, releases, jobs }))
       .catch((error: unknown) => ({ ok: false as const, error }));
-    const catalogRequest = source.listApprovedCatalogTargets
-      ? source.listApprovedCatalogTargets()
-        .then((targets) => ({ status: 'loaded' as const, targets }))
-        .catch((error: unknown) => ({ status: 'unavailable' as const, targets: [] as const, error }))
-      : Promise.resolve({ status: 'not-implemented' as const, targets: [] as const });
-    const [registrations, runs, runtimeResult, catalogResult] = await Promise.all([
+    const catalogResult: DesktopAppsCatalogProjection = options.catalog ?? {
+      status: source.listApprovedCatalogTargets ? 'loading' : 'not-implemented', targets: [],
+    };
+    const [registrations, runs, runtimeResult, installedRuns] = await Promise.all([
       source.listRegistrations(),
       source.listRuns(),
       runtimeRequest,
-      catalogRequest,
+      source.listInstalledRuns?.() ?? Promise.resolve([] as readonly InstalledAppRun[]),
     ]);
     const previousEntries = options.previous?.status === 'loaded'
       ? new Map(options.previous.entries.map((entry) => [entry.identity.entryKey, entry]))
@@ -177,6 +190,7 @@ export async function projectAppsPanel(
         run: null,
         aiConfigSummary: null,
         iconUrl: null,
+        summary: null,
       });
     }
     for (const registration of registrations) {
@@ -196,6 +210,7 @@ export async function projectAppsPanel(
         run: runs.find((run) => run.selector === registration.selector) ?? null,
         aiConfigSummary: null,
         iconUrl: null,
+        summary: null,
       });
     }
     for (const [entryKey, committedRelease] of runtimeRows.releasesByKey) {
@@ -211,6 +226,8 @@ export async function projectAppsPanel(
           ),
         },
         committedRelease,
+        run: installedRuns.find((run) => run.launchSelector.length === committedRelease.launchSelector.length
+          && run.launchSelector.every((byte, index) => byte === committedRelease.launchSelector[index])) ?? null,
       });
     }
     for (const [entryKey, packageJob] of runtimeRows.jobsByKey) {
@@ -238,6 +255,11 @@ export async function projectAppsPanel(
         entry,
         source,
         previous: previousIconUrl(previousEntries.get(entry.identity.entryKey) ?? null, entry),
+      }),
+      summary: await projectAppSummary({
+        entry,
+        source,
+        previous: previousSummary(previousEntries.get(entry.identity.entryKey) ?? null, entry),
       }),
       aiConfigSummary: appAccessForAIConfig(entry).includes('runtime.consume')
         ? await projectAppAIConfigSummary({
@@ -278,6 +300,7 @@ function emptyRuntimeAppsEntry(appId: string, sourceClass: Exclude<DesktopAppSou
     run: null,
     aiConfigSummary: null,
     iconUrl: null,
+    summary: null,
   };
 }
 
@@ -360,7 +383,8 @@ function indexRuntimeLifecycle(
   return { releasesByKey, jobsByKey, conflict: null };
 }
 
-function runtimeSourceClass(sourceClass: AppPackageSourceClass): 'verified' {
+function runtimeSourceClass(sourceClass: AppPackageSourceClass): 'verified' | 'user_imported' {
+  if (sourceClass === AppPackageSourceClass.USER_IMPORTED) return 'user_imported';
   if (sourceClass === AppPackageSourceClass.VERIFIED) return 'verified';
   throw new Error(`Unsupported Runtime App package source: ${String(sourceClass)}`);
 }
@@ -419,6 +443,89 @@ async function projectAppIconUrl(input: {
   } catch {
     return null;
   }
+}
+
+/**
+ * Summary reads repeat only when the registration itself changed, exactly
+ * like icon reads; an unchanged registration reuses the previous projection.
+ */
+function previousSummary(
+  previousEntry: DesktopAppsEntry | null,
+  entry: DesktopAppsEntry,
+): string | null | undefined {
+  if (!previousEntry) return undefined;
+  return previousEntry.identity.updatedAtUnixMs === entry.identity.updatedAtUnixMs
+    ? previousEntry.summary
+    : undefined;
+}
+
+async function projectAppSummary(input: {
+  readonly entry: DesktopAppsEntry;
+  readonly source: DesktopAppsProjectionSource;
+  readonly previous: string | null | undefined;
+}): Promise<string | null> {
+  if (!input.entry.localDevelopment) return null;
+  if (input.previous !== undefined) return input.previous;
+  if (!input.source.readProjectReadme) return null;
+  try {
+    const readme = await input.source.readProjectReadme(input.entry.localDevelopment.selector);
+    return deriveAppSummary(readme.content);
+  } catch {
+    return null;
+  }
+}
+
+const APP_SUMMARY_MAX_LENGTH = 160;
+
+/**
+ * Card intro derived from the host-read project README: the first prose
+ * paragraph after skipping headings, badge/link rows, images, HTML blocks,
+ * lists, quotes, tables, and fenced code. Presentation content only.
+ */
+export function deriveAppSummary(readmeContent: string | null): string | null {
+  if (!readmeContent) return null;
+  const paragraph: string[] = [];
+  let inFence = false;
+  for (const rawLine of readmeContent.split('\n')) {
+    const line = rawLine.trim();
+    if (line.startsWith('```')) {
+      if (paragraph.length > 0) break;
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    if (line === '') {
+      if (paragraph.length > 0) break;
+      continue;
+    }
+    if (paragraph.length === 0 && isNonProseReadmeLine(line)) continue;
+    if (paragraph.length > 0 && line.startsWith('#')) break;
+    paragraph.push(line);
+  }
+  const text = paragraph
+    .join(' ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/gu, '')
+    .replace(/\[([^\]]*)\]\([^)]*\)/gu, '$1')
+    .replace(/<[^>]+>/gu, ' ')
+    .replace(/[*_~`]+/gu, '')
+    .replace(/\s+/gu, ' ')
+    .trim();
+  if (text === '') return null;
+  return text.length > APP_SUMMARY_MAX_LENGTH
+    ? `${text.slice(0, APP_SUMMARY_MAX_LENGTH)}…`
+    : text;
+}
+
+function isNonProseReadmeLine(line: string): boolean {
+  return line.startsWith('#')
+    || line.startsWith('!')
+    || line.startsWith('<')
+    || line.startsWith('[')
+    || line.startsWith('>')
+    || line.startsWith('|')
+    || /^[-*+]\s/u.test(line)
+    || /^\d+[.)]\s/u.test(line)
+    || /^(-{3,}|={3,}|\*{3,}|_{3,})$/u.test(line);
 }
 
 async function projectEntriesBounded<TInput, TOutput>(

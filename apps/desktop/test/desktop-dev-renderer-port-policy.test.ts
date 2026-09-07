@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -163,16 +165,25 @@ test('dev renderer runner treats SIGTERM as a successful Electron handoff shutdo
   skip: process.platform === 'win32'
     ? 'Node child.kill(SIGTERM) terminates Windows child processes instead of delivering a JS signal handler.'
     : false,
-}, async () => {
+}, async (t) => {
+  // This test covers the real child/signal lifecycle, not discovery of the
+  // developer's shared 1420 listener (covered by the port-policy tests above).
+  const toolsRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-renderer-signal-test-'));
+  writeFileSync(path.join(toolsRoot, 'lsof'), '#!/bin/sh\nexit 1\n', { mode: 0o755 });
+  t.after(() => rmSync(toolsRoot, { recursive: true, force: true }));
   const runner = spawn(process.execPath, [
     path.join(root, 'scripts/ensure-dev-renderer-port.mjs'),
     '--',
     process.execPath,
     '-e',
-    'setInterval(() => undefined, 1000)',
+    'console.log("renderer-child-ready"); setInterval(() => undefined, 1000)',
   ], {
     cwd: root,
+    env: { ...process.env, PATH: `${toolsRoot}${path.delimiter}${process.env.PATH || ''}` },
     stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  t.after(() => {
+    if (runner.exitCode === null && runner.signalCode === null) runner.kill('SIGTERM');
   });
 
   let output = '';
@@ -185,10 +196,10 @@ test('dev renderer runner treats SIGTERM as a successful Electron handoff shutdo
 
   await new Promise<void>((resolve, reject) => {
     const timeout = setTimeout(() => {
-      reject(new Error(`runner did not enter dev renderer port policy path: ${output}`));
+      reject(new Error(`runner did not start its renderer child: ${output}`));
     }, 3000);
     const onData = () => {
-      if (output.includes('[dev-renderer-port]')) {
+      if (output.includes('renderer-child-ready')) {
         clearTimeout(timeout);
         runner.stdout.off('data', onData);
         runner.stderr.off('data', onData);
@@ -212,5 +223,5 @@ test('dev renderer runner treats SIGTERM as a successful Electron handoff shutdo
     });
   });
 
-  assert.deepEqual(exit, { code: 0, signal: null });
+  assert.deepEqual(exit, { code: 0, signal: null }, output);
 });

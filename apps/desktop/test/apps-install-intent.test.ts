@@ -8,7 +8,16 @@ import {
   snapshotAppsInstallIntent,
   type AppsInstallStartResult,
 } from '../src/shell/renderer/features/apps/apps-install-intent.js';
-import type { ApprovedAppCatalogTarget } from '@nimiplatform/sdk/runtime/wire-types';
+import { createNimiError } from '@nimiplatform/sdk';
+import {
+  AppPackageJobKind,
+  AppPackageJobPhase,
+  AppPackageSourceClass,
+  ReasonCode,
+  type StartAppPackageInstallResponse,
+  type ApprovedAppCatalogTarget,
+} from '@nimiplatform/sdk/runtime/wire-types';
+import { startAppsPackageInstall } from '../src/shell/renderer/features/apps/apps-install-runtime.js';
 
 function catalogTarget(overrides: Partial<ApprovedAppCatalogTarget> = {}): ApprovedAppCatalogTarget {
   return {
@@ -40,6 +49,52 @@ function catalogTarget(overrides: Partial<ApprovedAppCatalogTarget> = {}): Appro
 }
 
 describe('Desktop approved App install intent', () => {
+  it('starts only from the same opaque selector and rejects a different returned job', async () => {
+    const selector = new TextEncoder().encode('opaque-approved-target');
+    const original = selector.slice();
+    let sent: Uint8Array = new Uint8Array();
+    const response: StartAppPackageInstallResponse = {
+      reasonCode: ReasonCode.ACTION_EXECUTED,
+      job: {
+        jobId: new Uint8Array([1]), appId: 'publisher.example',
+        kind: AppPackageJobKind.INSTALL, sourceClass: AppPackageSourceClass.VERIFIED,
+        phase: AppPackageJobPhase.QUEUED, targetRef: 'opaque-approved-target',
+        progressBasis: 0, bytesCompleted: '0', stepsCompleted: '0',
+        terminalResult: 0, reasonCode: '', cancelable: true,
+      },
+    };
+    const started = startAppsPackageInstall(async (request) => {
+      sent = request.approvedTargetSelector;
+      return response;
+    }, selector);
+    selector[0] = 0;
+    assert.deepEqual(await started, { kind: 'started' });
+    assert.deepEqual(sent, original);
+    response.job!.targetRef = 'another-approved-target';
+    await assert.rejects(startAppsPackageInstall(async () => response, original), /inconsistent/u);
+  });
+
+  it('preserves Runtime stale and policy outcomes without another start request', async () => {
+    let calls = 0;
+    const selector = new Uint8Array([1]);
+    assert.deepEqual(await startAppsPackageInstall(async () => {
+      calls += 1;
+      throw createNimiError({ reasonCode: 'APP_PACKAGE_SELECTION_STALE', message: 'stale' });
+    }, selector), { kind: 'stale-selection' });
+    const blocked = createNimiError({
+      reasonCode: 'APP_PACKAGE_POLICY_BLOCKED', message: 'blocked',
+      details: { reasonMetadata: { policy_reason: 'maintainer-suspended', policy_revision: '7' } },
+    });
+    assert.deepEqual(await startAppsPackageInstall(async () => {
+      calls += 1;
+      throw blocked;
+    }, selector), { kind: 'policy-blocked', reason: 'maintainer-suspended', revision: '7' });
+    assert.equal(calls, 2);
+    blocked.details = { reasonMetadata: {} };
+    await assert.rejects(startAppsPackageInstall(async () => { throw blocked; }, selector),
+      (error) => error === blocked);
+  });
+
   it('copies the exact selector and Cancel creates no install request', async () => {
     const calls: Uint8Array[] = [];
     const controller = createAppsInstallIntentController({

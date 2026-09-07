@@ -12,6 +12,8 @@ methods:
     posture: anonymous_read
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget

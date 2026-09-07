@@ -464,6 +464,14 @@ RUNTIME_METHODS = [
     "response_type": "RenderLocalAppConversationVoiceResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
+    "service": "RuntimeAgentService",
+    "method": "ResolveDesktopAgentReference",
+    "kind": "unary",
+    "request_type": "ResolveDesktopAgentReferenceRequest",
+    "response_type": "ResolveDesktopAgentReferenceResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
     "service": "RuntimeAgentService",
     "method": "SendLocalAppConversationTurn",
@@ -888,6 +896,14 @@ RUNTIME_METHODS = [
     "response_type": "StartAppPackageInstallResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall",
+    "service": "RuntimeAppPackageService",
+    "method": "StartAppPackageUninstall",
+    "kind": "unary",
+    "request_type": "StartAppPackageUninstallRequest",
+    "response_type": "StartAppPackageUninstallResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
     "service": "RuntimeAppService",
     "method": "AdoptLocalAppArtifact",
@@ -904,12 +920,36 @@ RUNTIME_METHODS = [
     "response_type": "BindLocalAppProcessResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall",
+    "service": "RuntimeAppService",
+    "method": "CompleteAppPackageUninstall",
+    "kind": "unary",
+    "request_type": "CompleteAppPackageUninstallRequest",
+    "response_type": "CompleteAppPackageUninstallResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun",
+    "service": "RuntimeAppService",
+    "method": "EndInstalledAppRun",
+    "kind": "unary",
+    "request_type": "EndInstalledAppRunRequest",
+    "response_type": "EndInstalledAppRunResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
     "service": "RuntimeAppService",
     "method": "GetAppStorage",
     "kind": "unary",
     "request_type": "GetAppStorageRequest",
     "response_type": "GetAppStorageResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess",
+    "service": "RuntimeAppService",
+    "method": "GetInstalledAppRunAccess",
+    "kind": "unary",
+    "request_type": "GetInstalledAppRunAccessRequest",
+    "response_type": "GetInstalledAppRunAccessResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
@@ -926,6 +966,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "MoveLocalAppAssetRequest",
     "response_type": "MoveLocalAppAssetResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch",
+    "service": "RuntimeAppService",
+    "method": "PrepareInstalledAppLaunch",
+    "kind": "unary",
+    "request_type": "PrepareInstalledAppLaunchRequest",
+    "response_type": "PrepareInstalledAppLaunchResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
@@ -1432,6 +1480,14 @@ RUNTIME_METHODS = [
     "response_type": "ProductControlProjectionJson"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
+    "service": "RuntimeLocalService",
+    "method": "GetCatalogModelCard",
+    "kind": "unary",
+    "request_type": "GetCatalogModelCardRequest",
+    "response_type": "GetCatalogModelCardResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
     "service": "RuntimeLocalService",
     "method": "GetLoadout",
@@ -1480,14 +1536,6 @@ RUNTIME_METHODS = [
     "response_type": "ProductControlProjectionJson"
   },
   {
-    "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
-    "service": "RuntimeLocalService",
-    "method": "GetRecommendationFeed",
-    "kind": "unary",
-    "request_type": "GetRecommendationFeedRequest",
-    "response_type": "GetRecommendationFeedResponse"
-  },
-  {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset",
     "service": "RuntimeLocalService",
     "method": "ImportModelAsset",
@@ -1518,6 +1566,22 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "ListCatalogVariantsRequest",
     "response_type": "ListCatalogVariantsResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations",
+    "service": "RuntimeLocalService",
+    "method": "ListFactoryProfileRecommendations",
+    "kind": "unary",
+    "request_type": "ListFactoryProfileRecommendationsRequest",
+    "response_type": "ListFactoryProfileRecommendationsResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets",
+    "service": "RuntimeLocalService",
+    "method": "ListFeaturedModelAssets",
+    "kind": "unary",
+    "request_type": "ListFeaturedModelAssetsRequest",
+    "response_type": "ListFeaturedModelAssetsResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes",

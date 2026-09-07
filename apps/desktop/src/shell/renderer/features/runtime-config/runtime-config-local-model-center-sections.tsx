@@ -8,21 +8,15 @@ import {
   FolderOpenIcon,
   RefreshIcon,
 } from './runtime-config-local-model-center-helpers';
-export {
-  LocalModelCenterInProgressSection,
-  LocalModelCenterQuickPicksSection,
-  LocalModelCenterVerifiedAssetsSection,
-} from './runtime-config-local-model-center-catalog-sections';
+export { LocalModelCenterInProgressSection } from './runtime-config-local-model-center-progress-sections';
 
 type ToolbarProps = {
   refreshing: boolean;
   importMenuRef: RefObject<HTMLDivElement | null>;
   showImportMenu: boolean;
   runtimeWritesDisabled: boolean;
-  showCatalogOverridesAction: boolean;
   onRefresh: () => void;
   onOpenModelsFolder: () => void;
-  onOpenCatalogOverrides: () => void;
   onToggleImportMenu: () => void;
   onImportFile: () => Promise<unknown>;
   onImportDirectory: () => Promise<unknown>;
@@ -34,16 +28,6 @@ export function LocalModelCenterToolbar(props: ToolbarProps) {
 
   return (
     <div className="flex items-center justify-end gap-2">
-      {props.showCatalogOverridesAction ? (
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={props.onOpenCatalogOverrides}
-          disabled={props.runtimeWritesDisabled}
-        >
-          {i18n.t('runtimeConfig.catalogOverrides.manage', { defaultValue: 'Manage custom models' })}
-        </Button>
-      ) : null}
       <div className="flex items-center gap-0.5">
         <button
           type="button"

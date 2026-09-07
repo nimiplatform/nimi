@@ -5,7 +5,7 @@ units:
   - id: definition.nimi.runtime.app-surface.app-lifecycle-plane
     kind: definition
     title: Runtime app lifecycle plane
-    meaning: The Runtime app lifecycle plane owns the per-user verified package job, committed installed release and readiness projection, canonical registration record, declaration generations, stable Registered App Subject, and common protected-session seam used by verified-installed and local-development Apps, while bundled and platform sources remain separately admitted; Desktop owns user selection, exact Host launch, focus, stop, restart, and process supervision, Runtime protected ingress owns post-launch peer, current-account, session, snapshot, and operation-admission binding, Platform owns catalog and release admission, and package format and review remain outside App access semantics.
+    meaning: The Runtime app lifecycle plane owns the per-user verified package job, committed installed release and readiness projection, canonical registration record, declaration generations, stable Registered App Subject, and common protected-session seam used by verified-installed, local-import, and local-development Apps, while bundled and platform sources remain separately admitted; Desktop owns user selection, exact Host launch, focus, stop, restart, and process supervision, Runtime protected ingress owns post-launch peer, current-account, session, snapshot, and operation-admission binding, Platform owns catalog and release admission, and package format and review remain outside App access semantics.
   - id: definition.nimi.runtime.app-surface.app-messaging-plane
     kind: definition
     title: Runtime internal Agent carrier plane
@@ -22,7 +22,7 @@ units:
   - id: definition.nimi.runtime.app-surface.registered-app-subject-record-plane
     kind: definition
     title: Runtime Registered App Subject and record plane
-    meaning: The Runtime Registered App Subject and record plane owns one durable canonical registration and stable non-reused opaque subject in each Runtime-owned registration owner scope, shared by separately admitted verified-installed, local-development, bundled, and platform sources; copied or reselected owner data preserves the canonical record and subject bytes, the current product may reopen them only through an exact owner-validated current-host binding already associated with that registration, and another host without an admitted owner-issued reopen selector keeps them inactive and unavailable; source class, source generation, declaration generation, and lifecycle state remain durable registration facts, while current OS-user access scope, current Account partition selection, security-relevant Host launch facts, process, credential, session, snapshot, and per-operation resolution are freshly derived and physical record and storage layout remains Runtime implementation.
+    meaning: The Runtime Registered App Subject and record plane owns one durable canonical registration and stable non-reused opaque subject in each Runtime-owned registration owner scope, shared by separately admitted verified-installed, local-import, local-development, bundled, and platform sources; copied or reselected owner data preserves the canonical record and subject bytes, the current product may reopen them only through an exact owner-validated current-host binding already associated with that registration, and another host without an admitted owner-issued reopen selector keeps them inactive and unavailable; source class, source generation, declaration generation, and lifecycle state remain durable registration facts, while current OS-user access scope, current Account partition selection, security-relevant Host launch facts, process, credential, session, snapshot, and per-operation resolution are freshly derived and physical record and storage layout remains Runtime implementation.
     relations:
       - type: supersedes
         target: definition.nimi.runtime.app-surface.local-app-principal-record-plane
@@ -34,7 +34,7 @@ units:
     kind: rule
     title: K-APP ownership boundary is fixed
     modality: must
-    statement: Runtime K-APP owns the common verified-installed and local-development registered-subject and record lifecycle, with bundled and platform sources separately admitted, and does not own Platform package format or distribution, protected process and session facts, account custody, the canonical App operation contract, or owner-domain business policy.
+    statement: Runtime K-APP owns the common verified-installed, local-import, and local-development registered-subject and record lifecycle, with bundled and platform sources separately admitted, and does not own Platform package format or distribution, protected process and session facts, account custody, the canonical App operation contract, or owner-domain business policy.
     condition: Whenever app lifecycle authority ownership is interpreted.
     failure: Reject lifecycle semantics owned outside Runtime K-APP and K-APP claims over the excluded authorities.
     relations:
@@ -89,7 +89,7 @@ units:
     kind: rule
     title: Ordinary update atomically selects a new release
     modality: must
-    statement: A verified update consumes one newly admitted exact approved descriptor target, runs it through validation and staging before one atomic active-release and source-generation commit, accepts no caller-selected artifact or provenance change, and does not mutate the Registered App Subject, declaration, session, snapshot, or App access truth.
+    statement: A verified update consumes one newly admitted exact approved descriptor target while a user_imported update requires one newly and explicitly selected immutable artifact; both run through validation and staging before one atomic active-release and source-generation commit, neither changes provenance nor silently promotes user_imported to verified, and neither mutates the Registered App Subject, declaration, session, snapshot, or App access truth.
     condition: Whenever an ordinary update is requested or committed.
     failure: Reject an ineligible, unvalidated, non-atomic, or source-class-changing update and preserve the prior installed release.
     relations:
@@ -99,7 +99,7 @@ units:
     kind: rule
     title: Ordinary repair and reinstall preserve source truth
     modality: must
-    statement: Ordinary repair verifies the committed immutable release and reacquires only missing or corrupt Runtime-managed package bytes from its exact approved descriptor before atomic recommit, reinstall uses only the exact verified descriptor, and development recovery remains supervised rebuild and restart with a fresh verified launch and session rather than a package repair alias.
+    statement: Ordinary repair verifies the committed immutable release and reacquires or rereads only missing or corrupt managed package bytes before atomic recommit, reinstall uses the exact verified descriptor or a newly explicit user_imported artifact, and development recovery remains supervised rebuild and restart with a fresh verified launch and session rather than a package repair alias.
     condition: Whenever ordinary repair, reinstall, or development recovery is requested.
     failure: Reject a source-less, unvalidated, cross-source, or non-atomic repair or reinstall, preserve the prior release on failure, and keep development recovery on the supervised path.
     relations:
@@ -119,7 +119,7 @@ units:
     kind: rule
     title: App source classes share one protected launch path
     modality: must
-    statement: When separately admitted by their lifecycle owner, verified-installed and local-development records, plus separately governed bundled and platform records, use the same Desktop-verified exact Host launch, fresh protected Local App session, declaration interpretation, and Runtime admission path, with only source registration and lifecycle provenance differing; installer, distribution, update, and marketplace facts do not alter App access semantics.
+    statement: When separately admitted by their lifecycle owner, verified-installed, local-import, and local-development records, plus separately governed bundled and platform records, use the same Desktop-verified exact Host launch, fresh protected Local App session, declaration interpretation, and Runtime admission path, with only source registration and lifecycle provenance differing; installer, distribution, update, and marketplace facts do not alter App access semantics.
     condition: Whenever an App from any admitted source class completes protected launch and session binding.
     failure: Reject a source-specific access path, direct Runtime fallback, or marketplace-derived authority.
     relations:
@@ -159,7 +159,7 @@ units:
     kind: rule
     title: Developer Mode governs only the development source lifecycle
     modality: must
-    statement: Developer Mode enables only local-development registration, evaluation, launch, and supervision, grants no App operation by itself, and has no effect on verified-installed, bundled, or platform access semantics; declaration domains become effective only through the current verified Host session and Runtime-derived Effective App Access Snapshot.
+    statement: Developer Mode enables only local-development registration, evaluation, launch, and supervision, grants no App operation by itself, and has no effect on verified-installed, local-import, bundled, or platform access semantics; declaration domains become effective only through the current verified Host session and Runtime-derived Effective App Access Snapshot.
     condition: Whenever local development is enabled, evaluated, or decided.
     failure: Reject App access derived from Developer Mode, project evaluation, or launch intent instead of the current verified session and declaration-derived snapshot.
     relations:
@@ -330,7 +330,7 @@ units:
     kind: rule
     title: App storage partitions are Registered-App-Subject-scoped Runtime truth
     modality: must
-    statement: App-private storage is Runtime-owned current-account-plus-Registered-App-Subject truth, a Local App protected session resolves both opaque owner components internally with the request accepting no account, app_id, subject, registration, partition, or root override, Runtime derives collision-proof JSON, asset, candidate, and internal physical namespaces for trusted host use, account switch selects a different partition and switching back restores the prior partition, verified-installed, local-development, bundled, and platform subjects use the same semantics, same-app-id registrations remain isolated, tombstoned data is never rebound, and historical subject-only JSON data is unavailable through the product path rather than migrated or reused.
+    statement: App-private storage is Runtime-owned current-account-plus-Registered-App-Subject truth, a Local App protected session resolves both opaque owner components internally with the request accepting no account, app_id, subject, registration, partition, or root override, Runtime derives collision-proof JSON, asset, candidate, and internal physical namespaces for trusted host use, account switch selects a different partition and switching back restores the prior partition, verified-installed, local-import, local-development, bundled, and platform subjects use the same semantics, same-app-id registrations remain isolated, tombstoned data is never rebound, and historical subject-only JSON data is unavailable through the product path rather than migrated or reused.
     condition: Whenever app storage roots are derived or resolved.
     failure: Reject caller-supplied subjects, cross-subject partitions, and tombstone rebinding.
     relations:
@@ -394,7 +394,7 @@ units:
     kind: rule
     title: Account App inventory preserves owner projections
     modality: must
-    statement: GetAccountAppInventory and its SDK projection return the current account's committed verified local records plus local_development registration rows while preserving catalog identity, source class, package state, installed version, update state, current lifecycle job, Runtime registration, Desktop Host state, and current access availability as distinct owner fields; local_development never creates entitlement or verified distribution truth.
+    statement: GetAccountAppInventory and its SDK projection return the current account's committed verified and user_imported local records plus local_development registration rows while preserving catalog identity, source class, package state, installed version, update state, current lifecycle job, Runtime registration, Desktop Host state, and current access availability as distinct owner fields; local_development never creates entitlement or verified distribution truth.
     condition: Whenever account App inventory is projected or changed.
     failure: Reject a merged, source-erasing, entitlement-inferred, renderer-authored, or incomplete inventory row.
     relations:
@@ -414,7 +414,7 @@ units:
     kind: rule
     title: The local adoption family stays retired
     modality: must
-    statement: The predecessor local-adoption and ordinary local-import package families remain retired with no alias, compatibility decoder, or product migration path; a package enters only through an approved verified descriptor and mutable source only through Developer Mode, while caller-selected artifacts, workspace scanning, app id, file presence, process liveness, and inventory-like records cannot create registration, runnable, or access truth.
+    statement: The predecessor local-adoption family remains retired with no alias or compatibility decoder; a current local-import source enters only through the common explicit registration, declaration, registered-subject, verified Desktop launch, and protected-session path, while workspace scanning, app id, file presence, process liveness, and inventory-like records cannot create runnable or access truth.
     condition: Whenever local adoption or runnable truth creation is attempted.
     failure: Reject retired-family revival and runnable truth outside the admitted paths.
     relations:
@@ -464,7 +464,7 @@ units:
     kind: rule
     title: Registered App subjects have one source anchor
     modality: must
-    statement: An ordinary third-party registered App subject has exactly one Runtime-derived verified-installed or local-development source anchor plus its stable declared app_id, source generation, and declaration generation, while bundled and platform source anchors remain separately governed; source-specific installer, project, signature, and distribution details remain with their lifecycle owner and do not change App access semantics.
+    statement: An ordinary third-party registered App subject has exactly one Runtime-derived verified-installed, local-import, or local-development source anchor plus its stable declared app_id, source generation, and declaration generation, while bundled and platform source anchors remain separately governed; source-specific installer, project, signature, and distribution details remain with their lifecycle owner and do not change App access semantics.
     condition: Whenever a registered App subject source anchor is created or updated.
     failure: Reject zero or multiple source anchors, caller-authored generations, and source-specific access semantics.
     relations:
@@ -743,9 +743,9 @@ units:
         target: definition.nimi.runtime.app-surface.auth-service-plane
   - id: rule.nimi.runtime.app-surface.r100
     kind: rule
-    title: Installed and development Apps share one access seam
+    title: Installed local-import and development Apps share one access seam
     modality: must
-    statement: Verified-installed and local-development Apps, plus separately governed bundled and platform Apps, when admitted and made runnable by their owning lifecycle entry, create or update a Registered App Subject, source generation, and declaration generation and then use the same verified Desktop exact Host launch, fresh protected session, Effective App Access Snapshot derivation, canonical App operation contract, and owner-execution path; source-specific installer, project, update, distribution, and marketplace behavior remains outside this seam.
+    statement: Verified-installed, local-import, and local-development Apps, plus separately governed bundled and platform Apps, when admitted and made runnable by their owning lifecycle entry, create or update a Registered App Subject, source generation, and declaration generation and then use the same verified Desktop exact Host launch, fresh protected session, Effective App Access Snapshot derivation, canonical App operation contract, and owner-execution path; source-specific installer, project, update, distribution, and marketplace behavior remains outside this seam.
     condition: Whenever a separately admitted App source becomes runnable or requests protected Nimi access.
     failure: Reject source-specific access semantics, direct Runtime or Realm fallback, and installer or marketplace facts used as operation authority.
     relations:

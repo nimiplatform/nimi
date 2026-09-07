@@ -75,7 +75,9 @@ export type NimiDesktopMachineProductRuntimeClient = {
     | 'listVerifiedAssets'
     | 'searchCatalogModels'
     | 'listCatalogVariants'
-    | 'getRecommendationFeed'
+    | 'getCatalogModelCard'
+    | 'listFeaturedModelAssets'
+    | 'listFactoryProfileRecommendations'
     | 'resolveModelInstallPlan'
     | 'installModelFromPlan'
     | 'listLocalTransfers'
@@ -99,7 +101,11 @@ export type NimiDesktopMachineProductRuntimeClient = {
     | 'issueExternalAgentToken'
     | 'revokeExternalAgentToken'
     | 'listExternalAgentTokens'>;
+  // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040a
   readonly apps: Pick<DesktopMachineProductRuntimeMethods,
+    | 'listApprovedAppCatalogTargets'
+    | 'startAppPackageInstall'
+    | 'startAppPackageUninstall'
     | 'listCommittedAppReleases'
     | 'listAppPackageJobs'
     | 'getAppPackageJob'
@@ -112,6 +118,7 @@ export type NimiDesktopAccountProductRuntimeClient = {
   readonly profiles: NimiDesktopPortableAIProfileCatalogClient;
   readonly agents: Pick<DesktopAccountProductRuntimeMethods,
     | 'listAgents'
+    | 'resolveDesktopAgentReference'
     | 'getAgent'
     | 'openConversationAnchor'
     | 'getConversationAnchorSnapshot'
@@ -329,6 +336,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
   );
   const accountAgents: NimiDesktopAccountProductRuntimeClient['agents'] = Object.freeze({
     listAgents: protectedAgents.listAgents,
+    resolveDesktopAgentReference: protectedAgents.resolveDesktopAgentReference,
     getAgent: protectedAgent(protectedAgents.getAgent),
     openConversationAnchor: protectedAgents.openConversationAnchor,
     getConversationAnchorSnapshot: protectedAgents.getConversationAnchorSnapshot,
@@ -451,7 +459,9 @@ export function createNimiDesktopFirstPartyRuntimeClients(
         listVerifiedAssets: runtime.local.listVerifiedAssets,
         searchCatalogModels: runtime.local.searchCatalogModels,
         listCatalogVariants: runtime.local.listCatalogVariants,
-        getRecommendationFeed: runtime.local.getRecommendationFeed,
+        getCatalogModelCard: runtime.local.getCatalogModelCard,
+        listFeaturedModelAssets: runtime.local.listFeaturedModelAssets,
+        listFactoryProfileRecommendations: runtime.local.listFactoryProfileRecommendations,
         resolveModelInstallPlan: runtime.local.resolveModelInstallPlan,
         installModelFromPlan: runtime.local.installModelFromPlan,
         listLocalTransfers: runtime.local.listLocalTransfers,
@@ -479,6 +489,9 @@ export function createNimiDesktopFirstPartyRuntimeClients(
         listExternalAgentTokens: runtime.externalAgents.listExternalAgentTokens,
       }),
       apps: Object.freeze({
+        listApprovedAppCatalogTargets: machineProductRuntime.listApprovedAppCatalogTargets,
+          startAppPackageInstall: machineProductRuntime.startAppPackageInstall,
+          startAppPackageUninstall: machineProductRuntime.startAppPackageUninstall,
         listCommittedAppReleases: machineProductRuntime.listCommittedAppReleases,
         listAppPackageJobs: machineProductRuntime.listAppPackageJobs,
         getAppPackageJob: machineProductRuntime.getAppPackageJob,

@@ -193,7 +193,9 @@ async fn invoke_inner(
                 crate::grpc_status::runtime_reason(&status)
             };
             match reason {
-                Some(reason) => DesktopUnaryError::new(reason, retryable),
+                Some(reason) => DesktopUnaryError::new(reason, retryable).with_reason_metadata(
+                    crate::grpc_status::desktop_runtime_reason_metadata(&status),
+                ),
                 None => match status.code() {
                     tonic::Code::Unavailable
                     | tonic::Code::DeadlineExceeded

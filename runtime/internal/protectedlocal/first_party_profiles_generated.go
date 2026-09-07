@@ -103,7 +103,11 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants":
 			return FirstPartyMethodUnary, true
-		case "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed":
+		case "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan":
 			return FirstPartyMethodUnary, true
@@ -132,6 +136,12 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 		case "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases":
 			return FirstPartyMethodUnary, true
@@ -343,6 +353,8 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 		case "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget":
 			return FirstPartyMethodUnary, true
@@ -566,7 +578,9 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListVerifiedAssets", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/SearchCatalogModels", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants", Kind: FirstPartyMethodUnary},
-			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ResolveModelInstallPlan", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeLocalService/ListLocalTransfers", Kind: FirstPartyMethodUnary},
@@ -581,6 +595,9 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeExternalAgentService/ListExternalAgentTokens", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob", Kind: FirstPartyMethodUnary},
@@ -688,6 +705,7 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation", Kind: FirstPartyMethodUnary},

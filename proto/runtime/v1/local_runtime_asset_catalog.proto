@@ -224,4 +224,5 @@ message LocalInstallPlanDescriptor {
   int64 total_size_bytes                      = 22;
   string source_provenance                    = 23;
   string model_type                           = 24;
+  string offer_ref                            = 25;
 }

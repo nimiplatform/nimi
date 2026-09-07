@@ -23,21 +23,30 @@
     "accessDeclarationsDetail": "由项目声明"
   },
   "library": {
+    "pageTitle": "应用中心",
     "sortLabel": "排序方式",
     "sortUpdated": "最近更新",
     "sortName": "名称",
     "sortActivity": "运行优先",
     "backToLibrary": "返回应用库",
-    "connectLocalTitle": "接入本地项目",
-    "cardMenuLabel": "App 操作"
+    "connectLocalTitle": "添加应用",
+    "cardMenuLabel": "App 操作",
+    "searchPlaceholder": "搜索已安装的应用",
+    "frequentTitle": "常用",
+    "allAppsTitle": "所有应用",
+    "allAppsCount": "{{count}} 个",
+    "filterRunning": "运行中",
+    "filterNeedsAttention": "需处理"
   },
   "sourceBadge": {
+    "userImported": "本地导入",
     "localDevelopment": "本地开发",
     "verified": "已通过 Registry 审核"
   },
   "catalog": {
+    "loading": "正在加载应用目录…",
     "registryApproved": "这个版本已通过公共 Nimi App Registry 审核。Descriptor 冻结准确的 Release asset、digest 和 provenance，Runtime 还会再次验证下载的包；审核和验证都不等于无恶意代码保证，也不保证操作系统一定允许执行。",
-    "policyBlocked": "当前 Registry 策略已阻止安装（修订 {{revision}}）：{{reason}}",
+    "policyBlocked": "当前 Registry 策略已阻止新的安装或启动（修订 {{revision}}）：{{reason}}",
     "policyBlockedFallback": "未提供原因。",
     "publisher": "GitHub Publisher",
     "sourceRepository": "公开源码",
@@ -57,7 +66,7 @@
     "unsignedConfirmAction": "继续并安装"
   },
   "catalogNotImplemented": "公共 App 目录搜索尚未实现。",
-  "installedLaunchUnavailable": "已安装 App 的启动链路尚未实现。安装记录仍然有效；当前只有本地开发 App 可以启动。",
+  "installedAccess": { "ready": "Nimi Access 已就绪", "unavailable": "Nimi Access 不可用" },
   "listTitle": "应用列表",
   "listDescription": "按是否声明 App Access 域筛选已注册应用。",
   "filter": {
@@ -158,6 +167,7 @@
     "uninstalling": "卸载中"
   },
   "action": {
+    "focus": "显示窗口",
     "install": "安装",
     "open": "打开",
     "connectLocal": "接入本地 App",
@@ -208,17 +218,18 @@
     "configuredSummary": "模型配置已完成",
     "emptySummary": "尚未选择模型",
     "summary": {
-      "local": "AI：本地 · {{summaryCount}}",
-      "cloud": "AI：云端 · {{summaryCount}}",
-      "mixed": "AI：混合 · {{summaryCount}}",
-      "partialLocal": "AI：部分本地 · {{summaryCount}}",
-      "partialCloud": "AI：部分云端 · {{summaryCount}}",
-      "partialMixed": "AI：部分混合 · {{summaryCount}}",
+      "local": "AI 本地 · {{summaryCount}}",
+      "cloud": "AI 云端 · {{summaryCount}}",
+      "mixed": "AI 本地+云端 · {{summaryCount}}",
+      "partialLocal": "AI 本地 · {{summaryCount}}",
+      "partialCloud": "AI 云端 · {{summaryCount}}",
+      "partialMixed": "AI 本地+云端 · {{summaryCount}}",
       "blocked": "{{routeLabel}} · {{blockedCount}} 项受阻",
       "healthUnavailable": "{{routeLabel}} · 健康状态不可用",
       "unconfigured": "AI 未配置",
       "unavailable": "AI 配置不可用"
     },
+    "openSettings": "打开 AI 模型设置",
     "loadFailed": "无法从 Runtime 加载此 App 的 AI 配置。",
     "saveFailed": "Runtime 无法保存此 App 的 AI 配置。",
     "capability": {
@@ -358,6 +369,10 @@
     }
   },
   "confirm": {
+    "uninstall": {
+      "title": "卸载 App",
+      "message": "停止 {{app}} 并移除本机安装包？App 数据、共享模型和账户数据将保留。"
+    },
     "removeDevelopment": {
       "title": "移除本地项目",
       "message": "从 Apps 移除 {{app}}？这会停止当前运行并移除本地开发注册，但不会删除项目文件。",

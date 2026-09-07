@@ -13,7 +13,10 @@ const artifactName = process.platform === 'win32'
   : process.platform === 'darwin'
     ? 'libnimi_shell_protected_local_node.dylib'
     : 'libnimi_shell_protected_local_node.so';
-const addonPath = path.join(targetRoot, 'debug', artifactName);
+const buildProfile = process.argv[2] || 'debug';
+assert.ok(['debug', 'release'].includes(buildProfile), 'native contract profile must be debug or release');
+assert.ok(process.argv.length <= 3, 'native contract accepts only one build profile');
+const addonPath = path.join(targetRoot, buildProfile, artifactName);
 
 assert.ok(existsSync(addonPath), `protected-local Node addon is missing: ${addonPath}`);
 

@@ -600,7 +600,7 @@ units:
     kind: rule
     title: Apps consumes unified SDK inventory only
     modality: must
-    statement: Apps is an ordinary Desktop entry whose runnable rows and source state come from owner registration projections shared by verified-installed and local-development sources plus separately governed bundled and platform sources; marketplace listing, review, account display, and package metadata remain presentation inputs only and never establish a Registered App Subject, declaration coverage, protected session, Effective App Access Snapshot, or Runtime admission, while Desktop never scans app-local specs, workspaces, package-manager roots, or files as runnable truth.
+    statement: Apps is an ordinary Desktop entry whose runnable rows and source state come from owner registration projections shared by verified-installed, local-import, and local-development sources plus separately governed bundled and platform sources; marketplace listing, review, account display, and package metadata remain presentation inputs only and never establish a Registered App Subject, declaration coverage, protected session, Effective App Access Snapshot, or Runtime admission, while Desktop never scans app-local specs, workspaces, package-manager roots, or files as runnable truth.
     condition: Whenever Nimi Home lists Apps.
     failure: Reject non-SDK inventory and keep unverifiable Apps absent or explicitly unavailable.
     relations:

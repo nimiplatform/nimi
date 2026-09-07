@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: security-${{ github.workflow }}-${{ github.ref }}
+  group: security-${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
@@ -51,7 +51,14 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Restore fixed zizmor installation
+        id: tool-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.cargo/bin/zizmor
+          key: security-ci-${{ runner.os }}-${{ runner.arch }}-zizmor-1.29.0
       - name: Install zizmor
+        if: steps.tool-cache.outputs.cache-hit != 'true'
         run: cargo install --locked zizmor@1.29.0
 
       - name: Workflow and dependabot audit (high severity gate)
@@ -76,7 +83,14 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Restore fixed cargo-audit installation
+        id: tool-cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: ~/.cargo/bin/cargo-audit
+          key: security-ci-${{ runner.os }}-${{ runner.arch }}-cargo-audit-0.22.2
       - name: Install cargo audit
+        if: steps.tool-cache.outputs.cache-hit != 'true'
         run: cargo install --locked cargo-audit@0.22.2
 
       - name: Audit Electron native Rust dependencies

@@ -61,7 +61,6 @@ export type LandingContent = {
     };
   };
   modelCatalog: {
-    kicker: string;
     title: string;
     subtitle: string;
     overview: {
@@ -142,10 +141,6 @@ export type LandingContent = {
       description: string;
     }>;
     downloadCta: string;
-    availability: {
-      eyebrow: string;
-      items: ReadonlyArray<string>;
-    };
   };
   apps: {
     eyebrow: string;

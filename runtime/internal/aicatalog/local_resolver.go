@@ -190,3 +190,84 @@ func (c *LocalProviderCatalog) RecommendVariantForHost(variantIDs []string, prof
 	}
 	return strings.TrimSpace(selected.VariantID), true
 }
+
+// RankVariantsForHost preserves the recipe-authored ordinal inside each
+// Runtime-owned applicability bucket. It does not inspect inventory.
+func (c *LocalProviderCatalog) RankVariantsForHost(variantIDs []string, profile *runtimev1.LocalDeviceProfile) []RankedLocalVariant {
+	if c == nil || len(variantIDs) == 0 {
+		return nil
+	}
+	byID := make(map[string]LocalPlaneVariant)
+	for _, model := range c.models {
+		for _, variant := range model.Variants {
+			byID[strings.TrimSpace(variant.VariantID)] = variant
+		}
+	}
+	budget := resolveHostBudget(profile)
+	ranked := make([]RankedLocalVariant, 0, len(variantIDs))
+	for ordinal, id := range variantIDs {
+		variant, ok := byID[strings.TrimSpace(id)]
+		if !ok {
+			continue
+		}
+		ranked = append(ranked, RankedLocalVariant{
+			Variant:       variant,
+			Applicability: variantApplicability(variant, budget),
+			Ordinal:       ordinal,
+		})
+	}
+	bucket := func(value LocalVariantApplicability) int {
+		switch value {
+		case LocalVariantApplicabilitySupported:
+			return 0
+		case LocalVariantApplicabilityUnknown:
+			return 1
+		default:
+			return 2
+		}
+	}
+	sort.SliceStable(ranked, func(i, j int) bool {
+		left, right := ranked[i], ranked[j]
+		if bucket(left.Applicability) != bucket(right.Applicability) {
+			return bucket(left.Applicability) < bucket(right.Applicability)
+		}
+		if left.Ordinal != right.Ordinal {
+			return left.Ordinal < right.Ordinal
+		}
+		return strings.ToLower(left.Variant.VariantID) < strings.ToLower(right.Variant.VariantID)
+	})
+	return ranked
+}
+
+func variantApplicability(variant LocalPlaneVariant, budget hostBudget) LocalVariantApplicability {
+	accelerator := strings.ToLower(strings.TrimSpace(variant.HostRequirement.Accelerator))
+	switch accelerator {
+	case "cpu":
+		if !budget.cpuAvailable {
+			return LocalVariantApplicabilityUnsupported
+		}
+		if budget.ramBytes <= 0 || variant.HostRequirement.MinRAMBytes <= 0 {
+			return LocalVariantApplicabilityUnknown
+		}
+	case "metal":
+		if !budget.metalAvailable {
+			return LocalVariantApplicabilityUnsupported
+		}
+		if budget.vramBytes <= 0 || variant.HostRequirement.MinVRAMBytes <= 0 {
+			return LocalVariantApplicabilityUnknown
+		}
+	case "cuda":
+		if !budget.cudaAvailable {
+			return LocalVariantApplicabilityUnsupported
+		}
+		if budget.vramBytes <= 0 || variant.HostRequirement.MinVRAMBytes <= 0 {
+			return LocalVariantApplicabilityUnknown
+		}
+	default:
+		return LocalVariantApplicabilityUnknown
+	}
+	if classifyVariant(variant, budget) == tierNotRecommended {
+		return LocalVariantApplicabilityUnsupported
+	}
+	return LocalVariantApplicabilitySupported
+}

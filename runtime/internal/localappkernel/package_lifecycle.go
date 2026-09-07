@@ -35,6 +35,7 @@ type PackageJobPhase string
 const (
 	PackageJobQueued             PackageJobPhase = "queued"
 	PackageJobDownloading        PackageJobPhase = "downloading"
+	PackageJobReadingLocal       PackageJobPhase = "reading-local"
 	PackageJobVerifying          PackageJobPhase = "verifying"
 	PackageJobVerifyingInstalled PackageJobPhase = "verifying-installed"
 	PackageJobAcquiringMissing   PackageJobPhase = "acquiring-missing"
@@ -125,10 +126,10 @@ var packageLifecycleSchemaStatements = []string{
 	`CREATE TABLE IF NOT EXISTS app_package_job (
 		job_id TEXT PRIMARY KEY,
 		app_id TEXT NOT NULL,
-		source_class TEXT NOT NULL CHECK(source_class IN ('verified')),
+		source_class TEXT NOT NULL CHECK(source_class IN ('verified','user_imported')),
 		kind TEXT NOT NULL CHECK(kind IN ('install','update','repair','uninstall')),
 		target_ref TEXT NOT NULL,
-		phase TEXT NOT NULL CHECK(phase IN ('queued','downloading','verifying','verifying-installed','acquiring-missing','staging','committing','removing-package','unregistering','completed','failed','canceled')),
+		phase TEXT NOT NULL CHECK(phase IN ('queued','downloading','reading-local','verifying','verifying-installed','acquiring-missing','staging','committing','removing-package','unregistering','completed','failed','canceled')),
 		progress_basis TEXT NOT NULL CHECK(progress_basis IN ('bytes','steps','indeterminate')),
 		bytes_completed INTEGER NOT NULL CHECK(bytes_completed >= 0),
 		bytes_total INTEGER CHECK(bytes_total IS NULL OR bytes_total >= 0),
@@ -147,7 +148,7 @@ var packageLifecycleSchemaStatements = []string{
 		WHERE phase NOT IN ('completed','failed','canceled')`,
 	`CREATE TABLE IF NOT EXISTS committed_app_release (
 		app_id TEXT NOT NULL,
-		source_class TEXT NOT NULL CHECK(source_class IN ('verified')),
+		source_class TEXT NOT NULL CHECK(source_class IN ('verified','user_imported')),
 		version TEXT NOT NULL,
 		release_ref TEXT NOT NULL,
 		registration_handle TEXT NOT NULL,
@@ -161,25 +162,6 @@ var packageLifecycleSchemaStatements = []string{
 		PRIMARY KEY(app_id, source_class),
 		FOREIGN KEY(registration_handle) REFERENCES canonical_registration(registration_handle)
 	)`,
-}
-
-func (kernel *Kernel) requirePackageLifecycleSchema(ctx context.Context) error {
-	for _, table := range []string{"app_package_job", "committed_app_release"} {
-		if err := requireSQLiteConstraint(ctx, kernel.db, table, "source-class", "check(source_classin('verified'))", "user_imported"); err != nil {
-			return fmt.Errorf("initialize App package lifecycle schema: %w", err)
-		}
-	}
-	if err := requireSQLiteConstraint(
-		ctx,
-		kernel.db,
-		"app_package_job",
-		"phase",
-		"check(phasein('queued','downloading','verifying','verifying-installed','acquiring-missing','staging','committing','removing-package','unregistering','completed','failed','canceled'))",
-		"reading-local",
-	); err != nil {
-		return fmt.Errorf("initialize App package lifecycle schema: %w", err)
-	}
-	return nil
 }
 
 func (store *PackageLifecycleStore) Begin(ctx context.Context, input BeginPackageJobInput) (PackageJob, error) {
@@ -243,6 +225,22 @@ func (store *PackageLifecycleStore) GetJob(ctx context.Context, jobID string) (P
 		return PackageJob{}, ErrInvalidArgument
 	}
 	return loadPackageJob(ctx, store.kernel.db, jobID)
+}
+
+func (store *PackageLifecycleStore) GetActiveJob(ctx context.Context, appID string, sourceClass SourceClass) (PackageJob, error) {
+	if store == nil || store.kernel == nil || requireExactText("app_id", appID) != nil || !packageSourceClass(sourceClass) {
+		return PackageJob{}, ErrInvalidArgument
+	}
+	var jobID string
+	err := store.kernel.db.QueryRowContext(ctx, `SELECT job_id FROM app_package_job
+		WHERE app_id = ? AND source_class = ? AND phase NOT IN ('completed','failed','canceled')`, appID, string(sourceClass)).Scan(&jobID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return PackageJob{}, ErrPackageJobNotFound
+	}
+	if err != nil {
+		return PackageJob{}, fmt.Errorf("read active App package job: %w", err)
+	}
+	return store.GetJob(ctx, jobID)
 }
 
 func (store *PackageLifecycleStore) ListJobs(ctx context.Context) ([]PackageJob, error) {
@@ -497,8 +495,8 @@ func sameCommittedReleaseRepair(current CommittedRelease, targetRef string, inpu
 // caller has stopped the host and removed its package. Durable registration
 // and binding history remain tombstoned; this method does not touch payloads.
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040c
-func (store *PackageLifecycleStore) CompleteUninstall(ctx context.Context, jobID string) (PackageJob, error) {
-	if store == nil || store.kernel == nil || requireExactText("job_id", jobID) != nil {
+func (store *PackageLifecycleStore) CompleteUninstall(ctx context.Context, jobID, registrationHandle string, sourceGeneration, declarationGeneration uint64) (PackageJob, error) {
+	if store == nil || store.kernel == nil || requireExactText("job_id", jobID) != nil || registrationHandle == "" || sourceGeneration == 0 || declarationGeneration == 0 {
 		return PackageJob{}, ErrInvalidArgument
 	}
 	store.kernel.mu.Lock()
@@ -522,6 +520,17 @@ func (store *PackageLifecycleStore) CompleteUninstall(ctx context.Context, jobID
 	if err != nil {
 		return PackageJob{}, err
 	}
+	if release.RegistrationHandle != registrationHandle || release.ReleaseRef != job.TargetRef {
+		return PackageJob{}, ErrRevisionConflict
+	}
+	var currentSource, currentDeclaration uint64
+	var registrationState string
+	if err := tx.QueryRowContext(ctx, `SELECT source_generation, declaration_generation, state FROM canonical_registration WHERE registration_handle = ?`, registrationHandle).Scan(&currentSource, &currentDeclaration, &registrationState); err != nil {
+		return PackageJob{}, fmt.Errorf("read uninstall registration generation: %w", err)
+	}
+	if currentSource != sourceGeneration || currentDeclaration != declarationGeneration || registrationState != string(RegistrationStateActive) {
+		return PackageJob{}, ErrRevisionConflict
+	}
 	if err := store.kernel.registrations.tombstoneTx(ctx, tx, release.RegistrationHandle); err != nil {
 		return PackageJob{}, err
 	}
@@ -535,7 +544,7 @@ func (store *PackageLifecycleStore) CompleteUninstall(ctx context.Context, jobID
 	}
 	now := store.kernel.now().UTC()
 	result, err = tx.ExecContext(ctx, `UPDATE app_package_job SET phase = 'completed', completed_unix_nano = ?,
-		terminal_result = 'completed', reason_code = '', cancelable = 0
+		terminal_result = 'completed', reason_code = '', cancelable = 0, steps_completed = COALESCE(steps_total, steps_completed)
 		WHERE job_id = ? AND phase = 'unregistering' AND completed_unix_nano IS NULL`, now.UnixNano(), job.JobID)
 	if err != nil {
 		return PackageJob{}, fmt.Errorf("complete App uninstall job: %w", err)
@@ -611,8 +620,9 @@ func allowedPackagePhaseTransition(kind PackageJobKind, from, to PackageJobPhase
 		return false
 	}
 	allowed := map[PackageJobPhase]map[PackageJobPhase]bool{
-		PackageJobQueued:             {PackageJobDownloading: true, PackageJobVerifying: true, PackageJobVerifyingInstalled: true, PackageJobRemovingPackage: true},
+		PackageJobQueued:             {PackageJobDownloading: true, PackageJobReadingLocal: true, PackageJobVerifying: true, PackageJobVerifyingInstalled: true, PackageJobRemovingPackage: true},
 		PackageJobDownloading:        {PackageJobVerifying: true},
+		PackageJobReadingLocal:       {PackageJobVerifying: true},
 		PackageJobVerifying:          {PackageJobAcquiringMissing: true, PackageJobStaging: true},
 		PackageJobVerifyingInstalled: {PackageJobAcquiringMissing: true, PackageJobStaging: true},
 		PackageJobAcquiringMissing:   {PackageJobStaging: true},
@@ -693,7 +703,7 @@ func scanCommittedRelease(row packageLifecycleRowScanner) (CommittedRelease, err
 }
 
 func packageSourceClass(value SourceClass) bool {
-	return value == SourceClassVerified
+	return value == SourceClassVerified || value == SourceClassUserImported
 }
 func packageJobKind(value PackageJobKind) bool {
 	return value == PackageJobInstall || value == PackageJobUpdate || value == PackageJobRepair || value == PackageJobUninstall

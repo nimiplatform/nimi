@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
@@ -522,4 +523,37 @@ func canonicalPath(path string) string {
 		return filepath.Clean(path)
 	}
 	return strings.ToLower(filepath.Clean(absolute))
+}
+
+func TestConfigurationRecipeLookupIsCapabilityScopedAndPreservesFailures(t *testing.T) {
+	configs := []legacyConfiguration{
+		{SourceRowIndex: 0, ConfigurationID: "image-one", Capability: "image.generate"},
+		{SourceRowIndex: 1, ConfigurationID: "speech", Capability: "audio.synthesize"},
+		{SourceRowIndex: 2, ConfigurationID: "image-two", Capability: "image.generate"},
+	}
+	calls := []string{}
+	drafts := resolveConfigurationMigrationDrafts(configs, nil, func(_ context.Context, req *runtimev1.ListLoadoutRecipesRequest) (*runtimev1.ListLoadoutRecipesResponse, error) {
+		calls = append(calls, req.GetCapabilityContract())
+		if req.GetCapabilityContract() == "audio.synthesize" {
+			return nil, fmt.Errorf("Driver unavailable")
+		}
+		if req.GetCapabilityContract() != "image.generate" {
+			t.Fatalf("unbounded capability lookup: %q", req.GetCapabilityContract())
+		}
+		return &runtimev1.ListLoadoutRecipesResponse{}, nil
+	})
+	if strings.Join(calls, ",") != "image.generate,audio.synthesize" || len(drafts) != 3 {
+		t.Fatalf("calls=%v drafts=%+v", calls, drafts)
+	}
+	for i, draft := range drafts {
+		if draft.SourceRowIndex != i || draft.ConfigurationID != configs[i].ConfigurationID {
+			t.Fatalf("lost configuration identity: %+v", draft)
+		}
+	}
+	if !strings.Contains(drafts[1].FailureReason, "Driver unavailable") {
+		t.Fatalf("missing source failure: %+v", drafts[1])
+	}
+	if strings.Contains(drafts[0].FailureReason, "Driver unavailable") || strings.Contains(drafts[2].FailureReason, "Driver unavailable") {
+		t.Fatal("unrelated failure contaminated image rows")
+	}
 }

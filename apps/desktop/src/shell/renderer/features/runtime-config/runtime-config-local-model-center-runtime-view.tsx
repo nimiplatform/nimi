@@ -1,133 +1,60 @@
-import type { RefObject } from 'react';
-import { useEffect, useRef, useState } from 'react';
-import { useDesktopI18nResource } from '../../i18n/i18n-context';
+import { useState, type ReactNode, type RefObject } from 'react';
 import type {
-  NimiRuntimeLocalCatalogItemDescriptor,
-  NimiRuntimeLocalCatalogVariantDescriptor,
-  NimiRuntimeLocalVerifiedAssetDescriptor,
+  NimiRuntimeLocalTransferProgressEvent,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
-import { PillTabs, ScrollArea } from '@nimiplatform/kit/ui';
-import type {
-  AssetTaskEntry,
-} from './runtime-config-local-model-center-helpers';
-import { LocalModelDiscoveryCard } from './runtime-config-local-model-center-discovery-card';
+import { ScrollArea, SearchField } from '@nimiplatform/kit/ui';
+
+import { useDesktopI18nResource } from '../../i18n/i18n-context';
 import { LocalModelCenterImportControls } from './runtime-config-local-model-center-import-controls';
-import { RUNTIME_PAGE_WIDTH_CLASS, RuntimePageHeader } from './runtime-config-page-shell';
 import { LocalModelCenterInstalledAssetsSection } from './runtime-config-local-model-center-installed-section';
-import {
-  LocalModelCenterInProgressSection,
-  LocalModelCenterQuickPicksSection,
-  LocalModelCenterVerifiedAssetsSection,
-} from './runtime-config-local-model-center-sections';
-import type { CapabilityOption } from './runtime-config-model-center-utils';
-import type { useLocalModelCenterDownloads } from './runtime-config-use-local-model-center-downloads';
+import { LocalModelCenterInProgressSection } from './runtime-config-local-model-center-progress-sections';
+import { RUNTIME_PAGE_WIDTH_CLASS, RuntimePageHeader } from './runtime-config-page-shell';
 
-type DownloadState = ReturnType<typeof useLocalModelCenterDownloads>;
-
-type LocalModelsSubTabId = 'myModels' | 'discover';
-
-type LocalModelCenterRuntimeViewProps = {
-  assetBusy: boolean;
-  assetImportError: string;
-  assetPendingTemplateIds: string[];
-  catalogCapability: 'all' | CapabilityOption;
-  catalogDisplayCount: number;
-  catalogItems: NimiRuntimeLocalCatalogItemDescriptor[];
-  deferredSearchQuery: string;
-  refreshing: boolean;
-  modelAssets: NimiRuntimeModelAssetRecord[];
-  runtimeInventoryError: string;
-  hasSearchQuery: boolean;
-  importMenuRef: RefObject<HTMLDivElement | null>;
-  installing: boolean;
-  isAssetPending: (templateId: string) => boolean;
-  isCatalogAssetInstalled: (assetId: string) => boolean;
-  loadingCatalog: boolean;
-  loadingInstalledAssets: boolean;
-  loadingVariants: boolean;
-  loadingVerifiedAssets: boolean;
-  loadingVerifiedModels: boolean;
-  openDiscoverRequest: boolean;
-  showCatalogOverridesAction: boolean;
-  onCatalogCapabilityChange: (value: 'all' | CapabilityOption) => void;
-  onDismissImportError: () => void;
-  onImportFile: () => Promise<unknown>;
-  onImportDirectory: () => Promise<unknown>;
-  onCloseVariantPicker: () => void;
-  onOpenModelsFolder: () => void;
-  onOpenDiscoverRequestConsumed: () => void;
-  onOpenCatalogOverrides: () => void;
-  onInstallAsset: (templateId: string) => void;
-  onInstallCatalogVariant: (item: NimiRuntimeLocalCatalogItemDescriptor, variantFilename: string) => void;
-  onInstallCatalogQuickPick: (templateId: string) => void;
-  onLoadMoreCatalog: () => void;
-  onPauseDownload: DownloadState['onPauseDownload'];
-  onRefresh: () => void;
-  onRefreshAssets: () => void;
-  onRefreshQuickPicks: () => void;
-  onInspectRemoval: (localAssetId: string) => Promise<string[]>;
-  onRemoveAsset: (localAssetId: string) => Promise<void>;
-  onResumeDownload: DownloadState['onResumeDownload'];
-  onSearchQueryChange: (value: string) => void;
-  onToggleImportMenu: () => void;
-  onToggleVariantPicker: (item: NimiRuntimeLocalCatalogItemDescriptor) => void;
-  runtimeWritesDisabled: boolean;
-  searchQuery: string;
-  selectedCatalogCapability: (item: NimiRuntimeLocalCatalogItemDescriptor) => CapabilityOption;
-  showImportMenu: boolean;
-  variantError: string;
-  variantList: NimiRuntimeLocalCatalogVariantDescriptor[];
-  variantPickerItem: NimiRuntimeLocalCatalogItemDescriptor | null;
-  verifiedModels: NimiRuntimeLocalVerifiedAssetDescriptor[];
-  visibleAssetTasks: AssetTaskEntry[];
-  visibleVerifiedAssets: NimiRuntimeLocalVerifiedAssetDescriptor[];
-  downloads: DownloadState['activeDownloads'];
-  imports: DownloadState['activeImports'];
-  terminalDownloads: DownloadState['terminalDownloads'];
-  terminalImports: DownloadState['terminalImports'];
-  onCancelDownload: DownloadState['onCancelDownload'];
-  onDismissSession: (installSessionId: string) => void;
-  onDismissAssetTask: (templateId: string) => void;
+type LocalAssetsRuntimeViewProps = {
+  readonly catalogContent: ReactNode;
+  readonly assetBusy: boolean;
+  readonly assetImportError: string;
+  readonly loadingInstalledAssets: boolean;
+  readonly modelAssets: readonly NimiRuntimeModelAssetRecord[];
+  readonly runtimeInventoryError: string;
+  readonly importMenuRef: RefObject<HTMLDivElement | null>;
+  readonly showImportMenu: boolean;
+  readonly runtimeWritesDisabled: boolean;
+  readonly downloads: readonly NimiRuntimeLocalTransferProgressEvent[];
+  readonly imports: readonly NimiRuntimeLocalTransferProgressEvent[];
+  readonly terminalDownloads: readonly NimiRuntimeLocalTransferProgressEvent[];
+  readonly terminalImports: readonly NimiRuntimeLocalTransferProgressEvent[];
+  readonly onCancelDownload: (installSessionId: string) => void;
+  readonly onDismissImportError: () => void;
+  readonly onDismissSession: (installSessionId: string) => void;
+  readonly onImportFile: () => Promise<unknown>;
+  readonly onImportDirectory: () => Promise<unknown>;
+  readonly onInspectRemoval: (modelAssetId: string) => Promise<string[]>;
+  readonly onOpenModelsFolder: () => void;
+  readonly onPauseDownload: (installSessionId: string) => void;
+  readonly onRefreshAssets: () => void;
+  readonly onRemoveAsset: (modelAssetId: string) => Promise<void>;
+  readonly onResumeDownload: (installSessionId: string) => void;
+  readonly onToggleImportMenu: () => void;
 };
 
-export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewProps) {
+export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) {
   const i18n = useDesktopI18nResource().instance;
-  // First-use guidance: with an empty installed inventory, land on Discover.
-  // Lazily initialized once; no persistence, no auto-switching afterwards.
-  const [subTab, setSubTab] = useState<LocalModelsSubTabId>(() => (
-    props.modelAssets.length === 0 ? 'discover' : 'myModels'
-  ));
-  const catalogSearchInputRef = useRef<HTMLInputElement>(null);
-  const focusDiscoverAfterRenderRef = useRef(false);
-
-  useEffect(() => {
-    if (!props.openDiscoverRequest) return;
-    focusDiscoverAfterRenderRef.current = true;
-    setSubTab('discover');
-    props.onOpenDiscoverRequestConsumed();
-  }, [props.openDiscoverRequest, props.onOpenDiscoverRequestConsumed]);
-
-  useEffect(() => {
-    if (subTab !== 'discover' || !focusDiscoverAfterRenderRef.current) return;
-    focusDiscoverAfterRenderRef.current = false;
-    catalogSearchInputRef.current?.focus();
-  }, [subTab]);
+  const [query, setQuery] = useState('');
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <ScrollArea className="flex-1" contentClassName={`mx-auto ${RUNTIME_PAGE_WIDTH_CLASS} space-y-4 px-4 pb-4`}>
         <RuntimePageHeader
-          title={i18n.t('runtimeConfig.sidebar.localModels')}
+          title={i18n.t('runtimeConfig.sidebar.localAssets', { defaultValue: 'Local Assets' })}
           actions={(
             <LocalModelCenterImportControls
-              refreshing={props.refreshing}
+              refreshing={props.loadingInstalledAssets}
               importMenuRef={props.importMenuRef}
               showImportMenu={props.showImportMenu}
               runtimeWritesDisabled={props.runtimeWritesDisabled}
-              onRefresh={props.onRefresh}
+              onRefresh={props.onRefreshAssets}
               onOpenModelsFolder={props.onOpenModelsFolder}
-              showCatalogOverridesAction={props.showCatalogOverridesAction}
-              onOpenCatalogOverrides={props.onOpenCatalogOverrides}
               onToggleImportMenu={props.onToggleImportMenu}
               onImportFile={props.onImportFile}
               onImportDirectory={props.onImportDirectory}
@@ -153,99 +80,30 @@ export function LocalModelCenterRuntimeView(props: LocalModelCenterRuntimeViewPr
           </div>
         ) : null}
         <LocalModelCenterInProgressSection
-          downloads={props.downloads}
-          imports={props.imports}
-          terminalDownloads={props.terminalDownloads}
-          terminalImports={props.terminalImports}
-          tasks={props.visibleAssetTasks}
-          pendingTemplateIds={props.assetPendingTemplateIds}
-          isAssetInstalled={props.isCatalogAssetInstalled}
+          downloads={[...props.downloads]}
+          imports={[...props.imports]}
+          terminalDownloads={[...props.terminalDownloads]}
+          terminalImports={[...props.terminalImports]}
           runtimeWritesDisabled={props.runtimeWritesDisabled}
           onPause={props.onPauseDownload}
           onResume={props.onResumeDownload}
           onCancel={props.onCancelDownload}
           onDismiss={props.onDismissSession}
-          onRetryTask={props.onInstallAsset}
-          onDismissTask={props.onDismissAssetTask}
         />
-        <div data-testid="runtime-local-models-subtabs">
-          <PillTabs
-            size="sm"
-            ariaLabel={i18n.t('runtimeConfig.localModelCenter.subtabsLabel', { defaultValue: 'Local model sections' })}
-            items={[
-              {
-                value: 'myModels',
-                label: i18n.t('runtimeConfig.localModelCenter.myModels', { defaultValue: 'My Models' }),
-              },
-              {
-                value: 'discover',
-                label: i18n.t('runtimeConfig.localModelCenter.discoverModels', { defaultValue: 'Discover' }),
-              },
-            ]}
-            value={subTab}
-            onValueChange={(value) => setSubTab(value as LocalModelsSubTabId)}
-          />
-        </div>
-        {subTab === 'myModels' ? (
-          <LocalModelCenterInstalledAssetsSection
-            modelAssets={props.modelAssets}
-            loadingInstalledAssets={props.loadingInstalledAssets}
-            assetBusy={props.assetBusy}
-            runtimeWritesDisabled={props.runtimeWritesDisabled}
-            onRefreshAssets={props.onRefreshAssets}
-            onInspectRemoval={props.onInspectRemoval}
-            onRemoveAsset={props.onRemoveAsset}
-          />
-        ) : (
-          <>
-            {!props.hasSearchQuery ? (
-              <LocalModelCenterQuickPicksSection
-                loadingVerifiedModels={props.loadingVerifiedModels}
-                installing={props.installing}
-                runtimeWritesDisabled={props.runtimeWritesDisabled}
-                isModelInstalled={props.isCatalogAssetInstalled}
-                verifiedModels={props.verifiedModels}
-                onRefresh={props.onRefreshQuickPicks}
-                onInstallCatalogQuickPick={props.onInstallCatalogQuickPick}
-              />
-            ) : null}
-            <LocalModelDiscoveryCard
-              searchInputRef={catalogSearchInputRef}
-              searchQuery={props.searchQuery}
-              catalogCapability={props.catalogCapability}
-              loadingCatalog={props.loadingCatalog}
-              hasSearchQuery={props.hasSearchQuery}
-              verifiedModels={props.verifiedModels}
-              catalogItems={props.catalogItems}
-              catalogDisplayCount={props.catalogDisplayCount}
-              variantPickerItem={props.variantPickerItem}
-              variantList={props.variantList}
-              variantError={props.variantError}
-              loadingVariants={props.loadingVariants}
-              isCatalogAssetInstalled={props.isCatalogAssetInstalled}
-              selectedCatalogCapability={props.selectedCatalogCapability}
-              onSearchQueryChange={props.onSearchQueryChange}
-              onCatalogCapabilityChange={props.onCatalogCapabilityChange}
-              onInstallCatalogQuickPick={props.onInstallCatalogQuickPick}
-              onToggleVariantPicker={props.onToggleVariantPicker}
-              onCloseVariantPicker={props.onCloseVariantPicker}
-              onInstallCatalogVariant={props.onInstallCatalogVariant}
-              onLoadMoreCatalog={props.onLoadMoreCatalog}
-              installing={props.installing}
-              runtimeWritesDisabled={props.runtimeWritesDisabled}
-            />
-            <LocalModelCenterVerifiedAssetsSection
-              hasSearchQuery={props.hasSearchQuery}
-              loadingVerifiedAssets={props.loadingVerifiedAssets}
-              assetBusy={props.assetBusy}
-              runtimeWritesDisabled={props.runtimeWritesDisabled}
-              visibleVerifiedAssets={props.visibleVerifiedAssets}
-              isAssetPending={props.isAssetPending}
-              onRefresh={props.onRefreshAssets}
-              onInstallAsset={props.onInstallAsset}
-            />
-          </>
-        )}
+        <SearchField value={query} onChange={(event) => setQuery(event.currentTarget.value)}
+          aria-label={i18n.t('runtimeConfig.localModelCenter.searchInstalled')}
+          placeholder={i18n.t('runtimeConfig.localModelCenter.searchInstalled')} />
+        <LocalModelCenterInstalledAssetsSection
+          modelAssets={[...props.modelAssets]}
+          query={query}
+          loadingInstalledAssets={props.loadingInstalledAssets}
+          assetBusy={props.assetBusy}
+          runtimeWritesDisabled={props.runtimeWritesDisabled}
+          onRefreshAssets={props.onRefreshAssets}
+          onInspectRemoval={props.onInspectRemoval}
+          onRemoveAsset={props.onRemoveAsset}
+        />
+        {props.catalogContent}
       </ScrollArea>
     </div>
   );

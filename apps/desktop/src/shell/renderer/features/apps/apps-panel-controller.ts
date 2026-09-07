@@ -7,8 +7,9 @@ import type {
   AppsInstallIntentController,
   AppsInstallIntentResult,
   AppsInstallIntentSnapshot,
+  AppsInstallStartResult,
 } from './apps-install-intent.js';
-import { approvedCatalogTargetMatchesIntent } from './apps-install-intent.js';
+import { approvedCatalogTargetMatchesIntent, createAppsInstallIntentController } from './apps-install-intent.js';
 import { resolveDetailEntryKey } from './apps-card-fields.js';
 import { createDesktopAppsLiveBridge } from './apps-live-bridge.js';
 import {
@@ -16,6 +17,7 @@ import {
   projectAppsPanel,
   summarizeAppAIConfig,
   type DesktopAppAIConfigReadOptions,
+  type DesktopAppsCatalogProjection,
   type DesktopAppsEntry,
   type DesktopAppsPanelProjection,
   type DesktopAppsProjectionSource,
@@ -53,7 +55,8 @@ export interface AppsPanelControllerDeps {
   readonly listPackageJobs: DesktopAppsProjectionSource['listPackageJobs'];
   readonly listApprovedCatalogTargets?: DesktopAppsProjectionSource['listApprovedCatalogTargets'];
   readonly cancelPackageJob: (job: AppPackageJob) => Promise<void>;
-  readonly installIntentController?: AppsInstallIntentController;
+  readonly startInstall?: (approvedTargetSelector: Uint8Array) => Promise<AppsInstallStartResult>;
+  readonly uninstall?: (entry: DesktopAppsEntry) => Promise<void>;
   readonly readAppAIConfig?: (
     appId: string,
     options: DesktopAppAIConfigReadOptions,
@@ -64,6 +67,7 @@ type AppsPanelReloadLane = 'lifecycle' | 'ai-config';
 
 export interface AppsPanelProjectionReloader {
   reload(refreshAIConfig?: boolean): Promise<void>;
+  refreshCatalog(): Promise<void>;
   dispose(): void;
 }
 
@@ -91,8 +95,8 @@ export function mergeAppsPanelProjection(
   const refreshedByKey = new Map(next.entries.map((entry) => [entry.identity.entryKey, entry]));
   return {
     status: 'loaded',
-    catalogStatus: next.catalogStatus,
-    runtimeError: next.runtimeError,
+    catalogStatus: current.catalogStatus,
+    runtimeError: current.runtimeError,
     entries: current.entries.map((entry) => {
       const refreshedEntry = refreshedByKey.get(entry.identity.entryKey);
       return {
@@ -141,6 +145,10 @@ export function createAppsPanelProjectionReloader(input: {
   readonly commit: (projection: DesktopAppsPanelProjection) => void;
 }): AppsPanelProjectionReloader {
   let disposed = false;
+  let catalog: DesktopAppsCatalogProjection = {
+    status: input.source.listApprovedCatalogTargets ? 'loading' : 'not-implemented', targets: [],
+  };
+  let catalogInFlight: Promise<void> | null = null;
   const inFlight: Record<AppsPanelReloadLane, Promise<void> | null> = {
     lifecycle: null,
     'ai-config': null,
@@ -158,6 +166,7 @@ export function createAppsPanelProjectionReloader(input: {
     const task = projectAppsPanel(input.source, {
       previous: input.getCurrent(),
       refreshAIConfig,
+      catalog,
     }).then((next) => {
       if (
         disposed
@@ -173,6 +182,20 @@ export function createAppsPanelProjectionReloader(input: {
 
   return Object.freeze({
     reload,
+    refreshCatalog(): Promise<void> {
+      if (!input.source.listApprovedCatalogTargets || disposed) return Promise.resolve();
+      if (catalogInFlight) return catalogInFlight;
+      const task = input.source.listApprovedCatalogTargets().then((targets) => {
+        catalog = { status: 'loaded', targets };
+      }).catch((error: unknown) => {
+        catalog = { status: 'unavailable', targets: [], error };
+      }).then(async () => {
+        await inFlight.lifecycle;
+        if (!disposed) await reload(false);
+      }).finally(() => { if (catalogInFlight === task) catalogInFlight = null; });
+      catalogInFlight = task;
+      return task;
+    },
     dispose() {
       disposed = true;
     },
@@ -213,10 +236,19 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     (refreshAIConfig = true): Promise<void> => reloader.reload(refreshAIConfig),
     [reloader],
   );
+  const installIntentController = useMemo(() => deps.startInstall
+    ? createAppsInstallIntentController({ startInstall: deps.startInstall, refresh: () => reloader.refreshCatalog() })
+    : undefined, [deps.startInstall, reloader]);
 
   useEffect(() => {
     void reload(true);
-  }, [reload]);
+    void reloader.refreshCatalog();
+  }, [reload, reloader]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => void reloader.refreshCatalog(), 60_000);
+    return () => window.clearInterval(interval);
+  }, [reloader]);
 
   useEffect(() => () => reloader.dispose(), [reloader]);
 
@@ -243,13 +275,16 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
       entry.identity.entryKey === desktopAppsEntryKey(installConfirmation.appId, 'verified')
     ))?.catalogTarget;
     if (current && approvedCatalogTargetMatchesIntent(current, installConfirmation)) return;
-    deps.installIntentController?.cancel();
+    installIntentController?.cancel();
     setInstallConfirmation(null);
-  }, [deps.installIntentController, installConfirmation, projection]);
+  }, [installIntentController, installConfirmation, projection]);
 
   const runCardAction = useCallback((entryKey: string, action: AppCardActionId): void => {
     setActionError(null);
-    if (action === 'details') {
+    if (action === 'details' || action === 'open-ai-config') {
+      // 'open-ai-config' is detail navigation with an AI-models section
+      // request; the section itself is store-level and set by the dispatch
+      // layer in apps-panel.tsx.
       setDetailEntryKey(entryKey);
       return;
     }
@@ -263,19 +298,26 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     void (async () => {
       try {
         if (action === 'install') {
-          if (!deps.installIntentController) throw new Error('Approved App install is not product-enabled');
-          const result = await requestAppsInstallFromDetail(entry, deps.installIntentController);
+          if (!installIntentController) throw new Error('Approved App install is not product-enabled');
+          const result = await requestAppsInstallFromDetail(entry, installIntentController);
           if (result.kind === 'confirmation-required') {
             setInstallConfirmation(result.intent);
           } else {
             setActionError(appsInstallIntentFailure(result));
           }
+        } else if (action === 'uninstall') {
+          if (!entry.committedRelease || !deps.uninstall) throw new Error('App uninstall is unavailable');
+          await deps.uninstall(entry);
         } else if (action === 'launch') {
-          if (!entry.localDevelopment) throw new Error('Installed App launch is not implemented');
-          await liveBridge.startRegistration(entry.localDevelopment.selector);
+          if (entry.localDevelopment) await liveBridge.startRegistration(entry.localDevelopment.selector);
+          else if (entry.committedRelease && liveBridge.launchInstalled) {
+            const run = await liveBridge.launchInstalled(entry.committedRelease.launchSelector.slice());
+            if (run.state === 'crashed') setActionError(run.message || run.reasonCode || 'Installed App launch failed');
+          } else throw new Error('Installed App launch is unavailable');
         } else if (action === 'stop') {
-          if (!entry.localDevelopment) throw new Error('Catalog App has no supervised run');
-          await liveBridge.stopRun(entry.localDevelopment.selector);
+          if (entry.localDevelopment) await liveBridge.stopRun(entry.localDevelopment.selector);
+          else if (entry.committedRelease && liveBridge.stopInstalled) await liveBridge.stopInstalled(entry.committedRelease.launchSelector.slice());
+          else throw new Error('Installed App has no supervised run');
         } else if (action === 'remove') {
           if (!entry.localDevelopment) throw new Error('Catalog App has no local-development registration');
           await liveBridge.removeRegistration(entry.localDevelopment.selector);
@@ -292,13 +334,14 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
         setActiveAction(null);
       }
     })();
-  }, [activeAction, deps.cancelPackageJob, deps.installIntentController, liveBridge, projection, reload]);
+  }, [activeAction, deps.cancelPackageJob, deps.uninstall, installIntentController, liveBridge, projection, reload]);
 
   const retryProjection = useCallback((): void => {
     setProjection(null);
     setActionError(null);
     void reload(true);
-  }, [reload]);
+    void reloader.refreshCatalog();
+  }, [reload, reloader]);
 
   const closeDetail = useCallback((): void => setDetailEntryKey(null), []);
   const acknowledgeAIConfigMutation = useCallback((
@@ -314,23 +357,23 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
   }, [reload]);
 
   const confirmInstall = useCallback((): void => {
-    if (!installConfirmation || !deps.installIntentController || activeAction) return;
+    if (!installConfirmation || !installIntentController || activeAction) return;
     const entryKey = desktopAppsEntryKey(installConfirmation.appId, 'verified');
     setInstallConfirmation(null);
     setActionError(null);
     setActiveAction({ entryKey, action: 'install' });
-    void deps.installIntentController.confirm().then(async (result) => {
+    void installIntentController.confirm().then(async (result) => {
       setActionError(appsInstallIntentFailure(result));
       await reload(false);
     }).catch((error: unknown) => {
       setActionError(error instanceof Error ? error.message : String(error));
     }).finally(() => setActiveAction(null));
-  }, [activeAction, deps.installIntentController, installConfirmation, reload]);
+  }, [activeAction, installIntentController, installConfirmation, reload]);
 
   const cancelInstall = useCallback((): void => {
-    deps.installIntentController?.cancel();
+    installIntentController?.cancel();
     setInstallConfirmation(null);
-  }, [deps.installIntentController]);
+  }, [installIntentController]);
 
   return {
     projection,

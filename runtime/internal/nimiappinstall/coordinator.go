@@ -49,6 +49,7 @@ var (
 
 type registryResolver interface {
 	Revalidate(context.Context, publicappregistry.ApprovedTargetSelector) (publicappregistry.ResolvedApprovedTarget, error)
+	RevalidateInstalled(context.Context, publicappregistry.ApprovedTargetSelector) (publicappregistry.ResolvedApprovedTarget, error)
 }
 
 type targetDownloader interface {
@@ -57,6 +58,8 @@ type targetDownloader interface {
 
 type Coordinator struct {
 	operations   sync.RWMutex
+	launchMu     sync.Mutex
+	uninstalls   map[string]uninstallReservation
 	workersMu    sync.Mutex
 	workers      map[string]*installWorker
 	workersWG    sync.WaitGroup
@@ -97,8 +100,24 @@ func newCoordinator(
 	downloader targetDownloader,
 	kernel *localappkernel.Kernel,
 ) (*Coordinator, error) {
+	if registryClient == nil || downloader == nil {
+		return nil, ErrInvalidCoordinator
+	}
+	coordinator, err := openPackageOwner(kernel)
+	if err != nil {
+		return nil, err
+	}
+	coordinator.registry = registryClient
+	coordinator.downloader = downloader
+	return coordinator, nil
+}
+
+func openPackageOwner(kernel *localappkernel.Kernel) (*Coordinator, error) {
+	if kernel == nil {
+		return nil, ErrInvalidCoordinator
+	}
 	root := filepath.Clean(strings.TrimSpace(kernel.DataRoot()))
-	if registryClient == nil || downloader == nil || kernel == nil || kernel.PackageLifecycle() == nil ||
+	if kernel.PackageLifecycle() == nil ||
 		kernel.Registrations() == nil || root == "." || !filepath.IsAbs(root) || root == filepath.VolumeName(root)+string(filepath.Separator) {
 		return nil, ErrInvalidCoordinator
 	}
@@ -114,8 +133,8 @@ func newCoordinator(
 		return nil, fmt.Errorf("open public App package owner root: %w", err)
 	}
 	return &Coordinator{
-		registry: registryClient, downloader: downloader, kernel: kernel, lifecycle: kernel.PackageLifecycle(),
-		packagesRoot: packagesRoot, packagesPath: packagesPath, workers: make(map[string]*installWorker),
+		kernel: kernel, lifecycle: kernel.PackageLifecycle(),
+		packagesRoot: packagesRoot, packagesPath: packagesPath, workers: make(map[string]*installWorker), uninstalls: make(map[string]uninstallReservation),
 	}, nil
 }
 
@@ -162,8 +181,8 @@ func (coordinator *Coordinator) Install(
 }
 
 // StartInstall persists the exact approved job before returning and then runs
-// it under Coordinator supervision. Product reachability is owned elsewhere;
-// this method is not registered in an RPC profile by this phase.
+// it under Coordinator supervision. Startup injects this owner only after
+// recovery, and the protected Desktop product profile owns its RPC entry.
 func (coordinator *Coordinator) StartInstall(
 	ctx context.Context,
 	selector publicappregistry.ApprovedTargetSelector,

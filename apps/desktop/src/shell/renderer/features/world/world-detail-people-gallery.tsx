@@ -8,10 +8,9 @@ import { worldDetailPaperContentFrameStyle } from './world-detail-layout.js';
 import {
   IconChat,
   IconChevron,
+  IconPlus,
   IconUsers,
   PaperAvatar,
-  paperGhostButton,
-  paperPrimaryButton,
 } from './world-detail-paper-primitives';
 import {
   availableGroupBys,
@@ -22,12 +21,6 @@ import {
   type PeopleGroup,
   type PeopleGroupBy,
 } from './world-detail-people-gallery-model';
-
-function relationLabel(character: WorldCharacter, t: ReturnType<typeof useTranslation>['t']): string {
-  if (character.relation?.state === 'connected') return t('WorldDetail.paper.characters.connected');
-  if (character.relation?.state === 'unavailable') return t('WorldDetail.paper.characters.unavailable');
-  return t('WorldDetail.paper.characters.connect');
-}
 
 function groupTitle(group: PeopleGroup, t: ReturnType<typeof useTranslation>['t']): string {
   if (group.kind === 'faction') {
@@ -58,6 +51,67 @@ const PEOPLE_GALLERY_BOTTOM_GUTTER_PX = 24;
 const PEOPLE_GALLERY_SIDE_GUTTER_PX = 20;
 const PEOPLE_ARCHIVE_PANEL_MIN_HEIGHT_PX = 560;
 
+/** Compact pill action pinned to the card header — replaces the old full-width bottom button. */
+function PeopleCardAction({
+  character,
+  onMaterializeSource,
+  onOpenConversation,
+}: {
+  character: WorldCharacter;
+  onMaterializeSource?: (character: WorldCharacter) => Promise<void> | void;
+  onOpenConversation?: (character: WorldCharacter) => Promise<void> | void;
+}) {
+  const { t } = useTranslation();
+  const state = character.relation?.state;
+  if (state === 'connected') {
+    return (
+      <button
+        type="button"
+        onClick={() => onOpenConversation?.(character)}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0,
+          padding: '5px 11px', borderRadius: 999, border: 'none',
+          background: 'var(--nimi-action-primary-bg)', color: 'var(--nimi-action-primary-text)',
+          fontFamily: 'var(--nimi-font-sans)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+        }}
+      >
+        <IconChat size={13} color="currentColor" strokeWidth={2.2} />
+        {t('WorldDetail.paper.characters.chatNow')}
+      </button>
+    );
+  }
+  if (state === 'connectable') {
+    return (
+      <button
+        type="button"
+        onClick={() => onMaterializeSource?.(character)}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0,
+          padding: '5px 11px', borderRadius: 999,
+          border: '1px solid color-mix(in srgb, var(--nimi-action-primary-bg) 32%, transparent)',
+          background: 'color-mix(in srgb, var(--nimi-action-primary-bg) 8%, transparent)',
+          color: 'var(--nimi-action-primary-bg)',
+          fontFamily: 'var(--nimi-font-sans)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+        }}
+      >
+        <IconPlus size={13} color="currentColor" strokeWidth={2.2} />
+        {t('WorldDetail.paper.characters.connect')}
+      </button>
+    );
+  }
+  return (
+    <span
+      style={{
+        flexShrink: 0, padding: '4px 9px', borderRadius: 999,
+        fontSize: 11, fontWeight: 600, color: 'var(--nimi-text-muted)',
+        background: 'color-mix(in srgb, var(--nimi-text-muted) 10%, transparent)',
+      }}
+    >
+      {t('WorldDetail.paper.characters.unavailable')}
+    </span>
+  );
+}
+
 function PeopleCard({
   character,
   onSelect,
@@ -72,21 +126,20 @@ function PeopleCard({
   onOpenConversation?: (character: WorldCharacter) => Promise<void> | void;
 }) {
   const { t } = useTranslation();
-  const connectable = character.relation?.state === 'connectable';
-  const connected = character.relation?.state === 'connected';
   const tier = tierBadgeTone[character.importance];
   const cardStyle: CSSProperties = {
     background: 'var(--nimi-surface-panel)',
     border: '1px solid var(--nimi-border-subtle)',
     borderRadius: 'var(--nimi-radius-md)',
-    padding: 15,
+    padding: 13,
     display: 'flex',
     flexDirection: 'column',
+    gap: 10,
   };
   const vitality = character.stats?.vitalityScore;
   return (
     <div style={cardStyle}>
-      <div style={{ display: 'flex', gap: 11, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: 11, alignItems: 'center' }}>
         <button
           type="button"
           aria-label={t('WorldDetail.paper.characters.openProfile', {
@@ -94,9 +147,9 @@ function PeopleCard({
             defaultValue: `Open ${character.name} profile`,
           })}
           onClick={() => (onViewCharacter ? onViewCharacter(character) : onSelect(character.id))}
-          style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer' }}
+          style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', flexShrink: 0 }}
         >
-          <PaperAvatar name={character.name} imageUrl={character.avatarUrl} size={48} />
+          <PaperAvatar name={character.name} imageUrl={character.avatarUrl} size={44} />
         </button>
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -107,18 +160,23 @@ function PeopleCard({
                 defaultValue: `Open ${character.name} profile`,
               })}
               onClick={() => (onViewCharacter ? onViewCharacter(character) : onSelect(character.id))}
-              style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 16, fontWeight: 700, color: 'var(--nimi-text-primary)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              style={{ border: 0, background: 'transparent', padding: 0, cursor: 'pointer', fontSize: 15, fontWeight: 700, color: 'var(--nimi-text-primary)', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
             >
               {character.name}
             </button>
           </div>
-          <div style={{ fontSize: 12, color: 'var(--nimi-text-secondary)', lineHeight: 1.5, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: 12, color: 'var(--nimi-text-secondary)', lineHeight: 1.5, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {characterMeta(character)}
           </div>
         </div>
+        <PeopleCardAction
+          character={character}
+          onMaterializeSource={onMaterializeSource}
+          onOpenConversation={onOpenConversation}
+        />
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', margin: '12px 0 13px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 10.5, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: tier.bg, color: tier.color }}>
           {t(`WorldDetail.paper.gallery.tier.${character.importance}.label`)}
         </span>
@@ -128,44 +186,6 @@ function PeopleCard({
             <span style={{ fontWeight: 700, color: 'var(--nimi-text-primary)' }}>{formatNum(Math.round(vitality))}</span>
           </span>
         ) : null}
-      </div>
-
-      <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
-        <button
-          type="button"
-          disabled={!connectable && !connected}
-          onClick={() => (connected ? onOpenConversation?.(character) : onMaterializeSource?.(character))}
-          style={{
-            ...paperPrimaryButton,
-            flex: 1,
-            // Solid fill marks the ready-to-chat state; the add action stays an
-            // outlined tint so the two are visually distinct.
-            border: connected
-              ? 'none'
-              : connectable
-                ? '1px solid color-mix(in srgb, var(--nimi-action-primary-bg) 32%, transparent)'
-                : 'none',
-            background: connected
-              ? 'var(--nimi-action-primary-bg)'
-              : connectable
-                ? 'color-mix(in srgb, var(--nimi-action-primary-bg) 8%, transparent)'
-                : 'var(--nimi-border-subtle)',
-            color: connected
-              ? 'var(--nimi-action-primary-text)'
-              : connectable
-                ? 'var(--nimi-action-primary-bg)'
-                : 'var(--nimi-text-muted)',
-            cursor: connectable || connected ? 'pointer' : 'default',
-          }}
-        >
-          {connected ? t('WorldDetail.paper.characters.chatNow') : relationLabel(character, t)}
-        </button>
-        {connected ? null : (
-          <button type="button" onClick={() => onSelect(character.id)} style={{ ...paperGhostButton, flex: 1 }}>
-            <IconChat size={14} color="var(--nimi-text-primary)" strokeWidth={1.7} />
-            {t('WorldDetail.paper.characters.chat')}
-          </button>
-        )}
       </div>
     </div>
   );

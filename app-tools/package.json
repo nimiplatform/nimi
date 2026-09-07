@@ -1,6 +1,6 @@
 {
   "name": "@nimiplatform/app-tools",
-  "version": "0.2.5",
+  "version": "0.2.8",
   "description": "Public app-authoring CLI for Nimi App projects.",
   "license": "Apache-2.0",
   "type": "module",
@@ -18,11 +18,11 @@
     "provenance": true
   },
   "nimiScaffoldVersions": {
-    "sdkVersion": "^0.9.1",
-    "appToolsVersion": "^0.2.5",
-    "nimicodingVersion": "0.6.1",
+    "sdkVersion": "^0.10.0",
+    "appToolsVersion": "^0.2.8",
+    "nimicodingVersion": "0.6.2",
     "aiSdkVersion": "^6.0.85",
-    "kitVersion": "^0.5.0",
+    "kitVersion": "^0.6.0",
     "reactVersion": "^19.2.8",
     "reactDomVersion": "^19.2.8",
     "i18nextVersion": "^25.10.10",
@@ -57,8 +57,8 @@
     "sync:app-source": "node scripts/sync-app-source.mjs --apply",
     "prepack": "pnpm run build",
     "prepublishOnly": "pnpm run build",
-    "test": "node scripts/sync-scaffold-versions.mjs --check && node ../scripts/with-workspace-surfaces.mjs -- node --test test/simulator-conformance.test.mjs test/dev-shell.test.mjs && node ../scripts/with-workspace-surfaces.mjs -- node --test test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-scaffold.test.mjs",
-    "test:full": "node ../scripts/with-workspace-surfaces.mjs -- node --test --test-name-pattern=\"^(sync regenerates|sync rejects|unsupported previous app scaffold lock|check fails closed on a missing scaffold lock|check fails closed on provider/model hardcoding|check fails closed on app-owned Realm permission grant shortcuts|check fails closed on installed-app custody bypasses|check requires official Desktop-supervised development scripts|sync fails closed on unsupported locks and classification conflicts|app source resolves only scaffoldable slices)\" test/app-scaffold.test.mjs"
+    "test": "node ../scripts/with-workspace-surfaces.mjs -- pnpm run test:prepared",
+    "test:prepared": "node scripts/sync-scaffold-versions.mjs --check && node --test test/simulator-conformance.test.mjs test/dev-shell.test.mjs && node --test test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-scaffold.test.mjs"
   },
   "files": [
     "bin",

@@ -1,11 +1,17 @@
 import { useCallback, useEffect, type ReactElement } from 'react';
+import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import type { AppCardActionId } from './apps-card-actions.js';
 import { useAppsPanelController } from './apps-panel-controller.js';
 import { AppsPanelView } from './apps-panel-view.js';
+import { startAppsPackageInstall } from './apps-install-runtime.js';
+import { finishInstalledAppUninstall } from './apps-installed-bridge.js';
+import type { DesktopAppsEntry } from './apps-panel-projection.js';
 import {
   AppPackageJobPhase,
+  AppPackageJobKind,
+  AppPackageSourceClass,
   ReasonCode,
   type AppPackageJob,
   type CancelAppPackageJobResponse,
@@ -33,11 +39,17 @@ export function dispatchAppsPanelCardAction(input: {
   readonly entryKey: string;
   readonly appId: string;
   readonly action: AppCardActionId;
-  readonly setAppsDetailAppId: (appId: string | null) => void;
+  readonly setAppsDetailAppId: (
+    appId: string | null,
+    section?: NimiDesktopOpenAppsSection | null,
+  ) => void;
   readonly runCardAction: (entryKey: string, action: AppCardActionId) => void;
 }): void {
-  if (input.action === 'details') {
-    input.setAppsDetailAppId(input.appId);
+  if (input.action === 'details' || input.action === 'open-ai-config') {
+    input.setAppsDetailAppId(
+      input.appId,
+      input.action === 'open-ai-config' ? 'ai-models' : null,
+    );
   }
   input.runCardAction(input.entryKey, input.action);
 }
@@ -63,6 +75,16 @@ export function AppsPanel(): ReactElement {
     }
     return response.releases;
   }, [sdk]);
+  const listApprovedCatalogTargets = useCallback(async () => {
+    const response = await sdk.machineProduct().apps.listApprovedAppCatalogTargets({});
+    if (response.reasonCode !== ReasonCode.ACTION_EXECUTED) {
+      throw new Error(`Runtime rejected approved App Catalog: ${String(response.reasonCode)}`);
+    }
+    return response.targets;
+  }, [sdk]);
+  const startInstall = useCallback((approvedTargetSelector: Uint8Array) => (
+    startAppsPackageInstall(sdk.machineProduct().apps.startAppPackageInstall, approvedTargetSelector)
+  ), [sdk]);
   const listPackageJobs = useCallback(async () => {
     const response = await sdk.machineProduct().apps.listAppPackageJobs({});
     if (response.reasonCode !== ReasonCode.ACTION_EXECUTED) {
@@ -78,8 +100,32 @@ export function AppsPanel(): ReactElement {
     });
     assertCanceledPackageJobResponse(job, response);
   }, [sdk]);
+  const uninstall = useCallback(async (entry: DesktopAppsEntry) => {
+    const release = entry.committedRelease;
+    if (!release) throw new Error('App is not installed');
+    const selector = release.launchSelector.slice();
+    const response = await sdk.machineProduct().apps.startAppPackageUninstall({ launchSelector: selector });
+    const job = response.job;
+    if (response.reasonCode !== ReasonCode.ACTION_EXECUTED || !job || job.jobId.length === 0
+      || job.appId !== entry.identity.appId || job.targetRef !== release.releaseRef || job.kind !== AppPackageJobKind.UNINSTALL
+      || job.sourceClass !== AppPackageSourceClass.VERIFIED || job.phase !== AppPackageJobPhase.QUEUED) {
+      throw new Error('Runtime did not reserve the exact App uninstall');
+    }
+    try {
+      await finishInstalledAppUninstall(job.jobId.slice(), selector);
+    } catch (error) {
+      const current = await sdk.machineProduct().apps.getAppPackageJob({ jobId: job.jobId }).catch(() => null);
+      if (current?.job?.phase === AppPackageJobPhase.QUEUED && current.job.cancelable) {
+        await sdk.machineProduct().apps.cancelAppPackageJob({ jobId: job.jobId, expectedPhase: AppPackageJobPhase.QUEUED, reasonCode: 'uninstall-not-completed' }).catch(() => undefined);
+      }
+      throw error;
+    }
+  }, [sdk]);
   const controller = useAppsPanelController({
     cancelPackageJob,
+    listApprovedCatalogTargets,
+    startInstall,
+    uninstall,
     listCommittedReleases,
     listPackageJobs,
     readAppAIConfig,

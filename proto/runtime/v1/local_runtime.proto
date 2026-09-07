@@ -71,44 +71,36 @@ message RemoveModelAssetResponse {
 
 message SearchCatalogModelsRequest {
   string query           = 1;
-  string capability      = 2;
-  reserved 3;
-  reserved "limit";
-  string category_filter = 4;
-  string engine_filter   = 5;
+  reserved 2, 3, 5;
+  reserved "capability", "limit", "engine_filter";
+  string category        = 4;
   int32 page_size        = 6;
   string page_token      = 7;
 }
 
 message SearchCatalogModelsResponse {
-  repeated LocalCatalogModelDescriptor items = 1;
-  string next_page_token                     = 2;
+  repeated ModelAssetCatalogSearchResult items = 1;
+  string next_page_token = 2;
 }
 
-message LocalCatalogVariantDescriptor {
-  string filename = 1;
-  string entry    = 2;
-  repeated string files = 3;
-  string format = 4;
-  int64 size_bytes = 5;
-  string sha256 = 6;
+// Read-only model card for either a browse result or an exact market offer.
+message GetCatalogModelCardRequest {
+  string model_locator = 1;
+  string offer_ref = 2;
+}
+
+message GetCatalogModelCardResponse {
+  string markdown = 1;
+  string source_url = 2;
+  string base_url = 3;
 }
 
 message ListCatalogVariantsRequest {
-  string repo = 1;
+  string model_locator = 1;
 }
 
 message ListCatalogVariantsResponse {
-  repeated LocalCatalogVariantDescriptor variants = 1;
-}
-
-message GetRecommendationFeedRequest {
-  string capability = 1;
-  int32 page_size   = 2;
-}
-
-message GetRecommendationFeedResponse {
-  LocalRecommendationFeedDescriptor feed = 1;
+  repeated ModelAssetMarketCandidate variants = 1;
 }
 
 message ResolveModelInstallPlanRequest {
@@ -129,6 +121,7 @@ message ResolveModelInstallPlanRequest {
   string endpoint                      = 13;
   google.protobuf.Struct engine_config = 14;
   string model_type                    = 15;
+  string offer_ref = 16;
 }
 
 message ResolveModelInstallPlanResponse {
@@ -458,8 +451,10 @@ service RuntimeLocalService {
 
   // Catalog & Install
   rpc SearchCatalogModels(SearchCatalogModelsRequest) returns (SearchCatalogModelsResponse);
+  rpc GetCatalogModelCard(GetCatalogModelCardRequest) returns (GetCatalogModelCardResponse);
   rpc ListCatalogVariants(ListCatalogVariantsRequest) returns (ListCatalogVariantsResponse);
-  rpc GetRecommendationFeed(GetRecommendationFeedRequest) returns (GetRecommendationFeedResponse);
+  rpc ListFeaturedModelAssets(ListFeaturedModelAssetsRequest) returns (ListFeaturedModelAssetsResponse);
+  rpc ListFactoryProfileRecommendations(ListFactoryProfileRecommendationsRequest) returns (ListFactoryProfileRecommendationsResponse);
   rpc ResolveModelInstallPlan(ResolveModelInstallPlanRequest) returns (ResolveModelInstallPlanResponse);
   rpc InstallModelFromPlan(InstallModelFromPlanRequest) returns (InstallModelFromPlanResponse);
 

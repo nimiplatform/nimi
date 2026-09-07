@@ -470,6 +470,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RenderLocalAppConversationVoiceResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
+    "service": "RuntimeAgentService",
+    "method": "ResolveDesktopAgentReference",
+    "kind": "unary",
+    "requestType": "ResolveDesktopAgentReferenceRequest",
+    "responseType": "ResolveDesktopAgentReferenceResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
     "service": "RuntimeAgentService",
     "method": "SendLocalAppConversationTurn",
@@ -894,6 +902,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "StartAppPackageInstallResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall",
+    "service": "RuntimeAppPackageService",
+    "method": "StartAppPackageUninstall",
+    "kind": "unary",
+    "requestType": "StartAppPackageUninstallRequest",
+    "responseType": "StartAppPackageUninstallResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
     "service": "RuntimeAppService",
     "method": "AdoptLocalAppArtifact",
@@ -910,12 +926,36 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "BindLocalAppProcessResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall",
+    "service": "RuntimeAppService",
+    "method": "CompleteAppPackageUninstall",
+    "kind": "unary",
+    "requestType": "CompleteAppPackageUninstallRequest",
+    "responseType": "CompleteAppPackageUninstallResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun",
+    "service": "RuntimeAppService",
+    "method": "EndInstalledAppRun",
+    "kind": "unary",
+    "requestType": "EndInstalledAppRunRequest",
+    "responseType": "EndInstalledAppRunResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/GetAppStorage",
     "service": "RuntimeAppService",
     "method": "GetAppStorage",
     "kind": "unary",
     "requestType": "GetAppStorageRequest",
     "responseType": "GetAppStorageResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess",
+    "service": "RuntimeAppService",
+    "method": "GetInstalledAppRunAccess",
+    "kind": "unary",
+    "requestType": "GetInstalledAppRunAccessRequest",
+    "responseType": "GetInstalledAppRunAccessResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets",
@@ -932,6 +972,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "MoveLocalAppAssetRequest",
     "responseType": "MoveLocalAppAssetResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch",
+    "service": "RuntimeAppService",
+    "method": "PrepareInstalledAppLaunch",
+    "kind": "unary",
+    "requestType": "PrepareInstalledAppLaunchRequest",
+    "responseType": "PrepareInstalledAppLaunchResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
@@ -1438,6 +1486,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
+    "service": "RuntimeLocalService",
+    "method": "GetCatalogModelCard",
+    "kind": "unary",
+    "requestType": "GetCatalogModelCardRequest",
+    "responseType": "GetCatalogModelCardResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
     "service": "RuntimeLocalService",
     "method": "GetLoadout",
@@ -1486,14 +1542,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
-    "service": "RuntimeLocalService",
-    "method": "GetRecommendationFeed",
-    "kind": "unary",
-    "requestType": "GetRecommendationFeedRequest",
-    "responseType": "GetRecommendationFeedResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset",
     "service": "RuntimeLocalService",
     "method": "ImportModelAsset",
@@ -1524,6 +1572,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "ListCatalogVariantsRequest",
     "responseType": "ListCatalogVariantsResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations",
+    "service": "RuntimeLocalService",
+    "method": "ListFactoryProfileRecommendations",
+    "kind": "unary",
+    "requestType": "ListFactoryProfileRecommendationsRequest",
+    "responseType": "ListFactoryProfileRecommendationsResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets",
+    "service": "RuntimeLocalService",
+    "method": "ListFeaturedModelAssets",
+    "kind": "unary",
+    "requestType": "ListFeaturedModelAssetsRequest",
+    "responseType": "ListFeaturedModelAssetsResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes",

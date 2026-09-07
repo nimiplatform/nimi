@@ -151,6 +151,8 @@ type Service struct {
 	localAppSessionTTL         time.Duration
 	localAppRuntimeGeneration  uint64
 	installedAppRegistrationMu sync.Mutex
+	installedLaunchMu          sync.Mutex
+	installedLaunches          map[protectedlocal.Identifier]*installedAppLaunch
 	formalAppMu                sync.Mutex
 	formalApps                 map[formalAppConnectionKey]*formalAppBinding
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiappinstall"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/publicappregistry"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -176,10 +177,31 @@ func (s *Service) CancelAppPackageJob(
 	if !ok {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if s == nil || s.appInstallCoordinator == nil {
+	store, err := s.packageLifecycleStore()
+	if err != nil {
+		return nil, err
+	}
+	job, err := store.GetJob(ctx, string(req.GetJobId()))
+	if err != nil {
+		return nil, appPackageLifecycleError("cancel App package job", err)
+	}
+	registryOwned := job.SourceClass == localappkernel.SourceClassVerified &&
+		(job.Kind == localappkernel.PackageJobInstall || job.Kind == localappkernel.PackageJobUninstall)
+	if registryOwned && s.appInstallCoordinator == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE)
 	}
-	job, err := s.appInstallCoordinator.CancelInstall(ctx, string(req.GetJobId()), expected, req.GetReasonCode())
+	if !registryOwned {
+		job, err = store.Cancel(ctx, job.JobID, expected, req.GetReasonCode())
+	} else if job.Kind == localappkernel.PackageJobUninstall {
+		job, err = s.appInstallCoordinator.CancelUninstall(ctx, job.JobID, expected, req.GetReasonCode())
+		if err == nil {
+			if owner, ok := protectedlocal.DesktopConnectionFromContext(ctx); ok {
+				owner.UnbindRevocationHook(uninstallJobHook(job.JobID))
+			}
+		}
+	} else {
+		job, err = s.appInstallCoordinator.CancelInstall(ctx, job.JobID, expected, req.GetReasonCode())
+	}
 	if err != nil {
 		return nil, appPackageLifecycleError("cancel App package job", err)
 	}
@@ -369,6 +391,8 @@ func packageSourceClassToProto(value localappkernel.SourceClass) (runtimev1.AppP
 	switch value {
 	case localappkernel.SourceClassVerified:
 		return runtimev1.AppPackageSourceClass_APP_PACKAGE_SOURCE_CLASS_VERIFIED, true
+	case localappkernel.SourceClassUserImported:
+		return runtimev1.AppPackageSourceClass_APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED, true
 	default:
 		return runtimev1.AppPackageSourceClass_APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED, false
 	}
@@ -393,6 +417,7 @@ func packageJobPhaseToProto(value localappkernel.PackageJobPhase) (runtimev1.App
 	values := map[localappkernel.PackageJobPhase]runtimev1.AppPackageJobPhase{
 		localappkernel.PackageJobQueued:             runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_QUEUED,
 		localappkernel.PackageJobDownloading:        runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_DOWNLOADING,
+		localappkernel.PackageJobReadingLocal:       runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_READING_LOCAL,
 		localappkernel.PackageJobVerifying:          runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_VERIFYING,
 		localappkernel.PackageJobVerifyingInstalled: runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED,
 		localappkernel.PackageJobAcquiringMissing:   runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING,
@@ -412,6 +437,7 @@ func packageJobPhaseFromProto(value runtimev1.AppPackageJobPhase) (localappkerne
 	values := map[runtimev1.AppPackageJobPhase]localappkernel.PackageJobPhase{
 		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_QUEUED:              localappkernel.PackageJobQueued,
 		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_DOWNLOADING:         localappkernel.PackageJobDownloading,
+		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_READING_LOCAL:       localappkernel.PackageJobReadingLocal,
 		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_VERIFYING:           localappkernel.PackageJobVerifying,
 		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED: localappkernel.PackageJobVerifyingInstalled,
 		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING:   localappkernel.PackageJobAcquiringMissing,

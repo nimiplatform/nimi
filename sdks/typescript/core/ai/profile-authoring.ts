@@ -90,7 +90,16 @@ export interface NimiAIProfileAuthoringValidationResult {
   readonly localConfigurationDigests: Readonly<Record<string, NimiAIProfileEquivalenceDigest>>;
 }
 
-export type NimiAIProfileAuthoringProjectedRequirement = NimiLoadoutRecipe['slots'][number];
+export type NimiAIProfileAuthoringProjectedRequirement = Pick<
+  NimiLoadoutRecipe['slots'][number],
+  | 'slotId'
+  | 'displayLabel'
+  | 'recommendedContentIds'
+  | 'recommendedVariantIds'
+  | 'modelContract'
+  | 'presence'
+  | 'conditionalFeatures'
+>;
 
 export interface NimiAIProfileAuthoringRequirementProjection {
   readonly source: 'runtime-recipe';

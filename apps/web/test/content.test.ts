@@ -40,31 +40,19 @@ test('content keeps the consumer hero and SDK paths complete in both locales', a
     assert.equal(content.security.statuses.length, 2);
     assert.ok(content.security.links.some((link) => link.href === '/download'));
     assert.ok(content.security.links.some((link) => link.href === '/code-signing'));
-    assert.ok(content.security.links.some((link) => (
-      link.href === 'https://github.com/nimiplatform/nimi/releases/tag/v0.2.2-preview.1'
-    )));
     assert.ok(content.security.links.some((link) => link.href === 'mailto:security@nimi.ai'));
   }
 });
 
-test('English homepage exposes fail-closed signing, preview, and App lifecycle status', async () => {
+test('English homepage exposes App lifecycle status', async () => {
   const content = await loadLandingContent('en');
-  assert.ok(content.desktop.availability.items.includes(
-    'Unsigned Windows x64 Runtime bootstrap v0.2.2-preview.1 available',
-  ));
-  assert.ok(content.desktop.availability.items.includes(
-    'Windows signed RC and Stable pending production code signing',
-  ));
-  assert.ok(content.desktop.availability.items.includes(
-    'Unsigned previews use explicit non-promotable vX.Y.Z-preview.N tags',
-  ));
   assert.ok(content.apps.notes.some((item) => (
-    item.includes('Registry-approved verified package')
-    && item.includes('Developer Mode')
-    && item.includes('ordinary install')
-    && item.includes('not available yet')
+    item.includes('Registry-approved package')
+    && item.includes('explicit immutable local-package import')
+    && item.includes('Windows x86_64')
+    && item.includes('import entry')
+    && item.includes('remain unavailable')
   )));
-  assert.ok(content.apps.notes.every((item) => !item.includes('local-import')));
 });
 
 test('SDK landing content separates hero highlights from the full capability matrix', async () => {
@@ -95,6 +83,7 @@ test('homepage leads with consumer experiences and keeps download honesty', asyn
     const content = await loadLandingContent(locale);
 
     assert.equal(content.experiences.cards.length, 3);
+    assert.deepEqual(content.experiences.cards.map((card) => card.id), ['conversation', 'memory', 'proactive-companion']);
     assert.ok(content.experiences.cards.every((card) => (
       card.title.length > 0
       && card.description.length > 0
@@ -115,9 +104,5 @@ test('homepage leads with consumer experiences and keeps download honesty', asyn
       locale === 'zh' ? /没有已发布的 Nimi 稳定版/ : /No stable Nimi release or installer is currently published/,
     );
     assert.match(downloadFaq.answer, /v0\.2\.2-preview\.1/);
-    assert.match(
-      downloadFaq.answer,
-      locale === 'zh' ? /portable Windows x64 Runtime bootstrap/ : /unsigned portable Windows x64 Runtime bootstrap/,
-    );
   }
 });

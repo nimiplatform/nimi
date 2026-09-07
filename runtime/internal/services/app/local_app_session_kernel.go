@@ -273,6 +273,10 @@ func (s *Service) deriveLocalAppRuntimeSession(ctx context.Context, connection *
 		return localAppRuntimeSession{}, localappkernel.ErrRegistrationTombstoned
 	}
 	if installedHandle, installed := connection.InstalledRegistrationHandle(); installed {
+		if sourceGeneration, declarationGeneration, bound := connection.InstalledLaunchGenerations(); bound &&
+			(sourceGeneration != registration.SourceGeneration || declarationGeneration != registration.DeclarationGeneration) {
+			return localAppRuntimeSession{}, errLocalAppRegistrationGenerationChanged
+		}
 		expectedSource, sourceOK := installedSourceClass(connection.TrustClass())
 		if !sourceOK || installedHandle != registration.RegistrationHandle || registration.SourceClass != expectedSource ||
 			!registration.ImmutablePackageFactsComplete() || strings.TrimSpace(registration.PayloadRootDigest) == "" ||
@@ -328,6 +332,8 @@ func installedSourceClass(trustClass protectedlocal.LocalAppTrustClass) (localap
 	switch trustClass {
 	case protectedlocal.LocalAppTrustBuiltIn, protectedlocal.LocalAppTrustVerified:
 		return localappkernel.SourceClassVerified, true
+	case protectedlocal.LocalAppTrustUserImported:
+		return localappkernel.SourceClassUserImported, true
 	default:
 		return "", false
 	}
@@ -341,6 +347,8 @@ func authorizationTrustClass(trustClass protectedlocal.LocalAppTrustClass) (acco
 		return accountservice.LocalAppTrustClassBuiltIn, true
 	case protectedlocal.LocalAppTrustVerified:
 		return accountservice.LocalAppTrustClassVerified, true
+	case protectedlocal.LocalAppTrustUserImported:
+		return accountservice.LocalAppTrustClassUserImported, true
 	default:
 		return "", false
 	}

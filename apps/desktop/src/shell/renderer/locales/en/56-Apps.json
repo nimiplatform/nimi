@@ -23,21 +23,30 @@
     "accessDeclarationsDetail": "declared by projects"
   },
   "library": {
+    "pageTitle": "App Center",
     "sortLabel": "Sort apps",
     "sortUpdated": "Recently updated",
     "sortName": "Name",
     "sortActivity": "Running first",
     "backToLibrary": "Back to Apps",
-    "connectLocalTitle": "Connect a local project",
-    "cardMenuLabel": "App actions"
+    "connectLocalTitle": "Add App",
+    "cardMenuLabel": "App actions",
+    "searchPlaceholder": "Search installed apps",
+    "frequentTitle": "Frequently Used",
+    "allAppsTitle": "All Apps",
+    "allAppsCount": "{{count}}",
+    "filterRunning": "Running",
+    "filterNeedsAttention": "Needs Attention"
   },
   "sourceBadge": {
+    "userImported": "Imported",
     "localDevelopment": "Local development",
     "verified": "Registry approved"
   },
   "catalog": {
+    "loading": "Loading the App Catalog…",
     "registryApproved": "This release was approved through the public Nimi App Registry. Its descriptor binds the exact Release asset, digest, and provenance, and Runtime verifies the downloaded package again. Approval and verification are not a malware-free or operating-system execution guarantee.",
-    "policyBlocked": "Installation is blocked by the current Registry policy (revision {{revision}}): {{reason}}",
+    "policyBlocked": "New installation or launch is blocked by the current Registry policy (revision {{revision}}): {{reason}}",
     "policyBlockedFallback": "No reason was provided.",
     "publisher": "Publisher on GitHub",
     "sourceRepository": "Public source",
@@ -57,7 +66,7 @@
     "unsignedConfirmAction": "Continue and install"
   },
   "catalogNotImplemented": "Public App catalog search is not implemented yet.",
-  "installedLaunchUnavailable": "Installed App launch is not implemented yet. Installation remains recorded, but only local-development Apps can currently be launched.",
+  "installedAccess": { "ready": "Nimi Access ready", "unavailable": "Nimi Access unavailable" },
   "listTitle": "App list",
   "listDescription": "Filter registered apps by whether they declare App Access domains.",
   "filter": {
@@ -158,6 +167,7 @@
     "uninstalling": "Uninstalling"
   },
   "action": {
+    "focus": "Show window",
     "install": "Install",
     "open": "Open",
     "connectLocal": "Connect local app",
@@ -208,17 +218,18 @@
     "configuredSummary": "Model settings complete",
     "emptySummary": "No model selected",
     "summary": {
-      "local": "AI: Local · {{summaryCount}}",
-      "cloud": "AI: Cloud · {{summaryCount}}",
-      "mixed": "AI: Mixed · {{summaryCount}}",
-      "partialLocal": "AI: Partial Local · {{summaryCount}}",
-      "partialCloud": "AI: Partial Cloud · {{summaryCount}}",
-      "partialMixed": "AI: Partial Mixed · {{summaryCount}}",
+      "local": "AI Local · {{summaryCount}}",
+      "cloud": "AI Cloud · {{summaryCount}}",
+      "mixed": "AI Local + Cloud · {{summaryCount}}",
+      "partialLocal": "AI Local · {{summaryCount}}",
+      "partialCloud": "AI Cloud · {{summaryCount}}",
+      "partialMixed": "AI Local + Cloud · {{summaryCount}}",
       "blocked": "{{routeLabel}} · {{blockedCount}} blocked",
       "healthUnavailable": "{{routeLabel}} · health unavailable",
       "unconfigured": "AI not configured",
       "unavailable": "AI config unavailable"
     },
+    "openSettings": "Open AI model settings",
     "loadFailed": "This app's AI configuration could not be loaded from Runtime.",
     "saveFailed": "Runtime could not save this app's AI configuration.",
     "capability": {
@@ -358,6 +369,10 @@
     }
   },
   "confirm": {
+    "uninstall": {
+      "title": "Uninstall App",
+      "message": "Stop {{app}} and remove its local package? App data, shared models and account data will be retained."
+    },
     "removeDevelopment": {
       "title": "Remove local project",
       "message": "Remove {{app}} from Apps? This stops its current run and removes the local development registration without deleting project files.",

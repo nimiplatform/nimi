@@ -38,6 +38,7 @@ import type { DesktopAppsEntry } from './apps-panel-projection.js';
 import {
   actionPlanForEntry,
   canRequestCatalogInstall,
+  canRequestUninstall,
   type AppCardActionId,
 } from './apps-card-actions.js';
 import { appRunVisualState, appSourceForEntry } from './apps-card-fields.js';
@@ -208,7 +209,7 @@ function LocalDevelopmentAppsDetailView({
           {t('Apps.library.backToLibrary')}
         </Button>
 
-        <div className="flex min-w-0 items-start gap-4">
+        <div className="flex min-w-0 items-center gap-5">
           <AppArtworkIcon
             appId={identity.appId}
             displayName={identity.displayName}
@@ -216,58 +217,57 @@ function LocalDevelopmentAppsDetailView({
             size="lg"
           />
           <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
               <h1 data-testid="apps-detail-title" className="break-words text-2xl font-semibold leading-8 text-[color:var(--nimi-text-primary)]">
                 {identity.displayName}
               </h1>
               <AppRunStatusBadge entry={entry} />
-              <AppSourceBadge source={appSourceForEntry(entry)} className="px-2 py-1 text-xs" />
             </div>
-            <div className="mt-2.5 flex flex-wrap items-center gap-2">
-              {actionPlan.primary?.id === 'stop' ? (
-                <Button
-                  data-testid="apps-detail-stop"
+            <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+              <AppSourceBadge source={appSourceForEntry(entry)} variant="quiet" />
+              <span className="min-w-0 truncate font-mono text-[11px] leading-4 text-[color:var(--nimi-text-muted)]">
+                {identity.appId}
+              </span>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {actionPlan.primary?.id === 'stop' ? (
+              <Button
+                data-testid="apps-detail-stop"
+                tone="secondary"
+                loading={activeAction === 'stop'}
+                disabled={activeAction !== null}
+                onClick={() => onAction('stop')}
+              >
+                <Square className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
+                {t('Apps.action.stop')}
+              </Button>
+            ) : (
+              <Button
+                data-testid="apps-detail-launch"
+                tone="primary"
+                loading={activeAction === 'launch'}
+                disabled={activeAction !== null}
+                onClick={() => onAction('launch')}
+              >
+                <Play className="mr-2 h-4 w-4" aria-hidden="true" />
+                {t('Apps.action.launch')}
+              </Button>
+            )}
+            <Popover>
+              <PopoverTrigger asChild>
+                <IconButton
+                  data-testid="apps-detail-more"
+                  icon={<MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
                   tone="secondary"
-                  size="sm"
-                  loading={activeAction === 'stop'}
-                  disabled={activeAction !== null}
-                  onClick={() => onAction('stop')}
-                >
-                  <Square className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
-                  {t('Apps.action.stop')}
-                </Button>
-              ) : (
-                <Button
-                  data-testid="apps-detail-launch"
-                  tone="primary"
-                  size="sm"
-                  loading={activeAction === 'launch'}
-                  disabled={activeAction !== null}
-                  onClick={() => onAction('launch')}
-                >
-                  <Play className="mr-2 h-4 w-4" aria-hidden="true" />
-                  {t('Apps.action.launch')}
-                </Button>
-              )}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <IconButton
-                    data-testid="apps-detail-more"
-                    icon={<MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
-                    tone="secondary"
-                    size="sm"
-                    aria-label={t('Apps.detail.moreActions')}
-                    title={t('Apps.detail.moreActions')}
-                  />
-                </PopoverTrigger>
-                <PopoverContent align="end" sideOffset={6} className="p-1">
-                  <ActionMenu items={menuItems} ariaLabel={t('Apps.detail.moreActions')} />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="mt-2.5">
-              <AppPackageStatusLine entry={entry} />
-            </div>
+                  aria-label={t('Apps.detail.moreActions')}
+                  title={t('Apps.detail.moreActions')}
+                />
+              </PopoverTrigger>
+              <PopoverContent align="end" sideOffset={6} className="p-1">
+                <ActionMenu items={menuItems} ariaLabel={t('Apps.detail.moreActions')} />
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 
@@ -435,6 +435,8 @@ function InstalledAppsDetailView({
   const { t } = useTranslation();
   const release = entry.committedRelease;
   const catalog = entry.catalogTarget;
+  const installedRun = entry.run && 'accessAvailable' in entry.run ? entry.run : null;
+  const [confirmingUninstall, setConfirmingUninstall] = useState(false);
 
   return (
     <div data-testid="apps-detail-body" data-installed-detail className="flex min-h-0 flex-1 flex-col">
@@ -483,9 +485,40 @@ function InstalledAppsDetailView({
               </InlineAlert>
             ) : null}
             {release ? (
-              <InlineAlert tone="info" className="mt-3" data-testid="apps-installed-launch-unavailable">
-                {t('Apps.installedLaunchUnavailable')}
-              </InlineAlert>
+              <div className="mt-3 space-y-3" data-testid="apps-installed-run">
+                <div className="flex flex-wrap items-center gap-3">
+                  <AppRunStatusBadge entry={entry} />
+                  <span className="text-sm" data-testid="apps-installed-access">
+                    {t(installedRun?.accessAvailable ? 'Apps.installedAccess.ready' : 'Apps.installedAccess.unavailable')}
+                  </span>
+                </div>
+                {installedRun?.message ? <InlineAlert tone="danger">{installedRun.message}</InlineAlert> : null}
+                <div className="flex gap-2">
+                  {actionPlanForEntry(entry).primary ? (
+                    <Button tone="primary" size="sm" data-testid="apps-installed-launch"
+                      loading={activeAction === 'launch'} disabled={activeAction !== null} onClick={() => onAction('launch')}>
+                      {t(installedRun?.state === 'running' ? 'Apps.action.focus' : 'Apps.action.launch')}
+                    </Button>
+                  ) : null}
+                  {installedRun?.state === 'running' ? (
+                    <Button tone="secondary" size="sm" data-testid="apps-installed-stop"
+                      loading={activeAction === 'stop'} disabled={activeAction !== null} onClick={() => onAction('stop')}>
+                      {t('Apps.action.stop')}
+                    </Button>
+                  ) : null}
+                  {canRequestUninstall(entry) ? (
+                    <Button tone="danger" size="sm" data-testid="apps-installed-uninstall" disabled={activeAction !== null}
+                      loading={activeAction === 'uninstall'} onClick={() => setConfirmingUninstall(true)}>
+                      {t('Apps.action.uninstall')}
+                    </Button>
+                  ) : null}
+                </div>
+                <ConfirmDialog open={confirmingUninstall} title={t('Apps.confirm.uninstall.title')}
+                  message={t('Apps.confirm.uninstall.message', { app: entry.identity.displayName })}
+                  confirmLabel={t('Apps.action.uninstall')} cancelLabel={t('Common.cancel')} confirmTone="danger"
+                  pending={activeAction === 'uninstall'} onClose={() => setConfirmingUninstall(false)}
+                  onConfirm={() => { setConfirmingUninstall(false); onAction('uninstall'); }} />
+              </div>
             ) : null}
             {canRequestCatalogInstall(entry) ? (
               <Button
@@ -529,7 +562,7 @@ function InstalledAppsDetailView({
           <OverviewCard title={t('Apps.detail.aboutTitle')}>
             <dl className="divide-y divide-[color:var(--nimi-border-subtle)]">
               <DetailRow label={t('LocalDevelopment.field.app')} value={entry.identity.appId} mono />
-              <DetailRow label={t('Apps.detail.source')} value={t('Apps.sourceBadge.verified')} />
+              <DetailRow label={t('Apps.detail.source')} value={t(appSourceForEntry(entry) === 'user_imported' ? 'Apps.sourceBadge.userImported' : 'Apps.sourceBadge.verified')} />
               <DetailRow label={t('Apps.detail.catalogVersion', { defaultValue: 'Version' })} value={release?.version ?? catalog?.version ?? t('Apps.version.notInstalled')} mono />
               {release ? <DetailRow label={t('Apps.detail.releaseRef', { defaultValue: 'Release reference' })} value={release.releaseRef} mono /> : null}
               {catalog ? (

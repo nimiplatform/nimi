@@ -15,14 +15,6 @@ export type RuntimeConfigLocalEnvironmentClient = ReturnType<
   typeof createRuntimeConfigLocalEnvironmentClient
 >;
 
-export async function installRuntimeConfigCatalogAsset(
-  client: RuntimeConfigLocalEnvironmentClient,
-  templateId: string,
-) {
-  const plan = await client.resolveInstallPlan({ templateId });
-  return client.install(plan.planId, { caller: 'core' });
-}
-
 export function useRuntimeConfigLocalEnvironmentClient(): RuntimeConfigLocalEnvironmentClient {
   const sdk = useDesktopRendererSdk();
   return useMemo(

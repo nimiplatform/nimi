@@ -1,6 +1,7 @@
 package grpcserver
 
 import (
+	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -50,6 +51,10 @@ func TestLocalAppSessionWireKeepsPrivateAuthorityOutOfMessages(t *testing.T) {
 
 func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 	desktopMethods := []string{
+		"/nimi.runtime.v1.RuntimeAppService/PrepareInstalledAppLaunch",
+		"/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall",
+		"/nimi.runtime.v1.RuntimeAppService/EndInstalledAppRun",
+		"/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess",
 		"/nimi.runtime.v1.RuntimeAppService/PrepareLocalAppLaunch",
 		"/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
 		"/nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus",
@@ -68,6 +73,12 @@ func TestLocalAppMethodsHaveClosedFinalTransportPosture(t *testing.T) {
 		}
 		if protectedLocalAppUnaryMethodAllowed(method) || protectedLocalAppStreamMethodAllowed(method) {
 			t.Fatalf("Desktop local-app control method %s leaked onto the app-host transport", method)
+		}
+		if _, leaked := protectedlocal.FirstPartyProfileMethod(protectedlocal.DesktopMachineProductProfileID, method); leaked {
+			t.Fatalf("main-only Host Control method %s leaked into the renderer product profile", method)
+		}
+		if _, leaked := protectedlocal.FirstPartyProfileMethod(protectedlocal.DesktopAccountProductProfileID, method); leaked {
+			t.Fatalf("main-only Host Control method %s leaked into the account renderer profile", method)
 		}
 	}
 
@@ -152,5 +163,17 @@ func assertProtectedLocalAppMethodPolicy(t testing.TB, method string, transport 
 	}
 	if policy.transport != transport || policy.role != role {
 		t.Fatalf("local-app policy for %s = %+v, want transport=%q role=%q", method, policy, transport, role)
+	}
+}
+
+func TestDesktopAgentReferenceLookupIsNotAnOrdinaryAppIngress(t *testing.T) {
+	if _, admitted := protectedLocalAppUnaryMethodPolicies[protectedDesktopAgentReferenceResolveMethod]; admitted {
+		t.Fatal("Desktop identity input escaped to ordinary App transport")
+	}
+	if role, admitted := protectedDesktopMethodRole(protectedDesktopAgentReferenceResolveMethod); !admitted || role != protectedlocal.RoleDesktopAccountHost {
+		t.Fatalf("Desktop identity lookup role=%v admitted=%v", role, admitted)
+	}
+	if ingress := protectedLocalAppUnaryIngress(protectedDesktopAgentReferenceResolveMethod, nil); ingress != localappop.IngressAgentReferenceList {
+		t.Fatalf("lookup does not use current reference-list authorization: %v", ingress)
 	}
 }

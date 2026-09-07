@@ -109,7 +109,7 @@ func TestPackageLifecycleCommitAndUninstallBoundariesRejectCancel(t *testing.T) 
 	if _, err := store.Cancel(ctx, uninstall.JobID, PackageJobUnregistering, "too-late"); !errors.Is(err, ErrPackageJobNotCancelable) {
 		t.Fatalf("cancel after uninstall boundary error = %v", err)
 	}
-	completed, err := store.CompleteUninstall(ctx, uninstall.JobID)
+	completed, err := store.CompleteUninstall(ctx, uninstall.JobID, committed.Registration.RegistrationHandle, committed.Registration.SourceGeneration, committed.Registration.DeclarationGeneration)
 	if err != nil || completed.Phase != PackageJobCompleted {
 		t.Fatalf("complete uninstall = %+v err=%v", completed, err)
 	}
@@ -296,9 +296,9 @@ func TestVerifiedRegistrationRequiresProvenanceAttestation(t *testing.T) {
 	if err := validateInstalledInput(input); !errors.Is(err, ErrInvalidArgument) {
 		t.Fatalf("verified empty provenance error = %v", err)
 	}
-	input.SourceClass = SourceClass("user_imported")
-	if err := validateInstalledInput(input); !errors.Is(err, ErrInvalidArgument) {
-		t.Fatalf("retired user-imported source error = %v", err)
+	input.SourceClass = SourceClassUserImported
+	if err := validateInstalledInput(input); err != nil {
+		t.Fatalf("user-imported empty provenance error = %v", err)
 	}
 }
 

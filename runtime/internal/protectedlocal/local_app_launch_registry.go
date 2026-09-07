@@ -72,12 +72,13 @@ func BindLocalDevelopmentProcess(registry *LocalAppLaunchRegistry, ctx context.C
 }
 
 type localAppLaunchBinding struct {
-	launchID Identifier
-	process  ProcessTuple
-	liveness DesktopProcessLiveness
-	done     chan struct{}
-	revoke   func()
-	policy   LocalDevelopmentProcessPolicy
+	launchID  Identifier
+	process   ProcessTuple
+	liveness  DesktopProcessLiveness
+	done      chan struct{}
+	revoke    func()
+	policy    LocalDevelopmentProcessPolicy
+	installed *InstalledAppProcessPolicy
 }
 
 type LocalAppLaunchRegistry struct {
@@ -147,10 +148,61 @@ func (registry *LocalAppLaunchRegistry) BoundProcessPolicy(pid uint32) (ProcessT
 	registry.mu.Lock()
 	defer registry.mu.Unlock()
 	binding := registry.byPID[pid]
-	if binding == nil {
+	if binding == nil || binding.installed != nil {
 		return ProcessTuple{}, LocalDevelopmentProcessPolicy{}, false
 	}
 	return binding.process, binding.policy, true
+}
+
+func (registry *LocalAppLaunchRegistry) BindInstalled(launchID Identifier, policy InstalledAppProcessPolicy, process ProcessTuple, liveness DesktopProcessLiveness, revoke func()) error {
+	if registry == nil || launchID == (Identifier{}) || !policy.valid() || process.validate() != nil || process.ExecutableDigest != policy.HostExecutableDigest ||
+		process.CanonicalExecutablePath != policy.HostExecutablePath || liveness == nil || liveness.Revoked() == nil || revoke == nil {
+		return fmt.Errorf("complete verified installed process is required")
+	}
+	select {
+	case <-liveness.Revoked():
+		return fmt.Errorf("installed process exited before bind")
+	default:
+	}
+	registry.mu.Lock()
+	defer registry.mu.Unlock()
+	if registry.byLaunch[launchID] != nil || registry.byPID[process.PID] != nil {
+		return fmt.Errorf("installed process is already bound")
+	}
+	binding := &localAppLaunchBinding{launchID: launchID, process: process, liveness: liveness, done: make(chan struct{}), revoke: revoke, installed: &policy}
+	registry.byLaunch[launchID], registry.byPID[process.PID] = binding, binding
+	go registry.watch(binding)
+	return nil
+}
+
+func (registry *LocalAppLaunchRegistry) BoundInstalledProcessPolicy(pid uint32) (ProcessTuple, InstalledAppProcessPolicy, bool) {
+	if registry == nil {
+		return ProcessTuple{}, InstalledAppProcessPolicy{}, false
+	}
+	registry.mu.Lock()
+	defer registry.mu.Unlock()
+	binding := registry.byPID[pid]
+	if binding == nil || binding.installed == nil {
+		return ProcessTuple{}, InstalledAppProcessPolicy{}, false
+	}
+	return binding.process, *binding.installed, true
+}
+
+func (registry *LocalAppLaunchRegistry) RevokeInstalled(launchID Identifier) {
+	if registry == nil {
+		return
+	}
+	registry.mu.Lock()
+	binding := registry.byLaunch[launchID]
+	if binding == nil || binding.installed == nil {
+		registry.mu.Unlock()
+		return
+	}
+	delete(registry.byLaunch, launchID)
+	delete(registry.byPID, binding.process.PID)
+	close(binding.done)
+	registry.mu.Unlock()
+	_ = binding.liveness.Close()
 }
 
 func (registry *LocalAppLaunchRegistry) watch(binding *localAppLaunchBinding) {
@@ -183,7 +235,14 @@ func (registry *LocalAppLaunchRegistry) Promote(peer ProcessTuple, pipeLiveness 
 	close(binding.done)
 	registry.mu.Unlock()
 	_ = pipeLiveness.Close()
-	return VerifiedLocalAppLaunchPeer{LaunchID: binding.launchID, Process: binding.process, RuntimeBootEpoch: registry.bootEpoch, ProcessLiveness: binding.liveness, TrustClass: LocalAppTrustLocalDevelopment}, nil
+	result := VerifiedLocalAppLaunchPeer{LaunchID: binding.launchID, Process: binding.process, RuntimeBootEpoch: registry.bootEpoch, ProcessLiveness: binding.liveness, TrustClass: LocalAppTrustLocalDevelopment}
+	if binding.installed != nil {
+		result.TrustClass = LocalAppTrustVerified
+		result.InstalledRegistrationHandle = binding.installed.RegistrationHandle
+		result.SourceGeneration = binding.installed.SourceGeneration
+		result.DeclarationGeneration = binding.installed.DeclarationGeneration
+	}
+	return result, nil
 }
 
 func (registry *LocalAppLaunchRegistry) remove(binding *localAppLaunchBinding, revoke bool) {

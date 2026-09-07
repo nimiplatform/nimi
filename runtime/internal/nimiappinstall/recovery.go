@@ -15,6 +15,20 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/publicappregistry"
 )
 
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040a
+// Recover reconciles the Runtime package store before a Registry client or
+// install coordinator is exposed by the protected product service.
+func Recover(ctx context.Context, kernel *localappkernel.Kernel) error {
+	if ctx == nil {
+		return ErrInvalidCoordinator
+	}
+	owner, err := openPackageOwner(kernel)
+	if err != nil {
+		return err
+	}
+	return errors.Join(owner.Recover(ctx), owner.Close())
+}
+
 func (coordinator *Coordinator) failInstall(
 	callerContext context.Context,
 	job localappkernel.PackageJob,
@@ -179,12 +193,28 @@ func (coordinator *Coordinator) Recover(ctx context.Context) error {
 	if coordinator.packagesRoot == nil || coordinator.lifecycle == nil || coordinator.kernel == nil {
 		return ErrInvalidCoordinator
 	}
-	protected, allowReleaseSweep, recoveryErr := coordinator.protectedReleaseRoots(ctx)
 	jobs, err := coordinator.lifecycle.ListJobs(ctx)
 	if err != nil {
-		return errors.Join(recoveryErr, fmt.Errorf("list App install jobs for recovery: %w", err))
+		return fmt.Errorf("list App package jobs for recovery: %w", err)
 	}
 	for _, job := range jobs {
+		if job.SourceClass != localappkernel.SourceClassVerified {
+			continue
+		}
+		if job.Kind == localappkernel.PackageJobUninstall {
+			if err := coordinator.recoverUninstall(ctx, job); err != nil {
+				return errors.Join(ErrInstallRecoveryRequired, err)
+			}
+		}
+	}
+	protected, allowReleaseSweep, recoveryErr := coordinator.protectedReleaseRoots(ctx)
+	for _, job := range jobs {
+		if job.SourceClass != localappkernel.SourceClassVerified {
+			continue
+		}
+		if job.Kind == localappkernel.PackageJobUninstall {
+			continue
+		}
 		if err := ctx.Err(); err != nil {
 			return errors.Join(recoveryErr, err)
 		}
@@ -235,6 +265,9 @@ func (coordinator *Coordinator) protectedReleaseRoots(ctx context.Context) (map[
 	allowSweep := true
 	var integrityErr error
 	for _, release := range releases {
+		if release.SourceClass != localappkernel.SourceClassVerified {
+			continue
+		}
 		registration, err := coordinator.kernel.Registrations().GetByHandle(ctx, release.RegistrationHandle)
 		if err != nil {
 			allowSweep = false

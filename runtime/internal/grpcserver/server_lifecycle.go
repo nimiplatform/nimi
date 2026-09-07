@@ -72,6 +72,9 @@ func (s *Server) BeginShutdown() []activeRPCSnapshot {
 
 func (s *Server) Stop(ctx context.Context) StopResult {
 	defer func() {
+		if s.appInstallCoordinator != nil {
+			_ = s.appInstallCoordinator.Close()
+		}
 		if s.localService != nil {
 			s.localService.StopProductControlCheckSync()
 		}
