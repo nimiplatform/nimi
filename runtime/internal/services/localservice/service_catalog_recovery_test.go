@@ -482,3 +482,31 @@ func TestUnfilteredCatalogSearchIncludesSpeechAndPassiveAssets(t *testing.T) {
 		t.Fatalf("speech/passive search = %+v err=%v", result, err)
 	}
 }
+
+func TestVerifiedAssetDiscoverySurvivesHuggingFaceSearchFailure(t *testing.T) {
+	svc := newTestService(t)
+	svc.hfCatalogSearch = func(context.Context, hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+		return nil, errors.New("Hugging Face unavailable")
+	}
+	_, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{Query: "qwen"})
+	if status.Code(err) != codes.Unavailable {
+		t.Fatalf("HF failure = %v", err)
+	}
+	assets, err := svc.ListVerifiedAssets(context.Background(), &runtimev1.ListVerifiedAssetsRequest{PageSize: 200})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, asset := range assets.GetAssets() {
+		if asset.GetTemplateId() == "test.chat.qwen2" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("HF failure hid the independent built-in catalog")
+	}
+	plan, err := svc.ResolveModelInstallPlan(context.Background(), &runtimev1.ResolveModelInstallPlanRequest{Source: "verified", TemplateId: "test.chat.qwen2"})
+	if err != nil || plan.GetPlan().GetTemplateId() != "test.chat.qwen2" || plan.GetPlan().GetPlanId() == "" {
+		t.Fatalf("built-in selection did not resolve its exact plan: %+v, %v", plan, err)
+	}
+}

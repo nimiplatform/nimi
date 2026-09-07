@@ -1698,7 +1698,11 @@
       "unknown": "宿主未知"
     },
     "noMatchingAssets": "没有匹配的已安装资产",
-    "searchInstalled": "搜索已安装资产"
+    "searchInstalled": "搜索已安装资产",
+    "builtinCatalog": "内置目录",
+    "builtinCatalogDescription": "独立浏览内置模型和辅助资产，无需等待社区搜索。下载仍需连接模型来源。",
+    "searchBuiltinCatalog": "搜索内置目录",
+    "builtinCatalogEmpty": "没有匹配的内置目录资产。"
   },
   "delegation": {
     "title": "委托能力控制",
