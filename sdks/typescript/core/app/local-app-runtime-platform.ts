@@ -865,13 +865,14 @@ function projectWorldCore(value: unknown): RealmModel<'WorldCoreDto'> {
   if (!origin || !['manual', 'forge', 'worldCharacterDerivation', 'import', 'system'].includes(String(origin.kind))) {
     localAppProjectionError('WorldCore origin kind');
   }
-  const lorebookDeclaration = asRecord(record.lorebookDeclaration);
-  assertAllowedWorldCoreKeys(
-    lorebookDeclaration,
-    ['identityBaseSetting', 'rolePlacements', 'worldRules'],
-    ['identityBaseSetting', 'rolePlacements', 'worldRules'],
-    'WorldCore lorebookDeclaration',
-  );
+  if (record.lorebookDeclaration !== null) {
+    assertAllowedWorldCoreKeys(
+      asRecord(record.lorebookDeclaration),
+      ['identityBaseSetting', 'rolePlacements', 'worldRules'],
+      ['identityBaseSetting', 'rolePlacements', 'worldRules'],
+      'WorldCore lorebookDeclaration',
+    );
+  }
   const core = asRecord(record.core);
   assertAllowedWorldCoreKeys(
     core,
