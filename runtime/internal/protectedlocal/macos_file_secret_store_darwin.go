@@ -1,4 +1,4 @@
-//go:build darwin && cgo && (nimi_macos_local_development || nimi_macos_source_local_development)
+//go:build darwin && cgo
 
 package protectedlocal
 
@@ -18,7 +18,7 @@ import (
 
 const macOSRuntimeSecretDirectoryName = "secrets"
 
-type macOSLocalDevelopmentSecretStore struct {
+type macOSFileSecretStore struct {
 	principal macOSRuntimePrincipal
 
 	mu          sync.Mutex
@@ -28,36 +28,39 @@ type macOSLocalDevelopmentSecretStore struct {
 	closeErr    error
 }
 
+// @nimi-authority: rule.nimi.runtime.protected-session.r003
+// Production callers first validate the signed daemon and its isolated service
+// principal. The same file primitive also serves D2 under its separate principal.
 func openMacOSRuntimeBinarySecretStore(stateRoot string, principal macOSRuntimePrincipal) (macOSRuntimeBinarySecretStore, error) {
 	if stateRoot != MacOSRuntimeStateRoot || principal.uid == 0 || principal.gid == 0 {
 		return nil, fail(
 			ReasonProtectedLocalCustodyBoundaryUnavailable,
 			false,
 			"repair_runtime_service",
-			fmt.Errorf("open macOS local-development Runtime secret custody: fixed state authority is required"),
+			fmt.Errorf("open macOS Runtime secret custody: fixed state authority is required"),
 		)
 	}
-	return openMacOSLocalDevelopmentSecretStore(stateRoot, principal)
+	return openMacOSFileSecretStore(stateRoot, principal)
 }
 
-func openMacOSLocalDevelopmentSecretStore(stateRoot string, principal macOSRuntimePrincipal) (*macOSLocalDevelopmentSecretStore, error) {
+func openMacOSFileSecretStore(stateRoot string, principal macOSRuntimePrincipal) (*macOSFileSecretStore, error) {
 	cleaned := filepath.Clean(stateRoot)
 	if cleaned == "." || !filepath.IsAbs(cleaned) || principal.uid == 0 || principal.gid == 0 {
-		return nil, macOSLocalDevelopmentSecretStoreFailure("open", fmt.Errorf("absolute service-owned state root is required"))
+		return nil, macOSFileSecretStoreFailure("open", fmt.Errorf("absolute service-owned state root is required"))
 	}
 	stateDirectoryFD, err := unix.Open(cleaned, unix.O_RDONLY|unix.O_DIRECTORY|unix.O_CLOEXEC|unix.O_NOFOLLOW, 0)
 	if err != nil {
-		return nil, macOSLocalDevelopmentSecretStoreFailure("open state root", err)
+		return nil, macOSFileSecretStoreFailure("open state root", err)
 	}
 	defer func() { _ = unix.Close(stateDirectoryFD) }()
 	if err := validateOpenMacOSStateDirectory(stateDirectoryFD, principal); err != nil {
-		return nil, macOSLocalDevelopmentSecretStoreFailure("validate state root", err)
+		return nil, macOSFileSecretStoreFailure("validate state root", err)
 	}
 
 	created := false
 	if err := unix.Mkdirat(stateDirectoryFD, macOSRuntimeSecretDirectoryName, 0o700); err != nil {
 		if !errors.Is(err, unix.EEXIST) {
-			return nil, macOSLocalDevelopmentSecretStoreFailure("create secret directory", err)
+			return nil, macOSFileSecretStoreFailure("create secret directory", err)
 		}
 	} else {
 		created = true
@@ -69,7 +72,7 @@ func openMacOSLocalDevelopmentSecretStore(stateRoot string, principal macOSRunti
 		0,
 	)
 	if err != nil {
-		return nil, macOSLocalDevelopmentSecretStoreFailure("open secret directory", err)
+		return nil, macOSFileSecretStoreFailure("open secret directory", err)
 	}
 	accepted := false
 	defer func() {
@@ -78,18 +81,18 @@ func openMacOSLocalDevelopmentSecretStore(stateRoot string, principal macOSRunti
 		}
 	}()
 	if err := validateOpenMacOSSecretDirectory(secretDirectoryFD, principal); err != nil {
-		return nil, macOSLocalDevelopmentSecretStoreFailure("validate secret directory", err)
+		return nil, macOSFileSecretStoreFailure("validate secret directory", err)
 	}
-	if err := removeStaleMacOSLocalDevelopmentSecretTemps(secretDirectoryFD, principal); err != nil {
+	if err := removeStaleMacOSFileSecretTemps(secretDirectoryFD, principal); err != nil {
 		return nil, err
 	}
 	if created {
 		if err := unix.Fsync(stateDirectoryFD); err != nil {
-			return nil, macOSLocalDevelopmentSecretStoreFailure("sync state root", err)
+			return nil, macOSFileSecretStoreFailure("sync state root", err)
 		}
 	}
 	accepted = true
-	return &macOSLocalDevelopmentSecretStore{
+	return &macOSFileSecretStore{
 		principal:   principal,
 		directoryFD: secretDirectoryFD,
 	}, nil
@@ -107,52 +110,52 @@ func validateOpenMacOSSecretDirectory(fd int, principal macOSRuntimePrincipal) e
 	return nil
 }
 
-func removeStaleMacOSLocalDevelopmentSecretTemps(directoryFD int, principal macOSRuntimePrincipal) error {
+func removeStaleMacOSFileSecretTemps(directoryFD int, principal macOSRuntimePrincipal) error {
 	readFD, err := unix.Dup(directoryFD)
 	if err != nil {
-		return macOSLocalDevelopmentSecretStoreFailure("inspect temporary secrets", err)
+		return macOSFileSecretStoreFailure("inspect temporary secrets", err)
 	}
 	unix.CloseOnExec(readFD)
 	directory := os.NewFile(uintptr(readFD), macOSRuntimeSecretDirectoryName)
 	if directory == nil {
 		_ = unix.Close(readFD)
-		return macOSLocalDevelopmentSecretStoreFailure("inspect temporary secrets", fmt.Errorf("adopt directory descriptor"))
+		return macOSFileSecretStoreFailure("inspect temporary secrets", fmt.Errorf("adopt directory descriptor"))
 	}
 	entries, err := directory.ReadDir(-1)
 	closeErr := directory.Close()
 	if err != nil {
-		return macOSLocalDevelopmentSecretStoreFailure("inspect temporary secrets", err)
+		return macOSFileSecretStoreFailure("inspect temporary secrets", err)
 	}
 	if closeErr != nil {
-		return macOSLocalDevelopmentSecretStoreFailure("close temporary-secret inspection", closeErr)
+		return macOSFileSecretStoreFailure("close temporary-secret inspection", closeErr)
 	}
 	removed := false
 	for _, entry := range entries {
 		name := entry.Name()
-		if !isMacOSLocalDevelopmentSecretTempName(name) {
+		if !isMacOSFileSecretTempName(name) {
 			continue
 		}
-		file, _, err := openMacOSLocalDevelopmentSecretFile(directoryFD, name, principal, unix.O_RDONLY)
+		file, _, err := openMacOSFileSecretFile(directoryFD, name, principal, unix.O_RDONLY)
 		if err != nil {
-			return macOSLocalDevelopmentSecretStoreFailure("validate temporary secret", err)
+			return macOSFileSecretStoreFailure("validate temporary secret", err)
 		}
 		if err := file.Close(); err != nil {
-			return macOSLocalDevelopmentSecretStoreFailure("close temporary secret", err)
+			return macOSFileSecretStoreFailure("close temporary secret", err)
 		}
 		if err := unix.Unlinkat(directoryFD, name, 0); err != nil {
-			return macOSLocalDevelopmentSecretStoreFailure("remove temporary secret", err)
+			return macOSFileSecretStoreFailure("remove temporary secret", err)
 		}
 		removed = true
 	}
 	if removed {
 		if err := unix.Fsync(directoryFD); err != nil {
-			return macOSLocalDevelopmentSecretStoreFailure("sync temporary-secret cleanup", err)
+			return macOSFileSecretStoreFailure("sync temporary-secret cleanup", err)
 		}
 	}
 	return nil
 }
 
-func isMacOSLocalDevelopmentSecretTempName(name string) bool {
+func isMacOSFileSecretTempName(name string) bool {
 	const prefix = ".secret-"
 	const suffix = ".tmp"
 	if len(name) != len(prefix)+32+len(suffix) || name[:len(prefix)] != prefix ||
@@ -163,22 +166,22 @@ func isMacOSLocalDevelopmentSecretTempName(name string) bool {
 	return err == nil
 }
 
-func (store *macOSLocalDevelopmentSecretStore) withDirectory(
+func (store *macOSFileSecretStore) withDirectory(
 	operation string,
 	fn func(int, macOSRuntimePrincipal) error,
 ) error {
 	if store == nil {
-		return macOSLocalDevelopmentSecretStoreFailure(operation, fmt.Errorf("secret store is required"))
+		return macOSFileSecretStoreFailure(operation, fmt.Errorf("secret store is required"))
 	}
 	store.mu.Lock()
 	defer store.mu.Unlock()
 	if store.closed || store.directoryFD < 0 {
-		return macOSLocalDevelopmentSecretStoreFailure(operation, fmt.Errorf("secret store is closed"))
+		return macOSFileSecretStoreFailure(operation, fmt.Errorf("secret store is closed"))
 	}
 	return fn(store.directoryFD, store.principal)
 }
 
-func (store *macOSLocalDevelopmentSecretStore) Load(ctx context.Context, name string) ([]byte, error) {
+func (store *macOSFileSecretStore) Load(ctx context.Context, name string) ([]byte, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -187,21 +190,21 @@ func (store *macOSLocalDevelopmentSecretStore) Load(ctx context.Context, name st
 	}
 	var value []byte
 	err := store.withDirectory("load", func(directoryFD int, principal macOSRuntimePrincipal) error {
-		file, stat, err := openMacOSLocalDevelopmentSecretFile(directoryFD, name, principal, unix.O_RDONLY)
+		file, stat, err := openMacOSFileSecretFile(directoryFD, name, principal, unix.O_RDONLY)
 		if errors.Is(err, unix.ENOENT) {
 			return ErrProtectedSecretNotFound
 		}
 		if err != nil {
-			return macOSLocalDevelopmentSecretStoreFailure("load", err)
+			return macOSFileSecretStoreFailure("load", err)
 		}
 		defer func() { _ = file.Close() }()
 		loaded, err := io.ReadAll(io.LimitReader(file, macOSRuntimeMaxSecretBytes+1))
 		if err != nil {
-			return macOSLocalDevelopmentSecretStoreFailure("read", err)
+			return macOSFileSecretStoreFailure("read", err)
 		}
 		if len(loaded) == 0 || len(loaded) > macOSRuntimeMaxSecretBytes || int64(len(loaded)) != stat.Size {
 			zeroBytes(loaded)
-			return macOSLocalDevelopmentSecretStoreFailure("read", fmt.Errorf("secret size changed or is outside fixed bounds"))
+			return macOSFileSecretStoreFailure("read", fmt.Errorf("secret size changed or is outside fixed bounds"))
 		}
 		value = loaded
 		return nil
@@ -209,7 +212,7 @@ func (store *macOSLocalDevelopmentSecretStore) Load(ctx context.Context, name st
 	return value, err
 }
 
-func (store *macOSLocalDevelopmentSecretStore) Store(ctx context.Context, name string, value []byte) error {
+func (store *macOSFileSecretStore) Store(ctx context.Context, name string, value []byte) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -217,23 +220,23 @@ func (store *macOSLocalDevelopmentSecretStore) Store(ctx context.Context, name s
 		return err
 	}
 	if len(value) == 0 || len(value) > macOSRuntimeMaxSecretBytes {
-		return macOSLocalDevelopmentSecretStoreFailure("store", fmt.Errorf("secret size is outside fixed bounds"))
+		return macOSFileSecretStoreFailure("store", fmt.Errorf("secret size is outside fixed bounds"))
 	}
 	copyValue := append([]byte(nil), value...)
 	defer zeroBytes(copyValue)
 	return store.withDirectory("store", func(directoryFD int, principal macOSRuntimePrincipal) error {
-		existing, _, err := openMacOSLocalDevelopmentSecretFile(directoryFD, name, principal, unix.O_RDONLY)
+		existing, _, err := openMacOSFileSecretFile(directoryFD, name, principal, unix.O_RDONLY)
 		if err == nil {
 			if closeErr := existing.Close(); closeErr != nil {
-				return macOSLocalDevelopmentSecretStoreFailure("close existing secret", closeErr)
+				return macOSFileSecretStoreFailure("close existing secret", closeErr)
 			}
 		} else if !errors.Is(err, unix.ENOENT) {
-			return macOSLocalDevelopmentSecretStoreFailure("validate existing secret", err)
+			return macOSFileSecretStoreFailure("validate existing secret", err)
 		}
 
-		tempName, err := newMacOSLocalDevelopmentSecretTempName()
+		tempName, err := newMacOSFileSecretTempName()
 		if err != nil {
-			return macOSLocalDevelopmentSecretStoreFailure("create temporary secret name", err)
+			return macOSFileSecretStoreFailure("create temporary secret name", err)
 		}
 		tempFD, err := unix.Openat(
 			directoryFD,
@@ -242,13 +245,13 @@ func (store *macOSLocalDevelopmentSecretStore) Store(ctx context.Context, name s
 			0o600,
 		)
 		if err != nil {
-			return macOSLocalDevelopmentSecretStoreFailure("create temporary secret", err)
+			return macOSFileSecretStoreFailure("create temporary secret", err)
 		}
 		tempFile := os.NewFile(uintptr(tempFD), tempName)
 		if tempFile == nil {
 			_ = unix.Close(tempFD)
 			_ = unix.Unlinkat(directoryFD, tempName, 0)
-			return macOSLocalDevelopmentSecretStoreFailure("adopt temporary secret", fmt.Errorf("file descriptor is invalid"))
+			return macOSFileSecretStoreFailure("adopt temporary secret", fmt.Errorf("file descriptor is invalid"))
 		}
 		renamed := false
 		defer func() {
@@ -258,42 +261,42 @@ func (store *macOSLocalDevelopmentSecretStore) Store(ctx context.Context, name s
 		}()
 		if err := validateOpenMacOSSecretFile(directoryFD, tempFD, tempName, principal); err != nil {
 			_ = tempFile.Close()
-			return macOSLocalDevelopmentSecretStoreFailure("validate temporary secret", err)
+			return macOSFileSecretStoreFailure("validate temporary secret", err)
 		}
-		if err := writeAllMacOSLocalDevelopmentSecret(tempFile, copyValue); err != nil {
+		if err := writeAllMacOSFileSecret(tempFile, copyValue); err != nil {
 			_ = tempFile.Close()
-			return macOSLocalDevelopmentSecretStoreFailure("write temporary secret", err)
+			return macOSFileSecretStoreFailure("write temporary secret", err)
 		}
 		if err := tempFile.Sync(); err != nil {
 			_ = tempFile.Close()
-			return macOSLocalDevelopmentSecretStoreFailure("sync temporary secret", err)
+			return macOSFileSecretStoreFailure("sync temporary secret", err)
 		}
 		if err := validateOpenMacOSSecretFile(directoryFD, tempFD, tempName, principal); err != nil {
 			_ = tempFile.Close()
-			return macOSLocalDevelopmentSecretStoreFailure("revalidate temporary secret", err)
+			return macOSFileSecretStoreFailure("revalidate temporary secret", err)
 		}
 		if err := tempFile.Close(); err != nil {
-			return macOSLocalDevelopmentSecretStoreFailure("close temporary secret", err)
+			return macOSFileSecretStoreFailure("close temporary secret", err)
 		}
 		if err := unix.Renameat(directoryFD, tempName, directoryFD, name); err != nil {
-			return macOSLocalDevelopmentSecretStoreFailure("commit secret", err)
+			return macOSFileSecretStoreFailure("commit secret", err)
 		}
 		renamed = true
-		committed, _, err := openMacOSLocalDevelopmentSecretFile(directoryFD, name, principal, unix.O_RDONLY)
+		committed, _, err := openMacOSFileSecretFile(directoryFD, name, principal, unix.O_RDONLY)
 		if err != nil {
-			return macOSLocalDevelopmentSecretStoreFailure("validate committed secret", err)
+			return macOSFileSecretStoreFailure("validate committed secret", err)
 		}
 		if err := committed.Close(); err != nil {
-			return macOSLocalDevelopmentSecretStoreFailure("close committed secret", err)
+			return macOSFileSecretStoreFailure("close committed secret", err)
 		}
 		if err := unix.Fsync(directoryFD); err != nil {
-			return macOSLocalDevelopmentSecretStoreFailure("sync secret directory", err)
+			return macOSFileSecretStoreFailure("sync secret directory", err)
 		}
 		return nil
 	})
 }
 
-func (store *macOSLocalDevelopmentSecretStore) Delete(ctx context.Context, name string) error {
+func (store *macOSFileSecretStore) Delete(ctx context.Context, name string) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -301,30 +304,30 @@ func (store *macOSLocalDevelopmentSecretStore) Delete(ctx context.Context, name 
 		return err
 	}
 	return store.withDirectory("delete", func(directoryFD int, principal macOSRuntimePrincipal) error {
-		file, _, err := openMacOSLocalDevelopmentSecretFile(directoryFD, name, principal, unix.O_RDONLY)
+		file, _, err := openMacOSFileSecretFile(directoryFD, name, principal, unix.O_RDONLY)
 		if errors.Is(err, unix.ENOENT) {
 			return ErrProtectedSecretNotFound
 		}
 		if err != nil {
-			return macOSLocalDevelopmentSecretStoreFailure("delete", err)
+			return macOSFileSecretStoreFailure("delete", err)
 		}
 		if err := file.Close(); err != nil {
-			return macOSLocalDevelopmentSecretStoreFailure("close secret before delete", err)
+			return macOSFileSecretStoreFailure("close secret before delete", err)
 		}
 		if err := unix.Unlinkat(directoryFD, name, 0); err != nil {
 			if errors.Is(err, unix.ENOENT) {
 				return ErrProtectedSecretNotFound
 			}
-			return macOSLocalDevelopmentSecretStoreFailure("delete", err)
+			return macOSFileSecretStoreFailure("delete", err)
 		}
 		if err := unix.Fsync(directoryFD); err != nil {
-			return macOSLocalDevelopmentSecretStoreFailure("sync secret directory", err)
+			return macOSFileSecretStoreFailure("sync secret directory", err)
 		}
 		return nil
 	})
 }
 
-func openMacOSLocalDevelopmentSecretFile(
+func openMacOSFileSecretFile(
 	directoryFD int,
 	name string,
 	principal macOSRuntimePrincipal,
@@ -385,7 +388,7 @@ func validateOpenMacOSSecretFile(
 	return nil
 }
 
-func newMacOSLocalDevelopmentSecretTempName() (string, error) {
+func newMacOSFileSecretTempName() (string, error) {
 	var entropy [16]byte
 	if _, err := io.ReadFull(rand.Reader, entropy[:]); err != nil {
 		return "", err
@@ -393,7 +396,7 @@ func newMacOSLocalDevelopmentSecretTempName() (string, error) {
 	return ".secret-" + hex.EncodeToString(entropy[:]) + ".tmp", nil
 }
 
-func writeAllMacOSLocalDevelopmentSecret(file *os.File, value []byte) error {
+func writeAllMacOSFileSecret(file *os.File, value []byte) error {
 	for len(value) > 0 {
 		written, err := file.Write(value)
 		if err != nil {
@@ -407,16 +410,16 @@ func writeAllMacOSLocalDevelopmentSecret(file *os.File, value []byte) error {
 	return nil
 }
 
-func macOSLocalDevelopmentSecretStoreFailure(operation string, err error) error {
+func macOSFileSecretStoreFailure(operation string, err error) error {
 	return fail(
 		ReasonProtectedLocalCustodyBoundaryUnavailable,
 		false,
 		"repair_runtime_service",
-		fmt.Errorf("%s macOS local-development Runtime secret: %w", operation, err),
+		fmt.Errorf("%s macOS Runtime secret: %w", operation, err),
 	)
 }
 
-func (store *macOSLocalDevelopmentSecretStore) Close() error {
+func (store *macOSFileSecretStore) Close() error {
 	if store == nil {
 		return nil
 	}
@@ -433,4 +436,4 @@ func (store *macOSLocalDevelopmentSecretStore) Close() error {
 	return store.closeErr
 }
 
-var _ macOSRuntimeBinarySecretStore = (*macOSLocalDevelopmentSecretStore)(nil)
+var _ macOSRuntimeBinarySecretStore = (*macOSFileSecretStore)(nil)

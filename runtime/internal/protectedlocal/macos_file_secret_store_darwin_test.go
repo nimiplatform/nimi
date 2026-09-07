@@ -1,4 +1,4 @@
-//go:build darwin && cgo && nimi_macos_local_development
+//go:build darwin && cgo
 
 package protectedlocal
 
@@ -15,9 +15,9 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func TestMacOSLocalDevelopmentSecretStoreLifecycle(t *testing.T) {
-	stateRoot, principal := newMacOSLocalDevelopmentSecretStoreRoot(t)
-	store, err := openMacOSLocalDevelopmentSecretStore(stateRoot, principal)
+func TestMacOSFileSecretStoreLifecycle(t *testing.T) {
+	stateRoot, principal := newMacOSFileSecretStoreRoot(t)
+	store, err := openMacOSFileSecretStore(stateRoot, principal)
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}
@@ -33,13 +33,13 @@ func TestMacOSLocalDevelopmentSecretStoreLifecycle(t *testing.T) {
 	if err := store.Store(ctx, name, []byte("first")); err != nil {
 		t.Fatalf("store first value: %v", err)
 	}
-	assertMacOSLocalDevelopmentSecretArtifact(
+	assertMacOSFileSecretArtifact(
 		t,
 		filepath.Join(stateRoot, macOSRuntimeSecretDirectoryName),
 		principal,
 		true,
 	)
-	assertMacOSLocalDevelopmentSecretArtifact(
+	assertMacOSFileSecretArtifact(
 		t,
 		filepath.Join(stateRoot, macOSRuntimeSecretDirectoryName, name),
 		principal,
@@ -63,7 +63,7 @@ func TestMacOSLocalDevelopmentSecretStoreLifecycle(t *testing.T) {
 		t.Fatalf("set stale temporary secret mode: %v", err)
 	}
 
-	store, err = openMacOSLocalDevelopmentSecretStore(stateRoot, principal)
+	store, err = openMacOSFileSecretStore(stateRoot, principal)
 	if err != nil {
 		t.Fatalf("reopen store: %v", err)
 	}
@@ -82,9 +82,9 @@ func TestMacOSLocalDevelopmentSecretStoreLifecycle(t *testing.T) {
 	}
 }
 
-func TestMacOSLocalDevelopmentSecretStoreRejectsUnsafeInputsAndArtifacts(t *testing.T) {
-	stateRoot, principal := newMacOSLocalDevelopmentSecretStoreRoot(t)
-	store, err := openMacOSLocalDevelopmentSecretStore(stateRoot, principal)
+func TestMacOSFileSecretStoreRejectsUnsafeInputsAndArtifacts(t *testing.T) {
+	stateRoot, principal := newMacOSFileSecretStoreRoot(t)
+	store, err := openMacOSFileSecretStore(stateRoot, principal)
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}
@@ -152,8 +152,8 @@ func TestMacOSLocalDevelopmentSecretStoreRejectsUnsafeInputsAndArtifacts(t *test
 	}
 }
 
-func TestMacOSLocalDevelopmentSecretStoreRejectsUnsafeDirectory(t *testing.T) {
-	stateRoot, principal := newMacOSLocalDevelopmentSecretStoreRoot(t)
+func TestMacOSFileSecretStoreRejectsUnsafeDirectory(t *testing.T) {
+	stateRoot, principal := newMacOSFileSecretStoreRoot(t)
 	secretRoot := filepath.Join(stateRoot, macOSRuntimeSecretDirectoryName)
 	if err := os.Mkdir(secretRoot, 0o700); err != nil {
 		t.Fatalf("create secret directory: %v", err)
@@ -161,12 +161,12 @@ func TestMacOSLocalDevelopmentSecretStoreRejectsUnsafeDirectory(t *testing.T) {
 	if err := os.Chmod(secretRoot, 0o755); err != nil {
 		t.Fatalf("set unsafe secret directory mode: %v", err)
 	}
-	if _, err := openMacOSLocalDevelopmentSecretStore(stateRoot, principal); !IsReason(err, ReasonProtectedLocalCustodyBoundaryUnavailable) {
+	if _, err := openMacOSFileSecretStore(stateRoot, principal); !IsReason(err, ReasonProtectedLocalCustodyBoundaryUnavailable) {
 		t.Fatalf("open store with unsafe directory error = %v", err)
 	}
 }
 
-func newMacOSLocalDevelopmentSecretStoreRoot(t *testing.T) (string, macOSRuntimePrincipal) {
+func newMacOSFileSecretStoreRoot(t *testing.T) (string, macOSRuntimePrincipal) {
 	t.Helper()
 	stateRoot := t.TempDir()
 	if err := os.Chmod(stateRoot, 0o700); err != nil {
@@ -175,7 +175,7 @@ func newMacOSLocalDevelopmentSecretStoreRoot(t *testing.T) (string, macOSRuntime
 	return stateRoot, macOSRuntimePrincipal{uid: uint32(os.Getuid()), gid: uint32(os.Getgid())}
 }
 
-func assertMacOSLocalDevelopmentSecretArtifact(
+func assertMacOSFileSecretArtifact(
 	t *testing.T,
 	path string,
 	principal macOSRuntimePrincipal,
