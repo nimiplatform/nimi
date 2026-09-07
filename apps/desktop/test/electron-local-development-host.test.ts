@@ -266,6 +266,27 @@ describe('Desktop Electron local-development registration host', () => {
     assert.equal(result.appId, 'example.local-app');
   });
 
+  it('resumes only the exact selected registration and rejects a different project without reminting', async () => {
+    const otherHandle = '33'.repeat(32);
+    let registerCalls = 0;
+    const host = new ElectronLocalDevelopmentHost(control({
+      register: async () => { registerCalls += 1; throw new Error('must not register'); },
+      listRegistrations: async () => [registration(), registration({ registrationHandle: otherHandle })],
+    }), '/tmp');
+    const rows = await host.invoke('local_development_registrations_list', {}) as Array<{ selector: string }>;
+    let captured: readonly unknown[] = [];
+    const internal = host as unknown as {
+      resumeIntent: (selector: string, appId: string, projectRoot: string, shell: string, cdpPort?: number) => Promise<unknown>;
+      startIntent: (...args: readonly unknown[]) => Promise<ReturnType<typeof activeRun>['status']>;
+    };
+    internal.startIntent = async (...args) => { captured = args; return activeRun().status; };
+    await internal.resumeIntent(rows[1]!.selector, 'example.local-app', '/projects/example', 'electron', 19482);
+    assert.deepEqual(captured, ['example.local-app', '/projects/example', 'electron', 19482, false, otherHandle]);
+    await assert.rejects(internal.resumeIntent(rows[1]!.selector, 'example.local-app', '/projects/other', 'electron'), /local-development-project-changed/);
+    await assert.rejects(internal.resumeIntent('dev-project-missing', 'example.local-app', '/projects/example', 'electron'), /local-development-registration-not-found/);
+    assert.equal(registerCalls, 0);
+  });
+
   it('starts Zhiyu only when exactly one canonical local-development registration resolves', async () => {
     const base = registration();
     const zhiyu = registration({

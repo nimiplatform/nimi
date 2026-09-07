@@ -284,16 +284,25 @@ export class ElectronLocalDevelopmentHost {
         return json(response, { status: 'error', reasonCode: 'local-development-intent-invalid', actionHint: 'use_official_nimi_app_dev_launcher' });
       }
       const body = await readJsonBody(request);
+      if (request.url === '/v1/registrations') {
+        const value = exact(body, ['appId', 'projectRoot', 'schemaVersion', 'shell']);
+        if (value.schemaVersion !== 1) throw new Error('local-development-intent-invalid');
+        const registrations = await this.listLauncherRegistrations(text(value.appId), text(value.projectRoot), text(value.shell));
+        return json(response, { status: 'ok', registrations });
+      }
       if (request.url === '/v1/start') {
         const hasCdpPort = Object.prototype.hasOwnProperty.call(body, 'cdpPort');
+        const hasRegistrationSelector = Object.prototype.hasOwnProperty.call(body, 'registrationSelector');
         const value = exact(
           body,
-          hasCdpPort
-            ? ['appId', 'cdpPort', 'projectRoot', 'schemaVersion', 'shell']
-            : ['appId', 'projectRoot', 'schemaVersion', 'shell'],
+          ['appId', 'projectRoot', 'schemaVersion', 'shell', ...(hasCdpPort ? ['cdpPort'] : []), ...(hasRegistrationSelector ? ['registrationSelector'] : [])],
         );
         if (value.schemaVersion !== 1) throw new Error('local-development-intent-invalid');
-        const run = await this.startIntent(
+        const run = hasRegistrationSelector ? await this.resumeIntent(
+          selector(value.registrationSelector, 'dev-project'),
+          text(value.appId), text(value.projectRoot), text(value.shell),
+          hasCdpPort ? cdpPort(value.cdpPort) : undefined,
+        ) : await this.startIntent(
           text(value.appId),
           text(value.projectRoot),
           text(value.shell),
@@ -318,6 +327,26 @@ export class ElectronLocalDevelopmentHost {
         actionHint: 'use_official_nimi_app_dev_launcher',
       });
     }
+  }
+
+  private async listLauncherRegistrations(appId: string, projectRoot: string, shell: string): Promise<RendererRegistration[]> {
+    if (shell !== 'electron') throw new Error('local-development-platform-unsupported');
+    return (await this.listRegistrations()).filter((row) => row.appId === appId
+      && comparableCanonicalProjectPath(row.canonicalProjectRoot) === comparableCanonicalProjectPath(projectRoot));
+  }
+
+  // @nimi-authority: rule.nimi.runtime.app-surface.r052
+  // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018a
+  private async resumeIntent(selectorValue: string, appId: string, projectRoot: string, shell: string, requestedCdpPort?: number): Promise<RunStatus> {
+    const registrationHandle = this.registrationSelectors.get(selectorValue);
+    if (!registrationHandle) throw new Error('local-development-registration-not-found');
+    const registration = (await this.control.listRegistrations()).find((row) => row.registrationHandle === registrationHandle);
+    if (!registration || registration.project.shell !== 'electron') throw new Error('local-development-registration-not-found');
+    if (shell !== 'electron' || registration.project.appId !== appId
+      || comparableCanonicalProjectPath(registration.project.canonicalProjectRoot) !== comparableCanonicalProjectPath(projectRoot)) {
+      throw new Error('local-development-project-changed');
+    }
+    return this.startIntent(appId, registration.project.canonicalProjectRoot, shell, requestedCdpPort, false, registrationHandle);
   }
 
   private async startIntent(

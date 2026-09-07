@@ -151,6 +151,24 @@ describe('canonical Agent Realtime session', () => {
     expect(session.getState().lifecycle).toBe('closed');
   });
 
+  it('keeps the media session open after a successful request terminal and accepts another turn', async () => {
+    const stream = createEventStream<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>();
+    const client = createClient({ stream });
+    const host = createHost();
+    const session = createSession(client, host);
+    const observed = vi.fn();
+    session.subscribeEvents(observed);
+    await session.open();
+    stream.push({ control: control(), event: { type: 'terminal', reasonCode: 'ACTION_EXECUTED' } });
+    await vi.waitFor(() => expect(observed).toHaveBeenCalledTimes(1));
+    expect(session.getState()).toMatchObject({ lifecycle: 'ready', error: null });
+    expect(host.playback.close).not.toHaveBeenCalled();
+    await expect(session.sendText({ requestId: 'request-2', text: 'second turn' })).resolves.toBeTruthy();
+    expect(client.appendInput).toHaveBeenCalledTimes(1);
+    await session.close();
+    expect(client.close).toHaveBeenCalledTimes(1);
+  });
+
   it('preserves a non-closed terminal reason as the typed visible failure', async () => {
     const stream = createEventStream<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>();
     const session = createSession(createClient({ stream }), createHost());
