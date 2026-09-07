@@ -10,11 +10,18 @@ import type {
 } from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigInstallConfirmationRequest } from './runtime-config-panel-controller-install-actions';
 
+// @nimi-authority: rule.nimi.runtime.model-catalog.r037
 export type RuntimeConfigLoadoutNavigationContext = {
   readonly capabilityContract: string;
   readonly recipeId?: string;
   readonly recipeRevision?: string;
   readonly slotId?: string;
+  readonly draft?: RuntimeConfigLoadoutCreateDraft;
+};
+
+export type RuntimeConfigLoadoutCreateDraft = {
+  readonly displayName: string;
+  readonly modelAssetIds: Readonly<Record<string, string>>;
 };
 
 export type RuntimeConfigModelMarketContext = {
@@ -23,6 +30,7 @@ export type RuntimeConfigModelMarketContext = {
   readonly recipeRevision: string;
   readonly slotId: string;
   readonly candidate: NimiRuntimeModelAssetMarketCandidate;
+  readonly draft: RuntimeConfigLoadoutCreateDraft;
 };
 
 export type RuntimeConfigPanelControllerModel = {
