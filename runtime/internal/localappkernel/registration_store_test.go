@@ -3,7 +3,6 @@ package localappkernel
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"errors"
 	"os"
 	"path/filepath"
@@ -29,116 +28,8 @@ func TestCanonicalRegistrationDatabasePathAndHostInstallIDAreRequired(t *testing
 }
 
 func TestSourceClassUsesCanonicalLifecycleVocabulary(t *testing.T) {
-	if SourceClassVerified != "verified" || SourceClassLocalDevelopment != "local_development" {
-		t.Fatalf("source classes = (%q, %q)", SourceClassVerified, SourceClassLocalDevelopment)
-	}
-}
-
-func TestOpenSQLiteRejectsRetiredUserImportedRegistrationSchema(t *testing.T) {
-	root := t.TempDir()
-	databasePath, err := CanonicalRegistrationDatabasePath(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(filepath.Dir(databasePath), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	database, err := sql.Open("sqlite", "file:"+filepath.ToSlash(databasePath))
-	if err != nil {
-		t.Fatal(err)
-	}
-	retiredSchema := strings.Replace(
-		canonicalRegistrationCreateStatement,
-		"CHECK(source_class IN ('verified','local_development'))",
-		"CHECK(source_class IN ('verified','user_imported','local_development'))",
-		1,
-	)
-	if _, err := database.Exec(retiredSchema); err != nil {
-		_ = database.Close()
-		t.Fatal(err)
-	}
-	if err := database.Close(); err != nil {
-		t.Fatal(err)
-	}
-	identity := mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001")
-	if _, err := OpenSQLite(context.Background(), databasePath, identity, Options{HostInstallID: "install-one", DataRoot: root}); err == nil || !strings.Contains(err.Error(), "unsupported canonical_registration source-class constraint") {
-		t.Fatalf("retired registration schema error = %v", err)
-	}
-}
-
-func TestOpenSQLiteRejectsRetiredUserImportedPackageSchema(t *testing.T) {
-	root := t.TempDir()
-	databasePath, err := CanonicalRegistrationDatabasePath(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(filepath.Dir(databasePath), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	database, err := sql.Open("sqlite", "file:"+filepath.ToSlash(databasePath))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := database.Exec(canonicalRegistrationCreateStatement); err != nil {
-		_ = database.Close()
-		t.Fatal(err)
-	}
-	for _, statement := range packageLifecycleSchemaStatements {
-		retiredSchema := strings.Replace(
-			statement,
-			"CHECK(source_class IN ('verified'))",
-			"CHECK(source_class IN ('verified','user_imported'))",
-			1,
-		)
-		if _, err := database.Exec(retiredSchema); err != nil {
-			_ = database.Close()
-			t.Fatal(err)
-		}
-	}
-	if err := database.Close(); err != nil {
-		t.Fatal(err)
-	}
-	identity := mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001")
-	if _, err := OpenSQLite(context.Background(), databasePath, identity, Options{HostInstallID: "install-one", DataRoot: root}); err == nil || !strings.Contains(err.Error(), "unsupported app_package_job source-class constraint") {
-		t.Fatalf("retired package schema error = %v", err)
-	}
-}
-
-func TestOpenSQLiteRejectsRetiredReadingLocalPackagePhase(t *testing.T) {
-	root := t.TempDir()
-	databasePath, err := CanonicalRegistrationDatabasePath(root)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(filepath.Dir(databasePath), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	database, err := sql.Open("sqlite", "file:"+filepath.ToSlash(databasePath))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := database.Exec(canonicalRegistrationCreateStatement); err != nil {
-		_ = database.Close()
-		t.Fatal(err)
-	}
-	for _, statement := range packageLifecycleSchemaStatements {
-		retiredSchema := strings.Replace(
-			statement,
-			"CHECK(phase IN ('queued','downloading','verifying'",
-			"CHECK(phase IN ('queued','downloading','reading-local','verifying'",
-			1,
-		)
-		if _, err := database.Exec(retiredSchema); err != nil {
-			_ = database.Close()
-			t.Fatal(err)
-		}
-	}
-	if err := database.Close(); err != nil {
-		t.Fatal(err)
-	}
-	identity := mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001")
-	if _, err := OpenSQLite(context.Background(), databasePath, identity, Options{HostInstallID: "install-one", DataRoot: root}); err == nil || !strings.Contains(err.Error(), "unsupported app_package_job phase constraint") {
-		t.Fatalf("retired package phase schema error = %v", err)
+	if SourceClassVerified != "verified" || SourceClassUserImported != "user_imported" || SourceClassLocalDevelopment != "local_development" {
+		t.Fatalf("source classes = (%q, %q, %q)", SourceClassVerified, SourceClassUserImported, SourceClassLocalDevelopment)
 	}
 }
 

@@ -24,6 +24,7 @@ const (
 	RuntimeAgentService_GetAgent_FullMethodName                                    = "/nimi.runtime.v1.RuntimeAgentService/GetAgent"
 	RuntimeAgentService_ListAgents_FullMethodName                                  = "/nimi.runtime.v1.RuntimeAgentService/ListAgents"
 	RuntimeAgentService_ListLocalAppAgentReferences_FullMethodName                 = "/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences"
+	RuntimeAgentService_ResolveDesktopAgentReference_FullMethodName                = "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference"
 	RuntimeAgentService_ResolveLocalAppAvatarHostTarget_FullMethodName             = "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget"
 	RuntimeAgentService_RevalidateLocalAppAvatarHostTarget_FullMethodName          = "/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget"
 	RuntimeAgentService_OpenLocalAppConversation_FullMethodName                    = "/nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation"
@@ -98,6 +99,7 @@ type RuntimeAgentServiceClient interface {
 	GetAgent(ctx context.Context, in *GetAgentRequest, opts ...grpc.CallOption) (*GetAgentResponse, error)
 	ListAgents(ctx context.Context, in *ListAgentsRequest, opts ...grpc.CallOption) (*ListAgentsResponse, error)
 	ListLocalAppAgentReferences(ctx context.Context, in *ListLocalAppAgentReferencesRequest, opts ...grpc.CallOption) (*ListLocalAppAgentReferencesResponse, error)
+	ResolveDesktopAgentReference(ctx context.Context, in *ResolveDesktopAgentReferenceRequest, opts ...grpc.CallOption) (*ResolveDesktopAgentReferenceResponse, error)
 	ResolveLocalAppAvatarHostTarget(ctx context.Context, in *ResolveLocalAppAvatarHostTargetRequest, opts ...grpc.CallOption) (*ResolveLocalAppAvatarHostTargetResponse, error)
 	RevalidateLocalAppAvatarHostTarget(ctx context.Context, in *RevalidateLocalAppAvatarHostTargetRequest, opts ...grpc.CallOption) (*RevalidateLocalAppAvatarHostTargetResponse, error)
 	OpenLocalAppConversation(ctx context.Context, in *OpenLocalAppConversationRequest, opts ...grpc.CallOption) (*OpenLocalAppConversationResponse, error)
@@ -216,6 +218,16 @@ func (c *runtimeAgentServiceClient) ListLocalAppAgentReferences(ctx context.Cont
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListLocalAppAgentReferencesResponse)
 	err := c.cc.Invoke(ctx, RuntimeAgentService_ListLocalAppAgentReferences_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAgentServiceClient) ResolveDesktopAgentReference(ctx context.Context, in *ResolveDesktopAgentReferenceRequest, opts ...grpc.CallOption) (*ResolveDesktopAgentReferenceResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResolveDesktopAgentReferenceResponse)
+	err := c.cc.Invoke(ctx, RuntimeAgentService_ResolveDesktopAgentReference_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -861,6 +873,7 @@ type RuntimeAgentServiceServer interface {
 	GetAgent(context.Context, *GetAgentRequest) (*GetAgentResponse, error)
 	ListAgents(context.Context, *ListAgentsRequest) (*ListAgentsResponse, error)
 	ListLocalAppAgentReferences(context.Context, *ListLocalAppAgentReferencesRequest) (*ListLocalAppAgentReferencesResponse, error)
+	ResolveDesktopAgentReference(context.Context, *ResolveDesktopAgentReferenceRequest) (*ResolveDesktopAgentReferenceResponse, error)
 	ResolveLocalAppAvatarHostTarget(context.Context, *ResolveLocalAppAvatarHostTargetRequest) (*ResolveLocalAppAvatarHostTargetResponse, error)
 	RevalidateLocalAppAvatarHostTarget(context.Context, *RevalidateLocalAppAvatarHostTargetRequest) (*RevalidateLocalAppAvatarHostTargetResponse, error)
 	OpenLocalAppConversation(context.Context, *OpenLocalAppConversationRequest) (*OpenLocalAppConversationResponse, error)
@@ -948,6 +961,9 @@ func (UnimplementedRuntimeAgentServiceServer) ListAgents(context.Context, *ListA
 }
 func (UnimplementedRuntimeAgentServiceServer) ListLocalAppAgentReferences(context.Context, *ListLocalAppAgentReferencesRequest) (*ListLocalAppAgentReferencesResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListLocalAppAgentReferences not implemented")
+}
+func (UnimplementedRuntimeAgentServiceServer) ResolveDesktopAgentReference(context.Context, *ResolveDesktopAgentReferenceRequest) (*ResolveDesktopAgentReferenceResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResolveDesktopAgentReference not implemented")
 }
 func (UnimplementedRuntimeAgentServiceServer) ResolveLocalAppAvatarHostTarget(context.Context, *ResolveLocalAppAvatarHostTargetRequest) (*ResolveLocalAppAvatarHostTargetResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ResolveLocalAppAvatarHostTarget not implemented")
@@ -1235,6 +1251,24 @@ func _RuntimeAgentService_ListLocalAppAgentReferences_Handler(srv interface{}, c
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RuntimeAgentServiceServer).ListLocalAppAgentReferences(ctx, req.(*ListLocalAppAgentReferencesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAgentService_ResolveDesktopAgentReference_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResolveDesktopAgentReferenceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAgentServiceServer).ResolveDesktopAgentReference(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAgentService_ResolveDesktopAgentReference_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAgentServiceServer).ResolveDesktopAgentReference(ctx, req.(*ResolveDesktopAgentReferenceRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -2324,6 +2358,10 @@ var RuntimeAgentService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListLocalAppAgentReferences",
 			Handler:    _RuntimeAgentService_ListLocalAppAgentReferences_Handler,
+		},
+		{
+			MethodName: "ResolveDesktopAgentReference",
+			Handler:    _RuntimeAgentService_ResolveDesktopAgentReference_Handler,
 		},
 		{
 			MethodName: "ResolveLocalAppAvatarHostTarget",

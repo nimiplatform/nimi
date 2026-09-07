@@ -2,6 +2,7 @@
   "title": "世界",
   "subtitle": "浏览世界设定，并发现可连接的 Source",
   "searchPlaceholder": "搜索世界、主题、Persona...",
+  "clearSearch": "清除搜索",
   "searchByNameOrDescription": "按名称或描述搜索世界...",
   "loading": "正在加载世界...",
   "loadError": "加载世界失败",

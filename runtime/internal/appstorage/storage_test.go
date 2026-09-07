@@ -27,17 +27,18 @@ func TestResolveReturnsAdmittedRoots(t *testing.T) {
 	}
 }
 
-func TestResolveAcceptsOnlyVerifiedPackageSource(t *testing.T) {
+func TestResolveKeepsPackageSourcesDistinct(t *testing.T) {
 	dataRoot := t.TempDir()
 	verified, err := Resolve(dataRoot, "community.clock", "verified", "1.2.3", StoragePolicyNimiMediatedDefault)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if verified.SourceClass != "verified" {
-		t.Fatalf("source class = %q", verified.SourceClass)
+	imported, err := Resolve(dataRoot, "community.clock", "user_imported", "1.2.3", StoragePolicyNimiMediatedDefault)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if _, err := Resolve(dataRoot, "community.clock", "user_imported", "1.2.3", StoragePolicyNimiMediatedDefault); !errors.Is(err, ErrInvalidSourceClass) {
-		t.Fatalf("retired user-imported package source error = %v", err)
+	if verified.ReleaseRoot == imported.ReleaseRoot {
+		t.Fatalf("source-qualified release roots collided: %q", verified.ReleaseRoot)
 	}
 	if _, err := Resolve(dataRoot, "community.clock", "local_development", "1.2.3", StoragePolicyNimiMediatedDefault); !errors.Is(err, ErrInvalidSourceClass) {
 		t.Fatalf("local-development package source error = %v", err)

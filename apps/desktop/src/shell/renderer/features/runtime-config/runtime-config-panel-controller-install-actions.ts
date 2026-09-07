@@ -4,7 +4,6 @@ import {
   ReasonCode,
 } from '@nimiplatform/sdk/types';
 import {
-  type NimiRuntimeLocalCatalogItemDescriptor,
   type NimiRuntimeLocalInstallPlanDescriptor,
 } from '@nimiplatform/sdk/runtime';
 import { useTranslation } from 'react-i18next';
@@ -14,18 +13,7 @@ import type { SetRuntimeConfigBanner } from './runtime-config-panel-controller-u
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 
 export type RuntimeConfigInstallActions = {
-  installCatalogLocalModel: (
-    item: NimiRuntimeLocalCatalogItemDescriptor,
-    options?: {
-      entry?: string;
-      files?: string[];
-      hashes?: Record<string, string>;
-      capabilities?: string[];
-      engine?: string;
-    },
-  ) => Promise<void>;
   installResolvedModelPlan: (plan: NimiRuntimeLocalInstallPlanDescriptor) => Promise<void>;
-  installCatalogModelAsset: (templateId: string) => Promise<void>;
 };
 
 export type RuntimeConfigInstallConfirmationRequest = {
@@ -112,7 +100,7 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
 
   const runInstallPlanLifecycle = useCallback(async (
     plan: NimiRuntimeLocalInstallPlanDescriptor,
-  ) => {
+  ): Promise<void> => {
     assertRuntimeWriteAllowed();
     const installLabel = String(plan.entry || plan.modelId || plan.templateId || 'model asset').trim();
     const sizeLabel = formatKnownDownloadSize(
@@ -148,47 +136,6 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     });
   }, [assertRuntimeWriteAllowed, onOpenLoadouts, requestInstallConfirmation, setStatusBanner, translateRuntimeLocalText]);
 
-  const installCatalogLocalModel = useCallback(async (
-    item: NimiRuntimeLocalCatalogItemDescriptor,
-    options?: {
-      entry?: string;
-      files?: string[];
-      hashes?: Record<string, string>;
-      capabilities?: string[];
-      engine?: string;
-    },
-  ) => {
-    try {
-      const plan = await localEnvironmentClient.resolveInstallPlan({
-        itemId: item.itemId,
-        source: item.source,
-        templateId: item.templateId,
-        modelId: item.modelId,
-        repo: item.repo,
-        revision: item.revision,
-        entry: options?.entry,
-        files: options?.files,
-        hashes: options?.hashes,
-        capabilities: options?.capabilities,
-        engine: options?.engine,
-      });
-      await runInstallPlanLifecycle(plan);
-    } catch (error) {
-      if (isRuntimeInstallCancellation(error)) {
-        setStatusBanner({
-          kind: 'info',
-          message: translateRuntimeLocalText('runtimeConfig.local.installCanceled', 'Download canceled.'),
-        });
-        return;
-      }
-      setStatusBanner({
-        kind: 'error',
-        message: `Catalog model install failed: ${error instanceof Error ? error.message : String(error || '')}`,
-      });
-      throw error;
-    }
-  }, [runInstallPlanLifecycle, setStatusBanner]);
-
   const installResolvedModelPlan = useCallback(async (plan: NimiRuntimeLocalInstallPlanDescriptor) => {
     try {
       await runInstallPlanLifecycle(plan);
@@ -208,36 +155,8 @@ export function useRuntimeConfigInstallActions(input: UseRuntimeConfigInstallAct
     }
   }, [runInstallPlanLifecycle, setStatusBanner]);
 
-  const installCatalogModelAsset = useCallback(async (templateId: string) => {
-    const normalizedTemplateId = String(templateId || '').trim();
-    if (!normalizedTemplateId) {
-      throw new Error('templateId is required');
-    }
-    try {
-      const plan = await localEnvironmentClient.resolveInstallPlan({
-        templateId: normalizedTemplateId,
-      });
-      await runInstallPlanLifecycle(plan);
-    } catch (error) {
-      if (isRuntimeInstallCancellation(error)) {
-        setStatusBanner({
-          kind: 'info',
-          message: translateRuntimeLocalText('runtimeConfig.local.installCanceled', 'Download canceled.'),
-        });
-        return;
-      }
-      setStatusBanner({
-        kind: 'error',
-        message: `Catalog ModelAsset install failed: ${error instanceof Error ? error.message : String(error || '')}`,
-      });
-      throw error;
-    }
-  }, [runInstallPlanLifecycle, setStatusBanner]);
-
   return {
-    installCatalogLocalModel,
     installResolvedModelPlan,
-    installCatalogModelAsset,
     installConfirmation,
     resolveInstallConfirmation,
   };

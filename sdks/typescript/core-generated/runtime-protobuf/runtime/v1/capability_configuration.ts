@@ -11,6 +11,8 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { LocalRecommendationApplicability } from "./local_runtime_recommendation";
+import { ModelAssetMarketCandidate } from "./local_runtime_recommendation";
 import { ReasonCode } from "./common";
 import { Struct } from "../../google/protobuf/struct";
 import { TextBehaviorKind } from "./common";
@@ -390,6 +392,27 @@ export interface LoadoutImpactProjection {
     confirmationRequired: boolean;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.LoadoutRecipeOfferDescriptor
+ */
+export interface LoadoutRecipeOfferDescriptor {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ModelAssetMarketCandidate candidate = 1
+     */
+    candidate?: ModelAssetMarketCandidate;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationApplicability applicability = 2
+     */
+    applicability: LocalRecommendationApplicability;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ReasonCode reasons = 3
+     */
+    reasons: ReasonCode[];
+    /**
+     * @generated from protobuf field: string installed_model_asset_id = 5
+     */
+    installedModelAssetId: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.LoadoutRecipeSlotDescriptor
  */
 export interface LoadoutRecipeSlotDescriptor {
@@ -421,6 +444,18 @@ export interface LoadoutRecipeSlotDescriptor {
      * @generated from protobuf field: repeated string conditional_features = 7
      */
     conditionalFeatures: string[];
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.LoadoutRecipeOfferDescriptor offers = 8
+     */
+    offers: LoadoutRecipeOfferDescriptor[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationApplicability applicability = 9
+     */
+    applicability: LocalRecommendationApplicability;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ReasonCode reasons = 10
+     */
+    reasons: ReasonCode[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LoadoutRecipeDescriptor
@@ -462,6 +497,14 @@ export interface LoadoutRecipeDescriptor {
      * @generated from protobuf field: repeated string implementation_supported_features = 10
      */
     implementationSupportedFeatures: string[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.LocalRecommendationApplicability applicability = 11
+     */
+    applicability: LocalRecommendationApplicability;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ReasonCode reasons = 12
+     */
+    reasons: ReasonCode[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListLoadoutRecipesRequest
@@ -2606,6 +2649,84 @@ class LoadoutImpactProjection$Type extends MessageType<LoadoutImpactProjection> 
  */
 export const LoadoutImpactProjection = new LoadoutImpactProjection$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LoadoutRecipeOfferDescriptor$Type extends MessageType<LoadoutRecipeOfferDescriptor> {
+    constructor() {
+        super("nimi.runtime.v1.LoadoutRecipeOfferDescriptor", [
+            { no: 1, name: "candidate", kind: "message", T: () => ModelAssetMarketCandidate },
+            { no: 2, name: "applicability", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationApplicability", LocalRecommendationApplicability, "LOCAL_RECOMMENDATION_APPLICABILITY_"] },
+            { no: 3, name: "reasons", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
+            { no: 5, name: "installed_model_asset_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LoadoutRecipeOfferDescriptor>): LoadoutRecipeOfferDescriptor {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.applicability = 0;
+        message.reasons = [];
+        message.installedModelAssetId = "";
+        if (value !== undefined)
+            reflectionMergePartial<LoadoutRecipeOfferDescriptor>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LoadoutRecipeOfferDescriptor): LoadoutRecipeOfferDescriptor {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ModelAssetMarketCandidate candidate */ 1:
+                    message.candidate = ModelAssetMarketCandidate.internalBinaryRead(reader, reader.uint32(), options, message.candidate);
+                    break;
+                case /* nimi.runtime.v1.LocalRecommendationApplicability applicability */ 2:
+                    message.applicability = reader.int32();
+                    break;
+                case /* repeated nimi.runtime.v1.ReasonCode reasons */ 3:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.reasons.push(reader.int32());
+                    else
+                        message.reasons.push(reader.int32());
+                    break;
+                case /* string installed_model_asset_id */ 5:
+                    message.installedModelAssetId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LoadoutRecipeOfferDescriptor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ModelAssetMarketCandidate candidate = 1; */
+        if (message.candidate)
+            ModelAssetMarketCandidate.internalBinaryWrite(message.candidate, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalRecommendationApplicability applicability = 2; */
+        if (message.applicability !== 0)
+            writer.tag(2, WireType.Varint).int32(message.applicability);
+        /* repeated nimi.runtime.v1.ReasonCode reasons = 3; */
+        if (message.reasons.length) {
+            writer.tag(3, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.reasons.length; i++)
+                writer.int32(message.reasons[i]);
+            writer.join();
+        }
+        /* string installed_model_asset_id = 5; */
+        if (message.installedModelAssetId !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.installedModelAssetId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LoadoutRecipeOfferDescriptor
+ */
+export const LoadoutRecipeOfferDescriptor = new LoadoutRecipeOfferDescriptor$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class LoadoutRecipeSlotDescriptor$Type extends MessageType<LoadoutRecipeSlotDescriptor> {
     constructor() {
         super("nimi.runtime.v1.LoadoutRecipeSlotDescriptor", [
@@ -2615,7 +2736,10 @@ class LoadoutRecipeSlotDescriptor$Type extends MessageType<LoadoutRecipeSlotDesc
             { no: 4, name: "model_contract", kind: "message", T: () => Struct },
             { no: 5, name: "recommended_variant_ids", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "presence", kind: "enum", T: () => ["nimi.runtime.v1.LocalCapabilityRequirementPresence", LocalCapabilityRequirementPresence, "LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_"] },
-            { no: 7, name: "conditional_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 7, name: "conditional_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "offers", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutRecipeOfferDescriptor },
+            { no: 9, name: "applicability", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationApplicability", LocalRecommendationApplicability, "LOCAL_RECOMMENDATION_APPLICABILITY_"] },
+            { no: 10, name: "reasons", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
         ]);
     }
     create(value?: PartialMessage<LoadoutRecipeSlotDescriptor>): LoadoutRecipeSlotDescriptor {
@@ -2626,6 +2750,9 @@ class LoadoutRecipeSlotDescriptor$Type extends MessageType<LoadoutRecipeSlotDesc
         message.recommendedVariantIds = [];
         message.presence = 0;
         message.conditionalFeatures = [];
+        message.offers = [];
+        message.applicability = 0;
+        message.reasons = [];
         if (value !== undefined)
             reflectionMergePartial<LoadoutRecipeSlotDescriptor>(this, message, value);
         return message;
@@ -2655,6 +2782,19 @@ class LoadoutRecipeSlotDescriptor$Type extends MessageType<LoadoutRecipeSlotDesc
                     break;
                 case /* repeated string conditional_features */ 7:
                     message.conditionalFeatures.push(reader.string());
+                    break;
+                case /* repeated nimi.runtime.v1.LoadoutRecipeOfferDescriptor offers */ 8:
+                    message.offers.push(LoadoutRecipeOfferDescriptor.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.LocalRecommendationApplicability applicability */ 9:
+                    message.applicability = reader.int32();
+                    break;
+                case /* repeated nimi.runtime.v1.ReasonCode reasons */ 10:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.reasons.push(reader.int32());
+                    else
+                        message.reasons.push(reader.int32());
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2689,6 +2829,19 @@ class LoadoutRecipeSlotDescriptor$Type extends MessageType<LoadoutRecipeSlotDesc
         /* repeated string conditional_features = 7; */
         for (let i = 0; i < message.conditionalFeatures.length; i++)
             writer.tag(7, WireType.LengthDelimited).string(message.conditionalFeatures[i]);
+        /* repeated nimi.runtime.v1.LoadoutRecipeOfferDescriptor offers = 8; */
+        for (let i = 0; i < message.offers.length; i++)
+            LoadoutRecipeOfferDescriptor.internalBinaryWrite(message.offers[i], writer.tag(8, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalRecommendationApplicability applicability = 9; */
+        if (message.applicability !== 0)
+            writer.tag(9, WireType.Varint).int32(message.applicability);
+        /* repeated nimi.runtime.v1.ReasonCode reasons = 10; */
+        if (message.reasons.length) {
+            writer.tag(10, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.reasons.length; i++)
+                writer.int32(message.reasons[i]);
+            writer.join();
+        }
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2711,7 +2864,9 @@ class LoadoutRecipeDescriptor$Type extends MessageType<LoadoutRecipeDescriptor> 
             { no: 6, name: "default_options", kind: "message", T: () => Struct },
             { no: 8, name: "slots", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutRecipeSlotDescriptor },
             { no: 9, name: "custody", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => LoadoutRecipeCustodyDescriptor },
-            { no: 10, name: "implementation_supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 10, name: "implementation_supported_features", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "applicability", kind: "enum", T: () => ["nimi.runtime.v1.LocalRecommendationApplicability", LocalRecommendationApplicability, "LOCAL_RECOMMENDATION_APPLICABILITY_"] },
+            { no: 12, name: "reasons", kind: "enum", repeat: 1 /*RepeatType.PACKED*/, T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
         ]);
     }
     create(value?: PartialMessage<LoadoutRecipeDescriptor>): LoadoutRecipeDescriptor {
@@ -2723,6 +2878,8 @@ class LoadoutRecipeDescriptor$Type extends MessageType<LoadoutRecipeDescriptor> 
         message.slots = [];
         message.custody = [];
         message.implementationSupportedFeatures = [];
+        message.applicability = 0;
+        message.reasons = [];
         if (value !== undefined)
             reflectionMergePartial<LoadoutRecipeDescriptor>(this, message, value);
         return message;
@@ -2758,6 +2915,16 @@ class LoadoutRecipeDescriptor$Type extends MessageType<LoadoutRecipeDescriptor> 
                     break;
                 case /* repeated string implementation_supported_features */ 10:
                     message.implementationSupportedFeatures.push(reader.string());
+                    break;
+                case /* nimi.runtime.v1.LocalRecommendationApplicability applicability */ 11:
+                    message.applicability = reader.int32();
+                    break;
+                case /* repeated nimi.runtime.v1.ReasonCode reasons */ 12:
+                    if (wireType === WireType.LengthDelimited)
+                        for (let e = reader.int32() + reader.pos; reader.pos < e;)
+                            message.reasons.push(reader.int32());
+                    else
+                        message.reasons.push(reader.int32());
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2798,6 +2965,16 @@ class LoadoutRecipeDescriptor$Type extends MessageType<LoadoutRecipeDescriptor> 
         /* repeated string implementation_supported_features = 10; */
         for (let i = 0; i < message.implementationSupportedFeatures.length; i++)
             writer.tag(10, WireType.LengthDelimited).string(message.implementationSupportedFeatures[i]);
+        /* nimi.runtime.v1.LocalRecommendationApplicability applicability = 11; */
+        if (message.applicability !== 0)
+            writer.tag(11, WireType.Varint).int32(message.applicability);
+        /* repeated nimi.runtime.v1.ReasonCode reasons = 12; */
+        if (message.reasons.length) {
+            writer.tag(12, WireType.LengthDelimited).fork();
+            for (let i = 0; i < message.reasons.length; i++)
+                writer.int32(message.reasons[i]);
+            writer.join();
+        }
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

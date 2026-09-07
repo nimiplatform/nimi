@@ -1,6 +1,4 @@
 import type {
-  LocalCatalogModelDescriptor as GeneratedLocalCatalogModelDescriptor,
-  LocalCatalogVariantDescriptor as GeneratedLocalCatalogVariantDescriptor,
   LocalDeviceProfile as GeneratedLocalDeviceProfile,
   LocalEnvironmentDependencyJob as GeneratedLocalEnvironmentDependencyJob,
   LocalEnvironmentPlan as GeneratedLocalEnvironmentPlan,
@@ -18,11 +16,8 @@ import {
   parseNimiRuntimeLocalAssetKindId,
   parseNimiRuntimeLocalEngineRuntimeModeId,
 } from './local-asset-vocabulary';
-import { projectNimiRuntimeLocalCatalogRecommendation } from './runtime-local-recommendation';
 import type {
   NimiRuntimeModelAssetRecord,
-  NimiRuntimeLocalCatalogItemDescriptor,
-  NimiRuntimeLocalCatalogVariantDescriptor,
   NimiRuntimeLocalDeviceProfile,
   NimiRuntimeLocalEnvironmentDependencyJob,
   NimiRuntimeLocalEnvironmentPlan,
@@ -194,65 +189,6 @@ export function projectNimiRuntimeLocalVerifiedAssetDescriptor(
   };
 }
 
-export function projectNimiRuntimeLocalCatalogItemDescriptor(
-  value: GeneratedLocalCatalogModelDescriptor,
-): NimiRuntimeLocalCatalogItemDescriptor {
-	const modelType = normalizeText(value.modelType).toLowerCase();
-	const kind = nimiRuntimeLocalRunnableAssetKindForCapabilities(value.capabilities)
-		?? nimiRuntimeLocalPassiveCatalogKind(modelType);
-  if (!kind) {
-    throw invalidLocalProjection(`Runtime local catalog item ${value.itemId} has unknown or ambiguous capabilities`);
-  }
-  const engineRuntimeMode = projectOptionalNimiRuntimeLocalEngineRuntimeMode(
-    value.engineRuntimeMode,
-    `Runtime local catalog item ${value.itemId}`,
-  );
-  return {
-    itemId: normalizeText(value.itemId),
-    source: normalizeText(value.source) || 'huggingface',
-    title: normalizeText(value.title),
-    description: normalizeText(value.description),
-    modelId: normalizeText(value.modelId),
-		...(modelType ? { modelType } : {}),
-    repo: normalizeText(value.repo),
-    revision: normalizeText(value.revision) || 'main',
-    templateId: normalizeText(value.templateId) || undefined,
-    capabilities: textList(value.capabilities),
-    engine: normalizeText(value.engine),
-    ...(engineRuntimeMode ? { engineRuntimeMode } : {}),
-    installKind: normalizeText(value.installKind),
-    installAvailable: Boolean(value.installAvailable),
-    endpoint: normalizeText(value.endpoint) || undefined,
-    providerHints: projectNimiRuntimeLocalProviderHints(value.providerHints),
-    entry: normalizeText(value.entry) || undefined,
-    files: textList(value.files),
-    license: normalizeText(value.license) || undefined,
-    hashes: stringRecord(value.hashes),
-    tags: [...new Set([...textList(value.tags), kind])],
-    downloads: positiveNumber(value.downloads),
-    likes: positiveNumber(value.likes),
-    lastModified: normalizeText(value.lastModified) || undefined,
-    verified: Boolean(value.verified),
-    engineConfig: nonEmptyRecord(fromNimiRuntimeProtoStruct(value.engineConfig)),
-    recommendation: projectNimiRuntimeLocalCatalogRecommendation((value as { recommendation?: unknown }).recommendation),
-    totalSizeBytes: positiveNumber(value.totalSizeBytes),
-  };
-}
-
-export function projectNimiRuntimeLocalCatalogVariantDescriptor(
-  value: GeneratedLocalCatalogVariantDescriptor,
-): NimiRuntimeLocalCatalogVariantDescriptor {
-  return {
-    filename: normalizeText(value.filename),
-    entry: normalizeText(value.entry),
-    files: textList(value.files),
-    format: normalizeText(value.format) || undefined,
-    sizeBytes: positiveNumber(value.sizeBytes),
-    sha256: normalizeText(value.sha256) || undefined,
-    recommendation: projectNimiRuntimeLocalCatalogRecommendation((value as { recommendation?: unknown }).recommendation),
-  };
-}
-
 export function projectNimiRuntimeLocalInstallPlanDescriptor(
   value: GeneratedLocalInstallPlanDescriptor,
 ): NimiRuntimeLocalInstallPlanDescriptor {
@@ -266,7 +202,7 @@ export function projectNimiRuntimeLocalInstallPlanDescriptor(
     source: normalizeText(value.source) || 'huggingface',
     templateId: normalizeText(value.templateId) || undefined,
     modelId: normalizeText(value.modelId),
-		...(normalizeText(value.modelType) ? { modelType: normalizeText(value.modelType).toLowerCase() } : {}),
+    ...(normalizeText(value.modelType) ? { modelType: normalizeText(value.modelType).toLowerCase() } : {}),
     repo: normalizeText(value.repo),
     revision: normalizeText(value.revision) || 'main',
     capabilities: textList(value.capabilities),
@@ -284,20 +220,8 @@ export function projectNimiRuntimeLocalInstallPlanDescriptor(
     reasonCode: normalizeText(value.reasonCode) || undefined,
     engineConfig: nonEmptyRecord(fromNimiRuntimeProtoStruct(value.engineConfig)),
     totalSizeBytes: positiveNumber(value.totalSizeBytes),
+    ...(normalizeText(value.offerRef) ? { offerRef: normalizeText(value.offerRef) } : {}),
   };
-}
-
-function nimiRuntimeLocalPassiveCatalogKind(modelType: string): string | null {
-	switch (modelType) {
-		case 'vae':
-		case 'clip':
-		case 'lora':
-		case 'controlnet':
-		case 'auxiliary':
-			return modelType;
-		default:
-			return null;
-	}
 }
 
 export function projectNimiRuntimeLocalDeviceProfile(

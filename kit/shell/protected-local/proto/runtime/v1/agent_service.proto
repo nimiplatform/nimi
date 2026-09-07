@@ -499,6 +499,14 @@ message ListLocalAppAgentReferencesResponse {
   repeated LocalAppAgentReference references = 1;
 }
 
+// Desktop account-product lookup; absent from ordinary App transport profiles.
+message ResolveDesktopAgentReferenceRequest {
+  string local_agent_ref = 1;
+}
+message ResolveDesktopAgentReferenceResponse {
+  LocalAppAgentReference reference = 1;
+}
+
 // Host-private Avatar correlation. This wire is reachable only through the
 // protected native Host binding and is never an App product operation.
 message ResolveLocalAppAvatarHostTargetRequest {
@@ -980,8 +988,10 @@ message ListSharedLocalAgentAIConfigOptionsResponse {
   }
   bool truncated = 2;
 }
-// AIProfile remains a portable template. Apply writes complete current owner
-// intent only; it never materializes Local bindings or waits for readiness.
+// AIProfile remains a portable template. Preview and Apply return
+// non-committing editor prefill only; canonical AIConfig overwrite is the sole
+// owner mutation and neither operation materializes Local bindings or waits for
+// readiness.
 message PreviewSharedLocalAgentAIProfileRequest {
   AgentRequestContext context = 1;
   bytes profile_json = 2;
@@ -1122,6 +1132,7 @@ service RuntimeAgentService {
   rpc GetAgent(GetAgentRequest) returns (GetAgentResponse);
   rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
   rpc ListLocalAppAgentReferences(ListLocalAppAgentReferencesRequest) returns (ListLocalAppAgentReferencesResponse);
+  rpc ResolveDesktopAgentReference(ResolveDesktopAgentReferenceRequest) returns (ResolveDesktopAgentReferenceResponse);
   rpc ResolveLocalAppAvatarHostTarget(ResolveLocalAppAvatarHostTargetRequest) returns (ResolveLocalAppAvatarHostTargetResponse);
   rpc RevalidateLocalAppAvatarHostTarget(RevalidateLocalAppAvatarHostTargetRequest) returns (RevalidateLocalAppAvatarHostTargetResponse);
   rpc OpenLocalAppConversation(OpenLocalAppConversationRequest) returns (OpenLocalAppConversationResponse);

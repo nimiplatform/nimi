@@ -1,8 +1,8 @@
-import { AppPackageJobPhase, type AppPackageJob } from '@nimiplatform/sdk/runtime/wire-types';
+import { AppPackageJobPhase, AppPackageSourceClass, type AppPackageJob, type CommittedAppRelease } from '@nimiplatform/sdk/runtime/wire-types';
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.r053
 
-export type AppCardActionId = 'details' | 'install' | 'launch' | 'stop' | 'remove' | 'uninstall' | 'cancel-job';
+export type AppCardActionId = 'details' | 'open-ai-config' | 'install' | 'launch' | 'stop' | 'remove' | 'uninstall' | 'cancel-job';
 
 export interface AppCardAction {
   readonly id: AppCardActionId;
@@ -15,7 +15,7 @@ export interface AppCardActionPlan {
 
 type AppsActionEntry = {
   readonly catalogTarget: { readonly policyBlocked: boolean } | null;
-  readonly committedRelease: unknown | null;
+  readonly committedRelease: Pick<CommittedAppRelease, 'sourceClass'> | null;
   readonly localDevelopment: unknown | null;
   readonly packageJob: Pick<AppPackageJob, 'cancelable' | 'phase'> | null;
   readonly run: { readonly state: string } | null;
@@ -51,7 +51,7 @@ export function actionPlanForLocalDevelopmentEntry(runState: string | null): App
 export function actionPlanForEntry(entry: AppsActionEntry): AppCardActionPlan {
   const base = entry.localDevelopment
     ? actionPlanForLocalDevelopmentEntry(entry.run?.state ?? null)
-    : entry.committedRelease && (!packageJobActive(entry.packageJob) || isLocalDevelopmentRunActive(entry.run?.state ?? null))
+    : entry.committedRelease?.sourceClass === AppPackageSourceClass.VERIFIED && (!packageJobActive(entry.packageJob) || isLocalDevelopmentRunActive(entry.run?.state ?? null))
       ? { primary: entry.catalogTarget?.policyBlocked && !isLocalDevelopmentRunActive(entry.run?.state ?? null) ? null : LAUNCH,
           secondary: isLocalDevelopmentRunActive(entry.run?.state ?? null) ? [DETAILS, STOP] : [DETAILS] }
       : { primary: null, secondary: [DETAILS] };
@@ -73,5 +73,5 @@ function packageJobActive(job: AppsActionEntry['packageJob']): boolean {
 }
 
 export function canRequestUninstall(entry: AppsActionEntry): boolean {
-  return Boolean(entry.committedRelease && !entry.localDevelopment && !packageJobActive(entry.packageJob));
+  return Boolean(entry.committedRelease?.sourceClass === AppPackageSourceClass.VERIFIED && !entry.localDevelopment && !packageJobActive(entry.packageJob));
 }

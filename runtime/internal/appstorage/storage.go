@@ -51,7 +51,7 @@ func Resolve(dataRootRef string, appID string, sourceClass string, version strin
 	if !safeSegment(version) {
 		return Plan{}, ErrInvalidVersionSegment
 	}
-	if sourceClass != "verified" {
+	if sourceClass != "verified" && sourceClass != "user_imported" {
 		return Plan{}, ErrInvalidSourceClass
 	}
 	appRoot := filepath.Join(dataRootRef, "apps", appID)

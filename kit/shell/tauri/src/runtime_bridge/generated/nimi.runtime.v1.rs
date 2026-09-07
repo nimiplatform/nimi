@@ -1505,6 +1505,7 @@ impl LocalAppSessionState {
 pub enum LocalAppTrustClass {
     Unspecified = 0,
     Verified = 1,
+    UserImported = 2,
     LocalDevelopment = 3,
 }
 impl LocalAppTrustClass {
@@ -1516,6 +1517,7 @@ impl LocalAppTrustClass {
         match self {
             Self::Unspecified => "LOCAL_APP_TRUST_CLASS_UNSPECIFIED",
             Self::Verified => "LOCAL_APP_TRUST_CLASS_VERIFIED",
+            Self::UserImported => "LOCAL_APP_TRUST_CLASS_USER_IMPORTED",
             Self::LocalDevelopment => "LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT",
         }
     }
@@ -1524,6 +1526,7 @@ impl LocalAppTrustClass {
         match value {
             "LOCAL_APP_TRUST_CLASS_UNSPECIFIED" => Some(Self::Unspecified),
             "LOCAL_APP_TRUST_CLASS_VERIFIED" => Some(Self::Verified),
+            "LOCAL_APP_TRUST_CLASS_USER_IMPORTED" => Some(Self::UserImported),
             "LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT" => Some(Self::LocalDevelopment),
             _ => None,
         }
@@ -3121,6 +3124,231 @@ impl SchedulingState {
         }
     }
 }
+/// Source observation is scoped only to the model-index featured section.
+/// generation never participates in offer identity.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ModelAssetFeaturedSourceObservation {
+    #[prost(enumeration = "ModelAssetSourceAvailability", tag = "1")]
+    pub availability: i32,
+    #[prost(enumeration = "ModelAssetSourceFreshness", tag = "2")]
+    pub freshness: i32,
+    #[prost(string, tag = "3")]
+    pub generation: ::prost::alloc::string::String,
+    #[prost(enumeration = "ReasonCode", tag = "4")]
+    pub reason_code: i32,
+}
+/// Browse-only search result. model_locator opens detail or variant listing and
+/// never authorizes installation.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ModelAssetCatalogSearchResult {
+    #[prost(string, tag = "1")]
+    pub model_locator: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub source_label: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "5")]
+    pub categories: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "6")]
+    pub model_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub license: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "8")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(int64, tag = "9")]
+    pub downloads: i64,
+    #[prost(int64, tag = "10")]
+    pub likes: i64,
+    #[prost(string, tag = "11")]
+    pub last_modified: ::prost::alloc::string::String,
+    #[prost(bool, tag = "12")]
+    pub verified: bool,
+    /// Publishing organization or author label (for example the repository
+    /// owner). Presentation only; never part of offer identity.
+    #[prost(string, tag = "13")]
+    pub author: ::prost::alloc::string::String,
+}
+/// Exact entry-level offer. The opaque offer_ref is the only install-plan input
+/// exposed to SDK and Desktop.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ModelAssetMarketCandidate {
+    #[prost(string, tag = "1")]
+    pub offer_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub source_label: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub description: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "5")]
+    pub categories: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "6")]
+    pub model_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub variant_label: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub format: ::prost::alloc::string::String,
+    #[prost(int64, tag = "9")]
+    pub total_size_bytes: i64,
+    #[prost(string, tag = "10")]
+    pub license: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "11")]
+    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(int64, tag = "12")]
+    pub downloads: i64,
+    #[prost(int64, tag = "13")]
+    pub likes: i64,
+    #[prost(string, tag = "14")]
+    pub last_modified: ::prost::alloc::string::String,
+    #[prost(bool, tag = "15")]
+    pub verified: bool,
+    #[prost(bool, tag = "16")]
+    pub installed: bool,
+    #[prost(bool, tag = "17")]
+    pub installable: bool,
+    #[prost(int32, optional, tag = "18")]
+    pub featured_ordinal: ::core::option::Option<i32>,
+    #[prost(string, tag = "19")]
+    pub editorial_reason: ::prost::alloc::string::String,
+    /// Publishing organization or author label (for example the repository
+    /// owner). Presentation only; never part of offer identity.
+    #[prost(string, tag = "20")]
+    pub author: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListFeaturedModelAssetsRequest {
+    #[prost(string, tag = "1")]
+    pub category: ::prost::alloc::string::String,
+    #[prost(int32, tag = "2")]
+    pub page_size: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListFeaturedModelAssetsResponse {
+    #[prost(message, optional, tag = "1")]
+    pub source: ::core::option::Option<ModelAssetFeaturedSourceObservation>,
+    #[prost(message, repeated, tag = "2")]
+    pub items: ::prost::alloc::vec::Vec<ModelAssetMarketCandidate>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct FactoryProfileCapabilityApplicability {
+    #[prost(string, tag = "1")]
+    pub capability_contract: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalRecommendationApplicability", tag = "2")]
+    pub applicability: i32,
+    #[prost(enumeration = "ReasonCode", repeated, tag = "3")]
+    pub reasons: ::prost::alloc::vec::Vec<i32>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FactoryProfileRecommendation {
+    #[prost(string, tag = "1")]
+    pub profile_alias: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "2")]
+    pub capabilities: ::prost::alloc::vec::Vec<FactoryProfileCapabilityApplicability>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ListFactoryProfileRecommendationsRequest {
+    #[prost(string, tag = "1")]
+    pub capability_contract: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ListFactoryProfileRecommendationsResponse {
+    #[prost(message, repeated, tag = "1")]
+    pub profiles: ::prost::alloc::vec::Vec<FactoryProfileRecommendation>,
+}
+/// Runtime-owned applicability for one exact recommendation context. It is
+/// neither configuration, readiness, selection, nor execution truth.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum LocalRecommendationApplicability {
+    Unspecified = 0,
+    Supported = 1,
+    Unknown = 2,
+    Unsupported = 3,
+}
+impl LocalRecommendationApplicability {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "LOCAL_RECOMMENDATION_APPLICABILITY_UNSPECIFIED",
+            Self::Supported => "LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED",
+            Self::Unknown => "LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN",
+            Self::Unsupported => "LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LOCAL_RECOMMENDATION_APPLICABILITY_UNSPECIFIED" => Some(Self::Unspecified),
+            "LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED" => Some(Self::Supported),
+            "LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN" => Some(Self::Unknown),
+            "LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED" => Some(Self::Unsupported),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ModelAssetSourceAvailability {
+    Unspecified = 0,
+    Available = 1,
+    Unavailable = 2,
+}
+impl ModelAssetSourceAvailability {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MODEL_ASSET_SOURCE_AVAILABILITY_UNSPECIFIED",
+            Self::Available => "MODEL_ASSET_SOURCE_AVAILABILITY_AVAILABLE",
+            Self::Unavailable => "MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MODEL_ASSET_SOURCE_AVAILABILITY_UNSPECIFIED" => Some(Self::Unspecified),
+            "MODEL_ASSET_SOURCE_AVAILABILITY_AVAILABLE" => Some(Self::Available),
+            "MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE" => Some(Self::Unavailable),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ModelAssetSourceFreshness {
+    Unspecified = 0,
+    Fresh = 1,
+    Stale = 2,
+}
+impl ModelAssetSourceFreshness {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED",
+            Self::Fresh => "MODEL_ASSET_SOURCE_FRESHNESS_FRESH",
+            Self::Stale => "MODEL_ASSET_SOURCE_FRESHNESS_STALE",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED" => Some(Self::Unspecified),
+            "MODEL_ASSET_SOURCE_FRESHNESS_FRESH" => Some(Self::Fresh),
+            "MODEL_ASSET_SOURCE_FRESHNESS_STALE" => Some(Self::Stale),
+            _ => None,
+        }
+    }
+}
 /// CapabilityImplementationIdentity identifies the implementation vocabulary
 /// against which a configuration's requirements are interpreted.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -3318,6 +3546,17 @@ pub struct LoadoutImpactProjection {
     #[prost(bool, tag = "4")]
     pub confirmation_required: bool,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LoadoutRecipeOfferDescriptor {
+    #[prost(message, optional, tag = "1")]
+    pub candidate: ::core::option::Option<ModelAssetMarketCandidate>,
+    #[prost(enumeration = "LocalRecommendationApplicability", tag = "2")]
+    pub applicability: i32,
+    #[prost(enumeration = "ReasonCode", repeated, tag = "3")]
+    pub reasons: ::prost::alloc::vec::Vec<i32>,
+    #[prost(string, tag = "5")]
+    pub installed_model_asset_id: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadoutRecipeSlotDescriptor {
     #[prost(string, tag = "1")]
@@ -3338,6 +3577,12 @@ pub struct LoadoutRecipeSlotDescriptor {
     pub presence: i32,
     #[prost(string, repeated, tag = "7")]
     pub conditional_features: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(message, repeated, tag = "8")]
+    pub offers: ::prost::alloc::vec::Vec<LoadoutRecipeOfferDescriptor>,
+    #[prost(enumeration = "LocalRecommendationApplicability", tag = "9")]
+    pub applicability: i32,
+    #[prost(enumeration = "ReasonCode", repeated, tag = "10")]
+    pub reasons: ::prost::alloc::vec::Vec<i32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LoadoutRecipeDescriptor {
@@ -3361,6 +3606,10 @@ pub struct LoadoutRecipeDescriptor {
     pub implementation_supported_features: ::prost::alloc::vec::Vec<
         ::prost::alloc::string::String,
     >,
+    #[prost(enumeration = "LocalRecommendationApplicability", tag = "11")]
+    pub applicability: i32,
+    #[prost(enumeration = "ReasonCode", repeated, tag = "12")]
+    pub reasons: ::prost::alloc::vec::Vec<i32>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListLoadoutRecipesRequest {
@@ -8132,6 +8381,8 @@ pub struct LocalInstallPlanDescriptor {
     pub source_provenance: ::prost::alloc::string::String,
     #[prost(string, tag = "24")]
     pub model_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "25")]
+    pub offer_ref: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -8566,426 +8817,6 @@ pub struct LocalAuditTimeRange {
     pub to: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalCatalogRecommendation {
-    #[prost(enumeration = "LocalRecommendationSource", tag = "1")]
-    pub source: i32,
-    #[prost(enumeration = "LocalRecommendationFormat", tag = "2")]
-    pub format: i32,
-    #[prost(enumeration = "LocalRecommendationTier", tag = "3")]
-    pub tier: i32,
-    #[prost(enumeration = "LocalHostSupportClass", tag = "4")]
-    pub host_support_class: i32,
-    #[prost(enumeration = "LocalRecommendationConfidence", tag = "5")]
-    pub confidence: i32,
-    #[prost(string, repeated, tag = "6")]
-    pub reason_codes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "7")]
-    pub recommended_entry: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "8")]
-    pub fallback_entries: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "10")]
-    pub suggested_notes: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(enumeration = "LocalRecommendationBaseline", tag = "11")]
-    pub baseline: i32,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalRecommendationFeedEntryDescriptor {
-    #[prost(string, tag = "1")]
-    pub entry_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalRecommendationFormat", tag = "2")]
-    pub format: i32,
-    #[prost(string, tag = "3")]
-    pub entry: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "4")]
-    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(int64, tag = "5")]
-    pub total_size_bytes: i64,
-    #[prost(string, tag = "6")]
-    pub sha256: ::prost::alloc::string::String,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalRecommendationInstalledState {
-    #[prost(bool, tag = "1")]
-    pub installed: bool,
-}
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalRecommendationActionState {
-    #[prost(bool, tag = "1")]
-    pub can_review_install_plan: bool,
-    #[prost(bool, tag = "2")]
-    pub can_open_variants: bool,
-    #[prost(bool, tag = "3")]
-    pub can_open_model_asset: bool,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalRecommendationInstallPayload {
-    #[prost(string, tag = "1")]
-    pub model_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalAssetKind", tag = "2")]
-    pub kind: i32,
-    #[prost(string, tag = "3")]
-    pub repo: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub revision: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "5")]
-    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "6")]
-    pub engine: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub entry: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "8")]
-    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "9")]
-    pub license: ::prost::alloc::string::String,
-    #[prost(map = "string, string", tag = "10")]
-    pub hashes: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
-    #[prost(string, tag = "11")]
-    pub endpoint: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "12")]
-    pub engine_config: ::core::option::Option<::prost_types::Struct>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalRecommendationFeedItemDescriptor {
-    #[prost(string, tag = "1")]
-    pub item_id: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalRecommendationFeedSource", tag = "2")]
-    pub source: i32,
-    #[prost(string, tag = "3")]
-    pub repo: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub revision: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub title: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub description: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "7")]
-    pub capabilities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, repeated, tag = "8")]
-    pub tags: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(enumeration = "LocalRecommendationFormat", repeated, tag = "9")]
-    pub formats: ::prost::alloc::vec::Vec<i32>,
-    #[prost(int64, tag = "10")]
-    pub downloads: i64,
-    #[prost(int64, tag = "11")]
-    pub likes: i64,
-    #[prost(string, tag = "12")]
-    pub last_modified: ::prost::alloc::string::String,
-    #[prost(string, tag = "13")]
-    pub preferred_engine: ::prost::alloc::string::String,
-    #[prost(bool, tag = "14")]
-    pub verified: bool,
-    #[prost(message, repeated, tag = "15")]
-    pub entries: ::prost::alloc::vec::Vec<LocalRecommendationFeedEntryDescriptor>,
-    #[prost(message, optional, tag = "16")]
-    pub recommendation: ::core::option::Option<LocalCatalogRecommendation>,
-    #[prost(message, optional, tag = "17")]
-    pub installed_state: ::core::option::Option<LocalRecommendationInstalledState>,
-    #[prost(message, optional, tag = "18")]
-    pub action_state: ::core::option::Option<LocalRecommendationActionState>,
-    #[prost(message, optional, tag = "19")]
-    pub install_payload: ::core::option::Option<LocalRecommendationInstallPayload>,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct LocalRecommendationFeedDescriptor {
-    #[prost(message, optional, tag = "1")]
-    pub device_profile: ::core::option::Option<LocalDeviceProfile>,
-    #[prost(enumeration = "LocalRecommendationFeedCapability", tag = "2")]
-    pub active_capability: i32,
-    #[prost(string, tag = "3")]
-    pub generated_at: ::prost::alloc::string::String,
-    #[prost(enumeration = "LocalRecommendationFeedCacheState", tag = "4")]
-    pub cache_state: i32,
-    #[prost(message, repeated, tag = "5")]
-    pub items: ::prost::alloc::vec::Vec<LocalRecommendationFeedItemDescriptor>,
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalRecommendationSource {
-    Unspecified = 0,
-    Llmfit = 1,
-    MediaFit = 2,
-}
-impl LocalRecommendationSource {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_RECOMMENDATION_SOURCE_UNSPECIFIED",
-            Self::Llmfit => "LOCAL_RECOMMENDATION_SOURCE_LLMFIT",
-            Self::MediaFit => "LOCAL_RECOMMENDATION_SOURCE_MEDIA_FIT",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_RECOMMENDATION_SOURCE_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_RECOMMENDATION_SOURCE_LLMFIT" => Some(Self::Llmfit),
-            "LOCAL_RECOMMENDATION_SOURCE_MEDIA_FIT" => Some(Self::MediaFit),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalRecommendationFormat {
-    Unspecified = 0,
-    Gguf = 1,
-    Safetensors = 2,
-}
-impl LocalRecommendationFormat {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED",
-            Self::Gguf => "LOCAL_RECOMMENDATION_FORMAT_GGUF",
-            Self::Safetensors => "LOCAL_RECOMMENDATION_FORMAT_SAFETENSORS",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_RECOMMENDATION_FORMAT_GGUF" => Some(Self::Gguf),
-            "LOCAL_RECOMMENDATION_FORMAT_SAFETENSORS" => Some(Self::Safetensors),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalRecommendationTier {
-    Unspecified = 0,
-    Recommended = 1,
-    Runnable = 2,
-    Tight = 3,
-    NotRecommended = 4,
-}
-impl LocalRecommendationTier {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_RECOMMENDATION_TIER_UNSPECIFIED",
-            Self::Recommended => "LOCAL_RECOMMENDATION_TIER_RECOMMENDED",
-            Self::Runnable => "LOCAL_RECOMMENDATION_TIER_RUNNABLE",
-            Self::Tight => "LOCAL_RECOMMENDATION_TIER_TIGHT",
-            Self::NotRecommended => "LOCAL_RECOMMENDATION_TIER_NOT_RECOMMENDED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_RECOMMENDATION_TIER_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_RECOMMENDATION_TIER_RECOMMENDED" => Some(Self::Recommended),
-            "LOCAL_RECOMMENDATION_TIER_RUNNABLE" => Some(Self::Runnable),
-            "LOCAL_RECOMMENDATION_TIER_TIGHT" => Some(Self::Tight),
-            "LOCAL_RECOMMENDATION_TIER_NOT_RECOMMENDED" => Some(Self::NotRecommended),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalRecommendationConfidence {
-    Unspecified = 0,
-    High = 1,
-    Medium = 2,
-    Low = 3,
-}
-impl LocalRecommendationConfidence {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_RECOMMENDATION_CONFIDENCE_UNSPECIFIED",
-            Self::High => "LOCAL_RECOMMENDATION_CONFIDENCE_HIGH",
-            Self::Medium => "LOCAL_RECOMMENDATION_CONFIDENCE_MEDIUM",
-            Self::Low => "LOCAL_RECOMMENDATION_CONFIDENCE_LOW",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_RECOMMENDATION_CONFIDENCE_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_RECOMMENDATION_CONFIDENCE_HIGH" => Some(Self::High),
-            "LOCAL_RECOMMENDATION_CONFIDENCE_MEDIUM" => Some(Self::Medium),
-            "LOCAL_RECOMMENDATION_CONFIDENCE_LOW" => Some(Self::Low),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalHostSupportClass {
-    Unspecified = 0,
-    SupportedSupervised = 1,
-    AttachedOnly = 2,
-    Unsupported = 3,
-}
-impl LocalHostSupportClass {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_HOST_SUPPORT_CLASS_UNSPECIFIED",
-            Self::SupportedSupervised => "LOCAL_HOST_SUPPORT_CLASS_SUPPORTED_SUPERVISED",
-            Self::AttachedOnly => "LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY",
-            Self::Unsupported => "LOCAL_HOST_SUPPORT_CLASS_UNSUPPORTED",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_HOST_SUPPORT_CLASS_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_HOST_SUPPORT_CLASS_SUPPORTED_SUPERVISED" => {
-                Some(Self::SupportedSupervised)
-            }
-            "LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY" => Some(Self::AttachedOnly),
-            "LOCAL_HOST_SUPPORT_CLASS_UNSUPPORTED" => Some(Self::Unsupported),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalRecommendationBaseline {
-    Unspecified = 0,
-    ImageDefaultV1 = 1,
-    VideoDefaultV1 = 2,
-}
-impl LocalRecommendationBaseline {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_RECOMMENDATION_BASELINE_UNSPECIFIED",
-            Self::ImageDefaultV1 => "LOCAL_RECOMMENDATION_BASELINE_IMAGE_DEFAULT_V1",
-            Self::VideoDefaultV1 => "LOCAL_RECOMMENDATION_BASELINE_VIDEO_DEFAULT_V1",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_RECOMMENDATION_BASELINE_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_RECOMMENDATION_BASELINE_IMAGE_DEFAULT_V1" => {
-                Some(Self::ImageDefaultV1)
-            }
-            "LOCAL_RECOMMENDATION_BASELINE_VIDEO_DEFAULT_V1" => {
-                Some(Self::VideoDefaultV1)
-            }
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalRecommendationFeedCacheState {
-    Unspecified = 0,
-    Fresh = 1,
-    Stale = 2,
-    Empty = 3,
-}
-impl LocalRecommendationFeedCacheState {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_UNSPECIFIED",
-            Self::Fresh => "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH",
-            Self::Stale => "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_STALE",
-            Self::Empty => "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_UNSPECIFIED" => {
-                Some(Self::Unspecified)
-            }
-            "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH" => Some(Self::Fresh),
-            "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_STALE" => Some(Self::Stale),
-            "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY" => Some(Self::Empty),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalRecommendationFeedCapability {
-    Unspecified = 0,
-    Chat = 1,
-    Image = 2,
-    Video = 3,
-}
-impl LocalRecommendationFeedCapability {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_RECOMMENDATION_FEED_CAPABILITY_UNSPECIFIED",
-            Self::Chat => "LOCAL_RECOMMENDATION_FEED_CAPABILITY_CHAT",
-            Self::Image => "LOCAL_RECOMMENDATION_FEED_CAPABILITY_IMAGE",
-            Self::Video => "LOCAL_RECOMMENDATION_FEED_CAPABILITY_VIDEO",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_RECOMMENDATION_FEED_CAPABILITY_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_RECOMMENDATION_FEED_CAPABILITY_CHAT" => Some(Self::Chat),
-            "LOCAL_RECOMMENDATION_FEED_CAPABILITY_IMAGE" => Some(Self::Image),
-            "LOCAL_RECOMMENDATION_FEED_CAPABILITY_VIDEO" => Some(Self::Video),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-pub enum LocalRecommendationFeedSource {
-    Unspecified = 0,
-    ModelIndex = 1,
-}
-impl LocalRecommendationFeedSource {
-    /// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    pub fn as_str_name(&self) -> &'static str {
-        match self {
-            Self::Unspecified => "LOCAL_RECOMMENDATION_FEED_SOURCE_UNSPECIFIED",
-            Self::ModelIndex => "LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX",
-        }
-    }
-    /// Creates an enum from field names used in the ProtoBuf definition.
-    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
-        match value {
-            "LOCAL_RECOMMENDATION_FEED_SOURCE_UNSPECIFIED" => Some(Self::Unspecified),
-            "LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX" => Some(Self::ModelIndex),
-            _ => None,
-        }
-    }
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListVerifiedAssetsRequest {
     #[prost(enumeration = "LocalAssetKind", tag = "1")]
     pub kind_filter: i32,
@@ -9063,12 +8894,8 @@ pub struct RemoveModelAssetResponse {
 pub struct SearchCatalogModelsRequest {
     #[prost(string, tag = "1")]
     pub query: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub capability: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
-    pub category_filter: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub engine_filter: ::prost::alloc::string::String,
+    pub category: ::prost::alloc::string::String,
     #[prost(int32, tag = "6")]
     pub page_size: i32,
     #[prost(string, tag = "7")]
@@ -9077,46 +8904,36 @@ pub struct SearchCatalogModelsRequest {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SearchCatalogModelsResponse {
     #[prost(message, repeated, tag = "1")]
-    pub items: ::prost::alloc::vec::Vec<LocalCatalogModelDescriptor>,
+    pub items: ::prost::alloc::vec::Vec<ModelAssetCatalogSearchResult>,
     #[prost(string, tag = "2")]
     pub next_page_token: ::prost::alloc::string::String,
 }
+/// Read-only model card for either a browse result or an exact market offer.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct LocalCatalogVariantDescriptor {
+pub struct GetCatalogModelCardRequest {
     #[prost(string, tag = "1")]
-    pub filename: ::prost::alloc::string::String,
+    pub model_locator: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
-    pub entry: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "3")]
-    pub files: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(string, tag = "4")]
-    pub format: ::prost::alloc::string::String,
-    #[prost(int64, tag = "5")]
-    pub size_bytes: i64,
-    #[prost(string, tag = "6")]
-    pub sha256: ::prost::alloc::string::String,
+    pub offer_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetCatalogModelCardResponse {
+    #[prost(string, tag = "1")]
+    pub markdown: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub source_url: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub base_url: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListCatalogVariantsRequest {
     #[prost(string, tag = "1")]
-    pub repo: ::prost::alloc::string::String,
+    pub model_locator: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListCatalogVariantsResponse {
     #[prost(message, repeated, tag = "1")]
-    pub variants: ::prost::alloc::vec::Vec<LocalCatalogVariantDescriptor>,
-}
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
-pub struct GetRecommendationFeedRequest {
-    #[prost(string, tag = "1")]
-    pub capability: ::prost::alloc::string::String,
-    #[prost(int32, tag = "2")]
-    pub page_size: i32,
-}
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GetRecommendationFeedResponse {
-    #[prost(message, optional, tag = "1")]
-    pub feed: ::core::option::Option<LocalRecommendationFeedDescriptor>,
+    pub variants: ::prost::alloc::vec::Vec<ModelAssetMarketCandidate>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResolveModelInstallPlanRequest {
@@ -9155,6 +8972,8 @@ pub struct ResolveModelInstallPlanRequest {
     pub engine_config: ::core::option::Option<::prost_types::Struct>,
     #[prost(string, tag = "15")]
     pub model_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "16")]
+    pub offer_ref: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResolveModelInstallPlanResponse {
@@ -10040,6 +9859,35 @@ pub mod runtime_local_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        pub async fn get_catalog_model_card(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetCatalogModelCardRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetCatalogModelCardResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "GetCatalogModelCard",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
         pub async fn list_catalog_variants(
             &mut self,
             request: impl tonic::IntoRequest<super::ListCatalogVariantsRequest>,
@@ -10069,11 +9917,11 @@ pub mod runtime_local_service_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        pub async fn get_recommendation_feed(
+        pub async fn list_featured_model_assets(
             &mut self,
-            request: impl tonic::IntoRequest<super::GetRecommendationFeedRequest>,
+            request: impl tonic::IntoRequest<super::ListFeaturedModelAssetsRequest>,
         ) -> std::result::Result<
-            tonic::Response<super::GetRecommendationFeedResponse>,
+            tonic::Response<super::ListFeaturedModelAssetsResponse>,
             tonic::Status,
         > {
             self.inner
@@ -10086,14 +9934,45 @@ pub mod runtime_local_service_client {
                 })?;
             let codec = tonic_prost::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
-                "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
+                "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets",
             );
             let mut req = request.into_request();
             req.extensions_mut()
                 .insert(
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeLocalService",
-                        "GetRecommendationFeed",
+                        "ListFeaturedModelAssets",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn list_factory_profile_recommendations(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ListFactoryProfileRecommendationsRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ListFactoryProfileRecommendationsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeLocalService",
+                        "ListFactoryProfileRecommendations",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -11782,6 +11661,7 @@ impl AppStorageState {
 pub enum AppPackageSourceClass {
     Unspecified = 0,
     Verified = 1,
+    UserImported = 2,
 }
 impl AppPackageSourceClass {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -11792,6 +11672,7 @@ impl AppPackageSourceClass {
         match self {
             Self::Unspecified => "APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED",
             Self::Verified => "APP_PACKAGE_SOURCE_CLASS_VERIFIED",
+            Self::UserImported => "APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -11799,6 +11680,7 @@ impl AppPackageSourceClass {
         match value {
             "APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED" => Some(Self::Unspecified),
             "APP_PACKAGE_SOURCE_CLASS_VERIFIED" => Some(Self::Verified),
+            "APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED" => Some(Self::UserImported),
             _ => None,
         }
     }
@@ -11844,6 +11726,7 @@ pub enum AppPackageJobPhase {
     Unspecified = 0,
     Queued = 1,
     Downloading = 2,
+    ReadingLocal = 3,
     Verifying = 4,
     VerifyingInstalled = 5,
     AcquiringMissing = 6,
@@ -11865,6 +11748,7 @@ impl AppPackageJobPhase {
             Self::Unspecified => "APP_PACKAGE_JOB_PHASE_UNSPECIFIED",
             Self::Queued => "APP_PACKAGE_JOB_PHASE_QUEUED",
             Self::Downloading => "APP_PACKAGE_JOB_PHASE_DOWNLOADING",
+            Self::ReadingLocal => "APP_PACKAGE_JOB_PHASE_READING_LOCAL",
             Self::Verifying => "APP_PACKAGE_JOB_PHASE_VERIFYING",
             Self::VerifyingInstalled => "APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED",
             Self::AcquiringMissing => "APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING",
@@ -11883,6 +11767,7 @@ impl AppPackageJobPhase {
             "APP_PACKAGE_JOB_PHASE_UNSPECIFIED" => Some(Self::Unspecified),
             "APP_PACKAGE_JOB_PHASE_QUEUED" => Some(Self::Queued),
             "APP_PACKAGE_JOB_PHASE_DOWNLOADING" => Some(Self::Downloading),
+            "APP_PACKAGE_JOB_PHASE_READING_LOCAL" => Some(Self::ReadingLocal),
             "APP_PACKAGE_JOB_PHASE_VERIFYING" => Some(Self::Verifying),
             "APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED" => Some(Self::VerifyingInstalled),
             "APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING" => Some(Self::AcquiringMissing),
@@ -18846,6 +18731,17 @@ pub struct ListLocalAppAgentReferencesResponse {
     #[prost(message, repeated, tag = "1")]
     pub references: ::prost::alloc::vec::Vec<LocalAppAgentReference>,
 }
+/// Desktop account-product lookup; absent from ordinary App transport profiles.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResolveDesktopAgentReferenceRequest {
+    #[prost(string, tag = "1")]
+    pub local_agent_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResolveDesktopAgentReferenceResponse {
+    #[prost(message, optional, tag = "1")]
+    pub reference: ::core::option::Option<LocalAppAgentReference>,
+}
 /// Host-private Avatar correlation. This wire is reachable only through the
 /// protected native Host binding and is never an App product operation.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -19591,8 +19487,10 @@ pub mod list_shared_local_agent_ai_config_options_response {
         PresetVoices(super::SharedLocalAgentPresetVoiceOptions),
     }
 }
-/// AIProfile remains a portable template. Apply writes complete current owner
-/// intent only; it never materializes Local bindings or waits for readiness.
+/// AIProfile remains a portable template. Preview and Apply return
+/// non-committing editor prefill only; canonical AIConfig overwrite is the sole
+/// owner mutation and neither operation materializes Local bindings or waits for
+/// readiness.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PreviewSharedLocalAgentAiProfileRequest {
     #[prost(message, optional, tag = "1")]
@@ -21309,6 +21207,35 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "ListLocalAppAgentReferences",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn resolve_desktop_agent_reference(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ResolveDesktopAgentReferenceRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ResolveDesktopAgentReferenceResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ResolveDesktopAgentReference",
                     ),
                 );
             self.inner.unary(req, path, codec).await

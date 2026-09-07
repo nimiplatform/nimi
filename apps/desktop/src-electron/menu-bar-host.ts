@@ -18,7 +18,7 @@ export const MENU_BAR_RENDERER_FRESHNESS_MS = 15_000;
 export const MENU_BAR_ITEM_IDS = Object.freeze({
   openNimi: 'menu-bar-open-nimi',
   openRuntimeDashboard: 'menu-bar-open-runtime-dashboard',
-  openLocalModels: 'menu-bar-open-local-models',
+  openModelMarket: 'menu-bar-open-model-market',
   openCloudConnectors: 'menu-bar-open-cloud-connectors',
   openSettings: 'menu-bar-open-settings',
   startRuntime: 'menu-bar-start-runtime',
@@ -229,8 +229,8 @@ export function createDesktopElectronMenuBarHost(
       case MENU_BAR_ITEM_IDS.openRuntimeDashboard:
         await dispatchOpenTab({ tab: 'runtime', page: 'overview' });
         return;
-      case MENU_BAR_ITEM_IDS.openLocalModels:
-        await dispatchOpenTab({ tab: 'runtime', page: 'models' });
+      case MENU_BAR_ITEM_IDS.openModelMarket:
+        await dispatchOpenTab({ tab: 'runtime', page: 'modelMarket' });
         return;
       case MENU_BAR_ITEM_IDS.openCloudConnectors:
         await dispatchOpenTab({ tab: 'runtime', page: 'cloud' });
@@ -350,9 +350,9 @@ function buildMenuTemplate(
       click: action(MENU_BAR_ITEM_IDS.openRuntimeDashboard),
     },
     {
-      id: MENU_BAR_ITEM_IDS.openLocalModels,
-      label: 'Local Models',
-      click: action(MENU_BAR_ITEM_IDS.openLocalModels),
+      id: MENU_BAR_ITEM_IDS.openModelMarket,
+      label: 'Model Market',
+      click: action(MENU_BAR_ITEM_IDS.openModelMarket),
     },
     {
       id: MENU_BAR_ITEM_IDS.openCloudConnectors,

@@ -7,8 +7,7 @@ import {
 } from '@nimiplatform/kit/core/storage-json';
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
-  RUNTIME_CONFIG_STORAGE_KEY_V11,
-  RUNTIME_CONFIG_STORAGE_KEY_V12,
+  RUNTIME_CONFIG_STORAGE_KEY_V13,
 } from './runtime-config-storage-defaults';
 import { loadRuntimeConfigStateV11 } from './runtime-config-storage-persist';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
@@ -28,8 +27,7 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
     if (!input.bootstrapReady || input.hydrated) return;
 
     const storage = resolveBrowserStorage('local');
-    const hadStoredState = readStorageTextFrom(storage, RUNTIME_CONFIG_STORAGE_KEY_V12).state === 'ready'
-      || readStorageTextFrom(storage, RUNTIME_CONFIG_STORAGE_KEY_V11).state === 'ready';
+    const hadStoredState = readStorageTextFrom(storage, RUNTIME_CONFIG_STORAGE_KEY_V13).state === 'ready';
 
     const loaded = loadRuntimeConfigStateV11();
 
@@ -43,10 +41,10 @@ export function useRuntimeConfigHydrationEffect(input: HydrationEffectInput) {
       const flowId = createRendererFlowId('runtime-config');
       logRendererEvent({
         area: 'renderer-bootstrap',
-        message: 'runtime-config:v12-storage-initialized',
+        message: 'runtime-config:v13-storage-initialized',
         flowId,
         details: {
-          storageKey: RUNTIME_CONFIG_STORAGE_KEY_V12,
+          storageKey: RUNTIME_CONFIG_STORAGE_KEY_V13,
           hadStoredState,
         },
       });

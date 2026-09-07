@@ -214,7 +214,11 @@ services:
         type: unary
       - name: ListCatalogVariants
         type: unary
-      - name: GetRecommendationFeed
+      - name: GetCatalogModelCard
+        type: unary
+      - name: ListFeaturedModelAssets
+        type: unary
+      - name: ListFactoryProfileRecommendations
         type: unary
       - name: ResolveModelInstallPlan
         type: unary
@@ -584,6 +588,9 @@ services:
       - name: ListLocalAppAgentReferences
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
+      - name: ResolveDesktopAgentReference
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference
       - name: ResolveLocalAppAvatarHostTarget
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget

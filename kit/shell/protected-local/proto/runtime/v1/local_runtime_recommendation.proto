@@ -4,149 +4,110 @@ package nimi.runtime.v1;
 
 option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
 
-import "google/protobuf/struct.proto";
-import "runtime/v1/local_runtime_asset_catalog.proto";
-import "runtime/v1/local_runtime_device_environment.proto";
+import "runtime/v1/common.proto";
 
-// === Recommendation Feed ===
-
-enum LocalRecommendationSource {
-  LOCAL_RECOMMENDATION_SOURCE_UNSPECIFIED = 0;
-  LOCAL_RECOMMENDATION_SOURCE_LLMFIT      = 1;
-  LOCAL_RECOMMENDATION_SOURCE_MEDIA_FIT   = 2;
+// Runtime-owned applicability for one exact recommendation context. It is
+// neither configuration, readiness, selection, nor execution truth.
+enum LocalRecommendationApplicability {
+  LOCAL_RECOMMENDATION_APPLICABILITY_UNSPECIFIED = 0;
+  LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED = 1;
+  LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN = 2;
+  LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED = 3;
 }
 
-enum LocalRecommendationFormat {
-  LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED = 0;
-  LOCAL_RECOMMENDATION_FORMAT_GGUF        = 1;
-  LOCAL_RECOMMENDATION_FORMAT_SAFETENSORS = 2;
+enum ModelAssetSourceAvailability {
+  MODEL_ASSET_SOURCE_AVAILABILITY_UNSPECIFIED = 0;
+  MODEL_ASSET_SOURCE_AVAILABILITY_AVAILABLE = 1;
+  MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE = 2;
 }
 
-enum LocalRecommendationTier {
-  LOCAL_RECOMMENDATION_TIER_UNSPECIFIED      = 0;
-  LOCAL_RECOMMENDATION_TIER_RECOMMENDED      = 1;
-  LOCAL_RECOMMENDATION_TIER_RUNNABLE         = 2;
-  LOCAL_RECOMMENDATION_TIER_TIGHT            = 3;
-  LOCAL_RECOMMENDATION_TIER_NOT_RECOMMENDED  = 4;
+enum ModelAssetSourceFreshness {
+  MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED = 0;
+  MODEL_ASSET_SOURCE_FRESHNESS_FRESH = 1;
+  MODEL_ASSET_SOURCE_FRESHNESS_STALE = 2;
 }
 
-enum LocalRecommendationConfidence {
-  LOCAL_RECOMMENDATION_CONFIDENCE_UNSPECIFIED = 0;
-  LOCAL_RECOMMENDATION_CONFIDENCE_HIGH        = 1;
-  LOCAL_RECOMMENDATION_CONFIDENCE_MEDIUM      = 2;
-  LOCAL_RECOMMENDATION_CONFIDENCE_LOW         = 3;
+// Source observation is scoped only to the model-index featured section.
+// generation never participates in offer identity.
+message ModelAssetFeaturedSourceObservation {
+  ModelAssetSourceAvailability availability = 1;
+  ModelAssetSourceFreshness freshness = 2;
+  string generation = 3;
+  ReasonCode reason_code = 4;
 }
 
-enum LocalHostSupportClass {
-  LOCAL_HOST_SUPPORT_CLASS_UNSPECIFIED          = 0;
-  LOCAL_HOST_SUPPORT_CLASS_SUPPORTED_SUPERVISED = 1;
-  LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY        = 2;
-  LOCAL_HOST_SUPPORT_CLASS_UNSUPPORTED          = 3;
+// Browse-only search result. model_locator opens detail or variant listing and
+// never authorizes installation.
+message ModelAssetCatalogSearchResult {
+  string model_locator = 1;
+  string source_label = 2;
+  string title = 3;
+  string description = 4;
+  repeated string categories = 5;
+  string model_type = 6;
+  string license = 7;
+  repeated string tags = 8;
+  int64 downloads = 9;
+  int64 likes = 10;
+  string last_modified = 11;
+  bool verified = 12;
+  // Publishing organization or author label (for example the repository
+  // owner). Presentation only; never part of offer identity.
+  string author = 13;
 }
 
-enum LocalRecommendationBaseline {
-  LOCAL_RECOMMENDATION_BASELINE_UNSPECIFIED      = 0;
-  LOCAL_RECOMMENDATION_BASELINE_IMAGE_DEFAULT_V1 = 1;
-  LOCAL_RECOMMENDATION_BASELINE_VIDEO_DEFAULT_V1 = 2;
+// Exact entry-level offer. The opaque offer_ref is the only install-plan input
+// exposed to SDK and Desktop.
+message ModelAssetMarketCandidate {
+  string offer_ref = 1;
+  string source_label = 2;
+  string title = 3;
+  string description = 4;
+  repeated string categories = 5;
+  string model_type = 6;
+  string variant_label = 7;
+  string format = 8;
+  int64 total_size_bytes = 9;
+  string license = 10;
+  repeated string tags = 11;
+  int64 downloads = 12;
+  int64 likes = 13;
+  string last_modified = 14;
+  bool verified = 15;
+  bool installed = 16;
+  bool installable = 17;
+  optional int32 featured_ordinal = 18;
+  string editorial_reason = 19;
+  // Publishing organization or author label (for example the repository
+  // owner). Presentation only; never part of offer identity.
+  string author = 20;
 }
 
-enum LocalRecommendationFeedCacheState {
-  LOCAL_RECOMMENDATION_FEED_CACHE_STATE_UNSPECIFIED = 0;
-  LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH       = 1;
-  LOCAL_RECOMMENDATION_FEED_CACHE_STATE_STALE       = 2;
-  LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY       = 3;
+message ListFeaturedModelAssetsRequest {
+  string category = 1;
+  int32 page_size = 2;
 }
 
-enum LocalRecommendationFeedCapability {
-  LOCAL_RECOMMENDATION_FEED_CAPABILITY_UNSPECIFIED = 0;
-  LOCAL_RECOMMENDATION_FEED_CAPABILITY_CHAT        = 1;
-  LOCAL_RECOMMENDATION_FEED_CAPABILITY_IMAGE       = 2;
-  LOCAL_RECOMMENDATION_FEED_CAPABILITY_VIDEO       = 3;
+message ListFeaturedModelAssetsResponse {
+  ModelAssetFeaturedSourceObservation source = 1;
+  repeated ModelAssetMarketCandidate items = 2;
 }
 
-enum LocalRecommendationFeedSource {
-  LOCAL_RECOMMENDATION_FEED_SOURCE_UNSPECIFIED = 0;
-  LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX = 1;
+message FactoryProfileCapabilityApplicability {
+  string capability_contract = 1;
+  LocalRecommendationApplicability applicability = 2;
+  repeated ReasonCode reasons = 3;
 }
 
-message LocalCatalogRecommendation {
-  LocalRecommendationSource source             = 1;
-  LocalRecommendationFormat format             = 2;
-  LocalRecommendationTier tier                 = 3;
-  LocalHostSupportClass host_support_class     = 4;
-  LocalRecommendationConfidence confidence     = 5;
-  repeated string reason_codes                 = 6;
-  string recommended_entry                     = 7;
-  repeated string fallback_entries             = 8;
-  reserved 9;
-  reserved "suggested_assets";
-  repeated string suggested_notes              = 10;
-  LocalRecommendationBaseline baseline         = 11;
+message FactoryProfileRecommendation {
+  string profile_alias = 1;
+  repeated FactoryProfileCapabilityApplicability capabilities = 2;
 }
 
-message LocalRecommendationFeedEntryDescriptor {
-  string entry_id                         = 1;
-  LocalRecommendationFormat format        = 2;
-  string entry                            = 3;
-  repeated string files                   = 4;
-  int64 total_size_bytes                  = 5;
-  string sha256                           = 6;
+message ListFactoryProfileRecommendationsRequest {
+  string capability_contract = 1;
 }
 
-message LocalRecommendationInstalledState {
-  bool installed              = 1;
-  reserved 2, 3;
-  reserved "local_asset_id", "status";
-}
-
-message LocalRecommendationActionState {
-  reserved "can_open_local_asset";
-  bool can_review_install_plan = 1;
-  bool can_open_variants       = 2;
-  bool can_open_model_asset    = 3;
-}
-
-message LocalRecommendationInstallPayload {
-  string model_id                      = 1;
-  LocalAssetKind kind                  = 2;
-  string repo                          = 3;
-  string revision                      = 4;
-  repeated string capabilities         = 5;
-  string engine                        = 6;
-  string entry                         = 7;
-  repeated string files                = 8;
-  string license                       = 9;
-  map<string, string> hashes           = 10;
-  string endpoint                      = 11;
-  google.protobuf.Struct engine_config = 12;
-}
-
-message LocalRecommendationFeedItemDescriptor {
-  string item_id                                   = 1;
-  LocalRecommendationFeedSource source             = 2;
-  string repo                                      = 3;
-  string revision                                  = 4;
-  string title                                     = 5;
-  string description                               = 6;
-  repeated string capabilities                     = 7;
-  repeated string tags                             = 8;
-  repeated LocalRecommendationFormat formats       = 9;
-  int64 downloads                                  = 10;
-  int64 likes                                      = 11;
-  string last_modified                             = 12;
-  string preferred_engine                          = 13;
-  bool verified                                    = 14;
-  repeated LocalRecommendationFeedEntryDescriptor entries = 15;
-  LocalCatalogRecommendation recommendation        = 16;
-  LocalRecommendationInstalledState installed_state = 17;
-  LocalRecommendationActionState action_state      = 18;
-  LocalRecommendationInstallPayload install_payload = 19;
-}
-
-message LocalRecommendationFeedDescriptor {
-  LocalDeviceProfile device_profile                = 1;
-  LocalRecommendationFeedCapability active_capability = 2;
-  string generated_at                              = 3;
-  LocalRecommendationFeedCacheState cache_state    = 4;
-  repeated LocalRecommendationFeedItemDescriptor items = 5;
+message ListFactoryProfileRecommendationsResponse {
+  repeated FactoryProfileRecommendation profiles = 1;
 }

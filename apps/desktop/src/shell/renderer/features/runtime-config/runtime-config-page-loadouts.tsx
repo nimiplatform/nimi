@@ -1,6 +1,6 @@
 // @nimi-authority: rule.nimi.desktop.ai-consumption.r023
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { isNimiError } from '@nimiplatform/sdk/types';
@@ -28,24 +28,30 @@ import {
 } from '@nimiplatform/kit/ui';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
-import {
-  installRuntimeConfigCatalogAsset,
-  useRuntimeConfigLocalEnvironmentClient,
-} from './runtime-config-local-environment-sdk-service.js';
+import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
 import { runtimeConfigLoadoutCatalogBadge } from './runtime-config-loadout-catalog-badge.js';
 import {
   createRuntimeConfigLoadoutImpactState,
   type RuntimeConfigLoadoutPendingImpact,
 } from './runtime-config-loadout-impact-state.js';
 import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell.js';
+import { localizedAssetUnhealthyReason } from './runtime-config-reason-messages.js';
+import type {
+  RuntimeConfigLoadoutNavigationContext,
+  RuntimeConfigModelMarketContext,
+} from './runtime-config-panel-types.js';
 
 type EditDraft = { readonly modelAssetIds: Readonly<Record<string, string>>; readonly displayName: string };
+
+// SelectField drops empty-valued options (Radix Select reserves '' for the
+// cleared state), so the "unresolved" choice uses a sentinel and maps back to
+// '' (unset binding) at the change boundary.
+const LOADOUT_UNSET_MODEL_OPTION_VALUE = '__loadout_unset_model__';
 type RecommendedInstallItem = {
   readonly slotId: string;
   readonly displayLabel: string;
-  readonly contentId: string;
-  readonly variantId: string;
-  readonly descriptor?: NimiRuntimeLocalVerifiedAssetDescriptor;
+  readonly candidate: NimiLoadoutRecipe['slots'][number]['offers'][number]['candidate'];
+  readonly installedModelAssetId?: string;
   readonly installed: boolean;
 };
 type PendingRecommendedInstall = {
@@ -53,24 +59,11 @@ type PendingRecommendedInstall = {
   readonly items: readonly RecommendedInstallItem[];
   readonly loadout?: NimiMachineLoadout;
 };
-
-const CAPABILITY_ORDER = [
-  'text.generate',
-  'text.embed',
-  'image.generate',
-  'audio.synthesize',
-  'audio.transcribe',
-  'voice.create',
-  'video.generate',
-  'music.generate',
-];
-
-function capabilitySortIndex(capabilityContract: string): number {
-  const index = CAPABILITY_ORDER.indexOf(capabilityContract);
-  return index === -1 ? CAPABILITY_ORDER.length : index;
-}
-
-export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void }) {
+export function LoadoutsPage(props: {
+  readonly navigationContext: RuntimeConfigLoadoutNavigationContext | null;
+  readonly onOpenEnvironment?: () => void;
+  readonly onOpenModelMarket: (context: RuntimeConfigModelMarketContext) => void;
+}) {
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
   const queryClient = useQueryClient();
@@ -139,12 +132,13 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
   }, [queryClient]);
 
   const capabilities = useMemo(() => {
-    const contracts = new Set<string>();
-    for (const recipe of recipes) contracts.add(recipe.capabilityContract);
-    for (const loadout of aggregate?.loadouts ?? []) contracts.add(loadout.capabilityContract);
-    return [...contracts].sort((left, right) => (
-      capabilitySortIndex(left) - capabilitySortIndex(right) || left.localeCompare(right)
-    ));
+    const contracts: string[] = [];
+    const append = (value: string) => {
+      if (value && !contracts.includes(value)) contracts.push(value);
+    };
+    for (const recipe of recipes) append(recipe.capabilityContract);
+    for (const loadout of aggregate?.loadouts ?? []) append(loadout.capabilityContract);
+    return contracts;
   }, [aggregate, recipes]);
 
   const loadoutsByCapability = useMemo(() => {
@@ -161,6 +155,7 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
   }, [aggregate]);
 
   const [activeCapability, setActiveCapability] = useState('');
+  const handledNavigationKeyRef = useRef('');
 
   useEffect(() => {
     if (capabilities.length === 0) {
@@ -177,13 +172,21 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
   }, [aggregate, capabilities, loadoutsByCapability]);
 
   const activeCapabilityLoadouts = loadoutsByCapability.get(activeCapability) ?? [];
+  const activeCapabilityRecipes = recipes.filter((recipe) => recipe.capabilityContract === activeCapability);
+  const currentLoadouts = activeCapabilityLoadouts.filter((loadout) => isSelected(aggregate, loadout));
+  const savedLoadouts = activeCapabilityLoadouts.filter((loadout) => !isSelected(aggregate, loadout));
+  const {
+    supported: recommendedRecipes,
+    unknown: unknownRecipes,
+    unsupported: unsupportedRecipes,
+  } = partitionRuntimeConfigRecipeTemplates(activeCapabilityRecipes);
 
   const createCapabilities = useMemo(() => {
-    const contracts = new Set<string>();
-    for (const recipe of recipes) contracts.add(recipe.capabilityContract);
-    return [...contracts].sort((left, right) => (
-      capabilitySortIndex(left) - capabilitySortIndex(right) || left.localeCompare(right)
-    ));
+    const contracts: string[] = [];
+    for (const recipe of recipes) {
+      if (!contracts.includes(recipe.capabilityContract)) contracts.push(recipe.capabilityContract);
+    }
+    return contracts;
   }, [recipes]);
 
   const createCapabilityRecipes = useMemo(
@@ -193,13 +196,13 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
 
   const selectedRecipe = recipes.find((recipe) => recipe.recipeId === recipeId);
   const recommendations = useMemo(
-    () => selectedRecipe
-      ? recommendedInstallItems(selectedRecipe, assets, verifiedAssets, createAxes)
-      : [],
-    [assets, createAxes, selectedRecipe, verifiedAssets],
+    () => selectedRecipe ? recommendedInstallItems(selectedRecipe, createAxes) : [],
+    [createAxes, selectedRecipe],
   );
   const missingRecommendations = recommendations.filter((item) => !item.installed);
-  const missingDownload = recommendedMissingDownload(recommendations);
+  const missingRequiredSlots = selectedRecipe?.slots.filter((slot) => (
+    slot.presence === 'required' && !createAxes[slot.slotId]
+  )) ?? [];
 
   const beginCreate = useCallback((capability?: string) => {
     setRecipeId('');
@@ -231,7 +234,27 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
     setDisplayName(`${capabilityLabel} · ${recipe.title}`);
     setCreateAxes(recommendedAxisSelections(recipe, assets));
     setCreateStep(3);
+    setShowCreate(true);
   }, [assets, t]);
+
+  useEffect(() => {
+    const context = props.navigationContext;
+    if (!context) return;
+    const key = [context.capabilityContract, context.recipeId, context.recipeRevision, context.slotId].join(':');
+    if (handledNavigationKeyRef.current === key) return;
+    if (context.capabilityContract) setActiveCapability(context.capabilityContract);
+    if (!context.recipeId) {
+      handledNavigationKeyRef.current = key;
+      return;
+    }
+    const recipe = recipes.find((item) => (
+      item.recipeId === context.recipeId
+      && (!context.recipeRevision || item.revision === context.recipeRevision)
+    ));
+    if (!recipe) return;
+    handledNavigationKeyRef.current = key;
+    selectCreateRecipe(recipe);
+  }, [props.navigationContext, recipes, selectCreateRecipe]);
 
   const run = useCallback(async (key: string, action: () => Promise<void>, onError?: (message: string) => void) => {
     if (busy) return;
@@ -283,10 +306,10 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
   }, [assets, createAxes, displayName, loadoutsClient, recommendations, run, selectedRecipe]);
 
   const requestRecommendedInstallForRecipe = useCallback((recipe: NimiLoadoutRecipe, loadout?: NimiMachineLoadout) => {
-    const items = recommendedInstallItems(recipe, assets, verifiedAssets);
+    const items = recommendedInstallItems(recipe, loadout ? modelAssetIdsForLoadout(loadout) : {});
     if (!items.some((item) => !item.installed)) return;
     setPendingInstall({ recipe, items, ...(loadout ? { loadout } : {}) });
-  }, [assets, verifiedAssets]);
+  }, []);
 
   const confirmRecommendedInstall = useCallback(() => {
     const pending = pendingInstall;
@@ -296,7 +319,10 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
       await installAndBindRuntimeConfigRecommendedLoadout({
         ...pending,
         assets,
-        installCatalogAsset: (templateId) => installRuntimeConfigCatalogAsset(modelAssetsClient, templateId),
+        installOffer: async (offerRef) => {
+          const plan = await modelAssetsClient.resolveOfferInstallPlan(offerRef);
+          return modelAssetsClient.install(plan.planId, { caller: 'core' });
+        },
         updateLoadout: (next) => loadoutsClient.update(next, false),
       });
     });
@@ -438,28 +464,61 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
           />
           {activeCapability ? (
             <section className="grid gap-3" data-testid={`loadout-capability:${activeCapability}`}>
-              {activeCapabilityLoadouts.length > 0 ? (
-                activeCapabilityLoadouts.map((loadout) => (
-                  <LoadoutCard
-                    key={loadout.loadoutId}
-                    loadout={loadout}
-                    recipe={recipes.find((recipe) => recipe.recipeId === loadout.recipeId)}
-                    assets={assets}
-                    verifiedAssets={verifiedAssets}
-                    selected={isSelected(aggregate, loadout)}
-                    busy={Boolean(busy)}
-                    onSelect={() => requestSelect(loadout)}
-                    onClear={() => requestClear(loadout)}
-                    onInstallRecommended={(recipe) => requestRecommendedInstallForRecipe(recipe, loadout)}
-                    onManage={() => setManageLoadoutId(loadout.loadoutId)}
+              <LoadoutGroup
+                title={t('runtimeConfig.loadouts.currentTitle', { defaultValue: 'Current' })}
+                loadouts={currentLoadouts}
+                aggregate={aggregate}
+                recipes={recipes}
+                assets={assets}
+                verifiedAssets={verifiedAssets}
+                busy={Boolean(busy)}
+                onSelect={requestSelect}
+                onClear={requestClear}
+                onInstallRecommended={requestRecommendedInstallForRecipe}
+                onManage={(loadout) => setManageLoadoutId(loadout.loadoutId)}
+              />
+              <RecipeTemplateGroup
+                title={t('runtimeConfig.loadouts.recommendedTemplates', { defaultValue: 'Recommended plans' })}
+                recipes={recommendedRecipes}
+                emptyLabel={t('runtimeConfig.loadouts.noRecommendedTemplates', { defaultValue: 'No supported plan is currently recommended.' })}
+                onOpen={selectCreateRecipe}
+              />
+              {unknownRecipes.length > 0 ? (
+                <RecipeTemplateGroup
+                  title={t('runtimeConfig.loadouts.unknownTemplates', { defaultValue: 'Needs host information' })}
+                  recipes={unknownRecipes}
+                  onOpen={selectCreateRecipe}
+                />
+              ) : null}
+              {unsupportedRecipes.length > 0 ? (
+                <CollapsibleRecipeSection
+                  title={t('runtimeConfig.loadouts.unsupportedTemplates', { defaultValue: "Plans this device can't run" })}
+                  count={unsupportedRecipes.length}
+                >
+                  <RecipeTemplateGroup
+                    recipes={unsupportedRecipes}
+                    onOpen={selectCreateRecipe}
                   />
-                ))
-              ) : (
+                </CollapsibleRecipeSection>
+              ) : null}
+              <LoadoutGroup
+                title={t('runtimeConfig.loadouts.savedTitle', { defaultValue: 'Saved Loadouts' })}
+                loadouts={savedLoadouts}
+                aggregate={aggregate}
+                recipes={recipes}
+                assets={assets}
+                verifiedAssets={verifiedAssets}
+                busy={Boolean(busy)}
+                onSelect={requestSelect}
+                onClear={requestClear}
+                onInstallRecommended={requestRecommendedInstallForRecipe}
+                onManage={(loadout) => setManageLoadoutId(loadout.loadoutId)}
+              />
+              {activeCapabilityLoadouts.length === 0 && activeCapabilityRecipes.length === 0 ? (
                 <Surface tone="card" className="flex flex-wrap items-center justify-between gap-3 px-4 py-3" data-testid={`loadout-capability-empty:${activeCapability}`}>
                   <span className="text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.loadouts.sectionEmpty')}</span>
-                  <Button size="sm" tone="secondary" onClick={() => beginCreate(activeCapability)}>{t('runtimeConfig.loadouts.createForCapability', { capability: capabilityLabel(activeCapability) })}</Button>
                 </Surface>
-              )}
+              ) : null}
             </section>
           ) : null}
         </div>
@@ -500,9 +559,9 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
           {createStep === 2 ? (
             <div className="grid gap-2">
               {createCapabilityRecipes.map((recipe) => {
-                const items = recommendedInstallItems(recipe, assets, verifiedAssets);
-                const missing = recommendedMissingDownload(items);
-                const installedCount = items.filter((item) => item.installed).length;
+                const installedCount = recipe.slots.filter((slot) => (
+                  slot.offers.some((offer) => Boolean(offer.installedModelAssetId))
+                )).length;
                 return (
                   <button
                     key={recipe.recipeId}
@@ -514,9 +573,6 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
                     <span className="text-sm font-medium">{recipe.title}</span>
                     <span className="text-xs text-[var(--nimi-text-muted)]">
                       {t('runtimeConfig.loadouts.recipeSummary', { slots: recipe.slots.length, installed: installedCount })}
-                      {missing.count > 0 ? ` · ${missing.totalBytes !== null
-                        ? t('runtimeConfig.loadouts.recipeMissing', { size: formatBytes(missing.totalBytes) })
-                        : t('runtimeConfig.loadouts.recipeMissingUnknown')}` : ''}
                     </span>
                   </button>
                 );
@@ -528,44 +584,76 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
             <>
               <label className="grid gap-1 text-sm"><span>{t('runtimeConfig.loadouts.name')}</span><TextField value={displayName} onChange={(event) => setDisplayName(event.currentTarget.value)} /></label>
               {selectedRecipe.slots.map((slot) => (
-                <div key={slot.slotId} className="grid gap-1 text-sm">
+                <div
+                  key={slot.slotId}
+                  data-testid={`recipe-slot:${selectedRecipe.recipeId}:${slot.slotId}`}
+                  className={`grid gap-1 rounded-lg p-2 text-sm ${props.navigationContext?.slotId === slot.slotId
+                    ? 'ring-2 ring-[var(--nimi-action-primary-bg)]'
+                    : ''}`}
+                >
                   <span>{slot.displayLabel}</span>
                   <SelectField
-                    value={createAxes[slot.slotId] ?? ''}
+                    value={createAxes[slot.slotId] || LOADOUT_UNSET_MODEL_OPTION_VALUE}
                     options={[
-                      { value: '', label: t('runtimeConfig.loadouts.unresolved') },
+                      { value: LOADOUT_UNSET_MODEL_OPTION_VALUE, label: t('runtimeConfig.loadouts.unresolved') },
                       ...runtimeConfigLoadoutCandidateAssets(slot, assets).map((asset) => ({
                         value: asset.modelAssetId,
                         label: loadoutAssetLabel(asset, verifiedAssets),
                       })),
                     ]}
-                    onValueChange={(modelAssetId) => setCreateAxes((current) => ({ ...current, [slot.slotId]: modelAssetId }))}
+                    onValueChange={(value) => setCreateAxes((current) => ({
+                      ...current,
+                      [slot.slotId]: value === LOADOUT_UNSET_MODEL_OPTION_VALUE ? '' : value,
+                    }))}
                     contentLayer="dialog"
                   />
+                  <div className="flex flex-wrap gap-2">
+                    {slot.offers.map((offer) => (
+                      <div key={offer.candidate.offerRef} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--nimi-border-subtle)] px-3 py-2 text-xs">
+                        <span className="min-w-0 text-[var(--nimi-text-secondary)]">
+                          <span className="font-medium text-[var(--nimi-text-primary)]">{offer.candidate.title}</span>
+                          {' · '}{offer.candidate.variantLabel}
+                          {' · '}{offer.candidate.totalSizeBytes ? formatBytes(offer.candidate.totalSizeBytes) : t('runtimeConfig.loadouts.downloadSizeUnknown', { defaultValue: 'size unknown' })}
+                        </span>
+                        {offer.installedModelAssetId ? (
+                          <StatusBadge tone="success" shape="soft">{t('runtimeConfig.loadouts.installed', { defaultValue: 'Installed' })}</StatusBadge>
+                        ) : offer.applicability !== 'unsupported' && offer.candidate.installable ? (
+                          <Button
+                            size="sm"
+                            tone="secondary"
+                            onClick={() => props.onOpenModelMarket({
+                              capabilityContract: selectedRecipe.capabilityContract,
+                              recipeId: selectedRecipe.recipeId,
+                              recipeRevision: selectedRecipe.revision,
+                              slotId: slot.slotId,
+                              candidate: offer.candidate,
+                            })}
+                          >
+                            {t('runtimeConfig.loadouts.openMarketOffer', { defaultValue: 'View in Model Market' })}
+                          </Button>
+                        ) : (
+                          <StatusBadge tone="warning" shape="soft">{t(`runtimeConfig.loadouts.applicability.${offer.applicability}`, { defaultValue: offer.applicability })}</StatusBadge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
-              {recommendations.length > 0 ? (
-                <Surface tone="card" className="grid gap-2 p-3" data-testid="recommended-loadout-combination">
-                  <div className="text-sm font-medium">{t('runtimeConfig.loadouts.recommendedCombination')}</div>
-                  {recommendations.map((item) => (
-                    <div key={item.slotId} className="flex items-center justify-between gap-3 text-xs">
-                      <span>{item.displayLabel} · {item.descriptor?.title ?? item.variantId}</span>
-                      <span>{formatDownloadBytes(knownDownloadSize(item.descriptor?.totalSizeBytes), t('runtimeConfig.loadouts.unknownDownloadSize'))} · {item.installed ? t('runtimeConfig.loadouts.installed') : t('runtimeConfig.loadouts.downloadRequired')}</span>
-                    </div>
-                  ))}
-                </Surface>
-              ) : null}
-              {missingRecommendations.length > 0 ? (
+              {missingRequiredSlots.length > 0 ? (
                 <InlineAlert tone="warning">
-                  <p>{missingDownload.totalBytes !== null
-                    ? t('runtimeConfig.loadouts.missingSummary', { size: formatBytes(missingDownload.totalBytes) })
-                    : t('runtimeConfig.loadouts.missingSummaryUnknown')}</p>
+                  <p>{t('runtimeConfig.loadouts.missingSlots', {
+                    count: missingRequiredSlots.length,
+                    defaultValue: '{{count}} required slot(s) still need an installed ModelAsset.',
+                  })}</p>
                 </InlineAlert>
               ) : (
                 <InlineAlert tone="success">
                   <p>{t('runtimeConfig.loadouts.readySummary')}</p>
                 </InlineAlert>
               )}
+              <p className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
+                {t('runtimeConfig.loadouts.downloadEstimateDisclaimer')}
+              </p>
             </>
           ) : null}
 
@@ -578,7 +666,7 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
                   size="sm"
                   tone="primary"
                   loading={busy === 'create'}
-                  disabled={!selectedRecipe || !displayName.trim()}
+                  disabled={!selectedRecipe || selectedRecipe.applicability !== 'supported' || !displayName.trim()}
                   onClick={create}
                 >
                   {missingRecommendations.length > 0 ? t('runtimeConfig.loadouts.commitDownload') : t('runtimeConfig.loadouts.commit')}
@@ -639,10 +727,10 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
                       {error ? <p className="mt-2 text-xs text-[var(--nimi-status-danger)]">{t('runtimeConfig.loadouts.incompatibleSummary')}</p> : null}
                     </div>
                     <SelectField
-                      value={manageDraft.modelAssetIds[axis.slotId] ?? ''}
+                      value={manageDraft.modelAssetIds[axis.slotId] || LOADOUT_UNSET_MODEL_OPTION_VALUE}
                       options={[
                         ...(axis.presence === 'optional-conditional'
-                          ? [{ value: '', label: t('runtimeConfig.loadouts.unresolved') }]
+                          ? [{ value: LOADOUT_UNSET_MODEL_OPTION_VALUE, label: t('runtimeConfig.loadouts.unresolved') }]
                           : []),
                         ...runtimeConfigLoadoutCandidateAssets(slot, assets, axis).map((item) => {
                           const incompatibility = candidateErrors[`${manageLoadout.loadoutId}:${axis.slotId}:${item.modelAssetId}`];
@@ -650,7 +738,8 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
                           return { value: item.modelAssetId, label: incompatibility ? `${label} · ${t('runtimeConfig.loadouts.incompatibleOption')}` : label };
                         }),
                       ]}
-                      onValueChange={(modelAssetId) => {
+                      onValueChange={(value) => {
+                        const modelAssetId = value === LOADOUT_UNSET_MODEL_OPTION_VALUE ? '' : value;
                         setEdits((current) => ({
                           ...current,
                           [manageLoadout.loadoutId]: { ...manageDraft, modelAssetIds: { ...manageDraft.modelAssetIds, [axis.slotId]: modelAssetId } },
@@ -746,6 +835,148 @@ export function LoadoutsPage(props: { readonly onOpenEnvironment?: () => void })
   );
 }
 
+function CollapsibleRecipeSection(props: {
+  readonly title: string;
+  readonly count: number;
+  readonly children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className="grid gap-2">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className="flex w-fit items-center gap-1.5 text-left text-sm font-medium text-[var(--nimi-text-muted)] transition hover:text-[var(--nimi-text-primary)]"
+        data-testid="recipe-group-collapse-toggle"
+      >
+        <span aria-hidden="true" className={`inline-block text-xs transition-transform ${open ? 'rotate-90' : ''}`}>▸</span>
+        {props.title} ({props.count})
+      </button>
+      {open ? props.children : null}
+    </section>
+  );
+}
+
+function RecipeTemplateGroup(props: {
+  readonly title?: string;
+  readonly recipes: readonly NimiLoadoutRecipe[];
+  readonly emptyLabel?: string;
+  readonly onOpen: (recipe: NimiLoadoutRecipe) => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <section className="grid gap-2">
+      {props.title ? <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{props.title}</h3> : null}
+      {props.recipes.length === 0 ? (
+        props.emptyLabel ? <p className="text-xs text-[var(--nimi-text-muted)]">{props.emptyLabel}</p> : null
+      ) : props.recipes.map((recipe) => {
+        const estimate = summarizeRuntimeConfigRecipeDownloads(recipe);
+        const supported = recipe.applicability === 'supported';
+        return (
+        <Surface key={`${recipe.recipeId}@${recipe.revision}`} tone="card" className="grid gap-3 p-4" data-testid={`recipe-template:${recipe.recipeId}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h4 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{recipe.title}</h4>
+                <StatusBadge tone={supported ? 'success' : 'warning'} shape="soft">
+                  {t(`runtimeConfig.loadouts.hostFit.${recipe.applicability}`, { defaultValue: recipe.applicability })}
+                </StatusBadge>
+              </div>
+              <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                {estimate.count === 0
+                  ? t('runtimeConfig.loadouts.noRecommendedDownload', { defaultValue: 'Required models are installed; the final setup still needs validation.' })
+                  : estimate.totalSizeBytes === null
+                    ? t('runtimeConfig.loadouts.recommendedDownloadUnknown', { count: estimate.count, defaultValue: '{{count}} model(s) to download · size unknown' })
+                    : t('runtimeConfig.loadouts.recommendedDownloadKnown', { count: estimate.count, size: formatBytes(estimate.totalSizeBytes), defaultValue: '{{count}} model(s) to download · ~{{size}}' })}
+              </p>
+              {supported ? null : (
+                <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                  {t(recipe.applicability === 'unsupported'
+                    ? 'runtimeConfig.loadouts.unsupportedReason'
+                    : 'runtimeConfig.loadouts.unknownReason')}
+                </p>
+              )}
+              {recipe.reasons.length > 0 ? (
+                <details className="mt-1 text-xs text-[var(--nimi-text-muted)]">
+                  <summary className="cursor-pointer">{t('runtimeConfig.loadouts.technicalDetails')}</summary>
+                  <p className="mt-1 break-all font-mono">{recipe.reasons.join(' · ')}</p>
+                </details>
+              ) : null}
+            </div>
+            <Button size="sm" tone={supported ? 'primary' : 'secondary'} onClick={() => props.onOpen(recipe)}>
+              {t(supported ? 'runtimeConfig.loadouts.useTemplate' : 'runtimeConfig.loadouts.openTemplate', { defaultValue: supported ? 'Use this plan' : 'View plan' })}
+            </Button>
+          </div>
+          <div className="grid gap-1.5">
+            {recipe.slots.map((slot) => {
+              const installed = slot.offers.some((offer) => Boolean(offer.installedModelAssetId));
+              const supportedOffers = slot.offers.filter((offer) => offer.applicability === 'supported').length;
+              const firstOffer = slot.offers.find((offer) => offer.applicability !== 'unsupported');
+              const modelText = firstOffer
+                ? `${firstOffer.candidate.title} · ${firstOffer.candidate.totalSizeBytes
+                  ? formatBytes(firstOffer.candidate.totalSizeBytes)
+                  : t('runtimeConfig.loadouts.downloadSizeUnknown', { defaultValue: 'size unknown' })}`
+                : t('runtimeConfig.loadouts.noAdmittedOffer', { defaultValue: 'No compatible model candidate is currently available' });
+              return (
+                <div key={slot.slotId} className="flex items-center gap-3 text-xs">
+                  <span className="shrink-0 font-medium text-[var(--nimi-text-primary)]">{slot.displayLabel}</span>
+                  <span className="min-w-0 flex-1 truncate text-[var(--nimi-text-muted)]" title={modelText}>{modelText}</span>
+                  <StatusBadge tone={installed ? 'success' : supportedOffers > 0 ? 'info' : 'warning'} shape="soft">
+                    {installed
+                      ? t('runtimeConfig.loadouts.installed', { defaultValue: 'Installed' })
+                      : supportedOffers > 0
+                        ? t('runtimeConfig.loadouts.downloadRequired', { defaultValue: 'Download required' })
+                        : slot.applicability === 'unsupported'
+                          ? t('runtimeConfig.loadouts.slotUnavailable', { defaultValue: 'Unavailable here' })
+                          : t('runtimeConfig.loadouts.hostFit.unknown', { defaultValue: 'Compatibility unconfirmed' })}
+                  </StatusBadge>
+                </div>
+              );
+            })}
+          </div>
+        </Surface>
+      );})}
+    </section>
+  );
+}
+
+function LoadoutGroup(props: {
+  readonly title: string;
+  readonly loadouts: readonly NimiMachineLoadout[];
+  readonly aggregate: NimiMachineLoadouts | null;
+  readonly recipes: readonly NimiLoadoutRecipe[];
+  readonly assets: readonly NimiRuntimeModelAssetRecord[];
+  readonly verifiedAssets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[];
+  readonly busy: boolean;
+  readonly onSelect: (loadout: NimiMachineLoadout) => void;
+  readonly onClear: (loadout: NimiMachineLoadout) => void;
+  readonly onInstallRecommended: (recipe: NimiLoadoutRecipe, loadout?: NimiMachineLoadout) => void;
+  readonly onManage: (loadout: NimiMachineLoadout) => void;
+}) {
+  if (props.loadouts.length === 0) return null;
+  return (
+    <section className="grid gap-2">
+      <h3 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{props.title}</h3>
+      {props.loadouts.map((loadout) => (
+        <LoadoutCard
+          key={loadout.loadoutId}
+          loadout={loadout}
+          recipe={props.recipes.find((recipe) => recipe.recipeId === loadout.recipeId)}
+          assets={props.assets}
+          verifiedAssets={props.verifiedAssets}
+          selected={isSelected(props.aggregate, loadout)}
+          busy={props.busy}
+          onSelect={() => props.onSelect(loadout)}
+          onClear={() => props.onClear(loadout)}
+          onInstallRecommended={(recipe) => props.onInstallRecommended(recipe, loadout)}
+          onManage={() => props.onManage(loadout)}
+        />
+      ))}
+    </section>
+  );
+}
+
 function LoadoutCard(props: {
   readonly loadout: NimiMachineLoadout;
   readonly recipe?: NimiLoadoutRecipe;
@@ -761,11 +992,14 @@ function LoadoutCard(props: {
   const { t } = useTranslation();
   const tone = props.loadout.validationState === 'configured' ? 'success' : props.loadout.validationState === 'blocked' ? 'danger' : 'warning';
   const recoveryRecommendations = props.recipe
-    ? recommendedInstallItems(props.recipe, props.assets, props.verifiedAssets)
+    ? recommendedInstallItems(props.recipe, modelAssetIdsForLoadout(props.loadout))
     : [];
   const canInstallRecommended = props.loadout.validationState !== 'configured'
     && recoveryRecommendations.some((item) => !item.installed);
   const needsAttention = props.loadout.validationState !== 'configured';
+  const attentionReasons = needsAttention
+    ? props.loadout.reasons.map((reason) => localizedAssetUnhealthyReason(reason, t)).filter((message) => message !== '')
+    : [];
   return (
     <Surface
       tone="card"
@@ -773,24 +1007,41 @@ function LoadoutCard(props: {
       data-testid={`machine-loadout:${props.loadout.loadoutId}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h4 className="font-semibold">{props.loadout.displayName}</h4>
-            {props.selected ? <StatusBadge tone="info" shape="soft">{t('runtimeConfig.loadouts.selected')}</StatusBadge> : null}
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <h4 className="text-base font-semibold text-[var(--nimi-text-primary)]">{props.loadout.displayName}</h4>
+          {props.selected ? <StatusBadge tone="info" shape="soft">{t('runtimeConfig.loadouts.selected')}</StatusBadge> : null}
+          {props.loadout.validationState === 'configured' ? null : (
             <StatusBadge tone={tone} shape="soft">{t(`runtimeConfig.loadouts.state.${props.loadout.validationState}`)}</StatusBadge>
-          </div>
-          <p className="mt-1 text-sm text-[var(--nimi-text-muted)]">
-            {loadoutModelSummary(props.loadout, props.assets, props.verifiedAssets, t('runtimeConfig.loadouts.unresolved'))}
-          </p>
-          {needsAttention && props.loadout.reasons.length > 0 ? (
-            <p className="mt-1 break-all text-xs text-[var(--nimi-status-danger)]">{props.loadout.reasons.join(' · ')}</p>
-          ) : null}
+          )}
         </div>
         <div className="flex shrink-0 gap-2">
           {props.selected ? <Button size="sm" tone="ghost" disabled={props.busy} onClick={props.onClear}>{t('runtimeConfig.loadouts.clear')}</Button> : props.loadout.validationState === 'configured' ? <Button size="sm" tone="primary" disabled={props.busy} onClick={props.onSelect}>{t('runtimeConfig.loadouts.select')}</Button> : canInstallRecommended && props.recipe ? <Button data-testid={`loadout-install-recommended:${props.loadout.loadoutId}`} size="sm" tone="primary" disabled={props.busy} onClick={() => props.onInstallRecommended(props.recipe!)}>{t('runtimeConfig.loadouts.installRecommended')}</Button> : <Button size="sm" tone="primary" disabled={props.busy} onClick={props.onManage}>{t('runtimeConfig.loadouts.chooseModels')}</Button>}
           <Button size="sm" tone="secondary" disabled={props.busy} onClick={props.onManage}>{t('runtimeConfig.loadouts.manage')}</Button>
         </div>
       </div>
+      <div className="grid gap-2 sm:grid-cols-3">
+        {props.loadout.modelAxes.map((axis) => {
+          const asset = props.assets.find((item) => item.modelAssetId === axis.modelAssetId);
+          const label = asset
+            ? loadoutAssetLabel(asset, props.verifiedAssets)
+            : t('runtimeConfig.loadouts.unresolved');
+          return (
+            <div key={axis.slotId} className="min-w-0 rounded-lg bg-[var(--nimi-surface-subtle)] px-3 py-2">
+              <div className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{axis.displayLabel}</div>
+              <div className="mt-0.5 truncate text-xs font-medium text-[var(--nimi-text-primary)]" title={label}>{label}</div>
+            </div>
+          );
+        })}
+      </div>
+      {attentionReasons.length > 0 ? (
+        <p className="text-xs text-[var(--nimi-status-danger)]">{attentionReasons.join(' · ')}</p>
+      ) : null}
+      {needsAttention && props.loadout.reasons.length > 0 ? (
+        <details className="text-xs text-[var(--nimi-text-muted)]">
+          <summary className="cursor-pointer">{t('runtimeConfig.loadouts.technicalDetails')}</summary>
+          <p className="mt-1 break-all font-mono">{props.loadout.reasons.join(' · ')}</p>
+        </details>
+      ) : null}
       <RuntimeConfigLoadoutTextBehaviors
         loadoutId={props.loadout.loadoutId}
         behaviors={props.loadout.textBehaviors}
@@ -877,29 +1128,6 @@ function RuntimeConfigLoadoutTextBehaviors(props: {
   );
 }
 
-function loadoutModelSummary(
-  loadout: NimiMachineLoadout,
-  assets: readonly NimiRuntimeModelAssetRecord[],
-  verifiedAssets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
-  unresolvedLabel: string,
-): string {
-  const multiple = loadout.modelAxes.length > 1;
-  return loadout.modelAxes.map((axis) => {
-    const asset = assets.find((item) => item.modelAssetId === axis.modelAssetId);
-    const label = asset ? loadoutAssetLabel(asset, verifiedAssets) : unresolvedLabel;
-    return multiple ? `${axis.displayLabel}: ${label}` : label;
-  }).join(' · ');
-}
-
-function recommendedMissingDownload(items: readonly RecommendedInstallItem[]): { readonly count: number; readonly totalBytes: number | null } {
-  const missing = items.filter((item) => !item.installed);
-  if (missing.length === 0) return { count: 0, totalBytes: 0 };
-  const totalBytes = missing.every((item) => knownDownloadSize(item.descriptor?.totalSizeBytes) !== null)
-    ? missing.reduce((sum, item) => sum + (knownDownloadSize(item.descriptor?.totalSizeBytes) ?? 0), 0)
-    : null;
-  return { count: missing.length, totalBytes };
-}
-
 function recommendedAxisSelections(recipe: NimiLoadoutRecipe | undefined, assets: readonly NimiRuntimeModelAssetRecord[]): Record<string, string> {
   if (!recipe) return {};
   return Object.fromEntries(recipe.slots.map((slot) => {
@@ -907,6 +1135,26 @@ function recommendedAxisSelections(recipe: NimiLoadoutRecipe | undefined, assets
     const matched = assets.filter((asset) => slot.recommendedContentIds.includes(asset.contentId));
     return [slot.slotId, matched.length === 1 ? matched[0]!.modelAssetId : ''];
   }));
+}
+
+export function recommendedInstallItems(
+  recipe: NimiLoadoutRecipe,
+  selectedModelAssetIds: Readonly<Record<string, string>> = {},
+): RecommendedInstallItem[] {
+  return recipe.slots.flatMap((slot) => {
+    if (slot.presence === 'optional-conditional' || selectedModelAssetIds[slot.slotId]) return [];
+    const offer = slot.offers.find((item) => (
+      item.applicability !== 'unsupported' && item.candidate.installable
+    ));
+    if (!offer) return [];
+    return [{
+      slotId: slot.slotId,
+      displayLabel: slot.displayLabel,
+      candidate: offer.candidate,
+      ...(offer.installedModelAssetId ? { installedModelAssetId: offer.installedModelAssetId } : {}),
+      installed: Boolean(offer.installedModelAssetId),
+    }];
+  });
 }
 
 /**
@@ -932,31 +1180,141 @@ export function runtimeConfigLoadoutCandidateAssets(
   ));
 }
 
-export function recommendedInstallItems(
-  recipe: NimiLoadoutRecipe,
+export function runtimeConfigRecommendedLoadoutModelAxes(
+  loadout: Pick<NimiMachineLoadout, 'modelAxes'>,
+  recipe: Pick<NimiLoadoutRecipe, 'slots'>,
   assets: readonly NimiRuntimeModelAssetRecord[],
-  verifiedAssets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[],
-  selectedModelAssetIds: Readonly<Record<string, string>> = {},
-): RecommendedInstallItem[] {
-  return recipe.slots.flatMap((slot) => {
-    if (slot.presence === 'optional-conditional') return [];
-    const selectedModelAssetId = selectedModelAssetIds[slot.slotId];
-    if (selectedModelAssetId && assets.some((asset) => asset.modelAssetId === selectedModelAssetId)) {
-      return [];
+  resolvedBySlot: ReadonlyMap<string, NimiRuntimeModelAssetRecord> = new Map(),
+): NimiPrepareLoadoutInput['modelAxes'] {
+  const assetsById = new Map(assets.map((asset) => [asset.modelAssetId, asset]));
+  const modelAxes: Array<{ slotId: string; modelAssetId?: string; expectedContentId?: string }> = [];
+  for (const slot of recipe.slots) {
+    const current = loadout.modelAxes.find((axis) => axis.slotId === slot.slotId);
+    if (current?.modelAssetId) {
+      const asset = assetsById.get(current.modelAssetId);
+      modelAxes.push({
+        slotId: slot.slotId,
+        modelAssetId: current.modelAssetId,
+        ...(asset?.contentId || current.expectedContentId
+          ? { expectedContentId: asset?.contentId || current.expectedContentId }
+          : {}),
+      });
+      continue;
     }
-    const variantId = slot.recommendedVariantIds[0] ?? '';
-    if (!variantId) return [];
-    const descriptor = verifiedAssets.find((item) => item.templateId === variantId || item.assetId === variantId);
-    const contentId = slot.recommendedContentIds[0] ?? '';
-    return [{
-      slotId: slot.slotId,
-      displayLabel: slot.displayLabel,
-      contentId,
-      variantId,
-      descriptor,
-      installed: Boolean(contentId && assets.some((asset) => asset.contentId === contentId)),
-    }];
+    const resolved = resolvedBySlot.get(slot.slotId);
+    const recommended = slot.recommendedContentIds
+      .map((contentId) => assets.find((asset) => asset.contentId === contentId))
+      .find((asset): asset is NimiRuntimeModelAssetRecord => asset !== undefined);
+    const asset = resolved ?? recommended;
+    if (asset) {
+      modelAxes.push({ slotId: slot.slotId, modelAssetId: asset.modelAssetId, expectedContentId: asset.contentId });
+      continue;
+    }
+    if (slot.presence === 'optional-conditional') continue;
+    const expectedContentId = current?.expectedContentId || slot.recommendedContentIds[0];
+    if (expectedContentId) modelAxes.push({ slotId: slot.slotId, expectedContentId });
+  }
+  return modelAxes;
+}
+
+export async function installAndBindRuntimeConfigRecommendedLoadout(input: {
+  readonly items: readonly RecommendedInstallItem[];
+  readonly recipe: NimiLoadoutRecipe;
+  readonly loadout?: NimiMachineLoadout;
+  readonly assets: readonly NimiRuntimeModelAssetRecord[];
+  readonly installOffer: (offerRef: string) => Promise<NimiRuntimeModelAssetRecord>;
+  readonly updateLoadout: (next: NimiPrepareLoadoutInput) => Promise<unknown>;
+}): Promise<void> {
+  const resolvedBySlot = new Map<string, NimiRuntimeModelAssetRecord>();
+  for (const item of input.items) {
+    if (item.installedModelAssetId) {
+      const installed = input.assets.find((asset) => asset.modelAssetId === item.installedModelAssetId);
+      if (installed) resolvedBySlot.set(item.slotId, installed);
+      continue;
+    }
+    resolvedBySlot.set(item.slotId, await input.installOffer(item.candidate.offerRef));
+  }
+  if (!input.loadout) return;
+  const installedAssets = [...resolvedBySlot.values()];
+  const nextAssets = [...input.assets, ...installedAssets.filter((installed) => (
+    !input.assets.some((asset) => asset.modelAssetId === installed.modelAssetId)
+  ))];
+  await input.updateLoadout({
+    loadoutId: input.loadout.loadoutId,
+    capabilityContract: input.loadout.capabilityContract,
+    recipeId: input.loadout.recipeId,
+    options: input.loadout.options,
+    displayName: input.loadout.displayName,
+    modelAxes: runtimeConfigRecommendedLoadoutModelAxes(input.loadout, input.recipe, nextAssets, resolvedBySlot),
+    provenance: input.loadout.provenance,
   });
+}
+
+type RecommendedInstallMessageLabels = {
+  readonly heading: string;
+  readonly installed: string;
+  readonly download: string;
+  readonly total: string;
+  readonly unknownSize: string;
+};
+
+export function recommendedInstallMessage(
+  items: readonly RecommendedInstallItem[],
+  labels: RecommendedInstallMessageLabels,
+): string {
+  const missing = items.filter((item) => !item.installed);
+  const total = missing.length === 0
+    ? 0
+    : missing.every((item) => knownDownloadSize(item.candidate.totalSizeBytes) !== null)
+      ? missing.reduce((sum, item) => sum + (knownDownloadSize(item.candidate.totalSizeBytes) ?? 0), 0)
+      : null;
+  return [
+    labels.heading,
+    ...items.map((item) => `${item.displayLabel}: ${item.candidate.title} · ${item.candidate.variantLabel} · ${formatDownloadBytes(knownDownloadSize(item.candidate.totalSizeBytes), labels.unknownSize)} · ${item.installed ? labels.installed : labels.download}`),
+    `${labels.total}: ${formatDownloadBytes(total, labels.unknownSize)}`,
+  ].join('\n');
+}
+
+function knownDownloadSize(value: number | undefined): number | null {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : null;
+}
+
+function formatDownloadBytes(value: number | null, unknownSize: string): string {
+  if (value === null) return unknownSize;
+  if (value === 0) return '0 B';
+  return formatBytes(value);
+}
+
+export function partitionRuntimeConfigRecipeTemplates(recipes: readonly NimiLoadoutRecipe[]): {
+  readonly supported: readonly NimiLoadoutRecipe[];
+  readonly unknown: readonly NimiLoadoutRecipe[];
+  readonly unsupported: readonly NimiLoadoutRecipe[];
+} {
+  return {
+    supported: recipes.filter((recipe) => recipe.applicability === 'supported'),
+    unknown: recipes.filter((recipe) => recipe.applicability === 'unknown'),
+    unsupported: recipes.filter((recipe) => recipe.applicability === 'unsupported'),
+  };
+}
+
+export function summarizeRuntimeConfigRecipeDownloads(recipe: NimiLoadoutRecipe): {
+  readonly count: number;
+  readonly totalSizeBytes: number | null;
+} {
+  const missingRequiredSlots = recipe.slots.filter((slot) => (
+    slot.presence === 'required' && !slot.offers.some((offer) => Boolean(offer.installedModelAssetId))
+  ));
+  if (missingRequiredSlots.length === 0) return { count: 0, totalSizeBytes: 0 };
+  let totalSizeBytes = 0;
+  for (const slot of missingRequiredSlots) {
+    const offer = slot.offers.find((item) => (
+      item.applicability !== 'unsupported' && item.candidate.installable
+    ));
+    const size = offer?.candidate.totalSizeBytes;
+    if (!size) return { count: missingRequiredSlots.length, totalSizeBytes: null };
+    totalSizeBytes += size;
+  }
+  return { count: missingRequiredSlots.length, totalSizeBytes };
 }
 
 function modelAssetIdsForLoadout(loadout: NimiMachineLoadout): Record<string, string> {
@@ -985,110 +1343,6 @@ export function runtimeConfigLoadoutUpdateModelAxes(
       ...(axis.expectedContentId ? { expectedContentId: axis.expectedContentId } : {}),
     };
   });
-}
-
-export function runtimeConfigRecommendedLoadoutModelAxes(
-  loadout: Pick<NimiMachineLoadout, 'modelAxes'>,
-  recipe: Pick<NimiLoadoutRecipe, 'slots'>,
-  assets: readonly NimiRuntimeModelAssetRecord[],
-): NimiPrepareLoadoutInput['modelAxes'] {
-  return recipe.slots.flatMap((slot) => {
-    const current = loadout.modelAxes.find((axis) => axis.slotId === slot.slotId);
-    if (current?.modelAssetId) {
-      const currentAsset = assets.find((asset) => asset.modelAssetId === current.modelAssetId);
-      return {
-        slotId: slot.slotId,
-        modelAssetId: current.modelAssetId,
-        ...(currentAsset?.contentId || current.expectedContentId
-          ? { expectedContentId: currentAsset?.contentId || current.expectedContentId }
-        : {}),
-      };
-    }
-    if (slot.presence === 'optional-conditional') return [];
-    const recommended = slot.recommendedContentIds
-      .map((contentId) => assets.find((asset) => asset.contentId === contentId))
-      .find((asset): asset is NimiRuntimeModelAssetRecord => asset !== undefined);
-    if (recommended) {
-      return {
-        slotId: slot.slotId,
-        modelAssetId: recommended.modelAssetId,
-        expectedContentId: recommended.contentId,
-      };
-    }
-    const expectedContentId = current?.expectedContentId || slot.recommendedContentIds[0];
-    return {
-      slotId: slot.slotId,
-      ...(expectedContentId ? { expectedContentId } : {}),
-    };
-  });
-}
-
-export async function installAndBindRuntimeConfigRecommendedLoadout(input: {
-  readonly items: readonly RecommendedInstallItem[];
-  readonly recipe: NimiLoadoutRecipe;
-  readonly loadout?: NimiMachineLoadout;
-  readonly assets: readonly NimiRuntimeModelAssetRecord[];
-  readonly installCatalogAsset: (templateId: string) => Promise<NimiRuntimeModelAssetRecord>;
-  readonly updateLoadout: (next: NimiPrepareLoadoutInput) => Promise<unknown>;
-}): Promise<void> {
-  const installedAssets: NimiRuntimeModelAssetRecord[] = [];
-  for (const item of input.items) {
-    if (item.installed) {
-      const installed = input.assets.find((asset) => asset.contentId === item.contentId);
-      if (installed) installedAssets.push(installed);
-      continue;
-    }
-    if (!item.variantId) throw new Error(`${item.displayLabel}: recommended catalog variant is unavailable.`);
-    installedAssets.push(await input.installCatalogAsset(item.variantId));
-  }
-  if (!input.loadout) return;
-  const nextAssets = [...input.assets, ...installedAssets.filter((installed) => (
-    !input.assets.some((asset) => asset.modelAssetId === installed.modelAssetId)
-  ))];
-  await input.updateLoadout({
-    loadoutId: input.loadout.loadoutId,
-    capabilityContract: input.loadout.capabilityContract,
-    recipeId: input.loadout.recipeId,
-    options: input.loadout.options,
-    displayName: input.loadout.displayName,
-    modelAxes: runtimeConfigRecommendedLoadoutModelAxes(input.loadout, input.recipe, nextAssets),
-    provenance: input.loadout.provenance,
-  });
-}
-
-type RecommendedInstallMessageLabels = {
-  readonly heading: string;
-  readonly installed: string;
-  readonly download: string;
-  readonly total: string;
-  readonly unknownSize: string;
-};
-
-export function recommendedInstallMessage(
-  items: readonly RecommendedInstallItem[],
-  labels: RecommendedInstallMessageLabels,
-): string {
-  const missing = items.filter((item) => !item.installed);
-  const total = missing.length === 0
-    ? 0
-    : missing.every((item) => knownDownloadSize(item.descriptor?.totalSizeBytes) !== null)
-      ? missing.reduce((sum, item) => sum + (knownDownloadSize(item.descriptor?.totalSizeBytes) ?? 0), 0)
-      : null;
-  return [
-    labels.heading,
-    ...items.map((item) => `${item.displayLabel}: ${item.descriptor?.title ?? item.variantId} · ${formatDownloadBytes(knownDownloadSize(item.descriptor?.totalSizeBytes), labels.unknownSize)} · ${item.installed ? labels.installed : labels.download}`),
-    `${labels.total}: ${formatDownloadBytes(total, labels.unknownSize)}`,
-  ].join('\n');
-}
-
-function knownDownloadSize(value: number | undefined): number | null {
-  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0 ? value : null;
-}
-
-function formatDownloadBytes(value: number | null, unknownSize: string): string {
-  if (value === null) return unknownSize;
-  if (value === 0) return '0 B';
-  return formatBytes(value);
 }
 
 export function loadoutCapabilityLabelKey(capabilityContract: string): string {

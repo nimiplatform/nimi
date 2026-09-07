@@ -36,49 +36,34 @@ export const landingContentEn: LandingContent = {
     proofPoints: ['Open source', 'Local-first', 'Choose your AI'],
   },
   experiences: {
-    eyebrow: 'What you can do',
-    title: 'One home for your AI life.',
+    eyebrow: 'Beyond a single conversation',
+    title: 'It remembers you, and has a rhythm of its own.',
     subtitle:
-      'Conversations, characters, creations, and worlds no longer live in separate apps. In Nimi they come together in one personal space—connected, persistent, and yours.',
+      'Conversations continue, and you control the memories. Turn on proactive companionship to let it reach out first.',
     cards: [
       {
-        id: 'talk',
-        label: 'Talk',
-        title: 'Conversations that stay with you',
-        description:
-          'Chat with characters who keep their personality and remember your history—not stateless bots that reset every session.',
-        scenario: 'Maya picks up yesterday’s conversation right where you left it—in her own voice.',
-        points: [
-          'Characters with persistent identity',
-          'Text and voice',
-          'Runs locally or in the cloud',
-        ],
+        id: 'conversation',
+        label: 'Continuing conversations',
+        title: 'Pick up where you left off',
+        description: 'Each companion keeps its own conversation. Come back and continue from last time.',
+        scenario: 'No need to start with hello every time.',
+        points: ['Revisit past conversations', 'Continue with the existing context', 'Text and voice supported'],
       },
       {
-        id: 'create',
-        label: 'Create',
-        title: 'Create with your cast',
-        description:
-          'Give your characters a face and a voice. Generate images, video, speech, and music with the AI providers you choose, without leaving Nimi.',
-        scenario: 'Sketch a companion, give her a voice, and let her star in the story you write together.',
-        points: [
-          'Image, video, voice, and music',
-          'Your characters, your style',
-          'You pick the AI provider',
-        ],
+        id: 'memory',
+        label: 'Memory management',
+        title: 'You decide what stays',
+        description: 'With memory enabled, you can inspect it, correct it, or ask it to forget.',
+        scenario: 'Correct what is wrong. Delete what you no longer want to keep.',
+        points: ['Inspect current memories', 'Correct inaccurate information', 'Forget one item or clear everything'],
       },
       {
-        id: 'explore',
-        label: 'Explore',
-        title: 'Step into living worlds',
-        description:
-          'Enter persistent worlds where characters have lives of their own. One identity travels with you across every world and story.',
-        scenario: 'The world keeps turning while you’re away. Come back to what changed.',
-        points: [
-          'Worlds that keep evolving',
-          'One identity, many worlds',
-          'Stories that continue',
-        ],
+        id: 'proactive-companion',
+        label: 'Proactive companionship',
+        title: 'Let it speak first this time',
+        description: 'Enable proactive companionship and keep Nimi running. Your companion will reach out according to your settings.',
+        scenario: 'Pause whenever you want some quiet.',
+        points: ['Adjust how proactive it is', 'Greetings after time apart', 'Control daily and per-interaction usage'],
       },
     ],
   },
@@ -132,10 +117,9 @@ export const landingContentEn: LandingContent = {
     },
   },
   modelCatalog: {
-    kicker: 'Your AI, your choice',
-    title: 'Works with the AI you already use.',
+    title: 'Your AI, your choice',
     subtitle:
-      'Nimi speaks one capability language; Runtime routes each request to the provider you choose—dozens of cloud services, or models running on your own device.',
+      'Cloud models, local models—use whichever you like, switch anytime',
     overview: {
       searchPlaceholder: 'Search providers and capabilities',
       cloudProvidersLabel: 'Cloud providers',
@@ -370,15 +354,6 @@ export const landingContentEn: LandingContent = {
       },
     ],
     downloadCta: 'View download status',
-    availability: {
-      eyebrow: 'Release status',
-      items: [
-        'Unsigned Windows x64 Runtime bootstrap v0.2.2-preview.1 available',
-        'Windows signed RC and Stable pending production code signing',
-        'Unsigned previews use explicit non-promotable vX.Y.Z-preview.N tags',
-        'No stable Nimi release is currently published',
-      ],
-    },
   },
   apps: {
     eyebrow: 'Nimi Apps',
@@ -408,8 +383,8 @@ export const landingContentEn: LandingContent = {
     ],
     notes: [
       'New product work uses the Nimi Apps path.',
-      'Nimi Apps defines the Registry-approved verified package catalog, installation, update, launch, repair, and uninstall lifecycle, with Developer Mode as a separate non-package local-development path. This pre-release exposes Developer Mode; public catalog, ordinary install, installed launch, publisher publication, and registry onboarding are not available yet.',
-      'The public app catalog has not opened; Nimi only shows what you can actually open today.',
+      'Nimi Apps has separate Registry-approved package, explicit immutable local-package import, and Developer Mode paths. This pre-release supports verified Catalog discovery, installation, launch and uninstall on Windows x86_64, plus local development. The local-package import entry, other-platform package lifecycle, update and repair remain unavailable.',
+      'Catalog actions reflect the current platform and Runtime state; an installed App and its Nimi access are separate facts.',
       'To build an app, start with the SDK and Nimi App docs.',
     ],
   },

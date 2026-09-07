@@ -169,6 +169,15 @@
           "response_stream": false
         },
         {
+          "name": "ResolveDesktopAgentReference",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
+          "kind": "unary",
+          "request_type": "ResolveDesktopAgentReferenceRequest",
+          "response_type": "ResolveDesktopAgentReferenceResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "ResolveLocalAppAvatarHostTarget",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget",
           "kind": "unary",
@@ -1810,6 +1819,15 @@
           "response_stream": false
         },
         {
+          "name": "GetCatalogModelCard",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
+          "kind": "unary",
+          "request_type": "GetCatalogModelCardRequest",
+          "response_type": "GetCatalogModelCardResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "ListCatalogVariants",
           "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants",
           "kind": "unary",
@@ -1819,11 +1837,20 @@
           "response_stream": false
         },
         {
-          "name": "GetRecommendationFeed",
-          "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
+          "name": "ListFeaturedModelAssets",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets",
           "kind": "unary",
-          "request_type": "GetRecommendationFeedRequest",
-          "response_type": "GetRecommendationFeedResponse",
+          "request_type": "ListFeaturedModelAssetsRequest",
+          "response_type": "ListFeaturedModelAssetsResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ListFactoryProfileRecommendations",
+          "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations",
+          "kind": "unary",
+          "request_type": "ListFactoryProfileRecommendationsRequest",
+          "response_type": "ListFactoryProfileRecommendationsResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -2251,6 +2278,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact",
     "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
     "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
+    "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
     "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget",
     "/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget",
     "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
@@ -2379,17 +2407,19 @@
     "/nimi.runtime.v1.RuntimeLocalService/CompleteProductControlFirstRunDeviceEnvironmentScan",
     "/nimi.runtime.v1.RuntimeLocalService/DeleteLoadout",
     "/nimi.runtime.v1.RuntimeLocalService/EnsureProductControlRecordCreated",
+    "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
     "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
     "/nimi.runtime.v1.RuntimeLocalService/GetMachineLoadouts",
     "/nimi.runtime.v1.RuntimeLocalService/GetModelAsset",
     "/nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync",
     "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
     "/nimi.runtime.v1.RuntimeLocalService/GetProductControlSelectedDataRoot",
-    "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
     "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset",
     "/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation",
     "/nimi.runtime.v1.RuntimeLocalService/InstallModelFromPlan",
     "/nimi.runtime.v1.RuntimeLocalService/ListCatalogVariants",
+    "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations",
+    "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets",
     "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes",
     "/nimi.runtime.v1.RuntimeLocalService/ListLocalAudits",
     "/nimi.runtime.v1.RuntimeLocalService/ListLocalEnvironmentDependencyJobs",
@@ -2880,6 +2910,14 @@
       "kind": "unary",
       "request_type": "RenderLocalAppConversationVoiceRequest",
       "response_type": "RenderLocalAppConversationVoiceResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
+      "service": "RuntimeAgentService",
+      "method": "ResolveDesktopAgentReference",
+      "kind": "unary",
+      "request_type": "ResolveDesktopAgentReferenceRequest",
+      "response_type": "ResolveDesktopAgentReferenceResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget",
@@ -3906,6 +3944,14 @@
       "response_type": "ProductControlProjectionJson"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
+      "service": "RuntimeLocalService",
+      "method": "GetCatalogModelCard",
+      "kind": "unary",
+      "request_type": "GetCatalogModelCardRequest",
+      "response_type": "GetCatalogModelCardResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
       "service": "RuntimeLocalService",
       "method": "GetLoadout",
@@ -3954,14 +4000,6 @@
       "response_type": "ProductControlProjectionJson"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
-      "service": "RuntimeLocalService",
-      "method": "GetRecommendationFeed",
-      "kind": "unary",
-      "request_type": "GetRecommendationFeedRequest",
-      "response_type": "GetRecommendationFeedResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset",
       "service": "RuntimeLocalService",
       "method": "ImportModelAsset",
@@ -3992,6 +4030,22 @@
       "kind": "unary",
       "request_type": "ListCatalogVariantsRequest",
       "response_type": "ListCatalogVariantsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations",
+      "service": "RuntimeLocalService",
+      "method": "ListFactoryProfileRecommendations",
+      "kind": "unary",
+      "request_type": "ListFactoryProfileRecommendationsRequest",
+      "response_type": "ListFactoryProfileRecommendationsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets",
+      "service": "RuntimeLocalService",
+      "method": "ListFeaturedModelAssets",
+      "kind": "unary",
+      "request_type": "ListFeaturedModelAssetsRequest",
+      "response_type": "ListFeaturedModelAssetsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes",
@@ -4716,6 +4770,14 @@
       "response_type": "RenderLocalAppConversationVoiceResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
+      "service": "RuntimeAgentService",
+      "method": "ResolveDesktopAgentReference",
+      "kind": "unary",
+      "request_type": "ResolveDesktopAgentReferenceRequest",
+      "response_type": "ResolveDesktopAgentReferenceResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget",
       "service": "RuntimeAgentService",
       "method": "ResolveLocalAppAvatarHostTarget",
@@ -5740,6 +5802,14 @@
       "response_type": "ProductControlProjectionJson"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
+      "service": "RuntimeLocalService",
+      "method": "GetCatalogModelCard",
+      "kind": "unary",
+      "request_type": "GetCatalogModelCardRequest",
+      "response_type": "GetCatalogModelCardResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
       "service": "RuntimeLocalService",
       "method": "GetLoadout",
@@ -5788,14 +5858,6 @@
       "response_type": "ProductControlProjectionJson"
     },
     {
-      "method_id": "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
-      "service": "RuntimeLocalService",
-      "method": "GetRecommendationFeed",
-      "kind": "unary",
-      "request_type": "GetRecommendationFeedRequest",
-      "response_type": "GetRecommendationFeedResponse"
-    },
-    {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset",
       "service": "RuntimeLocalService",
       "method": "ImportModelAsset",
@@ -5826,6 +5888,22 @@
       "kind": "unary",
       "request_type": "ListCatalogVariantsRequest",
       "response_type": "ListCatalogVariantsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations",
+      "service": "RuntimeLocalService",
+      "method": "ListFactoryProfileRecommendations",
+      "kind": "unary",
+      "request_type": "ListFactoryProfileRecommendationsRequest",
+      "response_type": "ListFactoryProfileRecommendationsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets",
+      "service": "RuntimeLocalService",
+      "method": "ListFeaturedModelAssets",
+      "kind": "unary",
+      "request_type": "ListFeaturedModelAssetsRequest",
+      "response_type": "ListFeaturedModelAssetsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes",
@@ -6347,6 +6425,8 @@
       "ExternalAgentListTokensResponse",
       "ExternalAgentRevokeTokenRequest",
       "ExternalAgentTokenRecord",
+      "FactoryProfileCapabilityApplicability",
+      "FactoryProfileRecommendation",
       "ForgetLocalAppAgentMemoryRequest",
       "ForgetLocalAppAgentMemoryResponse",
       "GenerateLocalAppTextCandidateRequest",
@@ -6365,6 +6445,8 @@
       "GetAppPackageJobResponse",
       "GetAppStorageRequest",
       "GetAppStorageResponse",
+      "GetCatalogModelCardRequest",
+      "GetCatalogModelCardResponse",
       "GetCatalogModelDetailRequest",
       "GetCatalogModelDetailResponse",
       "GetConnectorRequest",
@@ -6404,8 +6486,6 @@
       "GetProductControlSelectedDataRootRequest",
       "GetPublicChatSessionSnapshotRequest",
       "GetPublicChatSessionSnapshotResponse",
-      "GetRecommendationFeedRequest",
-      "GetRecommendationFeedResponse",
       "GetRuntimeHealthRequest",
       "GetRuntimeHealthResponse",
       "GetScenarioArtifactsRequest",
@@ -6472,6 +6552,10 @@
       "ListDelegatedProviderProfilesResponse",
       "ListDesktopAuditEventsRequest",
       "ListDesktopAuditEventsResponse",
+      "ListFactoryProfileRecommendationsRequest",
+      "ListFactoryProfileRecommendationsResponse",
+      "ListFeaturedModelAssetsRequest",
+      "ListFeaturedModelAssetsResponse",
       "ListLoadoutRecipesRequest",
       "ListLoadoutRecipesResponse",
       "ListLocalAppAgentReferencesRequest",
@@ -6525,6 +6609,7 @@
       "LoadoutRecipeCustodyDescriptor",
       "LoadoutRecipeCustodyReference",
       "LoadoutRecipeDescriptor",
+      "LoadoutRecipeOfferDescriptor",
       "LoadoutRecipeSlotDescriptor",
       "LoadoutSelection",
       "LocalAgentCapabilityParticipation",
@@ -6611,8 +6696,6 @@
       "LocalAuditTimeRange",
       "LocalCapabilityRequirement",
       "LocalCatalogModelDescriptor",
-      "LocalCatalogRecommendation",
-      "LocalCatalogVariantDescriptor",
       "LocalDevelopmentProjectProjection",
       "LocalDevelopmentRegistrationProjection",
       "LocalDeviceProfile",
@@ -6632,12 +6715,6 @@
       "LocalProviderHintsSidecar",
       "LocalProviderHintsSpeech",
       "LocalPythonProfile",
-      "LocalRecommendationActionState",
-      "LocalRecommendationFeedDescriptor",
-      "LocalRecommendationFeedEntryDescriptor",
-      "LocalRecommendationFeedItemDescriptor",
-      "LocalRecommendationInstallPayload",
-      "LocalRecommendationInstalledState",
       "LocalTransferProgressEvent",
       "LocalTransferSessionSummary",
       "LocalVerifiedAssetDescriptor",
@@ -6648,8 +6725,11 @@
       "MaterializeRealmSourceResponse",
       "MemoryEmbeddingCloudBindingRef",
       "MemoryEmbeddingProfile",
+      "ModelAssetCatalogSearchResult",
       "ModelAssetExactBinding",
+      "ModelAssetFeaturedSourceObservation",
       "ModelAssetFile",
+      "ModelAssetMarketCandidate",
       "ModelAssetRecord",
       "ModelCatalogProviderEntry",
       "MoveLocalAppAssetRequest",
@@ -6766,6 +6846,8 @@
       "RequestPresenceVerificationResponse",
       "RequestRuntimeRestartRequest",
       "RequestRuntimeRestartResponse",
+      "ResolveDesktopAgentReferenceRequest",
+      "ResolveDesktopAgentReferenceResponse",
       "ResolveLocalAppAvatarHostTargetRequest",
       "ResolveLocalAppAvatarHostTargetResponse",
       "ResolveLocalEnvironmentActivationGateRequest",
@@ -7062,19 +7144,13 @@
       "LocalCapabilityRequirementRole",
       "LocalDevelopmentShellKind",
       "LocalEngineRuntimeMode",
-      "LocalHostSupportClass",
-      "LocalRecommendationBaseline",
-      "LocalRecommendationConfidence",
-      "LocalRecommendationFeedCacheState",
-      "LocalRecommendationFeedCapability",
-      "LocalRecommendationFeedSource",
-      "LocalRecommendationFormat",
-      "LocalRecommendationSource",
-      "LocalRecommendationTier",
+      "LocalRecommendationApplicability",
       "MemoryDistanceMetric",
       "MemoryMigrationPolicy",
       "Modal",
       "ModelAssetCatalogVerification",
+      "ModelAssetSourceAvailability",
+      "ModelAssetSourceFreshness",
       "ModelCatalogProviderSource",
       "PresenceVerificationMethod",
       "PresenceVerificationState",
@@ -16440,6 +16516,53 @@
         "source_file": "proto/runtime/v1/external_agent.proto"
       },
       {
+        "name": "FactoryProfileCapabilityApplicability",
+        "fields": [
+          {
+            "name": "capability_contract",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "applicability",
+            "type": "LocalRecommendationApplicability",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reasons",
+            "type": "ReasonCode",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
+      },
+      {
+        "name": "FactoryProfileRecommendation",
+        "fields": [
+          {
+            "name": "profile_alias",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "capabilities",
+            "type": "FactoryProfileCapabilityApplicability",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
+      },
+      {
         "name": "ForgetLocalAppAgentMemoryRequest",
         "fields": [
           {
@@ -16840,6 +16963,53 @@
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "GetCatalogModelCardRequest",
+        "fields": [
+          {
+            "name": "model_locator",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "offer_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "GetCatalogModelCardResponse",
+        "fields": [
+          {
+            "name": "markdown",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "source_url",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "base_url",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
         "name": "GetCatalogModelDetailRequest",
@@ -17474,39 +17644,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
-      },
-      {
-        "name": "GetRecommendationFeedRequest",
-        "fields": [
-          {
-            "name": "capability",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "page_size",
-            "type": "int32",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
-        "name": "GetRecommendationFeedResponse",
-        "fields": [
-          {
-            "name": "feed",
-            "type": "LocalRecommendationFeedDescriptor",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
         "name": "GetRuntimeHealthRequest",
@@ -18850,7 +18987,7 @@
         "name": "ListCatalogVariantsRequest",
         "fields": [
           {
-            "name": "repo",
+            "name": "model_locator",
             "type": "string",
             "repeated": false,
             "optional": false,
@@ -18864,7 +19001,7 @@
         "fields": [
           {
             "name": "variants",
-            "type": "LocalCatalogVariantDescriptor",
+            "type": "ModelAssetMarketCandidate",
             "repeated": true,
             "optional": false,
             "number": 1
@@ -19227,6 +19364,72 @@
           }
         ],
         "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "ListFactoryProfileRecommendationsRequest",
+        "fields": [
+          {
+            "name": "capability_contract",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
+      },
+      {
+        "name": "ListFactoryProfileRecommendationsResponse",
+        "fields": [
+          {
+            "name": "profiles",
+            "type": "FactoryProfileRecommendation",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
+      },
+      {
+        "name": "ListFeaturedModelAssetsRequest",
+        "fields": [
+          {
+            "name": "category",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "page_size",
+            "type": "int32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
+      },
+      {
+        "name": "ListFeaturedModelAssetsResponse",
+        "fields": [
+          {
+            "name": "source",
+            "type": "ModelAssetFeaturedSourceObservation",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "items",
+            "type": "ModelAssetMarketCandidate",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "ListLoadoutRecipesRequest",
@@ -20762,6 +20965,54 @@
             "repeated": true,
             "optional": false,
             "number": 10
+          },
+          {
+            "name": "applicability",
+            "type": "LocalRecommendationApplicability",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "reasons",
+            "type": "ReasonCode",
+            "repeated": true,
+            "optional": false,
+            "number": 12
+          }
+        ],
+        "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "LoadoutRecipeOfferDescriptor",
+        "fields": [
+          {
+            "name": "candidate",
+            "type": "ModelAssetMarketCandidate",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "applicability",
+            "type": "LocalRecommendationApplicability",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "reasons",
+            "type": "ReasonCode",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "installed_model_asset_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -20817,6 +21068,27 @@
             "repeated": true,
             "optional": false,
             "number": 7
+          },
+          {
+            "name": "offers",
+            "type": "LoadoutRecipeOfferDescriptor",
+            "repeated": true,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "applicability",
+            "type": "LocalRecommendationApplicability",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "reasons",
+            "type": "ReasonCode",
+            "repeated": true,
+            "optional": false,
+            "number": 10
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
@@ -24399,130 +24671,6 @@
         "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
-        "name": "LocalCatalogRecommendation",
-        "fields": [
-          {
-            "name": "source",
-            "type": "LocalRecommendationSource",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "format",
-            "type": "LocalRecommendationFormat",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "tier",
-            "type": "LocalRecommendationTier",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "host_support_class",
-            "type": "LocalHostSupportClass",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "confidence",
-            "type": "LocalRecommendationConfidence",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "reason_codes",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "recommended_entry",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "fallback_entries",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "suggested_notes",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "baseline",
-            "type": "LocalRecommendationBaseline",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
-      },
-      {
-        "name": "LocalCatalogVariantDescriptor",
-        "fields": [
-          {
-            "name": "filename",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "entry",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "files",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "format",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "size_bytes",
-            "type": "int64",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "sha256",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime.proto"
-      },
-      {
         "name": "LocalDevelopmentProjectProjection",
         "fields": [
           {
@@ -25489,6 +25637,13 @@
             "repeated": false,
             "optional": false,
             "number": 24
+          },
+          {
+            "name": "offer_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 25
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
@@ -25772,365 +25927,6 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime_device_environment.proto"
-      },
-      {
-        "name": "LocalRecommendationActionState",
-        "fields": [
-          {
-            "name": "can_review_install_plan",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "can_open_variants",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "can_open_model_asset",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
-      },
-      {
-        "name": "LocalRecommendationFeedDescriptor",
-        "fields": [
-          {
-            "name": "device_profile",
-            "type": "LocalDeviceProfile",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "active_capability",
-            "type": "LocalRecommendationFeedCapability",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "generated_at",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "cache_state",
-            "type": "LocalRecommendationFeedCacheState",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "items",
-            "type": "LocalRecommendationFeedItemDescriptor",
-            "repeated": true,
-            "optional": false,
-            "number": 5
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
-      },
-      {
-        "name": "LocalRecommendationFeedEntryDescriptor",
-        "fields": [
-          {
-            "name": "entry_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "format",
-            "type": "LocalRecommendationFormat",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "entry",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "files",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "total_size_bytes",
-            "type": "int64",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "sha256",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
-      },
-      {
-        "name": "LocalRecommendationFeedItemDescriptor",
-        "fields": [
-          {
-            "name": "item_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "source",
-            "type": "LocalRecommendationFeedSource",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "repo",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "revision",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "title",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "description",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "capabilities",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "tags",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "formats",
-            "type": "LocalRecommendationFormat",
-            "repeated": true,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "downloads",
-            "type": "int64",
-            "repeated": false,
-            "optional": false,
-            "number": 10
-          },
-          {
-            "name": "likes",
-            "type": "int64",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "last_modified",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          },
-          {
-            "name": "preferred_engine",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 13
-          },
-          {
-            "name": "verified",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 14
-          },
-          {
-            "name": "entries",
-            "type": "LocalRecommendationFeedEntryDescriptor",
-            "repeated": true,
-            "optional": false,
-            "number": 15
-          },
-          {
-            "name": "recommendation",
-            "type": "LocalCatalogRecommendation",
-            "repeated": false,
-            "optional": false,
-            "number": 16
-          },
-          {
-            "name": "installed_state",
-            "type": "LocalRecommendationInstalledState",
-            "repeated": false,
-            "optional": false,
-            "number": 17
-          },
-          {
-            "name": "action_state",
-            "type": "LocalRecommendationActionState",
-            "repeated": false,
-            "optional": false,
-            "number": 18
-          },
-          {
-            "name": "install_payload",
-            "type": "LocalRecommendationInstallPayload",
-            "repeated": false,
-            "optional": false,
-            "number": 19
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
-      },
-      {
-        "name": "LocalRecommendationInstalledState",
-        "fields": [
-          {
-            "name": "installed",
-            "type": "bool",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
-      },
-      {
-        "name": "LocalRecommendationInstallPayload",
-        "fields": [
-          {
-            "name": "model_id",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 1
-          },
-          {
-            "name": "kind",
-            "type": "LocalAssetKind",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "repo",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 3
-          },
-          {
-            "name": "revision",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
-          },
-          {
-            "name": "capabilities",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 5
-          },
-          {
-            "name": "engine",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 6
-          },
-          {
-            "name": "entry",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
-          },
-          {
-            "name": "files",
-            "type": "string",
-            "repeated": true,
-            "optional": false,
-            "number": 8
-          },
-          {
-            "name": "license",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 9
-          },
-          {
-            "name": "hashes",
-            "type": "map",
-            "map_key_type": "string",
-            "map_value_type": "string",
-            "repeated": false,
-            "number": 10
-          },
-          {
-            "name": "endpoint",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 11
-          },
-          {
-            "name": "engine_config",
-            "type": "google.protobuf.Struct",
-            "repeated": false,
-            "optional": false,
-            "number": 12
-          }
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "LocalTransferProgressEvent",
@@ -26768,6 +26564,103 @@
         "source_file": "proto/runtime/v1/cognition_memory.proto"
       },
       {
+        "name": "ModelAssetCatalogSearchResult",
+        "fields": [
+          {
+            "name": "model_locator",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "source_label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "categories",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "model_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "license",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "tags",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "downloads",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "likes",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "last_modified",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "verified",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "author",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
+      },
+      {
         "name": "ModelAssetExactBinding",
         "fields": [
           {
@@ -26802,6 +26695,40 @@
         "source_file": "proto/runtime/v1/capability_configuration.proto"
       },
       {
+        "name": "ModelAssetFeaturedSourceObservation",
+        "fields": [
+          {
+            "name": "availability",
+            "type": "ModelAssetSourceAvailability",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "freshness",
+            "type": "ModelAssetSourceFreshness",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "generation",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
+      },
+      {
         "name": "ModelAssetFile",
         "fields": [
           {
@@ -26834,6 +26761,152 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
+      },
+      {
+        "name": "ModelAssetMarketCandidate",
+        "fields": [
+          {
+            "name": "offer_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "source_label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "categories",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "model_type",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "variant_label",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "format",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "total_size_bytes",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "license",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "tags",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "downloads",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "likes",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "last_modified",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          },
+          {
+            "name": "verified",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "installed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 16
+          },
+          {
+            "name": "installable",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 17
+          },
+          {
+            "name": "featured_ordinal",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 18
+          },
+          {
+            "name": "editorial_reason",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 19
+          },
+          {
+            "name": "author",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 20
+          }
+        ],
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "ModelAssetRecord",
@@ -30366,6 +30439,32 @@
         "source_file": "proto/runtime/v1/runtime_service_control.proto"
       },
       {
+        "name": "ResolveDesktopAgentReferenceRequest",
+        "fields": [
+          {
+            "name": "local_agent_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "ResolveDesktopAgentReferenceResponse",
+        "fields": [
+          {
+            "name": "reference",
+            "type": "LocalAppAgentReference",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "ResolveLocalAppAvatarHostTargetRequest",
         "fields": [
           {
@@ -30593,6 +30692,13 @@
             "repeated": false,
             "optional": false,
             "number": 15
+          },
+          {
+            "name": "offer_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 16
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -31720,25 +31826,11 @@
             "number": 1
           },
           {
-            "name": "capability",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 2
-          },
-          {
-            "name": "category_filter",
+            "name": "category",
             "type": "string",
             "repeated": false,
             "optional": false,
             "number": 4
-          },
-          {
-            "name": "engine_filter",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 5
           },
           {
             "name": "page_size",
@@ -31762,7 +31854,7 @@
         "fields": [
           {
             "name": "items",
-            "type": "LocalCatalogModelDescriptor",
+            "type": "ModelAssetCatalogSearchResult",
             "repeated": true,
             "optional": false,
             "number": 1
@@ -36644,6 +36736,7 @@
           "APP_PACKAGE_JOB_PHASE_UNSPECIFIED",
           "APP_PACKAGE_JOB_PHASE_QUEUED",
           "APP_PACKAGE_JOB_PHASE_DOWNLOADING",
+          "APP_PACKAGE_JOB_PHASE_READING_LOCAL",
           "APP_PACKAGE_JOB_PHASE_VERIFYING",
           "APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED",
           "APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING",
@@ -36671,7 +36764,8 @@
         "name": "AppPackageSourceClass",
         "values": [
           "APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED",
-          "APP_PACKAGE_SOURCE_CLASS_VERIFIED"
+          "APP_PACKAGE_SOURCE_CLASS_VERIFIED",
+          "APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED"
         ],
         "source_file": "proto/runtime/v1/app.proto"
       },
@@ -37281,6 +37375,7 @@
         "values": [
           "LOCAL_APP_TRUST_CLASS_UNSPECIFIED",
           "LOCAL_APP_TRUST_CLASS_VERIFIED",
+          "LOCAL_APP_TRUST_CLASS_USER_IMPORTED",
           "LOCAL_APP_TRUST_CLASS_LOCAL_DEVELOPMENT"
         ],
         "source_file": "proto/runtime/v1/auth.proto"
@@ -37390,88 +37485,12 @@
         "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
       },
       {
-        "name": "LocalHostSupportClass",
+        "name": "LocalRecommendationApplicability",
         "values": [
-          "LOCAL_HOST_SUPPORT_CLASS_UNSPECIFIED",
-          "LOCAL_HOST_SUPPORT_CLASS_SUPPORTED_SUPERVISED",
-          "LOCAL_HOST_SUPPORT_CLASS_ATTACHED_ONLY",
-          "LOCAL_HOST_SUPPORT_CLASS_UNSUPPORTED"
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
-      },
-      {
-        "name": "LocalRecommendationBaseline",
-        "values": [
-          "LOCAL_RECOMMENDATION_BASELINE_UNSPECIFIED",
-          "LOCAL_RECOMMENDATION_BASELINE_IMAGE_DEFAULT_V1",
-          "LOCAL_RECOMMENDATION_BASELINE_VIDEO_DEFAULT_V1"
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
-      },
-      {
-        "name": "LocalRecommendationConfidence",
-        "values": [
-          "LOCAL_RECOMMENDATION_CONFIDENCE_UNSPECIFIED",
-          "LOCAL_RECOMMENDATION_CONFIDENCE_HIGH",
-          "LOCAL_RECOMMENDATION_CONFIDENCE_MEDIUM",
-          "LOCAL_RECOMMENDATION_CONFIDENCE_LOW"
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
-      },
-      {
-        "name": "LocalRecommendationFeedCacheState",
-        "values": [
-          "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_UNSPECIFIED",
-          "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_FRESH",
-          "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_STALE",
-          "LOCAL_RECOMMENDATION_FEED_CACHE_STATE_EMPTY"
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
-      },
-      {
-        "name": "LocalRecommendationFeedCapability",
-        "values": [
-          "LOCAL_RECOMMENDATION_FEED_CAPABILITY_UNSPECIFIED",
-          "LOCAL_RECOMMENDATION_FEED_CAPABILITY_CHAT",
-          "LOCAL_RECOMMENDATION_FEED_CAPABILITY_IMAGE",
-          "LOCAL_RECOMMENDATION_FEED_CAPABILITY_VIDEO"
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
-      },
-      {
-        "name": "LocalRecommendationFeedSource",
-        "values": [
-          "LOCAL_RECOMMENDATION_FEED_SOURCE_UNSPECIFIED",
-          "LOCAL_RECOMMENDATION_FEED_SOURCE_MODEL_INDEX"
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
-      },
-      {
-        "name": "LocalRecommendationFormat",
-        "values": [
-          "LOCAL_RECOMMENDATION_FORMAT_UNSPECIFIED",
-          "LOCAL_RECOMMENDATION_FORMAT_GGUF",
-          "LOCAL_RECOMMENDATION_FORMAT_SAFETENSORS"
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
-      },
-      {
-        "name": "LocalRecommendationSource",
-        "values": [
-          "LOCAL_RECOMMENDATION_SOURCE_UNSPECIFIED",
-          "LOCAL_RECOMMENDATION_SOURCE_LLMFIT",
-          "LOCAL_RECOMMENDATION_SOURCE_MEDIA_FIT"
-        ],
-        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
-      },
-      {
-        "name": "LocalRecommendationTier",
-        "values": [
-          "LOCAL_RECOMMENDATION_TIER_UNSPECIFIED",
-          "LOCAL_RECOMMENDATION_TIER_RECOMMENDED",
-          "LOCAL_RECOMMENDATION_TIER_RUNNABLE",
-          "LOCAL_RECOMMENDATION_TIER_TIGHT",
-          "LOCAL_RECOMMENDATION_TIER_NOT_RECOMMENDED"
+          "LOCAL_RECOMMENDATION_APPLICABILITY_UNSPECIFIED",
+          "LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED",
+          "LOCAL_RECOMMENDATION_APPLICABILITY_UNKNOWN",
+          "LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED"
         ],
         "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
@@ -37516,6 +37535,24 @@
           "MODEL_ASSET_CATALOG_VERIFICATION_NOT_MATCHED"
         ],
         "source_file": "proto/runtime/v1/local_runtime_asset_catalog.proto"
+      },
+      {
+        "name": "ModelAssetSourceAvailability",
+        "values": [
+          "MODEL_ASSET_SOURCE_AVAILABILITY_UNSPECIFIED",
+          "MODEL_ASSET_SOURCE_AVAILABILITY_AVAILABLE",
+          "MODEL_ASSET_SOURCE_AVAILABILITY_UNAVAILABLE"
+        ],
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
+      },
+      {
+        "name": "ModelAssetSourceFreshness",
+        "values": [
+          "MODEL_ASSET_SOURCE_FRESHNESS_UNSPECIFIED",
+          "MODEL_ASSET_SOURCE_FRESHNESS_FRESH",
+          "MODEL_ASSET_SOURCE_FRESHNESS_STALE"
+        ],
+        "source_file": "proto/runtime/v1/local_runtime_recommendation.proto"
       },
       {
         "name": "ModelCatalogProviderSource",

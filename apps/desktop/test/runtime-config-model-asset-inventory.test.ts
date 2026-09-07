@@ -39,6 +39,7 @@ test('ModelAsset inventory does not project execution environment readiness', ()
     { resource: TEST_I18N_RESOURCE },
     React.createElement(LocalModelCenterInstalledAssetsSection, {
       modelAssets: [asset],
+      query: 'image-model sha256:aaaa',
       loadingInstalledAssets: false,
       assetBusy: false,
       onRefreshAssets: () => {},
@@ -47,7 +48,7 @@ test('ModelAsset inventory does not project execution environment readiness', ()
     } as never),
   )));
 
-  assert.match(markup, /My Models/);
+  assert.match(markup, /Installed Assets/);
   assert.match(markup, /Image Model/);
   assert.match(markup, /Content verified/);
   assert.doesNotMatch(markup, /Runtime unsupported|Set Up Runtime|local-image-native/iu);

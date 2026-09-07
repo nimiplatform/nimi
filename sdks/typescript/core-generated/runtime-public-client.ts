@@ -470,6 +470,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "RenderLocalAppConversationVoiceResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
+    "service": "RuntimeAgentService",
+    "method": "ResolveDesktopAgentReference",
+    "kind": "unary",
+    "requestType": "ResolveDesktopAgentReferenceRequest",
+    "responseType": "ResolveDesktopAgentReferenceResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn",
     "service": "RuntimeAgentService",
     "method": "SendLocalAppConversationTurn",
@@ -1478,6 +1486,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetCatalogModelCard",
+    "service": "RuntimeLocalService",
+    "method": "GetCatalogModelCard",
+    "kind": "unary",
+    "requestType": "GetCatalogModelCardRequest",
+    "responseType": "GetCatalogModelCardResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetLoadout",
     "service": "RuntimeLocalService",
     "method": "GetLoadout",
@@ -1526,14 +1542,6 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ProductControlProjectionJson"
   },
   {
-    "methodId": "/nimi.runtime.v1.RuntimeLocalService/GetRecommendationFeed",
-    "service": "RuntimeLocalService",
-    "method": "GetRecommendationFeed",
-    "kind": "unary",
-    "requestType": "GetRecommendationFeedRequest",
-    "responseType": "GetRecommendationFeedResponse"
-  },
-  {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/ImportModelAsset",
     "service": "RuntimeLocalService",
     "method": "ImportModelAsset",
@@ -1564,6 +1572,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "ListCatalogVariantsRequest",
     "responseType": "ListCatalogVariantsResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListFactoryProfileRecommendations",
+    "service": "RuntimeLocalService",
+    "method": "ListFactoryProfileRecommendations",
+    "kind": "unary",
+    "requestType": "ListFactoryProfileRecommendationsRequest",
+    "responseType": "ListFactoryProfileRecommendationsResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListFeaturedModelAssets",
+    "service": "RuntimeLocalService",
+    "method": "ListFeaturedModelAssets",
+    "kind": "unary",
+    "requestType": "ListFeaturedModelAssetsRequest",
+    "responseType": "ListFeaturedModelAssetsResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeLocalService/ListLoadoutRecipes",

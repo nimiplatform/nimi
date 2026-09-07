@@ -75,7 +75,9 @@ export type NimiDesktopMachineProductRuntimeClient = {
     | 'listVerifiedAssets'
     | 'searchCatalogModels'
     | 'listCatalogVariants'
-    | 'getRecommendationFeed'
+    | 'getCatalogModelCard'
+    | 'listFeaturedModelAssets'
+    | 'listFactoryProfileRecommendations'
     | 'resolveModelInstallPlan'
     | 'installModelFromPlan'
     | 'listLocalTransfers'
@@ -116,6 +118,7 @@ export type NimiDesktopAccountProductRuntimeClient = {
   readonly profiles: NimiDesktopPortableAIProfileCatalogClient;
   readonly agents: Pick<DesktopAccountProductRuntimeMethods,
     | 'listAgents'
+    | 'resolveDesktopAgentReference'
     | 'getAgent'
     | 'openConversationAnchor'
     | 'getConversationAnchorSnapshot'
@@ -333,6 +336,7 @@ export function createNimiDesktopFirstPartyRuntimeClients(
   );
   const accountAgents: NimiDesktopAccountProductRuntimeClient['agents'] = Object.freeze({
     listAgents: protectedAgents.listAgents,
+    resolveDesktopAgentReference: protectedAgents.resolveDesktopAgentReference,
     getAgent: protectedAgent(protectedAgents.getAgent),
     openConversationAnchor: protectedAgents.openConversationAnchor,
     getConversationAnchorSnapshot: protectedAgents.getConversationAnchorSnapshot,
@@ -455,7 +459,9 @@ export function createNimiDesktopFirstPartyRuntimeClients(
         listVerifiedAssets: runtime.local.listVerifiedAssets,
         searchCatalogModels: runtime.local.searchCatalogModels,
         listCatalogVariants: runtime.local.listCatalogVariants,
-        getRecommendationFeed: runtime.local.getRecommendationFeed,
+        getCatalogModelCard: runtime.local.getCatalogModelCard,
+        listFeaturedModelAssets: runtime.local.listFeaturedModelAssets,
+        listFactoryProfileRecommendations: runtime.local.listFactoryProfileRecommendations,
         resolveModelInstallPlan: runtime.local.resolveModelInstallPlan,
         installModelFromPlan: runtime.local.installModelFromPlan,
         listLocalTransfers: runtime.local.listLocalTransfers,

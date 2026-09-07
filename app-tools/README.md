@@ -74,9 +74,9 @@ Tauri remains an explicit alternative through `pnpm run build:tauri:production`;
 
 ## Canonical release boundary
 
-The production chain is singular. Its publisher GitHub Release stage is
-available for explicitly configured pilot repositories; later registry and
-installed lifecycle stages remain unavailable:
+The Registry publication chain uses the stages below. Publisher GitHub Release
+is available for configured pilot repositories; protected Registry admission and
+verified installation, launch and uninstall are available on Windows x86_64:
 
 ```text
 public App repository
@@ -92,7 +92,9 @@ public App repository
 
 The registry references publisher Release assets and never mirrors bytes. GitHub Release is not catalog admission; catalog admission is not installed; installed is not running; running is not Nimi Access ready.
 
-Repository administration must enable a protected `v*` tag ruleset and GitHub immutable releases before production. The managed tag workflow fetches the repository's canonical default branch and rejects a tag commit outside that history before production preflight, build, attestation, or Release. A fine-grained `NIMI_REPOSITORY_ADMIN_TOKEN` secret with repository Administration read permission lets the workflow verify protected-tag and immutable-release settings; it cannot enable or change them. Manual workflow dispatch runs only the non-production build/package path. On Windows, the tag-only production build invokes the App-declared production build with no certificate-secret mapping or app-tools-owned signing step. Optional native signing remains publisher-owned and must already be reflected in the final exact Runtime entry before production pack observes and records its native-trust posture; a present invalid or unresolved signature still fails closed. A successful tag workflow creates the immutable publisher GitHub Release and no registry, installed, running, or Nimi Access truth. Registry submission, the shared installed carrier, and installed launch remain unavailable.
+Repository administration must enable a protected `v*` tag ruleset and GitHub immutable releases before production. The managed tag workflow fetches the repository's canonical default branch and rejects a tag commit outside that history before production preflight, build, attestation, or Release. A fine-grained `NIMI_REPOSITORY_ADMIN_TOKEN` secret with repository Administration read permission lets the workflow verify protected-tag and immutable-release settings; it cannot enable or change them. Manual workflow dispatch runs only the non-production build/package path. On Windows, the tag-only production build invokes the App-declared production build with no certificate-secret mapping or app-tools-owned signing step. Optional native signing remains publisher-owned and must already be reflected in the final exact Runtime entry before production pack observes and records its native-trust posture; a present invalid or unresolved signature still fails closed. A successful tag workflow creates the immutable publisher GitHub Release and no registry, installed, running, or Nimi Access truth. Protected Registry submission and approved Windows x86_64 installation, launch/focus/stop, current-session Nimi Access and uninstall are available through their Platform, Runtime and Desktop owners. Other-platform installed lifecycle, ordinary update and repair remain unavailable. Explicit immutable local-package import remains a separate product path whose entry is not yet implemented.
+
+Registry projects must be open source with an explicit license and reviewable release source. Consistently observed unsigned packages are eligible; invalid signatures cannot be downgraded to unsigned. These Registry admission requirements do not apply to user-imported packages or Developer Mode projects. Registry approval is not a guarantee that third-party code is harmless.
 
 ## Acceptance status
 

@@ -1,9 +1,9 @@
 import { Button, IconButton, NimiText, Surface, cn } from '@nimiplatform/kit/ui';
-import { Heart } from 'lucide-react';
+import { ArrowLeft, Heart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { WorldCharacter, WorldDetailData } from './world-detail-types.js';
 import { detailHeroBackground, worldSummary } from './world-detail-template-model';
-import { GLASS_STRONG_STYLE, GLASS_STRONG_SURFACE_CLASS, IconArrowLeft, Seal } from './world-detail-glass-primitives';
+import { GLASS_STRONG_STYLE, GLASS_STRONG_SURFACE_CLASS, Seal } from './world-detail-glass-primitives';
 import { worldInitial } from './world-list-atoms';
 
 export function DetailHero({
@@ -57,10 +57,10 @@ export function DetailHero({
             <IconButton
               aria-label={t('WorldDetail.glass.backToAtlas')}
               onClick={onBack}
-              icon={<IconArrowLeft />}
+              icon={<ArrowLeft aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.2} />}
               tone="ghost"
               size="md"
-              className="h-[42px] w-[42px] border border-white/25 bg-[var(--nimi-overlay-backdrop)] text-[var(--nimi-text-inverse)] hover:bg-[var(--nimi-scrim-modal)]"
+              className="h-10 w-10 rounded-full border border-[var(--nimi-material-glass-thin-border)] bg-[var(--nimi-material-glass-thin-bg)] text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-raised)] nimi-material-glass-thin backdrop-blur-[var(--nimi-backdrop-blur-thin)] hover:bg-white/86 hover:text-[var(--nimi-action-primary-bg)]"
             />
           ) : null}
         </div>

@@ -1103,7 +1103,7 @@ units:
   - id: definition.nimi.platform.core-protocol.ai-profile-selection
     kind: definition
     title: AIProfile recommendation result
-    meaning: An AIProfile recommendation result is a typed factory AIProfile reference and reason produced from explicit user posture and bounded catalog or host facts without becoming AIConfig route choice, Loadout, machine selection, binding, installation, admission, or execution truth.
+    meaning: An AIProfile recommendation result is a typed canonical factory AIProfile alias plus per-CapabilityContract applicability and reasons produced from an optional explicit CapabilityContract filter and bounded catalog or host facts; a filter admits only rows declaring that contract and uses only that contract for its recommendation bucket, while an unfiltered read preserves canonical factory order and exposes independent capability limitations without a profile-level reducer, score, or aggregate status, and no result becomes AIConfig route choice, Loadout, machine selection, binding, installation, admission, or execution truth.
   - id: definition.nimi.platform.core-protocol.ai-profile-apply-state
     kind: definition
     lifecycle: removed
@@ -1251,9 +1251,9 @@ units:
     kind: rule
     title: P-AIPS-004 recommendations are bounded and non-binding
     modality: must
-    statement: A factory Profile recommendation consumes only explicit user posture and bounded catalog or host facts, returns a typed recommendation and reason, and never reads chat selection, active App state, inventory order, current machine selection, process health, or other ambient state as authority.
+    statement: A factory Profile recommendation consumes only an optional explicit canonical CapabilityContract filter and bounded catalog or host facts and returns canonical factory aliases with per-contract typed applicability and reasons; when a filter is present, only rows declaring that contract are admitted and that contract alone determines supported, unknown, or unsupported presentation, while an unfiltered read preserves canonical factory order and never reduces mixed capability outcomes into a profile score, aggregate status, or host-ranked order. The recommendation never reads model-index, chat selection, active App state, inventory order, current machine selection, process health, or other ambient state as authority.
     condition: Whenever a Profile recommendation is evaluated.
-    failure: Reject an unresolved reference, implicit posture input, ambient selection, or recommendation presented as committed configuration.
+    failure: Reject an unresolved alias, unknown filter, undeclared filtered contract, profile-level reducer, ambient input, reordered unfiltered catalog, or recommendation presented as committed configuration.
     relations:
       - type: applies_to
         target: definition.nimi.platform.core-protocol.ai-profile-selection
@@ -1673,7 +1673,7 @@ units:
   - id: definition.nimi.platform.core-protocol.desktop-home-shell
     kind: definition
     title: P-ARCH Desktop-hosted Nimi Home shell
-    meaning: Desktop is the current replaceable host implementation of the Nimi Home entry shell while Nimi is the installable product name and Nimi App is the canonical local product unit whose lifecycle contract covers discovery, installation, update, launch, repair, and uninstall through one Registry-approved verified package path plus a separate non-package Developer-Mode local-development path, with no ordinary local-import package path; the current pre-release exposes Developer-Mode local development, protected-tag GitHub Actions and immutable GitHub Release publication for explicitly configured pilot App repositories, protected static Registry onboarding and human-approved descriptor admission, and verified Catalog discovery, installation, installed launch/focus/stop, protected App session Access and uninstall on Windows x86_64, while other-platform package lifecycle, ordinary update and repair remain unavailable, and bundled or platform App paths remain separately governed.
+    meaning: Desktop is the current replaceable host implementation of the Nimi Home entry shell while Nimi is the installable product name and Nimi App is the canonical local product unit whose lifecycle contract covers discovery, installation, update, launch, repair, and uninstall through distinct Registry-approved verified package, explicitly selected immutable local-import package, and non-package Developer-Mode local-development paths; the current pre-release exposes Developer-Mode local development, protected-tag GitHub Actions and immutable GitHub Release publication for explicitly configured pilot App repositories, protected static Registry onboarding and human-approved descriptor admission, and verified Catalog discovery, installation, installed launch/focus/stop, protected App session Access and uninstall on Windows x86_64, while the local-import product entry, other-platform verified package lifecycle, ordinary update and repair remain unavailable, and bundled or platform App paths remain separately governed.
   - id: definition.nimi.platform.core-protocol.world-domain-facade
     kind: definition
     title: P-ARCH sdk world facade
@@ -1702,7 +1702,7 @@ units:
     kind: rule
     title: P-ARCH-001 public product and layer framing
     modality: must
-    statement: Public architecture identifies Nimi as the installable long-term user product, Nimi Home as its currently Desktop-hosted replaceable entry shell, Nimi App as the canonical local product unit with one Registry-approved verified package path plus a separate non-package Developer-Mode local-development path and no ordinary local-import package path, and the canonical public authority entry as nimi/.nimi/spec/**; current pre-release positioning exposes Developer-Mode local development, protected-tag GitHub Actions and immutable GitHub Release publication for explicitly configured pilot App repositories, protected static Registry onboarding and human-approved descriptor admission, and verified Catalog discovery, installation, installed launch/focus/stop, protected App session Access and uninstall on Windows x86_64, and must state that other-platform package lifecycle, ordinary update and repair remain unavailable.
+    statement: Public architecture identifies Nimi as the installable long-term user product, Nimi Home as its currently Desktop-hosted replaceable entry shell, Nimi App as the canonical local product unit with distinct Registry-approved verified package, explicitly selected immutable local-import package, and non-package Developer-Mode local-development paths, and the canonical public authority entry as nimi/.nimi/spec/**; current pre-release positioning exposes Developer-Mode local development, protected-tag GitHub Actions and immutable GitHub Release publication for explicitly configured pilot App repositories, protected static Registry onboarding and human-approved descriptor admission, and verified Catalog discovery, installation, installed launch/focus/stop, protected App session Access and uninstall on Windows x86_64, and must state that the local-import product entry, other-platform verified package lifecycle, ordinary update and repair remain unavailable.
     condition: Whenever the public top-layer architecture is described.
     failure: Reject a product, shell, app-unit, lifecycle-stage, availability, or canonical-entry description that changes this layer framing or presents an unavailable App path as current behavior.
     relations:

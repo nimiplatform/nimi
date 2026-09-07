@@ -5,7 +5,7 @@ import {
 } from '@nimiplatform/kit/shell/electron/main';
 import type { InstalledAppRun } from '../src/shell/shared/installed-app-types.js';
 
-type Run = { readonly selector: Uint8Array; launchId?: string; pending: boolean; view: InstalledAppRun };
+type Run = { readonly selector: Uint8Array; launchId?: string; exitState?: 'stopped' | 'crashed'; pending: boolean; view: InstalledAppRun };
 const COMMANDS = ['installed_app_launch', 'installed_app_focus', 'installed_app_stop', 'installed_app_runs_list', 'installed_app_uninstall'] as const;
 export type DesktopInstalledAppHost = ReturnType<typeof createDesktopInstalledAppHost>;
 
@@ -13,22 +13,36 @@ export type DesktopInstalledAppHost = ReturnType<typeof createDesktopInstalledAp
 export function createDesktopInstalledAppHost(control: NimiElectronInstalledAppControl = createNimiElectronInstalledAppControl()) {
   const runs = new Map<string, Run>();
   let closing = false;
+  const releaseLease = async (run: Run, id: string): Promise<void> => {
+    await control.end(id);
+    if (run.launchId === id) run.launchId = undefined;
+  };
   const refresh = async (run: Run): Promise<InstalledAppRun> => {
     if (!run.launchId || run.pending) return project(run);
     const id = run.launchId;
     const before = run.view;
-    const status = await control.status(id);
-    if (run.pending || run.launchId !== id || run.view !== before) return project(run);
-    if (!status.running) {
-      await control.stop(id);
-      await control.end(id).catch(() => undefined);
+    if (!run.exitState) {
+      const status = await control.status(id);
       if (run.pending || run.launchId !== id || run.view !== before) return project(run);
-      run.view = { ...run.view, state: run.view.state === 'stopped' || status.exitCode === null || status.exitCode === 0 ? 'stopped' : 'crashed', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED' };
-      return project(run);
+      if (status.running) {
+        const access = await control.access(id).catch((error: unknown) => ({ available: false, reasonCode: reason(error) }));
+        if (run.pending || run.launchId !== id || run.view !== before) return project(run);
+        run.view = { ...run.view, state: 'running', accessAvailable: access.available, accessReasonCode: access.reasonCode };
+        return project(run);
+      }
+      run.exitState = run.view.state === 'stopped' || status.exitCode === null || status.exitCode === 0 ? 'stopped' : 'crashed';
+      run.view = { ...run.view, state: run.exitState, accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED' };
     }
-    const access = await control.access(id).catch((error: unknown) => ({ available: false, reasonCode: reason(error) }));
-    if (run.pending || run.launchId !== id || run.view !== before) return project(run);
-    run.view = { ...run.view, state: 'running', accessAvailable: access.available, accessReasonCode: access.reasonCode };
+    const exited = run.view;
+    try {
+      await control.stop(id);
+      await releaseLease(run, id);
+      if (!run.pending && run.view === exited) run.view = { ...exited, message: '', reasonCode: undefined };
+    } catch (error) {
+      if (!run.pending && run.launchId === id && run.view === exited) {
+        run.view = { ...exited, message: failureMessage(error), reasonCode: reason(error) };
+      }
+    }
     return project(run);
   };
   const invoke = async (command: typeof COMMANDS[number], payload: Readonly<Record<string, unknown>>): Promise<unknown> => {
@@ -41,10 +55,12 @@ export function createDesktopInstalledAppHost(control: NimiElectronInstalledAppC
       const jobId = Uint8Array.from((payload.payload as { jobId: number[] }).jobId);
       if (run) run.pending = true;
       try {
-        if (run?.launchId) {
-          await control.stop(run.launchId);
+        const id = run?.launchId;
+        if (run && id) {
+          await control.stop(id);
+          run.exitState = 'stopped';
           run.view = { ...run.view, state: 'stopped', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED', message: '' };
-          await control.end(run.launchId);
+          await releaseLease(run, id);
         }
         await control.completeUninstall(jobId, selector);
         runs.delete(key);
@@ -60,41 +76,47 @@ export function createDesktopInstalledAppHost(control: NimiElectronInstalledAppC
       run.pending = true;
       runs.set(key, run);
       try {
-        if (run.launchId) {
-          const status = await control.status(run.launchId);
-          if (status.running) {
+        const id = run.launchId;
+        if (id) {
+          const status = run.exitState ? null : await control.status(id);
+          if (status?.running) {
             run.view = { ...run.view, state: 'running' };
-            try { await control.focus(run.launchId); }
+            try { await control.focus(id); }
             catch (error) { run.view = { ...run.view, reasonCode: reason(error), message: failureMessage(error) }; }
             return project(run);
           }
-          await control.stop(run.launchId);
-          await control.end(run.launchId);
+          run.exitState ??= status?.exitCode === null || status?.exitCode === 0 ? 'stopped' : 'crashed';
+          run.view = { ...run.view, state: run.exitState, accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED' };
+          await control.stop(id);
+          await releaseLease(run, id);
         }
-        run.launchId = undefined;
+        run.exitState = undefined;
         run.view = { launchSelector: [...selector], state: 'launching', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED', message: '' };
         const launched = await control.launch(selector);
         run.launchId = launched.launchId;
         run.view = { ...run.view, state: 'running' };
       } catch (error) {
-        run.view = { ...run.view, state: 'crashed', reasonCode: reason(error), message: failureMessage(error), accessAvailable: false };
+        run.view = { ...run.view, state: run.exitState ?? 'crashed', reasonCode: reason(error), message: failureMessage(error), accessAvailable: false };
+        return project(run);
       } finally { run.pending = false; }
       return refresh(run);
     }
     if (!run?.launchId) throw new Error('installed-app-run-unavailable');
     if (run.pending) return project(run);
+    const id = run.launchId;
     if (command === 'installed_app_focus') {
-      await control.focus(run.launchId);
+      await control.focus(id);
       return refresh(run);
     }
     run.pending = true;
     try {
       run.view = { ...run.view, state: 'stopping' };
-      await control.stop(run.launchId);
+      await control.stop(id);
+      run.exitState = 'stopped';
       run.view = { ...run.view, state: 'stopped', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED', message: '' };
-      await control.end(run.launchId);
+      await releaseLease(run, id);
     } catch (error) {
-      const { running } = await control.status(run.launchId);
+      const running = run.exitState ? false : (await control.status(id)).running;
       run.view = { ...run.view, state: running ? 'running' : 'stopped', message: failureMessage(error), reasonCode: reason(error), accessAvailable: false };
       throw error;
     } finally { run.pending = false; }
@@ -107,9 +129,12 @@ export function createDesktopInstalledAppHost(control: NimiElectronInstalledAppC
       closing = true;
       for (const run of runs.values()) {
         if (run.pending) throw new Error('installed-app-action-pending');
-        if (!run.launchId) continue;
-        await control.stop(run.launchId);
-        await control.end(run.launchId).catch(() => undefined);
+        const id = run.launchId;
+        if (!id) continue;
+        await control.stop(id);
+        run.exitState = 'stopped';
+        run.view = { ...run.view, state: 'stopped', accessAvailable: false, accessReasonCode: 'LOCAL_APP_SESSION_REVOKED', message: '' };
+        await releaseLease(run, id);
       }
       runs.clear();
     },

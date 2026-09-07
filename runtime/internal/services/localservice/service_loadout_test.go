@@ -1439,8 +1439,13 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 		capabilitydriver.StableDiffusionAudioVAERequirementID,
 	} {
 		slot := video[0].GetSlots()[index]
-		if slot.GetSlotId() != slotID || len(slot.GetRecommendedContentIds()) != len(slot.GetRecommendedVariantIds()) || len(slot.GetRecommendedContentIds()) > 1 {
+		if slot.GetSlotId() != slotID {
 			t.Fatalf("video slot[%d] = %+v", index, video[0].GetSlots()[index])
+		}
+		for _, offer := range slot.GetOffers() {
+			if offer.GetCandidate().GetOfferRef() == "" || offer.GetApplicability() == runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSPECIFIED {
+				t.Fatalf("video slot[%d] offer = %+v", index, offer)
+			}
 		}
 	}
 	music := list(capabilitydriver.MiniMaxMusic3CapabilityContract)
@@ -1484,14 +1489,13 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 		rawQwenAudioCpp.SlotMetadata[0].RecommendedVariantIDs,
 		collectDeviceProfile(),
 	)
-	projectedContentIDs := qwenAudioCpp.GetSlots()[0].GetRecommendedContentIds()
-	projectedVariantIDs := qwenAudioCpp.GetSlots()[0].GetRecommendedVariantIds()
+	projectedOffers := qwenAudioCpp.GetSlots()[0].GetOffers()
 	if recommendedOnHost {
-		if len(projectedContentIDs) != 1 || projectedContentIDs[0] != capabilitydriver.Qwen3TTSAudioCppVerifiedContentID || len(projectedVariantIDs) != 1 {
+		if len(projectedOffers) == 0 || projectedOffers[0].GetCandidate().GetOfferRef() == "" {
 			t.Fatalf("host-compatible Qwen audio.cpp recommendation = %+v", qwenAudioCpp)
 		}
-	} else if len(projectedContentIDs) != 0 || len(projectedVariantIDs) != 0 {
-		t.Fatalf("host-incompatible Qwen audio.cpp recommendation was exposed: %+v", qwenAudioCpp)
+	} else if len(projectedOffers) > 0 && projectedOffers[0].GetApplicability() == runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED {
+		t.Fatalf("host-incompatible Qwen audio.cpp recommendation was marked supported: %+v", qwenAudioCpp)
 	}
 	for _, recipeID := range []string{"qwen3-asr", "qwen3-asr-transformers"} {
 		recipe := byID[recipeID]
@@ -1512,7 +1516,7 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 			len(recipe.GetSlots()) != 1 || recipe.GetSlots()[0].GetSlotId() != capabilitydriver.Qwen3VoiceCreateModelRequirementID ||
 			len(recipe.GetImplementationSupportedFeatures()) != 1 || recipe.GetImplementationSupportedFeatures()[0] != test.feature ||
 			recipe.GetSlots()[0].GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED || len(recipe.GetSlots()[0].GetConditionalFeatures()) != 0 ||
-			len(recipe.GetSlots()[0].GetRecommendedVariantIds()) != 1 || recipe.GetSlots()[0].GetRecommendedVariantIds()[0] != test.variant {
+			len(recipe.GetSlots()[0].GetOffers()) == 0 || recipe.GetSlots()[0].GetOffers()[0].GetCandidate().GetOfferRef() == "" {
 			t.Fatalf("voice.create recipe %q = %+v", test.recipeID, recipe)
 		}
 	}
@@ -1528,14 +1532,13 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 		standardContract["tensor_contract"] != "voxcpm2-main-v1" || mlxContract["tensor_contract"] != "voxcpm2-mlx-bundle-v1" {
 		t.Fatalf("VoxCPM Model Contract = %+v", contract)
 	}
-	gotRecommendation := voxcpm.GetSlots()[0].GetRecommendedVariantIds()
-	if len(gotRecommendation) != 1 {
+	gotRecommendation := voxcpm.GetSlots()[0].GetOffers()
+	if len(gotRecommendation) == 0 {
 		t.Fatalf("VoxCPM host-projected recommendation = %v", gotRecommendation)
 	}
-	switch gotRecommendation[0] {
-	case "local.tts.voxcpm2.standard.cuda", "local.tts.voxcpm2.standard.cpu", "local.tts.voxcpm2.mlx.metal":
-	default:
-		t.Fatalf("VoxCPM host-projected recommendation = %v", gotRecommendation)
+	if gotRecommendation[0].GetCandidate().GetOfferRef() == "" ||
+		gotRecommendation[0].GetApplicability() != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED {
+		t.Fatalf("VoxCPM first host-ranked recommendation = %v", gotRecommendation[0])
 	}
 	for _, recipeID := range []string{"voxcpm2", "qwen3-tts-customvoice", capabilitydriver.Qwen3TTSAudioCppRecipeID, "qwen3-tts-base", "qwen3-tts-voicedesign", capabilitydriver.Qwen3VoiceCloneRecipeID, capabilitydriver.Qwen3VoiceDesignRecipeID, "qwen3-asr", "qwen3-asr-transformers"} {
 		if len(byID[recipeID].GetCustody()) != 0 {

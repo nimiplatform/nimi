@@ -23,19 +23,28 @@
     "accessDeclarationsDetail": "由项目声明"
   },
   "library": {
+    "pageTitle": "应用中心",
     "sortLabel": "排序方式",
     "sortUpdated": "最近更新",
     "sortName": "名称",
     "sortActivity": "运行优先",
     "backToLibrary": "返回应用库",
-    "connectLocalTitle": "接入本地项目",
-    "cardMenuLabel": "App 操作"
+    "connectLocalTitle": "添加应用",
+    "cardMenuLabel": "App 操作",
+    "searchPlaceholder": "搜索已安装的应用",
+    "frequentTitle": "常用",
+    "allAppsTitle": "所有应用",
+    "allAppsCount": "{{count}} 个",
+    "filterRunning": "运行中",
+    "filterNeedsAttention": "需处理"
   },
   "sourceBadge": {
+    "userImported": "本地导入",
     "localDevelopment": "本地开发",
     "verified": "已通过 Registry 审核"
   },
   "catalog": {
+    "loading": "正在加载应用目录…",
     "registryApproved": "这个版本已通过公共 Nimi App Registry 审核。Descriptor 冻结准确的 Release asset、digest 和 provenance，Runtime 还会再次验证下载的包；审核和验证都不等于无恶意代码保证，也不保证操作系统一定允许执行。",
     "policyBlocked": "当前 Registry 策略已阻止新的安装或启动（修订 {{revision}}）：{{reason}}",
     "policyBlockedFallback": "未提供原因。",
@@ -209,17 +218,18 @@
     "configuredSummary": "模型配置已完成",
     "emptySummary": "尚未选择模型",
     "summary": {
-      "local": "AI：本地 · {{summaryCount}}",
-      "cloud": "AI：云端 · {{summaryCount}}",
-      "mixed": "AI：混合 · {{summaryCount}}",
-      "partialLocal": "AI：部分本地 · {{summaryCount}}",
-      "partialCloud": "AI：部分云端 · {{summaryCount}}",
-      "partialMixed": "AI：部分混合 · {{summaryCount}}",
+      "local": "AI 本地 · {{summaryCount}}",
+      "cloud": "AI 云端 · {{summaryCount}}",
+      "mixed": "AI 本地+云端 · {{summaryCount}}",
+      "partialLocal": "AI 本地 · {{summaryCount}}",
+      "partialCloud": "AI 云端 · {{summaryCount}}",
+      "partialMixed": "AI 本地+云端 · {{summaryCount}}",
       "blocked": "{{routeLabel}} · {{blockedCount}} 项受阻",
       "healthUnavailable": "{{routeLabel}} · 健康状态不可用",
       "unconfigured": "AI 未配置",
       "unavailable": "AI 配置不可用"
     },
+    "openSettings": "打开 AI 模型设置",
     "loadFailed": "无法从 Runtime 加载此 App 的 AI 配置。",
     "saveFailed": "Runtime 无法保存此 App 的 AI 配置。",
     "capability": {

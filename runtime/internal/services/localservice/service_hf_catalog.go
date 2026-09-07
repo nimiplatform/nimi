@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -23,6 +24,8 @@ const (
 	hfCatalogMaxBodyBytes = 4 << 20
 )
 
+var hfCommitRevisionPattern = regexp.MustCompile(`^[0-9a-f]{40}$`)
+
 type hfCatalogSearchRequest struct {
 	Query          string
 	Capability     string
@@ -32,7 +35,28 @@ type hfCatalogSearchRequest struct {
 }
 
 type hfCatalogSearchFunc func(ctx context.Context, req hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error)
-type hfCatalogVariantsFunc func(ctx context.Context, repo string) ([]*runtimev1.LocalCatalogVariantDescriptor, error)
+type hfCatalogVariantsFunc func(ctx context.Context, repo string, revision string) ([]hfCatalogVariant, error)
+
+type hfCatalogVariant struct {
+	Filename     string
+	Entry        string
+	Files        []string
+	Hashes       map[string]string
+	Format       string
+	SizeBytes    int64
+	SHA256       string
+	Revision     string
+	Title        string
+	Description  string
+	Categories   []string
+	Capabilities []string
+	ModelType    string
+	License      string
+	Tags         []string
+	Downloads    int64
+	Likes        int64
+	LastModified string
+}
 
 type hfModelSearchEntry struct {
 	ID           string         `json:"id"`
@@ -47,11 +71,16 @@ type hfModelSearchEntry struct {
 }
 
 type hfModelDetails struct {
-	ID          string           `json:"id"`
-	ModelID     string           `json:"modelId"`
-	PipelineTag string           `json:"pipeline_tag"`
-	Tags        []string         `json:"tags"`
-	Siblings    []hfModelSibling `json:"siblings"`
+	ID           string           `json:"id"`
+	ModelID      string           `json:"modelId"`
+	Sha          string           `json:"sha"`
+	PipelineTag  string           `json:"pipeline_tag"`
+	Tags         []string         `json:"tags"`
+	Downloads    int64            `json:"downloads"`
+	Likes        int64            `json:"likes"`
+	LastModified string           `json:"lastModified"`
+	CardData     map[string]any   `json:"cardData"`
+	Siblings     []hfModelSibling `json:"siblings"`
 }
 
 type hfModelSibling struct {
@@ -74,46 +103,21 @@ func (s *Service) searchHFCatalog(ctx context.Context, req hfCatalogSearchReques
 	return searchFn(ctx, req)
 }
 
-func (s *Service) listHFCatalogVariants(ctx context.Context, repo string) ([]*runtimev1.LocalCatalogVariantDescriptor, error) {
+func (s *Service) listHFCatalogVariants(ctx context.Context, repo string, revision string) ([]hfCatalogVariant, error) {
 	s.mu.RLock()
 	variantsFn := s.hfCatalogVariants
 	s.mu.RUnlock()
 	if variantsFn == nil {
 		variantsFn = defaultHFCatalogVariants
 	}
-	return variantsFn(ctx, repo)
+	return variantsFn(ctx, repo, revision)
 }
 
 func defaultHFCatalogSearch(ctx context.Context, req hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
-	query, err := normalizeHFSearchQuery(req.Query)
+	u, err := hfCatalogSearchURL(req)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %v", errHfRepoInvalid, err)
+		return nil, err
 	}
-
-	limit := req.Limit
-	if limit <= 0 {
-		limit = hfCatalogDefaultLimit
-	}
-	if limit < hfCatalogMinLimit {
-		limit = hfCatalogMinLimit
-	}
-	if limit > hfCatalogMaxLimit {
-		limit = hfCatalogMaxLimit
-	}
-
-	params := url.Values{}
-	if strings.TrimSpace(query) != "" {
-		params.Set("search", strings.TrimSpace(query))
-	}
-	if pipelineTag := pipelineTagFromCapability(req.Capability); pipelineTag != "" {
-		params.Set("pipeline_tag", pipelineTag)
-	}
-	params.Set("library", "gguf")
-	params.Set("limit", fmt.Sprintf("%d", limit))
-
-	u, _ := url.Parse(hfCatalogEndpoint)
-	u.RawQuery = params.Encode()
-
 	requestCtx, cancel := context.WithTimeout(ctx, hfCatalogTimeout)
 	defer cancel()
 	httpReq, err := http.NewRequestWithContext(requestCtx, http.MethodGet, u.String(), nil)
@@ -146,16 +150,65 @@ func defaultHFCatalogSearch(ctx context.Context, req hfCatalogSearchRequest) ([]
 	return items, nil
 }
 
-func defaultHFCatalogVariants(ctx context.Context, repoRaw string) ([]*runtimev1.LocalCatalogVariantDescriptor, error) {
-	repo, err := normalizeHFRepo(repoRaw)
+func hfCatalogSearchURL(req hfCatalogSearchRequest) (*url.URL, error) {
+	query, err := normalizeHFSearchQuery(req.Query)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", errHfRepoInvalid, err)
 	}
 
-	u := url.URL{
-		Scheme: "https",
-		Host:   "huggingface.co",
-		Path:   "/api/models/" + repo,
+	limit := req.Limit
+	if limit <= 0 {
+		limit = hfCatalogDefaultLimit
+	}
+	if limit < hfCatalogMinLimit {
+		limit = hfCatalogMinLimit
+	}
+	if limit > hfCatalogMaxLimit {
+		limit = hfCatalogMaxLimit
+	}
+
+	params := url.Values{}
+	if strings.TrimSpace(query) != "" {
+		params.Set("search", strings.TrimSpace(query))
+	}
+	capability := req.Capability
+	if capability == "" {
+		capability = capabilityForMarketCategory(req.CategoryFilter)
+	}
+	if pipelineTag := pipelineTagFromCapability(capability); pipelineTag != "" {
+		params.Set("pipeline_tag", pipelineTag)
+	}
+	for _, field := range []string{"sha", "pipeline_tag", "tags", "downloads", "likes", "lastModified", "cardData"} {
+		params.Add("expand[]", field)
+	}
+	params.Set("limit", fmt.Sprintf("%d", limit))
+
+	u, _ := url.Parse(hfCatalogEndpoint)
+	u.RawQuery = params.Encode()
+	return u, nil
+}
+
+func capabilityForMarketCategory(category string) string {
+	switch strings.ToLower(strings.TrimSpace(category)) {
+	case "image":
+		return "image.generate"
+	case "video":
+		return "video.generate"
+	case "chat":
+		return "text.generate"
+	default:
+		return ""
+	}
+}
+
+func defaultHFCatalogVariants(ctx context.Context, repoRaw string, revisionRaw string) ([]hfCatalogVariant, error) {
+	return fetchHFCatalogVariants(ctx, hfCatalogEndpoint, repoRaw, revisionRaw)
+}
+
+func fetchHFCatalogVariants(ctx context.Context, endpoint string, repoRaw string, revisionRaw string) ([]hfCatalogVariant, error) {
+	u, _, revision, err := hfCatalogVariantsURLAt(endpoint, repoRaw, revisionRaw)
+	if err != nil {
+		return nil, err
 	}
 
 	requestCtx, cancel := context.WithTimeout(ctx, hfCatalogTimeout)
@@ -178,7 +231,59 @@ func defaultHFCatalogVariants(ctx context.Context, repoRaw string) ([]*runtimev1
 	if err := json.NewDecoder(io.LimitReader(resp.Body, hfCatalogMaxBodyBytes)).Decode(&details); err != nil {
 		return nil, fmt.Errorf("decode hf variants response: %w", err)
 	}
-	return listHFCatalogVariantsFromDetails(&details), nil
+	resolvedRevision := strings.TrimSpace(details.Sha)
+	if resolvedRevision == "" {
+		return nil, fmt.Errorf("hf variants response is missing source revision")
+	}
+	if revision != "main" && resolvedRevision != revision {
+		return nil, fmt.Errorf("hf variants source revision changed")
+	}
+	variants := listHFCatalogVariantsFromDetails(&details)
+	capabilities := inferCapabilitiesFromHF(details.PipelineTag, details.Tags)
+	categories := capabilityCategories(capabilities)
+	modelType := catalogModelTypeForAssetKind(inferAssetKindFromCapabilities(capabilities))
+	license := "unknown"
+	if raw, ok := details.CardData["license"].(string); ok && strings.TrimSpace(raw) != "" {
+		license = strings.TrimSpace(raw)
+	}
+	for index := range variants {
+		variants[index].Revision = resolvedRevision
+		variants[index].Title = defaultString(strings.TrimSpace(details.ModelID), strings.TrimSpace(details.ID))
+		variants[index].Description = "Hugging Face model"
+		variants[index].Categories = append([]string(nil), categories...)
+		variants[index].Capabilities = append([]string(nil), capabilities...)
+		variants[index].ModelType = modelType
+		variants[index].License = license
+		variants[index].Tags = normalizeStringSlice(details.Tags)
+		variants[index].Downloads = details.Downloads
+		variants[index].Likes = details.Likes
+		variants[index].LastModified = strings.TrimSpace(details.LastModified)
+	}
+	return variants, nil
+}
+
+func hfCatalogVariantsURL(repoRaw string, revisionRaw string) (*url.URL, string, string, error) {
+	return hfCatalogVariantsURLAt(hfCatalogEndpoint, repoRaw, revisionRaw)
+}
+
+func hfCatalogVariantsURLAt(endpoint string, repoRaw string, revisionRaw string) (*url.URL, string, string, error) {
+	repo, err := normalizeHFRepo(repoRaw)
+	if err != nil {
+		return nil, "", "", fmt.Errorf("%w: %v", errHfRepoInvalid, err)
+	}
+	revision := strings.ToLower(strings.TrimSpace(revisionRaw))
+	if !hfCommitRevisionPattern.MatchString(revision) {
+		return nil, "", "", fmt.Errorf("%w: immutable revision is required", errHfRepoInvalid)
+	}
+	base, err := url.Parse(strings.TrimSpace(endpoint))
+	if err != nil || base.Scheme == "" || base.Host == "" {
+		return nil, "", "", fmt.Errorf("%w: endpoint is invalid", errHfRepoInvalid)
+	}
+	base.Path = strings.TrimSuffix(base.Path, "/") + "/" + repo + "/revision/" + revision
+	params := base.Query()
+	params.Set("blobs", "true")
+	base.RawQuery = params.Encode()
+	return base, repo, revision, nil
 }
 
 var errHfRepoInvalid = fmt.Errorf("hf repo invalid")
@@ -264,13 +369,13 @@ func pipelineTagFromCapability(capability string) string {
 	switch normalizeLocalCapabilityToken(capability) {
 	case "chat", "text.generate":
 		return "text-generation"
-	case "image":
+	case "image", "image.generate":
 		return "text-to-image"
-	case "video":
+	case "video", "video.generate":
 		return "text-to-video"
-	case "tts":
+	case "tts", "audio.synthesize":
 		return "text-to-speech"
-	case "stt":
+	case "stt", "audio.transcribe":
 		return "automatic-speech-recognition"
 	case "embedding", "text.embed":
 		return "feature-extraction"
@@ -283,11 +388,11 @@ func inferCapabilitiesFromHF(pipelineTag string, tags []string) []string {
 	caps := make([]string, 0, 2)
 	appendCap := func(pipeline string) {
 		switch strings.ToLower(strings.TrimSpace(pipeline)) {
-		case "text-generation", "text2text-generation":
+		case "text-generation", "text2text-generation", "image-text-to-text", "visual-question-answering":
 			caps = append(caps, "text.generate")
-		case "text-to-image":
+		case "text-to-image", "image-to-image":
 			caps = append(caps, "image.generate")
-		case "text-to-video":
+		case "text-to-video", "image-to-video":
 			caps = append(caps, "video.generate")
 		case "text-to-speech", "text-to-audio":
 			caps = append(caps, "audio.synthesize")
@@ -315,6 +420,10 @@ func mapHFRowToCatalogItem(row hfModelSearchEntry, _ string) (*runtimev1.LocalCa
 	if err != nil {
 		return nil, false
 	}
+	revision := strings.ToLower(strings.TrimSpace(row.Sha))
+	if !hfCommitRevisionPattern.MatchString(revision) {
+		return nil, false
+	}
 	capabilities := inferCapabilitiesFromHF(row.PipelineTag, row.Tags)
 	kind := inferAssetKindFromCapabilities(capabilities)
 	if len(capabilities) == 0 || kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
@@ -337,7 +446,7 @@ func mapHFRowToCatalogItem(row hfModelSearchEntry, _ string) (*runtimev1.LocalCa
 		Description:       "HuggingFace model",
 		ModelId:           repo,
 		Repo:              repo,
-		Revision:          defaultString(strings.TrimSpace(row.Sha), "main"),
+		Revision:          revision,
 		TemplateId:        "",
 		Capabilities:      capabilities,
 		Engine:            "",
@@ -359,7 +468,7 @@ func mapHFRowToCatalogItem(row hfModelSearchEntry, _ string) (*runtimev1.LocalCa
 	}, true
 }
 
-func listHFCatalogVariantsFromDetails(details *hfModelDetails) []*runtimev1.LocalCatalogVariantDescriptor {
+func listHFCatalogVariantsFromDetails(details *hfModelDetails) []hfCatalogVariant {
 	if details == nil {
 		return nil
 	}
@@ -367,7 +476,7 @@ func listHFCatalogVariantsFromDetails(details *hfModelDetails) []*runtimev1.Loca
 	if len(capabilities) == 0 {
 		return nil
 	}
-	variants := make([]*runtimev1.LocalCatalogVariantDescriptor, 0, len(details.Siblings))
+	variants := make([]hfCatalogVariant, 0, len(details.Siblings))
 	for _, sibling := range details.Siblings {
 		entry, ok := normalizeHFFilePath(sibling.Rfilename)
 		if !ok {
@@ -377,28 +486,53 @@ func listHFCatalogVariantsFromDetails(details *hfModelDetails) []*runtimev1.Loca
 		if !strings.HasSuffix(lower, ".gguf") && !strings.HasSuffix(lower, ".safetensors") {
 			continue
 		}
+		format := variantFormatForEntry(entry)
+		files := []string(nil)
+		hashes := map[string]string(nil)
 		var sizeBytes int64
 		sha256 := ""
 		if sibling.Lfs != nil {
 			sizeBytes = sibling.Lfs.Size
 			sha256 = strings.TrimSpace(sibling.Lfs.Sha256)
 		}
-		variants = append(variants, &runtimev1.LocalCatalogVariantDescriptor{
+		if format == "gguf" && sibling.Lfs != nil {
+			files = []string{entry}
+			hashes = hfCatalogFileHashes(details.Siblings)
+		}
+		variants = append(variants, hfCatalogVariant{
 			Filename:  entry,
 			Entry:     entry,
-			Files:     selectHFCatalogInstallFiles(details.Siblings, entry),
-			Format:    variantFormatForEntry(entry),
+			Files:     files,
+			Hashes:    hashes,
+			Format:    format,
 			SizeBytes: sizeBytes,
-			Sha256:    sha256,
+			SHA256:    sha256,
 		})
 	}
 	sort.Slice(variants, func(i, j int) bool {
-		if variants[i].GetSizeBytes() != variants[j].GetSizeBytes() {
-			return variants[i].GetSizeBytes() < variants[j].GetSizeBytes()
+		if (variants[i].SizeBytes == 0) != (variants[j].SizeBytes == 0) {
+			return variants[i].SizeBytes != 0
 		}
-		return variants[i].GetFilename() < variants[j].GetFilename()
+		if variants[i].SizeBytes != variants[j].SizeBytes {
+			return variants[i].SizeBytes < variants[j].SizeBytes
+		}
+		return variants[i].Filename < variants[j].Filename
 	})
 	return variants
+}
+
+func hfCatalogFileHashes(siblings []hfModelSibling) map[string]string {
+	hashes := make(map[string]string)
+	for _, sibling := range siblings {
+		path, ok := normalizeHFFilePath(sibling.Rfilename)
+		if !ok || sibling.Lfs == nil {
+			continue
+		}
+		if hash := normalizeExactSHA256Hex(sibling.Lfs.Sha256); hash != "" {
+			hashes[path] = hash
+		}
+	}
+	return hashes
 }
 
 func variantFormatForEntry(entry string) string {
@@ -424,59 +558,4 @@ func normalizeHFFilePath(value string) (string, bool) {
 		}
 	}
 	return normalized, true
-}
-
-func selectHFCatalogInstallFiles(siblings []hfModelSibling, entry string) []string {
-	entry, ok := normalizeHFFilePath(entry)
-	if !ok {
-		return nil
-	}
-	if strings.HasSuffix(strings.ToLower(entry), ".gguf") {
-		return []string{entry}
-	}
-
-	preferredFiles := []string{
-		"config.json",
-		"generation_config.json",
-		"tokenizer.json",
-		"tokenizer.model",
-		"tokenizer_config.json",
-		"merges.txt",
-		"vocab.json",
-		"preprocessor_config.json",
-	}
-	siblingFiles := make([]string, 0, len(siblings))
-	siblingSet := make(map[string]struct{}, len(siblings))
-	for _, sibling := range siblings {
-		file, ok := normalizeHFFilePath(sibling.Rfilename)
-		if !ok {
-			continue
-		}
-		siblingFiles = append(siblingFiles, file)
-		siblingSet[file] = struct{}{}
-	}
-
-	seen := map[string]struct{}{entry: {}}
-	output := []string{entry}
-	for _, file := range preferredFiles {
-		if _, exists := siblingSet[file]; !exists {
-			continue
-		}
-		if _, exists := seen[file]; exists {
-			continue
-		}
-		seen[file] = struct{}{}
-		output = append(output, file)
-	}
-	for _, file := range siblingFiles {
-		if len(output) >= 12 {
-			break
-		}
-		if _, exists := seen[file]; exists {
-			continue
-		}
-		seen[file] = struct{}{}
-		output = append(output, file)
-	}
-	return output
 }
