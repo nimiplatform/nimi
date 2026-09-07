@@ -396,6 +396,9 @@ function MarketCandidateDetail(props: {
       await props.model.installResolvedModelPlan(plan);
       await queryClient.invalidateQueries({ queryKey: ['model-market'] });
       props.onBack();
+    } catch (reason) {
+      setPlan(null);
+      setError(errorMessage(reason));
     } finally {
       setBusy(false);
     }
@@ -495,6 +498,9 @@ function ContextualMarketDetail(props: {
         queryClient.invalidateQueries({ queryKey: ['model-market', 'featured'] }),
       ]);
       props.onBack();
+    } catch (error) {
+      setPlan(null);
+      setPlanError(errorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -581,7 +587,8 @@ function ApplicabilityNotice(props: {
   );
 }
 
-function InstallPlanPanel(props: {
+// @nimi-authority: rule.nimi.runtime.local-compute.r016
+export function InstallPlanPanel(props: {
   readonly installed: boolean;
   readonly installable: boolean;
   readonly plan: NimiRuntimeLocalInstallPlanDescriptor | null;
@@ -642,9 +649,14 @@ function InstallPlanPanel(props: {
       {!props.installable ? (
         <p className="text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.recommend.notInstallable', { defaultValue: 'This offer is not installable.' })}</p>
       ) : props.plan ? (
-        <Button size="sm" tone="primary" disabled={props.busy || props.runtimeWritesDisabled} onClick={props.onInstall}>
-          {t('runtimeConfig.recommend.startInstall', { defaultValue: 'Download and install' })}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" tone="primary" disabled={props.busy || props.runtimeWritesDisabled || !props.plan.installAvailable} onClick={props.onInstall}>
+            {t('runtimeConfig.recommend.startInstall', { defaultValue: 'Download and install' })}
+          </Button>
+          <Button size="sm" tone="secondary" disabled={props.busy} onClick={props.onReview}>
+            {t('runtimeConfig.recommend.reviewInstallPlan', { defaultValue: 'Review install' })}
+          </Button>
+        </div>
       ) : (
         <Button size="sm" tone="primary" disabled={props.busy} onClick={props.onReview}>
           {props.busy

@@ -253,7 +253,16 @@ export function LoadoutsPage(props: {
     ));
     if (!recipe) return;
     handledNavigationKeyRef.current = key;
-    selectCreateRecipe(recipe);
+    if (context.draft) {
+      setRecipeId(recipe.recipeId);
+      setCreateCapability(recipe.capabilityContract);
+      setDisplayName(context.draft.displayName);
+      setCreateAxes({ ...context.draft.modelAssetIds });
+      setCreateStep(3);
+      setShowCreate(true);
+    } else {
+      selectCreateRecipe(recipe);
+    }
   }, [props.navigationContext, recipes, selectCreateRecipe]);
 
   const run = useCallback(async (key: string, action: () => Promise<void>, onError?: (message: string) => void) => {
@@ -273,6 +282,7 @@ export function LoadoutsPage(props: {
     }
   }, [busy, refresh, refreshAIConfigProjections, t]);
 
+  // @nimi-authority: rule.nimi.runtime.model-catalog.r036
   const create = useCallback(() => {
     if (!selectedRecipe || !displayName.trim()) return;
     const recipe = selectedRecipe;
@@ -627,6 +637,7 @@ export function LoadoutsPage(props: {
                               recipeRevision: selectedRecipe.revision,
                               slotId: slot.slotId,
                               candidate: offer.candidate,
+                              draft: { displayName, modelAssetIds: { ...createAxes } },
                             })}
                           >
                             {t('runtimeConfig.loadouts.openMarketOffer', { defaultValue: 'View in Model Market' })}
@@ -666,7 +677,7 @@ export function LoadoutsPage(props: {
                   size="sm"
                   tone="primary"
                   loading={busy === 'create'}
-                  disabled={!selectedRecipe || selectedRecipe.applicability !== 'supported' || !displayName.trim()}
+                  disabled={!selectedRecipe || !displayName.trim()}
                   onClick={create}
                 >
                   {missingRecommendations.length > 0 ? t('runtimeConfig.loadouts.commitDownload') : t('runtimeConfig.loadouts.commit')}
