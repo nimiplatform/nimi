@@ -23,28 +23,28 @@
     "@nimiplatform/kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
     "@tauri-apps/api": "2.11.1",
-    "i18next": "25.10.10",
-    "lucide-react": "0.577.0",
+    "i18next": "26.3.6",
+    "lucide-react": "1.30.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "react-i18next": "16.6.6"
+    "react-i18next": "17.0.11"
   },
   "devDependencies": {
     "@nimiplatform/app-tools": "workspace:*",
     "@nimiplatform/nimi-coding": "0.6.2",
     "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/cli": "^2.11.4",
-    "@types/node": "^24.13.3",
+    "@types/node": "^26.2.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
     "@types/three": "^0.185.4",
-    "@vitejs/plugin-react": "^5.2.0",
-    "electron": "^42.10.1",
+    "@vitejs/plugin-react": "^6.0.5",
+    "electron": "^43.3.0",
     "esbuild": "^0.28.2",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.13",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.6",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1",
     "yaml": "^2.9.0"
   }
 }
