@@ -138,6 +138,11 @@ jobs:
         run: pnpm check:runtime-broker-operation-policy
       - name: gate.realm.no-app-rest-bypass
         run: pnpm check:no-app-realm-rest-bypass
+      - name: Install Linux dependencies for Rust bridge generation
+        if: needs.changes.outputs.kit_changed == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - name: Check Kit contracts
         if: needs.changes.outputs.kit_changed == 'true'
         run: pnpm check:nimi-kit

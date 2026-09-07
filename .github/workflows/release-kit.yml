@@ -97,6 +97,10 @@ jobs:
             echo "production=${production}"
             echo "version=${version}"
           } >> "${GITHUB_OUTPUT}"
+      - name: Install Linux dependencies for Rust bridge generation
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
       - name: Test Kit
         run: |
           pnpm check:nimi-kit
