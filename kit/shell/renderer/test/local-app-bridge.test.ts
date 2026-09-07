@@ -34,6 +34,39 @@ function managerActionAvailability() {
 }
 
 describe('renderer local-app standard-shell surface', () => {
+  it.each([false, true])('validates Realm event envelopes without losing their session fields (extra field: %s)', async (extraField) => {
+    let emit: ((event: { payload: unknown }) => void) | undefined;
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (_command: string, input: { payload: { action?: string } }) => (
+        input.payload.action === 'cancel'
+          ? { subscriptionId: 'realm-bridge-1', closed: true }
+          : { subscriptionId: 'realm-bridge-1', eventName: 'realm-events-1' }
+      ),
+      listen: (_name: string, listener: typeof emit) => { emit = listener; return () => {}; },
+    };
+    const subscription = await createNimiLocalAppStandardShellSurface().realm.realtime.subscribe({
+      channelId: 'realm-channel-1', target: { type: 'presence' },
+    });
+    const event = {
+      realtimeSessionId: 'realm-session-1', channelId: 'realm-channel-1',
+      subscriptionId: 'realm-subscription-1', generation: '1', sequence: '1',
+      correlationId: '', occurredAt: { seconds: '1788777600', nanos: 0 },
+      event: {
+        type: 'presence', userId: 'user-1', isOnline: true, presenceRevision: '1',
+        occurredAt: { seconds: '1788777600', nanos: 0 },
+      },
+      ...(extraField ? { unexpected: true } : {}),
+    };
+    const next = subscription.events[Symbol.asyncIterator]().next();
+    emit!({ payload: { subscriptionId: 'realm-bridge-1', eventType: 'next', event } });
+    if (extraField) {
+      await expect(next).rejects.toThrow(/Realtime event payload fields are invalid/u);
+    } else {
+      await expect(next).resolves.toEqual({ done: false, value: event });
+    }
+    await subscription.cancel();
+  });
+
   it('admits asset-only Background commits while rejecting an empty mutation', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {

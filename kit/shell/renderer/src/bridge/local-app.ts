@@ -2668,7 +2668,11 @@ class LocalAppRealtimeEventSubscription implements NimiLocalAppRealtimeSubscript
       if (record.eventType !== 'next') throw new Error(`${this.command}: Realtime event type is invalid`);
       assertProjectionKeys(record, ['subscriptionId', 'eventType', 'event'], this.command, 'Realtime event');
       const event = parseSafeProjection(record.event, this.command);
-      assertProjectionKeys(event, ['control', 'event'], this.command, 'Realtime event payload');
+      // @nimi-authority: rule.nimi.sdks.realm-consumer.r048
+      const eventKeys = this.command === NIMI_STANDARD_SHELL_COMMANDS['local-app.realmRealtimeSubscribe']
+        ? ['realtimeSessionId', 'channelId', 'subscriptionId', 'generation', 'sequence', 'correlationId', 'occurredAt', 'event']
+        : ['control', 'event'];
+      assertProjectionKeys(event, eventKeys, this.command, 'Realtime event payload');
       const waiter = this.waiting.shift();
       if (waiter) waiter.resolve({ done: false, value: event });
       else if (this.queued.length < 32) this.queued.push(event);
