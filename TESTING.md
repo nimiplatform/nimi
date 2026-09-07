@@ -1,142 +1,48 @@
 # Testing Strategy
 
-## Overview
+Run the affected behavior first, then the nearest test or build that can detect the change's failure. After a repair, rerun the same failing target before expanding validation. The [AGENTS hierarchy](AGENTS.md) owns scope and proportionality; this document is command navigation.
 
-Each component has its own test setup. All tests must pass before merging.
+## Daily work and integration
 
-## Runtime (Go)
+Ordinary changes may enter `main` after relevant local checks. Push CI validates the integrated commit; temporary failures must be repaired or reverted. Shared public contracts, native installation, data handling, and release workflow changes use a PR with the relevant remote results before merge. Neither a PR nor a green `main` proves release readiness.
 
-```bash
-cd runtime
-go test ./...
-```
+CI selects affected owners and consumers. Main push runs must retain pending and running verification across later pushes; a later documentation-only success does not resolve an earlier code failure. PR updates may cancel earlier runs of the same PR.
 
-### Test patterns
+## Component entrypoints
 
-- Unit tests: `*_test.go` alongside source
-- Service integration tests: `internal/services/*/service_test.go`
-- Table-driven tests preferred
+| Changed surface | Starting point | Expand when needed |
+| --- | --- | --- |
+| Runtime | The affected package's `go test` from `runtime/` | `pnpm test:runtime:go` for Runtime-wide changes; related vet/build and native platform checks |
+| TypeScript SDK | `pnpm --filter @nimiplatform/sdk test` | SDK build, generator/conformance checks and affected consumers for public contract changes |
+| Kit | Affected Kit test and `pnpm --filter @nimiplatform/kit build` | Kit-wide tests/contracts and actual App consumer types/builds |
+| Desktop Electron | Affected Desktop test and `pnpm --filter @nimiplatform/desktop typecheck` | `pnpm --filter @nimiplatform/desktop build` for Electron or integration changes; Product Control native tests when affected |
+| Web | `pnpm --filter @nimiplatform/web test` | Web typecheck/build when affected |
+| App Tools | `pnpm --filter @nimiplatform/app-tools test` | Actual packed-tool/scaffold behavior for packaging changes |
+| Proto | `pnpm proto:lint`, `pnpm proto:breaking` | Regenerate changed contracts and run `pnpm proto:drift-check` plus affected consumers |
+| Workflow | `pnpm check:actionlint` and affected script tests | Actual selected PR/main jobs; local YAML validation is not CI acceptance |
 
-```go
-func TestGenerate(t *testing.T) {
-    tests := []struct {
-        name    string
-        req     *pb.GenerateRequest
-        wantErr bool
-    }{
-        {"valid request", validReq(), false},
-        {"missing model", missingModelReq(), true},
-    }
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            // ...
-        })
-    }
-}
-```
+Use each package's scripts for its test runner. The complete Desktop build includes Electron compilation and TypeScript checking; a Vite renderer build alone does not provide that coverage.
 
-### Proto contract tests
+`pnpm test:workspace:full` runs the complete workspace and script suite. `pnpm test:full` adds Runtime Go and Python tests. These broad commands remain available for cross-cutting work and release validation; they are not mandatory for every local change.
 
-Verify gRPC services honor the proto contract:
+## Contracts and generated output
 
-```bash
-cd proto
-buf breaking --against ../runtime/proto/runtime-v1.baseline.binpb
-```
+`pnpm proto:breaking` uses the committed `runtime/proto/runtime-v1.baseline.binpb` through the guarded script. A deliberately changed wire contract requires the corresponding implementation, consumers and tests to change; refreshing the baseline alone does not prove correctness or authorize a breaking change.
 
-当前 baseline 固定在 typed AI contract：
-`ExecuteScenarioResponse.output = ScenarioOutput`，以及
-`ScenarioStreamDelta.delta.oneof { text, artifact }`。
-变更这些 proto wire contract 时，必须同步更新实现、消费端测试和 `runtime/proto/runtime-v1.baseline.binpb`。
+Change generator inputs, regenerate, then run the corresponding drift check. Do not hand-edit generated output to pass. Authority changes use the pinned project-local commands in [AGENTS.md](AGENTS.md) and the [authoring guide](.nimi/methodology/authority-authoring.yaml); unrelated code changes do not require authority compilation or a corpus audit.
 
-## SDK (TypeScript)
+SDK/Runtime contract tests should exercise public serialization, service behavior and structured errors. Prefer observable behavior over implementation text matching. Use reason codes when the public error contract provides them.
 
-```bash
-pnpm --filter @nimiplatform/sdk test
-```
+## Build preparation and concurrency
 
-### Test framework
+Guarded workspace commands prepare SDK/Kit once for their child command chain and retain the output lock while consumers run. Independent invocations prepare their own current outputs. Do not export prepared flags into the shell or reuse them across source changes. Preserve real tests when removing repeated invocations.
 
-- Package-local tests may use `tsx --test`; the repo root `vitest.config.ts` only exists to keep workspace-level tooling from traversing non-TS trees.
-- Tests in `__tests__/` or `*.test.ts` alongside source
+Dependency installation does not install native toolchains. Runtime build and native preparation check the tools they use; install Go/Rust explicitly when needed.
 
-```ts
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { createNimiClient } from '@nimiplatform/sdk';
+## Product and release acceptance
 
-test('Nimi client preserves explicit app identity', () => {
-  const client = createNimiClient({ appId: 'nimi.example.test' });
+A product journey not run is `NOT-VERIFIED`. Type checks, unit tests, a process remaining alive, or a scaffold being created do not prove a complete installed App journey. Run real Linux/Windows/macOS paths when the affected supported behavior requires them.
 
-  assert.equal(client.appId, 'nimi.example.test');
-});
-```
+Release validation belongs to the exact version and artifacts being published. Its required failures or missing checks prevent publication even when the source is on `main`. Reuse validated artifacts when retrying a failed publication job; do not rebuild or move an immutable release merely to obtain another green result.
 
-### Codegen verification
-
-CI runs `buf generate` and fails if the output differs from committed stubs:
-
-```bash
-buf generate
-git diff --exit-code runtime/gen/
-```
-
-## Desktop (Tauri + React)
-
-```bash
-pnpm test
-```
-
-- Unit and contract tests run via `tsx --test test/**/*.test.ts`
-- Tauri shell/e2e coverage uses renderer contract tests, Rust checks, and
-  admitted e2e fixtures only.
-
-## Kit (@nimiplatform/kit)
-
-```bash
-pnpm --filter @nimiplatform/kit test
-```
-
-Kit tests cover foundation modules (ui, core, telemetry), auth flows, and feature modules (chat, model-picker, generation, commerce).
-
-## Tauri Apps
-
-Active Tauri apps should expose an app-local test interface:
-
-```bash
-pnpm -C apps/<name> run test
-```
-
-- Unit tests via Vitest + Testing Library
-- Type checking: `pnpm -C apps/<name> run typecheck`
-- Linting: `pnpm -C apps/<name> run lint`
-
-## Cross-Component Contract Tests
-
-SDK ↔ Runtime gRPC contract tests verify:
-
-1. SDK-generated client matches proto service definition
-2. Request/response serialization round-trips correctly
-3. Error codes propagate as structured `NimiError`
-
-## CI Pipeline
-
-| Check | Command | Scope |
-|-------|---------|-------|
-| Go test | `go test ./...` | runtime |
-| Go vet | `go vet ./...` | runtime |
-| golangci-lint | `pnpm check:runtime-golangci-lint` | runtime |
-| TypeScript check | `tsc --noEmit` | sdks/typescript, desktop, web |
-| TSX tests | `pnpm test` | sdks/typescript, desktop, web |
-| ESLint | `pnpm lint` | sdks/typescript, desktop, web |
-| Buf lint | `buf lint proto/` | proto |
-| Buf breaking | `buf breaking proto/ --against .git#branch=main` | proto |
-| Codegen drift | `buf generate && git diff --exit-code` | proto -> sdks, runtime |
-
-## Writing New Tests
-
-1. Place test files next to the source they test
-2. Name them `*_test.go` (Go) or `*.test.ts` (TypeScript)
-3. Test the public API surface, not internal implementation
-4. Use structured assertions — avoid string matching on error messages, match `reasonCode` instead
-5. For gRPC services, test through the service interface, not internal functions
+Use existing command output, CI jobs and a short description of the observed behavior. Do not add receipts, evidence manifests, permanent test-count gates or repeated audits to prove that the process was followed. DCO is a contribution declaration, not a technical security or product test.
