@@ -21,7 +21,9 @@ func TestGetCatalogModelCard(t *testing.T) {
 				if r.URL.Path != "/org/model/resolve/"+immutableHFRevisionForTest+"/README.md" {
 					t.Errorf("unexpected card path: %s", r.URL.Path)
 				}
-				fmt.Fprint(w, markdown)
+				if _, err := fmt.Fprint(w, markdown); err != nil {
+					t.Errorf("write model card: %v", err)
+				}
 			}))
 			defer server.Close()
 			svc := newTestService(t)
@@ -61,7 +63,9 @@ func TestGetCatalogModelCardFailsExplicitly(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("X-Repo-Commit", tc.revision)
 				w.WriteHeader(tc.status)
-				fmt.Fprint(w, tc.body)
+				if _, err := fmt.Fprint(w, tc.body); err != nil {
+					t.Errorf("write model card response: %v", err)
+				}
 			}))
 			defer server.Close()
 			svc := newTestService(t)
