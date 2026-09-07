@@ -33,11 +33,11 @@ jobs:
       version: ${{ steps.release.outputs.version }}
     steps:
       - name: Checkout exact source
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        uses: dtolnay/rust-toolchain@d1031067263f94b142dd6c0ce24c5eb9d02d52a0 # v1
         with:
           toolchain: stable
       - name: Install Linux Tauri dependencies
@@ -121,7 +121,7 @@ jobs:
       id-token: write
     steps:
       - name: Checkout exact tag source
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
       - name: Require immutable tag identity on main
@@ -137,7 +137,7 @@ jobs:
           package_version="$(printf '%s' "${metadata}" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s).packages.find(x=>x.name==='nimi-shell-tauri');process.stdout.write(p?.version || '')})")"
           test "${package_version}" = "${RELEASE_VERSION}"
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        uses: dtolnay/rust-toolchain@d1031067263f94b142dd6c0ce24c5eb9d02d52a0 # v1
         with:
           toolchain: stable
       - name: Package exact Tauri shell crate
