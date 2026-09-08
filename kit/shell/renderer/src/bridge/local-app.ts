@@ -3413,20 +3413,18 @@ function parseSharedAgentAIConfigSnapshot(value: unknown, command: string): Nimi
   return Object.freeze({ config, revision, effectiveSelections: Object.freeze([...snapshot.effectiveSelections]), participation }) as NimiSharedLocalAgentAIConfigSnapshot;
 }
 
+// @nimi-authority: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
 function parseSharedAgentAIConfigOverwrite(value: unknown, command: string): NimiSharedLocalAgentAIConfigOverwriteResult {
   const result = parseSafeProjection(value, command);
-  assertProjectionKeys(result, ['outcome', 'config', 'revision', 'effectiveSelections', 'participation', 'reasonCode'], command, 'shared AIConfig overwrite');
   const revision = parseRevision(result.revision, command);
   const config = result.config === null ? null : parseSharedAgentAIConfig(result.config, command);
-  if (!Array.isArray(result.effectiveSelections) || result.effectiveSelections.length > 128) {
-    throw new Error(`${command}: effective selections are invalid`);
-  }
-  result.effectiveSelections.forEach((selection) => parseEffectiveSelection(selection, command));
   const participation = parseLocalAgentParticipation(result.participation, command);
-  if (result.outcome === 'committed' && result.reasonCode === 'REASON_CODE_UNSPECIFIED' && config) {
+  if (result.outcome === 'committed' && config) {
+    assertProjectionKeys(result, ['outcome', 'config', 'revision', 'participation'], command, 'shared AIConfig committed overwrite');
     return Object.freeze({ outcome: 'committed', config, revision, participation });
   }
   if (result.outcome === 'conflict' && result.reasonCode === 'AGENT_AI_CONFIG_REVISION_CONFLICT') {
+    assertProjectionKeys(result, ['outcome', 'config', 'revision', 'participation', 'reasonCode'], command, 'shared AIConfig conflict overwrite');
     return Object.freeze({ outcome: 'conflict', config, revision, reasonCode: result.reasonCode, participation });
   }
   throw new Error(`${command}: overwrite outcome is invalid`);

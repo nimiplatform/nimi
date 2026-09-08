@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   createNimiClient,
   createNimiLocalAIConfigCapabilityIntent,
+  createNimiLocalAppAgentConfigureRuntimeShell,
+  RuntimeReasonCode,
 } from '@nimiplatform/kit/core/sdk-contract';
+import { LocalAgentCapabilityParticipationRole } from '../../../../sdks/typescript/core-generated/runtime-typed-client.js';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 
 import {
@@ -633,6 +636,41 @@ describe('renderer local-app standard-shell surface', () => {
     }]);
   });
 
+  it.each([true, false])('accepts the formal host shared AIConfig result (committed: %s)', async (committed) => {
+    const config = {
+      owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
+      capabilities: [],
+    };
+    const participation = [
+      [LocalAgentCapabilityParticipationRole.CONVERSATION_PRIMARY, 'text.generate'],
+      [LocalAgentCapabilityParticipationRole.MEMORY_EMBEDDING, 'text.embed'],
+      [LocalAgentCapabilityParticipationRole.CONVERSATION_INPUT_VOICE, 'audio.transcribe'],
+      [LocalAgentCapabilityParticipationRole.CONVERSATION_OUTPUT_VOICE, 'audio.synthesize'],
+      [LocalAgentCapabilityParticipationRole.CONVERSATION_REALTIME, 'realtime.interact'],
+      [LocalAgentCapabilityParticipationRole.CONVERSATION_ACTION_IMAGE, 'image.generate'],
+    ].map(([role, capabilityContract]) => ({ role, capabilityContract }));
+    const host = createNimiLocalAppAgentConfigureRuntimeShell({
+      overwriteLocalAppSharedLocalAgentAIConfig: async () => ({
+        projection: { config, revision: '2', effectiveSelections: [], participation },
+        committed,
+        reasonCode: committed
+          ? RuntimeReasonCode.REASON_CODE_UNSPECIFIED
+          : RuntimeReasonCode.AGENT_AI_CONFIG_REVISION_CONFLICT,
+      }),
+    } as never);
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: (_command: string, input: { payload: { expectedRevision: string; capabilities: [] } }) => (
+        host.sharedAIConfig.overwrite(input.payload)
+      ),
+      listen: () => () => {},
+    };
+    const client = createNimiClient({ localApp: { standardShell: createNimiLocalAppStandardShellSurface() } });
+    const result = await client.agentConfigure.sharedAIConfig.overwrite({ expectedRevision: '1', capabilities: [] });
+    expect(result).toMatchObject({ outcome: committed ? 'committed' : 'conflict', config, revision: '2' });
+    expect(result.participation).toHaveLength(6);
+    if (!committed) expect(result).toHaveProperty('reasonCode', 'AGENT_AI_CONFIG_REVISION_CONFLICT');
+  });
+
   it('forwards the canonical Agent configuration operations without authority input', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     const handle = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
@@ -661,7 +699,6 @@ describe('renderer local-app standard-shell surface', () => {
         if (command.endsWith('sharedAgentAIConfigOverwrite')) {
           return {
             outcome: 'committed', config: sharedConfig, revision: '1',
-            effectiveSelections: [], reasonCode: 'REASON_CODE_UNSPECIFIED',
             participation,
           };
         }

@@ -9,6 +9,8 @@ import pathlib
 import sys
 from typing import Any
 
+from speech_audio import normalized_audio_source
+
 
 DEFAULT_MAX_NEW_TOKENS = 256
 _MODEL_CACHE: dict[tuple[str, bool, str, str], Any] = {}
@@ -279,20 +281,21 @@ def handle_transcribe(request: dict[str, Any], cli_default_model: str) -> dict[s
     model_ref = resolve_model_ref(request, cli_default_model)
     model = load_qwen3_asr_model(model_ref, False)
     language = normalized_language(optional_string(request, "language"))
-    try:
-        results = model.transcribe(
-            audio=audio_path,
-            language=language,
-            return_time_stamps=return_time_stamps,
-        )
-    except TypeError:
-        # Some package versions may not accept timestamps on the call itself.
-        results = model.transcribe(
-            audio=audio_path,
-            language=language,
-        )
-    except Exception as error:
-        fail(f"qwen3_asr transcribe failed: {error}")
+    with normalized_audio_source(audio_path) as normalized_audio_path:
+        try:
+            results = model.transcribe(
+                audio=normalized_audio_path,
+                language=language,
+                return_time_stamps=return_time_stamps,
+            )
+        except TypeError:
+            # Some package versions may not accept timestamps on the call itself.
+            results = model.transcribe(
+                audio=normalized_audio_path,
+                language=language,
+            )
+        except Exception as error:
+            fail(f"qwen3_asr transcribe failed: {type(error).__name__}: {error}")
     allow_empty = allow_empty_transcript(request)
     if not results:
         if allow_empty:

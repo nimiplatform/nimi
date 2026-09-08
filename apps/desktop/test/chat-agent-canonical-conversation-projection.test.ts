@@ -11,6 +11,7 @@ import {
   seedCanonicalConversationProjection,
 } from '../src/shell/renderer/features/chat/chat-agent-canonical-conversation-projection.js';
 import type { AgentLocalThreadRecord } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
+import { toConversationMessageViewModel } from '../src/shell/renderer/features/chat/chat-agent-thread-model.js';
 
 const AGENT_HANDLE = `agent_ref_${'a'.repeat(43)}`;
 
@@ -138,4 +139,8 @@ test('canonical materialization preserves snapshot recovery metadata and typed c
   const voice = bundle.messages.find((message) => message.id === 'canonical-voice:voice-1');
   assert.equal(voice?.error?.code, 'AI_ROUTE_UNAVAILABLE');
   assert.equal(voice?.parentMessageId, 'message-voice-1');
+  for (const message of bundle.messages.map(toConversationMessageViewModel)) {
+    assert.equal(message.createdAt, '', 'snapshot observation time is not message creation time');
+    assert.equal(message.updatedAt, undefined);
+  }
 });

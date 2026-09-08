@@ -104,6 +104,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
   const pullStreams = new Map<string, PullStream>();
   const assetReads = new Map<string, FormalAssetRead>();
   const assetWrites = new Map<string, FormalAssetWrite>();
+  const voiceTranscriptions = new Map<string, AbortController>();
   let streamSequence = 0;
   let assetSequence = 0;
   let publicHost: NimiElectronLocalAppHost;
@@ -464,12 +465,34 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     },
     conversationOpen: (record) => conversation.open(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationSendTurn: (record) => conversation.send(record as never) as Promise<NimiElectronLocalAppRecord>,
-    conversationAttachmentUpload: (record) => conversation.uploadAttachment(record as never) as Promise<NimiElectronLocalAppRecord>,
+    conversationAttachmentUpload: (record) => conversation.uploadAttachment({
+      ...record,
+      bytes: Uint8Array.from(record.bytes as readonly number[]),
+    } as never) as Promise<NimiElectronLocalAppRecord>,
     conversationArtifactRead: async (record) => {
       const result = await conversation.readArtifact(record as never);
       return { ...result, bytes: Array.from(result.bytes) };
     },
-    conversationVoiceTranscribe: (record) => conversation.transcribeVoice(record as never) as Promise<NimiElectronLocalAppRecord>,
+    async conversationVoiceTranscribe(record) {
+      const requestId = requiredText(record.requestId);
+      if (record.action === 'cancel') {
+        const controller = voiceTranscriptions.get(requestId);
+        const canceled = Boolean(controller && !controller.signal.aborted);
+        controller?.abort();
+        return { canceled };
+      }
+      if (voiceTranscriptions.has(requestId)) throw new NimiElectronLocalAppHostError('invalid-input', false);
+      const controller = new AbortController();
+      voiceTranscriptions.set(requestId, controller);
+      try {
+        return await conversation.transcribeVoice({
+          ...record,
+          audioBytes: Uint8Array.from(record.audioBytes as readonly number[]),
+        } as never, { signal: controller.signal }) as NimiElectronLocalAppRecord;
+      } finally {
+        voiceTranscriptions.delete(requestId);
+      }
+    },
     conversationVoiceRender: (record) => conversation.renderVoice(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationInterruptTurn: (record) => conversation.interruptTurn(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationSubscribe: async (record) => openPullStream(await conversation.subscribe(record as never)),
@@ -556,6 +579,7 @@ function createFormalAppResourceScope(
   const pullStreams = new Map<string, PullStreamKind>();
   const assetReads = new Set<string>();
   const assetWrites = new Set<string>();
+  const voiceTranscriptions = new Set<string>();
   const realmRealtimeChannels = new Map<string, NimiElectronLocalAppRecord>();
   const aiRealtimeSessions = new Map<string, NimiElectronLocalAppRecord>();
   const agentRealtimeSessions = new Map<string, NimiElectronLocalAppRecord>();
@@ -651,6 +675,22 @@ function createFormalAppResourceScope(
 
   const scopedHost: NimiElectronLocalAppHost = Object.freeze({
     ...host,
+    async conversationVoiceTranscribe(record) {
+      assertOpen();
+      const requestId = requiredText(record.requestId);
+      if (record.action === 'cancel') {
+        return voiceTranscriptions.has(requestId)
+          ? closeHost.conversationVoiceTranscribe(record)
+          : { canceled: false };
+      }
+      if (voiceTranscriptions.has(requestId)) throw new NimiElectronLocalAppHostError('invalid-input', false);
+      voiceTranscriptions.add(requestId);
+      try {
+        return await host.conversationVoiceTranscribe(record);
+      } finally {
+        voiceTranscriptions.delete(requestId);
+      }
+    },
     textTurnSubscribe: (record) => openPull('text-turn', () => host.textTurnSubscribe(record)),
     textTurnStreamNext: (record) => usePull(
       record, 'text-turn', () => host.textTurnStreamNext(record),
@@ -813,12 +853,14 @@ function createFormalAppResourceScope(
         const streams = [...pullStreams.entries()];
         const reads = [...assetReads];
         const writes = [...assetWrites];
+        const transcriptions = [...voiceTranscriptions];
         const realmChannels = [...realmRealtimeChannels.values()];
         const aiSessions = [...aiRealtimeSessions.values()];
         const agentSessions = [...agentRealtimeSessions.values()];
         pullStreams.clear();
         assetReads.clear();
         assetWrites.clear();
+        voiceTranscriptions.clear();
         realmRealtimeChannels.clear();
         aiRealtimeSessions.clear();
         agentRealtimeSessions.clear();
@@ -832,6 +874,7 @@ function createFormalAppResourceScope(
           }),
           ...reads.map((streamId) => closeHost.assetReadClose({ streamId })),
           ...writes.map((streamId) => closeHost.assetWriteAbort({ streamId })),
+          ...transcriptions.map((requestId) => closeHost.conversationVoiceTranscribe({ action: 'cancel', requestId })),
           ...realmChannels.map((record) => closeHost.realmRealtimeChannelClose(record)),
           ...aiSessions.map((record) => closeHost.aiRealtimeClose(record)),
           ...agentSessions.map((record) => closeHost.agentRealtimeClose(record)),
