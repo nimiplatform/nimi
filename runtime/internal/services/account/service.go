@@ -396,6 +396,7 @@ func (s *Service) ObserveRefreshToken(ctx context.Context, token string) (runtim
 	return runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true
 }
 
+// @nimi-authority: rule.nimi.runtime.protected-session.r030
 func (s *Service) recoverFromCustody(ctx context.Context) {
 	material, err := s.custody.Load(ctx, s.partition)
 	if err != nil {
@@ -463,10 +464,13 @@ func (s *Service) recoverFromCustody(ctx context.Context) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if !material.AccessTokenExpires.IsZero() && !material.AccessTokenExpires.After(s.now().UTC()) {
-		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED
+		// Expired access cannot authenticate this Runtime, but retained refresh
+		// custody must still be revalidated by Realm through the existing owner
+		// refresh loop before requiring another browser authorization.
+		s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING
 		s.material = material
 		s.projection = projectionFromMaterial(material)
-		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE)
+		s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_RETRY_DEFERRED)
 		return
 	}
 	if !s.installAuthenticatedRuntimeIdentityLocked(material) {

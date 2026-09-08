@@ -214,6 +214,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       macOSLocalDevelopmentBuild: MACOS_LOCAL_DEVELOPMENT_BUILD,
     });
     const runtimeLifecycleProfile = SOURCE_PER_USER_RUNTIME_D2 ? 'source' : 'fixed';
+    const runtimeCommandNames = createElectronRuntimeBridgeCommandNames();
     const fixedRuntimeLifecycleHost = createNimiElectronRuntimeLifecycleHost(
       PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
       runtimeLifecycleProfile,
@@ -252,7 +253,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     }
     if (macOSProductionService) {
       try {
-        if (!await macOSProductionService.prepare()) {
+        if (!await macOSProductionService.prepare(runtimeCommandNames)) {
           app.quit();
           return;
         }
@@ -265,7 +266,6 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       }
     }
     const runtimeLifecycleHost = macOSProductionService ?? fixedRuntimeLifecycleHost;
-    const runtimeCommandNames = createElectronRuntimeBridgeCommandNames();
     const invokeRuntimeLifecycle = async (
       command: string,
     ): Promise<MenuBarRuntimeStatus> => (

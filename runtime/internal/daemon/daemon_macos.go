@@ -30,7 +30,7 @@ func NewProtectedFromMacOSSecurityState(cfg config.Config, logger *slog.Logger, 
 	stateRoot := strings.TrimSpace(state.ServiceStatePath())
 	secrets := state.BinarySecrets()
 	sessions := state.DesktopSessions()
-	euid, auditSession, accountPartition, identityBound := state.InteractiveIdentity()
+	euid, auditSession, _, identityBound := state.InteractiveIdentity()
 	if stateRoot == "" || secrets == nil || sessions == nil || !sessions.Direct() ||
 		state.DirectLocalAppLaunches() == nil || !identityBound ||
 		state.RuntimeServiceUID() == 0 {
@@ -43,6 +43,13 @@ func NewProtectedFromMacOSSecurityState(cfg config.Config, logger *slog.Logger, 
 	localOSUserIdentity, err := localappkernel.ValidateVerifiedMacOSInteractiveUser(euid, auditSession)
 	if err != nil {
 		return fail(fmt.Errorf("validate macOS interactive-user identity: %w", err))
+	}
+	// @nimi-authority: rule.nimi.runtime.protected-session.r030
+	// Custody survives OS login sessions. The current audit session remains
+	// part of verified transport admission, not the durable account key.
+	accountPartition, err := localOSUserIdentity.LocalOSUserAnchor()
+	if err != nil {
+		return fail(fmt.Errorf("resolve stable macOS account custody partition: %w", err))
 	}
 	productControlRoot, err := protectedProductControlRoot(stateRoot, localOSUserIdentity)
 	if err != nil {

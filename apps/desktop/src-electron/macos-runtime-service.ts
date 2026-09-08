@@ -52,9 +52,22 @@ export function createDesktopMacOSRuntimeServiceHost(base: LifecycleHost, ports:
       : registration === 3 ? 'runtime-service-repair-required' : 'runtime-service-unavailable',
   });
   return {
-    async prepare(): Promise<boolean> {
+    async prepare(names: CommandNames): Promise<boolean> {
       const registration = await prepare();
-      if (registration === 1) return true;
+      if (registration === 1) {
+        // Registration precedes Runtime launch and protected connection
+        // verification. Bootstrap must wait for the existing lifecycle host
+        // to confirm running before its first Product Control read.
+        const deadline = Date.now() + 10_000;
+        let command = names.start;
+        for (;;) {
+          const state = await base.invoke(command, names) as { running?: boolean; lastError?: string } | null;
+          if (state?.running === true) return true;
+          if (Date.now() >= deadline) throw new Error(state?.lastError || 'runtime-service-unavailable');
+          await new Promise<void>((resolve) => setTimeout(resolve, 100));
+          command = names.status;
+        }
+      }
       if (registration !== 2) throw new Error(pending(registration).lastError);
       if (await ports.showApproval()) await ports.registration('open-settings');
       // Home must stop bootstrap until the administrator approves. Continuing

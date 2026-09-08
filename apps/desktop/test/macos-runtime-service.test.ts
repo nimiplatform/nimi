@@ -14,7 +14,7 @@ test('a newly installed service without a BTM record attempts native registratio
     showApproval: async () => false,
     runtimeEndpoint: 'protected-desktop-control',
   });
-  assert.equal(await host.prepare(), false);
+  assert.equal(await host.prepare(names), false);
   assert.deepEqual(operations, ['status', 'register']);
 });
 
@@ -23,17 +23,20 @@ test('opening settings stops bootstrap until the native approval state changes',
   let registrationStatus = 2;
   let prompts = 0;
   const host = createDesktopMacOSRuntimeServiceHost({
-    invoke: async () => { throw new Error('bootstrap cannot enter the protected Runtime before approval'); },
+    invoke: async () => {
+      assert.equal(registrationStatus, 1, 'protected Runtime is queried only after approval');
+      return { running: true };
+    },
   }, {
     registration: async (operation) => { operations.push(operation); return registrationStatus; },
     socketExists: () => true,
     showApproval: async () => { prompts += 1; return true; },
     runtimeEndpoint: 'protected-desktop-control',
   });
-  assert.equal(await host.prepare(), false);
+  assert.equal(await host.prepare(names), false);
   assert.deepEqual(operations, ['status', 'open-settings']);
   registrationStatus = 1;
-  assert.equal(await host.prepare(), true);
+  assert.equal(await host.prepare(names), true);
   assert.equal(prompts, 1);
 });
 
@@ -52,7 +55,7 @@ test('pending administrator approval remains unavailable and does not repeatedly
     showApproval: async () => false,
     runtimeEndpoint: 'protected-desktop-control',
   });
-  await host.prepare();
+  await host.prepare(names);
   assert.deepEqual(await host.invoke('status', names), {
     running: false, managed: true, launchMode: 'RELEASE',
     grpcAddr: 'protected-desktop-control', lastError: 'runtime-service-approval-required',
@@ -94,7 +97,7 @@ test('an update retries the temporary disabled BTM disposition after successful 
     showApproval: async () => { throw new Error('existing approval remains valid'); },
     runtimeEndpoint: 'protected-desktop-control',
   });
-  assert.equal(await host.prepare(), true);
+  assert.equal(await host.prepare(names), true);
   assert.deepEqual(operations, ['status', 'unregister', 'register', 'status', 'register']);
 });
 
@@ -110,8 +113,37 @@ test('an update does not retry a trust failure as temporary registration state',
     showApproval: async () => false,
     runtimeEndpoint: 'protected-desktop-control',
   });
-  await assert.rejects(host.prepare(), /runtime-service-untrusted/);
+  await assert.rejects(host.prepare(names), /runtime-service-untrusted/);
   assert.deepEqual(operations, ['status', 'unregister', 'register']);
+});
+
+test('bootstrap waits for protected Runtime running after registration', async () => {
+  const commands: string[] = [];
+  const host = createDesktopMacOSRuntimeServiceHost({
+    invoke: async (command) => {
+      commands.push(command);
+      return { running: command === names.status };
+    },
+  }, {
+    registration: async () => 1,
+    socketExists: () => true,
+    showApproval: async () => { throw new Error('already approved'); },
+    runtimeEndpoint: 'protected-desktop-control',
+  });
+  assert.equal(await host.prepare(names), true);
+  assert.deepEqual(commands, ['start', 'status']);
+});
+
+test('bootstrap propagates a protected Runtime failure instead of admitting the registered service', async () => {
+  const host = createDesktopMacOSRuntimeServiceHost({
+    invoke: async () => { throw new Error('runtime-service-untrusted'); },
+  }, {
+    registration: async () => 1,
+    socketExists: () => true,
+    showApproval: async () => false,
+    runtimeEndpoint: 'protected-desktop-control',
+  });
+  await assert.rejects(host.prepare(names), /runtime-service-untrusted/);
 });
 
 test('a running installation is not reregistered and uninstall errors propagate', async () => {
@@ -122,7 +154,7 @@ test('a running installation is not reregistered and uninstall errors propagate'
     showApproval: async () => false,
     runtimeEndpoint: 'protected-desktop-control',
   });
-  await host.prepare();
+  await host.prepare(names);
   assert.deepEqual(operations, ['status']);
   await assert.rejects(host.unregister(), /could not be unregistered/);
 });

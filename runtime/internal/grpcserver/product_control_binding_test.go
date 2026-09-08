@@ -111,6 +111,64 @@ func TestProtectedRuntimeConfigMustMatchFixedProductControlDataRoot(t *testing.T
 			t.Fatalf("mismatched derived dependency root error = %v", err)
 		}
 	})
+	t.Run("new OS user clears only the derived root and original user can return", func(t *testing.T) {
+		configPath := filepath.Join(t.TempDir(), "runtime", config.ServiceOwnedConfigFilename)
+		if err := config.WriteFileConfig(configPath, config.FileConfig{SchemaVersion: config.DefaultSchemaVersion, LogLevel: "warn"}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := config.WriteServiceOwnedDataRoot(configPath, dataRoot); err != nil {
+			t.Fatal(err)
+		}
+		var current config.Config
+		if err := config.ApplyServiceOwnedDataRoot(&current, configPath); err != nil {
+			t.Fatal(err)
+		}
+		newUserControlRoot := filepath.Join(t.TempDir(), ".nimi")
+		binding, err := reconcileProtectedProductControlDataRootConfig(newUserControlRoot, configPath, &current, localservice.ProductControlDataRootSecurityBinding{})
+		if err != nil {
+			t.Fatalf("start for a new OS user after another user selected a root: %v", err)
+		}
+		if binding.RecordExists || current.DataRootRef != "" || current.LocalModelsPath != "" || current.ManagedRoots != (config.ManagedRootsConfig{}) {
+			t.Fatalf("new OS user inherited a root: binding=%+v config=%+v", binding, current)
+		}
+		persisted, err := config.LoadFileConfig(configPath)
+		if err != nil || persisted.DataRootRef != "" || persisted.ManagedRoots != nil || persisted.LogLevel != "warn" {
+			t.Fatalf("clear only derived root fields: config=%+v err=%v", persisted, err)
+		}
+		if err := config.ApplyServiceOwnedDataRoot(&current, configPath); err != nil {
+			t.Fatal(err)
+		}
+		if current.DataRootRef != "" {
+			t.Fatalf("restart restored the former user's root: %q", current.DataRootRef)
+		}
+		if _, err := reconcileProtectedProductControlDataRootConfig(productControlRoot, configPath, &current, localservice.ProductControlDataRootSecurityBinding{}); err != nil {
+			t.Fatalf("return to original OS user's canonical root: %v", err)
+		}
+		if current.DataRootRef != dataRoot || current.ManagedRoots.Accounts != filepath.Join(dataRoot, "accounts") {
+			t.Fatalf("original OS user's root was not restored: %+v", current)
+		}
+	})
+	t.Run("invalid current Product Control cannot clear the derived root", func(t *testing.T) {
+		invalidControlRoot := filepath.Join(t.TempDir(), ".nimi")
+		if err := os.Mkdir(invalidControlRoot, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(invalidControlRoot, "nimi.json"), []byte("invalid JSON"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		configPath := filepath.Join(t.TempDir(), "runtime", config.ServiceOwnedConfigFilename)
+		if _, err := config.WriteServiceOwnedDataRoot(configPath, dataRoot); err != nil {
+			t.Fatal(err)
+		}
+		current := cfg
+		if _, err := reconcileProtectedProductControlDataRootConfig(invalidControlRoot, configPath, &current, localservice.ProductControlDataRootSecurityBinding{}); err == nil {
+			t.Fatal("invalid Product Control was accepted as an unselected root")
+		}
+		persisted, err := config.LoadFileConfig(configPath)
+		if err != nil || persisted.DataRootRef != dataRoot || current.DataRootRef != dataRoot {
+			t.Fatalf("invalid Product Control changed derived root: config=%+v err=%v", persisted, err)
+		}
+	})
 	t.Run("different managed app root", func(t *testing.T) {
 		mutated := cfg
 		mutated.ManagedRoots.Apps = filepath.Join(t.TempDir(), "apps")
