@@ -96,6 +96,7 @@ test('lab shared Model Config inventory includes video.generate and deduplicates
     'audio.synthesize',
     'audio.transcribe',
     'voice.create',
+    'world.generate',
   ]);
   for (const capability of labCapabilities.filter((entry) => entry.execution === 'runtime-sdk')) {
     assert.doesNotMatch(capability.summary, /currently unavailable/iu);

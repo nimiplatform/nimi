@@ -9,21 +9,41 @@
   "Capabilities": {
     "worldGenerate": {
       "label": "World Tour",
-      "summary": "Standalone Electron viewer launch via app-owned open_world_tour_window command."
+      "summary": "Generate immersive 3D worlds and explore their saved scenes."
     }
   },
   "WorldTour": {
-    "eyebrow": "Nimi Lab",
     "viewerTitle": "World Tour Viewer",
-    "viewerDescription": "Standalone app-owned viewer surface for local fixture inspection.",
     "launchTokenRequired": "World-tour viewer requires a standalone app launch token.",
     "launchClaimFailed": "Failed to claim viewer launch.",
     "launchUnavailableTitle": "Viewer launch unavailable",
-    "canvasEyebrow": "Standalone World Viewer",
-    "fixtureTitle": "World-tour fixture",
-    "savePreset": "Save preset",
-    "presetSaved": "Preset saved: {{path}}",
-    "presetSaveFailed": "Failed to save preset."
+    "savePreset": "Save viewpoint",
+    "presetSaved": "Viewpoint saved.",
+    "presetSaveFailed": "Failed to save viewpoint.",
+    "loadPreset": "Load viewpoint",
+    "presetLoaded": "Saved viewpoint restored.",
+    "presetLoadFailed": "Failed to load viewpoint.",
+    "noPreset": "No viewpoint has been saved for this world yet.",
+    "resetView": "Reset view",
+    "loading": "Loading world…",
+    "loadFailed": "Unable to load the world: {{detail}}",
+    "sceneLabel": "Interactive 3D world",
+    "controlHelp": "Drag to look · W A S D to move · Q / E down / up · Shift to move faster. Click the scene to use keyboard controls.",
+    "promptRequired": "Describe the world you want to explore.",
+    "generating": "Generating the world and saving its assets. This may take a few minutes…",
+    "generationFailed": "World generation failed.",
+    "archiveMissing": "The completed job did not return a world archive.",
+    "generated": "World saved. The 3D viewer is open.",
+    "savedOpenFailed": "World saved, but the viewer could not open. Use Open saved world to try again.",
+    "worldArchive": "World archive",
+    "openSaved": "Open saved world",
+    "resume": "Continue last generation",
+    "cancel": "Cancel generation",
+    "canceled": "Generation canceled.",
+    "noPendingWorld": "There is no unfinished world generation to continue.",
+    "pendingInvalid": "The saved world task reference is invalid.",
+    "pendingExists": "A world task is already submitted. Use Continue last generation in Parameters to retrieve its result.",
+    "noSavedWorld": "Generate a world first. It will be saved here for your next visit."
   },
   "History": {
     "filters": {
@@ -35,14 +55,14 @@
   "Studio": {
     "profiles": {
       "worldGenerate": {
-        "inputTitle": "Open world tour",
-        "inputPlaceholder": "",
-        "inputNote": "Opens a standalone Electron window for the local world fixture.",
-        "primaryLabel": "Open viewer",
-        "primaryRunningLabel": "Opening…",
-        "emptyTitle": "Viewer idle",
-        "emptyHint": "Open the viewer to record a local fixture run. No runtime artifact is implied.",
-        "footnote": "Opens the standalone Electron viewer for a local fixture; this is not a runtime artifact."
+        "inputTitle": "Describe a world",
+        "inputPlaceholder": "A place, its architecture, lighting, and atmosphere…",
+        "inputNote": "Generate an immersive 3D scene from your description.",
+        "primaryLabel": "Generate world",
+        "primaryRunningLabel": "Generating…",
+        "emptyTitle": "Your next place to explore",
+        "emptyHint": "Describe a scene and generate a world. The viewer opens when its assets are saved.",
+        "footnote": "Generation may take a few minutes. Saved worlds can be reopened without generating them again."
       }
     },
     "admission": {

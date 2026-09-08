@@ -755,6 +755,13 @@ message LocalAppMusicGenerateJobSpec {
   string lyrics = 2;
 }
 
+// Text-conditioned world generation. Provider selection and asset retrieval
+// remain Runtime-owned; the result is a portable world archive artifact.
+message LocalAppWorldGenerateJobSpec {
+  string prompt = 1;
+  string display_name = 2;
+}
+
 message SubmitLocalAppScenarioJobRequest {
   oneof spec {
     LocalAppImageGenerateScenarioSpec image_generate = 1;
@@ -763,6 +770,7 @@ message SubmitLocalAppScenarioJobRequest {
     LocalAppSpeechTranscribeJobSpec speech_transcribe = 4;
     LocalAppVoiceCreateJobSpec voice_create = 7;
     LocalAppMusicGenerateJobSpec music_generate = 8;
+    LocalAppWorldGenerateJobSpec world_generate = 10;
   }
   // Canonical Job deadline in milliseconds. Zero keeps Runtime's
   // capability-owned default; no other ScenarioRequestHead field is exposed.

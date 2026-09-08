@@ -41,7 +41,6 @@ export function shouldPersistLabArtifactRecord(
 ): result is LabPersistableArtifactResult {
   return Boolean(
     result.ok
-    && result.capabilityId !== 'world.generate'
     && result.output?.kind === 'artifacts'
     && typeof result.output.artifactCount === 'number'
     && result.output.artifactCount > 0

@@ -317,6 +317,12 @@ importers:
       '@nimiplatform/sdk':
         specifier: workspace:*
         version: link:../../sdks/typescript
+      '@sparkjsdev/spark':
+        specifier: 2.1.0
+        version: 2.1.0(three@0.185.1)
+      fflate:
+        specifier: 0.8.3
+        version: 0.8.3
       i18next:
         specifier: 25.10.10
         version: 25.10.10(typescript@5.9.3)
@@ -332,6 +338,9 @@ importers:
       react-i18next:
         specifier: 16.6.6
         version: 16.6.6(i18next@25.10.10(typescript@5.9.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)
+      three:
+        specifier: 0.185.1
+        version: 0.185.1
     devDependencies:
       '@nimiplatform/app-tools':
         specifier: workspace:*
@@ -2560,6 +2569,11 @@ packages:
 
   '@socket.io/component-emitter@3.1.2':
     resolution: {integrity: sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA==}
+
+  '@sparkjsdev/spark@2.1.0':
+    resolution: {integrity: sha512-BRw+MuMzx0B3K8fDLQygt2OHEhYUV+41RX7btq9pZ3rCVrq42o57jW34VAIvC7JO/84DJh/1AutACV9ym6BfVg==}
+    peerDependencies:
+      three: '>=0.180.0'
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
@@ -6978,6 +6992,11 @@ snapshots:
       escape-string-regexp: 5.0.0
 
   '@socket.io/component-emitter@3.1.2': {}
+
+  '@sparkjsdev/spark@2.1.0(three@0.185.1)':
+    dependencies:
+      fflate: 0.8.3
+      three: 0.185.1
 
   '@standard-schema/spec@1.1.0': {}
 

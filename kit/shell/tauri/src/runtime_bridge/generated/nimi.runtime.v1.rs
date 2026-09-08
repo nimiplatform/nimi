@@ -5722,6 +5722,15 @@ pub struct LocalAppMusicGenerateJobSpec {
     #[prost(string, tag = "2")]
     pub lyrics: ::prost::alloc::string::String,
 }
+/// Text-conditioned world generation. Provider selection and asset retrieval
+/// remain Runtime-owned; the result is a portable world archive artifact.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppWorldGenerateJobSpec {
+    #[prost(string, tag = "1")]
+    pub prompt: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitLocalAppScenarioJobRequest {
     /// Canonical Job deadline in milliseconds. Zero keeps Runtime's
@@ -5730,7 +5739,7 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub timeout_ms: i32,
     #[prost(
         oneof = "submit_local_app_scenario_job_request::Spec",
-        tags = "1, 2, 3, 4, 7, 8"
+        tags = "1, 2, 3, 4, 7, 8, 10"
     )]
     pub spec: ::core::option::Option<submit_local_app_scenario_job_request::Spec>,
 }
@@ -5750,6 +5759,8 @@ pub mod submit_local_app_scenario_job_request {
         VoiceCreate(super::LocalAppVoiceCreateJobSpec),
         #[prost(message, tag = "8")]
         MusicGenerate(super::LocalAppMusicGenerateJobSpec),
+        #[prost(message, tag = "10")]
+        WorldGenerate(super::LocalAppWorldGenerateJobSpec),
     }
 }
 /// Trimmed Job projection for Local App consumption: status, progress, typed

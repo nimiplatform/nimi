@@ -125,8 +125,13 @@ func ExecuteWorldLabsWorld(
 			return nil, nil, operationID, err
 		}
 		artifact := BinaryArtifact(worldLabsManifestMIME, manifestBytes, manifestMeta)
+		bundleBytes, err := buildWorldLabsBundle(ctx, worldPayload)
+		if err != nil {
+			return nil, nil, operationID, err
+		}
+		bundle := BinaryArtifact(WorldBundleMIME, bundleBytes, map[string]any{"world_id": worldPayload["world_id"]})
 		updater.UpdatePollState(jobID, operationID, retryCount, nil, "")
-		return []*runtimev1.ScenarioArtifact{artifact}, ArtifactUsage(promptText, manifestBytes, 300000), operationID, nil
+		return []*runtimev1.ScenarioArtifact{artifact, bundle}, ArtifactUsage(promptText, manifestBytes, 300000), operationID, nil
 	}
 }
 
@@ -181,6 +186,7 @@ func buildWorldLabsGeneratePayload(spec *runtimev1.WorldGenerateScenarioSpec, mo
 	}
 	payload := map[string]any{
 		"world_prompt": worldPrompt,
+		"permission":   map[string]any{"public": false},
 	}
 	if displayName := strings.TrimSpace(spec.GetDisplayName()); displayName != "" {
 		payload["display_name"] = displayName

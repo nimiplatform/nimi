@@ -170,6 +170,24 @@ func TestScenarioJobTimeoutDurationRejectsPublicOverrideAboveRuntimeCap(t *testi
 	}
 }
 
+func TestWorldJobTimeoutCoversGenerationAndAssetRetrieval(t *testing.T) {
+	scenarioType := runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE
+	req := &runtimev1.SubmitScenarioJobRequest{Head: &runtimev1.ScenarioRequestHead{}, ScenarioType: scenarioType}
+	got, err := scenarioJobTimeoutDuration(req, defaultScenarioJobTimeout(scenarioType), false)
+	if err != nil || got != 15*time.Minute {
+		t.Fatalf("world default=%s error=%v", got, err)
+	}
+	req.Head.TimeoutMs = int32((30 * time.Minute) / time.Millisecond)
+	got, err = scenarioJobTimeoutDuration(req, defaultScenarioJobTimeout(scenarioType), false)
+	if err != nil || got != 30*time.Minute {
+		t.Fatalf("world maximum=%s error=%v", got, err)
+	}
+	req.Head.TimeoutMs++
+	if _, err := scenarioJobTimeoutDuration(req, defaultScenarioJobTimeout(scenarioType), false); err == nil {
+		t.Fatal("world timeout above maximum accepted")
+	}
+}
+
 func TestScenarioJobTimeoutDurationAdmitsLocalSpeechRangeAndRejectsOverflow(t *testing.T) {
 	for _, scenarioType := range []runtimev1.ScenarioType{
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,

@@ -975,6 +975,11 @@ function validateScenarioSpec(value: unknown, command: string, execute: boolean)
     case 'speech-transcribe': validateSpeechTranscribeSpec(value, command); return;
     case 'voice-create': validateVoiceCreateSpec(value, command); return;
     case 'music-generate': validateMusicSpec(value, command); return;
+    case 'world-generate':
+      assertExactKeys(value, ['type', 'prompt', 'displayName'], command);
+      requiredUtf8Text(value.prompt, 'prompt', command, 32 * 1024);
+      optionalExactText(value.displayName, 'displayName', command, 256);
+      return;
     default: throw invalidPayload(command, 'job scenario type is invalid');
   }
 }

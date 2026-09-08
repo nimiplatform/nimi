@@ -14,6 +14,7 @@ import {
   subscribeLabAIConfigOwnerRefresh,
 } from './lab-ai-config-store.js';
 import { createLabRunTargetSummary } from './lab-run-target.js';
+import { runWorldTour } from './world-tour/world-tour-runtime.js';
 
 export function LabAIStudioAdapter({ children }: { readonly children: ReactNode }) {
   const rendererHost = useLabRendererHost();
@@ -57,20 +58,7 @@ export function LabAIStudioAdapter({ children }: { readonly children: ReactNode 
         if (input.capabilityId !== 'world.generate') {
           return rendererHost.sdk.runCapability(input);
         }
-        const fixture = await rendererHost.app.commands.resolveWorldTourFixture({});
-        const opened = await rendererHost.app.commands.openWorldTourWindow({ manifestPath: fixture.manifestPath });
-        return {
-          ok: true,
-          capabilityId: input.capabilityId,
-          capabilityLabel: t('Capabilities.worldGenerate.label'),
-          message: t('StudioShell.worldTourViewerMessage', { manifestPath: fixture.manifestPath }),
-          output: {
-            kind: 'text',
-            text: t('StudioShell.worldTourViewerOutput', { windowLabel: opened.windowLabel }),
-            finishReason: 'viewer-opened',
-            streamed: false,
-          },
-        };
+        return runWorldTour(input);
       },
       listLocalAppVoiceAssets: () => rendererHost.sdk.listLocalAppVoiceAssets(),
       uploadLocalAppArtifact: (input) => rendererHost.sdk.uploadLocalAppArtifact(input),

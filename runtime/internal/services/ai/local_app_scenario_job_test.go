@@ -64,6 +64,30 @@ func TestLocalAppJobSpecsPreservePresenceAndOwnerClamps(t *testing.T) {
 	}
 }
 
+func TestLocalAppWorldJobUsesTextOnlyAndProjectsOnlyPortableArchive(t *testing.T) {
+	if err := validateWorldGenerateScenarioSpec(&runtimev1.WorldGenerateScenarioSpec{TextPrompt: "a garden", DisplayName: strings.Repeat("园", 64)}); err != nil {
+		t.Fatalf("64-character world title rejected: %v", err)
+	}
+	spec, scenario, err := validateLocalAppScenarioJobRequest(&runtimev1.SubmitLocalAppScenarioJobRequest{
+		Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_WorldGenerate{WorldGenerate: &runtimev1.LocalAppWorldGenerateJobSpec{
+			Prompt: "a botanical conservatory", DisplayName: "Garden",
+		}},
+	})
+	if err != nil || scenario != runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE || spec.GetWorldGenerate().GetTextPrompt() != "a botanical conservatory" {
+		t.Fatalf("world request: %v %v %v", spec, scenario, err)
+	}
+	job, err := projectLocalAppScenarioJob(&runtimev1.ScenarioJob{
+		JobId: "world-job", ScenarioType: scenario, Status: runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
+		Artifacts: []*runtimev1.ScenarioArtifact{
+			{ArtifactId: "provider-manifest", MimeType: "application/vnd.nimi.world-manifest+json"},
+			{ArtifactId: "world-archive", MimeType: "application/vnd.nimi.world+zip"},
+		},
+	})
+	if err != nil || len(job.GetArtifacts()) != 1 || job.GetArtifacts()[0].GetArtifactId() != "world-archive" {
+		t.Fatalf("world job projection: %v %v", job, err)
+	}
+}
+
 func TestLocalAppSpeechTranscriptionPreservesOwnerCapAfterCarrierHeadroom(t *testing.T) {
 	exact, err := validateLocalAppSpeechTranscribeJobSpec(&runtimev1.LocalAppSpeechTranscribeJobSpec{
 		MimeType: "audio/wav",

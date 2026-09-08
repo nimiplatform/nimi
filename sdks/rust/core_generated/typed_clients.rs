@@ -8165,6 +8165,12 @@ pub struct LocalAppVoiceCreateJobSpec {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppWorldGenerateJobSpec {
+    pub prompt: Option<String>,
+    pub display_name: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAuditEvent {
     pub id: Option<String>,
     pub event_type: Option<String>,
@@ -10626,6 +10632,7 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub voice_create: Option<Box<LocalAppVoiceCreateJobSpec>>,
     pub music_generate: Option<Box<LocalAppMusicGenerateJobSpec>>,
     pub timeout_ms: Option<i32>,
+    pub world_generate: Option<Box<LocalAppWorldGenerateJobSpec>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

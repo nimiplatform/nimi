@@ -24,6 +24,8 @@ function buildBehaviorModules() {
     'ES2022',
     '--jsx',
     'react-jsx',
+    '--strict',
+    'true',
     '--skipLibCheck',
     'true',
     '--types',

@@ -3795,6 +3795,11 @@ class LocalAppVoiceCreateJobSpec:
     text_description: VoiceT2VInput | None = None
 
 @dataclass(frozen=True)
+class LocalAppWorldGenerateJobSpec:
+    prompt: str | None = None
+    display_name: str | None = None
+
+@dataclass(frozen=True)
 class LocalAuditEvent:
     id: str | None = None
     event_type: str | None = None
@@ -5565,6 +5570,7 @@ class SubmitLocalAppScenarioJobRequest:
     voice_create: LocalAppVoiceCreateJobSpec | None = None
     music_generate: LocalAppMusicGenerateJobSpec | None = None
     timeout_ms: int | None = None
+    world_generate: LocalAppWorldGenerateJobSpec | None = None
 
 @dataclass(frozen=True)
 class SubmitLocalAppScenarioJobResponse:

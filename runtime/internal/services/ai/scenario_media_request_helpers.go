@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
@@ -101,7 +102,7 @@ func validateWorldGenerateScenarioSpec(spec *runtimev1.WorldGenerateScenarioSpec
 	if spec == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 	}
-	if len(strings.TrimSpace(spec.GetDisplayName())) > 64 {
+	if utf8.RuneCountInString(strings.TrimSpace(spec.GetDisplayName())) > 64 {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	if spec.GetSeed() > 4294967295 {
@@ -366,6 +367,8 @@ func defaultScenarioJobTimeout(scenarioType runtimev1.ScenarioType) time.Duratio
 		return defaultTranscribeTimeout
 	case runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
 		return defaultGenerateMusicTimeout
+	case runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
+		return defaultWorldJobTimeout
 	default:
 		return defaultTextGenerateJobTimeout
 	}

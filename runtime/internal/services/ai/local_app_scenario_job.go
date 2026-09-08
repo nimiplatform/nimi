@@ -8,6 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -208,7 +209,8 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE,
-		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE:
+		runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE:
 	default:
 		return invalid()
 	}
@@ -232,7 +234,16 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 	}
 	var artifacts []*runtimev1.LocalAppScenarioArtifact
 	if len(job.GetArtifacts()) > 0 {
-		projected, err := projectLocalAppScenarioArtifacts(job.GetArtifacts())
+		sources := job.GetArtifacts()
+		if job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE {
+			sources = nil
+			for _, artifact := range job.GetArtifacts() {
+				if artifact.GetMimeType() == nimillm.WorldBundleMIME {
+					sources = append(sources, artifact)
+				}
+			}
+		}
+		projected, err := projectLocalAppScenarioArtifacts(sources)
 		if err != nil {
 			return nil, err
 		}
@@ -321,6 +332,15 @@ func validateLocalAppScenarioJobRequest(req *runtimev1.SubmitLocalAppScenarioJob
 		return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	switch spec := req.GetSpec().(type) {
+	case *runtimev1.SubmitLocalAppScenarioJobRequest_WorldGenerate:
+		world := spec.WorldGenerate
+		if world == nil || !localAppExactText(world.GetPrompt(), maxLocalAppScenarioPromptBytes) ||
+			!localAppOptionalExactText(world.GetDisplayName(), 256) {
+			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_WorldGenerate{WorldGenerate: &runtimev1.WorldGenerateScenarioSpec{
+			TextPrompt: world.GetPrompt(), DisplayName: world.GetDisplayName(),
+		}}}, runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE, nil
 	case *runtimev1.SubmitLocalAppScenarioJobRequest_ImageGenerate:
 		image, err := validateLocalAppImageGenerateSpec(spec.ImageGenerate)
 		if err != nil {
