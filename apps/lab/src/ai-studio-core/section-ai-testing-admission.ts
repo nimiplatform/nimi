@@ -4,7 +4,7 @@ import type { StudioRunTargetSummary } from './history.js';
 import type { StudioTranslate } from './non-success-presentation.js';
 
 export type CapabilityStatus = {
-  label: 'configured' | 'blocked' | 'not admitted' | 'SDK gap' | 'tauri-only' | 'checking';
+  label: 'configured' | 'blocked' | 'not admitted' | 'SDK gap' | 'viewer-only' | 'checking';
   tone: 'success' | 'warning' | 'info' | 'neutral';
   detail: string;
 };
@@ -16,8 +16,8 @@ export function statusForCapability(
   translate: StudioTranslate,
 ): CapabilityStatus {
   const capability = registration.descriptor;
-  if (capability.execution === 'standalone-tauri') {
-    return { label: 'tauri-only', tone: 'info', detail: target.detail };
+  if (capability.execution === 'standalone-electron') {
+    return { label: 'viewer-only', tone: 'info', detail: target.detail };
   }
   if (capability.execution === 'typed-unavailable') {
     return { label: 'SDK gap', tone: 'warning', detail: capability.missingSurface || translate('Studio.admission.sdkGapDetail') };

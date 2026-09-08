@@ -104,7 +104,7 @@ function managedHistoryPort(initial = {}) {
   return { port, assets, assetCalls, failingAssets, failingRunHistory, failingImageHistory };
 }
 
-test('artifact persistence gate accepts only real non-world runtime artifacts', () => {
+test('artifact persistence gate accepts only saved runtime artifacts, including world archives', () => {
   assert.equal(shouldPersistLabArtifactRecord({
     ok: true,
     capabilityId: 'image.generate',
@@ -149,11 +149,15 @@ test('artifact persistence gate accepts only real non-world runtime artifacts', 
     capabilityId: 'world.generate',
     output: {
       kind: 'artifacts',
-      artifactCount: 2,
-      jobId: 'world-fixture',
-      jobState: 'ready',
+      artifactCount: 1,
+      jobId: 'world-job',
+      jobState: 'completed',
+      firstArtifact: {
+        relativePath: 'world-tour/world-job/world.zip', mediaType: 'application/vnd.nimi.world+zip',
+        sizeBytes: 2048, sha256: `sha256:${'b'.repeat(64)}`,
+      },
     },
-  }), false);
+  }), true);
 });
 
 test('history persistence compensation removes every managed artifact and reports cleanup failures', async () => {

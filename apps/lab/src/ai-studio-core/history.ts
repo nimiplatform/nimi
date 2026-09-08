@@ -29,7 +29,7 @@ export type StudioRunTargetStatus =
   | 'checking'
   | 'configured'
   | 'blocked'
-  | 'tauri-only'
+  | 'viewer-only'
   | 'sdk-gap'
   | 'not-admitted';
 

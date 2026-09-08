@@ -194,7 +194,7 @@ export function CapabilityRunHistory({
   const historyPanel = useContext(StudioHistoryPanelContext);
   const locale = rendererHost.locale.startsWith('zh') ? 'zh-CN' : 'en-US';
   const runtimeHistoryCapabilities = useMemo(() => registrations.filter((item) => (
-    item.descriptor.execution === 'runtime-sdk' || item.descriptor.execution === 'standalone-tauri'
+    item.descriptor.execution === 'runtime-sdk' || item.descriptor.execution === 'standalone-electron'
   )), [registrations]);
   const resolveCapabilityLabel = (id: string) => (
     registrations.find((item) => item.descriptor.id === id)?.descriptor.label ?? null

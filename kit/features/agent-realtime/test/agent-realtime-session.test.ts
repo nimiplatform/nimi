@@ -151,6 +151,24 @@ describe('canonical Agent Realtime session', () => {
     expect(session.getState().lifecycle).toBe('closed');
   });
 
+  it('keeps the media session open after a successful request terminal and accepts another turn', async () => {
+    const stream = createEventStream<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>();
+    const client = createClient({ stream });
+    const host = createHost();
+    const session = createSession(client, host);
+    const observed = vi.fn();
+    session.subscribeEvents(observed);
+    await session.open();
+    stream.push({ control: control(), event: { type: 'terminal', reasonCode: 'ACTION_EXECUTED' } });
+    await vi.waitFor(() => expect(observed).toHaveBeenCalledTimes(1));
+    expect(session.getState()).toMatchObject({ lifecycle: 'ready', error: null });
+    expect(host.playback.close).not.toHaveBeenCalled();
+    await expect(session.sendText({ requestId: 'request-2', text: 'second turn' })).resolves.toBeTruthy();
+    expect(client.appendInput).toHaveBeenCalledTimes(1);
+    await session.close();
+    expect(client.close).toHaveBeenCalledTimes(1);
+  });
+
   it('preserves a non-closed terminal reason as the typed visible failure', async () => {
     const stream = createEventStream<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>();
     const session = createSession(createClient({ stream }), createHost());
@@ -165,6 +183,55 @@ describe('canonical Agent Realtime session', () => {
       expect(session.getState().lifecycle).toBe('failed');
       expect(session.getState().error?.reasonCode).toBe('AGENT_REALTIME_OWNER_FAILED');
     });
+    await session.close();
+  });
+
+  it.each(['ended', 'failed'] as const)('stops input when its event stream %s and releases the old session before reopening', async (ending) => {
+    const stream = createEventStream<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>();
+    const client = createClient({ stream });
+    const host = createHost();
+    const session = createSession(client, host);
+    await session.open();
+
+    if (ending === 'failed') stream.fail(new Error('revoked'));
+    else await stream.subscription.cancel();
+
+    await vi.waitFor(() => expect(session.getState().lifecycle).toBe('failed'));
+    expect(session.getState().error?.message).toContain(ending === 'failed' ? 'revoked' : 'ended');
+    await expect(session.sendText({ requestId: 'stale-input', text: 'hello' }))
+      .rejects.toMatchObject({ reasonCode: 'KIT_AGENT_REALTIME_SESSION_INACTIVE' });
+    expect(client.appendInput).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(host.playback.close).toHaveBeenCalledTimes(1));
+    const nextStream = createEventStream<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>();
+    vi.mocked(client.subscribe).mockResolvedValueOnce(nextStream.subscription);
+    await expect(session.open()).resolves.toBeTruthy();
+    await session.close();
+  });
+
+  it.each(['speech-status', 'transcript'] as const)('releases capture on its %s completion without recommitting input or surfacing a late frame failure', async (completion) => {
+    const stream = createEventStream<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>();
+    const pendingFrame = createDeferred<Awaited<ReturnType<NimiAgentRealtimeClient['appendInput']>>>();
+    let captureInput: Parameters<NimiAgentRealtimeHostMediaPort['microphone']['beginCapture']>[0] | undefined;
+    const stop = vi.fn(async () => undefined);
+    const host = createHost({ beginCapture: async (input) => {
+      captureInput = input;
+      return { status: 'ready', capture: { inputTrackId: 'capture-1', utteranceId: 'utterance-1', stop } };
+    } });
+    const client = createClient({ stream, appendInput: () => pendingFrame.promise });
+    const session = createSession(client, host);
+    await session.open();
+    await session.requestCapture();
+    const frame = captureInput!.onFrame({ frameSequence: '1', frame: new Uint8Array([1, 2]) });
+    const frameResult = frame.catch((error: unknown) => error);
+    stream.push({ control: control(), event: completion === 'speech-status'
+      ? { type: 'speech-status', inputTrackId: 'capture-1', utteranceId: 'utterance-1', state: 'stopped' }
+      : { type: 'transcript', inputTrackId: 'capture-1', utteranceId: 'utterance-1', text: 'hello', final: true },
+    });
+    await vi.waitFor(() => expect(stop).toHaveBeenCalledTimes(1));
+    pendingFrame.reject(new Error('the completed input no longer accepts frames'));
+    await frameResult;
+    expect(session.getState()).toMatchObject({ lifecycle: 'ready', capture: 'stopped', error: null });
+    expect(client.appendInput).toHaveBeenCalledTimes(1);
     await session.close();
   });
 
@@ -281,6 +348,7 @@ function control(
 function createEventStream<T>() {
   const queue: T[] = [];
   const waiters: Array<(result: IteratorResult<T>) => void> = [];
+  const rejecters: Array<(error: Error) => void> = [];
   let ended = false;
   const subscription: NimiRealtimeSubscription<NimiAgentRealtimeEvent> = {
     [Symbol.asyncIterator]() {
@@ -289,12 +357,16 @@ function createEventStream<T>() {
           const value = queue.shift();
           if (value !== undefined) return { done: false as const, value };
           if (ended) return { done: true as const, value: undefined };
-          return new Promise<IteratorResult<T>>((resolve) => waiters.push(resolve));
+          return new Promise<IteratorResult<T>>((resolve, reject) => {
+            waiters.push(resolve);
+            rejecters.push(reject);
+          });
         },
       } as AsyncIterator<T>;
     },
     cancel: async () => {
       ended = true;
+      rejecters.length = 0;
       for (const resolve of waiters.splice(0)) {
         resolve({ done: true, value: undefined });
       }
@@ -302,8 +374,14 @@ function createEventStream<T>() {
   } as NimiRealtimeSubscription<NimiAgentRealtimeEvent>;
   return {
     subscription,
+    fail(error: Error) {
+      ended = true;
+      waiters.length = 0;
+      for (const reject of rejecters.splice(0)) reject(error);
+    },
     push(value: T) {
       const resolve = waiters.shift();
+      if (resolve) rejecters.shift();
       if (resolve) resolve({ done: false, value });
       else queue.push(value);
     },
@@ -312,6 +390,7 @@ function createEventStream<T>() {
 
 function createDeferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((accept) => { resolve = accept; });
-  return { promise, resolve };
+  let reject!: (error: Error) => void;
+  const promise = new Promise<T>((accept, fail) => { resolve = accept; reject = fail; });
+  return { promise, resolve, reject };
 }

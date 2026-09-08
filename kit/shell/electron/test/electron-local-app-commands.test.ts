@@ -13,6 +13,30 @@ import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
 
 describe('Electron local-app standard-shell operations', () => {
+  it('forwards the exact Agent capture-stop observation and keeps it out of the AI owner plane', async () => {
+    const calls: unknown[] = [];
+    const host = {
+      agentRealtimeAppendInput: async (input: unknown) => { calls.push(input); return { accepted: true }; },
+      aiRealtimeAppendInput: async (input: unknown) => { calls.push(input); return { accepted: true }; },
+    } as never;
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentRealtimeAppendInput'];
+    const payload = {
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      realtimeSessionId: 'realtime-1', generation: '1',
+      input: { type: 'capture-stopped', inputTrackId: 'capture-1', utteranceId: 'utterance-1' },
+    };
+    await expect(dispatchElectronLocalAppCommand({ host, command, payload })).resolves.toEqual({ accepted: true });
+    expect(calls).toEqual([payload]);
+    await expect(dispatchElectronLocalAppCommand({
+      host, command, payload: { ...payload, input: { type: 'capture-stopped', inputTrackId: 'capture-1' } },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    await expect(dispatchElectronLocalAppCommand({
+      host, command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeAppendInput'],
+      payload: { realtimeSessionId: 'realtime-1', generation: '1', input: payload.input },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    expect(calls).toHaveLength(1);
+  });
+
   it('admits asset-only Background commits while rejecting an empty mutation', async () => {
     const calls: unknown[] = [];
     const host = {

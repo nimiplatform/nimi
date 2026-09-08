@@ -6641,6 +6641,7 @@
       "LocalAppVideoGenerationOptions",
       "LocalAppVoiceAsset",
       "LocalAppVoiceCreateJobSpec",
+      "LocalAppWorldGenerateJobSpec",
       "LocalAuditEvent",
       "LocalAuditTimeRange",
       "LocalCapabilityRequirement",
@@ -24206,6 +24207,26 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "LocalAppWorldGenerateJobSpec",
+        "fields": [
+          {
+            "name": "prompt",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "LocalAuditEvent",
         "fields": [
           {
@@ -32984,6 +33005,13 @@
             "repeated": false,
             "optional": false,
             "number": 9
+          },
+          {
+            "name": "world_generate",
+            "type": "LocalAppWorldGenerateJobSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 10
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"

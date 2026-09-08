@@ -21,7 +21,7 @@ function parseArgs(argv) {
   const [command = '', ...rest] = argv;
   const values = {
     dir: '', profile: '', appId: '', version: '', title: '', packageName: '', author: '',
-    features: undefined, shell: '', cdpPort: undefined, noCdp: false, conformance: '', target: '', aggregate: false, production: false, json: false,
+    features: undefined, shell: '', cdpPort: undefined, noCdp: false, listRegistrations: false, resume: '', conformance: '', target: '', aggregate: false, production: false, json: false,
   };
   const seen = new Set();
   const readValue = (index, flag, key, preserve = false) => {
@@ -80,6 +80,16 @@ function parseArgs(argv) {
       index = readValue(index, '--cdp-port', 'cdpPort');
       continue;
     }
+    if (rest[index] === '--resume') {
+      index = readValue(index, '--resume', 'resume', true);
+      continue;
+    }
+    if (rest[index] === '--list-registrations') {
+      if (seen.has('listRegistrations')) throw new Error('Duplicate option: --list-registrations');
+      seen.add('listRegistrations');
+      values.listRegistrations = true;
+      continue;
+    }
     if (rest[index] === '--no-cdp') {
       if (seen.has('noCdp')) throw new Error('Duplicate option: --no-cdp');
       seen.add('noCdp');
@@ -127,7 +137,7 @@ function assertCommandOptions(command, providedOptions) {
     init: new Set(['dir', 'json']),
     sync: new Set(['dir', 'json']),
     check: new Set(['dir', 'json', 'conformance', 'production']),
-    dev: new Set(['dir', 'shell', 'cdpPort', 'noCdp']),
+    dev: new Set(['dir', 'shell', 'cdpPort', 'noCdp', 'listRegistrations', 'resume']),
     test: new Set(['dir', 'json']),
     build: new Set(['dir', 'target', 'production', 'json']),
     pack: new Set(['dir', 'target', 'aggregate', 'production', 'json']),
@@ -158,7 +168,7 @@ function printUsage() {
       '  nimi-app init [--dir path] [--json]',
       '  nimi-app sync [--dir path] [--json]',
       '  nimi-app check [--dir path] [--conformance simulator | --production] [--json]',
-      '  nimi-app dev [--dir path] [--shell electron] [--cdp-port 1024..65535 | --no-cdp]',
+      '  nimi-app dev [--dir path] [--shell electron] [--list-registrations | --resume <selector>] [--cdp-port 1024..65535 | --no-cdp]',
       '  nimi-app test [--dir path] [--json]',
       '  nimi-app build [--dir path] [--target target-id] [--production] [--json]',
       '  nimi-app pack [--dir path] (--target target-id [--production] | --aggregate) [--json]',
@@ -285,6 +295,8 @@ try {
     shell,
     cdpPort,
     noCdp,
+    listRegistrations,
+    resume,
     conformance,
     target,
     aggregate,
@@ -375,6 +387,8 @@ try {
         shell: shell || 'electron',
         cdpPort,
         noCdp,
+        listRegistrations,
+        resume,
       });
       break;
     default:

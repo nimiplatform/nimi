@@ -172,6 +172,10 @@ function reduceEvent(
     });
   }
   if (event.type === 'terminal') {
+    if (event.reasonCode === 'ACTION_EXECUTED'
+      && state.control && ['ready', 'degraded', 'reconnecting'].includes(state.control.lifecycle)) {
+      return state;
+    }
     return freezeState({
       ...state,
       lifecycle: state.control?.lifecycle === 'closed' ? 'closed' : 'failed',

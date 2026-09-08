@@ -483,7 +483,7 @@ func (s *Service) projectRealtimeProviderEvent(record *realtimeSessionRecord, so
 			return true
 		}
 	case capabilitydriver.CloudRealtimeEventSpeechStarted, capabilitydriver.CloudRealtimeEventSpeechStopped:
-		identity, ok := resolveRealtimeSpeechIdentity(record, source.ProviderItemID)
+		identity, ok := resolveRealtimeSpeechIdentity(record, source.ProviderItemID, source.Kind == capabilitydriver.CloudRealtimeEventSpeechStopped)
 		if !ok {
 			if isTerminalRealtimeInput(record, source.ProviderItemID) {
 				return false
@@ -682,7 +682,7 @@ func bindRealtimeInputIdentity(record *realtimeSessionRecord, providerItemID str
 	return false
 }
 
-func resolveRealtimeSpeechIdentity(record *realtimeSessionRecord, providerItemID string) (realtimeInputIdentity, bool) {
+func resolveRealtimeSpeechIdentity(record *realtimeSessionRecord, providerItemID string, stopped bool) (realtimeInputIdentity, bool) {
 	if record == nil {
 		return realtimeInputIdentity{}, false
 	}
@@ -690,12 +690,18 @@ func resolveRealtimeSpeechIdentity(record *realtimeSessionRecord, providerItemID
 	defer record.mu.Unlock()
 	providerItemID = strings.TrimSpace(providerItemID)
 	if providerItemID != "" {
-		return ensureRealtimeInputIdentityLocked(record, providerItemID)
+		identity, ok := ensureRealtimeInputIdentityLocked(record, providerItemID)
+		if ok && stopped {
+			identity.speechStopped = true
+			record.inputsByProvider[providerItemID] = identity
+		}
+		return identity, ok
 	}
 	identity := realtimeInputIdentity{inputTrackID: record.inputTrackID, utteranceID: record.utteranceID}
 	return identity, identity.inputTrackID != "" && identity.utteranceID != ""
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r113
 func resolveRealtimeTranscriptIdentity(record *realtimeSessionRecord, providerItemID string, final bool) (realtimeInputIdentity, bool) {
 	if record == nil {
 		return realtimeInputIdentity{}, false
@@ -721,11 +727,22 @@ func resolveRealtimeTranscriptIdentity(record *realtimeSessionRecord, providerIt
 				break
 			}
 		}
-		if pendingIndex < 0 || len(record.terminalInputs) >= aiRealtimeMaxInputIdentities {
+		if len(record.terminalInputs) >= aiRealtimeMaxInputIdentities {
 			return realtimeInputIdentity{}, false
 		}
+		if pendingIndex < 0 {
+			// Server VAD can deliver stopped speech and its exact final
+			// transcript without a separate buffer-committed event.
+			if record.turnDetection != runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD ||
+				!identity.speechStopped || record.inputCommitted ||
+				identity.inputTrackID != record.inputTrackID || identity.utteranceID != record.utteranceID {
+				return realtimeInputIdentity{}, false
+			}
+			record.inputCommitted = true
+		} else {
+			record.pendingInputs = append(record.pendingInputs[:pendingIndex], record.pendingInputs[pendingIndex+1:]...)
+		}
 		delete(record.inputsByProvider, providerItemID)
-		record.pendingInputs = append(record.pendingInputs[:pendingIndex], record.pendingInputs[pendingIndex+1:]...)
 		if record.terminalInputs == nil {
 			record.terminalInputs = make(map[string]struct{})
 		}

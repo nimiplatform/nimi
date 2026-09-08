@@ -146,6 +146,7 @@ func (s *Service) currentFormalAppSessionProjection(
 	return localAppAuthSessionProjection(session), true, nil
 }
 
+// @nimi-authority: rule.nimi.runtime.protected-session.r016
 func (s *Service) RenewLocalAppSessionProjection(ctx context.Context) (authservice.LocalAppSessionProjection, error) {
 	connection, ok := protectedlocal.LocalAppConnectionFromContext(ctx)
 	if s == nil || !ok || connection == nil || !connection.ProtectedOperationAllowed() {
@@ -164,6 +165,21 @@ func (s *Service) RenewLocalAppSessionProjection(ctx context.Context) (authservi
 	s.localAppSessionMu.RUnlock()
 	if !exists || previous.handle != previousHandle {
 		return authservice.LocalAppSessionProjection{}, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	// Routine renewal revalidates current owner facts without invalidating the
+	// live session's Agent selectors, streams, and resources. A failed validation
+	// still takes the fresh-session path below; it never revives the old fence.
+	if _, current, validationErr := s.currentFormalAppSessionProjection(ctx, connection); current && validationErr == nil {
+		s.localAppSessionMu.Lock()
+		live, stillCurrent := s.localAppSessions[connection]
+		now := s.now().UTC()
+		if stillCurrent && live.handle == previousHandle && now.Before(live.expiresAt) {
+			live.expiresAt = now.Add(s.localAppSessionTTL)
+			s.localAppSessions[connection] = live
+			s.localAppSessionMu.Unlock()
+			return localAppAuthSessionProjection(live), nil
+		}
+		s.localAppSessionMu.Unlock()
 	}
 	next, err := s.deriveLocalAppRuntimeSession(ctx, connection, previous.registrationHandle, previous.launchCorrelation)
 	if err != nil {
@@ -201,12 +217,29 @@ func (s *Service) expireLocalAppRuntimeSession(connection *protectedlocal.LocalA
 	go func() {
 		timer := time.NewTimer(delay)
 		defer timer.Stop()
-		select {
-		case <-invalidated:
-		case <-session.accountInvalidated:
-			connection.InvalidateSession(session.handle)
-		case <-timer.C:
-			connection.InvalidateSession(session.handle)
+		for {
+			select {
+			case <-invalidated:
+				return
+			case <-session.accountInvalidated:
+				connection.InvalidateSession(session.handle)
+				return
+			case <-timer.C:
+				s.localAppSessionMu.RLock()
+				current, exists := s.localAppSessions[connection]
+				s.localAppSessionMu.RUnlock()
+				if !exists || current.handle != session.handle {
+					return
+				}
+				// The same live session may have been renewed since this timer
+				// was armed. Only its current deadline can expire its resources.
+				if remaining := current.expiresAt.Sub(s.now().UTC()); remaining > 0 {
+					timer.Reset(remaining)
+					continue
+				}
+				connection.InvalidateSession(session.handle)
+				return
+			}
 		}
 	}()
 }

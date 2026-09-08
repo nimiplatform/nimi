@@ -19,9 +19,10 @@ use crate::generated::{
     LocalAppScenarioJob, LocalAppScenarioJobEvent, LocalAppSpeechSynthesizeJobSpec,
     LocalAppSpeechTranscribeJobSpec, LocalAppTextEmbedScenarioSpec, LocalAppTextTurnFailed,
     LocalAppVideoGenerateJobSpec, LocalAppVideoGenerationOptions, LocalAppVoiceAsset,
-    LocalAppVoiceCreateJobSpec, ReadLocalAppArtifactRequest as ProtoReadArtifactRequest,
-    ScenarioJobEventType, ScenarioJobStatus, ScenarioType, SpeechTimingMode,
-    SpeechTranscriptionAudioSource, StreamLocalAppTextTurnRequest as ProtoTextTurnRequest,
+    LocalAppVoiceCreateJobSpec, LocalAppWorldGenerateJobSpec,
+    ReadLocalAppArtifactRequest as ProtoReadArtifactRequest, ScenarioJobEventType,
+    ScenarioJobStatus, ScenarioType, SpeechTimingMode, SpeechTranscriptionAudioSource,
+    StreamLocalAppTextTurnRequest as ProtoTextTurnRequest,
     SubmitLocalAppScenarioJobRequest as ProtoSubmitJobRequest,
     SubscribeLocalAppScenarioJobEventsRequest,
     UploadLocalAppArtifactRequest as ProtoUploadArtifactRequest, VideoContentArtifactRef,
@@ -388,6 +389,13 @@ fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
         )?)),
         "voice-create" => Ok(JobSpec::VoiceCreate(parse_voice_create_spec(&object)?)),
         "music-generate" => Ok(JobSpec::MusicGenerate(parse_music_spec(&object)?)),
+        "world-generate" => {
+            exact_keys(&object, &["type", "prompt", "displayName"])?;
+            Ok(JobSpec::WorldGenerate(LocalAppWorldGenerateJobSpec {
+                prompt: required_text_field(&object, "prompt", MAX_PROMPT_BYTES)?,
+                display_name: optional_text_field(&object, "displayName", 256)?,
+            }))
+        }
         _ => Err(invalid_payload()),
     }
 }
@@ -901,6 +909,7 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         ScenarioType::SpeechTranscribe => "speech-transcribe",
         ScenarioType::VoiceCreate => "voice-create",
         ScenarioType::MusicGenerate => "music-generate",
+        ScenarioType::WorldGenerate => "world-generate",
         _ => return Err(untrusted()),
     };
     let status = match ScenarioJobStatus::try_from(job.status).map_err(|_| untrusted())? {
@@ -1626,7 +1635,17 @@ mod tests {
         };
         assert!(project_job(job.clone()).is_ok());
         job.scenario_type = ScenarioType::MusicGenerate as i32;
+        assert!(project_job(job.clone()).is_ok());
+        job.scenario_type = ScenarioType::WorldGenerate as i32;
         assert!(project_job(job).is_ok());
+
+        assert!(parse_job_spec(json!({
+            "type": "world-generate", "prompt": "a botanical conservatory", "displayName": "Garden"
+        }))
+        .is_ok());
+        assert!(parse_job_spec(json!({
+            "type": "world-generate", "prompt": "a botanical conservatory", "displayName": "Garden", "provider": "forbidden"
+        })).is_err());
 
         assert!(parse_job_spec(json!({
             "type": "music-generate",

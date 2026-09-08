@@ -1674,6 +1674,7 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
     'speech-transcribe',
     'voice-create',
     'music-generate',
+    'world-generate',
   ];
   const statuses = ['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'];
   if (!scenarioTypes.includes(String(value.scenarioType)) || !statuses.includes(String(value.status))) {

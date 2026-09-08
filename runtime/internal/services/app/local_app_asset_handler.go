@@ -301,6 +301,8 @@ func adoptedAssetExtension(mediaType string) string {
 		return ".webm"
 	case "application/json":
 		return ".json"
+	case "application/vnd.nimi.world+zip":
+		return ".zip"
 	case "text/plain":
 		return ".txt"
 	default:

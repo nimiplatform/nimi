@@ -41,7 +41,7 @@ const historyPolicyModuleUrl = compileModule('src/ai-studio-core/history-policy.
   ['@nimiplatform/sdk/types', jsonTypesModuleUrl],
 ]);
 const historyStorageModuleUrl = compileModule('src/lab/lab-history-storage.ts', [
-  ['../ai-studio-core/index.js', historyPolicyModuleUrl],
+  ['../ai-studio-core/history-policy.js', historyPolicyModuleUrl],
   ['./lab-standard-storage.js', standardStorageModuleUrl],
 ]);
 const imageHistoryModuleUrl = compileModule('src/lab/lab-image-history.ts', [

@@ -14,7 +14,6 @@
     "build:prepared": "tsc --noEmit && vite build",
     "build": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",
     "build:electron": "node ../../scripts/build-supervised-app-electron.mjs --consumer lab",
-    "build:shell": "tauri build",
     "test": "node ../../scripts/with-workspace-surfaces.mjs -- node --test test/*.test.mjs",
     "check": "pnpm run test && pnpm run validate",
     "validate": "node scripts/validate.mjs"
@@ -22,18 +21,19 @@
   "dependencies": {
     "@nimiplatform/kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
-    "@tauri-apps/api": "2.11.1",
+    "@sparkjsdev/spark": "2.1.0",
+    "fflate": "0.8.3",
     "i18next": "25.10.10",
     "lucide-react": "0.577.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "react-i18next": "16.6.6"
+    "react-i18next": "16.6.6",
+    "three": "0.185.1"
   },
   "devDependencies": {
     "@nimiplatform/app-tools": "workspace:*",
     "@nimiplatform/nimi-coding": "0.6.2",
     "@tailwindcss/vite": "^4.3.3",
-    "@tauri-apps/cli": "^2.11.4",
     "@types/node": "^24.13.3",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",

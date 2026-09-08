@@ -5,6 +5,56 @@ import path from 'node:path';
 import test from 'node:test';
 import { assertLocalDevelopmentPlatform, runDevShell } from '../scripts/dev-shell.mjs';
 
+test('registration listing only reads Desktop-issued selectors and never starts a new subject', {
+  skip: !['win32', 'darwin'].includes(process.platform),
+}, async () => {
+  const input = fixture();
+  const calls = [];
+  let output = '';
+  try {
+    const rows = [{ selector: 'dev-project-existing', displayName: 'Existing Widget', registeredAtUnixMs: 1_700_000_000_000 }];
+    const result = await runDevShell(input.project, {
+      listRegistrations: true, descriptorPath: input.descriptorPath,
+      now: () => Date.parse('2026-07-12T00:00:02.000Z'),
+      fetch: async (url, init) => { calls.push({ url, body: JSON.parse(init.body) }); return response({ status: 'ok', registrations: rows }); },
+      output: { write(value) { output += value; } },
+    });
+    assert.deepEqual(result, rows);
+    assert.equal(calls.length, 1);
+    assert.ok(calls[0].url.endsWith('/v1/registrations'));
+    assert.equal(calls[0].body.appId, 'acme.widget');
+    assert.match(output, /dev-project-existing/);
+    assert.match(output, /--resume <selector>/);
+  } finally { rmSync(input.root, { recursive: true, force: true }); }
+});
+
+test('explicit resume forwards the owner-issued selector without inventing a registration', {
+  skip: !['win32', 'darwin'].includes(process.platform),
+}, async () => {
+  const input = fixture();
+  const calls = [];
+  const controller = new AbortController();
+  controller.abort();
+  try {
+    await runDevShell(input.project, {
+      resume: 'dev-project-existing', descriptorPath: input.descriptorPath,
+      now: () => Date.parse('2026-07-12T00:00:02.000Z'),
+      fetch: async (url, init) => { calls.push({ url, body: JSON.parse(init.body) }); return response({ status: 'ok', run: runStatus(url.endsWith('/v1/cancel') ? 'stopped' : 'running') }); },
+      signal: controller.signal, installSignalHandlers: false,
+      output: { write() {} }, errorOutput: { write() {} },
+    });
+    assert.equal(calls[0].body.registrationSelector, 'dev-project-existing');
+    assert.ok(calls[0].url.endsWith('/v1/start'));
+    assert.equal(calls.length, 2);
+  } finally { rmSync(input.root, { recursive: true, force: true }); }
+});
+
+test('resume rejects App IDs and raw owner handles as selectors before dispatch', async () => {
+  for (const resume of ['nimi.lab', '11'.repeat(32), 'dev-project-stale\n']) {
+    await assert.rejects(runDevShell(process.cwd(), { resume }), { reasonCode: 'local-development-selector-invalid' });
+  }
+});
+
 function fixture() {
   const root = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'nimi-app-dev-shell-')));
   const project = path.join(root, 'project');

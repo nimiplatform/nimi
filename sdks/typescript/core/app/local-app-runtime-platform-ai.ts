@@ -101,6 +101,7 @@ export type NimiLocalAppVideoContent =
 
 export type NimiLocalAppScenarioJobSpec =
   | NimiLocalAppImageGenerateSpec
+  | { readonly type: 'world-generate'; readonly prompt: string; readonly displayName: string }
   | {
       readonly type: 'video-generate';
       readonly prompt: string;
@@ -204,7 +205,7 @@ export type NimiLocalAppScenarioArtifact = {
 
 export type NimiLocalAppScenarioJob = {
   readonly jobId: string;
-  readonly scenarioType: 'image-generate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create' | 'music-generate';
+  readonly scenarioType: 'image-generate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create' | 'music-generate' | 'world-generate';
   readonly status: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly progressPercent: number;
   readonly progressCurrentStep: number;
@@ -762,6 +763,12 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
       boundedContent(record.prompt, 'music prompt', 32 * 1024);
       boundedContent(record.lyrics, 'music lyrics', 32 * 1024);
       break;
+    case 'world-generate':
+      if (execute) invalidAIInput('world-generate is not a synchronous spec');
+      assertExactKeys(record, ['type', 'prompt', 'displayName'], 'world spec');
+      boundedContent(record.prompt, 'world prompt', 32 * 1024);
+      optionalBoundedText(record.displayName, 'world displayName', 256);
+      break;
     default:
       invalidAIInput('scenario type is invalid');
   }
@@ -1259,6 +1266,8 @@ function runtimeLocalJobSpec(
         oneofKind: 'musicGenerate',
         musicGenerate: { prompt: spec.prompt, lyrics: spec.lyrics },
       };
+    case 'world-generate':
+      return { oneofKind: 'worldGenerate', worldGenerate: { prompt: spec.prompt, displayName: spec.displayName } };
   }
 }
 
@@ -1437,6 +1446,7 @@ function runtimeScenarioTypeName(value: ScenarioType): NimiLocalAppScenarioJob['
     [ScenarioType.SPEECH_TRANSCRIBE]: 'speech-transcribe',
     [ScenarioType.VOICE_CREATE]: 'voice-create',
     [ScenarioType.MUSIC_GENERATE]: 'music-generate',
+    [ScenarioType.WORLD_GENERATE]: 'world-generate',
   };
   return types[value] ?? localAppProjectionError('scenario Runtime type');
 }
@@ -1515,7 +1525,7 @@ function localVoiceCreationSource(source: VoiceCreationSource): NimiLocalAppVoic
   return localAppProjectionError('voice asset creationSource');
 }
 
-const LOCAL_SCENARIO_TYPES = ['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create', 'music-generate'] as const;
+const LOCAL_SCENARIO_TYPES = ['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create', 'music-generate', 'world-generate'] as const;
 const LOCAL_JOB_STATUSES = ['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'] as const;
 
 function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): NimiLocalAppScenarioJobSpec {
@@ -1585,6 +1595,12 @@ function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): Nimi
         return adapterInputError('unsupported MiniMax-Music3 fields are unavailable to Local Apps');
       }
       return validateScenarioSpec({ type: 'music-generate', prompt: spec.musicGenerate.prompt, lyrics: spec.musicGenerate.lyrics }, false);
+    case 'worldGenerate':
+      requireScenarioType(request, ScenarioType.WORLD_GENERATE);
+      if (spec.worldGenerate.conditioning.oneofKind !== undefined || spec.worldGenerate.tags.length > 0 || spec.worldGenerate.seed !== '0') {
+        return adapterInputError('Local App worlds accept text conditioning only');
+      }
+      return validateScenarioSpec({ type: 'world-generate', prompt: spec.worldGenerate.textPrompt, displayName: spec.worldGenerate.displayName }, false);
     default:
       return adapterInputError(`Scenario type ${spec.oneofKind} is unavailable to Local Apps`);
   }
@@ -1709,7 +1725,7 @@ function runtimeOutput(type: NimiLocalAppScenarioJob['scenarioType'], artifacts:
 }
 
 function runtimeScenarioType(type: NimiLocalAppScenarioJob['scenarioType']): ScenarioType {
-  return ({ 'image-generate': ScenarioType.IMAGE_GENERATE, 'video-generate': ScenarioType.VIDEO_GENERATE, 'speech-synthesize': ScenarioType.SPEECH_SYNTHESIZE, 'speech-transcribe': ScenarioType.SPEECH_TRANSCRIBE, 'voice-create': ScenarioType.VOICE_CREATE, 'music-generate': ScenarioType.MUSIC_GENERATE })[type];
+  return ({ 'image-generate': ScenarioType.IMAGE_GENERATE, 'video-generate': ScenarioType.VIDEO_GENERATE, 'speech-synthesize': ScenarioType.SPEECH_SYNTHESIZE, 'speech-transcribe': ScenarioType.SPEECH_TRANSCRIBE, 'voice-create': ScenarioType.VOICE_CREATE, 'music-generate': ScenarioType.MUSIC_GENERATE, 'world-generate': ScenarioType.WORLD_GENERATE })[type];
 }
 
 function runtimeJobStatus(status: NimiLocalAppScenarioJob['status']): ScenarioJobStatus {

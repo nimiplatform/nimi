@@ -121,6 +121,7 @@ export async function projectAppsPanel(
     readonly refreshAIConfig?: boolean;
     readonly aiConfigReadTimeoutMs?: number;
     readonly catalog?: DesktopAppsCatalogProjection;
+    readonly onInventory?: (projection: DesktopAppsPanelProjection) => void;
   } = {},
 ): Promise<DesktopAppsPanelProjection> {
   if (
@@ -249,6 +250,11 @@ export async function projectAppsPanel(
       right.identity.updatedAtUnixMs - left.identity.updatedAtUnixMs
       || left.identity.appId.localeCompare(right.identity.appId)
     ));
+    const runtimeError = [
+      runtimeResult.ok ? null : `Runtime Apps lifecycle list failed: ${errorMessage(runtimeResult.error)}`,
+      catalogResult.status === 'unavailable' ? `Runtime Apps Catalog list failed: ${errorMessage(catalogResult.error)}` : null,
+    ].filter((message): message is string => message !== null).join('; ') || null;
+    options.onInventory?.({ status: 'loaded', entries: mergedEntries, catalogStatus: catalogResult.status, runtimeError });
     const entries = await projectEntriesBounded(mergedEntries, async (entry) => ({
       ...entry,
       iconUrl: await projectAppIconUrl({
@@ -276,10 +282,7 @@ export async function projectAppsPanel(
       status: 'loaded',
       entries,
       catalogStatus: catalogResult.status,
-      runtimeError: [
-        runtimeResult.ok ? null : `Runtime Apps lifecycle list failed: ${errorMessage(runtimeResult.error)}`,
-        catalogResult.status === 'unavailable' ? `Runtime Apps Catalog list failed: ${errorMessage(catalogResult.error)}` : null,
-      ].filter((message): message is string => message !== null).join('; ') || null,
+      runtimeError,
     };
   } catch (error) {
     return {

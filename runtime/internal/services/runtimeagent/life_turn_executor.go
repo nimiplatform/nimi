@@ -126,6 +126,7 @@ func (e *aiBackedLifeTrackExecutor) ExecuteLifeTrackHook(ctx context.Context, re
 			admissionState: runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED,
 			reasonCode:     runtimev1.ReasonCode_AI_OUTPUT_INVALID,
 			message:        err.Error(),
+			tokensUsed:     responseTokensUsed(resp),
 		}
 	}
 	return result, nil
@@ -204,14 +205,11 @@ func lifeTurnPrompts(req *lifeTurnRequest) (string, string, error) {
 	}
 	systemPrompt := strings.TrimSpace(`You are the runtime-private Life Track executor for Nimi Agent Core.
 Return APML only. The first non-whitespace characters must be <life-turn>.
-Allowed top-level shape:
+Minimal valid output (write your own summary from the committed context):
 <life-turn>
-  <behavioral-posture>...</behavioral-posture> optional
-  <status-text>...</status-text> optional
-  <summary>...</summary>
-  <tokens-used>integer</tokens-used> optional
-  <next-hook-intent ...>...</next-hook-intent> optional
+  <summary>No change is needed at this moment.</summary>
 </life-turn>
+Optional top-level children are behavioral-posture, status-text, tokens-used, and next-hook-intent. Omit unused children entirely.
 
 Rules:
 - Do not emit markdown, prose, code fences, or comments.
@@ -231,6 +229,9 @@ Rules:
 - no absolute scheduled time, turn_completed, state_condition, world_event,
   or compound trigger is admitted in v1.
 - If no follow-up hook is needed, omit <next-hook-intent>.
+- Never emit an empty or self-closing next-hook-intent. A cadence tick already has its next cadence scheduled by Runtime; do not create an extra periodic hook just to keep cadence running.
+- Complete example of an additional TIME hook (use only when the context actually needs this follow-up):
+  <next-hook-intent trigger-family="TIME" effect="FOLLOW_UP_TURN" reason="Revisit the current observation in ten minutes"><time delay="600s"/></next-hook-intent>
 - If status text should remain unchanged, omit <status-text>.
 `)
 	userPrompt := strings.TrimSpace(fmt.Sprintf(`Committed agent truth:

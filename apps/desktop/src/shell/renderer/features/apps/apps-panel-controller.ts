@@ -102,6 +102,8 @@ export function mergeAppsPanelProjection(
       return {
         ...entry,
         aiConfigSummary: refreshedEntry ? refreshedEntry.aiConfigSummary : entry.aiConfigSummary,
+        iconUrl: refreshedEntry ? refreshedEntry.iconUrl : entry.iconUrl,
+        summary: refreshedEntry ? refreshedEntry.summary : entry.summary,
       };
     }),
   };
@@ -167,6 +169,9 @@ export function createAppsPanelProjectionReloader(input: {
       previous: input.getCurrent(),
       refreshAIConfig,
       catalog,
+      onInventory(next) {
+        if (!disposed && latestRevision[lane] === revision && input.getCurrent()?.status !== 'loaded') input.commit(next);
+      },
     }).then((next) => {
       if (
         disposed

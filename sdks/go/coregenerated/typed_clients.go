@@ -5498,6 +5498,11 @@ type LocalAppVoiceCreateJobSpec struct {
 	TextDescription *VoiceT2VInput `json:"text_description,omitempty"`
 }
 
+type LocalAppWorldGenerateJobSpec struct {
+	Prompt      string `json:"prompt,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+}
+
 type LocalAuditEvent struct {
 	Id            string         `json:"id,omitempty"`
 	EventType     string         `json:"event_type,omitempty"`
@@ -7257,6 +7262,7 @@ type SubmitLocalAppScenarioJobRequest struct {
 	VoiceCreate      *LocalAppVoiceCreateJobSpec        `json:"voice_create,omitempty"`
 	MusicGenerate    *LocalAppMusicGenerateJobSpec      `json:"music_generate,omitempty"`
 	TimeoutMs        int32                              `json:"timeout_ms,omitempty"`
+	WorldGenerate    *LocalAppWorldGenerateJobSpec      `json:"world_generate,omitempty"`
 }
 
 type SubmitLocalAppScenarioJobResponse struct {

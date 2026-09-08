@@ -297,6 +297,9 @@ func (s *Service) RebindLocalAppProcess(ctx context.Context, req *runtimev1.Rebi
 		s.now().UTC().Add(localDevelopmentProcessBindTTL),
 	)
 	if err != nil {
+		if errors.Is(err, protectedlocal.ErrDirectLocalAppLaunchUnavailable) {
+			return nil, localDevelopmentFailureAtStageFromCause(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_LAUNCH_LEASE_REQUIRED, "rebind-launch-unavailable", err)
+		}
 		return nil, localDevelopmentFailureAtStageFromCause(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_PROCESS_MISMATCH, "rebind-direct-peer", err)
 	}
 	return &runtimev1.RebindLocalAppProcessResponse{

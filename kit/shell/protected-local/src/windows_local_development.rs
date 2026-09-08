@@ -233,6 +233,48 @@ pub(crate) async fn rebind_host(
     request: LocalDevelopmentLaunchRequest,
     process_id: u32,
 ) -> Result<LocalDevelopmentLaunchOutcome, NimiHostError> {
+    retry_unavailable_rebind_once(|| rebind_host_once(channel.clone(), request.clone(), process_id))
+        .await
+}
+
+#[cfg(any(
+    all(target_os = "macos", feature = "macos-source-local-development"),
+    all(target_os = "windows", feature = "windows-source-local-development")
+))]
+// The Host can consume the pending one-shot witness while a supervisor
+// refresh is inspecting that same process. Prepare and verify a new witness;
+// do not reinterpret an actual process mismatch or reuse the consumed one.
+// @nimi-authority: rule.nimi.runtime.protected-session.r017
+async fn retry_unavailable_rebind_once<T, F, Fut>(mut attempt: F) -> Result<T, NimiHostError>
+where
+    F: FnMut() -> Fut,
+    Fut: Future<Output = Result<T, NimiHostError>>,
+{
+    match attempt().await {
+        Err(error)
+            if error.reason_code()
+                == NimiHostErrorReasonCode::LocalDevelopmentSupervisorRequired
+                && error
+                    .reason_metadata()
+                    .get("diagnostic_stage")
+                    .map(String::as_str)
+                    == Some("rebind-launch-unavailable") =>
+        {
+            attempt().await
+        }
+        result => result,
+    }
+}
+
+#[cfg(any(
+    all(target_os = "macos", feature = "macos-source-local-development"),
+    all(target_os = "windows", feature = "windows-source-local-development")
+))]
+async fn rebind_host_once(
+    channel: Channel,
+    request: LocalDevelopmentLaunchRequest,
+    process_id: u32,
+) -> Result<LocalDevelopmentLaunchOutcome, NimiHostError> {
     validate_identifier(request.registration_handle)?;
     validate_identifier(request.supervisor_run_id)?;
     if process_id == 0 {
@@ -505,6 +547,42 @@ fn untrusted() -> NimiHostError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(any(
+        feature = "macos-source-local-development",
+        feature = "windows-source-local-development"
+    ))]
+    #[tokio::test]
+    async fn unavailable_rebind_retries_only_one_fresh_preparation() {
+        for (stage, persistent, expected_attempts) in [
+            ("rebind-launch-unavailable", false, 2),
+            ("rebind-launch-unavailable", true, 2),
+            ("rebind-direct-peer", false, 1),
+        ] {
+            let mut attempts = 0;
+            let result = retry_unavailable_rebind_once(|| {
+                attempts += 1;
+                std::future::ready(if attempts == 1 || persistent {
+                    Err(NimiHostError::new(
+                        NimiHostErrorReasonCode::LocalDevelopmentSupervisorRequired,
+                        false,
+                    )
+                    .with_reason_metadata(std::collections::BTreeMap::from([(
+                        "diagnostic_stage".to_string(),
+                        stage.to_string(),
+                    )])))
+                } else {
+                    Ok(())
+                })
+            })
+            .await;
+            assert_eq!(attempts, expected_attempts, "{stage}");
+            assert_eq!(
+                result.is_ok(),
+                stage == "rebind-launch-unavailable" && !persistent
+            );
+        }
+    }
 
     #[test]
     fn developer_mode_status_request_carries_a_runtime_deadline() {

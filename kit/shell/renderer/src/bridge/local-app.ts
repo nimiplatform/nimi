@@ -194,7 +194,8 @@ export type NimiLocalAppScenarioJobSpec =
       readonly instructionText: string; readonly previewText: string;
       readonly language: string; readonly preferredName: string;
     }
-  | { readonly type: 'music-generate'; readonly prompt: string; readonly lyrics: string };
+  | { readonly type: 'music-generate'; readonly prompt: string; readonly lyrics: string }
+  | { readonly type: 'world-generate'; readonly prompt: string; readonly displayName: string };
 
 export type NimiLocalAppScenarioJobSubmitOptions = {
   readonly timeoutMs?: number;
@@ -208,7 +209,7 @@ export type NimiLocalAppScenarioArtifact = {
 };
 export type NimiLocalAppScenarioJob = {
   readonly jobId: string;
-  readonly scenarioType: 'image-generate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create' | 'music-generate';
+  readonly scenarioType: 'image-generate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create' | 'music-generate' | 'world-generate';
   readonly status: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly progressPercent: number; readonly progressCurrentStep: number; readonly progressTotalSteps: number;
   readonly reasonCode: string; readonly reasonDetail: string;
@@ -2201,7 +2202,7 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
     'createdAt', 'updatedAt', 'transcriptionText',
   ], command, 'scenario Job');
-  if (!['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create', 'music-generate'].includes(String(record.scenarioType))
+  if (!['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create', 'music-generate', 'world-generate'].includes(String(record.scenarioType))
     || !['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'].includes(String(record.status))) {
     throw new Error(`${command}: Job enum is invalid`);
   }
