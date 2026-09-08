@@ -43,7 +43,7 @@ export type StudioCapabilityDescriptor<TCapabilityId extends string = string> = 
   readonly summary: string;
   readonly summaryKey: string;
   readonly surface: string;
-  readonly execution: 'runtime-sdk' | 'standalone-tauri' | 'typed-unavailable';
+  readonly execution: 'runtime-sdk' | 'standalone-electron' | 'typed-unavailable';
   readonly capabilityContract?: string;
   readonly missingSurface?: string;
 };

@@ -16,23 +16,23 @@ export function createLabRunTargetSummary(input: {
   readonly config: NimiPortableAppAIConfig | null;
   readonly configState?: 'loading' | 'loaded' | 'failed';
   readonly configError?: string | null;
-  readonly standaloneTauriAvailable?: boolean;
+  readonly standaloneViewerAvailable?: boolean;
 }): LabRunTargetSummary {
-  if (input.capability.execution !== 'standalone-tauri') {
+  if (input.capability.execution !== 'standalone-electron') {
     return createStudioRunTargetSummary(input);
   }
 
-  const canDispatch = input.standaloneTauriAvailable === true;
+  const canDispatch = input.standaloneViewerAvailable === true;
   return {
     capabilityId: input.capability.id,
     capabilityContract: null,
     section: input.capability.section,
-    status: 'tauri-only',
+    status: 'viewer-only',
     source: 'local',
     intentLabel: 'Local fixture',
     detail: canDispatch
-      ? 'This lane opens the standalone Tauri viewer and does not use Runtime AI configuration.'
-      : 'This lane requires the standalone Tauri shell; the current shell cannot open its viewer.',
+      ? 'This lane opens the standalone Electron viewer and does not generate a world.'
+      : 'This lane requires the supervised Electron host to open its viewer.',
     canDispatch,
     params: {},
     paramsSummary: [],

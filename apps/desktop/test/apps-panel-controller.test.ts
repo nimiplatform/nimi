@@ -240,6 +240,40 @@ it('limits the current installed lifecycle to verified packages without promotin
   assert.deepEqual(actionPlanForEntry({ ...verified, run: { state: 'running' } }).secondary.map((action) => action.id), ['details', 'stop']);
 });
 
+it('shows inventory on retry before project content loads, then fills in that content', async () => {
+  let finishIcon!: (value: string) => void;
+  const icon = new Promise<string>((resolve) => { finishIcon = resolve; });
+  let current: DesktopAppsPanelProjection | null = { status: 'error', detail: 'previous inventory failure' };
+  let firstPaint!: () => void;
+  const painted = new Promise<void>((resolve) => { firstPaint = resolve; });
+  const reloader = createAppsPanelProjectionReloader({
+    source: {
+      listCommittedReleases: async () => [], listPackageJobs: async () => [], listRuns: async () => [],
+      listRegistrations: async () => [{
+        selector: 'dev-project-example', appId: 'example.app', displayName: 'Example',
+        canonicalProjectRoot: '/example', shell: 'electron', appAccess: [], aiConfigAllowedRoutes: ['local'],
+        sourceGeneration: 1, declarationGeneration: 1, registeredAtUnixMs: 1, updatedAtUnixMs: 1,
+      }],
+      readAppIcon: () => icon,
+      readProjectReadme: async () => ({ content: '# Example\n\nReal project description.' }),
+    },
+    getCurrent: () => current,
+    commit: (next) => { current = next; firstPaint(); },
+  });
+  const completed = reloader.reload();
+  await Promise.race([painted, new Promise((_, reject) => setTimeout(() => reject(new Error('inventory waited for icon')), 200))]);
+  assert.equal((current as DesktopAppsPanelProjection | null)?.status, 'loaded');
+  finishIcon('data:image/png;base64,actual');
+  await completed;
+  const loaded = current as DesktopAppsPanelProjection | null;
+  assert.equal(loaded?.status, 'loaded');
+  if (loaded?.status === 'loaded') {
+    assert.equal(loaded.entries[0]?.iconUrl, 'data:image/png;base64,actual');
+    assert.equal(loaded.entries[0]?.summary, 'Real project description.');
+  }
+  reloader.dispose();
+});
+
 it('local lifecycle refresh completes while Catalog is pending and does not refetch it', async () => {
   let resolveCatalog!: (value: ApprovedAppCatalogTarget[]) => void;
   let catalogCalls = 0;

@@ -1602,6 +1602,14 @@ function realtimeInput(value: unknown, command: string, allowOwnerContext: boole
       frame: [...value.frame] as NimiElectronLocalAppJson,
     };
   }
+  if (!allowOwnerContext && value.type === 'capture-stopped') {
+    assertExactKeys(value, ['type', 'inputTrackId', 'utteranceId'], command);
+    return {
+      type: 'capture-stopped',
+      inputTrackId: requiredText(value.inputTrackId, 'inputTrackId', command, MAX_IDENTIFIER_LENGTH),
+      utteranceId: requiredText(value.utteranceId, 'utteranceId', command, MAX_IDENTIFIER_LENGTH),
+    };
+  }
   if (allowOwnerContext && value.type === 'owner-context') {
     assertExactKeys(value, ['type', 'requestId', 'kind', 'text'], command);
     if (!['instruction', 'context', 'sanitized-result'].includes(String(value.kind))) {

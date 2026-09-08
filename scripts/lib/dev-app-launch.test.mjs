@@ -15,6 +15,16 @@ import {
 
 const repoRoot = path.resolve(import.meta.dirname, '../..');
 
+test('Lab and Zhiyu forward explicit registration selection without reserving a CDP port for listing', () => {
+  const listed = resolveDevAppLaunch('lab', ['--list-registrations'], { platform: 'darwin' });
+  assert.equal(listed.cdpPort, undefined);
+  assert.deepEqual(listed.args.slice(-2), ['--', '--list-registrations']);
+  const resumed = resolveDevAppLaunch('zhiyu', ['--resume', 'dev-project-selected'], { platform: 'darwin' });
+  assert.deepEqual(resumed.args.slice(-5), ['--', '--cdp-port', '9334', '--resume', 'dev-project-selected']);
+  assert.throws(() => parseDevAppArguments('lab', ['--list-registrations', '--resume', 'dev-project-selected']));
+  assert.throws(() => parseDevAppArguments('desktop', ['--list-registrations']));
+});
+
 test('development apps have stable non-conflicting default CDP ports', () => {
   assert.deepEqual(
     Object.fromEntries(Object.entries(DEV_APP_DEFINITIONS).map(([appName, definition]) => [

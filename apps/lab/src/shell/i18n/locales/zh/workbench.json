@@ -9,7 +9,7 @@
   "Capabilities": {
     "worldGenerate": {
       "label": "世界巡游",
-      "summary": "通过 App 自有的 open_world_tour_window 命令启动独立 Tauri 查看器。"
+      "summary": "通过 App 自有的 open_world_tour_window 命令启动独立 Electron 查看器。"
     }
   },
   "WorldTour": {
@@ -37,12 +37,12 @@
       "worldGenerate": {
         "inputTitle": "打开世界巡游",
         "inputPlaceholder": "",
-        "inputNote": "打开本地世界夹具的独立 Tauri 窗口。",
+        "inputNote": "打开本地世界夹具的独立 Electron 窗口。",
         "primaryLabel": "打开查看器",
         "primaryRunningLabel": "打开中…",
         "emptyTitle": "查看器空闲",
         "emptyHint": "打开查看器以记录一次本地夹具运行。不代表任何 Runtime 产物。",
-        "footnote": "打开本地夹具的独立 Tauri 查看器；这不是 Runtime 产物。"
+        "footnote": "打开本地夹具的独立 Electron 查看器；这不是 Runtime 产物。"
       }
     },
     "admission": {
@@ -53,9 +53,9 @@
     }
   },
   "StudioShell": {
-    "statusTauriOnly": "仅 Tauri",
+    "statusStandaloneViewer": "本地查看器",
     "runStatusLocalFixture": "本地夹具",
-    "worldTourViewerMessage": "已为仅限 Tauri 的本地夹具打开查看器（{{manifestPath}}）；仅为本地夹具记录，无 Runtime 生成或 Runtime 产物。",
+    "worldTourViewerMessage": "已为仅限 Electron 的本地夹具打开查看器（{{manifestPath}}）；仅为本地夹具记录，无 Runtime 生成或 Runtime 产物。",
     "worldTourViewerOutput": "本地夹具查看器已打开（{{windowLabel}}）。这不是 Runtime 结果或 Runtime 产物。"
   }
 }

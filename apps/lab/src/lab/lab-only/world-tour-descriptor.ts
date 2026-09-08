@@ -3,8 +3,8 @@ export type LabWorldTourCapabilityId = 'world.generate';
 export const labWorldTourDescriptor = Object.freeze({
   id: 'world.generate', label: 'World Tour', labelKey: 'Capabilities.worldGenerate.label', group: 'world',
   section: 'world',
-  summary: 'Standalone Tauri viewer launch via app-owned open_world_tour_window command.',
+  summary: 'Standalone Electron viewer over an existing App-private world fixture.',
   summaryKey: 'Capabilities.worldGenerate.summary',
-  surface: 'app-owned tauri: resolve_world_tour_fixture + open_world_tour_window',
-  execution: 'standalone-tauri',
+  surface: 'public App storage and an app-owned Electron viewer window',
+  execution: 'standalone-electron',
 } as const);

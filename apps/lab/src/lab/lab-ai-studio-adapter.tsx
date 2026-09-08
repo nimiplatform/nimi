@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
-import { hasTauriRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
+import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   AIStudioHostProvider,
   type AIStudioHostPort,
@@ -32,7 +32,7 @@ export function LabAIStudioAdapter({ children }: { readonly children: ReactNode 
             config: input.config,
             configState: input.configState,
             configError: input.configError,
-            standaloneTauriAvailable: hasTauriRuntime(),
+            standaloneViewerAvailable: hasElectronRuntime(),
           }),
         runStatusLabel: (status) => t({
           ready: 'StudioShell.runStatusReady',

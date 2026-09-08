@@ -3,6 +3,7 @@ package protectedlocal
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -10,6 +11,10 @@ import (
 	"sync"
 	"time"
 )
+
+// ErrDirectLocalAppLaunchUnavailable requires a newly prepared launch; an
+// already consumed one-time witness must never be reused for a rebind.
+var ErrDirectLocalAppLaunchUnavailable = errors.New("direct local-app launch is no longer prepared")
 
 // DirectLocalAppPeer is the minimal native identity retained after a per-user
 // local endpoint peer has been checked.
@@ -177,7 +182,10 @@ func (launches *DirectLocalAppLaunches) Bind(
 	defer launches.mu.Unlock()
 	launches.removeExpiredLocked(now)
 	pending := launches.byLaunch[launchID]
-	if pending == nil || pending.DesktopPID != desktopPID || pending.ExpectedUID != expectedUID ||
+	if pending == nil {
+		return time.Time{}, ErrDirectLocalAppLaunchUnavailable
+	}
+	if pending.DesktopPID != desktopPID || pending.ExpectedUID != expectedUID ||
 		process.ParentPID != desktopPID || process.UID != expectedUID ||
 		process.ExecutablePath != pending.HostExecutablePath ||
 		!now.Before(bindDeadline) || bindDeadline.After(pending.ExpiresAt) {

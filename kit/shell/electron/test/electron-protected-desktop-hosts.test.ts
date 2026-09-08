@@ -544,6 +544,22 @@ describe('Electron local-development protected control', () => {
     expect(launch).toHaveBeenCalledWith(expect.objectContaining({ registrationHandle, supervisorRunId }));
   });
 
+  it('shares overlapping registration reads without caching completed snapshots', async () => {
+    let complete!: (value: { status: 'ok'; value: unknown }) => void;
+    const read = vi.fn(() => new Promise<{ status: 'ok'; value: unknown }>((resolve) => { complete = resolve; }));
+    const control = createNimiElectronLocalDevelopmentControlForBinding(binding({ desktopListLocalDevelopmentRegistrations: read }));
+    const first = control.listRegistrations();
+    const second = control.listRegistrations();
+    expect(read).toHaveBeenCalledTimes(1);
+    complete({ status: 'ok', value: [registration] });
+    await expect(first).resolves.toHaveLength(1);
+    await expect(second).resolves.toHaveLength(1);
+    const next = control.listRegistrations();
+    expect(read).toHaveBeenCalledTimes(2);
+    complete({ status: 'ok', value: [] });
+    await expect(next).resolves.toEqual([]);
+  });
+
   it('rejects malformed native registration projections', async () => {
     const control = createNimiElectronLocalDevelopmentControlForBinding(binding({
       desktopListLocalDevelopmentRegistrations: async () => ({

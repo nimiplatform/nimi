@@ -77,6 +77,7 @@ type AvatarWindowRecord = {
   senderInvalidation: Promise<void> | null;
   senderInvalidationWait: Promise<void> | null;
   previewTail: Promise<void>;
+  manualDragSize: { readonly width: number; readonly height: number } | null;
 };
 
 type AvatarPreviewWindowBinding = Readonly<{
@@ -397,6 +398,7 @@ export async function createDesktopElectronBundledAvatarHost(
       senderInvalidation: null,
       senderInvalidationWait: null,
       previewTail: Promise.resolve(),
+      manualDragSize: null,
     };
     if (pendingCandidate) {
       pendingCandidates.add(windowRecord);
@@ -1071,18 +1073,27 @@ export async function createDesktopElectronBundledAvatarHost(
           );
         },
         setAlwaysOnTop: (payload, call) => {
-          senderWindow(asElectronEvent(call.event)).setAlwaysOnTop(Boolean(payload.alwaysOnTop));
+          const target = senderWindow(asElectronEvent(call.event));
+          // Electron's default floating level inserts the window behind the
+          // Windows taskbar, which can demote it below ordinary app windows.
+          target.setAlwaysOnTop(Boolean(payload.alwaysOnTop), process.platform === 'win32' ? 'pop-up-menu' : 'floating');
         },
         hide: (_payload, call) => senderWindow(asElectronEvent(call.event)).hide(),
         close: (_payload, call) => closeWindowRecord(recordForSender(asElectronEvent(call.event))),
         beginManualDrag: (_payload, call) => {
-          const [x, y] = senderWindow(asElectronEvent(call.event)).getPosition();
+          const record = recordForSender(asElectronEvent(call.event));
+          const { x, y, width, height } = record.window.getBounds();
+          record.manualDragSize = { width, height };
           return { mode: 'manual', originX: x, originY: y };
         },
         moveManualDrag: (payload, call) => {
           const x = Math.round(requiredNumber(payload.originX, 'originX') + requiredNumber(payload.totalDeltaX, 'totalDeltaX'));
           const y = Math.round(requiredNumber(payload.originY, 'originY') + requiredNumber(payload.totalDeltaY, 'totalDeltaY'));
-          senderWindow(asElectronEvent(call.event)).setPosition(x, y);
+          const record = recordForSender(asElectronEvent(call.event));
+          if (!record.manualDragSize) throw new Error('desktop-avatar-manual-drag-not-started');
+          // Repeated setPosition round-trips grow transparent Windows windows
+          // at fractional DPI. Keep the drag's original size explicit.
+          record.window.setBounds({ x, y, ...record.manualDragSize });
         },
         constrainToVisibleArea: (payload, call) => constrainFloatingWindow(payload, call),
       },
@@ -1595,6 +1606,7 @@ function secureAvatarWindow(
   });
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r073
 function setFloatingWindowBounds(
   payload: Readonly<Record<string, unknown>>,
   input: NimiElectronShellUiCommandInput,
@@ -1604,7 +1616,13 @@ function setFloatingWindowBounds(
   const height = optionalNumber(payload.height);
   const x = optionalNumber(payload.x);
   const y = optionalNumber(payload.y);
-  if (width !== undefined && height !== undefined) window.setSize(Math.round(width), Math.round(height));
+  if (width !== undefined && height !== undefined) {
+    // Windows pins a non-resizable window's minimum size to its old bounds.
+    // Lower that constraint before resizing; transparent windows must remain
+    // non-resizable throughout the operation.
+    if (process.platform === 'win32') window.setMinimumSize(Math.round(width), Math.round(height));
+    window.setSize(Math.round(width), Math.round(height));
+  }
   if (x !== undefined && y !== undefined) window.setPosition(Math.round(x), Math.round(y));
 }
 

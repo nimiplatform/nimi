@@ -121,7 +121,7 @@ func TestLocalAppSessionInvalidationAndSameHostRebind(t *testing.T) {
 	assertLocalAppReason(t, restarted.AdmitLocalAppIngress(ctx, localappop.IngressStorageJSONRead), runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
 }
 
-func TestLocalAppSessionRenewalCancelsPreviouslyAuthorizedStreamContext(t *testing.T) {
+func TestLocalAppSessionRenewalPreservesPreviouslyAuthorizedStreamContext(t *testing.T) {
 	fixture := newLocalAppSessionFixture(t, nil)
 	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
 		t.Fatal(err)
@@ -134,18 +134,80 @@ func TestLocalAppSessionRenewalCancelsPreviouslyAuthorizedStreamContext(t *testi
 	if !ok || decision.SessionInvalidated == nil {
 		t.Fatal("authorized context has no technical-session invalidation fence")
 	}
+	before, _ := fixture.connection.Session()
+	cleaned := false
+	if !fixture.connection.BindSessionResource(before, "agent:realtime", func() { cleaned = true }) {
+		t.Fatal("bind active realtime resource")
+	}
 	if _, err := fixture.service.RenewLocalAppSessionProjection(fixture.context); err != nil {
 		t.Fatal(err)
 	}
 	select {
 	case <-authorized.Done():
-	case <-time.After(time.Second):
-		t.Fatal("renewal did not cancel the previously authorized stream context")
+		t.Fatal("routine renewal canceled a currently admitted stream")
+	default:
 	}
 	select {
 	case <-decision.SessionInvalidated:
+		t.Fatal("routine renewal closed the live technical-session fence")
 	default:
-		t.Fatal("renewal did not close the previous technical-session fence")
+	}
+	after, _ := fixture.connection.Session()
+	if after != before || cleaned || !fixture.connection.SessionOwnsResource(after, "agent:realtime") {
+		t.Fatal("routine renewal replaced the live session or removed its realtime resource")
+	}
+	fixture.connection.Revoke()
+	select {
+	case <-authorized.Done():
+	case <-time.After(time.Second):
+		t.Fatal("connection loss no longer cancels a renewed stream")
+	}
+	if !cleaned {
+		t.Fatal("connection loss did not clean the renewed resource")
+	}
+}
+
+func TestLocalAppSessionRenewalUsesCurrentExpiryAndStillExpires(t *testing.T) {
+	fixture := newLocalAppSessionFixture(t, nil)
+	fixture.service.now = time.Now
+	fixture.service.localAppSessionTTL = 2 * time.Second
+	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
+		t.Fatal(err)
+	}
+	authorized, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, localappop.IngressStorageJSONRead)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture.service.localAppSessionMu.RLock()
+	firstExpiry := fixture.service.localAppSessions[fixture.connection].expiresAt
+	fixture.service.localAppSessionMu.RUnlock()
+	time.Sleep(time.Until(firstExpiry.Add(-time.Second)))
+	if _, err := fixture.service.RenewLocalAppSessionProjection(fixture.context); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(time.Until(firstExpiry.Add(100 * time.Millisecond)))
+	select {
+	case <-authorized.Done():
+		t.Fatal("the old expiry timer canceled a renewed session")
+	default:
+	}
+	select {
+	case <-authorized.Done():
+	case <-time.After(2 * time.Second):
+		t.Fatal("a session without further renewal did not expire")
+	}
+	expiredHandle, _ := fixture.connection.Session()
+	if _, err := fixture.service.RenewLocalAppSessionProjection(fixture.context); err != nil {
+		t.Fatal(err)
+	}
+	reboundHandle, _ := fixture.connection.Session()
+	if reboundHandle == expiredHandle {
+		t.Fatal("renewal revived the expired technical session")
+	}
+	select {
+	case <-authorized.Done():
+	default:
+		t.Fatal("fresh binding revived the expired stream")
 	}
 }
 

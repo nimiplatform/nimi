@@ -51,6 +51,9 @@ export function devAppUsage(appName) {
       'Electron Avatar is an avatar-only Desktop carrier and cannot run beside the regular Desktop dev instance.',
     );
   }
+  if (appName === 'lab' || appName === 'zhiyu') {
+    lines.push('  --list-registrations  List existing registrations without launching.', '  --resume <selector>   Resume an explicitly selected current-host registration.');
+  }
   lines.push('', `Electron CDP defaults to 127.0.0.1:${definition.defaultCdpPort}.`, '');
   return lines.join('\n');
 }
@@ -60,6 +63,8 @@ export function parseDevAppArguments(appName, argv = []) {
   let cdpOption;
   let cdpPort = definition.defaultCdpPort;
   let help = false;
+  let listRegistrations = false;
+  let resume;
   const avatarOptions = new Map();
 
   const setCdpPort = (rawValue, option) => {
@@ -78,6 +83,15 @@ export function parseDevAppArguments(appName, argv = []) {
       continue;
     }
     if (argument === '--electron') {
+      continue;
+    }
+    if (argument === '--list-registrations' || argument === '--resume') {
+      if (appName !== 'lab' && appName !== 'zhiyu') {
+        throw launchError('dev-app-option-unsupported', `${argument} is available only for dev:lab and dev:zhiyu.`);
+      }
+      if (listRegistrations || resume !== undefined) throw launchError('dev-app-option-duplicate', 'Choose either --list-registrations or --resume once.');
+      if (argument === '--list-registrations') listRegistrations = true;
+      else { resume = requireOptionValue(argv, index, argument); index += 1; }
       continue;
     }
     if (argument === '--no-cdp') {
@@ -126,6 +140,8 @@ export function parseDevAppArguments(appName, argv = []) {
     cdpDisabled: cdpOption === '--no-cdp',
     help,
     envOverrides,
+    ...(listRegistrations ? { listRegistrations: true } : {}),
+    ...(resume === undefined ? {} : { resume }),
   };
 }
 
@@ -141,11 +157,14 @@ export function resolveDevAppLaunch(appName, argv = [], options = {}) {
   }
 
   const pnpmArgs = ['--filter', definition.packageName, 'run', 'dev:electron'];
-  if (parsed.cdpPort !== undefined) {
+  if (parsed.listRegistrations) {
+    pnpmArgs.push('--', '--list-registrations');
+  } else if (parsed.cdpPort !== undefined) {
     pnpmArgs.push('--', '--cdp-port', String(parsed.cdpPort));
   } else if (parsed.cdpDisabled) {
     pnpmArgs.push('--', '--no-cdp');
   }
+  if (parsed.resume !== undefined) pnpmArgs.push('--resume', parsed.resume);
   const invocation = composePnpmSpawn(pnpmArgs, {
     platform: options.platform,
     env: options.env,
@@ -154,7 +173,8 @@ export function resolveDevAppLaunch(appName, argv = [], options = {}) {
     kind: 'launch',
     appName,
     carrier: 'electron',
-    cdpPort: parsed.cdpPort,
+    cdpPort: parsed.listRegistrations ? undefined : parsed.cdpPort,
+    ...(parsed.listRegistrations ? { listRegistrations: true } : {}),
     ...invocation,
     envOverrides: parsed.envOverrides,
   };
@@ -162,6 +182,7 @@ export function resolveDevAppLaunch(appName, argv = [], options = {}) {
 
 export function devAppLaunchSummary(plan) {
   if (plan.kind !== 'launch') return '';
+  if (plan.listRegistrations) return `[dev-app] ${plan.appName}: listing current-host registrations\n`;
   const cdp = plan.cdpPort === undefined
     ? 'CDP disabled'
     : `CDP http://127.0.0.1:${plan.cdpPort}`;

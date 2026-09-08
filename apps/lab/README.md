@@ -30,4 +30,13 @@ commands for the non-public workspace validation topology. It does not retain
 the retired public `doctor` or `update` commands and does not substitute public
 standalone `nimi-app sync/check` for workspace validation.
 
+World Tour opens an Electron window for an existing world fixture. Its small
+manifest lives at `world-tour/latest/fixture-manifest.json` in public App JSON
+storage; `worldMarblePath` and/or `colliderMeshPath` name committed App assets
+relative to that manifest. Missing files fail visibly. The viewer inspects this
+metadata and saves `viewer-preset.json` through the public storage API; it does
+not generate worlds or claim a rendered 3D scene. Window launch claims stay in
+the Electron process and are bound to the exact viewer. There is no Tauri host
+or private cache-root fallback.
+
 Public distribution, listing, release descriptors, ordinary visibility, install truth, and protected ingress are deferred platform contracts. Nimi Lab neither generates nor validates their inputs or outcomes.

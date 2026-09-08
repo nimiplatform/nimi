@@ -1,4 +1,8 @@
-import { invokeLabCommand } from '../lab-tauri.js';
+import { invokeShell } from '@nimiplatform/kit/shell/renderer/bridge';
+import { isJsonObject } from '@nimiplatform/sdk/types';
+import { getLabLocalAppClient } from '../../shell/local-app-runtime-platform.js';
+
+const DEFAULT_MANIFEST_PATH = 'world-tour/latest/fixture-manifest.json';
 
 export type ResolveWorldTourFixtureInput = {
   manifestPath?: string;
@@ -25,26 +29,42 @@ export type ClaimWorldTourViewerLaunchInput = {
   launchToken: string;
 };
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r035
 export async function resolveWorldTourFixture(payload: ResolveWorldTourFixtureInput): Promise<ResolvedWorldTourFixture> {
-  return invokeLabCommand<ResolvedWorldTourFixture>('resolve_world_tour_fixture', {
-    payload: { manifestPath: payload.manifestPath },
-  });
+  const manifestPath = payload.manifestPath ?? DEFAULT_MANIFEST_PATH;
+  const storage = getLabLocalAppClient().storage;
+  const { value } = await storage.readJson(manifestPath);
+  if (!isJsonObject(value)) throw new Error('world-tour-manifest-invalid');
+  const directory = manifestPath.slice(0, manifestPath.lastIndexOf('/') + 1);
+  const reference = async (key: string): Promise<string | undefined> => {
+    const path = value[key];
+    if (path === undefined) return undefined;
+    if (typeof path !== 'string' || !path) throw new Error('world-tour-manifest-reference-invalid');
+    const relativePath = `${directory}${path}`;
+    await storage.assets.stat(relativePath);
+    return relativePath;
+  };
+  const [worldMarbleUrl, colliderMeshUrl] = await Promise.all([reference('worldMarblePath'), reference('colliderMeshPath')]);
+  if (!worldMarbleUrl && !colliderMeshUrl) throw new Error('world-tour-manifest-has-no-assets');
+  return { manifestPath, worldMarbleUrl, colliderMeshUrl };
 }
 
 export async function openWorldTourWindow(payload: OpenWorldTourWindowInput): Promise<OpenWorldTourWindowResponse> {
-  return invokeLabCommand<OpenWorldTourWindowResponse>('open_world_tour_window', {
+  return invokeShell<OpenWorldTourWindowResponse>('open_world_tour_window', {
     payload: { manifestPath: payload.manifestPath },
   });
 }
 
 export async function claimWorldTourViewerLaunch(payload: ClaimWorldTourViewerLaunchInput): Promise<ResolvedWorldTourFixture> {
-  return invokeLabCommand<ResolvedWorldTourFixture>('claim_world_tour_viewer_launch', {
+  await invokeShell('claim_world_tour_viewer_launch', {
     payload: { manifestPath: payload.manifestPath, launchToken: payload.launchToken },
   });
+  return resolveWorldTourFixture({ manifestPath: payload.manifestPath });
 }
 
 export async function saveWorldTourViewerPreset(payload: { manifestPath: string; presetJson: string }): Promise<{ manifestPath: string; presetPath: string }> {
-  return invokeLabCommand('save_world_tour_viewer_preset', {
-    payload: { manifestPath: payload.manifestPath, presetJson: payload.presetJson },
-  });
+  await resolveWorldTourFixture({ manifestPath: payload.manifestPath });
+  const presetPath = `${payload.manifestPath.slice(0, payload.manifestPath.lastIndexOf('/') + 1)}viewer-preset.json`;
+  await getLabLocalAppClient().storage.writeJson(presetPath, JSON.parse(payload.presetJson));
+  return { manifestPath: payload.manifestPath, presetPath };
 }

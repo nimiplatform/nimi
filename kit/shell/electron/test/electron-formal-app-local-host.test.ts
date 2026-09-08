@@ -253,6 +253,40 @@ describe('Electron formal App local host', () => {
     ]);
   });
 
+  it.each([
+    ['desktop', 'nimi.desktop'],
+    ['avatar', 'nimi.avatar'],
+  ] as const)('maintains an active %s session without closing valid resources', async (profile, appId) => {
+    vi.useFakeTimers();
+    const runtime = control(profile);
+    const owner = createNimiElectronFormalAppLocalHostOwner({ profile, appId, control: runtime.host });
+    try {
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1_000);
+      expect(runtime.calls).toEqual([]);
+      await owner.host.sessionStatus();
+      const write = await owner.host.assetWriteOpen({
+        relativePath: 'pending/session-renewal.bin', mediaType: 'application/octet-stream', overwrite: false,
+      });
+
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1_000);
+      expect(runtime.calls.filter((method) => method.endsWith('/RenewLocalAppSession'))).toHaveLength(1);
+      await expect(owner.host.assetWriteChunk({ streamId: write.streamId, bodyChunk: Uint8Array.from([1]) }))
+        .resolves.toBeDefined();
+
+      await owner.host.renewTechnicalSession();
+      await expect(owner.host.assetWriteChunk({ streamId: write.streamId, bodyChunk: Uint8Array.from([2]) }))
+        .resolves.toBeDefined();
+      await owner.dispose();
+      await expect(owner.host.assetWriteChunk({ streamId: write.streamId, bodyChunk: Uint8Array.from([3]) }))
+        .rejects.toBeDefined();
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1_000);
+      expect(runtime.calls.filter((method) => method.endsWith('/RenewLocalAppSession'))).toHaveLength(2);
+    } finally {
+      await owner.dispose();
+      vi.useRealTimers();
+    }
+  });
+
   it('renews the bundled Avatar formal session once and retries a read-only bootstrap operation', async () => {
     let referenceCalls = 0;
     const calls: string[] = [];

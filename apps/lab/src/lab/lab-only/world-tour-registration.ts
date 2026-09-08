@@ -7,9 +7,9 @@ export const labWorldTourCapability = Object.freeze({
   descriptor: labWorldTourDescriptor,
   icon: Compass,
   profile: {
-    studioTag: 'World', inputTitleKey: 'Studio.profiles.worldGenerate.inputTitle', inputPlaceholderKey: 'Studio.profiles.worldGenerate.inputPlaceholder', inputKind: 'none', inputNoteKey: 'Studio.profiles.worldGenerate.inputNote', supportsAttachments: false, controls: [], primaryLabelKey: 'Studio.profiles.worldGenerate.primaryLabel', primaryRunningLabelKey: 'Studio.profiles.worldGenerate.primaryRunningLabel', resultTitle: 'Viewer', emptyTitleKey: 'Studio.profiles.worldGenerate.emptyTitle', emptyHintKey: 'Studio.profiles.worldGenerate.emptyHint', resultKind: 'text', footnoteKey: 'Studio.profiles.worldGenerate.footnote', statusLabelKey: 'StudioShell.statusTauriOnly', pendingLabelKey: 'Studio.result.pendingViewer',
+    studioTag: 'World', inputTitleKey: 'Studio.profiles.worldGenerate.inputTitle', inputPlaceholderKey: 'Studio.profiles.worldGenerate.inputPlaceholder', inputKind: 'none', inputNoteKey: 'Studio.profiles.worldGenerate.inputNote', supportsAttachments: false, controls: [], primaryLabelKey: 'Studio.profiles.worldGenerate.primaryLabel', primaryRunningLabelKey: 'Studio.profiles.worldGenerate.primaryRunningLabel', resultTitle: 'Viewer', emptyTitleKey: 'Studio.profiles.worldGenerate.emptyTitle', emptyHintKey: 'Studio.profiles.worldGenerate.emptyHint', resultKind: 'text', footnoteKey: 'Studio.profiles.worldGenerate.footnote', statusLabelKey: 'StudioShell.statusStandaloneViewer', pendingLabelKey: 'Studio.result.pendingViewer',
   },
   preset: { id: 'fixture-viewer', label: 'Viewer fixture', prompt: 'Resolve the world-tour fixture and open the standalone viewer.' },
-  runtimeMethod: 'tauri.open_world_tour_window',
+  runtimeMethod: 'electron.open_world_tour_window',
   parameters: EMPTY_STUDIO_PARAMETERS,
 } as const satisfies StudioCapabilityRegistration<LabWorldTourCapabilityId>);

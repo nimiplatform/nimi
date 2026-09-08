@@ -382,10 +382,23 @@ export function createNimiAgentRealtimeSession(
           control: envelope.control,
         });
         dispatch({ type: 'event-observed', epoch: scope.epoch, event: envelope.event });
+        if (((envelope.event.type === 'transcript' && envelope.event.final)
+          || (input.turnDetection === 'server-vad' && envelope.event.type === 'speech-status'
+            && envelope.event.state === 'stopped'))
+          && activeCapture?.epoch === scope.epoch
+          && activeCapture.handle.inputTrackId === envelope.event.inputTrackId
+          && activeCapture.handle.utteranceId === envelope.event.utteranceId) {
+          // Runtime has ended this utterance; release its microphone
+          // without sending a second capture-stop/commit observation.
+          await releaseCaptureWithoutObservation(scope, 'stopped');
+        }
         for (const listener of eventListeners) notifyListener(listener, envelope.event);
         await projectHostPlayback(scope, envelope.event);
         await enforceBlockedPressure(scope);
         if (envelope.event.type === 'terminal') {
+          // A completed Agent turn does not close its still-active media session.
+          if (envelope.event.reasonCode === 'ACTION_EXECUTED'
+            && ['ready', 'degraded', 'reconnecting'].includes(envelope.control.lifecycle)) continue;
           if (envelope.control.lifecycle !== 'closed') {
             recordIssue(createNimiError({
               message: envelope.event.reasonCode || 'Agent Realtime session failed.',
@@ -409,8 +422,9 @@ export function createNimiAgentRealtimeSession(
           'The Agent Realtime event stream ended without a terminal event.',
           'reopen_agent_realtime_session',
           true,
-        ), false);
+        ), true);
         await releaseTerminalMedia(scope);
+        activeSession = null;
         activeSubscription = null;
       }
     } catch (cause) {
@@ -420,8 +434,9 @@ export function createNimiAgentRealtimeSession(
         'read Agent Realtime events',
         'reopen_agent_realtime_session',
       );
-      recordIssue(error, false);
+      recordIssue(error, true);
       await releaseTerminalMedia(scope);
+      activeSession = null;
       activeSubscription = null;
     }
   }
@@ -460,6 +475,7 @@ export function createNimiAgentRealtimeSession(
           frame: frame.frame,
         },
       });
+      if (!isCurrent(scope) || activeCapture !== capture) return;
       applyOperationResult(scope.epoch, result);
       if (!result.ack.ok) await stopCapture(scope, 'stopped');
       else await enforceBlockedPressure(scope);
@@ -469,8 +485,10 @@ export function createNimiAgentRealtimeSession(
         'append Agent Realtime audio',
         'reopen_agent_realtime_session',
       );
-      if (isCurrent(scope)) recordIssue(error, false);
-      await releaseCaptureWithoutObservation(scope, 'stopped');
+      if (isCurrent(scope) && activeCapture === capture) {
+        recordIssue(error, false);
+        await releaseCaptureWithoutObservation(scope, 'stopped');
+      }
       throw error;
     } finally {
       frameInFlight = false;

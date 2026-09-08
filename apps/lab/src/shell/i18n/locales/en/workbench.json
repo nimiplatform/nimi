@@ -9,7 +9,7 @@
   "Capabilities": {
     "worldGenerate": {
       "label": "World Tour",
-      "summary": "Standalone Tauri viewer launch via app-owned open_world_tour_window command."
+      "summary": "Standalone Electron viewer launch via app-owned open_world_tour_window command."
     }
   },
   "WorldTour": {
@@ -37,12 +37,12 @@
       "worldGenerate": {
         "inputTitle": "Open world tour",
         "inputPlaceholder": "",
-        "inputNote": "Opens a standalone Tauri window for the local world fixture.",
+        "inputNote": "Opens a standalone Electron window for the local world fixture.",
         "primaryLabel": "Open viewer",
         "primaryRunningLabel": "Opening…",
         "emptyTitle": "Viewer idle",
         "emptyHint": "Open the viewer to record a local fixture run. No runtime artifact is implied.",
-        "footnote": "Opens the standalone Tauri viewer for a local fixture; this is not a runtime artifact."
+        "footnote": "Opens the standalone Electron viewer for a local fixture; this is not a runtime artifact."
       }
     },
     "admission": {
@@ -53,9 +53,9 @@
     }
   },
   "StudioShell": {
-    "statusTauriOnly": "Tauri only",
+    "statusStandaloneViewer": "Local viewer",
     "runStatusLocalFixture": "local fixture",
-    "worldTourViewerMessage": "Viewer opened for a Tauri-only local fixture ({{manifestPath}}); local fixture record only, with no runtime generation or runtime artifact.",
+    "worldTourViewerMessage": "Viewer opened for a Electron-only local fixture ({{manifestPath}}); local fixture record only, with no runtime generation or runtime artifact.",
     "worldTourViewerOutput": "Local fixture viewer opened ({{windowLabel}}). This is not a runtime result or runtime artifact."
   }
 }

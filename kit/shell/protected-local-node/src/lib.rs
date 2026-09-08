@@ -1333,6 +1333,7 @@ mod desktop_transport_invalidation_tests {
     fn account_and_local_development_results_never_poison_the_verified_channel() {
         for reason in [
             "principal-unauthorized",
+            "runtime-request-canceled",
             "account-changed",
             "local-development-project-changed",
             "local-development-supervisor-required",

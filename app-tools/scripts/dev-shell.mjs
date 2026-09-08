@@ -10,6 +10,7 @@ import { parse as parseYaml } from 'yaml';
 const DESCRIPTOR_RELATIVE_PATH = ['.nimi', 'run', 'desktop', 'local-development', 'presence.v1.json'];
 const MAX_HEARTBEAT_AGE_MS = 10_000;
 const REQUEST_TIMEOUT_MS = 5_000;
+const INTENT_REQUEST_TIMEOUT_MS = 30_000;
 const STATUS_POLL_MS = 350;
 const AUTO_CDP_PORT = 0;
 const CDP_PORT_ENV_KEY = 'NIMI_APP_DEV_CDP_PORT';
@@ -22,11 +23,16 @@ const TERMINAL_STATES = new Set([
   'stopped',
 ]);
 
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018a
 export async function runDevShell(cwd, options = {}) {
+  if (options.listRegistrations && options.resume) throw new DevShellError('local-development-intent-invalid', '--list-registrations and --resume cannot be combined.');
+  if (options.resume && !/^dev-project-[A-Za-z0-9_-]{1,148}$/u.test(options.resume)) {
+    throw new DevShellError('local-development-selector-invalid', '--resume requires a current-host selector from --list-registrations.');
+  }
   const shell = normalizeShell(options.shell || 'electron');
   assertLocalDevelopmentPlatform(process.platform, shell);
   const projectRoot = await canonicalProjectRoot(cwd, options.dir);
-  const cdpPort = await resolveRequestedCdpPort(projectRoot, options);
+  const cdpPort = options.listRegistrations ? undefined : await resolveRequestedCdpPort(projectRoot, options);
   const appId = await readAppId(projectRoot);
   const descriptorPath = options.descriptorPath
     ? path.resolve(options.descriptorPath)
@@ -36,6 +42,26 @@ export async function runDevShell(cwd, options = {}) {
   if (typeof fetchImpl !== 'function') {
     throw new DevShellError('local-development-launcher-unavailable', 'This Node.js runtime does not provide fetch.');
   }
+  if (options.listRegistrations) {
+    const listed = await postJson(fetchImpl, descriptor.endpoint, '/v1/registrations', {
+      schemaVersion: 1, appId, projectRoot, shell,
+    });
+    if (listed?.status !== 'ok' || !Array.isArray(listed.registrations)) {
+      throw new DevShellError(listed?.reasonCode || 'local-development-intent-invalid', 'Desktop could not list current-host registrations.');
+    }
+    const output = options.output ?? process.stdout;
+    for (const row of listed.registrations) {
+      if (typeof row.selector !== 'string' || !/^dev-project-[A-Za-z0-9_-]{1,148}$/u.test(row.selector)
+        || typeof row.displayName !== 'string' || !Number.isSafeInteger(row.registeredAtUnixMs)) {
+        throw new DevShellError('local-development-intent-invalid', 'Desktop returned an invalid registration projection.');
+      }
+      output.write(`${row.selector}\t${new Date(row.registeredAtUnixMs).toISOString()}\t${row.displayName}\n`);
+    }
+    output.write(listed.registrations.length
+      ? '[nimi-app dev] Resume an explicit selection with: pnpm dev -- --resume <selector>\n'
+      : '[nimi-app dev] No current-host registrations for this project. Run pnpm dev to create one.\n');
+    return listed.registrations;
+  }
 
   const startIntent = {
     schemaVersion: 1,
@@ -43,6 +69,7 @@ export async function runDevShell(cwd, options = {}) {
     projectRoot,
     shell,
     ...(cdpPort === undefined ? {} : { cdpPort }),
+    ...(options.resume ? { registrationSelector: options.resume } : {}),
   };
   const start = await postJson(fetchImpl, descriptor.endpoint, '/v1/start', startIntent);
   const initial = parseBridgeRun(start);
@@ -213,7 +240,8 @@ async function postJson(fetchImpl, endpoint, route, body) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       redirect: 'error',
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      signal: AbortSignal.timeout(route === '/v1/start' || route === '/v1/registrations'
+        ? INTENT_REQUEST_TIMEOUT_MS : REQUEST_TIMEOUT_MS),
     });
   } catch {
     throw new DevShellError(
