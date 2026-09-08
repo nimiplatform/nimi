@@ -17,7 +17,8 @@ import {
   type StartAppPackageInstallResponse,
   type ApprovedAppCatalogTarget,
 } from '@nimiplatform/sdk/runtime/wire-types';
-import { startAppsPackageInstall } from '../src/shell/renderer/features/apps/apps-install-runtime.js';
+import { startAppsPackageInstall, startAppsPackageUpdate } from '../src/shell/renderer/features/apps/apps-install-runtime.js';
+import { canRequestCatalogUpdate, hasAvailableCatalogUpdate } from '../src/shell/renderer/features/apps/apps-card-actions.js';
 
 function catalogTarget(overrides: Partial<ApprovedAppCatalogTarget> = {}): ApprovedAppCatalogTarget {
   return {
@@ -49,6 +50,46 @@ function catalogTarget(overrides: Partial<ApprovedAppCatalogTarget> = {}): Appro
 }
 
 describe('Desktop approved App install intent', () => {
+  it('offers only newer verified versions and requires the current Host to be stopped', () => {
+    const entry = { catalogTarget: catalogTarget(), committedRelease: { sourceClass: AppPackageSourceClass.VERIFIED, version: '1.2.2' }, localDevelopment: null, packageJob: null, run: null };
+    assert.equal(canRequestCatalogUpdate(entry), true);
+    assert.equal(hasAvailableCatalogUpdate({ ...entry, run: { state: 'running' } }), true);
+    assert.equal(canRequestCatalogUpdate({ ...entry, run: { state: 'running' } }), false);
+    assert.equal(canRequestCatalogUpdate({ ...entry, catalogTarget: catalogTarget({ policyBlocked: true }) }), false);
+    assert.equal(canRequestCatalogUpdate({ ...entry, committedRelease: { ...entry.committedRelease, version: '1.2.3' } }), false);
+    assert.equal(canRequestCatalogUpdate({ ...entry, committedRelease: { ...entry.committedRelease, version: '1.3.0' } }), false);
+    assert.equal(canRequestCatalogUpdate({ ...entry, localDevelopment: {} }), false);
+  });
+
+  it('freezes both update selectors and dispatches only once after confirmation', async () => {
+    const calls: unknown[] = [];
+    const controller = createAppsInstallIntentController({ startInstall: async () => { throw new Error('wrong operation'); }, startUpdate: async (target, installed, version) => { calls.push([[...target], [...installed], version]); return { kind: 'started' }; }, refresh: () => undefined });
+    const installed = { appId: 'publisher.example', sourceClass: AppPackageSourceClass.VERIFIED, version: '1.2.2', releaseRef: 'old-release', launchSelector: new Uint8Array([4, 5, 6]) };
+    const target = catalogTarget();
+    const result = await controller.requestUpdate(target, installed);
+    assert.equal(result.kind, 'confirmation-required');
+    assert.equal(controller.pending()?.update?.installedVersion, '1.2.2');
+    target.approvedTargetSelector[0] = 9;
+    installed.launchSelector[0] = 9;
+    assert.equal(calls.length, 0);
+    await controller.confirm();
+    assert.deepEqual(calls, [[[1, 2, 3], [4, 5, 6], "1.2.2"]]);
+    assert.equal((await controller.confirm()).kind, 'no-pending-intent');
+    await controller.requestUpdate(catalogTarget(), installed);
+    controller.cancel();
+    assert.equal((await controller.confirm()).kind, 'no-pending-intent');
+    assert.equal(calls.length, 1);
+  });
+
+  it('requires an UPDATE response and preserves the Runtime stop-required result', async () => {
+    const target = new TextEncoder().encode('approved-update');
+    const response: StartAppPackageInstallResponse = { reasonCode: ReasonCode.ACTION_EXECUTED, job: { jobId: new Uint8Array([1]), appId: 'publisher.example', kind: AppPackageJobKind.UPDATE, sourceClass: AppPackageSourceClass.VERIFIED, phase: AppPackageJobPhase.QUEUED, targetRef: 'approved-update', progressBasis: 0, bytesCompleted: '0', stepsCompleted: '0', terminalResult: 0, reasonCode: '', cancelable: true } };
+    assert.deepEqual(await startAppsPackageUpdate(async (request) => { assert.deepEqual([...request.launchSelector], [5]); assert.equal(request.installedVersion, "1.2.2"); return response; }, target, new Uint8Array([5]), "1.2.2"), { kind: 'started' });
+    response.job!.kind = AppPackageJobKind.INSTALL;
+    await assert.rejects(startAppsPackageUpdate(async () => response, target, new Uint8Array([5]), "1.2.2"), /inconsistent/);
+    assert.deepEqual(await startAppsPackageUpdate(async () => { throw createNimiError({ reasonCode: 'APP_PACKAGE_HOST_RUNNING', message: 'stop first' }); }, target, new Uint8Array([5]), "1.2.2"), { kind: 'host-running' });
+  });
+
   it('starts only from the same opaque selector and rejects a different returned job', async () => {
     const selector = new TextEncoder().encode('opaque-approved-target');
     const original = selector.slice();

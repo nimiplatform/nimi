@@ -66,7 +66,10 @@
     "unsignedConfirmAction": "Continue and install"
   },
   "catalogNotImplemented": "Public App catalog search is not implemented yet.",
-  "installedAccess": { "ready": "Nimi Access ready", "unavailable": "Nimi Access unavailable" },
+  "installedAccess": {
+    "ready": "Nimi Access ready",
+    "unavailable": "Nimi Access unavailable"
+  },
   "listTitle": "App list",
   "listDescription": "Filter registered apps by whether they declare App Access domains.",
   "filter": {
@@ -383,5 +386,17 @@
       "message": "Permanently delete the durable app data for {{app}}? This removes the release and the app's stored data. This cannot be undone.",
       "confirm": "Delete app data"
     }
+  },
+  "update": {
+    "available": "Update available: {{version}}",
+    "toVersion": "Update to {{version}}",
+    "stopRequired": "Stop the App before updating it.",
+    "confirmTitle": "Update {{app}}?",
+    "confirmMessage": "Update version {{from}} to {{to}}. App data managed by Nimi will be retained."
+  },
+  "packageAction": {
+    "selectionChanged": "The Catalog release changed. Review the current version and try again.",
+    "policyBlocked": "Current Catalog policy blocks this action: {{reason}}",
+    "unavailable": "App installation or update is unavailable. Try again later."
   }
 }

@@ -23,6 +23,8 @@ import {
 } from '@nimiplatform/kit/ui';
 import {
   actionPlanForEntry,
+  canRequestCatalogUpdate,
+  hasAvailableCatalogUpdate,
   type AppCardActionId,
 } from './apps-card-actions.js';
 import {
@@ -388,6 +390,14 @@ export function AppListRow({
         </div>
       </div>
       <div className="relative z-10 flex shrink-0 items-center gap-1">
+        {hasAvailableCatalogUpdate(entry) ? (
+          <Button size="sm" tone="primary" data-testid={`apps-entry-${identity.entryKey}-update`}
+            loading={activeAction === 'update'} disabled={activeAction !== null || !canRequestCatalogUpdate(entry)}
+            title={!canRequestCatalogUpdate(entry) && entry.run?.state === 'running' ? t('Apps.update.stopRequired') : undefined}
+            onClick={() => onAction('update')}>
+            {t('Apps.action.update')}
+          </Button>
+        ) : null}
         <AppRowActionButton entry={entry} activeAction={activeAction} onAction={onAction} />
         <Popover>
           <PopoverTrigger asChild>

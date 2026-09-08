@@ -499,6 +499,7 @@ pub enum ReasonCode {
     AppPackageUninstallUnavailable = 734,
     AppPackageHostRunning = 735,
     AppPackageUninstallFailed = 736,
+    AppPackageUpdateUnavailable = 737,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -849,6 +850,7 @@ impl ReasonCode {
             Self::AppPackageUninstallUnavailable => "APP_PACKAGE_UNINSTALL_UNAVAILABLE",
             Self::AppPackageHostRunning => "APP_PACKAGE_HOST_RUNNING",
             Self::AppPackageUninstallFailed => "APP_PACKAGE_UNINSTALL_FAILED",
+            Self::AppPackageUpdateUnavailable => "APP_PACKAGE_UPDATE_UNAVAILABLE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1266,6 +1268,7 @@ impl ReasonCode {
             }
             "APP_PACKAGE_HOST_RUNNING" => Some(Self::AppPackageHostRunning),
             "APP_PACKAGE_UNINSTALL_FAILED" => Some(Self::AppPackageUninstallFailed),
+            "APP_PACKAGE_UPDATE_UNAVAILABLE" => Some(Self::AppPackageUpdateUnavailable),
             _ => None,
         }
     }
@@ -11575,6 +11578,22 @@ pub struct StartAppPackageInstallResponse {
     pub reason_code: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartAppPackageUpdateRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub approved_target_selector: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub launch_selector: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "3")]
+    pub installed_version: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartAppPackageUpdateResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<AppPackageJob>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CancelAppPackageJobRequest {
     #[prost(bytes = "vec", tag = "1")]
     pub job_id: ::prost::alloc::vec::Vec<u8>,
@@ -11857,9 +11876,8 @@ pub mod runtime_app_package_service_client {
     )]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
-    /// Desktop-protected Runtime owner projection. StartAppPackageInstall remains
-    /// excluded from every shipped protected profile until the Desktop confirmation
-    /// and install-availability cutover land together. local_development is absent
+    /// Desktop-protected Runtime owner projection. Package mutations require the
+    /// exact reviewed target and Desktop confirmation. local_development is absent
     /// from every package enum and request.
     #[derive(Debug, Clone)]
     pub struct RuntimeAppPackageServiceClient<T> {
@@ -12084,6 +12102,35 @@ pub mod runtime_app_package_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAppPackageService",
                         "StartAppPackageInstall",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn start_app_package_update(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StartAppPackageUpdateRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::StartAppPackageUpdateResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUpdate",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "StartAppPackageUpdate",
                     ),
                 );
             self.inner.unary(req, path, codec).await

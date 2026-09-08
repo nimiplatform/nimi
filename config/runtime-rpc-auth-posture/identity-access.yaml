@@ -24,6 +24,8 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUpdate
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob

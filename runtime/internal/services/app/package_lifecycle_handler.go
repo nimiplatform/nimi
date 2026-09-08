@@ -186,7 +186,7 @@ func (s *Service) CancelAppPackageJob(
 		return nil, appPackageLifecycleError("cancel App package job", err)
 	}
 	registryOwned := job.SourceClass == localappkernel.SourceClassVerified &&
-		(job.Kind == localappkernel.PackageJobInstall || job.Kind == localappkernel.PackageJobUninstall)
+		(job.Kind == localappkernel.PackageJobInstall || job.Kind == localappkernel.PackageJobUpdate || job.Kind == localappkernel.PackageJobUninstall)
 	if registryOwned && s.appInstallCoordinator == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE)
 	}

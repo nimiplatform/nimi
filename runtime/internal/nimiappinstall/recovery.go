@@ -218,7 +218,7 @@ func (coordinator *Coordinator) Recover(ctx context.Context) error {
 		if err := ctx.Err(); err != nil {
 			return errors.Join(recoveryErr, err)
 		}
-		if !runtimeOwnedChild(job.JobID) || job.Kind != localappkernel.PackageJobInstall {
+		if !runtimeOwnedChild(job.JobID) || (job.Kind != localappkernel.PackageJobInstall && job.Kind != localappkernel.PackageJobUpdate) {
 			recoveryErr = errors.Join(recoveryErr, ErrInstallRecoveryRequired)
 			continue
 		}

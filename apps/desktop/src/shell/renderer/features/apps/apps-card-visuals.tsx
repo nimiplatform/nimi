@@ -14,6 +14,7 @@ import {
   type AppSourceId,
 } from './apps-card-fields.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
+import { hasAvailableCatalogUpdate } from './apps-card-actions.js';
 
 const ICON_SIZE_CLASS = Object.freeze({
   xs: 'h-6 w-6 rounded-md text-xs',
@@ -106,6 +107,7 @@ export function AppPackageStatusLine({ entry }: { readonly entry: DesktopAppsEnt
   return (
     <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[color:var(--nimi-text-muted)]">
       <span data-testid={`apps-entry-${entry.identity.entryKey}-installed-version`}>{versionLabel}</span>
+      {hasAvailableCatalogUpdate(entry) ? <span className="text-[var(--nimi-status-info)]" data-testid={`apps-entry-${entry.identity.entryKey}-available-version`}>{t('Apps.update.available', { version: entry.catalogTarget?.version })}</span> : null}
       {phaseLabel ? (
         <span data-testid={`apps-entry-${entry.identity.entryKey}-package-job`} data-package-job-phase={job?.phase}>
           {phaseLabel}{progress ? ` · ${progress}` : ''}

@@ -904,6 +904,14 @@ RUNTIME_METHODS = [
     "response_type": "StartAppPackageUninstallResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUpdate",
+    "service": "RuntimeAppPackageService",
+    "method": "StartAppPackageUpdate",
+    "kind": "unary",
+    "request_type": "StartAppPackageUpdateRequest",
+    "response_type": "StartAppPackageUpdateResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
     "service": "RuntimeAppService",
     "method": "AdoptLocalAppArtifact",

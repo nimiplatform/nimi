@@ -101,6 +101,9 @@ func (coordinator *Coordinator) WithVerifiedInstalledLaunch(ctx context.Context,
 		return fmt.Errorf("verify installed App payload: %w", err)
 	}
 	expected := coordinator.registrationInput(resolved, release.ReleaseRef, relative, materialized)
+	// This revision is Runtime-owned lifecycle state, not a package fact. The
+	// package-derived fields must still match after an update advances it.
+	expected.ProvenanceRevision = registration.ProvenanceRevision
 	if !sameInstalledRegistration(registration, expected) {
 		return ErrInstalledLaunch
 	}
