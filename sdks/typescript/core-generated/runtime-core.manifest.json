@@ -1078,6 +1078,15 @@
           "response_stream": false
         },
         {
+          "name": "StartAppPackageUpdate",
+          "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUpdate",
+          "kind": "unary",
+          "request_type": "StartAppPackageUpdateRequest",
+          "response_type": "StartAppPackageUpdateResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "StartAppPackageUninstall",
           "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall",
           "kind": "unary",
@@ -2335,6 +2344,7 @@
     "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
     "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
     "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall",
+    "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUpdate",
     "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
     "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
     "/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall",
@@ -3366,6 +3376,14 @@
       "kind": "unary",
       "request_type": "StartAppPackageUninstallRequest",
       "response_type": "StartAppPackageUninstallResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUpdate",
+      "service": "RuntimeAppPackageService",
+      "method": "StartAppPackageUpdate",
+      "kind": "unary",
+      "request_type": "StartAppPackageUpdateRequest",
+      "response_type": "StartAppPackageUpdateResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
@@ -5226,6 +5244,14 @@
       "response_type": "StartAppPackageUninstallResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUpdate",
+      "service": "RuntimeAppPackageService",
+      "method": "StartAppPackageUpdate",
+      "kind": "unary",
+      "request_type": "StartAppPackageUpdateRequest",
+      "response_type": "StartAppPackageUpdateResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
       "service": "RuntimeAppService",
       "method": "AdoptLocalAppArtifact",
@@ -6921,6 +6947,8 @@
       "StartAppPackageInstallResponse",
       "StartAppPackageUninstallRequest",
       "StartAppPackageUninstallResponse",
+      "StartAppPackageUpdateRequest",
+      "StartAppPackageUpdateResponse",
       "StartLocalEnvironmentDependencyJobRequest",
       "StartLocalEnvironmentDependencyJobResponse",
       "StartProductControlCheckSyncRequest",
@@ -32696,6 +32724,53 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
+        "name": "StartAppPackageUpdateRequest",
+        "fields": [
+          {
+            "name": "approved_target_selector",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "launch_selector",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "installed_version",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "StartAppPackageUpdateResponse",
+        "fields": [
+          {
+            "name": "job",
+            "type": "AppPackageJob",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "StartLocalEnvironmentDependencyJobRequest",
         "fields": [
           {
@@ -37999,7 +38074,8 @@
           "APP_CATALOG_UNAVAILABLE",
           "APP_PACKAGE_UNINSTALL_UNAVAILABLE",
           "APP_PACKAGE_HOST_RUNNING",
-          "APP_PACKAGE_UNINSTALL_FAILED"
+          "APP_PACKAGE_UNINSTALL_FAILED",
+          "APP_PACKAGE_UPDATE_UNAVAILABLE"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

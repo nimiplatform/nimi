@@ -5,7 +5,7 @@ import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../rendere
 import type { AppCardActionId } from './apps-card-actions.js';
 import { useAppsPanelController } from './apps-panel-controller.js';
 import { AppsPanelView } from './apps-panel-view.js';
-import { startAppsPackageInstall } from './apps-install-runtime.js';
+import { startAppsPackageInstall, startAppsPackageUpdate } from './apps-install-runtime.js';
 import { finishInstalledAppUninstall } from './apps-installed-bridge.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
 import {
@@ -85,6 +85,9 @@ export function AppsPanel(): ReactElement {
   const startInstall = useCallback((approvedTargetSelector: Uint8Array) => (
     startAppsPackageInstall(sdk.machineProduct().apps.startAppPackageInstall, approvedTargetSelector)
   ), [sdk]);
+  const startUpdate = useCallback((approvedTargetSelector: Uint8Array, launchSelector: Uint8Array, installedVersion: string) => (
+    startAppsPackageUpdate(sdk.machineProduct().apps.startAppPackageUpdate, approvedTargetSelector, launchSelector, installedVersion)
+  ), [sdk]);
   const listPackageJobs = useCallback(async () => {
     const response = await sdk.machineProduct().apps.listAppPackageJobs({});
     if (response.reasonCode !== ReasonCode.ACTION_EXECUTED) {
@@ -125,6 +128,7 @@ export function AppsPanel(): ReactElement {
     cancelPackageJob,
     listApprovedCatalogTargets,
     startInstall,
+    startUpdate,
     uninstall,
     listCommittedReleases,
     listPackageJobs,

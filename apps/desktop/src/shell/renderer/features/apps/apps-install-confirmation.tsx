@@ -20,10 +20,11 @@ export function AppsInstallConfirmationDialog({
   return (
     <ConfirmDialog
       open={intent !== null}
-      title={t('Apps.catalog.unsignedConfirmTitle')}
+      title={intent?.update ? t('Apps.update.confirmTitle', { app: intent.displayName }) : t('Apps.catalog.unsignedConfirmTitle')}
       message={intent ? (
         <div className="space-y-3">
-          <p>{t('Apps.catalog.unsignedConfirmMessage')}</p>
+          {intent.update ? <p>{t('Apps.update.confirmMessage', { from: intent.update.installedVersion, to: intent.version })}</p> : null}
+          {intent.windowsCodeSigning === 'unsigned' ? <p>{t('Apps.catalog.unsignedConfirmMessage')}</p> : null}
           <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 font-mono text-xs">
             <dt>{t('Apps.catalog.publisher')}</dt>
             <dd className="break-all text-right">{intent.displayName} · @{intent.publisherGithubNamespace}</dd>
@@ -36,7 +37,7 @@ export function AppsInstallConfirmationDialog({
           </dl>
         </div>
       ) : ''}
-      confirmLabel={t('Apps.catalog.unsignedConfirmAction')}
+      confirmLabel={t(intent?.update ? 'Apps.action.update' : 'Apps.catalog.unsignedConfirmAction')}
       cancelLabel={t('Common.cancel')}
       pending={pending}
       onConfirm={onConfirm}

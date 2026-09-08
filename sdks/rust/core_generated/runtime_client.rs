@@ -912,6 +912,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "StartAppPackageUninstallResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUpdate",
+        service: "RuntimeAppPackageService",
+        method: "StartAppPackageUpdate",
+        kind: "unary",
+        request_type: "StartAppPackageUpdateRequest",
+        response_type: "StartAppPackageUpdateResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
         service: "RuntimeAppService",
         method: "AdoptLocalAppArtifact",

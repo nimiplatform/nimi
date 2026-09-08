@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiapppackage"
 	"github.com/nimiplatform/nimi/runtime/internal/publicappregistry"
@@ -133,6 +134,163 @@ func TestCoordinatorInstallsExactApprovedPackageAndRegistersAfterPublication(t *
 	if err != nil || len(jobs) != 1 {
 		t.Fatalf("jobs=%+v err=%v", jobs, err)
 	}
+}
+
+func TestUpdatePreservesSubjectDataAndOldReleaseThroughCancellationAndFailure(t *testing.T) {
+	ctx := context.Background()
+	coordinator, client, kernel, transport := newInstallFixture(t, false)
+	initial, err := coordinator.Install(ctx, resolveInstallFixture(t, client))
+	if err != nil {
+		t.Fatal(err)
+	}
+	handle := initial.Registration.RegistrationHandle
+	stopped := func(observed string) error {
+		if observed != handle {
+			t.Fatal("wrong installed subject")
+		}
+		return nil
+	}
+	if _, err := coordinator.StartUpdate(ctx, resolveInstallFixture(t, client), handle, installTestVersion, stopped); !errors.Is(err, ErrAppAlreadyInstalled) {
+		t.Fatalf("same-version update: %v", err)
+	}
+	assets, err := appstorage.NewAssetStore(kernel.DataRoot(), appstorage.AssetPolicy{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner := appstorage.ManagedOwner{AccountID: "test-account", RegisteredAppSubject: initial.Registration.RegisteredAppSubject}
+	if _, err := assets.Write(ctx, owner, "profile.json", "application/json", false, io.NopCloser(strings.NewReader(`{"note":"preserve across update"}`))); err != nil {
+		t.Fatal(err)
+	}
+	advanceInstallFixture(t, transport, "1.2.4")
+	selector := resolveInstallFixture(t, client)
+	if _, err := coordinator.StartUpdate(ctx, selector, "wrong-installed-handle", installTestVersion, stopped); !errors.Is(err, publicappregistry.ErrStaleSelection) {
+		t.Fatalf("stale installed selection: %v", err)
+	}
+	if _, err := coordinator.StartUpdate(ctx, selector, handle, installTestVersion, func(string) error { return ErrUpdateHostRunning }); !errors.Is(err, ErrUpdateHostRunning) {
+		t.Fatalf("running Host update: %v", err)
+	}
+	if _, err := coordinator.StartUpdate(ctx, selector, handle, "1.2.2", stopped); !errors.Is(err, publicappregistry.ErrStaleSelection) {
+		t.Fatalf("stale installed version: %v", err)
+	}
+	jobs, _ := kernel.PackageLifecycle().ListJobs(ctx)
+	if len(jobs) != 1 {
+		t.Fatalf("rejected update created jobs: %d", len(jobs))
+	}
+	assertOld := func() {
+		t.Helper()
+		current, err := kernel.PackageLifecycle().GetCommittedRelease(ctx, initial.Release.AppID, localappkernel.SourceClassVerified)
+		if err != nil || current.ReleaseRef != initial.Release.ReleaseRef {
+			t.Fatalf("old release lost: %+v %v", current, err)
+		}
+		registration, err := kernel.Registrations().GetByHandle(ctx, handle)
+		if err != nil || registration.SourceGeneration != initial.Registration.SourceGeneration || registration.RegisteredAppSubject != owner.RegisteredAppSubject {
+			t.Fatalf("old registration changed: %+v %v", registration, err)
+		}
+		if _, err := os.Stat(initial.Registration.ProjectRoot); err != nil {
+			t.Fatal("old package removed", err)
+		}
+	}
+	transport.mu.Lock()
+	transport.stallAsset = true
+	transport.mu.Unlock()
+	job, err := coordinator.StartUpdate(ctx, selector, handle, installTestVersion, stopped)
+	if err != nil || job.Kind != localappkernel.PackageJobUpdate {
+		t.Fatalf("update start: %+v %v", job, err)
+	}
+	waitForInstallPhase(t, kernel, job.JobID, localappkernel.PackageJobDownloading)
+	assertOld()
+	if _, err := coordinator.CancelInstall(ctx, job.JobID, localappkernel.PackageJobDownloading, "user-canceled"); err != nil {
+		t.Fatal(err)
+	}
+	assertOld()
+	transport.mu.Lock()
+	transport.stallAsset = false
+	validAsset := append([]byte(nil), transport.asset...)
+	transport.asset[len(transport.asset)-1] ^= 1
+	transport.mu.Unlock()
+	job, err = coordinator.StartUpdate(ctx, selector, handle, installTestVersion, stopped)
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitForInstallPhase(t, kernel, job.JobID, localappkernel.PackageJobFailed)
+	assertOld()
+	transport.mu.Lock()
+	transport.asset = validAsset
+	transport.mu.Unlock()
+	job, err = coordinator.StartUpdate(ctx, selector, handle, installTestVersion, stopped)
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitForInstallPhase(t, kernel, job.JobID, localappkernel.PackageJobCompleted)
+	if err := coordinator.Recover(ctx); err != nil {
+		t.Fatal(err)
+	}
+	current, err := kernel.PackageLifecycle().GetCommittedRelease(ctx, initial.Release.AppID, localappkernel.SourceClassVerified)
+	if err != nil || current.Version != "1.2.4" || current.RegistrationHandle != handle {
+		t.Fatalf("updated release: %+v %v", current, err)
+	}
+	registration, err := kernel.Registrations().GetByHandle(ctx, handle)
+	if err != nil || registration.RegisteredAppSubject != owner.RegisteredAppSubject || registration.SourceGeneration != initial.Registration.SourceGeneration+1 {
+		t.Fatalf("updated subject: %+v %v", registration, err)
+	}
+	read, err := assets.Open(ctx, appstorage.ManagedOwner{AccountID: owner.AccountID, RegisteredAppSubject: registration.RegisteredAppSubject}, "profile.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := io.ReadAll(read.Body)
+	_ = read.Body.Close()
+	if err != nil || string(data) != `{"note":"preserve across update"}` {
+		t.Fatalf("App data lost: %q %v", data, err)
+	}
+	if err := coordinator.WithVerifiedInstalledLaunch(ctx, handle, func(launch VerifiedInstalledLaunch) error {
+		if launch.Release.Version != current.Version || launch.Registration.ProvenanceRevision != registration.ProvenanceRevision {
+			t.Fatal("launch did not use the updated release")
+		}
+		return nil
+	}); err != nil {
+		t.Fatalf("updated release cannot launch: %v", err)
+	}
+	if _, err := os.Stat(initial.Registration.ProjectRoot); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("retired package retained: %v", err)
+	}
+	// A crash after reserving another update keeps the committed release.
+	advanceInstallFixture(t, transport, "1.2.5")
+	_, interrupted, err := coordinator.beginInstallLocked(ctx, resolveInstallFixture(t, client), handle, current.Version, stopped)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := coordinator.Recover(ctx); err != nil {
+		t.Fatal(err)
+	}
+	failed, err := kernel.PackageLifecycle().GetJob(ctx, interrupted.JobID)
+	if err != nil || failed.Phase != localappkernel.PackageJobFailed {
+		t.Fatalf("interrupted update: %+v %v", failed, err)
+	}
+	retained, _ := kernel.PackageLifecycle().GetCommittedRelease(ctx, current.AppID, current.SourceClass)
+	if retained.ReleaseRef != current.ReleaseRef {
+		t.Fatal("restart lost committed update")
+	}
+}
+
+func advanceInstallFixture(t *testing.T, transport *installFixtureTransport, version string) {
+	t.Helper()
+	asset := buildInstallTestPackage(t, version)
+	digest := sha256.Sum256(asset)
+	name := installTestAppID + "-" + version + "-" + installTestTargetID + ".nimiapp"
+	repository := "https://github.com/publisher/example-app"
+	url := repository + "/releases/download/v" + version + "/" + name
+	documents := installRegistryDocuments(asset, hex.EncodeToString(digest[:]), name, url, repository, version)
+	transport.mu.Lock()
+	defer transport.mu.Unlock()
+	for path, raw := range transport.documents {
+		if strings.HasPrefix(path, "descriptors/") {
+			documents[path] = raw
+		}
+	}
+	transport.documents = documents
+	transport.asset = asset
+	transport.assetURL = url
+	transport.revision = installTestNextRevision
 }
 
 func TestInstalledLaunchRechecksFullPayloadCurrentPolicyAndReservation(t *testing.T) {
@@ -558,24 +716,28 @@ func resolveInstallFixture(t *testing.T, client *publicappregistry.Client) publi
 	return resolved.Selector
 }
 
-func installRegistryDocuments(packageBytes []byte, packageSHA, assetName, assetURL, repository string) map[string][]byte {
+func installRegistryDocuments(packageBytes []byte, packageSHA, assetName, assetURL, repository string, versions ...string) map[string][]byte {
+	version := installTestVersion
+	if len(versions) > 0 {
+		version = versions[0]
+	}
 	commonID := "https://registry.nimi.ai/schema/common.schema.json"
 	indexID := "https://registry.nimi.ai/schema/index.schema.json"
 	descriptorSchemaID := "https://registry.nimi.ai/schema/approved-descriptor.schema.json"
-	descriptorID := installTestAppID + "@" + installTestVersion
-	descriptorPath := "descriptors/" + installTestAppID + "/" + installTestVersion + ".json"
-	tag := "v" + installTestVersion
+	descriptorID := installTestAppID + "@" + version
+	descriptorPath := "descriptors/" + installTestAppID + "/" + version + ".json"
+	tag := "v" + version
 	descriptor := map[string]any{
 		"schema_version":       1,
 		"descriptor_id":        descriptorID,
-		"publisher_submission": map[string]any{"pull_number": 7, "path": "submissions/publisher/" + installTestAppID + "/" + installTestVersion + ".json", "head_sha": installTestSourceCommit},
+		"publisher_submission": map[string]any{"pull_number": 7, "path": "submissions/publisher/" + installTestAppID + "/" + version + ".json", "head_sha": installTestSourceCommit},
 		"admission": map[string]any{
 			"ordinary_release_proof": true, "trust_tier": "community", "build_assurance": "developer-attested",
 			"dependency_assurance": map[string]any{"lockfile_reviewed": true, "sbom_ref": nil},
 			"review":               map[string]any{"decision": "approved", "adjudicator_login": "maintainer", "adjudicator_actor_id": 42, "reason_code": "approved-review", "decided_at": "2026-09-04T00:00:00Z"},
 		},
 		"candidate": map[string]any{
-			"app_id": installTestAppID, "display_name": "Example App", "version": installTestVersion,
+			"app_id": installTestAppID, "display_name": "Example App", "version": version,
 			"publisher":  map[string]any{"github_namespace": "publisher", "namespace_kind": "organization", "assurance": "pseudonymous", "verified_domain_ref": nil, "kyc_ref": nil},
 			"source":     map[string]any{"repository": repository, "license": map[string]any{"spdx_expression": "MIT", "files": []any{map[string]any{"path": "LICENSE", "sha256": strings.Repeat("1", 64)}}}},
 			"release":    map[string]any{"tag": tag, "tag_protection_ref": "https://api.github.com/repos/publisher/example-app/rulesets/1", "commit_sha": installTestSourceCommit, "release_id": 21, "release_url": repository + "/releases/tag/" + tag, "release_notes_url": repository + "/releases/tag/" + tag, "immutable": true, "prerelease": false},
@@ -620,14 +782,18 @@ type installArchiveEntry struct {
 	mode  uint32
 }
 
-func buildInstallTestPackage(t *testing.T) []byte {
+func buildInstallTestPackage(t *testing.T, versions ...string) []byte {
 	t.Helper()
+	version := installTestVersion
+	if len(versions) > 0 {
+		version = versions[0]
+	}
 	executable, err := os.ReadFile(compileInstallTestPE(t))
 	if err != nil {
 		t.Fatal(err)
 	}
 	manifest := mustFixtureJSON(map[string]any{
-		"format": "nimi.app-package/v1", "app_id": installTestAppID, "version": installTestVersion,
+		"format": "nimi.app-package/v1", "app_id": installTestAppID, "version": version,
 		"target_id": installTestTargetID, "os": "windows", "arch": "x86_64", "runtime_entry": "payload/example-app.exe",
 		"native_trust":      map[string]any{"posture": "production-unsigned", "windows_authenticode": "unsigned", "certificate_subject": nil},
 		"execution_profile": map[string]any{"requested_execution_level": "asInvoker", "ui_access": false},
@@ -635,7 +801,7 @@ func buildInstallTestPackage(t *testing.T) []byte {
 	entries := []installArchiveEntry{
 		{name: "LICENSE", bytes: []byte("MIT\n"), mode: 0o644},
 		{name: "manifest.json", bytes: manifest, mode: 0o644},
-		{name: "nimi.app.yaml", bytes: []byte("app_id: " + installTestAppID + "\nversion: " + installTestVersion + "\napp_access:\n  - runtime.consume\n"), mode: 0o644},
+		{name: "nimi.app.yaml", bytes: []byte("app_id: " + installTestAppID + "\nversion: " + version + "\napp_access:\n  - runtime.consume\n"), mode: 0o644},
 		{name: "payload/example-app.exe", bytes: executable, mode: 0o755},
 		{name: "payload/resources/index.html", bytes: []byte("<html>fixture</html>"), mode: 0o644},
 	}

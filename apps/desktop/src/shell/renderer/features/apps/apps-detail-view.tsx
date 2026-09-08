@@ -38,6 +38,8 @@ import type { DesktopAppsEntry } from './apps-panel-projection.js';
 import {
   actionPlanForEntry,
   canRequestCatalogInstall,
+  canRequestCatalogUpdate,
+  hasAvailableCatalogUpdate,
   canRequestUninstall,
   type AppCardActionId,
 } from './apps-card-actions.js';
@@ -533,6 +535,17 @@ function InstalledAppsDetailView({
                 <Download className="mr-2 h-4 w-4" aria-hidden="true" />
                 {t('Apps.action.install')}
               </Button>
+            ) : null}
+            {hasAvailableCatalogUpdate(entry) ? (
+              <div className="mt-3">
+                <Button data-testid="apps-detail-update" tone="primary" size="sm"
+                  loading={activeAction === 'update'} disabled={activeAction !== null || !canRequestCatalogUpdate(entry)}
+                  onClick={() => onAction('update')}>
+                  <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+                  {t('Apps.update.toVersion', { version: entry.catalogTarget?.version })}
+                </Button>
+                {entry.run?.state === 'running' ? <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">{t('Apps.update.stopRequired')}</p> : null}
+              </div>
             ) : null}
             {entry.packageJob?.cancelable ? (
               <Button

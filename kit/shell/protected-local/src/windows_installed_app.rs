@@ -33,7 +33,9 @@ pub(crate) async fn launch(
             PrepareInstalledAppLaunchRequest {
                 launch_selector: selector,
             },
-            30,
+            // Full package verification precedes the short bind lease. A cold
+            // Electron tree can contain thousands of files and hundreds of MB.
+            120,
         ))
         .await
         .map_err(runtime_error)?
@@ -256,13 +258,32 @@ fn runtime_error(status: Status) -> NimiHostError {
     if let Some(reason) = crate::grpc_status::runtime_reason(&status) {
         metadata.insert("runtime_reason_code".into(), reason);
     }
-    let code = if matches!(
-        status.code(),
-        Code::Unavailable | Code::DeadlineExceeded | Code::Cancelled
-    ) {
+    let code = if status.code() == Code::Unavailable {
         NimiHostErrorReasonCode::RuntimeServiceUnavailable
     } else {
         NimiHostErrorReasonCode::InstalledAppLaunchFailed
     };
     NimiHostError::new(code, false).with_reason_metadata(metadata)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn launch_deadline_or_cancellation_does_not_invalidate_healthy_runtime_transport() {
+        for status in [
+            Status::deadline_exceeded("package verification timed out"),
+            Status::cancelled("launch canceled"),
+        ] {
+            assert_eq!(
+                runtime_error(status).reason_code(),
+                NimiHostErrorReasonCode::InstalledAppLaunchFailed
+            );
+        }
+        assert_eq!(
+            runtime_error(Status::unavailable("pipe disconnected")).reason_code(),
+            NimiHostErrorReasonCode::RuntimeServiceUnavailable
+        );
+    }
 }
