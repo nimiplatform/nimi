@@ -363,6 +363,23 @@ async function stageNativeCarrier(appPath) {
 async function stageDesktopNativeAssets(desktopApp, sourceRoot, localDevelopmentBuild) {
   await stageNativeCarrier(desktopApp);
   if (localDevelopmentBuild) return;
+  // @nimi-authority: rule.nimi.platform.app-ecosystem.p-appacc-001
+  // Runtime reads each formal App declaration from this fixed signed resource
+  // root before admitting Home or Avatar product operations.
+  const bundledAppsRoot = path.join(desktopApp, 'Contents', 'Resources', 'nimi-apps');
+  for (const [name, appRoot] of [['desktop', desktopRoot], ['avatar', avatarRoot]]) {
+    const releaseRoot = path.join(bundledAppsRoot, name);
+    await mkdir(releaseRoot, { recursive: true, mode: 0o755 });
+    const manifest = path.join(releaseRoot, 'nimi.app.yaml');
+    await cp(path.join(appRoot, 'nimi.app.yaml'), manifest, { force: false });
+    await chmod(manifest, 0o644);
+    // Include the packager's existing build version and ASAR integrity in the
+    // release input. An unchanged declaration must not make an updated signed
+    // Home executable look like a mutation of the previous immutable release.
+    const bundleInfo = path.join(releaseRoot, 'Info.plist');
+    await cp(path.join(desktopApp, 'Contents', 'Info.plist'), bundleInfo, { force: false });
+    await chmod(bundleInfo, 0o644);
+  }
   const uninstaller = path.join(desktopApp, 'Contents', 'Resources', 'Uninstall Nimi.command');
   await cp(path.join(desktopRoot, 'macos', 'Uninstall Nimi.command'), uninstaller, { force: false });
   await chmod(uninstaller, 0o755);

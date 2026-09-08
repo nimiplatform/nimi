@@ -57,6 +57,7 @@ import {
 } from './macos-electron-security.js';
 import {
   createDesktopElectronBundledAvatarHost,
+  resolveDesktopAvatarFormalLaunchBinding,
   type DesktopElectronBundledAvatarHost,
 } from './bundled-avatar-host.js';
 import { createDesktopElectronSystemResourcesHost } from './system-resources-host.js';
@@ -372,6 +373,11 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       packagedRendererIndexPath: ELECTRON_DEVELOPMENT_BUILD ? undefined : rendererDistAvatarIndex,
       publishPreviewImage: (bytes) => appOriginProtocol.publishAvatarPreview(bytes),
       preloadPath,
+      resolveFormalLaunchBinding: (request) => {
+        const host = registeredRuntimeBridge?.bundledAvatarLocalAppHost;
+        if (!host) throw new Error('Avatar formal App host is unavailable.');
+        return resolveDesktopAvatarFormalLaunchBinding(host, request);
+      },
       resolveAppPrivateDataRoot: async () => path.join(
         await resolveProductControlDataRoot(),
         'apps',

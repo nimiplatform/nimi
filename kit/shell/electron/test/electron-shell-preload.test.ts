@@ -104,6 +104,15 @@ describe('installNimiElectronRuntimeBridge', () => {
     });
     expect(menuBarEvents).toEqual([{ tab: 'runtime', page: 'overview' }]);
     unsubscribeMenuBar();
+    for (const eventName of ['avatar://host-suspend', 'avatar://agent-center-preview-request']) {
+      const receivedAvatarEvents: unknown[] = [];
+      const unsubscribeAvatar = hook.listen(eventName, (event) => receivedAvatarEvents.push(event.payload));
+      ipcEvents.get(`nimi:runtime:event:${eventName}`)?.({}, { requestId: 'avatar-event' });
+      expect(receivedAvatarEvents).toEqual([{ requestId: 'avatar-event' }]);
+      unsubscribeAvatar();
+      expect(ipcEvents.has(`nimi:runtime:event:${eventName}`)).toBe(false);
+      await expect(hook.invoke(eventName)).rejects.toThrow(/unsupported characters/u);
+    }
     expect(() => hook.listen('desktop-open:\\unsafe', () => undefined)).toThrow(/unsupported characters/u);
   });
 

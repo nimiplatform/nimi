@@ -18,6 +18,7 @@ import {
   type NimiElectronBundledAvatarHost,
   type NimiElectronBundledAvatarRuntimeAsset,
   type NimiElectronCommandHandler,
+  type NimiElectronLocalAppHost,
   type NimiElectronShellFileProtocolHost,
   type NimiElectronShellUiCommandInput,
 } from '@nimiplatform/kit/shell/electron/main';
@@ -115,6 +116,10 @@ export type CreateDesktopElectronBundledAvatarHostInput = {
   readonly devRendererRoot?: string;
   readonly packagedRendererIndexPath?: string;
   readonly publishPreviewImage?: (bytes: Uint8Array) => string;
+  readonly resolveFormalLaunchBinding: (input: {
+    readonly avatarHostTargetRef: string;
+    readonly conversationAnchorId: string | null;
+  }) => Promise<Pick<AvatarLaunchHandoffPayload, 'agentHandle' | 'conversationAnchorId'>>;
   readonly resolveFormalPresentationAsset: (input: {
     readonly agentHandle: string;
     readonly assetRef: string;
@@ -438,6 +443,14 @@ export async function createDesktopElectronBundledAvatarHost(
       }
     };
     secureAvatarWindow(window, rendererUrl, releaseWindow);
+    window.webContents.on('console-message', (event) => {
+      if (event.level === 'warning' || event.level === 'error') {
+        process.stderr.write(`[desktop:avatar] ${event.level}: ${event.message}\n`);
+      }
+    });
+    window.webContents.on('preload-error', (_event, _path, error) => {
+      process.stderr.write(`[desktop:avatar] preload failed: ${error.message}\n`);
+    });
     window.webContents.on('render-process-gone', () => {
       if (!window.isDestroyed()) window.destroy();
     });
@@ -1112,6 +1125,20 @@ export async function createDesktopElectronBundledAvatarHost(
     const avatarHostTargetRef = requiredAvatarHostTargetRef(rawDispatch.avatarHostTargetRef);
     const sourceApp = requiredSourceApp(rawDispatch.sourceApp);
     const target = request.target;
+    const createHandoffCandidate = async (): Promise<AvatarWindowRecord> => {
+      const binding = await input.resolveFormalLaunchBinding({
+        avatarHostTargetRef,
+        conversationAnchorId: target.conversationAnchorId ?? null,
+      });
+      const candidate = await createWindow(buildAvatarLaunchHandoffPayload({
+        ...binding,
+        avatarInstanceId: target.avatarInstanceId,
+        launchSource: target.launchSource ?? 'app-avatar-host-handoff',
+      }), avatarHostTargetRef, true);
+      candidate.committedPresentationRef = target.committedPresentationRef;
+      candidate.temporaryCustodyRef = target.temporaryCustodyRef;
+      return candidate;
+    };
     const active = [...windows.values()].filter((record) => !record.window.isDestroyed());
     if (active.length > 1) throw new Error('desktop-avatar-single-active-invariant-violated');
     let record = active[0];
@@ -1124,18 +1151,7 @@ export async function createDesktopElectronBundledAvatarHost(
       if (target.switchIntentRef) throw new Error('desktop-avatar-switch-intent-without-current-instance');
       if (request.command !== 'launch') return avatarHandoffNonPresentResult(request.command, 'absent');
       record = await runDesktopAvatarCandidatePromotion({
-        createCandidate: async () => {
-          const candidate = await createWindow(buildAvatarLaunchHandoffPayload({
-            agentHandle: target.agentHandle,
-            conversationAnchorId: target.conversationAnchorId,
-            avatarInstanceId: target.avatarInstanceId,
-            launchSource: target.launchSource ?? 'app-avatar-host-handoff',
-            sourceSurface: target.launchSource ?? 'app-avatar-host-handoff',
-          }), avatarHostTargetRef, true);
-          candidate.committedPresentationRef = target.committedPresentationRef;
-          candidate.temporaryCustodyRef = target.temporaryCustodyRef;
-          return candidate;
-        },
+        createCandidate: createHandoffCandidate,
         waitUntilReady: waitForPendingCandidateReady,
         validateCandidate: validatePendingCandidate,
         stageCurrent: () => {},
@@ -1182,18 +1198,7 @@ export async function createDesktopElectronBundledAvatarHost(
       switchIntents.delete(target.switchIntentRef);
       const currentRecord = record;
       record = await runDesktopAvatarCandidatePromotion({
-        createCandidate: async () => {
-          const candidate = await createWindow(buildAvatarLaunchHandoffPayload({
-            agentHandle: target.agentHandle,
-            conversationAnchorId: target.conversationAnchorId,
-            avatarInstanceId: target.avatarInstanceId,
-            launchSource: target.launchSource ?? 'app-avatar-host-handoff',
-            sourceSurface: target.launchSource ?? 'app-avatar-host-handoff',
-          }), avatarHostTargetRef, true);
-          candidate.committedPresentationRef = target.committedPresentationRef;
-          candidate.temporaryCustodyRef = target.temporaryCustodyRef;
-          return candidate;
-        },
+        createCandidate: createHandoffCandidate,
         waitUntilReady: waitForPendingCandidateReady,
         validateCandidate: validatePendingCandidate,
         stageCurrent: () => stageCurrentWindowForPromotion(currentRecord),
@@ -1335,6 +1340,38 @@ export async function createDesktopElectronBundledAvatarHost(
     },
     shutdown,
   };
+}
+
+// @nimi-authority: rule.nimi.runtime.agent-participation.r194
+// @nimi-authority: rule.nimi.runtime.agent-participation.r195
+export async function resolveDesktopAvatarFormalLaunchBinding(
+  host: Pick<NimiElectronLocalAppHost, 'agentReferenceList' | 'avatarHostTargetResolve' | 'conversationOpen'>,
+  input: { readonly avatarHostTargetRef: string; readonly conversationAnchorId: string | null },
+): Promise<Pick<AvatarLaunchHandoffPayload, 'agentHandle' | 'conversationAnchorId'>> {
+  // The source App's handle belongs to its own session. Correlate the target
+  // privately, then use only the Avatar App's freshly listed handle.
+  for (const reference of await host.agentReferenceList()) {
+    const agentHandle = requiredAgentHandle(reference.agentHandle, 'Avatar agentHandle');
+    const resolved = await host.avatarHostTargetResolve({ agentHandle, conversationAnchorId: null });
+    if (resolved.avatarHostTargetRef !== input.avatarHostTargetRef) continue;
+    if (input.conversationAnchorId !== null) {
+      // The existing Conversation is an exact continuity fence, not a selector.
+      const fenced = await host.avatarHostTargetResolve({
+        agentHandle,
+        conversationAnchorId: input.conversationAnchorId,
+      });
+      if (fenced.avatarHostTargetRef !== input.avatarHostTargetRef) {
+        throw new Error('desktop-avatar-conversation-target-mismatch');
+      }
+      return { agentHandle, conversationAnchorId: input.conversationAnchorId };
+    }
+    const conversation = await host.conversationOpen({ agentHandle });
+    return {
+      agentHandle,
+      conversationAnchorId: requiredText(conversation.conversationAnchorId, 'Avatar conversationAnchorId'),
+    };
+  }
+  throw new Error('desktop-avatar-current-formal-target-unavailable');
 }
 
 export function desktopAvatarHostSenderAuthorized(
