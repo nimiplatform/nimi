@@ -1172,7 +1172,12 @@ function recommendedAxisSelections(recipe: NimiLoadoutRecipe | undefined, assets
   if (!recipe) return {};
   return Object.fromEntries(recipe.slots.map((slot) => {
     if (slot.presence === 'optional-conditional') return [slot.slotId, ''];
-    const matched = assets.filter((asset) => slot.recommendedContentIds.includes(asset.contentId));
+    const installedOfferIds = new Set(slot.offers
+      .filter((offer) => offer.applicability !== 'unsupported' && offer.installedModelAssetId)
+      .map((offer) => offer.installedModelAssetId));
+    const matched = assets.filter((asset) => (
+      slot.recommendedContentIds.includes(asset.contentId) || installedOfferIds.has(asset.modelAssetId)
+    ));
     return [slot.slotId, matched.length === 1 ? matched[0]!.modelAssetId : ''];
   }));
 }
@@ -1203,6 +1208,7 @@ export function recommendedInstallItems(
  * Prepare performs the authoritative Model Contract evaluation. The opaque
  * Model Contract and ModelAsset fingerprint are never reinterpreted here.
  */
+// @nimi-authority: rule.nimi.runtime.local-compute.r107
 export function runtimeConfigLoadoutCandidateAssets(
   slot: (Pick<NimiLoadoutRecipe['slots'][number], 'recommendedContentIds'> & Partial<Pick<NimiLoadoutRecipe['slots'][number], 'offers'>>) | undefined,
   assets: readonly NimiRuntimeModelAssetRecord[],

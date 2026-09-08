@@ -5297,6 +5297,7 @@ class SearchCatalogModelsRequest:
 class SearchCatalogModelsResponse:
     items: tuple[ModelAssetCatalogSearchResult, ...] = field(default_factory=tuple)
     next_page_token: str | None = None
+    hugging_face_unavailable: bool | None = None
 
 @dataclass(frozen=True)
 class SelectLoadoutRequest:

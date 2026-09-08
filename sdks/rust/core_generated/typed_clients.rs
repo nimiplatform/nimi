@@ -10256,6 +10256,7 @@ pub struct SearchCatalogModelsRequest {
 pub struct SearchCatalogModelsResponse {
     pub items: Vec<Box<ModelAssetCatalogSearchResult>>,
     pub next_page_token: Option<String>,
+    pub hugging_face_unavailable: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

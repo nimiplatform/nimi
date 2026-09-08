@@ -281,6 +281,11 @@ export interface NimiRuntimeLocalCatalogSearchInput {
   readonly maxPages?: number;
 }
 
+export interface NimiRuntimeLocalCatalogSearchResult {
+  readonly items: readonly NimiRuntimeModelAssetCatalogSearchResult[];
+  readonly huggingFaceUnavailable: boolean;
+}
+
 export interface NimiRuntimeLocalResolveInstallPlanInput {
   readonly itemId?: string;
   readonly source?: 'verified' | 'huggingface' | string;
@@ -371,7 +376,7 @@ export interface NimiRuntimeLocalEnvironmentClient {
     readonly pageSize?: number;
     readonly maxPages?: number;
   }): Promise<readonly NimiRuntimeLocalVerifiedAssetDescriptor[]>;
-  searchCatalog(input: NimiRuntimeLocalCatalogSearchInput): Promise<readonly NimiRuntimeModelAssetCatalogSearchResult[]>;
+  searchCatalog(input: NimiRuntimeLocalCatalogSearchInput): Promise<NimiRuntimeLocalCatalogSearchResult>;
   getCatalogModelCard(input: { readonly modelLocator?: string; readonly offerRef?: string }): Promise<{ readonly markdown: string; readonly sourceUrl: string; readonly baseUrl: string }>;
   listCatalogVariants(modelLocator: string): Promise<readonly NimiRuntimeModelAssetMarketCandidate[]>;
   listFeaturedModelAssets(input: {

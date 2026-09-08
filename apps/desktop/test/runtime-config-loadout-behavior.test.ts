@@ -184,7 +184,7 @@ test('Runtime recommendations order installed choices without excluding custom m
   const recommended = { modelAssetId: 'recommended', contentId: recommendedContentId } as NimiRuntimeModelAssetRecord;
   const currentCustom = { modelAssetId: 'current-custom', contentId: customContentId } as NimiRuntimeModelAssetRecord;
   const unrelated = { modelAssetId: 'unrelated', contentId: unrelatedContentId } as NimiRuntimeModelAssetRecord;
-  const slot = { recommendedContentIds: [recommendedContentId] };
+  const slot = { recommendedContentIds: [recommendedContentId], offers: [] };
 
   assert.deepEqual(
     runtimeConfigLoadoutCandidateAssets({ recommendedContentIds: [], offers: [
@@ -212,6 +212,16 @@ test('Runtime recommendations order installed choices without excluding custom m
     }),
     [],
   );
+});
+
+test('Loadout candidates prioritize an installed Runtime offer without hiding other assets', () => {
+  const installed = { modelAssetId: 'market-installed', contentId: `sha256:${'d'.repeat(64)}` } as NimiRuntimeModelAssetRecord;
+  const unrelated = { modelAssetId: 'unrelated', contentId: `sha256:${'e'.repeat(64)}` } as NimiRuntimeModelAssetRecord;
+  const slot = {
+    recommendedContentIds: [`sha256:${'a'.repeat(64)}`],
+    offers: [recipeOffer('offer:text-variant', 'supported', installed.modelAssetId)],
+  };
+  assert.deepEqual(runtimeConfigLoadoutCandidateAssets(slot, [unrelated, installed]), [installed, unrelated]);
 });
 
 test('Recipe template grouping preserves multiple image plans in canonical order', () => {

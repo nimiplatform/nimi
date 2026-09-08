@@ -115,29 +115,45 @@ func TestSearchCatalogModelsReturnsUniqueBrowseLocators(t *testing.T) {
 	}
 }
 
-func TestSearchCatalogModelsHFFailureReturnsReasonCode(t *testing.T) {
+func TestSearchCatalogModelsHFFailurePreservesLocalResults(t *testing.T) {
 	svc := newTestService(t)
 	upstreamErr := errors.New(`hf timeout for C:\private\models?token=secret`)
 	svc.hfCatalogSearch = func(_ context.Context, _ hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
 		return nil, upstreamErr
 	}
 
-	_, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{
-		Query: "llama",
-	})
-	if err == nil {
-		t.Fatalf("expected hf search failure")
+	for _, query := range []string{"qwen2", "no-such-catalog-model"} {
+		resp, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{Query: query})
+		if err != nil {
+			t.Fatalf("HF outage discarded local discovery: %v", err)
+		}
+		if !resp.GetHuggingFaceUnavailable() {
+			t.Fatal("HF outage must remain explicit even when local results are empty")
+		}
+		if (len(resp.GetItems()) > 0) != (query == "qwen2") {
+			t.Fatalf("unexpected local matches for %q: %v", query, resp.GetItems())
+		}
+		payload, err := json.Marshal(resp)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(payload), "token=secret") || strings.Contains(string(payload), "private") {
+			t.Fatal("partial response leaked upstream error")
+		}
 	}
-	st, _ := status.FromError(err)
-	if st.Code() != codes.Unavailable {
-		t.Fatalf("expected Unavailable, got %v", st.Code())
+}
+
+func TestSearchCatalogModelsCancellationDoesNotBecomePartialSuccess(t *testing.T) {
+	svc := newTestService(t)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	svc.hfCatalogSearch = func(_ context.Context, _ hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+		cancel()
+		return nil, ctx.Err()
 	}
-	assertGRPCReasonCode(t, err, "SearchCatalogModels(HF failure)", runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED)
-	if !errors.Is(err, upstreamErr) {
-		t.Fatal("expected upstream HF error to remain available in-process")
-	}
-	if strings.Contains(st.Message(), upstreamErr.Error()) || strings.Contains(st.Message(), "token=secret") {
-		t.Fatalf("public status leaked upstream error: %q", st.Message())
+	resp, err := svc.SearchCatalogModels(ctx, &runtimev1.SearchCatalogModelsRequest{Query: "llama"})
+	if resp != nil || status.Code(err) != codes.Canceled {
+		t.Fatalf("cancelled search returned %v, %v", resp, err)
 	}
 }
 

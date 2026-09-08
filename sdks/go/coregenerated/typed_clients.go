@@ -7001,8 +7001,9 @@ type SearchCatalogModelsRequest struct {
 }
 
 type SearchCatalogModelsResponse struct {
-	Items         []ModelAssetCatalogSearchResult `json:"items,omitempty"`
-	NextPageToken string                          `json:"next_page_token,omitempty"`
+	Items                  []ModelAssetCatalogSearchResult `json:"items,omitempty"`
+	NextPageToken          string                          `json:"next_page_token,omitempty"`
+	HuggingFaceUnavailable bool                            `json:"hugging_face_unavailable,omitempty"`
 }
 
 type SelectLoadoutRequest struct {

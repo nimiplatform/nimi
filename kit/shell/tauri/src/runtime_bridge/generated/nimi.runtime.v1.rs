@@ -9026,6 +9026,9 @@ pub struct SearchCatalogModelsResponse {
     pub items: ::prost::alloc::vec::Vec<ModelAssetCatalogSearchResult>,
     #[prost(string, tag = "2")]
     pub next_page_token: ::prost::alloc::string::String,
+    /// Local catalog rows remain available when the independent HF source fails.
+    #[prost(bool, tag = "3")]
+    pub hugging_face_unavailable: bool,
 }
 /// Read-only model card for either a browse result or an exact market offer.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

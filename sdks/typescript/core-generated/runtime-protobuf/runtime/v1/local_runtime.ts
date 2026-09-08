@@ -219,6 +219,12 @@ export interface SearchCatalogModelsResponse {
      * @generated from protobuf field: string next_page_token = 2
      */
     nextPageToken: string;
+    /**
+     * Local catalog rows remain available when the independent HF source fails.
+     *
+     * @generated from protobuf field: bool hugging_face_unavailable = 3
+     */
+    huggingFaceUnavailable: boolean;
 }
 /**
  * Read-only model card for either a browse result or an exact market offer.
@@ -1719,13 +1725,15 @@ class SearchCatalogModelsResponse$Type extends MessageType<SearchCatalogModelsRe
     constructor() {
         super("nimi.runtime.v1.SearchCatalogModelsResponse", [
             { no: 1, name: "items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ModelAssetCatalogSearchResult },
-            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "next_page_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "hugging_face_unavailable", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<SearchCatalogModelsResponse>): SearchCatalogModelsResponse {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.items = [];
         message.nextPageToken = "";
+        message.huggingFaceUnavailable = false;
         if (value !== undefined)
             reflectionMergePartial<SearchCatalogModelsResponse>(this, message, value);
         return message;
@@ -1740,6 +1748,9 @@ class SearchCatalogModelsResponse$Type extends MessageType<SearchCatalogModelsRe
                     break;
                 case /* string next_page_token */ 2:
                     message.nextPageToken = reader.string();
+                    break;
+                case /* bool hugging_face_unavailable */ 3:
+                    message.huggingFaceUnavailable = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1759,6 +1770,9 @@ class SearchCatalogModelsResponse$Type extends MessageType<SearchCatalogModelsRe
         /* string next_page_token = 2; */
         if (message.nextPageToken !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.nextPageToken);
+        /* bool hugging_face_unavailable = 3; */
+        if (message.huggingFaceUnavailable !== false)
+            writer.tag(3, WireType.Varint).bool(message.huggingFaceUnavailable);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -10,6 +10,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (s *Service) ListVerifiedAssets(_ context.Context, req *runtimev1.ListVerifiedAssetsRequest) (*runtimev1.ListVerifiedAssetsResponse, error) {
@@ -44,6 +45,7 @@ func (s *Service) ListVerifiedAssets(_ context.Context, req *runtimev1.ListVerif
 	}, nil
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r020
 func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.SearchCatalogModelsRequest) (*runtimev1.SearchCatalogModelsResponse, error) {
 	query := strings.ToLower(strings.TrimSpace(req.GetQuery()))
 	category := strings.ToLower(strings.TrimSpace(req.GetCategory()))
@@ -73,11 +75,16 @@ func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.Search
 		CategoryFilter: category,
 		Limit:          int32(pageSize),
 	})
+	if ctx.Err() != nil {
+		return nil, status.FromContextError(ctx.Err()).Err()
+	}
+	huggingFaceUnavailable := false
 	if err != nil {
 		if strings.Contains(err.Error(), errHfRepoInvalid.Error()) {
 			return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID, err, grpcerr.ReasonOptions{Message: "catalog repository is invalid"})
 		}
-		return nil, grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_LOCAL_HF_SEARCH_FAILED, err, grpcerr.ReasonOptions{Message: "catalog search failed"})
+		huggingFaceUnavailable = true
+		hfItems = nil
 	}
 	for _, item := range hfItems {
 		if matchesCatalogBrowse(item, query, category) {
@@ -107,7 +114,7 @@ func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.Search
 		}
 		items = append(items, projected)
 	}
-	return &runtimev1.SearchCatalogModelsResponse{Items: items, NextPageToken: next}, nil
+	return &runtimev1.SearchCatalogModelsResponse{Items: items, NextPageToken: next, HuggingFaceUnavailable: huggingFaceUnavailable}, nil
 }
 
 func normalizeCatalogSearchPageSize(raw int32) int {
