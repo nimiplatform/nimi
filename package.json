@@ -18,6 +18,7 @@
     "build:runtime": "node scripts/build-runtime.mjs",
     "build:windows-runtime-unsigned-bootstrap": "node scripts/build-windows-runtime-unsigned-bootstrap.mjs",
     "build:macos:electron:layout": "pnpm --filter @nimiplatform/desktop build:macos:electron:layout",
+    "build:macos:release": "pnpm --filter @nimiplatform/desktop build:macos:release",
     "build:macos:dev-candidate": "pnpm --filter @nimiplatform/desktop build:macos:electron:dev-candidate",
     "build:macos:dev-security-helper": "node scripts/build-macos-dev-security-helper.mjs",
     "build:windows-runtime-service-installer": "node scripts/build-windows-runtime-service-installer.mjs",

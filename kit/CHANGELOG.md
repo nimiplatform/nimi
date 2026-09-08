@@ -11,6 +11,10 @@ Discipline.
 
 ### Added
 
+- Added an optional main-only `desktopHost.runtimeLifecycle` port so Home's
+  service registration/approval policy also handles renderer lifecycle calls.
+  This compatible host-input widening belongs to the unreleased minor surface;
+  it does not expose a new renderer command or change App access.
 - Added main-only verified installed App launch, focus, stop and Runtime session
   Access projection. Windows launch checks exact lease bytes, current-user
   non-elevated tokens and an owner-scoped Job Object before resuming the child.

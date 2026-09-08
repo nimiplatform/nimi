@@ -132,11 +132,7 @@ pub(crate) fn verify_runtime_peer_once(
             i32::from(policy.require_ad_hoc),
         )
     };
-    if status == 0 {
-        Ok(())
-    } else {
-        Err(untrusted())
-    }
+    peer_verification_result(status)
 }
 
 #[cfg(feature = "macos-source-local-development")]
@@ -179,21 +175,17 @@ fn expected_source_runtime_executable() -> Result<PathBuf, ProtectedCarrierError
     Ok(path)
 }
 
-#[cfg(feature = "macos-source-local-development")]
 fn peer_verification_result(status: i32) -> Result<(), ProtectedCarrierError> {
     match status {
         0 => Ok(()),
-        // The Runtime's accept side closes the socket when it holds no live
-        // one-shot launch grant for this peer, and the close races this check
-        // as a transport-level disconnect. That absence is transient (the
-        // supervisor renews the grant), not a trust verdict; every genuine
-        // identity or executable mismatch keeps the fail-closed verdict.
+        // An unaccepted or disconnected socket can lack a live peer token.
+        // No channel is admitted on these errors. Identity, executable and
+        // signing mismatches still fail closed without a retryable verdict.
         libc::EINVAL | libc::ENOTCONN | libc::EPIPE | libc::ECONNRESET => Err(unavailable()),
         _ => Err(untrusted()),
     }
 }
 
-#[cfg(feature = "macos-source-local-development")]
 fn unavailable() -> ProtectedCarrierError {
     ProtectedCarrierError::new(ProtectedCarrierReasonCode::RuntimeServiceUnavailable, true)
 }
@@ -336,8 +328,8 @@ mod tests {
     }
 }
 
-#[cfg(all(test, feature = "macos-source-local-development"))]
-mod source_local_development_peer_tests {
+#[cfg(test)]
+mod peer_result_tests {
     use super::*;
 
     #[test]

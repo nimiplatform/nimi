@@ -752,6 +752,18 @@ pub async fn fixed_runtime_service_status() -> NativeJsonOutcome {
     }
 }
 
+#[cfg(target_os = "macos")]
+#[napi(js_name = "macosRuntimeServiceRegistration")]
+pub async fn macos_runtime_service_registration(operation: String) -> NativeJsonOutcome {
+    match tokio::task::spawn_blocking(move || {
+        nimi_shell_protected_local::macos_runtime_service_registration(&operation)
+    }).await {
+        Ok(Ok(status)) => NativeJsonOutcome::success(serde_json::json!({ "registrationStatus": status })),
+        Ok(Err(error)) => NativeJsonOutcome::protected_error(error),
+        Err(_) => NativeJsonOutcome::host_reason("runtime-service-unavailable", true),
+    }
+}
+
 #[napi(js_name = "fixedRuntimeServiceStart")]
 pub async fn fixed_runtime_service_start() -> NativeJsonOutcome {
     #[cfg(any(

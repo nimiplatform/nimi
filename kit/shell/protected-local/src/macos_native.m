@@ -35,6 +35,7 @@ enum {
     NIMI_MACOS_ACL_PRODUCT_CONTROL_DIRECTORY = 2,
     NIMI_MACOS_ACL_DATA_DIRECTORY = 3,
     NIMI_MACOS_ACL_MODIFY_FILE = 4,
+    NIMI_MACOS_ACL_DATA_FILE = 5,
 };
 
 static const acl_permset_mask_t NIMI_MACOS_ACL_SEARCH_MASK = ACL_SEARCH;
@@ -106,6 +107,7 @@ static int nimi_acl_policy(int policy, mode_t file_mode,
             *expected_flags = ACL_ENTRY_FILE_INHERIT | ACL_ENTRY_DIRECTORY_INHERIT;
             return 0;
         case NIMI_MACOS_ACL_MODIFY_FILE:
+        case NIMI_MACOS_ACL_DATA_FILE:
             if (!S_ISREG(file_mode)) return EINVAL;
             *expected_permissions = NIMI_MACOS_ACL_MODIFY_MASK;
             *expected_flags = 0;
@@ -193,11 +195,12 @@ static int nimi_inspect_fixed_runtime_acl(const char *path, uid_t expected_owner
     *exact = 0;
     struct stat info;
     if (lstat(path, &info) != 0) return errno == 0 ? EIO : errno;
-    int is_data_directory = policy == NIMI_MACOS_ACL_DATA_DIRECTORY;
-    int owner_is_admitted = is_data_directory || info.st_uid == expected_owner ||
+    int is_data_path = policy == NIMI_MACOS_ACL_DATA_DIRECTORY ||
+        policy == NIMI_MACOS_ACL_DATA_FILE;
+    int owner_is_admitted = is_data_path || info.st_uid == expected_owner ||
         (policy == NIMI_MACOS_ACL_MODIFY_FILE && info.st_uid == runtime_owner);
     if (S_ISLNK(info.st_mode) || !owner_is_admitted ||
-        (!is_data_directory && (info.st_mode & (S_IWGRP | S_IWOTH)) != 0)) {
+        (!is_data_path && (info.st_mode & (S_IWGRP | S_IWOTH)) != 0)) {
         return EACCES;
     }
     acl_permset_mask_t expected_permissions = 0;
@@ -229,7 +232,7 @@ static int nimi_inspect_fixed_runtime_acl(const char *path, uid_t expected_owner
         if (status != 0) break;
         status = nimi_acl_entry_matches_uuid(entry, runtime_uuid, &matches_runtime);
         if (status != 0) break;
-        if (!is_data_directory) {
+        if (!is_data_path) {
             status = nimi_acl_entry_is_broad_group(entry, &broad_group);
             if (status != 0) break;
             if (broad_group && (permissions & NIMI_MACOS_ACL_BROAD_MUTATION_MASK) != 0) {
@@ -291,7 +294,7 @@ static int nimi_acl_entry_is_stale_runtime(acl_entry_t entry,
 
 static int nimi_copy_acl_without_runtime(acl_t source, const uuid_t runtime_uuid,
                                          acl_permset_mask_t expected_permissions,
-                                         uint32_t expected_flags, acl_t *output) {
+                                         uint32_t expected_flags, int remove_stale, acl_t *output) {
     if (source == NULL || runtime_uuid == NULL || output == NULL) return EINVAL;
     acl_t next = acl_init(0);
     if (next == NULL) return errno == 0 ? ENOMEM : errno;
@@ -303,9 +306,11 @@ static int nimi_copy_acl_without_runtime(acl_t source, const uuid_t runtime_uuid
         int stale_runtime = 0;
         status = nimi_acl_entry_matches_uuid(entry, runtime_uuid, &matches_runtime);
         if (status != 0) break;
-        status = nimi_acl_entry_is_stale_runtime(
-            entry, expected_permissions, expected_flags, &stale_runtime);
-        if (status != 0) break;
+        if (remove_stale) {
+            status = nimi_acl_entry_is_stale_runtime(
+                entry, expected_permissions, expected_flags, &stale_runtime);
+            if (status != 0) break;
+        }
         if (!matches_runtime && !stale_runtime) {
             acl_entry_t copied = NULL;
             if (acl_create_entry(&next, &copied) != 0 || copied == NULL ||
@@ -398,7 +403,9 @@ int nimi_macos_prepare_fixed_runtime_path_acl(const char *path, int policy) {
 
     struct stat info;
     if (lstat(path, &info) != 0) return errno == 0 ? EIO : errno;
-    if (policy != NIMI_MACOS_ACL_DATA_DIRECTORY && info.st_uid == runtime_uid) return EACCES;
+    int is_data_path = policy == NIMI_MACOS_ACL_DATA_DIRECTORY ||
+        policy == NIMI_MACOS_ACL_DATA_FILE;
+    if (!is_data_path && info.st_uid == runtime_uid) return EACCES;
     acl_permset_mask_t expected_permissions = 0;
     uint32_t expected_flags = 0;
     status = nimi_acl_policy(policy, info.st_mode, &expected_permissions, &expected_flags);
@@ -409,7 +416,7 @@ int nimi_macos_prepare_fixed_runtime_path_acl(const char *path, int policy) {
     if (current == NULL) return errno == 0 ? EIO : errno;
     acl_t next = NULL;
     status = nimi_copy_acl_without_runtime(
-        current, runtime_uuid, expected_permissions, expected_flags, &next);
+        current, runtime_uuid, expected_permissions, expected_flags, !is_data_path, &next);
     acl_free(current);
     if (status != 0) return status;
     status = nimi_append_fixed_runtime_acl_entry(
@@ -606,8 +613,8 @@ int nimi_macos_verify_runtime_peer(int socket_fd, const char *expected_path,
     struct sockaddr_un peer_address;
     memset(&peer_address, 0, sizeof(peer_address));
     socklen_t peer_address_length = sizeof(peer_address);
-    if (getpeername(socket_fd, (struct sockaddr *)&peer_address, &peer_address_length) != 0 ||
-        peer_address.sun_family != AF_UNIX || strcmp(peer_address.sun_path, expected_path) != 0) {
+    if (getpeername(socket_fd, (struct sockaddr *)&peer_address, &peer_address_length) != 0) return errno;
+    if (peer_address.sun_family != AF_UNIX || strcmp(peer_address.sun_path, expected_path) != 0) {
         return EACCES;
     }
     audit_token_t token;
@@ -615,10 +622,12 @@ int nimi_macos_verify_runtime_peer(int socket_fd, const char *expected_path,
     socklen_t token_length = sizeof(token);
     pid_t peer_pid = 0;
     socklen_t pid_length = sizeof(peer_pid);
-    if (getsockopt(socket_fd, SOL_LOCAL, LOCAL_PEERTOKEN, &token, &token_length) != 0 ||
-        token_length != sizeof(token) ||
-        getsockopt(socket_fd, SOL_LOCAL, LOCAL_PEERPID, &peer_pid, &pid_length) != 0 ||
-        pid_length != sizeof(peer_pid) || peer_pid <= 0 ||
+    // A peer that has not reached accept(), or has disconnected, may have no
+    // audit token yet. Preserve the socket error separately from a verified
+    // identity mismatch so the caller can retry only unavailable transport.
+    if (getsockopt(socket_fd, SOL_LOCAL, LOCAL_PEERTOKEN, &token, &token_length) != 0) return errno;
+    if (getsockopt(socket_fd, SOL_LOCAL, LOCAL_PEERPID, &peer_pid, &pid_length) != 0) return errno;
+    if (token_length != sizeof(token) || pid_length != sizeof(peer_pid) || peer_pid <= 0 ||
         audit_token_to_pid(token) != peer_pid || audit_token_to_pidversion(token) == 0 ||
         audit_token_to_euid(token) != service_uid || audit_token_to_ruid(token) != service_uid) {
         return EACCES;
@@ -862,7 +871,7 @@ int nimi_macos_register_runtime_service(void) {
     }
 }
 
-int nimi_macos_reregister_runtime_service(void) {
+int nimi_macos_unregister_runtime_service(void) {
     @autoreleasepool {
         if (![NSBundle.mainBundle.bundlePath isEqualToString:@NIMI_MACOS_DESKTOP_APPLICATION]) {
             return -2;
@@ -871,7 +880,7 @@ int nimi_macos_reregister_runtime_service(void) {
         return -3;
 #else
         SMAppService *service = [SMAppService daemonServiceWithPlistName:@"ai.nimi.runtime.plist"];
-        if (service.status != SMAppServiceStatusEnabled) return -3;
+        if (service.status == SMAppServiceStatusNotRegistered) return 0;
         dispatch_semaphore_t completion = dispatch_semaphore_create(0);
         __block BOOL unregister_failed = NO;
         [service unregisterWithCompletionHandler:^(NSError *error) {
@@ -883,8 +892,21 @@ int nimi_macos_reregister_runtime_service(void) {
             service.status != SMAppServiceStatusNotRegistered) {
             return -3;
         }
-        return nimi_macos_register_service(service);
+        return (int)service.status;
 #endif
+    }
+}
+
+int nimi_macos_reregister_runtime_service(void) {
+    int result = nimi_macos_unregister_runtime_service();
+    return result == 0 ? nimi_macos_register_runtime_service() : result;
+}
+
+int nimi_macos_open_runtime_service_settings(void) {
+    @autoreleasepool {
+        if (![NSBundle.mainBundle.bundlePath isEqualToString:@NIMI_MACOS_DESKTOP_APPLICATION]) return -2;
+        [SMAppService openSystemSettingsLoginItems];
+        return 0;
     }
 }
 

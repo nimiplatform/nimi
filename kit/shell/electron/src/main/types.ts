@@ -358,6 +358,8 @@ export type NimiElectronStandardShellHost = {
 };
 
 export type NimiElectronDesktopHost = {
+  /** Home-owned service policy; Kit carries its exact status/start/restart calls. */
+  readonly runtimeLifecycle?: import('./runtime-lifecycle-host.js').NimiElectronRuntimeLifecycleHost;
   /** Exact Desktop-owned main WebContents/main-frame authorization. */
   readonly authorizeSender: (event: NimiElectronIpcMainInvokeEvent) => boolean;
   /** Desktop-owned sender destruction or replacement invalidation. */

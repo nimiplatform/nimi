@@ -13,6 +13,7 @@
     "build:electron:prepared": "pnpm run prepare:electron-native && tsc -p tsconfig.electron.json && node scripts/bundle-electron-main.mjs && node scripts/bundle-electron-preload.mjs",
     "build:electron": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run build:electron:prepared",
     "build:macos:electron:layout": "node scripts/build-macos-electron-release.mjs --layout-only",
+    "build:macos:release": "node scripts/build-macos-electron-release.mjs --production",
     "build:macos:electron:dev-candidate": "node scripts/build-macos-electron-release.mjs --local-development-candidate",
     "typecheck": "tsc --noEmit",
     "build": "pnpm run build:electron && pnpm run typecheck && pnpm run build:renderer",

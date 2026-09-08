@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from 'node:fs';
+import { closeSync, openSync, readSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
@@ -6,10 +6,39 @@ const FORBIDDEN_ENTITLEMENTS = new Set([
   'com.apple.security.cs.allow-unsigned-executable-memory',
   'com.apple.security.cs.debugger',
   'com.apple.security.cs.disable-library-validation',
-  'com.apple.security.device.audio-input',
   'com.apple.security.device.camera',
   'com.apple.security.get-task-allow',
 ]);
+
+// @nimi-authority: rule.nimi.runtime.service-operations.r067
+// This is a build input, sealed into both Home and Runtime before signing.
+// Keep the accepted endpoints to the public service and local acceptance target.
+export function macOSReleaseRealmBaseURL(value = 'https://realm.nimi.ai') {
+  if (!['https://realm.nimi.ai', 'http://127.0.0.1:3002'].includes(value)) {
+    throw new Error('NIMI_MACOS_RELEASE_REALM_URL must be https://realm.nimi.ai or http://127.0.0.1:3002');
+  }
+  return value;
+}
+
+// Home initiates microphone capture; Chromium's AudioService runs in the
+// ordinary utility Helper. Renderer/GPU/Plugin helpers and Runtime do not
+// receive the audio entitlement merely because they are nested code.
+export function macOSAudioCaptureRole(appPath, candidate) {
+  if (path.basename(appPath) !== 'Nimi.app') return false;
+  const relative = path.relative(appPath, candidate).split(path.sep).join('/');
+  return relative === '' || relative === 'Contents/MacOS/Nimi'
+    || relative === 'Contents/Frameworks/Nimi Helper.app'
+    || relative === 'Contents/Frameworks/Nimi Helper.app/Contents/MacOS/Nimi Helper';
+}
+
+export function isMacOSMachO(candidate) {
+  const descriptor = openSync(candidate, 'r');
+  const header = Buffer.alloc(4);
+  try {
+    return readSync(descriptor, header, 0, 4, 0) === 4
+      && ['feedface', 'feedfacf', 'cefaedfe', 'cffaedfe', 'cafebabe', 'bebafeca', 'cafebabf', 'bfbafeca'].includes(header.toString('hex'));
+  } finally { closeSync(descriptor); }
+}
 
 export function runReleaseCommand(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -88,7 +117,8 @@ function auditMacOSEntitlements(appPath) {
     if (keys.some((key) => FORBIDDEN_ENTITLEMENTS.has(key))) {
       throw new Error(`forbidden macOS entitlement on ${path.basename(file)}`);
     }
-    const unexpected = keys.filter((key) => key !== 'com.apple.security.cs.allow-jit');
+    const unexpected = keys.filter((key) => key !== 'com.apple.security.cs.allow-jit'
+      && !(key === 'com.apple.security.device.audio-input' && macOSAudioCaptureRole(appPath, file)));
     if (unexpected.length > 0) throw new Error(`unadmitted macOS entitlement on ${path.basename(file)}`);
   }
 }
@@ -103,7 +133,8 @@ function collectCodeFiles(root) {
       return;
     }
     if (!metadata.isFile()) return;
-    if ((metadata.mode & 0o111) !== 0 || /\.(?:dylib|node)$/u.test(candidate)) result.push(candidate);
+    if ((metadata.mode & 0o111) === 0 && !/\.(?:dylib|node)$/u.test(candidate)) return;
+    if (isMacOSMachO(candidate)) result.push(candidate);
   };
   visit(root);
   return result;

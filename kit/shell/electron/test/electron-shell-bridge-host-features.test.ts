@@ -34,6 +34,31 @@ import {
 } from './electron-shell-test-utils.js';
 
 describe('registerNimiElectronRuntimeBridge', () => {
+  it('uses the Home-owned lifecycle policy for renderer status and start without claiming readiness', async () => {
+    const ipcMain = new FakeIpcMain();
+    const { event } = createInvokeEvent();
+    const calls: string[] = [];
+    const pending = { running: false, lastError: 'runtime-service-approval-required' };
+    const bridge = registerNimiElectronRuntimeBridge({
+      appId: 'nimi.desktop',
+      runtimeEndpoint: 'protected-desktop-control',
+      allowedOrigins: ['http://localhost:1430'],
+      ipcMain,
+      standardShellHost: { allowAllStandardShellCommands: true },
+      desktopHost: {
+        authorizeSender: (candidate) => candidate === event,
+        subscribeSenderInvalidation: () => () => undefined,
+        runtimeLifecycle: { invoke: async (command) => { calls.push(command); return pending; } },
+      },
+    });
+    try {
+      for (const command of [STANDARD_COMMANDS.status, STANDARD_COMMANDS.start]) {
+        await expect(invokeBridge(ipcMain, event, { command, payload: {} })).resolves.toEqual(pending);
+      }
+      expect(calls).toEqual([STANDARD_COMMANDS.status, STANDARD_COMMANDS.start]);
+    } finally { bridge.unregister(); }
+  });
+
   it('disambiguates source-local Runtime transport failures from the fixed service', () => {
     const error = new NimiElectronShellHostError({
       code: 'runtime-service-untrusted',

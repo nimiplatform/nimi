@@ -51,6 +51,29 @@ unsafe extern "C" {
     fn nimi_macos_runtime_service_status() -> i32;
     fn nimi_macos_register_runtime_service() -> i32;
     fn nimi_macos_reregister_runtime_service() -> i32;
+    fn nimi_macos_unregister_runtime_service() -> i32;
+    fn nimi_macos_open_runtime_service_settings() -> i32;
+}
+
+/// Thin native adapter. The installed Home host chooses lifecycle policy.
+pub fn macos_runtime_service_registration(operation: &str) -> Result<i32, ProtectedCarrierError> {
+    // SAFETY: every native operation is restricted to the fixed main bundle
+    // and embedded plist. No caller-selected service, path, or credential passes.
+    let status = unsafe {
+        match operation {
+            "status" => nimi_macos_runtime_service_status(),
+            "register" => nimi_macos_register_runtime_service(),
+            "reregister" => nimi_macos_reregister_runtime_service(),
+            "unregister" => nimi_macos_unregister_runtime_service(),
+            "open-settings" => nimi_macos_open_runtime_service_settings(),
+            _ => return Err(untrusted()),
+        }
+    };
+    match status {
+        SERVICE_NOT_REGISTERED | SERVICE_ENABLED | SERVICE_REQUIRES_APPROVAL | SERVICE_NOT_FOUND => Ok(status),
+        -2 => Err(repair_required()),
+        _ => Err(unavailable()),
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -672,24 +695,7 @@ impl FixedRuntimeServiceControl for MacOsUnixSocketCarrier {
             return Err(unavailable());
         }
         #[cfg(not(feature = "macos-source-local-development"))]
-        let before = macos_service_status()?;
-        #[cfg(not(feature = "macos-source-local-development"))]
-        let after = if before == SERVICE_NOT_REGISTERED {
-            // SAFETY: SMAppService resolves only the fixed embedded daemon
-            // plist in the current /Applications/Nimi.app bundle.
-            unsafe { nimi_macos_register_runtime_service() }
-        } else if before == SERVICE_ENABLED && runtime_socket_is_absent()? {
-            // SAFETY: the explicit start action is repairing the update state
-            // where SMAppService still records the previous registration but
-            // the installer has booted out its launchd job. The native helper
-            // waits for asynchronous unregister completion before registering
-            // the exact new /Applications/Nimi.app embedded daemon.
-            unsafe { nimi_macos_reregister_runtime_service() }
-        } else {
-            before
-        };
-        #[cfg(not(feature = "macos-source-local-development"))]
-        match after {
+        match macos_service_status()? {
             SERVICE_ENABLED => Ok(service_outcome(
                 RuntimeServiceState::StartPending,
                 None,
@@ -729,15 +735,6 @@ impl FixedRuntimeServiceControl for MacOsUnixSocketCarrier {
     }
 }
 
-#[cfg(not(feature = "macos-source-local-development"))]
-fn runtime_socket_is_absent() -> Result<bool, ProtectedCarrierError> {
-    match std::fs::symlink_metadata(runtime_socket_path()?) {
-        Ok(_) => Ok(false),
-        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(true),
-        Err(_) => Err(repair_required()),
-    }
-}
-
 async fn open_verified_runtime_channel() -> Result<Channel, ProtectedCarrierError> {
     #[cfg(not(feature = "macos-source-local-development"))]
     if macos_service_status()? != SERVICE_ENABLED {
@@ -749,7 +746,9 @@ async fn open_verified_runtime_channel() -> Result<Channel, ProtectedCarrierErro
         .await
         .map_err(|_| unavailable())?;
     verify_runtime_peer_once(stream.as_raw_fd(), socket_text)?;
-    channel_from_verified_socket(stream, untrusted).await
+    // Peer identity has passed the fixed production policy. A failed HTTP/2
+    // handshake means this verified service connection is not ready.
+    channel_from_verified_socket(stream, unavailable).await
 }
 
 pub(crate) async fn open_verified_local_app_runtime_channel(
