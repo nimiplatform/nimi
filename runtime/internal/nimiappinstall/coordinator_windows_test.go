@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"hash/crc32"
 	"io"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/exec"
@@ -568,11 +569,74 @@ func TestPublishStagedReleaseNeverReplacesExistingFinal(t *testing.T) {
 	if err := publishStagedRelease(root, "stage", "final"); !errors.Is(err, ErrReleasePublication) {
 		t.Fatalf("existing final error = %v", err)
 	}
+	if err := detachInstalledRelease(context.Background(), root, "stage", "final"); !errors.Is(err, ErrReleasePublication) {
+		t.Fatalf("uninstall replaced existing final: %v", err)
+	}
 	if raw, err := os.ReadFile(filepath.Join(rootPath, "final", "sentinel")); err != nil || string(raw) != "existing" {
 		t.Fatalf("existing final changed: %q err=%v", raw, err)
 	}
 	if _, err := os.Stat(filepath.Join(rootPath, "stage")); err != nil {
 		t.Fatalf("stage disappeared after rejected publication: %v", err)
+	}
+}
+
+func TestUninstallDetachWaitsForDirectoryRelease(t *testing.T) {
+	for _, cancel := range []bool{false, true} {
+		name := "released"
+		if cancel {
+			name = "canceled"
+		}
+		t.Run(name, func(t *testing.T) {
+			rootPath := t.TempDir()
+			sourcePath := filepath.Join(rootPath, "installed")
+			if err := os.Mkdir(sourcePath, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			root, err := os.OpenRoot(rootPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer root.Close()
+			pointer, err := windows.UTF16PtrFromString(sourcePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			handle, err := windows.CreateFile(pointer, windows.FILE_LIST_DIRECTORY, windows.FILE_SHARE_READ|windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, windows.FILE_FLAG_BACKUP_SEMANTICS, 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+			held := os.NewFile(uintptr(handle), sourcePath)
+			defer held.Close()
+			if err := publishStagedRelease(root, "installed", "removed"); !isReleaseRenameBusy(err) {
+				t.Fatalf("open directory did not block rename: %v", err)
+			}
+			if cancel {
+				ctx, cancelContext := context.WithCancel(context.Background())
+				cancelContext()
+				if err := detachInstalledRelease(ctx, root, "installed", "removed"); !errors.Is(err, context.Canceled) {
+					t.Fatalf("canceled detach error = %v", err)
+				}
+				if _, err := root.Stat("installed"); err != nil {
+					t.Fatalf("canceled detach lost source: %v", err)
+				}
+				return
+			}
+			released := make(chan error, 1)
+			go func() {
+				time.Sleep(150 * time.Millisecond)
+				released <- held.Close()
+			}()
+			detachErr := detachInstalledRelease(context.Background(), root, "installed", "removed")
+			if err := <-released; err != nil {
+				t.Fatal(err)
+			}
+			if detachErr != nil {
+				t.Fatalf("detach after directory release: %v", detachErr)
+			}
+			if _, err := root.Stat("removed"); err != nil {
+				t.Fatalf("detached directory missing: %v", err)
+			}
+		})
 	}
 }
 
@@ -695,7 +759,7 @@ func newInstallFixture(t *testing.T, switchAfterAsset bool) (*Coordinator, *publ
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = kernel.Close() })
-	coordinator, err := NewCoordinator(client, kernel)
+	coordinator, err := NewCoordinator(client, kernel, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	if err != nil {
 		t.Fatal(err)
 	}

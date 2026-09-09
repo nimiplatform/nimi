@@ -58,6 +58,7 @@ export function FrequentAppsSection({
               <AppRowActionButton
                 entry={entry}
                 activeAction={activeAction && activeAction.entryKey === entry.identity.entryKey ? activeAction.action : null}
+                actionsDisabled={activeAction !== null}
                 onAction={(action) => onAction(entry.identity.entryKey, action)}
               />
             </div>

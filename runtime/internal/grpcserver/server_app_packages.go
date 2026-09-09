@@ -27,7 +27,7 @@ func composeVerifiedAppPackages(
 		return nil, nil
 	}
 	catalog := publicappregistry.NewCanonicalClient()
-	coordinator, err := nimiappinstall.NewCoordinator(catalog, kernel)
+	coordinator, err := nimiappinstall.NewCoordinator(catalog, kernel, logger)
 	if err != nil {
 		logger.Error("public App package coordinator unavailable",
 			"reason_code", runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE.String(), "error", err)

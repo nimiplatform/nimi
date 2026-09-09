@@ -102,6 +102,9 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 		return nil
 	})
 	if err != nil {
+		if s.logger != nil {
+			s.logger.Error("installed App launch preparation failed", "error", err)
+		}
 		return nil, installedLaunchError(err)
 	}
 	if err := owner.BindRevocationHook(lease.id, func() { s.revokeInstalledLaunch(lease.id) }); err != nil {
