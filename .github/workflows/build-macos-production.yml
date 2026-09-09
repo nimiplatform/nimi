@@ -6,6 +6,8 @@ on:
     branches: [dev, main]
     paths:
       - .github/workflows/build-macos-production.yml
+      - .github/workflows/release-security.yml
+      - .secrets.baseline
       - apps/desktop/**
       - apps/avatar/**
       - kit/**
