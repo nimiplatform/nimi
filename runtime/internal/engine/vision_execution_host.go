@@ -98,7 +98,7 @@ func (host *VisionExecutionHost) ExecuteVisionLocate(ctx context.Context, plan *
 	if err != nil {
 		return nil, host.fail(ctx, err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	payload, err := readVisionLocateResponse(response.Body)
 	if err != nil {
 		return nil, host.fail(ctx, err)
