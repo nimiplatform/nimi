@@ -96,6 +96,8 @@ function TextStudioShell({
     onTextChange: updatePrompt,
     disabled: running,
   });
+  const hasRequiredImage = capability.id !== 'vision.locate'
+    || (composerState.attachments.length === 1 && composerState.attachments[0]?.kind === 'image');
   const hasActiveRun = Boolean(displayedRun);
   const currentResult = displayedRun
     ? displayedRun.result ?? (displayedRun.record
@@ -159,6 +161,7 @@ function TextStudioShell({
     if (abortControllerRef.current) return;
     const displayPrompt = nextPrompt.trim();
     if (!hasStudioCapabilityRunInput({ requiresPrompt, prompt: displayPrompt, hasAlternativeInput })) return;
+    if (!hasRequiredImage) return;
     if (!runTarget.canDispatch) return;
     const runSeq = runSeqRef.current + 1;
     runSeqRef.current = runSeq;
@@ -415,7 +418,7 @@ function TextStudioShell({
                 admission={admission}
                 intentLabel={displayedRun.record ? getStudioRunIntentLabel(displayedRun.record) : runTarget.intentLabel}
                 running={displayingExecution}
-                canRegenerate={!running}
+                canRegenerate={!running && hasRequiredImage}
                 cancelRequested={displayingExecution && cancelRequested}
                 streamingText={displayingExecution ? streamingText : null}
                 verboseConsole={verboseConsole}

@@ -1,8 +1,13 @@
 {
   "VisionLocate": {
+    "chooseImage": "Choose image",
+    "replaceImage": "Replace image",
+    "draftImage": "Image to locate in",
+    "imageHint": "One static image · PNG, JPEG, WebP or GIF · Up to 32 MiB",
+    "queryLabel": "Describe the target",
     "historySummaryOnly": "This large result's history keeps its summary and Job ID. Export full coordinates during the original run.",
     "stoppedBeforeSubmit": "Stopped before submitting a Locate job.",
-    "geometry": "Result shape", "box": "Bounding boxes", "point": "Points", "localOnly": "Uses a local Locate Loadout. Choose it in model configuration before running.",
+    "geometry": "Result shape", "box": "Bounding boxes", "point": "Points", "localOnly": "Runs locally. Choose a model using the configuration control below.",
     "inputRequired": "Attach one static image and describe the target to locate.", "imageTooLarge": "Choose a static image of at most 32 MiB.", "resultMissing": "Runtime returned no typed Locate result.",
     "found": "Found {{count}} matching targets", "noMatch": "No matching targets found", "sourceImage": "Image used for this task", "overlay": "Locations on the task image", "target": "Target {{index}}",
     "previewUnavailable": "The input image preview is no longer available. The coordinates below still refer to the recorded image.", "coordinates": "Image identity and coordinates", "matches": "Matches", "queued": "Queued for localization…", "running": "Loading the model or locating targets…"
@@ -24,7 +29,7 @@
   },
   "Studio": {
     "profiles": {
-      "visionLocate": { "inputTitle": "Locate in an image", "inputPlaceholder": "Describe the object or control to locate…", "primaryLabel": "Locate targets", "primaryRunningLabel": "Locating…", "emptyTitle": "Locate objects or controls", "emptyHint": "Attach one static image, describe the target, and choose boxes or points in the parameters.", "footnote": "Coordinates refer to the complete image after applying its orientation." },
+      "visionLocate": { "inputTitle": "Test visual localization", "inputPlaceholder": "For example: the search button at the top right, or the red cup on the desk…", "primaryLabel": "Locate targets", "primaryRunningLabel": "Locating…", "emptyTitle": "Locate objects or controls", "emptyHint": "Choose one static image, describe the target, then choose boxes or points.", "footnote": "Coordinates refer to the complete image after applying its orientation." },
       "imageGenerate": {
         "inputTitle": "Test image generation",
         "inputPlaceholder": "Describe the image you want the runtime to render…",
