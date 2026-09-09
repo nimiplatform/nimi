@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
-import test from 'node:test';
+import test, { after } from 'node:test';
+import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
 
 const root = path.resolve(import.meta.dirname, '..');
@@ -420,7 +422,7 @@ function createAgentConfigureHost() {
           aiConfigRevision = String(BigInt(aiConfigRevision) + 1n);
           return {
             outcome: 'committed', config: sharedProjection(), revision: aiConfigRevision,
-            effectiveSelections: [], participation: PARTICIPATION, reasonCode: 'REASON_CODE_UNSPECIFIED',
+            participation: PARTICIPATION,
           };
         case COMMANDS.sharedOptions:
           if (payload?.kind === 'voice-assets') {
@@ -511,6 +513,9 @@ async function loadIdentityModule() {
   return identityModule;
 }
 
+const bundleRoot = await mkdtemp(path.join(tmpdir(), 'nimi-zhiyu-agent-center-'));
+after(() => rm(bundleRoot, { recursive: true, force: true }));
+
 async function importBundledModule(entryPoint) {
   const output = (await build({
     entryPoints: [path.join(root, entryPoint)],
@@ -521,5 +526,7 @@ async function importBundledModule(entryPoint) {
     write: false,
     logLevel: 'silent',
   })).outputFiles[0].text;
-  return import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}#${Math.random()}`);
+  const modulePath = path.join(bundleRoot, `${path.basename(entryPoint, '.ts')}.mjs`);
+  await writeFile(modulePath, output);
+  return import(pathToFileURL(modulePath).href);
 }
