@@ -70,7 +70,10 @@ pub fn macos_runtime_service_registration(operation: &str) -> Result<i32, Protec
         }
     };
     match status {
-        SERVICE_NOT_REGISTERED | SERVICE_ENABLED | SERVICE_REQUIRES_APPROVAL | SERVICE_NOT_FOUND => Ok(status),
+        SERVICE_NOT_REGISTERED
+        | SERVICE_ENABLED
+        | SERVICE_REQUIRES_APPROVAL
+        | SERVICE_NOT_FOUND => Ok(status),
         -2 => Err(repair_required()),
         _ => Err(unavailable()),
     }
@@ -133,6 +136,40 @@ impl MacOSDesktopControl {
 }
 
 impl NimiDesktopControl for MacOSDesktopControl {
+    fn launch_installed_app(
+        &self,
+        selector: Vec<u8>,
+    ) -> ControlFuture<'_, crate::InstalledAppLaunchOutcome, NimiHostError> {
+        Box::pin(async move {
+            crate::installed_app_control::launch(self.host_channel()?, selector).await
+        })
+    }
+
+    fn installed_app_run_access(
+        &self,
+        launch_id: [u8; 32],
+    ) -> ControlFuture<'_, crate::InstalledAppRunAccess, NimiHostError> {
+        Box::pin(async move {
+            crate::installed_app_control::access(self.host_channel()?, launch_id).await
+        })
+    }
+
+    fn complete_app_uninstall(
+        &self,
+        job_id: Vec<u8>,
+        selector: Vec<u8>,
+    ) -> ControlFuture<'_, (), NimiHostError> {
+        Box::pin(async move {
+            crate::installed_app_control::complete_uninstall(self.host_channel()?, job_id, selector)
+                .await
+        })
+    }
+
+    fn end_installed_app_run(&self, launch_id: [u8; 32]) -> ControlFuture<'_, (), NimiHostError> {
+        Box::pin(
+            async move { crate::installed_app_control::end(self.host_channel()?, launch_id).await },
+        )
+    }
     fn invoke_bundled_avatar(
         &self,
         request: BundledAvatarRuntimeRequest,

@@ -50,7 +50,7 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 	}
 	owner, _ := protectedlocal.DesktopConnectionFromContext(ctx)
 	supervisor, ok := owner.ClientProcess()
-	if !ok || supervisor.OS != protectedlocal.OSWindows {
+	if !ok || (supervisor.OS != protectedlocal.OSWindows && supervisor.OS != protectedlocal.OSMacOS) {
 		return nil, installedLaunchUnavailable()
 	}
 	var lease *installedAppLaunch

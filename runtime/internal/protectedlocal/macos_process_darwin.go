@@ -110,6 +110,9 @@ func verifyConnectedMacOSDesktop(audit macOSAuditIdentity, expectedDesktopPath s
 }
 
 func verifyConnectedMacOSLocalApp(audit macOSAuditIdentity, launch DirectLocalAppLaunch) (DirectLocalAppPeer, error) {
+	if launch.InstalledRegistrationHandle != "" {
+		return verifyConnectedMacOSInstalledApp(audit, launch)
+	}
 	snapshot, err := inspectMacOSProcess(audit.pid)
 	if err != nil {
 		return DirectLocalAppPeer{}, err

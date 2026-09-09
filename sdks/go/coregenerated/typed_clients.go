@@ -2726,6 +2726,8 @@ type ApprovedAppCatalogTarget struct {
 	PolicyBlocked                   bool                                  `json:"policy_blocked,omitempty"`
 	PolicyReason                    *string                               `json:"policy_reason,omitempty"`
 	PolicyRevision                  uint64                                `json:"policy_revision,omitempty"`
+	MacosNotarization               string                                `json:"macos_notarization,omitempty"`
+	MacosDeveloperIdSubject         *string                               `json:"macos_developer_id_subject,omitempty"`
 }
 
 type ArtifactChunk struct {

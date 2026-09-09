@@ -3700,6 +3700,8 @@ type ApprovedAppCatalogTarget struct {
 	PolicyBlocked                   bool                                   `protobuf:"varint,23,opt,name=policy_blocked,json=policyBlocked,proto3" json:"policy_blocked,omitempty"`
 	PolicyReason                    *string                                `protobuf:"bytes,24,opt,name=policy_reason,json=policyReason,proto3,oneof" json:"policy_reason,omitempty"`
 	PolicyRevision                  uint64                                 `protobuf:"varint,25,opt,name=policy_revision,json=policyRevision,proto3" json:"policy_revision,omitempty"`
+	MacosNotarization               string                                 `protobuf:"bytes,26,opt,name=macos_notarization,json=macosNotarization,proto3" json:"macos_notarization,omitempty"`
+	MacosDeveloperIdSubject         *string                                `protobuf:"bytes,27,opt,name=macos_developer_id_subject,json=macosDeveloperIdSubject,proto3,oneof" json:"macos_developer_id_subject,omitempty"`
 	unknownFields                   protoimpl.UnknownFields
 	sizeCache                       protoimpl.SizeCache
 }
@@ -3907,6 +3909,20 @@ func (x *ApprovedAppCatalogTarget) GetPolicyRevision() uint64 {
 		return x.PolicyRevision
 	}
 	return 0
+}
+
+func (x *ApprovedAppCatalogTarget) GetMacosNotarization() string {
+	if x != nil {
+		return x.MacosNotarization
+	}
+	return ""
+}
+
+func (x *ApprovedAppCatalogTarget) GetMacosDeveloperIdSubject() string {
+	if x != nil && x.MacosDeveloperIdSubject != nil {
+		return *x.MacosDeveloperIdSubject
+	}
+	return ""
 }
 
 type ListApprovedAppCatalogTargetsRequest struct {
@@ -4868,7 +4884,8 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"#ApprovedAppCatalogStorageDisclosure\x12!\n" +
 	"\fpath_pattern\x18\x01 \x01(\tR\vpathPattern\x12\x18\n" +
 	"\apurpose\x18\x02 \x01(\tR\apurpose\x12,\n" +
-	"\x12expected_size_band\x18\x05 \x01(\tR\x10expectedSizeBandJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\tretentionR\aremoval\"\xca\t\n" +
+	"\x12expected_size_band\x18\x05 \x01(\tR\x10expectedSizeBandJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\tretentionR\aremoval\"\xda\n" +
+	"\n" +
 	"\x18ApprovedAppCatalogTarget\x128\n" +
 	"\x18approved_target_selector\x18\x01 \x01(\fR\x16approvedTargetSelector\x12<\n" +
 	"\x1aobserved_registry_revision\x18\x02 \x01(\tR\x18observedRegistryRevision\x12#\n" +
@@ -4898,9 +4915,12 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"\x18observed_signing_subject\x18\x16 \x01(\tH\x00R\x16observedSigningSubject\x88\x01\x01\x12%\n" +
 	"\x0epolicy_blocked\x18\x17 \x01(\bR\rpolicyBlocked\x12(\n" +
 	"\rpolicy_reason\x18\x18 \x01(\tH\x01R\fpolicyReason\x88\x01\x01\x12'\n" +
-	"\x0fpolicy_revision\x18\x19 \x01(\x04R\x0epolicyRevisionB\x1b\n" +
+	"\x0fpolicy_revision\x18\x19 \x01(\x04R\x0epolicyRevision\x12-\n" +
+	"\x12macos_notarization\x18\x1a \x01(\tR\x11macosNotarization\x12@\n" +
+	"\x1amacos_developer_id_subject\x18\x1b \x01(\tH\x02R\x17macosDeveloperIdSubject\x88\x01\x01B\x1b\n" +
 	"\x19_observed_signing_subjectB\x10\n" +
-	"\x0e_policy_reason\"&\n" +
+	"\x0e_policy_reasonB\x1d\n" +
+	"\x1b_macos_developer_id_subject\"&\n" +
 	"$ListApprovedAppCatalogTargetsRequest\"\xaa\x01\n" +
 	"%ListApprovedAppCatalogTargetsResponse\x12C\n" +
 	"\atargets\x18\x01 \x03(\v2).nimi.runtime.v1.ApprovedAppCatalogTargetR\atargets\x12<\n" +

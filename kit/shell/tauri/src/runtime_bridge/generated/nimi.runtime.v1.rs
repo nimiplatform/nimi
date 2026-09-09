@@ -11642,6 +11642,12 @@ pub struct ApprovedAppCatalogTarget {
     pub policy_reason: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(uint64, tag = "25")]
     pub policy_revision: u64,
+    #[prost(string, tag = "26")]
+    pub macos_notarization: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "27")]
+    pub macos_developer_id_subject: ::core::option::Option<
+        ::prost::alloc::string::String,
+    >,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListApprovedAppCatalogTargetsRequest {}

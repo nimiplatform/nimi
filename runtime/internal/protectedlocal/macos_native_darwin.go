@@ -239,12 +239,14 @@ static int nimi_macos_verify_code(uint32_t pid, const nimi_macos_audit_identity 
                                   const char *expected_identifier,
                                   int require_trusted_anchor,
                                   int require_ad_hoc,
+                                  int require_hardened_runtime,
                                   nimi_macos_code_identity *output) {
     if (pid == 0 || expected_requirement == NULL || expected_team == NULL ||
         expected_identifier == NULL || output == NULL ||
         expected_requirement[0] == '\0' || expected_identifier[0] == '\0' ||
         (require_trusted_anchor != 0 && require_trusted_anchor != 1) ||
         (require_ad_hoc != 0 && require_ad_hoc != 1) ||
+        (require_hardened_runtime != 0 && require_hardened_runtime != 1) ||
         (require_ad_hoc && (expected_team[0] != '\0' || require_trusted_anchor)) ||
         (!require_ad_hoc && (expected_team[0] == '\0' || !require_trusted_anchor))) {
         return EINVAL;
@@ -303,7 +305,7 @@ static int nimi_macos_verify_code(uint32_t pid, const nimi_macos_audit_identity 
         CFGetTypeID(cdhash) != CFDataGetTypeID() || CFGetTypeID(flags) != CFNumberGetTypeID() ||
         !CFEqual(identifier, expected_identifier_string) ||
         !CFNumberGetValue(flags, kCFNumberSInt32Type, &code_flags) ||
-        (((uint32_t)code_flags) & kSecCodeSignatureRuntime) == 0 ||
+        (require_hardened_runtime && (((uint32_t)code_flags) & kSecCodeSignatureRuntime) == 0) ||
         (require_ad_hoc && ((((uint32_t)code_flags) & kSecCodeSignatureAdhoc) == 0 || team != NULL)) ||
         (!require_ad_hoc && ((((uint32_t)code_flags) & kSecCodeSignatureAdhoc) != 0 ||
             team == NULL || CFGetTypeID(team) != CFStringGetTypeID() ||
@@ -638,6 +640,10 @@ func verifyMacOSDynamicCode(pid uint32, audit *macOSAuditIdentity, policy macOSC
 	if policy.requireAdHoc {
 		adHoc = 1
 	}
+	hardenedRuntime := C.int(1)
+	if policy.ordinaryInstalled {
+		hardenedRuntime = 0
+	}
 	result := C.nimi_macos_verify_code(
 		C.uint32_t(pid),
 		nativeAudit,
@@ -646,6 +652,7 @@ func verifyMacOSDynamicCode(pid uint32, audit *macOSAuditIdentity, policy macOSC
 		identifier,
 		trustedAnchor,
 		adHoc,
+		hardenedRuntime,
 		&native,
 	)
 	if result != 0 {

@@ -990,6 +990,8 @@ class ApprovedAppCatalogTarget:
     policy_blocked: bool | None = None
     policy_reason: str | None = None
     policy_revision: int | None = None
+    macos_notarization: str | None = None
+    macos_developer_id_subject: str | None = None
 
 @dataclass(frozen=True)
 class ArtifactChunk:

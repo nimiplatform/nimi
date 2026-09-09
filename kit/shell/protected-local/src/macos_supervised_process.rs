@@ -23,9 +23,18 @@ unsafe extern "C" {
         working_directory: *const libc::c_char,
         pid_output: *mut u32,
     ) -> i32;
+    fn nimi_macos_spawn_installed_suspended(
+        executable: *const libc::c_char,
+        argv: *const *mut libc::c_char,
+        envp: *const *mut libc::c_char,
+        working_directory: *const libc::c_char,
+        pid_output: *mut u32,
+    ) -> i32;
     fn nimi_macos_watch_child(pid: u32) -> i32;
     fn nimi_macos_child_running(pid: u32, kqueue_fd: i32) -> i32;
     fn nimi_macos_terminate_child_group(pid: u32) -> i32;
+    fn nimi_macos_child_exit_code(pid: u32, output: *mut u32) -> i32;
+    fn nimi_macos_focus_child(pid: u32) -> i32;
 }
 
 pub(crate) struct SupervisedDevelopmentProcess {
@@ -41,6 +50,27 @@ impl SupervisedDevelopmentProcess {
         working_directory: &Path,
     ) -> Result<Self, NimiHostError> {
         let executable = canonical_fixed_host(executable)?;
+        Self::create(&executable, arguments, working_directory, false)
+    }
+
+    pub(crate) fn create_verified_installed(
+        executable: &Path,
+        arguments: &[String],
+        working_directory: &Path,
+    ) -> Result<Self, NimiHostError> {
+        let canonical = std::fs::canonicalize(executable).map_err(|_| untrusted())?;
+        if canonical != executable || !canonical.is_file() || !arguments.is_empty() {
+            return Err(untrusted());
+        }
+        Self::create(&canonical, arguments, working_directory, true)
+    }
+
+    fn create(
+        executable: &Path,
+        arguments: &[String],
+        working_directory: &Path,
+        installed: bool,
+    ) -> Result<Self, NimiHostError> {
         let working_directory = canonical_working_directory(working_directory)?;
         let argument_bytes = arguments.iter().try_fold(0usize, |total, value| {
             if value.is_empty() || value.as_bytes().contains(&0) {
@@ -75,7 +105,12 @@ impl SupervisedDevelopmentProcess {
         // the native wrapper returns only a start-suspended child in a new
         // process group for the fixed signed host path.
         let status = unsafe {
-            nimi_macos_spawn_suspended(
+            let spawn = if installed {
+                nimi_macos_spawn_installed_suspended
+            } else {
+                nimi_macos_spawn_suspended
+            };
+            spawn(
                 executable_c.as_ptr(),
                 argv.as_ptr(),
                 envp.as_ptr(),
@@ -127,7 +162,30 @@ impl SupervisedDevelopmentProcess {
         unsafe { nimi_macos_child_running(self.pid, self.process_events.as_raw_fd()) == 1 }
     }
 
-    fn terminate(&self) -> Result<(), NimiHostError> {
+    pub(crate) fn exit_code(&self) -> Result<Option<u32>, NimiHostError> {
+        let mut code = 0;
+        // SAFETY: this is the owned direct child; WNOWAIT preserves its PID
+        // until scope cleanup, including while descendant processes exit.
+        match unsafe { nimi_macos_child_exit_code(self.pid, &mut code) } {
+            1 => Ok(Some(code)),
+            0 if self.running() => Ok(None),
+            _ => Err(untrusted()),
+        }
+    }
+
+    pub(crate) fn focus(&self) -> Result<(), NimiHostError> {
+        if !self.running() {
+            return Err(untrusted());
+        }
+        // SAFETY: focus is restricted to this live, retained child PID.
+        if unsafe { nimi_macos_focus_child(self.pid) } == 0 {
+            Ok(())
+        } else {
+            Err(untrusted())
+        }
+    }
+
+    pub(crate) fn terminate(&self) -> Result<(), NimiHostError> {
         if self.terminated.swap(true, Ordering::AcqRel) {
             return Ok(());
         }
@@ -137,7 +195,12 @@ impl SupervisedDevelopmentProcess {
         if status == 0 {
             Ok(())
         } else {
-            Err(untrusted())
+            Err(
+                untrusted().with_reason_metadata(std::collections::BTreeMap::from([(
+                    "native_errno".into(),
+                    status.to_string(),
+                )])),
+            )
         }
     }
 }
@@ -296,6 +359,62 @@ fn untrusted() -> NimiHostError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn installed_child_starts_suspended_and_retains_its_real_exit_status() {
+        let root = std::env::temp_dir().join(format!(
+            "nimi-installed-child-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        struct Cleanup(PathBuf);
+        impl Drop for Cleanup {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+        let _cleanup = Cleanup(root.clone());
+        let root = std::fs::canonicalize(root).unwrap();
+        let source = root.join("main.c");
+        let executable = root.join("app");
+        std::fs::write(&source, "int main(void) { return 17; }\n").unwrap();
+        let compiled = std::process::Command::new("/usr/bin/xcrun")
+            .arg("clang")
+            .arg(&source)
+            .arg("-o")
+            .arg(&executable)
+            .output()
+            .unwrap();
+        assert!(
+            compiled.status.success(),
+            "{}",
+            String::from_utf8_lossy(&compiled.stderr)
+        );
+        let mut process =
+            SupervisedDevelopmentProcess::create_verified_installed(&executable, &[], &root)
+                .unwrap();
+        assert!(process.running());
+        assert_eq!(process.exit_code().unwrap(), None);
+        process.resume().unwrap();
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        loop {
+            if let Some(code) = process.exit_code().unwrap() {
+                assert_eq!(code, 17);
+                break;
+            }
+            assert!(
+                std::time::Instant::now() < deadline,
+                "owned child did not exit"
+            );
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        assert_eq!(process.exit_code().unwrap(), Some(17));
+        process.terminate().unwrap();
+    }
     #[cfg(feature = "macos-source-local-development")]
     use std::os::unix::fs::PermissionsExt;
 

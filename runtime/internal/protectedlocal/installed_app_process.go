@@ -15,5 +15,7 @@ type InstalledAppProcessPolicy struct {
 func (policy InstalledAppProcessPolicy) valid() bool {
 	return policy.RegistrationHandle != "" && policy.SourceGeneration != 0 && policy.DeclarationGeneration != 0 &&
 		policy.HostExecutablePath != "" && policy.HostExecutableDigest != (Identifier{}) &&
-		policy.ExecutionProfileRef == "windows-user-mode-as-invoker-v1" && policy.SupervisorProcess.validate() == nil && policy.SupervisorProcess.OS == OSWindows
+		policy.SupervisorProcess.validate() == nil &&
+		((policy.ExecutionProfileRef == "windows-user-mode-as-invoker-v1" && policy.SupervisorProcess.OS == OSWindows) ||
+			(policy.ExecutionProfileRef == "macos-user-mode-same-session-v1" && policy.SupervisorProcess.OS == OSMacOS))
 }

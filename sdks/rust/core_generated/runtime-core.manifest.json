@@ -11090,6 +11090,20 @@
             "repeated": false,
             "optional": false,
             "number": 25
+          },
+          {
+            "name": "macos_notarization",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 26
+          },
+          {
+            "name": "macos_developer_id_subject",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 27
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
