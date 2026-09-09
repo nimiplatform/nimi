@@ -1089,6 +1089,7 @@ const (
 	LOCALASSETKINDSTT         LocalAssetKind = "LOCAL_ASSET_KIND_STT"
 	LOCALASSETKINDEMBEDDING   LocalAssetKind = "LOCAL_ASSET_KIND_EMBEDDING"
 	LOCALASSETKINDMUSIC       LocalAssetKind = "LOCAL_ASSET_KIND_MUSIC"
+	LOCALASSETKINDVISION      LocalAssetKind = "LOCAL_ASSET_KIND_VISION"
 	LOCALASSETKINDVAE         LocalAssetKind = "LOCAL_ASSET_KIND_VAE"
 	LOCALASSETKINDCLIP        LocalAssetKind = "LOCAL_ASSET_KIND_CLIP"
 	LOCALASSETKINDLORA        LocalAssetKind = "LOCAL_ASSET_KIND_LORA"
@@ -1210,6 +1211,7 @@ const (
 	MODALEMBEDDING   Modal = "MODAL_EMBEDDING"
 	MODALMUSIC       Modal = "MODAL_MUSIC"
 	MODALWORLD       Modal = "MODAL_WORLD"
+	MODALVISION      Modal = "MODAL_VISION"
 )
 
 type ModelAssetCatalogVerification string
@@ -1741,6 +1743,7 @@ const (
 	SCENARIOTYPEMUSICGENERATE    ScenarioType = "SCENARIO_TYPE_MUSIC_GENERATE"
 	SCENARIOTYPEWORLDGENERATE    ScenarioType = "SCENARIO_TYPE_WORLD_GENERATE"
 	SCENARIOTYPEVOICECREATE      ScenarioType = "SCENARIO_TYPE_VOICE_CREATE"
+	SCENARIOTYPEVISIONLOCATE     ScenarioType = "SCENARIO_TYPE_VISION_LOCATE"
 )
 
 type SchedulingState string
@@ -1879,6 +1882,14 @@ const (
 	VIDEOMODEI2VFIRSTFRAME VideoMode = "VIDEO_MODE_I2V_FIRST_FRAME"
 	VIDEOMODEI2VFIRSTLAST  VideoMode = "VIDEO_MODE_I2V_FIRST_LAST"
 	VIDEOMODEI2VREFERENCE  VideoMode = "VIDEO_MODE_I2V_REFERENCE"
+)
+
+type VisionLocateGeometry string
+
+const (
+	VISIONLOCATEGEOMETRYUNSPECIFIED VisionLocateGeometry = "VISION_LOCATE_GEOMETRY_UNSPECIFIED"
+	VISIONLOCATEGEOMETRYBOX         VisionLocateGeometry = "VISION_LOCATE_GEOMETRY_BOX"
+	VISIONLOCATEGEOMETRYPOINT       VisionLocateGeometry = "VISION_LOCATE_GEOMETRY_POINT"
 )
 
 type VoiceAssetPersistence string
@@ -4065,6 +4076,7 @@ type GetLocalAppScenarioJobResponse struct {
 	Job            *LocalAppScenarioJob `json:"job,omitempty"`
 	Asset          *LocalAppVoiceAsset  `json:"asset,omitempty"`
 	VoiceReference *VoiceReference      `json:"voice_reference,omitempty"`
+	VisionLocate   *VisionLocateResult  `json:"vision_locate,omitempty"`
 }
 
 type GetLocalAppSharedLocalAgentAIConfigRequest struct {
@@ -4140,9 +4152,10 @@ type GetScenarioJobRequest struct {
 }
 
 type GetScenarioJobResponse struct {
-	Job            *ScenarioJob    `json:"job,omitempty"`
-	Asset          *VoiceAsset     `json:"asset,omitempty"`
-	VoiceReference *VoiceReference `json:"voice_reference,omitempty"`
+	Job            *ScenarioJob        `json:"job,omitempty"`
+	Asset          *VoiceAsset         `json:"asset,omitempty"`
+	VoiceReference *VoiceReference     `json:"voice_reference,omitempty"`
+	VisionLocate   *VisionLocateResult `json:"vision_locate,omitempty"`
 }
 
 type GetSharedLocalAgentAIConfigRequest struct {
@@ -6918,6 +6931,7 @@ type ScenarioSpec struct {
 	MusicGenerate    *MusicGenerateScenarioSpec    `json:"music_generate,omitempty"`
 	WorldGenerate    *WorldGenerateScenarioSpec    `json:"world_generate,omitempty"`
 	VoiceCreate      *VoiceCreateScenarioSpec      `json:"voice_create,omitempty"`
+	VisionLocate     *VisionLocateScenarioSpec     `json:"vision_locate,omitempty"`
 }
 
 type ScenarioStreamCompleted struct {
@@ -7274,6 +7288,7 @@ type SubmitLocalAppScenarioJobRequest struct {
 	MusicGenerate    *LocalAppMusicGenerateJobSpec      `json:"music_generate,omitempty"`
 	TimeoutMs        int32                              `json:"timeout_ms,omitempty"`
 	WorldGenerate    *LocalAppWorldGenerateJobSpec      `json:"world_generate,omitempty"`
+	VisionLocate     *VisionLocateScenarioSpec          `json:"vision_locate,omitempty"`
 }
 
 type SubmitLocalAppScenarioJobResponse struct {
@@ -7750,6 +7765,37 @@ type VideoGenerationOptions struct {
 	ServiceTier              string `json:"service_tier,omitempty"`
 	ExecutionExpiresAfterSec int32  `json:"execution_expires_after_sec,omitempty"`
 	ReturnLastFrame          *bool  `json:"return_last_frame,omitempty"`
+}
+
+type VisionLocateBox struct {
+	X1 float64 `json:"x1,omitempty"`
+	Y1 float64 `json:"y1,omitempty"`
+	X2 float64 `json:"x2,omitempty"`
+	Y2 float64 `json:"y2,omitempty"`
+}
+
+type VisionLocatePoint struct {
+	X float64 `json:"x,omitempty"`
+	Y float64 `json:"y,omitempty"`
+}
+
+type VisionLocateResult struct {
+	ImageArtifactId string           `json:"image_artifact_id,omitempty"`
+	Width           uint32           `json:"width,omitempty"`
+	Height          uint32           `json:"height,omitempty"`
+	Locations       []VisionLocation `json:"locations,omitempty"`
+}
+
+type VisionLocateScenarioSpec struct {
+	ImageArtifactId string               `json:"image_artifact_id,omitempty"`
+	Query           string               `json:"query,omitempty"`
+	Geometry        VisionLocateGeometry `json:"geometry,omitempty"`
+}
+
+type VisionLocation struct {
+	Label *string            `json:"label,omitempty"`
+	Box   *VisionLocateBox   `json:"box,omitempty"`
+	Point *VisionLocatePoint `json:"point,omitempty"`
 }
 
 type VoiceAsset struct {

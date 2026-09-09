@@ -1852,6 +1852,7 @@ pub enum LocalAssetKind {
     LOCALASSETKINDSTT,
     LOCALASSETKINDEMBEDDING,
     LOCALASSETKINDMUSIC,
+    LOCALASSETKINDVISION,
     LOCALASSETKINDVAE,
     LOCALASSETKINDCLIP,
     LOCALASSETKINDLORA,
@@ -2033,6 +2034,7 @@ pub enum Modal {
     MODALEMBEDDING,
     MODALMUSIC,
     MODALWORLD,
+    MODALVISION,
 }
 
 impl Default for Modal {
@@ -3262,6 +3264,7 @@ pub enum ScenarioType {
     SCENARIOTYPEMUSICGENERATE,
     SCENARIOTYPEWORLDGENERATE,
     SCENARIOTYPEVOICECREATE,
+    SCENARIOTYPEVISIONLOCATE,
 }
 
 impl Default for ScenarioType {
@@ -3475,6 +3478,19 @@ pub enum VideoMode {
 impl Default for VideoMode {
     fn default() -> Self {
         Self::VIDEOMODEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum VisionLocateGeometry {
+    VISIONLOCATEGEOMETRYUNSPECIFIED,
+    VISIONLOCATEGEOMETRYBOX,
+    VISIONLOCATEGEOMETRYPOINT,
+}
+
+impl Default for VisionLocateGeometry {
+    fn default() -> Self {
+        Self::VISIONLOCATEGEOMETRYUNSPECIFIED
     }
 }
 
@@ -6339,6 +6355,7 @@ pub struct GetLocalAppScenarioJobResponse {
     pub job: Option<Box<LocalAppScenarioJob>>,
     pub asset: Option<Box<LocalAppVoiceAsset>>,
     pub voice_reference: Option<Box<VoiceReference>>,
+    pub vision_locate: Option<Box<VisionLocateResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6509,6 +6526,7 @@ pub struct GetScenarioJobResponse {
     pub job: Option<Box<ScenarioJob>>,
     pub asset: Option<Box<VoiceAsset>>,
     pub voice_reference: Option<Box<VoiceReference>>,
+    pub vision_locate: Option<Box<VisionLocateResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10155,6 +10173,7 @@ pub struct ScenarioSpec {
     pub music_generate: Option<Box<MusicGenerateScenarioSpec>>,
     pub world_generate: Option<Box<WorldGenerateScenarioSpec>>,
     pub voice_create: Option<Box<VoiceCreateScenarioSpec>>,
+    pub vision_locate: Option<Box<VisionLocateScenarioSpec>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10648,6 +10667,7 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub music_generate: Option<Box<LocalAppMusicGenerateJobSpec>>,
     pub timeout_ms: Option<i32>,
     pub world_generate: Option<Box<LocalAppWorldGenerateJobSpec>>,
+    pub vision_locate: Option<Box<VisionLocateScenarioSpec>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11204,6 +11224,42 @@ pub struct VideoGenerationOptions {
     pub service_tier: Option<String>,
     pub execution_expires_after_sec: Option<i32>,
     pub return_last_frame: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct VisionLocateBox {
+    pub x1: Option<f64>,
+    pub y1: Option<f64>,
+    pub x2: Option<f64>,
+    pub y2: Option<f64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct VisionLocatePoint {
+    pub x: Option<f64>,
+    pub y: Option<f64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct VisionLocateResult {
+    pub image_artifact_id: Option<String>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub locations: Vec<Box<VisionLocation>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct VisionLocateScenarioSpec {
+    pub image_artifact_id: Option<String>,
+    pub query: Option<String>,
+    pub geometry: Option<VisionLocateGeometry>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct VisionLocation {
+    pub label: Option<String>,
+    pub r#box: Option<Box<VisionLocateBox>>,
+    pub point: Option<Box<VisionLocatePoint>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -5298,9 +5298,66 @@ pub mod world_generate_scenario_spec {
         VideoPrompt(super::WorldGenerateVideoPrompt),
     }
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct VisionLocateScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub image_artifact_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub query: ::prost::alloc::string::String,
+    #[prost(enumeration = "VisionLocateGeometry", tag = "3")]
+    pub geometry: i32,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct VisionLocateBox {
+    #[prost(double, tag = "1")]
+    pub x1: f64,
+    #[prost(double, tag = "2")]
+    pub y1: f64,
+    #[prost(double, tag = "3")]
+    pub x2: f64,
+    #[prost(double, tag = "4")]
+    pub y2: f64,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct VisionLocatePoint {
+    #[prost(double, tag = "1")]
+    pub x: f64,
+    #[prost(double, tag = "2")]
+    pub y: f64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VisionLocation {
+    #[prost(string, optional, tag = "1")]
+    pub label: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(oneof = "vision_location::Geometry", tags = "2, 3")]
+    pub geometry: ::core::option::Option<vision_location::Geometry>,
+}
+/// Nested message and enum types in `VisionLocation`.
+pub mod vision_location {
+    #[derive(Clone, Copy, PartialEq, ::prost::Oneof)]
+    pub enum Geometry {
+        #[prost(message, tag = "2")]
+        Box(super::VisionLocateBox),
+        #[prost(message, tag = "3")]
+        Point(super::VisionLocatePoint),
+    }
+}
+/// Coordinates and dimensions describe the full static image after EXIF
+/// orientation. A present result with no locations is a complete negative.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct VisionLocateResult {
+    #[prost(string, tag = "1")]
+    pub image_artifact_id: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "2")]
+    pub width: u32,
+    #[prost(uint32, tag = "3")]
+    pub height: u32,
+    #[prost(message, repeated, tag = "4")]
+    pub locations: ::prost::alloc::vec::Vec<VisionLocation>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioSpec {
-    #[prost(oneof = "scenario_spec::Spec", tags = "1, 2, 3, 4, 5, 6, 9, 10, 11")]
+    #[prost(oneof = "scenario_spec::Spec", tags = "1, 2, 3, 4, 5, 6, 9, 10, 11, 12")]
     pub spec: ::core::option::Option<scenario_spec::Spec>,
 }
 /// Nested message and enum types in `ScenarioSpec`.
@@ -5325,6 +5382,8 @@ pub mod scenario_spec {
         WorldGenerate(super::WorldGenerateScenarioSpec),
         #[prost(message, tag = "11")]
         VoiceCreate(super::VoiceCreateScenarioSpec),
+        #[prost(message, tag = "12")]
+        VisionLocate(super::VisionLocateScenarioSpec),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -5742,7 +5801,7 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub timeout_ms: i32,
     #[prost(
         oneof = "submit_local_app_scenario_job_request::Spec",
-        tags = "1, 2, 3, 4, 7, 8, 10"
+        tags = "1, 2, 3, 4, 7, 8, 10, 11"
     )]
     pub spec: ::core::option::Option<submit_local_app_scenario_job_request::Spec>,
 }
@@ -5764,6 +5823,8 @@ pub mod submit_local_app_scenario_job_request {
         MusicGenerate(super::LocalAppMusicGenerateJobSpec),
         #[prost(message, tag = "10")]
         WorldGenerate(super::LocalAppWorldGenerateJobSpec),
+        #[prost(message, tag = "11")]
+        VisionLocate(super::VisionLocateScenarioSpec),
     }
 }
 /// Trimmed Job projection for Local App consumption: status, progress, typed
@@ -5841,6 +5902,9 @@ pub struct GetLocalAppScenarioJobResponse {
     pub asset: ::core::option::Option<LocalAppVoiceAsset>,
     #[prost(message, optional, tag = "3")]
     pub voice_reference: ::core::option::Option<VoiceReference>,
+    /// Present only for a successfully completed VISION_LOCATE Job.
+    #[prost(message, optional, tag = "4")]
+    pub vision_locate: ::core::option::Option<VisionLocateResult>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CancelLocalAppScenarioJobRequest {
@@ -6230,6 +6294,9 @@ pub struct GetScenarioJobResponse {
     pub asset: ::core::option::Option<VoiceAsset>,
     #[prost(message, optional, tag = "3")]
     pub voice_reference: ::core::option::Option<VoiceReference>,
+    /// Get-only terminal result; absent from Submit and Job event snapshots.
+    #[prost(message, optional, tag = "4")]
+    pub vision_locate: ::core::option::Option<VisionLocateResult>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct CancelScenarioJobRequest {
@@ -6486,6 +6553,7 @@ pub enum Modal {
     Embedding = 6,
     Music = 7,
     World = 8,
+    Vision = 9,
 }
 impl Modal {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -6503,6 +6571,7 @@ impl Modal {
             Self::Embedding => "MODAL_EMBEDDING",
             Self::Music => "MODAL_MUSIC",
             Self::World => "MODAL_WORLD",
+            Self::Vision => "MODAL_VISION",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -6517,6 +6586,7 @@ impl Modal {
             "MODAL_EMBEDDING" => Some(Self::Embedding),
             "MODAL_MUSIC" => Some(Self::Music),
             "MODAL_WORLD" => Some(Self::World),
+            "MODAL_VISION" => Some(Self::Vision),
             _ => None,
         }
     }
@@ -6534,6 +6604,7 @@ pub enum ScenarioType {
     MusicGenerate = 9,
     WorldGenerate = 10,
     VoiceCreate = 11,
+    VisionLocate = 12,
 }
 impl ScenarioType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -6552,6 +6623,7 @@ impl ScenarioType {
             Self::MusicGenerate => "SCENARIO_TYPE_MUSIC_GENERATE",
             Self::WorldGenerate => "SCENARIO_TYPE_WORLD_GENERATE",
             Self::VoiceCreate => "SCENARIO_TYPE_VOICE_CREATE",
+            Self::VisionLocate => "SCENARIO_TYPE_VISION_LOCATE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -6567,6 +6639,7 @@ impl ScenarioType {
             "SCENARIO_TYPE_MUSIC_GENERATE" => Some(Self::MusicGenerate),
             "SCENARIO_TYPE_WORLD_GENERATE" => Some(Self::WorldGenerate),
             "SCENARIO_TYPE_VOICE_CREATE" => Some(Self::VoiceCreate),
+            "SCENARIO_TYPE_VISION_LOCATE" => Some(Self::VisionLocate),
             _ => None,
         }
     }
@@ -7134,6 +7207,35 @@ impl TextSourceType {
             "TEXT_SOURCE_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
             "TEXT_SOURCE_TYPE_URL" => Some(Self::Url),
             "TEXT_SOURCE_TYPE_DOCUMENT" => Some(Self::Document),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum VisionLocateGeometry {
+    Unspecified = 0,
+    Box = 1,
+    Point = 2,
+}
+impl VisionLocateGeometry {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "VISION_LOCATE_GEOMETRY_UNSPECIFIED",
+            Self::Box => "VISION_LOCATE_GEOMETRY_BOX",
+            Self::Point => "VISION_LOCATE_GEOMETRY_POINT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "VISION_LOCATE_GEOMETRY_UNSPECIFIED" => Some(Self::Unspecified),
+            "VISION_LOCATE_GEOMETRY_BOX" => Some(Self::Box),
+            "VISION_LOCATE_GEOMETRY_POINT" => Some(Self::Point),
             _ => None,
         }
     }
@@ -8410,6 +8512,7 @@ pub enum LocalAssetKind {
     Stt = 5,
     Embedding = 6,
     Music = 7,
+    Vision = 15,
     /// Passive kinds
     Vae = 10,
     Clip = 11,
@@ -8432,6 +8535,7 @@ impl LocalAssetKind {
             Self::Stt => "LOCAL_ASSET_KIND_STT",
             Self::Embedding => "LOCAL_ASSET_KIND_EMBEDDING",
             Self::Music => "LOCAL_ASSET_KIND_MUSIC",
+            Self::Vision => "LOCAL_ASSET_KIND_VISION",
             Self::Vae => "LOCAL_ASSET_KIND_VAE",
             Self::Clip => "LOCAL_ASSET_KIND_CLIP",
             Self::Lora => "LOCAL_ASSET_KIND_LORA",
@@ -8450,6 +8554,7 @@ impl LocalAssetKind {
             "LOCAL_ASSET_KIND_STT" => Some(Self::Stt),
             "LOCAL_ASSET_KIND_EMBEDDING" => Some(Self::Embedding),
             "LOCAL_ASSET_KIND_MUSIC" => Some(Self::Music),
+            "LOCAL_ASSET_KIND_VISION" => Some(Self::Vision),
             "LOCAL_ASSET_KIND_VAE" => Some(Self::Vae),
             "LOCAL_ASSET_KIND_CLIP" => Some(Self::Clip),
             "LOCAL_ASSET_KIND_LORA" => Some(Self::Lora),

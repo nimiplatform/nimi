@@ -74,6 +74,11 @@ export type {
   ExecuteScenarioRequest,
   ExecuteScenarioResponse,
   ImageGenerateScenarioSpec,
+  VisionLocateScenarioSpec,
+  VisionLocateResult,
+  VisionLocateBox,
+  VisionLocatePoint,
+  VisionLocation,
   ReadArtifactBytesResponse,
   ScenarioArtifact,
   ScenarioExtension,
@@ -87,6 +92,7 @@ export type {
 } from '../core-generated/runtime-typed-client';
 export {
   AccountCallerMode,
+  VisionLocateGeometry,
   AccountReasonCode,
   AccountSessionState,
   PresenceVerificationMethod,

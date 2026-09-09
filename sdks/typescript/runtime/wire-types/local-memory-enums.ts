@@ -152,6 +152,7 @@ export enum LocalAssetKind {
   STT = 5,
   EMBEDDING = 6,
   MUSIC = 7,
+  VISION = 15,
   VAE = 10,
   CLIP = 11,
   LORA = 12,

@@ -34,6 +34,7 @@ const (
 	LocalAssetKind_LOCAL_ASSET_KIND_STT       LocalAssetKind = 5
 	LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING LocalAssetKind = 6
 	LocalAssetKind_LOCAL_ASSET_KIND_MUSIC     LocalAssetKind = 7
+	LocalAssetKind_LOCAL_ASSET_KIND_VISION    LocalAssetKind = 15
 	// Passive kinds
 	LocalAssetKind_LOCAL_ASSET_KIND_VAE        LocalAssetKind = 10
 	LocalAssetKind_LOCAL_ASSET_KIND_CLIP       LocalAssetKind = 11
@@ -53,6 +54,7 @@ var (
 		5:  "LOCAL_ASSET_KIND_STT",
 		6:  "LOCAL_ASSET_KIND_EMBEDDING",
 		7:  "LOCAL_ASSET_KIND_MUSIC",
+		15: "LOCAL_ASSET_KIND_VISION",
 		10: "LOCAL_ASSET_KIND_VAE",
 		11: "LOCAL_ASSET_KIND_CLIP",
 		12: "LOCAL_ASSET_KIND_LORA",
@@ -68,6 +70,7 @@ var (
 		"LOCAL_ASSET_KIND_STT":         5,
 		"LOCAL_ASSET_KIND_EMBEDDING":   6,
 		"LOCAL_ASSET_KIND_MUSIC":       7,
+		"LOCAL_ASSET_KIND_VISION":      15,
 		"LOCAL_ASSET_KIND_VAE":         10,
 		"LOCAL_ASSET_KIND_CLIP":        11,
 		"LOCAL_ASSET_KIND_LORA":        12,
@@ -1801,7 +1804,7 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\toffer_ref\x18\x19 \x01(\tR\bofferRef\x1a9\n" +
 	"\vHashesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*\x86\x03\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01*\xa3\x03\n" +
 	"\x0eLocalAssetKind\x12 \n" +
 	"\x1cLOCAL_ASSET_KIND_UNSPECIFIED\x10\x00\x12\x19\n" +
 	"\x15LOCAL_ASSET_KIND_CHAT\x10\x01\x12\x1a\n" +
@@ -1810,7 +1813,8 @@ const file_runtime_v1_local_runtime_asset_catalog_proto_rawDesc = "" +
 	"\x14LOCAL_ASSET_KIND_TTS\x10\x04\x12\x18\n" +
 	"\x14LOCAL_ASSET_KIND_STT\x10\x05\x12\x1e\n" +
 	"\x1aLOCAL_ASSET_KIND_EMBEDDING\x10\x06\x12\x1a\n" +
-	"\x16LOCAL_ASSET_KIND_MUSIC\x10\a\x12\x18\n" +
+	"\x16LOCAL_ASSET_KIND_MUSIC\x10\a\x12\x1b\n" +
+	"\x17LOCAL_ASSET_KIND_VISION\x10\x0f\x12\x18\n" +
 	"\x14LOCAL_ASSET_KIND_VAE\x10\n" +
 	"\x12\x19\n" +
 	"\x15LOCAL_ASSET_KIND_CLIP\x10\v\x12\x19\n" +

@@ -21,6 +21,7 @@ enum Modal {
   MODAL_EMBEDDING = 6;
   MODAL_MUSIC = 7;
   MODAL_WORLD = 8;
+  MODAL_VISION = 9;
 }
 
 enum ScenarioType {
@@ -36,6 +37,7 @@ enum ScenarioType {
   SCENARIO_TYPE_MUSIC_GENERATE = 9;
   SCENARIO_TYPE_WORLD_GENERATE = 10;
   SCENARIO_TYPE_VOICE_CREATE = 11;
+  SCENARIO_TYPE_VISION_LOCATE = 12;
 }
 
 enum ExecutionMode {
@@ -482,6 +484,47 @@ message WorldGenerateScenarioSpec {
   }
 }
 
+enum VisionLocateGeometry {
+  VISION_LOCATE_GEOMETRY_UNSPECIFIED = 0;
+  VISION_LOCATE_GEOMETRY_BOX = 1;
+  VISION_LOCATE_GEOMETRY_POINT = 2;
+}
+
+message VisionLocateScenarioSpec {
+  string image_artifact_id = 1;
+  string query = 2;
+  VisionLocateGeometry geometry = 3;
+}
+
+message VisionLocateBox {
+  double x1 = 1;
+  double y1 = 2;
+  double x2 = 3;
+  double y2 = 4;
+}
+
+message VisionLocatePoint {
+  double x = 1;
+  double y = 2;
+}
+
+message VisionLocation {
+  optional string label = 1;
+  oneof geometry {
+    VisionLocateBox box = 2;
+    VisionLocatePoint point = 3;
+  }
+}
+
+// Coordinates and dimensions describe the full static image after EXIF
+// orientation. A present result with no locations is a complete negative.
+message VisionLocateResult {
+  string image_artifact_id = 1;
+  uint32 width = 2;
+  uint32 height = 3;
+  repeated VisionLocation locations = 4;
+}
+
 message ScenarioSpec {
   oneof spec {
     TextGenerateScenarioSpec text_generate = 1;
@@ -493,6 +536,7 @@ message ScenarioSpec {
     MusicGenerateScenarioSpec music_generate = 9;
     WorldGenerateScenarioSpec world_generate = 10;
     VoiceCreateScenarioSpec voice_create = 11;
+    VisionLocateScenarioSpec vision_locate = 12;
   }
   reserved 7, 8;
   reserved "voice_clone", "voice_design";
@@ -771,6 +815,7 @@ message SubmitLocalAppScenarioJobRequest {
     LocalAppVoiceCreateJobSpec voice_create = 7;
     LocalAppMusicGenerateJobSpec music_generate = 8;
     LocalAppWorldGenerateJobSpec world_generate = 10;
+    VisionLocateScenarioSpec vision_locate = 11;
   }
   // Canonical Job deadline in milliseconds. Zero keeps Runtime's
   // capability-owned default; no other ScenarioRequestHead field is exposed.
@@ -832,6 +877,8 @@ message GetLocalAppScenarioJobResponse {
   // The protected Local App surface never projects a provider-owned handle.
   LocalAppVoiceAsset asset = 2;
   VoiceReference voice_reference = 3;
+  // Present only for a successfully completed VISION_LOCATE Job.
+  VisionLocateResult vision_locate = 4;
 }
 
 message CancelLocalAppScenarioJobRequest {
@@ -1106,6 +1153,8 @@ message GetScenarioJobResponse {
   // completion and for every failed, canceled, timed-out, or non-voice Job.
   VoiceAsset asset = 2;
   VoiceReference voice_reference = 3;
+  // Get-only terminal result; absent from Submit and Job event snapshots.
+  VisionLocateResult vision_locate = 4;
 }
 
 message CancelScenarioJobRequest {
