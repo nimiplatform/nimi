@@ -72,6 +72,8 @@ type Service struct {
 	localMusicHost                         localexecution.MusicExecutionHost
 	localVideoHost                         localexecution.VideoExecutionHost
 	localSpeechHost                        localexecution.SpeechExecutionHost
+	localVisionHost                        localexecution.VisionExecutionHost
+	localVisionJobOrder                    localMediaSubmissionOrder
 	localImageJobOrder                     localMediaSubmissionOrder
 	localMusicJobOrder                     localMediaSubmissionOrder
 	localVideoJobOrder                     localMediaSubmissionOrder
@@ -295,6 +297,12 @@ func (s *Service) SetLocalTextExecutionHost(host localexecution.TextExecutionHos
 func (s *Service) SetLocalImageExecutionHost(host localexecution.ImageExecutionHost) {
 	if s != nil {
 		s.localImageHost = host
+	}
+}
+
+func (s *Service) SetLocalVisionExecutionHost(host localexecution.VisionExecutionHost) {
+	if s != nil {
+		s.localVisionHost = host
 	}
 }
 

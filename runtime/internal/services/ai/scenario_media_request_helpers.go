@@ -31,6 +31,8 @@ func validateSubmitScenarioAsyncJobRequest(req *runtimev1.SubmitScenarioJobReque
 	}
 
 	switch req.GetScenarioType() {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE:
+		return validateVisionLocateSpec(req.GetSpec().GetVisionLocate())
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:
 		if err := validateVoiceWorkflowSpec(req.GetScenarioType(), req.GetSpec()); err != nil {
 			return err

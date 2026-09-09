@@ -21,6 +21,7 @@ const (
 	VoiceCreate       = "voice.create"
 	MusicGenerate     = "music.generate"
 	RealtimeInteract  = "realtime.interact"
+	VisionLocate      = "vision.locate"
 )
 
 var ErrUnknownCatalogCapability = errors.New("unknown catalog capability")
@@ -39,6 +40,7 @@ var canonicalCatalog = []string{
 	WorldGenerate,
 	MusicGenerate,
 	RealtimeInteract,
+	VisionLocate,
 }
 
 var standardizedFeaturesByCapability = map[string]map[string]struct{}{
@@ -110,6 +112,8 @@ func NormalizeCatalogCapability(value string) (string, error) {
 		return MusicGenerate, nil
 	case RealtimeInteract:
 		return RealtimeInteract, nil
+	case VisionLocate:
+		return VisionLocate, nil
 	default:
 		return "", ErrUnknownCatalogCapability
 	}

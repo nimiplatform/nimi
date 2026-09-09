@@ -21,7 +21,6 @@ import (
 // @nimi-authority: rule.nimi.runtime.local-compute.r110
 func (s *Service) configuredManagedSpeechEngineConfigForCapability(capabilityContract string, driverID string, port int) (engine.EngineConfig, error) {
 	consumer := ""
-	envKey := ""
 	voxcpmBackend := ""
 	var requiredDriver engine.SpeechDriver
 	var driverPath func(string) string
@@ -30,12 +29,10 @@ func (s *Service) configuredManagedSpeechEngineConfigForCapability(capabilityCon
 		switch strings.TrimSpace(driverID) {
 		case capabilitydriver.Qwen3TTSDriverID:
 			consumer = "speech.qwen3-tts.python"
-			envKey = "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"
 			requiredDriver = engine.SpeechDriverQwen3TTS
 			driverPath = engine.SpeechQwen3TTSDriverPath
 		case capabilitydriver.VoxCPMDriverID:
 			consumer = "speech.voxcpm.python"
-			envKey = "NIMI_RUNTIME_SPEECH_VOXCPM_CMD"
 			requiredDriver = engine.SpeechDriverVoxCPM
 			hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
 			backend, err := engine.SpeechVoxCPMBackendForPlatform(localEnvironmentPlatformTuple(hostState))
@@ -55,19 +52,16 @@ func (s *Service) configuredManagedSpeechEngineConfigForCapability(capabilityCon
 			return engine.EngineConfig{}, fmt.Errorf("voice.create Driver is not admitted: %s", strings.TrimSpace(driverID))
 		}
 		consumer = "speech.qwen3-tts.python"
-		envKey = "NIMI_RUNTIME_SPEECH_QWEN3_TTS_CMD"
 		requiredDriver = engine.SpeechDriverQwen3TTS
 		driverPath = engine.SpeechQwen3TTSDriverPath
 	case capabilitydriver.AudioTranscribeContract:
 		switch strings.TrimSpace(driverID) {
 		case capabilitydriver.Qwen3ASRDriverID:
 			consumer = "speech.qwen3-asr.python"
-			envKey = "NIMI_RUNTIME_SPEECH_QWEN3_ASR_CMD"
 			requiredDriver = engine.SpeechDriverQwen3ASR
 			driverPath = engine.SpeechQwen3ASRDriverPath
 		case capabilitydriver.Qwen3ASRTransformersDriverID:
 			consumer = "speech.qwen3-asr-transformers.python"
-			envKey = "NIMI_RUNTIME_SPEECH_QWEN3_ASR_TRANSFORMERS_CMD"
 			requiredDriver = engine.SpeechDriverQwen3ASRTransformers
 			driverPath = engine.SpeechQwen3ASRTransformersDriverPath
 		default:
@@ -76,7 +70,7 @@ func (s *Service) configuredManagedSpeechEngineConfigForCapability(capabilityCon
 	default:
 		return engine.EngineConfig{}, fmt.Errorf("speech ExecutionHost capability is not admitted: %s", strings.TrimSpace(capabilityContract))
 	}
-	record, identity, ok, detail := s.selectedSpeechPackageSetSourceForConsumer(consumer, envKey, driverPath)
+	record, identity, ok, detail := s.selectedPythonPackageSetSourceForConsumer(consumer, driverPath)
 	if !ok {
 		return engine.EngineConfig{}, fmt.Errorf("%s selected source missing: %s", consumer, detail)
 	}
@@ -319,11 +313,10 @@ func (s *Service) StopSpeechExecutionHost() error {
 	return nil
 }
 
-func (s *Service) selectedSpeechPackageSetSourceForConsumer(consumer string, envKey string, driverPath func(string) string) (localEnvironmentSelectedSourceRecordState, engine.PythonDependencyProfileIdentity, bool, string) {
+func (s *Service) selectedPythonPackageSetSourceForConsumer(consumer string, driverPath func(string) string) (localEnvironmentSelectedSourceRecordState, engine.PythonDependencyProfileIdentity, bool, string) {
 	trimmedConsumer := strings.TrimSpace(consumer)
-	trimmedEnvKey := strings.TrimSpace(envKey)
-	if trimmedConsumer == "" || trimmedEnvKey == "" || driverPath == nil {
-		return localEnvironmentSelectedSourceRecordState{}, engine.PythonDependencyProfileIdentity{}, false, "speech package-set consumer, driver env key, and driver path are required"
+	if trimmedConsumer == "" || driverPath == nil {
+		return localEnvironmentSelectedSourceRecordState{}, engine.PythonDependencyProfileIdentity{}, false, "package-set consumer and driver path are required"
 	}
 
 	hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))

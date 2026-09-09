@@ -5,6 +5,7 @@ This repository is multi-licensed by component.
 - `runtime/**`, `sdks/typescript/**`, `proto/**`, `app-tools/**`, `npm-packages/**`: Apache-2.0
 - `apps/**`, `kit/**`: MIT
 - `app-tools/templates/default-starter/**`, `app-tools/templates/app-source/**`: MIT (override the `app-tools/**` default)
+- `runtime/internal/engine/assets/locateanything_loader/**`: third-party loader terms and original file notices as described in that directory's LICENSE and NOTICE.md (override the Runtime default for upstream files)
 - `docs/**`, `.nimi/spec/**`: CC-BY-4.0
 
 Canonical texts are in `licenses/`.

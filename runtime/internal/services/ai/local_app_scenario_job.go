@@ -107,6 +107,7 @@ func (s *Service) GetLocalAppScenarioJob(ctx context.Context, req *runtimev1.Get
 		return nil, err
 	}
 	response := &runtimev1.GetLocalAppScenarioJobResponse{Job: job}
+	response.VisionLocate = cloneVisionLocateResult(result.GetVisionLocate())
 	if result.GetAsset() != nil || result.GetVoiceReference() != nil {
 		asset, err := projectLocalAppVoiceAsset(result.GetAsset())
 		if err != nil || asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE ||
@@ -205,6 +206,7 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 	}
 	switch job.GetScenarioType() {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE,
@@ -332,6 +334,11 @@ func validateLocalAppScenarioJobRequest(req *runtimev1.SubmitLocalAppScenarioJob
 		return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	switch spec := req.GetSpec().(type) {
+	case *runtimev1.SubmitLocalAppScenarioJobRequest_VisionLocate:
+		if err := validateVisionLocateSpec(spec.VisionLocate); err != nil {
+			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
+		}
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VisionLocate{VisionLocate: cloneVisionLocateSpec(spec.VisionLocate)}}, runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE, nil
 	case *runtimev1.SubmitLocalAppScenarioJobRequest_WorldGenerate:
 		world := spec.WorldGenerate
 		if world == nil || !localAppExactText(world.GetPrompt(), maxLocalAppScenarioPromptBytes) ||

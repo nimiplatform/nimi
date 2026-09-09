@@ -282,6 +282,29 @@ export const CANONICAL_CAPABILITY_CATALOG: ReadonlyArray<CanonicalCapabilityDesc
     }),
   }),
   Object.freeze({
+    capabilityId: 'vision.locate',
+    section: 'image',
+    editorKind: null,
+    sourceRef: Object.freeze({
+      table: 'local-adapter-routing',
+      capability: 'vision.locate',
+    }),
+    additionalRuntimeTables: Object.freeze([]),
+    i18nKeys: Object.freeze({
+      title: 'AIConfig.capability.visionLocate.title',
+      subtitle: 'AIConfig.capability.visionLocate.subtitle',
+      detail: 'AIConfig.capability.visionLocate.detail',
+    }),
+    runtimeEvidenceClass: 'job',
+    governance: Object.freeze({
+      owner: 'runtime-vision-route',
+      dataMovement: 'local-by-selected-route',
+      retention: 'runtime-scenario-job-policy',
+      revocation: 'route-or-job-owner',
+      auditSource: 'runtime-scenario-job-evidence',
+    }),
+  }),
+  Object.freeze({
     capabilityId: 'voice.create',
     section: 'tts',
     editorKind: 'voice-create',

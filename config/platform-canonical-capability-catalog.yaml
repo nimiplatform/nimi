@@ -16,6 +16,7 @@ entries:
   - capabilities_8
   - capabilities_9
   - capabilities_10
+  - capabilities_11
 # Canonical capability catalog — spec-resident cross-layer identity authority.
 # See capability-catalog-contract.md (P-CAPCAT-001..004).
 # Codegen output: kit/core/src/runtime-capabilities/generated/canonical-capability-catalog.ts
@@ -215,5 +216,24 @@ capabilities:
       revocation: session-route-or-connector-owner
       auditSource: runtime-realtime-lifecycle
     source_rule: P-CAPCAT-005
+
+  - capabilityId: vision.locate
+    section: image
+    editorKind: null
+    sourceRef:
+      table: local-adapter-routing
+      capability: vision.locate
+    i18nKeys:
+      title: AIConfig.capability.visionLocate.title
+      subtitle: AIConfig.capability.visionLocate.subtitle
+      detail: AIConfig.capability.visionLocate.detail
+    runtimeEvidenceClass: job
+    governance:
+      owner: runtime-vision-route
+      dataMovement: local-by-selected-route
+      retention: runtime-scenario-job-policy
+      revocation: route-or-job-owner
+      auditSource: runtime-scenario-job-evidence
+    source_rule: P-CAPCAT-006
 
 deferred: []

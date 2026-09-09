@@ -1,0 +1,98 @@
+sources:
+  - source_id: locateanything_modelcard
+    url: https://huggingface.co/nvidia/LocateAnything-3B
+    retrieved_at: 2026-09-09
+    note: Single-image grounding checkpoint; NVIDIA research/evaluation license and underlying component terms apply.
+  - source_id: locateanything_mlx_modelcard
+    url: https://huggingface.co/mlx-community/LocateAnything-3B-4bit
+    retrieved_at: 2026-09-09
+    note: Mixed 4/8-bit conversion, not a uniform 4-bit model; original weight license retained.
+models:
+  - model_id: locateanything-local
+    model_type: vision
+    family: locateanything
+    updated_at: 2026-09-09
+    capabilities: [vision.locate]
+    source_ids: [locateanything_modelcard, locateanything_mlx_modelcard]
+    install:
+      repo: nvidia/LocateAnything-3B
+      revision: c32291ca5e996f5a7a485845b4f57a233936bba0
+      install_kind: verified-hf-multi-file
+      entry: model-00001-of-00002.safetensors
+      artifact_roles: [vision_model]
+      license: NVIDIA License (non-commercial research and evaluation)
+    variants:
+      - variant_id: local.vision.locateanything.bf16.cuda
+        quant: BF16
+        repo: nvidia/LocateAnything-3B
+        revision: c32291ca5e996f5a7a485845b4f57a233936bba0
+        entry: model-00001-of-00002.safetensors
+        files:
+          - added_tokens.json
+          - chat_template.json
+          - config.json
+          - generation_config.json
+          - LICENSE
+          - merges.txt
+          - model-00001-of-00002.safetensors
+          - model-00002-of-00002.safetensors
+          - model.safetensors.index.json
+          - preprocessor_config.json
+          - processor_config.json
+          - special_tokens_map.json
+          - tokenizer_config.json
+          - vocab.json
+        hashes:
+          added_tokens.json: sha256:1a87d2bec4c707c3946235046555d91f9df6986b8dd4a3ac53e6d0b24c36d176
+          chat_template.json: sha256:a0cb84f5108587c8a2e944ad7d4b123bb413c34baeef30e3d6d7a3bb486a835d
+          config.json: sha256:59e6b5104f9d948db6a38f778e29f86d5c01e373f46d02008fc3070377917007
+          generation_config.json: sha256:f15f5de33244a61325923e99bad2c061029acb8d6dd5c57f8458b3949ddd8f97
+          LICENSE: sha256:b4476ee5b676f02083d709e4ba3beb0b6314577bafbcb293d9e247b4eaa758e7
+          merges.txt: sha256:8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5
+          model-00001-of-00002.safetensors: sha256:923cfc10fed19808067da6df85a9a4220ddc1f9eb91ceee94c0fecd05d0f2d58
+          model-00002-of-00002.safetensors: sha256:3459ba101f40594f3f62d3312014f1f8378b4ba3da3b1d562480045938fc7d47
+          model.safetensors.index.json: sha256:2ecc63fee5f958ffc8142fa29ff7b704a58e80349e9c9ca155a9710d97700271
+          preprocessor_config.json: sha256:34f0dc33b40ee26d280d7ed93614c90b1d41a68d6ccfe5a8341e274e6169f94e
+          processor_config.json: sha256:1274db3b9504d37e57ea41ba7de547194d381265c5946f6db8560f851a940992
+          special_tokens_map.json: sha256:bfadce2f545458bf9d39fc9153cd2ac1077371ed5ab553fa4988061fefe67ac7
+          tokenizer_config.json: sha256:930b057de30312f861a22780017b09eccd87e893d966bd004bf4d70eec0e2652
+          vocab.json: sha256:87a257b04b17642a0688c98cd1df89c398bda4fee532d6f88b38a659ecb4ac8d
+        total_size_bytes: 7666790907
+        host_requirement:
+          accelerator: cuda
+      - variant_id: local.vision.locateanything.mixed-4-8.metal
+        quant: MIXED_4_8
+        repo: mlx-community/LocateAnything-3B-4bit
+        revision: e4517cd171dfa6c5a376a50c5ef8b73949aea0b7
+        entry: model.safetensors
+        files:
+          - added_tokens.json
+          - chat_template.json
+          - config.json
+          - generation_config.json
+          - LICENSE
+          - merges.txt
+          - model.safetensors
+          - model.safetensors.index.json
+          - preprocessor_config.json
+          - processor_config.json
+          - special_tokens_map.json
+          - tokenizer_config.json
+          - vocab.json
+        hashes:
+          added_tokens.json: sha256:1a87d2bec4c707c3946235046555d91f9df6986b8dd4a3ac53e6d0b24c36d176
+          chat_template.json: sha256:a0cb84f5108587c8a2e944ad7d4b123bb413c34baeef30e3d6d7a3bb486a835d
+          config.json: sha256:c12df783e28022f16580d90b9dccf6779fc167a9a5286e323cec1a189b6b50c6
+          generation_config.json: sha256:f15f5de33244a61325923e99bad2c061029acb8d6dd5c57f8458b3949ddd8f97
+          LICENSE: sha256:b4476ee5b676f02083d709e4ba3beb0b6314577bafbcb293d9e247b4eaa758e7
+          merges.txt: sha256:8831e4f1a044471340f7c0a83d7bd71306a5b867e95fd870f74d0c5308a904d5
+          model.safetensors: sha256:0737bfb20443aa6484bb07351c086a3c1c36225a9be65b2447d67ecd8c715d80
+          model.safetensors.index.json: sha256:89f4f2bd9e1889d03c9871ff46f53c066864eac229c5f8f0d1c2258082d79fe6
+          preprocessor_config.json: sha256:34f0dc33b40ee26d280d7ed93614c90b1d41a68d6ccfe5a8341e274e6169f94e
+          processor_config.json: sha256:b18189377360adfbd75d2a2af0ba23dd6c45f30e4ad7e457985ab01cca50fdc0
+          special_tokens_map.json: sha256:bfadce2f545458bf9d39fc9153cd2ac1077371ed5ab553fa4988061fefe67ac7
+          tokenizer_config.json: sha256:930b057de30312f861a22780017b09eccd87e893d966bd004bf4d70eec0e2652
+          vocab.json: sha256:87a257b04b17642a0688c98cd1df89c398bda4fee532d6f88b38a659ecb4ac8d
+        total_size_bytes: 2967636049
+        host_requirement:
+          accelerator: metal

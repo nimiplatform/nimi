@@ -100,6 +100,7 @@ type localResolvedAssemblyLoadPlan struct {
 	Image  *localResolvedAssemblyImagePlan  `json:"image,omitempty"`
 	Video  *localResolvedAssemblyVideoPlan  `json:"video,omitempty"`
 	Music  *localResolvedAssemblyMusicPlan  `json:"music,omitempty"`
+	Vision *localResolvedAssemblyVisionPlan `json:"vision,omitempty"`
 }
 
 type localResolvedAssemblyMusicPlan struct {
@@ -941,6 +942,10 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 		return fmt.Errorf("non-text ResolvedAssembly carries admitted text behaviors")
 	}
 	switch assembly.LoadPlan.Kind {
+	case "vision":
+		if _, err := visionPlanFromResolvedAssembly(assembly); err != nil {
+			return err
+		}
 	case "text":
 		if assembly.LoadPlan.Text == nil || strings.TrimSpace(assembly.LoadPlan.Text.ProcessKey) == "" ||
 			strings.TrimSpace(assembly.LoadPlan.Text.RequestContentType) == "" {

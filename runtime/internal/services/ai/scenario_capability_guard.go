@@ -39,6 +39,8 @@ func unsupportedCapabilityReasonCode(scenarioType runtimev1.ScenarioType) runtim
 
 func localScenarioCapability(scenarioType runtimev1.ScenarioType) (string, bool) {
 	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE:
+		return "vision.locate", true
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
 		return "text.generate", true
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:

@@ -257,6 +257,8 @@ func localEnvironmentActivationDependencyReason(state string) string {
 
 func localEnvironmentConsumerRequirementByID(consumerID string) (localEnvironmentConsumerRequirement, bool) {
 	switch strings.TrimSpace(consumerID) {
+	case engine.VisionLocateConsumerID, engine.VisionLocateConsumerID + ".cuda", engine.VisionLocateConsumerID + ".cpu":
+		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-vision"}, true
 	case "llama.cpp.cuda", "llama.cpp.metal":
 		return localEnvironmentConsumerRequirement{ConsumerID: strings.TrimSpace(consumerID), PackID: "local-text"}, true
 	case "stable-diffusion.cpp.metal", stableDiffusionCUDAConsumerID:

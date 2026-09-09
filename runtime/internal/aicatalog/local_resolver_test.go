@@ -36,7 +36,7 @@ func TestLoadBuiltInLocalProviderCatalog(t *testing.T) {
 		if passive && (row.Fitness != nil || len(row.Capabilities) != 0 || row.Install.PreferredEngine != "") {
 			t.Fatalf("passive ModelAsset offer %q carries runnable facts", row.ModelID)
 		}
-		fitnessOptional := row.ModelType == "tts" || row.ModelType == "stt"
+		fitnessOptional := row.ModelType == "tts" || row.ModelType == "stt" || row.ModelType == "vision"
 		if !passive && !fitnessOptional && row.Fitness == nil {
 			t.Fatalf("runnable local-plane row %q has no fitness", row.ModelID)
 		}

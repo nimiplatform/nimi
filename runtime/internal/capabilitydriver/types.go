@@ -1534,6 +1534,7 @@ func (registry *Registry) Resolve(capabilityContract string, identity Identity) 
 
 func NewProductionRegistry() *Registry {
 	entries := map[RegistrationKey]Driver{
+		{CapabilityContract: VisionLocateContract, Identity: Identity{ImplementationID: LocateAnythingImplementationID, DriverID: LocateAnythingDriverID, DriverDialect: LocateAnythingDriverDialect}}: LocateAnythingDriver{},
 		// @nimi-authority: rule.nimi.runtime.local-compute.r112
 		{CapabilityContract: LlamaCapabilityContract, Identity: Identity{ImplementationID: LlamaImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaDriverDialect}}:                                                             LlamaTextDriver{},
 		{CapabilityContract: TextEmbedCapabilityContract, Identity: Identity{ImplementationID: LlamaEmbedImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaEmbedDriverDialect}}:                                               LlamaEmbedDriver{},
