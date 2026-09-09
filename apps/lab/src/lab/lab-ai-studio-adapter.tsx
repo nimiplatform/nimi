@@ -14,7 +14,6 @@ import {
   subscribeLabAIConfigOwnerRefresh,
 } from './lab-ai-config-store.js';
 import { createLabRunTargetSummary } from './lab-run-target.js';
-import { runWorldTour } from './world-tour/world-tour-runtime.js';
 
 export function LabAIStudioAdapter({ children }: { readonly children: ReactNode }) {
   const rendererHost = useLabRendererHost();
@@ -54,12 +53,7 @@ export function LabAIStudioAdapter({ children }: { readonly children: ReactNode 
       },
     },
     sdk: {
-      runCapability: async (input: StudioCapabilityRunInput): Promise<StudioCapabilityRunResult> => {
-        if (input.capabilityId !== 'world.generate') {
-          return rendererHost.sdk.runCapability(input);
-        }
-        return runWorldTour(input);
-      },
+      runCapability: (input: StudioCapabilityRunInput): Promise<StudioCapabilityRunResult> => rendererHost.sdk.runCapability(input),
       listLocalAppVoiceAssets: () => rendererHost.sdk.listLocalAppVoiceAssets(),
       uploadLocalAppArtifact: (input) => rendererHost.sdk.uploadLocalAppArtifact(input),
       aiConfig: {

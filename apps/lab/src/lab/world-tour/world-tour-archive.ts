@@ -1,6 +1,6 @@
 import { unzipSync } from 'fflate';
 import { isJsonObject } from '@nimiplatform/sdk/types';
-import { getLabLocalAppClient } from '../../shell/local-app-runtime-platform.js';
+import type { NimiLocalAppAssetsClient } from '@nimiplatform/sdk/app';
 
 export type WorldTourArchive = {
   displayName: string;
@@ -30,8 +30,8 @@ export function parseWorldTourArchive(bytes: Uint8Array): WorldTourArchive {
   };
 }
 
-export async function readWorldTourArchive(relativePath: string): Promise<WorldTourArchive> {
-  const result = await getLabLocalAppClient().storage.assets.read({ relativePath });
+export async function readWorldTourArchive(relativePath: string, assets: Pick<NimiLocalAppAssetsClient, 'read'>): Promise<WorldTourArchive> {
+  const result = await assets.read({ relativePath });
   const chunks: Uint8Array[] = [];
   let length = 0;
   for await (const chunk of result.body) { chunks.push(chunk); length += chunk.byteLength; }

@@ -1,10 +1,10 @@
 import { useRef, useState } from 'react';
 import { Button, InlineAlert } from '@nimiplatform/kit/ui';
 import { useTranslation } from '../../shell/i18n/index.js';
-import { openWorldTourWindow, resolveWorldTourFixture } from './world-tour-shared.js';
-import { resumeWorldTour } from './world-tour-runtime.js';
+import { useLabRendererHost } from '../../renderer/context.js';
 
 export function WorldTourActions() {
+  const rendererHost = useLabRendererHost();
   const { t } = useTranslation();
   const [error, setError] = useState('');
   const [opening, setOpening] = useState(false);
@@ -16,7 +16,7 @@ export function WorldTourActions() {
     const controller = new AbortController();
     abort.current = controller;
     try {
-      const result = await resumeWorldTour(controller.signal, setMessage);
+      const result = await rendererHost.app.commands.resumeWorldTour(controller.signal, setMessage);
       setMessage(result.message);
     } catch (cause) {
       setMessage('');
@@ -26,8 +26,8 @@ export function WorldTourActions() {
   const open = async () => {
     setOpening(true); setError('');
     try {
-      const world = await resolveWorldTourFixture({});
-      await openWorldTourWindow({ manifestPath: world.manifestPath });
+      const world = await rendererHost.app.commands.resolveWorldTourFixture({});
+      await rendererHost.app.commands.openWorldTourWindow({ manifestPath: world.manifestPath });
     } catch (cause) {
       setError(cause && typeof cause === 'object' && 'code' in cause && cause.code === 'not-found'
         ? t('WorldTour.noSavedWorld') : cause instanceof Error ? cause.message : t('WorldTour.launchClaimFailed'));

@@ -6,7 +6,6 @@ import { useLabRendererHost } from '../../renderer/context.js';
 import { readWorldTourArchive } from './world-tour-archive.js';
 import type { createWorldTourScene } from './world-tour-scene.js';
 import { parseWorldTourCameraPreset } from './world-tour-camera.js';
-import { getLabLocalAppClient } from '../../shell/local-app-runtime-platform.js';
 
 type WorldTourViewerCanvasProps = {
   fixture: ResolvedWorldTourFixture;
@@ -28,7 +27,7 @@ export function WorldTourViewerCanvas({ fixture }: WorldTourViewerCanvasProps) {
     setReady(false);
     setError(null);
     void (async () => {
-      const world = await readWorldTourArchive(fixture.archivePath);
+      const world = await readWorldTourArchive(fixture.archivePath, rendererHost.sdk.storage.assets);
       const { createWorldTourScene } = await import('./world-tour-scene.js');
       if (canceled || !viewport.current) return;
       setTitle(world.displayName);
@@ -40,7 +39,7 @@ export function WorldTourViewerCanvas({ fixture }: WorldTourViewerCanvasProps) {
       if (!canceled) setError(t('WorldTour.loadFailed', { detail: cause instanceof Error ? cause.message : String(cause) }));
     });
     return () => { canceled = true; controls.current = null; scene?.dispose(); };
-  }, [fixture.archivePath, t]);
+  }, [fixture.archivePath, rendererHost, t]);
 
   async function savePreset() {
     setError(null);
@@ -59,7 +58,7 @@ export function WorldTourViewerCanvas({ fixture }: WorldTourViewerCanvasProps) {
     setError(null);
     setMessage(null);
     try {
-      const { value } = await getLabLocalAppClient().storage.readJson(fixture.viewerPresetPath);
+      const { value } = await rendererHost.sdk.localAppClient.storage.readJson(fixture.viewerPresetPath);
       controls.current?.applyPose(parseWorldTourCameraPreset(value));
       setMessage(t('WorldTour.presetLoaded'));
     } catch (cause) {

@@ -72,6 +72,7 @@ export interface LabRendererCommandPort {
   exportText(input: { readonly filename: string; readonly body: string }): Promise<NimiRendererHostResult<{ readonly filename: string }>>;
   resolveWorldTourFixture(input: ResolveWorldTourFixtureInput): Promise<ResolvedWorldTourFixture>;
   openWorldTourWindow(input: OpenWorldTourWindowInput): Promise<OpenWorldTourWindowResponse>;
+  resumeWorldTour(signal: AbortSignal, onPartial: (message: string) => void): Promise<StudioCapabilityRunResult>;
   claimWorldTourViewerLaunch(input: ClaimWorldTourViewerLaunchInput): Promise<ResolvedWorldTourFixture>;
   saveWorldTourViewerPreset(input: { readonly manifestPath: string; readonly presetJson: string }): Promise<{ readonly manifestPath: string; readonly presetPath: string }>;
   localAppSessionStatus(): Promise<{ readonly state: string; readonly sessionBound: boolean }>;
