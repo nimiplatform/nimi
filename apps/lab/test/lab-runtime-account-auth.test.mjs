@@ -606,6 +606,23 @@ test('Lab preserves caller-local operation-aborted without fabricating a Runtime
   assert.notEqual(result.reason, 'runtime-canceled');
 });
 
+test('Locate preserves typed input rejection through the Local App bridge', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  for (const reasonCode of ['ai-input-invalid', 'AI_INPUT_INVALID']) {
+    const client = fakeLocalAppClient({
+      async uploadArtifact() { return { artifactId:'image-1', sizeBytes:3, mimeType:'image/png' }; },
+      async submitScenarioJob() { throw Object.assign(new Error(reasonCode), { reasonCode }); },
+    });
+    const result = await runLabCapability({
+      capabilityId:'vision.locate', prompt:'the button',
+      attachments:[{id:'image-1',kind:'image',mimeType:'image/png',dataUrl:'data:image/png;base64,AQID'}],
+    }, readyRuntimeDependencies(client));
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, 'input-invalid');
+    assert.equal(result.diagnostics.reasonCode, 'AI_INPUT_INVALID');
+  }
+});
+
 for (const phase of ['before-upload', 'during-upload', 'upload-rejected']) {
   test(`Locate ${phase} cancellation stays caller-local and never submits a Job`, async () => {
     const { runLabCapability } = await importLabRuntime();

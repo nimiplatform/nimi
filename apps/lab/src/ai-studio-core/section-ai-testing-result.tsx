@@ -197,8 +197,8 @@ function TextStudioHistoryRecordResult({
           <AlertTriangle size={15} aria-hidden="true" />
           <span>{studioNonSuccessReasonTitle(snapshot.reason, t)}</span>
         </div>
-        <p>{studioNonSuccessReasonUserMessage(snapshot.reason, t)}</p>
-        <p className="studio-result__hint">{studioNonSuccessReasonUserAction(snapshot.reason, t)}</p>
+        <p>{studioNonSuccessReasonUserMessage(snapshot.reason, t, record.capabilityId, snapshot.diagnostics)}</p>
+        <p className="studio-result__hint">{studioNonSuccessReasonUserAction(snapshot.reason, t, record.capabilityId, snapshot.diagnostics)}</p>
         <details className="studio-diag">
           <summary>{t('StudioShell.runtimeDetails')}</summary>
           <RuntimeDiagnosticsActions text={diagnosticsText} filenameBase={record.capabilityId} />

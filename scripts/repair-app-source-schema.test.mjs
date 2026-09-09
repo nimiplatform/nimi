@@ -6,7 +6,7 @@ import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 import { repairAppSourceSchema } from './repair-app-source-schema.mjs';
 
-function oldDatabase(t) {
+function oldDatabase(t, { legacyShellKind = false } = {}) {
   const tempRoot = path.resolve(os.tmpdir());
   const root = mkdtempSync(path.join(tempRoot, 'nimi-app-source-repair-'));
   assert.equal(path.dirname(root), tempRoot);
@@ -23,10 +23,14 @@ function oldDatabase(t) {
     .replaceAll("source_class IN ('verified','user_imported') AND shell_kind", "source_class = 'verified' AND shell_kind")
     .replaceAll("'verified','user_imported'", "'verified'")
     .replaceAll("'downloading','reading-local','verifying'", "'downloading','verifying'");
-  db.exec(oldSchema(registration));
+  const registrationSchema = legacyShellKind
+    ? registration.replace('shell_kind INTEGER NOT NULL,', 'shell_kind INTEGER NOT NULL CHECK(shell_kind > 0),')
+      .replace("\tCHECK((source_class IN ('verified','user_imported') AND shell_kind = 0) OR (source_class = 'local_development' AND shell_kind > 0)),\n", '')
+    : oldSchema(registration);
+  db.exec(registrationSchema);
   for (const match of `${bindingStatements}\n${packageStatements}`.matchAll(/`([^`]+)`/g)) db.exec(oldSchema(match[1]));
   db.exec(`
-    INSERT INTO canonical_registration VALUES ('registration-1','subject-1','example.app','App','verified','release-1',0,'{}','[]',1,2,'lineage-1','["proof-1"]',1,'profile-1','declaration-1','active',1788550546276172100,1788550546276172101,NULL);
+    INSERT INTO canonical_registration VALUES ('registration-1','subject-1','example.app','App','verified','release-1',${legacyShellKind ? 1 : 0},'{}','[]',1,2,'lineage-1','["proof-1"]',1,'profile-1','declaration-1','active',1788550546276172100,1788550546276172101,NULL);
     INSERT INTO current_host_binding VALUES ('host-1','os-user-1','registration-1','','root','manifest','host-digest','payload-digest',1,2);
     INSERT INTO app_package_job VALUES ('job-1','example.app','verified','install','target-1','completed','bytes',100,100,1,1,1,2,'installed','',0);
     INSERT INTO committed_app_release VALUES ('example.app','verified','1.0.0','release-1','registration-1','lineage-1','["proof-1"]',1,'profile-1','host-digest','payload-digest',2);
@@ -99,4 +103,31 @@ test('App source repair never overwrites an existing backup', async (t) => {
   await assert.rejects(repairAppSourceSchema(dbPath, { apply: true, backupPath: dbPath }), /EEXIST/);
   const preview = await repairAppSourceSchema(dbPath);
   assert.equal(preview.tables.length, 3);
+});
+
+test('legacy installed shell repair preserves subjects and bindings while retaining development shell kinds', async (t) => {
+  const dbPath = oldDatabase(t, { legacyShellKind: true });
+  const db = new DatabaseSync(dbPath);
+  for (const source of ['local_development', 'user_imported']) {
+    db.exec(`INSERT INTO canonical_registration SELECT '${source}', '${source}', app_id, display_name, '${source}', source_ref, 1, raw_declaration_json, activated_domains_json, source_generation, declaration_generation, immutable_lineage_id, provenance_attestation_refs_json, provenance_revision, execution_profile_ref, declaration_digest, state, created_unix_nano, updated_unix_nano, tombstoned_unix_nano FROM canonical_registration WHERE registration_handle = 'registration-1'`);
+  }
+  const before = snapshot(db);
+  db.close();
+  await repairAppSourceSchema(dbPath);
+  const applied = await repairAppSourceSchema(dbPath, { apply: true });
+  const backupDb = new DatabaseSync(applied.backupPath, { readOnly: true });
+  assert.deepEqual(snapshot(backupDb), before);
+  backupDb.close();
+  const repaired = new DatabaseSync(dbPath);
+  const expected = before;
+  for (const row of expected.canonical_registration) {
+    if (row.source_class !== 'local_development') row.shell_kind = 0n;
+  }
+  assert.deepEqual(snapshot(repaired), expected);
+  assert.deepEqual(repaired.prepare('PRAGMA foreign_key_check').all(), []);
+  assert.throws(() => repaired.exec("UPDATE canonical_registration SET shell_kind = 1 WHERE source_class = 'verified'"), /CHECK constraint/);
+  assert.throws(() => repaired.exec("UPDATE canonical_registration SET shell_kind = 0 WHERE source_class = 'local_development'"), /CHECK constraint/);
+  assert.throws(() => repaired.exec("UPDATE canonical_registration SET registered_app_subject = 'changed'"), /immutable/);
+  repaired.close();
+  assert.deepEqual(await repairAppSourceSchema(dbPath, { apply: true }), { tables: [], applied: false, backupPath: null });
 });

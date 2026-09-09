@@ -358,8 +358,8 @@ export function StudioResult({
           <AlertTriangle size={15} aria-hidden="true" />
           <span>{t('StudioShell.generationFailed')}</span>
         </div>
-        <p>{studioNonSuccessReasonUserMessage(blocked.reason, t)}</p>
-        <p className="studio-result__hint">{studioNonSuccessReasonUserAction(blocked.reason, t)}</p>
+        <p>{studioNonSuccessReasonUserMessage(blocked.reason, t, blocked.capabilityId, blocked.diagnostics)}</p>
+        <p className="studio-result__hint">{studioNonSuccessReasonUserAction(blocked.reason, t, blocked.capabilityId, blocked.diagnostics)}</p>
       </div>
     );
   } else if (ready) {

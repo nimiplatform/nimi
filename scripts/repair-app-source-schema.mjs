@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// One-time repair for cf90c8d9e data roots after the b1cae3a source-class cutover.
+// One-time repair for pre-cutover App source and installed-shell data roots.
 // Explicit tooling only: never invoked by Runtime startup or installation.
 import { closeSync, existsSync, openSync } from 'node:fs';
 import path from 'node:path';
@@ -22,21 +22,30 @@ function repairPlan(db) {
   return tables.flatMap((table) => {
     const row = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?").get(table);
     if (!row) throw new Error(`Missing ${table}; this tool only repairs an existing App kernel`);
+    let repairInstalledShellKind = false;
     let sql = widenConstraint(row.sql,
       table === 'canonical_registration' ? "source_class IN ('verified','local_development')" : "source_class IN ('verified')",
       table === 'canonical_registration' ? "source_class IN ('verified','user_imported','local_development')" : "source_class IN ('verified','user_imported')", table);
     if (table === 'canonical_registration') {
-      sql = widenConstraint(sql, "source_class = 'verified' AND shell_kind = 0", "source_class IN ('verified','user_imported') AND shell_kind = 0", table);
+      const legacyShell = /shell_kind\s+INTEGER\s+NOT\s+NULL\s+CHECK\s*\(\s*shell_kind\s*>\s*0\s*\)/i;
+      if (legacyShell.test(sql)) {
+        sql = sql.replace(legacyShell, 'shell_kind INTEGER NOT NULL')
+          .replace(/\)\s*$/, ", CHECK((source_class IN ('verified','user_imported') AND shell_kind = 0) OR (source_class = 'local_development' AND shell_kind > 0)))");
+        repairInstalledShellKind = true;
+      } else {
+        sql = widenConstraint(sql, "source_class = 'verified' AND shell_kind = 0", "source_class IN ('verified','user_imported') AND shell_kind = 0", table);
+      }
     }
     if (table === 'app_package_job') {
       sql = widenConstraint(sql, "'queued','downloading','verifying'", "'queued','downloading','reading-local','verifying'", table);
     }
-    return sql === row.sql ? [] : [{ table, sql }];
+    return sql === row.sql ? [] : [{ table, sql, repairInstalledShellKind }];
   });
 }
 
 // Table rebuild follows https://www.sqlite.org/lang_altertable.html#otheralter
-// Existing rows, indexes, triggers and foreign-key references are preserved.
+// Preserve identities, bindings, indexes, triggers and foreign-key references;
+// only legacy installed shell kinds are normalized to the current owner value.
 export async function repairAppSourceSchema(dbPath, { apply = false, backupPath = `${dbPath}.before-app-source-cutover.sqlite` } = {}) {
   if (!path.isAbsolute(dbPath) || !existsSync(dbPath)) throw new Error('An explicit existing absolute --db path is required');
   const db = new DatabaseSync(dbPath, { readOnly: !apply });
@@ -55,12 +64,16 @@ export async function repairAppSourceSchema(dbPath, { apply = false, backupPath 
       closeSync(openSync(backupPath, 'wx', 0o600));
       const source = new DatabaseSync(dbPath, { readOnly: true });
       try { await backup(source, backupPath); } finally { source.close(); }
-      for (const { table, sql } of plan) {
+      for (const { table, sql, repairInstalledShellKind } of plan) {
         const temporary = `${table}_source_cutover`;
         const schema = db.prepare("SELECT sql FROM sqlite_master WHERE tbl_name = ? AND type IN ('index','trigger') AND sql IS NOT NULL").all(table);
         const create = sql.replace(/^CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(?:"[^"]+"|\w+)/i, `CREATE TABLE "${temporary}"`);
         db.exec(create);
-        db.exec(`INSERT INTO "${temporary}" SELECT * FROM "${table}"`);
+        const columns = db.prepare(`PRAGMA table_info("${table}")`).all();
+        const values = columns.map(({ name }) => repairInstalledShellKind && name === 'shell_kind'
+          ? "CASE WHEN source_class IN ('verified','user_imported') THEN 0 ELSE shell_kind END"
+          : `"${name.replaceAll('"', '""')}"`).join(', ');
+        db.exec(`INSERT INTO "${temporary}" SELECT ${values} FROM "${table}"`);
         db.exec(`DROP TABLE "${table}"`);
         db.exec(`ALTER TABLE "${temporary}" RENAME TO "${table}"`);
         for (const item of schema) db.exec(item.sql);

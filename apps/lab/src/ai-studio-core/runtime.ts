@@ -240,11 +240,16 @@ export function projectStudioRuntimeError(
   context: StudioCapabilityRuntimeContext,
   error: unknown,
 ): StudioNonSuccess {
+  const diagnostics = studioNonSuccessDiagnostics(error);
+  // @nimi-authority: rule.nimi.runtime.ai-provider.r126
+  const reason = diagnostics?.reasonCode.replaceAll('-', '_').toUpperCase() === 'AI_INPUT_INVALID'
+    ? 'input-invalid'
+    : studioNonSuccessReason(runtimeScenarioJobNonSuccessReasonFromError(error));
   return context.host.nonSuccess(
     context.capability,
-    studioNonSuccessReason(runtimeScenarioJobNonSuccessReasonFromError(error)),
+    reason,
     studioRuntimeErrorMessage(error),
-    studioNonSuccessDiagnostics(error),
+    diagnostics,
   );
 }
 
@@ -261,8 +266,9 @@ export function studioNonSuccessReason(reason: string): StudioNonSuccessReason {
 export function studioNonSuccessDiagnostics(error: unknown): StudioNonSuccessDiagnostics | undefined {
   if (!error || typeof error !== 'object' || Array.isArray(error)) return undefined;
   const record = error as Record<string, unknown>;
-  const reasonCode = typeof record.reasonCode === 'string' ? record.reasonCode.trim() : '';
-  if (!/^[A-Z][A-Z0-9_]{0,127}$/u.test(reasonCode)) return undefined;
+  const rawReasonCode = typeof record.reasonCode === 'string' ? record.reasonCode.trim() : '';
+  if (!/^(?:[A-Z][A-Z0-9_]{0,127}|[a-z][a-z0-9-]{0,127})$/u.test(rawReasonCode)) return undefined;
+  const reasonCode = rawReasonCode.replaceAll('-', '_').toUpperCase();
   const rawActionHint = typeof record.actionHint === 'string' ? record.actionHint.trim() : '';
   const actionHint = /^[A-Za-z0-9_.-]{1,256}$/u.test(rawActionHint) ? rawActionHint : '';
   const rawTraceId = typeof record.traceId === 'string' ? record.traceId.trim() : '';
