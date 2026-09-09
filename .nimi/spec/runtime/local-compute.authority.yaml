@@ -1182,3 +1182,35 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.local-compute.runtime-environment-plane
+  - id: rule.nimi.runtime.local-compute.r116
+    kind: rule
+    title: LocateAnything model and executable supply have separate owners
+    modality: must
+    statement: The first vision.locate implementation is local.vision.locate.locateanything with Driver nimi.runtime.driver.locateanything, dialect locateanything/vision-locate/v1, recipe locateanything.vision-locate.v1, and one required user-replaceable vision.model slot holding the complete checkpoint bundle including its data configuration, tokenizer, and weight shards. The Driver owns structural, model, format and exact-host compatibility validation; original and MLX offers state their actual independent content and platform facts without name-based binding, automatic conversion, download, or rebinding. The Runtime-private vision.locateanything.python consumer uses the existing immutable managed Python 3.12 dependency-profile pipeline and shared package cache, with exact fixed Transformers/PyTorch CUDA supply on windows/amd64 with NVIDIA CUDA and exact fixed MLX-VLM supply on darwin/arm64 with Apple GPU execution; each tuple needs its own real product acceptance before support is claimed, and usable AR is sufficient without requiring PBD. Complete executable supply comes from fixed dependencies and the Runtime-managed Driver bundle with empty RecipeCustody by default; ModelAsset code files are content and never an execution source. Any separately needed pinned loader custody uses the existing owner and explicit recipe declaration rather than a generic remote-code system. Actual adopted code, weights and configuration, their redistribution, and Nimi's own model use must satisfy their applicable licenses and notices without making model license restrictions a blanket ban on independent interfaces or creating a Runtime downstream-use or license-evidence gate.
+    condition: Whenever a LocateAnything recipe, model offer, dependency profile, loader, or exact platform execution is authored, supplied, or admitted.
+    failure: Fail typed on incompatible model content, missing executable supply or profile, unsupported host or GPU execution, and reject inferred support, imported payload-code execution, mutable profiles, execution-triggered installation, backend or model substitution, and unfulfilled applicable supply or use obligations.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.vision-locate-contract
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.runtime-environment-plane
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.local-install-recommendation-plane
+  - id: rule.nimi.runtime.local-compute.r117
+    kind: rule
+    title: Vision workers execute captured identities with private residency
+    modality: must
+    statement: Local vision.locate admission persists the exact model binding, needed dependency-profile identity, Driver bundle and protocol identity, and typed load plan inside the existing complete Job ResolvedAssembly; the Runtime-private supervised Vision ExecutionHost consumes only those captured inputs and never reselects the current package-set source at Worker startup. These identities reuse the existing dependency owners and add no profile selected-source owner or public engine target. One independent Python Worker serializes its active execution and reuses the actually loaded model for successive requests with the same model and load-affecting identities; query or image changes do not reload it, incompatible loading identities are explicitly replaced, and no per-request Driver subprocess is used as a claim of cross-request model residency. A canceled queued request never stops another running request, a running cancellation stops or isolates the Worker before the execution lease is reused, late success cannot replace cancellation, and a failed stop forbids reuse until explicit recovery. Residency, leases, health and backend details remain Runtime-private and never establish Loadout validity, route, readiness or success; attention backend, decoding mode, sampling and normal-termination behavior are separate fixed Driver facts.
+    condition: Whenever a Locate Job captures dependencies or a Vision Worker is started, reused, switched, canceled, or stopped.
+    failure: Reject partial or unpersisted captures, startup-time owner or source rereads, identity-mismatched model reuse, runtime dependency resolution or synchronization, premature canceled completion or lease reuse, stale success publication, and residency represented as product readiness.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.vision-locate-contract
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.local-engine-plane
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.machine-local-configuration-plane
+      - type: applies_to
+        target: definition.nimi.runtime.local-compute.runtime-environment-plane

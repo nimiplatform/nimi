@@ -1662,6 +1662,20 @@ units:
         target: definition.nimi.platform.core-protocol.capability-catalog
       - type: applies_to
         target: definition.nimi.platform.core-protocol.capability-governance
+  - id: rule.nimi.platform.core-protocol.p-capcat-006
+    kind: rule
+    title: P-CAPCAT-006 vision locate capability admission
+    modality: must
+    statement: vision.locate is admitted as one canonical model-independent image-localization CapabilityContract whose request, geometry, execution mode, result, and failure semantics are owned by Runtime; its catalog row satisfies the existing source, localization, evidence-class, and governance requirements before consumer use without naming a model, Driver, backend, or engine as public task identity. Mandatory image input is intrinsic, not a vision.locate.image subtype; the initial implementation scope is Local, catalog admission is not execution or platform-support evidence, and ordinary App consumption adds no LocalAgent participation row or App operation.
+    condition: Whenever vision.locate is cataloged, configured, or projected.
+    failure: Reject a model-specific capability alias, incomplete catalog projection, image-input subtype, catalog-derived execution success or platform support, and inferred LocalAgent participation or App entitlement.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-catalog
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.capability-governance
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.vision-locate-contract
   - id: definition.nimi.platform.core-protocol.architecture-layer-model
     kind: definition
     title: P-ARCH execution layer model
