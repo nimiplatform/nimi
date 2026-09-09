@@ -366,6 +366,10 @@ try {
         production,
         json,
       });
+      if (production && !json) {
+        process.stdout.write('[nimi-app] Local checks do not verify GitHub repository settings or secrets. Before tagging, configure NIMI_REPOSITORY_ADMIN_TOKEN and release protection:\n');
+        process.stdout.write('https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md#publishing-on-github\n');
+      }
       break;
     case 'test':
       testApp(process.cwd(), { dir, json });

@@ -47,7 +47,7 @@ test('Desktop machine product exposes Catalog and package intents without native
       if (request.methodId.endsWith('/ListApprovedAppCatalogTargets')) {
         return { targets: [], reasonCode: 1 } as Response;
       }
-      if (request.methodId.endsWith('/StartAppPackageInstall') || request.methodId.endsWith('/StartAppPackageUninstall')) {
+      if (request.methodId.endsWith('/StartAppPackageInstall') || request.methodId.endsWith('/StartAppPackageUninstall') || request.methodId.endsWith('/StartAppPackageUpdate')) {
         return { job: { jobId: Uint8Array.from([1]), phase: AppPackageJobPhase.QUEUED }, reasonCode: 1 } as Response;
       }
       if (request.methodId.endsWith('/ListCommittedAppReleases')) {
@@ -78,6 +78,7 @@ test('Desktop machine product exposes Catalog and package intents without native
     'listCommittedAppReleases',
     'startAppPackageInstall',
     'startAppPackageUninstall',
+    'startAppPackageUpdate',
   ]);
   const approvedTargetSelector = Uint8Array.from([4, 8, 15, 16, 23, 42]);
   await clients.machineProduct.apps.listApprovedAppCatalogTargets({});
@@ -86,6 +87,8 @@ test('Desktop machine product exposes Catalog and package intents without native
   const launchSelector = Uint8Array.from([17, 29, 37]);
   await clients.machineProduct.apps.startAppPackageUninstall({ launchSelector });
   assert.deepEqual(calls[2]?.body, { launchSelector });
+  await clients.machineProduct.apps.startAppPackageUpdate({ approvedTargetSelector, launchSelector, installedVersion: '1.2.3' });
+  assert.deepEqual(calls[3]?.body, { approvedTargetSelector, launchSelector, installedVersion: '1.2.3' });
   await clients.machineProduct.apps.listCommittedAppReleases({});
   await clients.machineProduct.apps.listAppPackageJobs({});
   await clients.machineProduct.apps.getAppPackageJob({ jobId: Uint8Array.from([1]) });
@@ -99,6 +102,7 @@ test('Desktop machine product exposes Catalog and package intents without native
     '/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets',
     '/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall',
     '/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall',
+    '/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUpdate',
     '/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases',
     '/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs',
     '/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob',
