@@ -1542,10 +1542,12 @@ async function invokeScenarioJobGet(
   call: () => Promise<NativeLocalAppOutcome>,
 ): Promise<NimiElectronLocalAppRecord> {
   const value = await invoke(call);
-  if (!isPlainRecord(value) || !hasExactKeys(value, ['job', 'asset', 'voiceReference'])) {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['job', 'asset', 'voiceReference', ...(Object.hasOwn(value, 'visionLocate') ? ['visionLocate'] : [])])) {
     throw untrustedRuntimeError();
   }
   const job = validateScenarioJob(value.job);
+  const visionLocate = value.visionLocate === undefined ? undefined : validateVisionLocateResult(value.visionLocate);
+  if ((job.scenarioType === 'vision-locate' && job.status === 'completed') !== Boolean(visionLocate) || (visionLocate && (job.artifacts as readonly unknown[]).length !== 0)) throw untrustedRuntimeError();
   const asset = value.asset === null ? null : validateVoiceAsset(value.asset);
   const voiceReference = value.voiceReference === null
     ? null
@@ -1559,6 +1561,7 @@ async function invokeScenarioJobGet(
     job,
     asset,
     voiceReference,
+    ...(visionLocate ? { visionLocate } : {}),
   });
 }
 
@@ -1666,8 +1669,10 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
     'jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep',
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
     'createdAt', 'updatedAt', 'transcriptionText',
+    ...(Object.hasOwn(value, 'interruption') ? ['interruption'] : []),
   ])) throw untrustedRuntimeError();
   const scenarioTypes = [
+    'vision-locate',
     'image-generate',
     'video-generate',
     'speech-synthesize',
@@ -1684,7 +1689,11 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
   const progressCurrentStep = boundedInteger(value.progressCurrentStep, 0, Number.MAX_SAFE_INTEGER);
   const progressTotalSteps = boundedInteger(value.progressTotalSteps, 0, Number.MAX_SAFE_INTEGER);
   if (progressCurrentStep > progressTotalSteps) throw untrustedRuntimeError();
+  const interruption = value.interruption;
+  if ((interruption !== undefined) !== (value.reasonCode === 'ai-execution-interrupted') || (interruption !== undefined && value.status !== 'failed')) throw untrustedRuntimeError();
+  if (interruption !== undefined && (!isPlainRecord(interruption) || !hasExactKeys(interruption, ['cause', 'resubmitDisposition']) || interruption.cause !== 'runtime-restart' || interruption.resubmitDisposition !== 'caller-may-resubmit')) throw untrustedRuntimeError();
   return Object.freeze({
+    ...(interruption !== undefined ? { interruption: Object.freeze({ ...(interruption as Record<string, unknown>) }) } : {}),
     jobId: boundedExactText(value.jobId, 128, false),
     scenarioType: value.scenarioType,
     status: value.status,
@@ -1699,6 +1708,20 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
     updatedAt: validateTimestamp(value.updatedAt),
     transcriptionText: boundedUtf8Content(value.transcriptionText, 256 * 1024, true),
   }) as NimiElectronLocalAppRecord;
+}
+
+function validateVisionLocateResult(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['imageArtifactId', 'width', 'height', 'locations']) || !Array.isArray(value.locations)) throw untrustedRuntimeError();
+  const locations = value.locations.map(entry => {
+    if (!isPlainRecord(entry)) throw untrustedRuntimeError();
+    const axes = entry.type === 'box' ? ['x1','y1','x2','y2'] : entry.type === 'point' ? ['x','y'] : [];
+    if (!axes.length || !hasExactKeys(entry, ['type', ...axes, ...(Object.hasOwn(entry, 'label') ? ['label'] : [])])) throw untrustedRuntimeError();
+    for (const axis of axes) if (typeof entry[axis] !== 'number' || !Number.isFinite(entry[axis]) || (entry[axis] as number) < 0 || (entry[axis] as number) > 1) throw untrustedRuntimeError();
+    if (entry.type === 'box' && !((entry.x1 as number) < (entry.x2 as number) && (entry.y1 as number) < (entry.y2 as number))) throw untrustedRuntimeError();
+    if (Object.hasOwn(entry, 'label') && typeof entry.label !== 'string') throw untrustedRuntimeError();
+    return Object.freeze({ ...entry });
+  });
+  return Object.freeze({ imageArtifactId: boundedExactText(value.imageArtifactId, 128, false), width: boundedInteger(value.width, 1, 4294967295), height: boundedInteger(value.height, 1, 4294967295), locations: Object.freeze(locations) }) as NimiElectronLocalAppRecord;
 }
 
 function validateScenarioArtifacts(value: unknown): readonly NimiElectronLocalAppRecord[] {

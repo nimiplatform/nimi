@@ -13,6 +13,7 @@ import {
   VoiceAssetStatus,
   VoiceCreationSource,
   VoiceReferenceKind,
+  VisionLocateGeometry,
   type CancelLocalAppScenarioJobRequest,
   type CancelLocalAppScenarioJobResponse,
   type ExecuteLocalAppScenarioRequest,
@@ -59,6 +60,12 @@ import {
   projectionText,
   requireText,
 } from './local-app-runtime-platform-validation.js';
+import {
+  projectVisionLocateResult, localVisionLocateFromRuntime, runtimeVisionLocateFromLocal, localLocateGeometry,
+  projectLocalExecutionInterruption, localInterruptionFromRuntime, runtimeInterruptionFromLocal,
+  type NimiLocalAppExecutionInterruption, type NimiLocalAppVisionLocateResult,
+} from './local-app-runtime-platform-vision.js';
+export type { NimiLocalAppExecutionInterruption, NimiLocalAppVisionLocateResult, NimiLocalAppVisionLocation } from './local-app-runtime-platform-vision.js';
 import type {
   NimiLocalAppTextCandidateInput,
   NimiLocalAppTextTurnInput,
@@ -101,6 +108,7 @@ export type NimiLocalAppVideoContent =
 
 export type NimiLocalAppScenarioJobSpec =
   | NimiLocalAppImageGenerateSpec
+  | { readonly type: 'vision-locate'; readonly imageArtifactId: string; readonly query: string; readonly geometry: 'box' | 'point' }
   | { readonly type: 'world-generate'; readonly prompt: string; readonly displayName: string }
   | {
       readonly type: 'video-generate';
@@ -205,7 +213,7 @@ export type NimiLocalAppScenarioArtifact = {
 
 export type NimiLocalAppScenarioJob = {
   readonly jobId: string;
-  readonly scenarioType: 'image-generate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create' | 'music-generate' | 'world-generate';
+  readonly scenarioType: 'image-generate' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create' | 'music-generate' | 'world-generate';
   readonly status: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly progressPercent: number;
   readonly progressCurrentStep: number;
@@ -217,6 +225,7 @@ export type NimiLocalAppScenarioJob = {
   readonly createdAt: NimiLocalAppScenarioTimestamp | null;
   readonly updatedAt: NimiLocalAppScenarioTimestamp | null;
   readonly transcriptionText: string;
+  readonly interruption?: NimiLocalAppExecutionInterruption;
 };
 
 export type NimiLocalAppVoiceAsset = {
@@ -238,6 +247,7 @@ export type NimiLocalAppScenarioJobSubmitResult = {
 
 export type NimiLocalAppScenarioJobGetResult = {
   readonly job: NimiLocalAppScenarioJob;
+  readonly visionLocate?: NimiLocalAppVisionLocateResult;
   readonly asset: NimiLocalAppVoiceAsset | null;
   readonly voiceReference: { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string } | null;
 };
@@ -496,6 +506,7 @@ export function createNimiLocalAppAIConsumptionRuntimeClient(
       async get(jobId) {
         const response = await runtime.getLocalAppScenarioJob({ jobId });
         return {
+          ...(response.visionLocate ? { visionLocate: localVisionLocateFromRuntime(response.visionLocate) } : {}),
           job: projectRuntimeLocalJob(requiredRuntimeValue(response.job, 'scenario Job')),
           asset: response.asset ? projectRuntimeLocalAppVoiceAsset(response.asset) : null,
           voiceReference: response.voiceReference
@@ -611,6 +622,7 @@ export function createNimiLocalAppRuntimeScenarioJobClient(
       assertExactKeys(request, ['jobId'], 'local-app Scenario Job get request');
       const result = await ai.scenarioJobs.get(request.jobId);
       return {
+        ...(result.visionLocate ? { visionLocate: runtimeVisionLocateFromLocal(result.visionLocate) } : {}),
         job: runtimeJobFromLocal(result.job),
         asset: result.asset ? runtimeVoiceAssetFromLocal(result.asset) : undefined,
         voiceReference: result.voiceReference ? {
@@ -707,6 +719,13 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
   if (!record || typeof record.type !== 'string') invalidAIInput('scenario spec is invalid');
   assertNoAuthorityMaterial(record);
   switch (record.type) {
+    case 'vision-locate':
+      if (execute) invalidAIInput('vision-locate requires an async Job');
+      assertExactKeys(record, ['type', 'imageArtifactId', 'query', 'geometry'], 'Locate spec');
+      boundedIdentifier(record.imageArtifactId, 'Locate imageArtifactId');
+      boundedContent(record.query, 'Locate query', 8 * 1024);
+      if (record.geometry !== 'box' && record.geometry !== 'point') invalidAIInput('Locate geometry');
+      break;
     case 'text-embed':
       if (!execute) invalidAIInput('text-embed is not an async Job spec');
       assertExactKeys(record, ['type', 'inputs'], 'text embed spec');
@@ -965,8 +984,10 @@ function projectScenarioJobSubmit(value: unknown): NimiLocalAppScenarioJobSubmit
 
 function projectScenarioJobGet(value: unknown): NimiLocalAppScenarioJobGetResult {
   const record = asRecord(value);
-  assertExactProjectionKeys(record, ['job', 'asset', 'voiceReference'], 'scenario Job result');
+  assertExactProjectionKeys(record, ['job', 'asset', 'voiceReference', ...(record && Object.hasOwn(record, 'visionLocate') ? ['visionLocate'] : [])], 'scenario Job result');
   const job = projectScenarioJob(record.job);
+  const visionLocate = record.visionLocate === undefined ? undefined : projectVisionLocateResult(record.visionLocate);
+  if ((job.scenarioType === 'vision-locate' && job.status === 'completed') !== (visionLocate !== undefined) || (visionLocate && job.artifacts.length !== 0)) localAppProjectionError('Locate terminal result');
   const asset = record.asset === null ? null : projectVoiceAsset(record.asset);
   const voiceReference = record.voiceReference === null ? null : projectVoiceAssetReference(record.voiceReference);
   if ((asset === null) !== (voiceReference === null)
@@ -978,6 +999,7 @@ function projectScenarioJobGet(value: unknown): NimiLocalAppScenarioJobGetResult
     job,
     asset,
     voiceReference,
+    ...(visionLocate ? { visionLocate } : {}),
   });
 }
 
@@ -989,13 +1011,15 @@ function projectScenarioJobEnvelope(value: unknown): { readonly job: NimiLocalAp
 
 function projectScenarioJob(value: unknown): NimiLocalAppScenarioJob {
   const record = asRecord(value);
-  assertExactProjectionKeys(record, ['jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep', 'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId', 'createdAt', 'updatedAt', 'transcriptionText'], 'scenario Job');
+  assertExactProjectionKeys(record, ['jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep', 'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId', 'createdAt', 'updatedAt', 'transcriptionText', ...(record && Object.hasOwn(record, 'interruption') ? ['interruption'] : [])], 'scenario Job');
   assertSafeProjection(record);
   if (!LOCAL_SCENARIO_TYPES.includes(record.scenarioType as never) || !LOCAL_JOB_STATUSES.includes(record.status as never)) localAppProjectionError('scenario Job enum');
   const current = projectionInteger(record.progressCurrentStep, 'scenario Job current step', 0, Number.MAX_SAFE_INTEGER);
   const total = projectionInteger(record.progressTotalSteps, 'scenario Job total steps', 0, Number.MAX_SAFE_INTEGER);
   if (current > total) localAppProjectionError('scenario Job progress');
+  const interruption = projectLocalExecutionInterruption(record.interruption, record.reasonCode, record.status);
   return Object.freeze({
+    ...(interruption ? { interruption } : {}),
     jobId: boundedProjectionText(record.jobId, 'scenario Job id', MAX_IDENTIFIER_BYTES),
     scenarioType: record.scenarioType,
     status: record.status,
@@ -1158,6 +1182,8 @@ function runtimeLocalJobSpec(
   spec: NimiLocalAppScenarioJobSpec,
 ): SubmitLocalAppScenarioJobRequest['spec'] {
   switch (spec.type) {
+    case 'vision-locate':
+      return { oneofKind: 'visionLocate', visionLocate: { imageArtifactId: spec.imageArtifactId, query: spec.query, geometry: spec.geometry === 'box' ? VisionLocateGeometry.BOX : VisionLocateGeometry.POINT } };
     case 'image-generate':
       return { oneofKind: 'imageGenerate', imageGenerate: runtimeImageSpec(spec) };
     case 'video-generate':
@@ -1385,7 +1411,9 @@ function projectRuntimeScenarioExecuteResponse(response: ExecuteLocalAppScenario
 }
 
 function projectRuntimeLocalJob(job: LocalAppScenarioJob): unknown {
+  const interruption = localInterruptionFromRuntime(job.interruption);
   return {
+    ...(interruption ? { interruption } : {}),
     jobId: job.jobId,
     scenarioType: runtimeScenarioTypeName(job.scenarioType),
     status: runtimeJobStatusName(job.status),
@@ -1440,6 +1468,7 @@ function projectRuntimeVoiceReference(reference: VoiceReference): unknown {
 
 function runtimeScenarioTypeName(value: ScenarioType): NimiLocalAppScenarioJob['scenarioType'] {
   const types: Partial<Record<ScenarioType, NimiLocalAppScenarioJob['scenarioType']>> = {
+    [ScenarioType.VISION_LOCATE]: 'vision-locate',
     [ScenarioType.IMAGE_GENERATE]: 'image-generate',
     [ScenarioType.VIDEO_GENERATE]: 'video-generate',
     [ScenarioType.SPEECH_SYNTHESIZE]: 'speech-synthesize',
@@ -1525,7 +1554,7 @@ function localVoiceCreationSource(source: VoiceCreationSource): NimiLocalAppVoic
   return localAppProjectionError('voice asset creationSource');
 }
 
-const LOCAL_SCENARIO_TYPES = ['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create', 'music-generate', 'world-generate'] as const;
+const LOCAL_SCENARIO_TYPES = ['image-generate', 'vision-locate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create', 'music-generate', 'world-generate'] as const;
 const LOCAL_JOB_STATUSES = ['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'] as const;
 
 function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): NimiLocalAppScenarioJobSpec {
@@ -1534,6 +1563,9 @@ function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): Nimi
   const spec = request.spec?.spec;
   if (!spec || spec.oneofKind === undefined) adapterInputError('missing Scenario spec');
   switch (spec.oneofKind) {
+    case 'visionLocate':
+      requireScenarioType(request, ScenarioType.VISION_LOCATE);
+      return validateScenarioSpec({ type: 'vision-locate', imageArtifactId: spec.visionLocate.imageArtifactId, query: spec.visionLocate.query, geometry: localLocateGeometry(spec.visionLocate.geometry) }, false);
     case 'imageGenerate':
       requireScenarioType(request, ScenarioType.IMAGE_GENERATE);
       return validateScenarioSpec({
@@ -1675,6 +1707,7 @@ function runtimeVoiceAudio(bytes: Uint8Array, uri: string): Extract<NimiLocalApp
 
 function runtimeJobFromLocal(job: NimiLocalAppScenarioJob): ScenarioJob {
   return {
+    ...(job.interruption ? { interruption: runtimeInterruptionFromLocal(job.interruption) } : {}),
     jobId: job.jobId, head: undefined, scenarioType: runtimeScenarioType(job.scenarioType), executionMode: ExecutionMode.ASYNC_JOB,
     routeDecision: RoutePolicy.UNSPECIFIED, modelResolved: '', status: runtimeJobStatus(job.status), providerJobId: '',
     reasonCode: runtimeReasonCode(job.reasonCode), reasonDetail: job.reasonDetail, retryCount: 0,
@@ -1725,7 +1758,7 @@ function runtimeOutput(type: NimiLocalAppScenarioJob['scenarioType'], artifacts:
 }
 
 function runtimeScenarioType(type: NimiLocalAppScenarioJob['scenarioType']): ScenarioType {
-  return ({ 'image-generate': ScenarioType.IMAGE_GENERATE, 'video-generate': ScenarioType.VIDEO_GENERATE, 'speech-synthesize': ScenarioType.SPEECH_SYNTHESIZE, 'speech-transcribe': ScenarioType.SPEECH_TRANSCRIBE, 'voice-create': ScenarioType.VOICE_CREATE, 'music-generate': ScenarioType.MUSIC_GENERATE, 'world-generate': ScenarioType.WORLD_GENERATE })[type];
+  return ({ 'image-generate': ScenarioType.IMAGE_GENERATE, 'vision-locate': ScenarioType.VISION_LOCATE, 'video-generate': ScenarioType.VIDEO_GENERATE, 'speech-synthesize': ScenarioType.SPEECH_SYNTHESIZE, 'speech-transcribe': ScenarioType.SPEECH_TRANSCRIBE, 'voice-create': ScenarioType.VOICE_CREATE, 'music-generate': ScenarioType.MUSIC_GENERATE, 'world-generate': ScenarioType.WORLD_GENERATE })[type];
 }
 
 function runtimeJobStatus(status: NimiLocalAppScenarioJob['status']): ScenarioJobStatus {

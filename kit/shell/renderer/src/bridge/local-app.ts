@@ -16,6 +16,9 @@ import type {
   NimiSharedLocalAgentAIConfigOptionsResult,
   NimiLocalAppAgentHandle,
   NimiPortableAppAIConfig,
+  NimiLocalAppExecutionInterruption,
+  NimiLocalAppVisionLocateResult,
+  NimiLocalAppVisionLocation,
 } from '@nimiplatform/kit/core/sdk-contract';
 import { runtimeAIConfigStructToJson } from '@nimiplatform/kit/core/sdk-contract';
 import { BridgeError, invoke, invokeChecked } from './invoke.js';
@@ -153,6 +156,7 @@ export type NimiLocalAppVideoContentRole =
 
 export type NimiLocalAppScenarioJobSpec =
   | NimiLocalAppImageGenerateSpec
+  | { readonly type: 'vision-locate'; readonly imageArtifactId: string; readonly query: string; readonly geometry: 'box' | 'point' }
   | {
       readonly type: 'video-generate'; readonly prompt: string; readonly negativePrompt: string;
       readonly mode: 't2v' | 'i2v-first-frame' | 'i2v-first-last' | 'i2v-reference';
@@ -209,13 +213,14 @@ export type NimiLocalAppScenarioArtifact = {
 };
 export type NimiLocalAppScenarioJob = {
   readonly jobId: string;
-  readonly scenarioType: 'image-generate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create' | 'music-generate' | 'world-generate';
+  readonly scenarioType: 'image-generate' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'voice-create' | 'music-generate' | 'world-generate';
   readonly status: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly progressPercent: number; readonly progressCurrentStep: number; readonly progressTotalSteps: number;
   readonly reasonCode: string; readonly reasonDetail: string;
   readonly artifacts: readonly NimiLocalAppScenarioArtifact[]; readonly traceId: string;
   readonly createdAt: NimiLocalAppScenarioTimestamp | null; readonly updatedAt: NimiLocalAppScenarioTimestamp | null;
   readonly transcriptionText: string;
+  readonly interruption?: NimiLocalAppExecutionInterruption;
 };
 export type NimiLocalAppVoiceAsset = {
   readonly voiceAssetId: string; readonly creationSource: 'reference-audio' | 'text-description';
@@ -231,6 +236,7 @@ export type NimiLocalAppScenarioJobSubmitResult = {
 };
 export type NimiLocalAppScenarioJobGetResult = {
   readonly job: NimiLocalAppScenarioJob;
+  readonly visionLocate?: NimiLocalAppVisionLocateResult;
   readonly asset: NimiLocalAppVoiceAsset | null;
   readonly voiceReference: { readonly kind: 'voice_asset_id'; readonly voiceAssetId: string } | null;
 };
@@ -2173,8 +2179,10 @@ function parseScenarioJobSubmit(value: unknown, command: string): NimiLocalAppSc
 
 function parseScenarioJobGet(value: unknown, command: string): NimiLocalAppScenarioJobGetResult {
   const record = assertRecord(value, `${command}: Job result is invalid`);
-  assertProjectionKeys(record, ['job', 'asset', 'voiceReference'], command, 'scenario Job result');
+  assertProjectionKeys(record, ['job', 'asset', 'voiceReference', ...(Object.hasOwn(record, 'visionLocate') ? ['visionLocate'] : [])], command, 'scenario Job result');
   const job = parseScenarioJob(record.job, command);
+  const visionLocate = record.visionLocate === undefined ? undefined : parseVisionLocateResult(record.visionLocate, command);
+  if ((job.scenarioType === 'vision-locate' && job.status === 'completed') !== Boolean(visionLocate) || (visionLocate && job.artifacts.length !== 0)) throw new Error(`${command}: Locate terminal result is invalid`);
   const asset = record.asset === null ? null : parseVoiceAsset(record.asset, command);
   const voiceReference = record.voiceReference === null ? null : parseVoiceAssetReference(record.voiceReference, command);
   if ((asset === null) !== (voiceReference === null)
@@ -2186,6 +2194,7 @@ function parseScenarioJobGet(value: unknown, command: string): NimiLocalAppScena
     job,
     asset,
     voiceReference,
+    ...(visionLocate ? { visionLocate } : {}),
   }) as NimiLocalAppScenarioJobGetResult;
 }
 
@@ -2201,15 +2210,24 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     'jobId', 'scenarioType', 'status', 'progressPercent', 'progressCurrentStep',
     'progressTotalSteps', 'reasonCode', 'reasonDetail', 'artifacts', 'traceId',
     'createdAt', 'updatedAt', 'transcriptionText',
+    ...(Object.hasOwn(record, 'interruption') ? ['interruption'] : []),
   ], command, 'scenario Job');
-  if (!['image-generate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create', 'music-generate', 'world-generate'].includes(String(record.scenarioType))
+  if (!['image-generate', 'vision-locate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'voice-create', 'music-generate', 'world-generate'].includes(String(record.scenarioType))
     || !['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'].includes(String(record.status))) {
     throw new Error(`${command}: Job enum is invalid`);
   }
   const progressCurrentStep = boundedProjectionInteger(record.progressCurrentStep, 0, Number.MAX_SAFE_INTEGER, command);
   const progressTotalSteps = boundedProjectionInteger(record.progressTotalSteps, 0, Number.MAX_SAFE_INTEGER, command);
   if (progressCurrentStep > progressTotalSteps) throw new Error(`${command}: Job progress is invalid`);
+  const interruption = record.interruption;
+  if ((interruption !== undefined) !== (record.reasonCode === 'ai-execution-interrupted') || (interruption !== undefined && record.status !== 'failed')) throw new Error(`${command}: Job interruption does not match failure`);
+  if (interruption !== undefined) {
+    const cause = assertRecord(interruption, `${command}: Job interruption is invalid`);
+    assertProjectionKeys(cause, ['cause', 'resubmitDisposition'], command, 'Job interruption');
+    if (cause.cause !== 'runtime-restart' || cause.resubmitDisposition !== 'caller-may-resubmit') throw new Error(`${command}: Job interruption is invalid`);
+  }
   return Object.freeze({
+    ...(interruption !== undefined ? { interruption: { ...(interruption as NimiLocalAppExecutionInterruption) } } : {}),
     jobId: requiredText(record.jobId, 'jobId', command, 128),
     scenarioType: record.scenarioType,
     status: record.status,
@@ -2224,6 +2242,23 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     updatedAt: parseScenarioTimestamp(record.updatedAt, command),
     transcriptionText: optionalProjectionText(record.transcriptionText, 256 * 1024, command),
   }) as unknown as NimiLocalAppScenarioJob;
+}
+
+function parseVisionLocateResult(value: unknown, command: string): NimiLocalAppVisionLocateResult {
+  const result = assertRecord(value, `${command}: Locate result is invalid`);
+  assertProjectionKeys(result, ['imageArtifactId', 'width', 'height', 'locations'], command, 'Locate result');
+  if (!Array.isArray(result.locations)) throw new Error(`${command}: Locate locations are invalid`);
+  const locations = result.locations.map(entry => {
+    const location = assertRecord(entry, `${command}: Locate location is invalid`);
+    const axes = location.type === 'box' ? ['x1', 'y1', 'x2', 'y2'] : location.type === 'point' ? ['x', 'y'] : [];
+    if (axes.length === 0) throw new Error(`${command}: Locate geometry is invalid`);
+    assertProjectionKeys(location, ['type', ...axes, ...(Object.hasOwn(location, 'label') ? ['label'] : [])], command, 'Locate location');
+    for (const axis of axes) if (typeof location[axis] !== 'number' || !Number.isFinite(location[axis]) || (location[axis] as number) < 0 || (location[axis] as number) > 1) throw new Error(`${command}: Locate coordinate is invalid`);
+    if (location.type === 'box' && !((location.x1 as number) < (location.x2 as number) && (location.y1 as number) < (location.y2 as number))) throw new Error(`${command}: Locate box is invalid`);
+    if (Object.hasOwn(location, 'label') && typeof location.label !== 'string') throw new Error(`${command}: Locate label is invalid`);
+    return Object.freeze({ ...location }) as NimiLocalAppVisionLocation;
+  });
+  return Object.freeze({ imageArtifactId: requiredText(result.imageArtifactId, 'imageArtifactId', command, 128), width: boundedProjectionInteger(result.width, 1, 4294967295, command), height: boundedProjectionInteger(result.height, 1, 4294967295, command), locations: Object.freeze(locations) });
 }
 
 function parseScenarioArtifacts(value: unknown, command: string): readonly NimiLocalAppScenarioArtifact[] {

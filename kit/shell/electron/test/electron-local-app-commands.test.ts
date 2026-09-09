@@ -255,6 +255,22 @@ describe('Electron local-app standard-shell operations', () => {
     })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
   });
 
+  it('carries Locate jobs through the existing command and rejects inline selectors or sync execution', async () => {
+    const calls: unknown[] = [];
+    const host = localAppHost(calls);
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const spec = { type: 'vision-locate', imageArtifactId: 'image-1', query: 'the Refresh button', geometry: 'point' };
+    await dispatchElectronLocalAppCommand({ host, command, payload: { spec, timeoutMs: 120000 } });
+    expect(calls).toEqual([['scenarioJobSubmit', { spec, timeoutMs: 120000 }]]);
+    for (const invalid of [{ ...spec, modelId: 'model-1' }, { ...spec, geometry: 'center' }, { ...spec, imageArtifactId: '' }]) {
+      await expect(dispatchElectronLocalAppCommand({ host, command, payload: { spec: invalid, timeoutMs: 0 } }))
+        .rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    }
+    await expect(dispatchElectronLocalAppCommand({ host, command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioExecute'], payload: { spec } }))
+      .rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    expect(calls).toHaveLength(1);
+  });
+
   it('preserves optional parameter presence and applies owner clamps', async () => {
     const calls: unknown[] = [];
     const host = localAppHost(calls);

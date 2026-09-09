@@ -22,7 +22,9 @@ import {
   VoiceReferenceKind,
   type VoiceAsset,
   type VoiceReference,
+  type VisionLocateResult,
 } from '../core-generated/runtime-typed-client';
+import { localVisionLocateFromRuntime, localLocateGeometry, localInterruptionFromRuntime } from '../core/app/local-app-runtime-platform-vision.js';
 import { createNimiError, ReasonCode, type JsonObject } from '../types';
 import { fromNimiRuntimeProtoStruct } from './runtime-agent-values';
 
@@ -93,6 +95,7 @@ export interface NimiRuntimeScenarioJobResult {
   readonly output?: NimiRuntimeScenarioOutput;
   readonly asset?: VoiceAsset | NimiProtectedLocalVoiceAsset;
   readonly voiceReference?: VoiceReference;
+  readonly visionLocate?: VisionLocateResult;
 }
 
 export interface NimiRuntimeScenarioJobRunnerInput {
@@ -297,7 +300,13 @@ export async function runNimiRuntimeScenarioJob(
     input.ai.terminalVoiceAssetProjection ?? 'runtime-full',
   );
 
-  const artifacts = terminalJob.scenarioType === ScenarioType.VOICE_CREATE
+  if (terminalJob.scenarioType === ScenarioType.VISION_LOCATE) {
+    const spec = input.request.spec?.spec;
+    if (!terminalResponse.visionLocate || spec?.oneofKind !== 'visionLocate' || terminalJob.artifacts.length !== 0) throw runtimeScenarioJobResponseError('Locate Job omitted its typed result');
+    const result = localVisionLocateFromRuntime(terminalResponse.visionLocate);
+    if (result.imageArtifactId !== spec.visionLocate.imageArtifactId || result.locations.some(location => location.type !== localLocateGeometry(spec.visionLocate.geometry))) throw runtimeScenarioJobResponseError('Locate result does not match the submitted image and geometry');
+  } else if (terminalResponse.visionLocate) throw runtimeScenarioJobResponseError('Non-Locate Job returned a Locate result');
+  const artifacts = terminalJob.scenarioType === ScenarioType.VOICE_CREATE || terminalJob.scenarioType === ScenarioType.VISION_LOCATE
     ? { artifacts: terminalJob.artifacts, traceId: terminalJob.traceId, output: undefined }
     : await input.ai.getScenarioArtifacts({ jobId }, input.callOptions);
   return {
@@ -307,6 +316,7 @@ export async function runNimiRuntimeScenarioJob(
     output: artifacts.output,
     ...(terminalResponse.asset ? { asset: terminalResponse.asset } : {}),
     ...(terminalResponse.voiceReference ? { voiceReference: terminalResponse.voiceReference } : {}),
+    ...(terminalResponse.visionLocate ? { visionLocate: terminalResponse.visionLocate } : {}),
   };
 }
 
@@ -425,6 +435,8 @@ function ensureCompletedNimiRuntimeScenarioJob(
     });
   }
   if (job.status !== ScenarioJobStatus.COMPLETED) {
+    const interruption = localInterruptionFromRuntime(job.interruption);
+    if ((job.reasonCode === RuntimeGeneratedReasonCode.AI_EXECUTION_INTERRUPTED) !== Boolean(interruption) || (interruption && job.status !== ScenarioJobStatus.FAILED)) throw runtimeScenarioJobResponseError('Scenario Job interruption does not match its failure');
     const reasonMetadata = safeScenarioJobReasonMetadata(job.reasonMetadata);
     const actionHint = normalizeText(reasonMetadata.action_hint) || 'check_runtime_scenario_job';
     const retryable = typeof reasonMetadata.retryable === 'boolean'
@@ -440,6 +452,7 @@ function ensureCompletedNimiRuntimeScenarioJob(
       details: {
         [NIMI_RUNTIME_SCENARIO_JOB_STATUS_DETAIL_KEY]: ScenarioJobStatus[job.status] || String(job.status),
         ...(Object.keys(reasonMetadata).length > 0 ? { reasonMetadata } : {}),
+        ...(interruption ? { interruption: { ...interruption } } : {}),
       },
     });
   }

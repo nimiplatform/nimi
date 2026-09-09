@@ -970,6 +970,13 @@ function validateScenarioSpec(value: unknown, command: string, execute: boolean)
   }
   if (execute) throw invalidPayload(command, 'execute scenario type is invalid');
   switch (value.type) {
+    // @nimi-authority: rule.nimi.runtime.ai-provider.r126
+    case 'vision-locate':
+      assertExactKeys(value, ['type', 'imageArtifactId', 'query', 'geometry'], command);
+      if (!optionalBoundedIdentifier(value.imageArtifactId, 'imageArtifactId', command)) throw invalidPayload(command, 'Locate image artifact is required');
+      requiredUtf8Text(value.query, 'query', command, 8 * 1024);
+      if (value.geometry !== 'box' && value.geometry !== 'point') throw invalidPayload(command, 'Locate geometry is invalid');
+      return;
     case 'video-generate': validateVideoSpec(value, command); return;
     case 'speech-synthesize': validateSpeechSynthesizeSpec(value, command); return;
     case 'speech-transcribe': validateSpeechTranscribeSpec(value, command); return;

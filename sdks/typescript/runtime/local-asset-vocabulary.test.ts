@@ -34,6 +34,7 @@ describe('Nimi Runtime local asset vocabulary', () => {
       'stt',
       'embedding',
       'music',
+      'vision',
     ]);
     assert.deepEqual(NIMI_RUNTIME_LOCAL_PASSIVE_ASSET_KIND_IDS, [
       'vae',
@@ -50,6 +51,7 @@ describe('Nimi Runtime local asset vocabulary', () => {
       'stt',
       'embedding',
       'music',
+      'vision',
       'vae',
       'clip',
       'lora',
