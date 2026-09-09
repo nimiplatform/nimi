@@ -491,7 +491,6 @@
       "searchPlaceholder": "Search by name, role or circle",
       "count": "{{count}}",
       "empty": "No matching characters.",
-      "footerHint": "Tap a name to read their story. Add them as a local agent before chatting.",
       "groupBy": {
         "faction": "By circle",
         "tier": "By prominence",
