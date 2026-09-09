@@ -16,7 +16,7 @@ models:
     source_ids: [locateanything_modelcard, locateanything_mlx_modelcard]
     install:
       repo: nvidia/LocateAnything-3B
-      revision: c32291ca5e996f5a7a485845b4f57a233936bba0
+      revision: c32291ca5e996f5a7a485845b4f57a233936bba0 # pragma: allowlist secret -- public immutable model revision
       install_kind: verified-hf-multi-file
       entry: model-00001-of-00002.safetensors
       artifact_roles: [vision_model]
@@ -25,7 +25,7 @@ models:
       - variant_id: local.vision.locateanything.bf16.cuda
         quant: BF16
         repo: nvidia/LocateAnything-3B
-        revision: c32291ca5e996f5a7a485845b4f57a233936bba0
+        revision: c32291ca5e996f5a7a485845b4f57a233936bba0 # pragma: allowlist secret -- public immutable model revision
         entry: model-00001-of-00002.safetensors
         files:
           - added_tokens.json
@@ -63,7 +63,7 @@ models:
       - variant_id: local.vision.locateanything.mixed-4-8.metal
         quant: MIXED_4_8
         repo: mlx-community/LocateAnything-3B-4bit
-        revision: e4517cd171dfa6c5a376a50c5ef8b73949aea0b7
+        revision: e4517cd171dfa6c5a376a50c5ef8b73949aea0b7 # pragma: allowlist secret -- public immutable model revision
         entry: model.safetensors
         files:
           - added_tokens.json
