@@ -136,10 +136,12 @@ const launchCapsuleClassName = 'rounded-full border-transparent bg-[color-mix(in
 export function AppRowActionButton({
   entry,
   activeAction,
+  actionsDisabled,
   onAction,
 }: {
   readonly entry: DesktopAppsEntry;
   readonly activeAction: AppCardActionId | null;
+  readonly actionsDisabled: boolean;
   readonly onAction: (action: AppCardActionId) => void;
 }): ReactElement | null {
   const { t } = useTranslation();
@@ -155,7 +157,7 @@ export function AppRowActionButton({
         size="sm"
         className={launchCapsuleClassName}
         loading={activeAction === action}
-        disabled={activeAction !== null}
+        disabled={actionsDisabled}
         onClick={(event) => {
           event.stopPropagation();
           onAction(action);
@@ -193,7 +195,7 @@ export function AppRowActionButton({
         size="sm"
         className={launchCapsuleClassName}
         loading={activeAction === 'stop'}
-        disabled={activeAction !== null}
+        disabled={actionsDisabled}
         onClick={(event) => {
           event.stopPropagation();
           onAction('stop');
@@ -210,7 +212,7 @@ export function AppRowActionButton({
         tone="secondary"
         size="sm"
         loading={activeAction === 'launch'}
-        disabled={activeAction !== null}
+        disabled={actionsDisabled}
         onClick={launch}
       >
         {t('Apps.action.retry')}
@@ -224,7 +226,7 @@ export function AppRowActionButton({
       size="sm"
       className={launchCapsuleClassName}
       loading={activeAction === 'launch'}
-      disabled={activeAction !== null}
+      disabled={actionsDisabled}
       onClick={launch}
     >
       {t('Apps.action.launch')}
@@ -239,10 +241,12 @@ function stopRowEvent(event: MouseEvent): void {
 export function AppListRow({
   entry,
   activeAction,
+  actionsDisabled,
   onAction,
 }: {
   readonly entry: DesktopAppsEntry;
   readonly activeAction: AppCardActionId | null;
+  readonly actionsDisabled: boolean;
   readonly onAction: (action: AppCardActionId) => void;
 }): ReactElement {
   const { t } = useTranslation();
@@ -282,28 +286,28 @@ export function AppListRow({
         id: 'stop',
         label: t('Apps.action.stop'),
         icon: <Square className="h-4 w-4" aria-hidden="true" />,
-        disabled: activeAction !== null,
+        disabled: actionsDisabled,
         onSelect: () => onAction('stop'),
       }
       : {
         id: 'launch',
         label: t(entry.committedRelease && entry.run?.state === 'running' ? 'Apps.action.focus' : 'Apps.action.launch'),
         icon: <Play className="h-4 w-4" aria-hidden="true" />,
-        disabled: activeAction !== null,
+        disabled: actionsDisabled,
         onSelect: () => onAction('launch'),
       }] : []),
     ...(actionPlan.primary?.id !== 'stop' && actionPlan.secondary.some((action) => action.id === 'stop') ? [{
       id: 'stop',
       label: t('Apps.action.stop'),
       icon: <Square className="h-4 w-4" aria-hidden="true" />,
-      disabled: activeAction !== null,
+      disabled: actionsDisabled,
       onSelect: () => onAction('stop'),
     }] : []),
     ...(actionPlan.secondary.some((action) => action.id === 'cancel-job') ? [{
       id: 'cancel-job',
       label: t('Apps.action.cancel'),
       icon: <X className="h-4 w-4" aria-hidden="true" />,
-      disabled: activeAction !== null,
+      disabled: actionsDisabled,
       onSelect: () => onAction('cancel-job'),
     }] : []),
     {
@@ -319,7 +323,7 @@ export function AppListRow({
       label: t('Apps.action.removeDevelopment'),
       icon: <Trash2 className="h-4 w-4" aria-hidden="true" />,
       tone: 'danger' as const,
-      disabled: activeAction !== null,
+      disabled: actionsDisabled,
       onSelect: () => setConfirmingRemove(true),
     }] : []),
   ];
@@ -392,13 +396,13 @@ export function AppListRow({
       <div className="relative z-10 flex shrink-0 items-center gap-1">
         {hasAvailableCatalogUpdate(entry) ? (
           <Button size="sm" tone="primary" data-testid={`apps-entry-${identity.entryKey}-update`}
-            loading={activeAction === 'update'} disabled={activeAction !== null || !canRequestCatalogUpdate(entry)}
+            loading={activeAction === 'update'} disabled={actionsDisabled || !canRequestCatalogUpdate(entry)}
             title={!canRequestCatalogUpdate(entry) && entry.run?.state === 'running' ? t('Apps.update.stopRequired') : undefined}
             onClick={() => onAction('update')}>
             {t('Apps.action.update')}
           </Button>
         ) : null}
-        <AppRowActionButton entry={entry} activeAction={activeAction} onAction={onAction} />
+        <AppRowActionButton entry={entry} activeAction={activeAction} actionsDisabled={actionsDisabled} onAction={onAction} />
         <Popover>
           <PopoverTrigger asChild>
             <IconButton

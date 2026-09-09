@@ -196,6 +196,7 @@ export function AppsPanelView({
             onBack={onBack}
             onAction={(action) => onCardAction(selectedEntry.identity.entryKey, action)}
             activeAction={activeAction && activeAction.entryKey === selectedEntry.identity.entryKey ? activeAction.action : null}
+            actionsDisabled={activeAction !== null}
             actionError={actionError}
             onAIConfigChanged={(result) => onAIConfigChanged(selectedEntry.identity.entryKey, result)}
           />
@@ -662,6 +663,7 @@ function LibraryBody({
                 key={entry.identity.entryKey}
                 entry={entry}
                 activeAction={activeAction && activeAction.entryKey === entry.identity.entryKey ? activeAction.action : null}
+                actionsDisabled={activeAction !== null}
                 onAction={(action) => onCardAction(entry.identity.entryKey, action)}
               />
             ))}

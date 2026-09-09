@@ -12,6 +12,10 @@ import (
 	"golang.org/x/sys/windows"
 )
 
+func isReleaseRenameBusy(err error) bool {
+	return errors.Is(err, windows.ERROR_ACCESS_DENIED) || errors.Is(err, windows.ERROR_SHARING_VIOLATION)
+}
+
 func publishStagedRelease(root *os.Root, stagedName, finalName string) error {
 	if root == nil || !runtimeOwnedChild(stagedName) || !runtimeOwnedChild(finalName) || stagedName == finalName {
 		return ErrReleasePublication

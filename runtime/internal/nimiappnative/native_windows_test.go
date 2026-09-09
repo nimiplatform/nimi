@@ -19,10 +19,11 @@ import (
 )
 
 type testPEOptions struct {
-	platform string
-	level    string
-	manifest bool
-	uiAccess bool
+	platform       string
+	level          string
+	manifest       bool
+	uiAccess       bool
+	commonControls bool
 }
 
 type powershellSignature struct {
@@ -155,6 +156,24 @@ func TestWindowsRuntimeEntryVerificationHonorsCanceledContext(t *testing.T) {
 	}
 }
 
+func TestWindowsRuntimeEntryVerificationReleasesPackageDirectory(t *testing.T) {
+	path := compileTestPE(t, testPEOptions{platform: "x64", level: "asInvoker", manifest: true, commonControls: true})
+	if _, err := VerifyWindowsRuntimeEntry(context.Background(), path, unsignedExpectation(), testFileSHA256(t, path)); err != nil {
+		t.Fatal(err)
+	}
+	source, err := windows.UTF16PtrFromString(filepath.Dir(path))
+	if err != nil {
+		t.Fatal(err)
+	}
+	destination, err := windows.UTF16PtrFromString(filepath.Join(t.TempDir(), "removed-package"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := windows.MoveFileEx(source, destination, windows.MOVEFILE_WRITE_THROUGH); err != nil {
+		t.Fatalf("rename verified package directory: %v", err)
+	}
+}
+
 func unsignedExpectation() WindowsExpectation {
 	return WindowsExpectation{
 		Arch: "x86_64", ExecutionProfileRef: WindowsExecutionProfileRef, WindowsCodeSigning: "unsigned",
@@ -199,6 +218,9 @@ func compileTestPE(t *testing.T, options testPEOptions) string {
   </trustInfo>
 </assembly>
 `, options.level, options.uiAccess)
+		if options.commonControls {
+			manifest = strings.Replace(manifest, "</assembly>", `<dependency><dependentAssembly><assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="*" publicKeyToken="6595b64144ccf1df" language="*"/></dependentAssembly></dependency></assembly>`, 1)
+		}
 		if err := os.WriteFile(manifestPath, []byte(manifest), 0o600); err != nil {
 			t.Fatal(err)
 		}

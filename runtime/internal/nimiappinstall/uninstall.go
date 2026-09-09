@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 )
@@ -131,7 +132,7 @@ func (coordinator *Coordinator) CompleteUninstall(ctx context.Context, jobID, ha
 	if err != nil {
 		return localappkernel.PackageJob{}, err
 	}
-	if err := publishStagedRelease(root, current.releaseName, quarantine); err != nil {
+	if err := detachInstalledRelease(ctx, root, current.releaseName, quarantine); err != nil {
 		return localappkernel.PackageJob{}, coordinator.rollbackUninstall(ctx, job, expected, err)
 	}
 	advanced, err := coordinator.lifecycle.Advance(ctx, jobID, job.Phase, localappkernel.PackageJobUnregistering, localappkernel.PackageJobProgress{StepsCompleted: 1})
@@ -157,6 +158,26 @@ func (coordinator *Coordinator) CompleteUninstall(ctx context.Context, jobID, ha
 		return localappkernel.PackageJob{}, errors.Join(ErrUninstall, err)
 	}
 	return completed, nil
+}
+
+// App process-scope exit can precede Windows releasing the directory for a
+// rename. Keep this wait inside the reserved uninstall, before unregistering.
+func detachInstalledRelease(ctx context.Context, root *os.Root, source, destination string) error {
+	deadline := time.NewTimer(5 * time.Second)
+	defer deadline.Stop()
+	for {
+		err := publishStagedRelease(root, source, destination)
+		if err == nil || !isReleaseRenameBusy(err) {
+			return err
+		}
+		select {
+		case <-ctx.Done():
+			return errors.Join(err, ctx.Err())
+		case <-deadline.C:
+			return err
+		case <-time.After(100 * time.Millisecond):
+		}
+	}
 }
 
 func (coordinator *Coordinator) rollbackUninstall(ctx context.Context, job localappkernel.PackageJob, reservation uninstallReservation, cause error) error {

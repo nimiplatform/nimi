@@ -72,6 +72,7 @@ export interface AppsDetailViewProps {
   readonly onBack: () => void;
   readonly onAction: (action: AppCardActionId) => void;
   readonly activeAction: AppCardActionId | null;
+  readonly actionsDisabled: boolean;
   readonly actionError: string | null;
   readonly onAIConfigChanged: (result: NimiAIConfigOverwriteResult) => void;
 }
@@ -92,6 +93,7 @@ function LocalDevelopmentAppsDetailView({
   onBack,
   onAction,
   activeAction,
+  actionsDisabled,
   actionError,
   onAIConfigChanged,
 }: AppsDetailViewProps): ReactElement {
@@ -155,21 +157,21 @@ function LocalDevelopmentAppsDetailView({
         id: 'stop',
         label: t('Apps.action.stop'),
         icon: <Square className="h-4 w-4" aria-hidden="true" />,
-        disabled: activeAction !== null,
+        disabled: actionsDisabled,
         onSelect: () => onAction('stop'),
       }
       : {
         id: 'launch',
         label: t('Apps.action.launch'),
         icon: <Play className="h-4 w-4" aria-hidden="true" />,
-        disabled: activeAction !== null,
+        disabled: actionsDisabled,
         onSelect: () => onAction('launch'),
       },
     ...(actionPlan.secondary.some((action) => action.id === 'cancel-job') ? [{
       id: 'cancel-job',
       label: t('Apps.action.cancel'),
       icon: <X className="h-4 w-4" aria-hidden="true" />,
-      disabled: activeAction !== null,
+      disabled: actionsDisabled,
       onSelect: () => onAction('cancel-job'),
     }] : []),
     {
@@ -185,7 +187,7 @@ function LocalDevelopmentAppsDetailView({
       label: t('Apps.action.removeDevelopment'),
       icon: <Trash2 className="h-4 w-4" aria-hidden="true" />,
       tone: 'danger',
-      disabled: activeAction !== null,
+      disabled: actionsDisabled,
       onSelect: () => setConfirmingRemove(true),
     },
   ];
@@ -238,7 +240,7 @@ function LocalDevelopmentAppsDetailView({
                 data-testid="apps-detail-stop"
                 tone="secondary"
                 loading={activeAction === 'stop'}
-                disabled={activeAction !== null}
+                disabled={actionsDisabled}
                 onClick={() => onAction('stop')}
               >
                 <Square className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
@@ -249,7 +251,7 @@ function LocalDevelopmentAppsDetailView({
                 data-testid="apps-detail-launch"
                 tone="primary"
                 loading={activeAction === 'launch'}
-                disabled={activeAction !== null}
+                disabled={actionsDisabled}
                 onClick={() => onAction('launch')}
               >
                 <Play className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -432,6 +434,7 @@ function InstalledAppsDetailView({
   onBack,
   onAction,
   activeAction,
+  actionsDisabled,
   actionError,
 }: AppsDetailViewProps): ReactElement {
   const { t } = useTranslation();
@@ -498,18 +501,18 @@ function InstalledAppsDetailView({
                 <div className="flex gap-2">
                   {actionPlanForEntry(entry).primary ? (
                     <Button tone="primary" size="sm" data-testid="apps-installed-launch"
-                      loading={activeAction === 'launch'} disabled={activeAction !== null} onClick={() => onAction('launch')}>
+                      loading={activeAction === 'launch'} disabled={actionsDisabled} onClick={() => onAction('launch')}>
                       {t(installedRun?.state === 'running' ? 'Apps.action.focus' : 'Apps.action.launch')}
                     </Button>
                   ) : null}
                   {installedRun?.state === 'running' ? (
                     <Button tone="secondary" size="sm" data-testid="apps-installed-stop"
-                      loading={activeAction === 'stop'} disabled={activeAction !== null} onClick={() => onAction('stop')}>
+                      loading={activeAction === 'stop'} disabled={actionsDisabled} onClick={() => onAction('stop')}>
                       {t('Apps.action.stop')}
                     </Button>
                   ) : null}
                   {canRequestUninstall(entry) ? (
-                    <Button tone="danger" size="sm" data-testid="apps-installed-uninstall" disabled={activeAction !== null}
+                    <Button tone="danger" size="sm" data-testid="apps-installed-uninstall" disabled={actionsDisabled}
                       loading={activeAction === 'uninstall'} onClick={() => setConfirmingUninstall(true)}>
                       {t('Apps.action.uninstall')}
                     </Button>
@@ -529,7 +532,7 @@ function InstalledAppsDetailView({
                 size="sm"
                 className="mt-3"
                 loading={activeAction === 'install'}
-                disabled={activeAction !== null}
+                disabled={actionsDisabled}
                 onClick={() => onAction('install')}
               >
                 <Download className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -539,7 +542,7 @@ function InstalledAppsDetailView({
             {hasAvailableCatalogUpdate(entry) ? (
               <div className="mt-3">
                 <Button data-testid="apps-detail-update" tone="primary" size="sm"
-                  loading={activeAction === 'update'} disabled={activeAction !== null || !canRequestCatalogUpdate(entry)}
+                  loading={activeAction === 'update'} disabled={actionsDisabled || !canRequestCatalogUpdate(entry)}
                   onClick={() => onAction('update')}>
                   <Download className="mr-2 h-4 w-4" aria-hidden="true" />
                   {t('Apps.update.toVersion', { version: entry.catalogTarget?.version })}
@@ -554,7 +557,7 @@ function InstalledAppsDetailView({
                 size="sm"
                 className="mt-3"
                 loading={activeAction === 'cancel-job'}
-                disabled={activeAction !== null}
+                disabled={actionsDisabled}
                 onClick={() => onAction('cancel-job')}
               >
                 <X className="mr-2 h-4 w-4" aria-hidden="true" />
