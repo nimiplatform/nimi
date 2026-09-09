@@ -1357,7 +1357,7 @@
     "loadingTitle": "Fetching the latest model market data…",
     "loadingDescription": "Syncing catalog recommendations and installable variants. This usually takes a few seconds.",
     "searchFailed": "Catalog search failed.",
-    "hfSearchUnavailable": "Hugging Face is unavailable. Search is limited to the local catalog.",
+    "hfSearchUnavailable": "Hugging Face is unavailable. Local catalog results are still available.",
     "noSearchResults": "No catalog models matched this query.",
     "recommendationsEmpty": "This recommendation snapshot contains no models in the selected category.",
     "searchInstead": "Search the catalog to find a model.",

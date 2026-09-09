@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -11,6 +12,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -140,6 +142,81 @@ func TestSearchCatalogModelsHFFailurePreservesLocalResults(t *testing.T) {
 		if strings.Contains(string(payload), "token=secret") || strings.Contains(string(payload), "private") {
 			t.Fatal("partial response leaked upstream error")
 		}
+	}
+}
+
+func TestSearchCatalogModelsHFFailureDuringPagingRestartsLocalDiscovery(t *testing.T) {
+	for _, localCount := range []int{2, 65} {
+		t.Run(fmt.Sprintf("local-%d", localCount), func(t *testing.T) {
+			svc := newTestService(t)
+			svc.catalog = nil
+			for index := 0; index < localCount; index++ {
+				svc.catalog = append(svc.catalog, &runtimev1.LocalCatalogModelDescriptor{
+					ItemId: fmt.Sprintf("local-asset-%d", index), Source: "verified",
+					Title: fmt.Sprintf("Z local asset %03d", index), Repo: fmt.Sprintf("org/local-asset-%d", index),
+					Revision: immutableHFRevisionForTest, ModelType: "vae", Verified: index == 0,
+				})
+			}
+			calls := 0
+			svc.hfCatalogSearch = func(context.Context, hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+				calls++
+				if calls == 2 {
+					return nil, errors.New("HF connection lost after first page")
+				}
+				items := make([]*runtimev1.LocalCatalogModelDescriptor, 0, 50)
+				for index := 0; index < 50; index++ {
+					items = append(items, &runtimev1.LocalCatalogModelDescriptor{
+						ItemId: fmt.Sprintf("hf-asset-%d", index), Source: "huggingface",
+						Title: fmt.Sprintf("A HF asset %03d", index), Repo: fmt.Sprintf("org/hf-asset-%d", index),
+						Revision: immutableHFRevisionForTest, ModelType: "vae",
+					})
+				}
+				return items, nil
+			}
+			first, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{Query: "asset", PageSize: 50})
+			if err != nil || first.GetNextPageToken() == "" || first.GetHuggingFaceUnavailable() {
+				t.Fatalf("first merged page = %v, %v", first, err)
+			}
+			local := make(map[string]bool)
+			token := first.GetNextPageToken()
+			for page := 0; token != "" && page < 3; page++ {
+				result, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{Query: "asset", PageSize: 50, PageToken: token})
+				if err != nil {
+					t.Fatalf("source outage invalidated an issued page token: %v", err)
+				}
+				if !result.GetHuggingFaceUnavailable() {
+					t.Fatal("local continuation lost the source failure")
+				}
+				for _, item := range result.GetItems() {
+					if !strings.HasPrefix(item.GetTitle(), "Z local asset") {
+						t.Fatalf("source set changed inside local continuation: %v", item)
+					}
+					local[item.GetModelLocator()] = true
+				}
+				token = result.GetNextPageToken()
+			}
+			if token != "" || len(local) != localCount || calls != 2 {
+				t.Fatalf("incomplete local discovery: count=%d want=%d HF calls=%d token=%q", len(local), localCount, calls, token)
+			}
+		})
+	}
+}
+
+func TestSearchCatalogModelsOutageDoesNotAcceptMalformedOrForeignPageTokens(t *testing.T) {
+	svc := newTestService(t)
+	svc.hfCatalogSearch = func(context.Context, hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
+		t.Fatal("invalid token must be rejected before external search")
+		return nil, nil
+	}
+	digest := pagination.FilterDigest("asset", "")
+	for _, token := range []string{
+		pagination.Encode("not-a-number", digest),
+		pagination.Encode("local:", digest),
+		pagination.Encode("local:-1", digest),
+		pagination.Encode("50", pagination.FilterDigest("different-query", "")),
+	} {
+		_, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{Query: "asset", PageToken: token})
+		assertGRPCReasonCode(t, err, "malformed catalog continuation", runtimev1.ReasonCode_PAGE_TOKEN_INVALID)
 	}
 }
 
@@ -504,9 +581,9 @@ func TestVerifiedAssetDiscoverySurvivesHuggingFaceSearchFailure(t *testing.T) {
 	svc.hfCatalogSearch = func(context.Context, hfCatalogSearchRequest) ([]*runtimev1.LocalCatalogModelDescriptor, error) {
 		return nil, errors.New("Hugging Face unavailable")
 	}
-	_, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{Query: "qwen"})
-	if status.Code(err) != codes.Unavailable {
-		t.Fatalf("HF failure = %v", err)
+	result, err := svc.SearchCatalogModels(context.Background(), &runtimev1.SearchCatalogModelsRequest{Query: "qwen"})
+	if err != nil || !result.GetHuggingFaceUnavailable() || len(result.GetItems()) == 0 {
+		t.Fatalf("HF failure discarded local discovery: result=%v err=%v", result, err)
 	}
 	assets, err := svc.ListVerifiedAssets(context.Background(), &runtimev1.ListVerifiedAssetsRequest{PageSize: 200})
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -59,8 +60,23 @@ func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.Search
 	}
 	pageSize := normalizeCatalogSearchPageSize(req.GetPageSize())
 	filterDigest := pagination.FilterDigest(query, category)
-	if _, err := pagination.ValidatePageToken(req.GetPageToken(), filterDigest); err != nil {
+	cursor, err := pagination.ValidatePageToken(req.GetPageToken(), filterDigest)
+	if err != nil {
 		return nil, err
+	}
+	localOnly := strings.HasPrefix(cursor, "local:")
+	pageToken := req.GetPageToken()
+	if localOnly {
+		cursor = strings.TrimPrefix(cursor, "local:")
+		if cursor == "" {
+			return nil, paginationTokenInvalid()
+		}
+		pageToken = pagination.Encode(cursor, filterDigest)
+	}
+	if cursor != "" {
+		if offset, parseErr := strconv.Atoi(cursor); parseErr != nil || offset < 0 {
+			return nil, paginationTokenInvalid()
+		}
 	}
 
 	internal := make([]*runtimev1.LocalCatalogModelDescriptor, 0)
@@ -70,20 +86,26 @@ func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.Search
 		}
 		internal = append(internal, item)
 	}
-	hfItems, err := s.searchHFCatalog(ctx, hfCatalogSearchRequest{
-		Query:          query,
-		CategoryFilter: category,
-		Limit:          int32(pageSize),
-	})
+	var hfItems []*runtimev1.LocalCatalogModelDescriptor
+	if !localOnly {
+		hfItems, err = s.searchHFCatalog(ctx, hfCatalogSearchRequest{
+			Query:          query,
+			CategoryFilter: category,
+			Limit:          int32(pageSize),
+		})
+	}
 	if ctx.Err() != nil {
 		return nil, status.FromContextError(ctx.Err()).Err()
 	}
-	huggingFaceUnavailable := false
 	if err != nil {
 		if strings.Contains(err.Error(), errHfRepoInvalid.Error()) {
 			return nil, grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_LOCAL_HF_REPO_INVALID, err, grpcerr.ReasonOptions{Message: "catalog repository is invalid"})
 		}
-		huggingFaceUnavailable = true
+		// The prior offset describes a different merged set. Restart local
+		// discovery so even local rows after the HF rows remain reachable;
+		// subsequent local cursors must not switch sources again mid-search.
+		localOnly = true
+		pageToken = ""
 		hfItems = nil
 	}
 	for _, item := range hfItems {
@@ -102,9 +124,12 @@ func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.Search
 	})
 	internal = dedupeCatalogItems(internal)
 
-	start, end, next, err := resolvePageBounds(req.GetPageToken(), filterDigest, int32(pageSize), 50, 200, len(internal))
+	start, end, next, err := resolvePageBounds(pageToken, filterDigest, int32(pageSize), 50, 200, len(internal))
 	if err != nil {
 		return nil, err
+	}
+	if localOnly && next != "" {
+		next = pagination.Encode("local:"+strconv.Itoa(end), filterDigest)
 	}
 	items := make([]*runtimev1.ModelAssetCatalogSearchResult, 0, end-start)
 	for _, item := range internal[start:end] {
@@ -114,7 +139,7 @@ func (s *Service) SearchCatalogModels(ctx context.Context, req *runtimev1.Search
 		}
 		items = append(items, projected)
 	}
-	return &runtimev1.SearchCatalogModelsResponse{Items: items, NextPageToken: next, HuggingFaceUnavailable: huggingFaceUnavailable}, nil
+	return &runtimev1.SearchCatalogModelsResponse{Items: items, NextPageToken: next, HuggingFaceUnavailable: localOnly}, nil
 }
 
 func normalizeCatalogSearchPageSize(raw int32) int {

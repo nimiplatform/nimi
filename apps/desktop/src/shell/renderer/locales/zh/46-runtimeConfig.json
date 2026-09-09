@@ -1357,7 +1357,7 @@
     "loadingTitle": "正在查询最新的模型市场数据…",
     "loadingDescription": "正在同步目录推荐与可安装 variant，通常只需几秒钟。",
     "searchFailed": "目录搜索失败。",
-    "hfSearchUnavailable": "Hugging Face 暂不可用，当前仅搜索本地目录。",
+    "hfSearchUnavailable": "Hugging Face 暂不可用，本地目录仍可使用。",
     "noSearchResults": "没有匹配该查询的目录模型。",
     "recommendationsEmpty": "该推荐数据快照在所选分类下没有模型。",
     "searchInstead": "请搜索目录查找模型。",
