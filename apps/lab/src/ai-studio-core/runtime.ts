@@ -50,6 +50,7 @@ export type StudioRuntimeHost = {
   readonly appId: string;
   readonly surfaceId: string;
   readonly abortReason: string;
+  readonly translate: (key: string, values?: Readonly<Record<string, unknown>>) => string;
   readonly client: NimiLocalAppClient;
   readonly createScenarioJobClient: typeof createNimiLocalAppRuntimeScenarioJobClient;
   readonly runners: StudioRuntimeRunnerSet;
@@ -68,6 +69,7 @@ export type StudioCapabilityRuntimeOrchestrator = {
   readonly appId: string;
   readonly surfaceId: string;
   readonly abortReason: string;
+  readonly translate: StudioRuntimeHost['translate'];
   readonly handlers: StudioCapabilityRuntimeHandlers;
   readonly resolveCapability: (capabilityId: string) => StudioRuntimeCapabilityDescriptor;
   readonly inspectRuntime: () => Promise<StudioRuntimeInspection>;
@@ -116,6 +118,7 @@ export async function runStudioCapability(
       appId: orchestrator.appId,
       surfaceId: orchestrator.surfaceId,
       abortReason: orchestrator.abortReason,
+      translate: orchestrator.translate,
       client: orchestrator.getClient(),
       createScenarioJobClient: orchestrator.createScenarioJobClient
         ?? createNimiLocalAppRuntimeScenarioJobClient,

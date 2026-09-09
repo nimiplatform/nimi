@@ -22,6 +22,7 @@ import { studioMediaRuntimeHandlers } from '../studio-modules/studio-media/runti
 import { studioVoiceRuntimeHandlers } from '../studio-modules/studio-voice/runtime.js';
 import { capabilityNonSuccess } from './lab-non-success.js';
 import { getStudioRuntimeCapability } from './studio-runtime-capabilities.js';
+import { t } from '../shell/i18n/index.js';
 
 // Lab owns only the protected host carrier and its identity-bound wiring. The
 // product Runtime handlers and dispatcher remain identity-neutral module code.
@@ -71,6 +72,7 @@ export async function runLabCapability(
     appId,
     surfaceId: LAB_RUNTIME_SURFACE_ID,
     abortReason: LAB_RUNTIME_ABORT_REASON,
+    translate: t,
     handlers: LAB_STUDIO_RUNTIME_HANDLERS,
     resolveCapability: getStudioRuntimeCapability,
     inspectRuntime: () => inspectRuntimeConnectionWith(

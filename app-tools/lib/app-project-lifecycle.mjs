@@ -46,6 +46,7 @@ const SUBMISSION_PATH = '.nimi/admission/submission.yaml';
 const SEMVER_PATTERN = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/u;
 const CURRENT_APP_TARGETS = Object.freeze({
   'windows-x86_64': Object.freeze({ os: 'windows', arch: 'x86_64' }),
+  'macos-aarch64': Object.freeze({ os: 'macos', arch: 'arm64' }),
 });
 
 function resolveTargetDir(cwd, options = {}) {
