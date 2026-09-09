@@ -9,6 +9,13 @@ Discipline.
 
 ## [Unreleased]
 
+### Fixed
+
+- Accept `audio/x-wav` Runtime artifacts under the same RIFF/WAVE validation as
+  `audio/wav`, keep Agent Realtime sessions open after successful individual
+  turns, and share overlapping development inventory reads without retaining
+  completed snapshots. These fixes are also backported to the 0.5.1 stable line.
+
 ### Added
 
 - Added the macOS arm64 native package and main-only installed App control to
