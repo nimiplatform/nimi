@@ -3,7 +3,6 @@ export const CI_LANES = {
   'core-static': 'core_changed',
   'workspace-regression': 'workspace_changed',
   'kit-native-tests': 'kit_native_changed',
-  'lab-native-tests': 'lab_native_changed',
   'sdk-quality': 'sdk_changed',
   'runtime-quality': 'runtime_changed',
   'proto-quality': 'proto_changed',
@@ -24,7 +23,6 @@ export function selectCiScope(files, { full = false } = {}) {
   const cognition = shared || touches(/^(?:nimi-cognition\/|go\.work(?:\.sum)?$)/u);
   const runtime = cognition || config || proto || touches(/^(?:runtime\/|npm-packages\/|\.goreleaser\.yml$|\.nimi\/spec\/runtime\/|scripts\/(?:build-runtime|dev-runtime)\.mjs$)/u);
   const kitNative = shared || proto || touches(/^kit\/shell\/(?:capabilities|protected-local|protected-local-node|tauri)\//u);
-  const labNative = kitNative || touches(/^apps\/lab\/src-tauri\//u);
   const desktopNative = shared || proto || touches(/^(?:apps\/desktop\/product-control-|kit\/shell\/protected-local\/)/u);
   const desktop = desktopNative || touches(/^apps\/desktop\/(?!AGENTS\.md$)/u);
   const filters = new Set();
@@ -64,7 +62,6 @@ export function selectCiScope(files, { full = false } = {}) {
     desktop_changed: desktop,
     desktop_native_changed: desktopNative,
     kit_native_changed: kitNative,
-    lab_native_changed: labNative,
   };
 }
 

@@ -36,7 +36,6 @@ test('Kit and SDK contracts select pnpm consumers and the source-copy App Tools 
 test('native and proto changes retain their supported platform checks', () => {
   const native = selectCiScope(['kit/shell/protected-local/src/lib.rs']);
   assert.equal(native.kit_native_changed, true);
-  assert.equal(native.lab_native_changed, true);
   assert.equal(native.desktop_native_changed, true);
   const proto = selectCiScope(['proto/runtime/v1/model.proto']);
   for (const flag of ['proto_changed', 'sdk_changed', 'runtime_changed', 'kit_native_changed']) {

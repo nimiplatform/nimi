@@ -97,7 +97,6 @@ jobs:
         run: |
           cargo audit --file apps/desktop/product-control-core/Cargo.lock
           cargo audit --file apps/desktop/product-control-node/Cargo.lock
-          cargo audit --file apps/lab/src-tauri/Cargo.lock
           cargo audit --file kit/shell/protected-local/Cargo.lock
           cargo audit --file kit/shell/protected-local-node/Cargo.lock
           cargo audit --file kit/shell/tauri/Cargo.lock
