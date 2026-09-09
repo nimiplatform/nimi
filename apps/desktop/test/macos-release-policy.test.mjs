@@ -1,9 +1,40 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import path from 'node:path';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
-import { isMacOSMachO, macOSAudioCaptureRole, macOSReleaseRealmBaseURL } from '../scripts/lib/macos-release-process.mjs';
+import { isMacOSMachO, macOSAudioCaptureRole, macOSReleaseRealmBaseURL, stageMacOSBuiltInputs } from '../scripts/lib/macos-release-process.mjs';
+
+test('packaging inputs survive a subsequent build replacing the shared outputs', async () => {
+  const directory = mkdtempSync(path.join(os.tmpdir(), 'nimi-build-inputs-'));
+  try {
+    const desktopRoot = path.join(directory, 'desktop');
+    const avatarRoot = path.join(directory, 'avatar');
+    const nativeRoot = path.join(directory, 'native');
+    const sourceRoot = path.join(directory, 'transaction');
+    const files = [
+      [desktopRoot, 'dist/index.html', 'desktop-app/dist/index.html'],
+      [desktopRoot, 'assets/icon.icns', 'desktop-app/assets/icon.icns'],
+      [desktopRoot, 'dist-electron/main.js', 'desktop-app/dist-electron/main.js'],
+      [desktopRoot, 'dist-electron/chat-ai-store-worker.js', 'desktop-app/dist-electron/chat-ai-store-worker.js'],
+      [desktopRoot, 'dist-electron/preload.cjs', 'desktop-app/dist-electron/preload.cjs'],
+      [avatarRoot, 'dist/index.html', 'desktop-app/avatar/dist/index.html'],
+      [nativeRoot, 'index.cjs', 'native-carrier/index.cjs'],
+      [nativeRoot, 'nimi_shell_protected_local.node', 'native-carrier/nimi_shell_protected_local.node'],
+      [nativeRoot, 'package.json', 'native-carrier/package.json'],
+    ];
+    for (const [root, relative] of files) {
+      const file = path.join(root, relative);
+      mkdirSync(path.dirname(file), { recursive: true });
+      writeFileSync(file, `first-build:${relative}`);
+    }
+    await stageMacOSBuiltInputs({ sourceRoot, desktopRoot, avatarRoot, nativeRoot });
+    for (const [root, relative] of files) writeFileSync(path.join(root, relative), `next-build:${relative}`);
+    for (const [, relative, staged] of files) {
+      assert.equal(readFileSync(path.join(sourceRoot, staged), 'utf8'), `first-build:${relative}`);
+    }
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
 
 test('release Realm selection is explicit and rejects unsupported build endpoints', () => {
   assert.equal(macOSReleaseRealmBaseURL(), 'https://realm.nimi.ai');

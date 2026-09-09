@@ -29,6 +29,7 @@ import {
   verifySignedMacOSCode,
   verifySignedMacOSApplication,
   verifySignedMacOSInstaller,
+  stageMacOSBuiltInputs,
 } from './lib/macos-release-process.mjs';
 import { MACOS_LOCAL_DEVELOPMENT_PROFILE } from './generated/macos-local-development-profile.mjs';
 import {
@@ -81,7 +82,7 @@ try {
   ));
   await prepareElectronZip(electronVersion, electronZipRoot);
   const localHostApp = await packageLocalAppHost({ electronVersion, electronZipRoot, localDevelopment, packageRoot, sourceRoot, version });
-  await stageNativeCarrier(localHostApp);
+  await stageNativeCarrier(localHostApp, sourceRoot);
   if (release) {
     requireMacOSSigningIdentity(release.applicationIdentity);
     requireMacOSSigningIdentity(release.installerIdentity);
@@ -193,6 +194,20 @@ async function buildReleaseInputs({
     inherit: true,
   });
   await chmod(runtimeOutput, 0o755);
+  await stageMacOSBuiltInputs({
+    sourceRoot,
+    desktopRoot,
+    avatarRoot,
+    nativeRoot: path.join(repoRoot, 'kit', 'shell', 'protected-local-node', 'npm', 'darwin-arm64'),
+  });
+  const desktopSource = path.join(sourceRoot, 'desktop-app');
+  await stageSharpRuntime(desktopSource);
+  await writeManifest(path.join(desktopSource, 'package.json'), {
+    main: 'dist-electron/main.js',
+    name: 'nimi-desktop',
+    type: 'module',
+    version,
+  });
 }
 
 async function prepareElectronZip(electronVersionValue, electronZipRoot) {
@@ -205,25 +220,6 @@ async function prepareElectronZip(electronVersionValue, electronZipRoot) {
 
 async function packageDesktop(input) {
   const source = path.join(input.sourceRoot, 'desktop-app');
-  await mkdir(path.join(source, 'dist-electron'), { recursive: true });
-  await Promise.all([
-    cp(path.join(desktopRoot, 'dist'), path.join(source, 'dist'), { recursive: true, force: false }),
-    cp(path.join(avatarRoot, 'dist'), path.join(source, 'avatar', 'dist'), { recursive: true, force: false }),
-    cp(path.join(desktopRoot, 'assets'), path.join(source, 'assets'), { recursive: true, force: false }),
-    cp(path.join(desktopRoot, 'dist-electron', 'main.js'), path.join(source, 'dist-electron', 'main.js')),
-    cp(
-      path.join(desktopRoot, 'dist-electron', 'chat-ai-store-worker.js'),
-      path.join(source, 'dist-electron', 'chat-ai-store-worker.js'),
-    ),
-    cp(path.join(desktopRoot, 'dist-electron', 'preload.cjs'), path.join(source, 'dist-electron', 'preload.cjs')),
-  ]);
-  await stageSharpRuntime(source);
-  await writeManifest(path.join(source, 'package.json'), {
-    main: 'dist-electron/main.js',
-    name: 'nimi-desktop',
-    type: 'module',
-    version: input.version,
-  });
   return packageElectronApplication({
     appBundleId: input.localDevelopment ? MACOS_LOCAL_DEVELOPMENT_PROFILE.desktopSigningIdentifier : 'ai.nimi.apps.nimi.desktop',
     appCategoryType: 'public.app-category.social-networking',
@@ -350,8 +346,8 @@ function hardenElectronInfoPlist(appPath) {
   runReleaseCommand('/usr/bin/plutil', ['-lint', infoPlist]);
 }
 
-async function stageNativeCarrier(appPath) {
-  const source = path.join(repoRoot, 'kit', 'shell', 'protected-local-node', 'npm', 'darwin-arm64');
+async function stageNativeCarrier(appPath, sourceRoot) {
+  const source = path.join(sourceRoot, 'native-carrier');
   const destination = path.join(appPath, 'Contents', 'Resources', 'nimi-native', 'protected-local');
   await mkdir(destination, { recursive: true, mode: 0o755 });
   for (const name of ['index.cjs', 'nimi_shell_protected_local.node', 'package.json']) {
@@ -361,7 +357,7 @@ async function stageNativeCarrier(appPath) {
 }
 
 async function stageDesktopNativeAssets(desktopApp, sourceRoot, localDevelopmentBuild) {
-  await stageNativeCarrier(desktopApp);
+  await stageNativeCarrier(desktopApp, sourceRoot);
   if (localDevelopmentBuild) return;
   // @nimi-authority: rule.nimi.platform.app-ecosystem.p-appacc-001
   // Runtime reads each formal App declaration from this fixed signed resource

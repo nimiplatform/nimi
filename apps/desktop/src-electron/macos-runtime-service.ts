@@ -61,9 +61,16 @@ export function createDesktopMacOSRuntimeServiceHost(base: LifecycleHost, ports:
         const deadline = Date.now() + 10_000;
         let command = names.start;
         for (;;) {
-          const state = await base.invoke(command, names) as { running?: boolean; lastError?: string } | null;
-          if (state?.running === true) return true;
-          if (Date.now() >= deadline) throw new Error(state?.lastError || 'runtime-service-unavailable');
+          try {
+            const state = await base.invoke(command, names) as { running?: boolean; lastError?: string } | null;
+            if (state?.running === true) return true;
+            if (Date.now() >= deadline) throw new Error(state?.lastError || 'runtime-service-unavailable');
+          } catch (error) {
+            const failure = error as { reasonCode?: unknown; details?: { retryable?: unknown } } | null;
+            if (failure?.reasonCode !== 'runtime-service-unavailable'
+              || failure.details?.retryable !== true
+              || Date.now() >= deadline) throw error;
+          }
           await new Promise<void>((resolve) => setTimeout(resolve, 100));
           command = names.status;
         }

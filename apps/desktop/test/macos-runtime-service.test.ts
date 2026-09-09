@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createDesktopMacOSRuntimeServiceHost } from '../src-electron/macos-runtime-service.js';
+import { createNimiElectronFixedRuntimeLifecycleHostForBinding } from '../../../kit/shell/electron/src/main/runtime-lifecycle-host.js';
 
 const names = { status: 'status', start: 'start', restart: 'restart' };
 
@@ -144,6 +145,54 @@ test('bootstrap propagates a protected Runtime failure instead of admitting the 
     runtimeEndpoint: 'protected-desktop-control',
   });
   await assert.rejects(host.prepare(names), /runtime-service-untrusted/);
+});
+
+test('bootstrap retries unavailable status from the formal lifecycle adapter', async () => {
+  let statusCalls = 0;
+  const base = createNimiElectronFixedRuntimeLifecycleHostForBinding({
+    fixedRuntimeServiceStart: async () => ({ status: 'ok', value: {
+      state: 'start-pending', running: false, releasePosture: 'release', releaseVersion: '0.2.0',
+    } }),
+    fixedRuntimeServiceStatus: async () => ++statusCalls === 1
+      ? { status: 'error', reasonCode: 'runtime-service-unavailable', retryable: true }
+      : { status: 'ok', value: {
+        state: 'running', running: true, releasePosture: 'release', releaseVersion: '0.2.0',
+      } },
+    fixedRuntimeServiceRestart: async () => { throw new Error('not used'); },
+  }, 'protected-desktop-control');
+  const host = createDesktopMacOSRuntimeServiceHost(base, {
+    registration: async () => 1,
+    socketExists: () => true,
+    showApproval: async () => { throw new Error('already approved'); },
+    runtimeEndpoint: 'protected-desktop-control',
+  });
+  assert.equal(await host.prepare(names), true);
+  assert.equal(statusCalls, 2);
+});
+
+test('bootstrap preserves non-retryable lifecycle failures', async () => {
+  for (const [reasonCode, retryable] of [
+    ['runtime-service-unavailable', false],
+    ['runtime-service-untrusted', true],
+  ] as const) {
+    let calls = 0;
+    const failure = async () => {
+      calls += 1;
+      return { status: 'error' as const, reasonCode, retryable };
+    };
+    const host = createDesktopMacOSRuntimeServiceHost(createNimiElectronFixedRuntimeLifecycleHostForBinding({
+      fixedRuntimeServiceStart: failure,
+      fixedRuntimeServiceStatus: failure,
+      fixedRuntimeServiceRestart: failure,
+    }, 'protected-desktop-control'), {
+      registration: async () => 1,
+      socketExists: () => true,
+      showApproval: async () => false,
+      runtimeEndpoint: 'protected-desktop-control',
+    });
+    await assert.rejects(host.prepare(names), new RegExp(reasonCode));
+    assert.equal(calls, 1);
+  }
 });
 
 test('a running installation is not reregistered and uninstall errors propagate', async () => {
