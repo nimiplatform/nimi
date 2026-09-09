@@ -242,7 +242,7 @@ test('Apps library renders the app-center header and App Store style list rows w
   assert.ok(markup.includes('data-testid="apps-connect-local"'), 'expected header add-app action');
   assert.ok(markup.includes('添加应用'), 'expected add-app action copy');
   assert.ok(markup.includes('搜索 App 或 App ID'), 'expected rail search placeholder');
-  assert.ok(markup.includes('搜索已安装的应用'), 'expected library search placeholder');
+  assert.ok(markup.includes('搜索应用'), 'expected library search placeholder');
   assert.ok(markup.includes('最近更新'), 'expected default sort copy');
   assert.equal(markup.includes('data-testid="apps-frequent-section"'), false, 'frequent section hidden below the minimum entry count');
   assert.equal(markup.includes('-installed-version"'), false, 'local-development rows have no package state');
@@ -498,6 +498,35 @@ test('Apps library renders the 常用 quick-launch strip once enough apps are co
   assert.equal(searching.includes('data-testid="apps-frequent-section"'), false, 'frequent section hidden while searching');
 });
 
+test('An action on another App disables mutations in rows, frequent apps and details without marking them loading', async () => {
+  await initI18n();
+  await changeLocale('en');
+  const installed = { ...installedRuntimeEntry(), packageJob: null };
+  const props = baseProps({
+    projection: { status: 'loaded', entries: [installed, ...ENTRIES, entry({ selector: 'fourth', appId: 'example.fourth' })], catalogStatus: 'not-implemented', runtimeError: null },
+    activeAction: { entryKey: ENTRIES[0]!.identity.entryKey, action: 'launch' },
+  });
+  const library = renderView(props);
+  const buttons = [...library.matchAll(/<button\b[^>]*>/g)].map((match) => match[0]);
+  const launches = buttons.filter((button) => button.includes(`data-testid="apps-entry-${installed.identity.entryKey}-launch"`));
+  assert.equal(launches.length, 2, 'installed App appears in the library and frequent strip');
+  for (const button of launches) {
+    assert.ok(button.includes(' disabled=""'), 'other App launch must be disabled');
+    assert.ok(!button.includes('aria-busy="true"'), 'other App is not launching');
+  }
+  const name = buttons.find((button) => button.includes(`data-testid="apps-frequent-${installed.identity.entryKey}-name"`));
+  assert.ok(name && !name.includes(' disabled=""'), 'details navigation remains available');
+  const detail = renderView({ ...props, selectedEntryKey: installed.identity.entryKey });
+  const detailLaunch = [...detail.matchAll(/<button\b[^>]*>/g)].map((match) => match[0])
+    .find((button) => button.includes('data-testid="apps-installed-launch"'));
+  assert.ok(detailLaunch?.includes(' disabled=""'), 'selected App launch must also be disabled');
+  assert.ok(!detailLaunch.includes('aria-busy="true"'));
+  const idleDetail = renderView({ ...props, activeAction: null, selectedEntryKey: installed.identity.entryKey });
+  const idleLaunch = [...idleDetail.matchAll(/<button\b[^>]*>/g)].map((match) => match[0])
+    .find((button) => button.includes('data-testid="apps-installed-launch"'));
+  assert.ok(idleLaunch && !idleLaunch.includes(' disabled=""'), 'launch becomes available after the operation finishes');
+});
+
 test('Apps library renders with resolved en copy after locale switch', async () => {
   await initI18n();
   await changeLocale('en');
@@ -505,7 +534,7 @@ test('Apps library renders with resolved en copy after locale switch', async () 
   assert.ok(markup.includes('App Center'), 'expected en page title');
   assert.ok(markup.includes('Add App'), 'expected en add-app action copy');
   assert.ok(markup.includes('Search apps or App ID'), 'expected en rail search placeholder');
-  assert.ok(markup.includes('Search installed apps'), 'expected en library search placeholder');
+  assert.ok(markup.includes('Search apps'), 'expected en library search placeholder');
   assert.ok(markup.includes('All Apps'), 'expected en all-apps section title');
   assert.ok(markup.includes('Needs Attention'), 'expected en attention chip copy');
   assert.ok(markup.includes('Recently updated'), 'expected en sort copy');

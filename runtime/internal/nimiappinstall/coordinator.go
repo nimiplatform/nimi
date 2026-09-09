@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -60,6 +61,7 @@ type targetDownloader interface {
 }
 
 type Coordinator struct {
+	logger       *slog.Logger
 	operations   sync.RWMutex
 	launchMu     sync.Mutex
 	uninstalls   map[string]uninstallReservation
@@ -91,11 +93,17 @@ type installWorker struct {
 func NewCoordinator(
 	registryClient *publicappregistry.Client,
 	kernel *localappkernel.Kernel,
+	logger *slog.Logger,
 ) (*Coordinator, error) {
-	if registryClient == nil {
+	if registryClient == nil || logger == nil {
 		return nil, ErrInvalidCoordinator
 	}
-	return newCoordinator(registryClient, NewCanonicalDownloader(), kernel)
+	coordinator, err := newCoordinator(registryClient, NewCanonicalDownloader(), kernel)
+	if err != nil {
+		return nil, err
+	}
+	coordinator.logger = logger
+	return coordinator, nil
 }
 
 func newCoordinator(
@@ -235,7 +243,9 @@ func (coordinator *Coordinator) startInstall(ctx context.Context, selector publi
 	go func() {
 		defer coordinator.operations.RUnlock()
 		defer coordinator.workersWG.Done()
-		_, _ = coordinator.runInstallLocked(workerContext, selector, resolved, job)
+		if _, err := coordinator.runInstallLocked(workerContext, selector, resolved, job); err != nil && !errors.Is(err, context.Canceled) {
+			coordinator.logger.Error("public App package operation failed", "job_id", job.JobID, "app_id", job.AppID, "kind", job.Kind, "error", err)
+		}
 		close(worker.done)
 		coordinator.workersMu.Lock()
 		delete(coordinator.workers, job.JobID)

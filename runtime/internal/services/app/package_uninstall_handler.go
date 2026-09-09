@@ -98,6 +98,9 @@ func (s *Service) CompleteAppPackageUninstall(ctx context.Context, req *runtimev
 	}
 	job, err := s.appInstallCoordinator.CompleteUninstall(ctx, string(req.GetJobId()), handle)
 	if err != nil {
+		if s.logger != nil {
+			s.logger.Error("public App uninstall failed", "job_id", string(req.GetJobId()), "error", err)
+		}
 		return nil, uninstallError(err)
 	}
 	owner, _ := protectedlocal.DesktopConnectionFromContext(ctx)
