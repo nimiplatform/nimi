@@ -11470,10 +11470,8 @@ pub struct ApprovedAppCatalogStorageDisclosure {
     pub path_pattern: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub purpose: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub retention: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub removal: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub expected_size_band: ::prost::alloc::string::String,
 }
 /// Runtime projects one target from one immutable Registry snapshot. The
 /// selector is opaque to Desktop and is the only input accepted by install

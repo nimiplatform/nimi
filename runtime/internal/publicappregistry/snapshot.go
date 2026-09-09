@@ -311,11 +311,11 @@ type Package struct {
 	SandboxRef       string `json:"sandbox_ref"`
 }
 
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-028a
 type StorageDisclosure struct {
-	PathPattern string `json:"path_pattern"`
-	Purpose     string `json:"purpose"`
-	Retention   string `json:"retention"`
-	Removal     string `json:"removal"`
+	PathPattern      string `json:"path_pattern"`
+	Purpose          string `json:"purpose"`
+	ExpectedSizeBand string `json:"expected_size_band"`
 }
 
 type StoragePolicy struct {

@@ -3611,13 +3611,12 @@ func (x *AppPackageJob) GetCancelable() bool {
 }
 
 type ApprovedAppCatalogStorageDisclosure struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	PathPattern   string                 `protobuf:"bytes,1,opt,name=path_pattern,json=pathPattern,proto3" json:"path_pattern,omitempty"`
-	Purpose       string                 `protobuf:"bytes,2,opt,name=purpose,proto3" json:"purpose,omitempty"`
-	Retention     string                 `protobuf:"bytes,3,opt,name=retention,proto3" json:"retention,omitempty"`
-	Removal       string                 `protobuf:"bytes,4,opt,name=removal,proto3" json:"removal,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	PathPattern      string                 `protobuf:"bytes,1,opt,name=path_pattern,json=pathPattern,proto3" json:"path_pattern,omitempty"`
+	Purpose          string                 `protobuf:"bytes,2,opt,name=purpose,proto3" json:"purpose,omitempty"`
+	ExpectedSizeBand string                 `protobuf:"bytes,5,opt,name=expected_size_band,json=expectedSizeBand,proto3" json:"expected_size_band,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ApprovedAppCatalogStorageDisclosure) Reset() {
@@ -3664,16 +3663,9 @@ func (x *ApprovedAppCatalogStorageDisclosure) GetPurpose() string {
 	return ""
 }
 
-func (x *ApprovedAppCatalogStorageDisclosure) GetRetention() string {
+func (x *ApprovedAppCatalogStorageDisclosure) GetExpectedSizeBand() string {
 	if x != nil {
-		return x.Retention
-	}
-	return ""
-}
-
-func (x *ApprovedAppCatalogStorageDisclosure) GetRemoval() string {
-	if x != nil {
-		return x.Removal
+		return x.ExpectedSizeBand
 	}
 	return ""
 }
@@ -4872,12 +4864,11 @@ const file_runtime_v1_app_proto_rawDesc = "" +
 	"cancelable\x18\x10 \x01(\bR\n" +
 	"cancelableB\x0e\n" +
 	"\f_bytes_totalB\x0e\n" +
-	"\f_steps_total\"\x9a\x01\n" +
+	"\f_steps_total\"\xb0\x01\n" +
 	"#ApprovedAppCatalogStorageDisclosure\x12!\n" +
 	"\fpath_pattern\x18\x01 \x01(\tR\vpathPattern\x12\x18\n" +
-	"\apurpose\x18\x02 \x01(\tR\apurpose\x12\x1c\n" +
-	"\tretention\x18\x03 \x01(\tR\tretention\x12\x18\n" +
-	"\aremoval\x18\x04 \x01(\tR\aremoval\"\xca\t\n" +
+	"\apurpose\x18\x02 \x01(\tR\apurpose\x12,\n" +
+	"\x12expected_size_band\x18\x05 \x01(\tR\x10expectedSizeBandJ\x04\b\x03\x10\x04J\x04\b\x04\x10\x05R\tretentionR\aremoval\"\xca\t\n" +
 	"\x18ApprovedAppCatalogTarget\x128\n" +
 	"\x18approved_target_selector\x18\x01 \x01(\fR\x16approvedTargetSelector\x12<\n" +
 	"\x1aobserved_registry_revision\x18\x02 \x01(\tR\x18observedRegistryRevision\x12#\n" +

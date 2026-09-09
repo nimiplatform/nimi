@@ -10953,18 +10953,11 @@
             "number": 2
           },
           {
-            "name": "retention",
+            "name": "expected_size_band",
             "type": "string",
             "repeated": false,
             "optional": false,
-            "number": 3
-          },
-          {
-            "name": "removal",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 4
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"

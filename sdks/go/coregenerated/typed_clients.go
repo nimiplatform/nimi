@@ -2684,10 +2684,9 @@ type ApplySharedLocalAgentAIProfileResponse struct {
 }
 
 type ApprovedAppCatalogStorageDisclosure struct {
-	PathPattern string `json:"path_pattern,omitempty"`
-	Purpose     string `json:"purpose,omitempty"`
-	Retention   string `json:"retention,omitempty"`
-	Removal     string `json:"removal,omitempty"`
+	PathPattern      string `json:"path_pattern,omitempty"`
+	Purpose          string `json:"purpose,omitempty"`
+	ExpectedSizeBand string `json:"expected_size_band,omitempty"`
 }
 
 type ApprovedAppCatalogTarget struct {
