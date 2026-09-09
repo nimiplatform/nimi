@@ -27,6 +27,8 @@ func (s *Service) refreshAccountSessionInternal(ctx context.Context, force bool)
 	return s.refreshAccountSessionForRejectedToken(ctx, force, "")
 }
 
+// @nimi-authority: rule.nimi.runtime.protected-session.r030
+// @nimi-authority: rule.nimi.runtime.protected-session.r031
 func (s *Service) refreshAccountSessionForRejectedToken(
 	ctx context.Context,
 	force bool,
@@ -81,8 +83,9 @@ func (s *Service) refreshAccountSessionForRejectedToken(
 	// than resurrecting an uncertain refresh token.
 	markedCurrent := current
 	markedCurrent.WorkspaceMemberships = cloneWorkspaceMemberships(current.WorkspaceMemberships)
-	markedCurrent.RefreshTokenHashes = copyRefreshHashes(current.RefreshTokenHashes)
-	markedCurrent.RefreshTokenHashes[refreshHash(current.RefreshToken)] = true
+	// Realm owns refresh-family replay detection. Locally retain only the
+	// active transaction marker needed to reject uncertain restart recovery.
+	markedCurrent.RefreshTokenHashes = map[string]bool{refreshHash(current.RefreshToken): true}
 	if err := s.custody.Store(ctx, s.partition, markedCurrent); err != nil {
 		s.markCustodyUnavailable()
 		return &refreshAccountSessionResult{
@@ -116,7 +119,7 @@ func (s *Service) refreshAccountSessionForRejectedToken(
 		}
 	}
 	next = normalizeMaterial(next)
-	next.RefreshTokenHashes = copyRefreshHashes(markedCurrent.RefreshTokenHashes)
+	next.RefreshTokenHashes = nil
 	if next.RefreshToken == "" || next.AccessToken == "" || next.AccountID != current.AccountID {
 		return s.failRefreshAndClearCustody(ctx, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_CONTRACT_INVALID), nil
 	}

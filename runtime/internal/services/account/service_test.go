@@ -473,7 +473,7 @@ func TestEventStreamSnapshotReplayOrderAndTruncation(t *testing.T) {
 	}
 }
 
-func TestRefreshRotationAndReuseDetection(t *testing.T) {
+func TestRefreshRotationCommitsOnlyActiveCredentials(t *testing.T) {
 	custody := &memoryCustody{}
 	svc := newHarnessService(t, custody, WithRefresher(staticRefresher{material: testMaterial("acct-1", "access-2", "refresh-2")}))
 	completeLogin(t, svc)
@@ -484,11 +484,9 @@ func TestRefreshRotationAndReuseDetection(t *testing.T) {
 	if !refresh.accepted {
 		t.Fatalf("refresh failed: %+v", refresh)
 	}
-	if reason, ok := svc.ObserveRefreshToken(context.Background(), "refresh-1"); ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED {
-		t.Fatalf("old refresh token reuse must be detected, ok=%v reason=%v", ok, reason)
-	}
-	if svc.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED {
-		t.Fatalf("reuse detection state = %v", svc.currentState())
+	if custody.material.RefreshToken != "refresh-2" || len(custody.material.RefreshTokenHashes) != 0 ||
+		svc.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
+		t.Fatal("completed refresh did not retain only the new active credentials")
 	}
 }
 

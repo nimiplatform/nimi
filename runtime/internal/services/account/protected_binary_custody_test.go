@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -184,6 +185,7 @@ func encodeProtectedAccountSnapshotFixture(t *testing.T, snapshot custodySnapsho
 type accountBinarySecretStore struct {
 	values        map[string][]byte
 	lastStoreName string
+	maxValueBytes int
 }
 
 func newAccountBinarySecretStore() *accountBinarySecretStore {
@@ -199,9 +201,59 @@ func (s *accountBinarySecretStore) Load(_ context.Context, name string) ([]byte,
 }
 
 func (s *accountBinarySecretStore) Store(_ context.Context, name string, value []byte) error {
+	if s.maxValueBytes > 0 && len(value) > s.maxValueBytes {
+		return fmt.Errorf("secret exceeds %d bytes", s.maxValueBytes)
+	}
 	s.lastStoreName = name
 	s.values[name] = append([]byte(nil), value...)
 	return nil
+}
+
+type rotatingCustodyTestRefresher struct{ sequence int }
+
+func (refresher *rotatingCustodyTestRefresher) Refresh(_ context.Context, current AccountMaterial) (AccountMaterial, error) {
+	refresher.sequence++
+	next := current
+	next.AccessToken = fmt.Sprintf("access-%06d", refresher.sequence)
+	next.RefreshToken = fmt.Sprintf("refresh-%06d", refresher.sequence)
+	next.AccessTokenExpires = time.Now().UTC().Add(time.Hour)
+	return next, nil
+}
+
+func TestProtectedBinaryCustodyStaysBoundedAcrossLongRefreshAndRestart(t *testing.T) {
+	secrets := newAccountBinarySecretStore()
+	secrets.maxValueBytes = 65536
+	custody, err := NewProtectedBinaryCustody(secrets)
+	if err != nil {
+		t.Fatal(err)
+	}
+	partition := "stable-os-user"
+	if err := custody.Store(context.Background(), partition, testMaterial("account-long", "access-initial", "refresh-initial")); err != nil {
+		t.Fatal(err)
+	}
+	refresher := &rotatingCustodyTestRefresher{}
+	open := func() *Service {
+		return New(nil, WithProductionActivation(), WithCustody(custody), WithCustodyPartition(partition), WithRefresher(refresher))
+	}
+	service := open()
+	// 1,500 rotations exceed the former 64-KiB history limit. Reopen the
+	// actual binary encoding throughout, without relying on in-memory state.
+	for index := 0; index < 1500; index++ {
+		result, err := service.refreshAccountSessionInternal(context.Background(), true)
+		if err != nil || !result.accepted {
+			t.Fatalf("normal rotation %d could not persist custody: result=%+v err=%v", index, result, err)
+		}
+		if index%200 == 199 {
+			service = open()
+			if _, _, ok := service.AuthenticatedRuntimeSecurityContext(context.Background()); !ok {
+				t.Fatalf("rotation %d did not survive custody recovery", index)
+			}
+		}
+	}
+	material, err := custody.Load(context.Background(), partition)
+	if err != nil || len(material.RefreshTokenHashes) != 0 {
+		t.Fatalf("settled custody retained transaction history: hashes=%d err=%v", len(material.RefreshTokenHashes), err)
+	}
 }
 
 func (s *accountBinarySecretStore) Delete(_ context.Context, name string) error {

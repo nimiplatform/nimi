@@ -77,6 +77,8 @@ type AccountMaterial struct {
 	AccessToken          string
 	AccessTokenExpires   time.Time
 	RefreshToken         string
+	// RefreshTokenHashes holds only the in-flight active-token consumption
+	// marker. Completed rotations leave it empty; Realm owns family replay.
 	RefreshTokenHashes   map[string]bool
 	pendingRealmDeletion *ObservedRealmAccountDeletedResult
 }
