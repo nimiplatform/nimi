@@ -24,6 +24,7 @@ const (
 	RuntimeAppPackageService_ListAppPackageJobs_FullMethodName            = "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs"
 	RuntimeAppPackageService_GetAppPackageJob_FullMethodName              = "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob"
 	RuntimeAppPackageService_StartAppPackageInstall_FullMethodName        = "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall"
+	RuntimeAppPackageService_StartAppPackageUpdate_FullMethodName         = "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUpdate"
 	RuntimeAppPackageService_StartAppPackageUninstall_FullMethodName      = "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall"
 	RuntimeAppPackageService_CancelAppPackageJob_FullMethodName           = "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob"
 )
@@ -32,9 +33,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// Desktop-protected Runtime owner projection. StartAppPackageInstall remains
-// excluded from every shipped protected profile until the Desktop confirmation
-// and install-availability cutover land together. local_development is absent
+// Desktop-protected Runtime owner projection. Package mutations require the
+// exact reviewed target and Desktop confirmation. local_development is absent
 // from every package enum and request.
 type RuntimeAppPackageServiceClient interface {
 	ListApprovedAppCatalogTargets(ctx context.Context, in *ListApprovedAppCatalogTargetsRequest, opts ...grpc.CallOption) (*ListApprovedAppCatalogTargetsResponse, error)
@@ -42,6 +42,7 @@ type RuntimeAppPackageServiceClient interface {
 	ListAppPackageJobs(ctx context.Context, in *ListAppPackageJobsRequest, opts ...grpc.CallOption) (*ListAppPackageJobsResponse, error)
 	GetAppPackageJob(ctx context.Context, in *GetAppPackageJobRequest, opts ...grpc.CallOption) (*GetAppPackageJobResponse, error)
 	StartAppPackageInstall(ctx context.Context, in *StartAppPackageInstallRequest, opts ...grpc.CallOption) (*StartAppPackageInstallResponse, error)
+	StartAppPackageUpdate(ctx context.Context, in *StartAppPackageUpdateRequest, opts ...grpc.CallOption) (*StartAppPackageUpdateResponse, error)
 	StartAppPackageUninstall(ctx context.Context, in *StartAppPackageUninstallRequest, opts ...grpc.CallOption) (*StartAppPackageUninstallResponse, error)
 	CancelAppPackageJob(ctx context.Context, in *CancelAppPackageJobRequest, opts ...grpc.CallOption) (*CancelAppPackageJobResponse, error)
 }
@@ -104,6 +105,16 @@ func (c *runtimeAppPackageServiceClient) StartAppPackageInstall(ctx context.Cont
 	return out, nil
 }
 
+func (c *runtimeAppPackageServiceClient) StartAppPackageUpdate(ctx context.Context, in *StartAppPackageUpdateRequest, opts ...grpc.CallOption) (*StartAppPackageUpdateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StartAppPackageUpdateResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_StartAppPackageUpdate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *runtimeAppPackageServiceClient) StartAppPackageUninstall(ctx context.Context, in *StartAppPackageUninstallRequest, opts ...grpc.CallOption) (*StartAppPackageUninstallResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StartAppPackageUninstallResponse)
@@ -128,9 +139,8 @@ func (c *runtimeAppPackageServiceClient) CancelAppPackageJob(ctx context.Context
 // All implementations should embed UnimplementedRuntimeAppPackageServiceServer
 // for forward compatibility.
 //
-// Desktop-protected Runtime owner projection. StartAppPackageInstall remains
-// excluded from every shipped protected profile until the Desktop confirmation
-// and install-availability cutover land together. local_development is absent
+// Desktop-protected Runtime owner projection. Package mutations require the
+// exact reviewed target and Desktop confirmation. local_development is absent
 // from every package enum and request.
 type RuntimeAppPackageServiceServer interface {
 	ListApprovedAppCatalogTargets(context.Context, *ListApprovedAppCatalogTargetsRequest) (*ListApprovedAppCatalogTargetsResponse, error)
@@ -138,6 +148,7 @@ type RuntimeAppPackageServiceServer interface {
 	ListAppPackageJobs(context.Context, *ListAppPackageJobsRequest) (*ListAppPackageJobsResponse, error)
 	GetAppPackageJob(context.Context, *GetAppPackageJobRequest) (*GetAppPackageJobResponse, error)
 	StartAppPackageInstall(context.Context, *StartAppPackageInstallRequest) (*StartAppPackageInstallResponse, error)
+	StartAppPackageUpdate(context.Context, *StartAppPackageUpdateRequest) (*StartAppPackageUpdateResponse, error)
 	StartAppPackageUninstall(context.Context, *StartAppPackageUninstallRequest) (*StartAppPackageUninstallResponse, error)
 	CancelAppPackageJob(context.Context, *CancelAppPackageJobRequest) (*CancelAppPackageJobResponse, error)
 }
@@ -163,6 +174,9 @@ func (UnimplementedRuntimeAppPackageServiceServer) GetAppPackageJob(context.Cont
 }
 func (UnimplementedRuntimeAppPackageServiceServer) StartAppPackageInstall(context.Context, *StartAppPackageInstallRequest) (*StartAppPackageInstallResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StartAppPackageInstall not implemented")
+}
+func (UnimplementedRuntimeAppPackageServiceServer) StartAppPackageUpdate(context.Context, *StartAppPackageUpdateRequest) (*StartAppPackageUpdateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartAppPackageUpdate not implemented")
 }
 func (UnimplementedRuntimeAppPackageServiceServer) StartAppPackageUninstall(context.Context, *StartAppPackageUninstallRequest) (*StartAppPackageUninstallResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StartAppPackageUninstall not implemented")
@@ -280,6 +294,24 @@ func _RuntimeAppPackageService_StartAppPackageInstall_Handler(srv interface{}, c
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAppPackageService_StartAppPackageUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartAppPackageUpdateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).StartAppPackageUpdate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_StartAppPackageUpdate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).StartAppPackageUpdate(ctx, req.(*StartAppPackageUpdateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RuntimeAppPackageService_StartAppPackageUninstall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StartAppPackageUninstallRequest)
 	if err := dec(in); err != nil {
@@ -342,6 +374,10 @@ var RuntimeAppPackageService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "StartAppPackageInstall",
 			Handler:    _RuntimeAppPackageService_StartAppPackageInstall_Handler,
+		},
+		{
+			MethodName: "StartAppPackageUpdate",
+			Handler:    _RuntimeAppPackageService_StartAppPackageUpdate_Handler,
 		},
 		{
 			MethodName: "StartAppPackageUninstall",

@@ -139,7 +139,7 @@ function catalogRuntimeEntry(policyBlocked = false): DesktopAppsEntry {
     publisherGithubNamespace: 'publisher', sourceRepository: 'https://github.com/publisher/example', sourceLicenseSpdxExpression: 'MIT', targetId: 'windows-x86_64', os: 'windows', arch: 'x86_64',
     assetName: 'example.catalog-app-1.0.0-windows-x86_64.nimiapp', assetSize: '42', executionProfileRef: 'windows-user-mode-as-invoker-v1',
     windowsCodeSigning: 'unsigned', appAccess: ['runtime.consume'], capabilityContractRefs: ['text.generate'], requiredStandardizedFeatureRefs: ['app.storage'],
-    storagePolicyKind: 'nimi-mediated-default', osStorageDisclosures: [{ pathPattern: '%LOCALAPPDATA%/Example', purpose: 'cache', retention: 'until-uninstall', removal: 'removed-with-package' }],
+    storagePolicyKind: 'app-owned-os-storage', osStorageDisclosures: [{ pathPattern: '%LOCALAPPDATA%/Example', purpose: 'cache', expectedSizeBand: '1–10 MiB' }],
     policyBlocked, policyReason: policyBlocked ? 'security-review-revoked' : undefined, policyRevision: policyBlocked ? '7' : '0',
   } as ApprovedAppCatalogTarget;
   return {
@@ -533,6 +533,7 @@ test('approved Catalog facts render an install intent without claiming certifica
   assert.ok(detailMarkup.includes('@publisher'));
   assert.ok(detailMarkup.includes('MIT'));
   assert.ok(detailMarkup.includes('unsigned'));
+  assert.ok(detailMarkup.includes('Expected size: 1–10 MiB'));
 
   const blocked = catalogRuntimeEntry(true);
   const blockedMarkup = renderView(baseProps({

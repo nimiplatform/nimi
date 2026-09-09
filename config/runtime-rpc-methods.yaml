@@ -515,6 +515,9 @@ services:
       - name: StartAppPackageUninstall
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall
+      - name: StartAppPackageUpdate
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUpdate
       - name: CancelAppPackageJob
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob

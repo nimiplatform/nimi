@@ -2541,6 +2541,7 @@ pub enum ReasonCode {
     APPPACKAGEUNINSTALLUNAVAILABLE,
     APPPACKAGEHOSTRUNNING,
     APPPACKAGEUNINSTALLFAILED,
+    APPPACKAGEUPDATEUNAVAILABLE,
 }
 
 impl Default for ReasonCode {
@@ -3100,6 +3101,8 @@ impl ReasonCode {
             "APPPACKAGEHOSTRUNNING" => Some(Self::APPPACKAGEHOSTRUNNING),
             "APP_PACKAGE_UNINSTALL_FAILED" => Some(Self::APPPACKAGEUNINSTALLFAILED),
             "APPPACKAGEUNINSTALLFAILED" => Some(Self::APPPACKAGEUNINSTALLFAILED),
+            "APP_PACKAGE_UPDATE_UNAVAILABLE" => Some(Self::APPPACKAGEUPDATEUNAVAILABLE),
+            "APPPACKAGEUPDATEUNAVAILABLE" => Some(Self::APPPACKAGEUPDATEUNAVAILABLE),
             _ => None,
         }
     }
@@ -4473,8 +4476,7 @@ pub struct ApplySharedLocalAgentAIProfileResponse {
 pub struct ApprovedAppCatalogStorageDisclosure {
     pub path_pattern: Option<String>,
     pub purpose: Option<String>,
-    pub retention: Option<String>,
-    pub removal: Option<String>,
+    pub expected_size_band: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10514,6 +10516,19 @@ pub struct StartAppPackageUninstallRequest {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct StartAppPackageUninstallResponse {
+    pub job: Option<Box<AppPackageJob>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartAppPackageUpdateRequest {
+    pub approved_target_selector: Option<Vec<u8>>,
+    pub launch_selector: Option<Vec<u8>>,
+    pub installed_version: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartAppPackageUpdateResponse {
     pub job: Option<Box<AppPackageJob>>,
     pub reason_code: Option<ReasonCode>,
 }

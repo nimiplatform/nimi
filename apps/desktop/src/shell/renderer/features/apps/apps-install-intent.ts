@@ -1,4 +1,4 @@
-import type { ApprovedAppCatalogTarget } from '@nimiplatform/sdk/runtime/wire-types';
+import type { ApprovedAppCatalogTarget, CommittedAppRelease } from '@nimiplatform/sdk/runtime/wire-types';
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.r053
 
@@ -15,6 +15,7 @@ export interface AppsInstallIntentSnapshot {
   readonly assetSize: string;
   readonly windowsCodeSigning: 'signed' | 'unsigned';
   readonly observedSigningSubject: string | null;
+  readonly update?: { readonly launchSelector: Uint8Array; readonly installedVersion: string };
 }
 
 export type AppsInstallStartResult =
@@ -23,6 +24,7 @@ export type AppsInstallStartResult =
   | { readonly kind: 'policy-blocked'; readonly reason: string; readonly revision: string }
   | { readonly kind: 'already-installed' }
   | { readonly kind: 'job-active' }
+  | { readonly kind: 'host-running' }
   | { readonly kind: 'unavailable' };
 
 export type AppsInstallIntentResult =
@@ -33,6 +35,7 @@ export type AppsInstallIntentResult =
 
 export interface AppsInstallIntentController {
   requestInstall(target: ApprovedAppCatalogTarget): Promise<AppsInstallIntentResult>;
+  requestUpdate(target: ApprovedAppCatalogTarget, installed: CommittedAppRelease): Promise<AppsInstallIntentResult>;
   confirm(): Promise<AppsInstallIntentResult>;
   cancel(): void;
   pending(): AppsInstallIntentSnapshot | null;
@@ -40,17 +43,21 @@ export interface AppsInstallIntentController {
 
 export function createAppsInstallIntentController(input: {
   readonly startInstall: (approvedTargetSelector: Uint8Array) => Promise<AppsInstallStartResult>;
+  readonly startUpdate?: (approvedTargetSelector: Uint8Array, launchSelector: Uint8Array, installedVersion: string) => Promise<AppsInstallStartResult>;
   readonly refresh: () => void | Promise<void>;
 }): AppsInstallIntentController {
   let pending: AppsInstallIntentSnapshot | null = null;
 
   const start = async (intent: AppsInstallIntentSnapshot): Promise<AppsInstallIntentResult> => {
-    const result = await input.startInstall(intent.approvedTargetSelector.slice());
+    const result = intent.update
+      ? await input.startUpdate!(intent.approvedTargetSelector.slice(), intent.update.launchSelector.slice(), intent.update.installedVersion)
+      : await input.startInstall(intent.approvedTargetSelector.slice());
     if (
       result.kind === 'stale-selection'
       || result.kind === 'policy-blocked'
       || result.kind === 'already-installed'
       || result.kind === 'job-active'
+      || result.kind === 'host-running'
     ) {
       await input.refresh();
     }
@@ -58,6 +65,16 @@ export function createAppsInstallIntentController(input: {
   };
 
   return Object.freeze({
+    async requestUpdate(target: ApprovedAppCatalogTarget, installed: CommittedAppRelease): Promise<AppsInstallIntentResult> {
+      pending = null;
+      if (!input.startUpdate || installed.appId !== target.appId || !installed.launchSelector.length) throw new Error('App update is unavailable');
+      if (target.policyBlocked) {
+        await input.refresh();
+        return { kind: 'policy-blocked', reason: target.policyReason ?? 'policy-blocked', revision: target.policyRevision };
+      }
+      pending = { ...snapshotAppsInstallIntent(target), update: { launchSelector: installed.launchSelector.slice(), installedVersion: installed.version } };
+      return { kind: 'confirmation-required', intent: cloneIntent(pending) };
+    },
     async requestInstall(target: ApprovedAppCatalogTarget): Promise<AppsInstallIntentResult> {
       pending = null;
       if (target.policyBlocked) {
@@ -141,5 +158,7 @@ export function approvedCatalogTargetMatchesIntent(
 }
 
 function cloneIntent(intent: AppsInstallIntentSnapshot): AppsInstallIntentSnapshot {
-  return { ...intent, approvedTargetSelector: intent.approvedTargetSelector.slice() };
+  return { ...intent, approvedTargetSelector: intent.approvedTargetSelector.slice(),
+    ...(intent.update ? { update: { ...intent.update, launchSelector: intent.update.launchSelector.slice() } } : {}),
+  };
 }

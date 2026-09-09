@@ -1,8 +1,9 @@
 import { AppPackageJobPhase, AppPackageSourceClass, type AppPackageJob, type CommittedAppRelease } from '@nimiplatform/sdk/runtime/wire-types';
+import semver from 'semver';
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.r053
 
-export type AppCardActionId = 'details' | 'open-ai-config' | 'install' | 'launch' | 'stop' | 'remove' | 'uninstall' | 'cancel-job';
+export type AppCardActionId = 'details' | 'open-ai-config' | 'install' | 'update' | 'launch' | 'stop' | 'remove' | 'uninstall' | 'cancel-job';
 
 export interface AppCardAction {
   readonly id: AppCardActionId;
@@ -14,8 +15,8 @@ export interface AppCardActionPlan {
 }
 
 type AppsActionEntry = {
-  readonly catalogTarget: { readonly policyBlocked: boolean } | null;
-  readonly committedRelease: Pick<CommittedAppRelease, 'sourceClass'> | null;
+  readonly catalogTarget: { readonly policyBlocked: boolean; readonly version?: string } | null;
+  readonly committedRelease: Pick<CommittedAppRelease, 'sourceClass'> & { readonly version?: string } | null;
   readonly localDevelopment: unknown | null;
   readonly packageJob: Pick<AppPackageJob, 'cancelable' | 'phase'> | null;
   readonly run: { readonly state: string } | null;
@@ -62,6 +63,18 @@ export function actionPlanForEntry(entry: AppsActionEntry): AppCardActionPlan {
 
 export function canRequestCatalogInstall(entry: AppsActionEntry): boolean {
   return Boolean(entry.catalogTarget && !entry.catalogTarget.policyBlocked && !entry.committedRelease && !packageJobActive(entry.packageJob));
+}
+
+export function hasAvailableCatalogUpdate(entry: AppsActionEntry): boolean {
+  const target = entry.catalogTarget?.version;
+  const current = entry.committedRelease?.version;
+  return Boolean(!entry.localDevelopment && entry.committedRelease?.sourceClass === AppPackageSourceClass.VERIFIED
+    && target && current && semver.valid(target) && semver.valid(current) && semver.gt(target, current));
+}
+
+export function canRequestCatalogUpdate(entry: AppsActionEntry): boolean {
+  return hasAvailableCatalogUpdate(entry) && !entry.catalogTarget?.policyBlocked
+    && !packageJobActive(entry.packageJob) && !isLocalDevelopmentRunActive(entry.run?.state ?? null);
 }
 
 function packageJobActive(job: AppsActionEntry['packageJob']): boolean {

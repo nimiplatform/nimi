@@ -15,15 +15,37 @@ export async function startAppsPackageInstall(
   approvedTargetSelector: Uint8Array,
 ): Promise<AppsInstallStartResult> {
   const selector = approvedTargetSelector.slice();
+  return startPackageOperation(() => start({ approvedTargetSelector: selector }), selector, AppPackageJobKind.INSTALL);
+}
+
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040b
+export async function startAppsPackageUpdate(
+  start: NimiDesktopMachineProductRuntimeClient['apps']['startAppPackageUpdate'],
+  approvedTargetSelector: Uint8Array,
+  launchSelector: Uint8Array,
+  installedVersion: string,
+): Promise<AppsInstallStartResult> {
+  const selector = approvedTargetSelector.slice();
+  const installed = launchSelector.slice();
+  return startPackageOperation(() => start({ approvedTargetSelector: selector, launchSelector: installed, installedVersion }), selector, AppPackageJobKind.UPDATE);
+}
+
+async function startPackageOperation(
+  start: () => ReturnType<NimiDesktopMachineProductRuntimeClient['apps']['startAppPackageInstall']>,
+  selector: Uint8Array,
+  kind: AppPackageJobKind,
+): Promise<AppsInstallStartResult> {
   let response;
   try {
-    response = await start({ approvedTargetSelector: selector });
+    response = await start();
   } catch (error) {
     const failure = asNimiError(error);
     switch (failure.reasonCode) {
       case 'APP_PACKAGE_SELECTION_STALE': return { kind: 'stale-selection' };
       case 'APP_PACKAGE_ALREADY_INSTALLED': return { kind: 'already-installed' };
       case 'APP_PACKAGE_JOB_ACTIVE': return { kind: 'job-active' };
+      case 'APP_PACKAGE_HOST_RUNNING': return { kind: 'host-running' };
+      case 'APP_PACKAGE_UPDATE_UNAVAILABLE':
       case 'APP_PACKAGE_INSTALL_UNAVAILABLE':
       case 'runtime-service-unavailable': return { kind: 'unavailable' };
       case 'APP_PACKAGE_POLICY_BLOCKED': {
@@ -45,7 +67,7 @@ export async function startAppsPackageInstall(
   const job = response.job;
   const returnedSelector = new TextEncoder().encode(job?.targetRef ?? '');
   if (response.reasonCode !== ReasonCode.ACTION_EXECUTED || !job || !job.jobId.length
-    || !job.appId || job.kind !== AppPackageJobKind.INSTALL
+    || !job.appId || job.kind !== kind
     || job.sourceClass !== AppPackageSourceClass.VERIFIED
     || job.phase !== AppPackageJobPhase.QUEUED
     || returnedSelector.length !== selector.length

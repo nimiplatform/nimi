@@ -1643,6 +1643,7 @@ const (
 	APPPACKAGEUNINSTALLUNAVAILABLE                  ReasonCode = "APP_PACKAGE_UNINSTALL_UNAVAILABLE"
 	APPPACKAGEHOSTRUNNING                           ReasonCode = "APP_PACKAGE_HOST_RUNNING"
 	APPPACKAGEUNINSTALLFAILED                       ReasonCode = "APP_PACKAGE_UNINSTALL_FAILED"
+	APPPACKAGEUPDATEUNAVAILABLE                     ReasonCode = "APP_PACKAGE_UPDATE_UNAVAILABLE"
 )
 
 type ReasoningActivation string
@@ -2683,10 +2684,9 @@ type ApplySharedLocalAgentAIProfileResponse struct {
 }
 
 type ApprovedAppCatalogStorageDisclosure struct {
-	PathPattern string `json:"path_pattern,omitempty"`
-	Purpose     string `json:"purpose,omitempty"`
-	Retention   string `json:"retention,omitempty"`
-	Removal     string `json:"removal,omitempty"`
+	PathPattern      string `json:"path_pattern,omitempty"`
+	Purpose          string `json:"purpose,omitempty"`
+	ExpectedSizeBand string `json:"expected_size_band,omitempty"`
 }
 
 type ApprovedAppCatalogTarget struct {
@@ -7172,6 +7172,17 @@ type StartAppPackageUninstallResponse struct {
 	ReasonCode ReasonCode     `json:"reason_code,omitempty"`
 }
 
+type StartAppPackageUpdateRequest struct {
+	ApprovedTargetSelector []byte `json:"approved_target_selector,omitempty"`
+	LaunchSelector         []byte `json:"launch_selector,omitempty"`
+	InstalledVersion       string `json:"installed_version,omitempty"`
+}
+
+type StartAppPackageUpdateResponse struct {
+	Job        *AppPackageJob `json:"job,omitempty"`
+	ReasonCode ReasonCode     `json:"reason_code,omitempty"`
+}
+
 type StartLocalEnvironmentDependencyJobRequest struct {
 	EnvironmentKey   string `json:"environment_key,omitempty"`
 	DependencyFamily string `json:"dependency_family,omitempty"`
@@ -8860,6 +8871,14 @@ func (c RuntimeTypedClient) StartAppPackageUninstall(ctx context.Context, reques
 		return StartAppPackageUninstallResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[StartAppPackageUninstallResponse](raw, "StartAppPackageUninstallResponse")
+}
+
+func (c RuntimeTypedClient) StartAppPackageUpdate(ctx context.Context, request StartAppPackageUpdateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartAppPackageUpdateResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUpdate", request, metadata, timeoutMS)
+	if err != nil {
+		return StartAppPackageUpdateResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[StartAppPackageUpdateResponse](raw, "StartAppPackageUpdateResponse")
 }
 
 func (c RuntimeTypedClient) AdoptLocalAppArtifact(ctx context.Context, request AdoptLocalAppArtifactRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AdoptLocalAppArtifactResponse, error) {

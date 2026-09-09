@@ -1,8 +1,10 @@
 // Renderer controller for the Desktop Apps projection and host-owned run actions.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import type { AppCardActionId } from './apps-card-actions.js';
-import { canRequestCatalogInstall } from './apps-card-actions.js';
+import { canRequestCatalogInstall, canRequestCatalogUpdate } from './apps-card-actions.js';
 import type {
   AppsInstallIntentController,
   AppsInstallIntentResult,
@@ -56,6 +58,7 @@ export interface AppsPanelControllerDeps {
   readonly listApprovedCatalogTargets?: DesktopAppsProjectionSource['listApprovedCatalogTargets'];
   readonly cancelPackageJob: (job: AppPackageJob) => Promise<void>;
   readonly startInstall?: (approvedTargetSelector: Uint8Array) => Promise<AppsInstallStartResult>;
+  readonly startUpdate?: (approvedTargetSelector: Uint8Array, launchSelector: Uint8Array, installedVersion: string) => Promise<AppsInstallStartResult>;
   readonly uninstall?: (entry: DesktopAppsEntry) => Promise<void>;
   readonly readAppAIConfig?: (
     appId: string,
@@ -141,6 +144,11 @@ export function requestAppsInstallFromDetail(
   return controller.requestInstall(entry.catalogTarget);
 }
 
+export function requestAppsUpdateFromDetail(entry: DesktopAppsEntry, controller: AppsInstallIntentController): Promise<AppsInstallIntentResult> {
+  if (!canRequestCatalogUpdate(entry) || !entry.catalogTarget || !entry.committedRelease) throw new Error('App update is unavailable');
+  return controller.requestUpdate(entry.catalogTarget, entry.committedRelease);
+}
+
 export function createAppsPanelProjectionReloader(input: {
   readonly source: DesktopAppsProjectionSource;
   readonly getCurrent: () => DesktopAppsPanelProjection | null;
@@ -208,6 +216,7 @@ export function createAppsPanelProjectionReloader(input: {
 }
 
 export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanelController {
+  const { t } = useTranslation();
   const buildLiveBridge = deps.buildLiveBridge ?? createDesktopAppsLiveBridge;
   const liveBridge = useMemo(() => buildLiveBridge(), [buildLiveBridge]);
   const [projection, setProjection] = useState<DesktopAppsPanelProjection | null>(null);
@@ -242,8 +251,8 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     [reloader],
   );
   const installIntentController = useMemo(() => deps.startInstall
-    ? createAppsInstallIntentController({ startInstall: deps.startInstall, refresh: () => reloader.refreshCatalog() })
-    : undefined, [deps.startInstall, reloader]);
+    ? createAppsInstallIntentController({ startInstall: deps.startInstall, startUpdate: deps.startUpdate, refresh: () => reloader.refreshCatalog() })
+    : undefined, [deps.startInstall, deps.startUpdate, reloader]);
 
   useEffect(() => {
     void reload(true);
@@ -276,10 +285,16 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
 
   useEffect(() => {
     if (!installConfirmation || projection?.status !== 'loaded') return;
-    const current = projection.entries.find((entry) => (
+    const currentEntry = projection.entries.find((entry) => (
       entry.identity.entryKey === desktopAppsEntryKey(installConfirmation.appId, 'verified')
-    ))?.catalogTarget;
-    if (current && approvedCatalogTargetMatchesIntent(current, installConfirmation)) return;
+    ));
+    const current = currentEntry?.catalogTarget;
+    const update = installConfirmation.update;
+    const installed = currentEntry?.committedRelease;
+    const sameInstalled = !update || (installed?.version === update.installedVersion
+      && installed.launchSelector.length === update.launchSelector.length
+      && installed.launchSelector.every((value, index) => value === update.launchSelector[index]));
+    if (current && sameInstalled && approvedCatalogTargetMatchesIntent(current, installConfirmation)) return;
     installIntentController?.cancel();
     setInstallConfirmation(null);
   }, [installIntentController, installConfirmation, projection]);
@@ -302,13 +317,15 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     setActiveAction({ entryKey, action });
     void (async () => {
       try {
-        if (action === 'install') {
+        if (action === 'install' || action === 'update') {
           if (!installIntentController) throw new Error('Approved App install is not product-enabled');
-          const result = await requestAppsInstallFromDetail(entry, installIntentController);
+          const result = await (action === 'update'
+            ? requestAppsUpdateFromDetail(entry, installIntentController)
+            : requestAppsInstallFromDetail(entry, installIntentController));
           if (result.kind === 'confirmation-required') {
             setInstallConfirmation(result.intent);
           } else {
-            setActionError(appsInstallIntentFailure(result));
+            setActionError(appsInstallIntentFailure(result, t));
           }
         } else if (action === 'uninstall') {
           if (!entry.committedRelease || !deps.uninstall) throw new Error('App uninstall is unavailable');
@@ -339,7 +356,7 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
         setActiveAction(null);
       }
     })();
-  }, [activeAction, deps.cancelPackageJob, deps.uninstall, installIntentController, liveBridge, projection, reload]);
+  }, [activeAction, deps.cancelPackageJob, deps.uninstall, installIntentController, liveBridge, projection, reload, t]);
 
   const retryProjection = useCallback((): void => {
     setProjection(null);
@@ -366,14 +383,14 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
     const entryKey = desktopAppsEntryKey(installConfirmation.appId, 'verified');
     setInstallConfirmation(null);
     setActionError(null);
-    setActiveAction({ entryKey, action: 'install' });
+    setActiveAction({ entryKey, action: installConfirmation.update ? 'update' : 'install' });
     void installIntentController.confirm().then(async (result) => {
-      setActionError(appsInstallIntentFailure(result));
+      setActionError(appsInstallIntentFailure(result, t));
       await reload(false);
     }).catch((error: unknown) => {
       setActionError(error instanceof Error ? error.message : String(error));
     }).finally(() => setActiveAction(null));
-  }, [activeAction, installIntentController, installConfirmation, reload]);
+  }, [activeAction, installIntentController, installConfirmation, reload, t]);
 
   const cancelInstall = useCallback((): void => {
     installIntentController?.cancel();
@@ -397,16 +414,17 @@ export function useAppsPanelController(deps: AppsPanelControllerDeps): AppsPanel
   };
 }
 
-function appsInstallIntentFailure(result: AppsInstallIntentResult): string | null {
+function appsInstallIntentFailure(result: AppsInstallIntentResult, t: TFunction): string | null {
   if (result.kind === 'confirmation-required' || result.kind === 'no-pending-intent') return null;
-  if (result.kind === 'policy-blocked') return `App install blocked by Registry policy ${result.revision}: ${result.reason}`;
+  if (result.kind === 'policy-blocked') return t('Apps.packageAction.policyBlocked', { reason: result.reason });
   switch (result.result.kind) {
     case 'started':
     case 'already-installed':
     case 'job-active': return null;
-    case 'stale-selection': return 'App Catalog selection changed; review the current release before installing.';
-    case 'policy-blocked': return `App install blocked by Registry policy ${result.result.revision}: ${result.result.reason}`;
-    case 'unavailable': return 'App install is unavailable.';
+    case 'stale-selection': return t('Apps.packageAction.selectionChanged');
+    case 'policy-blocked': return t('Apps.packageAction.policyBlocked', { reason: result.result.reason });
+    case 'unavailable': return t('Apps.packageAction.unavailable');
+    case 'host-running': return t('Apps.update.stopRequired');
   }
 }
 

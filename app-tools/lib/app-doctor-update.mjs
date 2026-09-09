@@ -388,7 +388,13 @@ function scanForbiddenPatterns(targetDir, profile, selectedLabels = null) {
       if (label === 'environment custody of protected material' && isManagedReleaseWorkflow) {
         continue;
       }
-      if (pattern.test(text)) {
+      // Publishing documentation names the GitHub-only repository secret.
+      // App/runtime source still cannot read it, and other protected Nimi
+      // environment material remains forbidden in documentation as well.
+      const scanText = label === 'environment custody of protected material' && relativePath.endsWith('.md')
+        ? text.replace(/\bNIMI_REPOSITORY_ADMIN_TOKEN\b/gu, '')
+        : text;
+      if (pattern.test(scanText)) {
         findings.push(`${relativePath}: ${label}`);
       }
     }

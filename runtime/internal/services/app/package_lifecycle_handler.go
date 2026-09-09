@@ -186,7 +186,7 @@ func (s *Service) CancelAppPackageJob(
 		return nil, appPackageLifecycleError("cancel App package job", err)
 	}
 	registryOwned := job.SourceClass == localappkernel.SourceClassVerified &&
-		(job.Kind == localappkernel.PackageJobInstall || job.Kind == localappkernel.PackageJobUninstall)
+		(job.Kind == localappkernel.PackageJobInstall || job.Kind == localappkernel.PackageJobUpdate || job.Kind == localappkernel.PackageJobUninstall)
 	if registryOwned && s.appInstallCoordinator == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE)
 	}
@@ -312,10 +312,9 @@ func approvedAppCatalogTargetProjection(target publicappregistry.ResolvedApprove
 	storage := make([]*runtimev1.ApprovedAppCatalogStorageDisclosure, 0, len(target.StoragePolicy.OSStorageDisclosure))
 	for _, disclosure := range target.StoragePolicy.OSStorageDisclosure {
 		storage = append(storage, &runtimev1.ApprovedAppCatalogStorageDisclosure{
-			PathPattern: disclosure.PathPattern,
-			Purpose:     disclosure.Purpose,
-			Retention:   disclosure.Retention,
-			Removal:     disclosure.Removal,
+			PathPattern:      disclosure.PathPattern,
+			Purpose:          disclosure.Purpose,
+			ExpectedSizeBand: disclosure.ExpectedSizeBand,
 		})
 	}
 	return &runtimev1.ApprovedAppCatalogTarget{

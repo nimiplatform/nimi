@@ -66,7 +66,10 @@
     "unsignedConfirmAction": "继续并安装"
   },
   "catalogNotImplemented": "公共 App 目录搜索尚未实现。",
-  "installedAccess": { "ready": "Nimi Access 已就绪", "unavailable": "Nimi Access 不可用" },
+  "installedAccess": {
+    "ready": "Nimi Access 已就绪",
+    "unavailable": "Nimi Access 不可用"
+  },
   "listTitle": "应用列表",
   "listDescription": "按是否声明 App Access 域筛选已注册应用。",
   "filter": {
@@ -344,7 +347,8 @@
     "releaseRoot": "发布",
     "dataRoot": "数据",
     "cacheRoot": "缓存",
-    "tempRoot": "临时"
+    "tempRoot": "临时",
+    "expectedStorageSize": "预计大小"
   },
   "accessDomain": {
     "realmData": {
@@ -383,5 +387,17 @@
       "message": "确定要永久删除 {{app}} 的持久应用数据吗？此操作会移除发布与该应用存储的数据，且不可撤销。",
       "confirm": "删除应用数据"
     }
+  },
+  "update": {
+    "available": "可更新至 {{version}}",
+    "toVersion": "更新至 {{version}}",
+    "stopRequired": "请先停止应用，再执行更新。",
+    "confirmTitle": "更新 {{app}}？",
+    "confirmMessage": "将版本 {{from}} 更新至 {{to}}。Nimi 管理的应用数据不会被删除。"
+  },
+  "packageAction": {
+    "selectionChanged": "目录中的版本已变化，请重新选择。",
+    "policyBlocked": "当前目录策略阻止此操作：{{reason}}",
+    "unavailable": "当前无法完成应用安装或更新，请稍后重试。"
   }
 }
