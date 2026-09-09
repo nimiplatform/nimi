@@ -34,8 +34,9 @@ pub(crate) async fn launch(
                 launch_selector: selector,
             },
             // Full package verification precedes the short bind lease. A cold
-            // Electron tree can contain thousands of files and hundreds of MB.
-            120,
+            // Electron tree can contain thousands of files and hundreds of MB;
+            // cold Windows reads during another install can exceed two minutes.
+            300,
         ))
         .await
         .map_err(runtime_error)?
