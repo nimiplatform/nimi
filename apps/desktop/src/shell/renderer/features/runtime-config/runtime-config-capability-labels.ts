@@ -3,6 +3,7 @@ export function displayRuntimeConfigCapabilityLabel(
   capabilityContract: string,
   t: TFunction,
 ): string {
+  if (capabilityContract === 'vision.locate') return t('runtimeConfig.capabilityLabels.visionLocate');
   if (capabilityContract === 'text.generate') {
     return t('runtimeConfig.capabilityLabels.textGenerate');
   }

@@ -173,7 +173,7 @@
     "recipeSummary": "{{slots}} 个模型 · 已安装 {{installed}}",
     "recipeMissing": "还需下载 {{size}}",
     "recipeMissingUnknown": "部分模型需下载（大小未知）",
-    "readySummary": "所需模型均已安装，保存后即可使用。",
+    "readySummary": "所需模型均已安装；保存将校验组合。运行前请检查环境。",
     "missingSummary": "还需下载 {{size}}；保存后会提示你下载。",
     "missingSummaryUnknown": "部分模型需要下载（大小未知）；保存后会提示你下载。",
     "commitDownload": "保存并下载",
@@ -250,6 +250,7 @@
       "typedReasons": "Runtime 原因"
     },
     "capability": {
+      "visionLocate": "图像定位",
       "textGenerate": "文本生成",
       "textEmbed": "文本理解",
       "imageGenerate": "图像生成",
@@ -284,6 +285,7 @@
     "localCapabilityTEXT": "文本",
     "localCapabilityEMBED": "向量嵌入",
     "localCapabilityIMAGE": "图像",
+    "localCapabilityVISION": "图像定位",
     "localCapabilityVIDEO": "视频生成",
     "localCapabilityTTS": "语音合成",
     "localCapabilitySTT": "语音转文字",
@@ -1228,6 +1230,7 @@
     "loadingProviders": "正在加载提供商..."
   },
   "capabilityLabels": {
+    "visionLocate": "图像定位",
     "textGenerate": "文本生成",
     "textEmbed": "文本嵌入",
     "audioSynthesize": "语音合成",

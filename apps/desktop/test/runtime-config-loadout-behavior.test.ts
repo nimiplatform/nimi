@@ -177,7 +177,7 @@ test('Loadout card and manage view present canonical text behavior truth without
   }
 });
 
-test('Desktop only presents bounded Runtime-projected per-slot candidates', () => {
+test('Runtime recommendations order installed choices without excluding custom models', () => {
   const recommendedContentId = `sha256:${'a'.repeat(64)}`;
   const customContentId = `sha256:${'b'.repeat(64)}`;
   const unrelatedContentId = `sha256:${'c'.repeat(64)}`;
@@ -187,15 +187,23 @@ test('Desktop only presents bounded Runtime-projected per-slot candidates', () =
   const slot = { recommendedContentIds: [recommendedContentId] };
 
   assert.deepEqual(
+    runtimeConfigLoadoutCandidateAssets({ recommendedContentIds: [], offers: [
+      recipeOffer('current-custom', 'unknown', currentCustom.modelAssetId),
+      recipeOffer('unrelated', 'unsupported', unrelated.modelAssetId),
+    ] }, [unrelated, currentCustom]).map(asset => asset.modelAssetId),
+    ['current-custom', 'unrelated'],
+  );
+
+  assert.deepEqual(
     runtimeConfigLoadoutCandidateAssets(slot, [recommended, currentCustom, unrelated]).map((asset) => asset.modelAssetId),
-    ['recommended'],
+    ['recommended', 'current-custom', 'unrelated'],
   );
   assert.deepEqual(
     runtimeConfigLoadoutCandidateAssets(slot, [recommended, currentCustom, unrelated], {
       modelAssetId: currentCustom.modelAssetId,
       recipeCompatible: true,
     }).map((asset) => asset.modelAssetId),
-    ['recommended', 'current-custom'],
+    ['recommended', 'current-custom', 'unrelated'],
   );
   assert.deepEqual(
     runtimeConfigLoadoutCandidateAssets(undefined, [recommended, currentCustom, unrelated], {

@@ -12,6 +12,7 @@ export type RuntimeConfigLocalCapabilityContract =
   | 'text.generate'
   | 'text.embed'
   | 'image.generate'
+  | 'vision.locate'
   | 'video.generate'
   | 'audio.synthesize'
   | 'audio.transcribe'

@@ -173,7 +173,7 @@
     "recipeSummary": "{{slots}} models · {{installed}} installed",
     "recipeMissing": "{{size}} to download",
     "recipeMissingUnknown": "some models need downloading (size unknown)",
-    "readySummary": "All required models are installed. Ready to use right after saving.",
+    "readySummary": "Required models are installed. Saving validates the combination; check its runtime environment before running.",
     "missingSummary": "{{size}} still needs downloading; you will be asked to download after saving.",
     "missingSummaryUnknown": "Some models need downloading (size unknown); you will be asked to download after saving.",
     "commitDownload": "Save and Download",
@@ -250,6 +250,7 @@
       "typedReasons": "Runtime reason"
     },
     "capability": {
+      "visionLocate": "Visual localization",
       "textGenerate": "Text generation",
       "textEmbed": "Text understanding",
       "imageGenerate": "Image generation",
@@ -284,6 +285,7 @@
     "localCapabilityTEXT": "Text",
     "localCapabilityEMBED": "Embeddings",
     "localCapabilityIMAGE": "Image",
+    "localCapabilityVISION": "Visual localization",
     "localCapabilityVIDEO": "Video generation",
     "localCapabilityTTS": "Speech synthesis",
     "localCapabilitySTT": "Speech to text",
@@ -1228,6 +1230,7 @@
     "loadingProviders": "Loading providers..."
   },
   "capabilityLabels": {
+    "visionLocate": "Visual localization",
     "textGenerate": "Text generation",
     "textEmbed": "Text embedding",
     "audioSynthesize": "Speech synthesis",

@@ -1198,13 +1198,13 @@ export function recommendedInstallItems(
 }
 
 /**
- * Desktop can present an exact Runtime-projected recommendation and a current
- * Runtime-validated binding as candidates. A recommendation remains non-binding
- * and Prepare performs the authoritative Model Contract evaluation. The opaque
+ * Runtime recommendations, offers and the current validated binding order the
+ * installed choices; they do not exclude other manually selected ModelAssets.
+ * Prepare performs the authoritative Model Contract evaluation. The opaque
  * Model Contract and ModelAsset fingerprint are never reinterpreted here.
  */
 export function runtimeConfigLoadoutCandidateAssets(
-  slot: Pick<NimiLoadoutRecipe['slots'][number], 'recommendedContentIds'> | undefined,
+  slot: (Pick<NimiLoadoutRecipe['slots'][number], 'recommendedContentIds'> & Partial<Pick<NimiLoadoutRecipe['slots'][number], 'offers'>>) | undefined,
   assets: readonly NimiRuntimeModelAssetRecord[],
   currentAxis?: Pick<NimiMachineLoadout['modelAxes'][number], 'modelAssetId' | 'recipeCompatible'>,
 ): readonly NimiRuntimeModelAssetRecord[] {
@@ -1213,11 +1213,16 @@ export function runtimeConfigLoadoutCandidateAssets(
       ? assets.filter((asset) => asset.modelAssetId === currentAxis.modelAssetId)
       : [];
   }
-  const admittedContentIds = new Set(slot.recommendedContentIds);
-  return assets.filter((asset) => (
-    admittedContentIds.has(asset.contentId)
+  const recommendedContentIds = new Set(slot.recommendedContentIds);
+  const installedOfferIds = new Set((slot.offers ?? [])
+    .filter(offer => offer.applicability !== 'unsupported' && offer.installedModelAssetId)
+    .map(offer => offer.installedModelAssetId));
+  const preferred = (asset: NimiRuntimeModelAssetRecord) => (
+    recommendedContentIds.has(asset.contentId)
+    || installedOfferIds.has(asset.modelAssetId)
     || (currentAxis?.recipeCompatible === true && asset.modelAssetId === currentAxis.modelAssetId)
-  ));
+  );
+  return [...assets.filter(preferred), ...assets.filter(asset => !preferred(asset))];
 }
 
 export function runtimeConfigRecommendedLoadoutModelAxes(
@@ -1387,6 +1392,7 @@ export function runtimeConfigLoadoutUpdateModelAxes(
 
 export function loadoutCapabilityLabelKey(capabilityContract: string): string {
   switch (capabilityContract) {
+    case 'vision.locate': return 'runtimeConfig.loadouts.capability.visionLocate';
     case 'text.generate': return 'runtimeConfig.loadouts.capability.textGenerate';
     case 'text.embed': return 'runtimeConfig.loadouts.capability.textEmbed';
     case 'image.generate': return 'runtimeConfig.loadouts.capability.imageGenerate';
