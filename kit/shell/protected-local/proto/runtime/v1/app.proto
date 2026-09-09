@@ -432,10 +432,11 @@ message AppPackageJob {
 }
 
 message ApprovedAppCatalogStorageDisclosure {
+  reserved 3, 4;
+  reserved "retention", "removal";
   string path_pattern = 1;
   string purpose = 2;
-  string retention = 3;
-  string removal = 4;
+  string expected_size_band = 5;
 }
 
 // Runtime projects one target from one immutable Registry snapshot. The

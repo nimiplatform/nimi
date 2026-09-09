@@ -979,13 +979,9 @@ export interface ApprovedAppCatalogStorageDisclosure {
      */
     purpose: string;
     /**
-     * @generated from protobuf field: string retention = 3
+     * @generated from protobuf field: string expected_size_band = 5
      */
-    retention: string;
-    /**
-     * @generated from protobuf field: string removal = 4
-     */
-    removal: string;
+    expectedSizeBand: string;
 }
 /**
  * Runtime projects one target from one immutable Registry snapshot. The
@@ -4687,16 +4683,14 @@ class ApprovedAppCatalogStorageDisclosure$Type extends MessageType<ApprovedAppCa
         super("nimi.runtime.v1.ApprovedAppCatalogStorageDisclosure", [
             { no: 1, name: "path_pattern", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "purpose", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "retention", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 4, name: "removal", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 5, name: "expected_size_band", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ApprovedAppCatalogStorageDisclosure>): ApprovedAppCatalogStorageDisclosure {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.pathPattern = "";
         message.purpose = "";
-        message.retention = "";
-        message.removal = "";
+        message.expectedSizeBand = "";
         if (value !== undefined)
             reflectionMergePartial<ApprovedAppCatalogStorageDisclosure>(this, message, value);
         return message;
@@ -4712,11 +4706,8 @@ class ApprovedAppCatalogStorageDisclosure$Type extends MessageType<ApprovedAppCa
                 case /* string purpose */ 2:
                     message.purpose = reader.string();
                     break;
-                case /* string retention */ 3:
-                    message.retention = reader.string();
-                    break;
-                case /* string removal */ 4:
-                    message.removal = reader.string();
+                case /* string expected_size_band */ 5:
+                    message.expectedSizeBand = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4736,12 +4727,9 @@ class ApprovedAppCatalogStorageDisclosure$Type extends MessageType<ApprovedAppCa
         /* string purpose = 2; */
         if (message.purpose !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.purpose);
-        /* string retention = 3; */
-        if (message.retention !== "")
-            writer.tag(3, WireType.LengthDelimited).string(message.retention);
-        /* string removal = 4; */
-        if (message.removal !== "")
-            writer.tag(4, WireType.LengthDelimited).string(message.removal);
+        /* string expected_size_band = 5; */
+        if (message.expectedSizeBand !== "")
+            writer.tag(5, WireType.LengthDelimited).string(message.expectedSizeBand);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

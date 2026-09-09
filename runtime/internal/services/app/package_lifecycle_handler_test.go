@@ -46,8 +46,8 @@ func TestApprovedAppCatalogProjectionKeepsSelectorAndDisplayFactsOwnerIssued(t *
 		}},
 		Release:   publicappregistry.Release{Tag: "v1.2.3", CommitSHA: strings.Repeat("c", 40), ReleaseURL: "https://github.com/publisher/example/releases/tag/v1.2.3", ReleaseNotesURL: "https://github.com/publisher/example/releases/tag/v1.2.3"},
 		AppAccess: []string{"runtime.consume"}, CapabilityContractRefs: []string{"text.generate"},
-		StoragePolicy: publicappregistry.StoragePolicy{Kind: "nimi-mediated-default", OSStorageDisclosure: []publicappregistry.StorageDisclosure{{
-			PathPattern: "%LOCALAPPDATA%/Example", Purpose: "cache", Retention: "until-uninstall", Removal: "removed-with-package",
+		StoragePolicy: publicappregistry.StoragePolicy{Kind: "app-owned-os-storage", OSStorageDisclosure: []publicappregistry.StorageDisclosure{{
+			PathPattern: "%LOCALAPPDATA%/Example", Purpose: "cache", ExpectedSizeBand: "1–10 MiB",
 		}}},
 		UpdateChannel: "stable", Support: publicappregistry.Support{EscalationURL: "https://github.com/publisher/example/issues", RecoveryInstructions: "Reinstall."},
 		Target: publicappregistry.Target{TargetID: "windows-x86_64", OS: "windows", Arch: "x86_64", AssetName: "example.nimiapp", Size: 42,
@@ -68,7 +68,7 @@ func TestApprovedAppCatalogProjectionKeepsSelectorAndDisplayFactsOwnerIssued(t *
 	}
 	targets[0].AppAccess[0] = "mutated"
 	targets[0].StoragePolicy.OSStorageDisclosure[0].Purpose = "mutated"
-	if projected.GetAppAccess()[0] != "runtime.consume" || projected.GetOsStorageDisclosures()[0].GetPurpose() != "cache" {
+	if projected.GetAppAccess()[0] != "runtime.consume" || projected.GetOsStorageDisclosures()[0].GetPurpose() != "cache" || projected.GetOsStorageDisclosures()[0].GetExpectedSizeBand() != "1–10 MiB" {
 		t.Fatalf("Catalog projection retained mutable provider slices: %+v", projected)
 	}
 }

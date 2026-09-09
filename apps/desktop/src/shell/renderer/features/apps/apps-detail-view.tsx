@@ -594,7 +594,7 @@ function InstalledAppsDetailView({
                   <DetailRow
                     label={t('Apps.catalog.storageDisclosures')}
                     value={catalog.osStorageDisclosures.map((disclosure) => (
-                      `${disclosure.pathPattern}: ${disclosure.purpose}; ${disclosure.retention}; ${disclosure.removal}`
+                      `${disclosure.pathPattern}: ${disclosure.purpose}; ${t('Apps.detail.expectedStorageSize')}: ${disclosure.expectedSizeBand}`
                     )).join(' · ') || t('Apps.catalog.none')}
                     mono
                   />

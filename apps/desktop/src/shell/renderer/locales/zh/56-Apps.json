@@ -347,7 +347,8 @@
     "releaseRoot": "发布",
     "dataRoot": "数据",
     "cacheRoot": "缓存",
-    "tempRoot": "临时"
+    "tempRoot": "临时",
+    "expectedStorageSize": "预计大小"
   },
   "accessDomain": {
     "realmData": {

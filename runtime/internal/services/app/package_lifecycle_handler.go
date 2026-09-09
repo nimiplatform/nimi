@@ -312,10 +312,9 @@ func approvedAppCatalogTargetProjection(target publicappregistry.ResolvedApprove
 	storage := make([]*runtimev1.ApprovedAppCatalogStorageDisclosure, 0, len(target.StoragePolicy.OSStorageDisclosure))
 	for _, disclosure := range target.StoragePolicy.OSStorageDisclosure {
 		storage = append(storage, &runtimev1.ApprovedAppCatalogStorageDisclosure{
-			PathPattern: disclosure.PathPattern,
-			Purpose:     disclosure.Purpose,
-			Retention:   disclosure.Retention,
-			Removal:     disclosure.Removal,
+			PathPattern:      disclosure.PathPattern,
+			Purpose:          disclosure.Purpose,
+			ExpectedSizeBand: disclosure.ExpectedSizeBand,
 		})
 	}
 	return &runtimev1.ApprovedAppCatalogTarget{

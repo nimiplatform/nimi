@@ -4476,8 +4476,7 @@ pub struct ApplySharedLocalAgentAIProfileResponse {
 pub struct ApprovedAppCatalogStorageDisclosure {
     pub path_pattern: Option<String>,
     pub purpose: Option<String>,
-    pub retention: Option<String>,
-    pub removal: Option<String>,
+    pub expected_size_band: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

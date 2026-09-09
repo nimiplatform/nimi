@@ -347,7 +347,8 @@
     "releaseRoot": "Release",
     "dataRoot": "Data",
     "cacheRoot": "Cache",
-    "tempRoot": "Temp"
+    "tempRoot": "Temp",
+    "expectedStorageSize": "Expected size"
   },
   "accessDomain": {
     "realmData": {

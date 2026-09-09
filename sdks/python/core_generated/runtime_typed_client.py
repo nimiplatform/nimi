@@ -960,8 +960,7 @@ class ApplySharedLocalAgentAIProfileResponse:
 class ApprovedAppCatalogStorageDisclosure:
     path_pattern: str | None = None
     purpose: str | None = None
-    retention: str | None = None
-    removal: str | None = None
+    expected_size_band: str | None = None
 
 @dataclass(frozen=True)
 class ApprovedAppCatalogTarget:
