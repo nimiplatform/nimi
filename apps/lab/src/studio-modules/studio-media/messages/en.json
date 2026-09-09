@@ -1,5 +1,14 @@
 {
+  "VisionLocate": {
+    "historySummaryOnly": "This large result's history keeps its summary and Job ID. Export full coordinates during the original run.",
+    "stoppedBeforeSubmit": "Stopped before submitting a Locate job.",
+    "geometry": "Result shape", "box": "Bounding boxes", "point": "Points", "localOnly": "Uses a local Locate Loadout. Choose it in model configuration before running.",
+    "inputRequired": "Attach one static image and describe the target to locate.", "imageTooLarge": "Choose a static image of at most 32 MiB.", "resultMissing": "Runtime returned no typed Locate result.",
+    "found": "Found {{count}} matching targets", "noMatch": "No matching targets found", "sourceImage": "Image used for this task", "overlay": "Locations on the task image", "target": "Target {{index}}",
+    "previewUnavailable": "The input image preview is no longer available. The coordinates below still refer to the recorded image.", "coordinates": "Image identity and coordinates", "matches": "Matches", "queued": "Queued for localization…", "running": "Loading the model or locating targets…"
+  },
   "Capabilities": {
+    "visionLocate": { "label": "Visual localization", "summary": "Describe an object or control in one image to get boxes or points." },
     "imageGenerate": {
       "label": "Image Generate",
       "summary": "Prompt → image.generate Scenario Job → typed artifact preview result."
@@ -15,6 +24,7 @@
   },
   "Studio": {
     "profiles": {
+      "visionLocate": { "inputTitle": "Locate in an image", "inputPlaceholder": "Describe the object or control to locate…", "primaryLabel": "Locate targets", "primaryRunningLabel": "Locating…", "emptyTitle": "Locate objects or controls", "emptyHint": "Attach one static image, describe the target, and choose boxes or points in the parameters.", "footnote": "Coordinates refer to the complete image after applying its orientation." },
       "imageGenerate": {
         "inputTitle": "Test image generation",
         "inputPlaceholder": "Describe the image you want the runtime to render…",

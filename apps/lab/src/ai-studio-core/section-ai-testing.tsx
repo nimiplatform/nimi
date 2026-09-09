@@ -1,5 +1,5 @@
 import { Suspense, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { IconButton, LoadingSkeleton, nimiToast, OverlayShell, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
+import { Button, IconButton, LoadingSkeleton, nimiToast, OverlayShell, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { PanelRight, SquarePen } from 'lucide-react';
 import { createBrowserDataUrlAttachmentAdapter, useChatComposer, type BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import { useAIStudioHost } from './host-context.js';
@@ -8,6 +8,7 @@ import type { StudioCapabilityRunResult, StudioRuntimeInspection } from './runti
 import { getStudioRunIntentLabel, restoreStudioCapabilityRunResult, type StudioRunConfigSnapshot, type StudioRunHistory, type StudioRunHistoryRecord } from './history.js';
 import { CapabilityRunHistory, DrawerErrorBoundary, downloadTextFile, resultPlainText, statusForCapability, type CapabilityStatus, type SectionAITestingProps } from './section-ai-testing-surface.js';
 import { TextStudioComposer, TextStudioStartState } from './section-ai-testing-composer.js';
+import { ScenarioJobStatus } from '@nimiplatform/sdk/runtime/generated';
 import {
   canCancelStudioCapabilityRun,
   hasStudioCapabilityRunInput,
@@ -71,7 +72,7 @@ function TextStudioShell({
     }, draftPersistence).prompt ?? preset.prompt
   ));
   const [context, setContext] = useState('');
-  const [running, setRunning] = useState(false);
+  const [executingRun, setExecutingRun] = useState<TextStudioActiveRun | null>(null);
   const [cancelRequested, setCancelRequested] = useState(false);
   const [streamingText, setStreamingText] = useState<string | null>(null);
   const [activeRun, setActiveRun] = useState<TextStudioActiveRun | null>(null);
@@ -79,11 +80,14 @@ function TextStudioShell({
   const historyPanel = useContext(StudioHistoryPanelContext);
   const historyCollapsed = historyPanel?.collapsed ?? true;
   const runSeqRef = useRef(0);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const abortControllerRef = useRef<{ runId: string; controller: AbortController } | null>(null);
+  const running = executingRun !== null;
+  const displayingExecution = executingRun !== null && activeRun?.id === executingRun.id;
+  const displayedRun = displayingExecution ? executingRun : activeRun;
   const expandedHistoryErrorRef = useRef<string | null>(null);
   const attachmentAdapter = useMemo(
-    () => createBrowserDataUrlAttachmentAdapter({ idPrefix: 'studio-attachment' }),
-    [],
+    () => createBrowserDataUrlAttachmentAdapter({ idPrefix: 'studio-attachment', ...(capability.id === 'vision.locate' ? { maxAttachments: 1, accept: ['image/png','image/jpeg','image/webp','image/gif'] } : {}) }),
+    [capability.id],
   );
   const composerState = useChatComposer<BrowserDataUrlAttachment>({
     adapter: { submit: async () => {} },
@@ -92,10 +96,10 @@ function TextStudioShell({
     onTextChange: updatePrompt,
     disabled: running,
   });
-  const hasActiveRun = Boolean(activeRun);
-  const currentResult = activeRun
-    ? activeRun.result ?? (activeRun.record
-      ? restoreStudioCapabilityRunResult(activeRun.record, (id) => (
+  const hasActiveRun = Boolean(displayedRun);
+  const currentResult = displayedRun
+    ? displayedRun.result ?? (displayedRun.record
+      ? restoreStudioCapabilityRunResult(displayedRun.record, (id) => (
         registrations.find((item) => item.descriptor.id === id)?.descriptor.label ?? null
       ))
       : null)
@@ -134,7 +138,7 @@ function TextStudioShell({
   }
 
   useEffect(() => {
-    abortControllerRef.current?.abort('studio-capability-changed');
+    abortControllerRef.current?.controller.abort('studio-capability-changed');
     abortControllerRef.current = null;
     const draft = rendererHost.app.projection.promptDraft({
       surfaceId: 'ai-capabilities',
@@ -146,19 +150,19 @@ function TextStudioShell({
     setContext('');
     setActiveRun(null);
     setSessionRuns({});
-    setRunning(false);
+    setExecutingRun(null);
     setCancelRequested(false);
     setStreamingText(null);
   }, [capability.id, draftPersistence, preset, rendererHost]);
 
   async function run(nextPrompt = prompt, nextContext = context) {
+    if (abortControllerRef.current) return;
     const displayPrompt = nextPrompt.trim();
     if (!hasStudioCapabilityRunInput({ requiresPrompt, prompt: displayPrompt, hasAlternativeInput })) return;
     if (!runTarget.canDispatch) return;
     const runSeq = runSeqRef.current + 1;
     runSeqRef.current = runSeq;
     const abortController = new AbortController();
-    abortControllerRef.current = abortController;
     const startedAt = rendererHost.clock.now();
     const pendingRun: TextStudioActiveRun = {
       id: `pending-${startedAt}`,
@@ -169,8 +173,9 @@ function TextStudioShell({
       record: null,
       error: null,
     };
+    abortControllerRef.current = { runId: pendingRun.id, controller: abortController };
     setActiveRun(pendingRun);
-    setRunning(true);
+    setExecutingRun(pendingRun);
     setCancelRequested(false);
     try {
       let result: StudioCapabilityRunResult;
@@ -180,14 +185,21 @@ function TextStudioShell({
         const directive = textStudioDirectiveForTarget(runTarget, profile);
         result = await rendererHost.sdk.runCapability({
           capabilityId: capability.id,
-          prompt: capability.id === 'audio.transcribe'
+          prompt: capability.id === 'audio.transcribe' || capability.id === 'vision.locate'
             ? displayPrompt
             : textStudioRuntimePrompt(displayPrompt, nextContext, directive),
           scenarioId: preset.id,
-          onPartial: isStreaming ? setStreamingText : undefined,
+          onPartial: isStreaming ? (text) => {
+            if (runSeqRef.current === runSeq) setStreamingText(text);
+          } : undefined,
           attachments: supportsMedia ? [...composerState.attachments] : undefined,
           parameters: effectiveCapabilityParameters,
           signal: abortController.signal,
+          onJobUpdate: job => {
+            if (runSeqRef.current !== runSeq) return;
+            const jobStatus = job.status === ScenarioJobStatus.QUEUED || job.status === ScenarioJobStatus.SUBMITTED ? 'queued' : job.status === ScenarioJobStatus.RUNNING ? 'running' : undefined;
+            if (jobStatus) setExecutingRun(current => current?.id === pendingRun.id ? { ...current, jobStatus } : current);
+          },
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error || t('NonSuccess.title.runtimeCallFailed'));
@@ -229,8 +241,8 @@ function TextStudioShell({
       setActiveRun({ ...pendingRun, error: message });
     } finally {
       if (runSeq === runSeqRef.current) {
-        if (abortControllerRef.current === abortController) abortControllerRef.current = null;
-        setRunning(false);
+        if (abortControllerRef.current?.controller === abortController) abortControllerRef.current = null;
+        setExecutingRun(null);
         setCancelRequested(false);
         setStreamingText(null);
       }
@@ -343,9 +355,10 @@ function TextStudioShell({
   }
 
   function handleCancel() {
-    if (cancelRequested) return;
+    const execution = abortControllerRef.current;
+    if (!execution || cancelRequested || !displayingExecution || execution.runId !== displayedRun?.id) return;
     setCancelRequested(true);
-    abortControllerRef.current?.abort('studio-user-canceled');
+    execution.controller.abort('studio-user-canceled');
   }
 
   return (
@@ -362,6 +375,11 @@ function TextStudioShell({
             </div>
             <div className="studio__head-actions">
               {headerActions}
+              {executingRun && !displayingExecution ? (
+                <Button size="sm" tone="secondary" onClick={() => setActiveRun(executingRun)}>
+                  {t('StudioShell.returnToRunning')}
+                </Button>
+              ) : null}
               {hasActiveRun ? (
                 <Tooltip content={t('StudioShell.newRun')} placement="bottom">
                   <IconButton
@@ -390,21 +408,22 @@ function TextStudioShell({
             </div>
           </header>
           <main className="studio__stage">
-            {hasActiveRun && activeRun ? (
+            {hasActiveRun && displayedRun ? (
               <TextStudioResultState
                 registration={registration}
-                activeRun={activeRun}
+                activeRun={displayedRun}
                 admission={admission}
-                intentLabel={activeRun.record ? getStudioRunIntentLabel(activeRun.record) : runTarget.intentLabel}
-                running={running}
-                cancelRequested={cancelRequested}
-                streamingText={streamingText}
+                intentLabel={displayedRun.record ? getStudioRunIntentLabel(displayedRun.record) : runTarget.intentLabel}
+                running={displayingExecution}
+                canRegenerate={!running}
+                cancelRequested={displayingExecution && cancelRequested}
+                streamingText={displayingExecution ? streamingText : null}
                 verboseConsole={verboseConsole}
                 composer={composer}
                 onCopy={handleCopy}
                 onDownload={handleDownload}
-                onRegenerate={() => void run(activeRun.prompt, activeRun.context)}
-                onCancel={canCancelStudioCapabilityRun({
+                onRegenerate={() => void run(displayedRun.prompt, displayedRun.context)}
+                onCancel={displayingExecution && canCancelStudioCapabilityRun({
                   capabilityId: capability.id,
                   resultKind: profile.resultKind,
                 })
@@ -422,7 +441,7 @@ function TextStudioShell({
         </div>
         <CapabilityRunHistory
           history={history}
-          activeRunId={activeRun?.id ?? null}
+          activeRunId={displayedRun?.id ?? null}
           onSelectRun={onSelectHistoryRun}
           collapsed={historyCollapsed}
           currentCapabilityId={capability.id}

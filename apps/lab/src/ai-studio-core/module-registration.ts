@@ -7,7 +7,7 @@ import type { StudioParameterPanelProps } from './parameter-fields.js';
 
 export type StudioControlId = 'tone' | 'length';
 export type StudioInputKind = 'prompt' | 'url' | 'none';
-export type StudioResultKind = 'text' | 'transcript' | 'embedding' | 'artifacts' | 'voice-asset' | 'voice-catalog';
+export type StudioResultKind = 'text' | 'transcript' | 'embedding' | 'artifacts' | 'voice-asset' | 'voice-catalog' | 'vision-locate';
 
 export type CapabilityStudioProfile = {
   readonly studioTag: string;

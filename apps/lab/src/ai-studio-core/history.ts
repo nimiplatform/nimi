@@ -1,4 +1,5 @@
 import { isJsonObject } from '@nimiplatform/sdk/types';
+import type { NimiLocalAppVisionLocateResult } from '@nimiplatform/sdk/app';
 import type {
   StudioCapabilityRunResult,
   StudioManagedArtifact,
@@ -50,6 +51,7 @@ export type StudioRunConfigSnapshot = {
 };
 
 export type StudioRunHistoryResultSnapshot =
+  | { ok: true; kind: 'vision-locate'; summary: string; jobId: string; result?: NimiLocalAppVisionLocateResult; traceId?: string }
   | {
       ok: true;
       kind: 'text';
@@ -456,6 +458,7 @@ export function createStudioRunHistoryResultSnapshot(result: StudioCapabilityRun
 
   const trace = traceFields(result);
   const output = result.output;
+  if (output.kind === 'vision-locate') return { ok: true, kind: 'vision-locate', summary: result.message, jobId: output.jobId, result: output.result, ...trace };
   if (output.kind === 'text') {
     return {
       ok: true,
@@ -569,6 +572,7 @@ export function restoreStudioCapabilityRunResult(
     message: record.message,
     ...(trace ? { trace } : {}),
   };
+  if (snapshot.kind === 'vision-locate') return snapshot.result ? { ...common, output: { kind: 'vision-locate', jobId: snapshot.jobId, result: snapshot.result } } : null;
   if (snapshot.kind === 'text') {
     return {
       ...common,
@@ -802,6 +806,7 @@ export function getStudioRunMetricSummary(record: StudioRunHistoryRecord): strin
   if (result.kind === 'artifacts') return `${result.jobState || 'unknown'} / ${result.artifactCount} artifact${result.artifactCount === 1 ? '' : 's'}`;
   if (result.kind === 'transcript') return `${result.jobState || 'unknown'} / ${result.charCount} chars / ${result.artifactCount} artifact${result.artifactCount === 1 ? '' : 's'}`;
   if (result.kind === 'voice-asset') return `${result.jobState || 'unknown'} / ${result.creationSource} / ${result.assetStatus}`;
+  if (result.kind === 'vision-locate') return result.summary;
   return `${result.voiceCount} voice${result.voiceCount === 1 ? '' : 's'}`;
 }
 
@@ -820,5 +825,6 @@ export function getStudioRunResultTags(record: StudioRunHistoryRecord): string[]
   if (result.kind === 'artifacts') return ['Ready'];
   if (result.kind === 'transcript') return ['Ready'];
   if (result.kind === 'voice-asset') return ['VoiceAsset ready', result.creationSource];
+  if (result.kind === 'vision-locate') return result.result ? ['Locate', String(result.result.locations.length)] : ['Locate'];
   return [`${result.voiceCount} voices`];
 }

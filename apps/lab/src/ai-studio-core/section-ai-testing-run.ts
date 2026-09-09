@@ -20,6 +20,7 @@ import {
 import type { StudioTranslate } from './non-success-presentation.js';
 
 export type TextStudioActiveRun = {
+  jobStatus?: 'queued' | 'running';
   id: string;
   prompt: string;
   context: string;

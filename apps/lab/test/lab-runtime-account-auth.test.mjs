@@ -299,6 +299,7 @@ function fakeLocalAppClient(overrides = {}) {
       },
       artifacts: {
         read: overrides.readArtifact ?? unavailable('artifacts.read'),
+        upload: overrides.uploadArtifact ?? unavailable('artifacts.upload'),
       },
       voiceAssets: {
         list: overrides.listVoiceAssets ?? unavailable('voiceAssets.list'),
@@ -604,6 +605,37 @@ test('Lab preserves caller-local operation-aborted without fabricating a Runtime
   assert.equal(result.reason, 'operation-aborted');
   assert.notEqual(result.reason, 'runtime-canceled');
 });
+
+for (const phase of ['before-upload', 'during-upload', 'upload-rejected']) {
+  test(`Locate ${phase} cancellation stays caller-local and never submits a Job`, async () => {
+    const { runLabCapability } = await importLabRuntime();
+    const controller = new AbortController();
+    const started = Promise.withResolvers();
+    const uploaded = Promise.withResolvers();
+    let uploads = 0;
+    let submissions = 0;
+    const client = fakeLocalAppClient({
+      uploadArtifact() { uploads++; started.resolve(); return uploaded.promise; },
+      async submitScenarioJob() { submissions++; throw new Error('must not submit after cancellation'); },
+    });
+    if (phase === 'before-upload') controller.abort('studio-user-canceled');
+    const pending = runLabCapability({
+      capabilityId: 'vision.locate', prompt: 'the button', signal: controller.signal,
+      attachments: [{ id:'image-1', kind:'image', mimeType:'image/png', dataUrl:'data:image/png;base64,AQID' }],
+    }, readyRuntimeDependencies(client));
+    if (phase !== 'before-upload') {
+      await started.promise;
+      controller.abort('studio-user-canceled');
+      if (phase === 'upload-rejected') uploaded.reject(new Error('upload stopped'));
+      else uploaded.resolve({ artifactId:'image-1', sizeBytes:3, mimeType:'image/png' });
+    }
+    const result = await pending;
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, 'operation-aborted');
+    assert.equal(uploads, phase === 'before-upload' ? 0 : 1);
+    assert.equal(submissions, 0);
+  });
+}
 
 test('Lab removes already adopted artifacts when a later artifact adoption fails', async () => {
   const { runLabCapability } = await importLabRuntime();

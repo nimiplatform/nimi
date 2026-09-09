@@ -17,6 +17,7 @@ export function formatTypedOutput(
   translate: StudioTranslate,
 ): string {
   const output = result.output;
+  if (output.kind === 'vision-locate') return JSON.stringify({ jobId: output.jobId, ...output.result }, null, 2);
   if (output.kind === 'text') {
     return output.text || translate('StudioShell.emptyBody');
   }

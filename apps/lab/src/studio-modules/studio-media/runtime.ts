@@ -1,4 +1,5 @@
 import type { StudioCapabilityRuntimeHandlers } from '../../ai-studio-core/runtime-dispatcher.js';
+import { runVisionLocate } from './vision-runtime.js';
 import {
   createStudioScenarioJobClient,
   projectStudioArtifactRunnerResult,
@@ -13,6 +14,7 @@ import type {
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-019c
 
 export const studioMediaRuntimeHandlers: StudioCapabilityRuntimeHandlers = Object.freeze({
+  'vision.locate': runVisionLocate,
   'image.generate': runImageGenerate,
   'video.generate': runVideoGenerate,
   'music.generate': runMusicGenerate,

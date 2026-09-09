@@ -90,6 +90,7 @@ test('lab shared Model Config inventory includes video.generate and deduplicates
   assert.deepEqual(labModelConfigCapabilityContracts, [
     'text.generate',
     'text.embed',
+    'vision.locate',
     'image.generate',
     'video.generate',
     'music.generate',

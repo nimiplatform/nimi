@@ -1,4 +1,5 @@
-import { Image as ImageIcon, Music2, Video } from 'lucide-react';
+import { Image as ImageIcon, Music2, Video, ScanSearch } from 'lucide-react';
+import { StudioVisionParameterPanel, studioVisionLocateParameters } from './vision-parameters.js';
 import type { AIStudioModuleRegistration } from '../../ai-studio-core/module-registration.js';
 import { studioMediaDescriptors, type StudioMediaCapabilityId } from './descriptors.js';
 import { studioImageGenerateParameters, studioMusicGenerateParameters, studioVideoGenerateParameters } from './parameters.js';
@@ -7,6 +8,14 @@ import { StudioMediaParameterPanel } from './parameter-panel.js';
 export const studioMediaModule = Object.freeze({
   id: 'studio-media', navigationLabel: 'Media', order: 20,
   capabilities: [
+    {
+      descriptor: studioMediaDescriptors[3], icon: ScanSearch,
+      profile: {
+        studioTag: 'Vision', inputTitleKey: 'Studio.profiles.visionLocate.inputTitle', inputPlaceholderKey: 'Studio.profiles.visionLocate.inputPlaceholder', inputKind: 'prompt', supportsAttachments: true, controls: [], primaryLabelKey: 'Studio.profiles.visionLocate.primaryLabel', primaryRunningLabelKey: 'Studio.profiles.visionLocate.primaryRunningLabel', resultTitle: 'Locations', emptyTitleKey: 'Studio.profiles.visionLocate.emptyTitle', emptyHintKey: 'Studio.profiles.visionLocate.emptyHint', resultKind: 'vision-locate', footnoteKey: 'Studio.profiles.visionLocate.footnote',
+      },
+      preset: { id: 'locate-object', label: 'Locate an object', prompt: '' },
+      runtimeMethod: 'runtime.ai.submitScenarioJob:vision_locate', parameters: studioVisionLocateParameters, parameterPanel: StudioVisionParameterPanel,
+    },
     {
       descriptor: studioMediaDescriptors[0],
       icon: ImageIcon,
