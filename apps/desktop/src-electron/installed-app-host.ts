@@ -81,7 +81,10 @@ export function createDesktopInstalledAppHost(control: NimiElectronInstalledAppC
           const status = run.exitState ? null : await control.status(id);
           if (status?.running) {
             run.view = { ...run.view, state: 'running' };
-            try { await control.focus(id); }
+            try {
+              await control.focus(id);
+              run.view = { ...run.view, reasonCode: undefined, message: '' };
+            }
             catch (error) { run.view = { ...run.view, reasonCode: reason(error), message: failureMessage(error) }; }
             return project(run);
           }
@@ -106,6 +109,7 @@ export function createDesktopInstalledAppHost(control: NimiElectronInstalledAppC
     const id = run.launchId;
     if (command === 'installed_app_focus') {
       await control.focus(id);
+      run.view = { ...run.view, reasonCode: undefined, message: '' };
       return refresh(run);
     }
     run.pending = true;
