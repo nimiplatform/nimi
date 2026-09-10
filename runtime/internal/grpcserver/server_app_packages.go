@@ -3,7 +3,6 @@ package grpcserver
 import (
 	"context"
 	"log/slog"
-	"runtime"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
@@ -18,7 +17,8 @@ func composeVerifiedAppPackages(
 	logger *slog.Logger,
 	kernel *localappkernel.Kernel,
 ) (*publicappregistry.Client, *nimiappinstall.Coordinator) {
-	if runtime.GOOS != "windows" || runtime.GOARCH != "amd64" || kernel == nil {
+	_, _, _, platformErr := publicappregistry.CurrentPlatformTarget()
+	if platformErr != nil || kernel == nil {
 		return nil, nil
 	}
 	if err := nimiappinstall.Recover(ctx, kernel); err != nil {

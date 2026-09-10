@@ -9,21 +9,41 @@
   "Capabilities": {
     "worldGenerate": {
       "label": "世界巡游",
-      "summary": "通过 App 自有的 open_world_tour_window 命令启动独立 Tauri 查看器。"
+      "summary": "生成沉浸式 3D 世界，进入保存的场景自由探索。"
     }
   },
   "WorldTour": {
-    "eyebrow": "Nimi Lab",
     "viewerTitle": "世界巡游查看器",
-    "viewerDescription": "App 自有的独立查看器界面，用于检查本地夹具。",
     "launchTokenRequired": "世界巡游查看器需要独立 App 启动令牌。",
     "launchClaimFailed": "认领查看器启动失败。",
     "launchUnavailableTitle": "查看器启动不可用",
-    "canvasEyebrow": "独立世界查看器",
-    "fixtureTitle": "世界巡游夹具",
-    "savePreset": "保存预设",
-    "presetSaved": "预设已保存：{{path}}",
-    "presetSaveFailed": "保存预设失败。"
+    "savePreset": "保存视角",
+    "presetSaved": "视角已保存。",
+    "presetSaveFailed": "保存视角失败。",
+    "loadPreset": "恢复视角",
+    "presetLoaded": "已恢复保存的视角。",
+    "presetLoadFailed": "恢复视角失败。",
+    "noPreset": "这个世界尚未保存视角。",
+    "resetView": "重置视角",
+    "loading": "正在加载世界…",
+    "loadFailed": "世界加载失败：{{detail}}",
+    "sceneLabel": "可交互的 3D 世界",
+    "controlHelp": "拖动环顾 · W A S D 移动 · Q / E 下降 / 上升 · Shift 加速。点击场景后可使用键盘控制。",
+    "promptRequired": "请描述你想探索的世界。",
+    "generating": "正在生成世界并保存资产，可能需要几分钟…",
+    "generationFailed": "世界生成失败。",
+    "archiveMissing": "已完成的任务没有返回世界资产包。",
+    "generated": "世界已保存，3D 查看器已打开。",
+    "savedOpenFailed": "世界已保存，但查看器未能打开。请点击“打开已保存的世界”重试。",
+    "worldArchive": "世界资产包",
+    "openSaved": "打开已保存的世界",
+    "resume": "继续上次生成",
+    "cancel": "取消生成",
+    "canceled": "生成已取消。",
+    "noPendingWorld": "没有需要继续的世界生成任务。",
+    "pendingInvalid": "已保存的世界任务标识无效。",
+    "pendingExists": "已有世界生成任务。请在“参数”中点击“继续上次生成”获取结果。",
+    "noSavedWorld": "请先生成一个世界，保存后可以随时重新打开。"
   },
   "History": {
     "filters": {
@@ -35,14 +55,14 @@
   "Studio": {
     "profiles": {
       "worldGenerate": {
-        "inputTitle": "打开世界巡游",
-        "inputPlaceholder": "",
-        "inputNote": "打开本地世界夹具的独立 Tauri 窗口。",
-        "primaryLabel": "打开查看器",
-        "primaryRunningLabel": "打开中…",
-        "emptyTitle": "查看器空闲",
-        "emptyHint": "打开查看器以记录一次本地夹具运行。不代表任何 Runtime 产物。",
-        "footnote": "打开本地夹具的独立 Tauri 查看器；这不是 Runtime 产物。"
+        "inputTitle": "描述一个世界",
+        "inputPlaceholder": "描述场景、建筑、光线和氛围…",
+        "inputNote": "根据描述生成可以进入探索的 3D 场景。",
+        "primaryLabel": "生成世界",
+        "primaryRunningLabel": "生成中…",
+        "emptyTitle": "探索下一个世界",
+        "emptyHint": "描述场景并生成世界。资产保存后，查看器会自动打开。",
+        "footnote": "生成可能需要几分钟。世界保存后可以直接重新打开，无需再次生成。"
       }
     },
     "admission": {
@@ -53,9 +73,10 @@
     }
   },
   "StudioShell": {
-    "statusTauriOnly": "仅 Tauri",
+    "returnToRunning": "返回运行中的任务",
+    "statusStandaloneViewer": "本地查看器",
     "runStatusLocalFixture": "本地夹具",
-    "worldTourViewerMessage": "已为仅限 Tauri 的本地夹具打开查看器（{{manifestPath}}）；仅为本地夹具记录，无 Runtime 生成或 Runtime 产物。",
+    "worldTourViewerMessage": "已为仅限 Electron 的本地夹具打开查看器（{{manifestPath}}）；仅为本地夹具记录，无 Runtime 生成或 Runtime 产物。",
     "worldTourViewerOutput": "本地夹具查看器已打开（{{windowLabel}}）。这不是 Runtime 结果或 Runtime 产物。"
   }
 }

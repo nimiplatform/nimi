@@ -1,10 +1,11 @@
-import { useState, type ChangeEvent, type ReactNode } from 'react';
+import { useId, useState, type ChangeEvent, type ReactNode } from 'react';
 import { Button, IconButton, NimiText, TextareaField, Tooltip } from '@nimiplatform/kit/ui';
-import { ArrowUp, Paperclip, Play, Plus, RefreshCw, SlidersHorizontal, X } from 'lucide-react';
+import { ArrowUp, Paperclip, Play, Plus, RefreshCw, ScanSearch, SlidersHorizontal, X } from 'lucide-react';
 import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import { useAIStudioHost } from './host-context.js';
 import type { StudioCapabilityRegistration } from './module-registration.js';
 import { hasStudioCapabilityRunInput } from './section-ai-testing-input.js';
+import { VisionLocateImageInput } from './section-ai-testing-vision-input.js';
 
 function IntentSummaryChip({
   label,
@@ -86,15 +87,20 @@ export function TextStudioComposer({
   const { translate: t } = useAIStudioHost();
   const capability = registration.descriptor;
   const profile = registration.profile;
+  const isVisionLocate = capability.id === 'vision.locate';
+  const queryInputId = useId();
   const isReadOnlyComposer = profile.inputKind === 'none';
   const requiresPrompt = !isReadOnlyComposer;
   const contextAttached = Boolean(context.trim());
-  const supportsContext = requiresPrompt && capability.id !== 'audio.transcribe';
+  const supportsContext = requiresPrompt && capability.id !== 'audio.transcribe' && !isVisionLocate;
   const [contextOpen, setContextOpen] = useState(false);
   const [parametersOpen, setParametersOpen] = useState(false);
-  const promptReady = hasStudioCapabilityRunInput({ requiresPrompt, prompt, hasAlternativeInput });
+  const promptReady = hasStudioCapabilityRunInput({ requiresPrompt, prompt, hasAlternativeInput })
+    && (!isVisionLocate || (attachments.length === 1 && attachments[0]?.kind === 'image'));
   const intentConfigAction = Boolean(onOpenIntentConfig) && !canDispatch && canConfigureIntent;
-  const generateDisabled = running || !promptReady || (!canDispatch && !intentConfigAction);
+  const generateDisabled = isVisionLocate
+    ? running || (!intentConfigAction && (!promptReady || !canDispatch))
+    : running || !promptReady || (!canDispatch && !intentConfigAction);
   const generateLabel = running
     ? t(profile.primaryRunningLabelKey)
     : intentConfigAction
@@ -116,7 +122,7 @@ export function TextStudioComposer({
             {contextAttached ? t('Studio.composer.contextAttached') : t('Studio.composer.context')}
           </Button>
         ) : null}
-        {parameterPanel ? (
+        {parameterPanel && !isVisionLocate ? (
           <Button
             type="button"
             tone="ghost"
@@ -136,7 +142,7 @@ export function TextStudioComposer({
           onOpen={onOpenIntentConfig}
           configurable={intentConfigurable && Boolean(onOpenIntentConfig)}
         />
-        {profile.supportsAttachments ? (
+        {profile.supportsAttachments && !isVisionLocate ? (
           <div className="studio-attachment-strip studio-attachment-strip--icon">
             <Tooltip content={t('Studio.composer.attachContext')} placement="top">
               <Button
@@ -173,7 +179,19 @@ export function TextStudioComposer({
             ))}
           </div>
         ) : null}
-        <Tooltip content={generateLabel} placement="top">
+        {isVisionLocate ? (
+          <Button
+            type="button"
+            tone="primary"
+            disabled={generateDisabled}
+            onClick={intentConfigAction ? onOpenIntentConfig : onSubmit}
+            leadingIcon={running
+              ? <RefreshCw size={16} aria-hidden="true" className="studio-spin" />
+              : <ScanSearch size={16} aria-hidden="true" />}
+          >
+            {generateLabel}
+          </Button>
+        ) : <Tooltip content={generateLabel} placement="top">
           <IconButton
             type="button"
             className={intentConfigAction ? 'studio-generate-action studio-generate-action--configure' : 'studio-generate-action'}
@@ -184,26 +202,34 @@ export function TextStudioComposer({
             onClick={intentConfigAction ? onOpenIntentConfig : onSubmit}
             icon={running ? <RefreshCw size={15} aria-hidden="true" className="studio-spin" /> : <ArrowUp size={16} aria-hidden="true" />}
           />
-        </Tooltip>
+        </Tooltip>}
       </div>
     </div>
   );
   return (
-    <div className={compact ? 'studio-composer studio-composer--compact' : 'studio-composer'}>
+    <div className={`studio-composer${compact ? ' studio-composer--compact' : ''}${isVisionLocate ? ' studio-composer--vision' : ''}`}>
+      {isVisionLocate ? <VisionLocateImageInput
+        image={attachments[0]?.kind === 'image' ? attachments[0] : undefined}
+        disabled={running}
+        onChoose={onOpenAttachmentPicker}
+        onRemove={() => onRemoveAttachment(0)}
+      /> : null}
       <div className={isReadOnlyComposer ? 'studio-input studio-input--readonly' : 'studio-input'}>
+        {isVisionLocate ? <label className="studio-locate-input__label" htmlFor={queryInputId}>{t('VisionLocate.queryLabel')}</label> : null}
         {isReadOnlyComposer ? (
           <NimiText role="body" className="studio-input__note">
             {profile.inputNoteKey ? t(profile.inputNoteKey) : ''}
           </NimiText>
         ) : (
           <TextareaField
+            id={queryInputId}
             tone="quiet"
             className="rounded-none focus-within:border-transparent focus-within:ring-0"
             textareaClassName="min-h-[calc(2*1.55em)] resize-none px-0 py-0 text-[15px] leading-[1.55]"
             rows={2}
             wrap="soft"
             maxLength={2000}
-            aria-label={t('Studio.composer.requestAriaLabel', { capability: t(capability.labelKey) })}
+            aria-label={isVisionLocate ? t('VisionLocate.queryLabel') : t('Studio.composer.requestAriaLabel', { capability: t(capability.labelKey) })}
             placeholder={capability.id === 'text.generate' ? t('Studio.composer.textGeneratePlaceholder') : t(profile.inputPlaceholderKey)}
             value={prompt}
             onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onPromptChange(event.currentTarget.value)}
@@ -225,7 +251,9 @@ export function TextStudioComposer({
             />
           </div>
         ) : null}
-        {parameterPanel ? (
+        {parameterPanel && isVisionLocate ? (
+          <div className="studio-locate-parameters">{parameterPanel}</div>
+        ) : parameterPanel ? (
           <div className={parametersOpen ? 'studio-parameters-drawer studio-parameters-drawer--open' : 'studio-parameters-drawer'}>
             {parameterPanel}
           </div>
@@ -247,7 +275,7 @@ export function TextStudioStartState({
   const capability = registration.descriptor;
   const profile = registration.profile;
   return (
-    <section className="studio-start" aria-label={t('Studio.composer.startAriaLabel', { capability: t(capability.labelKey) })}>
+    <section className={capability.id === 'vision.locate' ? 'studio-start studio-start--vision' : 'studio-start'} aria-label={t('Studio.composer.startAriaLabel', { capability: t(capability.labelKey) })}>
       <div className="studio-start__center">
         <h2>{t(profile.inputTitleKey)}</h2>
         <div className="studio-start__composer">{composer}</div>

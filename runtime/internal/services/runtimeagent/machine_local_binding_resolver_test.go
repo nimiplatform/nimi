@@ -81,6 +81,22 @@ func (stub machineLocalExecutionResolverStub) ResolveLocalExecution(capabilityCo
 	return stub.projections[capabilityContract], nil
 }
 
+func TestMachineLocalExecutionProjectionAllowsUnboundOptionalModel(t *testing.T) {
+	selected := machineLocalExecutionProjectionForTest("text-only", capabilitydriver.LlamaCapabilityContract, "text-only", nil)
+	selected.Requirements = append(selected.Requirements, &runtimev1.LocalCapabilityRequirement{
+		RequirementId:       capabilitydriver.CompanionMMProjRequirementID,
+		Presence:            runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL,
+		ConditionalFeatures: []string{"input.image"},
+	})
+	if !validSelectedLocalExecutionProjection(selected, capabilitydriver.LlamaCapabilityContract) {
+		t.Fatal("configured text-only model must not require an unselected optional projector")
+	}
+	selected.Requirements[1].Presence = runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_REQUIRED
+	if validSelectedLocalExecutionProjection(selected, capabilitydriver.LlamaCapabilityContract) {
+		t.Fatal("missing required model must remain invalid")
+	}
+}
+
 func TestMachineLocalBindingResolverProjectsEveryConfiguredSelection(t *testing.T) {
 	portable, err := structpb.NewStruct(map[string]any{"contextSize": 4096})
 	if err != nil {

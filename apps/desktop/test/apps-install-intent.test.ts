@@ -43,6 +43,7 @@ function catalogTarget(overrides: Partial<ApprovedAppCatalogTarget> = {}): Appro
     assetSize: '42',
     executionProfileRef: 'windows-user-mode-as-invoker-v1',
     windowsCodeSigning: 'unsigned',
+    macosNotarization: 'not-applicable',
     policyBlocked: false,
     policyRevision: '0',
     ...overrides,
@@ -50,6 +51,24 @@ function catalogTarget(overrides: Partial<ApprovedAppCatalogTarget> = {}): Appro
 }
 
 describe('Desktop approved App install intent', () => {
+  it('requires exact macOS absent-native-posture confirmation without creating a job on cancel', async () => {
+    let starts = 0;
+    const controller = createAppsInstallIntentController({ startInstall: async () => { starts += 1; return { kind: 'started' }; }, refresh: () => undefined });
+    const macos = catalogTarget({ os: 'macos', arch: 'arm64', targetId: 'macos-aarch64', executionProfileRef: 'macos-user-mode-same-session-v1', windowsCodeSigning: 'not-applicable', macosNotarization: 'absent' });
+    assert.equal((await controller.requestInstall(macos)).kind, 'confirmation-required');
+    assert.equal(controller.pending()?.os, 'macos');
+    controller.cancel();
+    assert.equal((await controller.confirm()).kind, 'no-pending-intent');
+    assert.equal(starts, 0);
+    const signed = { ...macos, macosDeveloperIdSubject: 'Developer ID Application: Publisher', observedSigningSubject: 'Developer ID Application: Publisher' };
+    assert.equal((await controller.requestInstall(signed)).kind, 'confirmation-required');
+    await controller.confirm();
+    assert.equal(starts, 1);
+    assert.equal((await controller.requestInstall({ ...signed, macosNotarization: 'notarized' })).kind, 'start-result');
+    assert.equal(starts, 2);
+    assert.throws(() => snapshotAppsInstallIntent({ ...macos, macosNotarization: 'notarized' }), /Contradictory macOS/u);
+    assert.throws(() => snapshotAppsInstallIntent({ ...signed, observedSigningSubject: 'different' }), /Contradictory macOS/u);
+  });
   it('offers only newer verified versions and requires the current Host to be stopped', () => {
     const entry = { catalogTarget: catalogTarget(), committedRelease: { sourceClass: AppPackageSourceClass.VERIFIED, version: '1.2.2' }, localDevelopment: null, packageJob: null, run: null };
     assert.equal(canRequestCatalogUpdate(entry), true);

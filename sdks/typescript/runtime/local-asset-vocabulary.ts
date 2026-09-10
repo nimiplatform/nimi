@@ -11,6 +11,7 @@ export type NimiRuntimeLocalRunnableAssetKindId =
   | 'tts'
   | 'stt'
   | 'embedding'
+  | 'vision'
   | 'music';
 
 export type NimiRuntimeLocalPassiveAssetKindId =
@@ -36,6 +37,7 @@ const NIMI_RUNTIME_LOCAL_RUNNABLE_ASSET_KIND_PAIRS = [
   [LocalAssetKind.STT, 'stt'],
   [LocalAssetKind.EMBEDDING, 'embedding'],
   [LocalAssetKind.MUSIC, 'music'],
+  [LocalAssetKind.VISION, 'vision'],
 ] as const satisfies readonly (readonly [
   LocalAssetKind,
   NimiRuntimeLocalRunnableAssetKindId,
@@ -104,6 +106,7 @@ export const NIMI_RUNTIME_LOCAL_ASSET_KIND_LABELS = Object.freeze({
   stt: 'STT',
   embedding: 'Embedding',
   music: 'Music',
+  vision: 'Vision',
   vae: 'VAE',
   clip: 'CLIP',
   lora: 'LoRA',
@@ -113,6 +116,7 @@ export const NIMI_RUNTIME_LOCAL_ASSET_KIND_LABELS = Object.freeze({
 
 const CANONICAL_CAPABILITY_TO_ASSET_KIND = {
   'text.generate': 'chat',
+  'vision.locate': 'vision',
   'text.embed': 'embedding',
   'image.generate': 'image',
   'video.generate': 'video',

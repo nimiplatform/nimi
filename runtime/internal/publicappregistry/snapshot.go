@@ -121,7 +121,7 @@ func NewCanonicalClient() *Client {
 // extends this closed mapping; callers never choose a target, origin, branch,
 // or Registry revision.
 func (c *Client) ListCurrentPlatformTargets(ctx context.Context) ([]ResolvedApprovedTarget, error) {
-	targetID, expectedOS, expectedArch, err := currentPlatformTarget(goruntime.GOOS, goruntime.GOARCH)
+	targetID, expectedOS, expectedArch, err := CurrentPlatformTarget()
 	if err != nil {
 		return nil, err
 	}
@@ -132,9 +132,18 @@ func (c *Client) ListCurrentPlatformTargets(ctx context.Context) ([]ResolvedAppr
 	return snapshot.ListVisible(ctx, targetID, expectedOS, expectedArch)
 }
 
+// CurrentPlatformTarget exposes this Runtime's implemented target to its own
+// package lifecycle. It accepts no caller-selected platform override.
+func CurrentPlatformTarget() (string, string, string, error) {
+	return currentPlatformTarget(goruntime.GOOS, goruntime.GOARCH)
+}
+
 func currentPlatformTarget(goos, goarch string) (string, string, string, error) {
 	if goos == "windows" && goarch == "amd64" {
 		return "windows-x86_64", "windows", "x86_64", nil
+	}
+	if goos == "darwin" && goarch == "arm64" {
+		return "macos-aarch64", "macos", "arm64", nil
 	}
 	return "", "", "", fmt.Errorf("public App Catalog is unavailable for %s/%s: %w", goos, goarch, ErrCatalogTargetNotFound)
 }

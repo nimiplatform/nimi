@@ -11,6 +11,10 @@ import {
   GetAgentPresentationAssetResponse,
   ResolveLocalAppAvatarHostTargetRequest,
   ResolveLocalAppAvatarHostTargetResponse,
+  TranscribeLocalAppConversationVoiceRequest,
+  TranscribeLocalAppConversationVoiceResponse,
+  UploadLocalAppConversationAttachmentRequest,
+  UploadLocalAppConversationAttachmentResponse,
 } from '../../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/agent_service.js';
 import {
   GetLocalAppScenarioJobRequest,
@@ -69,6 +73,76 @@ function control(profile: 'desktop' | 'avatar') {
 }
 
 describe('Electron formal App local host', () => {
+  it.each([false, true])('cancels only the owning sender transcription (dispose: %s)', async (dispose) => {
+    let markStarted!: () => void;
+    const started = new Promise<void>((resolve) => { markStarted = resolve; });
+    const signals: AbortSignal[] = [];
+    const unary = vi.fn(async (input: { signal?: AbortSignal }) => {
+      expect(input.signal).toBeDefined();
+      const signal = input.signal!;
+      signals.push(signal);
+      markStarted();
+      return new Promise<Uint8Array>((_resolve, reject) => {
+        signal.addEventListener('abort', () => reject(new Error('transcription aborted')), { once: true });
+      });
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({
+      profile: 'desktop', appId: 'nimi.desktop',
+      control: { accountProductUnary: unary } as unknown as NimiElectronDesktopControlHost,
+    });
+    const scope = owner.createResourceScope();
+    try {
+      const pending = scope.host.conversationVoiceTranscribe({
+        agentHandle: `agent_ref_${'A'.repeat(43)}`, conversationAnchorId: 'anchor-1',
+        requestId: 'recording-1', mimeType: 'audio/webm', audioBytes: [1, 2, 3],
+      });
+      const rejected = expect(pending).rejects.toThrow();
+      await started;
+      await expect(owner.host.conversationVoiceTranscribe({ action: 'cancel', requestId: 'recording-1' }))
+        .resolves.toEqual({ canceled: false });
+      expect(signals[0]?.aborted).toBe(false);
+      if (dispose) await scope.dispose();
+      else await expect(scope.host.conversationVoiceTranscribe({ action: 'cancel', requestId: 'recording-1' }))
+        .resolves.toEqual({ canceled: true });
+      await rejected;
+      expect(signals[0]?.aborted).toBe(true);
+    } finally {
+      await owner.dispose();
+    }
+  });
+
+  it.each(['desktop', 'avatar'] as const)('converts %s Conversation binary payloads from IPC arrays to SDK bytes', async (profile) => {
+    const handle = `agent_ref_${'A'.repeat(43)}`;
+    const unary = vi.fn(async (input: { methodId: string; requestBytes: Uint8Array }) => {
+      if (input.methodId.endsWith('/TranscribeLocalAppConversationVoice')) {
+        const request = TranscribeLocalAppConversationVoiceRequest.fromBinary(input.requestBytes);
+        expect(request.audioBytes).toEqual(Uint8Array.from([1, 2, 3]));
+        expect(request.mimeType).toBe('audio/webm;codecs=opus');
+        return TranscribeLocalAppConversationVoiceResponse.toBinary({ text: 'spoken input' });
+      }
+      const request = UploadLocalAppConversationAttachmentRequest.fromBinary(input.requestBytes);
+      expect(request.data).toEqual(Uint8Array.from([4, 5, 6]));
+      expect(request.mimeType).toBe('image/png');
+      return UploadLocalAppConversationAttachmentResponse.toBinary({ artifactId: 'image-1', expiresAt: '2026-09-10T00:00:00Z' });
+    });
+    const owner = createNimiElectronFormalAppLocalHostOwner({
+      profile, appId: profile === 'desktop' ? 'nimi.desktop' : 'nimi.avatar',
+      control: { accountProductUnary: unary, bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost,
+    });
+    try {
+      await expect(owner.host.conversationVoiceTranscribe({
+        agentHandle: handle, conversationAnchorId: 'anchor-1', requestId: 'recording-1',
+        mimeType: 'audio/webm;codecs=opus', audioBytes: [1, 2, 3],
+      })).resolves.toEqual({ text: 'spoken input' });
+      await expect(owner.host.conversationAttachmentUpload({
+        agentHandle: handle, conversationAnchorId: 'anchor-1', mimeType: 'image/png', bytes: [4, 5, 6],
+      })).resolves.toMatchObject({ artifactId: 'image-1' });
+      expect(unary).toHaveBeenCalledTimes(2);
+    } finally {
+      await owner.dispose();
+    }
+  });
+
   it.each([
     ['desktop', 'nimi.desktop'],
     ['avatar', 'nimi.avatar'],
@@ -251,6 +325,40 @@ describe('Electron formal App local host', () => {
       '/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession',
       '/nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession',
     ]);
+  });
+
+  it.each([
+    ['desktop', 'nimi.desktop'],
+    ['avatar', 'nimi.avatar'],
+  ] as const)('maintains an active %s session without closing valid resources', async (profile, appId) => {
+    vi.useFakeTimers();
+    const runtime = control(profile);
+    const owner = createNimiElectronFormalAppLocalHostOwner({ profile, appId, control: runtime.host });
+    try {
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1_000);
+      expect(runtime.calls).toEqual([]);
+      await owner.host.sessionStatus();
+      const write = await owner.host.assetWriteOpen({
+        relativePath: 'pending/session-renewal.bin', mediaType: 'application/octet-stream', overwrite: false,
+      });
+
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1_000);
+      expect(runtime.calls.filter((method) => method.endsWith('/RenewLocalAppSession'))).toHaveLength(1);
+      await expect(owner.host.assetWriteChunk({ streamId: write.streamId, bodyChunk: Uint8Array.from([1]) }))
+        .resolves.toBeDefined();
+
+      await owner.host.renewTechnicalSession();
+      await expect(owner.host.assetWriteChunk({ streamId: write.streamId, bodyChunk: Uint8Array.from([2]) }))
+        .resolves.toBeDefined();
+      await owner.dispose();
+      await expect(owner.host.assetWriteChunk({ streamId: write.streamId, bodyChunk: Uint8Array.from([3]) }))
+        .rejects.toBeDefined();
+      await vi.advanceTimersByTimeAsync(5 * 60 * 1_000);
+      expect(runtime.calls.filter((method) => method.endsWith('/RenewLocalAppSession'))).toHaveLength(2);
+    } finally {
+      await owner.dispose();
+      vi.useRealTimers();
+    }
   });
 
   it('renews the bundled Avatar formal session once and retries a read-only bootstrap operation', async () => {

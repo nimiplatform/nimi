@@ -56,5 +56,10 @@ export function rendererUrlsEqualExact(left: string | undefined, right: string |
 
 export function rendererOriginFromUrl(value: string): string {
   const parsed = new URL(value);
-  return parsed.protocol === 'file:' ? 'file://' : parsed.origin;
+  if (parsed.protocol === 'file:') return 'file://';
+  // Node's URL parser does not know the standard schemes registered in
+  // Electron. Their renderer origin still includes the exact scheme and host.
+  return parsed.origin === 'null' && parsed.host
+    ? `${parsed.protocol}//${parsed.host}`
+    : parsed.origin;
 }

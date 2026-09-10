@@ -80,6 +80,9 @@ export type {
   NimiClientConfig,
   NimiLocalAppClient,
   NimiLocalAppScenarioJobSpec,
+  NimiLocalAppExecutionInterruption,
+  NimiLocalAppVisionLocateResult,
+  NimiLocalAppVisionLocation,
   NimiLocalAppTextTurnEvent,
 } from '@nimiplatform/sdk';
 export {

@@ -26,7 +26,7 @@ export function createStudioRunTargetSummary(input: {
     profileOrigin: null,
   } as const;
 
-  if (capability.execution === 'standalone-tauri') {
+  if (capability.execution === 'standalone-electron') {
     throw new Error('Standalone capability run targets must be projected by an app-specific host adapter.');
   }
   if (capability.execution === 'typed-unavailable' || !capabilityContract) {

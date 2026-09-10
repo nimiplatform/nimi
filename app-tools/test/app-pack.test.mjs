@@ -14,8 +14,78 @@ import {
   writeNimiAppArchive,
 } from '../lib/app-pack.mjs';
 import { observeWindowsExecutableFacts, windowsPowerShellEnv } from '../lib/windows-powershell.mjs';
+import { classifyMacOSNativeTrustObservation, inspectMacOSMachO, observeMacOSExecutableFacts } from '../lib/macos-native.mjs';
+import { SYMBOLIC_LINK_MODE, validatePayloadLinks } from '../lib/payload-links.mjs';
 
 const WINDOWS_X86_64 = process.platform === 'win32' && process.arch === 'x64';
+
+test('macOS framework links retain their ZIP type and resolve within the immutable payload', () => {
+  const entries = [
+    { name: 'payload/App.app/Contents/Frameworks/F.framework/Versions/A/F', bytes: Buffer.from('framework'), mode: 0o755 },
+    { name: 'payload/App.app/Contents/Frameworks/F.framework/Versions/Current', bytes: Buffer.from('A'), mode: SYMBOLIC_LINK_MODE },
+    { name: 'payload/App.app/Contents/Frameworks/F.framework/F', bytes: Buffer.from('Versions/Current/F'), mode: SYMBOLIC_LINK_MODE },
+  ];
+  const decoded = readNimiAppArchive(writeNimiAppArchive(entries));
+  validatePayloadLinks(decoded, 'macos');
+  assert.equal(decoded.get(entries[1].name).mode, SYMBOLIC_LINK_MODE);
+  assert.throws(() => validatePayloadLinks(decoded, 'windows'), /not admitted/u);
+  decoded.set(entries[1].name, { bytes: Buffer.from('../../../../../../outside'), mode: SYMBOLIC_LINK_MODE });
+  assert.throws(() => validatePayloadLinks(decoded, 'macos'), /escapes/u);
+  decoded.set(entries[1].name, { bytes: Buffer.from('Current'), mode: SYMBOLIC_LINK_MODE });
+  assert.throws(() => validatePayloadLinks(decoded, 'macos'), /Cyclic/u);
+});
+
+test('macOS absence never downgrades invalid or contradictory publisher identity', () => {
+  const absence = { posture: 'production-unsigned', macos_developer_id: 'absent', macos_notarization: 'absent', certificate_subject: null };
+  for (const signature of ['absent', 'ad-hoc']) {
+    assert.deepEqual(classifyMacOSNativeTrustObservation({ signature, certificateSubject: null, notarization: 'absent' }), absence);
+  }
+  assert.throws(() => classifyMacOSNativeTrustObservation({ signature: 'invalid', certificateSubject: null, notarization: 'absent' }), /invalid or unresolved/u);
+  assert.throws(() => classifyMacOSNativeTrustObservation({ signature: 'ad-hoc', certificateSubject: 'Publisher', notarization: 'absent' }), /contradictory/u);
+  assert.throws(() => inspectMacOSMachO(Buffer.from('not a Mach-O')), /Mach-O/u);
+});
+
+test('production macOS pack observes a real ad-hoc bundle and rejects tampering', { skip: process.platform !== 'darwin' || process.arch !== 'arm64' }, () => {
+  const root = fixture();
+  try {
+    const bundle = path.join(root, 'build', 'macos', 'Example.app');
+    const contents = path.join(bundle, 'Contents');
+    const binary = path.join(contents, 'MacOS', 'example-app');
+    mkdirSync(path.dirname(binary), { recursive: true });
+    mkdirSync(path.join(contents, 'Resources'), { recursive: true });
+    writeFileSync(path.join(root, 'main.c'), 'int main(void) { return 0; }\n');
+    writeFileSync(path.join(contents, 'Info.plist'), '<?xml version="1.0"?><plist version="1.0"><dict><key>CFBundleIdentifier</key><string>example.app</string><key>CFBundleExecutable</key><string>example-app</string><key>CFBundlePackageType</key><string>APPL</string></dict></plist>');
+    writeFileSync(path.join(contents, 'Resources', 'resource.txt'), 'original');
+    for (const [command, args] of [
+      ['/usr/bin/xcrun', ['clang', '-arch', 'arm64', path.join(root, 'main.c'), '-o', binary]],
+      ['/usr/bin/codesign', ['--force', '--sign', '-', bundle]],
+    ]) {
+      const result = spawnSync(command, args, { encoding: 'utf8' });
+      assert.equal(result.status, 0, result.stderr);
+    }
+    const facts = observeMacOSExecutableFacts(binary);
+    assert.equal(facts.nativeTrust.posture, 'production-unsigned');
+    assert.deepEqual(facts.executionProfile, { launch_mode: 'current-user' });
+    writeFileSync(path.join(root, '.nimi', 'config', 'build-profile.yaml'), [
+      'build_profile_ref: electron-packager-pnpm-vite',
+      'targets:',
+      '  macos-aarch64:',
+      '    os: macos',
+      '    arch: arm64',
+      '    payload_path: build/macos',
+      '    runtime_entry: payload/Example.app/Contents/MacOS/example-app',
+      '',
+    ].join('\n'));
+    const packed = packAppTarget(root, { target: 'macos-aarch64', production: true });
+    assert.ok(packed);
+    const aggregate = aggregateAppTargetCandidates(root);
+    assert.ok(aggregate);
+    writeFileSync(path.join(contents, 'Resources', 'resource.txt'), 'tampered');
+    assert.throws(() => observeMacOSExecutableFacts(binary), /verification failed/u);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test('Windows PowerShell child processes do not inherit PowerShell 7 module paths', () => {
   const env = windowsPowerShellEnv(
@@ -479,7 +549,8 @@ test('pack fails when runtime entry is absent and never invents cross-target out
     const profilePath = path.join(root, '.nimi', 'config', 'build-profile.yaml');
     writeFileSync(profilePath, readFileSync(profilePath, 'utf8').replace('payload/example-app.exe', 'payload/missing.exe'));
     assert.throws(() => packAppTarget(root, { target: 'windows-x86_64' }), /runtime_entry is missing/u);
-    assert.throws(() => packAppTarget(root, { target: 'macos-aarch64' }), /Unsupported App package target/u);
+    assert.throws(() => packAppTarget(root, { target: 'macos-aarch64' }), /Build profile does not declare target/u);
+    assert.throws(() => packAppTarget(root, { target: 'linux-x86_64' }), /Unsupported App package target/u);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

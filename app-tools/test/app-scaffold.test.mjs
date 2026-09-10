@@ -350,9 +350,9 @@ test('Electron production maps exact App SemVer to bounded Windows resource meta
 
   assert.equal(packageJson.version, appVersion, 'package metadata must retain the exact product SemVer');
   assert.match(packagerSource, /const APP_VERSION = appPackage\.version;/u);
-  assert.match(packagerSource, /const WINDOWS_RESOURCE_VERSION = resolveWindowsResourceVersion\(APP_VERSION\);/u);
-  assert.match(packagerSource, /appVersion: WINDOWS_RESOURCE_VERSION,/u);
-  assert.match(packagerSource, /buildVersion: WINDOWS_RESOURCE_VERSION,/u);
+  assert.match(packagerSource, /const RESOURCE_VERSION = MACOS_BUILD \? APP_VERSION : resolveWindowsResourceVersion\(APP_VERSION\);/u);
+  assert.match(packagerSource, /appVersion: RESOURCE_VERSION,/u);
+  assert.match(packagerSource, /buildVersion: RESOURCE_VERSION,/u);
   assert.match(packagerSource, /afterInitialize: \[async \(\{ buildPath \}\) => \{/u);
   assert.match(packagerSource, /packagedManifest\.version = APP_VERSION;/u);
 });
@@ -502,12 +502,12 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.match(electronProductionPackager, /const productionSourceRoot = path\.join\(stagingRoot, 'app'\)/);
     assert.match(electronProductionPackager, /tmpdir: packagerTempRoot/);
     assert.doesNotMatch(electronProductionPackager, /\.nimi['"], ['"]local['"], ['"]electron-packager-stage/);
-    assert.match(electronProductionPackager, /platform: 'win32'/);
-    assert.match(electronProductionPackager, /arch: 'x64'/);
+    assert.match(electronProductionPackager, /platform: NATIVE_PLATFORM/);
+    assert.match(electronProductionPackager, /arch: NATIVE_ARCH/);
     assert.match(electronProductionPackager, /asar: false/);
     assert.match(electronProductionPackager, /name: APP_EXECUTABLE_NAME/);
     assert.match(electronProductionPackager, /executableName: APP_EXECUTABLE_NAME/);
-    assert.match(electronProductionPackager, /Kit does not declare the windows-x64 protected native binding as optional/);
+    assert.match(electronProductionPackager, /Kit does not declare the current-platform protected native binding as optional/);
     assert.match(electronProductionPackager, /pnpm install --prod --frozen-lockfile --ignore-scripts --node-linker=hoisted/);
     assert.match(electronProductionPackager, /dir: productionSourceRoot/);
     assert.match(electronProductionPackager, /prune: false/);

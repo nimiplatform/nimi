@@ -15,7 +15,7 @@ use crate::generated::{
     AiConfigLocalLoadoutOptionsQuery, AiConfigLocalResourceProjection,
     AppAiConfigPresetVoiceOption, AppAiConfigPresetVoiceOptionsQuery,
     CapabilityImplementationIdentity, GetAppAiConfigRequest, ListAppAiConfigOptionsRequest,
-    LocalCapabilityReason, OverwriteAppAiConfigRequest, ReasonCode,
+    LocalCapabilityReason, OverwriteAppAiConfigRequest, OverwriteAppAiConfigResponse, ReasonCode,
     TextBehaviorCapabilityProjection, TextBehaviorConfigurationState, TextBehaviorKind,
     ToolChoiceMode, ToolSpecKind, ToolUseCapabilityProjection,
 };
@@ -67,19 +67,33 @@ pub async fn overwrite(
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
+    project_overwrite_response(response)
+}
+
+// @nimi-authority: rule.nimi.sdks.feature-clients.r014
+fn project_overwrite_response(
+    response: OverwriteAppAiConfigResponse,
+) -> Result<JsonValue, LocalAppOperationError> {
     if response.revision.trim().is_empty() {
         return Err(untrusted());
     }
     let config = response.config.map(project_config).transpose()?;
     let reason = ReasonCode::try_from(response.reason_code).map_err(|_| untrusted())?;
-    if response.committed && reason != ReasonCode::Unspecified {
-        return Err(untrusted());
+    if response.committed {
+        if reason != ReasonCode::Unspecified || config.is_none() {
+            return Err(untrusted());
+        }
+        return Ok(json!({
+            "outcome": "committed",
+            "config": config,
+            "revision": response.revision,
+        }));
     }
-    if !response.committed && reason != ReasonCode::AiConfigRevisionConflict {
+    if reason != ReasonCode::AiConfigRevisionConflict {
         return Err(untrusted());
     }
     Ok(json!({
-        "outcome": if response.committed { "committed" } else { "conflict" },
+        "outcome": "conflict",
         "config": config,
         "revision": response.revision,
         "reasonCode": reason.as_str_name(),
@@ -787,6 +801,68 @@ fn untrusted() -> LocalAppOperationError {
 mod tests {
     use super::*;
     use crate::generated::{AiConfigAppOwner, AiConfigOwner};
+
+    fn overwrite_response() -> OverwriteAppAiConfigResponse {
+        OverwriteAppAiConfigResponse {
+            committed: true,
+            config: Some(AiConfig {
+                owner: Some(AiConfigOwner {
+                    owner: Some(ai_config_owner::Owner::App(AiConfigAppOwner {
+                        app_id: "app.example".to_string(),
+                    })),
+                }),
+                capabilities: vec![],
+            }),
+            revision: "r2".to_string(),
+            reason_code: ReasonCode::Unspecified as i32,
+        }
+    }
+
+    #[test]
+    fn overwrite_acknowledgement_preserves_the_public_committed_and_conflict_shapes() {
+        let response = overwrite_response();
+        let config = project_config(response.config.clone().unwrap()).unwrap();
+        assert_eq!(
+            project_overwrite_response(response).unwrap(),
+            json!({"outcome": "committed", "config": config, "revision": "r2"}),
+        );
+        let conflict = OverwriteAppAiConfigResponse {
+            committed: false,
+            reason_code: ReasonCode::AiConfigRevisionConflict as i32,
+            ..overwrite_response()
+        };
+        assert_eq!(
+            project_overwrite_response(conflict).unwrap(),
+            json!({
+                "outcome": "conflict", "config": config, "revision": "r2",
+                "reasonCode": "AI_CONFIG_REVISION_CONFLICT",
+            }),
+        );
+    }
+
+    #[test]
+    fn overwrite_acknowledgement_rejects_contradictory_or_incomplete_results() {
+        for response in [
+            OverwriteAppAiConfigResponse {
+                reason_code: ReasonCode::AiConfigRevisionConflict as i32,
+                ..overwrite_response()
+            },
+            OverwriteAppAiConfigResponse {
+                config: None,
+                ..overwrite_response()
+            },
+            OverwriteAppAiConfigResponse {
+                revision: String::new(),
+                ..overwrite_response()
+            },
+            OverwriteAppAiConfigResponse {
+                committed: false,
+                ..overwrite_response()
+            },
+        ] {
+            assert!(project_overwrite_response(response).is_err());
+        }
+    }
 
     #[test]
     fn capability_round_trip_preserves_local_and_cloud_intent_without_owner_input() {

@@ -227,9 +227,12 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
             )}
             {activePage === 'profiles' && (
               <div data-testid={E2E_IDS.runtimePageRoot('profiles')} className="min-w-0">
-                <ProfileCatalogPage onOpenLoadouts={(capabilityContract) => model.onOpenLoadouts(
-                  capabilityContract ? { capabilityContract } : undefined,
-                )} />
+                <ProfileCatalogPage
+                  onOpenLoadouts={(capabilityContract) => model.onOpenLoadouts(
+                    capabilityContract ? { capabilityContract } : undefined,
+                  )}
+                  onOpenCloudConnectors={() => model.onChangePage('cloud')}
+                />
               </div>
             )}
             {activePage === 'modelMarket' && (

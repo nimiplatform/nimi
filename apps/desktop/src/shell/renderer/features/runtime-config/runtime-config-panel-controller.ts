@@ -131,6 +131,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
       recipeId: context.recipeId,
       recipeRevision: context.recipeRevision,
       slotId: context.slotId,
+      draft: context.draft,
     } : undefined);
   }, [modelMarketContext, onOpenLoadouts]);
 

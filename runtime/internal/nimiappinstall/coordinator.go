@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -138,6 +137,9 @@ func openPackageOwner(kernel *localappkernel.Kernel) (*Coordinator, error) {
 	}
 	if err := os.MkdirAll(filepath.Join(packagesPath, packageReleaseDirectory), 0o700); err != nil {
 		return nil, fmt.Errorf("create public App package release root: %w", err)
+	}
+	if err := preparePackageDirectories(packagesPath); err != nil {
+		return nil, err
 	}
 	packagesRoot, err := os.OpenRoot(packagesPath)
 	if err != nil {
@@ -411,7 +413,7 @@ func (coordinator *Coordinator) runInstallLocked(
 	}
 	job = advanced
 	packageExpected := packageExpectation(resolved)
-	nativeVerifier, err := nimiappnative.NewWindowsVerifier(nativeExpectation(resolved))
+	nativeVerifier, err := nativeVerifierForTarget(resolved)
 	if err != nil {
 		_ = jobRoot.Close()
 		return InstallResult{}, coordinator.failInstall(ctx, job, err, false)
@@ -489,7 +491,8 @@ func (coordinator *Coordinator) runInstallLocked(
 }
 
 func validateResolvedInstallTarget(resolved publicappregistry.ResolvedApprovedTarget) (string, error) {
-	if runtime.GOOS != "windows" || runtime.GOARCH != "amd64" {
+	_, expectedOS, expectedArch, platformErr := publicappregistry.CurrentPlatformTarget()
+	if platformErr != nil {
 		return "", ErrUnsupportedInstallPlatform
 	}
 	selectorText, err := resolved.Selector.Encode()
@@ -498,7 +501,7 @@ func validateResolvedInstallTarget(resolved publicappregistry.ResolvedApprovedTa
 		resolved.Selector.ObservedRegistryCommit() != resolved.RegistryRevision || resolved.KillSwitch.Active ||
 		resolved.Visibility != "public" || resolved.AppID == "" || resolved.DisplayName == "" || resolved.Version == "" ||
 		resolved.Package.Kind != "nimiapp" || resolved.Package.RuntimeKind != "native" || resolved.Package.RegistrationMode != "app-managed" ||
-		resolved.Target.OS != "windows" || resolved.Target.Arch != "x86_64" {
+		resolved.Target.OS != expectedOS || resolved.Target.Arch != expectedArch {
 		return "", fmt.Errorf("validate approved public App install target: %w", errors.Join(ErrInstallTarget, err))
 	}
 	return selectorText, nil
@@ -511,11 +514,29 @@ func packageExpectation(resolved publicappregistry.ResolvedApprovedTarget) nimia
 		OS: resolved.Target.OS, Arch: resolved.Target.Arch, RuntimeEntry: resolved.Target.RuntimeEntry,
 		AppAccess: append([]string(nil), resolved.AppAccess...), ExecutionProfileRef: resolved.Target.ExecutionProfileRef,
 		NativeTrust: nimiapppackage.ExpectedNativeTrust{
-			WindowsCodeSigning: resolved.Target.NativeTrust.WindowsCodeSigning,
-			SigningSubject:     cloneString(resolved.Target.NativeTrust.SigningSubject),
-			ObservedSubject:    cloneString(resolved.Target.NativeTrust.ObservedSubject),
+			WindowsCodeSigning:      resolved.Target.NativeTrust.WindowsCodeSigning,
+			SigningSubject:          cloneString(resolved.Target.NativeTrust.SigningSubject),
+			ObservedSubject:         cloneString(resolved.Target.NativeTrust.ObservedSubject),
+			MacOSNotarization:       resolved.Target.NativeTrust.MacOSNotarization,
+			MacOSDeveloperIDSubject: cloneString(resolved.Target.NativeTrust.MacOSDeveloperIDSubject),
 		},
 	}
+}
+
+func nativeVerifierForTarget(resolved publicappregistry.ResolvedApprovedTarget) (nimiapppackage.RuntimeEntryVerifier, error) {
+	if resolved.Target.OS == "macos" {
+		return nimiappnative.NewMacOSVerifier(nimiappnative.MacOSExpectation{
+			Arch: resolved.Target.Arch, ExecutionProfileRef: resolved.Target.ExecutionProfileRef,
+			SigningSubject:     cloneString(resolved.Target.NativeTrust.SigningSubject),
+			ObservedSubject:    cloneString(resolved.Target.NativeTrust.ObservedSubject),
+			DeveloperIDSubject: cloneString(resolved.Target.NativeTrust.MacOSDeveloperIDSubject),
+			Notarization:       resolved.Target.NativeTrust.MacOSNotarization,
+		})
+	}
+	if resolved.Target.OS == "windows" {
+		return nimiappnative.NewWindowsVerifier(nativeExpectation(resolved))
+	}
+	return nil, ErrUnsupportedInstallPlatform
 }
 
 func nativeExpectation(resolved publicappregistry.ResolvedApprovedTarget) nimiappnative.WindowsExpectation {

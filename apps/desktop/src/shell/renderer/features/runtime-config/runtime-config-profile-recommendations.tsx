@@ -19,6 +19,7 @@ const ALL_CAPABILITIES_FILTER = '__all_capabilities__';
 
 export function ProfileRecommendationsPage(props: {
   readonly onOpenLoadouts: (capabilityContract: string) => void;
+  readonly onOpenCloudConnectors: () => void;
 }) {
   const { t } = useTranslation();
   const client = useRuntimeConfigLocalEnvironmentClient();
@@ -61,7 +62,7 @@ export function ProfileRecommendationsPage(props: {
           </h3>
           <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">
             {t('runtimeConfig.profiles.recommendedDescription', {
-              defaultValue: 'Portable factory Profiles stay canonical. A capability filter changes only that capability’s host assessment.',
+              defaultValue: 'Compare portable AI setups for different uses. Compatibility does not mean models or cloud services are configured yet.',
             })}
           </p>
         </div>
@@ -79,19 +80,28 @@ export function ProfileRecommendationsPage(props: {
         />
       </Surface>
       {recommendations.isPending ? <p className="text-sm text-[var(--nimi-text-muted)]">{t('Common.loading', { defaultValue: 'Loading…' })}</p> : null}
-      {recommendations.isError ? <InlineAlert tone="danger">{t('runtimeConfig.profiles.recommendationsFailed', { defaultValue: 'Profile recommendations are unavailable.' })}</InlineAlert> : null}
+      {recommendations.isError ? (
+        <InlineAlert tone="danger">
+          <p>{t('runtimeConfig.profiles.recommendationsFailed', { defaultValue: 'Profile recommendations are unavailable.' })}</p>
+          <Button size="sm" className="mt-2" loading={recommendations.isFetching} onClick={() => { void recommendations.refetch(); }}>
+            {t('Common.retry', { defaultValue: 'Retry' })}
+          </Button>
+        </InlineAlert>
+      ) : null}
       {!recommendations.isPending && !recommendations.isError ? (
         <>
           <ProfileRecommendationGroup
             title={t('runtimeConfig.profiles.recommendedGroup', { defaultValue: 'Recommended' })}
             cards={supported}
             onOpenLoadouts={props.onOpenLoadouts}
+            onOpenCloudConnectors={props.onOpenCloudConnectors}
           />
           {unknown.length > 0 ? (
             <ProfileRecommendationGroup
               title={t('runtimeConfig.profiles.unknownGroup', { defaultValue: 'Needs host information' })}
               cards={unknown}
               onOpenLoadouts={props.onOpenLoadouts}
+              onOpenCloudConnectors={props.onOpenCloudConnectors}
             />
           ) : null}
           {unsupported.length > 0 ? (
@@ -99,6 +109,7 @@ export function ProfileRecommendationsPage(props: {
               title={t('runtimeConfig.profiles.unsupportedGroup', { defaultValue: 'Limited on this host' })}
               cards={unsupported}
               onOpenLoadouts={props.onOpenLoadouts}
+              onOpenCloudConnectors={props.onOpenCloudConnectors}
             />
           ) : null}
         </>
@@ -136,6 +147,7 @@ function ProfileRecommendationGroup(props: {
   readonly title: string;
   readonly cards: readonly ProfileRecommendationCard[];
   readonly onOpenLoadouts: (capabilityContract: string) => void;
+  readonly onOpenCloudConnectors: () => void;
 }) {
   if (props.cards.length === 0) return null;
   return (
@@ -146,23 +158,29 @@ function ProfileRecommendationGroup(props: {
           key={card.row.alias}
           card={card}
           onOpenLoadouts={props.onOpenLoadouts}
+          onOpenCloudConnectors={props.onOpenCloudConnectors}
         />
       ))}
     </section>
   );
 }
 
-function ProfileRecommendationCardView(props: {
+export function ProfileRecommendationCardView(props: {
   readonly card: ProfileRecommendationCard;
   readonly onOpenLoadouts: (capabilityContract: string) => void;
+  readonly onOpenCloudConnectors: () => void;
 }) {
   const { t } = useTranslation();
   const { row, recommendation } = props.card;
+  const offersLocalPlans = row.computePosture !== 'cloud-only';
+  const offersCloudSetup = row.routingPolicy === 'cloud-first' || row.routingPolicy === 'hybrid-explicit';
   return (
     <Surface tone="card" className="space-y-3 p-4" data-testid={`factory-profile:${row.alias}`}>
       <div>
         <h4 className="text-sm font-semibold text-[var(--nimi-text-primary)]">{profileAliasLabel(row.alias)}</h4>
-        <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{row.privacyPosture} · {row.computePosture} · {row.routingPolicy}</p>
+        <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">
+          {t(`runtimeConfig.profiles.routingSummary.${row.routingPolicy}`, { defaultValue: row.routingPolicy })}
+        </p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         {row.capabilitySet.map((capabilityContract) => {
@@ -181,14 +199,37 @@ function ProfileRecommendationCardView(props: {
                   </StatusBadge>
                 ) : null}
               </div>
-              {applicability?.reasons.length ? <p className="mt-1 font-mono text-xs text-[var(--nimi-text-muted)]">{applicability.reasons.join(' · ')}</p> : null}
-              <Button size="sm" tone="ghost" className="mt-2" onClick={() => props.onOpenLoadouts(capabilityContract)}>
-                {t('runtimeConfig.profiles.openLoadouts', { defaultValue: 'View capability plans' })}
-              </Button>
+              {applicability?.reasons.length ? (
+                <details className="mt-2 text-xs text-[var(--nimi-text-muted)]">
+                  <summary className="cursor-pointer">{t('runtimeConfig.profiles.technicalDetails')}</summary>
+                  <p className="mt-1 break-all font-mono">{applicability.reasons.join(' · ')}</p>
+                </details>
+              ) : null}
+              {offersLocalPlans ? (
+                <Button data-testid={`profile-local-plans:${row.alias}:${capabilityContract}`} size="sm" tone="ghost" className="mt-2" onClick={() => props.onOpenLoadouts(capabilityContract)}>
+                  {t('runtimeConfig.profiles.openLoadouts', { defaultValue: 'View local model setups' })}
+                </Button>
+              ) : null}
             </div>
           );
         })}
       </div>
+      {offersCloudSetup ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="min-w-0 flex-1 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.profiles.cloudConfigurationGuidance')}</p>
+          <Button data-testid={`profile-cloud-setup:${row.alias}`} size="sm" onClick={props.onOpenCloudConnectors}>
+            {t('runtimeConfig.profiles.openCloudConnectors')}
+          </Button>
+        </div>
+      ) : null}
+      <details className="text-xs text-[var(--nimi-text-muted)]">
+        <summary className="cursor-pointer">{t('runtimeConfig.profiles.technicalDetails')}</summary>
+        <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1">
+          <dt>{t('runtimeConfig.profiles.privacyPostureLabel')}</dt><dd className="break-all font-mono">{row.privacyPosture}</dd>
+          <dt>{t('runtimeConfig.profiles.computePostureLabel')}</dt><dd className="break-all font-mono">{row.computePosture}</dd>
+          <dt>{t('runtimeConfig.profiles.routingPolicyLabel')}</dt><dd className="break-all font-mono">{row.routingPolicy}</dd>
+        </dl>
+      </details>
     </Surface>
   );
 }

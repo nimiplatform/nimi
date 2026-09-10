@@ -10,11 +10,11 @@ the product, not to learn how the docs are organized.
 
 ## What docs/ Is For
 
-The docs site explains Nimi to humans:
-- What the platform is.
-- What each product inside the platform does.
-- How concepts (worlds, agents, contracts, ownership) fit together.
-- Concrete reader scenarios.
+The docs site primarily helps ecosystem developers build third-party Nimi Apps:
+- The prerequisites, commands, and results for creating and running an App.
+- How to use the public SDK, configure access, and diagnose real failures.
+- The concepts and ownership boundaries needed for the reader's current task.
+- The difference between local development, installation, access, and public distribution.
 - Source Basis links back to `.nimi/spec/**` for traceability.
 
 That's it. Readers don't need to read about how we govern our docs.
@@ -72,8 +72,9 @@ provider names / release dates, e.g.:
 - "中文文档不会发布尚未取得证据的安装命令..."
 - "What's Not Here Yet"
 
-The fact that those things aren't there is enough. Readers don't
-need an explanation for the absence.
+Omit commentary about the documentation process. Still state actual missing
+prerequisites, unavailable capabilities, platform limits, and release status
+when they affect the reader's next action; give the applicable next step.
 
 ### 5. Reading-style explanations
 
@@ -97,17 +98,19 @@ Just write the page well. Don't explain the writing style.
 
 ## Audience Calibration
 
-- **User-facing pages** (section index pages, Nimi Coding
-  paradigm narrative, Reader Scenarios across all pages, Start,
-  Glossary): tilt more conversational. Short sentences.
-  Plain language. Avoid governance jargon.
-- **Developer-facing pages** (SDK boundaries, kernel-anchored
-  sub-pages, Reference dictionary entries, Architecture
-  sub-tree): preserve technical precision. Drop only the
-  formal-shell overhead, not the technical content.
-- **Mixed pages** (Realm, Avatar, Cognition, Desktop): top
-  paragraphs more conversational; contract-listing tables
-  preserved as-is.
+- **Start and task guides:** help a developer reach the next real result.
+  Explain unfamiliar prerequisites where they matter, and keep commands aligned
+  with the public version the guide addresses. Do not substitute workspace
+  versions for released packages.
+- **SDK, API, architecture, and advanced configuration references:** preserve
+  technical precision, exact fields, errors, permissions, and ownership.
+  Technical vocabulary is useful when it serves the task.
+- **Product overviews:** explain purpose first, then link to the relevant
+  developer task or reference. Ordinary product download and usage information
+  can point to the public site without turning developer guides into marketing.
+- Distinguish learning a tool from a real toolchain dependency. The generated
+  App's nimicoding dependency and explicit initialization remain valid; they do
+  not require the reader to first study Nimi's internal governance workflow.
 
 ## Term Mapping (zh ↔ en)
 
@@ -170,53 +173,22 @@ module's `AGENTS.md`.
 
 The published `docs/` site stays focused on the reader.
 
-## Translation-Tic Anti-Patterns (zh writers)
+## Chinese Writing Review
 
-zh content must read as native original Chinese, not as
-sentence-by-sentence translation of en source. The patterns below
-are **forbidden** in body prose and are detectable via grep. Any Chinese
-documentation change that claims original writing must include the
-T-suite grep output as verification evidence.
+Write natural Chinese while preserving the English page's facts and canonical
+authority. Check whether the intended reader can follow the instructions and
+understand the result. Keep technical terms when the developer needs them.
 
-### Strict-zero patterns (target = 0 hits across docs/zh/**)
+Literal translations such as software being “发货”, awkward “被……拥有的”
+phrases, or repeated English sentence structures are useful editing clues.
+Judge them in their actual sentence; the presence of a word or punctuation
+pattern does not establish a defect.
 
-| ID | Regex | What it indicates | Rewrite around |
-| --- | --- | --- | --- |
-| T1 | `发货\|出货` | "ships as / ships with" forced onto software distribution | "以 ... 形式分发", "公开为 ...", "装到任何仓库", "可独立装的 npm 包", direct rewrite |
-| T3 | `落到\|落地为\|落地在` | "lands at / lands as / lands on" verb calque | "落在 ... 里", "归在 ...", direct rewrite |
-| T4 | `跟着[^，。\s]{0,15}走` | "follows X / follows along with X" | "按 X 来", "顺着 X", direct rewrite |
-| T6 | `叫 done\|就 done\|叫做 done` | "calls it done" mid-sentence English token | "算完成", "就算 done 了 → 就算了完事", direct rewrite |
-| T8 | `被[^，。\s]{1,15}拥有的` | "owned by X" English relative clause direct render | "X 拥有的 Y" (drop the 被), or rewrite |
+Use a lexical search only when it helps resolve a wording issue in the current
+changed passages. There is no site-wide zero-hit target, count threshold,
+unrelated-page cleanup, mandatory T-suite output, or per-hit justification
+report. A claim of original Chinese does not require a grep receipt.
 
-### Soft-target patterns (target reduced; remaining hits enumerated and justified)
-
-| ID | Regex | What it indicates | Notes |
-| --- | --- | --- | --- |
-| T2 | `被[^，。；！？\s]{1,15}为` | "is admitted as / is treated as / is recognized as" | Some legitimate technical uses survive ("被准入为" in contract context); enumerate remaining hits in closeout |
-| T5 | `把[^，。；！？\s]{1,20}(当作\|作为)` | "treats X as Y" verb-as-Z complement | Target ≤ 5 across docs/zh/; each remaining hit must be deliberate |
-| T7 | ` — ` (em-dash count per page > 10) | Anglo punctuation density | Reduce to ≤ 10 per page unless table content justifies more |
-| T9 | leading `^[^，。]{1,30}之前\b` | English temporal clause fronting | 0 in narrative prose; table cells acceptable |
-
-### Mid-strength patterns (advisory; reduce density)
-
-| ID | Regex | Indicates |
-| --- | --- | --- |
-| T10 | `主张[很\|是]?简单` | "the claim is simple" rhetorical opener |
-| T11 | `跑个 [^，。]+测试\|跑过 [^，。]+测试` | "run a test" verb-particle calque (acceptable in some dev contexts; reduce blanket use) |
-| T12 | `这个模型崩\|这条路崩` | "this model breaks down" → 崩 calque |
-| T13 | `就[^，。]{1,10}叫\b` | "just call X" colloquial calque |
-
-### What this section governs
-
-zh content is original Chinese, not sentence-by-sentence translation
-of en. Facts must stay consistent with `.nimi/spec/**` and the en
-source. When the en source uses a sentence shape that maps awkwardly
-into Chinese, the zh page must rewrite around it, not transliterate.
-Em-dash insertions are a soft signal: occasional use is fine, but a
-page with more than 10 em-dashes is almost always a sign of direct
-porting from en.
-
-A change that claims "原创中文" or "B 中文原创" must include the T-suite
-grep output in its verification record. The record must enumerate any
-soft-target pattern hits with per-hit justification. A claim without
-grep evidence is a `placeholder_success` shortcut and is not accepted.
+Missing lexical output is not pseudo-success. Verify factual accuracy,
+applicable commands, and the affected reader task; report unexecuted paths
+honestly. Lexical checks can assist this judgment but never replace it.

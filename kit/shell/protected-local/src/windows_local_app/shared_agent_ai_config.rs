@@ -8,7 +8,8 @@ use crate::generated::{
     AiConfigLocalLoadoutOptionsQuery, GetLocalAppSharedLocalAgentAiConfigRequest,
     ListLocalAppSharedLocalAgentAiConfigOptionsRequest, LocalAgentCapabilityParticipation,
     LocalAgentCapabilityParticipationRole, LocalAppSharedLocalAgentAiConfigProjection,
-    OverwriteLocalAppSharedLocalAgentAiConfigRequest, ReasonCode,
+    OverwriteLocalAppSharedLocalAgentAiConfigRequest,
+    OverwriteLocalAppSharedLocalAgentAiConfigResponse, ReasonCode,
     SharedLocalAgentPresetVoiceOption, SharedLocalAgentPresetVoiceOptionsQuery,
     SharedLocalAgentVoiceAssetOption, SharedLocalAgentVoiceAssetOptionsQuery,
 };
@@ -47,6 +48,13 @@ pub(super) async fn overwrite(
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
+    project_overwrite_response(response)
+}
+
+// @nimi-authority: definition.nimi.platform.app-ecosystem.agent-configuration-operation-family
+fn project_overwrite_response(
+    response: OverwriteLocalAppSharedLocalAgentAiConfigResponse,
+) -> Result<JsonValue, LocalAppOperationError> {
     let projection = response.projection.ok_or_else(untrusted)?;
     let reason = ReasonCode::try_from(response.reason_code).map_err(|_| untrusted())?;
     if response.committed && reason != ReasonCode::Unspecified {
@@ -57,14 +65,20 @@ pub(super) async fn overwrite(
     }
     let snapshot = project_snapshot(projection)?;
     let object = snapshot.as_object().ok_or_else(untrusted)?;
-    Ok(json!({
+    let config = object.get("config").cloned().ok_or_else(untrusted)?;
+    if response.committed && config.is_null() {
+        return Err(untrusted());
+    }
+    let mut result = json!({
         "outcome": if response.committed { "committed" } else { "conflict" },
-        "config": object.get("config").cloned().unwrap_or(JsonValue::Null),
+        "config": config,
         "revision": object.get("revision").cloned().ok_or_else(untrusted)?,
-        "effectiveSelections": object.get("effectiveSelections").cloned().ok_or_else(untrusted)?,
         "participation": object.get("participation").cloned().ok_or_else(untrusted)?,
-        "reasonCode": reason.as_str_name(),
-    }))
+    });
+    if !response.committed {
+        result["reasonCode"] = json!(reason.as_str_name());
+    }
+    Ok(result)
 }
 
 pub(super) async fn list_local_options(
@@ -316,6 +330,82 @@ fn project_config(config: AiConfig) -> Result<JsonValue, LocalAppOperationError>
 mod tests {
     use super::*;
     use crate::generated::{AiConfigOwner, AiConfigRuntimeLocalAgentSubsystemOwner};
+
+    #[test]
+    fn shared_overwrite_matches_the_sdk_commit_and_conflict_contract() {
+        let projection = LocalAppSharedLocalAgentAiConfigProjection {
+            config: Some(AiConfig {
+                owner: Some(AiConfigOwner {
+                    owner: Some(ai_config_owner::Owner::RuntimeLocalAgentSubsystem(
+                        AiConfigRuntimeLocalAgentSubsystemOwner {},
+                    )),
+                }),
+                capabilities: Vec::new(),
+            }),
+            revision: "2".to_string(),
+            effective_selections: Vec::new(),
+            participation: [
+                (
+                    LocalAgentCapabilityParticipationRole::ConversationPrimary,
+                    "text.generate",
+                ),
+                (
+                    LocalAgentCapabilityParticipationRole::MemoryEmbedding,
+                    "text.embed",
+                ),
+                (
+                    LocalAgentCapabilityParticipationRole::ConversationInputVoice,
+                    "audio.transcribe",
+                ),
+                (
+                    LocalAgentCapabilityParticipationRole::ConversationOutputVoice,
+                    "audio.synthesize",
+                ),
+                (
+                    LocalAgentCapabilityParticipationRole::ConversationRealtime,
+                    "realtime.interact",
+                ),
+                (
+                    LocalAgentCapabilityParticipationRole::ConversationActionImage,
+                    "image.generate",
+                ),
+            ]
+            .into_iter()
+            .map(|(role, capability)| LocalAgentCapabilityParticipation {
+                role: role.into(),
+                capability_contract: capability.to_string(),
+            })
+            .collect(),
+        };
+        for (committed, reason) in [
+            (true, ReasonCode::Unspecified),
+            (false, ReasonCode::AgentAiConfigRevisionConflict),
+        ] {
+            let result =
+                project_overwrite_response(OverwriteLocalAppSharedLocalAgentAiConfigResponse {
+                    projection: Some(projection.clone()),
+                    committed,
+                    reason_code: reason.into(),
+                })
+                .expect("canonical overwrite result");
+            assert_eq!(
+                result["outcome"],
+                if committed { "committed" } else { "conflict" }
+            );
+            assert_eq!(result["revision"], "2");
+            assert_eq!(result["participation"].as_array().unwrap().len(), 6);
+            assert_eq!(
+                result.as_object().unwrap().len(),
+                if committed { 4 } else { 5 }
+            );
+            assert!(result.get("effectiveSelections").is_none());
+            if committed {
+                assert!(result.get("reasonCode").is_none());
+            } else {
+                assert_eq!(result["reasonCode"], "AGENT_AI_CONFIG_REVISION_CONFLICT");
+            }
+        }
+    }
 
     #[test]
     fn shared_projection_uses_only_the_fixed_subsystem_owner_marker() {

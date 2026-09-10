@@ -141,7 +141,8 @@ func TestFormalDesktopAppUsesRegisteredReleaseSessionAndEffectiveAccess(t *testi
 	}
 	renewedDecision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(renewedAuthorized)
 	if !ok || renewedDecision.RegisteredAppSubject != decision.RegisteredAppSubject ||
-		renewedDecision.SessionID == (protectedlocal.Identifier{}) || renewedDecision.SessionID == decision.SessionID {
+		renewedDecision.SessionID == (protectedlocal.Identifier{}) || renewedDecision.SessionID != decision.SessionID ||
+		renewedDecision.ExpiresAt.Before(decision.ExpiresAt) {
 		t.Fatalf("renewed built-in Desktop decision = %+v ok=%v, first = %+v", renewedDecision, ok, decision)
 	}
 	registration, err := kernel.Registrations().GetActiveByBindingSlot(ctx, protectedlocal.DesktopAccountProductProfileID)

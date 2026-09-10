@@ -17,6 +17,7 @@ type macOSCodePolicy struct {
 	requireAdHoc         bool
 	requireTrustedAnchor bool
 	requireNotarization  bool
+	ordinaryInstalled    bool
 }
 
 func (policy macOSCodePolicy) validate() error {

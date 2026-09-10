@@ -105,10 +105,12 @@ test('local environment service submits only the capability contract to Runtime'
     'text.generate',
     'text.embed',
     'image.generate',
+    'vision.locate',
     'video.generate',
     'audio.synthesize',
     'audio.transcribe',
     'voice.create',
+    'music.generate',
   ] as const;
   const requests: unknown[] = [];
 
@@ -137,6 +139,7 @@ test('Desktop Local AI environment includes the embedding capability in its real
       'text.generate',
       'text.embed',
       'image.generate',
+      'vision.locate',
       'video.generate',
       'audio.synthesize',
       'audio.transcribe',

@@ -28,6 +28,11 @@ function manualChunks(id: string) {
   if (normalized.includes('/node_modules/three/')) {
     return 'vendor-three';
   }
+  if (normalized.includes('/node_modules/@sparkjsdev/spark/')) {
+    // Spark embeds its WASM and decoder workers. Keep the on-demand viewer
+    // dependency under its own size budget instead of counting it as App code.
+    return 'vendor-spark';
+  }
   if (normalized.includes('/node_modules/@protobuf-ts/runtime/')) {
     return 'vendor-protobuf-ts';
   }

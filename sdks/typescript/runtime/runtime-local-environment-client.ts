@@ -174,6 +174,7 @@ export function createNimiRuntimeLocalEnvironmentClient(
     async searchCatalog(input) {
       const query = requireLocalText(input?.query, 'Runtime catalog query is required', 'provide_catalog_query');
       const items = [];
+      let huggingFaceUnavailable = false;
       let pageToken = '';
       const pageSize = normalizePageSize(input.pageSize);
       const maxPages = normalizeMaxPages(input.maxPages);
@@ -185,10 +186,14 @@ export function createNimiRuntimeLocalEnvironmentClient(
           pageToken,
         }, defaultCallOptions);
         items.push(...response.items.map(projectNimiRuntimeModelAssetSearchResult));
+        huggingFaceUnavailable ||= response.huggingFaceUnavailable;
         pageToken = normalizeText(response.nextPageToken);
         if (!pageToken) break;
       }
-      return dedupeBy(items, (item) => item.modelLocator);
+      return Object.freeze({
+        items: Object.freeze(dedupeBy(items, (item) => item.modelLocator)),
+        huggingFaceUnavailable,
+      });
     },
     async getCatalogModelCard(input) {
       const response = await resolveLocal().getCatalogModelCard({

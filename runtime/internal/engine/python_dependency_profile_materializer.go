@@ -793,6 +793,17 @@ func pythonDependencyProfileImportProbes(consumer string, identity PythonDepende
 	if err != nil {
 		return nil, err
 	}
+	if strings.TrimSpace(consumer) == VisionLocateConsumerID {
+		backend, err := visionPythonBackend(identity.PlatformTuple, identity.AcceleratorPlane)
+		if err != nil {
+			return nil, err
+		}
+		if backend == "mlx" {
+			packageManifest.ImportProbes = append(packageManifest.ImportProbes, "mlx", "mlx_vlm")
+		} else {
+			packageManifest.ImportProbes = append(packageManifest.ImportProbes, "peft", "cv2", "decord", "lmdb", "locateanything_loader.modeling_locateanything", "locateanything_loader.processing_locateanything")
+		}
+	}
 	if strings.TrimSpace(consumer) == "speech.voxcpm.python" {
 		switch {
 		case strings.HasPrefix(identity.SourceLabel, "speech-voxcpm-standard-"):
@@ -824,6 +835,9 @@ func pythonDependencyProfileImportProbes(consumer string, identity PythonDepende
 
 func verifyPythonDependencyProfileDriverBundle(root string, consumer string) error {
 	trimmedConsumer := strings.TrimSpace(consumer)
+	if trimmedConsumer == VisionLocateConsumerID {
+		return verifyVisionDriverBundle(root)
+	}
 	if strings.HasPrefix(trimmedConsumer, "speech.") {
 		return verifySpeechPipelineScripts(root, trimmedConsumer)
 	}
@@ -842,6 +856,9 @@ func pythonDependencyProfileDriverCommands(root string, consumer string) map[str
 
 func pythonDependencyProfileDriverScripts(root string, consumer string) []string {
 	trimmedConsumer := strings.TrimSpace(consumer)
+	if trimmedConsumer == VisionLocateConsumerID {
+		return []string{filepath.Join(strings.TrimSpace(root), "vision_server.py")}
+	}
 	if strings.HasPrefix(trimmedConsumer, "speech.") {
 		return speechDriverScriptsForConsumer(root, trimmedConsumer)
 	}

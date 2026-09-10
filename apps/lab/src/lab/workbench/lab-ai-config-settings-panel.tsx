@@ -35,12 +35,29 @@ function useLabModelConfigCopy(): ModelConfigCopy {
     backLabel: t('ModelConfig.backLabel'),
     detailTitle: (capabilityLabel: string) => t('ModelConfig.detailTitle', { capability: capabilityLabel }),
     activeModelLabel: t('ModelConfig.activeModelLabel'),
+    activeModelHint: t('ModelConfig.activeModelHint'),
+    activeModelConfiguredLabel: t('ModelConfig.activeModelConfiguredLabel'),
+    activeModelSetupPendingLabel: t('ModelConfig.activeModelSetupPendingLabel'),
+    modelPickerTitle: t('ModelConfig.modelPickerTitle'),
+    modelPickerSearchPlaceholder: t('ModelConfig.modelPickerSearchPlaceholder'),
+    modelPickerLoadingLabel: t('ModelConfig.modelPickerLoadingLabel'),
+    modelPickerEmptyLabel: t('ModelConfig.modelPickerEmptyLabel'),
+    cloudLabel: t('ModelConfig.cloudLabel'),
+    saveLocalLabel: t('ModelConfig.saveLabel'),
+    saveCloudLabel: t('ModelConfig.saveLabel'),
+    savingLabel: t('ModelConfig.savingLabel'),
+    saveFailed: t('ModelConfig.saveFailed'),
+    technicalDetailsLabel: t('ModelConfig.technicalDetailsLabel'),
+    cancelLabel: t('Common.cancel'),
+    confirmSelectionLabel: t('ModelConfig.confirmSelectionLabel'),
     clearLabel: t('ModelConfig.clearLabel'),
     clearingLabel: t('ModelConfig.clearingLabel'),
     conflictLabel: t('ModelConfig.conflictLabel'),
     conflictDescription: t('ModelConfig.conflictDescription'),
     conflictCurrentLabel: (revision: string, summary: string) => t('ModelConfig.conflictCurrentLabel', { revision, summary }),
     localLabel: t('ModelConfig.localLabel'),
+    localChoiceDescription: t('ModelConfig.localChoiceDescription'),
+    localMissingLabel: t('ModelConfig.localMissingLabel'),
     localSelectedLabel: t('ModelConfig.localSelectedLabel'),
     localBrokenLabel: t('ModelConfig.localBrokenLabel'),
     localUnavailableLabel: t('ModelConfig.localUnavailableLabel'),
@@ -71,7 +88,7 @@ export function LabAiConfigSettingsPanel({
   capabilityId,
 }: LabAiConfigSettingsPanelProps) {
   const rendererHost = useLabRendererHost();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const copy = useLabModelConfigCopy();
   const [snapshot, setSnapshot] = useState<NimiAIConfigSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -134,6 +151,7 @@ export function LabAiConfigSettingsPanel({
             });
           }}
           copy={copy}
+          language={i18n.language}
           headerSlot={(
             <div className="space-y-3">
               <StatusBadge tone={runtime?.status === 'connected' ? 'neutral' : 'warning'} shape="dot">

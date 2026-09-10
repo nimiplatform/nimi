@@ -2,6 +2,24 @@
 # parameters to exact slots projected by the versioned Driver dialect. It does
 # not own a second slot topology and never causes acquisition.
 loadout_recipes:
+  - recipe_id: locateanything.vision-locate.v1
+    revision: "1"
+    title: LocateAnything image localization
+    capability_contract: vision.locate
+    implementation_id: local.vision.locate.locateanything
+    driver_id: nimi.runtime.driver.locateanything
+    driver_dialect: locateanything/vision-locate/v1
+    default_options: {}
+    supported_features: []
+    custody: []
+    slot_metadata:
+      - slot_id: vision.model
+        display_label: LocateAnything model
+        recommended_variant_ids: [local.vision.locateanything.bf16.cuda, local.vision.locateanything.mixed-4-8.metal]
+        model_contract:
+          format: safetensors
+          model_type: locateanything
+          artifact_role: vision_model
   - recipe_id: llama.text-generate.gemma4.v1
     revision: "1"
     title: Gemma 4 text generation

@@ -122,7 +122,9 @@ export function RecommendPage(props: RecommendPageProps) {
 
   const featured = featuredQuery.data;
   const showSearch = normalizedQuery.length > 0;
-  const rawRows = showSearch ? searchQuery.data ?? [] : featured?.items ?? [];
+  const rawRows = showSearch ? searchQuery.data?.items ?? [] : featured?.items ?? [];
+  const queryFailed = showSearch ? searchQuery.isError : featuredQuery.isError;
+  const huggingFaceUnavailable = showSearch && Boolean(searchQuery.data?.huggingFaceUnavailable);
   const rows = filterModelMarketRows<NimiRuntimeModelAssetCatalogSearchResult | NimiRuntimeModelAssetMarketCandidate>(rawRows, author, license, sort);
   const authors = [...new Set(rawRows.map((row) => row.author).filter((value): value is string => Boolean(value)))].sort();
   const licenses = [...new Set(rawRows.map((row) => row.license).filter((value): value is string => Boolean(value)))].sort();
@@ -190,7 +192,14 @@ export function RecommendPage(props: RecommendPageProps) {
           })}
         </InlineAlert>
       ) : null}
-      {(showSearch ? searchQuery.isError : featuredQuery.isError) ? (
+      {huggingFaceUnavailable ? (
+        <InlineAlert tone="warning">
+          {t('runtimeConfig.recommend.hfSearchUnavailable', {
+            defaultValue: 'Hugging Face is unavailable. Search is limited to the local catalog.',
+          })}
+        </InlineAlert>
+      ) : null}
+      {queryFailed ? (
         <InlineAlert tone="danger">
           {showSearch
             ? t('runtimeConfig.recommend.searchFailed', { defaultValue: 'Catalog search failed.' })
@@ -203,7 +212,7 @@ export function RecommendPage(props: RecommendPageProps) {
       ) : (showSearch ? searchQuery.isPending : featuredQuery.isPending) ? (
         <ModelMarketLoadingState />
       ) : rows.length === 0 ? (
-        <Surface tone="card" className="border-dashed p-6 text-sm text-[var(--nimi-text-muted)]">
+        queryFailed || huggingFaceUnavailable ? null : <Surface tone="card" className="border-dashed p-6 text-sm text-[var(--nimi-text-muted)]">
           {showSearch
             ? t('runtimeConfig.recommend.noSearchResults', { defaultValue: 'No catalog models matched this query.' })
             : featured?.source.availability === 'available'
@@ -396,6 +405,9 @@ function MarketCandidateDetail(props: {
       await props.model.installResolvedModelPlan(plan);
       await queryClient.invalidateQueries({ queryKey: ['model-market'] });
       props.onBack();
+    } catch (reason) {
+      setPlan(null);
+      setError(errorMessage(reason));
     } finally {
       setBusy(false);
     }
@@ -495,6 +507,9 @@ function ContextualMarketDetail(props: {
         queryClient.invalidateQueries({ queryKey: ['model-market', 'featured'] }),
       ]);
       props.onBack();
+    } catch (error) {
+      setPlan(null);
+      setPlanError(errorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -581,7 +596,8 @@ function ApplicabilityNotice(props: {
   );
 }
 
-function InstallPlanPanel(props: {
+// @nimi-authority: rule.nimi.runtime.local-compute.r016
+export function InstallPlanPanel(props: {
   readonly installed: boolean;
   readonly installable: boolean;
   readonly plan: NimiRuntimeLocalInstallPlanDescriptor | null;
@@ -642,9 +658,14 @@ function InstallPlanPanel(props: {
       {!props.installable ? (
         <p className="text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.recommend.notInstallable', { defaultValue: 'This offer is not installable.' })}</p>
       ) : props.plan ? (
-        <Button size="sm" tone="primary" disabled={props.busy || props.runtimeWritesDisabled} onClick={props.onInstall}>
-          {t('runtimeConfig.recommend.startInstall', { defaultValue: 'Download and install' })}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" tone="primary" disabled={props.busy || props.runtimeWritesDisabled || !props.plan.installAvailable} onClick={props.onInstall}>
+            {t('runtimeConfig.recommend.startInstall', { defaultValue: 'Download and install' })}
+          </Button>
+          <Button size="sm" tone="secondary" disabled={props.busy} onClick={props.onReview}>
+            {t('runtimeConfig.recommend.reviewInstallPlan', { defaultValue: 'Review install' })}
+          </Button>
+        </div>
       ) : (
         <Button size="sm" tone="primary" disabled={props.busy} onClick={props.onReview}>
           {props.busy

@@ -1,106 +1,60 @@
-# 第一次 AI 调用
+# 在 Nimi App 中完成第一次 AI 调用
 
-Runtime-backed AI 请求只携带 App 身份、subject 身份、场景内容和受支持的生成参数。Runtime 在执行开始时读取这个 App 已保存的能力意图，并选择具体实现。
+使用 App 已绑定宿主的 SDK client，发起一次真实文本生成。Nimi Home 建立 App 会话，Runtime 在执行时读取该 App 已保存的 AI 配置并选择实现。
 
-## 前置条件
+本页承接[创建 Nimi App](/zh/start/create-an-app)中的 `--features studio-create` 示例，使用公开 App Tools 0.2.7。保留生成的 SDK/Kit 绑定；App 渲染进程不需要自行取得 gRPC 地址、账号 ID、会话 token 或指定调用者身份。
 
-- `nimi start` 正在运行。
-- SDK 能访问 `NIMI_RUNTIME_GRPC_ENDPOINT`，或默认地址 `127.0.0.1:46371`。
-- 准确的 App owner 已经为 `text.generate` 保存 AIConfig 能力意图。
-- 需要账户身份的调用已经取得 Runtime subject user ID。
+## 调用前准备
 
-Runtime endpoint 变量按层区分：
+1. 在兼容的 Nimi Home 开发环境中运行项目的 `pnpm dev`，使用它启动的受管 Electron 窗口，不要直接用浏览器打开渲染页面。
+2. 确认生成的 `nimi.app.yaml` 已包含 `runtime.consume`，再通过宿主完成 App 所需的访问授权。选择 `studio-create` 会生成这项声明，但不会自动授予访问能力。
+3. 在 App 的 AI 设置或 Nimi Home 的 App 设置中配置 `text.generate`。本地路线使用这台机器当前选择的模型；云端路线需要相应的连接器和目标配置。保存配置不等于生成已经成功。
 
-| 变量 | 读取方 | 用途 |
-| --- | --- | --- |
-| `NIMI_RUNTIME_GRPC_ENDPOINT` | 本页的显式示例 | App 传入 `runtime.transport.endpoint` 时使用的覆盖值 |
-| `NIMI_RUNTIME_ENDPOINT` | Node.js 中 SDK Runtime client 的默认配置 | `createNimiClient` 省略 `runtime.transport` 时使用的 App 侧默认值 |
-| `NIMI_RUNTIME_GRPC_ADDR` | Runtime daemon 配置 | daemon 监听地址 |
+环境要求见[开发环境与当前可用范围](/zh/start/install)，共享设置和宿主接入见[在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)。
 
-先通过 CLI 确认 Runtime 安装与公开 health 投影可用：
-
-```bash
-nimi start
-nimi health --json
-```
+如果生成的 manifest 是 `app_access: []`，说明项目创建时没有选择本例需要的功能。请按创建指南在空目录中建立 AI 示例，不要手改受管 manifest 或其锁定记录。`sync` 会保持原有功能选择，不会补加这项权限。
 
 ## 发起文本生成
 
+默认模板已在 `src/shell/auth/local-app-client.ts` 中导出 `getNimiLocalAppClient()`，直接复用即可。已有 App 的文件布局不同时，使用该项目对应的、已绑定宿主的 client。
+
 ```ts
-import { createNimiClient, textPart } from '@nimiplatform/sdk';
+// src/first-ai-call.ts in the default App Tools 0.2.7 starter
+import { getNimiLocalAppClient } from './shell/auth/local-app-client.js';
 
-export async function generateText(input: {
-  runtimeSubjectUserId: string;
-  prompt: string;
-}) {
-  const client = createNimiClient({
-    appId: 'example.sdk.hello',
-    runtime: {
-      transport: {
-        type: 'node-grpc',
-        endpoint: process.env.NIMI_RUNTIME_GRPC_ENDPOINT || '127.0.0.1:46371',
-      },
-    },
-  });
-
-  const textGeneration = client.ai.createRuntimeModel({
-    subjectUserId: input.runtimeSubjectUserId,
-    timeoutMs: 120_000,
-  });
-
-  return await textGeneration.generateText({
-    messages: [{
-      role: 'user',
-      content: [textPart(input.prompt)],
-    }],
+export async function generateText(prompt: string) {
+  const client = getNimiLocalAppClient();
+  return await client.ai.text.generateCandidate({
+    messages: [{ role: 'user', text: prompt }],
   });
 }
 ```
 
-App 不发送 model、route、connector、target、fallback policy 或实现 binding。响应中的 `modelResolved` 和 route 诊断只记录 Runtime 的执行证据，不能成为下一次请求的输入。
+从 App 的实际操作中调用 `generateText()`，展示返回的 `text`。等待时显示加载状态；失败时展示实际错误和可行的恢复动作，不能用示例回答冒充 Runtime 输出。
 
-## 能力意图
+请求传入对话内容，不自行选择模型、连接器、执行地址、fallback 或机器绑定。Runtime 从受保护宿主会话确定 App 身份，再使用当前本地或云端配置。提供商凭据仍由 Runtime 管理。
 
-AIConfig 记录 App owner 对某项能力采用 Local 还是 Cloud 执行平面的意图。负责该配置的服务会在调用前保存意图；App Access 仍是独立的 Runtime admission 事实。生成请求不会将 AIConfig 解析成机器 target，也不会通过请求 metadata 携带 AIConfig。
+## 处理第一次失败
 
-Local 与 Cloud 意图使用同一种调用形状。Runtime 在执行时评估当前配置和可用条件；无法满足请求时，调用直接以错误结束。
+| 失败情况 | 下一步 |
+| --- | --- |
+| App 会话未建立或访问被拒绝 | 回到受管启动与宿主授权流程，不要换成直连 Node/gRPC client，也不要自行传入身份。 |
+| `AI_CONFIG_NOT_FOUND` 或缺少 `text.generate` 意图 | 在该 App 的 AI 设置中保存能力意图，再重试实际调用。 |
+| 本地模型或云端配置不可用 | 检查该 App 当前设置，以及 Runtime 所选模型或连接器状态。保留真实错误；路线已配置不能证明执行成功。 |
+| Runtime 已断开 | 恢复原有 Nimi Home／Runtime 开发实例，必要时重新打开受管 App，再重试同一操作。 |
+| 请求发出后执行失败 | 查看 typed error 及其可用的原因、行动提示，不在客户端伪造 fallback 或悄悄切换提供商。 |
 
-## App 的职责
+排查接入时，同一个 client 提供 `auth.status()` 和 `aiConfig.get()`。它们只读取当前状态，不能代替一次实际生成。其他环境问题见[排错指南](/zh/start/troubleshooting)。
 
-- 使用拥有能力意图的准确 App 身份。
-- 只在操作需要时发送 subject 身份。
-- 让 provider credential 留在 Runtime 管理的配置中。
-- 处理实际生成调用返回的 typed error。
-- 不导入 `runtime/internal/**`，也不直接调用 provider SDK 来替代 Runtime。
-- 不增加请求侧 model、route、connector、target、fallback、readiness 或 health 选择。
+## 确认结果
 
-## 常见 Fail-Closed 状态
+运行 App 仓库已有的检查，再在实际受管窗口中通过它自己的 client 完成一次请求。分别确认等待、成功和实际遇到的失败。成功返回一句问候，可以证明首次能力调用已经完成，不能据此宣称完整产品旅程或公开分发已就绪。
 
-| 现象 | 含义 | 修复方向 |
-| --- | --- | --- |
-| `SDK_CLIENT_APP_ID_REQUIRED` 或 `provide_runtime_ai_app_id` | client 或 operation 缺少 App 身份。 | 给 `createNimiClient` 或 `createRuntimeModel` 传入 `appId`。 |
-| `AI_CONFIG_NOT_FOUND` | Runtime 找不到准确 App owner 的 AIConfig。 | 为这个 App 身份保存能力意图。 |
-| 能力意图或 App Access 错误 | App 没有 owner 选择的 `text.generate` 意图，或缺少所需 App Access。 | 通过负责 AIConfig 的配置界面设置这项能力，或修正 App Access 声明。 |
-| Runtime connection error | daemon 无法通过指定 endpoint 访问。 | 启动 Runtime，并检查 SDK 收到的 endpoint。 |
-| dispatch 后出现执行错误 | Runtime 无法选择或运行获准的实现。 | 检查 typed Runtime error 和响应诊断，不要在客户端伪造 fallback。 |
-
-## 验证
-
-在本仓库开发时：
-
-```bash
-pnpm --filter @nimiplatform/sdk test
-pnpm --filter @nimiplatform/examples check
-pnpm --filter @nimiplatform/lab test
-```
-
-在 App 仓库中，依次运行 `nimi doctor`、App 自己的验证命令，再用准确的已配置 App 身份发起一次生成调用。
+第三方 App 不需要把 Nimi 主仓的 SDK／Lab 全量测试复制成先修步骤；应使用该项目实际声明的 scripts。
 
 ## 来源依据
 
-- [`sdks/typescript/core/ai/runtime-model.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/runtime-model.ts)
-- [`sdks/typescript/core/ai/config.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/config.ts)
-- [`sdks/typescript/runtime/config-projections.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/runtime/config-projections.ts)
-- [`sdks/typescript/root-client.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/root-client.ts)
-- [`apps/lab/src/lab/lab-run-target.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-run-target.ts)
-- [`apps/lab/src/lab/lab-runtime.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-runtime.ts)
+- [`app-tools/templates/default-starter/src/shell/auth/local-app-client.ts`](https://github.com/nimiplatform/nimi/blob/main/app-tools/templates/default-starter/src/shell/auth/local-app-client.ts)
+- [`sdks/typescript/core/app/local-app-runtime-platform-ai-config.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/app/local-app-runtime-platform-ai-config.ts)
+- [`kit/shell/renderer/src/bridge/local-app.ts`](https://github.com/nimiplatform/nimi/blob/main/kit/shell/renderer/src/bridge/local-app.ts)
+- [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)

@@ -1,7 +1,7 @@
 import { getDaemonStatus, startDaemon } from '../bridge/index.js';
 import { AccountReasonCode, ReasonCode } from '@nimiplatform/sdk/runtime/wire-types';
 import { useAvatarStore } from './app-store.js';
-import { readNormalizedString } from './app-bootstrap-helpers.js';
+import { errorMessage, readNormalizedString } from './app-bootstrap-helpers.js';
 
 export type FirstPartyBootstrapStage =
   | 'runtime_daemon_prepare'
@@ -225,9 +225,7 @@ export function firstPartyUnavailableDetail(error: unknown): FirstPartyBootstrap
   const reasonCode = readErrorEnumField(error, 'reasonCode', ReasonCode) || fallback?.reasonCode || null;
   const actionHint = readErrorField(error, 'actionHint') || fallback?.actionHint || null;
   const source = readErrorField(error, 'source') || fallback?.source || null;
-  const message = error instanceof Error
-    ? truncateErrorText(error.message)
-    : truncateErrorText(String(error || 'avatar_first_party_runtime_unavailable'));
+  const message = truncateErrorText(errorMessage(error || 'avatar_first_party_runtime_unavailable'));
   const primary = accountReasonCode || reasonCode || message || 'avatar_first_party_runtime_unavailable';
   const suffix = actionHint ? ` / ${actionHint}` : '';
   return {
@@ -243,6 +241,7 @@ export function firstPartyUnavailableDetail(error: unknown): FirstPartyBootstrap
 }
 
 export function setRuntimeBindingUnavailable(detail: FirstPartyBootstrapErrorDetail): void {
+  console.warn(`[nimi-avatar] ${detail.reason}`);
   useAvatarStore.getState().setRuntimeBindingStatus({
     status: 'unavailable',
     reason: detail.reason,

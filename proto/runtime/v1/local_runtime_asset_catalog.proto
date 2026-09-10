@@ -19,6 +19,7 @@ enum LocalAssetKind {
   LOCAL_ASSET_KIND_STT        = 5;
   LOCAL_ASSET_KIND_EMBEDDING  = 6;
   LOCAL_ASSET_KIND_MUSIC      = 7;
+  LOCAL_ASSET_KIND_VISION     = 15;
 
   // Passive kinds
   LOCAL_ASSET_KIND_VAE        = 10;

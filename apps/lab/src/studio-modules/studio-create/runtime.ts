@@ -242,6 +242,7 @@ async function* streamLocalAppTextEvents(
       };
       return;
     }
+    if (signal?.aborted) throw studioAbortError();
   } finally {
     signal?.removeEventListener('abort', cancel);
     cancel();

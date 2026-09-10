@@ -651,6 +651,10 @@ export enum LocalAssetKind {
      */
     MUSIC = 7,
     /**
+     * @generated from protobuf enum value: LOCAL_ASSET_KIND_VISION = 15;
+     */
+    VISION = 15,
+    /**
      * Passive kinds
      *
      * @generated from protobuf enum value: LOCAL_ASSET_KIND_VAE = 10;

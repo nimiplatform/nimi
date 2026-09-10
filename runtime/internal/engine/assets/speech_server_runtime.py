@@ -6,6 +6,7 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import json
+import logging
 import os
 import pathlib
 import secrets
@@ -211,6 +212,7 @@ def driver_work_root() -> pathlib.Path:
 
 
 def plain_speech_unavailable_response(operation: str, detail: str, reason: str) -> JSONResponse:
+    logging.getLogger("nimi.speech").error("%s: %s", operation, detail)
     return JSONResponse(
         status_code=503,
         content={

@@ -17,6 +17,7 @@ export function formatTypedOutput(
   translate: StudioTranslate,
 ): string {
   const output = result.output;
+  if (output.kind === 'vision-locate') return JSON.stringify({ jobId: output.jobId, ...output.result }, null, 2);
   if (output.kind === 'text') {
     return output.text || translate('StudioShell.emptyBody');
   }
@@ -153,6 +154,7 @@ export function ArtifactMediaPreview({
   const branch = studioArtifactRenderBranch(artifact);
   const { translate: t } = useAIStudioHost();
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
     setImagePreviewOpen(false);
@@ -175,6 +177,27 @@ export function ArtifactMediaPreview({
       if (revoke) void revoke();
     };
   }, [artifact, mimeType, relativePath]);
+  useEffect(() => {
+    setImagePreviewUrl(null);
+    if (!imagePreviewOpen || !relativePath) return undefined;
+    let active = true;
+    let revoke: (() => Promise<void>) | undefined;
+    void openNimiLocalAppAssetMediaUrl(relativePath)
+      .then((handle) => {
+        revoke = handle.revoke;
+        if (active) setImagePreviewUrl(handle.url);
+        else void handle.revoke();
+      })
+      .catch(() => {
+        if (!active) return;
+        setImagePreviewOpen(false);
+        nimiToast.danger(t('StudioShell.imagePreviewFailed'));
+      });
+    return () => {
+      active = false;
+      if (revoke) void revoke();
+    };
+  }, [imagePreviewOpen, relativePath, t]);
   if (!hasPreviewableArtifact(artifact) || !url) return null;
   const label = artifact?.displayName || relativePath || fallbackLabel;
   const isImage = branch === 'image';
@@ -222,7 +245,9 @@ export function ArtifactMediaPreview({
               onClick={() => setImagePreviewOpen(false)}
               icon={<X size={20} aria-hidden="true" />}
             />
-            <img src={url} alt={label} className="ai-result-preview-modal__image" />
+            {imagePreviewUrl
+              ? <img src={imagePreviewUrl} alt={label} className="ai-result-preview-modal__image" />
+              : <p role="status">{t('Common.loading')}</p>}
           </DialogContent>
         </Dialog>
       ) : null}

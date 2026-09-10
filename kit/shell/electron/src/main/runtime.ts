@@ -532,6 +532,9 @@ export async function probeElectronRuntimeStatus(input: {
     throw createElectronRuntimeEndpointUnavailableError(input.command, input.runtimeEndpoint, error);
   }
 }
+declare const __NIMI_MACOS_RELEASE_REALM_BASE_URL__: string;
+
+// @nimi-authority: rule.nimi.runtime.service-operations.r067
 export function resolveElectronRuntimeDefaults(
   deploymentProfile: 'production' | 'local-development' = 'production',
 ): Record<string, unknown> {
@@ -539,7 +542,9 @@ export function resolveElectronRuntimeDefaults(
   // renderer and ordinary process environment never select Realm authority.
   const realmBaseUrl = deploymentProfile === 'local-development'
     ? 'http://127.0.0.1:3002'
-    : 'https://realm.nimi.ai';
+    : typeof __NIMI_MACOS_RELEASE_REALM_BASE_URL__ !== 'undefined'
+      ? __NIMI_MACOS_RELEASE_REALM_BASE_URL__
+      : 'https://realm.nimi.ai';
   const normalizedRealmBaseUrl = trimTrailingSlash(realmBaseUrl);
   const defaultJwksUrl = normalizedRealmBaseUrl
     ? `${normalizedRealmBaseUrl}/api/auth/jwks`

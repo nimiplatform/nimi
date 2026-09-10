@@ -164,6 +164,7 @@ export enum Modal {
   EMBEDDING = 6,
   MUSIC = 7,
   WORLD = 8,
+  VISION = 9,
 }
 
 export enum RealmAttachmentDisplayKind {
@@ -320,6 +321,7 @@ export enum ScenarioType {
   MUSIC_GENERATE = 9,
   WORLD_GENERATE = 10,
   VOICE_CREATE = 11,
+  VISION_LOCATE = 12,
 }
 
 export enum SchedulingState {
@@ -430,6 +432,12 @@ export enum VideoMode {
   I2V_FIRST_FRAME = 2,
   I2V_FIRST_LAST = 3,
   I2V_REFERENCE = 4,
+}
+
+export enum VisionLocateGeometry {
+  UNSPECIFIED = 0,
+  BOX = 1,
+  POINT = 2,
 }
 
 export enum VoiceAssetPersistence {

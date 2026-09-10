@@ -1,4 +1,6 @@
 import path from 'node:path';
+import { existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import {
   app,
@@ -37,6 +39,7 @@ import {
   type DesktopElectronLocalDevelopmentHost,
 } from './local-development-host.js';
 import { createDesktopElectronProductControlHost } from './product-control-host.js';
+import { createDesktopMacOSRuntimeServiceHost } from './macos-runtime-service.js';
 import { createDesktopInstalledAppHost, type DesktopInstalledAppHost } from './installed-app-host.js';
 import {
   requireDesktopSourceRuntime,
@@ -54,6 +57,7 @@ import {
 } from './macos-electron-security.js';
 import {
   createDesktopElectronBundledAvatarHost,
+  resolveDesktopAvatarFormalLaunchBinding,
   type DesktopElectronBundledAvatarHost,
 } from './bundled-avatar-host.js';
 import { createDesktopElectronSystemResourcesHost } from './system-resources-host.js';
@@ -168,7 +172,10 @@ if (SOURCE_PER_USER_RUNTIME_D2) {
 }
 configureDesktopElectronChromiumRuntime();
 
-const ownsDesktopInstanceLock = app.requestSingleInstanceLock();
+const unregisterProductionService = process.platform === 'darwin' && app.isPackaged
+  && !ELECTRON_DEVELOPMENT_BUILD && !MACOS_LOCAL_DEVELOPMENT_BUILD
+  && process.argv.includes('--unregister-runtime-service');
+const ownsDesktopInstanceLock = unregisterProductionService || app.requestSingleInstanceLock();
 if (!ownsDesktopInstanceLock) {
   app.quit();
 } else {
@@ -208,11 +215,58 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       macOSLocalDevelopmentBuild: MACOS_LOCAL_DEVELOPMENT_BUILD,
     });
     const runtimeLifecycleProfile = SOURCE_PER_USER_RUNTIME_D2 ? 'source' : 'fixed';
-    const runtimeLifecycleHost = createNimiElectronRuntimeLifecycleHost(
+    const runtimeCommandNames = createElectronRuntimeBridgeCommandNames();
+    const fixedRuntimeLifecycleHost = createNimiElectronRuntimeLifecycleHost(
       PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
       runtimeLifecycleProfile,
     );
-    const runtimeCommandNames = createElectronRuntimeBridgeCommandNames();
+    const macOSProductionService = process.platform === 'darwin' && runtimeDeploymentProfile === 'production'
+      ? createDesktopMacOSRuntimeServiceHost(fixedRuntimeLifecycleHost, {
+          runtimeEndpoint: PROTECTED_DESKTOP_RUNTIME_TRANSPORT_REF,
+          socketExists: () => existsSync('/private/var/run/nimi/runtime-desktop.sock'),
+          registration: async (operation) => {
+            const native = createRequire(import.meta.url)(path.join(
+              process.resourcesPath, 'nimi-native', 'protected-local', 'index.cjs',
+            )) as { macosRuntimeServiceRegistration(operation: string): Promise<{
+              status: string; reasonCode?: string; value?: { registrationStatus?: number };
+            }> };
+            const result = await native.macosRuntimeServiceRegistration(operation);
+            if (result.status !== 'ok' || ![0, 1, 2, 3].includes(result.value?.registrationStatus ?? -1)) {
+              throw new Error(result.reasonCode || 'runtime-service-unavailable');
+            }
+            return result.value!.registrationStatus!;
+          },
+          showApproval: async () => (await dialog.showMessageBox({
+            type: 'info',
+            title: 'Approve Nimi Runtime',
+            message: 'Nimi Runtime needs approval to run in the background.',
+            detail: 'Open System Settings → Login Items & Extensions and allow Nimi. A Mac administrator must approve this once. Nimi will close while approval is pending. After allowing Nimi, open it again; daily use requires no administrator privileges.',
+            buttons: ['Open System Settings', 'Later'],
+            defaultId: 0,
+            cancelId: 1,
+          })).response === 0,
+        })
+      : undefined;
+    if (macOSProductionService && unregisterProductionService) {
+      await macOSProductionService.unregister();
+      app.exit(0);
+      return;
+    }
+    if (macOSProductionService) {
+      try {
+        if (!await macOSProductionService.prepare(runtimeCommandNames)) {
+          app.quit();
+          return;
+        }
+      }
+      catch (error) {
+        dialog.showErrorBox('Nimi Runtime needs repair',
+          `${error instanceof Error ? error.message : String(error)}\nReinstall Nimi, then open it again. Your retained data will be reused.`);
+        app.quit();
+        return;
+      }
+    }
+    const runtimeLifecycleHost = macOSProductionService ?? fixedRuntimeLifecycleHost;
     const invokeRuntimeLifecycle = async (
       command: string,
     ): Promise<MenuBarRuntimeStatus> => (
@@ -319,6 +373,11 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       packagedRendererIndexPath: ELECTRON_DEVELOPMENT_BUILD ? undefined : rendererDistAvatarIndex,
       publishPreviewImage: (bytes) => appOriginProtocol.publishAvatarPreview(bytes),
       preloadPath,
+      resolveFormalLaunchBinding: (request) => {
+        const host = registeredRuntimeBridge?.bundledAvatarLocalAppHost;
+        if (!host) throw new Error('Avatar formal App host is unavailable.');
+        return resolveDesktopAvatarFormalLaunchBinding(host, request);
+      },
       resolveAppPrivateDataRoot: async () => path.join(
         await resolveProductControlDataRoot(),
         'apps',
@@ -408,6 +467,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       allowedRendererUrls: allowedRendererUrls(),
       ipcMain,
       desktopHost: {
+        runtimeLifecycle: runtimeLifecycleHost,
         authorizeSender: authorizeDesktopRendererSender,
         subscribeSenderInvalidation: (listener) => {
           desktopSenderInvalidationListeners.add(listener);

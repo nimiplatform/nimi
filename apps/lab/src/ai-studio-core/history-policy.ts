@@ -85,6 +85,20 @@ function validateHistoryResult(value: unknown, path: string): void {
     return;
   }
   optionalString(value.traceId, `${path}.traceId`);
+  if (kind === 'vision-locate') {
+    requiredString(value.jobId, `${path}.jobId`);
+    const result = value.result;
+    if (result === undefined) return;
+    if (!isJsonObject(result) || typeof result.imageArtifactId !== 'string' || !result.imageArtifactId || !Number.isInteger(result.width) || (result.width as number) <= 0 || !Number.isInteger(result.height) || (result.height as number) <= 0 || !Array.isArray(result.locations)) historyError(path, 'requires a typed Locate result');
+    for (const location of result.locations) {
+      if (!isJsonObject(location)) historyError(path, 'requires a typed location');
+      const axes = location.type === 'box' ? ['x1','y1','x2','y2'] : location.type === 'point' ? ['x','y'] : [];
+      if (!axes.length || axes.some(axis => typeof location[axis] !== 'number' || !Number.isFinite(location[axis]) || (location[axis] as number) < 0 || (location[axis] as number) > 1)) historyError(path, 'has invalid Locate coordinates');
+      if (location.type === 'box' && !((location.x1 as number) < (location.x2 as number) && (location.y1 as number) < (location.y2 as number))) historyError(path, 'has invalid Locate box ordering');
+      optionalString(location.label, `${path}.result.locations.label`);
+    }
+    return;
+  }
   if (kind === 'text') {
     requiredString(value.body, `${path}.body`);
     nonNegativeNumber(value.charCount, `${path}.charCount`);
@@ -213,8 +227,16 @@ export function studioHistoryFromRecords(records: readonly StudioRunHistoryRecor
 }
 
 export function boundStudioRunHistoryWithRecord(history: StudioRunHistory, record: StudioRunHistoryRecord): StudioRunHistory {
+  // History has a smaller JSON budget than a complete Runtime Locate result.
+  // Preserve the summary/Job reference without mutating the current full result.
+  let storedRecord = record;
+  if (record.result?.ok && record.result.kind === 'vision-locate' && record.result.result
+    && new TextEncoder().encode(JSON.stringify(studioHistoryFromRecords([record]))).byteLength > STUDIO_HISTORY_LIMIT_BYTES) {
+    const { result: _locations, ...reference } = record.result;
+    storedRecord = { ...record, result: reference };
+  }
   const counts = new Map<string, number>();
-  const retained = [record, ...flattenStudioHistoryRecords(history).filter((existing) => existing.id !== record.id)]
+  const retained = [storedRecord, ...flattenStudioHistoryRecords(history).filter((existing) => existing.id !== record.id)]
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
     .filter((candidate) => {
       const count = counts.get(candidate.capabilityId) ?? 0;

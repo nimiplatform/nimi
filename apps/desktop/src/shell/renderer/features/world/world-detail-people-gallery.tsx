@@ -38,12 +38,6 @@ function groupCaption(group: PeopleGroup, t: ReturnType<typeof useTranslation>['
   return t(`WorldDetail.paper.gallery.${group.kind}.${group.labelKey}.caption`);
 }
 
-const tierBadgeTone: Record<WorldCharacter['importance'], { bg: string; color: string }> = {
-  PRIMARY: { bg: 'color-mix(in srgb, var(--nimi-action-primary-bg) 14%, transparent)', color: 'var(--nimi-action-primary-bg)' },
-  SECONDARY: { bg: 'var(--nimi-status-warning-soft-bg)', color: 'var(--nimi-status-warning-soft-text)' },
-  BACKGROUND: { bg: 'var(--nimi-status-neutral-soft-bg)', color: 'var(--nimi-text-muted)' },
-};
-
 const PEOPLE_GALLERY_SHELL_TITLEBAR_HEIGHT_PX = 56;
 const PEOPLE_GALLERY_TITLEBAR_GAP_PX = 16;
 const PEOPLE_GALLERY_TOP_OFFSET_PX = PEOPLE_GALLERY_SHELL_TITLEBAR_HEIGHT_PX + PEOPLE_GALLERY_TITLEBAR_GAP_PX;
@@ -126,7 +120,6 @@ function PeopleCard({
   onOpenConversation?: (character: WorldCharacter) => Promise<void> | void;
 }) {
   const { t } = useTranslation();
-  const tier = tierBadgeTone[character.importance];
   const cardStyle: CSSProperties = {
     background: 'var(--nimi-surface-panel)',
     border: '1px solid var(--nimi-border-subtle)',
@@ -176,17 +169,14 @@ function PeopleCard({
         />
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 10.5, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: tier.bg, color: tier.color }}>
-          {t(`WorldDetail.paper.gallery.tier.${character.importance}.label`)}
-        </span>
-        {typeof vitality === 'number' && vitality > 0 ? (
+      {typeof vitality === 'number' && vitality > 0 ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 11.5, color: 'var(--nimi-text-muted)' }}>
             {t('WorldDetail.paper.characters.vitality')}{' '}
             <span style={{ fontWeight: 700, color: 'var(--nimi-text-primary)' }}>{formatNum(Math.round(vitality))}</span>
           </span>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -415,11 +405,6 @@ function PeopleArchiveShell({
           </div>
         )}
       </ScrollArea>
-
-      <div style={{ padding: '12px 26px', borderTop: '1px solid var(--nimi-border-subtle)', display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--nimi-text-muted)' }}>
-        <IconChevron size={13} color="var(--nimi-text-muted)" />
-        {t('WorldDetail.paper.gallery.footerHint')}
-      </div>
     </section>
   );
 

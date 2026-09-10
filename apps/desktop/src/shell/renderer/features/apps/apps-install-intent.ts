@@ -13,7 +13,9 @@ export interface AppsInstallIntentSnapshot {
   readonly version: string;
   readonly assetName: string;
   readonly assetSize: string;
-  readonly windowsCodeSigning: 'signed' | 'unsigned';
+  readonly os: 'windows' | 'macos';
+  readonly windowsCodeSigning: 'signed' | 'unsigned' | 'not-applicable';
+  readonly macosNotarization: 'notarized' | 'absent' | 'not-applicable';
   readonly observedSigningSubject: string | null;
   readonly update?: { readonly launchSelector: Uint8Array; readonly installedVersion: string };
 }
@@ -86,7 +88,7 @@ export function createAppsInstallIntentController(input: {
         };
       }
       const intent = snapshotAppsInstallIntent(target);
-      if (intent.windowsCodeSigning === 'unsigned') {
+      if (intent.windowsCodeSigning === 'unsigned' || intent.macosNotarization === 'absent') {
         pending = intent;
         return { kind: 'confirmation-required', intent: cloneIntent(intent) };
       }
@@ -107,17 +109,30 @@ export function createAppsInstallIntentController(input: {
 }
 
 export function snapshotAppsInstallIntent(target: ApprovedAppCatalogTarget): AppsInstallIntentSnapshot {
-  if (target.os !== 'windows' || target.arch !== 'x86_64' || target.targetId !== 'windows-x86_64') {
+  const windows = target.os === 'windows' && target.arch === 'x86_64' && target.targetId === 'windows-x86_64';
+  const macos = target.os === 'macos' && target.arch === 'arm64' && target.targetId === 'macos-aarch64';
+  if (!windows && !macos) {
     throw new Error(`Unsupported App Catalog target: ${target.targetId}`);
   }
-  if (target.windowsCodeSigning !== 'signed' && target.windowsCodeSigning !== 'unsigned') {
+  if (windows && target.windowsCodeSigning !== 'signed' && target.windowsCodeSigning !== 'unsigned') {
     throw new Error(`Unsupported Windows native posture: ${target.windowsCodeSigning}`);
   }
   if (
-    (target.windowsCodeSigning === 'signed' && !target.observedSigningSubject?.trim())
+    windows && ((target.windowsCodeSigning === 'signed' && !target.observedSigningSubject?.trim())
     || (target.windowsCodeSigning === 'unsigned' && Boolean(target.observedSigningSubject?.trim()))
+    )
   ) {
     throw new Error('Contradictory Windows native posture');
+  }
+  if (macos) {
+    const signer = target.macosDeveloperIdSubject;
+    if (target.windowsCodeSigning !== 'not-applicable'
+      || !['absent', 'notarized'].includes(target.macosNotarization)
+      || signer !== target.observedSigningSubject
+      || (signer !== undefined && (!signer.trim() || signer.trim() !== signer))
+      || (target.macosNotarization === 'notarized' && signer === undefined)) {
+      throw new Error('Contradictory macOS native posture');
+    }
   }
   if (
     target.approvedTargetSelector.length === 0
@@ -139,7 +154,9 @@ export function snapshotAppsInstallIntent(target: ApprovedAppCatalogTarget): App
     version: target.version,
     assetName: target.assetName,
     assetSize: target.assetSize,
-    windowsCodeSigning: target.windowsCodeSigning,
+    os: macos ? 'macos' : 'windows',
+    windowsCodeSigning: macos ? 'not-applicable' : target.windowsCodeSigning as 'signed' | 'unsigned',
+    macosNotarization: macos ? target.macosNotarization as 'absent' | 'notarized' : 'not-applicable',
     observedSigningSubject: target.observedSigningSubject ?? null,
   };
 }

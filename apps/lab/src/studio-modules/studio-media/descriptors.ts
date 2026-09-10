@@ -1,4 +1,4 @@
-export type StudioMediaCapabilityId = 'image.generate' | 'video.generate' | 'music.generate';
+export type StudioMediaCapabilityId = 'image.generate' | 'video.generate' | 'music.generate' | 'vision.locate';
 
 export const studioMediaDescriptors = Object.freeze([
   {
@@ -18,5 +18,10 @@ export const studioMediaDescriptors = Object.freeze([
     section: 'music',
     summary: 'Prompt + lyrics → protected music.generate Scenario Job → adopted WAV.', summaryKey: 'Capabilities.musicGenerate.summary',
     surface: 'kit.runRuntimeMusicGenerate → sdk.localApp.ai.scenarioJobs + artifact adoption', execution: 'runtime-sdk', capabilityContract: 'music.generate',
+  },
+  {
+    id: 'vision.locate', label: 'Visual localization', labelKey: 'Capabilities.visionLocate.label', group: 'media', section: 'image',
+    summary: 'Locate objects or controls in one image using boxes or points.', summaryKey: 'Capabilities.visionLocate.summary',
+    surface: 'sdk.localApp.ai.scenarioJobs + artifact upload', execution: 'runtime-sdk', capabilityContract: 'vision.locate',
   },
 ] as const);

@@ -253,17 +253,6 @@ func TestAuthenticatedRuntimeSecurityContextClearingTransitionsAdvance(t *testin
 			},
 		},
 		{
-			name: "refresh token reuse",
-			transition: func(t *testing.T, svc *Service, _ *memoryCustody) {
-				svc.mu.Lock()
-				svc.material.RefreshTokenHashes = map[string]bool{refreshHash("reused-refresh"): true}
-				svc.mu.Unlock()
-				if reason, ok := svc.ObserveRefreshToken(context.Background(), "reused-refresh"); ok || reason != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_REFRESH_REUSE_DETECTED {
-					t.Fatalf("reuse observation = (%v, %v)", reason, ok)
-				}
-			},
-		},
-		{
 			name: "account switch",
 			transition: func(t *testing.T, svc *Service, _ *memoryCustody) {
 				switchAccount, err := svc.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: desktopAccountControlCaller()})

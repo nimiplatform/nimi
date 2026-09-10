@@ -177,6 +177,53 @@
 .release-primary-action:hover { background: #115e59; }
 .release-primary-action:focus-visible { outline: 3px solid #5eead4; outline-offset: 3px; }
 
+.release-preview {
+  margin-top: 2.5rem;
+  border-top: 1px solid #cbd5e1;
+  padding-top: 1.5rem;
+}
+
+.release-preview h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.release-preview p,
+.release-details p {
+  margin-top: 1rem;
+  color: #475569;
+  line-height: 1.75;
+}
+
+.release-preview .release-warning { color: #9a3412; }
+
+.release-preview-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem 1.5rem;
+  margin-top: 1rem;
+  font-size: .9rem;
+}
+
+.release-preview-links a { color: #0f766e; text-underline-offset: 3px; }
+
+.release-details {
+  margin: 2rem 0;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1.5rem;
+}
+
+.release-details summary {
+  cursor: pointer;
+  color: #0f172a;
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.release-details summary:focus-visible { outline: 3px solid #5eead4; outline-offset: 4px; }
+
 .release-reviewed {
   margin-top: .85rem;
   color: #64748b;

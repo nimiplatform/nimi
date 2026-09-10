@@ -4,9 +4,11 @@ export function quietBuildDelayMs({ now, lastChangeAt, lastBuildCompletedAt, qui
   return Math.max(0, quietSince + quietMs - now);
 }
 
-export function stableBuildSurfaces(plan, revisionsBefore, revisionsAfter) {
+export function stableBuildSurfaces(plan, revisionsBefore, revisionsAfter, metadataOnlySurfaces = []) {
+  const metadataOnly = new Set(metadataOnlySurfaces);
   return plan.filter(
-    (surface) => (revisionsBefore[surface] ?? 0) === (revisionsAfter[surface] ?? 0),
+    (surface) => (revisionsBefore[surface] ?? 0) === (revisionsAfter[surface] ?? 0)
+      || metadataOnly.has(surface),
   );
 }
 

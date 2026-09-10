@@ -41,6 +41,8 @@ const DEFAULT_INVOKE_CHANNEL = 'nimi:runtime:invoke';
 const DEFAULT_LISTEN_CHANNEL_PREFIX = 'nimi:runtime:event:';
 const DESKTOP_OPEN_INTENT_EVENT = 'desktop-open://open-intent';
 const MENU_BAR_OPEN_TAB_EVENT = 'menu-bar://open-tab';
+const AVATAR_HOST_SUSPEND_EVENT = 'avatar://host-suspend';
+const AVATAR_PREVIEW_REQUEST_EVENT = 'avatar://agent-center-preview-request';
 
 export function installNimiElectronRuntimeBridge(
   input: InstallNimiElectronRuntimeBridgeInput,
@@ -123,6 +125,7 @@ function normalizeCommand(value: unknown): string {
 function normalizeEvent(value: unknown): string {
   const normalized = String(value ?? '').trim();
   return normalized === DESKTOP_OPEN_INTENT_EVENT || normalized === MENU_BAR_OPEN_TAB_EVENT
+    || normalized === AVATAR_HOST_SUSPEND_EVENT || normalized === AVATAR_PREVIEW_REQUEST_EVENT
     ? normalized
     : normalizeCommand(normalized);
 }

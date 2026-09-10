@@ -157,7 +157,7 @@ func (s *Service) executePythonVenvEnvironmentDependencyJob(ctx context.Context,
 	}
 	if identity.AcceleratorPlane == "cuda" {
 		cudaConsumer := consumer
-		if strings.HasPrefix(cudaConsumer, "speech.") {
+		if strings.HasPrefix(cudaConsumer, "speech.") || cudaConsumer == engine.VisionLocateConsumerID {
 			cudaConsumer += ".cuda"
 		}
 		hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
@@ -318,7 +318,8 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 		}, nil
 	}
 	consumer := pythonMaterializerConsumerForJob(job)
-	if !strings.HasPrefix(strings.TrimSpace(consumer), "media.") && !strings.HasPrefix(strings.TrimSpace(consumer), "speech.") {
+	if !strings.HasPrefix(strings.TrimSpace(consumer), "media.") && !strings.HasPrefix(strings.TrimSpace(consumer), "speech.") &&
+		consumer != engine.VisionLocateConsumerID+".cuda" && consumer != engine.VisionLocateConsumerID+".cpu" {
 		return localEnvironmentDependencyJobResult{
 			State:           localEnvironmentStateUnsupported,
 			SourceKind:      localEnvironmentSourceUnavailable,
@@ -445,6 +446,9 @@ func (s *Service) executePythonTorchWheelEnvironmentDependencyJob(ctx context.Co
 
 func pythonTorchWheelPrerequisiteConsumer(consumer string) string {
 	trimmed := strings.TrimSpace(consumer)
+	if trimmed == engine.VisionLocateConsumerID+".cuda" || trimmed == engine.VisionLocateConsumerID+".cpu" {
+		return engine.VisionLocateConsumerID
+	}
 	if strings.HasPrefix(trimmed, "speech.") {
 		trimmed = strings.TrimSuffix(trimmed, ".cuda")
 		trimmed = strings.TrimSuffix(trimmed, ".cpu")
@@ -480,6 +484,8 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 			"speech.qwen3-asr-transformers.python",
 			"speech.qwen3-tts.python",
 			"speech.voxcpm.python",
+			engine.VisionLocateConsumerID + ".cuda",
+			engine.VisionLocateConsumerID + ".cpu",
 		}
 	default:
 		return []string{"python.pipeline"}
@@ -488,7 +494,7 @@ func pythonSelectedConsumersForDependency(dependencyID string) []string {
 
 func resolvePythonDependencyProfileForJob(job localEnvironmentDependencyJobState, requireProfileDependencyID bool) (engine.PythonDependencyProfileIdentity, string, error) {
 	consumer := pythonTorchWheelPrerequisiteConsumer(pythonMaterializerConsumerForJob(job))
-	if !strings.HasPrefix(strings.TrimSpace(consumer), "speech.") && !strings.HasPrefix(strings.TrimSpace(consumer), "media.") {
+	if !strings.HasPrefix(strings.TrimSpace(consumer), "speech.") && !strings.HasPrefix(strings.TrimSpace(consumer), "media.") && consumer != engine.VisionLocateConsumerID {
 		return engine.PythonDependencyProfileIdentity{}, "", fmt.Errorf("python dependency profile is not admitted for consumer %s", consumer)
 	}
 	hostState := localEnvironmentHostProfileFromDeviceProfile(hostProfileOrCollected(nil))
@@ -560,6 +566,8 @@ func localEnvironmentErrorDetail(err error, fallback string) string {
 
 func pythonMaterializerConsumerForDependency(dependencyID string) string {
 	switch {
+	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-vision."):
+		return engine.VisionLocateConsumerID
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-image-python."):
 		return "media.diffusers.cuda"
 	case strings.HasPrefix(strings.TrimSpace(dependencyID), "local-video-python."):
@@ -591,7 +599,8 @@ func pythonMaterializerConsumerForJob(job localEnvironmentDependencyJobState) st
 
 func pythonMaterializerConsumerScope(consumer string) bool {
 	trimmed := strings.TrimSpace(consumer)
-	return strings.HasPrefix(trimmed, "stable-diffusion.cpp.") ||
+	return trimmed == engine.VisionLocateConsumerID || trimmed == engine.VisionLocateConsumerID+".cpu" || trimmed == engine.VisionLocateConsumerID+".cuda" ||
+		strings.HasPrefix(trimmed, "stable-diffusion.cpp.") ||
 		strings.HasPrefix(trimmed, "media.") ||
 		strings.HasPrefix(trimmed, "speech.")
 }

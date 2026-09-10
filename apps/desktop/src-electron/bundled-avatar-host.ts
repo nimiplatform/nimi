@@ -18,6 +18,7 @@ import {
   type NimiElectronBundledAvatarHost,
   type NimiElectronBundledAvatarRuntimeAsset,
   type NimiElectronCommandHandler,
+  type NimiElectronLocalAppHost,
   type NimiElectronShellFileProtocolHost,
   type NimiElectronShellUiCommandInput,
 } from '@nimiplatform/kit/shell/electron/main';
@@ -77,6 +78,7 @@ type AvatarWindowRecord = {
   senderInvalidation: Promise<void> | null;
   senderInvalidationWait: Promise<void> | null;
   previewTail: Promise<void>;
+  manualDragSize: { readonly width: number; readonly height: number } | null;
 };
 
 type AvatarPreviewWindowBinding = Readonly<{
@@ -114,6 +116,10 @@ export type CreateDesktopElectronBundledAvatarHostInput = {
   readonly devRendererRoot?: string;
   readonly packagedRendererIndexPath?: string;
   readonly publishPreviewImage?: (bytes: Uint8Array) => string;
+  readonly resolveFormalLaunchBinding: (input: {
+    readonly avatarHostTargetRef: string;
+    readonly conversationAnchorId: string | null;
+  }) => Promise<Pick<AvatarLaunchHandoffPayload, 'agentHandle' | 'conversationAnchorId'>>;
   readonly resolveFormalPresentationAsset: (input: {
     readonly agentHandle: string;
     readonly assetRef: string;
@@ -397,6 +403,7 @@ export async function createDesktopElectronBundledAvatarHost(
       senderInvalidation: null,
       senderInvalidationWait: null,
       previewTail: Promise.resolve(),
+      manualDragSize: null,
     };
     if (pendingCandidate) {
       pendingCandidates.add(windowRecord);
@@ -436,6 +443,14 @@ export async function createDesktopElectronBundledAvatarHost(
       }
     };
     secureAvatarWindow(window, rendererUrl, releaseWindow);
+    window.webContents.on('console-message', (event) => {
+      if (event.level === 'warning' || event.level === 'error') {
+        process.stderr.write(`[desktop:avatar] ${event.level}: ${event.message}\n`);
+      }
+    });
+    window.webContents.on('preload-error', (_event, _path, error) => {
+      process.stderr.write(`[desktop:avatar] preload failed: ${error.message}\n`);
+    });
     window.webContents.on('render-process-gone', () => {
       if (!window.isDestroyed()) window.destroy();
     });
@@ -1071,18 +1086,27 @@ export async function createDesktopElectronBundledAvatarHost(
           );
         },
         setAlwaysOnTop: (payload, call) => {
-          senderWindow(asElectronEvent(call.event)).setAlwaysOnTop(Boolean(payload.alwaysOnTop));
+          const target = senderWindow(asElectronEvent(call.event));
+          // Electron's default floating level inserts the window behind the
+          // Windows taskbar, which can demote it below ordinary app windows.
+          target.setAlwaysOnTop(Boolean(payload.alwaysOnTop), process.platform === 'win32' ? 'pop-up-menu' : 'floating');
         },
         hide: (_payload, call) => senderWindow(asElectronEvent(call.event)).hide(),
         close: (_payload, call) => closeWindowRecord(recordForSender(asElectronEvent(call.event))),
         beginManualDrag: (_payload, call) => {
-          const [x, y] = senderWindow(asElectronEvent(call.event)).getPosition();
+          const record = recordForSender(asElectronEvent(call.event));
+          const { x, y, width, height } = record.window.getBounds();
+          record.manualDragSize = { width, height };
           return { mode: 'manual', originX: x, originY: y };
         },
         moveManualDrag: (payload, call) => {
           const x = Math.round(requiredNumber(payload.originX, 'originX') + requiredNumber(payload.totalDeltaX, 'totalDeltaX'));
           const y = Math.round(requiredNumber(payload.originY, 'originY') + requiredNumber(payload.totalDeltaY, 'totalDeltaY'));
-          senderWindow(asElectronEvent(call.event)).setPosition(x, y);
+          const record = recordForSender(asElectronEvent(call.event));
+          if (!record.manualDragSize) throw new Error('desktop-avatar-manual-drag-not-started');
+          // Repeated setPosition round-trips grow transparent Windows windows
+          // at fractional DPI. Keep the drag's original size explicit.
+          record.window.setBounds({ x, y, ...record.manualDragSize });
         },
         constrainToVisibleArea: (payload, call) => constrainFloatingWindow(payload, call),
       },
@@ -1101,6 +1125,20 @@ export async function createDesktopElectronBundledAvatarHost(
     const avatarHostTargetRef = requiredAvatarHostTargetRef(rawDispatch.avatarHostTargetRef);
     const sourceApp = requiredSourceApp(rawDispatch.sourceApp);
     const target = request.target;
+    const createHandoffCandidate = async (): Promise<AvatarWindowRecord> => {
+      const binding = await input.resolveFormalLaunchBinding({
+        avatarHostTargetRef,
+        conversationAnchorId: target.conversationAnchorId ?? null,
+      });
+      const candidate = await createWindow(buildAvatarLaunchHandoffPayload({
+        ...binding,
+        avatarInstanceId: target.avatarInstanceId,
+        launchSource: target.launchSource ?? 'app-avatar-host-handoff',
+      }), avatarHostTargetRef, true);
+      candidate.committedPresentationRef = target.committedPresentationRef;
+      candidate.temporaryCustodyRef = target.temporaryCustodyRef;
+      return candidate;
+    };
     const active = [...windows.values()].filter((record) => !record.window.isDestroyed());
     if (active.length > 1) throw new Error('desktop-avatar-single-active-invariant-violated');
     let record = active[0];
@@ -1113,18 +1151,7 @@ export async function createDesktopElectronBundledAvatarHost(
       if (target.switchIntentRef) throw new Error('desktop-avatar-switch-intent-without-current-instance');
       if (request.command !== 'launch') return avatarHandoffNonPresentResult(request.command, 'absent');
       record = await runDesktopAvatarCandidatePromotion({
-        createCandidate: async () => {
-          const candidate = await createWindow(buildAvatarLaunchHandoffPayload({
-            agentHandle: target.agentHandle,
-            conversationAnchorId: target.conversationAnchorId,
-            avatarInstanceId: target.avatarInstanceId,
-            launchSource: target.launchSource ?? 'app-avatar-host-handoff',
-            sourceSurface: target.launchSource ?? 'app-avatar-host-handoff',
-          }), avatarHostTargetRef, true);
-          candidate.committedPresentationRef = target.committedPresentationRef;
-          candidate.temporaryCustodyRef = target.temporaryCustodyRef;
-          return candidate;
-        },
+        createCandidate: createHandoffCandidate,
         waitUntilReady: waitForPendingCandidateReady,
         validateCandidate: validatePendingCandidate,
         stageCurrent: () => {},
@@ -1171,18 +1198,7 @@ export async function createDesktopElectronBundledAvatarHost(
       switchIntents.delete(target.switchIntentRef);
       const currentRecord = record;
       record = await runDesktopAvatarCandidatePromotion({
-        createCandidate: async () => {
-          const candidate = await createWindow(buildAvatarLaunchHandoffPayload({
-            agentHandle: target.agentHandle,
-            conversationAnchorId: target.conversationAnchorId,
-            avatarInstanceId: target.avatarInstanceId,
-            launchSource: target.launchSource ?? 'app-avatar-host-handoff',
-            sourceSurface: target.launchSource ?? 'app-avatar-host-handoff',
-          }), avatarHostTargetRef, true);
-          candidate.committedPresentationRef = target.committedPresentationRef;
-          candidate.temporaryCustodyRef = target.temporaryCustodyRef;
-          return candidate;
-        },
+        createCandidate: createHandoffCandidate,
         waitUntilReady: waitForPendingCandidateReady,
         validateCandidate: validatePendingCandidate,
         stageCurrent: () => stageCurrentWindowForPromotion(currentRecord),
@@ -1324,6 +1340,38 @@ export async function createDesktopElectronBundledAvatarHost(
     },
     shutdown,
   };
+}
+
+// @nimi-authority: rule.nimi.runtime.agent-participation.r194
+// @nimi-authority: rule.nimi.runtime.agent-participation.r195
+export async function resolveDesktopAvatarFormalLaunchBinding(
+  host: Pick<NimiElectronLocalAppHost, 'agentReferenceList' | 'avatarHostTargetResolve' | 'conversationOpen'>,
+  input: { readonly avatarHostTargetRef: string; readonly conversationAnchorId: string | null },
+): Promise<Pick<AvatarLaunchHandoffPayload, 'agentHandle' | 'conversationAnchorId'>> {
+  // The source App's handle belongs to its own session. Correlate the target
+  // privately, then use only the Avatar App's freshly listed handle.
+  for (const reference of await host.agentReferenceList()) {
+    const agentHandle = requiredAgentHandle(reference.agentHandle, 'Avatar agentHandle');
+    const resolved = await host.avatarHostTargetResolve({ agentHandle, conversationAnchorId: null });
+    if (resolved.avatarHostTargetRef !== input.avatarHostTargetRef) continue;
+    if (input.conversationAnchorId !== null) {
+      // The existing Conversation is an exact continuity fence, not a selector.
+      const fenced = await host.avatarHostTargetResolve({
+        agentHandle,
+        conversationAnchorId: input.conversationAnchorId,
+      });
+      if (fenced.avatarHostTargetRef !== input.avatarHostTargetRef) {
+        throw new Error('desktop-avatar-conversation-target-mismatch');
+      }
+      return { agentHandle, conversationAnchorId: input.conversationAnchorId };
+    }
+    const conversation = await host.conversationOpen({ agentHandle });
+    return {
+      agentHandle,
+      conversationAnchorId: requiredText(conversation.conversationAnchorId, 'Avatar conversationAnchorId'),
+    };
+  }
+  throw new Error('desktop-avatar-current-formal-target-unavailable');
 }
 
 export function desktopAvatarHostSenderAuthorized(
@@ -1595,6 +1643,7 @@ function secureAvatarWindow(
   });
 }
 
+// @nimi-authority: rule.nimi.avatar.embodiment.r073
 function setFloatingWindowBounds(
   payload: Readonly<Record<string, unknown>>,
   input: NimiElectronShellUiCommandInput,
@@ -1604,7 +1653,13 @@ function setFloatingWindowBounds(
   const height = optionalNumber(payload.height);
   const x = optionalNumber(payload.x);
   const y = optionalNumber(payload.y);
-  if (width !== undefined && height !== undefined) window.setSize(Math.round(width), Math.round(height));
+  if (width !== undefined && height !== undefined) {
+    // Windows pins a non-resizable window's minimum size to its old bounds.
+    // Lower that constraint before resizing; transparent windows must remain
+    // non-resizable throughout the operation.
+    if (process.platform === 'win32') window.setMinimumSize(Math.round(width), Math.round(height));
+    window.setSize(Math.round(width), Math.round(height));
+  }
   if (x !== undefined && y !== undefined) window.setPosition(Math.round(x), Math.round(y));
 }
 

@@ -101,11 +101,13 @@ func projectVerifiedAssetDescriptor(
 	engine := ""
 	logicalModelID := ""
 	if !passive {
-		engine = defaultLocalEngine(install.PreferredEngine, capabilities)
-		switch engine {
-		case "llama", "media", "speech", "sidecar":
-		default:
-			return nil, fmt.Errorf("verified asset projection: model %q has unsupported public engine %q", row.ModelID, engine)
+		if kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VISION {
+			engine = defaultLocalEngine(install.PreferredEngine, capabilities)
+			switch engine {
+			case "llama", "media", "speech", "sidecar":
+			default:
+				return nil, fmt.Errorf("verified asset projection: model %q has unsupported public engine %q", row.ModelID, engine)
+			}
 		}
 		logicalModelID = strings.TrimSpace(row.ModelID)
 	}
@@ -137,7 +139,7 @@ func projectVerifiedAssetDescriptor(
 	}
 	if family != "" {
 		metadataValues["family"] = family
-		if !passive {
+		if !passive && kind != runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VISION {
 			engineConfig, _ = structpb.NewStruct(map[string]any{
 				"driver_family":  family,
 				"driver_backend": backend,

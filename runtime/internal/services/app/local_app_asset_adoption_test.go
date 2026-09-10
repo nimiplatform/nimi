@@ -24,6 +24,13 @@ import (
 
 type adoptionPatternReader struct{}
 
+func TestWorldArtifactAdoptionRetainsPortableZipExtension(t *testing.T) {
+	actual, err := adoptedAssetTargetPath("world-tour/job-1/world.zip", "application/vnd.nimi.world+zip")
+	if err != nil || actual != "world-tour/job-1/world.zip" {
+		t.Fatalf("world archive path=%q error=%v", actual, err)
+	}
+}
+
 func (adoptionPatternReader) Read(target []byte) (int, error) {
 	for index := range target {
 		target[index] = byte((index*29 + 7) % 251)

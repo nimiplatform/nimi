@@ -12,11 +12,14 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  readlinkSync,
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { observeWindowsExecutableFacts } from './windows-powershell.mjs';
+import { SYMBOLIC_LINK_MODE, validatePayloadLinks } from './payload-links.mjs';
+import { observeMacOSExecutableFacts } from './macos-native.mjs';
 
 const PACKAGE_FORMAT = 'nimi.app-package/v1';
 const TARGET_METADATA_FORMAT = 'nimi.app-target-candidate/v1';
@@ -28,6 +31,7 @@ const OUTPUT_DIR = 'dist/nimi-app';
 const SEMVER_PATTERN = /^(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?$/u;
 const TARGETS = Object.freeze({
   'windows-x86_64': Object.freeze({ os: 'windows', arch: 'x86_64' }),
+  'macos-aarch64': Object.freeze({ os: 'macos', arch: 'arm64' }),
 });
 
 function compareText(left, right) {
@@ -103,7 +107,7 @@ function readCargoPackageVersion(source) {
   throw new Error('src-tauri/Cargo.toml [package] version is missing');
 }
 
-function collectPayload(payloadPath) {
+function collectPayload(payloadPath, os) {
   const stat = lstatSync(payloadPath);
   if (stat.isSymbolicLink()) throw new Error('Pack payload must not contain symbolic links');
   if (stat.isFile()) {
@@ -116,8 +120,10 @@ function collectPayload(payloadPath) {
       const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
       const absolute = path.join(current, entry.name);
       const entryStat = lstatSync(absolute);
-      if (entryStat.isSymbolicLink()) throw new Error(`Pack payload must not contain symbolic links: ${relative}`);
-      if (entryStat.isDirectory()) {
+      if (entryStat.isSymbolicLink()) {
+        if (os !== 'macos') throw new Error(`Pack payload must not contain symbolic links: ${relative}`);
+        entries.push({ relative, bytes: Buffer.from(readlinkSync(absolute)), mode: SYMBOLIC_LINK_MODE });
+      } else if (entryStat.isDirectory()) {
         walk(absolute, relative);
       } else if (entryStat.isFile()) {
         entries.push({ relative, bytes: readFileSync(absolute), mode: entryStat.mode & 0o111 ? 0o755 : 0o644 });
@@ -157,7 +163,7 @@ export function writeNimiAppArchive(entries) {
   const normalized = entries.map((entry) => ({
     name: zipEntryName(entry.name),
     bytes: Buffer.isBuffer(entry.bytes) ? entry.bytes : Buffer.from(entry.bytes),
-    mode: entry.mode === 0o755 ? 0o755 : 0o644,
+    mode: entry.mode === SYMBOLIC_LINK_MODE ? SYMBOLIC_LINK_MODE : entry.mode === 0o755 ? 0o755 : 0o644,
   })).sort((left, right) => compareText(left.name, right.name));
   if (normalized.length === 0) throw new Error('nimiapp archive requires at least one file');
   if (new Set(normalized.map((entry) => entry.name)).size !== normalized.length) throw new Error('nimiapp archive entries must be unique');
@@ -199,7 +205,7 @@ export function writeNimiAppArchive(entries) {
     central.writeUInt16LE(0, 32);
     central.writeUInt16LE(0, 34);
     central.writeUInt16LE(0, 36);
-    central.writeUInt32LE(((0o100000 | entry.mode) << 16) >>> 0, 38);
+    central.writeUInt32LE(((entry.mode === SYMBOLIC_LINK_MODE ? entry.mode : 0o100000 | entry.mode) << 16) >>> 0, 38);
     central.writeUInt32LE(offset, 42);
     centralParts.push(central, name);
     offset += local.length + name.length + entry.bytes.length;
@@ -236,9 +242,10 @@ export function readNimiAppArchive(bytes) {
     const extraLength = archive.readUInt16LE(cursor + 30);
     const commentLength = archive.readUInt16LE(cursor + 32);
     const localOffset = archive.readUInt32LE(cursor + 42);
-    const mode = (archive.readUInt32LE(cursor + 38) >>> 16) & 0o777;
+    const unixMode = archive.readUInt32LE(cursor + 38) >>> 16;
+    const mode = (unixMode & 0o170000) === 0o120000 ? unixMode : unixMode & 0o777;
     if (method !== 0 || extraLength !== 0 || commentLength !== 0) throw new Error('Unsupported nimiapp ZIP entry encoding');
-    if (mode !== 0o644 && mode !== 0o755) throw new Error('Unsupported nimiapp ZIP entry mode');
+    if (mode !== 0o644 && mode !== 0o755 && mode !== SYMBOLIC_LINK_MODE) throw new Error('Unsupported nimiapp ZIP entry mode');
     const name = zipEntryName(archive.subarray(cursor + 46, cursor + 46 + nameLength).toString('utf8'));
     if (entries.has(name) || archive.readUInt32LE(localOffset) !== 0x04034b50) throw new Error('Invalid or duplicate nimiapp ZIP entry');
     const localNameLength = archive.readUInt16LE(localOffset + 26);
@@ -358,10 +365,15 @@ function resolveTargetFacts(input, production, archivedRuntimeEntryBytes) {
       executionProfile: null,
     };
   }
+  if (input.target.os === 'macos') {
+    const facts = observeMacOSExecutableFacts(input.runtimeHostPath);
+    if (!archivedRuntimeEntryBytes.equals(readFileSync(input.runtimeHostPath))) throw new Error('Production Runtime entry changed during macOS native observation');
+    return facts;
+  }
   return observeProductionWindowsFacts(input, archivedRuntimeEntryBytes);
 }
 
-function validateNativeExecutionFacts(nativeTrust, executionProfile, label) {
+function validateNativeExecutionFacts(nativeTrust, executionProfile, label, os) {
   if (!nativeTrust || typeof nativeTrust !== 'object' || Array.isArray(nativeTrust)) {
     throw new Error(`${label} native_trust must be an object`);
   }
@@ -370,6 +382,13 @@ function validateNativeExecutionFacts(nativeTrust, executionProfile, label) {
       throw new Error(`${label} development native/execution posture is inconsistent`);
     }
     return;
+  }
+  if (os === 'macos') {
+    if (!executionProfile || Object.keys(executionProfile).join(',') !== 'launch_mode' || executionProfile.launch_mode !== 'current-user') throw new Error(`${label} macOS execution_profile must use current-user launch`);
+    if (Object.keys(nativeTrust).sort().join(',') !== 'certificate_subject,macos_developer_id,macos_notarization,posture') throw new Error(`${label} macOS native_trust is inconsistent`);
+    if (nativeTrust.posture === 'production-unsigned' && nativeTrust.macos_developer_id === 'absent' && nativeTrust.macos_notarization === 'absent' && nativeTrust.certificate_subject === null) return;
+    if (nativeTrust.posture === 'observed-valid-native-signature' && nativeTrust.macos_developer_id === 'valid' && ['absent', 'notarized'].includes(nativeTrust.macos_notarization) && typeof nativeTrust.certificate_subject === 'string' && nativeTrust.certificate_subject.trim() === nativeTrust.certificate_subject && nativeTrust.certificate_subject) return;
+    throw new Error(`${label} macOS native_trust posture is inconsistent`);
   }
   if (
     !executionProfile
@@ -423,10 +442,12 @@ export function packAppTarget(cwd, options = {}) {
   const targetId = String(options.target || '').trim();
   if (!targetId) throw new Error('nimi-app pack requires --target');
   const input = readPackInputs(targetDir, targetId);
-  const payloadEntries = collectPayload(input.payloadPath).map((entry) => {
+  const payloadEntries = collectPayload(input.payloadPath, input.target.os).map((entry) => {
     const name = `payload/${entry.relative.replaceAll('\\', '/')}`;
+    if (name === input.runtimeEntry && entry.mode === SYMBOLIC_LINK_MODE) throw new Error('Runtime entry must be a direct regular file');
     return { name, bytes: entry.bytes, mode: name === input.runtimeEntry ? 0o755 : entry.mode };
   });
+  validatePayloadLinks(new Map(payloadEntries.map((entry) => [entry.name, entry])), input.target.os);
   const runtimeEntry = payloadEntries.find((entry) => entry.name === input.runtimeEntry);
   if (!runtimeEntry) throw new Error(`runtime_entry is missing from target payload: ${input.runtimeEntry}`);
   const { nativeTrust, executionProfile } = resolveTargetFacts(input, options.production === true, runtimeEntry.bytes);
@@ -498,12 +519,13 @@ export function aggregateAppTargetCandidates(cwd, options = {}) {
     }
     const runtimeEntry = canonicalRelative(target.runtime_entry, `${metadataLabel}.runtime_entry`);
     if (!runtimeEntry.startsWith('payload/')) throw new Error(`Target runtime_entry must resolve inside payload: ${runtimeEntry}`);
-    validateNativeExecutionFacts(target.native_trust, target.execution_profile, metadataLabel);
+    validateNativeExecutionFacts(target.native_trust, target.execution_profile, metadataLabel, target.os);
     const artifactPath = path.join(outputDir, assetName);
     if (!existsSync(artifactPath)) throw new Error(`Target artifact is missing: ${target.asset_name}`);
     const bytes = readFileSync(artifactPath);
     if (bytes.length !== target.size || createHash('sha256').update(bytes).digest('hex') !== target.sha256) throw new Error(`Target artifact changed after pack: ${target.asset_name}`);
     const entries = readNimiAppArchive(bytes);
+    validatePayloadLinks(entries, target.os);
     const manifest = readPackageManifestFromArchive(entries, metadataLabel);
     if (manifest.format !== PACKAGE_FORMAT) throw new Error(`Target archive manifest format is invalid: ${target.asset_name}`);
     for (const field of ['app_id', 'version', 'target_id', 'os', 'arch', 'runtime_entry', 'native_trust', 'execution_profile']) {
@@ -511,7 +533,7 @@ export function aggregateAppTargetCandidates(cwd, options = {}) {
         throw new Error(`Target metadata does not match archive manifest ${field}: ${target.asset_name}`);
       }
     }
-    validateNativeExecutionFacts(manifest.native_trust, manifest.execution_profile, `${target.asset_name} archive manifest`);
+    validateNativeExecutionFacts(manifest.native_trust, manifest.execution_profile, `${target.asset_name} archive manifest`, target.os);
     const runtimeEntryArchive = entries.get(runtimeEntry);
     if (!runtimeEntryArchive || runtimeEntryArchive.mode !== 0o755) {
       throw new Error(`Target archive runtime_entry is missing or non-executable: ${runtimeEntry}`);

@@ -11,6 +11,7 @@ import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types
 import type { DesktopRendererVoiceCapturePort } from '../../renderer/voice-capture-port.js';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type { PendingAttachment } from '../turns/turn-input-attachments.js';
+import type { AgentVoiceCaptureResult, AgentVoiceCaptureSession } from './chat-agent-voice-capture.js';
 import { asNimiError, createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import {
   createInitialAgentVoiceSessionShellState,
@@ -31,6 +32,13 @@ type AgentVoiceInputSubmit = (input: {
   text: string;
   attachments: readonly PendingAttachment[];
 }) => Promise<void>;
+
+type RecordedVoiceOperation = {
+  readonly controller: AbortController;
+  readonly target: AgentLocalTargetSnapshot;
+  conversationAnchorId: string;
+  capture: AgentVoiceCaptureSession | null;
+};
 
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -110,8 +118,7 @@ export function readableRealtimeVoiceError(error: unknown, fallbackMessage: stri
   });
 }
 
-// Recorded STT remains an explicit non-Realtime product operation. The
-// formal microphone button below no longer calls it as a Voice fallback.
+// Recorded STT and Realtime remain separate explicit user actions.
 export function isAgentVoiceInputCancellationError(error: unknown): boolean {
   return isNimiRuntimeAgentCanceledError(error)
     || (error instanceof DOMException && error.name === 'AbortError');
@@ -161,6 +168,11 @@ export function useAgentConversationVoiceInput(input: {
   const [transcript, setTranscript] = useState<AgentVoiceTranscriptProjection | null>(null);
   const stateRef = useRef(state);
   const realtimeRef = useRef<DesktopAgentRealtimeVoiceSession | null>(null);
+  const recordedRef = useRef<RecordedVoiceOperation | null>(null);
+  const latestInputRef = useRef(input);
+  latestInputRef.current = input;
+  const [voiceKind, setVoiceKind] = useState<'recorded' | 'realtime'>('recorded');
+  const [opening, setOpening] = useState(false);
   const actionPendingRef = useRef(false);
   const mountedRef = useRef(true);
 
@@ -198,6 +210,10 @@ export function useAgentConversationVoiceInput(input: {
   }, [commitState, input.failureMessage, input.reportError, resetToIdle]);
 
   const cancel = useCallback(() => {
+    const recorded = recordedRef.current;
+    recordedRef.current = null;
+    recorded?.controller.abort();
+    recorded?.capture?.cancel();
     const current = realtimeRef.current;
     realtimeRef.current = null;
     const anchor = stateRef.current.conversationAnchorId;
@@ -205,19 +221,31 @@ export function useAgentConversationVoiceInput(input: {
     resetToIdle();
   }, [fail, resetToIdle]);
 
-  useEffect(() => () => {
-    mountedRef.current = false;
-    const current = realtimeRef.current;
-    realtimeRef.current = null;
-    void current?.close();
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      const recorded = recordedRef.current;
+      recordedRef.current = null;
+      recorded?.controller.abort();
+      recorded?.capture?.cancel();
+      const current = realtimeRef.current;
+      realtimeRef.current = null;
+      void current?.close();
+    };
   }, []);
 
   useEffect(() => {
     cancel();
-  }, [cancel, input.target?.agentHandle, input.target?.conversationAnchorId]);
+  }, [cancel, input.target?.agentHandle]);
 
-  const toggle = useCallback(() => {
-    if (actionPendingRef.current) return;
+  useEffect(() => {
+    const anchor = stateRef.current.conversationAnchorId;
+    if (anchor && anchor !== normalizeText(input.target?.conversationAnchorId)) cancel();
+  }, [cancel, input.target?.conversationAnchorId]);
+
+  const toggleRealtime = useCallback(() => {
+    if (actionPendingRef.current || recordedRef.current) return;
     const current = realtimeRef.current;
     if (current) {
       if (stateRef.current.status !== 'listening') return;
@@ -240,6 +268,8 @@ export function useAgentConversationVoiceInput(input: {
     }
     const target = input.target;
     if (!input.enabled || !target) return;
+    setVoiceKind('realtime');
+    setOpening(true);
     setTranscript(null);
     actionPendingRef.current = true;
     void (async () => {
@@ -286,7 +316,7 @@ export function useAgentConversationVoiceInput(input: {
             onError: (error) => fail(error, activeAnchor),
           },
         });
-        if (!mountedRef.current) {
+        if (!mountedRef.current || latestInputRef.current.target?.agentHandle !== target.agentHandle) {
           await session.close();
           return;
         }
@@ -297,15 +327,122 @@ export function useAgentConversationVoiceInput(input: {
       }
     })().finally(() => {
       actionPendingRef.current = false;
+      if (mountedRef.current) setOpening(false);
     });
   }, [cancel, commitState, fail, input, resetToIdle]);
 
+  // @nimi-authority: rule.nimi.desktop.agent-projection.r011
+  const finishRecorded = useCallback(async (
+    operation: RecordedVoiceOperation,
+    recording: Promise<AgentVoiceCaptureResult>,
+  ) => {
+    if (recordedRef.current !== operation) {
+      await recording.catch(() => undefined);
+      return;
+    }
+    operation.capture = null;
+    actionPendingRef.current = true;
+    commitState({ status: 'transcribing', mode: 'push-to-talk', conversationAnchorId: operation.conversationAnchorId, message: null });
+    try {
+      const captured = await recording;
+      if (operation.controller.signal.aborted || recordedRef.current !== operation) return;
+      await transcribeAndSubmitCapturedAgentVoiceInput({
+        runtime: latestInputRef.current.runtime,
+        target: operation.target,
+        conversationAnchorId: operation.conversationAnchorId,
+        ...captured,
+        signal: operation.controller.signal,
+        handleSubmit: (request) => latestInputRef.current.handleSubmit(request),
+        beforeSubmit: () => recordedRef.current === operation
+          && latestInputRef.current.target?.agentHandle === operation.target.agentHandle
+          && latestInputRef.current.getCurrentConversationAnchorId() === operation.conversationAnchorId,
+      });
+      if (recordedRef.current === operation) resetToIdle();
+    } catch (error) {
+      if (operation.controller.signal.aborted || recordedRef.current !== operation) return;
+      if (isAgentVoiceInputCancellationError(error)) {
+        resetToIdle();
+      } else {
+        latestInputRef.current.reportError(error, { action: 'agent-recorded-voice' });
+        commitState({ status: 'failed', mode: 'push-to-talk', conversationAnchorId: operation.conversationAnchorId, message: latestInputRef.current.failureMessage });
+      }
+    } finally {
+      if (recordedRef.current === operation) recordedRef.current = null;
+      actionPendingRef.current = false;
+    }
+  }, [commitState, resetToIdle]);
+
+  const toggle = useCallback(() => {
+    if (realtimeRef.current) {
+      toggleRealtime();
+      return;
+    }
+    if (actionPendingRef.current) return;
+    const current = recordedRef.current;
+    if (current?.capture) {
+      void finishRecorded(current, current.capture.stop());
+      return;
+    }
+    if (current || !input.enabled || !input.target) return;
+    const operation: RecordedVoiceOperation = {
+      controller: new AbortController(), target: input.target, conversationAnchorId: '', capture: null,
+    };
+    recordedRef.current = operation;
+    actionPendingRef.current = true;
+    setVoiceKind('recorded');
+    setOpening(true);
+    setTranscript(null);
+    void (async () => {
+      try {
+        operation.conversationAnchorId = normalizeText(await input.ensureConversationAnchor());
+        if (!operation.conversationAnchorId) throw new Error('Recorded voice requires an active Conversation.');
+        if (operation.controller.signal.aborted || recordedRef.current !== operation) return;
+        const capture = await input.voiceCapture.start({
+          autoStopMode: 'manual',
+          onLevelChange: (value) => {
+            if (mountedRef.current && recordedRef.current === operation) setAmplitude(value);
+          },
+          onAutoStop: (recording) => { void finishRecorded(operation, recording); },
+        });
+        if (operation.controller.signal.aborted || recordedRef.current !== operation) {
+          capture.cancel();
+          return;
+        }
+        operation.capture = capture;
+        commitState({ status: 'listening', mode: 'push-to-talk', conversationAnchorId: operation.conversationAnchorId, message: null });
+      } catch (error) {
+        if (operation.controller.signal.aborted || recordedRef.current !== operation) return;
+        recordedRef.current = null;
+        if (isAgentVoiceInputCancellationError(error)) resetToIdle();
+        else {
+          input.reportError(error, { action: 'agent-recorded-voice' });
+          commitState({ status: 'failed', mode: 'push-to-talk', conversationAnchorId: operation.conversationAnchorId || null, message: input.failureMessage });
+        }
+      } finally {
+        actionPendingRef.current = false;
+        if (mountedRef.current) setOpening(false);
+      }
+    })();
+  }, [commitState, finishRecorded, input, resetToIdle, toggleRealtime]);
+
+  const realtimeActive = voiceKind === 'realtime'
+    && (opening || state.status === 'listening' || state.status === 'transcribing' || state.status === 'playing');
+
   return {
     available: Boolean(input.target),
+    opening,
     state,
     captureState: { active: state.status === 'listening', amplitude },
     transcript,
     onToggle: toggle,
     onCancel: cancel,
+    realtimeAction: {
+      active: realtimeActive,
+      disabled: opening || Boolean(recordedRef.current) || (!realtimeActive && !input.enabled),
+      onToggle: () => {
+        if (realtimeRef.current) cancel();
+        else toggleRealtime();
+      },
+    },
   };
 }

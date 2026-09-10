@@ -139,7 +139,11 @@ func (c *LocalProviderCatalog) validateLocalPlane() error {
 			return fmt.Errorf("local model %q local-plane block requires install and variants together", model.ModelID)
 		}
 		_, passive := localPassiveModelTypes[strings.ToLower(strings.TrimSpace(model.ModelType))]
-		fitnessOptional := strings.EqualFold(strings.TrimSpace(model.ModelType), "tts") || strings.EqualFold(strings.TrimSpace(model.ModelType), "stt")
+		vision := strings.EqualFold(strings.TrimSpace(model.ModelType), "vision")
+		fitnessOptional := vision || strings.EqualFold(strings.TrimSpace(model.ModelType), "tts") || strings.EqualFold(strings.TrimSpace(model.ModelType), "stt")
+		if vision && strings.TrimSpace(model.Install.PreferredEngine) != "" {
+			return fmt.Errorf("local vision ModelAsset offer %q must not select a public engine", model.ModelID)
+		}
 		if passive && (len(model.Capabilities) != 0 || model.Fitness != nil || strings.TrimSpace(model.Install.PreferredEngine) != "") {
 			return fmt.Errorf("local passive ModelAsset offer %q carries capability, fitness, or engine authority", model.ModelID)
 		}

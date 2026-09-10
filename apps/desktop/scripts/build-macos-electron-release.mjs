@@ -12,20 +12,24 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import { createRequire } from 'node:module';
+import { statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { notarize } from '@electron/notarize';
 import { sign } from '@electron/osx-sign';
 import { packager } from '@electron/packager';
 
 import { withSdkDistLock } from '../../../scripts/lib/sdk-dist-lock.mjs';
 import {
   requireMacOSSigningIdentity,
+  macOSReleaseRealmBaseURL,
+  macOSAudioCaptureRole,
+  isMacOSMachO,
   runReleaseCommand,
   verifySignedMacOSCode,
   verifySignedMacOSApplication,
   verifySignedMacOSInstaller,
+  stageMacOSBuiltInputs,
 } from './lib/macos-release-process.mjs';
 import { MACOS_LOCAL_DEVELOPMENT_PROFILE } from './generated/macos-local-development-profile.mjs';
 import {
@@ -40,14 +44,10 @@ const avatarRoot = path.join(repoRoot, 'apps', 'avatar');
 const localRoot = path.join(repoRoot, '.nimi', 'local');
 const layoutOnly = process.argv.includes('--layout-only');
 const localDevelopment = process.argv.includes('--local-development-candidate');
-if (layoutOnly && localDevelopment) {
-  throw new Error('macOS production layout and local-development candidate modes are mutually exclusive');
-}
-if (!layoutOnly && !localDevelopment) {
-  throw new Error('macOS production release is unavailable until the native production service installation path is implemented');
-}
-if (process.argv.slice(2).some((value) => value !== '--layout-only' && value !== '--local-development-candidate')) {
-  throw new Error('macOS Electron release accepts only --layout-only or --local-development-candidate');
+const production = process.argv.includes('--production');
+if ([layoutOnly, localDevelopment, production].filter(Boolean).length !== 1
+  || process.argv.slice(2).some((value) => !['--layout-only', '--local-development-candidate', '--production'].includes(value))) {
+  throw new Error('select exactly one macOS build mode: --production, --layout-only, or --local-development-candidate');
 }
 if (process.platform !== 'darwin' || process.arch !== 'arm64') {
   throw new Error('macOS Electron release must be built natively on Apple Silicon');
@@ -55,6 +55,7 @@ if (process.platform !== 'darwin' || process.arch !== 'arm64') {
 const desktopPackage = JSON.parse(await readFile(path.join(desktopRoot, 'package.json'), 'utf8'));
 const electronPackage = JSON.parse(await readFile(path.join(desktopRoot, 'node_modules', 'electron', 'package.json'), 'utf8'));
 const version = exactVersion(desktopPackage.version);
+const buildVersion = String(Math.floor(Date.now() / 1000));
 const electronVersion = exactVersion(electronPackage.version);
 const release = layoutOnly || localDevelopment ? undefined : readMacOSProductionInputs(process.env);
 const outputName = layoutOnly ? `layout-${Date.now()}` : localDevelopment ? `local-development-${Date.now()}` : release.releaseId;
@@ -81,13 +82,11 @@ try {
   ));
   await prepareElectronZip(electronVersion, electronZipRoot);
   const localHostApp = await packageLocalAppHost({ electronVersion, electronZipRoot, localDevelopment, packageRoot, sourceRoot, version });
-  await stageNativeCarrier(localHostApp);
+  await stageNativeCarrier(localHostApp, sourceRoot);
   if (release) {
     requireMacOSSigningIdentity(release.applicationIdentity);
     requireMacOSSigningIdentity(release.installerIdentity);
     await signMacOSApplication(localHostApp, release, { ignore: undefined });
-    await notarizeAndStaple(localHostApp, release);
-    verifySignedMacOSApplication(localHostApp, [localHostExecutable(localHostApp)]);
   }
 
   const desktopApp = await packageDesktop({ electronVersion, electronZipRoot, localDevelopment, packageRoot, sourceRoot, version });
@@ -113,6 +112,10 @@ try {
       ignore: (candidate) => candidate === embeddedLocalHost || candidate.startsWith(`${embeddedLocalHost}${path.sep}`),
     });
     await notarizeAndStaple(desktopApp, release);
+    // The Home submission includes the nested Host and creates its ticket.
+    // Both are stapled before pkgbuild, because Runtime verifies these bundles
+    // locally. Only the final, rebuilt distribution package is then submitted.
+    runReleaseCommand('/usr/bin/xcrun', ['stapler', 'staple', embeddedLocalHost]);
     const rolePaths = resolveRolePaths(desktopApp);
     verifySignedMacOSApplication(desktopApp, Object.values(rolePaths));
     verifySignedMacOSApplication(embeddedLocalHost, [rolePaths.nimi_local_app_host]);
@@ -133,8 +136,11 @@ try {
     process.stdout.write(`macOS Electron release output: ${outputRoot}\n`);
   }
 } finally {
-  await rm(transactionRoot, { recursive: true, force: true });
-  if (!completed) await rm(outputRoot, { recursive: true, force: true });
+  if (completed) {
+    await rm(transactionRoot, { recursive: true, force: true });
+  } else {
+    process.stderr.write(`Incomplete macOS release preserved for recovery: ${transactionRoot}\n`);
+  }
 }
 
 async function buildReleaseInputs({
@@ -151,7 +157,11 @@ async function buildReleaseInputs({
     path.join(scriptRoot, 'bundle-electron-main.mjs'),
     '--release',
     ...(localDevelopmentBuild ? ['--macos-local-development'] : []),
-  ], { cwd: repoRoot, inherit: true });
+  ], {
+    cwd: repoRoot,
+    env: { ...process.env, NIMI_MACOS_RELEASE_REALM_URL: releaseInput?.realmBaseURL ?? 'https://realm.nimi.ai' },
+    inherit: true,
+  });
   runReleaseCommand(process.execPath, [path.join(scriptRoot, 'bundle-electron-preload.mjs')], { cwd: repoRoot, inherit: true });
 
   const nativeBuildEnvironment = releaseCompileEnvironment({ release: releaseInput });
@@ -172,6 +182,7 @@ async function buildReleaseInputs({
     goArguments.push('-ldflags', [
       `-X main.Version=${version}`,
       `-X github.com/nimiplatform/nimi/runtime/internal/protectedlocal.MacOSTeamID=${releaseInput.teamId}`,
+      `-X github.com/nimiplatform/nimi/runtime/internal/entrypoint.macOSProtectedRealmBaseURL=${releaseInput.realmBaseURL}`,
     ].join(' '));
   } else {
     goArguments.push('-ldflags', `-X main.Version=${version}`);
@@ -183,6 +194,20 @@ async function buildReleaseInputs({
     inherit: true,
   });
   await chmod(runtimeOutput, 0o755);
+  await stageMacOSBuiltInputs({
+    sourceRoot,
+    desktopRoot,
+    avatarRoot,
+    nativeRoot: path.join(repoRoot, 'kit', 'shell', 'protected-local-node', 'npm', 'darwin-arm64'),
+  });
+  const desktopSource = path.join(sourceRoot, 'desktop-app');
+  await stageSharpRuntime(desktopSource);
+  await writeManifest(path.join(desktopSource, 'package.json'), {
+    main: 'dist-electron/main.js',
+    name: 'nimi-desktop',
+    type: 'module',
+    version,
+  });
 }
 
 async function prepareElectronZip(electronVersionValue, electronZipRoot) {
@@ -195,25 +220,6 @@ async function prepareElectronZip(electronVersionValue, electronZipRoot) {
 
 async function packageDesktop(input) {
   const source = path.join(input.sourceRoot, 'desktop-app');
-  await mkdir(path.join(source, 'dist-electron'), { recursive: true });
-  await Promise.all([
-    cp(path.join(desktopRoot, 'dist'), path.join(source, 'dist'), { recursive: true, force: false }),
-    cp(path.join(avatarRoot, 'dist'), path.join(source, 'avatar', 'dist'), { recursive: true, force: false }),
-    cp(path.join(desktopRoot, 'assets'), path.join(source, 'assets'), { recursive: true, force: false }),
-    cp(path.join(desktopRoot, 'dist-electron', 'main.js'), path.join(source, 'dist-electron', 'main.js')),
-    cp(
-      path.join(desktopRoot, 'dist-electron', 'chat-ai-store-worker.js'),
-      path.join(source, 'dist-electron', 'chat-ai-store-worker.js'),
-    ),
-    cp(path.join(desktopRoot, 'dist-electron', 'preload.cjs'), path.join(source, 'dist-electron', 'preload.cjs')),
-  ]);
-  await stageSharpRuntime(source);
-  await writeManifest(path.join(source, 'package.json'), {
-    main: 'dist-electron/main.js',
-    name: 'nimi-desktop',
-    type: 'module',
-    version: input.version,
-  });
   return packageElectronApplication({
     appBundleId: input.localDevelopment ? MACOS_LOCAL_DEVELOPMENT_PROFILE.desktopSigningIdentifier : 'ai.nimi.apps.nimi.desktop',
     appCategoryType: 'public.app-category.social-networking',
@@ -275,7 +281,7 @@ async function packageElectronApplication(input) {
     appVersion: input.version,
     arch: 'arm64',
     asar: { unpack: '**/*.{node,dylib}' },
-    buildVersion: input.version,
+    buildVersion,
     dir: input.dir,
     electronVersion: input.electronVersion,
     electronZipDir: input.electronZipDir,
@@ -340,8 +346,8 @@ function hardenElectronInfoPlist(appPath) {
   runReleaseCommand('/usr/bin/plutil', ['-lint', infoPlist]);
 }
 
-async function stageNativeCarrier(appPath) {
-  const source = path.join(repoRoot, 'kit', 'shell', 'protected-local-node', 'npm', 'darwin-arm64');
+async function stageNativeCarrier(appPath, sourceRoot) {
+  const source = path.join(sourceRoot, 'native-carrier');
   const destination = path.join(appPath, 'Contents', 'Resources', 'nimi-native', 'protected-local');
   await mkdir(destination, { recursive: true, mode: 0o755 });
   for (const name of ['index.cjs', 'nimi_shell_protected_local.node', 'package.json']) {
@@ -351,8 +357,28 @@ async function stageNativeCarrier(appPath) {
 }
 
 async function stageDesktopNativeAssets(desktopApp, sourceRoot, localDevelopmentBuild) {
-  await stageNativeCarrier(desktopApp);
+  await stageNativeCarrier(desktopApp, sourceRoot);
   if (localDevelopmentBuild) return;
+  // @nimi-authority: rule.nimi.platform.app-ecosystem.p-appacc-001
+  // Runtime reads each formal App declaration from this fixed signed resource
+  // root before admitting Home or Avatar product operations.
+  const bundledAppsRoot = path.join(desktopApp, 'Contents', 'Resources', 'nimi-apps');
+  for (const [name, appRoot] of [['desktop', desktopRoot], ['avatar', avatarRoot]]) {
+    const releaseRoot = path.join(bundledAppsRoot, name);
+    await mkdir(releaseRoot, { recursive: true, mode: 0o755 });
+    const manifest = path.join(releaseRoot, 'nimi.app.yaml');
+    await cp(path.join(appRoot, 'nimi.app.yaml'), manifest, { force: false });
+    await chmod(manifest, 0o644);
+    // Include the packager's existing build version and ASAR integrity in the
+    // release input. An unchanged declaration must not make an updated signed
+    // Home executable look like a mutation of the previous immutable release.
+    const bundleInfo = path.join(releaseRoot, 'Info.plist');
+    await cp(path.join(desktopApp, 'Contents', 'Info.plist'), bundleInfo, { force: false });
+    await chmod(bundleInfo, 0o644);
+  }
+  const uninstaller = path.join(desktopApp, 'Contents', 'Resources', 'Uninstall Nimi.command');
+  await cp(path.join(desktopRoot, 'macos', 'Uninstall Nimi.command'), uninstaller, { force: false });
+  await chmod(uninstaller, 0o755);
   const launchServices = path.join(desktopApp, 'Contents', 'Library', 'LaunchServices');
   const launchDaemons = path.join(desktopApp, 'Contents', 'Library', 'LaunchDaemons');
   await Promise.all([
@@ -371,12 +397,16 @@ async function stageDesktopNativeAssets(desktopApp, sourceRoot, localDevelopment
 
 async function signMacOSApplication(appPath, releaseInput, options) {
   const electronEntitlements = path.join(desktopRoot, 'macos', 'entitlements', 'electron.plist');
+  const audioEntitlements = path.join(desktopRoot, 'macos', 'entitlements', 'electron-audio.plist');
   const runtimeEntitlements = path.join(desktopRoot, 'macos', 'entitlements', 'runtime.plist');
   const runtimePath = path.join(appPath, 'Contents', 'Library', 'LaunchServices', 'nimi-runtime');
   await sign({
     app: appPath,
     identity: releaseInput.applicationIdentity,
-    ignore: options.ignore,
+    // osx-sign otherwise treats any binary resource (including locale.pak)
+    // as code. Resource bytes are sealed by the containing bundle signature.
+    ignore: (candidate) => Boolean(options.ignore?.(candidate))
+      || (statSync(candidate).isFile() && !isMacOSMachO(candidate)),
     optionsForFile: (candidate) => {
       if (candidate === runtimePath) {
         return {
@@ -389,7 +419,8 @@ async function signMacOSApplication(appPath, releaseInput, options) {
       const isElectronExecutable = candidate === appPath || candidate.endsWith('.app')
         || candidate.includes(`${path.sep}Contents${path.sep}MacOS${path.sep}`);
       return {
-        entitlements: isElectronExecutable ? electronEntitlements : runtimeEntitlements,
+        entitlements: macOSAudioCaptureRole(appPath, candidate) ? audioEntitlements
+          : isElectronExecutable ? electronEntitlements : runtimeEntitlements,
         hardenedRuntime: true,
         signatureFlags: 'runtime',
       };
@@ -402,15 +433,34 @@ async function signMacOSApplication(appPath, releaseInput, options) {
 }
 
 async function notarizeAndStaple(candidate, releaseInput) {
-  await notarize({
-    appPath: candidate,
-    keychain: releaseInput.notaryKeychain,
-    keychainProfile: releaseInput.notaryProfile,
-  });
+  let submissionPath = candidate;
+  if (candidate.endsWith('.app')) {
+    submissionPath = `${candidate}.zip`;
+    runReleaseCommand('/usr/bin/ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', candidate, submissionPath]);
+  }
+  const credentials = ['--keychain-profile', releaseInput.notaryProfile];
+  if (releaseInput.notaryKeychain) credentials.push('--keychain', releaseInput.notaryKeychain);
+  const submitted = runReleaseCommand('/usr/bin/xcrun', [
+    'notarytool', 'submit', submissionPath, ...credentials, '--wait', '--output-format', 'json',
+  ]);
+  process.stdout.write(submitted.stdout);
+  const result = JSON.parse(submitted.stdout);
+  if (result.status !== 'Accepted') {
+    if (result.id) {
+      try {
+        const log = runReleaseCommand('/usr/bin/xcrun', ['notarytool', 'log', result.id, ...credentials]);
+        process.stdout.write(log.stdout);
+      } catch (error) {
+        process.stderr.write(`Could not retrieve notarization failure details: ${error.message}\n`);
+      }
+    }
+    throw new Error(`Apple notarization did not accept ${path.basename(candidate)}`);
+  }
   runReleaseCommand('/usr/bin/xcrun', ['stapler', 'staple', candidate]);
   runReleaseCommand('/usr/bin/xcrun', ['stapler', 'validate', candidate]);
 }
 
+// @nimi-authority: rule.nimi.runtime.protected-session.r006
 async function buildSignedInstaller(input) {
   const payloadRoot = path.join(input.transactionRoot, 'installer-payload');
   const applicationTarget = path.join(payloadRoot, 'Applications', 'Nimi.app');
@@ -420,6 +470,7 @@ async function buildSignedInstaller(input) {
   const product = path.join(input.candidateRoot, `Nimi-${input.version}-macos-arm64.pkg`);
   runReleaseCommand('/usr/bin/pkgbuild', [
     '--root', payloadRoot,
+    '--component-plist', path.join(desktopRoot, 'macos', 'installer-components.plist'),
     '--scripts', path.join(desktopRoot, 'macos', 'installer'),
     '--identifier', 'ai.nimi.installer',
     '--version', input.version,
@@ -428,7 +479,16 @@ async function buildSignedInstaller(input) {
     '--min-os-version', '13.0',
     component,
   ]);
-  const productArguments = ['--package', component, '--sign', input.release.installerIdentity];
+  const distribution = path.join(input.transactionRoot, 'Distribution.xml');
+  runReleaseCommand('/usr/bin/productbuild', ['--synthesize', '--package', component, distribution]);
+  const distributionXML = (await readFile(distribution, 'utf8'))
+    .replace(/(<installer-gui-script\b[^>]*>)/u, '$1\n    <title>Nimi</title>')
+    .replace(/hostArchitectures="[^"]*"/u, 'hostArchitectures="arm64"');
+  await writeFile(distribution, distributionXML);
+  const productArguments = [
+    '--distribution', distribution, '--package-path', input.transactionRoot,
+    '--sign', input.release.installerIdentity,
+  ];
   if (input.release.notaryKeychain) productArguments.push('--keychain', input.release.notaryKeychain);
   productArguments.push(product);
   runReleaseCommand('/usr/bin/productbuild', productArguments);
@@ -462,6 +522,7 @@ function releaseCompileEnvironment({ release: releaseInput }) {
 }
 
 function readMacOSProductionInputs(env) {
+  const realmBaseURL = macOSReleaseRealmBaseURL(env.NIMI_MACOS_RELEASE_REALM_URL);
   const releaseId = releaseText(requireEnv(env, 'NIMI_MACOS_RELEASE_ID'), 'release id');
   const teamId = requireEnv(env, 'NIMI_MACOS_TEAM_ID');
   if (!/^[A-Z0-9]{10}$/u.test(teamId)) throw new Error('macOS Team ID is invalid');
@@ -488,6 +549,7 @@ function readMacOSProductionInputs(env) {
     installerIdentity,
     notaryKeychain,
     notaryProfile,
+    realmBaseURL,
     releaseId,
     teamId,
   });

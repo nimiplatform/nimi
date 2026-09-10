@@ -152,7 +152,7 @@ const desktopGroups: DefaultTheme.SidebarItem[] = [
     text: '总览',
     items: [
       { text: '总览', link: '/zh/desktop/' },
-      { text: '网页端模式', link: '/zh/desktop/web-mode' },
+      { text: '网页端与 Nimi Home', link: '/zh/desktop/web-mode' },
     ],
   },
   {

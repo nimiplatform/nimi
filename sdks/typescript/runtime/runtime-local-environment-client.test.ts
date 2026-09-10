@@ -32,6 +32,28 @@ test('Runtime local environment client hard-cuts aggregate and legacy recommenda
   }
 });
 
+test('catalog search preserves local rows and HF unavailability across pages', async () => {
+  const pageTokens: string[] = [];
+  const row = (id: string) => ({
+    modelLocator: id, sourceLabel: 'verified', title: id, description: '',
+    categories: ['chat'], modelType: 'chat', author: '', license: '', tags: [],
+    downloads: 0, likes: 0, lastModified: '', verified: true,
+  });
+  const local = {
+    async searchCatalogModels(request: { pageToken: string }) {
+      pageTokens.push(request.pageToken);
+      return request.pageToken
+        ? { items: [row('local-1'), row('local-2')], nextPageToken: '', huggingFaceUnavailable: false }
+        : { items: [row('local-1')], nextPageToken: 'next', huggingFaceUnavailable: true };
+    },
+  } as unknown as NimiRuntimeLocalEnvironmentRpc;
+  const client = createNimiRuntimeLocalEnvironmentClient({ local });
+  const result = await client.searchCatalog({ query: 'local' });
+  assert.deepEqual(pageTokens, ['', 'next']);
+  assert.deepEqual(result.items.map((item) => item.modelLocator), ['local-1', 'local-2']);
+  assert.equal(result.huggingFaceUnavailable, true);
+});
+
 test('Market projections separate browse locators, exact offers, and server-held plans', () => {
   const browse = projectNimiRuntimeModelAssetSearchResult({
     modelLocator: 'model_ref',

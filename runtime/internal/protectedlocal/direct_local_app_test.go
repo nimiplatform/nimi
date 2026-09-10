@@ -2,6 +2,7 @@ package protectedlocal
 
 import (
 	"encoding/base64"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -78,6 +79,50 @@ func TestDirectLocalAppLaunchIsIdempotentAndPIDReuseSafe(t *testing.T) {
 	}
 	if _, err := launches.Consume(witness.PID, witness.UID); err == nil {
 		t.Fatal("one-time launch was replayed")
+	}
+}
+
+func TestDirectLocalAppRebindAfterConsumptionRequiresFreshLaunch(t *testing.T) {
+	launches := NewDirectLocalAppLaunches()
+	executable := filepath.Join(t.TempDir(), "host.exe")
+	witness := DirectLocalAppProcessWitness{PID: 52, ParentPID: 41, UID: 501, StartSeconds: 6, ExecutablePath: executable}
+	prepare := func() DirectLocalAppLaunch {
+		t.Helper()
+		launch, err := launches.Prepare(Identifier{1}, Identifier{2}, 3, 4, 41, 501, executable, time.Now().Add(time.Minute))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return launch
+	}
+	initial := prepare()
+	deadline := time.Now().Add(10 * time.Second)
+	if _, err := launches.Bind(initial.LaunchID, witness, 41, 501, deadline); err != nil {
+		t.Fatal(err)
+	}
+	refresh := prepare()
+	if _, err := launches.Consume(witness.PID, witness.UID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := launches.Bind(refresh.LaunchID, witness, 41, 501, deadline); !errors.Is(err, ErrDirectLocalAppLaunchUnavailable) {
+		t.Fatalf("consumed refresh must require a fresh launch, got %v", err)
+	}
+	fresh := prepare()
+	if fresh.LaunchID == initial.LaunchID {
+		t.Fatal("fresh preparation reused the consumed witness")
+	}
+	wrongParent := witness
+	wrongParent.ParentPID++
+	if _, err := launches.Bind(fresh.LaunchID, wrongParent, 41, 501, deadline); err == nil || errors.Is(err, ErrDirectLocalAppLaunchUnavailable) {
+		t.Fatalf("identity mismatch must not be classified as an unavailable launch, got %v", err)
+	}
+	if _, err := launches.Bind(fresh.LaunchID, witness, 41, 501, deadline); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := launches.Consume(witness.PID, witness.UID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := launches.Consume(witness.PID, witness.UID); err == nil {
+		t.Fatal("fresh launch allowed a replay")
 	}
 }
 

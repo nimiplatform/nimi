@@ -3,9 +3,8 @@ import {
   clearStudioRunHistory,
   parseStudioRunHistory,
   removeStudioRunHistoryRecord,
-  type StudioRunHistory,
-  type StudioRunHistoryRecord,
-} from '../ai-studio-core/index.js';
+} from '../ai-studio-core/history-policy.js';
+import type { StudioRunHistory, StudioRunHistoryRecord } from '../ai-studio-core/history.js';
 import {
   readLabStandardStorageJson,
   writeLabStandardStorageJson,

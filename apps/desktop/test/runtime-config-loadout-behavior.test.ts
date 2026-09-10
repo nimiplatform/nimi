@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import test from 'node:test';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { fileURLToPath } from 'node:url';
 
 import type {
@@ -23,7 +25,10 @@ import {
   runtimeConfigLoadoutUpdateModelAxes,
   runtimeConfigLoadoutErrorMessage,
   runtimeConfigTextBehaviorPresentationState,
+  RuntimeConfigLoadoutTextBehaviors,
+  LoadoutSlotLabel,
 } from '../src/shell/renderer/features/runtime-config/runtime-config-page-loadouts.js';
+import { initI18n } from '../src/shell/renderer/i18n/index.js';
 import {
   createRuntimeConfigLoadoutImpactState,
   type RuntimeConfigLoadoutPendingImpact,
@@ -32,6 +37,8 @@ import {
 const testDir = path.dirname(fileURLToPath(import.meta.url));
 const rendererDir = path.join(testDir, '..', 'src', 'shell', 'renderer');
 const localePath = (locale: 'en' | 'zh') => path.join(rendererDir, 'locales', locale, '46-runtimeConfig.json');
+
+(globalThis as { React?: typeof React }).React = React;
 
 function recipeOffer(
   offerRef: string,
@@ -127,15 +134,24 @@ test('Loadout card and manage view present canonical text behavior truth without
     configurationState: 'configured',
   }), 'unavailable');
 
-  const source = await readFile(path.join(
-    rendererDir,
-    'features',
-    'runtime-config',
-    'runtime-config-page-loadouts.tsx',
-  ), 'utf8');
-  assert.equal((source.match(/<RuntimeConfigLoadoutTextBehaviors/gu) ?? []).length, 2);
-  assert.match(source, /behavior\.reasons\.join\(' · '\)/u);
-  assert.doesNotMatch(source, /adapter(?:Id|Count)|releaseVerified|releaseVerification/u);
+  await initI18n();
+  for (const compact of [false, true]) {
+    const markup = renderToStaticMarkup(React.createElement(RuntimeConfigLoadoutTextBehaviors, {
+      loadoutId: 'loadout-test',
+      compact,
+      behaviors: [
+        { kind: 'tool-use', implementationSupported: true, configurationState: 'configured', reasons: [] },
+        { kind: 'reasoning', implementationSupported: true, configurationState: 'unavailable', reasons: ['LOCAL_TEXT_BEHAVIOR_UNAVAILABLE'] },
+        { kind: 'structured-output', implementationSupported: false, configurationState: 'configured', reasons: ['LOCAL_IMPLEMENTATION_UNSUPPORTED'] },
+      ],
+    }));
+    assert.match(markup, /data-state="configured"/u);
+    assert.match(markup, /data-state="implementation-supported"/u);
+    assert.match(markup, /data-state="unavailable"/u);
+    assert.ok(markup.includes('LOCAL_TEXT_BEHAVIOR_UNAVAILABLE'));
+    assert.ok(markup.includes('LOCAL_IMPLEMENTATION_UNSUPPORTED'));
+    assert.doesNotMatch(markup, /adapterId|releaseVerified|releaseVerification/u);
+  }
 
   for (const locale of ['en', 'zh'] as const) {
     const document = JSON.parse(await readFile(localePath(locale), 'utf8')) as {
@@ -161,25 +177,33 @@ test('Loadout card and manage view present canonical text behavior truth without
   }
 });
 
-test('Desktop only presents bounded Runtime-projected per-slot candidates', () => {
+test('Runtime recommendations order installed choices without excluding custom models', () => {
   const recommendedContentId = `sha256:${'a'.repeat(64)}`;
   const customContentId = `sha256:${'b'.repeat(64)}`;
   const unrelatedContentId = `sha256:${'c'.repeat(64)}`;
   const recommended = { modelAssetId: 'recommended', contentId: recommendedContentId } as NimiRuntimeModelAssetRecord;
   const currentCustom = { modelAssetId: 'current-custom', contentId: customContentId } as NimiRuntimeModelAssetRecord;
   const unrelated = { modelAssetId: 'unrelated', contentId: unrelatedContentId } as NimiRuntimeModelAssetRecord;
-  const slot = { recommendedContentIds: [recommendedContentId] };
+  const slot = { recommendedContentIds: [recommendedContentId], offers: [] };
+
+  assert.deepEqual(
+    runtimeConfigLoadoutCandidateAssets({ recommendedContentIds: [], offers: [
+      recipeOffer('current-custom', 'unknown', currentCustom.modelAssetId),
+      recipeOffer('unrelated', 'unsupported', unrelated.modelAssetId),
+    ] }, [unrelated, currentCustom]).map(asset => asset.modelAssetId),
+    ['current-custom', 'unrelated'],
+  );
 
   assert.deepEqual(
     runtimeConfigLoadoutCandidateAssets(slot, [recommended, currentCustom, unrelated]).map((asset) => asset.modelAssetId),
-    ['recommended'],
+    ['recommended', 'current-custom', 'unrelated'],
   );
   assert.deepEqual(
     runtimeConfigLoadoutCandidateAssets(slot, [recommended, currentCustom, unrelated], {
       modelAssetId: currentCustom.modelAssetId,
       recipeCompatible: true,
     }).map((asset) => asset.modelAssetId),
-    ['recommended', 'current-custom'],
+    ['recommended', 'current-custom', 'unrelated'],
   );
   assert.deepEqual(
     runtimeConfigLoadoutCandidateAssets(undefined, [recommended, currentCustom, unrelated], {
@@ -188,6 +212,16 @@ test('Desktop only presents bounded Runtime-projected per-slot candidates', () =
     }),
     [],
   );
+});
+
+test('Loadout candidates prioritize an installed Runtime offer without hiding other assets', () => {
+  const installed = { modelAssetId: 'market-installed', contentId: `sha256:${'d'.repeat(64)}` } as NimiRuntimeModelAssetRecord;
+  const unrelated = { modelAssetId: 'unrelated', contentId: `sha256:${'e'.repeat(64)}` } as NimiRuntimeModelAssetRecord;
+  const slot = {
+    recommendedContentIds: [`sha256:${'a'.repeat(64)}`],
+    offers: [recipeOffer('offer:text-variant', 'supported', installed.modelAssetId)],
+  };
+  assert.deepEqual(runtimeConfigLoadoutCandidateAssets(slot, [unrelated, installed]), [installed, unrelated]);
 });
 
 test('Recipe template grouping preserves multiple image plans in canonical order', () => {
@@ -342,8 +376,25 @@ test('NOT_MATCHED ModelAsset axes render catalog_not_matched and never catalog_v
     const document = JSON.parse(await readFile(localePath(locale), 'utf8')) as {
       loadouts: { catalogBadge: Record<string, string> };
     };
-    assert.equal(document.loadouts.catalogBadge.catalog_not_matched, 'catalog_not_matched');
+    const labels = document.loadouts.catalogBadge;
+    assert.ok(labels.catalog_verified && labels.catalog_not_matched && labels.catalog_verification_unknown);
+    assert.equal(new Set(Object.values(labels)).size, 3);
   }
+});
+
+test('model requirements expose required versus conditional use without depending on a model name', async () => {
+  await initI18n();
+  const required = renderToStaticMarkup(React.createElement(LoadoutSlotLabel, {
+    slot: { displayLabel: 'Primary weights', presence: 'required', conditionalFeatures: [] },
+  }));
+  const optional = renderToStaticMarkup(React.createElement(LoadoutSlotLabel, {
+    slot: { displayLabel: 'Additional input', presence: 'optional-conditional', conditionalFeatures: ['future.input'] },
+  }));
+  assert.match(required, /data-requirement-presence="required"/u);
+  assert.match(optional, /data-requirement-presence="optional-conditional"/u);
+  assert.ok(required.includes('Primary weights'));
+  assert.ok(optional.includes('Additional input'));
+  assert.ok(optional.includes('future.input'));
 });
 
 test('selected Loadout axis update keeps an explicit impact confirmation across refetch and dispatches once', async () => {

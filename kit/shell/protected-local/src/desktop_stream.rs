@@ -109,6 +109,7 @@ pub(crate) async fn open_first_party(
     Ok(receiver)
 }
 
+// @nimi-authority: rule.nimi.desktop.shell-runtime.r011
 fn map_first_party_status(status: tonic::Status) -> crate::DesktopFirstPartyProductError {
     let retryable = matches!(
         status.code(),
@@ -120,7 +121,12 @@ fn map_first_party_status(status: tonic::Status) -> crate::DesktopFirstPartyProd
     match crate::grpc_status::runtime_reason(&status) {
         Some(reason) => crate::DesktopFirstPartyProductError::new(reason, retryable),
         None => match status.code() {
-            tonic::Code::Unavailable | tonic::Code::DeadlineExceeded | tonic::Code::Cancelled => {
+            // An individual subscription can be canceled when its App session
+            // expires; that does not invalidate the verified Desktop transport.
+            tonic::Code::Cancelled => {
+                crate::DesktopFirstPartyProductError::new("runtime-request-canceled", retryable)
+            }
+            tonic::Code::Unavailable | tonic::Code::DeadlineExceeded => {
                 crate::DesktopFirstPartyProductError::new("runtime-service-unavailable", retryable)
             }
             _ => crate::DesktopFirstPartyProductError::new(
@@ -243,7 +249,10 @@ fn map_status(status: tonic::Status) -> BundledAvatarRuntimeError {
     match crate::grpc_status::runtime_reason(&status) {
         Some(reason) => BundledAvatarRuntimeError::new(reason, retryable),
         None => match status.code() {
-            tonic::Code::Unavailable | tonic::Code::DeadlineExceeded | tonic::Code::Cancelled => {
+            tonic::Code::Cancelled => {
+                BundledAvatarRuntimeError::new("runtime-request-canceled", retryable)
+            }
+            tonic::Code::Unavailable | tonic::Code::DeadlineExceeded => {
                 BundledAvatarRuntimeError::new("runtime-service-unavailable", retryable)
             }
             _ => BundledAvatarRuntimeError::new(
@@ -258,6 +267,17 @@ fn map_status(status: tonic::Status) -> BundledAvatarRuntimeError {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn canceled_subscriptions_do_not_report_the_runtime_unavailable() {
+        let first_party = map_first_party_status(tonic::Status::cancelled("context canceled"));
+        assert_eq!(first_party.reason_code(), "runtime-request-canceled");
+        assert!(first_party.reason_metadata().is_empty());
+
+        let avatar = map_status(tonic::Status::cancelled("context canceled"));
+        assert_eq!(avatar.reason_code(), "runtime-request-canceled");
+        assert!(avatar.reason_metadata().is_empty());
+    }
 
     #[test]
     fn bare_first_party_stream_status_is_unclassified_with_raw_code() {

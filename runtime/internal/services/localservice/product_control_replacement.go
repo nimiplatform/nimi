@@ -98,7 +98,13 @@ func (s *Service) ReplaceProductControlDataRoot(ctx context.Context, req *runtim
 		return nil, errors.New("Runtime root-handoff lifecycle is unavailable")
 	}
 	if err := ensureNimiDataRootLayout(target, s.productControlDataRootSecurityBinding()); err != nil {
-		return nil, err
+		// Candidate access/layout failure does not invalidate the authenticated
+		// Desktop transport or the current root. Keep it in the owner projection
+		// so Settings can display the failure without losing its mounted state.
+		return productControlJSON(productControlRecordProjection{
+			Path: path, Exists: true, State: record.State, Record: record,
+			Error: stringPtr(err.Error()),
+		}, nil)
 	}
 	previousActivationID := record.DataRoot.RootActivationID
 	if err := s.closeProductControlCheckSyncAdmission(ctx); err != nil {

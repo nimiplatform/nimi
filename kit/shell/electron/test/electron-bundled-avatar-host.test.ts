@@ -11,6 +11,30 @@ function rendererEvent(url: string) {
 }
 
 describe('Desktop-supervised bundled Avatar host profile', () => {
+  it('admits the packaged standard-scheme origin for the exact Avatar sender', async () => {
+    const ipcMain = new FakeIpcMain();
+    const avatarEvent = {
+      senderFrame: { origin: 'nimi-app://avatar', url: 'nimi-app://avatar/index.html' },
+      sender: { send: () => undefined },
+    };
+    registerNimiElectronRuntimeBridge({
+      appId: 'nimi.desktop',
+      runtimeEndpoint: 'protected-desktop-control',
+      allowedOrigins: ['nimi-app://desktop'],
+      allowedRendererUrls: ['nimi-app://desktop/index.html'],
+      ipcMain,
+      bundledAvatarHost: {
+        rendererUrl: 'nimi-app://avatar/index.html',
+        authorizeSender: (event) => event === avatarEvent,
+        subscribeSenderInvalidation: () => () => undefined,
+        commandHandlers: { nimi_avatar_get_launch_context: ({ appId }) => ({ appId }) },
+      },
+    });
+    await expect(invokeBridge(ipcMain, avatarEvent, {
+      command: 'nimi_avatar_get_launch_context', payload: {},
+    })).resolves.toEqual({ appId: 'nimi.avatar' });
+  });
+
   it('derives the fixed Avatar app id only from the exact authorized sender', async () => {
     const ipcMain = new FakeIpcMain();
     const avatarEvent = rendererEvent('http://127.0.0.1:1427/');

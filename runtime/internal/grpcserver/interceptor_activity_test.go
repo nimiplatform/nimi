@@ -95,6 +95,42 @@ func TestRootHandoffAdmissionDrainsAndReopensOnlyBeforeCommit(t *testing.T) {
 	}
 }
 
+func TestRootHandoffPreservesAccountControlPlane(t *testing.T) {
+	registry := newActiveRPCRegistry(nil)
+	parent, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	accountCtx, _, finish, _, admitted := registry.TrackStream(parent,
+		"/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
+		&grpc.StreamServerInfo{IsServerStream: true})
+	if !admitted {
+		t.Fatal("account watcher was not admitted before handoff")
+	}
+	defer finish()
+	closeCtx, closeCancel := context.WithTimeout(context.Background(), time.Second)
+	defer closeCancel()
+	if err := registry.CloseRootAdmission(closeCtx); err != nil {
+		t.Fatalf("root handoff must not drain the account control plane: %v", err)
+	}
+	registry.CommitRootHandoff()
+	if accountCtx.Err() != nil {
+		t.Fatal("data-root replacement canceled the still-valid account watcher")
+	}
+	for _, method := range []string{
+		"/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
+		"/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
+	} {
+		_, release, accepted := registry.TrackUnary(context.Background(), method)
+		release()
+		if !accepted {
+			t.Fatalf("account control-plane observation rejected during handoff: %s", method)
+		}
+	}
+	cancel()
+	if accountCtx.Err() == nil {
+		t.Fatal("account watcher lost its real connection cancellation")
+	}
+}
+
 func TestRootHandoffAdmitsRestartOnlyAfterCommit(t *testing.T) {
 	registry := newActiveRPCRegistry(nil)
 	inFlightRestartCtx, inFlightRestartFinish, inFlightRestartAdmitted := registry.TrackUnary(

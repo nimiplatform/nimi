@@ -7,10 +7,10 @@ import {
 
 const INPUT_AUDIO = Object.freeze({
   codec: 'pcm-s16le' as const,
-  sampleRateHz: 24_000,
+  sampleRateHz: 16_000,
   channelCount: 1 as const,
   frameDurationMs: 20,
-  maximumFrameBytes: 960,
+  maximumFrameBytes: 640,
 });
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-017

@@ -10,6 +10,7 @@ const ACL_SEARCH_DIRECTORY: i32 = 1;
 const ACL_PRODUCT_CONTROL_DIRECTORY: i32 = 2;
 const ACL_DATA_DIRECTORY: i32 = 3;
 const ACL_MODIFY_FILE: i32 = 4;
+const ACL_DATA_FILE: i32 = 5;
 const PROFILE_BUFFER_BYTES: usize = 4096;
 
 unsafe extern "C" {
@@ -46,7 +47,7 @@ impl Display for FixedRuntimeDataRootError {
 
 impl Error for FixedRuntimeDataRootError {}
 
-fn normalized_absolute_non_root(
+pub(crate) fn normalized_absolute_non_root(
     path: &Path,
     stage: &'static str,
 ) -> Result<PathBuf, FixedRuntimeDataRootError> {
@@ -196,8 +197,9 @@ fn prepare_directory(
 
 /// Prepares a user-selected macOS data-plane root for the active Runtime
 /// custody profile while preserving the directory's existing owner and sharing
-/// policy. Production adds only the fixed service account's inheritable modify
-/// ACE. Source local development never requests a service-account ACL.
+/// policy. Production adds the fixed service account's modify ACE to existing
+/// user-owned material too: parent inheritance covers only newly created items.
+/// Source local development never requests a service-account ACL.
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-cold-010a
 pub fn prepare_fixed_runtime_data_root(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
     #[cfg(feature = "macos-source-local-development")]
@@ -221,8 +223,72 @@ pub fn prepare_fixed_runtime_data_root(path: &Path) -> Result<(), FixedRuntimeDa
             "create-selected-root",
             "prepare-service-root-acl",
         )?;
+        prepare_existing_data_tree(&root)?;
         Ok(())
     }
+}
+
+#[cfg(not(feature = "macos-source-local-development"))]
+fn prepare_existing_data_tree(root: &Path) -> Result<(), FixedRuntimeDataRootError> {
+    // SAFETY: this reads the same non-root interactive identity already checked
+    // by root preparation. Other owners retain their own access policy; Runtime
+    // and each Check & Sync owner still verify actual usability themselves.
+    let owner = unsafe { libc::geteuid() };
+    let mut pending = vec![root.to_path_buf()];
+    while let Some(directory) = pending.pop() {
+        let entries = match fs::read_dir(&directory) {
+            Ok(entries) => entries,
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
+                let metadata = fs::symlink_metadata(&directory).map_err(|error| {
+                    FixedRuntimeDataRootError::new(
+                        "prepare-existing-data-access",
+                        error.to_string(),
+                    )
+                })?;
+                if metadata.uid() != owner {
+                    continue;
+                }
+                return Err(FixedRuntimeDataRootError::new(
+                    "prepare-existing-data-access",
+                    error.to_string(),
+                ));
+            }
+            Err(error) => {
+                return Err(FixedRuntimeDataRootError::new(
+                    "prepare-existing-data-access",
+                    error.to_string(),
+                ))
+            }
+        };
+        for entry in entries {
+            let entry = entry.map_err(|error| {
+                FixedRuntimeDataRootError::new("prepare-existing-data-access", error.to_string())
+            })?;
+            let path = entry.path();
+            let metadata = fs::symlink_metadata(&path).map_err(|error| {
+                FixedRuntimeDataRootError::new("prepare-existing-data-access", error.to_string())
+            })?;
+            // Existing environments can contain links to system executables or
+            // shared caches. Preparing this root must never follow those links.
+            if metadata.file_type().is_symlink() {
+                continue;
+            }
+            let policy = if metadata.is_dir() {
+                ACL_DATA_DIRECTORY
+            } else if metadata.is_file() {
+                ACL_DATA_FILE
+            } else {
+                continue;
+            };
+            if metadata.uid() == owner {
+                prepare_native_acl(&path, policy, "prepare-existing-data-access")?;
+            }
+            if metadata.is_dir() {
+                pending.push(path);
+            }
+        }
+    }
+    Ok(())
 }
 
 #[cfg(feature = "macos-source-local-development")]
@@ -381,6 +447,47 @@ mod tests {
         let status =
             unsafe { nimi_macos_validate_fixed_runtime_path_acl(encoded.as_ptr(), policy) };
         assert_eq!(status, 0, "native ACL validation status");
+    }
+
+    #[cfg(not(feature = "macos-source-local-development"))]
+    #[test]
+    #[ignore = "requires the installed fixed Runtime service identity"]
+    fn existing_data_tree_gets_runtime_access_without_changing_material_or_following_links() {
+        let fixture_root = fixture("existing-tree");
+        let selected = fixture_root.join("selected");
+        let nested = selected.join("models").join("existing");
+        fs::create_dir_all(&nested).expect("create preseeded tree");
+        let material = nested.join("model.bin");
+        fs::write(&material, b"existing-model-material").expect("write existing material");
+        fs::set_permissions(&material, fs::Permissions::from_mode(0o664))
+            .expect("retain shared file mode");
+        let outside = fixture_root.join("outside.bin");
+        fs::write(&outside, b"outside").expect("write outside link target");
+        symlink(&outside, selected.join("linked-file")).expect("link outside selected tree");
+        let owner = fs::symlink_metadata(&material)
+            .expect("material metadata")
+            .uid();
+
+        prepare_fixed_runtime_data_root(&selected).expect("prepare preseeded tree");
+        prepare_fixed_runtime_data_root(&selected).expect("repeat without duplicate service ACEs");
+        for directory in [&selected, &selected.join("models"), &nested] {
+            validate_native_acl(directory, ACL_DATA_DIRECTORY);
+        }
+        validate_native_acl(&material, ACL_DATA_FILE);
+        let metadata = fs::symlink_metadata(&material).expect("prepared material metadata");
+        assert_eq!(metadata.uid(), owner);
+        assert_eq!(metadata.mode() & 0o777, 0o664);
+        assert_eq!(
+            fs::read(&material).expect("read material"),
+            b"existing-model-material"
+        );
+        let encoded = path_c_string(&outside, "test-path").expect("encode outside path");
+        // SAFETY: read-only ACL inspection of this test's outside fixture.
+        assert_ne!(
+            unsafe { nimi_macos_validate_fixed_runtime_path_acl(encoded.as_ptr(), ACL_DATA_FILE) },
+            0
+        );
+        fs::remove_dir_all(&fixture_root).expect("remove fixture");
     }
 
     #[test]

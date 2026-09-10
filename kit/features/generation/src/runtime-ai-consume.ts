@@ -16,6 +16,7 @@ export type RuntimeAIConsumeCapabilityId = 'text.generate' | 'chat.stream' | 'te
 
 export type RuntimeAIConsumeNonSuccessReason =
   | 'input-invalid'
+  | 'operation-aborted'
   | 'runtime-call-failed'
   | 'principal-unauthorized'
   | 'sdk-method-unavailable';
@@ -99,6 +100,7 @@ export type RuntimeAIConsumeInput = {
  * request carries App/capability input only; AIConfig route, implementation,
  * target, Connector, and machine selection remain Runtime-owned.
  */
+// @nimi-authority: rule.nimi.sdks.feature-clients.r002
 export async function runRuntimeAIConsumeCapability(
   input: RuntimeAIConsumeInput,
 ): Promise<RuntimeAIConsumeResult> {
@@ -215,10 +217,11 @@ export async function runRuntimeAIConsumeCapability(
       ...(trace ? { trace } : {}),
     };
   } catch (cause) {
+    const aborted = cause instanceof Error && cause.name === 'AbortError';
     const error = asNimiError(cause, {
-      reasonCode: ReasonCode.RUNTIME_CALL_FAILED,
-      actionHint: 'inspect_runtime_ai_execution',
-      source: 'runtime',
+      reasonCode: aborted ? ReasonCode.OPERATION_ABORTED : ReasonCode.RUNTIME_CALL_FAILED,
+      ...(!aborted ? { actionHint: 'inspect_runtime_ai_execution' } : {}),
+      source: aborted ? 'sdk' : 'runtime',
     });
     return {
       ok: false,
@@ -232,6 +235,7 @@ export async function runRuntimeAIConsumeCapability(
 
 function runtimeAIConsumeNonSuccessReasonFromError(error: NimiError): RuntimeAIConsumeNonSuccessReason {
   const reasonCode = text(error.reasonCode) || text(error.code);
+  if (reasonCode === ReasonCode.OPERATION_ABORTED) return 'operation-aborted';
   return reasonCode === ReasonCode.SDK_AI_INPUT_INVALID
     ? 'input-invalid'
     : runtimeGenerationNonSuccessReasonFromError(error);

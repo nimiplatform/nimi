@@ -72,8 +72,8 @@ mod windows_data_root;
 mod windows_data_root;
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 mod windows_desktop_account;
-#[cfg(target_os = "windows")]
-mod windows_installed_app;
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+mod installed_app_control;
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 #[allow(unsafe_code)]
 mod windows_local_app;
@@ -100,8 +100,8 @@ mod windows_service_control;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_supervised_process;
-#[cfg(target_os = "windows")]
-pub use windows_installed_app::{
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+pub use installed_app_control::{
     focus_installed_app_process, installed_app_process_status, stop_installed_app_process,
 };
 
@@ -200,7 +200,7 @@ pub use local_development::{
 #[cfg(target_os = "macos")]
 pub use macos_data_root::{prepare_fixed_runtime_data_root, FixedRuntimeDataRootError};
 #[cfg(target_os = "macos")]
-pub use macos_service_control::MacOsUnixSocketCarrier;
+pub use macos_service_control::{macos_runtime_service_registration, MacOsUnixSocketCarrier};
 pub use reason::{ProtectedCarrierError, ProtectedCarrierReasonCode};
 pub use service::{
     FixedRuntimeServiceControl, RuntimeServiceAction, RuntimeServiceActionOutcome,

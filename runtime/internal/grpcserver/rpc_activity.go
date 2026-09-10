@@ -222,6 +222,7 @@ func (r *activeRPCRegistry) CommitRootHandoff() {
 	r.mu.Unlock()
 }
 
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007a
 func rootHandoffControlPlaneMethod(method string) bool {
 	switch method {
 	case "/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
@@ -229,6 +230,11 @@ func rootHandoffControlPlaneMethod(method string) bool {
 		"/nimi.runtime.v1.RuntimeLocalService/InitializeProductControlRootActivation",
 		"/nimi.runtime.v1.RuntimeLocalService/ReplaceProductControlDataRoot",
 		"/nimi.runtime.v1.RuntimeLocalService/GetProductControlCheckSync",
+		// Account observation uses fixed control-plane custody, not the selected
+		// data root. Canceling its watcher retires Home's shared transport and
+		// aborts the replacement request that is performing this handoff.
+		"/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
+		"/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
 		"/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeStatus":
 		return true
 	default:

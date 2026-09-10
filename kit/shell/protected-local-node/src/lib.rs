@@ -752,6 +752,18 @@ pub async fn fixed_runtime_service_status() -> NativeJsonOutcome {
     }
 }
 
+#[cfg(target_os = "macos")]
+#[napi(js_name = "macosRuntimeServiceRegistration")]
+pub async fn macos_runtime_service_registration(operation: String) -> NativeJsonOutcome {
+    match tokio::task::spawn_blocking(move || {
+        nimi_shell_protected_local::macos_runtime_service_registration(&operation)
+    }).await {
+        Ok(Ok(status)) => NativeJsonOutcome::success(serde_json::json!({ "registrationStatus": status })),
+        Ok(Err(error)) => NativeJsonOutcome::protected_error(error),
+        Err(_) => NativeJsonOutcome::host_reason("runtime-service-unavailable", true),
+    }
+}
+
 #[napi(js_name = "fixedRuntimeServiceStart")]
 pub async fn fixed_runtime_service_start() -> NativeJsonOutcome {
     #[cfg(any(
@@ -935,14 +947,14 @@ pub fn desktop_installed_app_status(input: NativeInstalledAppRunInput) -> Native
     let Some(id) = decode_identifier(&input.launch_id) else {
         return NativeJsonOutcome::host_reason("installed-app-launch-failed", false);
     };
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
     return match nimi_shell_protected_local::installed_app_process_status(id) {
         Ok((running, exit_code)) => {
             NativeJsonOutcome::success(json!({"running": running, "exitCode": exit_code}))
         }
         Err(error) => NativeJsonOutcome::host_error(error),
     };
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
         let _ = id;
         NativeJsonOutcome::host_reason("local-app-operation-unavailable", false)
@@ -954,12 +966,12 @@ pub fn desktop_focus_installed_app(input: NativeInstalledAppRunInput) -> NativeJ
     let Some(id) = decode_identifier(&input.launch_id) else {
         return NativeJsonOutcome::host_reason("installed-app-launch-failed", false);
     };
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
     return match nimi_shell_protected_local::focus_installed_app_process(id) {
         Ok(()) => NativeJsonOutcome::success(json!({"focused": true})),
         Err(error) => NativeJsonOutcome::host_error(error),
     };
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
         let _ = id;
         NativeJsonOutcome::host_reason("local-app-operation-unavailable", false)
@@ -971,12 +983,12 @@ pub fn desktop_stop_installed_app(input: NativeInstalledAppRunInput) -> NativeJs
     let Some(id) = decode_identifier(&input.launch_id) else {
         return NativeJsonOutcome::host_reason("installed-app-launch-failed", false);
     };
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
     return match nimi_shell_protected_local::stop_installed_app_process(id) {
         Ok(()) => NativeJsonOutcome::success(json!({"stopped": true})),
         Err(error) => NativeJsonOutcome::host_error(error),
     };
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
         let _ = id;
         NativeJsonOutcome::host_reason("local-app-operation-unavailable", false)
@@ -1333,6 +1345,7 @@ mod desktop_transport_invalidation_tests {
     fn account_and_local_development_results_never_poison_the_verified_channel() {
         for reason in [
             "principal-unauthorized",
+            "runtime-request-canceled",
             "account-changed",
             "local-development-project-changed",
             "local-development-supervisor-required",

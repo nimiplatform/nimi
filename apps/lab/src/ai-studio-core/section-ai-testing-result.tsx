@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { IconButton, nimiToast, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, MessageSquare, RefreshCw, SlidersHorizontal, SquarePen } from 'lucide-react';
 import { useAIStudioHost } from './host-context.js';
+import { VisionLocateResultView } from './section-ai-testing-vision-result.js';
 import type { StudioCapabilityRegistration } from './module-registration.js';
 import { formatStudioRunTimestamp, getStudioRunConfigParamRows, getStudioRunIntentLabel, getStudioRunPromptControlFacts, getStudioRunResultTags, getStudioRunStatusTone, type StudioRunConfigParamRow, type StudioRunHistoryRecord, type StudioRunHistoryResultSnapshot, type StudioRunPromptControlFact } from './history.js';
 import { studioNonSuccessReasonTitle, studioNonSuccessReasonUserAction, studioNonSuccessReasonUserMessage } from './non-success-presentation.js';
@@ -131,10 +132,12 @@ function historyResultToneClass(record: StudioRunHistoryRecord): string {
 
 function TextStudioHistoryRecordResult({
   record,
+  canRegenerate,
   onRegenerate,
   onUseAsDraft,
 }: {
   record: StudioRunHistoryRecord;
+  canRegenerate: boolean;
   onRegenerate: () => void;
   onUseAsDraft: (record: StudioRunHistoryRecord) => void;
 }) {
@@ -194,8 +197,8 @@ function TextStudioHistoryRecordResult({
           <AlertTriangle size={15} aria-hidden="true" />
           <span>{studioNonSuccessReasonTitle(snapshot.reason, t)}</span>
         </div>
-        <p>{studioNonSuccessReasonUserMessage(snapshot.reason, t)}</p>
-        <p className="studio-result__hint">{studioNonSuccessReasonUserAction(snapshot.reason, t)}</p>
+        <p>{studioNonSuccessReasonUserMessage(snapshot.reason, t, record.capabilityId, snapshot.diagnostics)}</p>
+        <p className="studio-result__hint">{studioNonSuccessReasonUserAction(snapshot.reason, t, record.capabilityId, snapshot.diagnostics)}</p>
         <details className="studio-diag">
           <summary>{t('StudioShell.runtimeDetails')}</summary>
           <RuntimeDiagnosticsActions text={diagnosticsText} filenameBase={record.capabilityId} />
@@ -232,7 +235,7 @@ function TextStudioHistoryRecordResult({
             <IconButton type="button" className="studio-result__action" onClick={() => onUseAsDraft(record)} aria-label={t('StudioShell.useAsDraft')} icon={<SquarePen size={16} aria-hidden="true" />} />
           </Tooltip>
           <Tooltip content={t('StudioShell.regenerate')} placement="top">
-            <IconButton type="button" className="studio-result__action" onClick={onRegenerate} aria-label={t('StudioShell.regenerate')} icon={<RefreshCw size={16} aria-hidden="true" />} />
+            <IconButton type="button" className="studio-result__action" onClick={onRegenerate} disabled={!canRegenerate} aria-label={t('StudioShell.regenerate')} icon={<RefreshCw size={16} aria-hidden="true" />} />
           </Tooltip>
         </div>
       </div>
@@ -269,6 +272,9 @@ function TextStudioHistoryRecordResult({
 
 function TextStudioHistorySnapshotBody({ snapshot }: { snapshot: Extract<StudioRunHistoryResultSnapshot, { ok: true }> }) {
   const { translate: t } = useAIStudioHost();
+  if (snapshot.kind === 'vision-locate') return snapshot.result
+    ? <VisionLocateResultView output={{kind:'vision-locate', jobId:snapshot.jobId, result:snapshot.result}} />
+    : <><p>{snapshot.summary}</p><p className="studio-result__hint">{t('VisionLocate.historySummaryOnly')}</p><pre>{JSON.stringify({ jobId: snapshot.jobId }, null, 2)}</pre></>;
   if (snapshot.kind === 'text' || snapshot.kind === 'transcript') {
     return <TextStudioOutputBody text={snapshot.body} />;
   }
@@ -338,6 +344,7 @@ export function TextStudioResultState({
   admission,
   intentLabel,
   running,
+  canRegenerate,
   cancelRequested,
   streamingText,
   verboseConsole,
@@ -353,6 +360,7 @@ export function TextStudioResultState({
   admission: ReturnType<typeof statusForCapability>;
   intentLabel: string;
   running: boolean;
+  canRegenerate: boolean;
   cancelRequested: boolean;
   streamingText: string | null;
   verboseConsole: boolean;
@@ -388,6 +396,7 @@ export function TextStudioResultState({
               <StudioResult
                 result={activeRun.result}
                 running={running}
+                canRegenerate={canRegenerate}
                 cancelRequested={cancelRequested}
                 registration={registration}
                 admission={admission}
@@ -395,6 +404,7 @@ export function TextStudioResultState({
                 intentLabel={intentLabel}
                 requestSettings={activeRun.record && hasTextStudioRequestSettings(activeRun.record) ? <TextStudioRequestSettings record={activeRun.record} /> : null}
                 streamingText={streamingText}
+                jobStatus={activeRun.jobStatus}
                 verboseConsole={verboseConsole}
                 onCopy={onCopy}
                 onDownload={onDownload}
@@ -403,7 +413,7 @@ export function TextStudioResultState({
               />
             </>
           ) : activeRun.record ? (
-            <TextStudioHistoryRecordResult record={activeRun.record} onRegenerate={onRegenerate} onUseAsDraft={onUseAsDraft} />
+            <TextStudioHistoryRecordResult record={activeRun.record} canRegenerate={canRegenerate} onRegenerate={onRegenerate} onUseAsDraft={onUseAsDraft} />
           ) : null}
         </article>
       </div>

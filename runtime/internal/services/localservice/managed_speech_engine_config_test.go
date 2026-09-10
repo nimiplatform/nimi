@@ -16,6 +16,7 @@ import (
 
 func TestSelectedSpeechPackageSetSourceRequiresCurrentProfileConsumptionEvidence(t *testing.T) {
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
 
@@ -40,7 +41,7 @@ func TestSelectedSpeechPackageSetSourceRequiresCurrentProfileConsumptionEvidence
 	}))
 	upsertVerifiedSpeechPackageSetForTest(t, svc, consumer, root, envKey, engine.SpeechQwen3TTSDriverPath)
 
-	record, identity, ok, detail := svc.selectedSpeechPackageSetSourceForConsumer(consumer, envKey, engine.SpeechQwen3TTSDriverPath)
+	record, identity, ok, detail := svc.selectedPythonPackageSetSourceForConsumer(consumer, engine.SpeechQwen3TTSDriverPath)
 	if !ok {
 		t.Fatalf("expected valid current speech dependency profile, got detail=%q", detail)
 	}
@@ -54,6 +55,7 @@ func TestSelectedSpeechPackageSetSourceRequiresCurrentProfileConsumptionEvidence
 
 func TestMaterializeSpeechExecutionHostUsesOnlyExactCapabilityPackageSet(t *testing.T) {
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
 	mgr := &mockEngineManager{}
@@ -88,6 +90,7 @@ func TestMaterializeSpeechExecutionHostUsesOnlyExactCapabilityPackageSet(t *test
 
 func TestVoxCPMExecutionHostUsesHostDerivedBackendPackageSet(t *testing.T) {
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
 	mgr := &mockEngineManager{}
@@ -201,6 +204,7 @@ func TestVoiceCreateRegistrationCarriesExactWorkflowBinding(t *testing.T) {
 
 func TestVoiceCreateExecutionHostUsesSelectedQwenImplementationPackageSet(t *testing.T) {
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
 	root := currentSpeechDependencyProfileRootForTest(t, svc, "speech.qwen3-tts.python")
@@ -248,6 +252,7 @@ func TestStopSpeechExecutionHostIsIdempotentWhenManagedHostIsAbsent(t *testing.T
 
 func TestMaterializeSpeechExecutionHostSelectsTransformersNativeASRPackageSet(t *testing.T) {
 	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+	setManagedImageHostForTest(t, "Apple M4 Max")
 	svc := newLocalEnvironmentTestService(t)
 	defer func() { svc.Close() }()
 	mgr := &mockEngineManager{}
@@ -327,6 +332,7 @@ func TestSelectedSpeechPackageSetSourceRejectsStaleOrNonManagedProfileConsumptio
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			setLocalRuntimePlatformForTest(t, "darwin", "arm64")
+			setManagedImageHostForTest(t, "Apple M4 Max")
 			svc := newLocalEnvironmentTestService(t)
 			defer func() { svc.Close() }()
 			consumer := "speech.qwen3-tts.python"
@@ -337,7 +343,7 @@ func TestSelectedSpeechPackageSetSourceRejectsStaleOrNonManagedProfileConsumptio
 			promoted := svc.upsertLocalEnvironmentSelectedSourceRecord(record)
 			recordReadyPythonPackageSetConsumptionJobForTest(t, svc, promoted, consumer)
 
-			_, _, ok, detail := svc.selectedSpeechPackageSetSourceForConsumer(consumer, envKey, engine.SpeechQwen3TTSDriverPath)
+			_, _, ok, detail := svc.selectedPythonPackageSetSourceForConsumer(consumer, engine.SpeechQwen3TTSDriverPath)
 			if ok || !strings.Contains(detail, test.wantDetail) {
 				t.Fatalf("stale speech profile accepted=%v detail=%q, want %q", ok, detail, test.wantDetail)
 			}

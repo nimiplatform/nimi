@@ -5,26 +5,14 @@ import { loadLandingContent } from '../src/landing/content/landing-content.js';
 test('content keeps the consumer hero and SDK paths complete in both locales', async () => {
   for (const locale of ['en', 'zh'] as const) {
     const content = await loadLandingContent(locale);
-    const expectedHero = locale === 'zh'
-      ? {
-          title: '让 AI 真正',
-          titleAccent: '属于你。',
-          primaryCta: '获取 Nimi',
-          secondaryCta: '看看 Nimi 能做什么',
-          proofPoints: ['开源', '本地优先', '自由选择 AI'],
-        }
-      : {
-          title: 'Make AI',
-          titleAccent: 'truly yours.',
-          primaryCta: 'Get Nimi',
-          secondaryCta: 'See what Nimi can do',
-          proofPoints: ['Open source', 'Local-first', 'Choose your AI'],
-        };
-    assert.equal(content.hero.title, expectedHero.title);
-    assert.equal(content.hero.titleAccent, expectedHero.titleAccent);
-    assert.equal(content.hero.primaryCta, expectedHero.primaryCta);
-    assert.equal(content.hero.secondaryCta, expectedHero.secondaryCta);
-    assert.deepEqual(content.hero.proofPoints, expectedHero.proofPoints);
+    assert.ok(content.hero.title.length > 0);
+    assert.ok(content.hero.titleAccent.length > 0);
+    assert.match(content.hero.primaryCta, /download|下载/i);
+    assert.ok(content.hero.secondaryCta.length > 0);
+    assert.ok(content.hero.proofPoints.every((point) => point.length > 0));
+    assert.match(content.hero.availability, /Nimi Home/);
+    assert.match(content.hero.availability, /not available to install|暂未提供安装包/);
+    assert.match(content.hero.availability, /developer preview|开发者/);
     assert.ok(content.hero.subtitle.length > 0);
     assert.ok(!JSON.stringify(content.hero).includes('pnpm install'));
     assert.ok(!JSON.stringify(content.hero).includes('nimi doctor'));
@@ -44,15 +32,23 @@ test('content keeps the consumer hero and SDK paths complete in both locales', a
   }
 });
 
-test('English homepage exposes App lifecycle status', async () => {
-  const content = await loadLandingContent('en');
-  assert.ok(content.apps.notes.some((item) => (
-    item.includes('Registry-approved package')
-    && item.includes('explicit immutable local-package import')
-    && item.includes('Windows x86_64')
-    && item.includes('import entry')
-    && item.includes('remain unavailable')
-  )));
+test('homepage lifecycle disclosures and developer FAQ agree on current distribution', async () => {
+  for (const locale of ['en', 'zh'] as const) {
+    const content = await loadLandingContent(locale);
+    const notes = content.apps.notes.join('\n');
+    assert.match(notes, /Registry/);
+    assert.match(notes, /immutable local-package import|不可变本地包导入/);
+    assert.match(notes, /Developer Mode/);
+    assert.match(notes, /Windows x86_64/);
+    assert.match(notes, /remain unavailable|仍待实现/);
+    const developerFaq = content.faq.items.find((item) => /developer|开发者/i.test(item.question));
+    assert.ok(developerFaq);
+    assert.match(developerFaq.answer, /Developer Mode/);
+    assert.match(developerFaq.answer, /pilot|试点/);
+    assert.match(developerFaq.answer, /Windows x86_64/);
+    assert.match(developerFaq.answer, /human admission|人工准入/);
+    assert.match(developerFaq.answer, /remain unavailable|仍不可用/);
+  }
 });
 
 test('SDK landing content separates hero highlights from the full capability matrix', async () => {

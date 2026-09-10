@@ -3,7 +3,7 @@
 ## Scope
 - Applies to `apps/lab/**`; treat `.nimi/app-scaffold/{intent,lock}.json` as app-scaffold intent and lock state.
 - Treat `.nimi/{config,contracts,methodology}/**` as `@nimiplatform/nimi-coding` managed projections; keep auth, Runtime, permission, manifest, and shell glue in scaffold-managed files.
-- The app-owned area is `src/shell/routes/product-area.tsx`, `src/lab/**`, `src-tauri/src/world_tour.rs`, `src-electron/**`, and lab contract tests.
+- The app-owned area is `src/shell/routes/product-area.tsx`, `src/lab/**`, `src-electron/**`, and lab contract tests.
 
 ## Hard Boundaries
 - Consume Runtime and Realm only through SDK and reusable UI through Kit; do not create app-local platform truth, private transport, provider/model constants, or admission truth.

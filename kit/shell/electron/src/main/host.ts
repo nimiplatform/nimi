@@ -248,7 +248,7 @@ export function registerNimiElectronRuntimeBridge(
     ? createNimiElectronDesktopAccountHost()
     : undefined;
   const runtimeLifecycleHost = appId === 'nimi.desktop'
-    ? createNimiElectronRuntimeLifecycleHost(
+    ? input.desktopHost?.runtimeLifecycle ?? createNimiElectronRuntimeLifecycleHost(
         runtimeEndpoint,
         input.runtimeLifecycleProfile ?? 'fixed',
       )

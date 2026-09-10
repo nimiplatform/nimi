@@ -33,13 +33,30 @@ func TestLocalAppWorldCoreCreateProjectsOnlyOneExactDTO(t *testing.T) {
 	}
 }
 
+func TestLocalAppWorldCoreListPreservesNullableLorebookDeclaration(t *testing.T) {
+	raw := strings.Replace(validLocalAppWorldCoreJSON("world-existing"),
+		`"lorebookDeclaration":{"identityBaseSetting":"A test world.","rolePlacements":[],"worldRules":[]}`,
+		`"lorebookDeclaration":null`, 1)
+	response := projectLocalAppWorldCoreListResponse(&runtimev1.InvokeRealmUnaryResponse{
+		Accepted: true, ResponseJson: "[" + raw + "]",
+		ReasonCode:        runtimev1.ReasonCode_ACTION_EXECUTED,
+		AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED,
+		HttpStatus:        200,
+	})
+	if !response.GetAccepted() || !strings.Contains(response.GetResponseJson(), `"lorebookDeclaration":null`) {
+		t.Fatalf("nullable WorldCore declaration was rejected or changed: %+v", response)
+	}
+}
+
 func TestLocalAppWorldCoreListRejectsUnknownMissingAndCredentialAdjacentDTOsWithoutRawBody(t *testing.T) {
 	valid := validLocalAppWorldCoreJSON("world-1")
 	for name, raw := range map[string]string{
-		"unknown":    strings.Replace(valid, `"id":"world-1"`, `"id":"world-1","privateField":"private"`, 1),
-		"missing":    strings.Replace(valid, `,"authoring":{"source":"manual"}`, ``, 1),
-		"duplicate":  strings.Replace(valid, `"id":"world-1"`, `"id":"world-1","id":"other"`, 1),
-		"signed uri": strings.Replace(valid, `"resourceRefs":[]`, `"resourceRefs":[],"externalRefs":[{"refId":"asset","kind":"image","uri":"https://cdn.example/a.png?token=secret"}]`, 1),
+		"missing lorebook declaration":   strings.Replace(valid, `"lorebookDeclaration":{"identityBaseSetting":"A test world.","rolePlacements":[],"worldRules":[]},`, ``, 1),
+		"malformed lorebook declaration": strings.Replace(valid, `"identityBaseSetting":"A test world."`, `"identityBaseSetting":null`, 1),
+		"unknown":                        strings.Replace(valid, `"id":"world-1"`, `"id":"world-1","privateField":"private"`, 1),
+		"missing":                        strings.Replace(valid, `,"authoring":{"source":"manual"}`, ``, 1),
+		"duplicate":                      strings.Replace(valid, `"id":"world-1"`, `"id":"world-1","id":"other"`, 1),
+		"signed uri":                     strings.Replace(valid, `"resourceRefs":[]`, `"resourceRefs":[],"externalRefs":[{"refId":"asset","kind":"image","uri":"https://cdn.example/a.png?token=secret"}]`, 1),
 	} {
 		t.Run(name, func(t *testing.T) {
 			response := projectLocalAppWorldCoreListResponse(&runtimev1.InvokeRealmUnaryResponse{

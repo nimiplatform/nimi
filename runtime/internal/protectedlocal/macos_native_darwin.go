@@ -71,6 +71,11 @@ static void nimi_macos_log_runtime_diagnostic(const char *stage, const char *det
         "Nimi Runtime diagnostic: stage=%{public}s detail=%{public}s", stage, detail);
 }
 
+static void nimi_macos_log_runtime_message(const char *message) {
+    if (message == NULL) return;
+    os_log_with_type(OS_LOG_DEFAULT, OS_LOG_TYPE_DEFAULT, "%{public}s", message);
+}
+
 static int nimi_macos_lookup_runtime_account(const char *name,
                                              nimi_macos_runtime_account *output) {
     if (name == NULL || output == NULL) return EINVAL;
@@ -234,12 +239,14 @@ static int nimi_macos_verify_code(uint32_t pid, const nimi_macos_audit_identity 
                                   const char *expected_identifier,
                                   int require_trusted_anchor,
                                   int require_ad_hoc,
+                                  int require_hardened_runtime,
                                   nimi_macos_code_identity *output) {
     if (pid == 0 || expected_requirement == NULL || expected_team == NULL ||
         expected_identifier == NULL || output == NULL ||
         expected_requirement[0] == '\0' || expected_identifier[0] == '\0' ||
         (require_trusted_anchor != 0 && require_trusted_anchor != 1) ||
         (require_ad_hoc != 0 && require_ad_hoc != 1) ||
+        (require_hardened_runtime != 0 && require_hardened_runtime != 1) ||
         (require_ad_hoc && (expected_team[0] != '\0' || require_trusted_anchor)) ||
         (!require_ad_hoc && (expected_team[0] == '\0' || !require_trusted_anchor))) {
         return EINVAL;
@@ -298,7 +305,7 @@ static int nimi_macos_verify_code(uint32_t pid, const nimi_macos_audit_identity 
         CFGetTypeID(cdhash) != CFDataGetTypeID() || CFGetTypeID(flags) != CFNumberGetTypeID() ||
         !CFEqual(identifier, expected_identifier_string) ||
         !CFNumberGetValue(flags, kCFNumberSInt32Type, &code_flags) ||
-        (((uint32_t)code_flags) & kSecCodeSignatureRuntime) == 0 ||
+        (require_hardened_runtime && (((uint32_t)code_flags) & kSecCodeSignatureRuntime) == 0) ||
         (require_ad_hoc && ((((uint32_t)code_flags) & kSecCodeSignatureAdhoc) == 0 || team != NULL)) ||
         (!require_ad_hoc && ((((uint32_t)code_flags) & kSecCodeSignatureAdhoc) != 0 ||
             team == NULL || CFGetTypeID(team) != CFStringGetTypeID() ||
@@ -501,7 +508,7 @@ func lookupMacOSRuntimeAccount(name string) (macOSRuntimeAccountRecord, error) {
 }
 
 func reportMacOSRuntimeDiagnostic(stage string, err error) {
-	if !macOSDirectTrustRequiresAdHoc || err == nil {
+	if err == nil {
 		return
 	}
 	detail := strings.NewReplacer("\n", " ", "\r", " ", "\t", " ").Replace(err.Error())
@@ -519,10 +526,21 @@ func reportMacOSDesktopPeerRejection(stage string, err error) {
 	reportMacOSRuntimeDiagnostic("desktop-"+stage, err)
 }
 
-// ReportMacOSRuntimeStartupFailure emits one bounded local-development
+// ReportMacOSRuntimeStartupFailure emits one bounded native startup
 // diagnostic when launchd would otherwise retain only an opaque exit code.
 func ReportMacOSRuntimeStartupFailure(err error) {
 	reportMacOSRuntimeDiagnostic("startup", err)
+}
+
+// MacOSRuntimeLogWriter sends the daemon's existing structured logs to the
+// unified log; launchd does not retain this service's standard output.
+type MacOSRuntimeLogWriter struct{}
+
+func (MacOSRuntimeLogWriter) Write(message []byte) (int, error) {
+	nativeMessage := C.CString(strings.TrimSuffix(string(message), "\n"))
+	defer C.free(unsafe.Pointer(nativeMessage))
+	C.nimi_macos_log_runtime_message(nativeMessage)
+	return len(message), nil
 }
 
 func verifyMacOSOuterBundleSeal(applicationPath, directRequirement, teamID, signingIdentifier string, requireTrustedAnchor, requireNotarization, requireAdHoc bool) error {
@@ -622,6 +640,10 @@ func verifyMacOSDynamicCode(pid uint32, audit *macOSAuditIdentity, policy macOSC
 	if policy.requireAdHoc {
 		adHoc = 1
 	}
+	hardenedRuntime := C.int(1)
+	if policy.ordinaryInstalled {
+		hardenedRuntime = 0
+	}
 	result := C.nimi_macos_verify_code(
 		C.uint32_t(pid),
 		nativeAudit,
@@ -630,6 +652,7 @@ func verifyMacOSDynamicCode(pid uint32, audit *macOSAuditIdentity, policy macOSC
 		identifier,
 		trustedAnchor,
 		adHoc,
+		hardenedRuntime,
 		&native,
 	)
 	if result != 0 {

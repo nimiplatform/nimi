@@ -101,13 +101,51 @@ const {
   parseDesktopAvatarMaterializationCommit,
   parseDesktopAvatarMaterializationResolveRequest,
   runDesktopAvatarCandidatePromotion,
+  resolveDesktopAvatarFormalLaunchBinding,
   snapshotDesktopAvatarPreviewWindowBinding,
 } = await import('../src-electron/bundled-avatar-host.js');
 
 const AGENT_HANDLE = `agent_ref_${'b'.repeat(43)}`;
+const SOURCE_APP_AGENT_HANDLE = `agent_ref_${'s'.repeat(43)}`;
 const AVATAR_ASSET_REF = `vrm_${'c'.repeat(12)}`;
 const MATERIALIZATION_REF = `avatar-materialization:vrm:${AVATAR_ASSET_REF}`;
 const MATERIALIZATION_LEASE_REF = `avatar_materialization_lease_${'d'.repeat(32)}`;
+
+for (const conversationAnchorId of [null, 'anchor-existing']) {
+  test(`Avatar launch resolves its own session handle and Conversation (${conversationAnchorId ?? 'open'})`, async () => {
+    const calls: unknown[] = [];
+    const targetRef = `avatar_target_${'f'.repeat(43)}`;
+    const result = await resolveDesktopAvatarFormalLaunchBinding({
+      async agentReferenceList() {
+        return [{ agentHandle: `agent_ref_${'a'.repeat(43)}` }, { agentHandle: AGENT_HANDLE }];
+      },
+      async avatarHostTargetResolve(request) {
+        calls.push(['resolve', request]);
+        return { avatarHostTargetRef: request.agentHandle === AGENT_HANDLE ? targetRef : `avatar_target_${'e'.repeat(43)}` };
+      },
+      async conversationOpen(request) {
+        calls.push(['open', request]);
+        return { conversationAnchorId: 'anchor-opened' };
+      },
+    }, { avatarHostTargetRef: targetRef, conversationAnchorId });
+    assert.deepEqual(result, { agentHandle: AGENT_HANDLE, conversationAnchorId: conversationAnchorId ?? 'anchor-opened' });
+    assert.deepEqual(calls.at(-1), conversationAnchorId === null
+      ? ['open', { agentHandle: AGENT_HANDLE }]
+      : ['resolve', { agentHandle: AGENT_HANDLE, conversationAnchorId }]);
+  });
+}
+
+test('Avatar launch preserves a rejected Conversation fence without opening another Conversation', async () => {
+  const targetRef = `avatar_target_${'f'.repeat(43)}`;
+  await assert.rejects(resolveDesktopAvatarFormalLaunchBinding({
+    async agentReferenceList() { return [{ agentHandle: AGENT_HANDLE }]; },
+    async avatarHostTargetResolve(request) {
+      if (request.conversationAnchorId !== null) throw new Error('conversation-fence-rejected');
+      return { avatarHostTargetRef: targetRef };
+    },
+    async conversationOpen() { throw new Error('must-not-open-after-rejection'); },
+  }, { avatarHostTargetRef: targetRef, conversationAnchorId: 'anchor-foreign' }), /conversation-fence-rejected/u);
+});
 
 function minimalVrmGlb(): Uint8Array {
   const json = Buffer.from(JSON.stringify({
@@ -144,6 +182,9 @@ async function createBundledAvatarHostForLifecycleTest(
     rendererUrl: 'file:///avatar/index.html',
     packagedRendererIndexPath: fileURLToPath(import.meta.url),
     preloadPath: '/tmp/avatar-preload.js',
+    async resolveFormalLaunchBinding({ conversationAnchorId }) {
+      return { agentHandle: AGENT_HANDLE, conversationAnchorId: conversationAnchorId ?? 'anchor-opened' };
+    },
     resolveAppPrivateDataRoot: async () => options.appPrivateDataRoot ?? '/tmp/nimi-avatar-test-data',
     localAssetProtocolHost: {
       protocolScheme: 'nimi-local',
@@ -195,7 +236,7 @@ async function launchBundledAvatarHostForLifecycleTest(
     request: {
       command: 'launch',
       target: {
-        agentHandle: AGENT_HANDLE,
+        agentHandle: SOURCE_APP_AGENT_HANDLE,
         conversationAnchorId: `anchor-${instanceId}`,
         avatarInstanceId: instanceId,
         launchSource: 'desktop-test',
@@ -210,6 +251,14 @@ async function launchBundledAvatarHostForLifecycleTest(
   }
   const window = electron.BrowserWindow.instances.at(-1);
   assert.ok(window);
+  const getLaunchContext = host.runtimeBridgeHost.commandHandlers?.nimi_avatar_get_launch_context;
+  assert.ok(getLaunchContext);
+  const context = await getLaunchContext({
+    command: 'nimi_avatar_get_launch_context', payload: {},
+    appId: 'nimi.avatar', runtimeEndpoint: 'protected-desktop-control',
+    event: { sender: window.webContents, senderFrame: window.webContents.mainFrame },
+  });
+  assert.equal((context as { agentHandle: string }).agentHandle, AGENT_HANDLE);
   assert.equal(window.isVisible(), false);
   assert.equal(host.hasActiveInstances(), false);
   const presence = await host.hostHandoff({

@@ -3,31 +3,31 @@ layout: home
 
 hero:
   name: Nimi
-  text: Documentation
-  tagline: Nimi is the installable, open-source, local-first personal AI product. These docs help you use it, understand it, and build on it.
+  text: Developer Documentation
+  tagline: Build third-party Nimi Apps, connect AI capabilities through the SDK, and learn how to run and distribute your app.
   actions:
     - theme: brand
-      text: Get started
-      link: /start/
+      text: Create an App
+      link: /start/create-an-app
     - theme: alt
-      text: nimi.ai
-      link: https://nimi.ai
+      text: SDK reference
+      link: /sdk/
 
 features:
-  - title: Use Nimi
-    details: What Nimi is and what you can do with it today.
+  - title: Set up and run
+    details: Check the development prerequisites, create your project, and start it through Nimi Home.
     link: /start/
-  - title: Understand the concepts
-    details: Worlds, characters, Agents, Realm and Runtime in plain terms.
-    link: /platform/
-  - title: Build on Nimi
-    details: Create Nimi Apps with the typed SDK and the Developer Mode local-development path.
-    link: /sdk/
+  - title: Connect AI capabilities
+    details: Use the public SDK, configure capability intent, and handle the result of a real call.
+    link: /sdk/first-ai-call
+  - title: Troubleshoot integration
+    details: Find the next step when project checks, Runtime access, or an AI request fail.
+    link: /start/troubleshooting
 ---
 
-Welcome to the Nimi docs. Three tracks run through the site. [Use Nimi](/start/) if you want to know what the product is and what you can do with it today. [Understand the concepts](/platform/) if you want the ideas — worlds, characters, Agents, Realm, Runtime — in plain terms. [Build on Nimi](/sdk/) if you are a developer creating Nimi Apps.
+Start with [Create a Nimi App](/start/create-an-app), then connect the capability your app needs. The [SDK reference](/sdk/) and [Runtime documentation](/runtime/) explain the interfaces, configuration, and execution behavior in detail.
 
-Not sure where you fit? [Start](/start/) is the front door for everyone.
+Looking to use Nimi rather than develop an app? Visit [nimi.ai](https://nimi.ai) and check the [current downloads](https://nimi.ai/download).
 
 ## Source Basis
 

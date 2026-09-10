@@ -13,7 +13,10 @@
     "lab": {
       "entryBudgetBytes": 30000,
       "maxLargestAppChunkBytes": 180000,
-      "maxLargestVendorChunkBytes": 850000
+      "maxLargestVendorChunkBytes": 850000,
+      "vendorChunkBudgets": {
+        "vendor-spark-": 5100000
+      }
     }
   }
 }

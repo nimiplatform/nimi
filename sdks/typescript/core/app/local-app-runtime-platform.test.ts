@@ -1267,6 +1267,35 @@ test('local-app video jobs admit only the canonical seed range', async () => {
   );
 });
 
+test('local-app World jobs carry text through the async SDK and reject provider configuration', async () => {
+  const calls: unknown[] = [];
+  const base = standardShell([]);
+  const job = {
+    jobId: 'job-world-1', scenarioType: 'world-generate' as const, status: 'submitted' as const,
+    progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 0,
+    reasonCode: '', reasonDetail: '', artifacts: [], traceId: 'trace-world-1',
+    createdAt: null, updatedAt: null, transcriptionText: '',
+  };
+  const client = createNimiLocalAppClient({ standardShell: {
+    ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
+      async submit(spec, options) { calls.push([spec, options]); return { job }; },
+    } },
+  } });
+  const spec = { type: 'world-generate' as const, prompt: 'a botanical conservatory', displayName: 'Garden' };
+  assert.deepEqual(await client.ai.scenarioJobs.submit(spec), { job });
+  const adapter = createNimiLocalAppRuntimeScenarioJobClient(client.ai);
+  await adapter.submitScenarioJob({
+    head: { appId: 'nimi.lab', subjectUserId: '', timeoutMs: 300_000 },
+    scenarioType: ScenarioType.WORLD_GENERATE, executionMode: ExecutionMode.ASYNC_JOB,
+    spec: { spec: { oneofKind: 'worldGenerate', worldGenerate: {
+      textPrompt: spec.prompt, displayName: spec.displayName, tags: [], seed: '0', conditioning: { oneofKind: undefined },
+    } } }, requestId: 'request-world', idempotencyKey: 'idempotency-world', labels: {}, extensions: [],
+  });
+  assert.deepEqual(calls[1], [spec, { timeoutMs: 300_000 }]);
+  await assert.rejects(() => client.ai.scenarioJobs.submit({ ...spec, provider: 'worldlabs' } as never),
+    (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID');
+});
+
 test('local-app Music adapter exposes only prompt and lyrics through the protected async carrier', async () => {
   const calls: unknown[] = [];
   const base = standardShell([]);

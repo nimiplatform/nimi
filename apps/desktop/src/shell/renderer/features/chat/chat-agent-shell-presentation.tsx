@@ -395,10 +395,13 @@ export function useAgentConversationPresentation(
           <AgentCanonicalComposer
             composerKey={`${input.activeThreadId || 'none'}:${input.composerPrefillRequestId ?? 0}`}
             initialText={input.currentComposerTextRef.current}
-            disabled={Boolean(surfaceState.composer?.disabled)}
-            runtimeHint={surfaceState.composer?.disabledReason && !input.submittingThreadId
+            disabled={Boolean(surfaceState.composer?.disabled) || input.voiceInput.opening === true}
+            runtimeHint={input.voiceInput.opening
+              ? input.t('Chat.voiceInputOpening', { defaultValue: 'Opening microphone…' })
+              : surfaceState.composer?.disabledReason && !input.submittingThreadId
               ? surfaceState.composer.disabledReason
               : null}
+            realtimeVoiceAction={input.voiceInput.realtimeAction}
             pendingAttachments={input.pendingAttachments}
             onAttachmentsChange={input.onAttachmentsChange}
             onSubmit={input.handleSubmit}

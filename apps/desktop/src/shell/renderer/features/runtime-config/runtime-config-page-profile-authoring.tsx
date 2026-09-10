@@ -144,7 +144,7 @@ export function AIProfileAuthoringPage() {
         current?.recipes ?? [],
       );
       downloadPortableProfile(artifact.artifactJson, artifact.fileName);
-      dispatch({ type: 'export-succeeded' });
+      dispatch({ type: 'export-started' });
     } catch (error) {
       dispatch({
         type: 'operation-failed',
@@ -808,9 +808,12 @@ function ApplyPreviewSection(props: {
   readonly t: TFunction;
 }) {
   const { intentDiff } = props.preview;
+  const hasChanges = intentDiff.addedCapabilityContracts.length > 0
+    || intentDiff.changedCapabilityContracts.length > 0
+    || intentDiff.removedCapabilityContracts.length > 0;
   return (
     <PreviewSection title={props.t('runtimeConfig.profiles.authoring.applyPreviewTitle', { owner: props.ownerLabel })} testId={`ai-profile-authoring-apply-preview:${props.preview.target.kind}`}>
-      <div>{props.t('runtimeConfig.profiles.authoring.applyChanges')}</div>
+      <div>{props.t(`runtimeConfig.profiles.authoring.${hasChanges ? 'applyChanges' : 'applyUnchanged'}`)}</div>
       <dl className="mt-2 grid gap-1">
         <PreviewFact label={props.t('runtimeConfig.profiles.authoring.added')} value={listOrNone(intentDiff.addedCapabilityContracts.map((contract) => displayRuntimeConfigCapabilityLabel(contract, props.t)), props.t)} />
         <PreviewFact label={props.t('runtimeConfig.profiles.authoring.changed')} value={listOrNone(intentDiff.changedCapabilityContracts.map((contract) => displayRuntimeConfigCapabilityLabel(contract, props.t)), props.t)} />
@@ -907,8 +910,8 @@ function AuthoringOperationFeedback(props: {
       </div>
     );
   }
-  if (props.state.operation === 'exported') {
-    return <InlineAlert tone="success">{props.t('runtimeConfig.profiles.authoring.exportSuccess')}</InlineAlert>;
+  if (props.state.operation === 'export-started') {
+    return <InlineAlert tone="info">{props.t('runtimeConfig.profiles.authoring.exportStarted')}</InlineAlert>;
   }
   return (
     <div data-testid="ai-profile-authoring-operation-error">

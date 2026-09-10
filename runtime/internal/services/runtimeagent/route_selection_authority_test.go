@@ -2,6 +2,7 @@ package runtimeagent
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -71,6 +72,38 @@ func TestAIBackedLifeTrackExecutorFailsClosedWithoutConfigBinding(t *testing.T) 
 	}
 	if len(fakeAI.requests) != 0 {
 		t.Fatalf("life-track executor must not execute without the committed Runtime Agent AI Config binding")
+	}
+}
+
+func TestAIBackedLifeTrackExecutorPreservesUsageWhenHookOutputIsInvalid(t *testing.T) {
+	t.Parallel()
+
+	fakeAI := &fakeLifeTurnAI{
+		response: &runtimev1.ExecuteScenarioResponse{
+			Output: &runtimev1.ScenarioOutput{
+				Output: &runtimev1.ScenarioOutput_TextGenerate{
+					TextGenerate: &runtimev1.TextGenerateOutput{Text: `<life-turn><summary>follow up</summary><next-hook-intent trigger-family="TIME" effect="FOLLOW_UP_TURN" reason="follow up"/></life-turn>`},
+				},
+			},
+			Usage: &runtimev1.UsageStats{InputTokens: 11, OutputTokens: 7},
+		},
+	}
+	result, err := NewAIBackedLifeTrackExecutor(fakeAI).ExecuteLifeTrackHook(context.Background(), &lifeTurnRequest{
+		Agent:            &runtimev1.LocalAgentRecord{LocalAgentRef: "agent-route"},
+		State:            &runtimev1.AgentStateProjection{ActiveUserId: "user-route"},
+		Hook:             &runtimev1.PendingHook{Intent: &runtimev1.HookIntent{IntentId: "hook-route"}},
+		ExecutionBinding: committedConfigTestBinding,
+	})
+	var executionErr *lifeTurnExecutionError
+	if result != nil || !errors.As(err, &executionErr) {
+		t.Fatalf("expected rejected invalid hook output, got result=%+v, err=%v", result, err)
+	}
+	decision := executionErr.decision()
+	if decision.admissionState != runtimev1.HookAdmissionState_HOOK_ADMISSION_STATE_FAILED || decision.reasonCode != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+		t.Fatalf("invalid hook must remain a failed AI_OUTPUT_INVALID decision: %+v", decision)
+	}
+	if decision.tokensUsed != 18 {
+		t.Fatalf("invalid model output must retain measured usage, got %d", decision.tokensUsed)
 	}
 }
 

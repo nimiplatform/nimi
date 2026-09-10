@@ -160,36 +160,71 @@
     word-break: break-word;
   }
 
-  .world-tour-viewer-hero {
-    min-height: 150px;
+  .world-tour-page-title {
+    margin: 0;
+    font-size: 24px;
   }
+
+  .world-tour-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .world-tour-actions > p { flex-basis: 100%; margin: 0; }
 
   .world-tour-canvas {
-    min-height: 520px;
-    position: relative;
     overflow: hidden;
     display: grid;
-    align-items: end;
-    padding: 28px;
+    padding: 16px;
+    gap: 12px;
   }
 
-  .world-tour-canvas__mesh {
+  .world-tour-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .world-tour-toolbar h2 {
+    flex: 1 1 240px;
+    font-size: 16px;
+    overflow-wrap: anywhere;
+  }
+
+  .world-tour-viewport {
+    position: relative;
+    height: max(420px, calc(100dvh - 250px));
+    border-radius: 12px;
+    overflow: hidden;
+    background: #17201d;
+  }
+
+  .world-tour-viewport canvas {
+    display: block;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .world-tour-viewport canvas:active { cursor: grabbing; }
+  .world-tour-viewport canvas:focus-visible { outline: 3px solid var(--nimi-text-primary); outline-offset: -3px; }
+
+  .world-tour-loading {
     position: absolute;
     inset: 0;
-    background:
-      linear-gradient(90deg, color-mix(in srgb, var(--nimi-border-subtle) 50%, transparent) 1px, transparent 1px),
-      linear-gradient(0deg, color-mix(in srgb, var(--nimi-border-subtle) 50%, transparent) 1px, transparent 1px);
-    background-size: 36px 36px;
-    mask-image: linear-gradient(180deg, transparent 0%, black 18%, black 72%, transparent 100%);
-    opacity: 0.44;
+    margin: 0;
+    display: grid;
+    place-items: center;
+    color: white;
   }
 
-  .world-tour-canvas__content {
-    position: relative;
-    z-index: 1;
-    display: grid;
-    gap: 14px;
-    max-width: 760px;
+  .world-tour-controls, .world-tour-message {
+    margin: 0;
+    color: var(--nimi-text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
   }
 
   @container nimi-workbench-surface (max-width: 640px) {

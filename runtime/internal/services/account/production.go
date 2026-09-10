@@ -301,11 +301,12 @@ func materialFromRefreshTokenResponse(resp *http.Response, current AccountMateri
 
 	accessToken := strings.TrimSpace(parsed.AccessToken)
 	refreshToken := strings.TrimSpace(parsed.RefreshToken)
+	// Realm's atomic family authority rejects reuse. This client validates
+	// the active rotation, without duplicating an unbounded family history.
 	if accessToken == "" || accessToken != parsed.AccessToken ||
 		refreshToken == "" || refreshToken != parsed.RefreshToken ||
 		parsed.TokenType != "Bearer" || parsed.ExpiresIn <= 0 || math.Trunc(parsed.ExpiresIn) != parsed.ExpiresIn || parsed.User != nil ||
-		refreshToken == strings.TrimSpace(current.RefreshToken) ||
-		current.RefreshTokenHashes[refreshHash(refreshToken)] {
+		refreshToken == strings.TrimSpace(current.RefreshToken) {
 		return AccountMaterial{}, newRefreshFailure(refreshFailureContractInvalid, errors.New("invalid refresh response"))
 	}
 	maxExpiresInSeconds := int64((time.Duration(1<<63 - 1)) / time.Second)
@@ -319,7 +320,7 @@ func materialFromRefreshTokenResponse(resp *http.Response, current AccountMateri
 	// resulting material to custody before exposing the authenticated state.
 	next := current
 	next.WorkspaceMemberships = cloneWorkspaceMemberships(current.WorkspaceMemberships)
-	next.RefreshTokenHashes = copyRefreshHashes(current.RefreshTokenHashes)
+	next.RefreshTokenHashes = nil
 	next.AccessToken = accessToken
 	next.AccessTokenExpires = time.Now().UTC().Add(time.Duration(expiresIn) * time.Second)
 	next.RefreshToken = refreshToken

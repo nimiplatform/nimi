@@ -25,6 +25,12 @@ type AgentComposerAvatarAction = {
   onActivate?: () => Promise<InlineFeedbackState | null | void> | InlineFeedbackState | null | void;
 };
 
+type AgentComposerRealtimeVoiceAction = {
+  active: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+};
+
 const ICON_HANDS_FREE = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M4 12a8 8 0 0 1 16 0" />
@@ -76,6 +82,7 @@ function AgentComposerToolbarControls(props: {
   thinkingState?: 'on' | 'off' | 'unsupported';
   onThinkingToggle?: () => void;
   handsFreeState?: AgentComposerHandsFreeState;
+  realtimeVoiceAction?: AgentComposerRealtimeVoiceAction;
 }) {
   const { t } = useTranslation();
   const handsFreeActive = props.handsFreeState?.mode === 'hands-free';
@@ -154,6 +161,30 @@ function AgentComposerToolbarControls(props: {
       </div>
       <span aria-hidden="true" data-agent-composer-toolbar-divider="true" className="mx-0.5 h-4 w-px bg-[var(--nimi-border-subtle)]" />
       <div data-agent-composer-utility-group="true" className="flex items-center gap-1">
+      {props.realtimeVoiceAction ? (
+        <button
+          type="button"
+          data-agent-composer-realtime-voice="true"
+          aria-label={props.realtimeVoiceAction.active
+            ? t('Chat.realtimeVoiceEnd', { defaultValue: 'End realtime voice' })
+            : t('Chat.realtimeVoiceStart', { defaultValue: 'Start realtime voice' })}
+          title={props.realtimeVoiceAction.active
+            ? t('Chat.realtimeVoiceEnd', { defaultValue: 'End realtime voice' })
+            : t('Chat.realtimeVoiceStart', { defaultValue: 'Start realtime voice' })}
+          aria-pressed={props.realtimeVoiceAction.active}
+          disabled={props.realtimeVoiceAction.disabled}
+          onClick={props.realtimeVoiceAction.onToggle}
+          className={cn(
+            AGENT_COMPOSER_TOOL_BUTTON_CLASS,
+            props.realtimeVoiceAction.active
+              ? 'border-transparent bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)] hover:bg-[var(--nimi-action-primary-bg)]/20'
+              : 'border-transparent bg-transparent text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-secondary)]',
+            'disabled:cursor-not-allowed disabled:opacity-40',
+          )}
+        >
+          {ICON_HANDS_FREE}
+        </button>
+      ) : null}
       {props.handsFreeState ? (
         <button
           type="button"
@@ -284,6 +315,7 @@ export function AgentCanonicalComposer(props: {
   thinkingState?: 'on' | 'off' | 'unsupported';
   onThinkingToggle?: () => void;
   handsFreeState?: AgentComposerHandsFreeState;
+  realtimeVoiceAction?: AgentComposerRealtimeVoiceAction;
   onOpenAgentCenter?: () => void;
   agentCenterOpen?: boolean;
   widthClassName?: string;
@@ -448,6 +480,7 @@ export function AgentCanonicalComposer(props: {
             thinkingState={props.thinkingState}
             onThinkingToggle={props.onThinkingToggle}
             handsFreeState={props.handsFreeState}
+            realtimeVoiceAction={props.realtimeVoiceAction}
           />
         )}
         trailingSlot={props.onOpenAgentCenter ? (

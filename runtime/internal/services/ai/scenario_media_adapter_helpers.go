@@ -27,6 +27,8 @@ func isRetiredAmbientLocalProvider(providerID string) bool {
 
 func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal {
 	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE:
+		return runtimev1.Modal_MODAL_VISION
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
 		return runtimev1.Modal_MODAL_IMAGE
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:

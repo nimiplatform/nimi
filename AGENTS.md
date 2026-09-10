@@ -21,6 +21,8 @@
 
 ## Execution
 
+- For product work, identify the current module's audience and task before choosing its presentation. Use the user's established direction and the consumer's context; advanced controls and developer documentation need their own level of precision.
+- Authority supplies facts and constraints, not a mandatory copy or layout template. Within those boundaries, exercise product judgment over wording, grouping, hierarchy, and interaction. A misleading action, missing prerequisite, or inability to complete a supported task is a product defect even when compilation and contracts pass.
 - For an authorized implementation or product-gate task, attempt the real affected build, launch, or journey first.
 - Start debugging at the observed consumer. Inspect SDK or Runtime only when a trace, import boundary, or contract failure points upstream.
 - Proceed as: real target attempt → first actual failure → smallest causal repair → rerun the same target → necessary evidence.

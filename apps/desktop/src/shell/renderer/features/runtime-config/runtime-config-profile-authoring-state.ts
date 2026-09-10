@@ -77,7 +77,7 @@ export type RuntimeConfigAIProfileAuthoringDraft = {
 export type RuntimeConfigAIProfileAuthoringOperation =
   | 'editing'
   | 'imported'
-  | 'exported'
+  | 'export-started'
   | 'operation-failed';
 
 export type RuntimeConfigAIProfileAuthoringState = {
@@ -92,7 +92,7 @@ export type RuntimeConfigAIProfileAuthoringAction =
   | { readonly type: 'draft-changed'; readonly draft: RuntimeConfigAIProfileAuthoringDraft }
   | { readonly type: 'recipes-loaded'; readonly recipes: readonly NimiLoadoutRecipe[] }
   | { readonly type: 'import-succeeded'; readonly draft: RuntimeConfigAIProfileAuthoringDraft }
-  | { readonly type: 'export-succeeded' }
+  | { readonly type: 'export-started' }
   | {
     readonly type: 'operation-failed';
     readonly source: 'import' | 'export';
@@ -197,10 +197,10 @@ export function reduceRuntimeConfigAIProfileAuthoringState(
         technicalError: '',
         revision: state.revision + 1,
       };
-    case 'export-succeeded':
+    case 'export-started':
       return {
         ...state,
-        operation: 'exported',
+        operation: 'export-started',
         operationSource: 'export',
         technicalError: '',
       };
@@ -497,7 +497,10 @@ export function projectRuntimeConfigAIProfileAuthoringMachine(
       ...(loadout.validationState === 'configured' ? {
         loadout: Object.freeze({
           recipeId: loadout.recipeId,
-          axes: Object.freeze(loadout.modelAxes.map((axis) => Object.freeze({
+          // An unselected optional slot has no resource identity in this projection.
+          axes: Object.freeze(loadout.modelAxes.filter((axis) => (
+            axis.presence !== 'optional-conditional' || axis.resolution !== 'not-configured'
+          )).map((axis) => Object.freeze({
             slotId: axis.slotId,
             contentId: axis.expectedContentId,
           }))),

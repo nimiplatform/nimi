@@ -90,12 +90,14 @@ test('lab shared Model Config inventory includes video.generate and deduplicates
   assert.deepEqual(labModelConfigCapabilityContracts, [
     'text.generate',
     'text.embed',
+    'vision.locate',
     'image.generate',
     'video.generate',
     'music.generate',
     'audio.synthesize',
     'audio.transcribe',
     'voice.create',
+    'world.generate',
   ]);
   for (const capability of labCapabilities.filter((entry) => entry.execution === 'runtime-sdk')) {
     assert.doesNotMatch(capability.summary, /currently unavailable/iu);
@@ -260,26 +262,26 @@ test('lab requires an exact Connector and provider-model target for Cloud execut
   assert.equal(blocked.intentLabel, 'Invalid configuration');
 });
 
-test('lab dispatches the standalone World Tour only from a Tauri shell', async () => {
+test('lab dispatches the standalone World Tour only from a Electron shell', async () => {
   const { createLabRunTargetSummary } = await importBehaviorModule('lab/lab-run-target.js');
   const capability = {
-    id: 'world.generate', label: 'World Tour', group: 'world', section: 'world', summary: '', surface: '', execution: 'standalone-tauri',
+    id: 'world.generate', label: 'World Tour', group: 'world', section: 'world', summary: '', surface: '', execution: 'standalone-electron',
   };
+  const unavailable = createLabRunTargetSummary({
+    capability,
+    runtime: { status: 'connected', mode: 'electron-local-app', detail: 'connected' },
+    config: null,
+    standaloneViewerAvailable: false,
+  });
+  assert.equal(unavailable.canDispatch, false);
+
   const electron = createLabRunTargetSummary({
     capability,
     runtime: { status: 'connected', mode: 'electron-local-app', detail: 'connected' },
     config: null,
-    standaloneTauriAvailable: false,
+    standaloneViewerAvailable: true,
   });
-  assert.equal(electron.canDispatch, false);
-
-  const tauri = createLabRunTargetSummary({
-    capability,
-    runtime: { status: 'connected', mode: 'tauri-local-app', detail: 'connected' },
-    config: null,
-    standaloneTauriAvailable: true,
-  });
-  assert.equal(tauri.canDispatch, true);
+  assert.equal(electron.canDispatch, true);
 });
 
 test('lab run history presents only the configured capability intent', async () => {

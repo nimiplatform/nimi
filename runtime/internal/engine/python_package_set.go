@@ -16,6 +16,11 @@ type pythonPackageSetManifest struct {
 func resolvePythonPackageSetManifest(consumer string) (pythonPackageSetManifest, error) {
 	trimmed := strings.TrimSpace(consumer)
 	switch {
+	case trimmed == VisionLocateConsumerID:
+		return pythonPackageSetManifest{
+			ID:           "vision-locateanything-python-core",
+			ImportProbes: []string{"fastapi", "uvicorn", "PIL", "transformers"},
+		}, nil
 	case strings.HasPrefix(trimmed, "stable-diffusion.cpp."):
 		return pythonPackageSetManifest{
 			ID:           "media-proxy-execution-core",
@@ -95,6 +100,11 @@ var speechQwen3ASRDriverScriptFile = struct {
 	Script *string
 }{Name: "qwen3_asr_driver.py", Script: &speechQwen3ASRDriverScript}
 
+var speechAudioScriptFile = struct {
+	Name   string
+	Script *string
+}{Name: "speech_audio.py", Script: &speechAudioScript}
+
 var speechQwen3ASRTransformersDriverScriptFile = struct {
 	Name   string
 	Script *string
@@ -125,14 +135,14 @@ func speechPipelineFilesForConsumer(consumer string) []struct {
 			Name   string
 			Script *string
 		}{}, speechServerScriptFiles...)
-		files = append(files, speechQwen3ASRDriverScriptFile)
+		files = append(files, speechQwen3ASRDriverScriptFile, speechAudioScriptFile)
 		return files
 	case "speech.qwen3-asr-transformers.python":
 		files := append([]struct {
 			Name   string
 			Script *string
 		}{}, speechServerScriptFiles...)
-		files = append(files, speechQwen3ASRTransformersDriverScriptFile)
+		files = append(files, speechQwen3ASRTransformersDriverScriptFile, speechAudioScriptFile)
 		return files
 	case "speech.voxcpm.python":
 		files := append([]struct {
@@ -236,6 +246,8 @@ func materializePythonPipelineServerScript(root string, consumer string) error {
 		return fmt.Errorf("python pipeline script root is required")
 	}
 	switch {
+	case strings.TrimSpace(consumer) == VisionLocateConsumerID:
+		return materializeVisionDriverBundle(trimmedRoot)
 	case strings.HasPrefix(strings.TrimSpace(consumer), "stable-diffusion.cpp."):
 		return os.WriteFile(filepath.Join(trimmedRoot, "media_server.py"), []byte(mediaServerScript), 0o755)
 	case strings.HasPrefix(strings.TrimSpace(consumer), "media."):

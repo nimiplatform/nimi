@@ -73,7 +73,7 @@ func runProductionDaemon(version string) (resultErr error) {
 		cancel()
 		return true
 	}
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger := slog.New(slog.NewJSONHandler(protectedlocal.MacOSRuntimeLogWriter{}, nil))
 	runtimeDaemon, err := daemon.NewProtectedFromMacOSSecurityState(cfg, logger, version, state, requestRestart)
 	if err != nil {
 		return fmt.Errorf("construct protected macOS Runtime: %w", err)

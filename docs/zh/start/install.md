@@ -1,79 +1,50 @@
-# 安装与可用性
+# 开发环境与可用性
 
-Nimi 有多个公开层（Surface），各自有独立的分发渠道。本页列出今天就能安装的组件，以及目前只有契约文档、尚未开放安装的部分。
+开发第三方 Nimi App，先准备项目工具链。通过 Nimi 运行 App 并调用能力时，还需要兼容的 Nimi Home 开发实例和 Runtime。
 
-## 当前可安装的组件
+## 创建并检查项目
 
-### Nimi Coding
+使用 Node.js 24 或更新版本以及 pnpm，然后按[创建 Nimi App](/zh/start/create-an-app)操作。该指南固定使用 App Tools 0.2.7，便于把命令与生成依赖对应到同一发布版本。
 
-Nimi Coding 是独立于宿主环境（Host-agnostic）的 canonical-authority 工具，并以 npm 软件包形式发布：[`@nimiplatform/nimi-coding`](https://www.npmjs.com/package/@nimiplatform/nimi-coding)。
-
-Nimi workspace 安装与 host compatibility 检查见 [Nimi Coding → Host 集成](/zh/nimicoding/installation)。
-
-最小化的首次验证路径如下：
-
-1. 安装 Nimi workspace dependencies。
-2. 运行 `pnpm nimicoding:sync` 和 `pnpm nimicoding:doctor`。
-3. 通过 [CLI 参考](/zh/nimicoding/cli-reference) 执行收窄的 authority context、格式化与验证，并查看当前安装版本支持的代码读取命令。
-
-软件包仍然保持宿主无关；Nimi 仓库在它外围应用自己的明确准入边界。
-
-### Nimi App Tools
-
-`@nimiplatform/app-tools` 是面向 Nimi App 开发者仓库的公开 app-authoring CLI。
-
-```bash
-pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone
-```
-
-完整 scaffold 路径见 [创建 Nimi App](/zh/start/create-an-app)。CLI 只创建 scaffold 输入和本地检查；它不会创建公开 App 准入、权限授予、registry 可见性、release descriptor，或 installed-app update truth。
-
-## Package channel 矩阵
-
-| Package | npm install path | source checkout path | 说明 |
-| --- | --- | --- | --- |
-| `@nimiplatform/app-tools` | 带 `nimi-app` binary 的公开 package | `app-tools/` | Standalone scaffold 通过 `pnpm dlx --package` 运行；workspace scaffold 可以使用 `workspace:*`。 |
-| `@nimiplatform/kit` | 公开 package | `kit/` | Kit 不是 Runtime 替代品；App 只使用已发布的 subpath exports。 |
-| `@nimiplatform/sdk` | 面向 App consumer 的公开 package | `sdks/typescript/` active public package source | 生成的 standalone app 使用 app-tools 写入的 `0.6.x` published range；本仓库通过 workspace 使用同一个 package。 |
-
-不要假设 source checkout 会自动打开所有产品 release channel。Standalone App 仓库使用 npm package；只有在本 monorepo 或生成的 workspace-app scaffold 中才使用 `workspace:*`。
-
-## 已有契约定义的平台层
-
-下表所列的各平台层目前均有完整的契约文档，定义了其权责及与平台生态的协作关系。
-
-| 平台层 | 阅读路径 | 涵盖内容 |
+| 组件 | App Tools 0.2.7 的生成声明 | 用途 |
 | --- | --- | --- |
-| 平台 | [平台](/zh/platform/) | 世界模型、六项基础协议及权威准入规则 |
-| Runtime | [Runtime](/zh/runtime/) | LocalAgent 执行、Conversation、Memory、Knowledge、流式、多模态及 Provider 路由 |
-| SDK | [SDK](/zh/sdk/) 与 [第一次 AI 调用](/zh/sdk/first-ai-call) | 应用开发者的标准化接入边界与第一次 Runtime-backed 文本生成路径 |
-| App Tools | [创建 Nimi App](/zh/start/create-an-app) | App authoring scaffold 命令与本地检查 |
-| Kit | [平台 Kit](/zh/platform/kit/) | 共享 UI、shell、auth、telemetry、AI capability configuration 与 feature module |
-| Nimi Lab | [使用 Nimi Lab](/zh/start/use-nimi-lab) | 能力集成脚本、Runtime auth、Kit、AIConfig 与 fail-closed states |
-| 桌面端 | [桌面端](/zh/desktop/) | 第一方原生外壳（Shell） |
-| 网页端 | [Web 模式](/zh/desktop/web-mode) | 受限的浏览器沙盒呈现模式 |
-| Realm | [Realm](/zh/realm/) | 语义真相、世界状态及历史演进轨迹 |
-| Avatar | [Avatar](/zh/avatar/) | Agent 的形体呈现标准 |
+| `@nimiplatform/app-tools` | `^0.2.7` | 创建、初始化、同步、检查、运行、测试、构建与打包 App |
+| `@nimiplatform/sdk` | `^0.9.0` | Nimi 公开能力接口 |
+| `@nimiplatform/nimi-coding` | `0.6.1` | 供项目初始化与检查使用的受管投影工具 |
+| `@nimiplatform/kit` | 以生成项目的声明为准 | 共享 App UI 与宿主集成 |
 
-当上述任一层获得准入并新增安装命令、下载链接或发布说明时，对应章节页将同步更新。
+这张表说明已发布脚手架的依赖，不表示各个依赖都应独立升级到最新版本。选择其他 App Tools 版本时，以该版本生成的 manifest 和帮助为准。当前 Nimi workspace 中的 App Tools 0.2.8 声明 SDK `^0.10.0` 和 nimicoding `0.6.2`，不能把这些 workspace 值写成 0.2.7 发布包的输出。
 
-## 跟踪可用性状态
+Standalone 项目使用公开包；`workspace:*`、源码别名和 Nimi 内部的 workspace 验证不是第三方安装路径。以上对应 [App Tools 0.2.7](https://www.npmjs.com/package/@nimiplatform/app-tools/v/0.2.7)。
 
-[兼容姿态](/zh/reference/compatibility-posture) 明确了各层在何种条件下才被允许发布安装或版本信息。
+## 通过 Nimi Home 运行
 
-此外，[禁止主张](/zh/reference/forbidden-claims) 页面列出了在缺乏准入证据时，公开文档严禁使用的安装类与发布类宣传语。
+开发命令会请求 Desktop（当前的 Nimi Home 宿主）启动受监督的 Electron App。通过 Developer Mode 登记本地项目，并配置 App 所需访问。看见窗口不等于 Runtime 访问或 AI 能力已经准备完成。
+
+当前尚未发布面向普通用户的 Nimi 稳定版安装器。[官方下载页](https://nimi.ai/download)列出各平台的真实可用范围与开发构建要求。Windows Runtime bootstrap 是便携的开发组件，不包含 Nimi Home、安装器或受保护产品环境，不能代替 Home 开发环境。
+
+尚无兼容的 Home/Runtime 开发实例时，可以先准备项目并完成静态检查；受管启动与能力执行仍需等该前提具备后验证。根据宿主实际错误查[故障排查](/zh/start/troubleshooting)，不要直接打开 renderer 绕过访问要求。
+
+## 接入能力与准备分发
+
+- [第一次 AI 调用](/zh/sdk/first-ai-call)：请求与能力意图要求。
+- [在 App 中使用 Kit](/zh/platform/kit/use-kit-in-app)：生成项目的宿主绑定与共享接口。
+- [本地开发与对外分发](/zh/start/#本地开发与对外分发)：Developer Mode、Registry 安装包、不可变本地包导入及当前平台限制。
+- [网页端与 Nimi Home](/zh/desktop/web-mode)：公开站点与账户页面的边界；网站不是 Desktop 的 Web 适配器。
+
+创建或运行项目不会发布 App，也不授予 Registry 准入。进入分发阶段时，按 App Tools 的实际发布与打包说明操作。
+
+## 直接使用 Nimi Coding
+
+生成 App 已声明必需的 nimicoding 依赖，`pnpm run init` 会调用其同步机制。这是真实工具链依赖，不要求开发者先单独学习 Nimi 主仓的内部治理流程。
+
+希望在自己的工作中直接使用规范管理工具时，可以阅读 Nimi Coding 的[概览](/zh/nimicoding/)与[安装指南](/zh/nimicoding/installation)。
 
 ## 来源依据
 
-- [`nimi-coding/README.zh-CN.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.zh-CN.md)
-- [`nimi-coding/methodology/authority-authoring.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/authority-authoring.yaml)
-- [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
-- [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
-- [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)
 - [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)
-- [`app-tools/lib/index.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/index.mjs)
+- [`app-tools/package.json`](https://github.com/nimiplatform/nimi/blob/main/app-tools/package.json)
 - [`app-tools/lib/app-scaffold.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/app-scaffold.mjs)
-- [`kit/package.json`](https://github.com/nimiplatform/nimi/blob/main/kit/package.json)
-- [`sdks/typescript/package.json`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/package.json)
-- [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
+- [`app-tools/lib/app-doctor-update.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/app-doctor-update.mjs)
+- [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
+- [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)
