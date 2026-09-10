@@ -468,6 +468,8 @@ message ApprovedAppCatalogTarget {
   bool policy_blocked = 23;
   optional string policy_reason = 24;
   uint64 policy_revision = 25;
+  string macos_notarization = 26;
+  optional string macos_developer_id_subject = 27;
 }
 
 message ListApprovedAppCatalogTargetsRequest {}

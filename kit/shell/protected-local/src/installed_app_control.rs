@@ -2,6 +2,9 @@ use crate::generated::{
     BindLocalAppProcessRequest, EndInstalledAppRunRequest, GetInstalledAppRunAccessRequest,
     PrepareInstalledAppLaunchRequest, ReasonCode,
 };
+#[cfg(target_os = "macos")]
+use crate::macos_supervised_process::SupervisedDevelopmentProcess;
+#[cfg(target_os = "windows")]
 use crate::windows_supervised_process::SupervisedDevelopmentProcess;
 use crate::{
     InstalledAppLaunchOutcome, InstalledAppRunAccess, NimiHostError, NimiHostErrorReasonCode,
@@ -15,6 +18,10 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tonic::{transport::Channel, Code, Status};
 
 type Runs = HashMap<[u8; 32], SupervisedDevelopmentProcess>;
+#[cfg(target_os = "windows")]
+const EXECUTION_PROFILE: &str = "windows-user-mode-as-invoker-v1";
+#[cfg(target_os = "macos")]
+const EXECUTION_PROFILE: &str = "macos-user-mode-same-session-v1";
 fn runs() -> &'static Mutex<Runs> {
     static RUNS: OnceLock<Mutex<Runs>> = OnceLock::new();
     RUNS.get_or_init(|| Mutex::new(HashMap::new()))
@@ -42,7 +49,7 @@ pub(crate) async fn launch(
         .map_err(runtime_error)?
         .into_inner();
     if prepared.reason_code != ReasonCode::ActionExecuted as i32
-        || prepared.execution_profile_ref != "windows-user-mode-as-invoker-v1"
+        || prepared.execution_profile_ref != EXECUTION_PROFILE
         || !prepared.arguments.is_empty()
     {
         return Err(invalid());

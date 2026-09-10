@@ -340,6 +340,8 @@ func approvedAppCatalogTargetProjection(target publicappregistry.ResolvedApprove
 		ExecutionProfileRef:             target.Target.ExecutionProfileRef,
 		WindowsCodeSigning:              target.Target.NativeTrust.WindowsCodeSigning,
 		ObservedSigningSubject:          cloneStringPointer(target.Target.NativeTrust.ObservedSubject),
+		MacosNotarization:               target.Target.NativeTrust.MacOSNotarization,
+		MacosDeveloperIdSubject:         cloneStringPointer(target.Target.NativeTrust.MacOSDeveloperIDSubject),
 		PolicyBlocked:                   target.KillSwitch.Active,
 		PolicyReason:                    cloneStringPointer(target.KillSwitch.Reason),
 		PolicyRevision:                  target.KillSwitch.Revision,

@@ -922,11 +922,20 @@ int nimi_macos_open_url(const char *raw_url) {
     }
 }
 
-int nimi_macos_spawn_suspended(const char *executable, char *const argv[], char *const envp[],
-                               const char *working_directory, uint32_t *pid_output) {
+static int nimi_macos_spawn_authorized(const char *executable, char *const argv[], char *const envp[],
+                                      const char *working_directory, uint32_t *pid_output,
+                                      int installed) {
     if (executable == NULL || argv == NULL || argv[0] == NULL || envp == NULL ||
         working_directory == NULL || pid_output == NULL ||
         executable[0] != '/' || working_directory[0] != '/') return EINVAL;
+    if (geteuid() == 0 || geteuid() != getuid()) return EACCES;
+    if (installed) {
+        char canonical[PATH_MAX];
+        struct stat info;
+        if (realpath(executable, canonical) == NULL || strcmp(canonical, executable) != 0 ||
+            lstat(executable, &info) != 0 || !S_ISREG(info.st_mode) ||
+            (info.st_mode & (S_ISUID | S_ISGID | 0022)) != 0) return EACCES;
+    } else {
 #ifdef NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT
     char canonical_executable[PATH_MAX];
     struct stat executable_info;
@@ -939,6 +948,7 @@ int nimi_macos_spawn_suspended(const char *executable, char *const argv[], char 
 #else
     if (strcmp(executable, NIMI_MACOS_LOCAL_APP_HOST) != 0) return EINVAL;
 #endif
+    }
     posix_spawnattr_t attributes;
     posix_spawn_file_actions_t actions;
     int result = posix_spawnattr_init(&attributes);
@@ -960,6 +970,16 @@ int nimi_macos_spawn_suspended(const char *executable, char *const argv[], char 
     if (result != 0 || pid <= 0) return result == 0 ? EIO : result;
     *pid_output = (uint32_t)pid;
     return 0;
+}
+
+int nimi_macos_spawn_suspended(const char *executable, char *const argv[], char *const envp[],
+                               const char *working_directory, uint32_t *pid_output) {
+    return nimi_macos_spawn_authorized(executable, argv, envp, working_directory, pid_output, 0);
+}
+
+int nimi_macos_spawn_installed_suspended(const char *executable, char *const argv[], char *const envp[],
+                                         const char *working_directory, uint32_t *pid_output) {
+    return nimi_macos_spawn_authorized(executable, argv, envp, working_directory, pid_output, 1);
 }
 
 int nimi_macos_watch_child(uint32_t pid) {
@@ -987,19 +1007,82 @@ int nimi_macos_child_running(uint32_t pid, int kqueue_fd) {
     return nimi_process_snapshot((pid_t)pid, &process, path, sizeof(path)) == 0 ? 1 : 0;
 }
 
+int nimi_macos_child_exit_code(uint32_t pid, uint32_t *output) {
+    if (pid == 0 || output == NULL) return -1;
+    siginfo_t info;
+    memset(&info, 0, sizeof(info));
+    int result;
+    do { result = waitid(P_PID, (id_t)pid, &info, WEXITED | WNOHANG | WNOWAIT); } while (result < 0 && errno == EINTR);
+    if (result < 0) return -1;
+    if (info.si_pid == 0) return 0;
+    if (info.si_pid != (pid_t)pid) return -1;
+    if (info.si_code == CLD_EXITED) *output = (uint32_t)info.si_status;
+    else if (info.si_code == CLD_KILLED || info.si_code == CLD_DUMPED) *output = (uint32_t)(128 + info.si_status);
+    else return 0;
+    return 1;
+}
+
+int nimi_macos_focus_child(uint32_t pid) {
+    if (pid == 0) return EINVAL;
+    @autoreleasepool {
+        NSRunningApplication *application = [NSRunningApplication runningApplicationWithProcessIdentifier:(pid_t)pid];
+        if (application == nil || application.terminated) return ESRCH;
+        return [application activateWithOptions:NSApplicationActivateAllWindows | NSApplicationActivateIgnoringOtherApps] ? 0 : EIO;
+    }
+}
+
+static int nimi_macos_signal_child_group(pid_t child, int signal) {
+    if (kill(-child, signal) == 0 || errno == ESRCH) return 0;
+    int failure = errno;
+    if (failure != EPERM) return failure;
+    // Darwin reports EPERM when a waitable group contains only zombies.
+    // Confirm that state instead of treating a live permission failure as exit.
+    int mib[] = {CTL_KERN, KERN_PROC, KERN_PROC_PGRP, child};
+    size_t size = 0;
+    if (sysctl(mib, 4, NULL, &size, NULL, 0) != 0) return failure;
+    if (size == 0) return 0;
+    struct kinfo_proc *members = malloc(size);
+    if (members == NULL) return ENOMEM;
+    if (sysctl(mib, 4, members, &size, NULL, 0) != 0) { free(members); return failure; }
+    int live = 0;
+    for (size_t index = 0; index < size / sizeof(*members); index++) {
+        if (members[index].kp_proc.p_stat != SZOMB) { live = 1; break; }
+    }
+    free(members);
+    return live ? failure : 0;
+}
+
 int nimi_macos_terminate_child_group(uint32_t pid) {
     if (pid == 0) return EINVAL;
     pid_t child = (pid_t)pid;
     int status = 0;
-    pid_t observed = waitpid(child, &status, WNOHANG);
-    if (observed == child || (observed < 0 && errno == ECHILD)) return 0;
-    if (kill(-child, SIGTERM) != 0 && errno != ESRCH) return errno;
+    uint32_t exit_code = 0;
+    int exited = nimi_macos_child_exit_code(pid, &exit_code);
+    if (exited < 0) return ECHILD;
+    // Do not reap the leader until its group is terminated. Keeping the owned
+    // child waitable prevents reuse of its PID/process-group identifier.
+    if (exited == 1) {
+        int failure = nimi_macos_signal_child_group(child, SIGKILL);
+        if (failure != 0) return failure;
+        while (waitpid(child, &status, 0) < 0 && errno == EINTR) {}
+        return 0;
+    }
+    int failure = nimi_macos_signal_child_group(child, SIGTERM);
+    if (failure != 0) return failure;
     for (int index = 0; index < 40; index++) {
-        observed = waitpid(child, &status, WNOHANG);
-        if (observed == child || (observed < 0 && errno == ECHILD)) return 0;
+        exited = nimi_macos_child_exit_code(pid, &exit_code);
+        if (exited < 0) return ECHILD;
+        if (exited == 1) {
+            failure = nimi_macos_signal_child_group(child, SIGKILL);
+            if (failure != 0) return failure;
+            while (waitpid(child, &status, 0) < 0 && errno == EINTR) {}
+            return 0;
+        }
         usleep(50000);
     }
-    if (kill(-child, SIGKILL) != 0 && errno != ESRCH) return errno;
+    failure = nimi_macos_signal_child_group(child, SIGKILL);
+    if (failure != 0) return failure;
+    pid_t observed;
     do {
         observed = waitpid(child, &status, 0);
     } while (observed < 0 && errno == EINTR);

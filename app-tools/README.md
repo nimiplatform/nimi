@@ -34,7 +34,7 @@ node app-tools/bin/nimi-app.mjs --help
 
 ## Create
 
-Interactive use validates every field, shows the resolved plan and asks for confirmation. The optional `author` names one person or team. Non-interactive use supplies the same inputs directly:
+Interactive use validates every field, shows the resolved plan and asks for confirmation. The optional `author` names one person or team; include `--author` when creating a Windows release project because the standard packager uses it for executable metadata. Non-interactive use supplies the same inputs directly:
 
 ```bash
 node app-tools/bin/nimi-app.mjs create \
@@ -79,13 +79,31 @@ The list shows the current project's registrations and creation times. Copy the 
 
 The default `windows-x86_64` build profile runs `build:electron:production`. It rebuilds the renderer and Electron main/preload, then creates a fresh, non-installer `dist-electron-package/<app>-shell-win32-x64/` directory with `asar` disabled and an App-specific `<app>-shell.exe`. The production main bundle has a compile-time production marker and rejects every `--nimi-dev-renderer-url` argument; packaged renderer assets stay relative under `dist/`. The protected native binding is resolved from Kit's optional dependency and is never declared directly by the App.
 
+App Tools 0.3 also prepares the `macos-aarch64` target on an Apple Silicon Mac.
+The same owner command produces `dist-electron-package/<app>-shell-darwin-arm64/`
+with a native `.app` bundle and a direct `Contents/MacOS` entry. The publisher's
+build applies an ad-hoc integrity seal without a Developer ID identity or Apple
+notarization; production pack observes that absence and rejects invalid seals.
+Relative framework links are preserved inside the immutable payload. The App
+continues to consume the macOS native binding through Kit's optional dependency.
+Nimi installation never signs or repairs the publisher's code.
+
+Existing `.nimi/config/build-profile.yaml` target choices are App-owned and are
+preserved by sync. To add macOS, declare `macos-aarch64` with `os: macos`,
+`arch: arm64`, the same production build command, the Darwin output directory
+above as `payload_path`, and
+`payload/<app>-shell.app/Contents/MacOS/<app>-shell` as `runtime_entry`.
+The managed workflow resolves that declared target to `macos-15`; Windows keeps
+its existing runner and profile. These authoring/build capabilities do not by
+themselves establish Registry admission or a completed Desktop lifecycle.
+
 Tauri remains an explicit alternative through `pnpm run build:tauri:production`; selecting it requires an explicit Tauri build profile rather than changing the default Electron carrier.
 
 ## Canonical release boundary
 
 The Registry publication chain uses the stages below. Publisher GitHub Release
 is available for configured pilot repositories; protected Registry admission and
-verified installation, launch and uninstall are available on Windows x86_64:
+verified installation, update, launch and uninstall are available on Windows x86_64:
 
 ```text
 public App repository
@@ -101,9 +119,97 @@ public App repository
 
 The registry references publisher Release assets and never mirrors bytes. GitHub Release is not catalog admission; catalog admission is not installed; installed is not running; running is not Nimi Access ready.
 
-Repository administration must enable a protected `v*` tag ruleset and GitHub immutable releases before production. The managed tag workflow fetches the repository's canonical default branch and rejects a tag commit outside that history before production preflight, build, attestation, or Release. A fine-grained `NIMI_REPOSITORY_ADMIN_TOKEN` secret with repository Administration read permission lets the workflow verify protected-tag and immutable-release settings; it cannot enable or change them. Manual workflow dispatch runs only the non-production build/package path. On Windows, the tag-only production build invokes the App-declared production build with no certificate-secret mapping or app-tools-owned signing step. Optional native signing remains publisher-owned and must already be reflected in the final exact Runtime entry before production pack observes and records its native-trust posture; a present invalid or unresolved signature still fails closed. A successful tag workflow creates the immutable publisher GitHub Release and no registry, installed, running, or Nimi Access truth. Protected Registry submission and approved Windows x86_64 installation, launch/focus/stop, current-session Nimi Access and uninstall are available through their Platform, Runtime and Desktop owners. Other-platform installed lifecycle, ordinary update and repair remain unavailable. Explicit immutable local-package import remains a separate product path whose entry is not yet implemented.
+Repository administration must enable a protected `v*` tag ruleset and GitHub immutable releases before production. The managed tag workflow fetches the repository's canonical default branch and rejects a tag commit outside that history before production preflight, build, attestation, or Release. A fine-grained `NIMI_REPOSITORY_ADMIN_TOKEN` secret with repository Administration read permission lets the workflow verify protected-tag and immutable-release settings; it cannot enable or change them. Manual workflow dispatch runs only the non-production build/package path. On Windows, the tag-only production build invokes the App-declared production build with no certificate-secret mapping or app-tools-owned signing step. Optional native signing remains publisher-owned and must already be reflected in the final exact Runtime entry before production pack observes and records its native-trust posture; a present invalid or unresolved signature still fails closed. A successful tag workflow creates the immutable publisher GitHub Release and no registry, installed, running, or Nimi Access truth. Protected Registry submission and approved Windows x86_64 installation, update, launch/focus/stop, current-session Nimi Access and uninstall are available through their Platform, Runtime and Desktop owners. Other-platform installed lifecycle and ordinary repair remain unavailable. Explicit immutable local-package import remains a separate product path whose entry is not yet implemented.
 
 Registry projects must be open source with an explicit license and reviewable release source. Consistently observed unsigned packages are eligible; invalid signatures cannot be downgraded to unsigned. These Registry admission requirements do not apply to user-imported packages or Developer Mode projects. Registry approval is not a guarantee that third-party code is harmless.
+
+## Publishing on GitHub
+
+Local development does not need a GitHub token. Publishing an App Release does.
+`nimi-app check --production` checks local inputs; the tag workflow checks the
+GitHub repository settings. Complete the one-time setup below before pushing a
+release tag.
+
+### 1. Configure the publisher repository
+
+Use a public repository owned by the publisher. You need administrator access
+for this setup.
+
+- In **Settings → General → Releases**, enable **Release immutability**.
+- In **Settings → Rules → Rulesets**, create a **tag** ruleset, set enforcement
+  to **Active**, and include tags matching `v*`. Enable **Restrict updates**
+  and **Restrict deletions**. Tag creation must remain available to the publisher.
+
+These settings protect published versions. The workflow only checks them; it
+does not change repository settings.
+
+### 2. Create the read-only settings token
+
+Open [GitHub's fine-grained token page](https://github.com/settings/personal-access-tokens/new).
+
+1. Name the token so you can recognize its purpose, and choose an expiration date.
+2. Set **Resource owner** to the user or organization that owns the App repository.
+3. Under **Repository access**, choose **Only select repositories** and select
+   this App repository.
+4. Under **Repository permissions**, set **Administration** to **Read-only**.
+   GitHub includes read-only Metadata automatically. No Contents write,
+   Actions write, Secrets write, or organization-wide access is needed.
+5. Generate the token. If the organization requires approval, complete that
+   approval before publishing.
+
+This token reads tag-protection and release-immutability settings. The workflow
+uses GitHub's separate built-in token to publish artifacts and its OIDC
+permission to create build attestations.
+
+### 3. Save it as an Actions secret
+
+In the App repository, open **Settings → Secrets and variables → Actions →
+New repository secret**.
+
+- **Name:** `NIMI_REPOSITORY_ADMIN_TOKEN`
+- **Secret:** the fine-grained token value from step 2
+
+Save it and confirm the exact name appears in the repository's Actions secrets.
+Use a **secret**, not an Actions variable. An organization secret is also
+supported when its repository-access list includes this App. Keep the value
+out of source files, `.env`, and release notes.
+
+### 4. Check, build, and publish a version
+
+Run the existing local path from the App repository:
+
+```bash
+pnpm run sync
+pnpm exec nimi-app check --production
+pnpm exec nimi-app test
+pnpm exec nimi-app build --target windows-x86_64 --production
+pnpm exec nimi-app pack --target windows-x86_64 --production
+```
+
+Commit the release changes and get that exact commit onto the repository's
+canonical default branch. Keep `package.json` and `nimi.app.yaml` versions
+equal. Use that version for the annotated tag; `0.1.0` below is an example:
+
+```bash
+git tag -a v0.1.0 -m "Release 0.1.0"
+git push origin v0.1.0
+```
+
+Open **Actions → nimi-app-release**. A successful run produces the immutable
+GitHub Release containing the `.nimiapp` package and aggregate candidate JSON.
+Manual workflow dispatch checks the development path and does not publish.
+
+If setup fails, the failed step points to the required setting. Add or replace
+the secret, fix its repository selection/permissions, or enable the named
+setting, then use **Re-run failed jobs** on the same run. A tag outside the
+default branch requires merging its exact commit first. A code change requires
+a new version and tag. Newly published release proofs can take a short time to
+appear; the workflow waits for this specific delay and still requires successful
+verification.
+
+GitHub Release publication is followed by the separate
+[Registry submission and human admission flow](https://github.com/nimiplatform/nimi-app-registry#ownership-boundary).
+App Tools does not create an approval or install the App as a side effect.
 
 ## Acceptance status
 

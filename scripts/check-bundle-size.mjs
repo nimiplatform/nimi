@@ -54,8 +54,9 @@ async function readLargestAppChunk(targetName) {
   return readLargestChunk(targetName, ({ fileName }) => !fileName.startsWith('vendor-'), 'non-vendor app chunk');
 }
 
-async function readLargestVendorChunk(targetName) {
-  return readLargestChunk(targetName, ({ fileName }) => fileName.startsWith('vendor-'), 'vendor chunk');
+async function readLargestVendorChunk(targetName, separatelyBudgetedPrefixes) {
+  return readLargestChunk(targetName, ({ fileName }) => fileName.startsWith('vendor-')
+    && !separatelyBudgetedPrefixes.some((prefix) => fileName.startsWith(prefix)), 'vendor chunk');
 }
 
 async function readLargestChunk(targetName, include, label) {
@@ -134,9 +135,10 @@ async function main() {
     const largestAppChunk = await readLargestAppChunk(targetName);
     const maxLargestAppChunkBytes = Number(targetBaseline.maxLargestAppChunkBytes || 0);
     const maxLargestVendorChunkBytes = Number(targetBaseline.maxLargestVendorChunkBytes || 0);
+    const vendorChunkBudgets = targetBaseline.vendorChunkBudgets || {};
     const largestVendorChunk =
       Number.isFinite(maxLargestVendorChunkBytes) && maxLargestVendorChunkBytes > 0
-        ? await readLargestVendorChunk(targetName)
+        ? await readLargestVendorChunk(targetName, Object.keys(vendorChunkBudgets))
         : null;
     const hasBaseline = Number.isFinite(baselineBytes) && baselineBytes > 0;
     const reductionPercent = hasBaseline ? ((baselineBytes - current.bytes) / baselineBytes) * 100 : null;
@@ -198,6 +200,15 @@ async function main() {
       failures.push(
         `${targetName}: largest vendor chunk ${largestVendorChunk.bytes} exceeds max ${maxLargestVendorChunkBytes}`,
       );
+    }
+    for (const [prefix, budget] of Object.entries(vendorChunkBudgets)) {
+      const bytes = Number(budget);
+      if (!prefix.startsWith('vendor-') || !Number.isFinite(bytes) || bytes <= 0) {
+        throw new Error(`${targetName}: invalid vendor chunk budget ${prefix}`);
+      }
+      const chunk = await readLargestChunk(targetName, ({ fileName }) => fileName.startsWith(prefix), `${prefix} vendor chunk`);
+      process.stdout.write(`[bundle-size] ${targetName} ${prefix}=${formatBytes(chunk.bytes)} max=${formatBytes(bytes)}\n`);
+      if (chunk.bytes > bytes) failures.push(`${targetName}: ${prefix} chunk ${chunk.bytes} exceeds max ${bytes}`);
     }
   }
 

@@ -216,12 +216,12 @@ func (launches *DirectLocalAppLaunches) BindInstalled(launchID Identifier, polic
 		process.CanonicalExecutablePath != policy.HostExecutablePath || uid == 0 {
 		return time.Time{}, fmt.Errorf("installed process binding is incomplete")
 	}
-	start, err := strconv.ParseUint(process.CreationMarker, 16, 64)
+	start, micros, err := installedProcessStart(process)
 	if err != nil || start == 0 {
 		return time.Time{}, fmt.Errorf("installed process creation marker is invalid")
 	}
 	witness := DirectLocalAppProcessWitness{PID: process.PID, ParentPID: policy.SupervisorProcess.PID, UID: uid,
-		StartSeconds: start, ExecutablePath: policy.HostExecutablePath}
+		StartSeconds: start, StartMicros: micros, ExecutablePath: policy.HostExecutablePath}
 	bound, err := launches.Bind(launchID, witness, policy.SupervisorProcess.PID, uid, deadline)
 	if err != nil {
 		return time.Time{}, err
@@ -236,6 +236,19 @@ func (launches *DirectLocalAppLaunches) BindInstalled(launchID Identifier, polic
 	pending.InstalledRegistrationHandle = policy.RegistrationHandle
 	pending.InstalledProcess = process
 	return bound, nil
+}
+
+func installedProcessStart(process ProcessTuple) (uint64, uint64, error) {
+	if process.OS == OSMacOS {
+		var seconds, micros uint64
+		_, err := fmt.Sscanf(process.CreationMarker, "macos-start:%d:%d", &seconds, &micros)
+		if err != nil || seconds == 0 || micros >= 1_000_000 || process.CreationMarker != fmt.Sprintf("macos-start:%d:%d", seconds, micros) {
+			return 0, 0, fmt.Errorf("invalid macOS installed process birth")
+		}
+		return seconds, micros, nil
+	}
+	seconds, err := strconv.ParseUint(process.CreationMarker, 16, 64)
+	return seconds, 0, err
 }
 
 func (launches *DirectLocalAppLaunches) Bound(childPID uint32, uid uint32) (DirectLocalAppLaunch, bool) {

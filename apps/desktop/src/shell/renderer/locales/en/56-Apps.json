@@ -63,7 +63,14 @@
     "none": "None",
     "unsignedConfirmTitle": "Install an unsigned Windows App?",
     "unsignedConfirmMessage": "This exact Registry-approved release was not signed by its publisher with Authenticode. Its Registry descriptor binds the exact asset digest and provenance, and Runtime verifies the download again, but neither that nor Nimi review guarantees safety or creates a sandbox. Windows or your organization may warn or block it. Continuing asks Runtime to install this exact package; it does not grant the App administrator access, and any later launch is a separate current-user, non-elevated action.",
-    "unsignedConfirmAction": "Continue and install"
+    "unsignedConfirmAction": "Continue and install",
+    "macosConfirmTitle": "Install this macOS App?",
+    "macosUnsignedConfirmMessage": "This app has no Developer ID publisher signature and has not been notarized by Apple. Nimi Registry review and download verification do not replace those checks, grant administrator access, or create an operating-system sandbox. Continue only if you trust this publisher.",
+    "macosUnnotarizedConfirmMessage": "This app has a verified Developer ID signature, but no Apple notarization was observed. Continuing does not change that native verification status or grant administrator access.",
+    "macosUnsigned": "No Developer ID signature",
+    "macosNotarized": "Apple notarized",
+    "macosNotarizationAbsent": "Not notarized by Apple",
+    "macosNotarizationUnknown": "Apple notarization unknown"
   },
   "catalogNotImplemented": "Public App catalog search is not implemented yet.",
   "installedAccess": {

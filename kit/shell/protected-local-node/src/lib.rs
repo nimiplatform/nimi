@@ -947,14 +947,14 @@ pub fn desktop_installed_app_status(input: NativeInstalledAppRunInput) -> Native
     let Some(id) = decode_identifier(&input.launch_id) else {
         return NativeJsonOutcome::host_reason("installed-app-launch-failed", false);
     };
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
     return match nimi_shell_protected_local::installed_app_process_status(id) {
         Ok((running, exit_code)) => {
             NativeJsonOutcome::success(json!({"running": running, "exitCode": exit_code}))
         }
         Err(error) => NativeJsonOutcome::host_error(error),
     };
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
         let _ = id;
         NativeJsonOutcome::host_reason("local-app-operation-unavailable", false)
@@ -966,12 +966,12 @@ pub fn desktop_focus_installed_app(input: NativeInstalledAppRunInput) -> NativeJ
     let Some(id) = decode_identifier(&input.launch_id) else {
         return NativeJsonOutcome::host_reason("installed-app-launch-failed", false);
     };
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
     return match nimi_shell_protected_local::focus_installed_app_process(id) {
         Ok(()) => NativeJsonOutcome::success(json!({"focused": true})),
         Err(error) => NativeJsonOutcome::host_error(error),
     };
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
         let _ = id;
         NativeJsonOutcome::host_reason("local-app-operation-unavailable", false)
@@ -983,12 +983,12 @@ pub fn desktop_stop_installed_app(input: NativeInstalledAppRunInput) -> NativeJs
     let Some(id) = decode_identifier(&input.launch_id) else {
         return NativeJsonOutcome::host_reason("installed-app-launch-failed", false);
     };
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
     return match nimi_shell_protected_local::stop_installed_app_process(id) {
         Ok(()) => NativeJsonOutcome::success(json!({"stopped": true})),
         Err(error) => NativeJsonOutcome::host_error(error),
     };
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
     {
         let _ = id;
         NativeJsonOutcome::host_reason("local-app-operation-unavailable", false)

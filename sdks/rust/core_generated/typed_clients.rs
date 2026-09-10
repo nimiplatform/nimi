@@ -4522,6 +4522,8 @@ pub struct ApprovedAppCatalogTarget {
     pub policy_blocked: Option<bool>,
     pub policy_reason: Option<String>,
     pub policy_revision: Option<u64>,
+    pub macos_notarization: Option<String>,
+    pub macos_developer_id_subject: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

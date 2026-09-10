@@ -121,18 +121,19 @@ function buildSdk(outputDir) {
 function buildKit(outputDir) {
   const version = packageVersion('kit/package.json');
   const sdkVersion = packageVersion('sdks/typescript/package.json');
-  const nativeManifest = readJson('kit/shell/protected-local-node/npm/win32-x64/package.json');
-  if (nativeManifest.name !== '@nimiplatform/kit-protected-local-win32-x64' || nativeManifest.version !== version) {
-    throw new Error('Windows native package identity must match the Kit component version');
+  const nativeDependencies = {};
+  for (const platform of ['win32-x64', 'darwin-arm64']) {
+    const nativeManifest = readJson(`kit/shell/protected-local-node/npm/${platform}/package.json`);
+    const name = `@nimiplatform/kit-protected-local-${platform}`;
+    if (nativeManifest.name !== name || nativeManifest.version !== version) throw new Error(`${platform} native package identity must match Kit`);
+    nativeDependencies[name] = `^${version}`;
   }
   run('pnpm', ['--filter', '@nimiplatform/sdk', 'build']);
   run('pnpm', ['--filter', '@nimiplatform/kit', 'build']);
   const tarball = stageAndPack(path.join(repoRoot, 'kit'), outputDir, (manifest) => {
     manifest.version = version;
     manifest.dependencies['@nimiplatform/sdk'] = `^${sdkVersion}`;
-    manifest.optionalDependencies = {
-      '@nimiplatform/kit-protected-local-win32-x64': `^${version}`,
-    };
+    manifest.optionalDependencies = nativeDependencies;
   });
   run(process.execPath, [
     path.join(repoRoot, 'scripts', 'check-sdk-kit-pack-audit.mjs'),

@@ -7,11 +7,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
-	"github.com/nimiplatform/nimi/runtime/internal/nimiappnative"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiapppackage"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/publicappregistry"
@@ -36,7 +34,8 @@ type VerifiedInstalledLaunch struct {
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-034a
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040c
 func (coordinator *Coordinator) WithVerifiedInstalledLaunch(ctx context.Context, handle string, bind func(VerifiedInstalledLaunch) error) error {
-	if ctx == nil || coordinator == nil || bind == nil || handle == "" || runtime.GOOS != "windows" || runtime.GOARCH != "amd64" {
+	_, expectedOS, expectedArch, platformErr := publicappregistry.CurrentPlatformTarget()
+	if ctx == nil || coordinator == nil || bind == nil || handle == "" || platformErr != nil {
 		return ErrInstalledLaunch
 	}
 	coordinator.operations.RLock()
@@ -74,7 +73,7 @@ func (coordinator *Coordinator) WithVerifiedInstalledLaunch(ctx context.Context,
 	}
 	if resolved.AppID != release.AppID || resolved.Version != release.Version || resolved.Selector != selector ||
 		resolved.DescriptorID != selector.DescriptorID() || resolved.Target.TargetID != selector.TargetID() ||
-		resolved.Target.OS != "windows" || resolved.Target.Arch != "x86_64" {
+		resolved.Target.OS != expectedOS || resolved.Target.Arch != expectedArch {
 		return ErrInstalledLaunch
 	}
 	relative, err := filepath.Rel(filepath.Join(coordinator.packagesPath, packageReleaseDirectory), registration.ProjectRoot)
@@ -107,7 +106,11 @@ func (coordinator *Coordinator) WithVerifiedInstalledLaunch(ctx context.Context,
 	if !sameInstalledRegistration(registration, expected) {
 		return ErrInstalledLaunch
 	}
-	if _, err := nimiappnative.VerifyWindowsRuntimeEntry(ctx, materialized.RuntimeEntryPath, nativeExpectation(resolved), materialized.HostExecutableSHA256); err != nil {
+	verifier, err := nativeVerifierForTarget(resolved)
+	if err != nil {
+		return err
+	}
+	if err := verifier.Verify(ctx, materialized.RuntimeEntryPath, materialized.HostExecutableSHA256); err != nil {
 		return err
 	}
 	return bind(VerifiedInstalledLaunch{Release: release, Registration: registration, Target: resolved,

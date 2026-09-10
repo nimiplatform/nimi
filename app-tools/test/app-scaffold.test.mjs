@@ -349,10 +349,10 @@ test('Electron production maps exact App SemVer to bounded Windows resource meta
   const packagerSource = snapshot.filesByPath.get('scripts/package-electron-production.mjs').content;
 
   assert.equal(packageJson.version, appVersion, 'package metadata must retain the exact product SemVer');
-  assert.match(packagerSource, /const APP_VERSION = "1\.2\.3-alpha\.1\.2\+build\.9\.8";/u);
-  assert.match(packagerSource, /const WINDOWS_RESOURCE_VERSION = resolveWindowsResourceVersion\(APP_VERSION\);/u);
-  assert.match(packagerSource, /appVersion: WINDOWS_RESOURCE_VERSION,/u);
-  assert.match(packagerSource, /buildVersion: WINDOWS_RESOURCE_VERSION,/u);
+  assert.match(packagerSource, /const APP_VERSION = appPackage\.version;/u);
+  assert.match(packagerSource, /const RESOURCE_VERSION = MACOS_BUILD \? APP_VERSION : resolveWindowsResourceVersion\(APP_VERSION\);/u);
+  assert.match(packagerSource, /appVersion: RESOURCE_VERSION,/u);
+  assert.match(packagerSource, /buildVersion: RESOURCE_VERSION,/u);
   assert.match(packagerSource, /afterInitialize: \[async \(\{ buildPath \}\) => \{/u);
   assert.match(packagerSource, /packagedManifest\.version = APP_VERSION;/u);
 });
@@ -502,12 +502,12 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.match(electronProductionPackager, /const productionSourceRoot = path\.join\(stagingRoot, 'app'\)/);
     assert.match(electronProductionPackager, /tmpdir: packagerTempRoot/);
     assert.doesNotMatch(electronProductionPackager, /\.nimi['"], ['"]local['"], ['"]electron-packager-stage/);
-    assert.match(electronProductionPackager, /platform: 'win32'/);
-    assert.match(electronProductionPackager, /arch: 'x64'/);
+    assert.match(electronProductionPackager, /platform: NATIVE_PLATFORM/);
+    assert.match(electronProductionPackager, /arch: NATIVE_ARCH/);
     assert.match(electronProductionPackager, /asar: false/);
     assert.match(electronProductionPackager, /name: APP_EXECUTABLE_NAME/);
     assert.match(electronProductionPackager, /executableName: APP_EXECUTABLE_NAME/);
-    assert.match(electronProductionPackager, /Kit does not declare the windows-x64 protected native binding as optional/);
+    assert.match(electronProductionPackager, /Kit does not declare the current-platform protected native binding as optional/);
     assert.match(electronProductionPackager, /pnpm install --prod --frozen-lockfile --ignore-scripts --node-linker=hoisted/);
     assert.match(electronProductionPackager, /dir: productionSourceRoot/);
     assert.match(electronProductionPackager, /prune: false/);
@@ -576,6 +576,17 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
       (step) => step.name === 'Require protected tags and immutable releases',
     );
     assert.equal(repositoryProtectionPreflight.env.GH_TOKEN, '${{ secrets.NIMI_REPOSITORY_ADMIN_TOKEN }}');
+    const missingToken = spawnSync(bashExecutable, ['--noprofile', '--norc', '-c', repositoryProtectionPreflight.run], {
+      cwd: generated.target,
+      env: { ...process.env, GH_TOKEN: '', GITHUB_REPOSITORY: 'publisher/example-app' },
+      encoding: 'utf8',
+    });
+    assert.ifError(missingToken.error);
+    assert.equal(missingToken.status, 1);
+    assert.match(missingToken.stdout, /NIMI_REPOSITORY_ADMIN_TOKEN/u);
+    assert.match(missingToken.stdout, /Administration: Read-only/u);
+    assert.match(missingToken.stdout, /publisher\/example-app\/settings\/secrets\/actions/u);
+    assert.match(missingToken.stdout, /Re-run failed jobs/u);
     assert.doesNotMatch(workflowSource, /secrets\.GITHUB_/u);
     assert.match(workflowSource, /pack --target \$env:NIMI_APP_TARGET --production/u);
     assert.match(workflowSource, /actions\/attest@1e69f48acb82d1966a394da916b4c1698aa569d6/u);
@@ -613,6 +624,10 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     );
     assert.deepEqual(workflow.jobs['build-target'].permissions, { contents: 'read' });
     const productionBuild = workflow.jobs['build-target'].steps.find((step) => step.name === 'Build production target');
+    const targetTest = workflow.jobs['build-target'].steps.find((step) => step.name === 'Test declared target');
+    assert.equal(targetTest.run, 'pnpm exec nimi-app test');
+    assert.ok(workflow.jobs['build-target'].steps.indexOf(targetTest) < workflow.jobs['build-target'].steps.indexOf(productionBuild));
+    assert.equal(workflow.jobs.prepare.steps.some((step) => step.run === 'pnpm exec nimi-app test'), false);
     assert.ok(productionBuild, 'generated workflow must include the tag-only production build');
     assert.match(productionBuild.if, /event_name == 'push'/u);
     assert.match(productionBuild.run, /build --target .* --production/u);
@@ -634,6 +649,29 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.doesNotMatch(workflowSource, /index\("creation"\)/u);
     assert.match(workflowSource, /conditions\.ref_name\.exclude/u);
     const releaseStep = workflow.jobs.release.steps.find((step) => step.name === 'Publish the immutable GitHub Release set');
+    const verificationFunction = releaseStep.run.match(/verify_release\(\) \{[\s\S]*?\n\}/u)?.[0];
+    assert.ok(verificationFunction);
+    for (const [failureText, expectedStatus, expectedCalls] of [
+      ['no attestations for tag v0.1.0', 0, 2],
+      ['signature verification failed', 1, 1],
+    ]) {
+      const verification = spawnSync(bashExecutable, ['--noprofile', '--norc', '-c', [
+        'calls=0',
+        `gh() { calls=$((calls + 1)); if test "$calls" = 1; then echo "${failureText}" >&2; return 1; fi; return 0; }`,
+        'sleep() { :; }',
+        verificationFunction,
+        'verify_release; result=$?',
+        'echo "verification_calls=$calls"',
+        'exit "$result"',
+      ].join('\n')], {
+        cwd: generated.target,
+        env: { ...process.env, GITHUB_REF_NAME: 'v0.1.0', GITHUB_REPOSITORY: 'publisher/example-app' },
+        encoding: 'utf8',
+      });
+      assert.ifError(verification.error);
+      assert.equal(verification.status, expectedStatus, verification.stderr);
+      assert.match(verification.stdout, new RegExp(`verification_calls=${expectedCalls}`, 'u'));
+    }
     const releaseCreate = releaseStep.run.split('\n').find((line) => line.trimStart().startsWith('gh release create '));
     assert.ok(releaseCreate);
     assert.equal(/--repo\b/u.test(releaseCreate) && /--notes-from-tag\b/u.test(releaseCreate), false,

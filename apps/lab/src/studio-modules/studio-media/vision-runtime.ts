@@ -2,7 +2,6 @@ import { runNimiRuntimeScenarioJob } from '@nimiplatform/sdk/runtime';
 import { ExecutionMode, ScenarioType, VisionLocateGeometry, type VisionLocateResult } from '@nimiplatform/sdk/runtime/generated';
 import type { NimiLocalAppArtifactImageMime, NimiLocalAppVisionLocateResult } from '@nimiplatform/sdk/app';
 import { createStudioScenarioJobClient, type StudioCapabilityRuntimeContext } from '../../ai-studio-core/runtime.js';
-import { t } from '../../shell/i18n/index.js';
 
 function localVisionResult(result: VisionLocateResult): NimiLocalAppVisionLocateResult {
   return { imageArtifactId: result.imageArtifactId, width: result.width, height: result.height,
@@ -18,6 +17,7 @@ function localVisionResult(result: VisionLocateResult): NimiLocalAppVisionLocate
 
 // @nimi-authority: rule.nimi.sdks.feature-clients.r102
 export async function runVisionLocate(context: StudioCapabilityRuntimeContext) {
+  const t = context.host.translate;
   const abortedBeforeSubmit = () => context.host.nonSuccess(context.capability, 'operation-aborted', t('VisionLocate.stoppedBeforeSubmit'));
   const images = context.input.attachments ?? [];
   const image = images[0];

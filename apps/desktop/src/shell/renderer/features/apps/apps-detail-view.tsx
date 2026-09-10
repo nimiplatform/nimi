@@ -588,7 +588,9 @@ function InstalledAppsDetailView({
                   <DetailRow label={t('Apps.catalog.license')} value={catalog.sourceLicenseSpdxExpression} mono />
                   <DetailRow label={t('Apps.catalog.target')} value={`${catalog.targetId} · ${catalog.os}/${catalog.arch}`} mono />
                   <DetailRow label={t('Apps.catalog.asset')} value={`${catalog.assetName} · ${catalog.assetSize} bytes`} mono />
-                  <DetailRow label={t('Apps.catalog.nativePosture')} value={catalog.observedSigningSubject ? `${catalog.windowsCodeSigning} · ${catalog.observedSigningSubject}` : catalog.windowsCodeSigning} mono />
+                  <DetailRow label={t('Apps.catalog.nativePosture')} value={catalog.os === 'macos'
+                    ? `${catalog.observedSigningSubject || t('Apps.catalog.macosUnsigned')} · ${t(catalog.macosNotarization === 'notarized' ? 'Apps.catalog.macosNotarized' : catalog.macosNotarization === 'absent' ? 'Apps.catalog.macosNotarizationAbsent' : 'Apps.catalog.macosNotarizationUnknown')}`
+                    : catalog.observedSigningSubject ? `${catalog.windowsCodeSigning} · ${catalog.observedSigningSubject}` : catalog.windowsCodeSigning} mono />
                   <DetailRow label={t('Apps.catalog.executionProfile')} value={catalog.executionProfileRef} mono />
                   <DetailRow label={t('Apps.catalog.appAccess')} value={catalog.appAccess.join(', ') || t('Apps.catalog.none')} mono />
                   <DetailRow label={t('Apps.catalog.capabilities')} value={catalog.capabilityContractRefs.join(', ') || t('Apps.catalog.none')} mono />

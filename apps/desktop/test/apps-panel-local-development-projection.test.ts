@@ -55,7 +55,7 @@ function catalogTarget(overrides: Partial<ApprovedAppCatalogTarget> = {}): Appro
     publisherGithubNamespace: 'publisher', sourceRepository: 'https://github.com/publisher/example.shared', sourceLicenseSpdxExpression: 'MIT', appAccess: ['runtime.consume'],
     capabilityContractRefs: [], requiredStandardizedFeatureRefs: [], storagePolicyKind: 'nimi-mediated-default', osStorageDisclosures: [],
     targetId: 'windows-x86_64', os: 'windows', arch: 'x86_64', assetName: 'example.shared-2.0.0-windows-x86_64.nimiapp',
-    assetSize: '42', executionProfileRef: 'windows-user-mode-as-invoker-v1', windowsCodeSigning: 'unsigned', policyBlocked: false, policyRevision: '0',
+    assetSize: '42', executionProfileRef: 'windows-user-mode-as-invoker-v1', windowsCodeSigning: 'unsigned', macosNotarization: 'not-applicable', policyBlocked: false, policyRevision: '0',
     ...overrides,
   };
 }

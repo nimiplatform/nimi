@@ -9,8 +9,21 @@ Discipline.
 
 ## [Unreleased]
 
+### Fixed
+
+- Accept `audio/x-wav` Runtime artifacts under the same RIFF/WAVE validation as
+  `audio/wav`, keep Agent Realtime sessions open after successful individual
+  turns, and share overlapping development inventory reads without retaining
+  completed snapshots. These fixes are also backported to the 0.5.1 stable line.
+
 ### Added
 
+- Added the macOS arm64 native package and main-only installed App control to
+  the 0.6.0 component release. The shared installed-launch transaction uses a
+  macOS current-user, same-session suspended child and retains its real exit
+  status and process group. Runtime still owns package and App Access admission;
+  Developer ID absence is not replaced with Nimi signing or a development path.
+  Public macOS catalog lifecycle acceptance remains a separate product gate.
 - Added an optional main-only `desktopHost.runtimeLifecycle` port so Home's
   service registration/approval policy also handles renderer lifecycle calls.
   This compatible host-input widening belongs to the unreleased minor surface;

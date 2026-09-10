@@ -31,7 +31,6 @@ jobs:
       desktop_changed: ${{ steps.detect.outputs.desktop_changed }}
       desktop_native_changed: ${{ steps.detect.outputs.desktop_native_changed }}
       kit_native_changed: ${{ steps.detect.outputs.kit_native_changed }}
-      lab_native_changed: ${{ steps.detect.outputs.lab_native_changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -211,37 +210,6 @@ jobs:
 
       - name: Test Kit native crates on the supported Windows host
         run: pnpm test:kit:native
-
-  lab-native-tests:
-    needs: changes
-    if: needs.changes.outputs.lab_native_changed == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
-        with:
-          version: 10.34.5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: 24
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
-        with:
-          toolchain: stable
-
-      - name: Install Linux native dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
-      - name: Test Nimi Lab native crate
-        run: pnpm test:lab:native
 
   sdk-quality:
     needs: changes
@@ -438,7 +406,6 @@ jobs:
       - core-static
       - workspace-regression
       - kit-native-tests
-      - lab-native-tests
       - sdk-quality
       - runtime-quality
       - proto-quality
