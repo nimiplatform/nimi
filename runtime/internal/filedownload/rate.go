@@ -1,46 +1,47 @@
-package localservice
+package filedownload
 
 import "time"
 
-// transferRateWindow bounds how far back the sliding-window rate estimator
+// RateWindow bounds how far back the sliding-window rate estimator
 // looks. Speed is the byte delta across the samples still inside this window,
 // so a connection that started slow then sped up (or stalled, or throttled)
 // reports a number that tracks the *current* rate rather than the diluted
 // lifetime average.
-const transferRateWindow = 5 * time.Second
+const RateWindow = 5 * time.Second
 
-// transferRateProjectionInterval prevents the projected speed from changing
+// rateProjectionInterval prevents the projected speed from changing
 // at the filedownload chunk callback rate. Byte progress is still published
 // for every callback; the estimator admits at most one new rate sample per
 // second so the effective window is stable and ETA does not amplify
 // sub-second transport jitter.
-const transferRateProjectionInterval = time.Second
+const rateProjectionInterval = time.Second
 
-// transferRateMaxSamples caps the per-transfer sample ring so the tracker
+// rateMaxSamples caps the per-transfer sample ring so the tracker
 // stays bounded regardless of how often the filedownload progress callback
 // fires. Older samples are pruned by age first; this cap is a hard ceiling.
-const transferRateMaxSamples = 64
+const rateMaxSamples = 64
 
-// transferRateSample is one observed (monotonic clock instant, cumulative
+// rateSample is one observed (monotonic clock instant, cumulative
 // bytes received) point for a single transfer.
-type transferRateSample struct {
+type rateSample struct {
 	at    time.Time
 	bytes int64
 }
 
-// transferRateTracker is a bounded, per-transfer sliding-window download-rate
+// RateTracker is a bounded, per-transfer sliding-window download-rate
 // estimator. It holds only the recent samples needed to derive a recent rate
 // from observed byte deltas — never totalBytes / lifetime. One tracker lives
-// per in-flight transfer in Service.transferRates, created lazily and dropped
-// when the transfer reaches a terminal state. All access is serialized by
-// Service.mu; the tracker holds no lock of its own.
-type transferRateTracker struct {
-	samples           []transferRateSample
+// per in-flight transfer and is dropped when its owner pauses or terminates
+// the transfer. Each caller serializes access with its state owner; the
+// tracker holds no lock of its own.
+// @nimi-authority: rule.nimi.runtime.local-compute.r090
+type RateTracker struct {
+	samples           []rateSample
 	lastObservedBytes int64
 	hasLastObserved   bool
 }
 
-// observe records a new cumulative-bytes sample and returns the recent download
+// Observe records a new cumulative-bytes sample and returns the recent download
 // rate in bytes/sec, or (0, false) when no honest rate can yet be established.
 //
 // It deliberately fails closed in two ways rather than fabricating a number:
@@ -51,15 +52,15 @@ type transferRateTracker struct {
 //   - A single sample, or samples spanning zero wall time, yields no rate.
 //
 // `now` is injected so tests can drive a deterministic clock.
-func (t *transferRateTracker) observe(bytesReceived int64, now time.Time) (int64, bool) {
-	speed, known, _ := t.observeProjection(bytesReceived, now)
+func (t *RateTracker) Observe(bytesReceived int64, now time.Time) (int64, bool) {
+	speed, known, _ := t.ObserveProjection(bytesReceived, now)
 	return speed, known
 }
 
-// observeProjection additionally reports whether this observation was
+// ObserveProjection additionally reports whether this observation was
 // admitted as a new projection sample. Callers use that signal to keep ETA on
 // the same cadence as speed while continuing to publish raw byte progress.
-func (t *transferRateTracker) observeProjection(bytesReceived int64, now time.Time) (int64, bool, bool) {
+func (t *RateTracker) ObserveProjection(bytesReceived int64, now time.Time) (int64, bool, bool) {
 	if bytesReceived < 0 {
 		bytesReceived = 0
 	}
@@ -72,16 +73,16 @@ func (t *transferRateTracker) observeProjection(bytesReceived int64, now time.Ti
 	t.hasLastObserved = true
 	if n := len(t.samples); n > 0 {
 		elapsed := now.Sub(t.samples[n-1].at)
-		if elapsed < 0 || elapsed > transferRateWindow {
+		if elapsed < 0 || elapsed > RateWindow {
 			// time.Now carries a monotonic reading in production. Fail closed
 			// for an injected backwards clock or a long observation gap.
 			t.samples = t.samples[:0]
-		} else if elapsed < transferRateProjectionInterval {
+		} else if elapsed < rateProjectionInterval {
 			speed, known := t.rate()
 			return speed, known, false
 		}
 	}
-	t.samples = append(t.samples, transferRateSample{at: now, bytes: bytesReceived})
+	t.samples = append(t.samples, rateSample{at: now, bytes: bytesReceived})
 	t.prune(now)
 	speed, known := t.rate()
 	return speed, known, true
@@ -89,8 +90,8 @@ func (t *transferRateTracker) observeProjection(bytesReceived int64, now time.Ti
 
 // prune drops samples older than the sliding window and enforces the hard
 // sample-count ceiling. The most recent sample is always kept.
-func (t *transferRateTracker) prune(now time.Time) {
-	cutoff := now.Add(-transferRateWindow)
+func (t *RateTracker) prune(now time.Time) {
+	cutoff := now.Add(-RateWindow)
 	drop := 0
 	for drop < len(t.samples)-1 && t.samples[drop].at.Before(cutoff) {
 		drop++
@@ -98,7 +99,7 @@ func (t *transferRateTracker) prune(now time.Time) {
 	if drop > 0 {
 		t.samples = append(t.samples[:0], t.samples[drop:]...)
 	}
-	if over := len(t.samples) - transferRateMaxSamples; over > 0 {
+	if over := len(t.samples) - rateMaxSamples; over > 0 {
 		t.samples = append(t.samples[:0], t.samples[over:]...)
 	}
 }
@@ -107,7 +108,7 @@ func (t *transferRateTracker) prune(now time.Time) {
 // by the samples still inside the window. It returns (0, false) when fewer
 // than two samples exist, when the span is non-positive, or when the delta is
 // non-positive — an honest "no rate yet" rather than a guessed one.
-func (t *transferRateTracker) rate() (int64, bool) {
+func (t *RateTracker) rate() (int64, bool) {
 	n := len(t.samples)
 	if n < 2 {
 		return 0, false
@@ -127,4 +128,13 @@ func (t *transferRateTracker) rate() (int64, bool) {
 		return 0, false
 	}
 	return speed, true
+}
+
+// RemainingSeconds returns the existing whole-second download estimate. Zero
+// means unknown, including a remaining duration below one complete second.
+func RemainingSeconds(received, total, speed int64) int64 {
+	if received < 0 || total <= received || speed <= 0 {
+		return 0
+	}
+	return (total - received) / speed
 }
