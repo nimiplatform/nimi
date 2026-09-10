@@ -153,6 +153,12 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob":
 			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob":
+			return FirstPartyMethodUnary, true
 		}
 	case "desktop_account_product_v1":
 		switch methodID {
@@ -605,6 +611,9 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob", Kind: FirstPartyMethodUnary},
 		}
 	case "desktop_account_product_v1":
 		return []FirstPartyProfileMethodEntry{

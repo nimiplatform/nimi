@@ -21,6 +21,7 @@ type LocalAssetsRuntimeViewProps = {
   readonly importMenuRef: RefObject<HTMLDivElement | null>;
   readonly showImportMenu: boolean;
   readonly runtimeWritesDisabled: boolean;
+  readonly observedAtBySessionId?: Readonly<Record<string, number>>;
   readonly downloads: readonly NimiRuntimeLocalTransferProgressEvent[];
   readonly imports: readonly NimiRuntimeLocalTransferProgressEvent[];
   readonly terminalDownloads: readonly NimiRuntimeLocalTransferProgressEvent[];
@@ -81,6 +82,7 @@ export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) 
         ) : null}
         <LocalModelCenterInProgressSection
           downloads={[...props.downloads]}
+          observedAtBySessionId={props.observedAtBySessionId}
           imports={[...props.imports]}
           terminalDownloads={[...props.terminalDownloads]}
           terminalImports={[...props.terminalImports]}

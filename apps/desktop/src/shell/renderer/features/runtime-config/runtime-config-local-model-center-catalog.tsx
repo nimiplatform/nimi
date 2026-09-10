@@ -1,8 +1,9 @@
+import { formatBytes } from '../../components/download-format.js';
 import { useState } from 'react';
 import { Button, InlineAlert, SearchField, StatusBadge } from '@nimiplatform/kit/ui';
 import type { NimiRuntimeLocalVerifiedAssetDescriptor } from '@nimiplatform/sdk/runtime';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { formatBytes } from './runtime-config-model-center-utils';
+
 
 export function filterVerifiedModelsForSearch(assets: readonly NimiRuntimeLocalVerifiedAssetDescriptor[], query: string) {
   const terms = query.trim().toLowerCase().split(/[\s._-]+/u).filter(Boolean);

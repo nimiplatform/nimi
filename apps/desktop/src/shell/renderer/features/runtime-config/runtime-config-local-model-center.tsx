@@ -41,6 +41,7 @@ export function LocalModelCenter(props: {
       showImportMenu={runtimeState.showImportMenu}
       runtimeWritesDisabled={props.runtimeWritesDisabled}
       downloads={runtimeState.activeDownloads}
+      observedAtBySessionId={runtimeState.observedAtBySessionId}
       imports={runtimeState.activeImports}
       terminalDownloads={runtimeState.terminalDownloads}
       terminalImports={runtimeState.terminalImports}

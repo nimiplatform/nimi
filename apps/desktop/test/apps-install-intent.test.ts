@@ -102,7 +102,7 @@ describe('Desktop approved App install intent', () => {
 
   it('requires an UPDATE response and preserves the Runtime stop-required result', async () => {
     const target = new TextEncoder().encode('approved-update');
-    const response: StartAppPackageInstallResponse = { reasonCode: ReasonCode.ACTION_EXECUTED, job: { jobId: new Uint8Array([1]), appId: 'publisher.example', kind: AppPackageJobKind.UPDATE, sourceClass: AppPackageSourceClass.VERIFIED, phase: AppPackageJobPhase.QUEUED, targetRef: 'approved-update', progressBasis: 0, bytesCompleted: '0', stepsCompleted: '0', terminalResult: 0, reasonCode: '', cancelable: true } };
+    const response: StartAppPackageInstallResponse = { reasonCode: ReasonCode.ACTION_EXECUTED, job: { jobId: new Uint8Array([1]), appId: 'publisher.example', kind: AppPackageJobKind.UPDATE, sourceClass: AppPackageSourceClass.VERIFIED, phase: AppPackageJobPhase.QUEUED, targetRef: 'approved-update', progressBasis: 0, bytesCompleted: '0', stepsCompleted: '0', terminalResult: 0, reasonCode: '', cancelable: true, queuePosition: 1, speedBytesPerSec: '0', etaSeconds: '0', displayName: 'Example', targetVersion: '1.2.3', previousVersion: '1.2.2', targetOs: 'windows', targetArch: 'x86_64' } };
     assert.deepEqual(await startAppsPackageUpdate(async (request) => { assert.deepEqual([...request.launchSelector], [5]); assert.equal(request.installedVersion, "1.2.2"); return response; }, target, new Uint8Array([5]), "1.2.2"), { kind: 'started' });
     response.job!.kind = AppPackageJobKind.INSTALL;
     await assert.rejects(startAppsPackageUpdate(async () => response, target, new Uint8Array([5]), "1.2.2"), /inconsistent/);
@@ -120,7 +120,7 @@ describe('Desktop approved App install intent', () => {
         kind: AppPackageJobKind.INSTALL, sourceClass: AppPackageSourceClass.VERIFIED,
         phase: AppPackageJobPhase.QUEUED, targetRef: 'opaque-approved-target',
         progressBasis: 0, bytesCompleted: '0', stepsCompleted: '0',
-        terminalResult: 0, reasonCode: '', cancelable: true,
+        terminalResult: 0, reasonCode: '', cancelable: true, queuePosition: 1, speedBytesPerSec: '0', etaSeconds: '0', displayName: 'Example', targetVersion: '1.2.3', previousVersion: '1.2.2', targetOs: 'windows', targetArch: 'x86_64',
       },
     };
     const started = startAppsPackageInstall(async (request) => {

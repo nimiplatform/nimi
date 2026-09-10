@@ -1,10 +1,11 @@
+import { formatBytes } from '../../components/download-format.js';
 import { Fragment } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge, Surface } from '@nimiplatform/kit/ui';
 
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
-import { formatBytes, formatCompactCount } from './runtime-config-model-center-utils';
+import { formatCompactCount } from './runtime-config-model-center-utils';
 
 // HuggingFace-style model detail building blocks. Every piece renders only
 // data the Runtime market feed actually returned; absent fields simply omit

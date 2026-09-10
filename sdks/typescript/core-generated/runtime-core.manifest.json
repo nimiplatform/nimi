@@ -1103,6 +1103,33 @@
           "response_type": "CancelAppPackageJobResponse",
           "request_stream": false,
           "response_stream": false
+        },
+        {
+          "name": "PauseAppPackageJob",
+          "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob",
+          "kind": "unary",
+          "request_type": "PauseAppPackageJobRequest",
+          "response_type": "PauseAppPackageJobResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ResumeAppPackageJob",
+          "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob",
+          "kind": "unary",
+          "request_type": "ResumeAppPackageJobRequest",
+          "response_type": "ResumeAppPackageJobResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ReorderAppPackageJob",
+          "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob",
+          "kind": "unary",
+          "request_type": "ReorderAppPackageJobRequest",
+          "response_type": "ReorderAppPackageJobResponse",
+          "request_stream": false,
+          "response_stream": false
         }
       ]
     },
@@ -2342,6 +2369,9 @@
     "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs",
     "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets",
     "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
+    "/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob",
+    "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob",
+    "/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob",
     "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
     "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall",
     "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUpdate",
@@ -3360,6 +3390,30 @@
       "kind": "unary",
       "request_type": "ListCommittedAppReleasesRequest",
       "response_type": "ListCommittedAppReleasesResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob",
+      "service": "RuntimeAppPackageService",
+      "method": "PauseAppPackageJob",
+      "kind": "unary",
+      "request_type": "PauseAppPackageJobRequest",
+      "response_type": "PauseAppPackageJobResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob",
+      "service": "RuntimeAppPackageService",
+      "method": "ReorderAppPackageJob",
+      "kind": "unary",
+      "request_type": "ReorderAppPackageJobRequest",
+      "response_type": "ReorderAppPackageJobResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob",
+      "service": "RuntimeAppPackageService",
+      "method": "ResumeAppPackageJob",
+      "kind": "unary",
+      "request_type": "ResumeAppPackageJobRequest",
+      "response_type": "ResumeAppPackageJobResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
@@ -5228,6 +5282,30 @@
       "response_type": "ListCommittedAppReleasesResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob",
+      "service": "RuntimeAppPackageService",
+      "method": "PauseAppPackageJob",
+      "kind": "unary",
+      "request_type": "PauseAppPackageJobRequest",
+      "response_type": "PauseAppPackageJobResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob",
+      "service": "RuntimeAppPackageService",
+      "method": "ReorderAppPackageJob",
+      "kind": "unary",
+      "request_type": "ReorderAppPackageJobRequest",
+      "response_type": "ReorderAppPackageJobResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob",
+      "service": "RuntimeAppPackageService",
+      "method": "ResumeAppPackageJob",
+      "kind": "unary",
+      "request_type": "ResumeAppPackageJobRequest",
+      "response_type": "ResumeAppPackageJobResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
       "service": "RuntimeAppPackageService",
       "method": "StartAppPackageInstall",
@@ -6785,6 +6863,8 @@
       "OverwriteLocalAppSharedLocalAgentAIConfigResponse",
       "OverwriteSharedLocalAgentAIConfigRequest",
       "OverwriteSharedLocalAgentAIConfigResponse",
+      "PauseAppPackageJobRequest",
+      "PauseAppPackageJobResponse",
       "PauseLocalTransferRequest",
       "PauseLocalTransferResponse",
       "PeekSchedulingRequest",
@@ -6866,6 +6946,8 @@
       "RenderLocalAppConversationVoiceRequest",
       "RenderLocalAppConversationVoiceResponse",
       "RenewLocalAppSessionRequest",
+      "ReorderAppPackageJobRequest",
+      "ReorderAppPackageJobResponse",
       "RepairLocalEnvironmentDependencyRequest",
       "RepairLocalEnvironmentDependencyResponse",
       "ReplaceProductControlDataRootRequest",
@@ -6885,6 +6967,8 @@
       "ResolveModelInstallPlanResponse",
       "ResourceSelectors",
       "ResponseFormat",
+      "ResumeAppPackageJobRequest",
+      "ResumeAppPackageJobResponse",
       "ResumeLocalTransferRequest",
       "ResumeLocalTransferResponse",
       "RetryLocalEnvironmentDependencyJobRequest",
@@ -10937,6 +11021,76 @@
             "repeated": false,
             "optional": false,
             "number": 16
+          },
+          {
+            "name": "queue_position",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 17
+          },
+          {
+            "name": "speed_bytes_per_sec",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 18
+          },
+          {
+            "name": "eta_seconds",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 19
+          },
+          {
+            "name": "progress_observed_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 20
+          },
+          {
+            "name": "updated_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 21
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 22
+          },
+          {
+            "name": "target_version",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 23
+          },
+          {
+            "name": "previous_version",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 24
+          },
+          {
+            "name": "target_os",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 25
+          },
+          {
+            "name": "target_arch",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 26
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -27983,6 +28137,39 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "PauseAppPackageJobRequest",
+        "fields": [
+          {
+            "name": "job_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "PauseAppPackageJobResponse",
+        "fields": [
+          {
+            "name": "job",
+            "type": "AppPackageJob",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "PauseLocalTransferRequest",
         "fields": [
           {
@@ -30320,6 +30507,46 @@
         "source_file": "proto/runtime/v1/auth.proto"
       },
       {
+        "name": "ReorderAppPackageJobRequest",
+        "fields": [
+          {
+            "name": "job_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "before_job_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "ReorderAppPackageJobResponse",
+        "fields": [
+          {
+            "name": "job",
+            "type": "AppPackageJob",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "RepairLocalEnvironmentDependencyRequest",
         "fields": [
           {
@@ -30867,6 +31094,39 @@
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "ResumeAppPackageJobRequest",
+        "fields": [
+          {
+            "name": "job_id",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "ResumeAppPackageJobResponse",
+        "fields": [
+          {
+            "name": "job",
+            "type": "AppPackageJob",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "ResumeLocalTransferRequest",
@@ -37039,7 +37299,8 @@
           "APP_PACKAGE_JOB_PHASE_UNREGISTERING",
           "APP_PACKAGE_JOB_PHASE_COMPLETED",
           "APP_PACKAGE_JOB_PHASE_FAILED",
-          "APP_PACKAGE_JOB_PHASE_CANCELED"
+          "APP_PACKAGE_JOB_PHASE_CANCELED",
+          "APP_PACKAGE_JOB_PHASE_PAUSED"
         ],
         "source_file": "proto/runtime/v1/app.proto"
       },

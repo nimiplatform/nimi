@@ -94,9 +94,14 @@ func (s *Service) ListAppPackageJobs(
 	if err != nil {
 		return nil, err
 	}
-	jobs, err := store.ListJobs(ctx)
+	var jobs []localappkernel.PackageJob
+	if s.appInstallCoordinator != nil {
+		jobs, err = s.appInstallCoordinator.ListJobs(ctx)
+	} else {
+		jobs, err = store.ListJobs(ctx)
+	}
 	if err != nil {
-		return nil, fmt.Errorf("list App package jobs: %w", err)
+		return nil, appPackageLifecycleError("list App package jobs", err)
 	}
 	projected := make([]*runtimev1.AppPackageJob, 0, len(jobs))
 	for _, job := range jobs {
@@ -123,7 +128,12 @@ func (s *Service) GetAppPackageJob(
 	if err != nil {
 		return nil, err
 	}
-	job, err := store.GetJob(ctx, string(req.GetJobId()))
+	var job localappkernel.PackageJob
+	if s.appInstallCoordinator != nil {
+		job, err = s.appInstallCoordinator.GetJob(ctx, string(req.GetJobId()))
+	} else {
+		job, err = store.GetJob(ctx, string(req.GetJobId()))
+	}
 	if err != nil {
 		return nil, appPackageLifecycleError("get App package job", err)
 	}
@@ -234,7 +244,7 @@ func appPackageInstallStartError(err error) error {
 		return grpcerr.WrapWithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_APP_PACKAGE_ALREADY_INSTALLED, err, grpcerr.ReasonOptions{})
 	case errors.Is(err, localappkernel.ErrPackageJobActive):
 		return grpcerr.WrapWithReasonCode(codes.Aborted, runtimev1.ReasonCode_APP_PACKAGE_JOB_ACTIVE, err, grpcerr.ReasonOptions{})
-	case errors.Is(err, nimiappinstall.ErrInvalidCoordinator), errors.Is(err, nimiappinstall.ErrUnsupportedInstallPlatform):
+	case errors.Is(err, nimiappinstall.ErrInvalidCoordinator), errors.Is(err, nimiappinstall.ErrUnsupportedInstallPlatform), errors.Is(err, nimiappinstall.ErrInstallQuiescing):
 		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE, err, grpcerr.ReasonOptions{})
 	case errors.Is(err, publicappregistry.ErrRegistryUnavailable), errors.Is(err, publicappregistry.ErrInvalidRegistrySnapshot),
 		errors.Is(err, nimiappinstall.ErrInstallPersistenceUnavailable):
@@ -272,8 +282,17 @@ func appPackageLifecycleError(operation string, err error) error {
 		return status.Error(codes.Canceled, operation+" canceled")
 	case errors.Is(err, context.DeadlineExceeded):
 		return status.Error(codes.DeadlineExceeded, operation+" deadline exceeded")
-	case errors.Is(err, nimiappinstall.ErrInvalidCoordinator):
+	case errors.Is(err, nimiappinstall.ErrInvalidCoordinator), errors.Is(err, nimiappinstall.ErrInstallQuiescing):
 		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE, err, grpcerr.ReasonOptions{})
+	case errors.Is(err, nimiappinstall.ErrUpdateUnavailable):
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_UPDATE_UNAVAILABLE, err, grpcerr.ReasonOptions{})
+	case errors.Is(err, nimiappinstall.ErrUpdateHostRunning):
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_HOST_RUNNING, err, grpcerr.ReasonOptions{})
+	case errors.Is(err, publicappregistry.ErrStaleSelection), errors.Is(err, publicappregistry.ErrPolicyBlocked),
+		errors.Is(err, publicappregistry.ErrInvalidSelector), errors.Is(err, nimiappinstall.ErrInstallTarget),
+		errors.Is(err, publicappregistry.ErrRegistryUnavailable), errors.Is(err, publicappregistry.ErrInvalidRegistrySnapshot),
+		errors.Is(err, nimiappinstall.ErrInstallPersistenceUnavailable):
+		return appPackageInstallStartError(err)
 	case errors.Is(err, localappkernel.ErrInvalidArgument):
 		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, err, grpcerr.ReasonOptions{})
 	case errors.Is(err, localappkernel.ErrPackageJobNotFound):
@@ -366,21 +385,33 @@ func appPackageJobProjection(job localappkernel.PackageJob) (*runtimev1.AppPacka
 		return nil, fmt.Errorf("project App package job: unsupported stored enum")
 	}
 	projection := &runtimev1.AppPackageJob{
-		JobId:          []byte(job.JobID),
-		AppId:          job.AppID,
-		SourceClass:    sourceClass,
-		Kind:           kind,
-		TargetRef:      job.TargetRef,
-		Phase:          phase,
-		ProgressBasis:  basis,
-		BytesCompleted: job.BytesCompleted,
-		BytesTotal:     cloneUint64(job.BytesTotal),
-		StepsCompleted: job.StepsCompleted,
-		StepsTotal:     cloneUint64(job.StepsTotal),
-		StartedAt:      timestamppb.New(job.StartedAt),
-		TerminalResult: terminal,
-		ReasonCode:     job.ReasonCode,
-		Cancelable:     job.Cancelable,
+		JobId:            []byte(job.JobID),
+		AppId:            job.AppID,
+		SourceClass:      sourceClass,
+		Kind:             kind,
+		TargetRef:        job.TargetRef,
+		Phase:            phase,
+		ProgressBasis:    basis,
+		BytesCompleted:   job.BytesCompleted,
+		BytesTotal:       cloneUint64(job.BytesTotal),
+		StepsCompleted:   job.StepsCompleted,
+		StepsTotal:       cloneUint64(job.StepsTotal),
+		StartedAt:        timestamppb.New(job.StartedAt),
+		TerminalResult:   terminal,
+		ReasonCode:       job.ReasonCode,
+		Cancelable:       job.Cancelable,
+		QueuePosition:    job.QueuePosition,
+		SpeedBytesPerSec: job.SpeedBytesPerSec,
+		EtaSeconds:       job.EtaSeconds,
+		UpdatedAt:        timestamppb.New(job.UpdatedAt),
+		DisplayName:      job.DisplayName,
+		TargetVersion:    job.TargetVersion,
+		PreviousVersion:  job.PreviousVersion,
+		TargetOs:         job.TargetOS,
+		TargetArch:       job.TargetArch,
+	}
+	if job.ProgressObservedAt != nil {
+		projection.ProgressObservedAt = timestamppb.New(*job.ProgressObservedAt)
 	}
 	if job.CompletedAt != nil {
 		projection.CompletedAt = timestamppb.New(*job.CompletedAt)
@@ -418,6 +449,7 @@ func packageJobPhaseToProto(value localappkernel.PackageJobPhase) (runtimev1.App
 	values := map[localappkernel.PackageJobPhase]runtimev1.AppPackageJobPhase{
 		localappkernel.PackageJobQueued:             runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_QUEUED,
 		localappkernel.PackageJobDownloading:        runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_DOWNLOADING,
+		localappkernel.PackageJobPaused:             runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_PAUSED,
 		localappkernel.PackageJobReadingLocal:       runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_READING_LOCAL,
 		localappkernel.PackageJobVerifying:          runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_VERIFYING,
 		localappkernel.PackageJobVerifyingInstalled: runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED,
@@ -438,6 +470,7 @@ func packageJobPhaseFromProto(value runtimev1.AppPackageJobPhase) (localappkerne
 	values := map[runtimev1.AppPackageJobPhase]localappkernel.PackageJobPhase{
 		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_QUEUED:              localappkernel.PackageJobQueued,
 		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_DOWNLOADING:         localappkernel.PackageJobDownloading,
+		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_PAUSED:              localappkernel.PackageJobPaused,
 		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_READING_LOCAL:       localappkernel.PackageJobReadingLocal,
 		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_VERIFYING:           localappkernel.PackageJobVerifying,
 		runtimev1.AppPackageJobPhase_APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED: localappkernel.PackageJobVerifyingInstalled,

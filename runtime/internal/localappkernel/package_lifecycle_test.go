@@ -5,6 +5,7 @@ import (
 	"errors"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestPackageJobLifecycleIsExclusiveMonotonicAndTerminal(t *testing.T) {
@@ -151,7 +152,7 @@ func TestCommitVerifiedReleaseIsAtomicAndFailedUpdatePreservesActive(t *testing.
 	updateJob, err := store.Begin(ctx, BeginPackageJobInput{
 		AppID: "nimi.example", SourceClass: SourceClassVerified, Kind: PackageJobUpdate,
 		TargetRef: "descriptor:nimi.example:1.1.0", ProgressBasis: PackageProgressSteps,
-		StepsTotal: uint64Pointer(4), Cancelable: true,
+		StepsTotal: uint64Pointer(4), Cancelable: true, PreviousRelease: &first.Release,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -303,3 +304,114 @@ func TestVerifiedRegistrationRequiresProvenanceAttestation(t *testing.T) {
 }
 
 func uint64Pointer(value uint64) *uint64 { return &value }
+
+func TestDownloadObservationsCheckpointActualBytesAndExpire(t *testing.T) {
+	ctx := context.Background()
+	kernel := openTestKernel(t, filepath.Join(t.TempDir(), "registered-app.db"), mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001"), "download-observations", 0xd1)
+	defer func() { _ = kernel.Close() }()
+	now := time.Date(2026, 9, 10, 1, 0, 0, 0, time.UTC)
+	kernel.now = func() time.Time { return now }
+	store := kernel.PackageLifecycle()
+	job, err := store.Begin(ctx, BeginPackageJobInput{AppID: "nimi.download", SourceClass: SourceClassVerified, Kind: PackageJobInstall, TargetRef: "descriptor:download:1.0.0", ProgressBasis: PackageProgressBytes, BytesTotal: uint64Pointer(1000), Cancelable: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	job = advanceJob(t, ctx, store, job, PackageJobDownloading, PackageJobProgress{})
+	store.ObserveDownload(job.JobID, 600, 100, 4, now)
+	projected, err := store.GetJob(ctx, job.JobID)
+	if err != nil || projected.BytesCompleted != 600 || projected.SpeedBytesPerSec != 100 || projected.EtaSeconds != 4 || projected.ProgressObservedAt == nil {
+		t.Fatalf("progress=%+v err=%v", projected, err)
+	}
+	var persisted uint64
+	if err := kernel.db.QueryRowContext(ctx, `SELECT bytes_completed FROM app_package_job WHERE job_id = ?`, job.JobID).Scan(&persisted); err != nil || persisted != 0 {
+		t.Fatalf("chunk caused persistent progress=%d err=%v", persisted, err)
+	}
+	now = now.Add(6 * time.Second)
+	projected, err = store.GetJob(ctx, job.JobID)
+	if err != nil || projected.BytesCompleted != 600 || projected.SpeedBytesPerSec != 0 || projected.EtaSeconds != 0 {
+		t.Fatalf("stale projection=%+v err=%v", projected, err)
+	}
+	job, err = store.Pause(ctx, job.JobID, job.Phase, 300, "runtime-interrupted")
+	if err != nil || job.BytesCompleted != 300 || job.Phase != PackageJobPaused || job.SpeedBytesPerSec != 0 {
+		t.Fatalf("pause=%+v err=%v", job, err)
+	}
+	if err := kernel.db.QueryRowContext(ctx, `SELECT bytes_completed FROM app_package_job WHERE job_id = ?`, job.JobID).Scan(&persisted); err != nil || persisted != 300 {
+		t.Fatalf("pause checkpoint=%d err=%v", persisted, err)
+	}
+	store.ObserveDownload(job.JobID, 800, 1000, 1, now)
+	job, err = store.Resume(ctx, job.JobID)
+	if err != nil || job.BytesCompleted != 300 || job.Phase != PackageJobQueued || job.SpeedBytesPerSec != 0 {
+		t.Fatalf("resume=%+v err=%v", job, err)
+	}
+	store.ObserveRetainedBytes(job.JobID, job.Phase, 0)
+	job = advanceJob(t, ctx, store, job, PackageJobDownloading, PackageJobProgress{})
+	job, err = store.Cancel(ctx, job.JobID, job.Phase, "user-canceled")
+	if err != nil {
+		t.Fatal(err)
+	}
+	store.ObserveDownload(job.JobID, 900, 100, 1, now)
+	job, err = store.GetJob(ctx, job.JobID)
+	if err != nil || job.Phase != PackageJobCanceled || job.BytesCompleted != 0 || job.SpeedBytesPerSec != 0 {
+		t.Fatalf("late observation revived job=%+v err=%v", job, err)
+	}
+}
+
+func TestDownloadQueueReorderPauseResumeAndUpdateBaseline(t *testing.T) {
+	ctx := context.Background()
+	kernel := openTestKernel(t, filepath.Join(t.TempDir(), "registered-app.db"), mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001"), "download-queue", 0xd2)
+	defer func() { _ = kernel.Close() }()
+	store := kernel.PackageLifecycle()
+	var jobs []PackageJob
+	for _, app := range []string{"nimi.one", "nimi.two", "nimi.three"} {
+		job, err := store.Begin(ctx, BeginPackageJobInput{AppID: app, SourceClass: SourceClassVerified, Kind: PackageJobInstall, TargetRef: "descriptor:" + app, ProgressBasis: PackageProgressBytes, BytesTotal: uint64Pointer(1000), Cancelable: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		jobs = append(jobs, job)
+	}
+	if _, err := store.Pause(ctx, jobs[1].JobID, PackageJobQueued, 0, "user-paused"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Reorder(ctx, jobs[2].JobID, jobs[0].JobID); err != nil {
+		t.Fatal(err)
+	}
+	resumed, err := store.Resume(ctx, jobs[1].JobID)
+	if err != nil || resumed.QueuePosition != 3 {
+		t.Fatalf("resumed order=%+v err=%v", resumed, err)
+	}
+	listed, err := store.ListJobs(ctx)
+	if err != nil || listed[0].JobID != jobs[2].JobID || listed[1].JobID != jobs[0].JobID || listed[2].JobID != jobs[1].JobID {
+		t.Fatalf("queue=%+v err=%v", listed, err)
+	}
+	if _, err := store.Pause(ctx, jobs[0].JobID, PackageJobQueued, 0, "user-paused"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.Reorder(ctx, jobs[2].JobID, jobs[0].JobID); !errors.Is(err, ErrPackageJobPhase) {
+		t.Fatalf("accepted stale anchor: %v", err)
+	}
+	if _, err := store.Begin(ctx, BeginPackageJobInput{AppID: jobs[0].AppID, SourceClass: SourceClassVerified, Kind: PackageJobInstall, TargetRef: "duplicate", ProgressBasis: PackageProgressBytes}); !errors.Is(err, ErrPackageJobActive) {
+		t.Fatalf("paused mutation lost exclusivity: %v", err)
+	}
+	install := beginCommittingJob(t, ctx, store, PackageJobInstall, "descriptor:nimi.example:1.0.0")
+	first, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{JobID: install.JobID, Version: "1.0.0", Registration: verifiedRegistrationInput("lineage:1", 1)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wrong := first.Release
+	wrong.ReleaseRef = "stale-baseline"
+	update, err := store.Begin(ctx, BeginPackageJobInput{AppID: first.Release.AppID, SourceClass: SourceClassVerified, Kind: PackageJobUpdate, TargetRef: "descriptor:nimi.example:1.1.0", ProgressBasis: PackageProgressIndeterminate, PreviousRelease: &wrong})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if update.PreviousRelease == nil || update.PreviousRelease.ReleaseRef != wrong.ReleaseRef || update.PreviousVersion != first.Release.Version {
+		t.Fatalf("lost persisted baseline: %+v", update)
+	}
+	update = advanceJob(t, ctx, store, update, PackageJobVerifying, PackageJobProgress{})
+	update = advanceJob(t, ctx, store, update, PackageJobStaging, PackageJobProgress{})
+	update = advanceJob(t, ctx, store, update, PackageJobCommitting, PackageJobProgress{})
+	registration := verifiedRegistrationInput("lineage:2", 2)
+	registration.ExistingRegistrationHandle = first.Registration.RegistrationHandle
+	if _, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{JobID: update.JobID, Version: "1.1.0", Registration: registration}); !errors.Is(err, ErrRevisionConflict) {
+		t.Fatalf("stale baseline committed: %v", err)
+	}
+}

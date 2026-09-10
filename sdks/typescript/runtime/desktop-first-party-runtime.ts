@@ -110,7 +110,10 @@ export type NimiDesktopMachineProductRuntimeClient = {
     | 'listCommittedAppReleases'
     | 'listAppPackageJobs'
     | 'getAppPackageJob'
-    | 'cancelAppPackageJob'>;
+    | 'cancelAppPackageJob'
+    | 'pauseAppPackageJob'
+    | 'resumeAppPackageJob'
+    | 'reorderAppPackageJob'>;
   readonly scheduling: Pick<DesktopMachineProductRuntimeMethods, 'peekScheduling'>;
 };
 
@@ -498,6 +501,9 @@ export function createNimiDesktopFirstPartyRuntimeClients(
         listAppPackageJobs: machineProductRuntime.listAppPackageJobs,
         getAppPackageJob: machineProductRuntime.getAppPackageJob,
         cancelAppPackageJob: machineProductRuntime.cancelAppPackageJob,
+        pauseAppPackageJob: machineProductRuntime.pauseAppPackageJob,
+        resumeAppPackageJob: machineProductRuntime.resumeAppPackageJob,
+        reorderAppPackageJob: machineProductRuntime.reorderAppPackageJob,
       }),
       scheduling: Object.freeze({
         peekScheduling: runtime.scheduling.peekScheduling,

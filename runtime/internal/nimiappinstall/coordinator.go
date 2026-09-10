@@ -11,8 +11,8 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode/utf8"
 
+	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiappnative"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiapppackage"
@@ -25,7 +25,6 @@ const (
 	packageWorkDirectory     = "work"
 	packageReleaseDirectory  = "releases"
 	packageStagePrefix       = ".stage-"
-	installProgressSteps     = uint64(3)
 	installRecoveryTimeout   = 5 * time.Second
 	installCommitTimeout     = 15 * time.Second
 	publicRegistrySourceBase = "public-registry-app:v1:"
@@ -44,6 +43,8 @@ var (
 	ErrCommitOutcomeUnknown          = errors.New("public App install commit outcome is unknown")
 	ErrInstallCommit                 = errors.New("public App install commit failed")
 	ErrInstallPersistenceUnavailable = errors.New("public App install persistence is unavailable")
+	ErrInstallPaused                 = errors.New("public App download is paused")
+	ErrInstallQuiescing              = errors.New("public App package owner is quiescing")
 )
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-014a
@@ -56,7 +57,7 @@ type registryResolver interface {
 }
 
 type targetDownloader interface {
-	Download(context.Context, publicappregistry.ResolvedApprovedTarget, *os.Root) (DownloadedPackage, error)
+	Download(context.Context, publicappregistry.ResolvedApprovedTarget, *os.Root, DownloadHooks) (DownloadedPackage, error)
 }
 
 type Coordinator struct {
@@ -68,6 +69,9 @@ type Coordinator struct {
 	workers      map[string]*installWorker
 	workersWG    sync.WaitGroup
 	closing      bool
+	quiescing    bool
+	quiesced     bool
+	downloadJob  string
 	registry     registryResolver
 	downloader   targetDownloader
 	kernel       *localappkernel.Kernel
@@ -87,6 +91,7 @@ type installWorker struct {
 	done   chan struct{}
 	mu     sync.Mutex
 	reason string
+	paused bool
 }
 
 func NewCoordinator(
@@ -156,44 +161,72 @@ func (coordinator *Coordinator) Close() error {
 		return nil
 	}
 	coordinator.workersMu.Lock()
+	alreadyQuiesced := coordinator.quiesced
 	coordinator.closing = true
-	for _, worker := range coordinator.workers {
-		worker.requestCancel("runtime-shutdown")
-	}
 	coordinator.workersMu.Unlock()
-	coordinator.workersWG.Wait()
+	var stopErr error
+	if !alreadyQuiesced {
+		stopErr = coordinator.quiesce(context.Background())
+	}
 	coordinator.operations.Lock()
 	defer coordinator.operations.Unlock()
 	if coordinator.packagesRoot == nil {
-		return nil
+		return stopErr
 	}
 	err := coordinator.packagesRoot.Close()
 	coordinator.packagesRoot = nil
-	return err
+	return errors.Join(stopErr, err)
 }
 
 // Install performs one internal synchronous verified-only installation. It is
 // intentionally not wired to RPC, SDK, Desktop, or any product profile.
-func (coordinator *Coordinator) Install(
-	ctx context.Context,
-	selector publicappregistry.ApprovedTargetSelector,
-) (InstallResult, error) {
-	if ctx == nil || coordinator == nil {
-		return InstallResult{}, ErrInvalidCoordinator
-	}
-	coordinator.operations.RLock()
-	defer coordinator.operations.RUnlock()
-	if coordinator.isClosing() {
-		return InstallResult{}, ErrInvalidCoordinator
-	}
-	resolved, job, err := coordinator.beginInstallLocked(ctx, selector, "", "", nil)
+func (coordinator *Coordinator) Install(ctx context.Context, selector publicappregistry.ApprovedTargetSelector) (InstallResult, error) {
+	job, err := coordinator.StartInstall(ctx, selector)
 	if err != nil {
 		return InstallResult{}, err
 	}
-	return coordinator.runInstallLocked(ctx, selector, resolved, job)
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer ticker.Stop()
+	for {
+		job, err = coordinator.GetJob(ctx, job.JobID)
+		if err != nil {
+			return InstallResult{}, err
+		}
+		switch job.Phase {
+		case localappkernel.PackageJobCompleted:
+			coordinator.operations.RLock()
+			if coordinator.isClosing() {
+				coordinator.operations.RUnlock()
+				return InstallResult{}, ErrInstallQuiescing
+			}
+			release, err := coordinator.lifecycle.GetCommittedRelease(ctx, job.AppID, job.SourceClass)
+			if err != nil {
+				coordinator.operations.RUnlock()
+				return InstallResult{}, err
+			}
+			if release.ReleaseRef != job.TargetRef {
+				coordinator.operations.RUnlock()
+				return InstallResult{}, ErrCommitOutcomeUnknown
+			}
+			registration, err := coordinator.kernel.Registrations().GetByHandle(ctx, release.RegistrationHandle)
+			coordinator.operations.RUnlock()
+			return InstallResult{Job: job, Release: release, Registration: registration}, err
+		case localappkernel.PackageJobPaused:
+			return InstallResult{}, ErrInstallPaused
+		case localappkernel.PackageJobCanceled:
+			return InstallResult{}, context.Canceled
+		case localappkernel.PackageJobFailed:
+			return InstallResult{}, failureForReason(job.ReasonCode)
+		}
+		select {
+		case <-ctx.Done():
+			return InstallResult{}, ctx.Err()
+		case <-ticker.C:
+		}
+	}
 }
 
-// StartInstall persists the exact approved job before returning and then runs
+// StartInstall persists the exact approved job before returning and schedules
 // it under Coordinator supervision. Startup injects this owner only after
 // recovery, and the protected Desktop product profile owns its RPC entry.
 func (coordinator *Coordinator) StartInstall(
@@ -218,91 +251,24 @@ func (coordinator *Coordinator) startInstall(ctx context.Context, selector publi
 		return localappkernel.PackageJob{}, ErrInvalidCoordinator
 	}
 	coordinator.operations.RLock()
+	defer coordinator.operations.RUnlock()
 	if coordinator.isClosing() {
-		coordinator.operations.RUnlock()
-		return localappkernel.PackageJob{}, ErrInvalidCoordinator
+		return localappkernel.PackageJob{}, ErrInstallQuiescing
 	}
 	coordinator.launchMu.Lock()
-	resolved, job, err := coordinator.beginInstallLocked(ctx, selector, installedHandle, installedVersion, requireStopped)
+	_, job, err := coordinator.beginInstallLocked(ctx, selector, installedHandle, installedVersion, requireStopped)
 	coordinator.launchMu.Unlock()
 	if err != nil {
-		coordinator.operations.RUnlock()
 		return localappkernel.PackageJob{}, err
-	}
-	workerContext, cancelWorker := context.WithCancel(context.WithoutCancel(ctx))
-	worker := &installWorker{cancel: cancelWorker, done: make(chan struct{})}
-	coordinator.workersMu.Lock()
-	if coordinator.closing {
-		coordinator.workersMu.Unlock()
-		cancelWorker()
-		failErr := coordinator.failInstall(ctx, job, ErrInvalidCoordinator, false)
-		coordinator.operations.RUnlock()
-		return localappkernel.PackageJob{}, failErr
-	}
-	coordinator.workers[job.JobID] = worker
-	coordinator.workersWG.Add(1)
-	coordinator.workersMu.Unlock()
-	go func() {
-		defer coordinator.operations.RUnlock()
-		defer coordinator.workersWG.Done()
-		if _, err := coordinator.runInstallLocked(workerContext, selector, resolved, job); err != nil && !errors.Is(err, context.Canceled) {
-			coordinator.logger.Error("public App package operation failed", "job_id", job.JobID, "app_id", job.AppID, "kind", job.Kind, "error", err)
-		}
-		close(worker.done)
-		coordinator.workersMu.Lock()
-		delete(coordinator.workers, job.JobID)
-		coordinator.workersMu.Unlock()
-	}()
-	return job, nil
-}
-
-func (coordinator *Coordinator) CancelInstall(
-	ctx context.Context,
-	jobID string,
-	expectedPhase localappkernel.PackageJobPhase,
-	reasonCode string,
-) (localappkernel.PackageJob, error) {
-	if ctx == nil || coordinator == nil || !runtimeOwnedChild(jobID) || reasonCode == "" || reasonCode != strings.TrimSpace(reasonCode) ||
-		!utf8.ValidString(reasonCode) || len([]byte(reasonCode)) > 16*1024 {
-		return localappkernel.PackageJob{}, localappkernel.ErrInvalidArgument
-	}
-	coordinator.operations.RLock()
-	defer coordinator.operations.RUnlock()
-	if coordinator.lifecycle == nil || coordinator.packagesRoot == nil || coordinator.isClosing() {
-		return localappkernel.PackageJob{}, ErrInvalidCoordinator
-	}
-	job, err := coordinator.lifecycle.GetJob(ctx, jobID)
-	if err != nil {
-		return localappkernel.PackageJob{}, err
-	}
-	if job.Phase != expectedPhase {
-		return localappkernel.PackageJob{}, localappkernel.ErrPackageJobPhase
-	}
-	if !job.Cancelable || terminalPackagePhase(job.Phase) {
-		return localappkernel.PackageJob{}, localappkernel.ErrPackageJobNotCancelable
 	}
 	coordinator.workersMu.Lock()
-	worker := coordinator.workers[jobID]
-	if worker != nil {
-		worker.requestCancel(reasonCode)
-	}
+	blocked := coordinator.closing || coordinator.quiescing
 	coordinator.workersMu.Unlock()
-	if worker == nil {
-		return localappkernel.PackageJob{}, localappkernel.ErrPackageJobNotCancelable
+	if blocked {
+		return coordinator.lifecycle.Pause(context.WithoutCancel(ctx), job.JobID, job.Phase, 0, "runtime-interrupted")
 	}
-	select {
-	case <-ctx.Done():
-		return localappkernel.PackageJob{}, ctx.Err()
-	case <-worker.done:
-	}
-	job, err = coordinator.lifecycle.GetJob(ctx, jobID)
-	if err != nil {
-		return localappkernel.PackageJob{}, err
-	}
-	if job.Phase != localappkernel.PackageJobCanceled {
-		return localappkernel.PackageJob{}, localappkernel.ErrPackageJobNotCancelable
-	}
-	return job, nil
+	coordinator.scheduleNext()
+	return coordinator.lifecycle.GetJob(ctx, job.JobID)
 }
 
 func (coordinator *Coordinator) beginInstallLocked(
@@ -325,6 +291,7 @@ func (coordinator *Coordinator) beginInstallLocked(
 		return publicappregistry.ResolvedApprovedTarget{}, localappkernel.PackageJob{}, err
 	}
 	kind := localappkernel.PackageJobInstall
+	var previous *localappkernel.CommittedRelease
 	current, currentErr := coordinator.lifecycle.GetCommittedRelease(ctx, resolved.AppID, localappkernel.SourceClassVerified)
 	if currentErr == nil {
 		if installedHandle == "" {
@@ -343,19 +310,21 @@ func (coordinator *Coordinator) beginInstallLocked(
 			return publicappregistry.ResolvedApprovedTarget{}, localappkernel.PackageJob{}, err
 		}
 		kind = localappkernel.PackageJobUpdate
+		previous = &current
 	} else if !errors.Is(currentErr, localappkernel.ErrCommittedReleaseNotFound) {
 		return publicappregistry.ResolvedApprovedTarget{}, localappkernel.PackageJob{}, fmt.Errorf("read current public App release: %w", errors.Join(ErrInstallPersistenceUnavailable, currentErr))
 	} else if installedHandle != "" {
 		return publicappregistry.ResolvedApprovedTarget{}, localappkernel.PackageJob{}, ErrUpdateUnavailable
 	}
-	steps := installProgressSteps
+	bytesTotal := uint64(resolved.Target.Size)
 	if err := ctx.Err(); err != nil {
 		return publicappregistry.ResolvedApprovedTarget{}, localappkernel.PackageJob{}, err
 	}
 	job, err := coordinator.lifecycle.Begin(context.WithoutCancel(ctx), localappkernel.BeginPackageJobInput{
 		AppID: resolved.AppID, SourceClass: localappkernel.SourceClassVerified,
 		Kind: kind, TargetRef: selectorText,
-		ProgressBasis: localappkernel.PackageProgressSteps, StepsTotal: &steps, Cancelable: true,
+		ProgressBasis: localappkernel.PackageProgressBytes, BytesTotal: &bytesTotal, Cancelable: true,
+		DisplayName: resolved.DisplayName, TargetVersion: resolved.Version, TargetOS: resolved.Target.OS, TargetArch: resolved.Target.Arch, PreviousRelease: previous,
 	})
 	if err != nil {
 		if errors.Is(err, localappkernel.ErrPackageJobActive) {
@@ -381,6 +350,9 @@ func (coordinator *Coordinator) runInstallLocked(
 		if err != nil {
 			return InstallResult{}, coordinator.failInstall(ctx, job, err, false)
 		}
+		if job.PreviousRelease == nil || !reflect.DeepEqual(release, *job.PreviousRelease) {
+			return InstallResult{}, coordinator.failInstall(ctx, job, publicappregistry.ErrStaleSelection, false)
+		}
 		registration, err := coordinator.kernel.Registrations().GetByHandle(ctx, release.RegistrationHandle)
 		if err != nil {
 			return InstallResult{}, coordinator.failInstall(ctx, job, err, false)
@@ -388,30 +360,59 @@ func (coordinator *Coordinator) runInstallLocked(
 		previous = &registration
 	}
 	workRelative := filepath.Join(packageWorkDirectory, job.JobID)
-	if err := coordinator.packagesRoot.Mkdir(workRelative, 0o700); err != nil {
+	if err := coordinator.packagesRoot.Mkdir(workRelative, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
 		return InstallResult{}, coordinator.failInstall(ctx, job, fmt.Errorf("create public App install work root: %w", err), false)
+	}
+	if info, err := coordinator.packagesRoot.Lstat(workRelative); err != nil || !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+		return InstallResult{}, coordinator.failInstall(ctx, job, errors.Join(ErrDownloadDestination, err), false)
 	}
 	jobRoot, err := coordinator.packagesRoot.OpenRoot(workRelative)
 	if err != nil {
 		return InstallResult{}, coordinator.failInstall(ctx, job, fmt.Errorf("open public App install work root: %w", err), false)
 	}
-	advanced, err := coordinator.lifecycle.Advance(ctx, job.JobID, job.Phase, localappkernel.PackageJobDownloading, localappkernel.PackageJobProgress{})
+	retained, err := coordinator.retainedPackageBytes(job)
+	if err != nil {
+		_ = jobRoot.Close()
+		return InstallResult{}, coordinator.failInstall(ctx, job, err, false)
+	}
+	advanced, err := coordinator.advanceInstall(ctx, job, localappkernel.PackageJobDownloading, retained)
 	if err != nil {
 		_ = jobRoot.Close()
 		return InstallResult{}, coordinator.failInstall(ctx, job, fmt.Errorf("start public App package download: %w", err), false)
 	}
 	job = advanced
-	downloaded, err := coordinator.downloader.Download(ctx, resolved, jobRoot)
+	var tracker filedownload.RateTracker
+	var eta int64
+	tracker.ObserveProjection(int64(retained), time.Now())
+	downloaded, err := coordinator.downloader.Download(ctx, resolved, jobRoot, DownloadHooks{
+		Progress: func(completed, _ int64) {
+			now := time.Now()
+			speed, known, updated := tracker.ObserveProjection(completed, now)
+			if !known {
+				speed = 0
+			}
+			if !known || resolved.Target.Size <= completed {
+				eta = 0
+			} else if updated {
+				eta = filedownload.RemainingSeconds(completed, resolved.Target.Size, speed)
+			}
+			coordinator.lifecycle.ObserveDownload(job.JobID, uint64(completed), uint64(speed), uint64(eta), now)
+		},
+		TransferComplete: func() error {
+			advanced, err := coordinator.advanceInstall(ctx, job, localappkernel.PackageJobVerifying, uint64(resolved.Target.Size))
+			if err != nil {
+				return err
+			}
+			job = advanced
+			coordinator.releaseDownload(job.JobID)
+			return nil
+		},
+		PreservePartialOnError: func(cause error) bool { return coordinator.shouldPreserveDownload(job.JobID, cause) },
+	})
 	if err != nil {
 		_ = jobRoot.Close()
 		return InstallResult{}, coordinator.failInstall(ctx, job, err, false)
 	}
-	advanced, err = coordinator.lifecycle.Advance(ctx, job.JobID, job.Phase, localappkernel.PackageJobVerifying, localappkernel.PackageJobProgress{StepsCompleted: 1})
-	if err != nil {
-		_ = jobRoot.Close()
-		return InstallResult{}, coordinator.failInstall(ctx, job, fmt.Errorf("start public App package verification: %w", err), false)
-	}
-	job = advanced
 	packageExpected := packageExpectation(resolved)
 	nativeVerifier, err := nativeVerifierForTarget(resolved)
 	if err != nil {
@@ -423,7 +424,7 @@ func (coordinator *Coordinator) runInstallLocked(
 	if err != nil || closeJobRootErr != nil {
 		return InstallResult{}, coordinator.failInstall(ctx, job, errors.Join(err, closeJobRootErr), false)
 	}
-	advanced, err = coordinator.lifecycle.Advance(ctx, job.JobID, job.Phase, localappkernel.PackageJobStaging, localappkernel.PackageJobProgress{StepsCompleted: 2})
+	advanced, err = coordinator.advanceInstall(ctx, job, localappkernel.PackageJobStaging, uint64(resolved.Target.Size))
 	if err != nil {
 		return InstallResult{}, coordinator.failInstall(ctx, job, fmt.Errorf("start public App package staging: %w", err), false)
 	}
@@ -452,7 +453,14 @@ func (coordinator *Coordinator) runInstallLocked(
 		_ = releasesRoot.Close()
 		return InstallResult{}, coordinator.failInstall(ctx, job, ErrInstallTarget, false)
 	}
-	advanced, err = coordinator.lifecycle.Advance(ctx, job.JobID, job.Phase, localappkernel.PackageJobCommitting, localappkernel.PackageJobProgress{StepsCompleted: 3})
+	if job.Kind == localappkernel.PackageJobUpdate {
+		baseline, err := coordinator.lifecycle.GetCommittedRelease(ctx, job.AppID, job.SourceClass)
+		if err != nil || job.PreviousRelease == nil || !reflect.DeepEqual(baseline, *job.PreviousRelease) {
+			_ = releasesRoot.Close()
+			return InstallResult{}, coordinator.failInstall(ctx, job, errors.Join(publicappregistry.ErrStaleSelection, err), false)
+		}
+	}
+	advanced, err = coordinator.advanceInstall(ctx, job, localappkernel.PackageJobCommitting, uint64(resolved.Target.Size))
 	if err != nil {
 		_ = releasesRoot.Close()
 		return InstallResult{}, coordinator.failInstall(ctx, job, fmt.Errorf("start public App package commit: %w", err), false)
@@ -623,5 +631,5 @@ func (worker *installWorker) requestCancel(reason string) {
 func (coordinator *Coordinator) isClosing() bool {
 	coordinator.workersMu.Lock()
 	defer coordinator.workersMu.Unlock()
-	return coordinator.closing
+	return coordinator.closing || coordinator.quiescing
 }

@@ -18,6 +18,14 @@ Discipline.
 
 ### Added
 
+- ProgressIndicator accepts an unknown value and places accessible names and
+  value descriptions on the actual progressbar. This compatible input widening
+  belongs to the 0.7.0 minor surface; existing numeric values still work.
+- Kit/native 0.7.0 and the 0.3.0 Rust shell crates carry the protected App
+  download pause, resume and reorder methods with Runtime-owned queue and
+  progress projections. Hosts with exhaustive native method or App job phase
+  matches must handle the new variants. Kit 0.7.0 requires SDK 0.11.0.
+
 - Added the macOS arm64 native package and main-only installed App control to
   the 0.6.0 component release. The shared installed-launch transaction uses a
   macOS current-user, same-session suspended child and retains its real exit

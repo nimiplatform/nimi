@@ -11,6 +11,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -196,10 +197,10 @@ func TestPauseAndResumeResetTransferRate(t *testing.T) {
 	})
 	sessionID := transfer.GetInstallSessionId()
 	svc.mu.Lock()
-	svc.transferRates[sessionID] = &transferRateTracker{samples: []transferRateSample{
-		{at: time.Unix(1_700_000_000, 0), bytes: 0},
-		{at: time.Unix(1_700_000_001, 0), bytes: 125},
-	}}
+	tracker := &filedownload.RateTracker{}
+	tracker.Observe(0, time.Unix(1_700_000_000, 0))
+	tracker.Observe(125, time.Unix(1_700_000_001, 0))
+	svc.transferRates[sessionID] = tracker
 	svc.mu.Unlock()
 
 	paused, err := svc.PauseLocalTransfer(context.Background(), &runtimev1.PauseLocalTransferRequest{InstallSessionId: sessionID})

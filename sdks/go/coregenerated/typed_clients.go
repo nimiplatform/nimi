@@ -506,6 +506,7 @@ const (
 	APPPACKAGEJOBPHASECOMPLETED          AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_COMPLETED"
 	APPPACKAGEJOBPHASEFAILED             AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_FAILED"
 	APPPACKAGEJOBPHASECANCELED           AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_CANCELED"
+	APPPACKAGEJOBPHASEPAUSED             AppPackageJobPhase = "APP_PACKAGE_JOB_PHASE_PAUSED"
 )
 
 type AppPackageProgressBasis string
@@ -2596,22 +2597,32 @@ type AppMessageEvent struct {
 }
 
 type AppPackageJob struct {
-	JobId          []byte                   `json:"job_id,omitempty"`
-	AppId          string                   `json:"app_id,omitempty"`
-	SourceClass    AppPackageSourceClass    `json:"source_class,omitempty"`
-	Kind           AppPackageJobKind        `json:"kind,omitempty"`
-	TargetRef      string                   `json:"target_ref,omitempty"`
-	Phase          AppPackageJobPhase       `json:"phase,omitempty"`
-	ProgressBasis  AppPackageProgressBasis  `json:"progress_basis,omitempty"`
-	BytesCompleted uint64                   `json:"bytes_completed,omitempty"`
-	BytesTotal     *uint64                  `json:"bytes_total,omitempty"`
-	StepsCompleted uint64                   `json:"steps_completed,omitempty"`
-	StepsTotal     *uint64                  `json:"steps_total,omitempty"`
-	StartedAt      string                   `json:"started_at,omitempty"`
-	CompletedAt    string                   `json:"completed_at,omitempty"`
-	TerminalResult AppPackageTerminalResult `json:"terminal_result,omitempty"`
-	ReasonCode     string                   `json:"reason_code,omitempty"`
-	Cancelable     bool                     `json:"cancelable,omitempty"`
+	JobId              []byte                   `json:"job_id,omitempty"`
+	AppId              string                   `json:"app_id,omitempty"`
+	SourceClass        AppPackageSourceClass    `json:"source_class,omitempty"`
+	Kind               AppPackageJobKind        `json:"kind,omitempty"`
+	TargetRef          string                   `json:"target_ref,omitempty"`
+	Phase              AppPackageJobPhase       `json:"phase,omitempty"`
+	ProgressBasis      AppPackageProgressBasis  `json:"progress_basis,omitempty"`
+	BytesCompleted     uint64                   `json:"bytes_completed,omitempty"`
+	BytesTotal         *uint64                  `json:"bytes_total,omitempty"`
+	StepsCompleted     uint64                   `json:"steps_completed,omitempty"`
+	StepsTotal         *uint64                  `json:"steps_total,omitempty"`
+	StartedAt          string                   `json:"started_at,omitempty"`
+	CompletedAt        string                   `json:"completed_at,omitempty"`
+	TerminalResult     AppPackageTerminalResult `json:"terminal_result,omitempty"`
+	ReasonCode         string                   `json:"reason_code,omitempty"`
+	Cancelable         bool                     `json:"cancelable,omitempty"`
+	QueuePosition      uint32                   `json:"queue_position,omitempty"`
+	SpeedBytesPerSec   uint64                   `json:"speed_bytes_per_sec,omitempty"`
+	EtaSeconds         uint64                   `json:"eta_seconds,omitempty"`
+	ProgressObservedAt string                   `json:"progress_observed_at,omitempty"`
+	UpdatedAt          string                   `json:"updated_at,omitempty"`
+	DisplayName        string                   `json:"display_name,omitempty"`
+	TargetVersion      string                   `json:"target_version,omitempty"`
+	PreviousVersion    string                   `json:"previous_version,omitempty"`
+	TargetOs           string                   `json:"target_os,omitempty"`
+	TargetArch         string                   `json:"target_arch,omitempty"`
 }
 
 type AppStorageProjection struct {
@@ -6180,6 +6191,15 @@ type OverwriteSharedLocalAgentAIConfigResponse struct {
 	Participation       []LocalAgentCapabilityParticipation `json:"participation,omitempty"`
 }
 
+type PauseAppPackageJobRequest struct {
+	JobId []byte `json:"job_id,omitempty"`
+}
+
+type PauseAppPackageJobResponse struct {
+	Job        *AppPackageJob `json:"job,omitempty"`
+	ReasonCode ReasonCode     `json:"reason_code,omitempty"`
+}
+
 type PauseLocalTransferRequest struct {
 	InstallSessionId string `json:"install_session_id,omitempty"`
 }
@@ -6688,6 +6708,16 @@ type RenderLocalAppConversationVoiceResponse struct {
 type RenewLocalAppSessionRequest struct {
 }
 
+type ReorderAppPackageJobRequest struct {
+	JobId       []byte `json:"job_id,omitempty"`
+	BeforeJobId []byte `json:"before_job_id,omitempty"`
+}
+
+type ReorderAppPackageJobResponse struct {
+	Job        *AppPackageJob `json:"job,omitempty"`
+	ReasonCode ReasonCode     `json:"reason_code,omitempty"`
+}
+
 type RepairLocalEnvironmentDependencyRequest struct {
 	EnvironmentKey   string `json:"environment_key,omitempty"`
 	DependencyFamily string `json:"dependency_family,omitempty"`
@@ -6796,6 +6826,15 @@ type ResponseFormat struct {
 	SchemaName        string             `json:"schema_name,omitempty"`
 	SchemaDescription string             `json:"schema_description,omitempty"`
 	Strict            bool               `json:"strict,omitempty"`
+}
+
+type ResumeAppPackageJobRequest struct {
+	JobId []byte `json:"job_id,omitempty"`
+}
+
+type ResumeAppPackageJobResponse struct {
+	Job        *AppPackageJob `json:"job,omitempty"`
+	ReasonCode ReasonCode     `json:"reason_code,omitempty"`
 }
 
 type ResumeLocalTransferRequest struct {
@@ -8910,6 +8949,30 @@ func (c RuntimeTypedClient) ListCommittedAppReleases(ctx context.Context, reques
 		return ListCommittedAppReleasesResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ListCommittedAppReleasesResponse](raw, "ListCommittedAppReleasesResponse")
+}
+
+func (c RuntimeTypedClient) PauseAppPackageJob(ctx context.Context, request PauseAppPackageJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PauseAppPackageJobResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob", request, metadata, timeoutMS)
+	if err != nil {
+		return PauseAppPackageJobResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[PauseAppPackageJobResponse](raw, "PauseAppPackageJobResponse")
+}
+
+func (c RuntimeTypedClient) ReorderAppPackageJob(ctx context.Context, request ReorderAppPackageJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReorderAppPackageJobResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob", request, metadata, timeoutMS)
+	if err != nil {
+		return ReorderAppPackageJobResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ReorderAppPackageJobResponse](raw, "ReorderAppPackageJobResponse")
+}
+
+func (c RuntimeTypedClient) ResumeAppPackageJob(ctx context.Context, request ResumeAppPackageJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResumeAppPackageJobResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob", request, metadata, timeoutMS)
+	if err != nil {
+		return ResumeAppPackageJobResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ResumeAppPackageJobResponse](raw, "ResumeAppPackageJobResponse")
 }
 
 func (c RuntimeTypedClient) StartAppPackageInstall(ctx context.Context, request StartAppPackageInstallRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartAppPackageInstallResponse, error) {

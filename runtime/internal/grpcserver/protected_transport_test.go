@@ -589,6 +589,19 @@ func TestGeneratedFirstPartyProfilesResolveExactMarkerMethodAndKind(t *testing.T
 	if _, _, err := resolveProtectedFirstPartyProfile(wrongApp, "/nimi.runtime.v1.RuntimeLocalService/ListModelAssets", protectedlocal.FirstPartyMethodUnary); status.Code(err) != codes.PermissionDenied {
 		t.Fatalf("wrong app marker was not denied: %v", err)
 	}
+	accountProfile := metadata.NewIncomingContext(context.Background(), metadata.Pairs(
+		protectedFirstPartyProfileMetadata, protectedlocal.DesktopAccountProductNativeMarker,
+		"x-nimi-app-id", envelope.ProtectedDesktopAppID,
+	))
+	for _, method := range []string{
+		"/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob",
+		"/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob",
+		"/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob",
+	} {
+		if _, _, err := resolveProtectedFirstPartyProfile(accountProfile, method, protectedlocal.FirstPartyMethodUnary); status.Code(err) != codes.PermissionDenied {
+			t.Fatalf("account profile admitted machine App control %s: %v", method, err)
+		}
+	}
 }
 
 func TestDesktopAccountProfileAdmitsTypedExternalAIHostScenarioStream(t *testing.T) {
