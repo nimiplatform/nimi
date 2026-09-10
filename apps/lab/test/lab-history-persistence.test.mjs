@@ -41,7 +41,7 @@ const historyPolicyModuleUrl = compileModule('src/ai-studio-core/history-policy.
   ['@nimiplatform/sdk/types', jsonTypesModuleUrl],
 ]);
 const historyStorageModuleUrl = compileModule('src/lab/lab-history-storage.ts', [
-  ['../ai-studio-core/index.js', historyPolicyModuleUrl],
+  ['../ai-studio-core/history-policy.js', historyPolicyModuleUrl],
   ['./lab-standard-storage.js', standardStorageModuleUrl],
 ]);
 const imageHistoryModuleUrl = compileModule('src/lab/lab-image-history.ts', [
@@ -122,6 +122,24 @@ function runRecord(id, createdAt, overrides = {}) {
     ...overrides,
   };
 }
+
+test('large Locate results retain a history reference without rejecting or truncating the current result', () => {
+  const result = {
+    imageArtifactId:'image-1', width:1200, height:800,
+    locations:Array.from({length:1000},()=>({type:'point',x:0.123,y:0.456,label:'a'.repeat(230)})),
+  };
+  const record = runRecord('large-locate', '2026-09-09T00:00:00.000Z', {
+    capabilityId:'vision.locate',
+    result:{ok:true,kind:'vision-locate',summary:'1000 matches',jobId:'job-large',result},
+  });
+  const before = runRecord('previous', '2026-09-08T00:00:00.000Z');
+  const history = historyPolicyModule.boundStudioRunHistoryWithRecord({'text.generate':[before]},record);
+  assert.equal(history['text.generate'][0].id, 'previous');
+  assert.deepEqual(history['vision.locate'][0].result,{ok:true,kind:'vision-locate',summary:'1000 matches',jobId:'job-large'});
+  assert.equal(record.result.result.locations.length,1000);
+  assert.ok(Buffer.byteLength(JSON.stringify(history)) <= historyPolicyModule.STUDIO_HISTORY_LIMIT_BYTES);
+  assert.deepEqual(historyPolicyModule.parseStudioRunHistory(JSON.parse(JSON.stringify(history))),JSON.parse(JSON.stringify(history)));
+});
 
 test('shared history policy enforces global count and byte bounds', () => {
   let history = {};

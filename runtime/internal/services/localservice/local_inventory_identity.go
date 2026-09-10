@@ -14,7 +14,8 @@ func isRunnableKind(k runtimev1.LocalAssetKind) bool {
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS,
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT,
 		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING,
-		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_MUSIC:
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_MUSIC,
+		runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VISION:
 		return true
 	default:
 		return false
@@ -78,6 +79,8 @@ func inferAssetKindFromCapabilities(capabilities []string) runtimev1.LocalAssetK
 			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_TTS
 		case "audio.transcribe":
 			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_STT
+		case "vision.locate":
+			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VISION
 		default:
 			return runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED
 		}
@@ -98,6 +101,8 @@ func effectiveAssetKind(kind runtimev1.LocalAssetKind, capabilities []string) ru
 
 func catalogModelTypeForAssetKind(kind runtimev1.LocalAssetKind) string {
 	switch kind {
+	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VISION:
+		return "vision"
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT:
 		return "chat"
 	case runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING:

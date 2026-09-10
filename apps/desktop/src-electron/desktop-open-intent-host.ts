@@ -288,7 +288,8 @@ class ElectronDesktopOpenIntentHost {
           bridgeId: this.bridgeId,
           ...parseAvatarHostHandoffResult(result, handoff.command),
         });
-      } catch {
+      } catch (error) {
+        process.stderr.write(`[desktop-open] Avatar handoff failed: ${safeErrorMessage(error)}\n`);
         writeJson(response, 400, { code: 'avatar-host-handoff-invalid' });
       }
       return;

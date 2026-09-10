@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { MACOS_LOCAL_DEVELOPMENT_PROFILE } from './generated/macos-local-development-profile.mjs';
+import { macOSReleaseRealmBaseURL } from './lib/macos-release-process.mjs';
 
 const appRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const releaseBuild = process.argv.includes('--release');
@@ -31,6 +32,11 @@ await build({
       macOSLocalDevelopmentBuild ? MACOS_LOCAL_DEVELOPMENT_PROFILE.localAppHostPath : '',
     ),
     __NIMI_MACOS_LOCAL_DEVELOPMENT_BUILD__: JSON.stringify(macOSLocalDevelopmentBuild),
+    __NIMI_MACOS_RELEASE_REALM_BASE_URL__: JSON.stringify(
+      releaseBuild && !macOSLocalDevelopmentBuild
+        ? macOSReleaseRealmBaseURL(process.env.NIMI_MACOS_RELEASE_REALM_URL)
+        : 'https://realm.nimi.ai',
+    ),
   },
   banner: releaseBuild ? {
     js: "import { createRequire as __nimiCreateRequire } from 'node:module'; const require = __nimiCreateRequire(import.meta.url);",

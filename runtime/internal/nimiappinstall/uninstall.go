@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
+	"github.com/nimiplatform/nimi/runtime/internal/publicappregistry"
 )
 
 const uninstallRootPrefix = ".uninstall-"
@@ -27,7 +27,8 @@ type uninstallReservation struct {
 // startup restores any pre-commit detached root and fails interrupted jobs.
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040b
 func (coordinator *Coordinator) StartUninstall(ctx context.Context, handle string) (localappkernel.PackageJob, error) {
-	if ctx == nil || coordinator == nil || runtime.GOOS != "windows" || runtime.GOARCH != "amd64" {
+	_, _, _, platformErr := publicappregistry.CurrentPlatformTarget()
+	if ctx == nil || coordinator == nil || platformErr != nil {
 		return localappkernel.PackageJob{}, ErrInvalidCoordinator
 	}
 	coordinator.operations.RLock()

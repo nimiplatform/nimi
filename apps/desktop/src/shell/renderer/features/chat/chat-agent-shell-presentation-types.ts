@@ -73,6 +73,8 @@ export type UseAgentConversationPresentationInput = {
   thinkingUnsupportedReason: string | null;
   voiceInput: {
     available: boolean;
+    opening?: boolean;
+    realtimeAction?: { active: boolean; disabled: boolean; onToggle: () => void };
     state: AgentVoiceSessionShellState;
     captureState: {
       active: boolean;

@@ -96,6 +96,39 @@ describe('Agent Realtime public entry', () => {
     });
   });
 
+  it('reloads current references after a session fails and requires a new explicit selection for a rotated handle', async () => {
+    const client = formalClient(async () => [
+      { agentHandle: HANDLE_A, displayName: 'Agent A', avatarUrl: null },
+    ]);
+    const node = await renderEntry({
+      client, initialAgentHandle: HANDLE_A, conversationAnchorId: 'old-anchor',
+      inputAudio: AUDIO_FORMAT, turnDetection: 'manual', host: testHost(), locale: 'en',
+    });
+    const button = (text: string) => Array.from(node.querySelectorAll('button'))
+      .find((entry) => entry.textContent === text) as HTMLButtonElement;
+    // The existing finite subscription ends after open, as a canceled event stream does.
+    await act(async () => { button('Open live conversation').click(); });
+    expect(node.textContent).toContain('Live conversation is unavailable.');
+    expect((node.querySelector('textarea') as HTMLTextAreaElement).disabled).toBe(true);
+
+    vi.mocked(client.agents.listReferences).mockResolvedValueOnce([
+      { agentHandle: HANDLE_B, displayName: 'Agent A', avatarUrl: null },
+    ]);
+    const retry = button('Retry');
+    expect(retry).toBeTruthy();
+    await act(async () => { retry.click(); });
+    expect(client.agents.listReferences).toHaveBeenCalledTimes(2);
+    expect(node.querySelector('[data-nimi-agent-realtime-entry="true"]')).toBeNull();
+    expect(client.agentRealtime.open).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      (node.querySelector(`[data-nimi-app-agent-realtime-agent-handle="${HANDLE_B}"]`) as HTMLButtonElement).click();
+    });
+    await act(async () => { button('Open live conversation').click(); });
+    expect(client.agentRealtime.open).toHaveBeenLastCalledWith({
+      agentHandle: HANDLE_B, inputAudio: AUDIO_FORMAT, turnDetection: 'manual',
+    });
+  });
+
   it('validates a supplied current handle through the reference list and preserves its exact anchor', async () => {
     const client = formalClient(async () => [
       { agentHandle: HANDLE_A, displayName: 'Agent A', avatarUrl: null },

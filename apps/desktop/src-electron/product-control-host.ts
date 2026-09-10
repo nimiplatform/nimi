@@ -289,22 +289,37 @@ class ElectronProductControlHost {
 
   async bootstrapDataRootHandoff(): Promise<void> {
     this.operationGate.close('desktop-data-root-handoff-bootstrap-recovery');
-    try {
-      const projection = await this.record();
-      if (!projection.exists || !projection.record?.dataRoot) {
-        this.operationGate.open();
-        return;
-      }
-      if (projection.state !== 'ready_for_use') {
-        if (projection.state === 'data_root_selected' || projection.state === 'not_logged_in') {
+    const deadline = Date.now() + 10_000;
+    for (;;) {
+      try {
+        const projection = await this.record();
+        if (!projection.exists || !projection.record?.dataRoot) {
           this.operationGate.open();
+          return;
+        }
+        if (projection.state !== 'ready_for_use') {
+          if (projection.state === 'data_root_selected' || projection.state === 'not_logged_in') {
+            this.operationGate.open();
+          }
+          return;
+        }
+        await this.recoverCanonicalActivation(projection);
+        return;
+      } catch (error) {
+        // Service registration can finish before the protected API is ready.
+        // Retry only its explicit transient response; a trust or canonical
+        // activation failure must keep ordinary root operations closed.
+        if (error instanceof Error
+          && 'reasonCode' in error && error.reasonCode === 'runtime-service-unavailable'
+          && 'retryable' in error && error.retryable === true && Date.now() < deadline) {
+          await new Promise<void>((resolve) => setTimeout(resolve, 100));
+          continue;
+        }
+        if (error instanceof Error && 'reasonCode' in error && typeof error.reasonCode === 'string') {
+          this.operationGate.close(error.reasonCode);
         }
         return;
       }
-      await this.recoverCanonicalActivation(projection);
-    } catch {
-      // Canonical disposition is unknown. Ordinary root operations remain
-      // closed, while the Support diagnostic queue stays available.
     }
   }
 

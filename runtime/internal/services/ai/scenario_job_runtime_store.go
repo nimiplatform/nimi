@@ -58,6 +58,7 @@ type scenarioJobRecord struct {
 	localAppOwner    *localAppJobOwner
 	voiceAsset       *runtimev1.VoiceAsset
 	voiceReference   *runtimev1.VoiceReference
+	visionLocate     *runtimev1.VisionLocateResult
 	events           []*runtimev1.ScenarioJobEvent
 	subscribers      map[uint64]chan *runtimev1.ScenarioJobEvent
 	nextSubID        uint64
@@ -503,7 +504,7 @@ func (s *scenarioJobStore) transition(
 	eventType runtimev1.ScenarioJobEventType,
 	mutate func(*runtimev1.ScenarioJob),
 ) (*runtimev1.ScenarioJob, bool, error) {
-	return s.transitionWithVoiceResult(jobID, status, eventType, nil, nil, mutate)
+	return s.transitionWithResults(jobID, status, eventType, nil, nil, nil, mutate)
 }
 
 func (s *scenarioJobStore) transitionVoiceCompleted(
@@ -512,22 +513,24 @@ func (s *scenarioJobStore) transitionVoiceCompleted(
 	reference *runtimev1.VoiceReference,
 	mutate func(*runtimev1.ScenarioJob),
 ) (*runtimev1.ScenarioJob, bool, error) {
-	return s.transitionWithVoiceResult(
+	return s.transitionWithResults(
 		jobID,
 		runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED,
 		runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_COMPLETED,
 		asset,
 		reference,
+		nil,
 		mutate,
 	)
 }
 
-func (s *scenarioJobStore) transitionWithVoiceResult(
+func (s *scenarioJobStore) transitionWithResults(
 	jobID string,
 	status runtimev1.ScenarioJobStatus,
 	eventType runtimev1.ScenarioJobEventType,
 	voiceAsset *runtimev1.VoiceAsset,
 	voiceReference *runtimev1.VoiceReference,
+	visionLocate *runtimev1.VisionLocateResult,
 	mutate func(*runtimev1.ScenarioJob),
 ) (*runtimev1.ScenarioJob, bool, error) {
 	id := strings.TrimSpace(jobID)
@@ -553,11 +556,15 @@ func (s *scenarioJobStore) transitionWithVoiceResult(
 	previousJob := cloneScenarioJob(record.job)
 	previousVoiceAsset := cloneVoiceAsset(record.voiceAsset)
 	previousVoiceReference := cloneVoiceReference(record.voiceReference)
+	previousVisionLocate := cloneVisionLocateResult(record.visionLocate)
 	previousUpdatedAt := record.updatedAt
 	previousTerminalAt := record.terminalAt
 	if voiceAsset != nil || voiceReference != nil {
 		record.voiceAsset = cloneVoiceAsset(voiceAsset)
 		record.voiceReference = cloneVoiceReference(voiceReference)
+	}
+	if visionLocate != nil {
+		record.visionLocate = cloneVisionLocateResult(visionLocate)
 	}
 	if mutate != nil {
 		mutate(record.job)
@@ -577,6 +584,7 @@ func (s *scenarioJobStore) transitionWithVoiceResult(
 	}
 	if err := prepareFailedScenarioJobProjection(record.job); err != nil {
 		record.job = previousJob
+		record.visionLocate = previousVisionLocate
 		record.voiceAsset = previousVoiceAsset
 		record.voiceReference = previousVoiceReference
 		record.updatedAt = previousUpdatedAt
@@ -594,8 +602,9 @@ func (s *scenarioJobStore) transitionWithVoiceResult(
 	if becameTerminal {
 		record.terminalAt = nowTime
 	}
-	if err := validateScenarioJobVoiceResultPair(record.job, record.voiceAsset, record.voiceReference); err != nil {
+	if err := validateScenarioJobTerminalResults(record); err != nil {
 		record.job = previousJob
+		record.visionLocate = previousVisionLocate
 		record.voiceAsset = previousVoiceAsset
 		record.voiceReference = previousVoiceReference
 		record.updatedAt = previousUpdatedAt
@@ -607,6 +616,7 @@ func (s *scenarioJobStore) transitionWithVoiceResult(
 	}
 	if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistTransition, JobID: id, Status: status}); err != nil {
 		record.job = previousJob
+		record.visionLocate = previousVisionLocate
 		record.voiceAsset = previousVoiceAsset
 		record.voiceReference = previousVoiceReference
 		record.updatedAt = previousUpdatedAt

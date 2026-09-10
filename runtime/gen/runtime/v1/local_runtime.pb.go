@@ -622,8 +622,10 @@ type SearchCatalogModelsResponse struct {
 	state         protoimpl.MessageState           `protogen:"open.v1"`
 	Items         []*ModelAssetCatalogSearchResult `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
 	NextPageToken string                           `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken,proto3" json:"next_page_token,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	// Local catalog rows remain available when the independent HF source fails.
+	HuggingFaceUnavailable bool `protobuf:"varint,3,opt,name=hugging_face_unavailable,json=huggingFaceUnavailable,proto3" json:"hugging_face_unavailable,omitempty"`
+	unknownFields          protoimpl.UnknownFields
+	sizeCache              protoimpl.SizeCache
 }
 
 func (x *SearchCatalogModelsResponse) Reset() {
@@ -668,6 +670,13 @@ func (x *SearchCatalogModelsResponse) GetNextPageToken() string {
 		return x.NextPageToken
 	}
 	return ""
+}
+
+func (x *SearchCatalogModelsResponse) GetHuggingFaceUnavailable() bool {
+	if x != nil {
+		return x.HuggingFaceUnavailable
+	}
+	return false
 }
 
 // Read-only model card for either a browse result or an exact market offer.
@@ -3886,10 +3895,11 @@ const file_runtime_v1_local_runtime_proto_rawDesc = "" +
 	"\tpage_size\x18\x06 \x01(\x05R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\a \x01(\tR\tpageTokenJ\x04\b\x02\x10\x03J\x04\b\x03\x10\x04J\x04\b\x05\x10\x06R\n" +
-	"capabilityR\x05limitR\rengine_filter\"\x8b\x01\n" +
+	"capabilityR\x05limitR\rengine_filter\"\xc5\x01\n" +
 	"\x1bSearchCatalogModelsResponse\x12D\n" +
 	"\x05items\x18\x01 \x03(\v2..nimi.runtime.v1.ModelAssetCatalogSearchResultR\x05items\x12&\n" +
-	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"^\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x128\n" +
+	"\x18hugging_face_unavailable\x18\x03 \x01(\bR\x16huggingFaceUnavailable\"^\n" +
 	"\x1aGetCatalogModelCardRequest\x12#\n" +
 	"\rmodel_locator\x18\x01 \x01(\tR\fmodelLocator\x12\x1b\n" +
 	"\toffer_ref\x18\x02 \x01(\tR\bofferRef\"s\n" +

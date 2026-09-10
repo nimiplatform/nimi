@@ -26,7 +26,7 @@ jobs:
           COMPONENT: ${{ inputs.component }}
         run: |
           case "$COMPONENT" in
-            sdk|kit|app-tools|protected-local|tauri|preview) ;;
+            sdk|kit|app-tools|protected-local|tauri|preview|macos-production) ;;
             *) echo "Unsupported release component" >&2; exit 1 ;;
           esac
       - uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
@@ -60,7 +60,7 @@ jobs:
           zizmor --no-online-audits --min-severity high --collect workflows --collect dependabot -- .github/workflows .github/dependabot.yml
 
   native-dependencies:
-    if: contains(fromJSON('["kit","protected-local","tauri","preview"]'), inputs.component)
+    if: contains(fromJSON('["kit","protected-local","tauri","preview","macos-production"]'), inputs.component)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -78,7 +78,7 @@ jobs:
           cargo install --locked cargo-audit@0.22.2
           cargo audit --file kit/shell/protected-local/Cargo.lock
           case "$COMPONENT" in
-            kit|preview) cargo audit --file kit/shell/protected-local-node/Cargo.lock ;;
+            kit|preview|macos-production) cargo audit --file kit/shell/protected-local-node/Cargo.lock ;;
           esac
           case "$COMPONENT" in
             kit|tauri) cargo audit --file kit/shell/tauri/Cargo.lock ;;

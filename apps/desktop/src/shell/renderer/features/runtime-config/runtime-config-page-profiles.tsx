@@ -15,7 +15,10 @@ type ProfileWizardRequest = {
   readonly sourceText: string | null;
 };
 
-export function ProfileCatalogPage(props: { readonly onOpenLoadouts: (capabilityContract?: string) => void }) {
+export function ProfileCatalogPage(props: {
+  readonly onOpenLoadouts: (capabilityContract?: string) => void;
+  readonly onOpenCloudConnectors: () => void;
+}) {
   const { t } = useTranslation();
   const [section, setSection] = useState<ProfileSection>('recommended');
   const [wizardRequest, setWizardRequest] = useState<ProfileWizardRequest | null>(null);
@@ -52,7 +55,7 @@ export function ProfileCatalogPage(props: { readonly onOpenLoadouts: (capability
         </div>
       </div>
       {section === 'recommended' ? (
-        <ProfileRecommendationsPage onOpenLoadouts={props.onOpenLoadouts} />
+        <ProfileRecommendationsPage onOpenLoadouts={props.onOpenLoadouts} onOpenCloudConnectors={props.onOpenCloudConnectors} />
       ) : section === 'generate' ? (
         <RuntimePageShell>
           <ProfileExportPanel />

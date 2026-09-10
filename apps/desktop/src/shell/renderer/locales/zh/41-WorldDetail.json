@@ -491,7 +491,6 @@
       "searchPlaceholder": "按名字、身份或交游圈搜索",
       "count": "{{count}} 位",
       "empty": "没有匹配的人物。",
-      "footerHint": "点名字看生平；加入本地成为本地 Agent 后，才能进入聊天。",
       "groupBy": {
         "faction": "按交游圈",
         "tier": "按重要程度",

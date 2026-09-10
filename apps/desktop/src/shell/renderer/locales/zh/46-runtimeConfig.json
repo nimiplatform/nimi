@@ -173,7 +173,7 @@
     "recipeSummary": "{{slots}} 个模型 · 已安装 {{installed}}",
     "recipeMissing": "还需下载 {{size}}",
     "recipeMissingUnknown": "部分模型需下载（大小未知）",
-    "readySummary": "所需模型均已安装，保存后即可使用。",
+    "readySummary": "所需模型均已安装；保存将校验组合。运行前请检查环境。",
     "missingSummary": "还需下载 {{size}}；保存后会提示你下载。",
     "missingSummaryUnknown": "部分模型需要下载（大小未知）；保存后会提示你下载。",
     "commitDownload": "保存并下载",
@@ -190,9 +190,9 @@
     "commit": "保存配置",
     "cancel": "取消",
     "saved": "模型配置已保存",
-    "selected": "使用中",
+    "selected": "当前选择",
     "select": "设为当前使用",
-    "clear": "停止使用",
+    "clear": "取消选择",
     "update": "更换模型",
     "delete": "删除配置",
     "unresolved": "尚未选择模型",
@@ -205,9 +205,9 @@
     "contentVerified": "模型文件校验",
     "recipeCompatible": "模板兼容",
     "catalogBadge": {
-      "catalog_verified": "catalog_verified",
-      "catalog_not_matched": "catalog_not_matched",
-      "catalog_verification_unknown": "catalog_verification_unknown"
+      "catalog_verified": "已匹配验证目录",
+      "catalog_not_matched": "未匹配验证目录",
+      "catalog_verification_unknown": "目录匹配尚未确认"
     },
     "installed": "已安装",
     "downloadRequired": "需下载",
@@ -250,6 +250,7 @@
       "typedReasons": "Runtime 原因"
     },
     "capability": {
+      "visionLocate": "图像定位",
       "textGenerate": "文本生成",
       "textEmbed": "文本理解",
       "imageGenerate": "图像生成",
@@ -259,7 +260,12 @@
       "videoGenerate": "视频生成",
       "musicGenerate": "音乐生成",
       "other": "其他本地 AI 能力"
-    }
+    },
+    "required": "必需",
+    "optional": "可选",
+    "optionalFor": "可选，用于{{features}}",
+    "imageInput": "图像输入",
+    "optionalNotConfigured": "未启用"
   },
   "environment": {
     "tabData": "数据与存储",
@@ -279,6 +285,7 @@
     "localCapabilityTEXT": "文本",
     "localCapabilityEMBED": "向量嵌入",
     "localCapabilityIMAGE": "图像",
+    "localCapabilityVISION": "图像定位",
     "localCapabilityVIDEO": "视频生成",
     "localCapabilityTTS": "语音合成",
     "localCapabilitySTT": "语音转文字",
@@ -779,7 +786,7 @@
     "recommendedTab": "推荐",
     "myProfilesTab": "我的配置文件",
     "recommendedTitle": "推荐配置文件",
-    "recommendedDescription": "可移植的 factory Profile 保持规范不变；能力过滤只改变该能力的主机评估。",
+    "recommendedDescription": "比较适合不同用途的 AI 配置方案。兼容性检查不代表模型或云端服务已经配置完成。",
     "capabilityFilter": "能力过滤",
     "allCapabilities": "全部能力",
     "recommendationsFailed": "无法获取配置文件推荐。",
@@ -787,9 +794,9 @@
     "unknownGroup": "需要更多主机信息",
     "unsupportedGroup": "此主机能力受限",
     "applicability": {
-      "supported": "支持",
-      "unknown": "未知",
-      "unsupported": "不支持"
+      "supported": "兼容",
+      "unknown": "尚未确认",
+      "unsupported": "不兼容"
     },
     "portableTitle": "导入 AI 配置文件",
     "portableDescription": "选择配置文件，先查看这台电脑还需要什么；确认之前不会下载模型，也不会更改当前使用的模型。",
@@ -885,7 +892,7 @@
     "wizardApplyTitle": "现在使用这些模型吗？",
     "wizardDoneTitle": "导入完成",
     "wizardClose": "关闭",
-    "openLoadouts": "查看能力方案",
+    "openLoadouts": "查看本地模型方案",
     "sourceFromFile": "从文件导入",
     "sourcePasteJson": "粘贴 JSON",
     "profileNameLabel": "配置文件名称",
@@ -902,7 +909,7 @@
       "importAction": "导入并编辑…",
       "exportAction": "导出可移植文件",
       "importSuccess": "已将可移植 AIProfile 导入编辑器，未创建任何配置记录。",
-      "exportSuccess": "已导出通过校验的可移植 AIProfile 文件。",
+      "exportStarted": "已发起可移植文件下载，请确认文件保存完成。",
       "importFailed": "无法导入此 AIProfile 进行编辑。",
       "exportFailed": "无法导出此 AIProfile。",
       "metadataTitle": "Profile 元信息",
@@ -1006,6 +1013,7 @@
       "sharedOwner": "共享 LocalAgent",
       "applyIdentical": "Apply 前后的 AIConfig 意图等价。",
       "applyChanges": "投影得到的 AIConfig 意图与当前 owner 投影不同。",
+      "applyUnchanged": "能力意图保持不变。",
       "added": "新增",
       "changed": "变更",
       "removed": "移除",
@@ -1163,7 +1171,15 @@
     },
     "exportEmpty": "没有可导出的可编辑配置文件。",
     "importNone": "未找到有效的配置文件。",
-    "invalidJson": "无效的 JSON"
+    "invalidJson": "无效的 JSON",
+    "routingSummary": {
+      "cloud-first": "优先使用云端 AI 服务。",
+      "local-first": "优先使用这台电脑上的 AI。",
+      "hybrid-explicit": "为每项用途明确选择本地或云端 AI。"
+    },
+    "privacyPostureLabel": "数据使用偏好",
+    "computePostureLabel": "计算要求",
+    "routingPolicyLabel": "运行策略"
   },
   "catalog": {
     "providerCatalog": "提供商目录",
@@ -1214,6 +1230,7 @@
     "loadingProviders": "正在加载提供商..."
   },
   "capabilityLabels": {
+    "visionLocate": "图像定位",
     "textGenerate": "文本生成",
     "textEmbed": "文本嵌入",
     "audioSynthesize": "语音合成",
@@ -1340,6 +1357,7 @@
     "loadingTitle": "正在查询最新的模型市场数据…",
     "loadingDescription": "正在同步目录推荐与可安装 variant，通常只需几秒钟。",
     "searchFailed": "目录搜索失败。",
+    "hfSearchUnavailable": "Hugging Face 暂不可用，本地目录仍可使用。",
     "noSearchResults": "没有匹配该查询的目录模型。",
     "recommendationsEmpty": "该推荐数据快照在所选分类下没有模型。",
     "searchInstead": "请搜索目录查找模型。",

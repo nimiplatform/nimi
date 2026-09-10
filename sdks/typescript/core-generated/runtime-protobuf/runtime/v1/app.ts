@@ -1091,6 +1091,14 @@ export interface ApprovedAppCatalogTarget {
      * @generated from protobuf field: uint64 policy_revision = 25
      */
     policyRevision: string;
+    /**
+     * @generated from protobuf field: string macos_notarization = 26
+     */
+    macosNotarization: string;
+    /**
+     * @generated from protobuf field: optional string macos_developer_id_subject = 27
+     */
+    macosDeveloperIdSubject?: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListApprovedAppCatalogTargetsRequest
@@ -4768,7 +4776,9 @@ class ApprovedAppCatalogTarget$Type extends MessageType<ApprovedAppCatalogTarget
             { no: 22, name: "observed_signing_subject", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 23, name: "policy_blocked", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 24, name: "policy_reason", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 25, name: "policy_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ }
+            { no: 25, name: "policy_revision", kind: "scalar", T: 4 /*ScalarType.UINT64*/ },
+            { no: 26, name: "macos_notarization", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 27, name: "macos_developer_id_subject", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<ApprovedAppCatalogTarget>): ApprovedAppCatalogTarget {
@@ -4796,6 +4806,7 @@ class ApprovedAppCatalogTarget$Type extends MessageType<ApprovedAppCatalogTarget
         message.windowsCodeSigning = "";
         message.policyBlocked = false;
         message.policyRevision = "0";
+        message.macosNotarization = "";
         if (value !== undefined)
             reflectionMergePartial<ApprovedAppCatalogTarget>(this, message, value);
         return message;
@@ -4879,6 +4890,12 @@ class ApprovedAppCatalogTarget$Type extends MessageType<ApprovedAppCatalogTarget
                     break;
                 case /* uint64 policy_revision */ 25:
                     message.policyRevision = reader.uint64().toString();
+                    break;
+                case /* string macos_notarization */ 26:
+                    message.macosNotarization = reader.string();
+                    break;
+                case /* optional string macos_developer_id_subject */ 27:
+                    message.macosDeveloperIdSubject = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -4967,6 +4984,12 @@ class ApprovedAppCatalogTarget$Type extends MessageType<ApprovedAppCatalogTarget
         /* uint64 policy_revision = 25; */
         if (message.policyRevision !== "0")
             writer.tag(25, WireType.Varint).uint64(message.policyRevision);
+        /* string macos_notarization = 26; */
+        if (message.macosNotarization !== "")
+            writer.tag(26, WireType.LengthDelimited).string(message.macosNotarization);
+        /* optional string macos_developer_id_subject = 27; */
+        if (message.macosDeveloperIdSubject !== undefined)
+            writer.tag(27, WireType.LengthDelimited).string(message.macosDeveloperIdSubject);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

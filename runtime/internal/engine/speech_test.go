@@ -97,17 +97,19 @@ func TestMaterializePythonPipelineServerScriptDeploysSpeechSiblingModules(t *tes
 	if _, err := os.Stat(SpeechQwen3TTSDriverPath(root)); err != nil {
 		t.Fatalf("speech tts driver missing: %v", err)
 	}
-	asrRoot := t.TempDir()
-	if err := materializePythonPipelineServerScript(asrRoot, "speech.qwen3-asr.python"); err != nil {
-		t.Fatalf("materialize speech asr driver: %v", err)
-	}
-	for _, file := range speechServerScriptFiles {
-		if _, err := os.Stat(filepath.Join(asrRoot, file.Name)); err != nil {
-			t.Fatalf("speech asr Host missing deployed file %s: %v", file.Name, err)
+	for _, consumer := range []string{"speech.qwen3-asr.python", "speech.qwen3-asr-transformers.python"} {
+		asrRoot := t.TempDir()
+		if err := materializePythonPipelineServerScript(asrRoot, consumer); err != nil {
+			t.Fatalf("materialize %s: %v", consumer, err)
 		}
-	}
-	if _, err := os.Stat(SpeechQwen3ASRDriverPath(asrRoot)); err != nil {
-		t.Fatalf("speech asr driver missing: %v", err)
+		for _, file := range speechPipelineFilesForConsumer(consumer) {
+			if _, err := os.Stat(filepath.Join(asrRoot, file.Name)); err != nil {
+				t.Fatalf("%s missing deployed file %s: %v", consumer, file.Name, err)
+			}
+		}
+		if _, err := os.Stat(filepath.Join(asrRoot, "speech_audio.py")); err != nil {
+			t.Fatalf("%s missing audio decoder module: %v", consumer, err)
+		}
 	}
 }
 
@@ -258,6 +260,11 @@ func runPythonDriverResolveModelRefCommand(t *testing.T, name string, script str
 	if err := os.WriteFile(driverPath, []byte(script), 0o755); err != nil {
 		t.Fatalf("write driver script: %v", err)
 	}
+	if name == "qwen3_asr_driver.py" {
+		if err := os.WriteFile(filepath.Join(filepath.Dir(driverPath), "speech_audio.py"), []byte(speechAudioScript), 0o644); err != nil {
+			t.Fatalf("write audio decoder module: %v", err)
+		}
+	}
 	code := strings.Join([]string{
 		"import importlib.util, json, sys",
 		"spec = importlib.util.spec_from_file_location('driver_under_test', sys.argv[1])",
@@ -267,6 +274,7 @@ func runPythonDriverResolveModelRefCommand(t *testing.T, name string, script str
 	}, "\n")
 	args := appendPythonArgs(pythonArgs, "-c", code, driverPath, request, fallback)
 	cmd := exec.Command(python, args...)
+	cmd.Dir = filepath.Dir(driverPath)
 	output, runErr := cmd.CombinedOutput()
 	return string(output), runErr
 }
@@ -276,7 +284,7 @@ func runPythonASRDriverFakeTranscribe(t *testing.T, request map[string]any, expe
 	python, pythonArgs := testPythonCommand(t)
 	tempDir := t.TempDir()
 	audioPath := filepath.Join(tempDir, "probe.wav")
-	if err := os.WriteFile(audioPath, []byte("audio-bytes"), 0o644); err != nil {
+	if err := os.WriteFile(audioPath, []byte("RIFFdemoWAVE"), 0o644); err != nil {
 		t.Fatalf("write fake audio: %v", err)
 	}
 	modelPath := filepath.Join(tempDir, "model.safetensors")
@@ -295,6 +303,9 @@ func runPythonASRDriverFakeTranscribe(t *testing.T, request map[string]any, expe
 	if err := os.WriteFile(driverPath, []byte(speechQwen3ASRDriverScript), 0o755); err != nil {
 		t.Fatalf("write driver script: %v", err)
 	}
+	if err := os.WriteFile(filepath.Join(tempDir, "speech_audio.py"), []byte(speechAudioScript), 0o644); err != nil {
+		t.Fatalf("write audio decoder module: %v", err)
+	}
 	code := strings.Join([]string{
 		"import importlib.util, json, sys",
 		"spec = importlib.util.spec_from_file_location('driver_under_test', sys.argv[1])",
@@ -312,6 +323,7 @@ func runPythonASRDriverFakeTranscribe(t *testing.T, request map[string]any, expe
 	}, "\n")
 	args := appendPythonArgs(pythonArgs, "-c", code, driverPath, string(requestPayload))
 	cmd := exec.Command(python, args...)
+	cmd.Dir = tempDir
 	cmd.Env = append(os.Environ(), "HF_HUB_OFFLINE=1", "HF_HOME="+filepath.Join(tempDir, "empty-hf-cache"))
 	output, runErr := cmd.CombinedOutput()
 	if expectFailure {

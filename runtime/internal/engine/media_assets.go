@@ -11,6 +11,9 @@ var speechServerScript string
 //go:embed assets/speech_server_runtime.py
 var speechServerRuntimeScript string
 
+//go:embed assets/speech_audio.py
+var speechAudioScript string
+
 //go:embed assets/qwen3_tts_driver.py
 var speechQwen3TTSDriverScript string
 

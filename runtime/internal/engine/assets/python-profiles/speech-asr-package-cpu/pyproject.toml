@@ -4,6 +4,7 @@ version = "0.0.0"
 requires-python = "==3.12.13"
 dependencies = [
   "fastapi==0.121.1",
+  "imageio-ffmpeg==0.6.0",
   "python-multipart==0.0.26",
   "qwen-asr==0.0.6",
   "torch==2.11.0",

@@ -1,0 +1,162 @@
+name: macOS production candidate
+run-name: macOS candidate ${{ github.ref_name }} at ${{ github.sha }}
+
+on:
+  push:
+    branches: [dev, main]
+    paths:
+      - .github/workflows/build-macos-production.yml
+      - .github/workflows/release-security.yml
+      - .secrets.baseline
+      - apps/desktop/**
+      - apps/avatar/**
+      - kit/**
+      - runtime/**
+      - sdks/**
+      - proto/**
+      - scripts/**
+      - config/**
+      - package.json
+      - pnpm-lock.yaml
+  workflow_dispatch:
+    inputs:
+      realm_target:
+        description: Sealed Realm target; local acceptance is not a public release
+        type: choice
+        options: [local-acceptance, production]
+        default: local-acceptance
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-production-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  security:
+    uses: ./.github/workflows/release-security.yml
+    with:
+      component: macos-production
+
+  candidate:
+    needs: security
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
+    runs-on: macos-15
+    timeout-minutes: 180
+    env:
+      CARGO_BUILD_JOBS: '2'
+      NIMI_MACOS_TEAM_ID: RMZJPQQR3X
+      NIMI_MACOS_APPLICATION_SIGNING_IDENTITY: 'Developer ID Application: HAO WANG (RMZJPQQR3X)'
+      NIMI_MACOS_INSTALLER_SIGNING_IDENTITY: 'Developer ID Installer: HAO WANG (RMZJPQQR3X)'
+      NIMI_MACOS_RELEASE_ID: ci-${{ github.run_id }}-${{ github.run_attempt }}
+      NIMI_NOTARYTOOL_KEYCHAIN_PROFILE: nimi-ci-notary
+    steps:
+      - name: Checkout the candidate source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Require Apple Silicon and select the sealed Realm target
+        env:
+          REALM_TARGET: ${{ inputs.realm_target || 'local-acceptance' }}
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = arm64
+          case "${REALM_TARGET}" in
+            local-acceptance) realm_url=http://127.0.0.1:3002 ;;
+            production) realm_url=https://realm.nimi.ai ;;
+            *) echo 'Unsupported Realm target' >&2; exit 1 ;;
+          esac
+          {
+            echo "NIMI_MACOS_RELEASE_REALM_URL=${realm_url}"
+            echo "NIMI_NOTARYTOOL_KEYCHAIN=${RUNNER_TEMP}/nimi-signing.keychain-db"
+          } >> "${GITHUB_ENV}"
+      - name: Set up pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.34.5
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Set up Go
+        uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+        with:
+          go-version-file: runtime/go.mod
+          cache: false
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check the affected production boundaries
+        run: |
+          set -euo pipefail
+          pnpm --filter @nimiplatform/sdk build
+          pnpm --filter @nimiplatform/kit build
+          pnpm --filter @nimiplatform/desktop typecheck
+          pnpm --filter @nimiplatform/desktop test:unit:rest -- macos-runtime-service.test.ts chat-agent-voice-capture.test.ts runtime-config-loadout-behavior.test.ts
+          node --test apps/desktop/test/macos-release-policy.test.mjs
+          go -C runtime test ./internal/services/account ./internal/services/localservice -run 'TestProtectedBinaryCustody|TestSearchCatalogModels' -count=1
+      - name: Import signing identities into a temporary Keychain
+        env:
+          SIGNING_P12_BASE64: ${{ secrets.NIMI_MACOS_SIGNING_P12_BASE64 }}
+          SIGNING_P12_PASSWORD: ${{ secrets.NIMI_MACOS_SIGNING_P12_PASSWORD }}
+          NOTARY_APPLE_ID: ${{ secrets.NIMI_NOTARY_APPLE_ID }}
+          NOTARY_APP_PASSWORD: ${{ secrets.NIMI_NOTARY_APP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in SIGNING_P12_BASE64 SIGNING_P12_PASSWORD NOTARY_APPLE_ID NOTARY_APP_PASSWORD; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing signing input: ${name}" >&2
+              exit 1
+            fi
+          done
+          p12_path="${RUNNER_TEMP}/nimi-signing.p12"
+          keychain_password="$(openssl rand -base64 32)"
+          printf '%s' "${SIGNING_P12_BASE64}" | base64 --decode > "${p12_path}"
+          chmod 600 "${p12_path}"
+          security create-keychain -p "${keychain_password}" "${NIMI_NOTARYTOOL_KEYCHAIN}"
+          security set-keychain-settings -lut 21600 "${NIMI_NOTARYTOOL_KEYCHAIN}"
+          security unlock-keychain -p "${keychain_password}" "${NIMI_NOTARYTOOL_KEYCHAIN}"
+          security import "${p12_path}" -P "${SIGNING_P12_PASSWORD}" -t cert -f pkcs12 \
+            -k "${NIMI_NOTARYTOOL_KEYCHAIN}" -T /usr/bin/codesign -T /usr/bin/productbuild -T /usr/bin/security >/dev/null
+          security set-key-partition-list -S apple-tool:,apple: -s \
+            -k "${keychain_password}" "${NIMI_NOTARYTOOL_KEYCHAIN}" >/dev/null
+          security list-keychains -d user -s "${NIMI_NOTARYTOOL_KEYCHAIN}"
+          xcrun notarytool store-credentials "${NIMI_NOTARYTOOL_KEYCHAIN_PROFILE}" \
+            --apple-id "${NOTARY_APPLE_ID}" --team-id "${NIMI_MACOS_TEAM_ID}" \
+            --password "${NOTARY_APP_PASSWORD}" --keychain "${NIMI_NOTARYTOOL_KEYCHAIN}"
+          rm -f "${p12_path}"
+      - name: Build, sign, notarize and staple the production candidate
+        run: pnpm build:macos:release
+      - name: Upload only the signed installer
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: nimi-macos-arm64-${{ github.run_id }}-${{ github.run_attempt }}-${{ inputs.realm_target || 'local-acceptance' }}
+          path: .nimi/local/macos-electron-release/ci-${{ github.run_id }}-${{ github.run_attempt }}/*.pkg
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 14
+      - name: Record the candidate validation boundary
+        run: |
+          {
+            echo '### Signed macOS candidate'
+            echo "Source: ${GITHUB_SHA}"
+            echo "Realm: ${NIMI_MACOS_RELEASE_REALM_URL}"
+            echo 'Built on macos-15 arm64 using the same production entry as local builds.'
+            echo 'Signing, notarization, staple and native artifact checks passed.'
+            echo 'Real download/first-open, installation/use and public OS support acceptance remain separate.'
+            echo 'This workflow creates a candidate artifact; it does not publish a GitHub Release or change release tags.'
+          } >> "${GITHUB_STEP_SUMMARY}"
+      - name: Remove signing material
+        if: always()
+        run: |
+          set -euo pipefail
+          rm -f "${RUNNER_TEMP}/nimi-signing.p12"
+          keychain_path="${RUNNER_TEMP}/nimi-signing.keychain-db"
+          if [[ -f "${keychain_path}" ]]; then
+            security delete-keychain "${keychain_path}"
+          fi

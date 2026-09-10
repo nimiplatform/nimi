@@ -245,6 +245,33 @@ func TestRealtimeServerVADCommitBindsTheActiveInputIdentity(t *testing.T) {
 	}
 }
 
+func TestRealtimeServerVADFinalizesTheExactStoppedSpeechWithoutSeparateCommitEvent(t *testing.T) {
+	identity := realtimeInputIdentity{
+		inputTrackID: "track-vad", utteranceID: "utterance-vad", providerItemID: "provider-vad",
+	}
+	record := &realtimeSessionRecord{
+		turnDetection: runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD,
+		inputTrackID:  identity.inputTrackID, utteranceID: identity.utteranceID, inputFrameSeq: 40,
+		inputsByProvider: map[string]realtimeInputIdentity{identity.providerItemID: identity},
+	}
+	if _, ok := resolveRealtimeTranscriptIdentity(record, identity.providerItemID, true); ok {
+		t.Fatal("VAD transcript finalized before speech stopped")
+	}
+	if _, ok := resolveRealtimeSpeechIdentity(record, identity.providerItemID, true); !ok {
+		t.Fatal("the exact active speech item was not marked stopped")
+	}
+	if _, ok := resolveRealtimeTranscriptIdentity(record, "other-provider-item", true); ok {
+		t.Fatal("unknown final transcript claimed the stopped speech")
+	}
+	final, ok := resolveRealtimeTranscriptIdentity(record, identity.providerItemID, true)
+	if !ok || !sameRealtimeInputIdentity(final, identity) || !record.inputCommitted {
+		t.Fatalf("stopped VAD speech was not finalized: identity=%+v ok=%v committed=%v", final, ok, record.inputCommitted)
+	}
+	if !isTerminalRealtimeInput(record, identity.providerItemID) {
+		t.Fatal("finalized VAD item is not fenced against late events")
+	}
+}
+
 func protoCloneRealtimeOpen(input *runtimev1.AiRealtimeAudioFormat) *runtimev1.OpenRealtimeSessionRequest {
 	return &runtimev1.OpenRealtimeSessionRequest{InputAudio: cloneRealtimeAudioFormat(input)}
 }

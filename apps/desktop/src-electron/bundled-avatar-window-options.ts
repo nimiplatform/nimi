@@ -6,8 +6,8 @@ export function createBundledAvatarWindowOptions(
   return {
     width: 420,
     height: 680,
-    minWidth: 390,
-    minHeight: 520,
+    minWidth: 320,
+    minHeight: 480,
     transparent: true,
     frame: false,
     resizable: false,

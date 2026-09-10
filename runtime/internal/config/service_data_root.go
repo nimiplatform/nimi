@@ -53,6 +53,25 @@ func WriteServiceOwnedDataRoot(path string, dataRootRef string) (bool, error) {
 	return true, nil
 }
 
+// ClearServiceOwnedDataRoot removes only the derived selection when the
+// current verified user's Product Control has no selected root. Data and
+// the other user's canonical Product Control remain untouched.
+func ClearServiceOwnedDataRoot(path string) error {
+	fileCfg, err := LoadFileConfig(path)
+	if err != nil {
+		return fmt.Errorf("load service-owned Runtime config: %w", err)
+	}
+	if fileCfg.DataRootRef == "" && fileCfg.ManagedRoots == nil {
+		return nil
+	}
+	fileCfg.DataRootRef = ""
+	fileCfg.ManagedRoots = nil
+	if err := WriteFileConfig(path, fileCfg); err != nil {
+		return fmt.Errorf("clear service-owned Runtime data-root config: %w", err)
+	}
+	return nil
+}
+
 func ValidateServiceOwnedDataRootMutation(path string, dataRootRef string) error {
 	root := filepath.Clean(strings.TrimSpace(dataRootRef))
 	if root == "." || !filepath.IsAbs(root) || root == filepath.VolumeName(root)+string(filepath.Separator) {

@@ -66,18 +66,18 @@ Nimi Lab 会显示 typed unavailable state，而不是把所有失败都归为 S
 | `sdk-method-unavailable` | 当前 App build 没有暴露该 capability。 | 更新 App，或改用已准入的 SDK capability。 |
 | `runtime-call-failed` | Runtime 返回 typed contract failure。 | 查看 Runtime 原始错误和诊断信息。 |
 
-## App Scaffold Checks
+## App 项目检查
 
-使用 `@nimiplatform/app-tools` 创建的 App 应运行生成项目里的脚本：
+使用 App Tools 生成项目中的现有命令检查：
 
 ```sh
-pnpm run init
-pnpm run doctor
-pnpm run test
 pnpm run check
+pnpm run test
 ```
 
-`pnpm run doctor` 会检查 scaffold init/lock state、managed glue、package-owned projections、dependency alignment 以及 forbidden shortcut patterns。doctor 失败是 scaffold contract failure；`pnpm run update` 只用于刷新 scaffold-managed files，App-owned product code 应保持分离。
+切换代码或修改依赖后，如果 `check` 报告 nimicoding 同步失败，先用 `pnpm install --frozen-lockfile` 恢复项目锁定的依赖，再重跑同一检查。实际安装的 CLI 版本过旧时，也会报告文件漂移，不应先把受管文件改成旧包要求的版本。
+
+首次安装依赖后先运行 `pnpm run init`。需要刷新脚手架管理的文件或依赖时，运行 `pnpm run sync`，再执行 `check`；App 自己的产品代码会保留。旧的 `pnpm run doctor`、`pnpm run update` 和 `local-audit` 不在当前生成 scripts 中。这里的 App 项目命令与上文 Runtime 的 `nimi doctor` 是不同的工具入口。
 
 ## 脚手架边界
 

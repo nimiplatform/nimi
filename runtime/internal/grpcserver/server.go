@@ -341,6 +341,7 @@ func normalizeOptionalProtectedResourcePath(label string, value string) (string,
 	return cleaned, nil
 }
 
+// @nimi-authority: definition.nimi.platform.product-lifecycle.product-control-record
 func reconcileProtectedProductControlDataRootConfig(productControlRoot string, serviceConfigPath string, cfg *config.Config, security localservice.ProductControlDataRootSecurityBinding) (localservice.ProductControlDataRootBinding, error) {
 	if cfg == nil {
 		return localservice.ProductControlDataRootBinding{}, fmt.Errorf("protected Runtime config is required")
@@ -357,9 +358,16 @@ func reconcileProtectedProductControlDataRootConfig(productControlRoot string, s
 		if _, err := config.WriteServiceOwnedDataRoot(serviceConfigPath, binding.DataRoot); err != nil {
 			return localservice.ProductControlDataRootBinding{}, fmt.Errorf("reconcile protected Runtime data-root proof from Product Control: %w", err)
 		}
-		if err := config.ApplyServiceOwnedDataRoot(cfg, serviceConfigPath); err != nil {
-			return localservice.ProductControlDataRootBinding{}, fmt.Errorf("apply protected Runtime data-root proof from Product Control: %w", err)
+	} else {
+		// A system service can next bind a different verified OS user whose
+		// Product Control has not selected a root. The former user's derived
+		// selection is not authority for that first-run session.
+		if err := config.ClearServiceOwnedDataRoot(serviceConfigPath); err != nil {
+			return localservice.ProductControlDataRootBinding{}, fmt.Errorf("clear protected Runtime data-root proof for unselected Product Control: %w", err)
 		}
+	}
+	if err := config.ApplyServiceOwnedDataRoot(cfg, serviceConfigPath); err != nil {
+		return localservice.ProductControlDataRootBinding{}, fmt.Errorf("apply protected Runtime data-root proof from Product Control: %w", err)
 	}
 	if err := validateProtectedProductControlDataRootBinding(binding, *cfg); err != nil {
 		return localservice.ProductControlDataRootBinding{}, err

@@ -79,21 +79,18 @@ failure as a missing SDK method.
 | `sdk-method-unavailable` | The current App build does not expose that capability. | Update the App or use an admitted SDK capability. |
 | `runtime-call-failed` | Runtime returned a typed contract failure. | Inspect the verbatim Runtime error and diagnostics. |
 
-## App Scaffold Checks
+## App Project Checks
 
-For an app created with `@nimiplatform/app-tools`, use the generated scripts:
+Use the existing commands in an App Tools-generated project:
 
 ```sh
-pnpm run init
-pnpm run doctor
-pnpm run test
 pnpm run check
+pnpm run test
 ```
 
-`pnpm run doctor` verifies scaffold init/lock state, managed glue, package-owned
-projections, dependency alignment, and forbidden shortcut patterns. A doctor
-failure is a scaffold contract failure; use `pnpm run update` only for
-scaffold-managed files and keep app-owned product code separate.
+If `check` reports a nimicoding synchronization failure after a checkout or dependency change, first restore the project's locked dependencies with `pnpm install --frozen-lockfile`, then rerun the same check. A stale installed CLI can report drift against the wrong package version; do not rewrite managed files to match it.
+
+After the first dependency installation, run `pnpm run init`. When scaffold-managed files or dependencies need synchronization, run `pnpm run sync`, then `check`; App-owned product code is preserved. The former `pnpm run doctor`, `pnpm run update`, and `local-audit` scripts are absent from current generated projects. These App project commands are distinct from Runtime's `nimi doctor` above.
 
 ## What Not To Copy
 

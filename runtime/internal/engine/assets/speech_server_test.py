@@ -20,6 +20,8 @@ import types
 import unittest
 from unittest import mock
 
+import speech_audio
+
 
 def install_fastapi_stubs() -> None:
     fastapi = types.ModuleType("fastapi")
@@ -137,6 +139,19 @@ def load_qwen3_tts_driver_module():
 
 
 QWEN3_TTS_DRIVER = load_qwen3_tts_driver_module()
+
+
+def load_qwen3_asr_driver_module():
+    module_path = pathlib.Path(__file__).with_name("qwen3_asr_driver.py")
+    spec = importlib.util.spec_from_file_location("qwen3_asr_driver_under_test", module_path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+QWEN3_ASR_DRIVER = load_qwen3_asr_driver_module()
 
 
 def load_qwen3_asr_transformers_driver_module():
@@ -386,7 +401,49 @@ class SpeechServerTests(unittest.TestCase):
                 {"model_ref": "Qwen/Qwen3-ASR-0.6B-hf"},
             )
 
-    def test_transformers_native_driver_normalizes_webm_with_managed_ffmpeg(self) -> None:
+    def test_qwen_asr_driver_decodes_webm_before_model_transcription(self) -> None:
+        normalized_paths = []
+        decoder_calls = []
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = pathlib.Path(temp_dir)
+            audio_path = root / "speech.webm"
+            audio_path.write_bytes(b"webm-audio")
+            ffmpeg = root / "managed-ffmpeg"
+            ffmpeg.write_bytes(b"managed")
+            model_path = root / "model.safetensors"
+            model_path.write_bytes(b"model")
+
+            def decode(args, **kwargs):
+                decoder_calls.append(args)
+                pathlib.Path(args[-1]).write_bytes(b"RIFFdemoWAVE")
+                return types.SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+
+            def transcribe(**kwargs):
+                normalized = pathlib.Path(kwargs["audio"])
+                self.assertEqual(normalized.read_bytes(), b"RIFFdemoWAVE")
+                normalized_paths.append(normalized)
+                return [{"text": "decoded input", "language": "Chinese"}]
+
+            with mock.patch.dict(sys.modules, {
+                "imageio_ffmpeg": types.SimpleNamespace(get_ffmpeg_exe=lambda: str(ffmpeg)),
+            }), mock.patch("subprocess.run", side_effect=decode), mock.patch.object(
+                QWEN3_ASR_DRIVER, "load_qwen3_asr_model",
+                return_value=types.SimpleNamespace(transcribe=transcribe),
+            ):
+                result = QWEN3_ASR_DRIVER.handle_transcribe({
+                    "audio_path": str(audio_path),
+                    "bundle_dir": str(root),
+                    "declared_files": [model_path.name],
+                    "language": "zh",
+                }, "")
+
+            self.assertEqual(result["text"], "decoded input")
+            self.assertEqual(decoder_calls[0][0], str(ffmpeg))
+            self.assertNotEqual(normalized_paths[0], audio_path)
+            self.assertFalse(normalized_paths[0].exists())
+            self.assertEqual(audio_path.read_bytes(), b"webm-audio")
+
+    def test_asr_audio_normalizes_webm_with_managed_ffmpeg(self) -> None:
         calls = []
         with tempfile.TemporaryDirectory() as temp_dir:
             root = pathlib.Path(temp_dir)
@@ -402,14 +459,14 @@ class SpeechServerTests(unittest.TestCase):
 
             fake_imageio_ffmpeg = types.SimpleNamespace(get_ffmpeg_exe=lambda: str(ffmpeg))
             with mock.patch.dict(sys.modules, {"imageio_ffmpeg": fake_imageio_ffmpeg}), mock.patch.object(
-                QWEN3_ASR_TRANSFORMERS_DRIVER.subprocess,
+                speech_audio.subprocess,
                 "run",
                 side_effect=fake_run,
             ):
-                with QWEN3_ASR_TRANSFORMERS_DRIVER.transformers_audio_source(str(audio_path)) as normalized:
+                with speech_audio.normalized_audio_source(str(audio_path)) as normalized:
                     normalized_path = pathlib.Path(normalized)
                     self.assertTrue(normalized_path.is_file())
-                    self.assertTrue(QWEN3_ASR_TRANSFORMERS_DRIVER.is_wave_audio(normalized_path))
+                    self.assertTrue(speech_audio.is_wave_audio(normalized_path))
 
         self.assertEqual(calls[0][0][0], str(ffmpeg))
         self.assertIn("-nostdin", calls[0][0])

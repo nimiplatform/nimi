@@ -77,6 +77,41 @@ test('agent voice capture session fail-closes when browser capture is unavailabl
   );
 });
 
+test('natural recorder termination exposes one result that later stop can reuse', async () => {
+  let stoppedTracks = 0;
+  const recordings: Promise<AgentVoiceCaptureResult>[] = [];
+  const recorder = new FakeMediaRecorder(new Blob([new Uint8Array([4, 5, 6])], { type: 'audio/webm' }));
+  const session = await startAgentVoiceCaptureSession({
+    getUserMediaImpl: async () => ({ getTracks: () => [{ stop: () => { stoppedTracks += 1; } }] }),
+    createMediaRecorderImpl: () => recorder,
+    isTypeSupportedImpl: () => true,
+    onAutoStop: (recording) => { recordings.push(recording); },
+  });
+  recorder.stop();
+  assert.equal(recordings.length, 1, 'a device-ended recording must notify its consumer');
+  const result = await recordings[0]!;
+  assert.deepEqual([...result.bytes], [4, 5, 6]);
+  assert.equal(await session.stop(), result);
+  assert.equal(stoppedTracks, 1);
+});
+
+test('recorder error before manual stop remains observable without a pending wait', async () => {
+  const recordings: Promise<AgentVoiceCaptureResult>[] = [];
+  const recorder = new FakeMediaRecorder(new Blob([]));
+  const failure = new Error('input device ended');
+  const session = await startAgentVoiceCaptureSession({
+    getUserMediaImpl: async () => ({ getTracks: () => [{ stop: () => undefined }] }),
+    createMediaRecorderImpl: () => recorder,
+    isTypeSupportedImpl: () => true,
+    onAutoStop: (recording) => { recordings.push(recording); },
+  });
+  recorder.state = 'inactive';
+  recorder.onerror?.({ error: failure });
+  assert.equal(recordings.length, 1, 'an error must notify the consumer before cleanup');
+  await assert.rejects(recordings[0]!, (error) => error === failure);
+  await assert.rejects(session.stop(), (error) => error === failure);
+});
+
 test('hands-free voice capture can auto-stop through the silence consumer seam', async () => {
   let stoppedTracks = 0;
   let requestStop!: () => void;

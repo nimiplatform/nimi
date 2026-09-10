@@ -79,6 +79,24 @@ The list shows the current project's registrations and creation times. Copy the 
 
 The default `windows-x86_64` build profile runs `build:electron:production`. It rebuilds the renderer and Electron main/preload, then creates a fresh, non-installer `dist-electron-package/<app>-shell-win32-x64/` directory with `asar` disabled and an App-specific `<app>-shell.exe`. The production main bundle has a compile-time production marker and rejects every `--nimi-dev-renderer-url` argument; packaged renderer assets stay relative under `dist/`. The protected native binding is resolved from Kit's optional dependency and is never declared directly by the App.
 
+App Tools 0.3 also prepares the `macos-aarch64` target on an Apple Silicon Mac.
+The same owner command produces `dist-electron-package/<app>-shell-darwin-arm64/`
+with a native `.app` bundle and a direct `Contents/MacOS` entry. The publisher's
+build applies an ad-hoc integrity seal without a Developer ID identity or Apple
+notarization; production pack observes that absence and rejects invalid seals.
+Relative framework links are preserved inside the immutable payload. The App
+continues to consume the macOS native binding through Kit's optional dependency.
+Nimi installation never signs or repairs the publisher's code.
+
+Existing `.nimi/config/build-profile.yaml` target choices are App-owned and are
+preserved by sync. To add macOS, declare `macos-aarch64` with `os: macos`,
+`arch: arm64`, the same production build command, the Darwin output directory
+above as `payload_path`, and
+`payload/<app>-shell.app/Contents/MacOS/<app>-shell` as `runtime_entry`.
+The managed workflow resolves that declared target to `macos-15`; Windows keeps
+its existing runner and profile. These authoring/build capabilities do not by
+themselves establish Registry admission or a completed Desktop lifecycle.
+
 Tauri remains an explicit alternative through `pnpm run build:tauri:production`; selecting it requires an explicit Tauri build profile rather than changing the default Electron carrier.
 
 ## Canonical release boundary

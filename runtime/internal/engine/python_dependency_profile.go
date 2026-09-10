@@ -69,6 +69,13 @@ func PythonDependencyProfileStaticFiles(consumer string, identity PythonDependen
 			Content:      append([]byte(nil), content...),
 		})
 	}
+	if strings.TrimSpace(consumer) == VisionLocateConsumerID {
+		driverFiles, err := visionDriverStaticFiles()
+		if err != nil {
+			return nil, err
+		}
+		return append(files, driverFiles...), nil
+	}
 	driverFiles := speechPipelineFilesForConsumer(consumer)
 	if len(driverFiles) == 0 && strings.HasPrefix(strings.TrimSpace(consumer), "media.") {
 		driverFiles = []struct {
@@ -193,6 +200,15 @@ func admitPythonDependencyProfilePlatform(platformTuple string, acceleratorPlane
 func pythonDependencyProfileSourceLabel(consumer string, platformTuple string, acceleratorPlane string) (string, error) {
 	line := ""
 	switch strings.TrimSpace(consumer) {
+	case VisionLocateConsumerID:
+		backend, err := visionPythonBackend(platformTuple, acceleratorPlane)
+		if err != nil {
+			return "", err
+		}
+		if backend == "mlx" {
+			return "vision-locateanything-mlx-cpu", nil
+		}
+		return "vision-locateanything-transformers-cu128", nil
 	case "speech.qwen3-tts.python":
 		line = "speech-tts"
 	case "speech.qwen3-asr.python":
@@ -249,6 +265,9 @@ func pythonDependencyProfilePackageSource(consumer string, acceleratorPlane stri
 }
 
 func pythonDependencyProfileDriverProtocol(consumer string) string {
+	if strings.TrimSpace(consumer) == VisionLocateConsumerID {
+		return visionDriverProtocolVersion
+	}
 	if strings.HasPrefix(strings.TrimSpace(consumer), "media.") {
 		return mediaDriverProtocolVersion
 	}
@@ -260,6 +279,17 @@ func speechDriverBundleDigest(consumer string) (string, error) {
 }
 
 func pythonDependencyProfileDriverBundleDigest(consumer string, driverProtocol string) (string, error) {
+	if strings.TrimSpace(consumer) == VisionLocateConsumerID {
+		files, err := visionDriverStaticFiles()
+		if err != nil {
+			return "", err
+		}
+		lines := []string{"driver_protocol=" + driverProtocol}
+		for _, file := range files {
+			lines = append(lines, "file="+file.RelativePath, string(file.Content))
+		}
+		return sha256Hex([]byte(strings.Join(lines, "\n") + "\n")), nil
+	}
 	files := speechPipelineFilesForConsumer(consumer)
 	if len(files) == 0 && (strings.HasPrefix(strings.TrimSpace(consumer), "media.") || strings.HasPrefix(strings.TrimSpace(consumer), "stable-diffusion.cpp.")) {
 		files = []struct {

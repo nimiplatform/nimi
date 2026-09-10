@@ -152,7 +152,7 @@ const desktopGroups: DefaultTheme.SidebarItem[] = [
     text: 'Overview',
     items: [
       { text: 'Overview', link: '/desktop/' },
-      { text: 'Web Mode', link: '/desktop/web-mode' },
+      { text: 'Web and Nimi Home', link: '/desktop/web-mode' },
     ],
   },
   {

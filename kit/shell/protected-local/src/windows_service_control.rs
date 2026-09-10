@@ -586,7 +586,7 @@ impl NimiDesktopControl for WindowsDesktopControl {
                 + '_,
         >,
     > {
-        Box::pin(crate::windows_installed_app::launch(
+        Box::pin(crate::installed_app_control::launch(
             self.channel(),
             selector,
         ))
@@ -598,7 +598,7 @@ impl NimiDesktopControl for WindowsDesktopControl {
     ) -> Pin<
         Box<dyn Future<Output = Result<crate::InstalledAppRunAccess, NimiHostError>> + Send + '_>,
     > {
-        Box::pin(crate::windows_installed_app::access(
+        Box::pin(crate::installed_app_control::access(
             self.channel(),
             launch_id,
         ))
@@ -609,7 +609,7 @@ impl NimiDesktopControl for WindowsDesktopControl {
         job_id: Vec<u8>,
         selector: Vec<u8>,
     ) -> Pin<Box<dyn Future<Output = Result<(), NimiHostError>> + Send + '_>> {
-        Box::pin(crate::windows_installed_app::complete_uninstall(
+        Box::pin(crate::installed_app_control::complete_uninstall(
             self.channel(),
             job_id,
             selector,
@@ -620,7 +620,7 @@ impl NimiDesktopControl for WindowsDesktopControl {
         &self,
         launch_id: [u8; 32],
     ) -> Pin<Box<dyn Future<Output = Result<(), NimiHostError>> + Send + '_>> {
-        Box::pin(crate::windows_installed_app::end(self.channel(), launch_id))
+        Box::pin(crate::installed_app_control::end(self.channel(), launch_id))
     }
 
     fn launch_local_development_host(

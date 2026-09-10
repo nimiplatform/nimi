@@ -107,7 +107,7 @@ jobs:
           pnpm check:nimi-kit
           pnpm --filter @nimiplatform/kit typecheck
           pnpm --filter @nimiplatform/kit test
-      - name: Build deterministic Kit package with Windows native dependency
+      - name: Build deterministic Kit package with platform native dependencies
         run: pnpm release:component:pack -- --component kit --output-dir dist/component-release/kit
       - name: Dry-run Kit publication
         run: |
@@ -214,9 +214,87 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  validate-macos:
+    name: Kit macOS native validate and dry-run
+    runs-on: macos-15
+    permissions:
+      contents: read
+      id-token: none
+    env:
+      NIMI_MACOS_TEAM_ID: RMZJPQQR3X
+      CARGO_BUILD_JOBS: '2'
+    outputs:
+      artifact_name: ${{ steps.release.outputs.artifact_name }}
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Setup pnpm
+        uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          version: 10.34.5
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: stable
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Resolve macOS Kit component identity
+        id: release
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = arm64
+          node --input-type=module - <<'JS'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          const kit = JSON.parse(readFileSync('kit/package.json', 'utf8'));
+          const native = JSON.parse(readFileSync('kit/shell/protected-local-node/npm/darwin-arm64/package.json', 'utf8'));
+          assert.equal(native.name, '@nimiplatform/kit-protected-local-darwin-arm64');
+          assert.equal(native.version, kit.version);
+          assert.match(kit.version, /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$/u);
+          if (process.env.GITHUB_EVENT_NAME === 'push') assert.equal(process.env.GITHUB_REF, `refs/tags/kit/v${kit.version}`);
+          if (process.env.GITHUB_EVENT_NAME === 'workflow_dispatch') assert.equal(process.env.INPUT_VERSION.replace(/^v/u, ''), kit.version);
+          JS
+          echo "artifact_name=kit-macos-native-package-${GITHUB_SHA}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+      - name: Test native crates for publication
+        run: |
+          cargo test --locked --manifest-path kit/shell/protected-local/Cargo.toml
+          cargo test --locked --manifest-path kit/shell/protected-local-node/Cargo.toml
+      - name: Build the production macOS native carrier
+        run: node kit/shell/protected-local-node/scripts/build-darwin-arm64-package.mjs
+      - name: Test the real release native binding
+        run: node kit/shell/protected-local-node/test/native-input-contract.cjs release
+      - name: Pack and dry-run the macOS native package
+        run: |
+          set -euo pipefail
+          mkdir -p dist/component-release/kit-macos
+          npm pack ./kit/shell/protected-local-node/npm/darwin-arm64 --pack-destination dist/component-release/kit-macos --ignore-scripts
+          tarballs=(dist/component-release/kit-macos/*.tgz)
+          test "${#tarballs[@]}" -eq 1
+          npm publish "${tarballs[0]}" --access public --dry-run
+          git diff --exit-code
+      - name: Upload exact macOS native package for tag publication
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/kit/v')
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.release.outputs.artifact_name }}
+          path: dist/component-release/kit-macos/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
   publish:
     name: Kit publish
-    needs: [validate, validate-windows, security]
+    needs: [validate, validate-windows, validate-macos, security]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/kit/v')
     runs-on: ubuntu-latest
     permissions:
@@ -265,6 +343,28 @@ jobs:
           local_sha1="$(shasum -a 1 "${tarballs[0]}" | awk '{print $1}')"
           if remote_sha1="$(npm view "${package_identity}" dist.shasum --json 2>/dev/null)"; then
             remote_sha1="$(printf '%s' "${remote_sha1}" | tr -d '"[:space:]')"
+            test "${remote_sha1}" = "${local_sha1}"
+          else
+            npm publish "${tarballs[0]}" --access public --provenance
+          fi
+      - name: Download exact validated macOS native package
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ needs.validate-macos.outputs.artifact_name }}
+          path: dist/component-release/kit-macos
+      - name: Publish or verify exact macOS native package through npm OIDC
+        env:
+          RELEASE_VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          tarballs=(dist/component-release/kit-macos/*.tgz)
+          test "${#tarballs[@]}" -eq 1
+          package_identity="$(tar -xOf "${tarballs[0]}" package/package.json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const p=JSON.parse(s);process.stdout.write(p.name+'@'+p.version)})")"
+          test "${package_identity}" = "@nimiplatform/kit-protected-local-darwin-arm64@${RELEASE_VERSION}"
+          local_sha1="$(shasum -a 1 "${tarballs[0]}" | awk '{print $1}')"
+          if remote_sha1="$(npm view "${package_identity}" dist.shasum --json 2>/dev/null)"; then
+            remote_sha1="$(printf '%s' "${remote_sha1}" | tr -d '\"[:space:]')"
             test "${remote_sha1}" = "${local_sha1}"
           else
             npm publish "${tarballs[0]}" --access public --provenance

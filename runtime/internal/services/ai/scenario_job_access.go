@@ -77,6 +77,13 @@ func (s *Service) GetScenarioJob(ctx context.Context, req *runtimev1.GetScenario
 			return nil, err
 		}
 		response := &runtimev1.GetScenarioJobResponse{Job: sanitizeScenarioJobForResponse(job)}
+		if job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE && job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
+			result, found := s.scenarioJobs.completedVisionResult(jobID)
+			if !found {
+				return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+			}
+			response.VisionLocate = result
+		}
 		if job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE &&
 			job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED {
 			asset, reference, found := s.scenarioJobs.completedVoiceResult(jobID)

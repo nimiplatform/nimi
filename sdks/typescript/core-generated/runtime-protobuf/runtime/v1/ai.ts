@@ -993,6 +993,108 @@ export interface WorldGenerateScenarioSpec {
     };
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.VisionLocateScenarioSpec
+ */
+export interface VisionLocateScenarioSpec {
+    /**
+     * @generated from protobuf field: string image_artifact_id = 1
+     */
+    imageArtifactId: string;
+    /**
+     * @generated from protobuf field: string query = 2
+     */
+    query: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.VisionLocateGeometry geometry = 3
+     */
+    geometry: VisionLocateGeometry;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.VisionLocateBox
+ */
+export interface VisionLocateBox {
+    /**
+     * @generated from protobuf field: double x1 = 1
+     */
+    x1: number;
+    /**
+     * @generated from protobuf field: double y1 = 2
+     */
+    y1: number;
+    /**
+     * @generated from protobuf field: double x2 = 3
+     */
+    x2: number;
+    /**
+     * @generated from protobuf field: double y2 = 4
+     */
+    y2: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.VisionLocatePoint
+ */
+export interface VisionLocatePoint {
+    /**
+     * @generated from protobuf field: double x = 1
+     */
+    x: number;
+    /**
+     * @generated from protobuf field: double y = 2
+     */
+    y: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.VisionLocation
+ */
+export interface VisionLocation {
+    /**
+     * @generated from protobuf field: optional string label = 1
+     */
+    label?: string;
+    /**
+     * @generated from protobuf oneof: geometry
+     */
+    geometry: {
+        oneofKind: "box";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.VisionLocateBox box = 2
+         */
+        box: VisionLocateBox;
+    } | {
+        oneofKind: "point";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.VisionLocatePoint point = 3
+         */
+        point: VisionLocatePoint;
+    } | {
+        oneofKind: undefined;
+    };
+}
+/**
+ * Coordinates and dimensions describe the full static image after EXIF
+ * orientation. A present result with no locations is a complete negative.
+ *
+ * @generated from protobuf message nimi.runtime.v1.VisionLocateResult
+ */
+export interface VisionLocateResult {
+    /**
+     * @generated from protobuf field: string image_artifact_id = 1
+     */
+    imageArtifactId: string;
+    /**
+     * @generated from protobuf field: uint32 width = 2
+     */
+    width: number;
+    /**
+     * @generated from protobuf field: uint32 height = 3
+     */
+    height: number;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.VisionLocation locations = 4
+     */
+    locations: VisionLocation[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ScenarioSpec
  */
 export interface ScenarioSpec {
@@ -1053,6 +1155,12 @@ export interface ScenarioSpec {
          * @generated from protobuf field: nimi.runtime.v1.VoiceCreateScenarioSpec voice_create = 11
          */
         voiceCreate: VoiceCreateScenarioSpec;
+    } | {
+        oneofKind: "visionLocate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.VisionLocateScenarioSpec vision_locate = 12
+         */
+        visionLocate: VisionLocateScenarioSpec;
     } | {
         oneofKind: undefined;
     };
@@ -1805,6 +1913,22 @@ export interface LocalAppMusicGenerateJobSpec {
     lyrics: string;
 }
 /**
+ * Text-conditioned world generation. Provider selection and asset retrieval
+ * remain Runtime-owned; the result is a portable world archive artifact.
+ *
+ * @generated from protobuf message nimi.runtime.v1.LocalAppWorldGenerateJobSpec
+ */
+export interface LocalAppWorldGenerateJobSpec {
+    /**
+     * @generated from protobuf field: string prompt = 1
+     */
+    prompt: string;
+    /**
+     * @generated from protobuf field: string display_name = 2
+     */
+    displayName: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.SubmitLocalAppScenarioJobRequest
  */
 export interface SubmitLocalAppScenarioJobRequest {
@@ -1847,6 +1971,18 @@ export interface SubmitLocalAppScenarioJobRequest {
          * @generated from protobuf field: nimi.runtime.v1.LocalAppMusicGenerateJobSpec music_generate = 8
          */
         musicGenerate: LocalAppMusicGenerateJobSpec;
+    } | {
+        oneofKind: "worldGenerate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppWorldGenerateJobSpec world_generate = 10
+         */
+        worldGenerate: LocalAppWorldGenerateJobSpec;
+    } | {
+        oneofKind: "visionLocate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.VisionLocateScenarioSpec vision_locate = 11
+         */
+        visionLocate: VisionLocateScenarioSpec;
     } | {
         oneofKind: undefined;
     };
@@ -1998,6 +2134,12 @@ export interface GetLocalAppScenarioJobResponse {
      * @generated from protobuf field: nimi.runtime.v1.VoiceReference voice_reference = 3
      */
     voiceReference?: VoiceReference;
+    /**
+     * Present only for a successfully completed VISION_LOCATE Job.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.VisionLocateResult vision_locate = 4
+     */
+    visionLocate?: VisionLocateResult;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CancelLocalAppScenarioJobRequest
@@ -2720,6 +2862,12 @@ export interface GetScenarioJobResponse {
      * @generated from protobuf field: nimi.runtime.v1.VoiceReference voice_reference = 3
      */
     voiceReference?: VoiceReference;
+    /**
+     * Get-only terminal result; absent from Submit and Job event snapshots.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.VisionLocateResult vision_locate = 4
+     */
+    visionLocate?: VisionLocateResult;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CancelScenarioJobRequest
@@ -3211,7 +3359,11 @@ export enum Modal {
     /**
      * @generated from protobuf enum value: MODAL_WORLD = 8;
      */
-    WORLD = 8
+    WORLD = 8,
+    /**
+     * @generated from protobuf enum value: MODAL_VISION = 9;
+     */
+    VISION = 9
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ScenarioType
@@ -3256,7 +3408,11 @@ export enum ScenarioType {
     /**
      * @generated from protobuf enum value: SCENARIO_TYPE_VOICE_CREATE = 11;
      */
-    VOICE_CREATE = 11
+    VOICE_CREATE = 11,
+    /**
+     * @generated from protobuf enum value: SCENARIO_TYPE_VISION_LOCATE = 12;
+     */
+    VISION_LOCATE = 12
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExecutionMode
@@ -3640,6 +3796,23 @@ export enum TextSourceType {
      * @generated from protobuf enum value: TEXT_SOURCE_TYPE_DOCUMENT = 2;
      */
     DOCUMENT = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.VisionLocateGeometry
+ */
+export enum VisionLocateGeometry {
+    /**
+     * @generated from protobuf enum value: VISION_LOCATE_GEOMETRY_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: VISION_LOCATE_GEOMETRY_BOX = 1;
+     */
+    BOX = 1,
+    /**
+     * @generated from protobuf enum value: VISION_LOCATE_GEOMETRY_POINT = 2;
+     */
+    POINT = 2
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ScenarioJobStatus
@@ -6459,6 +6632,333 @@ class WorldGenerateScenarioSpec$Type extends MessageType<WorldGenerateScenarioSp
  */
 export const WorldGenerateScenarioSpec = new WorldGenerateScenarioSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class VisionLocateScenarioSpec$Type extends MessageType<VisionLocateScenarioSpec> {
+    constructor() {
+        super("nimi.runtime.v1.VisionLocateScenarioSpec", [
+            { no: 1, name: "image_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "query", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "geometry", kind: "enum", T: () => ["nimi.runtime.v1.VisionLocateGeometry", VisionLocateGeometry, "VISION_LOCATE_GEOMETRY_"] }
+        ]);
+    }
+    create(value?: PartialMessage<VisionLocateScenarioSpec>): VisionLocateScenarioSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.imageArtifactId = "";
+        message.query = "";
+        message.geometry = 0;
+        if (value !== undefined)
+            reflectionMergePartial<VisionLocateScenarioSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VisionLocateScenarioSpec): VisionLocateScenarioSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string image_artifact_id */ 1:
+                    message.imageArtifactId = reader.string();
+                    break;
+                case /* string query */ 2:
+                    message.query = reader.string();
+                    break;
+                case /* nimi.runtime.v1.VisionLocateGeometry geometry */ 3:
+                    message.geometry = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VisionLocateScenarioSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string image_artifact_id = 1; */
+        if (message.imageArtifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.imageArtifactId);
+        /* string query = 2; */
+        if (message.query !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.query);
+        /* nimi.runtime.v1.VisionLocateGeometry geometry = 3; */
+        if (message.geometry !== 0)
+            writer.tag(3, WireType.Varint).int32(message.geometry);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VisionLocateScenarioSpec
+ */
+export const VisionLocateScenarioSpec = new VisionLocateScenarioSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class VisionLocateBox$Type extends MessageType<VisionLocateBox> {
+    constructor() {
+        super("nimi.runtime.v1.VisionLocateBox", [
+            { no: 1, name: "x1", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
+            { no: 2, name: "y1", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
+            { no: 3, name: "x2", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
+            { no: 4, name: "y2", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ }
+        ]);
+    }
+    create(value?: PartialMessage<VisionLocateBox>): VisionLocateBox {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.x1 = 0;
+        message.y1 = 0;
+        message.x2 = 0;
+        message.y2 = 0;
+        if (value !== undefined)
+            reflectionMergePartial<VisionLocateBox>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VisionLocateBox): VisionLocateBox {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* double x1 */ 1:
+                    message.x1 = reader.double();
+                    break;
+                case /* double y1 */ 2:
+                    message.y1 = reader.double();
+                    break;
+                case /* double x2 */ 3:
+                    message.x2 = reader.double();
+                    break;
+                case /* double y2 */ 4:
+                    message.y2 = reader.double();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VisionLocateBox, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* double x1 = 1; */
+        if (message.x1 !== 0)
+            writer.tag(1, WireType.Bit64).double(message.x1);
+        /* double y1 = 2; */
+        if (message.y1 !== 0)
+            writer.tag(2, WireType.Bit64).double(message.y1);
+        /* double x2 = 3; */
+        if (message.x2 !== 0)
+            writer.tag(3, WireType.Bit64).double(message.x2);
+        /* double y2 = 4; */
+        if (message.y2 !== 0)
+            writer.tag(4, WireType.Bit64).double(message.y2);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VisionLocateBox
+ */
+export const VisionLocateBox = new VisionLocateBox$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class VisionLocatePoint$Type extends MessageType<VisionLocatePoint> {
+    constructor() {
+        super("nimi.runtime.v1.VisionLocatePoint", [
+            { no: 1, name: "x", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ },
+            { no: 2, name: "y", kind: "scalar", T: 1 /*ScalarType.DOUBLE*/ }
+        ]);
+    }
+    create(value?: PartialMessage<VisionLocatePoint>): VisionLocatePoint {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.x = 0;
+        message.y = 0;
+        if (value !== undefined)
+            reflectionMergePartial<VisionLocatePoint>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VisionLocatePoint): VisionLocatePoint {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* double x */ 1:
+                    message.x = reader.double();
+                    break;
+                case /* double y */ 2:
+                    message.y = reader.double();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VisionLocatePoint, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* double x = 1; */
+        if (message.x !== 0)
+            writer.tag(1, WireType.Bit64).double(message.x);
+        /* double y = 2; */
+        if (message.y !== 0)
+            writer.tag(2, WireType.Bit64).double(message.y);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VisionLocatePoint
+ */
+export const VisionLocatePoint = new VisionLocatePoint$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class VisionLocation$Type extends MessageType<VisionLocation> {
+    constructor() {
+        super("nimi.runtime.v1.VisionLocation", [
+            { no: 1, name: "label", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "box", kind: "message", oneof: "geometry", T: () => VisionLocateBox },
+            { no: 3, name: "point", kind: "message", oneof: "geometry", T: () => VisionLocatePoint }
+        ]);
+    }
+    create(value?: PartialMessage<VisionLocation>): VisionLocation {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.geometry = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<VisionLocation>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VisionLocation): VisionLocation {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* optional string label */ 1:
+                    message.label = reader.string();
+                    break;
+                case /* nimi.runtime.v1.VisionLocateBox box */ 2:
+                    message.geometry = {
+                        oneofKind: "box",
+                        box: VisionLocateBox.internalBinaryRead(reader, reader.uint32(), options, (message.geometry as any).box)
+                    };
+                    break;
+                case /* nimi.runtime.v1.VisionLocatePoint point */ 3:
+                    message.geometry = {
+                        oneofKind: "point",
+                        point: VisionLocatePoint.internalBinaryRead(reader, reader.uint32(), options, (message.geometry as any).point)
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VisionLocation, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* optional string label = 1; */
+        if (message.label !== undefined)
+            writer.tag(1, WireType.LengthDelimited).string(message.label);
+        /* nimi.runtime.v1.VisionLocateBox box = 2; */
+        if (message.geometry.oneofKind === "box")
+            VisionLocateBox.internalBinaryWrite(message.geometry.box, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VisionLocatePoint point = 3; */
+        if (message.geometry.oneofKind === "point")
+            VisionLocatePoint.internalBinaryWrite(message.geometry.point, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VisionLocation
+ */
+export const VisionLocation = new VisionLocation$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class VisionLocateResult$Type extends MessageType<VisionLocateResult> {
+    constructor() {
+        super("nimi.runtime.v1.VisionLocateResult", [
+            { no: 1, name: "image_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "width", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "height", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 4, name: "locations", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => VisionLocation }
+        ]);
+    }
+    create(value?: PartialMessage<VisionLocateResult>): VisionLocateResult {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.imageArtifactId = "";
+        message.width = 0;
+        message.height = 0;
+        message.locations = [];
+        if (value !== undefined)
+            reflectionMergePartial<VisionLocateResult>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: VisionLocateResult): VisionLocateResult {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string image_artifact_id */ 1:
+                    message.imageArtifactId = reader.string();
+                    break;
+                case /* uint32 width */ 2:
+                    message.width = reader.uint32();
+                    break;
+                case /* uint32 height */ 3:
+                    message.height = reader.uint32();
+                    break;
+                case /* repeated nimi.runtime.v1.VisionLocation locations */ 4:
+                    message.locations.push(VisionLocation.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: VisionLocateResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string image_artifact_id = 1; */
+        if (message.imageArtifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.imageArtifactId);
+        /* uint32 width = 2; */
+        if (message.width !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.width);
+        /* uint32 height = 3; */
+        if (message.height !== 0)
+            writer.tag(3, WireType.Varint).uint32(message.height);
+        /* repeated nimi.runtime.v1.VisionLocation locations = 4; */
+        for (let i = 0; i < message.locations.length; i++)
+            VisionLocation.internalBinaryWrite(message.locations[i], writer.tag(4, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.VisionLocateResult
+ */
+export const VisionLocateResult = new VisionLocateResult$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
     constructor() {
         super("nimi.runtime.v1.ScenarioSpec", [
@@ -6470,7 +6970,8 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
             { no: 6, name: "speech_transcribe", kind: "message", oneof: "spec", T: () => SpeechTranscribeScenarioSpec },
             { no: 9, name: "music_generate", kind: "message", oneof: "spec", T: () => MusicGenerateScenarioSpec },
             { no: 10, name: "world_generate", kind: "message", oneof: "spec", T: () => WorldGenerateScenarioSpec },
-            { no: 11, name: "voice_create", kind: "message", oneof: "spec", T: () => VoiceCreateScenarioSpec }
+            { no: 11, name: "voice_create", kind: "message", oneof: "spec", T: () => VoiceCreateScenarioSpec },
+            { no: 12, name: "vision_locate", kind: "message", oneof: "spec", T: () => VisionLocateScenarioSpec }
         ]);
     }
     create(value?: PartialMessage<ScenarioSpec>): ScenarioSpec {
@@ -6539,6 +7040,12 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
                         voiceCreate: VoiceCreateScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).voiceCreate)
                     };
                     break;
+                case /* nimi.runtime.v1.VisionLocateScenarioSpec vision_locate */ 12:
+                    message.spec = {
+                        oneofKind: "visionLocate",
+                        visionLocate: VisionLocateScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).visionLocate)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -6578,6 +7085,9 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
         /* nimi.runtime.v1.VoiceCreateScenarioSpec voice_create = 11; */
         if (message.spec.oneofKind === "voiceCreate")
             VoiceCreateScenarioSpec.internalBinaryWrite(message.spec.voiceCreate, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VisionLocateScenarioSpec vision_locate = 12; */
+        if (message.spec.oneofKind === "visionLocate")
+            VisionLocateScenarioSpec.internalBinaryWrite(message.spec.visionLocate, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -8767,6 +9277,61 @@ class LocalAppMusicGenerateJobSpec$Type extends MessageType<LocalAppMusicGenerat
  */
 export const LocalAppMusicGenerateJobSpec = new LocalAppMusicGenerateJobSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalAppWorldGenerateJobSpec$Type extends MessageType<LocalAppWorldGenerateJobSpec> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppWorldGenerateJobSpec", [
+            { no: 1, name: "prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppWorldGenerateJobSpec>): LocalAppWorldGenerateJobSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.prompt = "";
+        message.displayName = "";
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppWorldGenerateJobSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppWorldGenerateJobSpec): LocalAppWorldGenerateJobSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string prompt */ 1:
+                    message.prompt = reader.string();
+                    break;
+                case /* string display_name */ 2:
+                    message.displayName = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppWorldGenerateJobSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string prompt = 1; */
+        if (message.prompt !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.prompt);
+        /* string display_name = 2; */
+        if (message.displayName !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.displayName);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppWorldGenerateJobSpec
+ */
+export const LocalAppWorldGenerateJobSpec = new LocalAppWorldGenerateJobSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppScenarioJobRequest> {
     constructor() {
         super("nimi.runtime.v1.SubmitLocalAppScenarioJobRequest", [
@@ -8776,6 +9341,8 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
             { no: 4, name: "speech_transcribe", kind: "message", oneof: "spec", T: () => LocalAppSpeechTranscribeJobSpec },
             { no: 7, name: "voice_create", kind: "message", oneof: "spec", T: () => LocalAppVoiceCreateJobSpec },
             { no: 8, name: "music_generate", kind: "message", oneof: "spec", T: () => LocalAppMusicGenerateJobSpec },
+            { no: 10, name: "world_generate", kind: "message", oneof: "spec", T: () => LocalAppWorldGenerateJobSpec },
+            { no: 11, name: "vision_locate", kind: "message", oneof: "spec", T: () => VisionLocateScenarioSpec },
             { no: 9, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ }
         ]);
     }
@@ -8828,6 +9395,18 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
                         musicGenerate: LocalAppMusicGenerateJobSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).musicGenerate)
                     };
                     break;
+                case /* nimi.runtime.v1.LocalAppWorldGenerateJobSpec world_generate */ 10:
+                    message.spec = {
+                        oneofKind: "worldGenerate",
+                        worldGenerate: LocalAppWorldGenerateJobSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).worldGenerate)
+                    };
+                    break;
+                case /* nimi.runtime.v1.VisionLocateScenarioSpec vision_locate */ 11:
+                    message.spec = {
+                        oneofKind: "visionLocate",
+                        visionLocate: VisionLocateScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).visionLocate)
+                    };
+                    break;
                 case /* int32 timeout_ms */ 9:
                     message.timeoutMs = reader.int32();
                     break;
@@ -8864,6 +9443,12 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
         /* int32 timeout_ms = 9; */
         if (message.timeoutMs !== 0)
             writer.tag(9, WireType.Varint).int32(message.timeoutMs);
+        /* nimi.runtime.v1.LocalAppWorldGenerateJobSpec world_generate = 10; */
+        if (message.spec.oneofKind === "worldGenerate")
+            LocalAppWorldGenerateJobSpec.internalBinaryWrite(message.spec.worldGenerate, writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VisionLocateScenarioSpec vision_locate = 11; */
+        if (message.spec.oneofKind === "visionLocate")
+            VisionLocateScenarioSpec.internalBinaryWrite(message.spec.visionLocate, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -9205,7 +9790,8 @@ class GetLocalAppScenarioJobResponse$Type extends MessageType<GetLocalAppScenari
         super("nimi.runtime.v1.GetLocalAppScenarioJobResponse", [
             { no: 1, name: "job", kind: "message", T: () => LocalAppScenarioJob },
             { no: 2, name: "asset", kind: "message", T: () => LocalAppVoiceAsset },
-            { no: 3, name: "voice_reference", kind: "message", T: () => VoiceReference }
+            { no: 3, name: "voice_reference", kind: "message", T: () => VoiceReference },
+            { no: 4, name: "vision_locate", kind: "message", T: () => VisionLocateResult }
         ]);
     }
     create(value?: PartialMessage<GetLocalAppScenarioJobResponse>): GetLocalAppScenarioJobResponse {
@@ -9228,6 +9814,9 @@ class GetLocalAppScenarioJobResponse$Type extends MessageType<GetLocalAppScenari
                 case /* nimi.runtime.v1.VoiceReference voice_reference */ 3:
                     message.voiceReference = VoiceReference.internalBinaryRead(reader, reader.uint32(), options, message.voiceReference);
                     break;
+                case /* nimi.runtime.v1.VisionLocateResult vision_locate */ 4:
+                    message.visionLocate = VisionLocateResult.internalBinaryRead(reader, reader.uint32(), options, message.visionLocate);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -9249,6 +9838,9 @@ class GetLocalAppScenarioJobResponse$Type extends MessageType<GetLocalAppScenari
         /* nimi.runtime.v1.VoiceReference voice_reference = 3; */
         if (message.voiceReference)
             VoiceReference.internalBinaryWrite(message.voiceReference, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VisionLocateResult vision_locate = 4; */
+        if (message.visionLocate)
+            VisionLocateResult.internalBinaryWrite(message.visionLocate, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11298,7 +11890,8 @@ class GetScenarioJobResponse$Type extends MessageType<GetScenarioJobResponse> {
         super("nimi.runtime.v1.GetScenarioJobResponse", [
             { no: 1, name: "job", kind: "message", T: () => ScenarioJob },
             { no: 2, name: "asset", kind: "message", T: () => VoiceAsset },
-            { no: 3, name: "voice_reference", kind: "message", T: () => VoiceReference }
+            { no: 3, name: "voice_reference", kind: "message", T: () => VoiceReference },
+            { no: 4, name: "vision_locate", kind: "message", T: () => VisionLocateResult }
         ]);
     }
     create(value?: PartialMessage<GetScenarioJobResponse>): GetScenarioJobResponse {
@@ -11321,6 +11914,9 @@ class GetScenarioJobResponse$Type extends MessageType<GetScenarioJobResponse> {
                 case /* nimi.runtime.v1.VoiceReference voice_reference */ 3:
                     message.voiceReference = VoiceReference.internalBinaryRead(reader, reader.uint32(), options, message.voiceReference);
                     break;
+                case /* nimi.runtime.v1.VisionLocateResult vision_locate */ 4:
+                    message.visionLocate = VisionLocateResult.internalBinaryRead(reader, reader.uint32(), options, message.visionLocate);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -11342,6 +11938,9 @@ class GetScenarioJobResponse$Type extends MessageType<GetScenarioJobResponse> {
         /* nimi.runtime.v1.VoiceReference voice_reference = 3; */
         if (message.voiceReference)
             VoiceReference.internalBinaryWrite(message.voiceReference, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.VisionLocateResult vision_locate = 4; */
+        if (message.visionLocate)
+            VisionLocateResult.internalBinaryWrite(message.visionLocate, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

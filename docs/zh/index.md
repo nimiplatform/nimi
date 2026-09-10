@@ -3,31 +3,31 @@ layout: home
 
 hero:
   name: Nimi
-  text: 文档
-  tagline: Nimi 是可安装、开源、本地优先的个人 AI 产品。这套文档帮你使用它、理解它，并在它之上构建。
+  text: 开发者文档
+  tagline: 开发第三方 Nimi App，通过 SDK 接入 AI 能力，了解应用的运行与分发方式。
   actions:
     - theme: brand
-      text: 快速开始
-      link: /zh/start/
+      text: 创建 App
+      link: /zh/start/create-an-app
     - theme: alt
-      text: nimi.ai
-      link: https://nimi.ai
+      text: SDK 参考
+      link: /zh/sdk/
 
 features:
-  - title: 使用 Nimi
-    details: Nimi 是什么，以及今天你能用它做什么。
+  - title: 准备环境并运行
+    details: 检查开发前提，创建项目，通过 Nimi Home 启动应用。
     link: /zh/start/
-  - title: 理解核心概念
-    details: 用平实的语言讲清世界、角色、Agent、Realm 与 Runtime。
-    link: /zh/platform/
-  - title: 在 Nimi 上构建
-    details: 用类型化 SDK 和 Developer Mode 本地开发路径创建 Nimi App。
-    link: /zh/sdk/
+  - title: 接入 AI 能力
+    details: 使用公开 SDK，配置能力意图，处理真实调用结果。
+    link: /zh/sdk/first-ai-call
+  - title: 排查接入问题
+    details: 项目检查、Runtime 访问或 AI 调用失败时，找到对应的处理步骤。
+    link: /zh/start/troubleshooting
 ---
 
-欢迎来到 Nimi 文档。这里有三条主线：想知道 Nimi 是什么、今天能用它做什么，看[使用 Nimi](/zh/start/)；想把世界、角色、Agent、Realm、Runtime 这些概念弄清楚，看[理解核心概念](/zh/platform/)；如果你是开发者，想创建自己的 Nimi App，看[在 Nimi 上构建](/zh/sdk/)。
+从[创建 Nimi App](/zh/start/create-an-app)开始，再接入应用需要的能力。[SDK 参考](/zh/sdk/)和 [Runtime 文档](/zh/runtime/)提供详细的接口、配置和执行说明。
 
-不确定从哪开始？[开始使用](/zh/start/)是所有人的入口。
+如果你想使用 Nimi，而不是开发 App，请访问[官网](https://nimi.ai)并查看[当前下载状态](https://nimi.ai/download)。
 
 ## 来源依据
 

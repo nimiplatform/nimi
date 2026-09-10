@@ -9,12 +9,37 @@ if [[ "$(/usr/bin/id -u)" != "0" || "$(/usr/bin/id -ru)" != "0" ]]; then
 fi
 
 service_target="system/ai.nimi.runtime"
+if /usr/bin/pgrep -f '^/Applications/Nimi.app/Contents/MacOS/Nimi( |$)' >/dev/null; then
+  print -u2 -- "Quit Nimi before installing this update, then run the installer again"
+  exit 71
+fi
 if /bin/launchctl print "${service_target}" >/dev/null 2>&1; then
   /bin/launchctl bootout "${service_target}"
 fi
+
+# The embedded service has a 20-second ExitTimeOut. Removal can still be in
+# progress when bootout returns; wait for it before replacing code or sockets.
+for wait_tick in {1..25}; do
+  if ! /bin/launchctl print "${service_target}" >/dev/null 2>&1; then
+    break
+  fi
+  /bin/sleep 1
+done
 if /bin/launchctl print "${service_target}" >/dev/null 2>&1; then
-  print -u2 -- "Nimi Runtime service did not stop before update"
+  print -u2 -- "Nimi Runtime service did not stop within 25 seconds before update"
+  /bin/launchctl print "${service_target}" | /usr/bin/awk \
+    '/^[[:space:]]*(state|pid|active count|last exit code)[[:space:]]*=/' >&2
   exit 71
 fi
+
+for socket_path in /private/var/run/nimi/runtime-desktop.sock /private/var/run/nimi/runtime-local-app.sock; do
+  if [[ -e "$socket_path" ]]; then
+    if [[ ! -S "$socket_path" ]]; then
+      print -u2 -- "Nimi found an unexpected file at its service socket path"
+      exit 71
+    fi
+    /bin/rm "$socket_path"
+  fi
+done
 
 exit 0

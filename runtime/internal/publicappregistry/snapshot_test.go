@@ -105,7 +105,11 @@ func TestCurrentPlatformTargetIsClosedToImplementedCatalogTargets(t *testing.T) 
 	if err != nil || targetID != "windows-x86_64" || expectedOS != "windows" || expectedArch != "x86_64" {
 		t.Fatalf("windows target = %q %q %q err=%v", targetID, expectedOS, expectedArch, err)
 	}
-	for _, unsupported := range [][2]string{{"windows", "386"}, {"darwin", "arm64"}, {"linux", "amd64"}} {
+	targetID, expectedOS, expectedArch, err = currentPlatformTarget("darwin", "arm64")
+	if err != nil || targetID != "macos-aarch64" || expectedOS != "macos" || expectedArch != "arm64" {
+		t.Fatalf("macOS target = %q %q %q err=%v", targetID, expectedOS, expectedArch, err)
+	}
+	for _, unsupported := range [][2]string{{"windows", "386"}, {"darwin", "amd64"}, {"linux", "amd64"}} {
 		if _, _, _, err := currentPlatformTarget(unsupported[0], unsupported[1]); !errors.Is(err, ErrCatalogTargetNotFound) {
 			t.Fatalf("unsupported %s/%s error = %v", unsupported[0], unsupported[1], err)
 		}

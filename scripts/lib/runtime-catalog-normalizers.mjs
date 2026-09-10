@@ -4,6 +4,7 @@ const canonicalModelCapabilities = new Set([
   'text.generate',
   'text.embed',
   'image.generate',
+  'vision.locate',
   'video.generate',
   'world.generate',
   'audio.synthesize',
@@ -822,7 +823,7 @@ const localPassiveModelTypes = new Set(['vae', 'clip', 'lora', 'controlnet', 'au
 // normalizeLocalInstall projects a K-MCAT-032 install block. Runnable model
 // rows carry a preferred engine compatibility fact; passive independent
 // ModelAsset offer rows do not own execution-engine selection.
-function normalizeLocalInstall(install, label, { passive = false } = {}) {
+function normalizeLocalInstall(install, label, { passive = false, privateHost = false } = {}) {
   if (!install || typeof install !== 'object') {
     throw new Error(`${label} requires an install block`);
   }
@@ -848,9 +849,9 @@ function normalizeLocalInstall(install, label, { passive = false } = {}) {
   }
   const hasPreferredEngine = Object.prototype.hasOwnProperty.call(install, 'preferred_engine');
   const preferredEngine = normalizeString(install.preferred_engine).toLowerCase();
-  if (passive) {
+  if (passive || privateHost) {
     if (hasPreferredEngine) {
-      throw new Error(`${label} is passive and must not declare install.preferred_engine`);
+      throw new Error(`${label} must not declare install.preferred_engine`);
     }
   } else if (!localPreferredEngines.has(preferredEngine)) {
     throw new Error(`${label} install.preferred_engine must be llama|media|speech|sidecar|audio-cpp, got: ${preferredEngine}`);
@@ -870,7 +871,7 @@ function normalizeLocalInstall(install, label, { passive = false } = {}) {
   if (provenance) {
     out.provenance = provenance;
   }
-  if (!passive) {
+  if (!passive && !privateHost) {
     out.preferred_engine = preferredEngine;
   }
   return out;
@@ -916,14 +917,15 @@ export function normalizeLocalPlaneRow(model, modelID) {
   if (passive && normalizeStringArray(model?.capabilities).length > 0) {
     throw new Error(`local passive ModelAsset offer ${modelID} must not declare capabilities`);
   }
-  const fitnessOptional = ['tts', 'stt'].includes(normalizeString(model?.model_type).toLowerCase());
+  const privateHost = normalizeString(model?.model_type).toLowerCase() === 'vision';
+  const fitnessOptional = ['tts', 'stt', 'vision'].includes(normalizeString(model?.model_type).toLowerCase());
   if (!passive && !fitnessOptional && !hasFitness) {
     throw new Error(`local runnable model ${modelID} requires fitness`);
   }
   if (passive && hasFitness) {
     throw new Error(`local passive ModelAsset offer ${modelID} must not declare fitness`);
   }
-  const install = normalizeLocalInstall(model.install, `local model ${modelID}`, { passive });
+  const install = normalizeLocalInstall(model.install, `local model ${modelID}`, { passive, privateHost });
   if (passive && (install.artifact_roles.length !== 1 || !/^[a-z0-9]+(?:_[a-z0-9]+)*$/u.test(install.artifact_roles[0]))) {
     throw new Error(`local passive ModelAsset offer ${modelID} requires exactly one canonical artifact role`);
   }

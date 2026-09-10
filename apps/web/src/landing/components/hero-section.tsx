@@ -96,9 +96,13 @@ export function HeroSection(props: HeroSectionProps) {
             {props.content.subtitle}
           </p>
 
-          <div className="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
+          <p id="hero-availability" className="mx-auto mt-8 max-w-xl text-sm leading-6 text-slate-700">
+            {props.content.availability}
+          </p>
+          <div className="mt-4 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <a
               href={props.links.downloadUrl}
+              aria-describedby="hero-availability"
               className="inline-flex min-w-44 items-center justify-center rounded-full bg-gradient-to-r from-[#38d6a3] to-[#0ea5e9] px-7 py-3.5 text-base font-bold text-white shadow-[0_16px_34px_-14px_rgba(14,165,233,0.7)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-14px_rgba(14,165,233,0.8)]"
             >
               {props.content.primaryCta}

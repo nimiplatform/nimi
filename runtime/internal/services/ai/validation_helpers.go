@@ -43,6 +43,8 @@ func validateBaseRequestWithOptions(appID string, subjectUserID string, modelID 
 
 func scenarioTargetCapability(scenarioType runtimev1.ScenarioType) string {
 	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE:
+		return "vision.locate"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE:
 		return "text.generate"
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_EMBED:

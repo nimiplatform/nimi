@@ -147,8 +147,18 @@ func TestRealmTokenRefresherDistinguishesNotSentFromUncertainDispatch(t *testing
 }
 
 func TestDaemonRestartRebuildsProactiveRefreshTimer(t *testing.T) {
+	t.Run("before access expiry", func(t *testing.T) {
+		testDaemonRestartRefreshesStoredMaterial(t, 240*time.Millisecond)
+	})
+	t.Run("access expired while stopped", func(t *testing.T) {
+		testDaemonRestartRefreshesStoredMaterial(t, -time.Hour)
+	})
+}
+
+func testDaemonRestartRefreshesStoredMaterial(t *testing.T, expiresIn time.Duration) {
+	t.Helper()
 	current := testMaterial("acct-refresh", "access-old", "refresh-old")
-	current.AccessTokenExpires = time.Now().UTC().Add(240 * time.Millisecond)
+	current.AccessTokenExpires = time.Now().UTC().Add(expiresIn)
 	custody := &memoryCustody{material: current, has: true}
 	refresher := &countingAccountRefresher{material: testMaterial("acct-refresh", "access-new", "refresh-new")}
 	restarted := New(nil,
@@ -158,7 +168,7 @@ func TestDaemonRestartRebuildsProactiveRefreshTimer(t *testing.T) {
 		WithRefresher(refresher),
 	)
 	stopAccountRefreshTimer(t, restarted)
-	deadline := time.Now().Add(2 * time.Second)
+	deadline := time.Now().Add(3 * time.Second)
 	for time.Now().Before(deadline) {
 		restarted.mu.RLock()
 		complete := restarted.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED &&

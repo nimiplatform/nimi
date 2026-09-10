@@ -19,6 +19,10 @@
 - Start at the observed Desktop consumer, its direct adapter or bridge, and the exact authority it implements.
 - Skip generated bridge outputs, `dist/**`, large assets, and unrelated layers.
 
+## Product Presentation
+- Main usage flows explain the user's task, current state, action, and consequence. Runtime summaries distinguish recommendations, compatibility, installed/configured models, current selection, and actual execution; internal values belong in relevant technical details when they do not help the immediate choice.
+- Judge the specific module's audience. Profile creation and other advanced editing retain precise fields, validation, and control; they do not inherit an introductory interface merely because Desktop's main experience serves ordinary users.
+
 ## Settings-like Surfaces (IA ownership)
 - Settings (account menu) owns end-user account and preference content: profile, language, appearance, privacy, security, notifications, the single Developer Mode entry with local-development registration and activity, data management, legal.
 - Support (account menu) owns guided repair, diagnostics, logs, and recovery; its section set is contract-fixed (`rule.nimi.desktop.product-surfaces.r023`).

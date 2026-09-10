@@ -1014,6 +1014,7 @@ function createCommandPort(
     async exportText() { return effectForbidden<{ readonly filename: string }>(); },
     async resolveWorldTourFixture() { return effectUnavailable('World Tour fixture resolution'); },
     async openWorldTourWindow() { return effectUnavailable('World Tour window open'); },
+    async resumeWorldTour() { return effectUnavailable('World Tour generation resume'); },
     async claimWorldTourViewerLaunch() { return effectUnavailable('World Tour viewer launch'); },
     async saveWorldTourViewerPreset() { return effectUnavailable('World Tour preset save'); },
     async localAppSessionStatus() {

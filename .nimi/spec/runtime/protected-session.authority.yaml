@@ -172,8 +172,8 @@ units:
     kind: rule
     title: Stale access is revoked
     modality: must
-    statement: Process exit, caller replacement, protected connection loss, account switch, logout, Runtime restart, App removal, source-generation change, declaration-generation change, or verified Host-relation loss invalidates the affected session, Effective App Access Snapshot, Agent handles, calls, and streams before later use; account or declaration changes alone do not terminate the still-running exact Host, delete registration, rotate its stable subject, or create durable security posture.
-    condition: Whenever a protected session or snapshot dependency changes.
+    statement: Process exit, caller replacement, protected connection loss, account switch, logout, Runtime restart, App removal, source-generation change, declaration-generation change, or verified Host-relation loss invalidates the affected session, Effective App Access Snapshot, Agent handles, calls, and streams before later use; account or declaration changes alone do not terminate the still-running exact Host, delete registration, rotate its stable subject, or create durable security posture. Routine renewal of a still-live unexpired session preserves its Agent handles, admitted calls, streams, and owned resources only after Runtime revalidates the same exact Host, current account context, source generation, declaration generation, and snapshot dependencies; renewal must not revive an expired or invalidated session or preserve resources across a changed dependency.
+    condition: Whenever a protected session or snapshot dependency changes or a live protected session is renewed.
     failure: Reject stale calls and close stale streams without cached fallback while keeping unrelated Host and product availability truthful.
     relations:
       - type: applies_to

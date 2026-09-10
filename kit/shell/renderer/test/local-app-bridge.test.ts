@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   createNimiClient,
   createNimiLocalAIConfigCapabilityIntent,
+  createNimiLocalAppAgentConfigureRuntimeShell,
+  RuntimeReasonCode,
 } from '@nimiplatform/kit/core/sdk-contract';
+import { LocalAgentCapabilityParticipationRole } from '../../../../sdks/typescript/core-generated/runtime-typed-client.js';
 import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabilities';
 
 import {
@@ -34,6 +37,39 @@ function managerActionAvailability() {
 }
 
 describe('renderer local-app standard-shell surface', () => {
+  it.each([false, true])('validates Realm event envelopes without losing their session fields (extra field: %s)', async (extraField) => {
+    let emit: ((event: { payload: unknown }) => void) | undefined;
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (_command: string, input: { payload: { action?: string } }) => (
+        input.payload.action === 'cancel'
+          ? { subscriptionId: 'realm-bridge-1', closed: true }
+          : { subscriptionId: 'realm-bridge-1', eventName: 'realm-events-1' }
+      ),
+      listen: (_name: string, listener: typeof emit) => { emit = listener; return () => {}; },
+    };
+    const subscription = await createNimiLocalAppStandardShellSurface().realm.realtime.subscribe({
+      channelId: 'realm-channel-1', target: { type: 'presence' },
+    });
+    const event = {
+      realtimeSessionId: 'realm-session-1', channelId: 'realm-channel-1',
+      subscriptionId: 'realm-subscription-1', generation: '1', sequence: '1',
+      correlationId: '', occurredAt: { seconds: '1788777600', nanos: 0 },
+      event: {
+        type: 'presence', userId: 'user-1', isOnline: true, presenceRevision: '1',
+        occurredAt: { seconds: '1788777600', nanos: 0 },
+      },
+      ...(extraField ? { unexpected: true } : {}),
+    };
+    const next = subscription.events[Symbol.asyncIterator]().next();
+    emit!({ payload: { subscriptionId: 'realm-bridge-1', eventType: 'next', event } });
+    if (extraField) {
+      await expect(next).rejects.toThrow(/Realtime event payload fields are invalid/u);
+    } else {
+      await expect(next).resolves.toEqual({ done: false, value: event });
+    }
+    await subscription.cancel();
+  });
+
   it('admits asset-only Background commits while rejecting an empty mutation', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
@@ -600,6 +636,41 @@ describe('renderer local-app standard-shell surface', () => {
     }]);
   });
 
+  it.each([true, false])('accepts the formal host shared AIConfig result (committed: %s)', async (committed) => {
+    const config = {
+      owner: { owner: { oneofKind: 'runtimeLocalAgentSubsystem', runtimeLocalAgentSubsystem: {} } },
+      capabilities: [],
+    };
+    const participation = [
+      [LocalAgentCapabilityParticipationRole.CONVERSATION_PRIMARY, 'text.generate'],
+      [LocalAgentCapabilityParticipationRole.MEMORY_EMBEDDING, 'text.embed'],
+      [LocalAgentCapabilityParticipationRole.CONVERSATION_INPUT_VOICE, 'audio.transcribe'],
+      [LocalAgentCapabilityParticipationRole.CONVERSATION_OUTPUT_VOICE, 'audio.synthesize'],
+      [LocalAgentCapabilityParticipationRole.CONVERSATION_REALTIME, 'realtime.interact'],
+      [LocalAgentCapabilityParticipationRole.CONVERSATION_ACTION_IMAGE, 'image.generate'],
+    ].map(([role, capabilityContract]) => ({ role, capabilityContract }));
+    const host = createNimiLocalAppAgentConfigureRuntimeShell({
+      overwriteLocalAppSharedLocalAgentAIConfig: async () => ({
+        projection: { config, revision: '2', effectiveSelections: [], participation },
+        committed,
+        reasonCode: committed
+          ? RuntimeReasonCode.REASON_CODE_UNSPECIFIED
+          : RuntimeReasonCode.AGENT_AI_CONFIG_REVISION_CONFLICT,
+      }),
+    } as never);
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: (_command: string, input: { payload: { expectedRevision: string; capabilities: [] } }) => (
+        host.sharedAIConfig.overwrite(input.payload)
+      ),
+      listen: () => () => {},
+    };
+    const client = createNimiClient({ localApp: { standardShell: createNimiLocalAppStandardShellSurface() } });
+    const result = await client.agentConfigure.sharedAIConfig.overwrite({ expectedRevision: '1', capabilities: [] });
+    expect(result).toMatchObject({ outcome: committed ? 'committed' : 'conflict', config, revision: '2' });
+    expect(result.participation).toHaveLength(6);
+    if (!committed) expect(result).toHaveProperty('reasonCode', 'AGENT_AI_CONFIG_REVISION_CONFLICT');
+  });
+
   it('forwards the canonical Agent configuration operations without authority input', async () => {
     const invocations: Array<{ command: string; payload: unknown }> = [];
     const handle = 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
@@ -628,7 +699,6 @@ describe('renderer local-app standard-shell surface', () => {
         if (command.endsWith('sharedAgentAIConfigOverwrite')) {
           return {
             outcome: 'committed', config: sharedConfig, revision: '1',
-            effectiveSelections: [], reasonCode: 'REASON_CODE_UNSPECIFIED',
             participation,
           };
         }

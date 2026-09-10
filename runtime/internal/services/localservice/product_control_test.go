@@ -441,6 +441,34 @@ func TestRuntimeProductControlReplacesReadyRootAndKeepsFormerRootDetached(t *tes
 	}
 }
 
+func TestRuntimeProductControlTargetLayoutFailureKeepsCurrentRootAndReturnsOwnerError(t *testing.T) {
+	home := setProductControlHomeForTest(t)
+	service := newTestService(t)
+	current := filepath.Join(home, "layout-current-root")
+	ready := readyProductControlForReplacementTest(t, service, current)
+	handoff := &productControlRootHandoffForTest{}
+	service.SetProductControlRootHandoff(handoff)
+	target := filepath.Join(home, "layout-target-root")
+	if err := os.MkdirAll(target, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(target, "models"), []byte("existing-file"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	response, err := service.ReplaceProductControlDataRoot(context.Background(), &runtimev1.ReplaceProductControlDataRootRequest{TargetRoot: target})
+	projection := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if projection.Error == nil || !strings.Contains(*projection.Error, "models") {
+		t.Fatalf("candidate failure was not returned in the owner projection: %+v", projection)
+	}
+	if projection.Activation != nil || projection.Record == nil || projection.Record.DataRoot == nil ||
+		projection.Record.DataRoot.Path != current || projection.Record.DataRoot.RootActivationID != ready.Record.DataRoot.RootActivationID {
+		t.Fatalf("candidate failure changed current activation: %+v", projection)
+	}
+	if handoff.closed != 0 || handoff.committed != 0 {
+		t.Fatalf("candidate failure crossed the handoff boundary: %+v", handoff)
+	}
+}
+
 func TestRuntimeProductControlPostCommitConfigFailureKeepsNewRoot(t *testing.T) {
 	home := setProductControlHomeForTest(t)
 	service := newTestService(t)

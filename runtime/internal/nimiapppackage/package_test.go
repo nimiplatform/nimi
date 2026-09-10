@@ -12,6 +12,7 @@ import (
 	"hash/crc32"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -30,6 +31,71 @@ type archiveFixtureEntry struct {
 }
 
 type runtimeEntryVerifierFunc func(context.Context, string, [sha256.Size]byte) error
+
+func macOSArchiveFixture(t *testing.T, linkTarget string) (string, Expected) {
+	t.Helper()
+	manifest := validManifest()
+	manifest.OS, manifest.Arch, manifest.TargetID = "macos", "arm64", "macos-aarch64"
+	manifest.RuntimeEntry = "payload/Example.app/Contents/MacOS/example"
+	manifest.NativeTrust = ManifestNativeTrust{Posture: "production-unsigned", MacOSDeveloperID: "absent", MacOSNotarization: "absent", CertificateSubject: json.RawMessage("null")}
+	manifest.ExecutionProfile = &ManifestExecutionProfile{LaunchMode: "current-user"}
+	entries := validArchiveEntries(t)
+	entries[1].bytes = mustJSON(t, manifest)
+	entries[3].name = manifest.RuntimeEntry
+	entries = append(entries,
+		canonicalFixtureEntry("payload/Example.app/Contents/Frameworks/F.framework/Versions/A/F", []byte("framework contents"), 0o755),
+		canonicalFixtureEntry("payload/Example.app/Contents/Frameworks/F.framework/Versions/Current", []byte(linkTarget), 0o777),
+	)
+	entries[len(entries)-1].mode = 0o120777
+	archive, expected := writeArchiveFixture(t, entries)
+	expected.OS, expected.Arch, expected.TargetID = manifest.OS, manifest.Arch, manifest.TargetID
+	expected.RuntimeEntry, expected.ExecutionProfileRef = manifest.RuntimeEntry, macOSExecutionProfileRef
+	expected.NativeTrust = ExpectedNativeTrust{WindowsCodeSigning: "not-applicable", MacOSNotarization: "absent"}
+	return archive, expected
+}
+
+func TestMacOSArchivePreservesFrameworkLinksAndDetectsLinkReplacement(t *testing.T) {
+	if runtime.GOOS != "darwin" {
+		t.Skip("macOS filesystem semantics")
+	}
+	archive, expected := macOSArchiveFixture(t, "A")
+	owner, _ := openOwnerRoot(t)
+	materialized, err := Materialize(context.Background(), archive, owner, "macos-release", expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(materialized.Root, "payload/Example.app/Contents/Frameworks/F.framework/Versions/Current")
+	if target, err := os.Readlink(link); err != nil || target != "A" {
+		t.Fatalf("framework link = %q, %v", target, err)
+	}
+	if _, err := VerifyMaterialized(context.Background(), materialized.Root, expected, PayloadRootDigestRef(materialized.PayloadRootSHA256), materialized.HostExecutableSHA256); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(link); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(link, []byte("A"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := VerifyMaterialized(context.Background(), materialized.Root, expected, PayloadRootDigestRef(materialized.PayloadRootSHA256), materialized.HostExecutableSHA256); !errors.Is(err, ErrPackageIntegrity) {
+		t.Fatalf("link replaced by same-content file: %v", err)
+	}
+}
+
+func TestMacOSArchiveRejectsEscapingAndCyclicFrameworkLinksBeforeMaterialization(t *testing.T) {
+	for _, target := range []string{"../../../../../../../../outside", "Current", "/outside", "missing"} {
+		t.Run(target, func(t *testing.T) {
+			archive, expected := macOSArchiveFixture(t, target)
+			owner, root := openOwnerRoot(t)
+			if _, err := Materialize(context.Background(), archive, owner, "rejected", expected); err == nil {
+				t.Fatal("invalid framework link accepted")
+			}
+			if _, err := os.Stat(filepath.Join(root, "rejected")); !errors.Is(err, os.ErrNotExist) {
+				t.Fatal("rejected archive created a destination")
+			}
+		})
+	}
+}
 
 func (verify runtimeEntryVerifierFunc) Verify(ctx context.Context, path string, digest [sha256.Size]byte) error {
 	return verify(ctx, path, digest)

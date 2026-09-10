@@ -50,9 +50,11 @@ var (
 // @nimi-authority: definition.nimi.platform.app-ecosystem.immutable-package-seam
 
 type ExpectedNativeTrust struct {
-	WindowsCodeSigning string
-	SigningSubject     *string
-	ObservedSubject    *string
+	WindowsCodeSigning      string
+	SigningSubject          *string
+	ObservedSubject         *string
+	MacOSNotarization       string
+	MacOSDeveloperIDSubject *string
 }
 
 type Expected struct {
@@ -71,13 +73,16 @@ type Expected struct {
 
 type ManifestNativeTrust struct {
 	Posture             string          `json:"posture"`
-	WindowsAuthenticode string          `json:"windows_authenticode"`
+	WindowsAuthenticode string          `json:"windows_authenticode,omitempty"`
+	MacOSDeveloperID    string          `json:"macos_developer_id,omitempty"`
+	MacOSNotarization   string          `json:"macos_notarization,omitempty"`
 	CertificateSubject  json.RawMessage `json:"certificate_subject"`
 }
 
 type ManifestExecutionProfile struct {
-	RequestedExecutionLevel string `json:"requested_execution_level"`
-	UIAccess                *bool  `json:"ui_access"`
+	RequestedExecutionLevel string `json:"requested_execution_level,omitempty"`
+	UIAccess                *bool  `json:"ui_access,omitempty"`
+	LaunchMode              string `json:"launch_mode,omitempty"`
 }
 
 type Manifest struct {
@@ -164,6 +169,22 @@ func ProbeRuntimeEntry(
 	if verifier == nil {
 		return RuntimeEntryProbe{}, fmt.Errorf("probe nimiapp Runtime entry: verifier is required: %w", ErrInvalidPackage)
 	}
+	if expected.OS == "macos" {
+		// macOS signatures seal Info.plist, resources and framework links. The
+		// existing ephemeral native probe must therefore contain the bundle.
+		materialized, probeErr := Materialize(ctx, archivePath, ownerRoot, probeChild, expected)
+		if probeErr != nil {
+			return RuntimeEntryProbe{}, probeErr
+		}
+		defer func() { err = errors.Join(err, ownerRoot.RemoveAll(probeChild)) }()
+		if probeErr = verifier.Verify(ctx, materialized.RuntimeEntryPath, materialized.HostExecutableSHA256); probeErr != nil {
+			return RuntimeEntryProbe{}, fmt.Errorf("verify macOS bundle probe: %w", probeErr)
+		}
+		if _, probeErr = VerifyMaterialized(ctx, materialized.Root, expected, PayloadRootDigestRef(materialized.PayloadRootSHA256), materialized.HostExecutableSHA256); probeErr != nil {
+			return RuntimeEntryProbe{}, probeErr
+		}
+		return RuntimeEntryProbe{HostExecutableSHA256: materialized.HostExecutableSHA256}, nil
+	}
 	archive, err := openAndInspect(ctx, archivePath, expected)
 	if err != nil {
 		return RuntimeEntryProbe{}, err
@@ -249,6 +270,10 @@ func Materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 	if err := ctx.Err(); err != nil {
 		return Materialized{}, err
 	}
+	directoryMode := os.FileMode(0o700)
+	if expected.OS == "macos" {
+		directoryMode = 0o755
+	}
 	if err := ownerRoot.Mkdir(stagingChild, 0o700); err != nil {
 		if errors.Is(err, fs.ErrExist) {
 			return Materialized{}, ErrDestinationExists
@@ -266,6 +291,9 @@ func Materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 		return Materialized{}, fmt.Errorf("open nimiapp staging root: %w", err)
 	}
 	for _, entry := range archive.reader.File {
+		if entry.Mode()&os.ModeSymlink != 0 {
+			continue
+		}
 		if err := ctx.Err(); err != nil {
 			_ = root.Close()
 			return Materialized{}, err
@@ -273,7 +301,7 @@ func Materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 		name := filepath.FromSlash(entry.Name)
 		parent := filepath.Dir(name)
 		if parent != "." {
-			if err := root.MkdirAll(parent, 0o700); err != nil {
+			if err := makeStagingParents(root, parent, directoryMode); err != nil {
 				_ = root.Close()
 				return Materialized{}, fmt.Errorf("create nimiapp staging directory: %w", err)
 			}
@@ -290,6 +318,9 @@ func Materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 			return Materialized{}, fmt.Errorf("create nimiapp entry %s: %w", entry.Name, err)
 		}
 		copyErr := copyWithContext(ctx, output, input, entry.UncompressedSize64)
+		if expected.OS == "macos" && copyErr == nil {
+			copyErr = output.Chmod(entry.Mode().Perm())
+		}
 		syncErr := output.Sync()
 		closeOutputErr := output.Close()
 		closeInputErr := input.Close()
@@ -297,6 +328,22 @@ func Materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 			_ = root.Close()
 			return Materialized{}, fmt.Errorf("materialize nimiapp entry %s: %w", entry.Name,
 				errors.Join(copyErr, syncErr, closeOutputErr, closeInputErr))
+		}
+	}
+	for _, entry := range archive.reader.File {
+		if entry.Mode()&os.ModeSymlink == 0 {
+			continue
+		}
+		target, linkErr := readControlEntry(ctx, entry, maxControlDocumentBytes)
+		if linkErr == nil {
+			linkErr = makeStagingParents(root, filepath.Dir(filepath.FromSlash(entry.Name)), directoryMode)
+		}
+		if linkErr == nil {
+			linkErr = root.Symlink(string(target), filepath.FromSlash(entry.Name))
+		}
+		if linkErr != nil {
+			_ = root.Close()
+			return Materialized{}, fmt.Errorf("materialize nimiapp bundle link: %w", linkErr)
 		}
 	}
 	if err := root.Close(); err != nil {
@@ -438,7 +485,7 @@ func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (
 			payloadFiles++
 		}
 		if entry.Name == expected.RuntimeEntry {
-			if entry.Mode().Perm() != 0o755 {
+			if !entry.Mode().IsRegular() || entry.Mode().Perm() != 0o755 {
 				return Inspection{}, nil, fmt.Errorf("inspect nimiapp Runtime entry mode: %w", ErrInvalidPackage)
 			}
 			runtimeFound = true
@@ -466,10 +513,16 @@ func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (
 		}
 	}
 	var manifest Manifest
+	if err := validatePlatformManifestShape(manifestRaw, expected.OS); err != nil {
+		return Inspection{}, nil, err
+	}
 	if err := jsonstrict.Decode(manifestRaw, &manifest); err != nil {
 		return Inspection{}, nil, fmt.Errorf("decode nimiapp manifest: %w", errors.Join(ErrInvalidPackage, err))
 	}
 	if err := validateManifest(manifest, expected); err != nil {
+		return Inspection{}, nil, err
+	}
+	if err := validateArchiveLinks(ctx, reader, expected.OS); err != nil {
 		return Inspection{}, nil, err
 	}
 	declaration, err := validateDeclaration(declarationRaw, expected)
@@ -518,15 +571,14 @@ func validateZipEntry(entry *zip.File, targetOS string) error {
 	if entry == nil || entry.NonUTF8 || entry.Flags != canonicalZipFlags || entry.Method != zip.Store ||
 		entry.CreatorVersion != canonicalZipCreatorVersion || entry.ReaderVersion != canonicalZipReaderVersion ||
 		len(entry.Extra) != 0 || entry.Comment != "" || entry.CompressedSize64 != entry.UncompressedSize64 ||
-		entry.UncompressedSize64 > math.MaxUint32 || !entry.Mode().IsRegular() ||
-		(entry.Mode().Perm() != 0o644 && entry.Mode().Perm() != 0o755) {
+		entry.UncompressedSize64 > math.MaxUint32 || !validEntryMode(entry.Mode(), targetOS) {
 		return fmt.Errorf("inspect nimiapp entry header %q: %w", entry.Name, ErrInvalidPackage)
 	}
 	if err := validateEntryName(entry.Name, targetOS); err != nil {
 		return err
 	}
 	if entry.Name == "LICENSE" || entry.Name == "manifest.json" || entry.Name == "nimi.app.yaml" {
-		if entry.Mode().Perm() != 0o644 {
+		if !entry.Mode().IsRegular() || entry.Mode().Perm() != 0o644 {
 			return fmt.Errorf("inspect nimiapp control entry mode %q: %w", entry.Name, ErrInvalidPackage)
 		}
 		return nil
@@ -588,9 +640,7 @@ func targetPathCollisionKey(name, targetOS string) string {
 
 func validateExpected(expected Expected) error {
 	if expected.ArchiveSize <= 0 || !sha256Text(expected.ArchiveSHA256) || !exactText(expected.AppID) ||
-		!exactText(expected.Version) || !exactText(expected.TargetID) || !exactText(expected.RuntimeEntry) ||
-		expected.OS != "windows" || expected.Arch != "x86_64" ||
-		expected.ExecutionProfileRef != windowsExecutionProfileRef {
+		!exactText(expected.Version) || !exactText(expected.TargetID) || !exactText(expected.RuntimeEntry) {
 		return fmt.Errorf("validate expected nimiapp target: %w", ErrUnsupportedTarget)
 	}
 	if err := validateEntryName(expected.RuntimeEntry, expected.OS); err != nil || !strings.HasPrefix(expected.RuntimeEntry, "payload/") {
@@ -599,6 +649,12 @@ func validateExpected(expected Expected) error {
 	declaration, _, err := appaccess.ResolveDeclaration(expected.AppAccess)
 	if err != nil || !equalStrings(declaration, expected.AppAccess) {
 		return fmt.Errorf("validate expected nimiapp App Access: %w", errors.Join(ErrUnsupportedTarget, err))
+	}
+	if expected.OS == "macos" {
+		return validateMacOSExpected(expected)
+	}
+	if expected.OS != "windows" || expected.Arch != "x86_64" || expected.ExecutionProfileRef != windowsExecutionProfileRef {
+		return ErrUnsupportedTarget
 	}
 	switch expected.NativeTrust.WindowsCodeSigning {
 	case "unsigned":
@@ -619,10 +675,14 @@ func validateExpected(expected Expected) error {
 func validateManifest(manifest Manifest, expected Expected) error {
 	if manifest.Format != packageFormat || manifest.AppID != expected.AppID || manifest.Version != expected.Version ||
 		manifest.TargetID != expected.TargetID || manifest.OS != expected.OS || manifest.Arch != expected.Arch ||
-		manifest.RuntimeEntry != expected.RuntimeEntry || manifest.ExecutionProfile == nil ||
-		manifest.ExecutionProfile.RequestedExecutionLevel != "asInvoker" || manifest.ExecutionProfile.UIAccess == nil ||
-		*manifest.ExecutionProfile.UIAccess {
+		manifest.RuntimeEntry != expected.RuntimeEntry || manifest.ExecutionProfile == nil {
 		return fmt.Errorf("validate nimiapp manifest identity: %w", ErrPackageIntegrity)
+	}
+	if expected.OS == "macos" {
+		return validateMacOSManifest(manifest, expected)
+	}
+	if manifest.ExecutionProfile.RequestedExecutionLevel != "asInvoker" || manifest.ExecutionProfile.UIAccess == nil || *manifest.ExecutionProfile.UIAccess {
+		return ErrPackageIntegrity
 	}
 	switch expected.NativeTrust.WindowsCodeSigning {
 	case "unsigned":
@@ -775,8 +835,11 @@ func digestMaterializedRoot(ctx context.Context, rootPath, targetOS, runtimeEntr
 		name string
 		path string
 		size int64
+		mode os.FileMode
+		link string
 	}
 	files := make([]stagedFile, 0)
+	linkEntries := make(map[string]payloadLinkEntry)
 	var total uint64
 	err := filepath.WalkDir(rootPath, func(current string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -788,15 +851,15 @@ func digestMaterializedRoot(ctx context.Context, rootPath, targetOS, runtimeEntr
 		if current == rootPath {
 			return nil
 		}
-		if entry.Type()&os.ModeSymlink != 0 {
+		if entry.Type()&os.ModeSymlink != 0 && targetOS != "macos" {
 			return ErrPackageIntegrity
 		}
 		if entry.IsDir() {
 			return nil
 		}
 		info, err := entry.Info()
-		if err != nil || !info.Mode().IsRegular() {
-			return ErrPackageIntegrity
+		if err != nil || (!info.Mode().IsRegular() && info.Mode()&os.ModeSymlink == 0) || (targetOS == "macos" && info.Mode().IsRegular() && !validEntryMode(info.Mode(), targetOS)) {
+			return fmt.Errorf("staged entry %s mode %v: %w", current, entry.Type(), ErrPackageIntegrity)
 		}
 		relative, err := filepath.Rel(rootPath, current)
 		if err != nil {
@@ -810,20 +873,62 @@ func digestMaterializedRoot(ctx context.Context, rootPath, targetOS, runtimeEntr
 			return ErrPackageIntegrity
 		}
 		total += uint64(info.Size())
-		files = append(files, stagedFile{name: name, path: current, size: info.Size()})
+		file := stagedFile{name: name, path: current, size: info.Size(), mode: info.Mode()}
+		link := payloadLinkEntry{symbolic: info.Mode()&os.ModeSymlink != 0}
+		if link.symbolic {
+			if name == runtimeEntry {
+				return ErrPackageIntegrity
+			}
+			file.link, err = os.Readlink(current)
+			if err != nil || int64(len([]byte(file.link))) != info.Size() {
+				return ErrPackageIntegrity
+			}
+			link.target = file.link
+		}
+		linkEntries[name] = link
+		files = append(files, file)
 		return nil
 	})
 	if err != nil {
 		return [sha256.Size]byte{}, [sha256.Size]byte{}, nil, 0, fmt.Errorf("walk nimiapp staged tree: %w", err)
 	}
+	if err := validatePayloadLinkTree(linkEntries, targetOS); err != nil {
+		return [sha256.Size]byte{}, [sha256.Size]byte{}, nil, 0, err
+	}
 	sort.Slice(files, func(left, right int) bool { return files[left].name < files[right].name })
 	tree := sha256.New()
 	_, _ = tree.Write([]byte(payloadDigestDomain))
+	if targetOS == "macos" {
+		_, _ = tree.Write([]byte("macos\x00"))
+	}
 	var hostDigest [sha256.Size]byte
 	names := make([]string, 0, len(files))
 	for _, file := range files {
-		if err := writeDigestFile(ctx, tree, file.name, file.path, file.size); err != nil {
-			return [sha256.Size]byte{}, [sha256.Size]byte{}, nil, 0, err
+		if targetOS == "macos" {
+			kind := byte(0)
+			if file.mode&os.ModeSymlink != 0 {
+				kind = 1
+			}
+			_, _ = tree.Write([]byte{kind})
+			var mode [4]byte
+			permissions := uint32(file.mode.Perm())
+			// Darwin can apply the creation umask to link inode permissions;
+			// the portable archive seals the link type and target instead.
+			if kind == 1 {
+				permissions = 0o777
+			}
+			binary.LittleEndian.PutUint32(mode[:], permissions)
+			_, _ = tree.Write(mode[:])
+		}
+		var writeErr error
+		if file.mode&os.ModeSymlink != 0 {
+			writeDigestHeader(tree, file.name, file.size)
+			_, writeErr = tree.Write([]byte(file.link))
+		} else {
+			writeErr = writeDigestFile(ctx, tree, file.name, file.path, file.size)
+		}
+		if writeErr != nil {
+			return [sha256.Size]byte{}, [sha256.Size]byte{}, nil, 0, writeErr
 		}
 		names = append(names, file.name)
 		if file.name == runtimeEntry {
@@ -842,13 +947,17 @@ func digestMaterializedRoot(ctx context.Context, rootPath, targetOS, runtimeEntr
 	return treeDigest, hostDigest, names, total, nil
 }
 
-func writeDigestFile(ctx context.Context, destination hash.Hash, name, filePath string, size int64) error {
+func writeDigestHeader(destination hash.Hash, name string, size int64) {
 	var length [8]byte
 	binary.LittleEndian.PutUint64(length[:], uint64(len([]byte(name))))
 	_, _ = destination.Write(length[:])
 	_, _ = destination.Write([]byte(name))
 	binary.LittleEndian.PutUint64(length[:], uint64(size))
 	_, _ = destination.Write(length[:])
+}
+
+func writeDigestFile(ctx context.Context, destination hash.Hash, name, filePath string, size int64) error {
+	writeDigestHeader(destination, name, size)
 	file, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("open staged nimiapp file %s: %w", name, err)

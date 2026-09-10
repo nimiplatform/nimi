@@ -667,6 +667,33 @@ test('Electron Product Control bootstrap opens only a ready activation with a Ch
   );
 });
 
+test('Electron Product Control bootstrap waits for a transient service start and keeps trust failures closed', async () => {
+  for (const [reason, retryable, expectedReads, expectedClosed] of [
+    ['runtime-service-unavailable', true, 2, false],
+    ['runtime-service-untrusted', false, 1, true],
+  ] as const) {
+    const gate = createDesktopDataRootOperationGate();
+    let reads = 0;
+    const host = createDesktopElectronProductControlHost({
+      operationGate: gate,
+      control: {
+        machineProductUnary: async (input) => {
+          if (input.methodId === GET_CHECK_SYNC) return checkSyncJson('rootact_ready', 'completed');
+          assert.equal(input.methodId, GET_RECORD);
+          reads += 1;
+          if (reads === 1) throw Object.assign(new Error(reason), { reasonCode: reason, retryable });
+          return ProductControlProjectionJson.toBinary(ProductControlProjectionJson.create({
+            json: readyProjectionJson('/Users/owner/Nimi', 'rootact_ready'),
+          }));
+        },
+      },
+    });
+    await host.bootstrapDataRootHandoff();
+    assert.equal(reads, expectedReads);
+    assert.equal(gate.isClosed(), expectedClosed);
+  }
+});
+
 test('Electron Product Control rejects an inconsistent Runtime root-handoff disposition', async () => {
   const raw = JSON.parse(readyProjectionJson(
     'D:/NimiData',

@@ -29,12 +29,16 @@ export function studioNonSuccessReasonTitle(reason: StudioNonSuccessReason, tran
   return translate(`NonSuccess.title.${reasonKeySegment(reason)}`);
 }
 
-export function studioNonSuccessReasonUserMessage(reason: string, translate: StudioTranslate): string {
+export function studioNonSuccessReasonUserMessage(reason: string, translate: StudioTranslate, capabilityId?: string, diagnostics?: StudioNonSuccessDiagnostics): string {
+  if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === 'AI_LOCAL_SELECTION_NOT_FOUND') return translate('VisionLocate.modelSelectionRequired');
+  if (reason === 'input-invalid' && capabilityId === 'vision.locate') return translate('VisionLocate.invalidInput');
   const segment = reasonKeySegment(reason);
   return translate(segment ? `NonSuccess.message.${segment}` : 'NonSuccess.message.fallback');
 }
 
-export function studioNonSuccessReasonUserAction(reason: string, translate: StudioTranslate): string {
+export function studioNonSuccessReasonUserAction(reason: string, translate: StudioTranslate, capabilityId?: string, diagnostics?: StudioNonSuccessDiagnostics): string {
+  if (capabilityId === 'vision.locate' && diagnostics?.reasonCode === 'AI_LOCAL_SELECTION_NOT_FOUND') return translate('VisionLocate.selectModelAction');
+  if (reason === 'input-invalid' && capabilityId === 'vision.locate') return translate('VisionLocate.correctInput');
   const segment = reasonKeySegment(reason);
   return translate(segment ? `NonSuccess.action.${segment}` : 'NonSuccess.action.fallback');
 }

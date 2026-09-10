@@ -398,11 +398,13 @@ export async function startAgentVoiceCaptureSession(
     chunks.push(event.data);
   };
   recorder.onerror = (event) => {
+    if (!stopPromise && !canceled) exposeAutoStoppedRecording();
     settle(() => {
       rejectStop?.(limitError || event.error || new Error('Voice capture failed.'));
     });
   };
   recorder.onstop = () => {
+    if (!stopPromise && !canceled) exposeAutoStoppedRecording();
     void (async () => {
       if (limitError) {
         settle(() => {

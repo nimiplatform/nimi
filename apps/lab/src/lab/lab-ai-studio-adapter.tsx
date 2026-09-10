@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from 'react';
-import { hasTauriRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
+import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   AIStudioHostProvider,
   type AIStudioHostPort,
@@ -32,7 +32,7 @@ export function LabAIStudioAdapter({ children }: { readonly children: ReactNode 
             config: input.config,
             configState: input.configState,
             configError: input.configError,
-            standaloneTauriAvailable: hasTauriRuntime(),
+            standaloneViewerAvailable: hasElectronRuntime(),
           }),
         runStatusLabel: (status) => t({
           ready: 'StudioShell.runStatusReady',
@@ -53,25 +53,7 @@ export function LabAIStudioAdapter({ children }: { readonly children: ReactNode 
       },
     },
     sdk: {
-      runCapability: async (input: StudioCapabilityRunInput): Promise<StudioCapabilityRunResult> => {
-        if (input.capabilityId !== 'world.generate') {
-          return rendererHost.sdk.runCapability(input);
-        }
-        const fixture = await rendererHost.app.commands.resolveWorldTourFixture({});
-        const opened = await rendererHost.app.commands.openWorldTourWindow({ manifestPath: fixture.manifestPath });
-        return {
-          ok: true,
-          capabilityId: input.capabilityId,
-          capabilityLabel: t('Capabilities.worldGenerate.label'),
-          message: t('StudioShell.worldTourViewerMessage', { manifestPath: fixture.manifestPath }),
-          output: {
-            kind: 'text',
-            text: t('StudioShell.worldTourViewerOutput', { windowLabel: opened.windowLabel }),
-            finishReason: 'viewer-opened',
-            streamed: false,
-          },
-        };
-      },
+      runCapability: (input: StudioCapabilityRunInput): Promise<StudioCapabilityRunResult> => rendererHost.sdk.runCapability(input),
       listLocalAppVoiceAssets: () => rendererHost.sdk.listLocalAppVoiceAssets(),
       uploadLocalAppArtifact: (input) => rendererHost.sdk.uploadLocalAppArtifact(input),
       aiConfig: {

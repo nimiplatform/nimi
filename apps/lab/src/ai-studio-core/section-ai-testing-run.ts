@@ -20,6 +20,7 @@ import {
 import type { StudioTranslate } from './non-success-presentation.js';
 
 export type TextStudioActiveRun = {
+  jobStatus?: 'queued' | 'running';
   id: string;
   prompt: string;
   context: string;
@@ -62,6 +63,7 @@ export function canConfigureRunTarget(runTarget: StudioRunTargetSummary): boolea
 export function useStudioRunTargetSummary(
   registration: StudioCapabilityRegistration,
   runtime: StudioRuntimeInspection | null,
+  configOpen = false,
 ): StudioRunTargetSummary {
   const host = useAIStudioHost();
   const [configProjection, setConfigProjection] = useState<{
@@ -99,7 +101,7 @@ export function useStudioRunTargetSummary(
       requestGeneration += 1;
       unsubscribe();
     };
-  }, [host]);
+  }, [host, configOpen]);
 
   return useMemo(() => host.app.projection.projectRunTarget({
     capability: registration.descriptor,

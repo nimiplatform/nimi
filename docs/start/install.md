@@ -1,99 +1,50 @@
-# Installation And Availability
+# Development Setup And Availability
 
-Nimi has several public surfaces, and each one has its own distribution
-channel. This page lists what you can install today, and what is
-currently documented only at the contract level.
+For a third-party Nimi App, prepare the project toolchain first. Running the App with Nimi capabilities also requires a compatible Nimi Home development instance and Runtime.
 
-## Installable Today
+## Create And Check An App Project
 
-### Nimi Coding
+Use Node.js 24 or newer and pnpm, then follow [Create a Nimi App](/start/create-an-app). That guide pins App Tools 0.2.7 so its commands and generated dependencies can be checked against the same release.
 
-Nimi Coding is admitted as host-agnostic canonical-authority tooling and is
-distributed as the npm package
-[`@nimiplatform/nimi-coding`](https://www.npmjs.com/package/@nimiplatform/nimi-coding).
-
-For the Nimi workspace install and host compatibility checks, see
-[Nimi Coding → Host Integration](/nimicoding/installation).
-
-A minimal first-run path:
-
-1. Install the Nimi workspace dependencies.
-2. Run `pnpm nimicoding:sync` and `pnpm nimicoding:doctor`.
-3. Use the [CLI Reference](/nimicoding/cli-reference) for bounded authority
-   context, formatting, validation, and the code-reading commands available in
-   the installed version.
-
-The package remains host-agnostic; the Nimi repository applies its own
-explicit admission boundary around it.
-
-### Nimi App Tools
-
-`@nimiplatform/app-tools` is the public app-authoring CLI for Nimi App
-developer repositories.
-
-```bash
-pnpm dlx --package @nimiplatform/app-tools nimi-app create --profile standalone
-```
-
-For the full scaffold path, see [Create A Nimi App](/start/create-an-app).
-The CLI creates scaffold inputs and local checks only. It does not create public
-app admission, permission grants, registry visibility, release descriptors, or
-installed-app update truth.
-
-## Package Channel Matrix
-
-| Package | npm install path | Source checkout path | Notes |
-| --- | --- | --- | --- |
-| `@nimiplatform/app-tools` | Public package with the `nimi-app` binary | `app-tools/` | Standalone scaffolds run it through `pnpm dlx --package`; workspace scaffolds may use `workspace:*`. |
-| `@nimiplatform/kit` | Public package | `kit/` | Kit is not a Runtime substitute; apps use its published subpath exports only. |
-| `@nimiplatform/sdk` | Public package for app consumers | `sdks/typescript/` active public package source | Generated standalone apps depend on the published `0.6.x` range from app-tools; repository development uses the same package through the workspace. |
-
-Do not assume a source checkout automatically opens every product release
-channel. Use npm packages for standalone app repositories, and use `workspace:*`
-only inside this monorepo or generated workspace-app scaffolds.
-
-## Surfaces Documented As Contract
-
-The following surfaces are documented at the contract level. Their
-read paths describe what the surface is, what it owns, and how it
-relates to the rest of the platform.
-
-| Surface | Read path | What it documents |
+| Component | App Tools 0.2.7 generates | What you use it for |
 | --- | --- | --- |
-| Platform | [Platform](/platform/) | The world model, six protocol primitives, authority rules |
-| Runtime | [Runtime](/runtime/) | LocalAgent execution, Conversation, Memory, Knowledge, streaming, multimodal, provider routing |
-| SDK | [SDK](/sdk/) and [First AI Call](/sdk/first-ai-call) | The app-facing access boundary and first Runtime-backed text generation path |
-| App Tools | [Create A Nimi App](/start/create-an-app) | App authoring scaffold commands and local checks |
-| Kit | [Platform Kit](/platform/kit/) | Shared UI, shell, auth, telemetry, AI capability configuration, and feature modules |
-| Nimi Lab | [Use Nimi Lab](/start/use-nimi-lab) | Capability integration scripts, Runtime auth, Kit, AIConfig, and fail-closed states |
-| Desktop | [Desktop](/desktop/) | The native first-party shell |
-| Web Mode | [Web Mode](/desktop/web-mode) | The constrained browser projection |
-| Realm | [Realm](/realm/) | Semantic truth, world state, world history |
-| Avatar | [Avatar](/avatar/) | Embodied agent presentation |
+| `@nimiplatform/app-tools` | `^0.2.7` | Create, initialize, synchronize, check, run, test, build, and package the App |
+| `@nimiplatform/sdk` | `^0.9.0` | Public Nimi capability interfaces |
+| `@nimiplatform/nimi-coding` | `0.6.1` | The managed projections checked and synchronized by App initialization/tooling |
+| `@nimiplatform/kit` | The version declared by the generated project | Shared App UI and host integration |
 
-When a surface adds an install command, a download link, or a release
-notes path, the corresponding section page is updated to expose it.
+These are the published scaffold's declarations, not a recommendation to upgrade each dependency independently. If you choose a different App Tools release, follow that release's generated manifest and help. The Nimi workspace currently has App Tools 0.2.8 with SDK `^0.10.0` and nimicoding `0.6.2`; those workspace values must not be presented as the 0.2.7 package's output.
 
-## Tracking Availability
+Standalone projects use public packages. `workspace:*`, source aliases, and Nimi's internal workspace validation are not a third-party installation path. [App Tools 0.2.7](https://www.npmjs.com/package/@nimiplatform/app-tools/v/0.2.7) is the version addressed above.
 
-The [Compatibility Posture](/reference/compatibility-posture) page lists
-the constraints that govern when a surface is allowed to publish
-install or release information.
+## Run Through Nimi Home
 
-The [Forbidden Claims](/reference/forbidden-claims) page enumerates
-the install-style and release-style strings that public docs refuse
-to publish without admitted evidence.
+The development command asks Desktop, the current Nimi Home host, to launch a supervised Electron App. Use Developer Mode for local project registration and the access required by your App. A visible window does not prove that Runtime access or an AI capability is configured.
+
+No ordinary-user stable Nimi installer is currently published. Check the [official Download page](https://nimi.ai/download) for the actual platform and development-build availability. The Windows Runtime bootstrap is a portable developer component; it does not include Nimi Home, an installer, or the protected product environment needed to stand in for a Home development setup.
+
+If you do not yet have a compatible Home/Runtime development instance, you can prepare the project and its static checks, but supervised launch and capability execution remain unverified until that prerequisite is available. Follow the host's actual errors and [Troubleshooting](/start/troubleshooting); do not launch a renderer directly as an access bypass.
+
+## Add Capabilities And Prepare Distribution
+
+- [First AI Call](/sdk/first-ai-call) explains the request and capability-intent requirements.
+- [Use Kit in an App](/platform/kit/use-kit-in-app) covers the generated host binding and shared interfaces.
+- [Local development and distribution](/start/#local-development-and-distribution) separates Developer Mode, Registry packages, and immutable local-package imports, including the current platform limits.
+- [Web and Nimi Home](/desktop/web-mode) explains the public site and account boundary; the website is not a Desktop web adapter.
+
+Creating or running a project does not publish it or grant Registry admission. Use the actual App Tools release/packaging guidance when you reach that stage.
+
+## Use Nimi Coding Directly
+
+The generated App already declares its required nimicoding dependency, and `pnpm run init` invokes the package's synchronization. This is a real toolchain dependency, not a requirement to first learn Nimi's internal development governance.
+
+If you want to use Nimi Coding's authority tools directly in your own work, read its [overview](/nimicoding/) and [installation guide](/nimicoding/installation).
 
 ## Source Basis
 
-- [`nimi-coding/README.md`](https://github.com/nimiplatform/nimi-coding/blob/main/README.md)
-- [`nimi-coding/methodology/authority-authoring.yaml`](https://github.com/nimiplatform/nimi-coding/blob/main/methodology/authority-authoring.yaml)
-- [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
-- [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
-- [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)
 - [`app-tools/README.md`](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md)
-- [`app-tools/lib/index.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/index.mjs)
+- [`app-tools/package.json`](https://github.com/nimiplatform/nimi/blob/main/app-tools/package.json)
 - [`app-tools/lib/app-scaffold.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/app-scaffold.mjs)
-- [`kit/package.json`](https://github.com/nimiplatform/nimi/blob/main/kit/package.json)
-- [`sdks/typescript/package.json`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/package.json)
-- [`nimi-coding/package.json`](https://github.com/nimiplatform/nimi-coding/blob/main/package.json)
+- [`app-tools/lib/app-doctor-update.mjs`](https://github.com/nimiplatform/nimi/blob/main/app-tools/lib/app-doctor-update.mjs)
+- [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
+- [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)

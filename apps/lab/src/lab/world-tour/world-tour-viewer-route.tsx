@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { InlineAlert, Surface } from '@nimiplatform/kit/ui';
+import { InlineAlert } from '@nimiplatform/kit/ui';
 import { useTranslation } from '../../shell/i18n/index.js';
 import { labTestIds } from '../lab-test-ids.js';
 import type { ResolvedWorldTourFixture } from './world-tour-shared.js';
@@ -31,13 +31,7 @@ export function WorldTourViewerRoute() {
 
   return (
     <section className="product-area" data-testid={labTestIds.worldTourViewerRoot}>
-      <Surface className="product-hero world-tour-viewer-hero" material="glass-thick" tone="hero" elevation="floating">
-        <div>
-          <p className="eyebrow">{t('WorldTour.eyebrow')}</p>
-          <h1>{t('WorldTour.viewerTitle')}</h1>
-          <p className="product-copy">{t('WorldTour.viewerDescription')}</p>
-        </div>
-      </Surface>
+      <h1 className="world-tour-page-title">{t('WorldTour.viewerTitle')}</h1>
       {error ? (
         <InlineAlert tone="warning">
           <div className="runtime-alert-copy">

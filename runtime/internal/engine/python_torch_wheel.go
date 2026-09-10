@@ -62,6 +62,19 @@ func ResolvePythonTorchWheelDependencyIdentity(consumer string) (PythonTorchWhee
 func resolvePythonTorchWheelManifest(consumer string) (pythonTorchWheelManifest, error) {
 	trimmed := strings.TrimSpace(consumer)
 	switch {
+	case trimmed == VisionLocateConsumerID+".cuda":
+		return pythonTorchWheelManifest{
+			Packages:         []string{"torch==2.11.0", "torchvision==0.26.0"},
+			ImportProbes:     []string{"torch", "torchvision"},
+			AcceleratorPlane: "cuda", CUDAABI: "cu128",
+			WheelIndex: defaultSpeechTorchCUDAIndexURL, PackageSource: pythonTorchPackageSource,
+		}, nil
+	case trimmed == VisionLocateConsumerID+".cpu":
+		return pythonTorchWheelManifest{
+			Packages: []string{"torch==2.11.0"}, ImportProbes: []string{"torch"},
+			AcceleratorPlane: "cpu", CUDAABI: "none",
+			WheelIndex: defaultMediaTorchCPUIndexURL, PackageSource: pythonTorchPackageSource,
+		}, nil
 	case strings.HasPrefix(trimmed, "media.") && strings.HasSuffix(trimmed, ".cuda"):
 		return pythonTorchWheelManifest{
 			Packages:         append([]string{}, mediaPackages[:2]...),

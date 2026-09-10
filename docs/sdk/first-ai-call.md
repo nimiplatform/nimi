@@ -1,106 +1,60 @@
-# First AI Call
+# First AI Call in a Nimi App
 
-A Runtime-backed AI request carries app identity, subject identity, scenario content, and supported generation parameters. Runtime reads the App's saved capability intent and chooses the implementation when execution starts.
+Use the App's host-bound SDK client to make one real text-generation request. Nimi Home establishes the App session; Runtime reads that App's saved AI configuration and chooses the implementation when execution starts.
 
-## Prerequisites
+This guide continues the `--features studio-create` example in [Create a Nimi App](/start/create-an-app), using public App Tools 0.2.7. Keep the generated SDK/Kit binding. The App renderer does not need a gRPC endpoint, account ID, session token, or a caller-selected App identity.
 
-- `nimi start` is running.
-- The SDK can reach Runtime at `NIMI_RUNTIME_GRPC_ENDPOINT`, or the default `127.0.0.1:46371`.
-- The exact App owner has a `text.generate` AIConfig capability intent.
-- Calls that need account identity have a Runtime subject user ID.
+## Before the Call
 
-Runtime endpoint variables are layer-specific:
+1. Start the project with `pnpm dev` in a compatible Nimi Home development environment. Use its supervised Electron window, not the renderer URL in a browser.
+2. Confirm that the generated `nimi.app.yaml` includes `runtime.consume`, then establish the App's required access through the host. The `studio-create` selection supplies the declaration; it does not grant access by itself.
+3. Configure `text.generate` for this App through its AI settings or Nimi Home's App settings. A local route uses the machine's current model selection; a cloud route needs the appropriate configured connector and target. Saving configuration does not prove that generation will succeed.
 
-| Variable | Read by | Purpose |
-| --- | --- | --- |
-| `NIMI_RUNTIME_GRPC_ENDPOINT` | The explicit sample below | App-side override when the app supplies `runtime.transport.endpoint` |
-| `NIMI_RUNTIME_ENDPOINT` | SDK Runtime client default in Node.js | App-side default when `createNimiClient` omits `runtime.transport` |
-| `NIMI_RUNTIME_GRPC_ADDR` | Runtime daemon config | Daemon listen address |
+Use [development setup](/start/install) for prerequisites and [Use Kit in an App](/platform/kit/use-kit-in-app) for shared settings and host integration.
 
-Use the CLI to check the Runtime installation and public health projection:
+If the generated manifest has `app_access: []`, the project was created without the feature required by this example. Follow the creation guide's AI example in an empty directory rather than hand-editing the managed manifest or its lock. `sync` maintains the original feature selection; it does not add this permission.
 
-```bash
-nimi start
-nimi health --json
-```
+## Generate Text
 
-## Dispatch Text Generation
+The default starter already exports `getNimiLocalAppClient()` from `src/shell/auth/local-app-client.ts`. Reuse it. In an existing App with a different file layout, use that App's equivalent host-bound client.
 
 ```ts
-import { createNimiClient, textPart } from '@nimiplatform/sdk';
+// src/first-ai-call.ts in the default App Tools 0.2.7 starter
+import { getNimiLocalAppClient } from './shell/auth/local-app-client.js';
 
-export async function generateText(input: {
-  runtimeSubjectUserId: string;
-  prompt: string;
-}) {
-  const client = createNimiClient({
-    appId: 'example.sdk.hello',
-    runtime: {
-      transport: {
-        type: 'node-grpc',
-        endpoint: process.env.NIMI_RUNTIME_GRPC_ENDPOINT || '127.0.0.1:46371',
-      },
-    },
-  });
-
-  const textGeneration = client.ai.createRuntimeModel({
-    subjectUserId: input.runtimeSubjectUserId,
-    timeoutMs: 120_000,
-  });
-
-  return await textGeneration.generateText({
-    messages: [{
-      role: 'user',
-      content: [textPart(input.prompt)],
-    }],
+export async function generateText(prompt: string) {
+  const client = getNimiLocalAppClient();
+  return await client.ai.text.generateCandidate({
+    messages: [{ role: 'user', text: prompt }],
   });
 }
 ```
 
-The App does not send a model, route, connector, target, fallback policy, or implementation binding. The returned `modelResolved` and route diagnostics, when present, are execution evidence from Runtime rather than inputs for the next request.
+Call `generateText()` from an App action and present the returned `text`. Show a loading state while the promise is pending; on rejection, show the actual error and an appropriate recovery action. Do not render a sample response as though it came from Runtime.
 
-## Capability Intent
+The request carries conversation content. It does not select a model, connector, execution endpoint, fallback, or machine binding. Runtime obtains the App identity from the protected host session and applies its current Local or Cloud intent. Provider credentials remain in Runtime-owned configuration.
 
-AIConfig records whether an App owner intends to use the Local or Cloud execution plane for a capability. The owning service saves that intent before the call. App Access remains a separate Runtime admission fact. The generation request does not resolve AIConfig into a machine target and does not carry AIConfig as request metadata.
+## Diagnose the First Failure
 
-The same call shape works for either intent. Runtime evaluates current configuration and availability at execution time, then fails closed if it cannot honor the request.
+| Failure | Next step |
+| --- | --- |
+| No bound App session or an access error | Return to the supervised App launch and its host access flow. Do not replace the binding with a direct Node/gRPC client or supply your own identity. |
+| `AI_CONFIG_NOT_FOUND` or missing `text.generate` intent | Save the capability intent for this App in its AI settings, then retry the actual call. |
+| Local model or cloud configuration is unavailable | Inspect that App's current settings and the Runtime-selected model or connector state. Preserve the actual error; a configured route is not a successful execution. |
+| Runtime disconnected | Restore the existing Nimi Home/Runtime development instance, reopen the supervised App if needed, and retry the same action. |
+| Execution fails after dispatch | Inspect the typed error and its available reason/action fields. Do not synthesize a client-side fallback or switch providers silently. |
 
-## App Responsibilities
+For setup debugging, the same client exposes `auth.status()` and `aiConfig.get()`. These are current state reads, not substitutes for an actual generation request. More setup errors are covered in [Troubleshooting](/start/troubleshooting).
 
-- Use the exact App identity that owns the saved capability intent.
-- Send subject identity only when the operation requires it.
-- Keep provider credentials in Runtime-owned configuration.
-- Handle typed errors from the actual generation call.
-- Do not import from `runtime/internal/**` or call provider SDKs as a Runtime substitute.
-- Do not add request-side model, route, connector, target, fallback, readiness, or health selection.
+## Confirm the Result
 
-## Common Fail-Closed States
+Run the App repository's existing checks, then make one request in its actual supervised window using its own client. Confirm pending, success, and any observed failure separately. A returned greeting can verify the first capability call; it does not establish that the App's full product journey or public distribution is ready.
 
-| Symptom | Meaning | Fix |
-| --- | --- | --- |
-| `SDK_CLIENT_APP_ID_REQUIRED` or `provide_runtime_ai_app_id` | The client or operation has no App identity. | Pass `appId` to `createNimiClient` or `createRuntimeModel`. |
-| `AI_CONFIG_NOT_FOUND` | Runtime has no AIConfig for the exact App owner. | Save capability intent for that App identity. |
-| Capability-intent or App Access error | The App has no owner-selected `text.generate` intent or lacks the required App Access. | Configure the capability through the owning AIConfig surface, or correct the App Access declaration. |
-| Runtime connection error | The daemon is not reachable at the configured endpoint. | Start Runtime and verify the endpoint supplied to the SDK. |
-| Execution error after dispatch | Runtime could not select or run an admitted implementation. | Inspect the typed Runtime error and returned diagnostics; do not synthesize a client-side fallback. |
-
-## Verification
-
-For repository development:
-
-```bash
-pnpm --filter @nimiplatform/sdk test
-pnpm --filter @nimiplatform/examples check
-pnpm --filter @nimiplatform/lab test
-```
-
-For an App repository, run `nimi doctor`, the App's validation commands, and one App-owned generation call with the exact configured App identity.
+Do not copy Nimi's repository-wide SDK/Lab test commands into a third-party App as a prerequisite. Follow the scripts declared by that project.
 
 ## Source Basis
 
-- [`sdks/typescript/core/ai/runtime-model.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/runtime-model.ts)
-- [`sdks/typescript/core/ai/config.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/ai/config.ts)
-- [`sdks/typescript/runtime/config-projections.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/runtime/config-projections.ts)
-- [`sdks/typescript/root-client.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/root-client.ts)
-- [`apps/lab/src/lab/lab-run-target.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-run-target.ts)
-- [`apps/lab/src/lab/lab-runtime.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-runtime.ts)
+- [`app-tools/templates/default-starter/src/shell/auth/local-app-client.ts`](https://github.com/nimiplatform/nimi/blob/main/app-tools/templates/default-starter/src/shell/auth/local-app-client.ts)
+- [`sdks/typescript/core/app/local-app-runtime-platform-ai-config.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/core/app/local-app-runtime-platform-ai-config.ts)
+- [`kit/shell/renderer/src/bridge/local-app.ts`](https://github.com/nimiplatform/nimi/blob/main/kit/shell/renderer/src/bridge/local-app.ts)
+- [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)

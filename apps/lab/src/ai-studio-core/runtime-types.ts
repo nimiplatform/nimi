@@ -1,5 +1,7 @@
 import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import type { StudioParameterValue } from './parameters.js';
+import type { NimiLocalAppVisionLocateResult } from '@nimiplatform/sdk/app';
+import type { NimiRuntimeScenarioJob } from '@nimiplatform/sdk/runtime';
 
 export type StudioRuntimeCapabilityDescriptor = {
   readonly id: string;
@@ -21,6 +23,7 @@ export type StudioManagedArtifact = {
 };
 
 export type StudioTypedOutput =
+  | { readonly kind: 'vision-locate'; readonly jobId: string; readonly result: NimiLocalAppVisionLocateResult; readonly imagePreviewUrl?: string }
   | { readonly kind: 'text'; readonly text: string; readonly finishReason: string; readonly inputTokens?: number; readonly outputTokens?: number; readonly totalTokens?: number; readonly streamed: boolean }
   | { readonly kind: 'embedding'; readonly vectorCount: number; readonly dimensions: number; readonly sample: number[]; readonly totalTokens?: number }
   | { readonly kind: 'artifacts'; readonly jobId: string; readonly jobState: string; readonly artifactCount: number; readonly artifacts: StudioManagedArtifact[]; readonly firstArtifact?: StudioManagedArtifact }
@@ -80,6 +83,7 @@ export type StudioCapabilityRunInput = {
   readonly scenarioId?: string;
   readonly signal?: AbortSignal;
   readonly onPartial?: (accumulatedText: string) => void;
+  readonly onJobUpdate?: (job: NimiRuntimeScenarioJob) => void;
   readonly attachments?: BrowserDataUrlAttachment[];
   readonly directive?: string;
   readonly parameters?: StudioParameterValue;

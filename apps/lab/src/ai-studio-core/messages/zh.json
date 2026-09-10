@@ -165,6 +165,7 @@
     "expandImage": "展开图片",
     "expandGeneratedImage": "展开生成的图片",
     "imagePreview": "图片预览",
+    "imagePreviewFailed": "无法打开图片预览，请重试。",
     "closeImagePreview": "关闭图片预览",
     "emptyBody": "（空内容）",
     "emptyTranscript": "（空转写）",

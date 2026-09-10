@@ -2,4 +2,7 @@
 
 package entrypoint
 
-const macOSProtectedRealmBaseURL = "https://realm.nimi.ai"
+// @nimi-authority: rule.nimi.runtime.service-operations.r067
+// The release linker fixes this value before code signing. It has no runtime
+// setter and is never loaded from process environment or mutable configuration.
+var macOSProtectedRealmBaseURL = "https://realm.nimi.ai"

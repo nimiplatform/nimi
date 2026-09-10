@@ -8,5 +8,91 @@ if [[ "$(/usr/bin/id -u)" != "0" || "$(/usr/bin/id -ru)" != "0" ]]; then
   exit 70
 fi
 
-print -u2 -- "Nimi macOS production Runtime installation remains requirements-only and fail-closed pending native principal, SMAppService, Developer ID, notarization, and Gatekeeper admission"
-exit 78
+if [[ "${3:-/}" != "/" ]]; then
+  print -u2 -- "Nimi must be installed on the running macOS system volume"
+  exit 70
+fi
+
+account="_nimiruntime"
+user_record="/Users/${account}"
+group_record="/Groups/${account}"
+read_attribute() {
+  /usr/bin/dscl . -read "$1" "$2" | /usr/bin/awk '{print $2}'
+}
+
+if /usr/bin/dscl . -read "$user_record" UniqueID >/dev/null 2>&1; then
+  service_id="$(read_attribute "$user_record" UniqueID)"
+else
+  # Reuse a group left by an interrupted first install; never replace an
+  # existing user or select a new UID for retained Runtime data.
+  if /usr/bin/dscl . -read "$group_record" PrimaryGroupID >/dev/null 2>&1; then
+    service_id="$(read_attribute "$group_record" PrimaryGroupID)"
+    if /usr/bin/dscl . -search /Users UniqueID "$service_id" | /usr/bin/grep -q .; then
+      print -u2 -- "Nimi Runtime group conflicts with an existing user"
+      exit 71
+    fi
+  else
+    service_id=""
+    for candidate_id in {450..499}; do
+      if ! /usr/bin/dscl . -search /Users UniqueID "$candidate_id" | /usr/bin/grep -q . &&
+         ! /usr/bin/dscl . -search /Groups PrimaryGroupID "$candidate_id" | /usr/bin/grep -q .; then
+        service_id="$candidate_id"
+        break
+      fi
+    done
+    if [[ -z "$service_id" ]]; then
+      print -u2 -- "No non-login Runtime service UID/GID is available"
+      exit 71
+    fi
+    /usr/bin/dscl . -create "$group_record"
+    /usr/bin/dscl . -create "$group_record" PrimaryGroupID "$service_id"
+  fi
+  /usr/bin/dscl . -create "$user_record"
+  /usr/bin/dscl . -create "$user_record" PrimaryGroupID "$service_id"
+  /usr/bin/dscl . -create "$user_record" NFSHomeDirectory /var/empty
+  /usr/bin/dscl . -create "$user_record" UserShell /usr/bin/false
+  /usr/bin/dscl . -create "$user_record" Password '*'
+  /usr/bin/dscl . -create "$user_record" RealName 'Nimi Runtime'
+  /usr/bin/dscl . -create "$user_record" IsHidden 1
+  # Publish the UID last. An interrupted creation without a UID is resumed by
+  # the group-only branch above, before Runtime can observe a partial account.
+  /usr/bin/dscl . -create "$user_record" UniqueID "$service_id"
+fi
+
+if [[ "$service_id" != <200-499> ||
+      "$(read_attribute "$user_record" PrimaryGroupID)" != "$service_id" ||
+      "$(read_attribute "$group_record" PrimaryGroupID)" != "$service_id" ||
+      "$(read_attribute "$user_record" NFSHomeDirectory)" != "/var/empty" ||
+      "$(read_attribute "$user_record" UserShell)" != "/usr/bin/false" ]]; then
+  print -u2 -- "The existing Nimi Runtime account does not match its service identity"
+  exit 71
+fi
+
+ensure_directory() {
+  local directory="$1" owner_id="$2" group_id="$3" mode="$4"
+  if [[ ! -e "$directory" && ! -L "$directory" ]]; then
+    /usr/bin/install -d -o "$owner_id" -g "$group_id" -m "$mode" "$directory"
+  fi
+  local observed expected
+  if [[ "$owner_id" == 0 ]]; then
+    # Root-owned parents may legitimately use wheel or admin; neither may
+    # write through the admitted 0755 mode. Retained service state is exact.
+    observed="$(/usr/bin/stat -f '%u:%Lp' "$directory")"
+    expected="${owner_id}:${mode}"
+  else
+    observed="$(/usr/bin/stat -f '%u:%g:%Lp' "$directory")"
+    expected="${owner_id}:${group_id}:${mode}"
+  fi
+  if [[ ! -d "$directory" || -L "$directory" || "$observed" != "$expected" ]]; then
+    print -u2 -- "Nimi cannot reuse a directory with unexpected ownership or permissions: ${directory}"
+    exit 72
+  fi
+}
+
+ensure_directory '/Library/Application Support/Nimi' 0 0 755
+ensure_directory '/Library/Application Support/Nimi/Runtime' 0 0 755
+ensure_directory '/Library/Application Support/Nimi/Runtime/state' "$service_id" "$service_id" 700
+ensure_directory /private/var/run/nimi 0 0 755
+
+'/Applications/Nimi.app/Contents/Library/LaunchServices/nimi-runtime' macos-protected-state-provision
+print -- "Nimi is installed. Open Nimi and approve Nimi Runtime in System Settings when requested."

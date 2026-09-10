@@ -131,8 +131,8 @@ func TestRealmTokenRefresherConsumesCurrentQuartetAndPreservesCustodiedIdentity(
 		!got.AccessTokenExpires.After(time.Now().UTC().Add(4*time.Minute)) {
 		t.Fatalf("refresh did not atomically install rotated tokens: %+v", got)
 	}
-	if !got.RefreshTokenHashes["previous-family-member"] || !got.RefreshTokenHashes[refreshHash("refresh-old")] {
-		t.Fatalf("refresh rotation lineage = %#v", got.RefreshTokenHashes)
+	if len(got.RefreshTokenHashes) != 0 {
+		t.Fatalf("completed refresh retained consumption history: %#v", got.RefreshTokenHashes)
 	}
 	projection, _, ok := service.AuthenticatedRuntimeSecurityContext(context.Background())
 	if !ok || projection.GetAccountId() != current.AccountID || projection.GetDisplayName() != current.DisplayName ||
@@ -164,7 +164,6 @@ func TestRealmTokenRefresherRejectsNonCanonicalOrUnsafeResponses(t *testing.T) {
 		{name: "fractional expiry", status: http.StatusOK, body: `{"accessToken":"access-new","refreshToken":"refresh-new","tokenType":"Bearer","expiresIn":1.5}`},
 		{name: "zero expiry", status: http.StatusOK, body: `{"accessToken":"access-new","refreshToken":"refresh-new","tokenType":"Bearer","expiresIn":0}`},
 		{name: "unrotated refresh token", status: http.StatusOK, body: `{"accessToken":"access-new","refreshToken":"refresh-old","tokenType":"Bearer","expiresIn":300}`},
-		{name: "replayed family refresh token", status: http.StatusOK, body: `{"accessToken":"access-new","refreshToken":"refresh-replayed","tokenType":"Bearer","expiresIn":300}`},
 		{name: "whitespace token", status: http.StatusOK, body: `{"accessToken":" access-new","refreshToken":"refresh-new","tokenType":"Bearer","expiresIn":300}`},
 		{name: "trailing JSON", status: http.StatusOK, body: `{"accessToken":"access-new","refreshToken":"refresh-new","tokenType":"Bearer","expiresIn":300}{}`},
 		{name: "non success status", status: http.StatusUnauthorized, body: `{}`},
@@ -532,8 +531,7 @@ func TestRefreshTwoPhaseMarkerSuccessCommitsNewActiveToken(t *testing.T) {
 	}
 	if custody.storeCalls != 2 || custody.clearCalls != 0 ||
 		custody.material.RefreshToken != "refresh-new" ||
-		!custody.material.RefreshTokenHashes[refreshHash("refresh-old")] ||
-		custody.material.RefreshTokenHashes[refreshHash("refresh-new")] {
+		len(custody.material.RefreshTokenHashes) != 0 {
 		t.Fatalf("two-phase success custody = %+v", custody)
 	}
 	restarted := New(nil,

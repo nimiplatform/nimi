@@ -188,6 +188,17 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 	var required []requiredDependency
 	host := localEnvironmentHostProfileFromDeviceProfile(collectDeviceProfile())
 	switch typed := driver.(type) {
+	case capabilitydriver.LocateAnythingDriver:
+		record, _, ok, detail := s.selectedPythonPackageSetSourceForConsumer(engine.VisionLocateConsumerID, func(root string) string { return filepath.Join(root, "vision_server.py") })
+		if !ok {
+			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, "Locate managed profile is not ready", map[string]string{"detail": detail})
+		}
+		return []localexecution.ExactDependencySource{{
+			DependencyFamily: record.DependencyFamily, DependencyID: record.DependencyID,
+			ConsumerScope: engine.VisionLocateConsumerID, SelectedSourceRecordID: record.RecordID,
+			CanonicalRoot: record.CanonicalRoot, Version: record.Version,
+			VerifiedArtifacts: append([]string(nil), record.VerifiedArtifacts...), Hashes: cloneStringMap(record.Hashes),
+		}}, nil
 	case capabilitydriver.LlamaTextDriver, capabilitydriver.LlamaEmbedDriver:
 		_, resolvedConsumer, ok := localEnvironmentTargetForDriver(typed, host)
 		if !ok {

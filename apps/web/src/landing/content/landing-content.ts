@@ -19,6 +19,7 @@ export type LandingContent = {
     titleAccent: string;
     subtitle: string;
     primaryCta: string;
+    availability: string;
     secondaryCta: string;
     proofPoints: ReadonlyArray<string>;
   };

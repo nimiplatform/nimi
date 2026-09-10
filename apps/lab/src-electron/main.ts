@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { app, BrowserWindow, ipcMain, Menu, protocol, session, webContents } from 'electron';
 import {
@@ -8,6 +9,8 @@ import {
 } from '@nimiplatform/kit/shell/electron/main';
 
 const APP_ID = 'nimi.lab';
+let worldTourWindow: BrowserWindow | null = null;
+let worldTourLaunch: { manifestPath: string; token: string; senderId: number } | null = null;
 
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
@@ -29,6 +32,36 @@ void app.whenReady().then(async () => {
     allowedRendererUrls: allowedRendererUrls(),
     assetMediaPlatform: { protocol, webRequest: session.defaultSession.webRequest, webContents },
     ipcMain,
+    appCommandHandlers: {
+      open_world_tour_window: async ({ payload }) => {
+        const value = worldTourPayload(payload, ['manifestPath']);
+        const manifestPath = worldTourManifestPath(value.manifestPath);
+        worldTourWindow?.close();
+        const viewer = createLabWindow('World Tour', 1280, 860, 900, 600);
+        const token = randomUUID();
+        worldTourWindow = viewer;
+        worldTourLaunch = { manifestPath, token, senderId: viewer.webContents.id };
+        viewer.on('closed', () => {
+          if (worldTourWindow === viewer) { worldTourWindow = null; worldTourLaunch = null; }
+        });
+        try {
+          const query = new URLSearchParams({ manifestPath, launchToken: token });
+          await loadRendererRoute(viewer, `/world-tour-viewer?${query}`);
+          return { windowLabel: `world-tour-${viewer.id}`, manifestPath };
+        } catch (error) {
+          viewer.close();
+          throw error;
+        }
+      },
+      claim_world_tour_viewer_launch: ({ payload, event }) => {
+        const value = worldTourPayload(payload, ['manifestPath', 'launchToken']);
+        if (!worldTourLaunch || worldTourLaunch.senderId !== event.sender?.id
+          || worldTourLaunch.manifestPath !== value.manifestPath || worldTourLaunch.token !== value.launchToken) {
+          throw new Error('world-tour-viewer-launch-rejected');
+        }
+        return {};
+      },
+    },
   });
 
   await createMainWindow();
@@ -51,12 +84,14 @@ app.on('window-all-closed', () => {
 });
 
 async function createMainWindow(): Promise<BrowserWindow> {
+  const window = createLabWindow('Nimi Lab', 1440, 940, 360, 640);
+  await loadRendererRoute(window, '/');
+  return window;
+}
+
+function createLabWindow(title: string, width: number, height: number, minWidth: number, minHeight: number): BrowserWindow {
   const window = new BrowserWindow({
-    width: 1440,
-    height: 940,
-    minWidth: 360,
-    minHeight: 640,
-    title: 'Nimi Lab',
+    width, height, minWidth, minHeight, title,
     backgroundColor: '#f6f8fb',
     autoHideMenuBar: true,
     webPreferences: {
@@ -68,8 +103,22 @@ async function createMainWindow(): Promise<BrowserWindow> {
   });
   hardenLabWindowChrome(window);
   secureLabWindow(window);
-  await loadRendererRoute(window, '/');
   return window;
+}
+
+function worldTourPayload(input: Readonly<Record<string, unknown>>, keys: string[]): Record<string, unknown> {
+  const value = input.payload;
+  if (!value || typeof value !== 'object' || Array.isArray(value)
+    || Object.keys(value).sort().join('|') !== [...keys].sort().join('|')) throw new Error('world-tour-input-invalid');
+  return value as Record<string, unknown>;
+}
+
+function worldTourManifestPath(value: unknown): string {
+  if (typeof value !== 'string' || !value.startsWith('world-tour/') || !value.endsWith('.json')
+    || value.length > 1024 || value.includes('\\') || value.split('/').some((part) => !part || part === '.' || part === '..')) {
+    throw new Error('world-tour-manifest-path-invalid');
+  }
+  return value;
 }
 
 async function loadRendererRoute(window: BrowserWindow, route: string): Promise<void> {

@@ -200,9 +200,12 @@ export function areAgentTargetSnapshotsEquivalent(
     );
 }
 
+// @nimi-authority: rule.nimi.desktop.agent-projection.r029
 export function toConversationMessageViewModel(
   message: AgentLocalMessageRecord,
 ): ConversationMessageViewModel {
+  // Canonical snapshots provide ordered content, not wall-clock message time.
+  const canonicalMessage = Boolean(parseOptionalString(message.metadataJson?.canonicalTurnId));
   const transcriptText = parseOptionalString(message.metadataJson?.transcriptText) || message.contentText;
   const metadata = {
     ...(message.metadataJson || {}),
@@ -222,8 +225,8 @@ export function toConversationMessageViewModel(
     threadId: message.threadId,
     role: message.role,
     text: message.contentText,
-    createdAt: toIsoString(message.createdAtMs),
-    updatedAt: toIsoString(message.updatedAtMs),
+    createdAt: canonicalMessage ? '' : toIsoString(message.createdAtMs),
+    ...(canonicalMessage ? {} : { updatedAt: toIsoString(message.updatedAtMs) }),
     status: message.status,
     error: message.error?.message || null,
     metadata,

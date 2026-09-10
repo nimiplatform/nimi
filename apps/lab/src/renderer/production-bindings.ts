@@ -37,6 +37,7 @@ import {
   saveLabPromptDraft,
 } from '../lab/lab-preferences.js';
 import { runLabCapability } from '../lab/lab-runtime.js';
+import { resumeWorldTour, runWorldTour } from '../lab/world-tour/world-tour-runtime.js';
 import {
   claimWorldTourViewerLaunch,
   openWorldTourWindow,
@@ -112,7 +113,7 @@ export function createLabProductionBindings(
     kit,
     sdk: Object.freeze({
       localAppClient: labLocalAppClient,
-      runCapability: runLabCapability,
+      runCapability: (input: Parameters<LabRendererSdkPort['runCapability']>[0]) => input.capabilityId === 'world.generate' ? runWorldTour(input) : runLabCapability(input),
       async listLocalAppVoiceAssets() {
         const result = await labLocalAppClient.ai.voiceAssets.list({ pageSize: 100, pageToken: '' });
         return result.assets.map((asset) => ({
@@ -208,6 +209,7 @@ export function createLabProductionBindings(
         },
         resolveWorldTourFixture,
         openWorldTourWindow,
+        resumeWorldTour,
         claimWorldTourViewerLaunch,
         saveWorldTourViewerPreset,
         async localAppSessionStatus() {

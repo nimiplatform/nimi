@@ -505,7 +505,7 @@ test('AIProfile authoring derives all read-only journey actions and feature mism
   );
 });
 
-test('an unresolved sibling Loadout does not invalidate configured Profile authoring', () => {
+test('unselected optional slots and unresolved sibling Loadouts preserve valid authoring', () => {
   const machine: NimiMachineLoadouts = {
     loadouts: [{
       loadoutId: 'loadout-text',
@@ -514,7 +514,10 @@ test('an unresolved sibling Loadout does not invalidate configured Profile autho
       recipeId: TEXT_RECIPE.recipeId,
       recipeRevision: TEXT_RECIPE.revision,
       options: {},
-      modelAxes: [],
+      modelAxes: [
+        { slotId: 'main.weights', displayLabel: 'Main', modelAssetId: 'main', expectedContentId: `sha256:${'a'.repeat(64)}`, recipeCompatible: true, reasons: [], presence: 'required', conditionalFeatures: [], resolution: 'configured' },
+        { slotId: 'vision.adapter', displayLabel: 'Vision', modelAssetId: '', expectedContentId: '', recipeCompatible: true, reasons: [], presence: 'optional-conditional', conditionalFeatures: ['input.image'], resolution: 'not-configured' },
+      ],
       recipeCustody: [],
       implementationSupportedFeatures: ['input.image'],
       configuredFeatures: [],
@@ -549,11 +552,25 @@ test('an unresolved sibling Loadout does not invalidate configured Profile autho
   const projection = projectRuntimeConfigAIProfileAuthoringMachine(machine);
   assert.equal(projection.loadouts.length, 2);
   assert.equal(projection.loadouts[1]?.requirementResolution, 'unresolved');
+  assert.deepEqual(projection.loadouts[0]?.loadout?.axes, [
+    { slotId: 'main.weights', contentId: `sha256:${'a'.repeat(64)}` },
+  ]);
   const inspection = inspectRuntimeConfigAIProfileAuthoring(validTextDraft(), {
     ...currentProjection(),
     machine: projection,
   });
   assert.equal(inspection.status, 'valid');
+  const invalidMachine: NimiMachineLoadouts = {
+    ...machine,
+    loadouts: [{
+      ...machine.loadouts[0]!,
+      modelAxes: [{ ...machine.loadouts[0]!.modelAxes[0]!, expectedContentId: '' }],
+    }],
+  };
+  assert.equal(inspectRuntimeConfigAIProfileAuthoring(validTextDraft(), {
+    ...currentProjection(),
+    machine: projectRuntimeConfigAIProfileAuthoringMachine(invalidMachine),
+  }).status, 'invalid');
 });
 
 test('Cloud recommendation form has target fields but no account or credential inputs', () => {

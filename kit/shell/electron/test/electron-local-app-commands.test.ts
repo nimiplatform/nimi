@@ -13,6 +13,30 @@ import { dispatchElectronLocalAppCommand } from '../src/main/local-app-commands.
 import { FakeIpcMain, createInvokeEvent, invokeBridge } from './electron-shell-test-utils.js';
 
 describe('Electron local-app standard-shell operations', () => {
+  it('forwards the exact Agent capture-stop observation and keeps it out of the AI owner plane', async () => {
+    const calls: unknown[] = [];
+    const host = {
+      agentRealtimeAppendInput: async (input: unknown) => { calls.push(input); return { accepted: true }; },
+      aiRealtimeAppendInput: async (input: unknown) => { calls.push(input); return { accepted: true }; },
+    } as never;
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.agentRealtimeAppendInput'];
+    const payload = {
+      agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
+      realtimeSessionId: 'realtime-1', generation: '1',
+      input: { type: 'capture-stopped', inputTrackId: 'capture-1', utteranceId: 'utterance-1' },
+    };
+    await expect(dispatchElectronLocalAppCommand({ host, command, payload })).resolves.toEqual({ accepted: true });
+    expect(calls).toEqual([payload]);
+    await expect(dispatchElectronLocalAppCommand({
+      host, command, payload: { ...payload, input: { type: 'capture-stopped', inputTrackId: 'capture-1' } },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    await expect(dispatchElectronLocalAppCommand({
+      host, command: NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeAppendInput'],
+      payload: { realtimeSessionId: 'realtime-1', generation: '1', input: payload.input },
+    })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    expect(calls).toHaveLength(1);
+  });
+
   it('admits asset-only Background commits while rejecting an empty mutation', async () => {
     const calls: unknown[] = [];
     const host = {
@@ -229,6 +253,22 @@ describe('Electron local-app standard-shell operations', () => {
       command,
       payload: { spec: { type: 'text-embed', inputs: ['hello'], modelId: 'forbidden' } },
     })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+  });
+
+  it('carries Locate jobs through the existing command and rejects inline selectors or sync execution', async () => {
+    const calls: unknown[] = [];
+    const host = localAppHost(calls);
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const spec = { type: 'vision-locate', imageArtifactId: 'image-1', query: 'the Refresh button', geometry: 'point' };
+    await dispatchElectronLocalAppCommand({ host, command, payload: { spec, timeoutMs: 120000 } });
+    expect(calls).toEqual([['scenarioJobSubmit', { spec, timeoutMs: 120000 }]]);
+    for (const invalid of [{ ...spec, modelId: 'model-1' }, { ...spec, geometry: 'center' }, { ...spec, imageArtifactId: '' }]) {
+      await expect(dispatchElectronLocalAppCommand({ host, command, payload: { spec: invalid, timeoutMs: 0 } }))
+        .rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    }
+    await expect(dispatchElectronLocalAppCommand({ host, command: NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioExecute'], payload: { spec } }))
+      .rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    expect(calls).toHaveLength(1);
   });
 
   it('preserves optional parameter presence and applies owner clamps', async () => {

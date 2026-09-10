@@ -66,6 +66,7 @@ type scenarioJobDiskRecord struct {
 	CloudResolvedAssembly json.RawMessage   `json:"cloud_resolved_assembly,omitempty"`
 	VoiceAsset            json.RawMessage   `json:"voice_asset,omitempty"`
 	VoiceReference        json.RawMessage   `json:"voice_reference,omitempty"`
+	VisionLocate          json.RawMessage   `json:"vision_locate,omitempty"`
 	Owner                 *localAppJobOwner `json:"owner,omitempty"`
 	CreatedAt             time.Time         `json:"created_at"`
 	UpdatedAt             time.Time         `json:"updated_at"`
@@ -171,6 +172,14 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 		if rowErr == nil {
 			rowErr = validateScenarioJobVoiceResultPair(&job, voiceAsset, voiceReference)
 		}
+		var visionLocate *runtimev1.VisionLocateResult
+		if rowErr == nil && len(item.VisionLocate) > 0 {
+			visionLocate = &runtimev1.VisionLocateResult{}
+			rowErr = (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(item.VisionLocate, visionLocate)
+		}
+		if rowErr == nil {
+			rowErr = validateScenarioJobVisionResult(&job, resolvedAssembly, visionLocate)
+		}
 		jobID := strings.TrimSpace(job.GetJobId())
 		if rowErr == nil && (jobID == "" || item.CreatedAt.IsZero() || item.UpdatedAt.IsZero()) {
 			rowErr = errors.New("record has no stable identity or timestamps")
@@ -203,7 +212,8 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 		record := &scenarioJobRecord{
 			job: cloneScenarioJob(&job), resolvedAssembly: resolvedAssembly, cloudAssembly: cloudAssembly, localAppOwner: cloneLocalAppJobOwner(item.Owner),
 			voiceAsset: cloneVoiceAsset(voiceAsset), voiceReference: cloneVoiceReference(voiceReference),
-			events: make([]*runtimev1.ScenarioJobEvent, 0, 1), subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
+			visionLocate: cloneVisionLocateResult(visionLocate),
+			events:       make([]*runtimev1.ScenarioJobEvent, 0, 1), subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),
 			done: make(chan struct{}), createdAt: item.CreatedAt.UTC(), updatedAt: item.UpdatedAt.UTC(), terminalAt: item.TerminalAt.UTC(),
 		}
 		if isTerminalScenarioJobStatus(job.GetStatus()) {
@@ -448,8 +458,8 @@ func (s *scenarioJobStore) persistDurableJobsLocked(attempt scenarioJobPersisten
 		if err := validateScenarioJobCapturedInputsPair(record.job, record.resolvedAssembly, record.cloudAssembly); err != nil {
 			return fmt.Errorf("scenario job %q captured inputs: %w", jobID, err)
 		}
-		if err := validateScenarioJobVoiceResultPair(record.job, record.voiceAsset, record.voiceReference); err != nil {
-			return fmt.Errorf("scenario job %q terminal voice result: %w", jobID, err)
+		if err := validateScenarioJobTerminalResults(record); err != nil {
+			return fmt.Errorf("scenario job %q terminal result: %w", jobID, err)
 		}
 		raw, err := (protojson.MarshalOptions{UseProtoNames: true}).Marshal(record.job)
 		if err != nil {
@@ -483,10 +493,18 @@ func (s *scenarioJobStore) persistDurableJobsLocked(attempt scenarioJobPersisten
 				return fmt.Errorf("marshal scenario job %q terminal VoiceReference: %w", jobID, err)
 			}
 		}
+		var visionRaw json.RawMessage
+		if record.visionLocate != nil {
+			visionRaw, err = (protojson.MarshalOptions{UseProtoNames: true}).Marshal(record.visionLocate)
+			if err != nil {
+				return fmt.Errorf("marshal scenario job %q Locate result: %w", jobID, err)
+			}
+		}
 		snapshot.Records = append(snapshot.Records, scenarioJobDiskRecord{
 			Job: raw, ResolvedAssembly: assemblyRaw, CloudResolvedAssembly: cloudAssemblyRaw, Owner: cloneLocalAppJobOwner(record.localAppOwner),
 			VoiceAsset: voiceAssetRaw, VoiceReference: voiceReferenceRaw,
-			CreatedAt: record.createdAt, UpdatedAt: record.updatedAt, TerminalAt: record.terminalAt,
+			VisionLocate: visionRaw,
+			CreatedAt:    record.createdAt, UpdatedAt: record.updatedAt, TerminalAt: record.terminalAt,
 		})
 	}
 	keys := make([]string, 0, len(s.idempotency))

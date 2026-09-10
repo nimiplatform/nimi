@@ -19,15 +19,17 @@ use crate::generated::{
     LocalAppScenarioJob, LocalAppScenarioJobEvent, LocalAppSpeechSynthesizeJobSpec,
     LocalAppSpeechTranscribeJobSpec, LocalAppTextEmbedScenarioSpec, LocalAppTextTurnFailed,
     LocalAppVideoGenerateJobSpec, LocalAppVideoGenerationOptions, LocalAppVoiceAsset,
-    LocalAppVoiceCreateJobSpec, ReadLocalAppArtifactRequest as ProtoReadArtifactRequest,
-    ScenarioJobEventType, ScenarioJobStatus, ScenarioType, SpeechTimingMode,
-    SpeechTranscriptionAudioSource, StreamLocalAppTextTurnRequest as ProtoTextTurnRequest,
+    LocalAppVoiceCreateJobSpec, LocalAppWorldGenerateJobSpec,
+    ReadLocalAppArtifactRequest as ProtoReadArtifactRequest, ScenarioJobEventType,
+    ScenarioJobStatus, ScenarioType, SpeechTimingMode, SpeechTranscriptionAudioSource,
+    StreamLocalAppTextTurnRequest as ProtoTextTurnRequest,
     SubmitLocalAppScenarioJobRequest as ProtoSubmitJobRequest,
     SubscribeLocalAppScenarioJobEventsRequest,
     UploadLocalAppArtifactRequest as ProtoUploadArtifactRequest, VideoContentArtifactRef,
     VideoContentAudioUrl, VideoContentImageUrl, VideoContentItem, VideoContentRole,
-    VideoContentType, VideoContentVideoUrl, VideoMode, VoiceAssetStatus, VoiceCreationSource,
-    VoiceReference, VoiceReferenceKind, VoiceRenderHints, VoiceT2vInput, VoiceV2vInput,
+    VideoContentType, VideoContentVideoUrl, VideoMode, VisionLocateGeometry, VisionLocateResult,
+    VisionLocateScenarioSpec, VoiceAssetStatus, VoiceCreationSource, VoiceReference,
+    VoiceReferenceKind, VoiceRenderHints, VoiceT2vInput, VoiceV2vInput,
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
@@ -134,11 +136,25 @@ pub(super) async fn get_job(
         response.asset.as_ref(),
         response.voice_reference.as_ref(),
     )?;
-    Ok(json!({
+    let expects_locate = job.scenario_type == ScenarioType::VisionLocate as i32
+        && job.status == ScenarioJobStatus::Completed as i32;
+    if expects_locate != response.vision_locate.is_some()
+        || (expects_locate && !job.artifacts.is_empty())
+    {
+        return Err(untrusted());
+    }
+    let mut result = json!({
         "job": project_job(job)?,
         "asset": response.asset.map(project_voice_asset).transpose()?,
         "voiceReference": response.voice_reference.map(project_voice_asset_reference).transpose()?,
-    }))
+    });
+    if let Some(vision) = response.vision_locate {
+        result
+            .as_object_mut()
+            .ok_or_else(untrusted)?
+            .insert("visionLocate".to_string(), project_vision_locate(vision)?);
+    }
+    Ok(result)
 }
 
 pub(super) async fn cancel_job(
@@ -379,6 +395,22 @@ fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
     let object = exact_object(value)?;
     match string_field(&object, "type")? {
         "image-generate" => Ok(JobSpec::ImageGenerate(parse_image_spec(&object)?)),
+        "vision-locate" => {
+            exact_keys(&object, &["type", "imageArtifactId", "query", "geometry"])?;
+            let image_artifact_id =
+                required_text_field(&object, "imageArtifactId", MAX_IDENTIFIER_BYTES)?;
+            require_identifier(&image_artifact_id)?;
+            let geometry = match string_field(&object, "geometry")? {
+                "box" => VisionLocateGeometry::Box,
+                "point" => VisionLocateGeometry::Point,
+                _ => return Err(invalid_payload()),
+            };
+            Ok(JobSpec::VisionLocate(VisionLocateScenarioSpec {
+                image_artifact_id,
+                query: required_text_field(&object, "query", 8 * 1024)?,
+                geometry: geometry as i32,
+            }))
+        }
         "video-generate" => Ok(JobSpec::VideoGenerate(parse_video_spec(&object)?)),
         "speech-synthesize" => Ok(JobSpec::SpeechSynthesize(parse_speech_synthesize_spec(
             &object,
@@ -388,6 +420,13 @@ fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
         )?)),
         "voice-create" => Ok(JobSpec::VoiceCreate(parse_voice_create_spec(&object)?)),
         "music-generate" => Ok(JobSpec::MusicGenerate(parse_music_spec(&object)?)),
+        "world-generate" => {
+            exact_keys(&object, &["type", "prompt", "displayName"])?;
+            Ok(JobSpec::WorldGenerate(LocalAppWorldGenerateJobSpec {
+                prompt: required_text_field(&object, "prompt", MAX_PROMPT_BYTES)?,
+                display_name: optional_text_field(&object, "displayName", 256)?,
+            }))
+        }
         _ => Err(invalid_payload()),
     }
 }
@@ -896,11 +935,13 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
     require_runtime_identifier(&job.job_id)?;
     let scenario_type = match ScenarioType::try_from(job.scenario_type).map_err(|_| untrusted())? {
         ScenarioType::ImageGenerate => "image-generate",
+        ScenarioType::VisionLocate => "vision-locate",
         ScenarioType::VideoGenerate => "video-generate",
         ScenarioType::SpeechSynthesize => "speech-synthesize",
         ScenarioType::SpeechTranscribe => "speech-transcribe",
         ScenarioType::VoiceCreate => "voice-create",
         ScenarioType::MusicGenerate => "music-generate",
+        ScenarioType::WorldGenerate => "world-generate",
         _ => return Err(untrusted()),
     };
     let status = match ScenarioJobStatus::try_from(job.status).map_err(|_| untrusted())? {
@@ -931,7 +972,13 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         "REASON_CODE_",
     );
     valid_optional_runtime_text(&job.trace_id, MAX_TRACE_BYTES)?;
-    Ok(json!({
+    let interruption = project_execution_interruption(job.interruption)?;
+    if (reason_code == "ai-execution-interrupted") != !interruption.is_null()
+        || (!interruption.is_null() && status != "failed")
+    {
+        return Err(untrusted());
+    }
+    let mut projected = json!({
         "jobId": job.job_id,
         "scenarioType": scenario_type,
         "status": status,
@@ -945,7 +992,57 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
         "createdAt": project_timestamp(job.created_at)?,
         "updatedAt": project_timestamp(job.updated_at)?,
         "transcriptionText": job.transcription_text,
-    }))
+    });
+    if !interruption.is_null() {
+        projected
+            .as_object_mut()
+            .ok_or_else(untrusted)?
+            .insert("interruption".to_string(), interruption);
+    }
+    Ok(projected)
+}
+
+// @nimi-authority: rule.nimi.sdks.feature-clients.r102
+fn project_vision_locate(result: VisionLocateResult) -> Result<JsonValue, LocalAppOperationError> {
+    require_runtime_identifier(&result.image_artifact_id)?;
+    if result.width == 0 || result.height == 0 || prost::Message::encoded_len(&result) > 256 * 1024
+    {
+        return Err(untrusted());
+    }
+    let mut locations = Vec::with_capacity(result.locations.len());
+    for location in result.locations {
+        let mut value = match location.geometry.ok_or_else(untrusted)? {
+            crate::generated::vision_location::Geometry::Box(b) => {
+                if ![b.x1, b.y1, b.x2, b.y2]
+                    .iter()
+                    .all(|v| v.is_finite() && (0.0..=1.0).contains(v))
+                    || b.x1 >= b.x2
+                    || b.y1 >= b.y2
+                {
+                    return Err(untrusted());
+                }
+                json!({"type":"box", "x1":b.x1, "y1":b.y1, "x2":b.x2, "y2":b.y2})
+            }
+            crate::generated::vision_location::Geometry::Point(p) => {
+                if ![p.x, p.y]
+                    .iter()
+                    .all(|v| v.is_finite() && (0.0..=1.0).contains(v))
+                {
+                    return Err(untrusted());
+                }
+                json!({"type":"point", "x":p.x, "y":p.y})
+            }
+        };
+        if let Some(label) = location.label {
+            value
+                .as_object_mut()
+                .ok_or_else(untrusted)?
+                .insert("label".to_string(), json!(label));
+        }
+        locations.push(value);
+    }
+    let projected = json!({"imageArtifactId":result.image_artifact_id, "width":result.width, "height":result.height, "locations":locations});
+    Ok(projected)
 }
 
 fn project_artifacts(
@@ -1626,7 +1723,17 @@ mod tests {
         };
         assert!(project_job(job.clone()).is_ok());
         job.scenario_type = ScenarioType::MusicGenerate as i32;
+        assert!(project_job(job.clone()).is_ok());
+        job.scenario_type = ScenarioType::WorldGenerate as i32;
         assert!(project_job(job).is_ok());
+
+        assert!(parse_job_spec(json!({
+            "type": "world-generate", "prompt": "a botanical conservatory", "displayName": "Garden"
+        }))
+        .is_ok());
+        assert!(parse_job_spec(json!({
+            "type": "world-generate", "prompt": "a botanical conservatory", "displayName": "Garden", "provider": "forbidden"
+        })).is_err());
 
         assert!(parse_job_spec(json!({
             "type": "music-generate",
@@ -1641,6 +1748,36 @@ mod tests {
             "model": "forbidden"
         }))
         .is_err());
+    }
+
+    #[test]
+    fn interrupted_job_keeps_typed_cause_with_the_public_reason_token() {
+        let timestamp = prost_types::Timestamp {
+            seconds: 1_800_000_000,
+            nanos: 0,
+        };
+        let mut job = LocalAppScenarioJob {
+            job_id: "job-locate-interrupted".to_string(),
+            scenario_type: ScenarioType::VisionLocate as i32,
+            status: ScenarioJobStatus::Failed as i32,
+            reason_code: crate::generated::ReasonCode::AiExecutionInterrupted as i32,
+            trace_id: "trace-locate".to_string(),
+            created_at: Some(timestamp.clone()),
+            updated_at: Some(timestamp),
+            interruption: Some(ExecutionInterruption {
+                cause: ExecutionInterruptionCause::RuntimeRestart as i32,
+                resubmit_disposition: ExecutionResubmitDisposition::CallerMayResubmit as i32,
+            }),
+            ..Default::default()
+        };
+        let projected = project_job(job.clone()).expect("interrupted Job");
+        assert_eq!(projected["reasonCode"], "ai-execution-interrupted");
+        assert_eq!(
+            projected["interruption"],
+            json!({"cause":"runtime-restart", "resubmitDisposition":"caller-may-resubmit"})
+        );
+        job.interruption = None;
+        assert!(project_job(job).is_err());
     }
 
     #[test]

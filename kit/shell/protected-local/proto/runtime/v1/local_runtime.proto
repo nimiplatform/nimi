@@ -81,6 +81,8 @@ message SearchCatalogModelsRequest {
 message SearchCatalogModelsResponse {
   repeated ModelAssetCatalogSearchResult items = 1;
   string next_page_token = 2;
+  // Local catalog rows remain available when the independent HF source fails.
+  bool hugging_face_unavailable = 3;
 }
 
 // Read-only model card for either a browse result or an exact market offer.

@@ -29,7 +29,8 @@ export const landingContentZh: LandingContent = {
     title: landingPositioningZh.hero.title,
     titleAccent: landingPositioningZh.hero.titleAccent,
     subtitle: landingPositioningZh.hero.subtitle,
-    primaryCta: '获取 Nimi',
+    primaryCta: '查看下载选项',
+    availability: 'Nimi Home 暂未提供安装包，目前仅有面向开发者的有限预览。',
     secondaryCta: '看看 Nimi 能做什么',
     proofPoints: ['开源', '本地优先', '自由选择 AI'],
   },
@@ -407,7 +408,7 @@ export const landingContentZh: LandingContent = {
       {
         question: '我是开发者，从哪里开始？',
         answer:
-          '从 SDK 文档和 Developer Mode 本地开发路径开始：在本地搭一个 Nimi App，用强类型 SDK 构建。公开目录分发尚未开放。',
+          '从「创建 Nimi App」指南开始，用 Developer Mode 在本地运行项目。分发是另一步：当前试点通过受保护 Git tag、GitHub Actions 和 Releases 交付，再由人工准入静态 Registry。包发现与安装目前支持 Windows x86_64；其他平台、本地包导入、更新与修复仍不可用。',
       },
     ],
   },

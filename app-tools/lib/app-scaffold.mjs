@@ -145,7 +145,7 @@ const APP_RELEASE_WORKFLOW = [
   '        id: matrix',
   '        shell: bash',
   '        run: |',
-  "          matrix=$(jq -c '{include: [.targets[] | {target: ., runner: (if . == \"windows-x86_64\" then \"windows-latest\" else error(\"unsupported target\") end)}]}' .nimi-targets.json)",
+  "          matrix=$(jq -c '{include: [.targets[] | {target: ., runner: (if . == \"windows-x86_64\" then \"windows-latest\" elif . == \"macos-aarch64\" then \"macos-15\" else error(\"unsupported target\") end)}]}' .nimi-targets.json)",
   '          test "$(jq \'.include | length\' <<<"$matrix")" -gt 0',
   '          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"',
   '  build-target:',
@@ -1026,6 +1026,13 @@ export function renderAppBuildProfile(options = {}) {
       build_command: 'pnpm run build:electron:production',
       payload_path: `dist-electron-package/${identity.cargoPackageName}-win32-x64`,
       runtime_entry: `payload/${identity.cargoPackageName}.exe`,
+    },
+    'macos-aarch64': {
+      os: 'macos',
+      arch: 'arm64',
+      build_command: 'pnpm run build:electron:production',
+      payload_path: `dist-electron-package/${identity.cargoPackageName}-darwin-arm64`,
+      runtime_entry: `payload/${identity.cargoPackageName}.app/Contents/MacOS/${identity.cargoPackageName}`,
     },
   } : undefined);
   return YAML.stringify({

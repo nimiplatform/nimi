@@ -13,7 +13,12 @@ surfaces:
   - routes_5
   - routes_6
   - routes_7
+  - routes_8
 routes:
+  - provider: local
+    capability: vision.locate
+    adapter: vision_execution_host
+    source_rule: rule.nimi.runtime.local-compute.r116
   - provider: media
     capability: image.generate
     adapter: media_native_adapter

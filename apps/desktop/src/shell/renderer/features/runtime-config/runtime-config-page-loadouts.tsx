@@ -253,7 +253,16 @@ export function LoadoutsPage(props: {
     ));
     if (!recipe) return;
     handledNavigationKeyRef.current = key;
-    selectCreateRecipe(recipe);
+    if (context.draft) {
+      setRecipeId(recipe.recipeId);
+      setCreateCapability(recipe.capabilityContract);
+      setDisplayName(context.draft.displayName);
+      setCreateAxes({ ...context.draft.modelAssetIds });
+      setCreateStep(3);
+      setShowCreate(true);
+    } else {
+      selectCreateRecipe(recipe);
+    }
   }, [props.navigationContext, recipes, selectCreateRecipe]);
 
   const run = useCallback(async (key: string, action: () => Promise<void>, onError?: (message: string) => void) => {
@@ -273,6 +282,7 @@ export function LoadoutsPage(props: {
     }
   }, [busy, refresh, refreshAIConfigProjections, t]);
 
+  // @nimi-authority: rule.nimi.runtime.model-catalog.r036
   const create = useCallback(() => {
     if (!selectedRecipe || !displayName.trim()) return;
     const recipe = selectedRecipe;
@@ -444,6 +454,9 @@ export function LoadoutsPage(props: {
       {technicalError ? (
         <InlineAlert tone="danger">
           <p>{t('runtimeConfig.loadouts.loadFailed')}</p>
+          <Button size="sm" className="mt-2" loading={loading} disabled={Boolean(busy)} onClick={() => { void refresh(); }}>
+            {t('Common.retry', { defaultValue: 'Retry' })}
+          </Button>
           <details className="mt-2 text-xs">
             <summary className="cursor-pointer">{t('runtimeConfig.loadouts.technicalDetails')}</summary>
             <p className="mt-2 break-all">{technicalError}</p>
@@ -627,6 +640,7 @@ export function LoadoutsPage(props: {
                               recipeRevision: selectedRecipe.revision,
                               slotId: slot.slotId,
                               candidate: offer.candidate,
+                              draft: { displayName, modelAssetIds: { ...createAxes } },
                             })}
                           >
                             {t('runtimeConfig.loadouts.openMarketOffer', { defaultValue: 'View in Model Market' })}
@@ -666,7 +680,7 @@ export function LoadoutsPage(props: {
                   size="sm"
                   tone="primary"
                   loading={busy === 'create'}
-                  disabled={!selectedRecipe || selectedRecipe.applicability !== 'supported' || !displayName.trim()}
+                  disabled={!selectedRecipe || !displayName.trim()}
                   onClick={create}
                 >
                   {missingRecommendations.length > 0 ? t('runtimeConfig.loadouts.commitDownload') : t('runtimeConfig.loadouts.commit')}
@@ -772,6 +786,7 @@ export function LoadoutsPage(props: {
                   <div key={axis.slotId} className="grid gap-1">
                     <p>{axis.displayLabel}: {axis.modelAssetId || axis.expectedContentId || t('runtimeConfig.loadouts.unresolved')}</p>
                     <div className="flex flex-wrap gap-1"><StatusBadge tone={asset?.contentVerified ? 'success' : 'warning'} shape="soft">{t('runtimeConfig.loadouts.contentVerified')}</StatusBadge><StatusBadge tone={catalogBadge.tone} shape="soft">{t(`runtimeConfig.loadouts.catalogBadge.${catalogBadge.label}`)}</StatusBadge><StatusBadge tone={axis.recipeCompatible ? 'success' : 'warning'} shape="soft">{t('runtimeConfig.loadouts.recipeCompatible')}</StatusBadge></div>
+                    <p className="font-mono">{catalogBadge.label}</p>
                     {error ? <p className="break-all text-[var(--nimi-status-danger)]">{error}</p> : null}
                   </div>
                 );
@@ -919,8 +934,8 @@ function RecipeTemplateGroup(props: {
                   : t('runtimeConfig.loadouts.downloadSizeUnknown', { defaultValue: 'size unknown' })}`
                 : t('runtimeConfig.loadouts.noAdmittedOffer', { defaultValue: 'No compatible model candidate is currently available' });
               return (
-                <div key={slot.slotId} className="flex items-center gap-3 text-xs">
-                  <span className="shrink-0 font-medium text-[var(--nimi-text-primary)]">{slot.displayLabel}</span>
+                <div key={slot.slotId} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                  <LoadoutSlotLabel slot={slot} />
                   <span className="min-w-0 flex-1 truncate text-[var(--nimi-text-muted)]" title={modelText}>{modelText}</span>
                   <StatusBadge tone={installed ? 'success' : supportedOffers > 0 ? 'info' : 'warning'} shape="soft">
                     {installed
@@ -1022,12 +1037,14 @@ function LoadoutCard(props: {
       <div className="grid gap-2 sm:grid-cols-3">
         {props.loadout.modelAxes.map((axis) => {
           const asset = props.assets.find((item) => item.modelAssetId === axis.modelAssetId);
-          const label = asset
+          const label = axis.resolution === 'not-configured'
+            ? t('runtimeConfig.loadouts.optionalNotConfigured')
+            : asset
             ? loadoutAssetLabel(asset, props.verifiedAssets)
             : t('runtimeConfig.loadouts.unresolved');
           return (
             <div key={axis.slotId} className="min-w-0 rounded-lg bg-[var(--nimi-surface-subtle)] px-3 py-2">
-              <div className="text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">{axis.displayLabel}</div>
+              <LoadoutSlotLabel slot={axis} />
               <div className="mt-0.5 truncate text-xs font-medium text-[var(--nimi-text-primary)]" title={label}>{label}</div>
             </div>
           );
@@ -1082,7 +1099,7 @@ function runtimeConfigTextBehaviorTone(
   return behavior.configurationState === 'ambiguous' ? 'danger' : 'warning';
 }
 
-function RuntimeConfigLoadoutTextBehaviors(props: {
+export function RuntimeConfigLoadoutTextBehaviors(props: {
   readonly loadoutId: string;
   readonly behaviors: readonly NimiTextBehaviorCapabilityProjection[];
   readonly compact?: boolean;
@@ -1116,9 +1133,10 @@ function RuntimeConfigLoadoutTextBehaviors(props: {
                 </StatusBadge>
               </div>
               {behavior.reasons.length > 0 ? (
-                <p className="mt-1 break-all text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
-                  {t('runtimeConfig.loadouts.textBehaviors.typedReasons')}: <span className="font-mono">{behavior.reasons.join(' · ')}</span>
-                </p>
+                <details className="mt-2 text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
+                  <summary className="cursor-pointer">{t('runtimeConfig.loadouts.technicalDetails')}</summary>
+                  <p className="mt-1 break-all">{t('runtimeConfig.loadouts.textBehaviors.typedReasons')}: <span className="font-mono">{behavior.reasons.join(' · ')}</span></p>
+                </details>
               ) : null}
             </div>
           );
@@ -1128,11 +1146,38 @@ function RuntimeConfigLoadoutTextBehaviors(props: {
   );
 }
 
+export function LoadoutSlotLabel({ slot }: {
+  readonly slot: Pick<NimiLoadoutRecipe['slots'][number], 'displayLabel' | 'presence' | 'conditionalFeatures'>;
+}) {
+  const { t, i18n } = useTranslation();
+  const optional = slot.presence === 'optional-conditional';
+  const features = new Intl.ListFormat(i18n.resolvedLanguage || i18n.language || 'en').format(
+    slot.conditionalFeatures.map((feature) => feature === 'input.image'
+      ? t('runtimeConfig.loadouts.imageInput')
+      : feature),
+  );
+  return (
+    <span className="inline-flex min-w-0 flex-wrap items-baseline gap-x-2 text-xs" data-requirement-presence={slot.presence}>
+      <span className="font-medium text-[var(--nimi-text-primary)]">{slot.displayLabel}</span>
+      <span className="text-[var(--nimi-text-muted)]">
+        {optional
+          ? features ? t('runtimeConfig.loadouts.optionalFor', { features }) : t('runtimeConfig.loadouts.optional')
+          : t('runtimeConfig.loadouts.required')}
+      </span>
+    </span>
+  );
+}
+
 function recommendedAxisSelections(recipe: NimiLoadoutRecipe | undefined, assets: readonly NimiRuntimeModelAssetRecord[]): Record<string, string> {
   if (!recipe) return {};
   return Object.fromEntries(recipe.slots.map((slot) => {
     if (slot.presence === 'optional-conditional') return [slot.slotId, ''];
-    const matched = assets.filter((asset) => slot.recommendedContentIds.includes(asset.contentId));
+    const installedOfferIds = new Set(slot.offers
+      .filter((offer) => offer.applicability !== 'unsupported' && offer.installedModelAssetId)
+      .map((offer) => offer.installedModelAssetId));
+    const matched = assets.filter((asset) => (
+      slot.recommendedContentIds.includes(asset.contentId) || installedOfferIds.has(asset.modelAssetId)
+    ));
     return [slot.slotId, matched.length === 1 ? matched[0]!.modelAssetId : ''];
   }));
 }
@@ -1158,13 +1203,14 @@ export function recommendedInstallItems(
 }
 
 /**
- * Desktop can present an exact Runtime-projected recommendation and a current
- * Runtime-validated binding as candidates. A recommendation remains non-binding
- * and Prepare performs the authoritative Model Contract evaluation. The opaque
+ * Runtime recommendations, offers and the current validated binding order the
+ * installed choices; they do not exclude other manually selected ModelAssets.
+ * Prepare performs the authoritative Model Contract evaluation. The opaque
  * Model Contract and ModelAsset fingerprint are never reinterpreted here.
  */
+// @nimi-authority: rule.nimi.runtime.local-compute.r107
 export function runtimeConfigLoadoutCandidateAssets(
-  slot: Pick<NimiLoadoutRecipe['slots'][number], 'recommendedContentIds'> | undefined,
+  slot: (Pick<NimiLoadoutRecipe['slots'][number], 'recommendedContentIds'> & Partial<Pick<NimiLoadoutRecipe['slots'][number], 'offers'>>) | undefined,
   assets: readonly NimiRuntimeModelAssetRecord[],
   currentAxis?: Pick<NimiMachineLoadout['modelAxes'][number], 'modelAssetId' | 'recipeCompatible'>,
 ): readonly NimiRuntimeModelAssetRecord[] {
@@ -1173,11 +1219,16 @@ export function runtimeConfigLoadoutCandidateAssets(
       ? assets.filter((asset) => asset.modelAssetId === currentAxis.modelAssetId)
       : [];
   }
-  const admittedContentIds = new Set(slot.recommendedContentIds);
-  return assets.filter((asset) => (
-    admittedContentIds.has(asset.contentId)
+  const recommendedContentIds = new Set(slot.recommendedContentIds);
+  const installedOfferIds = new Set((slot.offers ?? [])
+    .filter(offer => offer.applicability !== 'unsupported' && offer.installedModelAssetId)
+    .map(offer => offer.installedModelAssetId));
+  const preferred = (asset: NimiRuntimeModelAssetRecord) => (
+    recommendedContentIds.has(asset.contentId)
+    || installedOfferIds.has(asset.modelAssetId)
     || (currentAxis?.recipeCompatible === true && asset.modelAssetId === currentAxis.modelAssetId)
-  ));
+  );
+  return [...assets.filter(preferred), ...assets.filter(asset => !preferred(asset))];
 }
 
 export function runtimeConfigRecommendedLoadoutModelAxes(
@@ -1347,6 +1398,7 @@ export function runtimeConfigLoadoutUpdateModelAxes(
 
 export function loadoutCapabilityLabelKey(capabilityContract: string): string {
   switch (capabilityContract) {
+    case 'vision.locate': return 'runtimeConfig.loadouts.capability.visionLocate';
     case 'text.generate': return 'runtimeConfig.loadouts.capability.textGenerate';
     case 'text.embed': return 'runtimeConfig.loadouts.capability.textEmbed';
     case 'image.generate': return 'runtimeConfig.loadouts.capability.imageGenerate';

@@ -170,13 +170,16 @@ export function AgentRealtimeEntry(props: AgentRealtimeEntryProps) {
           locale={props.locale}
           onEvent={props.onEvent}
           onStateChange={props.onStateChange}
+          onReloadAgents={() => { void loadReferences(); }}
         />
       ) : null}
     </div>
   );
 }
 
-function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps) {
+function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
+  readonly onReloadAgents: () => void;
+}) {
   const {
     agentRealtime,
     agentHandle,
@@ -254,9 +257,12 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps) {
             tone="primary"
             loading={openPending}
             disabled={openPending || closePending || active}
-            onClick={() => { void session.open().catch(() => undefined); }}
+            onClick={() => {
+              if (state.lifecycle === 'failed') props.onReloadAgents();
+              else void session.open().catch(() => undefined);
+            }}
           >
-            {copy.open}
+            {state.lifecycle === 'failed' ? copy.agentsRetry : copy.open}
           </Button>
           <Button
             type="button"

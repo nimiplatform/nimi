@@ -185,7 +185,10 @@ describe('runtime AI consume contract', () => {
 
     const result = await pending;
 
-    expect(result).toMatchObject({ ok: false, capabilityId: 'chat.stream', reason: 'runtime-call-failed' });
+    expect(result).toMatchObject({
+      ok: false, capabilityId: 'chat.stream', reason: 'operation-aborted',
+      error: { reasonCode: 'OPERATION_ABORTED', source: 'sdk' },
+    });
     if (result.ok) throw new Error('expected non-success result');
     expect(isNimiError(result.error)).toBe(true);
     expect(result.message).toMatch(/abort/i);

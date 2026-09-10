@@ -26,6 +26,7 @@ type realtimeInputIdentity struct {
 	inputTrackID   string
 	utteranceID    string
 	providerItemID string
+	speechStopped  bool
 }
 
 type realtimeSessionRecord struct {

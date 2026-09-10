@@ -41,7 +41,10 @@ func bindWindowsSourceDirectLocalAppLaunch(
 		return time.Time{}, fmt.Errorf("complete Windows direct local-app launch authority is required")
 	}
 	launch, ok := launches.Prepared(launchID)
-	if !ok || launch.DesktopPID != desktopPeer.PID || launch.ExpectedUID != desktopPeer.UID {
+	if !ok {
+		return time.Time{}, ErrDirectLocalAppLaunchUnavailable
+	}
+	if launch.DesktopPID != desktopPeer.PID || launch.ExpectedUID != desktopPeer.UID {
 		return time.Time{}, fmt.Errorf("Windows direct local-app launch is unavailable")
 	}
 	active, err := resolveWindowsActiveSessionIdentity(desktopPeer.AuditSession)

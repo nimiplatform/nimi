@@ -219,7 +219,10 @@ async function runNextBuild() {
     // build start, so metadata-only events for those files no longer rebuild.
     for (const surface of plan) surfaceContentBaselines[surface] = startedAt;
     const durationMs = Date.now() - startedAt;
-    const stableSurfaces = stableBuildSurfaces(plan, revisionsBefore, surfaceRevisions);
+    const metadataOnly = findMetadataOnlySurfaces(
+      pendingEventMetadata, surfaceContentBaselines, metadataOnlyEventGraceMs,
+    );
+    const stableSurfaces = stableBuildSurfaces(plan, revisionsBefore, surfaceRevisions, metadataOnly);
     if (stableSurfaces.length > 0) {
       await writeWorkspaceSurfaceStamp(repoRoot, stableSurfaces, durationMs);
     }

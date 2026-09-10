@@ -970,11 +970,23 @@ function validateScenarioSpec(value: unknown, command: string, execute: boolean)
   }
   if (execute) throw invalidPayload(command, 'execute scenario type is invalid');
   switch (value.type) {
+    // @nimi-authority: rule.nimi.runtime.ai-provider.r126
+    case 'vision-locate':
+      assertExactKeys(value, ['type', 'imageArtifactId', 'query', 'geometry'], command);
+      if (!optionalBoundedIdentifier(value.imageArtifactId, 'imageArtifactId', command)) throw invalidPayload(command, 'Locate image artifact is required');
+      requiredUtf8Text(value.query, 'query', command, 8 * 1024);
+      if (value.geometry !== 'box' && value.geometry !== 'point') throw invalidPayload(command, 'Locate geometry is invalid');
+      return;
     case 'video-generate': validateVideoSpec(value, command); return;
     case 'speech-synthesize': validateSpeechSynthesizeSpec(value, command); return;
     case 'speech-transcribe': validateSpeechTranscribeSpec(value, command); return;
     case 'voice-create': validateVoiceCreateSpec(value, command); return;
     case 'music-generate': validateMusicSpec(value, command); return;
+    case 'world-generate':
+      assertExactKeys(value, ['type', 'prompt', 'displayName'], command);
+      requiredUtf8Text(value.prompt, 'prompt', command, 32 * 1024);
+      optionalExactText(value.displayName, 'displayName', command, 256);
+      return;
     default: throw invalidPayload(command, 'job scenario type is invalid');
   }
 }
@@ -1600,6 +1612,14 @@ function realtimeInput(value: unknown, command: string, allowOwnerContext: boole
       utteranceId: requiredText(value.utteranceId, 'utteranceId', command, MAX_IDENTIFIER_LENGTH),
       frameSequence: value.frameSequence,
       frame: [...value.frame] as NimiElectronLocalAppJson,
+    };
+  }
+  if (!allowOwnerContext && value.type === 'capture-stopped') {
+    assertExactKeys(value, ['type', 'inputTrackId', 'utteranceId'], command);
+    return {
+      type: 'capture-stopped',
+      inputTrackId: requiredText(value.inputTrackId, 'inputTrackId', command, MAX_IDENTIFIER_LENGTH),
+      utteranceId: requiredText(value.utteranceId, 'utteranceId', command, MAX_IDENTIFIER_LENGTH),
     };
   }
   if (allowOwnerContext && value.type === 'owner-context') {

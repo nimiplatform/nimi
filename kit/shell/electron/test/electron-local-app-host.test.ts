@@ -545,14 +545,14 @@ describe('Electron protected local-app host', () => {
     }
   });
 
-  it('accepts the protected Music Job stream projection', async () => {
+  it.each(['music-generate', 'world-generate'])('accepts the protected %s Job and stream projection', async (scenarioType) => {
     const event = {
       eventType: 'running',
       sequence: '1',
       traceId: 'trace-music-1',
       timestamp: { seconds: '1786170000', nanos: 1 },
       job: scenarioJobProjection({
-        scenarioType: 'music-generate',
+        scenarioType,
         status: 'running',
         progressPercent: 0,
         progressCurrentStep: 0,
@@ -561,12 +561,15 @@ describe('Electron protected local-app host', () => {
     };
     const candidate = {
       ...binding([]),
+      localAppScenarioJobSubmit: async () => ({ status: 'ok' as const, value: { job: event.job } }),
       localAppScenarioJobStreamNext: async () => ({
         status: 'ok' as const,
         value: { completed: false, event },
       }),
     };
 
+    await expect(createNimiElectronLocalAppHostForBinding(candidate).scenarioJobSubmit({ spec: {} }))
+      .resolves.toEqual({ job: event.job });
     await expect(createNimiElectronLocalAppHostForBinding(candidate)
       .scenarioJobStreamNext({ streamId: 'scenario-job-music-1' }))
       .resolves.toEqual({ completed: false, event });

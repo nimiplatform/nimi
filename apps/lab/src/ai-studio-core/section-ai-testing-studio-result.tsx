@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { EmptyState, IconButton, StatusBadge, Surface, Tooltip } from '@nimiplatform/kit/ui';
 import { AlertTriangle, ChevronRight, Clock, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, Loader2, RefreshCw, Sparkles, Square } from 'lucide-react';
 import { useAIStudioHost } from './host-context.js';
+import { VisionLocateResultView } from './section-ai-testing-vision-result.js';
 import type { StudioCapabilityRunResult } from './runtime-types.js';
 import type { StudioCapabilityDescriptor, StudioCapabilityRegistration } from './module-registration.js';
 import { formatStudioRunTimestamp } from './history.js';
@@ -16,6 +17,7 @@ import { ArtifactMediaResult, RuntimeDiagnosticsActions, formatTypedOutput, form
 function ReadyBody({ result }: { result: StudioCapabilityRunResult & { ok: true } }) {
   const { translate: t } = useAIStudioHost();
   const output = result.output;
+  if (output.kind === 'vision-locate') return <VisionLocateResultView output={output} />;
   if (output.kind === 'text' || output.kind === 'transcript') {
     return <TextStudioOutputBody text={output.text} />;
   }
@@ -172,6 +174,7 @@ function studioResultIntentLabel(result: StudioCapabilityRunResult | null, capab
 export function StudioResult({
   result,
   running,
+  canRegenerate,
   cancelRequested,
   registration,
   admission,
@@ -179,6 +182,7 @@ export function StudioResult({
   intentLabel,
   requestSettings,
   streamingText,
+  jobStatus,
   verboseConsole,
   onCopy,
   onDownload,
@@ -187,6 +191,7 @@ export function StudioResult({
 }: {
   result: StudioCapabilityRunResult | null;
   running: boolean;
+  canRegenerate: boolean;
   cancelRequested: boolean;
   registration: StudioCapabilityRegistration;
   admission: CapabilityStatus;
@@ -194,6 +199,7 @@ export function StudioResult({
   intentLabel?: string;
   requestSettings?: ReactNode;
   streamingText?: string | null;
+  jobStatus?: 'queued' | 'running';
   verboseConsole: boolean;
   onCopy: () => void;
   onDownload: () => void;
@@ -276,6 +282,7 @@ export function StudioResult({
         { label: t('Studio.result.statResult'), value: t(output.creationSource === 'text-description' ? 'Studio.result.createdFromDescription' : 'Studio.result.createdFromAudio') },
       ];
     }
+    if (output.kind === 'vision-locate') return [{ label: t('VisionLocate.matches'), value: String(output.result.locations.length) }];
     return [
       { label: t('Studio.result.statVoices'), value: String(output.voiceCount) },
       { label: t('Studio.result.statResult'), value: fallbackMetric },
@@ -289,6 +296,7 @@ export function StudioResult({
     else if (output.kind === 'artifacts') metric = t('Studio.result.metricArtifacts', { count: output.artifactCount });
     else if (output.kind === 'embedding') metric = t('Studio.result.metricCreated');
     else if (output.kind === 'voice-asset') metric = output.creationSource;
+    else if (output.kind === 'vision-locate') metric = String(output.result.locations.length);
     else metric = t('Studio.result.metricVoices', { count: output.voiceCount });
   }
   const stats = studioResultStats(metric);
@@ -302,6 +310,7 @@ export function StudioResult({
           <Loader2 size={15} aria-hidden="true" className="studio-spin" />
           <span>{cancelRequested
             ? t('Studio.result.pendingCancel')
+            : capability.id === 'vision.locate' && jobStatus ? t(`VisionLocate.${jobStatus}`)
             : profile.pendingLabelKey
             ? t(profile.pendingLabelKey)
             : hasStream ? t('Studio.result.pendingStreaming') : t('Studio.result.pendingRuntime')}</span>
@@ -349,8 +358,8 @@ export function StudioResult({
           <AlertTriangle size={15} aria-hidden="true" />
           <span>{t('StudioShell.generationFailed')}</span>
         </div>
-        <p>{studioNonSuccessReasonUserMessage(blocked.reason, t)}</p>
-        <p className="studio-result__hint">{studioNonSuccessReasonUserAction(blocked.reason, t)}</p>
+        <p>{studioNonSuccessReasonUserMessage(blocked.reason, t, blocked.capabilityId, blocked.diagnostics)}</p>
+        <p className="studio-result__hint">{studioNonSuccessReasonUserAction(blocked.reason, t, blocked.capabilityId, blocked.diagnostics)}</p>
       </div>
     );
   } else if (ready) {
@@ -403,7 +412,7 @@ export function StudioResult({
             </>
           ) : null}
           <Tooltip content={t('StudioShell.regenerate')} placement="top">
-            <IconButton type="button" className="studio-result__action" onClick={onRegenerate} disabled={running} aria-label={t('StudioShell.regenerate')} icon={<RefreshCw size={15} aria-hidden="true" />} />
+            <IconButton type="button" className="studio-result__action" onClick={onRegenerate} disabled={running || !canRegenerate} aria-label={t('StudioShell.regenerate')} icon={<RefreshCw size={15} aria-hidden="true" />} />
           </Tooltip>
         </div>
       </div>

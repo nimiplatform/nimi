@@ -5,9 +5,11 @@
 
 import { getCurrentLocale, i18n, toDocumentLang } from './index.js';
 
-export function installDocumentLangSync(): void {
-  document.documentElement.lang = toDocumentLang(getCurrentLocale());
-  i18n.on('languageChanged', () => {
+export function installDocumentLangSync(): () => void {
+  const syncDocumentLang = () => {
     document.documentElement.lang = toDocumentLang(getCurrentLocale());
-  });
+  };
+  syncDocumentLang();
+  i18n.on('languageChanged', syncDocumentLang);
+  return () => { i18n.off('languageChanged', syncDocumentLang); };
 }

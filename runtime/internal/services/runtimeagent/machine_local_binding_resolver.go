@@ -216,6 +216,7 @@ func machineCloudTargetText(target *structpb.Struct, key string) (string, bool) 
 	return text, text != "" && text == value.GetStringValue()
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r108
 func validSelectedLocalExecutionProjection(selected *localexecution.SelectedLocalExecution, capabilityContract string) bool {
 	if selected == nil || !selected.Configured ||
 		selected.LoadoutID == "" || selected.LoadoutID != strings.TrimSpace(selected.LoadoutID) ||
@@ -224,10 +225,10 @@ func validSelectedLocalExecutionProjection(selected *localexecution.SelectedLoca
 		selected.DriverIdentity.GetImplementationId() == "" || selected.DriverIdentity.GetImplementationId() != strings.TrimSpace(selected.DriverIdentity.GetImplementationId()) ||
 		selected.DriverIdentity.GetDriverId() == "" || selected.DriverIdentity.GetDriverId() != strings.TrimSpace(selected.DriverIdentity.GetDriverId()) ||
 		selected.DriverIdentity.GetDriverDialect() == "" || selected.DriverIdentity.GetDriverDialect() != strings.TrimSpace(selected.DriverIdentity.GetDriverDialect()) ||
-		len(selected.Requirements) == 0 || len(selected.ExactBindings) != len(selected.Requirements) {
+		len(selected.Requirements) == 0 {
 		return false
 	}
-	requirements := make(map[string]struct{}, len(selected.Requirements))
+	requirements := make(map[string]bool, len(selected.Requirements))
 	for _, requirement := range selected.Requirements {
 		requirementID := strings.TrimSpace(requirement.GetRequirementId())
 		if requirementID == "" || requirement.GetRequirementId() != requirementID {
@@ -236,7 +237,7 @@ func validSelectedLocalExecutionProjection(selected *localexecution.SelectedLoca
 		if _, exists := requirements[requirementID]; exists {
 			return false
 		}
-		requirements[requirementID] = struct{}{}
+		requirements[requirementID] = requirement.GetPresence() != runtimev1.LocalCapabilityRequirementPresence_LOCAL_CAPABILITY_REQUIREMENT_PRESENCE_OPTIONAL_CONDITIONAL
 	}
 	bound := make(map[string]struct{}, len(selected.ExactBindings))
 	for _, binding := range selected.ExactBindings {
@@ -255,7 +256,12 @@ func validSelectedLocalExecutionProjection(selected *localexecution.SelectedLoca
 		}
 		bound[binding.RequirementID] = struct{}{}
 	}
-	return len(bound) == len(requirements)
+	for requirementID, required := range requirements {
+		if _, exists := bound[requirementID]; required && !exists {
+			return false
+		}
+	}
+	return true
 }
 
 func machineExecutionAccountError(message string) error {
