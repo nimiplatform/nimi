@@ -1,25 +1,9 @@
+import { formatBytes, formatEta, formatSpeed } from '../src/shell/renderer/components/download-format.js';
 import assert from 'node:assert/strict';
 import test, { describe } from 'node:test';
 import type { TFunction } from 'i18next';
 
-import {
-  assetUnhealthyReasonSummary,
-  formatBytes,
-  formatCompactCount,
-  formatDownloadPhaseLabel,
-  formatEta,
-  formatKnownDownloadSize,
-  formatSpeed,
-  isRuntimeInstallCancellation,
-  localSpeechReasonSummary,
-  partitionTransferSessionsByDisplayState,
-  parseTimestamp,
-  PROGRESS_RETENTION_MS,
-  PROGRESS_SESSION_LIMIT,
-  pruneProgressSessions,
-  sortProgressSessions,
-  type ProgressSessionState,
-} from '../src/shell/renderer/features/runtime-config/runtime-config-model-center-utils';
+import { assetUnhealthyReasonSummary, formatCompactCount, formatDownloadPhaseLabel, formatKnownDownloadSize, isRuntimeInstallCancellation, localSpeechReasonSummary, partitionTransferSessionsByDisplayState, parseTimestamp, PROGRESS_RETENTION_MS, PROGRESS_SESSION_LIMIT, pruneProgressSessions, sortProgressSessions, type ProgressSessionState } from '../src/shell/renderer/features/runtime-config/runtime-config-model-center-utils';
 import { createNimiError, ReasonCode } from '@nimiplatform/sdk/types';
 import { NIMI_RUNTIME_REASON_CODES } from '@nimiplatform/sdk/runtime';
 

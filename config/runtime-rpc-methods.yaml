@@ -521,6 +521,15 @@ services:
       - name: CancelAppPackageJob
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob
+      - name: PauseAppPackageJob
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob
+      - name: ResumeAppPackageJob
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob
+      - name: ReorderAppPackageJob
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob
   - name: RuntimeAgentService
     source_rule: K-RPC-004b
     methods:

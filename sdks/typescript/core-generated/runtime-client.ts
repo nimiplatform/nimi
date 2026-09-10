@@ -911,6 +911,30 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ListCommittedAppReleasesResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob",
+    "service": "RuntimeAppPackageService",
+    "method": "PauseAppPackageJob",
+    "kind": "unary",
+    "requestType": "PauseAppPackageJobRequest",
+    "responseType": "PauseAppPackageJobResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob",
+    "service": "RuntimeAppPackageService",
+    "method": "ReorderAppPackageJob",
+    "kind": "unary",
+    "requestType": "ReorderAppPackageJobRequest",
+    "responseType": "ReorderAppPackageJobResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob",
+    "service": "RuntimeAppPackageService",
+    "method": "ResumeAppPackageJob",
+    "kind": "unary",
+    "requestType": "ResumeAppPackageJobRequest",
+    "responseType": "ResumeAppPackageJobResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
     "service": "RuntimeAppPackageService",
     "method": "StartAppPackageInstall",

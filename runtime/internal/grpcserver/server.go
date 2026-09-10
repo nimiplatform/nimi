@@ -941,9 +941,13 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	runtimev1.RegisterRuntimeDevelopmentServiceServer(g, appSvc)
 
 	runtimev1.RegisterRuntimeArtifactServiceServer(g, artifactSvc)
-	localSvc.SetProductControlRootHandoff(&productControlRuntimeRootHandoff{
+	rootHandoff := &productControlRuntimeRootHandoff{
 		registry: rpcRegistry, ai: aiSvc, agent: agentSvc, cognition: cognitionSvc, backend: backend,
-	})
+	}
+	if appInstallCoordinator != nil {
+		rootHandoff.appPackages = appInstallCoordinator
+	}
+	localSvc.SetProductControlRootHandoff(rootHandoff)
 	if err := localSvc.SetProductControlCheckSyncRuntimeOwners(productControlCheckSyncOwners(backend, localAppKernel, cognitionSvc, appSvc, accountSvc, agentSvc)); err != nil {
 		return nil, fmt.Errorf("compose fixed Runtime Check & Sync owners: %w", err)
 	}

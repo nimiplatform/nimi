@@ -119,6 +119,7 @@ export enum AppPackageJobPhase {
   COMPLETED = 12,
   FAILED = 13,
   CANCELED = 14,
+  PAUSED = 15,
 }
 
 export enum AppPackageProgressBasis {

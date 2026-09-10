@@ -1,7 +1,11 @@
 import type { ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BadgeCheck, Code2, LoaderCircle, PackageOpen } from 'lucide-react';
-import { StatusBadge, type StatusBadgeShape } from '@nimiplatform/kit/ui';
+import { Button, StatusBadge, type StatusBadgeShape } from '@nimiplatform/kit/ui';
+import { AppPackageJobPhase } from '@nimiplatform/sdk/runtime/wire-types';
+import { formatBytes } from '../../components/download-format.js';
+import { useAppsDownloads } from './apps-downloads-context.js';
+import { packageJobKey } from './apps-downloads-observer.js';
 import {
   APP_RUN_BADGE_TONE,
   appPackageFailureReason,
@@ -93,9 +97,12 @@ export function AppRunStatusBadge({
 
 export function AppPackageStatusLine({ entry }: { readonly entry: DesktopAppsEntry }): ReactElement | null {
   const { t } = useTranslation();
+  const downloads = useAppsDownloads();
   if (entry.localDevelopment) return null;
   const job = entry.packageJob;
-  const progress = job ? appPackageProgressText(job) : null;
+  const progress = job && [AppPackageJobPhase.DOWNLOADING, AppPackageJobPhase.PAUSED].includes(job.phase)
+    ? `${formatBytes(Number(job.bytesCompleted))}${job.bytesTotal ? ` / ${formatBytes(Number(job.bytesTotal))}` : ''}`
+    : job ? appPackageProgressText(job) : null;
   const failureReason = job ? appPackageFailureReason(job) : null;
   const versionLabel = entry.committedRelease
     ? t('Apps.version.installed', { version: entry.committedRelease.version })
@@ -105,7 +112,7 @@ export function AppPackageStatusLine({ entry }: { readonly entry: DesktopAppsEnt
     ? phaseLocaleKey ? t(`Apps.phase.${phaseLocaleKey}`) : String(job.phase)
     : null;
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[color:var(--nimi-text-muted)]">
+    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[color:var(--nimi-text-secondary)]">
       <span data-testid={`apps-entry-${entry.identity.entryKey}-installed-version`}>{versionLabel}</span>
       {hasAvailableCatalogUpdate(entry) ? <span className="text-[var(--nimi-status-info)]" data-testid={`apps-entry-${entry.identity.entryKey}-available-version`}>{t('Apps.update.available', { version: entry.catalogTarget?.version })}</span> : null}
       {phaseLabel ? (
@@ -118,6 +125,7 @@ export function AppPackageStatusLine({ entry }: { readonly entry: DesktopAppsEnt
           {failureReason}
         </span>
       ) : null}
+      {job && downloads ? <Button className="relative z-10" size="sm" tone="ghost" onClick={(event) => { event.stopPropagation(); downloads.openDownloads(packageJobKey(job)); }}>{t('Apps.downloads.viewTask')}</Button> : null}
     </div>
   );
 }

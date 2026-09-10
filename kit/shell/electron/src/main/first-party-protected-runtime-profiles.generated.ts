@@ -71,6 +71,9 @@ export const NIMI_ELECTRON_FIRST_PARTY_PROTECTED_RUNTIME_PROFILES = {
       "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob": { kind: "unary" },
       "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob": { kind: "unary" },
+      "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob": { kind: "unary" },
     },
   },
   "desktop_account_product_v1": {

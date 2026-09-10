@@ -7,6 +7,8 @@ import { useAppsPanelController } from './apps-panel-controller.js';
 import { AppsPanelView } from './apps-panel-view.js';
 import { startAppsPackageInstall, startAppsPackageUpdate } from './apps-install-runtime.js';
 import { finishInstalledAppUninstall } from './apps-installed-bridge.js';
+import { useAppsDownloads } from './apps-downloads-context.js';
+import { catalogTargetMatchesJob } from './apps-downloads-view.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
 import {
   AppPackageJobPhase,
@@ -55,6 +57,8 @@ export function dispatchAppsPanelCardAction(input: {
 }
 
 export function AppsPanel(): ReactElement {
+  const downloads = useAppsDownloads();
+  if (!downloads) throw new Error('APPS_DOWNLOADS_PROVIDER_MISSING');
   const settings = useDesktopRendererCommands().settings;
   const sdk = useDesktopRendererSdk();
   const requestedDetailAppId = useAppStore((state) => state.appsDetailAppId);
@@ -89,12 +93,11 @@ export function AppsPanel(): ReactElement {
     startAppsPackageUpdate(sdk.machineProduct().apps.startAppPackageUpdate, approvedTargetSelector, launchSelector, installedVersion)
   ), [sdk]);
   const listPackageJobs = useCallback(async () => {
-    const response = await sdk.machineProduct().apps.listAppPackageJobs({});
-    if (response.reasonCode !== ReasonCode.ACTION_EXECUTED) {
-      throw new Error(`Runtime rejected App package jobs list: ${String(response.reasonCode)}`);
-    }
-    return response.jobs;
-  }, [sdk]);
+    await downloads.observer.refresh();
+    const snapshot = downloads.observer.getSnapshot();
+    if (snapshot.status !== 'ready') throw new Error(snapshot.error ?? 'App jobs are unavailable');
+    return snapshot.jobs;
+  }, [downloads.observer]);
   const cancelPackageJob = useCallback(async (job: AppPackageJob) => {
     const response = await sdk.machineProduct().apps.cancelAppPackageJob({
       jobId: job.jobId,
@@ -150,6 +153,7 @@ export function AppsPanel(): ReactElement {
     cancelInstall,
   } = controller;
   const handleCardAction = useCallback((entryKey: string, action: AppCardActionId): void => {
+    if (action === 'details' || action === 'open-ai-config') downloads.showLibrary();
     const entry = projection?.status === 'loaded'
       ? projection.entries.find((candidate) => candidate.identity.entryKey === entryKey)
       : null;
@@ -161,7 +165,7 @@ export function AppsPanel(): ReactElement {
       setAppsDetailAppId,
       runCardAction,
     });
-  }, [projection, runCardAction, setAppsDetailAppId]);
+  }, [downloads.showLibrary, projection, runCardAction, setAppsDetailAppId]);
 
   useEffect(() => {
     if (!requestedDetailAppId || projection?.status !== 'loaded') return;
@@ -173,9 +177,25 @@ export function AppsPanel(): ReactElement {
     ? projection.entries.find((entry) => entry.identity.entryKey === detailEntryKey) ?? null
     : null;
 
+  const viewDownloadApp = (job: AppPackageJob) => {
+    downloads.showLibrary();
+    const entry = projection?.status === 'loaded' ? projection.entries.find((candidate) => candidate.identity.appId === job.appId && candidate.identity.sourceClass === 'verified') : null;
+    if (entry) handleCardAction(entry.identity.entryKey, 'details');
+    else { closeDetail(); setSearchQuery(job.appId); }
+  };
+
   return (
     <div data-testid="apps-panel" className="flex min-h-0 flex-1 flex-col">
       <AppsPanelView
+        downloads={downloads}
+        onViewDownloadApp={viewDownloadApp}
+        onRetryDownload={(job) => {
+          const entry = projection?.status === 'loaded' ? projection.entries.find((candidate) => candidate.identity.appId === job.appId && candidate.identity.sourceClass === 'verified') : null;
+          viewDownloadApp(job);
+          // Retry the same selected release through the existing confirmation.
+          // A changed selection stays in App detail for a new explicit choice.
+          if (entry && catalogTargetMatchesJob(entry.catalogTarget, job)) runCardAction(entry.identity.entryKey, job.kind === AppPackageJobKind.UPDATE ? 'update' : 'install');
+        }}
         projection={projection}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}

@@ -124,6 +124,7 @@ export function useLocalModelCenterRuntimeState() {
 
   return {
     activeDownloads: importActions.activeDownloads,
+    observedAtBySessionId: importActions.observedAtBySessionId,
     activeImports: importActions.activeImports,
     terminalDownloads: importActions.terminalDownloads,
     terminalImports: importActions.terminalImports,

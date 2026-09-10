@@ -38,6 +38,7 @@ import {
 import { E2E_IDS } from '../../testability/e2e-ids';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import { resolveMainLayoutTitlebarFrame } from './main-layout-titlebar-frame';
+import { AppsDownloadsNavigation } from '../../features/apps/apps-downloads-view.js';
 
 /** Track window focus so polling queries can pause when the app is not focused. */
 function useWindowFocused(
@@ -333,6 +334,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
               </ScrollArea>
             </nav>
             <div className="flex shrink-0 flex-col items-center gap-2 pb-3">
+              <AppsDownloadsNavigation onOpen={() => props.onNav('apps')} />
               <Tooltip
                 content={t('Navigation.notifications')}
                 placement="right"

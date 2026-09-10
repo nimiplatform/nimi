@@ -383,6 +383,7 @@ enum AppPackageJobPhase {
   APP_PACKAGE_JOB_PHASE_COMPLETED = 12;
   APP_PACKAGE_JOB_PHASE_FAILED = 13;
   APP_PACKAGE_JOB_PHASE_CANCELED = 14;
+  APP_PACKAGE_JOB_PHASE_PAUSED = 15;
   reserved 9;
   reserved "APP_PACKAGE_JOB_PHASE_STOPPING_HOST";
 }
@@ -429,6 +430,20 @@ message AppPackageJob {
   AppPackageTerminalResult terminal_result = 14;
   string reason_code = 15;
   bool cancelable = 16;
+  // Runtime queue projection: one-based for queued jobs, zero otherwise.
+  uint32 queue_position = 17;
+  // Current transfer observations; zero means unknown, never stalled.
+  uint64 speed_bytes_per_sec = 18;
+  uint64 eta_seconds = 19;
+  google.protobuf.Timestamp progress_observed_at = 20;
+  // Orders owner state and progress observations for this job.
+  google.protobuf.Timestamp updated_at = 21;
+  // Bounded selected-target display facts, never package admission inputs.
+  string display_name = 22;
+  string target_version = 23;
+  string previous_version = 24;
+  string target_os = 25;
+  string target_arch = 26;
 }
 
 message ApprovedAppCatalogStorageDisclosure {
@@ -533,6 +548,35 @@ message CancelAppPackageJobResponse {
   ReasonCode reason_code = 2;
 }
 
+message PauseAppPackageJobRequest {
+  bytes job_id = 1;
+}
+
+message PauseAppPackageJobResponse {
+  AppPackageJob job = 1;
+  ReasonCode reason_code = 2;
+}
+
+message ResumeAppPackageJobRequest {
+  bytes job_id = 1;
+}
+
+message ResumeAppPackageJobResponse {
+  AppPackageJob job = 1;
+  ReasonCode reason_code = 2;
+}
+
+message ReorderAppPackageJobRequest {
+  bytes job_id = 1;
+  // Empty places the job at the tail. Runtime validates both pending jobs.
+  bytes before_job_id = 2;
+}
+
+message ReorderAppPackageJobResponse {
+  AppPackageJob job = 1;
+  ReasonCode reason_code = 2;
+}
+
 // Desktop-protected Runtime owner projection. Package mutations require the
 // exact reviewed target and Desktop confirmation. local_development is absent
 // from every package enum and request.
@@ -545,6 +589,9 @@ service RuntimeAppPackageService {
   rpc StartAppPackageUpdate(StartAppPackageUpdateRequest) returns (StartAppPackageUpdateResponse);
   rpc StartAppPackageUninstall(StartAppPackageUninstallRequest) returns (StartAppPackageUninstallResponse);
   rpc CancelAppPackageJob(CancelAppPackageJobRequest) returns (CancelAppPackageJobResponse);
+  rpc PauseAppPackageJob(PauseAppPackageJobRequest) returns (PauseAppPackageJobResponse);
+  rpc ResumeAppPackageJob(ResumeAppPackageJobRequest) returns (ResumeAppPackageJobResponse);
+  rpc ReorderAppPackageJob(ReorderAppPackageJobRequest) returns (ReorderAppPackageJobResponse);
 }
 
 service RuntimeAppService {

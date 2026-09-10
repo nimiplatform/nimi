@@ -18,6 +18,10 @@ Discipline.
 
 ### Added
 
+- ProgressIndicator accepts an unknown value and places accessible names and
+  value descriptions on the actual progressbar. This compatible input widening
+  belongs to the unreleased minor surface; existing numeric values still work.
+
 - Added the macOS arm64 native package and main-only installed App control to
   the 0.6.0 component release. The shared installed-launch transaction uses a
   macOS current-user, same-session suspended child and retains its real exit

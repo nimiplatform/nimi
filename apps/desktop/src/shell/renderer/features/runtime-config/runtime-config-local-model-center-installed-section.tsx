@@ -1,7 +1,8 @@
+import { formatBytes } from '../../components/download-format.js';
 import { useState } from 'react';
 import type { NimiRuntimeModelAssetRecord } from '@nimiplatform/sdk/runtime';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { formatBytes } from './runtime-config-model-center-utils';
+
 import {
   FolderOpenIcon,
   PackageIcon,

@@ -90,7 +90,7 @@ AiRealtimeSpeechState = Literal["AI_REALTIME_SPEECH_STATE_UNSPECIFIED", "AI_REAL
 AiRealtimeTurnDetectionMode = Literal["AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED", "AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD", "AI_REALTIME_TURN_DETECTION_MODE_MANUAL"]
 AppMessageEventType = Literal["APP_MESSAGE_EVENT_TYPE_UNSPECIFIED", "APP_MESSAGE_EVENT_RECEIVED", "APP_MESSAGE_EVENT_ACKED", "APP_MESSAGE_EVENT_FAILED"]
 AppPackageJobKind = Literal["APP_PACKAGE_JOB_KIND_UNSPECIFIED", "APP_PACKAGE_JOB_KIND_INSTALL", "APP_PACKAGE_JOB_KIND_UPDATE", "APP_PACKAGE_JOB_KIND_REPAIR", "APP_PACKAGE_JOB_KIND_UNINSTALL"]
-AppPackageJobPhase = Literal["APP_PACKAGE_JOB_PHASE_UNSPECIFIED", "APP_PACKAGE_JOB_PHASE_QUEUED", "APP_PACKAGE_JOB_PHASE_DOWNLOADING", "APP_PACKAGE_JOB_PHASE_READING_LOCAL", "APP_PACKAGE_JOB_PHASE_VERIFYING", "APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED", "APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING", "APP_PACKAGE_JOB_PHASE_STAGING", "APP_PACKAGE_JOB_PHASE_COMMITTING", "APP_PACKAGE_JOB_PHASE_REMOVING_PACKAGE", "APP_PACKAGE_JOB_PHASE_UNREGISTERING", "APP_PACKAGE_JOB_PHASE_COMPLETED", "APP_PACKAGE_JOB_PHASE_FAILED", "APP_PACKAGE_JOB_PHASE_CANCELED"]
+AppPackageJobPhase = Literal["APP_PACKAGE_JOB_PHASE_UNSPECIFIED", "APP_PACKAGE_JOB_PHASE_QUEUED", "APP_PACKAGE_JOB_PHASE_DOWNLOADING", "APP_PACKAGE_JOB_PHASE_READING_LOCAL", "APP_PACKAGE_JOB_PHASE_VERIFYING", "APP_PACKAGE_JOB_PHASE_VERIFYING_INSTALLED", "APP_PACKAGE_JOB_PHASE_ACQUIRING_MISSING", "APP_PACKAGE_JOB_PHASE_STAGING", "APP_PACKAGE_JOB_PHASE_COMMITTING", "APP_PACKAGE_JOB_PHASE_REMOVING_PACKAGE", "APP_PACKAGE_JOB_PHASE_UNREGISTERING", "APP_PACKAGE_JOB_PHASE_COMPLETED", "APP_PACKAGE_JOB_PHASE_FAILED", "APP_PACKAGE_JOB_PHASE_CANCELED", "APP_PACKAGE_JOB_PHASE_PAUSED"]
 AppPackageProgressBasis = Literal["APP_PACKAGE_PROGRESS_BASIS_UNSPECIFIED", "APP_PACKAGE_PROGRESS_BASIS_BYTES", "APP_PACKAGE_PROGRESS_BASIS_STEPS", "APP_PACKAGE_PROGRESS_BASIS_INDETERMINATE"]
 AppPackageSourceClass = Literal["APP_PACKAGE_SOURCE_CLASS_UNSPECIFIED", "APP_PACKAGE_SOURCE_CLASS_VERIFIED", "APP_PACKAGE_SOURCE_CLASS_USER_IMPORTED"]
 AppPackageTerminalResult = Literal["APP_PACKAGE_TERMINAL_RESULT_UNSPECIFIED", "APP_PACKAGE_TERMINAL_RESULT_COMPLETED", "APP_PACKAGE_TERMINAL_RESULT_FAILED", "APP_PACKAGE_TERMINAL_RESULT_CANCELED"]
@@ -876,6 +876,16 @@ class AppPackageJob:
     terminal_result: AppPackageTerminalResult | None = None
     reason_code: str | None = None
     cancelable: bool | None = None
+    queue_position: int | None = None
+    speed_bytes_per_sec: int | None = None
+    eta_seconds: int | None = None
+    progress_observed_at: str | None = None
+    updated_at: str | None = None
+    display_name: str | None = None
+    target_version: str | None = None
+    previous_version: str | None = None
+    target_os: str | None = None
+    target_arch: str | None = None
 
 @dataclass(frozen=True)
 class AppStorageProjection:
@@ -4469,6 +4479,15 @@ class OverwriteSharedLocalAgentAIConfigResponse:
     participation: tuple[LocalAgentCapabilityParticipation, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class PauseAppPackageJobRequest:
+    job_id: bytes | None = None
+
+@dataclass(frozen=True)
+class PauseAppPackageJobResponse:
+    job: AppPackageJob | None = None
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
 class PauseLocalTransferRequest:
     install_session_id: str | None = None
 
@@ -4981,6 +5000,16 @@ class RenewLocalAppSessionRequest:
     pass
 
 @dataclass(frozen=True)
+class ReorderAppPackageJobRequest:
+    job_id: bytes | None = None
+    before_job_id: bytes | None = None
+
+@dataclass(frozen=True)
+class ReorderAppPackageJobResponse:
+    job: AppPackageJob | None = None
+    reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
 class RepairLocalEnvironmentDependencyRequest:
     environment_key: str | None = None
     dependency_family: str | None = None
@@ -5090,6 +5119,15 @@ class ResponseFormat:
     schema_name: str | None = None
     schema_description: str | None = None
     strict: bool | None = None
+
+@dataclass(frozen=True)
+class ResumeAppPackageJobRequest:
+    job_id: bytes | None = None
+
+@dataclass(frozen=True)
+class ResumeAppPackageJobResponse:
+    job: AppPackageJob | None = None
+    reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
 class ResumeLocalTransferRequest:
@@ -6703,6 +6741,18 @@ class RuntimeTypedClient:
     async def list_committed_app_releases(self, request: ListCommittedAppReleasesRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ListCommittedAppReleasesResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListCommittedAppReleasesResponse, raw)
+
+    async def pause_app_package_job(self, request: PauseAppPackageJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PauseAppPackageJobResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PauseAppPackageJobResponse, raw)
+
+    async def reorder_app_package_job(self, request: ReorderAppPackageJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ReorderAppPackageJobResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ReorderAppPackageJobResponse, raw)
+
+    async def resume_app_package_job(self, request: ResumeAppPackageJobRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ResumeAppPackageJobResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ResumeAppPackageJobResponse, raw)
 
     async def start_app_package_install(self, request: StartAppPackageInstallRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> StartAppPackageInstallResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

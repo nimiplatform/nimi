@@ -888,6 +888,30 @@ RUNTIME_METHODS = [
     "response_type": "ListCommittedAppReleasesResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob",
+    "service": "RuntimeAppPackageService",
+    "method": "PauseAppPackageJob",
+    "kind": "unary",
+    "request_type": "PauseAppPackageJobRequest",
+    "response_type": "PauseAppPackageJobResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob",
+    "service": "RuntimeAppPackageService",
+    "method": "ReorderAppPackageJob",
+    "kind": "unary",
+    "request_type": "ReorderAppPackageJobRequest",
+    "response_type": "ReorderAppPackageJobResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob",
+    "service": "RuntimeAppPackageService",
+    "method": "ResumeAppPackageJob",
+    "kind": "unary",
+    "request_type": "ResumeAppPackageJobRequest",
+    "response_type": "ResumeAppPackageJobResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
     "service": "RuntimeAppPackageService",
     "method": "StartAppPackageInstall",

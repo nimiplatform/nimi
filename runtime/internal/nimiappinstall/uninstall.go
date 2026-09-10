@@ -78,6 +78,9 @@ func (coordinator *Coordinator) CancelUninstall(ctx context.Context, jobID strin
 	defer coordinator.operations.RUnlock()
 	coordinator.launchMu.Lock()
 	defer coordinator.launchMu.Unlock()
+	if coordinator.isClosing() {
+		return localappkernel.PackageJob{}, ErrInstallQuiescing
+	}
 	job, err := coordinator.lifecycle.GetJob(ctx, jobID)
 	if err != nil {
 		return localappkernel.PackageJob{}, err

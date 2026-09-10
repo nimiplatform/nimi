@@ -7,19 +7,13 @@ import {
   FolderOpenIcon,
   DownloadIcon,
 } from './runtime-config-local-model-center-helpers';
-import { ProgressIndicator } from '@nimiplatform/kit/ui';
+import { DownloadMetrics } from '../../components/download-metrics.js';
 import { Button } from './runtime-config-primitives';
-import {
-  downloadStateLabel,
-  formatBytes,
-  formatDownloadPhaseLabel,
-  formatEta,
-  formatImportPhaseLabel,
-  formatSpeed,
-} from './runtime-config-model-center-utils';
+import { downloadStateLabel, formatDownloadPhaseLabel, formatImportPhaseLabel } from './runtime-config-model-center-utils';
 
 type TransferCardProps = {
   event: NimiRuntimeLocalTransferProgressEvent;
+  observedAt?: number;
   t: TFunction;
   runtimeWritesDisabled: boolean;
   onPause: (installSessionId: string) => void;
@@ -38,25 +32,6 @@ function LocalTransferDownloadCard(props: TransferCardProps) {
   const canResume = isPaused || (isFailed && event.retryable);
   const canCancel = event.state !== 'completed' && event.state !== 'cancelled';
   const phaseLabel = formatDownloadPhaseLabel(event.phase, t);
-  const pausedMetaLabel = t('runtimeConfig.localModelCenter.downloadState.paused', { defaultValue: 'Paused' });
-  const progressMeta = event.phase === 'verify'
-    ? (event.speedBytesPerSec && event.speedBytesPerSec > 0
-        ? t('runtimeConfig.localModelCenter.verifyProgressWithEta', {
-          speed: formatSpeed(event.speedBytesPerSec),
-          eta: formatEta(event.etaSeconds),
-          defaultValue: '{{speed}} verify · ETA {{eta}}',
-        })
-        : t('runtimeConfig.localModelCenter.verifyingLocalFile', { defaultValue: 'Verifying local file...' }))
-    : event.phase === 'upsert'
-      ? t('runtimeConfig.localModelCenter.finalizingInstallation', { defaultValue: 'Finalizing installation...' })
-      : event.speedBytesPerSec && event.speedBytesPerSec > 0
-        ? t('runtimeConfig.localModelCenter.downloadProgressWithEta', {
-          speed: formatSpeed(event.speedBytesPerSec),
-          eta: formatEta(event.etaSeconds),
-          defaultValue: '{{speed}} · ETA {{eta}}',
-        })
-        : t('runtimeConfig.localModelCenter.measuringThroughput', { defaultValue: 'Measuring throughput...' });
-
   return (
     <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]">
       <div className="mb-2 flex items-center gap-3">
@@ -87,30 +62,13 @@ function LocalTransferDownloadCard(props: TransferCardProps) {
           </button>
         ) : null}
       </div>
-      {typeof event.bytesTotal === 'number' && event.bytesTotal > 0 ? (
-        <div className="mb-2">
-          <ProgressIndicator
-            value={event.bytesReceived}
-            max={event.bytesTotal}
-            className={isFailed ? '[&_.nimi-progress__bar]:bg-[var(--nimi-status-danger)]' : undefined}
-          />
-          <div className="mt-1 flex justify-between text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
-            <span>{formatBytes(event.bytesReceived)} / {formatBytes(event.bytesTotal)}</span>
-            {isRunning ? (
-              <span>{progressMeta}</span>
-            ) : isPaused ? (
-              <span>{pausedMetaLabel}</span>
-            ) : null}
-          </div>
-        </div>
-      ) : (
-        <p className="mb-2 text-xs text-[var(--nimi-text-muted)]">
-          {t('runtimeConfig.localModelCenter.downloadedBytes', {
-            value: formatBytes(event.bytesReceived),
-            defaultValue: '{{value}} downloaded',
-          })}
-        </p>
-      )}
+      <div className="mb-3">
+        <DownloadMetrics name={event.modelId} received={event.bytesReceived} total={event.bytesTotal}
+          speed={event.speedBytesPerSec} eta={event.etaSeconds} observedAt={props.observedAt}
+          available={!props.runtimeWritesDisabled} transferring={isRunning && !['upsert', 'register', 'manifest'].includes(event.phase)}
+          activity={event.phase === 'verify' ? 'verify' : event.sessionKind === 'import' ? 'local' : 'download'}
+          idleLabel={isPaused ? t('runtimeConfig.localModelCenter.downloadState.paused') : undefined} />
+      </div>
       <div className="flex items-center gap-2">
         {canPause ? <button type="button" disabled={props.runtimeWritesDisabled} onClick={() => props.onPause(event.installSessionId)} className="rounded border border-[var(--nimi-border-subtle)] px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-card)_90%,var(--nimi-surface-panel))] disabled:opacity-50">{t('runtimeConfig.localModelCenter.pause', { defaultValue: 'Pause' })}</button> : null}
         {canResume ? <Button size="sm" disabled={props.runtimeWritesDisabled} onClick={() => props.onResume(event.installSessionId)}>{t('runtimeConfig.localModelCenter.resume', { defaultValue: 'Resume' })}</Button> : null}
@@ -128,18 +86,6 @@ function LocalTransferImportCard(props: TransferCardProps) {
   const isCancelled = event.state === 'cancelled';
   const canCancel = event.state === 'queued' || isRunning || isPaused;
   const phaseLabel = formatImportPhaseLabel(event.phase, t);
-  const pausedMetaLabel = t('runtimeConfig.localModelCenter.downloadState.paused', { defaultValue: 'Paused' });
-  const progressMeta = event.phase === 'register'
-    || event.phase === 'manifest'
-    ? t('runtimeConfig.localModelCenter.finalizingImport', { defaultValue: 'Finalizing local import...' })
-    : event.speedBytesPerSec && event.speedBytesPerSec > 0
-      ? t('runtimeConfig.localModelCenter.importProgressWithEta', {
-        speed: formatSpeed(event.speedBytesPerSec),
-        eta: formatEta(event.etaSeconds),
-        defaultValue: '{{speed}} · ETA {{eta}}',
-      })
-      : t('runtimeConfig.localModelCenter.processingLocalImport', { defaultValue: 'Processing local import...' });
-
   return (
     <div className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 shadow-[var(--nimi-elevation-base)]">
       <div className="mb-2 flex items-center gap-3">
@@ -197,38 +143,20 @@ function LocalTransferImportCard(props: TransferCardProps) {
           </button>
         ) : null}
       </div>
-      {typeof event.bytesTotal === 'number' && event.bytesTotal > 0 ? (
-        <div className="mb-2">
-          <ProgressIndicator
-            value={event.bytesReceived}
-            max={event.bytesTotal}
-            className={isFailed
-              ? '[&_.nimi-progress__bar]:bg-[var(--nimi-status-danger)]'
-              : '[&_.nimi-progress__bar]:bg-[var(--nimi-status-success)]'}
-          />
-          <div className="mt-1 flex justify-between text-[length:var(--nimi-type-caption-size)] text-[var(--nimi-text-muted)]">
-            <span>{formatBytes(event.bytesReceived)} / {formatBytes(event.bytesTotal)}</span>
-            {isRunning ? (
-              <span>{progressMeta}</span>
-            ) : isPaused ? (
-              <span>{pausedMetaLabel}</span>
-            ) : null}
-          </div>
-        </div>
-      ) : (
-        <p className="mb-2 text-xs text-[var(--nimi-text-muted)]">
-          {t('runtimeConfig.localModelCenter.localImportProgress', {
-            value: formatBytes(event.bytesReceived),
-            defaultValue: '{{value}} processed locally',
-          })}
-        </p>
-      )}
+      <div className="mb-3">
+        <DownloadMetrics name={event.modelId} received={event.bytesReceived} total={event.bytesTotal}
+          speed={event.speedBytesPerSec} eta={event.etaSeconds} observedAt={props.observedAt}
+          available={!props.runtimeWritesDisabled} transferring={isRunning && !['upsert', 'register', 'manifest'].includes(event.phase)}
+          activity={event.phase === 'verify' ? 'verify' : event.sessionKind === 'import' ? 'local' : 'download'}
+          idleLabel={isPaused ? t('runtimeConfig.localModelCenter.downloadState.paused') : undefined} />
+      </div>
     </div>
   );
 }
 
 type InProgressSectionProps = {
   downloads: NimiRuntimeLocalTransferProgressEvent[];
+  observedAtBySessionId?: Readonly<Record<string, number>>;
   imports: NimiRuntimeLocalTransferProgressEvent[];
   terminalDownloads: NimiRuntimeLocalTransferProgressEvent[];
   terminalImports: NimiRuntimeLocalTransferProgressEvent[];
@@ -282,10 +210,10 @@ function LocalModelCenterInProgressSection(props: InProgressSectionProps) {
       {activeCount > 0 ? (
         <div className="space-y-3 px-5 py-4">
           {props.downloads.map((event) => (
-            <LocalTransferDownloadCard key={event.installSessionId} event={event} {...transferCardCallbacks} />
+            <LocalTransferDownloadCard key={event.installSessionId} event={event} observedAt={props.observedAtBySessionId?.[event.installSessionId]} {...transferCardCallbacks} />
           ))}
           {props.imports.map((event) => (
-            <LocalTransferImportCard key={event.installSessionId} event={event} {...transferCardCallbacks} />
+            <LocalTransferImportCard key={event.installSessionId} event={event} observedAt={props.observedAtBySessionId?.[event.installSessionId]} {...transferCardCallbacks} />
           ))}
         </div>
       ) : null}
@@ -315,10 +243,10 @@ function LocalModelCenterInProgressSection(props: InProgressSectionProps) {
           {recentOpen ? (
             <div className="space-y-3 px-5 pb-4">
               {props.terminalDownloads.map((event) => (
-                <LocalTransferDownloadCard key={event.installSessionId} event={event} {...transferCardCallbacks} />
+                <LocalTransferDownloadCard key={event.installSessionId} event={event} observedAt={props.observedAtBySessionId?.[event.installSessionId]} {...transferCardCallbacks} />
               ))}
               {props.terminalImports.map((event) => (
-                <LocalTransferImportCard key={event.installSessionId} event={event} {...transferCardCallbacks} />
+                <LocalTransferImportCard key={event.installSessionId} event={event} observedAt={props.observedAtBySessionId?.[event.installSessionId]} {...transferCardCallbacks} />
               ))}
             </div>
           ) : null}

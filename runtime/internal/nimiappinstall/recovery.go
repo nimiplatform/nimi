@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiappnative"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiapppackage"
@@ -37,6 +38,31 @@ func (coordinator *Coordinator) failInstall(
 ) error {
 	cleanupContext, cancel := context.WithTimeout(context.Background(), installRecoveryTimeout)
 	defer cancel()
+	paused, pauseReason := coordinator.workerPause(job.JobID)
+	invalidContent := errors.Is(cause, filedownload.ErrHashMismatch) || errors.Is(cause, filedownload.ErrSizeMismatch) || errors.Is(cause, filedownload.ErrMaxBodyExceeded) || errors.Is(cause, nimiapppackage.ErrPackageIntegrity) || errors.Is(cause, nimiapppackage.ErrInvalidPackage) || errors.Is(cause, nimiappnative.ErrNativeVerification) || errors.Is(cause, nimiappnative.ErrNativePostureMismatch)
+	interrupted := errors.Is(cause, filedownload.ErrTransientAttemptsExhausted) || (job.Phase == localappkernel.PackageJobQueued && transientDownloadError(cause))
+	if !invalidContent && !removeFinal && ((paused && callerContext != nil && callerContext.Err() != nil) || interrupted) {
+		current, err := coordinator.lifecycle.GetJob(cleanupContext, job.JobID)
+		if err != nil {
+			return errors.Join(cause, ErrInstallRecoveryRequired, err)
+		}
+		if !terminalPackagePhase(current.Phase) && current.Phase != localappkernel.PackageJobCommitting {
+			if !paused {
+				pauseReason = "download-interrupted"
+			}
+			retained, err := coordinator.retainedPackageBytes(current)
+			if err == nil {
+				err = coordinator.cleanupInterruptedArtifacts(current.JobID, retained)
+			}
+			if err == nil {
+				_, err = coordinator.lifecycle.Pause(cleanupContext, current.JobID, current.Phase, retained, pauseReason)
+			}
+			if err != nil {
+				return errors.Join(cause, ErrInstallRecoveryRequired, err)
+			}
+			return errors.Join(ErrInstallPaused, cause)
+		}
+	}
 	if err := coordinator.cleanupJobArtifacts(job.JobID, removeFinal); err != nil {
 		return errors.Join(cause, ErrInstallRecoveryRequired, err)
 	}
@@ -47,7 +73,7 @@ func (coordinator *Coordinator) failInstall(
 	if terminalPackagePhase(current.Phase) {
 		return cause
 	}
-	if callerContext != nil && (errors.Is(callerContext.Err(), context.Canceled) || errors.Is(callerContext.Err(), context.DeadlineExceeded)) && current.Cancelable {
+	if !invalidContent && callerContext != nil && (errors.Is(callerContext.Err(), context.Canceled) || errors.Is(callerContext.Err(), context.DeadlineExceeded)) && current.Cancelable {
 		_, err = coordinator.lifecycle.Cancel(cleanupContext, current.JobID, current.Phase, coordinator.workerCancellationReason(current.JobID))
 	} else {
 		_, err = coordinator.lifecycle.Fail(cleanupContext, current.JobID, current.Phase, installFailureReason(cause))
@@ -64,6 +90,8 @@ func installFailureReason(err error) string {
 		return "policy-blocked"
 	case errors.Is(err, publicappregistry.ErrStaleSelection), errors.Is(err, ErrInstallTarget):
 		return "stale-selection"
+	case errors.Is(err, filedownload.ErrHashMismatch), errors.Is(err, filedownload.ErrSizeMismatch), errors.Is(err, filedownload.ErrMaxBodyExceeded):
+		return "verification-failed"
 	case errors.Is(err, ErrDownloadedPackage), errors.Is(err, ErrDownloadDestination), errors.Is(err, ErrDownloadRedirect):
 		return "download-failed"
 	case errors.Is(err, ErrInstallStaging):
@@ -190,6 +218,13 @@ func (coordinator *Coordinator) Recover(ctx context.Context) error {
 	}
 	coordinator.operations.Lock()
 	defer coordinator.operations.Unlock()
+	if coordinator.isClosing() {
+		return ErrInstallQuiescing
+	}
+	return coordinator.recoverLocked(ctx)
+}
+
+func (coordinator *Coordinator) recoverLocked(ctx context.Context) error {
 	if coordinator.packagesRoot == nil || coordinator.lifecycle == nil || coordinator.kernel == nil {
 		return ErrInvalidCoordinator
 	}
@@ -208,6 +243,7 @@ func (coordinator *Coordinator) Recover(ctx context.Context) error {
 		}
 	}
 	protected, allowReleaseSweep, recoveryErr := coordinator.protectedReleaseRoots(ctx)
+	keepWork := make(map[string]struct{})
 	for _, job := range jobs {
 		if job.SourceClass != localappkernel.SourceClassVerified {
 			continue
@@ -232,6 +268,28 @@ func (coordinator *Coordinator) Recover(ctx context.Context) error {
 			recoveryErr = errors.Join(recoveryErr, ErrCommitOutcomeUnknown)
 			continue
 		}
+		if !terminalPackagePhase(job.Phase) && job.Phase != localappkernel.PackageJobCommitting {
+			retained, err := coordinator.retainedPackageBytes(job)
+			if err == nil {
+				err = coordinator.cleanupInterruptedArtifacts(job.JobID, retained)
+			}
+			if err != nil {
+				recoveryErr = errors.Join(recoveryErr, ErrInstallRecoveryRequired, err)
+				continue
+			}
+			reason := "runtime-interrupted"
+			if job.Phase == localappkernel.PackageJobPaused {
+				reason = job.ReasonCode
+			}
+			if _, err := coordinator.lifecycle.Pause(ctx, job.JobID, job.Phase, retained, reason); err != nil {
+				recoveryErr = errors.Join(recoveryErr, ErrInstallRecoveryRequired, err)
+				continue
+			}
+			if retained > 0 {
+				keepWork[job.JobID] = struct{}{}
+			}
+			continue
+		}
 		if err := coordinator.cleanupJobArtifacts(job.JobID, allowReleaseSweep); err != nil {
 			recoveryErr = errors.Join(recoveryErr, ErrInstallRecoveryRequired, err)
 			continue
@@ -242,7 +300,7 @@ func (coordinator *Coordinator) Recover(ctx context.Context) error {
 			}
 		}
 	}
-	if err := coordinator.removeOrphanChildren(packageWorkDirectory, nil, true); err != nil {
+	if err := coordinator.removeOrphanChildren(packageWorkDirectory, keepWork, false); err != nil {
 		recoveryErr = errors.Join(recoveryErr, err)
 	}
 	keepReleases := make(map[string]struct{}, len(protected))
@@ -253,6 +311,16 @@ func (coordinator *Coordinator) Recover(ctx context.Context) error {
 		recoveryErr = errors.Join(recoveryErr, coordinator.removeOrphanChildren(packageReleaseDirectory, keepReleases, false))
 	}
 	return recoveryErr
+}
+
+func (coordinator *Coordinator) cleanupInterruptedArtifacts(jobID string, retained uint64) error {
+	if err := coordinator.packagesRoot.RemoveAll(filepath.Join(packageReleaseDirectory, packageStagePrefix+jobID)); err != nil {
+		return err
+	}
+	if retained == 0 {
+		return coordinator.packagesRoot.RemoveAll(filepath.Join(packageWorkDirectory, jobID))
+	}
+	return coordinator.packagesRoot.RemoveAll(filepath.Join(packageWorkDirectory, jobID, "native-probe"))
 }
 
 func (coordinator *Coordinator) protectedReleaseRoots(ctx context.Context) (map[string]struct{}, bool, error) {

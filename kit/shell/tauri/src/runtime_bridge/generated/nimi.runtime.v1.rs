@@ -11571,6 +11571,30 @@ pub struct AppPackageJob {
     pub reason_code: ::prost::alloc::string::String,
     #[prost(bool, tag = "16")]
     pub cancelable: bool,
+    /// Runtime queue projection: one-based for queued jobs, zero otherwise.
+    #[prost(uint32, tag = "17")]
+    pub queue_position: u32,
+    /// Current transfer observations; zero means unknown, never stalled.
+    #[prost(uint64, tag = "18")]
+    pub speed_bytes_per_sec: u64,
+    #[prost(uint64, tag = "19")]
+    pub eta_seconds: u64,
+    #[prost(message, optional, tag = "20")]
+    pub progress_observed_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// Orders owner state and progress observations for this job.
+    #[prost(message, optional, tag = "21")]
+    pub updated_at: ::core::option::Option<::prost_types::Timestamp>,
+    /// Bounded selected-target display facts, never package admission inputs.
+    #[prost(string, tag = "22")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "23")]
+    pub target_version: ::prost::alloc::string::String,
+    #[prost(string, tag = "24")]
+    pub previous_version: ::prost::alloc::string::String,
+    #[prost(string, tag = "25")]
+    pub target_os: ::prost::alloc::string::String,
+    #[prost(string, tag = "26")]
+    pub target_arch: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ApprovedAppCatalogStorageDisclosure {
@@ -11732,6 +11756,45 @@ pub struct CancelAppPackageJobResponse {
     #[prost(enumeration = "ReasonCode", tag = "2")]
     pub reason_code: i32,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PauseAppPackageJobRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub job_id: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PauseAppPackageJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<AppPackageJob>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResumeAppPackageJobRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub job_id: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ResumeAppPackageJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<AppPackageJob>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReorderAppPackageJobRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub job_id: ::prost::alloc::vec::Vec<u8>,
+    /// Empty places the job at the tail. Runtime validates both pending jobs.
+    #[prost(bytes = "vec", tag = "2")]
+    pub before_job_id: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReorderAppPackageJobResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<AppPackageJob>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum AppMessageEventType {
@@ -11879,6 +11942,7 @@ pub enum AppPackageJobPhase {
     Completed = 12,
     Failed = 13,
     Canceled = 14,
+    Paused = 15,
 }
 impl AppPackageJobPhase {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -11901,6 +11965,7 @@ impl AppPackageJobPhase {
             Self::Completed => "APP_PACKAGE_JOB_PHASE_COMPLETED",
             Self::Failed => "APP_PACKAGE_JOB_PHASE_FAILED",
             Self::Canceled => "APP_PACKAGE_JOB_PHASE_CANCELED",
+            Self::Paused => "APP_PACKAGE_JOB_PHASE_PAUSED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -11920,6 +11985,7 @@ impl AppPackageJobPhase {
             "APP_PACKAGE_JOB_PHASE_COMPLETED" => Some(Self::Completed),
             "APP_PACKAGE_JOB_PHASE_FAILED" => Some(Self::Failed),
             "APP_PACKAGE_JOB_PHASE_CANCELED" => Some(Self::Canceled),
+            "APP_PACKAGE_JOB_PHASE_PAUSED" => Some(Self::Paused),
             _ => None,
         }
     }
@@ -12312,6 +12378,93 @@ pub mod runtime_app_package_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAppPackageService",
                         "CancelAppPackageJob",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn pause_app_package_job(
+            &mut self,
+            request: impl tonic::IntoRequest<super::PauseAppPackageJobRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::PauseAppPackageJobResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "PauseAppPackageJob",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn resume_app_package_job(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ResumeAppPackageJobRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ResumeAppPackageJobResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "ResumeAppPackageJob",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn reorder_app_package_job(
+            &mut self,
+            request: impl tonic::IntoRequest<super::ReorderAppPackageJobRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ReorderAppPackageJobResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "ReorderAppPackageJob",
                     ),
                 );
             self.inner.unary(req, path, codec).await

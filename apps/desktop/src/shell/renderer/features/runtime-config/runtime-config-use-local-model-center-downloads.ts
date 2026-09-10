@@ -219,6 +219,7 @@ export function useLocalModelCenterDownloads(input: UseLocalModelCenterDownloads
   ), []);
 
   return {
+    observedAtBySessionId: Object.fromEntries(Object.entries(progressBySessionId).map(([id, session]) => [id, session.updatedAtMs])),
     activeDownloads,
     activeImports,
     terminalDownloads,

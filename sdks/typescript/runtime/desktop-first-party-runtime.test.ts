@@ -62,6 +62,12 @@ test('Desktop machine product exposes Catalog and package intents without native
       if (request.methodId.endsWith('/CancelAppPackageJob')) {
         return { job: { jobId: Uint8Array.from([1]), phase: AppPackageJobPhase.CANCELED }, reasonCode: 1 } as Response;
       }
+      if (request.methodId.endsWith('/PauseAppPackageJob')) {
+        return { job: { jobId: Uint8Array.from([1]), phase: AppPackageJobPhase.PAUSED }, reasonCode: 1 } as Response;
+      }
+      if (request.methodId.endsWith('/ResumeAppPackageJob') || request.methodId.endsWith('/ReorderAppPackageJob')) {
+        return { job: { jobId: Uint8Array.from([1]), phase: AppPackageJobPhase.QUEUED }, reasonCode: 1 } as Response;
+      }
       throw new Error(`unexpected Runtime method: ${request.methodId}`);
     },
     async *serverStream<Response>(_request: CoreStreamRequest): AsyncIterable<Response> {
@@ -76,6 +82,9 @@ test('Desktop machine product exposes Catalog and package intents without native
     'listAppPackageJobs',
     'listApprovedAppCatalogTargets',
     'listCommittedAppReleases',
+    'pauseAppPackageJob',
+    'reorderAppPackageJob',
+    'resumeAppPackageJob',
     'startAppPackageInstall',
     'startAppPackageUninstall',
     'startAppPackageUpdate',
@@ -97,6 +106,13 @@ test('Desktop machine product exposes Catalog and package intents without native
     expectedPhase: AppPackageJobPhase.QUEUED,
     reasonCode: 'user-canceled',
   });
+  const jobId = Uint8Array.from([1]);
+  await clients.machineProduct.apps.pauseAppPackageJob({ jobId });
+  await clients.machineProduct.apps.resumeAppPackageJob({ jobId });
+  await clients.machineProduct.apps.reorderAppPackageJob({ jobId, beforeJobId: new Uint8Array() });
+  assert.deepEqual(calls[8]?.body, { jobId });
+  assert.deepEqual(calls[9]?.body, { jobId });
+  assert.deepEqual(calls[10]?.body, { jobId, beforeJobId: new Uint8Array() });
 
   assert.deepEqual(calls.map((call) => call.methodId), [
     '/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets',
@@ -107,6 +123,9 @@ test('Desktop machine product exposes Catalog and package intents without native
     '/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs',
     '/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob',
     '/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob',
+    '/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob',
+    '/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob',
+    '/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob',
   ]);
   for (const call of calls) {
     assert.equal(call.metadata?.appId, undefined, 'protected host owns caller identity');
