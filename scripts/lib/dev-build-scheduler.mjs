@@ -22,16 +22,20 @@ export function classifyWatchEventMetadata({ eventType, nodeKind, mtimeMs }) {
 // Watched files can emit change events without any content edit: on Windows,
 // deferred last-access-time flushes surface as change notifications when a
 // reader such as tsc or Vite touches a source file. A surface is safe to skip
-// when every pending event is a non-structural file event whose mtime predates
-// the last build that observed the surface (with a grace window for save
-// patterns whose mtime slightly trails the event, such as atomic renames).
+// when every pending event is non-structural, its content was observed by the
+// last build, and its mtime predates the notification by the save grace window.
+// Measuring that grace from the build would permanently rebuild a file saved
+// just before the build whenever Windows flushes a delayed access timestamp.
 export function findMetadataOnlySurfaces(pendingBySurface, baselines, graceMs) {
   const droppable = [];
   for (const [surface, pending] of pendingBySurface) {
     if (!pending || pending.structural) continue;
     const baseline = baselines[surface] ?? 0;
     if (!(baseline > 0)) continue;
-    if (pending.newestMtimeMs + graceMs <= baseline) droppable.push(surface);
+    if (pending.newestMtimeMs <= baseline
+      && pending.newestMtimeMs + graceMs <= pending.oldestObservedAtMs) {
+      droppable.push(surface);
+    }
   }
   return droppable;
 }

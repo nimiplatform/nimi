@@ -41,7 +41,7 @@ const surfaceRevisions = Object.fromEntries(
 const surfaceContentBaselines = Object.fromEntries(
   Object.keys(DEV_WORKSPACE_SURFACES).map((surface) => [surface, 0]),
 );
-// Per-surface pending event metadata: { structural: boolean, newestMtimeMs }.
+// Per-surface pending event metadata includes the earliest notification time.
 const pendingEventMetadata = new Map();
 const watchers = [];
 let buildTimer;
@@ -60,7 +60,10 @@ function markSurfaceChanged(surface, trigger, observedAt = Date.now(), eventMeta
   changedPaths.get(surface).add(trigger);
   if (observedAt > 0) lastChangeAt = Math.max(lastChangeAt, observedAt);
   if (eventMetadata) {
-    const pending = pendingEventMetadata.get(surface) ?? { structural: false, newestMtimeMs: 0 };
+    const pending = pendingEventMetadata.get(surface) ?? {
+      structural: false, newestMtimeMs: 0, oldestObservedAtMs: observedAt,
+    };
+    pending.oldestObservedAtMs = Math.min(pending.oldestObservedAtMs, observedAt);
     if (eventMetadata.structural) pending.structural = true;
     if (eventMetadata.mtimeMs > 0) {
       pending.newestMtimeMs = Math.max(pending.newestMtimeMs, eventMetadata.mtimeMs);

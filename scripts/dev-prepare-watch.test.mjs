@@ -50,8 +50,8 @@ test('build scheduling waits for quiet after both edits and the previous build',
 
 test('metadata-only events during a completed build do not leave its surface unstamped', () => {
   const metadataOnly = findMetadataOnlySurfaces(new Map([
-    ['sdk', { structural: false, newestMtimeMs: 60_000 }],
-    ['kit', { structural: false, newestMtimeMs: 101_000 }],
+    ['sdk', { structural: false, newestMtimeMs: 60_000, oldestObservedAtMs: 100_000 }],
+    ['kit', { structural: false, newestMtimeMs: 101_000, oldestObservedAtMs: 110_000 }],
   ]), { sdk: 100_000, kit: 100_000 }, 30_000);
   assert.deepEqual(stableBuildSurfaces(
     ['sdk', 'kit'], { sdk: 1, kit: 1 }, { sdk: 2, kit: 2 }, metadataOnly,
@@ -65,9 +65,9 @@ test('metadata-only watch events are droppable while edits and structural change
     findMetadataOnlySurfaces(
       new Map([
         // Deferred last-access flush: content predates the completed build.
-        ['sdk', { structural: false, newestMtimeMs: 60_000 }],
+        ['sdk', { structural: false, newestMtimeMs: 60_000, oldestObservedAtMs: 100_000 }],
         // Recent edit inside the grace window must still rebuild.
-        ['kit', { structural: false, newestMtimeMs: 45_000 }],
+        ['kit', { structural: false, newestMtimeMs: 45_000, oldestObservedAtMs: 50_000 }],
       ]),
       baselines,
       graceMs,
@@ -108,6 +108,17 @@ test('metadata-only watch events are droppable while edits and structural change
     ),
     [],
   );
+});
+
+test('delayed access notifications do not rebuild files saved just before their build', () => {
+  const pending = new Map([
+    ['kit', { structural: false, newestMtimeMs: 95_000, oldestObservedAtMs: 3_600_000 }],
+    ['sdk', { structural: false, newestMtimeMs: 101_000, oldestObservedAtMs: 3_600_000 }],
+  ]);
+  assert.deepEqual(findMetadataOnlySurfaces(pending, { kit: 100_000, sdk: 100_000 }, 30_000), ['kit']);
+  // A current notification close to a save still retains the save grace.
+  pending.set('kit', { structural: false, newestMtimeMs: 95_000, oldestObservedAtMs: 100_000 });
+  assert.deepEqual(findMetadataOnlySurfaces(pending, { kit: 100_000, sdk: 100_000 }, 30_000), []);
 });
 
 test('watch classification ignores canonical build outputs and dependencies', () => {
