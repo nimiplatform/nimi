@@ -1,4 +1,6 @@
 import type { JsonValue } from '../../types';
+import type { NimiLocalAppTextTurnInput } from './local-app-text.js';
+export type { NimiLocalAppTextTurnInput, NimiLocalAppTextMessage, NimiLocalAppTextTurnItem, NimiLocalAppTextOutputItem, NimiLocalAppFunctionTool, NimiLocalAppToolCall } from './local-app-text.js';
 import { createNimiVideoSessionClient, type NimiVideoSessionClient, type NimiVideoSessionShell } from './local-app-runtime-platform-video.js';
 export type { NimiVideoSessionClient, NimiVideoSessionFormat, NimiVideoSessionOpened, NimiVideoSessionResult, NimiVideoSessionScope, NimiVideoSessionShell } from './local-app-runtime-platform-video.js';
 import type { RealmModel } from '../../realm/generated.js';
@@ -408,14 +410,6 @@ export type NimiLocalAppTextCandidateInput = {
   readonly temperature?: number;
   readonly topP?: number;
   readonly maxTokens?: number;
-};
-
-export type NimiLocalAppTextTurnInput = NimiLocalAppTextCandidateInput & {
-  readonly topK?: number;
-  readonly presencePenalty?: number;
-  readonly frequencyPenalty?: number;
-  readonly stop?: readonly string[];
-  readonly seed?: number;
 };
 
 export type NimiLocalAppTextCandidateResult = {

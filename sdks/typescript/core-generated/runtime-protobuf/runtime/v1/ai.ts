@@ -1801,6 +1801,13 @@ export interface LocalAppTextCandidateMessage {
      * @generated from protobuf field: string text = 2
      */
     text: string;
+    /**
+     * Ordered assistant transcript is admitted only by text-turn and the
+     * text.generate execute variant. The narrow candidate operation rejects it.
+     *
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextTurnItem turn_items = 3
+     */
+    turnItems: TextTurnItem[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.GenerateLocalAppTextCandidateRequest
@@ -1843,8 +1850,8 @@ export interface GenerateLocalAppTextCandidateResponse {
 // Exact third-party Local App scenario-consumption contracts. Runtime derives
 // account, App identity, App Access and managed route composition from the
 // protected session and the calling App owner's committed AIConfig; callers
-// cannot supply generic Scenario head, route, provider, model, target, or tool
-// fields.
+// cannot supply generic Scenario head, route, provider, model, or target fields.
+// Function tools and structured output are admitted only by the text variant.
 
 /**
  * Trimmed artifact projection for Local App scenario outputs. Runtime-private
@@ -1994,6 +2001,14 @@ export interface ExecuteLocalAppScenarioRequest {
          */
         imageGenerate: LocalAppImageGenerateScenarioSpec;
     } | {
+        oneofKind: "textGenerate";
+        /**
+         * Reuse the single text-turn input for synchronous text generation.
+         *
+         * @generated from protobuf field: nimi.runtime.v1.StreamLocalAppTextTurnRequest text_generate = 3
+         */
+        textGenerate: StreamLocalAppTextTurnRequest;
+    } | {
         oneofKind: undefined;
     };
 }
@@ -2016,6 +2031,21 @@ export interface LocalAppImageGenerateOutput {
     artifacts: LocalAppScenarioArtifact[];
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppTextGenerateOutput
+ */
+export interface LocalAppTextGenerateOutput {
+    /**
+     * Only text and function ToolCall items are admitted at this App boundary.
+     *
+     * @generated from protobuf field: repeated nimi.runtime.v1.TextOutputItem items = 1
+     */
+    items: TextOutputItem[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.FinishReason finish_reason = 2
+     */
+    finishReason: FinishReason;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ExecuteLocalAppScenarioResponse
  */
 export interface ExecuteLocalAppScenarioResponse {
@@ -2034,6 +2064,12 @@ export interface ExecuteLocalAppScenarioResponse {
          * @generated from protobuf field: nimi.runtime.v1.LocalAppImageGenerateOutput image_generate = 2
          */
         imageGenerate: LocalAppImageGenerateOutput;
+    } | {
+        oneofKind: "textGenerate";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppTextGenerateOutput text_generate = 4
+         */
+        textGenerate: LocalAppTextGenerateOutput;
     } | {
         oneofKind: undefined;
     };
@@ -2556,9 +2592,9 @@ export interface LocalAppScenarioJobEvent {
     job?: LocalAppScenarioJob;
 }
 /**
- * Streaming TEXT_GENERATE trimmed surface: typed text increments and terminal
- * finish or failure state only. Raw chunks, reasoning traces, sources, and
- * tool events never reach the Local App stream.
+ * Single-step TEXT_GENERATE App surface. Function tools, ordered host-provided
+ * results and structured output reuse canonical text behavior. The external
+ * AI host owns tool execution and the next request; Runtime owns no agent loop.
  *
  * @generated from protobuf message nimi.runtime.v1.StreamLocalAppTextTurnRequest
  */
@@ -2599,6 +2635,22 @@ export interface StreamLocalAppTextTurnRequest {
      * @generated from protobuf field: optional int64 seed = 9
      */
     seed?: string;
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ToolSpec tools = 10
+     */
+    tools: ToolSpec[];
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ToolChoiceMode tool_choice = 11
+     */
+    toolChoice: ToolChoiceMode;
+    /**
+     * @generated from protobuf field: string tool_choice_name = 12
+     */
+    toolChoiceName: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ResponseFormat response_format = 13
+     */
+    responseFormat?: ResponseFormat;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppTextTurnDelta
@@ -2608,6 +2660,23 @@ export interface LocalAppTextTurnDelta {
      * @generated from protobuf field: string text = 1
      */
     text: string;
+    /**
+     * @generated from protobuf field: uint32 item_index = 2
+     */
+    itemIndex: number;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.LocalAppTextTurnToolCall
+ */
+export interface LocalAppTextTurnToolCall {
+    /**
+     * @generated from protobuf field: uint32 item_index = 1
+     */
+    itemIndex: number;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ToolCall tool_call = 2
+     */
+    toolCall?: ToolCall;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.LocalAppTextTurnCompleted
@@ -2668,6 +2737,12 @@ export interface StreamLocalAppTextTurnEvent {
          * @generated from protobuf field: nimi.runtime.v1.LocalAppTextTurnFailed failed = 5
          */
         failed: LocalAppTextTurnFailed;
+    } | {
+        oneofKind: "toolCall";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.LocalAppTextTurnToolCall tool_call = 6
+         */
+        toolCall: LocalAppTextTurnToolCall;
     } | {
         oneofKind: undefined;
     };
@@ -9572,13 +9647,15 @@ class LocalAppTextCandidateMessage$Type extends MessageType<LocalAppTextCandidat
     constructor() {
         super("nimi.runtime.v1.LocalAppTextCandidateMessage", [
             { no: 1, name: "role", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "turn_items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextTurnItem }
         ]);
     }
     create(value?: PartialMessage<LocalAppTextCandidateMessage>): LocalAppTextCandidateMessage {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.role = "";
         message.text = "";
+        message.turnItems = [];
         if (value !== undefined)
             reflectionMergePartial<LocalAppTextCandidateMessage>(this, message, value);
         return message;
@@ -9593,6 +9670,9 @@ class LocalAppTextCandidateMessage$Type extends MessageType<LocalAppTextCandidat
                     break;
                 case /* string text */ 2:
                     message.text = reader.string();
+                    break;
+                case /* repeated nimi.runtime.v1.TextTurnItem turn_items */ 3:
+                    message.turnItems.push(TextTurnItem.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -9612,6 +9692,9 @@ class LocalAppTextCandidateMessage$Type extends MessageType<LocalAppTextCandidat
         /* string text = 2; */
         if (message.text !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.text);
+        /* repeated nimi.runtime.v1.TextTurnItem turn_items = 3; */
+        for (let i = 0; i < message.turnItems.length; i++)
+            TextTurnItem.internalBinaryWrite(message.turnItems[i], writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10079,7 +10162,8 @@ class ExecuteLocalAppScenarioRequest$Type extends MessageType<ExecuteLocalAppSce
     constructor() {
         super("nimi.runtime.v1.ExecuteLocalAppScenarioRequest", [
             { no: 1, name: "text_embed", kind: "message", oneof: "spec", T: () => LocalAppTextEmbedScenarioSpec },
-            { no: 2, name: "image_generate", kind: "message", oneof: "spec", T: () => LocalAppImageGenerateScenarioSpec }
+            { no: 2, name: "image_generate", kind: "message", oneof: "spec", T: () => LocalAppImageGenerateScenarioSpec },
+            { no: 3, name: "text_generate", kind: "message", oneof: "spec", T: () => StreamLocalAppTextTurnRequest }
         ]);
     }
     create(value?: PartialMessage<ExecuteLocalAppScenarioRequest>): ExecuteLocalAppScenarioRequest {
@@ -10106,6 +10190,12 @@ class ExecuteLocalAppScenarioRequest$Type extends MessageType<ExecuteLocalAppSce
                         imageGenerate: LocalAppImageGenerateScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).imageGenerate)
                     };
                     break;
+                case /* nimi.runtime.v1.StreamLocalAppTextTurnRequest text_generate */ 3:
+                    message.spec = {
+                        oneofKind: "textGenerate",
+                        textGenerate: StreamLocalAppTextTurnRequest.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).textGenerate)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -10124,6 +10214,9 @@ class ExecuteLocalAppScenarioRequest$Type extends MessageType<ExecuteLocalAppSce
         /* nimi.runtime.v1.LocalAppImageGenerateScenarioSpec image_generate = 2; */
         if (message.spec.oneofKind === "imageGenerate")
             LocalAppImageGenerateScenarioSpec.internalBinaryWrite(message.spec.imageGenerate, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.StreamLocalAppTextTurnRequest text_generate = 3; */
+        if (message.spec.oneofKind === "textGenerate")
+            StreamLocalAppTextTurnRequest.internalBinaryWrite(message.spec.textGenerate, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -10229,11 +10322,67 @@ class LocalAppImageGenerateOutput$Type extends MessageType<LocalAppImageGenerate
  */
 export const LocalAppImageGenerateOutput = new LocalAppImageGenerateOutput$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class LocalAppTextGenerateOutput$Type extends MessageType<LocalAppTextGenerateOutput> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppTextGenerateOutput", [
+            { no: 1, name: "items", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => TextOutputItem },
+            { no: 2, name: "finish_reason", kind: "enum", T: () => ["nimi.runtime.v1.FinishReason", FinishReason, "FINISH_REASON_"] }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppTextGenerateOutput>): LocalAppTextGenerateOutput {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.items = [];
+        message.finishReason = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppTextGenerateOutput>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppTextGenerateOutput): LocalAppTextGenerateOutput {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.TextOutputItem items */ 1:
+                    message.items.push(TextOutputItem.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.FinishReason finish_reason */ 2:
+                    message.finishReason = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppTextGenerateOutput, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.TextOutputItem items = 1; */
+        for (let i = 0; i < message.items.length; i++)
+            TextOutputItem.internalBinaryWrite(message.items[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.FinishReason finish_reason = 2; */
+        if (message.finishReason !== 0)
+            writer.tag(2, WireType.Varint).int32(message.finishReason);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppTextGenerateOutput
+ */
+export const LocalAppTextGenerateOutput = new LocalAppTextGenerateOutput$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ExecuteLocalAppScenarioResponse$Type extends MessageType<ExecuteLocalAppScenarioResponse> {
     constructor() {
         super("nimi.runtime.v1.ExecuteLocalAppScenarioResponse", [
             { no: 1, name: "text_embed", kind: "message", oneof: "output", T: () => LocalAppTextEmbedOutput },
             { no: 2, name: "image_generate", kind: "message", oneof: "output", T: () => LocalAppImageGenerateOutput },
+            { no: 4, name: "text_generate", kind: "message", oneof: "output", T: () => LocalAppTextGenerateOutput },
             { no: 3, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
@@ -10262,6 +10411,12 @@ class ExecuteLocalAppScenarioResponse$Type extends MessageType<ExecuteLocalAppSc
                         imageGenerate: LocalAppImageGenerateOutput.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).imageGenerate)
                     };
                     break;
+                case /* nimi.runtime.v1.LocalAppTextGenerateOutput text_generate */ 4:
+                    message.output = {
+                        oneofKind: "textGenerate",
+                        textGenerate: LocalAppTextGenerateOutput.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).textGenerate)
+                    };
+                    break;
                 case /* string trace_id */ 3:
                     message.traceId = reader.string();
                     break;
@@ -10286,6 +10441,9 @@ class ExecuteLocalAppScenarioResponse$Type extends MessageType<ExecuteLocalAppSc
         /* string trace_id = 3; */
         if (message.traceId !== "")
             writer.tag(3, WireType.LengthDelimited).string(message.traceId);
+        /* nimi.runtime.v1.LocalAppTextGenerateOutput text_generate = 4; */
+        if (message.output.oneofKind === "textGenerate")
+            LocalAppTextGenerateOutput.internalBinaryWrite(message.output.textGenerate, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11674,13 +11832,20 @@ class StreamLocalAppTextTurnRequest$Type extends MessageType<StreamLocalAppTextT
             { no: 6, name: "presence_penalty", kind: "scalar", opt: true, T: 2 /*ScalarType.FLOAT*/ },
             { no: 7, name: "frequency_penalty", kind: "scalar", opt: true, T: 2 /*ScalarType.FLOAT*/ },
             { no: 8, name: "stop", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 9, name: "seed", kind: "scalar", opt: true, T: 3 /*ScalarType.INT64*/ }
+            { no: 9, name: "seed", kind: "scalar", opt: true, T: 3 /*ScalarType.INT64*/ },
+            { no: 10, name: "tools", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ToolSpec },
+            { no: 11, name: "tool_choice", kind: "enum", T: () => ["nimi.runtime.v1.ToolChoiceMode", ToolChoiceMode, "TOOL_CHOICE_MODE_"] },
+            { no: 12, name: "tool_choice_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 13, name: "response_format", kind: "message", T: () => ResponseFormat }
         ]);
     }
     create(value?: PartialMessage<StreamLocalAppTextTurnRequest>): StreamLocalAppTextTurnRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.messages = [];
         message.stop = [];
+        message.tools = [];
+        message.toolChoice = 0;
+        message.toolChoiceName = "";
         if (value !== undefined)
             reflectionMergePartial<StreamLocalAppTextTurnRequest>(this, message, value);
         return message;
@@ -11716,6 +11881,18 @@ class StreamLocalAppTextTurnRequest$Type extends MessageType<StreamLocalAppTextT
                     break;
                 case /* optional int64 seed */ 9:
                     message.seed = reader.int64().toString();
+                    break;
+                case /* repeated nimi.runtime.v1.ToolSpec tools */ 10:
+                    message.tools.push(ToolSpec.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                case /* nimi.runtime.v1.ToolChoiceMode tool_choice */ 11:
+                    message.toolChoice = reader.int32();
+                    break;
+                case /* string tool_choice_name */ 12:
+                    message.toolChoiceName = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ResponseFormat response_format */ 13:
+                    message.responseFormat = ResponseFormat.internalBinaryRead(reader, reader.uint32(), options, message.responseFormat);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -11756,6 +11933,18 @@ class StreamLocalAppTextTurnRequest$Type extends MessageType<StreamLocalAppTextT
         /* optional int64 seed = 9; */
         if (message.seed !== undefined)
             writer.tag(9, WireType.Varint).int64(message.seed);
+        /* repeated nimi.runtime.v1.ToolSpec tools = 10; */
+        for (let i = 0; i < message.tools.length; i++)
+            ToolSpec.internalBinaryWrite(message.tools[i], writer.tag(10, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ToolChoiceMode tool_choice = 11; */
+        if (message.toolChoice !== 0)
+            writer.tag(11, WireType.Varint).int32(message.toolChoice);
+        /* string tool_choice_name = 12; */
+        if (message.toolChoiceName !== "")
+            writer.tag(12, WireType.LengthDelimited).string(message.toolChoiceName);
+        /* nimi.runtime.v1.ResponseFormat response_format = 13; */
+        if (message.responseFormat)
+            ResponseFormat.internalBinaryWrite(message.responseFormat, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11770,12 +11959,14 @@ export const StreamLocalAppTextTurnRequest = new StreamLocalAppTextTurnRequest$T
 class LocalAppTextTurnDelta$Type extends MessageType<LocalAppTextTurnDelta> {
     constructor() {
         super("nimi.runtime.v1.LocalAppTextTurnDelta", [
-            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "text", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "item_index", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppTextTurnDelta>): LocalAppTextTurnDelta {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.text = "";
+        message.itemIndex = 0;
         if (value !== undefined)
             reflectionMergePartial<LocalAppTextTurnDelta>(this, message, value);
         return message;
@@ -11787,6 +11978,9 @@ class LocalAppTextTurnDelta$Type extends MessageType<LocalAppTextTurnDelta> {
             switch (fieldNo) {
                 case /* string text */ 1:
                     message.text = reader.string();
+                    break;
+                case /* uint32 item_index */ 2:
+                    message.itemIndex = reader.uint32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -11803,6 +11997,9 @@ class LocalAppTextTurnDelta$Type extends MessageType<LocalAppTextTurnDelta> {
         /* string text = 1; */
         if (message.text !== "")
             writer.tag(1, WireType.LengthDelimited).string(message.text);
+        /* uint32 item_index = 2; */
+        if (message.itemIndex !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.itemIndex);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -11813,6 +12010,60 @@ class LocalAppTextTurnDelta$Type extends MessageType<LocalAppTextTurnDelta> {
  * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppTextTurnDelta
  */
 export const LocalAppTextTurnDelta = new LocalAppTextTurnDelta$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class LocalAppTextTurnToolCall$Type extends MessageType<LocalAppTextTurnToolCall> {
+    constructor() {
+        super("nimi.runtime.v1.LocalAppTextTurnToolCall", [
+            { no: 1, name: "item_index", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 2, name: "tool_call", kind: "message", T: () => ToolCall }
+        ]);
+    }
+    create(value?: PartialMessage<LocalAppTextTurnToolCall>): LocalAppTextTurnToolCall {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.itemIndex = 0;
+        if (value !== undefined)
+            reflectionMergePartial<LocalAppTextTurnToolCall>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: LocalAppTextTurnToolCall): LocalAppTextTurnToolCall {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* uint32 item_index */ 1:
+                    message.itemIndex = reader.uint32();
+                    break;
+                case /* nimi.runtime.v1.ToolCall tool_call */ 2:
+                    message.toolCall = ToolCall.internalBinaryRead(reader, reader.uint32(), options, message.toolCall);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: LocalAppTextTurnToolCall, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* uint32 item_index = 1; */
+        if (message.itemIndex !== 0)
+            writer.tag(1, WireType.Varint).uint32(message.itemIndex);
+        /* nimi.runtime.v1.ToolCall tool_call = 2; */
+        if (message.toolCall)
+            ToolCall.internalBinaryWrite(message.toolCall, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.LocalAppTextTurnToolCall
+ */
+export const LocalAppTextTurnToolCall = new LocalAppTextTurnToolCall$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class LocalAppTextTurnCompleted$Type extends MessageType<LocalAppTextTurnCompleted> {
     constructor() {
@@ -11930,7 +12181,8 @@ class StreamLocalAppTextTurnEvent$Type extends MessageType<StreamLocalAppTextTur
             { no: 2, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "delta", kind: "message", oneof: "payload", T: () => LocalAppTextTurnDelta },
             { no: 4, name: "completed", kind: "message", oneof: "payload", T: () => LocalAppTextTurnCompleted },
-            { no: 5, name: "failed", kind: "message", oneof: "payload", T: () => LocalAppTextTurnFailed }
+            { no: 5, name: "failed", kind: "message", oneof: "payload", T: () => LocalAppTextTurnFailed },
+            { no: 6, name: "tool_call", kind: "message", oneof: "payload", T: () => LocalAppTextTurnToolCall }
         ]);
     }
     create(value?: PartialMessage<StreamLocalAppTextTurnEvent>): StreamLocalAppTextTurnEvent {
@@ -11971,6 +12223,12 @@ class StreamLocalAppTextTurnEvent$Type extends MessageType<StreamLocalAppTextTur
                         failed: LocalAppTextTurnFailed.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).failed)
                     };
                     break;
+                case /* nimi.runtime.v1.LocalAppTextTurnToolCall tool_call */ 6:
+                    message.payload = {
+                        oneofKind: "toolCall",
+                        toolCall: LocalAppTextTurnToolCall.internalBinaryRead(reader, reader.uint32(), options, (message.payload as any).toolCall)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -11998,6 +12256,9 @@ class StreamLocalAppTextTurnEvent$Type extends MessageType<StreamLocalAppTextTur
         /* nimi.runtime.v1.LocalAppTextTurnFailed failed = 5; */
         if (message.payload.oneofKind === "failed")
             LocalAppTextTurnFailed.internalBinaryWrite(message.payload.failed, writer.tag(5, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.LocalAppTextTurnToolCall tool_call = 6; */
+        if (message.payload.oneofKind === "toolCall")
+            LocalAppTextTurnToolCall.internalBinaryWrite(message.payload.toolCall, writer.tag(6, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

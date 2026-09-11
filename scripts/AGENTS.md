@@ -16,5 +16,5 @@
 - Skip generated outputs and unrelated reports when debugging a script.
 
 ## Verification Commands
-- Script-sensitive gates: `pnpm check:runtime-catalog-drift`, `pnpm proto:drift-check`, and `pnpm spec:authority:check` when authority inputs are affected.
+- Select the gate for the changed input or pipeline: `pnpm check:runtime-catalog-drift` for Runtime catalog projections, `pnpm proto:drift-check` for proto generation, and `pnpm spec:authority:check` for authority inputs or their checker integration.
 - When changing script inputs, rerun the matching `generate:*` command and then the paired `check:*` command.

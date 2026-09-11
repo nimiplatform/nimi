@@ -5998,6 +5998,7 @@ pub struct ErrorInfo {
 pub struct ExecuteLocalAppScenarioRequest {
     pub text_embed: Option<Box<LocalAppTextEmbedScenarioSpec>>,
     pub image_generate: Option<Box<LocalAppImageGenerateScenarioSpec>>,
+    pub text_generate: Option<Box<StreamLocalAppTextTurnRequest>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6005,6 +6006,7 @@ pub struct ExecuteLocalAppScenarioResponse {
     pub text_embed: Option<Box<LocalAppTextEmbedOutput>>,
     pub image_generate: Option<Box<LocalAppImageGenerateOutput>>,
     pub trace_id: Option<String>,
+    pub text_generate: Option<Box<LocalAppTextGenerateOutput>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8340,6 +8342,7 @@ pub struct LocalAppSpeechTranscribeJobSpec {
 pub struct LocalAppTextCandidateMessage {
     pub role: Option<String>,
     pub text: Option<String>,
+    pub turn_items: Vec<Box<TextTurnItem>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8353,6 +8356,12 @@ pub struct LocalAppTextEmbedScenarioSpec {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppTextGenerateOutput {
+    pub items: Vec<Box<TextOutputItem>>,
+    pub finish_reason: Option<FinishReason>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppTextTurnCompleted {
     pub finish_reason: Option<FinishReason>,
 }
@@ -8360,6 +8369,7 @@ pub struct LocalAppTextTurnCompleted {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppTextTurnDelta {
     pub text: Option<String>,
+    pub item_index: Option<u32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8367,6 +8377,12 @@ pub struct LocalAppTextTurnFailed {
     pub reason_code: Option<ReasonCode>,
     pub action_hint: Option<String>,
     pub interruption: Option<Box<ExecutionInterruption>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppTextTurnToolCall {
+    pub item_index: Option<u32>,
+    pub tool_call: Option<Box<ToolCall>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10931,6 +10947,7 @@ pub struct StreamLocalAppTextTurnEvent {
     pub delta: Option<Box<LocalAppTextTurnDelta>>,
     pub completed: Option<Box<LocalAppTextTurnCompleted>>,
     pub failed: Option<Box<LocalAppTextTurnFailed>>,
+    pub tool_call: Option<Box<LocalAppTextTurnToolCall>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10944,6 +10961,10 @@ pub struct StreamLocalAppTextTurnRequest {
     pub frequency_penalty: Option<f32>,
     pub stop: Vec<String>,
     pub seed: Option<i64>,
+    pub tools: Vec<Box<ToolSpec>>,
+    pub tool_choice: Option<ToolChoiceMode>,
+    pub tool_choice_name: Option<String>,
+    pub response_format: Option<Box<ResponseFormat>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

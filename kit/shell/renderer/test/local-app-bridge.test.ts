@@ -37,6 +37,50 @@ function managerActionAvailability() {
 }
 
 describe('renderer local-app standard-shell surface', () => {
+  it('round trips tool declarations, ordered output and typed termination through the public App client', async () => {
+    let emit: ((event: { payload: unknown }) => void) | undefined;
+    const requests: unknown[] = [];
+    let unlistenCalls = 0;
+    const call = { id: 'call-1', name: 'search', arguments: { subject: 'trees', token: 'business data' } };
+    const output = { type: 'text-generate', items: [{ type: 'text', text: 'Looking up sources.' }, { type: 'tool-call', toolCall: call }], finishReason: 'tool-calls' };
+    (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+      invoke: async (command: string, input: { payload: { action?: string } }) => {
+        requests.push([command, input.payload]);
+        if (command === NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioExecute']) return { output, traceId: 'trace-1' };
+        return input.payload.action === 'cancel'
+          ? { subscriptionId: 'text-1', closed: true }
+          : { subscriptionId: 'text-1', eventName: 'text-events-1' };
+      },
+      listen: (_name: string, listener: typeof emit) => { emit = listener; return () => { unlistenCalls++; }; },
+    };
+    const client = createNimiClient({ localApp: { standardShell: createNimiLocalAppStandardShellSurface() } });
+    const input = {
+      messages: [{ role: 'user' as const, text: 'Find sources.' }],
+      tools: [{ type: 'function' as const, name: 'search', inputSchema: { type: 'object', properties: { subject: { type: 'string' } } } }],
+      toolChoice: 'required' as const,
+    };
+    await expect(client.ai.scenario.execute({ type: 'text-generate', ...input })).resolves.toEqual({ output, traceId: 'trace-1' });
+    const stream = await client.ai.text.streamTurn(input);
+    const iterator = stream[Symbol.asyncIterator]();
+    for (const event of [
+      { type: 'delta', sequence: '1', traceId: 'trace-1', itemIndex: 0, text: 'Looking up sources.' },
+      { type: 'tool-call', sequence: '2', traceId: 'trace-1', itemIndex: 1, toolCall: call },
+      { type: 'completed', sequence: '3', traceId: 'trace-1', finishReason: 'tool-calls' },
+    ]) {
+      const next = iterator.next();
+      emit!({ payload: { subscriptionId: 'text-1', eventType: 'next', event } });
+      await expect(next).resolves.toEqual({ done: false, value: event });
+    }
+    emit!({ payload: { subscriptionId: 'text-1', eventType: 'completed' } });
+    await expect(iterator.next()).resolves.toMatchObject({ done: true });
+    expect(requests.slice(0, 2)).toEqual([
+      [NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioExecute'], { spec: { type: 'text-generate', ...input } }],
+      [NIMI_STANDARD_SHELL_COMMANDS['local-app.textTurnStream'], input],
+    ]);
+    expect(requests).toHaveLength(2);
+    expect(unlistenCalls).toBe(1);
+  });
+
   it.each([false, true])('validates Realm event envelopes without losing their session fields (extra field: %s)', async (extraField) => {
     let emit: ((event: { payload: unknown }) => void) | undefined;
     (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {

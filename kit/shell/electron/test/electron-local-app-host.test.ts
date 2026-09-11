@@ -8,6 +8,26 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
+  it('invalidates App-owned work before an unsuccessful technical rebind', async () => {
+    let invalidated = false;
+    const candidate = binding([]);
+    candidate.localAppStorageReadJson = async () => ({ status: 'error', reasonCode: 'account-changed', retryable: false });
+    candidate.localAppSessionRenew = async () => {
+      expect(invalidated).toBe(true);
+      return { status: 'error', reasonCode: 'runtime-service-unavailable', retryable: true };
+    };
+    const host = createNimiElectronLocalAppHostForBinding(candidate, () => { invalidated = true; });
+    await expect(host.storageReadJson({ relativePath: 'config.json' })).rejects.toMatchObject({ reasonCode: 'runtime-service-unavailable' });
+    expect(invalidated).toBe(true);
+  });
+
+  it.each(['ai-text-behavior-unsupported', 'ai-text-output-incomplete', 'ai-tool-call-invalid'])('preserves the typed text failure %s', async (reasonCode) => {
+    const candidate = binding([]);
+    candidate.localAppScenarioExecute = async () => ({ status: 'error', reasonCode, retryable: false });
+    const host = createNimiElectronLocalAppHostForBinding(candidate);
+    await expect(host.scenarioExecute({ spec: { type: 'text-generate', messages: [{ role: 'user', text: 'Hello' }] } })).rejects.toMatchObject({ reasonCode });
+  });
+
   it('bootstraps and rotates only the request-empty technical session', async () => {
     vi.useFakeTimers();
     try {
@@ -613,6 +633,43 @@ describe('Electron protected local-app host', () => {
     await expect(createNimiElectronLocalAppHostForBinding(candidate)
       .scenarioJobStreamNext({ streamId: 'scenario-job-music-1' }))
       .resolves.toEqual({ completed: false, event });
+  });
+
+  it('projects function-tool text output and stream items without treating business JSON as authority', async () => {
+    const toolCall = { id: 'call-1', name: 'search', arguments: { token: 'business data' } };
+    const output = { type: 'text-generate', items: [{ type: 'tool-call', toolCall }], finishReason: 'tool-calls' };
+    const events = [
+      { type: 'delta', sequence: '1', traceId: 'trace-tools', itemIndex: 0, text: 'Searching. ' },
+      { type: 'tool-call', sequence: '2', traceId: 'trace-tools', itemIndex: 1, toolCall },
+      { type: 'completed', sequence: '3', traceId: 'trace-tools', finishReason: 'tool-calls' },
+    ];
+    let index = 0;
+    const host = createNimiElectronLocalAppHostForBinding({
+      ...binding([]),
+      localAppScenarioExecute: async () => ({ status: 'ok' as const, value: { output, traceId: 'trace-tools' } }),
+      localAppTextTurnStreamNext: async () => ({ status: 'ok' as const, value: { completed: false, event: events[index++] } }),
+    });
+    await expect(host.scenarioExecute({ spec: {} })).resolves.toEqual({ output, traceId: 'trace-tools' });
+    await host.textTurnSubscribe({ messages: [{ role: 'user', text: 'Search.' }] });
+    for (const event of events) {
+      await expect(host.textTurnStreamNext({ streamId: 'text-turn-1' })).resolves.toEqual({ completed: false, event });
+    }
+    await host.textTurnStreamClose({ streamId: 'text-turn-1' });
+  });
+
+  it('preserves typed text interruption and rejects provider fields on tool calls', async () => {
+    const event = { type: 'failed', sequence: '1', traceId: 'trace-interrupted', reasonCode: 'ai-execution-interrupted', actionHint: 'retry',
+      interruption: { cause: 'runtime-restart', resubmitDisposition: 'caller-may-resubmit' } };
+    const host = createNimiElectronLocalAppHostForBinding({
+      ...binding([]),
+      localAppTextTurnStreamNext: async () => ({ status: 'ok' as const, value: { completed: false, event } }),
+      localAppScenarioExecute: async () => ({ status: 'ok' as const, value: {
+        output: { type: 'text-generate', items: [{ type: 'tool-call', toolCall: { id: 'c1', name: 'search', arguments: {}, providerMetadata: {} } }], finishReason: 'tool-calls' }, traceId: 'trace-invalid',
+      } }),
+    });
+    await host.textTurnSubscribe({ messages: [{ role: 'user', text: 'Search.' }] });
+    await expect(host.textTurnStreamNext({ streamId: 'text-turn-1' })).resolves.toEqual({ completed: false, event });
+    await expect(host.scenarioExecute({ spec: {} })).rejects.toThrow();
   });
 
   it('resolves only independently admitted fixed native binding package identities', () => {

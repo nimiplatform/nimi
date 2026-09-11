@@ -19,8 +19,11 @@ import type {
   NimiLocalAppExecutionInterruption,
   NimiLocalAppVisionLocateResult,
   NimiLocalAppVisionLocation,
+  NimiLocalAppTextTurnInput as SdkLocalAppTextTurnInput,
+  NimiLocalAppTextTurnEvent as SdkLocalAppTextTurnEvent,
+  NimiLocalAppTextOutputItem,
 } from '@nimiplatform/kit/core/sdk-contract';
-import { runtimeAIConfigStructToJson } from '@nimiplatform/kit/core/sdk-contract';
+import { runtimeAIConfigStructToJson, validateNimiLocalAppTextInput, validateNimiLocalAppTextOutputItems } from '@nimiplatform/kit/core/sdk-contract';
 import { BridgeError, invoke, invokeChecked } from './invoke.js';
 import { listenShell } from './tauri-api.js';
 import { assertRecord, parseRequiredString } from './types.js';
@@ -113,13 +116,7 @@ export type NimiLocalAppTextCandidateInput = {
   readonly maxTokens?: number;
 };
 
-export type NimiLocalAppTextTurnInput = NimiLocalAppTextCandidateInput & {
-  readonly topK?: number;
-  readonly presencePenalty?: number;
-  readonly frequencyPenalty?: number;
-  readonly stop?: readonly string[];
-  readonly seed?: number;
-};
+export type NimiLocalAppTextTurnInput = SdkLocalAppTextTurnInput;
 
 export type NimiLocalAppTextCandidateResult = {
   readonly text: string;
@@ -128,6 +125,7 @@ export type NimiLocalAppTextCandidateResult = {
 };
 
 export type NimiLocalAppScenarioExecuteSpec =
+  | ({ readonly type: 'text-generate' } & NimiLocalAppTextTurnInput)
   | { readonly type: 'text-embed'; readonly inputs: readonly string[] }
   | NimiLocalAppImageGenerateSpec;
 
@@ -232,6 +230,7 @@ export type NimiLocalAppVoiceAsset = {
   readonly expiresAt: NimiLocalAppScenarioTimestamp | null;
 };
 export type NimiLocalAppScenarioExecuteResult =
+  | { readonly output: { readonly type: 'text-generate'; readonly items: readonly NimiLocalAppTextOutputItem[]; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' }; readonly traceId: string }
   | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[] }; readonly traceId: string }
   | { readonly output: { readonly type: 'image-generate'; readonly artifacts: readonly NimiLocalAppScenarioArtifact[] }; readonly traceId: string };
 export type NimiLocalAppScenarioJobSubmitResult = {
@@ -248,10 +247,7 @@ export type NimiLocalAppArtifactUploadResult = {
   readonly sizeBytes: number;
   readonly mimeType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif' | 'video/mp4';
 };
-export type NimiLocalAppTextTurnEvent =
-  | { readonly type: 'delta'; readonly sequence: string; readonly traceId: string; readonly text: string }
-  | { readonly type: 'completed'; readonly sequence: string; readonly traceId: string; readonly finishReason: 'stop' | 'length' | 'content-filter' }
-  | { readonly type: 'failed'; readonly sequence: string; readonly traceId: string; readonly reasonCode: string; readonly actionHint: string; readonly interruption: { readonly cause: 'runtime-restart'; readonly resubmitDisposition: 'caller-may-resubmit' } | null };
+export type NimiLocalAppTextTurnEvent = SdkLocalAppTextTurnEvent;
 export type NimiLocalAppScenarioJobEvent = {
   readonly eventType: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly sequence: string; readonly traceId: string; readonly timestamp: NimiLocalAppScenarioTimestamp | null;
@@ -710,23 +706,12 @@ function canonicalTextTurnInput(
   input: NimiLocalAppTextTurnInput,
   command: string,
 ): JsonObject {
-  const output = canonicalTextInputBase(
-    input,
-    command,
-    ['messages', 'temperature', 'topP', 'maxTokens', 'topK', 'presencePenalty', 'frequencyPenalty', 'stop', 'seed'],
-  );
-  if (input.topK !== undefined) output.topK = boundedSafeInteger(input.topK, 'topK', command, 0, 2_147_483_647);
-  if (input.presencePenalty !== undefined) output.presencePenalty = boundedFiniteNumber(input.presencePenalty, 'presencePenalty', command, -2, 2);
-  if (input.frequencyPenalty !== undefined) output.frequencyPenalty = boundedFiniteNumber(input.frequencyPenalty, 'frequencyPenalty', command, -2, 2);
-  if (input.stop !== undefined) {
-    if (!Array.isArray(input.stop)
-      || input.stop.some((value) => typeof value !== 'string' || value.trim() === '')) {
-      throw invalidInput(command, 'stop is invalid');
-    }
-    output.stop = [...input.stop];
+  // @nimi-authority: rule.nimi.sdks.feature-clients.local-app-text-behaviors
+  try {
+    return validateNimiLocalAppTextInput(input) as unknown as JsonObject;
+  } catch {
+    throw invalidInput(command, 'text input is invalid');
   }
-  if (input.seed !== undefined) output.seed = boundedSafeInteger(input.seed, 'seed', command, Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
-  return output;
 }
 
 function canonicalTextInputBase(
@@ -791,8 +776,9 @@ export async function streamNimiLocalAppTextTurn(
       const event = parseTextTurnEvent(value, command);
       if (event.type === 'delta' && typeof event.text === 'string') {
         deltaBytes += new TextEncoder().encode(event.text).byteLength;
-        if (deltaBytes > MAX_TEXT_CANDIDATE_RESULT_BYTES) throw new Error(`${command}: text-turn output is too large`);
       }
+      if (event.type === 'tool-call') deltaBytes += new TextEncoder().encode(JSON.stringify(event.toolCall)).byteLength;
+      if (deltaBytes > MAX_TEXT_CANDIDATE_RESULT_BYTES) throw new Error(`${command}: text-turn output is too large`);
       return event as NimiLocalAppTextTurnEvent;
     },
   );
@@ -883,8 +869,12 @@ export function listNimiLocalAppVoiceAssets(
     (value) => parseVoiceAssetsList(value, command));
 }
 
-function canonicalScenarioSpec(spec: Readonly<JsonObject>, command: string): JsonObject {
+function canonicalScenarioSpec(spec: unknown, command: string): JsonObject {
   const record = assertRecord(spec, `${command}: scenario spec must be an object`);
+  if (record.type === 'text-generate' && command === AIC_COMMANDS.scenarioExecute) {
+    const { type, ...input } = record;
+    return { type, ...canonicalTextTurnInput(input as unknown as NimiLocalAppTextTurnInput, command) };
+  }
   validateProjectionValue(record as JsonValue, command);
   const encoded = JSON.stringify(record);
   if (new TextEncoder().encode(encoded).byteLength > 40 * 1024 * 1024) {
@@ -2172,7 +2162,11 @@ function parseScenarioExecute(value: unknown, command: string): NimiLocalAppScen
   assertProjectionKeys(record, ['output', 'traceId'], command, 'scenario execute');
   requiredText(record.traceId, 'traceId', command, 512);
   const output = assertRecord(record.output, `${command}: execute output is invalid`);
-  if (output.type === 'text-embed') {
+  if (output.type === 'text-generate') {
+    assertProjectionKeys(output, ['type', 'items', 'finishReason'], command, 'text output');
+    validateNimiLocalAppTextOutputItems(output.items);
+    if (!['stop', 'length', 'tool-calls', 'content-filter'].includes(String(output.finishReason))) throw new Error(`${command}: finishReason is invalid`);
+  } else if (output.type === 'text-embed') {
     assertProjectionKeys(output, ['type', 'vectors'], command, 'embed output');
     if (!Array.isArray(output.vectors) || output.vectors.length === 0 || output.vectors.length > 16
       || output.vectors.some((vector) => !Array.isArray(vector) || vector.length === 0 || vector.length > 8192
@@ -2411,20 +2405,29 @@ function parseTextTurnEvent(value: unknown, command: string): NimiLocalAppTextTu
   }
   const traceId = requiredText(record.traceId, 'traceId', command, 512);
   if (record.type === 'delta') {
-    assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'text'], command, 'text delta');
+    assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'text', 'itemIndex'], command, 'text delta');
     return Object.freeze({ type: 'delta', sequence: record.sequence, traceId,
+      itemIndex: boundedSafeInteger(record.itemIndex, 'itemIndex', command, 0, 4_294_967_295),
       text: requiredUtf8Content(record.text, 'text', command, 64 * 1024) });
+  }
+  if (record.type === 'tool-call') {
+    assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'itemIndex', 'toolCall'], command, 'text tool call');
+    const item = validateNimiLocalAppTextOutputItems([{ type: 'tool-call', toolCall: record.toolCall }])[0];
+    if (item?.type !== 'tool-call') throw new Error(`${command}: tool call is invalid`);
+    return Object.freeze({ type: 'tool-call', sequence: record.sequence, traceId,
+      itemIndex: boundedSafeInteger(record.itemIndex, 'itemIndex', command, 0, 4_294_967_295), toolCall: item.toolCall });
   }
   if (record.type === 'completed') {
     assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'finishReason'], command, 'text completion');
-    if (!['stop', 'length', 'content-filter'].includes(String(record.finishReason))) throw new Error(`${command}: finishReason is invalid`);
+    if (!['stop', 'length', 'tool-calls', 'content-filter'].includes(String(record.finishReason))) throw new Error(`${command}: finishReason is invalid`);
     return Object.freeze({ ...record }) as unknown as NimiLocalAppTextTurnEvent;
   }
   if (record.type === 'failed') {
-    assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint', 'interruption'], command, 'text failure');
+    assertProjectionKeys(record, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint', ...(Object.hasOwn(record, 'interruption') ? ['interruption'] : [])], command, 'text failure');
     requiredText(record.reasonCode, 'reasonCode', command, 128);
     optionalProjectionText(record.actionHint, 512, command);
-    if (record.interruption !== null) {
+    if ((record.interruption != null) !== (record.reasonCode === 'ai-execution-interrupted')) throw new Error(`${command}: text interruption is invalid`);
+    if (record.interruption != null) {
       const interruption = assertRecord(record.interruption, `${command}: text interruption is invalid`);
       assertProjectionKeys(interruption, ['cause', 'resubmitDisposition'], command, 'text interruption');
       if (interruption.cause !== 'runtime-restart' || interruption.resubmitDisposition !== 'caller-may-resubmit') {

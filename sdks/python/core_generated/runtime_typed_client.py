@@ -2073,12 +2073,14 @@ class ErrorInfo:
 class ExecuteLocalAppScenarioRequest:
     text_embed: LocalAppTextEmbedScenarioSpec | None = None
     image_generate: LocalAppImageGenerateScenarioSpec | None = None
+    text_generate: StreamLocalAppTextTurnRequest | None = None
 
 @dataclass(frozen=True)
 class ExecuteLocalAppScenarioResponse:
     text_embed: LocalAppTextEmbedOutput | None = None
     image_generate: LocalAppImageGenerateOutput | None = None
     trace_id: str | None = None
+    text_generate: LocalAppTextGenerateOutput | None = None
 
 @dataclass(frozen=True)
 class ExecuteScenarioRequest:
@@ -3862,6 +3864,7 @@ class LocalAppSpeechTranscribeJobSpec:
 class LocalAppTextCandidateMessage:
     role: str | None = None
     text: str | None = None
+    turn_items: tuple[TextTurnItem, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class LocalAppTextEmbedOutput:
@@ -3872,18 +3875,29 @@ class LocalAppTextEmbedScenarioSpec:
     inputs: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
+class LocalAppTextGenerateOutput:
+    items: tuple[TextOutputItem, ...] = field(default_factory=tuple)
+    finish_reason: FinishReason | None = None
+
+@dataclass(frozen=True)
 class LocalAppTextTurnCompleted:
     finish_reason: FinishReason | None = None
 
 @dataclass(frozen=True)
 class LocalAppTextTurnDelta:
     text: str | None = None
+    item_index: int | None = None
 
 @dataclass(frozen=True)
 class LocalAppTextTurnFailed:
     reason_code: ReasonCode | None = None
     action_hint: str | None = None
     interruption: ExecutionInterruption | None = None
+
+@dataclass(frozen=True)
+class LocalAppTextTurnToolCall:
+    item_index: int | None = None
+    tool_call: ToolCall | None = None
 
 @dataclass(frozen=True)
 class LocalAppVideoGenerateJobSpec:
@@ -5739,6 +5753,7 @@ class StreamLocalAppTextTurnEvent:
     delta: LocalAppTextTurnDelta | None = None
     completed: LocalAppTextTurnCompleted | None = None
     failed: LocalAppTextTurnFailed | None = None
+    tool_call: LocalAppTextTurnToolCall | None = None
 
 @dataclass(frozen=True)
 class StreamLocalAppTextTurnRequest:
@@ -5751,6 +5766,10 @@ class StreamLocalAppTextTurnRequest:
     frequency_penalty: float | None = None
     stop: tuple[str, ...] = field(default_factory=tuple)
     seed: int | None = None
+    tools: tuple[ToolSpec, ...] = field(default_factory=tuple)
+    tool_choice: ToolChoiceMode | None = None
+    tool_choice_name: str | None = None
+    response_format: ResponseFormat | None = None
 
 @dataclass(frozen=True)
 class StreamScenarioEvent:

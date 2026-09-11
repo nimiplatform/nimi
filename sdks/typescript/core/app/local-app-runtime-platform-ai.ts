@@ -2,6 +2,8 @@ import {
   ExecutionMode,
   FaceSwapNoFacePolicy,
   FinishReason,
+  ResponseFormatKind,
+  ToolChoiceMode,
   ReasonCode as RuntimeReasonCode,
   RoutePolicy,
   ScenarioJobEventType,
@@ -46,6 +48,11 @@ import {
   type VoiceReference,
 } from '../../core-generated/runtime-typed-client.js';
 import type { Timestamp } from '../../core-generated/runtime-protobuf/google/protobuf/timestamp.js';
+import { toRuntimeMessages, toRuntimeTools, toRuntimeStruct, toNimiToolCall, toNimiTextOutputItems } from '../ai/runtime-model-text-projection.js';
+import {
+  validateLocalAppTextInput, projectLocalAppToolCall, projectLocalAppTextItems,
+  type NimiLocalAppTextOutputItem, type NimiLocalAppToolCall,
+} from './local-app-text.js';
 import type {
   NimiProtectedLocalScenarioJobClient,
   NimiProtectedLocalVoiceAsset,
@@ -91,6 +98,7 @@ export type NimiLocalAppImageGenerateSpec = {
 };
 
 export type NimiLocalAppScenarioExecuteSpec =
+  | (NimiLocalAppTextTurnInput & { readonly type: 'text-generate' })
   | { readonly type: 'text-embed'; readonly inputs: readonly string[] }
   | NimiLocalAppImageGenerateSpec;
 
@@ -253,6 +261,7 @@ export type NimiLocalAppVoiceAsset = {
 };
 
 export type NimiLocalAppScenarioExecuteResult =
+  | { readonly output: { readonly type: 'text-generate'; readonly items: readonly NimiLocalAppTextOutputItem[]; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' }; readonly traceId: string }
   | { readonly output: { readonly type: 'text-embed'; readonly vectors: readonly (readonly number[])[] }; readonly traceId: string }
   | { readonly output: { readonly type: 'image-generate'; readonly artifacts: readonly NimiLocalAppScenarioArtifact[] }; readonly traceId: string };
 
@@ -275,9 +284,10 @@ export type NimiLocalAppArtifactUploadResult = {
 };
 
 export type NimiLocalAppTextTurnEvent =
-  | { readonly type: 'delta'; readonly sequence: string; readonly traceId: string; readonly text: string }
-  | { readonly type: 'completed'; readonly sequence: string; readonly traceId: string; readonly finishReason: 'stop' | 'length' | 'content-filter' }
-  | { readonly type: 'failed'; readonly sequence: string; readonly traceId: string; readonly reasonCode: string; readonly actionHint: string };
+  | { readonly type: 'delta'; readonly sequence: string; readonly traceId: string; readonly text: string; readonly itemIndex: number }
+  | { readonly type: 'tool-call'; readonly sequence: string; readonly traceId: string; readonly itemIndex: number; readonly toolCall: NimiLocalAppToolCall }
+  | { readonly type: 'completed'; readonly sequence: string; readonly traceId: string; readonly finishReason: 'stop' | 'length' | 'tool-calls' | 'content-filter' }
+  | { readonly type: 'failed'; readonly sequence: string; readonly traceId: string; readonly reasonCode: string; readonly actionHint: string; readonly interruption?: NimiLocalAppExecutionInterruption };
 
 export type NimiLocalAppScenarioJobEvent = {
   readonly eventType: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
@@ -416,18 +426,35 @@ export function createNimiLocalAppAIConsumptionClient(
   const client: NimiLocalAppAIConsumptionClient = {
     text: Object.freeze({
       streamTurn: async (input) => {
-        let resultBytes = 0;
-        return projectSubscription(
-          await shell.text.streamTurn(validateTextTurnInput(input)),
-          (value) => {
-            const event = projectTextTurnEvent(value);
-            if (event.type === 'delta') {
-              resultBytes += utf8Length(event.text);
-              if (resultBytes > MAX_RESULT_BYTES) localAppProjectionError('text-turn result size');
-            }
-            return event;
+        const stream = projectSubscription(await shell.text.streamTurn(validateLocalAppTextInput(input)), projectTextTurnEvent);
+        let canceled = false;
+        let closing: Promise<void> | undefined;
+        const cancel = () => { canceled = true; return closing ??= stream.cancel(); };
+        return Object.freeze({
+          async *[Symbol.asyncIterator]() {
+            let resultBytes = 0;
+            let sequence = 0n;
+            let terminal = false;
+            const toolIds = new Set<string>();
+            try {
+              for await (const event of stream) {
+                if (canceled) break;
+                if (terminal || BigInt(event.sequence) !== ++sequence) localAppProjectionError('text-turn event sequence');
+                if (event.type === 'delta') resultBytes += utf8Length(event.text);
+                if (event.type === 'tool-call') {
+                  if (toolIds.has(event.toolCall.id)) localAppProjectionError('duplicate text tool call');
+                  toolIds.add(event.toolCall.id);
+                  resultBytes += utf8Length(JSON.stringify(event.toolCall));
+                }
+                if (resultBytes > MAX_RESULT_BYTES) localAppProjectionError('text-turn result size');
+                terminal = event.type === 'completed' || event.type === 'failed';
+                yield event;
+              }
+              if (!terminal && !canceled) localAppProjectionError('text-turn missing terminal event');
+            } finally { await cancel(); }
           },
-        );
+          cancel,
+        });
       },
     }),
     scenario: Object.freeze({
@@ -679,59 +706,17 @@ export function createNimiLocalAppRuntimeScenarioJobClient(
   return Object.freeze(client);
 }
 
-function validateTextTurnInput(input: NimiLocalAppTextTurnInput): NimiLocalAppTextTurnInput {
-  assertExactKeys(input, [
-    'messages', 'temperature', 'topP', 'maxTokens', 'topK',
-    'presencePenalty', 'frequencyPenalty', 'stop', 'seed',
-  ], 'text-turn input');
-  assertNoAuthorityMaterial(input);
-  if (!Array.isArray(input.messages) || input.messages.length === 0 || input.messages.length > 8) {
-    invalidAIInput('text-turn messages are invalid');
-  }
-  let totalBytes = 0;
-  let sawSystem = false;
-  let sawUser = false;
-  const messages = input.messages.map((message, index) => {
-    assertExactKeys(message, ['role', 'text'], `text-turn message ${index}`);
-    if (message.role === 'system') {
-      if (sawSystem || sawUser) invalidAIInput('text-turn system message order is invalid');
-      sawSystem = true;
-    } else if (message.role === 'user') sawUser = true;
-    else invalidAIInput(`text-turn message ${index} role is invalid`);
-    const text = boundedContent(message.text, `text-turn message ${index}`, 32 * 1024);
-    totalBytes += utf8Length(message.role) + utf8Length(text);
-    if (totalBytes > 64 * 1024) invalidAIInput('text-turn prompt is too large');
-    return Object.freeze({ role: message.role, text });
-  });
-  if (!sawUser) invalidAIInput('text-turn requires a user message');
-  optionalBoundedNumber(input.temperature, 'text-turn temperature', 0, 2);
-  optionalBoundedNumber(input.topP, 'text-turn topP', 0, 1);
-  optionalBoundedInteger(input.maxTokens, 'text-turn maxTokens', 0, 4096);
-  optionalBoundedInteger(input.topK, 'text-turn topK', 0, Number.MAX_SAFE_INTEGER);
-  optionalBoundedNumber(input.presencePenalty, 'text-turn presencePenalty', -2, 2);
-  optionalBoundedNumber(input.frequencyPenalty, 'text-turn frequencyPenalty', -2, 2);
-  optionalBoundedInteger(input.seed, 'text-turn seed', Number.MIN_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
-  if (input.stop !== undefined && (!Array.isArray(input.stop)
-    || input.stop.some((entry) => typeof entry !== 'string' || !entry.trim()))) invalidAIInput('text-turn stop is invalid');
-  return Object.freeze({
-    messages: Object.freeze(messages),
-    ...(input.temperature !== undefined ? { temperature: input.temperature } : {}),
-    ...(input.topP !== undefined ? { topP: input.topP } : {}),
-    ...(input.maxTokens !== undefined ? { maxTokens: input.maxTokens } : {}),
-    ...(input.topK !== undefined ? { topK: input.topK } : {}),
-    ...(input.presencePenalty !== undefined ? { presencePenalty: input.presencePenalty } : {}),
-    ...(input.frequencyPenalty !== undefined ? { frequencyPenalty: input.frequencyPenalty } : {}),
-    ...(input.stop !== undefined ? { stop: Object.freeze([...input.stop]) } : {}),
-    ...(input.seed !== undefined ? { seed: input.seed } : {}),
-  });
-}
-
 function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLocalAppScenarioJobSpec>(
   spec: T,
   execute: boolean,
 ): T {
   const record = asRecord(spec);
   if (!record || typeof record.type !== 'string') invalidAIInput('scenario spec is invalid');
+  if (record.type === 'text-generate') {
+    if (!execute) invalidAIInput('text-generate is a single synchronous model step');
+    const { type: _type, ...input } = record;
+    return Object.freeze({ type: 'text-generate', ...validateLocalAppTextInput(input as NimiLocalAppTextTurnInput) }) as T;
+  }
   assertNoAuthorityMaterial(record);
   switch (record.type) {
     // @nimi-authority: rule.nimi.runtime.ai-provider.face-swap-video-job
@@ -969,17 +954,22 @@ function projectTextTurnEvent(value: unknown): NimiLocalAppTextTurnEvent {
   if (!record || !/^[1-9][0-9]*$/u.test(String(record.sequence))) localAppProjectionError('text-turn event');
   const base = { sequence: String(record.sequence), traceId: boundedProjectionText(record.traceId, 'text-turn traceId', 512) };
   if (record.type === 'delta') {
-    assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'text'], 'text-turn delta');
-    return Object.freeze({ ...base, type: 'delta', text: boundedProjectionContent(record.text, 'text-turn text', 64 * 1024) });
+    assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'text', 'itemIndex'], 'text-turn delta');
+    return Object.freeze({ ...base, type: 'delta', text: boundedProjectionContent(record.text, 'text-turn text', 64 * 1024), itemIndex: projectionInteger(record.itemIndex, 'text item index', 0, 4_294_967_295) });
+  }
+  if (record.type === 'tool-call') {
+    assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'itemIndex', 'toolCall'], 'text tool call');
+    return Object.freeze({ ...base, type: 'tool-call', itemIndex: projectionInteger(record.itemIndex, 'tool item index', 0, 4_294_967_295), toolCall: projectLocalAppToolCall(record.toolCall) });
   }
   if (record.type === 'completed') {
     assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'finishReason'], 'text-turn completed');
-    if (!['stop', 'length', 'content-filter'].includes(String(record.finishReason))) localAppProjectionError('text-turn finishReason');
+    if (!['stop', 'length', 'tool-calls', 'content-filter'].includes(String(record.finishReason))) localAppProjectionError('text-turn finishReason');
     return Object.freeze({ ...base, type: 'completed', finishReason: record.finishReason }) as NimiLocalAppTextTurnEvent;
   }
   if (record.type === 'failed') {
-    assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint'], 'text-turn failed');
-    return Object.freeze({ ...base, type: 'failed', reasonCode: boundedProjectionText(record.reasonCode, 'text-turn reasonCode', 128), actionHint: optionalProjectionText(record.actionHint, 'text-turn actionHint', 512) });
+    assertExactProjectionKeys(record, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint', ...(Object.hasOwn(record, 'interruption') ? ['interruption'] : [])], 'text-turn failed');
+    const interruption = projectLocalExecutionInterruption(record.interruption ?? undefined, record.reasonCode, 'failed');
+    return Object.freeze({ ...base, type: 'failed', reasonCode: boundedProjectionText(record.reasonCode, 'text-turn reasonCode', 128), actionHint: optionalProjectionText(record.actionHint, 'text-turn actionHint', 512), ...(interruption ? { interruption } : {}) });
   }
   return localAppProjectionError('text-turn event type');
 }
@@ -987,10 +977,17 @@ function projectTextTurnEvent(value: unknown): NimiLocalAppTextTurnEvent {
 function projectScenarioExecute(value: unknown): NimiLocalAppScenarioExecuteResult {
   const record = asRecord(value);
   assertExactProjectionKeys(record, ['output', 'traceId'], 'scenario execute');
-  assertSafeProjection(record);
   const output = asRecord(record.output);
   if (!output) localAppProjectionError('scenario execute output');
   const traceId = boundedProjectionText(record.traceId, 'scenario execute traceId', 512);
+  if (output.type === 'text-generate') {
+    assertExactProjectionKeys(output, ['type', 'items', 'finishReason'], 'text generate output');
+    const items = projectLocalAppTextItems(output.items);
+    if (!['stop', 'length', 'tool-calls', 'content-filter'].includes(String(output.finishReason))
+      || (output.finishReason === 'tool-calls' && !items.some((item) => item.type === 'tool-call'))) localAppProjectionError('text finish reason');
+    return Object.freeze({ output: Object.freeze({ type: 'text-generate', items, finishReason: output.finishReason }), traceId }) as NimiLocalAppScenarioExecuteResult;
+  }
+  assertSafeProjection(record);
   if (output.type === 'text-embed') {
     assertExactProjectionKeys(output, ['type', 'vectors'], 'text embed output');
     if (!Array.isArray(output.vectors) || output.vectors.length === 0 || output.vectors.length > 16) localAppProjectionError('text embed vectors');
@@ -1205,8 +1202,25 @@ function projectRuntimeLocalAppVoiceAsset(asset: LocalAppVoiceAsset): NimiLocalA
 }
 
 function runtimeTextTurnRequest(input: NimiLocalAppTextTurnInput): StreamLocalAppTextTurnRequest {
+  const messages = toRuntimeMessages(input.messages.map((message) => ({
+    role: message.role,
+    content: message.turnItems?.length || message.role === 'assistant' ? [] : [{ type: 'text' as const, text: message.text }],
+    turnItems: message.turnItems?.length ? message.turnItems : message.role === 'assistant'
+      ? [{ type: 'output' as const, output: { type: 'text' as const, text: message.text } }] : undefined,
+  })));
+  const choice = input.toolChoice;
+  const format = input.responseFormat;
   return {
-    messages: input.messages.map((message) => ({ role: message.role, text: message.text })),
+    messages: messages.map((message) => ({ role: message.role, text: message.content, turnItems: message.turnItems })),
+    tools: toRuntimeTools(input.tools),
+    toolChoice: choice === 'none' ? ToolChoiceMode.NONE : choice === 'auto' ? ToolChoiceMode.AUTO
+      : choice === 'required' ? ToolChoiceMode.REQUIRED : choice ? ToolChoiceMode.TOOL : ToolChoiceMode.UNSPECIFIED,
+    toolChoiceName: typeof choice === 'object' ? choice.name : '',
+    responseFormat: format ? {
+      kind: format.type === 'json-schema' ? ResponseFormatKind.JSON_SCHEMA : format.type === 'json-object' ? ResponseFormatKind.JSON_OBJECT : ResponseFormatKind.TEXT,
+      jsonSchema: format.schema ? toRuntimeStruct(format.schema) : undefined,
+      schemaName: format.name ?? '', schemaDescription: format.description ?? '', strict: format.strict ?? false,
+    } : undefined,
     ...(input.temperature === undefined ? {} : { temperature: input.temperature }),
     ...(input.topP === undefined ? {} : { topP: input.topP }),
     ...(input.maxTokens === undefined ? {} : { maxTokens: input.maxTokens }),
@@ -1219,6 +1233,7 @@ function runtimeTextTurnRequest(input: NimiLocalAppTextTurnInput): StreamLocalAp
 }
 
 function runtimeExecuteRequest(spec: NimiLocalAppScenarioExecuteSpec): ExecuteLocalAppScenarioRequest {
+  if (spec.type === 'text-generate') return { spec: { oneofKind: 'textGenerate', textGenerate: runtimeTextTurnRequest(spec) } };
   if (spec.type === 'text-embed') {
     return { spec: { oneofKind: 'textEmbed', textEmbed: { inputs: [...spec.inputs] } } };
   }
@@ -1418,8 +1433,11 @@ function runtimeVoiceReference(
 function projectRuntimeTextTurnEvent(event: StreamLocalAppTextTurnEvent): unknown {
   const base = { sequence: event.sequence, traceId: event.traceId };
   switch (event.payload.oneofKind) {
+    case 'toolCall':
+      if (!event.payload.toolCall.toolCall) return localAppProjectionError('Runtime tool call');
+      return { ...base, type: 'tool-call', itemIndex: event.payload.toolCall.itemIndex, toolCall: toNimiToolCall(event.payload.toolCall.toolCall) };
     case 'delta':
-      return { ...base, type: 'delta', text: event.payload.delta.text };
+      return { ...base, type: 'delta', text: event.payload.delta.text, itemIndex: event.payload.delta.itemIndex };
     case 'completed':
       return {
         ...base,
@@ -1432,6 +1450,7 @@ function projectRuntimeTextTurnEvent(event: StreamLocalAppTextTurnEvent): unknow
         type: 'failed',
         reasonCode: runtimeReasonToken(event.payload.failed.reasonCode),
         actionHint: event.payload.failed.actionHint,
+        ...(event.payload.failed.interruption ? { interruption: localInterruptionFromRuntime(event.payload.failed.interruption) } : {}),
       };
     default:
       return localAppProjectionError('text-turn Runtime event');
@@ -1440,6 +1459,8 @@ function projectRuntimeTextTurnEvent(event: StreamLocalAppTextTurnEvent): unknow
 
 function projectRuntimeScenarioExecuteResponse(response: ExecuteLocalAppScenarioResponse): unknown {
   switch (response.output.oneofKind) {
+    case 'textGenerate':
+      return { output: { type: 'text-generate', items: toNimiTextOutputItems(response.output.textGenerate.items), finishReason: runtimeFinishReason(response.output.textGenerate.finishReason) }, traceId: response.traceId };
     case 'textEmbed':
       return {
         output: {
@@ -1560,7 +1581,8 @@ function runtimeJobEventTypeName(value: ScenarioJobEventType): NimiLocalAppScena
   return types[value] ?? localAppProjectionError('scenario Runtime event type');
 }
 
-function runtimeFinishReason(value: FinishReason): 'stop' | 'length' | 'content-filter' {
+function runtimeFinishReason(value: FinishReason): 'stop' | 'length' | 'tool-calls' | 'content-filter' {
+  if (value === FinishReason.TOOL_CALL) return 'tool-calls';
   if (value === FinishReason.STOP) return 'stop';
   if (value === FinishReason.LENGTH) return 'length';
   if (value === FinishReason.CONTENT_FILTER) return 'content-filter';

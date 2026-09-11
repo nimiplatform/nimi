@@ -12,11 +12,10 @@
 - Adapter public surfaces live in adapter packages, not base SDK shims.
 - Unsupported capability fails closed. No pseudo-success or hidden bypass.
 ## Retrieval Defaults
-- Start in `sdks/typescript`, `sdks/generators`, `sdks/conformance`, and `.nimi/spec/sdks`.
+- Start in the affected SDK implementation and its direct test or consumer. Read the relevant generator for generated changes, conformance code for shared language contracts, and exact authority units when semantics or ownership are unresolved.
 - For generated drift, inspect proto/OpenAPI input before generated output.
 - Skip `archive/**`, `**/dist/**`, `**/generated/**`, and dependency folders.
 ## Verification Commands
-- `node sdks/generators/generate.mjs --check`
-- `node sdks/conformance/run.mjs --language all --profile typed-core`
-- `pnpm --filter @nimiplatform/sdk build`
-- `pnpm --filter @nimiplatform/sdk test`
+- Handwritten TypeScript changes: run the directly affected tests and `pnpm --filter @nimiplatform/sdk build`; run `pnpm --filter @nimiplatform/sdk test` for shared behavior or public API changes.
+- Generator or proto/OpenAPI input changes: run `node sdks/generators/generate.mjs --check` after regenerating affected output.
+- Shared typed-core or cross-language contract changes: run `node sdks/conformance/run.mjs --language all --profile typed-core`.

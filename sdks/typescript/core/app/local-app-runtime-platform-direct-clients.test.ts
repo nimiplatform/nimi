@@ -7,6 +7,7 @@ import {
   ScenarioJobEventType,
   ScenarioJobStatus,
   ScenarioType,
+  ToolChoiceMode,
 } from '../../core-generated/runtime-typed-client.js';
 import {
   AiRealtimeAudioCodec,
@@ -24,7 +25,7 @@ test('formal AI consumption runtime adapter keeps the canonical Local App operat
       return (async function* () {
         yield {
           sequence: '1', traceId: 'trace-1',
-          payload: { oneofKind: 'delta' as const, delta: { text: 'hello' } },
+          payload: { oneofKind: 'delta' as const, delta: { text: 'hello', itemIndex: 0 } },
         };
         yield {
           sequence: '2', traceId: 'trace-1',
@@ -72,11 +73,15 @@ test('formal AI consumption runtime adapter keeps the canonical Local App operat
   const events = [];
   for await (const event of stream) events.push(event);
   assert.deepEqual(events, [
-    { type: 'delta', sequence: '1', traceId: 'trace-1', text: 'hello' },
+    { type: 'delta', sequence: '1', traceId: 'trace-1', text: 'hello', itemIndex: 0 },
     { type: 'completed', sequence: '2', traceId: 'trace-1', finishReason: 'stop' },
   ]);
   assert.deepEqual(textRequest, {
-    messages: [{ role: 'user', text: 'hello' }],
+    messages: [{ role: 'user', text: 'hello', turnItems: [] }],
+    tools: [],
+    toolChoice: ToolChoiceMode.UNSPECIFIED,
+    toolChoiceName: '',
+    responseFormat: undefined,
     stop: [],
   });
 

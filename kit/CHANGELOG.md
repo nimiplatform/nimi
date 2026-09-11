@@ -9,6 +9,22 @@ Discipline.
 
 ## [Unreleased]
 
+### Local App text tools (0.8.0)
+
+- Requires SDK 0.12.0, the matching 0.8.0 native binding, and a Runtime that
+  admits the extended Local App text contract. Function tools, ordered tool
+  results and structured response formats use the existing text stream and
+  scenario execute operations. App-owned Node work can use `bridge.services`
+  on the same protected Host and cancel on `onSessionInvalidated`.
+- Migration: handle the `tool-call` stream event and `tool-calls` finish reason;
+  text deltas now include `itemIndex`. Scenario execute adds `text-generate`.
+  Update exhaustive event/output matches. Rust shell crates advance to 0.4.0;
+  rich turns use `LocalAppTextMessage` and the extended text request fields.
+  The narrow text-candidate operation keeps its existing input contract.
+- These APIs represent one model step. The App owns its tool handlers and
+  subsequent steps; the model binding does not execute callbacks or resume
+  interrupted work.
+
 ### Added
 
 - The protected music runner accepts an optional `durationSeconds` generation

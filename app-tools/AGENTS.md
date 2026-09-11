@@ -24,5 +24,5 @@
 - Read admission or platform authority only when the requested change alters those semantics.
 
 ## Verification Commands
-- Run the focused Node test while iterating, then `pnpm --filter @nimiplatform/app-tools test`.
+- Run the focused Node test while iterating. Run `pnpm --filter @nimiplatform/app-tools test` for generator, capability-closure, lifecycle, package, or shared template changes; prose-only guidance edits do not require the full suite.
 - Use `pnpm run sync:app-source -- --apply` only when explicitly materializing the derived admitted-slice snapshot for packaging inspection.
