@@ -24,3 +24,18 @@ allowBuilds:
   electron: true
   esbuild: true
   protobufjs: true
+packageExtensions:
+  # Resolve Motion's React declarations from its consumer's type peer, not an
+  # unrelated React 18 copy in the workspace's hidden hoist directory.
+  'motion@12':
+    peerDependencies:
+      '@types/react': '^18.0.0 || ^19.0.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+  'framer-motion@12':
+    peerDependencies:
+      '@types/react': '^18.0.0 || ^19.0.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
