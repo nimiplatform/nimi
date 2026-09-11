@@ -1,11 +1,9 @@
-// This module is the compile-time projection of admitted protected-local
-// paths and live macOS signing policy. Production, privileged local
-// development and source-workspace local development are mutually exclusive.
+// Fixed installation paths and signing policy for production and privileged
+// local development. Source development derives its paths from the current
+// user and authorized launch request, so it does not compile this module.
 
 #[cfg(feature = "macos-local-development")]
 pub(crate) use crate::macos_profile_local_development::*;
-#[cfg(feature = "macos-source-local-development")]
-pub(crate) use crate::macos_profile_source_local_development::*;
 
 #[cfg(all(
     not(feature = "macos-local-development"),

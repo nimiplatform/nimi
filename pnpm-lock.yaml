@@ -14,6 +14,8 @@ overrides:
   undici: 7.29.0
   ws: 8.21.0
 
+pnpmfileChecksum: sha256-srhtFm0S7ZTZqddDO/rychCxS3HHQByunap4V/VFtFY=
+
 importers:
 
   .:
@@ -304,17 +306,6 @@ importers:
       vite:
         specifier: ^7.3.6
         version: 7.3.6(@types/node@24.13.3)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.13)(yaml@2.9.0)
-    optionalDependencies:
-      '@nimiplatform/desktop-product-control-darwin-arm64':
-        specifier: workspace:*
-        version: link:product-control-node/npm/darwin-arm64
-      '@nimiplatform/desktop-product-control-win32-x64':
-        specifier: workspace:*
-        version: link:product-control-node/npm/win32-x64
-
-  apps/desktop/product-control-node/npm/darwin-arm64: {}
-
-  apps/desktop/product-control-node/npm/win32-x64: {}
 
   apps/install-gateway: {}
 

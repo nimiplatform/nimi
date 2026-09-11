@@ -76,9 +76,5 @@
     "yaml": "^2.9.0",
     "zod": "4.5.4",
     "zustand": "5.0.15"
-  },
-  "optionalDependencies": {
-    "@nimiplatform/desktop-product-control-darwin-arm64": "workspace:*",
-    "@nimiplatform/desktop-product-control-win32-x64": "workspace:*"
   }
 }
