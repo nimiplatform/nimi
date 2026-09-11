@@ -280,10 +280,10 @@ declares the tested public SDK, Kit and Tauri shell versions used by new Apps an
 explicit `sync`; workspace development version bumps do not change those ranges.
 The release workflow requires those public versions before publishing App Tools.
 
-App Tools 0.5 uses SDK `^0.11.0` and Kit `^0.7.0`. Existing Apps upgrade explicitly:
+App Tools 0.5.1 uses SDK `^0.11.0` and Kit `^0.7.0`. Existing Apps upgrade explicitly:
 
 ```bash
-pnpm add -D @nimiplatform/app-tools@^0.5.0
+pnpm add -D @nimiplatform/app-tools@^0.5.1
 pnpm run sync
 pnpm install
 pnpm run check
