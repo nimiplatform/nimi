@@ -119,7 +119,7 @@ public App repository
 
 The registry references publisher Release assets and never mirrors bytes. GitHub Release is not catalog admission; catalog admission is not installed; installed is not running; running is not Nimi Access ready.
 
-Repository administration must enable a protected `v*` tag ruleset and GitHub immutable releases before production. The managed tag workflow fetches the repository's canonical default branch and rejects a tag commit outside that history before production preflight, build, attestation, or Release. A fine-grained `NIMI_REPOSITORY_ADMIN_TOKEN` secret with repository Administration read permission lets the workflow verify protected-tag and immutable-release settings; it cannot enable or change them. Manual workflow dispatch runs only the non-production build/package path. On Windows, the tag-only production build invokes the App-declared production build with no certificate-secret mapping or app-tools-owned signing step. Optional native signing remains publisher-owned and must already be reflected in the final exact Runtime entry before production pack observes and records its native-trust posture; a present invalid or unresolved signature still fails closed. A successful tag workflow creates the immutable publisher GitHub Release and no registry, installed, running, or Nimi Access truth. Protected Registry submission and approved Windows x86_64 installation, update, launch/focus/stop, current-session Nimi Access and uninstall are available through their Platform, Runtime and Desktop owners. Other-platform installed lifecycle and ordinary repair remain unavailable. Explicit immutable local-package import remains a separate product path whose entry is not yet implemented.
+Repository administration must enable a protected `v*` tag ruleset and GitHub immutable releases before production. The managed tag workflow fetches the repository's canonical default branch and rejects a tag commit outside that history before production preflight, build, attestation, or Release. A fine-grained `NIMI_REPOSITORY_ADMIN_TOKEN` secret with repository Administration read permission lets the workflow verify protected-tag and immutable-release settings; it cannot enable or change them. Manual workflow dispatch runs only the non-production build/package path. On Windows, the tag-only production build invokes the App-declared production build with no certificate-secret mapping or app-tools-owned signing step. Optional native signing remains publisher-owned and must already be reflected in the final exact Runtime entry before production pack observes and records its native-trust posture; a present invalid or unresolved signature still fails closed. A successful tag workflow creates the immutable publisher GitHub Release and no registry, installed, running, or Nimi Access truth. Protected Registry submission and approved Windows x86_64 and macOS arm64 installation, update, launch/focus/stop, current-session Nimi Access and uninstall are available through their Platform, Runtime and Desktop owners. Other-platform installed lifecycle and ordinary repair remain unavailable. Explicit immutable local-package import has source-qualified Desktop and Runtime implementations on Windows x86_64 and macOS arm64; combined product acceptance and public release readiness remain unverified.
 
 Registry projects must be open source with an explicit license and reviewable release source. Consistently observed unsigned packages are eligible; invalid signatures cannot be downgraded to unsigned. These Registry admission requirements do not apply to user-imported packages or Developer Mode projects. Registry approval is not a guarantee that third-party code is harmless.
 
@@ -220,3 +220,68 @@ Published CLI usage is:
 ```bash
 pnpm dlx --package @nimiplatform/app-tools nimi-app --help
 ```
+
+## Portable App information (package v2)
+
+A distribution package includes `app-info.json`, containing its actual icon,
+summary, usage guide, version notes, license and portable requirements. Fill in
+`nimi.app.yaml` before running a production check or build:
+
+```yaml
+metadata:
+  summary: A short description of what your App helps people do.
+  icon: assets/app-icon.png
+  readme: README.md
+  release_notes: RELEASE_NOTES.md
+  author: Your team
+  homepage_url: https://example.com
+  support_url: https://example.com/support
+capability_contract_refs: []
+required_standardized_feature_refs: []
+storage_policy:
+  kind: nimi-mediated-default
+```
+
+Use the canonical requirement references your App needs; an explicitly empty
+list is valid. Apps with their own OS storage must declare
+`kind: app-owned-os-storage` and `os_storage_disclosure` entries containing
+`path_pattern`, `purpose` and `expected_size_band`. These paths are disclosures,
+not instructions for Nimi to delete files. The author, homepage and support
+links are optional claims for local/private imports; Registry admission keeps
+its independent public-source, open-source license and support requirements.
+
+The icon must be a complete static PNG, square, 128–1024 pixels, no larger than
+512 KiB, and not fully transparent. Supply your App's real artwork: the old
+1×1 scaffold native icon is not distribution artwork. `metadata` paths are
+relative to the App repository. README and version notes are optional for local or
+private packages; omit their metadata paths when not provided. Registry admission
+requires both documents. Supplied README is limited to 96 KiB, version notes to
+32 KiB, and the root LICENSE to 128 KiB. `package.json.license` supplies the
+explicit license identifier; it does not turn a private license into an
+open-source Registry license. Name and summary allow 120 and 280 characters.
+Scaffold `sync` preserves these author-edited metadata, requirement and storage
+fields while continuing to check the managed identity and carrier fields.
+Incomplete development projects remain usable; production preflight reports
+missing resources before invoking the build.
+
+Pack writes `nimi.app-package/v2` and emits the exact embedded information bytes
+as `<app_id>-<version>-<target_id>.app-info.json` next to the `.nimiapp` and
+`.target.json`. Aggregate verifies both files and their equality with the
+embedded document. The managed Release workflow uploads this sidecar; a Registry
+candidate must reference its actual immutable Release asset identity, URL, size
+and digest. No App icon or document is copied into Registry storage.
+
+App Tools releases independently of SDK, Kit and Tauri shell. Its `nimiScaffoldVersions`
+declares the tested public SDK, Kit and Tauri shell versions used by new Apps and
+explicit `sync`; workspace development version bumps do not change those ranges.
+The release workflow requires those public versions before publishing App Tools.
+
+The v2 Runtime rejects v1 packages. Existing immutable publisher Releases and
+approved descriptors must not be edited to invent the missing asset. Prepare a
+new App version and real target builds, publish new immutable assets, and follow
+normal Registry review. The coordinated pre-release Registry data cutover must
+retire v1 entries/descriptors from the active dataset, retaining their history
+in Git; adding v2 releases alone cannot make old descriptors satisfy the new
+required-field schema. Do not deploy the v2 consumer before that reviewed
+cutover is ready. Installed information is source-qualified and stored offline
+by Runtime; metadata does not grant Registry verification or App Access.

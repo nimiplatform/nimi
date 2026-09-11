@@ -339,17 +339,16 @@ async function main() {
   }
 
   const scaffoldVersions = packageVersions.get('@nimiplatform/app-tools')?.pkg?.nimiScaffoldVersions;
-  if (scaffoldVersions?.sdkVersion !== expectedSdkRange) {
-    violations.push(`app-tools/package.json nimiScaffoldVersions.sdkVersion must be "${expectedSdkRange}"`);
-  }
-  if (scaffoldVersions?.kitVersion !== expectedKitRange) {
-    violations.push(`app-tools/package.json nimiScaffoldVersions.kitVersion must be "${expectedKitRange}"`);
+  for (const field of ['sdkVersion', 'kitVersion']) {
+    if (!/^\^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u.test(scaffoldVersions?.[field] ?? '')) {
+      violations.push(`app-tools/package.json nimiScaffoldVersions.${field} must be a stable public package range`);
+    }
   }
   if (scaffoldVersions?.appToolsVersion !== expectedAppToolsRange) {
     violations.push(`app-tools/package.json nimiScaffoldVersions.appToolsVersion must be "${expectedAppToolsRange}"`);
   }
-  if (scaffoldVersions?.nimiShellTauriVersion !== tauriVersion) {
-    violations.push(`app-tools/package.json nimiScaffoldVersions.nimiShellTauriVersion must be "${tauriVersion}"`);
+  if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u.test(scaffoldVersions?.nimiShellTauriVersion ?? '')) {
+    violations.push('app-tools/package.json nimiScaffoldVersions.nimiShellTauriVersion must be a stable public Cargo version');
   }
 
   if (sdkPackage?.version) {

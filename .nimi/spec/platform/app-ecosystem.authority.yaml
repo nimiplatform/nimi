@@ -2,6 +2,10 @@ format: nimicoding.authority/v2
 owner: team.platform
 scope: platform.app-ecosystem
 units:
+  - id: definition.nimi.platform.app-ecosystem.app-distribution-info
+    kind: definition
+    title: Portable App distribution information
+    meaning: Publisher-authored bounded display resources, documentation, license and portable requirement declarations carried by one immutable App target; their reviewed Release asset reference and Runtime committed snapshot provide exact-selection availability without creating publisher verification, admission, runnable identity or App Access.
   - id: definition.nimi.platform.app-ecosystem.local-agent-identity
     kind: definition
     title: Runtime LocalAgent identity
@@ -773,7 +777,7 @@ units:
     kind: rule
     title: P-NAPP-001 catalog authority and package kind
     modality: must
-    statement: The Third-party App product model contains approved ordinary-visible catalog releases through verified installation, explicitly selected immutable local packages through user_imported installation, and mutable projects through the separate non-package local_development path; current pre-release availability follows P-NAPP-040a, with the local-import product entry still unavailable; catalog, repository, or artifact presence alone creates no registration, subject, local record, declaration generation, Desktop launch, protected session, Effective App Access Snapshot, or runnable truth, and only a successful owner-specific lifecycle transition may create or update the corresponding local record.
+    statement: The Third-party App product model contains approved ordinary-visible catalog releases through verified installation, explicitly selected immutable local packages through user_imported installation, and mutable projects through the separate non-package local_development path; current source-entry implementation follows P-NAPP-040a and explicit local-package selection follows P-NAPP-040e; catalog, repository, or artifact presence alone creates no registration, subject, local record, declaration generation, Desktop launch, protected session, Effective App Access Snapshot, or runnable truth, and only a successful owner-specific lifecycle transition may create or update the corresponding local record.
     condition: Whenever current App scope, package admission, or local runnable posture is resolved.
     failure: Reject another source class, caller-selected local package, bypassed verified admission, an unavailable source path presented as current behavior, or local authority inferred before the successful owner-specific lifecycle transition.
     relations:
@@ -1270,7 +1274,7 @@ units:
     kind: rule
     title: P-NAPP-040 closed App source entry paths
     modality: must
-    statement: verified installs use only an approved ordinary-visible catalog descriptor, user_imported installs use only a newly explicit immutable local artifact without catalog trust, and local_development uses only Developer Mode without package install, update, or repair truth; after its exact owner lifecycle succeeds, each admitted source shares the canonical registration, declaration, Desktop exact-Host launch, Runtime session, and App operation access seams; in the current pre-release, verified Catalog discovery and ordinary installation and update on Windows x86_64 are available through the protected Desktop machine-product path after Runtime package recovery succeeds, with Runtime-owned exact download, verification, staging, atomic commit and registration and Desktop-owned native-posture confirmation, installed launch/focus/stop and protected App session Access on Windows x86_64 use Desktop main/native exact process control with Runtime-owned complete package and current Registry policy revalidation before bind, verified uninstall on Windows x86_64 is available through its Runtime and Desktop owners, while process running and current-session Access remain independent, recovery or provider failure keeps the corresponding action typed unavailable, and the local-import product entry, other-platform verified package lifecycle, and ordinary repair remain unavailable.
+    statement: verified installs use only an approved ordinary-visible catalog descriptor, user_imported installs use only a newly explicit immutable local artifact without catalog trust, and local_development uses only Developer Mode without package install, update, or repair truth; after its exact owner lifecycle succeeds, each admitted source shares the canonical registration, declaration, Desktop exact-Host launch, Runtime session, and App operation access seams; in the current pre-release, verified Catalog discovery and ordinary installation and update on Windows x86_64 and macOS arm64 are available through the protected Desktop machine-product path after Runtime package recovery succeeds, with Runtime-owned exact download, verification, staging, atomic commit and registration and Desktop-owned native-posture confirmation, installed launch/focus/stop and protected App session Access on Windows x86_64 and macOS arm64 use Desktop main/native exact process control with Runtime-owned complete package and current Registry policy revalidation before bind, verified uninstall on Windows x86_64 and macOS arm64 is available through its Runtime and Desktop owners, while process running and current-session Access remain independent, recovery or provider failure keeps the corresponding action typed unavailable; explicit production local-import preparation, installation and update use the protected Desktop machine-product path on these targets without Developer Mode or Registry dependence, with source-qualified installed launch and uninstall through the same Runtime and Desktop owners; these implemented entry points do not establish combined product acceptance or public release readiness, and ordinary repair and package lifecycle on other platforms remain unavailable.
     condition: Whenever an App enters the local product lifecycle.
     failure: Reject a source-class alias, bypass, or package-state claim outside its exact entry path, reject an unavailable action before mutation, and correct any claim that presents lifecycle foundation as a reachable catalog, installation, or installed-launch path.
     relations:
@@ -1322,6 +1326,20 @@ units:
         target: definition.nimi.platform.product-lifecycle.data-root-replacement
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.nimi-data-root
+  - id: rule.nimi.platform.app-ecosystem.p-napp-040e
+    kind: rule
+    title: P-NAPP-040 explicit immutable local package selection
+    modality: must
+    statement: Desktop local import explicitly selects one production nimiapp package for the current supported OS and architecture; the protected Runtime package owner copies that selected regular file into its temporary custody, validates the complete archive, declaration, execution profile and factual native posture, and returns a bounded preview and expiring opaque candidate selector without creating an installed record; Desktop shows the local-import source and native posture and requires current-user confirmation before consuming that exact candidate for installation or a strictly newer same-App same-source update against the exact stopped installed release; Runtime derives user_imported provenance without Registry lookup, admission or policy inheritance, atomically commits the managed immutable release through the common registration owner, and uses the common exact Desktop Host and protected-session path; cancellation or expiration discards only uncommitted candidate bytes, restart or data-root replacement invalidates candidates and fails interrupted uncommitted local jobs while preserving committed releases and prior runnable versions, and every cleanup and uninstall remains source-qualified.
+    condition: Whenever an immutable local App package is selected, confirmed, installed, updated, launched, canceled, recovered or removed.
+    failure: Reject a mutable development package, wrong platform, invalid archive or native posture, stale or reused candidate, changed update baseline, running Host, provenance promotion or partial commit; expose the actual failure without an installed record or synthetic progress and preserve unaffected sources and data.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-lifecycle-job
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.immutable-package-seam
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: rule.nimi.platform.app-ecosystem.p-napp-041a
     kind: rule
     title: P-NAPP-041 AgentCenter Pack placement preserves destination authority
@@ -1336,6 +1354,44 @@ units:
         target: definition.nimi.platform.app-ecosystem.protected-local-transport
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.registered-app-subject
+  - id: rule.nimi.platform.app-ecosystem.p-napp-042a
+    kind: rule
+    title: P-NAPP-042 complete portable App information
+    modality: must
+    statement: Every production nimi.app-package/v2 archive contains root app-info.json with format nimi.app-info/v1, exact app_id, version and target_id, nonempty display_name and summary, embedded static PNG artwork, explicit license identifier and license text, exact App Access, explicit possibly-empty canonical CapabilityContract and required standardized feature references, and explicit storage policy; readme and release-notes Markdown are optional for local or private distribution and absence means not provided, while Registry admission requires both documents; author, HTTPS homepage and support links are optional publisher claims and imported private Apps need not provide public source or public support; name and summary are bounded to 120 and 280 Unicode characters, PNG bytes to 512 KiB with complete decoding, square dimensions from 128 through 1024 and at least one visible pixel, supplied readme to 96 KiB, supplied release notes to 32 KiB, license text to 128 KiB and the entire UTF-8 information document to 1 MiB; App Tools derives the document from declared metadata resource paths, requirement and storage fields in nimi.app.yaml plus package.json license and the root LICENSE, emits a distribution declaration agreeing with it, preserves author-edited metadata, requirements and storage fields during explicit scaffold sync while retaining managed identity and carrier checks, and production pack and Runtime inspection reject missing required resources or malformed, mismatched, oversized or fully transparent resources without a placeholder-success path or a v1 compatibility parser.
+    condition: Whenever an App is packaged for distribution, imported or installed.
+    failure: Reject the incomplete or invalid package before installation commit and name the missing or invalid information; keep incomplete development projects editable without representing them as distribution-ready.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-distribution-info
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.immutable-package-seam
+  - id: rule.nimi.platform.app-ecosystem.p-napp-042b
+    kind: rule
+    title: P-NAPP-042 reviewed information asset and offline snapshot
+    modality: must
+    statement: App Tools emits the exact embedded app-info.json bytes as an app_id-version-target_id.app-info.json publisher Release asset and binds its name, size and SHA-256 in target and aggregate output; each approved Registry target additionally resolves that asset's immutable Release identity, locator, size and digest under the same reviewed publisher release, never storing resource bytes or creating a Nimi mirror, and candidate validation verifies sidecar bytes equal the embedded document and its identity, display name, license, App Access, requirements and storage agree with reviewed declarations; Runtime catalog information reads select the exact approved target and download only the bounded validated information asset, installation binds embedded information to that reviewed digest, and Runtime atomically commits the validated information snapshot with the exact source-qualified installed release so offline reads survive source-file removal and restart, updates replace executable release and information together, and uninstall removes only the selected release snapshot; missing metadata on a historical local record returns unavailable and existing immutable releases require new correctly packaged releases and ordinary Registry admission rather than in-place alteration, inferred approval or automatic migration; before v2 consumer rollout an explicit Platform maintainer cutover retires v1 rows and descriptor files from the active Registry dataset to Git history and admits only actual new v2 Release references through ordinary human review.
+    condition: Whenever distribution information is published, admitted, read, committed, updated or removed.
+    failure: Reject an unbound or changed resource, mismatched declaration, partial commit, source substitution, artifact overwrite or fabricated admission and preserve the prior committed release on failed updates.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-distribution-info
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-local-lifecycle-projection
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.release-descriptor
+  - id: rule.nimi.platform.app-ecosystem.p-napp-042c
+    kind: rule
+    title: P-NAPP-042 common information projection preserves trust
+    modality: must
+    statement: Desktop consumes common validated App information through the protected Runtime machine-product SDK for exact approved targets or exact installed releases and declared project metadata through its development host; verified and user_imported entries can display actual artwork, summary, use instructions, version notes, license, requirements and storage disclosures before launch, with version-specific information selection, explicit unavailable or retryable read errors and a visible image-load fallback rather than silent blank artwork; development projects display declared artwork and summary plus project documentation when available, retain their existing source and development controls, and remain usable while distribution metadata is incomplete; Markdown is inert content and grants no code execution or instruction authority, resource declarations create no Registry verification or App Access, and absent local AI setup does not erase discoverable information or manufacture runtime readiness.
+    condition: Whenever App information is projected in Desktop or SDK surfaces.
+    failure: Reject a source or version conflation, development-only display shortcut, metadata-derived trust or readiness, invisible image failure, executable content or hidden information-read failure.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.app-distribution-info
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.local-app-provenance
   - id: rule.nimi.platform.app-ecosystem.p-perm-018
     kind: rule
     lifecycle: removed

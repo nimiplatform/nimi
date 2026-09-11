@@ -1,3 +1,4 @@
+import { PNG } from 'pngjs';
 import assert from 'node:assert/strict';
 import { chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
@@ -93,6 +94,7 @@ function writeExistingSubmittedApp(tempRoot, options = {}) {
   mkdirSync(path.join(target, 'scripts'), { recursive: true });
   const packageJson = {
     name: 'focused-existing-app',
+    license: 'MIT',
     version: '0.1.0',
     private: true,
     type: 'module',
@@ -150,6 +152,10 @@ function writeExistingSubmittedApp(tempRoot, options = {}) {
     '        version: link:../../../nimi/sdks/typescript',
     '',
   ].join('\n'));
+  writeFileSync(path.join(target, 'icon.png'), PNG.sync.write({ width: 128, height: 128, data: Buffer.alloc(128 * 128 * 4, 255) }));
+  writeFileSync(path.join(target, 'README.md'), 'Use this test App.\n');
+  writeFileSync(path.join(target, 'RELEASE_NOTES.md'), 'Initial release.\n');
+  writeFileSync(path.join(target, 'LICENSE'), 'MIT\n');
   writeFileSync(path.join(target, 'nimi.app.yaml'), [
     'app_id: focused.existing',
     'display_name: Focused Existing',
@@ -157,6 +163,10 @@ function writeExistingSubmittedApp(tempRoot, options = {}) {
     'profile: standalone',
     'manifest_role: submitted-input',
     'app_access: []',
+    'capability_contract_refs: []',
+    'required_standardized_feature_refs: []',
+    'storage_policy: { kind: nimi-mediated-default }',
+    'metadata: { summary: A test application., icon: icon.png, readme: README.md, release_notes: RELEASE_NOTES.md }',
     'local_development:',
     '  electron:',
     '    renderer_origin: http://127.0.0.1:1430',

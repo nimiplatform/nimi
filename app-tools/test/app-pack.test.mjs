@@ -1,3 +1,5 @@
+import { PNG } from 'pngjs';
+import { readAppInfo, validateAppIcon } from '../lib/app-info.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
@@ -103,8 +105,11 @@ function fixture(options = {}) {
   mkdirSync(path.join(root, '.nimi', 'config'), { recursive: true });
   mkdirSync(path.join(root, 'build', 'windows'), { recursive: true });
   mkdirSync(path.join(root, 'src-tauri'), { recursive: true });
-  writeFileSync(path.join(root, 'package.json'), `${JSON.stringify({ name: 'example-app', version: '0.1.0', private: true }, null, 2)}\n`);
+  writeFileSync(path.join(root, 'package.json'), `${JSON.stringify({ name: 'example-app', version: '0.1.0', license: 'LicenseRef-Example', private: true }, null, 2)}\n`);
   writeFileSync(path.join(root, 'LICENSE'), 'Example App License\n');
+  writeFileSync(path.join(root, 'icon.png'), PNG.sync.write({ width: 128, height: 128, data: Buffer.alloc(128 * 128 * 4, 255) }));
+  writeFileSync(path.join(root, 'README.md'), '# Example App\nUse the app.\n');
+  writeFileSync(path.join(root, 'RELEASE_NOTES.md'), 'Initial release.\n');
   writeFileSync(path.join(root, 'nimi.app.yaml'), [
     'app_id: example.app',
     'display_name: Example App',
@@ -112,6 +117,14 @@ function fixture(options = {}) {
     'profile: standalone',
     'manifest_role: submitted-input',
     'app_access: []',
+    'capability_contract_refs: []',
+    'required_standardized_feature_refs: []',
+    'storage_policy: { kind: nimi-mediated-default }',
+    'metadata:',
+    '  summary: An example App for package verification.',
+    '  icon: icon.png',
+    '  readme: README.md',
+    '  release_notes: RELEASE_NOTES.md',
     '',
   ].join('\n'));
   writeFileSync(path.join(root, '.nimi', 'config', 'build-profile.yaml'), [
@@ -298,8 +311,11 @@ test('pack emits one deterministic target archive and canonical target metadata'
     assert.deepEqual(second.native_trust, { posture: 'development-unsigned' });
 
     const entries = readNimiAppArchive(firstBytes);
+    assert.deepEqual(entries.get('app-info.json').bytes, readFileSync(first.appInfoPath));
+    assert.equal(first.app_info.asset_name, 'example.app-0.1.0-windows-x86_64.app-info.json');
     assert.deepEqual([...entries.keys()], [
       'LICENSE',
+      'app-info.json',
       'manifest.json',
       'nimi.app.yaml',
       'payload/example-app.exe',
@@ -635,4 +651,44 @@ test('archive reader rejects changed bytes', () => {
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test('distribution info rejects missing author resources and blank or truncated icons', () => {
+  const root = fixture();
+  try {
+    assert.equal(readAppInfo(root, 'windows-x86_64').display_name, 'Example App');
+    for (const size of [1, 128]) {
+      const blank = PNG.sync.write({ width: size, height: size, data: Buffer.alloc(size * size * 4) });
+      assert.throws(() => validateAppIcon(blank), /square|transparent/u);
+    }
+    assert.throws(() => validateAppIcon(readFileSync(path.join(root, 'icon.png')).subarray(0, 16)), /PNG/u);
+    writeFileSync(path.join(root, 'RELEASE_NOTES.md'), '');
+    assert.throws(() => packAppTarget(root, { target: 'windows-x86_64' }), /release_notes/u);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('aggregate rejects an information sidecar changed independently of its archive', () => {
+  const root = fixture();
+  try {
+    const packed = packAppTarget(root, { target: 'windows-x86_64' });
+    writeFileSync(packed.appInfoPath, readFileSync(packed.appInfoPath).toString().replace('An example App', 'A different App'));
+    assert.throws(() => aggregateAppTargetCandidates(root), /App info changed/u);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('local distribution omits optional documents and preserves exact UTF-8 license bytes', () => {
+  const root = fixture();
+  try {
+    const manifest = path.join(root, 'nimi.app.yaml');
+    writeFileSync(manifest, readFileSync(manifest, 'utf8').replace('  readme: README.md\n', '').replace('  release_notes: RELEASE_NOTES.md\n', ''));
+    const license = Buffer.from('\uFEFFExample App License\n');
+    writeFileSync(path.join(root, 'LICENSE'), license);
+    const packed = packAppTarget(root, { target: 'windows-x86_64' });
+    const info = JSON.parse(readFileSync(packed.appInfoPath, 'utf8'));
+    assert.equal(info.readme_markdown, '');
+    assert.equal(info.release_notes_markdown, '');
+    assert.deepEqual(Buffer.from(info.license.text), license);
+    const archive = readNimiAppArchive(readFileSync(packed.artifactPath));
+    assert.deepEqual(archive.get('LICENSE').bytes, license);
+  } finally { rmSync(root, { recursive: true, force: true }); }
 });

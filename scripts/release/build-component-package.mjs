@@ -144,8 +144,7 @@ function buildKit(outputDir) {
 }
 
 function smokeAppTools(tarball) {
-  const sdkVersion = packageVersion('sdks/typescript/package.json');
-  const kitVersion = packageVersion('kit/package.json');
+  const scaffoldVersions = readJson('app-tools/package.json').nimiScaffoldVersions;
   const appToolsVersion = packageVersion('app-tools/package.json');
   const smokeRoot = mkdtempSync(path.join(tmpdir(), 'nimi-app-tools-package-'));
   try {
@@ -164,8 +163,8 @@ function smokeAppTools(tarball) {
     ], { cwd: smokeRoot });
     const scaffold = JSON.parse(readFileSync(path.join(appRoot, 'package.json'), 'utf8'));
     const expected = {
-      '@nimiplatform/sdk': `^${sdkVersion}`,
-      '@nimiplatform/kit': `^${kitVersion}`,
+      '@nimiplatform/sdk': scaffoldVersions.sdkVersion,
+      '@nimiplatform/kit': scaffoldVersions.kitVersion,
       '@nimiplatform/app-tools': `^${appToolsVersion}`,
     };
     for (const [name, version] of Object.entries(expected)) {

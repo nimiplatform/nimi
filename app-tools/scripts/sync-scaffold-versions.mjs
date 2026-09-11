@@ -26,36 +26,23 @@ function publicPackageRange(manifest, label) {
   return `^${requiredString(manifest.version, `${label}.version`)}`;
 }
 
-function nimiShellTauriVersion() {
-  const cargo = readFileSync(path.join(REPO_ROOT, 'kit/shell/tauri/Cargo.toml'), 'utf8');
-  if (!/^name\s*=\s*"nimi-shell-tauri"\s*$/mu.test(cargo)) {
-    throw new Error('Scaffold version source is invalid: kit/shell/tauri package name');
-  }
-  const match = cargo.match(/^version\s*=\s*"([^"]+)"\s*$/mu);
-  const version = requiredString(match?.[1], 'kit/shell/tauri.version');
-  validateAppScaffoldCargoDependencyValue(version, 'kit/shell/tauri.version');
-  return version;
-}
-
+// @nimi-authority: rule.nimi.platform.governance-release.p-gov-027-component-release-identity
+// The manifest owns tested public dependency versions independently of workspace development versions.
 export function buildScaffoldVersionProjection() {
   const rootManifest = readJson('package.json');
   const appToolsManifest = readJson('app-tools/package.json');
-  const sdkManifest = readJson('sdks/typescript/package.json');
-  const kitManifest = readJson('kit/package.json');
   const current = appToolsManifest.nimiScaffoldVersions;
   if (!current || typeof current !== 'object' || Array.isArray(current)) {
     throw new Error('app-tools package manifest is missing nimiScaffoldVersions');
   }
+  validateAppScaffoldCargoDependencyValue(current.nimiShellTauriVersion, 'nimiScaffoldVersions.nimiShellTauriVersion');
   return Object.freeze({
     ...current,
-    sdkVersion: publicPackageRange(sdkManifest, '@nimiplatform/sdk'),
     appToolsVersion: publicPackageRange(appToolsManifest, '@nimiplatform/app-tools'),
     nimicodingVersion: requiredString(
       rootManifest.devDependencies?.['@nimiplatform/nimi-coding'],
       'root.devDependencies.@nimiplatform/nimi-coding',
     ),
-    kitVersion: publicPackageRange(kitManifest, '@nimiplatform/kit'),
-    nimiShellTauriVersion: nimiShellTauriVersion(),
     packageManager: requiredString(rootManifest.packageManager, 'root.packageManager'),
   });
 }

@@ -1,9 +1,9 @@
+import { APP_AUTHOR_DECLARATION_FIELDS, hashScaffoldManagedContent } from './app-scaffold.mjs';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { parse as parseYaml } from 'yaml';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import {
   buildAppScaffoldSnapshotFromIntent,
-  hashScaffoldContent,
   managedAppReleaseWorkflowSource,
   SCAFFOLD_INTENT_PATH,
   SCAFFOLD_LOCK_VERSION,
@@ -536,7 +536,7 @@ function assertManagedFilesCurrent(targetDir, lock) {
       drift.push(`${relativePath}: missing`);
       continue;
     }
-    const currentHash = hashScaffoldContent(readContentForHash(absolutePath));
+    const currentHash = hashScaffoldManagedContent(relativePath, readContentForHash(absolutePath));
     if (currentHash !== entry.sha256) {
       drift.push(`${relativePath}: sha256 drift`);
     }
@@ -706,6 +706,15 @@ function assertNoClassificationConflict(lock, snapshot) {
 function writeScaffoldFile(targetDir, file) {
   const targetPath = path.join(targetDir, file.path);
   mkdirSync(path.dirname(targetPath), { recursive: true });
+  if (file.path === 'nimi.app.yaml' && existsSync(targetPath)) {
+    const current = parseYaml(readFileSync(targetPath, 'utf8'));
+    const next = parseYaml(file.content);
+    for (const field of APP_AUTHOR_DECLARATION_FIELDS) {
+      if (Object.hasOwn(current, field)) next[field] = current[field];
+    }
+    writeFileSync(targetPath, stringifyYaml(next, { lineWidth: 0 }));
+    return;
+  }
   writeFileSync(targetPath, file.content);
 }
 

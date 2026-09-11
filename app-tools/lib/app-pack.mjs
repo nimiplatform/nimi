@@ -16,12 +16,13 @@ import {
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
-import { parse as parseYaml } from 'yaml';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+import { APP_INFO_MAX_BYTES, readAppInfo, validateAppInfo } from './app-info.mjs';
 import { observeWindowsExecutableFacts } from './windows-powershell.mjs';
 import { SYMBOLIC_LINK_MODE, validatePayloadLinks } from './payload-links.mjs';
 import { observeMacOSExecutableFacts } from './macos-native.mjs';
 
-const PACKAGE_FORMAT = 'nimi.app-package/v1';
+const PACKAGE_FORMAT = 'nimi.app-package/v2';
 const TARGET_METADATA_FORMAT = 'nimi.app-target-candidate/v1';
 const AGGREGATE_FORMAT = 'nimi.app-release-candidate/v1';
 const BUILD_PROFILE_PATH = '.nimi/config/build-profile.yaml';
@@ -278,6 +279,7 @@ function readPackInputs(targetDir, targetId) {
   }
   const manifestPath = path.join(targetDir, 'nimi.app.yaml');
   const manifest = readYaml(manifestPath, 'nimi.app.yaml');
+  const appInfo = readAppInfo(targetDir, targetId);
   const buildProfile = readYaml(path.join(targetDir, BUILD_PROFILE_PATH), BUILD_PROFILE_PATH);
   const buildProfileRef = buildProfile.build_profile_ref;
   if (buildProfileRef !== ELECTRON_BUILD_PROFILE_REF && buildProfileRef !== TAURI_BUILD_PROFILE_REF) {
@@ -315,7 +317,7 @@ function readPackInputs(targetDir, targetId) {
   const runtimeHostPath = payloadStat.isFile()
     ? payload.resolved
     : resolveInside(payload.resolved, runtimeRelative, `targets.${targetId}.runtime_entry`).resolved;
-  return { target, targetId, targetDir, packageJson, licensePath, manifestPath, appId, version, payloadPath: payload.resolved, runtimeEntry, runtimeHostPath };
+  return { target, targetId, targetDir, packageJson, licensePath, manifestPath, appInfo, appId, version, payloadPath: payload.resolved, runtimeEntry, runtimeHostPath };
 }
 
 export function classifyWindowsNativeTrustObservation(observation) {
@@ -462,10 +464,14 @@ export function packAppTarget(cwd, options = {}) {
     native_trust: nativeTrust,
     execution_profile: executionProfile,
   };
+  const infoBytes = Buffer.from(canonicalJson(input.appInfo));
+  if (infoBytes.length > APP_INFO_MAX_BYTES) throw new Error('App info exceeds 1 MiB');
+  const declaration = Object.fromEntries(['app_id', 'display_name', 'version', 'app_access', 'capability_contract_refs', 'required_standardized_feature_refs', 'storage_policy'].map((key) => [key, input.appInfo[key]]));
   const archive = writeNimiAppArchive([
     { name: 'LICENSE', bytes: readFileSync(input.licensePath), mode: 0o644 },
     { name: 'manifest.json', bytes: canonicalJson(packageManifest), mode: 0o644 },
-    { name: 'nimi.app.yaml', bytes: readFileSync(input.manifestPath), mode: 0o644 },
+    { name: 'nimi.app.yaml', bytes: stringifyYaml(declaration), mode: 0o644 },
+    { name: 'app-info.json', bytes: infoBytes, mode: 0o644 },
     ...payloadEntries,
   ]);
   const sha256 = createHash('sha256').update(archive).digest('hex');
@@ -474,7 +480,9 @@ export function packAppTarget(cwd, options = {}) {
   const stem = `${input.appId}-${input.version}-${input.targetId}`;
   const artifactPath = path.join(outputDir, `${stem}.nimiapp`);
   const metadataPath = path.join(outputDir, `${stem}.target.json`);
+  const appInfoPath = path.join(outputDir, `${stem}.app-info.json`);
   writeFileSync(artifactPath, archive);
+  writeFileSync(appInfoPath, infoBytes);
   const metadata = {
     format: TARGET_METADATA_FORMAT,
     app_id: input.appId,
@@ -485,12 +493,13 @@ export function packAppTarget(cwd, options = {}) {
     asset_name: path.basename(artifactPath),
     size: archive.length,
     sha256,
+    app_info: { asset_name: path.basename(appInfoPath), size: infoBytes.length, sha256: createHash('sha256').update(infoBytes).digest('hex') },
     runtime_entry: input.runtimeEntry,
     native_trust: packageManifest.native_trust,
     execution_profile: packageManifest.execution_profile,
   };
   writeFileSync(metadataPath, canonicalJson(metadata));
-  return { ok: true, command: 'pack', dir: targetDir, artifactPath, metadataPath, ...metadata };
+  return { ok: true, command: 'pack', dir: targetDir, artifactPath, metadataPath, appInfoPath, ...metadata };
 }
 
 export function aggregateAppTargetCandidates(cwd, options = {}) {
@@ -525,6 +534,12 @@ export function aggregateAppTargetCandidates(cwd, options = {}) {
     const bytes = readFileSync(artifactPath);
     if (bytes.length !== target.size || createHash('sha256').update(bytes).digest('hex') !== target.sha256) throw new Error(`Target artifact changed after pack: ${target.asset_name}`);
     const entries = readNimiAppArchive(bytes);
+    const infoAsset = target.app_info;
+    if (infoAsset?.asset_name !== `${appId}-${version}-${target.target_id}.app-info.json` || !Number.isSafeInteger(infoAsset.size) || infoAsset.size <= 0 || infoAsset.size > APP_INFO_MAX_BYTES) throw new Error(`Target App info reference is invalid: ${target.target_id}`);
+    const infoBytes = readFileSync(path.join(outputDir, infoAsset.asset_name));
+    if (infoBytes.length !== infoAsset.size || createHash('sha256').update(infoBytes).digest('hex') !== infoAsset.sha256 || !entries.get('app-info.json')?.bytes.equals(infoBytes)) throw new Error(`Target App info changed or differs from archive: ${target.target_id}`);
+    const info = validateAppInfo(JSON.parse(infoBytes));
+    if (info.app_id !== appId || info.version !== version || info.target_id !== target.target_id) throw new Error(`Target App info identity differs: ${target.target_id}`);
     validatePayloadLinks(entries, target.os);
     const manifest = readPackageManifestFromArchive(entries, metadataLabel);
     if (manifest.format !== PACKAGE_FORMAT) throw new Error(`Target archive manifest format is invalid: ${target.asset_name}`);

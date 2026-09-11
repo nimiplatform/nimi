@@ -2303,6 +2303,11 @@ test('sync advances the App version while preserving immutable scaffold identity
     const packagePath = path.join(generated.target, 'package.json');
     const intent = JSON.parse(readFileSync(intentPath, 'utf8'));
     const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
+    const sourceManifest = parseYaml(generated.read('nimi.app.yaml'));
+    sourceManifest.metadata = { summary: 'Author-maintained description.', icon: 'artwork/custom.png', readme: 'GUIDE.md', release_notes: 'NOTES.md' };
+    sourceManifest.capability_contract_refs = ['text.generate'];
+    sourceManifest.required_standardized_feature_refs = ['text.generate.text'];
+    writeFileSync(path.join(generated.target, 'nimi.app.yaml'), stringifyYaml(sourceManifest));
     packageJson.version = '0.1.1';
     writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
 
@@ -2313,6 +2318,11 @@ test('sync advances the App version while preserving immutable scaffold identity
 
     assert.equal(JSON.parse(generated.read('package.json')).version, '0.1.1');
     assert.equal(parseYaml(generated.read('nimi.app.yaml')).version, '0.1.1');
+    assert.deepEqual(parseYaml(generated.read('nimi.app.yaml')).metadata, sourceManifest.metadata);
+    for (const field of ['capability_contract_refs', 'required_standardized_feature_refs']) {
+      assert.deepEqual(parseYaml(generated.read('nimi.app.yaml'))[field], sourceManifest[field]);
+      assert.deepEqual(parseYaml(generated.read('.nimi/admission/submission.yaml'))[field], sourceManifest[field]);
+    }
     assert.match(generated.read('src-tauri/Cargo.toml'), /^version = "0\.1\.1"$/mu);
     assert.equal(JSON.parse(generated.read('src-tauri/tauri.conf.json')).version, '0.1.1');
     assert.equal(parseYaml(generated.read('.nimi/config/app-identity.yaml')).version, '0.1.1');

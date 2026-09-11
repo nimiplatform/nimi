@@ -202,6 +202,7 @@ const APP_RELEASE_WORKFLOW = [
   '          path: |',
   '            dist/nimi-app/*.nimiapp',
   '            dist/nimi-app/*.target.json',
+  '            dist/nimi-app/*.app-info.json',
   '          if-no-files-found: error',
   '  attest-target:',
   "    if: github.event_name == 'push' && github.ref_type == 'tag'",
@@ -248,6 +249,7 @@ const APP_RELEASE_WORKFLOW = [
   '          path: |',
   '            dist/nimi-app/*.nimiapp',
   '            dist/nimi-app/*.target.json',
+  '            dist/nimi-app/*.app-info.json',
   '            dist/nimi-app/*.candidate.json',
   '          if-no-files-found: error',
   '  release:',
@@ -287,7 +289,7 @@ const APP_RELEASE_WORKFLOW = [
   "              sleep 10",
   "            done",
   "          }",
-  '          assets=(release-assets/*.nimiapp release-assets/*.candidate.json)',
+  '          assets=(release-assets/*.nimiapp release-assets/*.app-info.json release-assets/*.candidate.json)',
   '          test "${#assets[@]}" -gt 0',
   "          expected=$(printf '%s\\n' \"${assets[@]##*/}\" | jq -R -s -c 'split(\"\\n\")[:-1] | sort')",
   '          if release_id=$(gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --json databaseId --jq .databaseId 2>/dev/null); then',
@@ -864,6 +866,15 @@ function buildNimiAppManifest(identity) {
     profile: identity.profile,
     manifest_role: 'submitted-input',
     app_access: identity.appAccessItems,
+    capability_contract_refs: identity.capabilityResolution.capabilityContractRefs,
+    required_standardized_feature_refs: identity.capabilityResolution.requiredStandardizedFeatureRefs,
+    storage_policy: { kind: 'nimi-mediated-default' },
+    metadata: {
+      summary: '',
+      icon: 'assets/app-icon.png',
+      readme: 'README.md',
+      release_notes: 'RELEASE_NOTES.md',
+    },
     local_development: {
       electron: {
         renderer_origin: `http://127.0.0.1:${identity.devPort}`,
@@ -1336,7 +1347,7 @@ function buildScaffoldLock(identity, versions, files, targetDir = '') {
   for (const file of files) {
     const mutationClass = file.mutationClass;
     taxonomy[mutationClass].push(file.path);
-    const digest = hashScaffoldContent(file.content);
+    const digest = hashScaffoldManagedContent(file.path, file.content);
     if (mutationClass === 'app-owned product code') {
       appOwnedInitialHashes[file.path] = {
         class: mutationClass,
@@ -1570,4 +1581,14 @@ export function createAppScaffold(input) {
 export function createAppScaffoldCandidate(input) {
   const plan = input.plan || buildAppScaffoldCandidateCreatePlan(input);
   return createAppScaffold({ ...input, plan });
+}
+
+export const APP_AUTHOR_DECLARATION_FIELDS = Object.freeze(['metadata', 'capability_contract_refs', 'required_standardized_feature_refs', 'storage_policy']);
+
+// Source configuration is editable; existing scaffold checks still cover identity and carrier fields.
+export function hashScaffoldManagedContent(relativePath, content) {
+  if (relativePath !== 'nimi.app.yaml') return hashScaffoldContent(content);
+  const manifest = YAML.parse(content.toString());
+  for (const field of APP_AUTHOR_DECLARATION_FIELDS) delete manifest[field];
+  return hashScaffoldContent(YAML.stringify(manifest, { lineWidth: 0 }));
 }

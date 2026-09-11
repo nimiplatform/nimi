@@ -6,7 +6,6 @@ import type {
 import type { NimiLocalAppAIConfigClient, NimiLocalAppClient } from '@nimiplatform/sdk/app';
 import type {
   NimiLocalAppAgentHandle,
-  NimiLocalAppArtifactUploadMime,
   NimiLocalAppAssetsClient,
 } from '@nimiplatform/sdk/app';
 import type { RealmListChatsResultDto } from '@nimiplatform/kit/features/chat/realm';
@@ -36,6 +35,8 @@ import type {
   ResolvedWorldTourFixture,
   ResolveWorldTourFixtureInput,
 } from '../lab/world-tour/world-tour-shared.js';
+
+type NimiLocalAppArtifactUploadMime = Parameters<NimiLocalAppClient['ai']['artifacts']['upload']>[0]['mimeType'];
 
 export interface LabEcosystemReferenceProjection {
   readonly ecosystemRevision: number;

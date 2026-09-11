@@ -1,3 +1,4 @@
+import { readAppInfo } from './app-info.mjs';
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018c
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-009b
 
@@ -117,7 +118,7 @@ function readSubmittedManifest(targetDir) {
   if (!SEMVER_PATTERN.test(version) || version !== document.version) {
     throw new Error('Existing submitted app version must be an exact semantic version');
   }
-  return Object.freeze({ appId, displayName, profile, version, rendererOrigin: parsedOrigin.origin });
+  return Object.freeze({ appId, displayName, profile, version, rendererOrigin: parsedOrigin.origin, capabilityContractRefs: document.capability_contract_refs, requiredStandardizedFeatureRefs: document.required_standardized_feature_refs, storagePolicy: document.storage_policy });
 }
 
 function assertNoRetiredScaffoldState(targetDir) {
@@ -943,17 +944,6 @@ function assertProjectLifecycleCurrent(targetDir, versions, options = {}) {
   }
   assertNoStandaloneParentSources(targetDir);
   const authoring = assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, nativeIdentity);
-  if (existsSync(path.join(targetDir, SCAFFOLD_LOCK_PATH))) {
-    const lock = readJsonFile(path.join(targetDir, SCAFFOLD_LOCK_PATH), 'scaffold lock');
-    for (const [field, expected] of [
-      ['capability_contract_refs', lock.capabilityContractRefs],
-      ['required_standardized_feature_refs', lock.requiredStandardizedFeatureRefs],
-    ]) {
-      if (JSON.stringify(authoring.submission[field]) !== JSON.stringify(expected || [])) {
-        throw new Error(`${SUBMISSION_PATH} ${field} must match the selected scaffold feature closure`);
-      }
-    }
-  }
   assertManagedWorkflowCurrent(targetDir);
   assertPnpmWorkspaceCurrent(targetDir);
   if (options.requireInstalledLock === true) {
@@ -1033,10 +1023,10 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions) {
     supportManifest = normalizeSupportInput(currentSubmission.support_manifest, `${SUBMISSION_PATH} support_manifest`);
   }
   const submissionContent = renderAppSubmissionInput(identity, {
-    capabilityContractRefs: currentSubmission?.capability_contract_refs || [],
-    requiredStandardizedFeatureRefs: currentSubmission?.required_standardized_feature_refs || [],
+    capabilityContractRefs: descriptor.capabilityContractRefs ?? currentSubmission?.capability_contract_refs ?? [],
+    requiredStandardizedFeatureRefs: descriptor.requiredStandardizedFeatureRefs ?? currentSubmission?.required_standardized_feature_refs ?? [],
     aiProfileRecommendationRef: currentSubmission?.ai_profile_recommendation_ref,
-    storagePolicy: currentSubmission?.storage_policy || { kind: 'nimi-mediated-default' },
+    storagePolicy: descriptor.storagePolicy ?? currentSubmission?.storage_policy ?? { kind: 'nimi-mediated-default' },
     supportManifest,
   });
   planned.push({ path: submissionPath, content: submissionContent, previous: currentSubmissionSource });
@@ -1161,6 +1151,9 @@ export function checkAppProject(cwd, options = {}, versions, runners = {}) {
   let nimicoding = null;
   if (!managed) nimicoding = runNimicodingSync(targetDir, 'check', runners);
   const { descriptor, buildProfile } = assertProjectLifecycleCurrent(targetDir, versions, { requireInstalledLock: true });
+  if (options.production === true) {
+    for (const target of Object.keys(buildProfile.targets)) readAppInfo(targetDir, target);
+  }
   return emitResult({
     ok: true,
     command: 'check',
@@ -1193,6 +1186,7 @@ export function buildAppProject(cwd, options = {}, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
   const profile = readBuildProfile(targetDir);
   const selected = selectBuildOwner(profile, options.target);
+  if (options.production === true) readAppInfo(targetDir, selected.target);
   const result = runOwnerCommand(targetDir, 'build', selected.command, options, runners);
   if (options.production === true) {
     assertProductionRuntimeEntry(targetDir, selected);
