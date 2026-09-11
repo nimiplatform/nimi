@@ -42,6 +42,12 @@ import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell
 const MARKET_CATEGORIES = ['all', 'chat', 'image', 'video'] as const;
 type MarketCategory = typeof MARKET_CATEGORIES[number];
 
+// Compact filter styling so the market filters share one toolbar row instead
+// of stacking as full-width field rows; field tokens keep them visually
+// consistent with the adjacent search field.
+const MARKET_FILTER_CLASS = 'w-auto min-w-36 max-w-56';
+const MARKET_FILTER_TRIGGER_CLASS = 'min-h-9 gap-1.5 rounded-lg border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-2.5 text-xs font-medium text-[var(--nimi-text-secondary)] shadow-none';
+
 export function filterModelMarketRows<T extends { title: string; author?: string; license?: string; downloads?: number; totalSizeBytes?: number }>(
   rows: readonly T[], author: string, license: string, sort: string,
 ): T[] {
@@ -152,16 +158,16 @@ export function RecommendPage(props: RecommendPageProps) {
         ) : undefined}
       />
       <div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-0.5">
+        <div className="inline-flex h-9 items-center rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-0.5">
           {MARKET_CATEGORIES.map((value) => (
             <button
               key={value}
               type="button"
               aria-pressed={category === value}
               onClick={() => setCategory(value)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium ${category === value
+              className={`inline-flex h-full items-center rounded-md px-3 text-xs font-medium transition-colors ${category === value
                 ? 'bg-[var(--nimi-surface-card)] text-[var(--nimi-action-primary-bg)] shadow-[var(--nimi-elevation-base)]'
-                : 'text-[var(--nimi-text-muted)]'}`}
+                : 'text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]'}`}
             >
               {t(`runtimeConfig.recommend.category.${value}`, { defaultValue: value[0]!.toUpperCase() + value.slice(1) })}
             </button>
@@ -171,17 +177,20 @@ export function RecommendPage(props: RecommendPageProps) {
           value={query}
           onChange={(event) => setQuery(event.currentTarget.value)}
           placeholder={t('runtimeConfig.recommend.searchPlaceholder', { defaultValue: 'Search the full catalog…' })}
-          className="min-w-56 flex-1"
+          className="min-h-9 min-w-56 flex-1"
         />
       </div>
 
       {rawRows.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <SelectField aria-label={t('runtimeConfig.recommend.filterAuthor')} value={author} onValueChange={setAuthor}
+            className={MARKET_FILTER_CLASS} selectClassName={MARKET_FILTER_TRIGGER_CLASS}
             options={[{ value: 'all', label: t('runtimeConfig.recommend.allAuthors') }, ...authors.map((value) => ({ value: `author:${value}`, label: value }))]} />
           <SelectField aria-label={t('runtimeConfig.recommend.filterLicense')} value={license} onValueChange={setLicense}
+            className={MARKET_FILTER_CLASS} selectClassName={MARKET_FILTER_TRIGGER_CLASS}
             options={[{ value: 'all', label: t('runtimeConfig.recommend.allLicenses') }, ...licenses.map((value) => ({ value: `license:${value}`, label: value }))]} />
           <SelectField aria-label={t('runtimeConfig.recommend.sortResults')} value={sort} onValueChange={setSort}
+            className={`${MARKET_FILTER_CLASS} ml-auto`} selectClassName={MARKET_FILTER_TRIGGER_CLASS}
             options={['default', 'title', 'downloads', ...(rawRows.some((row) => 'totalSizeBytes' in row && row.totalSizeBytes) ? ['size'] : [])].map((value) => ({ value, label: t(`runtimeConfig.recommend.resultSort.${value}`) }))} />
         </div>
       ) : null}

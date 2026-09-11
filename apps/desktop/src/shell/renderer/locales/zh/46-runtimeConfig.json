@@ -144,7 +144,8 @@
     "useTemplate": "使用此方案",
     "offerCount": "{{count}} 个候选",
     "openMarketOffer": "在模型市场中查看",
-    "missingSlots": "仍有 {{count}} 个必需 slot 缺少已安装的 ModelAsset。",
+    "missingSlots": "还有 {{count}} 个必需模型未选择。请选择已有模型，或先下载、导入所需模型。",
+    "recipeManualModels": "请选择已有模型，或在本地资产中导入。此方案没有推荐下载项。",
     "downloadSizeUnknown": "大小未知",
     "noAdmittedOffer": "当前没有可用的兼容模型候选",
     "noRecommendedDownload": "必需模型已安装，最终配置仍需校验。",
@@ -169,8 +170,11 @@
     "createStepCapability": "选择能力",
     "createStepRecipe": "选择模板",
     "createStepConfigure": "配置模型与命名",
-    "capabilityTemplates": "{{count}} 个模板",
+    "createCapabilityHint": "这套配置想用来做什么？",
+    "createRecipeHint": "为「{{capability}}」选择一个方案，已按这台设备的兼容性排序。",
+    "capabilityTemplates": "{{count}} 个方案",
     "recipeSummary": "{{slots}} 个模型 · 已安装 {{installed}}",
+    "recipeReady": "所需模型均已安装",
     "recipeMissing": "还需下载 {{size}}",
     "recipeMissingUnknown": "部分模型需下载（大小未知）",
     "readySummary": "所需模型均已安装；保存将校验组合。运行前请检查环境。",
@@ -225,8 +229,8 @@
     "implementationSupportedFeatures": "实现支持的特性",
     "configuredFeatures": "当前已配置的特性",
     "recipeCustody": "模板托管",
-    "recipeCustodyEmpty": "空集",
-    "executionSupply": "执行供给：Runtime Driver bundle 与受管环境依赖。",
+    "recipeCustodyEmpty": "无",
+    "executionSupply": "执行依赖：由 Runtime 驱动包与受管环境提供。",
     "impactTitle": "确认更改当前使用",
     "impactBody": "这会更改“{{name}}”今后的本地 AI 使用设置；已经开始的任务不受影响。",
     "confirm": "确认",
@@ -243,13 +247,19 @@
         "structured-output": "结构化输出"
       },
       "state": {
-        "implementation-supported": "实现支持",
+        "implementation-supported": "支持，未启用",
         "configured": "已配置",
         "unavailable": "不可用"
       },
       "typedReasons": "Runtime 原因"
     },
+    "axisStatus": {
+      "verified": "校验通过",
+      "attention": "需要处理"
+    },
     "capability": {
+      "imageFaceSwap": "图片换脸",
+      "videoFaceSwap": "视频换脸",
       "visionLocate": "图像定位",
       "textGenerate": "文本生成",
       "textEmbed": "文本理解",
@@ -259,6 +269,20 @@
       "voiceCreate": "声音创建",
       "videoGenerate": "视频生成",
       "musicGenerate": "音乐生成",
+      "other": "其他本地 AI 能力"
+    },
+    "capabilityDescription": {
+      "imageFaceSwap": "使用参考人脸替换目标图片中的单个人脸",
+      "videoFaceSwap": "使用参考人脸替换视频中的单个人脸，保留时间轴和音频",
+      "visionLocate": "在截图或图片中找到指定元素",
+      "textGenerate": "对话、写作、翻译与问答",
+      "textEmbed": "语义搜索与知识库检索",
+      "imageGenerate": "根据描述生成或编辑图片",
+      "audioSynthesize": "把文字朗读成语音",
+      "audioTranscribe": "把录音转成文字",
+      "voiceCreate": "克隆或创建新的声音",
+      "videoGenerate": "根据描述生成视频",
+      "musicGenerate": "生成音乐与配乐",
       "other": "其他本地 AI 能力"
     },
     "required": "必需",
@@ -286,6 +310,8 @@
     "localCapabilityEMBED": "向量嵌入",
     "localCapabilityIMAGE": "图像",
     "localCapabilityVISION": "图像定位",
+    "localCapabilityFACESWAP": "图片换脸",
+    "localCapabilityVIDEOFACESWAP": "视频换脸",
     "localCapabilityVIDEO": "视频生成",
     "localCapabilityTTS": "语音合成",
     "localCapabilitySTT": "语音转文字",
@@ -1230,6 +1256,8 @@
     "loadingProviders": "正在加载提供商..."
   },
   "capabilityLabels": {
+    "imageFaceSwap": "图片换脸",
+    "videoFaceSwap": "视频换脸",
     "visionLocate": "图像定位",
     "textGenerate": "文本生成",
     "textEmbed": "文本嵌入",

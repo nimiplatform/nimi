@@ -144,7 +144,8 @@
     "useTemplate": "Use this plan",
     "offerCount": "{{count}} candidate(s)",
     "openMarketOffer": "View in Model Market",
-    "missingSlots": "{{count}} required slot(s) still need an installed ModelAsset.",
+    "missingSlots": "{{count}} required model(s) still need to be selected. Choose installed models, or download or import them.",
+    "recipeManualModels": "Choose existing models or import them in Local Assets. This plan has no recommended downloads.",
     "downloadSizeUnknown": "size unknown",
     "noAdmittedOffer": "No compatible model candidate is currently available",
     "noRecommendedDownload": "Required models are installed; the final setup still needs validation.",
@@ -169,8 +170,11 @@
     "createStepCapability": "Choose a capability",
     "createStepRecipe": "Choose a template",
     "createStepConfigure": "Configure models & name",
-    "capabilityTemplates": "{{count}} templates",
+    "createCapabilityHint": "What do you want to use this setup for?",
+    "createRecipeHint": "Choose a plan for {{capability}}, ordered by compatibility with this device.",
+    "capabilityTemplates": "{{count}} plans",
     "recipeSummary": "{{slots}} models · {{installed}} installed",
+    "recipeReady": "All required models are installed",
     "recipeMissing": "{{size}} to download",
     "recipeMissingUnknown": "some models need downloading (size unknown)",
     "readySummary": "Required models are installed. Saving validates the combination; check its runtime environment before running.",
@@ -243,13 +247,19 @@
         "structured-output": "Structured Output"
       },
       "state": {
-        "implementation-supported": "Implementation supported",
+        "implementation-supported": "Supported, not enabled",
         "configured": "Configured",
         "unavailable": "Unavailable"
       },
       "typedReasons": "Runtime reason"
     },
+    "axisStatus": {
+      "verified": "Verified",
+      "attention": "Needs attention"
+    },
     "capability": {
+      "imageFaceSwap": "Image face replacement",
+      "videoFaceSwap": "Video face replacement",
       "visionLocate": "Visual localization",
       "textGenerate": "Text generation",
       "textEmbed": "Text understanding",
@@ -259,6 +269,20 @@
       "voiceCreate": "Voice creation",
       "videoGenerate": "Video generation",
       "musicGenerate": "Music generation",
+      "other": "Other local AI capability"
+    },
+    "capabilityDescription": {
+      "imageFaceSwap": "Replace one face in an image using a reference face",
+      "videoFaceSwap": "Replace one face throughout a video while preserving its timeline and audio",
+      "visionLocate": "Locate elements in screenshots or images",
+      "textGenerate": "Chat, writing, translation, and Q&A",
+      "textEmbed": "Semantic search and knowledge retrieval",
+      "imageGenerate": "Generate or edit images from a prompt",
+      "audioSynthesize": "Turn text into spoken audio",
+      "audioTranscribe": "Turn recordings into text",
+      "voiceCreate": "Clone or create new voices",
+      "videoGenerate": "Generate video from a prompt",
+      "musicGenerate": "Generate music and soundtracks",
       "other": "Other local AI capability"
     },
     "required": "Required",
@@ -286,6 +310,8 @@
     "localCapabilityEMBED": "Embeddings",
     "localCapabilityIMAGE": "Image",
     "localCapabilityVISION": "Visual localization",
+    "localCapabilityFACESWAP": "Image face replacement",
+    "localCapabilityVIDEOFACESWAP": "Video face replacement",
     "localCapabilityVIDEO": "Video generation",
     "localCapabilityTTS": "Speech synthesis",
     "localCapabilitySTT": "Speech to text",
@@ -1230,6 +1256,8 @@
     "loadingProviders": "Loading providers..."
   },
   "capabilityLabels": {
+    "imageFaceSwap": "Image face replacement",
+    "videoFaceSwap": "Video face replacement",
     "visionLocate": "Visual localization",
     "textGenerate": "Text generation",
     "textEmbed": "Text embedding",

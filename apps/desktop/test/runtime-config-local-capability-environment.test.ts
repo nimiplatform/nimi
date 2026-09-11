@@ -105,6 +105,8 @@ test('local environment service submits only the capability contract to Runtime'
     'text.generate',
     'text.embed',
     'image.generate',
+    'image.face_swap',
+    'video.face_swap',
     'vision.locate',
     'video.generate',
     'audio.synthesize',
@@ -132,13 +134,15 @@ test('local environment service submits only the capability contract to Runtime'
   assert.deepEqual(requests, capabilities.map((capabilityContract) => ({ capabilityContract })));
 });
 
-test('Desktop Local AI environment includes the embedding capability in its real card flow', () => {
+test('Desktop Local AI environment includes embedding and face replacement cards', () => {
   assert.deepEqual(
     RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES.map(({ capabilityContract }) => capabilityContract),
     [
       'text.generate',
       'text.embed',
       'image.generate',
+      'image.face_swap',
+      'video.face_swap',
       'vision.locate',
       'video.generate',
       'audio.synthesize',

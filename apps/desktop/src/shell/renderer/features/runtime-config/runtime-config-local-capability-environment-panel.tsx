@@ -31,6 +31,8 @@ export const RUNTIME_CONFIG_LOCAL_ENVIRONMENT_CAPABILITIES = [
   { slice: 'text', capabilityContract: 'text.generate' },
   { slice: 'embed', capabilityContract: 'text.embed' },
   { slice: 'image', capabilityContract: 'image.generate' },
+  { slice: 'faceSwap', capabilityContract: 'image.face_swap' },
+  { slice: 'videoFaceSwap', capabilityContract: 'video.face_swap' },
   { slice: 'vision', capabilityContract: 'vision.locate' },
   { slice: 'video', capabilityContract: 'video.generate' },
   { slice: 'tts', capabilityContract: 'audio.synthesize' },
