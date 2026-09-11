@@ -90,7 +90,7 @@ export function createAppBusinessServices(host: NimiElectronLocalAppHost) {
     stat: (relativePath) => request('assetStat', { relativePath }),
     list: (input) => request('assetList', { prefix: input.prefix, cursor: input.cursor ?? '', pageSize: input.pageSize ?? 0 }),
     remove: (relativePath) => request('assetRemove', { relativePath }),
-    move: (input) => request('assetMove', { from: input.from, to: input.to, overwrite: input.overwrite ?? false }),
+    move: (input) => request('assetMove', { fromRelativePath: input.from, toRelativePath: input.to, overwrite: input.overwrite ?? false }),
     reveal: (relativePath) => request('assetReveal', { relativePath }),
     adoptArtifact: (input) => request('assetAdopt', { ...input, overwrite: input.overwrite ?? false }),
     async write(input) {

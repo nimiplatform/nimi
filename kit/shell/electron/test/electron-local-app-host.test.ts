@@ -8,6 +8,13 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
+  it('preserves App-owned work on a successful routine renewal', async () => {
+    let invalidated = 0;
+    const host = createNimiElectronLocalAppHostForBinding(binding([]), () => { invalidated++; });
+    await expect(host.renewTechnicalSession()).resolves.toEqual(statusProjection());
+    expect(invalidated).toBe(0);
+  });
+
   it('invalidates App-owned work before an unsuccessful technical rebind', async () => {
     let invalidated = false;
     const candidate = binding([]);
