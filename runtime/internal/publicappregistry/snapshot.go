@@ -351,19 +351,28 @@ type NativeTrust struct {
 	MacOSDeveloperIDSubject *string `json:"macos_developer_id_subject"`
 }
 
+type AppInfoAsset struct {
+	AssetID   int64  `json:"asset_id"`
+	AssetName string `json:"asset_name"`
+	AssetURL  string `json:"asset_url"`
+	Size      int64  `json:"size"`
+	SHA256    string `json:"sha256"`
+}
+
 type Target struct {
-	TargetID                  string      `json:"target_id"`
-	OS                        string      `json:"os"`
-	Arch                      string      `json:"arch"`
-	AssetID                   int64       `json:"asset_id"`
-	AssetName                 string      `json:"asset_name"`
-	AssetURL                  string      `json:"asset_url"`
-	Size                      int64       `json:"size"`
-	SHA256                    string      `json:"sha256"`
-	RuntimeEntry              string      `json:"runtime_entry"`
-	ProvenanceAttestationRefs []string    `json:"provenance_attestation_refs"`
-	ExecutionProfileRef       string      `json:"execution_profile_ref"`
-	NativeTrust               NativeTrust `json:"native_trust"`
+	AppInfo                   AppInfoAsset `json:"app_info"`
+	TargetID                  string       `json:"target_id"`
+	OS                        string       `json:"os"`
+	Arch                      string       `json:"arch"`
+	AssetID                   int64        `json:"asset_id"`
+	AssetName                 string       `json:"asset_name"`
+	AssetURL                  string       `json:"asset_url"`
+	Size                      int64        `json:"size"`
+	SHA256                    string       `json:"sha256"`
+	RuntimeEntry              string       `json:"runtime_entry"`
+	ProvenanceAttestationRefs []string     `json:"provenance_attestation_refs"`
+	ExecutionProfileRef       string       `json:"execution_profile_ref"`
+	NativeTrust               NativeTrust  `json:"native_trust"`
 }
 
 type Review struct {

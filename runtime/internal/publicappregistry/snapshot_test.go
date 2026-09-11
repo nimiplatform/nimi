@@ -369,6 +369,8 @@ func TestHiddenIndexRowCannotIssueApprovedTargetSelector(t *testing.T) {
 func TestResolveBindsTargetToExplicitMachineTupleWithoutDerivingItsID(t *testing.T) {
 	descriptor := validDescriptorDocument()
 	descriptor.Candidate.Targets[0].TargetID = "windows-desktop"
+	descriptor.Candidate.Targets[0].AppInfo.AssetName = strings.ReplaceAll(descriptor.Candidate.Targets[0].AppInfo.AssetName, "windows-x86_64", "windows-desktop")
+	descriptor.Candidate.Targets[0].AppInfo.AssetURL = strings.ReplaceAll(descriptor.Candidate.Targets[0].AppInfo.AssetURL, "windows-x86_64", "windows-desktop")
 	descriptor.Candidate.Targets[0].Arch = "arm64"
 	descriptor.DescriptorID = descriptor.Candidate.AppID + "@" + descriptor.Candidate.Version
 	source := validMemorySource(t, testRevisionA, descriptor)
@@ -685,6 +687,7 @@ func validDescriptorDocument() approvedDescriptorDocument {
 			UpdateChannel: "stable", RollbackMarker: "none",
 			Support: Support{DiagnosticsBundleFields: []string{}, RedactionRules: []string{}, IssueCategories: []string{}, EscalationURL: repository + "/issues", KillSwitchVisibility: "visible", RecoveryInstructions: "Reinstall the approved release."},
 			Targets: []Target{{
+				AppInfo:  AppInfoAsset{AssetID: 102, AssetName: appID + "-" + version + "-windows-x86_64.app-info.json", AssetURL: repository + "/releases/download/" + tag + "/" + appID + "-" + version + "-windows-x86_64.app-info.json", Size: 1024, SHA256: strings.Repeat("d", 64)},
 				TargetID: "windows-x86_64", OS: "windows", Arch: "x86_64", AssetID: 101,
 				AssetName: appID + "-" + version + "-windows-x86_64.nimiapp",
 				AssetURL:  repository + "/releases/download/" + tag + "/" + appID + "-" + version + "-windows-x86_64.nimiapp",

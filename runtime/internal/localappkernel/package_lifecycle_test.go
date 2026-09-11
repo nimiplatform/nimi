@@ -85,7 +85,7 @@ func TestPackageLifecycleCommitAndUninstallBoundariesRejectCancel(t *testing.T) 
 	store := kernel.PackageLifecycle()
 
 	install := beginCommittingJob(t, ctx, store, PackageJobInstall, "descriptor:nimi.example:1.0.0")
-	committed, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{
+	committed, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{AppInfoJSON: []byte(`{"snapshot":"storage-test"}`),
 		JobID: install.JobID, Version: "1.0.0", Registration: verifiedRegistrationInput("lineage:1", 1),
 	})
 	if err != nil {
@@ -114,6 +114,9 @@ func TestPackageLifecycleCommitAndUninstallBoundariesRejectCancel(t *testing.T) 
 	if err != nil || completed.Phase != PackageJobCompleted {
 		t.Fatalf("complete uninstall = %+v err=%v", completed, err)
 	}
+	if raw, err := store.ReadAppInfo(ctx, committed.Registration.RegistrationHandle, committed.Release.ReleaseRef); !errors.Is(err, ErrCommittedReleaseNotFound) {
+		t.Fatalf("uninstall kept info snapshot: %s %v", raw, err)
+	}
 	if _, err := store.GetCommittedRelease(ctx, "nimi.example", SourceClassVerified); !errors.Is(err, ErrCommittedReleaseNotFound) {
 		t.Fatalf("removed committed release = %v", err)
 	}
@@ -131,13 +134,14 @@ func TestPackageLifecycleCommitAndUninstallBoundariesRejectCancel(t *testing.T) 
 
 func TestCommitVerifiedReleaseIsAtomicAndFailedUpdatePreservesActive(t *testing.T) {
 	ctx := context.Background()
-	kernel := openTestKernel(t, filepath.Join(t.TempDir(), "registered-app.db"),
+	databasePath := filepath.Join(t.TempDir(), "registered-app.db")
+	kernel := openTestKernel(t, databasePath,
 		mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001"), "install-one", 0xc1)
 	defer func() { _ = kernel.Close() }()
 	store := kernel.PackageLifecycle()
 
 	installJob := beginCommittingJob(t, ctx, store, PackageJobInstall, "descriptor:nimi.example:1.0.0")
-	first, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{
+	first, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{AppInfoJSON: []byte(`{"version":"1.0.0"}`),
 		JobID:        installJob.JobID,
 		Version:      "1.0.0",
 		Registration: verifiedRegistrationInput("lineage:1", 1),
@@ -172,7 +176,7 @@ func TestCommitVerifiedReleaseIsAtomicAndFailedUpdatePreservesActive(t *testing.
 	}
 	registration := verifiedRegistrationInput("lineage:2", 2)
 	registration.ExistingRegistrationHandle = first.Registration.RegistrationHandle
-	second, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{
+	second, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{AppInfoJSON: []byte(`{"version":"1.1.0"}`),
 		JobID: updateJob.JobID, Version: "1.1.0", Registration: registration,
 	})
 	if err != nil {
@@ -182,6 +186,12 @@ func TestCommitVerifiedReleaseIsAtomicAndFailedUpdatePreservesActive(t *testing.
 		t.Fatalf("updated commit = %+v", second)
 	}
 
+	if raw, err := store.ReadAppInfo(ctx, first.Registration.RegistrationHandle, first.Release.ReleaseRef); !errors.Is(err, ErrCommittedReleaseNotFound) {
+		t.Fatalf("old info selector remained readable: %s %v", raw, err)
+	}
+	if raw, err := store.ReadAppInfo(ctx, second.Registration.RegistrationHandle, second.Release.ReleaseRef); err != nil || string(raw) != `{"version":"1.1.0"}` {
+		t.Fatalf("updated info snapshot: %s %v", raw, err)
+	}
 	failedJob, err := store.Begin(ctx, BeginPackageJobInput{
 		AppID: "nimi.example", SourceClass: SourceClassVerified, Kind: PackageJobUpdate,
 		TargetRef: "descriptor:nimi.example:1.2.0", ProgressBasis: PackageProgressIndeterminate,
@@ -203,6 +213,19 @@ func TestCommitVerifiedReleaseIsAtomicAndFailedUpdatePreservesActive(t *testing.
 	if err != nil || len(releases) != 1 || releases[0].Version != "1.1.0" || releases[0].SourceClass != SourceClassVerified {
 		t.Fatalf("listed committed releases = %+v err=%v", releases, err)
 	}
+	if raw, err := store.ReadAppInfo(ctx, second.Registration.RegistrationHandle, second.Release.ReleaseRef); err != nil || string(raw) != `{"version":"1.1.0"}` {
+		t.Fatalf("failed update changed information: %s %v", raw, err)
+	}
+
+	if err := kernel.Close(); err != nil {
+		t.Fatal(err)
+	}
+	reopened := openTestKernel(t, databasePath, mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001"), "install-one", 0xc1)
+	defer func() { _ = reopened.Close() }()
+	if raw, err := reopened.PackageLifecycle().ReadAppInfo(ctx, second.Registration.RegistrationHandle, second.Release.ReleaseRef); err != nil || string(raw) != `{"version":"1.1.0"}` {
+		t.Fatalf("restart lost offline information: %s %v", raw, err)
+	}
+
 }
 
 func TestRepairCannotChangeCommittedReleaseIdentityOrImmutableSeam(t *testing.T) {
@@ -212,7 +235,7 @@ func TestRepairCannotChangeCommittedReleaseIdentityOrImmutableSeam(t *testing.T)
 	defer func() { _ = kernel.Close() }()
 	store := kernel.PackageLifecycle()
 	install := beginCommittingJob(t, ctx, store, PackageJobInstall, "descriptor:nimi.example:1.0.0")
-	first, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{
+	first, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{AppInfoJSON: []byte(`{"snapshot":"storage-test"}`),
 		JobID: install.JobID, Version: "1.0.0", Registration: verifiedRegistrationInput("lineage:1", 1),
 	})
 	if err != nil {
@@ -239,7 +262,7 @@ func TestRepairCannotChangeCommittedReleaseIdentityOrImmutableSeam(t *testing.T)
 			if tc.mutate != nil {
 				tc.mutate(&registration)
 			}
-			if _, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{
+			if _, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{AppInfoJSON: []byte(`{"snapshot":"storage-test"}`),
 				JobID: repair.JobID, Version: tc.version, Registration: registration,
 			}); !errors.Is(err, ErrStateConflict) {
 				t.Fatalf("repair changed committed release: %v", err)
@@ -393,7 +416,7 @@ func TestDownloadQueueReorderPauseResumeAndUpdateBaseline(t *testing.T) {
 		t.Fatalf("paused mutation lost exclusivity: %v", err)
 	}
 	install := beginCommittingJob(t, ctx, store, PackageJobInstall, "descriptor:nimi.example:1.0.0")
-	first, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{JobID: install.JobID, Version: "1.0.0", Registration: verifiedRegistrationInput("lineage:1", 1)})
+	first, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{AppInfoJSON: []byte(`{"snapshot":"storage-test"}`), JobID: install.JobID, Version: "1.0.0", Registration: verifiedRegistrationInput("lineage:1", 1)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -411,7 +434,7 @@ func TestDownloadQueueReorderPauseResumeAndUpdateBaseline(t *testing.T) {
 	update = advanceJob(t, ctx, store, update, PackageJobCommitting, PackageJobProgress{})
 	registration := verifiedRegistrationInput("lineage:2", 2)
 	registration.ExistingRegistrationHandle = first.Registration.RegistrationHandle
-	if _, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{JobID: update.JobID, Version: "1.1.0", Registration: registration}); !errors.Is(err, ErrRevisionConflict) {
+	if _, err := store.CommitPackageRelease(ctx, CommitPackageReleaseInput{AppInfoJSON: []byte(`{"snapshot":"storage-test"}`), JobID: update.JobID, Version: "1.1.0", Registration: registration}); !errors.Is(err, ErrRevisionConflict) {
 		t.Fatalf("stale baseline committed: %v", err)
 	}
 }

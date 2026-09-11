@@ -70,6 +70,45 @@ function unusedPublicClient(onUnary?: () => void): RuntimeGrpcBridgeClient {
 }
 
 describe('Electron verified Desktop control host', () => {
+  it.each([
+    ...['unsupported-target', 'native-verification-failed', 'invalid-package', 'local-file-unavailable'].map((reason) => ({
+      reasonCode: 'APP_PACKAGE_SELECTION_INVALID', reasonMetadata: { local_import_reason: reason }, method: 'PrepareLocalAppPackage',
+    })),
+    { reasonCode: 'APP_PACKAGE_POLICY_BLOCKED', reasonMetadata: { policy_reason: 'maintainer-suspended', policy_revision: '7' }, method: 'StartAppPackageInstall' },
+  ])('preserves $reasonCode recovery metadata through the protected Desktop route', async ({ reasonCode, reasonMetadata, method }) => {
+    const desktopControlHost = createNimiElectronDesktopControlHostForBinding(binding({
+      desktopMachineProductUnary: async () => ({ status: 'error', reasonCode, reasonMetadata, retryable: false }),
+    }));
+    await expect(invokeElectronRuntimeUnary({
+      client: unusedPublicClient(), payload: { methodId: `/nimi.runtime.v1.RuntimeAppPackageService/${method}`, requestBytesBase64: '' },
+      appId: 'nimi.desktop', event: {}, runtimeEndpoint: 'protected-desktop-control', command: 'runtime_bridge_unary',
+      desktopControlHost, desktopSenderAuthorized: true,
+    })).rejects.toMatchObject({ reasonCode, details: { reasonMetadata } });
+  });
+
+  it('still rejects undeclared native error metadata', async () => {
+    const host = createNimiElectronDesktopControlHostForBinding(binding({
+      desktopMachineProductUnary: async () => ({ status: 'error', reasonCode: 'APP_PACKAGE_SELECTION_INVALID', retryable: false,
+        reasonMetadata: { local_import_reason: 'invalid-package', private_detail: 'not-public' } }),
+    }));
+    await expect(host.machineProductUnary({ methodId: MACHINE_METHOD, requestBytes: new Uint8Array() }))
+      .rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+  });
+  it.each(['PrepareLocalAppPackage', 'DiscardLocalAppPackage', 'StartLocalAppPackageInstall', 'StartLocalAppPackageUpdate'])('routes %s only through the exact Desktop package profile', async (name) => {
+    const methodId = `/nimi.runtime.v1.RuntimeAppPackageService/${name}`;
+    const calls: string[] = [];
+    const desktopControlHost = createNimiElectronDesktopControlHostForBinding(binding({
+      desktopMachineProductUnary: async (input) => {
+        calls.push(input.methodId);
+        return { status: 'ok', value: Uint8Array.from([1]) };
+      },
+    }));
+    const input = { client: unusedPublicClient(), payload: { methodId, requestBytesBase64: '' }, appId: 'nimi.desktop', event: {}, runtimeEndpoint: 'protected-desktop-control', command: 'runtime_bridge_unary', desktopControlHost, desktopSenderAuthorized: true };
+    await expect(invokeElectronRuntimeUnary(input)).resolves.toEqual({ responseBytesBase64: Buffer.from([1]).toString('base64') });
+    await expect(invokeElectronRuntimeUnary({ ...input, desktopSenderAuthorized: false })).rejects.toMatchObject({ reasonCode: 'protected-carrier-required' });
+    expect(calls).toEqual([methodId]);
+  });
+
   it('uses separate generated machine and account unary entrypoints', async () => {
     const calls: string[] = [];
     const nativeRequestIds: string[] = [];

@@ -1662,6 +1662,7 @@ const (
 	APPPACKAGEHOSTRUNNING                           ReasonCode = "APP_PACKAGE_HOST_RUNNING"
 	APPPACKAGEUNINSTALLFAILED                       ReasonCode = "APP_PACKAGE_UNINSTALL_FAILED"
 	APPPACKAGEUPDATEUNAVAILABLE                     ReasonCode = "APP_PACKAGE_UPDATE_UNAVAILABLE"
+	APPPACKAGEINFOUNAVAILABLE                       ReasonCode = "APP_PACKAGE_INFO_UNAVAILABLE"
 	AIFACEREFERENCEMISSING                          ReasonCode = "AI_FACE_REFERENCE_MISSING"
 	AIFACEREFERENCEAMBIGUOUS                        ReasonCode = "AI_FACE_REFERENCE_AMBIGUOUS"
 	AIFACETARGETMISSING                             ReasonCode = "AI_FACE_TARGET_MISSING"
@@ -2653,6 +2654,27 @@ type AppMessageEvent struct {
 	Timestamp     string              `json:"timestamp,omitempty"`
 }
 
+type AppPackageInfo struct {
+	AppId                           string                                `json:"app_id,omitempty"`
+	Version                         string                                `json:"version,omitempty"`
+	TargetId                        string                                `json:"target_id,omitempty"`
+	DisplayName                     string                                `json:"display_name,omitempty"`
+	Summary                         string                                `json:"summary,omitempty"`
+	IconPngBase64                   string                                `json:"icon_png_base64,omitempty"`
+	ReadmeMarkdown                  string                                `json:"readme_markdown,omitempty"`
+	ReleaseNotesMarkdown            string                                `json:"release_notes_markdown,omitempty"`
+	LicenseIdentifier               string                                `json:"license_identifier,omitempty"`
+	LicenseText                     string                                `json:"license_text,omitempty"`
+	AppAccess                       []string                              `json:"app_access,omitempty"`
+	CapabilityContractRefs          []string                              `json:"capability_contract_refs,omitempty"`
+	RequiredStandardizedFeatureRefs []string                              `json:"required_standardized_feature_refs,omitempty"`
+	StoragePolicyKind               string                                `json:"storage_policy_kind,omitempty"`
+	OsStorageDisclosure             []ApprovedAppCatalogStorageDisclosure `json:"os_storage_disclosure,omitempty"`
+	Author                          string                                `json:"author,omitempty"`
+	HomepageUrl                     string                                `json:"homepage_url,omitempty"`
+	SupportUrl                      string                                `json:"support_url,omitempty"`
+}
+
 type AppPackageJob struct {
 	JobId              []byte                   `json:"job_id,omitempty"`
 	AppId              string                   `json:"app_id,omitempty"`
@@ -3458,6 +3480,8 @@ type CommittedAppRelease struct {
 	ReleaseRef     string                `json:"release_ref,omitempty"`
 	LaunchSelector []byte                `json:"launch_selector,omitempty"`
 	CommittedAt    string                `json:"committed_at,omitempty"`
+	DisplayName    string                `json:"display_name,omitempty"`
+	AppAccess      []string              `json:"app_access,omitempty"`
 }
 
 type CompleteAppPackageUninstallRequest struct {
@@ -3756,6 +3780,14 @@ type DisableAutonomyResponse struct {
 	Autonomy *AgentAutonomyState `json:"autonomy,omitempty"`
 }
 
+type DiscardLocalAppPackageRequest struct {
+	CandidateSelector []byte `json:"candidate_selector,omitempty"`
+}
+
+type DiscardLocalAppPackageResponse struct {
+	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+}
+
 type EmbeddingVector struct {
 	Values []float64 `json:"values,omitempty"`
 }
@@ -3995,6 +4027,17 @@ type GetAppAIConfigResponse struct {
 	Config              *AIConfig                    `json:"config,omitempty"`
 	Revision            string                       `json:"revision,omitempty"`
 	EffectiveSelections []AIConfigEffectiveSelection `json:"effective_selections,omitempty"`
+}
+
+type GetAppPackageInfoRequest struct {
+	ApprovedTargetSelector []byte `json:"approved_target_selector,omitempty"`
+	LaunchSelector         []byte `json:"launch_selector,omitempty"`
+	InstalledReleaseRef    string `json:"installed_release_ref,omitempty"`
+}
+
+type GetAppPackageInfoResponse struct {
+	Info       *AppPackageInfo `json:"info,omitempty"`
+	ReasonCode ReasonCode      `json:"reason_code,omitempty"`
 }
 
 type GetAppPackageJobRequest struct {
@@ -5466,6 +5509,23 @@ type LocalAppMusicGenerateJobSpec struct {
 	DurationSeconds uint32 `json:"duration_seconds,omitempty"`
 }
 
+type LocalAppPackagePreview struct {
+	CandidateSelector       []byte          `json:"candidate_selector,omitempty"`
+	AppId                   string          `json:"app_id,omitempty"`
+	DisplayName             string          `json:"display_name,omitempty"`
+	Version                 string          `json:"version,omitempty"`
+	Os                      string          `json:"os,omitempty"`
+	Arch                    string          `json:"arch,omitempty"`
+	AppAccess               []string        `json:"app_access,omitempty"`
+	WindowsCodeSigning      string          `json:"windows_code_signing,omitempty"`
+	ObservedSigningSubject  *string         `json:"observed_signing_subject,omitempty"`
+	MacosNotarization       string          `json:"macos_notarization,omitempty"`
+	MacosDeveloperIdSubject *string         `json:"macos_developer_id_subject,omitempty"`
+	ExpiresAt               string          `json:"expires_at,omitempty"`
+	Size                    uint64          `json:"size,omitempty"`
+	Info                    *AppPackageInfo `json:"info,omitempty"`
+}
+
 type LocalAppScenarioArtifact struct {
 	ArtifactId   string `json:"artifact_id,omitempty"`
 	MimeType     string `json:"mime_type,omitempty"`
@@ -6373,6 +6433,15 @@ type PrepareLocalAppLaunchResponse struct {
 	LaunchId     []byte     `json:"launch_id,omitempty"`
 	BindDeadline string     `json:"bind_deadline,omitempty"`
 	ReasonCode   ReasonCode `json:"reason_code,omitempty"`
+}
+
+type PrepareLocalAppPackageRequest struct {
+	SourcePath string `json:"source_path,omitempty"`
+}
+
+type PrepareLocalAppPackageResponse struct {
+	Preview    *LocalAppPackagePreview `json:"preview,omitempty"`
+	ReasonCode ReasonCode              `json:"reason_code,omitempty"`
 }
 
 type PreviewSharedLocalAgentAIProfileRequest struct {
@@ -7343,6 +7412,26 @@ type StartAppPackageUpdateRequest struct {
 }
 
 type StartAppPackageUpdateResponse struct {
+	Job        *AppPackageJob `json:"job,omitempty"`
+	ReasonCode ReasonCode     `json:"reason_code,omitempty"`
+}
+
+type StartLocalAppPackageInstallRequest struct {
+	CandidateSelector []byte `json:"candidate_selector,omitempty"`
+}
+
+type StartLocalAppPackageInstallResponse struct {
+	Job        *AppPackageJob `json:"job,omitempty"`
+	ReasonCode ReasonCode     `json:"reason_code,omitempty"`
+}
+
+type StartLocalAppPackageUpdateRequest struct {
+	CandidateSelector []byte `json:"candidate_selector,omitempty"`
+	LaunchSelector    []byte `json:"launch_selector,omitempty"`
+	InstalledVersion  string `json:"installed_version,omitempty"`
+}
+
+type StartLocalAppPackageUpdateResponse struct {
 	Job        *AppPackageJob `json:"job,omitempty"`
 	ReasonCode ReasonCode     `json:"reason_code,omitempty"`
 }
@@ -9089,6 +9178,22 @@ func (c RuntimeTypedClient) CancelAppPackageJob(ctx context.Context, request Can
 	return decodeRuntimeTypedResponse[CancelAppPackageJobResponse](raw, "CancelAppPackageJobResponse")
 }
 
+func (c RuntimeTypedClient) DiscardLocalAppPackage(ctx context.Context, request DiscardLocalAppPackageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (DiscardLocalAppPackageResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppPackageService/DiscardLocalAppPackage", request, metadata, timeoutMS)
+	if err != nil {
+		return DiscardLocalAppPackageResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[DiscardLocalAppPackageResponse](raw, "DiscardLocalAppPackageResponse")
+}
+
+func (c RuntimeTypedClient) GetAppPackageInfo(ctx context.Context, request GetAppPackageInfoRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppPackageInfoResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageInfo", request, metadata, timeoutMS)
+	if err != nil {
+		return GetAppPackageInfoResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetAppPackageInfoResponse](raw, "GetAppPackageInfoResponse")
+}
+
 func (c RuntimeTypedClient) GetAppPackageJob(ctx context.Context, request GetAppPackageJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetAppPackageJobResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob", request, metadata, timeoutMS)
 	if err != nil {
@@ -9129,6 +9234,14 @@ func (c RuntimeTypedClient) PauseAppPackageJob(ctx context.Context, request Paus
 	return decodeRuntimeTypedResponse[PauseAppPackageJobResponse](raw, "PauseAppPackageJobResponse")
 }
 
+func (c RuntimeTypedClient) PrepareLocalAppPackage(ctx context.Context, request PrepareLocalAppPackageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PrepareLocalAppPackageResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppPackageService/PrepareLocalAppPackage", request, metadata, timeoutMS)
+	if err != nil {
+		return PrepareLocalAppPackageResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[PrepareLocalAppPackageResponse](raw, "PrepareLocalAppPackageResponse")
+}
+
 func (c RuntimeTypedClient) ReorderAppPackageJob(ctx context.Context, request ReorderAppPackageJobRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReorderAppPackageJobResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob", request, metadata, timeoutMS)
 	if err != nil {
@@ -9167,6 +9280,22 @@ func (c RuntimeTypedClient) StartAppPackageUpdate(ctx context.Context, request S
 		return StartAppPackageUpdateResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[StartAppPackageUpdateResponse](raw, "StartAppPackageUpdateResponse")
+}
+
+func (c RuntimeTypedClient) StartLocalAppPackageInstall(ctx context.Context, request StartLocalAppPackageInstallRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartLocalAppPackageInstallResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageInstall", request, metadata, timeoutMS)
+	if err != nil {
+		return StartLocalAppPackageInstallResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[StartLocalAppPackageInstallResponse](raw, "StartLocalAppPackageInstallResponse")
+}
+
+func (c RuntimeTypedClient) StartLocalAppPackageUpdate(ctx context.Context, request StartLocalAppPackageUpdateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (StartLocalAppPackageUpdateResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageUpdate", request, metadata, timeoutMS)
+	if err != nil {
+		return StartLocalAppPackageUpdateResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[StartLocalAppPackageUpdateResponse](raw, "StartLocalAppPackageUpdateResponse")
 }
 
 func (c RuntimeTypedClient) AdoptLocalAppArtifact(ctx context.Context, request AdoptLocalAppArtifactRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AdoptLocalAppArtifactResponse, error) {

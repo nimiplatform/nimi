@@ -487,6 +487,11 @@ export async function openElectronRuntimeStream(input: {
 }
 
 function isElectronFormalAppOnlyRuntimeMethod(methodId: string): boolean {
+  // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040e
+  // Package management belongs to the exact Desktop machine-product profile;
+  // "LocalApp" in an import method's name does not make it an App operation.
+  if (methodId.startsWith('/nimi.runtime.v1.RuntimeAppPackageService/')
+    && isElectronDesktopMachineProductMethod(methodId, 'unary')) return false;
   const methodName = methodId.slice(methodId.lastIndexOf('/') + 1);
   return methodName.includes('LocalApp')
     || methodId.startsWith('/nimi.runtime.v1.RuntimeAiRealtimeService/')

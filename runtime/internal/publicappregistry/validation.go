@@ -113,6 +113,21 @@ func validateCandidateFacts(candidate approvedCandidate) error {
 		if _, exists := assetNames[target.AssetName]; exists {
 			return fmt.Errorf("validate approved App target asset name: %w", ErrInvalidRegistrySnapshot)
 		}
+		info := target.AppInfo
+		if info.AssetName != candidate.AppID+"-"+candidate.Version+"-"+target.TargetID+".app-info.json" || info.Size > 1024*1024 || info.AssetID == target.AssetID {
+			return fmt.Errorf("validate approved App info: %w", ErrInvalidRegistrySnapshot)
+		}
+		if _, exists := assetIDs[info.AssetID]; exists {
+			return ErrInvalidRegistrySnapshot
+		}
+		if _, exists := assetNames[info.AssetName]; exists {
+			return ErrInvalidRegistrySnapshot
+		}
+		if err := validateAsset(info.AssetID, info.AssetName, info.AssetURL, info.Size, info.SHA256, candidate.Source.Repository, candidate.Release.Tag); err != nil {
+			return fmt.Errorf("validate approved App info: %w", err)
+		}
+		assetIDs[info.AssetID] = struct{}{}
+		assetNames[info.AssetName] = struct{}{}
 		targetIDs[target.TargetID] = struct{}{}
 		assetIDs[target.AssetID] = struct{}{}
 		assetNames[target.AssetName] = struct{}{}

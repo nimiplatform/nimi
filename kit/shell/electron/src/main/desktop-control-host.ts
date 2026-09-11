@@ -514,7 +514,7 @@ function boundedReasonMetadata(value: unknown): Readonly<Record<string, string>>
   const metadata: Record<string, string> = {};
   for (const [key, entry] of Object.entries(value)) {
     if (!['permission_id', 'permission_reason', 'permission_admission', 'diagnostic_stage',
-      'local_development_reason_code', 'grpc_status_code'].includes(key)
+      'local_development_reason_code', 'local_import_reason', 'policy_reason', 'policy_revision', 'grpc_status_code'].includes(key)
       || typeof entry !== 'string'
       || entry.length === 0
       || entry.length > 2048

@@ -7,7 +7,6 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
@@ -41,7 +40,7 @@ func (coordinator *Coordinator) failInstall(
 	paused, pauseReason := coordinator.workerPause(job.JobID)
 	invalidContent := errors.Is(cause, filedownload.ErrHashMismatch) || errors.Is(cause, filedownload.ErrSizeMismatch) || errors.Is(cause, filedownload.ErrMaxBodyExceeded) || errors.Is(cause, nimiapppackage.ErrPackageIntegrity) || errors.Is(cause, nimiapppackage.ErrInvalidPackage) || errors.Is(cause, nimiappnative.ErrNativeVerification) || errors.Is(cause, nimiappnative.ErrNativePostureMismatch)
 	interrupted := errors.Is(cause, filedownload.ErrTransientAttemptsExhausted) || (job.Phase == localappkernel.PackageJobQueued && transientDownloadError(cause))
-	if !invalidContent && !removeFinal && ((paused && callerContext != nil && callerContext.Err() != nil) || interrupted) {
+	if job.SourceClass == localappkernel.SourceClassVerified && !invalidContent && !removeFinal && ((paused && callerContext != nil && callerContext.Err() != nil) || interrupted) {
 		current, err := coordinator.lifecycle.GetJob(cleanupContext, job.JobID)
 		if err != nil {
 			return errors.Join(cause, ErrInstallRecoveryRequired, err)
@@ -73,7 +72,9 @@ func (coordinator *Coordinator) failInstall(
 	if terminalPackagePhase(current.Phase) {
 		return cause
 	}
-	if !invalidContent && callerContext != nil && (errors.Is(callerContext.Err(), context.Canceled) || errors.Is(callerContext.Err(), context.DeadlineExceeded)) && current.Cancelable {
+	if paused && job.SourceClass == localappkernel.SourceClassUserImported {
+		_, err = coordinator.lifecycle.Fail(cleanupContext, current.JobID, current.Phase, "runtime-interrupted")
+	} else if !invalidContent && callerContext != nil && (errors.Is(callerContext.Err(), context.Canceled) || errors.Is(callerContext.Err(), context.DeadlineExceeded)) && current.Cancelable {
 		_, err = coordinator.lifecycle.Cancel(cleanupContext, current.JobID, current.Phase, coordinator.workerCancellationReason(current.JobID))
 	} else {
 		_, err = coordinator.lifecycle.Fail(cleanupContext, current.JobID, current.Phase, installFailureReason(cause))
@@ -141,14 +142,14 @@ func (coordinator *Coordinator) observeCommitOutcome(
 		if currentJob.Phase != localappkernel.PackageJobCommitting && !terminalPackagePhase(currentJob.Phase) {
 			return InstallResult{}, false, fmt.Errorf("unexpected App install phase %s", currentJob.Phase)
 		}
-		if release, releaseErr := coordinator.lifecycle.GetCommittedRelease(ctx, job.AppID, localappkernel.SourceClassVerified); releaseErr == nil && release.ReleaseRef == job.TargetRef {
+		if release, releaseErr := coordinator.lifecycle.GetCommittedRelease(ctx, job.AppID, job.SourceClass); releaseErr == nil && release.ReleaseRef == job.TargetRef {
 			return InstallResult{}, false, ErrCommitOutcomeUnknown
 		} else if releaseErr != nil && !errors.Is(releaseErr, localappkernel.ErrCommittedReleaseNotFound) {
 			return InstallResult{}, false, releaseErr
 		}
 		return InstallResult{}, false, nil
 	}
-	release, err := coordinator.lifecycle.GetCommittedRelease(ctx, job.AppID, localappkernel.SourceClassVerified)
+	release, err := coordinator.lifecycle.GetCommittedRelease(ctx, job.AppID, job.SourceClass)
 	if err != nil {
 		return InstallResult{}, false, err
 	}
@@ -156,7 +157,7 @@ func (coordinator *Coordinator) observeCommitOutcome(
 	if err != nil {
 		return InstallResult{}, false, err
 	}
-	if release.Version != expectedVersionFromSelector(job.TargetRef) || release.ReleaseRef != job.TargetRef ||
+	if release.Version != job.TargetVersion || release.ReleaseRef != job.TargetRef ||
 		release.ImmutableLineageID != expected.ImmutableLineageID || release.ExecutionProfileRef != expected.ExecutionProfileRef ||
 		release.HostExecutableDigest != expected.HostExecutableDigest || release.PayloadRootDigest != expected.PayloadRootDigest ||
 		!sameInstalledRegistration(registration, expected) {
@@ -172,19 +173,6 @@ func sameInstalledRegistration(actual localappkernel.Registration, expected loca
 		actual.ExecutionProfileRef == expected.ExecutionProfileRef && actual.HostExecutableDigest == expected.HostExecutableDigest &&
 		actual.PayloadRootDigest == expected.PayloadRootDigest && equalTextList(actual.RawDeclaration, expected.RawDeclaration) &&
 		equalTextList(actual.ProvenanceAttestationRefs, expected.ProvenanceAttestationRefs)
-}
-
-func expectedVersionFromSelector(selectorText string) string {
-	selector, err := publicSelector(selectorText)
-	if err != nil {
-		return ""
-	}
-	descriptorID := selector.DescriptorID()
-	separator := strings.LastIndexByte(descriptorID, '@')
-	if separator < 0 || separator == len(descriptorID)-1 {
-		return ""
-	}
-	return descriptorID[separator+1:]
 }
 
 func publicSelector(value string) (publicappregistry.ApprovedTargetSelector, error) {
@@ -228,12 +216,18 @@ func (coordinator *Coordinator) recoverLocked(ctx context.Context) error {
 	if coordinator.packagesRoot == nil || coordinator.lifecycle == nil || coordinator.kernel == nil {
 		return ErrInvalidCoordinator
 	}
+	coordinator.workersMu.Lock()
+	for id, candidate := range coordinator.localCandidates {
+		candidate.timer.Stop()
+		delete(coordinator.localCandidates, id)
+	}
+	coordinator.workersMu.Unlock()
 	jobs, err := coordinator.lifecycle.ListJobs(ctx)
 	if err != nil {
 		return fmt.Errorf("list App package jobs for recovery: %w", err)
 	}
 	for _, job := range jobs {
-		if job.SourceClass != localappkernel.SourceClassVerified {
+		if !immutablePackageSource(job.SourceClass) {
 			continue
 		}
 		if job.Kind == localappkernel.PackageJobUninstall {
@@ -245,7 +239,7 @@ func (coordinator *Coordinator) recoverLocked(ctx context.Context) error {
 	protected, allowReleaseSweep, recoveryErr := coordinator.protectedReleaseRoots(ctx)
 	keepWork := make(map[string]struct{})
 	for _, job := range jobs {
-		if job.SourceClass != localappkernel.SourceClassVerified {
+		if !immutablePackageSource(job.SourceClass) {
 			continue
 		}
 		if job.Kind == localappkernel.PackageJobUninstall {
@@ -266,6 +260,18 @@ func (coordinator *Coordinator) recoverLocked(ctx context.Context) error {
 		}
 		if _, referenced := protected[job.JobID]; referenced {
 			recoveryErr = errors.Join(recoveryErr, ErrCommitOutcomeUnknown)
+			continue
+		}
+		if job.SourceClass == localappkernel.SourceClassUserImported {
+			if err := coordinator.cleanupJobArtifacts(job.JobID, allowReleaseSweep); err != nil {
+				recoveryErr = errors.Join(recoveryErr, err)
+				continue
+			}
+			if !terminalPackagePhase(job.Phase) {
+				if _, err := coordinator.lifecycle.Fail(ctx, job.JobID, job.Phase, "runtime-interrupted"); err != nil {
+					recoveryErr = errors.Join(recoveryErr, err)
+				}
+			}
 			continue
 		}
 		if !terminalPackagePhase(job.Phase) && job.Phase != localappkernel.PackageJobCommitting {
@@ -333,7 +339,7 @@ func (coordinator *Coordinator) protectedReleaseRoots(ctx context.Context) (map[
 	allowSweep := true
 	var integrityErr error
 	for _, release := range releases {
-		if release.SourceClass != localappkernel.SourceClassVerified {
+		if !immutablePackageSource(release.SourceClass) {
 			continue
 		}
 		registration, err := coordinator.kernel.Registrations().GetByHandle(ctx, release.RegistrationHandle)

@@ -14,7 +14,7 @@ import (
 
 const uninstallRootPrefix = ".uninstall-"
 
-var ErrUninstall = errors.New("verified App uninstall failed")
+var ErrUninstall = errors.New("App uninstall failed")
 
 type uninstallReservation struct {
 	registration localappkernel.Registration
@@ -44,7 +44,7 @@ func (coordinator *Coordinator) StartUninstall(ctx context.Context, handle strin
 	}
 	steps := uint64(2)
 	job, err := coordinator.lifecycle.Begin(ctx, localappkernel.BeginPackageJobInput{
-		AppID: reservation.release.AppID, SourceClass: localappkernel.SourceClassVerified, Kind: localappkernel.PackageJobUninstall,
+		AppID: reservation.release.AppID, SourceClass: reservation.release.SourceClass, Kind: localappkernel.PackageJobUninstall,
 		TargetRef: reservation.release.ReleaseRef, ProgressBasis: localappkernel.PackageProgressSteps, StepsTotal: &steps, Cancelable: true,
 	})
 	if err != nil {
@@ -56,10 +56,10 @@ func (coordinator *Coordinator) StartUninstall(ctx context.Context, handle strin
 
 func (coordinator *Coordinator) resolveUninstall(ctx context.Context, handle string) (uninstallReservation, error) {
 	registration, err := coordinator.kernel.Registrations().GetByHandle(ctx, handle)
-	if err != nil || registration.State != localappkernel.RegistrationStateActive || registration.SourceClass != localappkernel.SourceClassVerified || registration.SourceGeneration == 0 || registration.DeclarationGeneration == 0 {
+	if err != nil || registration.State != localappkernel.RegistrationStateActive || !immutablePackageSource(registration.SourceClass) || registration.SourceGeneration == 0 || registration.DeclarationGeneration == 0 {
 		return uninstallReservation{}, errors.Join(ErrUninstall, err)
 	}
-	release, err := coordinator.lifecycle.GetCommittedRelease(ctx, registration.AppID, localappkernel.SourceClassVerified)
+	release, err := coordinator.lifecycle.GetCommittedRelease(ctx, registration.AppID, registration.SourceClass)
 	if err != nil || release.RegistrationHandle != handle || release.ReleaseRef != registration.ImmutableLineageID {
 		return uninstallReservation{}, errors.Join(ErrUninstall, err)
 	}
@@ -236,7 +236,7 @@ func (coordinator *Coordinator) recoverUninstall(ctx context.Context, job locala
 		}
 		return errors.Join(ErrInstallRecoveryRequired, err)
 	}
-	release, err := coordinator.lifecycle.GetCommittedRelease(ctx, job.AppID, localappkernel.SourceClassVerified)
+	release, err := coordinator.lifecycle.GetCommittedRelease(ctx, job.AppID, job.SourceClass)
 	if err != nil {
 		return errors.Join(ErrInstallRecoveryRequired, err)
 	}

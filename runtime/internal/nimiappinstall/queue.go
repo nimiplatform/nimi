@@ -289,7 +289,7 @@ func (coordinator *Coordinator) CancelInstall(ctx context.Context, jobID string,
 		coordinator.workersMu.Unlock()
 		return localappkernel.PackageJob{}, err
 	}
-	if !downloadJob(job) || job.Phase != expectedPhase {
+	if !immutablePackageSource(job.SourceClass) || (job.Kind != localappkernel.PackageJobInstall && job.Kind != localappkernel.PackageJobUpdate) || job.Phase != expectedPhase {
 		coordinator.workersMu.Unlock()
 		return localappkernel.PackageJob{}, localappkernel.ErrPackageJobPhase
 	}

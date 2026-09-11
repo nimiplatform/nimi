@@ -5,11 +5,15 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"hash/crc32"
+	"image"
+	"image/color"
+	"image/png"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -42,6 +46,9 @@ func macOSArchiveFixture(t *testing.T, linkTarget string) (string, Expected) {
 	entries := validArchiveEntries(t)
 	entries[1].bytes = mustJSON(t, manifest)
 	entries[3].name = manifest.RuntimeEntry
+	info := testAppInfo(t)
+	info.TargetID = manifest.TargetID
+	entries[6].bytes = mustJSON(t, info)
 	entries = append(entries,
 		canonicalFixtureEntry("payload/Example.app/Contents/Frameworks/F.framework/Versions/A/F", []byte("framework contents"), 0o755),
 		canonicalFixtureEntry("payload/Example.app/Contents/Frameworks/F.framework/Versions/Current", []byte(linkTarget), 0o777),
@@ -267,7 +274,7 @@ func TestInspectRejectsUnsafeOrNoncanonicalArchiveBeforeStaging(t *testing.T) {
 			entries[1].bytes = deleteNestedJSONField(t, mustJSON(t, validManifest()), "execution_profile", "ui_access")
 		}},
 		{name: "declaration App Access drift", mutate: func(_ *testing.T, entries []archiveFixtureEntry) {
-			entries[2].bytes = []byte("app_id: publisher.example-app\nversion: 1.2.3\napp_access: []\n")
+			entries[2].bytes = []byte("app_id: publisher.example-app\nversion: 1.2.3\ndisplay_name: Example App\ncapability_contract_refs: []\nrequired_standardized_feature_refs: []\nstorage_policy: { kind: nimi-mediated-default }\napp_access: []\n")
 		}},
 	}
 	for _, test := range tests {
@@ -345,12 +352,12 @@ func TestMaterializeRequiresRuntimeOwnedDirectChild(t *testing.T) {
 	}
 }
 
-func TestInspectStreamsLargeLicenseWithoutControlDocumentCap(t *testing.T) {
+func TestInspectRejectsLicenseBeyondDistributionInfoLimit(t *testing.T) {
 	entries := validArchiveEntries(t)
-	entries[0].bytes = bytes.Repeat([]byte("L"), int(maxControlDocumentBytes)+1)
+	entries[0].bytes = bytes.Repeat([]byte("L"), 128*1024+1)
 	archivePath, expected := writeArchiveFixture(t, entries)
-	if _, err := Inspect(context.Background(), archivePath, expected); err != nil {
-		t.Fatal(err)
+	if _, err := Inspect(context.Background(), archivePath, expected); !errors.Is(err, ErrInvalidPackage) {
+		t.Fatalf("oversized license: %v", err)
 	}
 }
 
@@ -382,10 +389,11 @@ func validArchiveEntries(t *testing.T) []archiveFixtureEntry {
 	return []archiveFixtureEntry{
 		canonicalFixtureEntry("LICENSE", []byte("MIT\n"), 0o644),
 		canonicalFixtureEntry("manifest.json", mustJSON(t, validManifest()), 0o644),
-		canonicalFixtureEntry("nimi.app.yaml", []byte("app_id: publisher.example-app\nversion: 1.2.3\napp_access:\n  - runtime.consume\n"), 0o644),
+		canonicalFixtureEntry("nimi.app.yaml", []byte("app_id: publisher.example-app\nversion: 1.2.3\ndisplay_name: Example App\ncapability_contract_refs: []\nrequired_standardized_feature_refs: []\nstorage_policy: { kind: nimi-mediated-default }\napp_access:\n  - runtime.consume\n"), 0o644),
 		canonicalFixtureEntry("payload/example-app.exe", []byte("MZ-runtime"), 0o755),
 		canonicalFixtureEntry("payload/resources/index.html", []byte("<html>ok</html>"), 0o644),
 		canonicalFixtureEntry("payload/resources/app.js", []byte("console.log('ok')\n"), 0o644),
+		canonicalFixtureEntry("app-info.json", mustJSON(t, testAppInfo(t)), 0o644),
 	}
 }
 
@@ -487,4 +495,15 @@ func openOwnerRoot(t *testing.T) (*os.Root, string) {
 	}
 	t.Cleanup(func() { _ = root.Close() })
 	return root, rootPath
+}
+
+func testAppInfo(t *testing.T) AppInfo {
+	t.Helper()
+	icon := image.NewNRGBA(image.Rect(0, 0, 128, 128))
+	icon.Set(64, 64, color.NRGBA{R: 35, G: 165, B: 220, A: 255})
+	var bytes bytes.Buffer
+	if err := png.Encode(&bytes, icon); err != nil {
+		t.Fatal(err)
+	}
+	return AppInfo{Format: "nimi.app-info/v1", AppID: "publisher.example-app", Version: "1.2.3", TargetID: "windows-x86_64", DisplayName: "Example App", Summary: "Example package test application.", Icon: AppInfoIcon{MediaType: "image/png", DataBase64: base64.StdEncoding.EncodeToString(bytes.Bytes())}, ReadmeMarkdown: "Use the example app.", ReleaseNotesMarkdown: "Initial release.", License: AppInfoLicense{Identifier: "MIT", Text: "MIT\n"}, AppAccess: []string{"runtime.consume"}, CapabilityContractRefs: []string{}, RequiredStandardizedFeatureRefs: []string{}, StoragePolicy: AppInfoStoragePolicy{Kind: "nimi-mediated-default"}}
 }

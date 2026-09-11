@@ -1396,6 +1396,10 @@ export enum ReasonCode {
      */
     APP_PACKAGE_UPDATE_UNAVAILABLE = 737,
     /**
+     * @generated from protobuf enum value: APP_PACKAGE_INFO_UNAVAILABLE = 746;
+     */
+    APP_PACKAGE_INFO_UNAVAILABLE = 746,
+    /**
      * @generated from protobuf enum value: AI_FACE_REFERENCE_MISSING = 738;
      */
     AI_FACE_REFERENCE_MISSING = 738,

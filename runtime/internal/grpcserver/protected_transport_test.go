@@ -644,6 +644,11 @@ func TestGeneratedFirstPartyProfilesResolveExactMarkerMethodAndKind(t *testing.T
 		"x-nimi-app-id", envelope.ProtectedDesktopAppID,
 	))
 	for _, method := range []string{
+		"/nimi.runtime.v1.RuntimeAppPackageService/PrepareLocalAppPackage",
+		"/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageInfo",
+		"/nimi.runtime.v1.RuntimeAppPackageService/DiscardLocalAppPackage",
+		"/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageInstall",
+		"/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageUpdate",
 		"/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob",
 		"/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob",
 		"/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob",

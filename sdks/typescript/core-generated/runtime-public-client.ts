@@ -894,6 +894,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "CancelAppPackageJobResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/DiscardLocalAppPackage",
+    "service": "RuntimeAppPackageService",
+    "method": "DiscardLocalAppPackage",
+    "kind": "unary",
+    "requestType": "DiscardLocalAppPackageRequest",
+    "responseType": "DiscardLocalAppPackageResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageInfo",
+    "service": "RuntimeAppPackageService",
+    "method": "GetAppPackageInfo",
+    "kind": "unary",
+    "requestType": "GetAppPackageInfoRequest",
+    "responseType": "GetAppPackageInfoResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob",
     "service": "RuntimeAppPackageService",
     "method": "GetAppPackageJob",
@@ -934,6 +950,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "PauseAppPackageJobResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/PrepareLocalAppPackage",
+    "service": "RuntimeAppPackageService",
+    "method": "PrepareLocalAppPackage",
+    "kind": "unary",
+    "requestType": "PrepareLocalAppPackageRequest",
+    "responseType": "PrepareLocalAppPackageResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob",
     "service": "RuntimeAppPackageService",
     "method": "ReorderAppPackageJob",
@@ -972,6 +996,22 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "StartAppPackageUpdateRequest",
     "responseType": "StartAppPackageUpdateResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageInstall",
+    "service": "RuntimeAppPackageService",
+    "method": "StartLocalAppPackageInstall",
+    "kind": "unary",
+    "requestType": "StartLocalAppPackageInstallRequest",
+    "responseType": "StartLocalAppPackageInstallResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageUpdate",
+    "service": "RuntimeAppPackageService",
+    "method": "StartLocalAppPackageUpdate",
+    "kind": "unary",
+    "requestType": "StartLocalAppPackageUpdateRequest",
+    "responseType": "StartLocalAppPackageUpdateResponse"
   },
   {
     "methodId": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",

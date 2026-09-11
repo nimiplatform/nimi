@@ -519,12 +519,27 @@ services:
       - name: ListCommittedAppReleases
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases
+      - name: GetAppPackageInfo
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageInfo
       - name: ListAppPackageJobs
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs
       - name: GetAppPackageJob
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob
+      - name: PrepareLocalAppPackage
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/PrepareLocalAppPackage
+      - name: DiscardLocalAppPackage
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/DiscardLocalAppPackage
+      - name: StartLocalAppPackageInstall
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageInstall
+      - name: StartLocalAppPackageUpdate
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageUpdate
       - name: StartAppPackageInstall
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall

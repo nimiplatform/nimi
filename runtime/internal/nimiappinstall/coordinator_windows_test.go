@@ -7,11 +7,15 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"hash/crc32"
+	"image"
+	"image/color"
+	"image/png"
 	"io"
 	"log/slog"
 	"net/http"
@@ -147,6 +151,41 @@ func TestCoordinatorInstallsExactApprovedPackageAndRegistersAfterPublication(t *
 	}
 }
 
+func TestWindowsLocalPackageUsesPrivateCopyAndInstalledLaunchVerification(t *testing.T) {
+	coordinator, _, kernel, transport := newInstallFixture(t, false)
+	coordinator.registry, coordinator.downloader = nil, nil
+	selected := filepath.Join(t.TempDir(), "selected.nimiapp")
+	if err := os.WriteFile(selected, transport.asset, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	preview, err := coordinator.PrepareLocalPackage(context.Background(), selected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(selected); err != nil {
+		t.Fatal(err)
+	}
+	job, err := coordinator.StartLocalPackage(context.Background(), preview.Selector, "", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	waitForInstallPhase(t, kernel, job.JobID, localappkernel.PackageJobCompleted)
+	release, err := kernel.PackageLifecycle().GetCommittedRelease(context.Background(), installTestAppID, localappkernel.SourceClassUserImported)
+	if err != nil || release.Version != installTestVersion {
+		t.Fatalf("local release: %+v %v", release, err)
+	}
+	called := false
+	if err := coordinator.WithInstalledLaunch(context.Background(), release.RegistrationHandle, func(launch InstalledLaunch) error {
+		called = true
+		if launch.Registration.SourceClass != localappkernel.SourceClassUserImported {
+			t.Fatalf("wrong source: %+v", launch)
+		}
+		return nil
+	}); err != nil || !called {
+		t.Fatalf("local launch verification: %v", err)
+	}
+}
+
 func TestUpdatePreservesSubjectDataAndOldReleaseThroughCancellationAndFailure(t *testing.T) {
 	ctx := context.Background()
 	coordinator, client, kernel, transport := newInstallFixture(t, false)
@@ -253,7 +292,7 @@ func TestUpdatePreservesSubjectDataAndOldReleaseThroughCancellationAndFailure(t 
 	if err != nil || string(data) != `{"note":"preserve across update"}` {
 		t.Fatalf("App data lost: %q %v", data, err)
 	}
-	if err := coordinator.WithVerifiedInstalledLaunch(ctx, handle, func(launch VerifiedInstalledLaunch) error {
+	if err := coordinator.WithInstalledLaunch(ctx, handle, func(launch InstalledLaunch) error {
 		if launch.Release.Version != current.Version || launch.Registration.ProvenanceRevision != registration.ProvenanceRevision {
 			t.Fatal("launch did not use the updated release")
 		}
@@ -313,23 +352,23 @@ func TestInstalledLaunchRechecksFullPayloadCurrentPolicyAndReservation(t *testin
 	}
 	handle := result.Registration.RegistrationHandle
 	called := false
-	bind := func(launch VerifiedInstalledLaunch) error {
+	bind := func(launch InstalledLaunch) error {
 		called = true
 		if launch.RuntimeEntry != filepath.Join(result.Registration.ProjectRoot, "payload", "example-app.exe") || launch.Release.RegistrationHandle != handle {
 			t.Fatalf("wrong exact entry: %+v", launch)
 		}
 		return nil
 	}
-	if err := coordinator.WithVerifiedInstalledLaunch(ctx, handle, bind); err != nil || !called {
+	if err := coordinator.WithInstalledLaunch(ctx, handle, bind); err != nil || !called {
 		t.Fatalf("verified launch: %v", err)
 	}
 	transport.revision = installTestNextRevision
-	if err := coordinator.WithVerifiedInstalledLaunch(ctx, handle, bind); err != nil {
+	if err := coordinator.WithInstalledLaunch(ctx, handle, bind); err != nil {
 		t.Fatalf("Registry head alone invalidated installed release: %v", err)
 	}
 	called = false
 	transport.blocked = true
-	if err := coordinator.WithVerifiedInstalledLaunch(ctx, handle, bind); !errors.Is(err, publicappregistry.ErrPolicyBlocked) || called {
+	if err := coordinator.WithInstalledLaunch(ctx, handle, bind); !errors.Is(err, publicappregistry.ErrPolicyBlocked) || called {
 		t.Fatalf("policy bypass: %v", err)
 	}
 	transport.blocked = false
@@ -340,7 +379,7 @@ func TestInstalledLaunchRechecksFullPayloadCurrentPolicyAndReservation(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := coordinator.WithVerifiedInstalledLaunch(ctx, handle, bind); !errors.Is(err, localappkernel.ErrPackageJobActive) || called {
+	if err := coordinator.WithInstalledLaunch(ctx, handle, bind); !errors.Is(err, localappkernel.ErrPackageJobActive) || called {
 		t.Fatalf("uninstall reservation bypass: %v", err)
 	}
 	if _, err := kernel.PackageLifecycle().Cancel(ctx, job.JobID, job.Phase, "user-canceled"); err != nil {
@@ -349,7 +388,7 @@ func TestInstalledLaunchRechecksFullPayloadCurrentPolicyAndReservation(t *testin
 	if err := os.WriteFile(filepath.Join(result.Registration.ProjectRoot, "payload", "resources", "index.html"), []byte("changed non-executable payload"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := coordinator.WithVerifiedInstalledLaunch(ctx, handle, bind); !errors.Is(err, nimiapppackage.ErrPackageIntegrity) || called {
+	if err := coordinator.WithInstalledLaunch(ctx, handle, bind); !errors.Is(err, nimiapppackage.ErrPackageIntegrity) || called {
 		t.Fatalf("non-EXE mutation bypass: %v", err)
 	}
 }
@@ -383,7 +422,7 @@ func TestUninstallReservesCancelsAndRemovesOnlyExactManagedRelease(t *testing.T)
 	if _, err := coordinator.CompleteUninstall(ctx, job.JobID, "wrong-selector"); !errors.Is(err, ErrUninstall) {
 		t.Fatalf("wrong selector accepted: %v", err)
 	}
-	if err := coordinator.WithVerifiedInstalledLaunch(ctx, handle, func(VerifiedInstalledLaunch) error { t.Fatal("uninstall reservation admitted launch"); return nil }); !errors.Is(err, localappkernel.ErrPackageJobActive) {
+	if err := coordinator.WithInstalledLaunch(ctx, handle, func(InstalledLaunch) error { t.Fatal("uninstall reservation admitted launch"); return nil }); !errors.Is(err, localappkernel.ErrPackageJobActive) {
 		t.Fatal(err)
 	}
 	completed, err := coordinator.CompleteUninstall(ctx, job.JobID, handle)
@@ -823,6 +862,7 @@ func installRegistryDocuments(packageBytes []byte, packageSHA, assetName, assetU
 			"support": map[string]any{"diagnostics_bundle_fields": []string{}, "redaction_rules": []string{}, "issue_categories": []string{}, "escalation_url": repository + "/issues", "kill_switch_visibility": "visible", "recovery_instructions": "Reinstall the approved release."},
 			"targets": []any{map[string]any{
 				"target_id": installTestTargetID, "os": "windows", "arch": "x86_64", "asset_id": 101,
+				"app_info":   installTestInfoAsset(repository, version),
 				"asset_name": assetName, "asset_url": assetURL, "size": len(packageBytes), "sha256": packageSHA,
 				"runtime_entry": "payload/example-app.exe", "provenance_attestation_refs": []string{"https://api.github.com/repos/publisher/example-app/attestations/sha256:" + packageSHA},
 				"execution_profile_ref": "windows-user-mode-as-invoker-v1",
@@ -867,15 +907,16 @@ func buildInstallTestPackage(t *testing.T, versions ...string) []byte {
 		t.Fatal(err)
 	}
 	manifest := mustFixtureJSON(map[string]any{
-		"format": "nimi.app-package/v1", "app_id": installTestAppID, "version": version,
+		"format": "nimi.app-package/v2", "app_id": installTestAppID, "version": version,
 		"target_id": installTestTargetID, "os": "windows", "arch": "x86_64", "runtime_entry": "payload/example-app.exe",
 		"native_trust":      map[string]any{"posture": "production-unsigned", "windows_authenticode": "unsigned", "certificate_subject": nil},
 		"execution_profile": map[string]any{"requested_execution_level": "asInvoker", "ui_access": false},
 	})
 	entries := []installArchiveEntry{
+		{name: "app-info.json", bytes: installTestInfoJSON(version), mode: 0o644},
 		{name: "LICENSE", bytes: []byte("MIT\n"), mode: 0o644},
 		{name: "manifest.json", bytes: manifest, mode: 0o644},
-		{name: "nimi.app.yaml", bytes: []byte("app_id: " + installTestAppID + "\nversion: " + version + "\napp_access:\n  - runtime.consume\n"), mode: 0o644},
+		{name: "nimi.app.yaml", bytes: []byte("app_id: " + installTestAppID + "\nversion: " + version + "\ndisplay_name: Example App\ncapability_contract_refs: []\nrequired_standardized_feature_refs: []\nstorage_policy: { kind: nimi-mediated-default }\napp_access:\n  - runtime.consume\n"), mode: 0o644},
 		{name: "payload/example-app.exe", bytes: executable, mode: 0o755},
 		{name: "payload/resources/index.html", bytes: []byte("<html>fixture</html>"), mode: 0o644},
 	}
@@ -990,4 +1031,20 @@ func waitForInstallPhase(
 	job, err := kernel.PackageLifecycle().GetJob(context.Background(), jobID)
 	t.Fatalf("job did not reach %s: %+v err=%v", want, job, err)
 	return localappkernel.PackageJob{}
+}
+
+func installTestInfoJSON(version string) []byte {
+	icon := image.NewNRGBA(image.Rect(0, 0, 128, 128))
+	icon.Set(64, 64, color.NRGBA{R: 35, G: 165, B: 220, A: 255})
+	var buffer bytes.Buffer
+	if err := png.Encode(&buffer, icon); err != nil {
+		panic(err)
+	}
+	return mustFixtureJSON(nimiapppackage.AppInfo{Format: "nimi.app-info/v1", AppID: installTestAppID, Version: version, TargetID: installTestTargetID, DisplayName: "Example App", Summary: "Installation test App.", Icon: nimiapppackage.AppInfoIcon{MediaType: "image/png", DataBase64: base64.StdEncoding.EncodeToString(buffer.Bytes())}, ReadmeMarkdown: "Use the test App.", ReleaseNotesMarkdown: "Release " + version, License: nimiapppackage.AppInfoLicense{Identifier: "MIT", Text: "MIT\n"}, AppAccess: []string{"runtime.consume"}, CapabilityContractRefs: []string{}, RequiredStandardizedFeatureRefs: []string{}, StoragePolicy: nimiapppackage.AppInfoStoragePolicy{Kind: "nimi-mediated-default"}})
+}
+func installTestInfoAsset(repository, version string) map[string]any {
+	raw := installTestInfoJSON(version)
+	digest := sha256.Sum256(raw)
+	name := installTestAppID + "-" + version + "-" + installTestTargetID + ".app-info.json"
+	return map[string]any{"asset_id": 102, "asset_name": name, "asset_url": repository + "/releases/download/v" + version + "/" + name, "size": len(raw), "sha256": hex.EncodeToString(digest[:])}
 }

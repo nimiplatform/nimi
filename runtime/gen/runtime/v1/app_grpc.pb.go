@@ -19,6 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	RuntimeAppPackageService_GetAppPackageInfo_FullMethodName             = "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageInfo"
+	RuntimeAppPackageService_PrepareLocalAppPackage_FullMethodName        = "/nimi.runtime.v1.RuntimeAppPackageService/PrepareLocalAppPackage"
+	RuntimeAppPackageService_DiscardLocalAppPackage_FullMethodName        = "/nimi.runtime.v1.RuntimeAppPackageService/DiscardLocalAppPackage"
+	RuntimeAppPackageService_StartLocalAppPackageInstall_FullMethodName   = "/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageInstall"
+	RuntimeAppPackageService_StartLocalAppPackageUpdate_FullMethodName    = "/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageUpdate"
 	RuntimeAppPackageService_ListApprovedAppCatalogTargets_FullMethodName = "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets"
 	RuntimeAppPackageService_ListCommittedAppReleases_FullMethodName      = "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases"
 	RuntimeAppPackageService_ListAppPackageJobs_FullMethodName            = "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs"
@@ -40,6 +45,11 @@ const (
 // exact reviewed target and Desktop confirmation. local_development is absent
 // from every package enum and request.
 type RuntimeAppPackageServiceClient interface {
+	GetAppPackageInfo(ctx context.Context, in *GetAppPackageInfoRequest, opts ...grpc.CallOption) (*GetAppPackageInfoResponse, error)
+	PrepareLocalAppPackage(ctx context.Context, in *PrepareLocalAppPackageRequest, opts ...grpc.CallOption) (*PrepareLocalAppPackageResponse, error)
+	DiscardLocalAppPackage(ctx context.Context, in *DiscardLocalAppPackageRequest, opts ...grpc.CallOption) (*DiscardLocalAppPackageResponse, error)
+	StartLocalAppPackageInstall(ctx context.Context, in *StartLocalAppPackageInstallRequest, opts ...grpc.CallOption) (*StartLocalAppPackageInstallResponse, error)
+	StartLocalAppPackageUpdate(ctx context.Context, in *StartLocalAppPackageUpdateRequest, opts ...grpc.CallOption) (*StartLocalAppPackageUpdateResponse, error)
 	ListApprovedAppCatalogTargets(ctx context.Context, in *ListApprovedAppCatalogTargetsRequest, opts ...grpc.CallOption) (*ListApprovedAppCatalogTargetsResponse, error)
 	ListCommittedAppReleases(ctx context.Context, in *ListCommittedAppReleasesRequest, opts ...grpc.CallOption) (*ListCommittedAppReleasesResponse, error)
 	ListAppPackageJobs(ctx context.Context, in *ListAppPackageJobsRequest, opts ...grpc.CallOption) (*ListAppPackageJobsResponse, error)
@@ -59,6 +69,56 @@ type runtimeAppPackageServiceClient struct {
 
 func NewRuntimeAppPackageServiceClient(cc grpc.ClientConnInterface) RuntimeAppPackageServiceClient {
 	return &runtimeAppPackageServiceClient{cc}
+}
+
+func (c *runtimeAppPackageServiceClient) GetAppPackageInfo(ctx context.Context, in *GetAppPackageInfoRequest, opts ...grpc.CallOption) (*GetAppPackageInfoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAppPackageInfoResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_GetAppPackageInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppPackageServiceClient) PrepareLocalAppPackage(ctx context.Context, in *PrepareLocalAppPackageRequest, opts ...grpc.CallOption) (*PrepareLocalAppPackageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PrepareLocalAppPackageResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_PrepareLocalAppPackage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppPackageServiceClient) DiscardLocalAppPackage(ctx context.Context, in *DiscardLocalAppPackageRequest, opts ...grpc.CallOption) (*DiscardLocalAppPackageResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DiscardLocalAppPackageResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_DiscardLocalAppPackage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppPackageServiceClient) StartLocalAppPackageInstall(ctx context.Context, in *StartLocalAppPackageInstallRequest, opts ...grpc.CallOption) (*StartLocalAppPackageInstallResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StartLocalAppPackageInstallResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_StartLocalAppPackageInstall_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppPackageServiceClient) StartLocalAppPackageUpdate(ctx context.Context, in *StartLocalAppPackageUpdateRequest, opts ...grpc.CallOption) (*StartLocalAppPackageUpdateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StartLocalAppPackageUpdateResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_StartLocalAppPackageUpdate_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *runtimeAppPackageServiceClient) ListApprovedAppCatalogTargets(ctx context.Context, in *ListApprovedAppCatalogTargetsRequest, opts ...grpc.CallOption) (*ListApprovedAppCatalogTargetsResponse, error) {
@@ -179,6 +239,11 @@ func (c *runtimeAppPackageServiceClient) ReorderAppPackageJob(ctx context.Contex
 // exact reviewed target and Desktop confirmation. local_development is absent
 // from every package enum and request.
 type RuntimeAppPackageServiceServer interface {
+	GetAppPackageInfo(context.Context, *GetAppPackageInfoRequest) (*GetAppPackageInfoResponse, error)
+	PrepareLocalAppPackage(context.Context, *PrepareLocalAppPackageRequest) (*PrepareLocalAppPackageResponse, error)
+	DiscardLocalAppPackage(context.Context, *DiscardLocalAppPackageRequest) (*DiscardLocalAppPackageResponse, error)
+	StartLocalAppPackageInstall(context.Context, *StartLocalAppPackageInstallRequest) (*StartLocalAppPackageInstallResponse, error)
+	StartLocalAppPackageUpdate(context.Context, *StartLocalAppPackageUpdateRequest) (*StartLocalAppPackageUpdateResponse, error)
 	ListApprovedAppCatalogTargets(context.Context, *ListApprovedAppCatalogTargetsRequest) (*ListApprovedAppCatalogTargetsResponse, error)
 	ListCommittedAppReleases(context.Context, *ListCommittedAppReleasesRequest) (*ListCommittedAppReleasesResponse, error)
 	ListAppPackageJobs(context.Context, *ListAppPackageJobsRequest) (*ListAppPackageJobsResponse, error)
@@ -199,6 +264,21 @@ type RuntimeAppPackageServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRuntimeAppPackageServiceServer struct{}
 
+func (UnimplementedRuntimeAppPackageServiceServer) GetAppPackageInfo(context.Context, *GetAppPackageInfoRequest) (*GetAppPackageInfoResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAppPackageInfo not implemented")
+}
+func (UnimplementedRuntimeAppPackageServiceServer) PrepareLocalAppPackage(context.Context, *PrepareLocalAppPackageRequest) (*PrepareLocalAppPackageResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PrepareLocalAppPackage not implemented")
+}
+func (UnimplementedRuntimeAppPackageServiceServer) DiscardLocalAppPackage(context.Context, *DiscardLocalAppPackageRequest) (*DiscardLocalAppPackageResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DiscardLocalAppPackage not implemented")
+}
+func (UnimplementedRuntimeAppPackageServiceServer) StartLocalAppPackageInstall(context.Context, *StartLocalAppPackageInstallRequest) (*StartLocalAppPackageInstallResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartLocalAppPackageInstall not implemented")
+}
+func (UnimplementedRuntimeAppPackageServiceServer) StartLocalAppPackageUpdate(context.Context, *StartLocalAppPackageUpdateRequest) (*StartLocalAppPackageUpdateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StartLocalAppPackageUpdate not implemented")
+}
 func (UnimplementedRuntimeAppPackageServiceServer) ListApprovedAppCatalogTargets(context.Context, *ListApprovedAppCatalogTargetsRequest) (*ListApprovedAppCatalogTargetsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListApprovedAppCatalogTargets not implemented")
 }
@@ -250,6 +330,96 @@ func RegisterRuntimeAppPackageServiceServer(s grpc.ServiceRegistrar, srv Runtime
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&RuntimeAppPackageService_ServiceDesc, srv)
+}
+
+func _RuntimeAppPackageService_GetAppPackageInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAppPackageInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).GetAppPackageInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_GetAppPackageInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).GetAppPackageInfo(ctx, req.(*GetAppPackageInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppPackageService_PrepareLocalAppPackage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PrepareLocalAppPackageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).PrepareLocalAppPackage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_PrepareLocalAppPackage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).PrepareLocalAppPackage(ctx, req.(*PrepareLocalAppPackageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppPackageService_DiscardLocalAppPackage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DiscardLocalAppPackageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).DiscardLocalAppPackage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_DiscardLocalAppPackage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).DiscardLocalAppPackage(ctx, req.(*DiscardLocalAppPackageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppPackageService_StartLocalAppPackageInstall_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartLocalAppPackageInstallRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).StartLocalAppPackageInstall(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_StartLocalAppPackageInstall_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).StartLocalAppPackageInstall(ctx, req.(*StartLocalAppPackageInstallRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppPackageService_StartLocalAppPackageUpdate_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StartLocalAppPackageUpdateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).StartLocalAppPackageUpdate(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_StartLocalAppPackageUpdate_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).StartLocalAppPackageUpdate(ctx, req.(*StartLocalAppPackageUpdateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _RuntimeAppPackageService_ListApprovedAppCatalogTargets_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -457,6 +627,26 @@ var RuntimeAppPackageService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "nimi.runtime.v1.RuntimeAppPackageService",
 	HandlerType: (*RuntimeAppPackageServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetAppPackageInfo",
+			Handler:    _RuntimeAppPackageService_GetAppPackageInfo_Handler,
+		},
+		{
+			MethodName: "PrepareLocalAppPackage",
+			Handler:    _RuntimeAppPackageService_PrepareLocalAppPackage_Handler,
+		},
+		{
+			MethodName: "DiscardLocalAppPackage",
+			Handler:    _RuntimeAppPackageService_DiscardLocalAppPackage_Handler,
+		},
+		{
+			MethodName: "StartLocalAppPackageInstall",
+			Handler:    _RuntimeAppPackageService_StartLocalAppPackageInstall_Handler,
+		},
+		{
+			MethodName: "StartLocalAppPackageUpdate",
+			Handler:    _RuntimeAppPackageService_StartLocalAppPackageUpdate_Handler,
+		},
 		{
 			MethodName: "ListApprovedAppCatalogTargets",
 			Handler:    _RuntimeAppPackageService_ListApprovedAppCatalogTargets_Handler,

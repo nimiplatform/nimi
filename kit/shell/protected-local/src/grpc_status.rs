@@ -33,10 +33,27 @@ pub(crate) fn runtime_reason(status: &Status) -> Option<String> {
 }
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040b
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040e
 pub(crate) fn desktop_runtime_reason_metadata(status: &Status) -> BTreeMap<String, String> {
     let Some(info) = runtime_error_info(status) else {
         return BTreeMap::new();
     };
+    if info.reason == "APP_PACKAGE_SELECTION_INVALID" {
+        return info
+            .metadata
+            .get("local_import_reason")
+            .filter(|value| {
+                matches!(
+                    value.as_str(),
+                    "unsupported-target"
+                        | "native-verification-failed"
+                        | "invalid-package"
+                        | "local-file-unavailable"
+                )
+            })
+            .map(|value| BTreeMap::from([("local_import_reason".to_string(), value.clone())]))
+            .unwrap_or_default();
+    }
     if info.reason != "APP_PACKAGE_POLICY_BLOCKED" {
         return BTreeMap::new();
     }
@@ -307,12 +324,18 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_VIDEO_DECODE_FAILED" => LocalAppReasonCode::AiVideoDecodeFailed,
         "AI_VIDEO_ENCODE_FAILED" => LocalAppReasonCode::AiVideoEncodeFailed,
         "AI_VIDEO_SESSION_OVERLOADED" => LocalAppReasonCode::AiVideoSessionOverloaded,
-        "AI_VIDEO_SESSION_GENERATION_INVALID" => LocalAppReasonCode::AiVideoSessionGenerationInvalid,
+        "AI_VIDEO_SESSION_GENERATION_INVALID" => {
+            LocalAppReasonCode::AiVideoSessionGenerationInvalid
+        }
         "AI_LOCAL_EXECUTION_LOAD_FAILED" => LocalAppReasonCode::AiLocalExecutionLoadFailed,
-        "AI_LOCAL_EXECUTION_INFERENCE_FAILED" => LocalAppReasonCode::AiLocalExecutionInferenceFailed,
+        "AI_LOCAL_EXECUTION_INFERENCE_FAILED" => {
+            LocalAppReasonCode::AiLocalExecutionInferenceFailed
+        }
         "AI_LOCAL_EXECUTION_CANCELED" => LocalAppReasonCode::AiLocalExecutionCanceled,
         "AI_LOCAL_EXECUTION_PROCESS_CRASHED" => LocalAppReasonCode::AiLocalExecutionProcessCrashed,
-        "AI_LOCAL_EXECUTION_CONTENT_MISMATCH" => LocalAppReasonCode::AiLocalExecutionContentMismatch,
+        "AI_LOCAL_EXECUTION_CONTENT_MISMATCH" => {
+            LocalAppReasonCode::AiLocalExecutionContentMismatch
+        }
         "AI_LOCAL_EXECUTION_OUT_OF_MEMORY" => LocalAppReasonCode::AiLocalExecutionOutOfMemory,
         "AI_VOICE_INPUT_INVALID" => LocalAppReasonCode::AiVoiceInputInvalid,
         "AI_VOICE_WORKFLOW_UNSUPPORTED" => LocalAppReasonCode::AiVoiceWorkflowUnsupported,
@@ -600,20 +623,60 @@ mod tests {
     #[test]
     fn media_failures_stay_typed_for_local_apps() {
         for (runtime_reason, proto_reason, expected) in [
-            ("AI_FACE_REFERENCE_MISSING", 738, "ai-face-reference-missing"),
-            ("AI_FACE_REFERENCE_AMBIGUOUS", 739, "ai-face-reference-ambiguous"),
+            (
+                "AI_FACE_REFERENCE_MISSING",
+                738,
+                "ai-face-reference-missing",
+            ),
+            (
+                "AI_FACE_REFERENCE_AMBIGUOUS",
+                739,
+                "ai-face-reference-ambiguous",
+            ),
             ("AI_FACE_TARGET_MISSING", 740, "ai-face-target-missing"),
             ("AI_FACE_TARGET_AMBIGUOUS", 741, "ai-face-target-ambiguous"),
             ("AI_VIDEO_DECODE_FAILED", 742, "ai-video-decode-failed"),
             ("AI_VIDEO_ENCODE_FAILED", 743, "ai-video-encode-failed"),
-            ("AI_VIDEO_SESSION_OVERLOADED", 744, "ai-video-session-overloaded"),
-            ("AI_VIDEO_SESSION_GENERATION_INVALID", 745, "ai-video-session-generation-invalid"),
-            ("AI_LOCAL_EXECUTION_LOAD_FAILED", 701, "ai-local-execution-load-failed"),
-            ("AI_LOCAL_EXECUTION_INFERENCE_FAILED", 702, "ai-local-execution-inference-failed"),
-            ("AI_LOCAL_EXECUTION_CANCELED", 703, "ai-local-execution-canceled"),
-            ("AI_LOCAL_EXECUTION_PROCESS_CRASHED", 704, "ai-local-execution-process-crashed"),
-            ("AI_LOCAL_EXECUTION_CONTENT_MISMATCH", 705, "ai-local-execution-content-mismatch"),
-            ("AI_LOCAL_EXECUTION_OUT_OF_MEMORY", 725, "ai-local-execution-out-of-memory"),
+            (
+                "AI_VIDEO_SESSION_OVERLOADED",
+                744,
+                "ai-video-session-overloaded",
+            ),
+            (
+                "AI_VIDEO_SESSION_GENERATION_INVALID",
+                745,
+                "ai-video-session-generation-invalid",
+            ),
+            (
+                "AI_LOCAL_EXECUTION_LOAD_FAILED",
+                701,
+                "ai-local-execution-load-failed",
+            ),
+            (
+                "AI_LOCAL_EXECUTION_INFERENCE_FAILED",
+                702,
+                "ai-local-execution-inference-failed",
+            ),
+            (
+                "AI_LOCAL_EXECUTION_CANCELED",
+                703,
+                "ai-local-execution-canceled",
+            ),
+            (
+                "AI_LOCAL_EXECUTION_PROCESS_CRASHED",
+                704,
+                "ai-local-execution-process-crashed",
+            ),
+            (
+                "AI_LOCAL_EXECUTION_CONTENT_MISMATCH",
+                705,
+                "ai-local-execution-content-mismatch",
+            ),
+            (
+                "AI_LOCAL_EXECUTION_OUT_OF_MEMORY",
+                725,
+                "ai-local-execution-out-of-memory",
+            ),
             ("AI_VOICE_INPUT_INVALID", 420, "ai-voice-input-invalid"),
             (
                 "AI_VOICE_WORKFLOW_UNSUPPORTED",
@@ -729,5 +792,49 @@ mod tests {
             NimiHostErrorReasonCode::RuntimeServiceErrorUnclassified
         );
         assert!(!error.to_string().contains("secret"));
+    }
+
+    #[test]
+    fn desktop_local_import_retains_only_known_selection_recovery_reasons() {
+        for reason in [
+            "APP_PACKAGE_SELECTION_INVALID",
+            "APP_PACKAGE_POLICY_BLOCKED",
+        ] {
+            for value in [
+                "unsupported-target",
+                "native-verification-failed",
+                "invalid-package",
+                "local-file-unavailable",
+                "unknown",
+            ] {
+                let info = GoogleRpcErrorInfo {
+                    reason: reason.to_string(),
+                    domain: ERROR_INFO_DOMAIN.to_string(),
+                    metadata: HashMap::from([
+                        ("local_import_reason".to_string(), value.to_string()),
+                        ("private_detail".to_string(), "not-public".to_string()),
+                    ]),
+                };
+                let details = GoogleRpcStatus {
+                    code: Code::InvalidArgument as i32,
+                    message: String::new(),
+                    details: vec![prost_types::Any {
+                        type_url: ERROR_INFO_TYPE_URL.to_string(),
+                        value: info.encode_to_vec(),
+                    }],
+                };
+                let status = Status::with_details(
+                    Code::InvalidArgument,
+                    "invalid selection",
+                    details.encode_to_vec().into(),
+                );
+                let expected = if reason == "APP_PACKAGE_SELECTION_INVALID" && value != "unknown" {
+                    BTreeMap::from([("local_import_reason".to_string(), value.to_string())])
+                } else {
+                    BTreeMap::new()
+                };
+                assert_eq!(desktop_runtime_reason_metadata(&status), expected);
+            }
+        }
     }
 }

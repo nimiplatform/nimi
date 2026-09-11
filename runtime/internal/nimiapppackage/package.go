@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	packageFormat                    = "nimi.app-package/v1"
+	packageFormat                    = "nimi.app-package/v2"
 	windowsExecutionProfileRef       = "windows-user-mode-as-invoker-v1"
 	canonicalZipFlags                = uint16(0x0800)
 	canonicalZipCreatorVersion       = uint16(0x0314)
@@ -58,6 +58,7 @@ type ExpectedNativeTrust struct {
 }
 
 type Expected struct {
+	AppInfo             *AppInfoExpectation
 	ArchiveSize         int64
 	ArchiveSHA256       string
 	AppID               string
@@ -98,6 +99,8 @@ type Manifest struct {
 }
 
 type Inspection struct {
+	AppInfo           AppInfo
+	AppInfoJSON       []byte
 	Manifest          Manifest
 	Declaration       Declaration
 	Files             int
@@ -111,6 +114,7 @@ type Declaration struct {
 }
 
 type Materialized struct {
+	AppInfoJSON          []byte
 	Root                 string
 	ManifestPath         string
 	DeclarationPath      string
@@ -362,6 +366,7 @@ func Materialize(ctx context.Context, archivePath string, ownerRoot *os.Root, st
 		DeclarationPath:      filepath.Join(destination, "nimi.app.yaml"),
 		RuntimeEntryPath:     filepath.Join(destination, filepath.FromSlash(expected.RuntimeEntry)),
 		RawDeclaration:       append([]string(nil), archive.inspection.Declaration.AppAccess...),
+		AppInfoJSON:          append([]byte(nil), archive.inspection.AppInfoJSON...),
 		HostExecutableSHA256: hostDigest, PayloadRootSHA256: digest,
 		Files: archive.inspection.Files, Bytes: archive.inspection.UncompressedBytes,
 	}, nil
@@ -374,7 +379,7 @@ func VerifyMaterialized(ctx context.Context, rootPath string, expected Expected,
 	if ctx == nil || !filepath.IsAbs(rootPath) || payloadDigest == "" || hostDigest == ([sha256.Size]byte{}) {
 		return Materialized{}, ErrPackageIntegrity
 	}
-	if err := validateExpected(expected); err != nil {
+	if err := validateExpectedTarget(expected); err != nil {
 		return Materialized{}, err
 	}
 	info, err := os.Lstat(rootPath)
@@ -447,7 +452,7 @@ func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (
 	pathRoles := make(map[string]entryPathRole, len(reader.File)*2)
 	names := make([]string, 0, len(reader.File))
 	var total uint64
-	var manifestEntry, licenseEntry, declarationEntry *zip.File
+	var manifestEntry, licenseEntry, declarationEntry, infoEntry *zip.File
 	payloadFiles := 0
 	runtimeFound := false
 	for _, entry := range reader.File {
@@ -475,6 +480,8 @@ func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (
 			return Inspection{}, nil, fmt.Errorf("inspect nimiapp expanded size: %w", ErrInvalidPackage)
 		}
 		switch entry.Name {
+		case "app-info.json":
+			infoEntry = entry
 		case "manifest.json":
 			manifestEntry = entry
 		case "LICENSE":
@@ -491,16 +498,20 @@ func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (
 			runtimeFound = true
 		}
 	}
-	if manifestEntry == nil || licenseEntry == nil || declarationEntry == nil || payloadFiles == 0 || !runtimeFound {
+	if infoEntry == nil || manifestEntry == nil || licenseEntry == nil || declarationEntry == nil || payloadFiles == 0 || !runtimeFound {
 		return Inspection{}, nil, fmt.Errorf("inspect nimiapp required entries: %w", ErrInvalidPackage)
 	}
 	if licenseEntry.UncompressedSize64 == 0 {
 		return Inspection{}, nil, fmt.Errorf("inspect nimiapp LICENSE: %w", ErrInvalidPackage)
 	}
-	var manifestRaw, declarationRaw []byte
+	var manifestRaw, declarationRaw, infoRaw, licenseRaw []byte
 	for _, entry := range reader.File {
 		var err error
 		switch entry.Name {
+		case "app-info.json":
+			infoRaw, err = readControlEntry(ctx, entry, MaxAppInfoBytes)
+		case "LICENSE":
+			licenseRaw, err = readControlEntry(ctx, entry, 128*1024)
 		case "manifest.json":
 			manifestRaw, err = readControlEntry(ctx, entry, maxControlDocumentBytes)
 		case "nimi.app.yaml":
@@ -529,8 +540,18 @@ func inspectReader(ctx context.Context, reader *zip.Reader, expected Expected) (
 	if err != nil {
 		return Inspection{}, nil, err
 	}
+	info, err := ParseAppInfo(infoRaw)
+	if err != nil {
+		return Inspection{}, nil, err
+	}
+	if err := ValidateAppInfoSelection(info, infoRaw, expected); err != nil {
+		return Inspection{}, nil, err
+	}
+	if err := validateAppInfoDeclaration(info, declarationRaw, licenseRaw); err != nil {
+		return Inspection{}, nil, err
+	}
 	sort.Strings(names)
-	return Inspection{Manifest: manifest, Declaration: declaration, Files: len(names), UncompressedBytes: total}, names, nil
+	return Inspection{AppInfo: info, AppInfoJSON: infoRaw, Manifest: manifest, Declaration: declaration, Files: len(names), UncompressedBytes: total}, names, nil
 }
 
 type entryPathRole struct {
@@ -577,7 +598,7 @@ func validateZipEntry(entry *zip.File, targetOS string) error {
 	if err := validateEntryName(entry.Name, targetOS); err != nil {
 		return err
 	}
-	if entry.Name == "LICENSE" || entry.Name == "manifest.json" || entry.Name == "nimi.app.yaml" {
+	if entry.Name == "app-info.json" || entry.Name == "LICENSE" || entry.Name == "manifest.json" || entry.Name == "nimi.app.yaml" {
 		if !entry.Mode().IsRegular() || entry.Mode().Perm() != 0o644 {
 			return fmt.Errorf("inspect nimiapp control entry mode %q: %w", entry.Name, ErrInvalidPackage)
 		}
@@ -639,8 +660,14 @@ func targetPathCollisionKey(name, targetOS string) string {
 }
 
 func validateExpected(expected Expected) error {
-	if expected.ArchiveSize <= 0 || !sha256Text(expected.ArchiveSHA256) || !exactText(expected.AppID) ||
-		!exactText(expected.Version) || !exactText(expected.TargetID) || !exactText(expected.RuntimeEntry) {
+	if expected.ArchiveSize <= 0 || !sha256Text(expected.ArchiveSHA256) {
+		return fmt.Errorf("validate expected nimiapp archive: %w", ErrUnsupportedTarget)
+	}
+	return validateExpectedTarget(expected)
+}
+
+func validateExpectedTarget(expected Expected) error {
+	if !exactText(expected.AppID) || !exactText(expected.Version) || !exactText(expected.TargetID) || !exactText(expected.RuntimeEntry) {
 		return fmt.Errorf("validate expected nimiapp target: %w", ErrUnsupportedTarget)
 	}
 	if err := validateEntryName(expected.RuntimeEntry, expected.OS); err != nil || !strings.HasPrefix(expected.RuntimeEntry, "payload/") {

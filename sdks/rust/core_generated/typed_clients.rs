@@ -2570,6 +2570,7 @@ pub enum ReasonCode {
     APPPACKAGEHOSTRUNNING,
     APPPACKAGEUNINSTALLFAILED,
     APPPACKAGEUPDATEUNAVAILABLE,
+    APPPACKAGEINFOUNAVAILABLE,
     AIFACEREFERENCEMISSING,
     AIFACEREFERENCEAMBIGUOUS,
     AIFACETARGETMISSING,
@@ -3139,6 +3140,8 @@ impl ReasonCode {
             "APPPACKAGEUNINSTALLFAILED" => Some(Self::APPPACKAGEUNINSTALLFAILED),
             "APP_PACKAGE_UPDATE_UNAVAILABLE" => Some(Self::APPPACKAGEUPDATEUNAVAILABLE),
             "APPPACKAGEUPDATEUNAVAILABLE" => Some(Self::APPPACKAGEUPDATEUNAVAILABLE),
+            "APP_PACKAGE_INFO_UNAVAILABLE" => Some(Self::APPPACKAGEINFOUNAVAILABLE),
+            "APPPACKAGEINFOUNAVAILABLE" => Some(Self::APPPACKAGEINFOUNAVAILABLE),
             "AI_FACE_REFERENCE_MISSING" => Some(Self::AIFACEREFERENCEMISSING),
             "AIFACEREFERENCEMISSING" => Some(Self::AIFACEREFERENCEMISSING),
             "AI_FACE_REFERENCE_AMBIGUOUS" => Some(Self::AIFACEREFERENCEAMBIGUOUS),
@@ -4467,6 +4470,28 @@ pub struct AppMessageEvent {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AppPackageInfo {
+    pub app_id: Option<String>,
+    pub version: Option<String>,
+    pub target_id: Option<String>,
+    pub display_name: Option<String>,
+    pub summary: Option<String>,
+    pub icon_png_base64: Option<String>,
+    pub readme_markdown: Option<String>,
+    pub release_notes_markdown: Option<String>,
+    pub license_identifier: Option<String>,
+    pub license_text: Option<String>,
+    pub app_access: Vec<String>,
+    pub capability_contract_refs: Vec<String>,
+    pub required_standardized_feature_refs: Vec<String>,
+    pub storage_policy_kind: Option<String>,
+    pub os_storage_disclosure: Vec<Box<ApprovedAppCatalogStorageDisclosure>>,
+    pub author: Option<String>,
+    pub homepage_url: Option<String>,
+    pub support_url: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AppPackageJob {
     pub job_id: Option<Vec<u8>>,
     pub app_id: Option<String>,
@@ -5524,6 +5549,8 @@ pub struct CommittedAppRelease {
     pub release_ref: Option<String>,
     pub launch_selector: Option<Vec<u8>>,
     pub committed_at: Option<String>,
+    pub display_name: Option<String>,
+    pub app_access: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5899,6 +5926,16 @@ pub struct DisableAutonomyResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct DiscardLocalAppPackageRequest {
+    pub candidate_selector: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DiscardLocalAppPackageResponse {
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct EmbeddingVector {
     pub values: Vec<f64>,
 }
@@ -6239,6 +6276,19 @@ pub struct GetAppAIConfigResponse {
     pub config: Option<Box<AIConfig>>,
     pub revision: Option<String>,
     pub effective_selections: Vec<Box<AIConfigEffectiveSelection>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAppPackageInfoRequest {
+    pub approved_target_selector: Option<Vec<u8>>,
+    pub launch_selector: Option<Vec<u8>>,
+    pub installed_release_ref: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetAppPackageInfoResponse {
+    pub info: Option<Box<AppPackageInfo>>,
+    pub reason_code: Option<ReasonCode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -8191,6 +8241,24 @@ pub struct LocalAppMusicGenerateJobSpec {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppPackagePreview {
+    pub candidate_selector: Option<Vec<u8>>,
+    pub app_id: Option<String>,
+    pub display_name: Option<String>,
+    pub version: Option<String>,
+    pub os: Option<String>,
+    pub arch: Option<String>,
+    pub app_access: Vec<String>,
+    pub windows_code_signing: Option<String>,
+    pub observed_signing_subject: Option<String>,
+    pub macos_notarization: Option<String>,
+    pub macos_developer_id_subject: Option<String>,
+    pub expires_at: Option<String>,
+    pub size: Option<u64>,
+    pub info: Option<Box<AppPackageInfo>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppScenarioArtifact {
     pub artifact_id: Option<String>,
     pub mime_type: Option<String>,
@@ -9358,6 +9426,17 @@ pub struct PrepareLocalAppLaunchRequest {
 pub struct PrepareLocalAppLaunchResponse {
     pub launch_id: Option<Vec<u8>>,
     pub bind_deadline: Option<String>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrepareLocalAppPackageRequest {
+    pub source_path: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrepareLocalAppPackageResponse {
+    pub preview: Option<Box<LocalAppPackagePreview>>,
     pub reason_code: Option<ReasonCode>,
 }
 
@@ -10776,6 +10855,30 @@ pub struct StartAppPackageUpdateRequest {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct StartAppPackageUpdateResponse {
+    pub job: Option<Box<AppPackageJob>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartLocalAppPackageInstallRequest {
+    pub candidate_selector: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartLocalAppPackageInstallResponse {
+    pub job: Option<Box<AppPackageJob>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartLocalAppPackageUpdateRequest {
+    pub candidate_selector: Option<Vec<u8>>,
+    pub launch_selector: Option<Vec<u8>>,
+    pub installed_version: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct StartLocalAppPackageUpdateResponse {
     pub job: Option<Box<AppPackageJob>>,
     pub reason_code: Option<ReasonCode>,
 }

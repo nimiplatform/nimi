@@ -75,6 +75,12 @@ func (s *Service) ListCommittedAppReleases(
 		if projectErr != nil {
 			return nil, projectErr
 		}
+		registration, err := s.localAppKernel.Registrations().GetByHandle(ctx, release.RegistrationHandle)
+		if err != nil {
+			return nil, err
+		}
+		value.DisplayName = registration.DisplayName
+		value.AppAccess = append([]string(nil), registration.RawDeclaration...)
 		projected = append(projected, value)
 	}
 	return &runtimev1.ListCommittedAppReleasesResponse{
@@ -195,12 +201,12 @@ func (s *Service) CancelAppPackageJob(
 	if err != nil {
 		return nil, appPackageLifecycleError("cancel App package job", err)
 	}
-	registryOwned := job.SourceClass == localappkernel.SourceClassVerified &&
+	coordinatorOwned := (job.SourceClass == localappkernel.SourceClassVerified || job.SourceClass == localappkernel.SourceClassUserImported) &&
 		(job.Kind == localappkernel.PackageJobInstall || job.Kind == localappkernel.PackageJobUpdate || job.Kind == localappkernel.PackageJobUninstall)
-	if registryOwned && s.appInstallCoordinator == nil {
+	if coordinatorOwned && s.appInstallCoordinator == nil {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_APP_PACKAGE_INSTALL_UNAVAILABLE)
 	}
-	if !registryOwned {
+	if !coordinatorOwned {
 		job, err = store.Cancel(ctx, job.JobID, expected, req.GetReasonCode())
 	} else if job.Kind == localappkernel.PackageJobUninstall {
 		job, err = s.appInstallCoordinator.CancelUninstall(ctx, job.JobID, expected, req.GetReasonCode())

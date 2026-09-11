@@ -44,6 +44,9 @@ test('Desktop machine product exposes Catalog and package intents without native
   const transport: CoreTransport = {
     async unary<Response>(request: CoreUnaryRequest): Promise<Response> {
       calls.push(request);
+      if (['GetAppPackageInfo', 'PrepareLocalAppPackage', 'DiscardLocalAppPackage', 'StartLocalAppPackageInstall', 'StartLocalAppPackageUpdate'].some((name) => request.methodId.endsWith(`/${name}`))) {
+        throw new Error('local-package-owner-failure');
+      }
       if (request.methodId.endsWith('/ListApprovedAppCatalogTargets')) {
         return { targets: [], reasonCode: 1 } as Response;
       }
@@ -78,16 +81,21 @@ test('Desktop machine product exposes Catalog and package intents without native
 
   assert.deepEqual(Object.keys(clients.machineProduct.apps).sort(), [
     'cancelAppPackageJob',
+    'discardLocalAppPackage',
+    'getAppPackageInfo',
     'getAppPackageJob',
     'listAppPackageJobs',
     'listApprovedAppCatalogTargets',
     'listCommittedAppReleases',
     'pauseAppPackageJob',
+    'prepareLocalAppPackage',
     'reorderAppPackageJob',
     'resumeAppPackageJob',
     'startAppPackageInstall',
     'startAppPackageUninstall',
     'startAppPackageUpdate',
+    'startLocalAppPackageInstall',
+    'startLocalAppPackageUpdate',
   ]);
   const approvedTargetSelector = Uint8Array.from([4, 8, 15, 16, 23, 42]);
   await clients.machineProduct.apps.listApprovedAppCatalogTargets({});
@@ -127,6 +135,18 @@ test('Desktop machine product exposes Catalog and package intents without native
     '/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob',
     '/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob',
   ]);
+  const candidateSelector = new TextEncoder().encode('selected-local-package');
+  const sourcePath = '/selected/example.nimiapp';
+  await assert.rejects(clients.machineProduct.apps.prepareLocalAppPackage({ sourcePath }), /local-package-owner-failure/);
+  await assert.rejects(clients.machineProduct.apps.discardLocalAppPackage({ candidateSelector }), /local-package-owner-failure/);
+  await assert.rejects(clients.machineProduct.apps.startLocalAppPackageInstall({ candidateSelector }), /local-package-owner-failure/);
+  await assert.rejects(clients.machineProduct.apps.startLocalAppPackageUpdate({ candidateSelector, launchSelector, installedVersion: '1.2.3' }), /local-package-owner-failure/);
+  assert.deepEqual(calls.slice(-4).map((call) => call.body), [
+    { sourcePath }, { candidateSelector }, { candidateSelector }, { candidateSelector, launchSelector, installedVersion: '1.2.3' },
+  ]);
+  await assert.rejects(clients.machineProduct.apps.getAppPackageInfo({ launchSelector, installedReleaseRef: 'selected-release', approvedTargetSelector: new Uint8Array() }), /local-package-owner-failure/);
+  assert.equal(calls.at(-1)?.methodId, '/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageInfo');
+  assert.deepEqual(calls.at(-1)?.body, { launchSelector, installedReleaseRef: 'selected-release', approvedTargetSelector: new Uint8Array() });
   for (const call of calls) {
     assert.equal(call.metadata?.appId, undefined, 'protected host owns caller identity');
   }

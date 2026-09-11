@@ -127,6 +127,7 @@ type CommittedRelease struct {
 }
 
 type CommitPackageReleaseInput struct {
+	AppInfoJSON  []byte
 	JobID        string
 	Version      string
 	Registration RegisterInstalledInput
@@ -193,6 +194,14 @@ var packageLifecycleSchemaStatements = []string{
 		committed_unix_nano INTEGER NOT NULL,
 		PRIMARY KEY(app_id, source_class),
 		FOREIGN KEY(registration_handle) REFERENCES canonical_registration(registration_handle)
+	)`,
+	`CREATE TABLE IF NOT EXISTS app_package_info (
+		app_id TEXT NOT NULL,
+		source_class TEXT NOT NULL,
+		release_ref TEXT NOT NULL,
+		info_json BLOB NOT NULL CHECK(length(info_json) BETWEEN 1 AND 1048576),
+		PRIMARY KEY(app_id, source_class),
+		FOREIGN KEY(app_id, source_class) REFERENCES committed_app_release(app_id, source_class) ON DELETE CASCADE
 	)`,
 }
 
@@ -469,7 +478,7 @@ func (store *PackageLifecycleStore) ListCommittedReleases(ctx context.Context) (
 // @nimi-authority: definition.nimi.platform.app-ecosystem.immutable-package-seam
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040b
 func (store *PackageLifecycleStore) CommitPackageRelease(ctx context.Context, input CommitPackageReleaseInput) (CommitPackageReleaseResult, error) {
-	if store == nil || store.kernel == nil || requireExactText("job_id", input.JobID) != nil || !safeLifecycleSegment(input.Version) {
+	if len(input.AppInfoJSON) == 0 || len(input.AppInfoJSON) > 1048576 || store == nil || store.kernel == nil || requireExactText("job_id", input.JobID) != nil || !safeLifecycleSegment(input.Version) {
 		return CommitPackageReleaseResult{}, ErrInvalidArgument
 	}
 	if err := validateInstalledInput(input.Registration); err != nil {
@@ -536,6 +545,10 @@ func (store *PackageLifecycleStore) CommitPackageRelease(ctx context.Context, in
 		registration.ExecutionProfileRef, registration.HostExecutableDigest, registration.PayloadRootDigest, now.UnixNano())
 	if err != nil {
 		return CommitPackageReleaseResult{}, fmt.Errorf("write committed App release: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO app_package_info(app_id, source_class, release_ref, info_json) VALUES (?, ?, ?, ?)
+		ON CONFLICT(app_id, source_class) DO UPDATE SET release_ref = excluded.release_ref, info_json = excluded.info_json`, job.AppID, string(job.SourceClass), job.TargetRef, input.AppInfoJSON); err != nil {
+		return CommitPackageReleaseResult{}, fmt.Errorf("write committed App information: %w", err)
 	}
 	result, err := tx.ExecContext(ctx, `UPDATE app_package_job SET phase = 'completed', completed_unix_nano = ?,
 		terminal_result = 'completed', reason_code = '', cancelable = 0, updated_unix_nano = ?
@@ -836,4 +849,24 @@ func ignoreNoRows(err error) error {
 
 func safeLifecycleSegment(value string) bool {
 	return value != "" && value == strings.TrimSpace(value) && value != "." && value != ".." && !strings.ContainsAny(value, `/\`)
+}
+
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-042b
+func (store *PackageLifecycleStore) ReadAppInfo(ctx context.Context, registrationHandle, releaseRef string) ([]byte, error) {
+	if store == nil || store.kernel == nil || requireExactText("registration_handle", registrationHandle) != nil || requireExactText("release_ref", releaseRef) != nil {
+		return nil, ErrInvalidArgument
+	}
+	store.kernel.mu.Lock()
+	defer store.kernel.mu.Unlock()
+	var raw []byte
+	err := store.kernel.db.QueryRowContext(ctx, `SELECT i.info_json FROM app_package_info i
+		JOIN committed_app_release r ON r.app_id = i.app_id AND r.source_class = i.source_class AND r.release_ref = i.release_ref
+		WHERE r.registration_handle = ? AND r.release_ref = ?`, registrationHandle, releaseRef).Scan(&raw)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, ErrCommittedReleaseNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read committed App information: %w", err)
+	}
+	return raw, nil
 }

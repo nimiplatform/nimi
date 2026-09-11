@@ -61,23 +61,24 @@ type targetDownloader interface {
 }
 
 type Coordinator struct {
-	logger       *slog.Logger
-	operations   sync.RWMutex
-	launchMu     sync.Mutex
-	uninstalls   map[string]uninstallReservation
-	workersMu    sync.Mutex
-	workers      map[string]*installWorker
-	workersWG    sync.WaitGroup
-	closing      bool
-	quiescing    bool
-	quiesced     bool
-	downloadJob  string
-	registry     registryResolver
-	downloader   targetDownloader
-	kernel       *localappkernel.Kernel
-	lifecycle    *localappkernel.PackageLifecycleStore
-	packagesRoot *os.Root
-	packagesPath string
+	logger          *slog.Logger
+	operations      sync.RWMutex
+	launchMu        sync.Mutex
+	uninstalls      map[string]uninstallReservation
+	workersMu       sync.Mutex
+	workers         map[string]*installWorker
+	localCandidates map[string]*localPackageCandidate
+	workersWG       sync.WaitGroup
+	closing         bool
+	quiescing       bool
+	quiesced        bool
+	downloadJob     string
+	registry        registryResolver
+	downloader      targetDownloader
+	kernel          *localappkernel.Kernel
+	lifecycle       *localappkernel.PackageLifecycleStore
+	packagesRoot    *os.Root
+	packagesPath    string
 }
 
 type InstallResult struct {
@@ -152,7 +153,7 @@ func openPackageOwner(kernel *localappkernel.Kernel) (*Coordinator, error) {
 	}
 	return &Coordinator{
 		kernel: kernel, lifecycle: kernel.PackageLifecycle(),
-		packagesRoot: packagesRoot, packagesPath: packagesPath, workers: make(map[string]*installWorker), uninstalls: make(map[string]uninstallReservation),
+		packagesRoot: packagesRoot, packagesPath: packagesPath, workers: make(map[string]*installWorker), localCandidates: make(map[string]*localPackageCandidate), uninstalls: make(map[string]uninstallReservation),
 	}, nil
 }
 
@@ -356,21 +357,6 @@ func (coordinator *Coordinator) runInstallLocked(
 	if !runtimeOwnedChild(job.JobID) {
 		return InstallResult{}, coordinator.failInstall(ctx, job, ErrInvalidCoordinator, false)
 	}
-	var previous *localappkernel.Registration
-	if job.Kind == localappkernel.PackageJobUpdate {
-		release, err := coordinator.lifecycle.GetCommittedRelease(ctx, job.AppID, job.SourceClass)
-		if err != nil {
-			return InstallResult{}, coordinator.failInstall(ctx, job, err, false)
-		}
-		if job.PreviousRelease == nil || !reflect.DeepEqual(release, *job.PreviousRelease) {
-			return InstallResult{}, coordinator.failInstall(ctx, job, publicappregistry.ErrStaleSelection, false)
-		}
-		registration, err := coordinator.kernel.Registrations().GetByHandle(ctx, release.RegistrationHandle)
-		if err != nil {
-			return InstallResult{}, coordinator.failInstall(ctx, job, err, false)
-		}
-		previous = &registration
-	}
 	workRelative := filepath.Join(packageWorkDirectory, job.JobID)
 	if err := coordinator.packagesRoot.Mkdir(workRelative, 0o700); err != nil && !errors.Is(err, os.ErrExist) {
 		return InstallResult{}, coordinator.failInstall(ctx, job, fmt.Errorf("create public App install work root: %w", err), false)
@@ -425,18 +411,52 @@ func (coordinator *Coordinator) runInstallLocked(
 		_ = jobRoot.Close()
 		return InstallResult{}, coordinator.failInstall(ctx, job, err, false)
 	}
-	packageExpected := packageExpectation(resolved)
-	nativeVerifier, err := nativeVerifierForTarget(resolved)
+	return coordinator.finishPackageInstall(ctx, job, downloaded.Path, jobRoot, packageExpectation(resolved),
+		func(materialized nimiapppackage.Materialized) localappkernel.RegisterInstalledInput {
+			return coordinator.registrationInput(resolved, job.TargetRef, job.JobID, materialized)
+		}, func() error {
+			current, err := coordinator.registry.Revalidate(ctx, selector)
+			if err != nil {
+				return err
+			}
+			if !sameResolvedInstallTarget(resolved, current) {
+				return ErrInstallTarget
+			}
+			return nil
+		})
+}
+
+// Both immutable sources share materialization and one atomic release commit.
+func (coordinator *Coordinator) finishPackageInstall(ctx context.Context, job localappkernel.PackageJob, archivePath string, jobRoot *os.Root, packageExpected nimiapppackage.Expected, registrationFor func(nimiapppackage.Materialized) localappkernel.RegisterInstalledInput, revalidateCatalog func() error) (InstallResult, error) {
+	var previous *localappkernel.Registration
+	if job.Kind == localappkernel.PackageJobUpdate {
+		release, err := coordinator.lifecycle.GetCommittedRelease(ctx, job.AppID, job.SourceClass)
+		if err != nil {
+			_ = jobRoot.Close()
+			return InstallResult{}, coordinator.failInstall(ctx, job, err, false)
+		}
+		if job.PreviousRelease == nil || !reflect.DeepEqual(release, *job.PreviousRelease) {
+			_ = jobRoot.Close()
+			return InstallResult{}, coordinator.failInstall(ctx, job, publicappregistry.ErrStaleSelection, false)
+		}
+		registration, err := coordinator.kernel.Registrations().GetByHandle(ctx, release.RegistrationHandle)
+		if err != nil {
+			_ = jobRoot.Close()
+			return InstallResult{}, coordinator.failInstall(ctx, job, err, false)
+		}
+		previous = &registration
+	}
+	nativeVerifier, err := nativeVerifierForExpected(packageExpected)
 	if err != nil {
 		_ = jobRoot.Close()
 		return InstallResult{}, coordinator.failInstall(ctx, job, err, false)
 	}
-	probe, err := nimiapppackage.ProbeRuntimeEntry(ctx, downloaded.Path, jobRoot, "native-probe", packageExpected, nativeVerifier)
+	probe, err := nimiapppackage.ProbeRuntimeEntry(ctx, archivePath, jobRoot, "native-probe", packageExpected, nativeVerifier)
 	closeJobRootErr := jobRoot.Close()
 	if err != nil || closeJobRootErr != nil {
 		return InstallResult{}, coordinator.failInstall(ctx, job, errors.Join(err, closeJobRootErr), false)
 	}
-	advanced, err = coordinator.advanceInstall(ctx, job, localappkernel.PackageJobStaging, uint64(resolved.Target.Size))
+	advanced, err := coordinator.advanceInstall(ctx, job, localappkernel.PackageJobStaging, uint64(packageExpected.ArchiveSize))
 	if err != nil {
 		return InstallResult{}, coordinator.failInstall(ctx, job, fmt.Errorf("start public App package staging: %w", err), false)
 	}
@@ -446,7 +466,7 @@ func (coordinator *Coordinator) runInstallLocked(
 		return InstallResult{}, coordinator.failInstall(ctx, job, fmt.Errorf("open public App release root: %w", err), false)
 	}
 	stageName := packageStagePrefix + job.JobID
-	materialized, err := nimiapppackage.Materialize(ctx, downloaded.Path, releasesRoot, stageName, packageExpected)
+	materialized, err := nimiapppackage.Materialize(ctx, archivePath, releasesRoot, stageName, packageExpected)
 	if err != nil {
 		_ = releasesRoot.Close()
 		return InstallResult{}, coordinator.failInstall(ctx, job, errors.Join(ErrInstallStaging, err), false)
@@ -456,14 +476,11 @@ func (coordinator *Coordinator) runInstallLocked(
 		return InstallResult{}, coordinator.failInstall(ctx, job,
 			fmt.Errorf("match observed and staged Runtime entry: %w", nimiapppackage.ErrPackageIntegrity), false)
 	}
-	current, err := coordinator.registry.Revalidate(ctx, selector)
-	if err != nil {
-		_ = releasesRoot.Close()
-		return InstallResult{}, coordinator.failInstall(ctx, job, err, false)
-	}
-	if !sameResolvedInstallTarget(resolved, current) {
-		_ = releasesRoot.Close()
-		return InstallResult{}, coordinator.failInstall(ctx, job, ErrInstallTarget, false)
+	if revalidateCatalog != nil {
+		if err := revalidateCatalog(); err != nil {
+			_ = releasesRoot.Close()
+			return InstallResult{}, coordinator.failInstall(ctx, job, err, false)
+		}
 	}
 	if job.Kind == localappkernel.PackageJobUpdate {
 		baseline, err := coordinator.lifecycle.GetCommittedRelease(ctx, job.AppID, job.SourceClass)
@@ -472,7 +489,7 @@ func (coordinator *Coordinator) runInstallLocked(
 			return InstallResult{}, coordinator.failInstall(ctx, job, errors.Join(publicappregistry.ErrStaleSelection, err), false)
 		}
 	}
-	advanced, err = coordinator.advanceInstall(ctx, job, localappkernel.PackageJobCommitting, uint64(resolved.Target.Size))
+	advanced, err = coordinator.advanceInstall(ctx, job, localappkernel.PackageJobCommitting, uint64(packageExpected.ArchiveSize))
 	if err != nil {
 		_ = releasesRoot.Close()
 		return InstallResult{}, coordinator.failInstall(ctx, job, fmt.Errorf("start public App package commit: %w", err), false)
@@ -487,18 +504,18 @@ func (coordinator *Coordinator) runInstallLocked(
 	if err := releasesRoot.Close(); err != nil {
 		return InstallResult{}, coordinator.failInstall(ctx, job, fmt.Errorf("close public App release root: %w", err), true)
 	}
-	registration := coordinator.registrationInput(resolved, job.TargetRef, job.JobID, materialized)
+	registration := registrationFor(materialized)
 	if previous != nil {
 		registration.ExistingRegistrationHandle = previous.RegistrationHandle
 		registration.ProvenanceRevision = previous.ProvenanceRevision + 1
 	}
 	commit, err := coordinator.lifecycle.CommitPackageRelease(commitContext, localappkernel.CommitPackageReleaseInput{
-		JobID: job.JobID, Version: resolved.Version, Registration: registration,
+		JobID: job.JobID, Version: packageExpected.Version, Registration: registration, AppInfoJSON: materialized.AppInfoJSON,
 	})
 	if err != nil {
 		return coordinator.resolveCommitError(ctx, job, registration, errors.Join(ErrInstallCommit, err))
 	}
-	_ = coordinator.packagesRoot.RemoveAll(workRelative)
+	_ = coordinator.packagesRoot.RemoveAll(filepath.Join(packageWorkDirectory, job.JobID))
 	if previous != nil {
 		oldRoot, err := filepath.Rel(filepath.Join(coordinator.packagesPath, packageReleaseDirectory), previous.ProjectRoot)
 		if err == nil && runtimeOwnedChild(oldRoot) && oldRoot != job.JobID {
@@ -528,7 +545,12 @@ func validateResolvedInstallTarget(resolved publicappregistry.ResolvedApprovedTa
 }
 
 func packageExpectation(resolved publicappregistry.ResolvedApprovedTarget) nimiapppackage.Expected {
+	storage := nimiapppackage.AppInfoStoragePolicy{Kind: resolved.StoragePolicy.Kind}
+	for _, item := range resolved.StoragePolicy.OSStorageDisclosure {
+		storage.OSStorageDisclosure = append(storage.OSStorageDisclosure, nimiapppackage.AppInfoStorageDisclosure{PathPattern: item.PathPattern, Purpose: item.Purpose, ExpectedSizeBand: item.ExpectedSizeBand})
+	}
 	return nimiapppackage.Expected{
+		AppInfo:     &nimiapppackage.AppInfoExpectation{SHA256: resolved.Target.AppInfo.SHA256, DisplayName: resolved.DisplayName, LicenseIdentifier: resolved.Source.License.SPDXExpression, CapabilityContractRefs: resolved.CapabilityContractRefs, RequiredStandardizedFeatureRefs: resolved.RequiredStandardizedFeatureRefs, StoragePolicy: storage},
 		ArchiveSize: resolved.Target.Size, ArchiveSHA256: resolved.Target.SHA256,
 		AppID: resolved.AppID, Version: resolved.Version, TargetID: resolved.Target.TargetID,
 		OS: resolved.Target.OS, Arch: resolved.Target.Arch, RuntimeEntry: resolved.Target.RuntimeEntry,
@@ -543,29 +565,25 @@ func packageExpectation(resolved publicappregistry.ResolvedApprovedTarget) nimia
 	}
 }
 
-func nativeVerifierForTarget(resolved publicappregistry.ResolvedApprovedTarget) (nimiapppackage.RuntimeEntryVerifier, error) {
-	if resolved.Target.OS == "macos" {
+func nativeVerifierForExpected(expected nimiapppackage.Expected) (nimiapppackage.RuntimeEntryVerifier, error) {
+	if expected.OS == "macos" {
 		return nimiappnative.NewMacOSVerifier(nimiappnative.MacOSExpectation{
-			Arch: resolved.Target.Arch, ExecutionProfileRef: resolved.Target.ExecutionProfileRef,
-			SigningSubject:     cloneString(resolved.Target.NativeTrust.SigningSubject),
-			ObservedSubject:    cloneString(resolved.Target.NativeTrust.ObservedSubject),
-			DeveloperIDSubject: cloneString(resolved.Target.NativeTrust.MacOSDeveloperIDSubject),
-			Notarization:       resolved.Target.NativeTrust.MacOSNotarization,
+			Arch: expected.Arch, ExecutionProfileRef: expected.ExecutionProfileRef,
+			SigningSubject:     cloneString(expected.NativeTrust.SigningSubject),
+			ObservedSubject:    cloneString(expected.NativeTrust.ObservedSubject),
+			DeveloperIDSubject: cloneString(expected.NativeTrust.MacOSDeveloperIDSubject),
+			Notarization:       expected.NativeTrust.MacOSNotarization,
 		})
 	}
-	if resolved.Target.OS == "windows" {
-		return nimiappnative.NewWindowsVerifier(nativeExpectation(resolved))
+	if expected.OS == "windows" {
+		return nimiappnative.NewWindowsVerifier(nimiappnative.WindowsExpectation{
+			Arch: expected.Arch, ExecutionProfileRef: expected.ExecutionProfileRef,
+			WindowsCodeSigning: expected.NativeTrust.WindowsCodeSigning,
+			SigningSubject:     cloneString(expected.NativeTrust.SigningSubject),
+			ObservedSubject:    cloneString(expected.NativeTrust.ObservedSubject),
+		})
 	}
 	return nil, ErrUnsupportedInstallPlatform
-}
-
-func nativeExpectation(resolved publicappregistry.ResolvedApprovedTarget) nimiappnative.WindowsExpectation {
-	return nimiappnative.WindowsExpectation{
-		Arch: resolved.Target.Arch, ExecutionProfileRef: resolved.Target.ExecutionProfileRef,
-		WindowsCodeSigning: resolved.Target.NativeTrust.WindowsCodeSigning,
-		SigningSubject:     cloneString(resolved.Target.NativeTrust.SigningSubject),
-		ObservedSubject:    cloneString(resolved.Target.NativeTrust.ObservedSubject),
-	}
 }
 
 func (coordinator *Coordinator) registrationInput(

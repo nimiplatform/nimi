@@ -27,7 +27,7 @@ type installedAppLaunch struct {
 	mu       sync.Mutex
 	id       protectedlocal.Identifier
 	owner    *protectedlocal.Connection
-	verified nimiappinstall.VerifiedInstalledLaunch
+	verified nimiappinstall.InstalledLaunch
 	policy   protectedlocal.InstalledAppProcessPolicy
 	expires  time.Time
 	bound    bool
@@ -54,7 +54,7 @@ func (s *Service) PrepareInstalledAppLaunch(ctx context.Context, req *runtimev1.
 		return nil, installedLaunchUnavailable()
 	}
 	var lease *installedAppLaunch
-	err := s.appInstallCoordinator.WithVerifiedInstalledLaunch(ctx, string(selector), func(verified nimiappinstall.VerifiedInstalledLaunch) error {
+	err := s.appInstallCoordinator.WithInstalledLaunch(ctx, string(selector), func(verified nimiappinstall.InstalledLaunch) error {
 		handle, ok := localDevelopmentRegistrationIdentifier(verified.Registration.RegistrationHandle)
 		if !ok {
 			return installedLaunchMismatch()
@@ -153,7 +153,7 @@ func (s *Service) bindInstalledAppProcess(ctx context.Context, req *runtimev1.Bi
 		return nil, installedLaunchMismatch()
 	}
 	var deadline time.Time
-	err := s.appInstallCoordinator.WithVerifiedInstalledLaunch(ctx, lease.policy.RegistrationHandle, func(current nimiappinstall.VerifiedInstalledLaunch) error {
+	err := s.appInstallCoordinator.WithInstalledLaunch(ctx, lease.policy.RegistrationHandle, func(current nimiappinstall.InstalledLaunch) error {
 		if current.Registration.SourceGeneration != lease.policy.SourceGeneration || current.Registration.DeclarationGeneration != lease.policy.DeclarationGeneration ||
 			current.Release.ReleaseRef != lease.verified.Release.ReleaseRef || current.Release.PayloadRootDigest != lease.verified.Release.PayloadRootDigest ||
 			current.ExecutableDigest != lease.policy.HostExecutableDigest || current.RuntimeEntry != lease.policy.HostExecutablePath || !s.now().UTC().Before(lease.expires) {

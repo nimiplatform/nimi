@@ -500,6 +500,7 @@ pub enum ReasonCode {
     AppPackageHostRunning = 735,
     AppPackageUninstallFailed = 736,
     AppPackageUpdateUnavailable = 737,
+    AppPackageInfoUnavailable = 746,
     AiFaceReferenceMissing = 738,
     AiFaceReferenceAmbiguous = 739,
     AiFaceTargetMissing = 740,
@@ -859,6 +860,7 @@ impl ReasonCode {
             Self::AppPackageHostRunning => "APP_PACKAGE_HOST_RUNNING",
             Self::AppPackageUninstallFailed => "APP_PACKAGE_UNINSTALL_FAILED",
             Self::AppPackageUpdateUnavailable => "APP_PACKAGE_UPDATE_UNAVAILABLE",
+            Self::AppPackageInfoUnavailable => "APP_PACKAGE_INFO_UNAVAILABLE",
             Self::AiFaceReferenceMissing => "AI_FACE_REFERENCE_MISSING",
             Self::AiFaceReferenceAmbiguous => "AI_FACE_REFERENCE_AMBIGUOUS",
             Self::AiFaceTargetMissing => "AI_FACE_TARGET_MISSING",
@@ -1287,6 +1289,7 @@ impl ReasonCode {
             "APP_PACKAGE_HOST_RUNNING" => Some(Self::AppPackageHostRunning),
             "APP_PACKAGE_UNINSTALL_FAILED" => Some(Self::AppPackageUninstallFailed),
             "APP_PACKAGE_UPDATE_UNAVAILABLE" => Some(Self::AppPackageUpdateUnavailable),
+            "APP_PACKAGE_INFO_UNAVAILABLE" => Some(Self::AppPackageInfoUnavailable),
             "AI_FACE_REFERENCE_MISSING" => Some(Self::AiFaceReferenceMissing),
             "AI_FACE_REFERENCE_AMBIGUOUS" => Some(Self::AiFaceReferenceAmbiguous),
             "AI_FACE_TARGET_MISSING" => Some(Self::AiFaceTargetMissing),
@@ -12024,6 +12027,10 @@ pub struct CommittedAppRelease {
     pub launch_selector: ::prost::alloc::vec::Vec<u8>,
     #[prost(message, optional, tag = "12")]
     pub committed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(string, tag = "13")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "14")]
+    pub app_access: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppPackageJob {
@@ -12223,6 +12230,153 @@ pub struct StartAppPackageUpdateRequest {
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct StartAppPackageUpdateResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<AppPackageJob>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+/// Runtime-owned immutable local selection; never Registry admission.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppPackagePreview {
+    #[prost(bytes = "vec", tag = "1")]
+    pub candidate_selector: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "2")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub version: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub os: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub arch: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "7")]
+    pub app_access: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, tag = "8")]
+    pub windows_code_signing: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "9")]
+    pub observed_signing_subject: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, tag = "10")]
+    pub macos_notarization: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "11")]
+    pub macos_developer_id_subject: ::core::option::Option<
+        ::prost::alloc::string::String,
+    >,
+    #[prost(message, optional, tag = "12")]
+    pub expires_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(uint64, tag = "13")]
+    pub size: u64,
+    #[prost(message, optional, tag = "14")]
+    pub info: ::core::option::Option<AppPackageInfo>,
+}
+/// Publisher-authored content. It does not attest publisher identity or grant access.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AppPackageInfo {
+    #[prost(string, tag = "1")]
+    pub app_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub version: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub target_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub summary: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub icon_png_base64: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub readme_markdown: ::prost::alloc::string::String,
+    #[prost(string, tag = "8")]
+    pub release_notes_markdown: ::prost::alloc::string::String,
+    #[prost(string, tag = "9")]
+    pub license_identifier: ::prost::alloc::string::String,
+    #[prost(string, tag = "10")]
+    pub license_text: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "11")]
+    pub app_access: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    #[prost(string, repeated, tag = "12")]
+    pub capability_contract_refs: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, repeated, tag = "13")]
+    pub required_standardized_feature_refs: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    #[prost(string, tag = "14")]
+    pub storage_policy_kind: ::prost::alloc::string::String,
+    #[prost(message, repeated, tag = "15")]
+    pub os_storage_disclosure: ::prost::alloc::vec::Vec<
+        ApprovedAppCatalogStorageDisclosure,
+    >,
+    #[prost(string, tag = "16")]
+    pub author: ::prost::alloc::string::String,
+    #[prost(string, tag = "17")]
+    pub homepage_url: ::prost::alloc::string::String,
+    #[prost(string, tag = "18")]
+    pub support_url: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetAppPackageInfoRequest {
+    /// Select exactly one approved target OR installed handle + exact release ref.
+    #[prost(bytes = "vec", tag = "1")]
+    pub approved_target_selector: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub launch_selector: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "3")]
+    pub installed_release_ref: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetAppPackageInfoResponse {
+    #[prost(message, optional, tag = "1")]
+    pub info: ::core::option::Option<AppPackageInfo>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PrepareLocalAppPackageRequest {
+    #[prost(string, tag = "1")]
+    pub source_path: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PrepareLocalAppPackageResponse {
+    #[prost(message, optional, tag = "1")]
+    pub preview: ::core::option::Option<LocalAppPackagePreview>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DiscardLocalAppPackageRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub candidate_selector: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DiscardLocalAppPackageResponse {
+    #[prost(enumeration = "ReasonCode", tag = "1")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartLocalAppPackageInstallRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub candidate_selector: ::prost::alloc::vec::Vec<u8>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartLocalAppPackageInstallResponse {
+    #[prost(message, optional, tag = "1")]
+    pub job: ::core::option::Option<AppPackageJob>,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartLocalAppPackageUpdateRequest {
+    #[prost(bytes = "vec", tag = "1")]
+    pub candidate_selector: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes = "vec", tag = "2")]
+    pub launch_selector: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "3")]
+    pub installed_version: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct StartLocalAppPackageUpdateResponse {
     #[prost(message, optional, tag = "1")]
     pub job: ::core::option::Option<AppPackageJob>,
     #[prost(enumeration = "ReasonCode", tag = "2")]
@@ -12637,6 +12791,151 @@ pub mod runtime_app_package_service_client {
         pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
+        }
+        pub async fn get_app_package_info(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetAppPackageInfoRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetAppPackageInfoResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageInfo",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "GetAppPackageInfo",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn prepare_local_app_package(
+            &mut self,
+            request: impl tonic::IntoRequest<super::PrepareLocalAppPackageRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::PrepareLocalAppPackageResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/PrepareLocalAppPackage",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "PrepareLocalAppPackage",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn discard_local_app_package(
+            &mut self,
+            request: impl tonic::IntoRequest<super::DiscardLocalAppPackageRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::DiscardLocalAppPackageResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/DiscardLocalAppPackage",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "DiscardLocalAppPackage",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn start_local_app_package_install(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StartLocalAppPackageInstallRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::StartLocalAppPackageInstallResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageInstall",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "StartLocalAppPackageInstall",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn start_local_app_package_update(
+            &mut self,
+            request: impl tonic::IntoRequest<super::StartLocalAppPackageUpdateRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::StartLocalAppPackageUpdateResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageUpdate",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAppPackageService",
+                        "StartLocalAppPackageUpdate",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
         pub async fn list_approved_app_catalog_targets(
             &mut self,

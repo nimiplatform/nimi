@@ -1075,6 +1075,51 @@
       "source_file": "proto/runtime/v1/app.proto",
       "methods": [
         {
+          "name": "GetAppPackageInfo",
+          "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageInfo",
+          "kind": "unary",
+          "request_type": "GetAppPackageInfoRequest",
+          "response_type": "GetAppPackageInfoResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "PrepareLocalAppPackage",
+          "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/PrepareLocalAppPackage",
+          "kind": "unary",
+          "request_type": "PrepareLocalAppPackageRequest",
+          "response_type": "PrepareLocalAppPackageResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "DiscardLocalAppPackage",
+          "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/DiscardLocalAppPackage",
+          "kind": "unary",
+          "request_type": "DiscardLocalAppPackageRequest",
+          "response_type": "DiscardLocalAppPackageResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "StartLocalAppPackageInstall",
+          "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageInstall",
+          "kind": "unary",
+          "request_type": "StartLocalAppPackageInstallRequest",
+          "response_type": "StartLocalAppPackageInstallResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "StartLocalAppPackageUpdate",
+          "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageUpdate",
+          "kind": "unary",
+          "request_type": "StartLocalAppPackageUpdateRequest",
+          "response_type": "StartLocalAppPackageUpdateResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "ListApprovedAppCatalogTargets",
           "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets",
           "kind": "unary",
@@ -2411,16 +2456,21 @@
     "/nimi.runtime.v1.RuntimeAiVideoSessionService/ReadVideoSessionResult",
     "/nimi.runtime.v1.RuntimeAiVideoSessionService/SubmitVideoSessionFrame",
     "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob",
+    "/nimi.runtime.v1.RuntimeAppPackageService/DiscardLocalAppPackage",
+    "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageInfo",
     "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob",
     "/nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs",
     "/nimi.runtime.v1.RuntimeAppPackageService/ListApprovedAppCatalogTargets",
     "/nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases",
     "/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob",
+    "/nimi.runtime.v1.RuntimeAppPackageService/PrepareLocalAppPackage",
     "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob",
     "/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob",
     "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall",
     "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall",
     "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUpdate",
+    "/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageInstall",
+    "/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageUpdate",
     "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
     "/nimi.runtime.v1.RuntimeAppService/BindLocalAppProcess",
     "/nimi.runtime.v1.RuntimeAppService/CompleteAppPackageUninstall",
@@ -3438,6 +3488,22 @@
       "response_type": "CancelAppPackageJobResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/DiscardLocalAppPackage",
+      "service": "RuntimeAppPackageService",
+      "method": "DiscardLocalAppPackage",
+      "kind": "unary",
+      "request_type": "DiscardLocalAppPackageRequest",
+      "response_type": "DiscardLocalAppPackageResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageInfo",
+      "service": "RuntimeAppPackageService",
+      "method": "GetAppPackageInfo",
+      "kind": "unary",
+      "request_type": "GetAppPackageInfoRequest",
+      "response_type": "GetAppPackageInfoResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob",
       "service": "RuntimeAppPackageService",
       "method": "GetAppPackageJob",
@@ -3478,6 +3544,14 @@
       "response_type": "PauseAppPackageJobResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/PrepareLocalAppPackage",
+      "service": "RuntimeAppPackageService",
+      "method": "PrepareLocalAppPackage",
+      "kind": "unary",
+      "request_type": "PrepareLocalAppPackageRequest",
+      "response_type": "PrepareLocalAppPackageResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob",
       "service": "RuntimeAppPackageService",
       "method": "ReorderAppPackageJob",
@@ -3516,6 +3590,22 @@
       "kind": "unary",
       "request_type": "StartAppPackageUpdateRequest",
       "response_type": "StartAppPackageUpdateResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageInstall",
+      "service": "RuntimeAppPackageService",
+      "method": "StartLocalAppPackageInstall",
+      "kind": "unary",
+      "request_type": "StartLocalAppPackageInstallRequest",
+      "response_type": "StartLocalAppPackageInstallResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageUpdate",
+      "service": "RuntimeAppPackageService",
+      "method": "StartLocalAppPackageUpdate",
+      "kind": "unary",
+      "request_type": "StartLocalAppPackageUpdateRequest",
+      "response_type": "StartLocalAppPackageUpdateResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
@@ -5360,6 +5450,22 @@
       "response_type": "CancelAppPackageJobResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/DiscardLocalAppPackage",
+      "service": "RuntimeAppPackageService",
+      "method": "DiscardLocalAppPackage",
+      "kind": "unary",
+      "request_type": "DiscardLocalAppPackageRequest",
+      "response_type": "DiscardLocalAppPackageResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageInfo",
+      "service": "RuntimeAppPackageService",
+      "method": "GetAppPackageInfo",
+      "kind": "unary",
+      "request_type": "GetAppPackageInfoRequest",
+      "response_type": "GetAppPackageInfoResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob",
       "service": "RuntimeAppPackageService",
       "method": "GetAppPackageJob",
@@ -5400,6 +5506,14 @@
       "response_type": "PauseAppPackageJobResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/PrepareLocalAppPackage",
+      "service": "RuntimeAppPackageService",
+      "method": "PrepareLocalAppPackage",
+      "kind": "unary",
+      "request_type": "PrepareLocalAppPackageRequest",
+      "response_type": "PrepareLocalAppPackageResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob",
       "service": "RuntimeAppPackageService",
       "method": "ReorderAppPackageJob",
@@ -5438,6 +5552,22 @@
       "kind": "unary",
       "request_type": "StartAppPackageUpdateRequest",
       "response_type": "StartAppPackageUpdateResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageInstall",
+      "service": "RuntimeAppPackageService",
+      "method": "StartLocalAppPackageInstall",
+      "kind": "unary",
+      "request_type": "StartLocalAppPackageInstallRequest",
+      "response_type": "StartLocalAppPackageInstallResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageUpdate",
+      "service": "RuntimeAppPackageService",
+      "method": "StartLocalAppPackageUpdate",
+      "kind": "unary",
+      "request_type": "StartLocalAppPackageUpdateRequest",
+      "response_type": "StartLocalAppPackageUpdateResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAppService/AdoptLocalAppArtifact",
@@ -6472,6 +6602,7 @@
       "AppAIConfigPresetVoiceOptions",
       "AppAIConfigPresetVoiceOptionsQuery",
       "AppMessageEvent",
+      "AppPackageInfo",
       "AppPackageJob",
       "AppStorageProjection",
       "AppendInferenceAuditRequest",
@@ -6622,6 +6753,8 @@
       "DesktopAuditEventProjection",
       "DisableAutonomyRequest",
       "DisableAutonomyResponse",
+      "DiscardLocalAppPackageRequest",
+      "DiscardLocalAppPackageResponse",
       "EmbeddingVector",
       "EnableAutonomyRequest",
       "EnableAutonomyResponse",
@@ -6662,6 +6795,8 @@
       "GetAgentStateResponse",
       "GetAppAIConfigRequest",
       "GetAppAIConfigResponse",
+      "GetAppPackageInfoRequest",
+      "GetAppPackageInfoResponse",
       "GetAppPackageJobRequest",
       "GetAppPackageJobResponse",
       "GetAppStorageRequest",
@@ -6899,6 +7034,7 @@
       "LocalAppImageGenerateOutput",
       "LocalAppImageGenerateScenarioSpec",
       "LocalAppMusicGenerateJobSpec",
+      "LocalAppPackagePreview",
       "LocalAppScenarioArtifact",
       "LocalAppScenarioJob",
       "LocalAppScenarioJobEvent",
@@ -6999,6 +7135,8 @@
       "PrepareLoadoutResponse",
       "PrepareLocalAppLaunchRequest",
       "PrepareLocalAppLaunchResponse",
+      "PrepareLocalAppPackageRequest",
+      "PrepareLocalAppPackageResponse",
       "PreviewSharedLocalAgentAIProfileRequest",
       "PreviewSharedLocalAgentAIProfileResponse",
       "ProductControlProjectionJson",
@@ -7156,6 +7294,10 @@
       "StartAppPackageUninstallResponse",
       "StartAppPackageUpdateRequest",
       "StartAppPackageUpdateResponse",
+      "StartLocalAppPackageInstallRequest",
+      "StartLocalAppPackageInstallResponse",
+      "StartLocalAppPackageUpdateRequest",
+      "StartLocalAppPackageUpdateResponse",
       "StartLocalEnvironmentDependencyJobRequest",
       "StartLocalEnvironmentDependencyJobResponse",
       "StartProductControlCheckSyncRequest",
@@ -11187,6 +11329,138 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
+        "name": "AppPackageInfo",
+        "fields": [
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "version",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "target_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "summary",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "icon_png_base64",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "readme_markdown",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "release_notes_markdown",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "license_identifier",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "license_text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "app_access",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 11
+          },
+          {
+            "name": "capability_contract_refs",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "required_standardized_feature_refs",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "storage_policy_kind",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          },
+          {
+            "name": "os_storage_disclosure",
+            "type": "ApprovedAppCatalogStorageDisclosure",
+            "repeated": true,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "author",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 16
+          },
+          {
+            "name": "homepage_url",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 17
+          },
+          {
+            "name": "support_url",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 18
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "AppPackageJob",
         "fields": [
           {
@@ -14809,6 +15083,20 @@
             "repeated": false,
             "optional": false,
             "number": 12
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "app_access",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 14
           }
         ],
         "source_file": "proto/runtime/v1/app.proto"
@@ -16329,6 +16617,32 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "DiscardLocalAppPackageRequest",
+        "fields": [
+          {
+            "name": "candidate_selector",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "DiscardLocalAppPackageResponse",
+        "fields": [
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "EmbeddingVector",
         "fields": [
           {
@@ -17412,6 +17726,53 @@
           }
         ],
         "source_file": "proto/runtime/v1/capability_configuration.proto"
+      },
+      {
+        "name": "GetAppPackageInfoRequest",
+        "fields": [
+          {
+            "name": "approved_target_selector",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "launch_selector",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "installed_release_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "GetAppPackageInfoResponse",
+        "fields": [
+          {
+            "name": "info",
+            "type": "AppPackageInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
       },
       {
         "name": "GetAppPackageJobRequest",
@@ -24125,6 +24486,110 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "LocalAppPackagePreview",
+        "fields": [
+          {
+            "name": "candidate_selector",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "version",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "os",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "arch",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "app_access",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "windows_code_signing",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "observed_signing_subject",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 9
+          },
+          {
+            "name": "macos_notarization",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "macos_developer_id_subject",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 11
+          },
+          {
+            "name": "expires_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 12
+          },
+          {
+            "name": "size",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 13
+          },
+          {
+            "name": "info",
+            "type": "AppPackageInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 14
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "LocalAppScenarioArtifact",
         "fields": [
           {
@@ -28990,6 +29455,39 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
+        "name": "PrepareLocalAppPackageRequest",
+        "fields": [
+          {
+            "name": "source_path",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "PrepareLocalAppPackageResponse",
+        "fields": [
+          {
+            "name": "preview",
+            "type": "LocalAppPackagePreview",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
         "name": "PreviewSharedLocalAgentAIProfileRequest",
         "fields": [
           {
@@ -33534,6 +34032,86 @@
       },
       {
         "name": "StartAppPackageUpdateResponse",
+        "fields": [
+          {
+            "name": "job",
+            "type": "AppPackageJob",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "StartLocalAppPackageInstallRequest",
+        "fields": [
+          {
+            "name": "candidate_selector",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "StartLocalAppPackageInstallResponse",
+        "fields": [
+          {
+            "name": "job",
+            "type": "AppPackageJob",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "StartLocalAppPackageUpdateRequest",
+        "fields": [
+          {
+            "name": "candidate_selector",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "launch_selector",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "installed_version",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/app.proto"
+      },
+      {
+        "name": "StartLocalAppPackageUpdateResponse",
         "fields": [
           {
             "name": "job",
@@ -39197,6 +39775,7 @@
           "APP_PACKAGE_HOST_RUNNING",
           "APP_PACKAGE_UNINSTALL_FAILED",
           "APP_PACKAGE_UPDATE_UNAVAILABLE",
+          "APP_PACKAGE_INFO_UNAVAILABLE",
           "AI_FACE_REFERENCE_MISSING",
           "AI_FACE_REFERENCE_AMBIGUOUS",
           "AI_FACE_TARGET_MISSING",

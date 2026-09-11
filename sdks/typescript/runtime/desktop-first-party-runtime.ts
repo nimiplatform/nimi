@@ -105,6 +105,11 @@ export type NimiDesktopMachineProductRuntimeClient = {
   readonly apps: Pick<DesktopMachineProductRuntimeMethods,
     | 'listApprovedAppCatalogTargets'
     | 'startAppPackageInstall'
+    | 'prepareLocalAppPackage'
+    | 'getAppPackageInfo'
+    | 'discardLocalAppPackage'
+    | 'startLocalAppPackageInstall'
+    | 'startLocalAppPackageUpdate'
     | 'startAppPackageUpdate'
     | 'startAppPackageUninstall'
     | 'listCommittedAppReleases'
@@ -495,6 +500,11 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       apps: Object.freeze({
         listApprovedAppCatalogTargets: machineProductRuntime.listApprovedAppCatalogTargets,
           startAppPackageInstall: machineProductRuntime.startAppPackageInstall,
+          prepareLocalAppPackage: machineProductRuntime.prepareLocalAppPackage,
+          getAppPackageInfo: machineProductRuntime.getAppPackageInfo,
+          discardLocalAppPackage: machineProductRuntime.discardLocalAppPackage,
+          startLocalAppPackageInstall: machineProductRuntime.startLocalAppPackageInstall,
+          startLocalAppPackageUpdate: machineProductRuntime.startLocalAppPackageUpdate,
           startAppPackageUpdate: machineProductRuntime.startAppPackageUpdate,
           startAppPackageUninstall: machineProductRuntime.startAppPackageUninstall,
         listCommittedAppReleases: machineProductRuntime.listCommittedAppReleases,

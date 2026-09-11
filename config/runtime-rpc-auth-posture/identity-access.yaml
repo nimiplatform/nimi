@@ -18,9 +18,19 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppPackageService/ListCommittedAppReleases
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageInfo
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppPackageService/PrepareLocalAppPackage
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppPackageService/DiscardLocalAppPackage
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageInstall
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAppPackageService/StartLocalAppPackageUpdate
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageInstall
     posture: protected_origin_required
