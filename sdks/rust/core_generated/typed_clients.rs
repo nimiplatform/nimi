@@ -920,6 +920,7 @@ pub enum AppPackageJobPhase {
     APPPACKAGEJOBPHASECOMPLETED,
     APPPACKAGEJOBPHASEFAILED,
     APPPACKAGEJOBPHASECANCELED,
+    APPPACKAGEJOBPHASEPAUSED,
 }
 
 impl Default for AppPackageJobPhase {
@@ -4395,6 +4396,16 @@ pub struct AppPackageJob {
     pub terminal_result: Option<AppPackageTerminalResult>,
     pub reason_code: Option<String>,
     pub cancelable: Option<bool>,
+    pub queue_position: Option<u32>,
+    pub speed_bytes_per_sec: Option<u64>,
+    pub eta_seconds: Option<u64>,
+    pub progress_observed_at: Option<String>,
+    pub updated_at: Option<String>,
+    pub display_name: Option<String>,
+    pub target_version: Option<String>,
+    pub previous_version: Option<String>,
+    pub target_os: Option<String>,
+    pub target_arch: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -9083,6 +9094,17 @@ pub struct OverwriteSharedLocalAgentAIConfigResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct PauseAppPackageJobRequest {
+    pub job_id: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PauseAppPackageJobResponse {
+    pub job: Option<Box<AppPackageJob>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PauseLocalTransferRequest {
     pub install_session_id: Option<String>,
 }
@@ -9809,6 +9831,18 @@ pub struct RenewLocalAppSessionRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReorderAppPackageJobRequest {
+    pub job_id: Option<Vec<u8>>,
+    pub before_job_id: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReorderAppPackageJobResponse {
+    pub job: Option<Box<AppPackageJob>>,
+    pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RepairLocalEnvironmentDependencyRequest {
     pub environment_key: Option<String>,
     pub dependency_family: Option<String>,
@@ -9976,6 +10010,17 @@ pub struct ResponseFormat {
     pub schema_name: Option<String>,
     pub schema_description: Option<String>,
     pub strict: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ResumeAppPackageJobRequest {
+    pub job_id: Option<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ResumeAppPackageJobResponse {
+    pub job: Option<Box<AppPackageJob>>,
+    pub reason_code: Option<ReasonCode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

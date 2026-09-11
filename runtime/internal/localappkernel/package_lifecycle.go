@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"reflect"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -35,6 +37,7 @@ type PackageJobPhase string
 const (
 	PackageJobQueued             PackageJobPhase = "queued"
 	PackageJobDownloading        PackageJobPhase = "downloading"
+	PackageJobPaused             PackageJobPhase = "paused"
 	PackageJobReadingLocal       PackageJobPhase = "reading-local"
 	PackageJobVerifying          PackageJobPhase = "verifying"
 	PackageJobVerifyingInstalled PackageJobPhase = "verifying-installed"
@@ -57,33 +60,50 @@ const (
 )
 
 type PackageJob struct {
-	JobID          string
-	AppID          string
-	SourceClass    SourceClass
-	Kind           PackageJobKind
-	TargetRef      string
-	Phase          PackageJobPhase
-	ProgressBasis  PackageProgressBasis
-	BytesCompleted uint64
-	BytesTotal     *uint64
-	StepsCompleted uint64
-	StepsTotal     *uint64
-	StartedAt      time.Time
-	CompletedAt    *time.Time
-	TerminalResult string
-	ReasonCode     string
-	Cancelable     bool
+	JobID              string
+	AppID              string
+	SourceClass        SourceClass
+	Kind               PackageJobKind
+	TargetRef          string
+	Phase              PackageJobPhase
+	ProgressBasis      PackageProgressBasis
+	BytesCompleted     uint64
+	BytesTotal         *uint64
+	StepsCompleted     uint64
+	StepsTotal         *uint64
+	StartedAt          time.Time
+	CompletedAt        *time.Time
+	TerminalResult     string
+	ReasonCode         string
+	Cancelable         bool
+	QueueOrder         int64
+	QueuePosition      uint32
+	DisplayName        string
+	TargetVersion      string
+	PreviousVersion    string
+	TargetOS           string
+	TargetArch         string
+	PreviousRelease    *CommittedRelease
+	UpdatedAt          time.Time
+	SpeedBytesPerSec   uint64
+	EtaSeconds         uint64
+	ProgressObservedAt *time.Time
 }
 
 type BeginPackageJobInput struct {
-	AppID         string
-	SourceClass   SourceClass
-	Kind          PackageJobKind
-	TargetRef     string
-	ProgressBasis PackageProgressBasis
-	BytesTotal    *uint64
-	StepsTotal    *uint64
-	Cancelable    bool
+	AppID           string
+	SourceClass     SourceClass
+	Kind            PackageJobKind
+	TargetRef       string
+	ProgressBasis   PackageProgressBasis
+	BytesTotal      *uint64
+	StepsTotal      *uint64
+	Cancelable      bool
+	DisplayName     string
+	TargetVersion   string
+	TargetOS        string
+	TargetArch      string
+	PreviousRelease *CommittedRelease
 }
 
 type PackageJobProgress struct {
@@ -120,7 +140,11 @@ type CommitPackageReleaseResult struct {
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040b
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040c
-type PackageLifecycleStore struct{ kernel *Kernel }
+type PackageLifecycleStore struct {
+	kernel        *Kernel
+	observationMu sync.Mutex
+	observations  map[string]PackageJob
+}
 
 var packageLifecycleSchemaStatements = []string{
 	`CREATE TABLE IF NOT EXISTS app_package_job (
@@ -129,7 +153,7 @@ var packageLifecycleSchemaStatements = []string{
 		source_class TEXT NOT NULL CHECK(source_class IN ('verified','user_imported')),
 		kind TEXT NOT NULL CHECK(kind IN ('install','update','repair','uninstall')),
 		target_ref TEXT NOT NULL,
-		phase TEXT NOT NULL CHECK(phase IN ('queued','downloading','reading-local','verifying','verifying-installed','acquiring-missing','staging','committing','removing-package','unregistering','completed','failed','canceled')),
+		phase TEXT NOT NULL CHECK(phase IN ('queued','downloading','paused','reading-local','verifying','verifying-installed','acquiring-missing','staging','committing','removing-package','unregistering','completed','failed','canceled')),
 		progress_basis TEXT NOT NULL CHECK(progress_basis IN ('bytes','steps','indeterminate')),
 		bytes_completed INTEGER NOT NULL CHECK(bytes_completed >= 0),
 		bytes_total INTEGER CHECK(bytes_total IS NULL OR bytes_total >= 0),
@@ -140,8 +164,16 @@ var packageLifecycleSchemaStatements = []string{
 		terminal_result TEXT NOT NULL,
 		reason_code TEXT NOT NULL,
 		cancelable INTEGER NOT NULL CHECK(cancelable IN (0,1)),
+		queue_order INTEGER NOT NULL CHECK(queue_order >= 0),
+		display_name TEXT NOT NULL,
+		target_version TEXT NOT NULL,
+		target_os TEXT NOT NULL,
+		target_arch TEXT NOT NULL,
+		previous_release_json TEXT NOT NULL,
+		updated_unix_nano INTEGER NOT NULL,
 		CHECK((phase IN ('completed','failed','canceled') AND completed_unix_nano IS NOT NULL AND terminal_result <> '')
-		   OR (phase NOT IN ('completed','failed','canceled') AND completed_unix_nano IS NULL AND terminal_result = '' AND reason_code = ''))
+		   OR (phase = 'paused' AND completed_unix_nano IS NULL AND terminal_result = '' AND reason_code <> '')
+		   OR (phase NOT IN ('paused','completed','failed','canceled') AND completed_unix_nano IS NULL AND terminal_result = '' AND reason_code = ''))
 	)`,
 	`CREATE UNIQUE INDEX IF NOT EXISTS app_package_job_one_active_source
 		ON app_package_job(app_id, source_class)
@@ -196,13 +228,27 @@ func (store *PackageLifecycleStore) Begin(ctx context.Context, input BeginPackag
 		return PackageJob{}, err
 	}
 	now := store.kernel.now().UTC()
+	var queueOrder int64
+	if err := tx.QueryRowContext(ctx, `SELECT COALESCE(MAX(queue_order), 0) + 1 FROM app_package_job WHERE phase NOT IN ('completed','failed','canceled')`).Scan(&queueOrder); err != nil {
+		return PackageJob{}, fmt.Errorf("allocate App download queue position: %w", err)
+	}
+	previousJSON := ""
+	if input.PreviousRelease != nil {
+		raw, err := json.Marshal(input.PreviousRelease)
+		if err != nil {
+			return PackageJob{}, err
+		}
+		previousJSON = string(raw)
+	}
 	_, err = tx.ExecContext(ctx, `INSERT INTO app_package_job(
 		job_id, app_id, source_class, kind, target_ref, phase, progress_basis,
 		bytes_completed, bytes_total, steps_completed, steps_total, started_unix_nano,
-		completed_unix_nano, terminal_result, reason_code, cancelable
-	) VALUES (?, ?, ?, ?, ?, 'queued', ?, 0, ?, 0, ?, ?, NULL, '', '', ?)`,
+		completed_unix_nano, terminal_result, reason_code, cancelable,
+		queue_order, display_name, target_version, target_os, target_arch, previous_release_json, updated_unix_nano
+	) VALUES (?, ?, ?, ?, ?, 'queued', ?, 0, ?, 0, ?, ?, NULL, '', '', ?, ?, ?, ?, ?, ?, ?, ?)`,
 		jobID, input.AppID, string(input.SourceClass), string(input.Kind), input.TargetRef,
-		string(input.ProgressBasis), nullableUint64(input.BytesTotal), nullableUint64(input.StepsTotal), now.UnixNano(), boolInt(input.Cancelable))
+		string(input.ProgressBasis), nullableUint64(input.BytesTotal), nullableUint64(input.StepsTotal), now.UnixNano(), boolInt(input.Cancelable),
+		queueOrder, input.DisplayName, input.TargetVersion, input.TargetOS, input.TargetArch, previousJSON, now.UnixNano())
 	if err != nil {
 		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
 			return PackageJob{}, ErrPackageJobActive
@@ -212,19 +258,35 @@ func (store *PackageLifecycleStore) Begin(ctx context.Context, input BeginPackag
 	if err := store.kernel.commitTransaction(tx); err != nil {
 		return PackageJob{}, fmt.Errorf("commit App package job: %w", err)
 	}
-	return PackageJob{
+	job := PackageJob{
 		JobID: jobID, AppID: input.AppID, SourceClass: input.SourceClass, Kind: input.Kind,
 		TargetRef: input.TargetRef, Phase: PackageJobQueued, ProgressBasis: input.ProgressBasis,
 		BytesTotal: cloneUint64(input.BytesTotal), StepsTotal: cloneUint64(input.StepsTotal),
-		StartedAt: now, Cancelable: input.Cancelable,
-	}, nil
+		StartedAt: now, UpdatedAt: now, Cancelable: input.Cancelable,
+		QueueOrder: queueOrder, DisplayName: input.DisplayName, TargetVersion: input.TargetVersion,
+		TargetOS: input.TargetOS, TargetArch: input.TargetArch, PreviousRelease: input.PreviousRelease,
+	}
+	store.rememberJob(job)
+	return store.GetJob(ctx, jobID)
 }
 
 func (store *PackageLifecycleStore) GetJob(ctx context.Context, jobID string) (PackageJob, error) {
 	if store == nil || store.kernel == nil || requireExactText("job_id", jobID) != nil {
 		return PackageJob{}, ErrInvalidArgument
 	}
-	return loadPackageJob(ctx, store.kernel.db, jobID)
+	job, err := loadPackageJob(ctx, store.kernel.db, jobID)
+	if err != nil {
+		return PackageJob{}, err
+	}
+	job = store.projectObserved(job)
+	if isQueuedDownload(job) {
+		if err := store.kernel.db.QueryRowContext(ctx, `SELECT count(*) FROM app_package_job
+			WHERE phase = 'queued' AND source_class = 'verified' AND kind IN ('install','update')
+			AND (queue_order < ? OR (queue_order = ? AND job_id <= ?))`, job.QueueOrder, job.QueueOrder, job.JobID).Scan(&job.QueuePosition); err != nil {
+			return PackageJob{}, fmt.Errorf("read App download queue position: %w", err)
+		}
+	}
+	return job, nil
 }
 
 func (store *PackageLifecycleStore) GetActiveJob(ctx context.Context, appID string, sourceClass SourceClass) (PackageJob, error) {
@@ -249,8 +311,9 @@ func (store *PackageLifecycleStore) ListJobs(ctx context.Context) ([]PackageJob,
 	}
 	rows, err := store.kernel.db.QueryContext(ctx, `SELECT job_id, app_id, source_class, kind, target_ref, phase,
 		progress_basis, bytes_completed, bytes_total, steps_completed, steps_total, started_unix_nano,
-		completed_unix_nano, terminal_result, reason_code, cancelable FROM app_package_job
-		ORDER BY started_unix_nano, job_id`)
+		completed_unix_nano, terminal_result, reason_code, cancelable,
+		queue_order, display_name, target_version, target_os, target_arch, previous_release_json, updated_unix_nano FROM app_package_job
+		ORDER BY queue_order, job_id`)
 	if err != nil {
 		return nil, fmt.Errorf("list App package jobs: %w", err)
 	}
@@ -261,10 +324,17 @@ func (store *PackageLifecycleStore) ListJobs(ctx context.Context) ([]PackageJob,
 		if scanErr != nil {
 			return nil, scanErr
 		}
-		jobs = append(jobs, job)
+		jobs = append(jobs, store.projectObserved(job))
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate App package jobs: %w", err)
+	}
+	var position uint32
+	for index := range jobs {
+		if isQueuedDownload(jobs[index]) {
+			position++
+			jobs[index].QueuePosition = position
+		}
 	}
 	return jobs, nil
 }
@@ -290,13 +360,15 @@ func (store *PackageLifecycleStore) Advance(ctx context.Context, jobID string, e
 	if job.Phase != expected || !allowedPackagePhaseTransition(job.Kind, expected, next) {
 		return PackageJob{}, ErrPackageJobPhase
 	}
+	job = store.projectObserved(job)
 	if err := validateProgressAdvance(job, progress); err != nil {
 		return PackageJob{}, err
 	}
 	cancelable := job.Cancelable && next != PackageJobCommitting && next != PackageJobRemovingPackage && next != PackageJobUnregistering
-	result, err := tx.ExecContext(ctx, `UPDATE app_package_job SET phase = ?, bytes_completed = ?, steps_completed = ?, cancelable = ?
+	now := store.kernel.now().UTC()
+	result, err := tx.ExecContext(ctx, `UPDATE app_package_job SET phase = ?, bytes_completed = ?, steps_completed = ?, cancelable = ?, reason_code = '', updated_unix_nano = ?
 		WHERE job_id = ? AND phase = ? AND completed_unix_nano IS NULL`, string(next), progress.BytesCompleted,
-		progress.StepsCompleted, boolInt(cancelable), jobID, string(expected))
+		progress.StepsCompleted, boolInt(cancelable), now.UnixNano(), jobID, string(expected))
 	if err != nil {
 		return PackageJob{}, fmt.Errorf("advance App package job: %w", err)
 	}
@@ -306,6 +378,9 @@ func (store *PackageLifecycleStore) Advance(ctx context.Context, jobID string, e
 	if err := store.kernel.commitTransaction(tx); err != nil {
 		return PackageJob{}, fmt.Errorf("commit App package progress: %w", err)
 	}
+	job.Phase, job.BytesCompleted, job.StepsCompleted, job.Cancelable, job.UpdatedAt = next, progress.BytesCompleted, progress.StepsCompleted, cancelable, now
+	job.ReasonCode = ""
+	store.rememberJob(job)
 	return store.GetJob(ctx, jobID)
 }
 
@@ -343,8 +418,8 @@ func (store *PackageLifecycleStore) terminalize(ctx context.Context, jobID strin
 	}
 	now := store.kernel.now().UTC()
 	result, err := tx.ExecContext(ctx, `UPDATE app_package_job SET phase = ?, completed_unix_nano = ?,
-		terminal_result = ?, reason_code = ?, cancelable = 0 WHERE job_id = ? AND phase = ? AND completed_unix_nano IS NULL`,
-		string(terminal), now.UnixNano(), resultValue, reasonCode, jobID, string(expected))
+		terminal_result = ?, reason_code = ?, cancelable = 0, bytes_completed = 0, updated_unix_nano = ? WHERE job_id = ? AND phase = ? AND completed_unix_nano IS NULL`,
+		string(terminal), now.UnixNano(), resultValue, reasonCode, now.UnixNano(), jobID, string(expected))
 	if err != nil {
 		return PackageJob{}, fmt.Errorf("terminalize App package job: %w", err)
 	}
@@ -354,6 +429,7 @@ func (store *PackageLifecycleStore) terminalize(ctx context.Context, jobID strin
 	if err := store.kernel.commitTransaction(tx); err != nil {
 		return PackageJob{}, fmt.Errorf("commit terminal App package job: %w", err)
 	}
+	store.forgetJob(jobID)
 	return store.GetJob(ctx, jobID)
 }
 
@@ -432,6 +508,9 @@ func (store *PackageLifecycleStore) CommitPackageRelease(ctx context.Context, in
 	if currentErr == nil && input.Registration.ExistingRegistrationHandle != current.RegistrationHandle {
 		return CommitPackageReleaseResult{}, ErrStateConflict
 	}
+	if job.Kind == PackageJobUpdate && (job.PreviousRelease == nil || !reflect.DeepEqual(*job.PreviousRelease, current)) {
+		return CommitPackageReleaseResult{}, ErrRevisionConflict
+	}
 	if job.Kind == PackageJobRepair && !sameCommittedReleaseRepair(current, job.TargetRef, input) {
 		return CommitPackageReleaseResult{}, ErrStateConflict
 	}
@@ -459,8 +538,8 @@ func (store *PackageLifecycleStore) CommitPackageRelease(ctx context.Context, in
 		return CommitPackageReleaseResult{}, fmt.Errorf("write committed App release: %w", err)
 	}
 	result, err := tx.ExecContext(ctx, `UPDATE app_package_job SET phase = 'completed', completed_unix_nano = ?,
-		terminal_result = 'completed', reason_code = '', cancelable = 0
-		WHERE job_id = ? AND phase = 'committing' AND completed_unix_nano IS NULL`, now.UnixNano(), job.JobID)
+		terminal_result = 'completed', reason_code = '', cancelable = 0, updated_unix_nano = ?
+		WHERE job_id = ? AND phase = 'committing' AND completed_unix_nano IS NULL`, now.UnixNano(), now.UnixNano(), job.JobID)
 	if err != nil {
 		return CommitPackageReleaseResult{}, fmt.Errorf("complete App package job: %w", err)
 	}
@@ -470,6 +549,7 @@ func (store *PackageLifecycleStore) CommitPackageRelease(ctx context.Context, in
 	if err := store.kernel.commitTransaction(tx); err != nil {
 		return CommitPackageReleaseResult{}, fmt.Errorf("commit App release and registration: %w", err)
 	}
+	store.forgetJob(job.JobID)
 	completed, err := store.GetJob(ctx, job.JobID)
 	if err != nil {
 		return CommitPackageReleaseResult{}, err
@@ -555,6 +635,7 @@ func (store *PackageLifecycleStore) CompleteUninstall(ctx context.Context, jobID
 	if err := store.kernel.commitTransaction(tx); err != nil {
 		return PackageJob{}, fmt.Errorf("commit App uninstall completion: %w", err)
 	}
+	store.forgetJob(jobID)
 	return store.GetJob(ctx, job.JobID)
 }
 
@@ -564,6 +645,9 @@ func validateBeginPackageJob(input BeginPackageJobInput) error {
 	}
 	if input.BytesTotal != nil && *input.BytesTotal > math.MaxInt64 || input.StepsTotal != nil && *input.StepsTotal > math.MaxInt64 {
 		return ErrPackageJobProgress
+	}
+	if input.PreviousRelease != nil && (input.Kind != PackageJobUpdate || input.PreviousRelease.AppID != input.AppID || input.PreviousRelease.SourceClass != input.SourceClass) {
+		return ErrInvalidArgument
 	}
 	switch input.ProgressBasis {
 	case PackageProgressBytes:
@@ -642,7 +726,8 @@ type packageLifecycleRowScanner interface {
 func loadPackageJob(ctx context.Context, query registrationQuerier, jobID string) (PackageJob, error) {
 	return scanPackageJob(query.QueryRowContext(ctx, `SELECT job_id, app_id, source_class, kind, target_ref, phase,
 		progress_basis, bytes_completed, bytes_total, steps_completed, steps_total, started_unix_nano,
-		completed_unix_nano, terminal_result, reason_code, cancelable FROM app_package_job WHERE job_id = ?`, jobID))
+		completed_unix_nano, terminal_result, reason_code, cancelable,
+		queue_order, display_name, target_version, target_os, target_arch, previous_release_json, updated_unix_nano FROM app_package_job WHERE job_id = ?`, jobID))
 }
 
 func scanPackageJob(row packageLifecycleRowScanner) (PackageJob, error) {
@@ -651,10 +736,13 @@ func scanPackageJob(row packageLifecycleRowScanner) (PackageJob, error) {
 	var bytesCompleted, stepsCompleted, started int64
 	var bytesTotal, stepsTotal, completed sql.NullInt64
 	var cancelable int
+	var previousJSON string
+	var updated int64
 	err := row.Scan(
 		&job.JobID, &job.AppID, &sourceClass, &kind, &job.TargetRef, &phase, &basis,
 		&bytesCompleted, &bytesTotal, &stepsCompleted, &stepsTotal, &started, &completed,
-		&job.TerminalResult, &job.ReasonCode, &cancelable)
+		&job.TerminalResult, &job.ReasonCode, &cancelable,
+		&job.QueueOrder, &job.DisplayName, &job.TargetVersion, &job.TargetOS, &job.TargetArch, &previousJSON, &updated)
 	if errors.Is(err, sql.ErrNoRows) {
 		return PackageJob{}, ErrPackageJobNotFound
 	}
@@ -670,6 +758,15 @@ func scanPackageJob(row packageLifecycleRowScanner) (PackageJob, error) {
 		job.CompletedAt = &value
 	}
 	job.Cancelable = cancelable == 1
+	job.UpdatedAt = time.Unix(0, updated).UTC()
+	if previousJSON != "" {
+		if err := json.Unmarshal([]byte(previousJSON), &job.PreviousRelease); err != nil {
+			return PackageJob{}, fmt.Errorf("read App update baseline: %w", err)
+		}
+		if job.PreviousRelease != nil {
+			job.PreviousVersion = job.PreviousRelease.Version
+		}
+	}
 	return job, nil
 }
 

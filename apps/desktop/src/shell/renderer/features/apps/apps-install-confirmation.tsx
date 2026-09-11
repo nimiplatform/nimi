@@ -24,6 +24,7 @@ export function AppsInstallConfirmationDialog({
       message={intent ? (
         <div className="space-y-3">
           {intent.update ? <p>{t('Apps.update.confirmMessage', { from: intent.update.installedVersion, to: intent.version })}</p> : null}
+          {intent.update ? <p>{t('Apps.downloads.updateUnavailable', { version: intent.update.installedVersion })}</p> : null}
           {intent.windowsCodeSigning === 'unsigned' ? <p>{t('Apps.catalog.unsignedConfirmMessage')}</p> : null}
           {intent.os === 'macos' && intent.macosNotarization === 'absent' ? <p>{t(intent.observedSigningSubject ? 'Apps.catalog.macosUnnotarizedConfirmMessage' : 'Apps.catalog.macosUnsignedConfirmMessage')}</p> : null}
           <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 font-mono text-xs">

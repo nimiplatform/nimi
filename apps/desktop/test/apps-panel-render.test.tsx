@@ -392,7 +392,7 @@ test('Runtime committed version and cancelable package job render without enabli
     projection: { status: 'loaded', entries: [installed], catalogStatus: 'not-implemented', runtimeError: null },
   }));
   assert.ok(cardMarkup.includes('Installed 1.0.0'));
-  assert.ok(cardMarkup.includes('Downloading package · 50%'));
+  assert.ok(cardMarkup.includes('Downloading package · 50 B / 100 B'));
   assert.equal(cardMarkup.includes(`apps-entry-${installed.identity.entryKey}-launch`), false);
 
   const detailMarkup = renderView(baseProps({

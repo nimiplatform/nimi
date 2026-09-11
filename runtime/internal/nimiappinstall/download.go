@@ -39,6 +39,12 @@ type DownloadedPackage struct {
 	SHA256 [sha256.Size]byte
 }
 
+type DownloadHooks struct {
+	Progress               filedownload.ProgressFunc
+	TransferComplete       func() error
+	PreservePartialOnError func(error) bool
+}
+
 type Downloader struct {
 	client      *http.Client
 	retryDelays []time.Duration
@@ -81,6 +87,7 @@ func (downloader *Downloader) Download(
 	ctx context.Context,
 	resolved publicappregistry.ResolvedApprovedTarget,
 	ownerRoot *os.Root,
+	hooks DownloadHooks,
 ) (DownloadedPackage, error) {
 	if ctx == nil || downloader == nil || downloader.client == nil {
 		return DownloadedPackage{}, fmt.Errorf("download public App package: %w", ErrInvalidDownloadTarget)
@@ -95,13 +102,14 @@ func (downloader *Downloader) Download(
 	if resolved.Target.AssetURL != expectedAssetURL {
 		return DownloadedPackage{}, fmt.Errorf("validate approved public App asset lineage: %w", ErrInvalidDownloadTarget)
 	}
-	return downloader.downloadTarget(ctx, resolved.Target, ownerRoot)
+	return downloader.downloadTarget(ctx, resolved.Target, ownerRoot, hooks)
 }
 
 func (downloader *Downloader) downloadTarget(
 	ctx context.Context,
 	target publicappregistry.Target,
 	ownerRoot *os.Root,
+	hooks DownloadHooks,
 ) (DownloadedPackage, error) {
 	if ctx == nil || downloader == nil || downloader.client == nil {
 		return DownloadedPackage{}, fmt.Errorf("download public App package: %w", ErrInvalidDownloadTarget)
@@ -113,8 +121,18 @@ func (downloader *Downloader) downloadTarget(
 	if err != nil {
 		return DownloadedPackage{}, err
 	}
-	if _, err := ownerRoot.Lstat(downloadedPackageName); err == nil {
-		return DownloadedPackage{}, ErrDownloadDestination
+	if final, err := ownerRoot.Lstat(downloadedPackageName); err == nil {
+		if !final.Mode().IsRegular() || final.Size() != target.Size {
+			return DownloadedPackage{}, ErrDownloadDestination
+		}
+		if _, err := ownerRoot.Lstat(downloadedPackageName + ".download"); !errors.Is(err, os.ErrNotExist) {
+			return DownloadedPackage{}, ErrDownloadDestination
+		}
+		// Re-enter the shared core's complete-partial verification path. It
+		// hashes the entire retained package before promoting it again.
+		if err := ownerRoot.Rename(downloadedPackageName, downloadedPackageName+".download"); err != nil {
+			return DownloadedPackage{}, fmt.Errorf("prepare retained App package: %w", err)
+		}
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return DownloadedPackage{}, fmt.Errorf("inspect public App package destination: %w", errors.Join(ErrDownloadDestination, err))
 	}
@@ -134,9 +152,10 @@ func (downloader *Downloader) downloadTarget(
 			"Accept-Encoding": []string{"identity"},
 			"User-Agent":      []string{"nimi-runtime-public-app-installer/1"},
 		},
-		ExpectedSHA256: target.SHA256, MaxBodyBytes: target.Size,
+		ExpectedSHA256: target.SHA256, ExpectedSize: target.Size, MaxBodyBytes: target.Size,
 		MaxAttempts: len(downloader.retryDelays) + 1, RetryDelays: downloader.retryDelays,
 		IsTransient: transientDownloadError,
+		Progress:    hooks.Progress, TransferComplete: hooks.TransferComplete, PreservePartialOnError: hooks.PreservePartialOnError,
 	})
 	if err != nil {
 		return DownloadedPackage{}, fmt.Errorf("download public App package: %w", errors.Join(ErrDownloadedPackage, err))

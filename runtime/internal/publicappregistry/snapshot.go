@@ -10,6 +10,7 @@ import (
 	"mime"
 	"net/http"
 	"net/url"
+	"reflect"
 	"regexp"
 	goruntime "runtime"
 	"sort"
@@ -482,6 +483,10 @@ func (c *Client) Load(ctx context.Context) (*Snapshot, error) {
 	if err != nil {
 		return nil, fmt.Errorf("resolve public App Registry main revision: %w", err)
 	}
+	return c.loadAt(ctx, revision)
+}
+
+func (c *Client) loadAt(ctx context.Context, revision string) (*Snapshot, error) {
 	if !commitSHAPattern.MatchString(revision) {
 		return nil, fmt.Errorf("resolve public App Registry main revision: %w", ErrInvalidRegistrySnapshot)
 	}
@@ -541,16 +546,9 @@ func (s *Snapshot) resolve(ctx context.Context, appID, targetID string) (Resolve
 	if err := validateDescriptorPointer(appID, pointer); err != nil {
 		return ResolvedApprovedTarget{}, err
 	}
-	rawDescriptor, err := s.source.readAt(ctx, s.revision, pointer.Path, maxDescriptorDocumentLen)
+	descriptor, err := s.readDescriptor(ctx, pointer.Path)
 	if err != nil {
-		return ResolvedApprovedTarget{}, fmt.Errorf("read approved App descriptor: %w", err)
-	}
-	if err := validateSchemaDocument(s.descriptorSchema, rawDescriptor); err != nil {
-		return ResolvedApprovedTarget{}, fmt.Errorf("validate approved App descriptor schema: %w", err)
-	}
-	var descriptor approvedDescriptorDocument
-	if err := jsonstrict.Decode(rawDescriptor, &descriptor); err != nil {
-		return ResolvedApprovedTarget{}, fmt.Errorf("decode approved App descriptor: %w", errors.Join(ErrInvalidRegistrySnapshot, err))
+		return ResolvedApprovedTarget{}, err
 	}
 	if descriptor.Candidate.DisplayName != row.DisplayName {
 		return ResolvedApprovedTarget{}, ErrInvalidRegistrySnapshot
@@ -565,9 +563,26 @@ func (s *Snapshot) resolve(ctx context.Context, appID, targetID string) (Resolve
 	return resolvedApprovedTarget(selector, descriptor, target, row, s.revision), nil
 }
 
+func (s *Snapshot) readDescriptor(ctx context.Context, path string) (approvedDescriptorDocument, error) {
+	rawDescriptor, err := s.source.readAt(ctx, s.revision, path, maxDescriptorDocumentLen)
+	if err != nil {
+		return approvedDescriptorDocument{}, fmt.Errorf("read approved App descriptor: %w", err)
+	}
+	if err := validateSchemaDocument(s.descriptorSchema, rawDescriptor); err != nil {
+		return approvedDescriptorDocument{}, fmt.Errorf("validate approved App descriptor schema: %w", err)
+	}
+	var descriptor approvedDescriptorDocument
+	if err := jsonstrict.Decode(rawDescriptor, &descriptor); err != nil {
+		return approvedDescriptorDocument{}, fmt.Errorf("decode approved App descriptor: %w", errors.Join(ErrInvalidRegistrySnapshot, err))
+	}
+	return descriptor, nil
+}
+
 // Revalidate resolves a previously issued selector against the current
 // canonical main snapshot. Active policy wins over staleness; a newer pointer
-// is never silently substituted.
+// is never silently substituted. Unrelated Registry commits do not invalidate
+// an unchanged selected descriptor and target pointer.
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040b
 func (c *Client) Revalidate(ctx context.Context, selector ApprovedTargetSelector) (ResolvedApprovedTarget, error) {
 	if !selector.valid() {
 		return ResolvedApprovedTarget{}, ErrInvalidSelector
@@ -591,12 +606,30 @@ func (c *Client) Revalidate(ctx context.Context, selector ApprovedTargetSelector
 		}
 		return ResolvedApprovedTarget{}, &PolicyBlockedError{Reason: reason, Revision: row.KillSwitch.Revision}
 	}
-	if snapshot.revision != selector.observedRegistryCommit {
-		return ResolvedApprovedTarget{}, ErrStaleSelection
-	}
 	pointer, ok := row.LatestAdmittedReleaseByTarget[selector.targetID]
 	if !ok || pointer.DescriptorID != selector.descriptorID {
 		return ResolvedApprovedTarget{}, ErrStaleSelection
+	}
+	if snapshot.revision != selector.observedRegistryCommit {
+		observed, err := c.loadAt(ctx, selector.observedRegistryCommit)
+		if err != nil {
+			return ResolvedApprovedTarget{}, err
+		}
+		observedRow, ok := observed.index.Apps[appID]
+		if !ok || observedRow.Visibility != "public" || observedRow.LatestAdmittedReleaseByTarget[selector.targetID] != pointer {
+			return ResolvedApprovedTarget{}, ErrStaleSelection
+		}
+		selectedDescriptor, err := observed.readDescriptor(ctx, pointer.Path)
+		if err != nil {
+			return ResolvedApprovedTarget{}, err
+		}
+		currentDescriptor, err := snapshot.readDescriptor(ctx, pointer.Path)
+		if err != nil {
+			return ResolvedApprovedTarget{}, err
+		}
+		if !reflect.DeepEqual(selectedDescriptor, currentDescriptor) {
+			return ResolvedApprovedTarget{}, ErrStaleSelection
+		}
 	}
 	resolved, err := snapshot.resolve(ctx, appID, selector.targetID)
 	if err != nil {
@@ -608,6 +641,10 @@ func (c *Client) Revalidate(ctx context.Context, selector ApprovedTargetSelector
 	if resolved.DescriptorID != selector.descriptorID {
 		return ResolvedApprovedTarget{}, ErrStaleSelection
 	}
+	// Keep download lineage bound to the user's original observation; current
+	// admission and operational policy were independently checked above.
+	resolved.Selector = selector
+	resolved.RegistryRevision = selector.observedRegistryCommit
 	return resolved, nil
 }
 

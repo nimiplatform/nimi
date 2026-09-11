@@ -8,6 +8,7 @@ test('installed host keeps exact process, focus, stop and Access independent', a
   const selector = [...new TextEncoder().encode('opaque-committed-selector')];
   let launches = 0;
   let focuses = 0;
+  let focusFails = false;
   let running = false;
   let access = false;
   let accessPending = false;
@@ -15,7 +16,7 @@ test('installed host keeps exact process, focus, stop and Access independent', a
   const control: NimiElectronInstalledAppControl = {
     async launch(bytes) { assert.deepEqual([...bytes], selector); launches += 1; running = true; return { launchId: '11'.repeat(32), processId: 123, appId: 'example', version: '1.0.0' }; },
     async status() { return { running, exitCode: running ? null : 0 }; },
-    async focus() { focuses += 1; },
+    async focus() { focuses += 1; if (focusFails) throw new Error('activation declined'); },
     async stop() { running = false; },
     async end() { assert.equal(running, false); },
     async completeUninstall() { assert.equal(running, false); },
@@ -41,6 +42,21 @@ test('installed host keeps exact process, focus, stop and Access independent', a
   assert.ok(projectedRuns[0]);
   run = projectedRuns[0];
   assert.equal(run.accessAvailable, true);
+  for (const retryCommand of ['installed_app_launch', 'installed_app_focus']) {
+    focusFails = true;
+    run = await call('installed_app_launch') as InstalledAppRun;
+    assert.equal(run.state, 'running');
+    assert.equal(run.accessAvailable, true);
+    assert.ok(run.message);
+    assert.ok(run.reasonCode);
+    focusFails = false;
+    run = await call(retryCommand) as InstalledAppRun;
+    assert.equal(run.message, '', 'successful activation clears the previous action failure');
+    assert.equal(run.reasonCode, undefined);
+    assert.equal(run.state, 'running');
+    assert.equal(run.accessAvailable, true);
+    assert.equal(launches, 1, 'focus recovery keeps the existing App process');
+  }
   accessPending = true;
   const stalePoll = call('installed_app_runs_list');
   await new Promise<void>((resolve) => setImmediate(resolve));

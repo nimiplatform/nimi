@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"strings"
 	"testing"
@@ -17,6 +18,7 @@ const testRevisionB = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 type memoryDocumentSource struct {
 	revision  string
 	documents map[string][]byte
+	snapshots map[string]map[string][]byte
 	reads     []memoryDocumentRead
 }
 
@@ -31,7 +33,11 @@ func (s *memoryDocumentSource) resolveMainRevision(context.Context) (string, err
 
 func (s *memoryDocumentSource) readAt(_ context.Context, revision, documentPath string, _ int64) ([]byte, error) {
 	s.reads = append(s.reads, memoryDocumentRead{revision: revision, path: documentPath})
-	raw, ok := s.documents[documentPath]
+	documents := s.documents
+	if snapshot, ok := s.snapshots[revision]; ok {
+		documents = snapshot
+	}
+	raw, ok := documents[documentPath]
 	if !ok {
 		return nil, errors.New("missing test document")
 	}
@@ -143,10 +149,86 @@ func TestRevalidateProjectsPolicyBeforeStalenessAndNeverSubstitutesLatest(t *tes
 	}
 
 	row.KillSwitch = KillSwitch{Active: false, Reason: nil, Revision: 8}
+	row.LatestAdmittedReleaseByTarget["windows-x86_64"] = descriptorPointer{
+		DescriptorID: descriptor.Candidate.AppID + "@2.0.0",
+		Path:         expectedDescriptorPath(descriptor.Candidate.AppID, "2.0.0"),
+	}
 	index.Apps[descriptor.Candidate.AppID] = row
 	source.documents[indexDocumentPath] = mustJSON(t, index)
 	if _, err := client.Revalidate(context.Background(), resolved.Selector); !errors.Is(err, ErrStaleSelection) {
-		t.Fatalf("changed Registry revision was not stale: %v", err)
+		t.Fatalf("changed target pointer was not stale: %v", err)
+	}
+}
+
+func TestRevalidateSurvivesUnrelatedRegistryCommit(t *testing.T) {
+	ctx := context.Background()
+	descriptor := validDescriptorDocument()
+	source := validMemorySource(t, testRevisionA, descriptor)
+	client := &Client{source: source}
+	snapshot, err := client.Load(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	selected, err := snapshot.Resolve(ctx, descriptor.Candidate.AppID, "windows-x86_64", "windows", "x86_64")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source.snapshots = map[string]map[string][]byte{testRevisionA: maps.Clone(source.documents)}
+	source.revision = testRevisionB
+	index := validIndexDocument(descriptor)
+	other := validIndexDocument(descriptor).Apps[descriptor.Candidate.AppID]
+	other.DisplayName = "Another App"
+	other.LatestAdmittedReleaseByTarget["windows-x86_64"] = descriptorPointer{
+		DescriptorID: "publisher.another-app@1.0.0",
+		Path:         expectedDescriptorPath("publisher.another-app", "1.0.0"),
+	}
+	index.Apps["publisher.another-app"] = other
+	row := index.Apps[descriptor.Candidate.AppID]
+	row.KillSwitch.Revision++
+	index.Apps[descriptor.Candidate.AppID] = row
+	source.documents[indexDocumentPath] = mustJSON(t, index)
+
+	current, err := client.Revalidate(ctx, selected.Selector)
+	if err != nil {
+		t.Fatalf("unrelated App admission invalidated the selected download: %v", err)
+	}
+	if current.Selector != selected.Selector || current.RegistryRevision != testRevisionA || current.Target.SHA256 != selected.Target.SHA256 {
+		t.Fatalf("selected download lineage changed: %+v", current)
+	}
+	if current.KillSwitch.Revision != row.KillSwitch.Revision {
+		t.Fatalf("current policy was not observed: %+v", current.KillSwitch)
+	}
+}
+
+func TestRevalidateRejectsSelectedDescriptorDrift(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		change func(*approvedDescriptorDocument)
+	}{
+		{"asset digest", func(d *approvedDescriptorDocument) { d.Candidate.Targets[0].SHA256 = strings.Repeat("e", 64) }},
+		{"publisher submission", func(d *approvedDescriptorDocument) { d.PublisherSubmission.HeadSHA = strings.Repeat("f", 40) }},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			descriptor := validDescriptorDocument()
+			source := validMemorySource(t, testRevisionA, descriptor)
+			client := &Client{source: source}
+			snapshot, err := client.Load(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			selected, err := snapshot.Resolve(ctx, descriptor.Candidate.AppID, "windows-x86_64", "windows", "x86_64")
+			if err != nil {
+				t.Fatal(err)
+			}
+			source.snapshots = map[string]map[string][]byte{testRevisionA: maps.Clone(source.documents)}
+			source.revision = testRevisionB
+			test.change(&descriptor)
+			source.documents[expectedDescriptorPath(descriptor.Candidate.AppID, descriptor.Candidate.Version)] = mustJSON(t, descriptor)
+			if _, err := client.Revalidate(ctx, selected.Selector); !errors.Is(err, ErrStaleSelection) {
+				t.Fatalf("selected descriptor drift = %v, want stale selection", err)
+			}
+		})
 	}
 }
 

@@ -13,15 +13,23 @@ import (
 )
 
 type productControlRuntimeRootHandoff struct {
-	registry  *activeRPCRegistry
-	ai        *aiservice.Service
-	agent     *runtimeagentservice.Service
-	cognition *cognitionservice.Service
-	backend   *runtimepersistence.Backend
+	registry    *activeRPCRegistry
+	ai          *aiservice.Service
+	agent       *runtimeagentservice.Service
+	cognition   *cognitionservice.Service
+	backend     *runtimepersistence.Backend
+	appPackages appPackageRootHandoff
 
 	mu        sync.Mutex
 	prepared  bool
 	committed bool
+}
+
+// App package workers outlive their start RPC. They must settle their own I/O
+// and commit boundaries before Product Control can activate another root.
+type appPackageRootHandoff interface {
+	QuiesceDataRootContext(context.Context) error
+	ResumeDataRootAfterAbort()
 }
 
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007a
@@ -38,6 +46,11 @@ func (h *productControlRuntimeRootHandoff) CloseRootAdmission(ctx context.Contex
 	h.mu.Unlock()
 	if err := h.registry.CloseRootAdmission(ctx); err != nil {
 		return err
+	}
+	if h.appPackages != nil {
+		if err := h.appPackages.QuiesceDataRootContext(ctx); err != nil {
+			return fmt.Errorf("quiesce App package owner: %w", err)
+		}
 	}
 	if h.agent != nil {
 		if err := h.agent.QuiesceDataRootContext(ctx); err != nil {
@@ -73,6 +86,9 @@ func (h *productControlRuntimeRootHandoff) AbortRootHandoff() {
 	}
 	h.prepared = false
 	h.mu.Unlock()
+	if h.appPackages != nil {
+		h.appPackages.ResumeDataRootAfterAbort()
+	}
 	if h.agent != nil {
 		h.agent.ResumeDataRootAfterAbort()
 	}

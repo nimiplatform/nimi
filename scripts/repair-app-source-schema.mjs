@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // One-time repair for pre-cutover App source and installed-shell data roots.
 // Explicit tooling only: never invoked by Runtime startup or installation.
-import { closeSync, existsSync, openSync } from 'node:fs';
+import { closeSync, existsSync, openSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { backup, DatabaseSync } from 'node:sqlite';
 import { parseArgs } from 'node:util';
@@ -9,6 +9,10 @@ import { pathToFileURL } from 'node:url';
 
 const tables = ['canonical_registration', 'app_package_job', 'committed_app_release'];
 const compact = (sql) => sql.toLowerCase().replace(/\s+/g, '');
+const downloadQueueValues = {
+  queue_order: '0', display_name: "''", target_version: "''", target_os: "''", target_arch: "''",
+  previous_release_json: "''", updated_unix_nano: 'started_unix_nano',
+};
 
 function widenConstraint(sql, before, after, table) {
   if (compact(sql).includes(compact(after))) return sql;
@@ -37,7 +41,27 @@ function repairPlan(db) {
       }
     }
     if (table === 'app_package_job') {
-      sql = widenConstraint(sql, "'queued','downloading','verifying'", "'queued','downloading','reading-local','verifying'", table);
+      if (!sql.includes("'reading-local'")) {
+        sql = widenConstraint(sql, "'queued','downloading','verifying'", "'queued','downloading','reading-local','verifying'", table);
+      }
+      const columns = new Set(db.prepare('PRAGMA table_info(app_package_job)').all().map(({ name }) => name));
+      const present = Object.keys(downloadQueueValues).filter((name) => columns.has(name));
+      if (present.length !== 0 && present.length !== Object.keys(downloadQueueValues).length) {
+        throw new Error('Unsupported partial App download queue schema');
+      }
+      if (present.length === 0) {
+        const active = db.prepare("SELECT COUNT(*) AS count FROM app_package_job WHERE phase NOT IN ('completed','failed','canceled')").get();
+        if (active.count !== 0) {
+          throw new Error('Finish or cancel active App package jobs in the current Runtime before this one-time schema repair');
+        }
+        // The tool uses the current owner DDL instead of maintaining another
+        // schema. Historical terminal jobs keep their facts; missing display
+        // metadata and an old update baseline are never invented.
+        const source = readFileSync(new URL('../runtime/internal/localappkernel/package_lifecycle.go', import.meta.url), 'utf8');
+        const current = source.match(/`(CREATE TABLE IF NOT EXISTS app_package_job \([\s\S]*?)`/);
+        if (!current) throw new Error('Current App package owner DDL is unavailable');
+        sql = current[1];
+      }
     }
     return sql === row.sql ? [] : [{ table, sql, repairInstalledShellKind }];
   });
@@ -70,9 +94,16 @@ export async function repairAppSourceSchema(dbPath, { apply = false, backupPath 
         const create = sql.replace(/^CREATE TABLE\s+(?:IF NOT EXISTS\s+)?(?:"[^"]+"|\w+)/i, `CREATE TABLE "${temporary}"`);
         db.exec(create);
         const columns = db.prepare(`PRAGMA table_info("${table}")`).all();
-        const values = columns.map(({ name }) => repairInstalledShellKind && name === 'shell_kind'
-          ? "CASE WHEN source_class IN ('verified','user_imported') THEN 0 ELSE shell_kind END"
-          : `"${name.replaceAll('"', '""')}"`).join(', ');
+        const oldNames = new Set(columns.map(({ name }) => name));
+        const newColumns = db.prepare(`PRAGMA table_info("${temporary}")`).all();
+        const newNames = new Set(newColumns.map(({ name }) => name));
+        if (columns.some(({ name }) => !newNames.has(name))) throw new Error(`Unsupported ${table} columns would be lost`);
+        const values = newColumns.map(({ name }) => {
+          if (repairInstalledShellKind && name === 'shell_kind') return "CASE WHEN source_class IN ('verified','user_imported') THEN 0 ELSE shell_kind END";
+          if (oldNames.has(name)) return `"${name.replaceAll('"', '""')}"`;
+          if (table === 'app_package_job' && Object.hasOwn(downloadQueueValues, name)) return downloadQueueValues[name];
+          throw new Error(`No explicit value for new ${table}.${name}`);
+        }).join(', ');
         db.exec(`INSERT INTO "${temporary}" SELECT ${values} FROM "${table}"`);
         db.exec(`DROP TABLE "${table}"`);
         db.exec(`ALTER TABLE "${temporary}" RENAME TO "${table}"`);

@@ -30,6 +30,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
 
   const {
     activeDownloads,
+    observedAtBySessionId,
     activeImports,
     terminalDownloads,
     terminalImports,
@@ -77,6 +78,7 @@ export function useLocalModelCenterImportActions(input: UseLocalModelCenterImpor
 
   return {
     activeDownloads,
+    observedAtBySessionId,
     activeImports,
     terminalDownloads,
     terminalImports,

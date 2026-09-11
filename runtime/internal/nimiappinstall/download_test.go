@@ -63,7 +63,7 @@ func TestDownloaderConsumesExactGitHubReleaseAsset(t *testing.T) {
 		return downloadResponse(http.StatusOK, request, payload), nil
 	}), nil)
 	ownerRoot, ownerPath := openDownloadRoot(t)
-	result, err := downloader.downloadTarget(context.Background(), target, ownerRoot)
+	result, err := downloader.downloadTarget(context.Background(), target, ownerRoot, DownloadHooks{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestDownloaderRejectsUnissuedResolvedSelection(t *testing.T) {
 		return nil, nil
 	}), nil)
 	ownerRoot, _ := openDownloadRoot(t)
-	if _, err := downloader.Download(context.Background(), resolved, ownerRoot); !errors.Is(err, ErrInvalidDownloadTarget) {
+	if _, err := downloader.Download(context.Background(), resolved, ownerRoot, DownloadHooks{}); !errors.Is(err, ErrInvalidDownloadTarget) {
 		t.Fatalf("unissued selection error = %v", err)
 	}
 }
@@ -108,7 +108,7 @@ func TestDownloaderAllowsOnlyBoundedHTTPSRedirects(t *testing.T) {
 		return downloadResponse(http.StatusOK, request, payload), nil
 	}), nil)
 	ownerRoot, _ := openDownloadRoot(t)
-	if _, err := downloader.downloadTarget(context.Background(), target, ownerRoot); err != nil {
+	if _, err := downloader.downloadTarget(context.Background(), target, ownerRoot, DownloadHooks{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -118,7 +118,7 @@ func TestDownloaderAllowsOnlyBoundedHTTPSRedirects(t *testing.T) {
 		return response, nil
 	}), nil)
 	ownerRoot, ownerPath := openDownloadRoot(t)
-	if _, err := insecure.downloadTarget(context.Background(), target, ownerRoot); !errors.Is(err, ErrDownloadedPackage) {
+	if _, err := insecure.downloadTarget(context.Background(), target, ownerRoot, DownloadHooks{}); !errors.Is(err, ErrDownloadedPackage) {
 		t.Fatalf("insecure redirect error = %v", err)
 	}
 	assertDownloadAbsent(t, ownerPath)
@@ -145,7 +145,7 @@ func TestDownloaderResumesAfterConnectionReset(t *testing.T) {
 		return response, nil
 	}), []time.Duration{0})
 	ownerRoot, ownerPath := openDownloadRoot(t)
-	if _, err := downloader.downloadTarget(context.Background(), target, ownerRoot); err != nil {
+	if _, err := downloader.downloadTarget(context.Background(), target, ownerRoot, DownloadHooks{}); err != nil {
 		t.Fatal(err)
 	}
 	if requests != 2 {
@@ -169,7 +169,7 @@ func TestDownloaderAttemptTimeoutCannotHangForever(t *testing.T) {
 	}), []time.Duration{0, 0})
 	downloader.client.Timeout = 10 * time.Millisecond
 	ownerRoot, ownerPath := openDownloadRoot(t)
-	if _, err := downloader.downloadTarget(context.Background(), target, ownerRoot); !errors.Is(err, filedownload.ErrTransientAttemptsExhausted) {
+	if _, err := downloader.downloadTarget(context.Background(), target, ownerRoot, DownloadHooks{}); !errors.Is(err, filedownload.ErrTransientAttemptsExhausted) {
 		t.Fatalf("stalled download error = %v", err)
 	}
 	if requests != 3 {
@@ -201,7 +201,7 @@ func TestDownloaderRejectsWrongBytesSizeAndExistingDestination(t *testing.T) {
 				return downloadResponse(http.StatusOK, request, test.body), nil
 			}), nil)
 			ownerRoot, ownerPath := openDownloadRoot(t)
-			if _, err := downloader.downloadTarget(context.Background(), candidate, ownerRoot); !errors.Is(err, ErrDownloadedPackage) {
+			if _, err := downloader.downloadTarget(context.Background(), candidate, ownerRoot, DownloadHooks{}); !errors.Is(err, ErrDownloadedPackage) {
 				t.Fatalf("bad download error = %v", err)
 			}
 			assertDownloadAbsent(t, ownerPath)
@@ -216,7 +216,7 @@ func TestDownloaderRejectsWrongBytesSizeAndExistingDestination(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(ownerPath, downloadedPackageName), []byte("existing"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := downloader.downloadTarget(context.Background(), target, ownerRoot); !errors.Is(err, ErrDownloadDestination) {
+	if _, err := downloader.downloadTarget(context.Background(), target, ownerRoot, DownloadHooks{}); !errors.Is(err, ErrDownloadDestination) {
 		t.Fatalf("existing destination error = %v", err)
 	}
 
@@ -224,7 +224,7 @@ func TestDownloaderRejectsWrongBytesSizeAndExistingDestination(t *testing.T) {
 	if err := os.Mkdir(filepath.Join(ownerPath, downloadedPackageName+".download"), 0o700); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := downloader.downloadTarget(context.Background(), target, ownerRoot); !errors.Is(err, ErrDownloadDestination) {
+	if _, err := downloader.downloadTarget(context.Background(), target, ownerRoot, DownloadHooks{}); !errors.Is(err, ErrDownloadDestination) {
 		t.Fatalf("invalid partial error = %v", err)
 	}
 }
@@ -244,7 +244,7 @@ func TestDownloaderRejectsNonCanonicalSourceAndCancellation(t *testing.T) {
 			return nil, nil
 		}), nil)
 		ownerRoot, _ := openDownloadRoot(t)
-		if _, err := downloader.downloadTarget(context.Background(), target, ownerRoot); !errors.Is(err, ErrInvalidDownloadTarget) {
+		if _, err := downloader.downloadTarget(context.Background(), target, ownerRoot, DownloadHooks{}); !errors.Is(err, ErrInvalidDownloadTarget) {
 			t.Fatalf("source %q error = %v", assetURL, err)
 		}
 	}
@@ -257,7 +257,7 @@ func TestDownloaderRejectsNonCanonicalSourceAndCancellation(t *testing.T) {
 	ownerRoot, ownerPath := openDownloadRoot(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if _, err := downloader.downloadTarget(ctx, target, ownerRoot); !errors.Is(err, context.Canceled) {
+	if _, err := downloader.downloadTarget(ctx, target, ownerRoot, DownloadHooks{}); !errors.Is(err, context.Canceled) {
 		t.Fatalf("canceled download error = %v", err)
 	}
 	assertDownloadAbsent(t, ownerPath)

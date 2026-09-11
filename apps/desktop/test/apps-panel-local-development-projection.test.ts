@@ -44,6 +44,7 @@ function job(sourceClass: AppPackageSourceClass, phase = AppPackageJobPhase.DOWN
     kind: AppPackageJobKind.UPDATE, targetRef: `target:${sourceClass}`, phase,
     progressBasis: AppPackageProgressBasis.INDETERMINATE, bytesCompleted: '0', stepsCompleted: '0',
     terminalResult: AppPackageTerminalResult.UNSPECIFIED, reasonCode: '', cancelable: true,
+    queuePosition: 0, speedBytesPerSec: '0', etaSeconds: '0', displayName: 'Example', targetVersion: '2.0.0', previousVersion: '1.0.0', targetOs: 'windows', targetArch: 'x86_64',
     startedAt: { seconds: '1788134401', nanos: 0 },
   };
 }

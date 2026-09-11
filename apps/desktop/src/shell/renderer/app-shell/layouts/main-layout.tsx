@@ -9,6 +9,7 @@ import {
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { useDesktopRendererBindings } from '../../renderer/binding-context';
 import { MainLayoutView } from './main-layout-view';
+import { AppsDownloadsProvider } from '../../features/apps/apps-downloads-context.js';
 
 const MACOS_TRAFFIC_LIGHT_SAFE_ZONE_PX = 92;
 
@@ -139,7 +140,7 @@ export function MainLayout() {
   };
 
   return (
-    <>
+    <AppsDownloadsProvider>
       <MainLayoutView
         activeTab={activeTab}
         authStatus={authStatus}
@@ -167,6 +168,6 @@ export function MainLayout() {
           <ScenarioJobStatusHost />
         </Suspense>
       </NonCriticalStartupBoundary>
-    </>
+    </AppsDownloadsProvider>
   );
 }

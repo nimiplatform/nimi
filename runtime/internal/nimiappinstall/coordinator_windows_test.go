@@ -263,9 +263,9 @@ func TestUpdatePreservesSubjectDataAndOldReleaseThroughCancellationAndFailure(t 
 	if err := coordinator.Recover(ctx); err != nil {
 		t.Fatal(err)
 	}
-	failed, err := kernel.PackageLifecycle().GetJob(ctx, interrupted.JobID)
-	if err != nil || failed.Phase != localappkernel.PackageJobFailed {
-		t.Fatalf("interrupted update: %+v %v", failed, err)
+	paused, err := kernel.PackageLifecycle().GetJob(ctx, interrupted.JobID)
+	if err != nil || paused.Phase != localappkernel.PackageJobPaused || paused.ReasonCode != "runtime-interrupted" {
+		t.Fatalf("interrupted update: %+v %v", paused, err)
 	}
 	retained, _ := kernel.PackageLifecycle().GetCommittedRelease(ctx, current.AppID, current.SourceClass)
 	if retained.ReleaseRef != current.ReleaseRef {
@@ -499,7 +499,7 @@ func TestCoordinatorRecoveryFailsInterruptedJobAndPreservesCommittedRelease(t *t
 		t.Fatal(err)
 	}
 	selectorText, _ := selector.Encode()
-	steps := installProgressSteps
+	steps := uint64(3)
 	interrupted, err := kernel.PackageLifecycle().Begin(context.Background(), localappkernel.BeginPackageJobInput{
 		AppID: "publisher.interrupted", SourceClass: localappkernel.SourceClassVerified,
 		Kind: localappkernel.PackageJobInstall, TargetRef: selectorText,
@@ -651,7 +651,7 @@ func TestRecoveryContinuesOtherJobsWhenCommittedPayloadIsMissing(t *testing.T) {
 		t.Fatal(err)
 	}
 	selectorText, _ := selector.Encode()
-	steps := installProgressSteps
+	steps := uint64(3)
 	interrupted, err := kernel.PackageLifecycle().Begin(context.Background(), localappkernel.BeginPackageJobInput{
 		AppID: "publisher.other-app", SourceClass: localappkernel.SourceClassVerified,
 		Kind: localappkernel.PackageJobInstall, TargetRef: selectorText,
@@ -668,7 +668,7 @@ func TestRecoveryContinuesOtherJobsWhenCommittedPayloadIsMissing(t *testing.T) {
 		t.Fatalf("missing committed payload recovery error = %v", err)
 	}
 	recovered, err := kernel.PackageLifecycle().GetJob(context.Background(), interrupted.JobID)
-	if err != nil || recovered.Phase != localappkernel.PackageJobFailed {
+	if err != nil || recovered.Phase != localappkernel.PackageJobPaused {
 		t.Fatalf("unrelated interrupted job=%+v err=%v", recovered, err)
 	}
 	if _, err := os.Stat(workPath); !errors.Is(err, os.ErrNotExist) {
@@ -676,11 +676,11 @@ func TestRecoveryContinuesOtherJobsWhenCommittedPayloadIsMissing(t *testing.T) {
 	}
 }
 
-func TestRecoveryReopensKernelAndFailsInterruptedJob(t *testing.T) {
+func TestRecoveryReopensKernelAndPausesInterruptedJob(t *testing.T) {
 	coordinator, client, kernel, _ := newInstallFixture(t, false)
 	selector := resolveInstallFixture(t, client)
 	selectorText, _ := selector.Encode()
-	steps := installProgressSteps
+	steps := uint64(3)
 	interrupted, err := kernel.PackageLifecycle().Begin(context.Background(), localappkernel.BeginPackageJobInput{
 		AppID: "publisher.restart-app", SourceClass: localappkernel.SourceClassVerified,
 		Kind: localappkernel.PackageJobInstall, TargetRef: selectorText,
@@ -719,7 +719,7 @@ func TestRecoveryReopensKernelAndFailsInterruptedJob(t *testing.T) {
 		t.Fatal(err)
 	}
 	recovered, err := reopenedKernel.PackageLifecycle().GetJob(context.Background(), interrupted.JobID)
-	if err != nil || recovered.Phase != localappkernel.PackageJobFailed || recovered.ReasonCode != "runtime-restarted" {
+	if err != nil || recovered.Phase != localappkernel.PackageJobPaused || recovered.ReasonCode != "runtime-interrupted" {
 		t.Fatalf("reopened recovery job=%+v err=%v", recovered, err)
 	}
 	if _, err := os.Stat(workPath); !errors.Is(err, os.ErrNotExist) {

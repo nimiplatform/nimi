@@ -35,6 +35,9 @@ var ErrHashMismatch = errors.New("filedownload: sha256 mismatch")
 // exceed the configured size budget.
 var ErrMaxBodyExceeded = errors.New("filedownload: response body exceeds size budget")
 
+// ErrSizeMismatch reports a completed transfer with a different exact size.
+var ErrSizeMismatch = errors.New("filedownload: exact file size mismatch")
+
 // ErrHTTPStatus is the non-transient failure for a non-success, non-transient
 // HTTP status (a `4xx`). A `5xx` is treated as transient and retried.
 var ErrHTTPStatus = errors.New("filedownload: unexpected HTTP status")
@@ -70,6 +73,10 @@ type Options struct {
 	// Empty disables verification (the engine path verifies separately for some
 	// callers); when set a mismatch fails closed with ErrHashMismatch.
 	ExpectedSHA256 string
+	// ExpectedSize is an exact admitted file size, or zero when unknown. With
+	// an expected digest, a complete retained partial can be verified locally
+	// instead of issuing a Range request beyond the end of the file.
+	ExpectedSize int64
 	// MaxBodyBytes bounds the assembled file size. 0 disables the bound.
 	MaxBodyBytes int64
 	// MaxAttempts is the total number of attempts (first try + retries). Values
@@ -90,6 +97,10 @@ type Options struct {
 	IsTransient func(err error) bool
 	// Progress is the optional progress callback.
 	Progress ProgressFunc
+	// TransferComplete runs after the HTTP body and output file are closed,
+	// before whole-file hashing. An owner may release its network slot and
+	// enter verification here. It also runs for a complete retained partial.
+	TransferComplete func() error
 	// Wait is the optional cooperative pause hook.
 	Wait WaitFunc
 	// PreservePartialOnError lets a caller retain the `.download` file for an
@@ -105,7 +116,8 @@ type Result struct {
 	SHA256 string
 	// BytesTotal is the final size of the assembled file.
 	BytesTotal int64
-	// Attempts is the number of HTTP attempts made (>=1).
+	// Attempts is the number of HTTP attempts made, or zero for a complete
+	// retained partial that was verified without a network request.
 	Attempts int
 	// Resumed reports whether at least one attempt resumed from a non-empty
 	// `.download` partial via an HTTP Range request.
@@ -133,6 +145,9 @@ func Download(ctx context.Context, opts Options) (Result, error) {
 	if opts.Client == nil {
 		return Result{}, fmt.Errorf("filedownload: HTTP client is required")
 	}
+	if opts.ExpectedSize < 0 || (opts.MaxBodyBytes > 0 && opts.ExpectedSize > opts.MaxBodyBytes) {
+		return Result{}, fmt.Errorf("filedownload: expected size exceeds the file budget")
+	}
 	attempts := opts.MaxAttempts
 	if attempts < 1 {
 		attempts = 1
@@ -143,8 +158,20 @@ func Download(ctx context.Context, opts Options) (Result, error) {
 
 	partialPath := opts.DestPath + ".download"
 	var result Result
+	if err := ctx.Err(); err != nil {
+		discardPartialOnError(opts, partialPath, err)
+		return Result{}, err
+	}
+	completePartial := opts.ExpectedSize > 0 && strings.TrimSpace(opts.ExpectedSHA256) != "" && partialSize(partialPath) == opts.ExpectedSize
+	if completePartial {
+		result.BytesTotal = opts.ExpectedSize
+		result.Resumed = true
+		if opts.Progress != nil {
+			opts.Progress(opts.ExpectedSize, opts.ExpectedSize)
+		}
+	}
 
-	for attempt := 1; attempt <= attempts; attempt++ {
+	for attempt := 1; !completePartial && attempt <= attempts; attempt++ {
 		result.Attempts = attempt
 		if err := ctx.Err(); err != nil {
 			discardPartialOnError(opts, partialPath, err)
@@ -157,6 +184,11 @@ func Download(ctx context.Context, opts Options) (Result, error) {
 			result.Resumed = true
 		}
 		if err == nil {
+			if opts.ExpectedSize > 0 && assembled != opts.ExpectedSize {
+				sizeErr := fmt.Errorf("%w: received=%d expected=%d", ErrSizeMismatch, assembled, opts.ExpectedSize)
+				discardPartialOnError(opts, partialPath, sizeErr)
+				return Result{}, sizeErr
+			}
 			result.BytesTotal = assembled
 			if total > 0 {
 				result.BytesTotal = total
@@ -217,6 +249,17 @@ func Download(ctx context.Context, opts Options) (Result, error) {
 				return Result{}, ctx.Err()
 			case <-time.After(retryDelay):
 			}
+		}
+	}
+
+	if err := ctx.Err(); err != nil {
+		discardPartialOnError(opts, partialPath, err)
+		return Result{}, err
+	}
+	if opts.TransferComplete != nil {
+		if err := opts.TransferComplete(); err != nil {
+			discardPartialOnError(opts, partialPath, err)
+			return Result{}, err
 		}
 	}
 

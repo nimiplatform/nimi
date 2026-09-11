@@ -27,6 +27,9 @@ const (
 	RuntimeAppPackageService_StartAppPackageUpdate_FullMethodName         = "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUpdate"
 	RuntimeAppPackageService_StartAppPackageUninstall_FullMethodName      = "/nimi.runtime.v1.RuntimeAppPackageService/StartAppPackageUninstall"
 	RuntimeAppPackageService_CancelAppPackageJob_FullMethodName           = "/nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob"
+	RuntimeAppPackageService_PauseAppPackageJob_FullMethodName            = "/nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob"
+	RuntimeAppPackageService_ResumeAppPackageJob_FullMethodName           = "/nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob"
+	RuntimeAppPackageService_ReorderAppPackageJob_FullMethodName          = "/nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob"
 )
 
 // RuntimeAppPackageServiceClient is the client API for RuntimeAppPackageService service.
@@ -45,6 +48,9 @@ type RuntimeAppPackageServiceClient interface {
 	StartAppPackageUpdate(ctx context.Context, in *StartAppPackageUpdateRequest, opts ...grpc.CallOption) (*StartAppPackageUpdateResponse, error)
 	StartAppPackageUninstall(ctx context.Context, in *StartAppPackageUninstallRequest, opts ...grpc.CallOption) (*StartAppPackageUninstallResponse, error)
 	CancelAppPackageJob(ctx context.Context, in *CancelAppPackageJobRequest, opts ...grpc.CallOption) (*CancelAppPackageJobResponse, error)
+	PauseAppPackageJob(ctx context.Context, in *PauseAppPackageJobRequest, opts ...grpc.CallOption) (*PauseAppPackageJobResponse, error)
+	ResumeAppPackageJob(ctx context.Context, in *ResumeAppPackageJobRequest, opts ...grpc.CallOption) (*ResumeAppPackageJobResponse, error)
+	ReorderAppPackageJob(ctx context.Context, in *ReorderAppPackageJobRequest, opts ...grpc.CallOption) (*ReorderAppPackageJobResponse, error)
 }
 
 type runtimeAppPackageServiceClient struct {
@@ -135,6 +141,36 @@ func (c *runtimeAppPackageServiceClient) CancelAppPackageJob(ctx context.Context
 	return out, nil
 }
 
+func (c *runtimeAppPackageServiceClient) PauseAppPackageJob(ctx context.Context, in *PauseAppPackageJobRequest, opts ...grpc.CallOption) (*PauseAppPackageJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PauseAppPackageJobResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_PauseAppPackageJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppPackageServiceClient) ResumeAppPackageJob(ctx context.Context, in *ResumeAppPackageJobRequest, opts ...grpc.CallOption) (*ResumeAppPackageJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ResumeAppPackageJobResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_ResumeAppPackageJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAppPackageServiceClient) ReorderAppPackageJob(ctx context.Context, in *ReorderAppPackageJobRequest, opts ...grpc.CallOption) (*ReorderAppPackageJobResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ReorderAppPackageJobResponse)
+	err := c.cc.Invoke(ctx, RuntimeAppPackageService_ReorderAppPackageJob_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RuntimeAppPackageServiceServer is the server API for RuntimeAppPackageService service.
 // All implementations should embed UnimplementedRuntimeAppPackageServiceServer
 // for forward compatibility.
@@ -151,6 +187,9 @@ type RuntimeAppPackageServiceServer interface {
 	StartAppPackageUpdate(context.Context, *StartAppPackageUpdateRequest) (*StartAppPackageUpdateResponse, error)
 	StartAppPackageUninstall(context.Context, *StartAppPackageUninstallRequest) (*StartAppPackageUninstallResponse, error)
 	CancelAppPackageJob(context.Context, *CancelAppPackageJobRequest) (*CancelAppPackageJobResponse, error)
+	PauseAppPackageJob(context.Context, *PauseAppPackageJobRequest) (*PauseAppPackageJobResponse, error)
+	ResumeAppPackageJob(context.Context, *ResumeAppPackageJobRequest) (*ResumeAppPackageJobResponse, error)
+	ReorderAppPackageJob(context.Context, *ReorderAppPackageJobRequest) (*ReorderAppPackageJobResponse, error)
 }
 
 // UnimplementedRuntimeAppPackageServiceServer should be embedded to have
@@ -183,6 +222,15 @@ func (UnimplementedRuntimeAppPackageServiceServer) StartAppPackageUninstall(cont
 }
 func (UnimplementedRuntimeAppPackageServiceServer) CancelAppPackageJob(context.Context, *CancelAppPackageJobRequest) (*CancelAppPackageJobResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CancelAppPackageJob not implemented")
+}
+func (UnimplementedRuntimeAppPackageServiceServer) PauseAppPackageJob(context.Context, *PauseAppPackageJobRequest) (*PauseAppPackageJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PauseAppPackageJob not implemented")
+}
+func (UnimplementedRuntimeAppPackageServiceServer) ResumeAppPackageJob(context.Context, *ResumeAppPackageJobRequest) (*ResumeAppPackageJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ResumeAppPackageJob not implemented")
+}
+func (UnimplementedRuntimeAppPackageServiceServer) ReorderAppPackageJob(context.Context, *ReorderAppPackageJobRequest) (*ReorderAppPackageJobResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReorderAppPackageJob not implemented")
 }
 func (UnimplementedRuntimeAppPackageServiceServer) testEmbeddedByValue() {}
 
@@ -348,6 +396,60 @@ func _RuntimeAppPackageService_CancelAppPackageJob_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RuntimeAppPackageService_PauseAppPackageJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PauseAppPackageJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).PauseAppPackageJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_PauseAppPackageJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).PauseAppPackageJob(ctx, req.(*PauseAppPackageJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppPackageService_ResumeAppPackageJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResumeAppPackageJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).ResumeAppPackageJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_ResumeAppPackageJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).ResumeAppPackageJob(ctx, req.(*ResumeAppPackageJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAppPackageService_ReorderAppPackageJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ReorderAppPackageJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAppPackageServiceServer).ReorderAppPackageJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAppPackageService_ReorderAppPackageJob_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAppPackageServiceServer).ReorderAppPackageJob(ctx, req.(*ReorderAppPackageJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RuntimeAppPackageService_ServiceDesc is the grpc.ServiceDesc for RuntimeAppPackageService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -386,6 +488,18 @@ var RuntimeAppPackageService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CancelAppPackageJob",
 			Handler:    _RuntimeAppPackageService_CancelAppPackageJob_Handler,
+		},
+		{
+			MethodName: "PauseAppPackageJob",
+			Handler:    _RuntimeAppPackageService_PauseAppPackageJob_Handler,
+		},
+		{
+			MethodName: "ResumeAppPackageJob",
+			Handler:    _RuntimeAppPackageService_ResumeAppPackageJob_Handler,
+		},
+		{
+			MethodName: "ReorderAppPackageJob",
+			Handler:    _RuntimeAppPackageService_ReorderAppPackageJob_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

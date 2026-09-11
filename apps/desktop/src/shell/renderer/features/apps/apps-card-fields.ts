@@ -122,6 +122,7 @@ export function appSourceForEntry(entry: DesktopAppsEntry): AppSourceId {
 
 export type AppPackagePhaseLocaleKey =
   | 'queued'
+  | 'paused'
   | 'resolve_descriptor'
   | 'download'
   | 'verify'
@@ -136,6 +137,7 @@ export type AppPackagePhaseLocaleKey =
 export function appPackagePhaseLocaleKey(job: AppPackageJob): AppPackagePhaseLocaleKey | null {
   switch (job.phase) {
     case AppPackageJobPhase.QUEUED: return 'queued';
+    case AppPackageJobPhase.PAUSED: return 'paused';
     case AppPackageJobPhase.DOWNLOADING:
     case AppPackageJobPhase.READING_LOCAL:
     case AppPackageJobPhase.ACQUIRING_MISSING: return 'download';

@@ -15,6 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/engine"
+	"github.com/nimiplatform/nimi/runtime/internal/filedownload"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -143,7 +144,7 @@ type Service struct {
 	transfers                     map[string]*runtimev1.LocalTransferSessionSummary
 	managedModelDownloadSpecs     map[string]managedDownloadedModelSpec
 	transferControls              map[string]*localTransferControl
-	transferRates                 map[string]*transferRateTracker
+	transferRates                 map[string]*filedownload.RateTracker
 	transferSubscribers           map[uint64]chan *runtimev1.LocalTransferProgressEvent
 	transferSubscriberSeq         uint64
 	entryHashCache                map[string]entryHashCacheState
@@ -302,7 +303,7 @@ func newService(logger *slog.Logger, store *auditlog.Store, stateStorePath strin
 		transfers:                    make(map[string]*runtimev1.LocalTransferSessionSummary),
 		managedModelDownloadSpecs:    make(map[string]managedDownloadedModelSpec),
 		transferControls:             make(map[string]*localTransferControl),
-		transferRates:                make(map[string]*transferRateTracker),
+		transferRates:                make(map[string]*filedownload.RateTracker),
 		transferSubscribers:          make(map[uint64]chan *runtimev1.LocalTransferProgressEvent),
 		entryHashCache:               make(map[string]entryHashCacheState),
 		entryFileSHA256:              computeFileSHA256,

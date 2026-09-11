@@ -71,6 +71,9 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAppPackageService/ListAppPackageJobs
       - method_id: /nimi.runtime.v1.RuntimeAppPackageService/GetAppPackageJob
       - method_id: /nimi.runtime.v1.RuntimeAppPackageService/CancelAppPackageJob
+      - method_id: /nimi.runtime.v1.RuntimeAppPackageService/PauseAppPackageJob
+      - method_id: /nimi.runtime.v1.RuntimeAppPackageService/ResumeAppPackageJob
+      - method_id: /nimi.runtime.v1.RuntimeAppPackageService/ReorderAppPackageJob
   - profile_id: desktop_account_product_v1
     identity_class: account
     native_profile_marker: desktop-account-product-v1

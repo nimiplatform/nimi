@@ -1,3 +1,4 @@
+import { formatBytes } from '../../components/download-format.js';
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +21,7 @@ import type {
 
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { ModelAboutCard } from './runtime-config-model-card';
-import { formatBytes } from './runtime-config-model-center-utils';
+
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service';
 import {
   AuthorAvatar,

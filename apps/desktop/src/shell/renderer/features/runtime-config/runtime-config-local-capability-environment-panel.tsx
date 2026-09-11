@@ -1,3 +1,4 @@
+import { formatBytes } from '../../components/download-format.js';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -15,7 +16,7 @@ import { ConfirmDialog, Surface, cn } from '@nimiplatform/kit/ui';
 import { Button } from './runtime-config-primitives.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
-import { formatBytes } from './runtime-config-model-center-utils.js';
+
 import {
   resolveRuntimeConfigLocalEnvironmentPlan,
   type RuntimeConfigLocalCapabilityContract,

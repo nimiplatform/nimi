@@ -52,10 +52,17 @@ import { AppsDetailView } from './apps-detail-view.js';
 import { AppsInstallConfirmationDialog } from './apps-install-confirmation.js';
 import type { AppsInstallIntentSnapshot } from './apps-install-intent.js';
 import type { DesktopAppsEntry, DesktopAppsPanelProjection } from './apps-panel-projection.js';
+import type { AppPackageJob } from '@nimiplatform/sdk/runtime/wire-types';
+import type { AppsDownloadsContextValue } from './apps-downloads-context.js';
+import { AppsDownloadsView, isAppDownloadJob } from './apps-downloads-view.js';
+import { packageJobIsTerminal } from './apps-downloads-observer.js';
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-001a
 
 export interface AppsPanelViewProps {
+  readonly downloads?: AppsDownloadsContextValue;
+  readonly onViewDownloadApp?: (job: AppPackageJob) => void;
+  readonly onRetryDownload?: (job: AppPackageJob) => void;
   readonly projection: DesktopAppsPanelProjection | null;
   readonly searchQuery: string;
   readonly onSearchChange: (query: string) => void;
@@ -92,6 +99,9 @@ const LIBRARY_FILTER_LABEL_KEYS: Readonly<Record<AppsLibraryFilterId, string>> =
 const FREQUENT_ENTRIES_LIMIT = 3;
 
 export function AppsPanelView({
+  downloads,
+  onViewDownloadApp,
+  onRetryDownload,
   projection,
   searchQuery,
   onSearchChange,
@@ -181,14 +191,22 @@ export function AppsPanelView({
         padding="none"
         className="flex min-h-0 min-w-0 w-full flex-1 flex-col overflow-hidden rounded-xl border-[var(--nimi-border-subtle)] shadow-[var(--nimi-elevation-base)]"
       >
-        {detailMode && projection?.status === 'loaded' && projection.runtimeError ? (
+        {downloads ? <nav aria-label={t('Apps.downloads.views')} className="flex shrink-0 gap-2 border-b border-[var(--nimi-border-subtle)] px-4 py-2">
+          <Button size="sm" tone="ghost" active={downloads.view === 'library'} onClick={() => { downloads.showLibrary(); onBack(); }}>{t('Apps.downloads.library')}</Button>
+          <Button size="sm" tone="ghost" active={downloads.view === 'downloads'} data-testid="apps-downloads-entry" onClick={() => downloads.openDownloads()}>
+            {t('Apps.downloads.title')} <span className="tabular-nums">{downloads.jobs.filter((job) => isAppDownloadJob(job) && !packageJobIsTerminal(job)).length}</span>
+          </Button>
+        </nav> : null}
+        {downloads?.view !== 'downloads' && detailMode && projection?.status === 'loaded' && projection.runtimeError ? (
           <div className="shrink-0 px-5 pt-4 sm:px-7">
             <InlineAlert tone="danger" data-testid="apps-runtime-error">
               {t('Apps.error', { detail: projection.runtimeError })}
             </InlineAlert>
           </div>
         ) : null}
-        {detailMode ? (
+        {downloads?.view === 'downloads' && onViewDownloadApp && onRetryDownload ? (
+          <AppsDownloadsView downloads={downloads} entries={loadedEntries} onViewApp={onViewDownloadApp} onRetry={onRetryDownload} />
+        ) : detailMode ? (
           <AppsDetailView
             entry={selectedEntry}
             requestedSection={requestedDetailSection}

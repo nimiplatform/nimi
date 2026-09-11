@@ -19,7 +19,7 @@ func (s *Service) updateTransferProgress(
 	message string,
 ) {
 	// Speed is a recent-rate estimate derived from observed byte deltas over a
-	// bounded sliding window (see service_transfer_rate.go). It deliberately is
+	// bounded sliding window (see filedownload/rate.go). It deliberately is
 	// NOT bytesReceived / lifetime: a lifetime average lags the current rate,
 	// is meaningless across a filedownload resume (bytesReceived carries prior
 	// attempts while the lifetime started fresh), and is skewed by any gap
@@ -49,7 +49,7 @@ func (s *Service) updateTransferProgress(
 			if summary.GetBytesTotal() <= 0 || summary.GetBytesReceived() >= summary.GetBytesTotal() {
 				summary.EtaSeconds = 0
 			} else if rateUpdated && speed > 0 {
-				summary.EtaSeconds = maxInt64((summary.GetBytesTotal()-summary.GetBytesReceived())/speed, 0)
+				summary.EtaSeconds = filedownload.RemainingSeconds(summary.GetBytesReceived(), summary.GetBytesTotal(), speed)
 			}
 		} else {
 			summary.SpeedBytesPerSec = 0
@@ -82,10 +82,10 @@ func (s *Service) observeTransferRate(sessionID string, bytesReceived int64, now
 	}
 	tracker := s.transferRates[key]
 	if tracker == nil {
-		tracker = &transferRateTracker{}
+		tracker = &filedownload.RateTracker{}
 		s.transferRates[key] = tracker
 	}
-	return tracker.observeProjection(bytesReceived, now)
+	return tracker.ObserveProjection(bytesReceived, now)
 }
 
 func (s *Service) completeTransfer(
@@ -113,7 +113,7 @@ type stagedTransferCompletion struct {
 	previous        *runtimev1.LocalTransferSessionSummary
 	current         *runtimev1.LocalTransferSessionSummary
 	previousControl *localTransferControl
-	previousRate    *transferRateTracker
+	previousRate    *filedownload.RateTracker
 	previousSpec    managedDownloadedModelSpec
 	hadControl      bool
 	hadRate         bool
