@@ -345,6 +345,7 @@ function buildForbiddenPatterns() {
   ];
 }
 
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-016b
 function scanForbiddenPatterns(targetDir, profile, selectedLabels = null) {
   const findings = [];
   const patterns = buildForbiddenPatterns();
@@ -366,12 +367,15 @@ function scanForbiddenPatterns(targetDir, profile, selectedLabels = null) {
     const text = readFileSync(filePath, 'utf8');
     const isManagedReleaseWorkflow = relativePath === '.github/workflows/nimi-app-release.yml'
       && text.replaceAll('\r\n', '\n') === managedAppReleaseWorkflowSource();
-    const isTestFile = relativePath.startsWith('test/') || /(?:^|\/)\w[^/]*\.(?:test|spec)\.[cm]?[jt]sx?$/i.test(relativePath);
+    const isTestFile = /^(?:test|tests)\//.test(relativePath) || /(?:^|\/)\w[^/]*\.(?:test|spec)\.[cm]?[jt]sx?$/i.test(relativePath);
+    const isAgentSkillReference = /^(?:\.agents|\.claude)\/skills\//.test(relativePath);
     for (const [label, pattern] of patterns) {
       if (selectedLabels && !selectedLabels.has(label)) {
         continue;
       }
-      if (selectedLabels && isTestFile) {
+      // Existing repositories may vendor agent skills and their example code.
+      // Those examples and test fixtures are not the App's protected callers.
+      if (selectedLabels && (isTestFile || isAgentSkillReference)) {
         continue;
       }
       // Test files reference provider/model names to assert behavior (including

@@ -280,6 +280,20 @@ declares the tested public SDK, Kit and Tauri shell versions used by new Apps an
 explicit `sync`; workspace development version bumps do not change those ranges.
 The release workflow requires those public versions before publishing App Tools.
 
+App Tools 0.5 uses SDK `^0.11.0` and Kit `^0.7.0`. Existing Apps upgrade explicitly:
+
+```bash
+pnpm add -D @nimiplatform/app-tools@^0.5.0
+pnpm run sync
+pnpm install
+pnpm run check
+pnpm run test
+pnpm run app:build -- --target windows-x86_64
+```
+
+Use the App's declared target for the final build. `sync` preserves App-owned
+product code; update any affected SDK/Kit API usage in that code before release.
+
 The v2 Runtime rejects v1 packages. Existing immutable publisher Releases and
 approved descriptors must not be edited to invent the missing asset. Prepare a
 new App version and real target builds, publish new immutable assets, and follow

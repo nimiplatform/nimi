@@ -2565,6 +2565,18 @@ test('sync adopts and check audits an existing submitted App without creating a 
     ].join('\n'));
     writeInstalledLock(target);
 
+    const vendorExample = 'fetch("/api/vendor-example");\nconst url = "https://vendor.example/v1/chat/completions";\n';
+    for (const referencePath of [
+      '.agents/skills/vendor/references/example.md',
+      '.claude/skills/vendor/SKILL.md',
+      '.agents/skills/vendor/scripts/tests/fixtures/example.tsx',
+      'tests/fixtures/provider-response.json',
+    ]) {
+      const destination = path.join(target, referencePath);
+      mkdirSync(path.dirname(destination), { recursive: true });
+      writeFileSync(destination, vendorExample);
+    }
+
     let result = runNimiApp(['sync', '--dir', target], tempRoot, { env });
     assert.equal(result.status, 0, result.stderr);
     result = runNimiApp(['check', '--dir', target], tempRoot, { env });
@@ -2576,6 +2588,12 @@ test('sync adopts and check audits an existing submitted App without creating a 
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /dev:renderer.*1469/);
     writeFileSync(manifestPath, manifest);
+
+    writeFileSync(path.join(target, 'src', 'bypass.ts'), vendorExample);
+    result = runNimiApp(['check', '--dir', target], tempRoot, { env });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Realm API fetch bypass/);
+    assert.match(result.stderr, /OpenAI-compatible Runtime REST endpoint assumption/);
 
     writeFileSync(path.join(target, 'src', 'bypass.ts'), "import '@grpc/grpc-js';\n");
     result = runNimiApp(['check', '--dir', target], tempRoot, { env });
