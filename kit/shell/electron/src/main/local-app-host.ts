@@ -650,11 +650,9 @@ function untrustedNativeOutcome(): NativeLocalAppOutcome {
 
 class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   private readonly binding: NimiElectronProtectedLocalBinding;
-  private readonly onSessionChange: () => void;
   private readonly textTurnStreams = new Map<string, { bytes: number; sequence: bigint }>();
 
   constructor(binding: NimiElectronProtectedLocalBinding, onSessionChange: () => void = () => undefined) {
-    this.onSessionChange = onSessionChange;
     this.binding = withBoundedSessionRebind(binding, onSessionChange);
   }
 
@@ -663,9 +661,10 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   }
 
   async renewTechnicalSession(): Promise<NimiElectronLocalAppRecord> {
-    const renewed = await invokeRecord(() => this.binding.localAppSessionRenew());
-    this.onSessionChange();
-    return renewed;
+    // @nimi-authority: rule.nimi.runtime.protected-session.r016
+    // Runtime only renews a live session after revalidating the same context.
+    // A successful renewal preserves resources and App-owned work.
+    return invokeRecord(() => this.binding.localAppSessionRenew());
   }
 
   aiConfigGet(): Promise<NimiElectronLocalAppRecord> {

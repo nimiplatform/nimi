@@ -109,6 +109,37 @@ func gemma4BehaviorTurnMessages(message *runtimev1.ChatMessage) ([]map[string]an
 	role := strings.TrimSpace(message.GetRole())
 	switch role {
 	case "assistant":
+		// @nimi-authority: rule.nimi.runtime.ai-provider.r119
+		// A canonical turn can contain the assistant's calls followed by the
+		// external Host's results. Project contiguous roles without reordering
+		// those items into the engine's separate assistant/tool messages.
+		hasResults := false
+		for _, item := range message.GetTurnItems() {
+			hasResults = hasResults || item.GetToolResult() != nil
+		}
+		if hasResults {
+			segments := make([]*runtimev1.ChatMessage, 0)
+			for _, item := range message.GetTurnItems() {
+				itemRole := "assistant"
+				if item.GetToolResult() != nil {
+					itemRole = "tool"
+				}
+				if len(segments) == 0 || segments[len(segments)-1].Role != itemRole {
+					segments = append(segments, &runtimev1.ChatMessage{Role: itemRole})
+				}
+				segment := segments[len(segments)-1]
+				segment.TurnItems = append(segment.TurnItems, item)
+			}
+			projected := make([]map[string]any, 0, len(segments))
+			for _, segment := range segments {
+				values, err := gemma4BehaviorTurnMessages(segment)
+				if err != nil {
+					return nil, err
+				}
+				projected = append(projected, values...)
+			}
+			return projected, nil
+		}
 		var text strings.Builder
 		toolCalls := make([]map[string]any, 0)
 		seenToolCall := false
@@ -638,12 +669,12 @@ func gemma4Int64(value any) int64 {
 func gemma4TextContent(value any) string {
 	switch typed := value.(type) {
 	case string:
-		return strings.TrimSpace(typed)
+		return typed
 	case []any:
 		var result strings.Builder
 		for _, raw := range typed {
 			part, _ := raw.(map[string]any)
-			if text := gemma4String(part["text"]); text != "" {
+			if text := gemma4RawString(part["text"]); text != "" {
 				result.WriteString(text)
 			}
 		}

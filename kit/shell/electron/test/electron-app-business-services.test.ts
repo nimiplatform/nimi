@@ -4,6 +4,20 @@ import { createAppBusinessServices } from '../src/main/app-business-services.js'
 import type { NimiElectronLocalAppHost } from '../src/main/local-app-host.js';
 
 describe('App-owned Node services on the existing protected Host', () => {
+  it('maps SDK asset move paths to the native Host contract', async () => {
+    const requests: unknown[] = [];
+    const owner = createAppBusinessServices({
+      assetMove: async (input: unknown) => {
+        requests.push(input);
+        return { relativePath: 'saved/result.json', mediaType: 'application/json', sizeBytes: 2,
+          sha256: `sha256:${'a'.repeat(64)}`, createdAt: '2026-09-12T00:00:00Z', updatedAt: '2026-09-12T00:00:00Z' };
+      },
+    } as unknown as NimiElectronLocalAppHost);
+    await owner.services.storage.assets.move({ from: 'draft/result.json', to: 'saved/result.json' });
+    expect(requests).toEqual([{ fromRelativePath: 'draft/result.json', toRelativePath: 'saved/result.json', overwrite: false }]);
+    owner.close();
+  });
+
   it('uses the common model binding and preserves complete ordered tool output', async () => {
     const requests: unknown[] = [];
     let closed = 0;
