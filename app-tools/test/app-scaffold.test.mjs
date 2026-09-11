@@ -2338,6 +2338,26 @@ test('sync advances the App version while preserving immutable scaffold identity
   }
 });
 
+test('sync rejects an empty or invalid declaration before refreshing managed files', () => {
+  const generated = cliScaffold('standalone');
+  try {
+    const manifestPath = path.join(generated.target, 'nimi.app.yaml');
+    const workflowPath = path.join(generated.target, '.github/workflows/nimi-app-release.yml');
+    const oldWorkflow = generated.read('.github/workflows/nimi-app-release.yml').split('\n').filter((line) => !line.includes('*.app-info.json')).join('\n');
+    writeFileSync(workflowPath, oldWorkflow);
+    const lock = generated.read(SCAFFOLD_LOCK_PATH);
+    for (const source of ['', '# temporary comment\n', '- not-an-app\n', 'broken: [']) {
+      writeFileSync(manifestPath, source);
+      const result = runNimiApp(['sync', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /nimi.app.yaml/u);
+      assert.doesNotMatch(result.stderr, /Cannot convert undefined or null/u);
+      assert.equal(readFileSync(workflowPath, 'utf8'), oldWorkflow);
+      assert.equal(generated.read(SCAFFOLD_LOCK_PATH), lock);
+    }
+  } finally { generated.cleanup(); }
+});
+
 test('check fails closed on managed drift and sync preserves app-owned product code', () => {
   const generated = cliScaffold('standalone');
   try {

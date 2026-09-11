@@ -676,6 +676,33 @@ test('aggregate rejects an information sidecar changed independently of its arch
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+test('missing declared resources and malformed URLs identify the author field', () => {
+  for (const [file, field] of [['icon.png', 'metadata.icon'], ['RELEASE_NOTES.md', 'metadata.release_notes'], ['LICENSE', 'license']]) {
+    const root = fixture();
+    try {
+      rmSync(path.join(root, file));
+      assert.throws(() => readAppInfo(root, 'windows-x86_64'), (error) => error.message.includes(field) && error.message.includes(file) && !error.message.includes('ENOENT'));
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  }
+  for (const field of ['homepage_url', 'support_url']) {
+    const root = fixture();
+    try {
+      const manifest = path.join(root, 'nimi.app.yaml');
+      writeFileSync(manifest, readFileSync(manifest, 'utf8').replace('  icon: icon.png', `  icon: icon.png\n  ${field}: example.com`));
+      assert.throws(() => readAppInfo(root, 'windows-x86_64'), new RegExp(`App info ${field}.*HTTPS`, 'u'));
+    } finally { rmSync(root, { recursive: true, force: true }); }
+  }
+});
+
+test('aggregate identifies a missing App info sidecar', () => {
+  const root = fixture();
+  try {
+    const result = packAppTarget(root, { target: 'windows-x86_64' });
+    rmSync(result.appInfoPath);
+    assert.throws(() => aggregateAppTargetCandidates(root), /Target App info asset is missing: example.app-0.1.0-windows-x86_64.app-info.json/u);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test('local distribution omits optional documents and preserves exact UTF-8 license bytes', () => {
   const root = fixture();
   try {

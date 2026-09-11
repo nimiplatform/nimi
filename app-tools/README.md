@@ -224,8 +224,10 @@ pnpm dlx --package @nimiplatform/app-tools nimi-app --help
 ## Portable App information (package v2)
 
 A distribution package includes `app-info.json`, containing its actual icon,
-summary, usage guide, version notes, license and portable requirements. Fill in
-`nimi.app.yaml` before running a production check or build:
+summary, available usage guide and version notes, license and portable requirements.
+Every `pack`, including development-mode packaging and non-release CI, requires
+valid App information. Complete `nimi.app.yaml` and its resources before packing;
+production check/build validates them before the build starts:
 
 ```yaml
 metadata:
@@ -261,8 +263,10 @@ explicit license identifier; it does not turn a private license into an
 open-source Registry license. Name and summary allow 120 and 280 characters.
 Scaffold `sync` preserves these author-edited metadata, requirement and storage
 fields while continuing to check the managed identity and carrier fields.
-Incomplete development projects remain usable; production preflight reports
-missing resources before invoking the build.
+The scaffold does not supply finished artwork. Add the declared icon, a summary
+and license information; provide any declared documents or omit optional document
+paths for local/private packages. Until then, package-producing CI will fail.
+Incomplete projects remain editable with `dev` and ordinary non-production builds.
 
 Pack writes `nimi.app-package/v2` and emits the exact embedded information bytes
 as `<app_id>-<version>-<target_id>.app-info.json` next to the `.nimiapp` and

@@ -71,7 +71,8 @@ function storage(value) {
 function https(value, field) {
   if (value === undefined || value === '') return '';
   text(value, field, 2048);
-  const url = new URL(value);
+  let url;
+  try { url = new URL(value); } catch { throw new Error(`App info ${field} must be a valid HTTPS URL without credentials`); }
   if (url.protocol !== 'https:' || !url.hostname || url.username || url.password) throw new Error(`App info ${field} must be HTTPS without credentials`);
   return value;
 }
@@ -105,9 +106,15 @@ function resource(root, relative, label, maxBytes) {
   if (typeof relative !== 'string' || path.isAbsolute(relative) || relative.includes('\\')
     || relative.split('/').some((part) => !part || part === '.' || part === '..')) throw new Error(`metadata.${label} must name an App-relative resource`);
   const file = path.join(root, relative);
-  const stat = lstatSync(file);
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.size === 0 || stat.size > maxBytes) throw new Error(`metadata.${label} is missing, not a regular file, or exceeds its size limit`);
-  return readFileSync(file);
+  const field = label === 'license' ? 'App license' : `metadata.${label}`;
+  try {
+    const stat = lstatSync(file);
+    if (!stat.isFile() || stat.isSymbolicLink() || stat.size === 0 || stat.size > maxBytes) throw new Error(`must be a nonempty regular file of at most ${maxBytes} bytes`);
+    return readFileSync(file);
+  } catch (error) {
+    if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') throw new Error(`${field} resource is missing: ${relative}`);
+    throw new Error(`${field} resource ${relative}: ${error.message}`, { cause: error });
+  }
 }
 
 export function readAppInfo(root, targetId) {

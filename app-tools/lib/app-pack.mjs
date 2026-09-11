@@ -536,7 +536,9 @@ export function aggregateAppTargetCandidates(cwd, options = {}) {
     const entries = readNimiAppArchive(bytes);
     const infoAsset = target.app_info;
     if (infoAsset?.asset_name !== `${appId}-${version}-${target.target_id}.app-info.json` || !Number.isSafeInteger(infoAsset.size) || infoAsset.size <= 0 || infoAsset.size > APP_INFO_MAX_BYTES) throw new Error(`Target App info reference is invalid: ${target.target_id}`);
-    const infoBytes = readFileSync(path.join(outputDir, infoAsset.asset_name));
+    const infoPath = path.join(outputDir, infoAsset.asset_name);
+    if (!existsSync(infoPath)) throw new Error(`Target App info asset is missing: ${infoAsset.asset_name}`);
+    const infoBytes = readFileSync(infoPath);
     if (infoBytes.length !== infoAsset.size || createHash('sha256').update(infoBytes).digest('hex') !== infoAsset.sha256 || !entries.get('app-info.json')?.bytes.equals(infoBytes)) throw new Error(`Target App info changed or differs from archive: ${target.target_id}`);
     const info = validateAppInfo(JSON.parse(infoBytes));
     if (info.app_id !== appId || info.version !== version || info.target_id !== target.target_id) throw new Error(`Target App info identity differs: ${target.target_id}`);

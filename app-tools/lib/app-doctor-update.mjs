@@ -609,13 +609,14 @@ function validateExistingSubmittedApp(targetDir) {
 export function initApp(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
   const intent = readIntent(targetDir);
+  const currentManifest = readCurrentAppManifest(targetDir);
   const snapshot = buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir });
   if (!runners?.runNimicodingSync) {
     throw new Error('Missing nimicoding sync runner');
   }
   const nimicoding = runners.runNimicodingSync(targetDir, 'apply');
   for (const file of snapshot.initFiles) {
-    writeScaffoldFile(targetDir, file);
+    writeScaffoldFile(targetDir, file, currentManifest);
   }
   validateAppProjectState(targetDir, versions, runners);
   const payload = {
@@ -703,14 +704,25 @@ function assertNoClassificationConflict(lock, snapshot) {
   }
 }
 
-function writeScaffoldFile(targetDir, file) {
+function readCurrentAppManifest(targetDir) {
+  const manifestPath = path.join(targetDir, 'nimi.app.yaml');
+  if (!existsSync(manifestPath)) return undefined;
+  let manifest;
+  try { manifest = parseYaml(readFileSync(manifestPath, 'utf8')); }
+  catch (error) { throw new Error(`nimi.app.yaml is invalid: ${error.message}`, { cause: error }); }
+  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    throw new Error('nimi.app.yaml must contain an App declaration mapping before init or sync');
+  }
+  return manifest;
+}
+
+function writeScaffoldFile(targetDir, file, currentManifest) {
   const targetPath = path.join(targetDir, file.path);
   mkdirSync(path.dirname(targetPath), { recursive: true });
-  if (file.path === 'nimi.app.yaml' && existsSync(targetPath)) {
-    const current = parseYaml(readFileSync(targetPath, 'utf8'));
+  if (file.path === 'nimi.app.yaml' && currentManifest) {
     const next = parseYaml(file.content);
     for (const field of APP_AUTHOR_DECLARATION_FIELDS) {
-      if (Object.hasOwn(current, field)) next[field] = current[field];
+      if (Object.hasOwn(currentManifest, field)) next[field] = currentManifest[field];
     }
     writeFileSync(targetPath, stringifyYaml(next, { lineWidth: 0 }));
     return;
@@ -722,6 +734,7 @@ export function syncManagedApp(cwd, options = {}, versions, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
   const lock = readLock(targetDir);
   const intent = readIntent(targetDir);
+  const currentManifest = readCurrentAppManifest(targetDir);
   const packageJson = readJsonFile(path.join(targetDir, 'package.json'), 'package.json');
   const versionedIntent = {
     ...intent,
@@ -743,7 +756,7 @@ export function syncManagedApp(cwd, options = {}, versions, runners = {}) {
     if (!managedEntry) {
       continue;
     }
-    writeScaffoldFile(targetDir, file);
+    writeScaffoldFile(targetDir, file, currentManifest);
   }
   writeScaffoldFile(targetDir, {
     path: SCAFFOLD_LOCK_PATH,
