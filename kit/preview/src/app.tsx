@@ -164,6 +164,19 @@ function ActionsSection() {
           <Button size="lg">Large</Button>
           <Button disabled>Disabled</Button>
         </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            asChild
+            leadingIcon={<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-2 2M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l2-2" /></svg>}
+            trailingIcon={<svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14m-6-6 6 6-6 6" /></svg>}
+            data-testid="btn-slotted-link"
+          >
+            <a href="?section=inputs">Link to inputs</a>
+          </Button>
+          <Button asChild loading data-testid="btn-slotted-loading">
+            <button type="button" disabled>Loading</button>
+          </Button>
+        </div>
         {/* P-DESIGN-028: expressive escape hatch inside a compact region
             restores foundation sizing for the subtree. */}
         <div data-nimi-density="expressive" className="flex items-center gap-3 rounded-[var(--nimi-radius-md)] border border-dashed border-[var(--nimi-border-strong)] p-3">

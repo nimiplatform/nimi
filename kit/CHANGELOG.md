@@ -11,6 +11,10 @@ Discipline.
 
 ### Fixed
 
+- Preserve icon decorations and loading feedback when `Button asChild` uses a
+  link or custom element, and accept the canonical Realm Realtime envelope at
+  the Electron native carrier boundary while rejecting unknown envelope fields.
+
 - Accept `audio/x-wav` Runtime artifacts under the same RIFF/WAVE validation as
   `audio/wav`, keep Agent Realtime sessions open after successful individual
   turns, and share overlapping development inventory reads without retaining

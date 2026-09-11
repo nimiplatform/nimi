@@ -168,21 +168,29 @@ test('surface, button, field, and status primitives render', () => {
   expect(hasClass(html, 'nimi-status-badge__dot')).toBe(true);
 });
 
-test('button asChild slots button chrome onto the child element itself', () => {
+test('button asChild slots button chrome and decorations onto the child element itself', () => {
   const html = renderToStaticMarkup(
-    <Button asChild tone="primary" size="sm" active>
+    <Button asChild tone="primary" size="sm" active leadingIcon={<span>Leading</span>} trailingIcon={<span>Trailing</span>}>
       <a href="/reminders">查看全部</a>
     </Button>,
   );
 
-  // The child element is the slot target: it carries the button classes
-  // directly, with no wrapper span around it (Radix Slot single-child rule).
+  // Decorations belong inside the single slotted child, alongside its text.
   expect(html).toMatch(/^<a /);
   expect(html).toMatch(/<a [^>]*class="[^"]*\bnimi-action\b[^"]*\bnimi-action--primary\b[^"]*\bnimi-action--size-sm\b[^"]*\bnimi-action--active\b[^"]*"/);
   expect(html).toContain('href="/reminders"');
   expect(html).toContain('查看全部');
-  expect(html).not.toContain('nimi-action__leading');
+  expect(html).toContain('nimi-action__leading');
+  expect(html).toContain('nimi-action__trailing');
   expect(html).not.toContain('nimi-action__spinner');
+});
+
+test('button asChild retains loading feedback inside the child', () => {
+  const html = renderToStaticMarkup(<Button asChild loading><a href="/reminders">Loading</a></Button>);
+  expect(html).toMatch(/^<a /);
+  expect(html).toContain('aria-busy="true"');
+  expect(html).toContain('nimi-action__spinner');
+  expect(html).toContain('Loading');
 });
 
 test('pill tabs render sliding-indicator slots, radiogroup roles, and active state', () => {

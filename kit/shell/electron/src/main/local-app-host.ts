@@ -2192,6 +2192,7 @@ async function invokeConversationStreamNext(call: () => Promise<NativeLocalAppOu
   return Object.freeze({ completed: false, event });
 }
 
+// @nimi-authority: rule.nimi.sdks.realm-consumer.r048
 async function invokeRealtimeStreamNext(call: () => Promise<NativeLocalAppOutcome>): Promise<NimiElectronLocalAppRecord> {
   const value = await invoke(call);
   if (!isPlainRecord(value) || typeof value.completed !== 'boolean') throw untrustedRuntimeError();
@@ -2199,8 +2200,15 @@ async function invokeRealtimeStreamNext(call: () => Promise<NativeLocalAppOutcom
     if (!hasExactKeys(value, ['completed'])) throw untrustedRuntimeError();
     return Object.freeze({ completed: true });
   }
-  if (!hasExactKeys(value, ['completed', 'event']) || !isPlainRecord(value.event)
-    || !hasExactKeys(value.event, ['control', 'event'])) throw untrustedRuntimeError();
+  if (!hasExactKeys(value, ['completed', 'event']) || !isPlainRecord(value.event)) {
+    throw untrustedRuntimeError();
+  }
+  const isRuntimeEnvelope = hasExactKeys(value.event, ['control', 'event']);
+  const isRealmEnvelope = hasExactKeys(value.event, [
+    'realtimeSessionId', 'channelId', 'subscriptionId', 'generation', 'sequence',
+    'correlationId', 'occurredAt', 'event',
+  ]);
+  if (!isRuntimeEnvelope && !isRealmEnvelope) throw untrustedRuntimeError();
   return Object.freeze({ completed: false, event: validateProjection(value.event) });
 }
 

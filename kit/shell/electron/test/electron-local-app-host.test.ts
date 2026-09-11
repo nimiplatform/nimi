@@ -443,6 +443,30 @@ describe('Electron protected local-app host', () => {
     });
   });
 
+  it('carries the native Realm Realtime envelope and rejects unknown envelope fields', async () => {
+    const event = {
+      realtimeSessionId: 'session-1', channelId: 'channel-1', subscriptionId: 'subscription-1',
+      generation: '1', sequence: '1', correlationId: 'correlation-1',
+      occurredAt: { seconds: '1', nanos: 0 },
+      event: {
+        type: 'presence', userId: 'user-1', isOnline: true,
+        presenceRevision: '1', occurredAt: { seconds: '1', nanos: 0 },
+      },
+    };
+    const hostFor = (value: unknown) => createNimiElectronLocalAppHostForBinding({
+      ...binding([]),
+      localAppRealtimeStreamNext: async () => ({ status: 'ok' as const, value }),
+    });
+    await expect(hostFor({ completed: false, event }).realtimeStreamNext({ streamId: 'realm-realtime-1' }))
+      .resolves.toEqual({ completed: false, event });
+    await expect(hostFor({ completed: false, event: { ...event, endpoint: 'http://localhost/private' } })
+      .realtimeStreamNext({ streamId: 'realm-realtime-1' }))
+      .rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted', retryable: false });
+    await expect(hostFor({ completed: false, event: { event: event.event } })
+      .realtimeStreamNext({ streamId: 'realm-realtime-1' }))
+      .rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted', retryable: false });
+  });
+
   it('strictly validates scenario Job and artifact projections', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
     const host = createNimiElectronLocalAppHostForBinding(binding(calls));
