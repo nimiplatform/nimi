@@ -485,7 +485,7 @@
     },
     "gallery": {
       "title": "可结识的人物",
-      "subtitle": "共 {{total}} 位带着完整生平的人物，其中 {{connectable}} 位现在就能加入本地。换个排列方式，看看他们是如何聚成一张关系网的。",
+      "subtitle": "共 {{total}} 位带着完整生平的人物，{{connectable}} 位现在即可加入本地。",
       "close": "关闭",
       "backToWorld": "返回世界详情",
       "searchPlaceholder": "按名字、身份或交游圈搜索",

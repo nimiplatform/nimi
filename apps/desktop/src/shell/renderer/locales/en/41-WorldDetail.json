@@ -485,7 +485,7 @@
     },
     "gallery": {
       "title": "People you can meet",
-      "subtitle": "{{total}} characters with full life stories — {{connectable}} can be added locally right now. Switch the arrangement to see how they cluster into a web of relations.",
+      "subtitle": "{{total}} characters with full life stories; {{connectable}} can be added locally now.",
       "close": "Close",
       "backToWorld": "Back to world detail",
       "searchPlaceholder": "Search by name, role or circle",
