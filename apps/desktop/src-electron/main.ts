@@ -42,6 +42,7 @@ import { createDesktopElectronProductControlHost } from './product-control-host.
 import { createDesktopMacOSRuntimeServiceHost } from './macos-runtime-service.js';
 import { createDesktopInstalledAppHost, type DesktopInstalledAppHost } from './installed-app-host.js';
 import {
+  DesktopSourceRuntimeUnavailableError,
   requireDesktopSourceRuntime,
   sourceRuntimeBootstrapFailureMessage,
 } from './source-runtime-bootstrap.js';
@@ -577,6 +578,9 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     await shutdownBeforeQuit().catch(() => undefined);
     const failureCode = desktopBootstrapFailureCode(error);
     process.stderr.write(`[desktop-bootstrap] ${failureCode}\n`);
+    if (error instanceof DesktopSourceRuntimeUnavailableError) {
+      process.stderr.write(`[desktop-bootstrap] ${sourceRuntimeBootstrapFailureMessage(error.runtimeReasonCode)}\n`);
+    }
     dialog.showErrorBox(
       'Nimi could not start safely',
       SOURCE_PER_USER_RUNTIME_D2
