@@ -1,4 +1,6 @@
-use std::ffi::{CStr, CString};
+#[cfg(feature = "macos-source-local-development")]
+use std::ffi::CStr;
+use std::ffi::CString;
 use std::os::fd::RawFd;
 use std::path::PathBuf;
 
@@ -6,6 +8,7 @@ use std::path::PathBuf;
 use crate::macos_profile::{
     LOCAL_APP_SOCKET_PATH, RUNTIME_EXECUTABLE_PATH, RUNTIME_SIGNING_IDENTIFIER, RUNTIME_SOCKET_PATH,
 };
+#[cfg(not(feature = "macos-source-local-development"))]
 use crate::macos_profile::{
     MACOS_TEAM_ID, REQUIRE_AD_HOC, REQUIRE_NOTARIZATION, REQUIRE_TRUSTED_ANCHOR,
 };
@@ -18,6 +21,7 @@ pub(crate) const MACOS_RUNTIME_LOCAL_APP_SOCKET_PATH: &str = LOCAL_APP_SOCKET_PA
 #[cfg(not(feature = "macos-source-local-development"))]
 pub(crate) const MACOS_RUNTIME_EXECUTABLE_PATH: &str = RUNTIME_EXECUTABLE_PATH;
 unsafe extern "C" {
+    #[cfg(not(feature = "macos-source-local-development"))]
     fn nimi_macos_verify_runtime_peer(
         socket_fd: i32,
         expected_path: *const libc::c_char,
@@ -28,6 +32,7 @@ unsafe extern "C" {
         require_trusted_anchor: i32,
         require_ad_hoc: i32,
     ) -> i32;
+    #[cfg(feature = "macos-source-local-development")]
     fn nimi_macos_verify_per_user_runtime_peer(
         socket_fd: i32,
         expected_path: *const libc::c_char,
@@ -190,6 +195,7 @@ fn unavailable() -> ProtectedCarrierError {
     ProtectedCarrierError::new(ProtectedCarrierReasonCode::RuntimeServiceUnavailable, true)
 }
 
+#[cfg(any(test, not(feature = "macos-source-local-development")))]
 struct MacOSSigningPolicy {
     requirement: CString,
     team: CString,
@@ -198,6 +204,7 @@ struct MacOSSigningPolicy {
     require_ad_hoc: bool,
 }
 
+#[cfg(not(feature = "macos-source-local-development"))]
 fn signing_policy(
     signing_identifier: &'static str,
 ) -> Result<MacOSSigningPolicy, ProtectedCarrierError> {
@@ -210,6 +217,7 @@ fn signing_policy(
     )
 }
 
+#[cfg(any(test, not(feature = "macos-source-local-development")))]
 fn build_signing_policy(
     signing_identifier: &str,
     team: Option<&str>,
@@ -255,6 +263,7 @@ fn build_signing_policy(
     })
 }
 
+#[cfg(any(test, not(feature = "macos-source-local-development")))]
 fn valid_signing_identifier(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 128
@@ -265,6 +274,7 @@ fn valid_signing_identifier(value: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-'))
 }
 
+#[cfg(any(test, not(feature = "macos-source-local-development")))]
 fn valid_team_id(value: &str) -> bool {
     value.len() == 10
         && value
@@ -297,6 +307,7 @@ mod tests {
             "identifier \"ai.nimi.runtime.dev\""
         );
         assert_eq!(policy.team.to_bytes(), b"");
+        assert_eq!(policy.identifier.to_bytes(), b"ai.nimi.runtime.dev");
         assert!(policy.require_ad_hoc);
         assert!(!policy.require_trusted_anchor);
 

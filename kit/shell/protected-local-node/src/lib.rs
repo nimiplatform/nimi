@@ -60,7 +60,7 @@ use nimi_shell_protected_local::{
     LocalDevelopmentLaunchRequest, LocalDevelopmentRegistration,
     LocalDevelopmentRegistrationRequest, LocalDevelopmentShellKind, NimiDesktopControl,
     NimiHostError, NimiLocalAppCarrier, NimiLocalAppSession, NimiProtectedLocalHostCarrier,
-    ProtectedCarrierError, RuntimeServiceActionOutcome,
+    ProtectedCarrierError,
 };
 #[cfg(target_os = "macos")]
 use nimi_shell_protected_local::{MacOsLocalAppCarrier, MacOsUnixSocketCarrier};

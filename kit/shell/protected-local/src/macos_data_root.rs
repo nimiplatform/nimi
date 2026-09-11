@@ -1,21 +1,29 @@
 use std::error::Error;
+#[cfg(not(feature = "macos-source-local-development"))]
 use std::ffi::CString;
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::os::unix::ffi::OsStrExt;
+#[cfg(not(feature = "macos-source-local-development"))]
 use std::os::unix::fs::MetadataExt;
 use std::path::{Component, Path, PathBuf};
 
+#[cfg(not(feature = "macos-source-local-development"))]
 const ACL_SEARCH_DIRECTORY: i32 = 1;
+#[cfg(not(feature = "macos-source-local-development"))]
 const ACL_PRODUCT_CONTROL_DIRECTORY: i32 = 2;
+#[cfg(not(feature = "macos-source-local-development"))]
 const ACL_DATA_DIRECTORY: i32 = 3;
+#[cfg(not(feature = "macos-source-local-development"))]
 const ACL_MODIFY_FILE: i32 = 4;
+#[cfg(not(feature = "macos-source-local-development"))]
 const ACL_DATA_FILE: i32 = 5;
 const PROFILE_BUFFER_BYTES: usize = 4096;
 
 unsafe extern "C" {
+    #[cfg(not(feature = "macos-source-local-development"))]
     fn nimi_macos_prepare_fixed_runtime_path_acl(path: *const libc::c_char, policy: i32) -> i32;
-    #[cfg(test)]
+    #[cfg(all(test, not(feature = "macos-source-local-development")))]
     fn nimi_macos_validate_fixed_runtime_path_acl(path: *const libc::c_char, policy: i32) -> i32;
     fn nimi_macos_copy_current_user_profile(output: *mut libc::c_char, output_size: usize) -> i32;
 }
@@ -118,12 +126,14 @@ fn validate_directory_chain(
     Ok(())
 }
 
+#[cfg(not(feature = "macos-source-local-development"))]
 fn path_c_string(path: &Path, stage: &'static str) -> Result<CString, FixedRuntimeDataRootError> {
     CString::new(path.as_os_str().as_bytes()).map_err(|_| {
         FixedRuntimeDataRootError::new(stage, "the path contains an embedded NUL byte")
     })
 }
 
+#[cfg(not(feature = "macos-source-local-development"))]
 fn prepare_native_acl(
     path: &Path,
     policy: i32,
@@ -142,6 +152,7 @@ fn prepare_native_acl(
     Ok(())
 }
 
+#[cfg(not(feature = "macos-source-local-development"))]
 fn prepare_runtime_traversal(path: &Path) -> Result<(), FixedRuntimeDataRootError> {
     // SAFETY: geteuid is a read-only process identity query.
     let current_uid = unsafe { libc::geteuid() };
@@ -178,6 +189,7 @@ fn prepare_runtime_traversal(path: &Path) -> Result<(), FixedRuntimeDataRootErro
     Ok(())
 }
 
+#[cfg(not(feature = "macos-source-local-development"))]
 fn prepare_directory(
     path: &Path,
     policy: i32,
@@ -366,6 +378,7 @@ fn current_process_profile_root() -> Result<PathBuf, FixedRuntimeDataRootError> 
     normalized_absolute_non_root(&profile, "resolve-interactive-user-profile")
 }
 
+#[cfg(not(feature = "macos-source-local-development"))]
 fn prepare_existing_product_control_record(
     record_path: &Path,
 ) -> Result<(), FixedRuntimeDataRootError> {
@@ -392,6 +405,7 @@ fn prepare_existing_product_control_record(
     )
 }
 
+#[cfg(not(feature = "macos-source-local-development"))]
 fn prepare_fixed_runtime_product_control_root_at(
     profile_root: &Path,
 ) -> Result<(), FixedRuntimeDataRootError> {
@@ -416,6 +430,7 @@ fn prepare_fixed_runtime_product_control_root_at(
 /// the isolated Runtime is contacted. The host does not parse or interpret the
 /// canonical record; data-root preparation remains bound to the real selection
 /// request.
+#[cfg(not(feature = "macos-source-local-development"))]
 pub(crate) fn prepare_fixed_runtime_product_control_root() -> Result<(), FixedRuntimeDataRootError>
 {
     prepare_fixed_runtime_product_control_root_at(&current_process_profile_root()?)
@@ -424,7 +439,7 @@ pub(crate) fn prepare_fixed_runtime_product_control_root() -> Result<(), FixedRu
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::os::unix::fs::{symlink, PermissionsExt};
+    use std::os::unix::fs::{symlink, MetadataExt, PermissionsExt};
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn fixture(name: &str) -> PathBuf {
@@ -440,6 +455,7 @@ mod tests {
         temp
     }
 
+    #[cfg(not(feature = "macos-source-local-development"))]
     fn validate_native_acl(path: &Path, policy: i32) {
         let encoded = path_c_string(path, "test-path").expect("encode fixture path");
         // SAFETY: encoded is a live nul-terminated fixture path and policy is

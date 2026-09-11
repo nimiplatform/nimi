@@ -1,4 +1,9 @@
 use super::*;
+#[cfg(not(any(
+    feature = "macos-source-local-development",
+    feature = "windows-source-local-development"
+)))]
+use nimi_shell_protected_local::RuntimeServiceActionOutcome;
 
 pub(super) fn project_session_status(status: LocalAppSessionStatus) -> JsonValue {
     let current_user_state = if status.current_user.value.is_some() {
@@ -80,6 +85,10 @@ pub(super) fn project_account_realm_unary(response: DesktopAccountRealmUnaryResp
     })
 }
 
+#[cfg(not(any(
+    feature = "macos-source-local-development",
+    feature = "windows-source-local-development"
+)))]
 pub(super) fn project_runtime_service_action(outcome: RuntimeServiceActionOutcome) -> JsonValue {
     json!({
         "running": outcome.state == nimi_shell_protected_local::RuntimeServiceState::Running,

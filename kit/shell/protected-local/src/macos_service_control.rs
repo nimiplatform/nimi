@@ -3,7 +3,9 @@ use std::future::Future;
 use std::io;
 use std::os::fd::AsRawFd;
 use std::pin::Pin;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, Mutex};
+#[cfg(feature = "macos-source-local-development")]
+use std::sync::OnceLock;
 
 use hyper_util::rt::TokioIo;
 use tokio::net::UnixStream;
@@ -14,6 +16,8 @@ use tower::service_fn;
 
 #[cfg(not(feature = "macos-source-local-development"))]
 use crate::generated::RequestRuntimeRestartRequest;
+#[cfg(not(feature = "macos-source-local-development"))]
+use crate::RuntimeServiceState;
 #[cfg(feature = "macos-source-local-development")]
 use crate::local_development::local_development_rebind_candidate_is_stale;
 use crate::macos_peer_trust::{
@@ -36,7 +40,7 @@ use crate::{
     LocalDevelopmentLaunchRequest, LocalDevelopmentRegistration,
     LocalDevelopmentRegistrationRequest, NimiDesktopControl, NimiHostError,
     NimiHostErrorReasonCode, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
-    ProtectedCarrierReasonCode, RuntimeServiceActionOutcome, RuntimeServiceState,
+    ProtectedCarrierReasonCode, RuntimeServiceActionOutcome,
     RuntimeServiceStatus,
 };
 
@@ -84,6 +88,7 @@ pub struct MacOsUnixSocketCarrier;
 
 struct SupervisedDevelopmentEntry {
     process: SupervisedDevelopmentProcess,
+    #[cfg(feature = "macos-source-local-development")]
     request: LocalDevelopmentLaunchRequest,
 }
 
@@ -455,6 +460,7 @@ impl NimiDesktopControl for MacOSDesktopControl {
     > {
         Box::pin(async move {
             let run_id = request.supervisor_run_id;
+            #[cfg(feature = "macos-source-local-development")]
             let retained_request = request.clone();
             let (outcome, process) =
                 crate::windows_local_development::launch_host(self.host_channel()?, request)
@@ -467,6 +473,7 @@ impl NimiDesktopControl for MacOSDesktopControl {
                 run_id,
                 SupervisedDevelopmentEntry {
                     process,
+                    #[cfg(feature = "macos-source-local-development")]
                     request: retained_request,
                 },
             ) {
@@ -854,6 +861,7 @@ async fn request_runtime_restart_on_channel(
     ))
 }
 
+#[cfg(not(feature = "macos-source-local-development"))]
 fn macos_service_status() -> Result<i32, ProtectedCarrierError> {
     // SAFETY: this read-only call returns only SMAppService's closed status
     // enum for the fixed embedded plist and fixed main bundle path.
@@ -882,6 +890,7 @@ fn service_status(
     }
 }
 
+#[cfg(not(feature = "macos-source-local-development"))]
 fn service_outcome(
     state: RuntimeServiceState,
     reason_code: Option<ProtectedCarrierReasonCode>,

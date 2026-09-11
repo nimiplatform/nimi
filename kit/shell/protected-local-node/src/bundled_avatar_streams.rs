@@ -61,6 +61,10 @@ async fn close_stream(stream: SharedStream) {
     stream.receiver.lock().await.take();
 }
 
+#[cfg(not(any(
+    feature = "macos-source-local-development",
+    feature = "windows-source-local-development"
+)))]
 pub(super) async fn close_all_bundled_avatar_streams() -> usize {
     let registered = {
         let mut registry = streams().lock().await;

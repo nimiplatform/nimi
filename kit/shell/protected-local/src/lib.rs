@@ -21,12 +21,10 @@ mod macos_data_root;
 #[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
 mod macos_peer_trust;
-#[cfg(target_os = "macos")]
+#[cfg(all(target_os = "macos", not(feature = "macos-source-local-development")))]
 mod macos_profile;
 #[cfg(all(target_os = "macos", feature = "macos-local-development"))]
 mod macos_profile_local_development;
-#[cfg(all(target_os = "macos", feature = "macos-source-local-development"))]
-mod macos_profile_source_local_development;
 #[cfg(target_os = "macos")]
 #[allow(unsafe_code)]
 mod macos_service_control;
@@ -38,13 +36,12 @@ mod service;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_asset_reveal;
+#[cfg(any(
+    test,
+    all(target_os = "windows", feature = "windows-source-local-development")
+))]
 mod windows_source_policy;
-#[allow(
-    dead_code,
-    clippy::doc_lazy_continuation,
-    clippy::enum_variant_names,
-    clippy::large_enum_variant
-)]
+
 #[cfg(all(
     feature = "macos-local-development",
     feature = "macos-source-local-development"
@@ -57,6 +54,13 @@ compile_error!("macos-local-development and macos-source-local-development are m
 ))]
 compile_error!("windows-source-local-development requires a Windows target");
 
+// The carrier uses a subset of the shared Runtime protocol.
+#[allow(
+    dead_code,
+    clippy::doc_lazy_continuation,
+    clippy::enum_variant_names,
+    clippy::large_enum_variant
+)]
 mod generated {
     tonic::include_proto!("nimi.runtime.v1");
 }

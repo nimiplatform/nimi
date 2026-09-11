@@ -11,6 +11,10 @@ use crate::generated::runtime_app_service_client::RuntimeAppServiceClient;
 use crate::generated::runtime_auth_service_client::RuntimeAuthServiceClient;
 use crate::generated::runtime_development_service_client::RuntimeDevelopmentServiceClient;
 use crate::generated::runtime_realm_realtime_service_client::RuntimeRealmRealtimeServiceClient;
+#[cfg(any(
+    all(target_os = "macos", not(feature = "macos-source-local-development")),
+    all(target_os = "windows", not(feature = "windows-source-local-development"))
+))]
 use crate::generated::runtime_service_control_service_client::RuntimeServiceControlServiceClient;
 
 pub const RUNTIME_MAX_INLINE_PAYLOAD_BYTES: usize = 32 * 1024 * 1024;
@@ -54,6 +58,10 @@ limited_runtime_client!(
     runtime_realm_realtime_client,
     RuntimeRealmRealtimeServiceClient
 );
+#[cfg(any(
+    all(target_os = "macos", not(feature = "macos-source-local-development")),
+    all(target_os = "windows", not(feature = "windows-source-local-development"))
+))]
 limited_runtime_client!(
     runtime_service_control_client,
     RuntimeServiceControlServiceClient

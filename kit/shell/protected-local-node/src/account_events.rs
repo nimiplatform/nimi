@@ -78,6 +78,13 @@ async fn close_account_event_stream(stream: SharedAccountEventStream) {
     stream.receiver.lock().await.take();
 }
 
+#[cfg(any(
+    test,
+    not(any(
+        feature = "macos-source-local-development",
+        feature = "windows-source-local-development"
+    ))
+))]
 pub(super) async fn close_all_account_event_streams() -> usize {
     let (registered, streams) = {
         let mut registry = account_event_streams().lock().await;
