@@ -353,7 +353,7 @@ test('Electron production maps exact App SemVer to bounded Windows resource meta
   assert.match(packagerSource, /const RESOURCE_VERSION = MACOS_BUILD \? APP_VERSION : resolveWindowsResourceVersion\(APP_VERSION\);/u);
   assert.match(packagerSource, /appVersion: RESOURCE_VERSION,/u);
   assert.match(packagerSource, /buildVersion: RESOURCE_VERSION,/u);
-  assert.match(packagerSource, /afterInitialize: \[async \(\{ buildPath \}\) => \{/u);
+  assert.match(packagerSource, /beforeAsar: \[async \(\{ buildPath \}\) => \{/u);
   assert.match(packagerSource, /packagedManifest\.version = APP_VERSION;/u);
 });
 
@@ -504,7 +504,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.doesNotMatch(electronProductionPackager, /\.nimi['"], ['"]local['"], ['"]electron-packager-stage/);
     assert.match(electronProductionPackager, /platform: NATIVE_PLATFORM/);
     assert.match(electronProductionPackager, /arch: NATIVE_ARCH/);
-    assert.match(electronProductionPackager, /asar: false/);
+    assert.match(electronProductionPackager, /asar: \{ unpack: '\*\*\/\*\.node' \}/);
     assert.match(electronProductionPackager, /name: APP_EXECUTABLE_NAME/);
     assert.match(electronProductionPackager, /executableName: APP_EXECUTABLE_NAME/);
     assert.match(electronProductionPackager, /Kit does not declare the current-platform protected native binding as optional/);
