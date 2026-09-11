@@ -1,6 +1,6 @@
 import { runNimiRuntimeScenarioJob } from '@nimiplatform/sdk/runtime';
 import { ExecutionMode, ScenarioType, VisionLocateGeometry, type VisionLocateResult } from '@nimiplatform/sdk/runtime/generated';
-import type { NimiLocalAppArtifactImageMime, NimiLocalAppVisionLocateResult } from '@nimiplatform/sdk/app';
+import type { NimiLocalAppArtifactUploadMime, NimiLocalAppVisionLocateResult } from '@nimiplatform/sdk/app';
 import { createStudioScenarioJobClient, type StudioCapabilityRuntimeContext } from '../../ai-studio-core/runtime.js';
 
 function localVisionResult(result: VisionLocateResult): NimiLocalAppVisionLocateResult {
@@ -32,7 +32,7 @@ export async function runVisionLocate(context: StudioCapabilityRuntimeContext) {
   const bytes = Uint8Array.from(atob(image.dataUrl.slice(prefix.length)), char => char.charCodeAt(0));
   let upload;
   try {
-    upload = await context.host.client.ai.artifacts.upload({ bytes, mimeType: image.mimeType as NimiLocalAppArtifactImageMime });
+    upload = await context.host.client.ai.artifacts.upload({ bytes, mimeType: image.mimeType as NimiLocalAppArtifactUploadMime });
   } catch (error) {
     if (context.input.signal?.aborted) return abortedBeforeSubmit();
     throw error;

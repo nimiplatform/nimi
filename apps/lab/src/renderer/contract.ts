@@ -6,7 +6,7 @@ import type {
 import type { NimiLocalAppAIConfigClient, NimiLocalAppClient } from '@nimiplatform/sdk/app';
 import type {
   NimiLocalAppAgentHandle,
-  NimiLocalAppArtifactImageMime,
+  NimiLocalAppArtifactUploadMime,
   NimiLocalAppAssetsClient,
 } from '@nimiplatform/sdk/app';
 import type { RealmListChatsResultDto } from '@nimiplatform/kit/features/chat/realm';
@@ -97,8 +97,8 @@ export interface LabRendererSdkPort {
   }[]>;
   uploadLocalAppArtifact(input: {
     readonly bytes: Uint8Array;
-    readonly mimeType: NimiLocalAppArtifactImageMime;
-  }): Promise<{ readonly artifactId: string; readonly sizeBytes: number; readonly mimeType: NimiLocalAppArtifactImageMime }>;
+    readonly mimeType: NimiLocalAppArtifactUploadMime;
+  }): Promise<{ readonly artifactId: string; readonly sizeBytes: number; readonly mimeType: NimiLocalAppArtifactUploadMime }>;
   aiConfig: NimiLocalAppAIConfigClient;
   storage: {
     readonly assets: NimiLocalAppAssetsClient;

@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
-import type { NimiLocalAppArtifactImageMime } from '@nimiplatform/sdk/app';
+import type { NimiLocalAppArtifactUploadMime } from '@nimiplatform/sdk/app';
 import type { StudioCapabilityRunInput, StudioCapabilityRunResult } from './runtime-types.js';
 import type { StudioCapabilityDescriptor } from './module-registration.js';
 import type { StudioRunTargetSummary } from './history.js';
@@ -47,11 +47,11 @@ export type AIStudioHostPort = {
     }[]>;
     readonly uploadLocalAppArtifact: (input: {
       readonly bytes: Uint8Array;
-      readonly mimeType: NimiLocalAppArtifactImageMime;
+      readonly mimeType: NimiLocalAppArtifactUploadMime;
     }) => Promise<{
       readonly artifactId: string;
       readonly sizeBytes: number;
-      readonly mimeType: NimiLocalAppArtifactImageMime;
+      readonly mimeType: NimiLocalAppArtifactUploadMime;
     }>;
     readonly aiConfig: {
       readonly get: () => Promise<NimiPortableAppAIConfig | null>;
