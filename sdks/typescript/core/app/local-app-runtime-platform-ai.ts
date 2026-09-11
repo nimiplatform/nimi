@@ -189,6 +189,8 @@ export type NimiLocalAppScenarioJobSpec =
       readonly type: 'music-generate';
       readonly prompt: string;
       readonly lyrics: string;
+      /** Generation budget in whole seconds (1–180); actual audio may end earlier. */
+      readonly durationSeconds?: number;
     };
 
 export type NimiLocalAppScenarioJobSubmitOptions = {
@@ -806,9 +808,11 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
       break;
     case 'music-generate':
       if (execute) invalidAIInput('music-generate is not a synchronous spec');
-      assertExactKeys(record, ['type', 'prompt', 'lyrics'], 'music spec');
+      assertExactKeys(record, ['type', 'prompt', 'lyrics', 'durationSeconds'], 'music spec');
       boundedContent(record.prompt, 'music prompt', 32 * 1024);
       boundedContent(record.lyrics, 'music lyrics', 32 * 1024);
+      if (record.durationSeconds !== undefined && (!Number.isSafeInteger(record.durationSeconds)
+        || Number(record.durationSeconds) < 1 || Number(record.durationSeconds) > 180)) invalidAIInput('music durationSeconds must be an integer from 1 through 180');
       break;
     case 'world-generate':
       if (execute) invalidAIInput('world-generate is not a synchronous spec');
@@ -1337,7 +1341,7 @@ function runtimeLocalJobSpec(
     case 'music-generate':
       return {
         oneofKind: 'musicGenerate',
-        musicGenerate: { prompt: spec.prompt, lyrics: spec.lyrics },
+        musicGenerate: { prompt: spec.prompt, lyrics: spec.lyrics, durationSeconds: spec.durationSeconds ?? 0 },
       };
     case 'world-generate':
       return { oneofKind: 'worldGenerate', worldGenerate: { prompt: spec.prompt, displayName: spec.displayName } };
@@ -1679,10 +1683,11 @@ function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): Nimi
     case 'musicGenerate':
       requireScenarioType(request, ScenarioType.MUSIC_GENERATE);
       if (spec.musicGenerate.negativePrompt || spec.musicGenerate.style || spec.musicGenerate.title
-        || spec.musicGenerate.durationSeconds !== 0 || spec.musicGenerate.instrumental) {
+        || spec.musicGenerate.instrumental) {
         return adapterInputError('unsupported MiniMax-Music3 fields are unavailable to Local Apps');
       }
-      return validateScenarioSpec({ type: 'music-generate', prompt: spec.musicGenerate.prompt, lyrics: spec.musicGenerate.lyrics }, false);
+      return validateScenarioSpec({ type: 'music-generate', prompt: spec.musicGenerate.prompt, lyrics: spec.musicGenerate.lyrics,
+        ...(spec.musicGenerate.durationSeconds !== 0 ? { durationSeconds: spec.musicGenerate.durationSeconds } : {}) }, false);
     case 'worldGenerate':
       requireScenarioType(request, ScenarioType.WORLD_GENERATE);
       if (spec.worldGenerate.conditioning.oneofKind !== undefined || spec.worldGenerate.tags.length > 0 || spec.worldGenerate.seed !== '0') {

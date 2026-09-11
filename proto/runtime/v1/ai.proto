@@ -929,6 +929,8 @@ message LocalAppVoiceCreateJobSpec {
 message LocalAppMusicGenerateJobSpec {
   string prompt = 1;
   string lyrics = 2;
+  // Generation budget, not a guaranteed output length. Zero uses Runtime defaults.
+  uint32 duration_seconds = 3;
 }
 
 // Text-conditioned world generation. Provider selection and asset retrieval

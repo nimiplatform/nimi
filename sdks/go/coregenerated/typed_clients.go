@@ -5461,8 +5461,9 @@ type LocalAppImageGenerateScenarioSpec struct {
 }
 
 type LocalAppMusicGenerateJobSpec struct {
-	Prompt string `json:"prompt,omitempty"`
-	Lyrics string `json:"lyrics,omitempty"`
+	Prompt          string `json:"prompt,omitempty"`
+	Lyrics          string `json:"lyrics,omitempty"`
+	DurationSeconds uint32 `json:"duration_seconds,omitempty"`
 }
 
 type LocalAppScenarioArtifact struct {

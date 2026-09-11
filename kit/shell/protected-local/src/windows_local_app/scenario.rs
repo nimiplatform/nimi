@@ -454,13 +454,23 @@ fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
     }
 }
 
+// @nimi-authority: rule.nimi.sdks.feature-clients.r102
 fn parse_music_spec(
     object: &Map<String, JsonValue>,
 ) -> Result<LocalAppMusicGenerateJobSpec, LocalAppOperationError> {
-    exact_keys(object, &["type", "prompt", "lyrics"])?;
+    allowed_keys(
+        object,
+        &["type", "prompt", "lyrics", "durationSeconds"],
+        &["type", "prompt", "lyrics"],
+    )?;
+    let duration = optional_integer_field(object, "durationSeconds")?;
+    if duration.is_some_and(|seconds| !(1..=180).contains(&seconds)) {
+        return Err(invalid_payload());
+    }
     Ok(LocalAppMusicGenerateJobSpec {
         prompt: required_text_field(object, "prompt", MAX_PROMPT_BYTES)?,
         lyrics: required_text_field(object, "lyrics", MAX_PROMPT_BYTES)?,
+        duration_seconds: duration.unwrap_or(0) as u32,
     })
 }
 
@@ -1806,6 +1816,29 @@ mod tests {
             "model": "forbidden"
         }))
         .is_err());
+    }
+
+    #[test]
+    fn music_duration_is_optional_bounded_and_preserved_in_the_typed_request() {
+        for duration in [None, Some(1), Some(120), Some(180)] {
+            let mut input = json!({
+                "type": "music-generate", "prompt": "bright synth-pop", "lyrics": "City lights"
+            });
+            if let Some(seconds) = duration {
+                input["durationSeconds"] = json!(seconds);
+            }
+            let JobSpec::MusicGenerate(spec) = parse_job_spec(input).expect("valid music input") else {
+                panic!("expected music spec");
+            };
+            assert_eq!(spec.duration_seconds, duration.unwrap_or(0));
+        }
+        for duration in [json!(0), json!(-1), json!(181), json!(1.5), json!(null)] {
+            assert!(parse_job_spec(json!({
+                "type": "music-generate", "prompt": "bright synth-pop", "lyrics": "City lights",
+                "durationSeconds": duration
+            }))
+            .is_err());
+        }
     }
 
     #[test]

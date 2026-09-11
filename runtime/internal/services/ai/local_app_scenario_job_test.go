@@ -692,3 +692,16 @@ func TestProjectLocalAppScenarioJobAdmitsCompletedMusicArtifact(t *testing.T) {
 		t.Fatalf("Music Job projection = %+v", projected)
 	}
 }
+
+func TestLocalAppMusicDurationIsBoundedAndPreserved(t *testing.T) {
+	for _, seconds := range []uint32{0, 20, 120, 180, 181} {
+		result, err := validateLocalAppMusicGenerateJobSpec(&runtimev1.LocalAppMusicGenerateJobSpec{Prompt: "Synth pop", Lyrics: "City lights", DurationSeconds: seconds})
+		if seconds > 180 {
+			if err == nil {
+				t.Fatal("oversized music duration passed")
+			}
+		} else if err != nil || result.GetDurationSeconds() != int32(seconds) {
+			t.Fatalf("duration %d: result=%+v err=%v", seconds, result, err)
+		}
+	}
+}

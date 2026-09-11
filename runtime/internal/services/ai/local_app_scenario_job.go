@@ -422,13 +422,17 @@ func validateLocalAppScenarioJobRequest(req *runtimev1.SubmitLocalAppScenarioJob
 	}
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r109
 func validateLocalAppMusicGenerateJobSpec(spec *runtimev1.LocalAppMusicGenerateJobSpec) (*runtimev1.MusicGenerateScenarioSpec, error) {
 	if spec == nil || strings.TrimSpace(spec.GetPrompt()) == "" || strings.TrimSpace(spec.GetLyrics()) == "" ||
 		!localAppOptionalExactText(spec.GetPrompt(), maxLocalAppScenarioPromptBytes) ||
 		!localAppOptionalExactText(spec.GetLyrics(), maxLocalAppScenarioPromptBytes) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-	return &runtimev1.MusicGenerateScenarioSpec{Prompt: spec.GetPrompt(), Lyrics: spec.GetLyrics()}, nil
+	if spec.GetDurationSeconds() > 180 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	return &runtimev1.MusicGenerateScenarioSpec{Prompt: spec.GetPrompt(), Lyrics: spec.GetLyrics(), DurationSeconds: int32(spec.GetDurationSeconds())}, nil
 }
 
 func validateLocalAppVideoGenerateJobSpec(spec *runtimev1.LocalAppVideoGenerateJobSpec) (*runtimev1.VideoGenerateScenarioSpec, error) {

@@ -27,7 +27,7 @@ func (s *Service) submitLocalMusicScenarioJob(ctx context.Context, req *runtimev
 	if err := validateSubmitScenarioAsyncJobRequest(req); err != nil {
 		return nil, err
 	}
-	timeout, err := scenarioJobTimeoutDuration(req, defaultGenerateMusicTimeout, true)
+	timeout, err := scenarioJobTimeoutDuration(req, defaultLocalMusicJobTimeout, true)
 	if err != nil {
 		return nil, err
 	}

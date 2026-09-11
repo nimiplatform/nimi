@@ -5986,6 +5986,9 @@ pub struct LocalAppMusicGenerateJobSpec {
     pub prompt: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub lyrics: ::prost::alloc::string::String,
+    /// Generation budget, not a guaranteed output length. Zero uses Runtime defaults.
+    #[prost(uint32, tag = "3")]
+    pub duration_seconds: u32,
 }
 /// Text-conditioned world generation. Provider selection and asset retrieval
 /// remain Runtime-owned; the result is a portable world archive artifact.

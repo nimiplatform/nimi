@@ -47,6 +47,7 @@ const (
 	defaultTranscribeTimeout                      = 90 * time.Second
 	defaultLocalSpeechJobTimeout                  = 15 * time.Minute
 	defaultGenerateMusicTimeout                   = 300 * time.Second
+	defaultLocalMusicJobTimeout                   = 15 * time.Minute
 	defaultVoiceAssetDeleteReconciliationInterval = 15 * time.Second
 )
 

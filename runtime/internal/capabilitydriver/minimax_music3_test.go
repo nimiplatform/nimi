@@ -106,7 +106,7 @@ func TestMiniMaxMusic3DriverFailsUnsupportedCanonicalFieldsClosed(t *testing.T) 
 		{name: "style", mutate: func(v *runtimev1.MusicGenerateScenarioSpec) { v.Style = "pop" }},
 		{name: "title", mutate: func(v *runtimev1.MusicGenerateScenarioSpec) { v.Title = "Song" }},
 		{name: "instrumental", mutate: func(v *runtimev1.MusicGenerateScenarioSpec) { v.Instrumental = true }},
-		{name: "duration", mutate: func(v *runtimev1.MusicGenerateScenarioSpec) { v.DurationSeconds = 20 }},
+		{name: "duration", mutate: func(v *runtimev1.MusicGenerateScenarioSpec) { v.DurationSeconds = 181 }},
 		{name: "extension", mutate: func(*runtimev1.MusicGenerateScenarioSpec) {}, extensions: []*runtimev1.ScenarioExtension{{}}},
 		{name: "upstream single-line tag defect", mutate: func(v *runtimev1.MusicGenerateScenarioSpec) { v.Lyrics = "[Verse] City lights are waking." }},
 	}
@@ -120,5 +120,15 @@ func TestMiniMaxMusic3DriverFailsUnsupportedCanonicalFieldsClosed(t *testing.T) 
 				t.Fatal("expected fail-closed Music3 request")
 			}
 		})
+	}
+}
+
+func TestMiniMaxMusic3DurationReachesExecutionPlan(t *testing.T) {
+	for _, seconds := range []int32{20, 90, 120, 180} {
+		request := &runtimev1.MusicGenerateScenarioSpec{Prompt: "Synth pop", Lyrics: "City lights", DurationSeconds: seconds}
+		plan, err := (MiniMaxMusic3AudioCppDriver{}).PlanMusicInvocation(testMiniMaxMusic3Invocation(t, request))
+		if err != nil || plan.DurationBudgetSeconds() != int(seconds) {
+			t.Fatalf("duration %d: plan=%+v err=%v", seconds, plan, err)
+		}
 	}
 }

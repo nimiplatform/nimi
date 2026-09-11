@@ -267,3 +267,22 @@ func TestScenarioJobUsesDetachedPollingForVideoAdapters(t *testing.T) {
 		t.Error("scenarioJobUsesDetachedPolling(VIDEO, openai_compat) = true, want false")
 	}
 }
+
+func TestLocalMusicTimeoutAllowsFullSongRendering(t *testing.T) {
+	req := &runtimev1.SubmitScenarioJobRequest{Head: &runtimev1.ScenarioRequestHead{}, ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE}
+	got, err := scenarioJobTimeoutDuration(req, defaultLocalMusicJobTimeout, true)
+	if err != nil || got != 15*time.Minute {
+		t.Fatalf("local music default=%s error=%v", got, err)
+	}
+	req.Head.TimeoutMs = int32((30 * time.Minute) / time.Millisecond)
+	if _, err = scenarioJobTimeoutDuration(req, defaultLocalMusicJobTimeout, true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = scenarioJobTimeoutDuration(req, defaultGenerateMusicTimeout, false); err == nil {
+		t.Fatal("local timeout leaked to Cloud")
+	}
+	req.Head.TimeoutMs++
+	if _, err = scenarioJobTimeoutDuration(req, defaultLocalMusicJobTimeout, true); err == nil {
+		t.Fatal("unbounded local music timeout")
+	}
+}

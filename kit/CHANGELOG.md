@@ -9,6 +9,13 @@ Discipline.
 
 ## [Unreleased]
 
+### Added
+
+- The protected music runner accepts an optional `durationSeconds` generation
+  budget (1–180 whole seconds), forwarded by the typed SDK and Electron carrier.
+  This is a compatible public input widening (minor release); it requires the
+  matching Runtime contract and is not an exact-duration or audio-extension claim.
+
 ### Fixed
 
 - Preserve icon decorations and loading feedback when `Button asChild` uses a

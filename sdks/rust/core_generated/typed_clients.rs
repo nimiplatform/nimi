@@ -8187,6 +8187,7 @@ pub struct LocalAppImageGenerateScenarioSpec {
 pub struct LocalAppMusicGenerateJobSpec {
     pub prompt: Option<String>,
     pub lyrics: Option<String>,
+    pub duration_seconds: Option<u32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -50,6 +50,8 @@ export type RuntimeMusicGenerateInput = {
   readonly subjectUserId?: string;
   readonly prompt: string;
   readonly lyrics: string;
+  /** Generation budget in whole seconds (1–180); actual audio may end earlier. */
+  readonly durationSeconds?: number;
   readonly scenarioId: string;
   readonly surfaceId: string;
   readonly timeoutMs?: number;
@@ -65,12 +67,16 @@ export async function runRuntimeMusicGenerate(input: RuntimeMusicGenerateInput):
   try {
     const prompt = requireMusicText(input.prompt, 'prompt');
     const lyrics = requireMusicText(input.lyrics, 'lyrics');
+    if (input.durationSeconds !== undefined && (!Number.isSafeInteger(input.durationSeconds) || input.durationSeconds < 1 || input.durationSeconds > 180)) {
+      throw createNimiError({ message: 'music durationSeconds must be an integer from 1 through 180', code: ReasonCode.SDK_AI_INPUT_INVALID,
+        reasonCode: ReasonCode.SDK_AI_INPUT_INVALID, actionHint: 'provide_valid_music_duration', source: 'sdk' });
+    }
     const identity = buildNimiRuntimeScenarioJobIdentity({ appId: input.appId, capabilityId: 'music.generate', scenarioId: input.scenarioId });
     const request: SubmitScenarioJobRequest = {
       head: { appId: requireMusicText(input.appId, 'appId'), subjectUserId: normalizeText(input.subjectUserId), timeoutMs: input.timeoutMs ?? 0 },
       scenarioType: ScenarioType.MUSIC_GENERATE,
       executionMode: ExecutionMode.ASYNC_JOB,
-      spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: { prompt, negativePrompt: '', lyrics, style: '', title: '', durationSeconds: 0, instrumental: false } } },
+      spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: { prompt, negativePrompt: '', lyrics, style: '', title: '', durationSeconds: input.durationSeconds ?? 0, instrumental: false } } },
       requestId: identity.requestId,
       idempotencyKey: identity.idempotencyKey,
       labels: { scenarioId: input.scenarioId, surfaceId: input.surfaceId },

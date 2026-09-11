@@ -1344,7 +1344,7 @@ test('local-app World jobs carry text through the async SDK and reject provider 
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID');
 });
 
-test('local-app Music adapter exposes only prompt and lyrics through the protected async carrier', async () => {
+test('local-app Music adapter carries prompt, lyrics and bounded duration through the protected async carrier', async () => {
   const calls: unknown[] = [];
   const base = standardShell([]);
   const job = {
@@ -1378,8 +1378,10 @@ test('local-app Music adapter exposes only prompt and lyrics through the protect
     { type: 'music-generate', prompt: 'bright synth-pop', lyrics: '[Verse]\nCity lights.' },
     { timeoutMs: 5_000 },
   ]]);
+  await adapter.submitScenarioJob({ ...request, spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: { ...request.spec!.spec!.musicGenerate, durationSeconds: 120 } } } });
+  assert.deepEqual(calls[1], [{ type: 'music-generate', prompt: 'bright synth-pop', lyrics: '[Verse]\nCity lights.', durationSeconds: 120 }, { timeoutMs: 5_000 }]);
   await assert.rejects(
-    () => adapter.submitScenarioJob({ ...request, spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: { ...request.spec!.spec!.musicGenerate, durationSeconds: 20 } } } }),
+    () => adapter.submitScenarioJob({ ...request, spec: { spec: { oneofKind: 'musicGenerate', musicGenerate: { ...request.spec!.spec!.musicGenerate, durationSeconds: 181 } } } }),
     (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID',
   );
 });

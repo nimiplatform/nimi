@@ -200,7 +200,7 @@ export type NimiLocalAppScenarioJobSpec =
       readonly instructionText: string; readonly previewText: string;
       readonly language: string; readonly preferredName: string;
     }
-  | { readonly type: 'music-generate'; readonly prompt: string; readonly lyrics: string }
+  | { readonly type: 'music-generate'; readonly prompt: string; readonly lyrics: string; readonly durationSeconds?: number }
   | { readonly type: 'world-generate'; readonly prompt: string; readonly displayName: string };
 
 export type NimiLocalAppScenarioJobSubmitOptions = {

@@ -111,7 +111,7 @@ func TestLocalMusicUnsupportedFieldsFailBeforePublication(t *testing.T) {
 	svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedMusicExecutionForTest(t)})
 	svc.SetLocalMusicExecutionHost(host)
 	request := localMusicJobRequestForTest()
-	request.Spec.GetMusicGenerate().DurationSeconds = 20
+	request.Spec.GetMusicGenerate().DurationSeconds = 181
 	_, err := svc.SubmitScenarioJob(localMusicIntentContext(context.Background()), request)
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
 		t.Fatalf("unsupported field error=%v reason=%v", err, reason)

@@ -3725,6 +3725,7 @@ class LocalAppImageGenerateScenarioSpec:
 class LocalAppMusicGenerateJobSpec:
     prompt: str | None = None
     lyrics: str | None = None
+    duration_seconds: int | None = None
 
 @dataclass(frozen=True)
 class LocalAppScenarioArtifact:

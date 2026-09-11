@@ -27,7 +27,7 @@ function protectedMusicClient() {
 describe('runRuntimeMusicGenerate', () => {
   it('uses the protected async Music carrier and returns a real audio artifact reference', async () => {
     const { client, submitScenarioJob } = protectedMusicClient();
-    const result = await runRuntimeMusicGenerate({ runtime: { ai: client }, appId: 'app.test', subjectUserId: 'user.test', prompt: 'bright synth-pop', lyrics: '[Verse]\nCity lights are waking.', scenarioId: 'music-1', surfaceId: 'lab' });
+    const result = await runRuntimeMusicGenerate({ runtime: { ai: client }, appId: 'app.test', subjectUserId: 'user.test', prompt: 'bright synth-pop', lyrics: '[Verse]\nCity lights are waking.', durationSeconds: 120, scenarioId: 'music-1', surfaceId: 'lab' });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.output.firstArtifact).toMatchObject({ artifactId: 'artifact-music-1', mimeType: 'audio/wav', sampleRateHz: 44100, channels: 2 });
@@ -36,7 +36,7 @@ describe('runRuntimeMusicGenerate', () => {
     expect(request?.scenarioType).toBe(ScenarioType.MUSIC_GENERATE);
     expect(request?.executionMode).toBe(ExecutionMode.ASYNC_JOB);
     expect(request?.extensions).toEqual([]);
-    expect(request?.spec?.spec).toEqual({ oneofKind: 'musicGenerate', musicGenerate: { prompt: 'bright synth-pop', negativePrompt: '', lyrics: '[Verse]\nCity lights are waking.', style: '', title: '', durationSeconds: 0, instrumental: false } });
+    expect(request?.spec?.spec).toEqual({ oneofKind: 'musicGenerate', musicGenerate: { prompt: 'bright synth-pop', negativePrompt: '', lyrics: '[Verse]\nCity lights are waking.', style: '', title: '', durationSeconds: 120, instrumental: false } });
   });
 
   it('returns typed input-invalid before contacting Runtime for empty music input', async () => {

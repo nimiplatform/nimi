@@ -20,6 +20,7 @@ const maxRuntimeRequestTimeout = 5 * time.Minute
 const maxLocalImageJobTimeout = 60 * time.Minute
 const minLocalImageJobTimeout = 20 * time.Minute
 const maxLocalSpeechJobTimeout = 30 * time.Minute
+const maxLocalMusicJobTimeout = 30 * time.Minute
 const maxWorldJobTimeout = 30 * time.Minute
 const defaultWorldJobTimeout = 15 * time.Minute
 
@@ -183,6 +184,9 @@ func scenarioJobTimeoutDuration(
 		scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) {
 		maxDuration = maxLocalSpeechJobTimeout
 	}
+	if localRoute && scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE {
+		maxDuration = maxLocalMusicJobTimeout
+	}
 	if duration <= 0 || duration > maxDuration {
 		return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
@@ -218,6 +222,9 @@ func clampScenarioJobTimeoutDuration(
 	if localRoute && (scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE ||
 		scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE) {
 		maxDuration = maxLocalSpeechJobTimeout
+	}
+	if localRoute && scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE {
+		maxDuration = maxLocalMusicJobTimeout
 	}
 	if duration > maxDuration {
 		return maxDuration

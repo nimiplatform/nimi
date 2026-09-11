@@ -8205,11 +8205,13 @@ func (*LocalAppVoiceCreateJobSpec_ReferenceAudio) isLocalAppVoiceCreateJobSpec_S
 func (*LocalAppVoiceCreateJobSpec_TextDescription) isLocalAppVoiceCreateJobSpec_Source() {}
 
 type LocalAppMusicGenerateJobSpec struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Prompt        string                 `protobuf:"bytes,1,opt,name=prompt,proto3" json:"prompt,omitempty"`
-	Lyrics        string                 `protobuf:"bytes,2,opt,name=lyrics,proto3" json:"lyrics,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	Prompt string                 `protobuf:"bytes,1,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	Lyrics string                 `protobuf:"bytes,2,opt,name=lyrics,proto3" json:"lyrics,omitempty"`
+	// Generation budget, not a guaranteed output length. Zero uses Runtime defaults.
+	DurationSeconds uint32 `protobuf:"varint,3,opt,name=duration_seconds,json=durationSeconds,proto3" json:"duration_seconds,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *LocalAppMusicGenerateJobSpec) Reset() {
@@ -8254,6 +8256,13 @@ func (x *LocalAppMusicGenerateJobSpec) GetLyrics() string {
 		return x.Lyrics
 	}
 	return ""
+}
+
+func (x *LocalAppMusicGenerateJobSpec) GetDurationSeconds() uint32 {
+	if x != nil {
+		return x.DurationSeconds
+	}
+	return 0
 }
 
 // Text-conditioned world generation. Provider selection and asset retrieval
@@ -13286,10 +13295,11 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x1aLocalAppVoiceCreateJobSpec\x12I\n" +
 	"\x0freference_audio\x18\x01 \x01(\v2\x1e.nimi.runtime.v1.VoiceV2VInputH\x00R\x0ereferenceAudio\x12K\n" +
 	"\x10text_description\x18\x02 \x01(\v2\x1e.nimi.runtime.v1.VoiceT2VInputH\x00R\x0ftextDescriptionB\b\n" +
-	"\x06source\"N\n" +
+	"\x06source\"y\n" +
 	"\x1cLocalAppMusicGenerateJobSpec\x12\x16\n" +
 	"\x06prompt\x18\x01 \x01(\tR\x06prompt\x12\x16\n" +
-	"\x06lyrics\x18\x02 \x01(\tR\x06lyrics\"Y\n" +
+	"\x06lyrics\x18\x02 \x01(\tR\x06lyrics\x12)\n" +
+	"\x10duration_seconds\x18\x03 \x01(\rR\x0fdurationSeconds\"Y\n" +
 	"\x1cLocalAppWorldGenerateJobSpec\x12\x16\n" +
 	"\x06prompt\x18\x01 \x01(\tR\x06prompt\x12!\n" +
 	"\fdisplay_name\x18\x02 \x01(\tR\vdisplayName\"\xe7\a\n" +

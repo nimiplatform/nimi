@@ -1021,9 +1021,10 @@ function validateScenarioSpec(value: unknown, command: string, execute: boolean)
 }
 
 function validateMusicSpec(value: Record<string, unknown>, command: string): void {
-  assertExactKeys(value, ['type', 'prompt', 'lyrics'], command);
+  assertExactKeys(value, ['type', 'prompt', 'lyrics', 'durationSeconds'], command);
   requiredUtf8Text(value.prompt, 'prompt', command, 32 * 1024);
   requiredUtf8Text(value.lyrics, 'lyrics', command, 32 * 1024);
+  if (value.durationSeconds !== undefined) boundedSafeInteger(value.durationSeconds, 'durationSeconds', command, 1, 180);
 }
 
 function validateImageSpec(value: Record<string, unknown>, command: string): void {

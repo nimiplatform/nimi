@@ -2245,6 +2245,12 @@ export interface LocalAppMusicGenerateJobSpec {
      * @generated from protobuf field: string lyrics = 2
      */
     lyrics: string;
+    /**
+     * Generation budget, not a guaranteed output length. Zero uses Runtime defaults.
+     *
+     * @generated from protobuf field: uint32 duration_seconds = 3
+     */
+    durationSeconds: number;
 }
 /**
  * Text-conditioned world generation. Provider selection and asset retrieval
@@ -10771,13 +10777,15 @@ class LocalAppMusicGenerateJobSpec$Type extends MessageType<LocalAppMusicGenerat
     constructor() {
         super("nimi.runtime.v1.LocalAppMusicGenerateJobSpec", [
             { no: 1, name: "prompt", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 2, name: "lyrics", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 2, name: "lyrics", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "duration_seconds", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppMusicGenerateJobSpec>): LocalAppMusicGenerateJobSpec {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.prompt = "";
         message.lyrics = "";
+        message.durationSeconds = 0;
         if (value !== undefined)
             reflectionMergePartial<LocalAppMusicGenerateJobSpec>(this, message, value);
         return message;
@@ -10792,6 +10800,9 @@ class LocalAppMusicGenerateJobSpec$Type extends MessageType<LocalAppMusicGenerat
                     break;
                 case /* string lyrics */ 2:
                     message.lyrics = reader.string();
+                    break;
+                case /* uint32 duration_seconds */ 3:
+                    message.durationSeconds = reader.uint32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -10811,6 +10822,9 @@ class LocalAppMusicGenerateJobSpec$Type extends MessageType<LocalAppMusicGenerat
         /* string lyrics = 2; */
         if (message.lyrics !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.lyrics);
+        /* uint32 duration_seconds = 3; */
+        if (message.durationSeconds !== 0)
+            writer.tag(3, WireType.Varint).uint32(message.durationSeconds);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
