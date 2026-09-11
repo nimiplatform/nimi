@@ -779,6 +779,9 @@ message ExecuteScenarioResponse {
 message LocalAppTextCandidateMessage {
   string role = 1;
   string text = 2;
+  // Ordered assistant transcript is admitted only by text-turn and the
+  // text.generate execute variant. The narrow candidate operation rejects it.
+  repeated TextTurnItem turn_items = 3;
 }
 
 message GenerateLocalAppTextCandidateRequest {
@@ -799,8 +802,8 @@ message GenerateLocalAppTextCandidateResponse {
 // Exact third-party Local App scenario-consumption contracts. Runtime derives
 // account, App identity, App Access and managed route composition from the
 // protected session and the calling App owner's committed AIConfig; callers
-// cannot supply generic Scenario head, route, provider, model, target, or tool
-// fields.
+// cannot supply generic Scenario head, route, provider, model, or target fields.
+// Function tools and structured output are admitted only by the text variant.
 
 // Trimmed artifact projection for Local App scenario outputs. Runtime-private
 // uri, producer, and owner fields are never projected; oversized payloads are
@@ -847,6 +850,8 @@ message ExecuteLocalAppScenarioRequest {
   oneof spec {
     LocalAppTextEmbedScenarioSpec text_embed = 1;
     LocalAppImageGenerateScenarioSpec image_generate = 2;
+    // Reuse the single text-turn input for synchronous text generation.
+    StreamLocalAppTextTurnRequest text_generate = 3;
   }
 }
 
@@ -858,10 +863,17 @@ message LocalAppImageGenerateOutput {
   repeated LocalAppScenarioArtifact artifacts = 1;
 }
 
+message LocalAppTextGenerateOutput {
+  // Only text and function ToolCall items are admitted at this App boundary.
+  repeated TextOutputItem items = 1;
+  FinishReason finish_reason = 2;
+}
+
 message ExecuteLocalAppScenarioResponse {
   oneof output {
     LocalAppTextEmbedOutput text_embed = 1;
     LocalAppImageGenerateOutput image_generate = 2;
+    LocalAppTextGenerateOutput text_generate = 4;
   }
   string trace_id = 3;
 }
@@ -1040,9 +1052,9 @@ message LocalAppScenarioJobEvent {
   LocalAppScenarioJob job = 5;
 }
 
-// Streaming TEXT_GENERATE trimmed surface: typed text increments and terminal
-// finish or failure state only. Raw chunks, reasoning traces, sources, and
-// tool events never reach the Local App stream.
+// Single-step TEXT_GENERATE App surface. Function tools, ordered host-provided
+// results and structured output reuse canonical text behavior. The external
+// AI host owns tool execution and the next request; Runtime owns no agent loop.
 message StreamLocalAppTextTurnRequest {
   repeated LocalAppTextCandidateMessage messages = 1;
   optional float temperature = 2;
@@ -1053,10 +1065,20 @@ message StreamLocalAppTextTurnRequest {
   optional float frequency_penalty = 7;
   repeated string stop = 8;
   optional int64 seed = 9;
+  repeated ToolSpec tools = 10;
+  ToolChoiceMode tool_choice = 11;
+  string tool_choice_name = 12;
+  ResponseFormat response_format = 13;
 }
 
 message LocalAppTextTurnDelta {
   string text = 1;
+  uint32 item_index = 2;
+}
+
+message LocalAppTextTurnToolCall {
+  uint32 item_index = 1;
+  ToolCall tool_call = 2;
 }
 
 message LocalAppTextTurnCompleted {
@@ -1076,6 +1098,7 @@ message StreamLocalAppTextTurnEvent {
     LocalAppTextTurnDelta delta = 3;
     LocalAppTextTurnCompleted completed = 4;
     LocalAppTextTurnFailed failed = 5;
+    LocalAppTextTurnToolCall tool_call = 6;
   }
 }
 

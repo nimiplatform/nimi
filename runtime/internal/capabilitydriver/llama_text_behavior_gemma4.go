@@ -10,17 +10,8 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
-	jsonschema "github.com/santhosh-tekuri/jsonschema/v6"
 	"google.golang.org/grpc/codes"
 )
-
-const gemma4SchemaResource = "urn:nimi:text-behavior:gemma4:schema"
-
-type gemma4NoNetworkSchemaLoader struct{}
-
-func (gemma4NoNetworkSchemaLoader) Load(url string) (any, error) {
-	return nil, fmt.Errorf("remote JSON Schema resource %q is unavailable", url)
-}
 
 func Gemma4TextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
 	if spec == nil {
@@ -213,7 +204,7 @@ func gemma4ApplyTools(body map[string]any, spec *runtimev1.TextGenerateScenarioS
 		if tool.GetInputSchema() != nil {
 			schema = tool.GetInputSchema().AsMap()
 		}
-		if _, err := gemma4CompileSchema(schema); err != nil {
+		if _, err := textbehavior.CompileJSONSchema(schema); err != nil {
 			return gemma4InvalidRequest("tool input schema is invalid")
 		}
 		function := map[string]any{"name": tool.GetName(), "parameters": schema}
@@ -260,7 +251,7 @@ func gemma4ApplyResponseFormat(body map[string]any, spec *runtimev1.TextGenerate
 			return gemma4InvalidRequest("JSON Schema response format requires a schema")
 		}
 		schema := format.GetJsonSchema().AsMap()
-		if _, err := gemma4CompileSchema(schema); err != nil {
+		if _, err := textbehavior.CompileJSONSchema(schema); err != nil {
 			return gemma4InvalidRequest("response JSON Schema is invalid")
 		}
 		name := strings.TrimSpace(format.GetSchemaName())
@@ -362,7 +353,7 @@ func Gemma4TextBehaviorStreamAssembler(spec *runtimev1.TextGenerateScenarioSpec)
 	}
 	for _, tool := range spec.GetTools() {
 		if tool != nil && tool.GetInputSchema() != nil {
-			if _, err := gemma4CompileSchema(tool.GetInputSchema().AsMap()); err != nil {
+			if _, err := textbehavior.CompileJSONSchema(tool.GetInputSchema().AsMap()); err != nil {
 				return nil, gemma4InvalidRequest("tool input schema is invalid")
 			}
 		}
@@ -585,7 +576,7 @@ func gemma4ValidateStructuredItems(spec *runtimev1.TextGenerateScenarioSpec, ite
 		if format.GetJsonSchema() == nil {
 			return gemma4OutputInvalid()
 		}
-		schema, err := gemma4CompileSchema(format.GetJsonSchema().AsMap())
+		schema, err := textbehavior.CompileJSONSchema(format.GetJsonSchema().AsMap())
 		if err != nil || schema.Validate(instance) != nil {
 			return gemma4OutputInvalid()
 		}
@@ -596,30 +587,10 @@ func gemma4ValidateStructuredItems(spec *runtimev1.TextGenerateScenarioSpec, ite
 }
 
 func gemma4ValidateToolArguments(tool *runtimev1.ToolSpec, arguments string) error {
-	var instance any
-	if err := gemma4DecodeJSON([]byte(strings.TrimSpace(arguments)), &instance); err != nil {
-		return gemma4ToolCallInvalid()
-	}
-	if _, ok := instance.(map[string]any); !ok {
-		return gemma4ToolCallInvalid()
-	}
-	if tool == nil || tool.GetInputSchema() == nil {
-		return nil
-	}
-	schema, err := gemma4CompileSchema(tool.GetInputSchema().AsMap())
-	if err != nil || schema.Validate(instance) != nil {
+	if err := textbehavior.ValidateToolArguments(tool, arguments); err != nil {
 		return gemma4ToolCallInvalid()
 	}
 	return nil
-}
-
-func gemma4CompileSchema(document map[string]any) (*jsonschema.Schema, error) {
-	compiler := jsonschema.NewCompiler()
-	compiler.UseLoader(gemma4NoNetworkSchemaLoader{})
-	if err := compiler.AddResource(gemma4SchemaResource, document); err != nil {
-		return nil, err
-	}
-	return compiler.Compile(gemma4SchemaResource)
 }
 
 func gemma4DeclaredTool(spec *runtimev1.TextGenerateScenarioSpec, name string) *runtimev1.ToolSpec {

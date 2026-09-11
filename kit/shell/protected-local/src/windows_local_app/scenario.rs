@@ -24,7 +24,6 @@ use crate::generated::{
     LocalAppVoiceCreateJobSpec, LocalAppWorldGenerateJobSpec,
     ReadLocalAppArtifactRequest as ProtoReadArtifactRequest, ScenarioJobEventType,
     ScenarioJobStatus, ScenarioType, SpeechTimingMode, SpeechTranscriptionAudioSource,
-    StreamLocalAppTextTurnRequest as ProtoTextTurnRequest,
     SubmitLocalAppScenarioJobRequest as ProtoSubmitJobRequest,
     SubscribeLocalAppScenarioJobEventsRequest,
     UploadLocalAppArtifactRequest as ProtoUploadArtifactRequest, VideoContentArtifactRef,
@@ -42,7 +41,7 @@ use crate::{
     LocalAppScenarioUploadArtifactRequest, LocalAppTextTurnRequest,
 };
 
-use super::{invalid_payload, text_candidate, untrusted};
+use super::{invalid_payload, text_behavior, untrusted};
 
 const UNARY_TIMEOUT_SECONDS: u64 = 120;
 const MAX_ARTIFACT_BYTES: usize = crate::RUNTIME_MAX_INLINE_PAYLOAD_BYTES;
@@ -92,6 +91,7 @@ pub(super) async fn execute(
                 .collect::<Result<Vec<_>, LocalAppOperationError>>()?;
             json!({"type": "text-embed", "vectors": vectors})
         }
+        ExecuteOutput::TextGenerate(value) => text_behavior::project_output(value)?,
         ExecuteOutput::ImageGenerate(value) => json!({
             "type": "image-generate",
             "artifacts": project_artifacts(value.artifacts)?,
@@ -221,58 +221,37 @@ pub(super) async fn stream_text_turn(
     channel: Channel,
     request: LocalAppTextTurnRequest,
 ) -> Result<LocalAppScenarioStreamReceiver, LocalAppOperationError> {
-    text_candidate::validate_text_input(
-        &request.messages,
-        request.temperature,
-        request.top_p,
-        request.max_tokens,
-    )?;
-    if request.top_k.is_some_and(|value| value < 0)
-        || request
-            .presence_penalty
-            .is_some_and(|value| !value.is_finite() || !(-2.0..=2.0).contains(&value))
-        || request
-            .frequency_penalty
-            .is_some_and(|value| !value.is_finite() || !(-2.0..=2.0).contains(&value))
-        || request.stop.iter().any(|value| value.trim().is_empty())
-    {
-        return Err(invalid_payload());
-    }
-    let mut stream = crate::grpc_limits::runtime_ai_client(channel)
-        .stream_local_app_text_turn(ProtoTextTurnRequest {
-            messages: request
-                .messages
-                .into_iter()
-                .map(|message| crate::generated::LocalAppTextCandidateMessage {
-                    role: message.role,
-                    text: message.text,
-                })
-                .collect(),
-            temperature: request.temperature,
-            top_p: request.top_p,
-            max_tokens: request.max_tokens,
-            top_k: request.top_k,
-            presence_penalty: request.presence_penalty,
-            frequency_penalty: request.frequency_penalty,
-            stop: request.stop,
-            seed: request.seed,
-        })
-        .await
-        .map_err(local_app_error_from_status)?
-        .into_inner();
+    let request = text_behavior::request(request)?;
     let (sender, receiver) = mpsc::channel(32);
     tokio::spawn(async move {
+        let mut client = crate::grpc_limits::runtime_ai_client(channel);
+        let opened = tokio::select! {
+            _ = sender.closed() => return,
+            opened = client.stream_local_app_text_turn(request) => opened,
+        };
+        let mut stream = match opened {
+            Ok(response) => response.into_inner(),
+            Err(status) => {
+                let _ = sender.send(Err(local_app_error_from_status(status))).await;
+                return;
+            }
+        };
         let mut expected_sequence = 1u64;
         let mut total_delta_bytes = 0usize;
         loop {
-            match stream.message().await {
+            let next = tokio::select! {
+                _ = sender.closed() => break,
+                next = stream.message() => next,
+            };
+            match next {
                 Ok(Some(event)) => {
                     let projected =
                         project_text_turn_event(event, expected_sequence, &mut total_delta_bytes);
+                    let terminal = projected.as_ref().map(|value| matches!(value.get("type").and_then(JsonValue::as_str), Some("completed" | "failed"))).unwrap_or(true);
                     if projected.is_ok() {
                         expected_sequence += 1;
                     }
-                    if sender.send(projected).await.is_err() {
+                    if sender.send(projected).await.is_err() || terminal {
                         break;
                     }
                 }
@@ -376,8 +355,14 @@ pub(super) async fn list_voice_assets(
 }
 
 fn parse_execute_spec(value: JsonValue) -> Result<ExecuteSpec, LocalAppOperationError> {
-    let object = exact_object(value)?;
-    match string_field(&object, "type")? {
+    let mut object = exact_object(value)?;
+    let kind = string_field(&object, "type")?.to_string();
+    match kind.as_str() {
+        "text-generate" => {
+            object.remove("type");
+            let input: LocalAppTextTurnRequest = serde_json::from_value(JsonValue::Object(object)).map_err(|_| invalid_payload())?;
+            Ok(ExecuteSpec::TextGenerate(text_behavior::request(input)?))
+        }
         "text-embed" => {
             exact_keys(&object, &["type", "inputs"])?;
             let inputs = string_array(field(&object, "inputs")?, 16, MAX_PROMPT_BYTES, false)?;
@@ -1268,16 +1253,17 @@ fn project_text_turn_event(
                 .filter(|total| *total <= 256 * 1024)
                 .ok_or_else(untrusted)?;
             Ok(
-                json!({"type": "delta", "sequence": event.sequence.to_string(), "traceId": event.trace_id, "text": value.text}),
+                json!({"type": "delta", "sequence": event.sequence.to_string(), "traceId": event.trace_id, "text": value.text, "itemIndex": value.item_index}),
             )
         }
+        TextTurnPayload::ToolCall(value) => {
+            let call = text_behavior::project_tool_call(value.tool_call.ok_or_else(untrusted)?)?;
+            let bytes = serde_json::to_vec(&call).map_err(|_| untrusted())?.len();
+            *total_delta_bytes = total_delta_bytes.checked_add(bytes).filter(|total| *total <= 256 * 1024).ok_or_else(untrusted)?;
+            Ok(json!({"type": "tool-call", "sequence": event.sequence.to_string(), "traceId": event.trace_id, "itemIndex": value.item_index, "toolCall": call}))
+        }
         TextTurnPayload::Completed(value) => {
-            let finish_reason = match value.finish_reason {
-                1 => "stop",
-                2 => "length",
-                4 => "content-filter",
-                _ => return Err(untrusted()),
-            };
+            let finish_reason = text_behavior::finish_reason(value.finish_reason)?;
             Ok(
                 json!({"type": "completed", "sequence": event.sequence.to_string(), "traceId": event.trace_id, "finishReason": finish_reason}),
             )

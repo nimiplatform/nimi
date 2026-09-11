@@ -368,10 +368,9 @@ func newUnaryProtectedLocalAppTransportInterceptor(admissions ...protectedLocalA
 
 type protectedLocalAppServerStream struct {
 	grpc.ServerStream
-	ctx                     context.Context
-	allowRealtimeGeneration bool
-	connection              *protectedlocal.LocalAppConnection
-	method                  string
+	ctx        context.Context
+	connection *protectedlocal.LocalAppConnection
+	method     string
 }
 
 func (stream *protectedLocalAppServerStream) Context() context.Context { return stream.ctx }
@@ -380,7 +379,7 @@ func (stream *protectedLocalAppServerStream) RecvMsg(message any) error {
 	if err := stream.ServerStream.RecvMsg(message); err != nil {
 		return err
 	}
-	if protectedLocalAppRequestHasCallerAssertionWithGeneration(stream.ctx, message, stream.allowRealtimeGeneration) {
+	if protectedLocalAppRequestHasCallerAssertionForMethod(stream.ctx, message, stream.method) {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_LOCAL_APP_ACCESS_DENIED)
 	}
 	if err := authorizeProtectedLocalAppRealtimeResource(stream.ctx, stream.connection, stream.method, message); err != nil {
@@ -424,11 +423,10 @@ func newStreamProtectedLocalAppTransportInterceptor(admissions ...protectedLocal
 			return err
 		}
 		return handler(service, &protectedLocalAppServerStream{
-			ServerStream:            stream,
-			ctx:                     authorizedContext,
-			allowRealtimeGeneration: protectedLocalAppMethodAllowsRealtimeGeneration(info.FullMethod),
-			connection:              connection,
-			method:                  info.FullMethod,
+			ServerStream: stream,
+			ctx:          authorizedContext,
+			connection:   connection,
+			method:       info.FullMethod,
 		})
 	}
 }
@@ -680,19 +678,16 @@ func protectedLocalAppStreamIngress(method string) localappop.Ingress {
 }
 
 func protectedLocalAppRequestHasCallerAssertion(ctx context.Context, request any) bool {
-	return protectedLocalAppRequestHasCallerAssertionWithGeneration(ctx, request, false)
+	return protectedLocalAppRequestHasCallerAssertionForMethod(ctx, request, "")
 }
 
 func protectedLocalAppRequestHasCallerAssertionForMethod(ctx context.Context, request any, method string) bool {
-	return protectedLocalAppRequestHasCallerAssertionWithGeneration(ctx, request, protectedLocalAppMethodAllowsRealtimeGeneration(method))
-}
-
-func protectedLocalAppRequestHasCallerAssertionWithGeneration(ctx context.Context, request any, allowRealtimeGeneration bool) bool {
 	if protectedLocalAppMetadataHasCallerAssertion(ctx) {
 		return true
 	}
 	message, ok := request.(proto.Message)
-	return !ok || protectedLocalAppMessageHasCallerAssertion(message.ProtoReflect(), allowRealtimeGeneration)
+	allowTextJSON := method == protectedStreamTextTurnMethod || method == protectedExecuteLocalAppScenarioMethod
+	return !ok || protectedLocalAppMessageHasCallerAssertion(message.ProtoReflect(), protectedLocalAppMethodAllowsRealtimeGeneration(method), allowTextJSON, false)
 }
 
 func protectedLocalAppMetadataHasCallerAssertion(ctx context.Context) bool {
@@ -705,17 +700,19 @@ func protectedLocalAppMetadataHasCallerAssertion(ctx context.Context) bool {
 	return false
 }
 
-func protectedLocalAppMessageHasCallerAssertion(message protoreflect.Message, allowRealtimeGeneration bool) bool {
+// @nimi-authority: rule.nimi.runtime.ai-provider.local-app-text-behaviors
+func protectedLocalAppMessageHasCallerAssertion(message protoreflect.Message, allowRealtimeGeneration, allowTextJSON, businessJSON bool) bool {
 	if !message.IsValid() || len(message.GetUnknown()) != 0 {
 		return true
 	}
 	found := false
 	message.Range(func(field protoreflect.FieldDescriptor, value protoreflect.Value) bool {
-		if protectedLocalAppCallerAssertionFieldExceptRealtimeGeneration(string(field.Name()), allowRealtimeGeneration) ||
-			protectedLocalAppCallerAssertionFieldExceptRealtimeGeneration(field.JSONName(), allowRealtimeGeneration) {
+		if !businessJSON && (protectedLocalAppCallerAssertionFieldExceptRealtimeGeneration(string(field.Name()), allowRealtimeGeneration) ||
+			protectedLocalAppCallerAssertionFieldExceptRealtimeGeneration(field.JSONName(), allowRealtimeGeneration)) {
 			found = true
 			return false
 		}
+		childJSON := businessJSON || (allowTextJSON && protectedLocalAppTextJSONField(field))
 		switch {
 		case field.IsList():
 			if field.Message() == nil {
@@ -723,31 +720,44 @@ func protectedLocalAppMessageHasCallerAssertion(message protoreflect.Message, al
 			}
 			list := value.List()
 			for index := 0; index < list.Len(); index++ {
-				if protectedLocalAppMessageHasCallerAssertion(list.Get(index).Message(), allowRealtimeGeneration) {
+				if protectedLocalAppMessageHasCallerAssertion(list.Get(index).Message(), allowRealtimeGeneration, allowTextJSON, childJSON) {
 					found = true
 					return false
 				}
 			}
 		case field.IsMap():
 			value.Map().Range(func(key protoreflect.MapKey, entry protoreflect.Value) bool {
-				if field.MapKey().Kind() == protoreflect.StringKind && protectedLocalAppCallerAssertionField(key.String()) {
+				if !childJSON && field.MapKey().Kind() == protoreflect.StringKind && protectedLocalAppCallerAssertionField(key.String()) {
 					found = true
 					return false
 				}
-				if field.MapValue().Message() != nil && protectedLocalAppMessageHasCallerAssertion(entry.Message(), allowRealtimeGeneration) {
+				if field.MapValue().Message() != nil && protectedLocalAppMessageHasCallerAssertion(entry.Message(), allowRealtimeGeneration, allowTextJSON, childJSON) {
 					found = true
 					return false
 				}
 				return true
 			})
 		case field.Message() != nil:
-			if protectedLocalAppMessageHasCallerAssertion(value.Message(), allowRealtimeGeneration) {
+			if protectedLocalAppMessageHasCallerAssertion(value.Message(), allowRealtimeGeneration, allowTextJSON, childJSON) {
 				found = true
 			}
 		}
 		return !found
 	})
 	return found
+}
+
+func protectedLocalAppTextJSONField(field protoreflect.FieldDescriptor) bool {
+	switch field.ContainingMessage().FullName() {
+	case "nimi.runtime.v1.ToolSpec":
+		return field.Name() == "input_schema"
+	case "nimi.runtime.v1.ToolResult":
+		return field.Name() == "result"
+	case "nimi.runtime.v1.ResponseFormat":
+		return field.Name() == "json_schema"
+	default:
+		return false
+	}
 }
 
 func protectedLocalAppCallerAssertionFieldExceptRealtimeGeneration(value string, allowRealtimeGeneration bool) bool {

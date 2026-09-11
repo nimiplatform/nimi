@@ -3830,12 +3830,14 @@ type ErrorInfo struct {
 type ExecuteLocalAppScenarioRequest struct {
 	TextEmbed     *LocalAppTextEmbedScenarioSpec     `json:"text_embed,omitempty"`
 	ImageGenerate *LocalAppImageGenerateScenarioSpec `json:"image_generate,omitempty"`
+	TextGenerate  *StreamLocalAppTextTurnRequest     `json:"text_generate,omitempty"`
 }
 
 type ExecuteLocalAppScenarioResponse struct {
 	TextEmbed     *LocalAppTextEmbedOutput     `json:"text_embed,omitempty"`
 	ImageGenerate *LocalAppImageGenerateOutput `json:"image_generate,omitempty"`
 	TraceId       string                       `json:"trace_id,omitempty"`
+	TextGenerate  *LocalAppTextGenerateOutput  `json:"text_generate,omitempty"`
 }
 
 type ExecuteScenarioRequest struct {
@@ -5599,8 +5601,9 @@ type LocalAppSpeechTranscribeJobSpec struct {
 }
 
 type LocalAppTextCandidateMessage struct {
-	Role string `json:"role,omitempty"`
-	Text string `json:"text,omitempty"`
+	Role      string         `json:"role,omitempty"`
+	Text      string         `json:"text,omitempty"`
+	TurnItems []TextTurnItem `json:"turn_items,omitempty"`
 }
 
 type LocalAppTextEmbedOutput struct {
@@ -5611,18 +5614,29 @@ type LocalAppTextEmbedScenarioSpec struct {
 	Inputs []string `json:"inputs,omitempty"`
 }
 
+type LocalAppTextGenerateOutput struct {
+	Items        []TextOutputItem `json:"items,omitempty"`
+	FinishReason FinishReason     `json:"finish_reason,omitempty"`
+}
+
 type LocalAppTextTurnCompleted struct {
 	FinishReason FinishReason `json:"finish_reason,omitempty"`
 }
 
 type LocalAppTextTurnDelta struct {
-	Text string `json:"text,omitempty"`
+	Text      string `json:"text,omitempty"`
+	ItemIndex uint32 `json:"item_index,omitempty"`
 }
 
 type LocalAppTextTurnFailed struct {
 	ReasonCode   ReasonCode             `json:"reason_code,omitempty"`
 	ActionHint   string                 `json:"action_hint,omitempty"`
 	Interruption *ExecutionInterruption `json:"interruption,omitempty"`
+}
+
+type LocalAppTextTurnToolCall struct {
+	ItemIndex uint32    `json:"item_index,omitempty"`
+	ToolCall  *ToolCall `json:"tool_call,omitempty"`
 }
 
 type LocalAppVideoGenerateJobSpec struct {
@@ -7467,6 +7481,7 @@ type StreamLocalAppTextTurnEvent struct {
 	Delta     *LocalAppTextTurnDelta     `json:"delta,omitempty"`
 	Completed *LocalAppTextTurnCompleted `json:"completed,omitempty"`
 	Failed    *LocalAppTextTurnFailed    `json:"failed,omitempty"`
+	ToolCall  *LocalAppTextTurnToolCall  `json:"tool_call,omitempty"`
 }
 
 type StreamLocalAppTextTurnRequest struct {
@@ -7479,6 +7494,10 @@ type StreamLocalAppTextTurnRequest struct {
 	FrequencyPenalty *float32                       `json:"frequency_penalty,omitempty"`
 	Stop             []string                       `json:"stop,omitempty"`
 	Seed             *int64                         `json:"seed,omitempty"`
+	Tools            []ToolSpec                     `json:"tools,omitempty"`
+	ToolChoice       ToolChoiceMode                 `json:"tool_choice,omitempty"`
+	ToolChoiceName   string                         `json:"tool_choice_name,omitempty"`
+	ResponseFormat   *ResponseFormat                `json:"response_format,omitempty"`
 }
 
 type StreamScenarioEvent struct {

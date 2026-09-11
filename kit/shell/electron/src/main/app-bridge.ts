@@ -1,5 +1,6 @@
 import { NIMI_LOCAL_APP_STANDARD_SHELL_CAPABILITY_SET_ID } from '@nimiplatform/kit/shell/capabilities';
 import { registerNimiElectronRuntimeBridge } from './host.js';
+import { createAppBusinessServices, type NimiElectronAppBusinessServices } from './app-business-services.js';
 import { requestElectronAgentCenterResourcePackPlacement } from './agent-center-resource-pack-placement.js';
 import {
   createNimiElectronLocalAppHost,
@@ -20,7 +21,7 @@ import {
 
 const LOCAL_APP_PROTECTED_CARRIER_SENTINEL = 'local-app-protected-carrier-only';
 const REQUIRED_INPUT_KEYS = ['allowedRendererUrls', 'appId', 'assetMediaPlatform', 'ipcMain'] as const;
-const OPTIONAL_INPUT_KEYS = ['agentCenterOpenFileDialog', 'appCommandHandlers'] as const;
+const OPTIONAL_INPUT_KEYS = ['agentCenterOpenFileDialog', 'appCommandHandlers', 'onSessionInvalidated'] as const;
 const RESERVED_COMMAND_PREFIX = 'nimi.shell.';
 let sourceLocalDevelopmentParentMonitor: NodeJS.Timeout | undefined;
 
@@ -38,6 +39,8 @@ export type RegisterNimiElectronAppBridgeInput = {
    * cannot occupy the reserved `nimi.shell.*` namespace.
    */
   readonly appCommandHandlers?: Readonly<Record<string, NimiElectronCommandHandler>>;
+  /** Cancel App-owned work and discard account-scoped memory on this Host. */
+  readonly onSessionInvalidated?: () => void;
 };
 
 export type NimiElectronAgentCenterOpenFileDialog = NonNullable<
@@ -46,6 +49,8 @@ export type NimiElectronAgentCenterOpenFileDialog = NonNullable<
 
 export type RegisteredNimiElectronAppBridge = RegisteredNimiElectronRuntimeBridge & Readonly<{
   localAppHost: Pick<NimiElectronLocalAppHost, 'agentReferenceList' | 'conversationSnapshot'>;
+  /** Main-process SDK clients sharing this bridge's protected session. */
+  services: NimiElectronAppBusinessServices;
 }>;
 
 /**
@@ -72,7 +77,14 @@ export function registerNimiElectronAppBridge(
     );
   }
   let localAppAssetMediaHost: ReturnType<typeof createNimiElectronLocalAppAssetMediaHost> | undefined;
-  const localAppHost = createNimiElectronLocalAppHost(() => localAppAssetMediaHost?.invalidateAll());
+  let business: ReturnType<typeof createAppBusinessServices> | undefined;
+  const invalidate = () => {
+    localAppAssetMediaHost?.invalidateAll();
+    business?.invalidate();
+    input.onSessionInvalidated?.();
+  };
+  const localAppHost = createNimiElectronLocalAppHost(invalidate);
+  business = createAppBusinessServices(localAppHost);
   localAppAssetMediaHost = createNimiElectronLocalAppAssetMediaHost({
     localAppHost,
     platform: input.assetMediaPlatform,
@@ -112,12 +124,12 @@ export function registerNimiElectronAppBridge(
     if (closed) return;
     closed = true;
     maintenance?.close();
+    business.close();
+    input.onSessionInvalidated?.();
     localAppAssetMediaHost.close();
     registered.unregister();
   };
-  maintenance = startNimiElectronLocalAppHostMaintenance(localAppHost, undefined, () => {
-    localAppAssetMediaHost.invalidateAll();
-  });
+  maintenance = startNimiElectronLocalAppHostMaintenance(localAppHost, undefined, invalidate);
   void maintenance.ready.catch(() => undefined);
   const placementLocalAppHost: RegisteredNimiElectronAppBridge['localAppHost'] = Object.freeze({
     agentReferenceList: () => localAppHost.agentReferenceList(),
@@ -126,6 +138,7 @@ export function registerNimiElectronAppBridge(
   return {
     invokeChannel: registered.invokeChannel,
     localAppHost: placementLocalAppHost,
+    services: business.services,
     unregister: closeBridge,
   };
 }
@@ -195,6 +208,13 @@ function assertExactAppBridgeInput(input: RegisterNimiElectronAppBridgeInput): v
       'Electron app bridge Agent Center picker must be a Host function',
       'electron-local-app-agent-center-picker-invalid',
       'provide_host_native_agent_center_picker',
+    );
+  }
+  if (input.onSessionInvalidated !== undefined && typeof input.onSessionInvalidated !== 'function') {
+    throw appBridgeInputError(
+      'Electron App session invalidation callback must be a Host function',
+      'electron-local-app-invalidation-callback-invalid',
+      'provide_host_session_invalidation_callback',
     );
   }
 }

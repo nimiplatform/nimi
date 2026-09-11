@@ -162,6 +162,12 @@ pub(crate) fn local_app_reason_from_proto(value: i32) -> Option<LocalAppReasonCo
         205 => LocalAppReasonCode::AiRouteFallbackDenied,
         206 => LocalAppReasonCode::AiInputInvalid,
         207 => LocalAppReasonCode::AiOutputInvalid,
+        395 => LocalAppReasonCode::AiTextBehaviorUnsupported,
+        396 => LocalAppReasonCode::AiTextBehaviorAmbiguous,
+        397 => LocalAppReasonCode::AiTextOutputIncomplete,
+        398 => LocalAppReasonCode::AiToolCallInvalid,
+        399 => LocalAppReasonCode::AiReasoningContinuityInvalid,
+        402 => LocalAppReasonCode::AiExecutionInterrupted,
         209 => LocalAppReasonCode::AiContentFilterBlocked,
         352 => LocalAppReasonCode::AiLocalModelUnavailable,
         353 => LocalAppReasonCode::AiLocalModelProfileMissing,
@@ -298,6 +304,12 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_ROUTE_FALLBACK_DENIED" => LocalAppReasonCode::AiRouteFallbackDenied,
         "AI_INPUT_INVALID" => LocalAppReasonCode::AiInputInvalid,
         "AI_OUTPUT_INVALID" => LocalAppReasonCode::AiOutputInvalid,
+        "AI_TEXT_BEHAVIOR_UNSUPPORTED" => LocalAppReasonCode::AiTextBehaviorUnsupported,
+        "AI_TEXT_BEHAVIOR_AMBIGUOUS" => LocalAppReasonCode::AiTextBehaviorAmbiguous,
+        "AI_TEXT_OUTPUT_INCOMPLETE" => LocalAppReasonCode::AiTextOutputIncomplete,
+        "AI_TOOL_CALL_INVALID" => LocalAppReasonCode::AiToolCallInvalid,
+        "AI_REASONING_CONTINUITY_INVALID" => LocalAppReasonCode::AiReasoningContinuityInvalid,
+        "AI_EXECUTION_INTERRUPTED" => LocalAppReasonCode::AiExecutionInterrupted,
         "AI_CONTENT_FILTER_BLOCKED" => LocalAppReasonCode::AiContentFilterBlocked,
         "AI_LOCAL_MODEL_UNAVAILABLE" => LocalAppReasonCode::AiLocalModelUnavailable,
         "AI_LOCAL_MODEL_PROFILE_MISSING" => LocalAppReasonCode::AiLocalModelProfileMissing,
@@ -482,6 +494,21 @@ fn status_is_retryable(code: Code) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn protected_text_behavior_failures_stay_typed() {
+        for (name, number, reason) in [
+            ("AI_TEXT_BEHAVIOR_UNSUPPORTED", 395, LocalAppReasonCode::AiTextBehaviorUnsupported),
+            ("AI_TEXT_BEHAVIOR_AMBIGUOUS", 396, LocalAppReasonCode::AiTextBehaviorAmbiguous),
+            ("AI_TEXT_OUTPUT_INCOMPLETE", 397, LocalAppReasonCode::AiTextOutputIncomplete),
+            ("AI_TOOL_CALL_INVALID", 398, LocalAppReasonCode::AiToolCallInvalid),
+            ("AI_REASONING_CONTINUITY_INVALID", 399, LocalAppReasonCode::AiReasoningContinuityInvalid),
+            ("AI_EXECUTION_INTERRUPTED", 402, LocalAppReasonCode::AiExecutionInterrupted),
+        ] {
+            assert_eq!(local_app_reason_from_proto(number), Some(reason));
+            assert_eq!(local_app_reason_from_runtime_reason(name), Some(reason));
+        }
+    }
 
     #[test]
     fn protected_access_unavailable_stays_typed() {

@@ -123,9 +123,6 @@ func TestLocalAppTextTurnStreamBridgeFailsClosedOnOwnerOnlyEvents(t *testing.T) 
 				},
 			}},
 		}}},
-		{Payload: &runtimev1.StreamScenarioEvent_Delta{Delta: toolCallOutputDelta(0, &runtimev1.ToolCall{
-			Id: "call-1", Name: "tool", ArgumentsJson: `{}`,
-		})}},
 		{Payload: &runtimev1.StreamScenarioEvent_Completed{Completed: &runtimev1.ScenarioStreamCompleted{
 			FinishReason: runtimev1.FinishReason_FINISH_REASON_UNSPECIFIED,
 		}}},

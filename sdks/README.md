@@ -41,6 +41,52 @@ The conformance runner validates generated manifest parity and generated
 Runtime/Realm core behavior. TypeScript handwritten surfaces have their own
 package tests and SDK matrix gates.
 
+## Local App text tools
+
+SDK 0.12.0 exposes `createNimiLocalAppTextModel` from `@nimiplatform/sdk/ai`.
+It binds the common `NimiAiModel` interface to a protected App client's `ai`
+surface. It supports function tools, ordered assistant output and tool results,
+tool choice, and a structured `responseFormat`. The App's AIConfig selects a
+compatible execution configuration; requests contain no provider or model
+identity. Kit 0.8.0 and the matching Runtime contract are required.
+
+```ts
+import { createNimiLocalAppTextModel } from '@nimiplatform/sdk/ai';
+import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
+
+export function requestSearch(client: NimiLocalAppClient, signal: AbortSignal) {
+  return createNimiLocalAppTextModel(client.ai).generateText({
+    messages: [{ role: 'user', content: [{ type: 'text', text: 'Find sources about trees.' }] }],
+    tools: [{
+      name: 'search',
+      description: 'Search for sources.',
+      inputSchema: {
+        type: 'object', properties: { query: { type: 'string' } },
+        required: ['query'], additionalProperties: false,
+      },
+    }],
+    toolChoice: 'required',
+    signal,
+  });
+}
+```
+
+The result contains complete tool calls. The caller executes its fixed handlers
+after a successful step, preserves `outputItems` in ordered `turnItems`, appends
+the corresponding `tool-result` entries, and explicitly requests the next step.
+`generateText` collects the same cancellable stream as `streamText`; neither
+method owns a multi-step workflow. Missing terminal events, invalid tool calls
+and interrupted streams fail without manufacturing a result.
+
+Direct App callers can use `ai.scenario.execute({ type: 'text-generate', ... })`
+or `ai.text.streamTurn(...)`. Custom Host carriers can reuse the public text
+input/output validators and feature-client constructors from
+`@nimiplatform/sdk/app`. Migrate exhaustive stream matches for `tool-call`,
+`tool-calls` and the required delta `itemIndex`; the text-candidate input stays
+narrow. Input is limited to 128 messages, 64 function tools and 1 MiB, with a
+256 KiB output bound. Partial structured text is display-only until a successful
+terminal result passes the caller's declared response schema.
+
 ## Locate objects in a local image
 
 An App with `runtime.consume` can upload an image and run `vision.locate`

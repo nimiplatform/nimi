@@ -776,9 +776,10 @@ fn native_text_turn_request(
         messages: input
             .messages
             .into_iter()
-            .map(|message| LocalAppTextCandidateMessage {
+            .map(|message| LocalAppTextMessage {
                 role: message.role,
                 text: message.text,
+                turn_items: message.turn_items.unwrap_or_default(),
             })
             .collect(),
         temperature: input.temperature.map(|value| value as f32),
@@ -789,6 +790,9 @@ fn native_text_turn_request(
         frequency_penalty: input.frequency_penalty.map(|value| value as f32),
         stop: input.stop.unwrap_or_default(),
         seed: optional_native_i64(input.seed)?,
+        tools: input.tools.unwrap_or_default(),
+        tool_choice: input.tool_choice,
+        response_format: input.response_format,
     })
 }
 
@@ -2396,9 +2400,10 @@ mod session_rebind_tests {
     #[test]
     fn native_text_turn_conversion_preserves_extended_sampling() {
         let request = native_text_turn_request(NativeTextTurnInput {
-            messages: vec![NativeTextCandidateMessage {
+            messages: vec![NativeTextTurnMessage {
                 role: "user".to_string(),
                 text: "hello".to_string(),
+                turn_items: None,
             }],
             temperature: Some(0.0),
             top_p: None,
@@ -2408,6 +2413,9 @@ mod session_rebind_tests {
             frequency_penalty: Some(2.0),
             stop: Some(vec!["END".to_string()]),
             seed: Some(0.0),
+            tools: None,
+            tool_choice: None,
+            response_format: None,
         })
         .expect("native optional parameters");
         assert_eq!(request.top_k, Some(0));

@@ -5744,12 +5744,16 @@ pub struct ExecuteScenarioResponse {
 /// Exact third-party Local App foreground text-candidate contract. Runtime
 /// derives account, App identity, permission and managed local route from the
 /// protected session; callers cannot supply generic Scenario or route fields.
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppTextCandidateMessage {
     #[prost(string, tag = "1")]
     pub role: ::prost::alloc::string::String,
     #[prost(string, tag = "2")]
     pub text: ::prost::alloc::string::String,
+    /// Ordered assistant transcript is admitted only by text-turn and the
+    /// text.generate execute variant. The narrow candidate operation rejects it.
+    #[prost(message, repeated, tag = "3")]
+    pub turn_items: ::prost::alloc::vec::Vec<TextTurnItem>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GenerateLocalAppTextCandidateRequest {
@@ -5840,7 +5844,7 @@ pub struct LocalAppImageGenerateScenarioSpec {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ExecuteLocalAppScenarioRequest {
-    #[prost(oneof = "execute_local_app_scenario_request::Spec", tags = "1, 2")]
+    #[prost(oneof = "execute_local_app_scenario_request::Spec", tags = "1, 2, 3")]
     pub spec: ::core::option::Option<execute_local_app_scenario_request::Spec>,
 }
 /// Nested message and enum types in `ExecuteLocalAppScenarioRequest`.
@@ -5851,6 +5855,9 @@ pub mod execute_local_app_scenario_request {
         TextEmbed(super::LocalAppTextEmbedScenarioSpec),
         #[prost(message, tag = "2")]
         ImageGenerate(super::LocalAppImageGenerateScenarioSpec),
+        /// Reuse the single text-turn input for synchronous text generation.
+        #[prost(message, tag = "3")]
+        TextGenerate(super::StreamLocalAppTextTurnRequest),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -5864,10 +5871,18 @@ pub struct LocalAppImageGenerateOutput {
     pub artifacts: ::prost::alloc::vec::Vec<LocalAppScenarioArtifact>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppTextGenerateOutput {
+    /// Only text and function ToolCall items are admitted at this App boundary.
+    #[prost(message, repeated, tag = "1")]
+    pub items: ::prost::alloc::vec::Vec<TextOutputItem>,
+    #[prost(enumeration = "FinishReason", tag = "2")]
+    pub finish_reason: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ExecuteLocalAppScenarioResponse {
     #[prost(string, tag = "3")]
     pub trace_id: ::prost::alloc::string::String,
-    #[prost(oneof = "execute_local_app_scenario_response::Output", tags = "1, 2")]
+    #[prost(oneof = "execute_local_app_scenario_response::Output", tags = "1, 2, 4")]
     pub output: ::core::option::Option<execute_local_app_scenario_response::Output>,
 }
 /// Nested message and enum types in `ExecuteLocalAppScenarioResponse`.
@@ -5878,6 +5893,8 @@ pub mod execute_local_app_scenario_response {
         TextEmbed(super::LocalAppTextEmbedOutput),
         #[prost(message, tag = "2")]
         ImageGenerate(super::LocalAppImageGenerateOutput),
+        #[prost(message, tag = "4")]
+        TextGenerate(super::LocalAppTextGenerateOutput),
     }
 }
 /// Asynchronous closed-set Job specs admitted for SubmitLocalAppScenarioJob.
@@ -6152,9 +6169,9 @@ pub struct LocalAppScenarioJobEvent {
     #[prost(message, optional, tag = "5")]
     pub job: ::core::option::Option<LocalAppScenarioJob>,
 }
-/// Streaming TEXT_GENERATE trimmed surface: typed text increments and terminal
-/// finish or failure state only. Raw chunks, reasoning traces, sources, and
-/// tool events never reach the Local App stream.
+/// Single-step TEXT_GENERATE App surface. Function tools, ordered host-provided
+/// results and structured output reuse canonical text behavior. The external
+/// AI host owns tool execution and the next request; Runtime owns no agent loop.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamLocalAppTextTurnRequest {
     #[prost(message, repeated, tag = "1")]
@@ -6175,11 +6192,28 @@ pub struct StreamLocalAppTextTurnRequest {
     pub stop: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
     #[prost(int64, optional, tag = "9")]
     pub seed: ::core::option::Option<i64>,
+    #[prost(message, repeated, tag = "10")]
+    pub tools: ::prost::alloc::vec::Vec<ToolSpec>,
+    #[prost(enumeration = "ToolChoiceMode", tag = "11")]
+    pub tool_choice: i32,
+    #[prost(string, tag = "12")]
+    pub tool_choice_name: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "13")]
+    pub response_format: ::core::option::Option<ResponseFormat>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppTextTurnDelta {
     #[prost(string, tag = "1")]
     pub text: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "2")]
+    pub item_index: u32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppTextTurnToolCall {
+    #[prost(uint32, tag = "1")]
+    pub item_index: u32,
+    #[prost(message, optional, tag = "2")]
+    pub tool_call: ::core::option::Option<ToolCall>,
 }
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppTextTurnCompleted {
@@ -6195,18 +6229,18 @@ pub struct LocalAppTextTurnFailed {
     #[prost(message, optional, tag = "3")]
     pub interruption: ::core::option::Option<ExecutionInterruption>,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamLocalAppTextTurnEvent {
     #[prost(uint64, tag = "1")]
     pub sequence: u64,
     #[prost(string, tag = "2")]
     pub trace_id: ::prost::alloc::string::String,
-    #[prost(oneof = "stream_local_app_text_turn_event::Payload", tags = "3, 4, 5")]
+    #[prost(oneof = "stream_local_app_text_turn_event::Payload", tags = "3, 4, 5, 6")]
     pub payload: ::core::option::Option<stream_local_app_text_turn_event::Payload>,
 }
 /// Nested message and enum types in `StreamLocalAppTextTurnEvent`.
 pub mod stream_local_app_text_turn_event {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Payload {
         #[prost(message, tag = "3")]
         Delta(super::LocalAppTextTurnDelta),
@@ -6214,6 +6248,8 @@ pub mod stream_local_app_text_turn_event {
         Completed(super::LocalAppTextTurnCompleted),
         #[prost(message, tag = "5")]
         Failed(super::LocalAppTextTurnFailed),
+        #[prost(message, tag = "6")]
+        ToolCall(super::LocalAppTextTurnToolCall),
     }
 }
 /// Bounded inline artifact read limited to artifacts owned by the calling App

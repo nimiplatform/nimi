@@ -126,6 +126,12 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-route-fallback-denied',
   'ai-input-invalid',
   'ai-output-invalid',
+  'ai-text-behavior-unsupported',
+  'ai-text-behavior-ambiguous',
+  'ai-text-output-incomplete',
+  'ai-tool-call-invalid',
+  'ai-reasoning-continuity-invalid',
+  'ai-execution-interrupted',
   'ai-content-filter-blocked',
   'ai-local-model-unavailable',
   'ai-local-model-profile-missing',
@@ -579,11 +585,12 @@ function withBoundedSessionRebind(
         if (!isSessionInvalidOutcome(first)) {
           return first;
         }
+        // Old App-owned work must stop even when the subsequent rebind fails.
+        onSessionChange();
         const rebound = await renew();
         if (!isReadySessionOutcome(rebound)) {
           return rebound.status === 'error' ? rebound : untrustedNativeOutcome();
         }
-        onSessionChange();
         if (!LOCAL_APP_BINDING_RETRY_SAFE_METHODS.has(property)) {
           return first;
         }
@@ -702,10 +709,12 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     state.sequence = sequence;
     if (event.type === 'delta' && typeof event.text === 'string') {
       state.bytes += Buffer.byteLength(event.text, 'utf8');
-      if (state.bytes > 256 * 1024) {
-        this.textTurnStreams.delete(streamId);
-        throw untrustedRuntimeError();
-      }
+    } else if (event.type === 'tool-call') {
+      state.bytes += Buffer.byteLength(JSON.stringify(event.toolCall), 'utf8');
+    }
+    if (state.bytes > 256 * 1024) {
+      this.textTurnStreams.delete(streamId);
+      throw untrustedRuntimeError();
     }
     return next;
   }
@@ -1542,6 +1551,24 @@ async function invokeScenarioExecute(
   }
   const traceId = boundedExactText(value.traceId, 512, false);
   const output = value.output;
+  if (output.type === 'text-generate') {
+    if (!hasExactKeys(output, ['type', 'items', 'finishReason']) || !Array.isArray(output.items)
+      || output.items.length === 0 || !['stop', 'length', 'tool-calls', 'content-filter'].includes(String(output.finishReason))) throw untrustedRuntimeError();
+    const ids = new Set<string>();
+    const items = output.items.map((item) => {
+      if (!isPlainRecord(item)) throw untrustedRuntimeError();
+      if (item.type === 'text' && hasExactKeys(item, ['type', 'text'])) {
+        return Object.freeze({ type: 'text', text: boundedUtf8Content(item.text, 256 * 1024) });
+      }
+      if (item.type !== 'tool-call' || !hasExactKeys(item, ['type', 'toolCall'])) throw untrustedRuntimeError();
+      const toolCall = validateTextToolCall(item.toolCall);
+      if (ids.has(String(toolCall.id))) throw untrustedRuntimeError();
+      ids.add(String(toolCall.id));
+      return Object.freeze({ type: 'tool-call', toolCall });
+    });
+    if ((output.finishReason === 'tool-calls' && ids.size === 0) || Buffer.byteLength(JSON.stringify(items), 'utf8') > 256 * 1024) throw untrustedRuntimeError();
+    return Object.freeze({ output: Object.freeze({ type: 'text-generate', items: Object.freeze(items), finishReason: String(output.finishReason) }), traceId });
+  }
   if (output.type === 'text-embed') {
     if (!hasExactKeys(output, ['type', 'vectors']) || !Array.isArray(output.vectors)
       || output.vectors.length === 0 || output.vectors.length > 16) throw untrustedRuntimeError();
@@ -1855,22 +1882,37 @@ function validateTextTurnEvent(value: unknown): NimiElectronLocalAppRecord {
   }
   const traceId = boundedExactText(value.traceId, 512, false);
   if (value.type === 'delta') {
-    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'text'])) throw untrustedRuntimeError();
+    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'text', 'itemIndex'])) throw untrustedRuntimeError();
     return Object.freeze({ type: 'delta', sequence: value.sequence, traceId,
-      text: boundedUtf8Content(value.text, 64 * 1024) });
+      text: boundedUtf8Content(value.text, 64 * 1024), itemIndex: boundedInteger(value.itemIndex, 0, 4_294_967_295) });
+  }
+  if (value.type === 'tool-call') {
+    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'itemIndex', 'toolCall'])) throw untrustedRuntimeError();
+    return Object.freeze({ type: 'tool-call', sequence: value.sequence, traceId,
+      itemIndex: boundedInteger(value.itemIndex, 0, 4_294_967_295), toolCall: validateTextToolCall(value.toolCall) });
   }
   if (value.type === 'completed') {
     if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'finishReason'])
-      || !['stop', 'length', 'content-filter'].includes(String(value.finishReason))) throw untrustedRuntimeError();
+      || !['stop', 'length', 'tool-calls', 'content-filter'].includes(String(value.finishReason))) throw untrustedRuntimeError();
     return Object.freeze({ type: 'completed', sequence: value.sequence, traceId, finishReason: String(value.finishReason) });
   }
   if (value.type === 'failed') {
-    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint'])) throw untrustedRuntimeError();
+    if (!hasExactKeys(value, ['type', 'sequence', 'traceId', 'reasonCode', 'actionHint', ...(Object.hasOwn(value, 'interruption') ? ['interruption'] : [])])) throw untrustedRuntimeError();
+    const interruption = value.interruption == null ? undefined : value.interruption;
+    if ((interruption !== undefined) !== (value.reasonCode === 'ai-execution-interrupted')) throw untrustedRuntimeError();
+    if (interruption !== undefined && (!isPlainRecord(interruption) || !hasExactKeys(interruption, ['cause', 'resubmitDisposition'])
+      || interruption.cause !== 'runtime-restart' || interruption.resubmitDisposition !== 'caller-may-resubmit')) throw untrustedRuntimeError();
     return Object.freeze({ type: 'failed', sequence: value.sequence, traceId,
       reasonCode: boundedExactText(value.reasonCode, 128, false),
-      actionHint: boundedExactText(value.actionHint, 512, true) });
+      actionHint: boundedExactText(value.actionHint, 512, true), ...(interruption ? { interruption: interruption as NimiElectronLocalAppRecord } : {}) });
   }
   throw untrustedRuntimeError();
+}
+
+function validateTextToolCall(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['id', 'name', 'arguments']) || !isPlainRecord(value.arguments)) throw untrustedRuntimeError();
+  validateJsonValue(value.arguments);
+  return Object.freeze({ id: boundedExactText(value.id, 128, false), name: boundedExactText(value.name, 128, false), arguments: value.arguments });
 }
 
 function validateTimestamp(value: unknown): NimiElectronLocalAppRecord | null {
@@ -2506,7 +2548,7 @@ function optionalExactText(value: unknown): string | null {
   return exactText(value);
 }
 
-function validateJsonValue(value: unknown, depth = 0, budget = { nodes: 0 }): void {
+function validateJsonValue(value: unknown, depth = 0, budget = { nodes: 0 }): asserts value is NimiElectronLocalAppJson {
   budget.nodes += 1;
   if (depth > 32 || budget.nodes > 100_000) throw untrustedRuntimeError();
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return;

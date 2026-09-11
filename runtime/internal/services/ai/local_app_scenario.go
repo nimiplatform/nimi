@@ -163,8 +163,8 @@ func localAppValidTraceID(traceID string) bool {
 // ExecuteLocalAppScenario preserves the third-party Local App synchronous
 // scenario contract while delegating route composition, scheduling, Driver
 // mapping, metering, and execution to the Scenario owner. The App supplies a
-// closed-set SYNC spec only: no route, implementation, target, model,
-// tool, stream, or job field.
+// closed-set SYNC spec only, including bounded function-tool text behavior:
+// no route, implementation, target, model, stream, or job field.
 func (s *Service) ExecuteLocalAppScenario(ctx context.Context, req *runtimev1.ExecuteLocalAppScenarioRequest) (*runtimev1.ExecuteLocalAppScenarioResponse, error) {
 	decision, err := localAppScenarioDecision(ctx, accountservice.LocalAppOperationScenarioExecute, localappop.AppOperationIDScenarioExecute)
 	if err != nil {
@@ -183,7 +183,20 @@ func (s *Service) ExecuteLocalAppScenario(ctx context.Context, req *runtimev1.Ex
 	if err != nil {
 		return nil, err
 	}
-	if result == nil || !localAppTextCandidateFinishReason(result.GetFinishReason()) || !localAppValidTraceID(result.GetTraceId()) {
+	if result == nil || !localAppValidTraceID(result.GetTraceId()) {
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	if scenarioType == runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE {
+		text, err := projectLocalAppTextOutput(result.GetOutput().GetTextGenerate(), result.GetFinishReason(), ownerSpec.GetTextGenerate())
+		if err != nil {
+			return nil, err
+		}
+		return &runtimev1.ExecuteLocalAppScenarioResponse{
+			Output:  &runtimev1.ExecuteLocalAppScenarioResponse_TextGenerate{TextGenerate: text},
+			TraceId: result.GetTraceId(),
+		}, nil
+	}
+	if !localAppTextCandidateFinishReason(result.GetFinishReason()) {
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	switch scenarioType {
@@ -233,6 +246,14 @@ func validateLocalAppScenarioExecuteRequest(req *runtimev1.ExecuteLocalAppScenar
 		return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
 	switch spec := req.GetSpec().(type) {
+	case *runtimev1.ExecuteLocalAppScenarioRequest_TextGenerate:
+		text, err := localAppTextGenerateSpec(spec.TextGenerate)
+		if err != nil {
+			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
+		}
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_TextGenerate{
+			TextGenerate: text,
+		}}, runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_GENERATE, nil
 	case *runtimev1.ExecuteLocalAppScenarioRequest_TextEmbed:
 		inputs, err := validateLocalAppEmbedInputs(spec.TextEmbed.GetInputs())
 		if err != nil {
