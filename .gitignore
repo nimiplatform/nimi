@@ -48,9 +48,6 @@ coverage/
 .ruff_cache/
 
 _external/
-.claude/settings.local.json
-.claude/launch.json
-**/.claude/launch.json
 /$HOME/
 
 # legacy execution-doc roots are archive/local-only
@@ -95,7 +92,6 @@ venv/
 env/
 ENV/
 
-.claude/scheduled_tasks.lock
 .playwright-cli/
 .codex-temp/
 outputs/

@@ -4,7 +4,7 @@
 - Active modules plus admitted implementation-pending native boundary: `kit/ui`, `kit/auth`, `kit/core`, `kit/telemetry`, `kit/shell/protected-local`, `kit/shell/tauri`, `kit/shell/renderer`, `kit/shell/electron`, and `kit/features`.
 ## Hard Boundaries
 - Kit UI is a reusable projection of `.nimi/spec/platform/ui-design-system.authority.yaml`; do not create app-local design truth in `kit/auth` or `kit/features`.
-- Before adding UI or interaction logic, inspect `kit/README.md`, the target module README, and the nearest owner contract.
+- Read `kit/README.md` and the target module README when choosing a public entrypoint or reusable owner; use the direct owner contract for the behavior being changed.
 - `kit/core` must stay pure logic: no React, CSS, app code, or presentation imports.
 - `kit/telemetry` must stay renderer-safe: no Node.js, Electron, or Tauri bridge imports.
 - `kit/shell/tauri` is shared Rust host glue; do not import JS/TS runtime code or app-local Rust.
@@ -16,10 +16,11 @@
 - SDK typed services may only bind from explicit `runtime` or `realm` feature surfaces; runtime integrations must not bind realm clients, realm integrations must not bind runtime clients, and apps consume toolkit functionality through `@nimiplatform/kit/*` once it exists.
 - `kit/auth` keeps Web Account Auth and Desktop Browser Auth Gate as separate public contracts: the Web adapter may expose Realm credential interactions through the Realm-owned browser session, while the Desktop gate accepts only the OAuth code bridge and Runtime account browser broker and must not require credential methods or token persistence.
 ## Retrieval Defaults
-- Start in `kit/ui`, `kit/auth`, `kit/core`, `kit/telemetry`, `kit/shell/renderer`, `kit/shell/electron`, `kit/features`, `.nimi/spec/platform/ui-design-system.authority.yaml`, and `scripts/check-nimi-kit.mjs`; skip generated output except token/theme drift and generated platform docs.
+- Start in the affected Kit module and its direct consumer or contract. Read canonical authority when semantics or ownership are unresolved; inspect the relevant checker when its failure or the changed projection requires it. Skip unrelated modules and generated output except when checking drift.
 ## Verification Commands
-- `pnpm --filter @nimiplatform/kit build && pnpm --filter @nimiplatform/kit test`; `pnpm check:nimi-kit`.
-- For shared design projection changes, also run `pnpm check:nimi-design-artifacts`.
+- For implementation changes, run the directly affected test and `pnpm --filter @nimiplatform/kit build`; `kit/ui/AGENTS.md` adds the checks for UI generator inputs.
+- Run `pnpm --filter @nimiplatform/kit test` for shared behavior changes spanning multiple components. Run `pnpm check:nimi-kit` for public exports, package/import boundaries, shared projections, or Kit-wide changes.
+- `pnpm check:nimi-kit` already includes `pnpm check:nimi-design-artifacts`; do not run the included check again while its result remains valid.
 ## Semver Discipline
 - Public exports are governed by `kit/package.json`; classify every public export change before merge.
 - Patch: compatible fixes only. Minor: new export, widening, or 0.x breaking change. Major: explicit 1.0.0 or post-1.0 breaking change.
