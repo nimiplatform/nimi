@@ -20,7 +20,7 @@
   "nimiScaffoldVersions": {
     "sdkVersion": "^0.12.0",
     "appToolsVersion": "^0.5.2",
-    "nimicodingVersion": "0.6.2",
+    "nimicodingVersion": "0.6.3",
     "aiSdkVersion": "^6.0.85",
     "kitVersion": "^0.8.0",
     "reactVersion": "^19.2.8",

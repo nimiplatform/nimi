@@ -15,5 +15,5 @@
 - Skip `dist/assets/` (generated install script copy).
 
 ## Verification Commands
-- `pnpm --filter @nimiplatform/install-gateway test`
-- `pnpm --filter @nimiplatform/install-gateway build`
+- Worker behavior changes: run the directly affected test; use `pnpm --filter @nimiplatform/install-gateway test` for shared release, cache, or checksum logic.
+- Install-script source, build-script, or packaging changes and release preparation: run `pnpm --filter @nimiplatform/install-gateway build`.
