@@ -116,7 +116,7 @@ func (host *FaceSwapExecutionHost) ExecuteVideoFaceSwap(ctx context.Context, pla
 	if err != nil {
 		return nil, host.fail(ctx, executionFailure(localexecution.FailureProcessCrash, err))
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
 		return nil, host.fail(ctx, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
 	}

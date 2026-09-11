@@ -70,7 +70,7 @@ func (host *FaceSwapExecutionHost) OpenVideoFaceSwapSession(ctx context.Context,
 	if err != nil {
 		return nil, host.fail(ctx, err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
 		return nil, host.fail(ctx, faceSwapSessionResponseError(response.Body))
 	}
@@ -114,7 +114,7 @@ func (session *faceSwapSessionHost) ReplaceFrame(ctx context.Context, frame []by
 		}
 		return nil, executionFailure(localexecution.FailureProcessCrash, err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode != http.StatusOK {
 		return nil, faceSwapSessionResponseError(response.Body)
 	}

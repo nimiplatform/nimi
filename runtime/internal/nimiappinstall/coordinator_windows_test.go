@@ -606,7 +606,7 @@ func TestUninstallDetachWaitsForDirectoryRelease(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer root.Close()
+			defer func() { _ = root.Close() }()
 			pointer, err := windows.UTF16PtrFromString(sourcePath)
 			if err != nil {
 				t.Fatal(err)
@@ -616,7 +616,7 @@ func TestUninstallDetachWaitsForDirectoryRelease(t *testing.T) {
 				t.Fatal(err)
 			}
 			held := os.NewFile(uintptr(handle), sourcePath)
-			defer held.Close()
+			defer func() { _ = held.Close() }()
 			if err := publishStagedRelease(root, "installed", "removed"); !isReleaseRenameBusy(err) {
 				t.Fatalf("open directory did not block rename: %v", err)
 			}

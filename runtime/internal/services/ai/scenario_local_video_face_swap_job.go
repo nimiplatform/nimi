@@ -100,7 +100,7 @@ func (s *Service) runLocalVideoFaceSwapJob(ctx context.Context, jobID string, ti
 		fail(err)
 		return
 	}
-	defer result.Body.Close()
+	defer func() { _ = result.Body.Close() }()
 	if err := ctx.Err(); err != nil {
 		fail(err)
 		return

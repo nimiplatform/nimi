@@ -71,7 +71,7 @@ func (s *Service) captureLocalVideoFaceSwapInputs(ctx context.Context, head *run
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer source.Body.Close()
+	defer func() { _ = source.Body.Close() }()
 	if source.Record.MimeType != "video/mp4" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH)
 	}

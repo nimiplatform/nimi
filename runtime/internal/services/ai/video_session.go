@@ -189,7 +189,7 @@ func (s *Service) SubmitVideoSessionFrame(ctx context.Context, req *runtimev1.Su
 	record.pending <- frame
 	record.mu.Unlock()
 	if publishErr != nil {
-		s.terminateVideoSession(record, runtimev1.ReasonCode_AI_VIDEO_SESSION_OVERLOADED, realtimecore.TerminalSlowConsumer)
+		_ = s.terminateVideoSession(record, runtimev1.ReasonCode_AI_VIDEO_SESSION_OVERLOADED, realtimecore.TerminalSlowConsumer)
 	}
 	return &runtimev1.SubmitVideoSessionFrameResponse{Accepted: true, Sequence: req.Sequence}, nil
 }
@@ -265,7 +265,7 @@ func (s *Service) runVideoSession(record *videoSessionRecord) {
 				case runtimev1.ReasonCode_AI_FACE_TARGET_AMBIGUOUS, runtimev1.ReasonCode_AI_INPUT_INVALID:
 					result.Result = &runtimev1.AiVideoSessionResult_InputRejected{InputRejected: disposition}
 				default:
-					s.terminateVideoSession(record, reason, realtimecore.TerminalOwnerFailed)
+					_ = s.terminateVideoSession(record, reason, realtimecore.TerminalOwnerFailed)
 					return
 				}
 			}
@@ -280,7 +280,7 @@ func (s *Service) runVideoSession(record *videoSessionRecord) {
 			_, publishErr := record.results.Publish(record.generation, result)
 			record.mu.Unlock()
 			if publishErr != nil {
-				s.terminateVideoSession(record, runtimev1.ReasonCode_AI_VIDEO_SESSION_OVERLOADED, realtimecore.TerminalSlowConsumer)
+				_ = s.terminateVideoSession(record, runtimev1.ReasonCode_AI_VIDEO_SESSION_OVERLOADED, realtimecore.TerminalSlowConsumer)
 				return
 			}
 		}
@@ -299,7 +299,7 @@ func (s *Service) watchVideoSessionConsumer(record *videoSessionRecord) {
 			stalled := !record.closed && record.results.Snapshot().BufferedItems > 0 && time.Since(record.lastConsumption) > 2*time.Second
 			record.mu.Unlock()
 			if stalled {
-				s.terminateVideoSession(record, runtimev1.ReasonCode_AI_VIDEO_SESSION_OVERLOADED, realtimecore.TerminalSlowConsumer)
+				_ = s.terminateVideoSession(record, runtimev1.ReasonCode_AI_VIDEO_SESSION_OVERLOADED, realtimecore.TerminalSlowConsumer)
 				return
 			}
 		}
