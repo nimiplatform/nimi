@@ -30,7 +30,7 @@ export const landingContentZh: LandingContent = {
     titleAccent: landingPositioningZh.hero.titleAccent,
     subtitle: landingPositioningZh.hero.subtitle,
     primaryCta: '查看下载选项',
-    availability: 'Nimi Home 暂未提供安装包，目前仅有面向开发者的有限预览。',
+    availability: 'Nimi Home 暂未提供安装包。旧开发者预览下载已撤下，源代码仍可用于开发。',
     secondaryCta: '看看 Nimi 能做什么',
     proofPoints: ['开源', '本地优先', '自由选择 AI'],
   },
@@ -388,7 +388,7 @@ export const landingContentZh: LandingContent = {
       {
         question: '今天能下载 Nimi 吗？',
         answer:
-          '目前没有已发布的 Nimi 稳定版或 installer。明确标注为 unsigned 的 portable Windows x64 Runtime bootstrap v0.2.2-preview.1 已可用于 bootstrap 测试，但它不是 Nimi Home 或 production 安装；准确范围请查看下载页。',
+          '目前没有已发布的 Nimi 稳定版或安装包。完整产品包含 Desktop、Runtime 和 Avatar；Zhiyu 与 Nimi Lab 独立发布。旧混合开发者预览正在撤回，源代码仍可用于开发；当前状态请查看下载页。',
       },
       {
         question: '我的数据私密吗？',
@@ -439,18 +439,18 @@ export const landingContentZh: LandingContent = {
         label: '代码签名',
         title: '验证具体制品，不依赖口头承诺',
         points: [
-          '公开 unsigned Runtime bootstrap v0.2.2-preview.1 已发布；SignPath Foundation 申请尚未提交。',
+          '旧混合预览正在撤回，新的 Runtime 预览尚未发布；SignPath Foundation 申请尚未提交。',
           'Authenticode 验证通过前，任何当前 Nimi 制品都不能被视为 SignPath-signed。',
         ],
       },
     ],
     statuses: [
-      { label: 'Windows', value: 'Unsigned Runtime bootstrap v0.2.2-preview.1 已发布；signed RC 与 Stable 仍待签名' },
+      { label: 'Windows', value: '预览下载已撤下；已签名 RC 与稳定版尚未提供' },
       { label: 'SignPath Foundation', value: '申请尚未提交；bootstrap 前置已发布' },
     ],
     links: [
       { label: '下载', detail: '稳定版与 unsigned preview 状态', href: '/download' },
-      { label: 'Unsigned Runtime preview', detail: 'v0.2.2-preview.1 · 不可晋升', href: 'https://github.com/nimiplatform/nimi/releases/tag/v0.2.2-preview.1' },
+      { label: '下载状态', detail: '产品组成与当前可用范围', href: 'https://nimi.ai/download' },
       { label: 'Code signing policy', detail: '范围、控制与验证说明', href: '/code-signing' },
       { label: '源代码', detail: 'github.com/nimiplatform/nimi', href: 'https://github.com/nimiplatform/nimi' },
       { label: '文档', detail: 'docs.nimi.ai', href: 'https://docs.nimi.ai' },

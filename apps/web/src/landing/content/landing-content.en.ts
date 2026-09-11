@@ -32,7 +32,7 @@ export const landingContentEn: LandingContent = {
     titleAccent: landingPositioningEn.hero.titleAccent,
     subtitle: landingPositioningEn.hero.subtitle,
     primaryCta: 'See download options',
-    availability: 'Nimi Home is not available to install yet. A limited developer preview is available.',
+    availability: 'Nimi Home is not available to install yet. Earlier developer preview downloads are withdrawn; source code remains available.',
     secondaryCta: 'See what Nimi can do',
     proofPoints: ['Open source', 'Local-first', 'Choose your AI'],
   },
@@ -404,7 +404,7 @@ export const landingContentEn: LandingContent = {
       {
         question: 'Can I download Nimi today?',
         answer:
-          'No stable Nimi release or installer is currently published. The explicitly unsigned portable Windows x64 Runtime bootstrap v0.2.2-preview.1 is available for bootstrap testing, but it is not Nimi Home or a production install. See Download for the exact scope.',
+          'No stable Nimi release or installer is currently published. The complete product includes Desktop, Runtime, and Avatar; Zhiyu and Nimi Lab are independently released Apps. The earlier mixed developer previews are being withdrawn. Source code remains available; see Download for current status.',
       },
       {
         question: 'Is my data private?',
@@ -455,7 +455,7 @@ export const landingContentEn: LandingContent = {
         label: 'Code signing',
         title: 'Verify the release, not the promise',
         points: [
-          'The public unsigned Runtime bootstrap is available at v0.2.2-preview.1; the SignPath Foundation application has not yet been submitted.',
+          'The earlier mixed preview is being withdrawn and no replacement Runtime preview has been published. The SignPath Foundation application has not yet been submitted.',
           'No current Nimi artifact should be treated as SignPath-signed without valid Authenticode verification.',
         ],
       },
@@ -463,7 +463,7 @@ export const landingContentEn: LandingContent = {
     statuses: [
       {
         label: 'Windows',
-        value: 'Unsigned Runtime bootstrap v0.2.2-preview.1 available; signed RC and Stable pending',
+        value: 'Preview downloads withdrawn; signed RC and Stable not yet available',
       },
       {
         label: 'SignPath Foundation',
@@ -472,7 +472,7 @@ export const landingContentEn: LandingContent = {
     ],
     links: [
       { label: 'Download', detail: 'Stable and unsigned-preview status', href: '/download' },
-      { label: 'Unsigned Runtime preview', detail: 'v0.2.2-preview.1 · not promotable', href: 'https://github.com/nimiplatform/nimi/releases/tag/v0.2.2-preview.1' },
+      { label: 'Download status', detail: 'Product composition and current availability', href: 'https://nimi.ai/download' },
       { label: 'Code signing policy', detail: 'Scope, controls, and verification', href: '/code-signing' },
       { label: 'Source code', detail: 'github.com/nimiplatform/nimi', href: 'https://github.com/nimiplatform/nimi' },
       { label: 'Documentation', detail: 'docs.nimi.ai', href: 'https://docs.nimi.ai' },

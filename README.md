@@ -1,6 +1,8 @@
 # Nimi
 
 **Nimi is an open-source, local-first, installable personal AI product.**
+The complete product contains Desktop, Runtime, and Avatar. Zhiyu and Nimi Lab
+are independently released Third-party Apps and are not included in this bundle.
 Nimi Home is its entry point, Realm owns ecosystem identity, and Runtime
 executes local and cloud AI capabilities across multiple providers. Characters,
 conversations, creations, stories, and worlds are experiences within Nimi;
@@ -43,34 +45,42 @@ what Realm says.
 
 **Windows production signing is pending.** Windows is not yet available as a
 production download, and no current Nimi Windows artifact should be treated as
-production signed or SignPath-signed. The required unsigned bootstrap is now
-public in the immutable [v0.2.2-preview.1 prerelease](https://github.com/nimiplatform/nimi/releases/tag/v0.2.2-preview.1),
-but the SignPath Foundation application has not yet been submitted. Local
+production signed or SignPath-signed. The old mixed-component developer
+previews are being withdrawn; no replacement preview has been published.
+The SignPath Foundation application has not yet been submitted. Local
 development self-signing is never a production-signing claim.
 
 The Download and Code signing policy links above are the live canonical public
 routes. Changes in a source checkout do not change those pages until the website
 is deployed.
 
-Unsigned previews, when published, use immutable `vX.Y.Z-preview.N` GitHub
-prereleases and are marked **UNSIGNED PREVIEW — NOT PROMOTABLE**. They do not
-update stable `latest`, publish registries, or become RC/Stable assets. The
-current `v0.2.2-preview.1` scope is a Windows source-local Kit package, a
-repo-assisted macOS candidate, and a portable unsigned Windows x64 Runtime ZIP;
-it includes no Nimi Home installer or Linux asset. Download the exact
-[Runtime bootstrap ZIP](https://github.com/nimiplatform/nimi/releases/download/v0.2.2-preview.1/Nimi-Runtime-v0.2.2-preview.1-windows-x64-unsigned-bootstrap.zip)
-only from that prerelease.
+Every release tag identifies its product or component owner, including previews
+and release candidates:
 
-The portable bootstrap is not an installer or protected Runtime service: use it
-by extracting the archive and running `.\nimi.exe version --json`, then remove
-it by closing the process and deleting the extracted directory. It does not
-create a service, modify `PATH`, write Program Files or ProgramData, or install a
-certificate. With that unsigned release now public, the project can apply to
-SignPath Foundation; submitting the application is the next separate owner
-action. Approval and a
-SignPath-provided certificate then precede the first formally signed Windows x64 Runtime and the leaf certificate
-SubjectPublicKeyInfo (SPKI) SHA-256 consumed by the protected-local package.
-Preview bytes are never promoted or retrospectively described as signed.
+| Delivery | Tag identity |
+| --- | --- |
+| Complete Desktop + Runtime + Avatar product | `nimi/v<product SemVer>` |
+| Desktop only | `desktop/v<Desktop SemVer>` |
+| Runtime only | `runtime/v<Runtime SemVer>` |
+| Public libraries | Their own component prefix and canonical package version |
+| Zhiyu and Nimi Lab | Independent publisher-owned App releases and Registry admission |
+
+For example, `nimi/v0.2.0-preview.1` identifies a complete product preview,
+whereas `runtime/v0.2.0-preview.1` identifies only Runtime. A bare `v0.2.0` or
+`v0.2.0-preview.1` does not identify a repository-wide release. These examples
+are naming rules, not currently available downloads.
+
+Unsigned artifacts are marked **UNSIGNED PREVIEW — NOT PROMOTABLE**. They do not
+update stable `latest` or become signed RC/Stable assets. The mixed preview
+publisher has been retired; a future public Runtime bootstrap needs its own
+release identity and accepted artifacts before the separate SignPath application
+and production-signing steps. Local source builds remain available for development.
+
+If you previously downloaded the portable Runtime bootstrap, close any running
+`nimi.exe` and delete the extracted directory to remove it. Its documented
+`version --json` command did not install a service, modify `PATH`, or add a
+certificate. The [Download page](https://nimi.ai/download) retains cleanup
+guidance for previously installed development previews.
 
 ## The Six Protocol Primitives
 

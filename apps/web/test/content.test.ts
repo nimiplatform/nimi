@@ -13,6 +13,7 @@ test('content keeps the consumer hero and SDK paths complete in both locales', a
     assert.match(content.hero.availability, /Nimi Home/);
     assert.match(content.hero.availability, /not available to install|暂未提供安装包/);
     assert.match(content.hero.availability, /developer preview|开发者/);
+    assert.match(content.hero.availability, /withdrawn|撤下/);
     assert.ok(content.hero.subtitle.length > 0);
     assert.ok(!JSON.stringify(content.hero).includes('pnpm install'));
     assert.ok(!JSON.stringify(content.hero).includes('nimi doctor'));
@@ -99,6 +100,12 @@ test('homepage leads with consumer experiences and keeps download honesty', asyn
       downloadFaq.answer,
       locale === 'zh' ? /没有已发布的 Nimi 稳定版/ : /No stable Nimi release or installer is currently published/,
     );
-    assert.match(downloadFaq.answer, /v0\.2\.2-preview\.1/);
+    assert.match(downloadFaq.answer, /withdrawn|撤回/);
+    assert.match(downloadFaq.answer, /Desktop/);
+    assert.match(downloadFaq.answer, /Runtime/);
+    assert.match(downloadFaq.answer, /Avatar/);
+    assert.match(downloadFaq.answer, /Zhiyu/);
+    assert.match(downloadFaq.answer, /Nimi Lab/);
+    assert.ok(!content.security.links.some((link) => /releases\/(?:tag|download)\/v\d/.test(link.href)));
   }
 });

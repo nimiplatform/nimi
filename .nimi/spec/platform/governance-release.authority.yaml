@@ -176,3 +176,15 @@ units:
         target: definition.nimi.platform.governance-release.promise-posture
       - type: applies_to
         target: definition.nimi.platform.governance-release.release-promise
+  - id: rule.nimi.platform.governance-release.p-gov-028-release-tag-namespace
+    kind: rule
+    title: Release tags identify their product or component owner
+    modality: must
+    statement: Every product or component release tag in the Nimi repository, including preview and release-candidate tags, names its release owner before /v<SemVer>; the complete Desktop plus Runtime plus Avatar Nimi product uses nimi/v<product SemVer>, a Desktop-only release uses desktop/v<Desktop SemVer>, a Runtime-only release uses runtime/v<Runtime SemVer>, and public library families retain their independently governed component prefixes and versions. A bare v<SemVer> tag or a manually numbered mixed-component batch never identifies a Nimi repository-wide release, and nimi/ never identifies a partial product or an unrelated collection of component artifacts; independent Third-party App repositories retain their publisher-owned tag identities.
+    condition: Whenever a Nimi-repository product or component release tag is created, interpreted, or published.
+    failure: Reject publication when the tag lacks an owner namespace, its version lacks the named owner's release identity, or the delivered components do not match that identity; do not rename a mixed release into a component or complete-product release.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.governance-release.first-party-public-component-release
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.release-bundle

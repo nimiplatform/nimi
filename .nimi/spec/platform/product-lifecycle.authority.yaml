@@ -872,7 +872,7 @@ units:
   - id: definition.nimi.platform.product-lifecycle.release-bundle
     kind: definition
     title: Nimi release bundle
-    meaning: A Nimi release bundle is one coordinated atomic product release identity comprising the Desktop-host shell release, its exact signed Runtime service release compatibility, and admitted version, update-channel, signature, and rollback metadata.
+    meaning: A Nimi release bundle is one coordinated atomic product release identity comprising the Desktop-host shell, the exact compatible signed Runtime service release, and the bundled Avatar App, together with admitted version, update-channel, signature, and rollback metadata; Zhiyu and Nimi Lab are independently published Third-party Apps outside this product bundle.
   - id: definition.nimi.platform.product-lifecycle.update-channel
     kind: definition
     title: Nimi update channel
@@ -1015,7 +1015,7 @@ units:
     kind: rule
     title: P-PKGREL-002 atomic release identity
     modality: must
-    statement: Every Nimi installation or update preserves one atomic release identity across the Desktop-host shell, exact signed Runtime compatibility, and admitted release metadata, and no hot patch, partial replacement, or out-of-band Runtime replacement may produce an unsynchronized identity.
+    statement: Every complete downloadable Nimi product release, installation, or update includes the Desktop-host shell, its exact compatible signed Runtime service release, and the bundled Avatar App under one atomic release identity with admitted release metadata; no hot patch, partial replacement, or out-of-band Runtime or Avatar replacement may produce an unsynchronized identity, and a subset of these components is never presented as the complete Nimi product.
     condition: Whenever a Nimi release is assembled, installed, or updated.
     failure: Reject or roll back the release before activation when atomic identity or compatibility is not preserved.
     relations:
@@ -1087,6 +1087,20 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.public-account-web-surface
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.release-bundle
+  - id: rule.nimi.platform.product-lifecycle.p-pkgrel-009
+    kind: rule
+    title: P-PKGREL-009 bundled Avatar and independent App publication
+    modality: must
+    statement: Avatar ships as part of the Nimi product bundle while retaining the same formal App contract, registration, protected-session, and access semantics as other equally covered Apps; Zhiyu and Nimi Lab version, publish, and enter Registry admission independently through the Third-party App lifecycle and are neither bundled Nimi product components nor coupled to its release version.
+    condition: Whenever Nimi product composition or the distribution of Avatar, Zhiyu, or Nimi Lab is defined or published.
+    failure: Reject a product bundle that omits Avatar, includes Zhiyu or Nimi Lab as a required product component, couples their independent releases, or turns bundling into an App authority or access privilege.
+    relations:
+      - type: applies_to
+        target: definition.nimi.avatar.embodiment.product-boundary
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.release-descriptor
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.release-bundle
   - id: rule.nimi.platform.product-lifecycle.p-web-001a
